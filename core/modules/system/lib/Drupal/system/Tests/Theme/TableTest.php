@@ -27,7 +27,7 @@ class TableTest extends WebTestBase {
   function testThemeTableStickyHeaders() {
     $header = array('one', 'two', 'three');
     $rows = array(array(1,2,3), array(4,5,6), array(7,8,9));
-    $this->content = theme('table', array('header' => $header, 'rows' => $rows));
+    $this->content = theme('table', array('header' => $header, 'rows' => $rows, 'sticky' => TRUE));
     $js = drupal_add_js();
     $this->assertTrue(isset($js['core/misc/tableheader.js']), 'tableheader.js was included when $sticky = TRUE.');
     $this->assertRaw('sticky-enabled',  'Table has a class of sticky-enabled when $sticky = TRUE.');
@@ -65,5 +65,20 @@ class TableTest extends WebTestBase {
     $this->content = theme('table', array('header' => $header, 'rows' => array(), 'empty' => t('No strings available.')));
     $this->assertRaw('<tr class="odd"><td colspan="3" class="empty message">No strings available.</td>', 'Correct colspan was set on empty message.');
     $this->assertRaw('<thead><tr><th>Header 1</th>', 'Table header was printed.');
+  }
+
+  /**
+   * Tests that the 'no_striping' option works correctly.
+   */
+  function testThemeTableWithNoStriping() {
+    $rows = array(
+      array(
+        'data' => array(1),
+        'no_striping' => TRUE,
+      ),
+    );
+    $this->content = theme('table', array('rows' => $rows));
+    $this->assertNoRaw('class="odd"', 'Odd/even classes were not added because $no_striping = TRUE.');
+    $this->assertNoRaw('no_striping', 'No invalid no_striping HTML attribute was printed.');
   }
 }

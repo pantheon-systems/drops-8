@@ -12,6 +12,13 @@ namespace Drupal\views\Tests\Handler;
  */
 class ArgumentStringTest extends HandlerTestBase {
 
+  /**
+   * Views used by this test.
+   *
+   * @var array
+   */
+  public static $testViews = array('test_glossary');
+
   public static function getInfo() {
     return array(
       'name' => 'Argument: String',
@@ -35,18 +42,18 @@ class ArgumentStringTest extends HandlerTestBase {
       }
     }
 
-    $view = $this->createViewFromConfig('test_glossary');
+    $view = views_get_view('test_glossary');
     $this->executeView($view);
 
     $count_field = 'nid';
     foreach ($view->result as &$row) {
-      if (strpos($row->node_title, 'a') === 0) {
+      if (strpos($view->field['title']->getValue($row), 'a') === 0) {
         $this->assertEqual(1, $row->{$count_field});
       }
-      if (strpos($row->node_title, 'b') === 0) {
+      if (strpos($view->field['title']->getValue($row), 'b') === 0) {
         $this->assertEqual(2, $row->{$count_field});
       }
-      if (strpos($row->node_title, 'c') === 0) {
+      if (strpos($view->field['title']->getValue($row), 'c') === 0) {
         $this->assertEqual(3, $row->{$count_field});
       }
     }

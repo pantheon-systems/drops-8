@@ -7,6 +7,8 @@
 
 namespace Drupal\taxonomy\Tests;
 
+use Drupal\Core\Language\Language;
+
 /**
  * Tests the rendering of term reference fields in RSS feeds.
  */
@@ -17,7 +19,7 @@ class RssTest extends TaxonomyTestBase {
    *
    * @var array
    */
-  public static $modules = array('node', 'field_ui');
+  public static $modules = array('node', 'field_ui', 'views');
 
   public static function getInfo() {
     return array(
@@ -30,39 +32,41 @@ class RssTest extends TaxonomyTestBase {
   function setUp() {
     parent::setUp();
 
-    $this->admin_user = $this->drupalCreateUser(array('administer taxonomy', 'bypass node access', 'administer content types'));
+    $this->admin_user = $this->drupalCreateUser(array('administer taxonomy', 'bypass node access', 'administer content types', 'administer node display'));
     $this->drupalLogin($this->admin_user);
     $this->vocabulary = $this->createVocabulary();
+    $this->field_name = 'taxonomy_' . $this->vocabulary->id();
 
-    $field = array(
-      'field_name' => 'taxonomy_' . $this->vocabulary->machine_name,
+    $this->field = entity_create('field_entity', array(
+      'name' => $this->field_name,
+      'entity_type' => 'node',
       'type' => 'taxonomy_term_reference',
       'cardinality' => FIELD_CARDINALITY_UNLIMITED,
       'settings' => array(
         'allowed_values' => array(
           array(
-            'vocabulary' => $this->vocabulary->machine_name,
+            'vocabulary' => $this->vocabulary->id(),
             'parent' => 0,
           ),
         ),
       ),
-    );
-    field_create_field($field);
-
-    $this->instance = array(
-      'field_name' => 'taxonomy_' . $this->vocabulary->machine_name,
+    ));
+    $this->field->save();
+    entity_create('field_instance', array(
+      'field_name' => $this->field_name,
       'bundle' => 'article',
       'entity_type' => 'node',
-      'widget' => array(
+    ))->save();
+    entity_get_form_display('node', 'article', 'default')
+      ->setComponent($this->field_name, array(
         'type' => 'options_select',
-      ),
-      'display' => array(
-        'default' => array(
-          'type' => 'taxonomy_term_reference_link',
-        ),
-      ),
-    );
-    field_create_instance($this->instance);
+      ))
+      ->save();
+    entity_get_display('node', 'article', 'default')
+      ->setComponent($this->field_name, array(
+        'type' => 'taxonomy_term_reference_link',
+      ))
+      ->save();
   }
 
   /**
@@ -77,37 +81,37 @@ class RssTest extends TaxonomyTestBase {
     // RSS display must be added manually.
     $this->drupalGet("admin/structure/types/manage/article/display");
     $edit = array(
-      "view_modes_custom[rss]" => '1',
+      "display_modes_custom[rss]" => '1',
     );
     $this->drupalPost(NULL, $edit, t('Save'));
 
     // Change the format to 'RSS category'.
     $this->drupalGet("admin/structure/types/manage/article/display/rss");
     $edit = array(
-      "fields[taxonomy_" . $this->vocabulary->machine_name . "][type]" => 'taxonomy_term_reference_rss_category',
+      "fields[taxonomy_" . $this->vocabulary->id() . "][type]" => 'taxonomy_term_reference_rss_category',
     );
     $this->drupalPost(NULL, $edit, t('Save'));
 
     // Post an article.
     $edit = array();
-    $langcode = LANGUAGE_NOT_SPECIFIED;
+    $langcode = Language::LANGCODE_NOT_SPECIFIED;
     $edit["title"] = $this->randomName();
-    $edit[$this->instance['field_name'] . '[' . $langcode . '][]'] = $term1->tid;
+    $edit[$this->field_name . '[' . $langcode . '][]'] = $term1->id();
     $this->drupalPost('node/add/article', $edit, t('Save'));
 
     // Check that the term is displayed when the RSS feed is viewed.
     $this->drupalGet('rss.xml');
     $test_element = array(
       'key' => 'category',
-      'value' => $term1->name,
+      'value' => $term1->name->value,
       'attributes' => array(
-        'domain' => url('taxonomy/term/' . $term1->tid, array('absolute' => TRUE)),
+        'domain' => url('taxonomy/term/' . $term1->id(), array('absolute' => TRUE)),
       ),
     );
     $this->assertRaw(format_xml_elements(array($test_element)), 'Term is displayed when viewing the rss feed.');
 
     // Test that the feed page exists for the term.
-    $this->drupalGet("taxonomy/term/{$term1->tid}/feed");
+    $this->drupalGet("taxonomy/term/{$term1->id()}/feed");
     $this->assertRaw('<rss version="2.0"', "Feed page is RSS.");
   }
 }

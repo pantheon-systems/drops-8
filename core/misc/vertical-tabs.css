@@ -1,69 +1,67 @@
 
-div.vertical-tabs {
+.vertical-tabs {
   margin: 1em 0 1em 15em; /* LTR */
   border: 1px solid #ccc;
 }
-.vertical-tabs ul.vertical-tabs-list {
-  width: 15em;
-  list-style: none;
-  border-top: 1px solid #ccc;
-  padding: 0;
-  margin: -1px 0 -1px -15em; /* LTR */
-  float: left; /* LTR */
+[dir="rtl"] .vertical-tabs {
+   margin-left: 0;
+   margin-right: 15em;
 }
-.vertical-tabs fieldset.vertical-tabs-pane {
-  margin: 0 !important;
-  padding: 0 1em;
+.vertical-tabs-list {
+  float: left; /* LTR */
+  width: 15em;
+  margin: -1px 0 -1px -15em; /* LTR */
+  padding: 0;
+  border-top: 1px solid #ccc;
+  list-style: none;
+}
+[dir="rtl"] .vertical-tabs-list {
+  float: right;
+  margin-left: 0;
+  margin-right: -15em;
+}
+.vertical-tabs-pane {
+  margin: 0;
   border: 0;
 }
-fieldset.vertical-tabs-pane > legend {
+.vertical-tabs-pane > summary {
   display: none;
 }
 
 /* Layout of each tab */
-.vertical-tabs ul.vertical-tabs-list li {
-  background: #eee;
+.vertical-tab-button {
+  margin: 0;
+  padding: 0;
   border: 1px solid #ccc;
   border-top: 0;
-  padding: 0;
-  margin: 0;
+  background: #eee;
 }
-.vertical-tabs ul.vertical-tabs-list li a {
+.vertical-tab-button a {
   display: block;
-  text-decoration: none;
   padding: 0.5em 0.6em;
+  text-decoration: none;
 }
-.vertical-tabs ul.vertical-tabs-list li a:focus strong,
-.vertical-tabs ul.vertical-tabs-list li a:active strong,
-.vertical-tabs ul.vertical-tabs-list li a:hover strong {
+.vertical-tab-button a:focus strong,
+.vertical-tab-button a:active strong,
+.vertical-tab-button a:hover strong {
   text-decoration: underline;
 }
-.vertical-tabs ul.vertical-tabs-list li a:hover {
+.vertical-tab-button a:hover {
   outline: 1px dotted;
 }
-.vertical-tabs ul.vertical-tabs-list li.selected {
-  background-color: #fff;
+.vertical-tab-button.selected {
   border-right-width: 0; /* LTR */
+  background-color: #fff;
 }
-.vertical-tabs ul.vertical-tabs-list .selected strong {
+[dir="rtl"] .vertical-tab-button.selected {
+  border-left-width: 0;
+  border-right-width: 1px;
+}
+.vertical-tab-button.selected strong {
   color: #000;
 }
-.vertical-tabs ul.vertical-tabs-list .summary {
+.vertical-tab-button .summary {
   display: block;
-}
-.vertical-tabs ul.vertical-tabs ul.vertical-tabs-list .summary {
-  line-height: normal;
   margin-bottom: 0;
-}
-
-/**
- * Prevent text inputs from overflowing when container is too narrow. "width" is
- * applied to override hardcoded cols or size attributes and used in conjunction
- * with "box-sizing" to prevent box model issues from occurring in most browsers.
-*/
-.vertical-tabs .form-type-textfield input {
-  width: 100%;
-  -moz-box-sizing: border-box;
-  -webkit-box-sizing: border-box;
-  box-sizing: border-box;
+  line-height: normal;
 }

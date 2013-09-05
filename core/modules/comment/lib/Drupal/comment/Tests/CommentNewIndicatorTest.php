@@ -7,10 +7,21 @@
 
 namespace Drupal\comment\Tests;
 
+use Drupal\Core\Language\Language;
+
 /**
  * Tests the 'new' marker on comments.
  */
 class CommentNewIndicatorTest extends CommentTestBase {
+
+  /**
+   * Use the main node listing to test rendering on teasers.
+   *
+   * @var array
+   *
+   * @todo Remove this dependency.
+   */
+  public static $modules = array('views');
 
   public static function getInfo() {
     return array(
@@ -34,20 +45,20 @@ class CommentNewIndicatorTest extends CommentTestBase {
     $this->assertLink(t('Read more'));
 
     // Create a new comment. This helper function may be run with different
-    // comment settings so use comment_save() to avoid complex setup.
+    // comment settings so use $comment->save() to avoid complex setup.
     $comment = entity_create('comment', array(
       'cid' => NULL,
-      'nid' => $this->node->nid,
-      'node_type' => $this->node->type,
+      'nid' => $this->node->id(),
+      'node_type' => $this->node->getType(),
       'pid' => 0,
-      'uid' => $this->loggedInUser->uid,
+      'uid' => $this->loggedInUser->id(),
       'status' => COMMENT_PUBLISHED,
       'subject' => $this->randomName(),
-      'hostname' => ip_address(),
-      'langcode' => LANGUAGE_NOT_SPECIFIED,
-      'comment_body' => array(LANGUAGE_NOT_SPECIFIED => array($this->randomName())),
+      'hostname' => '127.0.0.1',
+      'langcode' => Language::LANGCODE_NOT_SPECIFIED,
+      'comment_body' => array(Language::LANGCODE_NOT_SPECIFIED => array($this->randomName())),
     ));
-    comment_save($comment);
+    $comment->save();
     $this->drupalLogout();
 
     // Log in with 'web user' and check comment links.

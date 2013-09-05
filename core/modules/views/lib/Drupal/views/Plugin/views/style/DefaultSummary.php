@@ -8,7 +8,7 @@
 namespace Drupal\views\Plugin\views\style;
 
 use Drupal\views\Plugin\views\style\StylePluginBase;
-use Drupal\Core\Annotation\Plugin;
+use Drupal\views\Annotation\ViewsStyle;
 use Drupal\Core\Annotation\Translation;
 
 /**
@@ -16,12 +16,12 @@ use Drupal\Core\Annotation\Translation;
  *
  * @ingroup views_style_plugins
  *
- * @Plugin(
+ * @ViewsStyle(
  *   id = "default_summary",
  *   title = @Translation("List"),
  *   help = @Translation("Displays the default summary as a list."),
  *   theme = "views_view_summary",
- *   type = "summary"
+ *   display_types = {"summary"}
  * )
  */
 class DefaultSummary extends StylePluginBase {
@@ -77,18 +77,19 @@ class DefaultSummary extends StylePluginBase {
     );
   }
 
-  function render() {
+  public function render() {
     $rows = array();
     foreach ($this->view->result as $row) {
       // @todo: Include separator as an option.
       $rows[] = $row;
     }
 
-    return theme($this->themeFunctions(), array(
-      'view' => $this->view,
-      'options' => $this->options,
-      'rows' => $rows
-    ));
+    return array(
+      '#theme' => $this->themeFunctions(),
+      '#view' => $this->view,
+      '#options' => $this->options,
+      '#rows' => $rows,
+    );
   }
 
 }

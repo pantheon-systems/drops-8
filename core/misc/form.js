@@ -50,7 +50,7 @@ Drupal.behaviors.formUpdated = {
     $(context)
       // Since context could be an input element itself, it's added back to
       // the jQuery object and filtered again.
-      .find(':input').andSelf().filter(':input')
+      .find(':input').addBack().filter(':input')
       // To prevent duplicate events, the handlers are first removed and then
       // (re-)added.
       .unbind(events).bind(events, function () {
@@ -66,7 +66,6 @@ Drupal.behaviors.fillUserInfoFromCookie = {
   attach: function (context, settings) {
     var userInfo = ['name', 'mail', 'homepage'];
     $('form.user-info-from-cookie').once('user-info-from-cookie', function () {
-      var formContext = this;
       var $formContext = $(this);
       var i, il, $element, cookie;
       for (i = 0, il = userInfo.length; i < il; i += 1) {

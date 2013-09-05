@@ -1,0 +1,29 @@
+base_table: views_test_data
+core: '8'
+description: ''
+status: '1'
+display:
+  default:
+    display_plugin: default
+    display_title: Master
+    id: default
+    position: '0'
+  page_1:
+    display_plugin: page
+    display_title: Page
+    id: page_1
+    position: '1'
+  page_2:
+    display_plugin: page
+    display_title: 'Page 2'
+    id: page_2
+    position: '2'
+    display_options:
+      defaults:
+        style: '0'
+      style:
+        type: grid
+label: ''
+langcode: en
+id: test_executable_displays
+tag: ''

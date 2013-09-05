@@ -21,7 +21,7 @@ abstract class Query implements PlaceholderInterface {
   /**
    * The connection object on which to run this query.
    *
-   * @var Drupal\Core\Database\Connection
+   * @var \Drupal\Core\Database\Connection
    */
   protected $connection;
 
@@ -66,7 +66,7 @@ abstract class Query implements PlaceholderInterface {
   /**
    * Constructs a Query object.
    *
-   * @param Drupal\Core\Database\Connection $connection
+   * @param \Drupal\Core\Database\Connection $connection
    *   Database connection object.
    * @param array $options
    *   Array of query options.
@@ -151,7 +151,7 @@ abstract class Query implements PlaceholderInterface {
    * @param $comment
    *   The comment string to be inserted into the query.
    *
-   * @return Drupal\Core\Database\Query\Query
+   * @return \Drupal\Core\Database\Query\Query
    *   The called object.
    */
   public function comment($comment) {
@@ -177,4 +177,26 @@ abstract class Query implements PlaceholderInterface {
   public function &getComments() {
     return $this->comments;
   }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function conditionGroupFactory($conjunction = 'AND') {
+    return new Condition($conjunction);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function andConditionGroup() {
+    return $this->conditionGroupFactory('AND');
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function orConditionGroup() {
+    return $this->conditionGroupFactory('OR');
+  }
+
 }

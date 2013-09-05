@@ -7,24 +7,27 @@
 
 namespace Drupal\node\Plugin\views\field;
 
+use Drupal\views\ResultRow;
 use Drupal\views\ViewExecutable;
+use Drupal\views\Plugin\views\display\DisplayPluginBase;
 use Drupal\node\Plugin\views\field\Node;
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
 
 /**
  * A basic node_revision handler.
  *
  * @ingroup views_field_handlers
  *
- * @Plugin(
- *   id = "node_revision",
- *   module = "node"
- * )
+ * @PluginID("node_revision")
  */
 class Revision extends Node {
 
-  public function init(ViewExecutable $view, &$options) {
-    parent::init($view, $options);
+  /**
+   * Overrides \Drupal\node\Plugin\views\field\Node::init().
+   */
+  public function init(ViewExecutable $view, DisplayPluginBase $display, array &$options = NULL) {
+    parent::init($view, $display, $options);
+
     if (!empty($this->options['link_to_node_revision'])) {
       $this->additional_fields['vid'] = 'vid';
       $this->additional_fields['nid'] = 'nid';
@@ -57,14 +60,14 @@ class Revision extends Node {
    *
    * Data should be made XSS safe prior to calling this function.
    */
-  function render_link($data, $values) {
+  protected function renderLink($data, ResultRow $values) {
     if (!empty($this->options['link_to_node_revision']) && $data !== NULL && $data !== '') {
       $this->options['alter']['make_link'] = TRUE;
-      $nid = $this->get_value($values, 'nid');
-      $vid = $this->get_value($values, 'vid');
+      $nid = $this->getValue($values, 'nid');
+      $vid = $this->getValue($values, 'vid');
       $this->options['alter']['path'] = "node/" . $nid . '/revisions/' . $vid . '/view';
       if (module_exists('translation')) {
-        $langcode = $this->get_value($values, 'langcode');
+        $langcode = $this->getValue($values, 'langcode');
         $languages = language_list();
         if (isset($languages[$langcode])) {
           $this->options['alter']['langcode'] = $languages[$langcode];
@@ -72,7 +75,7 @@ class Revision extends Node {
       }
     }
     else {
-      return parent::render_link($data, $values);
+      return parent::renderLink($data, $values);
     }
     return $data;
   }

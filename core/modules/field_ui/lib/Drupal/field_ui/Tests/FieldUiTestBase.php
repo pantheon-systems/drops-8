@@ -2,11 +2,12 @@
 
 /**
  * @file
- * Definition of Drupal\field_ui\Tests\FieldUiTestBase.
+ * Contains \Drupal\field_ui\Tests\FieldUiTestBase.
  */
 
 namespace Drupal\field_ui\Tests;
 
+use Drupal\Core\Language\Language;
 use Drupal\simpletest\WebTestBase;
 
 /**
@@ -19,19 +20,32 @@ abstract class FieldUiTestBase extends WebTestBase {
    *
    * @var array
    */
-  public static $modules = array('node', 'field_ui', 'field_test', 'taxonomy');
+  public static $modules = array('node', 'field_ui', 'field_test', 'taxonomy', 'image');
 
   function setUp() {
     parent::setUp();
 
     // Create test user.
-    $admin_user = $this->drupalCreateUser(array('access content', 'administer content types', 'administer taxonomy', 'administer users'));
+    $admin_user = $this->drupalCreateUser(array('access content', 'administer content types', 'administer node fields', 'administer node form display', 'administer node display', 'administer taxonomy', 'administer taxonomy_term fields', 'administer taxonomy_term display', 'administer users', 'administer user display', 'bypass node access'));
     $this->drupalLogin($admin_user);
 
     // Create content type, with underscores.
     $type_name = strtolower($this->randomName(8)) . '_test';
     $type = $this->drupalCreateContentType(array('name' => $type_name, 'type' => $type_name));
     $this->type = $type->type;
+
+    // Create a default vocabulary.
+    $vocabulary = entity_create('taxonomy_vocabulary', array(
+      'name' => $this->randomName(),
+      'description' => $this->randomName(),
+      'vid' => drupal_strtolower($this->randomName()),
+      'langcode' => Language::LANGCODE_NOT_SPECIFIED,
+      'help' => '',
+      'nodes' => array('article' => 'article'),
+      'weight' => mt_rand(0, 10),
+    ));
+    $vocabulary->save();
+    $this->vocabulary = $vocabulary->id();
   }
 
   /**
@@ -53,10 +67,8 @@ abstract class FieldUiTestBase extends WebTestBase {
     // Use 'test_field' field type by default.
     $initial_edit += array(
       'fields[_add_new_field][type]' => 'test_field',
-      'fields[_add_new_field][widget_type]' => 'test_field_widget',
     );
     $label = $initial_edit['fields[_add_new_field][label]'];
-    $field_name = $initial_edit['fields[_add_new_field][field_name]'];
 
     // First step : 'Add new field' on the 'Manage fields' page.
     $this->drupalPost("$bundle_path/fields",  $initial_edit, t('Save'));
@@ -87,12 +99,7 @@ abstract class FieldUiTestBase extends WebTestBase {
    *   form).
    */
   function fieldUIAddExistingField($bundle_path, $initial_edit, $instance_edit = array()) {
-    // Use 'test_field_widget' by default.
-    $initial_edit += array(
-      'fields[_add_existing_field][widget_type]' => 'test_field_widget',
-    );
     $label = $initial_edit['fields[_add_existing_field][label]'];
-    $field_name = $initial_edit['fields[_add_existing_field][field_name]'];
 
     // First step : 'Re-use existing field' on the 'Manage fields' page.
     $this->drupalPost("$bundle_path/fields", $initial_edit, t('Save'));

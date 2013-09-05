@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Definition of Drupal\simpletest\Tests\SimpleTestTest.
+ * Definition of \Drupal\simpletest\Tests\SimpleTestTest.
  */
 
 namespace Drupal\simpletest\Tests;
@@ -25,8 +25,9 @@ class SimpleTestTest extends WebTestBase {
   protected $childTestResults;
 
   /**
-   * Store the test ID from each test run for comparison, to ensure they are
-   * incrementing.
+   * Stores the test ID from each test run for comparison.
+   *
+   * Used to ensure they are incrementing.
    */
   protected $test_ids = array();
 
@@ -58,33 +59,30 @@ class SimpleTestTest extends WebTestBase {
     if (!$this->inCURL()) {
       // Retrieve the test page and check its title and headers.
       $this->drupalGet('test-page');
-      $this->assertTrue($this->drupalGetHeader('Date'), t('An HTTP header was received.'));
+      $this->assertTrue($this->drupalGetHeader('Date'), 'An HTTP header was received.');
       $this->assertTitle(t('Test page | @site-name', array(
-        '@site-name' => config('system.site')->get('name'),
+        '@site-name' => \Drupal::config('system.site')->get('name'),
       )));
       $this->assertNoTitle('Foo');
 
-      // Make sure that we are locked out of the installer when prefixing
-      // using the user-agent header. This is an important security check.
       global $base_url;
-
-      $this->drupalGet($base_url . '/core/install.php', array('external' => TRUE));
-      $this->assertResponse(403, 'Cannot access install.php with a "simpletest" user-agent header.');
+      $this->drupalGet(url($base_url . '/core/install.php', array('external' => TRUE, 'absolute' => TRUE)));
+      $this->assertResponse(403, 'Cannot access install.php.');
 
       $user = $this->drupalCreateUser();
       $this->drupalLogin($user);
       $headers = $this->drupalGetHeaders(TRUE);
-      $this->assertEqual(count($headers), 2, t('There was one intermediate request.'));
-      $this->assertTrue(strpos($headers[0][':status'], '302') !== FALSE, t('Intermediate response code was 302.'));
-      $this->assertFalse(empty($headers[0]['location']), t('Intermediate request contained a Location header.'));
-      $this->assertEqual($this->getUrl(), $headers[0]['location'], t('HTTP redirect was followed'));
-      $this->assertFalse($this->drupalGetHeader('Location'), t('Headers from intermediate request were reset.'));
-      $this->assertResponse(200, t('Response code from intermediate request was reset.'));
+      $this->assertEqual(count($headers), 2, 'There was one intermediate request.');
+      $this->assertTrue(strpos($headers[0][':status'], '302') !== FALSE, 'Intermediate response code was 302.');
+      $this->assertFalse(empty($headers[0]['location']), 'Intermediate request contained a Location header.');
+      $this->assertEqual($this->getUrl(), $headers[0]['location'], 'HTTP redirect was followed');
+      $this->assertFalse($this->drupalGetHeader('Location'), 'Headers from intermediate request were reset.');
+      $this->assertResponse(200, 'Response code from intermediate request was reset.');
 
       // Test the maximum redirection option.
       $this->drupalLogout();
       $edit = array(
-        'name' => $user->name,
+        'name' => $user->getUsername(),
         'pass' => $user->pass_raw
       );
       $this->maximumRedirects = 1;
@@ -92,7 +90,7 @@ class SimpleTestTest extends WebTestBase {
         'query' => array('destination' => 'user/logout'),
       ));
       $headers = $this->drupalGetHeaders(TRUE);
-      $this->assertEqual(count($headers), 2, t('Simpletest stopped following redirects after the first one.'));
+      $this->assertEqual(count($headers), 2, 'Simpletest stopped following redirects after the first one.');
     }
   }
 
@@ -106,36 +104,35 @@ class SimpleTestTest extends WebTestBase {
       $HTTP_path = $system_path .'/tests/http.php?q=node';
       $https_path = $system_path .'/tests/https.php?q=node';
       // Generate a valid simpletest User-Agent to pass validation.
-      $this->assertTrue(preg_match('/simpletest\d+/', $this->databasePrefix, $matches), t('Database prefix contains simpletest prefix.'));
+      $this->assertTrue(preg_match('/simpletest\d+/', $this->databasePrefix, $matches), 'Database prefix contains simpletest prefix.');
       $test_ua = drupal_generate_test_ua($matches[0]);
       $this->additionalCurlOptions = array(CURLOPT_USERAGENT => $test_ua);
 
       // Test pages only available for testing.
       $this->drupalGet($HTTP_path);
-      $this->assertResponse(200, t('Requesting http.php with a legitimate simpletest User-Agent returns OK.'));
+      $this->assertResponse(200, 'Requesting http.php with a legitimate simpletest User-Agent returns OK.');
       $this->drupalGet($https_path);
-      $this->assertResponse(200, t('Requesting https.php with a legitimate simpletest User-Agent returns OK.'));
+      $this->assertResponse(200, 'Requesting https.php with a legitimate simpletest User-Agent returns OK.');
 
       // Now slightly modify the HMAC on the header, which should not validate.
       $this->additionalCurlOptions = array(CURLOPT_USERAGENT => $test_ua . 'X');
       $this->drupalGet($HTTP_path);
-      $this->assertResponse(403, t('Requesting http.php with a bad simpletest User-Agent fails.'));
+      $this->assertResponse(403, 'Requesting http.php with a bad simpletest User-Agent fails.');
       $this->drupalGet($https_path);
-      $this->assertResponse(403, t('Requesting https.php with a bad simpletest User-Agent fails.'));
+      $this->assertResponse(403, 'Requesting https.php with a bad simpletest User-Agent fails.');
 
       // Use a real User-Agent and verify that the special files http.php and
       // https.php can't be accessed.
       $this->additionalCurlOptions = array(CURLOPT_USERAGENT => 'Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.6; en-US; rv:1.9.2.12) Gecko/20101026 Firefox/3.6.12');
       $this->drupalGet($HTTP_path);
-      $this->assertResponse(403, t('Requesting http.php with a normal User-Agent fails.'));
+      $this->assertResponse(403, 'Requesting http.php with a normal User-Agent fails.');
       $this->drupalGet($https_path);
-      $this->assertResponse(403, t('Requesting https.php with a normal User-Agent fails.'));
+      $this->assertResponse(403, 'Requesting https.php with a normal User-Agent fails.');
     }
   }
 
   /**
-   * Make sure that tests selected through the web interface are run and
-   * that the results are displayed correctly.
+   * Ensures the tests selected through the web interface are run and displayed.
    */
   function testWebTestRunner() {
     $this->pass = t('SimpleTest pass.');
@@ -144,7 +141,8 @@ class SimpleTestTest extends WebTestBase {
     $this->invalid_permission = 'invalid permission';
 
     if ($this->inCURL()) {
-      // Only run following code if this test is running itself through a CURL request.
+      // Only run following code if this test is running itself through a CURL
+      // request.
       $this->stubTest();
     }
     else {
@@ -165,7 +163,7 @@ class SimpleTestTest extends WebTestBase {
 
       // Regression test for #290316.
       // Check that test_id is incrementing.
-      $this->assertTrue($this->test_ids[0] != $this->test_ids[1], t('Test ID is incrementing.'));
+      $this->assertTrue($this->test_ids[0] != $this->test_ids[1], 'Test ID is incrementing.');
     }
   }
 
@@ -218,9 +216,9 @@ class SimpleTestTest extends WebTestBase {
     // Check that the backtracing code works for specific assert function.
     $this->assertAssertion('This is nothing.', 'Other', 'Pass', 'SimpleTestTest.php', 'Drupal\simpletest\Tests\SimpleTestTest->stubTest()');
 
-    // Check that errors that occur inside PHP internal functions are correctly reported.
-    // The exact error message differs between PHP versions so we check only
-    // the function name 'array_key_exists'.
+    // Check that errors that occur inside PHP internal functions are correctly
+    // reported. The exact error message differs between PHP versions so we
+    // check only the function name 'array_key_exists'.
     $this->assertAssertion('array_key_exists', 'Warning', 'Fail', 'SimpleTestTest.php', 'Drupal\simpletest\Tests\SimpleTestTest->stubTest()');
 
     $this->assertAssertion("Debug: 'Foo'", 'Debug', 'Fail', 'SimpleTestTest.php', 'Drupal\simpletest\Tests\SimpleTestTest->stubTest()');
@@ -228,7 +226,7 @@ class SimpleTestTest extends WebTestBase {
     $this->assertEqual('6 passes, 5 fails, 2 exceptions, and 1 debug message', $this->childTestResults['summary'], 'Stub test summary is correct');
 
     $this->test_ids[] = $test_id = $this->getTestIdFromResults();
-    $this->assertTrue($test_id, t('Found test ID in results.'));
+    $this->assertTrue($test_id, 'Found test ID in results.');
   }
 
   /**
@@ -244,14 +242,14 @@ class SimpleTestTest extends WebTestBase {
   }
 
   /**
-   * Assert that an assertion with the specified values is displayed
-   * in the test results.
+   * Asserts that an assertion with specified values is displayed in results.
    *
    * @param string $message Assertion message.
    * @param string $type Assertion type.
    * @param string $status Assertion status.
    * @param string $file File where the assertion originated.
    * @param string $functuion Function where the assertion originated.
+   *
    * @return Assertion result.
    */
   function assertAssertion($message, $type, $status, $file, $function) {
@@ -267,7 +265,7 @@ class SimpleTestTest extends WebTestBase {
         break;
       }
     }
-    return $this->assertTrue($found, t('Found assertion {"@message", "@type", "@status", "@file", "@function"}.', array('@message' => $message, '@type' => $type, '@status' => $status, "@file" => $file, "@function" => $function)));
+    return $this->assertTrue($found, format_string('Found assertion {"@message", "@type", "@status", "@file", "@function"}.', array('@message' => $message, '@type' => $type, '@status' => $status, "@file" => $file, "@function" => $function)));
   }
 
   /**
@@ -276,13 +274,13 @@ class SimpleTestTest extends WebTestBase {
   function getTestResults() {
     $results = array();
     if ($this->parse()) {
-      if ($fieldset = $this->getResultFieldSet()) {
+      if ($details = $this->getResultFieldSet()) {
         // Code assumes this is the only test in group.
-        $results['summary'] = $this->asText($fieldset->div->div[1]);
-        $results['name'] = $this->asText($fieldset->legend);
+        $results['summary'] = $this->asText($details->div->div[1]);
+        $results['name'] = $this->asText($details->summary);
 
         $results['assertions'] = array();
-        $tbody = $fieldset->div->table->tbody;
+        $tbody = $details->div->table->tbody;
         foreach ($tbody->tr as $row) {
           $assertion = array();
           $assertion['message'] = $this->asText($row->td[0]);
@@ -300,14 +298,14 @@ class SimpleTestTest extends WebTestBase {
   }
 
   /**
-   * Get the fieldset containing the results for group this test is in.
+   * Get the details containing the results for group this test is in.
    */
   function getResultFieldSet() {
-    $fieldsets = $this->xpath('//fieldset');
+    $all_details = $this->xpath('//details');
     $info = $this->getInfo();
-    foreach ($fieldsets as $fieldset) {
-      if ($this->asText($fieldset->legend) == $info['name']) {
-        return $fieldset;
+    foreach ($all_details as $details) {
+      if ($this->asText($details->summary) == $info['name']) {
+        return $details;
       }
     }
     return FALSE;
@@ -318,6 +316,7 @@ class SimpleTestTest extends WebTestBase {
    *
    * @param $element
    *   Element to extract text from.
+   *
    * @return
    *   Extracted text.
    */

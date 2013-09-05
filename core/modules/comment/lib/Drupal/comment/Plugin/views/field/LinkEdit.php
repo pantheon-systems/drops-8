@@ -2,22 +2,20 @@
 
 /**
  * @file
- * Definition of Drupal\comment\Plugin\views\field\LinkEdit.
+ * Contains \Drupal\comment\Plugin\views\field\LinkEdit.
  */
 
 namespace Drupal\comment\Plugin\views\field;
 
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
+use Drupal\views\ResultRow;
 
 /**
- * Field handler to present a link node edit.
+ * Field handler to present a link to edit a comment.
  *
  * @ingroup views_field_handlers
  *
- * @Plugin(
- *   id = "comment_link_edit",
- *   module = "comment"
- * )
+ * @PluginID("comment_link_edit")
  */
 class LinkEdit extends Link {
 
@@ -36,15 +34,14 @@ class LinkEdit extends Link {
       '#title' => t('Use destination'),
       '#description' => t('Add destination to the link'),
       '#default_value' => $this->options['destination'],
-      '#fieldset' => 'more',
     );
   }
 
-  function render_link($data, $values) {
-    parent::render_link($data, $values);
-    // ensure user has access to edit this comment.
-    $comment = $this->get_value($values);
-    if (!comment_access('edit', $comment)) {
+  protected function renderLink($data, ResultRow $values) {
+    parent::renderLink($data, $values);
+    // Ensure user has access to edit this comment.
+    $comment = $this->getValue($values);
+    if (!$comment->access('update')) {
       return;
     }
 

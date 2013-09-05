@@ -7,19 +7,13 @@
 
 namespace Drupal\system\Tests\Entity;
 
-use Drupal\simpletest\WebTestBase;
+use Drupal\Core\Entity\EntityStorageException;
+use Drupal\user\UserInterface;
 
 /**
  * Tests the basic Entity API.
  */
-class EntityApiTest extends WebTestBase {
-
-  /**
-   * Modules to enable.
-   *
-   * @var array
-   */
-  public static $modules = array('entity_test');
+class EntityApiTest extends EntityUnitTestBase {
 
   public static function getInfo() {
     return array(
@@ -29,46 +23,120 @@ class EntityApiTest extends WebTestBase {
     );
   }
 
+  public function setUp() {
+    parent::setUp();
+    $this->installSchema('entity_test', array(
+      'entity_test_mul',
+      'entity_test_mul_property_data',
+      'entity_test_rev',
+      'entity_test_rev_revision',
+      'entity_test_mulrev',
+      'entity_test_mulrev_property_data',
+      'entity_test_mulrev_property_revision'
+    ));
+  }
+
   /**
    * Tests basic CRUD functionality of the Entity API.
    */
-  function testCRUD() {
-    $user1 = $this->drupalCreateUser();
+  public function testCRUD() {
+    // All entity variations have to have the same results.
+    foreach (entity_test_entity_types() as $entity_type) {
+      $this->assertCRUD($entity_type, $this->createUser());
+    }
+  }
 
+  /**
+   * Executes a test set for a defined entity type and user.
+   *
+   * @param string $entity_type
+   *   The entity type to run the tests with.
+   * @param \Drupal\user\UserInterface $user1
+   *   The user to run the tests with.
+   */
+  protected function assertCRUD($entity_type, UserInterface $user1) {
     // Create some test entities.
-    $entity = entity_create('entity_test', array('name' => 'test', 'user_id' => $user1->uid));
+    $entity = entity_create($entity_type, array('name' => 'test', 'user_id' => $user1->id()));
     $entity->save();
-    $entity = entity_create('entity_test', array('name' => 'test2', 'user_id' => $user1->uid));
+    $entity = entity_create($entity_type, array('name' => 'test2', 'user_id' => $user1->id()));
     $entity->save();
-    $entity = entity_create('entity_test', array('name' => 'test', 'user_id' => NULL));
+    $entity = entity_create($entity_type, array('name' => 'test', 'user_id' => NULL));
     $entity->save();
 
-    $entities = array_values(entity_load_multiple_by_properties('entity_test', array('name' => 'test')));
-    $this->assertEqual($entities[0]->name->value, 'test', 'Created and loaded entity.');
-    $this->assertEqual($entities[1]->name->value, 'test', 'Created and loaded entity.');
+    $entities = array_values(entity_load_multiple_by_properties($entity_type, array('name' => 'test')));
+    $this->assertEqual($entities[0]->name->value, 'test', format_string('%entity_type: Created and loaded entity', array('%entity_type' => $entity_type)));
+    $this->assertEqual($entities[1]->name->value, 'test', format_string('%entity_type: Created and loaded entity', array('%entity_type' => $entity_type)));
 
     // Test loading a single entity.
-    $loaded_entity = entity_test_load($entity->id());
-    $this->assertEqual($loaded_entity->id(), $entity->id(), 'Loaded a single entity by id.');
+    $loaded_entity = entity_load($entity_type, $entity->id());
+    $this->assertEqual($loaded_entity->id(), $entity->id(), format_string('%entity_type: Loaded a single entity by id.', array('%entity_type' => $entity_type)));
 
     // Test deleting an entity.
-    $entities = array_values(entity_load_multiple_by_properties('entity_test', array('name' => 'test2')));
+    $entities = array_values(entity_load_multiple_by_properties($entity_type, array('name' => 'test2')));
     $entities[0]->delete();
-    $entities = array_values(entity_load_multiple_by_properties('entity_test', array('name' => 'test2')));
-    $this->assertEqual($entities, array(), 'Entity deleted.');
+    $entities = array_values(entity_load_multiple_by_properties($entity_type, array('name' => 'test2')));
+    $this->assertEqual($entities, array(), format_string('%entity_type: Entity deleted.', array('%entity_type' => $entity_type)));
 
     // Test updating an entity.
-    $entities = array_values(entity_load_multiple_by_properties('entity_test', array('name' => 'test')));
+    $entities = array_values(entity_load_multiple_by_properties($entity_type, array('name' => 'test')));
     $entities[0]->name->value = 'test3';
     $entities[0]->save();
-    $entity = entity_test_load($entities[0]->id());
-    $this->assertEqual($entity->name->value, 'test3', 'Entity updated.');
+    $entity = entity_load($entity_type, $entities[0]->id());
+    $this->assertEqual($entity->name->value, 'test3', format_string('%entity_type: Entity updated.', array('%entity_type' => $entity_type)));
 
     // Try deleting multiple test entities by deleting all.
-    $ids = array_keys(entity_test_load_multiple());
-    entity_test_delete_multiple($ids);
+    $ids = array_keys(entity_load_multiple($entity_type));
+    entity_delete_multiple($entity_type, $ids);
 
-    $all = entity_test_load_multiple();
-    $this->assertTrue(empty($all), 'Deleted all entities.');
+    $all = entity_load_multiple($entity_type);
+    $this->assertTrue(empty($all), format_string('%entity_type: Deleted all entities.', array('%entity_type' => $entity_type)));
   }
+
+   /**
+    * Tests that exceptions are properly thrown when saving or deleting an
+    * entity.
+    */
+   public function testEntityStorageExceptionHandling() {
+     $entity = entity_create('entity_test', array('name' => 'test'));
+     try {
+       $GLOBALS['entity_test_throw_exception'] = TRUE;
+       $entity->save();
+       $this->fail('Entity presave EntityStorageException thrown but not caught.');
+     }
+     catch (EntityStorageException $e) {
+       $this->assertEqual($e->getcode(), 1, 'Entity presave EntityStorageException caught.');
+     }
+
+     $entity = entity_create('entity_test', array('name' => 'test2'));
+     try {
+       unset($GLOBALS['entity_test_throw_exception']);
+       $entity->save();
+       $this->pass('Exception presave not thrown and not caught.');
+     }
+     catch (EntityStorageException $e) {
+       $this->assertNotEqual($e->getCode(), 1, 'Entity presave EntityStorageException caught.');
+     }
+
+     $entity = entity_create('entity_test', array('name' => 'test3'));
+     $entity->save();
+     try {
+       $GLOBALS['entity_test_throw_exception'] = TRUE;
+       $entity->delete();
+       $this->fail('Entity predelete EntityStorageException not thrown.');
+     }
+     catch (EntityStorageException $e) {
+       $this->assertEqual($e->getCode(), 2, 'Entity predelete EntityStorageException caught.');
+     }
+
+     unset($GLOBALS['entity_test_throw_exception']);
+     $entity = entity_create('entity_test', array('name' => 'test4'));
+     $entity->save();
+     try {
+       $entity->delete();
+       $this->pass('Entity predelete EntityStorageException not thrown and not caught.');
+     }
+     catch (EntityStorageException $e) {
+       $this->assertNotEqual($e->getCode(), 2, 'Entity predelete EntityStorageException thrown.');
+     }
+   }
 }

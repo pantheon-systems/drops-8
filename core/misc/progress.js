@@ -13,7 +13,6 @@
  *      some_element.appendChild(pb.element);
  */
 Drupal.ProgressBar = function (id, updateCallback, method, errorCallback) {
-  var pb = this;
   this.id = id;
   this.method = method || 'GET';
   this.updateCallback = updateCallback;
@@ -22,21 +21,23 @@ Drupal.ProgressBar = function (id, updateCallback, method, errorCallback) {
   // The WAI-ARIA setting aria-live="polite" will announce changes after users
   // have completed their current activity and not interrupt the screen reader.
   this.element = $('<div class="progress" aria-live="polite"></div>').attr('id', id);
-  this.element.html('<div class="bar"><div class="filled"></div></div>' +
-                    '<div class="percentage"></div>' +
-                    '<div class="message">&nbsp;</div>');
+  this.element.html('<div class="progress__label">&nbsp;</div>' +
+                    '<div class="progress__track"><div class="progress__bar"></div></div>' +
+                    '<div class="progress__percentage"></div>' +
+                    '<div class="progress__description">&nbsp;</div>');
 };
 
 $.extend(Drupal.ProgressBar.prototype, {
   /**
    * Set the percentage and status message for the progressbar.
    */
-  setProgress: function (percentage, message) {
+  setProgress: function (percentage, message, label) {
     if (percentage >= 0 && percentage <= 100) {
-      $(this.element).find('div.filled').css('width', percentage + '%');
-      $(this.element).find('div.percentage').html(percentage + '%');
+      $(this.element).find('div.progress__bar').css('width', percentage + '%');
+      $(this.element).find('div.progress__percentage').html(percentage + '%');
     }
-    $('div.message', this.element).html(message);
+    $('div.progress__description', this.element).html(message);
+    $('div.progress__label', this.element).html(label);
     if (this.updateCallback) {
       this.updateCallback(percentage, message, this);
     }
@@ -83,12 +84,13 @@ $.extend(Drupal.ProgressBar.prototype, {
             return;
           }
           // Update display.
-          pb.setProgress(progress.percentage, progress.message);
+          pb.setProgress(progress.percentage, progress.message, progress.label);
           // Schedule next timer.
           pb.timer = setTimeout(function () { pb.sendPing(); }, pb.delay);
         },
         error: function (xmlhttp) {
-          pb.displayError(Drupal.ajaxError(xmlhttp, pb.uri));
+          var e = new Drupal.AjaxError(xmlhttp, pb.uri);
+          pb.displayError('<pre>' + e.message + '</pre>');
         }
       });
     }
@@ -98,7 +100,7 @@ $.extend(Drupal.ProgressBar.prototype, {
    * Display errors on the page.
    */
   displayError: function (string) {
-    var error = $('<div class="messages error"></div>').html(string);
+    var error = $('<div class="messages messages--error"></div>').html(string);
     $(this.element).before(error).hide();
 
     if (this.errorCallback) {

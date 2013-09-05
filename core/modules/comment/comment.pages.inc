@@ -5,9 +5,10 @@
  * User page callbacks for the Comment module.
  */
 
-use Drupal\node\Plugin\Core\Entity\Node;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\comment\Entity\Comment;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
  * Form constructor for the comment reply form.
@@ -21,7 +22,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  * The node or comment that is being replied to must appear above the comment
  * form to provide the user context while authoring the comment.
  *
- * @param Drupal\node\Node $node
+ * @param \Drupal\Core\Entity\EntityInterface $node
  *   Every comment belongs to a node. This is that node.
  * @param $pid
  *   (optional) Some comments are replies to other comments. In those cases,
@@ -34,10 +35,10 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  *     - comment_parent: If the comment is a reply to another comment.
  *   - comment_form: The comment form as a renderable array.
  */
-function comment_reply(Node $node, $pid = NULL) {
+function comment_reply(EntityInterface $node, $pid = NULL) {
   // Set the breadcrumb trail.
-  drupal_set_breadcrumb(array(l(t('Home'), NULL), l($node->label(), 'node/' . $node->nid)));
-  $op = isset($_POST['op']) ? $_POST['op'] : '';
+  drupal_set_breadcrumb(array(l(t('Home'), NULL), l($node->label(), 'node/' . $node->id())));
+  $op = Drupal::request()->request->get('op');
   $build = array();
 
   // The user is previewing a comment prior to submitting it.
@@ -47,7 +48,7 @@ function comment_reply(Node $node, $pid = NULL) {
     }
     else {
       drupal_set_message(t('You are not authorized to post comments.'), 'error');
-      drupal_goto("node/$node->nid");
+      return new RedirectResponse(url('node/' . $node->id(), array('absolute' => TRUE)));
     }
   }
   else {
@@ -56,28 +57,25 @@ function comment_reply(Node $node, $pid = NULL) {
       if (user_access('access comments')) {
         // Load the parent comment.
         $comment = comment_load($pid);
-        if ($comment->status == COMMENT_PUBLISHED) {
+        if ($comment->status->value == COMMENT_PUBLISHED) {
           // If that comment exists, make sure that the current comment and the
           // parent comment both belong to the same parent node.
-          if ($comment->nid != $node->nid) {
+          if ($comment->nid->target_id != $node->id()) {
             // Attempting to reply to a comment not belonging to the current nid.
             drupal_set_message(t('The comment you are replying to does not exist.'), 'error');
-            drupal_goto("node/$node->nid");
+            return new RedirectResponse(url('node/' . $node->id(), array('absolute' => TRUE)));
           }
           // Display the parent comment
-          $comment->node_type = 'comment_node_' . $node->type;
-          field_attach_load('comment', array($comment->cid => $comment));
-          $comment->name = $comment->uid ? $comment->registered_name : $comment->name;
           $build['comment_parent'] = comment_view($comment);
         }
         else {
           drupal_set_message(t('The comment you are replying to does not exist.'), 'error');
-          drupal_goto("node/$node->nid");
+          return new RedirectResponse(url('node/' . $node->id(), array('absolute' => TRUE)));
         }
       }
       else {
         drupal_set_message(t('You are not authorized to view comments.'), 'error');
-        drupal_goto("node/$node->nid");
+        return new RedirectResponse(url('node/' . $node->id(), array('absolute' => TRUE)));
       }
     }
     // This is the case where the comment is in response to a node. Display the node.
@@ -86,45 +84,18 @@ function comment_reply(Node $node, $pid = NULL) {
     }
 
     // Should we show the reply box?
-    if ($node->comment != COMMENT_NODE_OPEN) {
+    if ($node->comment->value != COMMENT_NODE_OPEN) {
       drupal_set_message(t("This discussion is closed: you can't post new comments."), 'error');
-      drupal_goto("node/$node->nid");
+      return new RedirectResponse(url('node/' . $node->id(), array('absolute' => TRUE)));
     }
     elseif (user_access('post comments')) {
       $build['comment_form'] = comment_add($node, $pid);
     }
     else {
       drupal_set_message(t('You are not authorized to post comments.'), 'error');
-      drupal_goto("node/$node->nid");
+      return new RedirectResponse(url('node/' . $node->id(), array('absolute' => TRUE)));
     }
   }
 
   return $build;
-}
-
-/**
- * Page callback: Publishes the specified comment.
- *
- * @param $cid
- *   A comment identifier.
- *
- * @see comment_menu()
- */
-function comment_approve($cid) {
-  // @todo CSRF tokens are validated in page callbacks rather than access
-  //   callbacks, because access callbacks are also invoked during menu link
-  //   generation. Add token support to routing: http://drupal.org/node/755584.
-  $token = drupal_container()->get('request')->query->get('token');
-  if (!isset($token) || !drupal_valid_token($token, "comment/$cid/approve")) {
-    throw new AccessDeniedHttpException();
-  }
-
-  if ($comment = comment_load($cid)) {
-    $comment->status = COMMENT_PUBLISHED;
-    comment_save($comment);
-
-    drupal_set_message(t('Comment approved.'));
-    drupal_goto('node/' . $comment->nid);
-  }
-  throw new NotFoundHttpException();
 }

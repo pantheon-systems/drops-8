@@ -7,21 +7,19 @@
 
 namespace Drupal\views\Plugin\views\field;
 
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
 
 /**
  * Field handler to provide a list of items.
  *
- * The items are expected to be loaded by a child object during pre_render,
+ * The items are expected to be loaded by a child object during preRender,
  * and 'my field' is expected to be the pointer to the items in the list.
  *
  * Items to render should be in a list in $this->items
  *
  * @ingroup views_field_handlers
  *
- * @Plugin(
- *   id = "prerender_list"
- * )
+ * @PluginID("prerender_list")
  */
 class PrerenderList extends FieldPluginBase {
 
@@ -75,18 +73,19 @@ class PrerenderList extends FieldPluginBase {
    * When using advanced render, each possible item in the list is rendered
    * individually. Then the items are all pasted together.
    */
-  function render_items($items) {
+  protected function renderItems($items) {
     if (!empty($items)) {
       if ($this->options['type'] == 'separator') {
         return implode($this->sanitizeValue($this->options['separator'], 'xss_admin'), $items);
       }
       else {
-        return theme('item_list',
-          array(
-            'items' => $items,
-            'title' => NULL,
-            'type' => $this->options['type']
-          ));
+        $item_list = array(
+          '#theme' => 'item_list',
+          '#items' => $items,
+          '#title' => NULL,
+          '#list_type' => $this->options['type'],
+        );
+        return drupal_render($item_list);
       }
     }
   }
@@ -101,8 +100,8 @@ class PrerenderList extends FieldPluginBase {
    * is to be made. Additionally, items that might be turned into tokens
    * should also be in this array.
    */
-  function get_items($values) {
-    $field = $this->get_value($values);
+  public function getItems($values) {
+    $field = $this->getValue($values);
     if (!empty($this->items[$field])) {
       return $this->items[$field];
     }
@@ -114,9 +113,9 @@ class PrerenderList extends FieldPluginBase {
    * Determine if advanced rendering is allowed.
    *
    * By default, advanced rendering will NOT be allowed if the class
-   * inheriting from this does not implement a 'render_items' method.
+   * inheriting from this does not implement a 'renderItems' method.
    */
-  function allow_advanced_render() {
+  protected function allowAdvancedRender() {
     // Note that the advanced render bits also use the presence of
     // this method to determine if it needs to render items as a list.
     return method_exists($this, 'render_item');

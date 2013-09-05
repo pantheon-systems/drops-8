@@ -7,7 +7,8 @@
 
 namespace Drupal\views\Plugin\views\display;
 
-use Drupal\Core\Annotation\Plugin;
+use Drupal\views\ViewExecutable;
+use Drupal\views\Annotation\ViewsDisplay;
 use Drupal\Core\Annotation\Translation;
 
 /**
@@ -19,7 +20,7 @@ use Drupal\Core\Annotation\Translation;
  *
  * @ingroup views_display_plugins
  *
- * @Plugin(
+ * @ViewsDisplay(
  *   id = "attachment",
  *   title = @Translation("Attachment"),
  *   help = @Translation("Attachments added to other displays to achieve multiple views in the same view."),
@@ -90,8 +91,8 @@ class Attachment extends DisplayPluginBase {
     }
     elseif (count($displays) == 1) {
       $display = array_shift($displays);
-      if (!empty($this->view->display[$display])) {
-        $attach_to = check_plain($this->view->display[$display]['display_title']);
+      if ($display = $this->view->storage->getDisplay($display)) {
+        $attach_to = check_plain($display['display_title']);
       }
     }
 
@@ -193,8 +194,8 @@ class Attachment extends DisplayPluginBase {
       case 'displays':
         $form['#title'] .= t('Attach to');
         $displays = array();
-        foreach ($this->view->display as $display_id => $display) {
-          if (!empty($this->view->displayHandlers[$display_id]) && $this->view->displayHandlers[$display_id]->acceptAttachments()) {
+        foreach ($this->view->storage->get('display') as $display_id => $display) {
+          if ($this->view->displayHandlers->has($display_id) && $this->view->displayHandlers->get($display_id)->acceptAttachments()) {
             $displays[$display_id] = $display['display_title'];
           }
         }
@@ -216,12 +217,13 @@ class Attachment extends DisplayPluginBase {
     // It is very important to call the parent function here:
     parent::submitOptionsForm($form, $form_state);
     switch ($form_state['section']) {
+      case 'displays':
+        $form_state['values'][$form_state['section']] = array_filter($form_state['values'][$form_state['section']]);
       case 'inherit_arguments':
       case 'inherit_pager':
       case 'render_pager':
       case 'inherit_exposed_filters':
       case 'attachment_position':
-      case 'displays':
         $this->setOption($form_state['section'], $form_state['values'][$form_state['section']]);
         break;
     }
@@ -230,7 +232,7 @@ class Attachment extends DisplayPluginBase {
   /**
    * Attach to another view.
    */
-  public function attachTo($display_id) {
+  public function attachTo(ViewExecutable $view, $display_id) {
     $displays = $this->getOption('displays');
 
     if (empty($displays[$display_id])) {
@@ -241,34 +243,29 @@ class Attachment extends DisplayPluginBase {
       return;
     }
 
-    // Get a fresh view because our current one has a lot of stuff on it because it's
-    // already been executed.
-    $view = $this->view->cloneView();
-
     $args = $this->getOption('inherit_arguments') ? $this->view->args : array();
     $view->setArguments($args);
     $view->setDisplay($this->display['id']);
     if ($this->getOption('inherit_pager')) {
-      $view->display_handler->usesPager = $this->view->display[$display_id]->handler->usesPager();
-      $view->display_handler->setOption('pager', $this->view->display[$display_id]->handler->getOption('pager'));
+      $view->display_handler->usesPager = $this->view->displayHandlers->get($display_id)->usesPager();
+      $view->display_handler->setOption('pager', $this->view->displayHandlers->get($display_id)->getOption('pager'));
     }
 
     $attachment = $view->executeDisplay($this->display['id'], $args);
 
     switch ($this->getOption('attachment_position')) {
       case 'before':
-        $this->view->attachment_before .= $attachment;
+        $this->view->attachment_before[] = $attachment;
         break;
       case 'after':
-        $this->view->attachment_after .= $attachment;
+        $this->view->attachment_after[] = $attachment;
         break;
       case 'both':
-        $this->view->attachment_before .= $attachment;
-        $this->view->attachment_after .= $attachment;
+        $this->view->attachment_before[] = $attachment;
+        $this->view->attachment_after[] = $attachment;
         break;
     }
 
-    $view->destroy();
   }
 
   /**

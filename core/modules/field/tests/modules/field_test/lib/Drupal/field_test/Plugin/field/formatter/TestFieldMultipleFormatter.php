@@ -2,22 +2,22 @@
 
 /**
  * @file
- * Definition of Drupal\field_test\Plugin\field\formatter\TestFieldMultipleFormatter.
+ * Contains \Drupal\field_test\Plugin\field\formatter\TestFieldMultipleFormatter.
  */
 
 namespace Drupal\field_test\Plugin\field\formatter;
 
-use Drupal\Core\Annotation\Plugin;
+use Drupal\field\Annotation\FieldFormatter;
 use Drupal\Core\Annotation\Translation;
 use Drupal\field\Plugin\Type\Formatter\FormatterBase;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\Field\FieldInterface;
 
 /**
  * Plugin implementation of the 'field_test_multiple' formatter.
  *
- * @Plugin(
+ * @FieldFormatter(
  *   id = "field_test_multiple",
- *   module = "field_test",
  *   label = @Translation("Multiple"),
  *   description = @Translation("Multiple formatter"),
  *   field_types = {
@@ -31,7 +31,7 @@ use Drupal\Core\Entity\EntityInterface;
 class TestFieldMultipleFormatter extends FormatterBase {
 
   /**
-   * Implements Drupal\field\Plugin\Type\Formatter\FormatterInterface::settingsForm().
+   * {@inheritdoc}
    */
   public function settingsForm(array $form, array &$form_state) {
     $element['test_formatter_setting_multiple'] = array(
@@ -45,22 +45,24 @@ class TestFieldMultipleFormatter extends FormatterBase {
   }
 
   /**
-   * Implements Drupal\field\Plugin\Type\Formatter\FormatterInterface::settingsForm().
+   * {@inheritdoc}
    */
   public function settingsSummary() {
-    return t('@setting: @value', array('@setting' => 'test_formatter_setting_multiple', '@value' => $this->getSetting('test_formatter_setting_multiple')));
+    $summary = array();
+    $summary[] = t('@setting: @value', array('@setting' => 'test_formatter_setting_multiple', '@value' => $this->getSetting('test_formatter_setting_multiple')));
+    return $summary;
   }
 
   /**
-   * Implements Drupal\field\Plugin\Type\Formatter\FormatterInterface::viewElements().
+   * {@inheritdoc}
    */
-  public function viewElements(EntityInterface $entity, $langcode, array $items) {
+  public function viewElements(EntityInterface $entity, $langcode, FieldInterface $items) {
     $elements = array();
 
     if (!empty($items)) {
       $array = array();
       foreach ($items as $delta => $item) {
-        $array[] = $delta . ':' . $item['value'];
+        $array[] = $delta . ':' . $item->value;
       }
       $elements[0] = array('#markup' => $this->getSetting('test_formatter_setting_multiple') . '|' . implode('|', $array));
     }

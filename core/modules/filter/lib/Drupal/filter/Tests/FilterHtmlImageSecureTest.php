@@ -7,6 +7,7 @@
 
 namespace Drupal\filter\Tests;
 
+use Drupal\Core\StreamWrapper\PublicStream;
 use Drupal\simpletest\WebTestBase;
 
 /**
@@ -33,7 +34,7 @@ class FilterHtmlImageSecureTest extends WebTestBase {
     parent::setUp();
 
     // Setup Filtered HTML text format.
-    $filtered_html_format = array(
+    $filtered_html_format = entity_create('filter_format', array(
       'format' => 'filtered_html',
       'name' => 'Filtered HTML',
       'filters' => array(
@@ -50,9 +51,8 @@ class FilterHtmlImageSecureTest extends WebTestBase {
           'status' => 1,
         ),
       ),
-    );
-    $filtered_html_format = (object) $filtered_html_format;
-    filter_format_save($filtered_html_format);
+    ));
+    $filtered_html_format->save();
 
     // Setup users.
     $this->checkPermissions(array(), TRUE);
@@ -61,7 +61,7 @@ class FilterHtmlImageSecureTest extends WebTestBase {
       'access comments',
       'post comments',
       'skip comment approval',
-      filter_permission_name($filtered_html_format),
+      $filtered_html_format->getPermissionName(),
     ));
     $this->drupalLogin($this->web_user);
 
@@ -76,7 +76,7 @@ class FilterHtmlImageSecureTest extends WebTestBase {
   function testImageSource() {
     global $base_url;
 
-    $public_files_path = variable_get('file_public_path', conf_path() . '/files');
+    $public_files_path = PublicStream::basePath();
 
     $http_base_url = preg_replace('/^https?/', 'http', $base_url);
     $https_base_url = preg_replace('/^https?/', 'https', $base_url);
@@ -114,15 +114,15 @@ class FilterHtmlImageSecureTest extends WebTestBase {
       $comment[] = $image . ':';
       // Hash the image source in a custom test attribute, because it might
       // contain characters that confuse XPath.
-      $comment[] = '<img src="' . $image . '" testattribute="' . md5($image) . '" />';
+      $comment[] = '<img src="' . $image . '" testattribute="' . hash('sha256', $image) . '" />';
     }
     $edit = array(
       'comment_body[und][0][value]' => implode("\n", $comment),
     );
-    $this->drupalPost('node/' . $this->node->nid, $edit, t('Save'));
+    $this->drupalPost('node/' . $this->node->id(), $edit, t('Save'));
     foreach ($images as $image => $converted) {
       $found = FALSE;
-      foreach ($this->xpath('//img[@testattribute="' . md5($image) . '"]') as $element) {
+      foreach ($this->xpath('//img[@testattribute="' . hash('sha256', $image) . '"]') as $element) {
         $found = TRUE;
         if ($converted == $red_x_image) {
           $this->assertEqual((string) $element['src'], $red_x_image);

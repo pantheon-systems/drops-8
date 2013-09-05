@@ -35,30 +35,30 @@ class EfqTest extends TaxonomyTestBase {
     $terms = array();
     for ($i = 0; $i < 5; $i++) {
       $term = $this->createTerm($this->vocabulary);
-      $terms[$term->tid] = $term;
+      $terms[$term->id()] = $term;
     }
-    $result = entity_query('taxonomy_term')->execute();
+    $result = \Drupal::entityQuery('taxonomy_term')->execute();
     sort($result);
     $this->assertEqual(array_keys($terms), $result, 'Taxonomy terms were retrieved by entity query.');
     $tid = reset($result);
     $ids = (object) array(
       'entity_type' => 'taxonomy_term',
       'entity_id' => $tid,
-      'bundle' => $this->vocabulary->machine_name,
+      'bundle' => $this->vocabulary->id(),
     );
     $term = _field_create_entity_from_ids($ids);
-    $this->assertEqual($term->tid, $tid, 'Taxonomy term can be created based on the IDs');
+    $this->assertEqual($term->id(), $tid, 'Taxonomy term can be created based on the IDs');
 
     // Create a second vocabulary and five more terms.
     $vocabulary2 = $this->createVocabulary();
     $terms2 = array();
     for ($i = 0; $i < 5; $i++) {
       $term = $this->createTerm($vocabulary2);
-      $terms2[$term->tid] = $term;
+      $terms2[$term->id()] = $term;
     }
 
-    $result = entity_query('taxonomy_term')
-      ->condition('vid', $vocabulary2->vid)
+    $result = \Drupal::entityQuery('taxonomy_term')
+      ->condition('vid', $vocabulary2->id())
       ->execute();
     sort($result);
     $this->assertEqual(array_keys($terms2), $result, format_string('Taxonomy terms from the %name vocabulary were retrieved by entity query.', array('%name' => $vocabulary2->name)));
@@ -66,9 +66,9 @@ class EfqTest extends TaxonomyTestBase {
     $ids = (object) array(
       'entity_type' => 'taxonomy_term',
       'entity_id' => $tid,
-      'bundle' => $vocabulary2->machine_name,
+      'bundle' => $vocabulary2->id(),
     );
     $term = _field_create_entity_from_ids($ids);
-    $this->assertEqual($term->tid, $tid, 'Taxonomy term can be created based on the IDs');
+    $this->assertEqual($term->id(), $tid, 'Taxonomy term can be created based on the IDs');
   }
 }

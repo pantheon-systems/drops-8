@@ -8,35 +8,34 @@
 namespace Drupal\node\Plugin\views\field;
 
 use Drupal\node\Plugin\views\field\Link;
+use Drupal\views\Plugin\views\display\DisplayPluginBase;
+use Drupal\views\ResultRow;
 use Drupal\views\ViewExecutable;
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
 
 /**
  * Field handler to present a link to a node revision.
  *
  * @ingroup views_field_handlers
  *
- * @Plugin(
- *   id = "node_revision_link",
- *   module = "node"
- * )
+ * @PluginID("node_revision_link")
  */
 class RevisionLink extends Link {
 
   /**
    * Overrides Drupal\views\Plugin\views\field\FieldPluginBase::init().
    */
-  public function init(ViewExecutable $view, &$options) {
-    parent::init($view, $options);
+  public function init(ViewExecutable $view, DisplayPluginBase $display, array &$options = NULL) {
+    parent::init($view, $display, $options);
 
-    $this->additional_fields['node_vid'] = array('table' => 'node_revision', 'field' => 'vid');
+    $this->additional_fields['node_vid'] = array('table' => 'node_field_revision', 'field' => 'vid');
   }
 
   public function access() {
     return user_access('view revisions') || user_access('administer nodes');
   }
 
-  function render_link($data, $values) {
+  protected function renderLink($data, ResultRow $values) {
     list($node, $vid) = $this->get_revision_entity($values, 'view');
     if (!isset($vid)) {
       return;
@@ -44,7 +43,7 @@ class RevisionLink extends Link {
 
     // Current revision uses the node view path.
     $path = 'node/' . $node->nid;
-    if ($node->vid != $vid) {
+    if (!$node->isDefaultRevision()) {
       $path .= "/revisions/$vid/view";
     }
 
@@ -52,7 +51,7 @@ class RevisionLink extends Link {
     $this->options['alter']['path'] = $path;
     $this->options['alter']['query'] = drupal_get_destination();
 
-    return !empty($this->options['text']) ? $this->options['text'] : t('view');
+    return !empty($this->options['text']) ? $this->options['text'] : t('View');
   }
 
   /**
@@ -68,10 +67,10 @@ class RevisionLink extends Link {
    *   revision ID for this row.
    */
   function get_revision_entity($values, $op) {
-    $vid = $this->get_value($values, 'node_vid');
-    $node = $this->get_value($values);
+    $vid = $this->getValue($values, 'node_vid');
+    $node = $this->getEntity($values);
     // Unpublished nodes ignore access control.
-    $node->status = 1;
+    $node->setPublished(TRUE);
     // Ensure user has access to perform the operation on this node.
     if (!node_access($op, $node)) {
       return array($node, NULL);

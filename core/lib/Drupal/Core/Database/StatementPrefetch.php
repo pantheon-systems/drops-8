@@ -13,7 +13,7 @@ use PDO;
 use PDOException;
 
 /**
- * An implementation of DatabaseStatementInterface that prefetches all data.
+ * An implementation of StatementInterface that prefetches all data.
  *
  * This class behaves very similar to a PDOStatement but as it always fetches
  * every row it is possible to manipulate those results.
@@ -37,11 +37,18 @@ class StatementPrefetch implements Iterator, StatementInterface {
   /**
    * Reference to the database connection object for this statement.
    *
-   * The name $dbh is inherited from PDOStatement.
+   * This is part of the public interface of PDOStatement.
    *
-   * @var Drupal\Core\Database\Connection
+   * @var PDO
    */
   public $dbh;
+
+  /**
+   * Reference to the Drupal database connection object for this statement.
+   *
+   * @var \Drupal\Core\Database\Connection
+   */
+  protected $connection;
 
   /**
    * Main data store.
@@ -124,8 +131,9 @@ class StatementPrefetch implements Iterator, StatementInterface {
     'column' => 0,
   );
 
-  public function __construct(Connection $connection, $query, array $driver_options = array()) {
-    $this->dbh = $connection;
+  public function __construct(PDO $dbh, Connection $connection, $query, array $driver_options = array()) {
+    $this->dbh = $dbh;
+    $this->connection = $connection;
     $this->queryString = $query;
     $this->driverOptions = $driver_options;
   }
@@ -153,7 +161,7 @@ class StatementPrefetch implements Iterator, StatementInterface {
       }
     }
 
-    $logger = $this->dbh->getLogger();
+    $logger = $this->connection->getLogger();
     if (!empty($logger)) {
       $query_start = microtime(TRUE);
     }
@@ -218,7 +226,7 @@ class StatementPrefetch implements Iterator, StatementInterface {
    *   The query.
    * @param array $args
    *   An array of arguments.
-   * @return PDOStatement
+   * @return \PDOStatement
    *   A PDOStatement object.
    */
   protected function getStatement($query, &$args = array()) {
@@ -342,7 +350,7 @@ class StatementPrefetch implements Iterator, StatementInterface {
     return isset($this->currentRow);
   }
 
-  /* Implementations of DatabaseStatementInterface. */
+  /* Implementations of StatementInterface. */
 
   public function rowCount() {
     return $this->rowCount;
@@ -447,7 +455,6 @@ class StatementPrefetch implements Iterator, StatementInterface {
 
   public function fetchCol($index = 0) {
     if (isset($this->columnNames[$index])) {
-      $column = $this->columnNames[$index];
       $result = array();
       // Traverse the array as PHP would have done.
       while (isset($this->currentRow)) {
@@ -485,8 +492,6 @@ class StatementPrefetch implements Iterator, StatementInterface {
     // Traverse the array as PHP would have done.
     while (isset($this->currentRow)) {
       // Grab the row in its raw PDO::FETCH_ASSOC format.
-      $row = $this->currentRow;
-      // Grab the row in the format specified above.
       $result_row = $this->current();
       $result[$this->currentRow[$key]] = $result_row;
       $this->next();

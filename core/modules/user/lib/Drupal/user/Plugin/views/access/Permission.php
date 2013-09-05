@@ -7,16 +7,19 @@
 
 namespace Drupal\user\Plugin\views\access;
 
-use Drupal\Core\Annotation\Plugin;
+
+use Drupal\views\Annotation\ViewsAccess;
+use Drupal\Core\Session\AccountInterface;
 use Drupal\views\Plugin\views\access\AccessPluginBase;
 use Drupal\Core\Annotation\Translation;
+use Symfony\Component\Routing\Route;
 
 /**
  * Access plugin that provides permission-based access control.
  *
  * @ingroup views_access_plugins
  *
- * @Plugin(
+ * @ViewsAccess(
  *   id = "perm",
  *   title = @Translation("Permission"),
  *   help = @Translation("Access will be granted to users with the specified permission string.")
@@ -29,12 +32,18 @@ class Permission extends AccessPluginBase {
    */
   protected $usesOptions = TRUE;
 
-  public function access($account) {
-    return views_check_perm($this->options['perm'], $account);
+  /**
+   * {@inheritdoc}
+   */
+  public function access(AccountInterface $account) {
+    return user_access($this->options['perm'], $account) || user_access('access all views', $account);
   }
 
-  function get_access_callback() {
-    return array('views_check_perm', array($this->options['perm']));
+  /**
+   * {@inheritdoc}
+   */
+  public function alterRouteDefinition(Route $route) {
+    $route->setRequirement('_permission', $this->options['perm']);
   }
 
   public function summaryTitle() {
@@ -60,7 +69,7 @@ class Permission extends AccessPluginBase {
     $module_info = system_get_info('module');
 
     // Get list of permissions
-    foreach (module_implements('permission') as $module) {
+    foreach (\Drupal::moduleHandler()->getImplementations('permission') as $module) {
       $permissions = module_invoke($module, 'permission');
       foreach ($permissions as $name => $perm) {
         $perms[$module_info[$module]['name']][$name] = strip_tags($perm['title']);

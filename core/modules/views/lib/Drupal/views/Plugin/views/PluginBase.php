@@ -7,10 +7,36 @@
 
 namespace Drupal\views\Plugin\views;
 
-use Drupal\Component\Plugin\Discovery\DiscoveryInterface;
 use Drupal\Component\Plugin\PluginBase as ComponentPluginBase;
+use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
+use Drupal\views\Plugin\views\display\DisplayPluginBase;
+use Drupal\views\ViewExecutable;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
-abstract class PluginBase extends ComponentPluginBase {
+/**
+ * Base class for any views plugin types.
+ *
+ * Via the @Plugin definition the plugin may specify a theme function or
+ * template to be used for the plugin. It also can auto-register the theme
+ * implementation for that file or function.
+ * - theme: the theme implementation to use in the plugin. This may be the name
+ *   of the function (without theme_ prefix) or the template file (without
+ *   template engine extension).
+ *   If a template file should be used, the file has to be placed in the
+ *   module's templates folder.
+ *   Example: theme = "mymodule_row" of module "mymodule" will implement either
+ *   theme_mymodule_row() or mymodule-row.tpl.php in the
+ *   [..]/modules/mymodule/templates folder.
+ * - register_theme: (optional) When set to TRUE (default) the theme is
+ *   registered automatically. When set to FALSE the plugin reuses an existing
+ *   theme implementation, defined by another module or views plugin.
+ * - theme_file: (optional) the location of an include file that may hold the
+ *   theme or preprocess function. The location has to be relative to module's
+ *   root directory.
+ * - module: machine name of the module. It must be present for any plugin that
+ *   wants to register a theme.
+ */
+abstract class PluginBase extends ComponentPluginBase implements ContainerFactoryPluginInterface {
 
   /**
    * Options for this plugin will be held here.
@@ -55,10 +81,35 @@ abstract class PluginBase extends ComponentPluginBase {
   /**
    * Constructs a Plugin object.
    */
-  public function __construct(array $configuration, $plugin_id, DiscoveryInterface $discovery) {
-    parent::__construct($configuration, $plugin_id, $discovery);
+  public function __construct(array $configuration, $plugin_id, array $plugin_definition) {
+    parent::__construct($configuration, $plugin_id, $plugin_definition);
 
-    $this->definition = $this->discovery->getDefinition($plugin_id) + $configuration;
+    $this->definition = $plugin_definition + $configuration;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, array $plugin_definition) {
+    return new static($configuration, $plugin_id, $plugin_definition);
+  }
+
+  /**
+   * Initialize the plugin.
+   *
+   * @param \Drupal\views\ViewExecutable $view
+   *   The view object.
+   * @param \Drupal\views\Plugin\views\display\DisplayPluginBase $display
+   *   The display handler.
+   * @param array $options
+   *   The options configured for this plugin.
+   */
+  public function init(ViewExecutable $view, DisplayPluginBase $display, array &$options = NULL) {
+    $this->setOptionDefaults($this->options, $this->defineOptions());
+    $this->view = $view;
+    $this->displayHandler = $display;
+
+    $this->unpackOptions($this->options, $options);
   }
 
   /**
@@ -79,17 +130,29 @@ abstract class PluginBase extends ComponentPluginBase {
    */
   protected function defineOptions() { return array(); }
 
-  protected function setOptionDefaults(&$storage, $options, $level = 0) {
+  /**
+   * Fills up the options of the plugin with defaults.
+   *
+   * @param array $storage
+   *   An array which stores the actual option values of the plugin.
+   * @param array $options
+   *   An array which describes the options of a plugin. Each element is an
+   *   associative array containing:
+   *   - default: The default value of one option
+   *   - (optional) contains: An array which describes the available options
+   *     under the key. If contains is set, the default will be ignored and
+   *     assumed to be an empty array.
+   *   - (optional) 'translatable': TRUE if it should be translated, else FALSE.
+   *   - (optional) 'bool': TRUE if the value is boolean, else FALSE.
+   */
+  protected function setOptionDefaults(array &$storage, array $options) {
     foreach ($options as $option => $definition) {
-      if (isset($definition['contains']) && is_array($definition['contains'])) {
+      if (isset($definition['contains'])) {
         $storage[$option] = array();
-        $this->setOptionDefaults($storage[$option], $definition['contains'], $level++);
-      }
-      elseif (!empty($definition['translatable']) && !empty($definition['default'])) {
-        $storage[$option] = t($definition['default']);
+        $this->setOptionDefaults($storage[$option], $definition['contains']);
       }
       else {
-        $storage[$option] = isset($definition['default']) ? $definition['default'] : NULL;
+        $storage[$option] = $definition['default'];
       }
     }
   }
@@ -153,7 +216,7 @@ abstract class PluginBase extends ComponentPluginBase {
     // Some form elements belong in a fieldset for presentation, but can't
     // be moved into one because of the form_state['values'] hierarchy. Those
     // elements can add a #fieldset => 'fieldset_name' property, and they'll
-    // be moved to their fieldset during pre_render.
+    // be moved to their fieldset during preRender.
     $form['#pre_render'][] = 'views_ui_pre_render_add_fieldset_markup';
   }
 
@@ -176,20 +239,7 @@ abstract class PluginBase extends ComponentPluginBase {
    * Provide a full list of possible theme templates used by this style.
    */
   public function themeFunctions() {
-    return views_theme_functions($this->definition['theme'], $this->view, $this->view->display_handler->display);
-  }
-
-  /**
-   * Provide a list of additional theme functions for the theme information page
-   */
-  public function additionalThemeFunctions() {
-    $funcs = array();
-    if (!empty($this->definition['additional themes'])) {
-      foreach ($this->definition['additional themes'] as $theme => $type) {
-        $funcs[] = views_theme_functions($theme, $this->view, $this->view->display_handler->display);
-      }
-    }
-    return $funcs;
+    return $this->view->buildThemeFunctions($this->definition['theme']);
   }
 
   /**
@@ -214,7 +264,8 @@ abstract class PluginBase extends ComponentPluginBase {
    * This appears on the ui beside each plugin and beside the settings link.
    */
   public function pluginTitle() {
-    if (isset($this->definition['short_title'])) {
+    // Short_title is optional so its defaults to an empty string.
+    if (!empty($this->definition['short_title'])) {
       return check_plain($this->definition['short_title']);
     }
     return check_plain($this->definition['title']);
@@ -225,6 +276,92 @@ abstract class PluginBase extends ComponentPluginBase {
    */
   public function usesOptions() {
     return $this->usesOptions;
+  }
+
+  /**
+   * Returns a string with any core tokens replaced.
+   *
+   * @param string $string
+   *   The string to preform the token replacement on.
+   * @param array $options
+   *   An array of options, as passed to \Drupal\Core\Utility\Token::replace().
+   *
+   * @return string
+   *   The tokenized string.
+   */
+  public function globalTokenReplace($string = '', array $options = array()) {
+    return \Drupal::token()->replace($string, array('view' => $this->view), $options);
+  }
+
+  /**
+   * Returns an array of available token replacements.
+   *
+   * @param bool $prepared
+   *   Whether to return the raw token info for each token or an array of
+   *   prepared tokens for each type. E.g. "[view:name]".
+   * @param array $types
+   *   An array of additional token types to return, defaults to 'site' and
+   *   'view'.
+   *
+   * @return array
+   *   An array of available token replacement info or tokens, grouped by type.
+   */
+  public function getAvailableGlobalTokens($prepared = FALSE, array $types = array()) {
+    $info = \Drupal::token()->getInfo();
+    // Site and view tokens should always be available.
+    $types += array('site', 'view');
+    $available = array_intersect_key($info['tokens'], array_flip($types));
+
+    // Construct the token string for each token.
+    if ($prepared) {
+      $prepared = array();
+      foreach ($available as $type => $tokens) {
+        foreach (array_keys($tokens) as $token) {
+          $prepared[$type][] = "[$type:$token]";
+        }
+      }
+
+      return $prepared;
+    }
+
+    return $available;
+  }
+
+  /**
+   * Adds elements for available core tokens to a form.
+   *
+   * @param array $form
+   *   The form array to alter, passed by reference.
+   * @param array $form_state
+   *   The form state array to alter, passed by reference.
+   */
+  public function globalTokenForm(&$form, &$form_state) {
+    $token_items = array();
+
+    foreach ($this->getAvailableGlobalTokens() as $type => $tokens) {
+      $item = array(
+        '#markup' => $type,
+        'children' => array(),
+      );
+      foreach ($tokens as $name => $info) {
+        $item['children'][$name] = "[$type:$name]" . ' - ' . $info['name'] . ': ' . $info['description'];
+      }
+
+      $token_items[$type] = $item;
+    }
+
+    $form['global_tokens'] = array(
+      '#type' => 'details',
+      '#title' => t('Available global token replacements'),
+      '#collapsed' => TRUE,
+    );
+    $form['global_tokens']['list'] = array(
+      '#theme' => 'item_list',
+      '#items' => $token_items,
+      '#attributes' => array(
+        'class' => array('global-tokens'),
+      ),
+    );
   }
 
 }

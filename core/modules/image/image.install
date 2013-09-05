@@ -30,10 +30,10 @@ function image_uninstall() {
 function image_field_schema($field) {
   return array(
     'columns' => array(
-      'fid' => array(
-        'description' => 'The {file_managed}.fid being referenced in this field.',
+      'target_id' => array(
+        'description' => 'The ID of the target entity.',
         'type' => 'int',
-        'not null' => FALSE,
+        'not null' => TRUE,
         'unsigned' => TRUE,
       ),
       'alt' => array(
@@ -60,12 +60,12 @@ function image_field_schema($field) {
       ),
     ),
     'indexes' => array(
-      'fid' => array('fid'),
+      'target_id' => array('target_id'),
     ),
     'foreign keys' => array(
-      'fid' => array(
+      'target_id' => array(
         'table' => 'file_managed',
-        'columns' => array('fid' => 'fid'),
+        'columns' => array('target_id' => 'fid'),
       ),
     ),
   );
@@ -125,14 +125,19 @@ function _image_update_get_style_with_effects(array $style) {
     ->condition('isid', $style['isid'])
     ->execute();
   foreach ($result as $effect) {
-    unset($effect['isid']);
     $effect['data'] = unserialize($effect['data']);
 
     // Generate a unique image effect ID for the effect.
     $uuid = new Uuid();
-    $effect['ieid'] = $uuid->generate();
+    $effect['uuid'] = $uuid->generate();
 
-    $effects[$effect['ieid']] = $effect;
+    // Use 'id' instead of 'name'.
+    $effect['id'] = $effect['name'];
+
+    // Clear out legacy keys.
+    unset($effect['isid'], $effect['ieid'], $effect['name']);
+
+    $effects[$effect['uuid']] = $effect;
   }
   return $effects;
 }
@@ -153,7 +158,7 @@ function image_update_8000() {
 
   // Convert each style into a configuration object.
   foreach ($styles as $name => $style) {
-    $config = config('image.style.' . $name);
+    $config = Drupal::config('image.style.' . $name);
     $config->set('name', $name);
     $config->set('effects', $style['effects']);
     $config->save();
@@ -161,11 +166,9 @@ function image_update_8000() {
 }
 
 /**
- * Remove the {image_styles} and {image_effects} tables.
+ * Empty update. See http://drupal.org/node/1980058.
  */
 function image_update_8001() {
-  db_drop_table('image_styles');
-  db_drop_table('image_effects');
 }
 
 /**

@@ -7,7 +7,7 @@
 
 namespace Drupal\file\Plugin\views\argument;
 
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
 use Drupal\views\Plugin\views\argument\Numeric;
 
 /**
@@ -15,17 +15,14 @@ use Drupal\views\Plugin\views\argument\Numeric;
  *
  * @ingroup views_argument_handlers
  *
- * @Plugin(
- *   id = "file_fid",
- *   module = "file"
- * )
+ * @PluginID("file_fid")
  */
 class Fid extends Numeric {
 
   /**
-   * Override the behavior of title_query(). Get the filenames.
+   * Override the behavior of titleQuery(). Get the filenames.
    */
-  function title_query() {
+  public function titleQuery() {
     $titles = db_select('file_managed', 'f')
       ->fields('f', array('filename'))
       ->condition('fid', $this->value)

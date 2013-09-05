@@ -7,12 +7,23 @@
 
 namespace Drupal\views\Tests\Handler;
 
+use Drupal\views\Tests\ViewUnitTestBase;
+
 /**
  * Tests the text area handler.
  *
  * @see Drupal\views\Plugin\views\area\Text
  */
-class AreaTextTest extends HandlerTestBase {
+class AreaTextTest extends ViewUnitTestBase {
+
+  public static $modules = array('system', 'user', 'filter');
+
+  /**
+   * Views used by this test.
+   *
+   * @var array
+   */
+  public static $testViews = array('test_view');
 
   public static function getInfo() {
     return array(
@@ -25,15 +36,17 @@ class AreaTextTest extends HandlerTestBase {
   protected function setUp() {
     parent::setUp();
 
-    $this->enableViewsTestModule();
+    $this->installConfig(array('system', 'filter'));
+    $this->installSchema('user', array('users'));
   }
 
   public function testAreaText() {
-    $view = $this->getView();
+    $view = views_get_view('test_view');
+    $view->setDisplay();
 
     // add a text header
     $string = $this->randomName();
-    $view->displayHandlers['default']->overrideOption('header', array(
+    $view->displayHandlers->get('default')->overrideOption('header', array(
       'area' => array(
         'id' => 'area',
         'table' => 'views',
@@ -46,16 +59,16 @@ class AreaTextTest extends HandlerTestBase {
     $this->executeView($view);
 
     $view->display_handler->handlers['header']['area']->options['format'] = $this->randomString();
-    $this->assertEqual(NULL, $view->display_handler->handlers['header']['area']->render(), 'Non existant format should return nothing');
+    $this->assertEqual(array('#markup' => ''), $view->display_handler->handlers['header']['area']->render(), 'Non existant format should return empty markup.');
 
     $view->display_handler->handlers['header']['area']->options['format'] = filter_default_format();
-    $this->assertEqual(check_markup($string), $view->display_handler->handlers['header']['area']->render(), 'Existant format should return something');
+    $this->assertEqual(array('#markup' => check_markup($string)), $view->display_handler->handlers['header']['area']->render(), 'Existant format should return something');
 
     // Empty results, and it shouldn't be displayed .
-    $this->assertEqual('', $view->display_handler->handlers['header']['area']->render(TRUE), 'No result should lead to no header');
+    $this->assertEqual(array(), $view->display_handler->handlers['header']['area']->render(TRUE), 'No result should lead to no header');
     // Empty results, and it should be displayed.
     $view->display_handler->handlers['header']['area']->options['empty'] = TRUE;
-    $this->assertEqual(check_markup($string), $view->display_handler->handlers['header']['area']->render(TRUE), 'No result, but empty enabled lead to a full header');
+    $this->assertEqual(array('#markup' => check_markup($string)), $view->display_handler->handlers['header']['area']->render(TRUE), 'No result, but empty enabled lead to a full header');
   }
 
 }

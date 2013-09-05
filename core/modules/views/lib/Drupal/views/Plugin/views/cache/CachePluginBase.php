@@ -7,6 +7,7 @@
 
 namespace Drupal\views\Plugin\views\cache;
 
+use Drupal\Core\Language\Language;
 use Drupal\views\ViewExecutable;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\views\Plugin\views\PluginBase;
@@ -58,22 +59,6 @@ abstract class CachePluginBase extends PluginBase {
   protected $outputKey;
 
   /**
-   * Initialize the plugin.
-   *
-   * @param $view
-   *   The view object.
-   * @param $display
-   *   The display handler.
-   */
-  public function init(ViewExecutable $view, &$display, $options = NULL) {
-    $this->setOptionDefaults($this->options, $this->defineOptions());
-    $this->view = &$view;
-    $this->displayHandler = &$display;
-
-    $this->unpackOptions($this->options, $options);
-  }
-
-  /**
    * Returns the outputKey property.
    *
    * @return string
@@ -109,7 +94,7 @@ abstract class CachePluginBase extends PluginBase {
    * @param $type
    *   The cache type, either 'query', 'result' or 'output'.
    */
-  function cache_expire($type) { }
+  protected function cacheExpire($type) { }
 
    /**
     * Determine expiration time in the cache table of the cache type
@@ -120,7 +105,7 @@ abstract class CachePluginBase extends PluginBase {
     * @param $type
     *   The cache type, either 'query', 'result' or 'output'.
     */
-  function cache_set_expire($type) {
+  protected function cacheSetExpire($type) {
     return CacheBackendInterface::CACHE_PERMANENT;
   }
 
@@ -130,7 +115,7 @@ abstract class CachePluginBase extends PluginBase {
    *
    * A plugin should override this to provide specialized caching behavior.
    */
-  function cache_set($type) {
+  public function cacheSet($type) {
     switch ($type) {
       case 'query':
         // Not supported currently, but this is certainly where we'd put it.
@@ -141,12 +126,12 @@ abstract class CachePluginBase extends PluginBase {
           'total_rows' => isset($this->view->total_rows) ? $this->view->total_rows : 0,
           'current_page' => $this->view->getCurrentPage(),
         );
-        cache($this->table)->set($this->generateResultsKey(), $data, $this->cache_set_expire($type));
+        cache($this->table)->set($this->generateResultsKey(), $data, $this->cacheSetExpire($type));
         break;
       case 'output':
-        $this->gather_headers();
         $this->storage['output'] = $this->view->display_handler->output;
-        cache($this->table)->set($this->generateOutputKey(), $this->storage, $this->cache_set_expire($type));
+        $this->gatherHeaders();
+        cache($this->table)->set($this->generateOutputKey(), $this->storage, $this->cacheSetExpire($type));
         break;
     }
   }
@@ -157,8 +142,8 @@ abstract class CachePluginBase extends PluginBase {
    *
    * A plugin should override this to provide specialized caching behavior.
    */
-  function cache_get($type) {
-    $cutoff = $this->cache_expire($type);
+  public function cacheGet($type) {
+    $cutoff = $this->cacheExpire($type);
     switch ($type) {
       case 'query':
         // Not supported currently, but this is certainly where we'd put it.
@@ -181,7 +166,7 @@ abstract class CachePluginBase extends PluginBase {
           if (!$cutoff || $cache->created > $cutoff) {
             $this->storage = $cache->data;
             $this->view->display_handler->output = $cache->data['output'];
-            $this->restore_headers();
+            $this->restoreHeaders();
             return TRUE;
           }
         }
@@ -195,8 +180,8 @@ abstract class CachePluginBase extends PluginBase {
    * We're just going to nuke anything related to the view, regardless of display,
    * to be sure that we catch everything. Maybe that's a bad idea.
    */
-  function cache_flush() {
-    cache($this->table)->invalidateTags(array($this->view->storage->get('name') => TRUE));
+  public function cacheFlush() {
+    cache($this->table)->deleteTags(array($this->view->storage->id() => TRUE));
   }
 
   /**
@@ -219,25 +204,25 @@ abstract class CachePluginBase extends PluginBase {
    * All of the cached result data will be available in $view->result, as well,
    * so all ids used in the query should be discoverable.
    */
-  function post_render(&$output) { }
+  public function postRender(&$output) { }
 
   /**
-   * Start caching javascript, css and other out of band info.
+   * Start caching the html head.
    *
    * This takes a snapshot of the current system state so that we don't
-   * duplicate it. Later on, when gather_headers() is run, this information
+   * duplicate it. Later on, when gatherHeaders() is run, this information
    * will be removed so that we don't hold onto it.
+   *
+   * @see drupal_add_html_head()
    */
-  function cache_start() {
+  public function cacheStart() {
     $this->storage['head'] = drupal_add_html_head();
-    $this->storage['css'] = drupal_add_css();
-    $this->storage['js'] = drupal_add_js();
   }
 
   /**
-   * Gather out of band data, compare it to what we started with and store the difference.
+   * Gather the JS/CSS from the render array, the html head from the band data.
    */
-  function gather_headers() {
+  protected function gatherHeaders() {
     // Simple replacement for head
     if (isset($this->storage['head'])) {
       $this->storage['head'] = str_replace($this->storage['head'], '', drupal_add_html_head());
@@ -246,44 +231,31 @@ abstract class CachePluginBase extends PluginBase {
       $this->storage['head'] = '';
     }
 
-    // Slightly less simple for CSS:
-    $css = drupal_add_css();
-    $css_start = isset($this->storage['css']) ? $this->storage['css'] : array();
-    $this->storage['css'] = array_diff_assoc($css, $css_start);
-
-    // Get javascript after/before views renders.
-    $js = drupal_add_js();
-    $js_start = isset($this->storage['js']) ? $this->storage['js'] : array();
-    // If there are any differences between the old and the new javascript then
-    // store them to be added later.
-    $this->storage['js'] = array_diff_assoc($js, $js_start);
-
-    // Special case the settings key and get the difference of the data.
-    $settings = isset($js['settings']['data']) ? $js['settings']['data'] : array();
-    $settings_start = isset($js_start['settings']['data']) ? $js_start['settings']['data'] : array();
-    $this->storage['js']['settings'] = array_diff_assoc($settings, $settings_start);
+    $attached = drupal_render_collect_attached($this->storage['output']);
+    $this->storage['css'] = $attached['css'];
+    $this->storage['js'] = $attached['js'];
   }
 
   /**
    * Restore out of band data saved to cache. Copied from Panels.
    */
-  function restore_headers() {
+  public function restoreHeaders() {
     if (!empty($this->storage['head'])) {
       drupal_add_html_head($this->storage['head']);
     }
     if (!empty($this->storage['css'])) {
       foreach ($this->storage['css'] as $args) {
-        drupal_add_css($args['data'], $args);
+        $this->view->element['#attached']['css'][] = $args;
       }
     }
     if (!empty($this->storage['js'])) {
       foreach ($this->storage['js'] as $key => $args) {
         if ($key !== 'settings') {
-          drupal_add_js($args['data'], $args);
+          $this->view->element['#attached']['js'][] = $args;
         }
         else {
           foreach ($args as $setting) {
-            drupal_add_js($setting, 'setting');
+            $this->view->element['#attached']['js']['setting'][] = $setting;
           }
         }
       }
@@ -313,18 +285,19 @@ abstract class CachePluginBase extends PluginBase {
       }
       $key_data = array(
         'build_info' => $build_info,
-        'roles' => array_keys($user->roles),
-        'super-user' => $user->uid == 1, // special caching for super user.
-        'langcode' => language(LANGUAGE_TYPE_INTERFACE)->langcode,
+        'roles' => $user->getRoles(),
+        'super-user' => $user->id() == 1, // special caching for super user.
+        'langcode' => language(Language::TYPE_INTERFACE)->id,
         'base_url' => $GLOBALS['base_url'],
       );
+      $request = \Drupal::request();
       foreach (array('exposed_info', 'page', 'sort', 'order', 'items_per_page', 'offset') as $key) {
-        if (isset($_GET[$key])) {
-          $key_data[$key] = $_GET[$key];
+        if ($request->query->has($key)) {
+          $key_data[$key] = $request->query->get($key);
         }
       }
 
-      $this->resultsKey = $this->view->storage->get('name') . ':' . $this->displayHandler->display['id'] . ':results:' . md5(serialize($key_data));
+      $this->resultsKey = $this->view->storage->id() . ':' . $this->displayHandler->display['id'] . ':results:' . hash('sha256', serialize($key_data));
     }
 
     return $this->resultsKey;
@@ -341,14 +314,14 @@ abstract class CachePluginBase extends PluginBase {
     if (!isset($this->outputKey)) {
       $key_data = array(
         'result' => $this->view->result,
-        'roles' => array_keys($user->roles),
-        'super-user' => $user->uid == 1, // special caching for super user.
+        'roles' => $user->getRoles(),
+        'super-user' => $user->id() == 1, // special caching for super user.
         'theme' => $GLOBALS['theme'],
-        'langcode' => language(LANGUAGE_TYPE_INTERFACE)->langcode,
+        'langcode' => language(Language::TYPE_INTERFACE)->id,
         'base_url' => $GLOBALS['base_url'],
       );
 
-      $this->outputKey = $this->view->storage->get('name') . ':' . $this->displayHandler->display['id'] . ':output:' . md5(serialize($key_data));
+      $this->outputKey = $this->view->storage->id() . ':' . $this->displayHandler->display['id'] . ':output:' . hash('sha256', serialize($key_data));
     }
 
     return $this->outputKey;

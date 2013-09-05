@@ -8,7 +8,7 @@
 namespace Drupal\form_test;
 
 /**
- * Simple class for testing methods as element validation callbacks.
+ * Simple class for testing methods as Form API callbacks.
  */
 class Callbacks {
 
@@ -47,4 +47,5 @@ class Callbacks {
       form_set_error('');
     }
   }
+
 }

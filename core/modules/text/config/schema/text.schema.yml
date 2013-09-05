@@ -1,0 +1,101 @@
+# Schema for the configuration files of the text module.
+
+text.settings:
+  type: mapping
+  label: 'Text settings'
+  mapping:
+    default_summary_length:
+      type: integer
+      label: 'Default summary length'
+
+field.text.settings:
+  type: mapping
+  label: 'Text settings'
+  mapping:
+    max_length:
+      type: integer
+      label: 'Maximum length'
+
+field.text.instance_settings:
+  type: mapping
+  label: 'Text settings'
+  mapping:
+    text_processing:
+      type: string
+      label: 'Text processing'
+
+field.text.value:
+  type: sequence
+  label: 'Default value'
+  sequence:
+    - type: mapping
+      label: 'Default'
+      mapping:
+        value:
+          type: label
+          label: 'Value'
+        format:
+          type: string
+          label: 'Text format'
+
+field.text_long.settings:
+  type: sequence
+  label: 'Settings'
+  sequence:
+    - type: string
+
+field.text_long.instance_settings:
+  type: mapping
+  label: 'Long text settings'
+  mapping:
+    text_processing:
+      type: string
+      label: 'Text processing'
+
+field.text_long.value:
+  type: sequence
+  label: 'Default value'
+  sequence:
+    - type: mapping
+      label: 'Default'
+      mapping:
+        value:
+          type: text
+          label: 'Value'
+        format:
+          type: string
+          label: 'Text format'
+
+field.text_with_summary.settings:
+  type: sequence
+  label: 'Default'
+  sequence:
+    - type: string
+
+field.text_with_summary.instance_settings:
+  type: mapping
+  label: 'Text area with a summary'
+  mapping:
+    text_processing:
+      type: boolean
+      label: 'Text processing'
+    display_summary:
+      type: boolean
+      label: 'Summary input'
+
+field.text_with_summary.value:
+  type: sequence
+  label: 'Default value'
+  sequence:
+    - type: mapping
+      label: 'Default'
+      mapping:
+        value:
+          type: text
+          label: 'Body'
+        summary:
+          type: string
+          label: 'Summary'
+        format:
+          type: string
+          label: 'Text format'

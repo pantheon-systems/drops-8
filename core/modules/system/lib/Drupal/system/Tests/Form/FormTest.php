@@ -16,7 +16,7 @@ class FormTest extends WebTestBase {
    *
    * @var array
    */
-  public static $modules = array('form_test', 'file');
+  public static $modules = array('form_test', 'file', 'datetime');
 
   public static function getInfo() {
     return array(
@@ -29,14 +29,13 @@ class FormTest extends WebTestBase {
   function setUp() {
     parent::setUp();
 
-    $filtered_html_format = array(
+    $filtered_html_format = entity_create('filter_format', array(
       'format' => 'filtered_html',
       'name' => 'Filtered HTML',
-    );
-    $filtered_html_format = (object) $filtered_html_format;
-    filter_format_save($filtered_html_format);
+    ));
+    $filtered_html_format->save();
 
-    $filtered_html_permission = filter_permission_name($filtered_html_format);
+    $filtered_html_permission = $filtered_html_format->getPermissionName();
     user_role_grant_permissions(DRUPAL_ANONYMOUS_RID, array($filtered_html_permission));
   }
 
@@ -249,6 +248,9 @@ class FormTest extends WebTestBase {
     // Check the page for the error class on the textfield.
     $this->assertFieldByXPath('//input[contains(@class, "error")]', FALSE, 'Error input form element class found.');
 
+    // Check the page for the aria-invalid attribute on the textfield.
+    $this->assertFieldByXPath('//input[contains(@aria-invalid, "true")]', FALSE, 'Aria invalid attribute found.');
+
     // Submit again with required fields set and verify that there are no
     // error messages.
     $edit = array(
@@ -351,6 +353,15 @@ class FormTest extends WebTestBase {
         '@expected' => var_export($value, TRUE),
       )));
     }
+  }
+
+  /**
+   * Tests a select element when #options is not set.
+   */
+  function testEmptySelect() {
+    $this->drupalGet('form-test/empty-select');
+    $this->assertFieldByXPath("//select[1]", NULL, 'Select element found.');
+    $this->assertNoFieldByXPath("//select[1]/option", NULL, 'No option element found.');
   }
 
   /**
@@ -510,7 +521,7 @@ class FormTest extends WebTestBase {
 
     // All the elements should be marked as disabled, including the ones below
     // the disabled container.
-    $this->assertEqual(count($disabled_elements), 40, 'The correct elements have the disabled property in the HTML code.');
+    $this->assertEqual(count($disabled_elements), 39, 'The correct elements have the disabled property in the HTML code.');
 
     $this->drupalPost(NULL, $edit, t('Submit'));
     $returned_values['hijacked'] = drupal_json_decode($this->content);
@@ -560,7 +571,7 @@ class FormTest extends WebTestBase {
       'textarea' => 'textarea',
       'select' => 'select',
       'weight' => 'select',
-      'date' => 'select',
+      'datetime' => 'datetime',
     );
 
     foreach ($form as $name => $item) {
@@ -569,9 +580,13 @@ class FormTest extends WebTestBase {
         continue;
       }
       // Setup XPath and CSS class depending on #type.
-      if (in_array($item['#type'], array('image_button', 'button', 'submit'))) {
+      if (in_array($item['#type'], array('button', 'submit'))) {
         $path = "//!type[contains(@class, :div-class) and @value=:value]";
         $class = 'form-button-disabled';
+      }
+      elseif (in_array($item['#type'], array('image_button'))) {
+        $path = "//!type[contains(@class, :div-class) and @value=:value]";
+        $class = 'image-button-disabled';
       }
       else {
         // starts-with() required for checkboxes.
@@ -640,5 +655,25 @@ class FormTest extends WebTestBase {
       ':expected' => $expected,
     ));
     $this->assertTrue(!empty($element), 'The textarea has the proper required attribute.');
+  }
+
+  /**
+   *  Tests error border of multiple fields with same name in a page.
+   */
+  function testMultiFormSameNameErrorClass() {
+    $this->drupalGet('form-test/double-form');
+    $edit = array();
+    $this->drupalPost(NULL, $edit, t('Save'));
+    $this->assertFieldByXpath('//input[@id="edit-name" and contains(@class, "error")]', NULL, 'Error input form element class found for first element.');
+    $this->assertNoFieldByXpath('//input[@id="edit-name--2" and contains(@class, "error")]', NULL, 'No error input form element class found for second element.');
+  }
+
+  /**
+   * Tests a form with a form state storing a database connection.
+   */
+  public function testFormStateDatabaseConnection() {
+    $this->assertNoText('Database connection found');
+    $this->drupalPost('form-test/form_state-database', array(), t('Submit'));
+    $this->assertText('Database connection found');
   }
 }

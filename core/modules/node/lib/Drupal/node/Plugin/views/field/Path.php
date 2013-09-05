@@ -8,26 +8,25 @@
 namespace Drupal\node\Plugin\views\field;
 
 use Drupal\views\Plugin\views\field\FieldPluginBase;
+use Drupal\views\Plugin\views\display\DisplayPluginBase;
+use Drupal\views\ResultRow;
 use Drupal\views\ViewExecutable;
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
 
 /**
  * Field handler to present the path to the node.
  *
  * @ingroup views_field_handlers
  *
- * @Plugin(
- *   id = "node_path",
- *   module = "node"
- * )
+ * @PluginID("node_path")
  */
 class Path extends FieldPluginBase {
 
   /**
-   * Overrides Drupal\views\Plugin\views\field\FieldPluginBase::init().
+   * Overrides \Drupal\views\Plugin\views\field\FieldPluginBase::init().
    */
-  public function init(ViewExecutable $view, &$options) {
-    parent::init($view, $options);
+  public function init(ViewExecutable $view, DisplayPluginBase $display, array &$options = NULL) {
+    parent::init($view, $display, $options);
 
     $this->additional_fields['nid'] = 'nid';
   }
@@ -52,11 +51,14 @@ class Path extends FieldPluginBase {
 
   public function query() {
     $this->ensureMyTable();
-    $this->add_additional_fields();
+    $this->addAdditionalFields();
   }
 
-  function render($values) {
-    $nid = $this->get_value($values, 'nid');
+  /**
+   * {@inheritdoc}
+   */
+  public function render(ResultRow $values) {
+    $nid = $this->getValue($values, 'nid');
     return url("node/$nid", array('absolute' => $this->options['absolute']));
   }
 

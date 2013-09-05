@@ -2,14 +2,12 @@
 
 /**
  * @file
- * Definition of Drupal\picture\PictureFormController.
+ * Contains Drupal\picture\PictureFormController.
  */
 
 namespace Drupal\picture;
 
-use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityFormController;
-use Drupal\picture\PictureMapping;
 
 /**
  * Form controller for the picture edit/add forms.
@@ -23,13 +21,22 @@ class PictureMappingFormController extends EntityFormController {
    *   A nested array form elements comprising the form.
    * @param array $form_state
    *   An associative array containing the current state of the form.
-   * @param \Drupal\picture\PictureMapping $picture_mapping
+   * @param \Drupal\picture\PictureMappingInterface $picture_mapping
    *   The entity being edited.
    *
    * @return array
    *   The array containing the complete form.
    */
-  public function form(array $form, array &$form_state, EntityInterface $picture_mapping) {
+  public function form(array $form, array &$form_state) {
+    if ($this->operation == 'duplicate') {
+      drupal_set_title(t('<em>Duplicate picture mapping</em> @label', array('@label' => $this->entity->label())), PASS_THROUGH);
+      $this->entity = $this->entity->createDuplicate();
+    }
+    if ($this->operation == 'edit') {
+      drupal_set_title(t('<em>Edit picture mapping</em> @label', array('@label' => $this->entity->label())), PASS_THROUGH);
+    }
+
+    $picture_mapping = $this->entity;
     $form['label'] = array(
       '#type' => 'textfield',
       '#title' => t('Label'),
@@ -49,14 +56,14 @@ class PictureMappingFormController extends EntityFormController {
     );
 
     if ((bool) $picture_mapping->id() && $this->operation != 'duplicate') {
-      $description = t('Select a breakpoint group from the enabled themes.') . ' ' . t("Warning: if you change the breakpoint group you lose all you're selected mappings.");
+      $description = t('Select a breakpoint group from the enabled themes.') . ' ' . t("Warning: if you change the breakpoint group you lose all your selected mappings.");
     }
     else {
       $description = t('Select a breakpoint group from the enabled themes.');
     }
     $form['breakpointGroup'] = array(
       '#type' => 'select',
-      '#title' => t('Breakpoint Group'),
+      '#title' => t('Breakpoint group'),
       '#default_value' => !empty($picture_mapping->breakpointGroup) ? $picture_mapping->breakpointGroup->id() : '',
       '#options' => breakpoint_group_select_options(),
       '#required' => TRUE,
@@ -105,7 +112,7 @@ class PictureMappingFormController extends EntityFormController {
    * Overrides Drupal\Core\Entity\EntityFormController::validate().
    */
   public function validate(array $form, array &$form_state) {
-    $picture_mapping = $this->getEntity($form_state);
+    $picture_mapping = $this->entity;
 
     // Only validate on edit.
     if (isset($form_state['values']['mappings'])) {
@@ -127,7 +134,7 @@ class PictureMappingFormController extends EntityFormController {
    * Overrides Drupal\Core\Entity\EntityFormController::save().
    */
   public function save(array $form, array &$form_state) {
-    $picture_mapping = $this->getEntity($form_state);
+    $picture_mapping = $this->entity;
     $picture_mapping->save();
 
     watchdog('picture', 'Picture mapping @label saved.', array('@label' => $picture_mapping->label()), WATCHDOG_NOTICE);
@@ -137,7 +144,7 @@ class PictureMappingFormController extends EntityFormController {
     // another breakpoint group.
     if (!$picture_mapping->hasMappings()) {
       $uri = $picture_mapping->uri();
-      $form_state['redirect'] = $uri['path'] . '/edit';
+      $form_state['redirect'] = $uri['path'];
     }
     else {
       $form_state['redirect'] = 'admin/config/media/picturemapping';

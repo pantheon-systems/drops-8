@@ -8,8 +8,11 @@
 namespace Drupal\node\Tests;
 
 use Drupal\Core\Database\Database;
-use Exception;
+use Drupal\Core\Language\Language;
 
+/**
+ * Tests creating and saving a node.
+ */
 class NodeCreationTest extends NodeTestBase {
 
   /**
@@ -37,12 +40,12 @@ class NodeCreationTest extends NodeTestBase {
   }
 
   /**
-   * Create a "Basic page" node and verify its consistency in the database.
+   * Creates a "Basic page" node and verifies its consistency in the database.
    */
   function testNodeCreation() {
     // Create a node.
     $edit = array();
-    $langcode = LANGUAGE_NOT_SPECIFIED;
+    $langcode = Language::LANGCODE_NOT_SPECIFIED;
     $edit["title"] = $this->randomName(8);
     $edit["body[$langcode][0][value]"] = $this->randomName(16);
     $this->drupalPost('node/add/page', $edit, t('Save'));
@@ -56,15 +59,15 @@ class NodeCreationTest extends NodeTestBase {
   }
 
   /**
-   * Create a page node and verify that a transaction rolls back the failed creation
+   * Verifies that a transaction rolls back the failed creation.
    */
   function testFailedPageCreation() {
     // Create a node.
     $edit = array(
-      'uid'      => $this->loggedInUser->uid,
+      'uid'      => $this->loggedInUser->id(),
       'name'     => $this->loggedInUser->name,
       'type'     => 'page',
-      'langcode' => LANGUAGE_NOT_SPECIFIED,
+      'langcode' => Language::LANGCODE_NOT_SPECIFIED,
       'title'    => 'testing_transaction_exception',
     );
 
@@ -72,7 +75,7 @@ class NodeCreationTest extends NodeTestBase {
       entity_create('node', $edit)->save();
       $this->fail(t('Expected exception has not been thrown.'));
     }
-    catch (Exception $e) {
+    catch (\Exception $e) {
       $this->pass(t('Expected exception has been thrown.'));
     }
 
@@ -97,19 +100,19 @@ class NodeCreationTest extends NodeTestBase {
   }
 
   /**
-   * Create an unpublished node and confirm correct redirect behavior.
+   * Creates an unpublished node and confirms correct redirect behavior.
    */
   function testUnpublishedNodeCreation() {
     // Set the front page to the test page.
-    config('system.site')->set('page.front', 'test-page')->save();
+    \Drupal::config('system.site')->set('page.front', 'test-page')->save();
 
     // Set "Basic page" content type to be unpublished by default.
-    variable_set('node_options_page', array());
+    \Drupal::config('node.type.page')->set('settings.node.options', array())->save();
 
     // Create a node.
     $edit = array();
     $edit["title"] = $this->randomName(8);
-    $edit["body[" . LANGUAGE_NOT_SPECIFIED . "][0][value]"] = $this->randomName(16);
+    $edit["body[" . Language::LANGCODE_NOT_SPECIFIED . "][0][value]"] = $this->randomName(16);
     $this->drupalPost('node/add/page', $edit, t('Save'));
 
     // Check that the user was redirected to the home page.
@@ -118,6 +121,28 @@ class NodeCreationTest extends NodeTestBase {
 
     // Confirm that the node was created.
     $this->assertRaw(t('!post %title has been created.', array('!post' => 'Basic page', '%title' => $edit["title"])));
+  }
+
+  /**
+   * Tests the author autocompletion textfield.
+   */
+  public function testAuthorAutocomplete() {
+    $admin_user = $this->drupalCreateUser(array('administer nodes', 'create page content'));
+    $this->drupalLogin($admin_user);
+
+    $this->drupalGet('node/add/page');
+
+    $result = $this->xpath('//input[@id = "edit-name-autocomplete"]');
+    $this->assertEqual(count($result), 0, 'No autocompletion without access user profiles.');
+
+    $admin_user = $this->drupalCreateUser(array('administer nodes', 'create page content', 'access user profiles'));
+    $this->drupalLogin($admin_user);
+
+    $this->drupalGet('node/add/page');
+
+    $result = $this->xpath('//input[@id = "edit-name-autocomplete"]');
+    $this->assertEqual((string) $result[0]['value'], url('user/autocomplete'));
+    $this->assertEqual(count($result), 1, 'Ensure that the user does have access to the autocompletion');
   }
 
 }

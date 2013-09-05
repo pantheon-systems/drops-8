@@ -22,9 +22,9 @@ use Drupal\Core\Cache\CacheBackendInterface;
  * static caches of that same data.
  *
  * Note that array_* functions do not work with ArrayAccess. Systems using
- * DrupalCacheArray should use this only internally. If providing API functions
+ * CacheArray should use this only internally. If providing API functions
  * that return the full array, this can be cached separately or returned
- * directly. However since DrupalCacheArray holds partial content by design, it
+ * directly. However since CacheArray holds partial content by design, it
  * should be a normal PHP array or otherwise contain the full structure.
  *
  * Note also that due to limitations in PHP prior to 5.3.4, it is impossible to
@@ -61,6 +61,8 @@ use Drupal\Core\Cache\CacheBackendInterface;
  * This follows a similar pattern to static vs. persistent caching in
  * procedural code. Extending classes may wish to alter this behavior, for
  * example by overriding offsetSet() and adding an automatic call to persist().
+ *
+ * @deprecated as of Drupal 8.0. Use \Drupal\Core\Cache\CacheCollector instead.
  *
  * @see SchemaCache
  */
@@ -102,7 +104,7 @@ abstract class CacheArray implements ArrayAccess {
   protected $storage = array();
 
   /**
-   * Constructs a DrupalCacheArray object.
+   * Constructs a CacheArray object.
    *
    * @param string $cid
    *   The cid for the array being cached.
@@ -163,11 +165,11 @@ abstract class CacheArray implements ArrayAccess {
    * without necessarily writing back to the persistent cache at the end.
    *
    * @param $offset
-   *   The array offset that was request.
+   *   The array offset that was requested.
    * @param $persist
    *   Optional boolean to specify whether the offset should be persisted or
    *   not, defaults to TRUE. When called with $persist = FALSE the offset will
-   *   be unflagged so that it will not written at the end of the request.
+   *   be unflagged so that it will not be written at the end of the request.
    */
   protected function persist($offset, $persist = TRUE) {
     $this->keysToPersist[$offset] = $persist;
@@ -212,7 +214,16 @@ abstract class CacheArray implements ArrayAccess {
   }
 
   /**
-   * Destructs the DrupalCacheArray object.
+   * Clear the cache.
+   */
+  public function clear() {
+    $this->storage = array();
+    $this->keysToPersist = array();
+    cache($this->bin)->delete($this->cid);
+  }
+
+  /**
+   * Destructs the CacheArray object.
    */
   public function __destruct() {
     $data = array();

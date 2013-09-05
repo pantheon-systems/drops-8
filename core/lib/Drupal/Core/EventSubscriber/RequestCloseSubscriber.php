@@ -7,6 +7,8 @@
 
 namespace Drupal\Core\EventSubscriber;
 
+use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\Extension\CachedModuleHandlerInterface;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\HttpKernel\Event\PostResponseEvent;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -15,6 +17,18 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
  * Subscriber for all responses.
  */
 class RequestCloseSubscriber implements EventSubscriberInterface {
+
+  /**
+   * @var \Drupal\Core\Extension\ModuleHandlerInterface
+   */
+  protected $moduleHandler;
+
+  /**
+   * Constructor.
+   */
+  function __construct(ModuleHandlerInterface $module_handler) {
+    $this->moduleHandler = $module_handler;
+  }
 
   /**
    * Performs end of request tasks.
@@ -28,9 +42,9 @@ class RequestCloseSubscriber implements EventSubscriberInterface {
    *   The Event to process.
    */
   public function onTerminate(PostResponseEvent $event) {
-    module_invoke_all('exit');
-    drupal_cache_system_paths();
-    module_implements_write_cache();
+    if ($this->moduleHandler instanceof CachedModuleHandlerInterface) {
+      $this->moduleHandler->writeCache();
+    }
     system_run_automated_cron();
   }
 
@@ -41,7 +55,7 @@ class RequestCloseSubscriber implements EventSubscriberInterface {
    *   An array of event listener definitions.
    */
   static function getSubscribedEvents() {
-    $events[KernelEvents::TERMINATE][] = array('onTerminate');
+    $events[KernelEvents::TERMINATE][] = array('onTerminate', 100);
 
     return $events;
   }

@@ -7,13 +7,26 @@
 
 namespace Drupal\filter\Tests;
 
-use Drupal\simpletest\UnitTestBase;
-use stdClass;
+use Drupal\simpletest\DrupalUnitTestBase;
+use Drupal\filter\FilterBag;
 
 /**
  * Unit tests for core filters.
  */
-class FilterUnitTest extends UnitTestBase {
+class FilterUnitTest extends DrupalUnitTestBase {
+
+  /**
+   * Modules to enable.
+   *
+   * @var array
+   */
+  public static $modules = array('filter');
+
+  /**
+   * @var \Drupal\filter\Plugin\FilterInterface[]
+   */
+  protected $filters;
+
   public static function getInfo() {
     return array(
       'name' => 'Filter module filters',
@@ -22,13 +35,124 @@ class FilterUnitTest extends UnitTestBase {
     );
   }
 
+  protected function setUp() {
+    parent::setUp();
+    config_install_default_config('module', 'system');
+
+    $manager = $this->container->get('plugin.manager.filter');
+    $bag = new FilterBag($manager, array());
+    $this->filters = $bag->getAll();
+  }
+
+  /**
+   * Tests the caption filter.
+   */
+  function testCaptionFilter() {
+    $filter = $this->filters['filter_caption'];
+
+    $test = function($input) use ($filter) {
+      return $filter->process($input, 'und', FALSE, '');
+    };
+
+    // No data-caption nor data-align attributes.
+    $input = '<img src="llama.jpg" />';
+    $expected = $input;
+    $this->assertIdentical($expected, $test($input));
+
+    // Only data-caption attribute.
+    $input = '<img src="llama.jpg" data-caption="Loquacious llama!" />';
+    $expected = '<figure class="caption caption-img"><img src="llama.jpg" /><figcaption>Loquacious llama!</figcaption></figure>';
+    $this->assertIdentical($expected, $test($input));
+
+    // Empty data-caption attribute.
+    $input = '<img src="llama.jpg" data-caption="" />';
+    $expected = '<img src="llama.jpg" />';
+    $this->assertIdentical($expected, $test($input));
+
+    // HTML entities in the caption.
+    $input = '<img src="llama.jpg" data-caption="&ldquo;Loquacious llama!&rdquo;" />';
+    $expected = '<figure class="caption caption-img"><img src="llama.jpg" /><figcaption>“Loquacious llama!”</figcaption></figure>';
+    $this->assertIdentical($expected, $test($input));
+
+    // HTML encoded as HTML entities in data-caption attribute.
+    $input = '<img src="llama.jpg" data-caption="&lt;em&gt;Loquacious llama!&lt;/em&gt;" />';
+    $expected = '<figure class="caption caption-img"><img src="llama.jpg" /><figcaption><em>Loquacious llama!</em></figcaption></figure>';
+    $this->assertIdentical($expected, $test($input));
+
+    // HTML (not encoded as HTML entities) in data-caption attribute, which is
+    // not allowed by the HTML spec, but may happen when people manually write
+    // HTML, so we explicitly support it.
+    $input = '<img src="llama.jpg" data-caption="<em>Loquacious llama!</em>" />';
+    $expected = '<figure class="caption caption-img"><img src="llama.jpg" /><figcaption><em>Loquacious llama!</em></figcaption></figure>';
+    $this->assertIdentical($expected, $test($input));
+
+    // Security test: attempt an XSS.
+    $input = '<img src="llama.jpg" data-caption="<script>alert(\'Loquacious llama!\')</script>" />';
+    $expected = '<figure class="caption caption-img"><img src="llama.jpg" /><figcaption>alert(\'Loquacious llama!\')</figcaption></figure>';
+    $this->assertIdentical($expected, $test($input));
+
+    // Only data-align attribute: all 3 allowed values.
+    $input = '<img src="llama.jpg" data-align="left" />';
+    $expected = '<figure class="caption caption-img caption-left"><img src="llama.jpg" /></figure>';
+    $this->assertIdentical($expected, $test($input));
+    $input = '<img src="llama.jpg" data-align="center" />';
+    $expected = '<figure class="caption caption-img caption-center"><img src="llama.jpg" /></figure>';
+    $this->assertIdentical($expected, $test($input));
+    $input = '<img src="llama.jpg" data-align="right" />';
+    $expected = '<figure class="caption caption-img caption-right"><img src="llama.jpg" /></figure>';
+    $this->assertIdentical($expected, $test($input));
+
+    // Only data-align attribute: a disallowed value.
+    $input = '<img src="llama.jpg" data-align="left foobar" />';
+    $expected = '<img src="llama.jpg" />';
+    $this->assertIdentical($expected, $test($input));
+
+    // Empty data-align attribute.
+    $input = '<img src="llama.jpg" data-align="" />';
+    $expected = '<img src="llama.jpg" />';
+    $this->assertIdentical($expected, $test($input));
+
+    // Both data-caption and data-align attributes.
+    $input = '<img src="llama.jpg" data-caption="Loquacious llama!" data-align="right" />';
+    $expected = '<figure class="caption caption-img caption-right"><img src="llama.jpg" /><figcaption>Loquacious llama!</figcaption></figure>';
+    $this->assertIdentical($expected, $test($input));
+
+    // Both data-caption and data-align attributes, but a disallowed data-align
+    // attribute value.
+    $input = '<img src="llama.jpg" data-caption="Loquacious llama!" data-align="left foobar" />';
+    $expected = '<figure class="caption caption-img"><img src="llama.jpg" /><figcaption>Loquacious llama!</figcaption></figure>';
+    $this->assertIdentical($expected, $test($input));
+
+    // Ensure the filter also works with uncommon yet valid attribute quoting.
+    $input = '<img src=llama.jpg data-caption=\'Loquacious llama!\' data-align=right />';
+    $expected = '<figure class="caption caption-img caption-right"><img src="llama.jpg" /><figcaption>Loquacious llama!</figcaption></figure>';
+    $this->assertIdentical($expected, $test($input));
+
+    // Security test: attempt to inject an additional class.
+    $input = '<img src="llama.jpg" data-caption="Loquacious llama!" data-align="center another-class-here" />';
+    $expected = '<figure class="caption caption-img"><img src="llama.jpg" /><figcaption>Loquacious llama!</figcaption></figure>';
+    $this->assertIdentical($expected, $test($input));
+
+    // Security test: attempt an XSS.
+    $input = '<img src="llama.jpg" data-caption="Loquacious llama!" data-align="center \'onclick=\'alert(foo);" />';
+    $expected = '<figure class="caption caption-img"><img src="llama.jpg" /><figcaption>Loquacious llama!</figcaption></figure>';
+    $this->assertIdentical($expected, $test($input));
+
+    // Finally, ensure that this also works on any other tag.
+    $input = '<video src="llama.jpg" data-caption="Loquacious llama!" />';
+    $expected = '<figure class="caption caption-video"><video src="llama.jpg"></video><figcaption>Loquacious llama!</figcaption></figure>';
+    $this->assertIdentical($expected, $test($input));
+    $input = '<foobar data-caption="Loquacious llama!">baz</foobar>';
+    $expected = '<figure class="caption caption-foobar"><foobar>baz</foobar><figcaption>Loquacious llama!</figcaption></figure>';
+    $this->assertIdentical($expected, $test($input));
+  }
+
   /**
    * Tests the line break filter.
    */
   function testLineBreakFilter() {
-    // Setup dummy filter object.
-    $filter = new stdClass();
-    $filter->callback = '_filter_autop';
+    // Get FilterAutoP object.
+    $filter = $this->filters['filter_autop'];
 
     // Since the line break filter naturally needs plenty of newlines in test
     // strings and expectations, we're using "\n" instead of regular newlines
@@ -99,188 +223,6 @@ class FilterUnitTest extends UnitTestBase {
     }
   }
 
-  /**
-   * Tests limiting allowed tags and XSS prevention.
-   *
-   * XSS tests assume that script is disallowed by default and src is allowed
-   * by default, but on* and style attributes are disallowed.
-   *
-   * Script injection vectors mostly adopted from http://ha.ckers.org/xss.html.
-   *
-   * Relevant CVEs:
-   * - CVE-2002-1806, ~CVE-2005-0682, ~CVE-2005-2106, CVE-2005-3973,
-   *   CVE-2006-1226 (= rev. 1.112?), CVE-2008-0273, CVE-2008-3740.
-   */
-  function testFilterXSS() {
-    // Tag stripping, different ways to work around removal of HTML tags.
-    $f = filter_xss('<script>alert(0)</script>');
-    $this->assertNoNormalized($f, 'script', 'HTML tag stripping -- simple script without special characters.');
-
-    $f = filter_xss('<script src="http://www.example.com" />');
-    $this->assertNoNormalized($f, 'script', 'HTML tag stripping -- empty script with source.');
-
-    $f = filter_xss('<ScRipt sRc=http://www.example.com/>');
-    $this->assertNoNormalized($f, 'script', 'HTML tag stripping evasion -- varying case.');
-
-    $f = filter_xss("<script\nsrc\n=\nhttp://www.example.com/\n>");
-    $this->assertNoNormalized($f, 'script', 'HTML tag stripping evasion -- multiline tag.');
-
-    $f = filter_xss('<script/a src=http://www.example.com/a.js></script>');
-    $this->assertNoNormalized($f, 'script', 'HTML tag stripping evasion -- non whitespace character after tag name.');
-
-    $f = filter_xss('<script/src=http://www.example.com/a.js></script>');
-    $this->assertNoNormalized($f, 'script', 'HTML tag stripping evasion -- no space between tag and attribute.');
-
-    // Null between < and tag name works at least with IE6.
-    $f = filter_xss("<\0scr\0ipt>alert(0)</script>");
-    $this->assertNoNormalized($f, 'ipt', 'HTML tag stripping evasion -- breaking HTML with nulls.');
-
-    $f = filter_xss("<scrscriptipt src=http://www.example.com/a.js>");
-    $this->assertNoNormalized($f, 'script', 'HTML tag stripping evasion -- filter just removing "script".');
-
-    $f = filter_xss('<<script>alert(0);//<</script>');
-    $this->assertNoNormalized($f, 'script', 'HTML tag stripping evasion -- double opening brackets.');
-
-    $f = filter_xss('<script src=http://www.example.com/a.js?<b>');
-    $this->assertNoNormalized($f, 'script', 'HTML tag stripping evasion -- no closing tag.');
-
-    // DRUPAL-SA-2008-047: This doesn't seem exploitable, but the filter should
-    // work consistently.
-    $f = filter_xss('<script>>');
-    $this->assertNoNormalized($f, 'script', 'HTML tag stripping evasion -- double closing tag.');
-
-    $f = filter_xss('<script src=//www.example.com/.a>');
-    $this->assertNoNormalized($f, 'script', 'HTML tag stripping evasion -- no scheme or ending slash.');
-
-    $f = filter_xss('<script src=http://www.example.com/.a');
-    $this->assertNoNormalized($f, 'script', 'HTML tag stripping evasion -- no closing bracket.');
-
-    $f = filter_xss('<script src=http://www.example.com/ <');
-    $this->assertNoNormalized($f, 'script', 'HTML tag stripping evasion -- opening instead of closing bracket.');
-
-    $f = filter_xss('<nosuchtag attribute="newScriptInjectionVector">');
-    $this->assertNoNormalized($f, 'nosuchtag', 'HTML tag stripping evasion -- unknown tag.');
-
-    $f = filter_xss('<?xml:namespace ns="urn:schemas-microsoft-com:time">');
-    $this->assertTrue(stripos($f, '<?xml') === FALSE, 'HTML tag stripping evasion -- starting with a question sign (processing instructions).');
-
-    $f = filter_xss('<t:set attributeName="innerHTML" to="&lt;script defer&gt;alert(0)&lt;/script&gt;">');
-    $this->assertNoNormalized($f, 't:set', 'HTML tag stripping evasion -- colon in the tag name (namespaces\' tricks).');
-
-    $f = filter_xss('<img """><script>alert(0)</script>', array('img'));
-    $this->assertNoNormalized($f, 'script', 'HTML tag stripping evasion -- a malformed image tag.');
-
-    $f = filter_xss('<blockquote><script>alert(0)</script></blockquote>', array('blockquote'));
-    $this->assertNoNormalized($f, 'script', 'HTML tag stripping evasion -- script in a blockqoute.');
-
-    $f = filter_xss("<!--[if true]><script>alert(0)</script><![endif]-->");
-    $this->assertNoNormalized($f, 'script', 'HTML tag stripping evasion -- script within a comment.');
-
-    // Dangerous attributes removal.
-    $f = filter_xss('<p onmouseover="http://www.example.com/">', array('p'));
-    $this->assertNoNormalized($f, 'onmouseover', 'HTML filter attributes removal -- events, no evasion.');
-
-    $f = filter_xss('<li style="list-style-image: url(javascript:alert(0))">', array('li'));
-    $this->assertNoNormalized($f, 'style', 'HTML filter attributes removal -- style, no evasion.');
-
-    $f = filter_xss('<img onerror   =alert(0)>', array('img'));
-    $this->assertNoNormalized($f, 'onerror', 'HTML filter attributes removal evasion -- spaces before equals sign.');
-
-    $f = filter_xss('<img onabort!#$%&()*~+-_.,:;?@[/|\]^`=alert(0)>', array('img'));
-    $this->assertNoNormalized($f, 'onabort', 'HTML filter attributes removal evasion -- non alphanumeric characters before equals sign.');
-
-    $f = filter_xss('<img oNmediAError=alert(0)>', array('img'));
-    $this->assertNoNormalized($f, 'onmediaerror', 'HTML filter attributes removal evasion -- varying case.');
-
-    // Works at least with IE6.
-    $f = filter_xss("<img o\0nfocus\0=alert(0)>", array('img'));
-    $this->assertNoNormalized($f, 'focus', 'HTML filter attributes removal evasion -- breaking with nulls.');
-
-    // Only whitelisted scheme names allowed in attributes.
-    $f = filter_xss('<img src="javascript:alert(0)">', array('img'));
-    $this->assertNoNormalized($f, 'javascript', 'HTML scheme clearing -- no evasion.');
-
-    $f = filter_xss('<img src=javascript:alert(0)>', array('img'));
-    $this->assertNoNormalized($f, 'javascript', 'HTML scheme clearing evasion -- no quotes.');
-
-    // A bit like CVE-2006-0070.
-    $f = filter_xss('<img src="javascript:confirm(0)">', array('img'));
-    $this->assertNoNormalized($f, 'javascript', 'HTML scheme clearing evasion -- no alert ;)');
-
-    $f = filter_xss('<img src=`javascript:alert(0)`>', array('img'));
-    $this->assertNoNormalized($f, 'javascript', 'HTML scheme clearing evasion -- grave accents.');
-
-    $f = filter_xss('<img dynsrc="javascript:alert(0)">', array('img'));
-    $this->assertNoNormalized($f, 'javascript', 'HTML scheme clearing -- rare attribute.');
-
-    $f = filter_xss('<table background="javascript:alert(0)">', array('table'));
-    $this->assertNoNormalized($f, 'javascript', 'HTML scheme clearing -- another tag.');
-
-    $f = filter_xss('<base href="javascript:alert(0);//">', array('base'));
-    $this->assertNoNormalized($f, 'javascript', 'HTML scheme clearing -- one more attribute and tag.');
-
-    $f = filter_xss('<img src="jaVaSCriPt:alert(0)">', array('img'));
-    $this->assertNoNormalized($f, 'javascript', 'HTML scheme clearing evasion -- varying case.');
-
-    $f = filter_xss('<img src=&#106;&#97;&#118;&#97;&#115;&#99;&#114;&#105;&#112;&#116;&#58;&#97;&#108;&#101;&#114;&#116;&#40;&#48;&#41;>', array('img'));
-    $this->assertNoNormalized($f, 'javascript', 'HTML scheme clearing evasion -- UTF-8 decimal encoding.');
-
-    $f = filter_xss('<img src=&#00000106&#0000097&#00000118&#0000097&#00000115&#0000099&#00000114&#00000105&#00000112&#00000116&#0000058&#0000097&#00000108&#00000101&#00000114&#00000116&#0000040&#0000048&#0000041>', array('img'));
-    $this->assertNoNormalized($f, 'javascript', 'HTML scheme clearing evasion -- long UTF-8 encoding.');
-
-    $f = filter_xss('<img src=&#x6A&#x61&#x76&#x61&#x73&#x63&#x72&#x69&#x70&#x74&#x3A&#x61&#x6C&#x65&#x72&#x74&#x28&#x30&#x29>', array('img'));
-    $this->assertNoNormalized($f, 'javascript', 'HTML scheme clearing evasion -- UTF-8 hex encoding.');
-
-    $f = filter_xss("<img src=\"jav\tascript:alert(0)\">", array('img'));
-    $this->assertNoNormalized($f, 'script', 'HTML scheme clearing evasion -- an embedded tab.');
-
-    $f = filter_xss('<img src="jav&#x09;ascript:alert(0)">', array('img'));
-    $this->assertNoNormalized($f, 'script', 'HTML scheme clearing evasion -- an encoded, embedded tab.');
-
-    $f = filter_xss('<img src="jav&#x000000A;ascript:alert(0)">', array('img'));
-    $this->assertNoNormalized($f, 'script', 'HTML scheme clearing evasion -- an encoded, embedded newline.');
-
-    // With &#xD; this test would fail, but the entity gets turned into
-    // &amp;#xD;, so it's OK.
-    $f = filter_xss('<img src="jav&#x0D;ascript:alert(0)">', array('img'));
-    $this->assertNoNormalized($f, 'script', 'HTML scheme clearing evasion -- an encoded, embedded carriage return.');
-
-    $f = filter_xss("<img src=\"\n\n\nj\na\nva\ns\ncript:alert(0)\">", array('img'));
-    $this->assertNoNormalized($f, 'cript', 'HTML scheme clearing evasion -- broken into many lines.');
-
-    $f = filter_xss("<img src=\"jav\0a\0\0cript:alert(0)\">", array('img'));
-    $this->assertNoNormalized($f, 'cript', 'HTML scheme clearing evasion -- embedded nulls.');
-
-    $f = filter_xss('<img src=" &#14;  javascript:alert(0)">', array('img'));
-    $this->assertNoNormalized($f, 'javascript', 'HTML scheme clearing evasion -- spaces and metacharacters before scheme.');
-
-    $f = filter_xss('<img src="vbscript:msgbox(0)">', array('img'));
-    $this->assertNoNormalized($f, 'vbscript', 'HTML scheme clearing evasion -- another scheme.');
-
-    $f = filter_xss('<img src="nosuchscheme:notice(0)">', array('img'));
-    $this->assertNoNormalized($f, 'nosuchscheme', 'HTML scheme clearing evasion -- unknown scheme.');
-
-    // Netscape 4.x javascript entities.
-    $f = filter_xss('<br size="&{alert(0)}">', array('br'));
-    $this->assertNoNormalized($f, 'alert', 'Netscape 4.x javascript entities.');
-
-    // DRUPAL-SA-2008-006: Invalid UTF-8, these only work as reflected XSS with
-    // Internet Explorer 6.
-    $f = filter_xss("<p arg=\"\xe0\">\" style=\"background-image: url(javascript:alert(0));\"\xe0<p>", array('p'));
-    $this->assertNoNormalized($f, 'style', 'HTML filter -- invalid UTF-8.');
-
-    $f = filter_xss("\xc0aaa");
-    $this->assertEqual($f, '', 'HTML filter -- overlong UTF-8 sequences.');
-
-    $f = filter_xss("Who&#039;s Online");
-    $this->assertNormalized($f, "who's online", 'HTML filter -- html entity number');
-
-    $f = filter_xss("Who&amp;#039;s Online");
-    $this->assertNormalized($f, "who&#039;s online", 'HTML filter -- encoded html entity number');
-
-    $f = filter_xss("Who&amp;amp;#039; Online");
-    $this->assertNormalized($f, "who&amp;#039; online", 'HTML filter -- double encoded html entity number');
-  }
 
   /**
    * Tests filter settings, defaults, access restrictions and similar.
@@ -297,13 +239,15 @@ class FilterUnitTest extends UnitTestBase {
    *   or better a whitelist approach should be used for that too.
    */
   function testHtmlFilter() {
-    // Setup dummy filter object.
-    $filter = new stdClass();
-    $filter->settings = array(
-      'allowed_html' => '<a> <em> <strong> <cite> <blockquote> <code> <ul> <ol> <li> <dl> <dt> <dd>',
-      'filter_html_help' => 1,
-      'filter_html_nofollow' => 0,
-    );
+    // Get FilterHtml object.
+    $filter = $this->filters['filter_html'];
+    $filter->setConfiguration(array(
+      'settings' => array(
+        'allowed_html' => '<a> <em> <strong> <cite> <blockquote> <code> <ul> <ol> <li> <dl> <dt> <dd>',
+        'filter_html_help' => 1,
+        'filter_html_nofollow' => 0,
+      )
+    ));
 
     // HTML filter is not able to secure some tags, these should never be
     // allowed.
@@ -342,13 +286,15 @@ class FilterUnitTest extends UnitTestBase {
    * Tests the spam deterrent.
    */
   function testNoFollowFilter() {
-    // Setup dummy filter object.
-    $filter = new stdClass();
-    $filter->settings = array(
-      'allowed_html' => '<a>',
-      'filter_html_help' => 1,
-      'filter_html_nofollow' => 1,
-    );
+    // Get FilterHtml object.
+    $filter = $this->filters['filter_html'];
+    $filter->setConfiguration(array(
+      'settings' => array(
+        'allowed_html' => '<a>',
+        'filter_html_help' => 1,
+        'filter_html_nofollow' => 1,
+      )
+    ));
 
     // Test if the rel="nofollow" attribute is added, even if we try to prevent
     // it.
@@ -370,29 +316,13 @@ class FilterUnitTest extends UnitTestBase {
   }
 
   /**
-   * Tests the loose, admin HTML filter.
-   */
-  function testFilterXSSAdmin() {
-    // DRUPAL-SA-2008-044
-    $f = filter_xss_admin('<object />');
-    $this->assertNoNormalized($f, 'object', 'Admin HTML filter -- should not allow object tag.');
-
-    $f = filter_xss_admin('<script />');
-    $this->assertNoNormalized($f, 'script', 'Admin HTML filter -- should not allow script tag.');
-
-    $f = filter_xss_admin('<style /><iframe /><frame /><frameset /><meta /><link /><embed /><applet /><param /><layer />');
-    $this->assertEqual($f, '', 'Admin HTML filter -- should never allow some tags.');
-  }
-
-  /**
    * Tests the HTML escaping filter.
    *
    * check_plain() is not tested here.
    */
   function testHtmlEscapeFilter() {
-    // Setup dummy filter object.
-    $filter = new stdClass();
-    $filter->callback = '_filter_html_escape';
+    // Get FilterHtmlEscape object.
+    $filter = $this->filters['filter_html_escape'];
 
     $tests = array(
       "   One. <!-- \"comment\" --> Two'.\n<p>Three.</p>\n    " => array(
@@ -408,12 +338,14 @@ class FilterUnitTest extends UnitTestBase {
    * Tests the URL filter.
    */
   function testUrlFilter() {
-    // Setup dummy filter object.
-    $filter = new stdClass();
-    $filter->callback = '_filter_url';
-    $filter->settings = array(
-      'filter_url_length' => 496,
-    );
+    // Get FilterUrl object.
+    $filter = $this->filters['filter_url'];
+    $filter->setConfiguration(array(
+      'settings' => array(
+        'filter_url_length' => 496,
+      )
+    ));
+
     // @todo Possible categories:
     // - absolute, mail, partial
     // - characters/encoding, surrounding markup, security
@@ -446,6 +378,7 @@ person@example.com or mailto:person2@example.com or ' . $long_email . ' but not 
 http://trailingslash.com/ or www.trailingslash.com/
 http://host.com/some/path?query=foo&bar[baz]=beer#fragment or www.host.com/some/path?query=foo&bar[baz]=beer#fragment
 http://twitter.com/#!/example/status/22376963142324226
+http://example.com/@user/
 ftp://user:pass@ftp.example.com/~home/dir1
 sftp://user@nonstandardport:222/dir
 ssh://192.168.0.100/srv/git/drupal.git
@@ -455,9 +388,28 @@ ssh://192.168.0.100/srv/git/drupal.git
         '<a href="http://host.com/some/path?query=foo&amp;bar[baz]=beer#fragment">http://host.com/some/path?query=foo&amp;bar[baz]=beer#fragment</a>' => TRUE,
         '<a href="http://www.host.com/some/path?query=foo&amp;bar[baz]=beer#fragment">www.host.com/some/path?query=foo&amp;bar[baz]=beer#fragment</a>' => TRUE,
         '<a href="http://twitter.com/#!/example/status/22376963142324226">http://twitter.com/#!/example/status/22376963142324226</a>' => TRUE,
+        '<a href="http://example.com/@user/">http://example.com/@user/</a>' => TRUE,
         '<a href="ftp://user:pass@ftp.example.com/~home/dir1">ftp://user:pass@ftp.example.com/~home/dir1</a>' => TRUE,
         '<a href="sftp://user@nonstandardport:222/dir">sftp://user@nonstandardport:222/dir</a>' => TRUE,
         '<a href="ssh://192.168.0.100/srv/git/drupal.git">ssh://192.168.0.100/srv/git/drupal.git</a>' => TRUE,
+      ),
+      // International Unicode characters.
+      '
+http://пример.испытание/
+http://مثال.إختبار/
+http://例子.測試/
+http://12345.中国/
+http://例え.テスト/
+http://dréißig-bücher.de/
+http://méxico-mañana.es/
+' => array(
+        '<a href="http://пример.испытание/">http://пример.испытание/</a>' => TRUE,
+        '<a href="http://مثال.إختبار/">http://مثال.إختبار/</a>' => TRUE,
+        '<a href="http://例子.測試/">http://例子.測試/</a>' => TRUE,
+        '<a href="http://12345.中国/">http://12345.中国/</a>' => TRUE,
+        '<a href="http://例え.テスト/">http://例え.テスト/</a>' => TRUE,
+        '<a href="http://dréißig-bücher.de/">http://dréißig-bücher.de/</a>' => TRUE,
+        '<a href="http://méxico-mañana.es/">http://méxico-mañana.es/</a>' => TRUE,
       ),
       // Encoding.
       '
@@ -479,7 +431,7 @@ me@me.tv
       ),
       // Absolute URL protocols.
       // The list to test is found in the beginning of _filter_url() at
-      // $protocols = variable_get('filter_allowed_protocols'... (approx line 1325).
+      // $protocols = \Drupal::config('system.filter')->get('protocols')... (approx line 1555).
       '
 https://example.com,
 ftp://ftp.example.com,
@@ -517,6 +469,10 @@ Query string with trailing exclamation www.query.com/index.php?a=!
 Partial URL with 3 trailing www.partial.periods...
 E-mail with 3 trailing exclamations@example.com!!!
 Absolute URL and query string with 2 different punctuation characters (http://www.example.com/q=abc).
+Partial URL with brackets in the URL as well as surrounded brackets (www.foo.com/more_(than)_one_(parens)).
+Absolute URL with square brackets in the URL as well as surrounded brackets [http://www.drupal.org/?class[]=1]
+Absolute URL with quotes "http://www.drupal.org/sample"
+
 ' => array(
         'period <a href="http://www.partial.com">www.partial.com</a>.' => TRUE,
         'comma <a href="mailto:person@example.com">person@example.com</a>,' => TRUE,
@@ -525,6 +481,9 @@ Absolute URL and query string with 2 different punctuation characters (http://ww
         'trailing <a href="http://www.partial.periods">www.partial.periods</a>...' => TRUE,
         'trailing <a href="mailto:exclamations@example.com">exclamations@example.com</a>!!!' => TRUE,
         'characters (<a href="http://www.example.com/q=abc">http://www.example.com/q=abc</a>).' => TRUE,
+        'brackets (<a href="http://www.foo.com/more_(than)_one_(parens)">www.foo.com/more_(than)_one_(parens)</a>).' => TRUE,
+        'brackets [<a href="http://www.drupal.org/?class[]=1">http://www.drupal.org/?class[]=1</a>]' => TRUE,
+        'quotes "<a href="http://www.drupal.org/sample">http://www.drupal.org/sample</a>"' => TRUE,
       ),
       '
 (www.parenthesis.com/dir?a=1&b=2#a)
@@ -673,7 +632,11 @@ www.example.com with a newline in comments -->
     $this->assertFilteredString($filter, $tests);
 
     // URL trimming.
-    $filter->settings['filter_url_length'] = 20;
+    $filter->setConfiguration(array(
+      'settings' => array(
+        'filter_url_length' => 20,
+      )
+    ));
     $tests = array(
       'www.trimmed.com/d/ff.ext?a=1&b=2#a1' => array(
         '<a href="http://www.trimmed.com/d/ff.ext?a=1&amp;b=2#a1">www.trimmed.com/d/ff...</a>' => TRUE,
@@ -685,7 +648,7 @@ www.example.com with a newline in comments -->
   /**
    * Asserts multiple filter output expectations for multiple input strings.
    *
-   * @param $filter
+   * @param FilterInterface $filter
    *   A input filter object.
    * @param $tests
    *   An associative array, whereas each key is an arbitrary input string and
@@ -705,8 +668,7 @@ www.example.com with a newline in comments -->
    */
   function assertFilteredString($filter, $tests) {
     foreach ($tests as $source => $tasks) {
-      $function = $filter->callback;
-      $result = $function($source, $filter);
+      $result = $filter->process($source, $filter, FALSE, '');
       foreach ($tasks as $value => $is_expected) {
         // Not using assertIdentical, since combination with strpos() is hard to grok.
         if ($is_expected) {
@@ -750,11 +712,13 @@ www.example.com with a newline in comments -->
    * - Mix of absolute and partial URLs, and e-mail addresses in one content.
    */
   function testUrlFilterContent() {
-    // Setup dummy filter object.
-    $filter = new stdClass();
-    $filter->settings = array(
-      'filter_url_length' => 496,
-    );
+    // Get FilterUrl object.
+    $filter = $this->filters['filter_url'];
+    $filter->setConfiguration(array(
+      'settings' => array(
+        'filter_url_length' => 496,
+      )
+    ));
     $path = drupal_get_path('module', 'filter') . '/tests';
 
     $input = file_get_contents($path . '/filter.url-input.txt');
@@ -968,9 +932,9 @@ body {color:red}
    * @param $needle
    *   Lowercase, plain text to look for.
    * @param $message
-   *   Message to display if failed.
+   *   (optional) Message to display if failed. Defaults to an empty string.
    * @param $group
-   *   The group this message belongs to, defaults to 'Other'.
+   *   (optional) The group this message belongs to. Defaults to 'Other'.
    * @return
    *   TRUE on pass, FALSE on fail.
    */
@@ -992,9 +956,9 @@ body {color:red}
    * @param $needle
    *   Lowercase, plain text to look for.
    * @param $message
-   *   Message to display if failed.
+   *   (optional) Message to display if failed. Defaults to an empty string.
    * @param $group
-   *   The group this message belongs to, defaults to 'Other'.
+   *   (optional) The group this message belongs to. Defaults to 'Other'.
    * @return
    *   TRUE on pass, FALSE on fail.
    */

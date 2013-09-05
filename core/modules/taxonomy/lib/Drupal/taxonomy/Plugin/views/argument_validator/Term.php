@@ -8,14 +8,15 @@
 namespace Drupal\taxonomy\Plugin\views\argument_validator;
 
 use Drupal\views\ViewExecutable;
-use Drupal\Core\Annotation\Plugin;
+use Drupal\views\Plugin\views\display\DisplayPluginBase;
+use Drupal\views\Annotation\ViewsArgumentValidator;
 use Drupal\Core\Annotation\Translation;
 use Drupal\views\Plugin\views\argument_validator\ArgumentValidatorPluginBase;
 
 /**
  * Validate whether an argument is an acceptable node.
  *
- * @Plugin(
+ * @ViewsArgumentValidator(
  *   id = "taxonomy_term",
  *   module = "taxonomy",
  *   title = @Translation("Taxonomy term")
@@ -23,9 +24,13 @@ use Drupal\views\Plugin\views\argument_validator\ArgumentValidatorPluginBase;
  */
 class Term extends ArgumentValidatorPluginBase {
 
-  public function init(ViewExecutable $view, &$argument, $options) {
-    parent::init($view, $argument, $options);
+  /**
+   * Overrides \Drupal\views\Plugin\views\Plugin\views\PluginBase::init().
+   */
+  public function init(ViewExecutable $view, DisplayPluginBase $display, array &$options = NULL) {
+    parent::init($view, $display, $options);
 
+    // @todo Remove the legacy code.
     // Convert legacy vids option to machine name vocabularies.
     if (!empty($this->options['vids'])) {
       $vocabularies = taxonomy_vocabulary_get_names();
@@ -39,7 +44,7 @@ class Term extends ArgumentValidatorPluginBase {
 
   protected function defineOptions() {
     $options = parent::defineOptions();
-    $options['vocabularies'] = array('default' => array());
+    $options['vids'] = array('default' => array());
     $options['type'] = array('default' => 'tid');
     $options['transform'] = array('default' => FALSE, 'bool' => TRUE);
 
@@ -47,19 +52,19 @@ class Term extends ArgumentValidatorPluginBase {
   }
 
   public function buildOptionsForm(&$form, &$form_state) {
-    $vocabularies = taxonomy_vocabulary_get_names();
+    $vocabularies = entity_load_multiple('taxonomy_vocabulary');
     $options = array();
     foreach ($vocabularies as $voc) {
-      $options[$voc->machine_name] = check_plain($voc->name);
+      $options[$voc->id()] = $voc->label();
     }
 
-    $form['vocabularies'] = array(
+    $form['vids'] = array(
       '#type' => 'checkboxes',
       '#prefix' => '<div id="edit-options-validate-argument-vocabulary-wrapper">',
       '#suffix' => '</div>',
       '#title' => t('Vocabularies'),
       '#options' => $options,
-      '#default_value' => $this->options['vocabularies'],
+      '#default_value' => $this->options['vids'],
       '#description' => t('If you wish to validate for specific vocabularies, check them; if none are checked, all terms will pass.'),
     );
 
@@ -85,11 +90,11 @@ class Term extends ArgumentValidatorPluginBase {
 
   public function submitOptionsForm(&$form, &$form_state, &$options = array()) {
     // Filter unselected items so we don't unnecessarily store giant arrays.
-    $options['vocabularies'] = array_filter($options['vocabularies']);
+    $options['vids'] = array_filter($options['vids']);
   }
 
-  function validate_argument($argument) {
-    $vocabularies = array_filter($this->options['vocabularies']);
+  public function validateArgument($argument) {
+    $vocabularies = array_filter($this->options['vids']);
     $type = $this->options['type'];
     $transform = $this->options['transform'];
 
@@ -104,8 +109,8 @@ class Term extends ArgumentValidatorPluginBase {
         if (!$term) {
           return FALSE;
         }
-        $this->argument->validated_title = check_plain($term->name);
-        return empty($vocabularies) || !empty($vocabularies[$term->vocabulary_machine_name]);
+        $this->argument->validated_title = check_plain($term->label());
+        return empty($vocabularies) || !empty($vocabularies[$term->bundle()]);
 
       case 'tids':
         // An empty argument is not a term so doesn't pass.
@@ -141,12 +146,12 @@ class Term extends ArgumentValidatorPluginBase {
         if (count($test)) {
           $result = entity_load_multiple('taxonomy_term', $test);
           foreach ($result as $term) {
-            if ($vocabularies && empty($vocabularies[$term->vocabulary_machine_name])) {
+            if ($vocabularies && empty($vocabularies[$term->bundle()])) {
               $validated_cache[$term->id()] = FALSE;
               return FALSE;
             }
 
-            $titles[] = $validated_cache[$term->id()] = check_plain($term->name);
+            $titles[] = $validated_cache[$term->id()] = check_plain($term->label());
             unset($test[$term->id()]);
           }
         }
@@ -166,21 +171,20 @@ class Term extends ArgumentValidatorPluginBase {
           $term->name = str_replace(' ', '-', $term->name);
         }
 
-        if ($term && (empty($vocabularies) || !empty($vocabularies[$term->vocabulary_machine_name]))) {
+        if ($term && (empty($vocabularies) || !empty($vocabularies[$term->bundle()]))) {
           if ($type == 'convert') {
             $this->argument->argument = $term->id();
           }
-          $this->argument->validated_title = check_plain($term->name);
+          $this->argument->validated_title = check_plain($term->label());
           return TRUE;
         }
         return FALSE;
     }
   }
 
-  function process_summary_arguments(&$args) {
+  public function processSummaryArguments(&$args) {
     $type = $this->options['type'];
     $transform = $this->options['transform'];
-    $vocabularies = array_filter($this->options['vocabularies']);
 
     if ($type == 'convert') {
       $arg_keys = array_flip($args);

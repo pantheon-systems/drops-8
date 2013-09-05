@@ -8,17 +8,15 @@
 namespace Drupal\node\Plugin\views\field;
 
 use Drupal\node\Plugin\views\field\Node;
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
+use Drupal\views\ResultRow;
 
 /**
  * Field handler to translate a node type into its readable form.
  *
  * @ingroup views_field_handlers
  *
- * @Plugin(
- *   id = "node_type",
- *   module = "node"
- * )
+ * @PluginID("node_type")
  */
 class Type extends Node {
 
@@ -48,14 +46,18 @@ class Type extends Node {
     */
   function render_name($data, $values) {
     if ($this->options['machine_name'] != 1 && $data !== NULL && $data !== '') {
-      return t($this->sanitizeValue(node_type_get_label($data)));
+      $type = entity_load('node_type', $data);
+      return $type ? t($this->sanitizeValue($type->label())) : '';
     }
     return $this->sanitizeValue($data);
   }
 
-  function render($values) {
-    $value = $this->get_value($values);
-    return $this->render_link($this->render_name($value, $values), $values);
+  /**
+   * {@inheritdoc}
+   */
+  public function render(ResultRow $values) {
+    $value = $this->getValue($values);
+    return $this->renderLink($this->render_name($value, $values), $values);
   }
 
 }

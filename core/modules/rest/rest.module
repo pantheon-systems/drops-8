@@ -1,0 +1,36 @@
+<?php
+
+/**
+ * @file
+ * RESTful web services module.
+ */
+
+/**
+ * Implements hook_permission().
+ */
+function rest_permission() {
+  $permissions = array();
+  $manager = Drupal::service('plugin.manager.rest');
+  $resources = Drupal::config('rest.settings')->get('resources');
+  if ($resources && $enabled = array_intersect_key($manager->getDefinitions(), $resources)) {
+    foreach ($enabled as $key => $resource) {
+      $plugin = $manager->getInstance(array('id' => $key));
+      $permissions = array_merge($permissions, $plugin->permissions());
+    }
+  }
+  return $permissions;
+}
+
+/**
+ * Implements hook_help().
+ */
+function rest_help($path, $arg) {
+  switch ($path) {
+    // Main module help for the REST module.
+    case 'admin/help#rest':
+      $output = '';
+      $output .= '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('The REST module provides a framework for exposing Drupal\'s data structures as RESTful web services. It can be used to read and write resources remotely, such as entity types like nodes or users. For more information, see the online handbook entry for the <a href="@rest">RESTful web services module</a>.', array('@rest' => 'http://drupal.org/documentation/modules/rest')) . '</p>';
+      return $output;
+  }
+}

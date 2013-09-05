@@ -2,12 +2,13 @@
 
 /**
  * @file
- * Contains Drupal\comment\Tests\CommentTestBase.
+ * Contains \Drupal\comment\Tests\CommentTestBase.
  */
 
 namespace Drupal\comment\Tests;
 
-use Drupal\comment\Plugin\Core\Entity\Comment;
+use Drupal\Core\Language\Language;
+use Drupal\comment\CommentInterface;
 use Drupal\simpletest\WebTestBase;
 
 /**
@@ -20,26 +21,26 @@ abstract class CommentTestBase extends WebTestBase {
    *
    * @var array
    */
-  public static $modules = array('comment', 'node');
+  public static $modules = array('comment', 'node', 'history', 'field_ui', 'datetime');
 
   /**
    * An administrative user with permission to configure comment settings.
    *
-   * @var Drupal\user\User
+   * @var \Drupal\user\UserInterface
    */
   protected $admin_user;
 
   /**
    * A normal user with permission to post comments.
    *
-   * @var Drupal\user\User
+   * @var \Drupal\user\UserInterface
    */
   protected $web_user;
 
   /**
    * A test node to which comments will be posted.
    *
-   * @var Drupal\node\Node
+   * @var \Drupal\node\NodeInterface
    */
   protected $node;
 
@@ -57,6 +58,7 @@ abstract class CommentTestBase extends WebTestBase {
     $this->admin_user = $this->drupalCreateUser(array(
       'administer content types',
       'administer comments',
+      'administer comment fields',
       'skip comment approval',
       'post comments',
       'access comments',
@@ -67,20 +69,19 @@ abstract class CommentTestBase extends WebTestBase {
       'post comments',
       'create article content',
       'edit own comments',
-      'post comments',
       'skip comment approval',
       'access content',
     ));
 
     // Create a test node authored by the web user.
-    $this->node = $this->drupalCreateNode(array('type' => 'article', 'promote' => 1, 'uid' => $this->web_user->uid));
+    $this->node = $this->drupalCreateNode(array('type' => 'article', 'promote' => 1, 'uid' => $this->web_user->id()));
   }
 
   /**
    * Posts a comment.
    *
-   * @param Drupal\node\Node|null $node
-   *   Node to post comment on or NULL to post to the previusly loaded page.
+   * @param \Drupal\Core\Entity\EntityInterface|null $entity
+   *   Node to post comment on or NULL to post to the previously loaded page.
    * @param $comment
    *   Comment body.
    * @param $subject
@@ -88,9 +89,12 @@ abstract class CommentTestBase extends WebTestBase {
    * @param $contact
    *   Set to NULL for no contact info, TRUE to ignore success checking, and
    *   array of values to set contact info.
+   *
+   * @return \Drupal\comment\CommentInterface|null
+   *   The posted comment or NULL when posted comment was not found.
    */
-  function postComment($node, $comment, $subject = '', $contact = NULL) {
-    $langcode = LANGUAGE_NOT_SPECIFIED;
+  function postComment($entity, $comment, $subject = '', $contact = NULL) {
+    $langcode = Language::LANGCODE_NOT_SPECIFIED;
     $edit = array();
     $edit['comment_body[' . $langcode . '][0][value]'] = $comment;
 
@@ -98,8 +102,8 @@ abstract class CommentTestBase extends WebTestBase {
     $subject_mode = variable_get('comment_subject_field_article', 1);
 
     // Must get the page before we test for fields.
-    if ($node !== NULL) {
-      $this->drupalGet('comment/reply/' . $node->nid);
+    if ($entity !== NULL) {
+      $this->drupalGet('comment/reply/' . $entity->id());
     }
 
     if ($subject_mode == TRUE) {
@@ -145,14 +149,14 @@ abstract class CommentTestBase extends WebTestBase {
     }
 
     if (isset($match[1])) {
-      return entity_create('comment', array('id' => $match[1], 'subject' => $subject, 'comment' => $comment));
+      return comment_load($match[1], TRUE);
     }
   }
 
   /**
    * Checks current page for specified comment.
    *
-   * @param Drupal\comment\Comment $comment
+   * @param \Drupal\comment\CommentInterface $comment
    *   The comment object.
    * @param boolean $reply
    *   Boolean indicating whether the comment is a reply to another comment.
@@ -160,12 +164,12 @@ abstract class CommentTestBase extends WebTestBase {
    * @return boolean
    *   Boolean indicating whether the comment was found.
    */
-  function commentExists(Comment $comment = NULL, $reply = FALSE) {
+  function commentExists(CommentInterface $comment = NULL, $reply = FALSE) {
     if ($comment) {
       $regex = '/' . ($reply ? '<div class="indented">(.*?)' : '');
-      $regex .= '<a id="comment-' . $comment->id . '"(.*?)'; // Comment anchor.
-      $regex .= $comment->subject . '(.*?)'; // Match subject.
-      $regex .= $comment->comment . '(.*?)'; // Match comment.
+      $regex .= '<a id="comment-' . $comment->id() . '"(.*?)'; // Comment anchor.
+      $regex .= $comment->subject->value . '(.*?)'; // Match subject.
+      $regex .= $comment->comment_body->value . '(.*?)'; // Match comment.
       $regex .= '/s';
 
       return (boolean)preg_match($regex, $this->drupalGetContent());
@@ -178,11 +182,11 @@ abstract class CommentTestBase extends WebTestBase {
   /**
    * Deletes a comment.
    *
-   * @param Drupal\comment\Comment $comment
+   * @param \Drupal\comment\CommentInterface $comment
    *   Comment to delete.
    */
-  function deleteComment(Comment $comment) {
-    $this->drupalPost('comment/' . $comment->id . '/delete', array(), t('Delete'));
+  function deleteComment(CommentInterface $comment) {
+    $this->drupalPost('comment/' . $comment->id() . '/delete', array(), t('Delete'));
     $this->assertText(t('The comment and all its replies have been deleted.'), 'Comment deleted.');
   }
 
@@ -282,17 +286,17 @@ abstract class CommentTestBase extends WebTestBase {
   /**
    * Performs the specified operation on the specified comment.
    *
-   * @param object $comment
+   * @param \Drupal\comment\CommentInterface $comment
    *   Comment to perform operation on.
    * @param string $operation
    *   Operation to perform.
    * @param boolean $aproval
    *   Operation is found on approval page.
    */
-  function performCommentOperation($comment, $operation, $approval = FALSE) {
+  function performCommentOperation(CommentInterface $comment, $operation, $approval = FALSE) {
     $edit = array();
     $edit['operation'] = $operation;
-    $edit['comments[' . $comment->id . ']'] = TRUE;
+    $edit['comments[' . $comment->id() . ']'] = TRUE;
     $this->drupalPost('admin/content/comment' . ($approval ? '/approval' : ''), $edit, t('Update'));
 
     if ($operation == 'delete') {

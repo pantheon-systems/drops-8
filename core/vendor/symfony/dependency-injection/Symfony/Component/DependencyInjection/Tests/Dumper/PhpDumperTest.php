@@ -21,13 +21,6 @@ class PhpDumperTest extends \PHPUnit_Framework_TestCase
 {
     protected static $fixturesPath;
 
-    protected function setUp()
-    {
-        if (!class_exists('Symfony\Component\Config\Loader\Loader')) {
-            $this->markTestSkipped('The "Config" component is not available');
-        }
-    }
-
     public static function setUpBeforeClass()
     {
         self::$fixturesPath = realpath(__DIR__.'/../Fixtures/');
@@ -47,6 +40,7 @@ class PhpDumperTest extends \PHPUnit_Framework_TestCase
     public function testDumpFrozenContainerWithNoParameter()
     {
         $container = new ContainerBuilder();
+        $container->setResourceTracking(false);
         $container->register('foo', 'stdClass');
 
         $container->compile();
@@ -76,6 +70,7 @@ class PhpDumperTest extends \PHPUnit_Framework_TestCase
         ));
 
         $container = new ContainerBuilder();
+        $container->setResourceTracking(false);
         $container->setDefinition('test', $definition);
         $container->setParameter('empty_value', '');
         $container->setParameter('some_string', '-');
@@ -103,9 +98,16 @@ class PhpDumperTest extends \PHPUnit_Framework_TestCase
 
     public function testAddService()
     {
+        // without compilation
         $container = include self::$fixturesPath.'/containers/container9.php';
         $dumper = new PhpDumper($container);
         $this->assertEquals(str_replace('%path%', str_replace('\\','\\\\',self::$fixturesPath.DIRECTORY_SEPARATOR.'includes'.DIRECTORY_SEPARATOR), file_get_contents(self::$fixturesPath.'/php/services9.php')), $dumper->dump(), '->dump() dumps services');
+
+        // with compilation
+        $container = include self::$fixturesPath.'/containers/container9.php';
+        $container->compile();
+        $dumper = new PhpDumper($container);
+        $this->assertEquals(str_replace('%path%', str_replace('\\','\\\\',self::$fixturesPath.DIRECTORY_SEPARATOR.'includes'.DIRECTORY_SEPARATOR), file_get_contents(self::$fixturesPath.'/php/services9_compiled.php')), $dumper->dump(), '->dump() dumps services');
 
         $dumper = new PhpDumper($container = new ContainerBuilder());
         $container->register('foo', 'FooClass')->addArgument(new \stdClass());
@@ -116,6 +118,20 @@ class PhpDumperTest extends \PHPUnit_Framework_TestCase
             $this->assertInstanceOf('\Symfony\Component\DependencyInjection\Exception\RuntimeException', $e, '->dump() throws a RuntimeException if the container to be dumped has reference to objects or resources');
             $this->assertEquals('Unable to dump a service container if a parameter is an object or a resource.', $e->getMessage(), '->dump() throws a RuntimeException if the container to be dumped has reference to objects or resources');
         }
+    }
+
+    public function testAliases()
+    {
+        $container = include self::$fixturesPath.'/containers/container9.php';
+        $container->compile();
+        $dumper = new PhpDumper($container);
+        eval('?>'.$dumper->dump(array('class' => 'Symfony_DI_PhpDumper_Test_Aliases')));
+
+        $container = new \Symfony_DI_PhpDumper_Test_Aliases();
+        $container->set('foo', $foo = new \stdClass);
+        $this->assertSame($foo, $container->get('foo'));
+        $this->assertSame($foo, $container->get('alias_for_foo'));
+        $this->assertSame($foo, $container->get('alias_for_alias'));
     }
 
     public function testOverrideServiceWhenUsingADumpedContainer()

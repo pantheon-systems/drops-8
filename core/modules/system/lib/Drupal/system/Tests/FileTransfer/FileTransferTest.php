@@ -8,6 +8,7 @@
 namespace Drupal\system\Tests\FileTransfer;
 
 use Drupal\Core\FileTransfer\FileTransferException;
+use Drupal\Core\StreamWrapper\PublicStream;
 use Drupal\simpletest\WebTestBase;
 
 /**
@@ -35,7 +36,7 @@ class FileTransferTest extends WebTestBase {
   function _getFakeModuleFiles() {
     $files = array(
       'fake.module',
-      'fake.info',
+      'fake.info.yml',
       'theme' => array(
         'fake.tpl.php'
       ),
@@ -91,7 +92,7 @@ class FileTransferTest extends WebTestBase {
 
     $gotit = TRUE;
     try {
-      $this->testConnection->copyDirectory($source, DRUPAL_ROOT . '/'. variable_get('file_public_path', conf_path() . '/files'));
+      $this->testConnection->copyDirectory($source, DRUPAL_ROOT . '/' . PublicStream::basePath());
     }
     catch (FileTransferException $e) {
       $gotit = FALSE;

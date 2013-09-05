@@ -15,7 +15,7 @@ use Drupal\simpletest\DrupalUnitTestBase;
 class ConfigInstallTest extends DrupalUnitTestBase {
   public static function getInfo() {
     return array(
-      'name' => 'Installation functionality',
+      'name' => 'Installation functionality unit tests',
       'description' => 'Tests installation of configuration objects in installation functionality.',
       'group' => 'Configuration',
     );
@@ -34,21 +34,22 @@ class ConfigInstallTest extends DrupalUnitTestBase {
    */
   function testModuleInstallation() {
     $default_config = 'config_test.system';
-    $default_configuration_entity = 'config_test.dynamic.default';
+    $default_configuration_entity = 'config_test.dynamic.dotted.default';
 
     // Verify that default module config does not exist before installation yet.
-    $config = config($default_config);
+    $config = \Drupal::config($default_config);
     $this->assertIdentical($config->isNew(), TRUE);
-    $config = config($default_configuration_entity);
+    $config = \Drupal::config($default_configuration_entity);
     $this->assertIdentical($config->isNew(), TRUE);
 
     // Install the test module.
     $this->enableModules(array('config_test'));
+    $this->installConfig(array('config_test'));
 
     // Verify that default module config exists.
-    $config = config($default_config);
+    $config = \Drupal::config($default_config);
     $this->assertIdentical($config->isNew(), FALSE);
-    $config = config($default_configuration_entity);
+    $config = \Drupal::config($default_configuration_entity);
     $this->assertIdentical($config->isNew(), FALSE);
 
     // Verify that configuration import callback was invoked for the dynamic

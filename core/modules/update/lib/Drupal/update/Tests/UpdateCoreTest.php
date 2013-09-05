@@ -17,7 +17,7 @@ class UpdateCoreTest extends UpdateTestBase {
    *
    * @var array
    */
-  public static $modules = array('update_test', 'update');
+  public static $modules = array('update_test', 'update', 'language');
 
   public static function getInfo() {
     return array(
@@ -32,6 +32,7 @@ class UpdateCoreTest extends UpdateTestBase {
     $admin_user = $this->drupalCreateUser(array('administer site configuration', 'administer modules'));
     $this->drupalLogin($admin_user);
   }
+
 
   /**
    * Tests the Update Manager module when no updates are available.
@@ -90,7 +91,7 @@ class UpdateCoreTest extends UpdateTestBase {
         'datestamp' => '1000000000',
       ),
     );
-    config('update_test.settings')->set('system_info', $system_info)->save();
+    \Drupal::config('update_test.settings')->set('system_info', $system_info)->save();
     $this->refreshUpdateStatus(array('drupal' => 'dev'));
     $this->assertNoText(t('2001-Sep-'));
     $this->assertText(t('Up to date'));
@@ -103,8 +104,8 @@ class UpdateCoreTest extends UpdateTestBase {
    */
   function testModulePageRunCron() {
     $this->setSystemInfo7_0();
-    config('update.settings')->set('fetch.url', url('update-test', array('absolute' => TRUE)))->save();
-    config('update_test.settings')->set('xml_map', array('drupal' => '0'))->save();
+    \Drupal::config('update.settings')->set('fetch.url', url('update-test', array('absolute' => TRUE)))->save();
+    \Drupal::config('update_test.settings')->set('xml_map', array('drupal' => '0'))->save();
 
     $this->cronRun();
     $this->drupalGet('admin/modules');
@@ -117,8 +118,8 @@ class UpdateCoreTest extends UpdateTestBase {
   function testModulePageUpToDate() {
     $this->setSystemInfo7_0();
     // Instead of using refreshUpdateStatus(), set these manually.
-    config('update.settings')->set('fetch.url', url('update-test', array('absolute' => TRUE)))->save();
-    config('update_test.settings')->set('xml_map', array('drupal' => '0'))->save();
+    \Drupal::config('update.settings')->set('fetch.url', url('update-test', array('absolute' => TRUE)))->save();
+    \Drupal::config('update_test.settings')->set('xml_map', array('drupal' => '0'))->save();
 
     $this->drupalGet('admin/reports/updates');
     $this->clickLink(t('Check manually'));
@@ -134,8 +135,8 @@ class UpdateCoreTest extends UpdateTestBase {
   function testModulePageRegularUpdate() {
     $this->setSystemInfo7_0();
     // Instead of using refreshUpdateStatus(), set these manually.
-    config('update.settings')->set('fetch.url', url('update-test', array('absolute' => TRUE)))->save();
-    config('update_test.settings')->set('xml_map', array('drupal' => '1'))->save();
+    \Drupal::config('update.settings')->set('fetch.url', url('update-test', array('absolute' => TRUE)))->save();
+    \Drupal::config('update_test.settings')->set('xml_map', array('drupal' => '1'))->save();
 
     $this->drupalGet('admin/reports/updates');
     $this->clickLink(t('Check manually'));
@@ -151,8 +152,8 @@ class UpdateCoreTest extends UpdateTestBase {
   function testModulePageSecurityUpdate() {
     $this->setSystemInfo7_0();
     // Instead of using refreshUpdateStatus(), set these manually.
-    config('update.settings')->set('fetch.url', url('update-test', array('absolute' => TRUE)))->save();
-    config('update_test.settings')->set('xml_map', array('drupal' => '2-sec'))->save();
+    \Drupal::config('update.settings')->set('fetch.url', url('update-test', array('absolute' => TRUE)))->save();
+    \Drupal::config('update_test.settings')->set('xml_map', array('drupal' => '2-sec'))->save();
 
     $this->drupalGet('admin/reports/updates');
     $this->clickLink(t('Check manually'));
@@ -200,7 +201,7 @@ class UpdateCoreTest extends UpdateTestBase {
     $projectb = array(
       'name' => 'bbb_update_test',
     );
-    $queue = queue('update_fetch_tasks');
+    $queue = \Drupal::queue('update_fetch_tasks');
     $this->assertEqual($queue->numberOfItems(), 0, 'Queue is empty');
     update_create_fetch_task($projecta);
     $this->assertEqual($queue->numberOfItems(), 1, 'Queue contains one item');
@@ -210,11 +211,24 @@ class UpdateCoreTest extends UpdateTestBase {
     update_create_fetch_task($projecta);
     $this->assertEqual($queue->numberOfItems(), 2, 'Queue still contains two items');
 
-    // Clear cache and try again.
-    _update_cache_clear();
+    // Clear storage and try again.
+    update_storage_clear();
     drupal_static_reset('_update_create_fetch_task');
     update_create_fetch_task($projecta);
     $this->assertEqual($queue->numberOfItems(), 2, 'Queue contains two items');
+  }
+
+  /**
+   * Checks language module in core package at admin/reports/updates.
+   */
+  function testLanguageModuleUpdate() {
+    $this->setSystemInfo7_0();
+    // Instead of using refreshUpdateStatus(), set these manually.
+    \Drupal::config('update.settings')->set('fetch.url', url('update-test', array('absolute' => TRUE)))->save();
+    \Drupal::config('update_test.settings')->set('xml_map', array('drupal' => '1'))->save();
+
+    $this->drupalGet('admin/reports/updates');
+    $this->assertText(t('Language'));
   }
 
   /**
@@ -226,6 +240,6 @@ class UpdateCoreTest extends UpdateTestBase {
         'version' => '7.0',
       ),
     );
-    config('update_test.settings')->set('system_info', $setting)->save();
+    \Drupal::config('update_test.settings')->set('system_info', $setting)->save();
   }
 }

@@ -7,10 +7,13 @@
 
 namespace Drupal\node\Tests;
 
+use Drupal\Core\Language\Language;
+
 /**
- * Check that the post information displays when enabled for a content type.
+ * Checks that the post information displays when enabled for a content type.
  */
 class NodePostSettingsTest extends NodeTestBase {
+
   public static function getInfo() {
     return array(
       'name' => 'Node post information display',
@@ -27,18 +30,18 @@ class NodePostSettingsTest extends NodeTestBase {
   }
 
   /**
-   * Set "Basic page" content type to display post information and confirm its presence on a new node.
+   * Confirms "Basic page" content type and post information is on a new node.
    */
   function testPagePostInfo() {
 
     // Set "Basic page" content type to display post information.
     $edit = array();
-    $edit['node_submitted'] = TRUE;
+    $edit['settings[node][submitted]'] = TRUE;
     $this->drupalPost('admin/structure/types/manage/page', $edit, t('Save content type'));
 
     // Create a node.
     $edit = array();
-    $langcode = LANGUAGE_NOT_SPECIFIED;
+    $langcode = Language::LANGCODE_NOT_SPECIFIED;
     $edit["title"] = $this->randomName(8);
     $edit["body[$langcode][0][value]"] = $this->randomName(16);
     $this->drupalPost('node/add/page', $edit, t('Save'));
@@ -47,27 +50,21 @@ class NodePostSettingsTest extends NodeTestBase {
     $node = $this->drupalGetNodeByTitle($edit["title"]);
     $elements = $this->xpath('//*[contains(@class,:class)]', array(':class' => 'submitted'));
     $this->assertEqual(count($elements), 1, 'Post information is displayed.');
-  }
-
-  /**
-   * Set "Basic page" content type to not display post information and confirm its absence on a new node.
-   */
-  function testPageNotPostInfo() {
+    $node->delete();
 
     // Set "Basic page" content type to display post information.
     $edit = array();
-    $edit['node_submitted'] = FALSE;
+    $edit['settings[node][submitted]'] = FALSE;
     $this->drupalPost('admin/structure/types/manage/page', $edit, t('Save content type'));
 
     // Create a node.
     $edit = array();
-    $langcode = LANGUAGE_NOT_SPECIFIED;
+    $langcode = Language::LANGCODE_NOT_SPECIFIED;
     $edit["title"] = $this->randomName(8);
     $edit["body[$langcode][0][value]"] = $this->randomName(16);
     $this->drupalPost('node/add/page', $edit, t('Save'));
 
     // Check that the post information is displayed.
-    $node = $this->drupalGetNodeByTitle($edit["title"]);
     $this->assertNoRaw('<span class="submitted">', 'Post information is not displayed.');
   }
 }

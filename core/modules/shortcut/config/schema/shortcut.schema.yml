@@ -1,0 +1,27 @@
+# Schema for the configuration files of the Shortcut module.
+
+shortcut.set.*:
+  type: mapping
+  label: 'Shortcut settings'
+  mapping:
+    id:
+      type: string
+      label: 'ID'
+    uuid:
+      type: string
+      label: 'UUID'
+    label:
+      type: label
+      label: 'Label'
+    langcode:
+      type: string
+      label: 'Default language'
+    links:
+      type: sequence
+      label: 'Shortcuts'
+      sequence:
+        - type: string
+          label: 'Shortcut'
+    status:
+      type: boolean
+      label: 'Status'

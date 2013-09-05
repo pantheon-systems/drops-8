@@ -2,13 +2,13 @@
 
 /**
  * @file
- * Definition of Drupal\taxonomy\VocabularyFormController.
+ * Contains \Drupal\taxonomy\VocabularyFormController.
  */
 
 namespace Drupal\taxonomy;
 
-use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityFormController;
+use Drupal\Core\Language\Language;
 
 /**
  * Base form controller for vocabulary edit forms.
@@ -16,58 +16,55 @@ use Drupal\Core\Entity\EntityFormController;
 class VocabularyFormController extends EntityFormController {
 
   /**
-   * Overrides Drupal\Core\Entity\EntityFormController::form().
+   * {@inheritdoc}
    */
-  public function form(array $form, array &$form_state, EntityInterface $vocabulary) {
+  public function form(array $form, array &$form_state) {
+    $vocabulary = $this->entity;
 
-    // Check whether we need a deletion confirmation form.
-    if (isset($form_state['confirm_delete']) && isset($form_state['values']['vid'])) {
-      return taxonomy_vocabulary_confirm_delete($form, $form_state, $form_state['values']['vid']);
-    }
     $form['name'] = array(
       '#type' => 'textfield',
-      '#title' => t('Name'),
+      '#title' => $this->t('Name'),
       '#default_value' => $vocabulary->name,
       '#maxlength' => 255,
       '#required' => TRUE,
     );
-    $form['machine_name'] = array(
+    $form['vid'] = array(
       '#type' => 'machine_name',
-      '#default_value' => $vocabulary->machine_name,
+      '#default_value' => $vocabulary->id(),
       '#maxlength' => 255,
       '#machine_name' => array(
-        'exists' => 'taxonomy_vocabulary_machine_name_load',
+        'exists' => 'taxonomy_vocabulary_load',
         'source' => array('name'),
       ),
     );
     $form['description'] = array(
       '#type' => 'textfield',
-      '#title' => t('Description'),
+      '#title' => $this->t('Description'),
       '#default_value' => $vocabulary->description,
     );
 
-    // $form['langcode'] is not wrapped in an if (module_exists('language'))
-    // check because the language_select form element works also without the
-    // language module being installed.
-    // http://drupal.org/node/1749954 documents the new element.
+    // $form['langcode'] is not wrapped in an
+    // if ($this->moduleHandler->moduleExists('language')) check because the
+    // language_select form element works also without the language module being
+    // installed. http://drupal.org/node/1749954 documents the new element.
     $form['langcode'] = array(
       '#type' => 'language_select',
-      '#title' => t('Vocabulary language'),
-      '#languages' => LANGUAGE_ALL,
+      '#title' => $this->t('Vocabulary language'),
+      '#languages' => Language::STATE_ALL,
       '#default_value' => $vocabulary->langcode,
     );
-    if (module_exists('language')) {
+    if ($this->moduleHandler->moduleExists('language')) {
       $form['default_terms_language'] = array(
-        '#type' => 'fieldset',
-        '#title' => t('Terms language'),
+        '#type' => 'details',
+        '#title' => $this->t('Terms language'),
       );
       $form['default_terms_language']['default_language'] = array(
         '#type' => 'language_configuration',
         '#entity_information' => array(
           'entity_type' => 'taxonomy_term',
-          'bundle' => $vocabulary->machine_name,
+          'bundle' => $vocabulary->id(),
         ),
-        '#default_value' => language_get_default_configuration('taxonomy_term', $vocabulary->machine_name),
+        '#default_value' => language_get_default_configuration('taxonomy_term', $vocabulary->id()),
       );
     }
     // Set the hierarchy to "multiple parents" by default. This simplifies the
@@ -77,26 +74,27 @@ class VocabularyFormController extends EntityFormController {
       '#value' => '0',
     );
 
-    if (isset($vocabulary->vid)) {
-      $form['vid'] = array('#type' => 'value', '#value' => $vocabulary->vid);
-    }
-
     return parent::form($form, $form_state, $vocabulary);
   }
 
   /**
-   * Returns an array of supported actions for the current entity form.
+   * {@inheritdoc}
    */
   protected function actions(array $form, array &$form_state) {
     // If we are displaying the delete confirmation skip the regular actions.
     if (empty($form_state['confirm_delete'])) {
       $actions = parent::actions($form, $form_state);
-      array_unshift($actions['delete']['#submit'], array($this, 'submit'));
       // Add the language configuration submit handler. This is needed because
       // the submit button has custom submit handlers.
-      if (module_exists('language')) {
-        array_unshift($actions['submit']['#submit'],'language_configuration_element_submit');
+      if ($this->moduleHandler->moduleExists('language')) {
+        array_unshift($actions['submit']['#submit'], 'language_configuration_element_submit');
         array_unshift($actions['submit']['#submit'], array($this, 'languageConfigurationSubmit'));
+      }
+      // We cannot leverage the regular submit handler definition because we
+      // have button-specific ones here. Hence we need to explicitly set it for
+      // the submit action, otherwise it would be ignored.
+      if ($this->moduleHandler->moduleExists('content_translation')) {
+        array_unshift($actions['submit']['#submit'], 'content_translation_language_configuration_element_submit');
       }
       return $actions;
     }
@@ -106,82 +104,54 @@ class VocabularyFormController extends EntityFormController {
   }
 
   /**
-   * Overrides Drupal\Core\Entity\EntityFormController::validate().
-   */
-  public function validate(array $form, array &$form_state) {
-    parent::validate($form, $form_state);
-
-    // Make sure that the machine name of the vocabulary is not in the
-    // disallowed list (names that conflict with menu items, such as 'list'
-    // and 'add').
-    // During the deletion there is no 'machine_name' key.
-    if (isset($form_state['values']['machine_name'])) {
-      // Do not allow machine names to conflict with taxonomy path arguments.
-      $machine_name = $form_state['values']['machine_name'];
-      $disallowed = array('add', 'list');
-      if (in_array($machine_name, $disallowed)) {
-        form_set_error('machine_name', t('The machine-readable name cannot be "add" or "list".'));
-      }
-    }
-  }
-
-  /**
    * Submit handler to update the bundle for the default language configuration.
    */
   public function languageConfigurationSubmit(array &$form, array &$form_state) {
-    $vocabulary = $this->getEntity($form_state);
+    $vocabulary = $this->entity;
     // Delete the old language settings for the vocabulary, if the machine name
     // is changed.
-    if ($vocabulary && isset($vocabulary->machine_name) && $vocabulary->machine_name != $form_state['values']['machine_name']) {
-      language_clear_default_configuration('taxonomy_term', $vocabulary->machine_name);
+    if ($vocabulary && $vocabulary->id() && $vocabulary->id() != $form_state['values']['vid']) {
+      language_clear_default_configuration('taxonomy_term', $vocabulary->id());
     }
     // Since the machine name is not known yet, and it can be changed anytime,
     // we have to also update the bundle property for the default language
     // configuration in order to have the correct bundle value.
-    $form_state['language']['default_language']['bundle'] = $form_state['values']['machine_name'];
+    $form_state['language']['default_language']['bundle'] = $form_state['values']['vid'];
   }
 
   /**
-   * Overrides Drupal\Core\Entity\EntityFormController::submit().
-   */
-  public function submit(array $form, array &$form_state) {
-    // @todo We should not be calling taxonomy_vocabulary_confirm_delete() from
-    // within the form builder.
-    if ($form_state['triggering_element']['#value'] == t('Delete')) {
-      // Rebuild the form to confirm vocabulary deletion.
-      $form_state['rebuild'] = TRUE;
-      $form_state['confirm_delete'] = TRUE;
-      return NULL;
-    }
-    else {
-      return parent::submit($form, $form_state);
-    }
-  }
-
-  /**
-   * Overrides Drupal\Core\Entity\EntityFormController::save().
+   * {@inheritdoc}
    */
   public function save(array $form, array &$form_state) {
-    $vocabulary = $this->getEntity($form_state);
+    $vocabulary = $this->entity;
 
     // Prevent leading and trailing spaces in vocabulary names.
     $vocabulary->name = trim($vocabulary->name);
 
-    switch (taxonomy_vocabulary_save($vocabulary)) {
+    switch ($vocabulary->save()) {
       case SAVED_NEW:
-        drupal_set_message(t('Created new vocabulary %name.', array('%name' => $vocabulary->name)));
-        watchdog('taxonomy', 'Created new vocabulary %name.', array('%name' => $vocabulary->name), WATCHDOG_NOTICE, l(t('edit'), 'admin/structure/taxonomy/' . $vocabulary->machine_name . '/edit'));
-        $form_state['redirect'] = 'admin/structure/taxonomy/' . $vocabulary->machine_name;
+        drupal_set_message($this->t('Created new vocabulary %name.', array('%name' => $vocabulary->name)));
+        watchdog('taxonomy', 'Created new vocabulary %name.', array('%name' => $vocabulary->name), WATCHDOG_NOTICE, l($this->t('edit'), 'admin/structure/taxonomy/manage/' . $vocabulary->id() . '/edit'));
+        $form_state['redirect'] = 'admin/structure/taxonomy/manage/' . $vocabulary->id();
         break;
 
       case SAVED_UPDATED:
-        drupal_set_message(t('Updated vocabulary %name.', array('%name' => $vocabulary->name)));
-        watchdog('taxonomy', 'Updated vocabulary %name.', array('%name' => $vocabulary->name), WATCHDOG_NOTICE, l(t('edit'), 'admin/structure/taxonomy/' . $vocabulary->machine_name . '/edit'));
+        drupal_set_message($this->t('Updated vocabulary %name.', array('%name' => $vocabulary->name)));
+        watchdog('taxonomy', 'Updated vocabulary %name.', array('%name' => $vocabulary->name), WATCHDOG_NOTICE, l($this->t('edit'), 'admin/structure/taxonomy/manage/' . $vocabulary->id() . '/edit'));
         $form_state['redirect'] = 'admin/structure/taxonomy';
         break;
     }
 
-    $form_state['values']['vid'] = $vocabulary->vid;
-    $form_state['vid'] = $vocabulary->vid;
+    $form_state['values']['vid'] = $vocabulary->id();
+    $form_state['vid'] = $vocabulary->id();
   }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function delete(array $form, array &$form_state) {
+    $vocabulary = $this->getEntity($form_state);
+    $form_state['redirect'] = array('admin/structure/taxonomy/manage/' . $vocabulary->id() . '/delete');
+  }
+
 }

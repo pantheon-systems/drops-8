@@ -90,12 +90,12 @@ abstract class Database {
    * @param $key
    *   The database connection key for which we want to log.
    *
-   * @return Drupal\Core\Database\Log
+   * @return \Drupal\Core\Database\Log
    *   The query log object. Note that the log object does support richer
    *   methods than the few exposed through the Database class, so in some
    *   cases it may be desirable to access it directly.
    *
-   * @see Drupal\Core\Database\Log
+   * @see \Drupal\Core\Database\Log
    */
   final public static function startLog($logging_key, $key = 'default') {
     if (empty(self::$logs[$key])) {
@@ -130,7 +130,7 @@ abstract class Database {
    * @return array
    *   The query log for the specified logging key and connection.
    *
-   * @see Drupal\Core\Database\Log
+   * @see \Drupal\Core\Database\Log
    */
   final public static function getLog($logging_key, $key = 'default') {
     if (empty(self::$logs[$key])) {
@@ -149,7 +149,7 @@ abstract class Database {
    * @param $key
    *   The database connection key. Defaults to NULL which means the active key.
    *
-   * @return Drupal\Core\Database\Connection
+   * @return \Drupal\Core\Database\Connection
    *   The corresponding connection object.
    */
   final public static function getConnection($target = 'default', $key = NULL) {
@@ -356,8 +356,8 @@ abstract class Database {
    * @param $target
    *   The database target to open.
    *
-   * @throws Drupal\Core\Database\ConnectionNotDefinedException
-   * @throws Drupal\Core\Database\DriverNotSpecifiedException
+   * @throws \Drupal\Core\Database\ConnectionNotDefinedException
+   * @throws \Drupal\Core\Database\DriverNotSpecifiedException
    */
   final protected static function openConnection($key, $target) {
     if (empty(self::$databaseInfo)) {
@@ -374,8 +374,16 @@ abstract class Database {
       throw new DriverNotSpecifiedException('Driver not specified for this database connection: ' . $key);
     }
 
-    $driver_class = "Drupal\\Core\\Database\\Driver\\{$driver}\\Connection";
-    $new_connection = new $driver_class(self::$databaseInfo[$key][$target]);
+    if (!empty(self::$databaseInfo[$key][$target]['namespace'])) {
+      $driver_class = self::$databaseInfo[$key][$target]['namespace'] . '\\Connection';
+    }
+    else {
+      // Fallback for Drupal 7 settings.php.
+      $driver_class = "Drupal\\Core\\Database\\Driver\\{$driver}\\Connection";
+    }
+
+    $pdo_connection = $driver_class::open(self::$databaseInfo[$key][$target]);
+    $new_connection = new $driver_class($pdo_connection, self::$databaseInfo[$key][$target]);
     $new_connection->setTarget($target);
     $new_connection->setKey($key);
 

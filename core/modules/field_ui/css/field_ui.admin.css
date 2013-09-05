@@ -1,0 +1,71 @@
+/**
+ * @file
+ * Stylesheet for the Field UI module.
+ */
+
+/* 'Manage fields' and 'Manage display' overviews */
+.field-ui-overview .add-new .label-input {
+  float: left; /* LTR */
+}
+[dir="rtl"] .field-ui-overview .add-new .label-input {
+  float: right;
+}
+.field-ui-overview .add-new .tabledrag-changed {
+  display: none;
+}
+.field-ui-overview .add-new .description {
+  margin-bottom: 0;
+  max-width: 250px;
+}
+.field-ui-overview .add-new .form-type-machine-name .description {
+  white-space: normal;
+}
+.field-ui-overview .add-new .add-new-placeholder {
+  font-weight: bold;
+  padding-bottom: .5em;
+}
+.field-ui-overview .region-title td {
+  font-weight: bold;
+}
+.field-ui-overview .region-message td {
+  font-style: italic;
+}
+.field-ui-overview .region-populated {
+  display: none;
+}
+.field-ui-overview .region-add-new-title {
+  display: none;
+}
+.field-ui-overview .add-new td {
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+/* 'Manage form display' and 'Manage display' overview */
+.field-ui-overview .field-plugin-summary-cell {
+  line-height: 1em;
+}
+.field-ui-overview .field-plugin-summary {
+  float: left;
+  font-size: .9em;
+}
+.field-ui-overview .field-plugin-summary-cell .warning {
+  display: block;
+  float: left;
+  margin-right: .5em;
+}
+.field-ui-overview .field-plugin-settings-edit-wrapper {
+  float: right;
+}
+.field-ui-overview .field-plugin-settings-edit {
+  float: right;
+}
+.field-ui-overview .field-plugin-settings-editing td {
+  vertical-align: top;
+}
+.field-ui-overview .field-plugin-settings-editing .field-plugin-type {
+  display: none;
+}
+.field-ui-overview .field-plugin-settings-edit-form .plugin-name {
+  font-weight: bold;
+}

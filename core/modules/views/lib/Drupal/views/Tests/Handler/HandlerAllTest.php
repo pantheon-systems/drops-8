@@ -30,6 +30,8 @@ class HandlerAllTest extends HandlerTestBase {
     'field',
     'filter',
     'file',
+    'forum',
+    'history',
     'language',
     'locale',
     'node',
@@ -53,14 +55,13 @@ class HandlerAllTest extends HandlerTestBase {
    */
   public function testHandlers() {
     $object_types = array_keys(ViewExecutable::viewsHandlerTypes());
-    foreach (views_fetch_data() as $base_table => $info) {
+    foreach ($this->container->get('views.views_data')->get() as $base_table => $info) {
       if (!isset($info['table']['base'])) {
         continue;
       }
 
-      $view = views_new_view();
-      $view->set('base_table', $base_table);
-      $view = new ViewExecutable($view);
+      $view = entity_create('view', array('base_table' => $base_table));
+      $view = $view->getExecutable();
 
       // @todo The groupwise relationship is currently broken.
       $exclude[] = 'taxonomy_term_data:tid_representative';
@@ -70,11 +71,15 @@ class HandlerAllTest extends HandlerTestBase {
       foreach ($info as $field => $field_info) {
         // Table is a reserved key for the metainformation.
         if ($field != 'table' && !in_array("$base_table:$field", $exclude)) {
+          $item = array(
+            'table' => $base_table,
+            'field' => $field,
+          );
           foreach ($object_types as $type) {
             if (isset($field_info[$type]['id'])) {
               $options = array();
               if ($type == 'filter') {
-                $handler = views_get_handler($base_table, $field, $type);
+                $handler = $this->container->get("plugin.manager.views.$type")->getHandler($item);
                 if ($handler instanceof InOperator) {
                   $options['value'] = array(1);
                 }

@@ -16,6 +16,13 @@ namespace Drupal\views\Tests\Handler;
 class AreaTest extends HandlerTestBase {
 
   /**
+   * Views used by this test.
+   *
+   * @var array
+   */
+  public static $testViews = array('test_example_area');
+
+  /**
    * Modules to enable.
    *
    * @var array
@@ -68,13 +75,13 @@ class AreaTest extends HandlerTestBase {
 
       // Then setup a no empty label.
       $labels[$type] = $this->randomName();
-      $this->drupalPost($edit_path, array('options[label]' => $labels[$type]), t('Apply'));
+      $this->drupalPost($edit_path, array('options[admin_label]' => $labels[$type]), t('Apply'));
       // Make sure that the new label appears on the site.
       $this->assertText($labels[$type]);
 
-      // Test that the settings (empty/label) are accessible.
+      // Test that the settings (empty/admin_label) are accessible.
       $this->drupalGet($edit_path);
-      $this->assertField('options[label]');
+      $this->assertField('options[admin_label]');
       if ($type !== 'empty') {
         $this->assertField('options[empty]');
       }
@@ -104,9 +111,48 @@ class AreaTest extends HandlerTestBase {
 
     // Check whether the strings exists in the output.
     $output = $view->preview();
+    $output = drupal_render($output);
     $this->assertTrue(strpos($output, $header_string) !== FALSE);
     $this->assertTrue(strpos($output, $footer_string) !== FALSE);
     $this->assertTrue(strpos($output, $empty_string) !== FALSE);
+  }
+
+  /**
+   * Tests global tokens.
+   */
+  public function testRenderAreaToken() {
+    $admin_user = $this->drupalCreateUser(array('administer views', 'administer site configuration'));
+    $this->drupalLogin($admin_user);
+
+    $view = views_get_view('test_example_area');
+    $view->initHandlers();
+
+    $this->drupalGet('admin/structure/views/nojs/config-item/test_example_area/default/empty/test_example');
+
+    // Test that the list is token present.
+    $element = $this->xpath('//ul[@class="global-tokens"]');
+    $this->assertTrue($element, 'Token list found on the options form.');
+
+    $empty_handler = &$view->empty['test_example'];
+
+    // Test the list of available tokens.
+    $available = $empty_handler->getAvailableGlobalTokens();
+    foreach (array('site', 'view') as $type) {
+      $this->assertTrue(!empty($available[$type]) && is_array($available[$type]));
+      // Test that each item exists in the list.
+      foreach ($available[$type] as $token => $info) {
+        $this->assertText("[$type:$token]");
+      }
+    }
+
+    // Test the rendered output of a token.
+    $empty_handler->options['string'] = '[site:name]';
+
+    // Test we have the site:name token in the output.
+    $output = $view->preview();
+    $output = drupal_render($output);
+    $expected = \Drupal::token()->replace('[site:name]');
+    $this->assertTrue(strpos($output, $expected) !== FALSE);
   }
 
   /**
@@ -117,21 +163,20 @@ class AreaTest extends HandlerTestBase {
     $view->initDisplay('page_1');
 
     // Add the title area handler to the empty area.
-    $view->displayHandlers['page_1']->overrideOption('empty', array(
+    $view->displayHandlers->get('page_1')->overrideOption('empty', array(
       'title' => array(
         'id' => 'title',
         'table' => 'views',
         'field' => 'title',
         'admin_label' => '',
-        'label' => '',
         'empty' => '0',
         'title' => 'Overridden title',
       ),
     ));
 
-    $view->storage->enable();
+    $view->storage->enable()->save();
 
-    $this->drupalGet('frontpage');
+    $this->drupalGet('node');
     $this->assertText('Overridden title', 'Overridden title found.');
   }
 

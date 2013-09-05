@@ -7,6 +7,8 @@
 
 namespace Drupal\views\Tests\Wizard;
 
+use Drupal\Core\Language\Language;
+
 /**
  * Tests the ability of the views wizard to create views filtered by taxonomy.
  */
@@ -48,25 +50,26 @@ class TaggedWithTest extends WizardTestBase {
     // Create the vocabulary for the tag field.
     $this->tag_vocabulary = entity_create('taxonomy_vocabulary',  array(
       'name' => 'Views testing tags',
-      'machine_name' => 'views_testing_tags',
+      'vid' => 'views_testing_tags',
     ));
     $this->tag_vocabulary->save();
 
     // Create the tag field itself.
-    $this->tag_field = array(
-      'field_name' => 'field_views_testing_tags',
+    $this->tag_field = entity_create('field_entity', array(
+      'name' => 'field_views_testing_tags',
+      'entity_type' => 'node',
       'type' => 'taxonomy_term_reference',
       'cardinality' => FIELD_CARDINALITY_UNLIMITED,
       'settings' => array(
         'allowed_values' => array(
           array(
-            'vocabulary' => $this->tag_vocabulary->machine_name,
+            'vocabulary' => $this->tag_vocabulary->id(),
             'parent' => 0,
           ),
         ),
       ),
-    );
-    field_create_field($this->tag_field);
+    ));
+    $this->tag_field->save();
 
     // Create an instance of the tag field on one of the content types, and
     // configure it to display an autocomplete widget.
@@ -74,21 +77,27 @@ class TaggedWithTest extends WizardTestBase {
       'field_name' => 'field_views_testing_tags',
       'entity_type' => 'node',
       'bundle' => $this->node_type_with_tags->type,
-      'widget' => array(
-        'type' => 'taxonomy_autocomplete',
-      ),
-      'display' => array(
-        'default' => array(
-          'type' => 'taxonomy_term_reference_link',
-          'weight' => 10,
-        ),
-        'teaser' => array(
-          'type' => 'taxonomy_term_reference_link',
-          'weight' => 10,
-        ),
-      ),
     );
-    field_create_instance($this->tag_instance);
+    entity_create('field_instance', $this->tag_instance)->save();
+
+    entity_get_form_display('node', $this->node_type_with_tags->type, 'default')
+      ->setComponent('field_views_testing_tags', array(
+        'type' => 'taxonomy_autocomplete',
+      ))
+      ->save();
+
+    entity_get_display('node', $this->node_type_with_tags->type, 'default')
+      ->setComponent('field_views_testing_tags', array(
+        'type' => 'taxonomy_term_reference_link',
+        'weight' => 10,
+      ))
+      ->save();
+    entity_get_display('node', $this->node_type_with_tags->type, 'teaser')
+      ->setComponent('field_views_testing_tags', array(
+        'type' => 'taxonomy_term_reference_link',
+        'weight' => 10,
+      ))
+      ->save();
   }
 
   /**
@@ -100,7 +109,7 @@ class TaggedWithTest extends WizardTestBase {
     $node_add_path = 'node/add/' . $this->node_type_with_tags->type;
 
     // Create three nodes, with different tags.
-    $tag_field = $this->tag_field['field_name'] . '[' . LANGUAGE_NOT_SPECIFIED . ']';
+    $tag_field = $this->tag_field->name . '[' . Language::LANGCODE_NOT_SPECIFIED . ']';
     $edit = array();
     $edit['title'] = $node_tag1_title = $this->randomName();
     $edit[$tag_field] = 'tag1';
@@ -121,18 +130,18 @@ class TaggedWithTest extends WizardTestBase {
     $view1['show[type]'] = $this->node_type_with_tags->type;
     $this->drupalPost('admin/structure/views/add', $view1, t('Update "of type" choice'));
     // Now resubmit the entire form to the same URL.
-    $view1['human_name'] = $this->randomName(16);
-    $view1['name'] = strtolower($this->randomName(16));
+    $view1['label'] = $this->randomName(16);
+    $view1['id'] = strtolower($this->randomName(16));
     $view1['description'] = $this->randomName(16);
     $view1['show[tagged_with]'] = 'tag1';
     $view1['page[create]'] = 1;
     $view1['page[title]'] = $this->randomName(16);
     $view1['page[path]'] = $this->randomName(16);
-    $this->drupalPost(NULL, $view1, t('Save & exit'));
-    $this->assertResponse(200);
+    $this->drupalPost(NULL, $view1, t('Save and edit'));
     // Visit the page and check that the nodes we expect are present and the
     // ones we don't expect are absent.
     $this->drupalGet($view1['page[path]']);
+    $this->assertResponse(200);
     $this->assertText($node_tag1_title);
     $this->assertText($node_tag1_tag2_title);
     $this->assertNoText($node_no_tags_title);
@@ -143,14 +152,14 @@ class TaggedWithTest extends WizardTestBase {
     $view2['show[type]'] = $this->node_type_with_tags->type;
     $this->drupalPost('admin/structure/views/add', $view2, t('Update "of type" choice'));
     $this->assertResponse(200);
-    $view2['human_name'] = $this->randomName(16);
-    $view2['name'] = strtolower($this->randomName(16));
+    $view2['label'] = $this->randomName(16);
+    $view2['id'] = strtolower($this->randomName(16));
     $view2['description'] = $this->randomName(16);
     $view2['show[tagged_with]'] = 'tag2';
     $view2['page[create]'] = 1;
     $view2['page[title]'] = $this->randomName(16);
     $view2['page[path]'] = $this->randomName(16);
-    $this->drupalPost(NULL, $view2, t('Save & exit'));
+    $this->drupalPost(NULL, $view2, t('Save and edit'));
     $this->assertResponse(200);
     $this->drupalGet($view2['page[path]']);
     $this->assertNoText($node_tag1_title);
@@ -181,7 +190,13 @@ class TaggedWithTest extends WizardTestBase {
     // "tagged with" form element should not appear for it too.
     $instance = $this->tag_instance;
     $instance['bundle'] = $this->node_type_without_tags->type;
-    field_create_instance($instance);
+    entity_create('field_instance', $instance)->save();
+    entity_get_form_display('node', $this->node_type_without_tags->type, 'default')
+      ->setComponent('field_views_testing_tags', array(
+        'type' => 'taxonomy_autocomplete',
+      ))
+      ->save();
+
     $view['show[type]'] = $this->node_type_with_tags->type;
     $this->drupalPost('admin/structure/views/add', $view, t('Update "of type" choice'));
     $this->assertFieldByXpath($tags_xpath);

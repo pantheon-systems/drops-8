@@ -1,0 +1,97 @@
+base_table: node
+core: '8'
+description: ''
+status: '1'
+display:
+  default:
+    display_options:
+      access:
+        type: none
+      cache:
+        type: none
+      exposed_form:
+        options:
+          reset_button: '1'
+        type: basic
+      filters:
+        type:
+          expose:
+            label: 'Content: Type'
+            operator_id: type_op
+            use_operator: '1'
+          field: type
+          id: type
+          table: node_field_data
+          plugin_id: node_type
+          provider: views
+        body_value:
+          id: body_value
+          table: node__body
+          field: body_value
+          relationship: none
+          group_type: group
+          admin_label: ''
+          operator: '='
+          value: ''
+          group: '1'
+          exposed: '1'
+          expose:
+            operator_id: body_value_op
+            label: 'Body (body)'
+            description: ''
+            use_operator: '0'
+            operator: body_value_op
+            identifier: body_value
+            required: '0'
+            remember: '0'
+            multiple: '0'
+            remember_roles:
+              authenticated: authenticated
+          is_grouped: '1'
+          group_info:
+            label: 'Body (body)'
+            description: ''
+            identifier: body_value
+            optional: '1'
+            widget: select
+            multiple: '0'
+            remember: '0'
+            default_group: All
+            default_group_multiple: {  }
+            group_items:
+              1:
+                title: Test
+                operator: empty
+                value: ''
+          plugin_id: string
+          provider: views
+      pager:
+        type: full
+      sorts:
+        created:
+          field: created
+          id: created
+          table: node_field_data
+          plugin_id: date
+          provider: views
+      style:
+        type: default
+      row:
+        type: 'entity:node'
+        options:
+          comments: '0'
+          links: '1'
+    display_plugin: default
+    display_title: Master
+    id: default
+    position: '0'
+  page_1:
+    display_options:
+      path: test_exposed_admin_ui
+    display_plugin: page
+    display_title: Page
+    id: page_1
+    position: '0'
+label: ''
+id: test_exposed_admin_ui
+tag: ''

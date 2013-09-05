@@ -8,6 +8,7 @@
 namespace Drupal\views\Plugin\views\exposed_form;
 
 use Drupal\views\ViewExecutable;
+use Drupal\views\Plugin\views\display\DisplayPluginBase;
 use Drupal\views\Plugin\views\PluginBase;
 
 /**
@@ -28,22 +29,6 @@ abstract class ExposedFormPluginBase extends PluginBase {
    */
   protected $usesOptions = TRUE;
 
-  /**
-   * Initialize the plugin.
-   *
-   * @param $view
-   *   The view object.
-   * @param $display
-   *   The display handler.
-   */
-  public function init(ViewExecutable $view, &$display, $options = array()) {
-    $this->setOptionDefaults($this->options, $this->defineOptions());
-    $this->view = &$view;
-    $this->displayHandler = &$display;
-
-    $this->unpackOptions($this->options, $options);
-  }
-
   protected function defineOptions() {
     $options = parent::defineOptions();
     $options['submit_button'] = array('default' => 'Apply', 'translatable' => TRUE);
@@ -61,15 +46,13 @@ abstract class ExposedFormPluginBase extends PluginBase {
     $form['submit_button'] = array(
       '#type' => 'textfield',
       '#title' => t('Submit button text'),
-      '#description' => t('Text to display in the submit button of the exposed form.'),
       '#default_value' => $this->options['submit_button'],
       '#required' => TRUE,
     );
 
     $form['reset_button'] = array(
       '#type' => 'checkbox',
-      '#title' => t('Include reset button'),
-      '#description' => t('If checked the exposed form will provide a button to reset all the applied exposed filters'),
+      '#title' => t('Include reset button (resets all applied exposed filters).'),
       '#default_value' => $this->options['reset_button'],
     );
 
@@ -89,22 +72,20 @@ abstract class ExposedFormPluginBase extends PluginBase {
     $form['exposed_sorts_label'] = array(
       '#type' => 'textfield',
       '#title' => t('Exposed sorts label'),
-      '#description' => t('Text to display as the label of the exposed sort select box.'),
       '#default_value' => $this->options['exposed_sorts_label'],
       '#required' => TRUE,
     );
 
     $form['expose_sort_order'] = array(
       '#type' => 'checkbox',
-      '#title' => t('Expose sort order'),
-      '#description' => t('Allow the user to choose the sort order. If sort order is not exposed, the sort criteria settings for each sort will determine its order.'),
+      '#title' => t('Allow people to choose the sort order'),
+      '#description' => t('If sort order is not exposed, the sort criteria settings for each sort will determine its order.'),
       '#default_value' => $this->options['expose_sort_order'],
     );
 
     $form['sort_asc_label'] = array(
       '#type' => 'textfield',
-      '#title' => t('Ascending'),
-      '#description' => t('Text to use when exposed sort is ordered ascending.'),
+      '#title' => t('Label for ascending sort'),
       '#default_value' => $this->options['sort_asc_label'],
       '#required' => TRUE,
       '#states' => array(
@@ -116,8 +97,7 @@ abstract class ExposedFormPluginBase extends PluginBase {
 
     $form['sort_desc_label'] = array(
       '#type' => 'textfield',
-      '#title' => t('Descending'),
-      '#description' => t('Text to use when exposed sort is ordered descending.'),
+      '#title' => t('Label for descending sort'),
       '#default_value' => $this->options['sort_desc_label'],
       '#required' => TRUE,
       '#states' => array(
@@ -135,11 +115,11 @@ abstract class ExposedFormPluginBase extends PluginBase {
    * also assign data to the appropriate handlers for use in building the
    * query.
    */
-  function render_exposed_form($block = FALSE) {
+  public function renderExposedForm($block = FALSE) {
     // Deal with any exposed filters we may have, before building.
     $form_state = array(
       'view' => &$this->view,
-      'display' => &$this->display,
+      'display' => &$this->view->display_handler->display,
       'method' => 'get',
       'rerender' => TRUE,
       'no_redirect' => TRUE,
@@ -159,13 +139,12 @@ abstract class ExposedFormPluginBase extends PluginBase {
 
     $form_state['exposed_form_plugin'] = $this;
     $form = drupal_build_form('views_exposed_form', $form_state);
-    $output = drupal_render($form);
 
     if (!$this->view->display_handler->displaysExposed() || (!$block && $this->view->display_handler->getOption('exposed_block'))) {
-      return "";
+      return array();
     }
     else {
-      return $output;
+      return $form;
     }
   }
 
@@ -194,22 +173,15 @@ abstract class ExposedFormPluginBase extends PluginBase {
     }
   }
 
-  function pre_render($values) { }
+  public function preRender($values) { }
 
-  function post_render(&$output) { }
+  public function postRender(&$output) { }
 
-  function pre_execute() { }
+  public function preExecute() { }
 
   public function postExecute() { }
 
-  function exposed_form_alter(&$form, &$form_state) {
-    if (!empty($this->options['reset_button'])) {
-      $form['reset'] = array(
-        '#value' => $this->options['reset_button_label'],
-        '#type' => 'submit',
-      );
-    }
-
+  public function exposedFormAlter(&$form, &$form_state) {
     $form['submit']['#value'] = $this->options['submit_button'];
     // Check if there is exposed sorts for this view
     $exposed_sorts = array();
@@ -246,26 +218,44 @@ abstract class ExposedFormPluginBase extends PluginBase {
         $form['sort_order'] = array(
           '#type' => 'select',
           '#options' => $sort_order,
-          '#title' => t('Order'),
+          '#title' => t('Order', array(), array('context' => 'Sort order')),
           '#default_value' => $default_sort_order,
         );
       }
       $form['submit']['#weight'] = 10;
-      if (isset($form['reset'])) {
-        $form['reset']['#weight'] = 10;
+    }
+
+    if (!empty($this->options['reset_button'])) {
+      $form['reset'] = array(
+        '#value' => $this->options['reset_button_label'],
+        '#type' => 'submit',
+        '#weight' => 10,
+      );
+
+      // Get an array of exposed filters, keyed by identifier option.
+      foreach ($this->view->filter as $id => $handler) {
+        if ($handler->canExpose() && $handler->isExposed() && !empty($handler->options['expose']['identifier'])) {
+          $exposed_filters[$handler->options['expose']['identifier']] = $id;
+        }
+      }
+      $all_exposed = array_merge($exposed_sorts, $exposed_filters);
+
+      // Set the access to FALSE if there is no exposed input.
+      if (!array_intersect_key($all_exposed, $this->view->exposed_input)) {
+        $form['reset']['#access'] = FALSE;
       }
     }
 
     $pager = $this->view->display_handler->getPlugin('pager');
     if ($pager) {
-      $pager->exposed_form_alter($form, $form_state);
+      $pager->exposedFormAlter($form, $form_state);
       $form_state['pager_plugin'] = $pager;
     }
   }
 
-  function exposed_form_validate(&$form, &$form_state) {
+  public function exposedFormValidate(&$form, &$form_state) {
     if (isset($form_state['pager_plugin'])) {
-      $form_state['pager_plugin']->exposed_form_validate($form, $form_state);
+      $form_state['pager_plugin']->exposedFormValidate($form, $form_state);
     }
   }
 
@@ -280,17 +270,17 @@ abstract class ExposedFormPluginBase extends PluginBase {
   *   Nested array of keys to exclude of insert into
   *   $view->exposed_raw_input
   */
-  function exposed_form_submit(&$form, &$form_state, &$exclude) {
+  public function exposedFormSubmit(&$form, &$form_state, &$exclude) {
     if (!empty($form_state['values']['op']) && $form_state['values']['op'] == $this->options['reset_button_label']) {
-      $this->reset_form($form, $form_state);
+      $this->resetForm($form, $form_state);
     }
     if (isset($form_state['pager_plugin'])) {
-      $form_state['pager_plugin']->exposed_form_submit($form, $form_state, $exclude);
+      $form_state['pager_plugin']->exposedFormSubmit($form, $form_state, $exclude);
       $exclude[] = 'pager_plugin';
     }
   }
 
-  function reset_form(&$form, &$form_state) {
+  public function resetForm(&$form, &$form_state) {
     // _SESSION is not defined for users who are not logged in.
 
     // If filters are not overridden, store the 'remember' settings on the
@@ -299,8 +289,8 @@ abstract class ExposedFormPluginBase extends PluginBase {
     // remember settings.
     $display_id = ($this->view->display_handler->isDefaulted('filters')) ? 'default' : $this->view->current_display;
 
-    if (isset($_SESSION['views'][$this->view->storage->get('name')][$display_id])) {
-      unset($_SESSION['views'][$this->view->storage->get('name')][$display_id]);
+    if (isset($_SESSION['views'][$this->view->storage->id()][$display_id])) {
+      unset($_SESSION['views'][$this->view->storage->id()][$display_id]);
     }
 
     // Set the form to allow redirect.
@@ -312,6 +302,7 @@ abstract class ExposedFormPluginBase extends PluginBase {
       $this->view->exposed_data = array();
     }
 
+    $form_state['redirect'] = current_path();
     $form_state['values'] = array();
   }
 

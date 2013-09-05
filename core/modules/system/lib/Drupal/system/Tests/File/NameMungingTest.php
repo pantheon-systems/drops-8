@@ -30,7 +30,7 @@ class NameMungingTest extends FileTestBase {
    */
   function testMunging() {
     // Disable insecure uploads.
-    variable_set('allow_insecure_uploads', 0);
+    \Drupal::config('system.file')->set('allow_insecure_uploads', 0)->save();
     $munged_name = file_munge_filename($this->name, '', TRUE);
     $messages = drupal_get_messages();
     $this->assertTrue(in_array(t('For security reasons, your upload has been renamed to %filename.', array('%filename' => $munged_name)), $messages['status']), 'Alert properly set when a file is renamed.');
@@ -38,11 +38,20 @@ class NameMungingTest extends FileTestBase {
   }
 
   /**
-   * If the allow_insecure_uploads variable evaluates to true, the file should
+   * Tests munging with a null byte in the filename.
+   */
+  function testMungeNullByte() {
+    $prefix = $this->randomName();
+    $filename = $prefix . '.' . $this->bad_extension . "\0.txt";
+    $this->assertEqual(file_munge_filename($filename, ''), $prefix . '.' . $this->bad_extension . '_.txt', 'A filename with a null byte is correctly munged to remove the null byte.');
+  }
+
+  /**
+   * If the system.file.allow_insecure_uploads setting evaluates to true, the file should
    * come out untouched, no matter how evil the filename.
    */
   function testMungeIgnoreInsecure() {
-    variable_set('allow_insecure_uploads', 1);
+    \Drupal::config('system.file')->set('allow_insecure_uploads', 1)->save();
     $munged_name = file_munge_filename($this->name, '');
     $this->assertIdentical($munged_name, $this->name, format_string('The original filename (%original) matches the munged filename (%munged) when insecure uploads are enabled.', array('%munged' => $munged_name, '%original' => $this->name)));
   }

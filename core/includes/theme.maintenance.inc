@@ -5,14 +5,16 @@
  * Theming for maintenance pages.
  */
 
+use Drupal\Component\Utility\Unicode;
+
 /**
  * Sets up the theming system for maintenance page.
  *
  * Used for site installs, updates and when the site is in maintenance mode.
  * It also applies when the database is unavailable or bootstrap was not
- * complete. Seven is always used for the initial install and update operations.
- * In other cases, Bartik is used, but this can be overridden by setting a
- * "maintenance_theme" key in the $conf variable in settings.php.
+ * complete. Seven is always used for the initial install and update
+ * operations. In other cases, Bartik is used, but this can be overridden by
+ * setting a "maintenance_theme" key in the $conf variable in settings.php.
  */
 function _drupal_maintenance_theme() {
   global $theme, $theme_key, $conf;
@@ -22,13 +24,13 @@ function _drupal_maintenance_theme() {
     return;
   }
 
-  require_once DRUPAL_ROOT . '/' . variable_get('path_inc', 'core/includes/path.inc');
-  require_once DRUPAL_ROOT . '/core/includes/theme.inc';
-  require_once DRUPAL_ROOT . '/core/includes/common.inc';
-  require_once DRUPAL_ROOT . '/core/includes/unicode.inc';
-  require_once DRUPAL_ROOT . '/core/includes/file.inc';
-  require_once DRUPAL_ROOT . '/core/includes/module.inc';
-  unicode_check();
+  require_once DRUPAL_ROOT . '/' . settings()->get('path_inc', 'core/includes/path.inc');
+  require_once __DIR__ . '/theme.inc';
+  require_once __DIR__ . '/common.inc';
+  require_once __DIR__ . '/unicode.inc';
+  require_once __DIR__ . '/file.inc';
+  require_once __DIR__ . '/module.inc';
+  Unicode::check();
 
   // Install and update pages are treated differently to prevent theming overrides.
   if (defined('MAINTENANCE_MODE') && (MAINTENANCE_MODE == 'install' || MAINTENANCE_MODE == 'update')) {
@@ -39,7 +41,7 @@ function _drupal_maintenance_theme() {
     // environment, we need to bootstrap just enough to allow hook invocations
     // to work. See _drupal_log_error().
     if (!class_exists('Drupal\Core\Database\Database', FALSE)) {
-      require_once DRUPAL_ROOT . '/core/includes/database.inc';
+      require_once __DIR__ . '/database.inc';
     }
 
     // We use the default theme as the maintenance theme. If a default theme
@@ -50,20 +52,31 @@ function _drupal_maintenance_theme() {
     //   Stark otherwise. Since there is no low-level access to configuration
     //   currently, we only consult settings.php and fall back to Bartik
     //   otherwise, as it looks generic enough and way more user-friendly.
-    $custom_theme = variable_get('maintenance_theme', variable_get('theme_default', 'bartik'));
+    $custom_theme = variable_get('maintenance_theme');
+    if (!$custom_theme)  {
+      $config = Drupal::config('system.theme');
+      // A broken install might not return an object.
+      if (is_object($config)) {
+        $custom_theme = $config->get('default');
+      }
+    }
+    if (!$custom_theme)  {
+      $custom_theme = 'bartik';
+    }
   }
 
   // Ensure that system.module is loaded.
   if (!function_exists('_system_rebuild_theme_data')) {
-    $module_list['system']['filename'] = 'core/modules/system/system.module';
-    module_list(NULL, $module_list);
-    drupal_load('module', 'system');
+    $module_list['system'] = 'core/modules/system/system.module';
+    $module_handler = Drupal::moduleHandler();
+    $module_handler->setModuleList($module_list);
+    $module_handler->load('system');
   }
 
   $themes = list_themes();
 
   // list_themes() triggers a drupal_alter() in maintenance mode, but we can't
-  // let themes alter the .info data until we know a theme's base themes. So
+  // let themes alter the .info.yml data until we know a theme's base themes. So
   // don't set global $theme until after list_themes() builds its cache.
   $theme = $custom_theme;
 
@@ -79,17 +92,14 @@ function _drupal_maintenance_theme() {
   }
   _drupal_theme_initialize($themes[$theme], array_reverse($base_theme), '_theme_load_offline_registry');
 
-  // These are usually added from system_init() -except maintenance.css.
-  // When the database is inactive it's not called so we add it here.
-  $path = drupal_get_path('module', 'system');
-  drupal_add_css($path . '/system.base.css');
-  drupal_add_css($path . '/system.admin.css');
-  drupal_add_css($path . '/system.theme.css');
-  drupal_add_css($path . '/system.maintenance.css');
+  // These CSS files are normally added by system_page_build(), except
+  // system.maintenance.css. When the database is inactive, it's not called so
+  // we add them here.
+  drupal_add_library('system', 'drupal.base');
 }
 
 /**
- * This builds the registry when the site needs to bypass any database calls.
+ * Builds the registry when the site needs to bypass any database calls.
  */
 function _theme_load_offline_registry($theme, $base_theme = NULL, $theme_engine = NULL) {
   return _theme_build_registry($theme, $base_theme, $theme_engine);
@@ -102,32 +112,38 @@ function _theme_load_offline_registry($theme, $base_theme = NULL, $theme_engine 
  *   An associative array containing:
  *   - items: An associative array of maintenance tasks.
  *   - active: The key for the currently active maintenance task.
+ *   - variant: A variant name to be used for a CSS class.
  *
  * @ingroup themeable
  */
 function theme_task_list($variables) {
-  $t = get_t();
   $items = $variables['items'];
   $active = $variables['active'];
+  if (isset($variables['variant'])) {
+    $class = $variables['variant'] . '-task-list';
+  }
+  else {
+    $class = 'task-list';
+  }
 
   $done = isset($items[$active]) || $active == NULL;
-  $output = '<h2 class="element-invisible">Installation tasks</h2>';
-  $output .= '<ol class="task-list">';
+  $output = '<h2 class="visually-hidden">Installation tasks</h2>';
+  $output .= '<ol class="' . $class . '">';
 
   foreach ($items as $k => $item) {
     if ($active == $k) {
       $class = 'active';
-      $status = '(' . $t('active') . ')';
+      $status = '(' . t('active') . ')';
       $done = FALSE;
     }
     else {
       $class = $done ? 'done' : '';
-      $status = $done ? '(' . $t('done') . ')' : '';
+      $status = $done ? '(' . t('done') . ')' : '';
     }
     $output .= '<li';
     $output .= ($class ? ' class="' . $class . '"' : '') . '>';
     $output .= $item;
-    $output .= ($status ? '<span class="element-invisible">' . $status . '</span>' : '');
+    $output .= ($status ? '<span class="visually-hidden"> ' . $status . '</span>' : '');
     $output .= '</li>';
   }
   $output .= '</ol>';
@@ -135,37 +151,7 @@ function theme_task_list($variables) {
 }
 
 /**
- * Returns HTML for the installation page.
- *
- * Note: this function is not themeable.
- *
- * @param $variables
- *   An associative array containing:
- *   - content: The page content to show.
- */
-function theme_install_page($variables) {
-  drupal_add_http_header('Content-Type', 'text/html; charset=utf-8');
-  return theme('maintenance_page', $variables);
-}
-
-/**
- * Returns HTML for the update page.
- *
- * Note: this function is not themeable.
- *
- * @param $variables
- *   An associative array containing:
- *   - content: The page content to show.
- *   - show_messages: Whether to output status and error messages.
- *     FALSE can be useful to postpone the messages to a subsequent page.
- */
-function theme_update_page($variables) {
-  drupal_add_http_header('Content-Type', 'text/html; charset=utf-8');
-  return theme('maintenance_page', $variables);
-}
-
-/**
- * Returns HTML for a report of the results from an operation run via authorize.php.
+ * Returns HTML for a results report of an operation run by authorize.php.
  *
  * @param $variables
  *   An associative array containing:

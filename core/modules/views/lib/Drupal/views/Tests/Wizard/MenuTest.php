@@ -26,8 +26,8 @@ class MenuTest extends WizardTestBase {
   function testMenus() {
     // Create a view with a page display and a menu link in the Main Menu.
     $view = array();
-    $view['human_name'] = $this->randomName(16);
-    $view['name'] = strtolower($this->randomName(16));
+    $view['label'] = $this->randomName(16);
+    $view['id'] = strtolower($this->randomName(16));
     $view['description'] = $this->randomName(16);
     $view['page[create]'] = 1;
     $view['page[title]'] = $this->randomName(16);
@@ -35,8 +35,7 @@ class MenuTest extends WizardTestBase {
     $view['page[link]'] = 1;
     $view['page[link_properties][menu_name]'] = 'main';
     $view['page[link_properties][title]'] = $this->randomName(16);
-    $this->drupalPost('admin/structure/views/add', $view, t('Save & exit'));
-    $this->assertResponse(200);
+    $this->drupalPost('admin/structure/views/add', $view, t('Save and edit'));
 
     // Make sure there is a link to the view from the front page (where we
     // expect the main menu to display).

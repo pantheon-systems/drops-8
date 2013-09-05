@@ -7,13 +7,12 @@
 
 namespace Drupal\Core\Database\Driver\mysql;
 
+use Drupal\Component\Utility\String;
 use Drupal\Core\Database\Database;
 use Drupal\Core\Database\Query\Condition;
 use Drupal\Core\Database\SchemaObjectExistsException;
 use Drupal\Core\Database\SchemaObjectDoesNotExistException;
 use Drupal\Core\Database\Schema as DatabaseSchema;
-
-use Exception;
 
 /**
  * @addtogroup schemaapi
@@ -49,7 +48,7 @@ class Schema extends DatabaseSchema {
     }
     else {
       $db_info = Database::getConnectionInfo();
-      $info['database'] = $db_info['default']['database'];
+      $info['database'] = $db_info[$this->connection->getTarget()]['database'];
       $info['table'] = $table;
     }
     return $info;
@@ -64,8 +63,6 @@ class Schema extends DatabaseSchema {
    * from the condition criteria.
    */
   protected function buildTableNameCondition($table_name, $operator = '=', $add_prefix = TRUE) {
-    $info = $this->connection->getConnectionOptions();
-
     $table_info = $this->getPrefixInfo($table_name, $add_prefix);
 
     $condition = new Condition('AND');
@@ -329,6 +326,21 @@ class Schema extends DatabaseSchema {
     return TRUE;
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  public function copyTable($source, $destination) {
+    if (!$this->tableExists($source)) {
+      throw new SchemaObjectDoesNotExistException(String::format("Cannot copy @source to @destination: table @source doesn't exist.", array('@source' => $source, '@destination' => $destination)));
+    }
+    if ($this->tableExists($destination)) {
+      throw new SchemaObjectExistsException(String::format("Cannot copy @source to @destination: table @destination already exists.", array('@source' => $source, '@destination' => $destination)));
+    }
+
+    $info = $this->getPrefixInfo($destination);
+    return $this->connection->query('CREATE TABLE `' . $info['table'] . '` LIKE {' . $source . '}');
+  }
+
   public function addField($table, $field, $spec, $keys_new = array()) {
     if (!$this->tableExists($table)) {
       throw new SchemaObjectDoesNotExistException(t("Cannot add field @table.@field: table doesn't exist.", array('@field' => $field, '@table' => $table)));
@@ -480,7 +492,7 @@ class Schema extends DatabaseSchema {
     // Truncate comment to maximum comment length.
     if (isset($length)) {
       // Add table prefixes before truncating.
-      $comment = truncate_utf8($this->connection->prefixTables($comment), $length, TRUE, TRUE);
+      $comment = substr($this->connection->prefixTables($comment), 0, $length);
     }
 
     return $this->connection->quote($comment);
@@ -516,7 +528,7 @@ class Schema extends DatabaseSchema {
       $this->connection->queryRange("SELECT 1 FROM {" . $table . "}", 0, 1);
       return TRUE;
     }
-    catch (Exception $e) {
+    catch (\Exception $e) {
       return FALSE;
     }
   }
@@ -533,7 +545,7 @@ class Schema extends DatabaseSchema {
       $this->connection->queryRange("SELECT $column FROM {" . $table . "}", 0, 1);
       return TRUE;
     }
-    catch (Exception $e) {
+    catch (\Exception $e) {
       return FALSE;
     }
   }

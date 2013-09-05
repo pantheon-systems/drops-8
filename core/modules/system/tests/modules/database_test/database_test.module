@@ -213,7 +213,6 @@ function database_test_theme_tablesort($form, &$form_state) {
 
   $query = db_select('users', 'u');
   $query->condition('u.uid', 0, '<>');
-  user_build_filter_query($query);
 
   $count_query = clone $query;
   $count_query->addExpression('COUNT(u.uid)');
@@ -222,20 +221,20 @@ function database_test_theme_tablesort($form, &$form_state) {
     ->extend('Drupal\Core\Database\Query\PagerSelectExtender')
     ->extend('Drupal\Core\Database\Query\TableSortExtender');
   $query
-    ->fields('u', array('uid', 'name', 'status', 'created', 'access'))
+    ->fields('u', array('uid'))
     ->limit(50)
     ->orderByHeader($header)
     ->setCountQuery($count_query);
-  $result = $query->execute();
+  $uids = $query
+    ->execute()
+    ->fetchCol();
 
   $options = array();
 
-  $status = array(t('blocked'), t('active'));
-  $accounts = array();
-  foreach ($result as $account) {
-    $options[$account->uid] = array(
-      'username' => check_plain($account->name),
-      'status' =>  $status[$account->status],
+  foreach (user_load_multiple($uids) as $account) {
+    $options[$account->id()] = array(
+      'username' => check_plain($account->getUsername()),
+      'status' =>  $account->isActive() ? t('active') : t('blocked'),
     );
   }
 

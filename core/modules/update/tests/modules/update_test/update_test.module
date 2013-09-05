@@ -1,7 +1,7 @@
 <?php
 
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 /**
  * @file
@@ -12,8 +12,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  * Implements hook_system_theme_info().
  */
 function update_test_system_theme_info() {
-  $themes['update_test_basetheme'] = drupal_get_path('module', 'update') . '/tests/themes/update_test_basetheme/update_test_basetheme.info';
-  $themes['update_test_subtheme'] = drupal_get_path('module', 'update') . '/tests/themes/update_test_subtheme/update_test_subtheme.info';
+  $themes['update_test_basetheme'] = drupal_get_path('module', 'update') . '/tests/themes/update_test_basetheme/update_test_basetheme.info.yml';
+  $themes['update_test_subtheme'] = drupal_get_path('module', 'update') . '/tests/themes/update_test_subtheme/update_test_subtheme.info.yml';
   return $themes;
 }
 
@@ -29,12 +29,6 @@ function update_test_menu() {
     'access callback' => TRUE,
     'type' => MENU_CALLBACK,
   );
-  $items['503-error'] = array(
-    'title' => t('503 Service unavailable'),
-    'page callback' => 'update_callback_service_unavailable',
-    'access callback' => TRUE,
-    'type' => MENU_CALLBACK,
-  );
 
   return $items;
 }
@@ -45,13 +39,13 @@ function update_test_menu() {
  * Checks the 'update_test.settings:system_info' configuration and sees if we
  * need to alter the system info for the given $file based on the setting. The
  * setting is expected to be a nested associative array. If the key '#all' is
- * defined, its subarray will include .info keys and values for all modules and
- * themes on the system. Otherwise, the settings array is keyed by the module or
- * theme short name ($file->name) and the subarrays contain settings just for
- * that module or theme.
+ * defined, its subarray will include .info.yml keys and values for all modules
+ * and themes on the system. Otherwise, the settings array is keyed by the
+ * module or theme short name ($file->name) and the subarrays contain settings
+ * just for that module or theme.
  */
 function update_test_system_info_alter(&$info, $file) {
-  $setting = config('update_test.settings')->get('system_info');
+  $setting = Drupal::config('update_test.settings')->get('system_info');
   foreach (array('#all', $file->name) as $id) {
     if (!empty($setting[$id])) {
       foreach ($setting[$id] as $key => $value) {
@@ -67,13 +61,13 @@ function update_test_system_info_alter(&$info, $file) {
  * Checks the 'update_test.settings:update_status' configuration and sees if we
  * need to alter the update status for the given project based on the setting.
  * The setting is expected to be a nested associative array. If the key '#all'
- * is defined, its subarray will include .info keys and values for all modules
+ * is defined, its subarray will include .info.yml keys and values for all modules
  * and themes on the system. Otherwise, the settings array is keyed by the
  * module or theme short name and the subarrays contain settings just for that
  * module or theme.
  */
 function update_test_update_status_alter(&$projects) {
-  $setting = config('update_test.settings')->get('update_status');
+  $setting = Drupal::config('update_test.settings')->get('update_status');
   if (!empty($setting)) {
     foreach ($projects as $project_name => &$project) {
       foreach (array('#all', $project_name) as $id) {
@@ -101,15 +95,15 @@ function update_test_update_status_alter(&$projects) {
  *   The project short name the update manager is trying to fetch data for (the
  *   fetch URLs are of the form: [base_url]/[project_name]/[core_version]).
  *
- * @return StreamedResponse|Response
- *   A StreamedResponse object containing the content of the XML release file
+ * @return BinaryFileResponse|Response
+ *   A BinaryFileResponse object containing the content of the XML release file
  *   for the specified project if one is available; a Response object with no
  *   content otherwise.
  *
  * @see update_test_menu()
  */
 function update_test_mock_page($project_name) {
-  $xml_map = config('update_test.settings')->get('xml_map');
+  $xml_map = Drupal::config('update_test.settings')->get('xml_map');
   if (isset($xml_map[$project_name])) {
     $availability_scenario = $xml_map[$project_name];
   }
@@ -132,19 +126,19 @@ function update_test_mock_page($project_name) {
     // Return an empty response.
     return new Response('', 200, $headers);
   }
-  return file_transfer($file, $headers);
+  return new BinaryFileResponse($file, 200, $headers);
 }
 
 /**
- * Implements hook_archiver_info().
+ * Implements hook_archiver_info_alter().
  */
-function update_test_archiver_info() {
-  return array(
-    'update_test_archiver' => array(
-      // This is bogus, we only care about the extensions for now.
-      'class' => 'Drupal\Component\Archiver\UpdateTest',
-      'extensions' => array('update-test-extension'),
-    ),
+function update_test_archiver_info_alter(&$definitions) {
+  // We only care about the extensions for now and the only way to add a new
+  // extension without a class is via alter. This definition is bogus, real
+  // archivers have a class and the definition goes in the annotation of the
+  // class.
+  $definitions['update_test_archiver'] = array(
+    'extensions' => array('update-test-extension'),
   );
 }
 
@@ -162,14 +156,4 @@ function update_test_filetransfer_info() {
       'weight' => -20,
     ),
   );
-}
-
-/**
- * Page callback: Displays an Error 503 (Service unavailable) page.
- *
- * @see update_test_menu()
- */
-function update_callback_service_unavailable() {
-  drupal_add_http_header('Status', '503 Service unavailable');
-  print "503 Service Temporarily Unavailable";
 }

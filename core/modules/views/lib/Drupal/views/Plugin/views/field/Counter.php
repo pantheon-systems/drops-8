@@ -7,16 +7,14 @@
 
 namespace Drupal\views\Plugin\views\field;
 
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
 
 /**
  * Field handler to show a counter of the current row.
  *
  * @ingroup views_field_handlers
  *
- * @Plugin(
- *   id = "counter"
- * )
+ * @PluginID("counter")
  */
 class Counter extends FieldPluginBase {
 
@@ -43,16 +41,16 @@ class Counter extends FieldPluginBase {
   }
 
   /**
-   * Overrides Drupal\views\Plugin\views\field\FieldPluginBas::get_value()
+   * {@inheritdoc}
    */
-  public function get_value($values, $field = NULL) {
+  public function getValue($values, $field = NULL) {
     // Note:  1 is subtracted from the counter start value below because the
     // counter value is incremented by 1 at the end of this function.
     $count = is_numeric($this->options['counter_start']) ? $this->options['counter_start'] - 1 : 0;
     $pager = $this->view->pager;
     // Get the base count of the pager.
-    if ($pager->use_pager()) {
-      $count += ($pager->get_items_per_page() * $pager->get_current_page() + $pager->set_offset());
+    if ($pager->usePager()) {
+      $count += ($pager->getItemsPerPage() * $pager->getCurrentPage() + $pager->getOffset());
     }
     // Add the counter for the current site.
     $count += $this->view->row_index + 1;

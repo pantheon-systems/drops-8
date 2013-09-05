@@ -8,7 +8,7 @@
 namespace Drupal\system\Tests\Image;
 
 use Drupal\simpletest\WebTestBase;
-use stdClass;
+use Drupal\system\Plugin\ImageToolkitManager;
 
 /**
  * Base class for image manipulation testing.
@@ -22,29 +22,57 @@ abstract class ToolkitTestBase extends WebTestBase {
    */
   public static $modules = array('image_test');
 
+  /**
+   * The image toolkit.
+   *
+   * @var \Drupal\system\Plugin\ImageToolkitInterface
+   */
   protected $toolkit;
+
+  /**
+   * The URI for the file.
+   *
+   * @var string
+   */
   protected $file;
+
+  /**
+   * The image object for the test file.
+   *
+   * @var \Drupal\Core\Image\ImageInterface
+   */
   protected $image;
 
   function setUp() {
     parent::setUp();
 
     // Use the image_test.module's test toolkit.
-    $this->toolkit = 'test';
+    $manager = new ImageToolkitManager($this->container->get('container.namespaces'), $this->container->get('cache.cache'), $this->container->get('language_manager'));
+    $this->toolkit = $manager->createInstance('test');
 
     // Pick a file for testing.
     $file = current($this->drupalGetTestFiles('image'));
     $this->file = $file->uri;
 
-    // Setup a dummy image to work with, this replicate image_load() so we
-    // can avoid calling it.
-    $this->image = new stdClass();
-    $this->image->source = $this->file;
-    $this->image->info = image_get_info($this->file);
-    $this->image->toolkit = $this->toolkit;
+    // Setup a dummy image to work with.
+    $this->image = $this->getImage();
 
     // Clear out any hook calls.
-    image_test_reset();
+    $this->imageTestReset();
+  }
+
+  /**
+   * Sets up an image with the custom toolkit.
+   *
+   * @return \Drupal\Core\Image\ImageInterface
+   *   The image object.
+   */
+  protected function getImage() {
+    $image = $this->container->get('image.factory')
+      ->setToolkit($this->toolkit)
+      ->get($this->file);
+    $image->getResource();
+    return $image;
   }
 
   /**
@@ -57,7 +85,7 @@ abstract class ToolkitTestBase extends WebTestBase {
    */
   function assertToolkitOperationsCalled(array $expected) {
     // Determine which operations were called.
-    $actual = array_keys(array_filter(image_test_get_all_calls()));
+    $actual = array_keys(array_filter($this->imageTestGetAllCalls()));
 
     // Determine if there were any expected that were not called.
     $uncalled = array_diff($expected, $actual);
@@ -76,5 +104,34 @@ abstract class ToolkitTestBase extends WebTestBase {
     else {
       $this->assertTrue(TRUE, 'No unexpected operations were called.');
     }
+  }
+
+  /**
+   * Resets/initializes the history of calls to the test toolkit functions.
+   */
+  function imageTestReset() {
+    // Keep track of calls to these operations
+    $results = array(
+      'load' => array(),
+      'save' => array(),
+      'settings' => array(),
+      'resize' => array(),
+      'rotate' => array(),
+      'crop' => array(),
+      'desaturate' => array(),
+    );
+    \Drupal::state()->set('image_test.results', $results);
+  }
+
+  /**
+   * Gets an array of calls to the test toolkit.
+   *
+   * @return array
+   *   An array keyed by operation name ('load', 'save', 'settings', 'resize',
+   *   'rotate', 'crop', 'desaturate') with values being arrays of parameters
+   *   passed to each call.
+   */
+  function imageTestGetAllCalls() {
+    return \Drupal::state()->get('image_test.results') ?: array();
   }
 }

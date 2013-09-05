@@ -2,10 +2,13 @@
 
 /**
  * @file
- * Definition of Drupal\Core\Entity\EntityRenderController.
+ * Contains \Drupal\Core\Entity\EntityRenderController.
  */
 
 namespace Drupal\Core\Entity;
+use Drupal\entity\Entity\EntityDisplay;
+
+use Drupal\Core\Language\Language;
 
 /**
  * Base class for entity view controllers.
@@ -24,51 +27,25 @@ class EntityRenderController implements EntityRenderControllerInterface {
   }
 
   /**
-   * Implements Drupal\Core\Entity\EntityRenderControllerInterface::buildContent().
+   * Implements \Drupal\Core\Entity\EntityRenderControllerInterface::buildContent().
    */
-  public function buildContent(array $entities = array(), $view_mode = 'full', $langcode = NULL) {
-    // Allow modules to change the view mode.
-    $context = array('langcode' => $langcode);
+  public function buildContent(array $entities, array $displays, $view_mode, $langcode = NULL) {
+    field_attach_prepare_view($this->entityType, $entities, $displays, $langcode);
+    module_invoke_all('entity_prepare_view', $this->entityType, $entities, $displays, $view_mode);
 
-    $prepare = array();
-    foreach ($entities as $key => $entity) {
+    foreach ($entities as $entity) {
       // Remove previously built content, if exists.
-      $entity->content = array();
-
-      drupal_alter('entity_view_mode', $view_mode, $entity, $context);
-      $entity->content['#view_mode'] = $view_mode;
-      $prepare[$view_mode][$key] = $entity;
-    }
-
-    // Prepare and build field content, grouped by view mode.
-    foreach ($prepare as $view_mode => $prepare_entities) {
-      $call = array();
-      // To ensure hooks are only run once per entity, check for an
-      // entity_view_prepared flag and only process items without it.
-      foreach ($prepare_entities as $entity) {
-        if (empty($entity->entity_view_prepared)) {
-          // Add this entity to the items to be prepared.
-          $call[$entity->id()] = $entity;
-
-          // Mark this item as prepared.
-          $entity->entity_view_prepared = TRUE;
-        }
-      }
-
-      if (!empty($call)) {
-        field_attach_prepare_view($this->entityType, $call, $view_mode, $langcode);
-        module_invoke_all('entity_prepare_view', $call, $this->entityType);
-      }
-      foreach ($entities as $entity) {
-        $entity->content += field_attach_view($this->entityType, $entity, $view_mode, $langcode);
-      }
+      $entity->content = array(
+        '#view_mode' => $view_mode,
+      );
+      $entity->content += field_attach_view($entity, $displays[$entity->bundle()], $langcode);
     }
   }
 
   /**
    * Provides entity-specific defaults to the build process.
    *
-   * @param Drupal\Core\Entity\EntityInterface $entity
+   * @param \Drupal\Core\Entity\EntityInterface $entity
    *   The entity for which the defaults should be provided.
    * @param string $view_mode
    *   The view mode that should be used.
@@ -93,18 +70,21 @@ class EntityRenderController implements EntityRenderControllerInterface {
    *
    * @param array $build
    *   The render array that is being created.
-   * @param Drupal\Core\Entity\EntityInterface $entity
+   * @param \Drupal\Core\Entity\EntityInterface $entity
    *   The entity to be prepared.
+   * @param \Drupal\entity\Entity\EntityDisplay $display
+   *   The entity_display object holding the display options configured for
+   *   the entity components.
    * @param string $view_mode
    *   The view mode that should be used to prepare the entity.
    * @param string $langcode
    *   (optional) For which language the entity should be prepared, defaults to
    *   the current content language.
    */
-  protected function alterBuild(array &$build, EntityInterface $entity, $view_mode, $langcode = NULL) { }
+  protected function alterBuild(array &$build, EntityInterface $entity, EntityDisplay $display, $view_mode, $langcode = NULL) { }
 
   /**
-   * Implements Drupal\Core\Entity\EntityRenderControllerInterface::view().
+   * Implements \Drupal\Core\Entity\EntityRenderControllerInterface::view().
    */
   public function view(EntityInterface $entity, $view_mode = 'full', $langcode = NULL) {
     $buildList = $this->viewMultiple(array($entity), $view_mode, $langcode);
@@ -112,32 +92,74 @@ class EntityRenderController implements EntityRenderControllerInterface {
   }
 
   /**
-   * Implements Drupal\Core\Entity\EntityRenderControllerInterface::viewMultiple().
+   * Implements \Drupal\Core\Entity\EntityRenderControllerInterface::viewMultiple().
    */
   public function viewMultiple(array $entities = array(), $view_mode = 'full', $langcode = NULL) {
     if (!isset($langcode)) {
-      $langcode = language(LANGUAGE_TYPE_CONTENT)->langcode;
+      $langcode = language(Language::TYPE_CONTENT)->id;
     }
-    $this->buildContent($entities, $view_mode, $langcode);
+
+    // Build the view modes and display objects.
+    $view_modes = array();
+    $displays = array();
+    $context = array('langcode' => $langcode);
+    foreach ($entities as $entity) {
+      $bundle = $entity->bundle();
+
+      // Allow modules to change the view mode.
+      $entity_view_mode = $view_mode;
+      drupal_alter('entity_view_mode', $entity_view_mode, $entity, $context);
+      // Store entities for rendering by view_mode.
+      $view_modes[$entity_view_mode][$entity->id()] = $entity;
+
+      // Load the corresponding display settings if not stored yet.
+      if (!isset($displays[$entity_view_mode][$bundle])) {
+        // Get the display object for this bundle and view mode.
+        $display = entity_get_render_display($entity, $entity_view_mode);
+
+        // Let modules alter the display.
+        $display_context = array(
+          'entity_type' => $this->entityType,
+          'bundle' => $bundle,
+          'view_mode' => $entity_view_mode,
+        );
+        drupal_alter('entity_display', $display, $display_context);
+
+        $displays[$entity_view_mode][$bundle] = $display;
+      }
+    }
+
+    foreach ($view_modes as $mode => $view_mode_entities) {
+      $this->buildContent($view_mode_entities, $displays[$mode], $mode, $langcode);
+    }
 
     $view_hook = "{$this->entityType}_view";
     $build = array('#sorted' => TRUE);
     $weight = 0;
     foreach ($entities as $key => $entity) {
       $entity_view_mode = isset($entity->content['#view_mode']) ? $entity->content['#view_mode'] : $view_mode;
-      module_invoke_all($view_hook, $entity, $entity_view_mode, $langcode);
-      module_invoke_all('entity_view', $entity, $entity_view_mode, $langcode);
+      $display = $displays[$entity_view_mode][$entity->bundle()];
+      module_invoke_all($view_hook, $entity, $display, $entity_view_mode, $langcode);
+      module_invoke_all('entity_view', $entity, $display, $entity_view_mode, $langcode);
 
       $build[$key] = $entity->content;
       // We don't need duplicate rendering info in $entity->content.
       unset($entity->content);
 
       $build[$key] += $this->getBuildDefaults($entity, $entity_view_mode, $langcode);
-      $this->alterBuild($build[$key], $entity, $entity_view_mode, $langcode);
+      $this->alterBuild($build[$key], $entity, $display, $entity_view_mode, $langcode);
+
+      // Assign the weights configured in the display.
+      foreach ($display->getComponents() as $name => $options) {
+        if (isset($build[$key][$name])) {
+          $build[$key][$name]['#weight'] = $options['weight'];
+        }
+      }
+
       $build[$key]['#weight'] = $weight++;
 
-      // Allow modules to modify the structured entity.
-      drupal_alter(array($view_hook, 'entity_view'), $build[$key], $entity);
+      // Allow modules to modify the render array.
+      drupal_alter(array($view_hook, 'entity_view'), $build[$key], $entity, $display);
     }
 
     return $build;

@@ -90,6 +90,19 @@ class FileStorage implements StorageInterface {
   }
 
   /**
+   * {@inheritdoc}
+   */
+  public function readMultiple(array $names) {
+    $list = array();
+    foreach ($names as $name) {
+      if ($data = $this->read($name)) {
+        $list[$name] = $data;
+      }
+    }
+    return $list;
+  }
+
+  /**
    * Implements Drupal\Core\Config\StorageInterface::write().
    *
    * @throws Symfony\Component\Yaml\Exception\DumpException
@@ -195,5 +208,20 @@ class FileStorage implements StorageInterface {
       return basename($value, $extension);
     };
     return array_map($clean_name, $files);
+  }
+
+  /**
+   * Implements Drupal\Core\Config\StorageInterface::deleteAll().
+   */
+  public function deleteAll($prefix = '') {
+    $success = TRUE;
+    $files = $this->listAll($prefix);
+    foreach ($files as $name) {
+      if (!$this->delete($name) && $success) {
+        $success = FALSE;
+      }
+    }
+
+    return $success;
   }
 }

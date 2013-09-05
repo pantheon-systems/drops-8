@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Definition of Drupal\Core\Entity\EntityFormControllerNG.
+ * Contains \Drupal\Core\Entity\EntityFormControllerNG.
  */
 
 namespace Drupal\Core\Entity;
@@ -11,75 +11,73 @@ namespace Drupal\Core\Entity;
  * Entity form controller variant for entity types using the new property API.
  *
  * @todo: Merge with EntityFormController and overhaul once all entity types
- * are converted to the new property API.
+ * are converted to the new entity field API.
+ *
+ * See the EntityNG documentation for an explanation of "NG".
+ *
+ * @see \Drupal\Core\EntityNG
  */
 class EntityFormControllerNG extends EntityFormController {
 
   /**
    * Overrides EntityFormController::form().
    */
-  public function form(array $form, array &$form_state, EntityInterface $entity) {
+  public function form(array $form, array &$form_state) {
+    $entity = $this->entity;
     // @todo Exploit the Field API to generate the default widgets for the
-    // entity properties.
+    // entity fields.
     $info = $entity->entityInfo();
     if (!empty($info['fieldable'])) {
-      $entity->setCompatibilityMode(TRUE);
-      field_attach_form($entity->entityType(), $entity, $form, $form_state, $this->getFormLangcode($form_state));
-      $entity->setCompatibilityMode(FALSE);
+      field_attach_form($entity, $form, $form_state, $this->getFormLangcode($form_state));
     }
+
+    // Add a process callback so we can assign weights and hide extra fields.
+    $form['#process'][] = array($this, 'processForm');
+
     return $form;
   }
 
   /**
-   * Overrides EntityFormController::validate().
+   * Overrides EntityFormController::submitEntityLanguage().
    */
-  public function validate(array $form, array &$form_state) {
-    // @todo Exploit the Field API to validate the values submitted for the
-    // entity properties.
-    $entity = $this->buildEntity($form, $form_state);
-    $info = $entity->entityInfo();
-
-    if (!empty($info['fieldable'])) {
-      $entity->setCompatibilityMode(TRUE);
-      field_attach_form_validate($entity->entityType(), $entity, $form, $form_state);
-      $entity->setCompatibilityMode(FALSE);
-    }
-
-    // @todo Remove this.
-    // Execute legacy global validation handlers.
-    unset($form_state['validate_handlers']);
-    form_execute_handlers('validate', $form, $form_state);
+  protected function submitEntityLanguage(array $form, array &$form_state) {
+    // Nothing to do here, as original field values are always stored with
+    // Language::LANGCODE_DEFAULT language.
+    // @todo Delete this method when merging EntityFormControllerNG with
+    //   EntityFormController.
   }
 
   /**
    * Overrides EntityFormController::buildEntity().
    */
   public function buildEntity(array $form, array &$form_state) {
-    $entity = clone $this->getEntity($form_state);
+    $entity = clone $this->entity;
     $entity_type = $entity->entityType();
     $info = entity_get_info($entity_type);
-    // @todo Exploit the Field API to process the submitted entity field.
+    // @todo Exploit the Field API to process the submitted entity fields.
 
-    // Copy top-level form values that are not for fields to entity properties,
-    // without changing existing entity properties that are not being edited by
-    // this form. Copying field values must be done using field_attach_submit().
+    // Copy top-level form values that are entity fields but not handled by
+    // field API without changing existing entity fields that are not being
+    // edited by this form. Values of fields handled by field API are copied
+    // by field_attach_extract_form_values() below.
     $values_excluding_fields = $info['fieldable'] ? array_diff_key($form_state['values'], field_info_instances($entity_type, $entity->bundle())) : $form_state['values'];
+    $definitions = $entity->getPropertyDefinitions();
     foreach ($values_excluding_fields as $key => $value) {
-      $entity->$key = $value;
-    }
-
-    // Invoke all specified builders for copying form values to entity properties.
-    if (isset($form['#entity_builders'])) {
-      foreach ($form['#entity_builders'] as $function) {
-        $function($entity_type, $entity, $form, $form_state);
+      if (isset($definitions[$key])) {
+        $entity->$key = $value;
       }
     }
 
-    // Copy field values to the entity.
+    // Invoke all specified builders for copying form values to entity fields.
+    if (isset($form['#entity_builders'])) {
+      foreach ($form['#entity_builders'] as $function) {
+        call_user_func_array($function, array($entity_type, $entity, &$form, &$form_state));
+      }
+    }
+
+    // Invoke field API for copying field values.
     if ($info['fieldable']) {
-      $entity->setCompatibilityMode(TRUE);
-      field_attach_submit($entity_type, $entity, $form, $form_state);
-      $entity->setCompatibilityMode(FALSE);
+      field_attach_extract_form_values($entity, $form, $form_state, array('langcode' => $this->getFormLangcode($form_state)));
     }
     return $entity;
   }

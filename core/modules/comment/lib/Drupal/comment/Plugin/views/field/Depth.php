@@ -7,26 +7,25 @@
 
 namespace Drupal\comment\Plugin\views\field;
 
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
 use Drupal\views\Plugin\views\field\FieldPluginBase;
+use Drupal\views\ResultRow;
 
 /**
  * Field handler to display the depth of a comment.
  *
  * @ingroup views_field_handlers
  *
- * @Plugin(
- *   id = "comment_depth",
- *   module = "comment"
- * )
+ * @PluginID("comment_depth")
  */
 class Depth extends FieldPluginBase {
 
   /**
-   * Work out the depth of this comment
+   * {@inheritdoc}
    */
-  function render($values) {
-    $comment_thread = $this->get_value($values);
+  public function render(ResultRow $values) {
+    // Work out the depth of this comment.
+    $comment_thread = $this->getValue($values);
     return count(explode('.', $comment_thread)) - 1;
   }
 

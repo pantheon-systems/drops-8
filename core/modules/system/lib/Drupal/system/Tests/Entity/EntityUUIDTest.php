@@ -8,19 +8,11 @@
 namespace Drupal\system\Tests\Entity;
 
 use Drupal\Component\Uuid\Uuid;
-use Drupal\simpletest\WebTestBase;
 
 /**
  * Tests creation, saving, and loading of entity UUIDs.
  */
-class EntityUUIDTest extends WebTestBase {
-
-  /**
-   * Modules to enable.
-   *
-   * @var array
-   */
-  public static $modules = array('entity_test');
+class EntityUUIDTest extends EntityUnitTestBase {
 
   public static function getInfo() {
     return array(
@@ -30,14 +22,41 @@ class EntityUUIDTest extends WebTestBase {
     );
   }
 
+  public function setUp() {
+    parent::setUp();
+
+    $this->installSchema('entity_test', array(
+      'entity_test_mul',
+      'entity_test_mul_property_data',
+      'entity_test_rev',
+      'entity_test_rev_revision',
+      'entity_test_mulrev',
+      'entity_test_mulrev_property_data',
+      'entity_test_mulrev_property_revision',
+    ));
+  }
+
   /**
    * Tests UUID generation in entity CRUD operations.
    */
   function testCRUD() {
+    // All entity variations have to have the same results.
+    foreach (entity_test_entity_types() as $entity_type) {
+      $this->assertCRUD($entity_type);
+    }
+  }
+
+  /**
+   * Executes the UUID CRUD tests for the given entity type.
+   *
+   * @param string $entity_type
+   *   The entity type to run the tests with.
+   */
+  protected function assertCRUD($entity_type) {
     // Verify that no UUID is auto-generated when passing one for creation.
     $uuid_service = new Uuid();
     $uuid = $uuid_service->generate();
-    $custom_entity = entity_create('entity_test', array(
+    $custom_entity = entity_create($entity_type, array(
       'name' => $this->randomName(),
       'uuid' => $uuid,
     ));
@@ -46,7 +65,7 @@ class EntityUUIDTest extends WebTestBase {
     $custom_entity->save();
 
     // Verify that a new UUID is generated upon creating an entity.
-    $entity = entity_create('entity_test', array('name' => $this->randomName()));
+    $entity = entity_create($entity_type, array('name' => $this->randomName()));
     $uuid = $entity->uuid();
     $this->assertTrue($uuid);
 
@@ -58,11 +77,11 @@ class EntityUUIDTest extends WebTestBase {
     $this->assertIdentical($entity->uuid(), $uuid);
 
     // Verify that the UUID is retained upon loading.
-    $entity_loaded = entity_test_load($entity->id(), TRUE);
+    $entity_loaded = entity_load($entity_type, $entity->id(), TRUE);
     $this->assertIdentical($entity_loaded->uuid(), $uuid);
 
     // Verify that entity_load_by_uuid() loads the same entity.
-    $entity_loaded_by_uuid = entity_load_by_uuid('entity_test', $uuid, TRUE);
+    $entity_loaded_by_uuid = entity_load_by_uuid($entity_type, $uuid, TRUE);
     $this->assertIdentical($entity_loaded_by_uuid->uuid(), $uuid);
     $this->assertEqual($entity_loaded_by_uuid->id(), $entity_loaded->id());
 
@@ -80,8 +99,14 @@ class EntityUUIDTest extends WebTestBase {
           $this->assertNotNull($entity->id());
           $this->assertNotEqual($entity_duplicate->id(), $entity->id());
           break;
+        case 'revision_id':
+          $this->assertNull($entity_duplicate->getRevisionId());
+          $this->assertNotNull($entity->getRevisionId());
+          $this->assertNotEqual($entity_duplicate->getRevisionId(), $entity->getRevisionId());
+          $this->assertNotEqual($entity_duplicate->{$property}->getValue(), $entity->{$property}->getValue());
+          break;
         default:
-          $this->assertEqual($entity_duplicate->{$property}->value, $entity->{$property}->value);
+          $this->assertEqual($entity_duplicate->{$property}->getValue(), $entity->{$property}->getValue());
       }
     }
     $entity_duplicate->save();

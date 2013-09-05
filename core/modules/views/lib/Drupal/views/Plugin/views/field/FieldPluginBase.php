@@ -8,8 +8,9 @@
 namespace Drupal\views\Plugin\views\field;
 
 use Drupal\views\Plugin\views\HandlerBase;
+use Drupal\views\Plugin\views\display\DisplayPluginBase;
+use Drupal\views\ResultRow;
 use Drupal\views\ViewExecutable;
-use Drupal\Core\Annotation\Plugin;
 
 /**
  * @defgroup views_field_handlers Views field handlers
@@ -19,19 +20,19 @@ use Drupal\Core\Annotation\Plugin;
  */
 
 /**
- * Indicator of the render_text() method for rendering a single item.
+ * Indicator of the renderText() method for rendering a single item.
  * (If no render_item() is present).
  */
 define('VIEWS_HANDLER_RENDER_TEXT_PHASE_SINGLE_ITEM', 0);
 
 /**
- * Indicator of the render_text() method for rendering the whole element.
+ * Indicator of the renderText() method for rendering the whole element.
  * (if no render_item() method is available).
  */
 define('VIEWS_HANDLER_RENDER_TEXT_PHASE_COMPLETELY', 1);
 
 /**
- * Indicator of the render_text() method for rendering the empty text.
+ * Indicator of the renderText() method for rendering the empty text.
  */
 define('VIEWS_HANDLER_RENDER_TEXT_PHASE_EMPTY', 2);
 
@@ -70,8 +71,8 @@ abstract class FieldPluginBase extends HandlerBase {
   /**
    * Overrides Drupal\views\Plugin\views\HandlerBase::init().
    */
-  public function init(ViewExecutable $view, &$options) {
-    parent::init($view, $options);
+  public function init(ViewExecutable $view, DisplayPluginBase $display, array &$options = NULL) {
+    parent::init($view, $display, $options);
 
     $this->additional_fields = array();
     if (!empty($this->definition['additional fields'])) {
@@ -89,7 +90,7 @@ abstract class FieldPluginBase extends HandlerBase {
    * Fields can set this to FALSE if they do not wish to allow
    * token based rewriting or link-making.
    */
-  function allow_advanced_render() {
+  protected function allowAdvancedRender() {
     return TRUE;
   }
 
@@ -100,9 +101,9 @@ abstract class FieldPluginBase extends HandlerBase {
     $this->ensureMyTable();
     // Add the field.
     $params = $this->options['group_type'] != 'group' ? array('function' => $this->options['group_type']) : array();
-    $this->field_alias = $this->query->add_field($this->tableAlias, $this->realField, NULL, $params);
+    $this->field_alias = $this->query->addField($this->tableAlias, $this->realField, NULL, $params);
 
-    $this->add_additional_fields();
+    $this->addAdditionalFields();
   }
 
   /**
@@ -115,7 +116,7 @@ abstract class FieldPluginBase extends HandlerBase {
    * form of
    * @code array('table' => $tablename, 'field' => $fieldname) @endcode
    */
-  function add_additional_fields($fields = NULL) {
+  protected function addAdditionalFields($fields = NULL) {
     if (!isset($fields)) {
       // notice check
       if (empty($this->additional_fields)) {
@@ -135,7 +136,7 @@ abstract class FieldPluginBase extends HandlerBase {
       foreach ($fields as $identifier => $info) {
         if (is_array($info)) {
           if (isset($info['table'])) {
-            $table_alias = $this->query->ensure_table($info['table'], $this->relationship);
+            $table_alias = $this->query->ensureTable($info['table'], $this->relationship);
           }
           else {
             $table_alias = $this->tableAlias;
@@ -153,10 +154,10 @@ abstract class FieldPluginBase extends HandlerBase {
           }
 
           $params += $group_params;
-          $this->aliases[$identifier] = $this->query->add_field($table_alias, $info['field'], NULL, $params);
+          $this->aliases[$identifier] = $this->query->addField($table_alias, $info['field'], NULL, $params);
         }
         else {
-          $this->aliases[$info] = $this->query->add_field($this->tableAlias, $info, NULL, $group_params);
+          $this->aliases[$info] = $this->query->addField($this->tableAlias, $info, NULL, $group_params);
         }
       }
     }
@@ -165,20 +166,24 @@ abstract class FieldPluginBase extends HandlerBase {
   /**
    * Called to determine what to tell the clicksorter.
    */
-  function click_sort($order) {
+  public function clickSort($order) {
     if (isset($this->field_alias)) {
       // Since fields should always have themselves already added, just
       // add a sort on the field.
       $params = $this->options['group_type'] != 'group' ? array('function' => $this->options['group_type']) : array();
-      $this->query->add_orderby(NULL, NULL, $order, $this->field_alias, $params);
+      $this->query->addOrderBy(NULL, NULL, $order, $this->field_alias, $params);
     }
   }
 
   /**
    * Determine if this field is click sortable.
+   *
+   * @return bool
+   *   The value of 'click sortable' from the plugin definition, this defaults
+   *   to TRUE if not set.
    */
-  function click_sortable() {
-    return !empty($this->definition['click sortable']);
+  public function clickSortable() {
+    return isset($this->definition['click sortable']) ? $this->definition['click sortable'] : TRUE;
   }
 
   /**
@@ -194,7 +199,7 @@ abstract class FieldPluginBase extends HandlerBase {
   /**
    * Return an HTML element based upon the field's element type.
    */
-  function element_type($none_supported = FALSE, $default_empty = FALSE, $inline = FALSE) {
+  public function elementType($none_supported = FALSE, $default_empty = FALSE, $inline = FALSE) {
     if ($none_supported) {
       if ($this->options['element_type'] === '0') {
         return '';
@@ -222,7 +227,7 @@ abstract class FieldPluginBase extends HandlerBase {
   /**
    * Return an HTML element for the label based upon the field's element type.
    */
-  function element_label_type($none_supported = FALSE, $default_empty = FALSE) {
+  public function elementLabelType($none_supported = FALSE, $default_empty = FALSE) {
     if ($none_supported) {
       if ($this->options['element_label_type'] === '0') {
         return '';
@@ -242,7 +247,7 @@ abstract class FieldPluginBase extends HandlerBase {
   /**
    * Return an HTML element for the wrapper based upon the field's element type.
    */
-  function element_wrapper_type($none_supported = FALSE, $default_empty = FALSE) {
+  public function elementWrapperType($none_supported = FALSE, $default_empty = FALSE) {
     if ($none_supported) {
       if ($this->options['element_wrapper_type'] === '0') {
         return 0;
@@ -266,7 +271,7 @@ abstract class FieldPluginBase extends HandlerBase {
    * elements available, though this seems like it would be an incredibly
    * rare occurence.
    */
-  function get_elements() {
+  public function getElements() {
     static $elements = NULL;
     if (!isset($elements)) {
       // @todo Add possible html5 elements.
@@ -274,7 +279,7 @@ abstract class FieldPluginBase extends HandlerBase {
         '' => t(' - Use default -'),
         '0' => t('- None -')
       );
-      $elements += config('views.settings')->get('field_rewrite_elements');
+      $elements += \Drupal::config('views.settings')->get('field_rewrite_elements');
     }
 
     return $elements;
@@ -283,10 +288,10 @@ abstract class FieldPluginBase extends HandlerBase {
   /**
    * Return the class of the field.
    */
-  function element_classes($row_index = NULL) {
+  public function elementClasses($row_index = NULL) {
     $classes = explode(' ', $this->options['element_class']);
     foreach ($classes as &$class) {
-      $class = $this->tokenize_value($class, $row_index);
+      $class = $this->tokenizeValue($class, $row_index);
       $class = drupal_clean_css_identifier($class);
     }
     return implode(' ', $classes);
@@ -298,7 +303,7 @@ abstract class FieldPluginBase extends HandlerBase {
    * This function actually figures out which field was last and uses its
    * tokens so they will all be available.
    */
-  function tokenize_value($value, $row_index = NULL) {
+  public function tokenizeValue($value, $row_index = NULL) {
     if (strpos($value, '[') !== FALSE || strpos($value, '!') !== FALSE || strpos($value, '%') !== FALSE) {
       $fake_item = array(
         'alter_text' => TRUE,
@@ -317,11 +322,11 @@ abstract class FieldPluginBase extends HandlerBase {
           $tokens = $last_field->last_tokens;
         }
         else {
-          $tokens = $last_field->get_render_tokens($fake_item);
+          $tokens = $last_field->getRenderTokens($fake_item);
         }
       }
 
-      $value = strip_tags($this->render_altered($fake_item, $tokens));
+      $value = strip_tags($this->renderAltered($fake_item, $tokens));
       if (!empty($this->options['alter']['trim_whitespace'])) {
         $value = trim($value);
       }
@@ -333,10 +338,10 @@ abstract class FieldPluginBase extends HandlerBase {
   /**
    * Return the class of the field's label.
    */
-  function element_label_classes($row_index = NULL) {
+  public function elementLabelClasses($row_index = NULL) {
     $classes = explode(' ', $this->options['element_label_class']);
     foreach ($classes as &$class) {
-      $class = $this->tokenize_value($class, $row_index);
+      $class = $this->tokenizeValue($class, $row_index);
       $class = drupal_clean_css_identifier($class);
     }
     return implode(' ', $classes);
@@ -345,22 +350,25 @@ abstract class FieldPluginBase extends HandlerBase {
   /**
    * Return the class of the field's wrapper.
    */
-  function element_wrapper_classes($row_index = NULL) {
+  public function elementWrapperClasses($row_index = NULL) {
     $classes = explode(' ', $this->options['element_wrapper_class']);
     foreach ($classes as &$class) {
-      $class = $this->tokenize_value($class, $row_index);
+      $class = $this->tokenizeValue($class, $row_index);
       $class = drupal_clean_css_identifier($class);
     }
     return implode(' ', $classes);
   }
 
   /**
-   * Get the entity matching the current row and relationship.
+   * Gets the entity matching the current row and relationship.
    *
-   * @param $values
+   * @param \Drupal\views\ResultRow $values
    *   An object containing all retrieved values.
+   *
+   * @return \Drupal\Core\Entity\EntityInterface
+   *   Returns the entity matching the values.
    */
-  function get_entity($values) {
+  public function getEntity(ResultRow $values) {
     $relationship_id = $this->options['relationship'];
     if ($relationship_id == 'none') {
       return $values->_entity;
@@ -381,7 +389,7 @@ abstract class FieldPluginBase extends HandlerBase {
    * @param $field
    *   Optional name of the field where the value is stored.
    */
-  function get_value($values, $field = NULL) {
+  public function getValue($values, $field = NULL) {
     $alias = isset($field) ? $this->aliases[$field] : $this->field_alias;
     if (isset($values->{$alias})) {
       return $values->{$alias};
@@ -395,7 +403,7 @@ abstract class FieldPluginBase extends HandlerBase {
    * @return bool
    *  TRUE if this field handler is groupable, otherwise FALSE.
    */
-  function use_string_group_by() {
+  public function useStringGroupBy() {
     return TRUE;
   }
 
@@ -420,7 +428,7 @@ abstract class FieldPluginBase extends HandlerBase {
         'link_class' => array('default' => ''),
         'prefix' => array('default' => '', 'translatable' => TRUE),
         'suffix' => array('default' => '', 'translatable' => TRUE),
-        'target' => array('default' => '', 'translatable' => TRUE),
+        'target' => array('default' => ''),
         'nl2br' => array('default' => FALSE, 'bool' => TRUE),
         'max_length' => array('default' => ''),
         'word_boundary' => array('default' => TRUE, 'bool' => TRUE),
@@ -491,7 +499,6 @@ abstract class FieldPluginBase extends HandlerBase {
     $form['custom_label'] = array(
       '#type' => 'checkbox',
       '#title' => t('Create a label'),
-      '#description' => t('Enable to create a label for this field.'),
       '#default_value' => $label !== '',
       '#weight' => -103,
     );
@@ -527,9 +534,8 @@ abstract class FieldPluginBase extends HandlerBase {
     );
 
     $form['style_settings'] = array(
-      '#type' => 'fieldset',
+      '#type' => 'details',
       '#title' => t('Style settings'),
-      '#collapsible' => TRUE,
       '#collapsed' => TRUE,
       '#weight' => 99,
     );
@@ -542,7 +548,7 @@ abstract class FieldPluginBase extends HandlerBase {
     );
     $form['element_type'] = array(
       '#title' => t('HTML element'),
-      '#options' => $this->get_elements(),
+      '#options' => $this->getElements(),
       '#type' => 'select',
       '#default_value' => $this->options['element_type'],
       '#description' => t('Choose the HTML element to wrap around this field, e.g. H1, H2, etc.'),
@@ -587,7 +593,7 @@ abstract class FieldPluginBase extends HandlerBase {
     );
     $form['element_label_type'] = array(
       '#title' => t('Label HTML element'),
-      '#options' => $this->get_elements(FALSE),
+      '#options' => $this->getElements(FALSE),
       '#type' => 'select',
       '#default_value' => $this->options['element_label_type'],
       '#description' => t('Choose the HTML element to wrap around this label, e.g. H1, H2, etc.'),
@@ -631,7 +637,7 @@ abstract class FieldPluginBase extends HandlerBase {
     );
     $form['element_wrapper_type'] = array(
       '#title' => t('Wrapper HTML element'),
-      '#options' => $this->get_elements(FALSE),
+      '#options' => $this->getElements(FALSE),
       '#type' => 'select',
       '#default_value' => $this->options['element_wrapper_type'],
       '#description' => t('Choose the HTML element to wrap around this field and label, e.g. H1, H2, etc. This may not be used if the field and label are not rendered together, such as with a table.'),
@@ -678,18 +684,16 @@ abstract class FieldPluginBase extends HandlerBase {
 
     $form['alter'] = array(
       '#title' => t('Rewrite results'),
-      '#type' => 'fieldset',
-      '#collapsible' => TRUE,
+      '#type' => 'details',
       '#collapsed' => TRUE,
       '#weight' => 100,
     );
 
-    if ($this->allow_advanced_render()) {
+    if ($this->allowAdvancedRender()) {
       $form['alter']['#tree'] = TRUE;
       $form['alter']['alter_text'] = array(
         '#type' => 'checkbox',
-        '#title' => t('Rewrite the output of this field'),
-        '#description' => t('Enable to override the output of this field with custom text or replacement tokens.'),
+        '#title' => t('Override the output of this field with custom text'),
         '#default_value' => $this->options['alter']['alter_text'],
       );
 
@@ -707,8 +711,7 @@ abstract class FieldPluginBase extends HandlerBase {
 
       $form['alter']['make_link'] = array(
         '#type' => 'checkbox',
-        '#title' => t('Output this field as a link'),
-        '#description' => t('If checked, this field will be made into a link. The destination must be given below.'),
+        '#title' => t('Output this field as a custom link'),
         '#default_value' => $this->options['alter']['make_link'],
       );
       $form['alter']['path'] = array(
@@ -841,39 +844,38 @@ abstract class FieldPluginBase extends HandlerBase {
 
 
       // Get a list of the available fields and arguments for token replacement.
-      $options = array();
-      foreach ($this->view->display_handler->getHandlers('field') as $field => $handler) {
-        $options[t('Fields')]["[$field]"] = $handler->adminLabel();
-        // We only use fields up to (and including) this one.
-        if ($field == $this->options['id']) {
-          break;
-        }
+
+      // Setup the tokens for fields.
+      $previous = $this->getPreviousFieldLabels();
+      foreach ($previous as $id => $label) {
+        $options[t('Fields')]["[$id]"] = $label;
       }
+
       $count = 0; // This lets us prepare the key as we want it printed.
       foreach ($this->view->display_handler->getHandlers('argument') as $arg => $handler) {
         $options[t('Arguments')]['%' . ++$count] = t('@argument title', array('@argument' => $handler->adminLabel()));
         $options[t('Arguments')]['!' . $count] = t('@argument input', array('@argument' => $handler->adminLabel()));
       }
 
-      $this->document_self_tokens($options[t('Fields')]);
+      $this->documentSelfTokens($options[t('Fields')]);
 
       // Default text.
-      $output = t('<p>You must add some additional fields to this display before using this field. These fields may be marked as <em>Exclude from display</em> if you prefer. Note that due to rendering order, you cannot use fields that come after this field; if you need a field not listed here, rearrange your fields.</p>');
+      $output = '<p>' . t('You must add some additional fields to this display before using this field. These fields may be marked as <em>Exclude from display</em> if you prefer. Note that due to rendering order, you cannot use fields that come after this field; if you need a field not listed here, rearrange your fields.') . '</p>';
       // We have some options, so make a list.
       if (!empty($options)) {
-        $output = t('<p>The following tokens are available for this field. Note that due to rendering order, you cannot use fields that come after this field; if you need a field not listed here, rearrange your fields.
-If you would like to have the characters \'[\' and \']\' please use the html entity codes \'%5B\' or  \'%5D\' or they will get replaced with empty space.</p>');
+        $output = '<p>' . t("The following tokens are available for this field. Note that due to rendering order, you cannot use fields that come after this field; if you need a field not listed here, rearrange your fields. If you would like to have the characters '[' and ']' use the html entity codes '%5B' or '%5D' or they will get replaced with empty space.") . '</p>';
         foreach (array_keys($options) as $type) {
           if (!empty($options[$type])) {
             $items = array();
             foreach ($options[$type] as $key => $value) {
               $items[] = $key . ' == ' . $value;
             }
-            $output .= theme('item_list',
-              array(
-                'items' => $items,
-                'type' => $type
-              ));
+            $item_list = array(
+              '#theme' => 'item_list',
+              '#items' => $items,
+              '#list_type' => $type,
+            );
+            $output .= drupal_render($item_list);
           }
         }
       }
@@ -882,9 +884,8 @@ If you would like to have the characters \'[\' and \']\' please use the html ent
       // the parent in situations like this, so we need a second div to
       // make this work.
       $form['alter']['help'] = array(
-        '#type' => 'fieldset',
+        '#type' => 'details',
         '#title' => t('Replacement patterns'),
-        '#collapsible' => TRUE,
         '#collapsed' => TRUE,
         '#value' => $output,
         '#states' => array(
@@ -904,16 +905,14 @@ If you would like to have the characters \'[\' and \']\' please use the html ent
 
       $form['alter']['trim'] = array(
         '#type' => 'checkbox',
-        '#title' => t('Trim this field to a maximum length'),
-        '#description' => t('Enable to trim the field to a maximum length of characters'),
+        '#title' => t('Trim this field to a maximum number of characters'),
         '#default_value' => $this->options['alter']['trim'],
       );
 
       $form['alter']['max_length'] = array(
-        '#title' => t('Maximum length'),
+        '#title' => t('Maximum number of characters'),
         '#type' => 'textfield',
         '#default_value' => $this->options['alter']['max_length'],
-        '#description' => t('The maximum number of characters this field can be.'),
         '#states' => array(
           'visible' => array(
             ':input[name="options[alter][trim]"]' => array('checked' => TRUE),
@@ -935,8 +934,7 @@ If you would like to have the characters \'[\' and \']\' please use the html ent
 
       $form['alter']['ellipsis'] = array(
         '#type' => 'checkbox',
-        '#title' => t('Add an ellipsis'),
-        '#description' => t('If checked, a "..." will be added if a field was trimmed.'),
+        '#title' => t('Add "..." at the end of trimmed text'),
         '#default_value' => $this->options['alter']['ellipsis'],
         '#states' => array(
           'visible' => array(
@@ -948,7 +946,6 @@ If you would like to have the characters \'[\' and \']\' please use the html ent
       $form['alter']['more_link'] = array(
         '#type' => 'checkbox',
         '#title' => t('Add a read-more link if output is trimmed.'),
-        '#description' => t('If checked, a read-more link will be added at the end of the trimmed output'),
         '#default_value' => $this->options['alter']['more_link'],
         '#states' => array(
           'visible' => array(
@@ -959,9 +956,9 @@ If you would like to have the characters \'[\' and \']\' please use the html ent
 
       $form['alter']['more_link_text'] = array(
         '#type' => 'textfield',
-        '#title' => t('More link text'),
+        '#title' => t('More link label'),
         '#default_value' => $this->options['alter']['more_link_text'],
-        '#description' => t('The text which will be displayed on the more link. You may enter data from this view as per the "Replacement patterns" above.'),
+        '#description' => t('You may use the "Replacement patterns" above.'),
         '#states' => array(
           'visible' => array(
             ':input[name="options[alter][trim]"]' => array('checked' => TRUE),
@@ -973,7 +970,7 @@ If you would like to have the characters \'[\' and \']\' please use the html ent
         '#type' => 'textfield',
         '#title' => t('More link path'),
         '#default_value' => $this->options['alter']['more_link_path'],
-        '#description' => t('The path which is used for the more link. You may enter data from this view as per the "Replacement patterns" above.'),
+        '#description' => t('This can be an internal Drupal path such as node/add or an external URL such as "http://drupal.org". You may use the "Replacement patterns" above.'),
         '#states' => array(
           'visible' => array(
             ':input[name="options[alter][trim]"]' => array('checked' => TRUE),
@@ -985,7 +982,7 @@ If you would like to have the characters \'[\' and \']\' please use the html ent
       $form['alter']['html'] = array(
         '#type' => 'checkbox',
         '#title' => t('Field can contain HTML'),
-        '#description' => t('If checked, HTML corrector will be run to ensure tags are properly closed after trimming.'),
+        '#description' => t('An HTML corrector will be run to ensure HTML tags are properly closed after trimming.'),
         '#default_value' => $this->options['alter']['html'],
         '#states' => array(
           'visible' => array(
@@ -997,7 +994,6 @@ If you would like to have the characters \'[\' and \']\' please use the html ent
       $form['alter']['strip_tags'] = array(
         '#type' => 'checkbox',
         '#title' => t('Strip HTML tags'),
-        '#description' => t('If checked, all HTML tags will be stripped.'),
         '#default_value' => $this->options['alter']['strip_tags'],
       );
 
@@ -1016,22 +1012,19 @@ If you would like to have the characters \'[\' and \']\' please use the html ent
       $form['alter']['trim_whitespace'] = array(
         '#type' => 'checkbox',
         '#title' => t('Remove whitespace'),
-        '#description' => t('If checked, all whitespaces at the beginning and the end of the output will be removed.'),
         '#default_value' => $this->options['alter']['trim_whitespace'],
       );
 
       $form['alter']['nl2br'] = array(
         '#type' => 'checkbox',
         '#title' => t('Convert newlines to HTML &lt;br&gt; tags'),
-        '#description' => t('If checked, all newlines chars (e.g. \n) are converted into HTML &lt;br&gt; tags.'),
         '#default_value' => $this->options['alter']['nl2br'],
       );
     }
 
     $form['empty_field_behavior'] = array(
-      '#type' => 'fieldset',
+      '#type' => 'details',
       '#title' => t('No results behavior'),
-      '#collapsible' => TRUE,
       '#collapsed' => TRUE,
       '#weight' => 100,
     );
@@ -1070,6 +1063,18 @@ If you would like to have the characters \'[\' and \']\' please use the html ent
   }
 
   /**
+   * Returns all field labels of fields before this field.
+   *
+   * @return array
+   *   An array of field labels keyed by their field IDs.
+   */
+  protected function getPreviousFieldLabels() {
+    $all_fields = $this->view->display_handler->getFieldLabels();
+    $field_options = array_slice($all_fields, 0, array_search($this->options['id'], array_keys($all_fields)));
+    return $field_options;
+  }
+
+  /**
    * Provide extra data to the administration form
    */
   public function adminSummary() {
@@ -1082,19 +1087,19 @@ If you would like to have the characters \'[\' and \']\' please use the html ent
    * This gives the handlers some time to set up before any handler has
    * been rendered.
    *
-   * @param $values
-   *   An array of all objects returned from the query.
+   * @param \Drupal\views\ResultRow[] $values
+   *   An array of all ResultRow objects returned from the query.
    */
-  function pre_render(&$values) { }
+  public function preRender(&$values) { }
 
   /**
-   * Render the field.
+   * Renders the field.
    *
-   * @param $values
+   * @param \Drupal\views\ResultRow $values
    *   The values retrieved from the database.
    */
-  function render($values) {
-    $value = $this->get_value($values);
+  public function render(ResultRow $values) {
+    $value = $this->getValue($values);
     return $this->sanitizeValue($value);
   }
 
@@ -1103,10 +1108,13 @@ If you would like to have the characters \'[\' and \']\' please use the html ent
    *
    * This renders a field normally, then decides if render-as-link and
    * text-replacement rendering is necessary.
+   *
+   * @param \Drupal\views\ResultRow $values
+   *   The values retrieved from the database.
    */
-  function advanced_render($values) {
-    if ($this->allow_advanced_render() && method_exists($this, 'render_item')) {
-      $raw_items = $this->get_items($values);
+  public function advancedRender(ResultRow $values) {
+    if ($this->allowAdvancedRender() && method_exists($this, 'render_item')) {
+      $raw_items = $this->getItems($values);
       // If there are no items, set the original value to NULL.
       if (empty($raw_items)) {
         $this->original_value = NULL;
@@ -1121,7 +1129,7 @@ If you would like to have the characters \'[\' and \']\' please use the html ent
       $this->original_value = $value;
     }
 
-    if ($this->allow_advanced_render()) {
+    if ($this->allowAdvancedRender()) {
       $tokens = NULL;
       if (method_exists($this, 'render_item')) {
         $items = array();
@@ -1135,31 +1143,31 @@ If you would like to have the characters \'[\' and \']\' please use the html ent
 
           $alter = $item + $this->options['alter'];
           $alter['phase'] = VIEWS_HANDLER_RENDER_TEXT_PHASE_SINGLE_ITEM;
-          $items[] = $this->render_text($alter);
+          $items[] = $this->renderText($alter);
         }
 
-        $value = $this->render_items($items);
+        $value = $this->renderItems($items);
       }
       else {
         $alter = array('phase' => VIEWS_HANDLER_RENDER_TEXT_PHASE_COMPLETELY) + $this->options['alter'];
-        $value = $this->render_text($alter);
+        $value = $this->renderText($alter);
       }
 
       if (is_array($value)) {
         $value = drupal_render($value);
       }
-      // This happens here so that render_as_link can get the unaltered value of
+      // This happens here so that renderAsLink can get the unaltered value of
       // this field as a token rather than the altered value.
       $this->last_render = $value;
     }
 
     if (empty($this->last_render)) {
-      if ($this->is_value_empty($this->last_render, $this->options['empty_zero'], FALSE)) {
+      if ($this->isValueEmpty($this->last_render, $this->options['empty_zero'], FALSE)) {
         $alter = $this->options['alter'];
         $alter['alter_text'] = 1;
         $alter['text'] = $this->options['empty'];
         $alter['phase'] = VIEWS_HANDLER_RENDER_TEXT_PHASE_EMPTY;
-        $this->last_render = $this->render_text($alter);
+        $this->last_render = $this->renderText($alter);
       }
     }
 
@@ -1179,7 +1187,7 @@ If you would like to have the characters \'[\' and \']\' please use the html ent
    * @return bool
    * TRUE if the value is considered empty, FALSE otherwise.
    */
-  function is_value_empty($value, $empty_zero, $no_skip_empty = TRUE) {
+  public function isValueEmpty($value, $empty_zero, $no_skip_empty = TRUE) {
     if (!isset($value)) {
       $empty = TRUE;
     }
@@ -1199,12 +1207,12 @@ If you would like to have the characters \'[\' and \']\' please use the html ent
    * This is separated out as some fields may render lists, and this allows
    * each item to be handled individually.
    */
-  function render_text($alter) {
+  public function renderText($alter) {
     $value = $this->last_render;
 
     if (!empty($alter['alter_text']) && $alter['text'] !== '') {
-      $tokens = $this->get_render_tokens($alter);
-      $value = $this->render_altered($alter, $tokens);
+      $tokens = $this->getRenderTokens($alter);
+      $value = $this->renderAltered($alter, $tokens);
     }
 
     if (!empty($this->options['alter']['trim_whitespace'])) {
@@ -1212,14 +1220,14 @@ If you would like to have the characters \'[\' and \']\' please use the html ent
     }
 
     // Check if there should be no further rewrite for empty values.
-    $no_rewrite_for_empty = $this->options['hide_alter_empty'] && $this->is_value_empty($this->original_value, $this->options['empty_zero']);
+    $no_rewrite_for_empty = $this->options['hide_alter_empty'] && $this->isValueEmpty($this->original_value, $this->options['empty_zero']);
 
     // Check whether the value is empty and return nothing, so the field isn't rendered.
     // First check whether the field should be hidden if the value(hide_alter_empty = TRUE) /the rewrite is empty (hide_alter_empty = FALSE).
     // For numeric values you can specify whether "0"/0 should be empty.
     if ((($this->options['hide_empty'] && empty($value))
         || ($alter['phase'] != VIEWS_HANDLER_RENDER_TEXT_PHASE_EMPTY && $no_rewrite_for_empty))
-      && $this->is_value_empty($value, $this->options['empty_zero'], FALSE)) {
+      && $this->isValueEmpty($value, $this->options['empty_zero'], FALSE)) {
       return '';
     }
     // Only in empty phase.
@@ -1236,9 +1244,9 @@ If you would like to have the characters \'[\' and \']\' please use the html ent
     $suffix = '';
     if (!empty($alter['trim']) && !empty($alter['max_length'])) {
       $length = strlen($value);
-      $value = $this->render_trim_text($alter, $value);
+      $value = $this->renderTrimText($alter, $value);
       if ($this->options['alter']['more_link'] && strlen($value) < $length) {
-        $tokens = $this->get_render_tokens($alter);
+        $tokens = $this->getRenderTokens($alter);
         $more_link_text = $this->options['alter']['more_link_text'] ? $this->options['alter']['more_link_text'] : t('more');
         $more_link_text = strtr(filter_xss_admin($more_link_text), $tokens);
         $more_link_path = $this->options['alter']['more_link_path'];
@@ -1264,9 +1272,9 @@ If you would like to have the characters \'[\' and \']\' please use the html ent
 
     if (!empty($alter['make_link']) && !empty($alter['path'])) {
       if (!isset($tokens)) {
-        $tokens = $this->get_render_tokens($alter);
+        $tokens = $this->getRenderTokens($alter);
       }
-      $value = $this->render_as_link($alter, $value, $tokens);
+      $value = $this->renderAsLink($alter, $value, $tokens);
     }
 
     return $value . $suffix;
@@ -1275,7 +1283,7 @@ If you would like to have the characters \'[\' and \']\' please use the html ent
   /**
    * Render this field as altered text, from a fieldset set by the user.
    */
-  function render_altered($alter, $tokens) {
+  protected function renderAltered($alter, $tokens) {
     // Filter this right away as our substitutions are already sanitized.
     $value = filter_xss_admin($alter['text']);
     $value = strtr($value, $tokens);
@@ -1286,20 +1294,20 @@ If you would like to have the characters \'[\' and \']\' please use the html ent
   /**
    * Trim the field down to the specified length.
    */
-  function render_trim_text($alter, $value) {
+  public function renderTrimText($alter, $value) {
     if (!empty($alter['strip_tags'])) {
       // NOTE: It's possible that some external fields might override the
       // element type.
       $this->definition['element type'] = 'span';
     }
-    return views_trim_text($alter, $value);
+    return static::trimText($alter, $value);
   }
 
   /**
    * Render this field as a link, with the info from a fieldset set by
    * the user.
    */
-  function render_as_link($alter, $text, $tokens) {
+  protected function renderAsLink($alter, $text, $tokens) {
     $value = '';
 
     if (!empty($alter['prefix'])) {
@@ -1360,7 +1368,8 @@ If you would like to have the characters \'[\' and \']\' please use the html ent
 
     if (isset($url['query'])) {
       $path = strtr($path, array('?' . $url['query'] => ''));
-      $query = drupal_get_query_array($url['query']);
+      $query = array();
+      parse_str($url['query'], $query);
       // Remove query parameters that were assigned a query string replacement
       // token for which there is no value available.
       foreach ($query as $param => $val) {
@@ -1416,7 +1425,9 @@ If you would like to have the characters \'[\' and \']\' please use the html ent
       // convert back to an array form for l().
       $options['query'] = drupal_http_build_query($alter['query']);
       $options['query'] = strtr($options['query'], $tokens);
-      $options['query'] = drupal_get_query_array($options['query']);
+      $query = array();
+      parse_str($options['query'], $query);
+      $options['query'] = $query;
     }
     if (isset($alter['alias'])) {
       // Alias is a boolean field, so no token.
@@ -1453,7 +1464,7 @@ If you would like to have the characters \'[\' and \']\' please use the html ent
    * are available and gets their values. This will then be
    * used in one giant str_replace().
    */
-  function get_render_tokens($item) {
+  public function getRenderTokens($item) {
     $tokens = array();
     if (!empty($this->view->build_info['substitutions'])) {
       $tokens = $this->view->build_info['substitutions'];
@@ -1472,7 +1483,7 @@ If you would like to have the characters \'[\' and \']\' please use the html ent
     }
 
     // Get flattened set of tokens for any array depth in $_GET parameters.
-    $tokens += $this->get_token_values_recursive(drupal_container()->get('request')->query->all());
+    $tokens += $this->getTokenValuesRecursive(\Drupal::request()->query->all());
 
     // Now add replacements for our fields.
     foreach ($this->view->display_handler->getHandlers('field') as $field => $handler) {
@@ -1493,7 +1504,7 @@ If you would like to have the characters \'[\' and \']\' please use the html ent
     $this->view->style_plugin->render_tokens[$this->view->row_index] = $tokens;
     $this->last_tokens = $tokens;
     if (!empty($item)) {
-      $this->add_self_tokens($tokens, $item);
+      $this->addSelfTokens($tokens, $item);
     }
 
     return $tokens;
@@ -1533,7 +1544,7 @@ If you would like to have the characters \'[\' and \']\' please use the html ent
    * @return
    *   An array of available tokens, with nested keys representative of the array structure.
    */
-  function get_token_values_recursive(array $array, array $parent_keys = array()) {
+  protected function getTokenValuesRecursive(array $array, array $parent_keys = array()) {
     $tokens = array();
 
     foreach ($array as $param => $val) {
@@ -1543,7 +1554,7 @@ If you would like to have the characters \'[\' and \']\' please use the html ent
         $child_parent_keys = $parent_keys;
         $child_parent_keys[] = $param;
         // Get the child tokens.
-        $child_tokens = $this->get_token_values_recursive($val, $child_parent_keys);
+        $child_tokens = $this->getTokenValuesRecursive($val, $child_parent_keys);
         // Add them to the current tokens array.
         $tokens += $child_tokens;
       }
@@ -1568,14 +1579,14 @@ If you would like to have the characters \'[\' and \']\' please use the html ent
    * where token is the field ID and subtoken is the field. If the
    * field ID is terms, then the tokens might be [terms-tid] and [terms-name].
    */
-  function add_self_tokens(&$tokens, $item) { }
+  protected function addSelfTokens(&$tokens, $item) { }
 
   /**
    * Document any special tokens this field might use for itself.
    *
-   * @see add_self_tokens()
+   * @see addSelfTokens()
    */
-  function document_self_tokens(&$tokens) { }
+  protected function documentSelfTokens(&$tokens) { }
 
   /**
    * Call out to the theme() function, which probably just calls render() but
@@ -1597,19 +1608,19 @@ If you would like to have the characters \'[\' and \']\' please use the html ent
     $display = $this->view->display_handler->display;
 
     if (!empty($display)) {
-      $themes[] = $hook . '__' . $this->view->storage->get('name')  . '__' . $display['id'] . '__' . $this->options['id'];
-      $themes[] = $hook . '__' . $this->view->storage->get('name')  . '__' . $display['id'];
+      $themes[] = $hook . '__' . $this->view->storage->id()  . '__' . $display['id'] . '__' . $this->options['id'];
+      $themes[] = $hook . '__' . $this->view->storage->id()  . '__' . $display['id'];
       $themes[] = $hook . '__' . $display['id'] . '__' . $this->options['id'];
       $themes[] = $hook . '__' . $display['id'];
       if ($display['id'] != $display['display_plugin']) {
-        $themes[] = $hook . '__' . $this->view->storage->get('name')  . '__' . $display['display_plugin'] . '__' . $this->options['id'];
-        $themes[] = $hook . '__' . $this->view->storage->get('name')  . '__' . $display['display_plugin'];
+        $themes[] = $hook . '__' . $this->view->storage->id()  . '__' . $display['display_plugin'] . '__' . $this->options['id'];
+        $themes[] = $hook . '__' . $this->view->storage->id()  . '__' . $display['display_plugin'];
         $themes[] = $hook . '__' . $display['display_plugin'] . '__' . $this->options['id'];
         $themes[] = $hook . '__' . $display['display_plugin'];
       }
     }
-    $themes[] = $hook . '__' . $this->view->storage->get('name') . '__' . $this->options['id'];
-    $themes[] = $hook . '__' . $this->view->storage->get('name');
+    $themes[] = $hook . '__' . $this->view->storage->id() . '__' . $this->options['id'];
+    $themes[] = $hook . '__' . $this->view->storage->id();
     $themes[] = $hook . '__' . $this->options['id'];
     $themes[] = $hook;
 
@@ -1620,8 +1631,56 @@ If you would like to have the characters \'[\' and \']\' please use the html ent
     return $this->getField(parent::adminLabel($short));
   }
 
+  /**
+   * Trims the field down to the specified length.
+   *
+   * @param array $alter
+   *   The alter array of options to use.
+   *     - max_length: Maximum lenght of the string, the rest gets truncated.
+   *     - word_boundary: Trim only on a word boundary.
+   *     - ellipsis: Show an ellipsis (...) at the end of the trimmed string.
+   *     - html: Take sure that the html is correct.
+   *
+   * @param string $value
+   *   The string which should be trimmed.
+   *
+   * @return string
+   *   The trimmed string.
+   */
+  public static function trimText($alter, $value) {
+    if (drupal_strlen($value) > $alter['max_length']) {
+      $value = drupal_substr($value, 0, $alter['max_length']);
+      if (!empty($alter['word_boundary'])) {
+        $regex = "(.*)\b.+";
+        if (function_exists('mb_ereg')) {
+          mb_regex_encoding('UTF-8');
+          $found = mb_ereg($regex, $value, $matches);
+        }
+        else {
+          $found = preg_match("/$regex/us", $value, $matches);
+        }
+        if ($found) {
+          $value = $matches[1];
+        }
+      }
+      // Remove scraps of HTML entities from the end of a strings
+      $value = rtrim(preg_replace('/(?:<(?!.+>)|&(?!.+;)).*$/us', '', $value));
+
+      if (!empty($alter['ellipsis'])) {
+        // @todo: What about changing this to a real ellipsis?
+        $value .= t('...');
+      }
+    }
+    if (!empty($alter['html'])) {
+      $value = _filter_htmlcorrector($value);
+    }
+
+    return $value;
+  }
+
 }
 
 /**
  * @}
  */
+

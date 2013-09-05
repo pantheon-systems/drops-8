@@ -87,7 +87,7 @@ abstract class LocalStream implements StreamWrapperInterface {
       $uri = $this->uri;
     }
 
-    list($scheme, $target) = explode('://', $uri, 2);
+    list(, $target) = explode('://', $uri, 2);
 
     // Remove erroneous leading or trailing, forward-slashes and backslashes.
     return trim($target, '\/');
@@ -339,6 +339,22 @@ abstract class LocalStream implements StreamWrapperInterface {
   }
 
   /**
+   * Gets the underlying stream resource for stream_select().
+   *
+   * @param int $cast_as
+   *   Can be STREAM_CAST_FOR_SELECT or STREAM_CAST_AS_STREAM.
+   *
+   * @return resource|false
+   *   The underlying stream resource or FALSE if stream_select() is not
+   *   supported.
+   *
+   * @see http://php.net/manual/streamwrapper.stream-cast.php
+   */
+  public function stream_cast($cast_as) {
+    return false;
+  }
+
+  /**
    * Support for unlink().
    *
    * @param string $uri
@@ -387,8 +403,8 @@ abstract class LocalStream implements StreamWrapperInterface {
    * @see drupal_dirname()
    */
   public function dirname($uri = NULL) {
-    list($scheme, $target) = explode('://', $uri, 2);
-    $target  = $this->getTarget($uri);
+    list($scheme, ) = explode('://', $uri, 2);
+    $target = $this->getTarget($uri);
     $dirname = dirname($target);
 
     if ($dirname == '.') {
@@ -425,10 +441,10 @@ abstract class LocalStream implements StreamWrapperInterface {
       $localpath = $this->getLocalPath($uri);
     }
     if ($options & STREAM_REPORT_ERRORS) {
-      return mkdir($localpath, $mode, $recursive);
+      return drupal_mkdir($localpath, $mode, $recursive);
     }
     else {
-      return @mkdir($localpath, $mode, $recursive);
+      return @drupal_mkdir($localpath, $mode, $recursive);
     }
   }
 

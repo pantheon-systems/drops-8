@@ -7,6 +7,8 @@
 
 namespace Drupal\update\Tests;
 
+use Drupal\Core\Utility\ProjectInfo;
+
 /**
  * Tests behavior related to handling updates to contributed modules and themes.
  */
@@ -47,7 +49,7 @@ class UpdateContribTest extends UpdateTestBase {
         'hidden' => FALSE,
       ),
     );
-    config('update_test.settings')->set('system_info', $system_info)->save();
+    \Drupal::config('update_test.settings')->set('system_info', $system_info)->save();
     $this->refreshUpdateStatus(array('drupal' => '0', 'aaa_update_test' => 'no-releases'));
     $this->drupalGet('admin/reports/updates');
     // Cannot use $this->standardTests() because we need to check for the
@@ -75,7 +77,7 @@ class UpdateContribTest extends UpdateTestBase {
         'hidden' => FALSE,
       ),
     );
-    config('update_test.settings')->set('system_info', $system_info)->save();
+    \Drupal::config('update_test.settings')->set('system_info', $system_info)->save();
     $this->refreshUpdateStatus(
       array(
         'drupal' => '0',
@@ -134,7 +136,7 @@ class UpdateContribTest extends UpdateTestBase {
         'hidden' => FALSE,
       ),
     );
-    config('update_test.settings')->set('system_info', $system_info)->save();
+    \Drupal::config('update_test.settings')->set('system_info', $system_info)->save();
     $this->refreshUpdateStatus(array('drupal' => '0', '#all' => '1_0'));
     $this->standardTests();
     // We're expecting the report to say all projects are up to date.
@@ -187,7 +189,7 @@ class UpdateContribTest extends UpdateTestBase {
         'hidden' => FALSE,
       ),
     );
-    config('update_test.settings')->set('system_info', $system_info)->save();
+    \Drupal::config('update_test.settings')->set('system_info', $system_info)->save();
     $xml_mapping = array(
       'drupal' => '0',
       'update_test_subtheme' => '1_0',
@@ -202,9 +204,9 @@ class UpdateContribTest extends UpdateTestBase {
    * Tests that disabled themes are only shown when desired.
    */
   function testUpdateShowDisabledThemes() {
-    $update_settings = config('update.settings');
+    $update_settings = \Drupal::config('update.settings');
     // Make sure all the update_test_* themes are disabled.
-    $theme_config = config('system.theme');
+    $theme_config = \Drupal::config('system.theme');
     foreach ($theme_config->get('enabled') as $theme => $weight) {
       if (preg_match('/^update_test_/', $theme)) {
         $theme_config->clear("enabled.$theme");
@@ -236,7 +238,7 @@ class UpdateContribTest extends UpdateTestBase {
     // of update_max_fetch_attempts. Therefore this variable is set very high
     // to avoid test failures in those cases.
     $update_settings->set('fetch.max_attempts', 99999)->save();
-    config('update_test.settings')->set('system_info', $system_info)->save();
+    \Drupal::config('update_test.settings')->set('system_info', $system_info)->save();
     $xml_mapping = array(
       'drupal' => '0',
       'update_test_subtheme' => '1_0',
@@ -263,6 +265,37 @@ class UpdateContribTest extends UpdateTestBase {
   }
 
   /**
+   * Tests updates with a hidden base theme.
+   */
+  function testUpdateHiddenBaseTheme() {
+    module_load_include('compare.inc', 'update');
+
+    // Enable the subtheme.
+    theme_enable(array('update_test_subtheme'));
+
+    // Add a project and initial state for base theme and subtheme.
+    $system_info = array(
+      // Hide the update_test_basetheme.
+      'update_test_basetheme' => array(
+        'project' => 'update_test_basetheme',
+        'hidden' => TRUE,
+      ),
+      // Show the update_test_subtheme.
+      'update_test_subtheme' => array(
+        'project' => 'update_test_subtheme',
+        'hidden' => FALSE,
+      ),
+    );
+    \Drupal::config('update_test.settings')->set('system_info', $system_info)->save();
+    $projects = update_get_projects();
+    $theme_data = system_rebuild_theme_data();
+    $project_info = new ProjectInfo();
+    $project_info->processInfoList($projects, $theme_data, 'theme', TRUE);
+
+    $this->assertTrue(!empty($projects['update_test_basetheme']), 'Valid base theme (update_test_basetheme) was found.');
+  }
+
+  /**
    * Makes sure that if we fetch from a broken URL, sane things happen.
    */
   function testUpdateBrokenFetchURL() {
@@ -286,7 +319,7 @@ class UpdateContribTest extends UpdateTestBase {
         'hidden' => FALSE,
       ),
     );
-    config('update_test.settings')->set('system_info', $system_info)->save();
+    \Drupal::config('update_test.settings')->set('system_info', $system_info)->save();
 
     $xml_mapping = array(
       'drupal' => '0',
@@ -327,8 +360,7 @@ class UpdateContribTest extends UpdateTestBase {
    * update, then assert if we see the appropriate warnings on the right pages.
    */
   function testHookUpdateStatusAlter() {
-    variable_set('allow_authorize_operations', TRUE);
-    $update_test_config = config('update_test.settings');
+    $update_test_config = \Drupal::config('update_test.settings');
     $update_admin_user = $this->drupalCreateUser(array('administer site configuration', 'administer software updates'));
     $this->drupalLogin($update_admin_user);
 

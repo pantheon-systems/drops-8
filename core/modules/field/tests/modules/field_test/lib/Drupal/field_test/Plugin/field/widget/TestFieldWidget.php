@@ -7,16 +7,17 @@
 
 namespace Drupal\field_test\Plugin\field\widget;
 
-use Drupal\Core\Annotation\Plugin;
+use Drupal\field\Annotation\FieldWidget;
 use Drupal\Core\Annotation\Translation;
+use Drupal\Core\Entity\Field\FieldInterface;
 use Drupal\field\Plugin\Type\Widget\WidgetBase;
+use Symfony\Component\Validator\ConstraintViolationInterface;
 
 /**
  * Plugin implementation of the 'test_field_widget' widget.
  *
- * @Plugin(
+ * @FieldWidget(
  *   id = "test_field_widget",
- *   module = "field_test",
  *   label = @Translation("Test widget"),
  *   field_types = {
  *      "test_field",
@@ -30,7 +31,7 @@ use Drupal\field\Plugin\Type\Widget\WidgetBase;
 class TestFieldWidget extends WidgetBase {
 
   /**
-   * Implements Drupal\field\Plugin\Type\Widget\WidgetInterface::settingsForm().
+   * {@inheritdoc}
    */
   public function settingsForm(array $form, array &$form_state) {
     $element['test_widget_setting'] = array(
@@ -44,20 +45,29 @@ class TestFieldWidget extends WidgetBase {
   }
 
   /**
-   * Implements Drupal\field\Plugin\Type\Widget\WidgetInterface::formElement().
+   * {@inheritdoc}
    */
-  public function formElement(array $items, $delta, array $element, $langcode, array &$form, array &$form_state) {
+  public function settingsSummary() {
+    $summary = array();
+    $summary[] = t('@setting: @value', array('@setting' => 'test_widget_setting', '@value' => $this->getSetting('test_widget_setting')));
+    return $summary;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function formElement(FieldInterface $items, $delta, array $element, $langcode, array &$form, array &$form_state) {
     $element += array(
       '#type' => 'textfield',
-      '#default_value' => isset($items[$delta]['value']) ? $items[$delta]['value'] : '',
+      '#default_value' => isset($items[$delta]->value) ? $items[$delta]->value : '',
     );
     return array('value' => $element);
   }
 
   /**
-   * Implements Drupal\field\Plugin\Type\Widget\WidgetInterface::errorElement().
+   * {@inheritdoc}
    */
-  public function errorElement(array $element, array $error, array $form, array &$form_state) {
+  public function errorElement(array $element, ConstraintViolationInterface $error, array $form, array &$form_state) {
     return $element['value'];
   }
 

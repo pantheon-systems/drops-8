@@ -1,0 +1,33 @@
+edit_metadata:
+  pattern: '/edit/metadata'
+  defaults:
+    _controller: '\Drupal\edit\EditController::metadata'
+  requirements:
+    _permission: 'access in-place editing'
+
+edit_attachments:
+  pattern: '/edit/attachments'
+  defaults:
+    _controller: '\Drupal\edit\EditController::attachments'
+  requirements:
+    _permission: 'access in-place editing'
+
+edit_field_form:
+  pattern: '/edit/form/{entity_type}/{entity}/{field_name}/{langcode}/{view_mode_id}'
+  defaults:
+    _controller: '\Drupal\edit\EditController::fieldForm'
+  options:
+    _access_mode: 'ALL'
+  requirements:
+    _permission: 'access in-place editing'
+    _access_edit_entity_field: 'TRUE'
+
+edit_entity_save:
+  pattern: '/edit/entity/{entity_type}/{entity}'
+  defaults:
+    _controller: '\Drupal\edit\EditController::entitySave'
+  options:
+    _access_mode: 'ALL'
+  requirements:
+    _permission: 'access in-place editing'
+    _access_edit_entity: 'TRUE'

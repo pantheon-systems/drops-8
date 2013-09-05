@@ -7,7 +7,7 @@
 
 namespace Drupal\views\Plugin\views\argument_default;
 
-use Drupal\Core\Annotation\Plugin;
+use Drupal\views\Annotation\ViewsArgumentDefault;
 use Drupal\Core\Annotation\Translation;
 
 /**
@@ -15,7 +15,7 @@ use Drupal\Core\Annotation\Translation;
  *
  * @ingroup views_argument_default_plugins
  *
- * @Plugin(
+ * @ViewsArgumentDefault(
  *   id = "fixed",
  *   title = @Translation("Fixed")
  * )
@@ -41,7 +41,7 @@ class Fixed extends ArgumentDefaultPluginBase {
   /**
    * Return the default argument.
    */
-  function get_argument() {
+  public function getArgument() {
     return $this->options['argument'];
   }
 

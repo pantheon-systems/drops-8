@@ -7,6 +7,9 @@
 
 namespace Drupal\aggregator\Tests;
 
+/**
+ * Tests functionality for removing feeds in the Aggregator module.
+ */
 class RemoveFeedTest extends AggregatorTestBase {
   public static function getInfo() {
     return array(
@@ -17,7 +20,7 @@ class RemoveFeedTest extends AggregatorTestBase {
   }
 
   /**
-   * Remove a feed and ensure that all it services are removed.
+   * Removes a feed and ensures that all of its services are removed.
    */
   function testRemoveFeed() {
     $feed = $this->createFeed();
@@ -26,11 +29,11 @@ class RemoveFeedTest extends AggregatorTestBase {
     $this->deleteFeed($feed);
 
     // Check feed source.
-    $this->drupalGet('aggregator/sources/' . $feed->fid);
+    $this->drupalGet('aggregator/sources/' . $feed->id());
     $this->assertResponse(404, 'Deleted feed source does not exists.');
 
     // Check database for feed.
-    $result = db_query("SELECT COUNT(*) FROM {aggregator_feed} WHERE title = :title AND url = :url", array(':title' => $feed->title, ':url' => $feed->url))->fetchField();
+    $result = db_query("SELECT COUNT(*) FROM {aggregator_feed} WHERE title = :title AND url = :url", array(':title' => $feed->label(), ':url' => $feed->url->value))->fetchField();
     $this->assertFalse($result, 'Feed not found in database');
   }
 }

@@ -7,8 +7,6 @@
 
 namespace Drupal\node\Tests;
 
-use Exception;
-
 /**
  * Tests node_query_node_access_alter().
  */
@@ -58,35 +56,10 @@ class NodeQueryAlterTest extends NodeTestBase {
   }
 
   /**
-   * Tests that node access permissions are followed.
-   */
-  function testNodeQueryAlterWithUI() {
-    // Verify that a user with access permission can see at least one node.
-    $this->drupalLogin($this->accessUser);
-    $this->drupalGet('node_access_test_page');
-    $this->assertText('Yes, 4 nodes', "4 nodes were found for access user");
-    $this->assertNoText('Exception', "No database exception");
-
-    // Test the content overview page.
-    $this->drupalGet('admin/content');
-    $table_rows = $this->xpath('//tbody/tr');
-    $this->assertEqual(4, count($table_rows), "4 nodes were found for access user");
-
-    // Verify that a user with no access permission cannot see nodes.
-    $this->drupalLogin($this->noAccessUser);
-    $this->drupalGet('node_access_test_page');
-    $this->assertText('No nodes', "No nodes were found for no access user");
-    $this->assertNoText('Exception', "No database exception");
-
-    $this->drupalGet('admin/content');
-    $this->assertText(t('No content available.'));
-  }
-
-  /**
-   * Lower-level test of 'node_access' query alter, for user with access.
+   * Tests 'node_access' query alter, for user with access.
    *
-   * Verifies that a non-standard table alias can be used, and that a
-   * user with node access can view the nodes.
+   * Verifies that a non-standard table alias can be used, and that a user with
+   * node access can view the nodes.
    */
   function testNodeQueryAlterLowLevelWithAccess() {
     // User with access should be able to view 4 nodes.
@@ -100,16 +73,16 @@ class NodeQueryAlterTest extends NodeTestBase {
       $result = $query->execute()->fetchAll();
       $this->assertEqual(count($result), 4, 'User with access can see correct nodes');
     }
-    catch (Exception $e) {
+    catch (\Exception $e) {
       $this->fail(t('Altered query is malformed'));
     }
   }
 
   /**
-   * Lower-level test of 'node_access' query alter, for user without access.
+   * Tests 'node_access' query alter, for user without access.
    *
-   * Verifies that a non-standard table alias can be used, and that a
-   * user without node access cannot view the nodes.
+   * Verifies that a non-standard table alias can be used, and that a user
+   * without node access cannot view the nodes.
    */
   function testNodeQueryAlterLowLevelNoAccess() {
     // User without access should be able to view 0 nodes.
@@ -123,16 +96,16 @@ class NodeQueryAlterTest extends NodeTestBase {
       $result = $query->execute()->fetchAll();
       $this->assertEqual(count($result), 0, 'User with no access cannot see nodes');
     }
-    catch (Exception $e) {
+    catch (\Exception $e) {
       $this->fail(t('Altered query is malformed'));
     }
   }
 
   /**
-   * Lower-level test of 'node_access' query alter, for edit access.
+   * Tests 'node_access' query alter, for edit access.
    *
-   * Verifies that a non-standard table alias can be used, and that a
-   * user with view-only node access cannot edit the nodes.
+   * Verifies that a non-standard table alias can be used, and that a user with
+   * view-only node access cannot edit the nodes.
    */
   function testNodeQueryAlterLowLevelEditAccess() {
     // User with view-only access should not be able to edit nodes.
@@ -146,7 +119,7 @@ class NodeQueryAlterTest extends NodeTestBase {
       $result = $query->execute()->fetchAll();
       $this->assertEqual(count($result), 0, 'User with view-only access cannot edit nodes');
     }
-    catch (Exception $e) {
+    catch (\Exception $e) {
       $this->fail($e->getMessage());
       $this->fail((string) $query);
       $this->fail(t('Altered query is malformed'));
@@ -154,13 +127,13 @@ class NodeQueryAlterTest extends NodeTestBase {
   }
 
   /**
-   * Lower-level test of 'node_access' query alter override.
+   * Tests 'node_access' query alter override.
    *
    * Verifies that node_access_view_all_nodes() is called from
-   * node_query_node_access_alter().  We do this by checking that
-   * a user which normally would not have view privileges is able
-   * to view the nodes when we add a record to {node_access} paired
-   * with a corresponding privilege in hook_node_grants().
+   * node_query_node_access_alter(). We do this by checking that a user who
+   * normally would not have view privileges is able to view the nodes when we
+   * add a record to {node_access} paired with a corresponding privilege in
+   * hook_node_grants().
    */
   function testNodeQueryAlterOverride() {
     $record = array(
@@ -186,7 +159,7 @@ class NodeQueryAlterTest extends NodeTestBase {
       $result = $query->execute()->fetchAll();
       $this->assertEqual(count($result), 0, 'User view privileges are not overridden');
     }
-    catch (Exception $e) {
+    catch (\Exception $e) {
       $this->fail(t('Altered query is malformed'));
     }
 
@@ -196,7 +169,7 @@ class NodeQueryAlterTest extends NodeTestBase {
     // $account instead of the global $user, we will log in as
     // noAccessUser2.
     $this->drupalLogin($this->noAccessUser2);
-    state()->set('node_access_test.no_access_uid', $this->noAccessUser->uid);
+    \Drupal::state()->set('node_access_test.no_access_uid', $this->noAccessUser->id());
     drupal_static_reset('node_access_view_all_nodes');
     try {
       $query = db_select('node', 'mytab')
@@ -208,9 +181,9 @@ class NodeQueryAlterTest extends NodeTestBase {
       $result = $query->execute()->fetchAll();
       $this->assertEqual(count($result), 4, 'User view privileges are overridden');
     }
-    catch (Exception $e) {
+    catch (\Exception $e) {
       $this->fail(t('Altered query is malformed'));
     }
-    state()->delete('node_access_test.no_access_uid');
+    \Drupal::state()->delete('node_access_test.no_access_uid');
   }
 }

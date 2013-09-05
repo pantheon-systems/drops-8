@@ -33,18 +33,18 @@ class UserEntityCallbacksTest extends WebTestBase {
     parent::setUp();
 
     $this->account = $this->drupalCreateUser();
-    $this->anonymous = entity_create('user', (array) drupal_anonymous_user());
+    $this->anonymous = entity_create('user', array('uid' => 0));
   }
 
   /**
    * Test label callback.
    */
   function testLabelCallback() {
-    $this->assertEqual($this->account->label(), $this->account->name, 'The username should be used as label');
+    $this->assertEqual($this->account->label(), $this->account->getUsername(), 'The username should be used as label');
 
     // Setup a random anonymous name to be sure the name is used.
     $name = $this->randomName();
-    config('user.settings')->set('anonymous', $name)->save();
+    \Drupal::config('user.settings')->set('anonymous', $name)->save();
     $this->assertEqual($this->anonymous->label(), $name, 'The variable anonymous should be used for name of uid 0');
   }
 
@@ -53,6 +53,6 @@ class UserEntityCallbacksTest extends WebTestBase {
    */
   function testUriCallback() {
     $uri = $this->account->uri();
-    $this->assertEqual('user/' . $this->account->uid, $uri['path'], 'Correct user URI.');
+    $this->assertEqual('user/' . $this->account->id(), $uri['path'], 'Correct user URI.');
   }
 }

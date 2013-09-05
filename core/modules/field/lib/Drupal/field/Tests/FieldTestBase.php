@@ -7,23 +7,13 @@
 
 namespace Drupal\field\Tests;
 
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\simpletest\WebTestBase;
 
 /**
  * Parent class for Field API tests.
  */
 abstract class FieldTestBase extends WebTestBase {
-  var $default_storage = 'field_sql_storage';
-
-  /**
-   * Set the default field storage backend for fields created during tests.
-   */
-  function setUp() {
-    parent::setUp();
-
-    // Set default storage backend.
-    variable_set('field_storage_default', $this->default_storage);
-  }
 
   /**
    * Generate random values for a field_test field.
@@ -47,7 +37,7 @@ abstract class FieldTestBase extends WebTestBase {
    *
    * This function only checks a single column in the field values.
    *
-   * @param $entity
+   * @param EntityInterface $entity
    *   The entity to test.
    * @param $field_name
    *   The name of the field to test
@@ -58,10 +48,14 @@ abstract class FieldTestBase extends WebTestBase {
    * @param $column
    *   (Optional) the name of the column to check.
    */
-  function assertFieldValues($entity, $field_name, $langcode, $expected_values, $column = 'value') {
-    $e = clone $entity;
-    field_attach_load('test_entity', array($e->ftid => $e));
-    $values = isset($e->{$field_name}[$langcode]) ? $e->{$field_name}[$langcode] : array();
+  function assertFieldValues(EntityInterface $entity, $field_name, $langcode, $expected_values, $column = 'value') {
+    // Re-load the entity to make sure we have the latest changes.
+    entity_get_controller($entity->entityType())->resetCache(array($entity->id()));
+    $e = entity_load($entity->entityType(), $entity->id());
+    $field = $values = $e->getTranslation($langcode)->$field_name;
+    // Filter out empty values so that they don't mess with the assertions.
+    $field->filterEmptyValues();
+    $values = $field->getValue();
     $this->assertEqual(count($values), count($expected_values), 'Expected number of values were saved.');
     foreach ($expected_values as $key => $value) {
       $this->assertEqual($values[$key][$column], $value, format_string('Value @value was saved correctly.', array('@value' => $value)));

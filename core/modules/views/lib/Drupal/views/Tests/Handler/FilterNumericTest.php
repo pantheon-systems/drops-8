@@ -7,12 +7,26 @@
 
 namespace Drupal\views\Tests\Handler;
 
+use Drupal\views\Tests\ViewUnitTestBase;
+
 /**
  * Tests the numeric filter handler.
  */
-class FilterNumericTest extends HandlerTestBase {
+class FilterNumericTest extends ViewUnitTestBase {
 
-  var $column_map = array();
+  public static $modules = array('system');
+
+  /**
+   * Views used by this test.
+   *
+   * @var array
+   */
+  public static $testViews = array('test_view');
+
+  protected $column_map = array(
+    'views_test_data_name' => 'name',
+    'views_test_data_age' => 'age',
+  );
 
   public static function getInfo() {
     return array(
@@ -22,15 +36,10 @@ class FilterNumericTest extends HandlerTestBase {
     );
   }
 
-  function setUp() {
+  protected function setUp() {
     parent::setUp();
 
-    $this->enableViewsTestModule();
-
-    $this->column_map = array(
-      'views_test_data_name' => 'name',
-      'views_test_data_age' => 'age',
-    );
+    $this->installSchema('system', array('menu_router', 'variable', 'key_value_expire'));
   }
 
   function viewsData() {
@@ -42,10 +51,11 @@ class FilterNumericTest extends HandlerTestBase {
   }
 
   public function testFilterNumericSimple() {
-    $view = $this->getView();
+    $view = views_get_view('test_view');
+    $view->setDisplay();
 
     // Change the filtering
-    $view->displayHandlers['default']->overrideOption('filters', array(
+    $view->displayHandlers->get('default')->overrideOption('filters', array(
       'age' => array(
         'id' => 'age',
         'table' => 'views_test_data',
@@ -68,12 +78,13 @@ class FilterNumericTest extends HandlerTestBase {
 
   public function testFilterNumericExposedGroupedSimple() {
     $filters = $this->getGroupedExposedFilters();
-    $view = $this->getBasicPageView();
+    $view = views_get_view('test_view');
+    $view->storage->newDisplay('page', 'Page', 'page_1');
 
     // Filter: Age, Operator: =, Value: 28
     $filters['age']['group_info']['default_group'] = 1;
     $view->setDisplay('page_1');
-    $view->displayHandlers['page_1']->overrideOption('filters', $filters);
+    $view->displayHandlers->get('page_1')->overrideOption('filters', $filters);
 
     $this->executeView($view);
     $resultset = array(
@@ -86,10 +97,11 @@ class FilterNumericTest extends HandlerTestBase {
   }
 
   public function testFilterNumericBetween() {
-    $view = $this->getView();
+    $view = views_get_view('test_view');
+    $view->setDisplay();
 
     // Change the filtering
-    $view->displayHandlers['default']->overrideOption('filters', array(
+    $view->displayHandlers->get('default')->overrideOption('filters', array(
       'age' => array(
         'id' => 'age',
         'table' => 'views_test_data',
@@ -122,10 +134,10 @@ class FilterNumericTest extends HandlerTestBase {
 
     // test not between
     $view->destroy();
-    $view = $this->getView();
+    $view->setDisplay();
 
       // Change the filtering
-    $view->displayHandlers['default']->overrideOption('filters', array(
+    $view->displayHandlers->get('default')->overrideOption('filters', array(
       'age' => array(
         'id' => 'age',
         'table' => 'views_test_data',
@@ -159,13 +171,13 @@ class FilterNumericTest extends HandlerTestBase {
 
   public function testFilterNumericExposedGroupedBetween() {
     $filters = $this->getGroupedExposedFilters();
-    $view = $this->getBasicPageView();
+    $view = views_get_view('test_view');
+    $view->storage->newDisplay('page', 'Page', 'page_1');
 
     // Filter: Age, Operator: between, Value: 26 and 29
     $filters['age']['group_info']['default_group'] = 2;
     $view->setDisplay('page_1');
-    $view->displayHandlers['page_1']->overrideOption('filters', $filters);
-
+    $view->displayHandlers->get('page_1')->overrideOption('filters', $filters);
 
     $this->executeView($view);
     $resultset = array(
@@ -187,13 +199,13 @@ class FilterNumericTest extends HandlerTestBase {
 
   public function testFilterNumericExposedGroupedNotBetween() {
     $filters = $this->getGroupedExposedFilters();
-    $view = $this->getBasicPageView();
+    $view = views_get_view('test_view');
+    $view->storage->newDisplay('page', 'Page', 'page_1');
 
     // Filter: Age, Operator: between, Value: 26 and 29
     $filters['age']['group_info']['default_group'] = 3;
     $view->setDisplay('page_1');
-    $view->displayHandlers['page_1']->overrideOption('filters', $filters);
-
+    $view->displayHandlers->get('page_1')->overrideOption('filters', $filters);
 
     $this->executeView($view);
     $resultset = array(
@@ -213,12 +225,12 @@ class FilterNumericTest extends HandlerTestBase {
     $this->assertIdenticalResultset($view, $resultset, $this->column_map);
   }
 
-
   public function testFilterNumericEmpty() {
-    $view = $this->getView();
+    $view = views_get_view('test_view');
+    $view->setDisplay();
 
     // Change the filtering
-    $view->displayHandlers['default']->overrideOption('filters', array(
+    $view->displayHandlers->get('default')->overrideOption('filters', array(
       'age' => array(
         'id' => 'age',
         'table' => 'views_test_data',
@@ -234,10 +246,10 @@ class FilterNumericTest extends HandlerTestBase {
     $this->assertIdenticalResultset($view, $resultset, $this->column_map);
 
     $view->destroy();
-    $view = $this->getView();
+    $view->setDisplay();
 
     // Change the filtering
-    $view->displayHandlers['default']->overrideOption('filters', array(
+    $view->displayHandlers->get('default')->overrideOption('filters', array(
       'age' => array(
         'id' => 'age',
         'table' => 'views_test_data',
@@ -273,16 +285,15 @@ class FilterNumericTest extends HandlerTestBase {
     $this->assertIdenticalResultset($view, $resultset, $this->column_map);
   }
 
-
   public function testFilterNumericExposedGroupedEmpty() {
     $filters = $this->getGroupedExposedFilters();
-    $view = $this->getBasicPageView();
+    $view = views_get_view('test_view');
+    $view->storage->newDisplay('page', 'Page', 'page_1');
 
     // Filter: Age, Operator: empty, Value:
     $filters['age']['group_info']['default_group'] = 4;
     $view->setDisplay('page_1');
-    $view->displayHandlers['page_1']->overrideOption('filters', $filters);
-
+    $view->displayHandlers->get('page_1')->overrideOption('filters', $filters);
 
     $this->executeView($view);
     $resultset = array(
@@ -292,13 +303,13 @@ class FilterNumericTest extends HandlerTestBase {
 
   public function testFilterNumericExposedGroupedNotEmpty() {
     $filters = $this->getGroupedExposedFilters();
-    $view = $this->getBasicPageView();
+    $view = views_get_view('test_view');
+    $view->storage->newDisplay('page', 'Page', 'page_1');
 
     // Filter: Age, Operator: empty, Value:
     $filters['age']['group_info']['default_group'] = 5;
     $view->setDisplay('page_1');
-    $view->displayHandlers['page_1']->overrideOption('filters', $filters);
-
+    $view->displayHandlers->get('page_1')->overrideOption('filters', $filters);
 
     $this->executeView($view);
     $resultset = array(
@@ -326,11 +337,11 @@ class FilterNumericTest extends HandlerTestBase {
     $this->assertIdenticalResultset($view, $resultset, $this->column_map);
   }
 
-
   public function testAllowEmpty() {
-    $view = $this->getView();
+    $view = views_get_view('test_view');
+    $view->setDisplay();
 
-    $view->displayHandlers['default']->overrideOption('filters', array(
+    $view->displayHandlers->get('default')->overrideOption('filters', array(
       'id' => array(
         'id' => 'id',
         'table' => 'views_test_data',

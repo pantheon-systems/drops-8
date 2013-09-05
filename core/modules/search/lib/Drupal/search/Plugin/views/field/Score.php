@@ -8,17 +8,15 @@
 namespace Drupal\search\Plugin\views\field;
 
 use Drupal\views\Plugin\views\field\Numeric;
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
+use Drupal\views\ResultRow;
 
 /**
  * Field handler to provide simple renderer that allows linking to a node.
  *
  * @ingroup views_field_handlers
  *
- * @Plugin(
- *   id = "search_score",
- *   module = "search"
- * )
+ * @PluginID("search_score")
  */
 class Score extends Numeric {
 
@@ -83,7 +81,10 @@ class Score extends Numeric {
     }
   }
 
-  function render($values) {
+  /**
+   * {@inheritdoc}
+   */
+  public function render(ResultRow $values) {
     // Only render if we exist.
     if (isset($this->tableAlias)) {
       return parent::render($values);

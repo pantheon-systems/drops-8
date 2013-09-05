@@ -8,9 +8,11 @@
 namespace Drupal\node\Tests;
 
 /**
- * Test case to verify basic node_access functionality.
+ * Tests basic node_access functionality.
+ *
+ * Note that hook_node_access_records() is covered in another test class.
+ *
  * @todo Cover hook_node_access in a separate test class.
- * hook_node_access_records is covered in another test class.
  */
 class NodeAccessTest extends NodeTestBase {
   public static function getInfo() {
@@ -21,22 +23,10 @@ class NodeAccessTest extends NodeTestBase {
     );
   }
 
-  /**
-   * Asserts node_access correctly grants or denies access.
-   */
-  function assertNodeAccess($ops, $node, $account) {
-    foreach ($ops as $op => $result) {
-      $msg = t("node_access returns @result with operation '@op'.", array('@result' => $result ? 'true' : 'false', '@op' => $op));
-      $this->assertEqual($result, node_access($op, $node, $account), $msg);
-    }
-  }
-
   function setUp() {
     parent::setUp();
     // Clear permissions for authenticated users.
-    db_delete('role_permission')
-      ->condition('rid', DRUPAL_AUTHENTICATED_RID)
-      ->execute();
+    $this->container->get('config.factory')->get('user.role.' . DRUPAL_AUTHENTICATED_RID)->set('permissions', array())->save();
   }
 
   /**
@@ -57,7 +47,7 @@ class NodeAccessTest extends NodeTestBase {
 
     // User cannot 'view own unpublished content'.
     $web_user3 = $this->drupalCreateUser(array('access content'));
-    $node3 = $this->drupalCreateNode(array('status' => 0, 'uid' => $web_user3->uid));
+    $node3 = $this->drupalCreateNode(array('status' => 0, 'uid' => $web_user3->id()));
     $this->assertNodeAccess(array('view' => FALSE), $node3, $web_user3);
 
     // User cannot create content without permission.
@@ -66,7 +56,7 @@ class NodeAccessTest extends NodeTestBase {
     // User can 'view own unpublished content', but another user cannot.
     $web_user4 = $this->drupalCreateUser(array('access content', 'view own unpublished content'));
     $web_user5 = $this->drupalCreateUser(array('access content', 'view own unpublished content'));
-    $node4 = $this->drupalCreateNode(array('status' => 0, 'uid' => $web_user4->uid));
+    $node4 = $this->drupalCreateNode(array('status' => 0, 'uid' => $web_user4->id()));
     $this->assertNodeAccess(array('view' => TRUE, 'update' => FALSE), $node4, $web_user4);
     $this->assertNodeAccess(array('view' => FALSE), $node4, $web_user5);
 
@@ -74,4 +64,5 @@ class NodeAccessTest extends NodeTestBase {
     $node5 = $this->drupalCreateNode();
     $this->assertNodeAccess(array('view' => TRUE, 'update' => FALSE, 'delete' => FALSE), $node5, $web_user3);
   }
+
 }

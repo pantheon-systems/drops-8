@@ -7,14 +7,15 @@
 
 namespace Drupal\user\Plugin\views\argument_default;
 
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\Plugin;
+use Drupal\views\Annotation\ViewsArgumentDefault;
 use Drupal\Core\Annotation\Translation;
 use Drupal\views\Plugin\views\argument_default\ArgumentDefaultPluginBase;
 
 /**
  * Default argument plugin to extract a user via menu_get_object.
  *
- * @Plugin(
+ * @ViewsArgumentDefault(
  *   id = "user",
  *   module = "user",
  *   title = @Translation("User ID from URL")
@@ -37,18 +38,18 @@ class User extends ArgumentDefaultPluginBase {
     );
   }
 
-  function get_argument() {
+  public function getArgument() {
     foreach (range(1, 3) as $i) {
       $user = menu_get_object('user', $i);
       if (!empty($user)) {
-        return $user->uid;
+        return $user->id();
       }
     }
 
     foreach (range(1, 3) as $i) {
       $user = menu_get_object('user_uid_optional', $i);
       if (!empty($user)) {
-        return $user->uid;
+        return $user->id();
       }
     }
 
@@ -56,7 +57,7 @@ class User extends ArgumentDefaultPluginBase {
       foreach (range(1, 3) as $i) {
         $node = menu_get_object('node', $i);
         if (!empty($node)) {
-          return $node->uid;
+          return $node->getAuthorId();
         }
       }
     }
@@ -69,7 +70,7 @@ class User extends ArgumentDefaultPluginBase {
       if (arg(0) == 'node' && is_numeric(arg(1))) {
         $node = node_load(arg(1));
         if ($node) {
-          return $node->uid;
+          return $node->getAuthorId();
         }
       }
     }

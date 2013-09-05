@@ -1,9 +1,12 @@
 <?php
 
 use Drupal\Core\Config\Config;
+use Drupal\Core\Config\ConfigException;
+use Drupal\Core\Config\ConfigInstaller;
 use Drupal\Core\Config\FileStorage;
-use Drupal\Core\Config\NullStorage;
 use Drupal\Core\Config\StorageInterface;
+use Drupal\Core\Config\StorageComparer;
+use Symfony\Component\Yaml\Dumper;
 
 /**
  * @file
@@ -22,20 +25,34 @@ function config_install_default_config($type, $name) {
   $config_dir = drupal_get_path($type, $name) . '/config';
   if (is_dir($config_dir)) {
     $source_storage = new FileStorage($config_dir);
-    $target_storage = drupal_container()->get('config.storage');
-    $null_storage = new NullStorage();
+    $storage_comparer = new StorageComparer($source_storage, Drupal::service('config.storage'));
+    // Only import new config. Changed config is from previous enables and
+    // should not be overwritten.
+    $storage_comparer->addChangelistCreate();
+    $installer = new ConfigInstaller(
+      $storage_comparer,
+      Drupal::service('event_dispatcher'),
+      Drupal::service('config.factory'),
+      Drupal::entityManager(),
+      Drupal::lock()
+    );
+    $installer->import();
+  }
+}
 
-    // Upon installation, only new config objects need to be created.
-    // config_sync_get_changes() would potentially perform a diff of hundreds or
-    // even thousands of config objects that happen to be contained in the
-    // active configuration. We leverage the NullStorage to avoid that needless
-    // computation of differences.
-    $config_changes = config_sync_get_changes($source_storage, $null_storage);
-    if (empty($config_changes)) {
-      return;
-    }
-    $remaining_changes = config_import_invoke_owner($config_changes, $source_storage, $target_storage);
-    config_sync_changes($remaining_changes, $source_storage, $target_storage);
+/**
+ * Uninstalls the default configuration of a given extension.
+ *
+ * @param string $type
+ *   The extension type; e.g., 'module' or 'theme'.
+ * @param string $name
+ *   The name of the module or theme to install default configuration for.
+ */
+function config_uninstall_default_config($type, $name) {
+  $storage = drupal_container()->get('config.storage');
+  $config_names = $storage->listAll($name . '.');
+  foreach ($config_names as $config_name) {
+    Drupal::config($config_name)->delete();
   }
 }
 
@@ -52,176 +69,172 @@ function config_get_storage_names_with_prefix($prefix = '') {
  * Retrieves a configuration object.
  *
  * This is the main entry point to the configuration API. Calling
- * @code config('book.admin') @endcode will return a configuration object in
- * which the book module can store its administrative settings.
+ * @code \Drupal::config('book.admin') @endcode will return a configuration
+ * object in which the book module can store its administrative settings.
  *
- * @param $name
+ * @deprecated as of Drupal 8.0. Use \Drupal::config() instead.
+ *
+ * @param string $name
  *   The name of the configuration object to retrieve. The name corresponds to
- *   a configuration file. For @code config('book.admin') @endcode, the config
- *   object returned will contain the contents of book.admin configuration file.
+ *   a configuration file. For @code \Drupal::config('book.admin') @endcode, the
+ *   config object returned will contain the contents of book.admin
+ *   configuration file.
  *
  * @return Drupal\Core\Config\Config
  *   A configuration object.
  */
 function config($name) {
-  return drupal_container()->get('config.factory')->get($name)->load();
+  return Drupal::config($name);
 }
 
 /**
- * Returns a list of differences between configuration storages.
+ * Sets the config context on the config factory.
+ *
+ * This allows configuration objects to be created using special configuration
+ * contexts eg. global override free or locale using a user preferred language.
+ * Calling this function affects all subsequent calls to Drupal::config() until
+ * config_context_leave() is called.
+ *
+ * @see config_context_leave()
+ * @see \Drupal\Core\Config\ConfigFactory
+ *
+ * @param string $context_name
+ *   The name of the config context service on the container or a fully
+ *   qualified class implementing \Drupal\Core\Config\Context\ContextInterface.
+ *
+ * @return \Drupal\Core\Config\Context\ContextInterface
+ *   The configuration context object.
+ */
+function config_context_enter($context_name) {
+  if (drupal_container()->has($context_name)) {
+    $context = drupal_container()->get($context_name);
+  }
+  elseif (class_exists($context_name) && in_array('Drupal\Core\Config\Context\ContextInterface', class_implements($context_name))) {
+    $context = drupal_container()
+      ->get('config.context.factory')
+      ->get($context_name);
+  }
+  else {
+    throw new ConfigException(sprintf('Unknown config context service or class: %s', $context_name));
+  }
+  drupal_container()
+    ->get('config.factory')
+    ->enterContext($context);
+  return $context;
+}
+
+/**
+ * Leaves the current config context returning to the previous context.
+ *
+ * @see config_context_enter()
+ * @see \Drupal\Core\Config\ConfigFactory
+ */
+function config_context_leave() {
+  drupal_container()
+    ->get('config.factory')
+    ->leaveContext();
+}
+
+/**
+ * Return a list of all config entity types provided by a module.
+ *
+ * @param string $module
+ *   The name of the module possibly providing config entities.
+ *
+ * @return array
+ *   An associative array containing the entity info for any config entities
+ *   provided by the requested module, keyed by the entity type.
+ */
+function config_get_module_config_entities($module) {
+  // While this is a lot of work to generate, it's not worth static caching
+  // since this function is only called at install/uninstall, and only
+  // once per module.
+  $info = entity_get_info();
+  return array_filter($info, function($entity_info) use ($module) {
+    return ($entity_info['module'] == $module) && is_subclass_of($entity_info['class'], 'Drupal\Core\Config\Entity\ConfigEntityInterface');
+  });
+}
+
+/**
+ * Returns the entity type of a configuration object.
+ *
+ * @param string $name
+ *   The configuration object name.
+ *
+ * @return string|null
+ *   Either the entity type name, or NULL if none match.
+ */
+function config_get_entity_type_by_name($name) {
+  $entities = array_filter(entity_get_info(), function($entity_info) use ($name) {
+    return (isset($entity_info['config_prefix']) && strpos($name, $entity_info['config_prefix'] . '.') === 0);
+  });
+  return key($entities);
+}
+
+/**
+ * Returns the typed config manager service.
+ *
+ * Use the typed data manager service for creating typed configuration objects.
+ *
+ * @see Drupal\Core\TypedData\TypedDataManager::create()
+ *
+ * @return Drupal\Core\TypedData\TypedConfigManager
+ */
+function config_typed() {
+  return drupal_container()->get('config.typed');
+}
+
+/**
+ * Creates a configuration snapshot following a successful import.
  *
  * @param Drupal\Core\Config\StorageInterface $source_storage
  *   The storage to synchronize configuration from.
- * @param Drupal\Core\Config\StorageInterface $target_storage
+ * @param Drupal\Core\Config\StorageInterface $snapshot_storage
  *   The storage to synchronize configuration to.
- *
- * @return array|bool
- *   An assocative array containing the differences between source and target
- *   storage, or FALSE if there are no differences.
  */
-function config_sync_get_changes(StorageInterface $source_storage, StorageInterface $target_storage) {
-  $source_names = $source_storage->listAll();
-  $target_names = $target_storage->listAll();
-  $config_changes = array(
-    'create' => array_diff($source_names, $target_names),
-    'change' => array(),
-    'delete' => array_diff($target_names, $source_names),
-  );
-  foreach (array_intersect($source_names, $target_names) as $name) {
-    $source_config_data = $source_storage->read($name);
-    $target_config_data = $target_storage->read($name);
-    if ($source_config_data !== $target_config_data) {
-      $config_changes['change'][] = $name;
-    }
+function config_import_create_snapshot(StorageInterface $source_storage, StorageInterface $snapshot_storage) {
+  $snapshot_storage->deleteAll();
+  foreach ($source_storage->listAll() as $name) {
+    $snapshot_storage->write($name, $source_storage->read($name));
   }
-
-  // Do not trigger subsequent synchronization operations if there are no
-  // changes in any category.
-  if (empty($config_changes['create']) && empty($config_changes['change']) && empty($config_changes['delete'])) {
-    return FALSE;
-  }
-  return $config_changes;
 }
 
 /**
- * Writes an array of config file changes from a source storage to a target storage.
+ * Return a formatted diff of a named config between two storages.
  *
- * @param array $config_changes
- *   An array of changes to be written.
  * @param Drupal\Core\Config\StorageInterface $source_storage
- *   The storage to synchronize configuration from.
+ *   The storage to diff configuration from.
  * @param Drupal\Core\Config\StorageInterface $target_storage
- *   The storage to synchronize configuration to.
- */
-function config_sync_changes(array $config_changes, StorageInterface $source_storage, StorageInterface $target_storage) {
-  foreach (array('delete', 'create', 'change') as $op) {
-    foreach ($config_changes[$op] as $name) {
-      if ($op == 'delete') {
-        $target_storage->delete($name);
-      }
-      else {
-        $data = $source_storage->read($name);
-        $target_storage->write($name, $data);
-      }
-    }
-  }
-}
-
-/**
- * Imports configuration into the active configuration.
+ *   The storage to diff configuration to.
+ * @param string $name
+ *   The name of the configuration object to diff.
  *
- * @return bool|null
- *   TRUE if configuration was imported successfully, FALSE in case of a
- *   synchronization error, or NULL if there are no changes to synchronize.
- */
-function config_import() {
-  // Retrieve a list of differences between staging and the active configuration.
-  $source_storage = drupal_container()->get('config.storage.staging');
-  $target_storage = drupal_container()->get('config.storage');
-
-  $config_changes = config_sync_get_changes($source_storage, $target_storage);
-  if (empty($config_changes)) {
-    return;
-  }
-
-  if (!lock()->acquire(__FUNCTION__)) {
-    // Another request is synchronizing configuration.
-    // Return a negative result for UI purposes. We do not differentiate between
-    // an actual synchronization error and a failed lock, because concurrent
-    // synchronizations are an edge-case happening only when multiple developers
-    // or site builders attempt to do it without coordinating.
-    return FALSE;
-  }
-
-  $success = TRUE;
-  try {
-    $remaining_changes = config_import_invoke_owner($config_changes, $source_storage, $target_storage);
-    config_sync_changes($remaining_changes, $source_storage, $target_storage);
-  }
-  catch (ConfigException $e) {
-    watchdog_exception('config_import', $e);
-    $success = FALSE;
-  }
-  lock()->release(__FUNCTION__);
-  return $success;
-}
-
-/**
- * Invokes MODULE_config_import() callbacks for configuration changes.
+ * @return core/lib/Drupal/Component/Diff
+ *   A formatted string showing the difference between the two storages.
  *
- * @param array $config_changes
- *   An array of changes to be loaded.
- * @param Drupal\Core\Config\StorageInterface $source_storage
- *   The storage to synchronize configuration from.
- * @param Drupal\Core\Config\StorageInterface $target_storage
- *   The storage to synchronize configuration to.
- *
- * @todo Add support for other extension types; e.g., themes etc.
+ * @todo Make renderer injectable
  */
-function config_import_invoke_owner(array $config_changes, StorageInterface $source_storage, StorageInterface $target_storage) {
-  // Allow modules to take over configuration change operations for
-  // higher-level configuration data.
-  // First pass deleted, then new, and lastly changed configuration, in order to
-  // handle dependencies correctly.
-  foreach (array('delete', 'create', 'change') as $op) {
-    foreach ($config_changes[$op] as $key => $name) {
-      // Extract owner from configuration object name.
-      $module = strtok($name, '.');
-      // Check whether the module implements hook_config_import() and ask it to
-      // handle the configuration change.
-      $handled_by_module = FALSE;
-      if (module_hook($module, 'config_import_' . $op)) {
-        $old_config = new Config($name, $target_storage);
-        $old_config->load();
+function config_diff(StorageInterface $source_storage, StorageInterface $target_storage, $name) {
+  require_once DRUPAL_ROOT . '/core/lib/Drupal/Component/Diff/DiffEngine.php';
 
-        $data = $source_storage->read($name);
-        $new_config = new Config($name, $target_storage);
-        if ($data !== FALSE) {
-          $new_config->setData($data);
-        }
+  // The output should show configuration object differences formatted as YAML.
+  // But the configuration is not necessarily stored in files. Therefore, they
+  // need to be read and parsed, and lastly, dumped into YAML strings.
+  $dumper = new Dumper();
+  $dumper->setIndentation(2);
 
-        $handled_by_module = module_invoke($module, 'config_import_' . $op, $name, $new_config, $old_config);
-      }
-      if (!empty($handled_by_module)) {
-        unset($config_changes[$op][$key]);
-      }
-    }
+  $source_data = explode("\n", $dumper->dump($source_storage->read($name), PHP_INT_MAX));
+  $target_data = explode("\n", $dumper->dump($target_storage->read($name), PHP_INT_MAX));
+
+  // Check for new or removed files.
+  if ($source_data === array('false')) {
+    // Added file.
+    $source_data = array(t('File added'));
   }
-  return $config_changes;
-}
-
-/**
- * Exports the active configuration to staging.
- */
-function config_export() {
-  // Retrieve a list of differences between the active configuration and staging.
-  $source_storage = drupal_container()->get('config.storage');
-  $target_storage = drupal_container()->get('config.storage.staging');
-
-  $config_changes = config_sync_get_changes($source_storage, $target_storage);
-  if (empty($config_changes)) {
-    return;
+  if ($target_data === array('false')) {
+    // Deleted file.
+    $target_data = array(t('File removed'));
   }
-  config_sync_changes($config_changes, $source_storage, $target_storage);
-  return TRUE;
+
+  return new Diff($source_data, $target_data);
 }

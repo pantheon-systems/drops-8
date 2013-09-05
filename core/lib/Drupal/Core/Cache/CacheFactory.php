@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Contains Drupal\Core\Cache\CacheFactory.
+ * Contains \Drupal\Core\Cache\CacheFactory.
  */
 
 namespace Drupal\Core\Cache;
@@ -10,7 +10,28 @@ namespace Drupal\Core\Cache;
 /**
  * Defines the cache backend factory.
  */
-class CacheFactory {
+use Drupal\Component\Utility\Settings;
+use Symfony\Component\DependencyInjection\ContainerAware;
+use Symfony\Component\DependencyInjection\ContainerBuilder;
+
+class CacheFactory extends ContainerAware {
+
+  /**
+   * The settings array.
+   *
+   * @var \Drupal\Component\Utility\Settings
+   */
+  protected $settings;
+
+  /**
+   * Constructs CacheFactory object.
+   *
+   * @param \Drupal\Component\Utility\Settings $settings
+   *   The settings array.
+   */
+  function __construct(Settings $settings) {
+    $this->settings = $settings;
+  }
 
   /**
    * Instantiates a cache backend class for a given cache bin.
@@ -24,33 +45,21 @@ class CacheFactory {
    * @param string $bin
    *   The cache bin for which a cache backend object should be returned.
    *
-   * @return Drupal\Core\Cache\CacheBackendInterface
+   * @return \Drupal\Core\Cache\CacheBackendInterface
    *   The cache backend object associated with the specified bin.
    */
-  public static function get($bin) {
-    // Check whether there is a custom class defined for the requested bin or
-    // use the default 'cache' definition otherwise.
-    $cache_backends = self::getBackends();
-    $class = isset($cache_backends[$bin]) ? $cache_backends[$bin] : $cache_backends['cache'];
-    return new $class($bin);
-  }
-
-  /**
-   * Returns a list of cache backends for this site.
-   *
-   * @return array
-   *   An associative array with cache bins as keys, and backend class names as
-   *   value.
-   */
-  public static function getBackends() {
-    // @todo Improve how cache backend classes are defined. Cannot be
-    //   configuration, since e.g. the CachedStorage config storage controller
-    //   requires the definition in its constructor already.
-    global $conf;
-    $cache_backends = isset($conf['cache_classes']) ? $conf['cache_classes'] : array();
-    // Ensure there is a default 'cache' bin definition.
-    $cache_backends += array('cache' => 'Drupal\Core\Cache\DatabaseBackend');
-    return $cache_backends;
+  public function get($bin) {
+    $cache_settings = $this->settings->get('cache');
+    if (isset($cache_settings[$bin])) {
+      $service_name = $cache_settings[$bin];
+    }
+    elseif (isset($cache_settings['default'])) {
+      $service_name = $cache_settings['default'];
+    }
+    else {
+      $service_name = 'cache.backend.database';
+    }
+    return $this->container->get($service_name)->get($bin);
   }
 
 }

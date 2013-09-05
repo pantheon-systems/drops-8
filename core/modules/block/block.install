@@ -4,210 +4,8 @@
  * @file
  * Install, update and uninstall functions for the block module.
  */
-
-/**
- * Implements hook_schema().
- */
-function block_schema() {
-  $schema['block'] = array(
-    'description' => 'Stores block settings, such as region and visibility settings.',
-    'fields' => array(
-      'bid' => array(
-        'type' => 'serial',
-        'not null' => TRUE,
-        'description' => 'Primary Key: Unique block ID.',
-      ),
-      'module' => array(
-        'type' => 'varchar',
-        'length' => 64,
-        'not null' => TRUE,
-        'default' => '',
-        'description' => "The module from which the block originates; for example, 'user' for the Who's Online block, and 'block' for any custom blocks.",
-      ),
-      'delta' => array(
-        'type' => 'varchar',
-        'length' => 32,
-        'not null' => TRUE,
-        'default' => '0',
-        'description' => 'Unique ID for block within a module.',
-      ),
-      'theme' => array(
-        'type' => 'varchar',
-        'length' => 64,
-        'not null' => TRUE,
-        'default' => '',
-        'description' => 'The theme under which the block settings apply.',
-      ),
-      'status' => array(
-        'type' => 'int',
-        'not null' => TRUE,
-        'default' => 0,
-        'size' => 'tiny',
-        'description' => 'Block enabled status. (1 = enabled, 0 = disabled)',
-      ),
-      'weight' => array(
-        'type' => 'int',
-        'not null' => TRUE,
-        'default' => 0,
-        'description' => 'Block weight within region.',
-      ),
-      'region' => array(
-        'type' => 'varchar',
-        'length' => 64,
-        'not null' => TRUE,
-        'default' => '',
-        'description' => 'Theme region within which the block is set.',
-      ),
-      'custom' => array(
-        'type' => 'int',
-        'not null' => TRUE,
-        'default' => 0,
-        'size' => 'tiny',
-        'description' => 'Flag to indicate how users may control visibility of the block. (0 = Users cannot control, 1 = On by default, but can be hidden, 2 = Hidden by default, but can be shown)',
-      ),
-      'visibility' => array(
-        'type' => 'int',
-        'not null' => TRUE,
-        'default' => 0,
-        'size' => 'tiny',
-        'description' => 'Flag to indicate how to show blocks on pages. (0 = Show on all pages except listed pages, 1 = Show only on listed pages, 2 = Use custom PHP code to determine visibility)',
-      ),
-      'pages' => array(
-        'type' => 'text',
-        'not null' => TRUE,
-        'description' => 'Contents of the "Pages" block; contains either a list of paths on which to include/exclude the block or PHP code, depending on "visibility" setting.',
-      ),
-      'title' => array(
-        'type' => 'varchar',
-        'length' => 255,
-        'not null' => TRUE,
-        'default' => '',
-        'description' => 'Custom title for the block. (Empty string will use block default title, <none> will remove the title, text will cause block to use specified title.)',
-        'translatable' => TRUE,
-      ),
-      'cache' => array(
-        'type' => 'int',
-        'not null' => TRUE,
-        'default' => 1,
-        'size' => 'tiny',
-        'description' => 'Binary flag to indicate block cache mode. (-2: Custom cache, -1: Do not cache, 1: Cache per role, 2: Cache per user, 4: Cache per page, 8: Block cache global) See DRUPAL_CACHE_* constants in ../includes/common.inc for more detailed information.',
-      ),
-    ),
-    'primary key' => array('bid'),
-    'unique keys' => array(
-      'tmd' => array('theme', 'module', 'delta'),
-    ),
-    'indexes' => array(
-      'list' => array('theme', 'status', 'region', 'weight', 'module'),
-    ),
-  );
-
-  $schema['block_role'] = array(
-    'description' => 'Sets up access permissions for blocks based on user roles',
-    'fields' => array(
-      'module' => array(
-        'type' => 'varchar',
-        'length' => 64,
-        'not null' => TRUE,
-        'description' => "The block's origin module, from {block}.module.",
-      ),
-      'delta' => array(
-        'type' => 'varchar',
-        'length' => 32,
-        'not null' => TRUE,
-        'description' => "The block's unique delta within module, from {block}.delta.",
-      ),
-      'rid' => array(
-        'type' => 'varchar',
-        'length' => 64,
-        'not null' => TRUE,
-        'description' => "The user's role ID from {users_roles}.rid.",
-      ),
-    ),
-    'primary key' => array('module', 'delta', 'rid'),
-    'indexes' => array(
-      'rid' => array('rid'),
-    ),
-    'foreign keys' => array(
-      'role' => array(
-        'table' => 'role',
-        'columns' => array('rid' => 'rid'),
-      ),
-    ),
-  );
-
-  $schema['block_custom'] = array(
-    'description' => 'Stores contents of custom-made blocks.',
-    'fields' => array(
-      'bid' => array(
-        'type' => 'serial',
-        'unsigned' => TRUE,
-        'not null' => TRUE,
-        'description' => "The block's {block}.bid.",
-      ),
-      'body' => array(
-        'type' => 'text',
-        'not null' => FALSE,
-        'size' => 'big',
-        'description' => 'Block contents.',
-        'translatable' => TRUE,
-      ),
-      'info' => array(
-        'type' => 'varchar',
-        'length' => 128,
-        'not null' => TRUE,
-        'default' => '',
-        'description' => 'Block description.',
-      ),
-      'format' => array(
-        'type' => 'varchar',
-        'length' => 255,
-        'not null' => FALSE,
-        'description' => 'The {filter_format}.format of the block body.',
-      ),
-    ),
-    'unique keys' => array(
-      'info' => array('info'),
-    ),
-    'primary key' => array('bid'),
-  );
-
-  $schema['block_language'] = array(
-    'description' => 'Sets up display criteria for blocks based on langcode',
-    'fields' => array(
-      'module' => array(
-        'type' => 'varchar',
-        'length' => 64,
-        'not null' => TRUE,
-        'description' => "The block's origin module, from {block}.module.",
-      ),
-      'delta' => array(
-        'type' => 'varchar',
-        'length' => 32,
-        'not null' => TRUE,
-        'description' => "The block's unique delta within module, from {block}.delta.",
-      ),
-      'type' => array(
-        'type' => 'varchar',
-        'length' => 32,
-        'not null' => TRUE,
-        'description' => "Language type name. Applied to filter the block by that type.",
-      ),
-      'langcode' => array(
-        'type' => 'varchar',
-        'length' => 32,
-        'not null' => TRUE,
-        'description' => "The machine-readable name of this language from {language}.langcode.",
-      ),
-    ),
-    'primary key' => array('module', 'delta', 'type', 'langcode'),
-  );
-
-  $schema['cache_block'] = drupal_get_schema_unprocessed('system', 'cache');
-  $schema['cache_block']['description'] = 'Cache table for the Block module to store already built blocks, identified by module, delta, and various contexts which may change the block, such as theme, locale, and caching mode defined for the block.';
-
-  return $schema;
-}
+use Drupal\Component\Uuid\Uuid;
+use Drupal\Core\Language\Language;
 
 /**
  * Implements hook_install().
@@ -232,6 +30,14 @@ function block_update_dependencies() {
   // Convert role IDs after User module converted {role}.
   $dependencies['block'][8002] = array(
     'user' => 8002,
+  );
+  // Migrate users.data after User module prepared the tables.
+  $dependencies['block'][8005] = array(
+    'user' => 8016,
+  );
+  // Migrate custom blocks after field storage has been reorganized.
+  $dependencies['block'][8008] = array(
+    'field' => 8006,
   );
   return $dependencies;
 }
@@ -317,8 +123,7 @@ function block_update_8003() {
     'length' => 255,
     'not null' => TRUE,
     'default' => '',
-    'description' => 'Custom title for the block. (Empty string will use block default title, <none> will remove the title, text will cause block to use specified title.)',
-    'translatable' => TRUE,
+    'description' => 'Custom title for the block. (Empty string will use block default title, - None - will remove the title, text will cause block to use specified title.)',
     )
   );
 }
@@ -350,6 +155,212 @@ function block_update_8004() {
       ->condition('delta', $old)
       ->fields(array('delta' => $new))
       ->execute();
+  }
+}
+
+/**
+ * Migrate {users}.data into {users_data}.
+ */
+function block_update_8005() {
+  $query = db_select('_d7_users_data', 'ud');
+  $query->addField('ud', 'uid');
+  $query->addExpression("'block'", 'module');
+  $query->addExpression("'block'", 'name');
+  // Take over the extracted and serialized value in {_d7_users_data} as-is.
+  $query->addField('ud', 'value');
+  $query->addExpression('1', 'serialized');
+  $query->condition('name', 'block');
+
+  db_insert('users_data')
+    ->from($query)
+    ->execute();
+
+  db_delete('_d7_users_data')
+    ->condition('name', 'block')
+    ->execute();
+}
+
+/**
+ * Enable the Custom Block module.
+ */
+function block_update_8006() {
+  module_enable(array('custom_block'));
+}
+
+/**
+ * Migrate {block_custom} to {custom_block}.
+ *
+ * Note this table now resides in custom_block_schema() but for 7.x to 8.x
+ * upgrades, changes must be made from block module as custom_block module is
+ * only enabled during upgrade process.
+ */
+function block_update_8007() {
+  // Populate the {custom_block} and {custom_block_revision} table.
+  $results = db_select('block_custom', 'bc')->fields('bc')->execute();
+
+  $uuid = new Uuid();
+  $execute = FALSE;
+  $block_insert = db_insert('custom_block')->fields(array(
+    'id',
+    'uuid',
+    'info',
+    'revision_id',
+    'langcode',
+    'type'
+  ));
+  $revision_insert = db_insert('custom_block_revision')->fields(array(
+    'id',
+    'revision_id',
+    'log',
+    'info'
+  ));
+  foreach ($results as $block) {
+    $custom_block = array(
+      'id' => $block->bid,
+      'uuid' => $uuid->generate(),
+      'info' => $block->info,
+      'revision_id' => $block->bid,
+      'langcode' => Language::LANGCODE_NOT_SPECIFIED,
+      'type' => 'basic'
+    );
+    $revision = array(
+      'id' => $block->bid,
+      'revision_id' => $block->bid,
+      'info' => $block->info,
+      'log' => 'Initial value from 7.x to 8.x upgrade'
+    );
+    $block_insert->values($custom_block);
+    $revision_insert->values($revision);
+    // We have something to execute.
+    $execute = TRUE;
+  }
+  if ($execute) {
+    $block_insert->execute();
+    $revision_insert->execute();
+  }
+}
+
+/**
+ * Migrate {block_custom}.body and {block_custom}.format to block_body field.
+ */
+function block_update_8008() {
+  $sandbox['#finished'] = 0;
+
+  if (!isset($sandbox['total'])) {
+    // Initial invocation.
+
+    // First, create the body field.
+    $body_field = array(
+      'name' => 'block_body',
+      'entity_type' => 'custom_block',
+      'type' => 'text_with_summary',
+      'module' => 'text',
+      'cardinality' => 1,
+      'schema' => array(
+        'columns' => array(
+          'value' => array(
+            'type' => 'text',
+            'size' => 'big',
+            'not null' => FALSE,
+          ),
+          'summary' => array(
+            'type' => 'text',
+            'size' => 'big',
+            'not null' => FALSE,
+          ),
+          'format' => array(
+            'type' => 'varchar',
+            'length' => 255,
+            'not null' => FALSE,
+          ),
+        ),
+        'indexes' => array(
+          'format' => array('format'),
+        ),
+        'foreign keys' => array(
+          'format' => array(
+            'table' => 'filter_format',
+            'columns' => array('format' => 'format'),
+          ),
+        ),
+      ),
+    );
+    _update_8003_field_create_field($body_field);
+
+
+    $instance = array(
+      'entity_type' => 'custom_block',
+      'bundle' => 'basic',
+      'label' => 'Block body',
+      'settings' => array('display_summary' => FALSE),
+    );
+    _update_8003_field_create_instance($body_field, $instance);
+
+    module_load_install('entity');
+    // Assign form settings for the 'default' form mode.
+    $form_display = _update_8000_entity_get_form_display('custom_block', 'basic', 'default');
+    $form_display->set('content.user_picture', array(
+        'type' => 'text_textarea_with_summary',
+      ))
+      ->save();
+
+    // Initialize state for future calls.
+    $sandbox['last'] = 0;
+    $sandbox['count'] = 0;
+
+    $query = db_select('block_custom', 'bc');
+    $sandbox['total'] = $query->countQuery()->execute()->fetchField();
+
+    $sandbox['body_field_id'] = $body_field['id'];
+  }
+  else {
+    // Subsequent invocations.
+
+    $found = FALSE;
+    if ($sandbox['total']) {
+      // Operate on each block in turn.
+      $batch_size = 200;
+      $query = db_select('block_custom', 'bc');
+      $query
+        ->fields('bc', array('bid', 'body', 'format'))
+        ->condition('bc.bid', $sandbox['last'], '>')
+        ->orderBy('bc.bid', 'ASC')
+        ->range(0, $batch_size);
+      $blocks = $query->execute();
+
+      // Load the block, set up 'body' and save the field data.
+      foreach ($blocks as $block) {
+        $found = TRUE;
+
+        $data = array(
+          Language::LANGCODE_NOT_SPECIFIED => array(
+            array(
+              'format' => $block->format,
+              'value' => $block->body
+            )
+          )
+        );
+        // This is a core update and no contrib modules are enabled yet, so
+        // we can assume default field storage for a faster update.
+        _update_8006_field_write_data_sql('custom_block', 'basic', $block->bid, $block->bid, 'block_body', $data);
+
+        $sandbox['last'] = $block->bid;
+        $sandbox['count'] += 1;
+      }
+
+      $sandbox['#finished'] = min(0.99, $sandbox['count'] / $sandbox['total']);
+    }
+
+    if (!$found) {
+      // All blocks are processed.
+
+      // Remove the now-obsolete body info from block_custom.
+      db_drop_field('block_custom', 'body');
+      db_drop_field('block_custom', 'format');
+
+      // We're done.
+      $sandbox['#finished'] = 1;
+    }
   }
 }
 

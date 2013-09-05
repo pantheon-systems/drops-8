@@ -7,6 +7,7 @@
 
 namespace Drupal\language\Tests;
 
+use Drupal\Core\Language\Language;
 use Drupal\simpletest\WebTestBase;
 
 /**
@@ -42,8 +43,8 @@ class LanguageNegotiationInfoTest extends WebTestBase {
    */
   function testInfoAlterations() {
     // Enable language type/negotiation info alterations.
-    variable_set('language_test_language_types', TRUE);
-    variable_set('language_test_language_negotiation_info', TRUE);
+    \Drupal::state()->set('language_test.language_types', TRUE);
+    \Drupal::state()->set('language_test.language_negotiation_info', TRUE);
     $this->languageNegotiationUpdate();
 
     // Check that fixed language types are properly configured without the need
@@ -52,11 +53,11 @@ class LanguageNegotiationInfoTest extends WebTestBase {
 
     // Make the content language type configurable by updating the language
     // negotiation settings with the proper flag enabled.
-    variable_set('language_test_content_language_type', TRUE);
+    \Drupal::state()->set('language_test.content_language_type', TRUE);
     $this->languageNegotiationUpdate();
-    $type = LANGUAGE_TYPE_CONTENT;
-    $language_types = variable_get('language_types', language_types_get_default());
-    $this->assertTrue($language_types[$type], 'Content language type is configurable.');
+    $type = Language::TYPE_CONTENT;
+    $language_types = language_types_get_configurable();
+    $this->assertTrue(in_array($type, $language_types), 'Content language type is configurable.');
 
     // Enable some core and custom language negotiation methods. The test
     // language type is supposed to be configurable.
@@ -68,12 +69,13 @@ class LanguageNegotiationInfoTest extends WebTestBase {
       $form_field => TRUE,
       $type . '[enabled][' . $test_method_id . ']' => TRUE,
       $test_type . '[enabled][' . $test_method_id . ']' => TRUE,
+      $test_type . '[configurable]' => TRUE,
     );
     $this->drupalPost('admin/config/regional/language/detection', $edit, t('Save settings'));
 
     // Remove the interface language negotiation method by updating the language
     // negotiation settings with the proper flag enabled.
-    variable_set('language_test_language_negotiation_info_alter', TRUE);
+    \Drupal::state()->set('language_test.language_negotiation_info_alter', TRUE);
     $this->languageNegotiationUpdate();
     $negotiation = variable_get("language_negotiation_$type", array());
     $this->assertFalse(isset($negotiation[$interface_method_id]), 'Interface language negotiation method removed from the stored settings.');
@@ -93,11 +95,11 @@ class LanguageNegotiationInfoTest extends WebTestBase {
 
     // Check language negotiation results.
     $this->drupalGet('');
-    $last = variable_get('language_test_language_negotiation_last', array());
+    $last = \Drupal::state()->get('language_test.language_negotiation_last');
     foreach (language_types_get_all() as $type) {
       $langcode = $last[$type];
-      $value = $type == LANGUAGE_TYPE_CONTENT || strpos($type, 'test') !== FALSE ? 'it' : 'en';
-      $this->assertEqual($langcode, $value, format_string('The negotiated language for %type is %language', array('%type' => $type, '%language' => $langcode)));
+      $value = $type == Language::TYPE_CONTENT || strpos($type, 'test') !== FALSE ? 'it' : 'en';
+      $this->assertEqual($langcode, $value, format_string('The negotiated language for %type is %language', array('%type' => $type, '%language' => $value)));
     }
 
     // Disable language_test and check that everything is set back to the
@@ -139,7 +141,7 @@ class LanguageNegotiationInfoTest extends WebTestBase {
       $function = "module_{$op}";
       $function($modules);
       // Reset hook implementation cache.
-      module_implements_reset();
+      $this->container->get('module_handler')->resetImplementations();
     }
 
     drupal_static_reset('language_types_info');
@@ -157,8 +159,9 @@ class LanguageNegotiationInfoTest extends WebTestBase {
    */
   protected function checkFixedLanguageTypes() {
     drupal_static_reset('language_types_info');
+    $configurable = language_types_get_configurable();
     foreach (language_types_info() as $type => $info) {
-      if (isset($info['fixed'])) {
+      if (!in_array($type, $configurable) && isset($info['fixed'])) {
         $negotiation = variable_get("language_negotiation_$type", array());
         $equal = count($info['fixed']) == count($negotiation);
         while ($equal && list($id) = each($negotiation)) {

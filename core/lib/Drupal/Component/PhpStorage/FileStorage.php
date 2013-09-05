@@ -22,11 +22,11 @@ class FileStorage implements PhpStorageInterface {
   /**
    * Constructs this FileStorage object.
    *
-   * @param $configuration
+   * @param array $configuration
    *   An associative array, containing at least these two keys:
    *   - directory: The directory where the files should be stored.
-   *   - bin: The storage bin. Multiple storage objects can be instantiated with the
-   *     same configuration, but for different bins..
+   *   - bin: The storage bin. Multiple storage objects can be instantiated with
+   *     the same configuration, but for different bins..
    */
   public function __construct(array $configuration) {
     $this->directory = $configuration['directory'] . '/' . $configuration['bin'];
@@ -53,7 +53,10 @@ class FileStorage implements PhpStorageInterface {
    */
   public function save($name, $code) {
     $path = $this->getFullPath($name);
-    mkdir(dirname($path), 0700, TRUE);
+    $dir = dirname($path);
+    if (!file_exists($dir)) {
+      mkdir($dir, 0700, TRUE);
+    }
     return (bool) file_put_contents($path, $code);
   }
 
@@ -62,7 +65,10 @@ class FileStorage implements PhpStorageInterface {
    */
   public function delete($name) {
     $path = $this->getFullPath($name);
-    return @unlink($path);
+    if (file_exists($path)) {
+      return $this->unlink($path);
+    }
+    return FALSE;
   }
 
   /**
@@ -75,23 +81,49 @@ class FileStorage implements PhpStorageInterface {
   /**
    * Implements Drupal\Component\PhpStorage\PhpStorageInterface::writeable().
    */
-  function writeable() {
+  public function writeable() {
     return TRUE;
   }
 
   /**
    * Implements Drupal\Component\PhpStorage\PhpStorageInterface::deleteAll().
    */
-  function deleteAll() {
-    return file_unmanaged_delete_recursive($this->directory, array(__CLASS__, 'filePreDeleteCallback'));
+  public function deleteAll() {
+    return $this->unlink($this->directory);
   }
 
   /**
-   * Ensures files and directories are deletable.
+   * Deletes files and/or directories in the specified path.
+   *
+   * If the specified path is a directory the method will
+   * call itself recursively to process the contents. Once the contents have
+   * been removed the directory will also be removed.
+   *
+   * @param string $path
+   *   A string containing either a file or directory path.
+   *
+   * @return boolean
+   *   TRUE for success or if path does not exist, FALSE in the event of an
+   *   error.
    */
-  public static function filePreDeleteCallback($path) {
+  protected function unlink($path) {
     if (file_exists($path)) {
+      // Ensure the file / folder is writable.
       chmod($path, 0700);
+      if (is_dir($path)) {
+        $dir = dir($path);
+        while (($entry = $dir->read()) !== FALSE) {
+          if ($entry == '.' || $entry == '..') {
+            continue;
+          }
+          $this->unlink($path . '/' . $entry);
+        }
+        $dir->close();
+        return @rmdir($path);
+      }
+      return @unlink($path);
     }
+    // If there's nothing to delete return TRUE anyway.
+    return TRUE;
   }
 }

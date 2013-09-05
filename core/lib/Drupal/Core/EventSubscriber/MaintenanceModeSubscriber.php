@@ -2,11 +2,12 @@
 
 /**
  * @file
- * Definition of Drupal\Core\EventSubscriber\MaintenanceModeSubscriber.
+ * Contains \Drupal\Core\EventSubscriber\MaintenanceModeSubscriber.
  */
 
 namespace Drupal\Core\EventSubscriber;
 
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\HttpKernel\Event\GetResponseEvent;
@@ -18,28 +19,39 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 class MaintenanceModeSubscriber implements EventSubscriberInterface {
 
   /**
-   * Response with the maintenance page when the site is offline.
+   * Determine whether the page is configured to be offline.
    *
-   * @param Symfony\Component\HttpKernel\Event\GetResponseEvent $event
+   * @param \Symfony\Component\HttpKernel\Event\GetResponseEvent $event
    *   The Event to process.
    */
-  public function onKernelRequestMaintenanceModeCheck(GetResponseEvent $event) {
+  public function onKernelRequestDetermineSiteStatus(GetResponseEvent $event) {
     // Check if the site is offline.
-    $status = _menu_site_is_offline() ? MENU_SITE_OFFLINE : MENU_SITE_ONLINE;
+    $request = $event->getRequest();
+    $is_offline = _menu_site_is_offline() ? MENU_SITE_OFFLINE : MENU_SITE_ONLINE;
+    $request->attributes->set('_maintenance', $is_offline);
+  }
 
-    // Allow other modules to change the site status but not the path because
-    // that would not change the global variable. hook_url_inbound_alter() can
-    // be used to change the path. Code later will not use the $read_only_path
-    // variable.
-    $read_only_path = !empty($path) ? $path : $event->getRequest()->attributes->get('system_path');
-    drupal_alter('menu_site_status', $status, $read_only_path);
-
-    // Only continue if the site is online.
-    if ($status != MENU_SITE_ONLINE) {
+  /**
+   * Returns the site maintenance page if the site is offline.
+   *
+   * @param \Symfony\Component\HttpKernel\Event\GetResponseEvent $event
+   *   The event to process.
+   */
+  public function onKernelRequestMaintenance(GetResponseEvent $event) {
+    $request = $event->getRequest();
+    $response = $event->getResponse();
+    // Continue if the site is online and the response is not a redirection.
+    if ($request->attributes->get('_maintenance') != MENU_SITE_ONLINE && !($response instanceof RedirectResponse)) {
       // Deliver the 503 page.
       drupal_maintenance_theme();
       drupal_set_title(t('Site under maintenance'));
-      $content = theme('maintenance_page', array('content' => filter_xss_admin(t(config('system.maintenance')->get('message'), array('@site' => config('system.site')->get('name'))))));
+      $maintenance_page = array(
+        '#theme' => 'maintenance_page',
+        '#content' => filter_xss_admin(
+          t(\Drupal::config('system.maintenance')->get('message'), array('@site' => \Drupal::config('system.site')->get('name')))
+        ),
+      );
+      $content = drupal_render($maintenance_page);
       $response = new Response('Service unavailable', 503);
       $response->setContent($content);
       $event->setResponse($response);
@@ -47,13 +59,13 @@ class MaintenanceModeSubscriber implements EventSubscriberInterface {
   }
 
   /**
-   * Registers the methods in this class that should be listeners.
-   *
-   * @return array
-   *   An array of event listener definitions.
+   * {@inheritdoc}
    */
   static function getSubscribedEvents() {
-    $events[KernelEvents::REQUEST][] = array('onKernelRequestMaintenanceModeCheck', 40);
+    // In order to change the maintenance status an event subscriber with a
+    // priority between 30 and 40 should be added.
+    $events[KernelEvents::REQUEST][] = array('onKernelRequestDetermineSiteStatus', 40);
+    $events[KernelEvents::REQUEST][] = array('onKernelRequestMaintenance', 30);
     return $events;
   }
 }

@@ -8,7 +8,7 @@
 namespace Drupal\aggregator\Tests;
 
 /**
- * Tests aggregator feed adding.
+ * Tests adding aggregator feeds.
  */
 class AddFeedTest extends AggregatorTestBase {
   public static function getInfo() {
@@ -20,21 +20,22 @@ class AddFeedTest extends AggregatorTestBase {
   }
 
   /**
-   * Create a feed, ensure that it is unique, check the source, and delete the feed.
+   * Creates and ensures that a feed is unique, checks source, and deletes feed.
    */
   function testAddFeed() {
     $feed = $this->createFeed();
 
     // Check feed data.
     $this->assertEqual($this->getUrl(), url('admin/config/services/aggregator/add/feed', array('absolute' => TRUE)), 'Directed to correct url.');
-    $this->assertTrue($this->uniqueFeed($feed->title, $feed->url), 'The feed is unique.');
+    $this->assertTrue($this->uniqueFeed($feed->label(), $feed->url->value), 'The feed is unique.');
 
     // Check feed source.
-    $this->drupalGet('aggregator/sources/' . $feed->fid);
+    $this->drupalGet('aggregator/sources/' . $feed->id());
     $this->assertResponse(200, 'Feed source exists.');
-    $this->assertText($feed->title, 'Page title');
-    $this->drupalGet('aggregator/sources/' . $feed->fid . '/categorize');
+    $this->assertText($feed->label(), 'Page title');
+    $this->drupalGet('aggregator/sources/' . $feed->id() . '/categorize');
     $this->assertResponse(200, 'Feed categorization page exists.');
+    $this->assertText($feed->label());
 
     // Delete feed.
     $this->deleteFeed($feed);
@@ -54,15 +55,16 @@ class AddFeedTest extends AggregatorTestBase {
     $feed_2 = $this->createFeed($long_url_2);
 
     // Check feed data.
-    $this->assertTrue($this->uniqueFeed($feed->title, $feed->url), 'The first long URL feed is unique.');
-    $this->assertTrue($this->uniqueFeed($feed_2->title, $feed_2->url), 'The second long URL feed is unique.');
+    $this->assertTrue($this->uniqueFeed($feed->label(), $feed->url->value), 'The first long URL feed is unique.');
+    $this->assertTrue($this->uniqueFeed($feed_2->label(), $feed_2->url->value), 'The second long URL feed is unique.');
 
     // Check feed source.
-    $this->drupalGet('aggregator/sources/' . $feed->fid);
+    $this->drupalGet('aggregator/sources/' . $feed->id());
     $this->assertResponse(200, 'Long URL feed source exists.');
-    $this->assertText($feed->title, 'Page title');
-    $this->drupalGet('aggregator/sources/' . $feed->fid . '/categorize');
+    $this->assertText($feed->label(), 'Page title');
+    $this->drupalGet('aggregator/sources/' . $feed->id() . '/categorize');
     $this->assertResponse(200, 'Long URL feed categorization page exists.');
+    $this->assertText($feed->label());
 
     // Delete feeds.
     $this->deleteFeed($feed);

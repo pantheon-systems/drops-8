@@ -7,16 +7,14 @@
 
 namespace Drupal\views\Plugin\views\filter;
 
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
 
 /**
  * Filter handler which allows to search on multiple fields.
  *
  * @ingroup views_field_handlers
  *
- * @Plugin(
- *   id = "combine"
- * )
+ * @PluginID("combine")
  */
 class Combine extends String {
 
@@ -72,14 +70,14 @@ class Combine extends String {
     }
     if ($fields) {
       $count = count($fields);
-      $seperated_fields = array();
+      $separated_fields = array();
       foreach ($fields as $key => $field) {
-        $seperated_fields[] = $field;
+        $separated_fields[] = $field;
         if ($key < $count-1) {
-          $seperated_fields[] = "' '";
+          $separated_fields[] = "' '";
         }
       }
-      $expression = implode(', ', $seperated_fields);
+      $expression = implode(', ', $separated_fields);
       $expression = "CONCAT_WS(' ', $expression)";
 
       $info = $this->operators();
@@ -89,51 +87,51 @@ class Combine extends String {
     }
   }
 
-  // By default things like op_equal uses add_where, that doesn't support
+  // By default things like opEqual uses add_where, that doesn't support
   // complex expressions, so override all operators.
 
-  function op_equal($field) {
+  function opEqual($expression) {
     $placeholder = $this->placeholder();
     $operator = $this->operator();
-    $this->query->add_where_expression($this->options['group'], "$field $operator $placeholder", array($placeholder => $this->value));
+    $this->query->addWhereExpression($this->options['group'], "$expression $operator $placeholder", array($placeholder => $this->value));
   }
 
-  function op_contains($field) {
+  protected function opContains($expression) {
     $placeholder = $this->placeholder();
-    $this->query->add_where_expression($this->options['group'], "$field LIKE $placeholder", array($placeholder => '%' . db_like($this->value) . '%'));
+    $this->query->addWhereExpression($this->options['group'], "$expression LIKE $placeholder", array($placeholder => '%' . db_like($this->value) . '%'));
   }
 
-  function op_starts($field) {
+  protected function opStartsWith($expression) {
     $placeholder = $this->placeholder();
-    $this->query->add_where_expression($this->options['group'], "$field LIKE $placeholder", array($placeholder => db_like($this->value) . '%'));
+    $this->query->addWhereExpression($this->options['group'], "$expression LIKE $placeholder", array($placeholder => db_like($this->value) . '%'));
   }
 
-  function op_not_starts($field) {
+  protected function opNotStartsWith($expression) {
     $placeholder = $this->placeholder();
-    $this->query->add_where_expression($this->options['group'], "$field NOT LIKE $placeholder", array($placeholder => db_like($this->value) . '%'));
+    $this->query->addWhereExpression($this->options['group'], "$expression NOT LIKE $placeholder", array($placeholder => db_like($this->value) . '%'));
   }
 
-  function op_ends($field) {
+  protected function opEndsWith($expression) {
     $placeholder = $this->placeholder();
-    $this->query->add_where_expression($this->options['group'], "$field LIKE $placeholder", array($placeholder => '%' . db_like($this->value)));
+    $this->query->addWhereExpression($this->options['group'], "$expression LIKE $placeholder", array($placeholder => '%' . db_like($this->value)));
   }
 
-  function op_not_ends($field) {
+  protected function opNotEndsWith($expression) {
     $placeholder = $this->placeholder();
-    $this->query->add_where_expression($this->options['group'], "$field NOT LIKE $placeholder", array($placeholder => '%' . db_like($this->value)));
+    $this->query->addWhereExpression($this->options['group'], "$expression NOT LIKE $placeholder", array($placeholder => '%' . db_like($this->value)));
   }
 
-  function op_not($field) {
+  protected function opNotLike($expression) {
     $placeholder = $this->placeholder();
-    $this->query->add_where_expression($this->options['group'], "$field NOT LIKE $placeholder", array($placeholder => '%' . db_like($this->value) . '%'));
+    $this->query->addWhereExpression($this->options['group'], "$expression NOT LIKE $placeholder", array($placeholder => '%' . db_like($this->value) . '%'));
   }
 
-  function op_regex($field) {
+  protected function opRegex($expression) {
     $placeholder = $this->placeholder();
-    $this->query->add_where_expression($this->options['group'], "$field RLIKE $placeholder", array($placeholder => $this->value));
+    $this->query->addWhereExpression($this->options['group'], "$expression REGEXP $placeholder", array($placeholder => $this->value));
   }
 
-  function op_empty($field) {
+  protected function opEmpty($expression) {
     if ($this->operator == 'empty') {
       $operator = "IS NULL";
     }
@@ -141,7 +139,7 @@ class Combine extends String {
       $operator = "IS NOT NULL";
     }
 
-    $this->query->add_where_expression($this->options['group'], "$field $operator");
+    $this->query->addWhereExpression($this->options['group'], "$expression $operator");
   }
 
 }

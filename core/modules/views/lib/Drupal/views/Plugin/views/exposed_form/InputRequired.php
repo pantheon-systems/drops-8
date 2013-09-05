@@ -7,15 +7,16 @@
 
 namespace Drupal\views\Plugin\views\exposed_form;
 
-use Drupal\Core\Annotation\Plugin;
+use Drupal\views\Annotation\ViewsExposedForm;
 use Drupal\Core\Annotation\Translation;
+use Drupal\views\Views;
 
 /**
  * Exposed form plugin that provides an exposed form with required input.
  *
  * @ingroup views_exposed_form_plugins
  *
- * @Plugin(
+ * @ViewsExposedForm(
  *   id = "input_required",
  *   title = @Translation("Input required"),
  *   help = @Translation("An exposed form that only renders a view if the form contains user input.")
@@ -40,7 +41,7 @@ class InputRequired extends ExposedFormPluginBase {
       '#description' => t('Text to display instead of results until the user selects and applies an exposed filter.'),
       '#default_value' => $this->options['text_input_required'],
       '#format' => isset($this->options['text_input_required_format']) ? $this->options['text_input_required_format'] : filter_default_format(),
-      '#wysiwyg' => FALSE,
+      '#editor' => FALSE,
     );
   }
 
@@ -50,12 +51,12 @@ class InputRequired extends ExposedFormPluginBase {
     parent::submitOptionsForm($form, $form_state);
   }
 
-  function exposed_filter_applied() {
+  protected function exposedFilterApplied() {
     static $cache = NULL;
     if (!isset($cache)) {
       $view = $this->view;
       if (is_array($view->filter) && count($view->filter)) {
-        foreach ($view->filter as $filter_id => $filter) {
+        foreach ($view->filter as $filter) {
           if ($filter->isExposed()) {
             $identifier = $filter->options['expose']['identifier'];
             if (isset($view->exposed_input[$identifier])) {
@@ -71,8 +72,8 @@ class InputRequired extends ExposedFormPluginBase {
     return $cache;
   }
 
-  function pre_render($values) {
-    if (!$this->exposed_filter_applied()) {
+  public function preRender($values) {
+    if (!$this->exposedFilterApplied()) {
       $options = array(
         'id' => 'area',
         'table' => 'views',
@@ -83,7 +84,7 @@ class InputRequired extends ExposedFormPluginBase {
         'content' => $this->options['text_input_required'],
         'format' => $this->options['text_input_required_format'],
       );
-      $handler = views_get_handler('views', 'area', 'area');
+      $handler = Views::handlerManager('area')->getHandler($options);
       $handler->init($this->view, $options);
       $this->displayHandler->handlers['empty'] = array(
         'area' => $handler,
@@ -93,7 +94,7 @@ class InputRequired extends ExposedFormPluginBase {
   }
 
   public function query() {
-    if (!$this->exposed_filter_applied()) {
+    if (!$this->exposedFilterApplied()) {
       // We return with no query; this will force the empty text.
       $this->view->built = TRUE;
       $this->view->executed = TRUE;

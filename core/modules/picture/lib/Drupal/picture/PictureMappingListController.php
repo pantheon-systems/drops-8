@@ -2,14 +2,13 @@
 
 /**
  * @file
- * Definition of Drupal\picture\PictureListController.
+ * Contains Drupal\picture\PictureListController.
  */
 
 namespace Drupal\picture;
 
 use Drupal\Core\Config\Entity\ConfigEntityListController;
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\picture\PictureMapping;
 
 /**
  * Provides a listing of Pictures.
@@ -17,23 +16,25 @@ use Drupal\picture\PictureMapping;
 class PictureMappingListController extends ConfigEntityListController {
 
   /**
-   * Overrides Drupal\config\EntityListControllerBase::hookMenu().
+   * {@inheritdoc}
    */
-  public function hookMenu() {
-    $path = $this->entityInfo['list path'];
-    $items = parent::hookMenu();
-
-    // Override the access callback.
-    $items[$path]['title'] = 'Picture Mappings';
-    $items[$path]['description'] = 'Manage list of picture mappings.';
-    $items[$path]['access callback'] = 'user_access';
-    $items[$path]['access arguments'] = array('administer pictures');
-
-    return $items;
+  public function buildHeader() {
+    $header['label'] = t('Label');
+    $header['id'] = t('Machine name');
+    return $header + parent::buildHeader();
   }
 
   /**
-   * Overrides Drupal\config\ConfigEntityListController::getOperations();
+   * {@inheritdoc}
+   */
+  public function buildRow(EntityInterface $entity) {
+    $row['label'] = $this->getLabel($entity);
+    $row['id'] = $entity->id();
+    return $row + parent::buildRow($entity);
+  }
+
+  /**
+   * {@inheritdoc}
    */
   public function getOperations(EntityInterface $entity) {
     $operations = parent::getOperations($entity);

@@ -1,6 +1,7 @@
 
 Drupal 8.0, xxxx-xx-xx (development version)
 ----------------------
+- Added tour module. Provides highly contextual tips for UI elements.
 - Improved entity system.
     * Added support for saving and deleting entities through the controller.
     * Entities are now classed objects, implementing EntityInterface.
@@ -15,6 +16,7 @@ Drupal 8.0, xxxx-xx-xx (development version)
     * Implements functionality to get, set, add and remove configuration.
     * Includes ability to override configuration values with language variants
       and other runtime values.
+- Added the CKEditor WYSIWYG editor. Provides a drag-and-drop configuration UI.
 - Included the HTML5 Shiv library to support HTML5 elements in IE 8 and below.
 - Included the following Symfony2 components:
     * ClassLoader - PSR-0-compatible autoload routines.
@@ -34,16 +36,19 @@ Drupal 8.0, xxxx-xx-xx (development version)
       modules with similar functionality are available:
       * Blog
       * Dashboard
+      * OpenID
+      * Poll
       * Profile
       * Trigger
 - Removed the Garland theme from core.
+- Removed the Statistics module's accesslog functionality and reports from core.
 - Removed backwards-compatibility with 'magic_quotes_gpc'/'magic_quotes_runtime'
   PHP configuration settings. Both are required to be disabled.
 - Universally Unique IDentifier (UUID):
     * Support for generating and validating UUIDs.
 - JavaScript changes:
-    * Updated to jQuery 1.7
-    * Updated to jQuery UI 1.9
+    * Updated to jQuery 2.0.3
+    * Updated to jQuery UI 1.10.2
 - Tremendously improved language support all around.
     * Great language improvements for users:
       * Improved language selection with user preference detection in the
@@ -97,8 +102,11 @@ Drupal 8.0, xxxx-xx-xx (development version)
       * Added language select form element in the Form API.
 - Added E-mail field type to core.
 - Added Link field type to core.
+- Added Phone number field type to core.
 - Added local image input filter, to enable secure image posting.
 - Added Views and Views UI module to core.
+- Added Entity Reference field type to core.
+- Added Date field type to core.
 
 Drupal 7.0, 2011-01-05
 ----------------------

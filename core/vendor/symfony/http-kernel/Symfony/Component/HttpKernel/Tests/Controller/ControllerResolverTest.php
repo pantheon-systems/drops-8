@@ -30,7 +30,7 @@ class ControllerResolverTest extends \PHPUnit_Framework_TestCase
 
         $request = Request::create('/');
         $this->assertFalse($resolver->getController($request), '->getController() returns false when the request has no _controller attribute');
-        $this->assertEquals(array('Unable to look for the controller as the "_controller" parameter is missing'), $logger->getLogs('warn'));
+        $this->assertEquals(array('Unable to look for the controller as the "_controller" parameter is missing'), $logger->getLogs('warning'));
 
         $request->attributes->set('_controller', 'Symfony\Component\HttpKernel\Tests\ControllerResolverTest::testGetController');
         $controller = $resolver->getController($request);
@@ -148,6 +148,16 @@ class ControllerResolverTest extends \PHPUnit_Framework_TestCase
         $request = Request::create('/');
         $controller = array(new self(), 'controllerMethod5');
         $this->assertEquals(array($request), $resolver->getArguments($request, $controller), '->getArguments() injects the request');
+    }
+
+    public function testCreateControllerCanReturnAnyCallable()
+    {
+        $mock = $this->getMock('Symfony\Component\HttpKernel\Controller\ControllerResolver', array('createController'));
+        $mock->expects($this->once())->method('createController')->will($this->returnValue('Symfony\Component\HttpKernel\Tests\some_controller_function'));
+
+        $request = Request::create('/');
+        $request->attributes->set('_controller', 'foobar');
+        $mock->getController($request);
     }
 
     public function __invoke($foo, $bar = null)

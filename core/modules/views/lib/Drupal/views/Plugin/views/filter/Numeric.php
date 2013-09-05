@@ -8,16 +8,14 @@
 namespace Drupal\views\Plugin\views\filter;
 
 use Drupal\Core\Database\Database;
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
 
 /**
  * Simple filter to handle greater than/less than filters
  *
  * @ingroup views_filter_handlers
  *
- * @Plugin(
- *   id = "numeric"
- * )
+ * @PluginID("numeric")
  */
 class Numeric extends FilterPluginBase {
 
@@ -41,51 +39,57 @@ class Numeric extends FilterPluginBase {
     $operators = array(
       '<' => array(
         'title' => t('Is less than'),
-        'method' => 'op_simple',
+        'method' => 'opSimple',
         'short' => t('<'),
         'values' => 1,
       ),
       '<=' => array(
         'title' => t('Is less than or equal to'),
-        'method' => 'op_simple',
+        'method' => 'opSimple',
         'short' => t('<='),
         'values' => 1,
       ),
       '=' => array(
         'title' => t('Is equal to'),
-        'method' => 'op_simple',
+        'method' => 'opSimple',
         'short' => t('='),
         'values' => 1,
       ),
       '!=' => array(
         'title' => t('Is not equal to'),
-        'method' => 'op_simple',
+        'method' => 'opSimple',
         'short' => t('!='),
         'values' => 1,
       ),
       '>=' => array(
         'title' => t('Is greater than or equal to'),
-        'method' => 'op_simple',
+        'method' => 'opSimple',
         'short' => t('>='),
         'values' => 1,
       ),
       '>' => array(
         'title' => t('Is greater than'),
-        'method' => 'op_simple',
+        'method' => 'opSimple',
         'short' => t('>'),
         'values' => 1,
       ),
       'between' => array(
         'title' => t('Is between'),
-        'method' => 'op_between',
+        'method' => 'opBetween',
         'short' => t('between'),
         'values' => 2,
       ),
       'not between' => array(
         'title' => t('Is not between'),
-        'method' => 'op_between',
+        'method' => 'opBetween',
         'short' => t('not between'),
         'values' => 2,
+      ),
+      'regular_expression' => array(
+        'title' => t('Regular expression'),
+        'short' => t('regex'),
+        'method' => 'op_regex',
+        'values' => 1,
       ),
     );
 
@@ -94,27 +98,15 @@ class Numeric extends FilterPluginBase {
       $operators += array(
         'empty' => array(
           'title' => t('Is empty (NULL)'),
-          'method' => 'op_empty',
+          'method' => 'opEmpty',
           'short' => t('empty'),
           'values' => 0,
         ),
         'not empty' => array(
           'title' => t('Is not empty (NOT NULL)'),
-          'method' => 'op_empty',
+          'method' => 'opEmpty',
           'short' => t('not empty'),
           'values' => 0,
-        ),
-      );
-    }
-
-    // Add regexp support for MySQL.
-    if (Database::getConnection()->databaseType() == 'mysql') {
-      $operators += array(
-        'regular_expression' => array(
-          'title' => t('Regular expression'),
-          'short' => t('regex'),
-          'method' => 'op_regex',
-          'values' => 1,
         ),
       );
     }
@@ -125,7 +117,7 @@ class Numeric extends FilterPluginBase {
   /**
    * Provide a list of all the numeric operators
    */
-  function operator_options($which = 'title') {
+  public function operatorOptions($which = 'title') {
     $options = array();
     foreach ($this->operators() as $id => $info) {
       $options[$id] = $info[$which];
@@ -134,7 +126,7 @@ class Numeric extends FilterPluginBase {
     return $options;
   }
 
-  function operator_values($values = 1) {
+  protected function operatorValues($values = 1) {
     $options = array();
     foreach ($this->operators() as $id => $info) {
       if ($info['values'] == $values) {
@@ -147,7 +139,7 @@ class Numeric extends FilterPluginBase {
   /**
    * Provide a simple textfield for equality
    */
-  function value_form(&$form, &$form_state) {
+  protected function valueForm(&$form, &$form_state) {
     $form['value']['#tree'] = TRUE;
 
     // We have to make some choices when creating this as an exposed
@@ -164,7 +156,7 @@ class Numeric extends FilterPluginBase {
 
       if (empty($this->options['expose']['use_operator']) || empty($this->options['expose']['operator_id'])) {
         // exposed and locked.
-        $which = in_array($this->operator, $this->operator_values(2)) ? 'minmax' : 'value';
+        $which = in_array($this->operator, $this->operatorValues(2)) ? 'minmax' : 'value';
       }
       else {
         $source = ':input[name="' . $this->options['expose']['operator_id'] . '"]';
@@ -179,7 +171,7 @@ class Numeric extends FilterPluginBase {
         '#default_value' => $this->value['value'],
       );
       // Setup #states for all operators with one value.
-      foreach ($this->operator_values(1) as $operator) {
+      foreach ($this->operatorValues(1) as $operator) {
         $form['value']['value']['#states']['visible'][] = array(
           $source => array('value' => $operator),
         );
@@ -218,7 +210,7 @@ class Numeric extends FilterPluginBase {
       if ($which == 'all') {
         $states = array();
         // Setup #states for all operators with two values.
-        foreach ($this->operator_values(2) as $operator) {
+        foreach ($this->operatorValues(2) as $operator) {
           $states['#states']['visible'][] = array(
             $source => array('value' => $operator),
           );
@@ -253,20 +245,20 @@ class Numeric extends FilterPluginBase {
     }
   }
 
-  function op_between($field) {
+  protected function opBetween($field) {
     if ($this->operator == 'between') {
-      $this->query->add_where($this->options['group'], $field, array($this->value['min'], $this->value['max']), 'BETWEEN');
+      $this->query->addWhere($this->options['group'], $field, array($this->value['min'], $this->value['max']), 'BETWEEN');
     }
     else {
-      $this->query->add_where($this->options['group'], db_or()->condition($field, $this->value['min'], '<=')->condition($field, $this->value['max'], '>='));
+      $this->query->addWhere($this->options['group'], db_or()->condition($field, $this->value['min'], '<=')->condition($field, $this->value['max'], '>='));
     }
   }
 
-  function op_simple($field) {
-    $this->query->add_where($this->options['group'], $field, $this->value['value'], $this->operator);
+  protected function opSimple($field) {
+    $this->query->addWhere($this->options['group'], $field, $this->value['value'], $this->operator);
   }
 
-  function op_empty($field) {
+  protected function opEmpty($field) {
     if ($this->operator == 'empty') {
       $operator = "IS NULL";
     }
@@ -274,11 +266,17 @@ class Numeric extends FilterPluginBase {
       $operator = "IS NOT NULL";
     }
 
-    $this->query->add_where($this->options['group'], $field, NULL, $operator);
+    $this->query->addWhere($this->options['group'], $field, NULL, $operator);
   }
 
-  function op_regex($field) {
-    $this->query->add_where($this->options['group'], $field, $this->value, 'RLIKE');
+  /**
+   * Filters by a regular expression.
+   *
+   * @param string $field
+   *   The expression pointing to the queries field, for example "foo.bar".
+   */
+  protected function opRegex($field) {
+    $this->query->addWhere($this->options['group'], $field, $this->value, 'REGEXP');
   }
 
   public function adminSummary() {
@@ -289,12 +287,12 @@ class Numeric extends FilterPluginBase {
       return t('exposed');
     }
 
-    $options = $this->operator_options('short');
+    $options = $this->operatorOptions('short');
     $output = check_plain($options[$this->operator]);
-    if (in_array($this->operator, $this->operator_values(2))) {
+    if (in_array($this->operator, $this->operatorValues(2))) {
       $output .= ' ' . t('@min and @max', array('@min' => $this->value['min'], '@max' => $this->value['max']));
     }
-    elseif (in_array($this->operator, $this->operator_values(1))) {
+    elseif (in_array($this->operator, $this->operatorValues(1))) {
       $output .= ' ' . check_plain($this->value['value']);
     }
     return $output;

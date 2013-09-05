@@ -10,7 +10,16 @@ namespace Drupal\views\Tests;
 /**
  * Tests core view token replacement.
  */
-class TokenReplaceTest extends ViewTestBase {
+class TokenReplaceTest extends ViewUnitTestBase {
+
+  public static $modules = array('system');
+
+  /**
+   * Views used by this test.
+   *
+   * @var array
+   */
+  public static $testViews = array('test_tokens');
 
   public static function getInfo() {
     return array(
@@ -20,24 +29,24 @@ class TokenReplaceTest extends ViewTestBase {
     );
   }
 
-  public function setUp() {
-    parent::SetUp();
-
-    $this->enableViewsTestModule();
+  function setUp() {
+    parent::setUp();
+    $this->installSchema('system', 'url_alias');
   }
 
   /**
    * Tests core token replacements generated from a view.
    */
   function testTokenReplacement() {
+    $token_handler = \Drupal::token();
     $view = views_get_view('test_tokens');
     $view->setDisplay('page_1');
     $this->executeView($view);
 
     $expected = array(
-      '[view:name]' => 'Test tokens',
+      '[view:label]' => 'Test tokens',
       '[view:description]' => 'Test view to token replacement tests.',
-      '[view:machine-name]' => 'test_tokens',
+      '[view:id]' => 'test_tokens',
       '[view:title]' => 'Test token page',
       '[view:url]' => url('test_tokens', array('absolute' => TRUE)),
       '[view:total-rows]' => (string) $view->total_rows,
@@ -49,7 +58,7 @@ class TokenReplaceTest extends ViewTestBase {
     );
 
     foreach ($expected as $token => $expected_output) {
-      $output = token_replace($token, array('view' => $view));
+      $output = $token_handler->replace($token, array('view' => $view));
       $this->assertIdentical($output, $expected_output, format_string('Token %token replaced correctly.', array('%token' => $token)));
     }
   }

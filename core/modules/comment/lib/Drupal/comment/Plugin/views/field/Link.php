@@ -8,17 +8,15 @@
 namespace Drupal\comment\Plugin\views\field;
 
 use Drupal\views\Plugin\views\field\FieldPluginBase;
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
+use Drupal\views\ResultRow;
 
 /**
  * Base field handler to present a link.
  *
  * @ingroup views_field_handlers
  *
- * @Plugin(
- *   id = "comment_link",
- *   module = "comment"
- * )
+ * @PluginID("comment_link")
  */
 class Link extends FieldPluginBase {
 
@@ -45,12 +43,15 @@ class Link extends FieldPluginBase {
 
   public function query() {}
 
-  function render($values) {
-    $comment = $this->get_entity($values);
-    return $this->render_link($comment, $values);
+  /**
+   * {@inheritdoc}
+   */
+  public function render(ResultRow $values) {
+    $comment = $this->getEntity($values);
+    return $this->renderLink($comment, $values);
   }
 
-  function render_link($data, $values) {
+  protected function renderLink($data, ResultRow $values) {
     $text = !empty($this->options['text']) ? $this->options['text'] : t('view');
     $comment = $data;
     $nid = $comment->nid;

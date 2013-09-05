@@ -7,63 +7,45 @@
 
 namespace Drupal\system\Tests\Common;
 
-use Drupal\simpletest\UnitTestBase;
+use Drupal\simpletest\DrupalUnitTestBase;
 
 /**
- * Tests for check_plain(), filter_xss(), format_string(), and check_url().
+ * Tests for filter_xss() and check_url().
  */
-class XssUnitTest extends UnitTestBase {
+class XssUnitTest extends DrupalUnitTestBase {
+
+  /**
+   * Modules to enable.
+   *
+   * @var array
+   */
+  public static $modules = array('filter');
 
   public static function getInfo() {
     return array(
       'name' => 'String filtering tests',
-      'description' => 'Confirm that check_plain(), filter_xss(), format_string() and check_url() work correctly, including invalid multi-byte sequences.',
+      'description' => 'Confirm that filter_xss() and check_url() work correctly, including invalid multi-byte sequences.',
       'group' => 'Common',
     );
   }
 
-  /**
-   * Checks that invalid multi-byte sequences are rejected.
-   */
-  function testInvalidMultiByte() {
-     // Ignore PHP 5.3+ invalid multibyte sequence warning.
-     $text = @check_plain("Foo\xC0barbaz");
-     $this->assertEqual($text, '', 'check_plain() rejects invalid sequence "Foo\xC0barbaz"');
-     // Ignore PHP 5.3+ invalid multibyte sequence warning.
-     $text = @check_plain("\xc2\"");
-     $this->assertEqual($text, '', 'check_plain() rejects invalid sequence "\xc2\""');
-     $text = check_plain("Fooÿñ");
-     $this->assertEqual($text, "Fooÿñ", 'check_plain() accepts valid sequence "Fooÿñ"');
-     $text = filter_xss("Foo\xC0barbaz");
-     $this->assertEqual($text, '', 'filter_xss() rejects invalid sequence "Foo\xC0barbaz"');
-     $text = filter_xss("Fooÿñ");
-     $this->assertEqual($text, "Fooÿñ", 'filter_xss() accepts valid sequence Fooÿñ');
+  protected function setUp() {
+    parent::setUp();
+    config_install_default_config('module', 'system');
   }
 
   /**
-   * Checks that special characters are escaped.
+   * Tests t() functionality.
    */
-  function testEscaping() {
-     $text = check_plain("<script>");
-     $this->assertEqual($text, '&lt;script&gt;', 'check_plain() escapes &lt;script&gt;');
-     $text = check_plain('<>&"\'');
-     $this->assertEqual($text, '&lt;&gt;&amp;&quot;&#039;', 'check_plain() escapes reserved HTML characters.');
-  }
-
-  /**
-   * Tests t() and format_string() replacement functionality.
-   */
-  function testFormatStringAndT() {
-    foreach (array('format_string', 't') as $function) {
-      $text = $function('Simple text');
-      $this->assertEqual($text, 'Simple text', $function . ' leaves simple text alone.');
-      $text = $function('Escaped text: @value', array('@value' => '<script>'));
-      $this->assertEqual($text, 'Escaped text: &lt;script&gt;', $function . ' replaces and escapes string.');
-      $text = $function('Placeholder text: %value', array('%value' => '<script>'));
-      $this->assertEqual($text, 'Placeholder text: <em class="placeholder">&lt;script&gt;</em>', $function . ' replaces, escapes and themes string.');
-      $text = $function('Verbatim text: !value', array('!value' => '<script>'));
-      $this->assertEqual($text, 'Verbatim text: <script>', $function . ' replaces verbatim string as-is.');
-    }
+  function testT() {
+    $text = t('Simple text');
+    $this->assertEqual($text, 'Simple text', 't leaves simple text alone.');
+    $text = t('Escaped text: @value', array('@value' => '<script>'));
+    $this->assertEqual($text, 'Escaped text: &lt;script&gt;', 't replaces and escapes string.');
+    $text = t('Placeholder text: %value', array('%value' => '<script>'));
+    $this->assertEqual($text, 'Placeholder text: <em class="placeholder">&lt;script&gt;</em>', 't replaces, escapes and themes string.');
+    $text = t('Verbatim text: !value', array('!value' => '<script>'));
+    $this->assertEqual($text, 'Verbatim text: <script>', 't replaces verbatim string as-is.');
   }
 
   /**

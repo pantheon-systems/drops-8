@@ -96,9 +96,9 @@ function update_help($path, $arg) {
 }
 
 /**
- * Implements hook_init().
+ * Implements hook_page_build().
  */
-function update_init() {
+function update_page_build() {
   if (arg(0) == 'admin' && user_access('administer site configuration')) {
     switch (current_path()) {
       // These pages don't need additional nagging.
@@ -158,10 +158,8 @@ function update_menu() {
   $items['admin/reports/updates'] = array(
     'title' => 'Available updates',
     'description' => 'Get a status report about available updates for your installed modules and themes.',
-    'page callback' => 'update_status',
-    'access arguments' => array('administer site configuration'),
+    'route_name' => 'update_status',
     'weight' => -50,
-    'file' => 'update.report.inc',
   );
   $items['admin/reports/updates/list'] = array(
     'title' => 'List',
@@ -170,10 +168,8 @@ function update_menu() {
   );
   $items['admin/reports/updates/settings'] = array(
     'title' => 'Settings',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('update_settings'),
+    'route_name' => 'update_settings',
     'access arguments' => array('administer site configuration'),
-    'file' => 'update.settings.inc',
     'type' => MENU_LOCAL_TASK,
     'weight' => 50,
   );
@@ -251,7 +247,7 @@ function update_menu() {
  * @see update_menu()
  */
 function update_manager_access() {
-  return config('system.authorize')->get('allow_operations') && user_access('administer software updates');
+  return settings()->get('allow_authorize_operations', TRUE) && user_access('administer software updates');
 }
 
 /**
@@ -268,12 +264,15 @@ function update_theme() {
     ),
     'update_report' => array(
       'variables' => array('data' => NULL),
+      'file' => 'update.report.inc',
     ),
     'update_version' => array(
       'variables' => array('version' => NULL, 'tag' => NULL, 'class' => array()),
+      'file' => 'update.report.inc',
     ),
     'update_status_label' => array(
       'variables' => array('status' => NULL),
+      'file' => 'update.report.inc',
     ),
   );
 }
@@ -282,13 +281,13 @@ function update_theme() {
  * Implements hook_cron().
  */
 function update_cron() {
-  $update_config = config('update.settings');
+  $update_config = Drupal::config('update.settings');
   $frequency = $update_config->get('check.interval_days');
   $interval = 60 * 60 * 24 * $frequency;
-  $last_check = state()->get('update.last_check') ?: 0;
+  $last_check = Drupal::state()->get('update.last_check') ?: 0;
   if ((REQUEST_TIME - $last_check) > $interval) {
     // If the configured update interval has elapsed, we want to invalidate
-    // the cached data for all projects, attempt to re-fetch, and trigger any
+    // the data for all projects, attempt to re-fetch, and trigger any
     // configured notifications about the new status.
     update_refresh();
     update_fetch_data();
@@ -298,7 +297,7 @@ function update_cron() {
     // missing data, and if so, try to fetch the data.
     update_get_available(TRUE);
   }
-  $last_email_notice = state()->get('update.last_email_notification') ?: 0;
+  $last_email_notice = Drupal::state()->get('update.last_email_notification') ?: 0;
   if ((REQUEST_TIME - $last_email_notice) > $interval) {
     // If configured time between notifications elapsed, send email about
     // updates possibly available.
@@ -313,33 +312,33 @@ function update_cron() {
 /**
  * Implements hook_themes_enabled().
  *
- * If themes are enabled, we invalidate the cache of available updates.
+ * If themes are enabled, we invalidate the information of available updates.
  */
 function update_themes_enabled($themes) {
-  // Clear all update module caches.
-  _update_cache_clear();
+  // Clear all update module data.
+  update_storage_clear();
 }
 
 /**
  * Implements hook_themes_disabled().
  *
- * If themes are disabled, we invalidate the cache of available updates.
+ * If themes are disabled, we invalidate the information of available updates.
  */
 function update_themes_disabled($themes) {
-  // Clear all update module caches.
-  _update_cache_clear();
+  // Clear all update module data.
+  update_storage_clear();
 }
 
 /**
  * Implements hook_form_FORM_ID_alter() for system_modules().
  *
  * Adds a form submission handler to the system modules form, so that if a site
- * admin saves the form, we invalidate the cache of available updates.
+ * admin saves the form, we invalidate the information of available updates.
  *
  * @see _update_cache_clear()
  */
 function update_form_system_modules_alter(&$form, $form_state) {
-  $form['#submit'][] = 'update_cache_clear_submit';
+  $form['#submit'][] = 'update_storage_clear_submit';
 }
 
 /**
@@ -347,9 +346,9 @@ function update_form_system_modules_alter(&$form, $form_state) {
  *
  * @see update_form_system_modules_alter()
  */
-function update_cache_clear_submit($form, &$form_state) {
-  // Clear all update module caches.
-  _update_cache_clear();
+function update_storage_clear_submit($form, &$form_state) {
+  // Clear all update module data.
+  update_storage_clear();
 }
 
 /**
@@ -364,19 +363,19 @@ function _update_no_data() {
 }
 
 /**
- * Tries to get update information from cache and refreshes it when necessary.
+ * Tries to get update information and refreshes it when necessary.
  *
- * In addition to checking the cache lifetime, this function also ensures that
- * there are no .info files for enabled modules or themes that have a newer
+ * In addition to checking the lifetime, this function also ensures that
+ * there are no .info.yml files for enabled modules or themes that have a newer
  * modification timestamp than the last time we checked for available update
- * data. If any .info file was modified, it almost certainly means a new version
- * of something was installed. Without fresh available update data, the logic in
- * update_calculate_project_data() will be wrong and produce confusing, bogus
- * results.
+ * data. If any .info.yml file was modified, it almost certainly means a new
+ * version of something was installed. Without fresh available update data, the
+ * logic in update_calculate_project_data() will be wrong and produce confusing,
+ * bogus results.
  *
  * @param $refresh
- *   (optional) Boolean to indicate if this method should refresh the cache
- *   automatically if there's no data. Defaults to FALSE.
+ *   (optional) Boolean to indicate if this method should refresh automatically
+ *   if there's no data. Defaults to FALSE.
  *
  * @return
  *   Array of data about available releases, keyed by project shortname.
@@ -388,9 +387,8 @@ function update_get_available($refresh = FALSE) {
   module_load_include('inc', 'update', 'update.compare');
   $needs_refresh = FALSE;
 
-  // Grab whatever data we currently have cached in the DB.
-  $available = _update_get_cached_available_releases();
-  $num_avail = count($available);
+  // Grab whatever data we currently have.
+  $available = Drupal::keyValueExpirable('update_available_releases')->getAll();
 
   $projects = update_get_projects();
   foreach ($projects as $key => $project) {
@@ -401,10 +399,10 @@ function update_get_available($refresh = FALSE) {
       continue;
     }
 
-    // See if the .info file is newer than the last time we checked for data,
-    // and if so, mark this project's data as needing to be re-fetched. Any
-    // time an admin upgrades their local installation, the .info file will
-    // be changed, so this is the only way we can be sure we're not showing
+    // See if the .info.yml file is newer than the last time we checked for
+    // data, and if so, mark this project's data as needing to be re-fetched.
+    // Any time an admin upgrades their local installation, the .info.yml file
+    // will be changed, so this is the only way we can be sure we're not showing
     // bogus information right after they upgrade.
     if ($project['info']['_info_file_ctime'] > $available[$key]['last_fetch']) {
       $available[$key]['fetch_status'] = UPDATE_FETCH_PENDING;
@@ -428,8 +426,8 @@ function update_get_available($refresh = FALSE) {
     // Attempt to drain the queue of fetch tasks.
     update_fetch_data();
     // After processing the queue, we've (hopefully) got better data, so pull
-    // the latest from the cache again and use that directly.
-    $available = _update_get_cached_available_releases();
+    // the latest data again and use that directly.
+    $available = Drupal::keyValueExpirable('update_available_releases')->getAll();
   }
 
   return $available;
@@ -446,7 +444,7 @@ function update_get_available($refresh = FALSE) {
  */
 function update_create_fetch_task($project) {
   module_load_include('inc', 'update', 'update.fetch');
-  return _update_create_fetch_task($project);
+  _update_create_fetch_task($project);
 }
 
 /**
@@ -456,7 +454,7 @@ function update_create_fetch_task($project) {
  */
 function update_refresh() {
   module_load_include('inc', 'update', 'update.fetch');
-  return _update_refresh();
+  _update_refresh();
 }
 
 /**
@@ -466,30 +464,7 @@ function update_refresh() {
  */
 function update_fetch_data() {
   module_load_include('inc', 'update', 'update.fetch');
-  return _update_fetch_data();
-}
-
-/**
- * Returns all currently cached data about available releases for all projects.
- *
- * @return
- *   Array of data about available releases, keyed by project shortname.
- */
-function _update_get_cached_available_releases() {
-  $data = array();
-  $cache_items = _update_get_cache_multiple('available_releases');
-  foreach ($cache_items as $cid => $cache) {
-    $cache->data['last_fetch'] = $cache->created;
-    if ($cache->expire < REQUEST_TIME) {
-      $cache->data['fetch_status'] = UPDATE_FETCH_PENDING;
-    }
-    // The project shortname is embedded in the cache ID, even if there's no
-    // data for this project in the DB at all, so use that for the indexes in
-    // the array.
-    $parts = explode('::', $cid, 2);
-    $data[$parts[1]] = $cache->data;
-  }
-  return $data;
+  _update_fetch_data();
 }
 
 /**
@@ -514,7 +489,7 @@ function _update_get_cached_available_releases() {
 function update_mail($key, &$message, $params) {
   $langcode = $message['langcode'];
   $language = language_load($langcode);
-  $message['subject'] .= t('New release(s) available for !site_name', array('!site_name' => config('system.site')->get('name')), array('langcode' => $langcode));
+  $message['subject'] .= t('New release(s) available for !site_name', array('!site_name' => Drupal::config('system.site')->get('name')), array('langcode' => $langcode));
   foreach ($params as $msg_type => $msg_reason) {
     $message['body'][] = _update_message_text($msg_type, $msg_reason, FALSE, $langcode);
   }
@@ -523,7 +498,7 @@ function update_mail($key, &$message, $params) {
     $message['body'][] = t('You can automatically install your missing updates using the Update manager:', array(), array('langcode' => $langcode)) . "\n" . url('admin/reports/updates/update', array('absolute' => TRUE, 'language' => $language));
   }
   $settings_url = url('admin/reports/updates/settings', array('absolute' => TRUE));
-  if (config('update.settings')->get('notification.threshold') == 'all') {
+  if (Drupal::config('update.settings')->get('notification.threshold') == 'all') {
     $message['body'][] = t('Your site is currently configured to send these emails when any updates are available. To get notified only for security updates, !url.', array('!url' => $settings_url));
   }
   else {
@@ -604,7 +579,7 @@ function _update_message_text($msg_type, $msg_reason, $report_link = FALSE, $lan
       break;
   }
   if (!empty($langcode)) {
-    $language = language_load(langcode);
+    $language = language_load($langcode);
   }
   else {
     $language = NULL;
@@ -667,7 +642,7 @@ function theme_update_last_check($variables) {
  * update manager does not yet support. See http://drupal.org/node/606592
  *
  * Then, we make sure that at least one module included in the archive file has
- * an .info file which claims that the code is compatible with the current
+ * an .info.yml file which claims that the code is compatible with the current
  * version of Drupal core.
  *
  * @see drupal_system_listing()
@@ -689,16 +664,16 @@ function update_verify_update_archive($project, $archive_file, $directory) {
     );
   }
 
-  // Parse all the .info files and make sure at least one is compatible with
+  // Parse all the .info.yml files and make sure at least one is compatible with
   // this version of Drupal core. If one is compatible, then the project as a
   // whole is considered compatible (since, for example, the project may ship
   // with some out-of-date modules that are not necessary for its overall
   // functionality).
   $compatible_project = FALSE;
   $incompatible = array();
-  $files = file_scan_directory("$directory/$project", '/^' . DRUPAL_PHP_FUNCTION_PATTERN . '\.info$/', array('key' => 'name', 'min_depth' => 0));
+  $files = file_scan_directory("$directory/$project", '/^' . DRUPAL_PHP_FUNCTION_PATTERN . '\.info.yml$/', array('key' => 'name', 'min_depth' => 0));
   foreach ($files as $key => $file) {
-    // Get the .info file for the module or theme this file belongs to.
+    // Get the .info.yml file for the module or theme this file belongs to.
     $info = drupal_parse_info_file($file->uri);
 
     // If the module or theme is incompatible with Drupal core, set an error.
@@ -712,7 +687,7 @@ function update_verify_update_archive($project, $archive_file, $directory) {
   }
 
   if (empty($files)) {
-    $errors[] = t('%archive_file does not contain any .info files.', array('%archive_file' => drupal_basename($archive_file)));
+    $errors[] = t('%archive_file does not contain any .info.yml files.', array('%archive_file' => drupal_basename($archive_file)));
   }
   elseif (!$compatible_project) {
     $errors[] = format_plural(
@@ -727,163 +702,12 @@ function update_verify_update_archive($project, $archive_file, $directory) {
 }
 
 /**
- * @defgroup update_status_cache Private update status cache system
- * @{
- * Functions to manage the update status cache.
- *
- * We specifically do NOT use the core cache API for saving the fetched data
- * about available updates. It is vitally important that this cache is only
- * cleared when we're populating it after successfully fetching new available
- * update data. Usage of the core cache API results in all sorts of potential
- * problems that would result in attempting to fetch available update data all
- * the time, including if a site has a "minimum cache lifetime" (which is both a
- * minimum and a maximum) defined, or if a site uses memcache or another
- * pluggable cache system that assumes volatile caches.
- *
- * The Update Manager module still uses the {cache_update} table, but instead of
- * using the cache API, there are private helper functions that implement these
- * same basic tasks but ensure that the cache is not prematurely cleared, and
- * that the data is always stored in the database, even if memcache or another
- * cache backend is in use.
+ * Invalidates stored data relating to update status.
  */
-
-/**
- * Stores data in the private update status cache table.
- *
- * @param $cid
- *   The cache ID to save the data with.
- * @param $data
- *   The data to store.
- * @param $expire
- *   One of the following values:
- *   - CacheBackendInterface::CACHE_PERMANENT: Indicates that the item should
- *     never be removed except by explicitly using _update_cache_clear().
- *   - A Unix timestamp: Indicates that the item should be kept at least until
- *     the given time, after which it will be invalidated.
- *
- * @see _update_cache_get()
- */
-function _update_cache_set($cid, $data, $expire) {
-  $fields = array(
-    'created' => REQUEST_TIME,
-    'expire' => $expire,
-  );
-  if (!is_string($data)) {
-    $fields['data'] = serialize($data);
-    $fields['serialized'] = 1;
-  }
-  else {
-    $fields['data'] = $data;
-    $fields['serialized'] = 0;
-  }
-  db_merge('cache_update')
-    ->key(array('cid' => $cid))
-    ->fields($fields)
-    ->execute();
+function update_storage_clear() {
+  Drupal::keyValueExpirable('update')->deleteAll();
+  Drupal::keyValueExpirable('update_available_release')->deleteAll();
 }
-
-/**
- * Retrieves data from the private update status cache table.
- *
- * @param $cid
- *   The cache ID to retrieve.
- *
- * @return
- *   An array of data for the given cache ID, or NULL if the ID was not found.
- *
- * @see _update_cache_set()
- */
-function _update_cache_get($cid) {
-  $cache = db_query("SELECT data, created, expire, serialized FROM {cache_update} WHERE cid = :cid", array(':cid' => $cid))->fetchObject();
-  if (isset($cache->data)) {
-    if ($cache->serialized) {
-      $cache->data = unserialize($cache->data);
-    }
-  }
-  return $cache;
-}
-
-/**
- * Returns an array of cache items with a given cache ID prefix.
- *
- * @param string $cid_prefix
- *   The cache ID prefix.
- *
- * @return
- *   Associative array of cache items, keyed by cache ID.
- */
-function _update_get_cache_multiple($cid_prefix) {
-  $data = array();
-  $result = db_select('cache_update')
-    ->fields('cache_update', array('cid', 'data', 'created', 'expire', 'serialized'))
-    ->condition('cache_update.cid', $cid_prefix . '::%', 'LIKE')
-    ->execute();
-  foreach ($result as $cache) {
-    if ($cache) {
-      if ($cache->serialized) {
-        $cache->data = unserialize($cache->data);
-      }
-      $data[$cache->cid] = $cache;
-    }
-  }
-  return $data;
-}
-
-/**
- * Invalidates cached data relating to update status.
- *
- * @param $cid
- *   (optional) Cache ID of the record to clear from the private update module
- *   cache. If empty, all records will be cleared from the table except fetch
- *   tasks. Defaults to NULL.
- * @param $wildcard
- *   (optional) If TRUE, cache IDs starting with $cid are deleted in addition to
- *   the exact cache ID specified by $cid. Defaults to FALSE.
- */
-function _update_cache_clear($cid = NULL, $wildcard = FALSE) {
-  if (empty($cid)) {
-    db_delete('cache_update')
-      // Clear everything except fetch task information because these are used
-      // to ensure that the fetch task queue items are not added multiple times.
-      ->condition('cid', 'fetch_task::%', 'NOT LIKE')
-      ->execute();
-  }
-  else {
-    $query = db_delete('cache_update');
-    if ($wildcard) {
-      $query->condition('cid', $cid . '%', 'LIKE');
-    }
-    else {
-      $query->condition('cid', $cid);
-    }
-    $query->execute();
-  }
-}
-
-/**
- * Implements hook_cache_flush().
- *
- * Called from update.php (among others) to flush the caches. Since we're
- * running update.php, we are likely to install a new version of something, in
- * which case, we want to check for available update data again. However,
- * because we have our own caching system, we need to directly clear the
- * the database table ourselves at this point and return nothing.
- *
- * However, we only want to do this from update.php, since otherwise, we'd lose
- * all the available update data on every cron run. So, we specifically check if
- * the site is in MAINTENANCE_MODE == 'update' (which indicates update.php is
- * running, not update module... alas for overloaded names).
- */
-function update_cache_flush() {
-  if (defined('MAINTENANCE_MODE') && MAINTENANCE_MODE == 'update') {
-    _update_cache_clear();
-  }
-  return array();
-}
-
-/**
- * @} End of "defgroup update_status_cache".
- */
 
 /**
  * Returns a short unique identifier for this Drupal installation.

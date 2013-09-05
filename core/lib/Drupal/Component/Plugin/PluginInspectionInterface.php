@@ -1,7 +1,7 @@
 <?php
 /**
  * @file
- * Definition of Drupal\Component\Plugin\PluginInspectionInterface.
+ * Contains \Drupal\Component\Plugin\PluginInspectionInterface.
  */
 
 namespace Drupal\Component\Plugin;
@@ -29,5 +29,5 @@ interface PluginInspectionInterface {
    *   The plugin definition, as returned by the discovery object used by the
    *   plugin manager.
    */
-  public function getDefinition();
+  public function getPluginDefinition();
 }

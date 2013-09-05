@@ -420,7 +420,7 @@ states.Trigger.states = {
 
   collapsed: {
     'collapsed': function(e) {
-      return (typeof e !== 'undefined' && 'value' in e) ? e.value : this.is('.collapsed');
+      return (typeof e !== 'undefined' && 'value' in e) ? e.value : !this.is('[open]');
     }
   }
 };
@@ -477,6 +477,8 @@ states.State.aliases = {
   'unchecked': '!checked',
   'irrelevant': '!relevant',
   'expanded': '!collapsed',
+  'open': '!collapsed',
+  'closed': 'collapsed',
   'readwrite': '!readonly'
 };
 
@@ -503,9 +505,9 @@ $(document).bind('state:disabled', function(e) {
   // element monitoring itself.
   if (e.trigger) {
     $(e.target)
-      .attr('disabled', e.value)
+      .prop('disabled', e.value)
         .closest('.form-item, .form-submit, .form-wrapper').toggleClass('form-disabled', e.value)
-        .find('select, input, textarea').attr('disabled', e.value);
+        .find('select, input, textarea').prop('disabled', e.value);
 
     // Note: WebKit nightlies don't reflect that change correctly.
     // See https://bugs.webkit.org/show_bug.cgi?id=23789
@@ -531,14 +533,14 @@ $(document).bind('state:visible', function(e) {
 
 $(document).bind('state:checked', function(e) {
   if (e.trigger) {
-    $(e.target).attr('checked', e.value);
+    $(e.target).prop('checked', e.value);
   }
 });
 
 $(document).bind('state:collapsed', function(e) {
   if (e.trigger) {
-    if ($(e.target).is('.collapsed') !== e.value) {
-      $(e.target).find('> legend a').click();
+    if ($(e.target).is('[open]') === e.value) {
+      $(e.target).find('> summary a').click();
     }
   }
 });

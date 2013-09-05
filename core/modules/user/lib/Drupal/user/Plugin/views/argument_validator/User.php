@@ -7,9 +7,11 @@
 
 namespace Drupal\user\Plugin\views\argument_validator;
 
-use Drupal\Core\Annotation\Plugin;
+use Drupal\views\Annotation\ViewsArgumentValidator;
 use Drupal\Core\Annotation\Translation;
+use Drupal\Core\Database\Connection;
 use Drupal\views\Plugin\views\argument_validator\ArgumentValidatorPluginBase;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Validate whether an argument is a valid user.
@@ -18,13 +20,45 @@ use Drupal\views\Plugin\views\argument_validator\ArgumentValidatorPluginBase;
  * converts either one into the user's UID.  This validator also sets the
  * argument's title to the username.
  *
- * @Plugin(
+ * @ViewsArgumentValidator(
  *   id = "user",
  *   module = "user",
  *   title = @Translation("User")
  * )
  */
 class User extends ArgumentValidatorPluginBase {
+
+  /**
+   * Database Service Object.
+   *
+   * @var \Drupal\Core\Database\Connection
+   */
+  protected $database;
+
+  /**
+   * Constructs a Drupal\Component\Plugin\PluginBase object.
+   *
+   * @param array $configuration
+   *   A configuration array containing information about the plugin instance.
+   * @param string $plugin_id
+   *   The plugin_id for the plugin instance.
+   * @param array $plugin_definition
+   *   The plugin implementation definition.
+   * @param \Drupal\Core\Database\Connection $database
+   *   Database Service Object.
+   */
+  public function __construct(array $configuration, $plugin_id, array $plugin_definition, Connection $database) {
+    parent::__construct($configuration, $plugin_id, $plugin_definition);
+
+    $this->database = $database;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, array $plugin_definition) {
+    return new static($configuration, $plugin_id, $plugin_definition, $container->get('database'));
+  }
 
   protected function defineOptions() {
     $options = parent::defineOptions();
@@ -56,7 +90,7 @@ class User extends ArgumentValidatorPluginBase {
     $form['roles'] = array(
       '#type' => 'checkboxes',
       '#title' => t('Restrict to the selected roles'),
-      '#options' => array_map('check_plain', user_roles(TRUE)),
+      '#options' => array_map('check_plain', user_role_names(TRUE)),
       '#default_value' => $this->options['roles'],
       '#description' => t('If no roles are selected, users from any role will be allowed.'),
       '#states' => array(
@@ -72,13 +106,13 @@ class User extends ArgumentValidatorPluginBase {
     $options['roles'] = array_filter($options['roles']);
   }
 
-  function validate_argument($argument) {
+  public function validateArgument($argument) {
     $type = $this->options['type'];
     // is_numeric() can return false positives, so we ensure it's an integer.
     // However, is_integer() will always fail, since $argument is a string.
     if (is_numeric($argument) && $argument == (int)$argument) {
       if ($type == 'uid' || $type == 'either') {
-        if ($argument == $GLOBALS['user']->uid) {
+        if ($argument == $GLOBALS['user']->id()) {
           // If you assign an object to a variable in PHP, the variable
           // automatically acts as a reference, not a copy, so we use
           // clone to ensure that we don't actually mess with the
@@ -90,7 +124,7 @@ class User extends ArgumentValidatorPluginBase {
     }
     else {
       if ($type == 'name' || $type == 'either') {
-        $name = !empty($GLOBALS['user']->name) ? $GLOBALS['user']->name : config('user.settings')->get('anonymous');
+        $name = $GLOBALS['user']->getUserName() ?: \Drupal::config('user.settings')->get('anonymous');
         if ($argument == $name) {
           $account = clone $GLOBALS['user'];
         }
@@ -104,47 +138,40 @@ class User extends ArgumentValidatorPluginBase {
     }
 
     if (!isset($account)) {
-      $account = db_select('users', 'u')
-        ->fields('u', array('uid', 'name'))
+      $uid = $this->database->select('users', 'u')
+        ->fields('u', array('uid'))
         ->condition($condition, $argument)
         ->execute()
-        ->fetchObject();
+        ->fetchField();
+
+      if ($uid === FALSE) {
+        // User not found.
+        return FALSE;
+      }
     }
-    if (empty($account)) {
-      // User not found.
-      return FALSE;
-    }
+    $account = user_load($uid);
 
     // See if we're filtering users based on roles.
     if (!empty($this->options['restrict_roles']) && !empty($this->options['roles'])) {
       $roles = $this->options['roles'];
-      $account->roles = array();
-      $account->roles[] = $account->uid ? DRUPAL_AUTHENTICATED_RID : DRUPAL_ANONYMOUS_RID;
-      $query = db_select('users_roles', 'u');
-      $query->addField('u', 'rid');
-      $query->condition('u.uid', $account->uid);
-      $result = $query->execute();
-      foreach ($result as $role) {
-        $account->roles[] = $role->rid;
-      }
-      if (!(bool) array_intersect($account->roles, $roles)) {
+      if (!(bool) array_intersect($account->getRoles(), $roles)) {
         return FALSE;
       }
     }
 
-    $this->argument->argument = $account->uid;
+    $this->argument->argument = $account->id();
     $this->argument->validated_title = check_plain(user_format_name($account));
     return TRUE;
   }
 
-  function process_summary_arguments(&$args) {
+  public function processSummaryArguments(&$args) {
     // If the validation says the input is an username, we should reverse the
     // argument so it works for example for generation summary urls.
     $uids_arg_keys = array_flip($args);
     if ($this->options['type'] == 'name') {
       $users = user_load_multiple($args);
       foreach ($users as $uid => $account) {
-        $args[$uids_arg_keys[$uid]] = $account->name;
+        $args[$uids_arg_keys[$uid]] = $account->label();
       }
     }
   }

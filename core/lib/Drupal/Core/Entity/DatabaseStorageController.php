@@ -2,16 +2,21 @@
 
 /**
  * @file
- * Definition of Drupal\Core\Entity\DatabaseStorageController.
+ * Contains \Drupal\Core\Entity\DatabaseStorageController.
  */
 
 namespace Drupal\Core\Entity;
 
-use PDO;
+use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\Query\QueryInterface;
-use Exception;
+use Drupal\Component\Utility\NestedArray;
 use Drupal\Component\Uuid\Uuid;
-
+use Drupal\field\FieldInfo;
+use Drupal\field\FieldUpdateForbiddenException;
+use Drupal\field\FieldInterface;
+use Drupal\field\FieldInstanceInterface;
+use Drupal\field\Entity\Field;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Defines a base entity controller class.
@@ -21,64 +26,7 @@ use Drupal\Component\Uuid\Uuid;
  * This class can be used as-is by most simple entity types. Entity types
  * requiring special handling can extend the class.
  */
-class DatabaseStorageController implements EntityStorageControllerInterface {
-
-  /**
-   * Static cache of entities.
-   *
-   * @var array
-   */
-  protected $entityCache;
-
-  /**
-   * Entity type for this controller instance.
-   *
-   * @var string
-   */
-  protected $entityType;
-
-  /**
-   * Array of information about the entity.
-   *
-   * @var array
-   *
-   * @see entity_get_info()
-   */
-  protected $entityInfo;
-
-  /**
-   * An array of field information, i.e. containing definitions.
-   *
-   * @var array
-   *
-   * @see hook_entity_field_info()
-   */
-  protected $entityFieldInfo;
-
-  /**
-   * Additional arguments to pass to hook_TYPE_load().
-   *
-   * Set before calling Drupal\Core\Entity\DatabaseStorageController::attachLoad().
-   *
-   * @var array
-   */
-  protected $hookLoadArguments;
-
-  /**
-   * Name of the entity's ID field in the entity database table.
-   *
-   * @var string
-   */
-  protected $idKey;
-
-  /**
-   * Name of entity's UUID database table field, if it supports UUIDs.
-   *
-   * Has the value FALSE if this entity does not use UUIDs.
-   *
-   * @var string
-   */
-  protected $uuidKey;
+class DatabaseStorageController extends FieldableEntityStorageControllerBase {
 
   /**
    * Name of entity's revision database table field, if it supports revisions.
@@ -105,19 +53,57 @@ class DatabaseStorageController implements EntityStorageControllerInterface {
    */
   protected $cache;
 
+  /**
+   * Active database connection.
+   *
+   * @var \Drupal\Core\Database\Connection
+   */
+  protected $database;
+
+  /**
+   * The field info object.
+   *
+   * @var \Drupal\field\FieldInfo
+   */
+  protected $fieldInfo;
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function createInstance(ContainerInterface $container, $entity_type, array $entity_info) {
+    return new static(
+      $entity_type,
+      $entity_info,
+      $container->get('database'),
+      $container->get('field.info')
+    );
+  }
 
   /**
    * Constructs a DatabaseStorageController object.
    *
-   * @param string $entityType
+   * @param string $entity_type
    *   The entity type for which the instance is created.
+   * @param array $entity_info
+   *   An array of entity info for the entity type.
+   * @param \Drupal\Core\Database\Connection $database
+   *   The database connection to be used.
+   * @param \Drupal\field\FieldInfo $field_info
+   *   The field info service.
    */
-  public function __construct($entityType) {
-    $this->entityType = $entityType;
-    $this->entityInfo = entity_get_info($entityType);
-    $this->entityCache = array();
-    $this->hookLoadArguments = array();
-    $this->idKey = $this->entityInfo['entity_keys']['id'];
+  public function __construct($entity_type, array $entity_info, Connection $database, FieldInfo $field_info) {
+    parent::__construct($entity_type, $entity_info);
+
+    $this->database = $database;
+    $this->fieldInfo = $field_info;
+
+    // Check if the entity type supports IDs.
+    if (isset($this->entityInfo['entity_keys']['id'])) {
+      $this->idKey = $this->entityInfo['entity_keys']['id'];
+    }
+    else {
+      $this->idKey = FALSE;
+    }
 
     // Check if the entity type supports UUIDs.
     if (!empty($this->entityInfo['entity_keys']['uuid'])) {
@@ -135,29 +121,12 @@ class DatabaseStorageController implements EntityStorageControllerInterface {
     else {
       $this->revisionKey = FALSE;
     }
-
-    // Check if the entity type supports static caching of loaded entities.
-    $this->cache = !empty($this->entityInfo['static_cache']);
   }
 
   /**
-   * Implements Drupal\Core\Entity\EntityStorageControllerInterface::resetCache().
+   * {@inheritdoc}
    */
-  public function resetCache(array $ids = NULL) {
-    if (isset($ids)) {
-      foreach ($ids as $id) {
-        unset($this->entityCache[$id]);
-      }
-    }
-    else {
-      $this->entityCache = array();
-    }
-  }
-
-  /**
-   * Implements Drupal\Core\Entity\EntityStorageControllerInterface::load().
-   */
-  public function load(array $ids = NULL) {
+  public function loadMultiple(array $ids = NULL) {
     $entities = array();
 
     // Create a new variable which is either a prepared version of the $ids
@@ -187,7 +156,7 @@ class DatabaseStorageController implements EntityStorageControllerInterface {
         // We provide the necessary arguments for PDO to create objects of the
         // specified entity class.
         // @see Drupal\Core\Entity\EntityInterface::__construct()
-        $query_result->setFetchMode(PDO::FETCH_CLASS, $this->entityInfo['class'], array(array(), $this->entityType));
+        $query_result->setFetchMode(\PDO::FETCH_CLASS, $this->entityInfo['class'], array(array(), $this->entityType));
       }
       $queried_entities = $query_result->fetchAllAssoc($this->idKey);
     }
@@ -222,7 +191,15 @@ class DatabaseStorageController implements EntityStorageControllerInterface {
   }
 
   /**
-   * Implements Drupal\Core\Entity\EntityStorageControllerInterface::loadRevision().
+   * {@inheritdoc}
+   */
+  public function load($id) {
+    $entities = $this->loadMultiple(array($id));
+    return isset($entities[$id]) ? $entities[$id] : NULL;
+  }
+
+  /**
+   * Implements \Drupal\Core\Entity\EntityStorageControllerInterface::loadRevision().
    */
   public function loadRevision($revision_id) {
     // Build and execute the query.
@@ -232,7 +209,7 @@ class DatabaseStorageController implements EntityStorageControllerInterface {
       // We provide the necessary arguments for PDO to create objects of the
       // specified entity class.
       // @see Drupal\Core\Entity\EntityInterface::__construct()
-      $query_result->setFetchMode(PDO::FETCH_CLASS, $this->entityInfo['class'], array(array(), $this->entityType));
+      $query_result->setFetchMode(\PDO::FETCH_CLASS, $this->entityInfo['class'], array(array(), $this->entityType));
     }
     $queried_entities = $query_result->fetchAllAssoc($this->idKey);
 
@@ -240,13 +217,13 @@ class DatabaseStorageController implements EntityStorageControllerInterface {
     // which attaches fields (if supported by the entity type) and calls the
     // entity type specific load callback, for example hook_node_load().
     if (!empty($queried_entities)) {
-      $this->attachLoad($queried_entities, TRUE);
+      $this->attachLoad($queried_entities, $revision_id);
     }
     return reset($queried_entities);
   }
 
   /**
-   * Implements Drupal\Core\Entity\EntityStorageControllerInterface::deleteRevision().
+   * Implements \Drupal\Core\Entity\EntityStorageControllerInterface::deleteRevision().
    */
   public function deleteRevision($revision_id) {
     if ($revision = $this->loadRevision($revision_id)) {
@@ -255,22 +232,24 @@ class DatabaseStorageController implements EntityStorageControllerInterface {
         throw new EntityStorageException('Default revision can not be deleted');
       }
 
-      db_delete($this->revisionTable)
+      $this->database->delete($this->revisionTable)
         ->condition($this->revisionKey, $revision->getRevisionId())
         ->execute();
+      $this->invokeFieldMethod('deleteRevision', $revision);
+      $this->deleteFieldItemsRevision($revision);
       $this->invokeHook('revision_delete', $revision);
     }
   }
 
   /**
-   * Implements Drupal\Core\Entity\EntityStorageControllerInterface::loadByProperties().
+   * Implements \Drupal\Core\Entity\EntityStorageControllerInterface::loadByProperties().
    */
   public function loadByProperties(array $values = array()) {
     // Build a query to fetch the entity IDs.
-    $entity_query = entity_query($this->entityType);
+    $entity_query = \Drupal::entityQuery($this->entityType);
     $this->buildPropertyQuery($entity_query, $values);
     $result = $entity_query->execute();
-    return $result ? $this->load($result) : array();
+    return $result ? $this->loadMultiple($result) : array();
   }
 
   /**
@@ -297,8 +276,7 @@ class DatabaseStorageController implements EntityStorageControllerInterface {
    * being loaded needs to be augmented with additional data from another
    * table, such as loading node type into comments or vocabulary machine name
    * into terms, however it can also support $conditions on different tables.
-   * See Drupal\comment\CommentStorageController::buildQuery() or
-   * Drupal\taxonomy\TermStorageController::buildQuery() for examples.
+   * See Drupal\comment\CommentStorageController::buildQuery() for an example.
    *
    * @param array|null $ids
    *   An array of entity IDs, or NULL to load all entities.
@@ -310,7 +288,7 @@ class DatabaseStorageController implements EntityStorageControllerInterface {
    *   A SelectQuery object for loading the entity.
    */
   protected function buildQuery($ids, $revision_id = FALSE) {
-    $query = db_select($this->entityInfo['base_table'], 'base');
+    $query = $this->database->select($this->entityInfo['base_table'], 'base');
 
     $query->addTag($this->entityType . '_load_multiple');
 
@@ -322,18 +300,18 @@ class DatabaseStorageController implements EntityStorageControllerInterface {
     }
 
     // Add fields from the {entity} table.
-    $entity_fields = $this->entityInfo['schema_fields_sql']['base_table'];
+    $entity_fields = drupal_schema_fields_sql($this->entityInfo['base_table']);
 
     if ($this->revisionKey) {
       // Add all fields from the {entity_revision} table.
-      $entity_revision_fields = drupal_map_assoc($this->entityInfo['schema_fields_sql']['revision_table']);
+      $entity_revision_fields = drupal_map_assoc(drupal_schema_fields_sql($this->entityInfo['revision_table']));
       // The id field is provided by entity, so remove it.
       unset($entity_revision_fields[$this->idKey]);
 
       // Remove all fields from the base table that are also fields by the same
       // name in the revision table.
       $entity_field_keys = array_flip($entity_fields);
-      foreach ($entity_revision_fields as $key => $name) {
+      foreach ($entity_revision_fields as $name) {
         if (isset($entity_field_keys[$name])) {
           unset($entity_fields[$entity_field_keys[$name]]);
         }
@@ -371,18 +349,13 @@ class DatabaseStorageController implements EntityStorageControllerInterface {
    *   (optional) TRUE if the revision should be loaded, defaults to FALSE.
    */
   protected function attachLoad(&$queried_entities, $load_revision = FALSE) {
-    // Attach fields.
+    // Attach field values.
     if ($this->entityInfo['fieldable']) {
-      if ($load_revision) {
-        field_attach_load_revision($this->entityType, $queried_entities);
-      }
-      else {
-        field_attach_load($this->entityType, $queried_entities);
-      }
+      $this->loadFieldItems($queried_entities, $load_revision ? FIELD_LOAD_REVISION : FIELD_LOAD_CURRENT);
     }
 
     // Call hook_entity_load().
-    foreach (module_implements('entity_load') as $module) {
+    foreach (\Drupal::moduleHandler()->getImplementations('entity_load') as $module) {
       $function = $module . '_entity_load';
       $function($queried_entities, $this->entityType);
     }
@@ -390,79 +363,58 @@ class DatabaseStorageController implements EntityStorageControllerInterface {
     // always the queried entities, followed by additional arguments set in
     // $this->hookLoadArguments.
     $args = array_merge(array($queried_entities), $this->hookLoadArguments);
-    foreach (module_implements($this->entityType . '_load') as $module) {
+    foreach (\Drupal::moduleHandler()->getImplementations($this->entityType . '_load') as $module) {
       call_user_func_array($module . '_' . $this->entityType . '_load', $args);
     }
   }
 
   /**
-   * Gets entities from the static cache.
-   *
-   * @param $ids
-   *   If not empty, return entities that match these IDs.
-   *
-   * @return
-   *   Array of entities from the entity cache.
-   */
-  protected function cacheGet($ids) {
-    $entities = array();
-    // Load any available entities from the internal cache.
-    if (!empty($this->entityCache)) {
-      $entities += array_intersect_key($this->entityCache, array_flip($ids));
-    }
-    return $entities;
-  }
-
-  /**
-   * Stores entities in the static entity cache.
-   *
-   * @param $entities
-   *   Entities to store in the cache.
-   */
-  protected function cacheSet($entities) {
-    $this->entityCache += $entities;
-  }
-
-  /**
-   * Implements Drupal\Core\Entity\EntityStorageControllerInterface::create().
+   * Implements \Drupal\Core\Entity\EntityStorageControllerInterface::create().
    */
   public function create(array $values) {
-    $class = $this->entityInfo['class'];
+    $entity_class = $this->entityInfo['class'];
+    $entity_class::preCreate($this, $values);
 
-    $entity = new $class($values, $this->entityType);
+    $entity = new $entity_class($values, $this->entityType);
 
     // Assign a new UUID if there is none yet.
     if ($this->uuidKey && !isset($entity->{$this->uuidKey})) {
       $uuid = new Uuid();
       $entity->{$this->uuidKey} = $uuid->generate();
     }
+    $entity->postCreate($this);
+
+    // Modules might need to add or change the data initially held by the new
+    // entity object, for instance to fill-in default values.
+    $this->invokeHook('create', $entity);
 
     return $entity;
   }
 
   /**
-   * Implements Drupal\Core\Entity\EntityStorageControllerInterface::delete().
+   * Implements \Drupal\Core\Entity\EntityStorageControllerInterface::delete().
    */
   public function delete(array $entities) {
     if (!$entities) {
       // If no IDs or invalid IDs were passed, do nothing.
       return;
     }
-    $transaction = db_transaction();
+    $transaction = $this->database->startTransaction();
 
     try {
-      $this->preDelete($entities);
-      foreach ($entities as $id => $entity) {
+      $entity_class = $this->entityInfo['class'];
+      $entity_class::preDelete($this, $entities);
+      foreach ($entities as $entity) {
         $this->invokeHook('predelete', $entity);
       }
       $ids = array_keys($entities);
 
-      db_delete($this->entityInfo['base_table'])
+      $this->database->delete($this->entityInfo['base_table'])
         ->condition($this->idKey, $ids, 'IN')
         ->execute();
 
       if ($this->revisionKey) {
-        db_delete($this->revisionTable)
+        $this->database->delete($this->revisionTable)
           ->condition($this->idKey, $ids, 'IN')
           ->execute();
       }
@@ -470,32 +422,35 @@ class DatabaseStorageController implements EntityStorageControllerInterface {
       // Reset the cache as soon as the changes have been applied.
       $this->resetCache($ids);
 
-      $this->postDelete($entities);
-      foreach ($entities as $id => $entity) {
+      $entity_class::postDelete($this, $entities);
+      foreach ($entities as $entity) {
+        $this->invokeFieldMethod('delete', $entity);
+        $this->deleteFieldItems($entity);
         $this->invokeHook('delete', $entity);
       }
       // Ignore slave server temporarily.
       db_ignore_slave();
     }
-    catch (Exception $e) {
+    catch (\Exception $e) {
       $transaction->rollback();
       watchdog_exception($this->entityType, $e);
-      throw new EntityStorageException($e->getMessage, $e->getCode, $e);
+      throw new EntityStorageException($e->getMessage(), $e->getCode(), $e);
     }
   }
 
   /**
-   * Implements Drupal\Core\Entity\EntityStorageControllerInterface::save().
+   * Implements \Drupal\Core\Entity\EntityStorageControllerInterface::save().
    */
   public function save(EntityInterface $entity) {
-    $transaction = db_transaction();
+    $transaction = $this->database->startTransaction();
     try {
       // Load the stored entity, if any.
       if (!$entity->isNew() && !isset($entity->original)) {
         $entity->original = entity_load_unchanged($this->entityType, $entity->id());
       }
 
-      $this->preSave($entity);
+      $entity->preSave($this);
+      $this->invokeFieldMethod('preSave', $entity);
       $this->invokeHook('presave', $entity);
 
       if (!$entity->isNew()) {
@@ -511,7 +466,9 @@ class DatabaseStorageController implements EntityStorageControllerInterface {
           $this->saveRevision($entity);
         }
         $this->resetCache(array($entity->id()));
-        $this->postSave($entity, TRUE);
+        $entity->postSave($this, TRUE);
+        $this->invokeFieldMethod('update', $entity);
+        $this->saveFieldItems($entity, TRUE);
         $this->invokeHook('update', $entity);
       }
       else {
@@ -523,7 +480,9 @@ class DatabaseStorageController implements EntityStorageControllerInterface {
         $this->resetCache(array());
 
         $entity->enforceIsNew(FALSE);
-        $this->postSave($entity, FALSE);
+        $entity->postSave($this, FALSE);
+        $this->invokeFieldMethod('insert', $entity);
+        $this->saveFieldItems($entity, FALSE);
         $this->invokeHook('insert', $entity);
       }
 
@@ -533,7 +492,7 @@ class DatabaseStorageController implements EntityStorageControllerInterface {
 
       return $return;
     }
-    catch (Exception $e) {
+    catch (\Exception $e) {
       $transaction->rollback();
       watchdog_exception($this->entityType, $e);
       throw new EntityStorageException($e->getMessage(), $e->getCode(), $e);
@@ -543,7 +502,7 @@ class DatabaseStorageController implements EntityStorageControllerInterface {
   /**
    * Saves an entity revision.
    *
-   * @param Drupal\Core\Entity\EntityInterface $entity
+   * @param \Drupal\Core\Entity\EntityInterface $entity
    *   The entity object.
    */
   protected function saveRevision(EntityInterface $entity) {
@@ -552,18 +511,21 @@ class DatabaseStorageController implements EntityStorageControllerInterface {
     $record = (array) $entity;
 
     // When saving a new revision, set any existing revision ID to NULL so as to
-    // ensure that a new revision will actually be created, then store the old
-    // revision ID in a separate property for use by hook implementations.
+    // ensure that a new revision will actually be created.
     if ($entity->isNewRevision() && $record[$this->revisionKey]) {
       $record[$this->revisionKey] = NULL;
     }
 
-    $this->preSaveRevision($record, $entity);
+    // Cast to object as preSaveRevision() expects one to be compatible with the
+    // upcoming NG storage controller.
+    $record = (object) $record;
+    $entity->preSaveRevision($this, $record);
+    $record = (array) $record;
 
     if ($entity->isNewRevision()) {
       drupal_write_record($this->revisionTable, $record);
       if ($entity->isDefaultRevision()) {
-        db_update($this->entityInfo['base_table'])
+        $this->database->update($this->entityInfo['base_table'])
           ->fields(array($this->revisionKey => $record[$this->revisionKey]))
           ->condition($this->idKey, $entity->id())
           ->execute();
@@ -578,129 +540,654 @@ class DatabaseStorageController implements EntityStorageControllerInterface {
   }
 
   /**
-   * Acts on an entity before the presave hook is invoked.
-   *
-   * Used before the entity is saved and before invoking the presave hook.
-   */
-  protected function preSave(EntityInterface $entity) { }
-
-  /**
-   * Acts on a saved entity before the insert or update hook is invoked.
-   *
-   * Used after the entity is saved, but before invoking the insert or update
-   * hook.
-   *
-   * @param $update
-   *   (bool) TRUE if the entity has been updated, or FALSE if it has been
-   *   inserted.
-   */
-  protected function postSave(EntityInterface $entity, $update) { }
-
-  /**
-   * Acts on entities before they are deleted.
-   *
-   * Used before the entities are deleted and before invoking the delete hook.
-   */
-  protected function preDelete($entities) { }
-
-  /**
-   * Acts on deleted entities before the delete hook is invoked.
-   *
-   * Used after the entities are deleted but before invoking the delete hook.
-   */
-  protected function postDelete($entities) { }
-
-  /**
-   * Act on a revision before being saved.
-   *
-   * @param array $record
-   *   The revision array.
-   * @param Drupal\Core\Entity\EntityInterface $entity
-   *   The entity object.
-   */
-  protected function preSaveRevision(array &$record, EntityInterface $entity) { }
-
-  /**
-   * Invokes a hook on behalf of the entity.
-   *
-   * @param $hook
-   *   One of 'presave', 'insert', 'update', 'predelete', or 'delete'.
-   * @param $entity
-   *   The entity object.
-   */
-  protected function invokeHook($hook, EntityInterface $entity) {
-    $function = 'field_attach_' . $hook;
-    // @todo: field_attach_delete_revision() is named the wrong way round,
-    // consider renaming it.
-    if ($function == 'field_attach_revision_delete') {
-      $function = 'field_attach_delete_revision';
-    }
-    if (!empty($this->entityInfo['fieldable']) && function_exists($function)) {
-      $function($this->entityType, $entity);
-    }
-    // Invoke the hook.
-    module_invoke_all($this->entityType . '_' . $hook, $entity);
-    // Invoke the respective entity-level hook.
-    module_invoke_all('entity_' . $hook, $entity, $this->entityType);
-  }
-
-  /**
-   * Implements Drupal\Core\Entity\EntityStorageControllerInterface::getFieldDefinitions().
-   */
-  public function getFieldDefinitions(array $constraints) {
-    // @todo: Add caching for $this->propertyInfo.
-    if (!isset($this->entityFieldInfo)) {
-      $this->entityFieldInfo = array(
-        'definitions' => $this->baseFieldDefinitions(),
-        // Contains definitions of optional (per-bundle) properties.
-        'optional' => array(),
-        // An array keyed by bundle name containing the names of the per-bundle
-        // properties.
-        'bundle map' => array(),
-      );
-
-      // Invoke hooks.
-      $result = module_invoke_all($this->entityType . '_property_info');
-      $this->entityFieldInfo = array_merge_recursive($this->entityFieldInfo, $result);
-      $result = module_invoke_all('entity_field_info', $this->entityType);
-      $this->entityFieldInfo = array_merge_recursive($this->entityFieldInfo, $result);
-
-      $hooks = array('entity_field_info', $this->entityType . '_property_info');
-      drupal_alter($hooks, $this->entityFieldInfo, $this->entityType);
-
-      // Enforce fields to be multiple by default.
-      foreach ($this->entityFieldInfo['definitions'] as &$definition) {
-        $definition['list'] = TRUE;
-      }
-      foreach ($this->entityFieldInfo['optional'] as &$definition) {
-        $definition['list'] = TRUE;
-      }
-    }
-
-    $definitions = $this->entityFieldInfo['definitions'];
-
-    // Add in per-bundle properties.
-    // @todo: Should this be statically cached as well?
-    if (!empty($constraints['bundle']) && isset($this->entityFieldInfo['bundle map'][$constraints['bundle']])) {
-      $definitions += array_intersect_key($this->entityFieldInfo['optional'], array_flip($this->entityFieldInfo['bundle map'][$constraints['bundle']]));
-    }
-
-    return $definitions;
-  }
-
-  /**
-   * Defines the base properties of the entity type.
-   *
-   * @todo: Define abstract once all entity types have been converted.
-   */
-  public function baseFieldDefinitions() {
-    return array();
-  }
-
-  /**
-   * Implements Drupal\Core\Entity\EntityStorageControllerInterface::getQueryServiceName().
+   * {@inheritdoc}
    */
   public function getQueryServiceName() {
-    return 'entity.query.field_sql_storage';
+    return 'entity.query.sql';
   }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function doLoadFieldItems($entities, $age) {
+    $load_current = $age == FIELD_LOAD_CURRENT;
+
+    // Collect entities ids and bundles.
+    $bundles = array();
+    $ids = array();
+    foreach ($entities as $key => $entity) {
+      $bundles[$entity->bundle()] = TRUE;
+      $ids[] = $load_current ? $key : $entity->getRevisionId();
+    }
+
+    // Collect impacted fields.
+    $fields = array();
+    foreach ($bundles as $bundle => $v) {
+      foreach ($this->fieldInfo->getBundleInstances($this->entityType, $bundle) as $field_name => $instance) {
+        $fields[$field_name] = $instance->getField();
+      }
+    }
+
+    // Load field data.
+    foreach ($fields as $field_name => $field) {
+      $table = $load_current ? static::_fieldTableName($field) : static::_fieldRevisionTableName($field);
+
+      $results = $this->database->select($table, 't')
+        ->fields('t')
+        ->condition($load_current ? 'entity_id' : 'revision_id', $ids, 'IN')
+        ->condition('langcode', field_available_languages($this->entityType, $field), 'IN')
+        ->orderBy('delta')
+        ->condition('deleted', 0)
+        ->execute();
+
+      $delta_count = array();
+      foreach ($results as $row) {
+        if (!isset($delta_count[$row->entity_id][$row->langcode])) {
+          $delta_count[$row->entity_id][$row->langcode] = 0;
+        }
+
+        if ($field['cardinality'] == FIELD_CARDINALITY_UNLIMITED || $delta_count[$row->entity_id][$row->langcode] < $field['cardinality']) {
+          $item = array();
+          // For each column declared by the field, populate the item from the
+          // prefixed database column.
+          foreach ($field['columns'] as $column => $attributes) {
+            $column_name = static::_fieldColumnName($field, $column);
+            // Unserialize the value if specified in the column schema.
+            $item[$column] = (!empty($attributes['serialize'])) ? unserialize($row->$column_name) : $row->$column_name;
+          }
+
+          // Add the item to the field values for the entity.
+          $entities[$row->entity_id]->{$field_name}[$row->langcode][] = $item;
+          $delta_count[$row->entity_id][$row->langcode]++;
+        }
+      }
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function doSaveFieldItems(EntityInterface $entity, $update) {
+    $vid = $entity->getRevisionId();
+    $id = $entity->id();
+    $bundle = $entity->bundle();
+    $entity_type = $entity->entityType();
+    if (!isset($vid)) {
+      $vid = $id;
+    }
+
+    foreach ($this->fieldInfo->getBundleInstances($entity_type, $bundle) as $field_name => $instance) {
+      $field = $instance->getField();
+      $table_name = static::_fieldTableName($field);
+      $revision_name = static::_fieldRevisionTableName($field);
+
+      $all_langcodes = field_available_languages($entity_type, $field);
+      $field_langcodes = array_intersect($all_langcodes, array_keys((array) $entity->$field_name));
+
+      // Delete and insert, rather than update, in case a value was added.
+      if ($update) {
+        // Delete language codes present in the incoming $entity->$field_name.
+        // Delete all language codes if $entity->$field_name is empty.
+        $langcodes = !empty($entity->$field_name) ? $field_langcodes : $all_langcodes;
+        if ($langcodes) {
+          // Only overwrite the field's base table if saving the default revision
+          // of an entity.
+          if ($entity->isDefaultRevision()) {
+            $this->database->delete($table_name)
+              ->condition('entity_id', $id)
+              ->condition('langcode', $langcodes, 'IN')
+              ->execute();
+          }
+          $this->database->delete($revision_name)
+            ->condition('entity_id', $id)
+            ->condition('revision_id', $vid)
+            ->condition('langcode', $langcodes, 'IN')
+            ->execute();
+        }
+      }
+
+      // Prepare the multi-insert query.
+      $do_insert = FALSE;
+      $columns = array('entity_id', 'revision_id', 'bundle', 'delta', 'langcode');
+      foreach ($field['columns'] as $column => $attributes) {
+        $columns[] = static::_fieldColumnName($field, $column);
+      }
+      $query = $this->database->insert($table_name)->fields($columns);
+      $revision_query = $this->database->insert($revision_name)->fields($columns);
+
+      foreach ($field_langcodes as $langcode) {
+        $items = (array) $entity->{$field_name}[$langcode];
+        $delta_count = 0;
+        foreach ($items as $delta => $item) {
+          // We now know we have someting to insert.
+          $do_insert = TRUE;
+          $record = array(
+            'entity_id' => $id,
+            'revision_id' => $vid,
+            'bundle' => $bundle,
+            'delta' => $delta,
+            'langcode' => $langcode,
+          );
+          foreach ($field['columns'] as $column => $attributes) {
+            $column_name = static::_fieldColumnName($field, $column);
+            $value = isset($item[$column]) ? $item[$column] : NULL;
+            // Serialize the value if specified in the column schema.
+            $record[$column_name] = (!empty($attributes['serialize'])) ? serialize($value) : $value;
+          }
+          $query->values($record);
+          $revision_query->values($record);
+
+          if ($field['cardinality'] != FIELD_CARDINALITY_UNLIMITED && ++$delta_count == $field['cardinality']) {
+            break;
+          }
+        }
+      }
+
+      // Execute the query if we have values to insert.
+      if ($do_insert) {
+        // Only overwrite the field's base table if saving the default revision
+        // of an entity.
+        if ($entity->isDefaultRevision()) {
+          $query->execute();
+        }
+        $revision_query->execute();
+      }
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function doDeleteFieldItems(EntityInterface $entity) {
+    foreach ($this->fieldInfo->getBundleInstances($entity->entityType(), $entity->bundle()) as $instance) {
+      $field = $instance->getField();
+      $table_name = static::_fieldTableName($field);
+      $revision_name = static::_fieldRevisionTableName($field);
+      $this->database->delete($table_name)
+        ->condition('entity_id', $entity->id())
+        ->execute();
+      $this->database->delete($revision_name)
+        ->condition('entity_id', $entity->id())
+        ->execute();
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function doDeleteFieldItemsRevision(EntityInterface $entity) {
+    $vid = $entity->getRevisionId();
+    if (isset($vid)) {
+      foreach ($this->fieldInfo->getBundleInstances($entity->entityType(), $entity->bundle()) as $instance) {
+        $revision_name = static::_fieldRevisionTableName($instance->getField());
+        $this->database->delete($revision_name)
+          ->condition('entity_id', $entity->id())
+          ->condition('revision_id', $vid)
+          ->execute();
+      }
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function onFieldCreate(FieldInterface $field) {
+    $schema = $this->_fieldSqlSchema($field);
+    foreach ($schema as $name => $table) {
+      $this->database->schema()->createTable($name, $table);
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function onFieldUpdate(FieldInterface $field) {
+    $original = $field->original;
+
+    if (!$field->hasData()) {
+      // There is no data. Re-create the tables completely.
+
+      if ($this->database->supportsTransactionalDDL()) {
+        // If the database supports transactional DDL, we can go ahead and rely
+        // on it. If not, we will have to rollback manually if something fails.
+        $transaction = $this->database->startTransaction();
+      }
+
+      try {
+        $original_schema = $this->_fieldSqlSchema($original);
+        foreach ($original_schema as $name => $table) {
+          $this->database->schema()->dropTable($name, $table);
+        }
+        $schema = $this->_fieldSqlSchema($field);
+        foreach ($schema as $name => $table) {
+          $this->database->schema()->createTable($name, $table);
+        }
+      }
+      catch (\Exception $e) {
+        if ($this->database->supportsTransactionalDDL()) {
+          $transaction->rollback();
+        }
+        else {
+          // Recreate tables.
+          $original_schema = $this->_fieldSqlSchema($original);
+          foreach ($original_schema as $name => $table) {
+            if (!$this->database->schema()->tableExists($name)) {
+              $this->database->schema()->createTable($name, $table);
+            }
+          }
+        }
+        throw $e;
+      }
+    }
+    else {
+      if ($field['columns'] != $original['columns']) {
+        throw new FieldUpdateForbiddenException("The SQL storage cannot change the schema for an existing field with data.");
+      }
+      // There is data, so there are no column changes. Drop all the prior
+      // indexes and create all the new ones, except for all the priors that
+      // exist unchanged.
+      $table = static::_fieldTableName($original);
+      $revision_table = static::_fieldRevisionTableName($original);
+
+      $schema = $field->getSchema();
+      $original_schema = $original->getSchema();
+
+      foreach ($original_schema['indexes'] as $name => $columns) {
+        if (!isset($schema['indexes'][$name]) || $columns != $schema['indexes'][$name]) {
+          $real_name = static::_fieldIndexName($field, $name);
+          $this->database->schema()->dropIndex($table, $real_name);
+          $this->database->schema()->dropIndex($revision_table, $real_name);
+        }
+      }
+      $table = static::_fieldTableName($field);
+      $revision_table = static::_fieldRevisionTableName($field);
+      foreach ($schema['indexes'] as $name => $columns) {
+        if (!isset($original_schema['indexes'][$name]) || $columns != $original_schema['indexes'][$name]) {
+          $real_name = static::_fieldIndexName($field, $name);
+          $real_columns = array();
+          foreach ($columns as $column_name) {
+            // Indexes can be specified as either a column name or an array with
+            // column name and length. Allow for either case.
+            if (is_array($column_name)) {
+              $real_columns[] = array(
+                static::_fieldColumnName($field, $column_name[0]),
+                $column_name[1],
+              );
+            }
+            else {
+              $real_columns[] = static::_fieldColumnName($field, $column_name);
+            }
+          }
+          $this->database->schema()->addIndex($table, $real_name, $real_columns);
+          $this->database->schema()->addIndex($revision_table, $real_name, $real_columns);
+        }
+      }
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function onFieldDelete(FieldInterface $field) {
+    // Mark all data associated with the field for deletion.
+    $field['deleted'] = FALSE;
+    $table = static::_fieldTableName($field);
+    $revision_table = static::_fieldRevisionTableName($field);
+    $this->database->update($table)
+      ->fields(array('deleted' => 1))
+      ->execute();
+
+    // Move the table to a unique name while the table contents are being
+    // deleted.
+    $field['deleted'] = TRUE;
+    $new_table = static::_fieldTableName($field);
+    $revision_new_table = static::_fieldRevisionTableName($field);
+    $this->database->schema()->renameTable($table, $new_table);
+    $this->database->schema()->renameTable($revision_table, $revision_new_table);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function onInstanceDelete(FieldInstanceInterface $instance) {
+    $field = $instance->getField();
+    $table_name = static::_fieldTableName($field);
+    $revision_name = static::_fieldRevisionTableName($field);
+    $this->database->update($table_name)
+      ->fields(array('deleted' => 1))
+      ->condition('bundle', $instance['bundle'])
+      ->execute();
+    $this->database->update($revision_name)
+      ->fields(array('deleted' => 1))
+      ->condition('bundle', $instance['bundle'])
+      ->execute();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function onBundleRename($bundle, $bundle_new) {
+    // We need to account for deleted or inactive fields and instances.
+    $instances = field_read_instances(array('entity_type' => $this->entityType, 'bundle' => $bundle_new), array('include_deleted' => TRUE, 'include_inactive' => TRUE));
+    foreach ($instances as $instance) {
+      $field = $instance->getField();
+      if ($field['storage']['type'] == 'field_sql_storage') {
+        $table_name = static::_fieldTableName($field);
+        $revision_name = static::_fieldRevisionTableName($field);
+        $this->database->update($table_name)
+          ->fields(array('bundle' => $bundle_new))
+          ->condition('bundle', $bundle)
+          ->execute();
+        $this->database->update($revision_name)
+          ->fields(array('bundle' => $bundle_new))
+          ->condition('bundle', $bundle)
+          ->execute();
+      }
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function readFieldItemsToPurge(EntityInterface $entity, FieldInstanceInterface $instance) {
+    $field = $instance->getField();
+    $table_name = static::_fieldTableName($field);
+    $query = $this->database->select($table_name, 't', array('fetch' => \PDO::FETCH_ASSOC))
+      ->condition('entity_id', $entity->id())
+      ->orderBy('delta');
+    foreach ($field->getColumns() as $column_name => $data) {
+      $query->addField('t', static::_fieldColumnName($field, $column_name), $column_name);
+    }
+    return $query->execute()->fetchAll();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function purgeFieldItems(EntityInterface $entity, FieldInstanceInterface $instance) {
+    $field = $instance->getField();
+    $table_name = static::_fieldTableName($field);
+    $revision_name = static::_fieldRevisionTableName($field);
+    $this->database->delete($table_name)
+      ->condition('entity_id', $entity->id())
+      ->execute();
+    $this->database->delete($revision_name)
+      ->condition('entity_id', $entity->id())
+      ->execute();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function onFieldPurge(FieldInterface $field) {
+    $table_name = static::_fieldTableName($field);
+    $revision_name = static::_fieldRevisionTableName($field);
+    $this->database->schema()->dropTable($table_name);
+    $this->database->schema()->dropTable($revision_name);
+  }
+
+  /**
+   * Gets the SQL table schema.
+   *
+   * @private Calling this function circumvents the entity system and is
+   * strongly discouraged. This function is not considered part of the public
+   * API and modules relying on it might break even in minor releases.
+   *
+   * @param \Drupal\field\FieldInterface $field
+   *   The field object
+   * @param array $schema
+   *   The field schema array. Mandatory for upgrades, omit otherwise.
+   *
+   * @return array
+   *   The same as a hook_schema() implementation for the data and the
+   *   revision tables.
+   *
+   * @see hook_schema()
+   */
+  public static function _fieldSqlSchema(FieldInterface $field, array $schema = NULL) {
+    if ($field['deleted']) {
+      $description_current = "Data storage for deleted field {$field['id']} ({$field['entity_type']}, {$field['field_name']}).";
+      $description_revision = "Revision archive storage for deleted field {$field['id']} ({$field['entity_type']}, {$field['field_name']}).";
+    }
+    else {
+      $description_current = "Data storage for {$field['entity_type']} field {$field['field_name']}.";
+      $description_revision = "Revision archive storage for {$field['entity_type']} field {$field['field_name']}.";
+    }
+
+    $current = array(
+      'description' => $description_current,
+      'fields' => array(
+        'bundle' => array(
+          'type' => 'varchar',
+          'length' => 128,
+          'not null' => TRUE,
+          'default' => '',
+          'description' => 'The field instance bundle to which this row belongs, used when deleting a field instance',
+        ),
+        'deleted' => array(
+          'type' => 'int',
+          'size' => 'tiny',
+          'not null' => TRUE,
+          'default' => 0,
+          'description' => 'A boolean indicating whether this data item has been deleted'
+        ),
+        'entity_id' => array(
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'description' => 'The entity id this data is attached to',
+        ),
+        'revision_id' => array(
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => FALSE,
+          'description' => 'The entity revision id this data is attached to, or NULL if the entity type is not versioned',
+        ),
+        'langcode' => array(
+          'type' => 'varchar',
+          'length' => 32,
+          'not null' => TRUE,
+          'default' => '',
+          'description' => 'The language code for this data item.',
+        ),
+        'delta' => array(
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'description' => 'The sequence number for this data item, used for multi-value fields',
+        ),
+      ),
+      'primary key' => array('entity_id', 'deleted', 'delta', 'langcode'),
+      'indexes' => array(
+        'bundle' => array('bundle'),
+        'deleted' => array('deleted'),
+        'entity_id' => array('entity_id'),
+        'revision_id' => array('revision_id'),
+        'langcode' => array('langcode'),
+      ),
+    );
+
+    if (!$schema) {
+      $schema = $field->getSchema();
+    }
+
+    // Add field columns.
+    foreach ($schema['columns'] as $column_name => $attributes) {
+      $real_name = static::_fieldColumnName($field, $column_name);
+      $current['fields'][$real_name] = $attributes;
+    }
+
+    // Add indexes.
+    foreach ($schema['indexes'] as $index_name => $columns) {
+      $real_name = static::_fieldIndexName($field, $index_name);
+      foreach ($columns as $column_name) {
+        // Indexes can be specified as either a column name or an array with
+        // column name and length. Allow for either case.
+        if (is_array($column_name)) {
+          $current['indexes'][$real_name][] = array(
+            static::_fieldColumnName($field, $column_name[0]),
+            $column_name[1],
+          );
+        }
+        else {
+          $current['indexes'][$real_name][] = static::_fieldColumnName($field, $column_name);
+        }
+      }
+    }
+
+    // Add foreign keys.
+    foreach ($schema['foreign keys'] as $specifier => $specification) {
+      $real_name = static::_fieldIndexName($field, $specifier);
+      $current['foreign keys'][$real_name]['table'] = $specification['table'];
+      foreach ($specification['columns'] as $column_name => $referenced) {
+        $sql_storage_column = static::_fieldColumnName($field, $column_name);
+        $current['foreign keys'][$real_name]['columns'][$sql_storage_column] = $referenced;
+      }
+    }
+
+    // Construct the revision table.
+    $revision = $current;
+    $revision['description'] = $description_revision;
+    $revision['primary key'] = array('entity_id', 'revision_id', 'deleted', 'delta', 'langcode');
+    $revision['fields']['revision_id']['not null'] = TRUE;
+    $revision['fields']['revision_id']['description'] = 'The entity revision id this data is attached to';
+
+    return array(
+      static::_fieldTableName($field) => $current,
+      static::_fieldRevisionTableName($field) => $revision,
+    );
+  }
+
+  /**
+   * Generates a table name for a field data table.
+   *
+   * @private Calling this function circumvents the entity system and is
+   * strongly discouraged. This function is not considered part of the public
+   * API and modules relying on it might break even in minor releases. Only
+   * call this function to write a query that \Drupal::entityQuery() does not
+   * support. Always call entity_load() before using the data found in the
+   * table.
+   *
+   * @param \Drupal\field\FieldInterface $field
+   *   The field object.
+   *
+   * @return string
+   *   A string containing the generated name for the database table.
+   *
+   */
+  static public function _fieldTableName(FieldInterface $field) {
+    if ($field['deleted']) {
+      // When a field is a deleted, the table is renamed to
+      // {field_deleted_data_FIELD_UUID}. To make sure we don't end up with
+      // table names longer than 64 characters, we hash the uuid and return the
+      // first 10 characters so we end up with a short unique ID.
+      return "field_deleted_data_" . substr(hash('sha256', $field['uuid']), 0, 10);
+    }
+    else {
+      return static::_generateFieldTableName($field, FALSE);
+    }
+  }
+
+  /**
+   * Generates a table name for a field revision archive table.
+   *
+   * @private Calling this function circumvents the entity system and is
+   * strongly discouraged. This function is not considered part of the public
+   * API and modules relying on it might break even in minor releases. Only
+   * call this function to write a query that Drupal::entityQuery() does not
+   * support. Always call entity_load() before using the data found in the
+   * table.
+   *
+   * @param \Drupal\field\FieldInterface $field
+   *   The field object.
+   *
+   * @return string
+   *   A string containing the generated name for the database table.
+   */
+  static public function _fieldRevisionTableName(FieldInterface $field) {
+    if ($field['deleted']) {
+      // When a field is a deleted, the table is renamed to
+      // {field_deleted_revision_FIELD_UUID}. To make sure we don't end up with
+      // table names longer than 64 characters, we hash the uuid and return the
+      // first 10 characters so we end up with a short unique ID.
+      return "field_deleted_revision_" . substr(hash('sha256', $field['uuid']), 0, 10);
+    }
+    else {
+      return static::_generateFieldTableName($field, TRUE);
+    }
+  }
+
+  /**
+   * Generates a safe and unanbiguous field table name.
+   *
+   * The method accounts for a maximum table name length of 64 characters, and
+   * takes care of disambiguation.
+   *
+   * @param \Drupal\field\FieldInterface $field
+   *   The field object.
+   * @param bool $revision
+   *   TRUE for revision table, FALSE otherwise.
+   *
+   * @return string
+   *   The final table name.
+   */
+  static protected function _generateFieldTableName($field, $revision) {
+    $separator = $revision ? '_revision__' : '__';
+    $table_name = $field->entity_type . $separator .  $field->name;
+    // Limit the string to 48 characters, keeping a 16 characters margin for db
+    // prefixes.
+    if (strlen($table_name) > 48) {
+      // Use a shorter separator, a truncated entity_type, and a hash of the
+      // field UUID.
+      $separator = $revision ? '_r__' : '__';
+      $entity_type = substr($field->entity_type, 0, 38 - strlen($separator));
+      $field_hash = substr(hash('sha256', $field->uuid), 0, 10);
+      $table_name = $entity_type . $separator . $field_hash;
+    }
+    return $table_name;
+  }
+
+  /**
+   * Generates an index name for a field data table.
+   *
+   * @private Calling this function circumvents the entity system and is
+   * strongly discouraged. This function is not considered part of the public
+   * API and modules relying on it might break even in minor releases.
+   *
+   * @param \Drupal\field\FieldInterface $field
+   *   The field structure
+   * @param string $index
+   *   The name of the index.
+   *
+   * @return string
+   *   A string containing a generated index name for a field data table that is
+   *   unique among all other fields.
+   */
+  static public function _fieldIndexName(FieldInterface $field, $index) {
+    return $field->getFieldName() . '_' . $index;
+  }
+
+  /**
+   * Generates a column name for a field data table.
+   *
+   * @private Calling this function circumvents the entity system and is
+   * strongly discouraged. This function is not considered part of the public
+   * API and modules relying on it might break even in minor releases. Only
+   * call this function to write a query that \Drupal::entityQuery() does not
+   * support. Always call entity_load() before using the data found in the
+   * table.
+   *
+   * @param \Drupal\field\FieldInterface $field
+   *   The field object.
+   * @param string $column
+   *   The name of the column.
+   *
+   * @return string
+   *   A string containing a generated column name for a field data table that is
+   *   unique among all other fields.
+   */
+  static public function _fieldColumnName(FieldInterface $field, $column) {
+    return in_array($column, Field::getReservedColumns()) ? $column : $field->getFieldName() . '_' . $column;
+  }
+
 }

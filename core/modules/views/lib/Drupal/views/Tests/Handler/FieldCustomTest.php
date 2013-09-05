@@ -7,10 +7,19 @@
 
 namespace Drupal\views\Tests\Handler;
 
+use Drupal\views\Tests\ViewUnitTestBase;
+
 /**
  * Tests the core Drupal\views\Plugin\views\field\Custom handler.
  */
-class FieldCustomTest extends HandlerTestBase {
+class FieldCustomTest extends ViewUnitTestBase {
+
+  /**
+   * Views used by this test.
+   *
+   * @var array
+   */
+  public static $testViews = array('test_view');
 
   public static function getInfo() {
     return array(
@@ -20,12 +29,6 @@ class FieldCustomTest extends HandlerTestBase {
     );
   }
 
-  protected function setUp() {
-    parent::setUp();
-
-    $this->enableViewsTestModule();
-  }
-
   function viewsData() {
     $data = parent::viewsData();
     $data['views_test_data']['name']['field']['id'] = 'custom';
@@ -33,11 +36,12 @@ class FieldCustomTest extends HandlerTestBase {
   }
 
   public function testFieldCustom() {
-    $view = $this->getView();
+    $view = views_get_view('test_view');
+    $view->setDisplay();
 
     // Alter the text of the field to a random string.
     $random = $this->randomName();
-    $view->displayHandlers['default']->overrideOption('fields', array(
+    $view->displayHandlers->get('default')->overrideOption('fields', array(
       'name' => array(
         'id' => 'name',
         'table' => 'views_test_data',
@@ -51,7 +55,7 @@ class FieldCustomTest extends HandlerTestBase {
 
     $this->executeView($view);
 
-    $this->assertEqual($random, $view->style_plugin->get_field(0, 'name'));
+    $this->assertEqual($random, $view->style_plugin->getField(0, 'name'));
   }
 
 }

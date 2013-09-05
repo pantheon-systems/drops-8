@@ -2,35 +2,20 @@
 
 /**
  * @file
- * Definition of Drupal\Core\Entity\EntityFormControllerInterface.
+ * Contains \Drupal\Core\Entity\EntityFormControllerInterface.
  */
 
 namespace Drupal\Core\Entity;
 
+use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\Form\BaseFormIdInterface;
+use Drupal\Core\StringTranslation\TranslationInterface;
+use Drupal\entity\EntityFormDisplayInterface;
+
 /**
  * Defines a common interface for entity form controller classes.
  */
-interface EntityFormControllerInterface {
-
-  /**
-   * Builds an entity form.
-   *
-   * This is the entity form builder which is invoked via drupal_build_form()
-   * to retrieve the form.
-   *
-   * @param array $form
-   *   A nested array form elements comprising the form.
-   * @param array $form_state
-   *   An associative array containing the current state of the form.
-   * @param string $entity_type
-   *   The type of the entity being edited.
-   * @param \Drupal\Core\Entity\EntityInterface $entity
-   *   The entity being edited.
-   *
-   * @return array
-   *   The array containing the complete form.
-   */
-  public function build(array $form, array &$form_state, EntityInterface $entity);
+interface EntityFormControllerInterface extends BaseFormIdInterface {
 
   /**
    * Returns the code identifying the active form language.
@@ -44,12 +29,58 @@ interface EntityFormControllerInterface {
   public function getFormLangcode(array $form_state);
 
   /**
+   * Checks whether the current form language matches the entity one.
+   *
+   * @param array $form_state
+   *   A keyed array containing the current state of the form.
+   *
+   * @return boolean
+   *   Returns TRUE if the entity form language matches the entity one.
+   */
+  public function isDefaultFormLangcode(array $form_state);
+
+  /**
+   * Sets the operation for this form.
+   *
+   * @param string $operation
+   *   The name of the current operation.
+   *
+   * @return self
+   *   The entity form.
+   */
+  public function setOperation($operation);
+
+  /**
    * Returns the operation identifying the form controller.
    *
    * @return string
    *   The name of the operation.
    */
   public function getOperation();
+
+  /**
+   * Returns the form display.
+   *
+   * @param array $form_state
+   *   An associative array containing the current state of the form.
+   *
+   * @return \Drupal\entity\EntityFormDisplayInterface
+   *   The current form display.
+   */
+  public function getFormDisplay(array $form_state);
+
+  /**
+   * Sets the form display.
+   *
+   * Sets the form display which will be used for populating form element
+   * defaults.
+   *
+   * @param \Drupal\entity\EntityFormDisplayInterface $form_display
+   *   The form display that the current form operates with.
+   * @param array $form_state
+   *   An associative array containing the current state of the form.
+   */
+  public function setFormDisplay(EntityFormDisplayInterface $form_display, array &$form_state);
 
   /**
    * Returns the form entity.
@@ -62,7 +93,7 @@ interface EntityFormControllerInterface {
    * @return \Drupal\Core\Entity\EntityInterface
    *   The current form entity.
    */
-  public function getEntity(array $form_state);
+  public function getEntity();
 
   /**
    * Sets the form entity.
@@ -75,10 +106,8 @@ interface EntityFormControllerInterface {
    *
    * @param \Drupal\Core\Entity\EntityInterface $entity
    *   The entity the current form should operate upon.
-   * @param array $form_state
-   *   An associative array containing the current state of the form.
    */
-  public function setEntity(EntityInterface $entity, array &$form_state);
+  public function setEntity(EntityInterface $entity);
 
   /**
    * Builds an updated entity object based upon the submitted form values.
@@ -122,5 +151,27 @@ interface EntityFormControllerInterface {
    *   An associative array containing the current state of the form.
    */
   public function submit(array $form, array &$form_state);
+
+  /**
+   * Sets the translation manager for this form.
+   *
+   * @param \Drupal\Core\StringTranslation\TranslationInterface $translation_manager
+   *   The translation manager.
+   *
+   * @return self
+   *   The entity form.
+   */
+  public function setTranslationManager(TranslationInterface $translation_manager);
+
+  /**
+   * Sets the module handler for this form.
+   *
+   * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
+   *   The module handler.
+   *
+   * @return self
+   *   The entity form.
+   */
+  public function setModuleHandler(ModuleHandlerInterface $module_handler);
 
 }

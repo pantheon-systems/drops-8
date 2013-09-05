@@ -5,7 +5,9 @@
  * Tracks recent content posted by a user or users.
  */
 
-use Drupal\node\Plugin\Core\Entity\Node;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\node\NodeInterface;
+use Drupal\Core\Session\AccountInterface;
 
 /**
  * Implements hook_help().
@@ -73,17 +75,20 @@ function tracker_menu() {
 /**
  * Implements hook_cron().
  *
- * Updates tracking information for any items still to be tracked. The variable
- * 'tracker_index_nid' is set to ((the last node ID that was indexed) - 1) and
+ * Updates tracking information for any items still to be tracked. The state
+ * 'tracker.index_nid' is set to ((the last node ID that was indexed) - 1) and
  * used to select the nodes to be processed. If there are no remaining nodes to
- * process, 'tracker_index_nid' will be 0.
+ * process, 'tracker.index_nid' will be 0.
  */
 function tracker_cron() {
-  $max_nid = variable_get('tracker_index_nid', 0);
-  $batch_size = config('tracker.settings')->get('cron_index_limit');
+  $state = Drupal::state();
+  $max_nid = $state->get('tracker.index_nid') ?: 0;
   if ($max_nid > 0) {
+    $batch_size = Drupal::config('tracker.settings')->get('cron_index_limit');
     $last_nid = FALSE;
-    $result = db_query_range('SELECT nid, uid, status FROM {node} WHERE nid <= :max_nid ORDER BY nid DESC', 0, $batch_size, array(':max_nid' => $max_nid), array('target' => 'slave'));
+    // @todo This should be actually filtering on the desired language and just
+    //   fall back to the default language.
+    $result = db_query_range('SELECT nid, uid, status FROM {node_field_data} WHERE nid <= :max_nid AND default_langcode = 1 ORDER BY nid DESC', 0, $batch_size, array(':max_nid' => $max_nid), array('target' => 'slave'));
 
     $count = 0;
 
@@ -143,13 +148,13 @@ function tracker_cron() {
 
     if ($last_nid !== FALSE) {
       // Prepare a starting point for the next run.
-      variable_set('tracker_index_nid', $last_nid - 1);
+      $state->set('tracker.index_nid', $last_nid - 1);
 
       watchdog('tracker', 'Indexed %count content items for tracking.', array('%count' => $count));
     }
     else {
       // If all nodes have been indexed, set to zero to skip future cron runs.
-      variable_set('tracker_index_nid', 0);
+      $state->set('tracker.index_nid', 0);
     }
   }
 }
@@ -166,9 +171,9 @@ function tracker_cron() {
  *
  * @see tracker_menu()
  */
-function _tracker_myrecent_access($account) {
+function _tracker_myrecent_access(AccountInterface $account) {
   // This path is only allowed for authenticated users looking at their own content.
-  return $account->uid && ($GLOBALS['user']->uid == $account->uid) && user_access('access content');
+  return $account->id() && (Drupal::currentUser()->id() == $account->id()) && $account->hasPermission('access content');
 }
 
 /**
@@ -184,7 +189,7 @@ function _tracker_myrecent_access($account) {
  * @see tracker_menu()
  */
 function _tracker_user_access($account) {
-  return user_view_access($account) && user_access('access content');
+  return $account->access('view') && $account->hasPermission('access content');
 }
 
 /**
@@ -192,8 +197,8 @@ function _tracker_user_access($account) {
  *
  * Adds new tracking information for this node since it's new.
  */
-function tracker_node_insert(Node $node, $arg = 0) {
-  _tracker_add($node->nid, $node->uid, $node->changed);
+function tracker_node_insert(NodeInterface $node, $arg = 0) {
+  _tracker_add($node->id(), $node->getAuthorId(), $node->getChangedTime());
 }
 
 /**
@@ -201,8 +206,8 @@ function tracker_node_insert(Node $node, $arg = 0) {
  *
  * Adds tracking information for this node since it's been updated.
  */
-function tracker_node_update(Node $node, $arg = 0) {
-  _tracker_add($node->nid, $node->uid, $node->changed);
+function tracker_node_update(NodeInterface $node, $arg = 0) {
+  _tracker_add($node->id(), $node->getAuthorId(), $node->getChangedTime());
 }
 
 /**
@@ -210,12 +215,12 @@ function tracker_node_update(Node $node, $arg = 0) {
  *
  * Deletes tracking information for a node.
  */
-function tracker_node_predelete(Node $node, $arg = 0) {
+function tracker_node_predelete(EntityInterface $node, $arg = 0) {
   db_delete('tracker_node')
-    ->condition('nid', $node->nid)
+    ->condition('nid', $node->id())
     ->execute();
   db_delete('tracker_user')
-    ->condition('nid', $node->nid)
+    ->condition('nid', $node->id())
     ->execute();
 }
 
@@ -226,10 +231,10 @@ function tracker_node_predelete(Node $node, $arg = 0) {
  * comments so we need to check for those here.
  */
 function tracker_comment_update($comment) {
-  // comment_save() calls hook_comment_publish() for all published comments
+  // $comment->save() calls hook_comment_publish() for all published comments
   // so we need to handle all other values here.
-  if ($comment->status != COMMENT_PUBLISHED) {
-    _tracker_remove($comment->nid, $comment->uid, $comment->changed);
+  if ($comment->status->value != COMMENT_PUBLISHED) {
+    _tracker_remove($comment->nid->target_id, $comment->uid->target_id, $comment->changed->value);
   }
 }
 
@@ -237,24 +242,24 @@ function tracker_comment_update($comment) {
  * Implements hook_comment_publish().
  *
  * This actually handles the insert and update of published nodes since
- * comment_save() calls hook_comment_publish() for all published comments.
+ * $comment->save() calls hook_comment_publish() for all published comments.
  */
 function tracker_comment_publish($comment) {
-  _tracker_add($comment->nid, $comment->uid, $comment->changed);
+  _tracker_add($comment->nid->target_id, $comment->uid->target_id, $comment->changed->value);
 }
 
 /**
  * Implements hook_comment_unpublish().
  */
 function tracker_comment_unpublish($comment) {
-  _tracker_remove($comment->nid, $comment->uid, $comment->changed);
+  _tracker_remove($comment->nid->target_id, $comment->uid->target_id, $comment->changed->value);
 }
 
 /**
  * Implements hook_comment_delete().
  */
 function tracker_comment_delete($comment) {
-  _tracker_remove($comment->nid, $comment->uid, $comment->changed);
+  _tracker_remove($comment->nid->target_id, $comment->uid->target_id, $comment->changed->value);
 }
 
 /**
@@ -268,7 +273,9 @@ function tracker_comment_delete($comment) {
  *   The node updated timestamp or comment timestamp.
  */
 function _tracker_add($nid, $uid, $changed) {
-  $node = db_query('SELECT nid, status, uid, changed FROM {node} WHERE nid = :nid', array(':nid' => $nid))->fetchObject();
+  // @todo This should be actually filtering on the desired language and just
+  //   fall back to the default language.
+  $node = db_query('SELECT nid, status, uid, changed FROM {node_field_data} WHERE nid = :nid AND default_langcode = 1 ORDER BY changed DESC, status DESC', array(':nid' => $nid))->fetchObject();
 
   // Adding a comment can only increase the changed timestamp, so our
   // calculation here is simple.
@@ -297,17 +304,19 @@ function _tracker_add($nid, $uid, $changed) {
 }
 
 /**
- * Determines the max timestamp between $node->changed and the last comment.
+ * Picks the most recent timestamp between node changed and the last comment.
  *
  * @param $nid
  *   A node ID.
  *
  * @return
- *  The $node->changed timestamp, or most recent comment timestamp, whichever
- *  is the greatest.
+ *  The node changed timestamp, or most recent comment timestamp, whichever is
+ *  the greatest.
  */
 function _tracker_calculate_changed($nid) {
-  $changed = db_query('SELECT changed FROM {node} WHERE nid = :nid', array(':nid' => $nid), array('target' => 'slave'))->fetchField();
+  // @todo This should be actually filtering on the desired language and just
+  //   fall back to the default language.
+  $changed = db_query('SELECT changed FROM {node_field_data} WHERE nid = :nid AND default_langcode = 1 ORDER BY changed DESC', array(':nid' => $nid), array('target' => 'slave'))->fetchField();
   $latest_comment = db_query_range('SELECT cid, changed FROM {comment} WHERE nid = :nid AND status = :status ORDER BY changed DESC', 0, 1, array(
     ':nid' => $nid,
     ':status' => COMMENT_PUBLISHED,
@@ -329,7 +338,9 @@ function _tracker_calculate_changed($nid) {
  *   The last changed timestamp of the node.
  */
 function _tracker_remove($nid, $uid = NULL, $changed = NULL) {
-  $node = db_query('SELECT nid, status, uid, changed FROM {node} WHERE nid = :nid', array(':nid' => $nid))->fetchObject();
+  // @todo This should be actually filtering on the desired language and just
+  //   fall back to the default language.
+  $node = db_query('SELECT nid, status, uid, changed FROM {node_field_data} WHERE nid = :nid AND default_langcode = 1 ORDER BY changed DESC, status DESC', array(':nid' => $nid))->fetchObject();
 
   // The user only keeps his or her subscription if both of the following are true:
   //   (1) The node exists.

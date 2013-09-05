@@ -7,7 +7,7 @@
 
 namespace Drupal\views\Plugin\views\sort;
 
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
 
 /**
  * Basic sort handler for dates.
@@ -15,9 +15,7 @@ use Drupal\Core\Annotation\Plugin;
  * This handler enables granularity, which is the ability to make dates
  * equivalent based upon nearness.
  *
- * @Plugin(
- *   id = "date"
- * )
+ * @PluginID("date")
  */
 class Date extends SortPluginBase {
 
@@ -56,27 +54,27 @@ class Date extends SortPluginBase {
     switch ($this->options['granularity']) {
       case 'second':
       default:
-        $this->query->add_orderby($this->tableAlias, $this->realField, $this->options['order']);
+        $this->query->addOrderBy($this->tableAlias, $this->realField, $this->options['order']);
         return;
       case 'minute':
-        $formula = $this->getSQLFormat('YmdHi');
+        $formula = $this->getDateFormat('YmdHi');
         break;
       case 'hour':
-        $formula = $this->getSQLFormat('YmdH');
+        $formula = $this->getDateFormat('YmdH');
         break;
       case 'day':
-        $formula = $this->getSQLFormat('Ymd');
+        $formula = $this->getDateFormat('Ymd');
         break;
       case 'month':
-        $formula = $this->getSQLFormat('Ym');
+        $formula = $this->getDateFormat('Ym');
         break;
       case 'year':
-        $formula = $this->getSQLFormat('Y');
+        $formula = $this->getDateFormat('Y');
         break;
     }
 
     // Add the field.
-    $this->query->add_orderby(NULL, $formula, $this->options['order'], $this->tableAlias . '_' . $this->field . '_' . $this->options['granularity']);
+    $this->query->addOrderBy(NULL, $formula, $this->options['order'], $this->tableAlias . '_' . $this->field . '_' . $this->options['granularity']);
   }
 
 }

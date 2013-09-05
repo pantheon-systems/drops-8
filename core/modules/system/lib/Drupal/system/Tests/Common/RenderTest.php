@@ -30,6 +30,248 @@ class RenderTest extends WebTestBase {
   }
 
   /**
+   * Tests the output drupal_render() for some elementary input values.
+   */
+  function testDrupalRenderBasics() {
+    $types = array(
+      array(
+        'name' => 'null',
+        'value' => NULL,
+        'expected' => '',
+      ),
+      array(
+        'name' => 'no value',
+        'expected' => '',
+      ),
+      array(
+        'name' => 'empty string',
+        'value' => '',
+        'expected' => '',
+      ),
+      array(
+        'name' => 'no access',
+        'value' => array(
+          '#markup' => 'foo',
+          '#access' => FALSE,
+        ),
+        'expected' => '',
+      ),
+      array(
+        'name' => 'previously printed',
+        'value' => array(
+          '#markup' => 'foo',
+          '#printed' => TRUE,
+        ),
+        'expected' => '',
+      ),
+      array(
+        'name' => 'printed in prerender',
+        'value' => array(
+          '#markup' => 'foo',
+          '#pre_render' => array('common_test_drupal_render_printing_pre_render'),
+        ),
+        'expected' => '',
+      ),
+
+      // Test that #theme and #theme_wrappers can co-exist on an element.
+      array(
+        'name' => '#theme and #theme_wrappers basic',
+        'value' => array(
+          '#theme' => 'common_test_foo',
+          '#foo' => 'foo',
+          '#bar' => 'bar',
+          '#theme_wrappers' => array('container'),
+          '#attributes' => array('class' => 'baz'),
+        ),
+        'expected' => '<div class="baz">foobar</div>',
+      ),
+      // Test that #theme_wrappers can disambiguate element attributes shared
+      // with rendering methods that build #children by using the alternate
+      // #theme_wrappers attribute override syntax.
+      array(
+        'name' => '#theme and #theme_wrappers attribute disambiguation',
+        'value' => array(
+          '#type' => 'link',
+          '#theme_wrappers' => array(
+            'container' => array(
+              '#attributes' => array('class' => 'baz'),
+            ),
+          ),
+          '#attributes' => array('id' => 'foo'),
+          '#href' => 'http://drupal.org',
+          '#title' => 'bar',
+        ),
+        'expected' => '<div class="baz"><a href="http://drupal.org" id="foo">bar</a></div>',
+      ),
+      // Test that #theme_wrappers can disambiguate element attributes when the
+      // "base" attribute is not set for #theme.
+      array(
+        'name' => '#theme_wrappers attribute disambiguation with undefined #theme attribute',
+        'value' => array(
+          '#type' => 'link',
+          '#href' => 'http://drupal.org',
+          '#title' => 'foo',
+          '#theme_wrappers' => array(
+            'container' => array(
+              '#attributes' => array('class' => 'baz'),
+            ),
+          ),
+        ),
+        'expected' => '<div class="baz"><a href="http://drupal.org">foo</a></div>',
+      ),
+      // Two 'container' #theme_wrappers, one using the "base" attributes and
+      // one using an override.
+      array(
+        'name' => 'Two #theme_wrappers container hooks with different attributes',
+        'value' => array(
+          '#attributes' => array('class' => 'foo'),
+          '#theme_wrappers' => array(
+            'container' => array(
+              '#attributes' => array('class' => 'bar'),
+            ),
+            'container',
+          ),
+        ),
+        'expected' => '<div class="foo"><div class="bar"></div></div>',
+      ),
+      // Array syntax theme hook suggestion in #theme_wrappers.
+      array(
+        'name' => '#theme_wrappers implements an array style theme hook suggestion',
+        'value' => array(
+          '#theme_wrappers' => array(array('container')),
+          '#attributes' => array('class' => 'foo'),
+        ),
+        'expected' => '<div class="foo"></div>',
+      ),
+
+      // Test handling of #markup as a fallback for #theme hooks.
+      // Simple #markup with no theme.
+      array(
+        'name' => 'basic #markup based renderable array',
+        'value' => array('#markup' => 'foo'),
+        'expected' => 'foo',
+      ),
+      // Theme suggestion is not implemented, #markup should be rendered.
+      array(
+        'name' => '#markup fallback for #theme suggestion not implemented',
+        'value' => array(
+          '#theme' => array('suggestionnotimplemented'),
+          '#markup' => 'foo',
+        ),
+        'expected' => 'foo',
+      ),
+      // Theme suggestion is not implemented, child #markup should be rendered.
+      array(
+        'name' => '#markup fallback for child elements, #theme suggestion not implemented',
+        'value' => array(
+          '#theme' => array('suggestionnotimplemented'),
+          'child' => array(
+            '#markup' => 'foo',
+          ),
+        ),
+        'expected' => 'foo',
+      ),
+      // Theme suggestion is implemented but returns empty string, #markup
+      // should not be rendered.
+      array(
+        'name' => 'Avoid #markup if #theme is implemented but returns an empty string',
+        'value' => array(
+          '#theme' => array('common_test_empty'),
+          '#markup' => 'foo',
+        ),
+        'expected' => '',
+      ),
+      // Theme suggestion is implemented but returns empty string, children
+      // should not be rendered.
+      array(
+        'name' => 'Avoid rendering child elements if #theme is implemented but returns an empty string',
+        'value' => array(
+          '#theme' => array('common_test_empty'),
+          'child' => array(
+            '#markup' => 'foo',
+          ),
+        ),
+        'expected' => '',
+      ),
+
+      // Test handling of #children and child renderable elements.
+      // #theme is not set, #children is not set and the array has children.
+      array(
+        'name' => '#theme is not set, #children is not set and array has children',
+        'value' => array(
+          'child' => array('#markup' => 'bar'),
+        ),
+        'expected' => 'bar',
+      ),
+      // #theme is not set, #children is set but empty and the array has
+      // children.
+      array(
+        'name' => '#theme is not set, #children is an empty string and array has children',
+        'value' => array(
+          '#children' => '',
+          'child' => array('#markup' => 'bar'),
+        ),
+        'expected' => 'bar',
+      ),
+      // #theme is not set, #children is not empty and will be assumed to be the
+      // rendered child elements even though the #markup for 'child' differs.
+      array(
+        'name' => '#theme is not set, #children is set and array has children',
+        'value' => array(
+          '#children' => 'foo',
+          'child' => array('#markup' => 'bar'),
+        ),
+        'expected' => 'foo',
+      ),
+      // #theme is implemented so the values of both #children and 'child' will
+      // be ignored - it is the responsibility of the theme hook to render these
+      // if appropriate.
+      array(
+        'name' => '#theme is implemented, #children is set and array has children',
+        'value' => array(
+          '#theme' => 'common_test_foo',
+          '#children' => 'baz',
+          'child' => array('#markup' => 'boo'),
+        ),
+        'expected' => 'foobar',
+      ),
+      // #theme is implemented but #render_children is TRUE. As in the case
+      // where #theme is not set, empty #children means child elements are
+      // rendered recursively.
+      array(
+        'name' => '#theme is implemented, #render_children is TRUE, #children is empty and array has children',
+        'value' => array(
+          '#theme' => 'common_test_foo',
+          '#children' => '',
+          '#render_children' => TRUE,
+          'child' => array(
+            '#markup' => 'boo',
+          ),
+        ),
+        'expected' => 'boo',
+      ),
+      // #theme is implemented but #render_children is TRUE. As in the case
+      // where #theme is not set, #children will take precedence over 'child'.
+      array(
+        'name' => '#theme is implemented, #render_children is TRUE, #children is set and array has children',
+        'value' => array(
+          '#theme' => 'common_test_foo',
+          '#children' => 'baz',
+          '#render_children' => TRUE,
+          'child' => array(
+            '#markup' => 'boo',
+          ),
+        ),
+        'expected' => 'baz',
+      ),
+    );
+
+    foreach($types as $type) {
+      $this->assertIdentical(drupal_render($type['value']), $type['expected'], '"' . $type['name'] . '" input rendered correctly by drupal_render().');
+    }
+  }
+
+  /**
    * Tests sorting by weight.
    */
   function testDrupalRenderSorting() {
@@ -94,7 +336,7 @@ class RenderTest extends WebTestBase {
     $child_js = drupal_get_path('module', 'forum') . '/forum.js';
     $subchild_js = drupal_get_path('module', 'book') . '/book.js';
     $element = array(
-      '#type' => 'fieldset',
+      '#type' => 'details',
       '#cache' => array(
         'keys' => array('simpletest', 'drupal_render', 'children_attached'),
       ),
@@ -102,7 +344,7 @@ class RenderTest extends WebTestBase {
       '#title' => 'Parent',
     );
     $element['child'] = array(
-      '#type' => 'fieldset',
+      '#type' => 'details',
       '#attached' => array('js' => array($child_js)),
       '#title' => 'Child',
     );
@@ -240,28 +482,25 @@ class RenderTest extends WebTestBase {
     ));
 
     $element = array(
-      '#type' => 'fieldset',
+      '#type' => 'details',
       '#title' => $this->randomName(),
     );
-    $this->assertRenderedElement($element, '//fieldset/legend[contains(., :title)]', array(
+    $this->assertRenderedElement($element, '//details/summary[contains(., :title)]', array(
       ':title' => $element['#title'],
     ));
 
     $element = array(
-      '#type' => 'fieldset',
+      '#type' => 'details',
       '#title' => $this->randomName(),
-      '#collapsible' => TRUE,
     );
-    $this->assertRenderedElement($element, '//fieldset[contains(@class, :class)]', array(
-      ':class' => 'collapsible',
-    ));
+    $this->assertRenderedElement($element, '//details');
 
     $element['item'] = array(
       '#type' => 'item',
       '#title' => $this->randomName(),
       '#markup' => $this->randomName(),
     );
-    $this->assertRenderedElement($element, '//fieldset/div/div[contains(@class, :class) and contains(., :markup)]', array(
+    $this->assertRenderedElement($element, '//details/div/div[contains(@class, :class) and contains(., :markup)]', array(
       ':class' => 'form-type-item',
       ':markup' => $element['item']['#markup'],
     ));
@@ -278,7 +517,7 @@ class RenderTest extends WebTestBase {
     );
     $message = t('%type: !message in %function (line ', $error);
 
-    config('system.logging')->set('error_level', ERROR_REPORTING_DISPLAY_ALL)->save();
+    \Drupal::config('system.logging')->set('error_level', ERROR_REPORTING_DISPLAY_ALL)->save();
     $this->drupalGet('common-test/drupal-render-invalid-keys');
     $this->assertResponse(200, 'Received expected HTTP status code.');
     $this->assertRaw($message, format_string('Found error message: !message.', array('!message' => $message)));

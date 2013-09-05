@@ -17,6 +17,13 @@ use Drupal\views_test_data\Plugin\views\filter\FilterTest as FilterPlugin;
 class FilterTest extends PluginTestBase {
 
   /**
+   * Views used by this test.
+   *
+   * @var array
+   */
+  public static $testViews = array('test_filter');
+
+  /**
    * Modules to enable.
    *
    * @var array
@@ -52,14 +59,14 @@ class FilterTest extends PluginTestBase {
    */
   public function testFilterQuery() {
     // Check that we can find the test filter plugin.
-    $plugin = views_get_plugin('filter', 'test_filter');
+    $plugin = $this->container->get('plugin.manager.views.filter')->createInstance('test_filter');
     $this->assertTrue($plugin instanceof FilterPlugin, 'Test filter plugin found.');
 
     $view = views_get_view('test_filter');
     $view->initDisplay();
 
     // Change the filtering.
-    $view->displayHandlers['default']->overrideOption('filters', array(
+    $view->displayHandlers->get('default')->overrideOption('filters', array(
       'test_filter' => array(
         'id' => 'test_filter',
         'table' => 'views_test_data',
@@ -95,7 +102,7 @@ class FilterTest extends PluginTestBase {
     $view->initDisplay();
 
     // Change the filtering.
-    $view->displayHandlers['default']->overrideOption('filters', array(
+    $view->displayHandlers->get('default')->overrideOption('filters', array(
       'test_filter' => array(
         'id' => 'test_filter',
         'table' => 'views_test_data',
@@ -121,7 +128,7 @@ class FilterTest extends PluginTestBase {
 
     // Set the test_enable option to FALSE. The 'where' clause should not be
     // added to the query.
-    $view->displayHandlers['default']->overrideOption('filters', array(
+    $view->displayHandlers->get('default')->overrideOption('filters', array(
       'test_filter' => array(
         'id' => 'test_filter',
         'table' => 'views_test_data',

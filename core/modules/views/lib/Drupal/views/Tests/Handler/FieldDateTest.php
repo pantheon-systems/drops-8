@@ -7,10 +7,19 @@
 
 namespace Drupal\views\Tests\Handler;
 
+use Drupal\views\Tests\ViewUnitTestBase;
+
 /**
  * Tests the core Drupal\views\Plugin\views\field\Date handler.
  */
-class FieldDateTest extends HandlerTestBase {
+class FieldDateTest extends ViewUnitTestBase {
+
+  /**
+   * Views used by this test.
+   *
+   * @var array
+   */
+  public static $testViews = array('test_view');
 
   public static function getInfo() {
     return array(
@@ -20,12 +29,6 @@ class FieldDateTest extends HandlerTestBase {
     );
   }
 
-  protected function setUp() {
-    parent::setUp();
-
-    $this->enableViewsTestModule();
-  }
-
   function viewsData() {
     $data = parent::viewsData();
     $data['views_test_data']['created']['field']['id'] = 'date';
@@ -33,9 +36,10 @@ class FieldDateTest extends HandlerTestBase {
   }
 
   public function testFieldDate() {
-    $view = $this->getView();
+    $view = views_get_view('test_view');
+    $view->setDisplay();
 
-    $view->displayHandlers['default']->overrideOption('fields', array(
+    $view->displayHandlers->get('default')->overrideOption('fields', array(
       'created' => array(
         'id' => 'created',
         'table' => 'views_test_data',
@@ -56,9 +60,9 @@ class FieldDateTest extends HandlerTestBase {
     );
     foreach ($timezones as $timezone) {
       $dates = array(
-        'small' => format_date($time, 'small', '', $timezone),
+        'short' => format_date($time, 'short', '', $timezone),
         'medium' => format_date($time, 'medium', '', $timezone),
-        'large' => format_date($time, 'large', '', $timezone),
+        'long' => format_date($time, 'long', '', $timezone),
         'custom' => format_date($time, 'custom', 'c', $timezone),
       );
       $this->assertRenderedDatesEqual($view, $dates, $timezone);
@@ -89,7 +93,7 @@ class FieldDateTest extends HandlerTestBase {
       else {
         $message = t('Value %value in %format format matches.', $t_args);
       }
-      $actual_result = $view->field['created']->advanced_render($view->result[0]);
+      $actual_result = $view->field['created']->advancedRender($view->result[0]);
       $this->assertEqual($expected_result, $actual_result, $message);
     }
   }

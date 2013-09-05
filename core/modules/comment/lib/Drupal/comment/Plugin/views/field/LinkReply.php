@@ -2,22 +2,20 @@
 
 /**
  * @file
- * Definition of Drupal\comment\Plugin\views\field\LinkReply.
+ * Contains \Drupal\comment\Plugin\views\field\LinkReply.
  */
 
 namespace Drupal\comment\Plugin\views\field;
 
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
+use Drupal\views\ResultRow;
 
 /**
- * Field handler to present a link to delete a node.
+ * Field handler to present a link to reply to a comment.
  *
  * @ingroup views_field_handlers
  *
- * @Plugin(
- *   id = "comment_link_reply",
- *   module = "comment"
- * )
+ * @PluginID("comment_link_reply")
  */
 class LinkReply extends Link {
 
@@ -26,10 +24,10 @@ class LinkReply extends Link {
     return user_access('post comments');
   }
 
-  function render_link($data, $values) {
+  protected function renderLink($data, ResultRow $values) {
     $text = !empty($this->options['text']) ? $this->options['text'] : t('reply');
-    $nid =  $this->get_value($values, 'nid');
-    $cid =  $this->get_value($values, 'cid');
+    $nid =  $this->getValue($values, 'nid');
+    $cid =  $this->getValue($values, 'cid');
 
     $this->options['alter']['make_link'] = TRUE;
     $this->options['alter']['path'] = "comment/reply/" . $nid . '/' . $cid;

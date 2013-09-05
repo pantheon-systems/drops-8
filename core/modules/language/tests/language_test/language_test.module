@@ -1,0 +1,111 @@
+<?php
+
+/**
+ * @file
+ * Mock module for language layer tests.
+ */
+
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\HttpKernelInterface;
+
+use Drupal\Core\Language\Language;
+
+/**
+ * Implements hook_page_build().
+ */
+function language_test_page_build() {
+  language_test_store_language_negotiation();
+  if (isset(language(Language::TYPE_INTERFACE)->id) && isset(language(Language::TYPE_INTERFACE)->method_id)) {
+    drupal_set_message(t('Language negotiation method: @name', array('@name' => language(Language::TYPE_INTERFACE)->method_id)));
+  }
+}
+
+/**
+ * Implements hook_language_types_info().
+ */
+function language_test_language_types_info() {
+  if (Drupal::state()->get('language_test.language_types')) {
+    return array(
+      'test_language_type' => array(
+        'name' => t('Test'),
+        'description' => t('A test language type.'),
+      ),
+      'fixed_test_language_type' => array(
+        'fixed' => array('test_language_negotiation_method'),
+        'locked' => TRUE,
+      ),
+    );
+  }
+}
+
+/**
+ * Implements hook_language_types_info_alter().
+ */
+function language_test_language_types_info_alter(array &$language_types) {
+  if (Drupal::state()->get('language_test.content_language_type')) {
+    $language_types[Language::TYPE_CONTENT]['locked'] = FALSE;
+    unset($language_types[Language::TYPE_CONTENT]['fixed']);
+    // By default languages are not configurable. Make Language::TYPE_CONTENT
+    // configurable.
+    $configurable = Drupal::config('system.language.types')->get('configurable');
+    if (!in_array(Language::TYPE_CONTENT, $configurable)) {
+      $configurable[] = Language::TYPE_CONTENT;
+      Drupal::config('system.language.types')->set('configurable', $configurable)->save();
+    }
+  }
+}
+
+/**
+ * Implements hook_language_negotiation_info().
+ */
+function language_test_language_negotiation_info() {
+  if (Drupal::state()->get('language_test.language_negotiation_info')) {
+    $info = array(
+      'callbacks' => array(
+        'negotiation' => 'language_test_language_negotiation_method',
+      ),
+      'file' => drupal_get_path('module', 'language_test') .'/language_test.module',
+      'weight' => -10,
+      'description' => t('This is a test language negotiation method.'),
+    );
+
+    return array(
+      'test_language_negotiation_method' => array(
+        'name' => t('Test'),
+        'types' => array(Language::TYPE_CONTENT, 'test_language_type', 'fixed_test_language_type'),
+      ) + $info,
+      'test_language_negotiation_method_ts' => array(
+        'name' => t('Type-specific test'),
+        'types' => array('test_language_type'),
+      ) + $info,
+    );
+  }
+}
+
+/**
+ * Implements hook_language_negotiation_info_alter().
+ */
+function language_test_language_negotiation_info_alter(array &$negotiation_info) {
+  if (Drupal::state()->get('language_test.language_negotiation_info_alter')) {
+    unset($negotiation_info[LANGUAGE_NEGOTIATION_INTERFACE]);
+  }
+}
+
+/**
+ * Store the last negotiated languages.
+ */
+function language_test_store_language_negotiation() {
+  $last = array();
+  print_r(language_types_get_all());
+  foreach (language_types_get_all() as $type) {
+    $last[$type] = language($type)->id;
+  }
+  Drupal::state()->set('language_test.language_negotiation_last', $last);
+}
+
+/**
+ * Provides a test language negotiation method.
+ */
+function language_test_language_negotiation_method($languages) {
+  return 'it';
+}

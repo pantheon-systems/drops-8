@@ -20,16 +20,16 @@ class DependencyTest extends ModuleTestBase {
   }
 
   /**
-   * Attempts to enable translation module without language enabled.
+   * Attempts to enable the Content Translation module without Language enabled.
    */
   function testEnableWithoutDependency() {
-    // Attempt to enable content translation without language enabled.
+    // Attempt to enable Content Translation without Language enabled.
     $edit = array();
-    $edit['modules[Core][translation][enable]'] = 'translation';
+    $edit['modules[Multilingual][content_translation][enable]'] = 'content_translation';
     $this->drupalPost('admin/modules', $edit, t('Save configuration'));
     $this->assertText(t('Some required modules must be enabled'), 'Dependency required.');
 
-    $this->assertModules(array('translation', 'locale', 'language'), FALSE);
+    $this->assertModules(array('content_translation', 'language'), FALSE);
 
     // Assert that the language tables weren't enabled.
     $this->assertTableCount('language', FALSE);
@@ -37,10 +37,11 @@ class DependencyTest extends ModuleTestBase {
     $this->drupalPost(NULL, NULL, t('Continue'));
     $this->assertText(t('The configuration options have been saved.'), 'Modules status has been updated.');
 
-    $this->assertModules(array('translation', 'language'), TRUE);
+    $this->assertModules(array('content_translation', 'language'), TRUE);
 
-    // Assert that the language tables were enabled.
-    $this->assertTableCount('language', TRUE);
+    // Assert that the language YAML files were created.
+    $storage = $this->container->get('config.storage');
+    $this->assertTrue(count($storage->listAll('language.entity.')) > 0, 'Language config entity files exist.');
   }
 
   /**
@@ -60,7 +61,7 @@ class DependencyTest extends ModuleTestBase {
     // Verify that the module is forced to be disabled when submitting
     // the module page.
     $this->drupalPost('admin/modules', array(), t('Save configuration'));
-    $this->assertText(t('The @module module is missing, so the following module will be disabled: @depends.', array('@module' => '_missing_dependency', '@depends' => 'system_dependencies_test')), 'The module missing dependencies will be disabled.');
+    $this->assertText(t('The @module module is missing, so the following module will be disabled: @depends.', array('@module' => '_missing_dependency', '@depends' => 'System dependency test')), 'The module missing dependencies will be disabled.');
 
     // Confirm.
     $this->drupalPost(NULL, NULL, t('Continue'));
@@ -132,13 +133,14 @@ class DependencyTest extends ModuleTestBase {
     module_enable(array('module_test'), FALSE);
     $this->resetAll();
     $this->assertModules(array('module_test'), TRUE);
-    variable_set('dependency_test', 'dependency');
+    \Drupal::state()->set('module_test.dependency', 'dependency');
     // module_test creates a dependency chain:
-    // - forum depends on taxonomy, comment, and poll (via module_test)
+    // - forum depends on taxonomy, comment, datetime, history, and ban (via module_test)
     // - taxonomy depends on options
-    // - poll depends on php (via module_test)
+    // - options depends on number
+    // - ban depends on php (via module_test)
     // The correct enable order is:
-    $expected_order = array('comment', 'options', 'taxonomy', 'php', 'poll', 'forum');
+    $expected_order = array('php', 'ban', 'datetime', 'comment', 'history', 'number', 'options', 'taxonomy', 'forum');
 
     // Enable the modules through the UI, verifying that the dependency chain
     // is correct.
@@ -146,17 +148,21 @@ class DependencyTest extends ModuleTestBase {
     $edit['modules[Core][forum][enable]'] = 'forum';
     $this->drupalPost('admin/modules', $edit, t('Save configuration'));
     $this->assertModules(array('forum'), FALSE);
-    $this->assertText(t('You must enable the Taxonomy, Options, Comment, Poll, PHP Filter modules to install Forum.'));
+    $this->assertText(t('You must enable the History, Taxonomy, Options, Number, Comment, Datetime, Ban, PHP Filter modules to install Forum.'));
+    $edit['modules[Core][history][enable]'] = 'history';
     $edit['modules[Core][options][enable]'] = 'options';
+    $edit['modules[Core][number][enable]'] = 'number';
     $edit['modules[Core][taxonomy][enable]'] = 'taxonomy';
     $edit['modules[Core][comment][enable]'] = 'comment';
-    $edit['modules[Core][poll][enable]'] = 'poll';
+    $edit['modules[Core][datetime][enable]'] = 'datetime';
+    $edit['modules[Core][ban][enable]'] = 'ban';
     $edit['modules[Core][php][enable]'] = 'php';
     $this->drupalPost('admin/modules', $edit, t('Save configuration'));
-    $this->assertModules(array('forum', 'poll', 'php', 'comment', 'taxonomy', 'options'), TRUE);
+    $this->assertModules(array('forum', 'ban', 'php', 'datetime', 'comment', 'history', 'taxonomy', 'options', 'number'), TRUE);
 
     // Check the actual order which is saved by module_test_modules_enabled().
-    $this->assertIdentical(variable_get('test_module_enable_order', array()), $expected_order);
+    $module_order = \Drupal::state()->get('system_test.module_enable_order') ?: array();
+    $this->assertIdentical($module_order, $expected_order);
   }
 
   /**

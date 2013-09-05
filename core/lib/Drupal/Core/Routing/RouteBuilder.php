@@ -7,8 +7,15 @@
 
 namespace Drupal\Core\Routing;
 
-use Drupal\Core\Lock\LockBackendInterface;
+use Drupal\Component\Discovery\YamlDiscovery;
 use Symfony\Component\Routing\Matcher\Dumper\MatcherDumperInterface;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use Symfony\Component\Yaml\Parser;
+use Symfony\Component\Routing\RouteCollection;
+use Symfony\Component\Routing\Route;
+
+use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\Lock\LockBackendInterface;
 
 /**
  * Managing class for rebuilding the router table.
@@ -33,16 +40,34 @@ class RouteBuilder {
   protected $lock;
 
   /**
+   * The event dispatcher to notify of routes.
+   *
+   * @var \Symfony\Component\EventDispatcher\EventDispatcherInterface
+   */
+  protected $dispatcher;
+
+  /**
+   * The extension handler for retieving the list of enabled modules.
+   *
+   * @var \Drupal\Core\Extension\ModuleHandlerInterface
+   */
+  protected $moduleHandler;
+
+  /**
    * Construcs the RouteBuilder using the passed MatcherDumperInterface.
    *
    * @param \Symfony\Component\Routing\Matcher\Dumper\MatcherDumperInterface $dumper
    *   The matcher dumper used to store the route information.
    * @param \Drupal\Core\Lock\LockBackendInterface $lock
    *   The lock backend.
+   * @param \Symfony\Component\EventDispatcherEventDispatcherInterface
+   *   The event dispatcher to notify of routes.
    */
-  public function __construct(MatcherDumperInterface $dumper, LockBackendInterface $lock) {
+  public function __construct(MatcherDumperInterface $dumper, LockBackendInterface $lock, EventDispatcherInterface $dispatcher, ModuleHandlerInterface $module_handler) {
     $this->dumper = $dumper;
     $this->lock = $lock;
+    $this->dispatcher = $dispatcher;
+    $this->moduleHandler = $module_handler;
   }
 
   /**
@@ -57,15 +82,34 @@ class RouteBuilder {
       return;
     }
 
-    // We need to manually call each module so that we can know which module
-    // a given item came from.
+    $yaml_discovery = new YamlDiscovery('routing', $this->moduleHandler->getModuleDirectories());
 
-    foreach (module_implements('route_info') as $module) {
-      $routes = call_user_func($module . '_route_info');
-      drupal_alter('router_info', $routes, $module);
-      $this->dumper->addRoutes($routes);
+    foreach ($yaml_discovery->findAll() as $module => $routes) {
+      $collection = new RouteCollection();
+
+      foreach ($routes as $name => $route_info) {
+        $route_info += array(
+          'defaults' => array(),
+          'requirements' => array(),
+          'options' => array(),
+        );
+
+        $route = new Route($route_info['pattern'], $route_info['defaults'], $route_info['requirements'], $route_info['options']);
+        $collection->add($name, $route);
+      }
+
+      $this->dispatcher->dispatch(RoutingEvents::ALTER, new RouteBuildEvent($collection, $module));
+      $this->dumper->addRoutes($collection);
       $this->dumper->dump(array('route_set' => $module));
     }
+
+    // Now allow modules to register additional, dynamic routes.
+    $collection = new RouteCollection();
+    $this->dispatcher->dispatch(RoutingEvents::DYNAMIC, new RouteBuildEvent($collection, 'dynamic_routes'));
+    $this->dispatcher->dispatch(RoutingEvents::ALTER, new RouteBuildEvent($collection, 'dynamic_routes'));
+    $this->dumper->addRoutes($collection);
+    $this->dumper->dump(array('route_set' => 'dynamic_routes'));
+
     $this->lock->release('router_rebuild');
   }
 

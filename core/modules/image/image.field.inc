@@ -5,6 +5,9 @@
  * Implement an image field, based on the file module's file field.
  */
 
+use Drupal\Component\Utility\NestedArray;
+use Drupal\Core\Entity\EntityInterface;
+
 /**
  * Implements hook_field_info().
  */
@@ -14,21 +17,39 @@ function image_field_info() {
       'label' => t('Image'),
       'description' => t('This field stores the ID of an image file as an integer value.'),
       'settings' => array(
-        'uri_scheme' => variable_get('file_default_scheme', 'public'),
+        'uri_scheme' => file_default_scheme(),
         'default_image' => 0,
+        'column_groups' => array(
+          'file' => array(
+            'label' => t('File'),
+            'columns' => array('target_id', 'width', 'height'),
+          ),
+          'alt' => array(
+            'label' => t('Alt'),
+            'translatable' => TRUE,
+          ),
+          'title' => array(
+            'label' => t('Title'),
+            'translatable' => TRUE,
+          ),
+        ),
       ),
       'instance_settings' => array(
         'file_extensions' => 'png gif jpg jpeg',
         'file_directory' => '',
         'max_filesize' => '',
         'alt_field' => 0,
+        'alt_field_required' => 0,
         'title_field' => 0,
+        'title_field_required' => 0,
         'max_resolution' => '',
         'min_resolution' => '',
         'default_image' => 0,
       ),
       'default_widget' => 'image_image',
       'default_formatter' => 'image',
+      'class' => '\Drupal\image\Type\ImageItem',
+      'list_class' => '\Drupal\image\Type\ImageField',
     ),
   );
 }
@@ -37,7 +58,7 @@ function image_field_info() {
  * Implements hook_field_settings_form().
  */
 function image_field_settings_form($field, $instance) {
-  $defaults = field_info_field_settings($field['type']);
+  $defaults = \Drupal::service('plugin.manager.entity.field.field_type')->getDefaultSettings($field['type']);
   $settings = array_merge($defaults, $field['settings']);
 
   $scheme_options = array();
@@ -59,7 +80,7 @@ function image_field_settings_form($field, $instance) {
     '#title' => t('Default image'),
     '#type' => 'managed_file',
     '#description' => t('If no image is uploaded, this image will be shown on display.'),
-    '#default_value' => $field['settings']['default_image'],
+    '#default_value' => empty($field['settings']['default_image']) ? array() : array($field['settings']['default_image']),
     '#upload_location' => $settings['uri_scheme'] . '://default_images/',
   );
 
@@ -139,7 +160,18 @@ function image_field_instance_settings_form($field, $instance) {
     '#title' => t('Enable <em>Alt</em> field'),
     '#default_value' => $settings['alt_field'],
     '#description' => t('The alt attribute may be used by search engines, screen readers, and when the image cannot be loaded.'),
+    '#weight' => 9,
+  );
+  $form['alt_field_required'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('<em>Alt</em> field required'),
+    '#default_value' => $settings['alt_field_required'],
     '#weight' => 10,
+    '#states' => array(
+      'visible' => array(
+        ':input[name="instance[settings][alt_field]"]' => array('checked' => TRUE),
+      ),
+    ),
   );
   $form['title_field'] = array(
     '#type' => 'checkbox',
@@ -148,13 +180,25 @@ function image_field_instance_settings_form($field, $instance) {
     '#description' => t('The title attribute is used as a tooltip when the mouse hovers over the image.'),
     '#weight' => 11,
   );
+  $form['title_field_required'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('<em>Title</em> field required'),
+    '#default_value' => $settings['title_field_required'],
+    '#weight' => 12,
+    '#states' => array(
+      'visible' => array(
+        ':input[name="instance[settings][title_field]"]' => array('checked' => TRUE),
+      ),
+    ),
+  );
+
 
   // Add the default image to the instance.
   $form['default_image'] = array(
     '#title' => t('Default image'),
     '#type' => 'managed_file',
     '#description' => t("If no image is uploaded, this image will be shown on display and will override the field's default image."),
-    '#default_value' => $settings['default_image'],
+    '#default_value' => empty($settings['default_image']) ? array() : array($settings['default_image']),
     '#upload_location' => $field['settings']['uri_scheme'] . '://default_images/',
   );
 
@@ -180,49 +224,17 @@ function _image_field_resolution_validate($element, &$form_state) {
 }
 
 /**
- * Implements hook_field_prepare_view().
- */
-function image_field_prepare_view($entity_type, $entities, $field, $instances, $langcode, &$items) {
-  // Load the images.
-  file_field_prepare_view($entity_type, $entities, $field, $instances, $langcode, $items);
-  // If there are no files specified at all, use the default.
-  foreach ($entities as $id => $entity) {
-    if (empty($items[$id])) {
-      $fid = 0;
-      // Use the default for the instance if one is available.
-      if (!empty($instances[$id]['settings']['default_image'])) {
-        $fid = $instances[$id]['settings']['default_image'];
-      }
-      // Otherwise, use the default for the field.
-      elseif (!empty($field['settings']['default_image'])) {
-        $fid = $field['settings']['default_image'];
-      }
-
-      // Add the default image if one is found.
-      if ($fid && ($file = file_load($fid))) {
-        $items[$id][0] = (array) $file + array(
-          'is_default' => TRUE,
-          'alt' => '',
-          'title' => '',
-        );
-      }
-    }
-  }
-}
-
-/**
  * Implements hook_field_presave().
  */
-function image_field_presave($entity_type, $entity, $field, $instance, $langcode, &$items) {
-
+function image_field_presave(EntityInterface $entity, $field, $instance, $langcode, &$items) {
+  $image_factory = Drupal::service('image.factory');
   // Determine the dimensions if necessary.
   foreach ($items as &$item) {
     if (!isset($item['width']) || !isset($item['height'])) {
-      $info = image_get_info(file_load($item['fid'])->uri);
-
-      if (is_array($info)) {
-        $item['width'] = $info['width'];
-        $item['height'] = $info['height'];
+      $image = $image_factory->get(file_load($item['target_id'])->getFileUri());
+      if ($image->getExtension()) {
+        $item['width'] = $image->getWidth();
+        $item['height'] = $image->getHeight();
       }
     }
   }
@@ -231,119 +243,36 @@ function image_field_presave($entity_type, $entity, $field, $instance, $langcode
 /**
  * Implements hook_field_insert().
  */
-function image_field_insert($entity_type, $entity, $field, $instance, $langcode, &$items) {
-  file_field_insert($entity_type, $entity, $field, $instance, $langcode, $items);
+function image_field_insert(EntityInterface $entity, $field, $instance, $langcode, &$items) {
+  file_field_insert($entity, $field, $instance, $langcode, $items);
 }
 
 /**
  * Implements hook_field_update().
  */
-function image_field_update($entity_type, $entity, $field, $instance, $langcode, &$items) {
-  file_field_update($entity_type, $entity, $field, $instance, $langcode, $items);
+function image_field_update(EntityInterface $entity, $field, $instance, $langcode, &$items) {
+  file_field_update($entity, $field, $instance, $langcode, $items);
 }
 
 /**
  * Implements hook_field_delete().
  */
-function image_field_delete($entity_type, $entity, $field, $instance, $langcode, &$items) {
-  file_field_delete($entity_type, $entity, $field, $instance, $langcode, $items);
+function image_field_delete(EntityInterface $entity, $field, $instance, $langcode, &$items) {
+  file_field_delete($entity, $field, $instance, $langcode, $items);
 }
 
 /**
  * Implements hook_field_delete_revision().
  */
-function image_field_delete_revision($entity_type, $entity, $field, $instance, $langcode, &$items) {
-  file_field_delete_revision($entity_type, $entity, $field, $instance, $langcode, $items);
+function image_field_delete_revision(EntityInterface $entity, $field, $instance, $langcode, &$items) {
+  file_field_delete_revision($entity, $field, $instance, $langcode, $items);
 }
 
 /**
  * Implements hook_field_is_empty().
  */
-function image_field_is_empty($item, $field) {
-  return file_field_is_empty($item, $field);
-}
-
-/**
- * Implements hook_field_widget_info().
- */
-function image_field_widget_info() {
-  return array(
-    'image_image' => array(
-      'label' => t('Image'),
-      'field types' => array('image'),
-      'settings' => array(
-        'progress_indicator' => 'throbber',
-        'preview_image_style' => 'thumbnail',
-      ),
-      'behaviors' => array(
-        'multiple values' => FIELD_BEHAVIOR_CUSTOM,
-        'default value' => FIELD_BEHAVIOR_NONE,
-      ),
-    ),
-  );
-}
-
-/**
- * Implements hook_field_widget_settings_form().
- */
-function image_field_widget_settings_form($field, $instance) {
-  $widget = $instance['widget'];
-  $settings = $widget['settings'];
-
-  // Use the file widget settings form.
-  $form = file_field_widget_settings_form($field, $instance);
-
-  $form['preview_image_style'] = array(
-    '#title' => t('Preview image style'),
-    '#type' => 'select',
-    '#options' => image_style_options(FALSE),
-    '#empty_option' => '<' . t('no preview') . '>',
-    '#default_value' => $settings['preview_image_style'],
-    '#description' => t('The preview image will be shown while editing the content.'),
-    '#weight' => 15,
-  );
-
-  return $form;
-}
-
-/**
- * Implements hook_field_widget_form().
- */
-function image_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
-
-  // Add display_field setting to field because file_field_widget_form() assumes
-  // it is set.
-  $field['settings']['display_field'] = 0;
-
-  $elements = file_field_widget_form($form, $form_state, $field, $instance, $langcode, $items, $delta, $element);
-  $settings = $instance['settings'];
-
-  foreach (element_children($elements) as $delta) {
-    // Add upload resolution validation.
-    if ($settings['max_resolution'] || $settings['min_resolution']) {
-      $elements[$delta]['#upload_validators']['file_validate_image_resolution'] = array($settings['max_resolution'], $settings['min_resolution']);
-    }
-
-    // If not using custom extension validation, ensure this is an image.
-    $supported_extensions = array('png', 'gif', 'jpg', 'jpeg');
-    $extensions = isset($elements[$delta]['#upload_validators']['file_validate_extensions'][0]) ? $elements[$delta]['#upload_validators']['file_validate_extensions'][0] : implode(' ', $supported_extensions);
-    $extensions = array_intersect(explode(' ', $extensions), $supported_extensions);
-    $elements[$delta]['#upload_validators']['file_validate_extensions'][0] = implode(' ', $extensions);
-
-    // Add all extra functionality provided by the image widget.
-    $elements[$delta]['#process'][] = 'image_field_widget_process';
-  }
-
-  if ($field['cardinality'] == 1) {
-    // If there's only one field, return it as delta 0.
-    if (empty($elements[0]['#default_value']['fid'])) {
-      $elements[0]['#description'] = theme('file_upload_help', array('description' => token_replace($instance['description']), 'upload_validators' => $elements[0]['#upload_validators']));
-    }
-  }
-  else {
-    $elements['#file_upload_description'] = theme('file_upload_help', array('upload_validators' => $elements[0]['#upload_validators']));
-  }
-  return $elements;
+function image_field_is_empty($item, $field_type) {
+  return file_field_is_empty($item, $field_type);
 }
 
 /**
@@ -353,21 +282,17 @@ function image_field_widget_form(&$form, &$form_state, $field, $instance, $langc
  */
 function image_field_widget_process($element, &$form_state, $form) {
   $item = $element['#value'];
-  $item['fid'] = $element['fid']['#value'];
-
-  $instance = field_widget_instance($element, $form_state);
-
-  $settings = $instance['settings'];
-  $widget_settings = $instance['widget']['settings'];
+  $item['fids'] = $element['fids']['#value'];
 
   $element['#theme'] = 'image_widget';
-  $element['#attached']['css'][] = drupal_get_path('module', 'image') . '/image.theme.css';
+  $element['#attached']['css'][] = drupal_get_path('module', 'image') . '/css/image.theme.css';
 
   // Add the image preview.
-  if ($element['#file'] && $widget_settings['preview_image_style']) {
+  if (!empty($element['#files']) && $element['#preview_image_style']) {
+    $file = reset($element['#files']);
     $variables = array(
-      'style_name' => $widget_settings['preview_image_style'],
-      'uri' => $element['#file']->uri,
+      'style_name' => $element['#preview_image_style'],
+      'uri' => $file->getFileUri(),
     );
 
     // Determine image dimensions.
@@ -376,11 +301,10 @@ function image_field_widget_process($element, &$form_state, $form) {
       $variables['height'] = $element['#value']['height'];
     }
     else {
-      $info = image_get_info($element['#file']->uri);
-
-      if (is_array($info)) {
-        $variables['width'] = $info['width'];
-        $variables['height'] = $info['height'];
+      $image = Drupal::service('image.factory')->get($file->getFileUri());
+      if ($image->getExtension()) {
+        $variables['width'] = $image->getWidth();
+        $variables['height'] = $image->getHeight();
       }
       else {
         $variables['width'] = $variables['height'] = NULL;
@@ -388,8 +312,11 @@ function image_field_widget_process($element, &$form_state, $form) {
     }
 
     $element['preview'] = array(
-      '#type' => 'markup',
-      '#markup' => theme('image_style', $variables),
+      '#theme' => 'image_style',
+      '#width' => $variables['width'],
+      '#height' => $variables['height'],
+      '#style_name' => $variables['style_name'],
+      '#uri' => $variables['uri'],
     );
 
     // Store the dimensions in the form so the file doesn't have to be accessed
@@ -413,7 +340,8 @@ function image_field_widget_process($element, &$form_state, $form) {
     // @see http://www.gawds.org/show.php?contentid=28
     '#maxlength' => 512,
     '#weight' => -2,
-    '#access' => (bool) $item['fid'] && $settings['alt_field'],
+    '#access' => (bool) $item['fids'] && $element['#alt_field'],
+    '#element_validate' => $element['#alt_field_required'] == 1 ? array('_image_field_required_fields_validate') : array(),
   );
   $element['title'] = array(
     '#type' => 'textfield',
@@ -422,10 +350,38 @@ function image_field_widget_process($element, &$form_state, $form) {
     '#description' => t('The title is used as a tool tip when the user hovers the mouse over the image.'),
     '#maxlength' => 1024,
     '#weight' => -1,
-    '#access' => (bool) $item['fid'] && $settings['title_field'],
+    '#access' => (bool) $item['fids'] && $element['#title_field'],
+    '#element_validate' => $element['#alt_field_required'] == 1 ? array('_image_field_required_fields_validate') : array(),
   );
 
   return $element;
+}
+
+/**
+ * Validate callback for alt and title field, if the user wants them required.
+ *
+ * This is separated in a validate function instead of a #required flag to avoid
+ * being validated on the process callback.
+ */
+function _image_field_required_fields_validate($element, &$form_state) {
+  // Only do validation if the function is triggered from other places than
+  // the image process form.
+  if (!in_array('file_managed_file_submit', $form_state['triggering_element']['#submit'])) {
+    // If the image is not there, we do not check for empty values.
+    $parents = $element['#parents'];
+    $field = array_pop($parents);
+    $image_field = NestedArray::getValue($form_state['input'], $parents);
+    // We check for the array key, so that it can be NULL (like if the user
+    // submits the form without using the "upload" button).
+    if (!array_key_exists($field, $image_field)) {
+      return;
+    }
+    // Check if field is left emtpy.
+    elseif (empty($image_field[$field])) {
+      form_error($element, t('The field !title is required', array('!title' => $element['#title'])));
+      return;
+    }
+  }
 }
 
 /**
@@ -449,125 +405,15 @@ function theme_image_widget($variables) {
   }
 
   $output .= '<div class="image-widget-data">';
-  if ($element['fid']['#value'] != 0) {
-    $element['filename']['#markup'] .= ' <span class="file-size">(' . format_size($element['#file']->filesize) . ')</span> ';
+  if (!empty($element['fids']['#value'])) {
+    $file = reset($element['#files']);
+    $element['file_' . $file->id()]['filename']['#suffix'] = ' <span class="file-size">(' . format_size($file->getSize()) . ')</span> ';
   }
   $output .= drupal_render_children($element);
   $output .= '</div>';
   $output .= '</div>';
 
   return $output;
-}
-
-/**
- * Implements hook_field_formatter_info().
- */
-function image_field_formatter_info() {
-  $formatters = array(
-    'image' => array(
-      'label' => t('Image'),
-      'field types' => array('image'),
-      'settings' => array('image_style' => '', 'image_link' => ''),
-    ),
-  );
-
-  return $formatters;
-}
-
-/**
- * Implements hook_field_formatter_settings_form().
- */
-function image_field_formatter_settings_form($field, $instance, $view_mode, $form, &$form_state) {
-  $display = $instance['display'][$view_mode];
-  $settings = $display['settings'];
-
-  $image_styles = image_style_options(FALSE);
-  $element['image_style'] = array(
-    '#title' => t('Image style'),
-    '#type' => 'select',
-    '#default_value' => $settings['image_style'],
-    '#empty_option' => t('None (original image)'),
-    '#options' => $image_styles,
-  );
-
-  $link_types = array(
-    'content' => t('Content'),
-    'file' => t('File'),
-  );
-  $element['image_link'] = array(
-    '#title' => t('Link image to'),
-    '#type' => 'select',
-    '#default_value' => $settings['image_link'],
-    '#empty_option' => t('Nothing'),
-    '#options' => $link_types,
-  );
-
-  return $element;
-}
-
-/**
- * Implements hook_field_formatter_settings_summary().
- */
-function image_field_formatter_settings_summary($field, $instance, $view_mode) {
-  $display = $instance['display'][$view_mode];
-  $settings = $display['settings'];
-
-  $summary = array();
-
-  $image_styles = image_style_options(FALSE);
-  // Unset possible 'No defined styles' option.
-  unset($image_styles['']);
-  // Styles could be lost because of enabled/disabled modules that defines
-  // their styles in code.
-  if (isset($image_styles[$settings['image_style']])) {
-    $summary[] = t('Image style: @style', array('@style' => $image_styles[$settings['image_style']]));
-  }
-  else {
-    $summary[] = t('Original image');
-  }
-
-  $link_types = array(
-    'content' => t('Linked to content'),
-    'file' => t('Linked to file'),
-  );
-  // Display this setting only if image is linked.
-  if (isset($link_types[$settings['image_link']])) {
-    $summary[] = $link_types[$settings['image_link']];
-  }
-
-  return implode('<br />', $summary);
-}
-
-/**
- * Implements hook_field_formatter_view().
- */
-function image_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display) {
-  $element = array();
-
-  // Check if the formatter involves a link.
-  if ($display['settings']['image_link'] == 'content') {
-    $uri = $entity->uri();
-  }
-  elseif ($display['settings']['image_link'] == 'file') {
-    $link_file = TRUE;
-  }
-
-  foreach ($items as $delta => $item) {
-    if (isset($link_file)) {
-      $uri = array(
-        'path' => file_create_url($item['uri']),
-        'options' => array(),
-      );
-    }
-    $element[$delta] = array(
-      '#theme' => 'image_formatter',
-      '#item' => $item,
-      '#image_style' => $display['settings']['image_style'],
-      '#path' => isset($uri) ? $uri : '',
-    );
-  }
-
-  return $element;
 }
 
 /**
@@ -583,18 +429,32 @@ function image_field_formatter_view($entity_type, $entity, $field, $instance, $l
  */
 function theme_image_formatter($variables) {
   $item = $variables['item'];
+  $image = array();
 
   // Do not output an empty 'title' attribute.
-  if (isset($item['title']) && drupal_strlen($item['title']) == 0) {
-    unset($item['title']);
+  if (isset($item['title']) && drupal_strlen($item['title']) != 0) {
+    $image['#title'] = $item['title'];
+  }
+
+  if (isset($item['entity']) && empty($item['uri'])) {
+    $image['#uri'] = $item['entity']->getFileUri();
+  }
+  else {
+    $image['#uri'] = $item['uri'];
+  }
+
+  foreach (array('width', 'height', 'alt', 'attributes') as $key) {
+    if (isset($item[$key]) || array_key_exists($key, $item)) {
+      $image["#$key"] = $item[$key];
+    }
   }
 
   if ($variables['image_style']) {
-    $item['style_name'] = $variables['image_style'];
-    $output = theme('image_style', $item);
+    $image['#theme'] = 'image_style';
+    $image['#style_name'] = $variables['image_style'];
   }
   else {
-    $output = theme('image', $item);
+    $image['#theme'] = 'image';
   }
 
   // The link path and link options are both optional, but for the options to be
@@ -604,7 +464,10 @@ function theme_image_formatter($variables) {
     $options = isset($variables['path']['options']) ? $variables['path']['options'] : array();
     // When displaying an image inside a link, the html option must be TRUE.
     $options['html'] = TRUE;
-    $output = l($output, $path, $options);
+    $output = l($image, $path, $options);
+  }
+  else {
+    $output = drupal_render($image);
   }
 
   return $output;

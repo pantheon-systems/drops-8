@@ -1,0 +1,48 @@
+# Schema for the configuration files of the Views module.
+
+views.view.*:
+  type: mapping
+  label: 'View'
+  mapping:
+    status:
+      type: boolean
+      label: 'Status'
+    module:
+      label: 'Module'
+    name:
+      label: 'Machine name'
+    description:
+      type: text
+      label: 'Administrative description'
+    tag:
+      label: 'Tag'
+    base_table:
+      label: 'Base table'
+    base_field:
+      label: 'Base field'
+    label:
+      type: label
+      label: 'Human readable name'
+    core:
+      label: 'Drupal version'
+    uuid:
+      label: 'UUID'
+    display:
+      type: sequence
+      label: 'Displays'
+      sequence:
+        - type: mapping
+          label: 'Display settings'
+          mapping:
+            id:
+              label: 'Machine name'
+            display_title:
+              type: text
+              label: 'Title'
+            display_plugin:
+              label: 'Display plugin'
+            position:
+              type: integer
+              label: 'Position'
+            display_options:
+              type: views.display.[%parent.display_plugin]

@@ -60,7 +60,7 @@ function _drupal_error_handler_real($error_level, $message, $filename, $line, $c
     $caller = _drupal_get_last_caller($backtrace);
 
     if (!function_exists('filter_xss_admin')) {
-      require_once DRUPAL_ROOT . '/core/includes/common.inc';
+      require_once __DIR__ . '/common.inc';
     }
 
     // We treat recoverable errors as fatal.
@@ -122,6 +122,7 @@ function _drupal_decode_exception($exception) {
     '%file' => $caller['file'],
     '%line' => $caller['line'],
     'severity_level' => WATCHDOG_ERROR,
+    'backtrace' => $backtrace,
   );
 }
 
@@ -135,7 +136,9 @@ function _drupal_decode_exception($exception) {
  *   An error message.
  */
 function _drupal_render_exception_safe($exception) {
-  return check_plain(strtr('%type: !message in %function (line %line of %file).', _drupal_decode_exception($exception)));
+  $decode = _drupal_decode_exception($exception);
+  unset($decode['backtrace']);
+  return check_plain(strtr('%type: !message in %function (line %line of %file).', $decode));
 }
 
 /**
@@ -152,7 +155,7 @@ function _drupal_render_exception_safe($exception) {
  *   TRUE if an error should be displayed.
  */
 function error_displayable($error = NULL) {
-  $error_level = config('system.logging')->get('error_level');
+  $error_level = _drupal_get_error_level();
   $updating = (defined('MAINTENANCE_MODE') && MAINTENANCE_MODE == 'update');
   $all_errors_displayed = ($error_level == ERROR_REPORTING_DISPLAY_ALL) ||
     ($error_level == ERROR_REPORTING_DISPLAY_VERBOSE);
@@ -174,7 +177,7 @@ function error_displayable($error = NULL) {
  *   TRUE if the error is fatal.
  */
 function _drupal_log_error($error, $fatal = FALSE) {
-  // Initialize a maintenance theme if the boostrap was not complete.
+  // Initialize a maintenance theme if the bootstrap was not complete.
   // Do it early because drupal_set_message() triggers a drupal_theme_initialize().
   if ($fatal && (drupal_get_bootstrap_phase() != DRUPAL_BOOTSTRAP_FULL)) {
     unset($GLOBALS['theme']);
@@ -253,7 +256,7 @@ function _drupal_log_error($error, $fatal = FALSE) {
       $message = format_string('%type: !message in %function (line %line of %file).', $error);
 
       // Check if verbose error reporting is on.
-      $error_level = config('system.logging')->get('error_level');
+      $error_level = _drupal_get_error_level();
 
       if ($error_level == ERROR_REPORTING_DISPLAY_VERBOSE) {
         // First trace is the error itself, already contained in the message.
@@ -282,6 +285,29 @@ function _drupal_log_error($error, $fatal = FALSE) {
 
       return $response;
     }
+  }
+}
+
+/**
+ * Returns the current error level.
+ *
+ * This function should only be used to get the current error level pre
+ * DRUPAL_BOOTSTRAP_KERNEL or before Drupal is installed. In all other
+ * situations the following code is preferred:
+ * @code
+ * Drupal::config('system.logging')->get('error_level');
+ * @endcode
+ *
+ * @return string
+ *   The current error level.
+ */
+function _drupal_get_error_level() {
+  try {
+    return Drupal::config('system.logging')->get('error_level');
+  }
+  catch (Exception $e) {
+    // During very early install the cache_config table does not exist.
+    return ERROR_REPORTING_DISPLAY_ALL;
   }
 }
 

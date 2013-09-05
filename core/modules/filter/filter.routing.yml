@@ -1,0 +1,45 @@
+filter_tips_all:
+  pattern: '/filter/tips'
+  defaults:
+    _content: '\Drupal\filter\Controller\FilterController::filterTips'
+  requirements:
+    _access: 'TRUE'
+
+filter_tips:
+  pattern: '/filter/tips/{filter_format}'
+  defaults:
+    _content: '\Drupal\filter\Controller\FilterController::filterTips'
+  requirements:
+    _entity_access: 'filter_format.view'
+
+filter_admin_overview:
+  pattern: '/admin/config/content/formats'
+  defaults:
+    _content: '\Drupal\Core\Entity\Controller\EntityListController::listing'
+    entity_type: 'filter_format'
+  requirements:
+    _permission: 'administer filters'
+
+filter_format_add:
+  pattern: '/admin/config/content/formats/add'
+  defaults:
+    _entity_form: filter_format.add
+  requirements:
+    _permission: 'administer filters'
+
+filter_format_edit:
+  pattern: '/admin/config/content/formats/manage/{filter_format}'
+  defaults:
+    _entity_form: filter_format.edit
+  requirements:
+    _permission: 'administer filters'
+
+filter_admin_disable:
+  pattern: '/admin/config/content/formats/manage/{filter_format}/disable'
+  defaults:
+    _entity_form: 'filter_format.disable'
+  options:
+     _access_mode: 'ALL'
+  requirements:
+    _filter_disable_format_access: 'TRUE'
+    _permission: 'administer filters'

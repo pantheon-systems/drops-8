@@ -8,33 +8,28 @@
 namespace Drupal\taxonomy\Plugin\views\field;
 
 use Drupal\views\Plugin\views\field\FieldPluginBase;
+use Drupal\views\Plugin\views\display\DisplayPluginBase;
+use Drupal\views\ResultRow;
 use Drupal\views\ViewExecutable;
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
 
 /**
  * Field handler to present a term edit link.
  *
  * @ingroup views_field_handlers
  *
- * @Plugin(
- *   id = "term_link_edit",
- *   module = "taxonomy"
- * )
+ * @PluginID("term_link_edit")
  */
 class LinkEdit extends FieldPluginBase {
 
   /**
    * Overrides Drupal\views\Plugin\views\field\FieldPluginBase::init().
    */
-  public function init(ViewExecutable $view, &$options) {
-    parent::init($view, $options);
+  public function init(ViewExecutable $view, DisplayPluginBase $display, array &$options = NULL) {
+    parent::init($view, $display, $options);
 
     $this->additional_fields['tid'] = 'tid';
     $this->additional_fields['vid'] = 'vid';
-    $this->additional_fields['vocabulary_machine_name'] = array(
-      'table' => 'taxonomy_vocabulary',
-      'field' => 'machine_name',
-    );
   }
 
   protected function defineOptions() {
@@ -56,20 +51,22 @@ class LinkEdit extends FieldPluginBase {
 
   public function query() {
     $this->ensureMyTable();
-    $this->add_additional_fields();
+    $this->addAdditionalFields();
   }
 
-  function render($values) {
+  /**
+   * {@inheritdoc}
+   */
+  public function render(ResultRow $values) {
     // Check there is an actual value, as on a relationship there may not be.
-    if ($tid = $this->get_value($values, 'tid')) {
+    if ($tid = $this->getValue($values, 'tid')) {
       // Mock a term object for taxonomy_term_access(). Use machine name and
       // vid to ensure compatibility with vid based and machine name based
       // access checks. See http://drupal.org/node/995156
       $term = entity_create('taxonomy_term', array(
         'vid' => $values->{$this->aliases['vid']},
-        'vocabulary_machine_name' => $values->{$this->aliases['vocabulary_machine_name']},
       ));
-      if (taxonomy_term_access('edit', $term)) {
+      if ($term->access('update')) {
         $text = !empty($this->options['text']) ? $this->options['text'] : t('edit');
         return l($text, 'taxonomy/term/'. $tid . '/edit', array('query' => drupal_get_destination()));
       }

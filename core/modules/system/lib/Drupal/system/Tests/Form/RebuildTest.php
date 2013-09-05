@@ -72,17 +72,21 @@ class RebuildTest extends WebTestBase {
     // Create a multi-valued field for 'page' nodes to use for Ajax testing.
     $field_name = 'field_ajax_test';
     $field = array(
-      'field_name' => $field_name,
+      'name' => $field_name,
+      'entity_type' => 'node',
       'type' => 'text',
       'cardinality' => FIELD_CARDINALITY_UNLIMITED,
     );
-    field_create_field($field);
+    entity_create('field_entity', $field)->save();
     $instance = array(
       'field_name' => $field_name,
       'entity_type' => 'node',
       'bundle' => 'page',
     );
-    field_create_instance($instance);
+    entity_create('field_instance', $instance)->save();
+    entity_get_form_display('node', 'page', 'default')
+      ->setComponent($field_name, array('type' => 'text_test'))
+      ->save();
 
     // Log in a user who can create 'page' nodes.
     $this->web_user = $this->drupalCreateUser(array('create page content'));

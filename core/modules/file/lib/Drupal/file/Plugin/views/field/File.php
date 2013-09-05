@@ -7,8 +7,10 @@
 
 namespace Drupal\file\Plugin\views\field;
 
+use Drupal\views\ResultRow;
 use Drupal\views\ViewExecutable;
-use Drupal\Core\Annotation\Plugin;
+use Drupal\views\Plugin\views\display\DisplayPluginBase;
+use Drupal\Component\Annotation\PluginID;
 use Drupal\views\Plugin\views\field\FieldPluginBase;
 
 /**
@@ -16,18 +18,16 @@ use Drupal\views\Plugin\views\field\FieldPluginBase;
  *
  * @ingroup views_field_handlers
  *
- * @Plugin(
- *   id = "file",
- *   module = "file"
- * )
+ * @PluginID("file")
  */
 class File extends FieldPluginBase {
 
   /**
-   * Constructor to provide additional field to add.
+   * Overrides \Drupal\views\Plugin\views\field\FieldPluginBase::init().
    */
-  public function init(ViewExecutable $view, &$options) {
-    parent::init($view, $options);
+  public function init(ViewExecutable $view, DisplayPluginBase $display, array &$options = NULL) {
+    parent::init($view, $display, $options);
+
     if (!empty($options['link_to_file'])) {
       $this->additional_fields['uri'] = 'uri';
     }
@@ -57,18 +57,21 @@ class File extends FieldPluginBase {
    *
    * Data should be made XSS safe prior to calling this function.
    */
-  function render_link($data, $values) {
+  protected function renderLink($data, ResultRow $values) {
     if (!empty($this->options['link_to_file']) && $data !== NULL && $data !== '') {
       $this->options['alter']['make_link'] = TRUE;
-      $this->options['alter']['path'] = file_create_url($this->get_value($values, 'uri'));
+      $this->options['alter']['path'] = file_create_url($this->getValue($values, 'uri'));
     }
 
     return $data;
   }
 
-  function render($values) {
-    $value = $this->get_value($values);
-    return $this->render_link($this->sanitizeValue($value), $values);
+  /**
+   * {@inheritdoc}
+   */
+  public function render(ResultRow $values) {
+    $value = $this->getValue($values);
+    return $this->renderLink($this->sanitizeValue($value), $values);
   }
 
 }

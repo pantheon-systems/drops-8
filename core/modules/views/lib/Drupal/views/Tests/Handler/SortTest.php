@@ -7,10 +7,19 @@
 
 namespace Drupal\views\Tests\Handler;
 
+use Drupal\views\Tests\ViewUnitTestBase;
+
 /**
  * Tests for core Drupal\views\Plugin\views\sort\SortPluginBase handler.
  */
-class SortTest extends HandlerTestBase {
+class SortTest extends ViewUnitTestBase {
+
+  /**
+   * Views used by this test.
+   *
+   * @var array
+   */
+  public static $testViews = array('test_view');
 
   public static function getInfo() {
     return array(
@@ -20,20 +29,15 @@ class SortTest extends HandlerTestBase {
     );
   }
 
-  protected function setUp() {
-    parent::setUp();
-
-    $this->enableViewsTestModule();
-  }
-
   /**
    * Tests numeric ordering of the result set.
    */
   public function testNumericOrdering() {
-    $view = $this->getView();
+    $view = views_get_view('test_view');
+    $view->setDisplay();
 
     // Change the ordering
-    $view->displayHandlers['default']->overrideOption('sorts', array(
+    $view->displayHandlers->get('default')->overrideOption('sorts', array(
       'age' => array(
         'order' => 'ASC',
         'id' => 'age',
@@ -47,16 +51,17 @@ class SortTest extends HandlerTestBase {
     $this->executeView($view);
 
     // Verify the result.
-    $this->assertEqual(count($this->dataSet()), count($view->result), t('The number of returned rows match.'));
+    $this->assertEqual(count($this->dataSet()), count($view->result), 'The number of returned rows match.');
     $this->assertIdenticalResultset($view, $this->orderResultSet($this->dataSet(), 'age'), array(
       'views_test_data_name' => 'name',
       'views_test_data_age' => 'age',
     ));
 
-    $view = $this->getView();
+    $view->destroy();
+    $view->setDisplay();
 
     // Reverse the ordering
-    $view->displayHandlers['default']->overrideOption('sorts', array(
+    $view->displayHandlers->get('default')->overrideOption('sorts', array(
       'age' => array(
         'order' => 'DESC',
         'id' => 'age',
@@ -70,7 +75,7 @@ class SortTest extends HandlerTestBase {
     $this->executeView($view);
 
     // Verify the result.
-    $this->assertEqual(count($this->dataSet()), count($view->result), t('The number of returned rows match.'));
+    $this->assertEqual(count($this->dataSet()), count($view->result), 'The number of returned rows match.');
     $this->assertIdenticalResultset($view, $this->orderResultSet($this->dataSet(), 'age', TRUE), array(
       'views_test_data_name' => 'name',
       'views_test_data_age' => 'age',
@@ -81,10 +86,11 @@ class SortTest extends HandlerTestBase {
    * Tests string ordering of the result set.
    */
   public function testStringOrdering() {
-    $view = $this->getView();
+    $view = views_get_view('test_view');
+    $view->setDisplay();
 
     // Change the ordering
-    $view->displayHandlers['default']->overrideOption('sorts', array(
+    $view->displayHandlers->get('default')->overrideOption('sorts', array(
       'name' => array(
         'order' => 'ASC',
         'id' => 'name',
@@ -98,16 +104,17 @@ class SortTest extends HandlerTestBase {
     $this->executeView($view);
 
     // Verify the result.
-    $this->assertEqual(count($this->dataSet()), count($view->result), t('The number of returned rows match.'));
+    $this->assertEqual(count($this->dataSet()), count($view->result), 'The number of returned rows match.');
     $this->assertIdenticalResultset($view, $this->orderResultSet($this->dataSet(), 'name'), array(
       'views_test_data_name' => 'name',
       'views_test_data_age' => 'age',
     ));
 
-    $view = $this->getView();
+    $view->destroy();
+    $view->setDisplay();
 
     // Reverse the ordering
-    $view->displayHandlers['default']->overrideOption('sorts', array(
+    $view->displayHandlers->get('default')->overrideOption('sorts', array(
       'name' => array(
         'order' => 'DESC',
         'id' => 'name',
@@ -121,7 +128,7 @@ class SortTest extends HandlerTestBase {
     $this->executeView($view);
 
     // Verify the result.
-    $this->assertEqual(count($this->dataSet()), count($view->result), t('The number of returned rows match.'));
+    $this->assertEqual(count($this->dataSet()), count($view->result), 'The number of returned rows match.');
     $this->assertIdenticalResultset($view, $this->orderResultSet($this->dataSet(), 'name', TRUE), array(
       'views_test_data_name' => 'name',
       'views_test_data_age' => 'age',

@@ -7,6 +7,7 @@
 
 namespace Drupal\comment\Tests;
 
+use Drupal\Core\Language\Language;
 use Drupal\simpletest\WebTestBase;
 
 /**
@@ -25,13 +26,6 @@ class CommentLanguageTest extends WebTestBase {
    */
   public static $modules = array('language', 'language_test', 'comment_test');
 
-  /**
-   * Use the standard profile.
-   *
-   * @todo Remove this dependency if possible.
-   */
-  protected $profile = 'standard';
-
   public static function getInfo() {
     return array(
       'name' => 'Comment language',
@@ -43,8 +37,10 @@ class CommentLanguageTest extends WebTestBase {
   function setUp() {
     parent::setUp();
 
+    $this->drupalCreateContentType(array('type' => 'article', 'name' => 'Article'));
+
     // Create and login user.
-    $admin_user = $this->drupalCreateUser(array('administer site configuration', 'administer languages', 'access administration pages', 'administer content types', 'administer comments', 'create article content'));
+    $admin_user = $this->drupalCreateUser(array('administer site configuration', 'administer languages', 'access administration pages', 'administer content types', 'administer comments', 'create article content', 'access comments', 'post comments', 'skip comment approval'));
     $this->drupalLogin($admin_user);
 
     // Add language.
@@ -52,11 +48,11 @@ class CommentLanguageTest extends WebTestBase {
     $this->drupalPost('admin/config/regional/language/add', $edit, t('Add language'));
 
     // Set "Article" content type to use multilingual support.
-    $edit = array('language_configuration[language_hidden]' => FALSE);
+    $edit = array('language_configuration[language_show]' => TRUE);
     $this->drupalPost('admin/structure/types/manage/article', $edit, t('Save content type'));
 
     // Enable content language negotiation UI.
-    variable_set('language_test_content_language_type', TRUE);
+    \Drupal::state()->set('language_test.content_language_type', TRUE);
 
     // Set interface language detection to user and content language detection
     // to URL. Disable inheritance from interface language to ensure content
@@ -72,12 +68,12 @@ class CommentLanguageTest extends WebTestBase {
     // Change user language preference, this way interface language is always
     // French no matter what path prefix the URLs have.
     $edit = array('preferred_langcode' => 'fr');
-    $this->drupalPost("user/{$admin_user->uid}/edit", $edit, t('Save'));
+    $this->drupalPost("user/" . $admin_user->id() . "/edit", $edit, t('Save'));
 
     // Make comment body translatable.
-    $field = field_info_field('comment_body');
+    $field = field_info_field('comment', 'comment_body');
     $field['translatable'] = TRUE;
-    field_update_field($field);
+    $field->save();
     $this->assertTrue(field_is_translatable('comment', $field), 'Comment body is translatable.');
   }
 
@@ -94,7 +90,7 @@ class CommentLanguageTest extends WebTestBase {
     // language and interface language do not influence comment language, as
     // only content language has to.
     foreach (language_list() as $node_langcode => $node_language) {
-      $langcode_not_specified = LANGUAGE_NOT_SPECIFIED;
+      $langcode_not_specified = Language::LANGCODE_NOT_SPECIFIED;
 
       // Create "Article" content.
       $title = $this->randomName();
@@ -115,21 +111,21 @@ class CommentLanguageTest extends WebTestBase {
           'subject' => $this->randomName(),
           "comment_body[$langcode][0][value]" => $comment_values[$node_langcode][$langcode],
         );
-        $this->drupalPost("{$prefix}node/{$node->nid}", $edit, t('Preview'));
+        $this->drupalPost($prefix . 'node/' . $node->id(), $edit, t('Preview'));
         $this->drupalPost(NULL, $edit, t('Save'));
 
         // Check that comment language matches the current content language.
         $cid = db_select('comment', 'c')
           ->fields('c', array('cid'))
-          ->condition('nid', $node->nid)
+          ->condition('nid', $node->id())
           ->orderBy('cid', 'DESC')
           ->range(0, 1)
           ->execute()
           ->fetchField();
         $comment = comment_load($cid);
-        $args = array('%node_language' => $node_langcode, '%comment_language' => $comment->langcode, '%langcode' => $langcode);
-        $this->assertEqual($comment->langcode, $langcode, format_string('The comment posted with content language %langcode and belonging to the node with language %node_language has language %comment_language', $args));
-        $this->assertEqual($comment->comment_body[$langcode][0]['value'], $comment_values[$node_langcode][$langcode], 'Comment body correctly stored.');
+        $args = array('%node_language' => $node_langcode, '%comment_language' => $comment->langcode->value, '%langcode' => $langcode);
+        $this->assertEqual($comment->langcode->value, $langcode, format_string('The comment posted with content language %langcode and belonging to the node with language %node_language has language %comment_language', $args));
+        $this->assertEqual($comment->comment_body->value, $comment_values[$node_langcode][$langcode], 'Comment body correctly stored.');
       }
     }
 

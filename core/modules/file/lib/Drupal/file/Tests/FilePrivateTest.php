@@ -7,6 +7,8 @@
 
 namespace Drupal\file\Tests;
 
+use Drupal\Core\Language\Language;
+
 /**
  * Tests file access on private nodes.
  */
@@ -27,46 +29,42 @@ class FilePrivateTest extends FileFieldTestBase {
     );
   }
 
-  function setUp() {
+  public function setUp() {
     parent::setUp();
     node_access_rebuild();
-    variable_set('node_access_test_private', TRUE);
+    \Drupal::state()->set('node_access_test.private', TRUE);
   }
 
   /**
    * Tests file access for file uploaded to a private node.
    */
   function testPrivateFile() {
-    // Use 'page' instead of 'article', so that the 'article' image field does
-    // not conflict with this test. If in the future the 'page' type gets its
-    // own default file or image field, this test can be made more robust by
-    // using a custom node type.
-    $type_name = 'page';
+    $type_name = 'article';
     $field_name = strtolower($this->randomName());
-    $this->createFileField($field_name, $type_name, array('uri_scheme' => 'private'));
+    $this->createFileField($field_name, 'node', $type_name, array('uri_scheme' => 'private'));
 
     // Create a field with no view access - see field_test_field_access().
     $no_access_field_name = 'field_no_view_access';
-    $this->createFileField($no_access_field_name, $type_name, array('uri_scheme' => 'private'));
+    $this->createFileField($no_access_field_name, 'node', $type_name, array('uri_scheme' => 'private'));
 
     $test_file = $this->getTestFile('text');
     $nid = $this->uploadNodeFile($test_file, $field_name, $type_name, TRUE, array('private' => TRUE));
     $node = node_load($nid, TRUE);
-    $node_file = file_load($node->{$field_name}[LANGUAGE_NOT_SPECIFIED][0]['fid']);
+    $node_file = file_load($node->{$field_name}->target_id);
     // Ensure the file can be downloaded.
-    $this->drupalGet(file_create_url($node_file->uri));
-    $this->assertResponse(200, t('Confirmed that the generated URL is correct by downloading the shipped file.'));
+    $this->drupalGet(file_create_url($node_file->getFileUri()));
+    $this->assertResponse(200, 'Confirmed that the generated URL is correct by downloading the shipped file.');
     $this->drupalLogOut();
-    $this->drupalGet(file_create_url($node_file->uri));
-    $this->assertResponse(403, t('Confirmed that access is denied for the file without the needed permission.'));
+    $this->drupalGet(file_create_url($node_file->getFileUri()));
+    $this->assertResponse(403, 'Confirmed that access is denied for the file without the needed permission.');
 
     // Test with the field that should deny access through field access.
     $this->drupalLogin($this->admin_user);
     $nid = $this->uploadNodeFile($test_file, $no_access_field_name, $type_name, TRUE, array('private' => TRUE));
     $node = node_load($nid, TRUE);
-    $node_file = file_load($node->{$no_access_field_name}[LANGUAGE_NOT_SPECIFIED][0]['fid']);
+    $node_file = file_load($node->{$no_access_field_name}->target_id);
     // Ensure the file cannot be downloaded.
-    $this->drupalGet(file_create_url($node_file->uri));
-    $this->assertResponse(403, t('Confirmed that access is denied for the file without view field access permission.'));
+    $this->drupalGet(file_create_url($node_file->getFileUri()));
+    $this->assertResponse(403, 'Confirmed that access is denied for the file without view field access permission.');
   }
 }

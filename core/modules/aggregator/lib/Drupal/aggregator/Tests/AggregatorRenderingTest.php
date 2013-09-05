@@ -7,7 +7,20 @@
 
 namespace Drupal\aggregator\Tests;
 
+use Drupal\Component\Utility\String;
+
+/**
+ * Tests rendering functionality in the Aggregator module.
+ */
 class AggregatorRenderingTest extends AggregatorTestBase {
+
+  /**
+   * Modules to enable.
+   *
+   * @var array
+   */
+  public static $modules = array('block', 'test_page_test');
+
   public static function getInfo() {
     return array(
       'name' => 'Checks display of aggregator items',
@@ -17,9 +30,9 @@ class AggregatorRenderingTest extends AggregatorTestBase {
   }
 
   /**
-   * Add a feed block to the page and checks its links.
+   * Adds a feed block to the page and checks its links.
    *
-   * TODO: Test the category block as well.
+   * @todo Test the category block as well.
    */
   public function testBlockLinks() {
     // Create feed.
@@ -27,78 +40,77 @@ class AggregatorRenderingTest extends AggregatorTestBase {
     $feed = $this->createFeed();
     $this->updateFeedItems($feed, $this->getDefaultFeedItemCount());
 
-    // Place block on page (@see block.test:moveBlockToRegion())
+    // Clear the block cache to load the new block definitions.
+    $this->container->get('plugin.manager.block')->clearCachedDefinitions();
+
     // Need admin user to be able to access block admin.
-    $this->admin_user = $this->drupalCreateUser(array(
+    $admin_user = $this->drupalCreateUser(array(
       'administer blocks',
       'access administration pages',
       'administer news feeds',
       'access news feeds',
     ));
-    $this->drupalLogin($this->admin_user);
+    $this->drupalLogin($admin_user);
 
-    // Prepare to use the block admin form.
-    $block = array(
-      'module' => 'aggregator',
-      'delta' => 'feed-' . $feed->fid,
-      'title' => $feed->title,
-    );
-    $region = 'footer';
-    $edit = array();
-    $edit['blocks[' . $block['module'] . '_' . $block['delta'] . '][region]'] = $region;
-    // Check the feed block is available in the block list form.
-    $this->drupalGet('admin/structure/block');
-    $this->assertFieldByName('blocks[' . $block['module'] . '_' . $block['delta'] . '][region]', '', 'Aggregator feed block is available for positioning.');
-    // Position it.
-    $this->drupalPost('admin/structure/block', $edit, t('Save blocks'));
-    $this->assertText(t('The block settings have been updated.'), format_string('Block successfully moved to %region_name region.', array( '%region_name' => $region)));
+    $block = $this->drupalPlaceBlock("aggregator_feed_block:{$feed->id()}", array('label' => 'feed-' . $feed->label(), 'block_count' => 2));
+
     // Confirm that the block is now being displayed on pages.
-    $this->drupalGet('node');
-    $this->assertText(t($block['title']), 'Feed block is displayed on the page.');
+    $this->drupalGet('test-page');
+    $this->assertText($block->label(), 'Feed block is displayed on the page.');
 
     // Find the expected read_more link.
-    $href = 'aggregator/sources/' . $feed->fid;
+    $href = 'aggregator/sources/' . $feed->id();
     $links = $this->xpath('//a[@href = :href]', array(':href' => url($href)));
     $this->assert(isset($links[0]), format_string('Link to href %href found.', array('%href' => $href)));
 
     // Visit that page.
     $this->drupalGet($href);
-    $correct_titles = $this->xpath('//h1[normalize-space(text())=:title]', array(':title' => $feed->title));
+    $correct_titles = $this->xpath('//h1[normalize-space(text())=:title]', array(':title' => $feed->label()));
     $this->assertFalse(empty($correct_titles), 'Aggregator feed page is available and has the correct title.');
 
     // Set the number of news items to 0 to test that the block does not show
     // up.
     $feed->block = 0;
-    aggregator_save_feed((array) $feed);
-    // It is nescessary to flush the cache after saving the number of items.
-    $this->resetAll();
+    $feed->save();
     // Check that the block is no longer displayed.
-    $this->drupalGet('node');
-    $this->assertNoText(t($block['title']), 'Feed block is not displayed on the page when number of items is set to 0.');
+    $this->drupalGet('test-page');
+    $this->assertNoText($block->label(), 'Feed block is not displayed on the page when number of items is set to 0.');
   }
 
   /**
-   * Create a feed and check that feed's page.
+   * Creates a feed and checks that feed's page.
    */
   public function testFeedPage() {
     // Increase the number of items published in the rss.xml feed so we have
     // enough articles to test paging.
-    $config = config('system.rss');
-    $config->set('items.limit', 30);
-    $config->save();
+    $view = entity_load('view', 'frontpage');
+    $display = &$view->getDisplay('feed_1');
+    $display['display_options']['pager']['options']['items_per_page'] = 30;
+    $view->save();
 
     // Create a feed with 30 items.
     $this->createSampleNodes(30);
     $feed = $this->createFeed();
     $this->updateFeedItems($feed, 30);
 
-    // Check for the presence of a pager.
-    $this->drupalGet('aggregator/sources/' . $feed->fid);
+    // Check for presence of an aggregator pager.
+    $this->drupalGet('aggregator');
     $elements = $this->xpath("//ul[@class=:class]", array(':class' => 'pager'));
     $this->assertTrue(!empty($elements), 'Individual source page contains a pager.');
 
-    // Reset the number of items in rss.xml to the default value.
-    $config->set('items.limit', 10);
-    $config->save();
+    // Check for sources page title.
+    $this->drupalGet('aggregator/sources');
+    $titles = $this->xpath('//h1[normalize-space(text())=:title]', array(':title' => 'Sources'));
+    $this->assertTrue(!empty($titles), 'Source page contains correct title.');
+
+    // Find the expected read_more link on the sources page.
+    $href = 'aggregator/sources/' . $feed->id();
+    $links = $this->xpath('//a[@href = :href]', array(':href' => url($href)));
+    $this->assertTrue(isset($links[0]), String::format('Link to href %href found.', array('%href' => $href)));
+
+    // Check for the presence of a pager.
+    $this->drupalGet('aggregator/sources/' . $feed->id());
+    $elements = $this->xpath("//ul[@class=:class]", array(':class' => 'pager'));
+    $this->assertTrue(!empty($elements), 'Individual source page contains a pager.');
   }
 }

@@ -9,6 +9,7 @@ namespace Drupal\comment;
 
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityRenderController;
+use Drupal\entity\Entity\EntityDisplay;
 
 /**
  * Render controller for comments.
@@ -21,17 +22,33 @@ class CommentRenderController extends EntityRenderController {
    * In addition to modifying the content key on entities, this implementation
    * will also set the node key which all comments carry.
    */
-  public function buildContent(array $entities = array(), $view_mode = 'full', $langcode = NULL) {
+  public function buildContent(array $entities, array $displays, $view_mode, $langcode = NULL) {
     $return = array();
     if (empty($entities)) {
       return $return;
     }
 
-    parent::buildContent($entities, $view_mode, $langcode);
+    // Pre-load associated users into cache to leverage multiple loading.
+    $uids = array();
+    foreach ($entities as $entity) {
+      $uids[] = $entity->uid->target_id;
+    }
+    user_load_multiple(array_unique($uids));
+
+    parent::buildContent($entities, $displays, $view_mode, $langcode);
+
+    // Load all nodes of all comments at once.
+    $nids = array();
+    foreach ($entities as $entity) {
+      $nids[$entity->nid->target_id] = $entity->nid->target_id;
+    }
+    $nodes = node_load_multiple($nids);
 
     foreach ($entities as $entity) {
-      $node = node_load($entity->nid);
-      if (!$node) {
+      if (isset($nodes[$entity->nid->target_id])) {
+        $node = $nodes[$entity->nid->target_id];
+      }
+      else {
         throw new \InvalidArgumentException(t('Invalid node for comment.'));
       }
       $entity->content['#node'] = $node;
@@ -55,8 +72,8 @@ class CommentRenderController extends EntityRenderController {
   /**
    * Overrides Drupal\Core\Entity\EntityRenderController::alterBuild().
    */
-  protected function alterBuild(array &$build, EntityInterface $comment, $view_mode, $langcode = NULL) {
-    parent::alterBuild($build, $comment, $view_mode, $langcode);
+  protected function alterBuild(array &$build, EntityInterface $comment, EntityDisplay $display, $view_mode, $langcode = NULL) {
+    parent::alterBuild($build, $comment, $display, $view_mode, $langcode);
     if (empty($comment->in_preview)) {
       $prefix = '';
       $is_threaded = isset($comment->divs)
@@ -69,11 +86,12 @@ class CommentRenderController extends EntityRenderController {
 
       // Add indentation div or close open divs as needed.
       if ($is_threaded) {
+        $build['#attached']['css'][] = drupal_get_path('module', 'comment') . '/css/comment.theme.css';
         $prefix .= $comment->divs <= 0 ? str_repeat('</div>', abs($comment->divs)) : "\n" . '<div class="indented">';
       }
 
       // Add anchor for each comment.
-      $prefix .= "<a id=\"comment-$comment->cid\"></a>\n";
+      $prefix .= "<a id=\"comment-{$comment->id()}\"></a>\n";
       $build['#prefix'] = $prefix;
 
       // Close all open divs.
@@ -82,4 +100,5 @@ class CommentRenderController extends EntityRenderController {
       }
     }
   }
+
 }

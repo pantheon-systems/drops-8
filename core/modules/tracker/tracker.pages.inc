@@ -20,8 +20,9 @@
 function tracker_page($account = NULL, $set_title = FALSE) {
   if ($account) {
     $query = db_select('tracker_user', 't')
-      ->extend('Drupal\Core\Database\Query\PagerSelectExtender');
-    $query->condition('t.uid', $account->uid);
+      ->extend('Drupal\Core\Database\Query\PagerSelectExtender')
+      ->addMetaData('base_table', 'tracker_user')
+      ->condition('t.uid', $account->id());
 
     if ($set_title) {
       // When viewed from user/%user/track, display the name of the user
@@ -32,14 +33,14 @@ function tracker_page($account = NULL, $set_title = FALSE) {
   }
   else {
     $query = db_select('tracker_node', 't', array('target' => 'slave'))
-      ->extend('Drupal\Core\Database\Query\PagerSelectExtender');
+      ->extend('Drupal\Core\Database\Query\PagerSelectExtender')
+      ->addMetaData('base_table', 'tracker_node');
   }
 
   // This array acts as a placeholder for the data selected later
   // while keeping the correct order.
-  $nodes = $query
+  $tracker_data = $query
     ->addTag('node_access')
-    ->addMetaData('base_table', 'tracker_node')
     ->fields('t', array('nid', 'changed'))
     ->condition('t.published', 1)
     ->orderBy('t.changed', 'DESC')
@@ -48,12 +49,16 @@ function tracker_page($account = NULL, $set_title = FALSE) {
     ->fetchAllAssoc('nid');
 
   $rows = array();
-  if (!empty($nodes)) {
+  if (!empty($tracker_data)) {
+    $nids = array_keys($tracker_data);
+    $nodes = node_load_multiple($nids);
     // Now, get the data and put into the placeholder array.
-    $result = db_query('SELECT n.nid, n.title, n.type, n.changed, n.uid, u.name, l.comment_count FROM {node} n INNER JOIN {node_comment_statistics} l ON n.nid = l.nid INNER JOIN {users} u ON n.uid = u.uid WHERE n.nid IN (:nids)', array(':nids' => array_keys($nodes)), array('target' => 'slave'));
-    foreach ($result as $node) {
-      $node->last_activity = $nodes[$node->nid]->changed;
-      $nodes[$node->nid] = $node;
+    // @todo This should be actually filtering on the desired language and just
+    //   fall back to the default language.
+    $result = db_query('SELECT n.nid, l.comment_count FROM {node_field_data} n INNER JOIN {node_comment_statistics} l ON n.nid = l.nid WHERE n.nid IN (:nids) AND n.default_langcode = 1 ORDER BY n.changed DESC', array(':nids' => $nids), array('target' => 'slave'))->fetchAllKeyed();
+    foreach ($result as $nid => $comment_count) {
+      $nodes[$nid]->last_activity = $tracker_data[$nid]->changed;
+      $nodes[$nid]->comment_count = $comment_count;
     }
 
     // Display the data.
@@ -63,56 +68,63 @@ function tracker_page($account = NULL, $set_title = FALSE) {
       if ($node->comment_count) {
         $comments = $node->comment_count;
 
-        if ($new = comment_num_new($node->nid)) {
+        if ($new = comment_num_new($node->id())) {
           $comments .= '<br />';
-          $comments .= l(format_plural($new, '1 new', '@count new'), 'node/' . $node->nid, array('fragment' => 'new'));
+          $comments .= l(format_plural($new, '1 new', '@count new'), 'node/' . $node->id(), array('fragment' => 'new'));
         }
       }
 
+      $mark_build = array(
+        '#theme' => 'mark',
+        '#status' => node_mark($node->id(), $node->getChangedTime()),
+      );
+
       $row = array(
         'type' => check_plain(node_get_type_label($node)),
-        // Do not use $node->label(), because $node comes from the database.
-        'title' => array('data' => l($node->title, 'node/' . $node->nid) . ' ' . theme('mark', array('type' => node_mark($node->nid, $node->changed)))),
-        'author' => array('data' => theme('username', array('account' => $node))),
+        'title' => array('data' => l($node->getTitle(), 'node/' . $node->id()) . ' ' . drupal_render($mark_build)),
+        'author' => array('data' => array('#theme' => 'username', '#account' => $node->getAuthor())),
         'replies' => array('class' => array('replies'), 'data' => $comments),
         'last updated' => array('data' => t('!time ago', array('!time' => format_interval(REQUEST_TIME - $node->last_activity)))),
       );
 
       // Adds extra RDFa markup to the $row array if the RDF module is enabled.
-      if (function_exists('rdf_mapping_load')) {
-        // Each node is not loaded for performance reasons, as a result we need
-        // to retrieve the RDF mapping for each node type.
-        $mapping = rdf_mapping_load('node', $node->type);
+      if (module_exists('rdf')) {
+        $mapping = rdf_get_mapping('node', $node->getType());
         // Adds RDFa markup to the title of the node. Because the RDFa markup is
         // added to the td tag which might contain HTML code, we specify an
         // empty datatype to ensure the value of the title read by the RDFa
         // parsers is a plain literal.
-        $row['title'] += rdf_rdfa_attributes($mapping['title']) + array('datatype' => '');
+        $title_mapping = $mapping->getPreparedFieldMapping('title');
+        $row['title'] += rdf_rdfa_attributes($title_mapping) + array('datatype' => '');
         // Annotates the td tag containing the author of the node.
-        $row['author'] += rdf_rdfa_attributes($mapping['uid']);
+        $uid_mapping = $mapping->getPreparedFieldMapping('uid');
+        $row['author'] += rdf_rdfa_attributes($uid_mapping);
         // Annotates the td tag containing the number of replies. We add the
         // content attribute to ensure that only the comment count is used as
         // the value for 'num_replies'. Otherwise, other text such as a link
         // to the number of new comments could be included in the 'num_replies'
         // value.
-        $row['replies'] += rdf_rdfa_attributes($mapping['comment_count']);
+        $comment_count_mapping = $mapping->getPreparedFieldMapping('comment_count');
+        $row['replies'] += rdf_rdfa_attributes($comment_count_mapping);
         $row['replies'] += array('content' => $node->comment_count);
         // If the node has no comments, we assume the node itself was modified
         // and apply 'changed' in addition to 'last_activity'.  If there are
         // comments present, we cannot infer whether the node itself was
         // modified or a comment was posted, so we use only 'last_activity'.
-        $mapping_last_activity = rdf_rdfa_attributes($mapping['last_activity'], $node->last_activity);
+        $last_activity_mapping = $mapping->getPreparedFieldMapping('last_activity');
+        $last_activity_attributes = rdf_rdfa_attributes($last_activity_mapping, $node->last_activity);
         if ($node->comment_count == 0) {
-          $mapping_changed = rdf_rdfa_attributes($mapping['changed'], $node->last_activity);
-          $mapping_last_activity['property'] = array_merge($mapping_last_activity['property'], $mapping_changed['property']);
+          $changed_mapping = $mapping->getPreparedFieldMapping('changed');
+          $changed_attributes = rdf_rdfa_attributes($changed_mapping, $node->last_activity);
+          $last_activity_attributes['property'] = array_merge($last_activity_attributes['property'], $changed_attributes['property']);
         }
-        $row['last updated'] += $mapping_last_activity;
+        $row['last updated'] += $last_activity_attributes;
 
         // We need to add the about attribute on the tr tag to specify which
         // node the RDFa annotations above apply to. We move the content of
         // $row to a 'data' sub array so we can specify attributes for the row.
         $row = array('data' => $row);
-        $row['about'] = url('node/' . $node->nid);
+        $row['about'] = url('node/' . $node->id());
       }
       $rows[] = $row;
     }

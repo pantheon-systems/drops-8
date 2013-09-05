@@ -7,8 +7,10 @@
 
 namespace Drupal\views\Plugin\views\field;
 
+use Drupal\views\ResultRow;
 use Drupal\views\ViewExecutable;
-use Drupal\Core\Annotation\Plugin;
+use Drupal\views\Plugin\views\display\DisplayPluginBase;
+use Drupal\Component\Annotation\PluginID;
 
 /**
  * A handler to provide proper displays for booleans.
@@ -26,22 +28,25 @@ use Drupal\Core\Annotation\Plugin;
  *
  * @ingroup views_field_handlers
  *
- * @Plugin(
- *   id = "boolean"
- * )
+ * @PluginID("boolean")
  */
 class Boolean extends FieldPluginBase {
 
   protected function defineOptions() {
     $options = parent::defineOptions();
     $options['type'] = array('default' => 'yes-no');
-    $options['not'] = array('definition bool' => 'reverse');
+    $options['type_custom_true'] = array('default' => '', 'translatable' => TRUE);
+    $options['type_custom_false'] = array('default' => '', 'translatable' => TRUE);
+    $options['not'] = array('default' => FALSE, 'bool' => TRUE);
 
     return $options;
   }
 
-  public function init(ViewExecutable $view, &$options) {
-    parent::init($view, $options);
+  /**
+   * Overrides \Drupal\views\Plugin\views\field\FieldPluginBase::init().
+   */
+  public function init(ViewExecutable $view, DisplayPluginBase $display, array &$options = NULL) {
+    parent::init($view, $display, $options);
 
     $default_formats = array(
       'yes-no' => array(t('Yes'), t('No')),
@@ -52,7 +57,8 @@ class Boolean extends FieldPluginBase {
       'unicode-yes-no' => array('✔', '✖'),
     );
     $output_formats = isset($this->definition['output formats']) ? $this->definition['output formats'] : array();
-    $this->formats = array_merge($default_formats, $output_formats);
+    $custom_format = array('custom' => array(t('Custom')));
+    $this->formats = array_merge($default_formats, $output_formats, $custom_format);
   }
 
   public function buildOptionsForm(&$form, &$form_state) {
@@ -66,6 +72,26 @@ class Boolean extends FieldPluginBase {
       '#options' => $options,
       '#default_value' => $this->options['type'],
     );
+    $form['type_custom_true'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Custom output for TRUE'),
+      '#default_value' => $this->options['type_custom_true'],
+      '#states' => array(
+        'visible' => array(
+          'select[name="options[type]"]' => array('value' => 'custom'),
+        ),
+      ),
+    );
+    $form['type_custom_false'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Custom output for FALSE'),
+      '#default_value' => $this->options['type_custom_false'],
+      '#states' => array(
+        'visible' => array(
+          'select[name="options[type]"]' => array('value' => 'custom'),
+        ),
+      ),
+    );
     $form['not'] = array(
       '#type' => 'checkbox',
       '#title' => t('Reverse'),
@@ -75,13 +101,19 @@ class Boolean extends FieldPluginBase {
     parent::buildOptionsForm($form, $form_state);
   }
 
-  function render($values) {
-    $value = $this->get_value($values);
+  /**
+   * {@inheritdoc}
+   */
+  public function render(ResultRow $values) {
+    $value = $this->getValue($values);
     if (!empty($this->options['not'])) {
       $value = !$value;
     }
 
-    if (isset($this->formats[$this->options['type']])) {
+    if ($this->options['type'] == 'custom') {
+      return $value ? filter_xss_admin($this->options['type_custom_true']) : filter_xss_admin($this->options['type_custom_false']);
+    }
+    elseif (isset($this->formats[$this->options['type']])) {
       return $value ? $this->formats[$this->options['type']][0] : $this->formats[$this->options['type']][1];
     }
     else {

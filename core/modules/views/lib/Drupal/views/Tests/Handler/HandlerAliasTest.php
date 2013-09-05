@@ -7,28 +7,34 @@
 
 namespace Drupal\views\Tests\Handler;
 
-use Drupal\views\Tests\ViewTestBase;
+use Drupal\views\Tests\ViewUnitTestBase;
 
 /**
  * Tests abstract handlers of views.
  */
-class HandlerAliasTest extends ViewTestBase {
+class HandlerAliasTest extends ViewUnitTestBase {
+
+  public static $modules = array('user');
+
+  /**
+   * Views used by this test.
+   *
+   * @var array
+   */
+  public static $testViews = array('test_filter', 'test_alias');
 
   public static function getInfo() {
     return array(
       'name' => 'Handler alias tests',
       'description' => 'Tests handler table and field aliases.',
-      'group' => 'Views',
+      'group' => 'Views Handlers',
     );
   }
 
   protected function setUp() {
     parent::setUp();
 
-    // Create a new user for the 'real table'.
-    $this->user = $this->drupalCreateUser();
-
-    $this->enableViewsTestModule();
+    $this->installSchema('user', 'users');
   }
 
   /**
@@ -49,7 +55,7 @@ class HandlerAliasTest extends ViewTestBase {
     $view->initDisplay();
 
     // Change the filtering.
-    $view->displayHandlers['default']->overrideOption('filters', array(
+    $view->displayHandlers->get('default')->overrideOption('filters', array(
       'test_filter' => array(
         'id' => 'test_filter',
         'table' => 'views_test_data_alias',

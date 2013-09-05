@@ -7,19 +7,19 @@
 
 namespace Drupal\system\Tests\Entity;
 
-use Drupal\simpletest\WebTestBase;
+use Drupal\Core\Language\Language;
 
 /**
  * Tests the basic Entity API.
  */
-class EntityQueryTest extends WebTestBase {
+class EntityQueryTest extends EntityUnitTestBase {
 
   /**
    * Modules to enable.
    *
    * @var array
    */
-  public static $modules = array('field', 'field_sql_storage', 'field_test', 'text');
+  public static $modules = array('field_test', 'language');
 
   /**
    * @var array
@@ -55,15 +55,22 @@ class EntityQueryTest extends WebTestBase {
 
   function setUp() {
     parent::setUp();
+    $this->installSchema('entity_test', array('entity_test_mulrev', 'entity_test_mulrev_property_data', 'entity_test_mulrev_property_revision'));
+    $this->installSchema('system', array('variable'));
+    $this->installConfig(array('language'));
+
     $figures = drupal_strtolower($this->randomName());
     $greetings = drupal_strtolower($this->randomName());
     foreach (array($figures => 'shape', $greetings => 'text') as $field_name => $field_type) {
-      $field = array(
-        'field_name' => $field_name,
+      $field = entity_create('field_entity', array(
+        'name' => $field_name,
+        'entity_type' => 'entity_test_mulrev',
         'type' => $field_type,
         'cardinality' => 2,
-      );
-      $fields[] = field_create_field($field);
+        'translatable' => TRUE,
+      ));
+      $field->save();
+      $fields[] = $field;
     }
     $bundles = array();
     for ($i = 0; $i < 2; $i++) {
@@ -72,23 +79,22 @@ class EntityQueryTest extends WebTestBase {
       do {
         $bundle = $this->randomName();
       } while ($bundles && strtolower($bundles[0]) >= strtolower($bundle));
-      field_test_create_bundle($bundle);
+      entity_test_create_bundle($bundle);
       foreach ($fields as $field) {
-        $instance = array(
-          'field_name' => $field['field_name'],
-          'entity_type' => 'test_entity',
+        entity_create('field_instance', array(
+          'field_name' => $field->name,
+          'entity_type' => 'entity_test_mulrev',
           'bundle' => $bundle,
-        );
-        field_create_instance($instance);
+        ))->save();
       }
       $bundles[] = $bundle;
     }
     // Each unit is a list of field name, langcode and a column-value array.
-    $units[] = array($figures, LANGUAGE_NOT_SPECIFIED, array(
+    $units[] = array($figures, 'en', array(
       'color' => 'red',
       'shape' => 'triangle',
     ));
-    $units[] = array($figures, LANGUAGE_NOT_SPECIFIED, array(
+    $units[] = array($figures, 'en', array(
       'color' => 'blue',
       'shape' => 'circle',
     ));
@@ -103,31 +109,48 @@ class EntityQueryTest extends WebTestBase {
       'format' => 'format-pl'
     ));
     // Make these languages available to the greetings field.
+    $langcode = new Language(array(
+      'id' => 'en',
+      'name' => $this->randomString(),
+    ));
+    language_save($langcode);
+    $langcode = new Language(array(
+      'id' => 'tr',
+      'name' => $this->randomString(),
+    ));
+    language_save($langcode);
+    $langcode = new Language(array(
+      'id' => 'pl',
+      'name' => $this->randomString(),
+    ));
+    language_save($langcode);
     $field_langcodes = &drupal_static('field_available_languages');
-    $field_langcodes['test_entity'][$greetings] = array('tr', 'pl');
+    $field_langcodes['entity_test_mulrev'][$greetings] = array('tr', 'pl');
     // Calculate the cartesian product of the unit array by looking at the
     // bits of $i and add the unit at the bits that are 1. For example,
     // decimal 13 is binary 1101 so unit 3,2 and 0 will be added to the
     // entity.
     for ($i = 1; $i <= 15; $i++) {
-      $entity = entity_create('test_entity', array(
-        'ftid' => $i,
-        'ftvid' => $i,
-        'fttype' => $bundles[$i & 1],
+      $entity = entity_create('entity_test_mulrev', array(
+        'type' => $bundles[$i & 1],
+        'name' => $this->randomName(),
+        'langcode' => 'en',
       ));
-      $entity->enforceIsNew();
-      $entity->setNewRevision();
+      // Make sure the name is set for every language that we might create.
+      foreach (array('tr', 'pl') as $langcode) {
+        $entity->getTranslation($langcode)->name = $this->randomName();
+      }
       foreach (array_reverse(str_split(decbin($i))) as $key => $bit) {
         if ($bit) {
-          $unit = $units[$key];
-          $entity->{$unit[0]}[$unit[1]][] = $unit[2];
+          list($field_name, $langcode, $values) = $units[$key];
+          $entity->getTranslation($langcode)->{$field_name}[] = $values;
         }
       }
       $entity->save();
     }
     $this->figures = $figures;
     $this->greetings = $greetings;
-    $this->factory = drupal_container()->get('entity.query');
+    $this->factory = \Drupal::service('entity.query');
   }
 
   /**
@@ -136,19 +159,19 @@ class EntityQueryTest extends WebTestBase {
   function testEntityQuery() {
     $greetings = $this->greetings;
     $figures = $this->figures;
-    $this->queryResults = $this->factory->get('test_entity')
+    $this->queryResults = $this->factory->get('entity_test_mulrev')
       ->exists($greetings, 'tr')
       ->condition("$figures.color", 'red')
-      ->sort('ftid')
+      ->sort('id')
       ->execute();
     // As unit 0 was the red triangle and unit 2 was the turkish greeting,
     // bit 0 and bit 2 needs to be set.
     $this->assertResult(5, 7, 13, 15);
 
-    $query = $this->factory->get('test_entity', 'OR')
+    $query = $this->factory->get('entity_test_mulrev', 'OR')
       ->exists($greetings, 'tr')
       ->condition("$figures.color", 'red')
-      ->sort('ftid');
+      ->sort('id');
     $count_query = clone $query;
     $this->assertEqual(12, $count_query->count()->execute());
     $this->queryResults = $query->execute();
@@ -156,95 +179,109 @@ class EntityQueryTest extends WebTestBase {
     // 15) needs to be set.
     $this->assertResult(1, 3, 4, 5, 6, 7, 9, 11, 12, 13, 14, 15);
 
-    $query = $this->factory->get('test_entity');
+    // Test cloning of query conditions.
+    $query = $this->factory->get('entity_test_mulrev')
+      ->condition("$figures.color", 'red')
+      ->sort('id');
+    $cloned_query = clone $query;
+    $cloned_query
+      ->condition("$figures.shape", 'circle');
+    // Bit 0 (1, 3, 5, 7, 9, 11, 13, 15) needs to be set.
+    $this->queryResults = $query->execute();
+    $this->assertResult(1, 3, 5, 7, 9, 11, 13, 15);
+    // No red color has a circle shape.
+    $this->queryResults = $cloned_query->execute();
+    $this->assertResult();
+
+    $query = $this->factory->get('entity_test_mulrev');
     $group = $query->orConditionGroup()
       ->exists($greetings, 'tr')
       ->condition("$figures.color", 'red');
     $this->queryResults = $query
       ->condition($group)
       ->condition("$greetings.value", 'sie', 'STARTS_WITH')
-      ->sort('ftvid')
+      ->sort('revision_id')
       ->execute();
     // Bit 3 and (bit 0 or 2) -- the above 8 part of the above.
     $this->assertResult(9, 11, 12, 13, 14, 15);
 
     // No figure has both the colors blue and red at the same time.
-    $this->queryResults = $this->factory->get('test_entity')
+    $this->queryResults = $this->factory->get('entity_test_mulrev')
       ->condition("$figures.color", 'blue')
       ->condition("$figures.color", 'red')
-      ->sort('ftid')
+      ->sort('id')
       ->execute();
     $this->assertResult();
 
     // But an entity might have a red and a blue figure both.
-    $query = $this->factory->get('test_entity');
+    $query = $this->factory->get('entity_test_mulrev');
     $group_blue = $query->andConditionGroup()->condition("$figures.color", 'blue');
     $group_red = $query->andConditionGroup()->condition("$figures.color", 'red');
     $this->queryResults = $query
       ->condition($group_blue)
       ->condition($group_red)
-      ->sort('ftvid')
+      ->sort('revision_id')
       ->execute();
     // Unit 0 and unit 1, so bits 0 1.
     $this->assertResult(3, 7, 11, 15);
 
-    $this->queryResults = $this->factory->get('test_entity')
+    $this->queryResults = $this->factory->get('entity_test_mulrev')
       ->exists("$figures.color")
       ->notExists("$greetings.value")
-      ->sort('ftid')
+      ->sort('id')
       ->execute();
     // Bit 0 or 1 is on but 2 and 3 are not.
     $this->assertResult(1, 2, 3);
     // Now update the 'merhaba' string to xsiemax which is not a meaningful
     // word but allows us to test revisions and string operations.
-    $ids = $this->factory->get('test_entity')
+    $ids = $this->factory->get('entity_test_mulrev')
       ->condition("$greetings.value", 'merhaba')
       ->execute();
-    $entities = entity_load_multiple('test_entity', $ids);
+    $entities = entity_load_multiple('entity_test_mulrev', $ids);
     foreach ($entities as $entity) {
       $entity->setNewRevision();
-      $entity->{$greetings}['tr'][0]['value'] = 'xsiemax';
+      $entity->getTranslation('tr')->$greetings->value = 'xsiemax';
       $entity->save();
     }
     // When querying current revisions, this string is no longer found.
-    $this->queryResults = $this->factory->get('test_entity')
+    $this->queryResults = $this->factory->get('entity_test_mulrev')
       ->condition("$greetings.value", 'merhaba')
       ->execute();
     $this->assertResult();
-    $this->queryResults = $this->factory->get('test_entity')
+    $this->queryResults = $this->factory->get('entity_test_mulrev')
       ->condition("$greetings.value", 'merhaba')
       ->age(FIELD_LOAD_REVISION)
-      ->sort('ftvid')
+      ->sort('revision_id')
       ->execute();
     // Bit 2 needs to be set.
     // The keys must be 16-23 because the first batch stopped at 15 so the
     // second started at 16 and eight entities were saved.
     $assert = $this->assertRevisionResult(range(16, 23), array(4, 5, 6, 7, 12, 13, 14, 15));
-    $results = $this->factory->get('test_entity')
+    $results = $this->factory->get('entity_test_mulrev')
       ->condition("$greetings.value", 'siema', 'CONTAINS')
-      ->sort('ftid')
+      ->sort('id')
       ->execute();
     // This is the same as the previous one because xsiemax replaced merhaba
     // but also it contains the entities that siema originally but not
     // merhaba.
     $assert = array_slice($assert, 0, 4, TRUE) + array(8 => '8', 9 => '9', 10 => '10', 11 => '11') + array_slice($assert, 4, 4, TRUE);
     $this->assertIdentical($results, $assert);
-    $results = $this->factory->get('test_entity')
+    $results = $this->factory->get('entity_test_mulrev')
       ->condition("$greetings.value", 'siema', 'STARTS_WITH')
       ->execute();
     // Now we only get the ones that originally were siema, entity id 8 and
     // above.
     $this->assertIdentical($results, array_slice($assert, 4, 8, TRUE));
-    $results = $this->factory->get('test_entity')
+    $results = $this->factory->get('entity_test_mulrev')
       ->condition("$greetings.value", 'a', 'ENDS_WITH')
       ->execute();
     // It is very important that we do not get the ones which only have
     // xsiemax despite originally they were merhaba, ie. ended with a.
     $this->assertIdentical($results, array_slice($assert, 4, 8, TRUE));
-    $results = $this->factory->get('test_entity')
+    $results = $this->factory->get('entity_test_mulrev')
       ->condition("$greetings.value", 'a', 'ENDS_WITH')
       ->age(FIELD_LOAD_REVISION)
-      ->sort('ftid')
+      ->sort('id')
       ->execute();
     // Now we get everything.
     $this->assertIdentical($results, $assert);
@@ -259,18 +296,18 @@ class EntityQueryTest extends WebTestBase {
     $greetings = $this->greetings;
     $figures = $this->figures;
     // Order up and down on a number.
-    $this->queryResults = $this->factory->get('test_entity')
-      ->sort('ftid')
+    $this->queryResults = $this->factory->get('entity_test_mulrev')
+      ->sort('id')
       ->execute();
     $this->assertResult(range(1, 15));
-    $this->queryResults = $this->factory->get('test_entity')
-      ->sort('ftid', 'DESC')
+    $this->queryResults = $this->factory->get('entity_test_mulrev')
+      ->sort('id', 'DESC')
       ->execute();
     $this->assertResult(range(15, 1));
-    $query = $this->factory->get('test_entity')
+    $query = $this->factory->get('entity_test_mulrev')
       ->sort("$figures.color")
       ->sort("$greetings.format")
-      ->sort('ftid');
+      ->sort('id');
     // As we do not have any conditions, here are the possible colors and
     // language codes, already in order, with the first occurence of the
     // entity id marked with *:
@@ -313,19 +350,19 @@ class EntityQueryTest extends WebTestBase {
     // Test the pager by setting element #1 to page 2 with a page size of 4.
     // Results will be #8-12 from above.
     $_GET['page'] = '0,2';
-    $this->queryResults = $this->factory->get('test_entity')
+    $this->queryResults = $this->factory->get('entity_test_mulrev')
       ->sort("$figures.color")
       ->sort("$greetings.format")
-      ->sort('ftid')
+      ->sort('id')
       ->pager(4, 1)
       ->execute();
     $this->assertResult(15, 6, 7, 1);
 
     // Now test the reversed order.
-    $query = $this->factory->get('test_entity')
+    $query = $this->factory->get('entity_test_mulrev')
       ->sort("$figures.color", 'DESC')
       ->sort("$greetings.format", 'DESC')
-      ->sort('ftid', 'DESC');
+      ->sort('id', 'DESC');
     $count_query = clone $query;
     $this->assertEqual(15, $count_query->count()->execute());
     $this->queryResults = $query->execute();
@@ -342,56 +379,63 @@ class EntityQueryTest extends WebTestBase {
     $_GET['sort'] = 'asc';
     $_GET['order'] = 'Type';
     $header = array(
-      'id' => array('data' => 'Id', 'specifier' => 'ftid'),
-      'type' => array('data' => 'Type', 'specifier' => 'fttype'),
+      'id' => array('data' => 'Id', 'specifier' => 'id'),
+      'type' => array('data' => 'Type', 'specifier' => 'type'),
     );
 
-    $this->queryResults = array_values($this->factory->get('test_entity')
+    $this->queryResults = array_values($this->factory->get('entity_test_mulrev')
       ->tableSort($header)
       ->execute());
     $this->assertBundleOrder('asc');
     $_GET['sort'] = 'desc';
     $header = array(
-      'id' => array('data' => 'Id', 'specifier' => 'ftid'),
-      'type' => array('data' => 'Type', 'specifier' => 'fttype'),
+      'id' => array('data' => 'Id', 'specifier' => 'id'),
+      'type' => array('data' => 'Type', 'specifier' => 'type'),
     );
-    $this->queryResults = array_values($this->factory->get('test_entity')
+    $this->queryResults = array_values($this->factory->get('entity_test_mulrev')
       ->tableSort($header)
       ->execute());
     $this->assertBundleOrder('desc');
     // Ordering on ID is definite, however.
     $_GET['order'] = 'Id';
-    $this->queryResults = $this->factory->get('test_entity')
+    $this->queryResults = $this->factory->get('entity_test_mulrev')
       ->tableSort($header)
       ->execute();
     $this->assertResult(range(15, 1));
   }
 
   /**
-   * Test entity count query.
+   * Test that count queries are separated across entity types.
    */
   protected function testCount() {
-    // Attach the existing 'figures' field to a second entity type so that we
-    // can test whether cross entity type fields produce the correct query.
+    // Create a field with the same name in a different entity type.
     $field_name = $this->figures;
+    $field = entity_create('field_entity', array(
+      'name' => $field_name,
+      'entity_type' => 'entity_test',
+      'type' => 'shape',
+      'cardinality' => 2,
+      'translatable' => TRUE,
+    ));
+    $field->save();
     $bundle = $this->randomName();
-    $instance = array(
+    entity_create('field_instance', array(
       'field_name' => $field_name,
-      'entity_type' => 'test_entity_bundle',
+      'entity_type' => 'entity_test',
       'bundle' => $bundle,
-    );
-    field_create_instance($instance);
+    ))->save();
 
-    $entity = entity_create('test_entity_bundle', array(
-      'ftid' => 1,
-      'fttype' => $bundle,
+    $entity = entity_create('entity_test', array(
+      'id' => 1,
+      'type' => $bundle,
     ));
     $entity->enforceIsNew();
     $entity->setNewRevision();
     $entity->save();
+
     // As the single entity of this type we just saved does not have a value
     // in the color field, the result should be 0.
-    $count = $this->factory->get('test_entity_bundle')
+    $count = $this->factory->get('entity_test')
       ->exists("$field_name.color")
       ->count()
       ->execute();
@@ -438,5 +482,21 @@ class EntityQueryTest extends WebTestBase {
       }
       $this->assertTrue($ok, format_string("$i is after all entities in bundle2"));
     }
+  }
+
+  /**
+   * Test adding a tag and metadata to the Entity query object.
+   *
+   * The tags and metadata should propogate to the SQL query object.
+   */
+  function testMetaData() {
+    $query = \Drupal::entityQuery('entity_test_mulrev');
+    $query
+      ->addTag('efq_metadata_test')
+      ->addMetaData('foo', 'bar')
+      ->execute();
+
+    global $efq_test_metadata;
+    $this->assertEqual($efq_test_metadata, 'bar', 'Tag and metadata propogated to the SQL query object.');
   }
 }

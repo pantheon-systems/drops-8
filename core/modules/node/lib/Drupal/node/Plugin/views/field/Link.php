@@ -8,17 +8,15 @@
 namespace Drupal\node\Plugin\views\field;
 
 use Drupal\views\Plugin\views\field\FieldPluginBase;
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
+use Drupal\views\ResultRow;
 
 /**
  * Field handler to present a link to the node.
  *
  * @ingroup views_field_handlers
  *
- * @Plugin(
- *   id = "node_link",
- *   module = "node"
- * )
+ * @PluginID("node_link")
  */
 class Link extends FieldPluginBase {
 
@@ -36,23 +34,31 @@ class Link extends FieldPluginBase {
     );
     parent::buildOptionsForm($form, $form_state);
 
-    // The path is set by render_link function so don't allow to set it.
+    // The path is set by renderLink function so don't allow to set it.
     $form['alter']['path'] = array('#access' => FALSE);
     $form['alter']['external'] = array('#access' => FALSE);
   }
 
-  public function query() {}
+  /**
+   * {@inheritdoc}
+   */
+  public function query() {
+    $this->addAdditionalFields();
+  }
 
-  function render($values) {
-    if ($entity = $this->get_entity($values)) {
-      return $this->render_link($entity, $values);
+  /**
+   * {@inheritdoc}
+   */
+  public function render(ResultRow $values) {
+    if ($entity = $this->getEntity($values)) {
+      return $this->renderLink($entity, $values);
     }
   }
 
-  function render_link($node, $values) {
+  protected function renderLink($node, ResultRow $values) {
     if (node_access('view', $node)) {
       $this->options['alter']['make_link'] = TRUE;
-      $this->options['alter']['path'] = "node/$node->nid";
+      $this->options['alter']['path'] = 'node/' . $node->id();
       $text = !empty($this->options['text']) ? $this->options['text'] : t('view');
       return $text;
     }

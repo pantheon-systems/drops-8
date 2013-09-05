@@ -69,11 +69,11 @@ Drupal.behaviors.overlayChild = {
     $(context).find('#overlay-disable-message')
       .focusin(function () {
         $(this).addClass('overlay-disable-message-focused')
-          .find('a.element-focusable').removeClass('element-invisible');
+          .find('a.focusable').removeClass('visually-hidden');
       })
       .focusout(function () {
         $(this).removeClass('overlay-disable-message-focused')
-          .find('a.element-focusable').addClass('element-invisible');
+          .find('a.focusable').addClass('visually-hidden');
       });
   }
 };
@@ -142,7 +142,7 @@ Drupal.overlayChild.behaviors.loading = function (context, settings) {
 
   $(document).bind('drupalOverlayBeforeLoad.drupal-overlay.drupal-overlay-child-loading', function () {
     $title = $('#overlay-title').text(text);
-    var id = setInterval(function () {
+    setInterval(function () {
       dots = (dots.length > 10) ? '' : dots + '.';
       $title.text(text + dots);
     }, 500);
@@ -157,7 +157,7 @@ Drupal.overlayChild.behaviors.tabs = function (context, settings) {
 
   $('#overlay-tabs > li > a').bind('click.drupal-overlay', function () {
     var active_tab = Drupal.t('(active tab)');
-    $tabsLinks.parent().siblings().removeClass('active').find('element-invisible:contains(' + active_tab + ')').appendTo(this);
+    $tabsLinks.parent().siblings().removeClass('active').find('visually-hidden:contains(' + active_tab + ')').appendTo(this);
     $(this).parent().addClass('active');
   });
 };
@@ -179,11 +179,13 @@ Drupal.overlayChild.behaviors.shortcutAddLink = function (context, settings) {
   });
 };
 
-// Workaround because of the way jQuery events works.
-// jQuery from the parent frame needs to be used to catch this event.
-parent.jQuery(document).bind('offsettopchange', function () {
-  // Fires an event that the child iframe can listen to.
-  $(document).trigger('offsettopchange');
-});
+Drupal.overlayChild.behaviors.bindDrupalViewportOffsetChangeEvent = function (context, settings) {
+  // Workaround because of the way jQuery events works.
+  // jQuery from the parent frame needs to be used to catch this event.
+  parent.jQuery(parent.document).on('drupalViewportOffsetChange', function (event, offsets) {
+    // Fires an event that the child iframe can listen to.
+    $(document).trigger('drupalViewportOffsetChange', offsets);
+  });
+};
 
 })(jQuery);

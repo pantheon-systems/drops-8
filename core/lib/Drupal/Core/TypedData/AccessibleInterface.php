@@ -2,10 +2,12 @@
 
 /**
  * @file
- * Definition of Drupal\Core\TypedData\AccessibleInterface.
+ * Contains \Drupal\Core\TypedData\AccessibleInterface.
  */
 
 namespace Drupal\Core\TypedData;
+
+use Drupal\Core\Session\AccountInterface;
 
 /**
  * Interface for checking access.
@@ -15,12 +17,23 @@ interface AccessibleInterface {
   /**
    * Checks data value access.
    *
-   * @param \Drupal\user\User $account
-   *   (optional) The user account to check access for. Defaults to the current
-   *   user.
+   * @param string $operation
+   *   (optional) The operation to be performed. Supported values are:
+   *   - view
+   *   - create
+   *   - update
+   *   - delete
+   *   Defaults to 'view'.
+   * @param Drupal\Core\Session\AccountInterface $account
+   *   (optional) The user for which to check access, or NULL to check access
+   *   for the current user. Defaults to NULL.
    *
    * @return bool
-   *   TRUE if the given user has access; otherwise FALSE.
+   *   TRUE if the given user has access for the given operation, FALSE
+   *   otherwise.
+   *
+   * @todo Don't depend on module level code.
    */
-  public function access(\Drupal\user\User $account = NULL);
+  public function access($operation = 'view', AccountInterface $account = NULL);
+
 }

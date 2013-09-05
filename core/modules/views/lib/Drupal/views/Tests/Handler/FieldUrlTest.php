@@ -7,10 +7,21 @@
 
 namespace Drupal\views\Tests\Handler;
 
+use Drupal\views\Tests\ViewUnitTestBase;
+
 /**
  * Tests the core Drupal\views\Plugin\views\field\Url handler.
  */
-class FieldUrlTest extends HandlerTestBase {
+class FieldUrlTest extends ViewUnitTestBase {
+
+  public static $modules = array('system');
+
+  /**
+   * Views used by this test.
+   *
+   * @var array
+   */
+  public static $testViews = array('test_view');
 
   public static function getInfo() {
     return array(
@@ -20,10 +31,9 @@ class FieldUrlTest extends HandlerTestBase {
     );
   }
 
-  protected function setUp() {
+  public function setUp() {
     parent::setUp();
-
-    $this->enableViewsTestModule();
+    $this->installSchema('system', 'url_alias');
   }
 
   function viewsData() {
@@ -33,9 +43,10 @@ class FieldUrlTest extends HandlerTestBase {
   }
 
   public function testFieldUrl() {
-    $view = $this->getView();
+    $view = views_get_view('test_view');
+    $view->setDisplay();
 
-    $view->displayHandlers['default']->overrideOption('fields', array(
+    $view->displayHandlers->get('default')->overrideOption('fields', array(
       'name' => array(
         'id' => 'name',
         'table' => 'views_test_data',
@@ -47,13 +58,13 @@ class FieldUrlTest extends HandlerTestBase {
 
     $this->executeView($view);
 
-    $this->assertEqual('John', $view->field['name']->advanced_render($view->result[0]));
+    $this->assertEqual('John', $view->field['name']->advancedRender($view->result[0]));
 
     // Make the url a link.
     $view->destroy();
-    $view = $this->getView();
+    $view->setDisplay();
 
-    $view->displayHandlers['default']->overrideOption('fields', array(
+    $view->displayHandlers->get('default')->overrideOption('fields', array(
       'name' => array(
         'id' => 'name',
         'table' => 'views_test_data',
@@ -64,7 +75,7 @@ class FieldUrlTest extends HandlerTestBase {
 
     $this->executeView($view);
 
-    $this->assertEqual(l('John', 'John'), $view->field['name']->advanced_render($view->result[0]));
+    $this->assertEqual(l('John', 'John'), $view->field['name']->advancedRender($view->result[0]));
   }
 
 }

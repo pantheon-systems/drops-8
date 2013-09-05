@@ -7,16 +7,14 @@
 
 namespace Drupal\views\Plugin\views\argument;
 
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
 
 /**
  * Argument handler that ignores the argument.
  *
  * @ingroup views_argument_handlers
  *
- * @Plugin(
- *   id = "null"
- * )
+ * @PluginID("null")
  */
 class Null extends ArgumentPluginBase {
 
@@ -44,17 +42,17 @@ class Null extends ArgumentPluginBase {
   }
 
   /**
-   * Override default_actions() to remove actions that don't
+   * Override defaultActions() to remove actions that don't
    * make sense for a null argument.
    */
-  function default_actions($which = NULL) {
+  protected function defaultActions($which = NULL) {
     if ($which) {
       if (in_array($which, array('ignore', 'not found', 'empty', 'default'))) {
-        return parent::default_actions($which);
+        return parent::defaultActions($which);
       }
       return;
     }
-    $actions = parent::default_actions();
+    $actions = parent::defaultActions();
     unset($actions['summary asc']);
     unset($actions['summary desc']);
     return $actions;

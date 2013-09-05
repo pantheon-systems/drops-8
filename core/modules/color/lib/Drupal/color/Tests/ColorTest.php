@@ -48,6 +48,8 @@ class ColorTest extends WebTestBase {
       ),
     );
     theme_enable(array_keys($this->themes));
+    $this->container->get('router.builder')->rebuild();
+    menu_router_rebuild();
 
     // Array filled with valid and not valid color values
     $this->colorTests = array(
@@ -76,7 +78,9 @@ class ColorTest extends WebTestBase {
    * Tests the Color module functionality using the given theme.
    */
   function _testColor($theme, $test_values) {
-    variable_set('theme_default', $theme);
+    \Drupal::config('system.theme')
+      ->set('default', $theme)
+      ->save();
     $settings_path = 'admin/appearance/settings/' . $theme;
 
     $this->drupalLogin($this->big_user);
@@ -87,7 +91,7 @@ class ColorTest extends WebTestBase {
     $this->drupalPost($settings_path, $edit, t('Save configuration'));
 
     $this->drupalGet('<front>');
-    $stylesheets = variable_get('color_' . $theme . '_stylesheets', array());
+    $stylesheets = \Drupal::config('color.' . $theme)->get('stylesheets');
     $this->assertPattern('|' . file_create_url($stylesheets[0]) . '|', 'Make sure the color stylesheet is included in the content. (' . $theme . ')');
 
     $stylesheet_content = join("\n", file($stylesheets[0]));
@@ -99,22 +103,22 @@ class ColorTest extends WebTestBase {
     $this->drupalPost($settings_path, $edit, t('Save configuration'));
 
     $this->drupalGet('<front>');
-    $stylesheets = variable_get('color_' . $theme . '_stylesheets', array());
+    $stylesheets = \Drupal::config('color.' . $theme)->get('stylesheets');
     $stylesheet_content = join("\n", file($stylesheets[0]));
     $this->assertTrue(strpos($stylesheet_content, 'color: ' . $test_values['scheme_color']) !== FALSE, 'Make sure the color we changed is in the color stylesheet. (' . $theme . ')');
 
     // Test with aggregated CSS turned on.
-    $config = config('system.performance');
-    $config->set('preprocess.css', 1);
+    $config = \Drupal::config('system.performance');
+    $config->set('css.preprocess', 1);
     $config->save();
     $this->drupalGet('<front>');
-    $stylesheets = variable_get('drupal_css_cache_files', array());
+    $stylesheets = \Drupal::state()->get('drupal_css_cache_files') ?: array();
     $stylesheet_content = '';
     foreach ($stylesheets as $key => $uri) {
       $stylesheet_content .= join("\n", file(drupal_realpath($uri)));
     }
     $this->assertTrue(strpos($stylesheet_content, 'public://') === FALSE, 'Make sure the color paths have been translated to local paths. (' . $theme . ')');
-    $config->set('preprocess.css', 0);
+    $config->set('css.preprocess', 0);
     $config->save();
   }
 
@@ -122,7 +126,9 @@ class ColorTest extends WebTestBase {
    * Tests whether the provided color is valid.
    */
   function testValidColor() {
-    variable_set('theme_default', 'bartik');
+    \Drupal::config('system.theme')
+      ->set('default', 'bartik')
+      ->save();
     $settings_path = 'admin/appearance/settings/bartik';
 
     $this->drupalLogin($this->big_user);

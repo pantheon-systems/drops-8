@@ -1,0 +1,54 @@
+base_table: users
+core: '8'
+description: ''
+status: '1'
+display:
+  default:
+    display_options:
+      access:
+        type: none
+      cache:
+        type: none
+      exposed_form:
+        type: basic
+      pager:
+        type: full
+      row:
+        type: fields
+      style:
+        type: default
+      fields:
+        name:
+          id: uid
+          table: users
+          field: uid
+          provider: user
+      filters:
+        uid:
+          id: uid
+          table: users
+          field: uid
+          exposed: true
+          expose:
+            operator_id: uid_op
+            label: Name
+            operator: uid_op
+            identifier: uid
+            remember_roles:
+              authenticated: authenticated
+              anonymous: 0
+          provider: user
+    display_plugin: default
+    display_title: Master
+    id: default
+    position: '0'
+  page_1:
+    display_options:
+      path: test_user_name
+    display_plugin: page
+    display_title: Page
+    id: page_1
+    position: '0'
+label: ''
+id: test_user_name
+tag: ''

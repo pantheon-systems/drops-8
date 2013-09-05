@@ -14,6 +14,7 @@
  * back to its original state!
  */
 
+use Drupal\Core\DrupalKernel;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\DependencyInjection\Reference;
@@ -21,25 +22,22 @@ use Symfony\Component\DependencyInjection\Reference;
 // Change the directory to the Drupal root.
 chdir('..');
 
-/**
- * Defines the root directory of the Drupal installation.
- */
-define('DRUPAL_ROOT', getcwd());
+require_once __DIR__ . '/vendor/autoload.php';
 
 // Exit early if an incompatible PHP version would cause fatal errors.
 // The minimum version is specified explicitly, as DRUPAL_MINIMUM_PHP is not
 // yet available. It is defined in bootstrap.inc, but it is not possible to
 // load that file yet as it would cause a fatal error on older versions of PHP.
-if (version_compare(PHP_VERSION, '5.3.3') < 0) {
-  print 'Your PHP installation is too old. Drupal requires at least PHP 5.3.3. See the <a href="http://drupal.org/requirements">system requirements</a> page for more information.';
+if (version_compare(PHP_VERSION, '5.3.10') < 0) {
+  print 'Your PHP installation is too old. Drupal requires at least PHP 5.3.10. See the <a href="http://drupal.org/requirements">system requirements</a> page for more information.';
   exit;
 }
 
 /**
  * Global flag indicating that update.php is being run.
  *
- * When this flag is set, various operations do not take place, such as invoking
- * hook_init() and hook_exit(), css/js preprocessing, and translation.
+ * When this flag is set, various operations do not take place, such as css/js
+ * preprocessing and translation.
  *
  * This constant is defined using define() instead of const so that PHP
  * versions older than 5.3 can display the proper PHP requirements instead of
@@ -48,9 +46,12 @@ if (version_compare(PHP_VERSION, '5.3.3') < 0) {
 define('MAINTENANCE_MODE', 'update');
 
 /**
- * Renders form with a list of available database updates.
+ * Renders a form with a list of available database updates.
  */
 function update_selection_page() {
+  // Make sure there is no stale theme registry.
+  cache()->deleteAll();
+
   drupal_set_title('Drupal database update');
   $elements = drupal_get_form('update_script_selection_form');
   $output = drupal_render($elements);
@@ -68,9 +69,8 @@ function update_script_selection_form($form, &$form_state) {
   $incompatible_count = 0;
   $form['start'] = array(
     '#tree' => TRUE,
-    '#type' => 'fieldset',
+    '#type' => 'details',
     '#collapsed' => TRUE,
-    '#collapsible' => TRUE,
   );
 
   // Ensure system.module's updates appear first.
@@ -85,7 +85,7 @@ function update_script_selection_form($form, &$form_state) {
         '#type' => 'item',
         '#title' => $module . ' module',
         '#markup'  => $update['warning'],
-        '#prefix' => '<div class="messages warning">',
+        '#prefix' => '<div class="messages messages--warning">',
         '#suffix' => '</div>',
       );
       $incompatible_updates_exist = TRUE;
@@ -109,7 +109,7 @@ function update_script_selection_form($form, &$form_state) {
   }
 
   // Find and label any incompatible updates.
-  foreach (update_resolve_dependencies($starting_updates) as $function => $data) {
+  foreach (update_resolve_dependencies($starting_updates) as $data) {
     if (!$data['allowed']) {
       $incompatible_updates_exist = TRUE;
       $incompatible_count++;
@@ -137,7 +137,7 @@ function update_script_selection_form($form, &$form_state) {
     );
 
     // No updates to run, so caches won't get flushed later.  Clear them now.
-    drupal_flush_all_caches();
+    update_flush_all_caches();
   }
   else {
     $form['help'] = array(
@@ -182,6 +182,20 @@ function update_helpful_links() {
 }
 
 /**
+ * Remove update overrides and flush all caches.
+ *
+ * This will need to be run once all (if any) updates are run. Do not call this
+ * while updates are running.
+ */
+function update_flush_all_caches() {
+  unset($GLOBALS['conf']['container_service_providers']['UpdateServiceProvider']);
+  Drupal::service('kernel')->updateModules(Drupal::moduleHandler()->getModuleList());
+
+  // No updates to run, so caches won't get flushed later.  Clear them now.
+  drupal_flush_all_caches();
+}
+
+/**
  * Displays results of the update script with any accompanying errors.
  */
 function update_results_page() {
@@ -200,7 +214,8 @@ function update_results_page() {
     $output = '<p>Updates were attempted. If you see no failures below, you may proceed happily back to your <a href="' . base_path() . '">site</a>. Otherwise, you may need to update your database manually.' . $log_message . '</p>';
   }
   else {
-    list($module, $version) = array_pop(reset($_SESSION['updates_remaining']));
+    $last = reset($_SESSION['updates_remaining']);
+    list($module, $version) = array_pop($last);
     $output = '<p class="error">The update process was aborted prematurely while running <strong>update #' . $version . ' in ' . $module . '.module</strong>.' . $log_message;
     if (module_exists('dblog')) {
       $output .= ' You may need to check the <code>watchdog</code> database table manually.';
@@ -208,11 +223,15 @@ function update_results_page() {
     $output .= '</p>';
   }
 
-  if (!empty($GLOBALS['update_free_access'])) {
-    $output .= "<p><strong>Reminder: don't forget to set the <code>\$update_free_access</code> value in your <code>settings.php</code> file back to <code>FALSE</code>.</strong></p>";
+  if (settings()->get('update_free_access')) {
+    $output .= "<p><strong>Reminder: don't forget to set the <code>\$settings['update_free_access']</code> value in your <code>settings.php</code> file back to <code>FALSE</code>.</strong></p>";
   }
 
-  $output .= theme('links', array('links' => update_helpful_links()));
+  $links = array(
+    '#theme' => 'links',
+    '#links' => update_helpful_links(),
+  );
+  $output .= drupal_render($links);
 
   // Output a list of queries executed.
   if (!empty($_SESSION['update_results'])) {
@@ -252,7 +271,7 @@ function update_results_page() {
       }
     }
     if ($all_messages) {
-      $output .= '<div id="update-results"><h2>The following updates returned messages</h2>';
+      $output .= '<div class="update-results"><h2>The following updates returned messages</h2>';
       $output .= $all_messages;
       $output .= '</div>';
     }
@@ -263,22 +282,30 @@ function update_results_page() {
   return $output;
 }
 
+/**
+ * Provides an overview of the Drupal database update.
+ *
+ * This page provides cautionary suggestions that should happen before
+ * proceeding with the update to ensure data integrity.
+ *
+ * @return
+ *   Rendered HTML form.
+ */
 function update_info_page() {
   // Change query-strings on css/js files to enforce reload for all users.
   _drupal_flush_css_js();
   // Flush the cache of all data for the update status module.
-  if (db_table_exists('cache_update')) {
-    cache('update')->flush();
-  }
+  drupal_container()->get('keyvalue.expirable')->get('update')->deleteAll();
+  drupal_container()->get('keyvalue.expirable')->get('update_available_release')->deleteAll();
 
   update_task_list('info');
   drupal_set_title('Drupal database update');
   $token = drupal_get_token('update');
   $output = '<p>Use this utility to update your database whenever a new release of Drupal or a module is installed.</p><p>For more detailed information, see the <a href="http://drupal.org/upgrade">upgrading handbook</a>. If you are unsure what these terms mean you should probably contact your hosting provider.</p>';
   $output .= "<ol>\n";
-  $output .= "<li><strong>Back up your database</strong>. This process will change your database values and in case of emergency you may need to revert to a backup.</li>\n";
   $output .= "<li><strong>Back up your code</strong>. Hint: when backing up module code, do not leave that backup in the 'modules' or 'sites/*/modules' directories as this may confuse Drupal's auto-discovery mechanism.</li>\n";
   $output .= '<li>Put your site into <a href="' . base_path() . '?q=admin/config/development/maintenance">maintenance mode</a>.</li>' . "\n";
+  $output .= "<li><strong>Back up your database</strong>. This process will change your database values and in case of emergency you may need to revert to a backup.</li>\n";
   $output .= "<li>Install your new files in the appropriate location, as described in the handbook.</li>\n";
   $output .= "</ol>\n";
   $output .= "<p>When you have performed the steps above, you may proceed.</p>\n";
@@ -288,15 +315,22 @@ function update_info_page() {
   return $output;
 }
 
+/**
+ * Renders a 403 access denied page for update.php.
+ *
+ * @return
+ *   Rendered HTML warning with 403 status.
+ */
 function update_access_denied_page() {
   drupal_add_http_header('Status', '403 Forbidden');
-  watchdog('access denied', 'update.php', array(), WATCHDOG_WARNING);
+  header($_SERVER['SERVER_PROTOCOL'] . ' 403 Forbidden');
+  watchdog('access denied', 'update.php', NULL, WATCHDOG_WARNING);
   drupal_set_title('Access denied');
   return '<p>Access denied. You are not authorized to access this page. Log in using either an account with the <em>administer software updates</em> permission or the site maintenance account (the account you created during installation). If you cannot log in, you will have to edit <code>settings.php</code> to bypass this access check. To do this:</p>
 <ol>
  <li>With a text editor find the settings.php file on your system. From the main Drupal directory that you installed all the files into, go to <code>sites/your_site_name</code> if such directory exists, or else to <code>sites/default</code> which applies otherwise.</li>
- <li>There is a line inside your settings.php file that says <code>$update_free_access = FALSE;</code>. Change it to <code>$update_free_access = TRUE;</code>.</li>
- <li>As soon as the update.php script is done, you must change the settings.php file back to its original form with <code>$update_free_access = FALSE;</code>.</li>
+ <li>There is a line inside your settings.php file that says <code>$settings[\'update_free_access\'] = FALSE;</code>. Change it to <code>$settings[\'update_free_access\'] = TRUE;</code>.</li>
+ <li>As soon as the update.php script is done, you must change the settings.php file back to its original form with <code>$settings[\'update_free_access\'] = FALSE;</code>.</li>
  <li>To avoid having this problem in the future, remember to log in to your website using either an account with the <em>administer software updates</em> permission or the site maintenance account (the account you created during installation) before you backup your database at the beginning of the update process.</li>
 </ol>';
 }
@@ -308,20 +342,25 @@ function update_access_denied_page() {
  *   TRUE if the current user should be granted access, or FALSE otherwise.
  */
 function update_access_allowed() {
-  global $update_free_access, $user;
+  global $user;
 
   // Allow the global variable in settings.php to override the access check.
-  if (!empty($update_free_access)) {
+  if (settings()->get('update_free_access')) {
     return TRUE;
   }
   // Calls to user_access() might fail during the Drupal 6 to 7 update process,
   // so we fall back on requiring that the user be logged in as user #1.
   try {
-    require_once DRUPAL_ROOT . '/' . drupal_get_path('module', 'user') . '/user.module';
+    $module_handler = Drupal::moduleHandler();
+    $module_filenames = $module_handler->getModuleList();
+    $module_filenames['user'] = 'core/modules/user/user.module';
+    $module_handler->setModuleList($module_filenames);
+    $module_handler->reload();
+    drupal_container()->get('kernel')->updateModules($module_filenames, $module_filenames);
     return user_access('administer software updates');
   }
-  catch (Exception $e) {
-    return ($user->uid == 1);
+  catch (\Exception $e) {
+    return ($user->id() == 1);
   }
 }
 
@@ -338,7 +377,13 @@ function update_task_list($active = NULL) {
     'finished' => 'Review log',
   );
 
-  drupal_add_region_content('sidebar_first', theme('task_list', array('items' => $tasks, 'active' => $active)));
+  $task_list = array(
+    '#theme' => 'task_list',
+    '#items' => $tasks,
+    '#active' => $active,
+  );
+
+  drupal_add_region_content('sidebar_first', drupal_render($task_list));
 }
 
 /**
@@ -362,7 +407,7 @@ function update_extra_requirements($requirements = NULL) {
  */
 function update_check_requirements($skip_warnings = FALSE) {
   // Check requirements of all loaded modules.
-  $requirements = module_invoke_all('requirements', 'update');
+  $requirements = Drupal::moduleHandler()->invokeAll('requirements', array('update'));
   $requirements += update_extra_requirements();
   $severity = drupal_requirements_severity($requirements);
 
@@ -371,9 +416,18 @@ function update_check_requirements($skip_warnings = FALSE) {
   if ($severity == REQUIREMENT_ERROR || ($severity == REQUIREMENT_WARNING && !$skip_warnings)) {
     update_task_list('requirements');
     drupal_set_title('Requirements problem');
-    $status_report = theme('status_report', array('requirements' => $requirements));
+    $status = array(
+      '#theme' => 'status_report',
+      '#requirements' => $requirements,
+    );
+    $status_report = drupal_render($status);
     $status_report .= 'Check the messages and <a href="' . check_url(drupal_requirements_url($severity)) . '">try again</a>.';
-    print theme('update_page', array('content' => $status_report));
+    drupal_add_http_header('Content-Type', 'text/html; charset=utf-8');
+    $maintenance_page = array(
+      '#theme' => 'maintenance_page',
+      '#content' => $status_report,
+    );
+    print drupal_render($maintenance_page);
     exit();
   }
 }
@@ -384,16 +438,18 @@ ini_set('display_errors', FALSE);
 
 // We prepare a minimal bootstrap for the update requirements check to avoid
 // reaching the PHP memory limit.
-require_once DRUPAL_ROOT . '/core/includes/bootstrap.inc';
-require_once DRUPAL_ROOT . '/core/includes/update.inc';
-require_once DRUPAL_ROOT . '/core/includes/common.inc';
-require_once DRUPAL_ROOT . '/core/includes/file.inc';
-require_once DRUPAL_ROOT . '/core/includes/unicode.inc';
-require_once DRUPAL_ROOT . '/core/includes/schema.inc';
+require_once __DIR__ . '/includes/bootstrap.inc';
+require_once __DIR__ . '/includes/update.inc';
+require_once __DIR__ . '/includes/common.inc';
+require_once __DIR__ . '/includes/file.inc';
+require_once __DIR__ . '/includes/unicode.inc';
+require_once __DIR__ . '/includes/schema.inc';
 update_prepare_d8_bootstrap();
 
 // Determine if the current user has access to run update.php.
-drupal_bootstrap(DRUPAL_BOOTSTRAP_SESSION);
+drupal_bootstrap(DRUPAL_BOOTSTRAP_VARIABLES);
+require_once DRUPAL_ROOT . '/' . settings()->get('session_inc', 'core/includes/session.inc');
+drupal_session_initialize();
 
 // A request object from the HTTPFoundation to tell us about the request.
 // @todo These two lines were copied from index.php which has its own todo about
@@ -401,6 +457,12 @@ drupal_bootstrap(DRUPAL_BOOTSTRAP_SESSION);
 $request = Request::createFromGlobals();
 drupal_container()
   ->set('request', $request);
+
+// Ensure that URLs generated for the home and admin pages don't have 'update.php'
+// in them.
+$generator = Drupal::urlGenerator();
+$generator->setBasePath(str_replace('/core', '', $request->getBasePath()) . '/');
+$generator->setScriptPath('');
 
 // There can be conflicting 'op' parameters because both update and batch use
 // this parameter name. We need the 'op' coming from a POST request to trump
@@ -414,18 +476,8 @@ if (is_null($op)) {
 // to run updates (since it may expose sensitive information about the site's
 // configuration).
 if (is_null($op) && update_access_allowed()) {
-  require_once DRUPAL_ROOT . '/core/includes/install.inc';
+  require_once __DIR__ . '/includes/install.inc';
   require_once DRUPAL_ROOT . '/core/modules/system/system.install';
-
-  // Load module basics.
-  include_once DRUPAL_ROOT . '/core/includes/module.inc';
-  $module_list['system']['filename'] = 'core/modules/system/system.module';
-  module_list(NULL, $module_list);
-  drupal_load('module', 'system');
-
-  // Reset the module_implements() cache so that any new hook implementations
-  // in updated code are picked up.
-  module_implements_reset();
 
   // Set up $language, since the installer components require it.
   drupal_language_initialize();
@@ -448,19 +500,6 @@ update_fix_d8_requirements();
 drupal_bootstrap(DRUPAL_BOOTSTRAP_FULL);
 drupal_maintenance_theme();
 
-// @todo Remove after converting update.php to use DrupalKernel.
-$container = drupal_container();
-$container->register('database', 'Drupal\Core\Database\Connection')
-  ->setFactoryClass('Drupal\Core\Database\Database')
-  ->setFactoryMethod('getConnection')
-  ->addArgument('default');
-$container->register('lock', 'Drupal\Core\Lock\DatabaseLockBackend');
-$container->register('router.dumper', '\Drupal\Core\Routing\MatcherDumper')
-  ->addArgument(new Reference('database'));
-$container->register('router.builder', 'Drupal\Core\Routing\RouteBuilder')
-  ->addArgument(new Reference('router.dumper'))
-  ->addArgument(new Reference('lock'));
-
 // Turn error reporting back on. From now on, only fatal errors (which are
 // not passed through the error handler) will cause a message to be printed.
 ini_set('display_errors', TRUE);
@@ -469,8 +508,8 @@ ini_set('display_errors', TRUE);
 // Only proceed with updates if the user is allowed to run them.
 if (update_access_allowed()) {
 
-  include_once DRUPAL_ROOT . '/core/includes/install.inc';
-  include_once DRUPAL_ROOT . '/core/includes/batch.inc';
+  include_once __DIR__ . '/includes/install.inc';
+  include_once __DIR__ . '/includes/batch.inc';
   drupal_load_updates();
 
   update_fix_compatibility();
@@ -501,7 +540,7 @@ if (update_access_allowed()) {
         // update.php correctly by default.
         $batch_url = $base_root . drupal_current_script_url();
         $redirect_url = $base_root . drupal_current_script_url(array('op' => 'results'));
-        update_batch($request->request->get('start'), $redirect_url, $batch_url);
+        $output = update_batch($request->request->get('start'), $redirect_url, $batch_url);
         break;
       }
 
@@ -532,6 +571,12 @@ if (isset($output) && $output) {
     $output->send();
   }
   else {
-    print theme('update_page', array('content' => $output, 'show_messages' => !$progress_page));
+    drupal_add_http_header('Content-Type', 'text/html; charset=utf-8');
+    $maintenance_page = array(
+      '#theme' => 'maintenance_page',
+      '#content' => $output,
+      '#show_messages' => !$progress_page,
+    );
+    print drupal_render($maintenance_page);
   }
 }

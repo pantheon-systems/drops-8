@@ -7,8 +7,10 @@
 
 namespace Drupal\aggregator\Tests;
 
+use Zend\Feed\Reader\Reader;
+
 /**
- * Tests for feed parsing.
+ * Tests feed parsing in the Aggregator module.
  */
 class FeedParserTest extends AggregatorTestBase {
   public static function getInfo() {
@@ -24,17 +26,22 @@ class FeedParserTest extends AggregatorTestBase {
     // Do not remove old aggregator items during these tests, since our sample
     // feeds have hardcoded dates in them (which may be expired when this test
     // is run).
-    config('aggregator.settings')->set('items.expire', AGGREGATOR_CLEAR_NEVER)->save();
+    $this->container->get('config.factory')->get('aggregator.settings')->set('items.expire', AGGREGATOR_CLEAR_NEVER)->save();
+    // Reset any reader cache between tests.
+    Reader::reset();
+    // Set our bridge extension manager to Zend Feed.
+    $bridge = $this->container->get('feed.bridge.reader');
+    Reader::setExtensionManager($bridge);
   }
 
   /**
-   * Test a feed that uses the RSS 0.91 format.
+   * Tests a feed that uses the RSS 0.91 format.
    */
   function testRSS091Sample() {
     $feed = $this->createFeed($this->getRSS091Sample());
     aggregator_refresh($feed);
-    $this->drupalGet('aggregator/sources/' . $feed->fid);
-    $this->assertResponse(200, format_string('Feed %name exists.', array('%name' => $feed->title)));
+    $this->drupalGet('aggregator/sources/' . $feed->id());
+    $this->assertResponse(200, format_string('Feed %name exists.', array('%name' => $feed->label())));
     $this->assertText('First example feed item title');
     $this->assertLinkByHref('http://example.com/example-turns-one');
     $this->assertText('First example feed item description.');
@@ -50,13 +57,13 @@ class FeedParserTest extends AggregatorTestBase {
   }
 
   /**
-   * Test a feed that uses the Atom format.
+   * Tests a feed that uses the Atom format.
    */
   function testAtomSample() {
     $feed = $this->createFeed($this->getAtomSample());
     aggregator_refresh($feed);
-    $this->drupalGet('aggregator/sources/' . $feed->fid);
-    $this->assertResponse(200, format_string('Feed %name exists.', array('%name' => $feed->title)));
+    $this->drupalGet('aggregator/sources/' . $feed->id());
+    $this->assertResponse(200, format_string('Feed %name exists.', array('%name' => $feed->label())));
     $this->assertText('Atom-Powered Robots Run Amok');
     $this->assertLinkByHref('http://example.org/2003/12/13/atom03');
     $this->assertText('Some text.');
@@ -69,8 +76,37 @@ class FeedParserTest extends AggregatorTestBase {
   function testHtmlEntitiesSample() {
     $feed = $this->createFeed($this->getHtmlEntitiesSample());
     aggregator_refresh($feed);
-    $this->drupalGet('aggregator/sources/' . $feed->fid);
-    $this->assertResponse(200, format_string('Feed %name exists.', array('%name' => $feed->title)));
+    $this->drupalGet('aggregator/sources/' . $feed->id());
+    $this->assertResponse(200, format_string('Feed %name exists.', array('%name' => $feed->label())));
     $this->assertRaw("Quote&quot; Amp&amp;");
+  }
+
+  /**
+   * Tests error handling when an invalid feed is added.
+   */
+  function testRedirectFeed() {
+    // Simulate a typo in the URL to force a curl exception.
+    $invalid_url = url('aggregator/redirect', array('absolute' => TRUE));
+    $feed = entity_create('aggregator_feed', array('url' => $invalid_url));
+    $feed->save();
+    aggregator_refresh($feed);
+
+    // Make sure that the feed URL was updated correctly.
+    $this->assertEqual($feed->url->value, url('aggregator/test-feed', array('absolute' => TRUE)));
+  }
+
+  /**
+   * Tests error handling when an invalid feed is added.
+   */
+  function testInvalidFeed() {
+    // Simulate a typo in the URL to force a curl exception.
+    $invalid_url = 'http:/www.drupal.org';
+    $feed = entity_create('aggregator_feed', array('url' => $invalid_url, 'title' => $this->randomName()));
+    $feed->save();
+
+    // Update the feed. Use the UI to be able to check the message easily.
+    $this->drupalGet('admin/config/services/aggregator');
+    $this->clickLink(t('Update items'));
+    $this->assertRaw(t('The feed from %title seems to be broken because of error', array('%title' => $feed->label())));
   }
 }

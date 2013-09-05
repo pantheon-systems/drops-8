@@ -7,16 +7,14 @@
 
 namespace Drupal\views\Plugin\views\filter;
 
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
 
 /**
  * Filter to handle dates stored as a timestamp.
  *
  * @ingroup views_filter_handlers
  *
- * @Plugin(
- *   id = "date"
- * )
+ * @PluginID("date")
  */
 class Date extends Numeric {
 
@@ -32,7 +30,7 @@ class Date extends Numeric {
   /**
    * Add a type selector to the value form
    */
-  function value_form(&$form, &$form_state) {
+  protected function valueForm(&$form, &$form_state) {
     if (empty($form_state['exposed'])) {
       $form['value']['type'] = array(
         '#type' => 'radios',
@@ -44,7 +42,7 @@ class Date extends Numeric {
         '#default_value' => !empty($this->value['type']) ? $this->value['type'] : 'date',
       );
     }
-    parent::value_form($form, $form_state);
+    parent::valueForm($form, $form_state);
   }
 
   public function validateOptionsForm(&$form, &$form_state) {
@@ -107,7 +105,7 @@ class Date extends Numeric {
   /**
    * Validate the build group options form.
    */
-  function build_group_validate($form, &$form_state) {
+  protected function buildGroupValidate($form, &$form_state) {
     // Special case to validate grouped date filters, this is because the
     // $group['value'] array contains the type of filter (date or offset)
     // and therefore the number of items the comparission has to be done
@@ -166,7 +164,7 @@ class Date extends Numeric {
     return $rc;
   }
 
-  function op_between($field) {
+  protected function opBetween($field) {
     $a = intval(strtotime($this->value['min'], 0));
     $b = intval(strtotime($this->value['max'], 0));
 
@@ -177,17 +175,17 @@ class Date extends Numeric {
     // This is safe because we are manually scrubbing the values.
     // It is necessary to do it this way because $a and $b are formulas when using an offset.
     $operator = strtoupper($this->operator);
-    $this->query->add_where_expression($this->options['group'], "$field $operator $a AND $b");
+    $this->query->addWhereExpression($this->options['group'], "$field $operator $a AND $b");
   }
 
-  function op_simple($field) {
+  protected function opSimple($field) {
     $value = intval(strtotime($this->value['value'], 0));
     if (!empty($this->value['type']) && $this->value['type'] == 'offset') {
       $value = '***CURRENT_TIME***' . sprintf('%+d', $value); // keep sign
     }
     // This is safe because we are manually scrubbing the value.
     // It is necessary to do it this way because $value is a formula when using an offset.
-    $this->query->add_where_expression($this->options['group'], "$field $this->operator $value");
+    $this->query->addWhereExpression($this->options['group'], "$field $this->operator $value");
   }
 
 }

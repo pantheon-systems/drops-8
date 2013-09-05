@@ -6,24 +6,9 @@
  */
 
 /**
- * Page callback: Displays a page with long filter tips.
- *
- * @see filter_menu()
- */
-function filter_tips_long($format = NULL) {
-  if (!empty($format)) {
-    $output = theme('filter_tips', array('tips' => _filter_tips($format->format, TRUE), 'long' => TRUE));
-  }
-  else {
-    $output = theme('filter_tips', array('tips' => _filter_tips(-1, TRUE), 'long' => TRUE));
-  }
-  return $output;
-}
-
-/**
  * Returns HTML for a set of filter tips.
  *
- * @param $variables
+ * @param array $variables
  *   An associative array containing:
  *   - tips: An array containing descriptions and a CSS ID in the form of
  *     'module-name/filter-id' (only used when $long is TRUE) for each

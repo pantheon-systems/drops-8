@@ -7,26 +7,29 @@
 
 namespace Drupal\views\Plugin\views\area;
 
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
 
 /**
  * Views area text handler.
  *
  * @ingroup views_area_handlers
  *
- * @Plugin(
- *   id = "text_custom"
- * )
+ * @PluginID("text_custom")
  */
-class TextCustom extends AreaPluginBase {
+class TextCustom extends TokenizeAreaPluginBase {
 
+  /**
+   * {@inheritdoc}
+   */
   protected function defineOptions() {
     $options = parent::defineOptions();
     $options['content'] = array('default' => '', 'translatable' => TRUE);
-    $options['tokenize'] = array('default' => FALSE, 'bool' => TRUE);
     return $options;
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function buildOptionsForm(&$form, &$form_state) {
     parent::buildOptionsForm($form, $form_state);
 
@@ -35,32 +38,27 @@ class TextCustom extends AreaPluginBase {
       '#default_value' => $this->options['content'],
       '#rows' => 6,
     );
-
-    // Add tokenization form elements.
-    $this->tokenForm($form, $form_state);
   }
 
-  // Empty, so we don't inherit submitOptionsForm from the parent.
-  public function submitOptionsForm(&$form, &$form_state) {
-  }
-
-  function render($empty = FALSE) {
+  /**
+   * Implements \Drupal\views\Plugin\views\area\AreaPluginBase::render().
+   */
+  public function render($empty = FALSE) {
     if (!$empty || !empty($this->options['empty'])) {
-      return $this->render_textarea($this->options['content']);
+      return array(
+        '#markup' => $this->renderTextarea($this->options['content']),
+      );
     }
 
-    return '';
+    return array();
   }
 
   /**
    * Render a text area with filter_xss_admin.
    */
-  function render_textarea($value) {
+  public function renderTextarea($value) {
     if ($value) {
-      if ($this->options['tokenize']) {
-        $value = $this->view->style_plugin->tokenize_value($value, 0);
-      }
-      return $this->sanitizeValue($value, 'xss_admin');
+      return $this->sanitizeValue($this->tokenizeValue($value), 'xss_admin');
     }
   }
 

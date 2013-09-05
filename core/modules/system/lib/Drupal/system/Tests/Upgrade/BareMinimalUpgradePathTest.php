@@ -2,10 +2,12 @@
 
 /**
  * @file
- * Definition of Drupal\system\Tests\Upgrade\BareMinimalUpgradePathTest.
+ * Contains \Drupal\system\Tests\Upgrade\BareMinimalUpgradePathTest.
  */
 
 namespace Drupal\system\Tests\Upgrade;
+
+use Drupal\Core\Session\UserSession;
 
 /**
  * Performs major version release upgrade tests on a bare database.
@@ -16,6 +18,7 @@ namespace Drupal\system\Tests\Upgrade;
  * content) so that an upgrade from of a site under this profile may be tested.
  */
 class BareMinimalUpgradePathTest extends UpgradePathTestBase {
+
   public static function getInfo() {
     return array(
       'name'  => 'Basic minimal profile upgrade path, bare database',
@@ -43,26 +46,18 @@ class BareMinimalUpgradePathTest extends UpgradePathTestBase {
     $this->assertResponse(200);
 
     // Verify that we are still logged in.
-    $this->drupalGet('user');
-    $this->clickLink(t('Edit'));
-    $this->assertEqual($this->getUrl(), url('user/1/edit', array('absolute' => TRUE)), 'We are still logged in as admin at the end of the upgrade.');
-
-    // Logout and verify that we can login back in with our initial password.
-    $this->drupalLogout();
-    $this->drupalLogin((object) array(
+    $this->finishUpgradeSession();
+    $user = new UserSession(array(
       'uid' => 1,
       'name' => 'admin',
       'pass_raw' => 'drupal',
     ));
+    $this->drupalLogin($user);
 
     // The previous login should've triggered a password rehash, so login one
     // more time to make sure the new hash is readable.
     $this->drupalLogout();
-    $this->drupalLogin((object) array(
-      'uid' => 1,
-      'name' => 'admin',
-      'pass_raw' => 'drupal',
-    ));
+    $this->drupalLogin($user);
 
     // Test that the site name is correctly displayed.
     $this->assertText('drupal', 'The site name is correctly displayed.');
@@ -80,5 +75,29 @@ class BareMinimalUpgradePathTest extends UpgradePathTestBase {
     // Confirm that no {menu_links} entry exists for user/autocomplete.
     $result = db_query('SELECT COUNT(*) FROM {menu_links} WHERE link_path = :user_autocomplete', array(':user_autocomplete' => 'user/autocomplete'))->fetchField();
     $this->assertFalse($result, 'No {menu_links} entry exists for user/autocomplete');
+
+    // Verify that all required modules are enabled.
+    $enabled = $this->container->get('module_handler')->getModuleList();
+    $required = array_filter(system_rebuild_module_data(), function ($data) {
+      return !empty($data->info['required']);
+    });
+    $this->assertEqual(array_diff_key($required, $enabled), array());
+
+    // Verify that image.module was correctly installed.
+    $this->assertEqual('thumbnail', \Drupal::config('image.style.thumbnail')->get('name'));
+
+    // Make sure that the default mail configuration has been converted.
+    $this->assertEqual(array('default' => 'Drupal\Core\Mail\PhpMail'), \Drupal::config('system.mail')->get('interface'), 'Default mail configuration set.');
   }
+
+  /**
+   * Asserts that the session was kept during update. Also, log out.
+   */
+  protected function finishUpgradeSession() {
+    $this->drupalGet('user');
+    $this->clickLink(t('Edit'));
+    $this->assertEqual($this->getUrl(), url('user/1/edit', array('absolute' => TRUE)), 'We are still logged in as admin at the end of the upgrade.');
+    $this->drupalLogout();
+  }
+
 }

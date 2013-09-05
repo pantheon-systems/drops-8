@@ -7,15 +7,17 @@
 
 namespace Drupal\views\Plugin\views\access;
 
+use Drupal\Core\Session\AccountInterface;
 use Drupal\views\Plugin\views\PluginBase;
 use Drupal\views\ViewExecutable;
+use Symfony\Component\Routing\Route;
 
 /**
  * @defgroup views_access_plugins Views access plugins
  * @{
  * The base plugin to handle access to a view.
  *
- * Therefore it primarily has to implement the access and the get_access_callback
+ * Therefore it primarily has to implement the access and the alterRouteDefinition
  * method.
  */
 
@@ -23,22 +25,6 @@ use Drupal\views\ViewExecutable;
  * The base plugin to handle access control.
  */
 abstract class AccessPluginBase extends PluginBase {
-
-  /**
-   * Initialize the plugin.
-   *
-   * @param $view
-   *   The view object.
-   * @param $display
-   *   The display handler.
-   */
-  public function init(ViewExecutable $view, &$display, $options = NULL) {
-    $this->setOptionDefaults($this->options, $this->defineOptions());
-    $this->view = &$view;
-    $this->displayHandler = &$display;
-
-    $this->unpackOptions($this->options, $options);
-  }
 
   /**
    * Retrieve the options when this is a new access
@@ -72,27 +58,24 @@ abstract class AccessPluginBase extends PluginBase {
   /**
    * Determine if the current user has access or not.
    *
-   * @param Drupal\user\User $account
+   * @param \Drupal\Core\Session\AccountInterface $account
    *   The user who wants to access this view.
    *
    * @return TRUE
    *   Returns whether the user has access to the view.
    */
-  abstract public function access($account);
+  abstract public function access(AccountInterface $account);
 
   /**
-   * Determine the access callback and arguments.
+   * Allows access plugins to alter the route definition of a view.
    *
-   * This information will be embedded in the menu in order to reduce
-   * performance hits during menu item access testing, which happens
-   * a lot.
+   * Likely the access plugin will add new requirements, so its custom access
+   * checker can be applied.
    *
-   * @return array
-   *   The first item of the array should be the function to call,and the
-   *   second item should be an array of arguments. The first item may also be
-   *   TRUE (bool only) which will indicate no access control.
+   * @param \Symfony\Component\Routing\Route $route
+   *   The route to change.
    */
-  abstract function get_access_callback();
+  abstract public function alterRouteDefinition(Route $route);
 
 }
 

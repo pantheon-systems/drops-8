@@ -12,6 +12,13 @@ namespace Drupal\views\Tests\Plugin;
  */
 class StyleUnformattedTest extends StyleTestBase {
 
+  /**
+   * Views used by this test.
+   *
+   * @var array
+   */
+  public static $testViews = array('test_view');
+
   public static function getInfo() {
     return array(
       'name' => 'Style: Unformatted',
@@ -24,9 +31,10 @@ class StyleUnformattedTest extends StyleTestBase {
    * Take sure that the default css classes works as expected.
    */
   function testDefaultRowClasses() {
-    $view = $this->getView();
-    $rendered_output = $view->preview();
-    $this->storeViewPreview($rendered_output);
+    $view = views_get_view('test_view');
+    $view->setDisplay();
+    $output = $view->preview();
+    $this->storeViewPreview(drupal_render($output));
 
     $rows = $this->elements->body->div->div->div;
     $count = 0;

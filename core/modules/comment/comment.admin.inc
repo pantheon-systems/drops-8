@@ -5,8 +5,7 @@
  * Admin page callbacks for the Comment module.
  */
 
-use Drupal\comment\Plugin\Core\Entity\Comment;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Drupal\comment\Form\ConfirmDeleteMultiple;
 
 /**
  * Page callback: Presents an administrative comment listing.
@@ -19,10 +18,11 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  * @see comment_multiple_delete_confirm()
  */
 function comment_admin($type = 'new') {
-  $edit = $_POST;
+  $request = Drupal::request();
+  $edit = $request->request->all();
 
   if (isset($edit['operation']) && ($edit['operation'] == 'delete') && isset($edit['comments']) && $edit['comments']) {
-    return drupal_get_form('comment_multiple_delete_confirm');
+    return drupal_get_form(ConfirmDeleteMultiple::create(Drupal::getContainer()), $request);
   }
   else {
     return drupal_get_form('comment_admin_overview', $type);
@@ -44,7 +44,7 @@ function comment_admin($type = 'new') {
 function comment_admin_overview($form, &$form_state, $arg) {
   // Build an 'Update options' form.
   $form['options'] = array(
-    '#type' => 'fieldset',
+    '#type' => 'details',
     '#title' => t('Update options'),
     '#attributes' => array('class' => array('container-inline')),
   );
@@ -59,7 +59,7 @@ function comment_admin_overview($form, &$form_state, $arg) {
 
   $form['options']['operation'] = array(
     '#type' => 'select',
-    '#title' => t('Operation'),
+    '#title' => t('Action'),
     '#title_display' => 'invisible',
     '#options' => $options,
     '#default_value' => 'publish',
@@ -82,24 +82,27 @@ function comment_admin_overview($form, &$form_state, $arg) {
   $query = db_select('comment', 'c')
     ->extend('Drupal\Core\Database\Query\PagerSelectExtender')
     ->extend('Drupal\Core\Database\Query\TableSortExtender');
-  $query->join('node', 'n', 'n.nid = c.nid');
-  $query->addField('n', 'title', 'node_title');
+  $query->join('node_field_data', 'n', 'n.nid = c.nid');
   $query->addTag('node_access');
   $result = $query
-    ->fields('c', array('cid', 'subject', 'name', 'changed'))
+    ->fields('c', array('cid', 'nid', 'subject', 'name', 'changed'))
     ->condition('c.status', $status)
     ->limit(50)
     ->orderByHeader($header)
     ->execute();
 
+  $nids = array();
   $cids = array();
 
   // We collect a sorted list of node_titles during the query to attach to the
   // comments later.
   foreach ($result as $row) {
+    $nids[] = $row->nid;
     $cids[] = $row->cid;
-    $node_titles[] = $row->node_title;
   }
+  // Ensure all nodes are statically cached so that we do not have to load them
+  // individually when getting their labels below.
+  node_load_multiple($nids);
   $comments = comment_load_multiple($cids);
 
   // Build a table listing the appropriate comments.
@@ -109,34 +112,44 @@ function comment_admin_overview($form, &$form_state, $arg) {
   foreach ($comments as $comment) {
     // Remove the first node title from the node_titles array and attach to
     // the comment.
-    $comment->node_title = array_shift($node_titles);
-    $comment_body = field_get_items('comment', $comment, 'comment_body');
-    $options[$comment->cid] = array(
+    $node_title = $comment->nid->entity->label();
+    $username = array(
+      '#theme' => 'username',
+      '#account' => comment_prepare_author($comment),
+    );
+    $options[$comment->id()] = array(
       'subject' => array(
         'data' => array(
           '#type' => 'link',
-          '#title' => $comment->subject,
-          '#href' => 'comment/' . $comment->cid,
-          '#options' => array('attributes' => array('title' => truncate_utf8($comment_body[0]['value'], 128)), 'fragment' => 'comment-' . $comment->cid),
+          '#title' => $comment->subject->value,
+          '#href' => 'comment/' . $comment->id(),
+          '#options' => array('attributes' => array('title' => truncate_utf8($comment->comment_body->value, 128)), 'fragment' => 'comment-' . $comment->id()),
         ),
       ),
-      'author' => theme('username', array('account' => $comment)),
+      'author' => drupal_render($username),
       'posted_in' => array(
         'data' => array(
           '#type' => 'link',
-          '#title' => $comment->node_title,
-          '#href' => 'node/' . $comment->nid,
+          '#title' => $node_title,
+          '#href' => 'node/' . $comment->nid->target_id,
         ),
       ),
-      'changed' => format_date($comment->changed, 'short'),
+      'changed' => format_date($comment->changed->value, 'short'),
     );
     $links = array();
     $links['edit'] = array(
       'title' => t('edit'),
-      'href' => 'comment/' . $comment->cid . '/edit',
+      'href' => 'comment/' . $comment->id() . '/edit',
       'query' => $destination,
     );
-    $options[$comment->cid]['operations']['data'] = array(
+    if (module_invoke('content_translation', 'translate_access', $comment)) {
+      $links['translate'] = array(
+        'title' => t('translate'),
+        'href' => 'comment/' . $comment->id() . '/translations',
+        'query' => $destination,
+      );
+    }
+    $options[$comment->id()]['operations']['data'] = array(
       '#type' => 'operations',
       '#links' => $links,
     );
@@ -180,131 +193,22 @@ function comment_admin_overview_submit($form, &$form_state) {
   $cids = $form_state['values']['comments'];
 
   if ($operation == 'delete') {
-    comment_delete_multiple($cids);
+    entity_delete_multiple('comment', $cids);
   }
   else {
     foreach ($cids as $cid => $value) {
       $comment = comment_load($value);
 
       if ($operation == 'unpublish') {
-        $comment->status = COMMENT_NOT_PUBLISHED;
+        $comment->status->value = COMMENT_NOT_PUBLISHED;
       }
       elseif ($operation == 'publish') {
-        $comment->status = COMMENT_PUBLISHED;
+        $comment->status->value = COMMENT_PUBLISHED;
       }
-      comment_save($comment);
+      $comment->save();
     }
   }
   drupal_set_message(t('The update has been performed.'));
   $form_state['redirect'] = 'admin/content/comment';
-  cache_invalidate(array('content' => TRUE));
-}
-
-/**
- * Form constructor for the confirmation form for bulk comment deletion.
- *
- * @ingroup forms
- * @see comment_admin()
- * @see comment_multiple_delete_confirm_submit()
- */
-function comment_multiple_delete_confirm($form, &$form_state) {
-  $edit = $form_state['input'];
-
-  $form['comments'] = array(
-    '#prefix' => '<ul>',
-    '#suffix' => '</ul>',
-    '#tree' => TRUE,
-  );
-  // array_filter() returns only elements with actual values.
-  $comment_counter = 0;
-  foreach (array_filter($edit['comments']) as $cid => $value) {
-    $comment = comment_load($cid);
-    if (is_object($comment) && is_numeric($comment->cid)) {
-      $subject = db_query('SELECT subject FROM {comment} WHERE cid = :cid', array(':cid' => $cid))->fetchField();
-      $form['comments'][$cid] = array('#type' => 'hidden', '#value' => $cid, '#prefix' => '<li>', '#suffix' => check_plain($subject) . '</li>');
-      $comment_counter++;
-    }
-  }
-  $form['operation'] = array('#type' => 'hidden', '#value' => 'delete');
-
-  if (!$comment_counter) {
-    drupal_set_message(t('There do not appear to be any comments to delete, or your selected comment was deleted by another administrator.'));
-    drupal_goto('admin/content/comment');
-  }
-  else {
-    return confirm_form($form,
-                        t('Are you sure you want to delete these comments and all their children?'),
-                        'admin/content/comment', t('This action cannot be undone.'),
-                        t('Delete comments'), t('Cancel'));
-  }
-}
-
-/**
- * Form submission handler for comment_multiple_delete_confirm().
- */
-function comment_multiple_delete_confirm_submit($form, &$form_state) {
-  if ($form_state['values']['confirm']) {
-    comment_delete_multiple(array_keys($form_state['values']['comments']));
-    cache_invalidate(array('content' => TRUE));
-    $count = count($form_state['values']['comments']);
-    watchdog('content', 'Deleted @count comments.', array('@count' => $count));
-    drupal_set_message(format_plural($count, 'Deleted 1 comment.', 'Deleted @count comments.'));
-  }
-  $form_state['redirect'] = 'admin/content/comment';
-}
-
-/**
- * Page callback: Shows a confirmation page for comment deletions.
- *
- * @param $cid
- *   The ID of the comment that is about to be deleted.
- *
- * @see comment_menu()
- * @see comment_confirm_delete()
- */
-function comment_confirm_delete_page($cid) {
-  if ($comment = comment_load($cid)) {
-    return drupal_get_form('comment_confirm_delete', $comment);
-  }
-  throw new NotFoundHttpException();
-}
-
-/**
- * Form constructor for the confirmation form for comment deletion.
- *
- * @param Drupal\comment\Comment $comment
- *   The comment that is about to be deleted.
- *
- * @ingroup forms
- * @see comment_confirm_delete_page()
- * @see comment_confirm_delete_submit()
- * @see confirm_form()
- */
-function comment_confirm_delete($form, &$form_state, Comment $comment) {
-  $form_state['comment'] = $comment;
-  // Always provide entity id in the same form key as in the entity edit form.
-  $form['cid'] = array('#type' => 'value', '#value' => $comment->cid);
-  return confirm_form(
-    $form,
-    t('Are you sure you want to delete the comment %title?', array('%title' => $comment->subject)),
-    'node/' . $comment->nid,
-    t('Any replies to this comment will be lost. This action cannot be undone.'),
-    t('Delete'),
-    t('Cancel'),
-    'comment_confirm_delete');
-}
-
-/**
- * Form submission handler for comment_confirm_delete().
- */
-function comment_confirm_delete_submit($form, &$form_state) {
-  $comment = $form_state['comment'];
-  // Delete the comment and its replies.
-  comment_delete($comment->cid);
-  drupal_set_message(t('The comment and all its replies have been deleted.'));
-  watchdog('content', 'Deleted comment @cid and its replies.', array('@cid' => $comment->cid));
-  // Clear the cache so an anonymous user sees that his comment was deleted.
-  cache_invalidate(array('content' => TRUE));
-
-  $form_state['redirect'] = "node/$comment->nid";
+  cache_invalidate_tags(array('content' => TRUE));
 }

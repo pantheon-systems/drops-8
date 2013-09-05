@@ -8,22 +8,19 @@
 namespace Drupal\node\Plugin\views\argument;
 
 use Drupal\views\Plugin\views\argument\Numeric;
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
 
 /**
  * Argument handler to accept a node id.
  *
- * @Plugin(
- *   id = "node_nid",
- *   module = "node"
- * )
+ * @PluginID("node_nid")
  */
 class Nid extends Numeric {
 
   /**
    * Override the behavior of title(). Get the title of the node.
    */
-  function title_query() {
+  public function titleQuery() {
     $titles = array();
 
     $nodes = node_load_multiple($this->value);

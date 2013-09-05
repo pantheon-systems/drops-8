@@ -392,7 +392,7 @@ db_insert('variable')->fields(array(
 ))
 ->values(array(
   'name' => 'language_default',
-  'value' => 'O:8:"stdClass":7:{s:8:"langcode";s:2:"ca";s:4:"name";s:7:"Catalan";s:9:"direction";i:0;s:7:"enabled";b:1;s:6:"weight";i:0;s:7:"default";b:1;s:6:"is_new";b:1;}',
+  'value' => 'O:8:"stdClass":7:{s:8:"language";s:2:"ca";s:4:"name";s:7:"Catalan";s:9:"direction";i:0;s:7:"enabled";b:1;s:6:"weight";i:0;s:7:"default";b:1;s:6:"is_new";b:1;}',
 ))
 ->values(array(
   'name' => 'language_negotiation_language',
@@ -422,7 +422,7 @@ db_insert('variable')->fields(array(
 
 // Add sample nodes to test language assignment and translation functionality.
 // The first node is also used for testing comment language functionality. This
-// is a simple node with LANGUAGE_NOT_SPECIFIED as language code. The second
+// is a simple node with Language::LANGCODE_NOT_SPECIFIED as language code. The second
 // node is a Catalan node (language code 'ca'). The third and fourth node are a
 // translation set with an English source translation (language code 'en') and
 // a Chuvash translation (language code 'cv').
@@ -545,7 +545,7 @@ db_insert('node_revision')->fields(array(
   'vid' => '70',
   'uid' => '6',
   'title' => 'Node title 50',
-  'log' => 'Added a LANGUAGE_NOT_SPECIFIED node to comment on.',
+  'log' => 'Added a Language::LANGCODE_NOT_SPECIFIED node to comment on.',
   'timestamp' => '1314997642',
   'status' => '1',
   'comment' => '2',

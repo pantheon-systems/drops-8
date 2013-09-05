@@ -1,0 +1,19 @@
+services:
+  plugin.manager.block:
+    class: Drupal\block\Plugin\Type\BlockManager
+    arguments: ['@container.namespaces', '@cache.block', '@language_manager', '@module_handler']
+  cache.block:
+    class: Drupal\Core\Cache\CacheBackendInterface
+    tags:
+      - { name: cache.bin }
+    factory_method: get
+    factory_service: cache_factory
+    arguments: [block]
+  block.route_subscriber:
+    class: Drupal\block\Routing\RouteSubscriber
+    tags:
+      - { name: event_subscriber}
+  block.theme_access_check:
+    class: Drupal\block\Access\BlockThemeAccessCheck
+    tags:
+      - { name: access_check}

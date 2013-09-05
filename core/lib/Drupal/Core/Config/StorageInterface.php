@@ -39,6 +39,18 @@ interface StorageInterface {
   public function read($name);
 
   /**
+   * Reads configuration data from the storage.
+   *
+   * @param array $name
+   *   List of names of the configuration objects to load.
+   *
+   * @return array
+   *   A list of the configuration data stored for the configuration object name
+   *   that could be loaded for the passed list of names.
+   */
+  public function readMultiple(array $names);
+
+  /**
    * Writes configuration data to the storage.
    *
    * @param string $name
@@ -121,4 +133,24 @@ interface StorageInterface {
    *   An array containing matching configuration object names.
    */
   public function listAll($prefix = '');
+
+  /**
+   * Deletes configuration objects whose names start with a given prefix.
+   *
+   * Given the following configuration object names:
+   * - node.type.article
+   * - node.type.page
+   *
+   * Passing the prefix 'node.type.' will delete the above configuration
+   * objects.
+   *
+   * @param string $prefix
+   *   (optional) The prefix to search for. If omitted, all configuration
+   *   objects that exist will be deleted.
+   *
+   * @return boolean
+   *   TRUE on success, FALSE otherwise.
+   */
+  public function deleteAll($prefix = '');
+
 }

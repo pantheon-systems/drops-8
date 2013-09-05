@@ -6,8 +6,7 @@
  */
 
 namespace Drupal\views\Plugin\views\join;
-use Drupal\Core\Annotation\Plugin;
-use Drupal\Component\Plugin\Discovery\DiscoveryInterface;
+use Drupal\Component\Annotation\PluginID;
 
 /**
  * Join handler for relationships that join with a subquery as the left field.
@@ -18,17 +17,15 @@ use Drupal\Component\Plugin\Discovery\DiscoveryInterface;
  *   same as Join class above, except:
  *   - left_query: The subquery to use in the left side of the join clause.
  *
- * @Plugin(
- *   id = "subquery"
- * )
+ * @PluginID("subquery")
  */
 class Subquery extends JoinPluginBase {
 
   /**
    * Constructs a Subquery object.
    */
-  public function __construct(array $configuration, $plugin_id, DiscoveryInterface $discovery) {
-    parent::__construct($configuration, $plugin_id, $discovery);
+  public function __construct(array $configuration, $plugin_id, array $plugin_definition) {
+    parent::__construct($configuration, $plugin_id, $plugin_definition);
 
     $this->left_query = $this->configuration['left_query'];
   }
@@ -63,7 +60,6 @@ class Subquery extends JoinPluginBase {
       if (is_array($this->extra)) {
         $extras = array();
         foreach ($this->extra as $info) {
-          $extra = '';
           // Figure out the table name. Remember, only use aliases provided
           // if at all possible.
           $join_table = '';

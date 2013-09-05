@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Definition of Drupal\Core\Entity\EntityStorageControllerInterface.
+ * Contains \Drupal\Core\Entity\EntityStorageControllerInterface.
  */
 
 namespace Drupal\Core\Entity;
@@ -10,7 +10,7 @@ namespace Drupal\Core\Entity;
 /**
  * Defines a common interface for entity controller classes.
  *
- * All entity controller classes specified via the 'controller_class' key
+ * All entity controller classes specified via the "controllers['storage']" key
  * returned by \Drupal\Core\Entity\EntityManager or hook_entity_info_alter()
  * have to implement this interface.
  *
@@ -33,12 +33,37 @@ interface EntityStorageControllerInterface {
    * Loads one or more entities.
    *
    * @param $ids
-   *   An array of entity IDs, or FALSE to load all entities.
+   *   An array of entity IDs, or NULL to load all entities.
    *
    * @return
    *   An array of entity objects indexed by their ids.
    */
-  public function load(array $ids = NULL);
+  public function loadMultiple(array $ids = NULL);
+
+  /**
+   * Loads one entity.
+   *
+   * @param mixed $id
+   *   The ID of the entity to load.
+   *
+   * @return \Drupal\Core\Entity\EntityInterface
+   *   An entity object.
+   */
+  public function load($id);
+
+  /**
+   * Loads an unchanged entity from the database.
+   *
+   * @param mixed $id
+   *   The ID of the entity to load.
+   *
+   * @return \Drupal\Core\Entity\EntityInterface
+   *   The unchanged entity, or FALSE if the entity cannot be loaded.
+   *
+   * @todo Remove this method once we have a reliable way to retrieve the
+   *   unchanged entity from the entity object.
+   */
+  public function loadUnchanged($id);
 
   /**
    * Load a specific entity revision.
@@ -46,7 +71,7 @@ interface EntityStorageControllerInterface {
    * @param int $revision_id
    *   The revision id.
    *
-   * @return Drupal\Core\Entity\EntityInterface|false
+   * @return \Drupal\Core\Entity\EntityInterface|false
    *   The specified entity revision or FALSE if not found.
    */
   public function loadRevision($revision_id);
@@ -80,7 +105,7 @@ interface EntityStorageControllerInterface {
    *   An array of values to set, keyed by property name. If the entity type has
    *   bundles the bundle key has to be specified.
    *
-   * @return Drupal\Core\Entity\EntityInterface
+   * @return \Drupal\Core\Entity\EntityInterface
    *   A new entity object.
    */
   public function create(array $values);
@@ -91,7 +116,7 @@ interface EntityStorageControllerInterface {
    * @param array $entities
    *   An array of entity objects to delete.
    *
-   * @throws Drupal\Core\Entity\EntityStorageException
+   * @throws \Drupal\Core\Entity\EntityStorageException
    *   In case of failures, an exception is thrown.
    */
   public function delete(array $entities);
@@ -99,51 +124,17 @@ interface EntityStorageControllerInterface {
   /**
    * Saves the entity permanently.
    *
-   * @param Drupal\Core\Entity\EntityInterface $entity
+   * @param \Drupal\Core\Entity\EntityInterface $entity
    *   The entity to save.
    *
    * @return
    *   SAVED_NEW or SAVED_UPDATED is returned depending on the operation
    *   performed.
    *
-   * @throws Drupal\Core\Entity\EntityStorageException
+   * @throws \Drupal\Core\Entity\EntityStorageException
    *   In case of failures, an exception is thrown.
    */
   public function save(EntityInterface $entity);
-
-  /**
-   * Gets an array of entity field definitions.
-   *
-   * If a 'bundle' key is present in the given entity definition, fields
-   * specific to this bundle are included.
-   * Entity fields are always multi-valued, so 'list' is TRUE for each
-   * returned field definition.
-   *
-   * @param array $constraints
-   *   An array of entity constraints as used for entities in typed data
-   *   definitions, i.e. an array having an 'entity type' and optionally a
-   *   'bundle' key. For example:
-   *   @code
-   *   array(
-   *     'entity type' => 'node',
-   *     'bundle' => 'article',
-   *   )
-   *   @endcode
-   *
-   * @return array
-   *   An array of field definitions of entity fields, keyed by field
-   *   name. In addition to the typed data definition keys as described at
-   *   typed_data()->create() the follow keys are supported:
-   *   - queryable: Whether the field is queryable via QueryInterface.
-   *     Defaults to TRUE if 'computed' is FALSE or not set, to FALSE otherwise.
-   *   - translatable: Whether the field is translatable. Defaults to FALSE.
-   *   - configurable: A boolean indicating whether the field is configurable
-   *     via field.module. Defaults to FALSE.
-   *
-   * @see Drupal\Core\TypedData\TypedDataManager::create()
-   * @see typed_data()
-   */
-  public function getFieldDefinitions(array $constraints);
 
   /**
    * Gets the name of the service for the query for this entity storage.
@@ -151,5 +142,23 @@ interface EntityStorageControllerInterface {
    * @return string
    */
   public function getQueryServicename();
+
+  /**
+   * Invokes a method on the Field objects within an entity.
+   *
+   * @param string $method
+   *   The method name.
+   * @param \Drupal\Core\Entity\EntityInterface $entity
+   *   The entity object.
+   */
+  public function invokeFieldMethod($method, EntityInterface $entity);
+
+  /**
+   * Invokes the prepareCache() method on all the relevant FieldItem objects.
+   *
+   * @param \Drupal\Core\Entity\EntityInterface $entity
+   *   The entity object.
+   */
+  public function invokeFieldItemPrepareCache(EntityInterface $entity);
 
 }

@@ -7,7 +7,7 @@
 
 namespace Drupal\views\Plugin\views\style;
 
-use Drupal\Core\Annotation\Plugin;
+use Drupal\views\Annotation\ViewsStyle;
 use Drupal\Core\Annotation\Translation;
 
 /**
@@ -15,12 +15,12 @@ use Drupal\Core\Annotation\Translation;
  *
  * @ingroup views_style_plugins
  *
- * @Plugin(
+ * @ViewsStyle(
  *   id = "unformatted_summary",
  *   title = @Translation("Unformatted"),
  *   help = @Translation("Displays the summary unformatted, with option for one after another or inline."),
  *   theme = "views_view_summary_unformatted",
- *   type = "summary"
+ *   display_types = {"summary"}
  * )
  */
 class UnformattedSummary extends DefaultSummary {

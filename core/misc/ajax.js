@@ -52,6 +52,8 @@ Drupal.behaviors.AJAX = {
         element_settings.url = $(this).attr('href');
         element_settings.event = 'click';
       }
+      element_settings.accepts = $(this).data('accepts');
+      element_settings.dialog = $(this).data('dialog-options');
       var base = $(this).attr('id');
       Drupal.ajax[base] = new Drupal.ajax(base, this, element_settings);
     });
@@ -78,6 +80,50 @@ Drupal.behaviors.AJAX = {
 };
 
 /**
+ * Extends Error to provide handling for Errors in AJAX
+ */
+Drupal.AjaxError = function(xmlhttp, uri) {
+
+  var statusCode, statusText, pathText, responseText, readyStateText;
+  if (xmlhttp.status) {
+    statusCode = "\n" + Drupal.t("An AJAX HTTP error occurred.") +  "\n" + Drupal.t("HTTP Result Code: !status", {'!status': xmlhttp.status});
+  }
+  else {
+    statusCode = "\n" + Drupal.t("An AJAX HTTP request terminated abnormally.");
+  }
+  statusCode += "\n" + Drupal.t("Debugging information follows.");
+  pathText = "\n" + Drupal.t("Path: !uri", {'!uri': uri} );
+  statusText = '';
+  // In some cases, when statusCode === 0, xmlhttp.statusText may not be defined.
+  // Unfortunately, testing for it with typeof, etc, doesn't seem to catch that
+  // and the test causes an exception. So we need to catch the exception here.
+  try {
+    statusText = "\n" + Drupal.t("StatusText: !statusText", {'!statusText': $.trim(xmlhttp.statusText)});
+  }
+  catch (e) {}
+
+  responseText = '';
+  // Again, we don't have a way to know for sure whether accessing
+  // xmlhttp.responseText is going to throw an exception. So we'll catch it.
+  try {
+    responseText = "\n" + Drupal.t("ResponseText: !responseText", {'!responseText': $.trim(xmlhttp.responseText) } );
+  } catch (e) {}
+
+  // Make the responseText more readable by stripping HTML tags and newlines.
+  responseText = responseText.replace(/<("[^"]*"|'[^']*'|[^'">])*>/gi,"");
+  responseText = responseText.replace(/[\n]+\s+/g,"\n");
+
+  // We don't need readyState except for status == 0.
+  readyStateText = xmlhttp.status === 0 ? ("\n" + Drupal.t("ReadyState: !readyState", {'!readyState': xmlhttp.readyState})) : "";
+
+  this.message = statusCode + pathText + statusText + responseText + readyStateText;
+  this.name = 'AjaxError';
+};
+
+Drupal.AjaxError.prototype = new Error();
+Drupal.AjaxError.prototype.constructor = Drupal.AjaxError;
+
+/**
  * Ajax object.
  *
  * All Ajax objects on a page are accessible through the global Drupal.ajax
@@ -101,7 +147,6 @@ Drupal.behaviors.AJAX = {
  */
 Drupal.ajax = function (base, element, element_settings) {
   var defaults = {
-    url: 'system/ajax',
     event: 'mousedown',
     keypress: true,
     selector: '#' + base,
@@ -119,8 +164,47 @@ Drupal.ajax = function (base, element, element_settings) {
 
   $.extend(this, defaults, element_settings);
 
+  this.commands = new Drupal.AjaxCommands();
+
+  // @todo Remove this after refactoring the PHP code to:
+  //   - Call this 'selector'.
+  //   - Include the '#' for ID-based selectors.
+  //   - Support non-ID-based selectors.
+  if (this.wrapper) {
+    this.wrapper = '#' + this.wrapper;
+  }
+
   this.element = element;
   this.element_settings = element_settings;
+
+  // If there isn't a form, jQuery.ajax() will be used instead, allowing us to
+  // bind Ajax to links as well.
+  if (this.element.form) {
+    this.form = $(this.element.form);
+  }
+
+  // If no Ajax callback URL was given, use the link href or form action.
+  if (!this.url) {
+    if ($(element).is('a')) {
+      this.url = $(element).attr('href');
+    }
+    else if (element.form) {
+      this.url = this.form.attr('action');
+
+      // @todo If there's a file input on this form, then jQuery will submit the
+      //   AJAX response with a hidden Iframe rather than the XHR object. If the
+      //   response to the submission is an HTTP redirect, then the Iframe will
+      //   follow it, but the server won't content negotiate it correctly,
+      //   because there won't be an ajax_iframe_upload POST variable. Until we
+      //   figure out a work around to this problem, we prevent AJAX-enabling
+      //   elements that submit to the same URL as the form when there's a file
+      //   input. For example, this means the Delete button on the edit form of
+      //   an Article node doesn't open its confirmation form in a dialog.
+      if (this.form.find(':file').length) {
+        return;
+      }
+    }
+  }
 
   // Replacing 'nojs' with 'ajax' in the URL allows for an easy method to let
   // the server detect when it needs to degrade gracefully.
@@ -129,14 +213,7 @@ Drupal.ajax = function (base, element, element_settings) {
   // 2. /nojs$ - The end of a URL string.
   // 3. /nojs? - Followed by a query (e.g. path/nojs?destination=foobar).
   // 4. /nojs# - Followed by a fragment (e.g.: path/nojs#myfragment).
-  this.url = element_settings.url.replace(/\/nojs(\/|$|\?|#)/g, '/ajax$1');
-  this.wrapper = '#' + element_settings.wrapper;
-
-  // If there isn't a form, jQuery.ajax() will be used instead, allowing us to
-  // bind Ajax to links as well.
-  if (this.element.form) {
-    this.form = $(this.element.form);
-  }
+  this.url = this.url.replace(/\/nojs(\/|$|\?|#)/g, '/ajax$1');
 
   // Set the options for the ajaxSubmit function.
   // The 'this' variable will not persist inside of the options object.
@@ -170,8 +247,15 @@ Drupal.ajax = function (base, element, element_settings) {
       }
     },
     dataType: 'json',
+    accepts: {
+      json: element_settings.accepts || 'application/vnd.drupal-ajax'
+    },
     type: 'POST'
   };
+
+  if (element_settings.dialog) {
+    ajax.options.data.dialogOptions = element_settings.dialog;
+  }
 
   // Bind the ajaxSubmit function to the element event.
   $(ajax.element).bind(element_settings.event, function (event) {
@@ -210,11 +294,14 @@ Drupal.ajax.prototype.keypressResponse = function (element, event) {
   var ajax = this;
 
   // Detect enter key and space bar and allow the standard response for them,
-  // except for form elements of type 'text' and 'textarea', where the
-  // spacebar activation causes inappropriate activation if #ajax['keypress'] is
-  // TRUE. On a text-type widget a space should always be a space.
-  if (event.which === 13 || (event.which === 32 && element.type !== 'text' && element.type !== 'textarea')) {
+  // except for form elements of type 'text', 'tel', 'number' and 'textarea',
+  // where the spacebar activation causes inappropriate activation if
+  // #ajax['keypress'] is TRUE. On a text-type widget a space should always be a
+  // space.
+  if (event.which === 13 || (event.which === 32 && element.type !== 'text' &&
+      element.type !== 'textarea' && element.type !== 'tel' && element.type !== 'number')) {
     event.preventDefault();
+    event.stopPropagation();
     $(ajax.element_settings.element).trigger(ajax.element_settings.event);
   }
 };
@@ -229,6 +316,7 @@ Drupal.ajax.prototype.keypressResponse = function (element, event) {
  */
 Drupal.ajax.prototype.eventResponse = function (element, event) {
   event.preventDefault();
+  event.stopPropagation();
 
   // Create a synonym for this to reduce code confusion.
   var ajax = this;
@@ -356,7 +444,7 @@ Drupal.ajax.prototype.beforeSend = function (xmlhttprequest, options) {
   // interaction while the Ajax request is in progress. ajax.ajaxing prevents
   // the element from triggering a new request, but does not prevent the user
   // from changing its value.
-  $(this.element).addClass('progress-disabled').attr('disabled', true);
+  $(this.element).addClass('progress-disabled').prop('disabled', true);
 
   // Insert progressbar or throbber.
   if (this.progress.type === 'bar') {
@@ -391,9 +479,7 @@ Drupal.ajax.prototype.success = function (response, status) {
   if (this.progress.object) {
     this.progress.object.stopMonitoring();
   }
-  $(this.element).removeClass('progress-disabled').removeAttr('disabled');
-
-  Drupal.freezeHeight();
+  $(this.element).removeClass('progress-disabled').prop('disabled', false);
 
   for (var i in response) {
     if (response.hasOwnProperty(i) && response[i].command && this.commands[response[i].command]) {
@@ -409,8 +495,6 @@ Drupal.ajax.prototype.success = function (response, status) {
     var settings = this.settings || Drupal.settings;
     Drupal.attachBehaviors(this.form, settings);
   }
-
-  Drupal.unfreezeHeight();
 
   // Remove any response-specific settings so they don't get used on the next
   // call by mistake.
@@ -448,7 +532,6 @@ Drupal.ajax.prototype.getEffect = function (response) {
  * Handler for the form redirection error.
  */
 Drupal.ajax.prototype.error = function (response, uri) {
-  window.alert(Drupal.ajaxError(response, uri));
   // Remove the progress element.
   if (this.progress.element) {
     $(this.progress.element).remove();
@@ -459,18 +542,20 @@ Drupal.ajax.prototype.error = function (response, uri) {
   // Undo hide.
   $(this.wrapper).show();
   // Re-enable the element.
-  $(this.element).removeClass('progress-disabled').removeAttr('disabled');
+  $(this.element).removeClass('progress-disabled').prop('disabled', false);
   // Reattach behaviors, if they were detached in beforeSerialize().
   if (this.form) {
     var settings = response.settings || this.settings || Drupal.settings;
     Drupal.attachBehaviors(this.form, settings);
   }
+  throw new Drupal.AjaxError(response, uri);
 };
 
 /**
  * Provide a series of commands that the server can request the client perform.
  */
-Drupal.ajax.prototype.commands = {
+Drupal.AjaxCommands = function () {};
+Drupal.AjaxCommands.prototype = {
   /**
    * Command to insert new content into the DOM.
    */
@@ -570,6 +655,13 @@ Drupal.ajax.prototype.commands = {
    */
   alert: function (ajax, response, status) {
     window.alert(response.text, response.title);
+  },
+
+  /**
+   * Command to set the window.location, redirecting the browser.
+   */
+  redirect: function (ajax, response, status) {
+    window.location = response.url;
   },
 
   /**

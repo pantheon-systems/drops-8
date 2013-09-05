@@ -8,7 +8,7 @@
 namespace Drupal\views\Plugin\views\filter;
 
 use Drupal\Core\Database\Database;
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
 
 /**
  * Basic textfield filter to handle string filtering commands
@@ -16,9 +16,7 @@ use Drupal\Core\Annotation\Plugin;
  *
  * @ingroup views_filter_handlers
  *
- * @Plugin(
- *   id = "string"
- * )
+ * @PluginID("string")
  */
 class String extends FilterPluginBase {
 
@@ -43,73 +41,79 @@ class String extends FilterPluginBase {
       '=' => array(
         'title' => t('Is equal to'),
         'short' => t('='),
-        'method' => 'op_equal',
+        'method' => 'opEqual',
         'values' => 1,
       ),
       '!=' => array(
         'title' => t('Is not equal to'),
         'short' => t('!='),
-        'method' => 'op_equal',
+        'method' => 'opEqual',
         'values' => 1,
       ),
       'contains' => array(
         'title' => t('Contains'),
         'short' => t('contains'),
-        'method' => 'op_contains',
+        'method' => 'opContains',
         'values' => 1,
       ),
       'word' => array(
         'title' => t('Contains any word'),
         'short' => t('has word'),
-        'method' => 'op_word',
+        'method' => 'opContainsWord',
         'values' => 1,
       ),
       'allwords' => array(
         'title' => t('Contains all words'),
         'short' => t('has all'),
-        'method' => 'op_word',
+        'method' => 'opContainsWord',
         'values' => 1,
       ),
       'starts' => array(
         'title' => t('Starts with'),
         'short' => t('begins'),
-        'method' => 'op_starts',
+        'method' => 'opStartsWith',
         'values' => 1,
       ),
       'not_starts' => array(
         'title' => t('Does not start with'),
         'short' => t('not_begins'),
-        'method' => 'op_not_starts',
+        'method' => 'opNotStartsWith',
         'values' => 1,
       ),
       'ends' => array(
         'title' => t('Ends with'),
         'short' => t('ends'),
-        'method' => 'op_ends',
+        'method' => 'opEndsWith',
         'values' => 1,
       ),
       'not_ends' => array(
         'title' => t('Does not end with'),
         'short' => t('not_ends'),
-        'method' => 'op_not_ends',
+        'method' => 'opNotEndsWith',
         'values' => 1,
       ),
       'not' => array(
         'title' => t('Does not contain'),
         'short' => t('!has'),
-        'method' => 'op_not',
+        'method' => 'opNotLike',
         'values' => 1,
       ),
       'shorterthan' => array(
         'title' => t('Length is shorter than'),
         'short' => t('shorter than'),
-        'method' => 'op_shorter',
+        'method' => 'opShorterThan',
         'values' => 1,
       ),
       'longerthan' => array(
         'title' => t('Length is longer than'),
         'short' => t('longer than'),
-        'method' => 'op_longer',
+        'method' => 'opLongerThan',
+        'values' => 1,
+      ),
+      'regular_expression' => array(
+        'title' => t('Regular expression'),
+        'short' => t('regex'),
+        'method' => 'opRegex',
         'values' => 1,
       ),
     );
@@ -118,26 +122,15 @@ class String extends FilterPluginBase {
       $operators += array(
         'empty' => array(
           'title' => t('Is empty (NULL)'),
-          'method' => 'op_empty',
+          'method' => 'opEmpty',
           'short' => t('empty'),
           'values' => 0,
         ),
         'not empty' => array(
           'title' => t('Is not empty (NOT NULL)'),
-          'method' => 'op_empty',
+          'method' => 'opEmpty',
           'short' => t('not empty'),
           'values' => 0,
-        ),
-      );
-    }
-    // Add regexp support for MySQL.
-    if (Database::getConnection()->databaseType() == 'mysql') {
-      $operators += array(
-        'regular_expression' => array(
-          'title' => t('Regular expression'),
-          'short' => t('regex'),
-          'method' => 'op_regex',
-          'values' => 1,
         ),
       );
     }
@@ -148,7 +141,7 @@ class String extends FilterPluginBase {
   /**
    * Build strings from the operators() for 'select' options
    */
-  function operator_options($which = 'title') {
+  public function operatorOptions($which = 'title') {
     $options = array();
     foreach ($this->operators() as $id => $info) {
       $options[$id] = $info[$which];
@@ -165,18 +158,18 @@ class String extends FilterPluginBase {
       return t('exposed');
     }
 
-    $options = $this->operator_options('short');
+    $options = $this->operatorOptions('short');
     $output = '';
     if (!empty($options[$this->operator])) {
       $output = check_plain($options[$this->operator]);
     }
-    if (in_array($this->operator, $this->operator_values(1))) {
+    if (in_array($this->operator, $this->operatorValues(1))) {
       $output .= ' ' . check_plain($this->value);
     }
     return $output;
   }
 
-  function operator_values($values = 1) {
+  protected function operatorValues($values = 1) {
     $options = array();
     foreach ($this->operators() as $id => $info) {
       if (isset($info['values']) && $info['values'] == $values) {
@@ -190,7 +183,7 @@ class String extends FilterPluginBase {
   /**
    * Provide a simple textfield for equality
    */
-  function value_form(&$form, &$form_state) {
+  protected function valueForm(&$form, &$form_state) {
     // We have to make some choices when creating this as an exposed
     // filter form. For example, if the operator is locked and thus
     // not rendered, we can't render dependencies; instead we only
@@ -204,7 +197,7 @@ class String extends FilterPluginBase {
 
       if (empty($this->options['expose']['use_operator']) || empty($this->options['expose']['operator_id'])) {
         // exposed and locked.
-        $which = in_array($this->operator, $this->operator_values(1)) ? 'value' : 'none';
+        $which = in_array($this->operator, $this->operatorValues(1)) ? 'value' : 'none';
       }
       else {
         $source = ':input[name="' . $this->options['expose']['operator_id'] . '"]';
@@ -224,7 +217,7 @@ class String extends FilterPluginBase {
 
       if ($which == 'all') {
         // Setup #states for all operators with one value.
-        foreach ($this->operator_values(1) as $operator) {
+        foreach ($this->operatorValues(1) as $operator) {
           $form['value']['#states']['visible'][] = array(
             $source => array('value' => $operator),
           );
@@ -262,15 +255,15 @@ class String extends FilterPluginBase {
     }
   }
 
-  function op_equal($field) {
-    $this->query->add_where($this->options['group'], $field, $this->value, $this->operator());
+  public function opEqual($field) {
+    $this->query->addWhere($this->options['group'], $field, $this->value, $this->operator());
   }
 
-  function op_contains($field) {
-    $this->query->add_where($this->options['group'], $field, '%' . db_like($this->value) . '%', 'LIKE');
+  protected function opContains($field) {
+    $this->query->addWhere($this->options['group'], $field, '%' . db_like($this->value) . '%', 'LIKE');
   }
 
-  function op_word($field) {
+  protected function opContainsWord($field) {
     $where = $this->operator == 'word' ? db_or() : db_and();
 
     // Don't filter on empty strings.
@@ -289,7 +282,6 @@ class String extends FilterPluginBase {
       $words = trim($match[2], ',?!();:-');
       $words = $phrase ? array($words) : preg_split('/ /', $words, -1, PREG_SPLIT_NO_EMPTY);
       foreach ($words as $word) {
-        $placeholder = $this->placeholder();
         $where->condition($field, '%' . db_like(trim($word, " ,!?")) . '%', 'LIKE');
       }
     }
@@ -300,44 +292,50 @@ class String extends FilterPluginBase {
 
     // previously this was a call_user_func_array but that's unnecessary
     // as views will unpack an array that is a single arg.
-    $this->query->add_where($this->options['group'], $where);
+    $this->query->addWhere($this->options['group'], $where);
   }
 
-  function op_starts($field) {
-    $this->query->add_where($this->options['group'], $field, db_like($this->value) . '%', 'LIKE');
+  protected function opStartsWith($field) {
+    $this->query->addWhere($this->options['group'], $field, db_like($this->value) . '%', 'LIKE');
   }
 
-  function op_not_starts($field) {
-    $this->query->add_where($this->options['group'], $field, db_like($this->value) . '%', 'NOT LIKE');
+  protected function opNotStartsWith($field) {
+    $this->query->addWhere($this->options['group'], $field, db_like($this->value) . '%', 'NOT LIKE');
   }
 
-  function op_ends($field) {
-    $this->query->add_where($this->options['group'], $field, '%' . db_like($this->value), 'LIKE');
+  protected function opEndsWith($field) {
+    $this->query->addWhere($this->options['group'], $field, '%' . db_like($this->value), 'LIKE');
   }
 
-  function op_not_ends($field) {
-    $this->query->add_where($this->options['group'], $field, '%' . db_like($this->value), 'NOT LIKE');
+  protected function opNotEndsWith($field) {
+    $this->query->addWhere($this->options['group'], $field, '%' . db_like($this->value), 'NOT LIKE');
   }
 
-  function op_not($field) {
-    $this->query->add_where($this->options['group'], $field, '%' . db_like($this->value) . '%', 'NOT LIKE');
+  protected function opNotLike($field) {
+    $this->query->addWhere($this->options['group'], $field, '%' . db_like($this->value) . '%', 'NOT LIKE');
   }
 
-  function op_shorter($field) {
+  protected function opShorterThan($field) {
     $placeholder = $this->placeholder();
-    $this->query->add_where_expression($this->options['group'], "LENGTH($field) < $placeholder", array($placeholder => $this->value));
+    $this->query->addWhereExpression($this->options['group'], "LENGTH($field) < $placeholder", array($placeholder => $this->value));
   }
 
-  function op_longer($field) {
+  protected function opLongerThan($field) {
     $placeholder = $this->placeholder();
-    $this->query->add_where_expression($this->options['group'], "LENGTH($field) > $placeholder", array($placeholder => $this->value));
+    $this->query->addWhereExpression($this->options['group'], "LENGTH($field) > $placeholder", array($placeholder => $this->value));
   }
 
-  function op_regex($field) {
-    $this->query->add_where($this->options['group'], $field, $this->value, 'RLIKE');
+  /**
+   * Filters by a regular expression.
+   *
+   * @param string $field
+   *   The expression pointing to the queries field, for example "foo.bar".
+   */
+  protected function opRegex($field) {
+    $this->query->addWhere($this->options['group'], $field, $this->value, 'REGEXP');
   }
 
-  function op_empty($field) {
+  protected function opEmpty($field) {
     if ($this->operator == 'empty') {
       $operator = "IS NULL";
     }
@@ -345,7 +343,7 @@ class String extends FilterPluginBase {
       $operator = "IS NOT NULL";
     }
 
-    $this->query->add_where($this->options['group'], $field, NULL, $operator);
+    $this->query->addWhere($this->options['group'], $field, NULL, $operator);
   }
 
 }

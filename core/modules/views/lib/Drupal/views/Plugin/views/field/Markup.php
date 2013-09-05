@@ -7,7 +7,9 @@
 
 namespace Drupal\views\Plugin\views\field;
 
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
+use Drupal\views\Plugin\views\display\DisplayPluginBase;
+use Drupal\views\ResultRow;
 use Drupal\views\ViewExecutable;
 
 /**
@@ -21,14 +23,15 @@ use Drupal\views\ViewExecutable;
  *
  * @ingroup views_field_handlers
  *
- * @Plugin(
- *   id = "markup"
- * )
+ * @PluginID("markup")
  */
 class Markup extends FieldPluginBase {
 
-  public function init(ViewExecutable $view, &$options) {
-    parent::init($view, $options);
+  /**
+   * Overrides \Drupal\views\Plugin\views\field\FieldPluginBase::init().
+   */
+  public function init(ViewExecutable $view, DisplayPluginBase $display, array &$options = NULL) {
+    parent::init($view, $display, $options);
 
     $this->format = $this->definition['format'];
 
@@ -38,10 +41,13 @@ class Markup extends FieldPluginBase {
     }
   }
 
-  function render($values) {
-    $value = $this->get_value($values);
+  /**
+   * {@inheritdoc}
+   */
+  public function render(ResultRow $values) {
+    $value = $this->getValue($values);
     if (is_array($this->format)) {
-      $format = $this->get_value($values, 'format');
+      $format = $this->getValue($values, 'format');
     }
     else {
       $format = $this->format;
@@ -52,7 +58,7 @@ class Markup extends FieldPluginBase {
     }
   }
 
-  function element_type($none_supported = FALSE, $default_empty = FALSE, $inline = FALSE) {
+  public function elementType($none_supported = FALSE, $default_empty = FALSE, $inline = FALSE) {
     if ($inline) {
       return 'span';
     }

@@ -1,11 +1,16 @@
+/**
+ * @file
+ * Defines Javascript behaviors for the node module.
+ */
+
 (function ($) {
 
 "use strict";
 
-Drupal.behaviors.nodeFieldsetSummaries = {
+Drupal.behaviors.nodeDetailsSummaries = {
   attach: function (context) {
     var $context = $(context);
-    $context.find('fieldset.node-form-revision-information').drupalSetSummary(function (context) {
+    $context.find('.node-form-revision-information').drupalSetSummary(function (context) {
       var $context = $(context);
       var revisionCheckbox = $context.find('.form-item-revision input');
 
@@ -20,7 +25,7 @@ Drupal.behaviors.nodeFieldsetSummaries = {
       return Drupal.t('No revision');
     });
 
-    $context.find('fieldset.node-form-author').drupalSetSummary(function (context) {
+    $context.find('.node-form-author').drupalSetSummary(function (context) {
       var $context = $(context);
       var name = $context.find('.form-item-name input').val() || Drupal.settings.anonymous,
         date = $context.find('.form-item-date input').val();
@@ -29,18 +34,35 @@ Drupal.behaviors.nodeFieldsetSummaries = {
         Drupal.t('By @name', { '@name': name });
     });
 
-    $context.find('fieldset.node-form-options').drupalSetSummary(function (context) {
+    $context.find('.node-form-options').drupalSetSummary(function (context) {
       var $context = $(context);
       var vals = [];
 
-      $context.find('input:checked').parent().each(function () {
-        vals.push(Drupal.checkPlain($.trim($(this).text())));
-      });
-
-      if (!$context.find('.form-item-status input').is(':checked')) {
-        vals.unshift(Drupal.t('Not published'));
+      if ($context.find('input').is(':checked')) {
+        $context.find('input:checked').parent().each(function () {
+          vals.push(Drupal.checkPlain($.trim($(this).text())));
+        });
+        return vals.join(', ');
       }
-      return vals.join(', ');
+      else {
+        return Drupal.t('Not promoted');
+      }
+    });
+
+    $context.find('fieldset.node-translation-options').drupalSetSummary(function (context) {
+      var $context = $(context);
+      var translate;
+      var $checkbox = $context.find('.form-item-translation-translate input');
+
+      if ($checkbox.size()) {
+        translate = $checkbox.is(':checked') ? Drupal.t('Needs to be updated') : Drupal.t('Does not need to be updated');
+      }
+      else {
+        $checkbox = $context.find('.form-item-translation-retranslate input');
+        translate = $checkbox.is(':checked') ? Drupal.t('Flag other translations as outdated') : Drupal.t('Do not flag other translations as outdated');
+      }
+
+      return translate;
     });
   }
 };

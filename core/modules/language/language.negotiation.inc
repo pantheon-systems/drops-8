@@ -1,9 +1,13 @@
 <?php
 
+use \Symfony\Component\HttpFoundation\Request;
+
 /**
  * @file
  * Language negotiation functions.
  */
+
+use Drupal\Core\Language\Language;
 
 /**
  * The language is determined using path prefix or domain.
@@ -14,11 +18,6 @@ const LANGUAGE_NEGOTIATION_URL = 'language-url';
  * The language is set based on the browser language settings.
  */
 const LANGUAGE_NEGOTIATION_BROWSER = 'language-browser';
-
-/**
- * The language is determined using the current interface language.
- */
-const LANGUAGE_NEGOTIATION_INTERFACE = 'language-interface';
 
 /**
  * If no URL language, language is determined using an already detected one.
@@ -57,7 +56,7 @@ const LANGUAGE_NEGOTIATION_URL_DOMAIN = 'domain';
  *   The current interface language code.
  */
 function language_from_interface() {
-  return language(LANGUAGE_TYPE_INTERFACE)->langcode;
+  return language(Language::TYPE_INTERFACE)->id;
 }
 
 /**
@@ -112,7 +111,13 @@ function language_from_browser($languages) {
       // so we multiply the qvalue by 1000 to avoid floating point comparisons.
       $langcode = strtolower($match[1]);
       $qvalue = isset($match[2]) ? (float) $match[2] : 1;
-      $browser_langcodes[$langcode] = (int) ($qvalue * 1000);
+      // Take the highest qvalue for this langcode. Although the request
+      // supposedly contains unique langcodes, our mapping possibly resolves
+      // to the same langcode for different qvalues. Keep the highest.
+      $browser_langcodes[$langcode] = max(
+        (int) ($qvalue * 1000),
+        (isset($browser_langcodes[$langcode]) ? $browser_langcodes[$langcode] : 0)
+      );
     }
   }
 
@@ -171,7 +176,7 @@ function language_from_browser($languages) {
 
     // Find the best match.
     if ($qvalue > $max_qvalue) {
-      $best_match_langcode = $language->langcode;
+      $best_match_langcode = $language->id;
       $max_qvalue = $qvalue;
     }
   }
@@ -192,8 +197,12 @@ function language_from_user($languages) {
   // User preference (only for authenticated users).
   global $user;
 
-  if ($user->uid && !empty($user->preferred_langcode) && isset($languages[$user->preferred_langcode])) {
-    return $user->preferred_langcode;
+  if ($user->id()) {
+    $langcode = $user->getPreferredLangcode();
+    $default_langcode = language_default()->id;
+    if (!empty($langcode) && $langcode != $default_langcode && isset($languages[$langcode])) {
+      return $langcode;
+    }
   }
 
   // No language preference from the user.
@@ -206,15 +215,24 @@ function language_from_user($languages) {
  * @param $languages
  *   An array of valid language objects.
  *
+ * @param \Symfony\Component\HttpFoundation\Request|null $request
+ *   (optional) The HttpRequest object representing the current request.
+ *   Defaults to NULL.
+ *
  * @return
  *   A valid language code on success, FALSE otherwise.
  */
-function language_from_user_admin($languages) {
+function language_from_user_admin(array $languages, Request $request = NULL) {
   // User preference (only for authenticated users).
   global $user;
 
-  if ($user->uid && !empty($user->preferred_admin_langcode) && isset($languages[$user->preferred_admin_langcode]) && path_is_admin(current_path())) {
-    return $user->preferred_admin_langcode;
+  if ($user->id()) {
+    $request_path = $request ? urldecode(trim($request->getPathInfo(), '/')) : _current_path();
+    $langcode = $user->getPreferredAdminLangcode();
+    $default_langcode = language_default()->id;
+    if (!empty($langcode) && $langcode != $default_langcode && isset($languages[$langcode]) && path_is_admin($request_path)) {
+      return $langcode;
+    }
   }
 
   // No language preference from the user or not on an admin path.
@@ -231,13 +249,13 @@ function language_from_user_admin($languages) {
  *   A valid language code on success, FALSE otherwise.
  */
 function language_from_session($languages) {
-  $param = config('language.negotiation')->get('session.parameter');
+  $param = Drupal::config('language.negotiation')->get('session.parameter');
 
   // Request parameter: we need to update the session parameter only if we have
   // an authenticated user.
   if (isset($_GET[$param]) && isset($languages[$langcode = $_GET[$param]])) {
     global $user;
-    if ($user->uid) {
+    if ($user->id()) {
       $_SESSION[$param] = $langcode;
     }
     return $langcode;
@@ -257,34 +275,28 @@ function language_from_session($languages) {
  * @param $languages
  *   An array of valid language objects.
  *
- * @param $request
- *   The HttpRequest object representing the current request.
+ * @param \Symfony\Component\HttpFoundation\Request|null $request
+ *   (optional) The HttpRequest object representing the current request.
+ *   Defaults to NULL.
  *
  * @return
  *   A valid language code on success, FALSE otherwise.
  */
-function language_from_url($languages, $request) {
+function language_from_url($languages, Request $request = NULL) {
   $language_url = FALSE;
 
-  if (!language_negotiation_method_enabled(LANGUAGE_NEGOTIATION_URL)) {
+  if (!language_negotiation_method_enabled(LANGUAGE_NEGOTIATION_URL) || !$request) {
     return $language_url;
   }
 
-  switch (config('language.negotiation')->get('url.source')) {
+  switch (Drupal::config('language.negotiation')->get('url.source')) {
     case LANGUAGE_NEGOTIATION_URL_PREFIX:
 
-      $current_path = $request->attributes->get('system_path');
-      if (!isset($current_path)) {
-        $current_path = trim($request->getPathInfo(), '/');
-      }
-
-      list($language, $path) = language_url_split_prefix($current_path, $languages);
-      // Store the correct system path, i.e. minus the path prefix, in the
-      // request.
-      $request->attributes->set('system_path', $path);
+      $request_path = urldecode(trim($request->getPathInfo(), '/'));
+      list($language, $path) = language_url_split_prefix($request_path, $languages);
 
       if ($language !== FALSE) {
-        $language_url = $language->langcode;
+        $language_url = $language->id;
       }
       break;
 
@@ -298,13 +310,13 @@ function language_from_url($languages, $request) {
       $domains = language_negotiation_url_domains();
       foreach ($languages as $language) {
         // Skip the check if the language doesn't have a domain.
-        if (!empty($domains[$language->langcode])) {
+        if (!empty($domains[$language->id])) {
           // Ensure that there is exactly one protocol in the URL when checking
           // the hostname.
-          $host = 'http://' . str_replace(array('http://', 'https://'), '', $domains[$language->langcode]);
+          $host = 'http://' . str_replace(array('http://', 'https://'), '', $domains[$language->id]);
           $host = parse_url($host, PHP_URL_HOST);
           if ($http_host == $host) {
-            $language_url = $language->langcode;
+            $language_url = $language->id;
             break;
           }
         }
@@ -351,20 +363,20 @@ function language_from_url($languages, $request) {
  * @return
  *   A valid language code.
  */
-function language_url_fallback($language = NULL, $request = NULL, $language_type = LANGUAGE_TYPE_INTERFACE) {
+function language_url_fallback($language = NULL, $request = NULL, $language_type = Language::TYPE_INTERFACE) {
   $default = language_default();
-  $prefix = (config('language.negotiation')->get('url.source') == LANGUAGE_NEGOTIATION_URL_PREFIX);
+  $prefix = (Drupal::config('language.negotiation')->get('url.source') == LANGUAGE_NEGOTIATION_URL_PREFIX);
 
   // If the default language is not configured to convey language information,
   // a missing URL language information indicates that URL language should be
   // the default one, otherwise we fall back to an already detected language.
   $domains = language_negotiation_url_domains();
   $prefixes = language_negotiation_url_prefixes();
-  if (($prefix && empty($prefixes[$default->langcode])) || (!$prefix && empty($domains[$default->langcode]))) {
-    return $default->langcode;
+  if (($prefix && empty($prefixes[$default->id])) || (!$prefix && empty($domains[$default->id]))) {
+    return $default->id;
   }
   else {
-    $langcode = language($language_type)->langcode;
+    $langcode = language($language_type)->id;
     return $langcode;
   }
 }
@@ -379,7 +391,7 @@ function language_switcher_url($type, $path) {
   $links = array();
 
   foreach ($languages as $language) {
-    $links[$language->langcode] = array(
+    $links[$language->id] = array(
       'href'       => $path,
       'title'      => $language->name,
       'language'   => $language,
@@ -394,8 +406,8 @@ function language_switcher_url($type, $path) {
  * Return the session language switcher block.
  */
 function language_switcher_session($type, $path) {
-  $param = config('language.negotiation')->get('session.parameter');
-  $language_query = isset($_SESSION[$param]) ? $_SESSION[$param] : language($type)->langcode;
+  $param = Drupal::config('language.negotiation')->get('session.parameter');
+  $language_query = isset($_SESSION[$param]) ? $_SESSION[$param] : language($type)->id;
 
   $languages = language_list();
   $links = array();
@@ -403,7 +415,7 @@ function language_switcher_session($type, $path) {
   $query = $_GET;
 
   foreach ($languages as $language) {
-    $langcode = $language->langcode;
+    $langcode = $language->id;
     $links[$langcode] = array(
       'href'       => $path,
       'title'      => $language->name,
@@ -422,89 +434,10 @@ function language_switcher_session($type, $path) {
 }
 
 /**
- * Rewrite URLs for the URL language negotiation method.
- */
-function language_url_rewrite_url(&$path, &$options) {
-  static $drupal_static_fast;
-  if (!isset($drupal_static_fast)) {
-    $drupal_static_fast['languages'] = &drupal_static(__FUNCTION__);
-  }
-  $languages = &$drupal_static_fast['languages'];
-
-  if (!isset($languages)) {
-    $languages = language_list();
-    $languages = array_flip(array_keys($languages));
-  }
-
-  // Language can be passed as an option, or we go for current URL language.
-  if (!isset($options['language'])) {
-    $language_url = language(LANGUAGE_TYPE_URL);
-    $options['language'] = $language_url;
-  }
-  // We allow only enabled languages here.
-  elseif (is_object($options['language']) && !isset($languages[$options['language']->langcode])) {
-    unset($options['language']);
-    return;
-  }
-
-  if (isset($options['language'])) {
-    switch (config('language.negotiation')->get('url.source')) {
-      case LANGUAGE_NEGOTIATION_URL_DOMAIN:
-        $domains = language_negotiation_url_domains();
-        if (is_object($options['language']) && !empty($domains[$options['language']->langcode])) {
-          global $is_https;
-
-          // Save the original base URL. If it contains a port, we need to
-          // retain it below.
-          if (!empty($options['base_url'])) {
-            // The colon in the URL scheme messes up the port checking below.
-            $normalized_base_url = str_replace(array('https://', 'http://'), '', $options['base_url']);
-
-          }
-
-          // Ask for an absolute URL with our modified base URL.
-          $url_scheme = ($is_https) ? 'https://' : 'http://';
-          $options['absolute'] = TRUE;
-          $options['base_url'] = $url_scheme . $domains[$options['language']->langcode];
-
-          // In case either the original base URL or the HTTP host contains a
-          // port, retain it.
-          $http_host = $_SERVER['HTTP_HOST'];
-          if (isset($normalized_base_url) && strpos($normalized_base_url, ':') !== FALSE) {
-            list($host, $port) = explode(':', $normalized_base_url);
-            $options['base_url'] .= ':' . $port;
-          }
-          elseif (strpos($http_host, ':') !== FALSE) {
-            list($host, $port) = explode(':', $http_host);
-            $options['base_url'] .= ':' . $port;
-          }
-
-          if (isset($options['https']) && variable_get('https', FALSE)) {
-            if ($options['https'] === TRUE) {
-              $options['base_url'] = str_replace('http://', 'https://', $options['base_url']);
-            }
-            elseif ($options['https'] === FALSE) {
-              $options['base_url'] = str_replace('https://', 'http://', $options['base_url']);
-            }
-          }
-        }
-        break;
-
-      case LANGUAGE_NEGOTIATION_URL_PREFIX:
-        $prefixes = language_negotiation_url_prefixes();
-        if (is_object($options['language']) &&!empty($prefixes[$options['language']->langcode])) {
-          $options['prefix'] = $prefixes[$options['language']->langcode] . '/';
-        }
-        break;
-    }
-  }
-}
-
-/**
  * Reads language prefixes and uses the langcode if no prefix is set.
  */
 function language_negotiation_url_prefixes() {
-  return config('language.negotiation')->get('url.prefixes');
+  return Drupal::config('language.negotiation')->get('url.prefixes');
 }
 
 /**
@@ -515,10 +448,10 @@ function language_negotiation_url_prefixes_update() {
   foreach (language_list() as $language) {
     // The prefix for this language should be updated if it's not assigned yet
     // or the prefix is set to the empty string.
-    if (empty($prefixes[$language->langcode])) {
+    if (empty($prefixes[$language->id])) {
       // For the default language, set the prefix to the empty string,
       // otherwise use the langcode.
-      $prefixes[$language->langcode] = !empty($language->default) ? '' : $language->langcode;
+      $prefixes[$language->id] = !empty($language->default) ? '' : $language->id;
     }
     // Otherwise we keep the configured prefix.
   }
@@ -529,7 +462,7 @@ function language_negotiation_url_prefixes_update() {
  * Saves language prefix settings.
  */
 function language_negotiation_url_prefixes_save(array $prefixes) {
-  config('language.negotiation')
+  Drupal::config('language.negotiation')
     ->set('url.prefixes', $prefixes)
     ->save();
 }
@@ -538,14 +471,14 @@ function language_negotiation_url_prefixes_save(array $prefixes) {
  * Reads language domains.
  */
 function language_negotiation_url_domains() {
-  return config('language.negotiation')->get('url.domains');
+  return Drupal::config('language.negotiation')->get('url.domains');
 }
 
 /**
  * Saves the language domain settings.
  */
 function language_negotiation_url_domains_save(array $domains) {
-  config('language.negotiation')
+  Drupal::config('language.negotiation')
     ->set('url.domains', $domains)
     ->save();
 }
@@ -560,9 +493,9 @@ function language_url_rewrite_session(&$path, &$options) {
   // request processing.
   if (!isset($query_rewrite)) {
     global $user;
-    if (!$user->uid) {
+    if (!$user->id()) {
       $languages = language_list();
-      $query_param = check_plain(config('language.negotiation')->get('session.parameter'));
+      $query_param = check_plain(Drupal::config('language.negotiation')->get('session.parameter'));
       $query_value = isset($_GET[$query_param]) ? check_plain($_GET[$query_param]) : NULL;
       $query_rewrite = isset($languages[$query_value]) && language_negotiation_method_enabled(LANGUAGE_NEGOTIATION_SESSION);
     }
@@ -576,7 +509,9 @@ function language_url_rewrite_session(&$path, &$options) {
   // user language preference even with cookies disabled.
   if ($query_rewrite) {
     if (is_string($options['query'])) {
-      $options['query'] = drupal_get_query_array($options['query']);
+      $query = array();
+      parse_str($options['query'], $query);
+      $options['query'] = $query;
     }
     if (!isset($options['query'][$query_param])) {
       $options['query'][$query_param] = $query_value;

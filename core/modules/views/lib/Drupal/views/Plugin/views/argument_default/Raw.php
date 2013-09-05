@@ -7,20 +7,71 @@
 
 namespace Drupal\views\Plugin\views\argument_default;
 
-use Drupal\Core\Annotation\Plugin;
+use Drupal\views\Annotation\ViewsArgumentDefault;
 use Drupal\Core\Annotation\Translation;
+use Drupal\Core\Path\AliasManagerInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Default argument plugin to use the raw value from the URL.
  *
  * @ingroup views_argument_default_plugins
  *
- * @Plugin(
+ * @ViewsArgumentDefault(
  *   id = "raw",
  *   title = @Translation("Raw value from URL")
  * )
  */
 class Raw extends ArgumentDefaultPluginBase {
+
+  /**
+   * The request object.
+   *
+   * @var \Symfony\Component\HttpFoundation\Request
+   */
+  protected $request;
+
+  /**
+   * The alias manager.
+   *
+   * @var \Drupal\Core\Path\AliasManagerInterface
+   */
+  protected $aliasManager;
+
+  /**
+   * Constructs a Raw object.
+   *
+   * @param array $configuration
+   *   A configuration array containing information about the plugin instance.
+   * @param string $plugin_id
+   *   The plugin_id for the plugin instance.
+   * @param array $plugin_definition
+   *   The plugin implementation definition.
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The request object.
+   * @param \Drupal\Core\Path\AliasManagerInterface $alias_manager
+   *   The alias manager.
+   */
+  public function __construct(array $configuration, $plugin_id, array $plugin_definition, Request $request, AliasManagerInterface $alias_manager) {
+    parent::__construct($configuration, $plugin_id, $plugin_definition);
+
+    $this->request = $request;
+    $this->aliasManager = $alias_manager;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, array $plugin_definition) {
+    return new static(
+      $configuration,
+      $plugin_id,
+      $plugin_definition,
+      $container->get('request'),
+      $container->get('path.alias_manager.cached')
+    );
+  }
 
   protected function defineOptions() {
     $options = parent::defineOptions();
@@ -49,13 +100,14 @@ class Raw extends ArgumentDefaultPluginBase {
     );
   }
 
-  function get_argument() {
-    $path = NULL;
+  public function getArgument() {
+    $path = $this->request->attributes->get('_system_path');
     if ($this->options['use_alias']) {
-      $path = drupal_get_path_alias();
+      $path = $this->aliasManager->getPathAlias($path);
     }
-    if ($arg = arg($this->options['index'], $path)) {
-      return $arg;
+    $args = explode('/', $path);
+    if (isset($args[$this->options['index']])) {
+      return $args[$this->options['index']];
     }
   }
 

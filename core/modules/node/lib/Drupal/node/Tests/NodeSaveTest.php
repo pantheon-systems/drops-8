@@ -8,7 +8,7 @@
 namespace Drupal\node\Tests;
 
 /**
- * Test case to check node save related functionality, including import-save
+ * Tests node save related functionality, including import-save.
  */
 class NodeSaveTest extends NodeTestBase {
 
@@ -37,7 +37,8 @@ class NodeSaveTest extends NodeTestBase {
   }
 
   /**
-   * Import test, to check if custom node ids are saved properly.
+   * Checks whether custom node IDs are saved properly during an import operation.
+   *
    * Workflow:
    *  - first create a piece of content
    *  - save the content
@@ -50,16 +51,16 @@ class NodeSaveTest extends NodeTestBase {
     $title = $this->randomName(8);
     $node = array(
       'title' => $title,
-      'body' => array(LANGUAGE_NOT_SPECIFIED => array(array('value' => $this->randomName(32)))),
-      'uid' => $this->web_user->uid,
+      'body' => array(array('value' => $this->randomName(32))),
+      'uid' => $this->web_user->id(),
       'type' => 'article',
       'nid' => $test_nid,
-      'enforceIsNew' => TRUE,
     );
-    $node = node_submit(entity_create('node', $node));
+    $node = entity_create('node', $node);
+    $node->enforceIsNew();
 
     // Verify that node_submit did not overwrite the user ID.
-    $this->assertEqual($node->uid, $this->web_user->uid, 'Function node_submit() preserves user ID');
+    $this->assertEqual($node->getAuthorId(), $this->web_user->id(), 'Function node_submit() preserves user ID');
 
     $node->save();
     // Test the import.
@@ -71,41 +72,40 @@ class NodeSaveTest extends NodeTestBase {
   }
 
   /**
-   * Check that the "created" and "changed" timestamps are set correctly when
-   * saving a new node or updating an existing node.
+   * Verifies accuracy of the "created" and "changed" timestamp functionality.
    */
   function testTimestamps() {
     // Use the default timestamps.
     $edit = array(
-      'uid' => $this->web_user->uid,
+      'uid' => $this->web_user->id(),
       'type' => 'article',
       'title' => $this->randomName(8),
     );
 
     entity_create('node', $edit)->save();
     $node = $this->drupalGetNodeByTitle($edit['title']);
-    $this->assertEqual($node->created, REQUEST_TIME, 'Creating a node sets default "created" timestamp.');
-    $this->assertEqual($node->changed, REQUEST_TIME, 'Creating a node sets default "changed" timestamp.');
+    $this->assertEqual($node->getCreatedTime(), REQUEST_TIME, 'Creating a node sets default "created" timestamp.');
+    $this->assertEqual($node->getChangedTime(), REQUEST_TIME, 'Creating a node sets default "changed" timestamp.');
 
     // Store the timestamps.
-    $created = $node->created;
-    $changed = $node->changed;
+    $created = $node->getCreatedTime();
+    $changed = $node->getChangedTime();
 
     $node->save();
     $node = $this->drupalGetNodeByTitle($edit['title'], TRUE);
-    $this->assertEqual($node->created, $created, 'Updating a node preserves "created" timestamp.');
+    $this->assertEqual($node->getCreatedTime(), $created, 'Updating a node preserves "created" timestamp.');
 
     // Programmatically set the timestamps using hook_node_presave.
     $node->title = 'testing_node_presave';
 
     $node->save();
     $node = $this->drupalGetNodeByTitle('testing_node_presave', TRUE);
-    $this->assertEqual($node->created, 280299600, 'Saving a node uses "created" timestamp set in presave hook.');
-    $this->assertEqual($node->changed, 979534800, 'Saving a node uses "changed" timestamp set in presave hook.');
+    $this->assertEqual($node->getCreatedTime(), 280299600, 'Saving a node uses "created" timestamp set in presave hook.');
+    $this->assertEqual($node->getChangedTime(), 979534800, 'Saving a node uses "changed" timestamp set in presave hook.');
 
     // Programmatically set the timestamps on the node.
     $edit = array(
-      'uid' => $this->web_user->uid,
+      'uid' => $this->web_user->id(),
       'type' => 'article',
       'title' => $this->randomName(8),
       'created' => 280299600, // Sun, 19 Nov 1978 05:00:00 GMT
@@ -114,27 +114,29 @@ class NodeSaveTest extends NodeTestBase {
 
     entity_create('node', $edit)->save();
     $node = $this->drupalGetNodeByTitle($edit['title']);
-    $this->assertEqual($node->created, 280299600, 'Creating a node uses user-set "created" timestamp.');
-    $this->assertNotEqual($node->changed, 979534800, 'Creating a node does not use user-set "changed" timestamp.');
+    $this->assertEqual($node->getCreatedTime(), 280299600, 'Creating a node uses user-set "created" timestamp.');
+    $this->assertNotEqual($node->getChangedTime(), 979534800, 'Creating a node does not use user-set "changed" timestamp.');
 
     // Update the timestamps.
-    $node->created = 979534800;
+    $node->setCreatedTime(979534800);
     $node->changed = 280299600;
 
     $node->save();
     $node = $this->drupalGetNodeByTitle($edit['title'], TRUE);
-    $this->assertEqual($node->created, 979534800, 'Updating a node uses user-set "created" timestamp.');
-    $this->assertNotEqual($node->changed, 280299600, 'Updating a node does not use user-set "changed" timestamp.');
+    $this->assertEqual($node->getCreatedTime(), 979534800, 'Updating a node uses user-set "created" timestamp.');
+    $this->assertNotEqual($node->getChangedTime(), 280299600, 'Updating a node does not use user-set "changed" timestamp.');
   }
 
   /**
-   * Tests determing changes in hook_node_presave() and verifies the static node
-   * load cache is cleared upon save.
+   * Tests node presave and static node load cache.
+   *
+   * This test determines changes in hook_node_presave() and verifies that the
+   * static node load cache is cleared upon save.
    */
   function testDeterminingChanges() {
     // Initial creation.
     $node = entity_create('node', array(
-      'uid' => $this->web_user->uid,
+      'uid' => $this->web_user->id(),
       'type' => 'article',
       'title' => 'test_changes',
     ));
@@ -153,7 +155,7 @@ class NodeSaveTest extends NodeTestBase {
     $this->assertEqual($node->label(), 'updated_presave_update', 'Changes have been determined.');
 
     // Test the static node load cache to be cleared.
-    $node = node_load($node->nid);
+    $node = node_load($node->id());
     $this->assertEqual($node->label(), 'updated_presave', 'Static cache has been cleared.');
   }
 
@@ -170,6 +172,6 @@ class NodeSaveTest extends NodeTestBase {
     // node_test_node_insert() tiggers a save on insert if the title equals
     // 'new'.
     $node = $this->drupalCreateNode(array('title' => 'new'));
-    $this->assertEqual($node->title, 'Node ' . $node->nid, 'Node saved on node insert.');
+    $this->assertEqual($node->getTitle(), 'Node ' . $node->id(), 'Node saved on node insert.');
   }
 }

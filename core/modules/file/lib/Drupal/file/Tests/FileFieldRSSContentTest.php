@@ -7,10 +7,20 @@
 
 namespace Drupal\file\Tests;
 
+use Drupal\Core\Language\Language;
+
 /**
  * Tests that formatters are working properly.
  */
 class FileFieldRSSContentTest extends FileFieldTestBase {
+
+  /**
+   * Modules to enable.
+   *
+   * @var array
+   */
+  public static $modules = array('node', 'views');
+
   public static function getInfo() {
     return array(
       'name' => 'File field RSS content',
@@ -33,14 +43,12 @@ class FileFieldRSSContentTest extends FileFieldTestBase {
       'description_field' => '1',
     );
     $widget_settings = array();
-    $this->createFileField($field_name, $type_name, $field_settings, $instance_settings, $widget_settings);
-    $field = field_info_field($field_name);
-    $instance = field_info_instance('node', $field_name, $type_name);
+    $this->createFileField($field_name, 'node', $type_name, $field_settings, $instance_settings, $widget_settings);
 
     // RSS display must be added manually.
     $this->drupalGet("admin/structure/types/manage/$type_name/display");
     $edit = array(
-      "view_modes_custom[rss]" => '1',
+      "display_modes_custom[rss]" => '1',
     );
     $this->drupalPost(NULL, $edit, t('Save'));
 
@@ -55,22 +63,22 @@ class FileFieldRSSContentTest extends FileFieldTestBase {
     $test_file = $this->getTestFile('text');
 
     // Create a new node with the uploaded file.
-    $nid = $this->uploadNodeFile($test_file, $field_name, $node->nid);
+    $nid = $this->uploadNodeFile($test_file, $field_name, $node->id());
 
     // Get the uploaded file from the node.
     $node = node_load($nid, TRUE);
-    $node_file = file_load($node->{$field_name}[LANGUAGE_NOT_SPECIFIED][0]['fid']);
+    $node_file = file_load($node->{$field_name}->target_id);
 
     // Check that the RSS enclosure appears in the RSS feed.
     $this->drupalGet('rss.xml');
-    $uploaded_filename = str_replace('public://', '', $node_file->uri);
+    $uploaded_filename = str_replace('public://', '', $node_file->getFileUri());
     $test_element = array(
       'key' => 'enclosure',
       'value' => "",
       'attributes' => array(
         'url' => url("$this->public_files_directory/$uploaded_filename", array('absolute' => TRUE)),
-        'length' => $node_file->filesize,
-        'type' => $node_file->filemime
+        'length' => $node_file->getSize(),
+        'type' => $node_file->getMimeType()
       ),
     );
     $this->assertRaw(format_xml_elements(array($test_element)), 'File field RSS enclosure is displayed when viewing the RSS feed.');

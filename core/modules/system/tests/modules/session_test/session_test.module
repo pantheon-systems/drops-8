@@ -65,13 +65,6 @@ function session_test_menu() {
 }
 
 /**
- * Implements hook_boot().
- */
-function session_test_boot() {
-  header('X-Session-Empty: ' . intval(empty($_SESSION)));
-}
-
-/**
  * Page callback, prints the stored session value to the screen.
  */
 function _session_test_get() {
@@ -151,12 +144,12 @@ function _session_test_set_not_started() {
 }
 
 /**
- * Implements hook_user().
+ * Implements hook_user_login().
  */
-function session_test_user_login($edit = array(), $user = NULL) {
-  if ($user->name == 'session_test_user') {
+function session_test_user_login($account) {
+  if ($account->getUsername() == 'session_test_user') {
     // Exit so we can verify that the session was regenerated
-    // before hook_user() was called.
+    // before hook_user_login() was called.
     exit;
   }
 }
@@ -166,22 +159,6 @@ function session_test_user_login($edit = array(), $user = NULL) {
  */
 function session_test_form_user_login_form_alter(&$form) {
   $form['#https'] = TRUE;
-}
-
-/**
- * Implements hook_drupal_goto_alter().
- *
- * Force the redirection to go to a non-secure page after being on a secure
- * page through https.php.
- */
-function session_test_drupal_goto_alter(&$path, &$options, &$http_response_code) {
-  global $base_insecure_url, $is_https_mock;
-  // Alter the redirect to use HTTP when using a mock HTTPS request through
-  // https.php because form submissions would otherwise redirect to a
-  // non-existent HTTPS site.
-  if (!empty($is_https_mock)) {
-    $path = $base_insecure_url . '/' . $path;
-  }
 }
 
 /**

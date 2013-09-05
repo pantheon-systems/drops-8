@@ -15,33 +15,33 @@ function module_test_permission() {
  * Manipulate module dependencies to test dependency chains.
  */
 function module_test_system_info_alter(&$info, $file, $type) {
-  if (variable_get('dependency_test', FALSE) == 'missing dependency') {
+  if (Drupal::state()->get('module_test.dependency') == 'missing dependency') {
     if ($file->name == 'forum') {
-      // Make forum module depend on poll.
-      $info['dependencies'][] = 'poll';
+      // Make forum module depend on ban.
+      $info['dependencies'][] = 'ban';
     }
-    elseif ($file->name == 'poll') {
-      // Make poll depend on a made-up module.
+    elseif ($file->name == 'ban') {
+      // Make ban depend on a made-up module.
       $info['dependencies'][] = 'foo';
     }
   }
-  elseif (variable_get('dependency_test', FALSE) == 'dependency') {
+  elseif (Drupal::state()->get('module_test.dependency') == 'dependency') {
     if ($file->name == 'forum') {
-      // Make the forum module depend on poll.
-      $info['dependencies'][] = 'poll';
+      // Make the forum module depend on ban.
+      $info['dependencies'][] = 'ban';
     }
-    elseif ($file->name == 'poll') {
-      // Make poll depend on php module.
+    elseif ($file->name == 'ban') {
+      // Make ban depend on php module.
       $info['dependencies'][] = 'php';
     }
   }
-  elseif (variable_get('dependency_test', FALSE) == 'version dependency') {
+  elseif (Drupal::state()->get('module_test.dependency') == 'version dependency') {
     if ($file->name == 'forum') {
-      // Make the forum module depend on poll.
-      $info['dependencies'][] = 'poll';
+      // Make the forum module depend on ban.
+      $info['dependencies'][] = 'ban';
     }
-    elseif ($file->name == 'poll') {
-      // Make poll depend on a specific version of php module.
+    elseif ($file->name == 'ban') {
+      // Make ban depend on a specific version of php module.
       $info['dependencies'][] = 'php (1.x)';
     }
     elseif ($file->name == 'php') {
@@ -110,7 +110,7 @@ function module_test_hook_dynamic_loading_invoke() {
  * return 'success!'.
  */
 function module_test_hook_dynamic_loading_invoke_all() {
-  $result = module_invoke_all('test_hook');
+  $result = Drupal::moduleHandler()->invokeAll('test_hook');
   return $result['module_test'];
 }
 
@@ -130,7 +130,7 @@ function module_test_hook_dynamic_loading_invoke_all_during_load($param) {
  * @see module_test_menu().
  */
 function module_test_load($param) {
-  $result = module_invoke_all('test_hook');
+  $result = Drupal::moduleHandler()->invokeAll('test_hook');
   return $result[$param];
 }
 
@@ -155,7 +155,7 @@ function module_test_class_loading() {
 function module_test_modules_enabled($modules) {
   // Record the ordered list of modules that were passed in to this hook so we
   // can check that the modules were enabled in the correct sequence.
-  variable_set('test_module_enable_order', $modules);
+  Drupal::state()->set('system_test.module_enable_order', $modules);
 }
 
 /**
@@ -164,7 +164,7 @@ function module_test_modules_enabled($modules) {
 function module_test_modules_disabled($modules) {
   // Record the ordered list of modules that were passed in to this hook so we
   // can check that the modules were disabled in the correct sequence.
-  variable_set('test_module_disable_order', $modules);
+  Drupal::state()->set('module_test.disable_order', $modules);
 }
 
 /**
@@ -173,5 +173,5 @@ function module_test_modules_disabled($modules) {
 function module_test_modules_uninstalled($modules) {
   // Record the ordered list of modules that were passed in to this hook so we
   // can check that the modules were uninstalled in the correct sequence.
-  variable_set('test_module_uninstall_order', $modules);
+  Drupal::state()->set('module_test.uninstall_order', $modules);
 }

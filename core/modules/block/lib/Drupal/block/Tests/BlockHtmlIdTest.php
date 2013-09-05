@@ -10,7 +10,7 @@ namespace Drupal\block\Tests;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Test block HTML id validity.
+ * Tests block HTML ID validity.
  */
 class BlockHtmlIdTest extends WebTestBase {
 
@@ -23,8 +23,8 @@ class BlockHtmlIdTest extends WebTestBase {
 
   public static function getInfo() {
     return array(
-      'name' => 'Block HTML id',
-      'description' => 'Test block HTML id validity.',
+      'name' => 'Block HTML ID',
+      'description' => 'Tests block HTML ID validity.',
       'group' => 'Block',
     );
   }
@@ -32,24 +32,25 @@ class BlockHtmlIdTest extends WebTestBase {
   function setUp() {
     parent::setUp();
 
-    // Create an admin user, log in and enable test blocks.
-    $this->admin_user = $this->drupalCreateUser(array('administer blocks', 'access administration pages'));
-    $this->drupalLogin($this->admin_user);
+    $this->drupalLogin($this->root_user);
 
-    // Enable our test block.
-    $edit['blocks[block_test_test_html_id][region]'] = 'sidebar_first';
-    $this->drupalPost('admin/structure/block', $edit, t('Save blocks'));
-
-    // Make sure the block has some content so it will appear
+    // Make sure the block has some content so it will appear.
     $current_content = $this->randomName();
-    variable_set('block_test_content', $current_content);
+    \Drupal::state()->set('block_test.content', $current_content);
+
+    // Enable our test blocks.
+    $this->drupalPlaceBlock('system_menu_block:menu-tools');
+    $this->drupalPlaceBlock('test_html_id', array('machine_name' => 'test_id_block'));
   }
 
   /**
-   * Test valid HTML id.
+   * Tests for a valid HTML ID for a block.
    */
   function testHtmlId() {
     $this->drupalGet('');
-    $this->assertRaw('block-block-test-test-html-id', 'HTML id for test block is valid.');
+    $this->assertRaw('id="block-test-id-block"', 'HTML ID for test block is valid.');
+    $elements = $this->xpath('//div[contains(@class, :div-class)]/div/ul[contains(@class, :ul-class)]/li', array(':div-class' => 'block-system', ':ul-class' => 'menu'));
+    $this->assertTrue(!empty($elements), 'The proper block markup was found.');
   }
+
 }

@@ -8,10 +8,7 @@
 // Change the directory to the Drupal root.
 chdir('..');
 
-/**
- * Defines the root directory of the Drupal installation.
- */
-define('DRUPAL_ROOT', getcwd());
+require_once __DIR__ . '/vendor/autoload.php';
 
 /**
  * Global flag to indicate the site is in installation mode.
@@ -26,11 +23,19 @@ define('MAINTENANCE_MODE', 'install');
 // The minimum version is specified explicitly, as DRUPAL_MINIMUM_PHP is not
 // yet available. It is defined in bootstrap.inc, but it is not possible to
 // load that file yet as it would cause a fatal error on older versions of PHP.
-if (version_compare(PHP_VERSION, '5.3.3') < 0) {
-  print 'Your PHP installation is too old. Drupal requires at least PHP 5.3.3. See the <a href="http://drupal.org/requirements">system requirements</a> page for more information.';
+if (version_compare(PHP_VERSION, '5.3.10') < 0) {
+  print 'Your PHP installation is too old. Drupal requires at least PHP 5.3.10. See the <a href="http://drupal.org/requirements">system requirements</a> page for more information.';
+  exit;
+}
+
+// Exit early if the PHP option safe_mode is enabled to avoid fatal errors.
+// @todo Remove this check once we require PHP > 5.4 as safe mode is deprecated
+// in PHP 5.3 and completely removed in PHP 5.4.
+if (ini_get('safe_mode')) {
+  print 'Your PHP installation has safe_mode enabled. Drupal requires the safe_mode option to be turned off. See the <a href="http://drupal.org/requirements">system requirements</a> page for more information.';
   exit;
 }
 
 // Start the installer.
-require_once DRUPAL_ROOT . '/core/includes/install.core.inc';
+require_once __DIR__ . '/includes/install.core.inc';
 install_drupal();

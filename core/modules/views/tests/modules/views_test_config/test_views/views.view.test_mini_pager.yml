@@ -1,0 +1,117 @@
+base_table: node
+id: test_mini_pager
+description: ''
+tag: ''
+label: test_mini_pager
+core: 8.x
+display:
+  default:
+    display_plugin: default
+    id: default
+    display_title: Master
+    position: ''
+    display_options:
+      access:
+        type: perm
+      cache:
+        type: none
+      query:
+        type: views_query
+      exposed_form:
+        type: basic
+      pager:
+        type: mini
+        options:
+          items_per_page: '3'
+          offset: '0'
+          id: '0'
+          total_pages: ''
+          tags:
+            previous: '‹‹ test'
+            next: '›› test'
+          expose:
+            items_per_page: '0'
+            items_per_page_label: 'Items per page'
+            items_per_page_options: '5, 10, 20, 40, 60'
+            items_per_page_options_all: '0'
+            items_per_page_options_all_label: '- All -'
+            offset: '0'
+            offset_label: Offset
+      style:
+        type: default
+      row:
+        type: 'entity:node'
+        options:
+          build_mode: teaser
+          links: '1'
+          comments: '0'
+      fields:
+        title:
+          id: title
+          table: node
+          field: title
+          label: ''
+          alter:
+            alter_text: '0'
+            make_link: '0'
+            absolute: '0'
+            trim: '0'
+            word_boundary: '0'
+            ellipsis: '0'
+            strip_tags: '0'
+            html: '0'
+          hide_empty: '0'
+          empty_zero: '0'
+          link_to_node: '1'
+          plugin_id: node
+          provider: views
+      filters: {  }
+      sorts:
+        nid:
+          id: nid
+          table: node
+          field: nid
+          plugin_id: standard
+          order: ASC
+          provider: views
+      title: test_mini_pager
+      filter_groups:
+        operator: AND
+        groups: {  }
+  page_1:
+    display_plugin: page
+    id: page_1
+    display_title: Page
+    position: ''
+    display_options:
+      path: test_mini_pager
+  page_2:
+    display_plugin: page
+    id: page_2
+    display_title: Page
+    position: ''
+    display_options:
+      path: test_mini_pager_one
+      defaults:
+        pager: '0'
+      pager:
+        type: mini
+        options:
+          items_per_page: '1'
+  page_3:
+    display_plugin: page
+    id: page_3
+    display_title: Page
+    position: ''
+    display_options:
+      path: test_mini_pager_all
+      defaults:
+        pager: '0'
+      pager:
+        type: mini
+        options:
+          items_per_page: '0'
+base_field: nid
+status: '1'
+module: views
+langcode: und

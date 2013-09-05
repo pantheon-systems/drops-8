@@ -2,19 +2,15 @@
 
 /**
  * @file
- * Definition of Drupal\Core\Entity\Field\FieldItemBase.
+ * Contains \Drupal\Core\Entity\Field\FieldItemBase.
  */
 
 namespace Drupal\Core\Entity\Field;
 
-use Drupal\Core\TypedData\Type\TypedData;
-use Drupal\Core\TypedData\ComplexDataInterface;
-use Drupal\Core\TypedData\ContextAwareInterface;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\TypedData\Plugin\DataType\Map;
 use Drupal\Core\TypedData\TypedDataInterface;
 use Drupal\user;
-use ArrayIterator;
-use IteratorAggregate;
-use InvalidArgumentException;
 
 /**
  * An entity field item.
@@ -24,255 +20,194 @@ use InvalidArgumentException;
  *
  * @see \Drupal\Core\Entity\Field\FieldItemInterface
  */
-abstract class FieldItemBase extends TypedData implements IteratorAggregate, FieldItemInterface {
+abstract class FieldItemBase extends Map implements FieldItemInterface {
 
   /**
-   * The item delta or name.
-   *
-   * @var integer
+   * Overrides \Drupal\Core\TypedData\TypedData::__construct().
    */
-  protected $name;
-
-  /**
-   * The parent entity field.
-   *
-   * @var \Drupal\Core\Entity\Field\FieldInterface
-   */
-  protected $parent;
-
-  /**
-   * The array of properties.
-   *
-   * Field objects are instantiated during object construction and cannot be
-   * replaced by others, so computed properties can safely store references on
-   * other properties.
-   *
-   * @var array<TypedDataInterface>
-   */
-  protected $properties = array();
-
-  /**
-   * Implements TypedDataInterface::__construct().
-   */
-  public function __construct(array $definition) {
-    $this->definition = $definition;
-
-    // Initialize all property objects, but postpone the creating of computed
-    // properties to a second step. That way computed properties can safely get
-    // references on non-computed properties during construction.
-    $step2 = array();
+  public function __construct(array $definition, $name = NULL, TypedDataInterface $parent = NULL) {
+    parent::__construct($definition, $name, $parent);
+    // Initialize computed properties by default, such that they get cloned
+    // with the whole item.
     foreach ($this->getPropertyDefinitions() as $name => $definition) {
-      if (empty($definition['computed'])) {
-        $context = array('name' => $name, 'parent' => $this);
-        $this->properties[$name] = typed_data()->create($definition, NULL, $context);
+      if (!empty($definition['computed'])) {
+        $this->properties[$name] = \Drupal::typedData()->getPropertyInstance($this, $name);
       }
-      else {
-        $step2[$name] = $definition;
-      }
-    }
-
-    foreach ($step2 as $name => $definition) {
-      $context = array('name' => $name, 'parent' => $this);
-      $this->properties[$name] = typed_data()->create($definition, NULL, $context);
     }
   }
 
   /**
-   * Implements TypedDataInterface::getValue().
+   * {@inheritdoc}
    */
-  public function getValue() {
-    $values = array();
-    foreach ($this->getProperties() as $name => $property) {
-      $values[$name] = $property->getValue();
-    }
-    return $values;
+  public function getFieldDefinition() {
+    return $this->getParent()->getFieldDefinition();
   }
 
   /**
-   * Implements TypedDataInterface::setValue().
+   * Returns the array of field settings.
    *
-   * @param array $values
+   * @return array
+   *   The array of settings.
+   */
+  protected function getFieldSettings() {
+    return $this->getFieldDefinition()->getFieldSettings();
+  }
+
+  /**
+   * Returns the value of a field setting.
+   *
+   * @param string $setting_name
+   *   The setting name.
+   *
+   * @return mixed
+   *   The setting value.
+   */
+  protected function getFieldSetting($setting_name) {
+    return $this->getFieldDefinition()->getFieldSetting($setting_name);
+  }
+
+  /**
+   * Overrides \Drupal\Core\TypedData\TypedData::setValue().
+   *
+   * @param array|null $values
    *   An array of property values.
    */
-  public function setValue($values) {
+  public function setValue($values, $notify = TRUE) {
     // Treat the values as property value of the first property, if no array is
-    // given and we only have one property.
-    if (!is_array($values) && count($this->properties) == 1) {
-      $keys = array_keys($this->properties);
+    // given.
+    if (isset($values) && !is_array($values)) {
+      $keys = array_keys($this->getPropertyDefinitions());
       $values = array($keys[0] => $values);
     }
-
+    $this->values = $values;
+    // Update any existing property objects.
     foreach ($this->properties as $name => $property) {
-      $property->setValue(isset($values[$name]) ? $values[$name] : NULL);
+      $value = NULL;
+      if (isset($values[$name])) {
+        $value = $values[$name];
+      }
+      $property->setValue($value, FALSE);
+      unset($this->values[$name]);
     }
-    // @todo: Throw an exception for invalid values once conversion is
-    // totally completed.
-  }
-
-  /**
-   * Implements TypedDataInterface::getString().
-   */
-  public function getString() {
-    $strings = array();
-    foreach ($this->getProperties() as $property) {
-      $strings[] = $property->getString();
+    // Notify the parent of any changes.
+    if ($notify && isset($this->parent)) {
+      $this->parent->onChange($this->name);
     }
-    return implode(', ', array_filter($strings));
   }
 
   /**
-   * Implements TypedDataInterface::validate().
-   */
-  public function validate() {
-    // @todo implement
-  }
-
-  /**
-   * Implements ComplexDataInterface::get().
-   */
-  public function get($property_name) {
-    if (!isset($this->properties[$property_name])) {
-      throw new InvalidArgumentException('Field ' . check_plain($property_name) . ' is unknown.');
-    }
-    return $this->properties[$property_name];
-  }
-
-  /**
-   * Implements ComplexDataInterface::set().
-   */
-  public function set($property_name, $value) {
-    $this->get($property_name)->setValue($value);
-  }
-
-  /**
-   * Implements FieldItemInterface::__get().
+   * Implements \Drupal\Core\Entity\Field\FieldItemInterface::__get().
    */
   public function __get($name) {
-    return $this->get($name)->getValue();
+    // There is either a property object or a plain value - possibly for a
+    // not-defined property. If we have a plain value, directly return it.
+    if (isset($this->values[$name])) {
+      return $this->values[$name];
+    }
+    elseif (isset($this->properties[$name])) {
+      return $this->properties[$name]->getValue();
+    }
   }
 
   /**
-   * Implements FieldItemInterface::__set().
+   * {@inheritdoc}
+   */
+  public function set($property_name, $value, $notify = TRUE) {
+    // For defined properties there is either a property object or a plain
+    // value that needs to be updated.
+    if (isset($this->properties[$property_name])) {
+      $this->properties[$property_name]->setValue($value, FALSE);
+      unset($this->values[$property_name]);
+    }
+    // Allow setting plain values for not-defined properties also.
+    else {
+      $this->values[$property_name] = $value;
+    }
+    // Directly notify ourselves.
+    if ($notify) {
+      $this->onChange($property_name);
+    }
+  }
+
+  /**
+   * Implements \Drupal\Core\Entity\Field\FieldItemInterface::__set().
    */
   public function __set($name, $value) {
-    // Support setting values via property objects.
-    if ($value instanceof TypedDataInterface) {
+    // Support setting values via property objects, but take care in as the
+    // value of the 'entity' property is typed data also.
+    if ($value instanceof TypedDataInterface && !($value instanceof EntityInterface)) {
       $value = $value->getValue();
     }
-    $this->get($name)->setValue($value);
+    $this->set($name, $value);
   }
 
   /**
-   * Implements FieldItemInterface::__isset().
+   * Implements \Drupal\Core\Entity\Field\FieldItemInterface::__isset().
    */
   public function __isset($name) {
-    return isset($this->properties[$name]) && $this->properties[$name]->getValue() !== NULL;
+    return isset($this->values[$name]) || (isset($this->properties[$name]) && $this->properties[$name]->getValue() !== NULL);
   }
 
   /**
-   * Implements FieldItemInterface::__unset().
+   * Implements \Drupal\Core\Entity\Field\FieldItemInterface::__unset().
    */
   public function __unset($name) {
-    if (isset($this->properties[$name])) {
-      $this->properties[$name]->setValue(NULL);
+    $this->set($name, NULL);
+    unset($this->values[$name]);
+  }
+
+  /**
+   * Overrides \Drupal\Core\TypedData\Map::onChange().
+   */
+  public function onChange($property_name) {
+    // Notify the parent of changes.
+    if (isset($this->parent)) {
+      $this->parent->onChange($this->name);
+    }
+    // Remove the plain value, such that any further __get() calls go via the
+    // updated property object.
+    if (isset($this->properties[$property_name])) {
+      unset($this->values[$property_name]);
     }
   }
 
   /**
-   * Implements ContextAwareInterface::getName().
+   * {@inheritdoc}
    */
-  public function getName() {
-    return $this->name;
-  }
-
-  /**
-   * Implements ContextAwareInterface::setName().
-   */
-  public function setName($name) {
-    $this->name = $name;
-  }
-
-  /**
-   * Implements ContextAwareInterface::getParent().
-   *
-   * @return \Drupal\Core\Entity\Field\FieldInterface
-   */
-  public function getParent() {
-    return $this->parent;
-  }
-
-  /**
-   * Implements ContextAwareInterface::setParent().
-   */
-  public function setParent($parent) {
-    $this->parent = $parent;
-  }
-
-  /**
-   * Implements ComplexDataInterface::getProperties().
-   */
-  public function getProperties($include_computed = FALSE) {
-    $properties = array();
-    foreach ($this->getPropertyDefinitions() as $name => $definition) {
-      if ($include_computed || empty($definition['computed'])) {
-        $properties[$name] = $this->properties[$name];
-      }
+  public function getConstraints() {
+    $constraints = parent::getConstraints();
+    // If property constraints are present add in a ComplexData constraint for
+    // applying them.
+    if (!empty($this->definition['property_constraints'])) {
+      $constraints[] = \Drupal::typedData()->getValidationConstraintManager()
+        ->create('ComplexData', $this->definition['property_constraints']);
     }
-    return $properties;
+    return $constraints;
   }
 
   /**
-   * Implements ComplexDataInterface::getPropertyValues().
+   * {@inheritdoc}
    */
-  public function getPropertyValues() {
-    return $this->getValue();
-  }
+  public function preSave() { }
 
   /**
-   * Implements ComplexDataInterface::setPropertyValues().
+   * {@inheritdoc}
    */
-  public function setPropertyValues($values) {
-    foreach ($values as $name => $value) {
-      $this->get($name)->setValue($value);
-    }
-  }
+  public function insert() { }
 
   /**
-   * Implements IteratorAggregate::getIterator().
+   * {@inheritdoc}
    */
-  public function getIterator() {
-    return new ArrayIterator($this->getProperties());
-  }
+  public function update() { }
 
   /**
-   * Implements ComplexDataInterface::getPropertyDefinition().
+   * {@inheritdoc}
    */
-  public function getPropertyDefinition($name) {
-    $definitions = $this->getPropertyDefinitions();
-    return isset($definitions[$name]) ? $definitions[$name] : FALSE;
-  }
+  public function delete() { }
 
   /**
-   * Implements ComplexDataInterface::isEmpty().
+   * {@inheritdoc}
    */
-  public function isEmpty() {
-    foreach ($this->getProperties() as $property) {
-      if ($property->getValue() !== NULL) {
-        return FALSE;
-      }
-    }
-    return TRUE;
-  }
+  public function deleteRevision() { }
 
-  /**
-   * Implements a deep clone.
-   */
-  public function __clone() {
-    foreach ($this->properties as $name => $property) {
-      $this->properties[$name] = clone $property;
-      if ($property instanceof ContextAwareInterface) {
-        $this->properties[$name]->setParent($this);
-      }
-    }
-  }
 }

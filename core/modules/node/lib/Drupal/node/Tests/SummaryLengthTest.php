@@ -7,6 +7,9 @@
 
 namespace Drupal\node\Tests;
 
+/**
+ * Tests the summary length functionality.
+ */
 class SummaryLengthTest extends NodeTestBase {
   public static function getInfo() {
     return array(
@@ -17,34 +20,46 @@ class SummaryLengthTest extends NodeTestBase {
   }
 
   /**
-   * Creates a node and then an anonymous and unpermissioned user attempt to edit the node.
+   * Tests the node summary length functionality.
    */
   function testSummaryLength() {
     // Create a node to view.
     $settings = array(
-      'body' => array(LANGUAGE_NOT_SPECIFIED => array(array('value' => 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Etiam vitae arcu at leo cursus laoreet. Curabitur dui tortor, adipiscing malesuada tempor in, bibendum ac diam. Cras non tellus a libero pellentesque condimentum. What is a Drupalism? Suspendisse ac lacus libero. Ut non est vel nisl faucibus interdum nec sed leo. Pellentesque sem risus, vulputate eu semper eget, auctor in libero. Ut fermentum est vitae metus convallis scelerisque. Phasellus pellentesque rhoncus tellus, eu dignissim purus posuere id. Quisque eu fringilla ligula. Morbi ullamcorper, lorem et mattis egestas, tortor neque pretium velit, eget eleifend odio turpis eu purus. Donec vitae metus quis leo pretium tincidunt a pulvinar sem. Morbi adipiscing laoreet mauris vel placerat. Nullam elementum, nisl sit amet scelerisque malesuada, dolor nunc hendrerit quam, eu ultrices erat est in orci. Curabitur feugiat egestas nisl sed accumsan.'))),
+      'body' => array(array('value' => 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Etiam vitae arcu at leo cursus laoreet. Curabitur dui tortor, adipiscing malesuada tempor in, bibendum ac diam. Cras non tellus a libero pellentesque condimentum. What is a Drupalism? Suspendisse ac lacus libero. Ut non est vel nisl faucibus interdum nec sed leo. Pellentesque sem risus, vulputate eu semper eget, auctor in libero. Ut fermentum est vitae metus convallis scelerisque. Phasellus pellentesque rhoncus tellus, eu dignissim purus posuere id. Quisque eu fringilla ligula. Morbi ullamcorper, lorem et mattis egestas, tortor neque pretium velit, eget eleifend odio turpis eu purus. Donec vitae metus quis leo pretium tincidunt a pulvinar sem. Morbi adipiscing laoreet mauris vel placerat. Nullam elementum, nisl sit amet scelerisque malesuada, dolor nunc hendrerit quam, eu ultrices erat est in orci. Curabitur feugiat egestas nisl sed accumsan.')),
       'promote' => 1,
     );
     $node = $this->drupalCreateNode($settings);
-    $this->assertTrue(node_load($node->nid), 'Node created.');
+    $this->assertTrue(node_load($node->id()), 'Node created.');
 
     // Create user with permission to view the node.
     $web_user = $this->drupalCreateUser(array('access content', 'administer content types'));
-    $this->drupalLogin($web_user);
+    $this->loggedInUser = $web_user;
 
-    // Attempt to access the front page.
-    $this->drupalGet("node");
-    // The node teaser when it has 600 characters in length
+    $controller = $this->container->get('entity.manager')->getRenderController('node');
+    // Render the node as a teaser.
+    $content = $controller->view($node, 'teaser');
+    $this->assertTrue(strlen($content['body'][0]['#markup']) < 600, 'Teaser is less than 600 characters long.');
+    $this->drupalSetContent(drupal_render($content));
+    // The string 'What is a Drupalism?' is between the 200th and 600th
+    // characters of the node body, so it should be included if the summary is
+    // 600 characters long.
     $expected = 'What is a Drupalism?';
-    $this->assertRaw($expected, 'Check that the summary is 600 characters in length', 'Node');
+    $this->assertRaw($expected);
 
     // Change the teaser length for "Basic page" content type.
-    $instance = field_info_instance('node', 'body', $node->type);
-    $instance['display']['teaser']['settings']['trim_length'] = 200;
-    field_update_instance($instance);
+    $display = entity_get_display('node', $node->getType(), 'teaser');
+    $display_options = $display->getComponent('body');
+    $display_options['settings']['trim_length'] = 200;
+    $display->setComponent('body', $display_options)
+      ->save();
 
-    // Attempt to access the front page again and check if the summary is now only 200 characters in length.
-    $this->drupalGet("node");
-    $this->assertNoRaw($expected, 'Check that the summary is not longer than 200 characters', 'Node');
+    // Render the node as a teaser again and check that the summary is now only
+    // 200 characters in length and so does not include 'What is a Drupalism?'.
+    $content = $controller->view($node, 'teaser');
+    $this->assertTrue(strlen($content['body'][0]['#markup']) < 200, 'Teaser is less than 200 characters long.');
+    $this->drupalSetContent(drupal_render($content));
+    $this->assertText($node->label());
+    $this->assertNoRaw($expected);
   }
+
 }

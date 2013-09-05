@@ -1,0 +1,42 @@
+format: full_html
+editor: ckeditor
+settings:
+  toolbar:
+    buttons:
+      -
+        - Bold
+        - Italic
+        - Strike
+        - Superscript
+        - Subscript
+        - -
+        - RemoveFormat
+        - '|'
+        - DrupalLink
+        - DrupalUnlink
+        - '|'
+        - BulletedList
+        - NumberedList
+        - '|'
+        - Blockquote
+        - DrupalImage
+        - Table
+        - HorizontalRule
+        - '|'
+        - Format
+        - '|'
+        - ShowBlocks
+        - Source
+  plugins:
+    stylescombo:
+      styles: ''
+image_upload:
+  status: '1'
+  scheme: public
+  directory: inline-images
+  max_size: ''
+  max_dimensions:
+    width: ''
+    height: ''
+status: '1'
+langcode: und

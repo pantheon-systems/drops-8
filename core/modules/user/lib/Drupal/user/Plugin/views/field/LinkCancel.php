@@ -7,33 +7,30 @@
 
 namespace Drupal\user\Plugin\views\field;
 
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Component\Annotation\PluginID;
+use Drupal\views\ResultRow;
 
 /**
  * Field handler to present a link to user cancel.
  *
  * @ingroup views_field_handlers
  *
- * @Plugin(
- *   id = "user_link_cancel",
- *   module = "user"
- * )
+ * @PluginID("user_link_cancel")
  */
 class LinkCancel extends Link {
 
-  function render_link($data, $values) {
-    $uid = $values->{$this->aliases['uid']};
-
-    // Build a pseudo account object to be able to check the access.
-    $account = entity_create('user', array());
-    $account->uid = $uid;
-
-    if ($uid && user_cancel_access($account)) {
+  /**
+   * {@inheritdoc}
+   */
+  protected function renderLink(EntityInterface $entity, ResultRow $values) {
+    if ($entity && $entity->access('delete')) {
       $this->options['alter']['make_link'] = TRUE;
 
-      $text = !empty($this->options['text']) ? $this->options['text'] : t('cancel');
+      $text = !empty($this->options['text']) ? $this->options['text'] : t('Cancel account');
 
-      $this->options['alter']['path'] = "user/$uid/cancel";
+      $uri = $entity->uri();
+      $this->options['alter']['path'] = $uri['path'] . '/cancel';
       $this->options['alter']['query'] = drupal_get_destination();
 
       return $text;

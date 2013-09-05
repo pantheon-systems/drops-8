@@ -17,7 +17,7 @@ class GetFilenameUnitTest extends UnitTestBase {
   public static function getInfo() {
     return array(
       'name' => 'Get filename test',
-      'description' => 'Test that drupal_get_filename() works correctly when the file is not found in the database.',
+      'description' => 'Test that drupal_get_filename() works correctly.',
       'group' => 'Bootstrap',
     );
   }
@@ -26,15 +26,14 @@ class GetFilenameUnitTest extends UnitTestBase {
    * Tests that drupal_get_filename() works when the file is not in database.
    */
   function testDrupalGetFilename() {
-    // Reset the static cache so we can test the "db is not active" code of
-    // drupal_get_filename().
-    drupal_static_reset('drupal_get_filename');
-
+    // Assert that the test is meaningful by making sure the keyvalue service
+    // does not exist.
+    $this->assertFalse(drupal_container()->has('keyvalue'), 'The container has no keyvalue service.');
     // Retrieving the location of a module.
     $this->assertIdentical(drupal_get_filename('module', 'php'), 'core/modules/php/php.module', 'Retrieve module location.');
 
     // Retrieving the location of a theme.
-    $this->assertIdentical(drupal_get_filename('theme', 'stark'), 'core/themes/stark/stark.info', 'Retrieve theme location.');
+    $this->assertIdentical(drupal_get_filename('theme', 'stark'), 'core/themes/stark/stark.info.yml', 'Retrieve theme location.');
 
     // Retrieving the location of a theme engine.
     $this->assertIdentical(drupal_get_filename('theme_engine', 'phptemplate'), 'core/themes/engines/phptemplate/phptemplate.engine', 'Retrieve theme engine location.');
@@ -50,6 +49,9 @@ class GetFilenameUnitTest extends UnitTestBase {
     // Since there is already a core/scripts directory, drupal_get_filename()
     // will automatically check there for 'script' files, just as it does
     // for (e.g.) 'module' files in core/modules.
-    $this->assertIdentical(drupal_get_filename('script', 'test'), 'core/scripts/test.script', 'Retrieve test script location.');
+    $this->assertIdentical(drupal_get_filename('script', 'test'), 'core/scripts/test/test.script');
+
+    // Searching for an item that does not exist returns NULL.
+    $this->assertNull(drupal_get_filename('module', uniqid("", TRUE)), 'Searching for an item that does not exist returns NULL.');
   }
 }

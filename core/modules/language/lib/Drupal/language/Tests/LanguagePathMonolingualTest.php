@@ -33,7 +33,7 @@ class LanguagePathMonolingualTest extends WebTestBase {
     parent::setUp();
 
     // Create and login user.
-    $web_user = $this->drupalCreateUser(array('administer languages', 'access administration pages'));
+    $web_user = $this->drupalCreateUser(array('administer languages', 'access administration pages', 'administer site configuration'));
     $this->drupalLogin($web_user);
 
     // Enable French language.
@@ -42,15 +42,17 @@ class LanguagePathMonolingualTest extends WebTestBase {
     $this->drupalPost('admin/config/regional/language/add', $edit, t('Add language'));
 
     // Make French the default language.
-    $edit = array('site_default' => 'fr');
-    $this->drupalPost('admin/config/regional/language', $edit, t('Save configuration'));
+    $edit = array(
+      'site_default_language' => 'fr',
+    );
+    $this->drupalpost('admin/config/regional/settings', $edit, t('Save configuration'));
 
     // Delete English.
     $this->drupalPost('admin/config/regional/language/delete/en', array(), t('Delete'));
 
     // Verify that French is the only language.
     $this->assertFalse(language_multilingual(), 'Site is mono-lingual');
-    $this->assertEqual(language_default()->langcode, 'fr', 'French is the default language');
+    $this->assertEqual(language_default()->id, 'fr', 'French is the default language');
 
     // Set language detection to URL.
     $edit = array('language_interface[enabled][language-url]' => TRUE);

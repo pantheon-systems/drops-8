@@ -33,37 +33,55 @@ class NewDefaultThemeBlocksTest extends WebTestBase {
    * Check the enabled Bartik blocks are correctly copied over.
    */
   function testNewDefaultThemeBlocks() {
-    // Create administrative user.
-    $admin_user = $this->drupalCreateUser(array('administer themes'));
-    $this->drupalLogin($admin_user);
+    $default_theme = \Drupal::config('system.theme')->get('default');
 
-    // Ensure no other theme's blocks are in the block table yet.
-    $themes = array();
-    $themes['default'] = variable_get('theme_default', 'stark');
-    if ($admin_theme = variable_get('admin_theme')) {
-      $themes['admin'] = $admin_theme;
-    }
-    $count = db_query_range('SELECT 1 FROM {block} WHERE theme NOT IN (:themes)', 0, 1, array(':themes' => $themes))->fetchField();
-    $this->assertFalse($count, 'Only the default theme and the admin theme have blocks.');
+    // Add several block instances.
+    $this->adminUser = $this->drupalCreateUser(array('administer blocks'));
+    $this->drupalLogin($this->adminUser);
 
-    // Populate list of all blocks for matching against new theme.
-    $blocks = array();
-    $result = db_query('SELECT * FROM {block} WHERE theme = :theme', array(':theme' => $themes['default']));
-    foreach ($result as $block) {
-      // $block->theme and $block->bid will not match, so remove them.
-      unset($block->theme, $block->bid);
-      $blocks[$block->module][$block->delta] = $block;
-    }
+    // Add two instances of the user login block.
+    $this->drupalPlaceBlock('user_login_block');
+    $this->drupalPlaceBlock('user_login_block');
 
-    // Turn on a new theme and ensure that it contains all of the blocks
-    // the default theme had.
+    // Add an instance of a different block.
+    $this->drupalPlaceBlock('system_powered_by_block');
+    $this->drupalLogout($this->adminUser);
+
+    // Enable a different theme.
     $new_theme = 'bartik';
+    $this->assertFalse($new_theme == $default_theme, 'The new theme is different from the previous default theme.');
     theme_enable(array($new_theme));
-    variable_set('theme_default', $new_theme);
-    $result = db_query('SELECT * FROM {block} WHERE theme = :theme', array(':theme' => $new_theme));
-    foreach ($result as $block) {
-      unset($block->theme, $block->bid);
-      $this->assertEqual($blocks[$block->module][$block->delta], $block, format_string('Block %name matched', array('%name' => $block->module . '-' . $block->delta)));
+    \Drupal::config('system.theme')
+      ->set('default', $new_theme)
+      ->save();
+
+    // Ensure that the new theme has all the blocks as the previous default.
+    // @todo Replace the string manipulation below once the configuration
+    //   system provides a method for extracting an ID in a given namespace.
+    $default_prefix = "block.block.$default_theme";
+    $new_prefix = "block.block.$new_theme";
+    $default_block_names = config_get_storage_names_with_prefix($default_prefix);
+    $new_blocks = array_flip(config_get_storage_names_with_prefix($new_prefix));
+    $this->assertTrue(count($default_block_names) == count($new_blocks), 'The new default theme has the same number of blocks as the previous theme.');
+    foreach ($default_block_names as $default_block_name) {
+      // Make sure the configuration object name is in the expected format.
+      if (strpos($default_block_name, $default_prefix) === 0) {
+        // Remove the matching block from the list of blocks in the new theme.
+        // E.g., if the old theme has block.block.stark.admin,
+        // unset block.block.bartik.admin.
+        $id = substr($default_block_name, (strlen($default_prefix) + 1));
+        unset($new_blocks[$new_prefix . '.' . $id]);
+      }
+      else {
+        $this->fail(format_string(
+          '%block is not an expected block instance name.',
+          array(
+            '%block' => $default_block_name,
+          )
+        ));
+      }
     }
+    $this->assertTrue(empty($new_blocks), 'The new theme has exactly the same blocks as the previous default theme.');
   }
+
 }

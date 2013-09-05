@@ -2,10 +2,12 @@
 
 /**
  * @file
- * Definition of Drupal\Core\Entity\QueryInterface.
+ * Contains \Drupal\Core\Entity\QueryInterface.
  */
 
 namespace Drupal\Core\Entity\Query;
+
+use Drupal\Core\Database\Query\AlterableInterface;
 
 /**
  * Interface for entity queries.
@@ -13,7 +15,7 @@ namespace Drupal\Core\Entity\Query;
  * Never instantiate classes implementing this interface directly. Always use
  * the QueryFactory class.
  */
-interface QueryInterface {
+interface QueryInterface extends AlterableInterface {
 
   /**
    * Gets the entity type for this query.
@@ -35,7 +37,7 @@ interface QueryInterface {
    * For example, to find all entities containing both the Turkish 'merhaba'
    * and the Polish 'siema' within a 'greetings' text field:
    * @code
-   *   $entity_ids = entity_query($entity_type)
+   *   $entity_ids = Drupal::entityQuery($entity_type)
    *     ->condition('greetings', 'merhaba', '=', 'tr');
    *     ->condition('greetings.value', 'siema', '=', 'pl');
    *     ->execute();
@@ -134,10 +136,9 @@ interface QueryInterface {
    * Enables sortable tables for this query.
    *
    * @param $headers
-   *   An array of headers of the same struucture as described in
-   *   theme_table(). Use a 'specifier' in place of a 'field' to specify what
-   *   to sort on. This can be an entity or a field as described in
-   *   condition().
+   *   An array of headers of the same structure as described in theme_table().
+   *   Use a 'specifier' in place of a 'field' to specify what to sort on.
+   *   This can be an entity or a field as described in condition().
    * @return \Drupal\Core\Entity\Query\QueryInterface
    *   The called object.
    */
@@ -176,27 +177,13 @@ interface QueryInterface {
   public function execute();
 
   /**
-   * Creates an object holding a group of conditions.
-   *
-   * See andConditionGroup() and orConditionGroup() for more.
-   *
-   * @param $conjunction
-   *   - AND (default): this is the equivalent of andConditionGroup().
-   *   - OR: this is the equivalent of andConditionGroup().
-   *
-   * return ConditionInterface
-   *   An object holding a group of conditions.
-   */
-  public function conditionGroupFactory($conjunction = 'AND');
-
-  /**
    * Creates a new group of conditions ANDed together.
    *
    * For example, consider a drawing entity type with a 'figures' multi-value
    * field containing 'shape' and 'color' columns. To find all drawings
    * containing both a red triangle and a blue circle:
    * @code
-   *   $query = entity_query('drawing');
+   *   $query = Drupal::entityQuery('drawing');
    *   $group = $query->andConditionGroup()
    *     ->condition('figures.color', 'red')
    *     ->condition('figures.shape', 'triangle');
@@ -219,7 +206,7 @@ interface QueryInterface {
    * containing 'building_type' and 'color' columns.  To find all green and
    * red bikesheds:
    * @code
-   *   $query = entity_query('map');
+   *   $query = Drupal::entityQuery('map');
    *   $group = $query->orConditionGroup()
    *     ->condition('attributes.color', 'red')
    *     ->condition('attributes.color', 'green');

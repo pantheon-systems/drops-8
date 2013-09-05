@@ -7,8 +7,6 @@
 
 namespace Drupal\user;
 
-use Drupal\Core\Entity\EntityInterface;
-
 /**
  * Form controller for the profile forms.
  */
@@ -19,44 +17,29 @@ class ProfileFormController extends AccountFormController {
    */
   protected function actions(array $form, array &$form_state) {
     $element = parent::actions($form, $form_state);
-    $account = $this->getEntity($form_state);
+    $account = $this->entity;
 
-    // @todo Actually the cancel action can be assimilated to the delete one: we
-    // should alter it instead of providing a new one.
-    unset($element['delete']);
-
-    $element['cancel'] = array(
-      '#type' => 'submit',
-      '#value' => t('Cancel account'),
-      '#submit' => array('user_edit_cancel_submit'),
-      '#access' => $account->uid > 1 && (($account->uid == $GLOBALS['user']->uid && user_access('cancel account')) || user_access('administer users')),
-    );
+    $element['delete']['#type'] = 'submit';
+    $element['delete']['#value'] = $this->t('Cancel account');
+    $element['delete']['#submit'] = array('user_edit_cancel_submit');
+    $element['delete']['#access'] = $account->id() > 1 && (($account->id() == $GLOBALS['user']->id() && user_access('cancel account')) || user_access('administer users'));
 
     return $element;
   }
 
   /**
-   * Overrides Drupal\Core\Entity\EntityFormController::submit().
-   */
-  public function submit(array $form, array &$form_state) {
-    // @todo Consider moving this into the parent method.
-    // Remove unneeded values.
-    form_state_values_clean($form_state);
-    parent::submit($form, $form_state);
-  }
-
-  /**
-   * Overrides Drupal\Core\Entity\EntityFormController::save().
+   * {@inheritdoc}
    */
   public function save(array $form, array &$form_state) {
-    $account = $this->getEntity($form_state);
+    $account = $this->entity;
     $account->save();
     $form_state['values']['uid'] = $account->id();
 
     // Clear the page cache because pages can contain usernames and/or profile
     // information:
-    cache_invalidate(array('content' => TRUE));
+    cache_invalidate_tags(array('content' => TRUE));
 
-    drupal_set_message(t('The changes have been saved.'));
+    drupal_set_message($this->t('The changes have been saved.'));
   }
+
 }

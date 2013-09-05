@@ -2,6 +2,7 @@ Drupal core is built and maintained by the Drupal project community. Everyone is
 encouraged to submit issues and changes (patches) to improve Drupal, and to
 contribute in other ways -- see http://drupal.org/contribute to find out how.
 
+
 Branch maintainers
 ------------------
 
@@ -11,6 +12,8 @@ whole. The branch maintainers for Drupal 8 are:
 - Dries Buytaert 'dries' http://drupal.org/user/1
 - Nathaniel Catchpole 'catch' http://drupal.org/user/35733
 - Angela Byron 'webchick' http://drupal.org/user/24967
+- Alex Pott 'alexpott' http://drupal.org/user/157725
+
 
 Component maintainers
 ---------------------
@@ -24,13 +27,23 @@ Ajax system
 - Alex Bronstein 'effulgentsia' http://drupal.org/user/78040
 - Earl Miles 'merlinofchaos' http://drupal.org/user/26979
 
+Asset library system
+- ?
+
+Authentication and authorization system
+- ?
+
 Base system
 - Károly Négyesi 'chx' http://drupal.org/user/9446
 - Damien Tournoud 'DamZ' http://drupal.org/user/22211
 - Moshe Weitzman 'moshe weitzman' http://drupal.org/user/23
+- Kat Bailey 'katbailey' http://drupal.org/user/172987
 
 Batch system
 - Yves Chedemois 'yched' http://drupal.org/user/39567
+
+Bootstrap system
+- ?
 
 Cache system
 - Damien Tournoud 'DamZ' http://drupal.org/user/22211
@@ -41,6 +54,7 @@ Configuration system
 - Greg Dunlap 'heyrocker' http://drupal.org/user/128537
 - Daniel F. Kudwien 'sun' http://drupal.org/user/54136
 - Alex Pott 'alexpott' http://drupal.org/user/157725
+- Matthew Tift 'mtift' https://drupal.org/user/751908
 
 Configuration entity system
 - Daniel F. Kudwien 'sun' http://drupal.org/user/54136
@@ -49,6 +63,9 @@ Configuration entity system
 Cron system
 - Károly Négyesi 'chx' http://drupal.org/user/9446
 - Derek Wright 'dww' http://drupal.org/user/46549
+
+CSS
+- John Albin Wilkins 'JohnAlbin' http://drupal.org/user/32095
 
 Database system
 - Larry Garfield 'Crell' http://drupal.org/user/26398
@@ -66,12 +83,16 @@ Database system
     - Károly Négyesi 'chx' http://drupal.org/user/9446
 
 Database update system
-- Ashok Modi 'BTMash' http://drupal.org/user/60422
+- Károly Négyesi 'chx' http://drupal.org/user/9446
 
 Entity system
 - Wolfgang Ziegler 'fago' http://drupal.org/user/16747
 - Nathaniel Catchpole 'catch' http://drupal.org/user/35733
 - Franz Heinzmann 'Frando' http://drupal.org/user/21850
+- Sascha Grossenbacher 'Berdir' http://drupal.org/user/214652
+
+Extension system
+- ?
 
 File system
 - Andrew Morton 'drewish' http://drupal.org/user/34869
@@ -86,7 +107,6 @@ Form system
 
 Image system
 - Andrew Morton 'drewish' http://drupal.org/user/34869
-- Nathan Haug 'quicksketch' http://drupal.org/user/35821
 
 Install system
 - David Rothstein 'David_Rothstein' http://drupal.org/user/124982
@@ -107,41 +127,59 @@ Mail system
 - ?
 
 Markup
-- Jacine Luisi 'Jacine' http://drupal.org/user/88931
 - Daniel F. Kudwien 'sun' http://drupal.org/user/54136
 
 Menu system
-- Peter Wolanin 'pwolanin' http://drupal.org/user/49851
 - Károly Négyesi 'chx' http://drupal.org/user/9446
 
 Path system
-- Dave Reid 'davereid' http://drupal.org/user/53892
 - Nathaniel Catchpole 'catch' http://drupal.org/user/35733
+
+Plugin system
+- Kris Vanderwater 'EclipseGc' http://drupal.org/user/61203
+- Alex Bronstein 'effulgentsia' http://drupal.org/user/78040
+
+Queue system
+- James Gilliland 'neclimdul' http://drupal.org/user/48673
+- Károly Négyesi 'chx' http://drupal.org/user/9446
+- Mark Sonnabaum 'msonnabaum' http://drupal.org/user/75278
 
 Render system
 - Moshe Weitzman 'moshe weitzman' http://drupal.org/user/23
 - Alex Bronstein 'effulgentsia' http://drupal.org/user/78040
 - Franz Heinzmann 'Frando' http://drupal.org/user/21850
 
+Request processing system
+- Larry Garfield 'Crell' http://drupal.org/user/26398
+
+Routing system
+- Larry Garfield 'Crell' http://drupal.org/user/26398
+
 Theme system
-- Earl Miles 'merlinofchaos' http://drupal.org/user/26979
 - Alex Bronstein 'effulgentsia' http://drupal.org/user/78040
-- Joon Park 'dvessel' http://drupal.org/user/56782
 - John Albin Wilkins 'JohnAlbin' http://drupal.org/user/32095
+- Jen Lampton 'jenlampton' http://drupal.org/user/85586
+- Scott Reeves 'Cottser' http://drupal.org/user/1167326
+- Carl Wiedemann 'c4rl' http://drupal.org/user/235047
+- Steve Oliver 'steveoliver' http://drupal.org/user/42327
+- Fabian Franz 'Fabianx' http://drupal.org/user/693738
 
 Token system
 - Dave Reid 'davereid' http://drupal.org/user/53892
 
-XML-RPC system
-- Frederic G. Marand 'fgm' http://drupal.org/user/27985
+Transliteration system
+- Andrei Mateescu 'amateescu' http://drupal.org/user/729614
+- Damien Tournoud 'DamZ' http://drupal.org/user/22211
+- Daniel F. Kudwien 'sun' http://drupal.org/user/54136
+- Jennifer Hodgdon 'jhodgdon' http://drupal.org/user/155601
 
 
 Topic coordinators
 ------------------
 
 Accessibility
-- Everett Zufelt 'Everett Zufelt' http://drupal.org/user/406552
 - Brandon Bowersox-Johnson 'bowersox' http://drupal.org/user/186415
+- Mike Gifford 'mgifford' http://drupal.org/user/27930
 
 Documentation
 - Jennifer Hodgdon 'jhodgdon' http://drupal.org/user/155601
@@ -150,7 +188,7 @@ Security
 - Greg Knaddison 'greggles' http://drupal.org/user/36762
 
 Translations
-- Gerhard Killesreiter 'killes' http://drupal.org/user/83
+- ?
 
 User experience and usability
 - Roy Scholten 'yoroy' http://drupal.org/user/41502
@@ -161,11 +199,12 @@ Node Access
 - Ken Rickard 'agentrickard' http://drupal.org/user/20975
 - Jess Myrbo 'xjm' http://drupal.org/user/65776
 
+
 Module maintainers
 ------------------
 
 Aggregator module
-- ?
+- Paris Liakos 'rootatwc' http://drupal.org/user/1011436
 
 Block module
 - John Albin Wilkins 'JohnAlbin' http://drupal.org/user/32095
@@ -176,32 +215,54 @@ Book module
 Breakpoint module
 - Peter Droogmans 'attiks' http://drupal.org/user/105002
 
+CKEditor module
+- Wim Leers 'Wim Leers' http://drupal.org/user/99777
+
 Color module
-- ?
+- Mark Carver 'Mark Carver' https://drupal.org/user/501638
 
 Comment module
 - Dick Olsson 'dixon_' http://drupal.org/user/239911
+- Lee Rowlands 'larowlan' http://drupal.org/user/395439
 
 Configuration module
 - ?
 
 Contact module
-- Dave Reid 'davereid' http://drupal.org/user/53892
+- ?
 
 Contextual module
 - Daniel F. Kudwien 'sun' http://drupal.org/user/54136
 
+Custom block module
+- Lee Rowlands 'larowlan' http://drupal.org/user/395439
+
 Database Logging module
 - Khalid Baheyeldin 'kbahey' http://drupal.org/user/4063
 
+E-mail module
+- Nils Destoop 'zuuperman' https://drupal.org/user/361625
+
+Edit module
+- Wim Leers 'Wim Leers' http://drupal.org/user/99777
+- Théodore Biadala 'nod_' http://drupal.org/user/598310
+
+Editor module
+- Wim Leers 'Wim Leers' http://drupal.org/user/99777
+
+Entity Reference module
+- Amitai Burstein 'Amitaibu' http://drupal.org/user/57511
+- Andrei Mateescu 'amateescu' http://drupal.org/user/729614
+
 Field module
 - Yves Chedemois 'yched' http://drupal.org/user/39567
-- Barry Jaspan 'bjaspan' http://drupal.org/user/46413
 - Kristof De Jaeger 'swentel' http://drupal.org/user/107403
+- Andrei Mateescu 'amateescu' http://drupal.org/user/729614
 
 Field UI module
 - Yves Chedemois 'yched' http://drupal.org/user/39567
 - Kristof De Jaeger 'swentel' http://drupal.org/user/107403
+- Andrei Mateescu 'amateescu' http://drupal.org/user/729614
 
 File module
 - Aaron Winborn 'aaron' http://drupal.org/user/33420
@@ -212,11 +273,20 @@ Filter module
 Forum module
 - Lee Rowlands 'larowlan' http://drupal.org/user/395439
 
+History module
+- Andrey Postnikov 'andypost' http://drupal.org/user/118908
+
+Hypertext Application Language (HAL) module
+- Lin Clark 'linclark' http://drupal.org/user/396253
+
 Help module
 - ?
 
 Image module
-- Nathan Haug 'quicksketch' http://drupal.org/user/35821
+- ?
+
+Link module
+- ?
 
 Locale module
 - Gábor Hojtsy 'Gábor Hojtsy' http://drupal.org/user/4166
@@ -224,19 +294,28 @@ Locale module
 Menu module
 - ?
 
+Menu Link module
+- Andrei Mateescu 'amateescu' http://drupal.org/user/729614
+- Károly Négyesi 'chx' http://drupal.org/user/9446
+- Peter Wolanin 'pwolanin' http://drupal.org/user/49851
+
 Node module
 - Moshe Weitzman 'moshe weitzman' http://drupal.org/user/23
 - David Strauss 'David Strauss' http://drupal.org/user/93254
 
-OpenID module
-- Vojtech Kusy 'wojtha' http://drupal.org/user/56154
-- Christian Schmidt 'c960657' http://drupal.org/user/216078
-- Damien Tournoud 'DamZ' http://drupal.org/user/22211
+Number module
+- Kristof De Jaeger 'swentel' http://drupal.org/user/107403
+
+Options module
+- Yves Chedemois 'yched' http://drupal.org/user/39567
 
 Overlay module
 - ?
 
 Path module
+- ?
+
+Phone module
 - Dave Reid 'davereid' http://drupal.org/user/53892
 
 PHP module
@@ -245,15 +324,21 @@ PHP module
 Picture module
 - Peter Droogmans 'attiks' http://drupal.org/user/105002
 
-Poll module
-- Andrei Mateescu 'amateescu' http://drupal.org/user/729614
-
 RDF module
 - Stéphane Corlosquet 'scor' http://drupal.org/user/52142
 - Lin Clark 'linclark' http://drupal.org/user/396253
 
+REST module
+- Klaus Purer 'klausi' http://drupal.org/user/262198
+- Larry Garfield 'Crell' http://drupal.org/user/26398
+
 Search module
-- Doug Green 'douggreen' http://drupal.org/user/29191
+- Jennifer Hodgdon 'jhodgdon' https://drupal.org/user/155601
+- Peter Wolanin 'pwolanin' https://drupal.org/user/49851
+
+Serialization module
+- Lin Clark 'linclark' http://drupal.org/user/396253
+- Damian Lee 'damiankloip' http://drupal.org/user/1037976
 
 Shortcut module
 - David Rothstein 'David_Rothstein' http://drupal.org/user/124982
@@ -276,8 +361,14 @@ Taxonomy module
 - Nathaniel Catchpole 'catch' http://drupal.org/user/35733
 - Benjamin Doherty 'bangpound' http://drupal.org/user/100456
 
+Text module
+- ?
+
 Toolbar module
 - ?
+
+Tour module
+- Nick Schuch 'nick_schuch' http://drupal.org/user/1412036
 
 Tracker module
 - David Strauss 'David Strauss' http://drupal.org/user/93254
@@ -303,6 +394,9 @@ Views UI module
 - Tim Plunkett 'tim.plunkett' http://drupal.org/user/241634
 - Damian Lee 'damiankloip' http://drupal.org/user/1037976
 
+XML-RPC module
+- Frederic G. Marand 'fgm' http://drupal.org/user/27985
+
 
 Theme maintainers
 -----------------
@@ -312,7 +406,7 @@ Bartik theme
 - Jeff Burns 'Jeff Burnz' http://drupal.org/user/61393
 
 Seven theme
-- Jeff Burns 'Jeff Burnz' http://drupal.org/user/61393
+- Lewis Nyman 'LewisNyman' https://drupal.org/user/751964
 
 Stark theme
 - John Albin Wilkins 'JohnAlbin' http://drupal.org/user/32095
@@ -331,9 +425,6 @@ Configuration management
 
 Design
 - Jeff Burns 'Jeff Burnz' http://drupal.org/user/61393
-
-HTML 5
-- Jacine Luisi 'Jacine' http://drupal.org/user/88931
 
 Mobile
 - John Albin Wilkins 'JohnAlbin' http://drupal.org/user/32095

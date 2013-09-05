@@ -7,6 +7,8 @@
 
 namespace Drupal\statistics\Tests;
 
+use Drupal\Core\Language\Language;
+
 /**
  * Tests statistics token replacement in strings.
  */
@@ -23,23 +25,25 @@ class StatisticsTokenReplaceTest extends StatisticsTestBase {
    * Creates a node, then tests the statistics tokens generated from it.
    */
   function testStatisticsTokenReplacement() {
-    $language_interface = language(LANGUAGE_TYPE_INTERFACE);
+    $language_interface = language(Language::TYPE_INTERFACE);
 
     // Create user and node.
     $user = $this->drupalCreateUser(array('create page content'));
     $this->drupalLogin($user);
-    $node = $this->drupalCreateNode(array('type' => 'page', 'uid' => $user->uid));
+    $node = $this->drupalCreateNode(array('type' => 'page', 'uid' => $user->id()));
 
     // Hit the node.
-    $this->drupalGet('node/' . $node->nid);
+    $this->drupalGet('node/' . $node->id());
     // Manually calling statistics.php, simulating ajax behavior.
-    $nid = $node->nid;
+    $nid = $node->id();
     $post = http_build_query(array('nid' => $nid));
     $headers = array('Content-Type' => 'application/x-www-form-urlencoded');
     global $base_url;
     $stats_path = $base_url . '/' . drupal_get_path('module', 'statistics'). '/statistics.php';
-    drupal_http_request($stats_path, array('method' => 'POST', 'data' => $post, 'headers' => $headers, 'timeout' => 10000));
-    $statistics = statistics_get($node->nid);
+    $client = \Drupal::httpClient();
+    $client->setConfig(array('curl.options' => array(CURLOPT_TIMEOUT => 10)));
+    $client->post($stats_path, $headers, $post)->send();
+    $statistics = statistics_get($node->id());
 
     // Generate and test tokens.
     $tests = array();
@@ -52,7 +56,7 @@ class StatisticsTokenReplaceTest extends StatisticsTestBase {
     $this->assertFalse(in_array(0, array_map('strlen', $tests)), 'No empty tokens generated.');
 
     foreach ($tests as $input => $expected) {
-      $output = token_replace($input, array('node' => $node), array('langcode' => $language_interface->langcode));
+      $output = \Drupal::token()->replace($input, array('node' => $node), array('langcode' => $language_interface->id));
       $this->assertEqual($output, $expected, format_string('Statistics token %token replaced.', array('%token' => $input)));
     }
   }

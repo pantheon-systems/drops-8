@@ -10,7 +10,7 @@ namespace Drupal\views\Tests;
 /**
  * Checks general plugin data and instances for all plugin types.
  */
-class PluginInstanceTest extends ViewTestBase {
+class PluginInstanceTest extends ViewUnitTestBase {
 
   /**
    * All views plugin types.
@@ -84,11 +84,10 @@ class PluginInstanceTest extends ViewTestBase {
    * This will iterate through all plugins from _views_fetch_plugin_data().
    */
   public function testPluginInstances() {
-    $container = drupal_container();
     foreach ($this->definitions as $type => $plugins) {
       // Get a plugin manager for this type.
-      $manager = $container->get("plugin.manager.views.$type");
-      foreach ($plugins as $definition) {
+      $manager = $this->container->get("plugin.manager.views.$type");
+      foreach ($plugins as $id => $definition) {
         // Get a reflection class for this plugin.
         // We only want to test true plugins, i.e. They extend PluginBase.
         $reflection = new \ReflectionClass($definition['class']);
@@ -96,8 +95,8 @@ class PluginInstanceTest extends ViewTestBase {
           // Create a plugin instance and check what it is. This is not just
           // good to check they can be created but for throwing any notices for
           // method signatures etc... too.
-          $instance = $manager->createInstance($definition['id']);
-          $this->assertTrue($instance instanceof $definition['class'], format_string('Instance of @type:@id created', array('@type' => $type, '@id' => $definition['id'])));
+          $instance = $manager->createInstance($id);
+          $this->assertTrue($instance instanceof $definition['class'], format_string('Instance of @type:@id created', array('@type' => $type, '@id' => $id)));
         }
       }
     }

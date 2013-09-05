@@ -7,6 +7,8 @@
 
 namespace Drupal\search\Tests;
 
+use Drupal\Core\Language\Language;
+
 class SearchRankingTest extends SearchTestBase {
 
   /**
@@ -36,7 +38,7 @@ class SearchRankingTest extends SearchTestBase {
       $settings = array(
         'type' => 'page',
         'title' => 'Drupal rocks',
-        'body' => array(LANGUAGE_NOT_SPECIFIED => array(array('value' => "Drupal's search rocks"))),
+        'body' => array(array('value' => "Drupal's search rocks")),
       );
       foreach (array(0, 1) as $num) {
         if ($num == 1) {
@@ -46,7 +48,7 @@ class SearchRankingTest extends SearchTestBase {
               $settings[$node_rank] = 1;
               break;
             case 'relevance':
-              $settings['body'][LANGUAGE_NOT_SPECIFIED][0]['value'] .= " really rocks";
+              $settings['body'][0]['value'] .= " really rocks";
               break;
             case 'recent':
               $settings['created'] = REQUEST_TIME + 3600;
@@ -70,23 +72,23 @@ class SearchRankingTest extends SearchTestBase {
     // Add a comment to one of the nodes.
     $edit = array();
     $edit['subject'] = 'my comment title';
-    $edit['comment_body[' . LANGUAGE_NOT_SPECIFIED . '][0][value]'] = 'some random comment';
-    $this->drupalGet('comment/reply/' . $nodes['comments'][1]->nid);
+    $edit['comment_body[' . Language::LANGCODE_NOT_SPECIFIED . '][0][value]'] = 'some random comment';
+    $this->drupalGet('comment/reply/' . $nodes['comments'][1]->id());
     $this->drupalPost(NULL, $edit, t('Preview'));
     $this->drupalPost(NULL, $edit, t('Save'));
 
     // Enable counting of statistics.
-    config('statistics.settings')->set('count_content_views', 1)->save();
+    \Drupal::config('statistics.settings')->set('count_content_views', 1)->save();
 
     // Then View one of the nodes a bunch of times.
     // Manually calling statistics.php, simulating ajax behavior.
-    $nid = $nodes['views'][1]->nid;
-    $post = http_build_query(array('nid' => $nid));
-    $headers = array('Content-Type' => 'application/x-www-form-urlencoded');
+    $client = \Drupal::httpClient();
+    $client->setConfig(array('curl.options' => array(CURLOPT_TIMEOUT => 10)));
+    $nid = $nodes['views'][1]->id();
     global $base_url;
     $stats_path = $base_url . '/' . drupal_get_path('module', 'statistics'). '/statistics.php';
     for ($i = 0; $i < 5; $i ++) {
-      drupal_http_request($stats_path, array('method' => 'POST', 'data' => $post, 'headers' => $headers, 'timeout' => 10000));
+      $client->post($stats_path, array(), array('nid' => $nid))->send();
     }
 
     // Test each of the possible rankings.
@@ -98,7 +100,7 @@ class SearchRankingTest extends SearchTestBase {
 
       // Do the search and assert the results.
       $set = node_search_execute('rocks');
-      $this->assertEqual($set[0]['node']->nid, $nodes[$node_rank][1]->nid, 'Search ranking "' . $node_rank . '" order.');
+      $this->assertEqual($set[0]['node']->id(), $nodes[$node_rank][1]->id(), 'Search ranking "' . $node_rank . '" order.');
     }
   }
 
@@ -106,12 +108,11 @@ class SearchRankingTest extends SearchTestBase {
    * Test rankings of HTML tags.
    */
   function testHTMLRankings() {
-    $full_html_format = array(
+    $full_html_format = entity_create('filter_format', array(
       'format' => 'full_html',
       'name' => 'Full HTML',
-    );
-    $full_html_format = (object) $full_html_format;
-    filter_format_save($full_html_format);
+    ));
+    $full_html_format->save();
 
     // Login with sufficient privileges.
     $this->drupalLogin($this->drupalCreateUser(array('create page content')));
@@ -129,13 +130,13 @@ class SearchRankingTest extends SearchTestBase {
     foreach ($shuffled_tags as $tag) {
       switch ($tag) {
         case 'a':
-          $settings['body'] = array(LANGUAGE_NOT_SPECIFIED => array(array('value' => l('Drupal Rocks', 'node'), 'format' => 'full_html')));
+          $settings['body'] = array(array('value' => l('Drupal Rocks', 'node'), 'format' => 'full_html'));
           break;
         case 'notag':
-          $settings['body'] = array(LANGUAGE_NOT_SPECIFIED => array(array('value' => 'Drupal Rocks')));
+          $settings['body'] = array(array('value' => 'Drupal Rocks'));
           break;
         default:
-          $settings['body'] = array(LANGUAGE_NOT_SPECIFIED => array(array('value' => "<$tag>Drupal Rocks</$tag>", 'format' => 'full_html')));
+          $settings['body'] = array(array('value' => "<$tag>Drupal Rocks</$tag>", 'format' => 'full_html'));
           break;
       }
       $nodes[$tag] = $this->drupalCreateNode($settings);
@@ -159,16 +160,16 @@ class SearchRankingTest extends SearchTestBase {
     foreach ($sorted_tags as $tag_rank => $tag) {
       // Assert the results.
       if ($tag == 'notag') {
-        $this->assertEqual($set[$tag_rank]['node']->nid, $nodes[$tag]->nid, 'Search tag ranking for plain text order.');
+        $this->assertEqual($set[$tag_rank]['node']->id(), $nodes[$tag]->id(), 'Search tag ranking for plain text order.');
       } else {
-        $this->assertEqual($set[$tag_rank]['node']->nid, $nodes[$tag]->nid, 'Search tag ranking for "&lt;' . $sorted_tags[$tag_rank] . '&gt;" order.');
+        $this->assertEqual($set[$tag_rank]['node']->id(), $nodes[$tag]->id(), 'Search tag ranking for "&lt;' . $sorted_tags[$tag_rank] . '&gt;" order.');
       }
     }
 
     // Test tags with the same weight against the sorted tags.
     $unsorted_tags = array('u', 'b', 'i', 'strong', 'em');
     foreach ($unsorted_tags as $tag) {
-      $settings['body'] = array(LANGUAGE_NOT_SPECIFIED => array(array('value' => "<$tag>Drupal Rocks</$tag>", 'format' => 'full_html')));
+      $settings['body'] = array(array('value' => "<$tag>Drupal Rocks</$tag>", 'format' => 'full_html'));
       $node = $this->drupalCreateNode($settings);
 
       // Update the search index.
@@ -184,10 +185,10 @@ class SearchRankingTest extends SearchTestBase {
       $set = array_slice($set, -2, 1);
 
       // Assert the results.
-      $this->assertEqual($set[0]['node']->nid, $node->nid, 'Search tag ranking for "&lt;' . $tag . '&gt;" order.');
+      $this->assertEqual($set[0]['node']->id(), $node->id(), 'Search tag ranking for "&lt;' . $tag . '&gt;" order.');
 
       // Delete node so it doesn't show up in subsequent search results.
-      node_delete($node->nid);
+      $node->delete();
     }
   }
 
@@ -204,7 +205,7 @@ class SearchRankingTest extends SearchTestBase {
     $settings = array(
       'type' => 'page',
       'title' => 'Drupal rocks',
-      'body' => array(LANGUAGE_NOT_SPECIFIED => array(array('value' => "Drupal's search rocks"))),
+      'body' => array(array('value' => "Drupal's search rocks")),
       'sticky' => 1,
     );
 
@@ -227,6 +228,6 @@ class SearchRankingTest extends SearchTestBase {
 
     // Do the search and assert the results.
     $set = node_search_execute('rocks');
-    $this->assertEqual($set[0]['node']->nid, $node->nid, 'Search double ranking order.');
+    $this->assertEqual($set[0]['node']->id(), $node->id(), 'Search double ranking order.');
   }
 }

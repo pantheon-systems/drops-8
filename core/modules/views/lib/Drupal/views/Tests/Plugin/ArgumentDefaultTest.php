@@ -16,18 +16,18 @@ use Drupal\views_test_data\Plugin\views\argument_default\ArgumentDefaultTest as 
 class ArgumentDefaultTest extends PluginTestBase {
 
   /**
+   * Views used by this test.
+   *
+   * @var array
+   */
+  public static $testViews = array('test_view', 'test_argument_default_fixed', 'test_argument_default_current_user');
+
+  /**
    * Modules to enable.
    *
    * @var array
    */
   public static $modules = array('views_ui');
-
-  /**
-   * A random string used in the default views.
-   *
-   * @var string
-   */
-  protected $random;
 
   public static function getInfo() {
     return array(
@@ -38,8 +38,6 @@ class ArgumentDefaultTest extends PluginTestBase {
   }
 
   protected function setUp() {
-    $this->random = $this->randomString();
-
     parent::setUp();
 
     $this->enableViewsTestModule();
@@ -63,22 +61,22 @@ class ArgumentDefaultTest extends PluginTestBase {
     );
     $id = $view->addItem('default', 'argument', 'views_test_data', 'name', $options);
     $view->initHandlers();
-    $plugin = $view->argument[$id]->get_plugin('argument_default');
+    $plugin = $view->argument[$id]->getPlugin('argument_default');
     $this->assertTrue($plugin instanceof ArgumentDefaultTestPlugin, 'The correct argument default plugin is used.');
 
     // Check that the value of the default argument is as expected.
-    $this->assertEqual($view->argument[$id]->get_default_argument(), 'John', 'The correct argument default value is returned.');
+    $this->assertEqual($view->argument[$id]->getDefaultArgument(), 'John', 'The correct argument default value is returned.');
     // Don't pass in a value for the default argument and make sure the query
     // just returns John.
     $this->executeView($view);
-    $this->assertEqual($view->argument[$id]->get_value(), 'John', 'The correct argument value is used.');
+    $this->assertEqual($view->argument[$id]->getValue(), 'John', 'The correct argument value is used.');
     $expected_result = array(array('name' => 'John'));
     $this->assertIdenticalResultset($view, $expected_result, array('views_test_data_name' => 'name'));
 
     // Pass in value as argument to be sure that not the default value is used.
     $view->destroy();
     $this->executeView($view, array('George'));
-    $this->assertEqual($view->argument[$id]->get_value(), 'George', 'The correct argument value is used.');
+    $this->assertEqual($view->argument[$id]->getValue(), 'George', 'The correct argument value is used.');
     $expected_result = array(array('name' => 'George'));
     $this->assertIdenticalResultset($view, $expected_result, array('views_test_data_name' => 'name'));
   }
@@ -112,16 +110,18 @@ class ArgumentDefaultTest extends PluginTestBase {
    * Tests fixed default argument.
    */
   function testArgumentDefaultFixed() {
-    $view = $this->getView();
-    $view->preExecute();
+    $random = $this->randomName();
+    $view = views_get_view('test_argument_default_fixed');
+    $view->setDisplay();
+    $options = $view->display_handler->getOption('arguments');
+    $options['null']['default_argument_options']['argument'] = $random;
+    $view->display_handler->overrideOption('arguments', $options);
     $view->initHandlers();
 
-    $this->assertEqual($view->argument['null']->get_default_argument(), $this->random, 'Fixed argument should be used by default.');
+    $this->assertEqual($view->argument['null']->getDefaultArgument(), $random, 'Fixed argument should be used by default.');
 
     // Make sure that a normal argument provided is used
-    $view = $this->getView();
-
-    $random_string = $this->randomString();
+    $random_string = $this->randomName();
     $view->executeDisplay('default', array($random_string));
 
     $this->assertEqual($view->args[0], $random_string, 'Provided argument should be used.');
@@ -136,14 +136,5 @@ class ArgumentDefaultTest extends PluginTestBase {
    * @todo Test node default argument.
    */
   //function testArgumentDefaultNode() {}
-
-  /**
-   * Overrides Drupal\views\Tests\ViewTestBase::getBasicView().
-   */
-  protected function getBasicView() {
-    $view = $this->createViewFromConfig('test_argument_default_fixed');
-    $view->displayHandlers['default']->display['display_options']['arguments']['null']['default_argument_options']['argument'] = $this->random;
-    return $view;
-  }
 
 }

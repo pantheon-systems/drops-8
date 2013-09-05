@@ -8,17 +8,14 @@
 namespace Drupal\search\Plugin\views\sort;
 
 use Drupal\views\Plugin\views\sort\SortPluginBase;
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
 
 /**
  * Field handler to provide simple renderer that allows linking to a node.
  *
  * @ingroup views_sort_handlers
  *
- * @Plugin(
- *   id = "search_score",
- *   module = "search"
- * )
+ * @PluginID("search_score")
  */
 class Score extends SortPluginBase {
 
@@ -30,7 +27,7 @@ class Score extends SortPluginBase {
     foreach (array('filter', 'argument') as $type) {
       foreach ($this->view->{$type} as $handler) {
         if (isset($handler->search_score) && $handler->relationship == $this->relationship) {
-          $this->query->add_orderby(NULL, NULL, $this->options['order'], $handler->search_score);
+          $this->query->addOrderBy(NULL, NULL, $this->options['order'], $handler->search_score);
           $this->tableAlias = $handler->tableAlias;
           return;
         }

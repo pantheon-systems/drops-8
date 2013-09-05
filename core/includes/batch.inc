@@ -14,28 +14,9 @@
  * @see batch_get()
  */
 
-use \Symfony\Component\HttpFoundation\JsonResponse;
-
-/**
- * Loads a batch from the database.
- *
- * @param $id
- *   The ID of the batch to load. When a progressive batch is being processed,
- *   the relevant ID is found in $_REQUEST['id'].
- *
- * @return
- *   An array representing the batch, or FALSE if no batch was found.
- */
-function batch_load($id) {
-  $batch = db_query("SELECT batch FROM {batch} WHERE bid = :bid AND token = :token", array(
-    ':bid' => $id,
-    ':token' => drupal_get_token($id),
-  ))->fetchField();
-  if ($batch) {
-    return unserialize($batch);
-  }
-  return FALSE;
-}
+use Drupal\Core\Batch\Percentage;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
  * Renders the batch processing page based on the current state of the batch.
@@ -51,10 +32,10 @@ function _batch_page() {
 
   // Retrieve the current state of the batch.
   if (!$batch) {
-    $batch = batch_load($_REQUEST['id']);
+    $batch = Drupal::service('batch.storage')->load($_REQUEST['id']);
     if (!$batch) {
       drupal_set_message(t('No active batch.'), 'error');
-      drupal_goto();
+      return new RedirectResponse(url('<front>', array('absolute' => TRUE)));
     }
   }
 
@@ -105,9 +86,9 @@ function _batch_page() {
  */
 function _batch_do() {
   // Perform actual processing.
-  list($percentage, $message) = _batch_process();
+  list($percentage, $message, $label) = _batch_process();
 
-  return new JsonResponse(array('status' => TRUE, 'percentage' => $percentage, 'message' => $message));
+  return new JsonResponse(array('status' => TRUE, 'percentage' => $percentage, 'message' => $message, 'label' => $label));
 }
 
 /**
@@ -127,6 +108,7 @@ function _batch_progress_page() {
     // This is the first page so we return some output immediately.
     $percentage       = 0;
     $message          = $current_set['init_message'];
+    $label            = '';
     $batch['running'] = TRUE;
   }
   else {
@@ -147,7 +129,7 @@ function _batch_progress_page() {
     print $fallback;
 
     // Perform actual processing.
-    list($percentage, $message) = _batch_process($batch);
+    list($percentage, $message, $label) = _batch_process($batch);
     if ($percentage == 100) {
       $new_op = 'finished';
     }
@@ -185,7 +167,7 @@ function _batch_progress_page() {
   drupal_add_js($js_setting, 'setting');
   drupal_add_library('system', 'drupal.batch');
 
-  return theme('progress_bar', array('percent' => $percentage, 'message' => $message));
+  return theme('progress_bar', array('percent' => $percentage, 'message' => $message, 'label' => $label));
 }
 
 /**
@@ -227,7 +209,7 @@ function _batch_process() {
       include_once DRUPAL_ROOT . '/' . $current_set['file'];
     }
 
-    $task_message = '';
+    $task_message = $label = '';
     // Assume a single pass operation and set the completion level to 1 by
     // default.
     $finished = 1;
@@ -315,14 +297,11 @@ function _batch_process() {
       '@estimate'   => ($current > 0) ? format_interval(($elapsed * ($total - $current) / $current) / 1000) : '-',
     );
     $message = strtr($progress_message, $values);
-    if (!empty($message)) {
-      $message .= '<br />';
-    }
     if (!empty($task_message)) {
-      $message .= $task_message;
+      $label = $task_message;
     }
 
-    return array($percentage, $message);
+    return array($percentage, $message, $label);
   }
   else {
     // If we are not in progressive mode, the entire batch has been processed.
@@ -350,27 +329,7 @@ function _batch_process() {
  * @see _batch_process()
  */
 function _batch_api_percentage($total, $current) {
-  if (!$total || $total == $current) {
-    // If $total doesn't evaluate as true or is equal to the current set, then
-    // we're finished, and we can return "100".
-    $percentage = "100";
-  }
-  else {
-    // We add a new digit at 200, 2000, etc. (since, for example, 199/200
-    // would round up to 100% if we didn't).
-    $decimal_places = max(0, floor(log10($total / 2.0)) - 1);
-    do {
-      // Calculate the percentage to the specified number of decimal places.
-      $percentage = sprintf('%01.' . $decimal_places . 'f', round($current / $total * 100, $decimal_places));
-      // When $current is an integer, the above calculation will always be
-      // correct. However, if $current is a floating point number (in the case
-      // of a multi-step batch operation that is not yet complete), $percentage
-      // may be erroneously rounded up to 100%. To prevent that, we add one
-      // more decimal place and try again.
-      $decimal_places++;
-    } while ($percentage == '100');
-  }
-  return $percentage;
+  return Percentage::format($total, $current);
 }
 
 /**
@@ -431,9 +390,7 @@ function _batch_finished() {
 
   // Clean up the batch table and unset the static $batch variable.
   if ($batch['progressive']) {
-    db_delete('batch')
-      ->condition('bid', $batch['id'])
-      ->execute();
+    Drupal::service('batch.storage')->delete($batch['id']);
     foreach ($batch['sets'] as $batch_set) {
       if ($queue = _batch_queue($batch_set)) {
         $queue->deleteQueue();
@@ -454,7 +411,7 @@ function _batch_finished() {
   if ($_batch['progressive']) {
     // Revert the 'destination' that was saved in batch_process().
     if (isset($_batch['destination'])) {
-      $_GET['destination'] = $_batch['destination'];
+      Drupal::request()->query->set('destination', $_batch['destination']);
     }
 
     // Determine the target path to redirect to.
@@ -468,7 +425,10 @@ function _batch_finished() {
     }
 
     // Use drupal_redirect_form() to handle the redirection logic.
-    drupal_redirect_form($_batch['form_state']);
+    $redirect = drupal_redirect_form($_batch['form_state']);
+    if (is_object($redirect)) {
+      return $redirect;
+    }
 
     // If no redirection happened, redirect to the originating page. In case the
     // form needs to be rebuilt, save the final $form_state for
@@ -479,6 +439,14 @@ function _batch_finished() {
     $function = $_batch['redirect_callback'];
     if (function_exists($function)) {
       $function($_batch['source_url'], array('query' => array('op' => 'finish', 'id' => $_batch['id'])));
+    }
+    elseif ($function === NULL) {
+      // Default to RedirectResponse objects when nothing specified.
+      $url = url($_batch['source_url'], array(
+        'absolute' => TRUE,
+        'query' => array('op' => 'finish', 'id' => $_batch['id']),
+      ));
+      return new RedirectResponse($url);
     }
   }
 }
@@ -491,9 +459,6 @@ function _batch_finished() {
  */
 function _batch_shutdown() {
   if ($batch = batch_get()) {
-    db_update('batch')
-      ->fields(array('batch' => serialize($batch)))
-      ->condition('bid', $batch['id'])
-      ->execute();
+    Drupal::service('batch.storage')->update($batch);
   }
 }

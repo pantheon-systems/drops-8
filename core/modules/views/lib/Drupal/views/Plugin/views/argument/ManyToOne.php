@@ -8,7 +8,8 @@
 namespace Drupal\views\Plugin\views\argument;
 
 use Drupal\views\ViewExecutable;
-use Drupal\Core\Annotation\Plugin;
+use Drupal\views\Plugin\views\display\DisplayPluginBase;
+use Drupal\Component\Annotation\PluginID;
 use Drupal\views\ManyToOneHelper;
 
 /**
@@ -24,14 +25,16 @@ use Drupal\views\ManyToOneHelper;
  *
  * @ingroup views_argument_handlers
  *
- * @Plugin(
- *   id = "many_to_one"
- * )
+ * @PluginID("many_to_one")
  */
 class ManyToOne extends ArgumentPluginBase {
 
-  public function init(ViewExecutable $view, &$options) {
-    parent::init($view, $options);
+  /**
+   * Overrides \Drupal\views\Plugin\views\argument\ArgumentPluginBase::init().
+   */
+  public function init(ViewExecutable $view, DisplayPluginBase $display, array &$options = NULL) {
+    parent::init($view, $display, $options);
+
     $this->helper = new ManyToOneHelper($this);
 
     // Ensure defaults for these, during summaries and stuff:
@@ -112,7 +115,7 @@ class ManyToOne extends ArgumentPluginBase {
     }
     if ($empty) {
       parent::ensureMyTable();
-      $this->query->add_where(0, "$this->tableAlias.$this->realField", NULL, 'IS NULL');
+      $this->query->addWhere(0, "$this->tableAlias.$this->realField", NULL, 'IS NULL');
       return;
     }
 
@@ -129,7 +132,7 @@ class ManyToOne extends ArgumentPluginBase {
       $this->operator = 'or';
     }
 
-    $this->helper->add_filter();
+    $this->helper->addFilter();
   }
 
   function title() {
@@ -155,10 +158,10 @@ class ManyToOne extends ArgumentPluginBase {
       return !empty($this->definition['invalid input']) ? $this->definition['invalid input'] : t('Invalid input');
     }
 
-    return implode($this->operator == 'or' ? ' + ' : ', ', $this->title_query());
+    return implode($this->operator == 'or' ? ' + ' : ', ', $this->titleQuery());
   }
 
-  function summary_query() {
+  protected function summaryQuery() {
     $field = $this->table . '.' . $this->field;
     $join = $this->getJoin();
 
@@ -167,21 +170,21 @@ class ManyToOne extends ArgumentPluginBase {
     }
 
     if (empty($this->options['add_table']) || empty($this->view->many_to_one_tables[$field])) {
-      $this->tableAlias = $this->query->ensure_table($this->table, $this->relationship, $join);
+      $this->tableAlias = $this->query->ensureTable($this->table, $this->relationship, $join);
     }
     else {
-      $this->tableAlias = $this->helper->summary_join();
+      $this->tableAlias = $this->helper->summaryJoin();
     }
 
     // Add the field.
-    $this->base_alias = $this->query->add_field($this->tableAlias, $this->realField);
+    $this->base_alias = $this->query->addField($this->tableAlias, $this->realField);
 
-    $this->summary_name_field();
+    $this->summaryNameField();
 
-    return $this->summary_basics();
+    return $this->summaryBasics();
   }
 
-  function summary_argument($data) {
+  public function summaryArgument($data) {
     $value = $data->{$this->base_alias};
     if (empty($value)) {
       $value = 0;
@@ -193,7 +196,7 @@ class ManyToOne extends ArgumentPluginBase {
   /**
    * Override for specific title lookups.
    */
-  function title_query() {
+  public function titleQuery() {
     return $this->value;
   }
 

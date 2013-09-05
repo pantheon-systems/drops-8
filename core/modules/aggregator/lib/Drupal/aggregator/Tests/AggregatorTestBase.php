@@ -7,10 +7,12 @@
 
 namespace Drupal\aggregator\Tests;
 
+use Drupal\Core\Language\Language;
 use Drupal\simpletest\WebTestBase;
+use Drupal\aggregator\Entity\Feed;
 
 /**
- * Defines a base class for testing aggregator.module.
+ * Defines a base class for testing the Aggregator module.
  */
 abstract class AggregatorTestBase extends WebTestBase {
 
@@ -19,7 +21,7 @@ abstract class AggregatorTestBase extends WebTestBase {
    *
    * @var array
    */
-  public static $modules = array('node', 'block', 'aggregator', 'aggregator_test');
+  public static $modules = array('node', 'aggregator', 'aggregator_test', 'views');
 
   function setUp() {
     parent::setUp();
@@ -34,45 +36,56 @@ abstract class AggregatorTestBase extends WebTestBase {
   }
 
   /**
-   * Create an aggregator feed (simulate form submission on admin/config/services/aggregator/add/feed).
+   * Creates an aggregator feed.
+   *
+   * This method simulates the form submission on path
+   * admin/config/services/aggregator/add/feed.
    *
    * @param $feed_url
-   *   If given, feed will be created with this URL, otherwise /rss.xml will be used.
-   * @return $feed
+   *   (optional) If given, feed will be created with this URL, otherwise
+   *   /rss.xml will be used. Defaults to NULL.
+   * @param array $edit
+   *   Array with additional form fields.
+   *
+   * @return \Drupal\aggregator\Entity\Feed $feed
    *   Full feed object if possible.
    *
    * @see getFeedEditArray()
    */
-  function createFeed($feed_url = NULL) {
-    $edit = $this->getFeedEditArray($feed_url);
+  function createFeed($feed_url = NULL, array $edit = array()) {
+    $edit = $this->getFeedEditArray($feed_url, $edit);
     $this->drupalPost('admin/config/services/aggregator/add/feed', $edit, t('Save'));
     $this->assertRaw(t('The feed %name has been added.', array('%name' => $edit['title'])), format_string('The feed !name has been added.', array('!name' => $edit['title'])));
 
-    $feed = db_query("SELECT *  FROM {aggregator_feed} WHERE title = :title AND url = :url", array(':title' => $edit['title'], ':url' => $edit['url']))->fetch();
-    $this->assertTrue(!empty($feed), 'The feed found in database.');
-    return $feed;
+    $fid = db_query("SELECT fid FROM {aggregator_feed} WHERE title = :title AND url = :url", array(':title' => $edit['title'], ':url' => $edit['url']))->fetchField();
+    $this->assertTrue(!empty($fid), 'The feed found in database.');
+    return aggregator_feed_load($fid);
   }
 
   /**
-   * Delete an aggregator feed.
+   * Deletes an aggregator feed.
    *
-   * @param $feed
+   * @param \Drupal\aggregator\Entity\Feed $feed
    *   Feed object representing the feed.
    */
-  function deleteFeed($feed) {
-    $this->drupalPost('admin/config/services/aggregator/edit/feed/' . $feed->fid, array(), t('Delete'));
-    $this->assertRaw(t('The feed %title has been deleted.', array('%title' => $feed->title)), 'Feed deleted successfully.');
+  function deleteFeed(Feed $feed) {
+    $this->drupalPost('admin/config/services/aggregator/delete/feed/' . $feed->id(), array(), t('Delete'));
+    $this->assertRaw(t('The feed %title has been deleted.', array('%title' => $feed->label())), 'Feed deleted successfully.');
   }
 
   /**
-   * Return a randomly generated feed edit array.
+   * Returns a randomly generated feed edit array.
    *
    * @param $feed_url
-   *   If given, feed will be created with this URL, otherwise /rss.xml will be used.
+   *   (optional) If given, feed will be created with this URL, otherwise
+   *   /rss.xml will be used. Defaults to NULL.
+   * @param array $edit
+   *   Array with additional form fields.
+   *
    * @return
    *   A feed array.
    */
-  function getFeedEditArray($feed_url = NULL) {
+  function getFeedEditArray($feed_url = NULL, array $edit = array()) {
     $feed_name = $this->randomName(10);
     if (!$feed_url) {
       $feed_url = url('rss.xml', array(
@@ -80,7 +93,7 @@ abstract class AggregatorTestBase extends WebTestBase {
         'absolute' => TRUE,
       ));
     }
-    $edit = array(
+    $edit += array(
       'title' => $feed_name,
       'url' => $feed_url,
       'refresh' => '900',
@@ -89,93 +102,132 @@ abstract class AggregatorTestBase extends WebTestBase {
   }
 
   /**
-   * Return the count of the randomly created feed array.
+   * Returns a randomly generated feed edit object.
+   *
+   * @param string $feed_url
+   *   (optional) If given, feed will be created with this URL, otherwise
+   *   /rss.xml will be used. Defaults to NULL.
+   * @param array $values
+   *   (optional) Default values to initialize object properties with.
+   *
+   * @return \Drupal\aggregator\Entity\Feed
+   *   A feed object.
+   */
+  function getFeedEditObject($feed_url = NULL, array $values = array()) {
+    $feed_name = $this->randomName(10);
+    if (!$feed_url) {
+      $feed_url = url('rss.xml', array(
+        'query' => array('feed' => $feed_name),
+        'absolute' => TRUE,
+      ));
+    }
+    $values += array(
+      'title' => $feed_name,
+      'url' => $feed_url,
+      'refresh' => '900',
+    );
+    return entity_create('aggregator_feed', $values);
+  }
+
+  /**
+   * Returns the count of the randomly created feed array.
    *
    * @return
    *   Number of feed items on default feed created by createFeed().
    */
   function getDefaultFeedItemCount() {
     // Our tests are based off of rss.xml, so let's find out how many elements should be related.
-    $feed_count = db_query_range('SELECT COUNT(*) FROM {node} n WHERE n.promote = 1 AND n.status = 1', 0, config('system.rss')->get('items.limit'))->fetchField();
+    $feed_count = db_query_range('SELECT COUNT(DISTINCT nid) FROM {node_field_data} n WHERE n.promote = 1 AND n.status = 1', 0, $this->container->get('config.factory')->get('system.rss')->get('items.limit'))->fetchField();
     return $feed_count > 10 ? 10 : $feed_count;
   }
 
   /**
-   * Update feed items (simulate click to admin/config/services/aggregator/update/$fid).
+   * Updates the feed items.
    *
-   * @param $feed
+   * This method simulates a click to
+   * admin/config/services/aggregator/update/$fid.
+   *
+   * @param \Drupal\aggregator\Entity\Feed $feed
    *   Feed object representing the feed.
-   * @param $expected_count
-   *   Expected number of feed items.
+   * @param int|null $expected_count
+   *   Expected number of feed items. If omitted no check will happen.
    */
-  function updateFeedItems(&$feed, $expected_count) {
+  function updateFeedItems(Feed $feed, $expected_count = NULL) {
     // First, let's ensure we can get to the rss xml.
-    $this->drupalGet($feed->url);
-    $this->assertResponse(200, format_string('!url is reachable.', array('!url' => $feed->url)));
+    $this->drupalGet($feed->url->value);
+    $this->assertResponse(200, format_string('!url is reachable.', array('!url' => $feed->url->value)));
 
     // Attempt to access the update link directly without an access token.
-    $this->drupalGet('admin/config/services/aggregator/update/' . $feed->fid);
+    $this->drupalGet('admin/config/services/aggregator/update/' . $feed->id());
     $this->assertResponse(403);
 
     // Refresh the feed (simulated link click).
     $this->drupalGet('admin/config/services/aggregator');
-    $this->clickLink('update items');
+    $this->clickLink('Update items');
 
     // Ensure we have the right number of items.
-    $result = db_query('SELECT iid FROM {aggregator_item} WHERE fid = :fid', array(':fid' => $feed->fid));
+    $result = db_query('SELECT iid FROM {aggregator_item} WHERE fid = :fid', array(':fid' => $feed->id()));
     $items = array();
     $feed->items = array();
     foreach ($result as $item) {
       $feed->items[] = $item->iid;
     }
-    $feed->item_count = count($feed->items);
-    $this->assertEqual($expected_count, $feed->item_count, format_string('Total items in feed equal to the total items in database (!val1 != !val2)', array('!val1' => $expected_count, '!val2' => $feed->item_count)));
+
+    if ($expected_count !== NULL) {
+      $feed->item_count = count($feed->items);
+      $this->assertEqual($expected_count, $feed->item_count, format_string('Total items in feed equal to the total items in database (!val1 != !val2)', array('!val1' => $expected_count, '!val2' => $feed->item_count)));
+    }
   }
 
   /**
-   * Confirm item removal from a feed.
+   * Confirms an item removal from a feed.
    *
-   * @param $feed
+   * @param  \Drupal\aggregator\Entity\Feed $feed
    *   Feed object representing the feed.
    */
-  function removeFeedItems($feed) {
-    $this->drupalPost('admin/config/services/aggregator/remove/' . $feed->fid, array(), t('Remove items'));
-    $this->assertRaw(t('The news items from %title have been removed.', array('%title' => $feed->title)), 'Feed items removed.');
+  function removeFeedItems(Feed $feed) {
+    $this->drupalPost('admin/config/services/aggregator/remove/' . $feed->id(), array(), t('Remove items'));
+    $this->assertRaw(t('The news items from %title have been removed.', array('%title' => $feed->label())), 'Feed items removed.');
   }
 
   /**
-   * Add and remove feed items and ensure that the count is zero.
+   * Adds and removes feed items and ensure that the count is zero.
    *
-   * @param $feed
+   * @param  \Drupal\aggregator\Entity\Feed $feed
    *   Feed object representing the feed.
-   * @param $expected_count
+   * @param int $expected_count
    *   Expected number of feed items.
    */
-  function updateAndRemove($feed, $expected_count) {
+  function updateAndRemove(Feed $feed, $expected_count) {
     $this->updateFeedItems($feed, $expected_count);
-    $count = db_query('SELECT COUNT(*) FROM {aggregator_item} WHERE fid = :fid', array(':fid' => $feed->fid))->fetchField();
+    $count = db_query('SELECT COUNT(*) FROM {aggregator_item} WHERE fid = :fid', array(':fid' => $feed->id()))->fetchField();
     $this->assertTrue($count);
     $this->removeFeedItems($feed);
-    $count = db_query('SELECT COUNT(*) FROM {aggregator_item} WHERE fid = :fid', array(':fid' => $feed->fid))->fetchField();
+    $count = db_query('SELECT COUNT(*) FROM {aggregator_item} WHERE fid = :fid', array(':fid' => $feed->id()))->fetchField();
     $this->assertTrue($count == 0);
   }
 
   /**
-   * Pull feed categories from aggregator_category_feed table.
+   * Pulls feed categories from {aggregator_category_feed} table.
    *
-   * @param $feed
+   * @param \Drupal\aggregator\Entity\Feed $feed
    *   Feed object representing the feed.
    */
-  function getFeedCategories($feed) {
+  function getFeedCategories(Feed $feed) {
     // add the categories to the feed so we can use them
-    $result = db_query('SELECT cid FROM {aggregator_category_feed} WHERE fid = :fid', array(':fid' => $feed->fid));
+    $result = db_query('SELECT cid FROM {aggregator_category_feed} WHERE fid = :fid', array(':fid' => $feed->id()));
+
     foreach ($result as $category) {
       $feed->categories[] = $category->cid;
     }
   }
 
   /**
-   * Pull categories from aggregator_category table.
+   * Pulls categories from {aggregator_category} table.
+   *
+   * @return array
+   *   An associative array keyed by category ID and values are set to the
+   *   category names.
    */
   function getCategories() {
     $categories = array();
@@ -186,14 +238,14 @@ abstract class AggregatorTestBase extends WebTestBase {
     return $categories;
   }
 
-
   /**
-   * Check if the feed name and url is unique.
+   * Checks whether the feed name and URL are unique.
    *
    * @param $feed_name
    *   String containing the feed name to check.
    * @param $feed_url
    *   String containing the feed url to check.
+   *
    * @return
    *   TRUE if feed is unique.
    */
@@ -203,10 +255,11 @@ abstract class AggregatorTestBase extends WebTestBase {
   }
 
   /**
-   * Create a valid OPML file from an array of feeds.
+   * Creates a valid OPML file from an array of feeds.
    *
    * @param $feeds
    *   An array of feeds.
+   *
    * @return
    *   Path to valid OPML file.
    */
@@ -244,7 +297,7 @@ EOF;
   }
 
   /**
-   * Create an invalid OPML file.
+   * Creates an invalid OPML file.
    *
    * @return
    *   Path to invalid OPML file.
@@ -261,7 +314,7 @@ EOF;
   }
 
   /**
-   * Create a valid but empty OPML file.
+   * Creates a valid but empty OPML file.
    *
    * @return
    *   Path to empty OPML file.
@@ -283,27 +336,27 @@ EOF;
   }
 
   function getRSS091Sample() {
-    return $GLOBALS['base_url'] . '/' . drupal_get_path('module', 'aggregator') . '/tests/aggregator_test_rss091.xml';
+    return $GLOBALS['base_url'] . '/' . drupal_get_path('module', 'aggregator') . '/tests/modules/aggregator_test/aggregator_test_rss091.xml';
   }
 
   function getAtomSample() {
     // The content of this sample ATOM feed is based directly off of the
     // example provided in RFC 4287.
-    return $GLOBALS['base_url'] . '/' . drupal_get_path('module', 'aggregator') . '/tests/aggregator_test_atom.xml';
+    return $GLOBALS['base_url'] . '/' . drupal_get_path('module', 'aggregator') . '/tests/modules/aggregator_test/aggregator_test_atom.xml';
   }
 
   function getHtmlEntitiesSample() {
-    return $GLOBALS['base_url'] . '/' . drupal_get_path('module', 'aggregator') . '/tests/aggregator_test_title_entities.xml';
+    return $GLOBALS['base_url'] . '/' . drupal_get_path('module', 'aggregator') . '/tests/modules/aggregator_test/aggregator_test_title_entities.xml';
   }
 
   /**
    * Creates sample article nodes.
    *
    * @param $count
-   *   (optional) The number of nodes to generate.
+   *   (optional) The number of nodes to generate. Defaults to five.
    */
   function createSampleNodes($count = 5) {
-    $langcode = LANGUAGE_NOT_SPECIFIED;
+    $langcode = Language::LANGCODE_NOT_SPECIFIED;
     // Post $count article nodes.
     for ($i = 0; $i < $count; $i++) {
       $edit = array();
@@ -311,5 +364,19 @@ EOF;
       $edit["body[$langcode][0][value]"] = $this->randomName();
       $this->drupalPost('node/add/article', $edit, t('Save'));
     }
+  }
+
+  /**
+   * Enable the plugins coming with aggregator_test module.
+   */
+  function enableTestPlugins() {
+    $this->container->get('config.factory')->get('aggregator.settings')
+      ->set('fetcher', 'aggregator_test_fetcher')
+      ->set('parser', 'aggregator_test_parser')
+      ->set('processors', array(
+        'aggregator_test_processor' => 'aggregator_test_processor',
+        'aggregator' => 'aggregator'
+      ))
+      ->save();
   }
 }

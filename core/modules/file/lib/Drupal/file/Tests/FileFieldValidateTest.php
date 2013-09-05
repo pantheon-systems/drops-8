@@ -7,6 +7,8 @@
 
 namespace Drupal\file\Tests;
 
+use Drupal\Core\Language\Language;
+
 /**
  * Tests various validations.
  */
@@ -28,46 +30,41 @@ class FileFieldValidateTest extends FileFieldTestBase {
   function testRequired() {
     $type_name = 'article';
     $field_name = strtolower($this->randomName());
-    $this->createFileField($field_name, $type_name, array(), array('required' => '1'));
-    $field = field_info_field($field_name);
-    $instance = field_info_instance('node', $field_name, $type_name);
+    $field = $this->createFileField($field_name, 'node', $type_name, array(), array('required' => '1'));
+    $instance = field_info_instance($field_name, 'node', $type_name);
 
     $test_file = $this->getTestFile('text');
 
     // Try to post a new node without uploading a file.
-    $langcode = LANGUAGE_NOT_SPECIFIED;
     $edit = array("title" => $this->randomName());
-    $this->drupalPost('node/add/' . $type_name, $edit, t('Save'));
-    $this->assertRaw(t('!title field is required.', array('!title' => $instance['label'])), t('Node save failed when required file field was empty.'));
+    $this->drupalPost('node/add/' . $type_name, $edit, t('Save and publish'));
+    $this->assertRaw(t('!title field is required.', array('!title' => $instance['label'])), 'Node save failed when required file field was empty.');
 
     // Create a new node with the uploaded file.
     $nid = $this->uploadNodeFile($test_file, $field_name, $type_name);
-    $this->assertTrue($nid !== FALSE, t('uploadNodeFile(@test_file, @field_name, @type_name) succeeded', array('@test_file' => $test_file->uri, '@field_name' => $field_name, '@type_name' => $type_name)));
+    $this->assertTrue($nid !== FALSE, format_string('uploadNodeFile(@test_file, @field_name, @type_name) succeeded', array('@test_file' => $test_file->getFileUri(), '@field_name' => $field_name, '@type_name' => $type_name)));
 
     $node = node_load($nid, TRUE);
 
-    $node_file = file_load($node->{$field_name}[LANGUAGE_NOT_SPECIFIED][0]['fid']);
-    $this->assertFileExists($node_file, t('File exists after uploading to the required field.'));
-    $this->assertFileEntryExists($node_file, t('File entry exists after uploading to the required field.'));
+    $node_file = file_load($node->{$field_name}->target_id);
+    $this->assertFileExists($node_file, 'File exists after uploading to the required field.');
+    $this->assertFileEntryExists($node_file, 'File entry exists after uploading to the required field.');
 
     // Try again with a multiple value field.
-    field_delete_field($field_name);
-    $this->createFileField($field_name, $type_name, array('cardinality' => FIELD_CARDINALITY_UNLIMITED), array('required' => '1'));
+    $field->delete();
+    $this->createFileField($field_name, 'node', $type_name, array('cardinality' => FIELD_CARDINALITY_UNLIMITED), array('required' => '1'));
 
     // Try to post a new node without uploading a file in the multivalue field.
     $edit = array('title' => $this->randomName());
-    $this->drupalPost('node/add/' . $type_name, $edit, t('Save'));
-    $this->assertRaw(t('!title field is required.', array('!title' => $instance['label'])), t('Node save failed when required multiple value file field was empty.'));
+    $this->drupalPost('node/add/' . $type_name, $edit, t('Save and publish'));
+    $this->assertRaw(t('!title field is required.', array('!title' => $instance['label'])), 'Node save failed when required multiple value file field was empty.');
 
     // Create a new node with the uploaded file into the multivalue field.
     $nid = $this->uploadNodeFile($test_file, $field_name, $type_name);
     $node = node_load($nid, TRUE);
-    $node_file = file_load($node->{$field_name}[LANGUAGE_NOT_SPECIFIED][0]['fid']);
-    $this->assertFileExists($node_file, t('File exists after uploading to the required multiple value field.'));
-    $this->assertFileEntryExists($node_file, t('File entry exists after uploading to the required multipel value field.'));
-
-    // Remove our file field.
-    field_delete_field($field_name);
+    $node_file = file_load($node->{$field_name}->target_id);
+    $this->assertFileExists($node_file, 'File exists after uploading to the required multiple value field.');
+    $this->assertFileEntryExists($node_file, 'File entry exists after uploading to the required multiple value field.');
   }
 
   /**
@@ -76,9 +73,7 @@ class FileFieldValidateTest extends FileFieldTestBase {
   function testFileMaxSize() {
     $type_name = 'article';
     $field_name = strtolower($this->randomName());
-    $this->createFileField($field_name, $type_name, array(), array('required' => '1'));
-    $field = field_info_field($field_name);
-    $instance = field_info_instance('node', $field_name, $type_name);
+    $this->createFileField($field_name, 'node', $type_name, array(), array('required' => '1'));
 
     $small_file = $this->getTestFile('text', 131072); // 128KB.
     $large_file = $this->getTestFile('text', 1310720); // 1.2MB
@@ -93,19 +88,18 @@ class FileFieldValidateTest extends FileFieldTestBase {
     foreach ($sizes as $max_filesize => $file_limit) {
       // Set the max file upload size.
       $this->updateFileField($field_name, $type_name, array('max_filesize' => $max_filesize));
-      $instance = field_info_instance('node', $field_name, $type_name);
 
       // Create a new node with the small file, which should pass.
       $nid = $this->uploadNodeFile($small_file, $field_name, $type_name);
       $node = node_load($nid, TRUE);
-      $node_file = file_load($node->{$field_name}[LANGUAGE_NOT_SPECIFIED][0]['fid']);
-      $this->assertFileExists($node_file, t('File exists after uploading a file (%filesize) under the max limit (%maxsize).', array('%filesize' => format_size($small_file->filesize), '%maxsize' => $max_filesize)));
-      $this->assertFileEntryExists($node_file, t('File entry exists after uploading a file (%filesize) under the max limit (%maxsize).', array('%filesize' => format_size($small_file->filesize), '%maxsize' => $max_filesize)));
+      $node_file = file_load($node->{$field_name}->target_id);
+      $this->assertFileExists($node_file, format_string('File exists after uploading a file (%filesize) under the max limit (%maxsize).', array('%filesize' => format_size($small_file->getSize()), '%maxsize' => $max_filesize)));
+      $this->assertFileEntryExists($node_file, format_string('File entry exists after uploading a file (%filesize) under the max limit (%maxsize).', array('%filesize' => format_size($small_file->getSize()), '%maxsize' => $max_filesize)));
 
       // Check that uploading the large file fails (1M limit).
-      $nid = $this->uploadNodeFile($large_file, $field_name, $type_name);
-      $error_message = t('The file is %filesize exceeding the maximum file size of %maxsize.', array('%filesize' => format_size($large_file->filesize), '%maxsize' => format_size($file_limit)));
-      $this->assertRaw($error_message, t('Node save failed when file (%filesize) exceeded the max upload size (%maxsize).', array('%filesize' => format_size($large_file->filesize), '%maxsize' => $max_filesize)));
+      $this->uploadNodeFile($large_file, $field_name, $type_name);
+      $error_message = t('The file is %filesize exceeding the maximum file size of %maxsize.', array('%filesize' => format_size($large_file->getSize()), '%maxsize' => format_size($file_limit)));
+      $this->assertRaw($error_message, format_string('Node save failed when file (%filesize) exceeded the max upload size (%maxsize).', array('%filesize' => format_size($large_file->getSize()), '%maxsize' => $max_filesize)));
     }
 
     // Turn off the max filesize.
@@ -114,12 +108,9 @@ class FileFieldValidateTest extends FileFieldTestBase {
     // Upload the big file successfully.
     $nid = $this->uploadNodeFile($large_file, $field_name, $type_name);
     $node = node_load($nid, TRUE);
-    $node_file = file_load($node->{$field_name}[LANGUAGE_NOT_SPECIFIED][0]['fid']);
-    $this->assertFileExists($node_file, t('File exists after uploading a file (%filesize) with no max limit.', array('%filesize' => format_size($large_file->filesize))));
-    $this->assertFileEntryExists($node_file, t('File entry exists after uploading a file (%filesize) with no max limit.', array('%filesize' => format_size($large_file->filesize))));
-
-    // Remove our file field.
-    field_delete_field($field_name);
+    $node_file = file_load($node->{$field_name}->target_id);
+    $this->assertFileExists($node_file, format_string('File exists after uploading a file (%filesize) with no max limit.', array('%filesize' => format_size($large_file->getSize()))));
+    $this->assertFileEntryExists($node_file, format_string('File entry exists after uploading a file (%filesize) with no max limit.', array('%filesize' => format_size($large_file->getSize()))));
   }
 
   /**
@@ -128,12 +119,10 @@ class FileFieldValidateTest extends FileFieldTestBase {
   function testFileExtension() {
     $type_name = 'article';
     $field_name = strtolower($this->randomName());
-    $this->createFileField($field_name, $type_name);
-    $field = field_info_field($field_name);
-    $instance = field_info_instance('node', $field_name, $type_name);
+    $this->createFileField($field_name, 'node', $type_name);
 
     $test_file = $this->getTestFile('image');
-    list(, $test_file_extension) = explode('.', $test_file->filename);
+    list(, $test_file_extension) = explode('.', $test_file->getFilename());
 
     // Disable extension checking.
     $this->updateFileField($field_name, $type_name, array('file_extensions' => ''));
@@ -141,17 +130,17 @@ class FileFieldValidateTest extends FileFieldTestBase {
     // Check that the file can be uploaded with no extension checking.
     $nid = $this->uploadNodeFile($test_file, $field_name, $type_name);
     $node = node_load($nid, TRUE);
-    $node_file = file_load($node->{$field_name}[LANGUAGE_NOT_SPECIFIED][0]['fid']);
-    $this->assertFileExists($node_file, t('File exists after uploading a file with no extension checking.'));
-    $this->assertFileEntryExists($node_file, t('File entry exists after uploading a file with no extension checking.'));
+    $node_file = file_load($node->{$field_name}->target_id);
+    $this->assertFileExists($node_file, 'File exists after uploading a file with no extension checking.');
+    $this->assertFileEntryExists($node_file, 'File entry exists after uploading a file with no extension checking.');
 
     // Enable extension checking for text files.
     $this->updateFileField($field_name, $type_name, array('file_extensions' => 'txt'));
 
     // Check that the file with the wrong extension cannot be uploaded.
-    $nid = $this->uploadNodeFile($test_file, $field_name, $type_name);
+    $this->uploadNodeFile($test_file, $field_name, $type_name);
     $error_message = t('Only files with the following extensions are allowed: %files-allowed.', array('%files-allowed' => 'txt'));
-    $this->assertRaw($error_message, t('Node save failed when file uploaded with the wrong extension.'));
+    $this->assertRaw($error_message, 'Node save failed when file uploaded with the wrong extension.');
 
     // Enable extension checking for text and image files.
     $this->updateFileField($field_name, $type_name, array('file_extensions' => "txt $test_file_extension"));
@@ -159,11 +148,9 @@ class FileFieldValidateTest extends FileFieldTestBase {
     // Check that the file can be uploaded with extension checking.
     $nid = $this->uploadNodeFile($test_file, $field_name, $type_name);
     $node = node_load($nid, TRUE);
-    $node_file = file_load($node->{$field_name}[LANGUAGE_NOT_SPECIFIED][0]['fid']);
-    $this->assertFileExists($node_file, t('File exists after uploading a file with extension checking.'));
-    $this->assertFileEntryExists($node_file, t('File entry exists after uploading a file with extension checking.'));
-
-    // Remove our file field.
-    field_delete_field($field_name);
+    $node_file = file_load($node->{$field_name}->target_id);
+    $this->assertFileExists($node_file, 'File exists after uploading a file with extension checking.');
+    $this->assertFileEntryExists($node_file, 'File entry exists after uploading a file with extension checking.');
   }
+
 }

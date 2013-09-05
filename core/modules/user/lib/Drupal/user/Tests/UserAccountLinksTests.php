@@ -19,7 +19,7 @@ class UserAccountLinksTests extends WebTestBase {
    *
    * @var array
    */
-  public static $modules = array('menu');
+  public static $modules = array('menu', 'block');
 
   public static function getInfo() {
     return array(
@@ -42,15 +42,15 @@ class UserAccountLinksTests extends WebTestBase {
 
     // For a logged-in user, expect the secondary menu to have links for "My
     // account" and "Log out".
-    $link = $this->xpath('//ul[@id=:menu_id]/li/a[contains(@href, :href) and text()=:text]', array(
-      ':menu_id' => 'secondary-menu',
+    $link = $this->xpath('//ul[@class=:menu_class]/li/a[contains(@href, :href) and text()=:text]', array(
+      ':menu_class' => 'links',
       ':href' => 'user',
       ':text' => 'My account',
     ));
     $this->assertEqual(count($link), 1, 'My account link is in secondary menu.');
 
-    $link = $this->xpath('//ul[@id=:menu_id]/li/a[contains(@href, :href) and text()=:text]', array(
-      ':menu_id' => 'secondary-menu',
+    $link = $this->xpath('//ul[@class=:menu_class]/li/a[contains(@href, :href) and text()=:text]', array(
+      ':menu_class' => 'links',
       ':href' => 'user/logout',
       ':text' => 'Log out',
     ));
@@ -72,15 +72,19 @@ class UserAccountLinksTests extends WebTestBase {
     // Create an admin user and log in.
     $this->drupalLogin($this->drupalCreateUser(array('access administration pages', 'administer menu')));
 
-    // Verify that the 'My account' link is enabled.
+    // Verify that the 'My account' link is enabled. Do not assume the value of
+    // auto-increment is 1. Use XPath to obtain input element id and name using
+    // the consistent label text.
     $this->drupalGet('admin/structure/menu/manage/account');
-    $this->assertFieldChecked('edit-mlid2-hidden', "The 'My account' link is enabled by default.");
+    $label = $this->xpath('//label[contains(.,:text)]/@for', array(':text' => 'Enable My account menu link'));
+    $this->assertFieldChecked((string) $label[0], "The 'My account' link is enabled by default.");
 
     // Disable the 'My account' link.
+    $input = $this->xpath('//input[@id=:field_id]/@name', array(':field_id' => (string)$label[0]));
     $edit = array(
-      'mlid:2[hidden]' => FALSE,
+      (string) $input[0] => FALSE,
     );
-    $this->drupalPost('admin/structure/menu/manage/account', $edit, t('Save configuration'));
+    $this->drupalPost('admin/structure/menu/manage/account', $edit, t('Save'));
 
     // Get the homepage.
     $this->drupalGet('<front>');
@@ -112,10 +116,6 @@ class UserAccountLinksTests extends WebTestBase {
 
     $this->drupalGet('user/password');
     $this->assertTitle('Request new password' . $title_suffix, "Page title of /user/register is 'Request new password' for anonymous users.");
-
-    // Tests the default fallback title.
-    $this->drupalGet('user/password/' . $this->randomString());
-    $this->assertTitle('User account' . $title_suffix, "Fallback page title for user pages is 'User account' for anonymous users.");
 
     // Check the page title for registered users is "My Account" in menus.
     $this->drupalLogin($this->drupalCreateUser());

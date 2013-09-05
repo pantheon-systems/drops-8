@@ -5,7 +5,9 @@
  * Defines a field type and its formatters and widgets.
  */
 
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\field\FieldException;
+use Drupal\field\FieldInterface;
 
 /**
  * Implements hook_field_info().
@@ -26,14 +28,18 @@ function field_test_field_info() {
       ),
       'default_widget' => 'test_field_widget',
       'default_formatter' => 'field_test_default',
+      'class' => 'Drupal\field_test\Type\TestItem',
     ),
     'shape' => array(
       'label' => t('Shape'),
       'description' => t('Another dummy field type.'),
-      'settings' => array(),
+      'settings' => array(
+        'foreign_key_name' => 'shape',
+      ),
       'instance_settings' => array(),
       'default_widget' => 'test_field_widget',
       'default_formatter' => 'field_test_default',
+      'class' => 'Drupal\field_test\Type\ShapeItem',
     ),
     'hidden_test_field' => array(
       'no_ui' => TRUE,
@@ -43,6 +49,7 @@ function field_test_field_info() {
       'instance_settings' => array(),
       'default_widget' => 'test_field_widget',
       'default_formatter' => 'field_test_default',
+      'class' => 'Drupal\field_test\Type\HiddenTestItem',
     ),
   );
 }
@@ -57,7 +64,7 @@ function field_test_field_widget_info_alter(&$info) {
 /**
  * Implements hook_field_update_forbid().
  */
-function field_test_field_update_forbid($field, $prior_field, $has_data) {
+function field_test_field_update_forbid($field, $prior_field) {
   if ($field['type'] == 'test_field' && $field['settings']['unchangeable'] != $prior_field['settings']['unchangeable']) {
     throw new FieldException("field_test 'unchangeable' setting cannot be changed'");
   }
@@ -87,7 +94,7 @@ function field_test_field_load($entity_type, $entities, $field, $instances, $lan
 /**
  * Implements hook_field_insert().
  */
-function field_test_field_insert($entity_type, $entity, $field, $instance, $items) {
+function field_test_field_insert(EntityInterface $entity, $field, $instance, $items) {
   $args = func_get_args();
   field_test_memorize(__FUNCTION__, $args);
 }
@@ -95,7 +102,7 @@ function field_test_field_insert($entity_type, $entity, $field, $instance, $item
 /**
  * Implements hook_field_update().
  */
-function field_test_field_update($entity_type, $entity, $field, $instance, $items) {
+function field_test_field_update(EntityInterface $entity, $field, $instance, $items) {
   $args = func_get_args();
   field_test_memorize(__FUNCTION__, $args);
 }
@@ -103,7 +110,7 @@ function field_test_field_update($entity_type, $entity, $field, $instance, $item
 /**
  * Implements hook_field_delete().
  */
-function field_test_field_delete($entity_type, $entity, $field, $instance, $items) {
+function field_test_field_delete(EntityInterface $entity, $field, $instance, $items) {
   $args = func_get_args();
   field_test_memorize(__FUNCTION__, $args);
 }
@@ -114,7 +121,7 @@ function field_test_field_delete($entity_type, $entity, $field, $instance, $item
  * Possible error codes:
  * - 'field_test_invalid': The value is invalid.
  */
-function field_test_field_validate($entity_type, $entity, $field, $instance, $langcode, $items, &$errors) {
+function field_test_field_validate(EntityInterface $entity = NULL, $field, $instance, $langcode, $items, &$errors) {
   $args = func_get_args();
   field_test_memorize(__FUNCTION__, $args);
 
@@ -131,14 +138,17 @@ function field_test_field_validate($entity_type, $entity, $field, $instance, $la
 /**
  * Implements hook_field_is_empty().
  */
-function field_test_field_is_empty($item, $field) {
-  return empty($item['value']);
+function field_test_field_is_empty($item, $field_type) {
+  if ($field_type == 'test_field') {
+    return empty($item['value']);
+  }
+  return empty($item['shape']) && empty($item['color']);
 }
 
 /**
  * Implements hook_field_settings_form().
  */
-function field_test_field_settings_form($field, $instance, $has_data) {
+function field_test_field_settings_form($field, $instance) {
   $settings = $field['settings'];
 
   $form['test_field_setting'] = array(
@@ -184,21 +194,21 @@ function field_test_widget_multiple_validate($element, &$form_state) {
 /**
  * Sample 'default value' callback.
  */
-function field_test_default_value($entity_type, $entity, $field, $instance) {
+function field_test_default_value(EntityInterface $entity, $field, $instance) {
   return array(array('value' => 99));
 }
 
 /**
  * Implements hook_field_access().
  */
-function field_test_field_access($op, $field, $entity_type, $entity, $account) {
+function field_test_field_access($op, FieldInterface $field, $entity_type, $entity, $account) {
   if ($field['field_name'] == "field_no_{$op}_access") {
     return FALSE;
   }
 
   // Only grant view access to test_view_field fields when the user has
   // 'view test_view_field content' permission.
-  if ($field['field_name'] == 'test_view_field' && $op == 'view' && !user_access('view test_view_field content')) {
+  if ($field['field_name'] == 'test_view_field' && $op == 'view' && !$account->hasPermission('view test_view_field content')) {
     return FALSE;
   }
 

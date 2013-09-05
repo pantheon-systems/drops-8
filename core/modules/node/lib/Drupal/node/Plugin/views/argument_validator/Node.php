@@ -7,14 +7,14 @@
 
 namespace Drupal\node\Plugin\views\argument_validator;
 
-use Drupal\Core\Annotation\Plugin;
+use Drupal\views\Annotation\ViewsArgumentValidator;
 use Drupal\Core\Annotation\Translation;
 use Drupal\views\Plugin\views\argument_validator\ArgumentValidatorPluginBase;
 
 /**
  * Validate whether an argument is an acceptable node.
  *
- * @Plugin(
+ * @ViewsArgumentValidator(
  *   id = "node",
  *   module = "node",
  *   title = @Translation("Content")
@@ -80,7 +80,7 @@ class Node extends ArgumentValidatorPluginBase {
     $options['types'] = array_filter($options['types']);
   }
 
-  function validate_argument($argument) {
+  public function validateArgument($argument) {
     $types = $this->options['types'];
 
     switch ($this->options['nid_type']) {
@@ -106,7 +106,7 @@ class Node extends ArgumentValidatorPluginBase {
           return TRUE;
         }
 
-        return isset($types[$node->type]);
+        return isset($types[$node->getType()]);
 
       case 'nids':
         $nids = new stdClass();
@@ -121,7 +121,7 @@ class Node extends ArgumentValidatorPluginBase {
 
         $nodes = node_load_multiple($nids->value);
         foreach ($nodes as $node) {
-          if ($types && empty($types[$node->type])) {
+          if ($types && empty($types[$node->getType()])) {
             return FALSE;
           }
 
@@ -132,7 +132,7 @@ class Node extends ArgumentValidatorPluginBase {
           }
 
           $titles[] = check_plain($node->label());
-          unset($test[$node->nid]);
+          unset($test[$node->id()]);
         }
 
         $this->argument->validated_title = implode($nids->operator == 'or' ? ' + ' : ', ', $titles);

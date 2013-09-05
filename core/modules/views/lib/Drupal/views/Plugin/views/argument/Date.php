@@ -7,16 +7,13 @@
 
 namespace Drupal\views\Plugin\views\argument;
 
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
+use Drupal\Core\Database\Database;
 
 /**
  * Abstract argument handler for dates.
  *
  * Adds an option to set a default argument based on the current date.
- *
- * @param $arg_format
- *   The format string to use on the current time when
- *   creating a default date argument.
  *
  * Definitions terms:
  * - many to one: If true, the "many to one" helper will be used.
@@ -27,20 +24,31 @@ use Drupal\Core\Annotation\Plugin;
  *
  * @ingroup views_argument_handlers
  *
- * @Plugin(
- *   id = "date"
- * )
+ * @PluginID("date")
  */
 class Date extends Formula {
 
+  /**
+   * The date format used in the title.
+   *
+   * @var string
+   */
+  protected $format;
+
+  /**
+   * The date format used in the query.
+   *
+   * @var string
+   */
+  protected $argFormat = 'Y-m-d';
+
   var $option_name = 'default_argument_date';
-  var $arg_format = 'Y-m-d';
 
   /**
    * Add an option to set the default value to the current date.
    */
-  function default_argument_form(&$form, &$form_state) {
-    parent::default_argument_form($form, $form_state);
+  public function defaultArgumentForm(&$form, &$form_state) {
+    parent::defaultArgumentForm($form, $form_state);
     $form['default_argument_type']['#options'] += array('date' => t('Current date'));
     $form['default_argument_type']['#options'] += array('node_created' => t("Current node's creation time"));
     $form['default_argument_type']['#options'] += array('node_changed' => t("Current node's update time"));  }
@@ -49,9 +57,9 @@ class Date extends Formula {
    * Set the empty argument value to the current date,
    * formatted appropriately for this argument.
    */
-  function get_default_argument($raw = FALSE) {
+  public function getDefaultArgument($raw = FALSE) {
     if (!$raw && $this->options['default_argument_type'] == 'date') {
-      return date($this->definition['format'], REQUEST_TIME);
+      return date($this->argFormat, REQUEST_TIME);
     }
     elseif (!$raw && in_array($this->options['default_argument_type'], array('node_created', 'node_changed'))) {
       foreach (range(1, 3) as $i) {
@@ -66,80 +74,32 @@ class Date extends Formula {
       }
 
       if (empty($node)) {
-        return parent::get_default_argument();
+        return parent::getDefaultArgument();
       }
       elseif ($this->options['default_argument_type'] == 'node_created') {
-        return date($this->definition['format'], $node->created);
+        return date($this->argFormat, $node->getCreatedTime());
       }
       elseif ($this->options['default_argument_type'] == 'node_changed') {
-        return date($this->definition['format'], $node->changed);
+        return date($this->argFormat, $node->getChangedTime());
       }
     }
 
-    return parent::get_default_argument($raw);
+    return parent::getDefaultArgument($raw);
   }
 
-  function get_sort_name() {
+  /**
+   * {@inheritdoc}
+   */
+  public function getSortName() {
     return t('Date', array(), array('context' => 'Sort order'));
   }
 
   /**
-   * Creates cross-database SQL date extraction.
-   *
-   * @param string $extract_type
-   *   The type of value to extract from the date, like 'MONTH'.
-   *
-   * @return string
-   *   An appropriate SQL string for the DB type and field type.
+   * Overrides \Drupal\views\Plugin\views\argument\Formula::getFormula().
    */
-  public function extractSQL($extract_type) {
-    $db_type = Database::getConnection()->databaseType();
-    $field = $this->getSQLDateField();
-
-    // Note there is no space after FROM to avoid db_rewrite problems
-    // see http://drupal.org/node/79904.
-    switch ($extract_type) {
-      case 'DATE':
-        return $field;
-      case 'YEAR':
-        return "EXTRACT(YEAR FROM($field))";
-      case 'MONTH':
-        return "EXTRACT(MONTH FROM($field))";
-      case 'DAY':
-        return "EXTRACT(DAY FROM($field))";
-      case 'HOUR':
-        return "EXTRACT(HOUR FROM($field))";
-      case 'MINUTE':
-        return "EXTRACT(MINUTE FROM($field))";
-      case 'SECOND':
-        return "EXTRACT(SECOND FROM($field))";
-      // ISO week number for date
-      case 'WEEK':
-        switch ($db_type) {
-          case 'mysql':
-            // WEEK using arg 3 in mysql should return the same value as postgres
-            // EXTRACT.
-            return "WEEK($field, 3)";
-          case 'pgsql':
-            return "EXTRACT(WEEK FROM($field))";
-        }
-      case 'DOW':
-        switch ($db_type) {
-          case 'mysql':
-            // mysql returns 1 for Sunday through 7 for Saturday php date
-            // functions and postgres use 0 for Sunday and 6 for Saturday.
-            return "INTEGER(DAYOFWEEK($field) - 1)";
-          case 'pgsql':
-            return "EXTRACT(DOW FROM($field))";
-        }
-      case 'DOY':
-        switch ($db_type) {
-          case 'mysql':
-            return "DAYOFYEAR($field)";
-          case 'pgsql':
-            return "EXTRACT(DOY FROM($field))";
-        }
-    }
+  public function getFormula() {
+    $this->formula = $this->getDateFormat($this->argFormat);
+    return parent::getFormula();
   }
 
 }

@@ -10,7 +10,25 @@ namespace Drupal\views\Tests;
 /**
  * Tests basic functions from the Views module.
  */
-class ModuleTest extends ViewTestBase {
+use Drupal\views\Plugin\views\filter\Standard;
+
+class ModuleTest extends ViewUnitTestBase {
+
+  /**
+   * Views used by this test.
+   *
+   * @var array
+   */
+  public static $testViews = array('test_view_status');
+
+  /**
+   * Stores the last triggered error, for example via debug().
+   *
+   * @var string
+   *
+   * @see \Drupal\views\Tests\ModuleTest::errorHandler()
+   */
+  protected $lastErrorMessage;
 
   public static function getInfo() {
     return array(
@@ -20,71 +38,19 @@ class ModuleTest extends ViewTestBase {
     );
   }
 
-  public function setUp() {
-    parent::setUp();
-
-    $this->enableViewsTestModule();
-    drupal_theme_rebuild();
-  }
-
-  public function test_views_trim_text() {
-    // Test unicode, @see http://drupal.org/node/513396#comment-2839416
-    $text = array(
-      'Tuy nhiên, những hi vọng',
-      'Giả sử chúng tôi có 3 Apple',
-      'siêu nhỏ này là bộ xử lý',
-      'Di động của nhà sản xuất Phần Lan',
-      'khoảng cách từ đại lí đến',
-      'của hãng bao gồm ba dòng',
-      'сд асд асд ас',
-      'асд асд асд ас'
-    );
-    // Just test maxlength without word boundry.
-    $alter = array(
-      'max_length' => 10,
-    );
-    $expect = array(
-      'Tuy nhiên,',
-      'Giả sử chú',
-      'siêu nhỏ n',
-      'Di động củ',
-      'khoảng các',
-      'của hãng b',
-      'сд асд асд',
-      'асд асд ас',
-    );
-
-    foreach ($text as $key => $line) {
-      $result_text = views_trim_text($alter, $line);
-      $this->assertEqual($result_text, $expect[$key]);
-    }
-
-    // Test also word_boundary
-    $alter['word_boundary'] = TRUE;
-    $expect = array(
-      'Tuy nhiên',
-      'Giả sử',
-      'siêu nhỏ',
-      'Di động',
-      'khoảng',
-      'của hãng',
-      'сд асд',
-      'асд асд',
-    );
-
-    foreach ($text as $key => $line) {
-      $result_text = views_trim_text($alter, $line);
-      $this->assertEqual($result_text, $expect[$key]);
-    }
-  }
-
   /**
    * Tests the views_get_handler method.
+   *
+   * @see views_get_handler()
    */
-  function testviews_get_handler() {
+  public function testViewsGetHandler() {
     $types = array('field', 'area', 'filter');
     foreach ($types as $type) {
-      $handler = views_get_handler($this->randomName(), $this->randomName(), $type);
+      $item = array(
+        'table' => $this->randomName(),
+        'field' => $this->randomName(),
+      );
+      $handler = $this->container->get('plugin.manager.views.' . $type)->getHandler($item);
       $this->assertEqual('Drupal\views\Plugin\views\\' . $type . '\Broken', get_class($handler), t('Make sure that a broken handler of type: @type are created', array('@type' => $type)));
     }
 
@@ -93,9 +59,13 @@ class ModuleTest extends ViewTestBase {
     foreach ($test_tables as $table => $fields) {
       foreach ($fields as $field) {
         $data = $views_data[$table][$field];
+        $item = array(
+          'table' => $table,
+          'field' => $field,
+        );
         foreach ($data as $id => $field_data) {
           if (!in_array($id, array('title', 'help'))) {
-            $handler = views_get_handler($table, $field, $id);
+            $handler = $this->container->get('plugin.manager.views.' . $id)->getHandler($item);
             $this->assertInstanceHandler($handler, $table, $field, $id);
           }
         }
@@ -103,26 +73,94 @@ class ModuleTest extends ViewTestBase {
     }
 
     // Test the override handler feature.
-    $handler = views_get_handler('views_test_data', 'job', 'filter', 'standard');
-    $this->assertEqual('Drupal\\views\\Plugin\\views\\filter\\Standard', get_class($handler));
+    $item = array(
+      'table' => 'views_test_data',
+      'field' => 'job',
+    );
+    $handler = $this->container->get('plugin.manager.views.filter')->getHandler($item, 'standard');
+    $this->assertTrue($handler instanceof Standard);
+
+    // @todo Reinstate these tests when the debug() in views_get_handler() is
+    //   restored.
+    return;
+
+    // Test non-existent tables/fields.
+    set_error_handler(array($this, 'customErrorHandler'));
+    $item = array(
+      'table' => 'views_test_data',
+      'field' => 'field_invalid',
+    );
+    $this->container->get('plugin.manager.views.field')->getHandler($item);
+    $this->assertTrue(strpos($this->lastErrorMessage, format_string("Missing handler: @table @field @type", array('@table' => 'views_test_data', '@field' => 'field_invalid', '@type' => 'field'))) !== FALSE, 'An invalid field name throws a debug message.');
+    unset($this->lastErrorMessage);
+
+    $item = array(
+      'table' => 'table_invalid',
+      'field' => 'id',
+    );
+    $this->container->get('plugin.manager.views.filter')->getHandler($item);
+    $this->assertEqual(strpos($this->lastErrorMessage, format_string("Missing handler: @table @field @type", array('@table' => 'table_invalid', '@field' => 'id', '@type' => 'filter'))) !== FALSE, 'An invalid table name throws a debug message.');
+    unset($this->lastErrorMessage);
+
+    $item = array(
+      'table' => 'table_invalid',
+      'field' => 'id',
+      'optional' => FALSE,
+    );
+    $this->container->get('plugin.manager.views.filter')->getHandler($item);
+    $this->assertEqual(strpos($this->lastErrorMessage, format_string("Missing handler: @table @field @type", array('@table' => 'table_invalid', '@field' => 'id', '@type' => 'filter'))) !== FALSE, 'An invalid table name throws a debug message.');
+    unset($this->lastErrorMessage);
+
+    $item = array(
+      'table' => 'table_invalid',
+      'field' => 'id',
+      'optional' => TRUE,
+    );
+    $this->container->get('plugin.manager.views.filter')->getHandler($item);
+    $this->assertFalse($this->lastErrorMessage, "An optional handler does not throw a debug message.");
+    unset($this->lastErrorMessage);
+
+    restore_error_handler();
+  }
+
+  /**
+   * Defines an error handler which is used in the test.
+   *
+   * @param int $error_level
+   *   The level of the error raised.
+   * @param string $message
+   *   The error message.
+   * @param string $filename
+   *   The filename that the error was raised in.
+   * @param int $line
+   *   The line number the error was raised at.
+   * @param array $context
+   *   An array that points to the active symbol table at the point the error
+   *   occurred.
+   *
+   * Because this is registered in set_error_handler(), it has to be public.
+   * @see set_error_handler()
+   */
+  public function customErrorHandler($error_level, $message, $filename, $line, $context) {
+    $this->lastErrorMessage = $message;
   }
 
   /**
    * Tests the load wrapper/helper functions.
    */
   public function testLoadFunctions() {
-    $controller = entity_get_controller('view');
+    $this->enableModules(array('node'));
+    $controller = $this->container->get('entity.manager')->getStorageController('view');
 
     // Test views_view_is_enabled/disabled.
-    $load = $controller->load(array('archive'));
-    $archive = reset($load);
+    $archive = $controller->load('archive');
     $this->assertTrue(views_view_is_disabled($archive), 'views_view_is_disabled works as expected.');
     // Enable the view and check this.
     $archive->enable();
     $this->assertTrue(views_view_is_enabled($archive), ' views_view_is_enabled works as expected.');
 
     // We can store this now, as we have enabled/disabled above.
-    $all_views = $controller->load();
+    $all_views = $controller->loadMultiple();
 
     // Test views_get_all_views().
     $this->assertIdentical(array_keys($all_views), array_keys(views_get_all_views()), 'views_get_all_views works as expected.');
@@ -144,7 +182,7 @@ class ModuleTest extends ViewTestBase {
     $this->assertIdentical(array_keys($all_views), array_keys(views_get_views_as_options(TRUE)), 'Expected option keys for all views were returned.');
     $expected_options = array();
     foreach ($all_views as $id => $view) {
-      $expected_options[$id] = $view->getHumanName();
+      $expected_options[$id] = $view->label();
     }
     $this->assertIdentical($expected_options, views_get_views_as_options(TRUE), 'Expected options array was returned.');
 
@@ -163,7 +201,7 @@ class ModuleTest extends ViewTestBase {
     // Test $exclude_view parameter.
     $this->assertFalse(array_key_exists('archive', views_get_views_as_options(TRUE, 'all', 'archive')), 'View excluded from options based on name');
     $this->assertFalse(array_key_exists('archive:default', views_get_views_as_options(FALSE, 'all', 'archive:default')), 'View display excluded from options based on name');
-    $this->assertFalse(array_key_exists('archive', views_get_views_as_options(TRUE, 'all', $archive->get('executable'))), 'View excluded from options based on object');
+    $this->assertFalse(array_key_exists('archive', views_get_views_as_options(TRUE, 'all', $archive->getExecutable())), 'View excluded from options based on object');
 
     // Test the $opt_group parameter.
     $expected_opt_groups = array();
@@ -181,22 +219,46 @@ class ModuleTest extends ViewTestBase {
   function testStatusFunctions() {
     $view = views_get_view('test_view_status')->storage;
 
-    $this->assertFalse($view->isEnabled(), 'The view status is disabled.');
+    $this->assertFalse($view->status(), 'The view status is disabled.');
 
     views_enable_view($view);
-    $this->assertTrue($view->isEnabled(), 'A view has been enabled.');
-    $this->assertEqual($view->isEnabled(), views_view_is_enabled($view), 'views_view_is_enabled is correct.');
+    $this->assertTrue($view->status(), 'A view has been enabled.');
+    $this->assertEqual($view->status(), views_view_is_enabled($view), 'views_view_is_enabled is correct.');
 
     views_disable_view($view);
-    $this->assertFalse($view->isEnabled(), 'A view has been disabled.');
-    $this->assertEqual(!$view->isEnabled(), views_view_is_disabled($view), 'views_view_is_disabled is correct.');
+    $this->assertFalse($view->status(), 'A view has been disabled.');
+    $this->assertEqual(!$view->status(), views_view_is_disabled($view), 'views_view_is_disabled is correct.');
+  }
+
+  /**
+   * Tests the views_fetch_plugin_names() function.
+   */
+  public function testViewsFetchPluginNames() {
+    // All style plugins should be returned, as we have not specified a type.
+    $plugins = views_fetch_plugin_names('style');
+    $definitions = $this->container->get('plugin.manager.views.style')->getDefinitions();
+    $expected = array();
+    foreach ($definitions as $id =>$definition) {
+      $expected[$id] = $definition['title'];
+    }
+    asort($expected);
+    $this->assertIdentical(array_keys($plugins), array_keys($expected));
+
+    // Test using the 'test' style plugin type only returns the test_style and
+    // mapping_test plugins.
+    $plugins = views_fetch_plugin_names('style', 'test');
+    $this->assertIdentical(array_keys($plugins), array('mapping_test', 'test_style', 'test_template_style'));
+
+    // Test a non existent style plugin type returns no plugins.
+    $plugins = views_fetch_plugin_names('style', $this->randomString());
+    $this->assertIdentical($plugins, array());
   }
 
   /**
    * Helper to return an expected views option array.
    *
    * @param array $views
-   *   An array of Drupal\views\Plugin\Core\Entity\View objects for which to
+   *   An array of Drupal\views\Entity\View objects for which to
    *   create an options array.
    *
    * @return array
@@ -207,7 +269,7 @@ class ModuleTest extends ViewTestBase {
     foreach ($views as $id => $view) {
       foreach ($view->get('display') as $display_id => $display) {
         $expected_options[$view->id() . ':' . $display['id']] = t('View: @view - Display: @display',
-          array('@view' => $view->name, '@display' => $display['id']));
+          array('@view' => $view->id(), '@display' => $display['id']));
       }
     }
 
@@ -218,7 +280,7 @@ class ModuleTest extends ViewTestBase {
    * Ensure that a certain handler is a instance of a certain table/field.
    */
   function assertInstanceHandler($handler, $table, $field, $id) {
-    $table_data = views_fetch_data($table);
+    $table_data = $this->container->get('views.views_data')->get($table);
     $field_data = $table_data[$field][$id];
 
     $this->assertEqual($field_data['id'], $handler->getPluginId());

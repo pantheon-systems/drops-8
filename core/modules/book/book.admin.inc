@@ -2,101 +2,17 @@
 
 /**
  * @file
- * Admin page callbacks for the book module.
+ * Administration page callbacks for the Book module.
  */
 
-use Drupal\node\Plugin\Core\Entity\Node;
-
-/**
- * Page callback: Returns an administrative overview of all books.
- *
- * @see book_menu()
- */
-function book_admin_overview() {
-  $rows = array();
-
-  $headers = array(t('Book'), t('Operations'));
-
-  // Add any recognized books to the table list.
-  foreach (book_get_books() as $book) {
-    $row = array(
-      l($book['title'], $book['href'], $book['options']),
-    );
-    $links = array();
-    $links['edit'] = array(
-      'title' => t('edit order and titles'),
-      'href' => 'admin/content/book/' . $book['nid'],
-    );
-    $row[] = array(
-      'data' => array(
-        '#type' => 'operations',
-        '#links' => $links,
-      ),
-    );
-    $rows[] = $row;
-  }
-
-  return theme('table', array('header' => $headers, 'rows' => $rows, 'empty' => t('No books available.')));
-}
-
-/**
- * Form constructor for the book settings form.
- *
- * @see book_menu()
- * @see book_admin_settings_submit()
- * @see book_admin_settings_validate()
- * @ingroup forms
- */
-function book_admin_settings($form, &$form_state) {
-  $types = node_type_get_names();
-  $config = config('book.settings');
-  $form['book_allowed_types'] = array(
-    '#type' => 'checkboxes',
-    '#title' => t('Content types allowed in book outlines'),
-    '#default_value' => $config->get('allowed_types'),
-    '#options' => $types,
-    '#description' => t('Users with the %outline-perm permission can add all content types.', array('%outline-perm' => t('Administer book outlines'))),
-    '#required' => TRUE,
-  );
-  $form['book_child_type'] = array(
-    '#type' => 'radios',
-    '#title' => t('Content type for child pages'),
-    '#default_value' => $config->get('child_type'),
-    '#options' => $types,
-    '#required' => TRUE,
-  );
-  $form['array_filter'] = array('#type' => 'value', '#value' => TRUE);
-  $form['#validate'][] = 'book_admin_settings_validate';
-
-  return system_config_form($form, $form_state);
-}
-
-/**
- * Form validation handler for book_admin_settings().
- */
-function book_admin_settings_validate($form, &$form_state) {
-  $child_type = $form_state['values']['book_child_type'];
-  if (empty($form_state['values']['book_allowed_types'][$child_type])) {
-    form_set_error('book_child_type', t('The content type for the %add-child link must be one of those selected as an allowed book outline type.', array('%add-child' => t('Add child page'))));
-  }
-}
-
-/**
- * Form submission handler for book_admin_settings().
- *
- * @see book_admin_settings_validate()
- */
-function book_admin_settings_submit($form, &$form_state) {
-  config('book.settings')
-    ->set('allowed_types', $form_state['values']['book_allowed_types'])
-    ->set('child_type', $form_state['values']['book_child_type'])
-    ->save();
- }
+use Drupal\Component\Utility\Crypt;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Language\Language;
 
 /**
  * Form constructor for administering a single book's hierarchy.
  *
- * @param Drupal\node\Node $node
+ * @param \Drupal\Core\Entity\EntityInterface $node
  *   The node of the top-level page in the book.
  *
  * @see book_menu()
@@ -104,7 +20,7 @@ function book_admin_settings_submit($form, &$form_state) {
  * @see book_admin_edit_submit()
  * @ingroup forms
  */
-function book_admin_edit($form, $form_state, Node $node) {
+function book_admin_edit($form, $form_state, EntityInterface $node) {
   drupal_set_title($node->label());
   $form['#node'] = $node;
   _book_admin_table($node, $form);
@@ -144,6 +60,8 @@ function book_admin_edit_submit($form, &$form_state) {
   $order = array_flip(array_keys($form_state['input']['table']));
   $form['table'] = array_merge($order, $form['table']);
 
+  // Track updates.
+  $updated = FALSE;
   foreach (element_children($form['table']) as $key) {
     if ($form['table'][$key]['#item']) {
       $row = $form['table'][$key];
@@ -151,24 +69,32 @@ function book_admin_edit_submit($form, &$form_state) {
 
       // Update menu item if moved.
       if ($row['plid']['#default_value'] != $values['plid'] || $row['weight']['#default_value'] != $values['weight']) {
-        $row['#item']['plid'] = $values['plid'];
-        $row['#item']['weight'] = $values['weight'];
-        menu_link_save($row['#item']);
+        $menu_link = entity_load('menu_link', $values['mlid']);
+        $menu_link->weight = $values['weight'];
+        $menu_link->plid = $values['plid'];
+        $menu_link->save();
+        $updated = TRUE;
       }
 
       // Update the title if changed.
       if ($row['title']['#default_value'] != $values['title']) {
         $node = node_load($values['nid']);
-        $langcode = LANGUAGE_NOT_SPECIFIED;
+        $langcode = Language::LANGCODE_NOT_SPECIFIED;
         $node->title = $values['title'];
         $node->book['link_title'] = $values['title'];
         $node->setNewRevision();
         $node->log = t('Title changed from %original to %current.', array('%original' => $node->title, '%current' => $values['title']));
 
         $node->save();
-        watchdog('content', 'book: updated %title.', array('%title' => $node->label()), WATCHDOG_NOTICE, l(t('view'), 'node/' . $node->nid));
+        watchdog('content', 'book: updated %title.', array('%title' => $node->label()), WATCHDOG_NOTICE, l(t('view'), 'node/' . $node->id()));
       }
     }
+  }
+  if ($updated) {
+    // Flush static and cache.
+    drupal_static_reset('book_menu_subtree_data');
+    $cid = 'links:' . $form['#node']->book['menu_name'] . ':subtree-cid:' . $form['#node']->book['mlid'];
+    cache('menu')->delete($cid);
   }
 
   drupal_set_message(t('Updated book %title.', array('%title' => $form['#node']->label())));
@@ -177,14 +103,14 @@ function book_admin_edit_submit($form, &$form_state) {
 /**
  * Builds the table portion of the form for the book administration page.
  *
- * @param Drupal\node\Node $node
+ * @param \Drupal\Core\Entity\EntityInterface $node
  *   The node of the top-level page in the book.
  * @param $form
- *   The form that is being modified.
+ *   The form that is being modified, passed by reference.
  *
  * @see book_admin_edit()
  */
-function _book_admin_table(Node $node, &$form) {
+function _book_admin_table(EntityInterface $node, &$form) {
   $form['table'] = array(
     '#theme' => 'book_admin_table',
     '#tree' => TRUE,
@@ -193,7 +119,7 @@ function _book_admin_table(Node $node, &$form) {
   $tree = book_menu_subtree_data($node->book);
   $tree = array_shift($tree); // Do not include the book item itself.
   if ($tree['below']) {
-    $hash = drupal_hash_base64(serialize($tree['below']));
+    $hash = Crypt::hashBase64(serialize($tree['below']));
     // Store the hash value as a hidden form element so that we can detect
     // if another user changed the book hierarchy.
     $form['tree_hash'] = array(
@@ -215,10 +141,10 @@ function _book_admin_table(Node $node, &$form) {
  * @param $tree
  *   A subtree of the book menu hierarchy.
  * @param $form
- *   The form that is being modified.
+ *   The form that is being modified, passed by reference.
  *
  * @return
- *   The form that is being modified.
+ *   The modified form array.
  *
  * @see book_admin_edit()
  */
@@ -266,7 +192,7 @@ function _book_admin_table_tree($tree, &$form) {
 /**
  * Returns HTML for a book administration form.
  *
- * @param $variables
+ * @param array $variables
  *   An associative array containing:
  *   - form: A render element representing the form.
  *
@@ -293,24 +219,25 @@ function theme_book_admin_table($variables) {
     $form[$key]['mlid']['#attributes']['class'] = array('book-mlid');
     $form[$key]['weight']['#attributes']['class'] = array('book-weight');
 
+    $indentation = array('#theme' => 'indentation', '#size' => $form[$key]['depth']['#value'] - 2);
     $data = array(
-      theme('indentation', array('size' => $form[$key]['depth']['#value'] - 2)) . drupal_render($form[$key]['title']),
+      drupal_render($indentation) . drupal_render($form[$key]['title']),
       drupal_render($form[$key]['weight']),
       drupal_render($form[$key]['plid']) . drupal_render($form[$key]['mlid']),
     );
     $links = array();
     $links['view'] = array(
-      'title' => t('view'),
+      'title' => t('View'),
       'href' => $href,
     );
     if ($access) {
       $links['edit'] = array(
-        'title' => t('edit'),
+        'title' => t('Edit'),
         'href' => "node/$nid/edit",
         'query' => $destination,
       );
       $links['delete'] = array(
-        'title' => t('delete'),
+        'title' => t('Delete'),
         'href' => "node/$nid/delete",
         'query' => $destination,
       );
@@ -328,6 +255,6 @@ function theme_book_admin_table($variables) {
     $row['class'][] = 'draggable';
     $rows[] = $row;
   }
-
-  return theme('table', array('header' => $header, 'rows' => $rows, 'attributes' => array('id' => 'book-outline'), 'empty' => t('No book content available.')));
+  $table = array('#theme' => 'table', '#header' => $header, '#rows' => $rows, '#attributes' => array('id' => 'book-outline'), '#empty' => t('No book content available.'));
+  return drupal_render($table);
 }

@@ -4,6 +4,7 @@
  * @file
  * Definition of Drupal\Component\PhpStorage\MTimeProtectedFastFileStorage.
  */
+
 namespace Drupal\Component\PhpStorage;
 
 use DirectoryIterator;
@@ -41,6 +42,11 @@ use DirectoryIterator;
 class MTimeProtectedFastFileStorage extends FileStorage {
 
   /**
+   * The .htaccess code to make a directory private.
+   */
+  const HTACCESS="SetHandler Drupal_Security_Do_Not_Remove_See_SA_2006_006\nDeny from all\nOptions None\nOptions +FollowSymLinks";
+
+  /**
    * The secret used in the HMAC.
    *
    * @var string
@@ -50,7 +56,7 @@ class MTimeProtectedFastFileStorage extends FileStorage {
   /**
    * Constructs this MTimeProtectedFastFileStorage object.
    *
-   * @param $configuration
+   * @param array $configuration
    *   An associated array, containing at least these keys (the rest are
    *   ignored):
    *   - directory: The directory where the files should be stored.
@@ -108,7 +114,7 @@ class MTimeProtectedFastFileStorage extends FileStorage {
         rename($full_path, $temporary_path);
         // Make sure to not loop infinitely on a hopelessly slow filesystem.
         if ($i > 10) {
-          unlink($temporary_path);
+          $this->unlink($temporary_path);
           return FALSE;
         }
       }
@@ -144,20 +150,23 @@ class MTimeProtectedFastFileStorage extends FileStorage {
       mkdir($this->directory, 0700, TRUE);
     }
     chmod($this->directory, 0700);
-    file_save_htaccess($this->directory);
+    $htaccess_path =  $this->directory . '/.htaccess';
+    if (!file_exists($htaccess_path) && file_put_contents($htaccess_path, self::HTACCESS)) {
+      @chmod($htaccess_path, 0444);
+    }
   }
 
   /**
    * Removes everything in a directory, leaving it empty.
    *
-   * @param $directory
+   * @param string $directory
    *   The directory to be emptied out.
    */
   protected function cleanDirectory($directory) {
     chmod($directory, 0700);
     foreach (new DirectoryIterator($directory) as $fileinfo) {
       if (!$fileinfo->isDot()) {
-        unlink($fileinfo->getPathName());
+        $this->unlink($fileinfo->getPathName());
       }
     }
   }
@@ -180,8 +189,9 @@ class MTimeProtectedFastFileStorage extends FileStorage {
    * @param int $directory_mtime
    *   (optional) The mtime of $directory. Can be passed to avoid an extra
    *   filesystem call when the mtime of the directory is already known.
+   *
    * @return string
-   *    The full path where the file is or should be stored.
+   *   The full path where the file is or should be stored.
    */
   protected function getFullPath($name, &$directory = NULL, &$directory_mtime = NULL) {
     if (!isset($directory)) {
@@ -207,4 +217,5 @@ class MTimeProtectedFastFileStorage extends FileStorage {
     clearstatcache(TRUE, $directory);
     return filemtime($directory);
   }
+
 }

@@ -7,13 +7,19 @@
 
 namespace Drupal\filter\Tests;
 
-use Drupal\simpletest\WebTestBase;
+use Drupal\simpletest\DrupalUnitTestBase;
 
 /**
  * Tests filter settings.
  */
-class FilterSettingsTest extends WebTestBase {
-  protected $profile = 'testing';
+class FilterSettingsTest extends DrupalUnitTestBase {
+
+  /**
+   * Modules to enable.
+   *
+   * @var array
+   */
+  public static $modules = array('filter');
 
   public static function getInfo() {
     return array(
@@ -27,41 +33,39 @@ class FilterSettingsTest extends WebTestBase {
    * Tests explicit and implicit default settings for filters.
    */
   function testFilterDefaults() {
-    $filter_info = filter_filter_info();
+    $filter_info = $this->container->get('plugin.manager.filter')->getDefinitions();
     $filters = array_fill_keys(array_keys($filter_info), array());
 
     // Create text format using filter default settings.
-    $filter_defaults_format = (object) array(
+    $filter_defaults_format = entity_create('filter_format', array(
       'format' => 'filter_defaults',
       'name' => 'Filter defaults',
       'filters' => $filters,
-    );
-    filter_format_save($filter_defaults_format);
+    ));
+    $filter_defaults_format->save();
 
     // Verify that default weights defined in hook_filter_info() were applied.
     $saved_settings = array();
-    foreach ($filter_defaults_format->filters as $name => $settings) {
-      $expected_weight = (isset($filter_info[$name]['weight']) ? $filter_info[$name]['weight'] : 0);
-      $this->assertEqual($settings['weight'], $expected_weight, format_string('@name filter weight %saved equals %default', array(
+    foreach ($filter_defaults_format->filters() as $name => $filter) {
+      $expected_weight = $filter_info[$name]['weight'];
+      $this->assertEqual($filter->weight, $expected_weight, format_string('@name filter weight %saved equals %default', array(
         '@name' => $name,
-        '%saved' => $settings['weight'],
+        '%saved' => $filter->weight,
         '%default' => $expected_weight,
       )));
       $saved_settings[$name]['weight'] = $expected_weight;
     }
 
     // Re-save the text format.
-    filter_format_save($filter_defaults_format);
+    $filter_defaults_format->save();
     // Reload it from scratch.
     filter_formats_reset();
-    $filter_defaults_format = filter_format_load($filter_defaults_format->format);
-    $filter_defaults_format->filters = filter_list_format($filter_defaults_format->format);
 
     // Verify that saved filter settings have not been changed.
-    foreach ($filter_defaults_format->filters as $name => $settings) {
-      $this->assertEqual($settings->weight, $saved_settings[$name]['weight'], format_string('@name filter weight %saved equals %previous', array(
+    foreach ($filter_defaults_format->filters() as $name => $filter) {
+      $this->assertEqual($filter->weight, $saved_settings[$name]['weight'], format_string('@name filter weight %saved equals %previous', array(
         '@name' => $name,
-        '%saved' => $settings->weight,
+        '%saved' => $filter->weight,
         '%previous' => $saved_settings[$name]['weight'],
       )));
     }

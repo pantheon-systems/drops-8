@@ -7,10 +7,20 @@
 
 namespace Drupal\file\Tests;
 
+use Drupal\Core\Language\Language;
+
 /**
  * Tests file field widget.
  */
 class FileFieldWidgetTest extends FileFieldTestBase {
+
+  /**
+   * Modules to enable.
+   *
+   * @var array
+   */
+  public static $modules = array('comment');
+
   public static function getInfo() {
     return array(
       'name' => 'File field widget test',
@@ -23,15 +33,9 @@ class FileFieldWidgetTest extends FileFieldTestBase {
    * Tests upload and remove buttons for a single-valued File field.
    */
   function testSingleValuedWidget() {
-    // Use 'page' instead of 'article', so that the 'article' image field does
-    // not conflict with this test. If in the future the 'page' type gets its
-    // own default file or image field, this test can be made more robust by
-    // using a custom node type.
-    $type_name = 'page';
+    $type_name = 'article';
     $field_name = strtolower($this->randomName());
-    $this->createFileField($field_name, $type_name);
-    $field = field_info_field($field_name);
-    $instance = field_info_instance('node', $field_name, $type_name);
+    $this->createFileField($field_name, 'node', $type_name);
 
     $test_file = $this->getTestFile('text');
 
@@ -42,17 +46,17 @@ class FileFieldWidgetTest extends FileFieldTestBase {
       //   does not yet support file uploads.
       $nid = $this->uploadNodeFile($test_file, $field_name, $type_name);
       $node = node_load($nid, TRUE);
-      $node_file = file_load($node->{$field_name}[LANGUAGE_NOT_SPECIFIED][0]['fid']);
-      $this->assertFileExists($node_file, t('New file saved to disk on node creation.'));
+      $node_file = file_load($node->{$field_name}->target_id);
+      $this->assertFileExists($node_file, 'New file saved to disk on node creation.');
 
       // Ensure the file can be downloaded.
-      $this->drupalGet(file_create_url($node_file->uri));
-      $this->assertResponse(200, t('Confirmed that the generated URL is correct by downloading the shipped file.'));
+      $this->drupalGet(file_create_url($node_file->getFileUri()));
+      $this->assertResponse(200, 'Confirmed that the generated URL is correct by downloading the shipped file.');
 
       // Ensure the edit page has a remove button instead of an upload button.
       $this->drupalGet("node/$nid/edit");
-      $this->assertNoFieldByXPath('//input[@type="submit"]', t('Upload'), t('Node with file does not display the "Upload" button.'));
-      $this->assertFieldByXpath('//input[@type="submit"]', t('Remove'), t('Node with file displays the "Remove" button.'));
+      $this->assertNoFieldByXPath('//input[@type="submit"]', t('Upload'), 'Node with file does not display the "Upload" button.');
+      $this->assertFieldByXpath('//input[@type="submit"]', t('Remove'), 'Node with file displays the "Remove" button.');
 
       // "Click" the remove button (emulating either a nojs or js submission).
       switch ($type) {
@@ -66,16 +70,16 @@ class FileFieldWidgetTest extends FileFieldTestBase {
       }
 
       // Ensure the page now has an upload button instead of a remove button.
-      $this->assertNoFieldByXPath('//input[@type="submit"]', t('Remove'), t('After clicking the "Remove" button, it is no longer displayed.'));
-      $this->assertFieldByXpath('//input[@type="submit"]', t('Upload'), t('After clicking the "Remove" button, the "Upload" button is displayed.'));
+      $this->assertNoFieldByXPath('//input[@type="submit"]', t('Remove'), 'After clicking the "Remove" button, it is no longer displayed.');
+      $this->assertFieldByXpath('//input[@type="submit"]', t('Upload'), 'After clicking the "Remove" button, the "Upload" button is displayed.');
       // Test label has correct 'for' attribute.
-      $label = $this->xpath("//label[@for='edit-" . drupal_clean_css_identifier($field_name) . "-" . LANGUAGE_NOT_SPECIFIED . "-0-upload']");
+      $label = $this->xpath("//label[@for='edit-" . drupal_clean_css_identifier($field_name) . "-" . Language::LANGCODE_NOT_SPECIFIED . "-0-upload']");
       $this->assertTrue(isset($label[0]), 'Label for upload found.');
 
       // Save the node and ensure it does not have the file.
-      $this->drupalPost(NULL, array(), t('Save'));
+      $this->drupalPost(NULL, array(), t('Save and keep published'));
       $node = node_load($nid, TRUE);
-      $this->assertTrue(empty($node->{$field_name}[LANGUAGE_NOT_SPECIFIED][0]['fid']), t('File was successfully removed from the node.'));
+      $this->assertTrue(empty($node->{$field_name}->target_id), 'File was successfully removed from the node.');
     }
   }
 
@@ -83,21 +87,17 @@ class FileFieldWidgetTest extends FileFieldTestBase {
    * Tests upload and remove buttons for multiple multi-valued File fields.
    */
   function testMultiValuedWidget() {
-    // Use 'page' instead of 'article', so that the 'article' image field does
-    // not conflict with this test. If in the future the 'page' type gets its
-    // own default file or image field, this test can be made more robust by
-    // using a custom node type.
-    $type_name = 'page';
-    $field_name = strtolower($this->randomName());
-    $field_name2 = strtolower($this->randomName());
-    $this->createFileField($field_name, $type_name, array('cardinality' => 3));
-    $this->createFileField($field_name2, $type_name, array('cardinality' => 3));
-
-    $field = field_info_field($field_name);
-    $instance = field_info_instance('node', $field_name, $type_name);
-
-    $field2 = field_info_field($field_name2);
-    $instance2 = field_info_instance('node', $field_name2, $type_name);
+    $type_name = 'article';
+    // Use explicit names instead of random names for those fields, because of a
+    // bug in drupalPost() with multiple file uploads in one form, where the
+    // order of uploads depends on the order in which the upload elements are
+    // added to the $form (which, in the current implementation of
+    // FileStorage::listAll(), comes down to the alphabetical order on field
+    // names).
+    $field_name = 'test_file_field_1';
+    $field_name2 = 'test_file_field_2';
+    $this->createFileField($field_name, 'node', $type_name, array('cardinality' => 3));
+    $this->createFileField($field_name2, 'node', $type_name, array('cardinality' => 3));
 
     $test_file = $this->getTestFile('text');
 
@@ -113,13 +113,13 @@ class FileFieldWidgetTest extends FileFieldTestBase {
       $this->drupalGet("node/add/$type_name");
       foreach (array($field_name2, $field_name) as $each_field_name) {
         for ($delta = 0; $delta < 3; $delta++) {
-          $edit = array('files[' . $each_field_name . '_' . LANGUAGE_NOT_SPECIFIED . '_' . $delta . ']' => drupal_realpath($test_file->uri));
+          $edit = array('files[' . $each_field_name . '_' . Language::LANGCODE_NOT_SPECIFIED . '_' . $delta . '][]' => drupal_realpath($test_file->getFileUri()));
           // If the Upload button doesn't exist, drupalPost() will automatically
           // fail with an assertion message.
           $this->drupalPost(NULL, $edit, t('Upload'));
         }
       }
-      $this->assertNoFieldByXpath('//input[@type="submit"]', t('Upload'), t('After uploading 3 files for each field, the "Upload" button is no longer displayed.'));
+      $this->assertNoFieldByXpath('//input[@type="submit"]', t('Upload'), 'After uploading 3 files for each field, the "Upload" button is no longer displayed.');
 
       $num_expected_remove_buttons = 6;
 
@@ -136,7 +136,7 @@ class FileFieldWidgetTest extends FileFieldTestBase {
           // Ensure we have the expected number of Remove buttons, and that they
           // are numbered sequentially.
           $buttons = $this->xpath('//input[@type="submit" and @value="Remove"]');
-          $this->assertTrue(is_array($buttons) && count($buttons) === $num_expected_remove_buttons, t('There are %n "Remove" buttons displayed (JSMode=%type).', array('%n' => $num_expected_remove_buttons, '%type' => $type)));
+          $this->assertTrue(is_array($buttons) && count($buttons) === $num_expected_remove_buttons, format_string('There are %n "Remove" buttons displayed (JSMode=%type).', array('%n' => $num_expected_remove_buttons, '%type' => $type)));
           foreach ($buttons as $i => $button) {
             $key = $i >= $remaining ? $i - $remaining : $i;
             $check_field_name = $field_name2;
@@ -144,11 +144,11 @@ class FileFieldWidgetTest extends FileFieldTestBase {
               $check_field_name = $field_name;
             }
 
-            $this->assertIdentical((string) $button['name'], $check_field_name . '_' . LANGUAGE_NOT_SPECIFIED . '_' . $key. '_remove_button');
+            $this->assertIdentical((string) $button['name'], $check_field_name . '_' . Language::LANGCODE_NOT_SPECIFIED . '_' . $key. '_remove_button');
           }
 
           // "Click" the remove button (emulating either a nojs or js submission).
-          $button_name = $current_field_name . '_' . LANGUAGE_NOT_SPECIFIED . '_' . $delta . '_remove_button';
+          $button_name = $current_field_name . '_' . Language::LANGCODE_NOT_SPECIFIED . '_' . $delta . '_remove_button';
           switch ($type) {
             case 'nojs':
               // drupalPost() takes a $submit parameter that is the value of the
@@ -176,27 +176,27 @@ class FileFieldWidgetTest extends FileFieldTestBase {
 
           // Ensure an "Upload" button for the current field is displayed with the
           // correct name.
-          $upload_button_name = $current_field_name . '_' . LANGUAGE_NOT_SPECIFIED . '_' . $remaining . '_upload_button';
+          $upload_button_name = $current_field_name . '_' . Language::LANGCODE_NOT_SPECIFIED . '_' . $remaining . '_upload_button';
           $buttons = $this->xpath('//input[@type="submit" and @value="Upload" and @name=:name]', array(':name' => $upload_button_name));
-          $this->assertTrue(is_array($buttons) && count($buttons) == 1, t('The upload button is displayed with the correct name (JSMode=%type).', array('%type' => $type)));
+          $this->assertTrue(is_array($buttons) && count($buttons) == 1, format_string('The upload button is displayed with the correct name (JSMode=%type).', array('%type' => $type)));
 
           // Ensure only at most one button per field is displayed.
           $buttons = $this->xpath('//input[@type="submit" and @value="Upload"]');
           $expected = $current_field_name == $field_name ? 1 : 2;
-          $this->assertTrue(is_array($buttons) && count($buttons) == $expected, t('After removing a file, only one "Upload" button for each possible field is displayed (JSMode=%type).', array('%type' => $type)));
+          $this->assertTrue(is_array($buttons) && count($buttons) == $expected, format_string('After removing a file, only one "Upload" button for each possible field is displayed (JSMode=%type).', array('%type' => $type)));
         }
       }
 
       // Ensure the page now has no Remove buttons.
-      $this->assertNoFieldByXPath('//input[@type="submit"]', t('Remove'), t('After removing all files, there is no "Remove" button displayed (JSMode=%type).', array('%type' => $type)));
+      $this->assertNoFieldByXPath('//input[@type="submit"]', t('Remove'), format_string('After removing all files, there is no "Remove" button displayed (JSMode=%type).', array('%type' => $type)));
 
       // Save the node and ensure it does not have any files.
-      $this->drupalPost(NULL, array('title' => $this->randomName()), t('Save'));
+      $this->drupalPost(NULL, array('title' => $this->randomName()), t('Save and publish'));
       $matches = array();
       preg_match('/node\/([0-9]+)/', $this->getUrl(), $matches);
       $nid = $matches[1];
       $node = node_load($nid, TRUE);
-      $this->assertTrue(empty($node->{$field_name}[LANGUAGE_NOT_SPECIFIED][0]['fid']), t('Node was successfully saved without any files.'));
+      $this->assertTrue(empty($node->{$field_name}->target_id), 'Node was successfully saved without any files.');
     }
   }
 
@@ -204,39 +204,34 @@ class FileFieldWidgetTest extends FileFieldTestBase {
    * Tests a file field with a "Private files" upload destination setting.
    */
   function testPrivateFileSetting() {
-    // Use 'page' instead of 'article', so that the 'article' image field does
-    // not conflict with this test. If in the future the 'page' type gets its
-    // own default file or image field, this test can be made more robust by
-    // using a custom node type.
-    $type_name = 'page';
+    $type_name = 'article';
     $field_name = strtolower($this->randomName());
-    $this->createFileField($field_name, $type_name);
-    $field = field_info_field($field_name);
+    $this->createFileField($field_name, 'node', $type_name);
     $instance = field_info_instance('node', $field_name, $type_name);
 
     $test_file = $this->getTestFile('text');
 
     // Change the field setting to make its files private, and upload a file.
     $edit = array('field[settings][uri_scheme]' => 'private');
-    $this->drupalPost("admin/structure/types/manage/$type_name/fields/$field_name", $edit, t('Save settings'));
+    $this->drupalPost("admin/structure/types/manage/$type_name/fields/$instance->id/field", $edit, t('Save field settings'));
     $nid = $this->uploadNodeFile($test_file, $field_name, $type_name);
     $node = node_load($nid, TRUE);
-    $node_file = file_load($node->{$field_name}[LANGUAGE_NOT_SPECIFIED][0]['fid']);
-    $this->assertFileExists($node_file, t('New file saved to disk on node creation.'));
+    $node_file = file_load($node->{$field_name}->target_id);
+    $this->assertFileExists($node_file, 'New file saved to disk on node creation.');
 
     // Ensure the private file is available to the user who uploaded it.
-    $this->drupalGet(file_create_url($node_file->uri));
-    $this->assertResponse(200, t('Confirmed that the generated URL is correct by downloading the shipped file.'));
+    $this->drupalGet(file_create_url($node_file->getFileUri()));
+    $this->assertResponse(200, 'Confirmed that the generated URL is correct by downloading the shipped file.');
 
     // Ensure we can't change 'uri_scheme' field settings while there are some
     // entities with uploaded files.
-    $this->drupalGet("admin/structure/types/manage/$type_name/fields/$field_name");
-    $this->assertFieldByXpath('//input[@id="edit-field-settings-uri-scheme-public" and @disabled="disabled"]', 'public', t('Upload destination setting disabled.'));
+    $this->drupalGet("admin/structure/types/manage/$type_name/fields/$instance->id/field");
+    $this->assertFieldByXpath('//input[@id="edit-field-settings-uri-scheme-public" and @disabled="disabled"]', 'public', 'Upload destination setting disabled.');
 
     // Delete node and confirm that setting could be changed.
-    node_delete($nid);
-    $this->drupalGet("admin/structure/types/manage/$type_name/fields/$field_name");
-    $this->assertFieldByXpath('//input[@id="edit-field-settings-uri-scheme-public" and not(@disabled)]', 'public', t('Upload destination setting enabled.'));
+    $node->delete();
+    $this->drupalGet("admin/structure/types/manage/$type_name/fields/$instance->id/field");
+    $this->assertFieldByXpath('//input[@id="edit-field-settings-uri-scheme-public" and not(@disabled)]', 'public', 'Upload destination setting enabled.');
   }
 
   /**
@@ -245,37 +240,41 @@ class FileFieldWidgetTest extends FileFieldTestBase {
   function testPrivateFileComment() {
     $user = $this->drupalCreateUser(array('access comments'));
 
-    // Remove access comments permission from anon user.
-    $edit = array(
-      DRUPAL_ANONYMOUS_RID . '[access comments]' => FALSE,
-    );
-    $this->drupalPost('admin/people/permissions', $edit, t('Save permissions'));
+    // Grant the admin user required comment permissions.
+    $roles = $this->admin_user->getRoles();
+    user_role_grant_permissions($roles[1], array('administer comment fields'));
+
+    // Revoke access comments permission from anon user, grant post to
+    // authenticated.
+    user_role_revoke_permissions(DRUPAL_ANONYMOUS_RID, array('access comments'));
+    user_role_grant_permissions(DRUPAL_AUTHENTICATED_RID, array('post comments', 'skip comment approval'));
 
     // Create a new field.
     $edit = array(
       'fields[_add_new_field][label]' => $label = $this->randomName(),
       'fields[_add_new_field][field_name]' => $name = strtolower($this->randomName()),
       'fields[_add_new_field][type]' => 'file',
-      'fields[_add_new_field][widget_type]' => 'file_generic',
     );
     $this->drupalPost('admin/structure/types/manage/article/comment/fields', $edit, t('Save'));
     $edit = array('field[settings][uri_scheme]' => 'private');
     $this->drupalPost(NULL, $edit, t('Save field settings'));
     $this->drupalPost(NULL, array(), t('Save settings'));
 
+    // Manually clear cache on the tester side.
+    field_info_cache_clear();
+
     // Create node.
-    $text_file = $this->getTestFile('text');
     $edit = array(
       'title' => $this->randomName(),
     );
-    $this->drupalPost('node/add/article', $edit, t('Save'));
+    $this->drupalPost('node/add/article', $edit, t('Save and publish'));
     $node = $this->drupalGetNodeByTitle($edit['title']);
 
     // Add a comment with a file.
     $text_file = $this->getTestFile('text');
     $edit = array(
-      'files[field_' . $name . '_' . LANGUAGE_NOT_SPECIFIED . '_' . 0 . ']' => drupal_realpath($text_file->uri),
-      'comment_body[' . LANGUAGE_NOT_SPECIFIED . '][0][value]' => $comment_body = $this->randomName(),
+      'files[field_' . $name . '_' . Language::LANGCODE_NOT_SPECIFIED . '_' . 0 . ']' => drupal_realpath($text_file->getFileUri()),
+      'comment_body[' . Language::LANGCODE_NOT_SPECIFIED . '][0][value]' => $comment_body = $this->randomName(),
     );
     $this->drupalPost(NULL, $edit, t('Save'));
 
@@ -287,30 +286,73 @@ class FileFieldWidgetTest extends FileFieldTestBase {
     $this->drupalLogin($user);
 
     $comment = comment_load($cid);
-    $comment_file = file_load($comment->{'field_' . $name}[LANGUAGE_NOT_SPECIFIED][0]['fid']);
-    $this->assertFileExists($comment_file, t('New file saved to disk on node creation.'));
+    $comment_file = $comment->{'field_' . $name}->entity;
+    $this->assertFileExists($comment_file, 'New file saved to disk on node creation.');
     // Test authenticated file download.
-    $url = file_create_url($comment_file->uri);
-    $this->assertNotEqual($url, NULL, t('Confirmed that the URL is valid'));
-    $this->drupalGet(file_create_url($comment_file->uri));
-    $this->assertResponse(200, t('Confirmed that the generated URL is correct by downloading the shipped file.'));
+    $url = file_create_url($comment_file->getFileUri());
+    $this->assertNotEqual($url, NULL, 'Confirmed that the URL is valid');
+    $this->drupalGet(file_create_url($comment_file->getFileUri()));
+    $this->assertResponse(200, 'Confirmed that the generated URL is correct by downloading the shipped file.');
 
     // Test anonymous file download.
     $this->drupalLogout();
-    $this->drupalGet(file_create_url($comment_file->uri));
-    $this->assertResponse(403, t('Confirmed that access is denied for the file without the needed permission.'));
+    $this->drupalGet(file_create_url($comment_file->getFileUri()));
+    $this->assertResponse(403, 'Confirmed that access is denied for the file without the needed permission.');
 
     // Unpublishes node.
     $this->drupalLogin($this->admin_user);
-    $edit = array(
-      'status' => FALSE,
-    );
-    $this->drupalPost('node/' . $node->nid . '/edit', $edit, t('Save'));
+    $this->drupalPost('node/' . $node->id() . '/edit', array(), t('Save and unpublish'));
 
     // Ensures normal user can no longer download the file.
     $this->drupalLogin($user);
-    $this->drupalGet(file_create_url($comment_file->uri));
-    $this->assertResponse(403, t('Confirmed that access is denied for the file without the needed permission.'));
+    $this->drupalGet(file_create_url($comment_file->getFileUri()));
+    $this->assertResponse(403, 'Confirmed that access is denied for the file without the needed permission.');
   }
 
+  /**
+   * Tests validation with the Upload button.
+   */
+  function testWidgetValidation() {
+    $type_name = 'article';
+    $field_name = strtolower($this->randomName());
+    $this->createFileField($field_name, 'node', $type_name);
+    $this->updateFileField($field_name, $type_name, array('file_extensions' => 'txt'));
+
+    foreach (array('nojs', 'js') as $type) {
+      // Create node and prepare files for upload.
+      $node = $this->drupalCreateNode(array('type' => 'article'));
+      $nid = $node->id();
+      $this->drupalGet("node/$nid/edit");
+      $test_file_text = $this->getTestFile('text');
+      $test_file_image = $this->getTestFile('image');
+      $name = 'files[' . $field_name . '_' . Language::LANGCODE_NOT_SPECIFIED . '_0]';
+
+      // Upload file with incorrect extension, check for validation error.
+      $edit[$name] = drupal_realpath($test_file_image->getFileUri());
+      switch ($type) {
+        case 'nojs':
+          $this->drupalPost(NULL, $edit, t('Upload'));
+          break;
+        case 'js':
+          $button = $this->xpath('//input[@type="submit" and @value="' . t('Upload') . '"]');
+          $this->drupalPostAJAX(NULL, $edit, array((string) $button[0]['name'] => (string) $button[0]['value']));
+          break;
+      }
+      $error_message = t('Only files with the following extensions are allowed: %files-allowed.', array('%files-allowed' => 'txt'));
+      $this->assertRaw($error_message, t('Validation error when file with wrong extension uploaded (JSMode=%type).', array('%type' => $type)));
+
+      // Upload file with correct extension, check that error message is removed.
+      $edit[$name] = drupal_realpath($test_file_text->getFileUri());
+      switch ($type) {
+        case 'nojs':
+          $this->drupalPost(NULL, $edit, t('Upload'));
+          break;
+        case 'js':
+          $button = $this->xpath('//input[@type="submit" and @value="' . t('Upload') . '"]');
+          $this->drupalPostAJAX(NULL, $edit, array((string) $button[0]['name'] => (string) $button[0]['value']));
+          break;
+      }
+      $this->assertNoRaw($error_message, t('Validation error removed when file with correct extension uploaded (JSMode=%type).', array('%type' => $type)));
+    }
+  }
 }

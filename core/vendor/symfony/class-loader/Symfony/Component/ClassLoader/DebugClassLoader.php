@@ -53,7 +53,7 @@ class DebugClassLoader
         }
 
         foreach ($functions as $function) {
-            if (is_array($function) && method_exists($function[0], 'findFile')) {
+            if (is_array($function) && !$function[0] instanceof self && method_exists($function[0], 'findFile')) {
                 $function = array(new static($function[0]), 'loadClass');
             }
 
@@ -70,11 +70,25 @@ class DebugClassLoader
     }
 
     /**
+     * Finds a file by class name
+     *
+     * @param string $class A class name to resolve to file
+     *
+     * @return string|null
+     */
+    public function findFile($class)
+    {
+        return $this->classFinder->findFile($class);
+    }
+
+    /**
      * Loads the given class or interface.
      *
      * @param string $class The name of the class
      *
      * @return Boolean|null True, if loaded
+     *
+     * @throws \RuntimeException
      */
     public function loadClass($class)
     {
@@ -82,6 +96,10 @@ class DebugClassLoader
             require $file;
 
             if (!class_exists($class, false) && !interface_exists($class, false) && (!function_exists('trait_exists') || !trait_exists($class, false))) {
+                if (false !== strpos($class, '/')) {
+                    throw new \RuntimeException(sprintf('Trying to autoload a class with an invalid name "%s". Be careful that the namespace separator is "\" in PHP, not "/".', $class));
+                }
+
                 throw new \RuntimeException(sprintf('The autoloader expected class "%s" to be defined in file "%s". The file was found but the class was not in it, the class name or namespace probably has a typo.', $class, $file));
             }
 

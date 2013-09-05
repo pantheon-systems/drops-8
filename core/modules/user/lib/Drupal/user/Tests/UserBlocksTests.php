@@ -21,32 +21,28 @@ class UserBlocksTests extends WebTestBase {
    */
   public static $modules = array('block');
 
+  /**
+   * The admin user used in this test.
+   *
+   * @var \Drupal\user\UserInterface
+   */
+  protected $adminUser;
+
   public static function getInfo() {
     return array(
       'name' => 'User blocks',
       'description' => 'Test user blocks.',
-      'group' => 'User'
+      'group' => 'User',
     );
   }
 
   function setUp() {
     parent::setUp();
 
-    // Enable user login block.
-    db_merge('block')
-      ->key(array(
-        'module' => 'user',
-        'delta' => 'login',
-        'theme' => variable_get('theme_default', 'stark'),
-      ))
-      ->fields(array(
-        'status' => 1,
-        'weight' => 0,
-        'region' => 'sidebar_first',
-        'pages' => '',
-        'cache' => -1,
-      ))
-      ->execute();
+    $this->adminUser = $this->drupalCreateUser(array('administer blocks'));
+    $this->drupalLogin($this->adminUser);
+    $this->drupalPlaceBlock('user_login_block');
+    $this->drupalLogout($this->adminUser);
   }
 
   /**
@@ -58,7 +54,7 @@ class UserBlocksTests extends WebTestBase {
 
     // Log in using the block.
     $edit = array();
-    $edit['name'] = $user->name;
+    $edit['name'] = $user->getUsername();
     $edit['pass'] = $user->pass_raw;
     $this->drupalPost('admin/people/permissions', $edit, t('Log in'));
     $this->assertNoText(t('User login'), 'Logged in.');
@@ -77,58 +73,48 @@ class UserBlocksTests extends WebTestBase {
     $this->drupalLogout();
     $this->drupalPost('http://example.com/', $edit, t('Log in'), array('external' => FALSE));
     // Check that we remain on the site after login.
-    $this->assertEqual(url('user/' . $user->uid, array('absolute' => TRUE)), $this->getUrl(), 'Redirected to user profile page after login from the frontpage');
+    $this->assertEqual(url('user/' . $user->id(), array('absolute' => TRUE)), $this->getUrl(), 'Redirected to user profile page after login from the frontpage');
   }
 
   /**
    * Test the Who's Online block.
    */
   function testWhosOnlineBlock() {
-    // Generate users and make sure there are no current user sessions.
+    $block = $this->drupalPlaceBlock('user_online_block');
+    $config = $block->get('settings');
+
+    // Generate users.
     $user1 = $this->drupalCreateUser(array());
     $user2 = $this->drupalCreateUser(array());
     $user3 = $this->drupalCreateUser(array());
-    $this->assertEqual(db_query("SELECT COUNT(*) FROM {sessions}")->fetchField(), 0, 'Sessions table is empty.');
 
-    // Insert a user with two sessions.
-    $this->insertSession(array('uid' => $user1->uid));
-    $this->insertSession(array('uid' => $user1->uid));
-    $this->assertEqual(db_query("SELECT COUNT(*) FROM {sessions} WHERE uid = :uid", array(':uid' => $user1->uid))->fetchField(), 2, 'Duplicate user session has been inserted.');
+    // Update access of two users to be within the active timespan.
+    $this->updateAccess($user1->id());
+    $this->updateAccess($user2->id(), REQUEST_TIME + 1);
 
-    // Insert a user with only one session.
-    $this->insertSession(array('uid' => $user2->uid, 'timestamp' => REQUEST_TIME + 1));
-
-    // Insert an inactive logged-in user who should not be seen in the block.
-    $this->insertSession(array('uid' => $user3->uid, 'timestamp' => (REQUEST_TIME - variable_get('user_block_seconds_online', 900) - 1)));
-
-    // Insert two anonymous user sessions.
-    $this->insertSession();
-    $this->insertSession();
+    // Insert an inactive user who should not be seen in the block, and ensure
+    // that the admin user used in setUp() does not appear.
+    $inactive_time = REQUEST_TIME - $config['seconds_online'] - 1;
+    $this->updateAccess($user3->id(), $inactive_time);
+    $this->updateAccess($this->adminUser->id(), $inactive_time);
 
     // Test block output.
-    $block = user_block_view('online');
-    $block['content'] = render($block['content']);
-    $this->drupalSetContent($block['content']);
+    $content = entity_view($block, 'block');
+    $this->drupalSetContent(render($content));
     $this->assertRaw(t('2 users'), 'Correct number of online users (2 users).');
-    $this->assertText($user1->name, 'Active user 1 found in online list.');
-    $this->assertText($user2->name, 'Active user 2 found in online list.');
-    $this->assertNoText($user3->name, 'Inactive user not found in online list.');
-    $this->assertTrue(strpos($this->drupalGetContent(), $user1->name) > strpos($this->drupalGetContent(), $user2->name), 'Online users are ordered correctly.');
+    $this->assertText($user1->getUsername(), 'Active user 1 found in online list.');
+    $this->assertText($user2->getUsername(), 'Active user 2 found in online list.');
+    $this->assertNoText($user3->getUsername(), 'Inactive user not found in online list.');
+    $this->assertTrue(strpos($this->drupalGetContent(), $user1->getUsername()) > strpos($this->drupalGetContent(), $user2->getUsername()), 'Online users are ordered correctly.');
   }
 
   /**
-   * Insert a user session into the {sessions} table. This function is used
-   * since we cannot log in more than one user at the same time in tests.
+   * Updates the access column for a user.
    */
-  private function insertSession(array $fields = array()) {
-    $fields += array(
-      'uid' => 0,
-      'sid' => drupal_hash_base64(uniqid(mt_rand(), TRUE)),
-      'timestamp' => REQUEST_TIME,
-    );
-    db_insert('sessions')
-      ->fields($fields)
+  private function updateAccess($uid, $access = REQUEST_TIME) {
+    db_update('users')
+      ->condition('uid', $uid)
+      ->fields(array('access' => $access))
       ->execute();
-    $this->assertEqual(db_query("SELECT COUNT(*) FROM {sessions} WHERE uid = :uid AND sid = :sid AND timestamp = :timestamp", array(':uid' => $fields['uid'], ':sid' => $fields['sid'], ':timestamp' => $fields['timestamp']))->fetchField(), 1, 'Session record inserted.');
   }
 }

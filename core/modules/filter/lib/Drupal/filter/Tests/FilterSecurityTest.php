@@ -7,6 +7,7 @@
 
 namespace Drupal\filter\Tests;
 
+use Drupal\Core\Language\Language;
 use Drupal\simpletest\WebTestBase;
 
 /**
@@ -20,6 +21,13 @@ class FilterSecurityTest extends WebTestBase {
    * @var array
    */
   public static $modules = array('node', 'php', 'filter_test');
+
+  /**
+   * A user with administrative permissions.
+   *
+   * @var object
+   */
+  protected $admin_user;
 
   public static function getInfo() {
     return array(
@@ -36,7 +44,7 @@ class FilterSecurityTest extends WebTestBase {
     $this->drupalCreateContentType(array('type' => 'page', 'name' => 'Basic page'));
 
     // Create Filtered HTML format.
-    $filtered_html_format = array(
+    $filtered_html_format = entity_create('filter_format', array(
       'format' => 'filtered_html',
       'name' => 'Filtered HTML',
       'filters' => array(
@@ -45,11 +53,10 @@ class FilterSecurityTest extends WebTestBase {
           'status' => 1,
         ),
       )
-    );
-    $filtered_html_format = (object) $filtered_html_format;
-    filter_format_save($filtered_html_format);
+    ));
+    $filtered_html_format->save();
 
-    $filtered_html_permission = filter_permission_name($filtered_html_format);
+    $filtered_html_permission = $filtered_html_format->getPermissionName();
     user_role_grant_permissions(DRUPAL_ANONYMOUS_RID, array($filtered_html_permission));
 
     $this->admin_user = $this->drupalCreateUser(array('administer modules', 'administer filters', 'administer site configuration'));
@@ -65,27 +72,27 @@ class FilterSecurityTest extends WebTestBase {
   function testDisableFilterModule() {
     // Create a new node.
     $node = $this->drupalCreateNode(array('promote' => 1));
-    $body_raw = $node->body[LANGUAGE_NOT_SPECIFIED][0]['value'];
-    $format_id = $node->body[LANGUAGE_NOT_SPECIFIED][0]['format'];
-    $this->drupalGet('node/' . $node->nid);
+    $body_raw = $node->body->value;
+    $format_id = $node->body->format;
+    $this->drupalGet('node/' . $node->id());
     $this->assertText($body_raw, 'Node body found.');
 
     // Enable the filter_test_replace filter.
     $edit = array(
       'filters[filter_test_replace][status]' => 1,
     );
-    $this->drupalPost('admin/config/content/formats/' . $format_id, $edit, t('Save configuration'));
+    $this->drupalPost('admin/config/content/formats/manage/' . $format_id, $edit, t('Save configuration'));
 
     // Verify that filter_test_replace filter replaced the content.
-    $this->drupalGet('node/' . $node->nid);
+    $this->drupalGet('node/' . $node->id());
     $this->assertNoText($body_raw, 'Node body not found.');
     $this->assertText('Filter: Testing filter', 'Testing filter output found.');
 
     // Disable the text format entirely.
-    $this->drupalPost('admin/config/content/formats/' . $format_id . '/disable', array(), t('Disable'));
+    $this->drupalPost('admin/config/content/formats/manage/' . $format_id . '/disable', array(), t('Disable'));
 
     // Verify that the content is empty, because the text format does not exist.
-    $this->drupalGet('node/' . $node->nid);
+    $this->drupalGet('node/' . $node->id());
     $this->assertNoText($body_raw, 'Node body not found.');
   }
 

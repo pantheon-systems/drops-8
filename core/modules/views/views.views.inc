@@ -90,6 +90,14 @@ function views_views_data() {
     ),
   );
 
+  $data['views']['http_status_code'] = array(
+    'title' => t('Response status code'),
+    'help' => t('Alter the HTTP response status code used by this view, mostly helpful for empty results.'),
+    'area' => array(
+      'id' => 'http_status_code',
+    ),
+  );
+
   $data['views']['combine'] = array(
    'title' => t('Combine fields filter'),
     'help' => t('Combine two fields together and search by them.'),
@@ -97,6 +105,30 @@ function views_views_data() {
       'id' => 'combine',
     ),
   );
+
+  $data['views']['dropbutton'] = array(
+    'title' => t('Dropbutton'),
+    'help' => t('Display fields in a dropbutton.'),
+    'field' => array(
+      'id' => 'dropbutton',
+    ),
+  );
+
+  // Registers an entity area handler per entity type.
+  foreach (entity_get_info() as $entity_type => $entity_info) {
+    // Exclude entity types, which cannot be rendered.
+    if (!empty($entity_info['controllers']['render'])) {
+      $label = $entity_info['label'];
+      $data['views']['entity_' . $entity_type] = array(
+        'title' => t('Rendered entity - @label', array('@label' => $label)),
+        'help' => t('Displays a rendered @label entity in an area.', array('@label' => $label)),
+        'area' => array(
+          'entity_type' => $entity_type,
+          'id' => 'entity',
+        ),
+      );
+    }
+  }
 
   return $data;
 }

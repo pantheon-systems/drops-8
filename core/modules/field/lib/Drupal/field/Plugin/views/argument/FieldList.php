@@ -8,8 +8,9 @@
 namespace Drupal\field\Plugin\views\argument;
 
 use Drupal\views\ViewExecutable;
+use Drupal\views\Plugin\views\display\DisplayPluginBase;
 use Drupal\views\Plugin\views\argument\Numeric;
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
 
 /**
  * Argument handler for list field to show the human readable name in the
@@ -17,10 +18,7 @@ use Drupal\Core\Annotation\Plugin;
  *
  * @ingroup views_argument_handlers
  *
- * @Plugin(
- *   id = "field_list",
- *   module = "field"
- * )
+ * @PluginID("field_list")
  */
 class FieldList extends Numeric {
 
@@ -31,9 +29,13 @@ class FieldList extends Numeric {
    */
   var $allowed_values = NULL;
 
-  public function init(ViewExecutable $view, &$options) {
-    parent::init($view, $options);
-    $field = field_info_field($this->definition['field_name']);
+  /**
+   * Overrides \Drupal\views\Plugin\views\argument\ArgumentPluginBase::init().
+   */
+  public function init(ViewExecutable $view, DisplayPluginBase $display, array &$options = NULL) {
+    parent::init($view, $display, $options);
+
+    $field = field_info_field($this->definition['entity_type'], $this->definition['field_name']);
     $this->allowed_values = options_allowed_values($field);
   }
 
@@ -59,7 +61,7 @@ class FieldList extends Numeric {
     );
   }
 
-  function summary_name($data) {
+  public function summaryName($data) {
     $value = $data->{$this->name_alias};
     // If the list element has a human readable name show it,
     if (isset($this->allowed_values[$value]) && !empty($this->options['summary']['human'])) {

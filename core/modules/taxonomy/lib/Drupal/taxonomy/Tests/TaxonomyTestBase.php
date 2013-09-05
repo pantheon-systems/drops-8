@@ -7,6 +7,7 @@
 
 namespace Drupal\taxonomy\Tests;
 
+use Drupal\Core\Language\Language;
 use Drupal\simpletest\WebTestBase;
 
 /**
@@ -38,13 +39,11 @@ abstract class TaxonomyTestBase extends WebTestBase {
     $vocabulary = entity_create('taxonomy_vocabulary', array(
       'name' => $this->randomName(),
       'description' => $this->randomName(),
-      'machine_name' => drupal_strtolower($this->randomName()),
-      'langcode' => LANGUAGE_NOT_SPECIFIED,
-      'help' => '',
-      'nodes' => array('article' => 'article'),
+      'vid' => drupal_strtolower($this->randomName()),
+      'langcode' => Language::LANGCODE_NOT_SPECIFIED,
       'weight' => mt_rand(0, 10),
     ));
-    taxonomy_vocabulary_save($vocabulary);
+    $vocabulary->save();
     return $vocabulary;
   }
 
@@ -52,15 +51,17 @@ abstract class TaxonomyTestBase extends WebTestBase {
    * Returns a new term with random properties in vocabulary $vid.
    */
   function createTerm($vocabulary) {
+    $filter_formats = filter_formats();
+    $format = array_pop($filter_formats);
     $term = entity_create('taxonomy_term', array(
       'name' => $this->randomName(),
       'description' => $this->randomName(),
       // Use the first available text format.
-      'format' => db_query_range('SELECT format FROM {filter_format}', 0, 1)->fetchField(),
-      'vid' => $vocabulary->vid,
-      'langcode' => LANGUAGE_NOT_SPECIFIED,
+      'format' => $format->format,
+      'vid' => $vocabulary->id(),
+      'langcode' => Language::LANGCODE_NOT_SPECIFIED,
     ));
-    taxonomy_term_save($term);
+    $term->save();
     return $term;
   }
 }

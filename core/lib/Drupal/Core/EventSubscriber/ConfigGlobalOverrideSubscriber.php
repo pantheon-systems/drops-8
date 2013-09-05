@@ -1,7 +1,8 @@
 <?php
+
 /**
  * @file
- * Definition of Drupal\Core\EventSubscriber\ConfigGlobalOverrideSubscriber.
+ * Contains \Drupal\Core\EventSubscriber\ConfigGlobalOverrideSubscriber.
  */
 
 namespace Drupal\Core\EventSubscriber;
@@ -11,13 +12,14 @@ use Drupal\Core\Config\ConfigEvent;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**
- * Override configuration values with values in global $conf variable.
+ * Defines a configuration global override for contexts.
  */
 class ConfigGlobalOverrideSubscriber implements EventSubscriberInterface {
+
   /**
-   * Override configuration values with global $conf.
+   * Overrides configuration values with values in global $conf variable.
    *
-   * @param Drupal\Core\Config\ConfigEvent $event
+   * @param \Drupal\Core\Config\ConfigEvent $event
    *   The Event to process.
    */
   public function configInit(ConfigEvent $event) {
@@ -36,4 +38,5 @@ class ConfigGlobalOverrideSubscriber implements EventSubscriberInterface {
     $events['config.init'][] = array('configInit', 30);
     return $events;
   }
+
 }

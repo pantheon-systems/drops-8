@@ -92,4 +92,62 @@ class ElementTest extends WebTestBase {
       )));
     }
   }
+
+  /**
+   * Tests button classes.
+   */
+  function testButtonClasses() {
+    $this->drupalGet('form-test/button-class');
+    // Just contains(@class, "button") won't do because then
+    // "button-foo" would contain "button". Instead, check
+    // " button ". Make sure it matches in the beginning and the end too
+    // by adding a space before and after.
+    $this->assertEqual(2, count($this->xpath('//*[contains(concat(" ", @class, " "), " button ")]')));
+    $this->assertEqual(1, count($this->xpath('//*[contains(concat(" ", @class, " "), " button-foo ")]')));
+    $this->assertEqual(1, count($this->xpath('//*[contains(concat(" ", @class, " "), " button-danger ")]')));
+  }
+
+  /**
+   * Tests the #group property.
+   */
+  function testGroupElements() {
+    $this->drupalGet('form-test/group-details');
+    $elements = $this->xpath('//div[@class="details-wrapper"]//div[@class="details-wrapper"]//label');
+    $this->assertTrue(count($elements) == 1);
+    $this->drupalGet('form-test/group-container');
+    $elements = $this->xpath('//div[@id="edit-container"]//div[@class="details-wrapper"]//label');
+    $this->assertTrue(count($elements) == 1);
+    $this->drupalGet('form-test/group-fieldset');
+    $elements = $this->xpath('//fieldset[@id="edit-fieldset"]//div[@id="edit-meta"]//label');
+    $this->assertTrue(count($elements) == 1);
+    $this->drupalGet('form-test/group-vertical-tabs');
+    $elements = $this->xpath('//div[@class="vertical-tabs-panes"]//details[@id="edit-meta"]//label');
+    $this->assertTrue(count($elements) == 1);
+    $elements = $this->xpath('//div[@class="vertical-tabs-panes"]//details[@id="edit-meta-2"]//label');
+    $this->assertTrue(count($elements) == 1);
+  }
+
+  /**
+   * Tests a form with a autocomplete setting..
+   */
+  public function testFormAutocomplete() {
+    $this->drupalGet('form-test/autocomplete');
+
+    $result = $this->xpath('//input[@id = "edit-autocomplete-1-autocomplete"]');
+    $this->assertEqual(count($result), 0, 'Ensure that the user does not have access to the autocompletion');
+    $result = $this->xpath('//input[@id = "edit-autocomplete-2-autocomplete"]');
+    $this->assertEqual(count($result), 0, 'Ensure that the user did not had access to the autocompletion');
+
+    $user = $this->drupalCreateUser(array('access autocomplete test'));
+    $this->drupalLogin($user);
+    $this->drupalGet('form-test/autocomplete');
+
+    $result = $this->xpath('//input[@id = "edit-autocomplete-1-autocomplete"]');
+    $this->assertEqual((string) $result[0]['value'], url('form-test/autocomplete-1'));
+    $this->assertEqual(count($result), 1, 'Ensure that the user does have access to the autocompletion');
+    $result = $this->xpath('//input[@id = "edit-autocomplete-2-autocomplete"]');
+    $this->assertEqual((string) $result[0]['value'], url('form-test/autocomplete-2/value'));
+    $this->assertEqual(count($result), 1, 'Ensure that the user does have access to the autocompletion');
+  }
+
 }

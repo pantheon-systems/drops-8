@@ -5,6 +5,9 @@
  * Field module functionality for the File module.
  */
 
+use Drupal\Component\Utility\NestedArray;
+use Drupal\Core\Entity\EntityInterface;
+
 /**
  * Implements hook_field_info().
  */
@@ -16,7 +19,7 @@ function file_field_info() {
       'settings' => array(
         'display_field' => 0,
         'display_default' => 0,
-        'uri_scheme' => variable_get('file_default_scheme', 'public'),
+        'uri_scheme' => file_default_scheme(),
       ),
       'instance_settings' => array(
         'file_extensions' => 'txt',
@@ -26,6 +29,8 @@ function file_field_info() {
       ),
       'default_widget' => 'file_generic',
       'default_formatter' => 'file_default',
+      'class' => '\Drupal\file\Type\FileItem',
+      'list_class' => '\Drupal\file\Type\FileField',
     ),
   );
 }
@@ -33,8 +38,8 @@ function file_field_info() {
 /**
  * Implements hook_field_settings_form().
  */
-function file_field_settings_form($field, $instance, $has_data) {
-  $defaults = field_info_field_settings($field['type']);
+function file_field_settings_form($field, $instance) {
+  $defaults = \Drupal::service('plugin.manager.entity.field.field_type')->getDefaultSettings($field['type']);
   $settings = array_merge($defaults, $field['settings']);
 
   $form['#attached']['library'][] = array('file', 'drupal.file');
@@ -67,7 +72,7 @@ function file_field_settings_form($field, $instance, $has_data) {
     '#options' => $scheme_options,
     '#default_value' => $settings['uri_scheme'],
     '#description' => t('Select where the final files should be stored. Private file storage has significantly more overhead than public files, but allows restricted access to files within this field.'),
-    '#disabled' => $has_data,
+    '#disabled' => $field->hasData(),
   );
 
   return $form;
@@ -180,46 +185,12 @@ function _file_generic_settings_file_directory_validate($element, &$form_state) 
 }
 
 /**
- * Implements hook_field_prepare_view().
- */
-function file_field_prepare_view($entity_type, $entities, $field, $instances, $langcode, &$items) {
-  // Remove files specified to not be displayed.
-  $fids = array();
-  foreach ($entities as $id => $entity) {
-    foreach ($items[$id] as $delta => $item) {
-      if (!file_field_displayed($item, $field)) {
-        unset($items[$id][$delta]);
-      }
-      elseif (!empty($item['fid'])) {
-        // Load the files from the files table.
-        $fids[] = $item['fid'];
-      }
-    }
-    // Ensure consecutive deltas.
-    $items[$id] = array_values($items[$id]);
-  }
-  $files = file_load_multiple($fids);
-
-  foreach ($entities as $id => $entity) {
-    foreach ($items[$id] as $delta => $item) {
-      // If the file does not exist, mark the entire item as empty.
-      if (empty($item['fid']) || !isset($files[$item['fid']])) {
-        $items[$id][$delta] = NULL;
-      }
-      else {
-        $items[$id][$delta] = array_merge($item, (array) $files[$item['fid']]);
-      }
-    }
-  }
-}
-
-/**
  * Implements hook_field_insert().
  */
-function file_field_insert($entity_type, $entity, $field, $instance, $langcode, &$items) {
+function file_field_insert(EntityInterface $entity, $field, $instance, $langcode, &$items) {
   // Add a new usage of each uploaded file.
   foreach ($items as $item) {
-    file_usage()->add(file_load($item['fid']), 'file', $entity_type, $entity->id());
+    file_usage()->add(file_load($item['target_id']), 'file', $entity->entityType(), $entity->id());
   }
 }
 
@@ -228,12 +199,12 @@ function file_field_insert($entity_type, $entity, $field, $instance, $langcode, 
  *
  * Checks for files that have been removed from the object.
  */
-function file_field_update($entity_type, $entity, $field, $instance, $langcode, &$items) {
+function file_field_update(EntityInterface $entity, $field, $instance, $langcode, &$items) {
   // On new revisions, all files are considered to be a new usage and no
   // deletion of previous file usages are necessary.
   if (!empty($entity->original) && $entity->getRevisionId() != $entity->original->getRevisionId()) {
     foreach ($items as $item) {
-      file_usage()->add(file_load($item['fid']), 'file', $entity_type, $entity->id());
+      file_usage()->add(file_load($item['target_id']), 'file', $entity->entityType(), $entity->id());
     }
     return;
   }
@@ -241,26 +212,26 @@ function file_field_update($entity_type, $entity, $field, $instance, $langcode, 
   // Build a display of the current FIDs.
   $current_fids = array();
   foreach ($items as $item) {
-    $current_fids[] = $item['fid'];
+    $current_fids[] = $item['target_id'];
   }
 
   // Compare the original field values with the ones that are being saved.
-  $original = $entity->original;
+  $original = $entity->original->getBCEntity();
   $original_fids = array();
   if (!empty($original->{$field['field_name']}[$langcode])) {
     foreach ($original->{$field['field_name']}[$langcode] as $original_item) {
-      $original_fids[] = $original_item['fid'];
-      if (isset($original_item['fid']) && !in_array($original_item['fid'], $current_fids)) {
+      $original_fids[] = $original_item['target_id'];
+      if (isset($original_item['target_id']) && !in_array($original_item['target_id'], $current_fids)) {
         // Decrement the file usage count by 1.
-        file_usage()->delete(file_load($original_item['fid']), 'file', $entity_type, $entity->id());
+        file_usage()->delete(file_load($original_item['target_id']), 'file', $entity->entityType(), $entity->id());
       }
     }
   }
 
   // Add new usage entries for newly added files.
   foreach ($items as $item) {
-    if (!in_array($item['fid'], $original_fids)) {
-      file_usage()->add(file_load($item['fid']), 'file', $entity_type, $entity->id());
+    if (!in_array($item['target_id'], $original_fids)) {
+      file_usage()->add(file_load($item['target_id']), 'file', $entity->entityType(), $entity->id());
     }
   }
 }
@@ -268,208 +239,45 @@ function file_field_update($entity_type, $entity, $field, $instance, $langcode, 
 /**
  * Implements hook_field_delete().
  */
-function file_field_delete($entity_type, $entity, $field, $instance, $langcode, &$items) {
+function file_field_delete(EntityInterface $entity, $field, $instance, $langcode, &$items) {
   // Delete all file usages within this entity.
   foreach ($items as $delta => $item) {
-    file_usage()->delete(file_load($item['fid']), 'file', $entity_type, $entity->id(), 0);
+    file_usage()->delete(file_load($item['target_id']), 'file', $entity->entityType(), $entity->id(), 0);
   }
 }
 
 /**
  * Implements hook_field_delete_revision().
  */
-function file_field_delete_revision($entity_type, $entity, $field, $instance, $langcode, &$items) {
+function file_field_delete_revision(EntityInterface $entity, $field, $instance, $langcode, &$items) {
   foreach ($items as $delta => $item) {
     // Decrement the file usage count by 1.
-    file_usage()->delete(file_load($item['fid']), 'file', $entity_type, $entity->id());
+    file_usage()->delete(file_load($item['target_id']), 'file', $entity->entityType(), $entity->id());
   }
 }
 
 /**
  * Implements hook_field_is_empty().
  */
-function file_field_is_empty($item, $field) {
-  return empty($item['fid']);
-}
-
-/**
- * Determines whether a file should be displayed when outputting field content.
- *
- * @param $item
- *   A field item array.
- * @param $field
- *   A field array.
- *
- * @return
- *   Boolean TRUE if the file will be displayed, FALSE if the file is hidden.
- */
-function file_field_displayed($item, $field) {
-  if (!empty($field['settings']['display_field'])) {
-    return (bool) $item['display'];
-  }
-  return TRUE;
-}
-
-/**
- * Implements hook_field_formatter_info().
- */
-function file_field_formatter_info() {
-  return array(
-    'file_default' => array(
-      'label' => t('Generic file'),
-      'field types' => array('file'),
-    ),
-    'file_table' => array(
-      'label' => t('Table of files'),
-      'field types' => array('file'),
-    ),
-    'file_url_plain' => array(
-      'label' => t('URL to file'),
-      'field types' => array('file'),
-    ),
-    'file_rss_enclosure' => array(
-      'label' => t('RSS enclosure'),
-      'field types' => array('file'),
-    ),
-  );
-}
-
-/**
- * Implements hook_field_widget_info().
- */
-function file_field_widget_info() {
-  return array(
-    'file_generic' => array(
-      'label' => t('File'),
-      'field types' => array('file'),
-      'settings' => array(
-        'progress_indicator' => 'throbber',
-      ),
-      'behaviors' => array(
-        'multiple values' => FIELD_BEHAVIOR_CUSTOM,
-        'default value' => FIELD_BEHAVIOR_NONE,
-      ),
-    ),
-  );
-}
-
-/**
- * Implements hook_field_widget_settings_form().
- */
-function file_field_widget_settings_form($field, $instance) {
-  $widget = $instance['widget'];
-  $settings = $widget['settings'];
-
-  $form['progress_indicator'] = array(
-    '#type' => 'radios',
-    '#title' => t('Progress indicator'),
-    '#options' => array(
-      'throbber' => t('Throbber'),
-      'bar' => t('Bar with progress meter'),
-    ),
-    '#default_value' => $settings['progress_indicator'],
-    '#description' => t('The throbber display does not show the status of uploads but takes up less space. The progress bar is helpful for monitoring progress on large uploads.'),
-    '#weight' => 16,
-    '#access' => file_progress_implementation(),
-  );
-
-  return $form;
-}
-
-/**
- * Implements hook_field_widget_form().
- */
-function file_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
-
-  $defaults = array(
-    'fid' => 0,
-    'display' => !empty($field['settings']['display_default']),
-    'description' => '',
-  );
-
-  // Load the items for form rebuilds from the field state as they might not be
-  // in $form_state['values'] because of validation limitations. Also, they are
-  // only passed in as $items when editing existing entities.
-  $field_state = field_form_get_state($element['#field_parents'], $field['field_name'], $langcode, $form_state);
-  if (isset($field_state['items'])) {
-    $items = $field_state['items'];
-  }
-
-  // Essentially we use the managed_file type, extended with some enhancements.
-  $element_info = element_info('managed_file');
-  $element += array(
-    '#type' => 'managed_file',
-    '#upload_location' => file_field_widget_uri($field, $instance),
-    '#upload_validators' => file_field_widget_upload_validators($field, $instance),
-    '#value_callback' => 'file_field_widget_value',
-    '#process' => array_merge($element_info['#process'], array('file_field_widget_process')),
-    '#progress_indicator' => $instance['widget']['settings']['progress_indicator'],
-    // Allows this field to return an array instead of a single value.
-    '#extended' => TRUE,
-  );
-
-  if ($field['cardinality'] == 1) {
-    // Set the default value.
-    $element['#default_value'] = !empty($items) ? $items[0] : $defaults;
-    // If there's only one field, return it as delta 0.
-    if (empty($element['#default_value']['fid'])) {
-      $element['#description'] = theme('file_upload_help', array('description' => $element['#description'], 'upload_validators' => $element['#upload_validators']));
-    }
-    $elements = array($element);
-  }
-  else {
-    // If there are multiple values, add an element for each existing one.
-    foreach ($items as $item) {
-      $elements[$delta] = $element;
-      $elements[$delta]['#default_value'] = $item;
-      $elements[$delta]['#weight'] = $delta;
-      $delta++;
-    }
-    // And then add one more empty row for new uploads except when this is a
-    // programmed form as it is not necessary.
-    if (($field['cardinality'] == FIELD_CARDINALITY_UNLIMITED || $delta < $field['cardinality']) && empty($form_state['programmed'])) {
-      $elements[$delta] = $element;
-      $elements[$delta]['#default_value'] = $defaults;
-      $elements[$delta]['#weight'] = $delta;
-      $elements[$delta]['#required'] = ($element['#required'] && $delta == 0);
-    }
-    // The group of elements all-together need some extra functionality
-    // after building up the full list (like draggable table rows).
-    $elements['#file_upload_delta'] = $delta;
-    $elements['#theme'] = 'file_widget_multiple';
-    $elements['#theme_wrappers'] = array('fieldset');
-    $elements['#process'] = array('file_field_widget_process_multiple');
-    $elements['#title'] = $element['#title'];
-    $elements['#description'] = $element['#description'];
-    $elements['#field_name'] = $element['#field_name'];
-    $elements['#language'] = $element['#language'];
-    $elements['#display_field'] = $field['settings']['display_field'];
-
-    // Add some properties that will eventually be added to the file upload
-    // field. These are added here so that they may be referenced easily through
-    // a hook_form_alter().
-    $elements['#file_upload_title'] = t('Add a new file');
-    $elements['#file_upload_description'] = theme('file_upload_help', array('description' => '', 'upload_validators' => $elements[0]['#upload_validators']));
-  }
-
-  return $elements;
+function file_field_is_empty($item, $field_type) {
+  return empty($item['target_id']);
 }
 
 /**
  * Retrieves the upload validators for a file field.
  *
- * @param $field
- *   A field array.
+ * @param array $field_settings
+ *   The field settings.
  *
  * @return
  *   An array suitable for passing to file_save_upload() or the file field
  *   element's '#upload_validators' property.
  */
-function file_field_widget_upload_validators($field, $instance) {
+function file_field_widget_upload_validators(array $field_settings) {
   // Cap the upload size according to the PHP limit.
   $max_filesize = parse_size(file_upload_max_size());
-  if (!empty($instance['settings']['max_filesize']) && parse_size($instance['settings']['max_filesize']) < $max_filesize) {
-    $max_filesize = parse_size($instance['settings']['max_filesize']);
+  if (!empty($field_settings['max_filesize']) && parse_size($field_settings['max_filesize']) < $max_filesize) {
+    $max_filesize = parse_size($field_settings['max_filesize']);
   }
 
   $validators = array();
@@ -478,35 +286,34 @@ function file_field_widget_upload_validators($field, $instance) {
   $validators['file_validate_size'] = array($max_filesize);
 
   // Add the extension check if necessary.
-  if (!empty($instance['settings']['file_extensions'])) {
-    $validators['file_validate_extensions'] = array($instance['settings']['file_extensions']);
+  if (!empty($field_settings['file_extensions'])) {
+    $validators['file_validate_extensions'] = array($field_settings['file_extensions']);
   }
 
   return $validators;
 }
 
 /**
- * Determines the URI for a file field instance.
+ * Determines the URI for a file field.
  *
- * @param $field
- *   A field array.
- * @param $instance
- *   A field instance array.
+ * @param array $field_settings
+ *   The field settings.
  * @param $data
- *   An array of token objects to pass to token_replace().
+ *   An array of token objects to pass to
+ *   \Drupal\Core\Utility\Token::replace().
  *
  * @return
  *   A file directory URI with tokens replaced.
  *
- * @see token_replace()
+ * @see \Drupal\Core\Utility\Token::replace()
  */
-function file_field_widget_uri($field, $instance, $data = array()) {
-  $destination = trim($instance['settings']['file_directory'], '/');
+function file_field_widget_uri(array $field_settings, $data = array()) {
+  $destination = trim($field_settings['file_directory'], '/');
 
   // Replace tokens.
-  $destination = token_replace($destination, $data);
+  $destination = Drupal::token()->replace($destination, $data);
 
-  return $field['settings']['uri_scheme'] . '://' . $destination;
+  return $field_settings['uri_scheme'] . '://' . $destination;
 }
 
 /**
@@ -518,9 +325,8 @@ function file_field_widget_value($element, $input = FALSE, $form_state) {
   if ($input) {
     // Checkboxes lose their value when empty.
     // If the display field is present make sure its unchecked value is saved.
-    $field = field_widget_field($element, $form_state);
     if (empty($input['display'])) {
-      $input['display'] = $field['settings']['display_field'] ? 0 : 1;
+      $input['display'] = $element['#display_field'] ? 0 : 1;
     }
   }
 
@@ -529,12 +335,53 @@ function file_field_widget_value($element, $input = FALSE, $form_state) {
 
   // Ensure that all the required properties are returned even if empty.
   $return += array(
-    'fid' => 0,
+    'fids' => array(),
     'display' => 1,
     'description' => '',
   );
 
   return $return;
+}
+
+/**
+ * Validation callback for upload element on file widget. Checks if user has
+ * uploaded more files than allowed.
+ *
+ * This validator is used only when cardinality not set to 1 or unlimited.
+ */
+function file_field_widget_multiple_count_validate($element, &$form_state, $form) {
+  $parents = $element['#parents'];
+  $values = NestedArray::getValue($form_state['values'], $parents);
+
+  array_pop($parents);
+  $current = count(element_children(NestedArray::getValue($form, $parents))) - 1;
+
+  $field = field_info_field($element['#entity_type'], $element['#field_name']);
+  $uploaded = count($values['fids']);
+  $count = $uploaded + $current;
+  if ($count > $field['cardinality']) {
+    $keep = $uploaded - $count + $field['cardinality'];
+    $removed_files = array_slice($values['fids'], $keep);
+    $removed_names = array();
+    foreach ($removed_files as $fid) {
+      $file = file_load($fid);
+      $removed_names[] = $file->getFilename();
+    }
+    drupal_set_message(
+      t(
+        'Field %field can only hold @max values but there were @count uploaded. The following files have been omitted as a result: %list.',
+        array(
+          '%field' => $field['field_name'],
+          '@max' => $field['cardinality'],
+          '@count' => $keep,
+          '%list' => implode(', ', $removed_names),
+        )
+      ),
+      'warning'
+    );
+    $values['fids'] = array_slice($values['fids'], 0, $keep);
+    NestedArray::setValue($form_state['values'], $element['#parents'], $values);
+  }
 }
 
 /**
@@ -546,20 +393,16 @@ function file_field_widget_value($element, $input = FALSE, $form_state) {
  */
 function file_field_widget_process($element, &$form_state, $form) {
   $item = $element['#value'];
-  $item['fid'] = $element['fid']['#value'];
-
-  $field = field_widget_field($element, $form_state);
-  $instance = field_widget_instance($element, $form_state);
-  $settings = $instance['widget']['settings'];
+  $item['fids'] = $element['fids']['#value'];
 
   $element['#theme'] = 'file_widget';
 
   // Add the display field if enabled.
-  if (!empty($field['settings']['display_field']) && $item['fid']) {
+  if ($element['#display_field'] && $item['fids']) {
     $element['display'] = array(
-      '#type' => empty($item['fid']) ? 'hidden' : 'checkbox',
+      '#type' => empty($item['fids']) ? 'hidden' : 'checkbox',
       '#title' => t('Include file in display'),
-      '#value' => isset($item['display']) ? $item['display'] : $field['settings']['display_default'],
+      '#value' => isset($item['display']) ? $item['display'] : $element['#display_default'],
       '#attributes' => array('class' => array('file-display')),
     );
   }
@@ -571,26 +414,34 @@ function file_field_widget_process($element, &$form_state, $form) {
   }
 
   // Add the description field if enabled.
-  if (!empty($instance['settings']['description_field']) && $item['fid']) {
+  if ($element['#description_field'] && $item['fids']) {
+    $config = Drupal::config('file.settings');
     $element['description'] = array(
-      '#type' => variable_get('file_description_type', 'textfield'),
+      '#type' => $config->get('description.type'),
       '#title' => t('Description'),
       '#value' => isset($item['description']) ? $item['description'] : '',
-      '#maxlength' => variable_get('file_description_length', 128),
+      '#maxlength' => $config->get('description.length'),
       '#description' => t('The description may be used as the label of the link to the file.'),
     );
   }
 
   // Adjust the Ajax settings so that on upload and remove of any individual
   // file, the entire group of file fields is updated together.
-  if ($field['cardinality'] != 1) {
+  if ($element['#cardinality'] != 1) {
     $parents = array_slice($element['#array_parents'], 0, -1);
-    $new_path = 'file/ajax/' . implode('/', $parents) . '/' . $form['form_build_id']['#value'];
-    $field_element = drupal_array_get_nested_value($form, $parents);
+    $new_path = 'file/ajax';
+    $new_options = array(
+      'query' => array(
+        'element_parents' => implode('/', $parents),
+        'form_build_id' => $form['form_build_id']['#value'],
+      ),
+    );
+    $field_element = NestedArray::getValue($form, $parents);
     $new_wrapper = $field_element['#id'] . '-ajax-wrapper';
     foreach (element_children($element) as $key) {
       if (isset($element[$key]['#ajax'])) {
         $element[$key]['#ajax']['path'] = $new_path;
+        $element[$key]['#ajax']['options'] = $new_options;
         $element[$key]['#ajax']['wrapper'] = $new_wrapper;
       }
     }
@@ -690,28 +541,44 @@ function file_field_widget_submit($form, &$form_state) {
   // have #default_value set appropriately for the current state of the field,
   // so nothing is lost in doing this.
   $parents = array_slice($form_state['triggering_element']['#parents'], 0, -2);
-  drupal_array_set_nested_value($form_state['input'], $parents, NULL);
+  NestedArray::setValue($form_state['input'], $parents, NULL);
 
   $button = $form_state['triggering_element'];
 
   // Go one level up in the form, to the widgets container.
-  $element = drupal_array_get_nested_value($form, array_slice($button['#array_parents'], 0, -1));
+  $element = NestedArray::getValue($form, array_slice($button['#array_parents'], 0, -1));
   $field_name = $element['#field_name'];
   $langcode = $element['#language'];
   $parents = $element['#field_parents'];
 
-  $submitted_values = drupal_array_get_nested_value($form_state['values'], array_slice($button['#array_parents'], 0, -2));
+  $submitted_values = NestedArray::getValue($form_state['values'], array_slice($button['#parents'], 0, -2));
   foreach ($submitted_values as $delta => $submitted_value) {
-    if (!$submitted_value['fid']) {
+    if (empty($submitted_value['fids'])) {
       unset($submitted_values[$delta]);
     }
   }
 
+  // If there are more files uploaded via the same widget, we have to separate
+  // them, as we display each file in it's own widget.
+  $new_values = array();
+  foreach ($submitted_values as $delta => $submitted_value) {
+    if (is_array($submitted_value['fids'])) {
+      foreach ($submitted_value['fids'] as $fid) {
+        $new_value = $submitted_value;
+        $new_value['fids'] = array($fid);
+        $new_values[] = $new_value;
+      }
+    }
+    else {
+      $new_value = $submitted_value;
+    }
+  }
+
   // Re-index deltas after removing empty items.
-  $submitted_values = array_values($submitted_values);
+  $submitted_values = array_values($new_values);
 
   // Update form_state values.
-  drupal_array_set_nested_value($form_state['values'], array_slice($button['#array_parents'], 0, -2), $submitted_values);
+  NestedArray::setValue($form_state['values'], array_slice($button['#parents'], 0, -2), $submitted_values);
 
   // Update items.
   $field_state = field_form_get_state($parents, $field_name, $langcode, $form_state);
@@ -734,9 +601,10 @@ function theme_file_widget($variables) {
 
   // The "form-managed-file" class is required for proper Ajax functionality.
   $output .= '<div class="file-widget form-managed-file clearfix">';
-  if ($element['fid']['#value'] != 0) {
+  if (!empty($element['fids']['#value'])) {
     // Add the file size after the file name.
-    $element['filename']['#markup'] .= ' <span class="file-size">(' . format_size($element['#file']->filesize) . ')</span> ';
+    $file = reset($element['#files']);
+    $element['file_' . $file->id()]['filename']['#suffix'] = ' <span class="file-size">(' . format_size($file->getSize()) . ')</span> ';
   }
   $output .= drupal_render_children($element);
   $output .= '</div>';
@@ -783,9 +651,9 @@ function theme_file_widget_multiple($variables) {
   $rows = array();
   foreach ($widgets as $key => &$widget) {
     // Save the uploading row for last.
-    if ($widget['#file'] == FALSE) {
+    if (empty($widget['#files'])) {
       $widget['#title'] = $element['#file_upload_title'];
-      $widget['#description'] = $element['#file_upload_description'];
+      $widget['#description'] = drupal_render($element['#file_upload_description']);
       continue;
     }
 
@@ -843,8 +711,16 @@ function theme_file_widget_multiple($variables) {
 
   drupal_add_tabledrag($table_id, 'order', 'sibling', $weight_class);
 
-  $output = '';
-  $output = empty($rows) ? '' : theme('table', array('header' => $headers, 'rows' => $rows, 'attributes' => array('id' => $table_id)));
+  $build = array(
+    '#theme' => 'table',
+    '#header' => $headers,
+    '#rows' => $rows,
+    '#attributes' => array(
+      'id' => $table_id,
+    ),
+  );
+
+  $output = empty($rows) ? '' : drupal_render($build);
   $output .= drupal_render_children($element);
   return $output;
 }
@@ -865,17 +741,26 @@ function theme_file_widget_multiple($variables) {
 function theme_file_upload_help($variables) {
   $description = $variables['description'];
   $upload_validators = $variables['upload_validators'];
+  $cardinality = $variables['cardinality'];
 
   $descriptions = array();
 
   if (strlen($description)) {
-    $descriptions[] = $description;
+    $descriptions[] = _filter_htmlcorrector($description);
   }
   if (isset($upload_validators['file_validate_size'])) {
     $descriptions[] = t('Files must be less than !size.', array('!size' => '<strong>' . format_size($upload_validators['file_validate_size'][0]) . '</strong>'));
   }
   if (isset($upload_validators['file_validate_extensions'])) {
     $descriptions[] = t('Allowed file types: !extensions.', array('!extensions' => '<strong>' . check_plain($upload_validators['file_validate_extensions'][0]) . '</strong>'));
+  }
+  if (isset($cardinality)) {
+    if ($cardinality == -1) {
+      $descriptions[] = t('Unlimited number of files can be uploaded to this field.');
+    }
+    else {
+      $descriptions[] = format_plural($cardinality, 'This field can store only one file.', 'This field can store at most @count files.');
+    }
   }
   if (isset($upload_validators['file_validate_image_resolution'])) {
     $max = $upload_validators['file_validate_image_resolution'][0];
@@ -895,60 +780,6 @@ function theme_file_upload_help($variables) {
   }
 
   return implode('<br />', $descriptions);
-}
-
-/**
- * Implements hook_field_formatter_view().
- */
-function file_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display) {
-  $element = array();
-
-  switch ($display['type']) {
-    case 'file_default':
-      foreach ($items as $delta => $item) {
-        $element[$delta] = array(
-          '#theme' => 'file_link',
-          '#file' => (object) $item,
-        );
-      }
-      break;
-
-    case 'file_url_plain':
-      foreach ($items as $delta => $item) {
-        $element[$delta] = array('#markup' => empty($item['uri']) ? '' : file_create_url($item['uri']));
-      }
-      break;
-
-    case 'file_table':
-      if (!empty($items)) {
-        // Display all values in a single element..
-        $element[0] = array(
-          '#theme' => 'file_formatter_table',
-          '#items' => $items,
-        );
-      }
-      break;
-
-    case 'file_rss_enclosure':
-      // Add the first file as an enclosure to the RSS item. RSS allows only one
-      // enclosure per item. See: http://en.wikipedia.org/wiki/RSS_enclosure
-      foreach ($items as $item) {
-        if ($item['display']) {
-          $entity->rss_elements[] = array(
-            'key' => 'enclosure',
-            'attributes' => array(
-              'url' => file_create_url($item['uri']),
-              'length' => $item['filesize'],
-              'type' => $item['filemime'],
-            ),
-          );
-          break;
-        }
-      }
-      break;
-  }
-
-  return $element;
 }
 
 /**
@@ -987,11 +818,24 @@ function theme_file_formatter_table($variables) {
   $header = array(t('Attachment'), t('Size'));
   $rows = array();
   foreach ($variables['items'] as $delta => $item) {
-    $rows[] = array(
-      theme('file_link', array('file' => (object) $item)),
-      format_size($item['filesize']),
-    );
+    if ($item['display'] && $item['entity']) {
+      $rows[] = array(
+        array(
+          'data' => array(
+            '#theme' => 'file_link',
+            '#file' => $item['entity'],
+          ),
+        ),
+        format_size($item['entity']->getSize()),
+      );
+    }
   }
 
-  return empty($rows) ? '' : theme('table', array('header' => $header, 'rows' => $rows));
+  $build = array(
+    '#theme' => 'table',
+    '#header' => $header,
+    '#rows' => $rows,
+  );
+
+  return empty($rows) ? '' : drupal_render($build);
 }

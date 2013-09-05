@@ -7,27 +7,29 @@
 
 namespace Drupal\comment\Plugin\views\field;
 
+use Drupal\views\ResultRow;
 use Drupal\views\ViewExecutable;
+use Drupal\views\Plugin\views\display\DisplayPluginBase;
 use Drupal\views\Plugin\views\field\FieldPluginBase;
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
 
 /**
  * Field handler to allow linking to a user account or homepage.
  *
  * @ingroup views_field_handlers
  *
- * @Plugin(
- *   id = "comment_username",
- *   module = "comment"
- * )
+ * @PluginID("comment_username")
  */
 class Username extends FieldPluginBase {
 
   /**
-   * Override init function to add uid and homepage fields.
+   * Overrides \Drupal\views\Plugin\views\field\FieldPluginBase::init().
+   *
+   * Add uid and homepage fields.
    */
-  public function init(ViewExecutable $view, &$data) {
-    parent::init($view, $data);
+  public function init(ViewExecutable $view, DisplayPluginBase $display, array &$options = NULL) {
+    parent::init($view, $display, $options);
+
     $this->additional_fields['uid'] = 'uid';
     $this->additional_fields['homepage'] = 'homepage';
   }
@@ -47,25 +49,29 @@ class Username extends FieldPluginBase {
     parent::buildOptionsForm($form, $form_state);
   }
 
-  function render_link($data, $values) {
+  protected function renderLink($data, ResultRow $values) {
     if (!empty($this->options['link_to_user'])) {
       $account = entity_create('user', array());
-      $account->uid = $this->get_value($values, 'uid');
-      $account->name = $this->get_value($values);
-      $account->homepage = $this->get_value($values, 'homepage');
-
-      return theme('username', array(
-        'account' => $account
-      ));
+      $account->uid = $this->getValue($values, 'uid');
+      $account->name = $this->getValue($values);
+      $account->homepage = $this->getValue($values, 'homepage');
+      $username = array(
+        '#theme' => 'username',
+        '#account' => $account,
+      );
+      return drupal_render($username);
     }
     else {
       return $data;
     }
   }
 
-  function render($values) {
-    $value = $this->get_value($values);
-    return $this->render_link($this->sanitizeValue($value), $values);
+  /**
+   * {@inheritdoc}
+   */
+  public function render(ResultRow $values) {
+    $value = $this->getValue($values);
+    return $this->renderLink($this->sanitizeValue($value), $values);
   }
 
 }

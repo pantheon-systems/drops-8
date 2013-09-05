@@ -7,16 +7,15 @@
 
 namespace Drupal\views\Plugin\views\field;
 
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
+use Drupal\views\ResultRow;
 
 /**
  * Render a numeric value as a size.
  *
  * @ingroup views_field_handlers
  *
- * @Plugin(
- *   id = "file_size"
- * )
+ * @PluginID("file_size")
  */
 class FileSize extends FieldPluginBase {
 
@@ -40,8 +39,11 @@ class FileSize extends FieldPluginBase {
     );
   }
 
-  function render($values) {
-    $value = $this->get_value($values);
+  /**
+   * {@inheritdoc}
+   */
+  public function render(ResultRow $values) {
+    $value = $this->getValue($values);
     if ($value) {
       switch ($this->options['file_size_display']) {
         case 'bytes':

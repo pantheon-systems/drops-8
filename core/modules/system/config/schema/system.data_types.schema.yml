@@ -1,0 +1,80 @@
+# Basic scalar data types from typed data.
+boolean:
+  label: 'Boolean'
+  class: '\Drupal\Core\TypedData\Plugin\DataType\Boolean'
+email:
+  label: 'Email'
+  class: '\Drupal\Core\TypedData\Plugin\DataType\Email'
+integer:
+  label: 'Integer'
+  class: '\Drupal\Core\TypedData\Plugin\DataType\Integer'
+float:
+  label: 'Float'
+  class: '\Drupal\Core\TypedData\Plugin\DataType\Float'
+string:
+  label: 'String'
+  class: '\Drupal\Core\TypedData\Plugin\DataType\String'
+uri:
+  label: 'Uri'
+  class: '\Drupal\Core\TypedData\Plugin\DataType\Uri'
+
+# Basic data types for configuration.
+undefined:
+  label: 'Undefined'
+  class: '\Drupal\Core\Config\Schema\Property'
+mapping:
+  label: Mapping
+  class: '\Drupal\Core\Config\Schema\Mapping'
+sequence:
+  label: Sequence
+  class: '\Drupal\Core\Config\Schema\Sequence'
+
+# Default mapping for unknown types or types not found.
+default:
+  type: undefined
+  label: 'Unknown'
+
+# Simple extended data types:
+
+# Human readable string that must be plain text and editable with a text field.
+label:
+  type: string
+  label: 'Label'
+  translatable: true
+
+# Internal Drupal path
+path:
+  type: string
+  label: 'Path'
+
+# Human readable string that can contain multiple lines of text or HTML.
+text:
+  type: string
+  label: 'Text'
+  translatable: true
+
+# Complex extended data types:
+
+# Mail text with subject and body parts.
+mail:
+  type: mapping
+  label: 'Mail'
+  mapping:
+    subject:
+      type: label
+      label: 'Subject'
+    body:
+      type: text
+      label: 'Body'
+
+# Filter with module and status.
+filter:
+  type: mapping
+  label: 'Filter'
+  mapping:
+    module:
+      type: string
+      label: 'Module'
+    status:
+      type: boolean
+      label: 'Enabled'

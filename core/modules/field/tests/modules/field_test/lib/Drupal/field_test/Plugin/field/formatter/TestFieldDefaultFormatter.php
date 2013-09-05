@@ -2,22 +2,22 @@
 
 /**
  * @file
- * Definition of Drupal\field_test\Plugin\field\formatter\TestFieldDefaultFormatter.
+ * Contains \Drupal\field_test\Plugin\field\formatter\TestFieldDefaultFormatter.
  */
 
 namespace Drupal\field_test\Plugin\field\formatter;
 
-use Drupal\Core\Annotation\Plugin;
+use Drupal\field\Annotation\FieldFormatter;
 use Drupal\Core\Annotation\Translation;
 use Drupal\field\Plugin\Type\Formatter\FormatterBase;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\Field\FieldInterface;
 
 /**
  * Plugin implementation of the 'field_test_default' formatter.
  *
- * @Plugin(
+ * @FieldFormatter(
  *   id = "field_test_default",
- *   module = "field_test",
  *   label = @Translation("Default"),
  *   description = @Translation("Default formatter"),
  *   field_types = {
@@ -31,7 +31,7 @@ use Drupal\Core\Entity\EntityInterface;
 class TestFieldDefaultFormatter extends FormatterBase {
 
   /**
-   * Implements Drupal\field\Plugin\Type\Formatter\FormatterInterface::settingsForm().
+   * {@inheritdoc}
    */
   public function settingsForm(array $form, array &$form_state) {
     $element['test_formatter_setting'] = array(
@@ -45,20 +45,22 @@ class TestFieldDefaultFormatter extends FormatterBase {
   }
 
   /**
-   * Implements Drupal\field\Plugin\Type\Formatter\FormatterInterface::settingsForm().
+   * {@inheritdoc}
    */
   public function settingsSummary() {
-    return t('@setting: @value', array('@setting' => 'test_formatter_setting', '@value' => $this->getSetting('test_formatter_setting')));
+    $summary = array();
+    $summary[] = t('@setting: @value', array('@setting' => 'test_formatter_setting', '@value' => $this->getSetting('test_formatter_setting')));
+    return $summary;
   }
 
   /**
-   * Implements Drupal\field\Plugin\Type\Formatter\FormatterInterface::viewElements().
+   * {@inheritdoc}
    */
-  public function viewElements(EntityInterface $entity, $langcode, array $items) {
+  public function viewElements(EntityInterface $entity, $langcode, FieldInterface $items) {
     $elements = array();
 
     foreach ($items as $delta => $item) {
-      $elements[$delta] = array('#markup' => $this->getSetting('test_formatter_setting') . '|' . $item['value']);
+      $elements[$delta] = array('#markup' => $this->getSetting('test_formatter_setting') . '|' . $item->value);
     }
 
     return $elements;

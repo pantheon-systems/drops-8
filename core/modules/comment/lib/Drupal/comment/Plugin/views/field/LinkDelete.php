@@ -2,22 +2,20 @@
 
 /**
  * @file
- * Definition of Drupal\comment\Plugin\views\field\LinkDelete.
+ * Contains \Drupal\comment\Plugin\views\field\LinkDelete.
  */
 
 namespace Drupal\comment\Plugin\views\field;
 
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
+use Drupal\views\ResultRow;
 
 /**
- * Field handler to present a link to delete a node.
+ * Field handler to present a link to delete a comment.
  *
  * @ingroup views_field_handlers
  *
- * @Plugin(
- *   id = "comment_link_delete",
- *   module = "comment"
- * )
+ * @PluginID("comment_link_delete")
  */
 class LinkDelete extends Link {
 
@@ -26,9 +24,9 @@ class LinkDelete extends Link {
     return user_access('administer comments');
   }
 
-  function render_link($data, $values) {
+  protected function renderLink($data, ResultRow $values) {
     $text = !empty($this->options['text']) ? $this->options['text'] : t('delete');
-    $cid =  $this->get_value($values, 'cid');
+    $cid =  $this->getValue($values, 'cid');
 
     $this->options['alter']['make_link'] = TRUE;
     $this->options['alter']['path'] = "comment/" . $cid . "/delete";

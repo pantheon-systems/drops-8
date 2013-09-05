@@ -11,7 +11,7 @@ use PDO;
 use PDOStatement;
 
 /**
- * Default implementation of DatabaseStatementInterface.
+ * Default implementation of StatementInterface.
  *
  * PDO allows us to extend the PDOStatement class to provide additional
  * functionality beyond that offered by default. We do need extra
@@ -28,11 +28,11 @@ class Statement extends PDOStatement implements StatementInterface {
    *
    * The name $dbh is inherited from PDOStatement.
    *
-   * @var DatabaseConnection
+   * @var \Drupal\Core\Database\Connection
    */
   public $dbh;
 
-  protected function __construct($dbh) {
+  protected function __construct(Connection $dbh) {
     $this->dbh = $dbh;
     $this->setFetchMode(PDO::FETCH_OBJ);
   }
@@ -40,10 +40,9 @@ class Statement extends PDOStatement implements StatementInterface {
   public function execute($args = array(), $options = array()) {
     if (isset($options['fetch'])) {
       if (is_string($options['fetch'])) {
-        // Default to an object. Note: db fields will be added to the object
-        // before the constructor is run. If you need to assign fields after
-        // the constructor is run, see http://drupal.org/node/315092.
-        $this->setFetchMode(PDO::FETCH_CLASS, $options['fetch']);
+        // PDO::FETCH_PROPS_LATE tells __construct() to run before properties
+        // are added to the object.
+        $this->setFetchMode(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, $options['fetch']);
       }
       else {
         $this->setFetchMode($options['fetch']);

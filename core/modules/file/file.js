@@ -44,6 +44,20 @@ Drupal.behaviors.fileValidateAutoAttach = {
 };
 
 /**
+ * Attach behaviors to managed file element upload fields.
+ */
+Drupal.behaviors.fileAutoUpload = {
+  attach: function (context) {
+    $(context).find('input[type="file"]').once('auto-file-upload').on('change.autoFileUpload', Drupal.file.triggerUploadButton);
+  },
+  detach: function (context, setting, trigger) {
+    if (trigger === 'unload') {
+      $(context).find('input[type="file"]').removeOnce('auto-file-upload').off('.autoFileUpload');
+    }
+  }
+};
+
+/**
  * Attach behaviors to the file upload and remove buttons.
  */
 Drupal.behaviors.fileButtons = {
@@ -99,10 +113,16 @@ Drupal.file = Drupal.file || {
           '%filename': this.value.replace('C:\\fakepath\\', ''),
           '%extensions': extensionPattern.replace(/\|/g, ', ')
         });
-        $(this).closest('div.form-managed-file').prepend('<div class="messages error file-upload-js-error">' + error + '</div>');
+        $(this).closest('div.form-managed-file').prepend('<div class="messages messages--error file-upload-js-error" aria-live="polite">' + error + '</div>');
         this.value = '';
       }
     }
+  },
+  /**
+   * Trigger the upload_button mouse event to auto-upload as a managed file.
+   */
+  triggerUploadButton: function (event){
+    $(event.target).closest('.form-managed-file').find('.form-submit').trigger('mousedown');
   },
   /**
    * Prevent file uploads when using buttons not intended to upload.
@@ -130,7 +150,7 @@ Drupal.file = Drupal.file || {
     // don't have to worry about the fields being re-enabled too soon.
     // @todo If the previous sentence is true, why not set the timeout to 0?
     var $fieldsToTemporarilyDisable = $('div.form-managed-file input.form-file').not($enabledFields).not(':disabled');
-    $fieldsToTemporarilyDisable.attr('disabled', 'disabled');
+    $fieldsToTemporarilyDisable.prop('disabled', true);
     setTimeout(function (){
       $fieldsToTemporarilyDisable.prop('disabled', false);
     }, 1000);

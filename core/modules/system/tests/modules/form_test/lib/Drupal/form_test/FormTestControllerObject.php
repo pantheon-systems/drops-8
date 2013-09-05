@@ -1,0 +1,92 @@
+<?php
+
+/**
+ * @file
+ * Contains \Drupal\form_test\FormTestControllerObject.
+ */
+
+namespace Drupal\form_test;
+
+use Drupal\Core\Config\ConfigFactory;
+use Drupal\Core\Form\FormBase;
+use Symfony\Component\DependencyInjection\ContainerInterface;
+
+/**
+ * Provides a test form object.
+ */
+class FormTestControllerObject extends FormBase {
+
+  /**
+   * The config factory.
+   *
+   * @var \Drupal\Core\Config\ConfigFactory
+   */
+  protected $configFactory;
+
+  /**
+   * Constructs a new FormTestControllerObject.
+   *
+   * @param \Drupal\Core\Config\ConfigFactory $config_factory
+   *   The config factory.
+   */
+  public function __construct(ConfigFactory $config_factory) {
+    $this->configFactory = $config_factory;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getFormID() {
+    return 'form_test_form_test_controller_object';
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container) {
+    drupal_set_message(t('The FormTestControllerObject::create() method was used for this form.'));
+    return new static(
+      $container->get('config.factory')
+    );
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function buildForm(array $form, array &$form_state, $custom_attributes = NULL) {
+    $form['element'] = array('#markup' => 'The FormTestControllerObject::buildForm() method was used for this form.');
+
+    $form['custom_attribute']['#markup'] = $custom_attributes;
+    $form['request_attribute']['#markup'] = $this->getRequest()->attributes->get('request_attribute');
+
+    $form['bananas'] = array(
+      '#type' => 'textfield',
+      '#title' => $this->t('Bananas'),
+    );
+
+    $form['actions']['#type'] = 'actions';
+    $form['actions']['submit'] = array(
+      '#type' => 'submit',
+      '#value' => $this->t('Save'),
+    );
+    return $form;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function validateForm(array &$form, array &$form_state) {
+    drupal_set_message($this->t('The FormTestControllerObject::validateForm() method was used for this form.'));
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function submitForm(array &$form, array &$form_state) {
+    drupal_set_message($this->t('The FormTestControllerObject::submitForm() method was used for this form.'));
+    $this->configFactory->get('form_test.object')
+      ->set('bananas', $form_state['values']['bananas'])
+      ->save();
+  }
+
+}

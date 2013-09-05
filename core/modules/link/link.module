@@ -1,0 +1,53 @@
+<?php
+
+/**
+ * @file
+ * Defines simple link field types.
+ */
+
+/**
+ * Implements hook_help().
+ */
+function link_help($path, $arg) {
+  switch ($path) {
+    case 'admin/help#link':
+      $output = '';
+      $output .= '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('The Link module defines a simple link field type for the Field module. Links are external URLs, can have an optional link text for each link, and they can be formatted when displayed. See the <a href="@field-help">Field module help page</a> for more information about fields.', array('@field-help' => url('admin/help/field'))) . '</p>';
+      return $output;
+  }
+}
+
+/**
+ * Implements hook_theme().
+ */
+function link_theme() {
+  return array(
+    'link_formatter_link_separate' => array(
+      'variables' => array('title' => NULL, 'url_title' => NULL, 'href' => NULL, 'options' => array()),
+      'template' => 'link-formatter-link-separate',
+    ),
+  );
+}
+
+/**
+ * Prepares variables for separated link field templates.
+ *
+ * This template outputs a separate title and link.
+ *
+ * Default template: link-formatter-link-separate.html.twig.
+ *
+ * @param array $variables
+ *   An associative array containing:
+ *   - title: (optional) A descriptive or alternate title for the link, which
+ *     may be different than the actual link text.
+ *   - url_title: The anchor text for the link.
+ *   - href: The link URL.
+ *   - options: (optional) An array of options to pass to l().
+ */
+function template_preprocess_link_formatter_link_separate(&$variables) {
+  if (!empty($variables['title'])) {
+    $variables['title'] = check_plain($variables['title']);
+  }
+  $variables['link'] = l($variables['url_title'], $variables['href'], $variables['options']);
+}

@@ -3,7 +3,7 @@
 /*
  * This file is part of the Assetic package, an OpenSky project.
  *
- * (c) 2010-2012 OpenSky Project Inc
+ * (c) 2010-2013 OpenSky Project Inc
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -12,9 +12,11 @@
 namespace Assetic\Filter\Sass;
 
 use Assetic\Asset\AssetInterface;
-use Assetic\Filter\FilterInterface;
 use Assetic\Exception\FilterException;
-use Symfony\Component\Process\ProcessBuilder;
+use Assetic\Factory\AssetFactory;
+use Assetic\Filter\BaseProcessFilter;
+use Assetic\Filter\DependencyExtractorInterface;
+use Assetic\Util\CssUtils;
 
 /**
  * Loads SASS files.
@@ -22,7 +24,7 @@ use Symfony\Component\Process\ProcessBuilder;
  * @link http://sass-lang.com/
  * @author Kris Wallsmith <kris.wallsmith@gmail.com>
  */
-class SassFilter implements FilterInterface
+class SassFilter extends BaseProcessFilter implements DependencyExtractorInterface
 {
     const STYLE_NESTED     = 'nested';
     const STYLE_EXPANDED   = 'expanded';
@@ -79,6 +81,11 @@ class SassFilter implements FilterInterface
         $this->lineNumbers = $lineNumbers;
     }
 
+    public function setLoadPaths(array $loadPaths)
+    {
+        $this->loadPaths = $loadPaths;
+    }
+
     public function addLoadPath($loadPath)
     {
         $this->loadPaths[] = $loadPath;
@@ -106,7 +113,7 @@ class SassFilter implements FilterInterface
             $sassProcessArgs = array_merge(explode(' ', $this->rubyPath), $sassProcessArgs);
         }
 
-        $pb = new ProcessBuilder($sassProcessArgs);
+        $pb = $this->createProcessBuilder($sassProcessArgs);
 
         $root = $asset->getSourceRoot();
         $path = $asset->getSourcePath();
@@ -163,7 +170,7 @@ class SassFilter implements FilterInterface
         $code = $proc->run();
         unlink($input);
 
-        if (0 < $code) {
+        if (0 !== $code) {
             throw FilterException::fromProcess($proc)->setInput($asset->getContent());
         }
 
@@ -172,5 +179,58 @@ class SassFilter implements FilterInterface
 
     public function filterDump(AssetInterface $asset)
     {
+    }
+
+    public function getChildren(AssetFactory $factory, $content, $loadPath = null)
+    {
+        $loadPaths = $this->loadPaths;
+        if ($loadPath) {
+            array_unshift($loadPaths, $loadPath);
+        }
+
+        if (!$loadPaths) {
+            return array();
+        }
+
+        $children = array();
+        foreach (CssUtils::extractImports($content) as $reference) {
+            if ('.css' === substr($reference, -4)) {
+                // skip normal css imports
+                // todo: skip imports with media queries
+                continue;
+            }
+
+            // the reference may or may not have an extension or be a partial
+            if (pathinfo($reference, PATHINFO_EXTENSION)) {
+                $needles = array(
+                    $reference,
+                    '_'.$reference,
+                );
+            } else {
+                $needles = array(
+                    $reference.'.scss',
+                    $reference.'.sass',
+                    '_'.$reference.'.scss',
+                    '_'.$reference.'.sass',
+                );
+            }
+
+            foreach ($loadPaths as $loadPath) {
+                foreach ($needles as $needle) {
+                    if (file_exists($file = $loadPath.'/'.$needle)) {
+                        $coll = $factory->createAsset($file, array(), array('root' => $loadPath));
+                        foreach ($coll as $leaf) {
+                            $leaf->ensureFilter($this);
+                            $children[] = $leaf;
+                            goto next_reference;
+                        }
+                    }
+                }
+            }
+
+            next_reference:
+        }
+
+        return $children;
     }
 }

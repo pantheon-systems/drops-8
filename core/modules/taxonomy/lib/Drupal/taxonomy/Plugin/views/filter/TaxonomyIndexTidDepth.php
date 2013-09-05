@@ -7,7 +7,7 @@
 
 namespace Drupal\taxonomy\Plugin\views\filter;
 
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
 
 /**
  * Filter handler for taxonomy terms with depth.
@@ -17,14 +17,11 @@ use Drupal\Core\Annotation\Plugin;
  *
  * @ingroup views_filter_handlers
  *
- * @Plugin(
- *   id = "taxonomy_index_tid_depth",
- *   module = "taxonomy"
- * )
+ * @PluginID("taxonomy_index_tid_depth")
  */
 class TaxonomyIndexTidDepth extends TaxonomyIndexTid {
 
-  function operator_options($which = 'title') {
+  public function operatorOptions($which = 'title') {
     return array(
       'or' => t('Is one of'),
     );
@@ -73,8 +70,8 @@ class TaxonomyIndexTidDepth extends TaxonomyIndexTid {
       $this->tableAlias = $this->relationship;
     }
     // If no relationship, then use the alias of the base table.
-    elseif (isset($this->query->table_queue[$this->query->base_table]['alias'])) {
-      $this->tableAlias = $this->query->table_queue[$this->query->base_table]['alias'];
+    elseif (isset($this->query->table_queue[$this->view->storage->get('base_table')]['alias'])) {
+      $this->tableAlias = $this->query->table_queue[$this->view->storage->get('base_table')]['alias'];
     }
     // This should never happen, but if it does, we fail quietly.
     else {
@@ -105,7 +102,7 @@ class TaxonomyIndexTidDepth extends TaxonomyIndexTid {
     }
 
     $subquery->condition($where);
-    $this->query->add_where($this->options['group'], "$this->tableAlias.$this->realField", $subquery, 'IN');
+    $this->query->addWhere($this->options['group'], "$this->tableAlias.$this->realField", $subquery, 'IN');
   }
 
 }

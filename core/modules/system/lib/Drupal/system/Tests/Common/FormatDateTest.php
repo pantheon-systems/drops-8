@@ -7,6 +7,7 @@
 
 namespace Drupal\system\Tests\Common;
 
+use Drupal\Core\Language\Language;
 use Drupal\simpletest\WebTestBase;
 
 /**
@@ -35,15 +36,26 @@ class FormatDateTest extends WebTestBase {
   }
 
   function setUp() {
-    parent::setUp();
-    variable_set('configurable_timezones', 1);
-    variable_set('date_format_long', 'l, j. F Y - G:i');
-    variable_set('date_format_medium', 'j. F Y - G:i');
-    variable_set('date_format_short', 'Y M j - g:ia');
+    parent::setUp('language');
+
+    \Drupal::config('system.date')
+      ->set('timezone.user.configurable', 1)
+      ->save();
+    $formats = $this->container->get('entity.manager')
+      ->getStorageController('date_format')
+      ->loadMultiple(array('long', 'medium', 'short'));
+    $formats['long']->setPattern('l, j. F Y - G:i')->save();
+    $formats['medium']->setPattern('j. F Y - G:i')->save();
+    $formats['short']->setPattern('Y M j - g:ia')->save();
+
     variable_set('locale_custom_strings_' . self::LANGCODE, array(
       '' => array('Sunday' => 'domingo'),
       'Long month name' => array('March' => 'marzo'),
     ));
+
+    $language = new Language(array('id' => static::LANGCODE));
+    language_save($language);
+
     $this->refreshVariables();
   }
 
@@ -56,21 +68,26 @@ class FormatDateTest extends WebTestBase {
     $this->drupalLogin($this->admin_user);
 
     // Add new date format.
-    $admin_date_format = 'j M y';
-    $edit = array('date_format' => $admin_date_format);
-    $this->drupalPost('admin/config/regional/date-time/formats/add', $edit, 'Add format');
-
-    // Add new date type.
     $edit = array(
-      'date_type' => 'Example Style',
-      'machine_name' => 'example_style',
-      'date_format' => $admin_date_format,
+      'id' => 'example_style',
+      'label' => 'Example Style',
+      'date_format_pattern' => 'j M y',
     );
-    $this->drupalPost('admin/config/regional/date-time/types/add', $edit, 'Add date type');
+    $this->drupalPost('admin/config/regional/date-time/formats/add', $edit, t('Add format'));
+
+    // Add a second date format with a different case than the first.
+    $edit = array(
+      'id' => 'example_style_uppercase',
+      'label' => 'Example Style Uppercase',
+      'date_format_pattern' => 'j M Y',
+    );
+    $this->drupalPost('admin/config/regional/date-time/formats/add', $edit, t('Add format'));
+    $this->assertText(t('Custom date format added.'));
 
     $timestamp = strtotime('2007-03-10T00:00:00+00:00');
     $this->assertIdentical(format_date($timestamp, 'example_style', '', 'America/Los_Angeles'), '9 Mar 07', 'Test format_date() using an admin-defined date type.');
-    $this->assertIdentical(format_date($timestamp, 'undefined_style'), format_date($timestamp, 'medium'), 'Test format_date() defaulting to medium when $type not found.');
+    $this->assertIdentical(format_date($timestamp, 'example_style_uppercase', '', 'America/Los_Angeles'), '9 Mar 2007', 'Test format_date() using an admin-defined date type with different case.');
+    $this->assertIdentical(format_date($timestamp, 'undefined_style'), format_date($timestamp, 'fallback'), 'Test format_date() defaulting to `fallback` when $type not found.');
   }
 
   /**
@@ -79,7 +96,7 @@ class FormatDateTest extends WebTestBase {
   function testFormatDate() {
     global $user;
 
-    $language_interface = language(LANGUAGE_TYPE_INTERFACE);
+    $language_interface = language(Language::TYPE_INTERFACE);
 
     $timestamp = strtotime('2007-03-26T00:00:00+00:00');
     $this->assertIdentical(format_date($timestamp, 'custom', 'l, d-M-y H:i:s T', 'America/Los_Angeles', 'en'), 'Sunday, 25-Mar-07 17:00:00 PDT', 'Test all parameters.');
@@ -96,7 +113,7 @@ class FormatDateTest extends WebTestBase {
       'predefined_langcode' => 'custom',
       'langcode' => self::LANGCODE,
       'name' => self::LANGCODE,
-      'direction' => LANGUAGE_LTR,
+      'direction' => Language::DIRECTION_LTR,
     );
     $this->drupalPost('admin/config/regional/language/add', $edit, t('Add custom language'));
 
@@ -107,16 +124,16 @@ class FormatDateTest extends WebTestBase {
     // Create a test user to carry out the tests.
     $test_user = $this->drupalCreateUser();
     $this->drupalLogin($test_user);
-    $edit = array('preferred_langcode' => self::LANGCODE, 'mail' => $test_user->mail, 'timezone' => 'America/Los_Angeles');
-    $this->drupalPost('user/' . $test_user->uid . '/edit', $edit, t('Save'));
+    $edit = array('preferred_langcode' => self::LANGCODE, 'mail' => $test_user->getEmail(), 'timezone' => 'America/Los_Angeles');
+    $this->drupalPost('user/' . $test_user->id() . '/edit', $edit, t('Save'));
 
     // Disable session saving as we are about to modify the global $user.
     drupal_save_session(FALSE);
     // Save the original user and language and then replace it with the test user and language.
     $real_user = $user;
-    $user = user_load($test_user->uid, TRUE);
-    $real_language = $language_interface->langcode;
-    $language_interface->langcode = $user->preferred_langcode;
+    $user = user_load($test_user->id(), TRUE);
+    $real_language = $language_interface->id;
+    $language_interface->id = $user->getPreferredLangcode();
     // Simulate a Drupal bootstrap with the logged-in user.
     date_default_timezone_set(drupal_get_user_timezone());
 
@@ -138,7 +155,7 @@ class FormatDateTest extends WebTestBase {
 
     // Restore the original user and language, and enable session saving.
     $user = $real_user;
-    $language_interface->langcode = $real_language;
+    $language_interface->id = $real_language;
     // Restore default time zone.
     date_default_timezone_set(drupal_get_user_timezone());
     drupal_save_session(TRUE);

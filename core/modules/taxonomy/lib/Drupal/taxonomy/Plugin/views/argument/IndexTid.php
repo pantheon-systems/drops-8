@@ -7,7 +7,7 @@
 
 namespace Drupal\taxonomy\Plugin\views\argument;
 
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
 use Drupal\views\Plugin\views\argument\ManyToOne;
 
 /**
@@ -15,10 +15,7 @@ use Drupal\views\Plugin\views\argument\ManyToOne;
  *
  * @ingroup views_argument_handlers
  *
- * @Plugin(
- *   id = "taxonomy_index_tid",
- *   module = "taxonomy"
- * )
+ * @PluginID("taxonomy_index_tid")
  */
 class IndexTid extends ManyToOne {
 
@@ -38,7 +35,7 @@ class IndexTid extends ManyToOne {
     );
   }
 
-  function set_breadcrumb(&$breadcrumb) {
+  public function setBreadcrumb(&$breadcrumb) {
     if (empty($this->options['set_breadcrumb']) || !is_numeric($this->argument)) {
       return;
     }
@@ -46,7 +43,7 @@ class IndexTid extends ManyToOne {
     return views_taxonomy_set_breadcrumb($breadcrumb, $this);
   }
 
-  function title_query() {
+  public function titleQuery() {
     $titles = array();
     $result = db_select('taxonomy_term_data', 'td')
       ->fields('td', array('name'))

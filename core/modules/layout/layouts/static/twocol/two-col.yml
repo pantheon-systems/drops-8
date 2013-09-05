@@ -1,9 +1,0 @@
-title: Two column
-category: Columns: 2
-template: two-col
-stylesheets:
-  - two-col.css
-  - two-col-rtl.css
-regions:
-  first: 'First column'
-  second: 'Second column'

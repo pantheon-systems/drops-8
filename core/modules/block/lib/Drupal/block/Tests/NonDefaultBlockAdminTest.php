@@ -35,5 +35,6 @@ class NonDefaultBlockAdminTest extends WebTestBase {
     $new_theme = 'bartik';
     theme_enable(array($new_theme));
     $this->drupalGet('admin/structure/block/list/' . $new_theme);
+    $this->assertText('Bartik(' . t('active tab') . ')', 'Tab for non-default theme found.');
   }
 }

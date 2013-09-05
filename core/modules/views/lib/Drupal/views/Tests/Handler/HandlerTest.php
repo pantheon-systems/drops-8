@@ -10,11 +10,19 @@ namespace Drupal\views\Tests\Handler;
 use Drupal\views\ViewExecutable;
 use Drupal\views\Tests\ViewTestBase;
 use Drupal\views\Plugin\views\HandlerBase;
+use Drupal\views\Views;
 
 /**
  * Tests abstract handlers of views.
  */
 class HandlerTest extends ViewTestBase {
+
+  /**
+   * Views used by this test.
+   *
+   * @var array
+   */
+  public static $testViews = array('test_view', 'test_view_handler_weight', 'test_handler_relationships', 'test_handler_test_access', 'test_filter_in_operator_ui');
 
   /**
    * Modules to enable.
@@ -94,7 +102,11 @@ class HandlerTest extends ViewTestBase {
     $null = NULL;
     $this->assertEqual($empty_stdclass, HandlerBase::breakPhraseString('', $null));
 
-    $handler = views_get_handler('node', 'title', 'argument');
+    $item = array(
+      'table' => 'node',
+      'field' => 'title',
+    );
+    $handler = $this->container->get('plugin.manager.views.argument')->getHandler($item);
     $this->assertEqual($handler, HandlerBase::breakPhraseString('', $handler), 'The breakPhraseString() method works correctly.');
 
     // test ors
@@ -149,7 +161,11 @@ class HandlerTest extends ViewTestBase {
     // check defaults
     $this->assertEqual($empty_stdclass, HandlerBase::breakPhrase('', $null));
 
-    $handler = views_get_handler('node', 'title', 'argument');
+    $item = array(
+      'table' => 'node',
+      'field' => 'title',
+    );
+    $handler = $this->container->get('plugin.manager.views.argument')->getHandler($item);
     $this->assertEqual($handler, HandlerBase::breakPhrase('', $handler), 'The breakPhrase() method works correctly.');
 
     // Generate three random numbers which can be used below;
@@ -263,7 +279,8 @@ class HandlerTest extends ViewTestBase {
    * Tests the relationship method on the base class.
    */
   public function testSetRelationship() {
-    $view = $this->createViewFromConfig('test_handler_relationships');
+    $view = views_get_view('test_handler_relationships');
+    $view->setDisplay();
     // Setup a broken relationship.
     $view->addItem('default', 'relationship', $this->randomName(), $this->randomName(), array(), 'broken_relationship');
     // Setup a valid relationship.
@@ -301,7 +318,7 @@ class HandlerTest extends ViewTestBase {
    * @see Drupal\views\Plugin\views\HandlerBase::placeholder()
    */
   public function testPlaceholder() {
-    $view = $this->getView();
+    $view = views_get_view('test_view');
     $view->initHandlers();
     $view->initQuery();
 
@@ -338,8 +355,8 @@ class HandlerTest extends ViewTestBase {
     $views_data = $views_data['views_test_data'];
 
     // Enable access to callback only field and deny for callback + arguments.
-    config('views_test_data.tests')->set('handler_access_callback', TRUE)->save();
-    config('views_test_data.tests')->set('handler_access_callback_argument', FALSE)->save();
+    \Drupal::config('views_test_data.tests')->set('handler_access_callback', TRUE)->save();
+    \Drupal::config('views_test_data.tests')->set('handler_access_callback_argument', FALSE)->save();
     $view->initDisplay();
     $view->initHandlers();
 
@@ -351,8 +368,8 @@ class HandlerTest extends ViewTestBase {
     }
 
     // Enable access to the callback + argument handlers and deny for callback.
-    config('views_test_data.tests')->set('handler_access_callback', FALSE)->save();
-    config('views_test_data.tests')->set('handler_access_callback_argument', TRUE)->save();
+    \Drupal::config('views_test_data.tests')->set('handler_access_callback', FALSE)->save();
+    \Drupal::config('views_test_data.tests')->set('handler_access_callback_argument', TRUE)->save();
     $view->destroy();
     $view->initDisplay();
     $view->initHandlers();

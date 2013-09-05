@@ -2,22 +2,22 @@
 
 /**
  * @file
- * Definition of Drupal\picture\Plugin\field\formatter\PictureFormatter.
+ * Contains \Drupal\picture\Plugin\field\formatter\PictureFormatter.
  */
 
 namespace Drupal\picture\Plugin\field\formatter;
 
-use Drupal\Core\Annotation\Plugin;
+use Drupal\field\Annotation\FieldFormatter;
 use Drupal\Core\Annotation\Translation;
-use Drupal\field\Plugin\Type\Formatter\FormatterBase;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\Field\FieldInterface;
+use Drupal\image\Plugin\field\formatter\ImageFormatterBase;
 
 /**
  * Plugin for picture formatter.
  *
- * @Plugin(
+ * @FieldFormatter(
  *   id = "picture",
- *   module = "picture",
  *   label = @Translation("Picture"),
  *   field_types = {
  *     "image",
@@ -29,10 +29,10 @@ use Drupal\Core\Entity\EntityInterface;
  *   }
  * )
  */
-class PictureFormatter extends FormatterBase {
+class PictureFormatter extends ImageFormatterBase {
 
   /**
-   * Implements Drupal\field\Plugin\Type\Formatter\FormatterInterface::settingsForm().
+   * {@inheritdoc}
    */
   public function settingsForm(array $form, array &$form_state) {
     $picture_options = array();
@@ -78,7 +78,7 @@ class PictureFormatter extends FormatterBase {
   }
 
   /**
-   * Implements Drupal\field\Plugin\Type\Formatter\FormatterInterface::settingsForm().
+   * {@inheritdoc}
    */
   public function settingsSummary() {
     $summary = array();
@@ -106,16 +106,16 @@ class PictureFormatter extends FormatterBase {
       }
     }
     else {
-      $summary[] = t('Please select a picture mapping');
+      $summary[] = t('Select a picture mapping.');
     }
 
-    return implode('<br />', $summary);
+    return $summary;
   }
 
   /**
-   * Implements Drupal\field\Plugin\Type\Formatter\FormatterInterface::viewElements().
+   * {@inheritdoc}
    */
-  public function viewElements(EntityInterface $entity, $langcode, array $items) {
+  public function viewElements(EntityInterface $entity, $langcode, FieldInterface $items) {
     $elements = array();
     // Check if the formatter involves a link.
     if ($this->getSetting('image_link') == 'content') {
@@ -137,13 +137,12 @@ class PictureFormatter extends FormatterBase {
           // @todo add the following when breakpoint->status is added again:
           // $picture_mapping->breakpointGroup->breakpoints[$breakpoint_name]->status
           if (isset($picture_mapping->breakpointGroup->breakpoints[$breakpoint_name])) {
-          $breakpoint = $picture_mapping->breakpointGroup->breakpoints[$breakpoint_name];
+            $breakpoint = $picture_mapping->breakpointGroup->breakpoints[$breakpoint_name];
 
-          // Determine the enabled multipliers.
-          $multipliers = array_intersect_key($multipliers, $breakpoint->multipliers);
+            // Determine the enabled multipliers.
+            $multipliers = array_intersect_key($multipliers, $breakpoint->multipliers);
             foreach ($multipliers as $multiplier => $image_style) {
               // Make sure the multiplier still exists.
-              //if (!empty(array_intersect($multiplier, $breakpoint->multipliers))) {
               if (!empty($image_style)) {
                 // First mapping found is used as fallback.
                 if (empty($fallback_image_style)) {
@@ -168,7 +167,7 @@ class PictureFormatter extends FormatterBase {
     foreach ($items as $delta => $item) {
       if (isset($link_file)) {
         $uri = array(
-          'path' => file_create_url($item['uri']),
+          'path' => file_create_url($item->entity->getFileUri()),
           'options' => array(),
         );
       }
@@ -177,7 +176,7 @@ class PictureFormatter extends FormatterBase {
         '#attached' => array('library' => array(
           array('picture', 'picturefill'),
         )),
-        '#item' => $item,
+        '#item' => $item->getValue(TRUE),
         '#image_style' => $fallback_image_style,
         '#breakpoints' => $breakpoint_styles,
         '#path' => isset($uri) ? $uri : '',

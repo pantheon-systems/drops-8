@@ -7,7 +7,8 @@
 
 namespace Drupal\views\Plugin\views\field;
 
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
+use Drupal\views\ResultRow;
 
 /**
  * Render a field as a numeric value
@@ -18,9 +19,7 @@ use Drupal\Core\Annotation\Plugin;
  *
  * @ingroup views_field_handlers
  *
- * @Plugin(
- *   id = "numeric"
- * )
+ * @PluginID("numeric")
  */
 class Numeric extends FieldPluginBase {
 
@@ -126,8 +125,11 @@ class Numeric extends FieldPluginBase {
     parent::buildOptionsForm($form, $form_state);
   }
 
-  function render($values) {
-    $value = $this->get_value($values);
+  /**
+   * {@inheritdoc}
+   */
+  public function render(ResultRow $values) {
+    $value = $this->getValue($values);
     if (!empty($this->options['set_precision'])) {
       $value = number_format($value, $this->options['precision'], $this->options['decimal'], $this->options['separator']);
     }

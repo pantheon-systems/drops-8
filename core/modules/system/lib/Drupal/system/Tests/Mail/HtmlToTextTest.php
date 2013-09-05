@@ -348,11 +348,8 @@ class HtmlToTextTest extends WebTestBase {
   public function testVeryLongLineWrap() {
     $input = 'Drupal<br /><p>' . str_repeat('x', 2100) . '</><br />Drupal';
     $output = drupal_html_to_text($input);
-    // This awkward construct comes from includes/mail.inc lines 8-13.
-    $eol = variable_get('mail_line_endings', MAIL_LINE_ENDINGS);
-    // We must use strlen() rather than drupal_strlen() in order to count
-    // octets rather than characters.
-    $line_length_limit = 1000 - drupal_strlen($eol);
+    $eol = settings()->get('mail_line_endings', MAIL_LINE_ENDINGS);
+
     $maximum_line_length = 0;
     foreach (explode($eol, $output) as $line) {
       // We must use strlen() rather than drupal_strlen() in order to count
@@ -362,5 +359,31 @@ class HtmlToTextTest extends WebTestBase {
     $verbose = 'Maximum line length found was ' . $maximum_line_length . ' octets.';
     // @todo This should assert that $maximum_line_length <= 1000.
     $this->pass($verbose);
+  }
+
+  /**
+   * Tests that drupal_wrap_mail() removes trailing whitespace before newlines.
+   */
+  public function testRemoveTrailingWhitespace() {
+    $text = "Hi there! \nHerp Derp";
+    $mail_lines = explode("\n", drupal_wrap_mail($text));
+    $this->assertNotEqual(" ", substr($mail_lines[0], -1), 'Trailing whitespace removed.');
+  }
+
+  /**
+   * Tests that drupal_wrap_mail() does not remove the trailing whitespace from
+   * Usenet style signatures.
+   *
+   * RFC 3676 says, "This is a special case; an (optionally quoted or quoted and
+   * stuffed) line consisting of DASH DASH SP is neither fixed nor flowed."
+   */
+  public function testUsenetSignature() {
+    $text = "Hi there!\n-- \nHerp Derp";
+    $mail_lines = explode("\n", drupal_wrap_mail($text));
+    $this->assertEqual("-- ", $mail_lines[1], 'Trailing whitespace not removed for dash-dash-space signatures.');
+
+    $text = "Hi there!\n--  \nHerp Derp";
+    $mail_lines = explode("\n", drupal_wrap_mail($text));
+    $this->assertEqual("--", $mail_lines[1], 'Trailing whitespace removed for incorrect dash-dash-space signatures.');
   }
 }

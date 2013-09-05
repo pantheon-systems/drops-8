@@ -2,13 +2,13 @@
 
 /**
  * @file
- * Definition of Drupal\field\Plugin\Type\Formatter\FormatterInterface.
+ * Contains \Drupal\field\Plugin\Type\Formatter\FormatterInterface.
  */
 
 namespace Drupal\field\Plugin\Type\Formatter;
 
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\field\FieldInstance;
+use Drupal\Core\Entity\Field\FieldInterface;
 use Drupal\field\Plugin\PluginSettingsInterface;
 
 /**
@@ -19,9 +19,9 @@ interface FormatterInterface extends PluginSettingsInterface {
   /**
    * Returns a form to configure settings for the formatter.
    *
-   * Invoked from field_ui_field_edit_form() to allow administrators to
-   * configure the formatter. The field_ui module takes care of handling
-   * submitted form values.
+   * Invoked from \Drupal\field_ui\Form\FieldInstanceEditForm to allow
+   * administrators to configure the formatter. The field_ui module takes care
+   * of handling submitted form values.
    *
    * @param array $form
    *   The form where the settings form is being included in.
@@ -40,8 +40,8 @@ interface FormatterInterface extends PluginSettingsInterface {
    * configurable settings, and no UI will be provided to display a settings
    * form.
    *
-   * @return string
-   *   A short summary of the formatter settings..
+   * @return array()
+   *   A short summary of the formatter settings.
    */
   public function settingsSummary();
 
@@ -52,9 +52,6 @@ interface FormatterInterface extends PluginSettingsInterface {
    * from the database in order to render a field, for example a reference
    * field that displays properties of the referenced entities such as name or
    * type.
-   *
-   * This method is called after the field type's implementation of
-   * hook_field_prepare_view().
    *
    * This method operates on multiple entities. The $entities and $items
    * parameters are arrays keyed by entity ID. For performance reasons,
@@ -72,7 +69,7 @@ interface FormatterInterface extends PluginSettingsInterface {
    * @param array $items
    *   Array of field values for the entities, keyed by entity ID.
    */
-  public function prepareView(array $entities, $langcode, array &$items);
+  public function prepareView(array $entities, $langcode, array $items);
 
   /**
    * Builds a renderable array for one field on one entity instance.
@@ -81,13 +78,13 @@ interface FormatterInterface extends PluginSettingsInterface {
    *   The entity being displayed.
    * @param string $langcode
    *   The language associated with $items.
-   * @param array $items
-   *   Array of field values already loaded for the entities, keyed by entity id.
+   * @param Drupal\Core\Entity\Field\FieldInterface $items
+   *   The field value for the entity for the language.
    *
    * @return array
    *   A renderable array for a themed field with its label and all its values.
    */
-  public function view(EntityInterface $entity, $langcode, array $items);
+  public function view(EntityInterface $entity, $langcode, FieldInterface $items);
 
   /**
    * Builds a renderable array for a field value.
@@ -103,6 +100,6 @@ interface FormatterInterface extends PluginSettingsInterface {
    *   A renderable array for $items, as an array of child elements keyed by
    *   numeric indexes starting from 0.
    */
-  public function viewElements(EntityInterface $entity, $langcode, array $items);
+  public function viewElements(EntityInterface $entity, $langcode, FieldInterface $items);
 
 }

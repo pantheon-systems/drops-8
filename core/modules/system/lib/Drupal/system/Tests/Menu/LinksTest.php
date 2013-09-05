@@ -13,6 +13,14 @@ use Drupal\simpletest\WebTestBase;
  * Tests for menu links.
  */
 class LinksTest extends WebTestBase {
+
+  /**
+   * Modules to enable.
+   *
+   * @var array
+   */
+  public static $modules = array('router_test');
+
   public static function getInfo() {
     return array(
       'name' => 'Menu links',
@@ -26,7 +34,8 @@ class LinksTest extends WebTestBase {
    */
   function createLinkHierarchy($module = 'menu_test') {
     // First remove all the menu links.
-    db_truncate('menu_links')->execute();
+    $menu_links = menu_link_load_multiple();
+    menu_link_delete_multiple(array_keys($menu_links), TRUE, TRUE);
 
     // Then create a simple link hierarchy:
     // - $parent
@@ -43,31 +52,36 @@ class LinksTest extends WebTestBase {
     $links['parent'] = $base_options + array(
       'link_path' => 'menu-test/parent',
     );
-    menu_link_save($links['parent']);
+    $links['parent'] = entity_create('menu_link', $links['parent']);
+    $links['parent']->save();
 
     $links['child-1'] = $base_options + array(
       'link_path' => 'menu-test/parent/child-1',
       'plid' => $links['parent']['mlid'],
     );
-    menu_link_save($links['child-1']);
+    $links['child-1'] = entity_create('menu_link', $links['child-1']);
+    $links['child-1']->save();
 
     $links['child-1-1'] = $base_options + array(
       'link_path' => 'menu-test/parent/child-1/child-1-1',
       'plid' => $links['child-1']['mlid'],
     );
-    menu_link_save($links['child-1-1']);
+    $links['child-1-1'] = entity_create('menu_link', $links['child-1-1']);
+    $links['child-1-1']->save();
 
     $links['child-1-2'] = $base_options + array(
       'link_path' => 'menu-test/parent/child-1/child-1-2',
       'plid' => $links['child-1']['mlid'],
     );
-    menu_link_save($links['child-1-2']);
+    $links['child-1-2'] = entity_create('menu_link', $links['child-1-2']);
+    $links['child-1-2']->save();
 
     $links['child-2'] = $base_options + array(
       'link_path' => 'menu-test/parent/child-2',
       'plid' => $links['parent']['mlid'],
     );
-    menu_link_save($links['child-2']);
+    $links['child-2'] = entity_create('menu_link', $links['child-2']);
+    $links['child-2']->save();
 
     return $links;
   }
@@ -223,4 +237,28 @@ class LinksTest extends WebTestBase {
     );
     $this->assertMenuLinkParents($links, $expected_hierarchy);
   }
+
+  /**
+   * Tests the router system integration (route_name and route_parameters).
+   */
+  public function testRouterIntegration() {
+    $menu_link = entity_create('menu_link', array(
+      'link_path' => 'router_test/test1',
+    ));
+    $menu_link->save();
+    $this->assertEqual($menu_link->route_name, 'router_test_1');
+    $this->assertEqual($menu_link->route_parameters, array());
+
+    $menu_link = entity_create('menu_link', array(
+      'link_path' => 'router_test/test3/test',
+    ));
+    $menu_link->save();
+    $this->assertEqual($menu_link->route_name, 'router_test_3');
+    $this->assertEqual($menu_link->route_parameters, array('value' => 'test'));
+
+    $menu_link = entity_load('menu_link', $menu_link->id());
+    $this->assertEqual($menu_link->route_name, 'router_test_3');
+    $this->assertEqual($menu_link->route_parameters, array('value' => 'test'));
+  }
+
 }

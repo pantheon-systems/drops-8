@@ -8,7 +8,7 @@
 namespace Drupal\comment\Plugin\views\filter;
 
 use Drupal\views\Plugin\views\filter\FilterPluginBase;
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
 
 /**
  * Filter handler to accept a user id to check for nodes that user posted or
@@ -16,10 +16,7 @@ use Drupal\Core\Annotation\Plugin;
  *
  * @ingroup views_filter_handlers
  *
- * @Plugin(
- *   id = "comment_user_uid",
- *   module = "comment"
- * )
+ * @PluginID("comment_user_uid")
  */
 class UserUid extends FilterPluginBase {
 
@@ -35,7 +32,7 @@ class UserUid extends FilterPluginBase {
       ->condition("$this->tableAlias.uid", $this->value, $this->operator)
       ->exists($subselect);
 
-    $this->query->add_where($this->options['group'], $condition);
+    $this->query->addWhere($this->options['group'], $condition);
   }
 
 }

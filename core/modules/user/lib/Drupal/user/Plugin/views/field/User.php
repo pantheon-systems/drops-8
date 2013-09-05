@@ -8,7 +8,9 @@
 namespace Drupal\user\Plugin\views\field;
 
 use Drupal\views\Plugin\views\field\FieldPluginBase;
-use Drupal\Core\Annotation\Plugin;
+use Drupal\views\Plugin\views\display\DisplayPluginBase;
+use Drupal\Component\Annotation\PluginID;
+use Drupal\views\ResultRow;
 use Drupal\views\ViewExecutable;
 
 /**
@@ -16,18 +18,16 @@ use Drupal\views\ViewExecutable;
  *
  * @ingroup views_field_handlers
  *
- * @Plugin(
- *   id = "user",
- *   module = "user"
- * )
+ * @PluginID("user")
  */
 class User extends FieldPluginBase {
 
   /**
-   * Override init function to provide generic option to link to user.
+   * Overrides \Drupal\views\Plugin\views\field\FieldPluginBase::init().
    */
-  public function init(ViewExecutable $view, &$data) {
-    parent::init($view, $data);
+  public function init(ViewExecutable $view, DisplayPluginBase $display, array &$options = NULL) {
+    parent::init($view, $display, $options);
+
     if (!empty($this->options['link_to_user'])) {
       $this->additional_fields['uid'] = 'uid';
     }
@@ -52,17 +52,21 @@ class User extends FieldPluginBase {
     parent::buildOptionsForm($form, $form_state);
   }
 
-  function render_link($data, $values) {
-    if (!empty($this->options['link_to_user']) && user_access('access user profiles') && ($uid = $this->get_value($values, 'uid')) && $data !== NULL && $data !== '') {
+  protected function renderLink($data, ResultRow $values) {
+    if (!empty($this->options['link_to_user']) && user_access('access user profiles') && ($entity = $this->getEntity($values)) && $data !== NULL && $data !== '') {
       $this->options['alter']['make_link'] = TRUE;
-      $this->options['alter']['path'] = "user/" . $uid;
+      $uri = $entity->uri();
+      $this->options['alter']['path'] = $uri['path'];
     }
     return $data;
   }
 
-  function render($values) {
-    $value = $this->get_value($values);
-    return $this->render_link($this->sanitizeValue($value), $values);
+  /**
+   * {@inheritdoc}
+   */
+  public function render(ResultRow $values) {
+    $value = $this->getValue($values);
+    return $this->renderLink($this->sanitizeValue($value), $values);
   }
 
 }

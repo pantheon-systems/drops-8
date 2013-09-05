@@ -41,7 +41,7 @@ class Update extends Query implements ConditionInterface {
    *
    * Condition handling is handled via composition.
    *
-   * @var Drupal\Core\Database\Query\Condition
+   * @var \Drupal\Core\Database\Query\Condition
    */
   protected $condition;
 
@@ -63,7 +63,7 @@ class Update extends Query implements ConditionInterface {
   /**
    * Constructs an Update query object.
    *
-   * @param Drupal\Core\Database\Connection $connection
+   * @param \Drupal\Core\Database\Connection $connection
    *   A Connection object.
    * @param string $table
    *   Name of the table to associate with this query.
@@ -161,7 +161,7 @@ class Update extends Query implements ConditionInterface {
    *   An associative array of fields to write into the database. The array keys
    *   are the field names and the values are the values to which to set them.
    *
-   * @return Drupal\Core\Database\Query\Update
+   * @return \Drupal\Core\Database\Query\Update
    *   The called object.
    */
   public function fields(array $fields) {
@@ -184,7 +184,7 @@ class Update extends Query implements ConditionInterface {
    *   If specified, this is an array of key/value pairs for named placeholders
    *   corresponding to the expression.
    *
-   * @return Drupal\Core\Database\Query\Update
+   * @return \Drupal\Core\Database\Query\Update
    *   The called object.
    */
   public function expression($field, $expression, array $arguments = NULL) {
@@ -200,10 +200,10 @@ class Update extends Query implements ConditionInterface {
    * Executes the UPDATE query.
    *
    * @return
-   *   The number of rows affected by the update.
+   *   The number of rows matched by the update query. This includes rows that
+   *   actually didn't have to be updated because the values didn't change.
    */
   public function execute() {
-
     // Expressions take priority over literal fields, so we process those first
     // and remove any literal fields that conflict.
     $fields = $this->fields;
@@ -212,13 +212,17 @@ class Update extends Query implements ConditionInterface {
       if (!empty($data['arguments'])) {
         $update_values += $data['arguments'];
       }
+      if ($data['expression'] instanceof SelectInterface) {
+        $data['expression']->compile($this->connection, $this);
+        $update_values += $data['expression']->arguments();
+      }
       unset($fields[$field]);
     }
 
     // Because we filter $fields the same way here and in __toString(), the
     // placeholders will all match up properly.
     $max_placeholder = 0;
-    foreach ($fields as $field => $value) {
+    foreach ($fields as $value) {
       $update_values[':db_update_placeholder_' . ($max_placeholder++)] = $value;
     }
 
@@ -245,6 +249,11 @@ class Update extends Query implements ConditionInterface {
     $fields = $this->fields;
     $update_fields = array();
     foreach ($this->expressionFields as $field => $data) {
+      if ($data['expression'] instanceof SelectInterface) {
+        // Compile and cast expression subquery to a string.
+        $data['expression']->compile($this->connection, $this);
+        $data['expression'] = ' (' . $data['expression'] . ')';
+      }
       $update_fields[] = $field . '=' . $data['expression'];
       unset($fields[$field]);
     }

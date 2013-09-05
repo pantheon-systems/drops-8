@@ -406,9 +406,8 @@ abstract class FileTransfer {
       '#description' => t('Your password is not saved in the database and is only used to establish a connection.'),
     );
     $form['advanced'] = array(
-      '#type' => 'fieldset',
+      '#type' => 'details',
       '#title' => t('Advanced settings'),
-      '#collapsible' => TRUE,
       '#collapsed' => TRUE,
     );
     $form['advanced']['hostname'] = array(

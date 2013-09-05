@@ -8,7 +8,6 @@
 namespace Drupal\shortcut\Tests;
 
 use Drupal\simpletest\WebTestBase;
-use stdClass;
 
 /**
  * Defines base class for shortcut test cases.
@@ -51,18 +50,22 @@ abstract class ShortcutTestBase extends WebTestBase {
       $this->drupalCreateContentType(array('type' => 'article', 'name' => 'Article'));
 
       // Populate the default shortcut set.
-      $shortcut_set = shortcut_set_load(SHORTCUT_DEFAULT_SET_NAME);
-      $shortcut_set->links[] = array(
+      $shortcut_set = shortcut_set_load('default');
+      $menu_link = entity_create('menu_link', array(
         'link_path' => 'node/add',
-        'link_title' => st('Add content'),
+        'link_title' => t('Add content'),
         'weight' => -20,
-      );
-      $shortcut_set->links[] = array(
+      ));
+      $menu_link->save();
+      $shortcut_set->links[$menu_link->uuid()] = $menu_link;
+      $menu_item = entity_create('menu_link', array(
         'link_path' => 'admin/content',
-        'link_title' => st('Find content'),
+        'link_title' => t('All content'),
         'weight' => -19,
-      );
-      shortcut_set_save($shortcut_set);
+      ));
+      $menu_item->save();
+      $shortcut_set->links[$menu_item->uuid()] = $menu_item;
+      $shortcut_set->save();
     }
 
     // Create users.
@@ -74,29 +77,25 @@ abstract class ShortcutTestBase extends WebTestBase {
 
     // Log in as admin and grab the default shortcut set.
     $this->drupalLogin($this->admin_user);
-    $this->set = shortcut_set_load(SHORTCUT_DEFAULT_SET_NAME);
+    $this->set = shortcut_set_load('default');
     shortcut_set_assign_user($this->set, $this->admin_user);
   }
 
   /**
    * Creates a generic shortcut set.
    */
-  function generateShortcutSet($title = '', $default_links = TRUE, $set_name = '') {
-    $set = new stdClass();
-    $set->title = empty($title) ? $this->randomName(10) : $title;
-
-    // Set name is generated automatically if not set.
-    if (!empty($set_name)) {
-      $set->set_name = $set_name;
-    }
-
+  function generateShortcutSet($label = '', $id = NULL, $default_links = TRUE) {
+    $set = entity_create('shortcut_set', array(
+      'id' => isset($id) ? $id : strtolower($this->randomName()),
+      'label' => empty($label) ? $this->randomString() : $label,
+    ));
     if ($default_links) {
-      $set->links = array();
-      $set->links[] = $this->generateShortcutLink('node/add');
-      $set->links[] = $this->generateShortcutLink('admin/content');
+      $menu_link = $this->generateShortcutLink('node/add');
+      $set->links[$menu_link->uuid()] = $menu_link;
+      $menu_link = $this->generateShortcutLink('admin/content');
+      $set->links[$menu_link->uuid()] = $menu_link;
     }
-    shortcut_set_save($set);
-
+    $set->save();
     return $set;
   }
 
@@ -104,10 +103,11 @@ abstract class ShortcutTestBase extends WebTestBase {
    * Creates a generic shortcut link.
    */
   function generateShortcutLink($path, $title = '') {
-    $link = array(
+    $link = entity_create('menu_link', array(
       'link_path' => $path,
-      'link_title' => !empty($title) ? $title : $this->randomName(10),
-    );
+      'link_title' => !empty($title) ? $title : $this->randomName(),
+    ));
+    $link->save();
 
     return $link;
   }
@@ -128,8 +128,8 @@ abstract class ShortcutTestBase extends WebTestBase {
    */
   function getShortcutInformation($set, $key) {
     $info = array();
-    foreach ($set->links as $link) {
-      $info[] = $link[$key];
+    foreach ($set->links as $uuid => $link) {
+      $info[] = $link->{$key};
     }
     return $info;
   }

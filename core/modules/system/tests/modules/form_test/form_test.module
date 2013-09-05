@@ -5,7 +5,14 @@
  * Helper module for the form API tests.
  */
 
+use Drupal\Core\Database\Connection;
+use Drupal\Core\Database\Database;
+use Drupal\Core\Language\Language;
 use Drupal\form_test\Callbacks;
+use Drupal\form_test\FormTestObject;
+use Drupal\form_test\SystemConfigFormTestForm;
+use Drupal\Core\Datetime\DrupalDateTime;
+use Symfony\Component\HttpFoundation\JsonResponse;
 
 /**
  * Implements hook_menu().
@@ -23,6 +30,11 @@ function form_test_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('form_test_validate_form'),
     'access callback' => TRUE,
+    'type' => MENU_CALLBACK,
+  );
+  $items['form-test/system-config-form'] = array(
+    'title' => 'Form object builder test',
+    'page callback' => 'NOT_USED',
     'type' => MENU_CALLBACK,
   );
   $items['form-test/validate-required'] = array(
@@ -140,6 +152,12 @@ function form_test_menu() {
     'title' => t('Select'),
     'page callback' => 'drupal_get_form',
     'page arguments' => array('form_test_select'),
+    'access callback' => TRUE,
+  );
+  $items['form-test/empty-select'] = array(
+    'title' => 'Empty Select Element',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('form_test_empty_select'),
     'access callback' => TRUE,
   );
   $items['form-test/language_select'] = array(
@@ -307,6 +325,44 @@ function form_test_menu() {
     'page arguments' => array('form_test_required_attribute'),
     'access callback' => TRUE,
   );
+  $items['form-test/button-class'] = array(
+    'title' => 'Button class testing',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('form_test_button_class'),
+    'access callback' => TRUE,
+  );
+
+  $items['form-test/group-details'] = array(
+    'title' => 'Group details testing',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('form_test_group_details'),
+    'access callback' => TRUE,
+  );
+  $items['form-test/group-container'] = array(
+    'title' => 'Group container testing',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('form_test_group_container'),
+    'access callback' => TRUE,
+  );
+  $items['form-test/group-fieldset'] = array(
+    'title' => 'Group fieldset testing',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('form_test_group_fieldset'),
+    'access callback' => TRUE,
+  );
+  $items['form-test/group-vertical-tabs'] = array(
+    'title' => 'Group vertical tabs testing',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('form_test_group_vertical_tabs'),
+    'access callback' => TRUE,
+  );
+
+  $items['form-test/form_state-database'] = array(
+    'title' => t('Form state with a database connection'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('form_test_form_state_database'),
+    'access callback' => TRUE,
+  );
 
   return $items;
 }
@@ -320,6 +376,9 @@ function form_test_permission() {
     'access vertical_tab_test tabs' => array(
       'title' => t('Access vertical_tab_test tabs'),
     ),
+    'access autocomplete test' => array(
+      'title' => t('Access autocomplete test'),
+    ),
   );
   return $perms;
 }
@@ -328,10 +387,10 @@ function form_test_permission() {
  * Form submit handler to return form values as JSON.
  */
 function _form_test_submit_values_json($form, &$form_state) {
-  // This won't have a proper JSON header, but Drupal doesn't check for that
-  // anyway so this is fine until it's replaced with a JsonResponse.
-  print drupal_json_encode($form_state['values']);
-  drupal_exit();
+  $response = new JsonResponse($form_state['values']);
+  // @todo remove once converted to new routing system.
+  $response->send();
+  exit;
 }
 
 /**
@@ -791,9 +850,8 @@ function _form_test_vertical_tabs_form($form, &$form_state) {
     '#type' => 'vertical_tabs',
   );
   $form['tab1'] = array(
-    '#type' => 'fieldset',
+    '#type' => 'details',
     '#title' => t('Tab 1'),
-    '#collapsible' => TRUE,
     '#group' => 'vertical_tabs',
     '#access' => user_access('access vertical_tab_test tabs')
   );
@@ -802,9 +860,8 @@ function _form_test_vertical_tabs_form($form, &$form_state) {
     '#type' => 'textfield',
   );
   $form['tab2'] = array(
-    '#type' => 'fieldset',
+    '#type' => 'details',
     '#title' => t('Tab 2'),
-    '#collapsible' => TRUE,
     '#group' => 'vertical_tabs',
     '#access' => user_access('access vertical_tab_test tabs')
   );
@@ -1262,6 +1319,19 @@ function form_test_select($form, &$form_state) {
 }
 
 /**
+ * Builds a form to test select elements when #options is not an array.
+ */
+function form_test_empty_select($form, &$form_state) {
+  $form['empty_select'] = array(
+    '#type' => 'select',
+    '#title' => t('Empty Select'),
+    '#multiple' => FALSE,
+    '#options' => NULL,
+  );
+  return $form;
+}
+
+/**
  * Builds a form to test the language select form element.
  */
 function form_test_language_select() {
@@ -1269,26 +1339,26 @@ function form_test_language_select() {
 
   $form['languages_all'] = array(
     '#type' => 'language_select',
-    '#languages' => LANGUAGE_ALL,
+    '#languages' => Language::STATE_ALL,
     '#default_value' => 'xx',
   );
   $form['languages_configurable'] = array(
     '#type' => 'language_select',
-    '#languages' => LANGUAGE_CONFIGURABLE,
+    '#languages' => Language::STATE_CONFIGURABLE,
     '#default_value' => 'en',
   );
   $form['languages_locked'] = array(
     '#type' => 'language_select',
-    '#languages' => LANGUAGE_LOCKED,
+    '#languages' => Language::STATE_LOCKED,
   );
   $form['languages_config_and_locked'] = array(
     '#type' => 'language_select',
-    '#languages' => LANGUAGE_CONFIGURABLE | LANGUAGE_LOCKED,
+    '#languages' => Language::STATE_CONFIGURABLE | Language::STATE_LOCKED,
     '#default_value' => 'dummy_value',
   );
   $form['language_custom_options'] = array(
     '#type' => 'language_select',
-    '#languages' => LANGUAGE_CONFIGURABLE | LANGUAGE_LOCKED,
+    '#languages' => Language::STATE_CONFIGURABLE | Language::STATE_LOCKED,
     '#options' => array('opt1' => 'First option', 'opt2' => 'Second option', 'opt3' => 'Third option'),
     '#default_value' => 'opt2',
   );
@@ -1715,27 +1785,9 @@ function _form_test_disabled_elements($form, &$form_state) {
   $form['color'] = array(
     '#type' => 'color',
     '#title' => 'color',
-    '#disabled' => TRUE,
     '#default_value' => '#0000ff',
     '#test_hijack_value' => '#ff0000',
     '#disabled' => TRUE,
-  );
-
-  // Date.
-  $form['date'] = array(
-    '#type' => 'date',
-    '#title' => 'date',
-    '#disabled' => TRUE,
-    '#default_value' => array(
-      'day' => 19,
-      'month' => 11,
-      'year' => 1978,
-    ),
-    '#test_hijack_value' => array(
-      'day' => 20,
-      'month' => 12,
-      'year' => 1979,
-    ),
   );
 
   // The #disabled state should propagate to children.
@@ -1750,6 +1802,19 @@ function _form_test_disabled_elements($form, &$form_state) {
       '#test_hijack_value' => 'HIJACK',
     );
   }
+
+  // Date.
+  $date = new DrupalDateTime('1978-11-01 10:30:00', 'Europe/Berlin');
+  $expected = array('date' => '1978-11-01 10:30:00', 'timezone_type' => 3, 'timezone' => 'Europe/Berlin',);
+  $form['disabled_container']['disabled_container_datetime'] = array(
+    '#type' => 'datetime',
+    '#title' => 'datetime',
+    '#default_value' => $date,
+    '#expected_value' => $expected,
+    '#test_hijack_value' => new DrupalDateTime('1978-12-02 11:30:00', 'Europe/Berlin'),
+    '#date_timezone' => 'Europe/Berlin',
+  );
+
 
   // Try to hijack the email field with a valid email.
   $form['disabled_container']['disabled_container_email'] = array(
@@ -2182,7 +2247,7 @@ function form_test_form_user_register_form_alter(&$form, &$form_state) {
     $node = entity_create('node', array(
       'type' => 'page',
     ));
-    field_attach_form('node', $node, $form, $form_state);
+    field_attach_form($node, $form, $form_state);
   }
 }
 
@@ -2198,16 +2263,16 @@ function form_test_user_register_form_rebuild($form, &$form_state) {
  * Menu callback that returns two instances of the node form.
  */
 function form_test_two_instances() {
-  global $user;
+  $user = Drupal::currentUser();
   $node1 = entity_create('node', array(
-    'uid' => $user->uid,
-    'name' => (isset($user->name) ? $user->name : ''),
+    'uid' => $user->id(),
+    'name' => $user->getUsername(),
     'type' => 'page',
-    'langcode' => LANGUAGE_NOT_SPECIFIED,
+    'langcode' => Language::LANGCODE_NOT_SPECIFIED,
   ));
   $node2 = clone($node1);
-  $return['node_form_1'] = entity_get_form($node1);
-  $return['node_form_2'] = entity_get_form($node2);
+  $return['node_form_1'] = Drupal::entityManager()->getForm($node1);
+  $return['node_form_2'] = Drupal::entityManager()->getForm($node2);
   return $return;
 }
 
@@ -2309,4 +2374,145 @@ function form_test_html_id($form, &$form_state) {
     '#value' => 'Save',
   );
   return $form;
+}
+
+/**
+ * Builds a simple form to test form button classes.
+ */
+function form_test_button_class($form, &$form_state) {
+  $form['button'] = array(
+    '#type' => 'button',
+    '#value' => 'test',
+    '#button_type' => 'foo',
+  );
+  $form['delete'] = array(
+    '#type' => 'button',
+    '#value' => 'Delete',
+    '#button_type' => 'danger',
+  );
+  return $form;
+}
+
+/**
+ * Builds a simple form to test the #group property on #type 'details'.
+ */
+function form_test_group_details() {
+  $form['details'] = array(
+    '#type' => 'details',
+    '#title' => 'Root element',
+  );
+  $form['meta'] = array(
+    '#type' => 'details',
+    '#title' => 'Group element',
+    '#group' => 'details',
+  );
+  $form['meta']['element'] = array(
+    '#type' => 'textfield',
+    '#title' => 'Nest in details element',
+  );
+  return $form;
+}
+
+/**
+ * Builds a simple form to test the #group property on #type 'container'.
+ */
+function form_test_group_container() {
+  $form['container'] = array(
+    '#type' => 'container',
+  );
+  $form['meta'] = array(
+    '#type' => 'details',
+    '#title' => 'Group element',
+    '#group' => 'container',
+  );
+  $form['meta']['element'] = array(
+    '#type' => 'textfield',
+    '#title' => 'Nest in details element',
+  );
+  return $form;
+}
+
+/**
+ * Builds a simple form to test the #group property on #type 'fieldset'.
+ */
+function form_test_group_fieldset() {
+  $form['fieldset'] = array(
+    '#type' => 'fieldset',
+    '#title' => 'Fieldset',
+  );
+  $form['meta'] = array(
+    '#type' => 'container',
+    '#title' => 'Group element',
+    '#group' => 'fieldset',
+  );
+  $form['meta']['element'] = array(
+    '#type' => 'textfield',
+    '#title' => 'Nest in container element',
+  );
+  return $form;
+}
+
+/**
+ * Builds a simple form to test the #group property on #type 'vertical_tabs'.
+ */
+function form_test_group_vertical_tabs() {
+  $form['vertical_tabs'] = array(
+    '#type' => 'vertical_tabs',
+  );
+  $form['meta'] = array(
+    '#type' => 'details',
+    '#title' => 'First group element',
+    '#group' => 'vertical_tabs',
+  );
+  $form['meta']['element'] = array(
+    '#type' => 'textfield',
+    '#title' => 'First nested element in details element',
+  );
+  $form['meta_2'] = array(
+    '#type' => 'details',
+    '#title' => 'Second group element',
+    '#group' => 'vertical_tabs',
+  );
+  $form['meta_2']['element_2'] = array(
+    '#type' => 'textfield',
+    '#title' => 'Second nested element in details element',
+  );
+  return $form;
+}
+
+/**
+ * Builds a form which gets the database connection stored in the form state.
+ */
+function form_test_form_state_database($form, &$form_state) {
+  $form['text'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Text field'),
+  );
+
+  $form['test_submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Submit'),
+  );
+
+  $db = Database::getConnection('default');
+  $form_state['storage']['database'] = $db;
+  $form_state['storage']['database_class'] = get_class($db);
+
+  if (isset($form_state['storage']['database_connection_found'])) {
+    $form['database']['#markup'] = 'Database connection found';
+  }
+
+  return $form;
+}
+
+/**
+ * Form submit handler for database form_state test.
+ */
+function form_test_form_state_database_submit($form, &$form_state) {
+  $form_state['cache'] = TRUE;
+  $form_state['rebuild'] = TRUE;
+
+  if ($form_state['storage']['database'] instanceof $form_state['storage']['database_class']) {
+    $form_state['storage']['database_connection_found'] = TRUE;
+  }
 }

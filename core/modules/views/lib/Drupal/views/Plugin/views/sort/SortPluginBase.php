@@ -8,7 +8,7 @@
 namespace Drupal\views\Plugin\views\sort;
 
 use Drupal\views\Plugin\views\HandlerBase;
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\Plugin;
 
 /**
  * @defgroup views_sort_handlers Views sort handlers
@@ -34,7 +34,7 @@ abstract class SortPluginBase extends HandlerBase {
   public function query() {
     $this->ensureMyTable();
     // Add the field.
-    $this->query->add_orderby($this->tableAlias, $this->realField, $this->options['order']);
+    $this->query->addOrderBy($this->tableAlias, $this->realField, $this->options['order']);
   }
 
   protected function defineOptions() {
@@ -79,7 +79,7 @@ abstract class SortPluginBase extends HandlerBase {
       $this->showExposeButton($form, $form_state);
     }
     $form['op_val_start'] = array('#value' => '<div class="clearfix">');
-    $this->show_sort_form($form, $form_state);
+    $this->showSortForm($form, $form_state);
     $form['op_val_end'] = array('#value' => '</div>');
     if ($this->canExpose()) {
       $this->showExposeForm($form, $form_state);
@@ -117,7 +117,7 @@ abstract class SortPluginBase extends HandlerBase {
         '#limit_validation_errors' => array(),
         '#type' => 'submit',
         '#value' => t('Expose sort'),
-        '#submit' => array('views_ui_config_item_form_expose'),
+        '#submit' => array(array($this, 'displayExposedForm')),
       );
       $form['expose_button']['checkbox']['checkbox']['#default_value'] = 0;
     }
@@ -129,7 +129,7 @@ abstract class SortPluginBase extends HandlerBase {
         '#limit_validation_errors' => array(),
         '#type' => 'submit',
         '#value' => t('Hide sort'),
-        '#submit' => array('views_ui_config_item_form_expose'),
+        '#submit' => array(array($this, 'displayExposedForm')),
       );
       $form['expose_button']['checkbox']['checkbox']['#default_value'] = 1;
     }
@@ -139,7 +139,7 @@ abstract class SortPluginBase extends HandlerBase {
    * Simple validate handler
    */
   public function validateOptionsForm(&$form, &$form_state) {
-    $this->sort_validate($form, $form_state);
+    $this->sortValidate($form, $form_state);
     if (!empty($this->options['exposed'])) {
       $this->validateExposeForm($form, $form_state);
     }
@@ -151,7 +151,7 @@ abstract class SortPluginBase extends HandlerBase {
    */
   public function submitOptionsForm(&$form, &$form_state) {
     unset($form_state['values']['expose_button']); // don't store this.
-    $this->sort_submit($form, $form_state);
+    $this->sortSubmit($form, $form_state);
     if (!empty($this->options['exposed'])) {
       $this->submitExposeForm($form, $form_state);
     }
@@ -160,8 +160,8 @@ abstract class SortPluginBase extends HandlerBase {
   /**
    * Shortcut to display the value form.
    */
-  function show_sort_form(&$form, &$form_state) {
-    $options = $this->sort_options();
+  protected function showSortForm(&$form, &$form_state) {
+    $options = $this->sortOptions();
     if (!empty($options)) {
       $form['order'] = array(
         '#type' => 'radios',
@@ -171,15 +171,15 @@ abstract class SortPluginBase extends HandlerBase {
     }
   }
 
-  function sort_validate(&$form, &$form_state) { }
+  protected function sortValidate(&$form, &$form_state) { }
 
-  function sort_submit(&$form, &$form_state) { }
+  public function sortSubmit(&$form, &$form_state) { }
 
   /**
    * Provide a list of options for the default sort form.
    * Should be overridden by classes that don't override sort_form
    */
-  function sort_options() {
+  protected function sortOptions() {
     return array(
       'ASC' => t('Sort ascending'),
       'DESC' => t('Sort descending'),
@@ -188,8 +188,8 @@ abstract class SortPluginBase extends HandlerBase {
 
   public function buildExposeForm(&$form, &$form_state) {
     // #flatten will move everything from $form['expose'][$key] to $form[$key]
-    // prior to rendering. That's why the pre_render for it needs to run first,
-    // so that when the next pre_render (the one for fieldsets) runs, it gets
+    // prior to rendering. That's why the preRender for it needs to run first,
+    // so that when the next preRender (the one for fieldsets) runs, it gets
     // the flattened data.
     array_unshift($form['#pre_render'], 'views_ui_pre_render_flatten_data');
     $form['expose']['#flatten'] = TRUE;

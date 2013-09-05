@@ -7,27 +7,29 @@
 
 namespace Drupal\comment\Plugin\views\field;
 
+use Drupal\views\ResultRow;
 use Drupal\views\ViewExecutable;
+use Drupal\views\Plugin\views\display\DisplayPluginBase;
 use Drupal\views\Plugin\views\field\FieldPluginBase;
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
 
 /**
  * Field handler to allow linking to a comment.
  *
  * @ingroup views_field_handlers
  *
- * @Plugin(
- *   id = "comment",
- *   module = "comment"
- * )
+ * @PluginID("comment")
  */
 class Comment extends FieldPluginBase {
 
   /**
-   * Override init function to provide generic option to link to comment.
+   * Overrides \Drupal\views\Plugin\views\field\FieldPluginBase::init().
+   *
+   * Provide generic option to link to comment.
    */
-  public function init(ViewExecutable $view, &$options) {
-    parent::init($view, $options);
+  public function init(ViewExecutable $view, DisplayPluginBase $display, array &$options = NULL) {
+    parent::init($view, $display, $options);
+
     if (!empty($this->options['link_to_comment'])) {
       $this->additional_fields['cid'] = 'cid';
       $this->additional_fields['nid'] = 'nid';
@@ -60,11 +62,11 @@ class Comment extends FieldPluginBase {
     parent::buildOptionsForm($form, $form_state);
   }
 
-  function render_link($data, $values) {
+  protected function renderLink($data, ResultRow $values) {
     if (!empty($this->options['link_to_comment'])) {
       $this->options['alter']['make_link'] = TRUE;
-      $nid = $this->get_value($values, 'nid');
-      $cid = $this->get_value($values, 'cid');
+      $nid = $this->getValue($values, 'nid');
+      $cid = $this->getValue($values, 'cid');
       if (!empty($cid)) {
         $this->options['alter']['path'] = "comment/" . $cid;
         $this->options['alter']['fragment'] = "comment-" . $cid;
@@ -78,9 +80,12 @@ class Comment extends FieldPluginBase {
     return $data;
   }
 
-  function render($values) {
-    $value = $this->get_value($values);
-    return $this->render_link($this->sanitizeValue($value), $values);
+  /**
+   * {@inheritdoc}
+   */
+  public function render(ResultRow $values) {
+    $value = $this->getValue($values);
+    return $this->renderLink($this->sanitizeValue($value), $values);
   }
 
 }

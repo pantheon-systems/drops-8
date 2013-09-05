@@ -1,0 +1,39 @@
+{
+  "name": "drupal/drupal",
+  "description": "Drupal is an open source content management platform powering millions of websites and applications.",
+  "type": "drupal-core",
+  "license": "GPL-2.0+",
+  "require": {
+    "symfony/class-loader": "2.3.*",
+    "symfony/dependency-injection": "2.3.*",
+    "symfony/event-dispatcher": "2.3.*",
+    "symfony/http-foundation": "2.3.*",
+    "symfony/http-kernel": "2.3.*",
+    "symfony/routing": "2.3.*",
+    "symfony/serializer": "2.3.*",
+    "symfony/validator": "2.3.*",
+    "symfony/yaml": "2.3.*",
+    "twig/twig": "1.12.*",
+    "doctrine/common": "2.4.*@beta",
+    "guzzle/http": "3.7.*",
+    "kriswallsmith/assetic": "1.1.*@alpha",
+    "symfony-cmf/routing": "1.1.*@alpha",
+    "easyrdf/easyrdf": "0.8.*@beta",
+    "phpunit/phpunit": "3.7.*",
+    "zendframework/zend-feed": "2.2.*"
+  },
+  "autoload": {
+    "psr-0": {
+      "Drupal\\Core": "core/lib/",
+      "Drupal\\Component": "core/lib/",
+      "Drupal\\Driver": "drivers/lib/"
+    },
+    "files": [
+      "core/lib/Drupal.php"
+    ]
+  },
+  "config": {
+    "vendor-dir": "core/vendor",
+    "preferred-install": "dist"
+  }
+}

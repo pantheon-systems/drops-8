@@ -66,9 +66,9 @@ function drupal_get_schema($table = NULL, $rebuild = FALSE) {
  *   If TRUE, the schema will be rebuilt instead of retrieved from the cache.
  */
 function drupal_get_complete_schema($rebuild = FALSE) {
-  static $schema = array();
+  static $schema;
 
-  if (empty($schema) || $rebuild) {
+  if (!isset($schema) || $rebuild) {
     // Try to load the schema from cache.
     if (!$rebuild && $cached = cache()->get('schema')) {
       $schema = $cached->data;
@@ -77,20 +77,11 @@ function drupal_get_complete_schema($rebuild = FALSE) {
     else {
       $schema = array();
       // Load the .install files to get hook_schema.
-      // On some databases this function may be called before bootstrap has
-      // been completed, so we force the functions we need to load just in case.
-      if (function_exists('module_load_all_includes')) {
-        // This function can be called very early in the bootstrap process, so
-        // we force the system_list() static cache to be refreshed to ensure
-        // that it contains the complete list of modules before we go on to call
-        // module_load_all_includes().
-        system_list_reset();
-        module_load_all_includes('install');
-      }
+      Drupal::moduleHandler()->loadAllIncludes('install');
 
-      require_once DRUPAL_ROOT . '/core/includes/common.inc';
+      require_once __DIR__ . '/common.inc';
       // Invoke hook_schema for all modules.
-      foreach (module_implements('schema') as $module) {
+      foreach (Drupal::moduleHandler()->getImplementations('schema') as $module) {
         // Cast the result of hook_schema() to an array, as a NULL return value
         // would cause array_merge() to set the $schema variable to NULL as well.
         // That would break modules which use $schema further down the line.
@@ -100,15 +91,15 @@ function drupal_get_complete_schema($rebuild = FALSE) {
         _drupal_schema_initialize($current, $module);
         $schema = array_merge($schema, $current);
       }
-
       drupal_alter('schema', $schema);
+
+      if ($rebuild) {
+        cache()->deleteTags(array('schema' => TRUE));
+      }
       // If the schema is empty, avoid saving it: some database engines require
       // the schema to perform queries, and this could lead to infinite loops.
       if (!empty($schema) && (drupal_get_bootstrap_phase() == DRUPAL_BOOTSTRAP_FULL)) {
-        cache()->set('schema', $schema);
-      }
-      if ($rebuild) {
-        cache()->invalidateTags(array('schema' => TRUE));
+        cache()->set('schema', $schema, CacheBackendInterface::CACHE_PERMANENT, array('schema' => TRUE));
       }
     }
   }
@@ -123,20 +114,19 @@ function drupal_get_complete_schema($rebuild = FALSE) {
  *   A module name.
  *
  * @return array|bool
- *   If the module has updates, an array of available updates sorted by version.
- *   Otherwise, FALSE.
+ *   If the module has updates, an array of available updates sorted by
+ *   version. Otherwise, FALSE.
  */
 function drupal_get_schema_versions($module) {
   $updates = &drupal_static(__FUNCTION__, NULL);
   if (!isset($updates[$module])) {
     $updates = array();
-
-    foreach (module_list() as $loaded_module) {
+    foreach (Drupal::moduleHandler()->getModuleList() as $loaded_module => $filename) {
       $updates[$loaded_module] = array();
     }
 
     // Prepare regular expression to match all possible defined hook_update_N().
-    $regexp = '/^(?P<module>.+)_update_(?P<version>\d+)$/';
+    $regexp = '/^(?<module>.+)_update_(?<version>\d+)$/';
     $functions = get_defined_functions();
     // Narrow this down to functions ending with an integer, since all
     // hook_update_N() functions end this way, and there are other
@@ -183,7 +173,7 @@ function drupal_get_installed_schema_version($module, $reset = FALSE, $array = F
   }
 
   if (!$versions) {
-    if (!$versions = drupal_container()->get('keyvalue')->get('system.schema')->getAll()) {
+    if (!$versions = Drupal::keyValue('system.schema')->getAll()) {
       $versions = array();
     }
   }
@@ -205,7 +195,7 @@ function drupal_get_installed_schema_version($module, $reset = FALSE, $array = F
  *   The new schema version.
  */
 function drupal_set_installed_schema_version($module, $version) {
-  drupal_container()->get('keyvalue')->get('system.schema')->set($module, $version);
+  Drupal::keyValue('system.schema')->set($module, $version);
   // Reset the static cache of module schema versions.
   drupal_get_installed_schema_version(NULL, TRUE);
 }
@@ -284,8 +274,11 @@ function drupal_get_schema_unprocessed($module, $table = NULL) {
   module_load_install($module);
   $schema = module_invoke($module, 'schema');
 
-  if (isset($table) && isset($schema[$table])) {
-    return $schema[$table];
+  if (isset($table)) {
+    if (isset($schema[$table])) {
+      return $schema[$table];
+    }
+    return array();
   }
   elseif (!empty($schema)) {
     return $schema;
@@ -338,7 +331,9 @@ function _drupal_schema_initialize(&$schema, $module, $remove_descriptions = TRU
  *   An array of fields.
  */
 function drupal_schema_fields_sql($table, $prefix = NULL) {
-  $schema = drupal_get_schema($table);
+  if (!$schema = drupal_get_schema($table)) {
+    return array();
+  }
   $fields = array_keys($schema['fields']);
   if ($prefix) {
     $columns = array();
@@ -366,9 +361,9 @@ function drupal_schema_fields_sql($table, $prefix = NULL) {
  *   An object or array representing the record to write, passed in by
  *   reference. If inserting a new record, values not provided in $record will
  *   be populated in $record and in the database with the default values from
- *   the schema, as well as a single serial (auto-increment) field (if present).
- *   If updating an existing record, only provided values are updated in the
- *   database, and $record is not modified.
+ *   the schema, as well as a single serial (auto-increment) field
+ *   (if present). If updating an existing record, only provided values are
+ *   updated in the database, and $record is not modified.
  * @param array $primary_keys
  *   To indicate that this is a new record to be inserted, omit this argument.
  *   If this is an update, this argument specifies the primary keys' field
@@ -438,20 +433,8 @@ function drupal_write_record($table, &$record, $primary_keys = array()) {
 
     // Type cast to proper datatype, except when the value is NULL and the
     // column allows this.
-    //
-    // MySQL PDO silently casts e.g. FALSE and '' to 0 when inserting the value
-    // into an integer column, but PostgreSQL PDO does not. Also type cast NULL
-    // when the column does not allow this.
     if (isset($object->$field) || !empty($info['not null'])) {
-      if ($info['type'] == 'int' || $info['type'] == 'serial') {
-        $fields[$field] = (int) $fields[$field];
-      }
-      elseif ($info['type'] == 'float') {
-        $fields[$field] = (float) $fields[$field];
-      }
-      else {
-        $fields[$field] = (string) $fields[$field];
-      }
+      $fields[$field] = drupal_schema_get_field_value($info, $fields[$field]);
     }
   }
 
@@ -524,6 +507,34 @@ function drupal_write_record($table, &$record, $primary_keys = array()) {
   }
 
   return $return;
+}
+
+/**
+ * Typecasts values to proper datatypes.
+ *
+ * MySQL PDO silently casts, e.g. FALSE and '' to 0, when inserting the value
+ * into an integer column, but PostgreSQL PDO does not. Look up the schema
+ * information and use that to correctly typecast the value.
+ *
+ * @param array $info
+ *   An array describing the schema field info.
+ * @param mixed $value
+ *   The value to be converted.
+ *
+ * @return mixed
+ *   The converted value.
+ */
+function drupal_schema_get_field_value(array $info, $value) {
+  if ($info['type'] == 'int' || $info['type'] == 'serial') {
+    $value = (int) $value;
+  }
+  elseif ($info['type'] == 'float') {
+    $value = (float) $value;
+  }
+  else {
+    $value = (string) $value;
+  }
+  return $value;
 }
 
 /**

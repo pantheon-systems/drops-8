@@ -7,7 +7,7 @@
 
 namespace Drupal\views\Plugin\views\style;
 
-use Drupal\Core\Annotation\Plugin;
+use Drupal\views\Annotation\ViewsStyle;
 use Drupal\Core\Annotation\Translation;
 
 /**
@@ -15,12 +15,12 @@ use Drupal\Core\Annotation\Translation;
  *
  * @ingroup views_style_plugins
  *
- * @Plugin(
+ * @ViewsStyle(
  *   id = "html_list",
  *   title = @Translation("HTML List"),
  *   help = @Translation("Displays rows as HTML list."),
  *   theme = "views_view_list",
- *   type = "normal"
+ *   display_types = {"normal"}
  * )
  */
 class HtmlList extends StylePluginBase {

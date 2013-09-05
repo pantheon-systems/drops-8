@@ -9,8 +9,7 @@ namespace Drupal\Core\Database\Query;
 
 use Drupal\Core\Database\Database;
 use Drupal\Core\Database\Connection;
-
-use Exception;
+use Drupal\Core\Database\IntegrityConstraintViolationException;
 
 /**
  * General class for an abstracted MERGE query operation.
@@ -127,8 +126,8 @@ class Merge extends Query implements ConditionInterface {
   /**
   * Constructs a Merge object.
   *
-  * @param Drupal\Core\Database\Connection $connection
-  *   A Drupal\Core\Database\Connection object.
+  * @param \Drupal\Core\Database\Connection $connection
+  *   A Connection object.
   * @param string $table
   *   Name of the table to associate with this query.
   * @param array $options
@@ -149,7 +148,7 @@ class Merge extends Query implements ConditionInterface {
    *   The table name or the subquery to be used. Use a Select query object to
    *   pass in a subquery.
    *
-   * @return Drupal\Core\Database\Query\Merge
+   * @return \Drupal\Core\Database\Query\Merge
    *   The called object.
    */
   protected function conditionTable($table) {
@@ -164,7 +163,7 @@ class Merge extends Query implements ConditionInterface {
    *   An associative array of fields to write into the database. The array keys
    *   are the field names and the values are the values to which to set them.
    *
-   * @return Drupal\Core\Database\Query\Merge
+   * @return \Drupal\Core\Database\Query\Merge
    *   The called object.
    */
   public function updateFields(array $fields) {
@@ -189,7 +188,7 @@ class Merge extends Query implements ConditionInterface {
    *   If specified, this is an array of key/value pairs for named placeholders
    *   corresponding to the expression.
    *
-   * @return Drupal\Core\Database\Query\Merge
+   * @return \Drupal\Core\Database\Query\Merge
    *   The called object.
    */
   public function expression($field, $expression, array $arguments = NULL) {
@@ -214,7 +213,7 @@ class Merge extends Query implements ConditionInterface {
    *   An array of fields to insert into the database. The values must be
    *   specified in the same order as the $fields array.
    *
-   * @return Drupal\Core\Database\Query\Merge
+   * @return \Drupal\Core\Database\Query\Merge
    *   The called object.
    */
   public function insertFields(array $fields, array $values = array()) {
@@ -241,7 +240,7 @@ class Merge extends Query implements ConditionInterface {
    *   An array of values for which to use the default values
    *   specified in the table definition.
    *
-   * @return Drupal\Core\Database\Query\Merge
+   * @return \Drupal\Core\Database\Query\Merge
    *   The called object.
    */
   public function useDefaults(array $fields) {
@@ -267,7 +266,7 @@ class Merge extends Query implements ConditionInterface {
    *   An array of values to set into the database. The values must be
    *   specified in the same order as the $fields array.
    *
-   * @return Drupal\Core\Database\Query\Merge
+   * @return \Drupal\Core\Database\Query\Merge
    *   The called object.
    */
   public function fields(array $fields, array $values = array()) {
@@ -301,7 +300,7 @@ class Merge extends Query implements ConditionInterface {
    *   An array of values to set into the database. The values must be
    *   specified in the same order as the $fields array.
    *
-   * @return Drupal\Core\Database\Query\Merge
+   * @return \Drupal\Core\Database\Query\Merge
    *   The called object.
    */
   public function key(array $fields, array $values = array()) {
@@ -404,15 +403,17 @@ class Merge extends Query implements ConditionInterface {
   }
 
   public function execute() {
-    // Wrap multiple queries in a transaction, if the database supports it.
-    $transaction = $this->connection->startTransaction();
+    // Default options for merge queries.
+    $this->queryOptions += array(
+      'throw_exception' => TRUE,
+    );
+
     try {
       if (!count($this->condition)) {
         throw new InvalidMergeQueryException(t('Invalid merge query: no conditions'));
       }
       $select = $this->connection->select($this->conditionTable)
-        ->condition($this->condition)
-        ->forUpdate();
+        ->condition($this->condition);
       $select->addExpression('1');
       if (!$select->execute()->fetchField()) {
         try {
@@ -423,7 +424,7 @@ class Merge extends Query implements ConditionInterface {
           $insert->execute();
           return self::STATUS_INSERT;
         }
-        catch (Exception $e) {
+        catch (IntegrityConstraintViolationException $e) {
           // The insert query failed, maybe it's because a racing insert query
           // beat us in inserting the same row. Retry the select query, if it
           // returns a row, ignore the error and continue with the update
@@ -446,12 +447,13 @@ class Merge extends Query implements ConditionInterface {
         return self::STATUS_UPDATE;
       }
     }
-    catch (Exception $e) {
-      // Something really wrong happened here, bubble up the exception to the
-      // caller.
-      $transaction->rollback();
-      throw $e;
+    catch (\Exception $e) {
+      if ($this->queryOptions['throw_exception']) {
+        throw $e;
+      }
+      else {
+        return NULL;
+      }
     }
-    // Transaction commits here where $transaction looses scope.
   }
 }

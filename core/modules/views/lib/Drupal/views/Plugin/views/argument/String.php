@@ -8,8 +8,9 @@
 namespace Drupal\views\Plugin\views\argument;
 
 use Drupal\views\ViewExecutable;
+use Drupal\views\Plugin\views\display\DisplayPluginBase;
 use Drupal\views\ManyToOneHelper;
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
 
 /**
  * Basic argument handler to implement string arguments that may have length
@@ -17,14 +18,16 @@ use Drupal\Core\Annotation\Plugin;
  *
  * @ingroup views_argument_handlers
  *
- * @Plugin(
- *   id = "string"
- * )
+ * @PluginID("string")
  */
 class String extends ArgumentPluginBase {
 
-  public function init(ViewExecutable $view, &$options) {
-    parent::init($view, $options);
+  /**
+   * Overrides \Drupal\views\Plugin\views\argument\ArgumentPluginBase::init().
+   */
+  public function init(ViewExecutable $view, DisplayPluginBase $display, array &$options = NULL) {
+    parent::init($view, $display, $options);
+
     if (!empty($this->definition['many to one'])) {
       $this->helper = new ManyToOneHelper($this);
 
@@ -143,28 +146,28 @@ class String extends ArgumentPluginBase {
   /**
    * Build the summary query based on a string
    */
-  function summary_query() {
+  protected function summaryQuery() {
     if (empty($this->definition['many to one'])) {
       $this->ensureMyTable();
     }
     else {
-      $this->tableAlias = $this->helper->summary_join();
+      $this->tableAlias = $this->helper->summaryJoin();
     }
 
     if (empty($this->options['glossary'])) {
       // Add the field.
-      $this->base_alias = $this->query->add_field($this->tableAlias, $this->realField);
-      $this->query->set_count_field($this->tableAlias, $this->realField);
+      $this->base_alias = $this->query->addField($this->tableAlias, $this->realField);
+      $this->query->setCountField($this->tableAlias, $this->realField);
     }
     else {
       // Add the field.
-      $formula = $this->get_formula();
-      $this->base_alias = $this->query->add_field(NULL, $formula, $this->field . '_truncated');
-      $this->query->set_count_field(NULL, $formula, $this->field, $this->field . '_truncated');
+      $formula = $this->getFormula();
+      $this->base_alias = $this->query->addField(NULL, $formula, $this->field . '_truncated');
+      $this->query->setCountField(NULL, $formula, $this->field, $this->field . '_truncated');
     }
 
-    $this->summary_name_field();
-    return $this->summary_basics(FALSE);
+    $this->summaryNameField();
+    return $this->summaryBasics(FALSE);
   }
 
   /**
@@ -172,7 +175,7 @@ class String extends ArgumentPluginBase {
    *
    * $this->ensureMyTable() MUST have been called prior to this.
    */
-  function get_formula() {
+  public function getFormula() {
     return "SUBSTRING($this->tableAlias.$this->realField, 1, " . intval($this->options['limit']) . ")";
   }
 
@@ -198,7 +201,7 @@ class String extends ArgumentPluginBase {
         $this->helper->formula = TRUE;
       }
       $this->helper->ensureMyTable();
-      $this->helper->add_filter();
+      $this->helper->addFilter();
       return;
     }
 
@@ -209,7 +212,7 @@ class String extends ArgumentPluginBase {
     }
     else {
       $formula = TRUE;
-      $field = $this->get_formula();
+      $field = $this->getFormula();
     }
 
     if (count($this->value) > 1) {
@@ -231,14 +234,14 @@ class String extends ArgumentPluginBase {
       $placeholders = array(
         $placeholder => $argument,
       );
-      $this->query->add_where_expression(0, $field, $placeholders);
+      $this->query->addWhereExpression(0, $field, $placeholders);
     }
     else {
-      $this->query->add_where(0, $field, $argument, $operator);
+      $this->query->addWhere(0, $field, $argument, $operator);
     }
   }
 
-  function summary_argument($data) {
+  public function summaryArgument($data) {
     $value = $this->caseTransform($data->{$this->base_alias}, $this->options['path_case']);
     if (!empty($this->options['transform_dash'])) {
       $value = strtr($value, ' ', '-');
@@ -246,7 +249,10 @@ class String extends ArgumentPluginBase {
     return $value;
   }
 
-  function get_sort_name() {
+  /**
+   * {@inheritdoc}
+   */
+  public function getSortName() {
     return t('Alphabetical', array(), array('context' => 'Sort order'));
   }
 
@@ -272,18 +278,18 @@ class String extends ArgumentPluginBase {
       return !empty($this->definition['invalid input']) ? $this->definition['invalid input'] : t('Invalid input');
     }
 
-    return implode($this->operator == 'or' ? ' + ' : ', ', $this->title_query());
+    return implode($this->operator == 'or' ? ' + ' : ', ', $this->titleQuery());
   }
 
   /**
    * Override for specific title lookups.
    */
-  function title_query() {
+  public function titleQuery() {
     return drupal_map_assoc($this->value, 'check_plain');
   }
 
-  function summary_name($data) {
-    return $this->caseTransform(parent::summary_name($data), $this->options['case']);
+  public function summaryName($data) {
+    return $this->caseTransform(parent::summaryName($data), $this->options['case']);
   }
 
 }

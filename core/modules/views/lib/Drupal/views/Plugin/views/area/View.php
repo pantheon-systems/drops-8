@@ -7,16 +7,14 @@
 
 namespace Drupal\views\Plugin\views\area;
 
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
 
 /**
  * Views area handlers. Insert a view inside of an area.
  *
  * @ingroup views_area_handlers
  *
- * @Plugin(
- *   id = "view"
- * )
+ * @PluginID("view")
  */
 class View extends AreaPluginBase {
 
@@ -35,7 +33,7 @@ class View extends AreaPluginBase {
   public function buildOptionsForm(&$form, &$form_state) {
     parent::buildOptionsForm($form, $form_state);
 
-    $view_display = $this->view->storage->get('name') . ':' . $this->view->current_display;
+    $view_display = $this->view->storage->id() . ':' . $this->view->current_display;
 
     $options = array('' => t('-Select-'));
     $options += views_get_views_as_options(FALSE, 'all', $view_display, FALSE, TRUE);
@@ -56,15 +54,15 @@ class View extends AreaPluginBase {
   }
 
   /**
-   * Render the area
+   * Implements \Drupal\views\Plugin\views\area\AreaPluginBase::render().
    */
-  function render($empty = FALSE) {
+  public function render($empty = FALSE) {
     if (!empty($this->options['view_to_insert'])) {
       list($view_name, $display_id) = explode(':', $this->options['view_to_insert']);
 
       $view = views_get_view($view_name);
       if (empty($view) || !$view->access($display_id)) {
-        return;
+        return array();
       }
       $view->setDisplay($display_id);
 
@@ -86,7 +84,7 @@ class View extends AreaPluginBase {
         }
       }
     }
-    return '';
+    return array();
   }
 
 }

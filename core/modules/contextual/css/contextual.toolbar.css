@@ -1,0 +1,35 @@
+/**
+ * @file
+ * Styling for contextual module's toolbar tab.
+ */
+
+/* Tab appearance. */
+.toolbar .toolbar-bar .contextual-toolbar-tab.toolbar-tab {
+  float: right; /* LTR */
+}
+[dir="rtl"] .toolbar .toolbar-bar .contextual-toolbar-tab.toolbar-tab {
+  float: left;
+}
+.toolbar .toolbar-bar .contextual-toolbar-tab button {
+  margin: 0;
+  padding-bottom: 1em;
+  padding-top: 1em;
+  /* Hide tab text. */
+  padding-left: 1.3333em; /* LTR */
+  text-indent: -9999px;
+  line-height: 1em;
+}
+[dir="rtl"] .toolbar .toolbar-bar .contextual-toolbar-tab button {
+  padding-right: 1.3333em;
+}
+.toolbar .toolbar-bar .contextual-toolbar-tab button.active {
+  background-image:-moz-linear-gradient(rgb(78,159,234) 0%,rgb(69,132,221) 100%);
+  background-image:-webkit-gradient(linear,color-stop(0, rgb(78,159,234)),color-stop(1, rgb(69,132,221)));
+  background-image: -webkit-linear-gradient(top,  rgb(78,159,234) 0%, rgb(69,132,221) 100%);
+  background-image:linear-gradient(rgb(78,159,234) 0%,rgb(69,132,221) 100%);
+}
+
+/* @todo get rid of this declaration by making toolbar.module's CSS less specific */
+.toolbar .toolbar-bar .contextual-toolbar-tab.toolbar-tab.hidden {
+  display: none;
+}

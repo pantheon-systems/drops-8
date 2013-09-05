@@ -5,15 +5,30 @@
  * Install, update, and uninstall functions for the Locale module.
  */
 
+use Drupal\Core\Language\Language;
+
+/**
+ * Implements hook_install().
+ */
+function locale_install() {
+  // Create the interface translations directory and ensure it's writable.
+  if (!$directory = Drupal::config('locale.settings')->get('translation.path')) {
+    $directory = conf_path() . '/files/translations';
+    Drupal::config('locale.settings')->set('translation.path', $directory)->save();
+  }
+  file_prepare_directory($directory, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS);
+}
+
 /**
  * Implements hook_uninstall().
  */
 function locale_uninstall() {
+  $config = Drupal::config('locale.settings');
   // Delete all JavaScript translation files.
-  $locale_js_directory = 'public://' . variable_get('locale_js_directory', 'languages');
+  $locale_js_directory = 'public://' . $config->get('javascript.directory');
 
   if (is_dir($locale_js_directory)) {
-    $locale_javascripts = variable_get('locale_translation_javascript', array());
+    $locale_javascripts = Drupal::state()->get('locale.translation.javascript') ?: array();
     foreach ($locale_javascripts as $langcode => $file_suffix) {
       if (!empty($file_suffix)) {
         file_unmanaged_delete($locale_js_directory . '/' . $langcode . '_' . $file_suffix . '.js');
@@ -26,12 +41,9 @@ function locale_uninstall() {
   }
 
   // Clear variables.
-  variable_del('locale_cache_strings');
-  variable_del('locale_js_directory');
-  state()->delete('system.javascript_parsed');
-  variable_del('locale_cache_length');
-  variable_del('locale_translation_plurals');
-  variable_del('locale_translation_javascript');
+  Drupal::state()->delete('system.javascript_parsed');
+  Drupal::state()->delete('locale.translation.plurals');
+  Drupal::state()->delete('locale.translation.javascript');
 
   // Remove all node type language variables. Node module might have been
   // enabled, but may be disabled, so use a wildcard delete.
@@ -171,34 +183,55 @@ function locale_schema() {
   $schema['locale_file'] = array(
     'description' => 'File import status information for interface translation files.',
     'fields' => array(
+      'project' => array(
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'A unique short name to identify the project the file belongs to.',
+      ),
       'langcode' => array(
-        'description' => 'Reference to the {languages}.langcode for this translation.',
         'type' => 'varchar',
         'length' => '12',
         'not null' => TRUE,
+        'default' => '',
+        'description' => 'Language code of this translation. References {language}.langcode.',
       ),
       'filename' => array(
-        'description' => 'Filename for importing the file.',
         'type' => 'varchar',
         'length' => 255,
         'not null' => TRUE,
         'default' => '',
+        'description' => 'Filename of the imported file.',
+      ),
+      'version' => array(
+        'type' => 'varchar',
+        'length' => '128',
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Version tag of the imported file.',
       ),
       'uri' => array(
-        'description' => 'File system path for importing the file.',
         'type' => 'varchar',
         'length' => 255,
         'not null' => TRUE,
         'default' => '',
+        'description' => 'URI of the remote file, the resulting local file or the locally imported file.',
       ),
       'timestamp' => array(
-        'description' => 'Unix timestamp of the file itself from the point when it was last imported.',
         'type' => 'int',
         'not null' => FALSE,
         'default' => 0,
+        'description' => 'Unix timestamp of the imported file.',
+      ),
+      'last_checked' => array(
+        'type' => 'int',
+        'not null' => FALSE,
+        'default' => 0,
+        'description' => 'Unix timestamp of the last time this translation was confirmed to be the most recent release available.',
       ),
     ),
-    'primary key' => array('uri', 'langcode'),
+    'primary key' => array('project', 'langcode'),
   );
 
   $schema['locale_project'] = array(
@@ -249,11 +282,71 @@ function locale_schema() {
     ),
     'primary key' => array('name'),
   );
-
-  $schema['cache_locale'] = drupal_get_schema_unprocessed('system', 'cache');
-  $schema['cache_locale']['description'] = 'Cache table for the locale module to store various data.';
-
   return $schema;
+}
+
+/**
+ * Implements hook_requirements().
+ */
+function locale_requirements($phase) {
+  $requirements = array();
+  if ($phase == 'runtime') {
+    $available_updates = array();
+    $untranslated = array();
+    $languages = locale_translatable_language_list();
+
+    if ($languages) {
+      // Determine the status of the translation updates per lanuage.
+      $status = locale_translation_get_status();
+      if ($status) {
+        foreach ($status as $project_id => $project) {
+          foreach ($project as $langcode => $project_info) {
+            if (empty($project_info->type)) {
+              $untranslated[$langcode] = $languages[$langcode]->name;
+            }
+            elseif ($project_info->type == LOCALE_TRANSLATION_LOCAL || $project_info->type == LOCALE_TRANSLATION_REMOTE) {
+              $available_updates[$langcode] = $languages[$langcode]->name;
+            }
+          }
+        }
+
+        if ($available_updates || $untranslated) {
+          if ($available_updates) {
+            $requirements['locale_translation'] = array(
+              'title' => 'Translation update status',
+              'value' => l(t('Updates available'), 'admin/reports/translations'),
+              'severity' => REQUIREMENT_WARNING,
+              'description' => t('Updates available for: @languages. See the <a href="@updates">Available translation updates</a> page for more information.', array('@languages' => implode(', ', $available_updates), '@updates' => url('admin/reports/translations'))),
+            );
+          }
+          else {
+            $requirements['locale_translation'] = array(
+              'title' => 'Translation update status',
+              'value' => t('Missing translations'),
+              'severity' => REQUIREMENT_INFO,
+              'description' => t('Missing translations for: @languages. See the <a href="@updates">Available translation updates</a> page for more information.', array('@languages' => implode(', ', $untranslated), '@updates' => url('admin/reports/translations'))),
+            );
+          }
+        }
+        else {
+          $requirements['locale_translation'] = array(
+            'title' => 'Translation update status',
+            'value' => t('Up to date'),
+            'severity' => REQUIREMENT_OK,
+          );
+        }
+      }
+      else {
+        $requirements['locale_translation'] = array(
+          'title' => 'Translation update status',
+          'value' => l(t('Can not determine status'), 'admin/reports/translations'),
+          'severity' => REQUIREMENT_WARNING,
+          'description' => t('No translation status is available. See the <a href="@updates">Available translation updates</a> page for more information.', array('@updates' => url('admin/reports/translations'))),
+        );
+      }
+    }
+  }
+  return $requirements;
 }
 
 /**
@@ -375,7 +468,9 @@ function locale_update_8002() {
  */
 function locale_update_8003() {
   $message = '';
-  $domains = update_variable_get('locale_language_negotiation_url_domains', array());
+  $config = Drupal::config('language.negotiation');
+
+  $domains = $config->get('url.domains') ?: array();
   // $used_domains keeps track of the domain names in use.
   $used_domains = array();
   foreach ($domains as $langcode => $domain) {
@@ -395,7 +490,7 @@ function locale_update_8003() {
       }
     }
   }
-  update_variable_set('locale_language_negotiation_url_domains', $domains);
+  $config->set('url.domains', $domains)->save();
 
   if (!empty($message)) {
     return $message;
@@ -415,8 +510,10 @@ function locale_update_8004() {
       $negotiation = update_variable_get('language_negotiation_' . $type, NULL);
       if (!empty($negotiation)) {
         foreach ($negotiation as $method_id => &$method) {
-          $method['callbacks']['negotiation'] = $method['callbacks']['language'];
-          unset($method['callbacks']['language']);
+          if (isset($method['callbacks']['language'])) {
+            $method['callbacks']['negotiation'] = $method['callbacks']['language'];
+            unset($method['callbacks']['language']);
+          }
           if (isset($method['callbacks']['switcher'])) {
             $method['callbacks']['language_switch'] = $method['callbacks']['switcher'];
             unset($method['callbacks']['switcher']);
@@ -568,9 +665,9 @@ function locale_update_8007() {
   // Add all language type weight variables. As the function language_types()
   // is not available its functionality is rebuild.
   $language_types = update_variable_get('language_types', array(
-    LANGUAGE_TYPE_INTERFACE => TRUE,
-    LANGUAGE_TYPE_CONTENT => FALSE,
-    LANGUAGE_TYPE_URL => FALSE,
+    Language::TYPE_INTERFACE => TRUE,
+    Language::TYPE_CONTENT => FALSE,
+    Language::TYPE_URL => FALSE,
   ));
   foreach ($language_types as $language_type => $configurable) {
     $variable_names[] = 'language_negotiation_methods_weight_' . $language_type;
@@ -630,30 +727,19 @@ function locale_update_8007() {
 }
 
 /**
- * Rename the option variables of the locale language negotiation.
+ * Update locale variables to config or state systems as appropriate.
  *
  * @ingroup config_upgrade
  */
 function locale_update_8008() {
-  $variable_name_map = array(
-    'locale_language_negotiation_url_part' => 'language_negotiation_url_part',
-    'locale_language_negotiation_url_domains' => 'language_negotiation_url_domains',
-    'locale_language_negotiation_url_prefixes' => 'language_negotiation_url_prefixes',
-    'locale_language_negotiation_session_param' => 'language_negotiation_session_param',
-  );
-  foreach ($variable_name_map as $deprecated_variable_name => $new_variable_name) {
-    // Check if this variable is stored in the db and if so rename it.
-    $value = update_variable_get($deprecated_variable_name);
-    if ($value !== NULL) {
-      update_variable_set($new_variable_name, $value);
-      update_variable_del($deprecated_variable_name);
-    }
-  }
+  update_variables_to_config('locale.settings', array(
+    'locale_cache_strings' => 'cache_strings',
+    'locale_js_directory' => 'javascript.directory',
+  ));
+
   update_variables_to_config('language.negotiation', array(
     'locale_language_negotiation_session_param' => 'session.parameter',
-    'language_negotiation_url_part' => 'url.source',
-    'language_negotiation_url_prefixes' => 'url.prefixes',
-    'language_negotiation_url_domains' => 'url.domains',
+    'locale_language_negotiation_url_part' => 'url.source',
   ));
 }
 
@@ -691,7 +777,6 @@ function locale_update_8010() {
         'default' => '',
       ),
       'uri' => array(
-        'description' => 'File system path for importing the file.',
         'type' => 'varchar',
         'length' => 255,
         'not null' => TRUE,
@@ -713,10 +798,6 @@ function locale_update_8010() {
  * Add a cache table and locale_project table for the locale module.
  */
 function locale_update_8011() {
-  // Add a 'locale' cache table.
-  $locale_cache_schema = system_schema_cache_8007();
-  $locale_cache_schema['description'] = 'Cache table for the locale module to store various data.';
-  db_create_table('cache_locale', $locale_cache_schema);
 
   // Add locale_project table.
   db_create_table('locale_project', array(
@@ -770,6 +851,10 @@ function locale_update_8011() {
  * Renames language_default language negotiation method to language_selected.
  */
 function locale_update_8013() {
+  // @todo We only need language.inc here because LANGUAGE_NEGOTIATION_SELECTED
+  //   is defined there. Remove this line once that has been converted to a class
+  //   constant.
+  require_once DRUPAL_ROOT . '/core/includes/language.inc';
   $weight = update_variable_get('language_negotiation_methods_weight_language_interface', NULL);
   if ($weight !== NULL) {
     $weight[LANGUAGE_NEGOTIATION_SELECTED] = $weight['language-default'];
@@ -793,6 +878,96 @@ function locale_update_8013() {
  */
 function locale_update_8014() {
   db_drop_field('locales_source', 'location');
+}
+
+/**
+ * Build a new {locale_file} table.
+ */
+function locale_update_8015() {
+  // The existing table has a primary key on uri and langcode. The new key
+  // is on project and langcode. There is no project data in the existing table,
+  // and it may not be possible to generate this reliably. Therefore we drop
+  // the table and build it again.
+  db_drop_table('locale_file');
+
+  $table = array(
+    'description' => 'File import status information for interface translation files.',
+    'fields' => array(
+      'project' => array(
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'A unique short name to identify the project the file belongs to.',
+      ),
+      'langcode' => array(
+        'type' => 'varchar',
+        'length' => '12',
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Language code of this translation. References {language}.langcode.',
+      ),
+      'filename' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Filename of the imported file.',
+      ),
+      'version' => array(
+        'type' => 'varchar',
+        'length' => '128',
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Version tag of the imported file.',
+      ),
+      'uri' => array(
+        'description' => 'File system path for importing the file.',
+        'type' => 'text',
+        'not null' => TRUE,
+      ),
+      'timestamp' => array(
+        'type' => 'int',
+        'not null' => FALSE,
+        'default' => 0,
+        'description' => 'Unix timestamp of the imported file.',
+      ),
+      'last_checked' => array(
+        'type' => 'int',
+        'not null' => FALSE,
+        'default' => 0,
+        'description' => 'Unix timestamp of the last time this translation was confirmed to be the most recent release available.',
+      ),
+    ),
+    'primary key' => array('project', 'langcode'),
+  );
+  db_create_table('locale_file', $table);
+}
+
+/**
+ * Converts localized date formats.
+ */
+function locale_update_8016() {
+  // Fetch all date types from {date_format_type}.
+  $result = db_query('SELECT * FROM {date_format_locale}');
+  foreach ($result as $format) {
+    $language = $format->language;
+    // Create config objects for the language if not yet done.
+    Drupal::config("locale.config.$language.system.date_format." . $format->type)
+      ->set('pattern.php', $format->format)
+      ->save();
+  }
+}
+
+/**
+ * Moves locale translation directory settings from variable to config.
+ *
+ * @ingroup config_upgrade
+ */
+function locale_update_8017() {
+  update_variables_to_config('locale.settings', array(
+    'locale_translate_file_directory' => 'translation.path',
+  ));
 }
 
 /**

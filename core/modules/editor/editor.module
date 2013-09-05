@@ -1,0 +1,568 @@
+<?php
+
+/**
+ * @file
+ * Adds bindings for client-side "text editors" to text formats.
+ */
+
+use Drupal\file\Entity\File;
+use Drupal\editor\Entity\Editor;
+use Drupal\Component\Utility\NestedArray;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\field\Field;
+
+/**
+ * Implements hook_help().
+ */
+function editor_help($path, $arg) {
+  switch ($path) {
+    case 'admin/help#editor':
+      $output = '';
+      $output .= '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('The Text Editor module provides a framework that other modules (such as <a href="@ckeditor">CKEditor module</a>) can use to provide toolbars and other functionality that allow users to format text more easily than typing HTML tags directly. For more information, see the <a href="@documentation">online documentation for the Text Editor module</a>.', array('@documentation' => 'https://drupal.org/documentation/modules/editor', '@ckeditor' => url('admin/help/ckeditor'))) . '</p>';
+      $output .= '<h3>' . t('Uses') . '</h3>';
+      $output .= '<dl>';
+      $output .= '<dt>' . t('Installing text editors') . '</dt>';
+      $output .= '<dd>' . t('The Text Editor module provides a framework for managing editors. To use it, you also need to enable a text editor. This can either be the core <a href="@ckeditor">CKEditor module</a>, which can be enabled on the <a href="@extend">Extend page</a>, or a contributed module for any other text editor.
+When installing a contributed text editor module, be sure to check the installation instructions, because you will most likely need to download and install an external library as well as the Drupal module.', array('@ckeditor' => url('admin/help/ckeditor'), '@extend' => url('admin/modules'))) . '</dd>';
+      $output .= '<dt>' . t('Enabling a text editor for a text format') . '</dt>';
+      $output .= '<dd>' . t('On the <a href="@formats">Text formats and editors page</a> you can see which text editor is associated with each text format. You can change this by clicking on the <em>Configure</em> link, and then choosing a text editor or <em>none</em> from the <em>Text editor</em> drop-down list. The text editor will then be displayed with any text field for which this text format is chosen.', array('@formats' => url('admin/config/content/formats'))) . '</dd>';
+      $output .= '<dt>' . t('Configuring a text editor') . '</dt>';
+      $output .= '<dd>' . t('Once a text editor is associated with a text format, you can configure it by clicking on the <em>Configure</em> link for this format. Depending on the specific text editor, you can configure it for example by adding buttons to its toolbar. Typically these buttons provide formatting or editing tools, and they often insert HTML tags into the field source. For details, see the help page of the specific text editor.') . '</dd>';
+      $output .= '<dt>' . t('Using different text editors and formats') . '</dt>';
+      $output .= '<dd>' . t('If you change the text format on a text field, the text editor will change as well because the text editor configuration is associated with the individual text format. This allows the use of the same text editor with different options for different text formats. It also allows users to choose between text formats with different text editors if they are installed.') . '</dd>';
+      $output .= '</dl>';
+      return $output;
+  }
+}
+
+/**
+ * Implements hook_menu_alter().
+ *
+ * Rewrites the menu entries for filter module that relate to the configuration
+ * of text editors.
+ */
+function editor_menu_alter(&$items) {
+  $items['admin/config/content/formats']['title'] = 'Text formats and editors';
+  $items['admin/config/content/formats']['description'] = 'Configure how user-contributed content is filtered and formatted, as well as the text editor user interface (WYSIWYGs or toolbars).';
+}
+
+/**
+ * Implements hook_element_info().
+ *
+ * Extends the functionality of text_format elements (provided by Filter
+ * module), so that selecting a text format notifies a client-side text editor
+ * when it should be enabled or disabled.
+ *
+ * @see filter_element_info()
+ */
+function editor_element_info() {
+  $type['text_format'] = array(
+    '#pre_render' => array('editor_pre_render_format'),
+  );
+  return $type;
+}
+
+/**
+ * Implements hook_library_info().
+ */
+function editor_library_info() {
+  $path = drupal_get_path('module', 'editor');
+
+  $libraries['drupal.editor.admin'] = array(
+    'title' => 'Text Editor',
+    'version' => VERSION,
+    'js' => array(
+      $path . '/js/editor.admin.js' => array(),
+    ),
+    'dependencies' => array(
+      array('system', 'jquery'),
+      array('system', 'drupal'),
+    ),
+  );
+  $libraries['drupal.editor'] = array(
+    'title' => 'Text Editor',
+    'version' => VERSION,
+    'js' => array(
+      $path . '/js/editor.js' => array(),
+    ),
+    'css' => array(
+      $path . '/css/editor.css' => array(),
+    ),
+    'dependencies' => array(
+      array('system', 'jquery'),
+      array('system', 'drupal'),
+      array('system', 'drupalSettings'),
+      array('system', 'jquery.once'),
+    ),
+  );
+
+  $libraries['drupal.editor.dialog'] = array(
+    'title' => 'Text Editor Dialog',
+    'version' => VERSION,
+    'js' => array(
+      $path . '/js/editor.dialog.js' => array('weight' => 2),
+    ),
+    'dependencies' => array(
+      array('system', 'jquery'),
+      array('system', 'drupal.dialog'),
+      array('system', 'drupal.ajax'),
+      array('system', 'drupalSettings'),
+    ),
+  );
+
+  $libraries['edit.formattedTextEditor.editor'] = array(
+    'title' => 'Formatted text editor',
+    'version' => VERSION,
+    'js' => array(
+      $path . '/js/editor.formattedTextEditor.js' => array(
+        'scope' => 'footer',
+        'attributes' => array('defer' => TRUE),
+      ),
+      array(
+        'type' => 'setting',
+        'data' => array(
+          'editor' => array(
+            'getUntransformedTextURL' => url('editor/!entity_type/!id/!field_name/!langcode/!view_mode'),
+          )
+        )
+      ),
+    ),
+    'dependencies' => array(
+      array('edit', 'edit'),
+      array('editor', 'drupal.editor'),
+      array('system', 'drupal.ajax'),
+      array('system', 'drupalSettings'),
+    ),
+  );
+
+  return $libraries;
+}
+
+/**
+ * Implements hook_menu().
+ */
+function editor_menu() {
+  // @todo Remove this menu item in http://drupal.org/node/1954892 when theme
+  //   callbacks are replaced with something else.
+  $items['editor/%/%/%/%/%'] = array(
+    'route_name' => 'editor_field_untransformed_text',
+    'theme callback' => 'ajax_base_page_theme',
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function editor_form_filter_admin_overview_alter(&$form, $form_state) {
+  // @todo Cleanup column injection: http://drupal.org/node/1876718
+  // Splice in the column for "Text editor" into the header.
+  $position = array_search('name', $form['formats']['#header']) + 1;
+  $start = array_splice($form['formats']['#header'], 0, $position, array('editor' => t('Text editor')));
+  $form['formats']['#header'] = array_merge($start, $form['formats']['#header']);
+
+  // Then splice in the name of each text editor for each text format.
+  $editors = Drupal::service('plugin.manager.editor')->getDefinitions();
+  foreach (element_children($form['formats']) as $format_id) {
+    $editor = editor_load($format_id);
+    $editor_name = ($editor && isset($editors[$editor->editor])) ? $editors[$editor->editor]['label'] : drupal_placeholder('—');
+    $editor_column['editor'] = array('#markup' => $editor_name);
+    $position = array_search('name', array_keys($form['formats'][$format_id])) + 1;
+    $start = array_splice($form['formats'][$format_id], 0, $position, $editor_column);
+    $form['formats'][$format_id] = array_merge($start, $form['formats'][$format_id]);
+  }
+}
+
+/**
+ * Implements hook_form_BASE_FORM_ID_alter() for 'filter_format_form'.
+ */
+function editor_form_filter_format_form_alter(&$form, &$form_state) {
+  if (!isset($form_state['editor'])) {
+    $format_id = $form_state['controller']->getEntity()->id();
+    $form_state['editor'] = editor_load($format_id);
+    $form_state['editor_manager'] = Drupal::service('plugin.manager.editor');
+  }
+  $editor = $form_state['editor'];
+  $manager = $form_state['editor_manager'];
+
+  // Associate a text editor with this text format.
+  $editor_options = $manager->listOptions();
+  $form['editor'] = array(
+    // Position the editor selection before the filter settings (weight of 0),
+    // but after the filter label and name (weight of -20).
+    '#weight' => -9,
+  );
+  $form['editor']['editor'] = array(
+    '#type' => 'select',
+    '#title' => t('Text editor'),
+    '#options' => $editor_options,
+    '#empty_option' => t('None'),
+    '#default_value' => $editor ? $editor->editor : '',
+    '#ajax' => array(
+      'trigger_as' => array('name' => 'editor_configure'),
+      'callback' => 'editor_form_filter_admin_form_ajax',
+      'wrapper' => 'editor-settings-wrapper',
+    ),
+    '#weight' => -10,
+  );
+  $form['editor']['configure'] = array(
+    '#type' => 'submit',
+    '#name' => 'editor_configure',
+    '#value' => t('Configure'),
+    '#limit_validation_errors' => array(array('editor')),
+    '#submit' => array('editor_form_filter_admin_format_editor_configure'),
+    '#ajax' => array(
+      'callback' => 'editor_form_filter_admin_form_ajax',
+      'wrapper' => 'editor-settings-wrapper',
+    ),
+    '#weight' => -10,
+    '#attributes' => array('class' => array('js-hide')),
+  );
+
+  // If there aren't any options (other than "None"), disable the select list.
+  if (empty($editor_options)) {
+    $form['editor']['editor']['#disabled'] = TRUE;
+    $form['editor']['editor']['#description'] = t('This option is disabled because no modules that provide a text editor are currently enabled.');
+  }
+
+  $form['editor']['settings'] = array(
+    '#tree' => TRUE,
+    '#weight' => -8,
+    '#type' => 'container',
+    '#id' => 'editor-settings-wrapper',
+    '#attached' => array(
+      'library' => array(
+        array('editor', 'drupal.editor.admin'),
+      ),
+    ),
+  );
+
+  // Add editor-specific validation and submit handlers.
+  if ($editor) {
+    $plugin = $manager->createInstance($editor->editor);
+    $settings_form = array();
+    $settings_form['#element_validate'][] = array($plugin, 'settingsFormValidate');
+    $form['editor']['settings']['subform'] = $plugin->settingsForm($settings_form, $form_state, $editor);
+    $form['editor']['settings']['subform']['#parents'] = array('editor', 'settings');
+    $form['actions']['submit']['#submit'][] = array($plugin, 'settingsFormSubmit');
+  }
+
+  $form['#validate'][] = 'editor_form_filter_admin_format_validate';
+  $form['actions']['submit']['#submit'][] = 'editor_form_filter_admin_format_submit';
+}
+
+/**
+ * Button submit handler for filter_format_form()'s 'editor_configure' button.
+ */
+function editor_form_filter_admin_format_editor_configure($form, &$form_state) {
+  $editor = $form_state['editor'];
+  if (isset($form_state['values']['editor']['editor'])) {
+    if ($form_state['values']['editor']['editor'] === '') {
+      $form_state['editor'] = FALSE;
+    }
+    elseif (empty($editor) || $form_state['values']['editor']['editor'] !== $editor->editor) {
+      $editor = entity_create('editor', array(
+        'format' => $form_state['controller']->getEntity()->id(),
+        'editor' => $form_state['values']['editor']['editor'],
+      ));
+      $form_state['editor'] = $editor;
+    }
+  }
+  $form_state['rebuild'] = TRUE;
+}
+
+/**
+ * AJAX callback handler for filter_format_form().
+ */
+function editor_form_filter_admin_form_ajax($form, &$form_state) {
+  return $form['editor']['settings'];
+}
+
+/**
+ * Additional validate handler for filter_format_form().
+ */
+function editor_form_filter_admin_format_validate($form, &$form_state) {
+  // This validate handler is not applicable when using the 'Configure' button.
+  if ($form_state['triggering_element']['#name'] === 'editor_configure') {
+    return;
+  }
+
+  // When using this form with JavaScript disabled in the browser, the the
+  // 'Configure' button won't be clicked automatically. So, when the user has
+  // selected a text editor and has then clicked 'Save configuration', we should
+  // point out that the user must still configure the text editor.
+  if ($form_state['values']['editor']['editor'] !== '' && empty($form_state['editor'])) {
+    form_set_error('editor][editor', t('You must configure the selected text editor.'));
+  }
+}
+
+/**
+ * Additional submit handler for filter_format_form().
+ */
+function editor_form_filter_admin_format_submit($form, &$form_state) {
+  // Delete the existing editor if disabling or switching between editors.
+  $format_id = $form_state['controller']->getEntity()->id();
+  $original_editor = editor_load($format_id);
+  if ($original_editor && $original_editor->editor != $form_state['values']['editor']) {
+    $original_editor->delete();
+  }
+
+  // Create a new editor or update the existing editor.
+  if (!empty($form_state['editor'])) {
+    // Ensure the text format is set: when creating a new text format, this
+    // would equal the empty string.
+    $form_state['editor']->format = $format_id;
+    $form_state['editor']->settings = $form_state['values']['editor']['settings'];
+    $form_state['editor']->save();
+  }
+}
+
+/**
+ * Loads an individual configured text editor based on text format ID.
+ *
+ * @return \Drupal\editor\Entity\Editor|null
+ *   A text editor object, or NULL.
+ */
+function editor_load($format_id) {
+  // Load all the editors at once here, assuming that either no editors or more
+  // than one editor will be needed on a page (such as having multiple text
+  // formats for administrators). Loading a small number of editors all at once
+  // is more efficient than loading multiple editors individually.
+  $editors = entity_load_multiple('editor');
+  return isset($editors[$format_id]) ? $editors[$format_id] : NULL;
+}
+
+/**
+ * Additional #pre_render callback for 'text_format' elements.
+ */
+function editor_pre_render_format($element) {
+  // Allow modules to programmatically enforce no client-side editor by setting
+  // the #editor property to FALSE.
+  if (isset($element['#editor']) && !$element['#editor']) {
+    return $element;
+  }
+
+  // filter_process_format() copies properties to the expanded 'value' child
+  // element. Skip this text format widget, if it contains no 'format' or when
+  // the current user does not have access to edit the value.
+  if (!isset($element['format']) || !empty($element['value']['#disabled'])) {
+    return $element;
+  }
+  $format_ids = array_keys($element['format']['format']['#options']);
+
+  // Early-return if no text editor is associated with any of the text formats.
+  if (count(entity_load_multiple('editor', $format_ids)) === 0) {
+    return $element;
+  }
+
+  // Use a hidden element for a single text format.
+  $field_id = $element['value']['#id'];
+  if (!$element['format']['format']['#access']) {
+    // Use the first (and only) available text format.
+    $format_id = $format_ids[0];
+    $element['format']['editor'] = array(
+      '#type' => 'hidden',
+      '#name' => $element['format']['format']['#name'],
+      '#value' => $format_id,
+      '#attributes' => array(
+        'class' => array('editor'),
+        'data-editor-for' => $field_id,
+      ),
+    );
+  }
+  // Otherwise, attach to text format selector.
+  else {
+    $element['format']['format']['#attributes']['class'][] = 'editor';
+    $element['format']['format']['#attributes']['data-editor-for'] = $field_id;
+  }
+
+  // Attach Text Editor module's (this module) library.
+  $element['#attached']['library'][] = array('editor', 'drupal.editor');
+
+  // Attach attachments for all available editors.
+  $manager = Drupal::service('plugin.manager.editor');
+  $element['#attached'] = NestedArray::mergeDeep($element['#attached'], $manager->getAttachments($format_ids));
+
+  return $element;
+}
+
+/**
+ * Implements hook_entity_insert().
+ */
+function editor_entity_insert(EntityInterface $entity) {
+  $referenced_files_by_field = _editor_get_file_uuids_by_field($entity);
+  foreach ($referenced_files_by_field as $field => $uuids) {
+    _editor_record_file_usage($uuids, $entity);
+  }
+}
+
+/**
+ * Implements hook_entity_update().
+ */
+function editor_entity_update(EntityInterface $entity) {
+  // On new revisions, all files are considered to be a new usage and no
+  // deletion of previous file usages are necessary.
+  if (!empty($entity->original) && $entity->getRevisionId() != $entity->original->getRevisionId()) {
+    $referenced_files_by_field = _editor_get_file_uuids_by_field($entity);
+    foreach ($referenced_files_by_field as $field => $uuids) {
+      _editor_record_file_usage($uuids, $entity);
+    }
+  }
+  // On modified revisions, detect which file references have been added (and
+  // record their usage) and which ones have been removed (delete their usage).
+  // File references that existed both in the previous version of the revision
+  // and in the new one don't need their usage to be updated.
+  else {
+    $original_uuids_by_field = _editor_get_file_uuids_by_field($entity->original);
+    $uuids_by_field = _editor_get_file_uuids_by_field($entity);
+
+    // Detect file usages that should be incremented.
+    foreach ($uuids_by_field as $field => $uuids) {
+      $added_files = array_diff($uuids_by_field[$field], $original_uuids_by_field[$field]);
+      _editor_record_file_usage($added_files, $entity);
+    }
+
+    // Detect file usages that should be decremented.
+    foreach ($original_uuids_by_field as $field => $uuids) {
+      $removed_files = array_diff($original_uuids_by_field[$field], $uuids_by_field[$field]);
+      _editor_delete_file_usage($removed_files, $entity, 1);
+    }
+  }
+}
+
+/**
+ * Implements hook_entity_delete().
+ */
+function editor_entity_delete(EntityInterface $entity) {
+  $referenced_files_by_field = _editor_get_file_uuids_by_field($entity);
+  foreach ($referenced_files_by_field as $field => $uuids) {
+    _editor_delete_file_usage($uuids, $entity, 0);
+  }
+}
+
+/**
+ * Implements hook_entity_revision_delete().
+ */
+function editor_entity_revision_delete(EntityInterface $entity) {
+  $referenced_files_by_field = _editor_get_file_uuids_by_field($entity);
+  foreach ($referenced_files_by_field as $field => $uuids) {
+    _editor_delete_file_usage($uuids, $entity, 1);
+  }
+}
+
+/**
+ * Records file usage of files referenced by processed text fields.
+ *
+ * Every referenced file that does not yet have the FILE_STATUS_PERMANENT state,
+ * will be given that state.
+ *
+ * @param array $uuids
+ *   An array of file entity UUIDs.
+ * @param EntityInterface $entity
+ *   An entity whose fields to inspect for file references.
+ */
+function _editor_record_file_usage(array $uuids, EntityInterface $entity) {
+  foreach ($uuids as $uuid) {
+    $file = entity_load_by_uuid('file', $uuid);
+    if ($file->status !== FILE_STATUS_PERMANENT) {
+      $file->status = FILE_STATUS_PERMANENT;
+      $file->save();
+    }
+    file_usage()->add($file, 'editor', $entity->entityType(), $entity->id());
+  }
+}
+
+/**
+ * Deletes file usage of files referenced by processed text fields.
+ *
+ * @param array $uuids
+ *   An array of file entity UUIDs.
+ * @param EntityInterface $entity
+ *   An entity whose fields to inspect for file references.
+ * @param $count
+ *   The number of references to delete. Should be 1 when deleting a single
+ *   revision and 0 when deleting an entity entirely.
+ *
+ * @see Drupal\file\FileUsage\FileUsageInterface::delete()
+ */
+function _editor_delete_file_usage(array $uuids, EntityInterface $entity, $count) {
+  foreach ($uuids as $uuid) {
+    $file = entity_load_by_uuid('file', $uuid);
+    file_usage()->delete($file, 'editor', $entity->entityType(), $entity->id(), $count);
+  }
+}
+
+/**
+ * Finds all files referenced (data-editor-file-uuid) by processed text fields.
+ *
+ * @param EntityInterface $entity
+ *   An entity whose fields to analyze.
+ *
+ * @return array
+ *   An array of file entity UUIDs.
+ */
+function _editor_get_file_uuids_by_field(EntityInterface $entity) {
+  $uuids = array();
+
+  $processed_text_fields = _editor_get_processed_text_fields($entity);
+  foreach ($processed_text_fields as $processed_text_field) {
+    $text = $entity->get($processed_text_field)->value;
+    $uuids[$processed_text_field] = _editor_parse_file_uuids($text);
+  }
+  return $uuids;
+}
+
+/**
+ * Determines the text fields on an entity that have text processing enabled.
+ *
+ * @param EntityInterface $entity
+ *   An entity whose fields to analyze.
+ *
+ * @return array
+ *   The names of the fields on this entity that have text processing enabled.
+ */
+function _editor_get_processed_text_fields(EntityInterface $entity) {
+  $properties = $entity->getPropertyDefinitions();
+  if (empty($properties)) {
+    return array();
+  }
+
+  // Find all configurable fields, because only they could have a
+  // text_processing setting.
+  $configurable_fields = array_keys(array_filter($properties, function ($definition) {
+    return isset($definition['configurable']) && $definition['configurable'] === TRUE;
+  }));
+  if (empty($configurable_fields)) {
+    return array();
+  }
+
+  // Only return fields that have text processing enabled.
+  return array_filter($configurable_fields, function ($field) use ($entity) {
+    $settings = Field::fieldInfo()
+      ->getInstance($entity->entityType(), $entity->bundle(), $field)
+      ->getFieldSettings();
+    return isset($settings['text_processing']) && $settings['text_processing'] === '1';
+  });
+}
+
+/**
+ * Parse an HTML snippet for any data-editor-file-uuid attributes.
+ *
+ * @param string $text
+ *   The partial (X)HTML snippet to load. Invalid markup will be corrected on
+ *   import.
+ *
+ * @return array
+ *   An array of all found UUIDs.
+ */
+function _editor_parse_file_uuids($text) {
+  $dom = filter_dom_load($text);
+  $xpath = new \DOMXPath($dom);
+  $uuids = array();
+  foreach ($xpath->query('//*[@data-editor-file-uuid]') as $node) {
+    $uuids[] = $node->getAttribute('data-editor-file-uuid');
+  }
+  return $uuids;
+}

@@ -7,7 +7,7 @@
 
 namespace Drupal\taxonomy\Tests;
 
-use Drupal\field\FieldValidationException;
+use Drupal\Core\Language\Language;
 
 /**
  * Tests for taxonomy term field and formatter.
@@ -19,7 +19,7 @@ class TermFieldTest extends TaxonomyTestBase {
    *
    * @var array
    */
-  public static $modules = array('field_test');
+  public static $modules = array('entity_test');
 
   protected $instance;
   protected $vocabulary;
@@ -35,68 +35,64 @@ class TermFieldTest extends TaxonomyTestBase {
   function setUp() {
     parent::setUp();
 
-    $web_user = $this->drupalCreateUser(array('access field_test content', 'administer field_test content', 'administer taxonomy'));
+    $web_user = $this->drupalCreateUser(array(
+      'view test entity',
+      'administer entity_test content',
+      'administer taxonomy',
+    ));
     $this->drupalLogin($web_user);
     $this->vocabulary = $this->createVocabulary();
 
     // Setup a field and instance.
     $this->field_name = drupal_strtolower($this->randomName());
-    $this->field = array(
-      'field_name' => $this->field_name,
+    $this->field = entity_create('field_entity', array(
+      'name' => $this->field_name,
+      'entity_type' => 'entity_test',
       'type' => 'taxonomy_term_reference',
       'settings' => array(
         'allowed_values' => array(
           array(
-            'vocabulary' => $this->vocabulary->machine_name,
+            'vocabulary' => $this->vocabulary->id(),
             'parent' => '0',
           ),
         ),
       )
-    );
-    field_create_field($this->field);
-    $this->instance = array(
+    ));
+    $this->field->save();
+    entity_create('field_instance', array(
       'field_name' => $this->field_name,
-      'entity_type' => 'test_entity',
-      'bundle' => 'test_bundle',
-      'widget' => array(
+      'entity_type' => 'entity_test',
+      'bundle' => 'entity_test',
+    ))->save();
+    entity_get_form_display('entity_test', 'entity_test', 'default')
+      ->setComponent($this->field_name, array(
         'type' => 'options_select',
-      ),
-      'display' => array(
-        'full' => array(
-          'type' => 'taxonomy_term_reference_link',
-        ),
-      ),
-    );
-    field_create_instance($this->instance);
+      ))
+      ->save();
+    entity_get_display('entity_test', 'entity_test', 'full')
+      ->setComponent($this->field_name, array(
+        'type' => 'taxonomy_term_reference_link',
+      ))
+      ->save();
   }
 
   /**
    * Test term field validation.
    */
   function testTaxonomyTermFieldValidation() {
-    // Test valid and invalid values with field_attach_validate().
-    $langcode = LANGUAGE_NOT_SPECIFIED;
-    $entity = field_test_create_entity();
+    // Test validation with a valid value.
     $term = $this->createTerm($this->vocabulary);
-    $entity->{$this->field_name}[$langcode][0]['tid'] = $term->tid;
-    try {
-      field_attach_validate('test_entity', $entity);
-      $this->pass('Correct term does not cause validation error.');
-    }
-    catch (FieldValidationException $e) {
-      $this->fail('Correct term does not cause validation error.');
-    }
+    $entity = entity_create('entity_test', array());
+    $entity->{$this->field_name}->target_id = $term->id();
+    $violations = $entity->{$this->field_name}->validate();
+    $this->assertEqual(count($violations) , 0, 'Correct term does not cause validation error.');
 
-    $entity = field_test_create_entity();
+    // Test validation with an invalid valid value (wrong vocabulary).
     $bad_term = $this->createTerm($this->createVocabulary());
-    $entity->{$this->field_name}[$langcode][0]['tid'] = $bad_term->tid;
-    try {
-      field_attach_validate('test_entity', $entity);
-      $this->fail('Wrong term causes validation error.');
-    }
-    catch (FieldValidationException $e) {
-      $this->pass('Wrong term causes validation error.');
-    }
+    $entity = entity_create('entity_test', array());
+    $entity->{$this->field_name}->target_id = $bad_term->id();
+    $violations = $entity->{$this->field_name}->validate();
+    $this->assertEqual(count($violations) , 1, 'Wrong term causes validation error.');
   }
 
   /**
@@ -107,30 +103,33 @@ class TermFieldTest extends TaxonomyTestBase {
     $term = $this->createTerm($this->vocabulary);
 
     // Display creation form.
-    $langcode = LANGUAGE_NOT_SPECIFIED;
-    $this->drupalGet('test-entity/add/test_bundle');
+    $langcode = Language::LANGCODE_NOT_SPECIFIED;
+    $this->drupalGet('entity_test/add');
     $this->assertFieldByName("{$this->field_name}[$langcode]", '', 'Widget is displayed.');
 
     // Submit with some value.
     $edit = array(
-      "{$this->field_name}[$langcode]" => array($term->tid),
+      'user_id' => 1,
+      'name' => $this->randomName(),
+      "{$this->field_name}[$langcode]" => array($term->id()),
     );
     $this->drupalPost(NULL, $edit, t('Save'));
-    preg_match('|test-entity/manage/(\d+)/edit|', $this->url, $match);
+    preg_match('|entity_test/manage/(\d+)/edit|', $this->url, $match);
     $id = $match[1];
-    $this->assertRaw(t('test_entity @id has been created.', array('@id' => $id)), 'Entity was created.');
+    $this->assertText(t('entity_test @id has been created.', array('@id' => $id)));
 
     // Display the object.
-    $entity = field_test_entity_test_load($id);
+    $entity = entity_load('entity_test', $id);
     $entities = array($id => $entity);
-    field_attach_prepare_view('test_entity', $entities, 'full');
-    $entity->content = field_attach_view('test_entity', $entity, 'full');
+    $display = entity_get_display($entity->entityType(), $entity->bundle(), 'full');
+    field_attach_prepare_view('entity_test', $entities, array($entity->bundle() => $display));
+    $entity->content = field_attach_view($entity, $display);
     $this->content = drupal_render($entity->content);
     $this->assertText($term->label(), 'Term label is displayed.');
 
     // Delete the vocabulary and verify that the widget is gone.
-    taxonomy_vocabulary_delete($this->vocabulary->vid);
-    $this->drupalGet('test-entity/add/test_bundle');
+    $this->vocabulary->delete();
+    $this->drupalGet('entity_test/add');
     $this->assertNoFieldByName("{$this->field_name}[$langcode]", '', 'Widget is not displayed');
   }
 
@@ -140,13 +139,13 @@ class TermFieldTest extends TaxonomyTestBase {
   function testTaxonomyTermFieldChangeMachineName() {
     // Add several entries in the 'allowed_values' setting, to make sure that
     // they all get updated.
-    $this->field['settings']['allowed_values'] = array(
+    $this->field->settings['allowed_values'] = array(
       array(
-        'vocabulary' => $this->vocabulary->machine_name,
+        'vocabulary' => $this->vocabulary->id(),
         'parent' => '0',
       ),
       array(
-        'vocabulary' => $this->vocabulary->machine_name,
+        'vocabulary' => $this->vocabulary->id(),
         'parent' => '0',
       ),
       array(
@@ -154,14 +153,14 @@ class TermFieldTest extends TaxonomyTestBase {
         'parent' => '0',
       ),
     );
-    field_update_field($this->field);
+    $this->field->save();
     // Change the machine name.
     $new_name = drupal_strtolower($this->randomName());
-    $this->vocabulary->machine_name = $new_name;
-    taxonomy_vocabulary_save($this->vocabulary);
+    $this->vocabulary->vid = $new_name;
+    $this->vocabulary->save();
 
     // Check that the field instance is still attached to the vocabulary.
-    $field = field_info_field($this->field_name);
+    $field = field_info_field('entity_test', $this->field_name);
     $allowed_values = $field['settings']['allowed_values'];
     $this->assertEqual($allowed_values[0]['vocabulary'], $new_name, 'Index 0: Machine name was updated correctly.');
     $this->assertEqual($allowed_values[1]['vocabulary'], $new_name, 'Index 1: Machine name was updated correctly.');

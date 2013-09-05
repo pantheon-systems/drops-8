@@ -8,6 +8,8 @@
 namespace Drupal\Core\Config\Entity;
 
 use Drupal\Core\Entity\Entity;
+use Drupal\Core\Entity\EntityStorageControllerInterface;
+use Drupal\Core\Config\ConfigDuplicateUUIDException;
 
 /**
  * Defines a base configuration entity class.
@@ -24,6 +26,13 @@ abstract class ConfigEntityBase extends Entity implements ConfigEntityInterface 
    * @var string
    */
   protected $originalID;
+
+  /**
+   * The enabled/disabled status of the configuration entity.
+   *
+   * @var bool
+   */
+  public $status = TRUE;
 
   /**
    * Overrides Entity::__construct().
@@ -60,9 +69,8 @@ abstract class ConfigEntityBase extends Entity implements ConfigEntityInterface 
    * configuration entities but has no effect after saving, since each
    * configuration entity is unique.
    */
-  final public function isNew() {
-    // Configuration entity IDs are strings, and '0' is a valid ID.
-    return !empty($this->enforceIsNew) || $this->id() === NULL || $this->id() === '';
+  public function isNew() {
+    return !empty($this->enforceIsNew);
   }
 
   /**
@@ -82,9 +90,38 @@ abstract class ConfigEntityBase extends Entity implements ConfigEntityInterface 
    * EntityInterface::set() implements support for fieldable entities, but
    * configuration entities are not fieldable.
    */
-  public function set($property_name, $value, $langcode = NULL) {
+  public function set($property_name, $value, $langcode = NULL, $notify = TRUE) {
     // @todo: Add support for translatable properties being not fields.
     $this->{$property_name} = $value;
+  }
+
+  /**
+   * Implements \Drupal\Core\Config\Entity\ConfigEntityInterface::enable().
+   */
+  public function enable() {
+    return $this->setStatus(TRUE);
+  }
+
+  /**
+   * Implements \Drupal\Core\Config\Entity\ConfigEntityInterface::disable().
+   */
+  public function disable() {
+    return $this->setStatus(FALSE);
+  }
+
+  /**
+   * Implements \Drupal\Core\Config\Entity\ConfigEntityInterface::setStatus().
+   */
+  public function setStatus($status) {
+    $this->status = (bool) $status;
+    return $this;
+  }
+
+  /**
+   * Implements \Drupal\Core\Config\Entity\ConfigEntityInterface::status().
+   */
+  public function status() {
+    return !empty($this->status);
   }
 
   /**
@@ -110,4 +147,45 @@ abstract class ConfigEntityBase extends Entity implements ConfigEntityInterface 
     }
     return ($a_weight < $b_weight) ? -1 : 1;
   }
+
+  /**
+   * Overrides \Drupal\Core\Entity\Entity::getExportProperties().
+   */
+  public function getExportProperties() {
+    // Configuration objects do not have a schema. Extract all key names from
+    // class properties.
+    $class_info = new \ReflectionClass($this);
+    $properties = array();
+    foreach ($class_info->getProperties(\ReflectionProperty::IS_PUBLIC) as $property) {
+      $name = $property->getName();
+      $properties[$name] = $this->get($name);
+    }
+    return $properties;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function preSave(EntityStorageControllerInterface $storage_controller) {
+    parent::preSave($storage_controller);
+
+    // Ensure this entity's UUID does not exist with a different ID, regardless
+    // of whether it's new or updated.
+    $matching_entities = $storage_controller->getQuery()
+      ->condition('uuid', $this->uuid())
+      ->execute();
+    $matched_entity = reset($matching_entities);
+    if (!empty($matched_entity) && ($matched_entity != $this->id())) {
+      throw new ConfigDuplicateUUIDException(format_string('Attempt to save a configuration entity %id with UUID %uuid when this UUID is already used for %matched', array('%id' => $this->id(), '%uuid' => $this->uuid(), '%matched' => $matched_entity)));
+    }
+
+    if (!$this->isNew()) {
+      $original = $storage_controller->loadUnchanged($this->id());
+      // Ensure that the UUID cannot be changed for an existing entity.
+      if ($original && ($original->uuid() != $this->uuid())) {
+        throw new ConfigDuplicateUUIDException(format_string('Attempt to save a configuration entity %id with UUID %uuid when this entity already exists with UUID %original_uuid', array('%id' => $this->id(), '%uuid' => $this->uuid(), '%original_uuid' => $original->uuid())));
+      }
+    }
+  }
+
 }

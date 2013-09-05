@@ -1,0 +1,21 @@
+/**
+ * @file
+ * Styling for the shortcut module.
+ */
+
+/**
+ * Toolbar.
+ */
+.edit-shortcuts {
+  display: block;
+}
+.toolbar .toolbar-tray-vertical .edit-shortcuts {
+  text-align: right;
+  padding: 1em;
+}
+.toolbar .toolbar-tray-horizontal .edit-shortcuts {
+  float: left; /* LTR */
+}
+[dir="rtl"] .toolbar .toolbar-tray-horizontal .edit-shortcuts {
+  float: right;
+}

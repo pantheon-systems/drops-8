@@ -8,26 +8,26 @@
 namespace Drupal\user\Plugin\views\field;
 
 use Drupal\views\Plugin\views\field\FieldPluginBase;
+use Drupal\views\Plugin\views\display\DisplayPluginBase;
+use Drupal\views\ResultRow;
 use Drupal\views\ViewExecutable;
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Component\Annotation\PluginID;
 
 /**
  * Field handler to present a link to the user.
  *
  * @ingroup views_field_handlers
  *
- * @Plugin(
- *   id = "user_link",
- *   module = "user"
- * )
+ * @PluginID("user_link")
  */
 class Link extends FieldPluginBase {
 
   /**
    * Overrides Drupal\views\Plugin\views\field\FieldPluginBase::init().
    */
-  public function init(ViewExecutable $view, &$options) {
-    parent::init($view, $options);
+  public function init(ViewExecutable $view, DisplayPluginBase $display, array &$options = NULL) {
+    parent::init($view, $display, $options);
 
     $this->additional_fields['uid'] = 'uid';
   }
@@ -49,24 +49,37 @@ class Link extends FieldPluginBase {
 
   // An example of field level access control.
   public function access() {
-    return user_access('access user profiles');
+    return user_access('administer users') || user_access('access user profiles');
   }
 
   public function query() {
     $this->ensureMyTable();
-    $this->add_additional_fields();
+    $this->addAdditionalFields();
   }
 
-  function render($values) {
-    $value = $this->get_value($values, 'uid');
-    return $this->render_link($this->sanitizeValue($value), $values);
+  /**
+   * {@inheritdoc}
+   */
+  public function render(ResultRow $values) {
+    return $this->renderLink($this->getEntity($values), $values);
   }
 
-  function render_link($data, $values) {
-    $text = !empty($this->options['text']) ? $this->options['text'] : t('view');
+  /**
+   * Alters the field to render a link.
+   *
+   * @param \Drupal\Core\Entity\EntityInterface $entity
+   * @param \stdClass $values
+   *   The current row of the views result.
+   *
+   * @return string
+   *   The acutal rendered text (without the link) of this field.
+   */
+  protected function renderLink(EntityInterface $entity, ResultRow $values) {
+    $text = !empty($this->options['text']) ? $this->options['text'] : t('View');
 
     $this->options['alter']['make_link'] = TRUE;
-    $this->options['alter']['path'] = "user/" . $data;
+    $uri = $entity->uri();
+    $this->options['alter']['path'] = $uri['path'];
 
     return $text;
   }

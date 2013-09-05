@@ -8,6 +8,7 @@
 namespace Drupal\locale\Tests;
 
 use Drupal\simpletest\WebTestBase;
+use Drupal\Component\Utility\String;
 
 /**
  * Functional tests for JavaScript parsing for translatable strings.
@@ -37,7 +38,13 @@ class LocaleJavascriptTranslation extends WebTestBase {
     _locale_parse_js_file($filename);
 
     // Get all of the source strings that were found.
-    foreach (locale_storage()->getStrings(array('type' => 'javascript', 'name' => $filename)) as $string) {
+    $strings = $this->container
+      ->get('locale.storage')
+      ->getStrings(array(
+        'type' => 'javascript',
+        'name' => $filename,
+      ));
+    foreach ($strings as $string) {
       $source_strings[$string->source] = $string->context;
     }
     // List of all strings that should be in the file.
@@ -90,12 +97,12 @@ class LocaleJavascriptTranslation extends WebTestBase {
       $args = array('%source' => $str, '%context' => $context);
 
       // Make sure that the string was found in the file.
-      $this->assertTrue(isset($source_strings[$str]), t("Found source string: %source", $args));
+      $this->assertTrue(isset($source_strings[$str]), String::format("Found source string: %source", $args));
 
       // Make sure that the proper context was matched.
-      $this->assertTrue(isset($source_strings[$str]) && $source_strings[$str] === $context, strlen($context) > 0 ? t("Context for %source is %context", $args) : t("Context for %source is blank", $args));
+      $this->assertTrue(isset($source_strings[$str]) && $source_strings[$str] === $context, strlen($context) > 0 ? String::format("Context for %source is %context", $args) : String::format("Context for %source is blank", $args));
     }
 
-    $this->assertEqual(count($source_strings), count($test_strings), t("Found correct number of source strings."));
+    $this->assertEqual(count($source_strings), count($test_strings), "Found correct number of source strings.");
   }
 }

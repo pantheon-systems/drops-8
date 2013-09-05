@@ -2,14 +2,17 @@
 
 /**
  * @file
- * Definition of Drupal\Core\Entity\Entity.
+ * Contains \Drupal\Core\Entity\Entity.
  */
 
 namespace Drupal\Core\Entity;
 
 use Drupal\Component\Uuid\Uuid;
 use Drupal\Core\Language\Language;
+use Drupal\Core\TypedData\TranslatableInterface;
+use Drupal\Core\TypedData\TypedDataInterface;
 use IteratorAggregate;
+use Drupal\Core\Session\AccountInterface;
 
 /**
  * Defines a base entity class.
@@ -26,7 +29,7 @@ class Entity implements IteratorAggregate, EntityInterface {
    *
    * @var string
    */
-  public $langcode = LANGUAGE_NOT_SPECIFIED;
+  public $langcode = Language::LANGCODE_NOT_SPECIFIED;
 
   /**
    * The entity type.
@@ -74,28 +77,28 @@ class Entity implements IteratorAggregate, EntityInterface {
   }
 
   /**
-   * Implements EntityInterface::id().
+   * Implements \Drupal\Core\Entity\EntityInterface::id().
    */
   public function id() {
     return isset($this->id) ? $this->id : NULL;
   }
 
   /**
-   * Implements EntityInterface::uuid().
+   * Implements \Drupal\Core\Entity\EntityInterface::uuid().
    */
   public function uuid() {
     return isset($this->uuid) ? $this->uuid : NULL;
   }
 
   /**
-   * Implements EntityInterface::isNew().
+   * Implements \Drupal\Core\Entity\EntityInterface::isNew().
    */
   public function isNew() {
     return !empty($this->enforceIsNew) || !$this->id();
   }
 
   /**
-   * Implements EntityInterface::isNewRevision().
+   * Implements \Drupal\Core\Entity\EntityInterface::isNewRevision().
    */
   public function isNewRevision() {
     $info = $this->entityInfo();
@@ -103,35 +106,35 @@ class Entity implements IteratorAggregate, EntityInterface {
   }
 
   /**
-   * Implements EntityInterface::enforceIsNew().
+   * Implements \Drupal\Core\Entity\EntityInterface::enforceIsNew().
    */
   public function enforceIsNew($value = TRUE) {
     $this->enforceIsNew = $value;
   }
 
   /**
-   * Implements EntityInterface::setNewRevision().
+   * Implements \Drupal\Core\Entity\EntityInterface::setNewRevision().
    */
   public function setNewRevision($value = TRUE) {
     $this->newRevision = $value;
   }
 
   /**
-   * Implements EntityInterface::entityType().
+   * Implements \Drupal\Core\Entity\EntityInterface::entityType().
    */
   public function entityType() {
     return $this->entityType;
   }
 
   /**
-   * Implements EntityInterface::bundle().
+   * Implements \Drupal\Core\Entity\EntityInterface::bundle().
    */
   public function bundle() {
     return $this->entityType;
   }
 
   /**
-   * Implements EntityInterface::label().
+   * Implements \Drupal\Core\Entity\EntityInterface::label().
    */
   public function label($langcode = NULL) {
     $label = NULL;
@@ -146,36 +149,53 @@ class Entity implements IteratorAggregate, EntityInterface {
   }
 
   /**
-   * Implements EntityInterface::uri().
+   * Implements \Drupal\Core\Entity\EntityInterface::uri().
    */
   public function uri() {
     $bundle = $this->bundle();
     // A bundle-specific callback takes precedence over the generic one for the
     // entity type.
     $entity_info = $this->entityInfo();
-    if (isset($entity_info['bundles'][$bundle]['uri_callback'])) {
-      $uri_callback = $entity_info['bundles'][$bundle]['uri_callback'];
+    $bundles = entity_get_bundles($this->entityType);
+    if (isset($bundles[$bundle]['uri_callback'])) {
+      $uri_callback = $bundles[$bundle]['uri_callback'];
     }
     elseif (isset($entity_info['uri_callback'])) {
       $uri_callback = $entity_info['uri_callback'];
     }
-    else {
-      return NULL;
-    }
 
-    // Invoke the callback to get the URI. If there is no callback, return NULL.
+    // Invoke the callback to get the URI. If there is no callback, use the
+    // default URI format.
     if (isset($uri_callback) && function_exists($uri_callback)) {
       $uri = $uri_callback($this);
-      // Pass the entity data to url() so that alter functions do not need to
-      // look up this entity again.
-      $uri['options']['entity_type'] = $this->entityType;
-      $uri['options']['entity'] = $this;
-      return $uri;
     }
+    else {
+      $uri = array(
+        'path' => 'entity/' . $this->entityType . '/' . $this->id(),
+      );
+    }
+    // Pass the entity data to url() so that alter functions do not need to
+    // look up this entity again.
+    $uri['options']['entity_type'] = $this->entityType;
+    $uri['options']['entity'] = $this;
+    return $uri;
   }
 
   /**
-   * Implements EntityInterface::get().
+   * {@inheritdoc}
+   *
+   * Returns a list of URI relationships supported by this entity.
+   *
+   * @return array
+   *   An array of link relationships supported by this entity.
+   */
+  public function uriRelationships() {
+    $entity_info = $this->entityInfo();
+    return isset($entity_info['links']) ? array_keys($entity_info['links']) : array();
+  }
+
+  /**
+   * Implements \Drupal\Core\Entity\EntityInterface::get().
    */
   public function get($property_name, $langcode = NULL) {
     // @todo: Replace by EntityNG implementation once all entity types have been
@@ -184,16 +204,16 @@ class Entity implements IteratorAggregate, EntityInterface {
   }
 
   /**
-   * Implements ComplexDataInterface::set().
+   * Implements \Drupal\Core\TypedData\ComplexDataInterface::set().
    */
-  public function set($property_name, $value) {
+  public function set($property_name, $value, $notify = TRUE) {
     // @todo: Replace by EntityNG implementation once all entity types have been
     // converted to use the entity field API.
     $this->{$property_name} = $value;
   }
 
   /**
-   * Implements ComplexDataInterface::getProperties().
+   * Implements \Drupal\Core\TypedData\ComplexDataInterface::getProperties().
    */
   public function getProperties($include_computed = FALSE) {
     // @todo: Replace by EntityNG implementation once all entity types have been
@@ -201,7 +221,7 @@ class Entity implements IteratorAggregate, EntityInterface {
   }
 
   /**
-   * Implements ComplexDataInterface::getPropertyValues().
+   * Implements \Drupal\Core\TypedData\ComplexDataInterface::getPropertyValues().
    */
   public function getPropertyValues() {
     // @todo: Replace by EntityNG implementation once all entity types have been
@@ -209,7 +229,7 @@ class Entity implements IteratorAggregate, EntityInterface {
   }
 
   /**
-   * Implements ComplexDataInterface::setPropertyValues().
+   * Implements \Drupal\Core\TypedData\ComplexDataInterface::setPropertyValues().
    */
   public function setPropertyValues($values) {
     // @todo: Replace by EntityNG implementation once all entity types have been
@@ -217,7 +237,7 @@ class Entity implements IteratorAggregate, EntityInterface {
   }
 
   /**
-   * Implements ComplexDataInterface::getPropertyDefinition().
+   * Implements \Drupal\Core\TypedData\ComplexDataInterface::getPropertyDefinition().
    */
   public function getPropertyDefinition($name) {
     // @todo: Replace by EntityNG implementation once all entity types have been
@@ -225,7 +245,7 @@ class Entity implements IteratorAggregate, EntityInterface {
   }
 
   /**
-   * Implements ComplexDataInterface::getPropertyDefinitions().
+   * Implements \Drupal\Core\TypedData\ComplexDataInterface::getPropertyDefinitions().
    */
   public function getPropertyDefinitions() {
     // @todo: Replace by EntityNG implementation once all entity types have been
@@ -233,7 +253,7 @@ class Entity implements IteratorAggregate, EntityInterface {
   }
 
   /**
-   * Implements ComplexDataInterface::isEmpty().
+   * Implements \Drupal\Core\TypedData\ComplexDataInterface::isEmpty().
    */
   public function isEmpty() {
     // @todo: Replace by EntityNG implementation once all entity types have been
@@ -241,91 +261,112 @@ class Entity implements IteratorAggregate, EntityInterface {
   }
 
   /**
-   * Implements ComplexDataInterface::getIterator().
+   * Implements \Drupal\Core\TypedData\ComplexDataInterface::getIterator().
    */
   public function getIterator() {
     // @todo: Replace by EntityNG implementation once all entity types have been
     // converted to use the entity field API.
+    return new \ArrayIterator(array());
   }
 
   /**
-   * Implements AccessibleInterface::access().
+   * Implements \Drupal\Core\TypedData\AccessibleInterface::access().
    */
-  public function access(\Drupal\user\User $account = NULL) {
-    // TODO: Implement access() method.
+  public function access($operation = 'view', AccountInterface $account = NULL) {
+    if ($operation == 'create') {
+      return \Drupal::entityManager()
+        ->getAccessController($this->entityType)
+        ->createAccess($this->bundle(), $account);
+    }
+    return \Drupal::entityManager()
+      ->getAccessController($this->entityType)
+      ->access($this, $operation, Language::LANGCODE_DEFAULT, $account);
   }
 
   /**
-   * Implements TranslatableInterface::language().
+   * Implements \Drupal\Core\TypedData\TranslatableInterface::language().
    */
   public function language() {
     // @todo: Replace by EntityNG implementation once all entity types have been
     // converted to use the entity field API.
-    return !empty($this->langcode) ? language_load($this->langcode) : new Language(array('langcode' => LANGUAGE_NOT_SPECIFIED));
+    $language = language_load($this->langcode);
+    if (!$language) {
+      // Make sure we return a proper language object.
+      $language = new Language(array('id' => Language::LANGCODE_NOT_SPECIFIED));
+    }
+    return $language;
   }
 
   /**
-   * Implements TranslatableInterface::getTranslation().
+   * Implements \Drupal\Core\TypedData\TranslatableInterface::getTranslation().
+   *
+   * @return \Drupal\Core\Entity\EntityInterface
    */
-  public function getTranslation($langcode, $strict = TRUE) {
+  public function getTranslation($langcode) {
     // @todo: Replace by EntityNG implementation once all entity types have been
     // converted to use the entity field API.
+    return $this;
   }
 
   /**
    * Returns the languages the entity is translated to.
    *
-   * @todo: Remove once all entity types implement the entity field API. This
-   * is deprecated by
-   * TranslatableInterface::getTranslationLanguages().
+   * @todo: Remove once all entity types implement the entity field API.
+   *   This is deprecated by
+   *   \Drupal\Core\TypedData\TranslatableInterface::getTranslationLanguages().
    */
   public function translations() {
-    $languages = array();
-    $entity_info = $this->entityInfo();
-    if ($entity_info['fieldable'] && ($default_language = $this->language())) {
-      // Go through translatable properties and determine all languages for
-      // which translated values are available.
-      foreach (field_info_instances($this->entityType, $this->bundle()) as $field_name => $instance) {
-        $field = field_info_field($field_name);
-        if (field_is_translatable($this->entityType, $field) && isset($this->$field_name)) {
-          foreach ($this->$field_name as $langcode => $value)  {
-            $languages[$langcode] = TRUE;
-          }
-        }
-      }
-      // Remove the default language from the translations.
-      unset($languages[$default_language->langcode]);
-      $languages = array_intersect_key(language_list(), $languages);
-    }
-    return $languages;
+    return $this->getTranslationLanguages(FALSE);
   }
 
   /**
-   * Implements TranslatableInterface::getTranslationLanguages().
+   * Implements \Drupal\Core\TypedData\TranslatableInterface::getTranslationLanguages().
    */
   public function getTranslationLanguages($include_default = TRUE) {
     // @todo: Replace by EntityNG implementation once all entity types have been
     // converted to use the entity field API.
+    $default_language = $this->language();
+    $languages = array($default_language->id => $default_language);
+    $entity_info = $this->entityInfo();
+
+    if ($entity_info['fieldable']) {
+      // Go through translatable properties and determine all languages for
+      // which translated values are available.
+      foreach (field_info_instances($this->entityType, $this->bundle()) as $field_name => $instance) {
+        if (field_is_translatable($this->entityType, $instance->getField()) && isset($this->$field_name)) {
+          foreach (array_filter($this->$field_name) as $langcode => $value)  {
+            $languages[$langcode] = TRUE;
+          }
+        }
+      }
+      $languages = array_intersect_key(language_list(Language::STATE_ALL), $languages);
+    }
+
+    if (empty($include_default)) {
+      unset($languages[$default_language->id]);
+    }
+
+    return $languages;
   }
 
   /**
-   * Implements EntityInterface::save().
+   * Implements \Drupal\Core\Entity\EntityInterface::save().
    */
   public function save() {
-    return entity_get_controller($this->entityType)->save($this);
+    return \Drupal::entityManager()->getStorageController($this->entityType)->save($this);
   }
 
   /**
-   * Implements EntityInterface::delete().
+   * Implements \Drupal\Core\Entity\EntityInterface::delete().
    */
   public function delete() {
     if (!$this->isNew()) {
-      entity_get_controller($this->entityType)->delete(array($this->id() => $this));
+      \Drupal::entityManager()->getStorageController($this->entityType)->delete(array($this->id() => $this));
     }
   }
 
   /**
-   * Implements EntityInterface::createDuplicate().
+   * Implements \Drupal\Core\Entity\EntityInterface::createDuplicate().
    */
   public function createDuplicate() {
     $duplicate = clone $this;
@@ -341,21 +382,21 @@ class Entity implements IteratorAggregate, EntityInterface {
   }
 
   /**
-   * Implements EntityInterface::entityInfo().
+   * Implements \Drupal\Core\Entity\EntityInterface::entityInfo().
    */
   public function entityInfo() {
-    return entity_get_info($this->entityType);
+    return \Drupal::entityManager()->getDefinition($this->entityType());
   }
 
   /**
-   * Implements Drupal\Core\Entity\EntityInterface::getRevisionId().
+   * Implements \Drupal\Core\Entity\EntityInterface::getRevisionId().
    */
   public function getRevisionId() {
     return NULL;
   }
 
   /**
-   * Implements Drupal\Core\Entity\EntityInterface::isDefaultRevision().
+   * Implements \Drupal\Core\Entity\EntityInterface::isDefaultRevision().
    */
   public function isDefaultRevision($new_value = NULL) {
     $return = $this->isDefaultRevision;
@@ -364,4 +405,239 @@ class Entity implements IteratorAggregate, EntityInterface {
     }
     return $return;
   }
+
+  /**
+   * Implements \Drupal\Core\Entity\EntityInterface::getExportProperties().
+   */
+  public function getExportProperties() {
+    return array();
+  }
+
+  /**
+   * Implements \Drupal\Core\Entity\EntityInterface::getBCEntity().
+   */
+  public function getBCEntity() {
+    return $this;
+  }
+
+  /**
+   * Implements \Drupal\Core\Entity\EntityInterface::getNGEntity().
+   */
+  public function getNGEntity() {
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getDefinition() {
+    // @todo: This does not make much sense, so remove once TypedDataInterface
+    // is removed. See https://drupal.org/node/2002138.
+    if ($this->bundle() != $this->entityType()) {
+      $type = 'entity:' . $this->entityType() . ':' . $this->bundle();
+    }
+    else {
+      $type = 'entity:' . $this->entityType();
+    }
+    return array('type' => $type);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getValue() {
+    // @todo: This does not make much sense, so remove once TypedDataInterface
+    // is removed. See https://drupal.org/node/2002138.
+    return $this->getPropertyValues();
+  }
+
+  /**
+   * Implements \Drupal\Core\TypedData\TypedDataInterface::setValue().
+   */
+  public function setValue($value, $notify = TRUE) {
+    // @todo: This does not make much sense, so remove once TypedDataInterface
+    // is removed. See https://drupal.org/node/2002138.
+    $this->setPropertyValues($value);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getString() {
+    return $this->label();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getConstraints() {
+    return array();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function validate() {
+    // @todo: Add the typed data manager as proper dependency.
+    return \Drupal::typedData()->getValidator()->validate($this);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function applyDefaultValue($notify = TRUE) {
+    foreach ($this->getProperties() as $property) {
+      $property->applyDefaultValue(FALSE);
+    }
+  }
+
+  /**
+   * Implements \Drupal\Core\TypedData\ComplexDataInterface::onChange().
+   */
+  public function onChange($property_name) {
+    // Nothing to do.
+  }
+
+  /**
+   * Implements \Drupal\Core\TypedData\TypedDataInterface::getName().
+   */
+  public function getName() {
+    return NULL;
+  }
+
+  /**
+   * Implements \Drupal\Core\TypedData\TypedDataInterface::getRoot().
+   */
+  public function getRoot() {
+    return $this;
+  }
+
+  /**
+   * Implements \Drupal\Core\TypedData\TypedDataInterface::getPropertyPath().
+   */
+  public function getPropertyPath() {
+    return '';
+  }
+
+  /**
+   * Implements \Drupal\Core\TypedData\TypedDataInterface::getParent().
+   */
+  public function getParent() {
+    return NULL;
+  }
+
+  /**
+   * Implements \Drupal\Core\TypedData\TypedDataInterface::setContext().
+   */
+  public function setContext($name = NULL, TypedDataInterface $parent = NULL) {
+    // As entities are always the root of the tree of typed data, we do not need
+    // to set any parent or name.
+  }
+
+  /**
+   * Implements \Drupal\Core\Entity\EntityInterface::isTranslatable().
+   */
+  public function isTranslatable() {
+    // @todo Inject the entity manager and retrieve bundle info from it.
+    $bundles = entity_get_bundles($this->entityType);
+    return !empty($bundles[$this->bundle()]['translatable']);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function preSave(EntityStorageControllerInterface $storage_controller) {
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function postSave(EntityStorageControllerInterface $storage_controller, $update = TRUE) {
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function preCreate(EntityStorageControllerInterface $storage_controller, array &$values) {
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function postCreate(EntityStorageControllerInterface $storage_controller) {
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function preDelete(EntityStorageControllerInterface $storage_controller, array $entities) {
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function postDelete(EntityStorageControllerInterface $storage_controller, array $entities) {
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function postLoad(EntityStorageControllerInterface $storage_controller, array $entities) {
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function preSaveRevision(EntityStorageControllerInterface $storage_controller, \stdClass $record) {
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getUntranslated() {
+    return $this->getTranslation(Language::LANGCODE_DEFAULT);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function hasTranslation($langcode) {
+    $translations = $this->getTranslationLanguages();
+    return isset($translations[$langcode]);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function addTranslation($langcode, array $values = array()) {
+    // @todo Config entities do not support entity translation hence we need to
+    //   move the TranslatableInterface implementation to EntityNG. See
+    //   http://drupal.org/node/2004244
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function removeTranslation($langcode) {
+    // @todo Config entities do not support entity translation hence we need to
+    //   move the TranslatableInterface implementation to EntityNG. See
+    //   http://drupal.org/node/2004244
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function initTranslation($langcode) {
+    // @todo Config entities do not support entity translation hence we need to
+    //   move the TranslatableInterface implementation to EntityNG. See
+    //   http://drupal.org/node/2004244
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function baseFieldDefinitions($entity_type) {
+    return array();
+  }
+
 }

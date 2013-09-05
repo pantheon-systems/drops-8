@@ -13,7 +13,7 @@ function ban_help($path, $arg) {
     case 'admin/help#ban':
       $output = '';
       $output .= '<h3>' . t('About') . '</h3>';
-      $output .= '<p>' . t('The Ban module allows administrators to ban visits to their site from individual IP addresses.') . '</p>';
+      $output .= '<p>' . t('The Ban module allows administrators to ban visits to their site from individual IP addresses. For more information, see <a href="@url">the online documentation for the Ban module</a>.', array('@url' => 'https://drupal.org/documentation/modules/ban')) . '</p>';
       $output .= '<h3>' . t('Uses') . '</h3>';
       $output .= '<dl>';
       $output .= '<dt>' . t('Banning IP addresses') . '</dt>';
@@ -44,57 +44,12 @@ function ban_menu() {
   $items['admin/config/people/ban'] = array(
     'title' => 'IP address bans',
     'description' => 'Manage banned IP addresses.',
-    'page callback' => 'ban_admin_page',
-    'access arguments' => array('ban IP addresses'),
-    'file' => 'ban.admin.inc',
+    'route_name' => 'ban_admin_page',
     'weight' => 10,
   );
-  $items['admin/config/people/ban/delete/%ban_ip'] = array(
+  $items['admin/config/people/ban/delete/%'] = array(
     'title' => 'Delete IP address',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('ban_ip_delete_form', 5),
-    'access arguments' => array('ban IP addresses'),
-    'file' => 'ban.admin.inc',
+    'route_name' => 'ban_delete',
   );
   return $items;
-}
-
-/**
- * Loads a banned IP address record from the database.
- *
- * @param int $iid
- *   The ID of the banned IP address to retrieve.
- *
- * @return array
- *   The banned IP address record from the database as an array.
- */
-function ban_ip_load($iid) {
-  return db_query("SELECT * FROM {ban_ip} WHERE iid = :iid", array(':iid' => $iid))->fetchAssoc();
-}
-
-/**
- * Implements hook_action_info().
- */
-function ban_action_info() {
-  return array(
-    'ban_ip_action' => array(
-      'type' => 'user',
-      'label' => t('Ban IP address of current user'),
-      'configurable' => FALSE,
-      'triggers' => array('any'),
-    ),
-  );
-}
-
-/**
- * Bans the current user's IP address.
- *
- * @ingroup actions
- */
-function ban_ip_action() {
-  $ip = ip_address();
-  db_insert('ban_ip')
-    ->fields(array('ip' => $ip))
-    ->execute();
-  watchdog('action', 'Banned IP address %ip', array('%ip' => $ip));
 }

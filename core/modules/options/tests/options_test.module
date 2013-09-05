@@ -1,0 +1,41 @@
+<?php
+
+/**
+ * @file
+ * Helper module for the List module tests.
+ */
+
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\Field\FieldDefinitionInterface;
+
+/**
+ * Allowed values callback.
+ */
+function options_test_allowed_values_callback(FieldDefinitionInterface $field_definition, EntityInterface $entity) {
+  $values = array(
+    'Group 1' => array(
+      0 => 'Zero',
+    ),
+    1 => 'One',
+    'Group 2' => array(
+      2 => 'Some <script>dangerous</script> & unescaped <strong>markup</strong>',
+    ),
+  );
+
+  return $values;
+}
+
+/**
+ * An entity-bound allowed values callback.
+ */
+function options_test_dynamic_values_callback(FieldDefinitionInterface $field_definition, EntityInterface $entity, &$cacheable) {
+  $cacheable = FALSE;
+  // We need the values of the entity as keys.
+  $uri = $entity->uri();
+  return drupal_map_assoc(array(
+    $entity->label(),
+    $uri['path'],
+    $entity->uuid(),
+    $entity->bundle(),
+  ));
+}

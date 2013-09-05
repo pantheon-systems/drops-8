@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Contains Drupal\views\Plugin\views\display\Feed.
+ * Contains \Drupal\views\Plugin\views\display\Feed.
  */
 
 namespace Drupal\views\Plugin\views\display;
@@ -10,7 +10,7 @@ namespace Drupal\views\Plugin\views\display;
 use Drupal\views\ViewExecutable;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
-use Drupal\Core\Annotation\Plugin;
+use Drupal\views\Annotation\ViewsDisplay;
 use Drupal\Core\Annotation\Translation;
 
 /**
@@ -18,11 +18,11 @@ use Drupal\Core\Annotation\Translation;
  *
  * @ingroup views_display_plugins
  *
- * @Plugin(
+ * @ViewsDisplay(
  *   id = "feed",
  *   title = @Translation("Feed"),
  *   help = @Translation("Display the view as a feed, such as an RSS feed."),
- *   uses_hook_menu = TRUE,
+ *   uses_route = TRUE,
  *   admin = @Translation("Feed")
  * )
  */
@@ -33,7 +33,7 @@ class Feed extends PathPluginBase {
    *
    * @var bool
    */
-  protected $usesAJAX = FALSE;
+  protected $ajaxEnabled = FALSE;
 
   /**
    * Whether the display allows the use of a pager or not.
@@ -42,13 +42,16 @@ class Feed extends PathPluginBase {
    */
   protected $usesPager = FALSE;
 
-  public function init(ViewExecutable $view, &$display, $options = NULL) {
-    parent::init($view, $display, $options);
+  /**
+   * Overrides \Drupal\views\Plugin\views\display\DisplayPluginBase::initDisplay().
+   */
+  public function initDisplay(ViewExecutable $view, array &$display, array &$options = NULL) {
+    parent::initDisplay($view, $display, $options);
 
     // Set the default row style. Ideally this would be part of the option
     // definition, but in this case it's dependent on the view's base table,
     // which we don't know until init().
-    $row_plugins = views_fetch_plugin_names('row', $this->getStyleType(), array($view->storage->get('base_table')));
+    $row_plugins = views_fetch_plugin_names('row', $this->getType(), array($view->storage->get('base_table')));
     $default_row_plugin = key($row_plugins);
     if (empty($this->options['row']['type'])) {
       $this->options['row']['type'] = $default_row_plugin;
@@ -56,9 +59,9 @@ class Feed extends PathPluginBase {
   }
 
   /**
-   * Overrides \Drupal\views\Plugin\views\display\DisplayPluginBase::getStyleType().
+   * Overrides \Drupal\views\Plugin\views\display\DisplayPluginBase::getType().
    */
-  protected function getStyleType() {
+  protected function getType() {
     return 'feed';
   }
 
@@ -127,7 +130,7 @@ class Feed extends PathPluginBase {
 
     $options['displays'] = array('default' => array());
 
-    // Overrides for standard stuff:
+    // Overrides for standard stuff.
     $options['style']['contains']['type']['default'] = 'rss';
     $options['style']['contains']['options']['default']  = array('description' => '');
     $options['sitename_title']['default'] = FALSE;
@@ -210,7 +213,7 @@ class Feed extends PathPluginBase {
         $displays = array();
         foreach ($this->view->storage->get('display') as $display_id => $display) {
           // @todo The display plugin should have display_title and id as well.
-          if (!empty($this->view->displayHandlers[$display_id]) && $this->view->displayHandlers[$display_id]->acceptAttachments()) {
+          if ($this->view->displayHandlers->has($display_id) && $this->view->displayHandlers->get($display_id)->acceptAttachments()) {
             $displays[$display_id] = $display['display_title'];
           }
         }
@@ -244,7 +247,7 @@ class Feed extends PathPluginBase {
   /**
    * Overrides \Drupal\views\Plugin\views\display\DisplayPluginBase::attachTo().
    */
-  public function attachTo($display_id) {
+  public function attachTo(ViewExecutable $clone, $display_id) {
     $displays = $this->getOption('displays');
     if (empty($displays[$display_id])) {
       return;
@@ -252,17 +255,15 @@ class Feed extends PathPluginBase {
 
     // Defer to the feed style; it may put in meta information, and/or
     // attach a feed icon.
-    $plugin = $this->getPlugin('style');
-    if ($plugin) {
-      $clone = $this->view->cloneView();
-      $clone->setDisplay($this->display['id']);
-      $clone->buildTitle();
-      $plugin->attach_to($display_id, $this->getPath(), $clone->getTitle());
-
-      // Clean up
-      $clone->destroy();
-      unset($clone);
+    $clone->setDisplay($this->display['id']);
+    $clone->buildTitle();
+    if ($plugin = $clone->display_handler->getPlugin('style')) {
+      $plugin->attachTo($display_id, $this->getPath(), $clone->getTitle());
     }
+
+    // Clean up.
+    $clone->destroy();
+    unset($clone);
   }
 
   /**

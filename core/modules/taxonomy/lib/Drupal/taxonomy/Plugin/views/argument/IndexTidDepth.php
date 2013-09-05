@@ -8,7 +8,7 @@
 namespace Drupal\taxonomy\Plugin\views\argument;
 
 use Drupal\views\Plugin\views\argument\ArgumentPluginBase;
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
 
 /**
  * Argument handler for taxonomy terms with depth.
@@ -18,10 +18,7 @@ use Drupal\Core\Annotation\Plugin;
  *
  * @ingroup views_argument_handlers
  *
- * @Plugin(
- *   id = "taxonomy_index_tid_depth",
- *   module = "taxonomy"
- * )
+ * @PluginID("taxonomy_index_tid_depth")
  */
 class IndexTidDepth extends ArgumentPluginBase {
 
@@ -72,7 +69,7 @@ class IndexTidDepth extends ArgumentPluginBase {
     parent::buildOptionsForm($form, $form_state);
   }
 
-  function set_breadcrumb(&$breadcrumb) {
+  public function setBreadcrumb(&$breadcrumb) {
     if (empty($this->options['set_breadcrumb']) || !is_numeric($this->argument)) {
       return;
     }
@@ -81,16 +78,16 @@ class IndexTidDepth extends ArgumentPluginBase {
   }
 
   /**
-   * Override default_actions() to remove summary actions.
+   * Override defaultActions() to remove summary actions.
    */
-  function default_actions($which = NULL) {
+  protected function defaultActions($which = NULL) {
     if ($which) {
       if (in_array($which, array('ignore', 'not found', 'empty', 'default'))) {
-        return parent::default_actions($which);
+        return parent::defaultActions($which);
       }
       return;
     }
-    $actions = parent::default_actions();
+    $actions = parent::defaultActions();
     unset($actions['summary asc']);
     unset($actions['summary desc']);
     unset($actions['summary asc by count']);
@@ -146,13 +143,13 @@ class IndexTidDepth extends ArgumentPluginBase {
     }
 
     $subquery->condition($where);
-    $this->query->add_where(0, "$this->tableAlias.$this->realField", $subquery, 'IN');
+    $this->query->addWhere(0, "$this->tableAlias.$this->realField", $subquery, 'IN');
   }
 
   function title() {
-    $term = taxonomy_term_load($this->argument);
+    $term = entity_load('taxonomy_term', $this->argument);
     if (!empty($term)) {
-      return check_plain($term->name);
+      return check_plain($term->label());
     }
     // TODO review text
     return t('No name');

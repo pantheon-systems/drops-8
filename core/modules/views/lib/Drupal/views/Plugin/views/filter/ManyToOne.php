@@ -8,22 +8,21 @@
 namespace Drupal\views\Plugin\views\filter;
 
 use Drupal\views\ViewExecutable;
+use Drupal\views\Plugin\views\display\DisplayPluginBase;
 use Drupal\views\ManyToOneHelper;
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
 
 /**
  * Complex filter to handle filtering for many to one relationships,
  * such as terms (many terms per node) or roles (many roles per user).
  *
  * The construct method needs to be overridden to provide a list of options;
- * alternately, the value_form and adminSummary methods need to be overriden
+ * alternately, the valueForm and adminSummary methods need to be overriden
  * to provide something that isn't just a select list.
  *
  * @ingroup views_filter_handlers
  *
- * @Plugin(
- *   id = "many_to_one"
- * )
+ * @PluginID("many_to_one")
  */
 class ManyToOne extends InOperator {
 
@@ -34,8 +33,12 @@ class ManyToOne extends InOperator {
    */
   var $helper = NULL;
 
-  public function init(ViewExecutable $view, &$options) {
-    parent::init($view, $options);
+  /**
+   * Overrides \Drupal\views\Plugin\views\filter\InOperator::init().
+   */
+  public function init(ViewExecutable $view, DisplayPluginBase $display, array &$options = NULL) {
+    parent::init($view, $display, $options);
+
     $this->helper = new ManyToOneHelper($this);
   }
 
@@ -62,7 +65,7 @@ class ManyToOne extends InOperator {
         'title' => t('Is one of'),
         'short' => t('or'),
         'short_single' => t('='),
-        'method' => 'op_helper',
+        'method' => 'opHelper',
         'values' => 1,
         'ensure_my_table' => 'helper',
       ),
@@ -70,7 +73,7 @@ class ManyToOne extends InOperator {
         'title' => t('Is all of'),
         'short' => t('and'),
         'short_single' => t('='),
-        'method' => 'op_helper',
+        'method' => 'opHelper',
         'values' => 1,
         'ensure_my_table' => 'helper',
       ),
@@ -78,7 +81,7 @@ class ManyToOne extends InOperator {
         'title' => t('Is none of'),
         'short' => t('not'),
         'short_single' => t('<>'),
-        'method' => 'op_helper',
+        'method' => 'opHelper',
         'values' => 1,
         'ensure_my_table' => 'helper',
       ),
@@ -88,13 +91,13 @@ class ManyToOne extends InOperator {
       $operators += array(
         'empty' => array(
           'title' => t('Is empty (NULL)'),
-          'method' => 'op_empty',
+          'method' => 'opEmpty',
           'short' => t('empty'),
           'values' => 0,
         ),
         'not empty' => array(
           'title' => t('Is not empty (NOT NULL)'),
-          'method' => 'op_empty',
+          'method' => 'opEmpty',
           'short' => t('not empty'),
           'values' => 0,
         ),
@@ -105,8 +108,8 @@ class ManyToOne extends InOperator {
   }
 
   var $value_form_type = 'select';
-  function value_form(&$form, &$form_state) {
-    parent::value_form($form, $form_state);
+  protected function valueForm(&$form, &$form_state) {
+    parent::valueForm($form, $form_state);
 
     if (empty($form_state['exposed'])) {
       $this->helper->buildOptionsForm($form, $form_state);
@@ -127,11 +130,11 @@ class ManyToOne extends InOperator {
     return parent::ensureMyTable();
   }
 
-  function op_helper() {
+  protected function opHelper() {
     if (empty($this->value)) {
       return;
     }
-    $this->helper->add_filter();
+    $this->helper->addFilter();
   }
 
 }

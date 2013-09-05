@@ -57,6 +57,7 @@ abstract class ModuleTestBase extends WebTestBase {
    *   The name of the module.
    */
   function assertModuleTablesExist($module) {
+    $this->rebuildContainer();
     $tables = array_keys(drupal_get_schema_unprocessed($module));
     $tables_exist = TRUE;
     foreach ($tables as $table) {
@@ -99,15 +100,25 @@ abstract class ModuleTestBase extends WebTestBase {
       return;
     }
     $module_file_storage = new FileStorage($module_config_dir);
-    $names = $module_file_storage->listAll();
 
-    // Verify that the config directory is not empty.
-    $this->assertTrue($names);
+    // Verify that the module's default config directory is not empty and
+    // contains default configuration files (instead of something else).
+    $all_names = $module_file_storage->listAll();
+    if (empty($all_names)) {
+      // Module has an empty config directory. For example it might contain a
+      // schema directory.
+      return;
+    }
+    $this->assertTrue($all_names);
 
     // Look up each default configuration object name in the active
     // configuration, and if it exists, remove it from the stack.
+    // Only default config that belongs to $module is guaranteed to exist; any
+    // other default config depends on whether other modules are enabled. Thus,
+    // list all default config once more, but filtered by $module.
+    $names = $module_file_storage->listAll($module . '.');
     foreach ($names as $key => $name) {
-      if (config($name)->get()) {
+      if (\Drupal::config($name)->get()) {
         unset($names[$key]);
       }
     }
@@ -139,7 +150,7 @@ abstract class ModuleTestBase extends WebTestBase {
    *   Expected module state.
    */
   function assertModules(array $modules, $enabled) {
-    system_list_reset();
+    $this->rebuildContainer();
     foreach ($modules as $module) {
       if ($enabled) {
         $message = 'Module "@module" is enabled.';
@@ -147,7 +158,7 @@ abstract class ModuleTestBase extends WebTestBase {
       else {
         $message = 'Module "@module" is not enabled.';
       }
-      $this->assertEqual(module_exists($module), $enabled, format_string($message, array('@module' => $module)));
+      $this->assertEqual($this->container->get('module_handler')->moduleExists($module), $enabled, format_string($message, array('@module' => $module)));
     }
   }
 

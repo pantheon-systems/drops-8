@@ -7,19 +7,17 @@
 
 namespace Drupal\views\Plugin\views\sort;
 
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
 
 /**
  * Handle a random sort.
  *
- * @Plugin(
- *   id = "random"
- * )
+ * @PluginID("random")
  */
 class Random extends SortPluginBase {
 
   public function query() {
-    $this->query->add_orderby('rand');
+    $this->query->addOrderBy('rand');
   }
 
   public function buildOptionsForm(&$form, &$form_state) {

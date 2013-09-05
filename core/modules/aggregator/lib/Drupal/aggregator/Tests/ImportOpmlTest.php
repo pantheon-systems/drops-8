@@ -7,7 +7,18 @@
 
 namespace Drupal\aggregator\Tests;
 
+/**
+ * Tests importing feeds from OPML functionality for the Aggregator module.
+ */
 class ImportOpmlTest extends AggregatorTestBase {
+
+  /**
+   * Modules to enable.
+   *
+   * @var array
+   */
+  public static $modules = array('block');
+
   public static function getInfo() {
     return array(
       'name' => 'Import feeds from OPML functionality',
@@ -16,8 +27,15 @@ class ImportOpmlTest extends AggregatorTestBase {
     );
   }
 
+  function setUp() {
+    parent::setUp();
+
+    $admin_user = $this->drupalCreateUser(array('administer news feeds', 'access news feeds', 'create article content', 'administer blocks'));
+    $this->drupalLogin($admin_user);
+  }
+
   /**
-   * Open OPML import form.
+   * Opens OPML import form.
    */
   function openImportForm() {
     db_delete('aggregator_category')->execute();
@@ -30,6 +48,9 @@ class ImportOpmlTest extends AggregatorTestBase {
       ))
       ->execute();
 
+    // Enable the help block.
+    $this->drupalPlaceBlock('system_help_block', array('region' => 'help'));
+
     $this->drupalGet('admin/config/services/aggregator/add/opml');
     $this->assertText('A single OPML document may contain a collection of many feeds.', 'Found OPML help text.');
     $this->assertField('files[upload]', 'Found file upload field.');
@@ -39,7 +60,7 @@ class ImportOpmlTest extends AggregatorTestBase {
   }
 
   /**
-   * Submit form filled with invalid fields.
+   * Submits form filled with invalid fields.
    */
   function validateImportFormFields() {
     $before = db_query('SELECT COUNT(*) FROM {aggregator_feed}')->fetchField();
@@ -65,7 +86,7 @@ class ImportOpmlTest extends AggregatorTestBase {
   }
 
   /**
-   * Submit form with invalid, empty and valid OPML files.
+   * Submits form with invalid, empty, and valid OPML files.
    */
   function submitImportForm() {
     $before = db_query('SELECT COUNT(*) FROM {aggregator_feed}')->fetchField();
@@ -124,6 +145,9 @@ class ImportOpmlTest extends AggregatorTestBase {
     $this->assertTrue($category, 'Categories are correct.');
   }
 
+  /**
+   * Tests the import of an OPML file.
+   */
   function testOpmlImport() {
     $this->openImportForm();
     $this->validateImportFormFields();

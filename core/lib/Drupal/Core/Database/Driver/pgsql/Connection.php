@@ -9,8 +9,11 @@ namespace Drupal\Core\Database\Driver\pgsql;
 
 use Drupal\Core\Database\Database;
 use Drupal\Core\Database\Connection as DatabaseConnection;
+use Drupal\Core\Database\DatabaseNotFoundException;
 use Drupal\Core\Database\StatementInterface;
+use Drupal\Core\Database\IntegrityConstraintViolationException;
 
+use Locale;
 use PDO;
 use PDOException;
 
@@ -26,7 +29,17 @@ class Connection extends DatabaseConnection {
    */
   const POSTGRESQL_NEXTID_LOCK = 1000;
 
-  public function __construct(array $connection_options = array()) {
+  /**
+   * Error code for "Unknown database" error.
+   */
+  const DATABASE_NOT_FOUND = 7;
+
+  /**
+   * Constructs a connection object.
+   */
+  public function __construct(PDO $connection, array $connection_options) {
+    parent::__construct($connection, $connection_options);
+
     // This driver defaults to transaction support, except if explicitly passed FALSE.
     $this->transactionSupport = !isset($connection_options['transactions']) || ($connection_options['transactions'] !== FALSE);
 
@@ -34,6 +47,21 @@ class Connection extends DatabaseConnection {
     // but we'll only enable it if standard transactions are.
     $this->transactionalDDLSupport = $this->transactionSupport;
 
+    $this->connectionOptions = $connection_options;
+
+    // Force PostgreSQL to use the UTF-8 character set by default.
+    $this->connection->exec("SET NAMES 'UTF8'");
+
+    // Execute PostgreSQL init_commands.
+    if (isset($connection_options['init_commands'])) {
+      $this->connection->exec(implode('; ', $connection_options['init_commands']));
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function open(array &$connection_options = array()) {
     // Default to TCP connection on port 5432.
     if (empty($connection_options['port'])) {
       $connection_options['port'] = 5432;
@@ -53,8 +81,7 @@ class Connection extends DatabaseConnection {
       $connection_options['password'] = str_replace('\\', '\\\\', $connection_options['password']);
     }
 
-    $this->connectionOptions = $connection_options;
-
+    $connection_options['database'] = (!empty($connection_options['database']) ? $connection_options['database'] : 'template1');
     $dsn = 'pgsql:host=' . $connection_options['host'] . ' dbname=' . $connection_options['database'] . ' port=' . $connection_options['port'];
 
     // Allow PDO options to be overridden.
@@ -62,6 +89,7 @@ class Connection extends DatabaseConnection {
       'pdo' => array(),
     );
     $connection_options['pdo'] += array(
+      PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
       // Prepared statements are most effective for performance when queries
       // are recycled (used several times). However, if they are not re-used,
       // prepared statements become ineffecient. Since most of Drupal's
@@ -72,16 +100,11 @@ class Connection extends DatabaseConnection {
       // Convert numeric values to strings when fetching.
       PDO::ATTR_STRINGIFY_FETCHES => TRUE,
     );
-    parent::__construct($dsn, $connection_options['username'], $connection_options['password'], $connection_options['pdo']);
+    $pdo = new PDO($dsn, $connection_options['username'], $connection_options['password'], $connection_options['pdo']);
 
-    // Force PostgreSQL to use the UTF-8 character set by default.
-    $this->exec("SET NAMES 'UTF8'");
-
-    // Execute PostgreSQL init_commands.
-    if (isset($connection_options['init_commands'])) {
-      $this->exec(implode('; ', $connection_options['init_commands']));
-    }
+    return $pdo;
   }
+
 
   public function query($query, array $args = array(), $options = array()) {
 
@@ -115,7 +138,7 @@ class Connection extends DatabaseConnection {
         case Database::RETURN_AFFECTED:
           return $stmt->rowCount();
         case Database::RETURN_INSERT_ID:
-          return $this->lastInsertId($options['sequence_name']);
+          return $this->connection->lastInsertId($options['sequence_name']);
         case Database::RETURN_NULL:
           return;
         default:
@@ -124,6 +147,10 @@ class Connection extends DatabaseConnection {
     }
     catch (PDOException $e) {
       if ($options['throw_exception']) {
+        // Match all SQLSTATE 23xxx errors.
+        if (substr($e->getCode(), -6, -3) == '23') {
+          $e = new IntegrityConstraintViolationException($e->getMessage(), $e->getCode(), $e);
+        }
         // Add additional debug information.
         if ($query instanceof StatementInterface) {
           $e->query_string = $stmt->getQueryString();
@@ -167,12 +194,43 @@ class Connection extends DatabaseConnection {
     return 'pgsql';
   }
 
+  /**
+   * Overrides \Drupal\Core\Database\Connection::createDatabase().
+   *
+   * @param string $database
+   *   The name of the database to create.
+   *
+   * @throws \Drupal\Core\Database\DatabaseNotFoundException
+   */
+  public function createDatabase($database) {
+    // Escape the database name.
+    $database = Database::getConnection()->escapeDatabase($database);
+
+    // If the PECL intl extension is installed, use it to determine the proper
+    // locale.  Otherwise, fall back to en_US.
+    if (class_exists('Locale')) {
+      $locale = Locale::getDefault();
+    }
+    else {
+      $locale = 'en_US';
+    }
+
+    try {
+      // Create the database and set it as active.
+      $this->exec("CREATE DATABASE $database WITH TEMPLATE template0 ENCODING='utf8' LC_CTYPE='$locale.utf8' LC_COLLATE='$locale.utf8'");
+    }
+    catch (\Exception $e) {
+      throw new DatabaseNotFoundException($e->getMessage());
+    }
+  }
+
   public function mapConditionOperator($operator) {
     static $specials = array(
       // In PostgreSQL, 'LIKE' is case-sensitive. For case-insensitive LIKE
       // statements, we need to use ILIKE instead.
       'LIKE' => array('operator' => 'ILIKE'),
       'NOT LIKE' => array('operator' => 'NOT ILIKE'),
+      'REGEXP' => array('operator' => '~*'),
     );
     return isset($specials[$operator]) ? $specials[$operator] : NULL;
   }

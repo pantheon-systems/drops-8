@@ -4,6 +4,24 @@
  * @file
  * Install, update and uninstall functions for the aggregator module.
  */
+use Drupal\Core\Language\Language;
+
+/**
+ * Implements hook_requirements().
+ */
+function aggregator_requirements($phase) {
+  $has_curl = function_exists('curl_init');
+  $requirements = array();
+  $requirements['curl'] = array(
+    'title' => t('cURL'),
+    'value' => $has_curl ? t('Enabled') : t('Not found'),
+  );
+  if (!$has_curl) {
+    $requirements['curl']['severity'] = REQUIREMENT_ERROR;
+    $requirements['curl']['description'] = t('The Aggregator module could not be installed because the PHP <a href="@curl_url">cURL</a> library is not available.', array('@curl_url' => 'http://php.net/manual/curl.setup.php'));
+  }
+  return $requirements;
+}
 
 /**
  * Implements hook_schema().
@@ -115,6 +133,13 @@ function aggregator_schema() {
         'default' => '',
         'description' => 'Title of the feed.',
       ),
+      'langcode' => array(
+        'description' => 'The {language}.langcode of this feed.',
+        'type' => 'varchar',
+        'length' => 12,
+        'not null' => TRUE,
+        'default' => '',
+      ),
       'url' => array(
         'type' => 'text',
         'not null' => TRUE,
@@ -214,6 +239,13 @@ function aggregator_schema() {
         'default' => '',
         'description' => 'Title of the feed item.',
       ),
+      'langcode' => array(
+        'description' => 'The {language}.langcode of this feed item.',
+        'type' => 'varchar',
+        'length' => 12,
+        'not null' => TRUE,
+        'default' => '',
+      ),
       'link' => array(
         'type' => 'text',
         'not null' => TRUE,
@@ -263,7 +295,7 @@ function aggregator_schema() {
  *
  * @ingroup config_upgrade
  */
-function aggregrator_update_8000() {
+function aggregator_update_8000() {
   update_variables_to_config('aggregator.settings', array(
     'aggregator_fetcher' => 'fetcher',
     'aggregator_parser' => 'parser',
@@ -273,5 +305,28 @@ function aggregrator_update_8000() {
     'aggregator_clear' => 'items.expire',
     'aggregator_summary_items' => 'source.list_max',
     'aggregator_category_selector' => 'source.category_selector',
+  ));
+}
+
+/**
+ * Adds the langcode field to {aggregator_item} and {aggregator_feed}.
+ */
+function aggregator_update_8001() {
+  // Add the field.
+  db_add_field('aggregator_feed', 'langcode', array(
+    'description' => 'The {language}.langcode of this feed.',
+    'type' => 'varchar',
+    'length' => 12,
+    'not null' => TRUE,
+    'default' => '',
+    'initial' => Language::LANGCODE_DEFAULT,
+  ));
+  db_add_field('aggregator_item', 'langcode', array(
+    'description' => 'The {language}.langcode of this feed item.',
+    'type' => 'varchar',
+    'length' => 12,
+    'not null' => TRUE,
+    'default' => '',
+    'initial' => Language::LANGCODE_DEFAULT,
   ));
 }

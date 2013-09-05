@@ -368,6 +368,75 @@ class SelectTest extends DatabaseTestBase {
   }
 
   /**
+   * Tests that filter by a regular expression works as expected.
+   */
+  public function testRegexCondition() {
+
+    $test_groups[] = array(
+      'regex' => 'hn$',
+      'expected' => array(
+        'John',
+      ),
+    );
+    $test_groups[] = array(
+      'regex' => '^Pau',
+      'expected' => array(
+        'Paul',
+      ),
+    );
+    $test_groups[] = array(
+      'regex' => 'Ringo|George',
+      'expected' => array(
+        'Ringo', 'George',
+      ),
+    );
+
+
+    $database = $this->container->get('database');
+    foreach ($test_groups as $test_group) {
+      $query = $database->select('test', 't');
+      $query->addField('t', 'name');
+      $query->condition('t.name', $test_group['regex'], 'REGEXP');
+      $result = $query->execute()->fetchCol();
+
+      $this->assertEqual(count($result), count($test_group['expected']), 'Returns the expected number of rows.');
+      $this->assertEqual(sort($result), sort($test_group['expected']), 'Returns the expected rows.');
+    }
+
+    // Ensure that filter by "#" still works due to the quoting.
+    $database->insert('test')
+      ->fields(array(
+        'name' => 'Pete',
+        'age' => 26,
+        'job' => '#Drummer',
+      ))
+      ->execute();
+
+    $test_groups = array();
+    $test_groups[] = array(
+      'regex' => '#Drummer',
+      'expected' => array(
+        'Pete',
+      ),
+    );
+    $test_groups[] = array(
+      'regex' => '#Singer',
+      'expected' => array(
+      ),
+    );
+
+    foreach ($test_groups as $test_group) {
+      $query = $database->select('test', 't');
+      $query->addField('t', 'name');
+      $query->condition('t.job', $test_group['regex'], 'REGEXP');
+      $result = $query->execute()->fetchCol();
+
+      $this->assertEqual(count($result), count($test_group['expected']), 'Returns the expected number of rows.');
+      $this->assertEqual(sort($result), sort($test_group['expected']), 'Returns the expected rows.');
+    }
+  }
+
+  /**
    * Tests that aliases are renamed when they are duplicates.
    */
   function testSelectDuplicateAlias() {
@@ -376,4 +445,40 @@ class SelectTest extends DatabaseTestBase {
     $alias2 = $query->addField('t', 'age', 'the_alias');
     $this->assertNotIdentical($alias1, $alias2, 'Duplicate aliases are renamed.');
   }
+
+  /**
+   * Tests that an invalid merge query throws an exception.
+   */
+  function testInvalidSelectCount() {
+    try {
+      // This query will fail because the table does not exist.
+      // Normally it would throw an exception but we are supressing
+      // it with the throw_exception option.
+      $options['throw_exception'] = FALSE;
+      db_select('some_table_that_doesnt_exist', 't', $options)
+        ->fields('t')
+        ->countQuery()
+        ->execute();
+
+      $this->pass('$options[\'throw_exception\'] is FALSE, no Exception thrown.');
+    }
+    catch (\Exception $e) {
+      $this->fail('$options[\'throw_exception\'] is FALSE, but Exception thrown for invalid query.');
+      return;
+    }
+
+    try {
+      // This query will fail because the table does not exist.
+      db_select('some_table_that_doesnt_exist', 't')
+        ->fields('t')
+        ->countQuery()
+        ->execute();
+    }
+    catch (\Exception $e) {
+      $this->pass('Exception thrown for invalid query.');
+      return;
+    }
+    $this->fail('No Exception thrown.');
+  }
+
 }

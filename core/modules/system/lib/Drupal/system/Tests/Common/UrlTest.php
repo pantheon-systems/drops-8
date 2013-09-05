@@ -7,12 +7,15 @@
 
 namespace Drupal\system\Tests\Common;
 
+use Drupal\Core\Language\Language;
 use Drupal\simpletest\WebTestBase;
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Tests for URL generation functions.
  *
- * url() calls module_implements(), which may issue a db query, which requires
+ * url() calls Drupal::moduleHandler()->getImplementations(),
+ * which may issue a db query, which requires
  * inheriting from a web test case rather than a unit test case.
  */
 class UrlTest extends WebTestBase {
@@ -28,47 +31,140 @@ class UrlTest extends WebTestBase {
   }
 
   /**
-   * Confirms that invalid URLs are filtered.
+   * Confirms that invalid URLs are filtered in link generating functions.
    */
-  function testLXSS() {
+  function testLinkXSS() {
+    // Test l().
     $text = $this->randomName();
     $path = "<SCRIPT>alert('XSS')</SCRIPT>";
     $link = l($text, $path);
     $sanitized_path = check_url(url($path));
-    $this->assertTrue(strpos($link, $sanitized_path) !== FALSE, format_string('XSS attack @path was filtered', array('@path' => $path)));
+    $this->assertTrue(strpos($link, $sanitized_path) !== FALSE, format_string('XSS attack @path was filtered by l().', array('@path' => $path)));
+
+    // Test #type 'link'.
+    $link_array =  array(
+      '#type' => 'link',
+      '#title' => $this->randomName(),
+      '#href' => $path,
+    );
+    $type_link = drupal_render($link_array);
+    $sanitized_path = check_url(url($path));
+    $this->assertTrue(strpos($type_link, $sanitized_path) !== FALSE, format_string('XSS attack @path was filtered by #theme', array('@path' => $path)));
   }
 
   /**
-   * Tests for active class in l() function.
+   * Tests that default and custom attributes are handled correctly on links.
    */
-  function testLActiveClass() {
-    $path = 'common-test/l-active-class';
-    $options = array();
+  function testLinkAttributes() {
+    // Test that hreflang is added when a link has a known language.
+    $language = new Language(array('id' => 'fr', 'name' => 'French'));
+    $hreflang_link = array(
+      '#type' => 'link',
+      '#options' => array(
+        'language' => $language,
+      ),
+      '#href' => 'http://drupal.org',
+      '#title' => 'bar',
+    );
+    $langcode = $language->id;
 
-    $this->drupalGet($path, $options);
-    $links = $this->xpath('//a[@href = :href and contains(@class, :class)]', array(':href' => url($path, $options), ':class' => 'active'));
-    $this->assertTrue(isset($links[0]), 'A link to the current page is marked active.');
+    // Test that the default hreflang handling for links does not override a
+    // hreflang attribute explicitly set in the render array.
+    $hreflang_override_link = $hreflang_link;
+    $hreflang_override_link['#options']['attributes']['hreflang'] = 'foo';
 
-    $options = array('query' => array('foo' => 'bar'));
-    $links = $this->xpath('//a[@href = :href and not(contains(@class, :class))]', array(':href' => url($path, $options), ':class' => 'active'));
-    $this->assertTrue(isset($links[0]), 'A link to the current page with a query string when the current page has no query string is not marked active.');
+    $rendered = drupal_render($hreflang_link);
+    $this->assertTrue($this->hasAttribute('hreflang', $rendered, $langcode), format_string('hreflang attribute with value @langcode is present on a rendered link when langcode is provided in the render array.', array('@langcode' => $langcode)));
 
-    $this->drupalGet($path, $options);
-    $links = $this->xpath('//a[@href = :href and contains(@class, :class)]', array(':href' => url($path, $options), ':class' => 'active'));
-    $this->assertTrue(isset($links[0]), 'A link to the current page with a query string that matches the current query string is marked active.');
+    $rendered = drupal_render($hreflang_override_link);
+    $this->assertTrue($this->hasAttribute('hreflang', $rendered, 'foo'), format_string('hreflang attribute with value @hreflang is present on a rendered link when @hreflang is provided in the render array.', array('@hreflang' => 'foo')));
 
-    $options = array();
-    $links = $this->xpath('//a[@href = :href and not(contains(@class, :class))]', array(':href' => url($path, $options), ':class' => 'active'));
-    $this->assertTrue(isset($links[0]), 'A link to the current page without a query string when the current page has a query string is not marked active.');
+    // Test the active class in links produced by l() and #type 'link'.
+    $options_no_query = array();
+    $options_query = array(
+      'query' => array(
+        'foo' => 'bar',
+        'one' => 'two',
+      ),
+    );
+    $options_query_reverse = array(
+      'query' => array(
+        'one' => 'two',
+        'foo' => 'bar',
+      ),
+    );
+
+    // Test #type link.
+    $path = 'common-test/type-link-active-class';
+
+    $this->drupalGet($path, $options_no_query);
+    $links = $this->xpath('//a[@href = :href and contains(@class, :class)]', array(':href' => url($path, $options_no_query), ':class' => 'active'));
+    $this->assertTrue(isset($links[0]), 'A link generated by l() to the current page is marked active.');
+
+    $links = $this->xpath('//a[@href = :href and not(contains(@class, :class))]', array(':href' => url($path, $options_query), ':class' => 'active'));
+    $this->assertTrue(isset($links[0]), 'A link generated by l() to the current page with a query string when the current page has no query string is not marked active.');
+
+    $this->drupalGet($path, $options_query);
+    $links = $this->xpath('//a[@href = :href and contains(@class, :class)]', array(':href' => url($path, $options_query), ':class' => 'active'));
+    $this->assertTrue(isset($links[0]), 'A link generated by l() to the current page with a query string that matches the current query string is marked active.');
+
+    $links = $this->xpath('//a[@href = :href and contains(@class, :class)]', array(':href' => url($path, $options_query_reverse), ':class' => 'active'));
+    $this->assertTrue(isset($links[0]), 'A link generated by l() to the current page with a query string that has matching parameters to the current query string but in a different order is marked active.');
+
+    $links = $this->xpath('//a[@href = :href and not(contains(@class, :class))]', array(':href' => url($path, $options_no_query), ':class' => 'active'));
+    $this->assertTrue(isset($links[0]), 'A link generated by l() to the current page without a query string when the current page has a query string is not marked active.');
+
+    // Test adding a custom class in links produced by l() and #type 'link'.
+    // Test l().
+    $class_l = $this->randomName();
+    $link_l = l($this->randomName(), current_path(), array('attributes' => array('class' => array($class_l))));
+    $this->assertTrue($this->hasAttribute('class', $link_l, $class_l), format_string('Custom class @class is present on link when requested by l()', array('@class' => $class_l)));
+
+    // Test #type.
+    $class_theme = $this->randomName();
+    $type_link = array(
+      '#type' => 'link',
+      '#title' => $this->randomName(),
+      '#href' => current_path(),
+      '#options' => array(
+        'attributes' => array(
+          'class' => array($class_theme),
+        ),
+      ),
+    );
+    $link_theme = drupal_render($type_link);
+    $this->assertTrue($this->hasAttribute('class', $link_theme, $class_theme), format_string('Custom class @class is present on link when requested by #type', array('@class' => $class_theme)));
   }
 
   /**
-   * Tests for custom class in l() function.
+   * Tests that link functions support render arrays as 'text'.
    */
-  function testLCustomClass() {
-    $class = $this->randomName();
-    $link = l($this->randomName(), current_path(), array('attributes' => array('class' => array($class))));
-    $this->assertTrue($this->hasClass($link, $class), format_string('Custom class @class is present on link when requested', array('@class' => $class)));
+  function testLinkRenderArrayText() {
+    // Build a link with l() for reference.
+    $l = l('foo', 'http://drupal.org');
+
+    // Test a renderable array passed to l().
+    $renderable_text = array('#markup' => 'foo');
+    $l_renderable_text = l($renderable_text, 'http://drupal.org');
+    $this->assertEqual($l_renderable_text, $l);
+
+    // Test a themed link with plain text 'text'.
+    $type_link_plain_array = array(
+      '#type' => 'link',
+      '#title' => 'foo',
+      '#href' => 'http://drupal.org',
+    );
+    $type_link_plain = drupal_render($type_link_plain_array);
+    $this->assertEqual($type_link_plain, $l);
+
+    // Build a themed link with renderable 'text'.
+    $type_link_nested_array = array(
+      '#type' => 'link',
+      '#title' => array('#markup' => 'foo'),
+      '#href' => 'http://drupal.org',
+    );
+    $type_link_nested = drupal_render($type_link_nested_array);
+    $this->assertEqual($type_link_nested, $l);
   }
 
   /**
@@ -82,8 +178,8 @@ class UrlTest extends WebTestBase {
    * @return bool
    *   TRUE if the class is found, FALSE otherwise.
    */
-  private function hasClass($link, $class) {
-    return preg_match('|class="([^\"\s]+\s+)*' . $class . '|', $link);
+  private function hasAttribute($attribute, $link, $class) {
+    return preg_match('|' . $attribute . '="([^\"\s]+\s+)*' . $class . '|', $link);
   }
 
   /**
@@ -123,16 +219,6 @@ class UrlTest extends WebTestBase {
   }
 
   /**
-   * Tests drupal_http_build_query().
-   */
-  function testDrupalHttpBuildQuery() {
-    $this->assertEqual(drupal_http_build_query(array('a' => ' &#//+%20@۞')), 'a=%20%26%23//%2B%2520%40%DB%9E', 'Value was properly encoded.');
-    $this->assertEqual(drupal_http_build_query(array(' &#//+%20@۞' => 'a')), '%20%26%23%2F%2F%2B%2520%40%DB%9E=a', 'Key was properly encoded.');
-    $this->assertEqual(drupal_http_build_query(array('a' => '1', 'b' => '2', 'c' => '3')), 'a=1&b=2&c=3', 'Multiple values were properly concatenated.');
-    $this->assertEqual(drupal_http_build_query(array('a' => array('b' => '2', 'c' => '3'), 'd' => 'foo')), 'a[b]=2&a[c]=3&d=foo', 'Nested array was properly encoded.');
-  }
-
-  /**
    * Tests drupal_parse_url().
    */
   function testDrupalParseUrl() {
@@ -168,50 +254,6 @@ class UrlTest extends WebTestBase {
     // Test that drupal_parse_url() does not allow spoofing a URL to force a malicious redirect.
     $parts = drupal_parse_url('forged:http://cwe.mitre.org/data/definitions/601.html');
     $this->assertFalse(valid_url($parts['path'], TRUE), 'drupal_parse_url() correctly parsed a forged URL.');
-  }
-
-  /**
-   * Tests url() functionality.
-   *
-   * Tests url() with/without query, with/without fragment, absolute on/off and
-   * asserts all that works when clean URLs are on and off.
-   */
-  function testUrl() {
-    global $base_url, $script_path;
-
-    $script_path_original = $script_path;
-    foreach (array('', 'index.php/') as $script_path) {
-      foreach (array(FALSE, TRUE) as $absolute) {
-        // Get the expected start of the path string.
-        $base = ($absolute ? $base_url . '/' : base_path()) . $script_path;
-        $absolute_string = $absolute ? 'absolute' : NULL;
-
-        $url = $base . 'node/123';
-        $result = url('node/123', array('absolute' => $absolute));
-        $this->assertEqual($url, $result, "$url == $result");
-
-        $url = $base . 'node/123#foo';
-        $result = url('node/123', array('fragment' => 'foo', 'absolute' => $absolute));
-        $this->assertEqual($url, $result, "$url == $result");
-
-        $url = $base . 'node/123?foo';
-        $result = url('node/123', array('query' => array('foo' => NULL), 'absolute' => $absolute));
-        $this->assertEqual($url, $result, "$url == $result");
-
-        $url = $base . 'node/123?foo=bar&bar=baz';
-        $result = url('node/123', array('query' => array('foo' => 'bar', 'bar' => 'baz'), 'absolute' => $absolute));
-        $this->assertEqual($url, $result, "$url == $result");
-
-        $url = $base . 'node/123?foo#bar';
-        $result = url('node/123', array('query' => array('foo' => NULL), 'fragment' => 'bar', 'absolute' => $absolute));
-        $this->assertEqual($url, $result, "$url == $result");
-
-        $url = $base;
-        $result = url('<front>', array('absolute' => $absolute));
-        $this->assertEqual($url, $result, "$url == $result");
-      }
-    }
-    $script_path = $script_path_original;
   }
 
   /**

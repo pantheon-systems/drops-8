@@ -8,22 +8,19 @@
 namespace Drupal\node\Plugin\views\filter;
 
 use Drupal\views\Plugin\views\filter\FilterPluginBase;
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
 
 /**
  * Filter by node_access records.
  *
  * @ingroup views_filter_handlers
  *
- * @Plugin(
- *   id = "node_access",
- *   module = "node"
- * )
+ * @PluginID("node_access")
  */
 class Access extends FilterPluginBase {
 
   public function adminSummary() { }
-  function operator_form(&$form, &$form_state) { }
+  protected function operatorForm(&$form, &$form_state) { }
   public function canExpose() {
     return FALSE;
   }
@@ -44,8 +41,8 @@ class Access extends FilterPluginBase {
         }
       }
 
-      $this->query->add_where('AND', $grants);
-      $this->query->add_where('AND', $table . '.grant_view', 1, '>=');
+      $this->query->addWhere('AND', $grants);
+      $this->query->addWhere('AND', $table . '.grant_view', 1, '>=');
     }
   }
 

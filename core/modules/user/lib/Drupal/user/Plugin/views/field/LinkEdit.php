@@ -7,31 +7,30 @@
 
 namespace Drupal\user\Plugin\views\field;
 
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Component\Annotation\PluginID;
+use Drupal\views\ResultRow;
 
 /**
  * Field handler to present a link to user edit.
  *
  * @ingroup views_field_handlers
  *
- * @Plugin(
- *   id = "user_link_edit",
- *   module = "user"
- * )
+ * @PluginID("user_link_edit")
  */
 class LinkEdit extends Link {
 
-  function render_link($data, $values) {
-    // Build a pseudo account object to be able to check the access.
-    $account = entity_create('user', array());
-    $account->uid = $data;
-
-    if ($data && user_edit_access($account)) {
+  /**
+   * {@inheritdoc}
+   */
+  protected function renderLink(EntityInterface $entity, ResultRow $values) {
+    if ($entity && $entity->access('update')) {
       $this->options['alter']['make_link'] = TRUE;
 
-      $text = !empty($this->options['text']) ? $this->options['text'] : t('edit');
+      $text = !empty($this->options['text']) ? $this->options['text'] : t('Edit');
 
-      $this->options['alter']['path'] = "user/$data/edit";
+      $uri = $entity->uri();
+      $this->options['alter']['path'] = $uri['path'] . '/edit';
       $this->options['alter']['query'] = drupal_get_destination();
 
       return $text;

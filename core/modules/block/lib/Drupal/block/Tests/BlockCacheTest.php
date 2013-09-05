@@ -25,6 +25,13 @@ class BlockCacheTest extends WebTestBase {
   protected $normal_user;
   protected $normal_user_alt;
 
+  /**
+   * The block used by this test.
+   *
+   * @var \Drupal\block\BlockInterface
+   */
+  protected $block;
+
   public static function getInfo() {
     return array(
       'name' => 'Block caching',
@@ -45,12 +52,11 @@ class BlockCacheTest extends WebTestBase {
     $this->normal_user_alt = $this->drupalCreateUser();
     // Sync the roles, since drupalCreateUser() creates separate roles for
     // the same permission sets.
-    $this->normal_user_alt->roles = $this->normal_user->roles;
+    $this->normal_user_alt->roles = $this->normal_user->getRoles();
     $this->normal_user_alt->save();
 
     // Enable our test block.
-    $edit['blocks[block_test_test_cache][region]'] = 'sidebar_first';
-    $this->drupalPost('admin/structure/block', $edit, t('Save blocks'));
+   $this->block = $this->drupalPlaceBlock('test_cache');
   }
 
   /**
@@ -61,7 +67,7 @@ class BlockCacheTest extends WebTestBase {
 
     // Enable our test block. Set some content for it to display.
     $current_content = $this->randomName();
-    variable_set('block_test_content', $current_content);
+    \Drupal::state()->set('block_test.content', $current_content);
     $this->drupalLogin($this->normal_user);
     $this->drupalGet('');
     $this->assertText($current_content, 'Block content displays.');
@@ -69,12 +75,12 @@ class BlockCacheTest extends WebTestBase {
     // Change the content, but the cached copy should still be served.
     $old_content = $current_content;
     $current_content = $this->randomName();
-    variable_set('block_test_content', $current_content);
+    \Drupal::state()->set('block_test.content', $current_content);
     $this->drupalGet('');
     $this->assertText($old_content, 'Block is served from the cache.');
 
     // Clear the cache and verify that the stale data is no longer there.
-    cache_invalidate(array('content' => TRUE));
+    cache_invalidate_tags(array('content' => TRUE));
     $this->drupalGet('');
     $this->assertNoText($old_content, 'Block cache clear removes stale cache data.');
     $this->assertText($current_content, 'Fresh block content is displayed after clearing the cache.');
@@ -82,7 +88,7 @@ class BlockCacheTest extends WebTestBase {
     // Test whether the cached data is served for the correct users.
     $old_content = $current_content;
     $current_content = $this->randomName();
-    variable_set('block_test_content', $current_content);
+    \Drupal::state()->set('block_test.content', $current_content);
     $this->drupalLogout();
     $this->drupalGet('');
     $this->assertNoText($old_content, 'Anonymous user does not see content cached per-role for normal user.');
@@ -106,14 +112,14 @@ class BlockCacheTest extends WebTestBase {
   function testCacheGlobal() {
     $this->setCacheMode(DRUPAL_CACHE_GLOBAL);
     $current_content = $this->randomName();
-    variable_set('block_test_content', $current_content);
+    \Drupal::state()->set('block_test.content', $current_content);
 
     $this->drupalGet('');
     $this->assertText($current_content, 'Block content displays.');
 
     $old_content = $current_content;
     $current_content = $this->randomName();
-    variable_set('block_test_content', $current_content);
+    \Drupal::state()->set('block_test.content', $current_content);
 
     $this->drupalLogout();
     $this->drupalGet('user');
@@ -126,7 +132,7 @@ class BlockCacheTest extends WebTestBase {
   function testNoCache() {
     $this->setCacheMode(DRUPAL_NO_CACHE);
     $current_content = $this->randomName();
-    variable_set('block_test_content', $current_content);
+    \Drupal::state()->set('block_test.content', $current_content);
 
     // If DRUPAL_NO_CACHE has no effect, the next request would be cached.
     $this->drupalGet('');
@@ -134,7 +140,7 @@ class BlockCacheTest extends WebTestBase {
 
     // A cached copy should not be served.
     $current_content = $this->randomName();
-    variable_set('block_test_content', $current_content);
+    \Drupal::state()->set('block_test.content', $current_content);
     $this->drupalGet('');
     $this->assertText($current_content, 'DRUPAL_NO_CACHE prevents blocks from being cached.');
   }
@@ -145,7 +151,7 @@ class BlockCacheTest extends WebTestBase {
   function testCachePerUser() {
     $this->setCacheMode(DRUPAL_CACHE_PER_USER);
     $current_content = $this->randomName();
-    variable_set('block_test_content', $current_content);
+    \Drupal::state()->set('block_test.content', $current_content);
     $this->drupalLogin($this->normal_user);
 
     $this->drupalGet('');
@@ -153,7 +159,7 @@ class BlockCacheTest extends WebTestBase {
 
     $old_content = $current_content;
     $current_content = $this->randomName();
-    variable_set('block_test_content', $current_content);
+    \Drupal::state()->set('block_test.content', $current_content);
 
     $this->drupalGet('');
     $this->assertText($old_content, 'Block is served from per-user cache.');
@@ -173,14 +179,14 @@ class BlockCacheTest extends WebTestBase {
   function testCachePerPage() {
     $this->setCacheMode(DRUPAL_CACHE_PER_PAGE);
     $current_content = $this->randomName();
-    variable_set('block_test_content', $current_content);
+    \Drupal::state()->set('block_test.content', $current_content);
 
     $this->drupalGet('node');
     $this->assertText($current_content, 'Block content displays on the node page.');
 
     $old_content = $current_content;
     $current_content = $this->randomName();
-    variable_set('block_test_content', $current_content);
+    \Drupal::state()->set('block_test.content', $current_content);
 
     $this->drupalGet('user');
     $this->assertNoText($old_content, 'Block content cached for the node page does not show up for the user page.');
@@ -192,14 +198,8 @@ class BlockCacheTest extends WebTestBase {
    * Private helper method to set the test block's cache mode.
    */
   private function setCacheMode($cache_mode) {
-    db_update('block')
-      ->fields(array('cache' => $cache_mode))
-      ->condition('module', 'block_test')
-      ->execute();
-
-    $current_mode = db_query("SELECT cache FROM {block} WHERE module = 'block_test'")->fetchField();
-    if ($current_mode != $cache_mode) {
-      $this->fail(t('Unable to set cache mode to %mode. Current mode: %current_mode', array('%mode' => $cache_mode, '%current_mode' => $current_mode)));
-    }
+    $this->block->getPlugin()->setConfigurationValue('cache', $cache_mode);
+    $this->block->save();
   }
+
 }

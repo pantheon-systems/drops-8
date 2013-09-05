@@ -9,6 +9,7 @@ namespace Drupal\views\Plugin\views\row;
 
 use Drupal\views\Plugin\views\PluginBase;
 use Drupal\views\ViewExecutable;
+use Drupal\views\Views;
 
 /**
  * @defgroup views_row_plugins Views row plugins
@@ -38,18 +39,6 @@ abstract class RowPluginBase extends PluginBase {
   protected $usesFields = FALSE;
 
   /**
-   * Initialize the row plugin.
-   */
-  public function init(ViewExecutable $view, &$display, $options = NULL) {
-    $this->setOptionDefaults($this->options, $this->defineOptions());
-    $this->view = &$view;
-    $this->displayHandler = &$display;
-
-    // Overlay incoming options on top of defaults
-    $this->unpackOptions($this->options, $options);
-  }
-
-  /**
    * Returns the usesFields property.
    *
    * @return bool
@@ -74,7 +63,7 @@ abstract class RowPluginBase extends PluginBase {
   public function buildOptionsForm(&$form, &$form_state) {
     parent::buildOptionsForm($form, $form_state);
     if (isset($this->base_table)) {
-      $executable = $form_state['view']->get('executable');
+      $executable = $form_state['view']->getExecutable();
 
       // A whole bunch of code to figure out what relationships are valid for
       // this item.
@@ -82,14 +71,14 @@ abstract class RowPluginBase extends PluginBase {
       $relationship_options = array();
 
       foreach ($relationships as $relationship) {
-        $relationship_handler = views_get_handler($relationship['table'], $relationship['field'], 'relationship');
+        $relationship_handler = Views::handlerManager('relationship')->getHandler($relationship);
 
         // If this relationship is valid for this type, add it to the list.
-        $data = views_fetch_data($relationship['table']);
+        $data = Views::viewsData()->get($relationship['table']);
         $base = $data[$relationship['field']]['relationship']['base'];
         if ($base == $this->base_table) {
           $relationship_handler->init($executable, $relationship);
-          $relationship_options[$relationship['id']] = $relationship_handler->label();
+          $relationship_options[$relationship['id']] = $relationship_handler->adminLabel();
         }
       }
 
@@ -132,10 +121,10 @@ abstract class RowPluginBase extends PluginBase {
     if (isset($this->base_table)) {
       if (isset($this->options['relationship']) && isset($this->view->relationship[$this->options['relationship']])) {
         $relationship = $this->view->relationship[$this->options['relationship']];
-        $this->field_alias = $this->view->query->add_field($relationship->alias, $this->base_field);
+        $this->field_alias = $this->view->query->addField($relationship->alias, $this->base_field);
       }
       else {
-        $this->field_alias = $this->view->query->add_field($this->base_table, $this->base_field);
+        $this->field_alias = $this->view->query->addField($this->base_table, $this->base_field);
       }
     }
   }
@@ -146,7 +135,7 @@ abstract class RowPluginBase extends PluginBase {
    * @param $result
    *   The full array of results from the query.
    */
-  function pre_render($result) { }
+  public function preRender($result) { }
 
   /**
    * Render a row object. This usually passes through to a theme template
@@ -158,14 +147,14 @@ abstract class RowPluginBase extends PluginBase {
    * @return string
    *   The rendered output of a single row, used by the style plugin.
    */
-  function render($row) {
-    return theme($this->themeFunctions(),
-      array(
-        'view' => $this->view,
-        'options' => $this->options,
-        'row' => $row,
-        'field_alias' => isset($this->field_alias) ? $this->field_alias : '',
-      ));
+  public function render($row) {
+    return array(
+      '#theme' => $this->themeFunctions(),
+      '#view' => $this->view,
+      '#options' => $this->options,
+      '#row' => $row,
+      '#field_alias' => isset($this->field_alias) ? $this->field_alias : '',
+    );
   }
 
 }

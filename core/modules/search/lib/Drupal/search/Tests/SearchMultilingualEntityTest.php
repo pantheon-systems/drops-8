@@ -36,54 +36,56 @@ class SearchMultilingualEntityTest extends SearchTestBase {
 
     // Add two new languages.
     $language = new Language(array(
-      'langcode' => 'hu',
+      'id' => 'hu',
       'name' => 'Hungarian',
     ));
     language_save($language);
     $language = new Language(array(
-      'langcode' => 'sv',
+      'id' => 'sv',
       'name' => 'Swedish',
     ));
     language_save($language);
 
     // Make the body field translatable.
     // The parent class has already created the article and page content types.
-    $field = field_info_field('body');
-    $field['translatable'] = TRUE;
-    field_update_field($field);
+    $field = field_info_field('node', 'body');
+    $field->translatable = TRUE;
+    $field->save();
 
     // Create a few page nodes with multilingual body values.
     $default_format = filter_default_format();
     $nodes = array(
       array(
         'type' => 'page',
-        'body' => array(
-          'en' => array(array('value' => $this->randomName(32), 'format' => $default_format)),
-        ),
+        'body' => array(array('value' => $this->randomName(32), 'format' => $default_format)),
         'langcode' => 'en',
       ),
       array(
         'type' => 'page',
-        'body' => array(
-          'en' => array(array('value' => $this->randomName(32), 'format' => $default_format)),
-          'hu' => array(array('value' => $this->randomName(32), 'format' => $default_format)),
-        ),
+        'body' => array(array('value' => $this->randomName(32), 'format' => $default_format)),
         'langcode' => 'en',
       ),
       array(
         'type' => 'page',
-        'body' => array(
-          'en' => array(array('value' => $this->randomName(32), 'format' => $default_format)),
-          'hu' => array(array('value' => $this->randomName(32), 'format' => $default_format)),
-          'sv' => array(array('value' => $this->randomName(32), 'format' => $default_format)),
-        ),
+        'body' => array(array('value' => $this->randomName(32), 'format' => $default_format)),
         'langcode' => 'en',
       ),
     );
     $this->searchable_nodes = array();
-    foreach ($nodes as $node) {
-      $this->searchable_nodes[] = $this->drupalCreateNode($node);
+    foreach ($nodes as $setting) {
+      $this->searchable_nodes[] = $this->drupalCreateNode($setting);
     }
+    // Add a single translation to the second node.
+    $translation = $this->searchable_nodes[1]->getTranslation('hu');
+    $translation->body->value = $this->randomName(32);
+    $this->searchable_nodes[1]->save();
+
+    // Add two translations to the third node.
+    $translation = $this->searchable_nodes[2]->getTranslation('hu');
+    $translation->body->value = $this->randomName(32);
+    $translation = $this->searchable_nodes[2]->getTranslation('sv');
+    $translation->body->value = $this->randomName(32);
+    $this->searchable_nodes[2]->save();
   }
 
   /**
@@ -91,7 +93,7 @@ class SearchMultilingualEntityTest extends SearchTestBase {
    */
   function testIndexingThrottle() {
     // Index only 4 items per cron run.
-    config('search.settings')->set('index.cron_limit', 4)->save();
+    \Drupal::config('search.settings')->set('index.cron_limit', 4)->save();
     // Update the index. This does the initial processing.
     node_update_index();
     // Run the shutdown function. Testing is a unique case where indexing
@@ -116,14 +118,10 @@ class SearchMultilingualEntityTest extends SearchTestBase {
     search_update_totals();
     foreach ($this->searchable_nodes as $node) {
       // Each searchable node that we created contains values in the body field
-      // in one or more languages. Let's pick the last language variant from the
-      // body array and execute a search using that as a search keyword.
-      $body_language_variant = end($node->body);
-      $search_result = node_search_execute($body_language_variant[0]['value']);
+      // in one or more languages.
+      $search_result = node_search_execute($node->body->value);
       // See whether we get the same node as a result.
-      $sts = $this->assertTrue(!empty($search_result[0]['node']->nid)
-        && $search_result[0]['node']->nid == $node->nid,
-        'The search has resulted the correct node.');
+      $this->assertEqual($search_result[0]['node']->id(), $node->id(), 'The search has resulted the correct node.');
     }
   }
 }

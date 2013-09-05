@@ -5,14 +5,16 @@
  * Defines a "managed_file" Form API field and a "file" field for Field module.
  */
 
-use Drupal\file\Plugin\Core\Entity\File;
+use Drupal\file\Entity\File;
+use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Template\Attribute;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Drupal\file\FileUsage\DatabaseFileUsageBackend;
 use Drupal\file\FileUsage\FileUsageInterface;
+use Drupal\Core\Ajax\AjaxResponse;
+use Drupal\Core\Ajax\ReplaceCommand;
 
 // Load all Field module hooks for File.
-require_once DRUPAL_ROOT . '/core/modules/file/file.field.inc';
+require_once __DIR__ . '/file.field.inc';
 
 /**
  * Implements hook_help().
@@ -43,14 +45,7 @@ function file_menu() {
   $items = array();
 
   $items['file/ajax'] = array(
-    'page callback' => 'file_ajax_upload',
-    'access arguments' => array('access content'),
-    'theme callback' => 'ajax_base_page_theme',
-    'type' => MENU_CALLBACK,
-  );
-  $items['file/progress'] = array(
-    'page callback' => 'file_ajax_progress',
-    'access arguments' => array('access content'),
+    'route_name' => 'file.ajax.upload',
     'theme callback' => 'ajax_base_page_theme',
     'type' => MENU_CALLBACK,
   );
@@ -64,7 +59,6 @@ function file_menu() {
  * The managed file element may be used anywhere in Drupal.
  */
 function file_element_info() {
-  $file_path = drupal_get_path('module', 'file');
   $types['managed_file'] = array(
     '#input' => TRUE,
     '#process' => array('file_managed_file_process'),
@@ -78,6 +72,7 @@ function file_element_info() {
     '#upload_validators' => array(),
     '#upload_location' => NULL,
     '#size' => 22,
+    '#multiple' => FALSE,
     '#extended' => FALSE,
     '#attached' => array(
       'library' => array(array('file','drupal.file')),
@@ -91,6 +86,8 @@ function file_element_info() {
  *
  * @param array $fids
  *   (optional) An array of entity IDs. If omitted, all entities are loaded.
+ * @param $reset
+ *   Whether to reset the internal file_load_multiple() cache.
  *
  * @return array
  *   An array of file entities, indexed by fid.
@@ -100,8 +97,8 @@ function file_element_info() {
  * @see entity_load()
  * @see Drupal\Core\Entity\Query\EntityQueryInterface
  */
-function file_load_multiple(array $fids = NULL) {
-  return entity_load_multiple('file', $fids);
+function file_load_multiple(array $fids = NULL, $reset = FALSE) {
+  return entity_load_multiple('file', $fids, $reset);
 }
 
 /**
@@ -109,16 +106,17 @@ function file_load_multiple(array $fids = NULL) {
  *
  * @param $fid
  *   A file ID.
+ * @param $reset
+ *   Whether to reset the internal file_load_multiple() cache.
  *
- * @return Drupal\file\File
- *   A file entity or FALSE if the file was not found.
+ * @return \Drupal\file\FileInterface
+ *   A file entity or NULL if the file was not found.
  *
  * @see hook_file_load()
  * @see file_load_multiple()
  */
-function file_load($fid) {
-  $files = file_load_multiple(array($fid));
-  return reset($files);
+function file_load($fid, $reset = FALSE) {
+  return entity_load('file', $fid, $reset);
 }
 
 /**
@@ -127,7 +125,7 @@ function file_load($fid) {
  * @return Drupal\file\FileUsage\FileUsageInterface.
  */
 function file_usage() {
-  return drupal_container()->get('file.usage');
+  return Drupal::service('file.usage');
 }
 
 /**
@@ -167,40 +165,39 @@ function file_usage() {
  */
 function file_copy(File $source, $destination = NULL, $replace = FILE_EXISTS_RENAME) {
   if (!file_valid_uri($destination)) {
-    if (($realpath = drupal_realpath($source->uri)) !== FALSE) {
-      watchdog('file', 'File %file (%realpath) could not be copied because the destination %destination is invalid. This is often caused by improper use of file_copy() or a missing stream wrapper.', array('%file' => $source->uri, '%realpath' => $realpath, '%destination' => $destination));
+    if (($realpath = drupal_realpath($source->getFileUri())) !== FALSE) {
+      watchdog('file', 'File %file (%realpath) could not be copied because the destination %destination is invalid. This is often caused by improper use of file_copy() or a missing stream wrapper.', array('%file' => $source->getFileUri(), '%realpath' => $realpath, '%destination' => $destination));
     }
     else {
-      watchdog('file', 'File %file could not be copied because the destination %destination is invalid. This is often caused by improper use of file_copy() or a missing stream wrapper.', array('%file' => $source->uri, '%destination' => $destination));
+      watchdog('file', 'File %file could not be copied because the destination %destination is invalid. This is often caused by improper use of file_copy() or a missing stream wrapper.', array('%file' => $source->getFileUri(), '%destination' => $destination));
     }
-    drupal_set_message(t('The specified file %file could not be copied because the destination is invalid. More information is available in the system log.', array('%file' => $source->uri)), 'error');
+    drupal_set_message(t('The specified file %file could not be copied because the destination is invalid. More information is available in the system log.', array('%file' => $source->getFileUri())), 'error');
     return FALSE;
   }
 
-  if ($uri = file_unmanaged_copy($source->uri, $destination, $replace)) {
-    $file = clone $source;
-    $file->fid = NULL;
-    $file->uri = $uri;
-    $file->filename = drupal_basename($uri);
+  if ($uri = file_unmanaged_copy($source->getFileUri(), $destination, $replace)) {
+    $file = $source->createDuplicate();
+    $file->setFileUri($uri);
+    $file->setFilename(drupal_basename($uri));
     // If we are replacing an existing file re-use its database record.
     if ($replace == FILE_EXISTS_REPLACE) {
       $existing_files = entity_load_multiple_by_properties('file', array('uri' => $uri));
       if (count($existing_files)) {
         $existing = reset($existing_files);
-        $file->fid = $existing->fid;
-        $file->filename = $existing->filename;
+        $file->fid = $existing->id();
+        $file->setFilename($existing->getFilename());
       }
     }
     // If we are renaming around an existing file (rather than a directory),
     // use its basename for the filename.
     elseif ($replace == FILE_EXISTS_RENAME && is_file($destination)) {
-      $file->filename = drupal_basename($destination);
+      $file->setFilename(drupal_basename($destination));
     }
 
     $file->save();
 
     // Inform modules that the file has been copied.
-    module_invoke_all('file_copy', $file, $source);
+    Drupal::moduleHandler()->invokeAll('file_copy', array($file, $source));
 
     return $file;
   }
@@ -242,40 +239,40 @@ function file_copy(File $source, $destination = NULL, $replace = FILE_EXISTS_REN
  */
 function file_move(File $source, $destination = NULL, $replace = FILE_EXISTS_RENAME) {
   if (!file_valid_uri($destination)) {
-    if (($realpath = drupal_realpath($source->uri)) !== FALSE) {
-      watchdog('file', 'File %file (%realpath) could not be moved because the destination %destination is invalid. This may be caused by improper use of file_move() or a missing stream wrapper.', array('%file' => $source->uri, '%realpath' => $realpath, '%destination' => $destination));
+    if (($realpath = drupal_realpath($source->getFileUri())) !== FALSE) {
+      watchdog('file', 'File %file (%realpath) could not be moved because the destination %destination is invalid. This may be caused by improper use of file_move() or a missing stream wrapper.', array('%file' => $source->getFileUri(), '%realpath' => $realpath, '%destination' => $destination));
     }
     else {
-      watchdog('file', 'File %file could not be moved because the destination %destination is invalid. This may be caused by improper use of file_move() or a missing stream wrapper.', array('%file' => $source->uri, '%destination' => $destination));
+      watchdog('file', 'File %file could not be moved because the destination %destination is invalid. This may be caused by improper use of file_move() or a missing stream wrapper.', array('%file' => $source->getFileUri(), '%destination' => $destination));
     }
-    drupal_set_message(t('The specified file %file could not be moved because the destination is invalid. More information is available in the system log.', array('%file' => $source->uri)), 'error');
+    drupal_set_message(t('The specified file %file could not be moved because the destination is invalid. More information is available in the system log.', array('%file' => $source->getFileUri())), 'error');
     return FALSE;
   }
 
-  if ($uri = file_unmanaged_move($source->uri, $destination, $replace)) {
+  if ($uri = file_unmanaged_move($source->getFileUri(), $destination, $replace)) {
     $delete_source = FALSE;
 
     $file = clone $source;
-    $file->uri = $uri;
+    $file->setFileUri($uri);
     // If we are replacing an existing file re-use its database record.
     if ($replace == FILE_EXISTS_REPLACE) {
       $existing_files = entity_load_multiple_by_properties('file', array('uri' => $uri));
       if (count($existing_files)) {
         $existing = reset($existing_files);
         $delete_source = TRUE;
-        $file->fid = $existing->fid;
+        $file->fid = $existing->id();
       }
     }
     // If we are renaming around an existing file (rather than a directory),
     // use its basename for the filename.
     elseif ($replace == FILE_EXISTS_RENAME && is_file($destination)) {
-      $file->filename = drupal_basename($destination);
+      $file->setFilename(drupal_basename($destination));
     }
 
     $file->save();
 
     // Inform modules that the file has been moved.
-    module_invoke_all('file_move', $file, $source);
+    Drupal::moduleHandler()->invokeAll('file_move', array($file, $source));
 
     // Delete the original if it's not in use elsewhere.
     if ($delete_source && !file_usage()->listUsage($source)) {
@@ -319,7 +316,7 @@ function file_validate(File $file, $validators = array()) {
   }
 
   // Let other modules perform validation on the new file.
-  return array_merge($errors, module_invoke_all('file_validate', $file));
+  return array_merge($errors, Drupal::moduleHandler()->invokeAll('file_validate', array($file)));
 }
 
 /**
@@ -334,10 +331,10 @@ function file_validate(File $file, $validators = array()) {
 function file_validate_name_length(File $file) {
   $errors = array();
 
-  if (empty($file->filename)) {
+  if (!$file->getFilename()) {
     $errors[] = t("The file's name is empty. Please give a name to the file.");
   }
-  if (strlen($file->filename) > 240) {
+  if (strlen($file->getFilename()) > 240) {
     $errors[] = t("The file's name exceeds the 240 characters limit. Please rename the file and try again.");
   }
   return $errors;
@@ -361,7 +358,7 @@ function file_validate_extensions(File $file, $extensions) {
   $errors = array();
 
   $regex = '/\.(' . preg_replace('/ +/', '|', preg_quote($extensions)) . ')$/i';
-  if (!preg_match($regex, $file->filename)) {
+  if (!preg_match($regex, $file->getFilename())) {
     $errors[] = t('Only files with the following extensions are allowed: %files-allowed.', array('%files-allowed' => $extensions));
   }
   return $errors;
@@ -369,8 +366,6 @@ function file_validate_extensions(File $file, $extensions) {
 
 /**
  * Checks that the file's size is below certain limits.
- *
- * This check is not enforced for the user #1.
  *
  * @param Drupal\file\File $file
  *   A file entity.
@@ -388,23 +383,23 @@ function file_validate_extensions(File $file, $extensions) {
  * @see hook_file_validate()
  */
 function file_validate_size(File $file, $file_limit = 0, $user_limit = 0) {
-  global $user;
+  $user = Drupal::currentUser();
   $errors = array();
 
-  if ($file_limit && $file->filesize > $file_limit) {
-    $errors[] = t('The file is %filesize exceeding the maximum file size of %maxsize.', array('%filesize' => format_size($file->filesize), '%maxsize' => format_size($file_limit)));
+  if ($file_limit && $file->getSize() > $file_limit) {
+    $errors[] = t('The file is %filesize exceeding the maximum file size of %maxsize.', array('%filesize' => format_size($file->getSize()), '%maxsize' => format_size($file_limit)));
   }
 
-  // Save a query by only calling file_space_used() when a limit is provided.
-  if ($user_limit && (file_space_used($user->uid) + $file->filesize) > $user_limit) {
-    $errors[] = t('The file is %filesize which would exceed your disk quota of %quota.', array('%filesize' => format_size($file->filesize), '%quota' => format_size($user_limit)));
+  // Save a query by only calling spaceUsed() when a limit is provided.
+  if ($user_limit && (Drupal::entityManager()->getStorageController('file')->spaceUsed($user->id()) + $file->getSize()) > $user_limit) {
+    $errors[] = t('The file is %filesize which would exceed your disk quota of %quota.', array('%filesize' => format_size($file->getSize()), '%quota' => format_size($user_limit)));
   }
 
   return $errors;
 }
 
 /**
- * Checks that the file is recognized by image_get_info() as an image.
+ * Checks that the file is recognized by Image::getInfo() as an image.
  *
  * @param Drupal\file\File $file
  *   A file entity.
@@ -417,8 +412,8 @@ function file_validate_size(File $file, $file_limit = 0, $user_limit = 0) {
 function file_validate_is_image(File $file) {
   $errors = array();
 
-  $info = image_get_info($file->uri);
-  if (!$info || empty($info['extension'])) {
+  $image = Drupal::service('image.factory')->get($file->getFileUri());
+  if (!$image->getExtension()) {
     $errors[] = t('Only JPEG, PNG and GIF images are allowed.');
   }
 
@@ -452,16 +447,19 @@ function file_validate_image_resolution(File $file, $maximum_dimensions = 0, $mi
   $errors = array();
 
   // Check first that the file is an image.
-  if ($info = image_get_info($file->uri)) {
+  $image_factory = Drupal::service('image.factory');
+  $image = $image_factory->get($file->getFileUri());
+  if ($image->getExtension()) {
     if ($maximum_dimensions) {
       // Check that it is smaller than the given dimensions.
       list($width, $height) = explode('x', $maximum_dimensions);
-      if ($info['width'] > $width || $info['height'] > $height) {
+      if ($image->getWidth() > $width || $image->getHeight() > $height) {
         // Try to resize the image to fit the dimensions.
-        if ($image = image_load($file->uri)) {
-          image_scale($image, $width, $height);
-          image_save($image);
-          $file->filesize = $image->info['file_size'];
+        $image = $image_factory->get($file->getFileUri());
+        if ($image->getResource()) {
+          $image->scale($width, $height);
+          $image->save();
+          $file->filesize = $image->getFileSize();
           drupal_set_message(t('The image was resized to fit within the maximum allowed dimensions of %dimensions pixels.', array('%dimensions' => $maximum_dimensions)));
         }
         else {
@@ -473,7 +471,7 @@ function file_validate_image_resolution(File $file, $maximum_dimensions = 0, $mi
     if ($minimum_dimensions) {
       // Check that it is larger than the given dimensions.
       list($width, $height) = explode('x', $minimum_dimensions);
-      if ($info['width'] < $width || $info['height'] < $height) {
+      if ($image->getWidth() < $width || $image->getHeight() < $height) {
         $errors[] = t('The image is too small; the minimum dimensions are %dimensions pixels.', array('%dimensions' => $minimum_dimensions));
       }
     }
@@ -500,13 +498,13 @@ function file_validate_image_resolution(File $file, $maximum_dimensions = 0, $mi
  *       unique.
  *   - FILE_EXISTS_ERROR - Do nothing and return FALSE.
  *
- * @return Drupal\file\File
+ * @return \Drupal\file\FileInterface
  *   A file entity, or FALSE on error.
  *
  * @see file_unmanaged_save_data()
  */
 function file_save_data($data, $destination = NULL, $replace = FILE_EXISTS_RENAME) {
-  global $user;
+  $user = Drupal::currentUser();
 
   if (empty($destination)) {
     $destination = file_default_scheme() . '://';
@@ -521,7 +519,7 @@ function file_save_data($data, $destination = NULL, $replace = FILE_EXISTS_RENAM
     // Create a file entity.
     $file = entity_create('file', array(
       'uri' => $uri,
-      'uid' => $user->uid,
+      'uid' => $user->id(),
       'status' => FILE_STATUS_PERMANENT,
     ));
     // If we are replacing an existing file re-use its database record.
@@ -529,14 +527,14 @@ function file_save_data($data, $destination = NULL, $replace = FILE_EXISTS_RENAM
       $existing_files = entity_load_multiple_by_properties('file', array('uri' => $uri));
       if (count($existing_files)) {
         $existing = reset($existing_files);
-        $file->fid = $existing->fid;
-        $file->filename = $existing->filename;
+        $file->fid = $existing->id();
+        $file->setFilename($existing->getFilename());
       }
     }
     // If we are renaming around an existing file (rather than a directory),
     // use its basename for the filename.
     elseif ($replace == FILE_EXISTS_RENAME && is_file($destination)) {
-      $file->filename = drupal_basename($destination);
+      $file->setFilename(drupal_basename($destination));
     }
 
     $file->save();
@@ -556,22 +554,11 @@ function file_save_data($data, $destination = NULL, $replace = FILE_EXISTS_RENAM
  *   \Symfony\Component\HttpFoundation\StreamedResponse.
  */
 function file_get_content_headers(File $file) {
-  $name = mime_header_encode($file->filename);
-  $type = mime_header_encode($file->filemime);
-  // Serve images, text, and flash content for display rather than download.
-  $inline_types = variable_get('file_inline_types', array('^text/', '^image/', 'flash$'));
-  $disposition = 'attachment';
-  foreach ($inline_types as $inline_type) {
-    // Exclamation marks are used as delimiters to avoid escaping slashes.
-    if (preg_match('!' . $inline_type . '!', $file->filemime)) {
-      $disposition = 'inline';
-    }
-  }
+  $type = mime_header_encode($file->getMimeType());
 
   return array(
     'Content-Type' => $type,
-    'Content-Length' => $file->filesize,
-    'Content-Disposition' => $disposition . '; filename="' . $name . '"',
+    'Content-Length' => $file->getSize(),
     'Cache-Control' => 'private',
   );
 }
@@ -583,7 +570,7 @@ function file_theme() {
   return array(
     // file.module.
     'file_link' => array(
-      'variables' => array('file' => NULL, 'icon_directory' => NULL),
+      'variables' => array('file' => NULL, 'icon_directory' => NULL, 'description' => NULL),
     ),
     'file_icon' => array(
       'variables' => array('file' => NULL, 'icon_directory' => NULL),
@@ -603,7 +590,7 @@ function file_theme() {
       'variables' => array('items' => NULL),
     ),
     'file_upload_help' => array(
-      'variables' => array('description' => NULL, 'upload_validators' => NULL),
+      'variables' => array('description' => NULL, 'upload_validators' => NULL, 'cardinality' => NULL),
     ),
   );
 }
@@ -615,7 +602,7 @@ function file_theme() {
  * be re-used by other File-like modules, such as Image.
  */
 function file_file_download($uri, $field_type = 'file') {
-  global $user;
+  $user = Drupal::currentUser();
 
   // Get the file record based on the URI. If not in the database just return.
   $files = entity_load_multiple_by_properties('file', array('uri' => $uri));
@@ -623,7 +610,7 @@ function file_file_download($uri, $field_type = 'file') {
     foreach ($files as $item) {
       // Since some database servers sometimes use a case-insensitive comparison
       // by default, double check that the filename is an exact match.
-      if ($item->uri === $uri) {
+      if ($item->getFileUri() === $uri) {
         $file = $item;
         break;
       }
@@ -641,7 +628,7 @@ function file_file_download($uri, $field_type = 'file') {
   // temporary files where the host entity has not yet been saved (for example,
   // an image preview on a node/add form) in which case, allow download by the
   // file's owner.
-  if (empty($references) && ($file->status == FILE_STATUS_PERMANENT || $file->uid != $user->uid)) {
+  if (empty($references) && ($file->isPermanent() || $file->getOwner()->id() != $user->id())) {
     return;
   }
 
@@ -656,7 +643,7 @@ function file_file_download($uri, $field_type = 'file') {
   foreach ($references as $field_name => $field_references) {
     foreach ($field_references as $entity_type => $entities) {
       foreach ($entities as $entity) {
-        $field = field_info_field($field_name);
+        $field = field_info_field($entity_type, $field_name);
         // Check if access to this field is not disallowed.
         if (!field_access('view', $field, $entity_type, $entity)) {
           $denied = TRUE;
@@ -666,7 +653,7 @@ function file_file_download($uri, $field_type = 'file') {
         // Invoke hook and collect grants/denies for download access.
         // Default to FALSE and let entities overrule this ruling.
         $grants = array('system' => FALSE);
-        foreach (module_implements('file_download_access') as $module) {
+        foreach (Drupal::moduleHandler()->getImplementations('file_download_access') as $module) {
           $grants = array_merge($grants, array($module => module_invoke($module, 'file_download_access', $field, $entity, $file)));
         }
         // Allow other modules to alter the returned grants/denies.
@@ -708,125 +695,265 @@ function file_file_download($uri, $field_type = 'file') {
  * Implements file_cron()
  */
 function file_cron() {
-  // Remove temporary files that are older than DRUPAL_MAXIMUM_TEMP_FILE_AGE.
-  // Use separate placeholders for the status to avoid a bug in some versions
-  // of PHP. See http://drupal.org/node/352956.
-  $result = db_query('SELECT fid FROM {file_managed} WHERE status <> :permanent AND timestamp < :timestamp', array(
-    ':permanent' => FILE_STATUS_PERMANENT,
-    ':timestamp' => REQUEST_TIME - DRUPAL_MAXIMUM_TEMP_FILE_AGE
-  ));
+  $result = Drupal::entityManager()->getStorageController('file')->retrieveTemporaryFiles();
   foreach ($result as $row) {
     if ($file = file_load($row->fid)) {
       $references = file_usage()->listUsage($file);
       if (empty($references)) {
-        if (file_exists($file->uri)) {
+        if (file_exists($file->getFileUri())) {
           $file->delete();
         }
         else {
-          watchdog('file system', 'Could not delete temporary file "%path" during garbage collection', array('%path' => $file->uri), WATCHDOG_ERROR);
+          watchdog('file system', 'Could not delete temporary file "%path" during garbage collection', array('%path' => $file->getFileUri()), WATCHDOG_ERROR);
         }
       }
       else {
-        watchdog('file system', 'Did not delete temporary file "%path" during garbage collection because it is in use by the following modules: %modules.', array('%path' => $file->uri, '%modules' => implode(', ', array_keys($references))), WATCHDOG_INFO);
+        watchdog('file system', 'Did not delete temporary file "%path" during garbage collection because it is in use by the following modules: %modules.', array('%path' => $file->getFileUri(), '%modules' => implode(', ', array_keys($references))), WATCHDOG_INFO);
       }
     }
   }
 }
 
 /**
- * Ajax callback: Processes file uploads and deletions.
+ * Saves file uploads to a new location.
  *
- * This rebuilds the form element for a particular field item. As long as the
- * form processing is properly encapsulated in the widget element the form
- * should rebuild correctly using FAPI without the need for additional callbacks
- * or processing.
+ * The files will be added to the {file_managed} table as temporary files.
+ * Temporary files are periodically cleaned. Use file_usage()->add() to register
+ * the usage of the file which will automatically mark it as permanent.
  *
- * @see file_menu()
+ * @param $form_field_name
+ *   A string that is the associative array key of the upload form element in
+ *   the form array.
+ * @param $validators
+ *   An optional, associative array of callback functions used to validate the
+ *   file. See file_validate() for a full discussion of the array format.
+ *   If no extension validator is provided it will default to a limited safe
+ *   list of extensions which is as follows: "jpg jpeg gif png txt
+ *   doc xls pdf ppt pps odt ods odp". To allow all extensions you must
+ *   explicitly set the 'file_validate_extensions' validator to an empty array
+ *   (Beware: this is not safe and should only be allowed for trusted users, if
+ *   at all).
+ * @param $destination
+ *   A string containing the URI that the file should be copied to. This must
+ *   be a stream wrapper URI. If this value is omitted, Drupal's temporary
+ *   files scheme will be used ("temporary://").
+ * @param $delta
+ *   Delta of the file to save or NULL to save all files. Defaults to NULL.
+ * @param $replace
+ *   Replace behavior when the destination file already exists:
+ *   - FILE_EXISTS_REPLACE: Replace the existing file.
+ *   - FILE_EXISTS_RENAME: Append _{incrementing number} until the filename is
+ *     unique.
+ *   - FILE_EXISTS_ERROR: Do nothing and return FALSE.
+ *
+ * @return
+ *   Function returns array of files or a single file object if $delta
+ *   != NULL. Each file object contains the file information if the
+ *   upload succeeded or FALSE in the event of an error. Function
+ *   returns NULL if no file was uploaded.
+ *
+ *   The documentation for the "File interface" group, which you can find under
+ *   Related topics, or the header at the top of this file, documents the
+ *   components of a file entity. In addition to the standard components,
+ *   this function adds:
+ *   - source: Path to the file before it is moved.
+ *   - destination: Path to the file after it is moved (same as 'uri').
  */
-function file_ajax_upload() {
-  $form_parents = func_get_args();
-  $form_build_id = (string) array_pop($form_parents);
+function file_save_upload($form_field_name, $validators = array(), $destination = FALSE, $delta = NULL, $replace = FILE_EXISTS_RENAME) {
+  $user = Drupal::currentUser();
+  static $upload_cache;
 
-  if (empty($_POST['form_build_id']) || $form_build_id != $_POST['form_build_id']) {
-    // Invalid request.
-    drupal_set_message(t('An unrecoverable error occurred. The uploaded file likely exceeded the maximum file size (@size) that this server supports.', array('@size' => format_size(file_upload_max_size()))), 'error');
-    $commands = array();
-    $commands[] = ajax_command_replace(NULL, theme('status_messages'));
-    return array('#type' => 'ajax', '#commands' => $commands);
+  // Make sure there's an upload to process.
+  if (empty($_FILES['files']['name'][$form_field_name])) {
+    return NULL;
   }
 
-  list($form, $form_state) = ajax_get_form();
-
-  if (!$form) {
-    // Invalid form_build_id.
-    drupal_set_message(t('An unrecoverable error occurred. Use of this form has expired. Try reloading the page and submitting again.'), 'error');
-    $commands = array();
-    $commands[] = ajax_command_replace(NULL, theme('status_messages'));
-    return array('#type' => 'ajax', '#commands' => $commands);
-  }
-
-  // Get the current element and count the number of files.
-  $current_element = $form;
-  foreach ($form_parents as $parent) {
-    $current_element = $current_element[$parent];
-  }
-  $current_file_count = isset($current_element['#file_upload_delta']) ? $current_element['#file_upload_delta'] : 0;
-
-  // Process user input. $form and $form_state are modified in the process.
-  drupal_process_form($form['#form_id'], $form, $form_state);
-
-  // Retrieve the element to be rendered.
-  foreach ($form_parents as $parent) {
-    $form = $form[$parent];
-  }
-
-  // Add the special Ajax class if a new file was added.
-  if (isset($form['#file_upload_delta']) && $current_file_count < $form['#file_upload_delta']) {
-    $form[$current_file_count]['#attributes']['class'][] = 'ajax-new-content';
-  }
-  // Otherwise just add the new content class on a placeholder.
-  else {
-    $form['#suffix'] .= '<span class="ajax-new-content"></span>';
-  }
-
-  $output = theme('status_messages') . drupal_render($form);
-  $js = drupal_add_js();
-  $settings = call_user_func_array('array_merge_recursive', $js['settings']['data']);
-
-  $commands = array();
-  $commands[] = ajax_command_replace(NULL, $output, $settings);
-  return array('#type' => 'ajax', '#commands' => $commands);
-}
-
-/**
- * Ajax callback: Retrieves upload progress.
- *
- * @param $key
- *   The unique key for this upload process.
- */
-function file_ajax_progress($key) {
-  $progress = array(
-    'message' => t('Starting upload...'),
-    'percentage' => -1,
-  );
-
-  $implementation = file_progress_implementation();
-  if ($implementation == 'uploadprogress') {
-    $status = uploadprogress_get_info($key);
-    if (isset($status['bytes_uploaded']) && !empty($status['bytes_total'])) {
-      $progress['message'] = t('Uploading... (@current of @total)', array('@current' => format_size($status['bytes_uploaded']), '@total' => format_size($status['bytes_total'])));
-      $progress['percentage'] = round(100 * $status['bytes_uploaded'] / $status['bytes_total']);
+  // Return cached objects without processing since the file will have
+  // already been processed and the paths in $_FILES will be invalid.
+  if (isset($upload_cache[$form_field_name])) {
+    if (isset($delta)) {
+      return $upload_cache[$form_field_name][$delta];
     }
-  }
-  elseif ($implementation == 'apc') {
-    $status = apc_fetch('upload_' . $key);
-    if (isset($status['current']) && !empty($status['total'])) {
-      $progress['message'] = t('Uploading... (@current of @total)', array('@current' => format_size($status['current']), '@total' => format_size($status['total'])));
-      $progress['percentage'] = round(100 * $status['current'] / $status['total']);
-    }
+    return $upload_cache[$form_field_name];
   }
 
-  return new JsonResponse($progress);
+  // Prepare uploaded files info. Representation is slightly different
+  // for multiple uploads and we fix that here.
+  $uploaded_files = $_FILES;
+  if (!is_array($uploaded_files['files']['name'][$form_field_name])) {
+    foreach (array('name', 'type', 'tmp_name', 'error', 'size') as $value)
+    $uploaded_files['files'][$value][$form_field_name] = array($uploaded_files['files'][$value][$form_field_name]);
+  }
+
+  $files = array();
+  foreach ($uploaded_files['files']['name'][$form_field_name] as $i => $name) {
+    // Check for file upload errors and return FALSE for this file if a lower
+    // level system error occurred. For a complete list of errors:
+    // See http://php.net/manual/features.file-upload.errors.php.
+    switch ($uploaded_files['files']['error'][$form_field_name][$i]) {
+      case UPLOAD_ERR_INI_SIZE:
+      case UPLOAD_ERR_FORM_SIZE:
+        drupal_set_message(t('The file %file could not be saved because it exceeds %maxsize, the maximum allowed size for uploads.', array('%file' => $name, '%maxsize' => format_size(file_upload_max_size()))), 'error');
+        $files[$i] = FALSE;
+        continue;
+
+      case UPLOAD_ERR_PARTIAL:
+      case UPLOAD_ERR_NO_FILE:
+        drupal_set_message(t('The file %file could not be saved because the upload did not complete.', array('%file' => $name)), 'error');
+        $files[$i] = FALSE;
+        continue;
+
+      case UPLOAD_ERR_OK:
+        // Final check that this is a valid upload, if it isn't, use the
+        // default error handler.
+        if (is_uploaded_file($uploaded_files['files']['tmp_name'][$form_field_name][$i])) {
+          break;
+        }
+
+        // Unknown error
+      default:
+        drupal_set_message(t('The file %file could not be saved. An unknown error has occurred.', array('%file' => $name)), 'error');
+        $files[$i] = FALSE;
+        continue;
+
+    }
+    // Begin building file entity.
+    $values = array(
+      'uid' => $user->id(),
+      'status' => 0,
+      'filename' => trim(drupal_basename($name, '.')),
+      'uri' => $uploaded_files['files']['tmp_name'][$form_field_name][$i],
+      'filesize' => $uploaded_files['files']['size'][$form_field_name][$i],
+    );
+    $values['filemime'] = file_get_mimetype($values['filename']);
+    $file = entity_create('file', $values);
+
+    $extensions = '';
+    if (isset($validators['file_validate_extensions'])) {
+      if (isset($validators['file_validate_extensions'][0])) {
+        // Build the list of non-munged extensions if the caller provided them.
+        $extensions = $validators['file_validate_extensions'][0];
+      }
+      else {
+        // If 'file_validate_extensions' is set and the list is empty then the
+        // caller wants to allow any extension. In this case we have to remove the
+        // validator or else it will reject all extensions.
+        unset($validators['file_validate_extensions']);
+      }
+    }
+    else {
+      // No validator was provided, so add one using the default list.
+      // Build a default non-munged safe list for file_munge_filename().
+      $extensions = 'jpg jpeg gif png txt doc xls pdf ppt pps odt ods odp';
+      $validators['file_validate_extensions'] = array();
+      $validators['file_validate_extensions'][0] = $extensions;
+    }
+
+    if (!empty($extensions)) {
+      // Munge the filename to protect against possible malicious extension
+      // hiding within an unknown file type (ie: filename.html.foo).
+      $file->setFilename(file_munge_filename($file->getFilename(), $extensions));
+    }
+
+    // Rename potentially executable files, to help prevent exploits (i.e. will
+    // rename filename.php.foo and filename.php to filename.php.foo.txt and
+    // filename.php.txt, respectively). Don't rename if 'allow_insecure_uploads'
+    // evaluates to TRUE.
+    if (!Drupal::config('system.file')->get('allow_insecure_uploads') && preg_match('/\.(php|pl|py|cgi|asp|js)(\.|$)/i', $file->getFilename()) && (substr($file->getFilename(), -4) != '.txt')) {
+      $file->setMimeType('text/plain');
+      $file->setFileUri($file->getFileUri() . '.txt');
+      $file->setFilename($file->getFilename() . '.txt');
+      // The .txt extension may not be in the allowed list of extensions. We have
+      // to add it here or else the file upload will fail.
+      if (!empty($extensions)) {
+        $validators['file_validate_extensions'][0] .= ' txt';
+        drupal_set_message(t('For security reasons, your upload has been renamed to %filename.', array('%filename' => $file->getFilename())));
+      }
+    }
+
+    // If the destination is not provided, use the temporary directory.
+    if (empty($destination)) {
+      $destination = 'temporary://';
+    }
+
+    // Assert that the destination contains a valid stream.
+    $destination_scheme = file_uri_scheme($destination);
+    if (!file_stream_wrapper_valid_scheme($destination_scheme)) {
+      drupal_set_message(t('The file could not be uploaded because the destination %destination is invalid.', array('%destination' => $destination)), 'error');
+      $files[$i] = FALSE;
+      continue;
+    }
+
+    $file->source = $form_field_name;
+    // A file URI may already have a trailing slash or look like "public://".
+    if (substr($destination, -1) != '/') {
+      $destination .= '/';
+    }
+    $file->destination = file_destination($destination . $file->getFilename(), $replace);
+    // If file_destination() returns FALSE then $replace === FILE_EXISTS_ERROR and
+    // there's an existing file so we need to bail.
+    if ($file->destination === FALSE) {
+      drupal_set_message(t('The file %source could not be uploaded because a file by that name already exists in the destination %directory.', array('%source' => $form_field_name, '%directory' => $destination)), 'error');
+      $files[$i] = FALSE;
+      continue;
+    }
+
+    // Add in our check of the the file name length.
+    $validators['file_validate_name_length'] = array();
+
+    // Call the validation functions specified by this function's caller.
+    $errors = file_validate($file, $validators);
+
+    // Check for errors.
+    if (!empty($errors)) {
+      $message = t('The specified file %name could not be uploaded.', array('%name' => $file->getFilename()));
+      if (count($errors) > 1) {
+        $item_list = array(
+          '#theme' => 'item_list',
+          '#items' => $errors,
+        );
+        $message .= drupal_render($item_list);
+      }
+      else {
+        $message .= ' ' . array_pop($errors);
+      }
+      form_set_error($form_field_name, $message);
+      $files[$i] = FALSE;
+      continue;
+    }
+
+    // Move uploaded files from PHP's upload_tmp_dir to Drupal's temporary
+    // directory. This overcomes open_basedir restrictions for future file
+    // operations.
+    $file->uri = $file->destination;
+    if (!drupal_move_uploaded_file($uploaded_files['files']['tmp_name'][$form_field_name][$i], $file->getFileUri())) {
+      form_set_error($form_field_name, t('File upload error. Could not move uploaded file.'));
+      watchdog('file', 'Upload error. Could not move uploaded file %file to destination %destination.', array('%file' => $file->filename, '%destination' => $file->uri));
+      $files[$i] = FALSE;
+      continue;
+    }
+
+    // Set the permissions on the new file.
+    drupal_chmod($file->getFileUri());
+
+    // If we are replacing an existing file re-use its database record.
+    if ($replace == FILE_EXISTS_REPLACE) {
+      $existing_files = entity_load_multiple_by_properties('file', array('uri' => $file->getFileUri()));
+      if (count($existing_files)) {
+        $existing = reset($existing_files);
+        $file->fid = $existing->id();
+      }
+    }
+
+    // If we made it this far it's safe to record this file in the database.
+    $file->save();
+    $files[$i] = $file;
+  }
+
+  // Add files to the cache.
+  $upload_cache[$form_field_name] = $files;
+
+  return isset($delta) ? $files[$delta] : $files;
 }
 
 /**
@@ -861,6 +988,133 @@ function file_file_predelete(File $file) {
 }
 
 /**
+ * Implements hook_tokens().
+ */
+function file_tokens($type, $tokens, array $data = array(), array $options = array()) {
+  $token_service = Drupal::token();
+
+  $url_options = array('absolute' => TRUE);
+  if (isset($options['langcode'])) {
+    $url_options['language'] = language_load($options['langcode']);
+    $langcode = $options['langcode'];
+  }
+  else {
+    $langcode = NULL;
+  }
+  $sanitize = !empty($options['sanitize']);
+
+  $replacements = array();
+
+  if ($type == 'file' && !empty($data['file'])) {
+    $file = $data['file'];
+
+    foreach ($tokens as $name => $original) {
+      switch ($name) {
+        // Basic keys and values.
+        case 'fid':
+          $replacements[$original] = $file->id();
+          break;
+
+        // Essential file data
+        case 'name':
+          $replacements[$original] = $sanitize ? check_plain($file->getFilename()) : $file->getFilename();
+          break;
+
+        case 'path':
+          $replacements[$original] = $sanitize ? check_plain($file->getFileUri()) : $file->getFileUri();
+          break;
+
+        case 'mime':
+          $replacements[$original] = $sanitize ? check_plain($file->getMimeType()) : $file->getMimeType();
+          break;
+
+        case 'size':
+          $replacements[$original] = format_size($file->getSize());
+          break;
+
+        case 'url':
+          $replacements[$original] = $sanitize ? check_plain(file_create_url($file->getFileUri())) : file_create_url($file->getFileUri());
+          break;
+
+        // These tokens are default variations on the chained tokens handled below.
+        case 'timestamp':
+          $replacements[$original] = format_date($file->getChangedTime(), 'medium', '', NULL, $langcode);
+          break;
+
+        case 'owner':
+          $name = $file->getOwner()->label();
+          $replacements[$original] = $sanitize ? check_plain($name) : $name;
+          break;
+      }
+    }
+
+    if ($date_tokens = $token_service->findWithPrefix($tokens, 'timestamp')) {
+      $replacements += $token_service->generate('date', $date_tokens, array('date' => $file->getChangedTime()), $options);
+    }
+
+    if (($owner_tokens = $token_service->findWithPrefix($tokens, 'owner')) && $file->getOwner()) {
+      $replacements += $token_service->generate('user', $owner_tokens, array('user' => $file->getOwner()), $options);
+    }
+  }
+
+  return $replacements;
+}
+
+/**
+ * Implements hook_token_info().
+ */
+function file_token_info() {
+  $types['file'] = array(
+    'name' => t("Files"),
+    'description' => t("Tokens related to uploaded files."),
+    'needs-data' => 'file',
+  );
+
+  // File related tokens.
+  $file['fid'] = array(
+    'name' => t("File ID"),
+    'description' => t("The unique ID of the uploaded file."),
+  );
+  $file['name'] = array(
+    'name' => t("File name"),
+    'description' => t("The name of the file on disk."),
+  );
+  $file['path'] = array(
+    'name' => t("Path"),
+    'description' => t("The location of the file relative to Drupal root."),
+  );
+  $file['mime'] = array(
+    'name' => t("MIME type"),
+    'description' => t("The MIME type of the file."),
+  );
+  $file['size'] = array(
+    'name' => t("File size"),
+    'description' => t("The size of the file."),
+  );
+  $file['url'] = array(
+    'name' => t("URL"),
+    'description' => t("The web-accessible URL for the file."),
+  );
+  $file['timestamp'] = array(
+    'name' => t("Timestamp"),
+    'description' => t("The date the file was most recently changed."),
+    'type' => 'date',
+  );
+  $file['owner'] = array(
+    'name' => t("Owner"),
+    'description' => t("The user who originally uploaded the file."),
+    'type' => 'user',
+  );
+
+  return array(
+    'types' => $types,
+    'tokens' => array(
+      'file' => $file,
+    ),
+  );
+}
+
+/**
  * Render API callback: Expands the managed_file element type.
  *
  * Expands the file type to include Upload and Remove buttons, as well as
@@ -872,15 +1126,25 @@ function file_managed_file_process($element, &$form_state, $form) {
   // Append the '-upload' to the #id so the field label's 'for' attribute
   // corresponds with the file element.
   $element['#id'] .= '-upload';
-  $fid = isset($element['#value']['fid']) ? $element['#value']['fid'] : 0;
+
+  // This is used sometimes so let's implode it just once.
+  $parents_prefix = implode('_', $element['#parents']);
+
+  $fids = isset($element['#value']['fids']) ? $element['#value']['fids'] : array();
 
   // Set some default element properties.
   $element['#progress_indicator'] = empty($element['#progress_indicator']) ? 'none' : $element['#progress_indicator'];
-  $element['#file'] = $fid ? file_load($fid) : FALSE;
+  $element['#files'] = !empty($fids) ? file_load_multiple($fids) : FALSE;
   $element['#tree'] = TRUE;
 
   $ajax_settings = array(
-    'path' => 'file/ajax/' . implode('/', $element['#array_parents']) . '/' . $form['form_build_id']['#value'],
+    'path' => 'file/ajax',
+    'options' => array(
+      'query' => array(
+        'element_parents' => implode('/', $element['#array_parents']),
+        'form_build_id' => $form['form_build_id']['#value'],
+      ),
+    ),
     'wrapper' => $element['#id'] . '-ajax-wrapper',
     'effect' => 'fade',
     'progress' => array(
@@ -891,9 +1155,10 @@ function file_managed_file_process($element, &$form_state, $form) {
 
   // Set up the buttons first since we need to check if they were clicked.
   $element['upload_button'] = array(
-    '#name' => implode('_', $element['#parents']) . '_upload_button',
+    '#name' => $parents_prefix . '_upload_button',
     '#type' => 'submit',
     '#value' => t('Upload'),
+    '#attributes' => array('class' => array('js-hide')),
     '#validate' => array(),
     '#submit' => array('file_managed_file_submit'),
     '#limit_validation_errors' => array($element['#parents']),
@@ -907,19 +1172,19 @@ function file_managed_file_process($element, &$form_state, $form) {
   $ajax_settings['progress']['message'] = NULL;
   $ajax_settings['effect'] = 'none';
   $element['remove_button'] = array(
-    '#name' => implode('_', $element['#parents']) . '_remove_button',
+    '#name' => $parents_prefix . '_remove_button',
     '#type' => 'submit',
-    '#value' => t('Remove'),
+    '#value' => $element['#multiple'] ? t('Remove selected') : t('Remove'),
     '#validate' => array(),
     '#submit' => array('file_managed_file_submit'),
     '#limit_validation_errors' => array($element['#parents']),
     '#ajax' => $ajax_settings,
-    '#weight' => -5,
+    '#weight' => 1,
   );
 
-  $element['fid'] = array(
+  $element['fids'] = array(
     '#type' => 'hidden',
-    '#value' => $fid,
+    '#value' => $fids,
   );
 
   // Add progress bar support to the upload if possible.
@@ -953,21 +1218,32 @@ function file_managed_file_process($element, &$form_state, $form) {
 
   // The file upload field itself.
   $element['upload'] = array(
-    '#name' => 'files[' . implode('_', $element['#parents']) . ']',
+    '#name' => 'files[' . $parents_prefix . ']',
     '#type' => 'file',
     '#title' => t('Choose a file'),
     '#title_display' => 'invisible',
     '#size' => $element['#size'],
+    '#multiple' => $element['#multiple'],
     '#theme_wrappers' => array(),
     '#weight' => -10,
   );
 
-  if ($fid && $element['#file']) {
-    $element['filename'] = array(
-      '#type' => 'markup',
-      '#markup' => theme('file_link', array('file' => $element['#file'])) . ' ',
-      '#weight' => -10,
-    );
+  if (!empty($fids) && $element['#files']) {
+    foreach ($element['#files'] as $delta => $file) {
+      $file_link = array(
+        '#theme' => 'file_link',
+        '#file' => $file,
+      );
+      if ($element['#multiple']) {
+        $element['file_' . $delta]['selected'] = array(
+          '#type' => 'checkbox',
+          '#title' => drupal_render($file_link),
+        );
+      }
+      else {
+        $element['file_' . $delta]['filename'] = $file_link += array('#weight' => -10);
+      }
+    }
   }
 
   // Add the extension list to the page as JavaScript settings.
@@ -994,28 +1270,25 @@ function file_managed_file_process($element, &$form_state, $form) {
  * This function is assigned as a #value_callback in file_element_info().
  */
 function file_managed_file_value(&$element, $input = FALSE, $form_state = NULL) {
-  $fid = 0;
-
-  // Find the current value of this field from the form state.
-  $form_state_fid = $form_state['values'];
-  foreach ($element['#parents'] as $parent) {
-    $form_state_fid = isset($form_state_fid[$parent]) ? $form_state_fid[$parent] : 0;
-  }
-
-  if ($element['#extended'] && isset($form_state_fid['fid'])) {
-    $fid = $form_state_fid['fid'];
-  }
-  elseif (is_numeric($form_state_fid)) {
-    $fid = $form_state_fid;
+  // Find the current value of this field.
+  $fids = !empty($input['fids']) ? explode(' ', $input['fids']) : array();
+  foreach ($fids as $key => $fid) {
+    $fids[$key] = (int) $fid;
   }
 
   // Process any input and save new uploads.
   if ($input !== FALSE) {
+    $input['fids'] = $fids;
     $return = $input;
 
     // Uploads take priority over all other values.
-    if ($file = file_managed_file_save_upload($element)) {
-      $fid = $file->fid;
+    if ($files = file_managed_file_save_upload($element)) {
+      if ($element['#multiple']) {
+        $fids = array_merge($fids, array_keys($files));
+      }
+      else {
+        $fids = array_keys($files);
+      }
     }
     else {
       // Check for #filefield_value_callback values.
@@ -1027,9 +1300,15 @@ function file_managed_file_value(&$element, $input = FALSE, $form_state = NULL) 
           $callback($element, $input, $form_state);
         }
       }
-      // Load file if the FID has changed to confirm it exists.
-      if (isset($input['fid']) && $file = file_load($input['fid'])) {
-        $fid = $file->fid;
+
+      // Load files if the FIDs have changed to confirm they exist.
+      if (!empty($input['fids'])) {
+        $fids = array();
+        foreach ($input['fids'] as $fid) {
+          if ($file = file_load($fid)) {
+            $fids[] = $file->id();
+          }
+        }
       }
     }
   }
@@ -1037,22 +1316,26 @@ function file_managed_file_value(&$element, $input = FALSE, $form_state = NULL) 
   // If there is no input, set the default value.
   else {
     if ($element['#extended']) {
-      $default_fid = isset($element['#default_value']['fid']) ? $element['#default_value']['fid'] : 0;
-      $return = isset($element['#default_value']) ? $element['#default_value'] : array('fid' => 0);
+      $default_fids = isset($element['#default_value']['fids']) ? $element['#default_value']['fids'] : array();
+      $return = isset($element['#default_value']) ? $element['#default_value'] : array('fids' => array());
     }
     else {
-      $default_fid = isset($element['#default_value']) ? $element['#default_value'] : 0;
-      $return = array('fid' => 0);
+      $default_fids = isset($element['#default_value']) ? $element['#default_value'] : array();
+      $return = array('fids' => array());
     }
 
     // Confirm that the file exists when used as a default value.
-    if ($default_fid && $file = file_load($default_fid)) {
-      $fid = $file->fid;
+    if (!empty($default_fids)) {
+      $fids = array();
+      foreach ($default_fids as $fid) {
+        if ($file = file_load($fid)) {
+          $fids[] = $file->id();
+        }
+      }
     }
   }
 
-  $return['fid'] = $fid;
-
+  $return['fids'] = $fids;
   return $return;
 }
 
@@ -1067,28 +1350,31 @@ function file_managed_file_validate(&$element, &$form_state) {
   // references. This prevents unmanaged files from being deleted if this
   // item were to be deleted.
   $clicked_button = end($form_state['triggering_element']['#parents']);
-  if ($clicked_button != 'remove_button' && !empty($element['fid']['#value'])) {
-    if ($file = file_load($element['fid']['#value'])) {
-      if ($file->status == FILE_STATUS_PERMANENT) {
-        $references = file_usage()->listUsage($file);
-        if (empty($references)) {
-          form_error($element, t('The file used in the !name field may not be referenced.', array('!name' => $element['#title'])));
+  if ($clicked_button != 'remove_button' && !empty($element['fids']['#value'])) {
+    $fids = $element['fids']['#value'];
+    foreach ($fids as $fid) {
+      if ($file = file_load($fid)) {
+        if ($file->isPermanent()) {
+          $references = file_usage()->listUsage($file);
+          if (empty($references)) {
+            form_error($element, t('The file used in the !name field may not be referenced.', array('!name' => $element['#title'])));
+          }
         }
       }
-    }
-    else {
-      form_error($element, t('The file referenced by the !name field does not exist.', array('!name' => $element['#title'])));
+      else {
+        form_error($element, t('The file referenced by the !name field does not exist.', array('!name' => $element['#title'])));
+      }
     }
   }
 
   // Check required property based on the FID.
-  if ($element['#required'] && empty($element['fid']['#value']) && !in_array($clicked_button, array('upload_button', 'remove_button'))) {
+  if ($element['#required'] && empty($element['fids']['#value']) && !in_array($clicked_button, array('upload_button', 'remove_button'))) {
     form_error($element['upload'], t('!name field is required.', array('!name' => $element['#title'])));
   }
 
-  // Consolidate the array value of this field to a single FID.
+  // Consolidate the array value of this field to array of FIDs.
   if (!$element['#extended']) {
-    form_set_value($element, $element['fid']['#value'], $form_state);
+    form_set_value($element, $element['fids']['#value'], $form_state);
   }
 }
 
@@ -1102,18 +1388,39 @@ function file_managed_file_submit($form, &$form_state) {
   // and set $element to the managed_file element that contains that button.
   $parents = $form_state['triggering_element']['#array_parents'];
   $button_key = array_pop($parents);
-  $element = drupal_array_get_nested_value($form, $parents);
+  $element = NestedArray::getValue($form, $parents);
 
   // No action is needed here for the upload button, because all file uploads on
   // the form are processed by file_managed_file_value() regardless of which
   // button was clicked. Action is needed here for the remove button, because we
   // only remove a file in response to its remove button being clicked.
   if ($button_key == 'remove_button') {
-    // If it's a temporary file we can safely remove it immediately, otherwise
-    // it's up to the implementing module to remove usages of files to have them
-    // removed.
-    if ($element['#file'] && $element['#file']->status == 0) {
-      file_delete($element['#file']->fid);
+    $fids = array_keys($element['#files']);
+    // Get files that will be removed.
+    if ($element['#multiple']) {
+      $remove_fids = array();
+      foreach (element_children($element) as $name) {
+        if (strpos($name, 'file_') === 0 && $element[$name]['selected']['#value']) {
+          $remove_fids[] = (int) substr($name, 5);
+        }
+      }
+      $fids = array_diff($fids, $remove_fids);
+    }
+    else {
+      // If we deal with single upload element remove the file and set
+      // element's value to empty array (file could not be removed from
+      // element if we don't do that).
+      $remove_fids = $fids;
+      $fids = array();
+    }
+
+    foreach ($remove_fids as $fid) {
+      // If it's a temporary file we can safely remove it immediately, otherwise
+      // it's up to the implementing module to remove usages of files to have them
+      // removed.
+      if ($element['#files'][$fid] && $element['#files'][$fid]->isTemporary()) {
+        $element['#files'][$fid]->delete();
+      }
     }
     // Update both $form_state['values'] and $form_state['input'] to reflect
     // that the file has been removed, so that the form is rebuilt correctly.
@@ -1122,9 +1429,8 @@ function file_managed_file_submit($form, &$form_state) {
     // when the managed_file element is part of a field widget.
     // $form_state['input'] must be updated so that file_managed_file_value()
     // has correct information during the rebuild.
-    $values_element = $element['#extended'] ? $element['fid'] : $element;
-    form_set_value($values_element, NULL, $form_state);
-    drupal_array_set_nested_value($form_state['input'], $values_element['#parents'], NULL);
+    form_set_value($element['fids'], implode(' ', $fids), $form_state);
+    NestedArray::setValue($form_state['input'], $element['fids']['#parents'], implode(' ', $fids));
   }
 
   // Set the form to rebuild so that $form is correctly updated in response to
@@ -1143,8 +1449,8 @@ function file_managed_file_submit($form, &$form_state) {
  *   The FAPI element whose values are being saved.
  *
  * @return
- *   The file entity representing the file that was saved, or FALSE if no file
- *   was saved.
+ *   An array of file entities for each file that was saved, keyed by its file
+ *   ID, or FALSE if no files were saved.
  */
 function file_managed_file_save_upload($element) {
   $upload_name = implode('_', $element['#parents']);
@@ -1159,13 +1465,24 @@ function file_managed_file_save_upload($element) {
     return FALSE;
   }
 
-  if (!$file = file_save_upload($upload_name, $element['#upload_validators'], $destination)) {
-    watchdog('file', 'The file upload failed. %upload', array('%upload' => $upload_name));
-    form_set_error($upload_name, t('The file in the !name field was unable to be uploaded.', array('!name' => $element['#title'])));
-    return FALSE;
+  // Save attached files to the database.
+  $files_uploaded = $element['#multiple'] && count(array_filter($_FILES['files']['name'][$upload_name])) > 0;
+  $files_uploaded |= !$element['#multiple'] && !empty($_FILES['files']['name'][$upload_name]);
+  if ($files_uploaded) {
+    if (!$files = file_save_upload($upload_name, $element['#upload_validators'], $destination)) {
+      watchdog('file', 'The file upload failed. %upload', array('%upload' => $upload_name));
+      form_set_error($upload_name, t('Files in the !name field were unable to be uploaded.', array('!name' => $element['#title'])));
+      return array();
+    }
+
+    // Value callback expects FIDs to be keys.
+    $files = array_filter($files);
+    $fids = array_map(function($file) { return $file->id(); }, $files);
+
+    return empty($files) ? array() : array_combine($fids, $files);
   }
 
-  return $file;
+  return array();
 }
 
 /**
@@ -1220,9 +1537,11 @@ function theme_file_managed_file($variables) {
  */
 function file_managed_file_pre_render($element) {
   // If we already have a file, we don't want to show the upload controls.
-  if (!empty($element['#value']['fid'])) {
-    $element['upload']['#access'] = FALSE;
-    $element['upload_button']['#access'] = FALSE;
+  if (!empty($element['#value']['fids'])) {
+    if (!$element['#multiple']) {
+      $element['upload']['#access'] = FALSE;
+      $element['upload_button']['#access'] = FALSE;
+    }
   }
   // If we don't already have a file, there is nothing to remove.
   else {
@@ -1238,36 +1557,39 @@ function file_managed_file_pre_render($element) {
  *   An associative array containing:
  *   - file: A file object to which the link will be created.
  *   - icon_directory: (optional) A path to a directory of icons to be used for
- *     files. Defaults to the value of the "file_icon_directory" variable.
+ *     files. Defaults to the value of the "icon.directory"
+ *     variable.
+ *   - description: A description to be displayed instead of the filename.
  *
  * @ingroup themeable
  */
 function theme_file_link($variables) {
   $file = $variables['file'];
-  $icon_directory = $variables['icon_directory'];
-
-  $url = file_create_url($file->uri);
-  // theme_file_icon() requires a file entity, make sure it gets one.
-  $icon = theme('file_icon', array('file' => ($file instanceof File) ? $file : file_load($file->fid), 'icon_directory' => $icon_directory));
 
   // Set options as per anchor format described at
   // http://microformats.org/wiki/file-format-examples
   $options = array(
     'attributes' => array(
-      'type' => $file->filemime . '; length=' . $file->filesize,
+      'type' => $file->getMimeType() . '; length=' . $file->getSize(),
     ),
   );
 
   // Use the description as the link text if available.
-  if (empty($file->description)) {
-    $link_text = $file->filename;
+  if (empty($variables['description'])) {
+    $link_text = $file->getFilename();
   }
   else {
-    $link_text = $file->description;
-    $options['attributes']['title'] = check_plain($file->filename);
+    $link_text = $variables['description'];
+    $options['attributes']['title'] = check_plain($file->getFilename());
   }
 
-  return '<span class="file">' . $icon . ' ' . l($link_text, $url, $options) . '</span>';
+  $file_icon = array(
+    '#theme' => 'file_icon',
+    '#file' => $file,
+    '#icon_directory' => $variables['icon_directory'],
+  );
+
+  return '<span class="file">' . drupal_render($file_icon) . ' ' . l($link_text, file_create_url($file->getFileUri()), $options) . '</span>';
 }
 
 /**
@@ -1277,7 +1599,8 @@ function theme_file_link($variables) {
  *   An associative array containing:
  *   - file: A file entity for which to make an icon.
  *   - icon_directory: (optional) A path to a directory of icons to be used for
- *     files. Defaults to the value of the "file_icon_directory" variable.
+ *     files. Defaults to the value of the "icon.directory"
+ *     variable.
  *
  * @ingroup themeable
  */
@@ -1285,7 +1608,7 @@ function theme_file_icon($variables) {
   $file = $variables['file'];
   $icon_directory = $variables['icon_directory'];
 
-  $mime = check_plain($file->filemime);
+  $mime = check_plain($file->getMimeType());
   $icon_url = file_icon_url($file, $icon_directory);
   return '<img class="file-icon" alt="" title="' . $mime . '" src="' . $icon_url . '" />';
 }
@@ -1297,7 +1620,7 @@ function theme_file_icon($variables) {
  *   A file entity.
  * @param $icon_directory
  *   (optional) A path to a directory of icons to be used for files. Defaults to
- *   the value of the "file_icon_directory" variable.
+ *   the value of the "icon.directory" variable.
  *
  * @return
  *   A URL string to the icon, or FALSE if an appropriate icon cannot be found.
@@ -1316,7 +1639,7 @@ function file_icon_url(File $file, $icon_directory = NULL) {
  *   A file entity.
  * @param $icon_directory
  *   (optional) A path to a directory of icons to be used for files. Defaults to
- *   the value of the "file_icon_directory" variable.
+ *   the value of the "icon.directory" variable.
  *
  * @return
  *   A string to the icon as a local path, or FALSE if an appropriate icon could
@@ -1325,11 +1648,11 @@ function file_icon_url(File $file, $icon_directory = NULL) {
 function file_icon_path(File $file, $icon_directory = NULL) {
   // Use the default set of icons if none specified.
   if (!isset($icon_directory)) {
-    $icon_directory = variable_get('file_icon_directory', drupal_get_path('module', 'file') . '/icons');
+    $icon_directory = Drupal::config('file.settings')->get('icon.directory');
   }
 
   // If there's an icon matching the exact mimetype, go for it.
-  $dashed_mime = strtr($file->filemime, array('/' => '-'));
+  $dashed_mime = strtr($file->getMimeType(), array('/' => '-'));
   $icon_path = $icon_directory . '/' . $dashed_mime . '.png';
   if (file_exists($icon_path)) {
     return $icon_path;
@@ -1344,7 +1667,7 @@ function file_icon_path(File $file, $icon_directory = NULL) {
 
   // Use generic icons for each category that provides such icons.
   foreach (array('audio', 'image', 'text', 'video') as $category) {
-    if (strpos($file->filemime, $category . '/') === 0) {
+    if (strpos($file->getMimeType(), $category . '/') === 0) {
       $icon_path = $icon_directory . '/' . $category . '-x-generic.png';
       if (file_exists($icon_path)) {
         return $icon_path;
@@ -1372,7 +1695,7 @@ function file_icon_path(File $file, $icon_directory = NULL) {
  *   The generic icon MIME package expected for this file.
  */
 function file_icon_map(File $file) {
-  switch ($file->filemime) {
+  switch ($file->getMimeType()) {
     // Word document types.
     case 'application/msword':
     case 'application/vnd.ms-word.document.macroEnabled.12':
@@ -1521,8 +1844,8 @@ function file_get_file_references(File $file, $field = NULL, $age = FIELD_LOAD_R
   $field_columns = &drupal_static(__FUNCTION__ . ':field_columns', array());
 
   // Fill the static cache, disregard $field and $field_type for now.
-  if (!isset($references[$file->fid][$age])) {
-    $references[$file->fid][$age] = array();
+  if (!isset($references[$file->id()][$age])) {
+    $references[$file->id()][$age] = array();
     $usage_list = file_usage()->listUsage($file);
     $file_usage_list = isset($usage_list['file']) ? $usage_list['file'] : array();
     foreach ($file_usage_list as $entity_type => $entity_ids) {
@@ -1531,7 +1854,7 @@ function file_get_file_references(File $file, $field = NULL, $age = FIELD_LOAD_R
       // for every revision or the entity does not support revisions then
       // every usage is already a match.
       $match_entity_type = $age == FIELD_LOAD_REVISION || !isset($entity_info['entity_keys']['revision']);
-      $entities = entity_load_multiple($entity_type, $entity_ids);
+      $entities = entity_load_multiple($entity_type, array_keys($entity_ids));
       foreach ($entities as $entity) {
         $bundle = $entity->bundle();
         // We need to find file fields for this entity type and bundle.
@@ -1540,7 +1863,7 @@ function file_get_file_references(File $file, $field = NULL, $age = FIELD_LOAD_R
           // This contains the possible field names.
           $instances = field_info_instances($entity_type, $bundle);
           foreach ($instances as $field_name => $instance) {
-            $current_field = field_info_field($field_name);
+            $current_field = $instance->getField();
             // If this is the first time this field type is seen, check
             // whether it references files.
             if (!isset($field_columns[$current_field['type']])) {
@@ -1558,29 +1881,31 @@ function file_get_file_references(File $file, $field = NULL, $age = FIELD_LOAD_R
           // the referenced file. This will fail if the usage checked is in a
           // non-current revision because field items are from the current
           // revision.
-          if (!$match && ($field_items = field_get_items($entity_type, $entity, $field_name))) {
-            foreach ($field_items as $item) {
-              if ($file->fid == $item[$field_column]) {
+          if (!$match && ($items = $entity->get($field_name))) {
+            foreach ($items as $item) {
+              if ($file->id() == $item->{$field_column}) {
                 $match = TRUE;
                 break;
               }
             }
           }
           if ($match) {
-            $references[$file->fid][$age][$field_name][$entity_type][$entity->id()] = $entity;
+            $references[$file->id()][$age][$field_name][$entity_type][$entity->id()] = $entity;
           }
         }
       }
     }
   }
-  $return = $references[$file->fid][$age];
+  $return = $references[$file->id()][$age];
   // Filter the static cache down to the requested entries. The usual static
   // cache is very small so this will be very fast.
   if ($field || $field_type) {
     foreach ($return as $field_name => $data) {
-      $current_field = field_info_field($field_name);
-      if (($field_type && $current_field['type'] != $field_type) || ($field && $field['id'] != $current_field['id'])) {
-        unset($return[$field_name]);
+      foreach (array_keys($data) as $entity_type) {
+        $current_field = field_info_field($entity_type, $field_name);
+        if (($field_type && $current_field['type'] != $field_type) || ($field && $field['id'] != $current_field['id'])) {
+          unset($return[$field_name][$entity_type]);
+        }
       }
     }
   }
@@ -1602,7 +1927,7 @@ function file_library_info() {
       drupal_get_path('module', 'file') . '/file.js' => array(),
     ),
     'css' => array(
-      drupal_get_path('module', 'file') . '/file.admin.css'
+      drupal_get_path('module', 'file') . '/css/file.admin.css'
     ),
     'dependencies' => array(
       array('system', 'jquery'),
@@ -1612,4 +1937,41 @@ function file_library_info() {
   );
 
   return $libraries;
+}
+
+/**
+ * Implements hook_permission().
+ */
+function file_permission() {
+  $perms = array(
+    'access files overview' => array(
+      'title' => t('Access the Files overview page'),
+      'description' => user_access('access files overview')
+        ? t('Get an overview of <a href="@url">all files</a>.', array('@url' => url('admin/content/files')))
+        : t('Get an overview of all files.'),
+    ),
+  );
+
+  return $perms;
+}
+
+/**
+ * Formats human-readable version of file status.
+ *
+ * @param int $choice
+ *   integer Status code.
+ * @return string
+ *   string Text-represented file status.
+ */
+function _views_file_status($choice = NULL) {
+  $status = array(
+    0 => t('Temporary'),
+    FILE_STATUS_PERMANENT => t('Permanent'),
+  );
+
+  if (isset($choice)) {
+    return isset($status[$choice]) ? $status[$choice] : t('Unknown');
+  }
+
+  return $status;
 }

@@ -7,16 +7,14 @@
 
 namespace Drupal\views\Plugin\views\area;
 
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
 
 /**
  * Views area title override handler.
  *
  * @ingroup views_area_handlers
  *
- * @Plugin(
- *   id = "title"
- * )
+ * @PluginID("title")
  */
 class Title extends AreaPluginBase {
 
@@ -39,19 +37,32 @@ class Title extends AreaPluginBase {
       '#type' => 'textfield',
       '#title' => t('Overridden title'),
       '#default_value' => $this->options['title'],
-      '#description' => t('Override the title of this view when it is empty.'),
+      '#description' => t('Override the title of this view when it is empty. The available global tokens below can be used here.'),
     );
+
+    // Don't use the AreaPluginBase tokenForm method, we don't want row tokens.
+    $this->globalTokenForm($form, $form_state);
   }
 
   /**
-   * Overrides Drupal\views\Plugin\views\AreaPluginBase::render().
+   * Overrides Drupal\views\Plugin\views\AreaPluginBase::preRender().
    */
-  function render($empty = FALSE) {
-    if (!empty($this->options['title'])) {
-      $this->view->setTitle($this->sanitizeValue($this->options['title'], 'xss_admin'), PASS_THROUGH);
-    }
+  public function preRender(array $results) {
+    parent::preRender($results);
 
-    return '';
+    // If a title is provided, process it.
+    if (!empty($this->options['title'])) {
+      $value = $this->globalTokenReplace($this->options['title']);
+      $this->view->setTitle($this->sanitizeValue($value, 'xss_admin'), PASS_THROUGH);
+    }
+  }
+
+  /**
+   * Implements \Drupal\views\Plugin\views\area\AreaPluginBase::render().
+   */
+  public function render($empty = FALSE) {
+    // Do nothing for this handler by returning an empty render array.
+    return array();
   }
 
 }

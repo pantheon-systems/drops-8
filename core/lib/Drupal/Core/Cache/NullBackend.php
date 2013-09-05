@@ -31,14 +31,14 @@ class NullBackend implements CacheBackendInterface {
   /**
    * Implements Drupal\Core\Cache\CacheBackendInterface::get().
    */
-  public function get($cid) {
+  public function get($cid, $allow_invalid = FALSE) {
     return FALSE;
   }
 
   /**
    * Implements Drupal\Core\Cache\CacheBackendInterface::getMultiple().
    */
-  public function getMultiple(&$cids) {
+  public function getMultiple(&$cids, $allow_invalid = FALSE) {
     return array();
   }
 
@@ -58,19 +58,24 @@ class NullBackend implements CacheBackendInterface {
   public function deleteMultiple(array $cids) {}
 
   /**
-   * Implements Drupal\Core\Cache\CacheBackendInterface::flush().
+   * Implements Drupal\Core\Cache\CacheBackendInterface::deleteAll().
    */
-  public function flush() {}
+  public function deleteAll() {}
 
   /**
-   * Implements Drupal\Core\Cache\CacheBackendInterface::expire().
+   * Implements Drupal\Core\Cache\CacheBackendInterface::deleteTags().
    */
-  public function expire() {}
+  public function deleteTags(array $tags) {}
 
   /**
-   * Implements Drupal\Core\Cache\CacheBackendInterface::garbageCollection().
+   * Implements Drupal\Core\Cache\CacheBackendInterface::invalidate().
    */
-  public function garbageCollection() {}
+  public function invalidate($cid) {}
+
+  /**
+   * Implements Drupal\Core\Cache\CacheBackendInterface::invalidateMultiple().
+   */
+  public function invalidateMultiple(array $cids) {}
 
   /**
    * Implements Drupal\Core\Cache\CacheBackendInterface::invalidateTags().
@@ -78,9 +83,24 @@ class NullBackend implements CacheBackendInterface {
   public function invalidateTags(array $tags) {}
 
   /**
+   * Implements Drupal\Core\Cache\CacheBackendInterface::invalidateAll().
+   */
+  public function invalidateAll() {}
+
+  /**
+   * Implements Drupal\Core\Cache\CacheBackendInterface::garbageCollection().
+   */
+  public function garbageCollection() {}
+
+  /**
    * Implements Drupal\Core\Cache\CacheBackendInterface::isEmpty().
    */
   public function isEmpty() {
     return TRUE;
   }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function removeBin() {}
 }

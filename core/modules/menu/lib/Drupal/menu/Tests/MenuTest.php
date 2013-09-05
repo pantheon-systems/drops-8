@@ -7,18 +7,17 @@
 
 namespace Drupal\menu\Tests;
 
-use Drupal\simpletest\WebTestBase;
-
-class MenuTest extends WebTestBase {
+/**
+ * Defines a test class for testing menu and menu link functionality.
+ */
+class MenuTest extends MenuWebTestBase {
 
   /**
    * Modules to enable.
    *
    * @var array
    */
-  public static $modules = array('menu');
-
-  protected $profile = 'standard';
+  public static $modules = array('block', 'test_page_test', 'contextual', 'path');
 
   protected $big_user;
   protected $std_user;
@@ -36,6 +35,8 @@ class MenuTest extends WebTestBase {
   function setUp() {
     parent::setUp();
 
+    $this->drupalCreateContentType(array('type' => 'article', 'name' => 'Article'));
+
     // Create users.
     $this->big_user = $this->drupalCreateUser(array('access administration pages', 'administer blocks', 'administer menu', 'create article content'));
     $this->std_user = $this->drupalCreateUser(array());
@@ -49,16 +50,15 @@ class MenuTest extends WebTestBase {
     $this->drupalLogin($this->big_user);
     $this->items = array();
 
-    // Do standard menu tests.
-    $this->doStandardMenuTests();
-
-    // Do custom menu tests.
-    $this->doCustomMenuTests();
+    $this->menu = $this->addCustomMenu();
+    $this->doMenuTests($this->menu->id());
+    $this->addInvalidMenuLink($this->menu->id());
+    $this->addCustomMenuCRUD();
 
     // Do standard user tests.
     // Login the user.
     $this->drupalLogin($this->std_user);
-    $this->verifyAccess(403);
+    $this->verifyAccess(403, $this->menu->id());
     foreach ($this->items as $item) {
       $node = node_load(substr($item['link_path'], 5)); // Paths were set as 'node/$nid'.
       $this->verifyMenuLink($item, $node);
@@ -79,32 +79,17 @@ class MenuTest extends WebTestBase {
     $item = $this->getStandardMenuLink();
     $old_title = $item['link_title'];
     $this->modifyMenuLink($item);
-    $item = menu_link_load($item['mlid']);
+    $item = entity_load('menu_link', $item['mlid']);
     // Verify that a change to the description is saved.
     $description = $this->randomName(16);
     $item['options']['attributes']['title']  = $description;
-    menu_link_save($item);
-    $saved_item = menu_link_load($item['mlid']);
+    $return_value = menu_link_save($item);
+    // Save the menu link again to test the return value of the procedural save
+    // helper.
+    $this->assertIdentical($return_value, $item->save(), 'Return value of menu_link_save() is identical to the return value of $menu_link->save().');
+    $saved_item = entity_load('menu_link', $item['mlid']);
     $this->assertEqual($description, $saved_item['options']['attributes']['title'], 'Saving an existing link updates the description (title attribute)');
     $this->resetMenuLink($item, $old_title);
-  }
-
-  /**
-   * Tests standard menu functionality using the Tools menu.
-   */
-  function doStandardMenuTests() {
-    $this->doMenuTests();
-    $this->addInvalidMenuLink();
-  }
-
-  /**
-   * Tests custom menu functionality using the Tools menu.
-   */
-  function doCustomMenuTests() {
-    $this->menu = $this->addCustomMenu();
-    $this->doMenuTests($this->menu['menu_name']);
-    $this->addInvalidMenuLink($this->menu['menu_name']);
-    $this->addCustomMenuCRUD();
   }
 
   /**
@@ -113,41 +98,40 @@ class MenuTest extends WebTestBase {
   function addCustomMenuCRUD() {
     // Add a new custom menu.
     $menu_name = substr(hash('sha256', $this->randomName(16)), 0, MENU_MAX_MENU_NAME_LENGTH_UI);
-    $title = $this->randomName(16);
+    $label = $this->randomName(16);
 
-    $menu = array(
-      'menu_name' => $menu_name,
-      'title' => $title,
+    $menu = entity_create('menu', array(
+      'id' => $menu_name,
+      'label' => $label,
       'description' => 'Description text',
-    );
-    menu_save($menu);
+    ));
+    $menu->save();
 
     // Assert the new menu.
-    $this->drupalGet('admin/structure/menu/manage/' . $menu_name . '/edit');
-    $this->assertRaw($title, 'Custom menu was added.');
+    $this->drupalGet('admin/structure/menu/manage/' . $menu_name);
+    $this->assertRaw($label, 'Custom menu was added.');
 
     // Edit the menu.
-    $new_title = $this->randomName(16);
-    $menu['title'] = $new_title;
-    menu_save($menu);
-    $this->drupalGet('admin/structure/menu/manage/' . $menu_name . '/edit');
-    $this->assertRaw($new_title, 'Custom menu was edited.');
+    $new_label = $this->randomName(16);
+    $menu->set('label', $new_label);
+    $menu->save();
+    $this->drupalGet('admin/structure/menu/manage/' . $menu_name);
+    $this->assertRaw($new_label, 'Custom menu was edited.');
   }
 
   /**
    * Add custom menu.
    */
   function addCustomMenu() {
-    // Add custom menu.
 
     // Try adding a menu using a menu_name that is too long.
     $this->drupalGet('admin/structure/menu/add');
     $menu_name = substr(hash('sha256', $this->randomName(16)), 0, MENU_MAX_MENU_NAME_LENGTH_UI + 1);
-    $title = $this->randomName(16);
+    $label = $this->randomName(16);
     $edit = array(
-      'menu_name' => $menu_name,
+      'id' => $menu_name,
       'description' => '',
-      'title' =>  $title,
+      'label' =>  $label,
     );
     $this->drupalPost('admin/structure/menu/add', $edit, t('Save'));
 
@@ -160,7 +144,7 @@ class MenuTest extends WebTestBase {
 
     // Change the menu_name so it no longer exceeds the maximum length.
     $menu_name = substr(hash('sha256', $this->randomName(16)), 0, MENU_MAX_MENU_NAME_LENGTH_UI);
-    $edit['menu_name'] = $menu_name;
+    $edit['id'] = $menu_name;
     $this->drupalPost('admin/structure/menu/add', $edit, t('Save'));
 
     // Verify that no validation error is given for menu_name length.
@@ -169,19 +153,19 @@ class MenuTest extends WebTestBase {
       '%max' => MENU_MAX_MENU_NAME_LENGTH_UI,
       '%length' => drupal_strlen($menu_name),
     )));
-    // Unlike most other modules, there is no confirmation message displayed.
-
+    // Verify that confirmation message displayed.
+    $this->assertRaw(t('Menu %label has been added.', array('%label' => $label)));
     $this->drupalGet('admin/structure/menu');
-    $this->assertText($title, 'Menu created');
+    $this->assertText($label, 'Menu created');
 
     // Enable the custom menu block.
     $menu_name = 'menu-' . $menu_name; // Drupal prepends the name with 'menu-'.
-    $edit = array();
-    $edit['blocks[menu_' . $menu_name . '][region]'] = 'sidebar_first';
-    $this->drupalPost('admin/structure/block', $edit, t('Save blocks'));
-    $this->assertResponse(200);
-    $this->assertText(t('The block settings have been updated.'), 'Custom menu block was enabled');
+    // Confirm that the custom menu block is available.
+    $this->drupalGet('admin/structure/block/list/' . \Drupal::config('system.theme')->get('default'));
+    $this->assertText($label);
 
+    // Enable the block.
+    $this->drupalPlaceBlock('menu_menu_block:' . $menu_name);
     return menu_load($menu_name);
   }
 
@@ -191,37 +175,75 @@ class MenuTest extends WebTestBase {
    * @param string $menu_name Custom menu name.
    */
   function deleteCustomMenu($menu) {
-    $menu_name = $this->menu['menu_name'];
-    $title = $this->menu['title'];
+    $menu_name = $this->menu->id();
+    $label = $this->menu->label();
 
     // Delete custom menu.
     $this->drupalPost("admin/structure/menu/manage/$menu_name/delete", array(), t('Delete'));
     $this->assertResponse(200);
-    $this->assertRaw(t('The custom menu %title has been deleted.', array('%title' => $title)), 'Custom menu was deleted');
+    $this->assertRaw(t('The custom menu %title has been deleted.', array('%title' => $label)), 'Custom menu was deleted');
     $this->assertFalse(menu_load($menu_name), 'Custom menu was deleted');
     // Test if all menu links associated to the menu were removed from database.
-    $result = db_query("SELECT menu_name FROM {menu_links} WHERE menu_name = :menu_name", array(':menu_name' => $menu_name))->fetchField();
+    $result = entity_load_multiple_by_properties('menu_link', array('menu_name' => $menu_name));
     $this->assertFalse($result, 'All menu links associated to the custom menu were deleted.');
+
+    // Make sure there's no delete button on system menus.
+    $this->drupalGet('admin/structure/menu/manage/main');
+    $this->assertNoRaw('edit-delete', 'The delete button was not found');
+
+    // Try to delete the main menu.
+    $this->drupalGet('admin/structure/menu/manage/main/delete');
+    $this->assertText(t('You are not authorized to access this page.'));
   }
 
   /**
-   * Tests menu functionality using the Tools menu.
+   * Tests menu functionality.
    */
-  function doMenuTests($menu_name = 'tools') {
+  function doMenuTests($menu_name) {
     // Add nodes to use as links for menu links.
     $node1 = $this->drupalCreateNode(array('type' => 'article'));
     $node2 = $this->drupalCreateNode(array('type' => 'article'));
     $node3 = $this->drupalCreateNode(array('type' => 'article'));
     $node4 = $this->drupalCreateNode(array('type' => 'article'));
-    $node5 = $this->drupalCreateNode(array('type' => 'article'));
+    // Create a node with an alias.
+    $node5 = $this->drupalCreateNode(array(
+      'type' => 'article',
+      'path' => array(
+        'alias' => 'node5',
+      ),
+    ));
 
     // Add menu links.
-    $item1 = $this->addMenuLink(0, 'node/' . $node1->nid, $menu_name);
-    $item2 = $this->addMenuLink($item1['mlid'], 'node/' . $node2->nid, $menu_name, FALSE);
-    $item3 = $this->addMenuLink($item2['mlid'], 'node/' . $node3->nid, $menu_name);
-    $this->assertMenuLink($item1['mlid'], array('depth' => 1, 'has_children' => 1, 'p1' => $item1['mlid'], 'p2' => 0));
-    $this->assertMenuLink($item2['mlid'], array('depth' => 2, 'has_children' => 1, 'p1' => $item1['mlid'], 'p2' => $item2['mlid'], 'p3' => 0));
-    $this->assertMenuLink($item3['mlid'], array('depth' => 3, 'has_children' => 0, 'p1' => $item1['mlid'], 'p2' => $item2['mlid'], 'p3' => $item3['mlid'], 'p4' => 0));
+    $item1 = $this->addMenuLink(0, 'node/' . $node1->id(), $menu_name);
+    $item2 = $this->addMenuLink($item1['mlid'], 'node/' . $node2->id(), $menu_name, FALSE);
+    $item3 = $this->addMenuLink($item2['mlid'], 'node/' . $node3->id(), $menu_name);
+    $this->assertMenuLink($item1['mlid'], array(
+      'depth' => 1,
+      'has_children' => 1,
+      'p1' => $item1['mlid'],
+      'p2' => 0,
+      // We assert the language code here to make sure that the language
+      // selection element degrades gracefully without Language module.
+      'langcode' => 'en',
+    ));
+    $this->assertMenuLink($item2['mlid'], array(
+      'depth' => 2, 'has_children' => 1,
+      'p1' => $item1['mlid'],
+      'p2' => $item2['mlid'],
+      'p3' => 0,
+      // See above.
+      'langcode' => 'en',
+    ));
+    $this->assertMenuLink($item3['mlid'], array(
+      'depth' => 3,
+      'has_children' => 0,
+      'p1' => $item1['mlid'],
+      'p2' => $item2['mlid'],
+      'p3' => $item3['mlid'],
+      'p4' => 0,
+      // See above.
+      'langcode' => 'en',
+    ));
 
     // Verify menu links.
     $this->verifyMenuLink($item1, $node1);
@@ -229,10 +251,37 @@ class MenuTest extends WebTestBase {
     $this->verifyMenuLink($item3, $node3, $item2, $node2);
 
     // Add more menu links.
-    $item4 = $this->addMenuLink(0, 'node/' . $node4->nid, $menu_name);
-    $item5 = $this->addMenuLink($item4['mlid'], 'node/' . $node5->nid, $menu_name);
-    $this->assertMenuLink($item4['mlid'], array('depth' => 1, 'has_children' => 1, 'p1' => $item4['mlid'], 'p2' => 0));
-    $this->assertMenuLink($item5['mlid'], array('depth' => 2, 'has_children' => 0, 'p1' => $item4['mlid'], 'p2' => $item5['mlid'], 'p3' => 0));
+    $item4 = $this->addMenuLink(0, 'node/' . $node4->id(), $menu_name);
+    $item5 = $this->addMenuLink($item4['mlid'], 'node/' . $node5->id(), $menu_name);
+    // Create a menu link pointing to an alias.
+    $item6 = $this->addMenuLink($item4['mlid'], 'node5', $menu_name, TRUE, '0', 'node/' . $node5->id());
+    $this->assertMenuLink($item4['mlid'], array(
+      'depth' => 1,
+      'has_children' => 1,
+      'p1' => $item4['mlid'],
+      'p2' => 0,
+      // See above.
+      'langcode' => 'en',
+    ));
+    $this->assertMenuLink($item5['mlid'], array(
+      'depth' => 2,
+      'has_children' => 0,
+      'p1' => $item4['mlid'],
+      'p2' => $item5['mlid'],
+      'p3' => 0,
+      // See above.
+      'langcode' => 'en',
+    ));
+    $this->assertMenuLink($item6['mlid'], array(
+      'depth' => 2,
+      'has_children' => 0,
+      'p1' => $item4['mlid'],
+      'p2' => $item6['mlid'],
+      'p3' => 0,
+      'link_path' => 'node/' . $node5->id(),
+      // See above.
+      'langcode' => 'en',
+    ));
 
     // Modify menu links.
     $this->modifyMenuLink($item1);
@@ -244,17 +293,58 @@ class MenuTest extends WebTestBase {
 
     // Move link and verify that descendants are updated.
     $this->moveMenuLink($item2, $item5['mlid'], $menu_name);
-    $this->assertMenuLink($item1['mlid'], array('depth' => 1, 'has_children' => 0, 'p1' => $item1['mlid'], 'p2' => 0));
-    $this->assertMenuLink($item4['mlid'], array('depth' => 1, 'has_children' => 1, 'p1' => $item4['mlid'], 'p2' => 0));
-    $this->assertMenuLink($item5['mlid'], array('depth' => 2, 'has_children' => 1, 'p1' => $item4['mlid'], 'p2' => $item5['mlid'], 'p3' => 0));
-    $this->assertMenuLink($item2['mlid'], array('depth' => 3, 'has_children' => 1, 'p1' => $item4['mlid'], 'p2' => $item5['mlid'], 'p3' => $item2['mlid'], 'p4' => 0));
-    $this->assertMenuLink($item3['mlid'], array('depth' => 4, 'has_children' => 0, 'p1' => $item4['mlid'], 'p2' => $item5['mlid'], 'p3' => $item2['mlid'], 'p4' => $item3['mlid'], 'p5' => 0));
+    $this->assertMenuLink($item1['mlid'], array(
+      'depth' => 1,
+      'has_children' => 0,
+      'p1' => $item1['mlid'],
+      'p2' => 0,
+      // See above.
+      'langcode' => 'en',
+    ));
+    $this->assertMenuLink($item4['mlid'], array(
+      'depth' => 1,
+      'has_children' => 1,
+      'p1' => $item4['mlid'],
+      'p2' => 0,
+      // See above.
+      'langcode' => 'en',
+    ));
+    $this->assertMenuLink($item5['mlid'], array(
+      'depth' => 2,
+      'has_children' => 1,
+      'p1' => $item4['mlid'],
+      'p2' => $item5['mlid'],
+      'p3' => 0,
+      // See above.
+      'langcode' => 'en',
+    ));
+    $this->assertMenuLink($item2['mlid'], array(
+      'depth' => 3,
+      'has_children' => 1,
+      'p1' => $item4['mlid'],
+      'p2' => $item5['mlid'],
+      'p3' => $item2['mlid'],
+      'p4' => 0,
+      // See above.
+      'langcode' => 'en',
+    ));
+    $this->assertMenuLink($item3['mlid'], array(
+      'depth' => 4,
+      'has_children' => 0,
+      'p1' => $item4['mlid'],
+      'p2' => $item5['mlid'],
+      'p3' => $item2['mlid'],
+      'p4' => $item3['mlid'],
+      'p5' => 0,
+      // See above.
+      'langcode' => 'en',
+    ));
 
     // Add 102 menu links with increasing weights, then make sure the last-added
     // item's weight doesn't get changed because of the old hardcoded delta=50
     $items = array();
     for ($i = -50; $i <= 51; $i++) {
-      $items[$i] = $this->addMenuLink(0, 'node/' . $node1->nid, $menu_name, TRUE, strval($i));
+      $items[$i] = $this->addMenuLink(0, 'node/' . $node1->id(), $menu_name, TRUE, strval($i));
     }
     $this->assertMenuLink($items[51]['mlid'], array('weight' => '51'));
 
@@ -262,10 +352,10 @@ class MenuTest extends WebTestBase {
     $this->disableMenuLink($item1);
     $edit = array();
 
-    // Note in the UI the 'mlid:x[hidden]' form element maps to enabled, or
-    // NOT hidden.
-    $edit['mlid:' . $item1['mlid'] . '[hidden]'] = TRUE;
-    $this->drupalPost('admin/structure/menu/manage/' . $item1['menu_name'], $edit, t('Save configuration'));
+    // Note in the UI the 'links[mlid:x][hidden]' form element maps to enabled,
+    // or NOT hidden.
+    $edit['links[mlid:' . $item1['mlid'] . '][hidden]'] = TRUE;
+    $this->drupalPost('admin/structure/menu/manage/' . $item1['menu_name'], $edit, t('Save'));
 
     // Verify in the database.
     $this->assertMenuLink($item1['mlid'], array('hidden' => 0));
@@ -282,17 +372,94 @@ class MenuTest extends WebTestBase {
     $this->drupalLogin($this->big_user);
 
     // Make a path with query and fragment on.
-    $path = 'node?arg1=value1&arg2=value2';
+    $path = 'test-page?arg1=value1&arg2=value2';
     $item = $this->addMenuLink(0, $path);
 
     $this->drupalGet('admin/structure/menu/item/' . $item['mlid'] . '/edit');
     $this->assertFieldByName('link_path', $path, 'Path is found with both query and fragment.');
 
     // Now change the path to something without query and fragment.
-    $path = 'node';
+    $path = 'test-page';
     $this->drupalPost('admin/structure/menu/item/' . $item['mlid'] . '/edit', array('link_path' => $path), t('Save'));
     $this->drupalGet('admin/structure/menu/item/' . $item['mlid'] . '/edit');
     $this->assertFieldByName('link_path', $path, 'Path no longer has query or fragment.');
+  }
+
+  /**
+   * Test renaming built-in menu.
+   */
+  function testSystemMenuRename() {
+    $this->drupalLogin($this->big_user);
+    $edit = array(
+      'label' => $this->randomName(16),
+    );
+    $this->drupalPost('admin/structure/menu/manage/main', $edit, t('Save'));
+
+    // Make sure menu shows up with new name in block addition.
+    $default_theme = variable_get('theme_default', 'stark');
+    $this->drupalget('admin/structure/block/list/' . $default_theme);
+    $this->assertText($edit['label']);
+  }
+
+  /**
+   * Tests the contextual links on a menu block.
+   */
+  public function testBlockContextualLinks() {
+    $this->drupalLogin($this->drupalCreateUser(array('administer menu', 'access contextual links', 'administer blocks')));
+    $this->addMenuLink();
+    $block = $this->drupalPlaceBlock('system_menu_block:menu-tools', array('label' => 'Tools', 'module' => 'system'));
+    $this->drupalGet('test-page');
+
+    $id = 'block:admin/structure/block/manage:' . $block->id() . ':|menu:admin/structure/menu/manage:tools:';
+    // @see \Drupal\contextual\Tests\ContextualDynamicContextTest:assertContextualLinkPlaceHolder()
+    $this->assertRaw('<div data-contextual-id="'. $id . '"></div>', format_string('Contextual link placeholder with id @id exists.', array('@id' => $id)));
+
+    // Get server-rendered contextual links.
+    // @see \Drupal\contextual\Tests\ContextualDynamicContextTest:renderContextualLinks()
+    $post = urlencode('ids[0]') . '=' . urlencode($id);
+    $response = $this->curlExec(array(
+      CURLOPT_URL => url('contextual/render', array('absolute' => TRUE, 'query' => array('destination' => 'test-page'))),
+      CURLOPT_POST => TRUE,
+      CURLOPT_POSTFIELDS => $post,
+      CURLOPT_HTTPHEADER => array(
+        'Accept: application/json',
+        'Content-Type: application/x-www-form-urlencoded',
+      ),
+    ));
+    $this->assertResponse(200);
+    $json = drupal_json_decode($response);
+    $this->assertIdentical($json[$id], '<ul class="contextual-links"><li class="block-configure odd first"><a href="' . base_path() . 'admin/structure/block/manage/' . $block->id() . '?destination=test-page">Configure block</a></li><li class="menu-edit even last"><a href="' . base_path() . 'admin/structure/menu/manage/tools?destination=test-page">Edit menu</a></li></ul>');
+  }
+
+  /**
+   * Tests menu link bundles.
+   */
+  public function testMenuBundles() {
+    $this->drupalLogin($this->big_user);
+    $menu = $this->addCustomMenu();
+    // Clear the entity info cache to ensure the static caches are rebuilt.
+    entity_info_cache_clear();
+    $bundles = entity_get_bundles('menu_link');
+    $this->assertTrue(isset($bundles[$menu->id()]));
+    $menus = menu_list_system_menus();
+    $menus[$menu->id()] = $menu->label();
+    ksort($menus);
+    $this->assertIdentical(array_keys($bundles), array_keys($menus));
+
+    // Test if moving a menu link between menus changes the bundle.
+    $node = $this->drupalCreateNode(array('type' => 'article'));
+    $item = $this->addMenuLink(0, 'node/' . $node->id(), 'tools');
+    $this->moveMenuLink($item, 0, $menu->id());
+    $this->assertEqual($item->bundle(), 'tools', 'Menu link bundle matches the menu');
+
+    $moved_item = entity_load('menu_link', $item->id(), TRUE);
+    $this->assertNotEqual($moved_item->bundle(), $item->bundle(), 'Menu link bundle was changed');
+    $this->assertEqual($moved_item->bundle(), $menu->id(), 'Menu link bundle matches the menu');
+
+    $unsaved_item = entity_create('menu_link', array('menu_name' => $menu->id(), 'link_title' => $this->randomName(16), 'link_path' => '<front>'));
+    $this->assertEqual($unsaved_item->bundle(), $menu->id(), 'Unsaved menu link bundle matches the menu');
+    $this->assertEqual($unsaved_item->menu_name, $menu->id(), 'Unsaved menu link menu name matches the menu');
+
   }
 
   /**
@@ -302,9 +469,13 @@ class MenuTest extends WebTestBase {
    * @param string $link Link path.
    * @param string $menu_name Menu name.
    * @param string $weight Menu weight
-   * @return array Menu link created.
+   * @param string $actual_link
+   *   Actual link path in case $link is an alias.
+   *
+   * @return \Drupal\menu_link\Entity\MenuLink $menu_link
+   *   A menu link entity.
    */
-  function addMenuLink($plid = 0, $link = '<front>', $menu_name = 'tools', $expanded = TRUE, $weight = '0') {
+  function addMenuLink($plid = 0, $link = '<front>', $menu_name = 'tools', $expanded = TRUE, $weight = '0', $actual_link = FALSE) {
     // View add menu link page.
     $this->drupalGet("admin/structure/menu/manage/$menu_name/add");
     $this->assertResponse(200);
@@ -320,17 +491,20 @@ class MenuTest extends WebTestBase {
       'weight' => $weight,
     );
 
+    if (!$actual_link) {
+      $actual_link = $link;
+    }
     // Add menu link.
     $this->drupalPost(NULL, $edit, t('Save'));
     $this->assertResponse(200);
-    // Unlike most other modules, there is no confirmation message displayed.
-    $this->assertText($title, 'Menu link was added');
+    $this->assertText('The menu link has been saved.');
 
-    $item = db_query('SELECT * FROM {menu_links} WHERE link_title = :title', array(':title' => $title))->fetchAssoc();
-    $this->assertTrue(t('Menu link was found in database.'));
-    $this->assertMenuLink($item['mlid'], array('menu_name' => $menu_name, 'link_path' => $link, 'has_children' => 0, 'plid' => $plid));
+    $menu_links = entity_load_multiple_by_properties('menu_link', array('link_title' => $title));
+    $menu_link = reset($menu_links);
+    $this->assertTrue($menu_link, 'Menu link was found in database.');
+    $this->assertMenuLink($menu_link->id(), array('menu_name' => $menu_name, 'link_path' => $actual_link, 'has_children' => 0, 'plid' => $plid));
 
-    return $item;
+    return $menu_link;
   }
 
   /**
@@ -413,8 +587,7 @@ class MenuTest extends WebTestBase {
     $edit['link_title'] = $title;
     $this->drupalPost("admin/structure/menu/item/$mlid/edit", $edit, t('Save'));
     $this->assertResponse(200);
-    // Unlike most other modules, there is no confirmation message displayed.
-
+    $this->assertText('The menu link has been saved.');
     // Verify menu link.
     $this->drupalGet('admin/structure/menu/manage/' . $item['menu_name']);
     $this->assertText($title, 'Menu link was edited');
@@ -511,39 +684,42 @@ class MenuTest extends WebTestBase {
   }
 
   /**
-   * Fetch the menu item from the database and compare it to the specified
-   * array.
-   *
-   * @param $mlid
-   *   Menu item id.
-   * @param $item
-   *   Array containing properties to verify.
+   * Test administrative users other than user 1 can access the menu parents AJAX callback.
    */
-  function assertMenuLink($mlid, array $expected_item) {
-    // Retrieve menu link.
-    $item = db_query('SELECT * FROM {menu_links} WHERE mlid = :mlid', array(':mlid' => $mlid))->fetchAssoc();
-    $options = unserialize($item['options']);
-    if (!empty($options['query'])) {
-      $item['link_path'] .= '?' . drupal_http_build_query($options['query']);
-    }
-    if (!empty($options['fragment'])) {
-      $item['link_path'] .= '#' . $options['fragment'];
-    }
-    foreach ($expected_item as $key => $value) {
-      $this->assertEqual($item[$key], $value, format_string('Parameter %key had expected value.', array('%key' => $key)));
-    }
+  public function testMenuParentsJsAccess() {
+
+    $admin = $this->drupalCreateUser(array('administer menu'));
+    $this->drupalLogin($admin);
+    // Just check access to the callback overall, the POST data is irrelevant.
+    $this->drupalGetAJAX('admin/structure/menu/parents');
+    $this->assertResponse(200);
+
+    // Do standard user tests.
+    // Login the user.
+    $this->drupalLogin($this->std_user);
+    $this->drupalGetAJAX('admin/structure/menu/parents');
+    $this->assertResponse(403);
   }
 
   /**
    * Get standard menu link.
    */
   private function getStandardMenuLink() {
-    // Retrieve menu link id of the Log out menu link, which will always be on the front page.
-    $mlid = db_query("SELECT mlid FROM {menu_links} WHERE module = 'system' AND router_path = 'user/logout'")->fetchField();
+    $mlid = 0;
+    // Retrieve menu link id of the Log out menu link, which will always be on
+    // the front page.
+    $query = \Drupal::entityQuery('menu_link')
+      ->condition('module', 'system')
+      ->condition('router_path', 'user/logout');
+    $result = $query->execute();
+    if (!empty($result)) {
+      $mlid = reset($result);
+    }
+
     $this->assertTrue($mlid > 0, 'Standard menu link id was found');
     // Load menu link.
     // Use api function so that link is translated for rendering.
-    $item = menu_link_load($mlid);
+    $item = entity_load('menu_link', $mlid);
     $this->assertTrue((bool) $item, 'Standard menu link was loaded');
     return $item;
   }
@@ -553,7 +729,7 @@ class MenuTest extends WebTestBase {
    *
    * @param integer $response HTTP response code.
    */
-  private function verifyAccess($response = 200) {
+  private function verifyAccess($response = 200, $menu_name = 'tools') {
     // View menu help node.
     $this->drupalGet('admin/help/menu');
     $this->assertResponse($response);
@@ -569,7 +745,7 @@ class MenuTest extends WebTestBase {
     }
 
     // View tools menu customization node.
-    $this->drupalGet('admin/structure/menu/manage/tools');
+    $this->drupalGet('admin/structure/menu/manage/' . $menu_name);
         $this->assertResponse($response);
     if ($response == 200) {
       $this->assertText(t('Tools'), 'Tools menu node was displayed');

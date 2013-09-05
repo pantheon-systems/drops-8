@@ -37,11 +37,11 @@ class PageNotFoundTest extends WebTestBase {
 
     // Use a custom 404 page.
     $edit = array(
-      'site_404' => 'user/' . $this->admin_user->uid,
+      'site_404' => 'user/' . $this->admin_user->id(),
     );
     $this->drupalPost('admin/config/system/site-information', $edit, t('Save configuration'));
 
     $this->drupalGet($this->randomName(10));
-    $this->assertText($this->admin_user->name, 'Found the custom 404 page');
+    $this->assertText($this->admin_user->getUsername(), 'Found the custom 404 page');
   }
 }

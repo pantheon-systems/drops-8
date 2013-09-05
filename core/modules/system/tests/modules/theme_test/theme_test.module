@@ -17,6 +17,16 @@ function theme_test_theme($existing, $type, $theme, $path) {
   $items['theme_test_foo'] = array(
     'variables' => array('foo' => NULL),
   );
+  $items['theme_test_render_element'] = array(
+    'render element' => 'elements',
+    'template' => 'theme-test-render-element',
+  );
+  $items['theme_test_render_element_children'] = array(
+    'render element' => 'element',
+  );
+  $items['theme_test_function_template_override'] = array(
+    'variables' => array(),
+  );
   return $items;
 }
 
@@ -24,9 +34,10 @@ function theme_test_theme($existing, $type, $theme, $path) {
  * Implements hook_system_theme_info().
  */
 function theme_test_system_theme_info() {
-  $themes['test_theme'] = drupal_get_path('module', 'system') . '/tests/themes/test_theme/test_theme.info';
-  $themes['test_basetheme'] = drupal_get_path('module', 'system') . '/tests/themes/test_basetheme/test_basetheme.info';
-  $themes['test_subtheme'] = drupal_get_path('module', 'system') . '/tests/themes/test_subtheme/test_subtheme.info';
+  $themes['test_theme'] = drupal_get_path('module', 'system') . '/tests/themes/test_theme/test_theme.info.yml';
+  $themes['test_basetheme'] = drupal_get_path('module', 'system') . '/tests/themes/test_basetheme/test_basetheme.info.yml';
+  $themes['test_subtheme'] = drupal_get_path('module', 'system') . '/tests/themes/test_subtheme/test_subtheme.info.yml';
+  $themes['test_theme_phptemplate'] = drupal_get_path('module', 'system') . '/tests/themes/test_theme_phptemplate/test_theme_phptemplate.info.yml';
   return $themes;
 }
 
@@ -48,8 +59,8 @@ function theme_test_menu() {
     'theme callback' => '_theme_custom_theme',
     'type' => MENU_CALLBACK,
   );
-  $items['theme-test/hook-init'] = array(
-    'page callback' => 'theme_test_hook_init_page_callback',
+  $items['theme-test/request-listener'] = array(
+    'page callback' => 'theme_test_request_listener_page_callback',
     'access callback' => TRUE,
     'type' => MENU_CALLBACK,
   );
@@ -58,42 +69,16 @@ function theme_test_menu() {
     'access callback' => TRUE,
     'type' => MENU_CALLBACK,
   );
-
-  $items['theme-test'] = array(
-    'title' => 'Theme test',
-    'page callback' => 'system_admin_menu_block_page',
+  $items['theme-test/info/stylesheets'] = array(
+    'page callback' => 'theme_test_info_stylesheets',
     'access callback' => TRUE,
-    'file path' => drupal_get_path('module', 'system'),
-    'file' => 'system.admin.inc',
+    'type' => MENU_CALLBACK,
   );
-  $items['theme-test/list/operations'] = array(
-    'title' => 'Operations',
-    'page callback' => '_theme_test_list_operations',
-    'access callback' => TRUE,
+  $items['theme-test/function-template-overridden'] = array(
+    'theme callback' => '_theme_custom_theme',
+    'route_name' => 'function_template_override',
   );
   return $items;
-}
-
-/**
- * Implements hook_init().
- */
-function theme_test_init() {
-  if (arg(0) == 'theme-test' && arg(1) == 'hook-init') {
-    // First, force the theme registry to be rebuilt on this page request. This
-    // allows us to test a full initialization of the theme system in the code
-    // below.
-    drupal_theme_rebuild();
-    // Next, initialize the theme system by storing themed text in a global
-    // variable. We will use this later in theme_test_hook_init_page_callback()
-    // to test that even when the theme system is initialized this early, it is
-    // still capable of returning output and theming the page as a whole.
-    $GLOBALS['theme_test_output'] = theme('more_link', array('url' => 'user', 'title' => 'Themed output generated in hook_init()'));
-  }
-  if (arg(0) == 'user' && arg(1) == 'autocomplete') {
-    // Register a fake registry loading callback. If it gets called by
-    // theme_get_registry(), the registry has not been initialized yet.
-    _theme_registry_callback('_theme_test_load_registry', array());
-  }
 }
 
 /**
@@ -105,9 +90,9 @@ function _theme_test_load_registry() {
 }
 
 /**
- * Menu callback for testing themed output generated in hook_init().
+ * Menu callback for testing themed output generated in a request listener.
  */
-function theme_test_hook_init_page_callback() {
+function theme_test_request_listener_page_callback() {
   return $GLOBALS['theme_test_output'];
 }
 
@@ -116,6 +101,25 @@ function theme_test_hook_init_page_callback() {
  */
 function theme_test_template_test_page_callback() {
   return theme('theme_test_template_test');
+}
+
+/**
+ * Page callback; Adds stylesheets to test theme .info.yml property processing.
+ *
+ * @see test_basetheme.info.yml
+ * @see test_subtheme.info.yml
+ * @see \Drupal\system\Tests\Theme\ThemeInfoStylesTest
+ * @see http://drupal.org/node/967266#comment-3689670
+ */
+function theme_test_info_stylesheets() {
+  $path = drupal_get_path('module', 'theme_test');
+  drupal_add_css("$path/css/base-override.css");
+  drupal_add_css("$path/css/base-override.sub-remove.css");
+  drupal_add_css("$path/css/base-remove.css");
+  drupal_add_css("$path/css/base-remove.sub-override.css");
+  drupal_add_css("$path/css/sub-override.css");
+  drupal_add_css("$path/css/sub-remove.css");
+  return '';
 }
 
 /**
@@ -151,6 +155,18 @@ function _theme_test_suggestion() {
 function theme_test_preprocess_html(&$variables) {
   $variables['html_attributes']['theme_test_html_attribute'] = 'theme test html attribute value';
   $variables['attributes']['theme_test_body_attribute'] = 'theme test body attribute value';
+
+  // Check that the page variable is not flattened yet.
+  if (is_array($variables['page'])) {
+    $variables['attributes']['theme_test_page_variable'] = 'Page variable is an array.';
+  }
+}
+
+/**
+ * Implements hook_page_alter().
+ */
+function theme_test_page_alter(&$page) {
+  $page['page_bottom']['theme_test_page_bottom'] = array('#markup' => 'theme test page bottom markup');
 }
 
 /**
@@ -161,79 +177,30 @@ function theme_theme_test_foo($variables) {
 }
 
 /**
- * Page callback for manual testing of operation links.
+ * Theme function for testing theme('theme_test_function_template_override').
  */
-function _theme_test_list_operations() {
-  $build = array(
-    '#theme' => 'table',
-    '#header' => array('Label', 'Created', 'Operations'),
-    '#rows' => array(),
-  );
-  // Add an item with a very long label, using common operations.
-  $build['#rows']['long']['label'] = l('An item with a very insanely long label, which offers quite a couple of common operations', 'item/long');
-  $build['#rows']['long']['created'] = format_interval(3200);
-  $build['#rows']['long']['operations'] = array(
-    'data' => array(
-      '#type' => 'operations',
-      '#subtype' => 'node',
-      '#links' => array(
-        'edit' => array(
-          'title' => 'edit',
-          'href' => 'item/long/edit',
-        ),
-        'disable' => array(
-          'title' => 'disable',
-          'href' => 'item/long/disable',
-        ),
-        'clone' => array(
-          'title' => 'clone',
-          'href' => 'item/long/clone',
-        ),
-        'delete' => array(
-          'title' => 'delete',
-          'href' => 'item/long/delete',
-        ),
-      ),
-    ),
-  );
+function theme_theme_test_function_template_override($variables) {
+  return 'theme_test_function_template_override test failed.';
+}
 
-  // Add another item, using common operations.
-  $build['#rows']['another']['label'] = l('Another item, using common operations', 'item/another');
-  $build['#rows']['another']['created'] = format_interval(8600);
-  $build['#rows']['another']['operations'] = $build['#rows']['long']['operations'];
+/**
+ * Process variables for theme-test-render-element.tpl.php.
+ */
+function template_preprocess_theme_test_render_element(&$variables) {
+  $variables['attributes']['data-variables-are-preprocessed'] = TRUE;
+}
 
-  // Add an item with only one operation.
-  $build['#rows']['one']['label'] = l('An item with only one operation', 'item/one');
-  $build['#rows']['one']['created'] = format_interval(12400);
-  $build['#rows']['one']['operations'] = array(
-    'data' => array(
-      '#type' => 'operations',
-      '#subtype' => 'node',
-      '#links' => array(
-        'edit' => array(
-          'title' => 'edit',
-          'href' => 'item/long/edit',
-        ),
-      ),
-    ),
-  );
-
-  // Add an item that can only be viewed.
-  $build['#rows']['view']['label'] = l('An item that can only be viewed', 'item/view');
-  $build['#rows']['view']['created'] = format_interval(12400);
-  $build['#rows']['view']['operations'] = array(
-    'data' => array(
-      '#type' => 'operations',
-      '#subtype' => 'node',
-      '#links' => array(),
-    ),
-  );
-
-  // Add an item for which the default operation is denied.
-  $build['#rows']['denied']['label'] = l('An item for which the default operation is denied', 'item/denied');
-  $build['#rows']['denied']['created'] = format_interval(18600);
-  $build['#rows']['denied']['operations'] = $build['#rows']['long']['operations'];
-  unset($build['#rows']['denied']['operations']['data']['#links']['edit']);
-
-  return $build;
+/**
+ * Theme function for testing rendering of child elements via drupal_render().
+ *
+ * Theme hooks defining a 'render element' add an internal '#render_children'
+ * property. When this property is found, drupal_render() avoids calling theme()
+ * on the top-level element to prevent infinite recursion.
+ *
+ * @param array $variables
+ *   An associative array containing:
+ *   - element: An associative array containing the properties of the element.
+ */
+function theme_theme_test_render_element_children($variables) {
+  return drupal_render($variables['element']);
 }

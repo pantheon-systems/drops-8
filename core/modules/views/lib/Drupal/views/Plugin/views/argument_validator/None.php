@@ -7,7 +7,7 @@
 
 namespace Drupal\views\Plugin\views\argument_validator;
 
-use Drupal\Core\Annotation\Plugin;
+use Drupal\views\Annotation\ViewsArgumentValidator;
 use Drupal\Core\Annotation\Translation;
 
 /**
@@ -15,14 +15,14 @@ use Drupal\Core\Annotation\Translation;
  *
  * @ingroup views_argument_validate_plugins
  *
- * @Plugin(
+ * @ViewsArgumentValidator(
  *   id = "none",
  *   title = @Translation(" - Basic validation - ")
  * )
  */
 class None extends ArgumentValidatorPluginBase {
 
-  function validate_argument($argument) {
+  public function validateArgument($argument) {
     if (!empty($this->argument->options['must_not_be'])) {
       return !isset($argument);
     }

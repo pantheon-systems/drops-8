@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Definition of Drupal\system\Tests\Plugin\PluginTestBase.
+ * Contains \Drupal\system\Tests\Plugin\PluginTestBase.
  */
 
 namespace Drupal\system\Tests\Plugin;
@@ -69,6 +69,28 @@ abstract class PluginTestBase extends UnitTestBase {
       'layout:foo' => array(
         'label' => 'Layout Foo',
         'class' => 'Drupal\plugin_test\Plugin\plugin_test\mock_block\MockLayoutBlock',
+      ),
+      'user_name' => array(
+        'label' => 'User name',
+        'class' => 'Drupal\plugin_test\Plugin\plugin_test\mock_block\MockUserNameBlock',
+        'context' => array(
+          'user' => array('class' => 'Drupal\user\UserInterface')
+        ),
+      ),
+      'string_context' => array(
+        'label' => 'String typed data',
+        'class' => 'Drupal\plugin_test\Plugin\plugin_test\mock_block\TypedDataStringBlock',
+        'context' => array(
+          'string' => array('type' => 'string'),
+        ),
+      ),
+      'complex_context' => array(
+        'label' => 'Complex context',
+        'class' => 'Drupal\plugin_test\Plugin\plugin_test\mock_block\MockComplexContextBlock',
+        'context' => array(
+          'user' => array('class' => 'Drupal\user\UserInterface'),
+          'node' => array('class' => 'Drupal\node\NodeInterface'),
+        ),
       ),
     );
     $this->defaultsTestPluginExpectedDefinitions = array(

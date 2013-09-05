@@ -1,0 +1,9 @@
+services:
+  node.grant_storage:
+    class: Drupal\node\NodeGrantDatabaseStorage
+    arguments: ['@database', '@module_handler']
+  access_check.node.revision:
+    class: Drupal\node\Access\NodeRevisionAccessCheck
+    arguments: ['@entity.manager', '@database']
+    tags:
+      - { name: access_check }

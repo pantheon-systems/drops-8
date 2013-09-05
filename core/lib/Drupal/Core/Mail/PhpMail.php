@@ -59,22 +59,24 @@ class PhpMail implements MailInterface {
     foreach ($message['headers'] as $name => $value) {
       $mimeheaders[] = $name . ': ' . mime_header_encode($value);
     }
-    $line_endings = variable_get('mail_line_endings', MAIL_LINE_ENDINGS);
+    $line_endings = settings()->get('mail_line_endings', MAIL_LINE_ENDINGS);
     // Prepare mail commands.
     $mail_subject = mime_header_encode($message['subject']);
     // Note: e-mail uses CRLF for line-endings. PHP's API requires LF
     // on Unix and CRLF on Windows. Drupal automatically guesses the
     // line-ending format appropriate for your system. If you need to
-    // override this, adjust $conf['mail_line_endings'] in settings.php.
+    // override this, adjust $settings['mail_line_endings'] in settings.php.
     $mail_body = preg_replace('@\r?\n@', $line_endings, $message['body']);
     // For headers, PHP's API suggests that we use CRLF normally,
     // but some MTAs incorrectly replace LF with CRLF. See #234403.
     $mail_headers = join("\n", $mimeheaders);
 
+    $request = \Drupal::request();
+
     // We suppress warnings and notices from mail() because of issues on some
     // hosts. The return value of this method will still indicate whether mail
     // was sent successfully.
-    if (!isset($_SERVER['WINDIR']) && strpos($_SERVER['SERVER_SOFTWARE'], 'Win32') === FALSE) {
+    if (!$request->server->has('WINDIR') && strpos($request->server->get('SERVER_SOFTWARE'), 'Win32') === FALSE) {
       if (isset($message['Return-Path']) && !ini_get('safe_mode')) {
         // On most non-Windows systems, the "-f" option to the sendmail command
         // is used to set the Return-Path. There is no space between -f and

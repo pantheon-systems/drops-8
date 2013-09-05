@@ -8,20 +8,21 @@
 namespace Drupal\comment\Plugin\views\row;
 
 use Drupal\views\Plugin\views\row\RowPluginBase;
-use Drupal\Core\Annotation\Plugin;
+use Drupal\views\Annotation\ViewsRow;
 use Drupal\Core\Annotation\Translation;
 
 /**
  * Plugin which formats the comments as RSS items.
  *
- * @Plugin(
+ * @ViewsRow(
  *   id = "comment_rss",
  *   module = "comment",
  *   title = @Translation("Comment"),
  *   help = @Translation("Display the comment as RSS."),
  *   theme = "views_view_row_rss",
+ *   register_theme = FALSE,
  *   base = {"comment"},
- *   type = "feed"
+ *   display_types = {"feed"}
  * )
  */
 class Rss extends RowPluginBase {
@@ -54,7 +55,7 @@ class Rss extends RowPluginBase {
     );
   }
 
-  function pre_render($result) {
+  public function preRender($result) {
     $cids = array();
     $nids = array();
 
@@ -63,12 +64,10 @@ class Rss extends RowPluginBase {
     }
 
     $this->comments = comment_load_multiple($cids);
-    foreach ($this->comments as &$comment) {
-      $comment->depth = count(explode('.', $comment->thread)) - 1;
-      $nids[] = $comment->nid;
+    foreach ($this->comments as $comment) {
+      $comment->depth = count(explode('.', $comment->thread->value)) - 1;
     }
 
-    $this->nodes = node_load_multiple($nids);
   }
 
   /**
@@ -79,19 +78,17 @@ class Rss extends RowPluginBase {
    * in views_plugin_row_comment|node_rss.inc
    */
   function options_form_summary_options() {
-    $entity_info = entity_get_info('node');
+    $view_modes = entity_get_view_modes('node');
     $options = array();
-    if (!empty($entity_info['view_modes'])) {
-      foreach ($entity_info['view_modes'] as $mode => $settings) {
-        $options[$mode] = $settings['label'];
-      }
+    foreach ($view_modes as $mode => $settings) {
+      $options[$mode] = $settings['label'];
     }
     $options['title'] = t('Title only');
     $options['default'] = t('Use site default RSS settings');
     return $options;
   }
 
-  function render($row) {
+  public function render($row) {
     global $base_url;
 
     $cid = $row->{$this->field_alias};
@@ -101,12 +98,12 @@ class Rss extends RowPluginBase {
 
     $item_length = $this->options['item_length'];
     if ($item_length == 'default') {
-      $item_length = config('system.rss')->get('items.view_mode');
+      $item_length = \Drupal::config('system.rss')->get('items.view_mode');
     }
 
     // Load the specified comment and its associated node:
     $comment = $this->comments[$cid];
-    if (empty($comment) || empty($this->nodes[$comment->nid])) {
+    if (empty($comment)) {
       return;
     }
 
@@ -118,11 +115,11 @@ class Rss extends RowPluginBase {
     $comment->rss_elements = array(
       array(
         'key' => 'pubDate',
-        'value' => gmdate('r', $comment->created),
+        'value' => gmdate('r', $comment->created->value),
       ),
       array(
         'key' => 'dc:creator',
-        'value' => $comment->name,
+        'value' => $comment->name->value,
       ),
       array(
         'key' => 'guid',
@@ -133,7 +130,7 @@ class Rss extends RowPluginBase {
 
     // The comment gets built and modules add to or modify
     // $comment->rss_elements and $comment->rss_namespaces.
-    $build = comment_view($comment, $this->nodes[$comment->nid], 'rss');
+    $build = comment_view($comment, 'rss');
     unset($build['#theme']);
 
     if (!empty($comment->rss_namespaces)) {
@@ -151,18 +148,20 @@ class Rss extends RowPluginBase {
       $item_text .= drupal_render($build);
     }
 
-    $item = new stdClass();
+    $item = new \stdClass();
     $item->description = $item_text;
     $item->title = $comment->label();
     $item->link = $comment->link;
     $item->elements = $comment->rss_elements;
     $item->cid = $comment->id();
 
-    return theme($this->themeFunctions(), array(
-      'view' => $this->view,
-      'options' => $this->options,
-      'row' => $item
-    ));
+    $build = array(
+      '#theme' => $this->themeFunctions(),
+      '#view' => $this->view,
+      '#options' => $this->options,
+      '#row' => $item,
+    );
+    return drupal_render($build);
   }
 
 }

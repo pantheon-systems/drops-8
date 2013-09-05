@@ -1,7 +1,4 @@
-debug:
-  output: '0'
-  region: 'footer'
-display_extenders: { }
+display_extenders: {  }
 no_javascript: '0'
 skip_cache: '0'
 sql_signature: '0'
@@ -9,18 +6,16 @@ ui:
   show:
     additional_queries: '0'
     advanced_column: '0'
-    listing_filters: '0'
     master_display: '0'
     performance_statistics: '0'
     preview_information: '1'
     sql_query:
       enabled: '0'
-      where: 'above'
+      where: above
     display_embed: '0'
-  custom_theme: '_default'
+  custom_theme: _default
   always_live_preview: '1'
   always_live_preview_button: '1'
-  exposed_filter_any_label: 'new_any'
 field_rewrite_elements:
   div: DIV
   span: SPAN
@@ -31,5 +26,23 @@ field_rewrite_elements:
   h5: H5
   h6: H6
   p: P
+  header: HEADER
+  footer: FOOTER
+  article: ARTICLE
+  section: SECTION
+  aside: ASIDE
+  details: DETAILS
+  blockquote: BLOCKQUOTE
+  figure: FIGURE
+  address: ADDRESS
+  code: CODE
+  pre: PRE
+  var: VAR
+  samp: SAMP
+  kbd: KBD
   strong: STRONG
   em: EM
+  del: DEL
+  ins: INS
+  q: Q
+  s: S

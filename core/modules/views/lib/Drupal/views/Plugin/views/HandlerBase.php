@@ -7,10 +7,15 @@
 
 namespace Drupal\views\Plugin\views;
 
-use Drupal\Component\Plugin\Discovery\DiscoveryInterface;
+use Drupal\Component\Utility\String;
+use Drupal\Component\Utility\Unicode;
+use Drupal\Component\Utility\Url;
+use Drupal\Component\Utility\Xss;
+use Drupal\views\Plugin\views\display\DisplayPluginBase;
 use Drupal\views\Plugin\views\PluginBase;
 use Drupal\views\ViewExecutable;
 use Drupal\Core\Database\Database;
+use Drupal\views\Views;
 
 abstract class HandlerBase extends PluginBase {
 
@@ -74,24 +79,17 @@ abstract class HandlerBase extends PluginBase {
   /**
    * Constructs a Handler object.
    */
-  public function __construct(array $configuration, $plugin_id, DiscoveryInterface $discovery) {
-    parent::__construct($configuration, $plugin_id, $discovery);
+  public function __construct(array $configuration, $plugin_id, array $plugin_definition) {
+    parent::__construct($configuration, $plugin_id, $plugin_definition);
     $this->is_handler = TRUE;
   }
 
   /**
-   * Init the handler with necessary data.
-   *
-   * @param Drupal\views\ViewExecutable $view
-   *   The $view object this handler is attached to.
-   * @param array $options
-   *   The item from the database; the actual contents of this will vary
-   *   based upon the type of handler.
+   * Overrides \Drupal\views\Plugin\views\PluginBase::init().
    */
-  public function init(ViewExecutable $view, &$options) {
-    $this->setOptionDefaults($this->options, $this->defineOptions());
-    $this->view = &$view;
-    $display_id = $this->view->current_display;
+  public function init(ViewExecutable $view, DisplayPluginBase $display, array &$options = NULL) {
+    parent::init($view, $display, $options);
+
     // Check to see if this handler type is defaulted. Note that
     // we have to do a lookup because the type is singular but the
     // option is stored as the plural.
@@ -105,13 +103,9 @@ abstract class HandlerBase extends PluginBase {
       $options['field'] = $this->actualField;
     }
 
-    $types = ViewExecutable::viewsHandlerTypes();
     $plural = $this->definition['plugin_type'];
     if (isset($types[$plural]['plural'])) {
       $plural = $types[$plural]['plural'];
-    }
-    if ($this->view->display_handler->isDefaulted($plural)) {
-      $display_id = 'default';
     }
 
     $this->unpackOptions($this->options, $options);
@@ -179,7 +173,7 @@ abstract class HandlerBase extends PluginBase {
   public function getField($field = NULL) {
     if (!isset($field)) {
       if (!empty($this->formula)) {
-        $field = $this->get_formula();
+        $field = $this->getFormula();
       }
       else {
         $field = $this->tableAlias . '.' . $this->realField;
@@ -190,7 +184,7 @@ abstract class HandlerBase extends PluginBase {
     if ($this->view->display_handler->useGroupBy()) {
       $this->view->initQuery();
       if ($this->query) {
-        $info = $this->query->get_aggregation_info();
+        $info = $this->query->getAggregationInfo();
         if (!empty($info[$this->options['group_type']]['method'])) {
           $method = $info[$this->options['group_type']]['method'];
           if (method_exists($this->query, $method)) {
@@ -214,19 +208,19 @@ abstract class HandlerBase extends PluginBase {
    * @return string
    *   Returns the safe value.
    */
-  protected function sanitizeValue($value, $type = NULL) {
+  public function sanitizeValue($value, $type = NULL) {
     switch ($type) {
       case 'xss':
-        $value = filter_xss($value);
+        $value = Xss::filter($value);
         break;
       case 'xss_admin':
-        $value = filter_xss_admin($value);
+        $value = Xss::filterAdmin($value);
         break;
       case 'url':
-        $value = check_url($value);
+        $value = String::checkPlain(Url::stripDangerousProtocols($value));
         break;
       default:
-        $value = check_plain($value);
+        $value = String::checkPlain($value);
         break;
     }
     return $value;
@@ -248,8 +242,6 @@ abstract class HandlerBase extends PluginBase {
    *    The transformed string.
    */
   protected function caseTransform($string, $option) {
-    global $multibyte;
-
     switch ($option) {
       default:
         return $string;
@@ -260,7 +252,7 @@ abstract class HandlerBase extends PluginBase {
       case 'ucfirst':
         return drupal_strtoupper(drupal_substr($string, 0, 1)) . drupal_substr($string, 1);
       case 'ucwords':
-        if ($multibyte == UNICODE_MULTIBYTE) {
+        if (Unicode::getStatus() == Unicode::STATUS_MULTIBYTE) {
           return mb_convert_case($string, MB_CASE_TITLE);
         }
         else {
@@ -281,28 +273,41 @@ abstract class HandlerBase extends PluginBase {
     // Some form elements belong in a fieldset for presentation, but can't
     // be moved into one because of the form_state['values'] hierarchy. Those
     // elements can add a #fieldset => 'fieldset_name' property, and they'll
-    // be moved to their fieldset during pre_render.
+    // be moved to their fieldset during preRender.
     $form['#pre_render'][] = 'views_ui_pre_render_add_fieldset_markup';
 
+    parent::buildOptionsForm($form, $form_state);
+
+    $form['fieldsets'] = array(
+      '#type' => 'value',
+      '#value' => array('more', 'admin_label'),
+    );
+
     $form['admin_label'] = array(
+      '#type' => 'details',
+      '#title' => t('Administrative title'),
+      '#collapsed' => TRUE,
+      '#weight' => 150,
+    );
+    $form['admin_label']['admin_label'] = array(
       '#type' => 'textfield',
       '#title' => t('Administrative title'),
       '#description' => t('This title will be displayed on the views edit page instead of the default one. This might be useful if you have the same item twice.'),
       '#default_value' => $this->options['admin_label'],
-      '#fieldset' => 'more',
+      '#parents' => array('options', 'admin_label'),
     );
 
     // This form is long and messy enough that the "Administrative title" option
-    // belongs in a "more options" fieldset at the bottom of the form.
+    // belongs in "Administrative title" fieldset at the bottom of the form.
     $form['more'] = array(
-      '#type' => 'fieldset',
+      '#type' => 'details',
       '#title' => t('More'),
-      '#collapsible' => TRUE,
       '#collapsed' => TRUE,
-      '#weight' => 150,
+      '#weight' => 200,
     );
     // Allow to alter the default values brought into the form.
-    drupal_alter('views_handler_options', $this->options, $view);
+    // @todo Do we really want to keep this hook.
+    \Drupal::moduleHandler()->alter('views_handler_options', $this->options, $this->view);
   }
 
   /**
@@ -321,19 +326,14 @@ abstract class HandlerBase extends PluginBase {
    * Provide a form for aggregation settings.
    */
   public function buildGroupByForm(&$form, &$form_state) {
-    $view = &$form_state['view'];
     $display_id = $form_state['display_id'];
-    $types = ViewExecutable::viewsHandlerTypes();
     $type = $form_state['type'];
     $id = $form_state['id'];
 
-    $form['#title'] = check_plain($view->display[$display_id]['display_title']) . ': ';
-    $form['#title'] .= t('Configure aggregation settings for @type %item', array('@type' => $types[$type]['lstitle'], '%item' => $this->adminLabel()));
-
     $form['#section'] = $display_id . '-' . $type . '-' . $id;
 
-    $view->initQuery();
-    $info = $view->query->get_aggregation_info();
+    $this->view->initQuery();
+    $info = $this->view->query->getAggregationInfo();
     foreach ($info as $id => $aggregate) {
       $group_types[$id] = $aggregate['title'];
     }
@@ -538,7 +538,7 @@ abstract class HandlerBase extends PluginBase {
    */
   public function ensureMyTable() {
     if (!isset($this->tableAlias)) {
-      $this->tableAlias = $this->query->ensure_table($this->table, $this->relationship);
+      $this->tableAlias = $this->query->ensureTable($this->table, $this->relationship);
     }
     return $this->tableAlias;
   }
@@ -591,7 +591,7 @@ abstract class HandlerBase extends PluginBase {
     // get the join from this table that links back to the base table.
     // Determine the primary table to seek
     if (empty($this->query->relationships[$this->relationship])) {
-      $base_table = $this->query->base_table;
+      $base_table = $this->view->storage->get('base_table');
     }
     else {
       $base_table = $this->query->relationships[$this->relationship]['base'];
@@ -631,74 +631,8 @@ abstract class HandlerBase extends PluginBase {
    * @return string
    *   An appropriate SQL string for the DB type and field type.
    */
-  public function getSQLFormat($format) {
-    $db_type = Database::getConnection()->databaseType();
-    $field = $this->getSQLDateField();
-    switch ($db_type) {
-      case 'mysql':
-        $replace = array(
-          'Y' => '%Y',
-          'y' => '%y',
-          'M' => '%b',
-          'm' => '%m',
-          'n' => '%c',
-          'F' => '%M',
-          'D' => '%a',
-          'd' => '%d',
-          'l' => '%W',
-          'j' => '%e',
-          'W' => '%v',
-          'H' => '%H',
-          'h' => '%h',
-          'i' => '%i',
-          's' => '%s',
-          'A' => '%p',
-          );
-        $format = strtr($format, $replace);
-        return "DATE_FORMAT($field, '$format')";
-      case 'pgsql':
-        $replace = array(
-          'Y' => 'YYYY',
-          'y' => 'YY',
-          'M' => 'Mon',
-          'm' => 'MM',
-          'n' => 'MM', // no format for Numeric representation of a month, without leading zeros
-          'F' => 'Month',
-          'D' => 'Dy',
-          'd' => 'DD',
-          'l' => 'Day',
-          'j' => 'DD', // no format for Day of the month without leading zeros
-          'W' => 'WW',
-          'H' => 'HH24',
-          'h' => 'HH12',
-          'i' => 'MI',
-          's' => 'SS',
-          'A' => 'AM',
-          );
-        $format = strtr($format, $replace);
-        return "TO_CHAR($field, '$format')";
-      case 'sqlite':
-        $replace = array(
-          'Y' => '%Y', // 4 digit year number
-          'y' => '%Y', // no format for 2 digit year number
-          'M' => '%m', // no format for 3 letter month name
-          'm' => '%m', // month number with leading zeros
-          'n' => '%m', // no format for month number without leading zeros
-          'F' => '%m', // no format for full month name
-          'D' => '%d', // no format for 3 letter day name
-          'd' => '%d', // day of month number with leading zeros
-          'l' => '%d', // no format for full day name
-          'j' => '%d', // no format for day of month number without leading zeros
-          'W' => '%W', // ISO week number
-          'H' => '%H', // 24 hour hour with leading zeros
-          'h' => '%H', // no format for 12 hour hour with leading zeros
-          'i' => '%M', // minutes with leading zeros
-          's' => '%S', // seconds with leading zeros
-          'A' => '', // no format for  AM/PM
-        );
-        $format = strtr($format, $replace);
-        return "strftime('$format', $field, 'unixepoch')";
-    }
+  public function getDateFormat($format) {
+    return $this->query->getDateFormat($this->getDateField(), $format);
   }
 
   /**
@@ -707,67 +641,8 @@ abstract class HandlerBase extends PluginBase {
    * @return string
    *   An appropriate SQL string for the db type and field type.
    */
-  public function getSQLDateField() {
-    $field = "$this->tableAlias.$this->realField";
-    $db_type = Database::getConnection()->databaseType();
-    $offset = $this->getTimezone();
-    if (isset($offset) && !is_numeric($offset)) {
-      $dtz = new \DateTimeZone($offset);
-      $dt = new \DateTime('now', $dtz);
-      $offset_seconds = $dtz->getOffset($dt);
-    }
-
-    switch ($db_type) {
-      case 'mysql':
-        $field = "DATE_ADD('19700101', INTERVAL $field SECOND)";
-        if (!empty($offset)) {
-          $field = "($field + INTERVAL $offset_seconds SECOND)";
-        }
-        return $field;
-      case 'pgsql':
-        $field = "TO_TIMESTAMP($field)";
-        if (!empty($offset)) {
-          $field = "($field + INTERVAL '$offset_seconds SECONDS')";
-        }
-        return $field;
-      case 'sqlite':
-        if (!empty($offset)) {
-          $field = "($field + '$offset_seconds')";
-        }
-        return $field;
-    }
-  }
-
-  /**
-   * Figure out what timezone we're in; needed for some date manipulations.
-   */
-  public static function getTimezone() {
-    global $user;
-    if (variable_get('configurable_timezones', 1) && $user->uid && strlen($user->timezone)) {
-      $timezone = $user->timezone;
-    }
-    else {
-      $timezone = variable_get('date_default_timezone', 0);
-    }
-
-    // set up the database timezone
-    $db_type = Database::getConnection()->databaseType();
-    if (in_array($db_type, array('mysql', 'pgsql'))) {
-      $offset = '+00:00';
-      static $already_set = FALSE;
-      if (!$already_set) {
-        if ($db_type == 'pgsql') {
-          db_query("SET TIME ZONE INTERVAL '$offset' HOUR TO MINUTE");
-        }
-        elseif ($db_type == 'mysql') {
-          db_query("SET @@session.time_zone = '$offset'");
-        }
-
-        $already_set = TRUE;
-      }
-    }
-
-    return $timezone;
+  public function getDateField() {
+    return $this->query->getDateField("$this->tableAlias.$this->realField");
   }
 
   /**
@@ -781,7 +656,7 @@ abstract class HandlerBase extends PluginBase {
    * @return Drupal\views\Plugin\views\join\JoinPluginBase
    */
   public static function getTableJoin($table, $base_table) {
-    $data = views_fetch_data($table);
+    $data = Views::viewsData()->get($table);
     if (isset($data['table']['join'][$base_table])) {
       $join_info = $data['table']['join'][$base_table];
       if (!empty($join_info['join_id'])) {
@@ -807,9 +682,36 @@ abstract class HandlerBase extends PluginBase {
         }
       }
 
-      $join = drupal_container()->get('plugin.manager.views.join')->createInstance($id, $configuration);
+      $join = Views::pluginManager('join')->createInstance($id, $configuration);
 
       return $join;
+    }
+  }
+
+  /**
+   * Determines the entity type used by this handler.
+   *
+   * If this handler uses a relationship, the base class of the relationship is
+   * taken into account.
+   *
+   * @return string
+   *   The machine name of the entity type.
+   */
+  public function getEntityType() {
+    // If the user has configured a relationship on the handler take that into
+    // account.
+    if (!empty($this->options['relationship']) && $this->options['relationship'] != 'none') {
+      $views_data = Views::viewsData()->get($this->view->relationship->table);
+    }
+    else {
+      $views_data = Views::viewsData()->get($this->view->storage->get('base_table'));
+    }
+
+    if (isset($views_data['table']['entity type'])) {
+      return $views_data['table']['entity type'];
+    }
+    else {
+      throw new \Exception(format_string('No entity type for field @field on view @view', array('@field' => $this->options['id'], '@view' => $this->view->storage->id())));
     }
   }
 
@@ -925,6 +827,88 @@ abstract class HandlerBase extends PluginBase {
     }
 
     return $handler;
+  }
+
+  /**
+   * Displays the Expose form.
+   */
+  public function displayExposedForm($form, &$form_state) {
+    $item = &$this->options;
+    // flip
+    $item['exposed'] = empty($item['exposed']);
+
+    // If necessary, set new defaults:
+    if ($item['exposed']) {
+      $this->defaultExposeOptions();
+    }
+
+    $form_state['view']->getExecutable()->setItem($form_state['display_id'], $form_state['type'], $form_state['id'], $item);
+
+    $form_state['view']->addFormToStack($form_state['form_key'], $form_state['display_id'], $form_state['type'], $form_state['id'], TRUE, TRUE);
+
+    $form_state['view']->cacheSet();
+    $form_state['rerender'] = TRUE;
+    $form_state['rebuild'] = TRUE;
+    $form_state['force_expose_options'] = TRUE;
+  }
+
+  /**
+   * A submit handler that is used for storing temporary items when using
+   * multi-step changes, such as ajax requests.
+   */
+  public function submitTemporaryForm($form, &$form_state) {
+    // Run it through the handler's submit function.
+    $this->submitOptionsForm($form['options'], $form_state);
+    $item = $this->options;
+    $types = ViewExecutable::viewsHandlerTypes();
+
+    // For footer/header $handler_type is area but $type is footer/header.
+    // For all other handle types it's the same.
+    $handler_type = $type = $form_state['type'];
+    if (!empty($types[$type]['type'])) {
+      $handler_type = $types[$type]['type'];
+    }
+
+    $override = NULL;
+    $executable = $form_state['view']->getExecutable();
+    if ($executable->display_handler->useGroupBy() && !empty($item['group_type'])) {
+      if (empty($executable->query)) {
+        $executable->initQuery();
+      }
+      $aggregate = $executable->query->getAggregationInfo();
+      if (!empty($aggregate[$item['group_type']]['handler'][$type])) {
+        $override = $aggregate[$item['group_type']]['handler'][$type];
+      }
+    }
+
+    // Create a new handler and unpack the options from the form onto it. We
+    // can use that for storage.
+    $handler = Views::handlerManager($handler_type)->getHandler($item, $override);
+    $handler->init($executable, $executable->display_handler, $item);
+
+    // Add the incoming options to existing options because items using
+    // the extra form may not have everything in the form here.
+    $options = $form_state['values']['options'] + $this->options;
+
+    // This unpacks only options that are in the definition, ensuring random
+    // extra stuff on the form is not sent through.
+    $handler->unpackOptions($handler->options, $options, NULL, FALSE);
+
+    // Store the item back on the view.
+    $executable = $form_state['view']->getExecutable();
+    $executable->temporary_options[$type][$form_state['id']] = $handler->options;
+
+    // @todo Decide if \Drupal\views_ui\Form\Ajax\ViewsFormBase::getForm() is
+    //   perhaps the better place to fix the issue.
+    // \Drupal\views_ui\Form\Ajax\ViewsFormBase::getForm() drops the current
+    // form from the stack, even if it's an #ajax. So add the item back to the top
+    // of the stack.
+    $form_state['view']->addFormToStack($form_state['form_key'], $form_state['display_id'], $type, $item['id'], TRUE);
+
+    $form_state['rerender'] = TRUE;
+    $form_state['rebuild'] = TRUE;
+    // Write to cache
+    $form_state['view']->cacheSet();
   }
 
 }

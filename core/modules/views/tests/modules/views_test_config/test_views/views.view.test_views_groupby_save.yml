@@ -1,0 +1,33 @@
+base_table: views_test_data
+core: '8'
+description: ''
+status: '1'
+display:
+  default:
+    display_options:
+      access:
+        type: none
+      cache:
+        type: none
+      exposed_form:
+        type: basic
+      pager:
+        type: none
+      style:
+        type: default
+      row:
+        type: fields
+      fields:
+        id:
+          field: id
+          table: views_test_data
+          id: id
+          plugin_id: id
+          provider: views_test_data
+    display_plugin: default
+    display_title: Master
+    id: default
+    position: '0'
+label: ''
+id: test_views_groupby_save
+tag: ''

@@ -1,0 +1,193 @@
+/**
+ * @file
+ * Installation styling.
+ *
+ * Unfortunately we have to make our styling quite strong, to override the
+ * .in-maintenance styling.
+ */
+.install-background {
+  background-color: #1275b2;
+  background-image:
+    url('images/noise-low.png'),
+    -webkit-radial-gradient(hsl(203, 80%, 45%), hsl(203, 80%, 32%));
+  background-image:
+    url('images/noise-low.png'),
+    -moz-radial-gradient(hsl(203, 80%, 45%), hsl(203, 80%, 32%));
+  background-image:
+    url('images/noise-low.png'),
+    -o-radial-gradient(hsl(203, 80%, 45%), hsl(203, 80%, 32%));
+  background-image:
+    url('images/noise-low.png'),
+    radial-gradient(hsl(203, 80%, 45%), hsl(203, 80%, 32%));
+  background-repeat: repeat;
+  background-position: left top, 50% 50%;
+  min-height: 100%;
+}
+body.install-page {
+  background: none;
+}
+@media all and (min-width: 48em) { /* 768px */
+  html, body {
+    height: 100%;
+    text-align: center;
+    white-space: nowrap;
+    margin: 0;
+  }
+  body:before {
+    content: '';
+    display: inline-block;
+    height: 100%;
+    width: 0;
+    vertical-align: middle;
+    margin-right: -0.35em;
+  }
+  body.install-page #page {
+    display: inline-block;
+    vertical-align: middle;
+    text-align: left;
+    white-space: normal;
+    border-radius: 5px;
+    width: 75%;
+    max-width: 770px;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    padding: 1em 2em 1em 0; /* LTR */
+  }
+  [dir="rtl"] body.install-page #page {
+    padding: 1em 0 1em 2em;
+  }
+  body.install-page #content {
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+    clear: none;
+    float: left;
+    padding-left: 50px; /* LTR */
+    width: 65%;
+  }
+  [dir="rtl"] body.install-page #content {
+    float: right;
+    padding-left: 0;
+    padding-right: 50px;
+  }
+  ul{
+    padding: 15px;
+    margin: 0.25em 0 0.25em 0;
+  }
+  body.install-page #sidebar-first {
+    float: left;
+    width: 35%;
+  }
+  [dir="rtl"] body.install-page #sidebar-first {
+    float: right;
+  }
+}
+body.install-page #site-name {
+  font-size: 2em;
+  line-height: 1.2em;
+  color: #0074bd;
+  margin: 0.75em 0 0.75em 50px; /* LTR */
+}
+[dir="rtl"] body.install-page #site-name {
+  margin: 0.75em 50px 0.75em 0;
+}
+body.install-page #page-title {
+  background: transparent;
+  padding-top: 0;
+}
+@media all and  (max-width: 48em) { /* 768px */
+  body.install-page #site-name {
+    margin-left: 0;
+  }
+  body.install-page {
+    padding: 0;
+  }
+  body.install-page #page {
+    width: auto;
+    padding: 10px 20px 0;
+  }
+}
+.install-task-list {
+  margin-left: 0; /* LTR */
+  list-style-type: none;
+  list-style-image: none;
+  padding-left: 0; /* LTR */
+  padding-bottom: 1em;
+}
+[dir="rtl"] .install-task-list {
+  margin-right: 0;
+  padding-right: 0;
+}
+.install-task-list li {
+  padding: 0.5em 1em 0.5em 50px; /* LTR */
+  color: #1a1a1a;
+}
+[dir="rtl"] .install-task-list li {
+  padding: 0.5em 20px 0.5em 1em;
+}
+.install-task-list li.active {
+  background: #ebeae4;
+  position: relative;
+  font-weight: normal;
+}
+.install-task-list li.active:after {
+  left: 100%; /* LTR */
+  border: solid transparent;
+  border-color: rgba(235, 234, 228, 0);
+  border-left-color: #ebeae4; /* LTR */
+  border-width: 17px;
+  content: " ";
+  height: 0;
+  width: 0;
+  position: absolute;
+  pointer-events: none;
+  top: 50%;
+  margin-top: -17px;
+}
+[dir="rtl"] .install-task-list li.active:after {
+  left: auto;
+  right: 100%;
+  border-left-color: transparent;
+  border-right-color: #ebeae4;
+}
+.install-task-list li.done {
+  color: #adadad;
+}
+.step-indicator {
+  display: none;
+}
+@media all and (max-width: 48em) { /* 768px */
+  .install-task-list {
+    display: none;
+  }
+  body.in-maintenance #branding h1 {
+    float: left; /* LTR */
+    width: auto;
+  }
+  .step-indicator {
+    display: block;
+    font-size: 1.385em;
+    position: absolute;
+    top: 1.9em;
+    right: 40px;
+  }
+  [dir="rtl"] .step-indicator {
+  left: 40px;
+  right: auto;
+  }
+}
+.install-page .password-parent,
+.install-page .confirm-parent {
+  width: auto;
+}
+.install-page div.form-item div.password-suggestions {
+  float: none;
+  width: auto;
+}
+@media all and (max-width: 975px) and (min-width: 48em) {
+  .install-page .password-strength,
+  .install-page .confirm-parent,
+  .install-page div.password-confirm {
+    float: none;
+    width: auto;
+  }
+}

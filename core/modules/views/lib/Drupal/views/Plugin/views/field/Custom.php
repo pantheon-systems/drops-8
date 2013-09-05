@@ -7,16 +7,15 @@
 
 namespace Drupal\views\Plugin\views\field;
 
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
+use Drupal\views\ResultRow;
 
 /**
  * A handler to provide a field that is completely custom by the administrator.
  *
  * @ingroup views_field_handlers
  *
- * @Plugin(
- *   id = "custom"
- * )
+ * @PluginID("custom")
  */
 class Custom extends FieldPluginBase {
 
@@ -40,12 +39,33 @@ class Custom extends FieldPluginBase {
     unset($form['alter']['alter_text']);
     unset($form['alter']['text']['#states']);
     unset($form['alter']['help']['#states']);
-    $form['#pre_render'][] = 'views_handler_field_custom_pre_render_move_text';
+    $form['#pre_render'][] = array($this, 'preRenderCustomForm');
   }
 
-  function render($values) {
+  /**
+   * {@inheritdoc}
+   */
+  public function render(ResultRow $values) {
     // Return the text, so the code never thinks the value is empty.
     return $this->options['alter']['text'];
+  }
+
+  /**
+   * Prerender function to move the textarea to the top of a form.
+   *
+   * @param array $form
+   *   The form build array.
+   *
+   * @return array
+   *   The modified form build array.
+   */
+  public function preRenderCustomForm($form) {
+    $form['text'] = $form['alter']['text'];
+    $form['help'] = $form['alter']['help'];
+    unset($form['alter']['text']);
+    unset($form['alter']['help']);
+
+    return $form;
   }
 
 }

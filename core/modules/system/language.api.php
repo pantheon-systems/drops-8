@@ -11,33 +11,6 @@
  */
 
 /**
- * Allows modules to act after language initialization has been performed.
- *
- * This is primarily needed to provide translation for configuration variables
- * in the proper bootstrap phase. Variables are user-defined strings and
- * therefore should not be translated via t(), since the source string can
- * change without notice and any previous translation would be lost. Moreover,
- * since variables can be used in the bootstrap phase, we need a bootstrap hook
- * to provide a translation early enough to avoid misalignments between code
- * using the original values and code using the translated values. However
- * modules implementing hook_boot() should be aware that language initialization
- * did not happen yet and thus they cannot rely on translated variables.
- */
-function hook_language_init() {
-  global $conf;
-
-  switch (language(LANGUAGE_TYPE_INTERFACE)->langcode) {
-    case 'it':
-      $conf['system.site']['name'] = 'Il mio sito Drupal';
-      break;
-
-    case 'fr':
-      $conf['system.site']['name'] = 'Mon site Drupal';
-      break;
-  }
-}
-
-/**
  * Perform alterations on language switcher links.
  *
  * A language switcher link may need to point to a different path or use a
@@ -52,10 +25,10 @@ function hook_language_init() {
  *   The current path.
  */
 function hook_language_switch_links_alter(array &$links, $type, $path) {
-  $language_interface = language(LANGUAGE_TYPE_INTERFACE);
+  $language_interface = language(\Drupal\Core\Language\Language::TYPE_INTERFACE);
 
-  if ($type == LANGUAGE_TYPE_CONTENT && isset($links[$language_interface->langcode])) {
-    foreach ($links[$language_interface->langcode] as $link) {
+  if ($type == \Drupal\Core\Language\Language::TYPE_CONTENT && isset($links[$language_interface->id])) {
+    foreach ($links[$language_interface->id] as $link) {
       $link['attributes']['class'][] = 'active-language';
     }
   }
@@ -71,10 +44,16 @@ function hook_language_switch_links_alter(array &$links, $type, $path) {
  *   may contain the following elements:
  *   - name: The human-readable language type identifier.
  *   - description: A description of the language type.
+ *   - locked: A boolean indicating if the user can choose wether to configure
+ *     the language type or not using the UI.
  *   - fixed: A fixed array of language negotiation method identifiers to use to
- *     initialize this language. Defining this key makes the language type
- *     non-configurable, so it will always use the specified methods in the
- *     given priority order. Omit to make the language type configurable.
+ *     initialize this language. If locked is set to TRUE and fixed is set, it
+ *     will always use the specified methods in the given priority order. If not
+ *     present and locked is TRUE then LANGUAGE_NEGOTIATION_INTERFACE will be
+ *     used.
+ *
+ *  @todo Rename the 'fixed' key to something more meaningful, for instance
+ *     'negotiation settings'.
  *
  * @see hook_language_types_info_alter()
  * @ingroup language_negotiation
@@ -84,8 +63,10 @@ function hook_language_types_info() {
     'custom_language_type' => array(
       'name' => t('Custom language'),
       'description' => t('A custom language type.'),
+      'locked' => FALSE,
     ),
     'fixed_custom_language_type' => array(
+      'locked' => TRUE,
       'fixed' => array('custom_language_negotiation_method'),
     ),
   );
@@ -183,4 +164,80 @@ function hook_language_fallback_candidates_alter(array &$fallback_candidates) {
 
 /**
  * @} End of "addtogroup hooks".
+ */
+
+/**
+ * @defgroup transliteration Transliteration
+ * @{
+ * Transliterate from Unicode to US-ASCII
+ *
+ * Transliteration is the process of translating individual non-US-ASCII
+ * characters into ASCII characters, which specifically does not transform
+ * non-printable and punctuation characters in any way. This process will always
+ * be both inexact and language-dependent. For instance, the character Ö (O with
+ * an umlaut) is commonly transliterated as O, but in German text, the
+ * convention would be to transliterate it as Oe or OE, depending on the context
+ * (beginning of a capitalized word, or in an all-capital letter context).
+ *
+ * The Drupal default transliteration process transliterates text character by
+ * character using a database of generic character transliterations and
+ * language-specific overrides. Character context (such as all-capitals
+ * vs. initial capital letter only) is not taken into account, and in
+ * transliterations of capital letters that result in two or more letters, by
+ * convention only the first is capitalized in the Drupal transliteration
+ * result. Also, only Unicode characters of 4 bytes or less can be
+ * transliterated in the base system; language-specific overrides can be made
+ * for longer Unicode characters. So, the process has limitations; however,
+ * since the reason for transliteration is typically to create machine names or
+ * file names, this should not really be a problem. After transliteration,
+ * other transformation or validation may be necessary, such as converting
+ * spaces to another character, removing non-printable characters,
+ * lower-casing, etc.
+ *
+ * Here is a code snippet to transliterate some text:
+ * @code
+ * // Use the current default interface language.
+ * $langcode = language(\Drupal\Core\Language\Language::TYPE_INTERFACE)->id;
+ * // Instantiate the transliteration class.
+ * $trans = Drupal::transliteration();
+ * // Use this to transliterate some text.
+ * $transformed = $trans->transliterate($string, $langcode);
+ * @endcode
+ *
+ * Drupal Core provides the generic transliteration character tables and
+ * overrides for a few common languages; modules can implement
+ * hook_transliteration_overrides_alter() to provide further language-specific
+ * overrides (including providing transliteration for Unicode characters that
+ * are longer than 4 bytes). Modules can also completely override the
+ * transliteration classes in \Drupal\Core\CoreServiceProvider.
+ */
+
+/**
+ * Provide language-specific overrides for transliteration.
+ *
+ * If the overrides you want to provide are standard for your language, consider
+ * providing a patch for the Drupal Core transliteration system instead of using
+ * this hook. This hook can be used temporarily until Drupal Core's
+ * transliteration tables are fixed, or for sites that want to use a
+ * non-standard transliteration system.
+ *
+ * @param array $overrides
+ *   Associative array of language-specific overrides whose keys are integer
+ *   Unicode character codes, and whose values are the transliterations of those
+ *   characters in the given language, to override default transliterations.
+ * @param string $langcode
+ *   The code for the language that is being transliterated.
+ *
+ * @ingroup hooks
+ */
+function hook_transliteration_overrides_alter(&$overrides, $langcode) {
+  // Provide special overrides for German for a custom site.
+  if ($langcode == 'de') {
+    // The core-provided transliteration of Ä is Ae, but we want just A.
+    $overrides[0xC4] = 'A';
+  }
+}
+
+/**
+ * @} End of "defgroup transliteration".
  */

@@ -2,36 +2,37 @@
 
 /**
  * @file
- * Definition of Drupal\Component\Plugin\PluginManagerBase
+ * Contains \Drupal\Component\Plugin\PluginManagerBase
  */
 
 namespace Drupal\Component\Plugin;
 
 use Drupal\Component\Utility\NestedArray;
+use Drupal\Component\Plugin\Discovery\CachedDiscoveryInterface;
 
 /**
  * Base class for plugin managers.
  */
-abstract class PluginManagerBase implements PluginManagerInterface {
+abstract class PluginManagerBase implements PluginManagerInterface, CachedDiscoveryInterface {
 
   /**
    * The object that discovers plugins managed by this manager.
    *
-   * @var Drupal\Component\Plugin\Discovery\DiscoveryInterface
+   * @var \Drupal\Component\Plugin\Discovery\DiscoveryInterface
    */
   protected $discovery;
 
   /**
    * The object that instantiates plugins managed by this manager.
    *
-   * @var Drupal\Component\Plugin\Factory\FactoryInterface
+   * @var \Drupal\Component\Plugin\Factory\FactoryInterface
    */
   protected $factory;
 
   /**
    * The object that returns the preconfigured plugin instance appropriate for a particular runtime condition.
    *
-   * @var Drupal\Component\Plugin\Mapper\MapperInterface
+   * @var \Drupal\Component\Plugin\Mapper\MapperInterface
    */
   protected $mapper;
 
@@ -45,37 +46,37 @@ abstract class PluginManagerBase implements PluginManagerInterface {
   protected $defaults = array();
 
   /**
-   * Implements Drupal\Component\Plugin\PluginManagerInterface::getDefinition().
+   * {@inheritdoc}
    */
   public function getDefinition($plugin_id) {
-    $definition = $this->discovery->getDefinition($plugin_id);
-    if (isset($definition)) {
-      $this->processDefinition($definition, $plugin_id);
-    }
-    return $definition;
+    return $this->discovery->getDefinition($plugin_id);
   }
 
   /**
-   * Implements Drupal\Component\Plugin\PluginManagerInterface::getDefinitions().
+   * {@inheritdoc}
    */
   public function getDefinitions() {
-    $definitions = $this->discovery->getDefinitions();
-    foreach ($definitions as $plugin_id => &$definition) {
-      $this->processDefinition($definition, $plugin_id);
-    }
-
-    return $definitions;
+    return $this->discovery->getDefinitions();
   }
 
   /**
-   * Implements Drupal\Component\Plugin\PluginManagerInterface::createInstance().
+   * {@inheritdoc}
+   */
+  public function clearCachedDefinitions() {
+    if ($this->discovery instanceof CachedDiscoveryInterface) {
+      $this->discovery->clearCachedDefinitions();
+    }
+  }
+
+  /**
+   * {@inheritdoc}
    */
   public function createInstance($plugin_id, array $configuration = array()) {
     return $this->factory->createInstance($plugin_id, $configuration);
   }
 
   /**
-   * Implements Drupal\Component\Plugin\PluginManagerInterface::getInstance().
+   * {@inheritdoc}
    */
   public function getInstance(array $options) {
     return $this->mapper->getInstance($options);
@@ -88,7 +89,7 @@ abstract class PluginManagerBase implements PluginManagerInterface {
    * additional processing logic they can do that by replacing or extending the
    * method.
    */
-  protected function processDefinition(&$definition, $plugin_id) {
+  public function processDefinition(&$definition, $plugin_id) {
     $definition = NestedArray::mergeDeep($this->defaults, $definition);
   }
 

@@ -7,16 +7,14 @@
 
 namespace Drupal\views\Plugin\views\filter;
 
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
 
 /**
  * Simple filter to handle equal to / not equal to filters
  *
  * @ingroup views_filter_handlers
  *
- * @Plugin(
- *   id = "equality"
- * )
+ * @PluginID("equality")
  */
 class Equality extends FilterPluginBase {
 
@@ -26,7 +24,7 @@ class Equality extends FilterPluginBase {
   /**
    * Provide simple equality operator
    */
-  function operator_options() {
+  public function operatorOptions() {
     return array(
       '=' => t('Is equal to'),
       '!=' => t('Is not equal to'),
@@ -36,7 +34,7 @@ class Equality extends FilterPluginBase {
   /**
    * Provide a simple textfield for equality
    */
-  function value_form(&$form, &$form_state) {
+  protected function valueForm(&$form, &$form_state) {
     $form['value'] = array(
       '#type' => 'textfield',
       '#title' => t('Value'),

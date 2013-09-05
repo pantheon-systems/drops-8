@@ -7,93 +7,14 @@
  * @ingroup views_module_handlers
  */
 
+use Drupal\Core\Entity\DatabaseStorageController;
+use Drupal\field\FieldInterface;
+
 /**
  * Implements hook_views_data().
  */
 function taxonomy_views_data() {
   $data = array();
-
-  // taxonomy_vocabulary table
-
-  $data['taxonomy_vocabulary']['table']['group']  = t('Taxonomy vocabulary');
-
-  $data['taxonomy_vocabulary']['table']['join'] = array(
-    // vocabulary links to taxonomy_term_data directly via vid.
-    'taxonomy_term_data' => array(
-      'left_field' => 'vid',
-      'field' => 'vid',
-    ),
-  );
-
-  // vocabulary name
-  $data['taxonomy_vocabulary']['name'] = array(
-    'title' => t('Name'), // The item it appears as on the UI,
-    'field' => array(
-      'help' => t('Name of the vocabulary a term is a member of. This will be the vocabulary that whichever term the "Taxonomy: Term" field is; and can similarly cause duplicates.'),
-      'id' => 'standard',
-      'click sortable' => TRUE,
-    ),
-    'sort' => array(
-      'id' => 'standard',
-      'help' => t('The taxonomy vocabulary name'),
-    ),
-  );
-  $data['taxonomy_vocabulary']['machine_name'] = array(
-    'title' => t('Machine name'), // The item it appears as on the UI,
-    'field' => array(
-      'help' => t('Machine-Name of the vocabulary a term is a member of. This will be the vocabulary that whichever term the "Taxonomy: Term" field is; and can similarly cause duplicates.'),
-      'id' => 'standard',
-      'click sortable' => TRUE,
-    ),
-    'filter' => array(
-      'help' => t('Filter the results of "Taxonomy: Term" to a particular vocabulary.'),
-      'id' => 'vocabulary_machine_name',
-    ),
-    'argument' => array(
-      'help' => t('Filter the results of "Taxonomy: Term" to a particular vocabulary.'),
-      'id' => 'vocabulary_machine_name',
-    ),
-  );
-  $data['taxonomy_vocabulary']['vid'] = array(
-    'title' => t('Vocabulary ID'), // The item it appears as on the UI,
-    'help' => t('The taxonomy vocabulary ID'),
-    'field' => array(
-      'id' => 'numeric',
-      'click sortable' => TRUE,
-    ),
-    'argument' => array(
-      'id' => 'vocabulary_vid',
-      'name field' => 'name',
-    ),
-    'sort' => array(
-      'id' => 'standard',
-    ),
-  );
-  $data['taxonomy_vocabulary']['description'] = array(
-    'title' => t('Description'), // The item it appears as on the UI,
-    'help' => t('The taxonomy vocabulary description'),
-    'field' => array(
-      'id' => 'standard',
-    ),
-  );
-  $data['taxonomy_vocabulary']['weight'] = array(
-    'title' => t('Weight'),
-    'help' => t('The taxonomy vocabulary weight'),
-    'field' => array(
-      'id' => 'numeric',
-      'click sortable' => TRUE,
-    ),
-    'argument' => array(
-      'id' => 'numeric',
-      'name field' => 'weight',
-    ),
-    'sort' => array(
-      'id' => 'standard',
-    ),
-    'filter' => array(
-      'id' => 'numeric',
-    ),
-  );
 
  // taxonomy_term_data table
 
@@ -105,13 +26,11 @@ function taxonomy_views_data() {
     'access query tag' => 'term_access',
   );
   $data['taxonomy_term_data']['table']['entity type'] = 'taxonomy_term';
+  $data['taxonomy_term_data']['table']['wizard_id'] = 'taxonomy_term';
+
 
   // The term data table
   $data['taxonomy_term_data']['table']['join'] = array(
-    'taxonomy_vocabulary' => array(
-      'field' => 'vid',
-      'left_field' => 'vid',
-    ),
     // This is provided for many_to_one argument
     'taxonomy_index' => array(
       'field' => 'tid',
@@ -125,7 +44,6 @@ function taxonomy_views_data() {
     'help' => t('The tid of a taxonomy term.'),
     'field' => array(
       'id' => 'numeric',
-      'click sortable' => TRUE,
     ),
     'sort' => array(
       'id' => 'standard',
@@ -177,7 +95,6 @@ function taxonomy_views_data() {
     'help' => t('The taxonomy term name.'),
     'field' => array(
       'id' => 'taxonomy',
-      'click sortable' => TRUE,
     ),
     'sort' => array(
       'id' => 'standard',
@@ -200,7 +117,6 @@ function taxonomy_views_data() {
     'help' => t('The term weight field'),
     'field' => array(
       'id' => 'numeric',
-      'click sortable' => TRUE,
     ),
     'sort' => array(
       'id' => 'standard',
@@ -220,6 +136,7 @@ function taxonomy_views_data() {
     'field' => array(
       'id' => 'markup',
       'format' => array('field' => 'format'),
+      'click sortable' => FALSE,
     ),
     'filter' => array(
       'id' => 'string',
@@ -231,7 +148,7 @@ function taxonomy_views_data() {
     'title' => t('Vocabulary'),
     'help' => t('Filter the results of "Taxonomy: Term" to a particular vocabulary.'),
     'filter' => array(
-      'id' => 'vocabulary_vid',
+      'id' => 'bundle',
     ),
   );
 
@@ -240,7 +157,6 @@ function taxonomy_views_data() {
     'help' => t('Language of the term'),
     'field' => array(
       'id' => 'taxonomy_term_language',
-      'click sortable' => TRUE,
     ),
     'sort' => array(
       'id' => 'standard',
@@ -259,8 +175,20 @@ function taxonomy_views_data() {
       'title' => t('Term edit link'),
       'help' => t('Provide a simple link to edit the term.'),
       'id' => 'term_link_edit',
+      'click sortable' => FALSE,
     ),
   );
+
+  // Content translation field.
+  if (Drupal::moduleHandler()->moduleExists('content_translation')) {
+    $data['taxonomy_term_data']['translation_link'] = array(
+      'title' => t('Translation link'),
+      'help' => t('Provide a link to the translations overview for taxonomy terms.'),
+      'field' => array(
+        'id' => 'content_translation_link',
+      ),
+    );
+  }
 
   // taxonomy_index table
 
@@ -375,6 +303,7 @@ function taxonomy_views_data_alter(&$data) {
       'help' => t('Display all taxonomy terms associated with a node from specified vocabularies.'),
       'id' => 'taxonomy_index_tid',
       'no group by' => TRUE,
+      'click sortable' => FALSE,
     ),
   );
 
@@ -409,7 +338,7 @@ function taxonomy_views_data_alter(&$data) {
  *
  * @see field_views_field_default_views_data()
  */
-function taxonomy_field_views_data($field) {
+function taxonomy_field_views_data(FieldInterface $field) {
   $data = field_views_field_default_views_data($field);
   foreach ($data as $table_name => $table_data) {
     foreach ($table_data as $field_name => $field_data) {
@@ -420,7 +349,7 @@ function taxonomy_field_views_data($field) {
     }
 
     // Add the relationship only on the tid field.
-    $data[$table_name][$field['field_name'] . '_tid']['relationship'] = array(
+    $data[$table_name][$field['field_name'] . '_target_id']['relationship'] = array(
       'id' => 'standard',
       'base' => 'taxonomy_term_data',
       'base field' => 'tid',
@@ -437,40 +366,33 @@ function taxonomy_field_views_data($field) {
  *
  * Views integration to provide reverse relationships on term references.
  */
-function taxonomy_field_views_data_views_data_alter(&$data, $field) {
-  foreach ($field['bundles'] as $entity_type => $bundles) {
-    $entity_info = entity_get_info($entity_type);
-    $pseudo_field_name = 'reverse_' . $field['field_name'] . '_' . $entity_type;
+function taxonomy_field_views_data_views_data_alter(array &$data, FieldInterface $field) {
+  $entity_type = $field['entity_type'];
+  $entity_info = entity_get_info($entity_type);
+  $pseudo_field_name = 'reverse_' . $field['field_name'] . '_' . $entity_type;
 
-    list($label, $all_labels) = field_views_field_label($field['field_name']);
-    $entity = $entity_info['label'];
-    if ($entity == t('Node')) {
-      $entity = t('Content');
-    }
+  list($label,) = field_views_field_label($entity_type, $field['field_name']);
+  $entity_label = ($entity_info['label'] == t('Node')) ? t('Content') : $entity_info['label'];
 
-    $data['taxonomy_term_data'][$pseudo_field_name]['relationship'] = array(
-      'title' => t('@entity using @field', array('@entity' => $entity, '@field' => $label)),
-      'help' => t('Relate each @entity with a @field set to the term.', array('@entity' => $entity, '@field' => $label)),
-      'id' => 'entity_reverse',
-      'field_name' => $field['field_name'],
-      'field table' => _field_sql_storage_tablename($field),
-      'field field' => $field['field_name'] . '_tid',
-      'base' => $entity_info['base_table'],
-      'base field' => $entity_info['entity_keys']['id'],
-      'label' => t('!field_name', array('!field_name' => $field['field_name'])),
-      'join_extra' => array(
-        0 => array(
-          'field' => 'entity_type',
-          'value' => $entity_type,
-        ),
-        1 => array(
-          'field' => 'deleted',
-          'value' => 0,
-          'numeric' => TRUE,
-        ),
+  $data['taxonomy_term_data'][$pseudo_field_name]['relationship'] = array(
+    'title' => t('@entity using @field', array('@entity' => $entity_label, '@field' => $label)),
+    'help' => t('Relate each @entity with a @field set to the term.', array('@entity' => $entity_label, '@field' => $label)),
+    'id' => 'entity_reverse',
+    'field_name' => $field['field_name'],
+    'entity_type' => $field['entity_type'],
+    'field table' => DatabaseStorageController::_fieldTableName($field),
+    'field field' => $field['field_name'] . '_target_id',
+    'base' => $entity_info['base_table'],
+    'base field' => $entity_info['entity_keys']['id'],
+    'label' => t('!field_name', array('!field_name' => $field['field_name'])),
+    'join_extra' => array(
+      0 => array(
+        'field' => 'deleted',
+        'value' => 0,
+        'numeric' => TRUE,
       ),
-    );
-  }
+    ),
+  );
 }
 
 /**
@@ -485,17 +407,17 @@ function views_taxonomy_set_breadcrumb(&$breadcrumb, &$argument) {
   $parents = taxonomy_get_parents_all($argument->argument);
   foreach (array_reverse($parents) as $parent) {
     // Unfortunately parents includes the current argument. Skip.
-    if ($parent->tid == $argument->argument) {
+    if ($parent->id() == $argument->argument) {
       continue;
     }
     if (!empty($argument->options['use_taxonomy_term_path'])) {
-      $path = taxonomy_term_uri($parent);
+      $path = $parent->uri();
       $path = $path['path'];
     }
     else {
-      $args[$argument->position] = $parent->tid;
+      $args[$argument->position] = $parent->id();
       $path = $argument->view->getUrl($args);
     }
-    $breadcrumb[$path] = check_plain($parent->name);
+    $breadcrumb[$path] = check_plain($parent->label());
   }
 }

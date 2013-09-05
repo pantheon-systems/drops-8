@@ -2,12 +2,12 @@
 
 /**
  * @file
- * Contains Drupal\views\Plugin\views\display\Page.
+ * Contains \Drupal\views\Plugin\views\display\Page.
  */
 
 namespace Drupal\views\Plugin\views\display;
 
-use Drupal\Core\Annotation\Plugin;
+use Drupal\views\Annotation\ViewsDisplay;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Drupal\Core\Annotation\Translation;
@@ -17,11 +17,12 @@ use Drupal\Core\Annotation\Translation;
  *
  * @ingroup views_display_plugins
  *
- * @Plugin(
+ * @ViewsDisplay(
  *   id = "page",
  *   title = @Translation("Page"),
  *   help = @Translation("Display the view as a page, with a URL and menu links."),
  *   uses_hook_menu = TRUE,
+ *   uses_route = TRUE,
  *   contextual_links_locations = {"page"},
  *   theme = "views_view",
  *   admin = @Translation("Page")
@@ -56,7 +57,7 @@ class Page extends PathPluginBase {
         'title' => array('default' => '', 'translatable' => FALSE),
         'description' => array('default' => '', 'translatable' => FALSE),
         'weight' => array('default' => 0),
-        'name' => array('default' => variable_get('menu_default_node_menu', 'navigation')),
+        'name' => array('default' => 'navigation'),
         'context' => array('default' => ''),
       ),
     );
@@ -92,7 +93,10 @@ class Page extends PathPluginBase {
     // And the title, which is much easier.
     drupal_set_title(filter_xss_admin($this->view->getTitle()), PASS_THROUGH);
 
-    return $render;
+    $response = $this->view->getResponse();
+    $response->setContent(drupal_render_page($render));
+
+    return $response;
   }
 
   /**
@@ -125,7 +129,8 @@ class Page extends PathPluginBase {
       'value' => views_ui_truncate($menu_str, 24),
     );
 
-    // This adds a 'Settings' link to the style_options setting if the style has options.
+    // This adds a 'Settings' link to the style_options setting if the style
+    // has options.
     if ($menu['type'] == 'default tab') {
       $options['menu']['setting'] = t('Parent menu item');
       $options['menu']['links']['tab_options'] = t('Change settings for the parent menu');
@@ -166,10 +171,9 @@ class Page extends PathPluginBase {
 
         $form['menu']['title'] = array(
           '#prefix' => '<div class="views-left-50">',
-          '#title' => t('Title'),
+          '#title' => t('Menu link title'),
           '#type' => 'textfield',
           '#default_value' => $menu['title'],
-          '#description' => t('If set to normal or tab, enter the text to use for the menu item.'),
           '#states' => array(
             'visible' => array(
               array(
@@ -188,7 +192,7 @@ class Page extends PathPluginBase {
           '#title' => t('Description'),
           '#type' => 'textfield',
           '#default_value' => $menu['description'],
-          '#description' => t("If set to normal or tab, enter the text to use for the menu item's description."),
+          '#description' => t("Shown when hovering over the menu link."),
           '#states' => array(
             'visible' => array(
               array(
@@ -205,13 +209,12 @@ class Page extends PathPluginBase {
         );
 
         // Only display the menu selector if menu module is enabled.
-        if (module_exists('menu')) {
+        if (\Drupal::moduleHandler()->moduleExists('menu')) {
           $form['menu']['name'] = array(
             '#title' => t('Menu'),
             '#type' => 'select',
             '#options' => menu_get_menus(),
             '#default_value' => $menu['name'],
-            '#description' => t('Insert item into an available menu.'),
             '#states' => array(
               'visible' => array(
                 array(
@@ -237,7 +240,7 @@ class Page extends PathPluginBase {
           '#title' => t('Weight'),
           '#type' => 'textfield',
           '#default_value' => isset($menu['weight']) ? $menu['weight'] : 0,
-          '#description' => t('The lower the weight the higher/further left it will appear.'),
+          '#description' => t('In the menu, the heavier links will sink and the lighter links will be positioned nearer the top.'),
           '#states' => array(
             'visible' => array(
               array(
@@ -323,7 +326,7 @@ class Page extends PathPluginBase {
           ),
         );
         // Only display the menu selector if menu module is enabled.
-        if (module_exists('menu')) {
+        if (\Drupal::moduleHandler()->moduleExists('menu')) {
           $form['tab_options']['name'] = array(
             '#title' => t('Menu'),
             '#type' => 'select',
@@ -352,7 +355,7 @@ class Page extends PathPluginBase {
           '#type' => 'textfield',
           '#default_value' => $tab_options['weight'],
           '#size' => 5,
-          '#description' => t('If the parent menu item is a tab, enter the weight of the tab. The lower the number, the more to the left it will be.'),
+          '#description' => t('If the parent menu item is a tab, enter the weight of the tab. Heavier tabs will sink and the lighter tabs will be positioned nearer to the first menu item.'),
           '#states' => array(
             'visible' => array(
               ':input[name="tab_options[type]"]' => array('value' => 'tab'),
@@ -400,7 +403,7 @@ class Page extends PathPluginBase {
         $this->setOption('menu', $form_state['values']['menu']);
         // send ajax form to options page if we use it.
         if ($form_state['values']['menu']['type'] == 'default tab') {
-          $form_state['view']->addFormToStack('display', $this->display['id'], array('tab_options'));
+          $form_state['view']->addFormToStack('display', $this->display['id'], 'tab_options');
         }
         break;
       case 'tab_options':

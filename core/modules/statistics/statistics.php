@@ -8,15 +8,12 @@
 // Change the directory to the Drupal root.
 chdir('../../..');
 
-/**
-* Root directory of Drupal installation.
-*/
-define('DRUPAL_ROOT', getcwd());
-
-include_once DRUPAL_ROOT . '/core/includes/bootstrap.inc';
+// Load the Drupal bootstrap.
+require_once dirname(dirname(__DIR__)) . '/vendor/autoload.php';
+require_once dirname(dirname(__DIR__)) . '/includes/bootstrap.inc';
 drupal_bootstrap(DRUPAL_BOOTSTRAP_VARIABLES);
 
-if (config('statistics.settings')->get('count_content_views')) {
+if (\Drupal::config('statistics.settings')->get('count_content_views')) {
   $nid = filter_input(INPUT_POST, 'nid', FILTER_VALIDATE_INT);
   if ($nid) {
     db_merge('node_counter')

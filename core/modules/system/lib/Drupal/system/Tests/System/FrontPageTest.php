@@ -35,12 +35,12 @@ class FrontPageTest extends WebTestBase {
     // Create admin user, log in admin user, and create one node.
     $this->admin_user = $this->drupalCreateUser(array('access content', 'administer site configuration'));
     $this->drupalLogin($this->admin_user);
-    $this->node_path = "node/" . $this->drupalCreateNode(array('promote' => 1))->nid;
+    $this->node_path = "node/" . $this->drupalCreateNode(array('promote' => 1))->id();
 
     // Configure 'node' as front page.
-    config('system.site')->set('page.front', 'node')->save();
+    \Drupal::config('system.site')->set('page.front', 'node')->save();
     // Enable front page logging in system_test.module.
-    variable_set('front_page_output', 1);
+    \Drupal::state()->set('system_test.front_page_output', 1);
   }
 
   /**

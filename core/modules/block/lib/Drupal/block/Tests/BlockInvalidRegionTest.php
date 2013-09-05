@@ -32,7 +32,11 @@ class BlockInvalidRegionTest extends WebTestBase {
   function setUp() {
     parent::setUp();
     // Create an admin user.
-    $admin_user = $this->drupalCreateUser(array('administer site configuration', 'access administration pages'));
+    $admin_user = $this->drupalCreateUser(array(
+      'administer site configuration',
+      'access administration pages',
+      'administer blocks',
+    ));
     $this->drupalLogin($admin_user);
   }
 
@@ -40,21 +44,12 @@ class BlockInvalidRegionTest extends WebTestBase {
    * Tests that blocks assigned to invalid regions work correctly.
    */
   function testBlockInInvalidRegion() {
-    // Enable a test block in the default theme and place it in an invalid region.
-    db_merge('block')
-      ->key(array(
-        'module' => 'block_test',
-        'delta' => 'test_html_id',
-        'theme' => variable_get('theme_default', 'stark'),
-      ))
-      ->fields(array(
-        'status' => 1,
-        'region' => 'invalid_region',
-        'cache' => DRUPAL_NO_CACHE,
-      ))
-      ->execute();
+    // Enable a test block and place it in an invalid region.
+    $block = $this->drupalPlaceBlock('test_html_id');
+    $block->set('region', 'invalid_region');
+    $block->save();
 
-    $warning_message = t('The block %info was assigned to the invalid region %region and has been disabled.', array('%info' => t('Test block html id'), '%region' => 'invalid_region'));
+    $warning_message = t('The block %info was assigned to the invalid region %region and has been disabled.', array('%info' => $block->id(), '%region' => 'invalid_region'));
 
     // Clearing the cache should disable the test block placed in the invalid region.
     $this->drupalPost('admin/config/development/performance', array(), 'Clear all caches');
@@ -65,17 +60,9 @@ class BlockInvalidRegionTest extends WebTestBase {
     $this->assertNoRaw($warning_message, 'Disabled block in the invalid region will not trigger the warning.');
 
     // Place disabled test block in the invalid region of the default theme.
-    db_merge('block')
-      ->key(array(
-        'module' => 'block_test',
-        'delta' => 'test_html_id',
-        'theme' => variable_get('theme_default', 'stark'),
-      ))
-      ->fields(array(
-        'region' => 'invalid_region',
-        'cache' => DRUPAL_NO_CACHE,
-      ))
-      ->execute();
+    $block = entity_load('block', $block->id());
+    $block->set('region', 'invalid_region');
+    $block->save();
 
     // Clear the cache to check if the warning message is not triggered.
     $this->drupalPost('admin/config/development/performance', array(), 'Clear all caches');

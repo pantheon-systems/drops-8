@@ -95,25 +95,25 @@ class EntityFilteringThemeTest extends WebTestBase {
       'name' => $this->xss_label,
       'vid' => 1,
     ));
-    taxonomy_term_save($this->term);
+    $this->term->save();
 
     // Create a test node tagged with the test term.
     $this->node = $this->drupalCreateNode(array(
       'title' => $this->xss_label,
       'type' => 'article',
       'promote' => NODE_PROMOTED,
-      'field_tags' => array(LANGUAGE_NOT_SPECIFIED => array(array('tid' => $this->term->tid))),
+      'field_tags' => array(array('target_id' => $this->term->id())),
     ));
 
     // Create a test comment on the test node.
     $this->comment = entity_create('comment', array(
-      'nid' => $this->node->nid,
-      'node_type' => $this->node->type,
+      'nid' => $this->node->id(),
+      'node_type' => $this->node->getType(),
       'status' => COMMENT_PUBLISHED,
       'subject' => $this->xss_label,
-      'comment_body' => array(LANGUAGE_NOT_SPECIFIED => array($this->randomName())),
+      'comment_body' => array($this->randomName()),
     ));
-    comment_save($this->comment);
+    $this->comment->save();
   }
 
   /**
@@ -124,13 +124,15 @@ class EntityFilteringThemeTest extends WebTestBase {
     $paths = array(
       'user',
       'node',
-      'node/' . $this->node->nid,
-      'taxonomy/term/' . $this->term->tid,
+      'node/' . $this->node->id(),
+      'taxonomy/term/' . $this->term->id(),
     );
 
     // Check each path in all available themes.
     foreach ($this->themes as $theme) {
-      variable_set('theme_default', $theme);
+      \Drupal::config('system.theme')
+        ->set('default', $theme)
+        ->save();
       foreach ($paths as $path) {
         $this->drupalGet($path);
         $this->assertResponse(200);

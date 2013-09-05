@@ -103,6 +103,8 @@ function comment_token_info() {
  * Implements hook_tokens().
  */
 function comment_tokens($type, $tokens, array $data = array(), array $options = array()) {
+  $token_service = Drupal::token();
+
   $url_options = array('absolute' => TRUE);
   if (isset($options['langcode'])) {
     $url_options['language'] = language_load($options['langcode']);
@@ -122,79 +124,74 @@ function comment_tokens($type, $tokens, array $data = array(), array $options = 
       switch ($name) {
         // Simple key values on the comment.
         case 'cid':
-          $replacements[$original] = $comment->cid;
+          $replacements[$original] = $comment->id();
           break;
 
         // Poster identity information for comments
         case 'hostname':
-          $replacements[$original] = $sanitize ? check_plain($comment->hostname) : $comment->hostname;
+          $replacements[$original] = $sanitize ? check_plain($comment->hostname->value) : $comment->hostname->value;
           break;
 
         case 'name':
-          $name = ($comment->uid == 0) ? config('user.settings')->get('anonymous') : $comment->name;
+          $name = ($comment->uid->target_id == 0) ? Drupal::config('user.settings')->get('anonymous') : $comment->name->value;
           $replacements[$original] = $sanitize ? filter_xss($name) : $name;
           break;
 
         case 'mail':
-          if ($comment->uid != 0) {
-            $account = user_load($comment->uid);
-            $mail = $account->mail;
+          if ($comment->uid->target_id != 0) {
+            $mail = $comment->uid->entity->getEmail();
           }
           else {
-            $mail = $comment->mail;
+            $mail = $comment->mail->value;
           }
           $replacements[$original] = $sanitize ? check_plain($mail) : $mail;
           break;
 
         case 'homepage':
-          $replacements[$original] = $sanitize ? check_url($comment->homepage) : $comment->homepage;
+          $replacements[$original] = $sanitize ? check_url($comment->homepage->value) : $comment->homepage->value;
           break;
 
         case 'title':
-          $replacements[$original] = $sanitize ? filter_xss($comment->subject) : $comment->subject;
+          $replacements[$original] = $sanitize ? filter_xss($comment->subject->value) : $comment->subject->value;
           break;
 
         case 'body':
-          if ($items = field_get_items('comment', $comment, 'comment_body', $langcode)) {
-            $instance = field_info_instance('comment', 'body', 'comment_body');
-            $field_langcode = field_language('comment', $comment, 'comment_body', $langcode);
-            $replacements[$original] = $sanitize ? _text_sanitize($instance, $field_langcode, $items[0], 'value') : $items[0]['value'];
-          }
+          $replacements[$original] = $sanitize ? $comment->comment_body->processed : $comment->comment_body->value;
           break;
 
         // Comment related URLs.
         case 'url':
-          $url_options['fragment']  = 'comment-' . $comment->cid;
-          $replacements[$original] = url('comment/' . $comment->cid, $url_options);
+          $url_options['fragment']  = 'comment-' . $comment->id();
+          $replacements[$original] = url('comment/' . $comment->id(), $url_options);
           break;
 
         case 'edit-url':
           $url_options['fragment'] = NULL;
-          $replacements[$original] = url('comment/' . $comment->cid . '/edit', $url_options);
+          $replacements[$original] = url('comment/' . $comment->id() . '/edit', $url_options);
           break;
 
         // Default values for the chained tokens handled below.
         case 'author':
-          $replacements[$original] = $sanitize ? filter_xss($comment->name) : $comment->name;
+          $replacements[$original] = $sanitize ? filter_xss($comment->name->value) : $comment->name->value;
           break;
 
         case 'parent':
-          if (!empty($comment->pid)) {
-            $parent = comment_load($comment->pid);
+          if (!empty($comment->pid->target_id)) {
+            $parent = comment_load($comment->pid->target_id);
             $replacements[$original] = $sanitize ? filter_xss($parent->subject) : $parent->subject;
           }
           break;
 
         case 'created':
-          $replacements[$original] = format_date($comment->created, 'medium', '', NULL, $langcode);
+          $replacements[$original] = format_date($comment->created->value, 'medium', '', NULL, $langcode);
           break;
 
         case 'changed':
-          $replacements[$original] = format_date($comment->changed, 'medium', '', NULL, $langcode);
+          $replacements[$original] = format_date($comment->changed->value, 'medium', '', NULL, $langcode);
           break;
 
         case 'node':
-          $node = node_load($comment->nid);
+          $node = $comment->nid->entity;
           $title = $node->label();
           $replacements[$original] = $sanitize ? filter_xss($title) : $title;
           break;
@@ -202,25 +199,25 @@ function comment_tokens($type, $tokens, array $data = array(), array $options = 
     }
 
     // Chained token relationships.
-    if ($node_tokens = token_find_with_prefix($tokens, 'node')) {
-      $node = node_load($comment->nid);
-      $replacements += token_generate('node', $node_tokens, array('node' => $node), $options);
+    if ($node_tokens = $token_service->findwithPrefix($tokens, 'node')) {
+      $node = $comment->nid->entity;
+      $replacements += $token_service->generate('node', $node_tokens, array('node' => $node), $options);
     }
 
-    if ($date_tokens = token_find_with_prefix($tokens, 'created')) {
-      $replacements += token_generate('date', $date_tokens, array('date' => $comment->created), $options);
+    if ($date_tokens = $token_service->findwithPrefix($tokens, 'created')) {
+      $replacements += $token_service->generate('date', $date_tokens, array('date' => $comment->created->value), $options);
     }
 
-    if ($date_tokens = token_find_with_prefix($tokens, 'changed')) {
-      $replacements += token_generate('date', $date_tokens, array('date' => $comment->changed), $options);
+    if ($date_tokens = $token_service->findwithPrefix($tokens, 'changed')) {
+      $replacements += $token_service->generate('date', $date_tokens, array('date' => $comment->changed->value), $options);
     }
 
-    if (($parent_tokens = token_find_with_prefix($tokens, 'parent')) && $parent = comment_load($comment->pid)) {
-      $replacements += token_generate('comment', $parent_tokens, array('comment' => $parent), $options);
+    if (($parent_tokens = $token_service->findwithPrefix($tokens, 'parent')) && $parent = $comment->pid->entity) {
+      $replacements += $token_service->generate('comment', $parent_tokens, array('comment' => $parent), $options);
     }
 
-    if (($author_tokens = token_find_with_prefix($tokens, 'author')) && $account = user_load($comment->uid)) {
-      $replacements += token_generate('user', $author_tokens, array('user' => $account), $options);
+    if (($author_tokens = $token_service->findwithPrefix($tokens, 'author')) && $account = $comment->uid->entity) {
+      $replacements += $token_service->generate('user', $author_tokens, array('user' => $account), $options);
     }
   }
   elseif ($type == 'node' & !empty($data['node'])) {
@@ -233,7 +230,7 @@ function comment_tokens($type, $tokens, array $data = array(), array $options = 
           break;
 
         case 'comment-count-new':
-          $replacements[$original] = comment_num_new($node->nid);
+          $replacements[$original] = comment_num_new($node->id());
           break;
       }
     }

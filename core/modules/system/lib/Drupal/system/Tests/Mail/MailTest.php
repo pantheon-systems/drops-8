@@ -7,6 +7,7 @@
 
 namespace Drupal\system\Tests\Mail;
 
+use Drupal\Core\Language\Language;
 use Drupal\Core\Mail\MailInterface;
 use Drupal\simpletest\WebTestBase;
 
@@ -42,17 +43,17 @@ class MailTest extends WebTestBase implements MailInterface {
     parent::setUp();
 
     // Set MailTestCase (i.e. this class) as the SMTP library
-    variable_set('mail_system', array('default-system' => 'Drupal\system\Tests\Mail\MailTest'));
+    \Drupal::config('system.mail')->set('interface.default', 'Drupal\system\Tests\Mail\MailTest')->save();
   }
 
   /**
    * Assert that the pluggable mail system is functional.
    */
   public function testPluggableFramework() {
-    $language_interface = language(LANGUAGE_TYPE_INTERFACE);
+    $language_interface = language(Language::TYPE_INTERFACE);
 
     // Use MailTestCase for sending a message.
-    $message = drupal_mail('simpletest', 'mail_test', 'testing@example.com', $language_interface->langcode);
+    $message = drupal_mail('simpletest', 'mail_test', 'testing@example.com', $language_interface->id);
 
     // Assert whether the message was sent through the send function.
     $this->assertEqual(self::$sent_message['to'], 'testing@example.com', 'Pluggable mail system is extendable.');
@@ -64,16 +65,37 @@ class MailTest extends WebTestBase implements MailInterface {
    * @see simpletest_mail_alter()
    */
   public function testCancelMessage() {
-    $language_interface = language(LANGUAGE_TYPE_INTERFACE);
+    $language_interface = language(Language::TYPE_INTERFACE);
 
     // Reset the class variable holding a copy of the last sent message.
     self::$sent_message = NULL;
 
     // Send a test message that simpletest_mail_alter should cancel.
-    $message = drupal_mail('simpletest', 'cancel_test', 'cancel@example.com', $language_interface->langcode);
+    $message = drupal_mail('simpletest', 'cancel_test', 'cancel@example.com', $language_interface->id);
 
     // Assert that the message was not actually sent.
     $this->assertNull(self::$sent_message, 'Message was canceled.');
+  }
+
+  /**
+   * Checks for the site name in an auto-generated From: header.
+   */
+  function testFromHeader() {
+    global $language;
+
+    // Reset the class variable holding a copy of the last sent message.
+    self::$sent_message = NULL;
+    // Send an e-mail with a sender address specified.
+    $from_email = 'someone_else@example.com';
+    drupal_mail('simpletest', 'from_test', 'from_test@example.com', $language, array(), $from_email);
+    // Test that the from e-mail is just the e-mail and not the site name and
+    // default sender e-mail.
+    $this->assertEqual($from_email, self::$sent_message['headers']['From']);
+
+    self::$sent_message = NULL;
+    // Send an e-mail and check that the From-header contains the site name.
+    drupal_mail('simpletest', 'from_test', 'from_test@example.com', $language);
+    $this->assertEqual('Drupal <simpletest@example.com>', self::$sent_message['headers']['From']);
   }
 
   /**

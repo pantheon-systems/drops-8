@@ -7,7 +7,7 @@
 
 namespace Drupal\user\Plugin\views\argument;
 
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
 use Drupal\views\Plugin\views\argument\Numeric;
 
 /**
@@ -15,10 +15,7 @@ use Drupal\views\Plugin\views\argument\Numeric;
  *
  * @ingroup views_argument_handlers
  *
- * @Plugin(
- *   id = "user_uid",
- *   module = "user"
- * )
+ * @PluginID("user_uid")
  */
 class Uid extends Numeric {
 
@@ -28,9 +25,9 @@ class Uid extends Numeric {
    * @return array
    *    A list of usernames.
    */
-  function title_query() {
+  public function titleQuery() {
     if (!$this->argument) {
-      return array(config('user.settings')->get('anonymous'));
+      return array(\Drupal::config('user.settings')->get('anonymous'));
     }
 
     $titles = array();

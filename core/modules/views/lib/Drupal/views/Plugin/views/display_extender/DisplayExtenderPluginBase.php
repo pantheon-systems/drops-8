@@ -18,12 +18,6 @@ use Drupal\Core\Annotation\Translation;
  */
 abstract class DisplayExtenderPluginBase extends PluginBase {
 
-  public function init(ViewExecutable $view, &$display) {
-    $this->setOptionDefaults($this->options, $this->defineOptions());
-    $this->view = $view;
-    $this->displayHandler = $display;
-  }
-
   /**
    * Provide a form to edit options for this plugin.
    */
@@ -47,7 +41,7 @@ abstract class DisplayExtenderPluginBase extends PluginBase {
   /**
    * Set up any variables on the view prior to execution.
    */
-  public function pre_execute() { }
+  public function preExecute() { }
 
   /**
    * Inject anything into the query that the display_extender handler needs.

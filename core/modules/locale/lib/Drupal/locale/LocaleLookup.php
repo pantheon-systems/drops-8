@@ -2,62 +2,90 @@
 
 /**
  * @file
- * Definition of LocaleLookup
+ * Contains \Drupal\locale\Locale\Lookup.
  */
 
 namespace Drupal\locale;
 
-use Drupal\Core\Utility\CacheArray;
-use Drupal\locale\SourceString;
-use Drupal\locale\TranslationString;
+use Drupal\Core\Cache\CacheBackendInterface;
+use Drupal\Core\Cache\CacheCollector;
+use Drupal\Core\DestructableInterface;
+use Drupal\Core\Lock\LockBackendInterface;
 
 /**
- * Extends CacheArray to allow for dynamic building of the locale cache.
+ * A cache collector to allow for dynamic building of the locale cache.
  */
-class LocaleLookup extends CacheArray {
+class LocaleLookup extends CacheCollector {
 
   /**
    * A language code.
+   *
    * @var string
    */
   protected $langcode;
 
   /**
    * The msgctxt context.
+   *
    * @var string
    */
   protected $context;
 
   /**
-   * The locale storage
+   * The locale storage.
    *
-   * @var Drupal\locale\StringStorageInterface
+   * @var \Drupal\locale\StringStorageInterface
    */
   protected $stringStorage;
 
   /**
-   * Constructs a LocaleCache object.
+   * The cache backend that should be used.
+   *
+   * @var \Drupal\Core\Cache\CacheBackendInterface
    */
-  public function __construct($langcode, $context, $stringStorage) {
+  protected $cache;
+
+  /**
+   * The lock backend that should be used.
+   *
+   * @var \Drupal\Core\Lock\LockBackendInterface
+   */
+  protected $lock;
+
+  /**
+   * Constructs a LocaleLookup object.
+   *
+   * @param string $langcode
+   *   The language code.
+   * @param string $context
+   *   The string context.
+   * @param \Drupal\locale\StringStorageInterface $string_storage
+   *   The string storage.
+   * @param \Drupal\Core\Cache\CacheBackendInterface $cache
+   *   The cache backend.
+   * @param \Drupal\Core\Lock\LockBackendInterface $lock
+   *   The lock backend.
+   */
+  public function __construct($langcode, $context, StringStorageInterface $string_storage, CacheBackendInterface $cache, LockBackendInterface $lock) {
     $this->langcode = $langcode;
     $this->context = (string) $context;
-    $this->stringStorage = $stringStorage;
+    $this->stringStorage = $string_storage;
 
     // Add the current user's role IDs to the cache key, this ensures that, for
     // example, strings for admin menu items and settings forms are not cached
     // for anonymous users.
-    $rids = implode(':', array_keys($GLOBALS['user']->roles));
-    parent::__construct("locale:$langcode:$context:$rids", 'cache', array('locale' => TRUE));
+    $rids = isset($GLOBALS['user']) ? implode(':', array_keys($GLOBALS['user']->getRoles())) : '0';
+    parent::__construct("locale:$langcode:$context:$rids", $cache, $lock, array('locale' => TRUE));
   }
 
   /**
-   * Overrides DrupalCacheArray::resolveCacheMiss().
+   * {@inheritdoc}
    */
   protected function resolveCacheMiss($offset) {
     $translation = $this->stringStorage->findTranslation(array(
       'language' => $this->langcode,
       'source' => $offset,
-      'context' => $this->context
+      'context' => $this->context,
     ));
 
     if ($translation) {
@@ -78,9 +106,10 @@ class LocaleLookup extends CacheArray {
     // the exact list of strings used on a page. From a performance
     // perspective that is a really bad idea, so we have no user
     // interface for this. Be careful when turning this option off!
-    if (variable_get('locale_cache_strings', 1)) {
+    if (\Drupal::config('locale.settings')->get('cache_strings')) {
       $this->persist($offset);
     }
     return $value;
   }
+
 }

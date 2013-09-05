@@ -89,6 +89,8 @@ function taxonomy_token_info() {
  * Implements hook_tokens().
  */
 function taxonomy_tokens($type, $tokens, array $data = array(), array $options = array()) {
+  $token_service = Drupal::token();
+
   $replacements = array();
   $sanitize = !empty($options['sanitize']);
 
@@ -98,15 +100,15 @@ function taxonomy_tokens($type, $tokens, array $data = array(), array $options =
     foreach ($tokens as $name => $original) {
       switch ($name) {
         case 'tid':
-          $replacements[$original] = $term->tid;
+          $replacements[$original] = $term->id();
           break;
 
         case 'name':
-          $replacements[$original] = $sanitize ? check_plain($term->name) : $term->name;
+          $replacements[$original] = $sanitize ? check_plain($term->name->value) : $term->name->value;
           break;
 
         case 'description':
-          $replacements[$original] = $sanitize ? check_markup($term->description, $term->format, '', TRUE) : $term->description;
+          $replacements[$original] = $sanitize ? check_markup($term->description->value, $term->format->value, '', TRUE) : $term->description->value;
           break;
 
         case 'url':
@@ -116,34 +118,34 @@ function taxonomy_tokens($type, $tokens, array $data = array(), array $options =
 
         case 'node-count':
           $query = db_select('taxonomy_index');
-          $query->condition('tid', $term->tid);
+          $query->condition('tid', $term->id());
           $query->addTag('term_node_count');
           $count = $query->countQuery()->execute()->fetchField();
           $replacements[$original] = $count;
           break;
 
         case 'vocabulary':
-          $vocabulary = taxonomy_vocabulary_load($term->vid);
+          $vocabulary = entity_load('taxonomy_vocabulary', $term->bundle());
           $replacements[$original] = check_plain($vocabulary->name);
           break;
 
         case 'parent':
-          if ($parents = taxonomy_term_load_parents($term->tid)) {
+          if ($parents = taxonomy_term_load_parents($term->id())) {
             $parent = array_pop($parents);
-            $replacements[$original] = check_plain($parent->name);
+            $replacements[$original] = check_plain($parent->name->value);
           }
           break;
       }
     }
 
-    if ($vocabulary_tokens = token_find_with_prefix($tokens, 'vocabulary')) {
-      $vocabulary = taxonomy_vocabulary_load($term->vid);
-      $replacements += token_generate('vocabulary', $vocabulary_tokens, array('vocabulary' => $vocabulary), $options);
+    if ($vocabulary_tokens = $token_service->findWithPrefix($tokens, 'vocabulary')) {
+      $vocabulary = entity_load('taxonomy_vocabulary', $term->bundle());
+      $replacements += $token_service->generate('vocabulary', $vocabulary_tokens, array('vocabulary' => $vocabulary), $options);
     }
 
-    if (($vocabulary_tokens = token_find_with_prefix($tokens, 'parent')) && $parents = taxonomy_term_load_parents($term->tid)) {
+    if (($vocabulary_tokens = $token_service->findWithPrefix($tokens, 'parent')) && $parents = taxonomy_term_load_parents($term->id())) {
       $parent = array_pop($parents);
-      $replacements += token_generate('term', $vocabulary_tokens, array('term' => $parent), $options);
+      $replacements += $token_service->generate('term', $vocabulary_tokens, array('term' => $parent), $options);
     }
   }
 
@@ -153,7 +155,7 @@ function taxonomy_tokens($type, $tokens, array $data = array(), array $options =
     foreach ($tokens as $name => $original) {
       switch ($name) {
         case 'vid':
-          $replacements[$original] = $vocabulary->vid;
+          $replacements[$original] = $vocabulary->id();
           break;
 
         case 'name':
@@ -166,7 +168,7 @@ function taxonomy_tokens($type, $tokens, array $data = array(), array $options =
 
         case 'term-count':
           $query = db_select('taxonomy_term_data');
-          $query->condition('vid', $vocabulary->vid);
+          $query->condition('vid', $vocabulary->id());
           $query->addTag('vocabulary_term_count');
           $count = $query->countQuery()->execute()->fetchField();
           $replacements[$original] = $count;
@@ -176,7 +178,7 @@ function taxonomy_tokens($type, $tokens, array $data = array(), array $options =
           $query = db_select('taxonomy_index', 'ti');
           $query->addExpression('COUNT(DISTINCT ti.nid)');
           $query->leftJoin('taxonomy_term_data', 'td', 'ti.tid = td.tid');
-          $query->condition('td.vid', $vocabulary->vid);
+          $query->condition('td.vid', $vocabulary->id());
           $query->addTag('vocabulary_node_count');
           $count = $query->execute()->fetchField();
           $replacements[$original] = $count;

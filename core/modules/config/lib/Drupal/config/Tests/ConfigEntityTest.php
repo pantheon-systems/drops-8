@@ -8,6 +8,7 @@
 namespace Drupal\config\Tests;
 
 use Drupal\Core\Entity\EntityMalformedException;
+use Drupal\Core\Language\Language;
 use Drupal\simpletest\WebTestBase;
 
 /**
@@ -34,13 +35,14 @@ class ConfigEntityTest extends WebTestBase {
    * Tests CRUD operations.
    */
   function testCRUD() {
+    $default_langcode = language_default()->id;
     // Verify default properties on a newly created empty entity.
     $empty = entity_create('config_test', array());
     $this->assertIdentical($empty->id, NULL);
     $this->assertTrue($empty->uuid);
     $this->assertIdentical($empty->label, NULL);
     $this->assertIdentical($empty->style, NULL);
-    $this->assertIdentical($empty->langcode, LANGUAGE_NOT_SPECIFIED);
+    $this->assertIdentical($empty->langcode, $default_langcode);
 
     // Verify ConfigEntity properties/methods on the newly created empty entity.
     $this->assertIdentical($empty->isNew(), TRUE);
@@ -54,7 +56,7 @@ class ConfigEntityTest extends WebTestBase {
     $this->assertTrue($empty->get('uuid'));
     $this->assertIdentical($empty->get('label'), NULL);
     $this->assertIdentical($empty->get('style'), NULL);
-    $this->assertIdentical($empty->get('langcode'), LANGUAGE_NOT_SPECIFIED);
+    $this->assertIdentical($empty->get('langcode'), $default_langcode);
 
     // Verify Entity properties/methods on the newly created empty entity.
     $this->assertIdentical($empty->isNewRevision(), FALSE);
@@ -96,7 +98,7 @@ class ConfigEntityTest extends WebTestBase {
     $this->assertNotEqual($config_test->uuid, $empty->uuid);
     $this->assertIdentical($config_test->label, $expected['label']);
     $this->assertIdentical($config_test->style, $expected['style']);
-    $this->assertIdentical($config_test->langcode, LANGUAGE_NOT_SPECIFIED);
+    $this->assertIdentical($config_test->langcode, $default_langcode);
 
     // Verify methods on the newly created entity.
     $this->assertIdentical($config_test->isNew(), TRUE);
@@ -152,6 +154,8 @@ class ConfigEntityTest extends WebTestBase {
     $this->assertIdentical($same_id->label(), '');
     $this->assertNotEqual($same_id->uuid(), $config_test->uuid());
 
+    // Delete the overridden entity first.
+    $same_id->delete();
     // Revert to previous state.
     $config_test->save();
 
@@ -175,6 +179,11 @@ class ConfigEntityTest extends WebTestBase {
       $this->assertIdentical($config_test->id(), $new_id);
       $this->assertIdentical($config_test->getOriginalID(), $new_id);
     }
+
+    // Test config entity prepopulation.
+    \Drupal::state()->set('config_test.prepopulate', TRUE);
+    $config_test = entity_create('config_test', array('foo' => 'bar'));
+    $this->assertEqual($config_test->get('foo'), 'baz', 'Initial value correctly populated');
   }
 
   /**
@@ -199,7 +208,7 @@ class ConfigEntityTest extends WebTestBase {
     $this->assertResponse(200);
     $this->assertRaw($message_insert);
     $this->assertNoRaw($message_update);
-    $this->assertLinkByHref("admin/structure/config_test/manage/$id/edit");
+    $this->assertLinkByHref("admin/structure/config_test/manage/$id");
 
     // Update the configuration entity.
     $edit = array(
@@ -210,11 +219,11 @@ class ConfigEntityTest extends WebTestBase {
     $this->assertResponse(200);
     $this->assertNoRaw($message_insert);
     $this->assertRaw($message_update);
-    $this->assertLinkByHref("admin/structure/config_test/manage/$id/edit");
+    $this->assertLinkByHref("admin/structure/config_test/manage/$id");
     $this->assertLinkByHref("admin/structure/config_test/manage/$id/delete");
 
     // Delete the configuration entity.
-    $this->drupalGet("admin/structure/config_test/manage/$id/edit");
+    $this->drupalGet("admin/structure/config_test/manage/$id");
     $this->drupalPost(NULL, array(), 'Delete');
     $this->assertUrl("admin/structure/config_test/manage/$id/delete");
     $this->drupalPost(NULL, array(), 'Delete');
@@ -224,7 +233,6 @@ class ConfigEntityTest extends WebTestBase {
     $this->assertRaw($message_delete);
     $this->assertNoText($label1);
     $this->assertNoLinkByHref("admin/structure/config_test/manage/$id");
-    $this->assertNoLinkByHref("admin/structure/config_test/manage/$id/edit");
 
     // Re-create a configuration entity.
     $edit = array(
@@ -235,7 +243,7 @@ class ConfigEntityTest extends WebTestBase {
     $this->assertUrl('admin/structure/config_test');
     $this->assertResponse(200);
     $this->assertText($label1);
-    $this->assertLinkByHref("admin/structure/config_test/manage/$id/edit");
+    $this->assertLinkByHref("admin/structure/config_test/manage/$id");
 
     // Rename the configuration entity's ID/machine name.
     $edit = array(
@@ -249,9 +257,23 @@ class ConfigEntityTest extends WebTestBase {
     $this->assertNoText($label2);
     $this->assertText($label3);
     $this->assertNoLinkByHref("admin/structure/config_test/manage/$id");
-    $this->assertNoLinkByHref("admin/structure/config_test/manage/$id/edit");
     $id = $edit['id'];
-    $this->assertLinkByHref("admin/structure/config_test/manage/$id/edit");
+    $this->assertLinkByHref("admin/structure/config_test/manage/$id");
+
+    // Create a configuration entity with '0' machine name.
+    $edit = array(
+      'id' => '0',
+      'label' => '0',
+    );
+    $this->drupalPost('admin/structure/config_test/add', $edit, 'Save');
+    $this->assertResponse(200);
+    $message_insert = format_string('%label configuration has been created.', array('%label' => $edit['label']));
+    $this->assertRaw($message_insert);
+    $this->assertLinkByHref('admin/structure/config_test/manage/0');
+    $this->assertLinkByHref('admin/structure/config_test/manage/0/delete');
+    $this->drupalPost('admin/structure/config_test/manage/0/delete', array(), 'Delete');
+    $this->assertFalse(entity_load('config_test', '0'), 'Test entity deleted');
+
   }
 
 }

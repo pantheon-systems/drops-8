@@ -1,0 +1,40 @@
+base_table: node
+core: '8'
+description: ''
+status: '1'
+display:
+  default:
+    display_options:
+      access:
+        type: none
+      cache:
+        type: none
+      exposed_form:
+        type: basic
+      filters:
+        type:
+          expose:
+            identifier: type
+            label: 'Content: Type'
+            operator_id: type_op
+            reduce: '0'
+            use_operator: '0'
+          exposed: '1'
+          field: type
+          id: type
+          table: node_field_data
+          plugin_id: string
+          provider: views
+      pager:
+        type: full
+      style:
+        type: default
+      row:
+        type: fields
+    display_plugin: default
+    display_title: Master
+    id: default
+    position: '0'
+label: ''
+id: test_filter_in_operator_ui
+tag: ''

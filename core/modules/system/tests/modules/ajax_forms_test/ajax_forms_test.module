@@ -5,6 +5,8 @@
  * Simpletest mock module for Ajax forms testing.
  */
 
+use Drupal\Core\Ajax;
+use Drupal\Core\Ajax\AjaxResponse;
 use Drupal\ajax_forms_test\Callbacks;
 
 /**
@@ -70,6 +72,22 @@ function ajax_forms_test_simple_form($form, &$form_state) {
     '#type' => 'submit',
     '#value' => t('submit'),
   );
+
+  // This is for testing invalid callbacks that should return a 500 error in
+  // \Drupal\system\FormAjaxController::content().
+  $invalid_callbacks = array(
+    'null' => NULL,
+    'empty' => '',
+    'nonexistent' => 'some_function_that_does_not_exist',
+  );
+  foreach ($invalid_callbacks as $key => $value) {
+    $form['select_' . $key . '_callback'] = array(
+      '#type' => 'select',
+      '#options' => array('red' => 'red'),
+      '#ajax' => array('callback' => $value),
+    );
+  }
+
   return $form;
 }
 
@@ -245,6 +263,18 @@ function ajax_forms_test_ajax_commands_form($form, &$form_state) {
     ),
   );
 
+  // Tests the 'settings' command with a callback which sets the same
+  // setting multiple times. This is used to check that settings are
+  // merged properly (e.g., array_merge_recursive() merges settings
+  // incorrectly, #1356170).
+  $form['settings_command_with_merging_example'] = array(
+    '#type' => 'submit',
+    '#value' => t("AJAX 'settings' command with setting merging"),
+    '#ajax' => array(
+      'callback' => 'ajax_forms_test_advanced_commands_settings_with_merging_callback',
+    ),
+  );
+
   $form['submit'] = array(
     '#type' => 'submit',
     '#value' => t('Submit'),
@@ -259,18 +289,18 @@ function ajax_forms_test_ajax_commands_form($form, &$form_state) {
 function ajax_forms_test_advanced_commands_after_callback($form, $form_state) {
   $selector = '#after_div';
 
-  $commands = array();
-  $commands[] = ajax_command_after($selector, "This will be placed after");
-  return array('#type' => 'ajax', '#commands' => $commands);
+  $response = new AjaxResponse();
+  $response->addCommand(new Ajax\AfterCommand($selector, "This will be placed after"));
+  return $response;
 }
 
 /**
  * Ajax form callback: Selects 'alert'.
  */
 function ajax_forms_test_advanced_commands_alert_callback($form, $form_state) {
-  $commands = array();
-  $commands[] = ajax_command_alert("Alert");
-  return array('#type' => 'ajax', '#commands' => $commands);
+  $response = new AjaxResponse();
+  $response->addCommand(new Ajax\AlertCommand('Alert'));
+  return $response;
 }
 
 /**
@@ -278,9 +308,9 @@ function ajax_forms_test_advanced_commands_alert_callback($form, $form_state) {
  */
 function ajax_forms_test_advanced_commands_append_callback($form, $form_state) {
   $selector = '#append_div';
-  $commands = array();
-  $commands[] = ajax_command_append($selector, "Appended text");
-  return array('#type' => 'ajax', '#commands' => $commands);
+  $response = new AjaxResponse();
+  $response->addCommand(new Ajax\AppendCommand($selector, "Appended text"));
+  return $response;
 }
 
 /**
@@ -288,27 +318,27 @@ function ajax_forms_test_advanced_commands_append_callback($form, $form_state) {
  */
 function ajax_forms_test_advanced_commands_before_callback($form, $form_state) {
   $selector = '#before_div';
-
-  $commands = array();
-  $commands[] = ajax_command_before($selector, "Before text");
-  return array('#type' => 'ajax', '#commands' => $commands);
+  $response = new AjaxResponse();
+  $response->addCommand(new Ajax\BeforeCommand($selector, "Before text"));
+  return $response;
 }
 
 /**
  * Ajax form callback: Selects 'changed'.
  */
 function ajax_forms_test_advanced_commands_changed_callback($form, $form_state) {
-  $commands[] = ajax_command_changed('#changed_div');
-  return array('#type' => 'ajax', '#commands' => $commands);
+  $response = new AjaxResponse();
+  $response->addCommand(new Ajax\ChangedCommand('#changed_div'));
+  return $response;
 }
 
 /**
  * Ajax form callback: Selects 'changed' with asterisk marking inner div.
  */
 function ajax_forms_test_advanced_commands_changed_asterisk_callback($form, $form_state) {
-  $commands = array();
-  $commands[] = ajax_command_changed('#changed_div', '#changed_div_mark_this');
-  return array('#type' => 'ajax', '#commands' => $commands);
+  $response = new AjaxResponse();
+  $response->addCommand(new Ajax\ChangedCommand('#changed_div', '#changed_div_mark_this'));
+  return $response;
 }
 
 /**
@@ -318,9 +348,9 @@ function ajax_forms_test_advanced_commands_css_callback($form, $form_state) {
   $selector = '#css_div';
   $color = 'blue';
 
-  $commands = array();
-  $commands[] = ajax_command_css($selector, array('background-color' => $color));
-  return array('#type' => 'ajax', '#commands' => $commands);
+  $response = new AjaxResponse();
+  $response->addCommand(new Ajax\CssCommand($selector, array('background-color' => $color)));
+  return $response;
 }
 
 /**
@@ -328,83 +358,93 @@ function ajax_forms_test_advanced_commands_css_callback($form, $form_state) {
  */
 function ajax_forms_test_advanced_commands_data_callback($form, $form_state) {
   $selector = '#data_div';
-
-  $commands = array();
-  $commands[] = ajax_command_data($selector, 'testkey', 'testvalue');
-  return array('#type' => 'ajax', '#commands' => $commands);
+  $response = new AjaxResponse();
+  $response->addCommand(new Ajax\DataCommand($selector, 'testkey', 'testvalue'));
+  return $response;
 }
 
 /**
  * Ajax form callback: Selects 'invoke'.
  */
 function ajax_forms_test_advanced_commands_invoke_callback($form, $form_state) {
-  $commands = array();
-  $commands[] = ajax_command_invoke('#invoke_div', 'addClass', array('error'));
-  return array('#type' => 'ajax', '#commands' => $commands);
+  $response = new AjaxResponse();
+  $response->addCommand(new Ajax\InvokeCommand('#invoke_div', 'addClass', array('error')));
+  return $response;
 }
 
 /**
  * Ajax form callback: Selects 'html'.
  */
 function ajax_forms_test_advanced_commands_html_callback($form, $form_state) {
-  $commands = array();
-  $commands[] = ajax_command_html('#html_div', 'replacement text');
-  return array('#type' => 'ajax', '#commands' => $commands);
+  $response = new AjaxResponse();
+  $response->addCommand(new Ajax\HtmlCommand('#html_div', 'replacement text'));
+  return $response;
 }
 
 /**
  * Ajax form callback: Selects 'insert'.
  */
 function ajax_forms_test_advanced_commands_insert_callback($form, $form_state) {
-  $commands = array();
-  $commands[] = ajax_command_insert('#insert_div', 'insert replacement text');
-  return array('#type' => 'ajax', '#commands' => $commands);
+  $response = new AjaxResponse();
+  $response->addCommand(new Ajax\InsertCommand('#insert_div', 'insert replacement text'));
+  return $response;
 }
 
 /**
  * Ajax form callback: Selects 'prepend'.
  */
 function ajax_forms_test_advanced_commands_prepend_callback($form, $form_state) {
-  $commands = array();
-  $commands[] = ajax_command_prepend('#prepend_div', "prepended text");
-  return array('#type' => 'ajax', '#commands' => $commands);
+  $response = new AjaxResponse();
+  $response->addCommand(new Ajax\PrependCommand('#prepend_div', "prepended text"));
+  return $response;
 }
 
 /**
  * Ajax form callback: Selects 'remove'.
  */
 function ajax_forms_test_advanced_commands_remove_callback($form, $form_state) {
-  $commands = array();
-  $commands[] = ajax_command_remove('#remove_text');
-  return array('#type' => 'ajax', '#commands' => $commands);
+  $response = new AjaxResponse();
+  $response->addCommand(new Ajax\RemoveCommand('#remove_text'));
+  return $response;
 }
 
 /**
  * Ajax form callback: Selects 'restripe'.
  */
 function ajax_forms_test_advanced_commands_restripe_callback($form, $form_state) {
-  $commands = array();
-  $commands[] = ajax_command_restripe('#restripe_table');
-  return array('#type' => 'ajax', '#commands' => $commands);
+  $response = new AjaxResponse();
+  $response->addCommand(new Ajax\RestripeCommand('#restripe_table'));
+  return $response;
 }
 
 /**
  * Ajax form callback: Selects 'settings'.
  */
 function ajax_forms_test_advanced_commands_settings_callback($form, $form_state) {
-  $commands = array();
   $setting['ajax_forms_test']['foo'] = 42;
-  $commands[] = ajax_command_settings($setting);
-  return array('#type' => 'ajax', '#commands' => $commands);
+  $response = new AjaxResponse();
+  $response->addCommand(new Ajax\SettingsCommand($setting));
+  return $response;
 }
 
 /**
  * Ajax callback for 'add_css'.
  */
 function ajax_forms_test_advanced_commands_add_css_callback($form, $form_state) {
-  $commands = array();
-  $commands[] = ajax_command_add_css('my/file.css');
-  return array('#type' => 'ajax', '#commands' => $commands);
+  $response = new AjaxResponse();
+  $response->addCommand(new Ajax\AddCssCommand('my/file.css'));
+  return $response;
+}
+
+/**
+ * Ajax callback for 'settings' but with setting overrides.
+ */
+function ajax_forms_test_advanced_commands_settings_with_merging_callback($form, $form_state) {
+  drupal_add_js(array('ajax_forms_test' => array('foo' => 42)), 'setting');
+  drupal_add_js(array('ajax_forms_test' => array('foo' => 9001)), 'setting');
+
+  $response = new AjaxResponse();
+  return $response;
 }
 
 /**
@@ -434,6 +474,19 @@ function ajax_forms_test_validation_form($form, &$form_state) {
       'method' => 'replace',
     ),
     '#suffix' => '<div id="message_area"></div>',
+  );
+
+  $form['drivernumber'] = array(
+    '#title' => t('AJAX-enabled number field.'),
+    '#description' => t("When this one AJAX-triggers and the spare required field is empty, you should not get an error."),
+    '#type' => 'number',
+    '#default_value' => !empty($form_state['values']['drivernumber']) ? $form_state['values']['drivernumber'] : "",
+    '#ajax' => array(
+      'callback' => 'ajax_forms_test_validation_number_form_callback',
+      'wrapper' => 'message_area_number',
+      'method' => 'replace',
+    ),
+    '#suffix' => '<div id="message_area_number"></div>',
   );
 
   $form['spare_required_field'] = array(
@@ -469,9 +522,25 @@ function ajax_forms_test_validation_form_callback($form, $form_state) {
 }
 
 /**
+ * Ajax form callback: Selects the 'drivernumber' element of the validation form.
+ */
+function ajax_forms_test_validation_number_form_callback($form, $form_state) {
+  drupal_set_message("ajax_forms_test_validation_number_form_callback invoked");
+  drupal_set_message(t("Callback: drivernumber=%drivernumber, spare_required_field=%spare_required_field", array('%drivernumber' => $form_state['values']['drivernumber'], '%spare_required_field' => $form_state['values']['spare_required_field'])));
+  return '<div id="message_area_number">ajax_forms_test_validation_number_form_callback at ' . date('c') . '</div>';
+}
+
+/**
  * Form builder: Builds a form that triggers a simple AJAX callback.
  */
 function ajax_forms_test_lazy_load_form($form, &$form_state) {
+  // We attach a JavaScript setting, so that one of the generated AJAX commands
+  // will be a settings command. We can then check the settings command to
+  // ensure that the 'currentPath' setting is not part of the Ajax response.
+  $form['#attached']['js'][] = array(
+    'type' => 'setting',
+    'data' => array('test' => 'currentPathUpdate'),
+  );
   $form['add_files'] = array(
     '#type' => 'checkbox',
     '#default_value' => FALSE,
@@ -480,8 +549,10 @@ function ajax_forms_test_lazy_load_form($form, &$form_state) {
     '#type' => 'submit',
     '#value' => t('Submit'),
     '#ajax' => array(
+      'wrapper' => 'ajax-forms-test-lazy-load-ajax-wrapper',
       'callback' => 'ajax_forms_test_lazy_load_form_ajax',
     ),
+    '#prefix' => '<div id="ajax-forms-test-lazy-load-ajax-wrapper"></div>',
   );
   return $form;
 }
@@ -492,7 +563,7 @@ function ajax_forms_test_lazy_load_form($form, &$form_state) {
 function ajax_forms_test_lazy_load_form_submit($form, &$form_state) {
   if ($form_state['values']['add_files']) {
     drupal_add_js(array('ajax_forms_test_lazy_load_form_submit' => 'executed'), 'setting');
-    drupal_add_css(drupal_get_path('module', 'system') . '/system.admin.css');
+    drupal_add_css(drupal_get_path('module', 'system') . '/css/system.admin.css');
     drupal_add_js(drupal_get_path('module', 'system') . '/system.js');
   }
   $form_state['rebuild'] = TRUE;
@@ -500,11 +571,7 @@ function ajax_forms_test_lazy_load_form_submit($form, &$form_state) {
 
 /**
  * AJAX form callback: Selects for the ajax_forms_test_lazy_load_form() form.
- *
- * This function returns nothing, because all we're interested in testing is
- * ajax_render() adding commands for JavaScript and CSS added during the page
- * request, such as the ones added in ajax_forms_test_lazy_load_form_submit().
  */
 function ajax_forms_test_lazy_load_form_ajax($form, &$form_state) {
-  return NULL;
+  return array('#markup' => 'new content');
 }

@@ -42,10 +42,8 @@ function dblog_menu() {
   $items['admin/reports/dblog'] = array(
     'title' => 'Recent log messages',
     'description' => 'View events that have recently been logged.',
-    'page callback' => 'dblog_overview',
-    'access arguments' => array('access site reports'),
+    'route_name' => 'dblog_overview',
     'weight' => -1,
-    'file' => 'dblog.admin.inc',
   );
   $items['admin/reports/page-not-found'] = array(
     'title' => "Top 'page not found' errors",
@@ -65,10 +63,7 @@ function dblog_menu() {
   );
   $items['admin/reports/event/%'] = array(
     'title' => 'Details',
-    'page callback' => 'dblog_event',
-    'page arguments' => array(3),
-    'access arguments' => array('access site reports'),
-    'file' => 'dblog.admin.inc',
+    'route_name' => 'dblog_event',
   );
 
   if (module_exists('search')) {
@@ -86,12 +81,11 @@ function dblog_menu() {
 }
 
 /**
- * Implements hook_init().
+ * Implements hook_page_build().
  */
-function dblog_init() {
+function dblog_page_build(&$page) {
   if (arg(0) == 'admin' && arg(1) == 'reports') {
-    // Add the CSS for this module
-    drupal_add_css(drupal_get_path('module', 'dblog') . '/dblog.css');
+    $page['#attached']['css'][] = drupal_get_path('module', 'dblog') . '/css/dblog.module.css';
   }
 }
 
@@ -102,7 +96,7 @@ function dblog_init() {
  */
 function dblog_cron() {
   // Cleanup the watchdog table.
-  $row_limit = config('dblog.settings')->get('row_limit');
+  $row_limit = Drupal::config('dblog.settings')->get('row_limit');
 
   // For row limit n, get the wid of the nth row in descending wid order.
   // Counting the most recent n rows avoids issues with wid number sequences,
@@ -146,6 +140,9 @@ function _dblog_get_message_types() {
  * Note: Some values may be truncated to meet database column size restrictions.
  */
 function dblog_watchdog(array $log_entry) {
+  // Remove any backtraces since they may contain an unserializable variable.
+  unset($log_entry['variables']['backtrace']);
+
   Database::getConnection('default', 'default')->insert('watchdog')
     ->fields(array(
       'uid' => $log_entry['uid'],
@@ -169,7 +166,7 @@ function dblog_form_system_logging_settings_alter(&$form, $form_state) {
   $form['dblog_row_limit'] = array(
     '#type' => 'select',
     '#title' => t('Database log messages to keep'),
-    '#default_value' => config('dblog.settings')->get('row_limit'),
+    '#default_value' => Drupal::config('dblog.settings')->get('row_limit'),
     '#options' => array(0 => t('All')) + drupal_map_assoc(array(100, 1000, 10000, 100000, 1000000)),
     '#description' => t('The maximum number of messages to keep in the database log. Requires a <a href="@cron">cron maintenance task</a>.', array('@cron' => url('admin/reports/status')))
   );
@@ -183,17 +180,5 @@ function dblog_form_system_logging_settings_alter(&$form, $form_state) {
  * @see dblog_form_system_logging_settings_alter()
  */
 function dblog_logging_settings_submit($form, &$form_state) {
-  config('dblog.settings')->set('row_limit', $form_state['values']['dblog_row_limit'])->save();
-}
-
-/**
- * Implements hook_theme().
- */
-function dblog_theme() {
-  return array(
-    'dblog_message' => array(
-      'variables' => array('event' => NULL, 'link' => FALSE),
-      'file' => 'dblog.admin.inc',
-    ),
-  );
+  Drupal::config('dblog.settings')->set('row_limit', $form_state['values']['dblog_row_limit'])->save();
 }

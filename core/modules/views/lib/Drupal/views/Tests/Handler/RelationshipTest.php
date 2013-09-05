@@ -7,12 +7,22 @@
 
 namespace Drupal\views\Tests\Handler;
 
+use Drupal\views\Tests\ViewUnitTestBase;
+use Drupal\views\Tests\Plugin\RelationshipJoinTestBase;
+
 /**
  * Tests the base relationship handler.
  *
  * @see Drupal\views\Plugin\views\relationship\RelationshipPluginBase
  */
-class RelationshipTest extends HandlerTestBase {
+class RelationshipTest extends RelationshipJoinTestBase {
+
+  /**
+   * Views used by this test.
+   *
+   * @var array
+   */
+  public static $testViews = array('test_view');
 
   /**
    * Maps between the key in the expected result and the query result.
@@ -32,57 +42,6 @@ class RelationshipTest extends HandlerTestBase {
     );
   }
 
-  protected function setUp() {
-    parent::setUp();
-
-    $this->enableViewsTestModule();
-  }
-
-
-  /**
-   * Overrides Drupal\views\Tests\ViewTestBase::schemaDefinition().
-   *
-   * Adds a uid column to test the relationships.
-   *
-   * @return array
-   */
-  protected function schemaDefinition() {
-    $schema = parent::schemaDefinition();
-
-    $schema['views_test_data']['fields']['uid'] = array(
-      'description' => "The {users}.uid of the author of the beatle entry.",
-      'type' => 'int',
-      'unsigned' => TRUE,
-      'not null' => TRUE,
-      'default' => 0
-    );
-
-    return $schema;
-  }
-
-
-  /**
-   * Overrides Drupal\views\Tests\ViewTestBase::viewsData().
-   *
-   * Adds a relationship for the uid column.
-   *
-   * @return array
-   */
-  protected function viewsData() {
-    $data = parent::viewsData();
-    $data['views_test_data']['uid'] = array(
-      'title' => t('UID'),
-      'help' => t('The test data UID'),
-      'relationship' => array(
-        'id' => 'standard',
-        'base' => 'users',
-        'base field' => 'uid'
-      )
-    );
-
-    return $data;
-  }
-
   /**
    * Tests the query result of a view with a relationship.
    */
@@ -91,9 +50,10 @@ class RelationshipTest extends HandlerTestBase {
     db_query("UPDATE {views_test_data} SET uid = 1 WHERE id = 1");
     db_query("UPDATE {views_test_data} SET uid = 2 WHERE id <> 1");
 
-    $view = $this->getBasicView();
+    $view = views_get_view('test_view');
+    $view->setDisplay();
 
-    $view->displayHandlers['default']->overrideOption('relationships', array(
+    $view->displayHandlers->get('default')->overrideOption('relationships', array(
       'uid' => array(
         'id' => 'uid',
         'table' => 'views_test_data',
@@ -101,7 +61,7 @@ class RelationshipTest extends HandlerTestBase {
       ),
     ));
 
-    $view->displayHandlers['default']->overrideOption('filters', array(
+    $view->displayHandlers->get('default')->overrideOption('filters', array(
       'uid' => array(
         'id' => 'uid',
         'table' => 'users',
@@ -110,8 +70,8 @@ class RelationshipTest extends HandlerTestBase {
       ),
     ));
 
-    $fields = $view->displayHandlers['default']->getOption('fields');
-    $view->displayHandlers['default']->overrideOption('fields', $fields + array(
+    $fields = $view->displayHandlers->get('default')->getOption('fields');
+    $view->displayHandlers->get('default')->overrideOption('fields', $fields + array(
       'uid' => array(
         'id' => 'uid',
         'table' => 'users',
@@ -178,4 +138,5 @@ class RelationshipTest extends HandlerTestBase {
 
     $this->assertIdenticalResultset($view, $expected_result, $this->columnMap);
   }
+
 }

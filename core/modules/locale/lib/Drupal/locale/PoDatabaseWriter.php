@@ -155,19 +155,20 @@ class PoDatabaseWriter implements PoWriterInterface {
    */
   function setHeader(PoHeader $header) {
     $this->_header = $header;
-    $locale_plurals = variable_get('locale_translation_plurals', array());
+    $config = \Drupal::config('locale.settings');
+    $locale_plurals = \Drupal::state()->get('locale.translation.plurals') ?: array();
 
     // Check for options.
     $options = $this->getOptions();
     if (empty($options)) {
-      throw new Exception("Options should be set before assigning a PoHeader.");
+      throw new \Exception('Options should be set before assigning a PoHeader.');
     }
     $overwrite_options = $options['overwrite_options'];
 
     // Check for langcode.
     $langcode = $this->_langcode;
     if (empty($langcode)) {
-      throw new Exception("Langcode should be set before assigning a PoHeader.");
+      throw new \Exception('Langcode should be set before assigning a PoHeader.');
     }
 
     if (array_sum($overwrite_options) || empty($locale_plurals[$langcode]['plurals'])) {
@@ -179,7 +180,7 @@ class PoDatabaseWriter implements PoWriterInterface {
           'plurals' => $nplurals,
           'formula' => $formula,
         );
-        variable_set('locale_translation_plurals', $locale_plurals);
+        \Drupal::state()->set('locale.translation.plurals', $locale_plurals);
       }
     }
   }
@@ -228,7 +229,7 @@ class PoDatabaseWriter implements PoWriterInterface {
     $translation = $item->getTranslation();
 
     // Look up the source string and any existing translation.
-    $strings = locale_storage()->getTranslations(array(
+    $strings = \Drupal::service('locale.storage')->getTranslations(array(
       'language' => $this->_langcode,
       'source' => $source,
       'context' => $context
@@ -264,9 +265,9 @@ class PoDatabaseWriter implements PoWriterInterface {
       }
       else {
         // No such source string in the database yet.
-        $string = locale_storage()->createString(array('source' => $source, 'context' => $context))
+        $string = \Drupal::service('locale.storage')->createString(array('source' => $source, 'context' => $context))
           ->save();
-        $target = locale_storage()->createTranslation(array(
+        $target = \Drupal::service('locale.storage')->createTranslation(array(
           'lid' => $string->getId(),
           'language' => $this->_langcode,
           'translation' => $translation,

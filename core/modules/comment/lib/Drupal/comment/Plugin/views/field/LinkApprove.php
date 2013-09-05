@@ -7,17 +7,15 @@
 
 namespace Drupal\comment\Plugin\views\field;
 
-use Drupal\Core\Annotation\Plugin;
+use Drupal\views\ResultRow;
+use Drupal\Component\Annotation\PluginID;
 
 /**
  * Provides a comment approve link.
  *
  * @ingroup views_field_handlers
  *
- * @Plugin(
- *   id = "comment_link_approve",
- *   module = "comment"
- * )
+ * @PluginID("comment_link_approve")
  */
 class LinkApprove extends Link {
 
@@ -26,8 +24,8 @@ class LinkApprove extends Link {
     return user_access('administer comments');
   }
 
-  function render_link($data, $values) {
-    $status = $this->get_value($values, 'status');
+  protected function renderLink($data, ResultRow $values) {
+    $status = $this->getValue($values, 'status');
 
     // Don't show an approve link on published nodes.
     if ($status == COMMENT_PUBLISHED) {
@@ -35,7 +33,7 @@ class LinkApprove extends Link {
     }
 
     $text = !empty($this->options['text']) ? $this->options['text'] : t('approve');
-    $cid =  $this->get_value($values, 'cid');
+    $cid =  $this->getValue($values, 'cid');
 
     $this->options['alter']['make_link'] = TRUE;
     $this->options['alter']['path'] = "comment/" . $cid . "/approve";

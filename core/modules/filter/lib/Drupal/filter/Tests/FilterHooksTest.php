@@ -7,10 +7,11 @@
 
 namespace Drupal\filter\Tests;
 
+use Drupal\Core\Language\Language;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Tests for filter hook invocation.
+ * Tests for Filter's hook invocations.
  */
 class FilterHooksTest extends WebTestBase {
 
@@ -19,7 +20,7 @@ class FilterHooksTest extends WebTestBase {
    *
    * @var array
    */
-  public static $modules = array('block', 'filter_test');
+  public static $modules = array('node', 'filter_test');
 
   public static function getInfo() {
     return array(
@@ -29,12 +30,6 @@ class FilterHooksTest extends WebTestBase {
     );
   }
 
-  function setUp() {
-    parent::setUp();
-    $admin_user = $this->drupalCreateUser(array('administer filters', 'administer blocks'));
-    $this->drupalLogin($admin_user);
-  }
-
   /**
    * Tests hooks on format management.
    *
@@ -42,6 +37,14 @@ class FilterHooksTest extends WebTestBase {
    * format.
    */
   function testFilterHooks() {
+    // Create content type, with underscores.
+    $type_name = 'test_' . strtolower($this->randomName());
+    $type = $this->drupalCreateContentType(array('name' => $type_name, 'type' => $type_name));
+    $node_permission = "create $type_name content";
+
+    $admin_user = $this->drupalCreateUser(array('administer filters', 'administer nodes', $node_permission));
+    $this->drupalLogin($admin_user);
+
     // Add a text format.
     $name = $this->randomName();
     $edit = array();
@@ -49,35 +52,32 @@ class FilterHooksTest extends WebTestBase {
     $edit['name'] = $name;
     $edit['roles[' . DRUPAL_ANONYMOUS_RID . ']'] = 1;
     $this->drupalPost('admin/config/content/formats/add', $edit, t('Save configuration'));
-    $this->assertRaw(t('Added text format %format.', array('%format' => $name)), 'New format created.');
-    $this->assertText('hook_filter_format_insert invoked.', 'hook_filter_format_insert was invoked.');
+    $this->assertRaw(t('Added text format %format.', array('%format' => $name)));
+    $this->assertText('hook_filter_format_insert invoked.');
 
     $format_id = $edit['format'];
 
     // Update text format.
     $edit = array();
     $edit['roles[' . DRUPAL_AUTHENTICATED_RID . ']'] = 1;
-    $this->drupalPost('admin/config/content/formats/' . $format_id, $edit, t('Save configuration'));
-    $this->assertRaw(t('The text format %format has been updated.', array('%format' => $name)), 'Format successfully updated.');
-    $this->assertText('hook_filter_format_update invoked.', 'hook_filter_format_update() was invoked.');
+    $this->drupalPost('admin/config/content/formats/manage/' . $format_id, $edit, t('Save configuration'));
+    $this->assertRaw(t('The text format %format has been updated.', array('%format' => $name)));
+    $this->assertText('hook_filter_format_update invoked.');
 
-    // Add a new custom block.
-    $custom_block = array();
-    $custom_block['info'] = $this->randomName(8);
-    $custom_block['title'] = $this->randomName(8);
-    $custom_block['body[value]'] = $this->randomName(32);
     // Use the format created.
-    $custom_block['body[format]'] = $format_id;
-    $this->drupalPost('admin/structure/block/add', $custom_block, t('Save block'));
-    $this->assertText(t('The block has been created.'), 'New block successfully created.');
-
-    // Verify the new block is in the database.
-    $bid = db_query("SELECT bid FROM {block_custom} WHERE info = :info", array(':info' => $custom_block['info']))->fetchField();
-    $this->assertNotNull($bid, 'New block found in database');
+    $language_not_specified = Language::LANGCODE_NOT_SPECIFIED;
+    $title = $this->randomName(8);
+    $edit = array(
+      "title" => $title,
+      "body[$language_not_specified][0][value]" => $this->randomName(32),
+      "body[$language_not_specified][0][format]" => $format_id,
+    );
+    $this->drupalPost("node/add/{$type->type}", $edit, t('Save and publish'));
+    $this->assertText(t('@type @title has been created.', array('@type' => $type_name, '@title' => $title)));
 
     // Disable the text format.
-    $this->drupalPost('admin/config/content/formats/' . $format_id . '/disable', array(), t('Disable'));
-    $this->assertRaw(t('Disabled text format %format.', array('%format' => $name)), 'Format successfully disabled.');
-    $this->assertText('hook_filter_format_disable invoked.', 'hook_filter_format_disable() was invoked.');
+    $this->drupalPost('admin/config/content/formats/manage/' . $format_id . '/disable', array(), t('Disable'));
+    $this->assertRaw(t('Disabled text format %format.', array('%format' => $name)));
+    $this->assertText('hook_filter_format_disable invoked.');
   }
 }

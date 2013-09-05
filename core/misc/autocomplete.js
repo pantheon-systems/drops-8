@@ -14,12 +14,12 @@ Drupal.behaviors.autocomplete = {
         acdb[uri] = new Drupal.ACDB(uri);
       }
       var $input = $('#' + this.id.substr(0, this.id.length - 13))
-        .attr('autocomplete', 'OFF')
+        .prop('autocomplete', 'OFF')
         .attr('aria-autocomplete', 'list');
       $($input[0].form).submit(Drupal.autocompleteSubmit);
       $input.parent()
         .attr('role', 'application')
-        .append($('<span class="element-invisible" aria-live="assertive"></span>')
+        .append($('<span class="visually-hidden" aria-live="assertive"></span>')
           .attr('id', $input[0].id + '-autocomplete-aria-live')
         );
       new Drupal.jsAC($input, acdb[uri]);
@@ -221,15 +221,15 @@ Drupal.jsAC.prototype.found = function (matches) {
   }
 
   // Prepare matches.
-  var ul = $('<ul></ul>');
   var ac = this;
+  var ul = $('<ul></ul>')
+    .on('mousedown', 'li', function (e) { ac.select(this); })
+    .on('mouseover', 'li', function (e) { ac.highlight(this); })
+    .on('mouseout', 'li', function (e) { ac.unhighlight(this); });
   for (var key in matches) {
     if (matches.hasOwnProperty(key)) {
       $('<li></li>')
         .html($('<div></div>').html(matches[key]))
-        .mousedown(function () { ac.select(this); })
-        .mouseover(function () { ac.highlight(this); })
-        .mouseout(function () { ac.unhighlight(this); })
         .data('autocompleteValue', key)
         .appendTo(ul);
     }
@@ -297,11 +297,13 @@ Drupal.ACDB.prototype.search = function (searchString) {
   this.timer = setTimeout(function () {
     db.owner.setStatus('begin');
 
-    // Ajax GET request for autocompletion. We use Drupal.encodePath instead of
-    // encodeURIComponent to allow autocomplete search terms to contain slashes.
+    // Ajax GET request for autocompletion.
     $.ajax({
       type: 'GET',
-      url: db.uri + '/' + Drupal.encodePath(searchString),
+      url: db.uri,
+      data: {
+        q: searchString
+      },
       dataType: 'json',
       success: function (matches) {
         if (typeof matches.status === 'undefined' || matches.status !== 0) {
@@ -314,7 +316,7 @@ Drupal.ACDB.prototype.search = function (searchString) {
         }
       },
       error: function (xmlhttp) {
-        alert(Drupal.ajaxError(xmlhttp, db.uri));
+        throw new Drupal.AjaxError(xmlhttp, db.uri);
       }
     });
   }, this.delay);

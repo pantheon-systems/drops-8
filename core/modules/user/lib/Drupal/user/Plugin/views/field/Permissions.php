@@ -7,67 +7,109 @@
 
 namespace Drupal\user\Plugin\views\field;
 
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
+use Drupal\Core\Entity\EntityManager;
+use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\views\Plugin\views\display\DisplayPluginBase;
 use Drupal\views\ViewExecutable;
 use Drupal\views\Plugin\views\field\PrerenderList;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Field handler to provide a list of permissions.
  *
  * @ingroup views_field_handlers
  *
- * @Plugin(
- *   id = "user_permissions",
- *   module = "user"
- * )
+ * @PluginID("user_permissions")
  */
 class Permissions extends PrerenderList {
 
   /**
+   * The role storage controller.
+   *
+   * @var \Drupal\user\RoleStorageControllerInterface
+   */
+  protected $roleStorageController;
+
+  /**
+   * The module handler.
+   *
+   * @var \Drupal\Core\Extension\ModuleHandlerInterface
+   */
+  protected $moduleHandler;
+
+  /**
+   * Constructs a Drupal\Component\Plugin\PluginBase object.
+   *
+   * @param array $configuration
+   *   A configuration array containing information about the plugin instance.
+   * @param string $plugin_id
+   *   The plugin_id for the plugin instance.
+   * @param array $plugin_definition
+   *   The plugin implementation definition.
+   * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
+   *   The module handler.
+   * @param \Drupal\Core\Entity\EntityManager $entity_manager
+   *   The entity manager
+   */
+  public function __construct(array $configuration, $plugin_id, array $plugin_definition, ModuleHandlerInterface $module_handler, EntityManager $entity_manager) {
+    parent::__construct($configuration, $plugin_id, $plugin_definition);
+
+    $this->roleStorageController = $entity_manager->getStorageController('user_role');
+    $this->moduleHandler = $module_handler;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, array $plugin_definition) {
+    return new static($configuration, $plugin_id, $plugin_definition, $container->get('module_handler'), $container->get('entity.manager'));
+  }
+
+  /**
    * Overrides Drupal\views\Plugin\views\field\FieldPluginBase::init().
    */
-  public function init(ViewExecutable $view, &$options) {
-    parent::init($view, $options);
+  public function init(ViewExecutable $view, DisplayPluginBase $display, array &$options = NULL) {
+    parent::init($view, $display, $options);
 
     $this->additional_fields['uid'] = array('table' => 'users', 'field' => 'uid');
   }
 
   public function query() {
-    $this->add_additional_fields();
+    $this->addAdditionalFields();
     $this->field_alias = $this->aliases['uid'];
   }
 
-  function pre_render(&$values) {
+  public function preRender(&$values) {
     $uids = array();
     $this->items = array();
 
+    $permission_names = \Drupal::moduleHandler()->invokeAll('permission');
+
+    $rids = array();
     foreach ($values as $result) {
-      $uids[] = $this->get_value($result);
+      $user_rids = $this->getEntity($result)->getRoles();
+      $uid = $this->getValue($result);
+
+      foreach ($user_rids as $rid) {
+        $rids[$rid][] = $uid;
+      }
     }
 
-    if ($uids) {
-      // Get a list of all the modules implementing a hook_permission() and sort by
-      // display name.
-      $module_info = system_get_info('module');
-      $modules = array();
-      foreach (module_implements('permission') as $module) {
-        $modules[$module] = $module_info[$module]['name'];
+    if ($rids) {
+      $roles = $this->roleStorageController->loadMultiple(array_keys($rids));
+      foreach ($rids as $rid => $role_uids) {
+        foreach ($roles[$rid]->getPermissions() as $permission) {
+          foreach ($role_uids as $uid) {
+            $this->items[$uid][$permission]['permission'] = $permission_names[$permission]['title'];
+          }
+        }
       }
-      asort($modules);
 
-      $permissions = module_invoke_all('permission');
-
-      $query = db_select('role_permission', 'rp');
-      $query->join('users_roles', 'u', 'u.rid = rp.rid');
-      $query->fields('u', array('uid', 'rid'));
-      $query->addField('rp', 'permission');
-      $query->condition('u.uid', $uids);
-      $query->condition('rp.module', array_keys($modules));
-      $query->orderBy('rp.permission');
-      $result = $query->execute();
-
-      foreach ($result as $perm) {
-        $this->items[$perm->uid][$perm->permission]['permission'] = $permissions[$perm->permission]['title'];
+      foreach ($uids as $uid) {
+        if (isset($this->items[$uid])) {
+          ksort($this->items[$uid]);
+        }
       }
     }
   }
@@ -77,12 +119,12 @@ class Permissions extends PrerenderList {
   }
 
   /*
-  function document_self_tokens(&$tokens) {
+  protected function documentSelfTokens(&$tokens) {
     $tokens['[' . $this->options['id'] . '-role' . ']'] = t('The name of the role.');
     $tokens['[' . $this->options['id'] . '-rid' . ']'] = t('The role ID of the role.');
   }
 
-  function add_self_tokens(&$tokens, $item) {
+  protected function addSelfTokens(&$tokens, $item) {
     $tokens['[' . $this->options['id'] . '-role' . ']'] = $item['role'];
     $tokens['[' . $this->options['id'] . '-rid' . ']'] = $item['rid'];
   }

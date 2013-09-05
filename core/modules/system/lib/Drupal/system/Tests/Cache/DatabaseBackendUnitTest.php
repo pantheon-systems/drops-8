@@ -8,11 +8,19 @@
 namespace Drupal\system\Tests\Cache;
 
 use Drupal\Core\Cache\DatabaseBackend;
+use Drupal\Core\Database\Database;
 
 /**
  * Tests DatabaseBackend using GenericCacheBackendUnitTestBase.
  */
 class DatabaseBackendUnitTest extends GenericCacheBackendUnitTestBase {
+
+  /**
+   * Modules to enable.
+   *
+   * @var array
+   */
+  public static $modules = array('system');
 
   public static function getInfo() {
     return array(
@@ -29,20 +37,7 @@ class DatabaseBackendUnitTest extends GenericCacheBackendUnitTestBase {
    *   A new DatabaseBackend object.
    */
   protected function createCacheBackend($bin) {
-    return new DatabaseBackend($bin);
+    return new DatabaseBackend($this->container->get('database'), $bin);
   }
 
-  /**
-   * Installs system schema.
-   */
-  public function setUpCacheBackend() {
-    drupal_install_schema('system');
-  }
-
-  /**
-   * Uninstalls system schema.
-   */
-  public function tearDownCacheBackend() {
-    drupal_uninstall_schema('system');
-  }
 }

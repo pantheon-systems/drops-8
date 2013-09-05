@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Definition of Drupal\Core\TypedData\ListInterface.
+ * Contains \Drupal\Core\TypedData\ListInterface.
  */
 
 namespace Drupal\Core\TypedData;
@@ -20,7 +20,7 @@ use Traversable;
  * When implementing this interface which extends Traversable, make sure to list
  * IteratorAggregate or Iterator before this interface in the implements clause.
  */
-interface ListInterface extends ArrayAccess, Countable, Traversable {
+interface ListInterface extends TypedDataInterface, ArrayAccess, Countable, Traversable {
 
   /**
    * Determines whether the list contains any non-empty items.
@@ -29,4 +29,22 @@ interface ListInterface extends ArrayAccess, Countable, Traversable {
    *   TRUE if the list is empty, FALSE otherwise.
    */
   public function isEmpty();
+
+  /**
+   * Gets the definition of a contained item.
+   *
+   * @return array
+   *   The data definition of contained items.
+   */
+  public function getItemDefinition();
+
+  /**
+   * React to changes to a child item.
+   *
+   * Note that this is invoked after any changes have been applied.
+   *
+   * @param $delta
+   *   The delta of the item which is changed.
+   */
+  public function onChange($delta);
 }

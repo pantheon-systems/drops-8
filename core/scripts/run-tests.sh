@@ -4,6 +4,10 @@
  * This script runs Drupal tests from command line.
  */
 
+require_once __DIR__ . '/../vendor/autoload.php';
+
+use Drupal\Core\StreamWrapper\PublicStream;
+
 const SIMPLETEST_SCRIPT_COLOR_PASS = 32; // Green.
 const SIMPLETEST_SCRIPT_COLOR_FAIL = 31; // Red.
 const SIMPLETEST_SCRIPT_COLOR_EXCEPTION = 33; // Brown.
@@ -28,7 +32,9 @@ else {
 }
 
 // Bootstrap to perform initial validation or other operations.
-drupal_bootstrap(DRUPAL_BOOTSTRAP_FULL);
+drupal_bootstrap(DRUPAL_BOOTSTRAP_CODE);
+simpletest_classloader_register();
+
 if (!module_exists('simpletest')) {
   simpletest_script_print_error("The simpletest module must be enabled before this script can run.");
   exit;
@@ -51,7 +57,7 @@ if ($args['list']) {
   // Display all available tests.
   echo "\nAvailable test groups & classes\n";
   echo   "-------------------------------\n\n";
-  $groups = simpletest_test_get_all();
+  $groups = simpletest_script_get_all_tests();
   foreach ($groups as $group => $tests) {
     echo $group . "\n";
     foreach ($tests as $class => $info) {
@@ -69,7 +75,9 @@ drupal_set_time_limit(0);
 simpletest_script_reporter_init();
 
 // Execute tests.
-simpletest_script_execute_batch(simpletest_script_get_test_list());
+for ($i = 0; $i < $args['repeat']; $i++) {
+  simpletest_script_execute_batch($test_list);
+}
 
 // Stop the timer.
 simpletest_script_reporter_timer_stop();
@@ -146,6 +154,15 @@ All arguments are long options.
               Keeps detailed assertion results (in the database) after tests
               have completed. By default, assertion results are cleared.
 
+  --repeat    Number of times to repeat the test.
+
+  --die-on-fail
+
+              Exit test execution immediately upon any failed assertion. This
+              allows to access the test site by changing settings.php to use the
+              test database and configuration directories. Use in combination
+              with --repeat for debugging random test failures.
+
   <test1>[,<test2>[,<test3> ...]]
 
               One or more tests to be run. By default, these are interpreted
@@ -191,6 +208,8 @@ function simpletest_script_parse_args() {
     'verbose' => FALSE,
     'keep-results' => FALSE,
     'test_names' => array(),
+    'repeat' => 1,
+    'die-on-fail' => FALSE,
     // Used internally.
     'test-id' => 0,
     'execute-test' => '',
@@ -270,8 +289,10 @@ function simpletest_script_init($server_software) {
   if (!empty($args['url'])) {
     $parsed_url = parse_url($args['url']);
     $host = $parsed_url['host'] . (isset($parsed_url['port']) ? ':' . $parsed_url['port'] : '');
-    $path = isset($parsed_url['path']) ? $parsed_url['path'] : '';
-
+    $path = isset($parsed_url['path']) ? rtrim($parsed_url['path']) : '';
+    if ($path == '/') {
+      $path = '';
+    }
     // If the passed URL schema is 'https' then setup the $_SERVER variables
     // properly so that testing will run under HTTPS.
     if ($parsed_url['scheme'] == 'https') {
@@ -287,6 +308,7 @@ function simpletest_script_init($server_software) {
   $_SERVER['REQUEST_URI'] = $path .'/';
   $_SERVER['REQUEST_METHOD'] = 'GET';
   $_SERVER['SCRIPT_NAME'] = $path .'/index.php';
+  $_SERVER['SCRIPT_FILENAME'] = $path .'/index.php';
   $_SERVER['PHP_SELF'] = $path .'/index.php';
   $_SERVER['HTTP_USER_AGENT'] = 'Drupal command line';
 
@@ -298,8 +320,31 @@ function simpletest_script_init($server_software) {
   }
 
   chdir(realpath(__DIR__ . '/../..'));
-  define('DRUPAL_ROOT', getcwd());
-  require_once DRUPAL_ROOT . '/core/includes/bootstrap.inc';
+  require_once dirname(__DIR__) . '/includes/bootstrap.inc';
+}
+
+/**
+ * Get all available tests from simpletest and PHPUnit.
+ *
+ * @return
+ *   An array of tests keyed with the groups specified in each of the tests
+ *   getInfo() method and then keyed by the test class. An example of the array
+ *   structure is provided below.
+ *
+ *   @code
+ *     $groups['Block'] => array(
+ *       'BlockTestCase' => array(
+ *         'name' => 'Block functionality',
+ *         'description' => 'Add, edit and delete custom block...',
+ *         'group' => 'Block',
+ *       ),
+ *     );
+ *   @endcode
+ */
+function simpletest_script_get_all_tests() {
+  $tests = simpletest_test_get_all();
+  $tests['PHPUnit'] = simpletest_phpunit_get_available_tests();
+  return $tests;
 }
 
 /**
@@ -316,10 +361,18 @@ function simpletest_script_execute_batch($test_classes) {
         break;
       }
 
-      // Fork a child process.
       $test_id = db_insert('simpletest_test_id')->useDefaults(array('test_id'))->execute();
       $test_ids[] = $test_id;
+
       $test_class = array_shift($test_classes);
+      // Process phpunit tests immediately since they are fast and we don't need
+      // to fork for them.
+      if (is_subclass_of($test_class, 'Drupal\Tests\UnitTestCase')) {
+        simpletest_script_run_phpunit($test_id, $test_class);
+        continue;
+      }
+
+      // Fork a child process.
       $command = simpletest_script_command($test_id, $test_class);
       $process = proc_open($command, array(), $pipes, NULL, NULL, array('bypass_shell' => TRUE));
 
@@ -348,6 +401,15 @@ function simpletest_script_execute_batch($test_classes) {
         proc_close($child['process']);
         if ($status['exitcode']) {
           echo 'FATAL ' . $child['class'] . ': test runner returned a non-zero error code (' . $status['exitcode'] . ').' . "\n";
+          if ($args['die-on-fail']) {
+            list($db_prefix, ) = simpletest_last_test_get($child['test_id']);
+            $public_files = PublicStream::basePath();
+            $test_directory = $public_files . '/simpletest/' . substr($db_prefix, 10);
+            echo 'Simpletest database and files kept and test exited immediately on fail so should be reproducible if you change settings.php to use the database prefix '. $db_prefix . ' and config directories in '. $test_directory . "\n";
+            $args['keep-results'] = TRUE;
+            // Exit repeat loop immediately.
+            $args['repeat'] = -1;
+          }
         }
         // Free-up space by removing any potentially created resources.
         if (!$args['keep-results']) {
@@ -362,6 +424,51 @@ function simpletest_script_execute_batch($test_classes) {
 }
 
 /**
+ * Run a group of phpunit tests.
+ */
+function simpletest_script_run_phpunit($test_id, $class) {
+  $results = simpletest_run_phpunit_tests($test_id, array($class));
+  simpletest_process_phpunit_results($results);
+
+  // Map phpunit results to a data structure we can pass to
+  // _simpletest_format_summary_line.
+  $summaries = array();
+  foreach ($results as $result) {
+    if (!isset($summaries[$result['test_class']])) {
+      $summaries[$result['test_class']] = array(
+        '#pass' => 0,
+        '#fail' => 0,
+        '#exception' => 0,
+        '#debug' => 0,
+      );
+    }
+
+    switch ($result['status']) {
+      case 'pass':
+        $summaries[$result['test_class']]['#pass']++;
+        break;
+      case 'fail':
+        $summaries[$result['test_class']]['#fail']++;
+        break;
+      case 'exception':
+        $summaries[$result['test_class']]['#exception']++;
+        break;
+      case 'debug':
+        $summaries[$result['test_class']]['#debug']++;
+        break;
+    }
+  }
+
+  foreach ($summaries as $class => $summary) {
+    $had_fails = $summary['#fail'] > 0;
+    $had_exceptions = $summary['#exception'] > 0;
+    $status = ($had_fails || $had_exceptions ? 'fail' : 'pass');
+    $info = call_user_func(array($class, 'getInfo'));
+    simpletest_script_print($info['name'] . ' ' . _simpletest_format_summary_line($summary) . "\n", simpletest_script_color_code($status));
+  }
+}
+
+/**
  * Bootstrap Drupal and run a single test.
  */
 function simpletest_script_run_one_test($test_id, $test_class) {
@@ -369,7 +476,7 @@ function simpletest_script_run_one_test($test_id, $test_class) {
 
   try {
     // Bootstrap Drupal.
-    drupal_bootstrap(DRUPAL_BOOTSTRAP_FULL);
+    drupal_bootstrap(DRUPAL_BOOTSTRAP_CODE);
 
     simpletest_classloader_register();
 
@@ -378,6 +485,7 @@ function simpletest_script_run_one_test($test_id, $test_class) {
     $conf['simpletest.settings']['clear_results'] = !$args['keep-results'];
 
     $test = new $test_class($test_id);
+    $test->dieOnFail = (bool) $args['die-on-fail'];
     $test->run();
     $info = $test->getInfo();
 
@@ -412,7 +520,7 @@ function simpletest_script_command($test_id, $test_class) {
   $command .= ' --url ' . escapeshellarg($args['url']);
   $command .= ' --php ' . escapeshellarg($php);
   $command .= " --test-id $test_id";
-  foreach (array('verbose', 'keep-results', 'color') as $arg) {
+  foreach (array('verbose', 'keep-results', 'color', 'die-on-fail') as $arg) {
     if ($args[$arg]) {
       $command .= ' --' . $arg;
     }
@@ -464,7 +572,7 @@ function simpletest_script_cleanup($test_id, $test_class, $exitcode) {
 
   // Check whether a test file directory was setup already.
   // @see prepareEnvironment()
-  $public_files = variable_get('file_public_path', conf_path() . '/files');
+  $public_files = PublicStream::basePath();
   $test_directory = $public_files . '/simpletest/' . substr($db_prefix, 10);
   if (is_dir($test_directory)) {
     // Output the error_log.
@@ -512,7 +620,7 @@ function simpletest_script_get_test_list() {
 
   $test_list = array();
   if ($args['all']) {
-    $groups = simpletest_test_get_all();
+    $groups = simpletest_script_get_all_tests();
     $all_tests = array();
     foreach ($groups as $group => $tests) {
       $all_tests = array_merge($all_tests, array_keys($tests));
@@ -534,7 +642,9 @@ function simpletest_script_get_test_list() {
           'key' => 'name',
           'recurse' => TRUE,
         ));
-        $test_list = array_merge($test_list, array_keys($files));
+        foreach ($files as $test => $file) {
+          $test_list[] = "Drupal\\$module\\Tests\\$test";
+        }
       }
     }
     elseif ($args['file']) {
@@ -564,7 +674,7 @@ function simpletest_script_get_test_list() {
       }
     }
     else {
-      $groups = simpletest_test_get_all();
+      $groups = simpletest_script_get_all_tests();
       foreach ($args['test_names'] as $group_name) {
         $test_list = array_merge($test_list, array_keys($groups[$group_name]));
       }

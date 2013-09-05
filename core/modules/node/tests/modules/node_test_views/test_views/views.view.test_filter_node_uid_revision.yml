@@ -1,0 +1,53 @@
+base_table: node
+core: 8.0-dev
+description: ''
+status: '1'
+display:
+  default:
+    display_options:
+      access:
+        type: perm
+      cache:
+        type: none
+      exposed_form:
+        type: basic
+      fields:
+        nid:
+          id: nid
+          table: node
+          field: nid
+          plugin_id: node
+          provider: node
+      filter_groups:
+        groups:
+          1: AND
+        operator: AND
+      filters:
+        uid_revision:
+          admin_label: ''
+          field: uid_revision
+          id: uid_revision
+          is_grouped: '0'
+          operator: in
+          relationship: none
+          table: node_field_data
+          value:
+            - '1'
+          plugin_id: node_uid_revision
+          provider: node
+      sorts: {  }
+      pager:
+        type: full
+      query:
+        type: views_query
+      style:
+        type: default
+      row:
+        type: fields
+    display_plugin: default
+    display_title: Master
+    id: default
+    position: '0'
+label: test_filter_node_uid_revision
+id: test_filter_node_uid_revision
+tag: default

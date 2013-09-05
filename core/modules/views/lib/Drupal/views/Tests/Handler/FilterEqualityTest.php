@@ -7,10 +7,25 @@
 
 namespace Drupal\views\Tests\Handler;
 
+use Drupal\views\Tests\ViewUnitTestBase;
+
 /**
  * Tests the core Drupal\views\Plugin\views\filter\Equality handler.
  */
-class FilterEqualityTest extends HandlerTestBase {
+class FilterEqualityTest extends ViewUnitTestBase {
+
+  public static $modules = array('system');
+
+  /**
+   * Views used by this test.
+   *
+   * @var array
+   */
+  public static $testViews = array('test_view');
+
+  protected $column_map = array(
+    'views_test_data_name' => 'name',
+  );
 
   public static function getInfo() {
     return array(
@@ -20,28 +35,24 @@ class FilterEqualityTest extends HandlerTestBase {
     );
   }
 
-  function setUp() {
+  protected function setUp() {
     parent::setUp();
 
-    $this->enableViewsTestModule();
-
-    $this->column_map = array(
-      'views_test_data_name' => 'name',
-    );
+    $this->installSchema('system', array('menu_router', 'variable', 'key_value_expire'));
   }
 
   function viewsData() {
     $data = parent::viewsData();
     $data['views_test_data']['name']['filter']['id'] = 'equality';
-
     return $data;
   }
 
   function testEqual() {
-    $view = $this->getView();
+    $view = views_get_view('test_view');
+    $view->setDisplay();
 
     // Change the filtering
-    $view->displayHandlers['default']->overrideOption('filters', array(
+    $view->displayHandlers->get('default')->overrideOption('filters', array(
       'name' => array(
         'id' => 'name',
         'table' => 'views_test_data',
@@ -63,12 +74,13 @@ class FilterEqualityTest extends HandlerTestBase {
 
   public function testEqualGroupedExposed() {
     $filters = $this->getGroupedExposedFilters();
-    $view = $this->getBasicPageView();
+    $view = views_get_view('test_view');
+    $view->storage->newDisplay('page', 'Page', 'page_1');
 
     // Filter: Name, Operator: =, Value: Ringo
     $filters['name']['group_info']['default_group'] = 1;
     $view->setDisplay('page_1');
-    $view->displayHandlers['page_1']->overrideOption('filters', $filters);
+    $view->displayHandlers->get('page_1')->overrideOption('filters', $filters);
 
     $this->executeView($view);
     $resultset = array(
@@ -80,10 +92,11 @@ class FilterEqualityTest extends HandlerTestBase {
   }
 
   function testNotEqual() {
-    $view = $this->getView();
+    $view = views_get_view('test_view');
+    $view->setDisplay();
 
     // Change the filtering
-    $view->displayHandlers['default']->overrideOption('filters', array(
+    $view->displayHandlers->get('default')->overrideOption('filters', array(
       'name' => array(
         'id' => 'name',
         'table' => 'views_test_data',
@@ -114,12 +127,13 @@ class FilterEqualityTest extends HandlerTestBase {
 
   public function testEqualGroupedNotExposed() {
     $filters = $this->getGroupedExposedFilters();
-    $view = $this->getBasicPageView();
+    $view = views_get_view('test_view');
+    $view->storage->newDisplay('page', 'Page', 'page_1');
 
     // Filter: Name, Operator: !=, Value: Ringo
     $filters['name']['group_info']['default_group'] = 2;
     $view->setDisplay('page_1');
-    $view->displayHandlers['page_1']->overrideOption('filters', $filters);
+    $view->displayHandlers->get('page_1')->overrideOption('filters', $filters);
 
     $this->executeView($view);
     $resultset = array(

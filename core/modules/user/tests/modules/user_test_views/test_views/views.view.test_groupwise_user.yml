@@ -1,0 +1,85 @@
+base_field: uid
+base_table: users
+core: 8.0-dev
+description: ''
+status: '1'
+display:
+  default:
+    display_options:
+      access:
+        perm: 'access user profiles'
+        type: perm
+      cache:
+        type: none
+      exposed_form:
+        type: basic
+      fields:
+        name:
+          field: name
+          id: name
+          table: users
+          plugin_id: user_name
+          provider: user
+        nid:
+          field: nid
+          id: nid
+          relationship: uid_representative
+          table: node
+          plugin_id: node
+          provider: node
+      filters:
+        status:
+          expose:
+            operator: '0'
+          field: status
+          group: '1'
+          id: status
+          table: users
+          value: '1'
+          plugin_id: boolean
+          provider: views
+      pager:
+        options:
+          items_per_page: '10'
+        type: full
+      query:
+        type: views_query
+      relationships:
+        uid_representative:
+          admin_label: ''
+          field: uid_representative
+          group_type: group
+          id: uid_representative
+          label: 'Representative node'
+          relationship: none
+          required: '0'
+          subquery_namespace: ''
+          subquery_order: DESC
+          subquery_regenerate: '1'
+          subquery_sort: node.nid
+          subquery_view: ''
+          table: users
+          plugin_id: groupwise_max
+          provider: views
+      row:
+        type: fields
+      sorts:
+        created:
+          field: created
+          id: created
+          order: DESC
+          table: users
+          plugin_id: date
+          provider: views
+      style:
+        type: default
+      title: test_groupwise_user
+    display_plugin: default
+    display_title: Master
+    id: default
+    position: {  }
+label: test_groupwise_user
+langcode: und
+module: views
+id: test_groupwise_user
+tag: default

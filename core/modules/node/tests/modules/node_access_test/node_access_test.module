@@ -2,12 +2,15 @@
 
 /**
  * @file
- * Dummy module implementing node access related hooks to test API interaction
+ * A dummy module implementing node access related hooks for testing purposes.
+ *
+ * A dummy module implementing node access related hooks to test API interaction
  * with the Node module. This module restricts view permission to those with
  * a special 'node test view' permission.
  */
 
-use Drupal\node\Plugin\Core\Entity\Node;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\node\NodeInterface;
 
 /**
  * Implements hook_node_grants().
@@ -15,13 +18,13 @@ use Drupal\node\Plugin\Core\Entity\Node;
 function node_access_test_node_grants($account, $op) {
   $grants = array();
   // First grant a grant to the author for own content.
-  $grants['node_access_test_author'] = array($account->uid);
+  $grants['node_access_test_author'] = array($account->id());
   if ($op == 'view' && user_access('node test view', $account)) {
     $grants['node_access_test'] = array(8888, 8889);
   }
 
-  $no_access_uid = state()->get('node_access_test.no_access_uid') ?: 0;
-  if ($op == 'view' && $account->uid == $no_access_uid) {
+  $no_access_uid = Drupal::state()->get('node_access_test.no_access_uid') ?: 0;
+  if ($op == 'view' && $account->id() == $no_access_uid) {
     $grants['node_access_all'] = array(0);
   }
   return $grants;
@@ -30,10 +33,10 @@ function node_access_test_node_grants($account, $op) {
 /**
  * Implements hook_node_access_records().
  */
-function node_access_test_node_access_records(Node $node) {
+function node_access_test_node_access_records(NodeInterface $node) {
   $grants = array();
   // For NodeAccessBaseTableTestCase, only set records for private nodes.
-  if (!variable_get('node_access_test_private') || $node->private) {
+  if (!Drupal::state()->get('node_access_test.private') || $node->private->value) {
     $grants[] = array(
       'realm' => 'node_access_test',
       'gid' => 8888,
@@ -54,7 +57,7 @@ function node_access_test_node_access_records(Node $node) {
     // means there are many many groups of just 1 user.
     $grants[] = array(
       'realm' => 'node_access_test_author',
-      'gid' => $node->uid,
+      'gid' => $node->getAuthorId(),
       'grant_view' => 1,
       'grant_update' => 1,
       'grant_delete' => 1,
@@ -75,104 +78,18 @@ function node_access_test_permission() {
 }
 
 /**
- * Implements hook_menu().
- *
- * Sets up a test page that lists nodes.
+ * Implements hook_entity_field_info().
  */
-function node_access_test_menu() {
-  $items = array();
-  $items['node_access_test_page'] = array(
-    'title' => 'Node access test',
-    'page callback' => 'node_access_test_page',
-    'access arguments' => array('access content'),
-    'type' => MENU_SUGGESTED_ITEM,
-  );
-  $items['node_access_entity_test_page'] = array(
-    'title' => 'Node access test',
-    'page callback' => 'node_access_entity_test_page',
-    'access arguments' => array('access content'),
-    'type' => MENU_SUGGESTED_ITEM,
-  );
-  return $items;
-}
-
-/**
- * Page callback: Creates the node access test page.
- *
- * Page should say "No nodes" if there are no nodes, and "Yes, # nodes" (with
- * the number filled in) if there were nodes the user could access. Also, the
- * database query is shown, and a list of the node IDs, for debugging purposes.
- * And if there is a query exception, the page says "Exception" and gives the
- * error.
- *
- * @see node_access_test_menu()
- */
-function node_access_test_page() {
-  $output = '';
-
-  try {
-    $query = db_select('node', 'mytab')
-      ->fields('mytab');
-    $query->addTag('node_access');
-    $result = $query->execute()->fetchAll();
-
-    if (count($result)) {
-      $output .= '<p>Yes, ' . count($result) . ' nodes</p>';
-      $output .= '<ul>';
-      foreach ($result as $item) {
-        $output .= '<li>' . $item->nid . '</li>';
-      }
-      $output .= '</ul>';
-    }
-    else {
-      $output .= '<p>No nodes</p>';
-    }
-
-    $output .= '<p>' . ((string) $query ) . '</p>';
+function node_access_test_entity_field_info($entity_type) {
+  if ($entity_type === 'node') {
+    $info['definitions']['private'] = array(
+      'type' => 'boolean_field',
+      'label' => t('Private'),
+      'computed' => TRUE,
+      'list' => TRUE,
+    );
+    return $info;
   }
-  catch (Exception $e) {
-    $output = '<p>Exception</p>';
-    $output .= '<p>' . $e->getMessage() . '</p>';
-  }
-
-  return $output;
-}
-
-/**
- * Page callback: Creates the node access entity test page.
- *
- * Page should say "No nodes" if there are no nodes, and "Yes, # nodes" (with
- * the number filled in) if there were nodes the user could access. Also, the
- * database query is shown, and a list of the node IDs, for debugging purposes.
- * And if there is a query exception, the page says "Exception" and gives the
- * error.
- *
- * @see node_access_test_menu()
- */
-function node_access_entity_test_page() {
-  $output = '';
-  try {
-    $result = entity_query('node')
-      ->condition('body.value', 'A', 'STARTS_WITH')
-      ->execute();
-    if (!empty($result)) {
-      $output .= '<p>Yes, ' . count($result) . ' nodes</p>';
-      $output .= '<ul>';
-      foreach ($result as $nid) {
-        $output .= '<li>' . $nid . '</li>';
-      }
-      $output .= '</ul>';
-    }
-    else {
-      $output .= '<p>No nodes</p>';
-    }
-  }
-  catch (Exception $e) {
-    $output = '<p>Exception</p>';
-    $output .= '<p>' . $e->getMessage() . '</p>';
-  }
-
-  return $output;
 }
 
 /**
@@ -180,13 +97,13 @@ function node_access_entity_test_page() {
  */
 function node_access_test_form_node_form_alter(&$form, $form_state) {
   // Only show this checkbox for NodeAccessBaseTableTestCase.
-  if (variable_get('node_access_test_private')) {
+  if (Drupal::state()->get('node_access_test.private')) {
     $node = $form_state['controller']->getEntity($form_state);
     $form['private'] = array(
       '#type' => 'checkbox',
       '#title' => t('Private'),
       '#description' => t('Check here if this content should be set private and only shown to privileged users.'),
-      '#default_value' => isset($node->private) ? $node->private : FALSE,
+      '#default_value' => $node->private->value,
     );
   }
 }
@@ -205,41 +122,40 @@ function node_access_test_node_load($nodes, $types) {
  * Implements hook_node_predelete().
  */
 
-function node_access_test_node_predelete(Node $node) {
-  db_delete('node_access_test')->condition('nid', $node->nid)->execute();
+function node_access_test_node_predelete(EntityInterface $node) {
+  db_delete('node_access_test')->condition('nid', $node->id())->execute();
 }
 
 /**
  * Implements hook_node_insert().
  */
-function node_access_test_node_insert(Node $node) {
+function node_access_test_node_insert(EntityInterface $node) {
   _node_access_test_node_write($node);
 }
 
 /**
  * Implements hook_nodeapi_update().
  */
-function node_access_test_node_update(Node $node) {
+function node_access_test_node_update(EntityInterface $node) {
   _node_access_test_node_write($node);
 }
 
 /**
  * Helper for node insert/update.
  */
-function _node_access_test_node_write(Node $node) {
-  if (isset($node->private)) {
-    db_merge('node_access_test')
-      ->key(array('nid' => $node->nid))
-      ->fields(array('private' => (int) $node->private))
-      ->execute();
-  }
+function _node_access_test_node_write(EntityInterface $node) {
+  db_merge('node_access_test')
+    ->key(array('nid' => $node->id()))
+    ->fields(array('private' => (int) $node->private->value))
+    ->execute();
 }
 
 /**
  * Implements hook_node_access().
  */
 function node_access_test_node_access($node, $op, $account, $langcode) {
-  if (variable_get('node_access_test_secret_catalan', 0) && $langcode == 'ca') {
+  $secret_catalan = Drupal::state()->get('node_access_test_secret_catalan') ?: 0;
+  if ($secret_catalan && $langcode == 'ca') {
     // Make all Catalan content secret.
     return NODE_ACCESS_DENY;
   }

@@ -100,16 +100,22 @@ class LegacyUrlMatcher implements RequestMatcherInterface, RequestContextAwareIn
    * @api
    */
   public function matchRequest(Request $request) {
-    if ($router_item = $this->matchDrupalItem($request->attributes->get('system_path'))) {
+    if ($router_item = $this->matchDrupalItem($request->attributes->get('_system_path'))) {
       $ret = $this->convertDrupalItem($router_item);
       // Stash the router item in the attributes while we're transitioning.
-      $ret['drupal_menu_item'] = $router_item;
+      $ret['_drupal_menu_item'] = $router_item;
 
       // Most legacy controllers (aka page callbacks) are in a separate file,
       // so we have to include that.
       if ($router_item['include_file']) {
         require_once DRUPAL_ROOT . '/' . $router_item['include_file'];
       }
+
+      // Flag this as a legacy request.  We need to use this for subrequest
+      // handling so that we can treat older page callbacks and new routes
+      // differently.
+      // @todo Remove this line as soon as possible.
+      $ret['_legacy'] = TRUE;
 
       return $ret;
     }
@@ -149,6 +155,12 @@ class LegacyUrlMatcher implements RequestMatcherInterface, RequestContextAwareIn
     $route = array(
       '_controller' => $router_item['page_callback']
     );
+
+    // A few menu items have a fake page callback temporarily. Skip those,
+    // we aren't going to route them.
+    if ($router_item['page_callback'] == 'USES_ROUTE') {
+      throw new ResourceNotFoundException();
+    }
 
     // @todo menu_get_item() does not unserialize page arguments when the access
     //   is denied. Remove this temporary hack that always does that.

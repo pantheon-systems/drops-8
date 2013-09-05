@@ -7,15 +7,24 @@
 
 namespace Drupal\system\Tests\Upgrade;
 
+use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Database\Database;
+use Drupal\Core\DependencyInjection\ContainerBuilder;
+use Drupal\Core\DrupalKernel;
+use Drupal\Core\Session\UserSession;
 use Drupal\simpletest\WebTestBase;
-use Exception;
 use Symfony\Component\DependencyInjection\Exception\InvalidArgumentException;
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Perform end-to-end tests of the upgrade path.
  */
 abstract class UpgradePathTestBase extends WebTestBase {
+
+  /**
+   * @var array
+   */
+  protected $configDirectories;
 
   /**
    * The file path(s) to the dumped database(s) to load into the child site.
@@ -43,10 +52,16 @@ abstract class UpgradePathTestBase extends WebTestBase {
    * Prepares the appropriate session for the release of Drupal being upgraded.
    */
   protected function prepareD8Session() {
+    // We need an IP when storing sessions
+    // so add a dummy request in the container.
+    $request = Request::create('http://example.com/');
+    $request->server->set('REMOTE_ADDR', '3.3.3.3');
+    $this->container->set('request', $request);
+
     // Generate and set a D7-compatible session cookie.
     $this->curlInitialize();
-    $sid = drupal_hash_base64(uniqid(mt_rand(), TRUE) . drupal_random_bytes(55));
-    curl_setopt($this->curlHandle, CURLOPT_COOKIE, rawurlencode(session_name()) . '=' . rawurlencode($sid));
+    $sid = Crypt::hashBase64(uniqid(mt_rand(), TRUE) . Crypt::randomBytes(55));
+    $this->curlCookies[] = rawurlencode(session_name()) . '=' . rawurlencode($sid);
 
     // Force our way into the session of the child site.
     drupal_save_session(TRUE);
@@ -79,6 +94,10 @@ abstract class UpgradePathTestBase extends WebTestBase {
     // Load the Update API.
     require_once DRUPAL_ROOT . '/core/includes/update.inc';
 
+    // Load Session API.
+    require_once DRUPAL_ROOT . '/core/includes/session.inc';
+    drupal_session_initialize();
+
     // Reset flags.
     $this->upgradedSite = FALSE;
     $this->upgradeErrors = array();
@@ -95,6 +114,12 @@ abstract class UpgradePathTestBase extends WebTestBase {
     // Reset all statics and variables to perform tests in a clean environment.
     $conf = array();
     drupal_static_reset();
+
+
+    // Build a minimal, partially mocked environment for unit tests.
+    $this->containerBuild(drupal_container());
+    // Make sure it survives kernel rebuilds.
+    $conf['container_service_providers']['TestServiceProvider'] = 'Drupal\simpletest\TestServiceProvider';
 
     // Change the database prefix.
     // All static variables need to be reset before the database prefix is
@@ -124,8 +149,12 @@ abstract class UpgradePathTestBase extends WebTestBase {
     // Ensure that the session is not written to the new environment and replace
     // the global $user session with uid 1 from the new test site.
     drupal_save_session(FALSE);
-    // Login as uid 1.
-    $user = db_query('SELECT * FROM {users} WHERE uid = :uid', array(':uid' => 1))->fetchObject();
+    // Load values for uid 1.
+    $values = db_query('SELECT * FROM {users} WHERE uid = :uid', array(':uid' => 1))->fetchAssoc();
+    // Load rolest.
+    $values['roles'] = array_merge(array(DRUPAL_AUTHENTICATED_RID), db_query('SELECT rid FROM {users_roles} WHERE uid = :uid', array(':uid' => 1))->fetchCol());
+    // Create a new user session object.
+    $user = new UserSession($values);
 
     // Generate and set a D8-compatible session cookie.
     $this->prepareD8Session();
@@ -135,6 +164,14 @@ abstract class UpgradePathTestBase extends WebTestBase {
 
     drupal_set_time_limit($this->timeLimit);
     $this->setup = TRUE;
+  }
+
+  /**
+   * Overrides \Drupal\simpletest\TestBase::prepareConfigDirectories().
+   */
+  protected function prepareConfigDirectories() {
+    // The configuration directories are prepared as part of the first access to
+    // update.php.
   }
 
   /**
@@ -165,16 +202,22 @@ abstract class UpgradePathTestBase extends WebTestBase {
     }
     // Since cache_bootstrap won't exist in a Drupal 6 site, ignore the
     // exception if the above fails.
-    catch (Exception $e) {}
+    catch (\Exception $e) {}
   }
 
   /**
    * Specialized refreshVariables().
    */
   protected function refreshVariables() {
-    // No operation if the child has not been upgraded yet.
-    if (!$this->upgradedSite) {
-      return parent::refreshVariables();
+    // Refresh the variables only if the site was already upgraded.
+    if ($this->upgradedSite) {
+      global $conf;
+      cache('bootstrap')->delete('variables');
+      $conf = variable_initialize();
+      $container = drupal_container();
+      if ($container->has('config.factory')) {
+        $container->get('config.factory')->reset();
+      }
     }
   }
 
@@ -191,13 +234,23 @@ abstract class UpgradePathTestBase extends WebTestBase {
     // Load the first update screen.
     $this->getUpdatePhp();
     if (!$this->assertResponse(200)) {
-      throw new Exception('Initial GET to update.php did not return HTTP 200 status.');
+      throw new \Exception('Initial GET to update.php did not return HTTP 200 status.');
     }
+
+    // Ensure that the first update screen appeared correctly.
+    if (!$this->assertFieldByXPath('//input[@type="submit"]')) {
+      throw new \Exception('An error was encountered during the first access to update.php.');
+    }
+
+    // Initialize config directories and rebuild the service container after
+    // creating them in the first step.
+    parent::prepareConfigDirectories();
+    $this->rebuildContainer();
 
     // Continue.
     $this->drupalPost(NULL, array(), t('Continue'));
     if (!$this->assertResponse(200)) {
-      throw new Exception('POST to continue update.php did not return HTTP 200 status.');
+      throw new \Exception('POST to continue update.php did not return HTTP 200 status.');
     }
 
     // The test should pass if there are no pending updates.
@@ -211,7 +264,12 @@ abstract class UpgradePathTestBase extends WebTestBase {
     // Go!
     $this->drupalPost(NULL, array(), t('Apply pending updates'));
     if (!$this->assertResponse(200)) {
-      throw new Exception('POST to update.php to apply pending updates did not return HTTP 200 status.');
+      throw new \Exception('POST to update.php to apply pending updates did not return HTTP 200 status.');
+    }
+
+    if (!$this->assertNoText(t('An unrecoverable error has occurred.'))) {
+      // Error occured during update process.
+      throw new \Exception('POST to update.php to apply pending updates detected an unrecoverable error.');
     }
 
     // Check for errors during the update process.
@@ -225,31 +283,57 @@ abstract class UpgradePathTestBase extends WebTestBase {
     if (!empty($this->upgradeErrors)) {
       // Upgrade failed, the installation might be in an inconsistent state,
       // don't process.
-      throw new Exception('Errors during update process.');
+      throw new \Exception('Errors during update process.');
     }
+
+    // Allow tests to check the completion page.
+    $this->checkCompletionPage();
 
     // Check if there still are pending updates.
     $this->getUpdatePhp();
     $this->drupalPost(NULL, array(), t('Continue'));
     if (!$this->assertText(t('No pending updates.'), 'No pending updates at the end of the update process.')) {
-      throw new Exception('update.php still shows pending updates after execution.');
+      throw new \Exception('update.php still shows pending updates after execution.');
     }
 
     // Upgrade succeed, rebuild the environment so that we can call the API
     // of the child site directly from this request.
     $this->upgradedSite = TRUE;
 
+    // Force a variable refresh as we only just enabled it.
+    $this->refreshVariables();
+
     // Reload module list for modules that are enabled in the test database
     // but not on the test client.
-    system_list_reset();
-    module_implements_reset();
-    module_load_all(FALSE, TRUE);
+    \Drupal::moduleHandler()->resetImplementations();
+    \Drupal::moduleHandler()->reload();
 
     // Rebuild the container and all caches.
     $this->rebuildContainer();
     $this->resetAll();
 
     return TRUE;
+  }
+
+  /**
+   * Overrides some core services for the upgrade tests.
+   */
+  public function containerBuild(ContainerBuilder $container) {
+    // Keep the container object around for tests.
+    $this->container = $container;
+
+    $container
+      ->register('config.storage', 'Drupal\Core\Config\FileStorage')
+      ->addArgument($this->configDirectories[CONFIG_ACTIVE_DIRECTORY]);
+
+    if ($this->container->hasDefinition('path_processor_alias')) {
+      // Prevent the alias-based path processor, which requires a url_alias db
+      // table, from being registered to the path processor manager. We do this
+      // by removing the tags that the compiler pass looks for. This means the
+      // url generator can safely be used within upgrade path tests.
+      $definition = $this->container->getDefinition('path_processor_alias');
+      $definition->clearTag('path_processor_inbound')->clearTag('path_processor_outbound');
+    }
   }
 
   /**
@@ -262,6 +346,7 @@ abstract class UpgradePathTestBase extends WebTestBase {
    * @see WebTestBase::drupalGet()
    */
   protected function getUpdatePhp() {
+    $this->rebuildContainer();
     $path = $GLOBALS['base_url'] . '/core/update.php';
     $out = $this->curlExec(array(CURLOPT_HTTPGET => TRUE, CURLOPT_URL => $path, CURLOPT_NOBODY => FALSE));
     // Ensure that any changes to variables in the other thread are picked up.
@@ -277,4 +362,11 @@ abstract class UpgradePathTestBase extends WebTestBase {
     return $out;
   }
 
+  /**
+   * Checks the update.php completion page.
+   *
+   * Invoked by UpgradePathTestBase::performUpgrade() to allow upgrade tests to
+   * check messages and other output on the final confirmation page.
+   */
+  protected function checkCompletionPage() { }
 }

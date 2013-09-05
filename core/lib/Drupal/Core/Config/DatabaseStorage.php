@@ -9,7 +9,6 @@ namespace Drupal\Core\Config;
 
 use Drupal\Core\Database\Database;
 use Drupal\Core\Database\Connection;
-use Exception;
 
 /**
  * Defines the Database storage controller.
@@ -81,9 +80,29 @@ class DatabaseStorage implements StorageInterface {
         $data = $this->decode($raw);
       }
     }
-    catch (Exception $e) {
+    catch (\Exception $e) {
     }
     return $data;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function readMultiple(array $names) {
+    // There are situations, like in the installer, where we may attempt a
+    // read without actually having the database available. In this case,
+    // catch the exception and just return an empty array so the caller can
+    // handle it if need be.
+    $list = array();
+    try {
+      $list = $this->connection->query('SELECT name, data FROM {' . $this->connection->escapeTable($this->table) . '} WHERE name IN (:names)', array(':names' => $names), $this->options)->fetchAllKeyed();
+      foreach ($list as &$data) {
+        $data = $this->decode($data);
+      }
+    }
+    catch (Exception $e) {
+    }
+    return $list;
   }
 
   /**
@@ -159,5 +178,19 @@ class DatabaseStorage implements StorageInterface {
     return $this->connection->query('SELECT name FROM {' . $this->connection->escapeTable($this->table) . '} WHERE name LIKE :name', array(
       ':name' => db_like($prefix) . '%',
     ), $this->options)->fetchCol();
+  }
+
+  /**
+   * Implements Drupal\Core\Config\StorageInterface::deleteAll().
+   *
+   * @throws PDOException
+   * @throws Drupal\Core\Database\DatabaseExceptionWrapper
+   *   Only thrown in case $this->options['throw_exception'] is TRUE.
+   */
+  public function deleteAll($prefix = '') {
+    $options = array('return' => Database::RETURN_AFFECTED) + $this->options;
+    return (bool) $this->connection->delete($this->table, $options)
+      ->condition('name', $prefix . '%', 'LIKE')
+      ->execute();
   }
 }

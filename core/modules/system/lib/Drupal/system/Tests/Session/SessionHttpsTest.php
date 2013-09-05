@@ -8,6 +8,7 @@
 namespace Drupal\system\Tests\Session;
 
 use Drupal\simpletest\WebTestBase;
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Ensure that when running under HTTPS two session cookies are generated.
@@ -29,10 +30,14 @@ class SessionHttpsTest extends WebTestBase {
     );
   }
 
-  protected function testHttpsSession() {
-    global $is_https;
+  public function setUp() {
+    parent::setUp();
+    $this->request = Request::create('http://example.com/');
+    $this->container->set('request', $this->request);
+  }
 
-    if ($is_https) {
+  protected function testHttpsSession() {
+    if ($this->request->isSecure()) {
       $secure_session_name = session_name();
       $insecure_session_name = substr(session_name(), 1);
     }
@@ -48,7 +53,7 @@ class SessionHttpsTest extends WebTestBase {
     $this->drupalGet('user');
     $form = $this->xpath('//form[@id="user-login-form"]');
     $form[0]['action'] = $this->httpsUrl('user');
-    $edit = array('name' => $user->name, 'pass' => $user->pass_raw);
+    $edit = array('name' => $user->getUsername(), 'pass' => $user->pass_raw);
     $this->drupalPost(NULL, $edit, t('Log in'));
 
     // Test a second concurrent session.
@@ -91,7 +96,7 @@ class SessionHttpsTest extends WebTestBase {
     $this->drupalGet('user');
     $form = $this->xpath('//form[@id="user-login-form"]');
     $form[0]['action'] = $this->httpUrl('user');
-    $edit = array('name' => $user->name, 'pass' => $user->pass_raw);
+    $edit = array('name' => $user->getUsername(), 'pass' => $user->pass_raw);
     $this->drupalPost(NULL, $edit, t('Log in'));
     $this->drupalGet($this->httpUrl('admin/config'));
     $this->assertResponse(200);
@@ -107,13 +112,19 @@ class SessionHttpsTest extends WebTestBase {
     // Clear browser cookie jar.
     $this->cookies = array();
 
-    if ($is_https) {
+    if ($this->request->isSecure()) {
       // The functionality does not make sense when running on HTTPS.
       return;
     }
 
     // Enable secure pages.
-    variable_set('https', TRUE);
+    $this->settingsSet('mixed_mode_sessions', TRUE);
+    // Write that value also into the test settings.php file.
+    $settings['settings']['mixed_mode_sessions'] = (object) array(
+      'value' => TRUE,
+      'required' => TRUE,
+    );
+    $this->writeSettings($settings);
 
     $this->curlClose();
     // Start an anonymous session on the insecure site.
@@ -141,7 +152,7 @@ class SessionHttpsTest extends WebTestBase {
     $form[0]['action'] = $this->httpsUrl('user');
 
     $edit = array(
-      'name' => $user->name,
+      'name' => $user->getUsername(),
       'pass' => $user->pass_raw,
     );
     $this->drupalPost(NULL, $edit, t('Log in'));
@@ -198,7 +209,7 @@ class SessionHttpsTest extends WebTestBase {
     $this->drupalPost(NULL, $edit, t('Log in'));
 
     // Test that the user is also authenticated on the insecure site.
-    $this->drupalGet("user/{$user->uid}/edit");
+    $this->drupalGet("user/" . $user->id() . "/edit");
     $this->assertResponse(200);
   }
 
@@ -235,6 +246,7 @@ class SessionHttpsTest extends WebTestBase {
    */
   protected function httpsUrl($url) {
     global $base_url;
+    $this->request->server->set('HTTPS', 'on');
     return $base_url . '/core/modules/system/tests/https.php/' . $url;
   }
 

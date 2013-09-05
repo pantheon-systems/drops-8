@@ -15,7 +15,6 @@
  * @ingroup forms
  */
 function authorize_filetransfer_form($form, &$form_state) {
-  global $base_url, $is_https;
   $form = array();
 
   // If possible, we want to post this form securely via HTTPS.
@@ -28,9 +27,9 @@ function authorize_filetransfer_form($form, &$form_state) {
   }
   $available_backends = $_SESSION['authorize_filetransfer_info'];
 
-  if (!$is_https) {
+  if (!Drupal::request()->isSecure()) {
     $form['information']['https_warning'] = array(
-      '#prefix' => '<div class="messages error">',
+      '#prefix' => '<div class="messages messages--error">',
       '#markup' => t('WARNING: You are not using an encrypted connection, so your password will be sent in plain text. <a href="@https-link">Learn more</a>.', array('@https-link' => 'http://drupal.org/https-information')),
       '#suffix' => '</div>',
     );
@@ -40,7 +39,7 @@ function authorize_filetransfer_form($form, &$form_state) {
   if (isset($form_state['values']['connection_settings']['authorize_filetransfer_default'])) {
     $authorize_filetransfer_default = $form_state['values']['connection_settings']['authorize_filetransfer_default'];
   }
-  elseif ($authorize_filetransfer_default = config('system.authorize')->get('filetransfer_default'));
+  elseif ($authorize_filetransfer_default = Drupal::config('system.authorize')->get('filetransfer_default'));
   else {
     $authorize_filetransfer_default = key($available_backends);
   }
@@ -139,7 +138,7 @@ function authorize_filetransfer_form($form, &$form_state) {
  * @see hook_filetransfer_backends()
  */
 function _authorize_filetransfer_connection_settings($backend) {
-  $auth_connection_config = config('system.authorize')->get('filetransfer_connection_settings_' . $backend);
+  $auth_connection_config = Drupal::config('system.authorize')->get('filetransfer_connection_settings_' . $backend);
   $defaults = $auth_connection_config ? $auth_connection_config : array();
   $form = array();
 
@@ -158,7 +157,7 @@ function _authorize_filetransfer_connection_settings($backend) {
  *
  * The default settings for the file transfer connection forms are saved in
  * the database. The settings are stored as a nested array in the case of a
- * settings form that has fieldsets or otherwise uses a nested structure.
+ * settings form that has details or otherwise uses a nested structure.
  * Therefore, to properly add defaults, we need to walk through all the
  * children form elements and process those defaults recursively.
  *
@@ -170,14 +169,14 @@ function _authorize_filetransfer_connection_settings($backend) {
  *   The default settings for the file transfer backend we're operating on.
  */
 function _authorize_filetransfer_connection_settings_set_defaults(&$element, $key, array $defaults) {
-  // If we're operating on a form element which isn't a fieldset, and we have
+  // If we're operating on a form element which isn't a details, and we have
   // a default setting saved, stash it in #default_value.
-  if (!empty($key) && isset($defaults[$key]) && isset($element['#type']) && $element['#type'] != 'fieldset') {
+  if (!empty($key) && isset($defaults[$key]) && isset($element['#type']) && $element['#type'] != 'details') {
     $element['#default_value'] = $defaults[$key];
   }
   // Now, we walk through all the child elements, and recursively invoke
   // ourself on each one. Since the $defaults settings array can be nested
-  // (because of #tree, any values inside fieldsets will be nested), if
+  // (because of #tree, any values inside details will be nested), if
   // there's a subarray of settings for the form key we're currently
   // processing, pass in that subarray to the recursive call. Otherwise, just
   // pass on the whole $defaults array.
@@ -226,7 +225,6 @@ function authorize_filetransfer_form_validate($form, &$form_state) {
  * @see authorize_filetransfer_validate()
  */
 function authorize_filetransfer_form_submit($form, &$form_state) {
-  global $base_url;
   switch ($form_state['triggering_element']['#name']) {
     case 'process_updates':
 
@@ -255,9 +253,9 @@ function authorize_filetransfer_form_submit($form, &$form_state) {
           }
         }
         // Set this one as the default authorize method.
-        config('system.authorize')->set('filetransfer_default', $filetransfer_backend);
+        Drupal::config('system.authorize')->set('filetransfer_default', $filetransfer_backend);
         // Save the connection settings minus the password.
-        config('system.authorize')->set('filetransfer_connection_settings_' . $filetransfer_backend, $connection_settings);
+        Drupal::config('system.authorize')->set('filetransfer_connection_settings_' . $filetransfer_backend, $connection_settings);
 
         $filetransfer = authorize_get_filetransfer($filetransfer_backend, $form_state['values']['connection_settings'][$filetransfer_backend]);
 

@@ -1,0 +1,86 @@
+router_test_1:
+  pattern: '/router_test/test1'
+  defaults:
+    _controller: '\Drupal\router_test\TestControllers::test1'
+  requirements:
+    _access: 'TRUE'
+
+router_test_2:
+  pattern: '/router_test/test2'
+  defaults:
+    _content: '\Drupal\router_test\TestControllers::test2'
+  requirements:
+    _access: 'TRUE'
+
+router_test_3:
+  pattern: '/router_test/test3/{value}'
+  defaults:
+    _content: '\Drupal\router_test\TestControllers::test3'
+  requirements:
+    _access: 'TRUE'
+
+router_test_4:
+  pattern: '/router_test/test4/{value}'
+  defaults:
+    _content: '\Drupal\router_test\TestControllers::test4'
+    value: 'narf'
+  requirements:
+    _access: 'TRUE'
+
+router_test_6:
+  pattern: '/router_test/test6'
+  defaults:
+    _controller: '\Drupal\router_test\TestControllers::test1'
+  requirements:
+    _access: 'TRUE'
+
+router_test_7:
+  pattern: '/router_test/test7'
+  defaults:
+    _controller: '\Drupal\router_test\TestControllers::test7'
+  requirements:
+    _permission: 'access test7'
+
+router_test_8:
+  pattern: '/router_test/test8'
+  defaults:
+    _controller: '\Drupal\router_test\TestControllers::test8'
+
+router_test_9:
+  pattern: '/router_test/test9'
+  defaults:
+    _controller: '\Drupal\router_test\TestControllers::test8'
+  requirements:
+    _permission: 'access test7'
+    _access_router_test: 'TRUE'
+
+router_test_10:
+  pattern: '/router_test/test10'
+  defaults:
+    _content: '\Drupal\router_test\TestContent::test1'
+  requirements:
+    _access: 'TRUE'
+
+router_test_11:
+  pattern: '/router_test/test11'
+  options:
+    _auth: [ 'http_basic' ]
+  requirements:
+    _user_is_logged_in: 'TRUE'
+  defaults:
+    _content: '\Drupal\router_test\TestContent::test11'
+
+router_test_12:
+  pattern: '/router_test/test12/{user}'
+  requirements:
+    _access: 'TRUE'
+  defaults:
+    _content: '\Drupal\router_test\TestContent::subrequestTest'
+
+router_test_13:
+  pattern: '/router_test/test13/{user}'
+  requirements:
+    _access: 'TRUE'
+  defaults:
+    _content: '\Drupal\router_test\TestContent::testAccount'
+

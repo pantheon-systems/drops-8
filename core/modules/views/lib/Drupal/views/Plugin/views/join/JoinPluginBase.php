@@ -6,8 +6,8 @@
  */
 
 namespace Drupal\views\Plugin\views\join;
+
 use Drupal\Component\Plugin\PluginBase;
-use Drupal\Component\Plugin\Discovery\DiscoveryInterface;
 
 /**
  * @defgroup views_join_handlers Views join handlers
@@ -28,7 +28,7 @@ use Drupal\Component\Plugin\Discovery\DiscoveryInterface;
  *   'left_field' => 'field_a',
  *   'operator' => '='
  * );
- * $join = drupal_container()->get('plugin.manager.views.join')->createInstance('standard', $configuration);
+ * $join = Views::pluginManager('join')->createInstance('standard', $configuration);
  *
  * Here is how you do complex joins:
  *
@@ -135,7 +135,7 @@ class JoinPluginBase extends PluginBase {
    * @var bool
    *
    * @see Drupal\views\Plugin\HandlerBase::getTableJoin()
-   * @see Drupal\views\Plugin\views\query\Sql::adjust_join()
+   * @see Drupal\views\Plugin\views\query\Sql::adjustJoin()
    * @see Drupal\views\Plugin\views\relationship\RelationshipPluginBase::query()
    */
   public $adjusted;
@@ -143,8 +143,8 @@ class JoinPluginBase extends PluginBase {
   /**
    * Constructs a Drupal\views\Plugin\views\join\JoinPluginBase object.
    */
-  public function __construct(array $configuration, $plugin_id, DiscoveryInterface $discovery) {
-    parent::__construct($configuration, $plugin_id, $discovery);
+  public function __construct(array $configuration, $plugin_id, array $plugin_definition) {
+    parent::__construct($configuration, $plugin_id, $plugin_definition);
     // Merge in some default values.
     $configuration += array(
       'type' => 'LEFT',
@@ -165,7 +165,7 @@ class JoinPluginBase extends PluginBase {
     }
 
     if (isset($configuration['adjusted'])) {
-      $this->extra = $configuration['adjusted'];
+      $this->adjusted = $configuration['adjusted'];
     }
 
     $this->extraOperator = strtoupper($configuration['extra_operator']);
@@ -193,7 +193,7 @@ class JoinPluginBase extends PluginBase {
     }
 
     if ($this->leftTable) {
-      $left = $view_query->get_table_info($this->leftTable);
+      $left = $view_query->getTableInfo($this->leftTable);
       $left_field = "$left[alias].$this->leftField";
     }
     else {
@@ -209,7 +209,6 @@ class JoinPluginBase extends PluginBase {
       if (is_array($this->extra)) {
         $extras = array();
         foreach ($this->extra as $info) {
-          $extra = '';
           // Figure out the table name. Remember, only use aliases provided
           // if at all possible.
           $join_table = '';

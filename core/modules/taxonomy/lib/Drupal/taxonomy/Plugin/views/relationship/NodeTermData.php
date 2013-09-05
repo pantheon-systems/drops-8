@@ -8,24 +8,26 @@
 namespace Drupal\taxonomy\Plugin\views\relationship;
 
 use Drupal\views\ViewExecutable;
+use Drupal\views\Plugin\views\display\DisplayPluginBase;
 use Drupal\views\Plugin\views\relationship\RelationshipPluginBase;
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
 
 /**
  * Relationship handler to return the taxonomy terms of nodes.
  *
  * @ingroup views_relationship_handlers
  *
- * @Plugin(
- *   id = "node_term_data",
- *   module = "taxonomy"
- * )
+ * @PluginID("node_term_data")
  */
 class NodeTermData extends RelationshipPluginBase  {
 
-  public function init(ViewExecutable $view, &$options) {
-    parent::init($view, $options);
+  /**
+   * Overrides \Drupal\views\Plugin\views\relationship\RelationshipPluginBase::init().
+   */
+  public function init(ViewExecutable $view, DisplayPluginBase $display, array &$options = NULL) {
+    parent::init($view, $display, $options);
 
+    // @todo Remove the legacy code.
     // Convert legacy vids option to machine name vocabularies.
     if (!empty($this->options['vids'])) {
       $vocabularies = taxonomy_vocabulary_get_names();
@@ -39,18 +41,18 @@ class NodeTermData extends RelationshipPluginBase  {
 
   protected function defineOptions() {
     $options = parent::defineOptions();
-    $options['vocabularies'] = array('default' => array());
+    $options['vids'] = array('default' => array());
     return $options;
   }
 
   public function buildOptionsForm(&$form, &$form_state) {
-    $vocabularies = taxonomy_vocabulary_get_names();
+    $vocabularies = entity_load_multiple('taxonomy_vocabulary');
     $options = array();
     foreach ($vocabularies as $voc) {
-      $options[$voc->machine_name] = check_plain($voc->name);
+      $options[$voc->id()] = $voc->label();
     }
 
-    $form['vocabularies'] = array(
+    $form['vids'] = array(
       '#type' => 'checkboxes',
       '#title' => t('Vocabularies'),
       '#options' => $options,
@@ -69,8 +71,8 @@ class NodeTermData extends RelationshipPluginBase  {
     $def = $this->definition;
     $def['table'] = 'taxonomy_term_data';
 
-    if (!array_filter($this->options['vocabularies'])) {
-      $taxonomy_index = $this->query->add_table('taxonomy_index', $this->relationship);
+    if (!array_filter($this->options['vids'])) {
+      $taxonomy_index = $this->query->addTable('taxonomy_index', $this->relationship);
       $def['left_table'] = $taxonomy_index;
       $def['left_field'] = 'tid';
       $def['field'] = 'tid';
@@ -85,21 +87,20 @@ class NodeTermData extends RelationshipPluginBase  {
       $def['adjusted'] = TRUE;
 
       $query = db_select('taxonomy_term_data', 'td');
-      $query->addJoin($def['type'], 'taxonomy_vocabulary', 'tv', 'td.vid = tv.vid');
       $query->addJoin($def['type'], 'taxonomy_index', 'tn', 'tn.tid = td.tid');
-      $query->condition('tv.machine_name', array_filter($this->options['vocabularies']));
+      $query->condition('td.vid', array_filter($this->options['vids']));
       $query->addTag('term_access');
       $query->fields('td');
       $query->fields('tn', array('nid'));
       $def['table formula'] = $query;
     }
 
-    $join = drupal_container()->get('plugin.manager.views.join')->createInstance('standard', $def);
+    $join = \Drupal::service('plugin.manager.views.join')->createInstance('standard', $def);
 
     // use a short alias for this:
     $alias = $def['table'] . '_' . $this->table;
 
-    $this->alias = $this->query->add_relationship($alias, $join, 'taxonomy_term_data', $this->relationship);
+    $this->alias = $this->query->addRelationship($alias, $join, 'taxonomy_term_data', $this->relationship);
   }
 
 }

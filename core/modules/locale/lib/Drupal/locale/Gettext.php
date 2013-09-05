@@ -10,7 +10,6 @@ namespace Drupal\locale;
 use Drupal\Component\Gettext\PoStreamReader;
 use Drupal\Component\Gettext\PoMemoryWriter;
 use Drupal\locale\PoDatabaseWriter;
-use Exception;
 
 /**
  * Static class providing Drupal specific Gettext functionality.
@@ -23,40 +22,14 @@ use Exception;
 class Gettext {
 
   /**
-   * Reads the given Gettext PO files into a data structure.
-   *
-   * @param string $langcode
-   *   Language code string.
-   * @param array $files
-   *   List of file objects with URI properties pointing to read.
-   *
-   * @return array
-   *   Structured array as produced by a PoMemoryWriter.
-   *
-   * @see Drupal\Component\Gettext\PoMemoryWriter
-   */
-  static function filesToArray($langcode, array $files) {
-    $writer = new PoMemoryWriter();
-    $writer->setLangcode($langcode);
-    foreach ($files as $file) {
-      $reader = new PoStreamReader();
-      $reader->setURI($file->uri);
-      $reader->setLangcode($langcode);
-      $reader->open();
-      $writer->writeItems($reader, -1);
-    }
-    return $writer->getData();
-  }
-
-  /**
    * Reads the given PO files into the database.
    *
    * @param stdClass $file
    *   File object with an URI property pointing at the file's path.
-   *
+   *   - "langcode": The language the strings will be added to.
+   *   - "uri": File URI.
    * @param array $options
    *   An array with options that can have the following elements:
-   *   - 'langcode': The language code, required.
    *   - 'overwrite_options': Overwrite options array as defined in
    *     Drupal\locale\PoDatabaseWriter. Optional, defaults to an empty array.
    *   - 'customized': Flag indicating whether the strings imported from $file
@@ -83,24 +56,24 @@ class Gettext {
     );
     // Instantiate and initialize the stream reader for this file.
     $reader = new PoStreamReader();
-    $reader->setLangcode($options['langcode']);
+    $reader->setLangcode($file->langcode);
     $reader->setURI($file->uri);
 
     try {
       $reader->open();
     }
-    catch (Exception $exception) {
+    catch (\Exception $exception) {
       throw $exception;
     }
 
     $header = $reader->getHeader();
     if (!$header) {
-      throw new Exception('Missing or malformed header.');
+      throw new \Exception('Missing or malformed header.');
     }
 
     // Initialize the database writer.
     $writer = new PoDatabaseWriter();
-    $writer->setLangcode($options['langcode']);
+    $writer->setLangcode($file->langcode);
     $writer_options = array(
       'overwrite_options' => $options['overwrite_options'],
       'customized' => $options['customized'],
@@ -115,7 +88,7 @@ class Gettext {
       }
       $writer->writeItems($reader, $options['items']);
     }
-    catch (Exception $exception) {
+    catch (\Exception $exception) {
       throw $exception;
     }
 

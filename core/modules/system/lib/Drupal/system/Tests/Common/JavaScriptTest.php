@@ -7,19 +7,20 @@
 
 namespace Drupal\system\Tests\Common;
 
-use Drupal\simpletest\WebTestBase;
+use Drupal\simpletest\DrupalUnitTestBase;
+use Drupal\Component\Utility\Crypt;
 
 /**
  * Tests the JavaScript system.
  */
-class JavaScriptTest extends WebTestBase {
+class JavaScriptTest extends DrupalUnitTestBase {
 
   /**
    * Enable Language and SimpleTest in the test environment.
    *
    * @var array
    */
-  public static $modules = array('language', 'simpletest', 'common_test', 'path');
+  public static $modules = array('language', 'simpletest', 'common_test', 'system');
 
   /**
    * Stores configured value for JavaScript preprocessing.
@@ -38,9 +39,9 @@ class JavaScriptTest extends WebTestBase {
     parent::setUp();
 
     // Disable preprocessing
-    $config = config('system.performance');
-    $this->preprocess_js = $config->get('preprocess.js');
-    $config->set('preprocess.js', 0);
+    $config = \Drupal::config('system.performance');
+    $this->preprocess_js = $config->get('js.preprocess');
+    $config->set('js.preprocess', 0);
     $config->save();
 
     // Reset drupal_add_js() and drupal_add_library() statics before each test.
@@ -50,8 +51,8 @@ class JavaScriptTest extends WebTestBase {
 
   function tearDown() {
     // Restore configured value for JavaScript preprocessing.
-    $config = config('system.performance');
-    $config->set('preprocess.js', $this->preprocess_js);
+    $config = \Drupal::config('system.performance');
+    $config->set('js.preprocess', $this->preprocess_js);
     $config->save();
     parent::tearDown();
   }
@@ -79,7 +80,7 @@ class JavaScriptTest extends WebTestBase {
     drupal_add_library('system', 'drupalSettings');
     $javascript = drupal_add_js();
     $last_settings = reset($javascript['settings']['data']);
-    $this->assertTrue($last_settings['currentPath'], 'The current path JavaScript setting is set correctly.');
+    $this->assertTrue(array_key_exists('currentPath', $last_settings), 'The current path JavaScript setting is set correctly.');
 
     $javascript = drupal_add_js(array('drupal' => 'rocks', 'dries' => 280342800), 'setting');
     $last_settings = end($javascript['settings']['data']);
@@ -119,7 +120,7 @@ class JavaScriptTest extends WebTestBase {
    */
   function testAggregatedAttributes() {
     // Enable aggregation.
-    config('system.performance')->set('preprocess.js', 1)->save();
+    \Drupal::config('system.performance')->set('js.preprocess', 1)->save();
 
     $default_query_string = variable_get('css_js_query_string', '0');
 
@@ -150,35 +151,51 @@ class JavaScriptTest extends WebTestBase {
     // Only the second of these two entries should appear in Drupal.settings.
     drupal_add_js(array('commonTest' => 'commonTestShouldNotAppear'), 'setting');
     drupal_add_js(array('commonTest' => 'commonTestShouldAppear'), 'setting');
-    // All three of these entries should appear in Drupal.settings.
-    drupal_add_js(array('commonTestArray' => array('commonTestValue0')), 'setting');
-    drupal_add_js(array('commonTestArray' => array('commonTestValue1')), 'setting');
-    drupal_add_js(array('commonTestArray' => array('commonTestValue2')), 'setting');
+    // Only the second of these entries should appear in Drupal.settings.
+    drupal_add_js(array('commonTestJsArrayLiteral' => array('commonTestJsArrayLiteralOldValue')), 'setting');
+    drupal_add_js(array('commonTestJsArrayLiteral' => array('commonTestJsArrayLiteralNewValue')), 'setting');
     // Only the second of these two entries should appear in Drupal.settings.
-    drupal_add_js(array('commonTestArray' => array('key' => 'commonTestOldValue')), 'setting');
-    drupal_add_js(array('commonTestArray' => array('key' => 'commonTestNewValue')), 'setting');
+    drupal_add_js(array('commonTestJsObjectLiteral' => array('key' => 'commonTestJsObjectLiteralOldValue')), 'setting');
+    drupal_add_js(array('commonTestJsObjectLiteral' => array('key' => 'commonTestJsObjectLiteralNewValue')), 'setting');
+    // Real world test case: multiple elements in a render array are adding the
+    // same (or nearly the same) JavaScript settings. When merged, they should
+    // contain all settings and not duplicate some settings.
+    $settings_one = array('moduleName' => array('ui' => array('button A', 'button B'), 'magical flag' => 3.14159265359));
+    drupal_add_js(array('commonTestRealWorldIdentical' => $settings_one), 'setting');
+    drupal_add_js(array('commonTestRealWorldIdentical' => $settings_one), 'setting');
+    $settings_two = array('moduleName' => array('ui' => array('button A', 'button B'), 'magical flag' => 3.14159265359, 'thingiesOnPage' => array('id1' => array())));
+    drupal_add_js(array('commonTestRealWorldAlmostIdentical' => $settings_two), 'setting');
+    $settings_two = array('moduleName' => array('ui' => array('button C', 'button D'), 'magical flag' => 3.14, 'thingiesOnPage' => array('id2' => array())));
+    drupal_add_js(array('commonTestRealWorldAlmostIdentical' => $settings_two), 'setting');
 
     $javascript = drupal_get_js('header');
+
     // Test whether drupal_add_js can be used to override a previous setting.
     $this->assertTrue(strpos($javascript, 'commonTestShouldAppear') > 0, 'Rendered JavaScript header returns custom setting.');
     $this->assertTrue(strpos($javascript, 'commonTestShouldNotAppear') === FALSE, 'drupal_add_js() correctly overrides a custom setting.');
 
-    // Test whether drupal_add_js can be used to add numerically indexed values
-    // to an array.
-    $array_values_appear = strpos($javascript, 'commonTestValue0') > 0 && strpos($javascript, 'commonTestValue1') > 0 && strpos($javascript, 'commonTestValue2') > 0;
-    $this->assertTrue($array_values_appear, 'drupal_add_js() correctly adds settings to the end of an indexed array.');
+    // Test whether drupal_add_js can be used to add and override a JavaScript
+    // array literal (an indexed PHP array) values.
+    $array_override = strpos($javascript, 'commonTestJsArrayLiteralNewValue') > 0 && strpos($javascript, 'commonTestJsArrayLiteralOldValue') === FALSE;
+    $this->assertTrue($array_override, 'drupal_add_js() correctly overrides settings within an array literal (indexed array).');
 
-    // Test whether drupal_add_js can be used to override the entry for an
-    // existing key in an associative array.
-    $associative_array_override = strpos($javascript, 'commonTestNewValue') > 0 && strpos($javascript, 'commonTestOldValue') === FALSE;
-    $this->assertTrue($associative_array_override, 'drupal_add_js() correctly overrides settings within an associative array.');
-    // Check in a rendered page.
-    $this->drupalGet('common-test/query-string');
-    $this->assertPattern('@<script>.+drupalSettings.+"currentPath":"common-test\\\/query-string"@s', 'currentPath is in the JS settings');
-    $path = array('source' => 'common-test/query-string', 'alias' => 'common-test/currentpath-check');
-    path_save($path);
-    $this->drupalGet('common-test/currentpath-check');
-    $this->assertPattern('@<script>.+drupalSettings.+"currentPath":"common-test\\\/query-string"@s', 'currentPath is in the JS settings for an aliased path');
+    // Test whether drupal_add_js can be used to add and override a JavaScript
+    // object literal (an associate PHP array) values.
+    $associative_array_override = strpos($javascript, 'commonTestJsObjectLiteralNewValue') > 0 && strpos($javascript, 'commonTestJsObjectLiteralOldValue') === FALSE;
+    $this->assertTrue($associative_array_override, 'drupal_add_js() correctly overrides settings within an object literal (associative array).');
+
+    // Parse the generated drupalSettings <script> back to a PHP representation.
+    $startToken = 'drupalSettings = ';
+    $endToken = '}';
+    $start = strpos($javascript, $startToken) + strlen($startToken);
+    $end = strrpos($javascript, $endToken);
+    $json  = drupal_substr($javascript, $start, $end - $start + 1);
+    $parsed_settings = drupal_json_decode($json);
+
+    // Test whether the two real world cases are handled correctly.
+    $settings_two['moduleName']['thingiesOnPage']['id1'] = array();
+    $this->assertIdentical($settings_one, $parsed_settings['commonTestRealWorldIdentical'], 'drupal_add_js handled real world test case 1 correctly.');
+    $this->assertEqual($settings_two, $parsed_settings['commonTestRealWorldAlmostIdentical'], 'drupal_add_js handled real world test case 2 correctly.');
   }
 
   /**
@@ -195,10 +212,10 @@ class JavaScriptTest extends WebTestBase {
    * Tests adding inline scripts.
    */
   function testAddInline() {
-    drupal_add_library('system', 'drupal');
+    drupal_add_library('system', 'jquery');
     $inline = 'jQuery(function () { });';
     $javascript = drupal_add_js($inline, array('type' => 'inline', 'scope' => 'footer'));
-    $this->assertTrue(array_key_exists('core/misc/jquery.js', $javascript), 'jQuery is added when inline scripts are added.');
+    $this->assertTrue(array_key_exists('core/assets/vendor/jquery/jquery.js', $javascript), 'jQuery is added when inline scripts are added.');
     $data = end($javascript);
     $this->assertEqual($inline, $data['data'], 'Inline JavaScript is correctly added to the footer.');
   }
@@ -310,8 +327,8 @@ class JavaScriptTest extends WebTestBase {
     // Now ensure that with aggregation on, one file is made for the
     // 'every_page' files, and one file is made for the others.
     drupal_static_reset('drupal_add_js');
-    $config = config('system.performance');
-    $config->set('preprocess.js', 1);
+    $config = \Drupal::config('system.performance');
+    $config->set('js.preprocess', 1);
     $config->save();
     drupal_add_library('system', 'drupal');
     drupal_add_js('core/misc/ajax.js');
@@ -321,8 +338,8 @@ class JavaScriptTest extends WebTestBase {
     $js_items = drupal_add_js();
     $javascript = drupal_get_js();
     $expected = implode("\n", array(
-      '<script src="' . file_create_url(drupal_build_js_cache(array('core/misc/collapse.js' => $js_items['core/misc/collapse.js'], 'core/misc/batch.js' => $js_items['core/misc/batch.js']))) . '"></script>',
-      '<script src="' . file_create_url(drupal_build_js_cache(array('core/misc/ajax.js' => $js_items['core/misc/ajax.js'], 'core/misc/autocomplete.js' => $js_items['core/misc/autocomplete.js']))) . '"></script>',
+      '<script src="' . $this->calculateAggregateFilename(array('core/misc/collapse.js' => $js_items['core/misc/collapse.js'], 'core/misc/batch.js' => $js_items['core/misc/batch.js'])) . '"></script>',
+      '<script src="' . $this->calculateAggregateFilename(array('core/misc/ajax.js' => $js_items['core/misc/ajax.js'], 'core/misc/autocomplete.js' => $js_items['core/misc/autocomplete.js'])) . '"></script>',
     ));
     $this->assertTrue(strpos($javascript, $expected) !== FALSE, 'JavaScript is aggregated in the expected groups and order.');
   }
@@ -332,7 +349,7 @@ class JavaScriptTest extends WebTestBase {
    */
   function testAggregationOrder() {
     // Enable JavaScript aggregation.
-    config('system.performance')->set('preprocess.js', 1)->save();
+    \Drupal::config('system.performance')->set('js.preprocess', 1)->save();
     drupal_static_reset('drupal_add_js');
 
     // Add two JavaScript files to the current request and build the cache.
@@ -341,17 +358,21 @@ class JavaScriptTest extends WebTestBase {
     drupal_add_js('core/misc/autocomplete.js');
 
     $js_items = drupal_add_js();
-    drupal_build_js_cache(array(
-      'core/misc/ajax.js' => $js_items['core/misc/ajax.js'],
-      'core/misc/autocomplete.js' => $js_items['core/misc/autocomplete.js']
-    ));
+    $scripts_html = array(
+      '#type' => 'scripts',
+      '#items' => array(
+        'core/misc/ajax.js' => $js_items['core/misc/ajax.js'],
+        'core/misc/autocomplete.js' => $js_items['core/misc/autocomplete.js']
+      )
+    );
+    drupal_render($scripts_html);
 
     // Store the expected key for the first item in the cache.
-    $cache = array_keys(state()->get('system.js_cache_files') ?: array());
+    $cache = array_keys(\Drupal::state()->get('system.js_cache_files') ?: array());
     $expected_key = $cache[0];
 
     // Reset variables and add a file in a different scope first.
-    state()->delete('system.js_cache_files');
+    \Drupal::state()->delete('system.js_cache_files');
     drupal_static_reset('drupal_add_js');
     drupal_add_library('system', 'drupal');
     drupal_add_js('some/custom/javascript_file.js', array('scope' => 'footer'));
@@ -360,13 +381,17 @@ class JavaScriptTest extends WebTestBase {
 
     // Rebuild the cache.
     $js_items = drupal_add_js();
-    drupal_build_js_cache(array(
-      'core/misc/ajax.js' => $js_items['core/misc/ajax.js'],
-      'core/misc/autocomplete.js' => $js_items['core/misc/autocomplete.js']
-    ));
+    $scripts_html = array(
+      '#type' => 'scripts',
+      '#items' => array(
+        'core/misc/ajax.js' => $js_items['core/misc/ajax.js'],
+        'core/misc/autocomplete.js' => $js_items['core/misc/autocomplete.js']
+      )
+    );
+    drupal_render($scripts_html);
 
     // Compare the expected key for the first file to the current one.
-    $cache = array_keys(state()->get('system.js_cache_files') ?: array());
+    $cache = array_keys(\Drupal::state()->get('system.js_cache_files') ?: array());
     $key = $cache[0];
     $this->assertEqual($key, $expected_key, 'JavaScript aggregation is not affected by ordering in different scopes.');
   }
@@ -423,7 +448,7 @@ class JavaScriptTest extends WebTestBase {
     drupal_add_library('system', 'jquery');
     drupal_add_js('core/misc/collapse.js', array('group' => JS_LIBRARY, 'every_page' => TRUE, 'weight' => -21));
     $javascript = drupal_get_js();
-    $this->assertTrue(strpos($javascript, 'core/misc/collapse.js') < strpos($javascript, 'core/misc/jquery.js'), 'Rendering a JavaScript file above jQuery.');
+    $this->assertTrue(strpos($javascript, 'core/misc/collapse.js') < strpos($javascript, 'core/assets/vendor/jquery/jquery.js'), 'Rendering a JavaScript file above jQuery.');
   }
 
   /**
@@ -451,8 +476,14 @@ class JavaScriptTest extends WebTestBase {
     $this->assertTrue($result !== FALSE, 'Library was added without errors.');
     $scripts = drupal_get_js();
     $styles = drupal_get_css();
-    $this->assertTrue(strpos($scripts, 'core/misc/farbtastic/farbtastic.js'), 'JavaScript of library was added to the page.');
-    $this->assertTrue(strpos($styles, 'core/misc/farbtastic/farbtastic.css'), 'Stylesheet of library was added to the page.');
+    $this->assertTrue(strpos($scripts, 'core/assets/vendor/farbtastic/farbtastic.js'), 'JavaScript of library was added to the page.');
+    $this->assertTrue(strpos($styles, 'core/assets/vendor/farbtastic/farbtastic.css'), 'Stylesheet of library was added to the page.');
+
+    $result = drupal_add_library('common_test', 'shorthand.plugin');
+    $path = drupal_get_path('module', 'common_test') . '/js/shorthand.js?v=0.8.3.37';
+    $scripts = drupal_get_js();
+    $this->assertTrue(strpos($scripts, $path), 'JavaScript specified in hook_library_info() using shorthand format (without any options) was added to the page.');
+    $this->assertEqual(substr_count($scripts, 'shorthand.js'), 1, 'Shorthand JavaScript file only added once.');
   }
 
   /**
@@ -468,7 +499,7 @@ class JavaScriptTest extends WebTestBase {
     // common_test_library_info_alter() also added a dependency on jQuery Form.
     drupal_add_library('system', 'jquery.farbtastic');
     $scripts = drupal_get_js();
-    $this->assertTrue(strpos($scripts, 'core/misc/jquery.form.js'), 'Altered library dependencies are added to the page.');
+    $this->assertTrue(strpos($scripts, 'core/assets/vendor/jquery-form/jquery.form.js'), 'Altered library dependencies are added to the page.');
   }
 
   /**
@@ -502,7 +533,7 @@ class JavaScriptTest extends WebTestBase {
     $element['#attached']['library'][] = array('system', 'jquery.farbtastic');
     drupal_render($element);
     $scripts = drupal_get_js();
-    $this->assertTrue(strpos($scripts, 'core/misc/farbtastic/farbtastic.js'), 'The attached_library property adds the additional libraries.');
+    $this->assertTrue(strpos($scripts, 'core/assets/vendor/farbtastic/farbtastic.js'), 'The attached_library property adds the additional libraries.');
   }
 
   /**
@@ -514,7 +545,7 @@ class JavaScriptTest extends WebTestBase {
     $this->assertTrue(isset($libraries['jquery.farbtastic']), 'Retrieved all module libraries.');
     // Retrieve all libraries for a module not implementing hook_library_info().
     // Note: This test installs language module.
-    $libraries = drupal_get_library('language');
+    $libraries = drupal_get_library('dblog');
     $this->assertEqual($libraries, array(), 'Retrieving libraries from a module not implementing hook_library_info() returns an emtpy array.');
 
     // Retrieve a specific library by module and name.
@@ -529,8 +560,31 @@ class JavaScriptTest extends WebTestBase {
    * Tests JavaScript files that have querystrings attached get added right.
    */
   function testAddJsFileWithQueryString() {
-    $this->drupalGet('common-test/query-string');
+    $js = drupal_get_path('module', 'node') . '/node.js';
+    drupal_add_js($js);
+
     $query_string = variable_get('css_js_query_string', '0');
-    $this->assertRaw(drupal_get_path('module', 'node') . '/node.js?' . $query_string, 'Query string was appended correctly to js.');
+    $scripts = drupal_get_js();
+    $this->assertTrue(strpos($scripts, $js . '?' . $query_string), 'Query string was appended correctly to JS.');
   }
+
+  /**
+   * Calculates the aggregated file URI of a group of JavaScript assets.
+   *
+   * @param array $js_assets
+   *   A group of JavaScript assets.
+   * @return string
+   *   A file URI.
+   *
+   * @see testAggregation()
+   * @see testAggregationOrder()
+   */
+  protected function calculateAggregateFilename($js_assets) {
+    $data = '';
+    foreach ($js_assets as $js_asset) {
+      $data .= file_get_contents($js_asset['data']) . ";\n";
+    }
+    return file_create_url('public://js/js_' . Crypt::hashBase64($data) . '.js');
+  }
+
 }

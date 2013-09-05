@@ -7,24 +7,22 @@
 
 namespace Drupal\user\Plugin\views\field;
 
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
+use Drupal\views\ResultRow;
 
 /**
  * Views field handler for user language.
  *
  * @ingroup views_field_handlers
  *
- * @Plugin(
- *   id = "user_language",
- *   module = "user"
- * )
+ * @PluginID("user_language")
  */
 class Language extends User {
 
-  function render_link($data, $values) {
-    $uid = $this->get_value($values, 'uid');
+  protected function renderLink($data, ResultRow $values) {
+    $uid = $this->getValue($values, 'uid');
     if (!empty($this->options['link_to_user'])) {
-      $uid = $this->get_value($values, 'uid');
+      $uid = $this->getValue($values, 'uid');
       if (user_access('access user profiles') && $uid) {
         $this->options['alter']['make_link'] = TRUE;
         $this->options['alter']['path'] = 'user/' . $uid;
@@ -41,9 +39,12 @@ class Language extends User {
     return $this->sanitizeValue($lang->name);
   }
 
-  function render($values) {
-    $value = $this->get_value($values);
-    return $this->render_link($this->sanitizeValue($value), $values);
+  /**
+   * {@inheritdoc}
+   */
+  public function render(ResultRow $values) {
+    $value = $this->getValue($values);
+    return $this->renderLink($this->sanitizeValue($value), $values);
   }
 
 }

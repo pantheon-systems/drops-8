@@ -8,7 +8,9 @@
 namespace Drupal\field\Plugin\Type\Widget;
 
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\field\FieldInstance;
+use Drupal\field\Entity\FieldInstance;
+use Symfony\Component\Validator\ConstraintViolationInterface;
+use Drupal\Core\Entity\Field\FieldInterface;
 
 /**
  * Interface definition for field widget plugins.
@@ -23,9 +25,9 @@ interface WidgetInterface extends WidgetBaseInterface {
   /**
    * Returns a form to configure settings for the widget.
    *
-   * Invoked from field_ui_field_edit_form() to allow administrators to
-   * configure the widget. The field_ui module takes care of handling submitted
-   * form values.
+   * Invoked from \Drupal\field_ui\Form\FieldInstanceEditForm to allow
+   * administrators to configure the widget. The field_ui module takes care of
+   * handling submitted form values.
    *
    * @param array $form
    *   The form where the settings form is being included in.
@@ -38,6 +40,18 @@ interface WidgetInterface extends WidgetBaseInterface {
   public function settingsForm(array $form, array &$form_state);
 
   /**
+   * Returns a short summary for the current widget settings.
+   *
+   * If an empty result is returned, the widget is assumed to have no
+   * configurable settings, and no UI will be provided to display a settings
+   * form.
+   *
+   * @return array
+   *   A short summary of the widget settings.
+   */
+  public function settingsSummary();
+
+  /**
    * Returns the form for a single field widget.
    *
    * Field widget form elements should be based on the passed-in $element, which
@@ -48,28 +62,20 @@ interface WidgetInterface extends WidgetBaseInterface {
    * each form element. If there are multiple values for this field, the
    * formElement() method will be called as many times as needed.
    *
-   * Note that, depending on the context in which the widget is being included
-   * (regular entity form, field configuration form, advanced search form...),
-   * the values for $field and $instance might be different from the "official"
-   * definitions returned by field_info_field() and field_info_instance().
-   * Examples: mono-value widget even if the field is multi-valued, non-required
-   * widget even if the field is 'required'...
-   *
-   * Therefore, the FAPI element callbacks (such as #process, #element_validate,
-   * #value_callback...) used by the widget cannot use the field_info_field()
-   * or field_info_instance() functions to retrieve the $field or $instance
-   * definitions they should operate on. The field_widget_field() and
-   * field_widget_instance() functions should be used instead to fetch the
-   * current working definitions from $form_state, where Field API stores them.
-   *
-   * Alternatively, hook_field_widget_form() can extract the needed specific
-   * properties from $field and $instance and set them as ad-hoc
-   * $element['#custom'] properties, for later use by its element callbacks.
-   *
    * Other modules may alter the form element provided by this function using
-   * hook_field_widget_form_alter().
+   * hook_field_widget_form_alter() or
+   * hook_field_widget_WIDGET_TYPE_form_alter().
    *
-   * @param array $items
+   * The FAPI element callbacks (such as #process, #element_validate,
+   * #value_callback...) used by the widget do not have access to the original
+   * $field_definition passed to the widget's constructor. Therefore, if any
+   * information is needed from that definition by those callbacks, the widget
+   * implementing this method, or a hook_field_widget[_WIDGET_TYPE]_form_alter()
+   * implementation, must extract the needed properties from the field
+   * definition and set them as ad-hoc $element['#custom'] properties, for later
+   * use by its element callbacks.
+   *
+   * @param FieldInterface $items
    *   Array of default values for this field.
    * @param int $delta
    *   The order of this item in the array of subelements (0, 1, 2, etc).
@@ -86,7 +92,6 @@ interface WidgetInterface extends WidgetBaseInterface {
    *       $form_state['values'], and is used to access processing information
    *       for the field through the field_form_get_state() and
    *       field_form_set_state() functions.
-   *   - #columns: A list of field storage columns of the field.
    *   - #title: The sanitized element label for the field instance, ready for
    *     output.
    *   - #description: The sanitized element description for the field instance,
@@ -107,12 +112,10 @@ interface WidgetInterface extends WidgetBaseInterface {
    * @return array
    *   The form elements for a single widget for this field.
    *
-   * @see field_widget_field()
-   * @see field_widget_instance()
    * @see hook_field_widget_form_alter()
    * @see hook_field_widget_WIDGET_TYPE_form_alter()
    */
-  public function formElement(array $items, $delta, array $element, $langcode, array &$form, array &$form_state);
+  public function formElement(FieldInterface $items, $delta, array $element, $langcode, array &$form, array &$form_state);
 
   /**
    * Assigns a field-level validation error to the right widget sub-element.
@@ -123,22 +126,19 @@ interface WidgetInterface extends WidgetBaseInterface {
    * @param array $element
    *   An array containing the form element for the widget, as generated by
    *   formElement().
-   * @param array $error
-   *   An associative array with the following key-value pairs, as returned by
-   *   hook_field_validate():
-   *   - error: the error code. Complex widgets might need to report different
-   *     errors to different form elements inside the widget.
-   *   - message: the human readable message to be displayed.
+   * @param \Symfony\Component\Validator\ConstraintViolationInterface $violation
+   *   A constraint violation reported during the validation phase.
    * @param array $form
    *   The form structure where field elements are attached to. This might be a
    *   full form structure, or a sub-element of a larger form.
    * @param array $form_state
    *   An associative array containing the current state of the form.
    *
-   * @return array
-   *   The element on which the error should be flagged.
+   * @return array|bool
+   *   The element on which the error should be flagged, or FALSE to completely
+   *   ignore the violation (use with care!).
    */
-  public function errorElement(array $element, array $error, array $form, array &$form_state);
+  public function errorElement(array $element, ConstraintViolationInterface $violation, array $form, array &$form_state);
 
   /**
    * Massages the form values into the format expected for field values.

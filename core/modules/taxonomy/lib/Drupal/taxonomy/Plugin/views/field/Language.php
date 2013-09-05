@@ -7,26 +7,25 @@
 
 namespace Drupal\taxonomy\Plugin\views\field;
 
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
+use Drupal\views\ResultRow;
 
 /**
  * Field handler to show the language of a taxonomy term.
  *
- * @Plugin(
- *   id = "taxonomy_term_language"
- * )
+ * @PluginID("taxonomy_term_language")
  */
 class Language extends Taxonomy {
 
   /**
-   * Overrides Drupal\taxonomy\Plugin\views\field\Taxonomy::render().
+   * {@inheritdoc}
    */
-  public function render($values) {
-    $value = $this->get_value($values);
+  public function render(ResultRow $values) {
+    $value = $this->getValue($values);
     $language = language_load($value);
     $value = $language ? $language->name : '';
 
-    return $this->render_link($this->sanitizeValue($value), $values);
+    return $this->renderLink($this->sanitizeValue($value), $values);
   }
 
 }

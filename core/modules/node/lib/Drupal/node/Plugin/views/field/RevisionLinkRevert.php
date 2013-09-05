@@ -8,17 +8,15 @@
 namespace Drupal\node\Plugin\views\field;
 
 use Drupal\node\Plugin\views\field\RevisionLink;
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
+use Drupal\views\ResultRow;
 
 /**
  * Field handler to present a link to revert a node to a revision.
  *
  * @ingroup views_field_handlers
  *
- * @Plugin(
- *   id = "node_revision_link_revert",
- *   module = "node"
- * )
+ * @PluginID("node_revision_link_revert")
  */
 class RevisionLinkRevert extends RevisionLink {
 
@@ -26,22 +24,22 @@ class RevisionLinkRevert extends RevisionLink {
     return user_access('revert revisions') || user_access('administer nodes');
   }
 
-  function render_link($data, $values) {
+  protected function renderLink($data, ResultRow $values) {
     list($node, $vid) = $this->get_revision_entity($values, 'update');
     if (!isset($vid)) {
       return;
     }
 
     // Current revision cannot be reverted.
-    if ($node->vid == $vid) {
+    if ($node->isDefaultRevision()) {
       return;
     }
 
     $this->options['alter']['make_link'] = TRUE;
-    $this->options['alter']['path'] = 'node/' . $node->nid . "/revisions/$vid/revert";
+    $this->options['alter']['path'] = 'node/' . $node->id() . "/revisions/$vid/revert";
     $this->options['alter']['query'] = drupal_get_destination();
 
-    return !empty($this->options['text']) ? $this->options['text'] : t('revert');
+    return !empty($this->options['text']) ? $this->options['text'] : t('Revert');
   }
 
 }

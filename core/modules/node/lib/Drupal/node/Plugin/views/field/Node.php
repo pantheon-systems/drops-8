@@ -7,9 +7,11 @@
 
 namespace Drupal\node\Plugin\views\field;
 
+use Drupal\views\ResultRow;
 use Drupal\views\ViewExecutable;
+use Drupal\views\Plugin\views\display\DisplayPluginBase;
 use Drupal\views\Plugin\views\field\FieldPluginBase;
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
 
 /**
  * Field handler to provide simple renderer that allows linking to a node.
@@ -18,15 +20,16 @@ use Drupal\Core\Annotation\Plugin;
  *
  * @ingroup views_field_handlers
  *
- * @Plugin(
- *   id = "node",
- *   module = "node"
- * )
+ * @PluginID("node")
  */
 class Node extends FieldPluginBase {
 
-  public function init(ViewExecutable $view, &$options) {
-    parent::init($view, $options);
+  /**
+   * Overrides \Drupal\views\Plugin\views\field\FieldPluginBase::init().
+   */
+  public function init(ViewExecutable $view, DisplayPluginBase $display, array &$options = NULL) {
+    parent::init($view, $display, $options);
+
     // Don't add the additional fields to groupby
     if (!empty($this->options['link_to_node'])) {
       $this->additional_fields['nid'] = array('table' => 'node', 'field' => 'nid');
@@ -61,14 +64,14 @@ class Node extends FieldPluginBase {
    *
    * Data should be made XSS safe prior to calling this function.
    */
-  function render_link($data, $values) {
+  protected function renderLink($data, ResultRow $values) {
     if (!empty($this->options['link_to_node']) && !empty($this->additional_fields['nid'])) {
       if ($data !== NULL && $data !== '') {
         $this->options['alter']['make_link'] = TRUE;
-        $this->options['alter']['path'] = "node/" . $this->get_value($values, 'nid');
+        $this->options['alter']['path'] = "node/" . $this->getValue($values, 'nid');
         if (isset($this->aliases['langcode'])) {
           $languages = language_list();
-          $langcode = $this->get_value($values, 'langcode');
+          $langcode = $this->getValue($values, 'langcode');
           if (isset($languages[$langcode])) {
             $this->options['alter']['language'] = $languages[$langcode];
           }
@@ -84,9 +87,12 @@ class Node extends FieldPluginBase {
     return $data;
   }
 
-  function render($values) {
-    $value = $this->get_value($values);
-    return $this->render_link($this->sanitizeValue($value), $values);
+  /**
+   * {@inheritdoc}
+   */
+  public function render(ResultRow $values) {
+    $value = $this->getValue($values);
+    return $this->renderLink($this->sanitizeValue($value), $values);
   }
 
 }

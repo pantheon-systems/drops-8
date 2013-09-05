@@ -3,9 +3,8 @@ block:
     limit: '5'
   new:
     limit: '5'
-containers: []
 topics:
   hot_threshold: '15'
   order: '1'
   page_limit: '25'
-vocabulary: '0'
+vocabulary: forums

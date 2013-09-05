@@ -37,7 +37,7 @@ class ManyToOneHelper {
     $form['reduce_duplicates'] = array(
       '#type' => 'checkbox',
       '#title' => t('Reduce duplicates'),
-      '#description' => t('This filter can cause items that have more than one of the selected options to appear as duplicate results. If this filter causes duplicate results to occur, this checkbox can reduce those duplicates; however, the more terms it has to search for, the less performant the query will be, so use this with caution. Shouldn\'t be set on single-value fields, as it may cause values to disappear from display, if used on an incompatible field.'),
+      '#description' => t("This filter can cause items that have more than one of the selected options to appear as duplicate results. If this filter causes duplicate results to occur, this checkbox can reduce those duplicates; however, the more terms it has to search for, the less performant the query will be, so use this with caution. Shouldn't be set on single-value fields, as it may cause values to disappear from display, if used on an incompatible field."),
       '#default_value' => !empty($this->handler->options['reduce_duplicates']),
       '#weight' => 4,
     );
@@ -46,11 +46,11 @@ class ManyToOneHelper {
   /**
    * Sometimes the handler might want us to use some kind of formula, so give
    * it that option. If it wants us to do this, it must set $helper->formula = TRUE
-   * and implement handler->get_formula();
+   * and implement handler->getFormula();
    */
   public function getField() {
     if (!empty($this->formula)) {
-      return $this->handler->get_formula();
+      return $this->handler->getFormula();
     }
     else {
       return $this->handler->tableAlias . '.' . $this->handler->realField;
@@ -65,7 +65,7 @@ class ManyToOneHelper {
    * link point and adds *that* as a new relationship and then adds the table to
    * the relationship, if necessary.
    */
-  function add_table($join = NULL, $alias = NULL) {
+  public function addTable($join = NULL, $alias = NULL) {
     // This is used for lookups in the many_to_one table.
     $field = $this->handler->relationship . '_' . $this->handler->table . '.' . $this->handler->field;
 
@@ -79,25 +79,25 @@ class ManyToOneHelper {
 
     // Determine the primary table to seek
     if (empty($this->handler->query->relationships[$relationship])) {
-      $base_table = $this->handler->query->base_table;
+      $base_table = $this->handler->view->storage->get('base_table');
     }
     else {
       $base_table = $this->handler->query->relationships[$relationship]['base'];
     }
 
     // Cycle through the joins. This isn't as error-safe as the normal
-    // ensure_path logic. Perhaps it should be.
+    // ensurePath logic. Perhaps it should be.
     $r_join = clone $join;
     while ($r_join->leftTable != $base_table) {
       $r_join = HandlerBase::getTableJoin($r_join->leftTable, $base_table);
     }
     // If we found that there are tables in between, add the relationship.
     if ($r_join->table != $join->table) {
-      $relationship = $this->handler->query->add_relationship($this->handler->table . '_' . $r_join->table, $r_join, $r_join->table, $this->handler->relationship);
+      $relationship = $this->handler->query->addRelationship($this->handler->table . '_' . $r_join->table, $r_join, $r_join->table, $this->handler->relationship);
     }
 
     // And now add our table, using the new relationship if one was used.
-    $alias = $this->handler->query->add_table($this->handler->table, $relationship, $join, $alias);
+    $alias = $this->handler->query->addTable($this->handler->table, $relationship, $join, $alias);
 
     // Store what values are used by this table chain so that other chains can
     // automatically discard those values.
@@ -119,7 +119,7 @@ class ManyToOneHelper {
    * Provide the proper join for summary queries. This is important in part because
    * it will cooperate with other arguments if possible.
    */
-  function summary_join() {
+  public function summaryJoin() {
     $field = $this->handler->relationship . '_' . $this->handler->table . '.' . $this->handler->field;
     $join = $this->getJoin();
 
@@ -133,7 +133,7 @@ class ManyToOneHelper {
     }
 
     if (empty($options['add_table']) || empty($view->many_to_one_tables[$field])) {
-      return $query->ensure_table($this->handler->table, $this->handler->relationship, $join);
+      return $query->ensureTable($this->handler->table, $this->handler->relationship, $join);
     }
     else {
       if (!empty($view->many_to_one_tables[$field])) {
@@ -148,7 +148,7 @@ class ManyToOneHelper {
           );
         }
       }
-      return $this->add_table($join);
+      return $this->addTable($join);
     }
   }
 
@@ -169,7 +169,7 @@ class ManyToOneHelper {
           if (isset($join)) {
             $join->type = 'INNER';
           }
-          $this->handler->tableAlias = $this->handler->query->ensure_table($this->handler->table, $this->handler->relationship, $join);
+          $this->handler->tableAlias = $this->handler->query->ensureTable($this->handler->table, $this->handler->relationship, $join);
           $this->handler->view->many_to_one_tables[$field] = $this->handler->value;
         }
         else {
@@ -188,7 +188,7 @@ class ManyToOneHelper {
             }
           }
 
-          $this->handler->tableAlias = $this->add_table($join);
+          $this->handler->tableAlias = $this->addTable($join);
         }
 
         return $this->handler->tableAlias;
@@ -220,7 +220,7 @@ class ManyToOneHelper {
             }
             $this->handler->view->many_to_one_aliases[$field][$value] = $this->handler->table . '_value_' . ($this->handler->view->many_to_one_count[$this->handler->table]++);
           }
-          $alias = $this->handler->tableAliases[$value] = $this->add_table($join, $this->handler->view->many_to_one_aliases[$field][$value]);
+          $alias = $this->handler->tableAliases[$value] = $this->addTable($join, $this->handler->view->many_to_one_aliases[$field][$value]);
 
           // and set table_alias to the first of these.
           if (empty($this->handler->tableAlias)) {
@@ -244,7 +244,7 @@ class ManyToOneHelper {
           );
         }
 
-        $this->handler->tableAlias = $this->add_table($join);
+        $this->handler->tableAlias = $this->addTable($join);
       }
     }
     return $this->handler->tableAlias;
@@ -257,7 +257,7 @@ class ManyToOneHelper {
     return $this->handler->query->placeholder($this->handler->options['table'] . '_' . $this->handler->options['field']);
   }
 
-  function add_filter() {
+  public function addFilter() {
     if (empty($this->handler->value)) {
       return;
     }
@@ -304,15 +304,15 @@ class ManyToOneHelper {
         $placeholders = array(
           $placeholder => $value,
         ) + $this->placeholders;
-        $this->handler->query->add_where_expression($options['group'], "$field $operator", $placeholders);
+        $this->handler->query->addWhereExpression($options['group'], "$field $operator", $placeholders);
       }
       else {
         $placeholder = $this->placeholder();
         if (count($this->handler->value) > 1) {
-          $this->query->add_where_expression(0, "$field $operator($placeholder)", array($placeholder => $value));
+          $this->handler->query->addWhereExpression(0, "$field $operator($placeholder)", array($placeholder => $value));
         }
         else {
-          $this->handler->query->add_where_expression(0, "$field $operator $placeholder", array($placeholder => $value));
+          $this->handler->query->addWhereExpression(0, "$field $operator $placeholder", array($placeholder => $value));
         }
       }
     }
@@ -325,7 +325,7 @@ class ManyToOneHelper {
       }
 
       // implode on either AND or OR.
-      $this->handler->query->add_where($options['group'], $clause);
+      $this->handler->query->addWhere($options['group'], $clause);
     }
   }
 

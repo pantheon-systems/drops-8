@@ -1,0 +1,129 @@
+# Schema for the configuration files of the Options module.
+
+field.list_integer.settings:
+  type: mapping
+  label: 'List (integer) settings'
+  mapping:
+    allowed_values:
+      type: sequence
+      label: 'Allowed values list'
+      sequence:
+        - type: string
+          label: 'Value'
+    allowed_values_function:
+      type: string
+      label: 'Allowed values function'
+
+field.list_integer.instance_settings:
+  type: mapping
+  label: 'List (integer)'
+  sequence:
+    - type: string
+      label: 'setting'
+
+field.list_integer.value:
+  type: sequence
+  label: 'Default value'
+  sequence:
+    - type: mapping
+      label: 'Default'
+      mapping:
+        value:
+          type: integer
+          label: 'Value'
+
+field.list_float.settings:
+  type: mapping
+  label: 'List (float) settings'
+  mapping:
+    allowed_values:
+      type: sequence
+      label: 'Allowed values list'
+      sequence:
+        - type: string
+          label: 'Value'
+    allowed_values_function:
+      type: string
+      label: 'Allowed values function'
+
+field.list_float.instance_settings:
+  type: mapping
+  label: 'List (float)'
+  sequence:
+    - type: string
+      label: 'setting'
+
+field.list_float.value:
+  type: sequence
+  label: 'Default value'
+  sequence:
+    - type: mapping
+      label: 'Default'
+      mapping:
+        value:
+          type: string
+          label: 'Value'
+
+field.list_text.settings:
+  type: mapping
+  label: 'List (text) settings'
+  mapping:
+    allowed_values:
+      type: sequence
+      label: 'Allowed values list'
+      sequence:
+        - type: string
+          label: 'Value'
+    allowed_values_function:
+      type: string
+      label: 'Allowed values function'
+
+field.list_text.instance_settings:
+  type: mapping
+  label: 'List (float)'
+  sequence:
+    - type: string
+      label: 'setting'
+
+field.list_text.value:
+  type: sequence
+  label: 'Default value'
+  sequence:
+    - type: mapping
+      label: 'Default'
+      mapping:
+        value:
+          type: string
+          label: 'Value'
+
+field.list_boolean.settings:
+  type: mapping
+  label: 'List (boolean) settings'
+  mapping:
+    allowed_values:
+      type: sequence
+      label: 'Allowed values list'
+      sequence:
+        - type: string
+          label: 'Value'
+    allowed_values_function:
+      type: string
+      label: 'Allowed values function'
+
+field.list_boolean.instance_settings:
+  type: mapping
+  label: 'List (boolean)'
+  sequence:
+    - type: string
+      label: 'setting'
+
+field.list_boolean.value:
+  type: sequence
+  label: 'Default value'
+  sequence:
+    - type: mapping
+      label: 'Default'
+      mapping:
+        value:
+          type: boolean
+          label: 'Value'

@@ -2,11 +2,14 @@
 
 /**
  * @file
- * User page callbacks for the search module.
+ * User page callbacks for the Search module.
  */
 
+use Drupal\Core\Language\Language;
+use Symfony\Component\HttpFoundation\RedirectResponse;
+
 /**
- * Menu callback; presents the search form and/or search results.
+ * Page callback: Presents the search form and/or search results.
  *
  * @param $module
  *   Search module to use for the search.
@@ -15,7 +18,6 @@
  */
 function search_view($module = NULL, $keys = '') {
   $info = FALSE;
-  $redirect = FALSE;
   $keys = trim($keys);
   // Also try to pull search keywords out of the $_REQUEST variable to
   // support old GET format of searches for existing links.
@@ -40,7 +42,7 @@ function search_view($module = NULL, $keys = '') {
     if ($keys) {
       $path .= '/' . $keys;
     }
-    drupal_goto($path);
+    return new RedirectResponse(url($path, array('absolute' => TRUE)));
   }
 
   // Default results output is an empty string.
@@ -73,14 +75,15 @@ function search_view($module = NULL, $keys = '') {
 }
 
 /**
- * Process variables for search-results.tpl.php.
+ * Prepares variables for search results templates.
  *
- * The $variables array contains the following arguments:
- * - $results: Search results array.
- * - $module: Module the search results came from (module implementing
- *   hook_search_info()).
+ * Default template: search-results.html.twig.
  *
- * @see search-results.tpl.php
+ * @param array $variables
+ *   An array with the following elements:
+ *   - results: Search results array.
+ *   - module: Module the search results came from (module implementing
+ *     hook_search_info()).
  */
 function template_preprocess_search_results(&$variables) {
   $variables['search_results'] = '';
@@ -88,28 +91,43 @@ function template_preprocess_search_results(&$variables) {
     $variables['module'] = check_plain($variables['module']);
   }
   foreach ($variables['results'] as $result) {
-    $variables['search_results'] .= theme('search_result', array('result' => $result, 'module' => $variables['module']));
+    $variables['search_results'][] = array(
+      '#theme' => 'search_result',
+      '#result' => $result,
+      '#module' => $variables['module'],
+    );
   }
-  $variables['pager'] = theme('pager', array('tags' => NULL));
+  $variables['pager'] = array('#theme' => 'pager');
+  // @todo Revisit where this help text is added, see also
+  //   http://drupal.org/node/1918856.
+  $variables['help'] = search_help('search#noresults', drupal_help_arg());
   $variables['theme_hook_suggestions'][] = 'search_results__' . $variables['module'];
 }
 
 /**
- * Process variables for search-result.tpl.php.
+ * Prepares variables for individual search result templates.
  *
- * The $variables array contains the following arguments:
- * - $result
- * - $module
+ * Default template: search-result.html.twig
  *
- * @see search-result.tpl.php
+ * @param array $variables
+ *   An array with the following elements:
+ *   - result: Individual search result.
+ *   - module: Module the search results came from (module implementing
+ *     hook_search_info()).
+ *   - title_prefix: Additional output populated by modules, intended to be
+ *     displayed in front of the main title tag that appears in the template.
+ *   - title_suffix: Additional output populated by modules, intended to be
+ *     displayed after the main title tag that appears in the template.
+ *   - title_attributes: HTML attributes for the title.
+ *   - content_attributes: HTML attributes for the content.
  */
 function template_preprocess_search_result(&$variables) {
-  $language_interface = language(LANGUAGE_TYPE_INTERFACE);
+  $language_interface = language(Language::TYPE_INTERFACE);
 
   $result = $variables['result'];
   $variables['url'] = check_url($result['link']);
   $variables['title'] = check_plain($result['title']);
-  if (isset($result['language']) && $result['language'] != $language_interface->langcode && $result['language'] != LANGUAGE_NOT_SPECIFIED) {
+  if (isset($result['language']) && $result['language'] != $language_interface->id && $result['language'] != Language::LANGCODE_NOT_SPECIFIED) {
     $variables['title_attributes']['lang'] = $result['language'];
     $variables['content_attributes']['lang'] = $result['language'];
   }
@@ -136,17 +154,23 @@ function template_preprocess_search_result(&$variables) {
 }
 
 /**
+ * Form validation handler for search_form().
+ *
  * As the search form collates keys from other modules hooked in via
- * hook_form_alter, the validation takes place in _submit.
+ * hook_form_alter, the validation takes place in search_form_submit().
  * search_form_validate() is used solely to set the 'processed_keys' form
  * value for the basic search form.
+ *
+ * @see search_form_submit()
  */
 function search_form_validate($form, &$form_state) {
   form_set_value($form['basic']['processed_keys'], trim($form_state['values']['keys']), $form_state);
 }
 
 /**
- * Process a search form submission.
+ * Form submission handler for search_form().
+ *
+ * @see search_form_validate()
  */
 function search_form_submit($form, &$form_state) {
   $keys = $form_state['values']['processed_keys'];

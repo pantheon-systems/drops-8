@@ -7,8 +7,12 @@
 
 namespace Drupal\Core\EventSubscriber;
 
+use Drupal\Core\CacheDecorator\AliasManagerCacheDecorator;
+use Drupal\Core\PathProcessor\InboundPathProcessorInterface;
+use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\HttpKernel\Event\GetResponseEvent;
+use Symfony\Component\HttpKernel\Event\PostResponseEvent;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**
@@ -17,92 +21,53 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 class PathSubscriber extends PathListenerBase implements EventSubscriberInterface {
 
   /**
-   * Resolve the system path.
+   * The alias manager that caches alias lookups based on the request.
    *
-   * @todo The path system should be objectified to remove the function calls in
-   *   this method.
-   *
-   * @param Symfony\Component\HttpKernel\Event\GetResponseEvent $event
-   *   The Event to process.
+   * @var \Drupal\Core\CacheDecorator\AliasManagerCacheDecorator
    */
-  public function onKernelRequestPathResolve(GetResponseEvent $event) {
-    $request = $event->getRequest();
+  protected $aliasManager;
 
-    $path = $this->extractPath($request);
+  /**
+   * A path processor manager for resolving the system path.
+   *
+   * @var \Drupal\Core\PathProcessor\InboundPathProcessorInterface
+   */
+  protected $pathProcessor;
 
-    $path = drupal_get_normal_path($path);
-
-    $this->setPath($request, $path);
+  public function __construct(AliasManagerCacheDecorator $alias_manager, InboundPathProcessorInterface $path_processor) {
+    $this->aliasManager = $alias_manager;
+    $this->pathProcessor = $path_processor;
   }
 
   /**
-   * Resolve the front-page default path.
-   *
-   * @todo The path system should be objectified to remove the function calls in
-   *   this method.
+   * Converts the request path to a system path.
    *
    * @param Symfony\Component\HttpKernel\Event\GetResponseEvent $event
    *   The Event to process.
    */
-  public function onKernelRequestFrontPageResolve(GetResponseEvent $event) {
+  public function onKernelRequestConvertPath(GetResponseEvent $event) {
     $request = $event->getRequest();
-    $path = $this->extractPath($request);
-
-    if (empty($path)) {
-      // @todo Temporary hack. Fix when configuration is injectable.
-      $path = config('system.site')->get('page.front');
-      if (empty($path)) {
-        $path = 'user';
-      }
+    $path = trim($request->getPathInfo(), '/');
+    $path = $this->pathProcessor->processInbound($path, $request);
+    $request->attributes->set('_system_path', $path);
+    // Also set an attribute that indicates whether we are using clean URLs.
+    $clean_urls = TRUE;
+    $base_url = $request->getBaseUrl();
+    if (!empty($base_url) && strpos($base_url, $request->getScriptName()) !== FALSE) {
+      $clean_urls = FALSE;
     }
-
-    $this->setPath($request, $path);
+    $request->attributes->set('clean_urls', $clean_urls);
+    // Set the cache key on the alias manager cache decorator.
+    if ($event->getRequestType() == HttpKernelInterface::MASTER_REQUEST) {
+      $this->aliasManager->setCacheKey($path);
+    }
   }
 
   /**
-   * Decode language information embedded in the request path.
-   *
-   * @todo Refactor this entire method to inline the relevant portions of
-   *   drupal_language_initialize(). See the inline comment for more details.
-   *
-   * @param Symfony\Component\HttpKernel\Event\GetResponseEvent $event
-   *   The Event to process.
+   * Ensures system paths for the request get cached.
    */
-  public function onKernelRequestLanguageResolve(GetResponseEvent $event) {
-    // drupal_language_initialize() combines:
-    // - Determination of language from $request information (e.g., path).
-    // - Determination of language from other information (e.g., site default).
-    // - Population of determined language into drupal_container().
-    // - Removal of language code from _current_path().
-    // @todo Decouple the above, but for now, invoke it and update the path
-    //   prior to front page and alias resolution. When above is decoupled, also
-    //   add 'langcode' (determined from $request only) to $request->attributes.
-    drupal_language_initialize();
-  }
-
-  /**
-   * Decodes the path of the request.
-   *
-   * Parameters in the URL sometimes represent code-meaningful strings. It is
-   * therefore useful to always urldecode() those values so that individual
-   * controllers need not concern themselves with it. This is Drupal-specific
-   * logic and may not be familiar for developers used to other Symfony-family
-   * projects.
-   *
-   * @todo Revisit whether or not this logic is appropriate for here or if
-   *   controllers should be required to implement this logic themselves. If we
-   *   decide to keep this code, remove this TODO.
-   *
-   * @param Symfony\Component\HttpKernel\Event\GetResponseEvent $event
-   *   The Event to process.
-   */
-  public function onKernelRequestDecodePath(GetResponseEvent $event) {
-    $request = $event->getRequest();
-    $path = $this->extractPath($request);
-
-    $path = urldecode($path);
-
-    $this->setPath($request, $path);
+  public function onKernelTerminate(PostResponseEvent $event) {
+    $this->aliasManager->writeCache();
   }
 
   /**
@@ -112,11 +77,8 @@ class PathSubscriber extends PathListenerBase implements EventSubscriberInterfac
    *   An array of event listener definitions.
    */
   static function getSubscribedEvents() {
-    $events[KernelEvents::REQUEST][] = array('onKernelRequestDecodePath', 200);
-    $events[KernelEvents::REQUEST][] = array('onKernelRequestLanguageResolve', 150);
-    $events[KernelEvents::REQUEST][] = array('onKernelRequestFrontPageResolve', 101);
-    $events[KernelEvents::REQUEST][] = array('onKernelRequestPathResolve', 100);
-
+    $events[KernelEvents::REQUEST][] = array('onKernelRequestConvertPath', 200);
+    $events[KernelEvents::TERMINATE][] = array('onKernelTerminate', 200);
     return $events;
   }
 }

@@ -7,10 +7,17 @@
  * @see http://drupal.org/node/1497272
  */
 
+use Drupal\Core\Language\Language;
+
 /**
  * No language negotiation. The default language is used.
  */
 const LANGUAGE_NEGOTIATION_SELECTED = 'language-selected';
+
+/**
+ * The language is determined using the current interface language.
+ */
+const LANGUAGE_NEGOTIATION_INTERFACE = 'language-interface';
 
 /**
  * @defgroup language_negotiation Language Negotiation API functionality
@@ -46,9 +53,13 @@ const LANGUAGE_NEGOTIATION_SELECTED = 'language-selected';
  * configurable:
  * @code
  * function mymodule_language_types_info_alter(&$language_types) {
- *   unset($language_types[LANGUAGE_TYPE_CONTENT]['fixed']);
+ *   unset($language_types[Language::TYPE_CONTENT]['fixed']);
  * }
  * @endcode
+ *
+ * The locked configuration property prevents one language type from being
+ * switched from customized to not customized, and vice versa.
+ * @see language_types_set()
  *
  * Every language type can have a different set of language negotiation methods
  * assigned to it. Different language types often share the same language
@@ -90,7 +101,7 @@ const LANGUAGE_NEGOTIATION_SELECTED = 'language-selected';
  *
  *   // If we are on an administrative path, override with the default language.
  *   if (isset($_GET['q']) && strtok($_GET['q'], '/') == 'admin') {
- *     return language_default()->langcode;
+ *     return language_default()->id;
  *   }
  *   return $langcode;
  * }
@@ -150,7 +161,7 @@ function language_types_info() {
   $language_types = &drupal_static(__FUNCTION__);
 
   if (!isset($language_types)) {
-    $language_types = module_invoke_all('language_types_info');
+    $language_types = Drupal::moduleHandler()->invokeAll('language_types_info');
     // Let other modules alter the list of language types.
     drupal_alter('language_types_info', $language_types);
   }
@@ -165,35 +176,12 @@ function language_types_info() {
  * whose language negotiation methods are module-defined and not altered through
  * the user interface.
  *
- * @param $stored
- *   (optional) By default, retrieves values from the 'language_types' variable
- *   to avoid unnecessary hook invocations. If set to FALSE, retrieves values
- *   from the actual language type definitions. This allows reaction to
- *   alterations performed on the definitions by modules installed after the
- *   'language_types' variable is set.
- *
  * @return
  *   An array of language type names.
  */
-function language_types_get_configurable($stored = TRUE) {
-  $configurable = &drupal_static(__FUNCTION__);
-
-  if ($stored && !isset($configurable)) {
-    $types = variable_get('language_types', language_types_get_default());
-    $configurable = array_keys(array_filter($types));
-  }
-
-  if (!$stored) {
-    $result = array();
-    foreach (language_types_info() as $type => $info) {
-      if (!isset($info['fixed'])) {
-        $result[] = $type;
-      }
-    }
-    return $result;
-  }
-
-  return $configurable;
+function language_types_get_configurable() {
+  $configurable = Drupal::config('system.language.types')->get('configurable');
+  return $configurable ? $configurable : array();
 }
 
 /**
@@ -203,48 +191,70 @@ function language_types_get_configurable($stored = TRUE) {
  *   An array of language types.
  */
 function language_types_disable($types) {
-  $enabled_types = variable_get('language_types', language_types_get_default());
-
-  foreach ($types as $type) {
-    unset($enabled_types[$type]);
-  }
-
-  variable_set('language_types', $enabled_types);
+  $configurable = language_types_get_configurable();
+  Drupal::config('system.language.types')->set('configurable', array_diff($configurable, $types))->save();
 }
 
 /**
  * Updates the language type configuration.
+ *
+ * @param array $configurable_language_types
+ *   An array of configurable language types.
  */
-function language_types_set() {
+function language_types_set(array $configurable_language_types) {
   // Ensure that we are getting the defined language negotiation information. An
   // invocation of module_enable() or module_disable() could outdate the cached
   // information.
   drupal_static_reset('language_types_info');
   drupal_static_reset('language_negotiation_info');
 
-  // Determine which language types are configurable and which not by checking
-  // whether the 'fixed' key is defined. Non-configurable (fixed) language types
-  // have their language negotiation settings stored there.
   $language_types = array();
   $negotiation_info = language_negotiation_info();
-  foreach (language_types_info() as $type => $info) {
-    if (isset($info['fixed'])) {
-      $language_types[$type] = FALSE;
-      $method_weights = array();
-      foreach ($info['fixed'] as $weight => $method_id) {
-        if (isset($negotiation_info[$method_id])) {
-          $method_weights[$method_id] = $weight;
-        }
+  $language_types_info = language_types_info();
+
+  foreach ($language_types_info as $type => $info) {
+    $configurable = in_array($type, $configurable_language_types);
+
+    // Check whether the language type is unlocked. Only the status of unlocked
+    // language types can be toggled between configurable and non-configurable.
+    // The default language negotiation settings, if available, are stored in
+    // $info['fixed'].
+    if (empty($info['locked'])) {
+      // If we have a non-locked non-configurable language type without default
+      // language negotiation settings, we use the values negotiated for the
+      // interface language which should always be available.
+      if (!$configurable && !empty($info['fixed'])) {
+        $method_weights = array(LANGUAGE_NEGOTIATION_INTERFACE);
+        $method_weights = array_flip($method_weights);
+        language_negotiation_set($type, $method_weights);
       }
-      language_negotiation_set($type, $method_weights);
     }
     else {
-      $language_types[$type] = TRUE;
+      // Locked language types with default settings are always considered
+      // non-configurable. In turn if default settings are missing, the language
+      // type is always considered configurable.
+      $configurable = empty($info['fixed']);
+
+      // If the language is non-configurable we need to store its language
+      // negotiation settings.
+      if (!$configurable) {
+        $method_weights = array();
+        foreach ($info['fixed'] as $weight => $method_id) {
+          if (isset($negotiation_info[$method_id])) {
+            $method_weights[$method_id] = $weight;
+          }
+        }
+        language_negotiation_set($type, $method_weights);
+      }
     }
+
+    $language_types[$type] = $configurable;
   }
 
-  // Save enabled language types.
-  variable_set('language_types', $language_types);
+  // Store the language type configuration.
+  $config = Drupal::config('system.language.types');
+  $config->set('configurable', array_keys(array_filter($language_types)))->save();
+  $config->set('all', array_keys($language_types))->save();
 
   // Ensure that subsequent calls of language_types_get_configurable() return
   // the updated language type information.
@@ -365,7 +375,7 @@ function language_negotiation_set($type, $method_weights) {
 
   $negotiation = array();
   $negotiation_info = language_negotiation_info();
-  $default_types = language_types_get_configurable(FALSE);
+  $default_types = language_types_get_configurable();
 
   // Order the language negotiation method list by weight.
   asort($method_weights);
@@ -403,11 +413,11 @@ function language_negotiation_info() {
 
   if (!isset($negotiation_info)) {
     // Collect all the module-defined language negotiation methods.
-    $negotiation_info = module_invoke_all('language_negotiation_info');
+    $negotiation_info = Drupal::moduleHandler()->invokeAll('language_negotiation_info');
     $languages = language_list();
     $selected_language = $languages[language_from_selected($languages)];
     $description = 'Language based on a selected language. ';
-    $description .= ($selected_language->langcode == language_default()->langcode) ? "(Site's default language (@language_name))" : '(@language_name)';
+    $description .= ($selected_language->id == language_default()->id) ? "(Site's default language (@language_name))" : '(@language_name)';
     // Add the default language negotiation method.
     $negotiation_info[LANGUAGE_NEGOTIATION_SELECTED] = array(
       'callbacks' => array(
@@ -460,7 +470,7 @@ function language_negotiation_method_invoke($method_id, $method = NULL, $request
     }
     // If the language negotiation method has no cache preference or this is
     // satisfied we can execute the callback.
-    $cache = !isset($method['cache']) || $user->uid || $method['cache'] == variable_get('cache', 0);
+    $cache = !isset($method['cache']) || $user->isAuthenticated() || $method['cache'] == variable_get('cache', 0);
     $callback = isset($method['callbacks']['negotiation']) ? $method['callbacks']['negotiation'] : FALSE;
     $langcode = $cache && function_exists($callback) ? $callback($languages, $request) : FALSE;
     $results[$method_id] = isset($languages[$langcode]) ? $languages[$langcode] : FALSE;
@@ -483,12 +493,12 @@ function language_negotiation_method_invoke($method_id, $method = NULL, $request
   *   A valid language code on success, FALSE otherwise.
   */
 function language_from_selected($languages) {
-  $langcode = (string) config('language.negotiation')->get('selected_langcode');
+  $langcode = (string) Drupal::config('language.negotiation')->get('selected_langcode');
   // Replace the site's default langcode by its real value.
   if ($langcode == 'site_default') {
-    $langcode = language_default()->langcode;
+    $langcode = language_default()->id;
   }
-  return isset($languages[$langcode]) ? $langcode : language_default()->langcode;
+  return isset($languages[$langcode]) ? $langcode : language_default()->id;
 }
 
 /**
@@ -515,7 +525,7 @@ function language_url_split_prefix($path, $languages) {
   // Search prefix within enabled languages.
   $prefixes = language_negotiation_url_prefixes();
   foreach ($languages as $language) {
-    if (isset($prefixes[$language->langcode]) && $prefixes[$language->langcode] == $prefix) {
+    if (isset($prefixes[$language->id]) && $prefixes[$language->id] == $prefix) {
       // Rebuild $path with the language removed.
       return array($language, implode('/', $args));
     }
@@ -528,18 +538,18 @@ function language_url_split_prefix($path, $languages) {
  * Returns the possible fallback languages ordered by language weight.
  *
  * @param
- *   (optional) The language type. Defaults to LANGUAGE_TYPE_CONTENT.
+ *   (optional) The language type. Defaults to Language::TYPE_CONTENT.
  *
  * @return
  *   An array of language codes.
  */
-function language_fallback_get_candidates($type = LANGUAGE_TYPE_CONTENT) {
+function language_fallback_get_candidates($type = Language::TYPE_CONTENT) {
   $fallback_candidates = &drupal_static(__FUNCTION__);
 
   if (!isset($fallback_candidates)) {
-    // Get languages ordered by weight, add LANGUAGE_NOT_SPECIFIED at the end.
+    // Get languages ordered by weight, add Language::LANGCODE_NOT_SPECIFIED at the end.
     $fallback_candidates = array_keys(language_list());
-    $fallback_candidates[] = LANGUAGE_NOT_SPECIFIED;
+    $fallback_candidates[] = Language::LANGCODE_NOT_SPECIFIED;
 
     // Let other modules hook in and add/change candidates.
     drupal_alter('language_fallback_candidates', $fallback_candidates);

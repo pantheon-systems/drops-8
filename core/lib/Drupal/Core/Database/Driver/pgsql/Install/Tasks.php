@@ -9,8 +9,8 @@ namespace Drupal\Core\Database\Driver\pgsql\Install;
 
 use Drupal\Core\Database\Database;
 use Drupal\Core\Database\Install\Tasks as InstallTasks;
-
-use Exception;
+use Drupal\Core\Database\Driver\pgsql\Connection;
+use Drupal\Core\Database\DatabaseNotFoundException;
 
 /**
  * PostgreSQL specific install functions
@@ -34,11 +34,67 @@ class Tasks extends InstallTasks {
   }
 
   public function name() {
-    return st('PostgreSQL');
+    return t('PostgreSQL');
   }
 
   public function minimumVersion() {
     return '8.3';
+  }
+
+  /**
+   * Check database connection and attempt to create database if the database is
+   * missing.
+   */
+  protected function connect() {
+    try {
+      // This doesn't actually test the connection.
+      db_set_active();
+      // Now actually do a check.
+      Database::getConnection();
+      $this->pass('Drupal can CONNECT to the database ok.');
+    }
+    catch (\Exception $e) {
+    // Attempt to create the database if it is not found.
+      if ($e->getCode() == Connection::DATABASE_NOT_FOUND) {
+        // Remove the database string from connection info.
+        $connection_info = Database::getConnectionInfo();
+        $database = $connection_info['default']['database'];
+        unset($connection_info['default']['database']);
+
+        // In order to change the Database::$databaseInfo array, need to remove
+        // the active connection, then re-add it with the new info.
+        Database::removeConnection('default');
+        Database::addConnectionInfo('default', 'default', $connection_info['default']);
+
+        try {
+          // Now, attempt the connection again; if it's successful, attempt to
+          // create the database.
+          Database::getConnection()->createDatabase($database);
+          Database::closeConnection();
+
+          // Now, restore the database config.
+          Database::removeConnection('default');
+          $connection_info['default']['database'] = $database;
+          Database::addConnectionInfo('default', 'default', $connection_info['default']);
+
+          // Check the database connection.
+          Database::getConnection();
+          $this->pass('Drupal can CONNECT to the database ok.');
+        }
+        catch (DatabaseNotFoundException $e) {
+          // Still no dice; probably a permission issue. Raise the error to the
+          // installer.
+          $this->fail(t('Database %database not found. The server reports the following message when attempting to create the database: %error.', array('%database' => $database, '%error' => $e->getMessage())));
+        }
+      }
+      else {
+        // Database connection failed for some other reason than the database
+        // not existing.
+        $this->fail(t('Failed to connect to your database server. The server reports the following message: %error.<ul><li>Is the database server running?</li><li>Does the database exist, and have you entered the correct database name?</li><li>Have you entered the correct username and password?</li><li>Have you entered the correct database hostname?</li></ul>', array('%error' => $e->getMessage())));
+        return FALSE;
+      }
+    }
+    return TRUE;
   }
 
   /**
@@ -47,7 +103,7 @@ class Tasks extends InstallTasks {
   protected function checkEncoding() {
     try {
       if (db_query('SHOW server_encoding')->fetchField() == 'UTF8') {
-        $this->pass(st('Database is encoded in UTF-8'));
+        $this->pass(t('Database is encoded in UTF-8'));
       }
       else {
         $replacements = array(
@@ -57,11 +113,11 @@ class Tasks extends InstallTasks {
         );
         $text  = 'The %driver database must use %encoding encoding to work with Drupal.';
         $text .= 'Recreate the database with %encoding encoding. See !link for more details.';
-        $this->fail(st($text, $replacements));
+        $this->fail(t($text, $replacements));
       }
     }
-    catch (Exception $e) {
-      $this->fail(st('Drupal could not determine the encoding of the database was set to UTF-8'));
+    catch (\Exception $e) {
+      $this->fail(t('Drupal could not determine the encoding of the database was set to UTF-8'));
     }
   }
 
@@ -87,7 +143,7 @@ class Tasks extends InstallTasks {
         try {
           db_query($query);
         }
-        catch (Exception $e) {
+        catch (\Exception $e) {
           // Ignore possible errors when the user doesn't have the necessary
           // privileges to ALTER the database.
         }
@@ -105,7 +161,7 @@ class Tasks extends InstallTasks {
             '%needed_value' => 'escape',
             '!query' => "<code>" . $query . "</code>",
           );
-          $this->fail(st("The %setting setting is currently set to '%current_value', but needs to be '%needed_value'. Change this by running the following query: !query", $replacements));
+          $this->fail(t("The %setting setting is currently set to '%current_value', but needs to be '%needed_value'. Change this by running the following query: !query", $replacements));
         }
       }
     }
@@ -173,11 +229,10 @@ class Tasks extends InstallTasks {
         LANGUAGE \'sql\'
       ');
 
-      $this->pass(st('PostgreSQL has initialized itself.'));
+      $this->pass(t('PostgreSQL has initialized itself.'));
     }
-    catch (Exception $e) {
-      $this->fail(st('Drupal could not be correctly setup with the existing database. Revise any errors.'));
+    catch (\Exception $e) {
+      $this->fail(t('Drupal could not be correctly setup with the existing database. Revise any errors.'));
     }
   }
 }
-

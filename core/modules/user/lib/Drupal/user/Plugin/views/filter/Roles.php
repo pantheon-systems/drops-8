@@ -7,7 +7,7 @@
 
 namespace Drupal\user\Plugin\views\filter;
 
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
 use Drupal\views\Plugin\views\filter\ManyToOne;
 
 /**
@@ -15,15 +15,12 @@ use Drupal\views\Plugin\views\filter\ManyToOne;
  *
  * @ingroup views_filter_handlers
  *
- * @Plugin(
- *   id = "user_roles",
- *   module = "user"
- * )
+ * @PluginID("user_roles")
  */
 class Roles extends ManyToOne {
 
-  function get_value_options() {
-    $this->value_options = user_roles(TRUE);
+  public function getValueOptions() {
+    $this->value_options = user_role_names(TRUE);
     unset($this->value_options[DRUPAL_AUTHENTICATED_RID]);
   }
 

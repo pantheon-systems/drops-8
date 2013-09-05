@@ -8,17 +8,17 @@
 namespace Drupal\search\Plugin\views\row;
 
 use Drupal\views\Plugin\views\row\RowPluginBase;
-use Drupal\Core\Annotation\Plugin;
+use Drupal\views\Annotation\ViewsRow;
 use Drupal\Core\Annotation\Translation;
 
 /**
  * Plugin which performs a node_view on the resulting object.
  *
- * @Plugin(
+ * @ViewsRow(
  *   id = "search_view",
  *   module = "search",
  *   title = @Translation("Search"),
- *   no_uid = TRUE
+ *   help = @Translation("Provides a row plugin to display search results.")
  * )
  */
 class SearchRow extends RowPluginBase {
@@ -42,13 +42,13 @@ class SearchRow extends RowPluginBase {
   /**
    * Override the behavior of the render() function.
    */
-  function render($row) {
-    return theme($this->themeFunctions(),
-      array(
-        'view' => $this->view,
-        'options' => $this->options,
-        'row' => $row
-      ));
+  public function render($row) {
+    return array(
+      '#theme' => $this->themeFunctions(),
+      '#view' => $this->view,
+      '#options' => $this->options,
+      '#row' => $row,
+    );
   }
 
 }

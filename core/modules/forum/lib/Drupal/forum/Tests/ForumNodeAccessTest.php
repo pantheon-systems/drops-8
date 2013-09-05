@@ -7,6 +7,7 @@
 
 namespace Drupal\forum\Tests;
 
+use Drupal\Core\Language\Language;
 use Drupal\simpletest\WebTestBase;
 
 /**
@@ -21,10 +22,6 @@ class ForumNodeAccessTest extends WebTestBase {
    */
   public static $modules = array('node', 'comment', 'forum', 'taxonomy', 'tracker', 'node_access_test', 'block');
 
-  protected $access_user;
-  protected $admin_user;
-  protected $no_access_user;
-
   public static function getInfo() {
     return array(
       'name' => 'Forum private node access test',
@@ -36,7 +33,7 @@ class ForumNodeAccessTest extends WebTestBase {
   function setUp() {
     parent::setUp();
     node_access_rebuild();
-    variable_set('node_access_test_private', TRUE);
+    \Drupal::state()->set('node_access_test.private', TRUE);
   }
 
   /**
@@ -54,7 +51,7 @@ class ForumNodeAccessTest extends WebTestBase {
     $this->drupalLogin($admin_user);
 
     // Create a private node.
-    $langcode = LANGUAGE_NOT_SPECIFIED;
+    $langcode = Language::LANGCODE_NOT_SPECIFIED;
     $private_node_title = $this->randomName(20);
     $edit = array(
       'title' => $private_node_title,
@@ -75,34 +72,26 @@ class ForumNodeAccessTest extends WebTestBase {
     $public_node = $this->drupalGetNodeByTitle($public_node_title);
     $this->assertTrue(!empty($public_node), 'New public forum node found in database.');
 
-    // Enable the active forum block.
-    $edit = array();
-    $edit['blocks[forum_active][region]'] = 'sidebar_second';
-    $this->drupalPost('admin/structure/block', $edit, t('Save blocks'));
-    $this->assertResponse(200);
-    $this->assertText(t('The block settings have been updated.'), 'Active forum topics forum block was enabled');
 
-    // Enable the new forum block.
-    $edit = array();
-    $edit['blocks[forum_new][region]'] = 'sidebar_second';
-    $this->drupalPost('admin/structure/block', $edit, t('Save blocks'));
-    $this->assertResponse(200);
-    $this->assertText(t('The block settings have been updated.'), '[New forum topics] Forum block was enabled');
+    // Enable the new and active forum blocks.
+    $this->drupalPlaceBlock('forum_active_block');
+    $this->drupalPlaceBlock('forum_new_block');
 
     // Test for $access_user.
     $this->drupalLogin($access_user);
-    $this->drupalGet('/');
+    $this->drupalGet('');
 
     // Ensure private node and public node are found.
-    $this->assertText($private_node->title, 'Private node found in block by $access_user');
-    $this->assertText($public_node->title, 'Public node found in block by $access_user');
+    $this->assertText($private_node->getTitle(), 'Private node found in block by $access_user');
+    $this->assertText($public_node->getTitle(), 'Public node found in block by $access_user');
 
     // Test for $no_access_user.
     $this->drupalLogin($no_access_user);
-    $this->drupalGet('/');
+    $this->drupalGet('');
 
     // Ensure private node is not found but public is found.
-    $this->assertNoText($private_node->title, 'Private node not found in block by $no_access_user');
-    $this->assertText($public_node->title, 'Public node found in block by $no_access_user');
+    $this->assertNoText($private_node->getTitle(), 'Private node not found in block by $no_access_user');
+    $this->assertText($public_node->getTitle(), 'Public node found in block by $no_access_user');
   }
+
 }

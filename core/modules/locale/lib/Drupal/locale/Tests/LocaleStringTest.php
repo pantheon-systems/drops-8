@@ -45,10 +45,10 @@ class LocaleStringTest extends WebTestBase {
   function setUp() {
     parent::setUp();
     // Add a default locale storage for all these tests.
-    $this->storage = locale_storage();
+    $this->storage = $this->container->get('locale.storage');
     // Create two languages: Spanish and German.
     foreach (array('es', 'de') as $langcode) {
-      $language = new Language(array('langcode' => $langcode));
+      $language = new Language(array('id' => $langcode));
       $languages[$langcode] = language_save($language);
     }
   }
@@ -105,6 +105,19 @@ class LocaleStringTest extends WebTestBase {
     $this->assertFalse($string, 'Successfully deleted source string.');
     $deleted = $search = $this->storage->getTranslations(array('lid' => $lid));
     $this->assertFalse($deleted, 'Successfully deleted all translation strings.');
+
+    // Tests that locations of different types and arbitrary lengths can be
+    // added to a source string. Too long locations will be cut off.
+    $source_string = $this->buildSourceString();
+    $source_string->addLocation('javascript', $this->randomString(8));
+    $source_string->addLocation('configuration', $this->randomString(50));
+    $source_string->addLocation('code', $this->randomString(100));
+    $source_string->addLocation('path', $location = $this->randomString(300));
+    $source_string->save();
+
+    $rows = db_query('SELECT * FROM {locales_location} WHERE sid = :sid', array(':sid' => $source_string->lid))->fetchAllAssoc('type');
+    $this->assertEqual(count($rows), 4, '4 source locations have been persisted.');
+    $this->assertEqual($rows['path']->name, substr($location, 0, 255), 'Too long location has been limited to 255 characters.');
   }
 
   /**
@@ -134,11 +147,11 @@ class LocaleStringTest extends WebTestBase {
     $translate2 = $this->createAllTranslations($source2, array('customized' => LOCALE_CUSTOMIZED));
     // Try quick search function with different field combinations.
     $langcode = 'es';
-    $found = locale_storage()->findTranslation(array('language' => $langcode, 'source' => $source1->source, 'context' => $source1->context));
+    $found = $this->storage->findTranslation(array('language' => $langcode, 'source' => $source1->source, 'context' => $source1->context));
     $this->assertTrue($found && isset($found->language) && isset($found->translation) && !$found->isNew(), 'Translation found searching by source and context.');
     $this->assertEqual($found->translation, $translate1[$langcode]->translation, 'Found the right translation.');
     // Now try a translation not found.
-    $found = locale_storage()->findTranslation(array('language' => $langcode,  'source' => $source3->source, 'context' => $source3->context));
+    $found = $this->storage->findTranslation(array('language' => $langcode,  'source' => $source3->source, 'context' => $source3->context));
     $this->assertTrue($found && $found->lid == $source3->lid && !isset($found->translation) && $found->isNew(), 'Translation not found but source string found.');
 
     // Load all translations. For next queries we'll be loading only translated strings.    $only_translated = array('untranslated' => FALSE);
@@ -166,6 +179,9 @@ class LocaleStringTest extends WebTestBase {
 
   /**
    * Creates random source string object.
+   *
+   * @return \Drupal\locale\StringInterface
+   *   A locale string.
    */
   function buildSourceString($values = array()) {
     return $this->storage->createString($values += array(
@@ -180,7 +196,7 @@ class LocaleStringTest extends WebTestBase {
   function createAllTranslations($source, $values = array()) {
     $list = array();
     foreach (language_list() as $language) {
-      $list[$language->langcode] = $this->createTranslation($source, $language->langcode, $values);
+      $list[$language->id] = $this->createTranslation($source, $language->id, $values);
     }
     return $list;
   }

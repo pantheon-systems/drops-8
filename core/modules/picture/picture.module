@@ -5,7 +5,7 @@
  * Picture display formatter for image fields.
  */
 
-use Drupal\picture\Plugin\Core\Entity\PictureMapping;
+use Drupal\picture\Entity\PictureMapping;
 use \Drupal\Core\Template\Attribute;
 
 /**
@@ -16,19 +16,19 @@ function picture_help($path, $arg) {
   switch ($path) {
     case 'admin/help#picture':
       $output .= '<h3>' . t('About') . '</h3>';
-      $output .= '<p>' . t('The picture module allows you to output responsive images using the new <a href="@link">HTML5 picture tag</a>.', array(
-        '@link' => 'http://responsiveimages.org/',
-      )) . '</p>';
+      $output .= '<p>' . t('The Picture module provides an image formatter and breakpoint mappings to output responsive images using the HTML5 picture tag.') . '</p>';
+      $output .= '<h3>' . t('Uses') . '</h3>';
+      $output .= '<dl>';
+      $output .= '<dt>' . t('Mapping image styles to breakpoints') . '</dt>';
+      $output .= '<dd>' . t('To use responsive images, you need to define what size the images should be depending on the breakpoints. The Picture module allows you to define which image style should be used for each breakpoint on the <a href="@link">picture mappings administrative page</a>.', array(
+        '@link' => url('admin/config/media/picturemapping'),
+      )) . '</dd>';
+      $output .= '<dt>' . t('Formatting an Image field') . '</dt>';
+      $output .= '<dd>' . t('Images in Image fields can be formatted using the Picture formatter, to make them responsive. They will be automatically resized depending on breakpoints.') . '</dd>';
+      $output .= '</dl>';
       break;
     case 'admin/config/media/picturemapping':
       $output .= '<p>' . t('A picture mapping associates an image style with each breakpoint defined by your theme.') . '</p>';
-      break;
-    case 'admin/config/media/picturemapping/add':
-      $output .= '<p>' . t('Create a new picture mapping by specifying a name and selecting a breakpoint group.') . '</p>';
-      break;
-    case 'admin/config/media/picturemapping/%/edit':
-      $output .= '<p>' . t('For each breakpoint you can select a corresponding image style.') . '</p>';
-      $output .= '<p>' . t("Warning: if you change the breakpoint group you lose all you're selected mappings.") . '</p>';
       break;
 
   }
@@ -56,42 +56,25 @@ function picture_menu() {
   $items['admin/config/media/picturemapping'] = array(
     'title' => 'Picture Mappings',
     'description' => 'Manage picture mappings',
-    'access arguments' => array('administer pictures'),
     'weight' => 10,
-    'page callback' => 'picture_mapping_page',
-    'file' => 'picture_mapping.admin.inc',
+    'route_name' => 'picture_mapping_page',
   );
   $items['admin/config/media/picturemapping/add'] = array(
     'title' => 'Add picture mapping',
-    'page callback' => 'picture_mapping_page_add',
-    'access callback' => 'user_access',
-    'access arguments' => array('administer pictures'),
+    'route_name' => 'picture_mapping_page_add',
     'type' => MENU_LOCAL_ACTION,
-    'file' => 'picture_mapping.admin.inc',
   );
-  $items['admin/config/media/picturemapping/%picture_mapping/edit'] = array(
+  $items['admin/config/media/picturemapping/%picture_mapping'] = array(
     'title' => 'Edit picture mapping',
-    'page callback' => 'picture_mapping_page_edit',
-    'page arguments' => array(4),
-    'access callback' => 'user_access',
-    'access arguments' => array('administer pictures'),
-    'file' => 'picture_mapping.admin.inc',
+    'route_name' => 'picture_mapping_page_edit',
   );
   $items['admin/config/media/picturemapping/%picture_mapping/duplicate'] = array(
     'title' => 'Duplicate picture mapping',
-    'page callback' => 'picture_mapping_page_duplicate',
-    'page arguments' => array(4),
-    'access callback' => 'user_access',
-    'access arguments' => array('administer pictures'),
-    'file' => 'picture_mapping.admin.inc',
+    'route_name' => 'picture_mapping_page_duplicate',
   );
   $items['admin/config/media/picturemapping/%picture_mapping/delete'] = array(
     'title' => 'Delete',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('picture_mapping_action_confirm', 4, 5),
-    'access callback' => 'user_access',
-    'access arguments' => array('administer pictures'),
-    'file' => 'picture_mapping.admin.inc',
+    'route_name' => 'picture_mapping_action_confirm',
   );
 
   return $items;
@@ -121,8 +104,8 @@ function picture_library_info() {
  * @param int $id
  *   The id of the picture mapping to load.
  *
- * @return Drupal\picture\Picture
- *   The entity object, or FALSE if there is no entity with the given id.
+ * @return \Drupal\picture\Picture
+ *   The entity object, or NULL if there is no entity with the given id.
  *
  * @todo Needed for menu_callback
  *
@@ -134,24 +117,6 @@ function picture_mapping_load($id) {
 }
 
 /**
- * Gets Picture uri callback.
- */
-function picture_mapping_uri(PictureMapping $picture_mapping) {
-  return array(
-    'path' => 'admin/config/media/picturemapping/' . $picture_mapping->id(),
-  );
-}
-
-/**
- * Sets Picture uri callback.
- */
-function picture_mapping_set_uri(PictureMapping $picture_mapping) {
-  return array(
-    'path' => 'admin/config/media/picturemapping/' . $picture_mapping->id(),
-  );
-}
-
-/**
  * Implements hook_theme().
  */
 function picture_theme() {
@@ -159,7 +124,7 @@ function picture_theme() {
     'picture' => array(
       'variables' => array(
         'style_name' => NULL,
-        'path' => NULL,
+        'uri' => NULL,
         'width' => NULL,
         'height' => NULL,
         'alt' => '',
@@ -180,7 +145,7 @@ function picture_theme() {
       'variables' => array(
         'src' => NULL,
         'srcset' => NULL,
-        'dimension' => NULL,
+        'dimensions' => NULL,
         'media' => NULL,
       ),
     ),
@@ -201,31 +166,43 @@ function picture_theme() {
  */
 function theme_picture_formatter($variables) {
   if (!isset($variables['breakpoints']) || empty($variables['breakpoints'])) {
-    return theme('image_formatter', $variables);
+    $image_formatter = array(
+      '#theme' => 'image_formatter',
+      '#item' => $variables['item'],
+      '#image_style' => $variables['image_style'],
+      '#path' => $variables['path'],
+    );
+    return drupal_render($image_formatter);
   }
 
-  $item = $variables['item'];
-
-  // Do not output an empty 'title' attribute.
-  if (isset($item['title']) && drupal_strlen($item['title']) == 0) {
-    unset($item['title']);
+  $picture = array(
+    '#theme' => 'picture',
+    '#width' => $variables['item']['width'],
+    '#height' => $variables['item']['height'],
+    '#style_name' => $variables['image_style'],
+    '#breakpoints' => $variables['breakpoints'],
+  );
+  if (isset($variables['item']['uri'])) {
+    $picture['#uri'] = $variables['item']['uri'];
   }
-
-  $item['style_name'] = $variables['image_style'];
-  $item['breakpoints'] = $variables['breakpoints'];
-
-  if (!isset($item['path']) && isset($variables['uri'])) {
-    $item['path'] = $variables['uri'];
+  elseif (isset($variables['item']['entity'])) {
+    $picture['#uri'] = $variables['item']['entity']->getFileUri();
+    $picture['#entity'] = $variables['item']['entity'];
   }
-  $output = theme('picture', $item);
-
+  if (isset($variables['item']['alt'])) {
+    $picture['#alt'] = $variables['item']['alt'];
+  }
+  if (isset($variables['item']['title']) && drupal_strlen($variables['item']['title']) != 0) {
+    $picture['#title'] = $variables['item']['title'];
+  }
   if (isset($variables['path']['path'])) {
     $path = $variables['path']['path'];
     $options = isset($variables['path']['options']) ? $variables['path']['options'] : array();
     $options['html'] = TRUE;
-    $output = l($output, $path, $options);
+    return l($picture, $path, $options);
   }
-  return $output;
+
+  return drupal_render($picture);
 }
 
 /**
@@ -260,7 +237,7 @@ function theme_picture($variables) {
 
   // Fallback image, output as source with media query.
   $sources[] = array(
-    'src' => image_style_url($variables['style_name'], $variables['uri']),
+    'src' => entity_load('image_style', $variables['style_name'])->buildUrl($variables['uri']),
     'dimensions' => picture_get_image_dimensions($variables),
   );
 
@@ -279,16 +256,16 @@ function theme_picture($variables) {
       // Only one image, use src.
       if (count($new_sources) == 1) {
         $sources[] = array(
-          'src' => image_style_url($new_sources[0]['style_name'], $new_sources[0]['uri']),
+          'src' => entity_load('image_style', $new_sources[0]['style_name'])->buildUrl($new_sources[0]['uri']),
           'dimensions' => picture_get_image_dimensions($new_sources[0]),
           'media' => $breakpoint->mediaQuery,
         );
       }
       else {
-        // Mutliple images, use srcset.
+        // Multiple images, use srcset.
         $srcset = array();
         foreach ($new_sources as $new_source) {
-          $srcset[] = image_style_url($new_source['style_name'], $new_source['uri']) . ' ' . $new_source['#multiplier'];
+          $srcset[] = entity_load('image_style', $new_source['style_name'])->buildUrl($new_source['uri']) . ' ' . $new_source['#multiplier'];
         }
         $sources[] = array(
           'srcset' => implode(', ', $srcset),
@@ -308,13 +285,35 @@ function theme_picture($variables) {
     }
     $output[] = '<picture' . new Attribute($attributes) . '>';
 
-    // add source tags to the output.
+    // Add source tags to the output.
     foreach ($sources as $source) {
-      $output[] = theme('picture_source', $source);
+      $picture_source = array(
+        '#theme' => 'picture_source',
+        '#src' => $source['src'],
+        '#dimensions' => $source['dimensions'],
+      );
+      if (isset($source['media'])) {
+        $picture_source['#media'] = $source['media'];
+      }
+      if (isset($source['srcset'])) {
+        $picture_source['#srcset'] = $source['srcset'];
+      }
+      $output[] = drupal_render($picture_source);
     }
 
-    // output the fallback image.
-    $output[] = '<noscript>' . theme('image_style', $variables) . '</noscript>';
+    // Output the fallback image.
+    $image_style = array(
+      '#theme' => 'image_style',
+      '#style_name' => $variables['style_name'],
+      '#width' => $variables['width'],
+      '#height' => $variables['height'],
+    );
+    foreach (array('uri', 'alt', 'title', 'attributes') as $key) {
+      if (isset($variables[$key])) {
+        $image_style["#$key"] = $variables[$key];
+      }
+    }
+    $output[] = '  <noscript>' . drupal_render($image_style) . '</noscript>';
     $output[] = '</picture>';
     return implode("\n", $output);
   }
@@ -373,7 +372,7 @@ function picture_get_image_dimensions($variables) {
     'height' => $variables['height'],
   );
 
-  image_style_transform_dimensions($variables['style_name'], $dimensions);
+  entity_load('image_style', $variables['style_name'])->transformDimensions($dimensions);
 
   return $dimensions;
 }

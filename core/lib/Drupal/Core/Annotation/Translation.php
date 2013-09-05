@@ -7,7 +7,29 @@
 
 namespace Drupal\Core\Annotation;
 
-use Drupal\Core\Annotation\AnnotationInterface;
+use Drupal\Component\Annotation\AnnotationInterface;
+
+/**
+ * @defgroup plugin_translatable Translatable plugin metadata
+ *
+ * @{
+ * When providing plugin annotation, properties whose values are displayed in
+ * the user interface should be made translatable. Much the same as how user
+ * interface text elsewhere is wrapped in t() to make it translatable, in plugin
+ * annotation, wrap translatable strings in the @ Translation() annotation.
+ * For example:
+ * @code
+ *   title = @ Translation("Title of the plugin"),
+ * @endcode
+ * Remove spaces after @ in your actual plugin - these are put into this sample
+ * code so that it is not recognized as annotation.
+ *
+ * You will also need to make sure that your class file includes the line:
+ * @code
+ *   use Drupal\Core\Annotation\Translation;
+ * @endcode
+ * @}
+ */
 
 /**
  * Defines a translatable annotation object.
@@ -18,6 +40,8 @@ use Drupal\Core\Annotation\AnnotationInterface;
  * around the traditional t() function in drupal.
  *
  * @Annotation
+ *
+ * @ingroup plugin_translatable
  */
 class Translation implements AnnotationInterface {
 

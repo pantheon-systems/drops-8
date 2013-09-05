@@ -8,7 +8,7 @@
 namespace Drupal\node\Tests;
 
 /**
- * Ensure that data added to nodes by other modules appears in RSS feeds.
+ * Ensures that data added to nodes by other modules appears in RSS feeds.
  *
  * Create a node, enable the node_test module to ensure that extra data is
  * added to the node->content array, then verify that the data appears on the
@@ -21,7 +21,7 @@ class NodeRSSContentTest extends NodeTestBase {
    *
    * @var array
    */
-  public static $modules = array('node_test');
+  public static $modules = array('node_test', 'views');
 
   public static function getInfo() {
     return array(
@@ -42,8 +42,7 @@ class NodeRSSContentTest extends NodeTestBase {
   }
 
   /**
-   * Create a new node and ensure that it includes the custom data when added
-   * to an RSS feed.
+   * Ensures that a new node includes the custom data when added to an RSS feed.
    */
   function testNodeRSSContent() {
     // Create a node.
@@ -52,18 +51,18 @@ class NodeRSSContentTest extends NodeTestBase {
     $this->drupalGet('rss.xml');
 
     // Check that content added in 'rss' view mode appear in RSS feed.
-    $rss_only_content = t('Extra data that should appear only in the RSS feed for node !nid.', array('!nid' => $node->nid));
+    $rss_only_content = t('Extra data that should appear only in the RSS feed for node !nid.', array('!nid' => $node->id()));
     $this->assertText($rss_only_content, 'Node content designated for RSS appear in RSS feed.');
 
     // Check that content added in view modes other than 'rss' doesn't
     // appear in RSS feed.
-    $non_rss_content = t('Extra data that should appear everywhere except the RSS feed for node !nid.', array('!nid' => $node->nid));
+    $non_rss_content = t('Extra data that should appear everywhere except the RSS feed for node !nid.', array('!nid' => $node->id()));
     $this->assertNoText($non_rss_content, 'Node content not designed for RSS does not appear in RSS feed.');
 
     // Check that extra RSS elements and namespaces are added to RSS feed.
     $test_element = array(
       'key' => 'testElement',
-      'value' => t('Value of testElement RSS element for node !nid.', array('!nid' => $node->nid)),
+      'value' => t('Value of testElement RSS element for node !nid.', array('!nid' => $node->id())),
     );
     $test_ns = 'xmlns:drupaltest="http://example.com/test-namespace"';
     $this->assertRaw(format_xml_elements(array($test_element)), 'Extra RSS elements appear in RSS feed.');
@@ -71,12 +70,8 @@ class NodeRSSContentTest extends NodeTestBase {
 
     // Check that content added in 'rss' view mode doesn't appear when
     // viewing node.
-    $this->drupalGet("node/$node->nid");
+    $this->drupalGet('node/' . $node->id());
     $this->assertNoText($rss_only_content, 'Node content designed for RSS does not appear when viewing node.');
-
-    // Check that the node feed page does not try to interpret additional path
-    // components as arguments for node_feed() and returns default content.
-    $this->drupalGet('rss.xml/' . $this->randomName() . '/' . $this->randomName());
-    $this->assertText($rss_only_content, 'Ignore page arguments when delivering rss.xml.');
   }
+
 }

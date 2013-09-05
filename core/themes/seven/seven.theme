@@ -1,0 +1,225 @@
+<?php
+
+/**
+ * @file
+ * Functions to support theming in the Seven theme.
+ */
+
+use Drupal\Core\Template\RenderWrapper;
+
+/**
+ * Implements hook_library_info().
+ */
+function seven_library_info() {
+  $path = drupal_get_path('theme', 'seven');
+
+  $libraries['install-page'] = array(
+    'version' => VERSION,
+    'js' => array(
+      $path . '/js/mobile.install.js' => array(
+        'group' => JS_THEME,
+      ),
+    ),
+    'css' => array(
+      $path . '/install-page.css' => array(
+        'group' => CSS_AGGREGATE_THEME,
+      ),
+    ),
+  );
+
+  return $libraries;
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for maintenance-page.html.twig.
+ */
+function seven_preprocess_maintenance_page(&$variables) {
+  // While markup for normal pages is split into page.tpl.php and html.tpl.php,
+  // the markup for the maintenance page is all in the single
+  // maintenance-page.html.twig template. So, to have what's done in
+  // seven_preprocess_html() also happen on the maintenance page, it has to be
+  // called here.
+  seven_preprocess_html($variables);
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for html.tpl.php.
+ */
+function seven_preprocess_html(&$variables) {
+  drupal_add_library('system', 'normalize');
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for page.tpl.php.
+ */
+function seven_preprocess_page(&$variables) {
+  $variables['primary_local_tasks'] = $variables['tabs'];
+  unset($variables['primary_local_tasks']['#secondary']);
+  $variables['secondary_local_tasks'] = array(
+    '#theme' => 'menu_local_tasks',
+    '#secondary' => isset($variables['tabs']['#secondary']) ? $variables['tabs']['#secondary'] : '',
+  );
+}
+
+/**
+ * Displays the list of available node types for node creation.
+ */
+function seven_node_add_list($variables) {
+  $content = $variables['content'];
+  if ($content) {
+    $output = '<ul class="admin-list">';
+    foreach ($content as $type) {
+      $output .= '<li class="clearfix">';
+      $content = '<span class="label">' . check_plain($type->name) . '</span>';
+      $content .= '<div class="description">' . filter_xss_admin($type->description) . '</div>';
+      $options['html'] = TRUE;
+      $output .= l($content, 'node/add/' . $type->type, $options);
+      $output .= '</li>';
+    }
+    $output .= '</ul>';
+  }
+  else {
+    $output = '<p>' . t('You have not created any content types yet. Go to the <a href="@create-content">content type creation page</a> to add a new content type.', array('@create-content' => url('admin/structure/types/add'))) . '</p>';
+  }
+  return $output;
+}
+
+/**
+ * Overrides theme_custom_block_add_list().
+ *
+ * Displays the list of available custom block types for creation.
+ */
+function seven_custom_block_add_list($variables) {
+  $content = $variables['content'];
+  $output = '';
+  if ($content) {
+    $output = '<ul class="admin-list">';
+    foreach ($content as $type) {
+      $output .= '<li class="clearfix">';
+      $content = '<span class="label">' . check_plain($type->label()) . '</span>';
+      $content .= '<div class="description">' . filter_xss_admin($type->description) . '</div>';
+      $options['html'] = TRUE;
+      $output .= Drupal::l($content, 'custom_block_add_form' , array('custom_block_type' => $type->id()), $options);
+      $output .= '</li>';
+    }
+    $output .= '</ul>';
+  }
+  return $output;
+}
+
+/**
+ * Overrides theme_admin_block_content().
+ *
+ * Uses an unordered list markup in both compact and extended mode.
+ */
+function seven_admin_block_content($variables) {
+  $content = $variables['content'];
+  $output = '';
+  if (!empty($content)) {
+    $output = system_admin_compact_mode() ? '<ul class="admin-list compact">' : '<ul class="admin-list">';
+    foreach ($content as $item) {
+      $output .= '<li>';
+      $content = '<span class="label">' . filter_xss_admin($item['title']) . '</span>';
+      $options = $item['localized_options'];
+      $options['html'] = TRUE;
+      if (isset($item['description']) && !system_admin_compact_mode()) {
+        $content .= '<div class="description">' . filter_xss_admin($item['description']) . '</div>';
+      }
+      $output .= l($content, $item['href'], $options);
+      $output .= '</li>';
+    }
+    $output .= '</ul>';
+  }
+  return $output;
+}
+
+/**
+ * Overrides theme_tablesort_indicator().
+ *
+ * Uses Seven's image versions, so the arrows show up as black and not gray on
+ * gray.
+ */
+function seven_tablesort_indicator($variables) {
+  $theme_path = drupal_get_path('theme', 'seven');
+
+  if($variables['style'] == 'asc') {
+    $image_uri = $theme_path . '/images/arrow-asc.png';
+    $text = t('Sort ascending');
+  }
+  else {
+    $image_uri = $theme_path . '/images/arrow-desc.png';
+    $text = t('Sort descending');
+  }
+
+  $image = array(
+    '#theme' => 'image',
+    '#uri' => $image_uri,
+    '#alt' => $text,
+    '#width' => 9,
+    '#height' => 5,
+    '#title' => $text,
+  );
+  return drupal_render($image);
+}
+
+/**
+ * Implements hook_preprocess_install_page().
+ */
+function seven_preprocess_install_page(&$variables) {
+  $variables['styles'] = new RenderWrapper('drupal_get_css');
+  $variables['scripts'] = new RenderWrapper('drupal_get_js');
+
+  // Normally we could attach libraries via hook_page_alter(), but when the
+  // database is inactive it's not called so we add them here.
+  $libraries = array(
+    '#attached' => array(
+      'library' => array(
+        array('seven', 'install-page'),
+      ),
+    ),
+  );
+  drupal_render($libraries);
+}
+
+/**
+ * Implements hook_form_BASE_FORM_ID_alter().
+ *
+ * Changes vertical tabs to container and adds meta information.
+ */
+function seven_form_node_form_alter(&$form, &$form_state) {
+  $node = $form_state['controller']->getEntity();
+
+  $form['#theme'] = array('node_edit_form');
+  $form['#attached'] = array(
+    'css' => array(drupal_get_path('module', 'node') . '/css/node.module.css'),
+  );
+
+  $form['advanced']['#type'] = 'container';
+  $form['meta'] = array (
+    '#type' => 'fieldset',
+    '#attributes' => array('class' => array('entity-meta-header')),
+    '#type' => 'container',
+    '#group' => 'advanced',
+    '#weight' => -100,
+    'published' => array(
+      '#type' => 'item',
+      '#wrapper_attributes' => array('class' => array('published')),
+      '#markup' => $node->isPublished() ? t('Published') : t('Not published'),
+      '#access' => !$node->isNew(),
+    ),
+    'changed' => array(
+      '#type' => 'item',
+      '#wrapper_attributes' => array('class' => array('changed', 'container-inline')),
+      '#title' => t('Last saved'),
+      '#markup' => !$node->isNew() ? format_date($node->getChangedTime(), 'short') : t('Not saved yet'),
+    ),
+    'author' => array(
+      '#type' => 'item',
+      '#wrapper_attributes' => array('class' => array('author', 'container-inline')),
+      '#title' => t('Author'),
+      '#markup' => $node->getAuthor()->getUsername(),
+    ),
+  );
+  $form['revision_information']['#type'] = 'container';
+  $form['revision_information']['#group'] = 'meta';
+}

@@ -7,6 +7,8 @@
 
 namespace Drupal\search\Tests;
 
+use Drupal\Core\Language\Language;
+
 /**
  * Test config page.
  */
@@ -42,18 +44,16 @@ class SearchConfigSettingsFormTest extends SearchTestBase {
     $this->search_node = $node;
     // Link the node to itself to test that it's only indexed once. The content
     // also needs the word "pizza" so we can use it as the search keyword.
-    $langcode = LANGUAGE_NOT_SPECIFIED;
+    $langcode = Language::LANGCODE_NOT_SPECIFIED;
     $body_key = "body[$langcode][0][value]";
-    $edit[$body_key] = l($node->label(), 'node/' . $node->nid) . ' pizza sandwich';
-    $this->drupalPost('node/' . $node->nid . '/edit', $edit, t('Save'));
+    $edit[$body_key] = l($node->label(), 'node/' . $node->id()) . ' pizza sandwich';
+    $this->drupalPost('node/' . $node->id() . '/edit', $edit, t('Save and keep published'));
 
     node_update_index();
     search_update_totals();
 
     // Enable the search block.
-    $edit = array();
-    $edit['blocks[search_form][region]'] = 'content';
-    $this->drupalPost('admin/structure/block', $edit, t('Save blocks'));
+    $this->drupalPlaceBlock('search_form_block');
   }
 
   /**
@@ -86,6 +86,49 @@ class SearchConfigSettingsFormTest extends SearchTestBase {
   }
 
   /**
+   * Verify module-supplied settings form.
+   */
+  function testSearchModuleSettingsPage() {
+
+    // Test that the settings form displays the correct count of items left to index.
+    $this->drupalGet('admin/config/search/settings');
+
+    // Ensure that the settings fieldset for the test module is not present on
+    // the page
+    $this->assertNoText(t('Extra type settings'));
+    $this->assertNoText(t('Boost method'));
+
+    // Ensure that the test module is listed as an option
+    $this->assertTrue($this->xpath('//input[@id="edit-active-modules-search-extra-type"]'), 'Checkbox for activating search for an extra module is visible');
+    $this->assertTrue($this->xpath('//input[@id="edit-default-module-search-extra-type"]'), 'Radio button for setting extra module as default search module is visible');
+
+    // Enable search for the test module
+    $edit['active_modules[search_extra_type]'] = 'search_extra_type';
+    $edit['default_module'] = 'search_extra_type';
+    $this->drupalPost('admin/config/search/settings', $edit, t('Save configuration'));
+
+    // Ensure that the settings fieldset is visible after enabling search for
+    // the test module
+    $this->assertText(t('Extra type settings'));
+    $this->assertText(t('Boost method'));
+
+    // Ensure that the default setting was picked up from the default config
+    $this->assertTrue($this->xpath('//select[@id="edit-extra-type-settings-boost"]//option[@value="bi" and @selected="selected"]'), 'Module specific settings are picked up from the default config');
+
+    // Change extra type setting and also modify a common search setting.
+    $edit = array(
+      'extra_type_settings[boost]' => 'ii',
+      'minimum_word_size' => 5,
+    );
+    $this->drupalPost('admin/config/search/settings', $edit, t('Save configuration'));
+
+    // Ensure that the modifications took effect.
+    $this->assertText(t('The configuration options have been saved.'));
+    $this->assertTrue($this->xpath('//select[@id="edit-extra-type-settings-boost"]//option[@value="ii" and @selected="selected"]'), 'Module specific settings can be changed');
+    $this->assertTrue($this->xpath('//input[@id="edit-minimum-word-size" and @value="5"]'), 'Common search settings can be modified if a module-specific form is active');
+  }
+
+  /**
    * Verify that you can disable individual search modules.
    */
   function testSearchModuleDisabling() {
@@ -102,8 +145,8 @@ class SearchConfigSettingsFormTest extends SearchTestBase {
       'user' => array(
         'path' => 'user',
         'title' => 'User',
-        'keys' => $this->search_user->name,
-        'text' => $this->search_user->mail,
+        'keys' => $this->search_user->getUsername(),
+        'text' => $this->search_user->getEmail(),
       ),
       'search_extra_type' => array(
         'path' => 'dummy_path',

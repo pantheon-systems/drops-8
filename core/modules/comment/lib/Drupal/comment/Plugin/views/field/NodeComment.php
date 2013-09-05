@@ -8,22 +8,23 @@
 namespace Drupal\comment\Plugin\views\field;
 
 use Drupal\views\Plugin\views\field\FieldPluginBase;
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
+use Drupal\views\ResultRow;
 
 /**
  * Display node comment status.
  *
  * @ingroup views_field_handlers
  *
- * @Plugin(
- *   id = "node_comment",
- *   module = "comment"
- * )
+ * @PluginID("node_comment")
  */
 class NodeComment extends FieldPluginBase {
 
-  function render($values) {
-    $value = $this->get_value($values);
+  /**
+   * {@inheritdoc}
+   */
+  public function render(ResultRow $values) {
+    $value = $this->getValue($values);
     switch ($value) {
       case COMMENT_NODE_HIDDEN:
       default:

@@ -16,7 +16,7 @@ namespace Symfony\Component\HttpFoundation\Session\Flash;
  *
  * @author Drak <drak@zikula.org>
  */
-class FlashBag implements FlashBagInterface, \IteratorAggregate, \Countable
+class FlashBag implements FlashBagInterface, \IteratorAggregate
 {
     private $name = 'flashes';
 
@@ -172,15 +172,5 @@ class FlashBag implements FlashBagInterface, \IteratorAggregate, \Countable
     public function getIterator()
     {
         return new \ArrayIterator($this->all());
-    }
-
-    /**
-     * Returns the number of flashes.
-     *
-     * @return int The number of flashes
-     */
-    public function count()
-    {
-        return count($this->flashes);
     }
 }

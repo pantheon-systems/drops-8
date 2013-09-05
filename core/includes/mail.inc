@@ -8,7 +8,7 @@
 /**
  * Auto-detect appropriate line endings for e-mails.
  *
- * $conf['mail_line_endings'] will override this setting.
+ * $settings['mail_line_endings'] will override this setting.
  */
 define('MAIL_LINE_ENDINGS', isset($_SERVER['WINDIR']) || strpos($_SERVER['SERVER_SOFTWARE'], 'Win32') !== FALSE ? "\r\n" : "\n");
 
@@ -83,27 +83,29 @@ define('MAIL_LINE_ENDINGS', isset($_SERVER['WINDIR']) || strpos($_SERVER['SERVER
  *   }
  * @endcode
  *
- * @param $module
+ * @param string $module
  *   A module name to invoke hook_mail() on. The {$module}_mail() hook will be
  *   called to complete the $message structure which will already contain common
  *   defaults.
- * @param $key
+ * @param string $key
  *   A key to identify the e-mail sent. The final e-mail id for e-mail altering
  *   will be {$module}_{$key}.
- * @param $to
+ * @param string $to
  *   The e-mail address or addresses where the message will be sent to. The
- *   formatting of this string must comply with RFC 2822. Some examples are:
+ *   formatting of this string will be validated with the
+ *   @link http://php.net/manual/filter.filters.validate.php PHP e-mail validation filter. @endlink
+ *   Some examples are:
  *   - user@example.com
  *   - user@example.com, anotheruser@example.com
  *   - User <user@example.com>
  *   - User <user@example.com>, Another User <anotheruser@example.com>
- * @param $langcode
+ * @param string $langcode
  *   Language code to use to compose the e-mail.
- * @param $params
- *   (optional) parameters to build the e-mail.
- * @param $from
+ * @param array $params
+ *   (optional) Parameters to build the e-mail.
+ * @param string|null $from
  *   Sets From to this value, if given.
- * @param $send
+ * @param bool $send
  *   If TRUE, drupal_mail() will call drupal_mail_system()->mail() to deliver
  *   the message, and store the result in $message['result']. Modules
  *   implementing hook_mail_alter() may cancel sending by setting
@@ -117,7 +119,8 @@ define('MAIL_LINE_ENDINGS', isset($_SERVER['WINDIR']) || strpos($_SERVER['SERVER
  *   accepted at php-level, which still doesn't guarantee it to be delivered.)
  */
 function drupal_mail($module, $key, $to, $langcode, $params = array(), $from = NULL, $send = TRUE) {
-  $site_mail = config('system.site')->get('mail');
+  $site_config = Drupal::config('system.site');
+  $site_mail = $site_config->get('mail');
   if (empty($site_mail)) {
     $site_mail = ini_get('sendmail_from');
   }
@@ -148,9 +151,10 @@ function drupal_mail($module, $key, $to, $langcode, $params = array(), $from = N
     // To prevent e-mail from looking like spam, the addresses in the Sender and
     // Return-Path headers should have a domain authorized to use the originating
     // SMTP server.
-    $headers['From'] = $headers['Sender'] = $headers['Return-Path'] = $default_from;
+    $headers['Sender'] = $headers['Return-Path'] = $default_from;
+    $headers['From'] = $site_config->get('name') . ' <' . $default_from . '>';
   }
-  if ($from) {
+  if ($from && $from != $default_from) {
     $headers['From'] = $from;
   }
   $message['headers'] = $headers;
@@ -196,96 +200,21 @@ function drupal_mail($module, $key, $to, $langcode, $params = array(), $from = N
 /**
  * Returns an object that implements Drupal\Core\Mail\MailInterface.
  *
- * Allows for one or more custom mail backends to format and send mail messages
- * composed using drupal_mail().
- *
- * An implementation needs to implement the following methods:
- * - format: Allows to preprocess, format, and postprocess a mail
- *   message before it is passed to the sending system. By default, all messages
- *   may contain HTML and are converted to plain-text by the
- *   Drupal\Core\Mail\PhpMail implementation. For example, an alternative
- *   implementation could override the default implementation and additionally
- *   sanitize the HTML for usage in a MIME-encoded e-mail, but still invoking
- *   the Drupal\Core\Mail\PhpMail implementation to generate an alternate
- *   plain-text version for sending.
- * - mail: Sends a message through a custom mail sending engine.
- *   By default, all messages are sent via PHP's mail() function by the
- *   Drupal\Core\Mail\PhpMail implementation.
- *
- * The selection of a particular implementation is controlled via the variable
- * 'mail_system', which is a keyed array.  The default implementation
- * is the class whose name is the value of 'default-system' key. A more specific
- * match first to key and then to module will be used in preference to the
- * default. To specificy a different class for all mail sent by one module, set
- * the class name as the value for the key corresponding to the module name. To
- * specificy a class for a particular message sent by one module, set the class
- * name as the value for the array key that is the message id, which is
- * "${module}_${key}".
- *
- * For example to debug all mail sent by the user module by logging it to a
- * file, you might set the variable as something like:
- *
- * @code
- * array(
- *   'default-system' => 'Drupal\Core\Mail\PhpMail',
- *   'user' => 'DevelMailLog',
- * );
- * @endcode
- *
- * Finally, a different system can be specified for a specific e-mail ID (see
- * the $key param), such as one of the keys used by the contact module:
- *
- * @code
- * array(
- *   'default-system' => 'Drupal\Core\Mail\PhpMail',
- *   'user' => 'DevelMailLog',
- *   'contact_page_autoreply' => 'DrupalDevNullMailSend',
- * );
- * @endcode
- *
- * Other possible uses for system include a mail-sending class that actually
- * sends (or duplicates) each message to SMS, Twitter, instant message, etc, or
- * a class that queues up a large number of messages for more efficient bulk
- * sending or for sending via a remote gateway so as to reduce the load
- * on the local server.
- *
- * @param $module
+ * @param string $module
  *   The module name which was used by drupal_mail() to invoke hook_mail().
- * @param $key
+ * @param string $key
  *   A key to identify the e-mail sent. The final e-mail ID for the e-mail
  *   alter hook in drupal_mail() would have been {$module}_{$key}.
  *
  * @return Drupal\Core\Mail\MailInterface
+ *   An object that implements Drupal\Core\Mail\MailInterface.
+ *
+ * @throws \Exception
+ *
+ * @see \Drupal\Core\Mail\MailFactory::get()
  */
 function drupal_mail_system($module, $key) {
-  $instances = &drupal_static(__FUNCTION__, array());
-
-  $id = $module . '_' . $key;
-
-  $configuration = variable_get('mail_system', array('default-system' => 'Drupal\Core\Mail\PhpMail'));
-
-  // Look for overrides for the default class, starting from the most specific
-  // id, and falling back to the module name.
-  if (isset($configuration[$id])) {
-    $class = $configuration[$id];
-  }
-  elseif (isset($configuration[$module])) {
-    $class = $configuration[$module];
-  }
-  else {
-    $class = $configuration['default-system'];
-  }
-
-  if (empty($instances[$class])) {
-    $interfaces = class_implements($class);
-    if (isset($interfaces['Drupal\Core\Mail\MailInterface'])) {
-      $instances[$class] = new $class();
-    }
-    else {
-      throw new Exception(t('Class %class does not implement interface %interface', array('%class' => $class, '%interface' => 'Drupal\Core\Mail\MailInterface')));
-    }
-  }
-  return $instances[$class];
+  return Drupal::service('mail.factory')->get($module, $key);
 }
 
 /**
@@ -313,8 +242,9 @@ function drupal_wrap_mail($text, $indent = '') {
   $soft = strpos($clean_indent, ' ') === FALSE;
   // Check if the string has line breaks.
   if (strpos($text, "\n") !== FALSE) {
-    // Remove trailing spaces to make existing breaks hard.
-    $text = preg_replace('/ +\n/m', "\n", $text);
+    // Remove trailing spaces to make existing breaks hard, but leave signature
+    // marker untouched (RFC 3676, Section 4.3).
+    $text = preg_replace('/(?(?<!^--) +\n|  +\n)/m', "\n", $text);
     // Wrap each line at the needed width.
     $lines = explode("\n", $text);
     array_walk($lines, '_drupal_wrap_mail_line', array('soft' => $soft, 'length' => strlen($indent)));
@@ -501,8 +431,9 @@ function drupal_html_to_text($string, $allowed_tags = NULL) {
       if (isset($casing)) {
         $chunk = $casing($chunk);
       }
+      $line_endings = settings()->get('mail_line_endings', MAIL_LINE_ENDINGS);
       // Format it and apply the current indentation.
-      $output .= drupal_wrap_mail($chunk, implode('', $indent)) . MAIL_LINE_ENDINGS;
+      $output .= drupal_wrap_mail($chunk, implode('', $indent)) . $line_endings;
       // Remove non-quotation markers from indentation.
       $indent = array_map('_drupal_html_to_text_clean', $indent);
     }
@@ -517,10 +448,36 @@ function drupal_html_to_text($string, $allowed_tags = NULL) {
  * Wraps words on a single line.
  *
  * Callback for array_walk() winthin drupal_wrap_mail().
+ *
+ * Note that we are skipping MIME content header lines, because attached files,
+ * especially applications, could have long MIME types or long filenames which
+ * result in line length longer than the 77 characters limit and wrapping that
+ * line will break the e-mail format. E.g., the attached file hello_drupal.docx
+ * will produce the following Content-Type:
+ * Content-Type:
+ * application/vnd.openxmlformats-officedocument.wordprocessingml.document;
+ * name="hello_drupal.docx"
  */
 function _drupal_wrap_mail_line(&$line, $key, $values) {
-  // Use soft-breaks only for purely quoted or unindented text.
-  $line = wordwrap($line, 77 - $values['length'], $values['soft'] ? "  \n" : "\n");
+  $line_is_mime_header = FALSE;
+  $mime_headers = array(
+    'Content-Type',
+    'Content-Transfer-Encoding',
+    'Content-Disposition',
+    'Content-Description',
+  );
+
+  // Do not break MIME headers which could be longer than 77 characters.
+  foreach ($mime_headers as $header) {
+    if (strpos($line, $header . ': ') === 0) {
+      $line_is_mime_header = TRUE;
+      break;
+    }
+  }
+  if (!$line_is_mime_header) {
+    // Use soft-breaks only for purely quoted or unindented text.
+    $line = wordwrap($line, 77 - $values['length'], $values['soft'] ? "  \n" : "\n");
+  }
   // Break really long words at the maximum width allowed.
   $line = wordwrap($line, 996 - $values['length'], $values['soft'] ? " \n" : "\n");
 }

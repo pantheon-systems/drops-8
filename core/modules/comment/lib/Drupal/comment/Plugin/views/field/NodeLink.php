@@ -8,17 +8,15 @@
 namespace Drupal\comment\Plugin\views\field;
 
 use Drupal\views\Plugin\views\field\FieldPluginBase;
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
+use Drupal\views\ResultRow;
 
 /**
  * Handler for showing comment module's node link.
  *
  * @ingroup views_field_handlers
  *
- * @Plugin(
- *   id = "comment_node_link",
- *   module = "comment"
- * )
+ * @PluginID("comment_node_link")
  */
 class NodeLink extends FieldPluginBase {
 
@@ -41,8 +39,11 @@ class NodeLink extends FieldPluginBase {
 
   public function query() {}
 
-  function render($values) {
-    $node = $this->get_entity($values);
+  /**
+   * {@inheritdoc}
+   */
+  public function render(ResultRow $values) {
+    $node = $this->getEntity($values);
     comment_node_view($node, $this->options['teaser'] ? 'teaser' : 'full');
 
     // Only render the links if they are defined.

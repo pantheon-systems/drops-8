@@ -9,7 +9,8 @@ namespace Drupal\views\Plugin\views\relationship;
 
 use Drupal\Core\Database\Query\AlterableInterface;
 use Drupal\views\ViewExecutable;
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
+use Drupal\views\Views;
 
 /**
  * Relationship handler that allows a groupwise maximum of the linked in table.
@@ -59,9 +60,7 @@ use Drupal\Core\Annotation\Plugin;
  *
  * @ingroup views_relationship_handlers
  *
- * @Plugin(
- *   id = "groupwise_max"
- * )
+ * @PluginID("groupwise_max")
  */
 class GroupwiseMax extends RelationshipPluginBase {
 
@@ -89,11 +88,11 @@ class GroupwiseMax extends RelationshipPluginBase {
     parent::buildOptionsForm($form, $form_state);
 
     // Get the sorts that apply to our base.
-    $sorts = views_fetch_fields($this->definition['base'], 'sort');
+    $sorts = Views::viewsDataHelper()->fetchFields($this->definition['base'], 'sort');
     foreach ($sorts as $sort_id => $sort) {
       $sort_options[$sort_id] = "$sort[group]: $sort[title]";
     }
-    $base_table_data = views_fetch_data($this->definition['base']);
+    $base_table_data = Views::viewsData()->get($this->definition['base']);
 
     $form['subquery_sort'] = array(
       '#type' => 'select',
@@ -122,7 +121,7 @@ class GroupwiseMax extends RelationshipPluginBase {
 
     // WIP: This stuff doens't work yet: namespacing issues.
     // A list of suitable views to pick one as the subview.
-    $views = array('' => '<none>');
+    $views = array('' => '- None -');
     $all_views = views_get_all_views();
     foreach ($all_views as $view) {
       // Only get views that are suitable:
@@ -132,10 +131,10 @@ class GroupwiseMax extends RelationshipPluginBase {
         // TODO: check the field is the correct sort?
         // or let users hang themselves at this stage and check later?
         if ($view->type == 'Default') {
-          $views[t('Default Views')][$view->storage->get('name')] = $view->storage->get('name');
+          $views[t('Default Views')][$view->storage->id()] = $view->storage->id();
         }
         else {
-          $views[t('Existing Views')][$view->storage->get('name')] = $view->storage->get('name');
+          $views[t('Existing Views')][$view->storage->id()] = $view->storage->id();
         }
       }
     }
@@ -161,17 +160,17 @@ class GroupwiseMax extends RelationshipPluginBase {
    *
    * We use this to obtain our subquery SQL.
    */
-  function get_temporary_view() {
+  protected function getTemporaryView() {
     $view = entity_create('view', array('base_table' => $this->definition['base']));
     $view->addDisplay('default');
-    return $view->get('executable');
+    return $view->getExecutable();
   }
 
   /**
    * When the form is submitted, take sure to clear the subquery string cache.
    */
   public function submitOptionsForm(&$form, &$form_state) {
-    $cid = 'views_relationship_groupwise_max:' . $this->view->storage->get('name') . ':' . $this->view->current_display . ':' . $this->options['id'];
+    $cid = 'views_relationship_groupwise_max:' . $this->view->storage->id() . ':' . $this->view->current_display . ':' . $this->options['id'];
     cache('views_results')->delete($cid);
   }
 
@@ -188,7 +187,7 @@ class GroupwiseMax extends RelationshipPluginBase {
    * @return
    *    The subquery SQL string, ready for use in the main query.
    */
-  function left_query($options) {
+  protected function leftQuery($options) {
     // Either load another view, or create one on the fly.
     if ($options['subquery_view']) {
       $temp_view = views_get_view($options['subquery_view']);
@@ -198,7 +197,7 @@ class GroupwiseMax extends RelationshipPluginBase {
     else {
       // Create a new view object on the fly, which we use to generate a query
       // object and then get the SQL we need for the subquery.
-      $temp_view = $this->get_temporary_view();
+      $temp_view = $this->getTemporaryView();
 
       // Add the sort from the options to the default display.
       // This is broken, in that the sort order field also gets added as a
@@ -219,7 +218,7 @@ class GroupwiseMax extends RelationshipPluginBase {
     $temp_view->args[] = '**CORRELATED**';
 
     // Add the base table ID field.
-    $views_data = views_fetch_data($this->definition['base']);
+    $views_data = Views::viewsData()->get($this->definition['base']);
     $base_field = $views_data['table']['base']['field'];
     $temp_view->addItem('default', 'field', $this->definition['base'], $this->definition['field']);
 
@@ -261,7 +260,7 @@ class GroupwiseMax extends RelationshipPluginBase {
       $tables[$table_name]['alias'] .= $this->subquery_namespace;
       // Namespace the join on every table.
       if (isset($tables[$table_name]['condition'])) {
-        $tables[$table_name]['condition'] = $this->condition_namespace($tables[$table_name]['condition']);
+        $tables[$table_name]['condition'] = $this->conditionNamespace($tables[$table_name]['condition']);
       }
     }
     // Namespace fields.
@@ -271,7 +270,7 @@ class GroupwiseMax extends RelationshipPluginBase {
     }
     // Namespace conditions.
     $where =& $subquery->conditions();
-    $this->alter_subquery_condition($subquery, $where);
+    $this->alterSubqueryCondition($subquery, $where);
     // Not sure why, but our sort order clause doesn't have a table.
     // TODO: the call to add_item() above to add the sort handler is probably
     // wrong -- needs attention from someone who understands it.
@@ -310,16 +309,16 @@ class GroupwiseMax extends RelationshipPluginBase {
    *
    * (Though why is the condition we get in a simple query 3 levels deep???)
    */
-  function alter_subquery_condition(AlterableInterface $query, &$conditions) {
+  protected function alterSubqueryCondition(AlterableInterface $query, &$conditions) {
     foreach ($conditions as $condition_id => &$condition) {
       // Skip the #conjunction element.
       if (is_numeric($condition_id)) {
         if (is_string($condition['field'])) {
-          $condition['field'] = $this->condition_namespace($condition['field']);
+          $condition['field'] = $this->conditionNamespace($condition['field']);
         }
         elseif (is_object($condition['field'])) {
           $sub_conditions =& $condition['field']->conditions();
-          $this->alter_subquery_condition($query, $sub_conditions);
+          $this->alterSubqueryCondition($query, $sub_conditions);
         }
       }
     }
@@ -330,7 +329,7 @@ class GroupwiseMax extends RelationshipPluginBase {
    *
    * Turns 'foo.bar' into 'foo_NAMESPACE.bar'.
    */
-  function condition_namespace($string) {
+  protected function conditionNamespace($string) {
     return str_replace('.', $this->subquery_namespace . '.', $string);
   }
 
@@ -341,7 +340,7 @@ class GroupwiseMax extends RelationshipPluginBase {
    */
   public function query() {
     // Figure out what base table this relationship brings to the party.
-    $table_data = views_fetch_data($this->definition['base']);
+    $table_data = Views::viewsData()->get($this->definition['base']);
     $base_field = empty($this->definition['base field']) ? $table_data['table']['base']['field'] : $this->definition['base field'];
 
     $this->ensureMyTable();
@@ -358,17 +357,17 @@ class GroupwiseMax extends RelationshipPluginBase {
 
     if ($this->options['subquery_regenerate']) {
       // For testing only, regenerate the subquery each time.
-      $def['left_query'] = $this->left_query($this->options);
+      $def['left_query'] = $this->leftQuery($this->options);
     }
     else {
       // Get the stored subquery SQL string.
-      $cid = 'views_relationship_groupwise_max:' . $this->view->storage->get('name') . ':' . $this->view->current_display . ':' . $this->options['id'];
+      $cid = 'views_relationship_groupwise_max:' . $this->view->storage->id() . ':' . $this->view->current_display . ':' . $this->options['id'];
       $cache = cache('views_results')->get($cid);
       if (isset($cache->data)) {
         $def['left_query'] = $cache->data;
       }
       else {
-        $def['left_query'] = $this->left_query($this->options);
+        $def['left_query'] = $this->leftQuery($this->options);
         cache('views_results')->set($cid, $def['left_query']);
       }
     }
@@ -379,12 +378,12 @@ class GroupwiseMax extends RelationshipPluginBase {
     else {
       $id = 'subquery';
     }
-    $join = drupal_container()->get('plugin.manager.views.join')->createInstance($id, $def);
+    $join = Views::pluginManager('join')->createInstance($id, $def);
 
     // use a short alias for this:
     $alias = $def['table'] . '_' . $this->table;
 
-    $this->alias = $this->query->add_relationship($alias, $join, $this->definition['base'], $this->relationship);
+    $this->alias = $this->query->addRelationship($alias, $join, $this->definition['base'], $this->relationship);
   }
 
 }

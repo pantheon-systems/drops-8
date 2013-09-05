@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Definition of Drupal\simpletest\Tests\FolderTest.
+ * Definition of \Drupal\simpletest\Tests\FolderTest.
  */
 
 namespace Drupal\simpletest\Tests;
@@ -31,6 +31,6 @@ class FolderTest extends WebTestBase {
 
   function testFolderSetup() {
     $directory = file_default_scheme() . '://styles';
-    $this->assertTrue(file_prepare_directory($directory, FALSE), "Directory created.");
+    $this->assertTrue(file_prepare_directory($directory, FALSE), 'Directory created.');
   }
 }

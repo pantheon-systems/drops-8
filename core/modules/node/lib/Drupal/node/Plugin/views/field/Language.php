@@ -8,17 +8,15 @@
 namespace Drupal\node\Plugin\views\field;
 
 use Drupal\node\Plugin\views\field\Node;
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
+use Drupal\views\ResultRow;
 
 /**
  * Field handler to translate a language into its readable form.
  *
  * @ingroup views_field_handlers
  *
- * @Plugin(
- *   id = "node_language",
- *   module = "node"
- * )
+ * @PluginID("node_language")
  */
 class Language extends Node {
 
@@ -39,13 +37,16 @@ class Language extends Node {
     );
   }
 
-  function render($values) {
+  /**
+   * {@inheritdoc}
+   */
+  public function render(ResultRow $values) {
     // @todo: Drupal Core dropped native language until config translation is
     // ready, see http://drupal.org/node/1616594.
-    $value = $this->get_value($values);
+    $value = $this->getValue($values);
     $language = language_load($value);
     $value = $language ? $language->name : '';
-    return $this->render_link($value, $values);
+    return $this->renderLink($value, $values);
   }
 
 }

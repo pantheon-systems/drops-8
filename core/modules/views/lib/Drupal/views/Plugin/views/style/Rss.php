@@ -7,7 +7,7 @@
 
 namespace Drupal\views\Plugin\views\style;
 
-use Drupal\Core\Annotation\Plugin;
+use Drupal\views\Annotation\ViewsStyle;
 use Drupal\Core\Annotation\Translation;
 
 /**
@@ -15,12 +15,12 @@ use Drupal\Core\Annotation\Translation;
  *
  * @ingroup views_style_plugins
  *
- * @Plugin(
+ * @ViewsStyle(
  *   id = "rss",
  *   title = @Translation("RSS Feed"),
  *   help = @Translation("Generates an RSS feed from a view."),
  *   theme = "views_view_rss",
- *   type = "feed"
+ *   display_types = {"feed"}
  * )
  */
 class Rss extends StylePluginBase {
@@ -32,8 +32,8 @@ class Rss extends StylePluginBase {
    */
   protected $usesRowPlugin = TRUE;
 
-  function attach_to($display_id, $path, $title) {
-    $display = $this->view->displayHandlers[$display_id];
+  public function attachTo($display_id, $path, $title) {
+    $display = $this->view->displayHandlers->get($display_id);
     $url_options = array();
     $input = $this->view->getExposedInput();
     if ($input) {
@@ -51,8 +51,12 @@ class Rss extends StylePluginBase {
       if (empty($this->view->feed_icon)) {
         $this->view->feed_icon = '';
       }
-
-      $this->view->feed_icon .= theme('feed_icon', array('url' => $url, 'title' => $title));
+      $feed_icon = array(
+        '#theme' => 'feed_icon',
+        '#url' => $url,
+        '#title' => $title,
+      );
+      $this->view->feed_icon .= drupal_render($feed_icon);
       drupal_add_html_head_link(array(
         'rel' => 'alternate',
         'type' => 'application/rss+xml',
@@ -88,7 +92,7 @@ class Rss extends StylePluginBase {
    * @return
    *   An array that can be passed to format_xml_elements().
    */
-  function get_channel_elements() {
+  protected function getChannelElements() {
     return array();
   }
 
@@ -98,17 +102,17 @@ class Rss extends StylePluginBase {
    * @return string
    *   The string containing the description with the tokens replaced.
    */
-  function get_description() {
+  public function getDescription() {
     $description = $this->options['description'];
 
     // Allow substitutions from the first row.
-    $description = $this->tokenize_value($description, 0);
+    $description = $this->tokenizeValue($description, 0);
 
     return $description;
   }
 
-  function render() {
-    if (empty($this->row_plugin)) {
+  public function render() {
+    if (empty($this->view->rowPlugin)) {
       debug('Drupal\views\Plugin\views\style\Rss: Missing row plugin');
       return;
     }
@@ -120,7 +124,7 @@ class Rss extends StylePluginBase {
 
     // Fetch any additional elements for the channel and merge in their
     // namespaces.
-    $this->channel_elements = $this->get_channel_elements();
+    $this->channel_elements = $this->getChannelElements();
     foreach ($this->channel_elements as $element) {
       if (isset($element['namespace'])) {
         $this->namespaces = array_merge($this->namespaces, $element['namespace']);
@@ -129,7 +133,7 @@ class Rss extends StylePluginBase {
 
     foreach ($this->view->result as $row_index => $row) {
       $this->view->row_index = $row_index;
-      $rows .= $this->row_plugin->render($row);
+      $rows .= $this->view->rowPlugin->render($row);
     }
 
     $output = theme($this->themeFunctions(),

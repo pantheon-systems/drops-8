@@ -1,0 +1,46 @@
+/**
+ * @file
+ * Styling for tour module.
+ */
+
+/* Tab appearance. */
+.toolbar .toolbar-bar .tour-toolbar-tab.toolbar-tab {
+  float: right; /* LTR */
+}
+[dir="rtl"] .toolbar .toolbar-bar .tour-toolbar-tab.toolbar-tab {
+  float: left;
+}
+.toolbar .tour-toolbar-tab button {
+  padding-bottom: 1em;
+  padding-top: 1em;
+  color: #fff;
+  font-weight: bold;
+}
+.toolbar .tour-toolbar-tab button.active {
+  background-image: -webkit-linear-gradient(rgba(255, 255, 255, 0.25) 20%, transparent 200%);
+  background-image: linear-gradient(rgba(255, 255, 255, 0.25) 20%, transparent 200%);
+}
+.tour-toolbar-tab button:focus {
+  outline: thin dotted;
+}
+
+/* Joyride tips should always be on top of everything else. */
+.joyride-tip-guide {
+  z-index: 999;
+}
+
+/* Override placement of the tour progress indicator. */
+.tour-progress {
+  position: absolute;
+  bottom: 10px;
+  right: 15px; /* LTR */
+}
+[dir="rtl"] .tour-progress {
+  right: 0;
+  left: 15px;
+}
+
+/* @todo Remove once http://drupal.org/node/1916690 is resolved. */
+.toolbar .tour-toolbar-tab.toolbar-tab.hidden {
+  display: none;
+}

@@ -1,0 +1,32 @@
+format: basic_html
+editor: ckeditor
+settings:
+  toolbar:
+    buttons:
+      -
+        - Bold
+        - Italic
+        - '|'
+        - DrupalLink
+        - DrupalUnlink
+        - '|'
+        - BulletedList
+        - NumberedList
+        - '|'
+        - Blockquote
+        - DrupalImage
+        - '|'
+        - Source
+  plugins:
+    stylescombo:
+      styles: ''
+image_upload:
+  status: '1'
+  scheme: public
+  directory: inline-images
+  max_size: ''
+  max_dimensions:
+    width: ''
+    height: ''
+status: '1'
+langcode: und

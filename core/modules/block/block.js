@@ -23,30 +23,20 @@ Drupal.behaviors.blockSettingsSummary = {
       if (!vals.length) {
         vals.push(Drupal.t('Not restricted'));
       }
-      return $.map(vals, $.trim).join(', ');
+      return vals.join(', ');
     }
 
-    $('#edit-node-type').drupalSetSummary(checkboxesSummary);
-    $('#edit-language').drupalSetSummary(checkboxesSummary);
-    $('#edit-role').drupalSetSummary(checkboxesSummary);
+    $('#edit-visibility-node-type').drupalSetSummary(checkboxesSummary);
+    $('#edit-visibility-language').drupalSetSummary(checkboxesSummary);
+    $('#edit-visibility-role').drupalSetSummary(checkboxesSummary);
 
-    $('#edit-path').drupalSetSummary(function (context) {
-      var $pages = $(context).find('textarea[name="pages"]');
+    $('#edit-visibility-path').drupalSetSummary(function (context) {
+      var $pages = $(context).find('textarea[name="visibility[path][pages]"]');
       if (!$pages.val()) {
         return Drupal.t('Not restricted');
       }
       else {
         return Drupal.t('Restricted to certain pages');
-      }
-    });
-
-    $('#edit-user').drupalSetSummary(function (context) {
-      var $radio = $(context).find('input[name="custom"]:checked');
-      if ($radio.val() === 0) {
-        return Drupal.t('Not customizable');
-      }
-      else {
-        return $radio.next('label').text();
       }
     });
   }
@@ -71,11 +61,6 @@ Drupal.behaviors.blockDrag = {
     // Add a handler for when a row is swapped, update empty regions.
     tableDrag.row.prototype.onSwap = function (swappedRow) {
       checkEmptyRegions(table, this);
-    };
-
-    // A custom message for the blocks page specifically.
-    Drupal.theme.tableDragChangedWarning = function () {
-      return '<div class="messages warning">' + Drupal.theme('tableDragChangedMarker') + ' ' + Drupal.t('The changes to these blocks will not be saved until the <em>Save blocks</em> button is clicked.') + '</div>';
     };
 
     // Add a handler so when a row is dropped, update fields dropped into new regions.

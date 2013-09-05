@@ -7,7 +7,8 @@
 
 namespace Drupal\views\Plugin\views\filter;
 
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
+use Drupal\views\Plugin\views\display\DisplayPluginBase;
 use Drupal\views\ViewExecutable;
 
 /**
@@ -15,17 +16,20 @@ use Drupal\views\ViewExecutable;
  *
  * @ingroup views_filter_handlers
  *
- * @Plugin(
- *   id = "broken"
- * )
+ * @PluginID("broken")
  */
 class Broken extends FilterPluginBase {
+
+  /**
+   * Overrides \Drupal\views\Plugin\views\filter\FilterPluginBase::init().
+   */
+  public function init(ViewExecutable $view, DisplayPluginBase $display, array &$options = NULL) {
+  }
 
   public function adminLabel($short = FALSE) {
     return t('Broken/missing handler');
   }
 
-  public function init(ViewExecutable $view, &$options) { }
   public function defineOptions() { return array(); }
   public function ensureMyTable() { /* No table to ensure! */ }
   public function query($group_by = FALSE) { /* No query to run */ }

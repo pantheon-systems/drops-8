@@ -7,6 +7,7 @@
 
 namespace Drupal\user\Tests;
 
+use Drupal\Core\Language\Language;
 use Drupal\simpletest\WebTestBase;
 
 /**
@@ -33,29 +34,35 @@ class UserSignatureTest extends WebTestBase {
     parent::setUp();
 
     // Enable user signatures.
-    config('user.settings')->set('signatures', 1)->save();
+    \Drupal::config('user.settings')->set('signatures', 1)->save();
 
     // Create Basic page node type.
     $this->drupalCreateContentType(array('type' => 'page', 'name' => 'Basic page'));
 
     // Prefetch and create text formats.
-    $this->plain_text_format = filter_format_load('plain_text');
-
-    $filtered_html_format = array(
-      'format' => 'filtered_html',
+    $this->filtered_html_format = entity_create('filter_format', array(
+      'format' => 'filtered_html_format',
       'name' => 'Filtered HTML',
-    );
-    $this->filtered_html_format = (object) $filtered_html_format;
-    filter_format_save($this->filtered_html_format);
+      'weight' => -1,
+      'filters' => array(
+        'filter_html' => array(
+          'module' => 'filter',
+          'status' => '1',
+          'settings' => array(
+            'allowed_html' => '<a> <em> <strong>',
+          ),
+        ),
+      ),
+    ));
+    $this->filtered_html_format->save();
 
-    $full_html_format = array(
+    $this->full_html_format = entity_create('filter_format', array(
       'format' => 'full_html',
       'name' => 'Full HTML',
-    );
-    $this->full_html_format = (object) $full_html_format;
-    filter_format_save($this->full_html_format);
+    ));
+    $this->full_html_format->save();
 
-    user_role_grant_permissions(DRUPAL_AUTHENTICATED_RID, array(filter_permission_name($this->filtered_html_format)));
+    user_role_grant_permissions(DRUPAL_AUTHENTICATED_RID, array($this->filtered_html_format->getPermissionName()));
     $this->checkPermissions(array(), TRUE);
 
     // Create regular and administrative users.
@@ -63,7 +70,7 @@ class UserSignatureTest extends WebTestBase {
 
     $admin_permissions = array('administer comments');
     foreach (filter_formats() as $format) {
-      if ($permission = filter_permission_name($format)) {
+      if ($permission = $format->getPermissionName()) {
         $admin_permissions[] = $permission;
       }
     }
@@ -87,20 +94,18 @@ class UserSignatureTest extends WebTestBase {
     $signature_text = "<h1>" . $this->randomName() . "</h1>";
     $edit = array(
       'signature[value]' => $signature_text,
-      'signature[format]' => $this->plain_text_format->format,
     );
-    $this->drupalPost('user/' . $this->web_user->uid . '/edit', $edit, t('Save'));
+    $this->drupalPost('user/' . $this->web_user->id() . '/edit', $edit, t('Save'));
 
     // Verify that values were stored.
     $this->assertFieldByName('signature[value]', $edit['signature[value]'], 'Submitted signature text found.');
-    $this->assertFieldByName('signature[format]', $edit['signature[format]'], 'Submitted signature format found.');
 
     // Create a comment.
-    $langcode = LANGUAGE_NOT_SPECIFIED;
+    $langcode = Language::LANGCODE_NOT_SPECIFIED;
     $edit = array();
     $edit['subject'] = $this->randomName(8);
     $edit['comment_body[' . $langcode . '][0][value]'] = $this->randomName(16);
-    $this->drupalPost('comment/reply/' . $node->nid, $edit, t('Preview'));
+    $this->drupalPost('comment/reply/' . $node->id(), $edit, t('Preview'));
     $this->drupalPost(NULL, array(), t('Save'));
 
     // Get the comment ID. (This technique is the same one used in the Comment
@@ -115,8 +120,8 @@ class UserSignatureTest extends WebTestBase {
     $this->drupalPost('comment/' . $comment_id . '/edit', $edit, t('Save'));
 
     // Assert that the signature did not make it through unfiltered.
-    $this->drupalGet('node/' . $node->nid);
+    $this->drupalGet('node/' . $node->id());
     $this->assertNoRaw($signature_text, 'Unfiltered signature text not found.');
-    $this->assertRaw(check_markup($signature_text, $this->plain_text_format->format), 'Filtered signature text found.');
+    $this->assertRaw(check_markup($signature_text, $this->filtered_html_format->format), 'Filtered signature text found.');
   }
 }

@@ -7,7 +7,8 @@
 
 namespace Drupal\user\Plugin\views\filter;
 
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
+use Drupal\views\Plugin\views\display\DisplayPluginBase;
 use Drupal\views\ViewExecutable;
 use Drupal\views\Plugin\views\filter\BooleanOperator;
 
@@ -16,18 +17,15 @@ use Drupal\views\Plugin\views\filter\BooleanOperator;
  *
  * @ingroup views_filter_handlers
  *
- * @Plugin(
- *   id = "user_current",
- *   module = "user"
- * )
+ * @PluginID("user_current")
  */
 class Current extends BooleanOperator {
 
   /**
    * Overrides Drupal\views\Plugin\views\filter\BooleanOperator::init().
    */
-  public function init(ViewExecutable $view, &$options) {
-    parent::init($view, $options);
+  public function init(ViewExecutable $view, DisplayPluginBase $display, array &$options = NULL) {
+    parent::init($view, $display, $options);
 
     $this->value_value = t('Is the logged in user');
   }
@@ -47,7 +45,7 @@ class Current extends BooleanOperator {
     else {
       $or->condition($field, '***CURRENT_USER***', '=');
     }
-    $this->query->add_where($this->options['group'], $or);
+    $this->query->addWhere($this->options['group'], $or);
   }
 
 }

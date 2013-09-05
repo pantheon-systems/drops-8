@@ -1,0 +1,38 @@
+name: Standard
+type: profile
+description: 'Install with commonly used features pre-configured.'
+version: VERSION
+core: 8.x
+dependencies:
+  - node
+  - history
+  - block
+  - breakpoint
+  - ckeditor
+  - color
+  - config
+  - comment
+  - contextual
+  - contact
+  - datetime
+  - custom_block
+  - edit
+  - editor
+  - help
+  - image
+  - menu
+  - number
+  - options
+  - path
+  - taxonomy
+  - dblog
+  - search
+  - shortcut
+  - toolbar
+  - overlay
+  - field_ui
+  - file
+  - rdf
+  - views
+  - views_ui
+  - tour

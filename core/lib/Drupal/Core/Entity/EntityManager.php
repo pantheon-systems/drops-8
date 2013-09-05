@@ -9,271 +9,506 @@ namespace Drupal\Core\Entity;
 
 use Drupal\Component\Plugin\PluginManagerBase;
 use Drupal\Component\Plugin\Factory\DefaultFactory;
+use Drupal\Component\Utility\NestedArray;
+use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\Language\LanguageManager;
+use Drupal\Core\Language\Language;
 use Drupal\Core\Plugin\Discovery\AlterDecorator;
+use Drupal\Core\Plugin\Discovery\CacheDecorator;
 use Drupal\Core\Plugin\Discovery\AnnotatedClassDiscovery;
+use Drupal\Core\Plugin\Discovery\InfoHookDecorator;
 use Drupal\Core\Cache\CacheBackendInterface;
+use Drupal\Core\StringTranslation\TranslationInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Manages entity type plugin definitions.
  *
- * Each entity type definition array is set in the entity type plugin's
- * annotation and altered by hook_entity_info_alter(). The definition includes
- * the following keys:
- * - module: The name of the module providing the type.
- * - class: The name of the entity type class. Defaults to
- *   Drupal\Core\Entity\Entity.
- * - base_table: The name of the entity type's base table. Used by
- *   Drupal\Core\Entity\DatabaseStorageController.
- * - controller_class: The name of the class that is used to load the objects.
- *   The class must implement
- *   Drupal\Core\Entity\EntityStorageControllerInterface. Defaults to
- *   Drupal\Core\Entity\DatabaseStorageController.
- * - fieldable: (optional) Boolean indicating whether fields can be attached
- *   to entities of this type. Defaults to FALSE.
- * - field_cache: (optional) Boolean indicating whether the Field API's
- *   Field API's persistent cache of field data should be used. The persistent
- *   cache should usually only be disabled if a higher level persistent cache
- *   is available for the entity type. Defaults to TRUE.
- * - form_controller_class: (optional) An associative array where the keys
- *   are the names of the different form operations (such as 'create',
- *   'edit', or 'delete') and the values are the names of the controller
- *   classes for those operations. The name of the operation is passed also
- *   to the form controller's constructor, so that one class can be used for
- *   multiple entity forms when the forms are similar. Defaults to
- *   Drupal\Core\Entity\EntityFormController.
- * - label: The human-readable name of the type.
- * - label_callback: (optional) A function taking an entity and optional
- *   langcode argument, and returning the label of the entity. If langcode is
- *   omitted, the entity's default language is used.
- *   The entity label is the main string associated with an entity; for
- *   example, the title of a node or the subject of a comment. If there is an
- *   entity object property that defines the label, use the 'label' element
- *   of the 'entity_keys' return value component to provide this information
- *   (see below). If more complex logic is needed to determine the label of
- *   an entity, you can instead specify a callback function here, which will
- *   be called to determine the entity label. See also the
- *   Drupal\Core\Entity\Entity::label() method, which implements this logic.
- * - list_controller_class: (optional) The name of the class that provides
- *   listings of the The class must implement
- *   Drupal\Core\Entity\EntityListControllerInterface. Defaults to
- *   Drupal\Core\Entity\EntityListController.
- * - render_controller_class: The name of the class that is used to render the
- *   entities. Defaults to Drupal\Core\Entity\EntityRenderController.
- * - static_cache: (optional) Boolean indicating whether entities should be
- *   statically cached during a page request. Used by
- *   Drupal\Core\Entity\DatabaseStorageController. Defaults to TRUE.
- * - translation: (optional) An associative array of modules registered as
- *   field translation handlers. Array keys are the module names, and array
- *   values can be any data structure the module uses to provide field
- *   translation. If the value is empty, the module will not be used as a
- *   translation handler.
- * - entity_keys: An array describing how the Field API can extract certain
- *   information from objects of this entity type. Elements:
- *   - id: The name of the property that contains the primary ID of the
- *     entity. Every entity object passed to the Field API must have this
- *     property and its value must be numeric.
- *   - revision: (optional) The name of the property that contains the
- *     revision ID of the entity. The Field API assumes that all revision IDs
- *     are unique across all entities of a type. This entry can be omitted if
- *     the entities of this type are not versionable.
- *   - bundle: (optional) The name of the property that contains the bundle
- *     name for the entity. The bundle name defines which set of fields are
- *     attached to the entity (e.g. what nodes call "content type"). This
- *     entry can be omitted if this entity type exposes a single bundle (such
- *     that all entities have the same collection of fields). The name of
- *     this single bundle will be the same as the entity type.
- *   - label: The name of the property that contains the entity label. For
- *     example, if the entity's label is located in $entity->subject, then
- *     'subject' should be specified here. If complex logic is required to
- *     build the label, a 'label_callback' should be defined instead (see
- *     the 'label_callback' section above for details).
- *   - uuid (optional): The name of the property that contains the universally
- *     unique identifier of the entity, which is used to distinctly identify
- *     an entity across different systems.
- * - bundle_keys: An array describing how the Field API can extract the
- *   information it needs from the bundle objects for this type (e.g
- *   Vocabulary objects for terms; not applicable for nodes). This entry can
- *   be omitted if this type's bundles do not exist as standalone objects.
- *   Elements:
- *   - bundle: The name of the property that contains the name of the bundle
- *     object.
- * - bundles: An array describing all bundles for this object type. Keys are
- *   bundle machine names, as found in the objects' 'bundle' property
- *   (defined in the 'entity_keys' entry for the entity type in the
- *   EntityManager). Elements:
- *   - label: The human-readable name of the bundle.
- *   - uri_callback: The same as the 'uri_callback' key defined for the entity
- *     type in the EntityManager, but for the bundle only. When determining
- *     the URI of an entity, if a 'uri_callback' is defined for both the
- *     entity type and the bundle, the one for the bundle is used.
- *   - admin: An array of information that allows Field UI pages to attach
- *     themselves to the existing administration pages for the bundle.
- *     Elements:
- *     - path: the path of the bundle's main administration page, as defined
- *       in hook_menu(). If the path includes a placeholder for the bundle,
- *       the 'bundle argument', 'bundle helper' and 'real path' keys below
- *       are required.
- *     - bundle argument: The position of the placeholder in 'path', if any.
- *     - real path: The actual path (no placeholder) of the bundle's main
- *       administration page. This will be used to generate links.
- *     - access callback: As in hook_menu(). 'user_access' will be assumed if
- *       no value is provided.
- *     - access arguments: As in hook_menu().
- * - view_modes: An array describing the view modes for the entity type. View
- *   modes let entities be displayed differently depending on the context.
- *   For instance, a node can be displayed differently on its own page
- *   ('full' mode), on the home page or taxonomy listings ('teaser' mode), or
- *   in an RSS feed ('rss' mode). Modules taking part in the display of the
- *   entity (notably the Field API) can adjust their behavior depending on
- *   the requested view mode. An additional 'default' view mode is available
- *   for all entity types. This view mode is not intended for actual entity
- *   display, but holds default display settings. For each available view
- *   mode, administrators can configure whether it should use its own set of
- *   field display settings, or just replicate the settings of the 'default'
- *   view mode, thus reducing the amount of display configurations to keep
- *   track of. Keys of the array are view mode names. Each view mode is
- *   described by an array with the following key/value pairs:
- *   - label: The human-readable name of the view mode.
- *   - custom_settings: A boolean specifying whether the view mode should by
- *     default use its own custom field display settings. If FALSE, entities
- *     displayed in this view mode will reuse the 'default' display settings
- *     by default (e.g. right after the module exposing the view mode is
- *     enabled), but administrators can later use the Field UI to apply custom
- *     display settings specific to the view mode.
+ * Each entity type definition array is set in the entity type's
+ * annotation and altered by hook_entity_info_alter().
  *
  * The defaults for the plugin definition are provided in
  * \Drupal\Core\Entity\EntityManager::defaults.
  *
- * @see \Drupal\Core\Entity\Entity
+ * @see \Drupal\Core\Entity\Annotation\EntityType
+ * @see \Drupal\Core\Entity\EntityInterface
  * @see entity_get_info()
  * @see hook_entity_info_alter()
  */
 class EntityManager extends PluginManagerBase {
 
   /**
-   * The cache bin used for entity plugin definitions.
+   * The injection container that should be passed into the controller factory.
    *
-   * @var string
+   * @var \Symfony\Component\DependencyInjection\ContainerInterface
    */
-  protected $cacheBin = 'cache';
+  protected $container;
 
   /**
-   * The cache key used for entity plugin definitions.
-   *
-   * @var string
-   */
-  protected $cacheKey = 'entity_info';
-
-  /**
-   * The cache expiration for entity plugin definitions.
-   *
-   * @var int
-   */
-  protected $cacheExpire = CacheBackendInterface::CACHE_PERMANENT;
-
-  /**
-   * The cache tags used for entity plugin definitions.
+   * Contains instantiated controllers keyed by controller type and entity type.
    *
    * @var array
    */
-  protected $cacheTags = array('entity_info' => TRUE);
+  protected $controllers = array();
 
   /**
-   * The default values for optional keys of the entity plugin definition.
+   * The module handler.
+   *
+   * @var \Drupal\Core\Extension\ModuleHandlerInterface
+   */
+  protected $moduleHandler;
+
+  /**
+   * The cache backend to use.
+   *
+   * @var \Drupal\Core\Cache\CacheBackendInterface
+   */
+  protected $cache;
+
+  /**
+   * The language manager.
+   *
+   * @var \Drupal\Core\Language\LanguageManager
+   */
+  protected $languageManager;
+
+  /**
+   * An array of field information per entity type, i.e. containing definitions.
+   *
+   * @var array
+   *
+   * @see hook_entity_field_info()
+   */
+  protected $entityFieldInfo;
+
+  /**
+   * Static cache of field definitions per bundle and entity type.
    *
    * @var array
    */
-  protected $defaults = array(
-    'class' => 'Drupal\Core\Entity\Entity',
-    'controller_class' => 'Drupal\Core\Entity\DatabaseStorageController',
-    'entity_keys' => array(
-      'revision' => '',
-      'bundle' => '',
-    ),
-    'fieldable' => FALSE,
-    'field_cache' => TRUE,
-    'form_controller_class' => array(
-      'default' => 'Drupal\Core\Entity\EntityFormController',
-    ),
-    'list_controller_class' => 'Drupal\Core\Entity\EntityListController',
-    'render_controller_class' => 'Drupal\Core\Entity\EntityRenderController',
-    'static_cache' => TRUE,
-    'translation' => array(),
-    'bundles' => array(),
-    'view_modes' => array(),
-  );
+  protected $fieldDefinitions;
+
+  /**
+   * The root paths.
+   *
+   * @see \Drupal\Core\Entity\EntityManager::__construct().
+   *
+   * @var \Traversable
+   */
+  protected $namespaces;
+
+  /**
+   * The string translationManager.
+   *
+   * @var \Drupal\Core\StringTranslation\TranslationInterface
+   */
+  protected $translationManager;
 
   /**
    * Constructs a new Entity plugin manager.
+   *
+   * @param \Traversable $namespaces
+   *   An object that implements \Traversable which contains the root paths
+   *   keyed by the corresponding namespace to look for plugin implementations,
+   * @param \Symfony\Component\DependencyInjection\ContainerInterface $container
+   *   The service container this object should use.
+   * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
+   *   The module handler.
+   * @param \Drupal\Core\Cache\CacheBackendInterface $cache
+   *   The cache backend to use.
+   * @param \Drupal\Core\Language\LanguageManager $language_manager
+   *   The language manager.
+   * @param \Drupal\Core\StringTranslation\TranslationInterface $translation_manager
+   *   The string translationManager.
    */
-  public function __construct() {
+  public function __construct(\Traversable $namespaces, ContainerInterface $container, ModuleHandlerInterface $module_handler, CacheBackendInterface $cache, LanguageManager $language_manager, TranslationInterface $translation_manager) {
     // Allow the plugin definition to be altered by hook_entity_info_alter().
-    $this->discovery = new AlterDecorator(new AnnotatedClassDiscovery('Core', 'Entity'), 'entity_info');
-    $this->factory = new DefaultFactory($this);
 
-    // Entity type plugins includes translated strings, so each language is
-    // cached separately.
-    $this->cacheKey .= ':' . language(LANGUAGE_TYPE_INTERFACE)->langcode;
+    $this->moduleHandler = $module_handler;
+    $this->cache = $cache;
+    $this->languageManager = $language_manager;
+    $this->namespaces = $namespaces;
+    $this->translationManager = $translation_manager;
+
+    $this->doDiscovery($namespaces);
+    $this->factory = new DefaultFactory($this->discovery);
+    $this->container = $container;
+  }
+
+  protected function doDiscovery($namespaces) {
+    $annotation_namespaces = array(
+      'Drupal\Core\Entity\Annotation' => DRUPAL_ROOT . '/core/lib',
+    );
+    $this->discovery = new AnnotatedClassDiscovery('Entity', $namespaces, $annotation_namespaces, 'Drupal\Core\Entity\Annotation\EntityType');
+    $this->discovery = new InfoHookDecorator($this->discovery, 'entity_info');
+    $this->discovery = new AlterDecorator($this->discovery, 'entity_info');
+    $this->discovery = new CacheDecorator($this->discovery, 'entity_info:' . $this->languageManager->getLanguage(Language::TYPE_INTERFACE)->id, 'cache', CacheBackendInterface::CACHE_PERMANENT, array('entity_info' => TRUE));
   }
 
   /**
-   * Overrides Drupal\Component\Plugin\PluginManagerBase::getDefinition().
+   * Add more namespaces to the entity manager.
+   *
+   * This is usually only necessary for uninstall purposes.
+   *
+   * @todo Remove this method, along with doDiscovery(), when
+   * https://drupal.org/node/1199946 is fixed.
+   *
+   * @param \Traversable $namespaces
+   *
+   * @see comment_uninstall()
    */
-  public function getDefinition($plugin_id) {
-    $definitions = $this->getDefinitions();
-    return isset($definitions[$plugin_id]) ? $definitions[$plugin_id] : NULL;
+  public function addNamespaces(\Traversable $namespaces) {
+    reset($this->namespaces);
+    $iterator = new \AppendIterator;
+    $iterator->append(new \IteratorIterator($this->namespaces));
+    $iterator->append($namespaces);
+    $this->doDiscovery($iterator);
   }
 
   /**
-   * Overrides Drupal\Component\Plugin\PluginManagerBase::getDefinitions().
+   * Checks whether a certain entity type has a certain controller.
+   *
+   * @param string $entity_type
+   *   The name of the entity type.
+   * @param string $controller_type
+   *   The name of the controller.
+   *
+   * @return bool
+   *   Returns TRUE if the entity type has the controller, else FALSE.
    */
-  public function getDefinitions() {
-    // Because \Drupal\Core\Plugin\Discovery\CacheDecorator runs before
-    // definitions are processed and does not support cache tags, we perform our
-    // own caching.
-    if ($cache = cache($this->cacheBin)->get($this->cacheKey)) {
-      return $cache->data;
-    }
-    else {
-      // @todo Remove array_filter() once http://drupal.org/node/1780396 is
-      //   resolved.
-      $definitions = array_filter(parent::getDefinitions());
-      cache($this->cacheBin)->set($this->cacheKey, $definitions, $this->cacheExpire, $this->cacheTags);
-      return $definitions;
-    }
+  public function hasController($entity_type, $controller_type) {
+    $definition = $this->getDefinition($entity_type);
+    return !empty($definition['controllers'][$controller_type]);
   }
 
   /**
-   * Overrides Drupal\Component\Plugin\PluginManagerBase::processDefinition().
+   * Returns an entity controller class.
+   *
+   * @param string $entity_type
+   *   The name of the entity type
+   * @param string $controller_type
+   *   The name of the controller.
+   * @param string|null $nested
+   *   (optional) If this controller definition is nested, the name of the key.
+   *   Defaults to NULL.
+   *
+   * @return string
+   *   The class name for this controller instance.
    */
-  protected function processDefinition(&$definition, $plugin_id) {
-    parent::processDefinition($definition, $plugin_id);
-
-    // @todo Remove this check once http://drupal.org/node/1780396 is resolved.
-    if (!module_exists($definition['module'])) {
-      $definition = NULL;
-      return;
+  public function getControllerClass($entity_type, $controller_type, $nested = NULL) {
+    $definition = $this->getDefinition($entity_type);
+    if (!$definition) {
+      throw new \InvalidArgumentException(sprintf('The %s entity type does not exist.', $entity_type));
+    }
+    $definition = $definition['controllers'];
+    if (!$definition) {
+      throw new \InvalidArgumentException(sprintf('The entity type (%s) does not exist.', $entity_type));
     }
 
-    foreach ($definition['view_modes'] as $view_mode => $view_mode_info) {
-      $definition['view_modes'][$view_mode] += array(
-        'custom_settings' => FALSE,
-      );
+    if (empty($definition[$controller_type])) {
+      throw new \InvalidArgumentException(sprintf('The entity type (%s) did not specify a %s controller.', $entity_type, $controller_type));
     }
 
-    // If no bundle key is provided, assume a single bundle, named after
-    // the entity type.
-    if (empty($definition['entity_keys']['bundle']) && empty($definition['bundles'])) {
-      $definition['bundles'] = array($plugin_id => array('label' => $definition['label']));
+    $class = $definition[$controller_type];
+
+    // Some class definitions can be nested.
+    if (isset($nested)) {
+      if (empty($class[$nested])) {
+        throw new \InvalidArgumentException(sprintf("The entity type (%s) did not specify a %s controller: %s.", $entity_type, $controller_type, $nested));
+      }
+
+      $class = $class[$nested];
     }
-    // Prepare entity schema fields SQL info for
-    // Drupal\Core\Entity\DatabaseStorageControllerInterface::buildQuery().
-    if (isset($definition['base_table'])) {
-      $definition['schema_fields_sql']['base_table'] = drupal_schema_fields_sql($definition['base_table']);
-      if (isset($definition['revision_table'])) {
-        $definition['schema_fields_sql']['revision_table'] = drupal_schema_fields_sql($definition['revision_table']);
+
+    if (!class_exists($class)) {
+      throw new \InvalidArgumentException(sprintf('The entity type (%s) %s controller "%s" does not exist.', $entity_type, $controller_type, $class));
+    }
+
+    return $class;
+  }
+
+  /**
+   * Creates a new storage controller instance.
+   *
+   * @param string $entity_type
+   *   The entity type for this storage controller.
+   *
+   * @return \Drupal\Core\Entity\EntityStorageControllerInterface
+   *   A storage controller instance.
+   */
+  public function getStorageController($entity_type) {
+    return $this->getController($entity_type, 'storage');
+  }
+
+  /**
+   * Creates a new list controller instance.
+   *
+   * @param string $entity_type
+   *   The entity type for this list controller.
+   *
+   * @return \Drupal\Core\Entity\EntityListControllerInterface
+   *   A list controller instance.
+   */
+  public function getListController($entity_type) {
+    if (!isset($this->controllers['listing'][$entity_type])) {
+      $class = $this->getControllerClass($entity_type, 'list');
+      if (in_array('Drupal\Core\Entity\EntityControllerInterface', class_implements($class))) {
+        $this->controllers['listing'][$entity_type] = $class::createInstance($this->container, $entity_type, $this->getDefinition($entity_type));
+      }
+      else {
+        $this->controllers['listing'][$entity_type] = new $class($entity_type, $this->getStorageController($entity_type));
       }
     }
+    return $this->controllers['listing'][$entity_type];
+  }
+
+  /**
+   * Creates a new form controller instance.
+   *
+   * @param string $entity_type
+   *   The entity type for this form controller.
+   * @param string $operation
+   *   The name of the operation to use, e.g., 'default'.
+   *
+   * @return \Drupal\Core\Entity\EntityFormControllerInterface
+   *   A form controller instance.
+   */
+  public function getFormController($entity_type, $operation) {
+    if (!isset($this->controllers['form'][$operation][$entity_type])) {
+      $class = $this->getControllerClass($entity_type, 'form', $operation);
+      if (in_array('Drupal\Core\DependencyInjection\ContainerInjectionInterface', class_implements($class))) {
+        $controller = $class::create($this->container);
+      }
+      else {
+        $controller = new $class();
+      }
+
+      $controller
+        ->setTranslationManager($this->translationManager)
+        ->setModuleHandler($this->moduleHandler)
+        ->setOperation($operation);
+      $this->controllers['form'][$operation][$entity_type] = $controller;
+    }
+    return $this->controllers['form'][$operation][$entity_type];
+  }
+
+  /**
+   * Creates a new render controller instance.
+   *
+   * @param string $entity_type
+   *   The entity type for this render controller.
+   *
+   * @return \Drupal\Core\Entity\EntityRenderControllerInterface.
+   *   A render controller instance.
+   */
+  public function getRenderController($entity_type) {
+    return $this->getController($entity_type, 'render');
+  }
+
+  /**
+   * Creates a new access controller instance.
+   *
+   * @param string $entity_type
+   *   The entity type for this access controller.
+   *
+   * @return \Drupal\Core\Entity\EntityAccessControllerInterface.
+   *   A access controller instance.
+   */
+  public function getAccessController($entity_type) {
+    return $this->getController($entity_type, 'access');
+  }
+
+  /**
+   * Creates a new controller instance.
+   *
+   * @param string $entity_type
+   *   The entity type for this access controller.
+   * @param string $controller_type
+   *   The controller type to create an instance for.
+   *
+   * @return mixed.
+   *   A controller instance.
+   */
+  protected function getController($entity_type, $controller_type) {
+    if (!isset($this->controllers[$controller_type][$entity_type])) {
+      $class = $this->getControllerClass($entity_type, $controller_type);
+      if (in_array('Drupal\Core\Entity\EntityControllerInterface', class_implements($class))) {
+        $this->controllers[$controller_type][$entity_type] = $class::createInstance($this->container, $entity_type, $this->getDefinition($entity_type));
+      }
+      else {
+        $this->controllers[$controller_type][$entity_type] = new $class($entity_type);
+      }
+    }
+    return $this->controllers[$controller_type][$entity_type];
+  }
+
+  /**
+   * Returns the built and processed entity form for the given entity.
+   *
+   * @param \Drupal\Core\Entity\EntityInterface $entity
+   *   The entity to be created or edited.
+   * @param string $operation
+   *   (optional) The operation identifying the form variation to be returned.
+   *   Defaults to 'default'.
+   * @param array $form_state
+   *   (optional) An associative array containing the current state of the form.
+   *   Use this to pass additional information to the form, such as the
+   *   langcode. Defaults to an empty array.
+   * @code
+   *   $form_state['langcode'] = $langcode;
+   *   $manager = Drupal::entityManager();
+   *   $form = $manager->getForm($entity, 'default', $form_state);
+   * @endcode
+   *
+   * @return array
+   *   The processed form for the given entity and operation.
+   */
+  public function getForm(EntityInterface $entity, $operation = 'default', array $form_state = array()) {
+    $form_state += entity_form_state_defaults($entity, $operation);
+    $form_id = $form_state['build_info']['callback_object']->getFormID();
+    return drupal_build_form($form_id, $form_state);
+  }
+
+  /**
+   * Returns the administration path for an entity type's bundle.
+   *
+   * @param string $entity_type
+   *   The entity type.
+   * @param string $bundle
+   *   The name of the bundle.
+   *
+   * @return string
+   *   The administration path for an entity type bundle, if it exists.
+   */
+  public function getAdminPath($entity_type, $bundle) {
+    $admin_path = '';
+    $entity_info = $this->getDefinition($entity_type);
+    // Check for an entity type's admin base path.
+    if (isset($entity_info['route_base_path'])) {
+      // If the entity type has a bundle prefix, strip it out of the path.
+      if (isset($entity_info['bundle_prefix'])) {
+        $bundle = str_replace($entity_info['bundle_prefix'], '', $bundle);
+      }
+      // Replace any dynamic 'bundle' portion of the path with the actual bundle.
+      $admin_path = str_replace('{bundle}', $bundle, $entity_info['route_base_path']);
+    }
+
+    return $admin_path;
+  }
+
+  /**
+   * Gets an array of entity field definitions.
+   *
+   * If a bundle is passed, fields specific to this bundle are included. Entity
+   * fields are always multi-valued, so 'list' is TRUE for each returned field
+   * definition.
+   *
+   * @param string $entity_type
+   *   The entity type to get field definitions for.
+   * @param string $bundle
+   *   (optional) The entity bundle for which to get field definitions. If NULL
+   *   is passed, no bundle-specific fields are included. Defaults to NULL.
+   *
+   * @return array
+   *   An array of field definitions of entity fields, keyed by field
+   *   name. In addition to the typed data definition keys as described at
+   *   \Drupal\Core\TypedData\TypedDataManager::create() the following keys are
+   *   supported:
+   *   - queryable: Whether the field is queryable via QueryInterface.
+   *     Defaults to TRUE if 'computed' is FALSE or not set, to FALSE otherwise.
+   *   - translatable: Whether the field is translatable. Defaults to FALSE.
+   *   - configurable: A boolean indicating whether the field is configurable
+   *     via field.module. Defaults to FALSE.
+   *
+   * @see \Drupal\Core\TypedData\TypedDataManager::create()
+   * @see \Drupal\Core\Entity\EntityManager::getFieldDefinitionsByConstraints()
+   */
+  public function getFieldDefinitions($entity_type, $bundle = NULL) {
+    if (!isset($this->entityFieldInfo[$entity_type])) {
+      // First, try to load from cache.
+      $cid = 'entity_field_definitions:' . $entity_type . ':' . $this->languageManager->getLanguage(Language::TYPE_INTERFACE)->id;
+      if ($cache = $this->cache->get($cid)) {
+        $this->entityFieldInfo[$entity_type] = $cache->data;
+      }
+      else {
+        $class = $this->factory->getPluginClass($entity_type, $this->getDefinition($entity_type));
+        $this->entityFieldInfo[$entity_type] = array(
+          'definitions' => $class::baseFieldDefinitions($entity_type),
+          // Contains definitions of optional (per-bundle) fields.
+          'optional' => array(),
+          // An array keyed by bundle name containing the optional fields added
+          // by the bundle.
+          'bundle map' => array(),
+        );
+
+        // Invoke hooks.
+        $result = $this->moduleHandler->invokeAll($entity_type . '_field_info');
+        $this->entityFieldInfo[$entity_type] = NestedArray::mergeDeep($this->entityFieldInfo[$entity_type], $result);
+        $result = $this->moduleHandler->invokeAll('entity_field_info', array($entity_type));
+        $this->entityFieldInfo[$entity_type] = NestedArray::mergeDeep($this->entityFieldInfo[$entity_type], $result);
+
+        $hooks = array('entity_field_info', $entity_type . '_field_info');
+        $this->moduleHandler->alter($hooks, $this->entityFieldInfo[$entity_type], $entity_type);
+
+        // Enforce fields to be multiple by default.
+        foreach ($this->entityFieldInfo[$entity_type]['definitions'] as &$definition) {
+          $definition['list'] = TRUE;
+        }
+        foreach ($this->entityFieldInfo[$entity_type]['optional'] as &$definition) {
+          $definition['list'] = TRUE;
+        }
+        $this->cache->set($cid, $this->entityFieldInfo[$entity_type], CacheBackendInterface::CACHE_PERMANENT, array('entity_info' => TRUE, 'entity_field_info' => TRUE));
+      }
+    }
+
+    if (!$bundle) {
+      return $this->entityFieldInfo[$entity_type]['definitions'];
+    }
+    else {
+      // Add in per-bundle fields.
+      if (!isset($this->fieldDefinitions[$entity_type][$bundle])) {
+        $this->fieldDefinitions[$entity_type][$bundle] = $this->entityFieldInfo[$entity_type]['definitions'];
+        if (isset($this->entityFieldInfo[$entity_type]['bundle map'][$bundle])) {
+          $this->fieldDefinitions[$entity_type][$bundle] += array_intersect_key($this->entityFieldInfo[$entity_type]['optional'], array_flip($this->entityFieldInfo[$entity_type]['bundle map'][$bundle]));
+        }
+      }
+      return $this->fieldDefinitions[$entity_type][$bundle];
+    }
+  }
+
+  /**
+   * Gets an array of entity field definitions based on validation constraints.
+   *
+   * @param string $entity_type
+   *   The entity type to get field definitions for.
+   * @param array $constraints
+   *   An array of entity constraints as used for entities in typed data
+   *   definitions, i.e. an array optionally including a 'Bundle' key.
+   *   For example the constraints used by an entity reference could be:
+   *   @code
+   *   array(
+   *     'Bundle' => 'article',
+   *   )
+   *   @endcode
+   *
+   * @return array
+   *   An array of field definitions of entity fields, keyed by field
+   *   name.
+   *
+   * @see \Drupal\Core\Entity\EntityManager::getFieldDefinitions()
+   */
+  public function getFieldDefinitionsByConstraints($entity_type, array $constraints) {
+    // @todo: Add support for specifying multiple bundles.
+    return $this->getFieldDefinitions($entity_type, isset($constraints['Bundle']) ? $constraints['Bundle'] : NULL);
+  }
+
+  /**
+   * Clears static and persistent field definition caches.
+   */
+  public function clearCachedFieldDefinitions() {
+    unset($this->entityFieldInfo);
+    unset($this->fieldDefinitions);
+    $this->cache->deleteTags(array('entity_field_info' => TRUE));
   }
 
 }

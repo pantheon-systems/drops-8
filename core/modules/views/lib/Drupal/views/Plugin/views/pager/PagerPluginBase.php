@@ -21,6 +21,35 @@ use Drupal\views\ViewExecutable;
 
 /**
  * The base plugin to handle pager.
+ *
+ * Pager plugins take care of everything regarding pagers, including getting
+ * and setting the total number of items to render the pager and setting the
+ * global pager arrays.
+ *
+ * To define a pager type, extend this base class. The ViewsPluginManager (used
+ * to create views plugins objects) adds annotated discovery for pager plugins.
+ * Your pager plugin must have an annotation that includes the plugin's metadata,
+ * for example:
+ * @code
+ * @ Plugin(
+ *   id = "demo_pager",
+ *   title = @ Translation("Display a demonstration pager"),
+ *   help = @ Translation("Demonstrate pagination of views items."),
+ *   theme = "views_demo_pager"
+ * )
+ * @endcode
+ * Remove spaces after @ in your actual plugin - these are put into this sample
+ * code so that it is not recognized as annotation.
+ *
+ * The plugin annotation contains these components:
+ * - id: The unique identifier of your pager plugin.
+ * - title: The "full" title for your pager type; used in the views UI.
+ * - short_title: (optional) The "short" title for your pager type;
+ *   used in the views UI when specified.
+ * - help: (optional) A short help string; this is displayed in the views UI.
+ * - theme: The theme function used to render the pager's output.
+ *
+ * @see \Drupal\views\Plugin\ViewsPluginManager
  */
 abstract class PagerPluginBase extends PluginBase {
 
@@ -34,28 +63,12 @@ abstract class PagerPluginBase extends PluginBase {
   protected $usesOptions = TRUE;
 
   /**
-   * Initialize the plugin.
-   *
-   * @param $view
-   *   The view object.
-   * @param $display
-   *   The display handler.
-   */
-  public function init(ViewExecutable $view, &$display, $options = array()) {
-    $this->setOptionDefaults($this->options, $this->defineOptions());
-    $this->view = &$view;
-    $this->displayHandler = &$display;
-
-    $this->unpackOptions($this->options, $options);
-  }
-
-  /**
    * Get how many items per page this pager will display.
    *
    * All but the leanest pagers should probably return a value here, so
    * most pagers will not need to override this method.
    */
-  function get_items_per_page() {
+  public function getItemsPerPage() {
     return isset($this->options['items_per_page']) ? $this->options['items_per_page'] : 0;
   }
 
@@ -64,7 +77,7 @@ abstract class PagerPluginBase extends PluginBase {
    *
    * This is mostly used for things that will override the value.
    */
-  function set_items_per_page($items) {
+  public function setItemsPerPage($items) {
     $this->options['items_per_page'] = $items;
   }
 
@@ -74,14 +87,14 @@ abstract class PagerPluginBase extends PluginBase {
    * Even pagers that don't actually page can skip items at the beginning,
    * so few pagers will need to override this method.
    */
-  function get_offset() {
+  public function getOffset() {
     return isset($this->options['offset']) ? $this->options['offset'] : 0;
   }
 
   /**
    * Set the page offset, or how many items to skip.
    */
-  function set_offset($offset) {
+  public function setOffset($offset) {
     $this->options['offset'] = $offset;
   }
 
@@ -90,7 +103,7 @@ abstract class PagerPluginBase extends PluginBase {
    *
    * If NULL, we do not know what the current page is.
    */
-  function get_current_page() {
+  public function getCurrentPage() {
     return $this->current_page;
   }
 
@@ -101,7 +114,7 @@ abstract class PagerPluginBase extends PluginBase {
    *   If provided, the page number will be set to this. If NOT provided,
    *   the page number will be set from the global page array.
    */
-  function set_current_page($number = NULL) {
+  public function setCurrentPage($number = NULL) {
     if (!is_numeric($number) || $number < 0) {
       $number = 0;
     }
@@ -113,14 +126,14 @@ abstract class PagerPluginBase extends PluginBase {
    *
    * If NULL, we do not yet know what the total number of items are.
    */
-  function get_total_items() {
+  public function getTotalItems() {
     return $this->total_items;
   }
 
   /**
    * Get the pager id, if it exists
    */
-  function get_pager_id() {
+  public function getPagerId() {
     return isset($this->options['id']) ? $this->options['id'] : 0;
   }
 
@@ -147,7 +160,7 @@ abstract class PagerPluginBase extends PluginBase {
    *
    * Only a couple of very specific pagers will set this to false.
    */
-  function use_pager() {
+  public function usePager() {
     return TRUE;
   }
 
@@ -156,7 +169,7 @@ abstract class PagerPluginBase extends PluginBase {
    *
    * If a pager needs a count query, a simple query
    */
-  function use_count_query() {
+  public function useCountQuery() {
     return TRUE;
   }
 
@@ -164,21 +177,20 @@ abstract class PagerPluginBase extends PluginBase {
    * Execute the count query, which will be done just prior to the query
    * itself being executed.
    */
-  function execute_count_query(&$count_query) {
+  public function executeCountQuery(&$count_query) {
     $this->total_items = $count_query->execute()->fetchField();
     if (!empty($this->options['offset'])) {
       $this->total_items -= $this->options['offset'];
     }
 
-    $this->update_page_info();
     return $this->total_items;
   }
 
   /**
    * If there are pagers that need global values set, this method can
-   * be used to set them. It will be called when the count query is run.
+   * be used to set them. It will be called after the query is run.
    */
-  function update_page_info() {
+  public function updatePageInfo() {
 
   }
 
@@ -192,7 +204,7 @@ abstract class PagerPluginBase extends PluginBase {
   /**
    * Perform any needed actions just prior to the query executing.
    */
-  function pre_execute(&$query) { }
+  public function preExecute(&$query) { }
 
   /**
    * Perform any needed actions just after the query executing.
@@ -202,45 +214,44 @@ abstract class PagerPluginBase extends PluginBase {
   /**
    * Perform any needed actions just before rendering.
    */
-  function pre_render(&$result) { }
+  public function preRender(&$result) { }
 
   /**
-   * Render the pager.
+   * Return the renderable array of the pager.
    *
-   * Called during the view render process, this will render the
-   * pager.
+   * Called during the view render process.
    *
    * @param $input
    *   Any extra GET parameters that should be retained, such as exposed
    *   input.
    */
-  function render($input) { }
+  public function render($input) { }
 
   /**
    * Determine if there are more records available.
    *
    * This is primarily used to control the display of a more link.
    */
-  function has_more_records() {
-    return $this->get_items_per_page()
-      && $this->total_items > (intval($this->current_page) + 1) * $this->get_items_per_page();
+  public function hasMoreRecords() {
+    return $this->getItemsPerPage()
+      && $this->total_items > (intval($this->current_page) + 1) * $this->getItemsPerPage();
   }
 
-  function exposed_form_alter(&$form, &$form_state) { }
+  public function exposedFormAlter(&$form, &$form_state) { }
 
-  function exposed_form_validate(&$form, &$form_state) { }
+  public function exposedFormValidate(&$form, &$form_state) { }
 
-  function exposed_form_submit(&$form, &$form_state, &$exclude) { }
+  public function exposedFormSubmit(&$form, &$form_state, &$exclude) { }
 
-  function uses_exposed() {
+  public function usesExposed() {
     return FALSE;
   }
 
-  function items_per_page_exposed() {
+  protected function itemsPerPageExposed() {
     return FALSE;
   }
 
-  function offset_exposed() {
+  protected function isOffsetExposed() {
     return FALSE;
   }
 

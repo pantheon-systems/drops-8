@@ -29,7 +29,6 @@ class UpdateUploadTest extends UpdateTestBase {
 
   public function setUp() {
     parent::setUp();
-    variable_set('allow_authorize_operations', TRUE);
     $admin_user = $this->drupalCreateUser(array('administer software updates', 'administer site configuration'));
     $this->drupalLogin($admin_user);
   }
@@ -82,11 +81,11 @@ class UpdateUploadTest extends UpdateTestBase {
         'version' => '7.0',
       ),
     );
-    config('update_test.settings')
+    \Drupal::config('update_test.settings')
       ->set('system_info', $setting)
       ->set('xml_map', array('drupal' => '2-sec'))
       ->save();
-    config('update.settings')->set('fetch.url', url('update-test', array('absolute' => TRUE)))->save();
+    \Drupal::config('update.settings')->set('fetch.url', url('update-test', array('absolute' => TRUE)))->save();
     // Initialize the update status.
     $this->drupalGet('admin/reports/updates');
 

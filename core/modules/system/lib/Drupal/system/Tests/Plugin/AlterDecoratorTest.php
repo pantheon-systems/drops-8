@@ -2,13 +2,12 @@
 
 /**
  * @file
- * Definition of Drupal\system\Tests\Plugin\AlterDecoratorTest.
+ * Contains \Drupal\system\Tests\Plugin\AlterDecoratorTest.
  */
 
 namespace Drupal\system\Tests\Plugin;
 
 use Drupal\Component\Plugin\Exception\ExceptionInterface;
-use Exception;
 use Drupal\plugin_test\Plugin\AlterDecoratorTestPluginManager;
 use Drupal\plugin_test\Plugin\TestPluginManager;
 use Drupal\simpletest\WebTestBase;

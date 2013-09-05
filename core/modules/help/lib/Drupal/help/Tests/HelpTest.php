@@ -19,7 +19,7 @@ class HelpTest extends WebTestBase {
    *
    * @var array.
    */
-  public static $modules = array('poll');
+  public static $modules = array('shortcut');
 
   // Tests help implementations of many arbitrary core modules.
   protected $profile = 'standard';
@@ -67,7 +67,7 @@ class HelpTest extends WebTestBase {
     // Check for css on admin/help.
     $this->drupalLogin($this->adminUser);
     $this->drupalGet('admin/help');
-    $this->assertRaw(drupal_get_path('module', 'help') . '/help.css', 'The help.css file is present in the HTML.');
+    $this->assertRaw(drupal_get_path('module', 'help') . '/css/help.module.css', 'The help.module.css file is present in the HTML.');
 
     // Verify that introductory help text exists, goes for 100% module coverage.
     $this->assertRaw(t('For more information, refer to the specific topics listed in the next section or to the <a href="@drupal">online Drupal handbooks</a>.', array('@drupal' => 'http://drupal.org/documentation')), 'Help intro text correctly appears.');
@@ -108,7 +108,7 @@ class HelpTest extends WebTestBase {
   protected function getModuleList() {
     $modules = array();
     $module_data = system_rebuild_module_data();
-    foreach (module_implements('help') as $module) {
+    foreach (\Drupal::moduleHandler()->getImplementations('help') as $module) {
       $modules[$module] = $module_data[$module]->info['name'];
     }
     return $modules;

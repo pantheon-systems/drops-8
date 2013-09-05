@@ -30,7 +30,6 @@ include_once './includes/bootstrap.inc';
 drupal_bootstrap(DRUPAL_BOOTSTRAP_FULL);
 
 // Enable requested modules
-require_once DRUPAL_ROOT . '/' . variable_get('password_inc', 'includes/password.inc');
 include_once './modules/system/system.admin.inc';
 $form = system_modules();
 foreach ($modules_to_enable as $module) {
@@ -45,12 +44,13 @@ drupal_cron_run();
 
 // Create six users
 $query = db_insert('users')->fields(array('uid', 'name', 'pass', 'mail', 'status', 'created', 'access'));
+$password_hasher = drupal_container()->get('password');
 for ($i = 0; $i < 6; $i++) {
   $name = "test user $i";
   $pass = md5("test PassW0rd $i !(.)");
   $mail = "test$i@example.com";
   $now = mktime(0, 0, 0, 1, $i + 1, 2010);
-  $query->values(array(db_next_id(), $name, user_hash_password($pass), $mail, 1, $now, $now));
+  $query->values(array(db_next_id(), $name, $password_hasher->hash($pass), $mail, 1, $now, $now));
 }
 $query->execute();
 
@@ -93,7 +93,7 @@ for ($i = 0; $i < 24; $i++) {
       ),
     ),
   );
-  field_create_field($field);
+  entity_create('field_entity', $field)->save();
   $node_types = $i > 11 ? array('page') : array_keys(node_type_get_types());
   foreach ($node_types as $bundle) {
     $instance = array(
@@ -132,7 +132,7 @@ for ($i = 0; $i < 24; $i++) {
         'settings' => array(),
       );
     }
-    field_create_instance($instance);
+    entity_create('field_instance', $instance)->save();
   }
   $parents = array();
   // Vocabularies without hierarchy get one term, single parent vocabularies get
@@ -151,9 +151,9 @@ for ($i = 0; $i < 24; $i++) {
       'weight' => $i * 3 + $j,
     ));
     taxonomy_term_save($term);
-    $terms[] = $term->tid;
-    $term_vocabs[$term->tid] = 'taxonomy_' . $vocabulary->machine_name;
-    $parents[] = $term->tid;
+    $terms[] = $term->id();
+    $term_vocabs[$term->id()] = 'taxonomy_' . $vocabulary->machine_name;
+    $parents[] = $term->id();
   }
 }
 $node_id = 0;
@@ -204,7 +204,7 @@ for ($i = 0; $i < 36; $i++) {
     $node->{$field_name}[LANGUAGE_NONE][] = array('tid' => $tid);
   }
   $node->path = array('alias' => "content/$node->created");
-  node_save($node);
+  $node->save();
   if ($node->revision) {
     $user = user_load($uid + 3);
     ++$revision_id;
@@ -220,7 +220,7 @@ for ($i = 0; $i < 36; $i++) {
       $field_name = $term_vocabs[$tid];
       $node->{$field_name}[LANGUAGE_NONE][] = array('tid' => $tid);
     }
-    node_save($node);
+    $node->save();
   }
 }
 
@@ -247,12 +247,12 @@ for ($i = 0; $i < 12; $i++) {
   for ($c = 0; $c < $nbchoices; $c++) {
     $node->choice[] = array('chtext' => "Choice $c for poll $i", 'chvotes' => 0, 'weight' => 0);
   }
-  node_save($node);
+  $node->save();
   $path = array(
     'alias' => "content/poll/$i/results",
     'source' => "node/$node->nid/results",
   );
-  path_save($path);
+  drupal_container()->get('path.crud')->save($path['source'], $path['alias']);
 
   // Add some votes
   $node = node_load($node->nid);
@@ -289,7 +289,7 @@ $node->promote = 0;
 $node->created = 1263769200;
 $node->log = "added a broken node";
 $node->path = array('alias' => "content/1263769200");
-node_save($node);
+$node->save();
 db_update('node')
   ->fields(array(
     'type' => $node_type,

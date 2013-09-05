@@ -8,6 +8,7 @@
 namespace Drupal\views\Plugin\views\argument_validator;
 
 use Drupal\views\ViewExecutable;
+use Drupal\views\Plugin\views\argument\ArgumentPluginBase;
 use Drupal\views\Plugin\views\PluginBase;
 
 /**
@@ -22,15 +23,20 @@ use Drupal\views\Plugin\views\PluginBase;
 abstract class ArgumentValidatorPluginBase extends PluginBase {
 
   /**
-   * Initialize this plugin with the view and the argument
-   * it is linked to.
+   * The argument handler instance associated with this plugin.
+   *
+   * @var \Drupal\views\Plugin\views\argument\ArgumentPluginBase
    */
-  public function init(ViewExecutable $view, &$argument, $options) {
-    $this->setOptionDefaults($this->options, $this->defineOptions());
-    $this->view = &$view;
-    $this->argument = &$argument;
+  protected $argument;
 
-    $this->unpackOptions($this->options, $options);
+  /**
+   * Sets the parent argument this plugin is associated with.
+   *
+   * @param \Drupal\views\Plugin\views\argument\ArgumentPluginBase $argument
+   *   The parent argument to set.
+   */
+  public function setArgument(ArgumentPluginBase $argument) {
+    $this->argument = $argument;
   }
 
   /**
@@ -66,7 +72,7 @@ abstract class ArgumentValidatorPluginBase extends PluginBase {
    * This is only called by child objects if specified in the buildOptionsForm(),
    * so it will not always be used.
    */
-  function check_access(&$form, $option_name) {
+  protected function checkAccess(&$form, $option_name) {
     if (!$this->access()) {
       $form[$option_name]['#disabled'] = TRUE;
       $form[$option_name]['#value'] = $form[$this->option_name]['#default_value'];
@@ -74,7 +80,7 @@ abstract class ArgumentValidatorPluginBase extends PluginBase {
     }
   }
 
-  function validate_argument($arg) { return TRUE; }
+  public function validateArgument($arg) { return TRUE; }
 
   /**
    * Process the summary arguments for displaying.
@@ -84,7 +90,7 @@ abstract class ArgumentValidatorPluginBase extends PluginBase {
    * for a faster query. But there are use cases where you want to use
    * the old value again, for example the summary.
    */
-  function process_summary_arguments(&$args) { }
+  public function processSummaryArguments(&$args) { }
 
 }
 

@@ -59,7 +59,7 @@ class ConfigUpgradeTest extends WebTestBase {
     ));
 
     // Verify that variables have been converted and default values exist.
-    $config = config('config_upgrade.test');
+    $config = \Drupal::config('config_upgrade.test');
     $this->assertIdentical($config->get('foo'), $this->testContent);
     $this->assertIdentical($config->get('parent.bar'), $this->testContent);
     $this->assertIdentical($config->get('parent.baz'), 'Baz');
@@ -80,7 +80,7 @@ class ConfigUpgradeTest extends WebTestBase {
     ));
 
     // Verify that new variables have been converted and existing still exist.
-    $config = config('config_upgrade.test');
+    $config = \Drupal::config('config_upgrade.test');
     $this->assertIdentical($config->get('foo'), $this->testContent);
     $this->assertIdentical($config->get('parent.bar'), $this->testContent);
     $this->assertIdentical($config->get('parent.baz'), 'Baz');
@@ -98,5 +98,26 @@ class ConfigUpgradeTest extends WebTestBase {
     catch (ConfigException $e) {
       $this->pass('Exception was thrown on missing default module configuration file.');
     }
+
+    // For this test it is essential that update_variables_to_config has already
+    // run on the config object.
+    \Drupal::config('config_upgrade.test')
+      ->set('numeric_keys.403', '')
+      ->set('numeric_keys.404', '')
+      ->save();
+
+    db_insert('variable')
+      ->fields(array('name', 'value'))
+      ->values(array('config_upgrade_403', serialize('custom403')))
+      ->values(array('config_upgrade_404', serialize('custom404')))
+      ->execute();
+
+    // Perform migration.
+    update_variables_to_config('config_upgrade.test', array(
+      'config_upgrade_403' => 'numeric_keys.403',
+      'config_upgrade_404' => 'numeric_keys.404',
+    ));
+
+    $this->assertIdentical(\Drupal::config('config_upgrade.test')->get('numeric_keys'), array(403 => 'custom403', 404 => 'custom404'));
   }
 }

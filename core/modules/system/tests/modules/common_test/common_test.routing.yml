@@ -1,0 +1,6 @@
+common_test_l_active_class:
+  pattern: '/common-test/type-link-active-class'
+  defaults:
+    _content: '\Drupal\common_test\Controller\CommonTestController::typeLinkActiveClass'
+  requirements:
+    _access: 'TRUE'

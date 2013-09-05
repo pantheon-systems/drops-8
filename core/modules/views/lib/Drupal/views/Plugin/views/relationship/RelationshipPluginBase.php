@@ -8,9 +8,11 @@
 namespace Drupal\views\Plugin\views\relationship;
 
 use Drupal\views\ViewExecutable;
+use Drupal\views\Plugin\views\display\DisplayPluginBase;
 use Drupal\views\Plugin\views\HandlerBase;
 use Drupal\views\Join;
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\Plugin;
+use Drupal\views\Views;
 
 /**
  * @defgroup views_relationship_handlers Views relationship handlers
@@ -45,12 +47,14 @@ use Drupal\Core\Annotation\Plugin;
 abstract class RelationshipPluginBase extends HandlerBase {
 
   /**
+   * Overrides \Drupal\views\Plugin\views\HandlerBase::init().
+   *
    * Init handler to let relationships live on tables other than
    * the table they operate on.
    */
-  public function init(ViewExecutable $view, &$options) {
-    $this->setOptionDefaults($this->options, $this->defineOptions());
-    parent::init($view, $options);
+  public function init(ViewExecutable $view, DisplayPluginBase $display, array &$options = NULL) {
+    parent::init($view, $display, $options);
+
     if (isset($this->definition['relationship table'])) {
       $this->table = $this->definition['relationship table'];
     }
@@ -61,19 +65,8 @@ abstract class RelationshipPluginBase extends HandlerBase {
     }
   }
 
-  /**
-   * Get this field's label.
-   */
-  function label() {
-    if (!isset($this->options['label'])) {
-      return $this->adminLabel();
-    }
-    return $this->options['label'];
-  }
-
   protected function defineOptions() {
     $options = parent::defineOptions();
-
 
     // Relationships definitions should define a default label, but if they aren't get another default value.
     if (!empty($this->definition['label'])) {
@@ -83,7 +76,7 @@ abstract class RelationshipPluginBase extends HandlerBase {
       $label = !empty($this->definition['field']) ? $this->definition['field'] : $this->definition['base field'];
     }
 
-    $options['label'] = array('default' => $label, 'translatable' => TRUE);
+    $options['admin_label']['default'] = $label;
     $options['required'] = array('default' => FALSE, 'bool' => TRUE);
 
     return $options;
@@ -95,13 +88,9 @@ abstract class RelationshipPluginBase extends HandlerBase {
    */
   public function buildOptionsForm(&$form, &$form_state) {
     parent::buildOptionsForm($form, $form_state);
-    $form['label'] = array(
-      '#type' => 'textfield',
-      '#title' => t('Identifier'),
-      '#default_value' => isset($this->options['label']) ? $this->options['label'] : '',
-      '#description' => t('Edit the administrative label displayed when referencing this relationship from filters, etc.'),
-      '#required' => TRUE,
-    );
+
+    unset($form['admin_label']['#fieldset']);
+    $form['admin_label']['#weight'] = -1;
 
     $form['required'] = array(
       '#type' => 'checkbox',
@@ -116,7 +105,7 @@ abstract class RelationshipPluginBase extends HandlerBase {
    */
   public function query() {
     // Figure out what base table this relationship brings to the party.
-    $table_data = views_fetch_data($this->definition['base']);
+    $table_data = Views::viewsData()->get($this->definition['base']);
     $base_field = empty($this->definition['base field']) ? $table_data['table']['base']['field'] : $this->definition['base field'];
 
     $this->ensureMyTable();
@@ -141,17 +130,17 @@ abstract class RelationshipPluginBase extends HandlerBase {
     else {
       $id = 'standard';
     }
-    $join = drupal_container()->get('plugin.manager.views.join')->createInstance($id, $def);
+    $join = Views::pluginManager('join')->createInstance($id, $def);
 
     // use a short alias for this:
     $alias = $def['table'] . '_' . $this->table;
 
-    $this->alias = $this->query->add_relationship($alias, $join, $this->definition['base'], $this->relationship);
+    $this->alias = $this->query->addRelationship($alias, $join, $this->definition['base'], $this->relationship);
 
     // Add access tags if the base table provide it.
     if (empty($this->query->options['disable_sql_rewrite']) && isset($table_data['table']['base']['access query tag'])) {
       $access_tag = $table_data['table']['base']['access query tag'];
-      $this->query->add_tag($access_tag);
+      $this->query->addTag($access_tag);
     }
   }
 

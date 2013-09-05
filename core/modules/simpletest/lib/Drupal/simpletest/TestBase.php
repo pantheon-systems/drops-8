@@ -2,23 +2,30 @@
 
 /**
  * @file
- * Definition of Drupal\simpletest\TestBase.
+ * Definition of \Drupal\simpletest\TestBase.
  */
 
 namespace Drupal\simpletest;
 
+use Drupal\Component\Utility\Random;
 use Drupal\Core\Database\Database;
+use Drupal\Component\Utility\Settings;
+use Drupal\Core\Config\ConfigImporter;
+use Drupal\Core\Config\StorageComparer;
+use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\Database\ConnectionNotDefinedException;
+use Drupal\Core\Config\StorageInterface;
 use Drupal\Core\DrupalKernel;
+use Drupal\Core\Language\Language;
+use Drupal\Core\StreamWrapper\PublicStream;
 use ReflectionMethod;
 use ReflectionObject;
-use Exception;
 
 /**
  * Base class for Drupal tests.
  *
- * Do not extend this class directly, use either Drupal\simpletest\WebTestBaseBase
- * or Drupal\simpletest\UnitTestBaseBase.
+ * Do not extend this class directly, use either
+ * \Drupal\simpletest\WebTestBaseBase or \Drupal\simpletest\UnitTestBaseBase.
  */
 abstract class TestBase {
   /**
@@ -137,6 +144,50 @@ abstract class TestBase {
   protected $verboseDirectoryUrl;
 
   /**
+   * The settings array.
+   */
+  protected $originalSettings;
+
+  /**
+   * The public file directory for the test environment.
+   *
+   * This is set in TestBase::prepareEnvironment().
+   *
+   * @var string
+   */
+  protected $public_files_directory;
+
+  /**
+   * Whether to die in case any test assertion fails.
+   *
+   * @var boolean
+   *
+   * @see run-tests.sh
+   */
+  public $dieOnFail = FALSE;
+
+  /**
+   * The dependency injection container used in the test.
+   *
+   * @var \Symfony\Component\DependencyInjection\ContainerInterface
+   */
+  protected $container;
+
+  /**
+   * The config importer that can used in a test.
+   *
+   * @var \Drupal\Core\Config\ConfigImporter
+   */
+  protected $configImporter;
+
+  /**
+   * The random generator.
+   *
+   * @var \Drupal\Component\Utility\Random
+   */
+  protected $randomGenerator;
+
+  /**
    * Constructor for Test.
    *
    * @param $test_id
@@ -160,7 +211,7 @@ abstract class TestBase {
    * Internal helper: stores the assert.
    *
    * @param $status
-   *   Can be 'pass', 'fail', 'exception'.
+   *   Can be 'pass', 'fail', 'exception', 'debug'.
    *   TRUE is a synonym for 'pass', FALSE for 'fail'.
    * @param $message
    *   (optional) A message to display with the assertion. Do not translate
@@ -216,6 +267,9 @@ abstract class TestBase {
       return TRUE;
     }
     else {
+      if ($this->dieOnFail && ($status == 'fail' || $status == 'exception')) {
+        exit(1);
+      }
       return FALSE;
     }
   }
@@ -227,14 +281,14 @@ abstract class TestBase {
    * the test case has been destroyed, such as PHP fatal errors. The caller
    * information is not automatically gathered since the caller is most likely
    * inserting the assertion on behalf of other code. In all other respects
-   * the method behaves just like Drupal\simpletest\TestBase::assert() in terms
+   * the method behaves just like \Drupal\simpletest\TestBase::assert() in terms
    * of storing the assertion.
    *
    * @return
    *   Message ID of the stored assertion.
    *
-   * @see Drupal\simpletest\TestBase::assert()
-   * @see Drupal\simpletest\TestBase::deleteAssert()
+   * @see \Drupal\simpletest\TestBase::assert()
+   * @see \Drupal\simpletest\TestBase::deleteAssert()
    */
   public static function insertAssert($test_id, $test_class, $status, $message = '', $group = 'Other', array $caller = array()) {
     // Convert boolean status to string status.
@@ -270,10 +324,11 @@ abstract class TestBase {
    *
    * @param $message_id
    *   Message ID of the assertion to delete.
+   *
    * @return
    *   TRUE if the assertion was deleted, FALSE otherwise.
    *
-   * @see Drupal\simpletest\TestBase::insertAssert()
+   * @see \Drupal\simpletest\TestBase::insertAssert()
    */
   public static function deleteAssert($message_id) {
     return (bool) self::getDatabaseConnection()
@@ -285,7 +340,7 @@ abstract class TestBase {
   /**
    * Returns the database connection to the site running Simpletest.
    *
-   * @return Drupal\Core\Database\Connection
+   * @return \Drupal\Core\Database\Connection
    *   The database connection to use for inserting assertions.
    */
   public static function getDatabaseConnection() {
@@ -323,7 +378,9 @@ abstract class TestBase {
   }
 
   /**
-   * Check to see if a value is not false (not an empty string, 0, NULL, or FALSE).
+   * Check to see if a value is not false.
+   *
+   * False values are: empty string, 0, NULL, and FALSE.
    *
    * @param $value
    *   The value on which the assertion is to be done.
@@ -336,6 +393,7 @@ abstract class TestBase {
    *   in test output. Use 'Debug' to indicate this is debugging output. Do not
    *   translate this string. Defaults to 'Other'; most tests do not override
    *   this default.
+   *
    * @return
    *   TRUE if the assertion succeeded, FALSE otherwise.
    */
@@ -344,7 +402,9 @@ abstract class TestBase {
   }
 
   /**
-   * Check to see if a value is false (an empty string, 0, NULL, or FALSE).
+   * Check to see if a value is false.
+   *
+   * False values are: empty string, 0, NULL, and FALSE.
    *
    * @param $value
    *   The value on which the assertion is to be done.
@@ -357,6 +417,7 @@ abstract class TestBase {
    *   in test output. Use 'Debug' to indicate this is debugging output. Do not
    *   translate this string. Defaults to 'Other'; most tests do not override
    *   this default.
+   *
    * @return
    *   TRUE if the assertion succeeded, FALSE otherwise.
    */
@@ -378,6 +439,7 @@ abstract class TestBase {
    *   in test output. Use 'Debug' to indicate this is debugging output. Do not
    *   translate this string. Defaults to 'Other'; most tests do not override
    *   this default.
+   *
    * @return
    *   TRUE if the assertion succeeded, FALSE otherwise.
    */
@@ -399,6 +461,7 @@ abstract class TestBase {
    *   in test output. Use 'Debug' to indicate this is debugging output. Do not
    *   translate this string. Defaults to 'Other'; most tests do not override
    *   this default.
+   *
    * @return
    *   TRUE if the assertion succeeded, FALSE otherwise.
    */
@@ -422,6 +485,7 @@ abstract class TestBase {
    *   in test output. Use 'Debug' to indicate this is debugging output. Do not
    *   translate this string. Defaults to 'Other'; most tests do not override
    *   this default.
+   *
    * @return
    *   TRUE if the assertion succeeded, FALSE otherwise.
    */
@@ -445,6 +509,7 @@ abstract class TestBase {
    *   in test output. Use 'Debug' to indicate this is debugging output. Do not
    *   translate this string. Defaults to 'Other'; most tests do not override
    *   this default.
+   *
    * @return
    *   TRUE if the assertion succeeded, FALSE otherwise.
    */
@@ -468,6 +533,7 @@ abstract class TestBase {
    *   in test output. Use 'Debug' to indicate this is debugging output. Do not
    *   translate this string. Defaults to 'Other'; most tests do not override
    *   this default.
+   *
    * @return
    *   TRUE if the assertion succeeded, FALSE otherwise.
    */
@@ -491,6 +557,7 @@ abstract class TestBase {
    *   in test output. Use 'Debug' to indicate this is debugging output. Do not
    *   translate this string. Defaults to 'Other'; most tests do not override
    *   this default.
+   *
    * @return
    *   TRUE if the assertion succeeded, FALSE otherwise.
    */
@@ -518,7 +585,7 @@ abstract class TestBase {
    * @return
    *   TRUE if the assertion succeeded, FALSE otherwise.
    */
-  protected function assertIdenticalObject($object1, $object2, $message = '', $group = '') {
+  protected function assertIdenticalObject($object1, $object2, $message = '', $group = 'Other') {
     $message = $message ?: format_string('!object1 is identical to !object2', array(
       '!object1' => var_export($object1, TRUE),
       '!object2' => var_export($object2, TRUE),
@@ -527,7 +594,7 @@ abstract class TestBase {
     foreach ($object1 as $key => $value) {
       $identical = $identical && isset($object2->$key) && $object2->$key === $value;
     }
-    return $this->assertTrue($identical, $message);
+    return $this->assertTrue($identical, $message, $group);
   }
 
 
@@ -544,6 +611,7 @@ abstract class TestBase {
    *   in test output. Use 'Debug' to indicate this is debugging output. Do not
    *   translate this string. Defaults to 'Other'; most tests do not override
    *   this default.
+   *
    * @return
    *   TRUE.
    */
@@ -563,6 +631,7 @@ abstract class TestBase {
    *   in test output. Use 'Debug' to indicate this is debugging output. Do not
    *   translate this string. Defaults to 'Other'; most tests do not override
    *   this default.
+   *
    * @return
    *   FALSE.
    */
@@ -584,6 +653,7 @@ abstract class TestBase {
    *   this default.
    * @param $caller
    *   The caller of the error.
+   *
    * @return
    *   FALSE.
    */
@@ -639,13 +709,14 @@ abstract class TestBase {
    *   methods during debugging.
    */
   public function run(array $methods = array()) {
-    $simpletest_config = config('simpletest.settings');
+    TestServiceProvider::$currentTest = $this;
+    $simpletest_config = \Drupal::config('simpletest.settings');
 
     $class = get_class($this);
     if ($simpletest_config->get('verbose')) {
       // Initialize verbose debugging.
       $this->verbose = TRUE;
-      $this->verboseDirectory = variable_get('file_public_path', conf_path() . '/files') . '/simpletest/verbose';
+      $this->verboseDirectory = PublicStream::basePath() . '/simpletest/verbose';
       $this->verboseDirectoryUrl = file_create_url($this->verboseDirectory);
       if (file_prepare_directory($this->verboseDirectory, FILE_CREATE_DIRECTORY) && !file_exists($this->verboseDirectory . '/.htaccess')) {
         file_put_contents($this->verboseDirectory . '/.htaccess', "<IfModule mod_expires.c>\nExpiresActive Off\n</IfModule>\n");
@@ -697,7 +768,7 @@ abstract class TestBase {
               $this->$method();
               // Finish up.
             }
-            catch (Exception $e) {
+            catch (\Exception $e) {
               $this->exceptionHandler($e);
             }
             $this->tearDown();
@@ -710,6 +781,7 @@ abstract class TestBase {
         }
       }
     }
+    TestServiceProvider::$currentTest = NULL;
     // Clear out the error messages and restore error handler.
     drupal_get_messages();
     restore_error_handler();
@@ -801,7 +873,7 @@ abstract class TestBase {
    */
   protected function prepareEnvironment() {
     global $user, $conf;
-    $language_interface = language(LANGUAGE_TYPE_INTERFACE);
+    $language_interface = language(Language::TYPE_INTERFACE);
 
     // When running the test runner within a test, back up the original database
     // prefix and re-set the new/nested prefix in drupal_valid_test_ua().
@@ -811,22 +883,31 @@ abstract class TestBase {
     }
 
     // Backup current in-memory configuration.
+    $this->originalSettings = settings()->getAll();
     $this->originalConf = $conf;
 
     // Backup statics and globals.
     $this->originalContainer = clone drupal_container();
     $this->originalLanguage = $language_interface;
     $this->originalConfigDirectories = $GLOBALS['config_directories'];
-    $this->originalThemeKey = $GLOBALS['theme_key'];
-    $this->originalTheme = $GLOBALS['theme'];
+    if (isset($GLOBALS['theme_key'])) {
+      $this->originalThemeKey = $GLOBALS['theme_key'];
+    }
+    $this->originalTheme = isset($GLOBALS['theme']) ? $GLOBALS['theme'] : NULL;
 
     // Save further contextual information.
-    $this->originalFileDirectory = variable_get('file_public_path', conf_path() . '/files');
+    // Use the original files directory to avoid nesting it within an existing
+    // simpletest directory if a test is executed within a test.
+    $this->originalFileDirectory = settings()->get('file_public_path', conf_path() . '/files');
     $this->originalProfile = drupal_get_profile();
-    $this->originalUser = clone $user;
+    $this->originalUser = isset($user) ? clone $user : NULL;
 
     // Ensure that the current session is not changed by the new environment.
+    require_once DRUPAL_ROOT . '/' . settings()->get('session_inc', 'core/includes/session.inc');
     drupal_save_session(FALSE);
+    // Run all tests as a anonymous user by default, web tests will replace that
+    // during the test set up.
+    $user = drupal_anonymous_user();
 
     // Save and clean the shutdown callbacks array because it is static cached
     // and will be changed by the test run. Otherwise it will contain callbacks
@@ -851,36 +932,24 @@ abstract class TestBase {
     file_prepare_directory($this->translation_files_directory, FILE_CREATE_DIRECTORY);
     $this->generatedTestFiles = FALSE;
 
-    // Create and set new configuration directories. The child site
-    // uses drupal_valid_test_ua() to adjust the config directory paths to
-    // a test-prefix-specific directory within the public files directory.
-    // @see config_get_config_directory()
-    $GLOBALS['config_directories'] = array();
-    $this->configDirectories = array();
-    include_once DRUPAL_ROOT . '/core/includes/install.inc';
-    foreach (array(CONFIG_ACTIVE_DIRECTORY, CONFIG_STAGING_DIRECTORY) as $type) {
-      // Assign the relative path to the global variable.
-      $path = 'simpletest/' . substr($this->databasePrefix, 10) . '/config_' . $type;
-      $GLOBALS['config_directories'][$type]['path'] = $path;
-      // Ensure the directory can be created and is writeable.
-      if (!install_ensure_config_directory($type)) {
-        return FALSE;
-      }
-      // Provide the already resolved path for tests.
-      $this->configDirectories[$type] = $this->originalFileDirectory . '/' . $path;
-    }
+    // Create and set new configuration directories.
+    $this->prepareConfigDirectories();
+
+    // Reset statics before the old container is replaced so that objects with a
+    // __destruct() method still have access to it.
+    // @todo: Remove once they have been converted to services.
+    drupal_static_reset();
 
     // Reset and create a new service container.
-    $this->container = drupal_container(NULL, TRUE);
+    $this->container = new ContainerBuilder();
+     // @todo Remove this once this class has no calls to t() and format_plural()
+    $this->container->register('string_translation', 'Drupal\Core\StringTranslation\TranslationManager');
+
+    \Drupal::setContainer($this->container);
 
     // Unset globals.
     unset($GLOBALS['theme_key']);
     unset($GLOBALS['theme']);
-
-    // Re-initialize the theme to ensure that tests do not see an inconsistent
-    // behavior when calling functions that would initialize the theme if it has
-    // not been initialized yet.
-    drupal_theme_initialize();
 
     // Log fatal errors.
     ini_set('log_errors', 1);
@@ -896,36 +965,59 @@ abstract class TestBase {
   }
 
   /**
-   * Rebuild drupal_container().
+   * Create and set new configuration directories.
+   *
+   * The child site uses drupal_valid_test_ua() to adjust the config directory
+   * paths to a test-prefix-specific directory within the public files
+   * directory.
+   *
+   * @see config_get_config_directory()
+   */
+  protected function prepareConfigDirectories() {
+    $GLOBALS['config_directories'] = array();
+    $this->configDirectories = array();
+    include_once DRUPAL_ROOT . '/core/includes/install.inc';
+    foreach (array(CONFIG_ACTIVE_DIRECTORY, CONFIG_STAGING_DIRECTORY) as $type) {
+      // Assign the relative path to the global variable.
+      $path = 'simpletest/' . substr($this->databasePrefix, 10) . '/config_' . $type;
+      $GLOBALS['config_directories'][$type]['path'] = $path;
+      // Ensure the directory can be created and is writeable.
+      if (!install_ensure_config_directory($type)) {
+        return FALSE;
+      }
+      // Provide the already resolved path for tests.
+      $this->configDirectories[$type] = $this->originalFileDirectory . '/' . $path;
+    }
+  }
+
+  /**
+   * Rebuild Drupal::getContainer().
+   *
+   * Use this to build a new kernel and service container. For example, when the
+   * list of enabled modules is changed via the internal browser, in which case
+   * the test process still contains an old kernel and service container with an
+   * old module list.
+   *
+   * @see TestBase::prepareEnvironment()
+   * @see TestBase::tearDown()
    *
    * @todo Fix http://drupal.org/node/1708692 so that module enable/disable
-   *   changes are immediately reflected in drupal_container(). Until then,
+   *   changes are immediately reflected in Drupal::getContainer(). Until then,
    *   tests can invoke this workaround when requiring services from newly
    *   enabled modules to be immediately available in the same request.
    */
   protected function rebuildContainer() {
-    // DrupalKernel expects to merge a fresh bootstrap container, not remerge
-    // what is left over from a prior container build.
-    drupal_container(NULL, TRUE);
-    // Create a new DrupalKernel for testing purposes, now that all required
-    // modules have been enabled. This also stores a new dependency injection
-    // container in drupal_container(). Drupal\simpletest\TestBase::tearDown()
-    // restores the original container.
-    // @see Drupal\Core\DrupalKernel::initializeContainer()
-    $this->kernel = new DrupalKernel('testing', FALSE, NULL);
-    // Booting the kernel is necessary to initialize the new DIC. While
-    // normally the kernel gets booted on demand in
-    // Symfony\Component\HttpKernel\handle(), this kernel needs manual booting
-    // as it is not used to handle a request.
+    $this->kernel = new DrupalKernel('testing', drupal_classloader(), FALSE);
     $this->kernel->boot();
-    // The DrupalKernel does not update the container in drupal_container(), but
-    // replaces it with a new object. We therefore need to replace the minimal
-    // boostrap container that has been set up by TestBase::prepareEnvironment().
-    $this->container = drupal_container();
+    // DrupalKernel replaces the container in Drupal::getContainer() with a
+    // different object, so we need to replace the instance on this test class.
+    $this->container = \Drupal::getContainer();
+    // The global $user is set in TestBase::prepareEnvironment().
+    $this->container->get('request')->attributes->set('_account', $GLOBALS['user']);
   }
 
   /**
-   * Deletes created files, database tables, and reverts all environment changes.
+   * Deletes created files, database tables, and reverts environment changes.
    *
    * This method needs to be invoked for both unit and integration tests.
    *
@@ -964,11 +1056,13 @@ abstract class TestBase {
     // In case a fatal error occurred that was not in the test process read the
     // log to pick up any fatal errors.
     simpletest_log_read($this->testId, $this->databasePrefix, get_class($this), TRUE);
-    $captured_emails = state()->get('system.test_email_collector') ?: array();
-    $emailCount = count($captured_emails);
-    if ($emailCount) {
-      $message = format_plural($emailCount, '1 e-mail was sent during this test.', '@count e-mails were sent during this test.');
-      $this->pass($message, t('E-mail'));
+    if (($container = drupal_container()) && $container->has('keyvalue')) {
+      $captured_emails = \Drupal::state()->get('system.test_email_collector') ?: array();
+      $emailCount = count($captured_emails);
+      if ($emailCount) {
+        $message = format_plural($emailCount, '1 e-mail was sent during this test.', '@count e-mails were sent during this test.');
+        $this->pass($message, t('E-mail'));
+      }
     }
 
     // Delete temporary files directory.
@@ -983,7 +1077,9 @@ abstract class TestBase {
     $databases['default']['default'] = $connection_info['default'];
 
     // Restore original globals.
-    $GLOBALS['theme_key'] = $this->originalThemeKey;
+    if (isset($this->originalThemeKey)) {
+      $GLOBALS['theme_key'] = $this->originalThemeKey;
+    }
     $GLOBALS['theme'] = $this->originalTheme;
 
     // Reset all static variables.
@@ -991,26 +1087,16 @@ abstract class TestBase {
     // this second reset is guranteed to reset everything to nothing.
     drupal_static_reset();
 
-    // Reset static in language().
-    // Restoring drupal_container() makes language() return the proper languages
-    // already, but it contains an additional static that needs to be reset. The
-    // reset can happen before the container is restored, as it is unnecessary
-    // to reset the language_manager service.
-    language(NULL, TRUE);
-
     // Restore original in-memory configuration.
     $conf = $this->originalConf;
+    new Settings($this->originalSettings);
 
     // Restore original statics and globals.
-    drupal_container($this->originalContainer);
+    \Drupal::setContainer($this->originalContainer);
     $GLOBALS['config_directories'] = $this->originalConfigDirectories;
     if (isset($this->originalPrefix)) {
       drupal_valid_test_ua($this->originalPrefix);
     }
-
-    // Reset module list and module load status.
-    module_list_reset();
-    module_load_all(FALSE, TRUE);
 
     // Restore original shutdown callbacks.
     $callbacks = &drupal_register_shutdown_function();
@@ -1025,6 +1111,7 @@ abstract class TestBase {
    * Handle errors during test runs.
    *
    * Because this is registered in set_error_handler(), it has to be public.
+   *
    * @see set_error_handler
    */
   public function errorHandler($severity, $message, $file = NULL, $line = NULL) {
@@ -1040,6 +1127,8 @@ abstract class TestBase {
         E_USER_WARNING => 'User warning',
         E_USER_NOTICE => 'User notice',
         E_RECOVERABLE_ERROR => 'Recoverable error',
+        E_DEPRECATED => 'Deprecated',
+        E_USER_DEPRECATED => 'User deprecated',
       );
 
       $backtrace = debug_backtrace();
@@ -1070,68 +1159,98 @@ abstract class TestBase {
       'line' => $exception->getLine(),
       'file' => $exception->getFile(),
     ));
-    // The exception message is run through check_plain() by _drupal_decode_exception().
-    $message = format_string('%type: !message in %function (line %line of %file). <pre class="backtrace">!backtrace</pre>', _drupal_decode_exception($exception) + array(
+    // The exception message is run through check_plain()
+    // by _drupal_decode_exception().
+    $decoded_exception = _drupal_decode_exception($exception);
+    unset($decoded_exception['backtrace']);
+    $message = format_string('%type: !message in %function (line %line of %file). <pre class="backtrace">!backtrace</pre>', $decoded_exception + array(
       '!backtrace' => format_backtrace($verbose_backtrace),
     ));
     $this->error($message, 'Uncaught exception', _drupal_get_last_caller($backtrace));
   }
 
   /**
-   * Generates a random string of ASCII characters of codes 32 to 126.
+   * Changes in memory settings.
    *
-   * The generated string includes alpha-numeric characters and common
-   * miscellaneous characters. Use this method when testing general input
-   * where the content is not restricted.
+   * @param $name
+   *   The name of the setting to return.
+   * @param $value
+   *   The value of the setting.
    *
-   * Do not use this method when special characters are not possible (e.g., in
-   * machine or file names that have already been validated); instead, use
-   * Drupal\simpletest\TestBase::randomName().
-   *
-   * @param $length
-   *   Length of random string to generate.
-   *
-   * @return
-   *   Randomly generated string.
-   *
-   * @see Drupal\simpletest\TestBase::randomName()
+   * @see \Drupal\Component\Utility\Settings::get()
    */
-  public static function randomString($length = 8) {
-    $str = '';
-    for ($i = 0; $i < $length; $i++) {
-      $str .= chr(mt_rand(32, 126));
-    }
-    return $str;
+  protected function settingsSet($name, $value) {
+    $settings = settings()->getAll();
+    $settings[$name] = $value;
+    new Settings($settings);
   }
 
   /**
-   * Generates a random string containing letters and numbers.
+   * Generates a unique random string of ASCII characters of codes 32 to 126.
    *
-   * The string will always start with a letter. The letters may be upper or
-   * lower case. This method is better for restricted inputs that do not
-   * accept certain characters. For example, when testing input fields that
-   * require machine readable values (i.e. without spaces and non-standard
-   * characters) this method is best.
+   * Do not use this method when special characters are not possible (e.g., in
+   * machine or file names that have already been validated); instead, use
+   * \Drupal\simpletest\TestBase::randomName().
    *
-   * Do not use this method when testing unvalidated user input. Instead, use
-   * Drupal\simpletest\TestBase::randomString().
-   *
-   * @param $length
+   * @param int $length
    *   Length of random string to generate.
    *
-   * @return
-   *   Randomly generated string.
+   * @return string
+   *   Randomly generated unique string.
    *
-   * @see Drupal\simpletest\TestBase::randomString()
+   * @see \Drupal\Component\Utility\Random::string()
    */
-  public static function randomName($length = 8) {
-    $values = array_merge(range(65, 90), range(97, 122), range(48, 57));
-    $max = count($values) - 1;
-    $str = chr(mt_rand(97, 122));
-    for ($i = 1; $i < $length; $i++) {
-      $str .= chr($values[mt_rand(0, $max)]);
+  public function randomString($length = 8) {
+    return $this->getRandomGenerator()->string($length, TRUE, array($this, 'randomStringValidate'));
+  }
+
+  /**
+   * Callback for random string validation.
+   *
+   * @see \Drupal\Component\Utility\Random::string()
+   *
+   * @param string $string
+   *   The random string to validate.
+   *
+   * @return bool
+   *   TRUE if the random string is valid, FALSE if not.
+   */
+  public function randomStringValidate($string) {
+    // Consecutive spaces causes issues for
+    // Drupal\simpletest\WebTestBase::assertLink().
+    if (preg_match('/\s{2,}/', $string)) {
+      return FALSE;
     }
-    return $str;
+
+    // Starting with a space means that length might not be what is expected.
+    if (preg_match('/^\s/', $string)) {
+      return FALSE;
+    }
+
+    // Ending with a space means that length might not be what is expected.
+    if (preg_match('/\s$/', $string)) {
+      return FALSE;
+    }
+
+    return TRUE;
+  }
+
+  /**
+   * Generates a unique random string containing letters and numbers.
+   *
+   * Do not use this method when testing unvalidated user input. Instead, use
+   * \Drupal\simpletest\TestBase::randomString().
+   *
+   * @param int $length
+   *   Length of random string to generate.
+   *
+   * @return string
+   *   Randomly generated unique string.
+   *
+   * @see \Drupal\Component\Utility\Random::name()
+   */
+  public function randomName($length = 8) {
+    return $this->getRandomGenerator()->name($length, TRUE);
   }
 
   /**
@@ -1143,15 +1262,24 @@ abstract class TestBase {
    * @return \stdClass
    *   The generated object, with the specified number of random keys. Each key
    *   has a random string value.
+   *
+   * @see \Drupal\Component\Utility\Random::object()
    */
-  public static function randomObject($size = 4) {
-    $object = new \stdClass();
-    for ($i = 0; $i < $size; $i++) {
-      $random_key = self::randomName();
-      $random_value = self::randomString();
-      $object->{$random_key} = $random_value;
+  public function randomObject($size = 4) {
+    return $this->getRandomGenerator()->object($size);
+  }
+
+  /**
+   * Gets the random generator for the utility methods.
+   *
+   * @return \Drupal\Component\Utility\Random
+   *   The random generator
+   */
+  protected function getRandomGenerator() {
+    if (!is_object($this->randomGenerator)) {
+      $this->randomGenerator = new Random();
     }
-    return $object;
+    return $this->randomGenerator;
   }
 
   /**
@@ -1211,5 +1339,45 @@ abstract class TestBase {
    */
   public static function filePreDeleteCallback($path) {
     chmod($path, 0700);
+  }
+
+  /**
+   * Returns a ConfigImporter object to import test importing of configuration.
+   *
+   * @return \Drupal\Core\Config\ConfigImporter
+   *   The ConfigImporter object.
+   */
+  public function configImporter() {
+    if (!$this->configImporter) {
+      // Set up the ConfigImporter object for testing.
+      $config_comparer = new StorageComparer(
+        $this->container->get('config.storage.staging'),
+        $this->container->get('config.storage')
+      );
+      $this->configImporter = new ConfigImporter(
+        $config_comparer,
+        $this->container->get('event_dispatcher'),
+        $this->container->get('config.factory'),
+        $this->container->get('entity.manager'),
+        $this->container->get('lock')
+      );
+    }
+    // Always recalculate the changelist when called.
+    return $this->configImporter->reset();
+  }
+
+  /**
+   * Copies configuration objects from source storage to target storage.
+   *
+   * @param \Drupal\Core\Config\StorageInterface $source_storage
+   *   The source config storage service.
+   * @param \Drupal\Core\Config\StorageInterface $target_storage
+   *   The target config storage service.
+   */
+  public function copyConfig(StorageInterface $source_storage, StorageInterface $target_storage) {
+    $target_storage->deleteAll();
+    foreach ($source_storage->listAll() as $name) {
+      $target_storage->write($name, $source_storage->read($name));
+    }
   }
 }

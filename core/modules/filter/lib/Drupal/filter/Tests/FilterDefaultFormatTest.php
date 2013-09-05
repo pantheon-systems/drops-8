@@ -9,6 +9,9 @@ namespace Drupal\filter\Tests;
 
 use Drupal\simpletest\WebTestBase;
 
+/**
+ * Tests the default filter functionality in the Filter module.
+ */
 class FilterDefaultFormatTest extends WebTestBase {
   public static function getInfo() {
     return array(
@@ -34,37 +37,41 @@ class FilterDefaultFormatTest extends WebTestBase {
       );
       $this->drupalPost('admin/config/content/formats/add', $edit, t('Save configuration'));
       $this->resetFilterCaches();
-      $formats[] = filter_format_load($edit['format']);
+      $formats[] = entity_load('filter_format', $edit['format']);
     }
     list($first_format, $second_format) = $formats;
-    $first_user = $this->drupalCreateUser(array(filter_permission_name($first_format), filter_permission_name($second_format)));
-    $second_user = $this->drupalCreateUser(array(filter_permission_name($second_format)));
+    $second_format_permission = $second_format->getPermissionName();
+    $first_user = $this->drupalCreateUser(array($first_format->getPermissionName(), $second_format_permission));
+    $second_user = $this->drupalCreateUser(array($second_format_permission));
 
     // Adjust the weights so that the first and second formats (in that order)
     // are the two lowest weighted formats available to any user.
-    $minimum_weight = db_query("SELECT MIN(weight) FROM {filter_format}")->fetchField();
     $edit = array();
-    $edit['formats[' . $first_format->format . '][weight]'] = $minimum_weight - 2;
-    $edit['formats[' . $second_format->format . '][weight]'] = $minimum_weight - 1;
+    $edit['formats[' . $first_format->format . '][weight]'] = -2;
+    $edit['formats[' . $second_format->format . '][weight]'] = -1;
     $this->drupalPost('admin/config/content/formats', $edit, t('Save changes'));
     $this->resetFilterCaches();
 
     // Check that each user's default format is the lowest weighted format that
     // the user has access to.
-    $this->assertEqual(filter_default_format($first_user), $first_format->format, "The first user's default format is the lowest weighted format that the user has access to.");
-    $this->assertEqual(filter_default_format($second_user), $second_format->format, "The second user's default format is the lowest weighted format that the user has access to, and is different than the first user's.");
+    $actual = filter_default_format($first_user);
+    $expected = $first_format->format;
+    $this->assertEqual($actual, $expected, "First user's default format $actual is the expected lowest weighted format $expected that the user has access to.");
+    $actual = filter_default_format($second_user);
+    $expected = $second_format->format;
+    $this->assertEqual($actual, $expected, "Second user's default format $actual is the expected lowest weighted format $expected that the user has access to, and different to the first user's.");
 
     // Reorder the two formats, and check that both users now have the same
     // default.
     $edit = array();
-    $edit['formats[' . $second_format->format . '][weight]'] = $minimum_weight - 3;
+    $edit['formats[' . $second_format->format . '][weight]'] = -3;
     $this->drupalPost('admin/config/content/formats', $edit, t('Save changes'));
     $this->resetFilterCaches();
     $this->assertEqual(filter_default_format($first_user), filter_default_format($second_user), 'After the formats are reordered, both users have the same default format.');
   }
 
   /**
-   * Rebuild text format and permission caches in the thread running the tests.
+   * Rebuilds text format and permission caches in the thread running the tests.
    */
   protected function resetFilterCaches() {
     filter_formats_reset();

@@ -7,6 +7,9 @@
  * @ingroup views_module_handlers
  */
 
+use Drupal\Core\Entity\DatabaseStorageController;
+use Drupal\field\FieldInterface;
+
 /**
  * Implements hook_views_data().
  */
@@ -27,6 +30,7 @@ function file_views_data() {
     ),
   );
   $data['file_managed']['table']['entity type'] = 'file';
+  $data['file_managed']['table']['wizard_id'] = 'file_managed';
 
   // fid
   $data['file_managed']['fid'] = array(
@@ -34,7 +38,6 @@ function file_views_data() {
     'help' => t('The ID of the file.'),
     'field' => array(
       'id' => 'file',
-      'click sortable' => TRUE,
     ),
     'argument' => array(
       'id' => 'file_fid',
@@ -55,7 +58,6 @@ function file_views_data() {
     'help' => t('The name of the file.'),
     'field' => array(
       'id' => 'file',
-      'click sortable' => TRUE,
      ),
     'sort' => array(
       'id' => 'standard',
@@ -74,7 +76,6 @@ function file_views_data() {
     'help' => t('The path of the file.'),
     'field' => array(
       'id' => 'file_uri',
-      'click sortable' => TRUE,
      ),
     'sort' => array(
       'id' => 'standard',
@@ -93,7 +94,6 @@ function file_views_data() {
     'help' => t('The mime type of the file.'),
     'field' => array(
       'id' => 'file_filemime',
-      'click sortable' => TRUE,
      ),
     'sort' => array(
       'id' => 'standard',
@@ -123,7 +123,6 @@ function file_views_data() {
     'help' => t('The size of the file.'),
     'field' => array(
       'id' => 'file_size',
-      'click sortable' => TRUE,
      ),
     'sort' => array(
       'id' => 'standard',
@@ -139,7 +138,6 @@ function file_views_data() {
     'help' => t('The status of the file.'),
     'field' => array(
       'id' => 'file_status',
-      'click sortable' => TRUE,
      ),
     'sort' => array(
       'id' => 'standard',
@@ -155,7 +153,6 @@ function file_views_data() {
     'help' => t('The date the file was uploaded.'),
     'field' => array(
       'id' => 'date',
-      'click sortable' => TRUE,
     ),
     'sort' => array(
       'id' => 'date'
@@ -232,7 +229,7 @@ function file_views_data() {
     'title' => t('Content'),
     'help' => t('Content that is associated with this file, usually because this file is in a field on the content.'),
     // Only provide this field/relationship/etc. when the 'file_managed' base table is present.
-    'skip base' => array('node', 'node_revision', 'users', 'comment', 'taxonomy_term_data', 'taxonomy_vocabulary'),
+    'skip base' => array('node', 'node_field_revision', 'users', 'comment', 'taxonomy_term_data', 'taxonomy_vocabulary'),
     'real field' => 'id',
     'relationship' => array(
       'title' => t('Content'),
@@ -263,7 +260,7 @@ function file_views_data() {
     'title' => t('User'),
     'help' => t('A user that is associated with this file, usually because this file is in a field on the user.'),
     // Only provide this field/relationship/etc. when the 'file_managed' base table is present.
-    'skip base' => array('node', 'node_revision', 'users', 'comment', 'taxonomy_term_data', 'taxonomy_vocabulary'),
+    'skip base' => array('node', 'node_field_revision', 'users', 'comment', 'taxonomy_term_data', 'taxonomy_vocabulary'),
     'real field' => 'id',
     'relationship' => array(
       'title' => t('User'),
@@ -278,7 +275,7 @@ function file_views_data() {
     'title' => t('File'),
     'help' => t('A file that is associated with this user, usually because it is in a field on the user.'),
     // Only provide this field/relationship/etc. when the 'users' base table is present.
-    'skip base' => array('file_managed', 'node', 'node_revision', 'comment', 'taxonomy_term_data', 'taxonomy_vocabulary'),
+    'skip base' => array('file_managed', 'node', 'node_field_revision', 'comment', 'taxonomy_term_data', 'taxonomy_vocabulary'),
     'real field' => 'fid',
     'relationship' => array(
       'title' => t('File'),
@@ -294,7 +291,7 @@ function file_views_data() {
     'title' => t('Comment'),
     'help' => t('A comment that is associated with this file, usually because this file is in a field on the comment.'),
     // Only provide this field/relationship/etc. when the 'file_managed' base table is present.
-    'skip base' => array('node', 'node_revision', 'users', 'comment', 'taxonomy_term_data', 'taxonomy_vocabulary'),
+    'skip base' => array('node', 'node_field_revision', 'users', 'comment', 'taxonomy_term_data', 'taxonomy_vocabulary'),
     'real field' => 'id',
     'relationship' => array(
       'title' => t('Comment'),
@@ -309,7 +306,7 @@ function file_views_data() {
     'title' => t('File'),
     'help' => t('A file that is associated with this comment, usually because it is in a field on the comment.'),
     // Only provide this field/relationship/etc. when the 'comment' base table is present.
-    'skip base' => array('file_managed', 'node', 'node_revision', 'users', 'taxonomy_term_data', 'taxonomy_vocabulary'),
+    'skip base' => array('file_managed', 'node', 'node_field_revision', 'users', 'taxonomy_term_data', 'taxonomy_vocabulary'),
     'real field' => 'fid',
     'relationship' => array(
       'title' => t('File'),
@@ -325,7 +322,7 @@ function file_views_data() {
     'title' => t('Taxonomy Term'),
     'help' => t('A taxonomy term that is associated with this file, usually because this file is in a field on the taxonomy term.'),
     // Only provide this field/relationship/etc. when the 'file_managed' base table is present.
-    'skip base' => array('node', 'node_revision', 'users', 'comment', 'taxonomy_term_data', 'taxonomy_vocabulary'),
+    'skip base' => array('node', 'node_field_revision', 'users', 'comment', 'taxonomy_term_data', 'taxonomy_vocabulary'),
     'real field' => 'id',
     'relationship' => array(
       'title' => t('Taxonomy Term'),
@@ -340,7 +337,7 @@ function file_views_data() {
     'title' => t('File'),
     'help' => t('A file that is associated with this taxonomy term, usually because it is in a field on the taxonomy term.'),
     // Only provide this field/relationship/etc. when the 'taxonomy_term_data' base table is present.
-    'skip base' => array('file_managed', 'node', 'node_revision', 'users', 'comment', 'taxonomy_vocabulary'),
+    'skip base' => array('file_managed', 'node', 'node_field_revision', 'users', 'comment', 'taxonomy_vocabulary'),
     'real field' => 'fid',
     'relationship' => array(
       'title' => t('File'),
@@ -356,7 +353,7 @@ function file_views_data() {
     'title' => t('Taxonomy Vocabulary'),
     'help' => t('A taxonomy vocabulary that is associated with this file, usually because this file is in a field on the taxonomy vocabulary.'),
     // Only provide this field/relationship/etc. when the 'file_managed' base table is present.
-    'skip base' => array('node', 'node_revision', 'users', 'comment', 'taxonomy_term_data', 'taxonomy_vocabulary'),
+    'skip base' => array('node', 'node_field_revision', 'users', 'comment', 'taxonomy_term_data', 'taxonomy_vocabulary'),
     'real field' => 'id',
     'relationship' => array(
       'title' => t('Taxonomy Vocabulary'),
@@ -371,7 +368,7 @@ function file_views_data() {
     'title' => t('File'),
     'help' => t('A file that is associated with this taxonomy vocabulary, usually because it is in a field on the taxonomy vocabulary.'),
     // Only provide this field/relationship/etc. when the 'taxonomy_vocabulary' base table is present.
-    'skip base' => array('file_managed', 'node', 'node_revision', 'users', 'comment', 'taxonomy_term_data'),
+    'skip base' => array('file_managed', 'node', 'node_field_revision', 'users', 'comment', 'taxonomy_term_data'),
     'real field' => 'fid',
     'relationship' => array(
       'title' => t('File'),
@@ -389,7 +386,6 @@ function file_views_data() {
     'help' => t('The module managing this file relationship.'),
     'field' => array(
       'id' => 'standard',
-      'click sortable' => TRUE,
      ),
     'filter' => array(
       'id' => 'string',
@@ -406,7 +402,6 @@ function file_views_data() {
     'help' => t('The type of entity that is related to the file.'),
     'field' => array(
       'id' => 'standard',
-      'click sortable' => TRUE,
      ),
     'filter' => array(
       'id' => 'string',
@@ -423,7 +418,6 @@ function file_views_data() {
     'help' => t('The ID of the entity that is related to the file.'),
     'field' => array(
       'id' => 'numeric',
-      'click sortable' => TRUE,
     ),
     'argument' => array(
       'id' => 'numeric',
@@ -440,13 +434,21 @@ function file_views_data() {
     'help' => t('The number of times the file is used by this entity.'),
     'field' => array(
       'id' => 'numeric',
-      'click sortable' => TRUE,
      ),
     'filter' => array(
       'id' => 'numeric',
     ),
     'sort' => array(
       'id' => 'standard',
+    ),
+  );
+  $data['file_usage']['entity_label'] = array(
+    'title' => t('Entity label'),
+    'help' => t('The label of the entity that is related to the file.'),
+    'real field' => 'id',
+    'field' => array(
+      'id' => 'entity_label',
+      'entity type field' => 'type',
     ),
   );
 
@@ -461,15 +463,15 @@ function file_views_data() {
  *
  * @see field_views_field_default_views_data()
  */
-function file_field_views_data($field) {
+function file_field_views_data(FieldInterface $field) {
   $data = field_views_field_default_views_data($field);
   foreach ($data as $table_name => $table_data) {
     // Add the relationship only on the fid field.
-    $data[$table_name][$field['field_name'] . '_fid']['relationship'] = array(
+    $data[$table_name][$field['field_name'] . '_target_id']['relationship'] = array(
       'id' => 'standard',
       'base' => 'file_managed',
       'entity type' => 'file',
-      'base field' => 'fid',
+      'base field' => 'target_id',
       'label' => t('file from !field_name', array('!field_name' => $field['field_name'])),
     );
   }
@@ -482,51 +484,31 @@ function file_field_views_data($field) {
  *
  * Views integration to provide reverse relationships on file fields.
  */
-function file_field_views_data_views_data_alter(&$data, $field) {
-  foreach ($field['bundles'] as $entity_type => $bundles) {
-    $entity_info = entity_get_info($entity_type);
-    $pseudo_field_name = 'reverse_' . $field['field_name'] . '_' . $entity_type;
+function file_field_views_data_views_data_alter(array &$data, FieldInterface $field) {
+  $entity_type = $field['entity_type'];
+  $entity_info = entity_get_info($entity_type);
+  $pseudo_field_name = 'reverse_' . $field['field_name'] . '_' . $entity_type;
 
-    list($label, $all_labels) = field_views_field_label($field['field_name']);
-    $entity = $entity_info['label'];
-    if ($entity == t('Node')) {
-      $entity = t('Content');
-    }
+  list($label,) = field_views_field_label($entity_type, $field['field_name']);
+  $entity_label = ($entity_info['label'] == t('Node')) ? t('Content') : $entity_info['label'];
 
-    $data['file_managed'][$pseudo_field_name]['relationship'] = array(
-      'title' => t('@entity using @field', array('@entity' => $entity, '@field' => $label)),
-      'help' => t('Relate each @entity with a @field set to the file.', array('@entity' => $entity, '@field' => $label)),
-      'id' => 'entity_reverse',
-      'field_name' => $field['field_name'],
-      'field table' => _field_sql_storage_tablename($field),
-      'field field' => $field['field_name'] . '_fid',
-      'base' => $entity_info['base_table'],
-      'base field' => $entity_info['entity_keys']['id'],
-      'label' => t('!field_name', array('!field_name' => $field['field_name'])),
-      'join_extra' => array(
-        0 => array(
-          'field' => 'entity_type',
-          'value' => $entity_type,
-        ),
-        1 => array(
-          'field' => 'deleted',
-          'value' => 0,
-          'numeric' => TRUE,
-        ),
+  $data['file_managed'][$pseudo_field_name]['relationship'] = array(
+    'title' => t('@entity using @field', array('@entity' => $entity_label, '@field' => $label)),
+    'help' => t('Relate each @entity with a @field set to the file.', array('@entity' => $entity_label, '@field' => $label)),
+    'id' => 'entity_reverse',
+    'field_name' => $field['field_name'],
+    'entity_type' => $field['entity_type'],
+    'field table' => DatabaseStorageController::_fieldTableName($field),
+    'field field' => $field['field_name'] . '_target_id',
+    'base' => $entity_info['base_table'],
+    'base field' => $entity_info['entity_keys']['id'],
+    'label' => t('!field_name', array('!field_name' => $field['field_name'])),
+    'join_extra' => array(
+      0 => array(
+        'field' => 'deleted',
+        'value' => 0,
+        'numeric' => TRUE,
       ),
-    );
-  }
-}
-
-function _views_file_status($choice = NULL) {
-  $status = array(
-    0 => t('Temporary'),
-    FILE_STATUS_PERMANENT => t('Permanent'),
+    ),
   );
-
-  if (isset($choice)) {
-    return isset($status[$choice]) ? $status[$choice] : t('Unknown');
-  }
-
-  return $status;
 }

@@ -7,10 +7,20 @@
 
 namespace Drupal\views\Tests\Handler;
 
+use Drupal\Component\Utility\String;
+use Drupal\views\Tests\ViewUnitTestBase;
+
 /**
  * Tests for core Drupal\views\Plugin\views\sort\Date handler.
  */
-class SortDateTest extends HandlerTestBase {
+class SortDateTest extends ViewUnitTestBase {
+
+  /**
+   * Views used by this test.
+   *
+   * @var array
+   */
+  public static $testViews = array('test_view');
 
   public static function getInfo() {
     return array(
@@ -18,12 +28,6 @@ class SortDateTest extends HandlerTestBase {
       'description' => 'Test the core Drupal\views\Plugin\views\sort\Date handler.',
       'group' => 'Views Handlers',
     );
-  }
-
-  protected function setUp() {
-    parent::setUp();
-
-    $this->enableViewsTestModule();
   }
 
   protected function expectedResultSet($granularity, $reverse = TRUE) {
@@ -154,10 +158,11 @@ class SortDateTest extends HandlerTestBase {
   public function testDateOrdering() {
     foreach (array('second', 'minute', 'hour', 'day', 'month', 'year') as $granularity) {
       foreach (array(FALSE, TRUE) as $reverse) {
-        $view = $this->getView();
+        $view = views_get_view('test_view');
+        $view->setDisplay();
 
         // Change the fields.
-        $view->displayHandlers['default']->overrideOption('fields', array(
+        $view->displayHandlers->get('default')->overrideOption('fields', array(
           'name' => array(
             'id' => 'name',
             'table' => 'views_test_data',
@@ -173,7 +178,7 @@ class SortDateTest extends HandlerTestBase {
         ));
 
         // Change the ordering
-        $view->displayHandlers['default']->overrideOption('sorts', array(
+        $view->displayHandlers->get('default')->overrideOption('sorts', array(
           'created' => array(
             'id' => 'created',
             'table' => 'views_test_data',
@@ -195,10 +200,10 @@ class SortDateTest extends HandlerTestBase {
         $this->executeView($view);
 
         // Verify the result.
-        $this->assertEqual(count($this->dataSet()), count($view->result), t('The number of returned rows match.'));
+        $this->assertEqual(count($this->dataSet()), count($view->result), 'The number of returned rows match.');
         $this->assertIdenticalResultset($view, $this->expectedResultSet($granularity, $reverse), array(
           'views_test_data_name' => 'name',
-        ), t('Result is returned correctly when ordering by granularity @granularity, @reverse.', array('@granularity' => $granularity, '@reverse' => $reverse ? t('reverse') : t('forward'))));
+        ), String::format('Result is returned correctly when ordering by granularity @granularity, @reverse.', array('@granularity' => $granularity, '@reverse' => $reverse ? 'reverse' : 'forward')));
         $view->destroy();
         unset($view);
       }

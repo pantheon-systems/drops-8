@@ -1,0 +1,81 @@
+# Schema for the configuration files of the Taxonomy module.
+
+taxonomy.settings:
+  type: mapping
+  label: 'Taxonomy settings'
+  mapping:
+    maintain_index_table:
+      type: boolean
+      label: 'Maintain index table'
+    override_selector:
+      type: boolean
+      label: 'Override selector'
+    terms_per_page_admin:
+      type: integer
+      label: 'Number of terms per page'
+
+taxonomy.vocabulary.*:
+  type: mapping
+  label: 'Vocabulary'
+  mapping:
+    vid:
+      type: string
+      label: 'Machine name'
+    name:
+      type: label
+      label: 'Name'
+    description:
+      type: label
+      label: 'Description'
+    hierarchy:
+      type: boolean
+      label: 'Hierarchy'
+    weight:
+      type: integer
+      label: 'Weight'
+    status:
+      type: boolean
+      label: 'Status'
+    langcode:
+      type: string
+      label: 'Default language'
+
+field.taxonomy_term_reference.settings:
+  type: mapping
+  label: 'Taxonomy term reference settings'
+  mapping:
+    options_list_callback:
+      type: string
+      label: 'Options list callback'
+    allowed_values:
+      type: sequence
+      label: 'Allowed values'
+      sequence:
+        - type: mapping
+          label: 'Allowed values'
+          mapping:
+            vocabulary:
+              type: string
+              label: 'Vocabulary'
+            parent:
+              type: string
+              value: 'Parent'
+
+field.taxonomy_term_reference.instance_settings:
+  type: sequence
+  label: 'Taxonomy term reference settings'
+  sequence:
+    - type: string
+      label: 'Setting'
+
+field.taxonomy_term_reference.value:
+  type: sequence
+  label: 'Default values'
+  sequence:
+    - type: mapping
+      label: 'Default value'
+      mapping:
+        target_id:
+          type: integer
+          label: 'Term ID'
+

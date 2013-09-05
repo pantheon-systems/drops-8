@@ -7,12 +7,21 @@
 
 namespace Drupal\views\Tests\Handler;
 
+use Drupal\views\Tests\ViewUnitTestBase;
+
 /**
  * Tests the core Drupal\views\Plugin\views\field\Xss handler.
  *
  * @see CommonXssUnitTest
  */
-class FieldXssTest extends HandlerTestBase {
+class FieldXssTest extends ViewUnitTestBase {
+
+  /**
+   * Views used by this test.
+   *
+   * @var array
+   */
+  public static $testViews = array('test_view');
 
   public static function getInfo() {
     return array(
@@ -20,12 +29,6 @@ class FieldXssTest extends HandlerTestBase {
       'description' => 'Test the core Drupal\views\Plugin\views\field\Xss handler.',
       'group' => 'Views Handlers',
     );
-  }
-
-  protected function setUp() {
-    parent::setUp();
-
-    $this->enableViewsTestModule();
   }
 
   function dataHelper() {
@@ -47,9 +50,10 @@ class FieldXssTest extends HandlerTestBase {
   }
 
   public function testFieldXss() {
-    $view = $this->getView();
+    $view = views_get_view('test_view');
+    $view->setDisplay();
 
-    $view->displayHandlers['default']->overrideOption('fields', array(
+    $view->displayHandlers->get('default')->overrideOption('fields', array(
       'name' => array(
         'id' => 'name',
         'table' => 'views_test_data',
@@ -62,7 +66,7 @@ class FieldXssTest extends HandlerTestBase {
     $counter = 0;
     foreach ($this->dataHelper() as $input => $expected_result) {
       $view->result[$counter]->views_test_data_name = $input;
-      $this->assertEqual($view->field['name']->advanced_render($view->result[$counter]), $expected_result);
+      $this->assertEqual($view->field['name']->advancedRender($view->result[$counter]), $expected_result);
       $counter++;
     }
   }

@@ -13,32 +13,28 @@
 /**
  * Define a custom search type.
  *
- * This hook allows a module to tell search.module that it wishes to perform
- * searches on content it defines (custom node types, users, or comments for
- * example) when a site search is performed.
+ * This hook allows a module to tell the Search module that it wishes to
+ * perform searches on content it defines (custom node types, users, or
+ * comments for example) when a site search is performed.
  *
  * In order for the search to do anything, your module must also implement
- * hook_search_execute(), which is called when someone requests a search
- * on your module's type of content. If you want to have your content
- * indexed in the standard search index, your module should also implement
+ * hook_search_execute(), which is called when someone requests a search on
+ * your module's type of content. If you want to have your content indexed
+ * in the standard search index, your module should also implement
  * hook_update_index(). If your search type has settings, you can implement
  * hook_search_admin() to add them to the search settings page. You can use
  * hook_form_FORM_ID_alter(), with FORM_ID set to 'search_form', to add fields
  * to the search form (see node_form_search_form_alter() for an example).
- * You can use hook_search_access() to limit access to searching,
- * and hook_search_page() to override how search results are displayed.
+ * You can use hook_search_access() to limit access to searching, and
+ * hook_search_page() to override how search results are displayed.
  *
  * @return
  *   Array with optional keys:
- *   - 'title': Title for the tab on the search page for this module. Defaults
- *     to the module name if not given.
- *   - 'path': Path component after 'search/' for searching with this module.
+ *   - title: Title for the tab on the search page for this module. Defaults to
+ *     the module name if not given.
+ *   - path: Path component after 'search/' for searching with this module.
  *     Defaults to the module name if not given.
- *   - 'conditions_callback': Name of a callback function that is invoked by
- *     search_view() to get an array of additional search conditions to pass to
- *     search_data(). For example, a search module may get additional keywords,
- *     filters, or modifiers for the search from the query string. Sample
- *     callback function: sample_search_conditions_callback().
+ *   - conditions_callback: An implementation of callback_search_conditions().
  *
  * @ingroup search
  */
@@ -46,33 +42,8 @@ function hook_search_info() {
   return array(
     'title' => 'Content',
     'path' => 'node',
-    'conditions_callback' => 'sample_search_conditions_callback',
+    'conditions_callback' => 'callback_search_conditions',
   );
-}
-
-/**
- * An example conditions callback function for search.
- *
- * This example pulls additional search keywords out of the $_REQUEST variable,
- * (i.e. from the query string of the request). The conditions may also be
- * generated internally - for example based on a module's settings.
- *
- * @see hook_search_info()
- * @ingroup search
- */
-function sample_search_conditions_callback($keys) {
-  $conditions = array();
-
-  if (!empty($_REQUEST['keys'])) {
-    $conditions['keys'] = $_REQUEST['keys'];
-  }
-  if (!empty($_REQUEST['sample_search_keys'])) {
-    $conditions['sample_search_keys'] = $_REQUEST['sample_search_keys'];
-  }
-  if ($force_keys = config('sample_search.settings')->get('force_keywords')) {
-    $conditions['sample_search_force_keywords'] = $force_keys;
-  }
-  return $conditions;
 }
 
 /**
@@ -90,8 +61,8 @@ function hook_search_access() {
  * Take action when the search index is going to be rebuilt.
  *
  * Modules that use hook_update_index() should update their indexing
- * bookkeeping so that it starts from scratch the next time
- * hook_update_index() is called.
+ * bookkeeping so that it starts from scratch the next time hook_update_index()
+ * is called.
  *
  * @ingroup search
  */
@@ -111,14 +82,14 @@ function hook_search_reset() {
  *
  * @return
  *  An associative array with the key-value pairs:
- *  - 'remaining': The number of items left to index.
- *  - 'total': The total number of items to index.
+ *  - remaining: The number of items left to index.
+ *  - total: The total number of items to index.
  *
  * @ingroup search
  */
 function hook_search_status() {
-  $total = db_query('SELECT COUNT(*) FROM {node} WHERE status = 1')->fetchField();
-  $remaining = db_query("SELECT COUNT(*) FROM {node} n LEFT JOIN {search_dataset} d ON d.type = 'node' AND d.sid = n.nid WHERE n.status = 1 AND d.sid IS NULL OR d.reindex <> 0")->fetchField();
+  $total = db_query('SELECT COUNT(DISTINCT nid) FROM {node_field_data} WHERE status = 1')->fetchField();
+  $remaining = db_query("SELECT COUNT(DISTINCT nid) FROM {node_field_data} n LEFT JOIN {search_dataset} d ON d.type = 'node' AND d.sid = n.nid WHERE n.status = 1 AND d.sid IS NULL OR d.reindex <> 0")->fetchField();
   return array('remaining' => $remaining, 'total' => $total);
 }
 
@@ -133,24 +104,29 @@ function hook_search_status() {
 function hook_search_admin() {
   // Output form for defining rank factor weights.
   $form['content_ranking'] = array(
-    '#type' => 'fieldset',
+    '#type' => 'details',
     '#title' => t('Content ranking'),
   );
   $form['content_ranking']['#theme'] = 'node_search_admin';
+  $form['content_ranking']['#tree'] = TRUE;
   $form['content_ranking']['info'] = array(
     '#value' => '<em>' . t('The following numbers control which properties the content search should favor when ordering the results. Higher numbers mean more influence, zero means the property is ignored. Changing these numbers does not require the search index to be rebuilt. Changes take effect immediately.') . '</em>'
   );
 
   // Note: reversed to reflect that higher number = higher ranking.
   $options = drupal_map_assoc(range(0, 10));
-  foreach (module_invoke_all('ranking') as $var => $values) {
-    $form['content_ranking']['factors']['node_rank_' . $var] = array(
+  $ranks = Drupal::config('node.settings')->get('search_rank');
+  foreach (Drupal::moduleHandler()->invokeAll('ranking') as $var => $values) {
+    $form['content_ranking']['factors'][$var] = array(
       '#title' => $values['title'],
       '#type' => 'select',
       '#options' => $options,
-      '#default_value' => variable_get('node_rank_' . $var, 0),
+      '#default_value' => isset($ranks[$var]) ? $ranks[$var] : 0,
     );
   }
+
+  $form['#submit'][] = 'node_search_admin_submit';
+
   return $form;
 }
 
@@ -174,22 +150,23 @@ function hook_search_admin() {
  * index.
  *
  * @param $keys
- *   The search keywords as entered by the user.
+ *   The search keywords as entered by the user. Defaults to NULL.
  * @param $conditions
- *   An optional array of additional conditions, such as filters.
+ *   (optional) An array of additional conditions, such as filters. Defaults to
+ *   NULL.
  *
  * @return
- *   An array of search results. To use the default search result
- *   display, each item should have the following keys':
- *   - 'link': Required. The URL of the found item.
- *   - 'type': The type of item (such as the content type).
- *   - 'title': Required. The name of the item.
- *   - 'user': The author of the item.
- *   - 'date': A timestamp when the item was last modified.
- *   - 'extra': An array of optional extra information items.
- *   - 'snippet': An excerpt or preview to show with the result (can be
- *     generated with search_excerpt()).
- *   - 'language': Language code for the item (usually two characters).
+ *   An array of search results. To use the default search result display, each
+ *   item should have the following keys':
+ *   - link: (required) The URL of the found item.
+ *   - type: The type of item (such as the content type).
+ *   - title: (required) The name of the item.
+ *   - user: The author of the item.
+ *   - date: A timestamp when the item was last modified.
+ *   - extra: An array of optional extra information items.
+ *   - snippet: An excerpt or preview to show with the result (can be generated
+ *     with search_excerpt()).
+ *   - language: Language code for the item (usually two characters).
  *
  * @ingroup search
  */
@@ -198,7 +175,7 @@ function hook_search_execute($keys = NULL, $conditions = NULL) {
   $query = db_select('search_index', 'i', array('target' => 'slave'))
     ->extend('Drupal\search\SearchQuery')
     ->extend('Drupal\Core\Database\Query\PagerSelectExtender');
-  $query->join('node', 'n', 'n.nid = i.sid');
+  $query->join('node_field_data', 'n', 'n.nid = i.sid');
   $query
     ->condition('n.status', 1)
     ->addTag('node_access')
@@ -220,6 +197,9 @@ function hook_search_execute($keys = NULL, $conditions = NULL) {
 
   // Load results.
   $find = $query
+    // Add the language code of the indexed item to the result of the query,
+    // since the node will be rendered using the respective language.
+    ->fields('i', array('langcode'))
     ->limit(10)
     ->execute();
   $results = array();
@@ -233,21 +213,25 @@ function hook_search_execute($keys = NULL, $conditions = NULL) {
     // Fetch comments for snippet.
     $node->rendered .= ' ' . module_invoke('comment', 'node_update_index', $node, $item->langcode);
 
-    $extra = module_invoke_all('node_search_result', $node, $item->langcode);
+    $extra = Drupal::moduleHandler()->invokeAll('node_search_result', array($node, $item->langcode));
 
     $language = language_load($item->langcode);
     $uri = $node->uri();
+    $username = array(
+      '#theme' => 'username',
+      '#account' => $node,
+    );
     $results[] = array(
       'link' => url($uri['path'], array_merge($uri['options'], array('absolute' => TRUE, 'language' => $language))),
       'type' => check_plain(node_get_type_label($node)),
       'title' => $node->label($item->langcode),
-      'user' => theme('username', array('account' => $node)),
-      'date' => $node->get('changed', $item->langcode),
+      'user' => drupal_render($username),
+      'date' => $node->getChangedTime(),
       'node' => $node,
       'extra' => $extra,
       'score' => $item->calculated_score,
       'snippet' => search_excerpt($keys, $node->rendered, $item->langcode),
-      'langcode' => $node->langcode,
+      'langcode' => $node->language()->id,
     );
   }
   return $results;
@@ -256,22 +240,23 @@ function hook_search_execute($keys = NULL, $conditions = NULL) {
 /**
  * Override the rendering of search results.
  *
- * A module that implements hook_search_info() to define a type of search
- * may implement this hook in order to override the default theming of
- * its search results, which is otherwise themed using theme('search_results').
+ * A module that implements hook_search_info() to define a type of search may
+ * implement this hook in order to override the default theming of its search
+ * results, which is otherwise themed using theme('search_results').
  *
  * Note that by default, theme('search_results') and theme('search_result')
  * work together to create an ordered list (OL). So your hook_search_page()
  * implementation should probably do this as well.
  *
- * @see search-result.tpl.php, search-results.tpl.php
- *
  * @param $results
  *   An array of search results.
  *
  * @return
- *   A renderable array, which will render the formatted search results with
- *   a pager included.
+ *   A renderable array, which will render the formatted search results with a
+ *   pager included.
+ *
+ * @see search-result.tpl.php
+ * @see search-results.tpl.php
  */
 function hook_search_page($results) {
   $output['prefix']['#markup'] = '<ol class="search-results">';
@@ -283,7 +268,10 @@ function hook_search_page($results) {
       '#module' => 'my_module_name',
     );
   }
-  $output['suffix']['#markup'] = '</ol>' . theme('pager');
+  $pager = array(
+    '#theme' => 'pager',
+  );
+  $output['suffix']['#markup'] = '</ol>' . drupal_render($pager);
 
   return $output;
 }
@@ -291,8 +279,8 @@ function hook_search_page($results) {
 /**
  * Preprocess text for search.
  *
- * This hook is called to preprocess both the text added to the search index and
- * the keywords users have submitted for searching.
+ * This hook is called to preprocess both the text added to the search index
+ * and the keywords users have submitted for searching.
  *
  * Possible uses:
  * - Adding spaces between words of Chinese or Japanese text.
@@ -306,12 +294,12 @@ function hook_search_page($results) {
  *   any HTML entities or HTML tags.
  *
  * @param $langcode
- *   The language code of the entitiy that has been found.
+ *   The language code of the entity that has been found.
  *
  * @return
- *   The text after preprocessing. Note that if your module decides not to alter
- *   the text, it should return the original text. Also, after preprocessing,
- *   words in the text should be separated by a space.
+ *   The text after preprocessing. Note that if your module decides not to
+ *   alter the text, it should return the original text. Also, after
+ *   preprocessing, words in the text should be separated by a space.
  *
  * @ingroup search
  */
@@ -331,7 +319,7 @@ function hook_search_preprocess($text, $langcode = NULL) {
 /**
  * Update the search index for this module.
  *
- * This hook is called every cron run if search.module is enabled, your
+ * This hook is called every cron run if the Search module is enabled, your
  * module has implemented hook_search_info(), and your module has been set as
  * an active search module on the Search settings page
  * (admin/config/search/settings). It allows your module to add items to the
@@ -341,7 +329,7 @@ function hook_search_preprocess($text, $langcode = NULL) {
  * When implementing this hook, your module should index content items that
  * were modified or added since the last run. PHP has a time limit
  * for cron, though, so it is advisable to limit how many items you index
- * per run using config('search.settings')->get('index.cron_limit') (see
+ * per run using Drupal::config('search.settings')->get('index.cron_limit') (see
  * example below). Also, since the cron run could time out and abort in the
  * middle of your run, you should update your module's internal bookkeeping on
  * when items have last been indexed as you go rather than waiting to the end
@@ -350,16 +338,16 @@ function hook_search_preprocess($text, $langcode = NULL) {
  * @ingroup search
  */
 function hook_update_index() {
-  $limit = (int) config('search.settings')->get('index.cron_limit');
+  $limit = (int) Drupal::config('search.settings')->get('index.cron_limit');
 
   $result = db_query_range("SELECT n.nid FROM {node} n LEFT JOIN {search_dataset} d ON d.type = 'node' AND d.sid = n.nid WHERE d.sid IS NULL OR d.reindex <> 0 ORDER BY d.reindex ASC, n.nid ASC", 0, $limit);
 
   foreach ($result as $node) {
-    $node = node_load($node->nid);
+    $node = node_load($node->id());
 
     // Save the changed time of the most recent indexed node, for the search
     // results half-life calculation.
-    variable_set('node_cron_last', $node->changed);
+    \Drupal::state()->set('node.cron_last', $node->getChangedTime());
 
     // Render the node.
     $build = node_view($node, 'search_index');
@@ -368,15 +356,55 @@ function hook_update_index() {
     $text = '<h1>' . check_plain($node->label()) . '</h1>' . $node->rendered;
 
     // Fetch extra data normally not visible
-    $extra = module_invoke_all('node_update_index', $node);
+    $extra = Drupal::moduleHandler()->invokeAll('node_update_index', array($node));
     foreach ($extra as $t) {
       $text .= $t;
     }
 
     // Update index
-    search_index($node->nid, 'node', $text);
+    search_index($node->id(), 'node', $text);
   }
 }
+
 /**
  * @} End of "addtogroup hooks".
  */
+
+/**
+ * Provide search query conditions.
+ *
+ * Callback for hook_search_info().
+ *
+ * This callback is invoked by search_view() to get an array of additional
+ * search conditions to pass to search_data(). For example, a search module
+ * may get additional keywords, filters, or modifiers for the search from
+ * the query string.
+ *
+ * This example pulls additional search keywords out of the $_REQUEST variable,
+ * (i.e. from the query string of the request). The conditions may also be
+ * generated internally - for example based on a module's settings.
+ *
+ * @param $keys
+ *   The search keywords string.
+ *
+ * @return
+ *   An array of additional conditions, such as filters.
+ *
+ * @ingroup callbacks
+ * @ingroup search
+ */
+function callback_search_conditions($keys) {
+  $conditions = array();
+
+  if (!empty($_REQUEST['keys'])) {
+    $conditions['keys'] = $_REQUEST['keys'];
+  }
+  if (!empty($_REQUEST['sample_search_keys'])) {
+    $conditions['sample_search_keys'] = $_REQUEST['sample_search_keys'];
+  }
+  if ($force_keys = Drupal::config('sample_search.settings')->get('force_keywords')) {
+    $conditions['sample_search_force_keywords'] = $force_keys;
+  }
+  return $conditions;
+}
+

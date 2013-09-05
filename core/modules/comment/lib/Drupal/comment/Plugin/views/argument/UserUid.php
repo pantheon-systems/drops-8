@@ -7,8 +7,10 @@
 
 namespace Drupal\comment\Plugin\views\argument;
 
+use Drupal\Component\Annotation\PluginID;
+use Drupal\Core\Database\Connection;
 use Drupal\views\Plugin\views\argument\ArgumentPluginBase;
-use Drupal\Core\Annotation\Plugin;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Argument handler to accept a user id to check for nodes that
@@ -16,22 +18,48 @@ use Drupal\Core\Annotation\Plugin;
  *
  * @ingroup views_argument_handlers
  *
- * @Plugin(
- *   id = "argument_comment_user_uid",
- *   module = "comment"
- * )
+ * @PluginID("argument_comment_user_uid")
  */
 class UserUid extends ArgumentPluginBase {
 
+  /**
+   * Database Service Object.
+   *
+   * @var \Drupal\Core\Database\Connection
+   */
+  protected $database;
+
+  /**
+   * Constructs a Drupal\Component\Plugin\PluginBase object.
+   *
+   * @param array $configuration
+   *   A configuration array containing information about the plugin instance.
+   * @param string $plugin_id
+   *   The plugin_id for the plugin instance.
+   * @param array $plugin_definition
+   *   The plugin implementation definition.
+   * @param \Drupal\Core\Database\Connection $database
+   *   Database Service Object.
+   */
+  public function __construct(array $configuration, $plugin_id, array $plugin_definition, Connection $database) {
+    parent::__construct($configuration, $plugin_id, $plugin_definition);
+
+    $this->database = $database;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, array $plugin_definition) {
+    return new static($configuration, $plugin_id, $plugin_definition, $container->get('database'));
+  }
+
   function title() {
     if (!$this->argument) {
-      $title = config('user.settings')->get('anonymous');
+      $title = \Drupal::config('user.settings')->get('anonymous');
     }
     else {
-      $query = db_select('users', 'u');
-      $query->addField('u', 'name');
-      $query->condition('u.uid', $this->argument);
-      $title = $query->execute()->fetchField();
+      $title = $this->database->query('SELECT u.name FROM {users} u WHERE u.uid = :uid', array(':uid' => $this->argument))->fetchField();
     }
     if (empty($title)) {
       return t('No user');
@@ -40,24 +68,24 @@ class UserUid extends ArgumentPluginBase {
     return check_plain($title);
   }
 
-  function default_actions($which = NULL) {
+  protected function defaultActions($which = NULL) {
     // Disallow summary views on this argument.
     if (!$which) {
-      $actions = parent::default_actions();
+      $actions = parent::defaultActions();
       unset($actions['summary asc']);
       unset($actions['summary desc']);
       return $actions;
     }
 
     if ($which != 'summary asc' && $which != 'summary desc') {
-      return parent::default_actions($which);
+      return parent::defaultActions($which);
     }
   }
 
   public function query($group_by = FALSE) {
     $this->ensureMyTable();
 
-    $subselect = db_select('comment', 'c');
+    $subselect = $this->database->select('comment', 'c');
     $subselect->addField('c', 'cid');
     $subselect->condition('c.uid', $this->argument);
     $subselect->where("c.nid = $this->tableAlias.nid");
@@ -66,10 +94,13 @@ class UserUid extends ArgumentPluginBase {
       ->condition("$this->tableAlias.uid", $this->argument, '=')
       ->exists($subselect);
 
-    $this->query->add_where(0, $condition);
+    $this->query->addWhere(0, $condition);
   }
 
-  function get_sort_name() {
+  /**
+   * {@inheritdoc}
+   */
+  public function getSortName() {
     return t('Numerical', array(), array('context' => 'Sort order'));
   }
 

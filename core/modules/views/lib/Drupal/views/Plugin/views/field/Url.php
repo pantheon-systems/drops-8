@@ -7,16 +7,15 @@
 
 namespace Drupal\views\Plugin\views\field;
 
-use Drupal\Core\Annotation\Plugin;
+use Drupal\Component\Annotation\PluginID;
+use Drupal\views\ResultRow;
 
 /**
  * Field handler to provide simple renderer that turns a URL into a clickable link.
  *
  * @ingroup views_field_handlers
  *
- * @Plugin(
- *   id = "url"
- * )
+ * @PluginID("url")
  */
 class Url extends FieldPluginBase {
 
@@ -40,8 +39,11 @@ class Url extends FieldPluginBase {
     parent::buildOptionsForm($form, $form_state);
   }
 
-  function render($values) {
-    $value = $this->get_value($values);
+  /**
+   * {@inheritdoc}
+   */
+  public function render(ResultRow $values) {
+    $value = $this->getValue($values);
     if (!empty($this->options['display_as_link'])) {
       return l($this->sanitizeValue($value), $value, array('html' => TRUE));
     }

@@ -8,10 +8,73 @@
 use Drupal\Core\Entity\EntityInterface;
 
 /**
+ * Implements hook_entity_create().
+ */
+function entity_crud_hook_test_entity_create(EntityInterface $entity) {
+  $_SESSION['entity_crud_hook_test'][] = (__FUNCTION__ . ' called for type ' . $entity->entityType());
+}
+
+/**
+ * Implements hook_block_create().
+ */
+function entity_crud_hook_test_block_create() {
+  $_SESSION['entity_crud_hook_test'][] = (__FUNCTION__ . ' called');
+}
+
+/**
+ * Implements hook_comment_create().
+ */
+function entity_crud_hook_test_comment_create() {
+  $_SESSION['entity_crud_hook_test'][] = (__FUNCTION__ . ' called');
+}
+
+/**
+ * Implements hook_file_create().
+ */
+function entity_crud_hook_test_file_create() {
+  $_SESSION['entity_crud_hook_test'][] = (__FUNCTION__ . ' called');
+}
+
+/**
+ * Implements hook_node_create().
+ */
+function entity_crud_hook_test_node_create() {
+  $_SESSION['entity_crud_hook_test'][] = (__FUNCTION__ . ' called');
+}
+
+/**
+ * Implements hook_taxonomy_term_create().
+ */
+function entity_crud_hook_test_taxonomy_term_create() {
+  $_SESSION['entity_crud_hook_test'][] = (__FUNCTION__ . ' called');
+}
+
+/**
+ * Implements hook_taxonomy_vocabulary_create().
+ */
+function entity_crud_hook_test_taxonomy_vocabulary_create() {
+  $_SESSION['entity_crud_hook_test'][] = (__FUNCTION__ . ' called');
+}
+
+/**
+ * Implements hook_user_create().
+ */
+function entity_crud_hook_test_user_create() {
+  $_SESSION['entity_crud_hook_test'][] = (__FUNCTION__ . ' called');
+}
+
+/**
  * Implements hook_entity_presave().
  */
 function entity_crud_hook_test_entity_presave(EntityInterface $entity) {
   $_SESSION['entity_crud_hook_test'][] = (__FUNCTION__ . ' called for type ' . $entity->entityType());
+}
+
+/**
+ * Implements hook_block_presave().
+ */
+function entity_crud_hook_test_block_presave() {
+  $_SESSION['entity_crud_hook_test'][] = (__FUNCTION__ . ' called');
 }
 
 /**
@@ -64,6 +127,13 @@ function entity_crud_hook_test_entity_insert(EntityInterface $entity) {
 }
 
 /**
+ * Implements hook_block_insert().
+ */
+function entity_crud_hook_test_block_insert() {
+  $_SESSION['entity_crud_hook_test'][] = (__FUNCTION__ . ' called');
+}
+
+/**
  * Implements hook_comment_insert().
  */
 function entity_crud_hook_test_comment_insert() {
@@ -110,6 +180,13 @@ function entity_crud_hook_test_user_insert() {
  */
 function entity_crud_hook_test_entity_load(array $entities, $type) {
   $_SESSION['entity_crud_hook_test'][] = (__FUNCTION__ . ' called for type ' . $type);
+}
+
+/**
+ * Implements hook_block_load().
+ */
+function entity_crud_hook_test_block_load() {
+  $_SESSION['entity_crud_hook_test'][] = (__FUNCTION__ . ' called');
 }
 
 /**
@@ -162,6 +239,13 @@ function entity_crud_hook_test_entity_update(EntityInterface $entity) {
 }
 
 /**
+ * Implements hook_block_update().
+ */
+function entity_crud_hook_test_block_update() {
+  $_SESSION['entity_crud_hook_test'][] = (__FUNCTION__ . ' called');
+}
+
+/**
  * Implements hook_comment_update().
  */
 function entity_crud_hook_test_comment_update() {
@@ -211,6 +295,13 @@ function entity_crud_hook_test_entity_predelete(EntityInterface $entity) {
 }
 
 /**
+ * Implements hook_block_predelete().
+ */
+function entity_crud_hook_test_block_predelete() {
+  $_SESSION['entity_crud_hook_test'][] = (__FUNCTION__ . ' called');
+}
+
+/**
  * Implements hook_comment_predelete().
  */
 function entity_crud_hook_test_comment_predelete() {
@@ -257,6 +348,13 @@ function entity_crud_hook_test_user_predelete() {
  */
 function entity_crud_hook_test_entity_delete(EntityInterface $entity) {
   $_SESSION['entity_crud_hook_test'][] = (__FUNCTION__ . ' called for type ' . $entity->entityType());
+}
+
+/**
+ * Implements hook_block_delete().
+ */
+function entity_crud_hook_test_block_delete() {
+  $_SESSION['entity_crud_hook_test'][] = (__FUNCTION__ . ' called');
 }
 
 /**

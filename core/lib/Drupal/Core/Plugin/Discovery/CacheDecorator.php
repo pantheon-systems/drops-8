@@ -7,12 +7,14 @@
 
 namespace Drupal\Core\Plugin\Discovery;
 
+use Drupal\Component\Plugin\Discovery\CachedDiscoveryInterface;
 use Drupal\Component\Plugin\Discovery\DiscoveryInterface;
+use Drupal\Core\Cache\CacheBackendInterface;
 
 /**
  * Enables static and persistent caching of discovered plugin definitions.
  */
-class CacheDecorator implements DiscoveryInterface {
+class CacheDecorator implements CachedDiscoveryInterface {
 
   /**
    * The cache key used to store the definition list.
@@ -27,6 +29,20 @@ class CacheDecorator implements DiscoveryInterface {
    * @var string
    */
   protected $cacheBin;
+
+  /**
+   * The timestamp indicating when the definition list cache expires.
+   *
+   * @var int
+   */
+  protected $cacheExpire;
+
+  /**
+   * The cache tags associated with the definition list.
+   *
+   * @var array
+   */
+  protected $cacheTags;
 
   /**
    * The plugin definitions of the decorated discovery class.
@@ -53,25 +69,51 @@ class CacheDecorator implements DiscoveryInterface {
    *   The cache identifier used for storage of the definition list.
    * @param string $cache_bin
    *   The cache bin used for storage and retrieval of the definition list.
+   * @param int $cache_expire
+   *   A Unix timestamp indicating that the definition list will be considered
+   *   invalid after this time.
+   * @param array $cache_tags
+   *   The cache tags associated with the definition list.
    */
-  public function __construct(DiscoveryInterface $decorated, $cache_key, $cache_bin = 'cache') {
+  public function __construct(DiscoveryInterface $decorated, $cache_key, $cache_bin = 'cache', $cache_expire = CacheBackendInterface::CACHE_PERMANENT, array $cache_tags = array()) {
     $this->decorated = $decorated;
     $this->cacheKey = $cache_key;
     $this->cacheBin = $cache_bin;
+    $this->cacheExpire = $cache_expire;
+    $this->cacheTags = $cache_tags;
   }
 
   /**
    * Implements Drupal\Component\Plugin\Discovery\DicoveryInterface::getDefinition().
    */
   public function getDefinition($plugin_id) {
+    // Optimize for fast access to definitions if they are already in memory.
+    if (isset($this->definitions)) {
+      // Avoid using a ternary that would create a copy of the array.
+      if (isset($this->definitions[$plugin_id])) {
+        return $this->definitions[$plugin_id];
+      }
+      else {
+        return;
+      }
+    }
+
     $definitions = $this->getDefinitions();
-    return isset($definitions[$plugin_id]) ? $definitions[$plugin_id] : NULL;
+    // Avoid using a ternary that would create a copy of the array.
+    if (isset($definitions[$plugin_id])) {
+      return $definitions[$plugin_id];
+    }
   }
 
   /**
    * Implements Drupal\Component\Plugin\Discovery\DicoveryInterface::getDefinitions().
    */
   public function getDefinitions() {
+    // Optimize for fast access to definitions if they are already in memory.
+    if (isset($this->definitions)) {
+      return $this->definitions;
+    }
+
     $definitions = $this->getCachedDefinitions();
     if (!isset($definitions)) {
       $definitions = $this->decorated->getDefinitions();
@@ -104,9 +146,24 @@ class CacheDecorator implements DiscoveryInterface {
    */
   protected function setCachedDefinitions($definitions) {
     if (isset($this->cacheKey)) {
-      cache($this->cacheBin)->set($this->cacheKey, $definitions);
+      cache($this->cacheBin)->set($this->cacheKey, $definitions, $this->cacheExpire, $this->cacheTags);
     }
     $this->definitions = $definitions;
+  }
+
+  /**
+   * Implements \Drupal\Component\Plugin\Discovery\CachedDiscoveryInterface::clearCachedDefinitions().
+   */
+  public function clearCachedDefinitions() {
+    // If there are any cache tags, clear cache based on those.
+    if (!empty($this->cacheTags)) {
+      cache($this->cacheBin)->deleteTags($this->cacheTags);
+    }
+    // Otherwise, just delete the specified cache key.
+    else if (isset($this->cacheKey)) {
+      cache($this->cacheBin)->delete($this->cacheKey);
+    }
+    $this->definitions = NULL;
   }
 
   /**
@@ -115,4 +172,5 @@ class CacheDecorator implements DiscoveryInterface {
   public function __call($method, $args) {
     return call_user_func_array(array($this->decorated, $method), $args);
   }
+
 }

@@ -98,10 +98,30 @@
  */
 
 /**
+ * Analyze a view to provide warnings about its configuration.
+ *
+ * @param \Drupal\views\ViewExecutable $view
+ *   The view being executed.
+ *
+ * @return array
+ *   Array of warning messages built by Analyzer::formatMessage to be displayed
+ *   to the user following analysis of the view.
+ */
+function hook_views_analyze(Drupal\views\ViewExecutable $view) {
+  $messages = array();
+
+  if ($view->display_handler->options['pager']['type'] == 'none') {
+    $messages[] = Drupal\views\Analyzer::formatMessage(t('This view has no pager. This could cause performance issues when the view contains many items.'), 'warning');
+  }
+
+  return $messages;
+}
+
+/**
  * Describe data tables (or the equivalent) to Views.
  *
  * The data described with this hook is fetched and retrieved by
- * views_fetch_data().
+ * \Drupal\views\Views::viewsData()->get().
  *
  * @return array
  *   An associative array describing the data structure. Primary key is the
@@ -191,7 +211,6 @@ function hook_views_data() {
     'help' => t('Just a plain text field.'),
     'field' => array(
       'id' => 'standard',
-      'click sortable' => TRUE, // This is use by the table display plugin.
     ),
     'sort' => array(
       'id' => 'standard',
@@ -210,7 +229,6 @@ function hook_views_data() {
     'help' => t('Just a numeric field.'),
     'field' => array(
       'id' => 'numeric',
-      'click sortable' => TRUE,
      ),
     'filter' => array(
       'id' => 'numeric',
@@ -226,7 +244,6 @@ function hook_views_data() {
     'help' => t('Just an on/off field.'),
     'field' => array(
       'id' => 'boolean',
-      'click sortable' => TRUE,
     ),
     'filter' => array(
       'id' => 'boolean',
@@ -248,7 +265,6 @@ function hook_views_data() {
     'help' => t('Just a timestamp field.'),
     'field' => array(
       'id' => 'date',
-      'click sortable' => TRUE,
     ),
     'sort' => array(
       'id' => 'date',
@@ -322,8 +338,8 @@ function hook_views_query_substitutions(ViewExecutable $view) {
   return array(
     '***CURRENT_VERSION***' => VERSION,
     '***CURRENT_TIME***' => REQUEST_TIME,
-    '***CURRENT_LANGUAGE***' => language(LANGUAGE_TYPE_CONTENT)->langcode,
-    '***DEFAULT_LANGUAGE***' => language_default()->langcode,
+    '***CURRENT_LANGUAGE***' => language(\Drupal\Core\Language\Language::TYPE_CONTENT)->id,
+    '***DEFAULT_LANGUAGE***' => language_default()->id,
   );
 }
 
@@ -355,13 +371,11 @@ function hook_views_form_substitutions() {
  *
  * @see \Drupal\views\ViewExecutable
  */
-function hook_views_pre_view(ViewExecutable &$view, &$display_id, array &$args) {
-  // Change the display if the acting user has 'administer site configuration'
-  // permission, to display something radically different.
-  // @todo Note that this is not necessarily the best way to solve that task.
-  //   Add a better example.
-  if ($view->name == 'my_special_view' && user_access('administer site configuration') && $display_id == 'public_display') {
-    $display_id = 'private_display';
+function hook_views_pre_view(ViewExecutable $view, $display_id, array &$args) {
+
+  // Modify contextual filters for my_special_view if user has 'my special permission'.
+  if ($view->name == 'my_special_view' && user_access('my special permission')) {
+    $args[0] = 'custom value';
   }
 }
 
@@ -376,7 +390,7 @@ function hook_views_pre_view(ViewExecutable &$view, &$display_id, array &$args) 
  *
  * @see \Drupal\views\ViewExecutable
  */
-function hook_views_pre_build(ViewExecutable &$view) {
+function hook_views_pre_build(ViewExecutable $view) {
   // Because of some unexplicable business logic, we should remove all
   // attachments from all views on Mondays.
   // (This alter could be done later in the execution process as well.)
@@ -397,7 +411,7 @@ function hook_views_pre_build(ViewExecutable &$view) {
  *
  * @see \Drupal\views\ViewExecutable
  */
-function hook_views_post_build(ViewExecutable &$view) {
+function hook_views_post_build(ViewExecutable $view) {
   // If the exposed field 'type' is set, hide the column containing the content
   // type. (Note that this is a solution for a particular view, and makes
   // assumptions about both exposed filter settings and the fields in the view.
@@ -422,7 +436,7 @@ function hook_views_post_build(ViewExecutable &$view) {
  *
  * @see \Drupal\views\ViewExecutable
  */
-function hook_views_pre_execute(ViewExecutable &$view) {
+function hook_views_pre_execute(ViewExecutable $view) {
   // Whenever a view queries more than two tables, show a message that notifies
   // view administrators that the query might be heavy.
   // (This action could be performed later in the execution process, but not
@@ -435,7 +449,7 @@ function hook_views_pre_execute(ViewExecutable &$view) {
 /**
  * Act on the view immediately after the query has been executed.
  *
- * At this point the query has been executed, but the pre_render() phase has
+ * At this point the query has been executed, but the preRender() phase has
  * not yet happened for handlers.
  *
  * Output can be added to the view by setting $view->attachment_before
@@ -446,7 +460,7 @@ function hook_views_pre_execute(ViewExecutable &$view) {
  *
  * @see \Drupal\views\ViewExecutable
  */
-function hook_views_post_execute(ViewExecutable &$view) {
+function hook_views_post_execute(ViewExecutable $view) {
   // If there are more than 100 results, show a message that encourages the user
   // to change the filter settings.
   // (This action could be performed later in the execution process, but not
@@ -459,7 +473,7 @@ function hook_views_post_execute(ViewExecutable &$view) {
 /**
  * Act on the view immediately before rendering it.
  *
- * At this point the query has been executed, and the pre_render() phase has
+ * At this point the query has been executed, and the preRender() phase has
  * already happened for handlers, so all data should be available. This hook
  * can be utilized by themes.
  *
@@ -471,7 +485,7 @@ function hook_views_post_execute(ViewExecutable &$view) {
  *
  * @see \Drupal\views\ViewExecutable
  */
-function hook_views_pre_render(ViewExecutable &$view) {
+function hook_views_pre_render(ViewExecutable $view) {
   // Scramble the order of the rows shown on this result page.
   // Note that this could be done earlier, but not later in the view execution
   // process.
@@ -508,7 +522,7 @@ function hook_views_pre_render(ViewExecutable &$view) {
  *
  * @see \Drupal\views\ViewExecutable
  */
-function hook_views_post_render(ViewExecutable &$view, &$output, CacheBackendInterface &$cache) {
+function hook_views_post_render(ViewExecutable $view, &$output, CacheBackendInterface $cache) {
   // When using full pager, disable any time-based caching if there are fewer
   // than 10 results.
   if ($view->pager instanceof Drupal\views\Plugin\views\pager\Full && $cache instanceof Drupal\views\Plugin\views\cache\Time && count($view->result) < 10) {
@@ -528,7 +542,7 @@ function hook_views_post_render(ViewExecutable &$view, &$output, CacheBackendInt
  * @see hook_views_query_substitutions()
  * @see \Drupal\views\Plugin\views\query\Sql
  */
-function hook_views_query_alter(ViewExecutable &$view, QueryPluginBase &$query) {
+function hook_views_query_alter(ViewExecutable $view, QueryPluginBase $query) {
   // (Example assuming a view with an exposed filter on node title.)
   // If the input for the title filter is a positive integer, filter against
   // node ID instead of node title.
@@ -559,10 +573,10 @@ function hook_views_query_alter(ViewExecutable &$view, QueryPluginBase &$query) 
  *
  * @param array $rows
  *   An associative array with two keys:
- *   - query: An array of rows suitable for theme('table'), containing
+ *   - query: An array of rows suitable for '#theme' => 'table', containing
  *     information about the query and the display title and path.
- *   - statistics: An array of rows suitable for theme('table'), containing
- *     performance statistics.
+ *   - statistics: An array of rows suitable for '#theme' => 'table',
+ *     containing performance statistics.
  * @param \Drupal\views\ViewExecutable $view
  *   The view object.
  *
@@ -583,7 +597,8 @@ function hook_views_preview_info_alter(array &$rows, ViewExecutable $view) {
  *
  * @param array $links
  *   A renderable array of links which will be displayed at the top of the
- *   view edit form. Each entry will be in a form suitable for theme('link').
+ *   view edit form. Each entry will be in a form suitable for
+ *   '#theme' => 'links'.
  * @param \Drupal\views\ViewExecutable $view
  *   The view object being edited.
  * @param string $display_id
@@ -598,25 +613,7 @@ function hook_views_ui_display_top_links_alter(array &$links, ViewExecutable $vi
   }
 }
 
-/**
- * Alter the commands used on a Views AJAX request.
- *
- * @param array $commands
- *   An array of ajax commands.
- * @param \Drupal\views\ViewExecutable $view
- *   The view which is requested.
- *
- * @see views_ajax()
- */
-function hook_views_ajax_data_alter(array &$commands, ViewExecutable $view) {
-  // Replace Views' method for scrolling to the top of the element with your
-  // custom scrolling method.
-  foreach ($commands as &$command) {
-    if ($command['method'] == 'viewsScrollTop') {
-      $command['method'] .= 'myScrollTop';
-    }
-  }
-}
+// @todo Describe how to alter a view ajax response with event listeners.
 
 /**
  * Allow modules to respond to the invalidation of the Views cache.
@@ -631,6 +628,215 @@ function hook_views_invalidate_cache() {
 }
 
 /**
+ * Modify the list of available views access plugins.
+ *
+ * This hook may be used to modify plugin properties after they have been
+ * specified by other modules.
+ *
+ * @param array $plugins
+ *   An array of all the existing plugin definitions, passed by reference.
+ *
+ * @see \Drupal\views\Plugin\ViewsPluginManager
+ */
+function hook_views_plugins_access_alter(array &$plugins) {
+  // Remove the available plugin because the users should not have access to it.
+  unset($plugins['role']);
+}
+
+/**
+ * Modify the list of available views default argument plugins.
+ *
+ * This hook may be used to modify plugin properties after they have been
+ * specified by other modules.
+ *
+ * @param array $plugins
+ *   An array of all the existing plugin definitions, passed by reference.
+ *
+ * @see \Drupal\views\Plugin\ViewsPluginManager
+ */
+function hook_views_plugins_argument_default_alter(array &$plugins) {
+  // Remove the available plugin because the users should not have access to it.
+  unset($plugins['php']);
+}
+
+/**
+ * Modify the list of available views argument validation plugins.
+ *
+ * This hook may be used to modify plugin properties after they have been
+ * specified by other modules.
+ *
+ * @param array $plugins
+ *   An array of all the existing plugin definitions, passed by reference.
+ *
+ * @see \Drupal\views\Plugin\ViewsPluginManager
+ */
+function hook_views_plugins_argument_validator_alter(array &$plugins) {
+  // Remove the available plugin because the users should not have access to it.
+  unset($plugins['php']);
+}
+
+/**
+ * Modify the list of available views cache plugins.
+ *
+ * This hook may be used to modify plugin properties after they have been
+ * specified by other modules.
+ *
+ * @param array $plugins
+ *   An array of all the existing plugin definitions, passed by reference.
+ *
+ * @see \Drupal\views\Plugin\ViewsPluginManager
+ */
+function hook_views_plugins_cache_alter(array &$plugins) {
+  // Change the title.
+  $plugins['time']['title'] = t('Custom title');
+}
+
+/**
+ * Modify the list of available views display extender plugins.
+ *
+ * This hook may be used to modify plugin properties after they have been
+ * specified by other modules.
+ *
+ * @param array $plugins
+ *   An array of all the existing plugin definitions, passed by reference.
+ *
+ * @see \Drupal\views\Plugin\ViewsPluginManager
+ */
+function hook_views_plugins_display_extenders_alter(array &$plugins) {
+  // Alter the title of an existing plugin.
+  $plugins['time']['title'] = t('Custom title');
+}
+
+/**
+ * Modify the list of available views display plugins.
+ *
+ * This hook may be used to modify plugin properties after they have been
+ * specified by other modules.
+ *
+ * @param array $plugins
+ *   An array of all the existing plugin definitions, passed by reference.
+ *
+ * @see \Drupal\views\Plugin\ViewsPluginManager
+ */
+function hook_views_plugins_display_alter(array &$plugins) {
+  // Alter the title of an existing plugin.
+  $plugins['rest_export']['title'] = t('Export');
+}
+
+/**
+ * Modify the list of available views exposed form plugins.
+ *
+ * This hook may be used to modify plugin properties after they have been
+ * specified by other modules.
+ *
+ * @param array $plugins
+ *   An array of all the existing plugin definitions, passed by reference.
+ *
+ * @see \Drupal\views\Plugin\ViewsPluginManager
+ */
+function hook_views_plugins_exposed_form_alter(array &$plugins) {
+  // Remove the available plugin because the users should not have access to it.
+  unset($plugins['input_required']);
+}
+
+/**
+ * Modify the list of available views join plugins.
+ *
+ * This hook may be used to modify plugin properties after they have been
+ * specified by other modules.
+ *
+ * @param array $plugins
+ *   An array of all the existing plugin definitions, passed by reference.
+ *
+ * @see \Drupal\views\Plugin\ViewsPluginManager
+ */
+function hook_views_plugins_join_alter(array &$plugins) {
+  // Print out all join plugin names for debugging purposes.
+  debug($plugins);
+}
+
+/**
+ * Modify the list of available views join plugins.
+ *
+ * This hook may be used to modify plugin properties after they have been
+ * specified by other modules.
+ *
+ * @param array $plugins
+ *   An array of all the existing plugin definitions, passed by reference.
+ *
+ * @see \Drupal\views\Plugin\ViewsPluginManager
+ */
+function hook_views_plugins_pager_alter(array &$plugins) {
+  // Remove the sql based plugin to force good performance.
+  unset($plugins['full']);
+}
+
+/**
+ * Modify the list of available views query plugins.
+ *
+ * This hook may be used to modify plugin properties after they have been
+ * specified by other modules.
+ *
+ * @param array $plugins
+ *   An array of all the existing plugin definitions, passed by reference.
+ *
+ * @see \Drupal\views\Plugin\ViewsPluginManager
+ */
+function hook_views_plugins_query_alter(array &$plugins) {
+  // Print out all query plugin names for debugging purposes.
+  debug($plugins);
+}
+
+/**
+ * Modify the list of available views row plugins.
+ *
+ * This hook may be used to modify plugin properties after they have been
+ * specified by other modules.
+ *
+ * @param array $plugins
+ *   An array of all the existing plugin definitions, passed by reference.
+ *
+ * @see \Drupal\views\Plugin\ViewsPluginManager
+ */
+function hook_views_plugins_row_alter(array &$plugins) {
+  // Change the used class of a plugin.
+  $plugins['entity:node']['class'] = 'Drupal\node\Plugin\views\row\NodeRow';
+  $plugins['entity:node']['module'] = 'node';
+}
+
+/**
+ * Modify the list of available views style plugins.
+ *
+ * This hook may be used to modify plugin properties after they have been
+ * specified by other modules.
+ *
+ * @param array $plugins
+ *   An array of all the existing plugin definitions, passed by reference.
+ *
+ * @see \Drupal\views\Plugin\ViewsPluginManager
+ */
+function hook_views_plugins_style_alter(array &$plugins) {
+  // Change the theme hook of a plugin.
+  $plugins['html_list']['theme'] = 'custom_views_view_list';
+}
+
+/**
+ * Modify the list of available views wizard plugins.
+ *
+ * This hook may be used to modify plugin properties after they have been
+ * specified by other modules.
+ *
+ * @param array $plugins
+ *   An array of all the existing plugin definitions, passed by reference.
+ *
+ * @see \Drupal\views\Plugin\ViewsPluginManager
+ */
+function hook_views_plugins_wizard_alter(array &$plugins) {
+  // Change the title of a plugin.
+  $plugins['node_revision']['title'] = t('Node revision wizard');
+}
+
+/**
  * @}
  */
 
@@ -640,3 +846,4 @@ function hook_views_invalidate_cache() {
  * Handlers exposed by various modules to Views.
  * @}
  */
+
