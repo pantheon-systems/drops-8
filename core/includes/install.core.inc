@@ -1138,11 +1138,6 @@ function install_settings_form_validate($form, &$form_state) {
     $database['prefix'] = $test_prefix;
     $database['password'] = $GLOBALS['databases']['default']['default']['password'];
   }
-  // When installing on Pantheon, copy the database password and
-  // the test prefix.
-  if (isset($_SERVER['PRESSFLOW_SETTINGS'])) {
-    $database['password'] = $GLOBALS['databases']['default']['default']['password'];
-  }
   $drivers = drupal_get_database_types();
   $reflection = new \ReflectionClass($drivers[$driver]);
   $install_namespace = $reflection->getNamespaceName();
