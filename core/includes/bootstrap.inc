@@ -621,6 +621,43 @@ function drupal_settings_initialize() {
     }
   }
 
+  // Load environmental config, if present.
+  if (isset($_SERVER['PRESSFLOW_SETTINGS'])) {
+    $pressflow_settings = json_decode($_SERVER['PRESSFLOW_SETTINGS'], TRUE);
+    foreach ($pressflow_settings as $key => $value) {
+      // One level of depth should be enough for $conf and $database.
+      if ($key == 'conf') {
+        foreach($value as $conf_key => $conf_value) {
+          $conf[$conf_key] = $conf_value;
+        }
+      }
+      elseif ($key == 'databases') {
+        // Protect default configuration but allow the specification of
+        // additional databases. Also, allows fun things with 'prefix' if they
+        // want to try multisite.
+        if (!isset($databases) || !is_array($databases)) {
+          $databases = array();
+        }
+        $databases = array_replace_recursive($databases, $value);
+      }
+      else {
+        $$key = $value;
+      }
+    }
+  }
+
+  // Load CMI directory config, if present.
+  if (isset($_SERVER['PRESSFLOW_SETTINGS'])) {
+    $config_directories = array(
+      CONFIG_ACTIVE_DIRECTORY => array(
+        'path' => 'config_active',
+      ),
+      CONFIG_STAGING_DIRECTORY => array(
+        'path' => 'config_staging',
+      ),
+    );
+  }
+
   if (isset($base_url)) {
     // Parse fixed base URL from settings.php.
     $parts = parse_url($base_url);
@@ -2136,6 +2173,16 @@ function _drupal_bootstrap_variables() {
         install_goto('core/install.php');
       }
     }
+  }
+
+  // Redirect the user to the installation script if Drupal has not been
+  // installed yet. We accomplish this by checking for the sessions table.
+  //
+  // This is logic similar to what we see in _drupal_bootstrap_configuration(),
+  // but this is done later in the bootstrapping to connect to the database.
+  if (isset($_SERVER['PRESSFLOW_SETTINGS']) && !db_table_exists('sessions') && $_SERVER['SCRIPT_NAME'] != '/core/install.php') {
+    include_once __DIR__ . '/install.inc';
+    install_goto('core/install.php');
   }
 
   // Load variables from the database, but do not overwrite variables set in settings.php.
