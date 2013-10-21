@@ -38,7 +38,7 @@ abstract class ViewTestBase extends WebTestBase {
     foreach (ViewExecutable::getPluginTypes() as $plugin_type) {
       $this->container->get("plugin.manager.views.$plugin_type")->clearCachedDefinitions();
     }
-    ViewTestData::importTestViews(get_class($this), array('views_test_config'));
+    ViewTestData::createTestViews(get_class($this), array('views_test_config'));
   }
 
   /**
@@ -52,7 +52,7 @@ abstract class ViewTestBase extends WebTestBase {
     \Drupal::state()->set('views_test_data_schema', $this->schemaDefinition());
     \Drupal::state()->set('views_test_data_views_data', $this->viewsData());
 
-    module_enable(array('views_test_data'));
+    \Drupal::moduleHandler()->install(array('views_test_data'));
     $this->resetAll();
     $this->rebuildContainer();
     $this->container->get('module_handler')->reload();
@@ -268,9 +268,7 @@ abstract class ViewTestBase extends WebTestBase {
    *   The result from the xpath query.
    */
   protected function findBlockInstance(Block $block) {
-    $config_id = explode('.', $block->id());
-    $machine_name = array_pop($config_id);
-    return $this->xpath('//div[@id = :id]', array(':id' => 'block-' . $machine_name));
+    return $this->xpath('//div[@id = :id]', array(':id' => 'block-' . $block->id()));
   }
 
   /**

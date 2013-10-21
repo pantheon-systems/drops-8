@@ -32,7 +32,7 @@ abstract class CommentTestBase extends ViewTestBase {
   function setUp() {
     parent::setUp();
 
-    ViewTestData::importTestViews(get_class($this), array('comment_test_views'));
+    ViewTestData::createTestViews(get_class($this), array('comment_test_views'));
 
     // Add two users, create a node with the user1 as author and another node
     // with user2 as author. For the second node add a comment from user1.
@@ -40,12 +40,16 @@ abstract class CommentTestBase extends ViewTestBase {
     $this->account2 = $this->drupalCreateUser();
     $this->drupalLogin($this->account);
 
+    $this->container->get('comment.manager')->addDefaultField('node', 'page');
+
     $this->node_user_posted = $this->drupalCreateNode();
     $this->node_user_commented = $this->drupalCreateNode(array('uid' => $this->account2->id()));
 
     $comment = array(
       'uid' => $this->loggedInUser->id(),
-      'nid' => $this->node_user_commented->id(),
+      'entity_id' => $this->node_user_commented->id(),
+      'entity_type' => 'node',
+      'field_name' => 'comment',
       'cid' => '',
       'pid' => '',
       'node_type' => '',

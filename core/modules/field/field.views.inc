@@ -8,7 +8,8 @@
  */
 
 use Drupal\Component\Utility\NestedArray;
-use Drupal\Core\Entity\DatabaseStorageController;
+use Drupal\Core\Entity\FieldableDatabaseStorageController;
+use Drupal\Core\Entity\EntityStorageControllerInterface;
 use Drupal\field\FieldInterface;
 
 /**
@@ -19,11 +20,11 @@ use Drupal\field\FieldInterface;
  */
 function field_views_data() {
   $data = array();
-  $module_handler = Drupal::moduleHandler();
+  $module_handler = \Drupal::moduleHandler();
 
   foreach (field_info_fields() as $field) {
     if (_field_views_is_sql_entity_type($field)) {
-      $result = (array) $module_handler->invoke($field['module'], 'field_views_data', array($field));
+      $result = (array) $module_handler->invoke($field->module, 'field_views_data', array($field));
       if (empty($result)) {
         $result = field_views_field_default_views_data($field);
       }
@@ -49,7 +50,7 @@ function field_views_data() {
 function field_views_data_alter(&$data) {
   foreach (field_info_fields() as $field) {
     if (_field_views_is_sql_entity_type($field)) {
-      $function = $field['module'] . '_field_views_data_views_data_alter';
+      $function = $field->module . '_field_views_data_views_data_alter';
       if (function_exists($function)) {
         $function($data, $field);
       }
@@ -67,9 +68,9 @@ function field_views_data_alter(&$data) {
  *   True if the entity type uses DatabaseStorageController.
  */
 function _field_views_is_sql_entity_type(FieldInterface $field) {
-  $entity_manager = Drupal::entityManager();
+  $entity_manager = \Drupal::entityManager();
   try {
-    if ($entity_manager->getStorageController($field->entity_type) instanceof DatabaseStorageController) {
+    if ($entity_manager->getStorageController($field->entity_type) instanceof FieldableDatabaseStorageController) {
       return TRUE;
     }
   }
@@ -91,8 +92,9 @@ function field_views_field_label($entity_type, $field_name) {
   foreach ($instances as $bundle => $bundle_instances) {
     if (isset($bundle_instances[$field_name])) {
       $instance = $bundle_instances[$field_name];
-      $label_counter[$instance->label] = isset($label_counter[$instance->label]) ? ++$label_counter[$instance->label] : 1;
-      $all_labels[$instance->label] = TRUE;
+      $label = $instance->getFieldLabel();
+      $label_counter[$label] = isset($label_counter[$label]) ? ++$label_counter[$label] : 1;
+      $all_labels[$label] = TRUE;
     }
   }
   if (empty($label_counter)) {
@@ -117,18 +119,19 @@ function field_views_field_default_views_data(FieldInterface $field) {
   $data = array();
 
   // Check the field type is available.
-  if (!\Drupal::service('plugin.manager.entity.field.field_type')->getDefinition($field['type'])) {
+  if (!\Drupal::service('plugin.manager.entity.field.field_type')->getDefinition($field->getFieldType())) {
     return $data;
   }
   // Check the field has instances.
-  if (empty($field['bundles'])) {
+  if (!$field->getBundles()) {
     return $data;
   }
 
-  $field_name = $field['field_name'];
+  $field_name = $field->getFieldName();
+  $field_columns = $field->getColumns();
 
   // Grab information about the entity type tables.
-  $entity_manager = Drupal::entityManager();
+  $entity_manager = \Drupal::entityManager();
   $entity_type = $field->entity_type;
   $entity_info = $entity_manager->getDefinition($entity_type);
   if (!isset($entity_info['base_table'])) {
@@ -144,20 +147,20 @@ function field_views_field_default_views_data(FieldInterface $field) {
 
   // Description of the field tables.
   $field_tables = array(
-    FIELD_LOAD_CURRENT => array(
-      'table' => DatabaseStorageController::_fieldTableName($field),
-      'alias' => "{$entity_type}__{$field->name}",
+    EntityStorageControllerInterface::FIELD_LOAD_CURRENT => array(
+      'table' => FieldableDatabaseStorageController::_fieldTableName($field),
+      'alias' => "{$entity_type}__{$field_name}",
     ),
   );
   if ($supports_revisions) {
-    $field_tables[FIELD_LOAD_REVISION] = array(
-      'table' => DatabaseStorageController::_fieldRevisionTableName($field),
-      'alias' => "{$entity_type}_revision__{$field->name}",
+    $field_tables[EntityStorageControllerInterface::FIELD_LOAD_REVISION] = array(
+      'table' => FieldableDatabaseStorageController::_fieldRevisionTableName($field),
+      'alias' => "{$entity_type}_revision__{$field_name}",
     );
   }
 
   // Build the relationships between the field table and the entity tables.
-  $table_alias = $field_tables[FIELD_LOAD_CURRENT]['alias'];
+  $table_alias = $field_tables[EntityStorageControllerInterface::FIELD_LOAD_CURRENT]['alias'];
   $data[$table_alias]['table']['join'][$entity_table] = array(
     'left_field' => $entity_info['entity_keys']['id'],
     'field' => 'entity_id',
@@ -166,7 +169,7 @@ function field_views_field_default_views_data(FieldInterface $field) {
     ),
   );
   if ($supports_revisions) {
-    $table_alias = $field_tables[FIELD_LOAD_REVISION]['alias'];
+    $table_alias = $field_tables[EntityStorageControllerInterface::FIELD_LOAD_REVISION]['alias'];
     $data[$table_alias]['table']['join'][$entity_revision_table] = array(
       'left_field' => $entity_info['entity_keys']['revision'],
       'field' => 'revision_id',
@@ -176,14 +179,13 @@ function field_views_field_default_views_data(FieldInterface $field) {
     );
   }
 
-  // Override Node to Content.
-  $group_name = ($entity_info['label'] == t('Node')) ? t('Content') : $entity_info['label'];
+  $group_name = $entity_info['label'];
   // Get the list of bundles the field appears in.
   $bundles_names = $field->getBundles();
   // Build the list of additional fields to add to queries.
   $add_fields = array('delta', 'langcode', 'bundle');
-  foreach (array_keys($field['columns']) as $column) {
-    $add_fields[] = DatabaseStorageController::_fieldColumnName($field, $column);
+  foreach (array_keys($field_columns) as $column) {
+    $add_fields[] = FieldableDatabaseStorageController::_fieldColumnName($field, $column);
   }
   // Determine the label to use for the field. We don't have a label available
   // at the field level, so we just go through all instances and take the one
@@ -195,7 +197,7 @@ function field_views_field_default_views_data(FieldInterface $field) {
     $table = $table_info['table'];
     $table_alias = $table_info['alias'];
 
-    if ($type == FIELD_LOAD_CURRENT) {
+    if ($type == EntityStorageControllerInterface::FIELD_LOAD_CURRENT) {
       $group = $group_name;
       $field_alias = $field_name;
     }
@@ -216,7 +218,7 @@ function field_views_field_default_views_data(FieldInterface $field) {
     $aliases = array();
     $also_known = array();
     foreach ($all_labels as $label_name => $true) {
-      if ($type == FIELD_LOAD_CURRENT) {
+      if ($type == EntityStorageControllerInterface::FIELD_LOAD_CURRENT) {
         if ($label != $label_name) {
           $aliases[] = array(
             'base' => $entity_table,
@@ -242,7 +244,7 @@ function field_views_field_default_views_data(FieldInterface $field) {
       $data[$table_alias][$field_alias]['help'] .= ' ' . t('Also known as: !also.', array('!also' => implode(', ', $also_known)));
     }
 
-    $keys = array_keys($field['columns']);
+    $keys = array_keys($field_columns);
     $real_field = reset($keys);
     $data[$table_alias][$field_alias]['field'] = array(
       'table' => $table,
@@ -255,12 +257,12 @@ function field_views_field_default_views_data(FieldInterface $field) {
       'entity_tables' => $entity_tables,
       // Default the element type to div, let the UI change it if necessary.
       'element type' => 'div',
-      'is revision' => $type == FIELD_LOAD_REVISION,
+      'is revision' => $type == EntityStorageControllerInterface::FIELD_LOAD_REVISION,
     );
   }
 
   // Expose data for each field property individually.
-  foreach ($field['columns'] as $column => $attributes) {
+  foreach ($field_columns as $column => $attributes) {
     $allow_sort = TRUE;
 
     // Identify likely filters and arguments for each column based on field type.
@@ -287,7 +289,7 @@ function field_views_field_default_views_data(FieldInterface $field) {
         break;
     }
 
-    if (count($field['columns']) == 1 || $column == 'value') {
+    if (count($field_columns) == 1 || $column == 'value') {
       $title = t('@label (!name)', array('@label' => $label, '!name' => $field_name));
       $title_short = $label;
     }
@@ -301,16 +303,16 @@ function field_views_field_default_views_data(FieldInterface $field) {
       $table = $table_info['table'];
       $table_alias = $table_info['alias'];
 
-      if ($type == FIELD_LOAD_CURRENT) {
+      if ($type == EntityStorageControllerInterface::FIELD_LOAD_CURRENT) {
         $group = $group_name;
       }
       else {
         $group = t('@group (historical data)', array('@group' => $group_name));
       }
-      $column_real_name = DatabaseStorageController::_fieldColumnName($field, $column);
+      $column_real_name = FieldableDatabaseStorageController::_fieldColumnName($field, $column);
 
       // Load all the fields from the table by default.
-      $field_sql_schema = DatabaseStorageController::_fieldSqlSchema($field);
+      $field_sql_schema = FieldableDatabaseStorageController::_fieldSqlSchema($field);
       $additional_fields = array_keys($field_sql_schema[$table]['fields']);
 
       $data[$table_alias][$column_real_name] = array(
@@ -326,7 +328,7 @@ function field_views_field_default_views_data(FieldInterface $field) {
       $also_known = array();
       foreach ($all_labels as $label_name => $true) {
         if ($label != $label_name) {
-          if (count($field['columns']) == 1 || $column == 'value') {
+          if (count($field_columns) == 1 || $column == 'value') {
             $alias_title = t('@label (!name)', array('@label' => $label_name, '!name' => $field_name));
           }
           else {
@@ -375,7 +377,7 @@ function field_views_field_default_views_data(FieldInterface $field) {
       }
 
       // Expose additional delta column for multiple value fields.
-      if ($field['cardinality'] > 1 || $field['cardinality'] == FIELD_CARDINALITY_UNLIMITED) {
+      if ($field->getFieldCardinality() > 1 || $field->getFieldCardinality() == FIELD_CARDINALITY_UNLIMITED) {
         $title_delta = t('@label (!name:delta)', array('@label' => $label, '!name' => $field_name));
         $title_short_delta = t('@label:delta', array('@label' => $label));
 
@@ -417,7 +419,7 @@ function field_views_field_default_views_data(FieldInterface $field) {
       }
 
       // Expose additional language column for translatable fields.
-      if (!empty($field['translatable'])) {
+      if ($field->isFieldTranslatable()) {
         $title_language = t('@label (!name:language)', array('@label' => $label, '!name' => $field_name));
         $title_short_language = t('@label:language', array('@label' => $label));
 
@@ -474,7 +476,7 @@ function list_field_views_data($field) {
         $data[$table_name][$field_name]['filter']['id'] = 'field_list';
       }
       if (isset($field_data['argument']) && $field_name != 'delta') {
-        if ($field['type'] == 'list_text') {
+        if ($field->getFieldType() == 'list_text') {
           $data[$table_name][$field_name]['argument']['id'] = 'field_list_string';
         }
         else {

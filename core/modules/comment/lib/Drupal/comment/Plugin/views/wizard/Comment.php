@@ -20,7 +20,6 @@ use Drupal\Core\Annotation\Translation;
  *
  * @ViewsWizard(
  *   id = "comment",
- *   module = "comment",
  *   base_table = "comment",
  *   title = @Translation("Comments")
  * )
@@ -55,14 +54,14 @@ class Comment extends WizardPluginBase {
       'value' => TRUE,
       'table' => 'comment',
       'field' => 'status',
-      'provider' => 'user'
+      'provider' => 'comment'
     ),
     'status_node' => array(
       'value' => TRUE,
       'table' => 'node_field_data',
       'field' => 'status',
-      'provider' => 'user',
-      'relationship' => 'nid'
+      'provider' => 'node',
+      'relationship' => 'node',
     )
   );
 
@@ -89,8 +88,8 @@ class Comment extends WizardPluginBase {
       case 'comment':
         $style_form['row_options']['links'] = array(
           '#type' => 'select',
-          '#title_display' => 'invisible',
           '#title' => t('Should links be displayed below each comment'),
+          '#title_display' => 'invisible',
           '#options' => array(
             1 => t('with links (allow users to reply to the comment, etc.)'),
             0 => t('without links'),
@@ -145,10 +144,10 @@ class Comment extends WizardPluginBase {
     $display_options['access']['type'] = 'perm';
 
     // Add a relationship to nodes.
-    $display_options['relationships']['nid']['id'] = 'nid';
-    $display_options['relationships']['nid']['table'] = 'comment';
-    $display_options['relationships']['nid']['field'] = 'nid';
-    $display_options['relationships']['nid']['required'] = 1;
+    $display_options['relationships']['node']['id'] = 'node';
+    $display_options['relationships']['node']['table'] = 'comment';
+    $display_options['relationships']['node']['field'] = 'node';
+    $display_options['relationships']['node']['required'] = 1;
 
     // Remove the default fields, since we are customizing them here.
     unset($display_options['fields']);

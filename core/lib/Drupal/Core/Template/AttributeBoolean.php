@@ -6,6 +6,7 @@
  */
 
 namespace Drupal\Core\Template;
+use Drupal\Component\Utility\String;
 
 /**
  * A class that defines a type of boolean HTML attribute.
@@ -16,16 +17,16 @@ namespace Drupal\Core\Template;
  *
  * To set a boolean attribute on the Attribute class, set it to TRUE.
  * @code
- *  $attributes = new Attribute(array());
+ *  $attributes = new Attribute();
  *  $attributes['disabled'] = TRUE;
- *  echo '<select ' . $attributes . '/>';
+ *  echo '<select' . $attributes . '/>';
  *  // produces <select disabled>;
  *  $attributes['disabled'] = FALSE;
- *  echo '<select ' . $attributes . '/>';
+ *  echo '<select' . $attributes . '/>';
  *  // produces <select>;
  * @endcode
  *
- * @see Drupal\Core\Template\Attribute
+ * @see \Drupal\Core\Template\Attribute
  */
 class AttributeBoolean extends AttributeValueBase {
 
@@ -41,7 +42,7 @@ class AttributeBoolean extends AttributeValueBase {
    */
   public function __toString() {
     $this->printed = TRUE;
-    return $this->value === FALSE ? '' : check_plain($this->name);
+    return $this->value === FALSE ? '' : String::checkPlain($this->name);
   }
 
 }

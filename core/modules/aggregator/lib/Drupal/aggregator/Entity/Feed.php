@@ -7,7 +7,7 @@
 
 namespace Drupal\aggregator\Entity;
 
-use Drupal\Core\Entity\EntityNG;
+use Drupal\Core\Entity\ContentEntityBase;
 use Symfony\Component\DependencyInjection\Container;
 use Drupal\Core\Entity\EntityStorageControllerInterface;
 use Drupal\Core\Entity\Annotation\EntityType;
@@ -38,63 +38,63 @@ use Drupal\aggregator\FeedInterface;
  *   }
  * )
  */
-class Feed extends EntityNG implements FeedInterface {
+class Feed extends ContentEntityBase implements FeedInterface {
 
   /**
    * The feed ID.
    *
    * @todo rename to id.
    *
-   * @var \Drupal\Core\Entity\Field\FieldInterface
+   * @var \Drupal\Core\Entity\Field\FieldItemListInterface
    */
   public $fid;
 
   /**
    * Title of the feed.
    *
-   * @var \Drupal\Core\Entity\Field\FieldInterface
+   * @var \Drupal\Core\Entity\Field\FieldItemListInterface
    */
   public $title;
 
   /**
    * The feed language code.
    *
-   * @var \Drupal\Core\Entity\Field\FieldInterface
+   * @var \Drupal\Core\Entity\Field\FieldItemListInterface
    */
   public $langcode;
 
   /**
    * URL to the feed.
    *
-   * @var \Drupal\Core\Entity\Field\FieldInterface
+   * @var \Drupal\Core\Entity\Field\FieldItemListInterface
    */
   public $url;
 
   /**
    * How often to check for new feed items, in seconds.
    *
-   * @var \Drupal\Core\Entity\Field\FieldInterface
+   * @var \Drupal\Core\Entity\Field\FieldItemListInterface
    */
   public $refresh;
 
   /**
    * Last time feed was checked for new items, as Unix timestamp.
    *
-   * @var \Drupal\Core\Entity\Field\FieldInterface
+   * @var \Drupal\Core\Entity\Field\FieldItemListInterface
    */
   public $checked;
 
   /**
    * Time when this feed was queued for refresh, 0 if not queued.
    *
-   * @var \Drupal\Core\Entity\Field\FieldInterface
+   * @var \Drupal\Core\Entity\Field\FieldItemListInterface
    */
   public $queued;
 
   /**
    * The parent website of the feed; comes from the <link> element in the feed.
    *
-   * @var \Drupal\Core\Entity\Field\FieldInterface
+   * @var \Drupal\Core\Entity\Field\FieldItemListInterface
    */
   public $link ;
 
@@ -102,47 +102,40 @@ class Feed extends EntityNG implements FeedInterface {
    * The parent website's description;
    * comes from the <description> element in the feed.
    *
-   * @var \Drupal\Core\Entity\Field\FieldInterface
+   * @var \Drupal\Core\Entity\Field\FieldItemListInterface
    */
   public $description;
 
   /**
    * An image representing the feed.
    *
-   * @var \Drupal\Core\Entity\Field\FieldInterface
+   * @var \Drupal\Core\Entity\Field\FieldItemListInterface
    */
   public $image;
 
   /**
    * Calculated hash of the feed data, used for validating cache.
    *
-   * @var \Drupal\Core\Entity\Field\FieldInterface
+   * @var \Drupal\Core\Entity\Field\FieldItemListInterface
    */
   public $hash;
 
   /**
    * Entity tag HTTP response header, used for validating cache.
    *
-   * @var \Drupal\Core\Entity\Field\FieldInterface
+   * @var \Drupal\Core\Entity\Field\FieldItemListInterface
    */
   public $etag;
 
   /**
    * When the feed was last modified, as a Unix timestamp.
    *
-   * @var \Drupal\Core\Entity\Field\FieldInterface
+   * @var \Drupal\Core\Entity\Field\FieldItemListInterface
    */
   public $modified;
 
   /**
-   * Number of items to display in the feed’s block.
-   *
-   * @var \Drupal\Core\Entity\Field\FieldInterface
-   */
-  public $block;
-
-  /**
-   * Overrides Drupal\Core\Entity\EntityNG::init().
+   * {@inheritdoc}
    */
   public function init() {
     parent::init();
@@ -160,7 +153,6 @@ class Feed extends EntityNG implements FeedInterface {
     unset($this->hash);
     unset($this->etag);
     unset($this->modified);
-    unset($this->block);
   }
 
   /**
@@ -208,10 +200,6 @@ class Feed extends EntityNG implements FeedInterface {
    * {@inheritdoc}
    */
   public static function preDelete(EntityStorageControllerInterface $storage_controller, array $entities) {
-    // Invalidate the block cache to update aggregator feed-based derivatives.
-    if (\Drupal::moduleHandler()->moduleExists('block')) {
-      \Drupal::service('plugin.manager.block')->clearCachedDefinitions();
-    }
     $storage_controller->deleteCategories($entities);
     foreach ($entities as $entity) {
       // Notify processors to remove stored items.
@@ -226,14 +214,15 @@ class Feed extends EntityNG implements FeedInterface {
    * {@inheritdoc}
    */
   public static function postDelete(EntityStorageControllerInterface $storage_controller, array $entities) {
-    foreach ($entities as $entity) {
-      // Make sure there is no active block for this feed.
-      $block_configs = config_get_storage_names_with_prefix('plugin.core.block');
-      foreach ($block_configs as $config_id) {
-        $config = \Drupal::config($config_id);
-        if ($config->get('id') == 'aggregator_feed_block:' . $entity->id()) {
-          $config->delete();
-        }
+    if (\Drupal::moduleHandler()->moduleExists('block')) {
+      // Make sure there are no active blocks for these feeds.
+      $ids = \Drupal::entityQuery('block')
+        ->condition('plugin', 'aggregator_feed_block')
+        ->condition('settings.feed', array_keys($entities))
+        ->execute();
+      if ($ids) {
+        $block_storage = \Drupal::entityManager()->getStorageController('block');
+        $block_storage->delete($block_storage->loadMultiple($ids));
       }
     }
   }
@@ -242,7 +231,8 @@ class Feed extends EntityNG implements FeedInterface {
    * {@inheritdoc}
    */
   public function preSave(EntityStorageControllerInterface $storage_controller) {
-    $this->clearBlockCacheDefinitions();
+    parent::preSave($storage_controller);
+
     $storage_controller->deleteCategories(array($this->id() => $this));
   }
 
@@ -250,17 +240,10 @@ class Feed extends EntityNG implements FeedInterface {
    * {@inheritdoc}
    */
   public function postSave(EntityStorageControllerInterface $storage_controller, $update = FALSE) {
+    parent::postSave($storage_controller, $update);
+
     if (!empty($this->categories)) {
       $storage_controller->saveCategories($this, $this->categories);
-    }
-  }
-
-  /**
-   * Invalidate the block cache to update aggregator feed-based derivatives.
-   */
-  protected function clearBlockCacheDefinitions() {
-    if ($block_manager = \Drupal::getContainer()->get('plugin.manager.block', Container::NULL_ON_INVALID_REFERENCE)) {
-      $block_manager->clearCachedDefinitions();
     }
   }
 
@@ -332,11 +315,6 @@ class Feed extends EntityNG implements FeedInterface {
     $fields['modified'] = array(
       'label' => t('Modified'),
       'description' => t('When the feed was last modified, as a Unix timestamp.'),
-      'type' => 'integer_field',
-    );
-    $fields['block'] = array(
-      'label' => t('Block'),
-      'description' => t('Number of items to display in the feed’s block.'),
       'type' => 'integer_field',
     );
     return $fields;

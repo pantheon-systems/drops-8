@@ -5,6 +5,8 @@
  * Provides integration with the CKEditor WYSIWYG editor.
  */
 
+use Drupal\editor\Entity\Editor;
+
 /**
  * Implements hook_help().
  */
@@ -13,15 +15,15 @@ function ckeditor_help($path, $arg) {
     case 'admin/help#ckeditor':
       $output = '';
       $output .= '<h3>' . t('About') . '</h3>';
-      $output .= '<p>' . t('The CKEditor module provides a visual text editor and adds a toolbar to text fields. Users can use buttons to format content and to create semantically correct and valid HTML. The CKEditor module uses the framework provided by the <a href="@text_editor">Text Editor module</a>. It requires JavaScript to be enabled in the browser. For more information, see <a href="@doc_url">the online documentation for the CKEditor module</a> and the <a href="@cke_url">CKEditor website</a>.', array( '@doc_url' => 'https://drupal.org/documentation/modules/ckeditor', '@cke_url'=>'http://ckeditor.com', '@text_editor' => url('admin/help/editor'))) . '</p>';
+      $output .= '<p>' . t('The CKEditor module provides a visual text editor and adds a toolbar to text fields. Users can use buttons to format content and to create semantically correct and valid HTML. The CKEditor module uses the framework provided by the <a href="!text_editor">Text Editor module</a>. It requires JavaScript to be enabled in the browser. For more information, see <a href="!doc_url">the online documentation for the CKEditor module</a> and the <a href="!cke_url">CKEditor website</a>.', array( '!doc_url' => 'https://drupal.org/documentation/modules/ckeditor', '!cke_url'=>'http://ckeditor.com', '!text_editor' => \Drupal::url('help.page', array('name' => 'editor')))) . '</p>';
       $output .= '<h3>' . t('Uses') . '</h3>';
       $output .= '<dl>';
       $output .= '<dt>' . t('Enabling CKEditor for individual text formats') . '</dt>';
-      $output .= '<dd>' . t('CKEditor has to be enabled and configured separately for individual text formats from the <a href="@formats">Text formats and editors page</a> because the filter settings for each text format can be different. For more information, see the <a href="@text_editor">Text Editor help page</a> and <a href="@filter">Filter help page</a>.', array('@formats' => url('admin/config/content/formats'), '@text_editor' => url('admin/help/editor'), '@filter' => url('admin/help/filter'))) . '</dd>';
+      $output .= '<dd>' . t('CKEditor has to be enabled and configured separately for individual text formats from the <a href="!formats">Text formats and editors page</a> because the filter settings for each text format can be different. For more information, see the <a href="!text_editor">Text Editor help page</a> and <a href="!filter">Filter help page</a>.', array('!formats' => \Drupal::url('filter.admin_overview'), '!text_editor' => \Drupal::url('help.page', array('name' => 'editor')), '!filter' => \Drupal::url('help.page', array('name' => 'filter')))) . '</dd>';
       $output .= '<dt>' . t('Configuring the toolbar') . '</dt>';
       $output .= '<dd>' . t('When CKEditor is chosen from the <em>Text editor</em> drop-down menu, its toolbar configuration is displayed. You can add and remove buttons from the <em>Active toolbar</em> by dragging and dropping them, and additional rows can be added to organize the buttons.') . '</dd>';
       $output .= '<dt>' . t('Formatting content') . '</dt>';
-      $output .= '<dd>' . t('CKEditor only allow users to format content in accordance with the filter configuration of the specific text format. If a text format excludes certain HTML tags, the corresponding toolbar buttons are not displayed to users when they edit a text field in this format. For more information see the <a href="@filter">Filter help page</a>.', array('@filter' => url('admin/help/filter'))) . '</dd>';
+      $output .= '<dd>' . t('CKEditor only allow users to format content in accordance with the filter configuration of the specific text format. If a text format excludes certain HTML tags, the corresponding toolbar buttons are not displayed to users when they edit a text field in this format. For more information see the <a href="!filter">Filter help page</a>.', array('!filter' => \Drupal::url('help.page', array('name' => 'filter')))) . '</dd>';
       $output .= '<dt>' . t('Toggling between formatted text and HTML source') . '</dt>';
       $output .= '<dd>' . t('If the <em>Source</em> button is available in the toolbar, users can click this button to disable the visual editor and edit the HTML source directly. After toggling back, the visual editor uses the allowed HTML tags to format the text — independent of whether buttons for these tags are available in the toolbar. If the text format is set to <em>limit the use of HTML tags</em>, then all excluded tags will be stripped out of the HTML source when the user toggles back to the text editor.') . '</dd>';
       $output .= '</dl>';
@@ -29,7 +31,7 @@ function ckeditor_help($path, $arg) {
   }
 }
 
-/*
+/**
  * Implements hook_library_info().
  */
 function ckeditor_library_info() {
@@ -42,7 +44,7 @@ function ckeditor_library_info() {
   );
   $libraries['drupal.ckeditor'] = array(
     'title' => 'Drupal behavior to enable CKEditor on textareas.',
-    'version' => VERSION,
+    'version' => \Drupal::VERSION,
     'js' => array(
       $module_path . '/js/ckeditor.js' => array(),
       array('data' => $settings, 'type' => 'setting'),
@@ -58,7 +60,7 @@ function ckeditor_library_info() {
   );
   $libraries['drupal.ckeditor.admin'] = array(
     'title' => 'Drupal behavior for drag-and-drop CKEditor toolbar builder UI.',
-    'version' => VERSION,
+    'version' => \Drupal::VERSION,
     'js' => array(
       $module_path . '/js/ckeditor.admin.js' => array(),
     ),
@@ -76,12 +78,15 @@ function ckeditor_library_info() {
       array('system', 'jquery.ui.touch-punch'),
       array('ckeditor', 'ckeditor'),
       array('editor', 'drupal.editor.admin'),
-      array('system', 'underscore')
+      array('system', 'underscore'),
+      // Depend on Vertical Tabs, so that Vertical Tabs' JavaScript is executed
+      // first, which ensures its behavior runs first.
+      array('system', 'drupal.vertical-tabs'),
     ),
   );
   $libraries['drupal.ckeditor.drupalimage.admin'] = array(
     'title' => 'Only show the "drupalimage" plugin settings when its button is enabled.',
-    'version' => VERSION,
+    'version' => \Drupal::VERSION,
     'js' => array(
       $module_path . '/js/ckeditor.drupalimage.admin.js' => array(),
     ),
@@ -95,7 +100,7 @@ function ckeditor_library_info() {
   );
   $libraries['drupal.ckeditor.stylescombo.admin'] = array(
     'title' => 'Only show the "stylescombo" plugin settings when its button is enabled.',
-    'version' => VERSION,
+    'version' => \Drupal::VERSION,
     'js' => array(
       $module_path . '/js/ckeditor.stylescombo.admin.js' => array(),
     ),
@@ -107,9 +112,19 @@ function ckeditor_library_info() {
       array('system', 'drupalSettings'),
     ),
   );
+  $libraries['drupal.ckeditor.drupalimagecaption-theme'] = array(
+    'title' => 'Theming support for the imagecaption plugin.',
+    'version' => \Drupal::VERSION,
+    'js' => array(
+      $module_path . '/js/plugins/drupalimagecaption/theme.js' => array(),
+    ),
+    'dependencies' => array(
+      array('ckeditor', 'ckeditor'),
+    ),
+  );
   $libraries['ckeditor'] = array(
     'title' => 'Loads the main CKEditor library.',
-    'version' => '4.2',
+    'version' => '4.3-dev — d8-imagecaption branch commit 887d81ac1824008b690e439a1b29eb4f13b51212',
     'js' => array(
       'core/assets/vendor/ckeditor/ckeditor.js' => array(
         'preprocess' => FALSE,
@@ -133,6 +148,25 @@ function ckeditor_theme() {
 }
 
 /**
+ * Implements hook_ckeditor_css_alter().
+ */
+function ckeditor_ckeditor_css_alter(array &$css, Editor $editor) {
+    $filters = array();
+    if (!empty($editor->format)) {
+      $filters = entity_load('filter_format', $editor->format)
+        ->filters()
+        ->getAll();
+    }
+
+  // Add the filter caption CSS if the text format associated with this text
+  // editor uses the filter_caption filter. This is used by the included
+  // CKEditor DrupalImageCaption plugin.
+  if (isset($filters['filter_caption']) && $filters['filter_caption']->status) {
+    $css[] = drupal_get_path('module', 'filter') . '/css/filter.caption.css';
+  }
+}
+
+/**
  * Retrieves the default theme's CKEditor stylesheets defined in the .info file.
  *
  * Themes may specify iframe-specific CSS files for use with CKEditor by
@@ -145,7 +179,7 @@ function ckeditor_theme() {
 function _ckeditor_theme_css($theme = NULL) {
   $css = array();
   if (!isset($theme)) {
-    $theme = Drupal::config('system.theme')->get('default');
+    $theme = \Drupal::config('system.theme')->get('default');
   }
   if ($theme_path = drupal_get_path('theme', $theme)) {
     $info = system_get_info('theme', $theme);

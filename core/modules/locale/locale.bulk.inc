@@ -17,6 +17,8 @@ use Drupal\file\FileInterface;
  *
  * @see locale_translate_import_form_submit()
  * @ingroup forms
+ *
+ * @deprecated Use \Drupal\locale\Form\LocaleForm::import()
  */
 function locale_translate_import_form($form, &$form_state) {
   drupal_static_reset('language_list');
@@ -144,6 +146,8 @@ function locale_translate_import_form_submit($form, &$form_state) {
  *
  * @see locale_translate_export_form_submit()
  * @ingroup forms
+ *
+ * @deprecated Use \Drupal\locale\Form\LocaleForm::export()
  */
 function locale_translate_export_form($form, &$form_state) {
   $languages = language_list();
@@ -243,7 +247,7 @@ function locale_translate_export_form_submit($form, &$form_state) {
   if (!empty($item)) {
     $uri = tempnam('temporary://', 'po_');
     $header = $reader->getHeader();
-    $header->setProjectName(Drupal::config('system.site')->get('name'));
+    $header->setProjectName(\Drupal::config('system.site')->get('name'));
     $header->setLanguageName($languageName);
 
     $writer = new PoStreamWriter;
@@ -258,7 +262,7 @@ function locale_translate_export_form_submit($form, &$form_state) {
     $response = new BinaryFileResponse($uri);
     $response->setContentDisposition('attachment', $filename);
     // @todo remove lines below once converted to new routing system.
-    $response->prepare(Drupal::request())
+    $response->prepare(\Drupal::request())
       ->send();
   }
   else {
@@ -348,7 +352,7 @@ function locale_translate_get_interface_translation_files($projects = array(), $
   // containing a project name and language code: {project}.{langcode}.po or
   // {project}-{version}.{langcode}.po.
   // Only files of known projects and languages will be returned.
-  $directory = Drupal::config('locale.settings')->get('translation.path');
+  $directory = \Drupal::config('locale.settings')->get('translation.path');
   $result = file_scan_directory($directory, '![a-z_]+(\-[0-9a-z\.\-\+]+|)\.[^\./]+\.po$!', array('recurse' => FALSE));
 
   foreach ($result as $file) {
@@ -552,7 +556,7 @@ function locale_translate_batch_refresh(array &$context) {
     if (isset($context['results']['stats'])) {
       // Get list of unique string identifiers and language codes updated.
       $langcodes = array_unique(array_values($context['results']['languages']));
-      foreach ($context['results']['stats'] as $filepath => $report) {
+      foreach ($context['results']['stats'] as $report) {
         $strings = array_merge($strings, $report['strings']);
       }
     }
@@ -602,7 +606,7 @@ function locale_translate_batch_finished($success, $results) {
   if ($success) {
     $additions = $updates = $deletes = $skips = $config = 0;
     if (isset($results['failed_files'])) {
-      if (Drupal::moduleHandler()->moduleExists('dblog')) {
+      if (\Drupal::moduleHandler()->moduleExists('dblog')) {
         $message = format_plural(count($results['failed_files']), 'One translation file could not be imported. <a href="@url">See the log</a> for details.', '@count translation files could not be imported. <a href="@url">See the log</a> for details.', array('@url' => url('admin/reports/dblog')));
       }
       else {
@@ -633,7 +637,7 @@ function locale_translate_batch_finished($success, $results) {
       watchdog('locale', 'Translations imported: %number added, %update updated, %delete removed.', array('%number' => $additions, '%update' => $updates, '%delete' => $deletes));
 
       if ($skips) {
-        if (Drupal::moduleHandler()->moduleExists('dblog')) {
+        if (\Drupal::moduleHandler()->moduleExists('dblog')) {
           $message = format_plural($skips, 'One translation string was skipped because of disallowed or malformed HTML. <a href="@url">See the log</a> for details.', '@count translation strings were skipped because of disallowed or malformed HTML. <a href="@url">See the log</a> for details.', array('@url' => url('admin/reports/dblog')));
         }
         else {
@@ -693,7 +697,7 @@ function locale_translate_file_attach_properties($file, $options = array()) {
     );
   }
 
-  // Extract project, verion and language code from the file name. Supported:
+  // Extract project, version and language code from the file name. Supported:
   // {project}-{version}.{langcode}.po, {prefix}.{langcode}.po or {langcode}.po
   preg_match('!
     (                       # project OR project and version OR emtpy (group 1)
@@ -799,7 +803,7 @@ function locale_config_batch_build(array $names, array $langcodes, $options = ar
     $batch_names[] = $name;
     $i++;
     // During installation the caching of configuration objects is disabled
-    // so it is very expensive to initialize the Drupal::config() object on each request.
+    // so it is very expensive to initialize the \Drupal::config() object on each request.
     // We batch a small number of configuration object upgrades together to
     // improve the overall performance of the process.
     if ($i % 20 == 0) {

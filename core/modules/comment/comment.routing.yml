@@ -1,27 +1,89 @@
-comment_edit_page:
-  pattern: '/comment/{comment}/edit'
+comment.admin:
+  path: '/admin/content/comment'
   defaults:
+    _title: 'Comments'
+    _content: '\Drupal\comment\Controller\CommentController::adminPage'
+    type: 'new'
+  requirements:
+    _permission: 'administer comments'
+
+comment.admin_approval:
+  path: '/admin/content/comment/approval'
+  defaults:
+    _title: 'Unapproved comments'
+    _content: '\Drupal\comment\Controller\CommentController::adminPage'
+    type: 'approval'
+  requirements:
+    _permission: 'administer comments'
+
+comment.edit_page:
+  path: '/comment/{comment}/edit'
+  defaults:
+    _title: 'Edit'
     _entity_form: 'comment.default'
   requirements:
     _entity_access: 'comment.update'
 
-comment_approve:
-  pattern: '/comment/{comment}/approve'
+comment.approve:
+  path: '/comment/{comment}/approve'
   defaults:
+    _title: 'Approve'
     _content: '\Drupal\comment\Controller\CommentController::commentApprove'
     entity_type: 'comment'
   requirements:
     _entity_access: 'comment.approve'
 
-comment_permalink:
-  pattern: '/comment/{comment}'
+comment.permalink:
+  path: '/comment/{comment}'
   defaults:
+    _title: 'Comment permalink'
     _controller: '\Drupal\comment\Controller\CommentController::commentPermalink'
   requirements:
     _entity_access: 'comment.view'
-comment_confirm_delete:
-  pattern: '/comment/{comment}/delete'
+
+comment.confirm_delete:
+  path: '/comment/{comment}/delete'
   defaults:
+    _title: 'Delete'
     _entity_form: 'comment.delete'
   requirements:
     _entity_access: 'comment.delete'
+
+comment.reply:
+  path: '/comment/reply/{entity_type}/{entity_id}/{field_name}/{pid}'
+  defaults:
+    _content: '\Drupal\comment\Controller\CommentController::getReplyForm'
+    _title: 'Add new comment'
+    pid: ~
+  requirements:
+    _access: 'TRUE'
+
+comment.new_comments_node_links:
+  path: '/comments/render_new_comments_node_links'
+  defaults:
+    _controller: '\Drupal\comment\Controller\CommentController::renderNewCommentsNodeLinks'
+  requirements:
+    _permission: 'access content'
+
+comment.bundle_list:
+  path: '/admin/structure/comments'
+  defaults:
+    _content: 'Drupal\comment\Controller\AdminController::overviewBundles'
+  requirements:
+    _permission: 'administer comments'
+
+comment.bundle:
+  path: '/admin/structure/comments/manage/{bundle}'
+  defaults:
+    _content: 'Drupal\comment\Controller\AdminController::bundleInfo'
+    _title_callback: 'Drupal\comment\Controller\AdminController::bundleTitle'
+  requirements:
+    _access: 'FALSE'
+
+comment.node_redirect:
+  path: '/comment/{node}/reply'
+  defaults:
+    _controller: 'Drupal\comment\Controller\CommentController::redirectNode'
+  requirements:
+    _entity_access: 'node.view'
+    _module_dependencies: 'node'

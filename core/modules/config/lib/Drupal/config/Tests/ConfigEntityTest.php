@@ -59,11 +59,9 @@ class ConfigEntityTest extends WebTestBase {
     $this->assertIdentical($empty->get('langcode'), $default_langcode);
 
     // Verify Entity properties/methods on the newly created empty entity.
-    $this->assertIdentical($empty->isNewRevision(), FALSE);
     $this->assertIdentical($empty->entityType(), 'config_test');
     $uri = $empty->uri();
-    $this->assertIdentical($uri['path'], 'admin/structure/config_test/manage/');
-    $this->assertIdentical($empty->isDefaultRevision(), TRUE);
+    $this->assertIdentical($uri['path'], 'admin/structure/config_test/manage');
 
     // Verify that an empty entity cannot be saved.
     try {
@@ -108,10 +106,8 @@ class ConfigEntityTest extends WebTestBase {
     $expected['uuid'] = $config_test->uuid();
     $this->assertIdentical($config_test->label(), $expected['label']);
 
-    $this->assertIdentical($config_test->isNewRevision(), FALSE);
     $uri = $config_test->uri();
     $this->assertIdentical($uri['path'], 'admin/structure/config_test/manage/' . $expected['id']);
-    $this->assertIdentical($config_test->isDefaultRevision(), TRUE);
 
     // Verify that the entity can be saved.
     try {
@@ -150,8 +146,7 @@ class ConfigEntityTest extends WebTestBase {
     // Verify that the entity was overwritten.
     $same_id = entity_load('config_test', $config_test->id());
     $this->assertIdentical($same_id->id(), $config_test->id());
-    // Note: Reloading loads from FileStorage, and FileStorage enforces strings.
-    $this->assertIdentical($same_id->label(), '');
+    $this->assertIdentical($same_id->label(), NULL);
     $this->assertNotEqual($same_id->uuid(), $config_test->uuid());
 
     // Delete the overridden entity first.
@@ -203,7 +198,7 @@ class ConfigEntityTest extends WebTestBase {
       'id' => $id,
       'label' => $label1,
     );
-    $this->drupalPost('admin/structure/config_test/add', $edit, 'Save');
+    $this->drupalPostForm('admin/structure/config_test/add', $edit, 'Save');
     $this->assertUrl('admin/structure/config_test');
     $this->assertResponse(200);
     $this->assertRaw($message_insert);
@@ -214,7 +209,7 @@ class ConfigEntityTest extends WebTestBase {
     $edit = array(
       'label' => $label2,
     );
-    $this->drupalPost("admin/structure/config_test/manage/$id", $edit, 'Save');
+    $this->drupalPostForm("admin/structure/config_test/manage/$id", $edit, 'Save');
     $this->assertUrl('admin/structure/config_test');
     $this->assertResponse(200);
     $this->assertNoRaw($message_insert);
@@ -224,9 +219,9 @@ class ConfigEntityTest extends WebTestBase {
 
     // Delete the configuration entity.
     $this->drupalGet("admin/structure/config_test/manage/$id");
-    $this->drupalPost(NULL, array(), 'Delete');
+    $this->drupalPostForm(NULL, array(), 'Delete');
     $this->assertUrl("admin/structure/config_test/manage/$id/delete");
-    $this->drupalPost(NULL, array(), 'Delete');
+    $this->drupalPostForm(NULL, array(), 'Delete');
     $this->assertUrl('admin/structure/config_test');
     $this->assertResponse(200);
     $this->assertNoRaw($message_update);
@@ -239,7 +234,7 @@ class ConfigEntityTest extends WebTestBase {
       'id' => $id,
       'label' => $label1,
     );
-    $this->drupalPost('admin/structure/config_test/add', $edit, 'Save');
+    $this->drupalPostForm('admin/structure/config_test/add', $edit, 'Save');
     $this->assertUrl('admin/structure/config_test');
     $this->assertResponse(200);
     $this->assertText($label1);
@@ -250,7 +245,7 @@ class ConfigEntityTest extends WebTestBase {
       'id' => strtolower($this->randomName()),
       'label' => $label3,
     );
-    $this->drupalPost("admin/structure/config_test/manage/$id", $edit, 'Save');
+    $this->drupalPostForm("admin/structure/config_test/manage/$id", $edit, 'Save');
     $this->assertUrl('admin/structure/config_test');
     $this->assertResponse(200);
     $this->assertNoText($label1);
@@ -265,13 +260,13 @@ class ConfigEntityTest extends WebTestBase {
       'id' => '0',
       'label' => '0',
     );
-    $this->drupalPost('admin/structure/config_test/add', $edit, 'Save');
+    $this->drupalPostForm('admin/structure/config_test/add', $edit, 'Save');
     $this->assertResponse(200);
     $message_insert = format_string('%label configuration has been created.', array('%label' => $edit['label']));
     $this->assertRaw($message_insert);
     $this->assertLinkByHref('admin/structure/config_test/manage/0');
     $this->assertLinkByHref('admin/structure/config_test/manage/0/delete');
-    $this->drupalPost('admin/structure/config_test/manage/0/delete', array(), 'Delete');
+    $this->drupalPostForm('admin/structure/config_test/manage/0/delete', array(), 'Delete');
     $this->assertFalse(entity_load('config_test', '0'), 'Test entity deleted');
 
   }

@@ -25,7 +25,7 @@ class MatcherDumper implements MatcherDumperInterface {
   /**
    * The database connection to which to dump route information.
    *
-   * @var Drupal\Core\Database\Connection
+   * @var \Drupal\Core\Database\Connection
    */
   protected $connection;
 
@@ -46,7 +46,7 @@ class MatcherDumper implements MatcherDumperInterface {
   /**
    * Construct the MatcherDumper.
    *
-   * @param Drupal\Core\Database\Connection $connection
+   * @param \Drupal\Core\Database\Connection $connection
    *   The database connection which will be used to store the route
    *   information.
    * @param string $table
@@ -94,7 +94,7 @@ class MatcherDumper implements MatcherDumperInterface {
       'name',
       'route_set',
       'fit',
-      'pattern',
+      'path',
       'pattern_outline',
       'number_parts',
       'route',
@@ -107,7 +107,7 @@ class MatcherDumper implements MatcherDumperInterface {
         'name' => $name,
         'route_set' => $options['route_set'],
         'fit' => $compiled->getFit(),
-        'pattern' => $compiled->getPattern(),
+        'path' => $compiled->getPath(),
         'pattern_outline' => $compiled->getPatternOutline(),
         'number_parts' => $compiled->getNumParts(),
         'route' => serialize($route),

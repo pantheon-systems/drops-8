@@ -43,10 +43,7 @@ function field_test_menu() {
   $items = array();
   $items['test-entity/nested/%entity_test/%entity_test'] = array(
     'title' => 'Nested entity form',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('field_test_entity_nested_form', 2, 3),
-    'access arguments' => array('administer entity_test content'),
-    'type' => MENU_NORMAL_ITEM,
+    'route_name' => 'field_test.entity_nested_form',
   );
 
   return $items;
@@ -56,7 +53,7 @@ function field_test_menu() {
  * Implements hook_field_available_languages_alter().
  */
 function field_test_field_available_languages_alter(&$langcodes, $context) {
-  if (Drupal::state()->get('field_test.field_available_languages_alter')) {
+  if (\Drupal::state()->get('field_test.field_available_languages_alter')) {
     // Add an unavailable language code.
     $langcodes[] = 'xx';
     // Remove an available language code.
@@ -69,7 +66,7 @@ function field_test_field_available_languages_alter(&$langcodes, $context) {
  * Implements hook_field_language_alter().
  */
 function field_test_field_language_alter(&$display_langcode, $context) {
-  if (Drupal::state()->get('field_test.language_fallback') ?: TRUE) {
+  if (\Drupal::state()->get('field_test.language_fallback') ?: TRUE) {
     field_language_fallback($display_langcode, $context['entity'], $context['langcode']);
   }
 }
@@ -153,7 +150,8 @@ function field_test_field_attach_view_alter(&$output, $context) {
  * Implements hook_field_widget_form_alter().
  */
 function field_test_field_widget_form_alter(&$element, &$form_state, $context) {
-  switch ($context['field_definition']->getFieldName()) {
+  $field_definition = $context['items']->getFieldDefinition();
+  switch ($field_definition->getFieldName()) {
     case 'alter_test_text':
       drupal_set_message('Field size: ' . $context['widget']->getSetting('size'));
       break;
@@ -172,7 +170,7 @@ function field_test_field_widget_form_alter(&$element, &$form_state, $context) {
 /**
  * Implements hook_query_TAG_alter() for tag 'efq_table_prefixing_test'.
  *
- * @see Drupal\system\Tests\Entity\EntityFieldQueryTest::testTablePrefixing()
+ * @see \Drupal\system\Tests\Entity\EntityFieldQueryTest::testTablePrefixing()
  */
 function field_test_query_efq_table_prefixing_test_alter(&$query) {
   // Add an additional join onto the entity base table. This will cause an
@@ -184,7 +182,7 @@ function field_test_query_efq_table_prefixing_test_alter(&$query) {
 /**
  * Implements hook_query_TAG_alter() for tag 'efq_metadata_test'.
  *
- * @see Drupal\system\Tests\Entity\EntityQueryTest::testMetaData()
+ * @see \Drupal\system\Tests\Entity\EntityQueryTest::testMetaData()
  */
 function field_test_query_efq_metadata_test_alter(&$query) {
   global $efq_test_metadata;

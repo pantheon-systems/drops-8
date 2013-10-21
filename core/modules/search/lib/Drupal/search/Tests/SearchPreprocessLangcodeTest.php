@@ -46,7 +46,7 @@ class SearchPreprocessLangcodeTest extends SearchTestBase {
     $node = $this->drupalCreateNode(array('body' => array(array()), 'langcode' => 'en'));
 
     // First update the index. This does the initial processing.
-    node_update_index();
+    $this->container->get('plugin.manager.search')->createInstance('node_search')->updateIndex();
 
     // Then, run the shutdown function. Testing is a unique case where indexing
     // and searching has to happen in the same request, so running the shutdown
@@ -55,7 +55,7 @@ class SearchPreprocessLangcodeTest extends SearchTestBase {
 
     // Search for the title of the node with a POST query.
     $edit = array('or' => $node->label());
-    $this->drupalPost('search/node', $edit, t('Advanced search'));
+    $this->drupalPostForm('search/node', $edit, t('Advanced search'));
 
     // Checks if the langcode has been passed by hook_search_preprocess().
     $this->assertText('Langcode Preprocess Test: en');
@@ -73,7 +73,7 @@ class SearchPreprocessLangcodeTest extends SearchTestBase {
     ));
 
     // First update the index. This does the initial processing.
-    node_update_index();
+    $this->container->get('plugin.manager.search')->createInstance('node_search')->updateIndex();
 
     // Then, run the shutdown function. Testing is a unique case where indexing
     // and searching has to happen in the same request, so running the shutdown
@@ -82,7 +82,7 @@ class SearchPreprocessLangcodeTest extends SearchTestBase {
 
     // Search for the title of the node with a POST query.
     $edit = array('or' => 'testing');
-    $this->drupalPost('search/node', $edit, t('Advanced search'));
+    $this->drupalPostForm('search/node', $edit, t('Advanced search'));
 
     // Check if the node has been found.
     $this->assertText('Search results');
@@ -90,7 +90,7 @@ class SearchPreprocessLangcodeTest extends SearchTestBase {
 
     // Search for the same node using a different query.
     $edit = array('or' => 'test');
-    $this->drupalPost('search/node', $edit, t('Advanced search'));
+    $this->drupalPostForm('search/node', $edit, t('Advanced search'));
 
     // Check if the node has been found.
     $this->assertText('Search results');

@@ -14,13 +14,23 @@ use Drupal\custom_block\Entity\CustomBlock;
 function custom_block_help($path, $arg) {
   switch ($path) {
     case 'admin/help#custom_block':
-      return t('Allows the creation of custom blocks through the user interface.');
+      $output = '';
+      $output .= '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('The Custom Block module allows you to create blocks of content, which can be placed in regions throughout the website. Custom blocks can have fields; see the <a href="!field-help">Field module help</a> for more information. Once created, custom blocks can be placed like blocks provided by other modules; see the <a href="!blocks">Block module help page</a> for details. For more information, see <a href="!online-help">the online documentation for the Custom Block module</a>.', array('!custom-blocks' => \Drupal::url('custom_block.list'), '!field-help' => \Drupal::url('help.page', array('name' => 'field')), '!blocks' => \Drupal::url('help.page', array('name' => 'block')), '!online-help' => 'https://drupal.org/documentation/modules/custom_block')) . '</p>';
+      $output .= '<h3>' . t('Uses') . '</h3>';
+      $output .= '<dl>';
+      $output .= '<dt>' . t('Creating and managing custom block types') . '</dt>';
+      $output .= '<dd>' . t('Users with the <em>Administer blocks</em> permission can create different custom block types, each with different fields and display settings, from the <a href="!types">Custom block types</a> page. The Custom block types page lists all of your created custom block types, and allows you to edit and manage them. For more information about managing fields and display settings, see the <a href="!field-ui">Field UI module help</a>.', array('!types' => \Drupal::url('custom_block.type_list'), '!field-ui' => \Drupal::url('help.page', array('name' => 'field_ui')))) . '</dd>';
+      $output .= '<dt>' . t('Creating custom blocks') . '</dt>';
+      $output .= '<dd>' . t('Users with the <em>Administer blocks</em> permission can <a href="!block-add">add custom blocks</a> of each of their defined custom block types. Created custom blocks are then listed on the <a href="!blocks">Blocks administration page</a>.', array('!blocks' => \Drupal::url('block.admin_display'), '!block-add' => \Drupal::url('custom_block.add_page'))) . '</dd>';
+      $output .= '</dl>';
+      return $output;
 
-    case 'admin/structure/custom-blocks':
+    case 'admin/structure/block/custom-blocks':
       $output = '<p>' . t('This page lists user-created blocks. These blocks are derived from block types. A block type can consist of different fields and display settings. From the block types tab you can manage these fields as well as create new block types.') . '</p>';
       return $output;
 
-    case 'admin/structure/custom-blocks/types':
+    case 'admin/structure/block/custom-blocks/types':
       $output = '<p>' . t('This page lists block types. A block type can consist of different fields and display settings. From here you can manage these fields as well as create new block types.') . '</p>';
       return $output;
 
@@ -30,14 +40,31 @@ function custom_block_help($path, $arg) {
 /**
  * Implements hook_menu_local_tasks().
  */
-function custom_block_menu_local_tasks(&$data, $router_item, $root_path) {
-  if ($router_item['route_name'] == 'custom_block_list') {
+function custom_block_menu_local_tasks(&$data, $route_name) {
+  if ($route_name == 'custom_block.list') {
     // @todo Move to a LocalAction plugin when https://drupal.org/node/2045267
     //   allows local actions to work with query strings.
     $item = menu_get_item('block/add');
     if ($item['access']) {
       // Add a destination parameter.
-      $item['localized_options']['query']['destination'] = 'admin/structure/custom-blocks';
+      $item['localized_options']['query']['destination'] = 'admin/structure/block/custom-blocks';
+      $data['actions']['block/add'] = array(
+        '#theme' => 'menu_local_action',
+        '#link' => $item,
+      );
+    }
+  }
+
+  $routes = array_map(function ($theme) {
+    return "block.admin_display_$theme";
+  }, array_keys(list_themes()));
+  if (in_array($route_name, $routes)) {
+    // @todo Move to a LocalAction plugin when https://drupal.org/node/2045267
+    //   allows local actions to work with query strings.
+    $item = menu_get_item('block/add');
+    if ($item['access']) {
+      // Add a destination parameter.
+      $item['localized_options']['query']['theme'] = \Drupal::request()->attributes->get('theme');
       $data['actions']['block/add'] = array(
         '#theme' => 'menu_local_action',
         '#link' => $item,
@@ -47,71 +74,53 @@ function custom_block_menu_local_tasks(&$data, $router_item, $root_path) {
 }
 
 /**
- * Implements hook_menu_local_actions_alter().
- */
-function custom_block_menu_local_actions_alter(&$actions) {
-  if (isset($actions['local_action_static:custom_block_add_action'])) {
-    foreach (list_themes() as $theme => $theme_info) {
-      if ($theme_info->status) {
-        $actions['local_action_static:custom_block_add_action']['appears_on'][] = "block_admin_display.$theme";
-      }
-    }
-  }
-}
-
-/**
  * Implements hook_menu().
  */
 function custom_block_menu() {
-  $items['admin/structure/custom-blocks'] = array(
-    'title' => 'Custom blocks',
+  $items['admin/structure/block/custom-blocks'] = array(
+    'title' => 'Custom block library',
     'description' => 'Manage custom blocks.',
-    'route_name' => 'custom_block_list',
+    'route_name' => 'custom_block.list',
+    'type' => MENU_LOCAL_TASK | MENU_NORMAL_ITEM,
   );
-  $items['admin/structure/custom-blocks/list'] = array(
+  $items['admin/structure/block/custom-blocks/list'] = array(
     'title' => 'Blocks',
     'type' => MENU_DEFAULT_LOCAL_TASK,
   );
-  $items['admin/structure/custom-blocks/types'] = array(
+  $items['admin/structure/block/custom-blocks/types'] = array(
     'title' => 'Types',
-    'route_name' => 'custom_block_type_list',
+    'route_name' => 'custom_block.type_list',
     'type' => MENU_LOCAL_TASK,
   );
-  $items['admin/structure/custom-blocks/types/add'] = array(
-    'route_name' => 'custom_block_type_add',
+  $items['admin/structure/block/custom-blocks/types/add'] = array(
+    'route_name' => 'custom_block.type_add',
     'type' => MENU_SIBLING_LOCAL_TASK,
     'weight' => 1,
   );
-  $items['admin/structure/custom-blocks/manage/%custom_block_type'] = array(
+  $items['admin/structure/block/custom-blocks/manage/%custom_block_type'] = array(
     'title' => 'Edit custom block type',
     'title callback' => 'entity_page_label',
-    'title arguments' => array(4),
-    'route_name' => 'custom_block_type_edit',
+    'title arguments' => array(5),
+    'route_name' => 'custom_block.type_edit',
   );
-  $items['admin/structure/custom-blocks/manage/%custom_block_type/edit'] = array(
+  $items['admin/structure/block/custom-blocks/manage/%custom_block_type/edit'] = array(
     'title' => 'Edit',
     'type' => MENU_DEFAULT_LOCAL_TASK,
     'weight' => -10,
   );
-  $items['admin/structure/custom-blocks/manage/%custom_block_type/delete'] = array(
-    'title' => 'Delete',
-    'type' => MENU_LOCAL_TASK,
-    'weight' => 10,
-    'route_name' => 'custom_block_type_delete',
-  );
   $items['block/add'] = array(
     'title' => 'Add custom block',
-    'route_name' => 'custom_block_add_page',
+    'route_name' => 'custom_block.add_page',
   );
   $items['block/add/%custom_block_type'] = array(
     'title' => 'Add custom block',
     'description' => 'Add custom block',
-    'route_name' => 'custom_block_add_form'
+    'route_name' => 'custom_block.add_form'
   );
   // There has to be a base-item in order for contextual links to work.
   $items['block/%custom_block'] = array(
     'title' => 'Edit',
-    'route_name' => 'custom_block_edit',
+    'route_name' => 'custom_block.edit',
   );
   $items['block/%custom_block/edit'] = array(
     'title' => 'Edit',
@@ -124,7 +133,7 @@ function custom_block_menu() {
     'weight' => 1,
     'type' => MENU_LOCAL_TASK,
     'context' => MENU_CONTEXT_INLINE,
-    'route_name' => 'custom_block_delete',
+    'route_name' => 'custom_block.delete',
   );
   return $items;
 }
@@ -173,7 +182,7 @@ function custom_block_load($id) {
  */
 function custom_block_entity_info_alter(&$types) {
   // Add a translation handler for fields if the language module is enabled.
-  if (module_exists('language')) {
+  if (\Drupal::moduleHandler()->moduleExists('language')) {
     $types['custom_block']['translation']['custom_block'] = TRUE;
   }
 }
@@ -184,7 +193,7 @@ function custom_block_entity_info_alter(&$types) {
 function custom_block_entity_bundle_info() {
   $bundles = array();
   foreach (config_get_storage_names_with_prefix('custom_block.type.') as $config_name) {
-    $config = Drupal::config($config_name);
+    $config = \Drupal::config($config_name);
     $bundles['custom_block'][$config->get('id')]['label'] = $config->get('label');
   }
   return $bundles;
@@ -203,11 +212,11 @@ function custom_block_entity_bundle_info() {
  */
 function custom_block_add_body_field($block_type_id, $label = 'Block body') {
   // Add or remove the body field, as needed.
-  $field = field_info_field('custom_block', 'block_body');
-  $instance = field_info_instance('custom_block', 'block_body', $block_type_id);
+  $field = field_info_field('custom_block', 'body');
+  $instance = field_info_instance('custom_block', 'body', $block_type_id);
   if (empty($field)) {
     $field = entity_create('field_entity', array(
-      'name' => 'block_body',
+      'name' => 'body',
       'entity_type' => 'custom_block',
       'type' => 'text_with_summary',
     ));
@@ -215,7 +224,7 @@ function custom_block_add_body_field($block_type_id, $label = 'Block body') {
   }
   if (empty($instance)) {
     $instance = entity_create('field_instance', array(
-      'field_name' => 'block_body',
+      'field_name' => 'body',
       'entity_type' => 'custom_block',
       'bundle' => $block_type_id,
       'label' => $label,
@@ -225,14 +234,14 @@ function custom_block_add_body_field($block_type_id, $label = 'Block body') {
 
     // Assign widget settings for the 'default' form mode.
     entity_get_form_display('custom_block', $block_type_id, 'default')
-      ->setComponent('block_body', array(
+      ->setComponent('body', array(
         'type' => 'text_textarea_with_summary',
       ))
       ->save();
 
     // Assign display settings for 'default' view mode.
     entity_get_display('custom_block', $block_type_id, 'default')
-      ->setComponent('block_body', array(
+      ->setComponent('body', array(
         'label' => 'hidden',
         'type' => 'text_default',
       ))
@@ -251,7 +260,7 @@ function custom_block_admin_paths() {
     'block/add/*' => TRUE,
     'block/*' => TRUE,
     'block/*/delete' => TRUE,
-    'admin/structure/custom-blocks/*' => TRUE,
+    'admin/structure/block/custom-blocks/*' => TRUE,
   );
   return $paths;
 }

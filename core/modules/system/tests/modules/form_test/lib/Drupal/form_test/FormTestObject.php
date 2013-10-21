@@ -17,7 +17,7 @@ class FormTestObject extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function getFormID() {
+  public function getFormId() {
     return 'form_test_form_test_object';
   }
 
@@ -37,6 +37,9 @@ class FormTestObject extends FormBase {
       '#type' => 'submit',
       '#value' => $this->t('Save'),
     );
+
+    $form['#title'] = 'Test dynamic title';
+
     return $form;
   }
 
@@ -52,7 +55,7 @@ class FormTestObject extends FormBase {
    */
   public function submitForm(array &$form, array &$form_state) {
     drupal_set_message($this->t('The FormTestObject::submitForm() method was used for this form.'));
-    \Drupal::config('form_test.object')
+    $this->config('form_test.object')
       ->set('bananas', $form_state['values']['bananas'])
       ->save();
   }

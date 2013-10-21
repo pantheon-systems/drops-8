@@ -221,7 +221,7 @@ class OptionsFieldUITest extends FieldTestBase {
       'on' => $on,
       'off' => $off,
     );
-    $this->drupalPost($this->admin_path, $edit, t('Save field settings'));
+    $this->drupalPostForm($this->admin_path, $edit, t('Save field settings'));
     $this->assertRaw(t('Updated field %label field settings.', array('%label' => $this->field_name)));
 
     // Clear field cache.
@@ -232,9 +232,9 @@ class OptionsFieldUITest extends FieldTestBase {
     $this->assertFieldByName('on', $on, t("The 'On' value is stored correctly."));
     $this->assertFieldByName('off', $off, t("The 'Off' value is stored correctly."));
     $field = field_info_field('node', $this->field_name);
-    $this->assertEqual($field['settings']['allowed_values'], $allowed_values, 'The allowed value is correct');
-    $this->assertFalse(isset($field['settings']['on']), 'The on value is not saved into settings');
-    $this->assertFalse(isset($field['settings']['off']), 'The off value is not saved into settings');
+    $this->assertEqual($field->getFieldSetting('allowed_values'), $allowed_values, 'The allowed value is correct');
+    $this->assertNull($field->getFieldSetting('on'), 'The on value is not saved into settings');
+    $this->assertNull($field->getFieldSetting('off'), 'The off value is not saved into settings');
   }
 
   /**
@@ -282,13 +282,13 @@ class OptionsFieldUITest extends FieldTestBase {
    *   element.
    * @param $result
    *   Either an expected resulting array in
-   *   $field['settings']['allowed_values'], or an expected error message.
+   *   $field->getFieldSetting('allowed_values'), or an expected error message.
    * @param $message
    *   Message to display.
    */
   function assertAllowedValuesInput($input_string, $result, $message) {
     $edit = array('field[settings][allowed_values]' => $input_string);
-    $this->drupalPost($this->admin_path, $edit, t('Save field settings'));
+    $this->drupalPostForm($this->admin_path, $edit, t('Save field settings'));
 
     if (is_string($result)) {
       $this->assertText($result, $message);
@@ -296,7 +296,7 @@ class OptionsFieldUITest extends FieldTestBase {
     else {
       field_info_cache_clear();
       $field = field_info_field('node', $this->field_name);
-      $this->assertIdentical($field['settings']['allowed_values'], $result, $message);
+      $this->assertIdentical($field->getFieldSetting('allowed_values'), $result, $message);
     }
   }
 
@@ -316,14 +316,14 @@ class OptionsFieldUITest extends FieldTestBase {
       'off' => $off,
     );
 
-    $this->drupalPost($this->admin_path, $edit, t('Save field settings'));
+    $this->drupalPostForm($this->admin_path, $edit, t('Save field settings'));
     $this->assertText(format_string('Updated field !field_name field settings.', array('!field_name' => $this->field_name)), "The 'On' and 'Off' form fields work for boolean fields.");
 
     // Select a default value.
     $edit = array(
-      $this->field_name . '[und]' => '1',
+      $this->field_name => '1',
     );
-    $this->drupalPost('node/' . $node->id() . '/edit', $edit, t('Save and keep published'));
+    $this->drupalPostForm('node/' . $node->id() . '/edit', $edit, t('Save and keep published'));
 
     // Check the node page and see if the values are correct.
     $file_formatters = array('list_default', 'list_key');
@@ -331,7 +331,7 @@ class OptionsFieldUITest extends FieldTestBase {
       $edit = array(
         "fields[$this->field_name][type]" => $formatter,
       );
-      $this->drupalPost('admin/structure/types/manage/' . $this->type_name . '/display', $edit, t('Save'));
+      $this->drupalPostForm('admin/structure/types/manage/' . $this->type_name . '/display', $edit, t('Save'));
       $this->drupalGet('node/' . $node->id());
 
       if ($formatter == 'list_default') {

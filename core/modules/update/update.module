@@ -11,11 +11,6 @@
  * ability to install contributed modules and themes via an user interface.
  */
 
-/**
- * URL to check for updates, if a given project doesn't define its own.
- */
-const UPDATE_DEFAULT_URL = 'http://updates.drupal.org/release-history';
-
 // These are internally used constants for this code, do not modify.
 
 /**
@@ -158,7 +153,7 @@ function update_menu() {
   $items['admin/reports/updates'] = array(
     'title' => 'Available updates',
     'description' => 'Get a status report about available updates for your installed modules and themes.',
-    'route_name' => 'update_status',
+    'route_name' => 'update.status',
     'weight' => -50,
   );
   $items['admin/reports/updates/list'] = array(
@@ -168,17 +163,10 @@ function update_menu() {
   );
   $items['admin/reports/updates/settings'] = array(
     'title' => 'Settings',
-    'route_name' => 'update_settings',
+    'route_name' => 'update.settings',
     'access arguments' => array('administer site configuration'),
     'type' => MENU_LOCAL_TASK,
     'weight' => 50,
-  );
-  $items['admin/reports/updates/check'] = array(
-    'title' => 'Manual update check',
-    'page callback' => 'update_manual_status',
-    'access arguments' => array('administer site configuration'),
-    'type' => MENU_CALLBACK,
-    'file' => 'update.fetch.inc',
   );
 
   // We want action links for updating projects at a few different locations:
@@ -194,23 +182,15 @@ function update_menu() {
   );
   foreach ($paths as $context => $path) {
     $items[$path . '/install'] = array(
-      'page callback' => 'drupal_get_form',
-      'page arguments' => array('update_manager_install_form', $context),
-      'access callback' => 'update_manager_access',
-      'access arguments' => array(),
+      'route_name' => "update.{$context}_install",
       'weight' => 25,
       'type' => MENU_LOCAL_ACTION,
-      'file' => 'update.manager.inc',
     );
     $items[$path . '/update'] = array(
-      'page callback' => 'drupal_get_form',
-      'page arguments' => array('update_manager_update_form', $context),
-      'access callback' => 'update_manager_access',
-      'access arguments' => array(),
+      'route_name' => "update.{$context}_update",
       'weight' => 10,
       'title' => 'Update',
       'type' => MENU_LOCAL_TASK,
-      'file' => 'update.manager.inc',
     );
   }
   // Customize the titles of the action links depending on where they appear.
@@ -218,18 +198,6 @@ function update_menu() {
   $items['admin/reports/updates/install'] += array('title' => 'Install new module or theme');
   $items['admin/modules/install'] += array('title' => 'Install new module');
   $items['admin/appearance/install'] += array('title' => 'Install new theme');
-
-  // Menu callback used for the confirmation page after all the releases
-  // have been downloaded, asking you to backup before installing updates.
-  $items['admin/update/ready'] = array(
-    'title' => 'Ready to update',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('update_manager_update_ready_form'),
-    'access callback' => 'update_manager_access',
-    'access arguments' => array(),
-    'type' => MENU_CALLBACK,
-    'file' => 'update.manager.inc',
-  );
 
   return $items;
 }
@@ -281,10 +249,10 @@ function update_theme() {
  * Implements hook_cron().
  */
 function update_cron() {
-  $update_config = Drupal::config('update.settings');
+  $update_config = \Drupal::config('update.settings');
   $frequency = $update_config->get('check.interval_days');
   $interval = 60 * 60 * 24 * $frequency;
-  $last_check = Drupal::state()->get('update.last_check') ?: 0;
+  $last_check = \Drupal::state()->get('update.last_check') ?: 0;
   if ((REQUEST_TIME - $last_check) > $interval) {
     // If the configured update interval has elapsed, we want to invalidate
     // the data for all projects, attempt to re-fetch, and trigger any
@@ -297,7 +265,7 @@ function update_cron() {
     // missing data, and if so, try to fetch the data.
     update_get_available(TRUE);
   }
-  $last_email_notice = Drupal::state()->get('update.last_email_notification') ?: 0;
+  $last_email_notice = \Drupal::state()->get('update.last_email_notification') ?: 0;
   if ((REQUEST_TIME - $last_email_notice) > $interval) {
     // If configured time between notifications elapsed, send email about
     // updates possibly available.
@@ -388,7 +356,7 @@ function update_get_available($refresh = FALSE) {
   $needs_refresh = FALSE;
 
   // Grab whatever data we currently have.
-  $available = Drupal::keyValueExpirable('update_available_releases')->getAll();
+  $available = \Drupal::keyValueExpirable('update_available_releases')->getAll();
 
   $projects = update_get_projects();
   foreach ($projects as $key => $project) {
@@ -427,7 +395,7 @@ function update_get_available($refresh = FALSE) {
     update_fetch_data();
     // After processing the queue, we've (hopefully) got better data, so pull
     // the latest data again and use that directly.
-    $available = Drupal::keyValueExpirable('update_available_releases')->getAll();
+    $available = \Drupal::keyValueExpirable('update_available_releases')->getAll();
   }
 
   return $available;
@@ -489,7 +457,7 @@ function update_fetch_data() {
 function update_mail($key, &$message, $params) {
   $langcode = $message['langcode'];
   $language = language_load($langcode);
-  $message['subject'] .= t('New release(s) available for !site_name', array('!site_name' => Drupal::config('system.site')->get('name')), array('langcode' => $langcode));
+  $message['subject'] .= t('New release(s) available for !site_name', array('!site_name' => \Drupal::config('system.site')->get('name')), array('langcode' => $langcode));
   foreach ($params as $msg_type => $msg_reason) {
     $message['body'][] = _update_message_text($msg_type, $msg_reason, FALSE, $langcode);
   }
@@ -498,7 +466,7 @@ function update_mail($key, &$message, $params) {
     $message['body'][] = t('You can automatically install your missing updates using the Update manager:', array(), array('langcode' => $langcode)) . "\n" . url('admin/reports/updates/update', array('absolute' => TRUE, 'language' => $language));
   }
   $settings_url = url('admin/reports/updates/settings', array('absolute' => TRUE));
-  if (Drupal::config('update.settings')->get('notification.threshold') == 'all') {
+  if (\Drupal::config('update.settings')->get('notification.threshold') == 'all') {
     $message['body'][] = t('Your site is currently configured to send these emails when any updates are available. To get notified only for security updates, !url.', array('!url' => $settings_url));
   }
   else {
@@ -672,12 +640,12 @@ function update_verify_update_archive($project, $archive_file, $directory) {
   $compatible_project = FALSE;
   $incompatible = array();
   $files = file_scan_directory("$directory/$project", '/^' . DRUPAL_PHP_FUNCTION_PATTERN . '\.info.yml$/', array('key' => 'name', 'min_depth' => 0));
-  foreach ($files as $key => $file) {
+  foreach ($files as $file) {
     // Get the .info.yml file for the module or theme this file belongs to.
     $info = drupal_parse_info_file($file->uri);
 
     // If the module or theme is incompatible with Drupal core, set an error.
-    if (empty($info['core']) || $info['core'] != DRUPAL_CORE_COMPATIBILITY) {
+    if (empty($info['core']) || $info['core'] != \Drupal::CORE_COMPATIBILITY) {
       $incompatible[] = !empty($info['name']) ? $info['name'] : t('Unknown');
     }
     else {
@@ -694,7 +662,7 @@ function update_verify_update_archive($project, $archive_file, $directory) {
       count($incompatible),
       '%archive_file contains a version of %names that is not compatible with Drupal !version.',
       '%archive_file contains versions of modules or themes that are not compatible with Drupal !version: %names',
-      array('!version' => DRUPAL_CORE_COMPATIBILITY, '%archive_file' => drupal_basename($archive_file), '%names' => implode(', ', $incompatible))
+      array('!version' => \Drupal::CORE_COMPATIBILITY, '%archive_file' => drupal_basename($archive_file), '%names' => implode(', ', $incompatible))
     );
   }
 
@@ -705,8 +673,8 @@ function update_verify_update_archive($project, $archive_file, $directory) {
  * Invalidates stored data relating to update status.
  */
 function update_storage_clear() {
-  Drupal::keyValueExpirable('update')->deleteAll();
-  Drupal::keyValueExpirable('update_available_release')->deleteAll();
+  \Drupal::keyValueExpirable('update')->deleteAll();
+  \Drupal::keyValueExpirable('update_available_release')->deleteAll();
 }
 
 /**

@@ -7,7 +7,7 @@
  * @ingroup views_module_handlers
  */
 
-use Drupal\Core\Entity\DatabaseStorageController;
+use Drupal\Core\Entity\FieldableDatabaseStorageController;
 use Drupal\field\FieldInterface;
 
 /**
@@ -179,8 +179,76 @@ function taxonomy_views_data() {
     ),
   );
 
+  $data['taxonomy_term_data']['changed'] = array(
+    'title' => t('Updated date'),
+    'help' => t('The date the term was last updated.'),
+    'field' => array(
+      'id' => 'date',
+    ),
+    'sort' => array(
+      'id' => 'date'
+    ),
+    'filter' => array(
+      'id' => 'date',
+    ),
+  );
+
+  $data['taxonomy_term_data']['changed_fulldate'] = array(
+    'title' => t('Updated date'),
+    'help' => t('Date in the form of CCYYMMDD.'),
+    'argument' => array(
+      'field' => 'changed',
+      'id' => 'date_fulldate',
+    ),
+  );
+
+  $data['taxonomy_term_data']['changed_year_month'] = array(
+    'title' => t('Updated year + month'),
+    'help' => t('Date in the form of YYYYMM.'),
+    'argument' => array(
+      'field' => 'changed',
+      'id' => 'date_year_month',
+    ),
+  );
+
+  $data['taxonomy_term_data']['changed_year'] = array(
+    'title' => t('Updated year'),
+    'help' => t('Date in the form of YYYY.'),
+    'argument' => array(
+      'field' => 'changed',
+      'id' => 'date_year',
+    ),
+  );
+
+  $data['taxonomy_term_data']['changed_month'] = array(
+    'title' => t('Updated month'),
+    'help' => t('Date in the form of MM (01 - 12).'),
+    'argument' => array(
+      'field' => 'changed',
+      'id' => 'date_month',
+    ),
+  );
+
+  $data['taxonomy_term_data']['changed_day'] = array(
+    'title' => t('Updated day'),
+    'help' => t('Date in the form of DD (01 - 31).'),
+    'argument' => array(
+      'field' => 'changed',
+      'id' => 'date_day',
+    ),
+  );
+
+  $data['taxonomy_term_data']['changed_week'] = array(
+    'title' => t('Updated week'),
+    'help' => t('Date in the form of WW (01 - 53).'),
+    'argument' => array(
+      'field' => 'changed',
+      'id' => 'date_week',
+    ),
+  );
+
   // Content translation field.
-  if (Drupal::moduleHandler()->moduleExists('content_translation')) {
+  if (\Drupal::moduleHandler()->moduleExists('content_translation')) {
     $data['taxonomy_term_data']['translation_link'] = array(
       'title' => t('Translation link'),
       'help' => t('Provide a link to the translations overview for taxonomy terms.'),
@@ -344,16 +412,18 @@ function taxonomy_field_views_data(FieldInterface $field) {
     foreach ($table_data as $field_name => $field_data) {
       if (isset($field_data['filter']) && $field_name != 'delta') {
         $data[$table_name][$field_name]['filter']['id'] = 'taxonomy_index_tid';
-        $data[$table_name][$field_name]['filter']['vocabulary'] = $field['settings']['allowed_values'][0]['vocabulary'];
+        $allowed_values = $field->getFieldSetting('allowed_values');
+        $data[$table_name][$field_name]['filter']['vocabulary'] = $allowed_values[0]['vocabulary'];
       }
     }
 
     // Add the relationship only on the tid field.
-    $data[$table_name][$field['field_name'] . '_target_id']['relationship'] = array(
+    $field_name = $field->getFieldName();
+    $data[$table_name][$field_name . '_target_id']['relationship'] = array(
       'id' => 'standard',
       'base' => 'taxonomy_term_data',
       'base field' => 'tid',
-      'label' => t('term from !field_name', array('!field_name' => $field['field_name'])),
+      'label' => t('term from !field_name', array('!field_name' => $field_name)),
     );
 
   }
@@ -367,24 +437,24 @@ function taxonomy_field_views_data(FieldInterface $field) {
  * Views integration to provide reverse relationships on term references.
  */
 function taxonomy_field_views_data_views_data_alter(array &$data, FieldInterface $field) {
-  $entity_type = $field['entity_type'];
+  $field_name = $field->getFieldName();
+  $entity_type = $field->entity_type;
   $entity_info = entity_get_info($entity_type);
-  $pseudo_field_name = 'reverse_' . $field['field_name'] . '_' . $entity_type;
+  $pseudo_field_name = 'reverse_' . $field_name . '_' . $entity_type;
 
-  list($label,) = field_views_field_label($entity_type, $field['field_name']);
-  $entity_label = ($entity_info['label'] == t('Node')) ? t('Content') : $entity_info['label'];
+  list($label) = field_views_field_label($entity_type, $field_name);
 
   $data['taxonomy_term_data'][$pseudo_field_name]['relationship'] = array(
-    'title' => t('@entity using @field', array('@entity' => $entity_label, '@field' => $label)),
-    'help' => t('Relate each @entity with a @field set to the term.', array('@entity' => $entity_label, '@field' => $label)),
+    'title' => t('@entity using @field', array('@entity' => $entity_info['label'], '@field' => $label)),
+    'help' => t('Relate each @entity with a @field set to the term.', array('@entity' => $entity_info['label'], '@field' => $label)),
     'id' => 'entity_reverse',
-    'field_name' => $field['field_name'],
-    'entity_type' => $field['entity_type'],
-    'field table' => DatabaseStorageController::_fieldTableName($field),
-    'field field' => $field['field_name'] . '_target_id',
+    'field_name' => $field_name,
+    'entity_type' => $entity_type,
+    'field table' => FieldableDatabaseStorageController::_fieldTableName($field),
+    'field field' => $field_name . '_target_id',
     'base' => $entity_info['base_table'],
     'base field' => $entity_info['entity_keys']['id'],
-    'label' => t('!field_name', array('!field_name' => $field['field_name'])),
+    'label' => t('!field_name', array('!field_name' => $field_name)),
     'join_extra' => array(
       0 => array(
         'field' => 'deleted',

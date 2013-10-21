@@ -79,6 +79,7 @@ function book_theme() {
     ),
     'book_admin_table' => array(
       'render element' => 'form',
+      'file' => 'book.admin.inc',
     ),
     'book_all_books_block' => array(
       'render element' => 'book_menus',
@@ -113,6 +114,13 @@ function book_permission() {
 }
 
 /**
+ * Implements hook_entity_info().
+ */
+function book_entity_info(&$entity_info) {
+  $entity_info['node']['controllers']['form']['book_outline'] = '\Drupal\book\Form\BookOutlineForm';
+}
+
+/**
  * Adds relevant book links to the node's links.
  *
  * @param \Drupal\Core\Entity\EntityInterface $node
@@ -122,11 +130,12 @@ function book_permission() {
  */
 function book_node_view_link(NodeInterface $node, $view_mode) {
   $links = array();
+  $account = \Drupal::currentUser();
 
   if (isset($node->book['depth'])) {
     if ($view_mode == 'full' && node_is_page($node)) {
-      $child_type = Drupal::config('book.settings')->get('child_type');
-      if ((user_access('add content to books') || user_access('administer book outlines')) && node_access('create', $child_type) && $node->isPublished() && $node->book['depth'] < MENU_MAX_DEPTH) {
+      $child_type = \Drupal::config('book.settings')->get('child_type');
+      if (($account->hasPermission('add content to books') || $account->hasPermission('administer book outlines')) && node_access('create', $child_type) && $node->isPublished() && $node->book['depth'] < MENU_MAX_DEPTH) {
         $links['book_add_child'] = array(
           'title' => t('Add child page'),
           'href' => 'node/add/' . $child_type,
@@ -134,7 +143,7 @@ function book_node_view_link(NodeInterface $node, $view_mode) {
         );
       }
 
-      if (user_access('access printer-friendly version')) {
+      if ($account->hasPermission('access printer-friendly version')) {
         $links['book_printer'] = array(
           'title' => t('Printer-friendly version'),
           'href' => 'book/export/html/' . $node->id(),
@@ -160,7 +169,7 @@ function book_menu() {
   $items['admin/structure/book'] = array(
     'title' => 'Books',
     'description' => "Manage your site's book outlines.",
-    'route_name' => 'book_admin',
+    'route_name' => 'book.admin',
   );
   $items['admin/structure/book/list'] = array(
     'title' => 'List',
@@ -168,42 +177,25 @@ function book_menu() {
   );
   $items['admin/structure/book/settings'] = array(
     'title' => 'Settings',
-    'route_name' => 'book_settings',
+    'route_name' => 'book.settings',
     'access arguments' => array('administer site configuration'),
     'type' => MENU_LOCAL_TASK,
     'weight' => 100,
   );
-  $items['admin/structure/book/%node'] = array(
-    'title' => 'Re-order book pages and change titles',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('book_admin_edit', 3),
-    'access callback' => '_book_outline_access',
-    'access arguments' => array(3),
-    'type' => MENU_CALLBACK,
-    'file' => 'book.admin.inc',
-  );
   $items['book'] = array(
     'title' => 'Books',
-    'route_name' => 'book_render',
+    'route_name' => 'book.render',
     'type' => MENU_SUGGESTED_ITEM,
   );
   $items['node/%node/outline'] = array(
     'title' => 'Outline',
-    'page callback' => 'book_outline',
-    'page arguments' => array(1),
-    'access callback' => '_book_outline_access',
-    'access arguments' => array(1),
+    'route_name' => 'book.outline',
     'type' => MENU_LOCAL_TASK,
     'weight' => 2,
-    'file' => 'book.pages.inc',
   );
   $items['node/%node/outline/remove'] = array(
     'title' => 'Remove from outline',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('book_remove_form', 1),
-    'access callback' => '_book_outline_remove_access',
-    'access arguments' => array(1),
-    'file' => 'book.pages.inc',
+    'route_name' => 'book.remove',
   );
 
   return $items;
@@ -222,7 +214,7 @@ function book_menu() {
  * @see book_menu()
  */
 function _book_outline_access(EntityInterface $node) {
-  return user_access('administer book outlines') && node_access('view', $node);
+  return \Drupal::currentUser()->hasPermission('administer book outlines') && node_access('view', $node);
 }
 
 /**
@@ -234,27 +226,15 @@ function _book_outline_access(EntityInterface $node) {
  * @see book_menu()
  */
 function _book_outline_remove_access(EntityInterface $node) {
-  return _book_node_is_removable($node) && _book_outline_access($node);
-}
-
-/**
- * Determines if a node can be removed from the book.
- *
- * A node can be removed from a book if it is actually in a book and it either
- * is not a top-level page or is a top-level page with no children.
- *
- * @param \Drupal\Core\Entity\EntityInterface $node
- *   The node to remove from the outline.
- */
-function _book_node_is_removable(EntityInterface $node) {
-  return (!empty($node->book['bid']) && (($node->book['bid'] != $node->id()) || !$node->book['has_children']));
+  return \Drupal::service('book.manager')->checkNodeIsRemovable($node)
+    && _book_outline_access($node);
 }
 
 /**
  * Implements hook_admin_paths().
  */
 function book_admin_paths() {
-  if (Drupal::config('node.settings')->get('use_admin_theme')) {
+  if (\Drupal::config('node.settings')->get('use_admin_theme')) {
     $paths = array(
       'node/*/outline' => TRUE,
       'node/*/outline/remove' => TRUE,
@@ -275,7 +255,7 @@ function book_admin_paths() {
  *   An array of all books.
  */
 function book_get_books() {
-  return Drupal::service('book.manager')->getAllBooks();
+  return \Drupal::service('book.manager')->getAllBooks();
 }
 
 /**
@@ -287,16 +267,17 @@ function book_get_books() {
  */
 function book_form_node_form_alter(&$form, &$form_state, $form_id) {
   $node = $form_state['controller']->getEntity();
-  $access = user_access('administer book outlines');
+  $account = \Drupal::currentUser();
+  $access = $account->hasPermission('administer book outlines');
   if (!$access) {
-    if (user_access('add content to books') && ((!empty($node->book['mlid']) && !$node->isNew()) || book_type_is_allowed($node->getType()))) {
+    if ($account->hasPermission('add content to books') && ((!empty($node->book['mlid']) && !$node->isNew()) || book_type_is_allowed($node->getType()))) {
       // Already in the book hierarchy, or this node type is allowed.
       $access = TRUE;
     }
   }
 
   if ($access) {
-    _book_add_form_elements($form, $form_state, $node);
+    $form = \Drupal::service('book.manager')->addFormElements($form, $form_state, $node, $account);
     // Since the "Book" dropdown can't trigger a form submission when
     // JavaScript is disabled, add a submit button to do that. book.admin.css hides
     // this button when JavaScript is enabled.
@@ -341,145 +322,6 @@ function book_pick_book_nojs_submit($form, &$form_state) {
 }
 
 /**
- * Builds the parent selection form element for the node form or outline tab.
- *
- * This function is also called when generating a new set of options during the
- * Ajax callback, so an array is returned that can be used to replace an
- * existing form element.
- *
- * @param $book_link
- *   A fully loaded menu link that is part of the book hierarchy.
- *
- * @return
- *   A parent selection form element.
- */
-function _book_parent_select($book_link) {
-  if (Drupal::config('menu.settings')->get('override_parent_selector')) {
-    return array();
-  }
-  // Offer a message or a drop-down to choose a different parent page.
-  $form = array(
-    '#type' => 'hidden',
-    '#value' => -1,
-    '#prefix' => '<div id="edit-book-plid-wrapper">',
-    '#suffix' => '</div>',
-  );
-
-  if ($book_link['nid'] === $book_link['bid']) {
-    // This is a book - at the top level.
-    if ($book_link['original_bid'] === $book_link['bid']) {
-      $form['#prefix'] .= '<em>' . t('This is the top-level page in this book.') . '</em>';
-    }
-    else {
-      $form['#prefix'] .= '<em>' . t('This will be the top-level page in this book.') . '</em>';
-    }
-  }
-  elseif (!$book_link['bid']) {
-    $form['#prefix'] .= '<em>' . t('No book selected.') . '</em>';
-  }
-  else {
-    $form = array(
-      '#type' => 'select',
-      '#title' => t('Parent item'),
-      '#default_value' => $book_link['plid'],
-      '#description' => t('The parent page in the book. The maximum depth for a book and all child pages is !maxdepth. Some pages in the selected book may not be available as parents if selecting them would exceed this limit.', array('!maxdepth' => MENU_MAX_DEPTH)),
-      '#options' => book_toc($book_link['bid'], $book_link['parent_depth_limit'], array($book_link['mlid'])),
-      '#attributes' => array('class' => array('book-title-select')),
-      '#prefix' => '<div id="edit-book-plid-wrapper">',
-      '#suffix' => '</div>',
-    );
-  }
-
-  return $form;
-}
-
-/**
- * Builds the common elements of the book form for the node and outline forms.
- *
- * @param \Drupal\Core\Entity\EntityInterface $node
- *   The node whose form is being viewed.
- */
-function _book_add_form_elements(&$form, &$form_state, EntityInterface $node) {
-  // If the form is being processed during the Ajax callback of our book bid
-  // dropdown, then $form_state will hold the value that was selected.
-  if (isset($form_state['values']['book'])) {
-    $node->book = $form_state['values']['book'];
-  }
-
-  $form['book'] = array(
-    '#type' => 'details',
-    '#title' => t('Book outline'),
-    '#weight' => 10,
-    '#collapsed' => TRUE,
-    '#group' => 'advanced',
-    '#attributes' => array(
-      'class' => array('book-outline-form'),
-    ),
-    '#attached' => array(
-      'library' => array(array('book', 'drupal.book')),
-    ),
-    '#tree' => TRUE,
-  );
-  foreach (array('menu_name', 'mlid', 'nid', 'router_path', 'has_children', 'options', 'module', 'original_bid', 'parent_depth_limit') as $key) {
-    $form['book'][$key] = array(
-      '#type' => 'value',
-      '#value' => $node->book[$key],
-    );
-  }
-
-  $form['book']['plid'] = _book_parent_select($node->book);
-
-  // @see _book_admin_table_tree(). The weight may be larger than 15.
-  $form['book']['weight'] = array(
-    '#type' => 'weight',
-    '#title' => t('Weight'),
-    '#default_value' => $node->book['weight'],
-    '#delta' => max(15, abs($node->book['weight'])),
-    '#weight' => 5,
-    '#description' => t('Pages at a given level are ordered first by weight and then by title.'),
-  );
-  $options = array();
-  $nid = !$node->isNew() ? $node->id() : 'new';
-
-  if ($node->id() && ($nid == $node->book['original_bid']) && ($node->book['parent_depth_limit'] == 0)) {
-    // This is the top level node in a maximum depth book and thus cannot be moved.
-    $options[$node->id()] = $node->label();
-  }
-  else {
-    foreach (book_get_books() as $book) {
-      $options[$book['nid']] = $book['title'];
-    }
-  }
-
-  if (user_access('create new books') && ($nid == 'new' || ($nid != $node->book['original_bid']))) {
-    // The node can become a new book, if it is not one already.
-    $options = array($nid => t('- Create a new book -')) + $options;
-  }
-  if (!$node->book['mlid']) {
-    // The node is not currently in the hierarchy.
-    $options = array(0 => t('- None -')) + $options;
-  }
-
-  // Add a drop-down to select the destination book.
-  $form['book']['bid'] = array(
-    '#type' => 'select',
-    '#title' => t('Book'),
-    '#default_value' => $node->book['bid'],
-    '#options' => $options,
-    '#access' => (bool) $options,
-    '#description' => t('Your page will be a part of the selected book.'),
-    '#weight' => -5,
-    '#attributes' => array('class' => array('book-title-select')),
-    '#ajax' => array(
-      'callback' => 'book_form_update',
-      'wrapper' => 'edit-book-plid-wrapper',
-      'effect' => 'fade',
-      'speed' => 'fast',
-    ),
-  );
-}
-
-/**
  * Renders a new parent page select element when the book selection changes.
  *
  * This function is called via Ajax when the selected book is changed on a node
@@ -490,102 +332,6 @@ function _book_add_form_elements(&$form, &$form_state, EntityInterface $node) {
  */
 function book_form_update($form, $form_state) {
   return $form['book']['plid'];
-}
-
-/**
- * Handles additions and updates to the book outline.
- *
- * This common helper function performs all additions and updates to the book
- * outline through node addition, node editing, node deletion, or the outline
- * tab.
- *
- * @param \Drupal\Core\Entity\EntityInterface $node
- *   The node that is being saved, added, deleted, or moved.
- *
- * @return
- *   TRUE if the menu link was saved; FALSE otherwise.
- */
-function _book_update_outline(EntityInterface $node) {
-  if (empty($node->book['bid'])) {
-    return FALSE;
-  }
-  $new = empty($node->book['mlid']);
-
-  $node->book['link_path'] = 'node/' . $node->id();
-  $node->book['link_title'] = $node->label();
-  $node->book['parent_mismatch'] = FALSE; // The normal case.
-
-  if ($node->book['bid'] == $node->id()) {
-    $node->book['plid'] = 0;
-    $node->book['menu_name'] = book_menu_name($node->id());
-  }
-  else {
-    // Check in case the parent is not is this book; the book takes precedence.
-    if (!empty($node->book['plid'])) {
-      $parent = db_query("SELECT * FROM {book} WHERE mlid = :mlid", array(
-        ':mlid' => $node->book['plid'],
-      ))->fetchAssoc();
-    }
-    if (empty($node->book['plid']) || !$parent || $parent['bid'] != $node->book['bid']) {
-      $node->book['plid'] = db_query("SELECT mlid FROM {book} WHERE nid = :nid", array(
-        ':nid' => $node->book['bid'],
-      ))->fetchField();
-      $node->book['parent_mismatch'] = TRUE; // Likely when JS is disabled.
-    }
-  }
-
-  $node->book = entity_create('menu_link', $node->book);
-  if ($node->book->save()) {
-    if ($new) {
-      // Insert new.
-      db_insert('book')
-        ->fields(array(
-          'nid' => $node->id(),
-          'mlid' => $node->book['mlid'],
-          'bid' => $node->book['bid'],
-        ))
-        ->execute();
-      // Reset the cache of stored books.
-      drupal_static_reset('book_get_books');
-    }
-    else {
-      if ($node->book['bid'] != db_query("SELECT bid FROM {book} WHERE nid = :nid", array(
-          ':nid' => $node->id(),
-        ))->fetchField()) {
-        // Update the bid for this page and all children.
-        book_update_bid($node->book);
-        // Reset the cache of stored books.
-        drupal_static_reset('book_get_books');
-      }
-    }
-
-    return TRUE;
-  }
-
-  // Failed to save the menu link.
-  return FALSE;
-}
-
-/**
- * Updates the book ID of a page and its children when it moves to a new book.
- *
- * @param $book_link
- *   A fully loaded menu link that is part of the book hierarchy.
- */
-function book_update_bid($book_link) {
-  $query = db_select('menu_links');
-  $query->addField('menu_links', 'mlid');
-  for ($i = 1; $i <= MENU_MAX_DEPTH && $book_link["p$i"]; $i++) {
-    $query->condition("p$i", $book_link["p$i"]);
-  }
-  $mlids = $query->execute()->fetchCol();
-
-  if ($mlids) {
-    db_update('book')
-      ->fields(array('bid' => $book_link['bid']))
-      ->condition('mlid', $mlids, 'IN')
-      ->execute();
-  }
 }
 
 /**
@@ -736,19 +482,6 @@ function book_children($book_link) {
 }
 
 /**
- * Generates the corresponding menu name from a book ID.
- *
- * @param $bid
- *   The book ID for which to make a menu name.
- *
- * @return
- *   The menu name.
- */
-function book_menu_name($bid) {
-  return 'book-toc-' . $bid;
-}
-
-/**
  * Implements hook_node_load().
  */
 function book_node_load($nodes, $types) {
@@ -804,7 +537,7 @@ function book_page_alter(&$page) {
  */
 function book_node_presave(EntityInterface $node) {
   // Always save a revision for non-administrators.
-  if (!empty($node->book['bid']) && !user_access('administer nodes')) {
+  if (!empty($node->book['bid']) && !\Drupal::currentUser()->hasPermission('administer nodes')) {
     $node->setNewRevision();
   }
   // Make sure a new node gets a new menu link.
@@ -817,14 +550,15 @@ function book_node_presave(EntityInterface $node) {
  * Implements hook_node_insert().
  */
 function book_node_insert(EntityInterface $node) {
+  $book_manager = \Drupal::service('book.manager');
   if (!empty($node->book['bid'])) {
     if ($node->book['bid'] == 'new') {
       // New nodes that are their own book.
       $node->book['bid'] = $node->id();
     }
     $node->book['nid'] = $node->id();
-    $node->book['menu_name'] = book_menu_name($node->book['bid']);
-    _book_update_outline($node);
+    $node->book['menu_name'] = $book_manager->createMenuName($node->book['bid']);
+    $book_manager->updateOutline($node);
   }
 }
 
@@ -832,14 +566,15 @@ function book_node_insert(EntityInterface $node) {
  * Implements hook_node_update().
  */
 function book_node_update(EntityInterface $node) {
+  $book_manager = \Drupal::service('book.manager');
   if (!empty($node->book['bid'])) {
     if ($node->book['bid'] == 'new') {
       // New nodes that are their own book.
       $node->book['bid'] = $node->id();
     }
     $node->book['nid'] = $node->id();
-    $node->book['menu_name'] = book_menu_name($node->book['bid']);
-    _book_update_outline($node);
+    $node->book['menu_name'] = $book_manager->createMenuName($node->book['bid']);
+    $book_manager->updateOutline($node);
   }
 }
 
@@ -856,7 +591,7 @@ function book_node_predelete(EntityInterface $node) {
       foreach ($result as $child) {
         $child_node = node_load($child->id());
         $child_node->book['bid'] = $child_node->id();
-        _book_update_outline($child_node);
+        \Drupal::service('book.manager')->updateOutline($child_node);
       }
     }
     menu_link_delete($node->book['mlid']);
@@ -871,8 +606,12 @@ function book_node_predelete(EntityInterface $node) {
  * Implements hook_node_prepare_form().
  */
 function book_node_prepare_form(NodeInterface $node, $form_display, $operation, array &$form_state) {
+  // Get BookManager service
+  $book_manager = \Drupal::service('book.manager');
+
   // Prepare defaults for the add/edit form.
-  if (empty($node->book) && (user_access('add content to books') || user_access('administer book outlines'))) {
+  $account = \Drupal::currentUser();
+  if (empty($node->book) && ($account->hasPermission('add content to books') || $account->hasPermission('administer book outlines'))) {
     $node->book = array();
 
     $query = \Drupal::request()->query;
@@ -887,7 +626,8 @@ function book_node_prepare_form(NodeInterface $node, $form_display, $operation, 
       }
     }
     // Set defaults.
-    $node->book += _book_link_defaults(!$node->isNew() ? $node->id() : 'new');
+    $node_ref = !$node->isNew() ? $node->id() : 'new';
+    $node->book += $book_manager->getLinkDefaults($node_ref);
   }
   else {
     if (isset($node->book['bid']) && !isset($node->book['original_bid'])) {
@@ -896,21 +636,8 @@ function book_node_prepare_form(NodeInterface $node, $form_display, $operation, 
   }
   // Find the depth limit for the parent select.
   if (isset($node->book['bid']) && !isset($node->book['parent_depth_limit'])) {
-    $node->book['parent_depth_limit'] = _book_parent_depth_limit($node->book);
+    $node->book['parent_depth_limit'] = $book_manager->getParentDepthLimit($node->book);
   }
-}
-
-/**
- * Finds the depth limit for items in the parent select.
- *
- * @param $book_link
- *   A fully loaded menu link that is part of the book hierarchy.
- *
- * @return
- *   The depth limit for items in the parent select.
- */
-function _book_parent_depth_limit($book_link) {
-  return MENU_MAX_DEPTH - 1 - (($book_link['mlid'] && $book_link['has_children']) ? entity_get_controller('menu_link')->findChildrenRelativeDepth($book_link) : 0);
 }
 
 /**
@@ -932,20 +659,7 @@ function book_form_node_delete_confirm_alter(&$form, $form_state) {
 }
 
 /**
- * Returns an array with default values for a book page's menu link.
- *
- * @param $nid
- *   The ID of the node whose menu link is being created.
- *
- * @return
- *   The default values for the menu link.
- */
-function _book_link_defaults($nid) {
-  return array('original_bid' => 0, 'menu_name' => '', 'nid' => $nid, 'bid' => 0, 'router_path' => 'node/%', 'plid' => 0, 'mlid' => 0, 'has_children' => 0, 'weight' => 0, 'module' => 'book', 'options' => array());
-}
-
- /**
- * Implements hook_preprocess_HOOK() for block.html.twig.
+ * Implements hook_preprocess_HOOK() for block templates.
  */
 function book_preprocess_block(&$variables) {
   if ($variables['configuration']['module'] == 'book') {
@@ -1037,68 +751,6 @@ function template_preprocess_book_navigation(&$variables) {
 }
 
 /**
- * Recursively processes and formats menu items for book_toc().
- *
- * This helper function recursively modifies the table of contents array for
- * each item in the menu tree, ignoring items in the exclude array or at a depth
- * greater than the limit. Truncates titles over thirty characters and appends
- * an indentation string incremented by depth.
- *
- * @param $tree
- *   The data structure of the book's menu tree. Includes hidden links.
- * @param $indent
- *   A string appended to each menu item title. Increments by '--' per depth
- *   level.
- * @param $toc
- *   Reference to the table of contents array. This is modified in place, so the
- *   function does not have a return value.
- * @param $exclude
- *   Optional array of menu link ID values. Any link whose menu link ID is in
- *   this array will be excluded (along with its children).
- * @param $depth_limit
- *   Any link deeper than this value will be excluded (along with its children).
- */
-function _book_toc_recurse($tree, $indent, &$toc, $exclude, $depth_limit) {
-  foreach ($tree as $data) {
-    if ($data['link']['depth'] > $depth_limit) {
-      // Don't iterate through any links on this level.
-      break;
-    }
-
-    if (!in_array($data['link']['mlid'], $exclude)) {
-      $toc[$data['link']['mlid']] = $indent . ' ' . truncate_utf8($data['link']['title'], 30, TRUE, TRUE);
-      if ($data['below']) {
-        _book_toc_recurse($data['below'], $indent . '--', $toc, $exclude, $depth_limit);
-      }
-    }
-  }
-}
-
-/**
- * Returns an array of book pages in table of contents order.
- *
- * @param $bid
- *   The ID of the book whose pages are to be listed.
- * @param $depth_limit
- *   Any link deeper than this value will be excluded (along with its children).
- * @param $exclude
- *   (optional) An array of menu link ID values. Any link whose menu link ID is
- *   in this array will be excluded (along with its children). Defaults to an
- *   empty array.
- *
- * @return
- *   An array of (menu link ID, title) pairs for use as options for selecting a
- *   book page.
- */
-function book_toc($bid, $depth_limit, $exclude = array()) {
-  $tree = menu_tree_all_data(book_menu_name($bid));
-  $toc = array();
-  _book_toc_recurse($tree, '', $toc, $exclude, $depth_limit);
-
-  return $toc;
-}
-
-/**
  * Prepares variables for book export templates.
  *
  * Default template: book-export-html.html.twig.
@@ -1153,7 +805,7 @@ function template_preprocess_book_node_export_html(&$variables) {
  *   A Boolean TRUE if the node type can be included in books; otherwise, FALSE.
  */
 function book_type_is_allowed($type) {
-  return in_array($type, Drupal::config('book.settings')->get('allowed_types'));
+  return in_array($type, \Drupal::config('book.settings')->get('allowed_types'));
 }
 
 /**
@@ -1164,7 +816,7 @@ function book_type_is_allowed($type) {
  */
 function book_node_type_update(NodeTypeInterface $type) {
   if ($type->getOriginalID() != $type->id()) {
-    $config = Drupal::config('book.settings');
+    $config = \Drupal::config('book.settings');
     // Update the list of node types that are allowed to be added to books.
     $allowed_types = $config->get('allowed_types');
     $old_key = array_search($type->getOriginalID(), $allowed_types);
@@ -1281,7 +933,7 @@ function book_menu_subtree_data($link) {
 function book_library_info() {
   $libraries['drupal.book'] = array(
     'title' => 'Book',
-    'version' => VERSION,
+    'version' => \Drupal::VERSION,
     'js' => array(
       drupal_get_path('module', 'book') . '/book.js' => array(),
     ),

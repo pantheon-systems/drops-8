@@ -33,14 +33,14 @@ abstract class TaxonomyTestBase extends ViewTestBase {
   /**
    * Stores the first term used in the different tests.
    *
-   * @var Drupal\taxonomy\Term
+   * @var \Drupal\taxonomy\Term
    */
   protected $term1;
 
   /**
    * Stores the second term used in the different tests.
    *
-   * @var Drupal\taxonomy\Term
+   * @var \Drupal\taxonomy\Term
    */
   protected $term2;
 
@@ -48,7 +48,7 @@ abstract class TaxonomyTestBase extends ViewTestBase {
     parent::setUp();
     $this->mockStandardInstall();
 
-    ViewTestData::importTestViews(get_class($this), array('taxonomy_test_views'));
+    ViewTestData::createTestViews(get_class($this), array('taxonomy_test_views'));
 
     $this->term1 = $this->createTerm();
     $this->term2 = $this->createTerm();
@@ -123,7 +123,7 @@ abstract class TaxonomyTestBase extends ViewTestBase {
   /**
    * Returns a new term with random properties in vocabulary $vid.
    *
-   * @return Drupal\taxonomy\Term
+   * @return \Drupal\taxonomy\Term
    *   The created taxonomy term.
    */
   protected function createTerm() {

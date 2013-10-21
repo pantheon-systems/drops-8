@@ -62,6 +62,10 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
  * @see update_manager_update_form_submit()
  * @see update_menu()
  * @ingroup forms
+ *
+ * @deprecated Use \Drupal\update\Form\UpdateForm::reportUpdate(),
+ *   \Drupal\update\Form\UpdateForm::moduleUpdate(), or
+ *   \Drupal\update\Form\UpdateForm::moduleUpdate()
  */
 function update_manager_update_form($form, $form_state = array(), $context) {
   if (!_update_manager_check_backends($form, 'update')) {
@@ -162,6 +166,11 @@ function update_manager_update_form($form, $form_state = array(), $context) {
         continue 2;
     }
 
+    // Use the project title for the tableselect checkboxes.
+    $entry['title'] = array('data' => array(
+      '#title' => $entry['title'],
+      '#markup' => $entry['title'],
+    ));
     $entry['#attributes'] = array('class' => array('update-' . $type));
 
     // Drupal core needs to be upgraded manually.
@@ -280,7 +289,7 @@ function update_manager_update_form($form, $form_state = array(), $context) {
  */
 function theme_update_manager_update_form($variables) {
   $form = $variables['form'];
-  $last = Drupal::state()->get('update.last_check') ?: 0;
+  $last = \Drupal::state()->get('update.last_check') ?: 0;
   $update_last_check = array(
     '#theme' => 'update_last_check',
     '#last' => $last,
@@ -430,9 +439,9 @@ function update_manager_update_ready_form($form, &$form_state) {
  */
 function update_manager_update_ready_form_submit($form, &$form_state) {
   // Store maintenance_mode setting so we can restore it when done.
-  $_SESSION['maintenance_mode'] = Drupal::config('system.maintenance')->get('enabled');
+  $_SESSION['maintenance_mode'] = \Drupal::state()->get('system.maintenance_mode');
   if ($form_state['values']['maintenance_mode'] == TRUE) {
-    Drupal::config('system.maintenance')->set('enabled', TRUE)->save();
+    \Drupal::state()->set('system.maintenance_mode', TRUE);
   }
 
   if (!empty($_SESSION['update_manager_update_projects'])) {
@@ -502,6 +511,10 @@ function update_manager_update_ready_form_submit($form, &$form_state) {
  * @see update_manager_install_form_submit()
  * @see update_menu()
  * @ingroup forms
+ *
+ * @deprecated Use \Drupal\update\Form\UpdateForm::reportInstall(),
+ *   \Drupal\update\Form\UpdateForm::moduleInstall(), or
+ *   \Drupal\update\Form\UpdateForm::moduleInstall()
  */
 function update_manager_install_form($form, &$form_state, $context) {
   if (!_update_manager_check_backends($form, 'install')) {
@@ -816,7 +829,7 @@ function update_manager_archive_extract($file, $directory) {
  *   are no errors, it will be an empty array.
  */
 function update_manager_archive_verify($project, $archive_file, $directory) {
-  return Drupal::moduleHandler()->invokeAll('verify_update_archive', array($project, $archive_file, $directory));
+  return \Drupal::moduleHandler()->invokeAll('verify_update_archive', array($project, $archive_file, $directory));
 }
 
 /**

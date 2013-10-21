@@ -7,6 +7,7 @@
 
 namespace Drupal\node\Form;
 
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Form\ConfirmFormBase;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Entity\EntityManager;
@@ -67,7 +68,7 @@ class DeleteMultiple extends ConfirmFormBase implements ContainerInjectionInterf
   /**
    * {@inheritdoc}
    */
-  public function getFormID() {
+  public function getFormId() {
     return 'node_multiple_delete_confirm';
   }
 
@@ -81,8 +82,7 @@ class DeleteMultiple extends ConfirmFormBase implements ContainerInjectionInterf
   /**
    * {@inheritdoc}
    */
-  public function getCancelPath() {
-    return 'admin/content';
+  public function getCancelRoute() {
   }
 
   /**
@@ -98,7 +98,7 @@ class DeleteMultiple extends ConfirmFormBase implements ContainerInjectionInterf
   public function buildForm(array $form, array &$form_state) {
     $this->nodes = $this->tempStoreFactory->get('node_multiple_delete_confirm')->get($GLOBALS['user']->id());
     if (empty($this->nodes)) {
-      return new RedirectResponse(url($this->getCancelPath(), array('absolute' => TRUE)));
+      return new RedirectResponse(url('admin/content', array('absolute' => TRUE)));
     }
 
     $form['nodes'] = array(
@@ -107,7 +107,11 @@ class DeleteMultiple extends ConfirmFormBase implements ContainerInjectionInterf
         return String::checkPlain($node->label());
       }, $this->nodes),
     );
-    return parent::buildForm($form, $form_state);
+    $form = parent::buildForm($form, $form_state);
+
+    // @todo Convert to getCancelRoute() after http://drupal.org/node/2021161.
+    $form['actions']['cancel']['#href'] = 'admin/content';
+    return $form;
   }
 
   /**
@@ -120,6 +124,7 @@ class DeleteMultiple extends ConfirmFormBase implements ContainerInjectionInterf
       $count = count($this->nodes);
       watchdog('content', 'Deleted @count posts.', array('@count' => $count));
       drupal_set_message(format_plural($count, 'Deleted 1 post.', 'Deleted @count posts.'));
+      Cache::invalidateTags(array('content' => TRUE));
     }
     $form_state['redirect'] = 'admin/content';
   }

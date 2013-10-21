@@ -19,7 +19,7 @@ class NodeImportCreateTest extends DrupalUnitTestBase {
    *
    * @var array
    */
-  public static $modules = array('node', 'entity', 'field', 'text', 'field_sql_storage', 'system');
+  public static $modules = array('node', 'entity', 'field', 'text', 'system');
 
   /**
    * Set the default field storage backend for fields created during tests.
@@ -52,7 +52,7 @@ class NodeImportCreateTest extends DrupalUnitTestBase {
 
     // Enable node_test_config module and check that the content type
     // shipped in the module's default config is created.
-    $this->container->get('module_handler')->enable(array('node_test_config'));
+    $this->container->get('module_handler')->install(array('node_test_config'));
     $node_type = entity_load('node_type', $node_type_id);
     $this->assertTrue($node_type, 'The default content type was created.');
   }

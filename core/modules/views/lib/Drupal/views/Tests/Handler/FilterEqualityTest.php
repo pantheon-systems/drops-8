@@ -38,7 +38,7 @@ class FilterEqualityTest extends ViewUnitTestBase {
   protected function setUp() {
     parent::setUp();
 
-    $this->installSchema('system', array('menu_router', 'variable', 'key_value_expire'));
+    $this->installSchema('system', array('router', 'menu_router', 'variable', 'key_value_expire'));
   }
 
   function viewsData() {
@@ -75,7 +75,7 @@ class FilterEqualityTest extends ViewUnitTestBase {
   public function testEqualGroupedExposed() {
     $filters = $this->getGroupedExposedFilters();
     $view = views_get_view('test_view');
-    $view->storage->newDisplay('page', 'Page', 'page_1');
+    $view->newDisplay('page', 'Page', 'page_1');
 
     // Filter: Name, Operator: =, Value: Ringo
     $filters['name']['group_info']['default_group'] = 1;
@@ -128,7 +128,7 @@ class FilterEqualityTest extends ViewUnitTestBase {
   public function testEqualGroupedNotExposed() {
     $filters = $this->getGroupedExposedFilters();
     $view = views_get_view('test_view');
-    $view->storage->newDisplay('page', 'Page', 'page_1');
+    $view->newDisplay('page', 'Page', 'page_1');
 
     // Filter: Name, Operator: !=, Value: Ringo
     $filters['name']['group_info']['default_group'] = 2;

@@ -8,7 +8,7 @@
 namespace Drupal\system\Tests\Entity;
 
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\Core\Entity\Field\FieldInterface;
+use Drupal\Core\Entity\Field\FieldItemListInterface;
 use Drupal\Core\Entity\Field\FieldItemInterface;
 use Drupal\Core\TypedData\TypedDataInterface;
 
@@ -37,13 +37,14 @@ class EntityValidationTest extends EntityUnitTestBase {
    */
   public function setUp() {
     parent::setUp();
-    $this->installSchema('user', array('users_roles', 'users_data'));
+    $this->installSchema('user', array('users_data'));
     $this->installSchema('entity_test', array(
       'entity_test_mul',
       'entity_test_mul_property_data',
       'entity_test_rev',
       'entity_test_rev_revision',
       'entity_test_mulrev',
+      'entity_test_mulrev_revision',
       'entity_test_mulrev_property_data',
       'entity_test_mulrev_property_revision'
     ));

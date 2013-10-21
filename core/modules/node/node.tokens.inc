@@ -26,10 +26,6 @@ function node_token_info() {
     'name' => t("Revision ID"),
     'description' => t("The unique ID of the node's latest revision."),
   );
-  $node['tnid'] = array(
-    'name' => t("Translation set ID"),
-    'description' => t("The unique ID of the original-language version of this node, if one exists."),
-  );
   $node['type'] = array(
     'name' => t("Content type"),
     'description' => t("The type of the node."),
@@ -90,7 +86,7 @@ function node_token_info() {
  * Implements hook_tokens().
  */
 function node_tokens($type, $tokens, array $data = array(), array $options = array()) {
-  $token_service = Drupal::token();
+  $token_service = \Drupal::token();
 
   $url_options = array('absolute' => TRUE);
   if (isset($options['langcode'])) {
@@ -118,10 +114,6 @@ function node_tokens($type, $tokens, array $data = array(), array $options = arr
           $replacements[$original] = $node->getRevisionId();
           break;
 
-        case 'tnid':
-          $replacements[$original] = $node->tnid->value;
-          break;
-
         case 'type':
           $replacements[$original] = $sanitize ? check_plain($node->getType()) : $node->getType();
           break;
@@ -144,11 +136,11 @@ function node_tokens($type, $tokens, array $data = array(), array $options = arr
 
             // If the summary was requested and is not empty, use it.
             if ($name == 'summary' && !empty($item->summary)) {
-              $output = $sanitize ? text_sanitize($instance['settings']['text_processing'], $field_langcode, $item->getValue(), 'summary') : $item->summary;
+              $output = $sanitize ? $item->summary_processed : $item->summary;
             }
             // Attempt to provide a suitable version of the 'body' field.
             else {
-              $output = $sanitize ? text_sanitize($instance['settings']['text_processing'], $field_langcode, $item->getValue(), 'value') : $item->value;
+              $output = $sanitize ? $item->processed : $item->value;
               // A summary was requested.
               if ($name == 'summary') {
                 // Generate an optionally trimmed summary of the body field.
@@ -164,7 +156,7 @@ function node_tokens($type, $tokens, array $data = array(), array $options = arr
                   $length = $settings['trim_length'];
                 }
 
-                $output = text_summary($output, $instance['settings']['text_processing'] ? $item->format : NULL, $length);
+                $output = text_summary($output, $instance->getFieldSetting('text_processing') ? $item->format : NULL, $length);
               }
             }
             $replacements[$original] = $output;

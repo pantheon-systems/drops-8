@@ -14,12 +14,12 @@ use Drupal\Core\Cache\Cache;
 use Drupal\Core\Config\ConfigFactory;
 use Drupal\Core\Config\Context\ContextInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
-use Drupal\system\SystemConfigFormBase;
+use Drupal\Core\Form\ConfigFormBase;
 
 /**
  * Displays theme configuration for entire site and individual themes.
  */
-class ThemeSettingsForm extends SystemConfigFormBase {
+class ThemeSettingsForm extends ConfigFormBase {
 
   /**
    * The module handler.
@@ -58,7 +58,7 @@ class ThemeSettingsForm extends SystemConfigFormBase {
   /**
    * {@inheritdoc}
    */
-  public function getFormID() {
+  public function getFormId() {
     return 'system_theme_settings';
   }
 

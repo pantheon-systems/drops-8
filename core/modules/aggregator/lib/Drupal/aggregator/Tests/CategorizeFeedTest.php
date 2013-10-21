@@ -26,18 +26,18 @@ class CategorizeFeedTest extends AggregatorTestBase {
 
     // Create 2 categories.
     $category_1 = array('title' => $this->randomName(10), 'description' => '');
-    $this->drupalPost('admin/config/services/aggregator/add/category', $category_1, t('Save'));
+    $this->drupalPostForm('admin/config/services/aggregator/add/category', $category_1, t('Save'));
     $this->assertRaw(t('The category %title has been added.', array('%title' => $category_1['title'])), format_string('The category %title has been added.', array('%title' => $category_1['title'])));
 
     $category_2 = array('title' => $this->randomName(10), 'description' => '');
-    $this->drupalPost('admin/config/services/aggregator/add/category', $category_2, t('Save'));
+    $this->drupalPostForm('admin/config/services/aggregator/add/category', $category_2, t('Save'));
     $this->assertRaw(t('The category %title has been added.', array('%title' => $category_2['title'])), format_string('The category %title has been added.', array('%title' => $category_2['title'])));
 
     // Get categories from database.
     $categories = $this->getCategories();
 
     // Create a feed and assign 2 categories to it.
-    $feed = $this->getFeedEditObject(NULL, array('block' => 5));
+    $feed = $this->getFeedEditObject();
     foreach ($categories as $cid => $category) {
       $feed->categories[$cid] = $cid;
     }

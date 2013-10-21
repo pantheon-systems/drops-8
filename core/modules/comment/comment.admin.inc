@@ -5,8 +5,6 @@
  * Admin page callbacks for the Comment module.
  */
 
-use Drupal\comment\Form\ConfirmDeleteMultiple;
-
 /**
  * Page callback: Presents an administrative comment listing.
  *
@@ -16,13 +14,15 @@ use Drupal\comment\Form\ConfirmDeleteMultiple;
  *
  * @see comment_menu()
  * @see comment_multiple_delete_confirm()
+ *
+ * @deprecated Use \Drupal\comment\Controller\CommentController::adminPage()
  */
 function comment_admin($type = 'new') {
-  $request = Drupal::request();
+  $request = \Drupal::request();
   $edit = $request->request->all();
 
   if (isset($edit['operation']) && ($edit['operation'] == 'delete') && isset($edit['comments']) && $edit['comments']) {
-    return drupal_get_form(ConfirmDeleteMultiple::create(Drupal::getContainer()), $request);
+    return drupal_get_form('Drupal\comment\Form\ConfirmDeleteMultiple');
   }
   else {
     return drupal_get_form('comment_admin_overview', $type);
@@ -82,56 +82,71 @@ function comment_admin_overview($form, &$form_state, $arg) {
   $query = db_select('comment', 'c')
     ->extend('Drupal\Core\Database\Query\PagerSelectExtender')
     ->extend('Drupal\Core\Database\Query\TableSortExtender');
-  $query->join('node_field_data', 'n', 'n.nid = c.nid');
-  $query->addTag('node_access');
+  if (\Drupal::moduleHandler()->moduleExists('node')) {
+    // Special case to ensure node access works.
+    $query->leftJoin('node_field_data', 'n', "n.nid = c.entity_id AND c.entity_type = 'node'");
+    $query->addTag('node_access');
+  }
   $result = $query
-    ->fields('c', array('cid', 'nid', 'subject', 'name', 'changed'))
+    ->fields('c', array('cid', 'subject', 'name', 'changed', 'entity_id', 'entity_type', 'field_id'))
     ->condition('c.status', $status)
     ->limit(50)
     ->orderByHeader($header)
     ->execute();
 
-  $nids = array();
   $cids = array();
+  $entity_ids = array();
+  $entities = array();
 
-  // We collect a sorted list of node_titles during the query to attach to the
-  // comments later.
+  // We collect entities grouped by entity_type so we can load them and use
+  // their labels.
   foreach ($result as $row) {
-    $nids[] = $row->nid;
+    $entity_ids[$row->entity_type][] = $row->entity_id;
     $cids[] = $row->cid;
   }
-  // Ensure all nodes are statically cached so that we do not have to load them
-  // individually when getting their labels below.
-  node_load_multiple($nids);
-  $comments = comment_load_multiple($cids);
+  // Ensure all entities are statically cached so that we do not have to load
+  // them individually when getting their labels below.
+  foreach ($entity_ids as $entity_type => $ids) {
+    $entities[$entity_type] = entity_load_multiple($entity_type, $ids);
+  }
+  $comments = entity_load_multiple('comment', $cids);
 
   // Build a table listing the appropriate comments.
   $options = array();
   $destination = drupal_get_destination();
 
   foreach ($comments as $comment) {
+    // Use the first entity label.
+    $entity = $entities[$comment->entity_type->value][$comment->entity_id->value];
+    $entity_uri = $entity->uri();
     // Remove the first node title from the node_titles array and attach to
     // the comment.
-    $node_title = $comment->nid->entity->label();
     $username = array(
       '#theme' => 'username',
       '#account' => comment_prepare_author($comment),
     );
+    $body = '';
+    if (!empty($comment->comment_body->value)) {
+      $body = $comment->comment_body->value;
+    }
     $options[$comment->id()] = array(
+      'title' => array('data' => array('#title' => $comment->subject->value ?: $comment->id())),
       'subject' => array(
         'data' => array(
           '#type' => 'link',
           '#title' => $comment->subject->value,
           '#href' => 'comment/' . $comment->id(),
-          '#options' => array('attributes' => array('title' => truncate_utf8($comment->comment_body->value, 128)), 'fragment' => 'comment-' . $comment->id()),
+          '#options' => array('attributes' => array('title' => truncate_utf8($body, 128)), 'fragment' => 'comment-' . $comment->id()),
         ),
       ),
       'author' => drupal_render($username),
       'posted_in' => array(
         'data' => array(
           '#type' => 'link',
-          '#title' => $node_title,
-          '#href' => 'node/' . $comment->nid->target_id,
+          '#title' => $entity->label(),
+          '#href' => $entity_uri['path'],
+          '#options' => $entity_uri['options'],
+          '#access' => $entity->access('view'),
         ),
       ),
       'changed' => format_date($comment->changed->value, 'short'),
@@ -196,7 +211,7 @@ function comment_admin_overview_submit($form, &$form_state) {
     entity_delete_multiple('comment', $cids);
   }
   else {
-    foreach ($cids as $cid => $value) {
+    foreach ($cids as $value) {
       $comment = comment_load($value);
 
       if ($operation == 'unpublish') {

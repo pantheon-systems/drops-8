@@ -7,9 +7,10 @@
 
 namespace Drupal\field\Plugin\Type\FieldType;
 
-use Drupal\Core\Entity\Plugin\DataType\EntityReferenceItem;
-use Drupal\field\Plugin\Type\FieldType\ConfigFieldItemInterface;
+use Drupal\Core\Entity\Plugin\field\field_type\EntityReferenceItem;
+use Drupal\field\FieldInstanceInterface;
 use Drupal\field\FieldInterface;
+use Drupal\field\Plugin\Type\FieldType\ConfigFieldItemInterface;
 
 /**
  * A common base class for configurable entity reference fields.
@@ -32,47 +33,32 @@ class ConfigEntityReferenceItemBase extends EntityReferenceItem implements Confi
   static $propertyDefinitions;
 
   /**
-   * The Field instance definition.
-   *
-   * @var \Drupal\field\Entity\FieldInstance
-   */
-  protected $instance;
-
-  /**
-   * Returns the field instance definition.
-   *
-   * Copied from \Drupal\field\Plugin\Type\FieldType\ConfigFieldItemBase,
-   * since we cannot extend it.
-   *
-   * @var \Drupal\field\Entity\FieldInstance
-   */
-  public function getInstance() {
-    if (!isset($this->instance) && $parent = $this->getParent()) {
-      $this->instance = $parent->getInstance();
-    }
-    return $this->instance;
-  }
-
-  /**
    * {@inheritdoc}
    */
   public function getPropertyDefinitions() {
+    $target_type = $this->definition['settings']['target_type'];
+
     // Definitions vary by entity type and bundle, so key them accordingly.
-    $key = $this->definition['settings']['target_type'] . ':';
+    $key = $target_type . ':';
     $key .= isset($this->definition['settings']['target_bundle']) ? $this->definition['settings']['target_bundle'] : '';
 
     if (!isset(static::$propertyDefinitions[$key])) {
       // Call the parent to define the target_id and entity properties.
       parent::getPropertyDefinitions();
 
-      static::$propertyDefinitions[$key]['revision_id'] = array(
-        // @todo: Lookup the entity type's ID data type and use it here.
-        'type' => 'integer',
-        'label' => t('Revision ID'),
-        'constraints' => array(
-          'Range' => array('min' => 0),
-        ),
-      );
+      // Only add the revision ID property if the target entity type supports
+      // revisions.
+      $target_type_info = \Drupal::entityManager()->getDefinition($target_type);
+      if (!empty($target_type_info['entity_keys']['revision']) && !empty($target_type_info['revision_table'])) {
+        static::$propertyDefinitions[$key]['revision_id'] = array(
+          'type' => 'integer',
+          'label' => t('Revision ID'),
+          'constraints' => array(
+            'Range' => array('min' => 0),
+          ),
+        );
+      }
+
       static::$propertyDefinitions[$key]['label'] = array(
         'type' => 'string',
         'label' => t('Label (auto-create)'),
@@ -108,8 +94,8 @@ class ConfigEntityReferenceItemBase extends EntityReferenceItem implements Confi
    */
   public function isEmpty() {
     // Avoid loading the entity by first checking the 'target_id'.
-    $target_id = $this->get('target_id')->getValue();
-    if (!empty($target_id) && is_numeric($target_id)) {
+    $target_id = $this->target_id;
+    if (!empty($target_id)) {
       return FALSE;
     }
     // Allow auto-create entities.
@@ -127,9 +113,13 @@ class ConfigEntityReferenceItemBase extends EntityReferenceItem implements Confi
    */
   public function settingsForm(array $form, array &$form_state, $has_data) {
     if ($callback = $this->getLegacyCallback('settings_form')) {
+      $instance = $this->getFieldDefinition();
+      if (!($instance instanceof FieldInstanceInterface)) {
+        throw new \UnexpectedValueException('ConfigEntityReferenceItemBase::settingsForm() called for a field whose definition is not a field instance.');
+      }
       // hook_field_settings_form() used to receive the $instance (not actually
       // needed), and the value of field_has_data().
-      return $callback($this->getInstance()->getField(), $this->getInstance(), $has_data);
+      return $callback($instance->getField(), $instance, $has_data);
     }
     return array();
   }
@@ -142,7 +132,11 @@ class ConfigEntityReferenceItemBase extends EntityReferenceItem implements Confi
    */
   public function instanceSettingsForm(array $form, array &$form_state) {
     if ($callback = $this->getLegacyCallback('instance_settings_form')) {
-      return $callback($this->getInstance()->getField(), $this->getInstance(), $form_state);
+      $instance = $this->getFieldDefinition();
+      if (!($instance instanceof FieldInstanceInterface)) {
+        throw new \UnexpectedValueException('ConfigEntityReferenceItemBase::instanceSettingsForm() called for a field whose definition is not a field instance.');
+      }
+      return $callback($instance->getField(), $instance, $form_state);
     }
     return array();
   }
@@ -160,8 +154,7 @@ class ConfigEntityReferenceItemBase extends EntityReferenceItem implements Confi
     if (function_exists($callback)) {
       // We are at the field item level, so we need to go two levels up to get
       // to the entity object.
-      $entity = $this->getParent()->getParent();
-      return $callback($this->getInstance(), $entity);
+      return $callback($this->getFieldDefinition(), $this->getEntity());
     }
   }
 

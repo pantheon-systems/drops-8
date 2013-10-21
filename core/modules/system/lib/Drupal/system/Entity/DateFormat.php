@@ -36,6 +36,9 @@ use Drupal\Core\Annotation\Translation;
  *     "id" = "id",
  *     "label" = "label",
  *     "uuid" = "uuid"
+ *   },
+ *   links = {
+ *     "edit-form" = "admin/config/regional/date-time/formats/manage/{date_format}"
  *   }
  * )
  */
@@ -80,19 +83,6 @@ class DateFormat extends ConfigEntityBase implements DateFormatInterface {
    * @var array
    */
   protected $locales = array();
-
-  /**
-   * {@inheritdoc}
-   */
-  public function uri() {
-    return array(
-      'path' => 'admin/config/regional/date-time/formats/manage/' . $this->id(),
-      'options' => array(
-        'entity_type' => $this->entityType,
-        'entity' => $this,
-      ),
-    );
-  }
 
   /**
    * {@inheritdoc}
@@ -167,6 +157,8 @@ class DateFormat extends ConfigEntityBase implements DateFormatInterface {
    * {@inheritdoc}
    */
   public function preSave(EntityStorageControllerInterface $storage_controller) {
+    parent::preSave($storage_controller);
+
     if ($this->hasLocales()) {
       $config_factory = \Drupal::service('config.factory');
       $properties = $this->getExportProperties();
@@ -186,6 +178,8 @@ class DateFormat extends ConfigEntityBase implements DateFormatInterface {
    * {@inheritdoc}
    */
   public static function postDelete(EntityStorageControllerInterface $storage_controller, array $entities) {
+    parent::postDelete($storage_controller, $entities);
+
     // Clean up the localized entry if required.
     if (\Drupal::moduleHandler()->moduleExists('language')) {
       $languages = language_list();

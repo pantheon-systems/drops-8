@@ -35,71 +35,8 @@ class TrailTest extends MenuTestBase {
 
     // This test puts menu links in the Tools and Administration menus and then
     // tests for their presence on the page.
-    $this->drupalPlaceBlock('system_menu_block:menu-tools');
-    $this->drupalPlaceBlock('system_menu_block:menu-admin');
-  }
-
-  /**
-   * Tests active trails are properly affected by menu_tree_set_path().
-   */
-  function testMenuTreeSetPath() {
-    $home = array('<front>' => 'Home');
-    $config_tree = array(
-      'admin' => t('Administration'),
-      'admin/config' => t('Configuration'),
-    );
-    $config = $home + $config_tree;
-
-    // The menu_test_menu_tree_set_path system variable controls whether or not
-    // the menu_test_menu_trail_callback() callback (used by all paths in these
-    // tests) issues an overriding call to menu_trail_set_path().
-    $test_menu_path = array(
-      'menu_name' => 'admin',
-      'path' => 'admin/config/system/site-information',
-    );
-
-    $breadcrumb = $home + array(
-      'menu-test' => t('Menu test root'),
-    );
-    $tree = array(
-      'menu-test' => t('Menu test root'),
-      'menu-test/menu-trail' => t('Menu trail - Case 1'),
-    );
-
-    // Test the tree generation for the Tools menu.
-    \Drupal::state()->delete('menu_test.menu_tree_set_path');
-    $this->assertBreadcrumb('menu-test/menu-trail', $breadcrumb, t('Menu trail - Case 1'), $tree);
-
-    // Override the active trail for the Administration tree; it should not
-    // affect the Tools tree.
-    \Drupal::state()->set('menu_test.menu_tree_set_path', $test_menu_path);
-    $this->assertBreadcrumb('menu-test/menu-trail', $breadcrumb, t('Menu trail - Case 1'), $tree);
-
-    $breadcrumb = $config + array(
-      'admin/config/development' => t('Development'),
-    );
-    $tree = $config_tree + array(
-      'admin/config/development' => t('Development'),
-      'admin/config/development/menu-trail' => t('Menu trail - Case 2'),
-    );
-
-    $override_breadcrumb = $config + array(
-      'admin/config/system' => t('System'),
-      'admin/config/system/site-information' => t('Site information'),
-    );
-    $override_tree = $config_tree + array(
-      'admin/config/system' => t('System'),
-      'admin/config/system/site-information' => t('Site information'),
-    );
-
-    // Test the tree generation for the Administration menu.
-    \Drupal::state()->delete('menu_test.menu_tree_set_path');
-    $this->assertBreadcrumb('admin/config/development/menu-trail', $breadcrumb, t('Menu trail - Case 2'), $tree);
-
-    // Override the active trail for the Administration tree; it should affect
-    // the breadcrumbs and Administration tree.
-    \Drupal::state()->set('menu_test.menu_tree_set_path', $test_menu_path);
-    $this->assertBreadcrumb('admin/config/development/menu-trail', $override_breadcrumb, t('Menu trail - Case 2'), $override_tree);
+    $this->drupalPlaceBlock('system_menu_block:tools');
+    $this->drupalPlaceBlock('system_menu_block:admin');
   }
 
   /**

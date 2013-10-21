@@ -1,0 +1,16 @@
+services:
+  comment.breadcrumb:
+    class: Drupal\comment\CommentBreadcrumbBuilder
+    tags:
+      - { name: breadcrumb_builder, priority: 100 }
+    arguments: ['@entity.manager']
+
+  comment.manager:
+    class: Drupal\comment\CommentManager
+    arguments: ['@field.info', '@entity.manager']
+
+  comment.route_enhancer:
+      class: Drupal\comment\Routing\CommentBundleEnhancer
+      arguments: ['@entity.manager']
+      tags:
+        - { name: route_enhancer}

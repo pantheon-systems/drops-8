@@ -1,7 +1,6 @@
 <?php
 
 use Drupal\Component\Utility\Crypt;
-use Drupal\Core\Database\Query\SelectInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\entity\Entity\EntityDisplay;
@@ -117,6 +116,17 @@ function user_theme() {
 function user_page_build(&$page) {
   $path = drupal_get_path('module', 'user');
   $page['#attached']['css'][$path . '/css/user.module.css'] = array('every_page' => TRUE);
+
+  // Provide the user ID in drupalSettings to allow JavaScript code to customize
+  // the experience for the end user, rather than the server side, which would
+  // break the render cache.
+  global $user;
+  $page['#attached']['js'][] = array(
+    'type' => 'setting',
+    'data' => array('user' => array(
+      'uid' => $user->id(),
+    )),
+  );
 }
 
 /**
@@ -204,7 +214,7 @@ function user_field_extra_fields() {
     'description' => t('User module account form elements.'),
     'weight' => -10,
   );
-  if (Drupal::config('user.settings')->get('signatures')) {
+  if (\Drupal::config('user.settings')->get('signatures')) {
     $fields['user']['user']['form']['signature_settings'] = array(
       'label' => t('Signature settings'),
       'description' => t('User module form element.'),
@@ -216,7 +226,7 @@ function user_field_extra_fields() {
     'description' => t('User module form element.'),
     'weight' => 0,
   );
-  if (Drupal::config('system.date')->get('timezone.user.configurable')) {
+  if (\Drupal::config('system.date')->get('timezone.user.configurable')) {
     $fields['user']['user']['form']['timezone'] = array(
       'label' => t('Timezone'),
       'description' => t('System module form element.'),
@@ -277,7 +287,7 @@ function user_load_multiple(array $uids = NULL, $reset = FALSE) {
  *   TRUE to reset the internal cache and load from the database; FALSE
  *   (default) to load from the internal cache, if set.
  *
- * @return object
+ * @return \Drupal\user\UserInterface
  *   A fully-loaded user object upon successful user load, or NULL if the user
  *   cannot be loaded.
  *
@@ -408,7 +418,7 @@ function user_role_permissions(array $roles) {
 function _user_role_permissions_update($roles) {
   $role_permissions = array();
   foreach ($roles as $rid) {
-    $role_permissions[$rid] = Drupal::config("user.role.$rid")->get('permissions') ?: array();
+    $role_permissions[$rid] = \Drupal::config("user.role.$rid")->get('permissions') ?: array();
   }
   return $role_permissions;
 }
@@ -433,7 +443,7 @@ function user_access($string, AccountInterface $account = NULL) {
   if (!isset($account)) {
     // In the installer request session is not set, so we have to fall back
     // to the global $user. In all other cases the session key is preferred.
-    $account = Drupal::request()->attributes->get('_account') ?: $user;
+    $account = \Drupal::request()->attributes->get('_account') ?: $user;
   }
 
   return $account->hasPermission($string);
@@ -466,6 +476,11 @@ function user_permission() {
       'title' => t('Administer permissions'),
       'restrict access' => TRUE,
     ),
+    'administer account settings' => array(
+      'title' => t('Administer account settings'),
+      'description' => t('Configure site-wide settings and behavior for <a href="@url">user accounts and registration</a>.', array('@url' => url('admin/config/people'))),
+      'restrict access' => TRUE,
+    ),
     'administer users' => array(
       'title' => t('Administer users'),
       'restrict access' => TRUE,
@@ -478,73 +493,13 @@ function user_permission() {
     ),
     'cancel account' => array(
       'title' => t('Cancel own user account'),
-      'description' => t('Note: content may be kept, unpublished, deleted or transferred to the %anonymous-name user depending on the configured <a href="@user-settings-url">user settings</a>.', array('%anonymous-name' => Drupal::config('user.settings')->get('anonymous'), '@user-settings-url' => url('admin/config/people/accounts'))),
+      'description' => t('Note: content may be kept, unpublished, deleted or transferred to the %anonymous-name user depending on the configured <a href="@user-settings-url">user settings</a>.', array('%anonymous-name' => \Drupal::config('user.settings')->get('anonymous'), '@user-settings-url' => url('admin/config/people/accounts'))),
     ),
     'select account cancellation method' => array(
       'title' => t('Select method for cancelling own account'),
       'restrict access' => TRUE,
     ),
   );
-}
-
-/**
- * Implements hook_search_info().
- */
-function user_search_info() {
-  return array(
-    'title' => 'Users',
-  );
-}
-
-/**
- * Implements hook_search_access().
- */
-function user_search_access() {
-  return user_access('access user profiles');
-}
-
-/**
- * Implements hook_search_execute().
- */
-function user_search_execute($keys = NULL, $conditions = NULL) {
-  // Replace wildcards with MySQL/PostgreSQL wildcards.
-  $keys = preg_replace('!\*+!', '%', $keys);
-  $query = db_select('users')
-    ->extend('Drupal\Core\Database\Query\PagerSelectExtender');
-  $query->fields('users', array('uid'));
-  if (user_access('administer users')) {
-    // Administrators can also search in the otherwise private email field, and
-    // they don't need to be restricted to only active users.
-    $query->fields('users', array('mail'));
-    $query->condition(db_or()->
-      condition('name', '%' . db_like($keys) . '%', 'LIKE')->
-      condition('mail', '%' . db_like($keys) . '%', 'LIKE'));
-  }
-  else {
-    // Regular users can only search via usernames, and we do not show them
-    // blocked accounts.
-    $query->condition('name', '%' . db_like($keys) . '%', 'LIKE')
-      ->condition('status', 1);
-  }
-  $uids = $query
-    ->limit(15)
-    ->execute()
-    ->fetchCol();
-  $accounts = user_load_multiple($uids);
-
-  $results = array();
-  foreach ($accounts as $account) {
-    $result = array(
-      'title' => user_format_name($account),
-      'link' => url('user/' . $account->id(), array('absolute' => TRUE)),
-    );
-    if (user_access('administer users')) {
-      $result['title'] .= ' (' . $account->getEmail() . ')';
-    }
-    $results[] = $result;
-  }
-
-  return $results;
 }
 
 /**
@@ -582,9 +537,9 @@ function user_validate_current_pass(&$form, &$form_state) {
     // This validation only works for required textfields (like mail) or
     // form values like password_confirm that have their own validation
     // that prevent them from being empty if they are changed.
-    $current_value = $account->getPropertyDefinition($key) ? $account->get($key)->value : $account->$key;
+    $current_value = $account->hasField($key) ? $account->get($key)->value : $account->$key;
     if ((strlen(trim($form_state['values'][$key])) > 0) && ($form_state['values'][$key] != $current_value)) {
-      $current_pass_failed = empty($form_state['values']['current_pass']) || !Drupal::service('password')->check($form_state['values']['current_pass'], $account);
+      $current_pass_failed = empty($form_state['values']['current_pass']) || !\Drupal::service('password')->check($form_state['values']['current_pass'], $account);
       if ($current_pass_failed) {
         form_set_error('current_pass', t("Your current password is missing or incorrect; it's required to change the %name.", array('%name' => $name)));
         form_set_error($key);
@@ -596,7 +551,7 @@ function user_validate_current_pass(&$form, &$form_state) {
 }
 
 /**
- * Implements hook_preprocess_HOOK() for block.html.twig.
+ * Implements hook_preprocess_HOOK() for block templates.
  */
 function user_preprocess_block(&$variables) {
   if ($variables['configuration']['module'] == 'user') {
@@ -767,7 +722,7 @@ function user_is_logged_in() {
  *   TRUE if the user is not already logged in and can register for an account.
  */
 function user_register_access() {
-  return user_is_anonymous() && (Drupal::config('user.settings')->get('register') != USER_REGISTER_ADMINISTRATORS_ONLY);
+  return user_is_anonymous() && (\Drupal::config('user.settings')->get('register') != USER_REGISTER_ADMINISTRATORS_ONLY);
 }
 
 /**
@@ -779,7 +734,7 @@ function user_menu() {
     'title' => 'User account',
     'title callback' => 'user_menu_title',
     'weight' => -10,
-    'route_name' => 'user_page',
+    'route_name' => 'user.page',
     'menu_name' => 'account',
   );
 
@@ -796,26 +751,25 @@ function user_menu() {
   $items['user/register'] = array(
     'title' => 'Create new account',
     'type' => MENU_LOCAL_TASK,
-    'route_name' => 'user_register',
+    'route_name' => 'user.register',
   );
 
   $items['user/password'] = array(
     'title' => 'Request new password',
-    'route_name' => 'user_pass',
+    'route_name' => 'user.pass',
     'type' => MENU_LOCAL_TASK,
   );
+  // Since menu_get_ancestors() does not support multiple placeholders in a row,
+  // this MENU_CALLBACK cannot be removed yet.
   $items['user/reset/%/%/%'] = array(
     'title' => 'Reset password',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('user_pass_reset', 2, 3, 4),
-    'access callback' => TRUE,
+    'route_name' => 'user.reset',
     'type' => MENU_CALLBACK,
-    'file' => 'user.pages.inc',
   );
 
   $items['user/logout'] = array(
     'title' => 'Log out',
-    'route_name' => 'user_logout',
+    'route_name' => 'user.logout',
     'weight' => 10,
     'menu_name' => 'account',
   );
@@ -824,34 +778,30 @@ function user_menu() {
   $items['admin/people'] = array(
     'title' => 'People',
     'description' => 'Manage user accounts, roles, and permissions.',
-    'page callback' => 'user_admin_account',
-    'access arguments' => array('administer users'),
+    'route_name' => 'user.admin_account',
     'position' => 'left',
     'weight' => -4,
-    'file' => 'user.admin.inc',
+  );
+  $items['admin/people/list'] = array(
+    'title' => 'List',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
   );
   // Permissions and role forms.
   $items['admin/people/permissions'] = array(
     'title' => 'Permissions',
     'description' => 'Determine access to features by selecting permissions for roles.',
-    'route_name' => 'user_admin_permissions',
-    'type' => MENU_LOCAL_TASK,
-  );
-  $items['admin/people/roles'] = array(
-    'title' => 'Roles',
-    'description' => 'List, edit, or add user roles.',
-    'route_name' => 'user_role_list',
+    'route_name' => 'user.admin_permissions',
     'type' => MENU_LOCAL_TASK,
   );
   $items['admin/people/roles/add'] = array(
     'title' => 'Add role',
-    'route_name' => 'user_role_add',
+    'route_name' => 'user.role_add',
     'type' => MENU_LOCAL_ACTION,
   );
 
   $items['admin/people/roles/manage/%user_role'] = array(
     'title' => 'Edit role',
-    'route_name' => 'user_role_edit',
+    'route_name' => 'user.role_edit',
   );
   $items['admin/people/roles/manage/%user_role/edit'] = array(
     'title' => 'Edit',
@@ -859,84 +809,48 @@ function user_menu() {
   );
   $items['admin/people/roles/manage/%user_role/delete'] = array(
     'title' => 'Delete role',
-    'route_name' => 'user_role_delete',
+    'route_name' => 'user.role_delete',
     'weight' => 10,
     'context' => MENU_CONTEXT_INLINE,
   );
 
-  $items['admin/people/create'] = array(
-    'title' => 'Add user',
-    'route_name' => 'user_admin_create',
-    'type' => MENU_LOCAL_ACTION,
-  );
-  $items['admin/people/cancel'] = array(
-    'title' => 'Cancel user',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('user_multiple_cancel_confirm'),
-    'access arguments' => array('administer users'),
-    'file' => 'user.admin.inc',
-    'type' => MENU_CALLBACK,
-  );
-
   // Administration pages.
   $items['admin/config/people'] = array(
-   'title' => 'People',
-   'description' => 'Configure user accounts.',
-   'position' => 'left',
-   'weight' => -20,
-   'page callback' => 'system_admin_menu_block_page',
-   'access arguments' => array('access administration pages'),
-   'file' => 'system.admin.inc',
-   'file path' => drupal_get_path('module', 'system'),
+    'title' => 'People',
+    'description' => 'Configure user accounts.',
+    'position' => 'left',
+    'weight' => -20,
+    'route_name' => 'user.admin_index',
   );
+
   $items['admin/config/people/accounts'] = array(
     'title' => 'Account settings',
     'description' => 'Configure default behavior of users, including registration requirements, e-mails, and fields.',
     'weight' => -10,
-    'route_name' => 'user_account_settings',
-  );
-  $items['admin/config/people/accounts/settings'] = array(
-    'title' => 'Settings',
-    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'route_name' => 'user.account_settings',
   );
 
   $items['user/%user'] = array(
     'title' => 'My account',
     'title callback' => 'user_page_title',
     'title arguments' => array(1),
-    'page callback' => 'user_view_page',
-    'page arguments' => array(1),
-    'access callback' => 'entity_page_access',
-    'access arguments' => array(1),
+    'route_name' => 'user.view',
   );
   $items['user/%user/view'] = array(
     'title' => 'View',
     'type' => MENU_DEFAULT_LOCAL_TASK,
   );
   $items['user/%user/cancel'] = array(
-    'title' => 'Cancel account',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('user_cancel_confirm_form', 1),
-    'access callback' => 'entity_page_access',
-    'access arguments' => array(1, 'delete'),
-    'file' => 'user.pages.inc',
+    'route_name' => 'user.cancel',
   );
   $items['user/%user/cancel/confirm/%/%'] = array(
     'title' => 'Confirm account cancellation',
-    'page callback' => 'user_cancel_confirm',
-    'page arguments' => array(1, 4, 5),
-    'access callback' => 'entity_page_access',
-    'access arguments' => array(1, 'delete'),
-    'file' => 'user.pages.inc',
+    'route_name' => 'user.cancel_confirm',
   );
   $items['user/%user/edit'] = array(
     'title' => 'Edit',
-    'page callback' => 'entity_get_form',
-    'page arguments' => array(1),
-    'access callback' => 'entity_page_access',
-    'access arguments' => array(1, 'update'),
+    'route_name' => 'user.edit',
     'type' => MENU_LOCAL_TASK,
-    'file' => 'user.pages.inc',
   );
   return $items;
 }
@@ -1087,7 +1001,7 @@ function user_authenticate($name, $password) {
   if (!empty($name) && !empty($password)) {
     $account = user_load_by_name($name);
     if ($account) {
-      $password_hasher = Drupal::service('password');
+      $password_hasher = \Drupal::service('password');
       if ($password_hasher->check($password, $account)) {
         // Successful authentication.
         $uid = $account->id();
@@ -1134,7 +1048,7 @@ function user_login_finalize(UserInterface $account) {
   // or incorrectly does a redirect which would leave the old session in place.
   drupal_session_regenerate();
 
-  Drupal::moduleHandler()->invokeAll('user_login', array($user));
+  \Drupal::moduleHandler()->invokeAll('user_login', array($user));
 }
 
 /**
@@ -1271,7 +1185,7 @@ function user_cancel($edit, $uid, $method) {
   // should use those hooks to respond to the account deletion.
   if ($method != 'user_cancel_delete') {
     // Allow modules to add further sets to this batch.
-    Drupal::moduleHandler()->invokeAll('user_cancel', array($edit, $account, $method));
+    \Drupal::moduleHandler()->invokeAll('user_cancel', array($edit, $account, $method));
   }
 
   // Finish the batch and actually cancel the account.
@@ -1356,6 +1270,62 @@ function _user_cancel_session_regenerate() {
 }
 
 /**
+ * Helper function to return available account cancellation methods.
+ *
+ * See documentation of hook_user_cancel_methods_alter().
+ *
+ * @return array
+ *   An array containing all account cancellation methods as form elements.
+ *
+ * @see hook_user_cancel_methods_alter()
+ * @see user_admin_settings()
+ */
+function user_cancel_methods() {
+  $user_settings = \Drupal::config('user.settings');
+  $anonymous_name = $user_settings->get('anonymous');
+  $methods = array(
+    'user_cancel_block' => array(
+      'title' => t('Disable the account and keep its content.'),
+      'description' => t('Your account will be blocked and you will no longer be able to log in. All of your content will remain attributed to your user name.'),
+    ),
+    'user_cancel_block_unpublish' => array(
+      'title' => t('Disable the account and unpublish its content.'),
+      'description' => t('Your account will be blocked and you will no longer be able to log in. All of your content will be hidden from everyone but administrators.'),
+    ),
+    'user_cancel_reassign' => array(
+      'title' => t('Delete the account and make its content belong to the %anonymous-name user.', array('%anonymous-name' => $anonymous_name)),
+      'description' => t('Your account will be removed and all account information deleted. All of your content will be assigned to the %anonymous-name user.', array('%anonymous-name' => $anonymous_name)),
+    ),
+    'user_cancel_delete' => array(
+      'title' => t('Delete the account and its content.'),
+      'description' => t('Your account will be removed and all account information deleted. All of your content will also be deleted.'),
+      'access' => \Drupal::request()->attributes->get('_account')->hasPermission('administer users'),
+    ),
+  );
+  // Allow modules to customize account cancellation methods.
+  \Drupal::moduleHandler()->alter('user_cancel_methods', $methods);
+
+  // Turn all methods into real form elements.
+  $form = array(
+    '#options' => array(),
+    '#default_value' => $user_settings->get('cancel_method'),
+  );
+  foreach ($methods as $name => $method) {
+    $form['#options'][$name] = $method['title'];
+    // Add the description for the confirmation form. This description is never
+    // shown for the cancel method option, only on the confirmation form.
+    // Therefore, we use a custom #confirm_description property.
+    if (isset($method['description'])) {
+      $form[$name]['#confirm_description'] = $method['description'];
+    }
+    if (isset($method['access'])) {
+      $form[$name]['#access'] = $method['access'];
+    }
+  }
+  return $form;
+}
+
+/**
  * Delete a user.
  *
  * @param $uid
@@ -1379,18 +1349,6 @@ function user_delete_multiple(array $uids) {
 }
 
 /**
- * Page callback wrapper for user_view().
- */
-function user_view_page($account) {
-  if (is_object($account)) {
-    return user_view($account);
-  }
-  // An administrator may try to view a non-existent account,
-  // so we give them a 404 (versus a 403 for non-admins).
-  throw new NotFoundHttpException();
-}
-
-/**
  * Generate an array for rendering the given user.
  *
  * When viewing a user profile, the $page array contains:
@@ -1400,7 +1358,7 @@ function user_view_page($account) {
  * - $page['content']['#user']:
  *   The user account of the profile being viewed.
  *
- * To theme user profiles, copy modules/user/user.tpl.php
+ * To theme user profiles, copy core/modules/user/templates/user.html.twig
  * to your theme directory, and edit it as instructed in that file's comments.
  *
  * @param $account
@@ -1433,14 +1391,14 @@ function user_view($account, $view_mode = 'full', $langcode = NULL) {
  *   An array in the format expected by drupal_render().
  */
 function user_view_multiple($accounts, $view_mode = 'full', $langcode = NULL) {
-  return entity_view($accounts, $view_mode, $langcode);
+  return entity_view_multiple($accounts, $view_mode, $langcode);
 }
 
 /**
  * Implements hook_mail().
  */
 function user_mail($key, &$message, $params) {
-  $token_service = Drupal::token();
+  $token_service = \Drupal::token();
   $langcode = $message['langcode'];
   $variables = array('user' => $params['account']);
 
@@ -1450,7 +1408,7 @@ function user_mail($key, &$message, $params) {
   // the locale module is enabled.
   $user_config_context = config_context_enter('Drupal\user\UserConfigContext');
   $user_config_context->setAccount($params['account']);
-  $mail_config = Drupal::config('user.mail');
+  $mail_config = \Drupal::config('user.mail');
 
    // We do not sanitize the token replacement, since the output of this
    // replacement is intended for an e-mail message, not a web browser.
@@ -1518,26 +1476,32 @@ function user_user_role_insert(RoleInterface $role) {
     return;
   }
 
-  $action = entity_create('action', array(
-    'id' => 'user_add_role_action.' . $role->id(),
-    'type' => 'user',
-    'label' => t('Add the @label role to the selected users', array('@label' => $role->label())),
-    'configuration' => array(
-      'rid' => $role->id(),
-    ),
-    'plugin' => 'user_add_role_action',
-  ));
-  $action->save();
-  $action = entity_create('action', array(
-    'id' => 'user_remove_role_action.' . $role->id(),
-    'type' => 'user',
-    'label' => t('Remove the @label role from the selected users', array('@label' => $role->label())),
-    'configuration' => array(
-      'rid' => $role->id(),
-    ),
-    'plugin' => 'user_remove_role_action',
-  ));
-  $action->save();
+  $add_id = 'user_add_role_action.' . $role->id();
+  if (!entity_load('action', $add_id)) {
+    $action = entity_create('action', array(
+      'id' => $add_id,
+      'type' => 'user',
+      'label' => t('Add the @label role to the selected users', array('@label' => $role->label())),
+      'configuration' => array(
+        'rid' => $role->id(),
+      ),
+      'plugin' => 'user_add_role_action',
+    ));
+    $action->save();
+  }
+  $remove_id = 'user_remove_role_action.' . $role->id();
+  if (!entity_load('action', $remove_id)) {
+    $action = entity_create('action', array(
+      'id' => $remove_id,
+      'type' => 'user',
+      'label' => t('Remove the @label role from the selected users', array('@label' => $role->label())),
+      'configuration' => array(
+        'rid' => $role->id(),
+      ),
+      'plugin' => 'user_remove_role_action',
+    ));
+    $action->save();
+  }
 }
 
 /**
@@ -1623,7 +1587,7 @@ function user_role_load($rid) {
  */
 function user_permission_get_modules() {
   $permissions = array();
-  foreach (Drupal::moduleHandler()->getImplementations('permission') as $module) {
+  foreach (\Drupal::moduleHandler()->getImplementations('permission') as $module) {
     $perms = module_invoke($module, 'permission');
     foreach ($perms as $key => $value) {
       $permissions[$key] = $module;
@@ -1714,100 +1678,6 @@ function user_role_revoke_permissions($rid, array $permissions = array()) {
   $role->save();
 }
 
-function user_multiple_cancel_confirm($form, &$form_state) {
-  // Retrieve the accounts to be canceled from the temp store.
-  $accounts = Drupal::service('user.tempstore')->get('user_user_operations_cancel')->get($GLOBALS['user']->id());
-  $form['accounts'] = array('#prefix' => '<ul>', '#suffix' => '</ul>', '#tree' => TRUE);
-  foreach ($accounts as $account) {
-    $uid = $account->id();
-    // Prevent user 1 from being canceled.
-    if ($uid <= 1) {
-      continue;
-    }
-    $form['accounts'][$uid] = array(
-      '#type' => 'hidden',
-      '#value' => $uid,
-      '#prefix' => '<li>',
-      '#suffix' => check_plain($account->getUsername()) . "</li>\n",
-    );
-  }
-
-  // Output a notice that user 1 cannot be canceled.
-  if (isset($accounts[1])) {
-    $redirect = (count($accounts) == 1);
-    $message = t('The user account %name cannot be cancelled.', array('%name' => $accounts[1]->name->value));
-    drupal_set_message($message, $redirect ? 'error' : 'warning');
-    // If only user 1 was selected, redirect to the overview.
-    if ($redirect) {
-      return new RedirectResponse(url('admin/people', array('absolute' => TRUE)));
-    }
-  }
-
-  $form['operation'] = array('#type' => 'hidden', '#value' => 'cancel');
-
-  form_load_include($form_state, 'inc', 'user', 'user.pages');
-  $form['user_cancel_method'] = array(
-    '#type' => 'radios',
-    '#title' => t('When cancelling these accounts'),
-  );
-  $form['user_cancel_method'] += user_cancel_methods();
-
-  // Allow to send the account cancellation confirmation mail.
-  $form['user_cancel_confirm'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Require e-mail confirmation to cancel account.'),
-    '#default_value' => FALSE,
-    '#description' => t('When enabled, the user must confirm the account cancellation via e-mail.'),
-  );
-  // Also allow to send account canceled notification mail, if enabled.
-  $form['user_cancel_notify'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Notify user when account is canceled.'),
-    '#default_value' => FALSE,
-    '#access' => Drupal::config('user.settings')->get('notify.status_canceled'),
-    '#description' => t('When enabled, the user will receive an e-mail notification after the account has been cancelled.'),
-  );
-
-  return confirm_form($form,
-                      t('Are you sure you want to cancel these user accounts?'),
-                      'admin/people', t('This action cannot be undone.'),
-                      t('Cancel accounts'), t('Cancel'));
-}
-
-/**
- * Submit handler for mass-account cancellation form.
- *
- * @see user_multiple_cancel_confirm()
- * @see user_cancel_confirm_form_submit()
- */
-function user_multiple_cancel_confirm_submit($form, &$form_state) {
-  global $user;
-
-  // Clear out the accounts from the temp store.
-  Drupal::service('user.tempstore')->get('user_user_operations_cancel')->delete($user->id());
-  if ($form_state['values']['confirm']) {
-    foreach ($form_state['values']['accounts'] as $uid => $value) {
-      // Prevent programmatic form submissions from cancelling user 1.
-      if ($uid <= 1) {
-        continue;
-      }
-      // Prevent user administrators from deleting themselves without confirmation.
-      if ($uid == $user->id()) {
-        $admin_form_state = $form_state;
-        unset($admin_form_state['values']['user_cancel_confirm']);
-        // The $user global is not a complete user entity, so load the full
-        // entity.
-        $admin_form_state['values']['_account'] = user_load($user->id());
-        user_cancel_confirm_form_submit(array(), $admin_form_state);
-      }
-      else {
-        user_cancel($form_state['values'], $uid, $form_state['values']['user_cancel_method']);
-      }
-    }
-  }
-  $form_state['redirect'] = 'admin/people';
-}
-
 /**
  * Returns HTML for a user signature.
  *
@@ -1864,17 +1734,17 @@ function theme_user_signature($variables) {
  */
 function _user_mail_notify($op, $account, $langcode = NULL) {
   // By default, we always notify except for canceled and blocked.
-  $notify = Drupal::config('user.settings')->get('notify.' . $op);
+  $notify = \Drupal::config('user.settings')->get('notify.' . $op);
   if ($notify || ($op != 'status_canceled' && $op != 'status_blocked')) {
     $params['account'] = $account;
     $langcode = $langcode ? $langcode : $account->getPreferredLangcode();
     // Get the custom site notification email to use as the from email address
     // if it has been set.
-    $site_mail = Drupal::config('system.site')->get('mail_notification');
+    $site_mail = \Drupal::config('system.site')->get('mail_notification');
     // If the custom site notification email has not been set, we use the site
     // default for this.
     if (empty($site_mail)) {
-      $site_mail = Drupal::config('system.site')->get('mail');
+      $site_mail = \Drupal::config('system.site')->get('mail');
     }
     if (empty($site_mail)) {
       $site_mail = ini_get('sendmail_from');
@@ -1906,7 +1776,7 @@ function user_form_process_password_confirm($element) {
     'showStrengthIndicator' => FALSE,
   );
 
-  if (Drupal::config('user.settings')->get('password_strength')) {
+  if (\Drupal::config('user.settings')->get('password_strength')) {
 
     global $user;
     $password_settings['showStrengthIndicator'] = TRUE;
@@ -1970,7 +1840,7 @@ function user_node_load($nodes, $types) {
  */
 function user_modules_installed($modules) {
   // Assign all available permissions to the administrator role.
-  $rid = Drupal::config('user.settings')->get('admin_role');
+  $rid = \Drupal::config('user.settings')->get('admin_role');
   if ($rid) {
     $permissions = array();
     foreach ($modules as $module) {
@@ -1989,7 +1859,7 @@ function user_modules_installed($modules) {
  */
 function user_modules_uninstalled($modules) {
   // Remove any potentially orphan module data stored for users.
-  Drupal::service('user.data')->delete($modules);
+  \Drupal::service('user.data')->delete($modules);
 }
 
 /**
@@ -2105,7 +1975,7 @@ function user_library_info() {
   $path = drupal_get_path('module', 'user');
   $libraries['drupal.user'] = array(
     'title' => 'User',
-    'version' => VERSION,
+    'version' => \Drupal::VERSION,
     'js' => array(
       $path . '/user.js' => array(),
     ),
@@ -2121,7 +1991,7 @@ function user_library_info() {
 
   $libraries['drupal.user.permissions'] = array(
     'title' => 'User permissions',
-    'version' => VERSION,
+    'version' => \Drupal::VERSION,
     'js' => array(
       $path . '/user.permissions.js' => array(),
     ),
@@ -2134,7 +2004,7 @@ function user_library_info() {
 
   $libraries['drupal.user.icons'] = array(
     'title' => 'User icon styling',
-    'version' => VERSION,
+    'version' => \Drupal::VERSION,
     'css' => array(
       $path . '/css/user.icons.css' => array(),
     ),
@@ -2151,7 +2021,7 @@ function user_logout() {
 
   watchdog('user', 'Session closed for %name.', array('%name' => $user->getUsername()));
 
-  Drupal::moduleHandler()->invokeAll('user_logout', array($user));
+  \Drupal::moduleHandler()->invokeAll('user_logout', array($user));
 
   // Destroy the current session, and reset $user to the anonymous user.
   session_destroy();

@@ -9,49 +9,6 @@ use Drupal\aggregator\Entity\Feed;
 use Drupal\Core\Entity\EntityInterface;
 
 /**
- * Page callback: Displays all the items captured from the particular feed.
- *
- * @param \Drupal\aggregator\Entity\Feed $feed
- *   The feed for which to display all items.
- *
- * @return string
- *   The rendered list of items for the feed.
- *
- * @see aggregator_menu()
- */
-function aggregator_page_source(Feed $feed) {
-  $feed_source = entity_view($feed, 'default');
-
-  // It is safe to include the fid in the query because it's loaded from the
-  // database by aggregator_feed_load().
-  $items = aggregator_load_feed_items('source', $feed);
-
-  return _aggregator_page_list($items, arg(3), $feed_source);
-}
-
-/**
- * Form constructor to list items aggregated in a category.
- *
- * @param $category
- *   The category for which to list all of the aggregated items.
- *
- * @return string
- *   The rendered list of items for the feed.
- *
- * @see aggregator_menu()
- * @ingroup forms
- */
-function aggregator_page_category($category) {
-  drupal_add_feed('aggregator/rss/' . $category->cid, Drupal::config('system.site')->get('name') . ' ' . t('aggregator - @title', array('@title' => $category->title)));
-
-  // It is safe to include the cid in the query because it's loaded from the
-  // database by aggregator_category_load().
-  $items = aggregator_load_feed_items('category', $category);
-
-  return _aggregator_page_list($items, arg(3));
-}
-
-/**
  * Loads and optionally filters feed items.
  *
  * @param string $type
@@ -80,7 +37,7 @@ function aggregator_page_category($category) {
  *   An array of the feed items.
  */
 function aggregator_load_feed_items($type, $data = NULL, $limit = 20) {
-  $storage_controller = Drupal::entityManager()->getStorageController('aggregator_item');
+  $storage_controller = \Drupal::entityManager()->getStorageController('aggregator_item');
   switch ($type) {
     case 'sum':
       return $storage_controller->loadAll($limit);
@@ -91,51 +48,6 @@ function aggregator_load_feed_items($type, $data = NULL, $limit = 20) {
     case 'category':
       return $storage_controller->loadByCategory($data->cid, $limit);
   }
-}
-
-/**
- * Prints an aggregator page listing a number of feed items.
- *
- * Various menu callbacks use this function to print their feeds.
- *
- * @param $items
- *   The items to be listed.
- * @param $op
- *   Which form should be added to the items. Only 'categorize' is now
- *   recognized.
- * @param $feed_source
- *   The feed source URL.
- *
- * @return
- *   The rendered list of items for the feed.
- */
-function _aggregator_page_list($items, $op, $feed_source = '') {
-  // Assemble output.
-  $build = array(
-    '#type' => 'container',
-    '#attributes' => array('class' => array('aggregator-wrapper')),
-  );
-  $build['feed_source'] = is_array($feed_source) ? $feed_source : array('#markup' => $feed_source);
-  if ($items) {
-    $build['items'] = entity_view_multiple($items, 'default');
-    $build['pager'] = array('#theme' => 'pager');
-  }
-  return $build;
-}
-
-/**
- * Default theme implementation to present a linked feed item for summaries.
- *
- * @param $variables
- *   An associative array containing:
- *   - item_link: Link to item.
- *   - item_age: Age of the item.
- *
- * @see template_preprocess()
- * @see template_preprocess_aggregator_summary_item()
- */
-function theme_aggregator_summary_item($variables) {
-  return $variables['item_url'] . ' ' . $variables['item_age'];
 }
 
 /**
@@ -187,6 +99,8 @@ function template_preprocess_aggregator_item(&$variables) {
  *   An OPML formatted string.
  *
  * @see aggregator_menu()
+ *
+ * @deprecated Use \Drupal\aggregator\Controller\AggregatorController::opmlPage()
  */
 function aggregator_page_opml($cid = NULL) {
   if ($cid) {
@@ -221,7 +135,7 @@ function theme_aggregator_page_opml($variables) {
   $output  = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n";
   $output .= "<opml version=\"1.1\">\n";
   $output .= "<head>\n";
-  $output .= '<title>' . check_plain(Drupal::config('system.site')->get('name')) . "</title>\n";
+  $output .= '<title>' . check_plain(\Drupal::config('system.site')->get('name')) . "</title>\n";
   $output .= '<dateModified>' . gmdate(DATE_RFC2822, REQUEST_TIME) . "</dateModified>\n";
   $output .= "</head>\n";
   $output .= "<body>\n";
@@ -271,21 +185,20 @@ function template_preprocess_aggregator_summary_items(&$variables) {
 function template_preprocess_aggregator_summary_item(&$variables) {
   $item = $variables['aggregator_item'];
 
-  $variables['item_url'] = l(check_plain($item->label()), check_url(url($item->link->value, array('absolute' => TRUE))), array(
+  $variables['url'] = l(check_plain($item->label()), check_url(url($item->link->value, array('absolute' => TRUE))), array(
     'attributes' => array(
       'class' => array('feed-item-url',),
     ),
   ));
-  $datetime = array(
+  $variables['age'] = array(
     '#theme' => 'datetime',
     '#attributes' => array(
       'datetime' => format_date($item->timestamp->value, 'html_datetime', '', 'UTC'),
-      'class' => array('feed-item-age',),
+      'class' => array('feed-item-age'),
     ),
     '#text' => t('%age old', array('%age' => format_interval(REQUEST_TIME - $item->timestamp->value))),
     '#html' => TRUE,
   );
-  $variables['item_age'] = drupal_render($datetime);
 }
 
 /**

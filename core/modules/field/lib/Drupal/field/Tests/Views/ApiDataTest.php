@@ -6,7 +6,7 @@
  */
 
 namespace Drupal\field\Tests\Views;
-use Drupal\Core\Entity\DatabaseStorageController;
+use Drupal\Core\Entity\FieldableDatabaseStorageController;
 
 /**
  * Test the produced views_data.
@@ -62,8 +62,8 @@ class ApiDataTest extends FieldTestBase {
     // Check the table and the joins of the first field.
     // Attached to node only.
     $field = $this->fields[0];
-    $current_table = DatabaseStorageController::_fieldTableName($field);
-    $revision_table = DatabaseStorageController::_fieldRevisionTableName($field);
+    $current_table = FieldableDatabaseStorageController::_fieldTableName($field);
+    $revision_table = FieldableDatabaseStorageController::_fieldRevisionTableName($field);
     $data[$current_table] = $views_data->get($current_table);
     $data[$revision_table] = $views_data->get($revision_table);
 
@@ -71,7 +71,7 @@ class ApiDataTest extends FieldTestBase {
     $this->assertTrue(isset($data[$revision_table]));
     // The node field should join against node.
     $this->assertTrue(isset($data[$current_table]['table']['join']['node']));
-    $this->assertTrue(isset($data[$revision_table]['table']['join']['node_field_revision']));
+    $this->assertTrue(isset($data[$revision_table]['table']['join']['node_revision']));
 
     $expected_join = array(
       'left_field' => 'nid',
@@ -88,7 +88,7 @@ class ApiDataTest extends FieldTestBase {
         array('field' => 'deleted', 'value' => 0, 'numeric' => TRUE),
       ),
     );
-    $this->assertEqual($expected_join, $data[$revision_table]['table']['join']['node_field_revision']);
+    $this->assertEqual($expected_join, $data[$revision_table]['table']['join']['node_revision']);
   }
 
 }

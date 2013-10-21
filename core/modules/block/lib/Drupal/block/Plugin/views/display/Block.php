@@ -8,10 +8,12 @@
 
 namespace Drupal\block\Plugin\views\display;
 
+use Drupal\Component\Utility\String;
 use Drupal\views\Annotation\ViewsDisplay;
 use Drupal\Core\Annotation\Translation;
 use Drupal\views\Plugin\Block\ViewsBlock;
 use Drupal\views\Plugin\views\display\DisplayPluginBase;
+use Drupal\views\Views;
 
 /**
  * The plugin that handles a block.
@@ -20,7 +22,6 @@ use Drupal\views\Plugin\views\display\DisplayPluginBase;
  *
  * @ViewsDisplay(
  *   id = "block",
- *   module = "block",
  *   title = @Translation("Block"),
  *   help = @Translation("Display the view as a block."),
  *   theme = "views_view",
@@ -46,7 +47,9 @@ class Block extends DisplayPluginBase {
     $options = parent::defineOptions();
 
     $options['block_description'] = array('default' => '', 'translatable' => TRUE);
+    $options['block_category'] = array('default' => 'Views', 'translatable' => TRUE);
     $options['block_caching'] = array('default' => DRUPAL_NO_CACHE);
+    $options['block_hide_empty'] = array('default' => FALSE);
 
     $options['allow'] = array(
       'contains' => array(
@@ -67,7 +70,7 @@ class Block extends DisplayPluginBase {
    *   An array of block-specific settings to override the defaults provided in
    *   \Drupal\views\Plugin\Block\ViewsBlock::settings().
    *
-   * @see \Drupal\views\Plugin\Block\ViewsBlock::settings().
+   * @see \Drupal\views\Plugin\Block\ViewsBlock::defaultConfiguration()
    */
   public function blockSettings(array $settings) {
     $settings['items_per_page'] = 'none';
@@ -81,11 +84,12 @@ class Block extends DisplayPluginBase {
     // Prior to this being called, the $view should already be set to this
     // display, and arguments should be set on the view.
     $element = $this->view->render();
-    if (!empty($this->view->result) || $this->getOption('empty') || !empty($this->view->style_plugin->definition['even empty'])) {
+    if ($this->outputIsEmpty() && $this->getOption('block_hide_empty') && empty($this->view->style_plugin->definition['even empty'])) {
+      return array();
+    }
+    else {
       return $element;
     }
-
-    return array();
   }
 
   /**
@@ -108,11 +112,17 @@ class Block extends DisplayPluginBase {
     if (empty($block_description)) {
       $block_description = t('None');
     }
+    $block_category = String::checkPlain($this->getOption('block_category'));
 
     $options['block_description'] = array(
       'category' => 'block',
       'title' => t('Block name'),
       'value' => views_ui_truncate($block_description, 24),
+    );
+    $options['block_category'] = array(
+      'category' => 'block',
+      'title' => t('Block category'),
+      'value' => views_ui_truncate($block_category, 24),
     );
 
     $filtered_allow = array_filter($this->getOption('allow'));
@@ -128,6 +138,12 @@ class Block extends DisplayPluginBase {
       'category' => 'other',
       'title' => t('Block caching'),
       'value' => $types[$this->getCacheType()],
+    );
+
+    $options['block_hide_empty'] = array(
+      'category' => 'other',
+      'title' => t('Hide block if the view output is empty'),
+      'value' => $this->getOption('block_hide_empty') ? t('Hide') : t('Show'),
     );
   }
 
@@ -173,6 +189,15 @@ class Block extends DisplayPluginBase {
           '#default_value' => $this->getOption('block_description'),
         );
         break;
+      case 'block_category':
+        $form['#title'] .= t('Block category');
+        $form['block_category'] = array(
+          '#type' => 'textfield',
+          '#autocomplete_route_name' => 'block.category_autocomplete',
+          '#description' => t('The category this block will appear under on the <a href="@href">blocks placement page</a>.', array('@href' => url('admin/structure/block'))),
+          '#default_value' => $this->getOption('block_category'),
+        );
+        break;
       case 'block_caching':
         $form['#title'] .= t('Block caching type');
 
@@ -181,6 +206,16 @@ class Block extends DisplayPluginBase {
           '#description' => t("This sets the default status for Drupal's built-in block caching method; this requires that caching be turned on in block administration, and be careful because you have little control over when this cache is flushed."),
           '#options' => $this->blockCachingModes(),
           '#default_value' => $this->getCacheType(),
+        );
+        break;
+      case 'block_hide_empty':
+        $form['#title'] .= t('Block empty settings');
+
+        $form['block_hide_empty'] = array(
+          '#title' => t('Hide block if no result/empty text'),
+          '#type' => 'checkbox',
+          '#description' => t('Hide the block if there is no result and no empty text and no header/footer which is shown on empty result'),
+          '#default_value' => $this->getOption('block_hide_empty'),
         );
         break;
       case 'exposed_form_options':
@@ -217,8 +252,10 @@ class Block extends DisplayPluginBase {
     parent::submitOptionsForm($form, $form_state);
     switch ($form_state['section']) {
       case 'block_description':
+      case 'block_category':
       case 'block_caching':
       case 'allow':
+      case 'block_hide_empty':
         $this->setOption($form_state['section'], $form_state['values'][$form_state['section']]);
         break;
     }
@@ -326,6 +363,17 @@ class Block extends DisplayPluginBase {
       }
       return FALSE;
     }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function newDisplay() {
+    $base_tables = Views::viewsData()->fetchBaseTables();
+    $base_table = $this->view->storage->get('base_table');
+    if (isset($base_tables[$base_table]['title'])) {
+      $this->setOption('block_category', $base_tables[$base_table]['title']);
+    }
+  }
 
   /**
    * Overrides \Drupal\views\Plugin\views\display\DisplayPluginBase::remove().

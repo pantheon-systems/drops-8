@@ -16,16 +16,11 @@ use Drupal\content_translation\Tests\ContentTranslationUITest;
 class NodeTranslationUITest extends ContentTranslationUITest {
 
   /**
-   * The title of the test node.
-   */
-  protected $title;
-
-  /**
    * Modules to enable.
    *
    * @var array
    */
-  public static $modules = array('language', 'content_translation', 'node', 'datetime', 'field_ui');
+  public static $modules = array('block', 'language', 'content_translation', 'node', 'datetime', 'field_ui');
 
   public static function getInfo() {
     return array(
@@ -38,8 +33,8 @@ class NodeTranslationUITest extends ContentTranslationUITest {
   function setUp() {
     $this->entityType = 'node';
     $this->bundle = 'article';
-    $this->title = $this->randomName();
     parent::setUp();
+    $this->drupalPlaceBlock('system_help_block', array('region' => 'content'));
   }
 
   /**
@@ -61,8 +56,7 @@ class NodeTranslationUITest extends ContentTranslationUITest {
    * Overrides \Drupal\content_translation\Tests\ContentTranslationUITest::getNewEntityValues().
    */
   protected function getNewEntityValues($langcode) {
-    // Node title is not translatable yet, hence we use a fixed value.
-    return array('title' => $this->title) + parent::getNewEntityValues($langcode);
+    return array('title' => $this->randomName()) + parent::getNewEntityValues($langcode);
   }
 
   /**
@@ -95,7 +89,7 @@ class NodeTranslationUITest extends ContentTranslationUITest {
         if (!empty($status_actions)) {
           $action = array_shift($status_actions);
         }
-        $this->drupalPost($path, array(), $action, array('language' => $languages[$langcode]));
+        $this->drupalPostForm($path, array(), $action, array('language' => $languages[$langcode]));
       }
       $entity = entity_load($this->entityType, $this->entityId, TRUE);
       foreach ($this->langcodes as $langcode) {
@@ -117,7 +111,7 @@ class NodeTranslationUITest extends ContentTranslationUITest {
     $values = array();
 
     // Post different authoring information for each translation.
-    foreach ($this->langcodes as $index => $langcode) {
+    foreach ($this->langcodes as $langcode) {
       $user = $this->drupalCreateUser();
       $values[$langcode] = array(
         'uid' => $user->id(),
@@ -128,7 +122,7 @@ class NodeTranslationUITest extends ContentTranslationUITest {
         'date[date]' => format_date($values[$langcode]['created'], 'custom', 'Y-m-d'),
         'date[time]' => format_date($values[$langcode]['created'], 'custom', 'H:i:s'),
       );
-      $this->drupalPost($path, $edit, $this->getFormSubmitAction($entity), array('language' => $languages[$langcode]));
+      $this->drupalPostForm($path, $edit, $this->getFormSubmitAction($entity), array('language' => $languages[$langcode]));
     }
 
     $entity = entity_load($this->entityType, $this->entityId, TRUE);
@@ -186,7 +180,6 @@ class NodeTranslationUITest extends ContentTranslationUITest {
 
     // Create a node for each bundle.
     $enabledNode = $this->drupalCreateNode(array('type' => $this->bundle));
-    $disabledNode = $this->drupalCreateNode(array('type' => $disabledBundle));
 
     // Make sure that only a single row was inserted into the
     // {content_translation} table.

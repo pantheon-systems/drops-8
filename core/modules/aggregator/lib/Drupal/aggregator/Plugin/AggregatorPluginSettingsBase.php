@@ -8,13 +8,20 @@
 namespace Drupal\aggregator\Plugin;
 
 use Drupal\Component\Plugin\ConfigurablePluginInterface;
-use Drupal\Component\Plugin\PluginBase;
+use Drupal\Core\Plugin\PluginBase;
 use Drupal\Core\Plugin\PluginFormInterface;
 
 /**
  * Base class for aggregator plugins that implement settings forms.
  */
 abstract class AggregatorPluginSettingsBase extends PluginBase implements PluginFormInterface, ConfigurablePluginInterface {
+
+  /**
+   * {@inheritdoc}
+   */
+  public function defaultConfiguration() {
+    return array();
+  }
 
   /**
    * {@inheritdoc}

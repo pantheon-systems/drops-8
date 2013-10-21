@@ -57,24 +57,25 @@ function picture_menu() {
     'title' => 'Picture Mappings',
     'description' => 'Manage picture mappings',
     'weight' => 10,
-    'route_name' => 'picture_mapping_page',
+    'route_name' => 'picture.mapping_page',
   );
   $items['admin/config/media/picturemapping/add'] = array(
     'title' => 'Add picture mapping',
-    'route_name' => 'picture_mapping_page_add',
+    'route_name' => 'picture.mapping_page_add',
     'type' => MENU_LOCAL_ACTION,
   );
   $items['admin/config/media/picturemapping/%picture_mapping'] = array(
     'title' => 'Edit picture mapping',
-    'route_name' => 'picture_mapping_page_edit',
+    'route_name' => 'picture.mapping_page_edit',
+  );
+  $items['admin/config/media/picturemapping/%picture_mapping/edit'] = array(
+    'title' => 'Edit',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => -10,
   );
   $items['admin/config/media/picturemapping/%picture_mapping/duplicate'] = array(
     'title' => 'Duplicate picture mapping',
-    'route_name' => 'picture_mapping_page_duplicate',
-  );
-  $items['admin/config/media/picturemapping/%picture_mapping/delete'] = array(
-    'title' => 'Delete',
-    'route_name' => 'picture_mapping_action_confirm',
+    'route_name' => 'picture.mapping_page_duplicate',
   );
 
   return $items;
@@ -87,7 +88,7 @@ function picture_library_info() {
   $libraries['picturefill'] = array(
     'title' => t('Picturefill'),
     'website' => 'http://drupal.org/node/1775530',
-    'version' => VERSION,
+    'version' => \Drupal::VERSION,
     'js' => array(
       drupal_get_path('module', 'picture') . '/picturefill/picturefill.js' => array('type' => 'file', 'weight' => -10, 'group' => JS_DEFAULT),
     ),

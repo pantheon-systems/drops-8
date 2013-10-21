@@ -42,7 +42,7 @@ class ConfigItemExtra extends ViewsFormBase {
   /**
    * {@inheritdoc}
    */
-  public function getFormID() {
+  public function getFormId() {
     return 'views_ui_config_item_extra_form';
   }
 
@@ -59,7 +59,7 @@ class ConfigItemExtra extends ViewsFormBase {
       'options' => array(
         '#tree' => true,
         '#theme_wrappers' => array('container'),
-        '#attributes' => array('class' => array('scroll')),
+        '#attributes' => array('class' => array('scroll'), 'data-drupal-views-scroll' => TRUE),
       ),
     );
     $executable = $view->getExecutable();

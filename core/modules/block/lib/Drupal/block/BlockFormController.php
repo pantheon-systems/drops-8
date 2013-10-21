@@ -8,6 +8,7 @@
 namespace Drupal\block;
 
 use Drupal\Core\Cache\Cache;
+use Drupal\Core\Config\ConfigFactory;
 use Drupal\Core\Entity\EntityFormController;
 use Drupal\Core\Entity\EntityManager;
 use Drupal\Core\Entity\Query\QueryFactory;
@@ -49,6 +50,13 @@ class BlockFormController extends EntityFormController {
   protected $languageManager;
 
   /**
+   * The config factory.
+   *
+   * @var \Drupal\Core\Config\ConfigFactory
+   */
+  protected $configFactory;
+
+  /**
    * Constructs a BlockFormController object.
    *
    * @param \Drupal\Core\Entity\EntityManager $entity_manager
@@ -57,11 +65,14 @@ class BlockFormController extends EntityFormController {
    *   The entity query factory.
    * @param \Drupal\Core\Language\LanguageManager $language_manager
    *   The language manager.
+   * @param \Drupal\Core\Config\ConfigFactory $config_factory
+   *   The config factory.
    */
-  public function __construct(EntityManager $entity_manager, QueryFactory $entity_query_factory, LanguageManager $language_manager) {
+  public function __construct(EntityManager $entity_manager, QueryFactory $entity_query_factory, LanguageManager $language_manager, ConfigFactory $config_factory) {
     $this->storageController = $entity_manager->getStorageController('block');
     $this->entityQueryFactory = $entity_query_factory;
     $this->languageManager = $language_manager;
+    $this->configFactory = $config_factory;
   }
 
   /**
@@ -71,7 +82,8 @@ class BlockFormController extends EntityFormController {
     return new static(
       $container->get('entity.manager'),
       $container->get('entity.query'),
-      $container->get('language_manager')
+      $container->get('language_manager'),
+      $container->get('config.factory')
     );
   }
 
@@ -81,16 +93,11 @@ class BlockFormController extends EntityFormController {
   public function form(array $form, array &$form_state) {
     $entity = $this->entity;
     $form['#tree'] = TRUE;
-    $form['id'] = array(
-      '#type' => 'value',
-      '#value' => $entity->id(),
-    );
     $form['settings'] = $entity->getPlugin()->buildConfigurationForm(array(), $form_state);
 
     // If creating a new block, calculate a safe default machine name.
-    $form['machine_name'] = array(
+    $form['id'] = array(
       '#type' => 'machine_name',
-      '#title' => $this->t('Machine name'),
       '#maxlength' => 64,
       '#description' => $this->t('A unique name for this block instance. Must be alpha-numeric and underscore separated.'),
       '#default_value' => !$entity->isNew() ? $entity->id() : $this->getUniqueMachineName($entity),
@@ -128,7 +135,7 @@ class BlockFormController extends EntityFormController {
     //   this entire visibility settings section probably needs a separate user
     //   interface in the near future.
     $visibility = $entity->get('visibility');
-    $access = $this->getCurrentUser()->hasPermission('use PHP for settings');
+    $access = $this->currentUser()->hasPermission('use PHP for settings');
     if (!empty($visibility['path']['visibility']) && $visibility['path']['visibility'] == BLOCK_VISIBILITY_PHP && !$access) {
       $form['visibility']['path']['visibility'] = array(
         '#type' => 'value',
@@ -146,14 +153,6 @@ class BlockFormController extends EntityFormController {
       );
       $description = $this->t("Specify pages by using their paths. Enter one path per line. The '*' character is a wildcard. Example paths are %user for the current user's page and %user-wildcard for every user page. %front is the front page.", array('%user' => 'user', '%user-wildcard' => 'user/*', '%front' => '<front>'));
 
-      if ($this->moduleHandler->moduleExists('php') && $access) {
-        $options += array(BLOCK_VISIBILITY_PHP => $this->t('Pages on which this PHP code returns <code>TRUE</code> (experts only)'));
-        $title = $this->t('Pages or PHP code');
-        $description .= ' ' . $this->t('If the PHP option is chosen, enter PHP code between %php. Note that executing incorrect PHP code can break your Drupal site.', array('%php' => '<?php ?>'));
-      }
-      else {
-        $title = $this->t('Pages');
-      }
       $form['visibility']['path']['visibility'] = array(
         '#type' => 'radios',
         '#title' => $this->t('Show block on specific pages'),
@@ -162,7 +161,7 @@ class BlockFormController extends EntityFormController {
       );
       $form['visibility']['path']['pages'] = array(
         '#type' => 'textarea',
-        '#title' => '<span class="visually-hidden">' . $title . '</span>',
+        '#title' => '<span class="visually-hidden">' . $this->t('Pages') . '</span>',
         '#default_value' => !empty($visibility['path']['pages']) ? $visibility['path']['pages'] : '',
         '#description' => $description,
       );
@@ -228,6 +227,32 @@ class BlockFormController extends EntityFormController {
       '#description' => $this->t('Show this block only for the selected role(s). If you select no roles, the block will be visible to all users.'),
     );
 
+    // Theme settings.
+    if ($theme = $entity->get('theme')) {
+      $form['theme'] = array(
+        '#type' => 'value',
+        '#value' => $entity->get('theme'),
+      );
+    }
+    else {
+      $theme_options = array();
+      foreach (list_themes() as $theme_name => $theme_info) {
+        if (!empty($theme_info->status)) {
+          $theme_options[$theme_name] = $theme_info->info['name'];
+        }
+      }
+      $theme = $this->configFactory->get('system.theme')->get('default');
+      $form['theme'] = array(
+        '#type' => 'select',
+        '#options' => $theme_options,
+        '#title' => t('Theme'),
+        '#default_value' => $theme,
+        '#ajax' => array(
+          'callback' => array($this, 'themeSwitch'),
+          'wrapper' => 'edit-block-region-wrapper',
+        ),
+      );
+    }
     // Region settings.
     $form['region'] = array(
       '#type' => 'select',
@@ -235,9 +260,19 @@ class BlockFormController extends EntityFormController {
       '#description' => $this->t('Select the region where this block should be displayed.'),
       '#default_value' => $entity->get('region'),
       '#empty_value' => BLOCK_REGION_NONE,
-      '#options' => system_region_list($entity->get('theme'), REGIONS_VISIBLE),
+      '#options' => system_region_list($theme, REGIONS_VISIBLE),
+      '#prefix' => '<div id="edit-block-region-wrapper">',
+      '#suffix' => '</div>',
     );
     return $form;
+  }
+
+  /**
+   * Handles switching the available regions based on the selected theme.
+   */
+  public function themeSwitch($form, &$form_state) {
+    $form['region']['#options'] = system_region_list($form_state['values']['theme'], REGIONS_VISIBLE);
+    return $form['region'];
   }
 
   /**
@@ -255,14 +290,7 @@ class BlockFormController extends EntityFormController {
   public function validate(array $form, array &$form_state) {
     parent::validate($form, $form_state);
 
-    $entity = $this->entity;
-    if ($entity->isNew()) {
-      form_set_value($form['id'], $entity->get('theme') . '.' . $form_state['values']['machine_name'], $form_state);
-    }
-    if (!empty($form['machine_name']['#disabled'])) {
-      $config_id = explode('.', $form_state['values']['machine_name']);
-      $form_state['values']['machine_name'] = array_pop($config_id);
-    }
+    // Remove empty lines from the role visibility list.
     $form_state['values']['visibility']['role']['roles'] = array_filter($form_state['values']['visibility']['role']['roles']);
     // The Block Entity form puts all block plugin form elements in the
     // settings form element, so just pass that to the block for validation.
@@ -270,7 +298,7 @@ class BlockFormController extends EntityFormController {
       'values' => &$form_state['values']['settings']
     );
     // Call the plugin validate handler.
-    $entity->getPlugin()->validateConfigurationForm($form, $settings);
+    $this->entity->getPlugin()->validateConfigurationForm($form, $settings);
   }
 
   /**
@@ -292,8 +320,12 @@ class BlockFormController extends EntityFormController {
     $entity->save();
 
     drupal_set_message($this->t('The block configuration has been saved.'));
+    // Invalidate the content cache and redirect to the block listing,
+    // because we need to remove cached block contents for each cache backend.
     Cache::invalidateTags(array('content' => TRUE));
-    $form_state['redirect'] = 'admin/structure/block/list/' . $entity->get('theme');
+    $form_state['redirect'] = array('admin/structure/block/list/' . $form_state['values']['theme'], array(
+      'query' => array('block-placement' => drupal_html_class($this->entity->id())),
+    ));
   }
 
   /**

@@ -30,13 +30,15 @@ use Drupal\contact\CategoryInterface;
  *       "delete" = "Drupal\contact\Form\CategoryDeleteForm"
  *     }
  *   },
- *   uri_callback = "contact_category_uri",
  *   config_prefix = "contact.category",
  *   bundle_of = "contact_message",
  *   entity_keys = {
  *     "id" = "id",
  *     "label" = "label",
  *     "uuid" = "uuid"
+ *   },
+ *   links = {
+ *     "edit-form" = "admin/structure/contact/manage/{contact_category}"
  *   }
  * )
  */
@@ -88,6 +90,8 @@ class Category extends ConfigEntityBase implements CategoryInterface {
    * {@inheritdoc}
    */
   public function postSave(EntityStorageControllerInterface $storage_controller, $update = TRUE) {
+    parent::postSave($storage_controller, $update);
+
     if (!$update) {
       entity_invoke_bundle_hook('create', 'contact_message', $this->id());
     }
@@ -100,6 +104,8 @@ class Category extends ConfigEntityBase implements CategoryInterface {
    * {@inheritdoc}
    */
   public static function postDelete(EntityStorageControllerInterface $storage_controller, array $entities) {
+    parent::postDelete($storage_controller, $entities);
+
     foreach ($entities as $entity) {
       entity_invoke_bundle_hook('delete', 'contact_message', $entity->id());
     }

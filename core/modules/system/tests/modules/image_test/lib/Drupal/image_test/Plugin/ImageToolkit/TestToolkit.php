@@ -7,11 +7,9 @@
 
 namespace Drupal\image_test\Plugin\ImageToolkit;
 
-use Drupal\Component\Plugin\PluginBase;
-use Drupal\system\Annotation\ImageToolkit;
-use Drupal\Core\Annotation\Translation;
+use Drupal\Core\Plugin\PluginBase;
 use Drupal\Core\Image\ImageInterface;
-use Drupal\system\Plugin\ImageToolkitInterface;
+use Drupal\Core\ImageToolkit\ImageToolkitInterface;
 
 /**
  * Defines a Test toolkit for image manipulation within Drupal.
@@ -46,12 +44,10 @@ class TestToolkit extends PluginBase implements ImageToolkitInterface {
     $data = getimagesize($image->getSource());
 
     if (isset($data) && is_array($data)) {
-      $extensions = array('1' => 'gif', '2' => 'jpg', '3' => 'png');
-      $extension = isset($extensions[$data[2]]) ?  $extensions[$data[2]] : '';
       $details = array(
         'width'     => $data[0],
         'height'    => $data[1],
-        'extension' => $extension,
+        'type'      => $data[2],
         'mime_type' => $data['mime'],
       );
     }
@@ -133,4 +129,12 @@ class TestToolkit extends PluginBase implements ImageToolkitInterface {
   public static function isAvailable() {
     return TRUE;
   }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function supportedTypes() {
+    return array(IMAGETYPE_PNG, IMAGETYPE_JPEG, IMAGETYPE_GIF);
+  }
+
 }

@@ -7,7 +7,7 @@
 
 namespace Drupal\file\Entity;
 
-use Drupal\Core\Entity\EntityNG;
+use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Entity\Annotation\EntityType;
 use Drupal\Core\Entity\EntityStorageControllerInterface;
 use Drupal\Core\Annotation\Translation;
@@ -34,7 +34,7 @@ use Drupal\user\UserInterface;
  *   }
  * )
  */
-class File extends EntityNG implements FileInterface {
+class File extends ContentEntityBase implements FileInterface {
 
   /**
    * The plain data values of the contained properties.
@@ -178,6 +178,8 @@ class File extends EntityNG implements FileInterface {
    * {@inheritdoc}
    */
   public function preSave(EntityStorageControllerInterface $storage_controller) {
+    parent::preSave($storage_controller);
+
     $this->timestamp = REQUEST_TIME;
     $this->setSize(filesize($this->getFileUri()));
     if (!isset($this->langcode->value)) {
@@ -193,6 +195,8 @@ class File extends EntityNG implements FileInterface {
    * {@inheritdoc}
    */
   public static function preDelete(EntityStorageControllerInterface $storage_controller, array $entities) {
+    parent::preDelete($storage_controller, $entities);
+
     foreach ($entities as $entity) {
       // Delete all remaining references to this file.
       $file_usage = file_usage()->listUsage($entity);

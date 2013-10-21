@@ -57,7 +57,7 @@ class CommentNodeAccessTest extends CommentTestBase {
     $this->setCommentPreview(DRUPAL_DISABLED);
     $this->setCommentForm(TRUE);
     $this->setCommentSubject(TRUE);
-    $this->setCommentSettings('comment_default_mode', COMMENT_MODE_THREADED, 'Comment paging changed.');
+    $this->setCommentSettings('default_mode', COMMENT_MODE_THREADED, 'Comment paging changed.');
     $this->drupalLogout();
 
     // Post comment.
@@ -68,12 +68,12 @@ class CommentNodeAccessTest extends CommentTestBase {
     $this->assertTrue($this->commentExists($comment), 'Comment found.');
 
     // Check comment display.
-    $this->drupalGet('node/' . $this->node->id() . '/' . $comment->id());
+    $this->drupalGet('node/' . $this->node->id());
     $this->assertText($comment_subject, 'Individual comment subject found.');
     $this->assertText($comment_text, 'Individual comment body found.');
 
     // Reply to comment, creating second comment.
-    $this->drupalGet('comment/reply/' . $this->node->id() . '/' . $comment->id());
+    $this->drupalGet('comment/reply/node/' . $this->node->id() . '/comment/' . $comment->id());
     $reply_text = $this->randomName();
     $reply_subject = $this->randomName();
     $reply = $this->postComment(NULL, $reply_text, $reply_subject, TRUE);

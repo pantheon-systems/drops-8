@@ -7,6 +7,7 @@
 
 use Drupal\Core\Language\Language;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\ContentEntityInterface;
 
 /**
  * Implements hook_help().
@@ -58,10 +59,8 @@ function path_menu() {
   $items['admin/config/search/path'] = array(
     'title' => 'URL aliases',
     'description' => "Change your site's URL paths by aliasing them.",
-    'page callback' => 'path_admin_overview',
-    'access arguments' => array('administer url aliases'),
+    'route_name' => 'path.admin_overview',
     'weight' => -5,
-    'file' => 'path.admin.inc',
   );
   $items['admin/config/search/path/list'] = array(
     'title' => 'List',
@@ -69,21 +68,16 @@ function path_menu() {
   );
   $items['admin/config/search/path/edit/%path'] = array(
     'title' => 'Edit alias',
-    'page callback' => 'path_admin_edit',
-    'page arguments' => array(5),
-    'access arguments' => array('administer url aliases'),
-    'file' => 'path.admin.inc',
+    'route_name' => 'path.admin_edit',
   );
   $items['admin/config/search/path/delete/%path'] = array(
     'title' => 'Delete alias',
-    'route_name' => 'path_delete',
+    'route_name' => 'path.delete',
   );
   $items['admin/config/search/path/add'] = array(
     'title' => 'Add alias',
-    'page callback' => 'path_admin_edit',
-    'access arguments' => array('administer url aliases'),
+    'route_name' => 'path.admin_add',
     'type' => MENU_LOCAL_ACTION,
-    'file' => 'path.admin.inc',
   );
 
   return $items;
@@ -102,7 +96,7 @@ function path_form_node_form_alter(&$form, $form_state) {
     if ($node->language()->id != Language::LANGCODE_NOT_SPECIFIED) {
       $conditions['langcode'] = $node->language()->id;
     }
-    $path = Drupal::service('path.crud')->load($conditions);
+    $path = \Drupal::service('path.crud')->load($conditions);
     if ($path === FALSE) {
       $path = array();
     }
@@ -114,7 +108,7 @@ function path_form_node_form_alter(&$form, $form_state) {
     'langcode' => $node->language()->id,
   );
 
-  $account = Drupal::currentUser();
+  $account = \Drupal::currentUser();
   $form['path'] = array(
     '#type' => 'details',
     '#title' => t('URL path settings'),
@@ -184,11 +178,11 @@ function path_form_element_validate($element, &$form_state, $complete_form) {
  * Implements hook_form_FORM_ID_alter() for taxonomy_term_form().
  */
 function path_form_taxonomy_term_form_alter(&$form, $form_state) {
-  $account = Drupal::currentUser();
+  $account = \Drupal::currentUser();
   // Make sure this does not show up on the delete confirmation form.
   if (empty($form_state['confirm_delete'])) {
     $term = $form_state['controller']->getEntity();
-    $path = ($term->id() ? Drupal::service('path.crud')->load(array('source' => 'taxonomy/term/' . $term->id())) : array());
+    $path = ($term->id() ? \Drupal::service('path.crud')->load(array('source' => 'taxonomy/term/' . $term->id())) : array());
     if ($path === FALSE) {
       $path = array();
     }
@@ -223,7 +217,7 @@ function path_form_taxonomy_term_form_alter(&$form, $form_state) {
 function path_entity_field_info($entity_type) {
   if ($entity_type === 'taxonomy_term' || $entity_type === 'node') {
     $info['definitions']['path'] = array(
-      'type' => 'path_field',
+      'type' => 'field_item:path',
       'label' => t('The path alias'),
       'computed' => TRUE,
       'list' => TRUE,
@@ -238,14 +232,14 @@ function path_entity_field_info($entity_type) {
  * @todo: Move this to methods on the FieldItem class.
  */
 function path_entity_insert(EntityInterface $entity) {
-  if ($entity->getPropertyDefinition('path')) {
+  if ($entity instanceof ContentEntityInterface && $entity->hasField('path')) {
     $entity->path->alias = trim($entity->path->alias);
     // Only save a non-empty alias.
     if (!empty($entity->path->alias)) {
       // Ensure fields for programmatic executions.
       $uri = $entity->uri();
       $langcode = $entity->language()->id;
-      Drupal::service('path.crud')->save($uri['path'], $entity->path->alias, $langcode);
+      \Drupal::service('path.crud')->save($uri['path'], $entity->path->alias, $langcode);
     }
   }
 }
@@ -254,11 +248,11 @@ function path_entity_insert(EntityInterface $entity) {
  * Implements hook_entity_update().
  */
 function path_entity_update(EntityInterface $entity) {
-  if ($entity->getPropertyDefinition('path')) {
+  if ($entity instanceof ContentEntityInterface && $entity->hasField('path')) {
     $entity->path->alias = trim($entity->path->alias);
     // Delete old alias if user erased it.
     if ($entity->path->pid && !$entity->path->alias) {
-      Drupal::service('path.crud')->delete(array('pid' => $entity->path->pid));
+      \Drupal::service('path.crud')->delete(array('pid' => $entity->path->pid));
     }
     // Only save a non-empty alias.
     if ($entity->path->alias) {
@@ -266,7 +260,7 @@ function path_entity_update(EntityInterface $entity) {
       // Ensure fields for programmatic executions.
       $uri = $entity->uri();
       $langcode = $entity->language()->id;
-      Drupal::service('path.crud')->save($uri['path'], $entity->path->alias, $langcode, $pid);
+      \Drupal::service('path.crud')->save($uri['path'], $entity->path->alias, $langcode, $pid);
     }
   }
 }
@@ -275,10 +269,10 @@ function path_entity_update(EntityInterface $entity) {
  * Implements hook_entity_predelete().
  */
 function path_entity_predelete(EntityInterface $entity) {
-  if ($entity->getPropertyDefinition('path')) {
+  if ($entity instanceof ContentEntityInterface && $entity->hasField('path')) {
     // Delete all aliases associated with this term.
     $uri = $entity->uri();
-    Drupal::service('path.crud')->delete(array('source' => $uri['path']));
+    \Drupal::service('path.crud')->delete(array('source' => $uri['path']));
   }
 }
 
@@ -288,7 +282,7 @@ function path_entity_predelete(EntityInterface $entity) {
 function path_library_info() {
   $libraries['drupal.path'] = array(
     'title' => 'Path',
-    'version' => VERSION,
+    'version' => \Drupal::VERSION,
     'js' => array(
       drupal_get_path('module', 'path') . '/path.js' => array(),
     ),

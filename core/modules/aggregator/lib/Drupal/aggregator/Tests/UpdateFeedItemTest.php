@@ -44,7 +44,7 @@ class UpdateFeedItemTest extends AggregatorTestBase {
     $this->drupalGet($edit['url']);
     $this->assertResponse(array(200), format_string('URL !url is accessible', array('!url' => $edit['url'])));
 
-    $this->drupalPost('admin/config/services/aggregator/add/feed', $edit, t('Save'));
+    $this->drupalPostForm('admin/config/services/aggregator/add/feed', $edit, t('Save'));
     $this->assertRaw(t('The feed %name has been added.', array('%name' => $edit['title'])), format_string('The feed !name has been added.', array('!name' => $edit['title'])));
 
     $fid = db_query("SELECT fid FROM {aggregator_feed} WHERE url = :url", array(':url' => $edit['url']))->fetchField();
@@ -72,7 +72,7 @@ class UpdateFeedItemTest extends AggregatorTestBase {
     // Make sure updating items works even after disabling a module
     // that provides the selected plugins.
     $this->enableTestPlugins();
-    module_disable(array('aggregator_test'));
+    module_uninstall(array('aggregator_test'));
     $this->updateFeedItems($feed);
     $this->assertResponse(200);
   }

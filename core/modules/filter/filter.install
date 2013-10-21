@@ -5,8 +5,6 @@
  * Install, update, and uninstall functions for the Filter module.
  */
 
-use Drupal\Component\Uuid\Uuid;
-
 /**
  * @addtogroup updates-7.x-to-8.x
  * @{
@@ -29,7 +27,7 @@ function filter_update_8000() {
  * @ingroup config_upgrade
  */
 function filter_update_8001() {
-  $uuid = new Uuid();
+  $uuid = \Drupal::service('uuid');
   $result = db_query('SELECT format, name, cache, status, weight FROM {filter_format}', array(), array('fetch' => PDO::FETCH_ASSOC));
   foreach ($result as $format) {
     $id = $format['format'];
@@ -41,15 +39,16 @@ function filter_update_8001() {
     $filters = db_query('SELECT name, module, status, weight, settings FROM {filter} WHERE format = :format ORDER BY weight, module, name', array(
       ':format' => $id,
     ), array('fetch' => PDO::FETCH_ASSOC))->fetchAllAssoc('name');
-    foreach ($filters as $name => &$filter) {
+    foreach ($filters as &$filter) {
       // The filter name is used as key only.
       unset($filter['name']);
       $filter['settings'] = unserialize($filter['settings']);
     }
     $format['filters'] = $filters;
+    $format['status'] = (bool) $format['status'];
 
     // Save the config object.
-    $config = Drupal::config('filter.format.' . $id);
+    $config = \Drupal::config('filter.format.' . $id);
     $config->setData($format);
     $config->save();
   }

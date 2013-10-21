@@ -534,7 +534,7 @@ class RenderTest extends WebTestBase {
       . '<hr />' . $this->drupalGetContent()
     );
 
-    // @see Drupal\simpletest\WebTestBase::xpath()
+    // @see \Drupal\simpletest\WebTestBase::xpath()
     $xpath = $this->buildXPathQuery($xpath, $xpath_args);
     $element += array('#value' => NULL);
     $this->assertFieldByXPath($xpath, $element['#value'], format_string('#type @type was properly rendered.', array(
@@ -553,8 +553,16 @@ class RenderTest extends WebTestBase {
     $test_element = array(
       '#cache' => array(
         'cid' => 'render_cache_test',
+        'tags' => array('render_cache_tag' => TRUE),
       ),
       '#markup' => '',
+      'child' => array(
+        '#cache' => array(
+          'cid' => 'render_cache_test_child',
+          'tags' => array('render_cache_tag_child' => array(1, 2))
+        ),
+        '#markup' => '',
+      ),
     );
 
     // Render the element and confirm that it goes through the rendering
@@ -568,6 +576,15 @@ class RenderTest extends WebTestBase {
     $element = $test_element;
     drupal_render($element);
     $this->assertFalse(isset($element['#printed']), 'Cache hit');
+
+    // Test that cache tags are correctly collected from the render element,
+    // including the ones from its subchild.
+    $expected_tags = array(
+      'render_cache_tag' => TRUE,
+      'render_cache_tag_child' => array(1 => 1, 2 => 2),
+    );
+    $actual_tags = drupal_render_collect_cache_tags($test_element);
+    $this->assertEqual($expected_tags, $actual_tags, 'Cache tags were collected from the element and its subchild.');
 
     // Restore the previous request method.
     $_SERVER['REQUEST_METHOD'] = $request_method;

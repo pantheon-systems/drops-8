@@ -2,6 +2,8 @@
 
 use Drupal\Component\Utility\Crypt;
 use Drupal\Component\Utility\Json;
+use Drupal\Component\Utility\Number;
+use Drupal\Component\Utility\Settings;
 use Drupal\Component\Utility\SortArray;
 use Drupal\Component\Utility\String;
 use Drupal\Component\Utility\Tags;
@@ -259,9 +261,8 @@ function drupal_get_region_content($region = NULL, $delimiter = ' ') {
  *
  * When this function is called during Drupal's initial installation process,
  * the name of the profile that's about to be installed is stored in the global
- * installation state. At all other times, the standard Drupal systems variable
- * table contains the name of the current profile, and we can call
- * variable_get() to determine what one is active.
+ * installation state. At all other times, the "install_profile" setting will be
+ * available in settings.php.
  *
  * @return $profile
  *   The name of the installation profile.
@@ -269,11 +270,17 @@ function drupal_get_region_content($region = NULL, $delimiter = ' ') {
 function drupal_get_profile() {
   global $install_state;
 
-  if (isset($install_state['parameters']['profile'])) {
-    $profile = $install_state['parameters']['profile'];
+  if (drupal_installation_attempted()) {
+    // If the profile has been selected return it.
+    if (isset($install_state['parameters']['profile'])) {
+      $profile = $install_state['parameters']['profile'];
+    }
+    else {
+      $profile = '';
+    }
   }
   else {
-    $profile = variable_get('install_profile', 'standard');
+    $profile = settings()->get('install_profile') ?: 'standard';
   }
 
   return $profile;
@@ -290,7 +297,7 @@ function drupal_get_profile() {
  * @deprecated This will be removed in 8.0. Instead, register a new breadcrumb
  *   builder service.
  *
- * @see Drupal\Core\Breadcrumb\BreadcrumbBuilderInterface
+ * @see \Drupal\Core\Breadcrumb\BreadcrumbBuilderInterface
  */
 function drupal_set_breadcrumb($breadcrumb = NULL) {
   $stored_breadcrumb = &drupal_static(__FUNCTION__);
@@ -354,7 +361,7 @@ function _drupal_default_html_head() {
   );
   // Show Drupal and the major version number in the META GENERATOR tag.
   // Get the major version.
-  list($version, ) = explode('.', VERSION);
+  list($version, ) = explode('.', \Drupal::VERSION);
   $elements['system_meta_generator'] = array(
     '#type' => 'html_tag',
     '#tag' => 'meta',
@@ -440,7 +447,7 @@ function drupal_get_feeds($delimiter = "\n") {
  */
 function drupal_get_query_parameters(array $query = NULL, array $exclude = array(), $parent = '') {
   if (!isset($query)) {
-    $query = Drupal::request()->query->all();
+    $query = \Drupal::request()->query->all();
   }
   return Url::filterQueryParameters($query, $exclude, $parent);
 }
@@ -480,7 +487,7 @@ function drupal_get_destination() {
     return $destination;
   }
 
-  $query = Drupal::request()->query;
+  $query = \Drupal::request()->query;
   if ($query->has('destination')) {
     $destination = array('destination' => $query->get('destination'));
   }
@@ -628,47 +635,24 @@ function valid_url($url, $absolute = FALSE) {
 /**
  * Verifies that a number is a multiple of a given step.
  *
- * The implementation assumes it is dealing with IEEE 754 double precision
- * floating point numbers that are used by PHP on most systems.
+ * @see \Drupal\Component\Utility\Number::validStep()
  *
- * This is based on the number/range verification methods of webkit.
- *
- * @param $value
+ * @param numeric $value
  *   The value that needs to be checked.
- * @param $step
+ * @param numeric $step
  *   The step scale factor. Must be positive.
- * @param $offset
+ * @param numeric $offset
  *   (optional) An offset, to which the difference must be a multiple of the
  *   given step.
  *
  * @return bool
  *   TRUE if no step mismatch has occured, or FALSE otherwise.
  *
- * @see http://opensource.apple.com/source/WebCore/WebCore-1298/html/NumberInputType.cpp
+ * @deprecated as of Drupal 8.0. Use
+ *   \Drupal\Component\Utility\Number::validStep() directly instead
  */
 function valid_number_step($value, $step, $offset = 0.0) {
-  $double_value = (double) abs($value - $offset);
-
-  // The fractional part of a double has 53 bits. The greatest number that could
-  // be represented with that is 2^53. If the given value is even bigger than
-  // $step * 2^53, then dividing by $step will result in a very small remainder.
-  // Since that remainder can't even be represented with a single precision
-  // float the following computation of the remainder makes no sense and we can
-  // safely ignore it instead.
-  if ($double_value / pow(2.0, 53) > $step) {
-    return TRUE;
-  }
-
-  // Now compute that remainder of a division by $step.
-  $remainder = (double) abs($double_value - $step * round($double_value / $step));
-
-  // $remainder is a double precision floating point number. Remainders that
-  // can't be represented with single precision floats are acceptable. The
-  // fractional part of a float has 24 bits. That means remainders smaller than
-  // $step * 2^-24 are acceptable.
-  $computed_acceptable_error = (double)($step / pow(2.0, 24));
-
-  return $computed_acceptable_error >= $remainder || $remainder >= ($step - $computed_acceptable_error);
+  return Number::validStep($value, $step, $offset);
 }
 
 /**
@@ -693,7 +677,7 @@ function valid_number_step($value, $step, $offset = 0.0) {
  * string, so this function can be called independently when the output needs to
  * be a plain-text string for passing to t(), l(),
  * Drupal\Core\Template\Attribute, or another function that will call
- * check_plain() separately.
+ * \Drupal\Component\Utility\String::checkPlain() separately.
  *
  * @param $uri
  *   A plain-text URI that might contain dangerous protocols.
@@ -701,8 +685,8 @@ function valid_number_step($value, $step, $offset = 0.0) {
  * @return
  *   A plain-text URI stripped of dangerous protocols. As with all plain-text
  *   strings, this return value must not be output to an HTML page without
- *   check_plain() being called on it. However, it can be passed to functions
- *   expecting plain-text strings.
+ *   \Drupal\Component\Utility\String::checkPlain() being called on it. However,
+ *   it can be passed to functions expecting plain-text strings.
  *
  * @see \Drupal\Component\Utility\Url::stripDangerousProtocols()
  */
@@ -722,8 +706,8 @@ function drupal_strip_dangerous_protocols($uri) {
  *   value within a $attributes array passed to Drupal\Core\Template\Attribute,
  *   because Drupal\Core\Template\Attribute expects those values to be
  *   plain-text strings. To pass a filtered URI to
- *   Drupal\Core\Template\Attribute, call drupal_strip_dangerous_protocols()
- *   instead.
+ *   Drupal\Core\Template\Attribute, call
+ *   \Drupal\Component\Utility\Url::stripDangerousProtocols() instead.
  *
  * @see \Drupal\Component\Utility\Url::stripDangerousProtocols()
  * @see \Drupal\Component\Utility\String::checkPlain()
@@ -737,7 +721,8 @@ function check_url($uri) {
  *
  * Use only for fields where it is impractical to use the
  * whole filter system, but where some (mainly inline) mark-up
- * is desired (so check_plain() is not acceptable).
+ * is desired (so \Drupal\Component\Utility\String::checkPlain() is not
+ * acceptable).
  *
  * Allows all tags that can be used inside an HTML body, save
  * for scripts and styles.
@@ -819,14 +804,14 @@ function format_rss_channel($title, $link, $description, $items, $langcode = NUL
   $langcode = $langcode ? $langcode : language(Language::TYPE_CONTENT)->id;
 
   $output = "<channel>\n";
-  $output .= ' <title>' . check_plain($title) . "</title>\n";
+  $output .= ' <title>' . String::checkPlain($title) . "</title>\n";
   $output .= ' <link>' . check_url($link) . "</link>\n";
 
   // The RSS 2.0 "spec" doesn't indicate HTML can be used in the description.
   // We strip all HTML tags, but need to prevent double encoding from properly
   // escaped source data (such as &amp becoming &amp;amp;).
-  $output .= ' <description>' . check_plain(decode_entities(strip_tags($description))) . "</description>\n";
-  $output .= ' <language>' . check_plain($langcode) . "</language>\n";
+  $output .= ' <description>' . String::checkPlain(decode_entities(strip_tags($description))) . "</description>\n";
+  $output .= ' <language>' . String::checkPlain($langcode) . "</language>\n";
   $output .= format_xml_elements($args);
   $output .= $items;
   $output .= "</channel>\n";
@@ -841,9 +826,9 @@ function format_rss_channel($title, $link, $description, $items, $langcode = NUL
  */
 function format_rss_item($title, $link, $description, $args = array()) {
   $output = "<item>\n";
-  $output .= ' <title>' . check_plain($title) . "</title>\n";
+  $output .= ' <title>' . String::checkPlain($title) . "</title>\n";
   $output .= ' <link>' . check_url($link) . "</link>\n";
-  $output .= ' <description>' . check_plain($description) . "</description>\n";
+  $output .= ' <description>' . String::checkPlain($description) . "</description>\n";
   $output .= format_xml_elements($args);
   $output .= "</item>\n";
 
@@ -875,7 +860,7 @@ function format_xml_elements($array) {
         }
 
         if (isset($value['value']) && $value['value'] != '') {
-          $output .= '>' . (is_array($value['value']) ? format_xml_elements($value['value']) : check_plain($value['value'])) . '</' . $value['key'] . ">\n";
+          $output .= '>' . (is_array($value['value']) ? format_xml_elements($value['value']) : String::checkPlain($value['value'])) . '</' . $value['key'] . ">\n";
         }
         else {
           $output .= " />\n";
@@ -883,7 +868,7 @@ function format_xml_elements($array) {
       }
     }
     else {
-      $output .= ' <' . $key . '>' . (is_array($value) ? format_xml_elements($value) : check_plain($value)) . "</$key>\n";
+      $output .= ' <' . $key . '>' . (is_array($value) ? format_xml_elements($value) : String::checkPlain($value)) . "</$key>\n";
     }
   }
   return $output;
@@ -1103,7 +1088,7 @@ function format_interval($interval, $granularity = 2, $langcode = NULL) {
  * @see \Drupal\Component\Datetime\Date::format()
  */
 function format_date($timestamp, $type = 'medium', $format = '', $timezone = NULL, $langcode = NULL) {
-  return Drupal::service('date')->format($timestamp, $type, $format, $timezone, $langcode);
+  return \Drupal::service('date')->format($timestamp, $type, $format, $timezone, $langcode);
 }
 
 /**
@@ -1194,7 +1179,7 @@ function datetime_default_format_type() {
  * @see \Drupal\Core\Routing\UrlGeneratorInterface::generateFromPath().
  */
 function url($path = NULL, array $options = array()) {
-  $generator = Drupal::urlGenerator();
+  $generator = \Drupal::urlGenerator();
   try {
     $url = $generator->generateFromPath($path, $options);
   }
@@ -1278,8 +1263,9 @@ function drupal_http_header_attributes(array $attributes = array()) {
  *   The internal path or external URL being linked to, such as "node/34" or
  *   "http://example.com/foo". After the url() function is called to construct
  *   the URL from $path and $options, the resulting URL is passed through
- *   check_plain() before it is inserted into the HTML anchor tag, to ensure
- *   well-formed HTML. See url() for more information and notes.
+ *   \Drupal\Component\Utility\String::checkPlain() before it is inserted into
+ *   the HTML anchor tag, to ensure well-formed HTML. See url() for more
+ *   information and notes.
  * @param array $options
  *   An associative array of additional options. Defaults to an empty array. It
  *   may contain the following elements.
@@ -1338,7 +1324,7 @@ function l($text, $path, array $options = array()) {
       'path' => current_path(),
       'front_page' => drupal_is_front_page(),
       'language' => language(Language::TYPE_URL)->id,
-      'query' => Drupal::service('request')->query->all(),
+      'query' => \Drupal::service('request')->query->all(),
     );
   }
 
@@ -1364,7 +1350,7 @@ function l($text, $path, array $options = array()) {
   }
 
   // Allow other modules to modify the structure of the link.
-  Drupal::moduleHandler()->alter('link', $variables);
+  \Drupal::moduleHandler()->alter('link', $variables);
 
   // Move attributes out of options. url() doesn't need them.
   $attributes = new Attribute($variables['options']['attributes']);
@@ -1372,10 +1358,10 @@ function l($text, $path, array $options = array()) {
 
   // The result of url() is a plain-text URL. Because we are using it here
   // in an HTML argument context, we need to encode it properly.
-  $url = check_plain(url($variables['path'], $variables['options']));
+  $url = String::checkPlain(url($variables['path'], $variables['options']));
 
   // Sanitize the link text if necessary.
-  $text = $variables['options']['html'] ? $variables['text'] : check_plain($variables['text']);
+  $text = $variables['options']['html'] ? $variables['text'] : String::checkPlain($variables['text']);
 
   return '<a href="' . $url . '"' . $attributes . '>' . $text . '</a>';
 }
@@ -1474,7 +1460,7 @@ function drupal_add_html_head_link($attributes, $header = FALSE) {
 
   if ($header) {
     // Also add a HTTP header "Link:".
-    $href = '<' . check_plain($attributes['href']) . '>;';
+    $href = '<' . String::checkPlain($attributes['href']) . '>;';
     unset($attributes['href']);
     $element['#attached']['drupal_add_http_header'][] = array('Link',  $href . drupal_http_header_attributes($attributes), TRUE);
   }
@@ -1519,14 +1505,7 @@ function drupal_add_html_head_link($attributes, $header = FALSE) {
  *     example, system-menus.css rather than simply menus.css. Themes can
  *     override module-supplied CSS files based on their filenames, and this
  *     prefixing helps prevent confusing name collisions for theme developers.
- *     See drupal_get_css() where the overrides are performed. Also, if the
- *     direction of the current language is right-to-left (Hebrew, Arabic,
- *     etc.), the function will also look for an RTL CSS file and append it to
- *     the list. The name of this file should have an '-rtl.css' suffix. For
- *     example, a CSS file called 'mymodule-name.css' will have a
- *     'mymodule-name-rtl.css' file added to the list, if exists in the same
- *     directory. This CSS file should contain overrides for properties which
- *     should be reversed or otherwise different in a right-to-left display.
+ *     See drupal_get_css() where the overrides are performed.
  *   - 'inline': A string of CSS that should be placed in the given scope. Note
  *     that it is better practice to use 'file' stylesheets, rather than
  *     'inline', as the CSS would then be aggregated and cached.
@@ -1691,10 +1670,6 @@ function drupal_add_css($data = NULL, $options = NULL) {
  * same filename. For example, themes/bartik/system-menus.css would replace
  * modules/system/system-menus.css. This allows themes to override complete
  * CSS files, rather than specific selectors, when necessary.
- *
- * If the original CSS file is being overridden by a theme, the theme is
- * responsible for supplying an accompanying RTL CSS file to replace the
- * module's.
  *
  * @param $css
  *   (optional) An array of CSS files. If no array is provided, the default
@@ -1865,7 +1840,7 @@ function drupal_pre_render_styles($elements) {
   $css_assets = $elements['#items'];
 
   // Aggregate the CSS if necessary, but only during normal site operation.
-  if (!defined('MAINTENANCE_MODE') && Drupal::config('system.performance')->get('css.preprocess')) {
+  if (!defined('MAINTENANCE_MODE') && \Drupal::config('system.performance')->get('css.preprocess')) {
     $css_assets = \Drupal::service('asset.css.collection_optimizer')->optimize($css_assets);
   }
   return \Drupal::service('asset.css.collection_renderer')->render($css_assets);
@@ -1875,7 +1850,7 @@ function drupal_pre_render_styles($elements) {
  * Deletes old cached CSS files.
  */
 function drupal_clear_css_cache() {
-  Drupal::state()->delete('drupal_css_cache_files');
+  \Drupal::state()->delete('drupal_css_cache_files');
   file_scan_directory('public://css', '/.*/', array('callback' => 'drupal_delete_file_if_stale'));
 }
 
@@ -1888,7 +1863,7 @@ function drupal_clear_css_cache() {
  */
 function drupal_delete_file_if_stale($uri) {
   // Default stale file threshold is 30 days.
-  if (REQUEST_TIME - filemtime($uri) > Drupal::config('system.performance')->get('stale_file_threshold')) {
+  if (REQUEST_TIME - filemtime($uri) > \Drupal::config('system.performance')->get('stale_file_threshold')) {
     file_unmanaged_delete($uri);
   }
 }
@@ -2067,7 +2042,7 @@ function drupal_html_id($id) {
  *   on.
  * - Add settings ('setting'): Adds settings to Drupal's global storage of
  *   JavaScript settings. Per-page settings are required by some modules to
- *   function properly. All settings will be accessible at Drupal.settings.
+ *   function properly. All settings will be accessible at drupalSettings.
  *
  * Examples:
  * @code
@@ -2112,9 +2087,9 @@ function drupal_html_id($id) {
  *     hosted on the local server. These files will not be aggregated if
  *     JavaScript aggregation is enabled.
  *   - 'setting': An associative array with configuration options. The array is
- *     merged directly into Drupal.settings. All modules should wrap their
+ *     merged directly into drupalSettings. All modules should wrap their
  *     actual configuration settings in another variable to prevent conflicts in
- *     the Drupal.settings namespace. Items added with a string key will replace
+ *     the drupalSettings namespace. Items added with a string key will replace
  *     existing settings with that key; items with numeric array keys will be
  *     added to the existing settings array.
  * @param $options
@@ -2375,7 +2350,7 @@ function drupal_get_js($scope = 'header', $javascript = NULL, $skip_alter = FALS
       // considered "used" and prevented from being added in a later AJAX
       // request.
       // Skip if no files were added to the page otherwise jQuery.extend() will
-      // overwrite the Drupal.settings.ajaxPageState.css object with an empty
+      // overwrite the drupalSettings.ajaxPageState.css object with an empty
       // array.
       $css = drupal_add_css();
       if (!empty($css)) {
@@ -2492,7 +2467,7 @@ function drupal_pre_render_scripts($elements) {
 
   // Aggregate the JavaScript if necessary, but only during normal site
   // operation.
-  if (!defined('MAINTENANCE_MODE') && Drupal::config('system.performance')->get('js.preprocess')) {
+  if (!defined('MAINTENANCE_MODE') && \Drupal::config('system.performance')->get('js.preprocess')) {
     $js_assets = \Drupal::service('asset.js.collection_optimizer')->optimize($js_assets);
   }
   return \Drupal::service('asset.js.collection_renderer')->render($js_assets);
@@ -2726,10 +2701,7 @@ function drupal_process_attached($elements, $dependency_check = FALSE) {
  */
 function drupal_process_states(&$elements) {
   $elements['#attached']['library'][] = array('system', 'drupal.states');
-  $elements['#attached']['js'][] = array(
-    'type' => 'setting',
-    'data' => array('states' => array('#' . $elements['#id'] => $elements['#states'])),
-  );
+  $elements['#attributes']['data-drupal-states'] = JSON::encode($elements['#states']);
 }
 
 /**
@@ -2934,8 +2906,8 @@ function drupal_get_library($module, $name = NULL) {
  * relationships.
  *
  * Note that this function should be called from the theme layer, such as in a
- * .tpl.php file, theme_ function, or in a template_preprocess function, not in
- * a form declaration. Though the same JavaScript could be added to the page
+ * .html.twig file, theme_ function, or in a template_preprocess function, not
+ * in a form declaration. Though the same JavaScript could be added to the page
  * using drupal_add_js() directly, this function helps keep template files
  * clean and readable. It also prevents tabledrag.js from being added twice
  * accidentally.
@@ -2969,7 +2941,6 @@ function drupal_get_library($module, $name = NULL) {
  *   column should not be hidden.
  * @param $limit
  *   (optional) Limit the maximum amount of parenting in this table.
- * @see block-admin-display-form.tpl.php
  * @see theme_menu_overview_form()
  */
 function drupal_add_tabledrag($table_id, $action, $relationship, $group, $subgroup = NULL, $source = NULL, $hidden = TRUE, $limit = 0) {
@@ -3003,8 +2974,8 @@ function drupal_add_tabledrag($table_id, $action, $relationship, $group, $subgro
  * Deletes old cached JavaScript files and variables.
  */
 function drupal_clear_js_cache() {
-  Drupal::state()->delete('system.javascript_parsed');
-  Drupal::state()->delete('system.js_cache_files');
+  \Drupal::state()->delete('system.javascript_parsed');
+  \Drupal::state()->delete('system.js_cache_files');
   file_scan_directory('public://js', '/.*/', array('callback' => 'drupal_delete_file_if_stale'));
 }
 
@@ -3110,7 +3081,7 @@ function _drupal_bootstrap_code() {
   require_once __DIR__ . '/entity.inc';
 
   // Load all enabled modules
-  Drupal::moduleHandler()->loadAll();
+  \Drupal::moduleHandler()->loadAll();
 
   // Make sure all stream wrappers are registered.
   file_get_stream_wrappers();
@@ -3124,7 +3095,7 @@ function _drupal_bootstrap_code() {
   }
 
   // Set the allowed protocols once we have the config available.
-  $allowed_protocols = Drupal::config('system.filter')->get('protocols');
+  $allowed_protocols = \Drupal::config('system.filter')->get('protocols');
   if (!isset($allowed_protocols)) {
     // filter_xss_admin() is called by the installer and update.php, in which
     // case the configuration may not exist (yet). Provide a minimal default set
@@ -3139,8 +3110,8 @@ function _drupal_bootstrap_code() {
  *
  * DrupalKernel skips this and replicates it via event listeners.
  *
- * @see Drupal\Core\EventSubscriber\PathSubscriber;
- * @see Drupal\Core\EventSubscriber\LegacyRequestSubscriber;
+ * @see \Drupal\Core\EventSubscriber\PathSubscriber;
+ * @see \Drupal\Core\EventSubscriber\LegacyRequestSubscriber;
  */
 function _drupal_bootstrap_full($skip = FALSE) {
   static $called = FALSE;
@@ -3184,7 +3155,7 @@ function drupal_page_set_cache(Response $response, Request $request) {
   if (drupal_page_is_cacheable()) {
 
     // Check if the current page may be compressed.
-    $page_compressed = Drupal::config('system.performance')->get('response.gzip') && extension_loaded('zlib');
+    $page_compressed = \Drupal::config('system.performance')->get('response.gzip') && extension_loaded('zlib');
 
     $cache = (object) array(
       'cid' => drupal_page_cache_get_cid($request),
@@ -3252,7 +3223,7 @@ function drupal_cron_run() {
 
   $return = FALSE;
   // Grab the defined cron queues.
-  $queues = Drupal::moduleHandler()->invokeAll('queue_info');
+  $queues = \Drupal::moduleHandler()->invokeAll('queue_info');
   drupal_alter('queue_info', $queues);
 
   // Try to acquire cron lock.
@@ -3265,12 +3236,12 @@ function drupal_cron_run() {
     // existing queue.
     foreach ($queues as $queue_name => $info) {
       if (isset($info['cron'])) {
-        Drupal::queue($queue_name)->createQueue();
+        \Drupal::queue($queue_name)->createQueue();
       }
     }
 
     // Iterate through the modules calling their cron handlers (if any):
-    foreach (Drupal::moduleHandler()->getImplementations('cron') as $module) {
+    foreach (\Drupal::moduleHandler()->getImplementations('cron') as $module) {
       // Do not let an exception thrown by one module disturb another.
       try {
         module_invoke($module, 'cron');
@@ -3281,7 +3252,7 @@ function drupal_cron_run() {
     }
 
     // Record cron time.
-    Drupal::state()->set('system.cron_last', REQUEST_TIME);
+    \Drupal::state()->set('system.cron_last', REQUEST_TIME);
     watchdog('cron', 'Cron run completed.', array(), WATCHDOG_NOTICE);
 
     // Release cron lock.
@@ -3295,7 +3266,7 @@ function drupal_cron_run() {
     if (isset($info['cron'])) {
       $callback = $info['worker callback'];
       $end = time() + (isset($info['cron']['time']) ? $info['cron']['time'] : 15);
-      $queue = Drupal::queue($queue_name);
+      $queue = \Drupal::queue($queue_name);
       while (time() < $end && ($item = $queue->claimItem())) {
         call_user_func_array($callback, array($item->data));
         $queue->deleteItem($item);
@@ -3525,7 +3496,7 @@ function drupal_pre_render_link($element) {
 
   if (isset($element['#route_name'])) {
     $element['#route_parameters'] = empty($element['#route_parameters']) ? array() : $element['#route_parameters'];
-    $element['#markup'] = Drupal::linkGenerator()->generate($element['#title'], $element['#route_name'], $element['#route_parameters'], $element['#options']);
+    $element['#markup'] = \Drupal::linkGenerator()->generate($element['#title'], $element['#route_name'], $element['#route_parameters'], $element['#options']);
   }
   else {
     $element['#markup'] = l($element['#title'], $element['#href'], $element['#options']);
@@ -3675,7 +3646,7 @@ function drupal_render_page($page) {
   }
 
   // Modules can add elements to $page as needed in hook_page_build().
-  foreach (Drupal::moduleHandler()->getImplementations('page_build') as $module) {
+  foreach (\Drupal::moduleHandler()->getImplementations('page_build') as $module) {
     $function = $module . '_page_build';
     $function($page);
   }
@@ -3859,6 +3830,11 @@ function drupal_render(&$elements) {
     return '';
   }
 
+  // Add any JavaScript state information associated with the element.
+  if (!empty($elements['#states'])) {
+    drupal_process_states($elements);
+  }
+
   // Get the children of the element, sorted by weight.
   $children = element_children($elements, TRUE);
 
@@ -3904,11 +3880,6 @@ function drupal_render(&$elements) {
     $elements['#children'] = $elements['#markup'] . $elements['#children'];
   }
 
-  // Add any JavaScript state information associated with the element.
-  if (!empty($elements['#states'])) {
-    drupal_process_states($elements);
-  }
-
   // Add additional libraries, CSS, JavaScript an other custom
   // attached data associated with this element.
   if (!empty($elements['#attached'])) {
@@ -3919,7 +3890,7 @@ function drupal_render(&$elements) {
   // children.
   // #states and #attached have to be processed before #theme_wrappers, because
   // the #type 'page' render array from drupal_render_page() would render the
-  // $page and wrap it into the html.tpl.php template without the attached
+  // $page and wrap it into the html.html.twig template without the attached
   // assets otherwise.
   // If the internal #render_children property is set, do not call the
   // #theme_wrappers function(s) to prevent infinite recursion.
@@ -4093,7 +4064,7 @@ function show(&$element) {
  * @see drupal_render_cache_set()
  */
 function drupal_render_cache_get($elements) {
-  if (!in_array($_SERVER['REQUEST_METHOD'], array('GET', 'HEAD')) || !$cid = drupal_render_cid_create($elements)) {
+  if (!\Drupal::request()->isMethodSafe() || !$cid = drupal_render_cid_create($elements)) {
     return FALSE;
   }
   $bin = isset($elements['#cache']['bin']) ? $elements['#cache']['bin'] : 'cache';
@@ -4125,7 +4096,7 @@ function drupal_render_cache_get($elements) {
  */
 function drupal_render_cache_set(&$markup, $elements) {
   // Create the cache ID for the element.
-  if (!in_array($_SERVER['REQUEST_METHOD'], array('GET', 'HEAD')) || !$cid = drupal_render_cid_create($elements)) {
+  if (!\Drupal::request()->isMethodSafe() || !$cid = drupal_render_cid_create($elements)) {
     return FALSE;
   }
 
@@ -4143,7 +4114,7 @@ function drupal_render_cache_set(&$markup, $elements) {
   }
   $bin = isset($elements['#cache']['bin']) ? $elements['#cache']['bin'] : 'cache';
   $expire = isset($elements['#cache']['expire']) ? $elements['#cache']['expire'] : CacheBackendInterface::CACHE_PERMANENT;
-  $tags = isset($elements['#cache']['tags']) ? $elements['#cache']['tags'] : array();
+  $tags = drupal_render_collect_cache_tags($elements);
   cache($bin)->set($cid, $data, $expire, $tags);
 }
 
@@ -4188,6 +4159,50 @@ function drupal_render_collect_attached($elements, $return = FALSE) {
     $attached = array();
     return $return;
   }
+}
+
+/**
+ * Collects cache tags for an element and its children into a single array.
+ *
+ * The cache tags array is returned in a format that is valid for
+ * \Drupal\Core\Cache\CacheBackendInterface::set().
+ *
+ * When caching elements, it is necessary to collect all cache tags into a
+ * single array, from both the element itself and all child elements. This
+ * allows items to be invalidated based on all tags attached to the content
+ * they're constituted from.
+ *
+ * @param array $element
+ *   The element to collect cache tags from.
+ * @param array $tags
+ *   (optional) An array of already collected cache tags (i.e. from a parent
+ *   element). Defaults to an empty array.
+ *
+ * @return array
+ *   The cache tags array for this element and its descendants.
+ */
+function drupal_render_collect_cache_tags($element, $tags = array()) {
+  if (isset($element['#cache']['tags'])) {
+    foreach ($element['#cache']['tags'] as $namespace => $values) {
+      if (is_array($values)) {
+        foreach ($values as $value) {
+          $tags[$namespace][$value] = $value;
+        }
+      }
+      else {
+        if (!isset($tags[$namespace])) {
+          $tags[$namespace] = $values;
+        }
+      }
+    }
+  }
+  if ($children = element_children($element)) {
+    foreach ($children as $child) {
+      $tags = drupal_render_collect_cache_tags($element[$child], $tags);
+    }
+  }
+
+  return $tags;
 }
 
 /**
@@ -4365,7 +4380,7 @@ function element_info($type) {
   $cache = &$drupal_static_fast['cache'];
 
   if (!isset($cache)) {
-    $cache = Drupal::moduleHandler()->invokeAll('element_info');
+    $cache = \Drupal::moduleHandler()->invokeAll('element_info');
     foreach ($cache as $element_type => $info) {
       $cache[$element_type]['#type'] = $element_type;
     }
@@ -4614,7 +4629,7 @@ function drupal_parse_info_file($filename) {
       $parser = new Parser();
       $info[$filename] = $parser->parse(file_get_contents($filename));
       if (isset($info[$filename]['version']) && $info[$filename]['version'] === 'VERSION') {
-        $info[$filename]['version'] = VERSION;
+        $info[$filename]['version'] = \Drupal::VERSION;
       }
     }
   }
@@ -4724,7 +4739,7 @@ function drupal_implode_tags($tags) {
  *   requests.
  */
 function drupal_flush_all_caches() {
-  $module_handler = Drupal::moduleHandler();
+  $module_handler = \Drupal::moduleHandler();
   // Flush all persistent caches.
   // This is executed based on old/previously known information, which is
   // sufficient, since new extensions cannot have any primed caches yet.
@@ -4744,7 +4759,7 @@ function drupal_flush_all_caches() {
   drupal_static_reset();
 
   // Clear all non-drupal_static() static caches.
-  Drupal::entityManager()->clearCachedDefinitions();
+  \Drupal::entityManager()->clearCachedDefinitions();
 
   // Wipe the PHP Storage caches.
   PhpStorageFactory::get('service_container')->deleteAll();
@@ -4763,9 +4778,9 @@ function drupal_flush_all_caches() {
       $files[$module] = $data->uri;
     }
   }
-  Drupal::service('kernel')->updateModules($module_handler->getModuleList(), $files);
+  \Drupal::service('kernel')->updateModules($module_handler->getModuleList(), $files);
   // New container, new module handler.
-  $module_handler = Drupal::moduleHandler();
+  $module_handler = \Drupal::moduleHandler();
 
   // Ensure that all modules that are currently supposed to be enabled are
   // actually loaded.
@@ -4785,7 +4800,7 @@ function drupal_flush_all_caches() {
   // Rebuild the menu router based on all rebuilt data.
   // Important: This rebuild must happen last, so the menu router is guaranteed
   // to be based on up to date information.
-  Drupal::service('router.builder')->rebuild();
+  \Drupal::service('router.builder')->rebuild();
   menu_router_rebuild();
 
   // Re-initialize the maintenance theme, if the current request attempted to
@@ -4805,7 +4820,7 @@ function drupal_flush_all_caches() {
  */
 function _drupal_flush_css_js() {
   // The timestamp is converted to base 36 in order to make it more compact.
-  variable_set('css_js_query_string', base_convert(REQUEST_TIME, 10, 36));
+  Drupal::state()->set('system.css_js_query_string', base_convert(REQUEST_TIME, 10, 36));
 }
 
 /**
@@ -4825,7 +4840,7 @@ function _drupal_flush_css_js() {
  */
 function debug($data, $label = NULL, $print_r = FALSE) {
   // Print $data contents to string.
-  $string = check_plain($print_r ? print_r($data, TRUE) : var_export($data, TRUE));
+  $string = String::checkPlain($print_r ? print_r($data, TRUE) : var_export($data, TRUE));
 
   // Display values with pre-formatting to increase readability.
   $string = '<pre>' . $string . '</pre>';
@@ -4866,7 +4881,7 @@ function drupal_check_incompatibility($v, $current_version) {
  */
 function archiver_get_extensions() {
   $valid_extensions = array();
-  foreach (Drupal::service('plugin.manager.archiver')->getDefinitions() as $archive) {
+  foreach (\Drupal::service('plugin.manager.archiver')->getDefinitions() as $archive) {
     foreach ($archive['extensions'] as $extension) {
       foreach (explode('.', $extension) as $part) {
         if (!in_array($part, $valid_extensions)) {
@@ -4896,7 +4911,7 @@ function archiver_get_archiver($file) {
   if (!is_file($filepath)) {
     throw new Exception(t('Archivers can only operate on local files: %file not supported', array('%file' => $file)));
   }
-  return Drupal::service('plugin.manager.archiver')->getInstance(array('filepath' => $filepath));
+  return \Drupal::service('plugin.manager.archiver')->getInstance(array('filepath' => $filepath));
 }
 
 /**
@@ -4909,14 +4924,14 @@ function archiver_get_archiver($file) {
  * @return array
  *   The Drupal Updater class registry.
  *
- * @see Drupal\Core\Updater\Updater
+ * @see \Drupal\Core\Updater\Updater
  * @see hook_updater_info()
  * @see hook_updater_info_alter()
  */
 function drupal_get_updaters() {
   $updaters = &drupal_static(__FUNCTION__);
   if (!isset($updaters)) {
-    $updaters = Drupal::moduleHandler()->invokeAll('updater_info');
+    $updaters = \Drupal::moduleHandler()->invokeAll('updater_info');
     drupal_alter('updater_info', $updaters);
     uasort($updaters, 'drupal_sort_weight');
   }
@@ -4929,14 +4944,14 @@ function drupal_get_updaters() {
  * @return
  *   The Drupal FileTransfer class registry.
  *
- * @see Drupal\Core\FileTransfer\FileTransfer
+ * @see \Drupal\Core\FileTransfer\FileTransfer
  * @see hook_filetransfer_info()
  * @see hook_filetransfer_info_alter()
  */
 function drupal_get_filetransfer_info() {
   $info = &drupal_static(__FUNCTION__);
   if (!isset($info)) {
-    $info = Drupal::moduleHandler()->invokeAll('filetransfer_info');
+    $info = \Drupal::moduleHandler()->invokeAll('filetransfer_info');
     drupal_alter('filetransfer_info', $info);
     uasort($info, 'drupal_sort_weight');
   }

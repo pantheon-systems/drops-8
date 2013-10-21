@@ -7,17 +7,17 @@
 
 namespace Drupal\system\Form;
 
-use Drupal\system\SystemConfigFormBase;
+use Drupal\Core\Form\ConfigFormBase;
 
 /**
  * Configure RSS settings for this site.
  */
-class RssFeedsForm extends SystemConfigFormBase {
+class RssFeedsForm extends ConfigFormBase {
 
   /**
    * {@inheritdoc}
    */
-  public function getFormID() {
+  public function getFormId() {
     return 'system_rss_feeds_settings';
   }
 

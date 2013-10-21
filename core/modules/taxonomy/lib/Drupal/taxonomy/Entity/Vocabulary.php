@@ -22,7 +22,6 @@ use Drupal\taxonomy\VocabularyInterface;
  *   module = "taxonomy",
  *   controllers = {
  *     "storage" = "Drupal\taxonomy\VocabularyStorageController",
- *     "access" = "Drupal\taxonomy\VocabularyAccessController",
  *     "list" = "Drupal\taxonomy\VocabularyListController",
  *     "form" = {
  *       "default" = "Drupal\taxonomy\VocabularyFormController",
@@ -30,6 +29,7 @@ use Drupal\taxonomy\VocabularyInterface;
  *       "delete" = "Drupal\taxonomy\Form\VocabularyDeleteForm"
  *     }
  *   },
+ *   admin_permission = "administer taxonomy",
  *   config_prefix = "taxonomy.vocabulary",
  *   bundle_of = "taxonomy_term",
  *   entity_keys = {
@@ -37,6 +37,9 @@ use Drupal\taxonomy\VocabularyInterface;
  *     "label" = "name",
  *     "weight" = "weight",
  *     "uuid" = "uuid"
+ *   },
+ *   links = {
+ *     "edit-form" = "admin/structure/taxonomy/manage/{taxonomy_vocabulary}"
  *   }
  * )
  */
@@ -99,20 +102,9 @@ class Vocabulary extends ConfigEntityBase implements VocabularyInterface {
   /**
    * {@inheritdoc}
    */
-  public function uri() {
-    return array(
-      'path' => 'admin/structure/taxonomy/manage/' . $this->id(),
-      'options' => array(
-        'entity_type' => $this->entityType,
-        'entity' => $this,
-      ),
-    );
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function postSave(EntityStorageControllerInterface $storage_controller, $update = TRUE) {
+    parent::postSave($storage_controller, $update);
+
     if (!$update) {
       entity_invoke_bundle_hook('create', 'taxonomy_term', $this->id());
     }
@@ -120,10 +112,10 @@ class Vocabulary extends ConfigEntityBase implements VocabularyInterface {
       // Reflect machine name changes in the definitions of existing 'taxonomy'
       // fields.
       $fields = field_read_fields();
-      foreach ($fields as $field_name => $field) {
+      foreach ($fields as $field) {
         $update_field = FALSE;
-        if ($field['type'] == 'taxonomy_term_reference') {
-          foreach ($field['settings']['allowed_values'] as $key => &$value) {
+        if ($field->getFieldType() == 'taxonomy_term_reference') {
+          foreach ($field->settings['allowed_values'] as &$value) {
             if ($value['vocabulary'] == $this->getOriginalID()) {
               $value['vocabulary'] = $this->id();
               $update_field = TRUE;
@@ -144,6 +136,8 @@ class Vocabulary extends ConfigEntityBase implements VocabularyInterface {
    * {@inheritdoc}
    */
   public static function preDelete(EntityStorageControllerInterface $storage_controller, array $entities) {
+    parent::preDelete($storage_controller, $entities);
+
     // Only load terms without a parent, child terms will get deleted too.
     entity_delete_multiple('taxonomy_term', $storage_controller->getToplevelTids(array_keys($entities)));
   }
@@ -152,6 +146,8 @@ class Vocabulary extends ConfigEntityBase implements VocabularyInterface {
    * {@inheritdoc}
    */
   public static function postDelete(EntityStorageControllerInterface $storage_controller, array $entities) {
+    parent::postDelete($storage_controller, $entities);
+
     $vocabularies = array();
     foreach ($entities as $vocabulary) {
       $vocabularies[$vocabulary->id()] = $vocabulary->id();
@@ -159,18 +155,18 @@ class Vocabulary extends ConfigEntityBase implements VocabularyInterface {
     // Load all Taxonomy module fields and delete those which use only this
     // vocabulary.
     $taxonomy_fields = field_read_fields(array('module' => 'taxonomy'));
-    foreach ($taxonomy_fields as $field_name => $taxonomy_field) {
+    foreach ($taxonomy_fields as $taxonomy_field) {
       $modified_field = FALSE;
       // Term reference fields may reference terms from more than one
       // vocabulary.
-      foreach ($taxonomy_field['settings']['allowed_values'] as $key => $allowed_value) {
+      foreach ($taxonomy_field->settings['allowed_values'] as $key => $allowed_value) {
         if (isset($vocabularies[$allowed_value['vocabulary']])) {
-          unset($taxonomy_field['settings']['allowed_values'][$key]);
+          unset($taxonomy_field->settings['allowed_values'][$key]);
           $modified_field = TRUE;
         }
       }
       if ($modified_field) {
-        if (empty($taxonomy_field['settings']['allowed_values'])) {
+        if (empty($taxonomy_field->settings['allowed_values'])) {
           $taxonomy_field->delete();
         }
         else {

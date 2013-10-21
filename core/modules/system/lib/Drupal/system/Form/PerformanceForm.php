@@ -7,7 +7,7 @@
 
 namespace Drupal\system\Form;
 
-use Drupal\system\SystemConfigFormBase;
+use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Config\ConfigFactory;
 use Drupal\Core\Config\Context\ContextInterface;
 use Drupal\Core\Cache\CacheBackendInterface;
@@ -16,7 +16,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 /**
  * Configure performance settings for this site.
  */
-class PerformanceForm extends SystemConfigFormBase {
+class PerformanceForm extends ConfigFormBase {
 
   /**
    * The page cache object.
@@ -54,7 +54,7 @@ class PerformanceForm extends SystemConfigFormBase {
   /**
    * {@inheritdoc}
    */
-  public function getFormID() {
+  public function getFormId() {
     return 'system_performance_settings';
   }
 
@@ -113,7 +113,6 @@ class PerformanceForm extends SystemConfigFormBase {
       '#description' => t('External resources can be optimized automatically, which can reduce both the size and number of requests made to your website.') . $disabled_message,
     );
 
-    $js_hide = ($config->get('cache.page.max_age') > 0) ? '' : ' class="js-hide"';
     $form['bandwidth_optimization']['page_compression'] = array(
       '#type' => 'checkbox',
       '#title' => t('Compress cached pages.'),

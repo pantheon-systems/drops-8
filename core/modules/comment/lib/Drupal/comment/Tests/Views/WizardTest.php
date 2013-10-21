@@ -12,7 +12,7 @@ use Drupal\views\Tests\Wizard\WizardTestBase;
 /**
  * Tests the comment module integration into the wizard.
  *
- * @see Drupal\comment\Plugin\views\wizard\Comment
+ * @see \Drupal\comment\Plugin\views\wizard\Comment
  */
 class WizardTest extends WizardTestBase {
 
@@ -36,6 +36,8 @@ class WizardTest extends WizardTestBase {
    * Tests adding a view of comments.
    */
   public function testCommentWizard() {
+    // Add comment field to page node type.
+    $this->container->get('comment.manager')->addDefaultField('node', 'page');
     $view = array();
     $view['label'] = $this->randomName(16);
     $view['id'] = strtolower($this->randomName(16));
@@ -45,14 +47,14 @@ class WizardTest extends WizardTestBase {
 
     // Just triggering the saving should automatically choose a proper row
     // plugin.
-    $this->drupalPost('admin/structure/views/add', $view, t('Save and edit'));
+    $this->drupalPostForm('admin/structure/views/add', $view, t('Save and edit'));
     $this->assertUrl('admin/structure/views/view/' . $view['id'], array(), 'Make sure the view saving was successful and the browser got redirected to the edit page.');
 
     // If we update the type first we should get a selection of comment valid
     // row plugins as the select field.
 
     $this->drupalGet('admin/structure/views/add');
-    $this->drupalPost('admin/structure/views/add', $view, t('Update "of type" choice'));
+    $this->drupalPostForm('admin/structure/views/add', $view, t('Update "of type" choice'));
 
     // Check for available options of the row plugin.
     $xpath = $this->constructFieldXpath('name', 'page[style][row_plugin]');
@@ -68,7 +70,7 @@ class WizardTest extends WizardTestBase {
     $this->assertEqual($options, $expected_options);
 
     $view['id'] = strtolower($this->randomName(16));
-    $this->drupalPost(NULL, $view, t('Save and edit'));
+    $this->drupalPostForm(NULL, $view, t('Save and edit'));
     $this->assertUrl('admin/structure/views/view/' . $view['id'], array(), 'Make sure the view saving was successful and the browser got redirected to the edit page.');
 
     $view = views_get_view($view['id']);

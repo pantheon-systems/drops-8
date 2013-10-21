@@ -30,8 +30,6 @@ class CronRunTest extends WebTestBase {
    * Test cron runs.
    */
   function testCronRun() {
-    global $base_url;
-
     // Run cron anonymously without any cron key.
     $this->drupalGet('cron');
     $this->assertResponse(404);
@@ -75,7 +73,7 @@ class CronRunTest extends WebTestBase {
     // Disable the cron threshold through the interface.
     $admin_user = $this->drupalCreateUser(array('administer site configuration'));
     $this->drupalLogin($admin_user);
-    $this->drupalPost('admin/config/system/cron', array('cron_safe_threshold' => 0), t('Save configuration'));
+    $this->drupalPostForm('admin/config/system/cron', array('cron_safe_threshold' => 0), t('Save configuration'));
     $this->assertText(t('The configuration options have been saved.'));
     $this->drupalLogout();
 

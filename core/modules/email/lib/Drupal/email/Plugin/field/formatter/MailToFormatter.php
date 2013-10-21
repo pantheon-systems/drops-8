@@ -7,11 +7,8 @@
 
 namespace Drupal\email\Plugin\field\formatter;
 
-use Drupal\field\Annotation\FieldFormatter;
-use Drupal\Core\Annotation\Translation;
 use Drupal\field\Plugin\Type\Formatter\FormatterBase;
-use Drupal\Core\Entity\EntityInterface;
-use Drupal\Core\Entity\Field\FieldInterface;
+use Drupal\Core\Entity\Field\FieldItemListInterface;
 
 /**
  * Plugin implementation of the 'email_mailto' formatter.
@@ -29,7 +26,7 @@ class MailToFormatter extends FormatterBase {
   /**
    * Implements Drupal\field\Plugin\Type\Formatter\FormatterInterface::viewElements().
    */
-  public function viewElements(EntityInterface $entity, $langcode, FieldInterface $items) {
+  public function viewElements(FieldItemListInterface $items) {
     $elements = array();
 
     foreach ($items as $delta => $item) {

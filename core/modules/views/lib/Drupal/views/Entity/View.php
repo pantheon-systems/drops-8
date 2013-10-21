@@ -13,8 +13,6 @@ use Drupal\views\Views;
 use Drupal\views_ui\ViewUI;
 use Drupal\views\ViewStorageInterface;
 use Drupal\views\ViewExecutable;
-use Drupal\Core\Entity\Annotation\EntityType;
-use Drupal\Core\Annotation\Translation;
 
 /**
  * Defines a View configuration entity class.
@@ -27,12 +25,16 @@ use Drupal\Core\Annotation\Translation;
  *     "storage" = "Drupal\views\ViewStorageController",
  *     "access" = "Drupal\views\ViewAccessController"
  *   },
+ *   admin_permission = "administer views",
  *   config_prefix = "views.view",
  *   entity_keys = {
  *     "id" = "id",
  *     "label" = "label",
  *     "uuid" = "uuid",
  *     "status" = "status"
+ *   },
+ *   links = {
+ *     "edit-form" = "admin/structure/views/view/{view}"
  *   }
  * )
  */
@@ -79,7 +81,7 @@ class View extends ConfigEntityBase implements ViewStorageInterface {
    *
    * @var int
    */
-  protected $core = DRUPAL_CORE_COMPATIBILITY;
+  protected $core = \Drupal::CORE_COMPATIBILITY;
 
   /**
    * Stores all display handlers of this view.
@@ -108,7 +110,7 @@ class View extends ConfigEntityBase implements ViewStorageInterface {
   /**
    * Stores a reference to the executable version of this view.
    *
-   * @var Drupal\views\ViewExecutable
+   * @var \Drupal\views\ViewExecutable
    */
   protected $executable;
 
@@ -132,19 +134,6 @@ class View extends ConfigEntityBase implements ViewStorageInterface {
     }
 
     return $this->executable;
-  }
-
-  /**
-   * Overrides Drupal\Core\Entity\EntityInterface::uri().
-   */
-  public function uri() {
-    return array(
-      'path' => 'admin/structure/views/view/' . $this->id(),
-      'options' => array(
-        'entity_type' => $this->entityType,
-        'entity' => $this,
-      ),
-    );
   }
 
   /**
@@ -256,37 +245,6 @@ class View extends ConfigEntityBase implements ViewStorageInterface {
   }
 
   /**
-   * Creates a new display and a display handler instance for it.
-   *
-   * @param string $plugin_id
-   *   (optional) The plugin type from the Views plugin annotation. Defaults to
-   *   'page'.
-   * @param string $title
-   *   (optional) The title of the display. Defaults to NULL.
-   * @param string $id
-   *   (optional) The ID to use, e.g., 'default', 'page_1', 'block_2'. Defaults
-   *   to NULL.
-   *
-   * @return string|\Drupal\views\Plugin\views\display\DisplayPluginBase
-   *   A new display plugin instance if executable is set, the new display ID
-   *   otherwise.
-   */
-  public function newDisplay($plugin_id = 'page', $title = NULL, $id = NULL) {
-    $id = $this->addDisplay($plugin_id, $title, $id);
-
-    // We can't use get() here as it will create an ViewExecutable instance if
-    // there is not already one.
-    if (isset($this->executable)) {
-      $executable = $this->getExecutable();
-      $executable->initDisplay();
-      $executable->displayHandlers->addInstanceID($id);
-      return $executable->displayHandlers->get($id);
-    }
-
-    return $id;
-  }
-
-  /**
    * {@inheritdoc}
    */
   public function &getDisplay($display_id) {
@@ -322,6 +280,8 @@ class View extends ConfigEntityBase implements ViewStorageInterface {
    * {@inheritdoc}
    */
   public function postSave(EntityStorageControllerInterface $storage_controller, $update = TRUE) {
+    parent::postSave($storage_controller, $update);
+
     views_invalidate_cache();
   }
 
@@ -329,6 +289,8 @@ class View extends ConfigEntityBase implements ViewStorageInterface {
    * {@inheritdoc}
    */
   public static function preCreate(EntityStorageControllerInterface $storage_controller, array &$values) {
+    parent::preCreate($storage_controller, $values);
+
     // If there is no information about displays available add at least the
     // default display.
     $values += array(
@@ -348,6 +310,8 @@ class View extends ConfigEntityBase implements ViewStorageInterface {
    * {@inheritdoc}
    */
   public function postCreate(EntityStorageControllerInterface $storage_controller) {
+    parent::postCreate($storage_controller);
+
     $this->mergeDefaultDisplaysOptions();
   }
 
@@ -355,6 +319,8 @@ class View extends ConfigEntityBase implements ViewStorageInterface {
    * {@inheritdoc}
    */
   public static function postDelete(EntityStorageControllerInterface $storage_controller, array $entities) {
+    parent::postDelete($storage_controller, $entities);
+
     $tempstore = \Drupal::service('user.tempstore')->get('views');
     foreach ($entities as $entity) {
       $tempstore->delete($entity->id());

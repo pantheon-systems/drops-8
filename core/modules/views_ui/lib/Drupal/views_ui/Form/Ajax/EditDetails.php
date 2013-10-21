@@ -25,7 +25,7 @@ class EditDetails extends ViewsFormBase {
   /**
    * {@inheritdoc}
    */
-  public function getFormID() {
+  public function getFormId() {
     return 'views_ui_edit_details_form';
   }
 
@@ -40,7 +40,7 @@ class EditDetails extends ViewsFormBase {
 
     $form['details'] = array(
       '#theme_wrappers' => array('container'),
-      '#attributes' => array('class' => array('scroll')),
+      '#attributes' => array('class' => array('scroll'), 'data-drupal-views-scroll' => TRUE),
     );
     $form['details']['label'] = array(
       '#type' => 'textfield',
@@ -59,7 +59,7 @@ class EditDetails extends ViewsFormBase {
       '#title' => $this->t('View tag'),
       '#description' => $this->t('Optionally, enter a comma delimited list of tags for this view to use in filtering and sorting views on the administrative page.'),
       '#default_value' => $view->get('tag'),
-      '#autocomplete_path' => 'admin/views/ajax/autocomplete/tag',
+      '#autocomplete_route_name' => 'views_ui.autocomplete',
     );
     $form['details']['description'] = array(
       '#type' => 'textfield',

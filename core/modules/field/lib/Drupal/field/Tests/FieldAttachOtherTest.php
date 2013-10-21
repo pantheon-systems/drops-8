@@ -49,13 +49,11 @@ class FieldAttachOtherTest extends FieldUnitTestBase {
 
     $entity_type = 'entity_test';
     $entity_init = entity_create($entity_type, array());
-    $langcode = Language::LANGCODE_NOT_SPECIFIED;
-    $options = array('field_name' => $this->field_name_2);
 
     // Populate values to be displayed.
-    $values = $this->_generateTestFieldValues($this->field['cardinality']);
+    $values = $this->_generateTestFieldValues($this->field->getFieldCardinality());
     $entity_init->{$this->field_name}->setValue($values);
-    $values_2 = $this->_generateTestFieldValues($this->field_2['cardinality']);
+    $values_2 = $this->_generateTestFieldValues($this->field_2->getFieldCardinality());
     $entity_init->{$this->field_name_2}->setValue($values_2);
 
     // Simple formatter, label displayed.
@@ -71,7 +69,7 @@ class FieldAttachOtherTest extends FieldUnitTestBase {
         'test_formatter_setting' => $formatter_setting,
       ),
     );
-    $display->setComponent($this->field['field_name'], $display_options);
+    $display->setComponent($this->field->getFieldName(), $display_options);
 
     $formatter_setting_2 = $this->randomName();
     $display_options_2 = array(
@@ -81,19 +79,19 @@ class FieldAttachOtherTest extends FieldUnitTestBase {
         'test_formatter_setting' => $formatter_setting_2,
       ),
     );
-    $display->setComponent($this->field_2['field_name'], $display_options_2);
+    $display->setComponent($this->field_2->getFieldName(), $display_options_2);
 
     // View all fields.
     field_attach_prepare_view($entity_type, array($entity->id() => $entity), $displays);
     $content = field_attach_view($entity, $display);
     $output = drupal_render($content);
     $this->content = $output;
-    $this->assertRaw($this->instance['label'], "First field's label is displayed.");
+    $this->assertRaw($this->instance->getFieldLabel(), "First field's label is displayed.");
     foreach ($values as $delta => $value) {
       $this->content = $output;
       $this->assertRaw("$formatter_setting|{$value['value']}", "Value $delta is displayed, formatter settings are applied.");
     }
-    $this->assertRaw($this->instance_2['label'], "Second field's label is displayed.");
+    $this->assertRaw($this->instance_2->getFieldLabel(), "Second field's label is displayed.");
     foreach ($values_2 as $delta => $value) {
       $this->content = $output;
       $this->assertRaw("$formatter_setting_2|{$value['value']}", "Value $delta is displayed, formatter settings are applied.");
@@ -102,21 +100,21 @@ class FieldAttachOtherTest extends FieldUnitTestBase {
     // Label hidden.
     $entity = clone($entity_init);
     $display_options['label'] = 'hidden';
-    $display->setComponent($this->field['field_name'], $display_options);
+    $display->setComponent($this->field->getFieldName(), $display_options);
     field_attach_prepare_view($entity_type, array($entity->id() => $entity), $displays);
     $entity->content = field_attach_view($entity, $display);
     $output = drupal_render($entity->content);
     $this->content = $output;
-    $this->assertNoRaw($this->instance['label'], "Hidden label: label is not displayed.");
+    $this->assertNoRaw($this->instance->getFieldLabel(), "Hidden label: label is not displayed.");
 
     // Field hidden.
     $entity = clone($entity_init);
-    $display->removeComponent($this->field['field_name']);
+    $display->removeComponent($this->field->getFieldName());
     field_attach_prepare_view($entity_type, array($entity->id() => $entity), $displays);
     $entity->content = field_attach_view($entity, $display);
     $output = drupal_render($entity->content);
     $this->content = $output;
-    $this->assertNoRaw($this->instance['label'], "Hidden field: label is not displayed.");
+    $this->assertNoRaw($this->instance->getFieldLabel(), "Hidden field: label is not displayed.");
     foreach ($values as $delta => $value) {
       $this->assertNoRaw("$formatter_setting|{$value['value']}", "Hidden field: value $delta is not displayed.");
     }
@@ -124,7 +122,7 @@ class FieldAttachOtherTest extends FieldUnitTestBase {
     // Multiple formatter.
     $entity = clone($entity_init);
     $formatter_setting = $this->randomName();
-    $display->setComponent($this->field['field_name'], array(
+    $display->setComponent($this->field->getFieldName(), array(
       'label' => 'above',
       'type' => 'field_test_multiple',
       'settings' => array(
@@ -144,7 +142,7 @@ class FieldAttachOtherTest extends FieldUnitTestBase {
     // Test a formatter that uses hook_field_formatter_prepare_view().
     $entity = clone($entity_init);
     $formatter_setting = $this->randomName();
-    $display->setComponent($this->field['field_name'], array(
+    $display->setComponent($this->field->getFieldName(), array(
       'label' => 'above',
       'type' => 'field_test_with_prepare_view',
       'settings' => array(
@@ -184,7 +182,7 @@ class FieldAttachOtherTest extends FieldUnitTestBase {
 
     // Set the instance to be hidden.
     $display = entity_get_display('entity_test', 'entity_test', 'full')
-      ->removeComponent($this->field['field_name']);
+      ->removeComponent($this->field->getFieldName());
 
     // Set up a second instance on another bundle, with a formatter that uses
     // hook_field_formatter_prepare_view().
@@ -196,7 +194,7 @@ class FieldAttachOtherTest extends FieldUnitTestBase {
     $this->instance2->save();
 
     $display_2 = entity_get_display('entity_test', 'test_bundle_2', 'full')
-      ->setComponent($this->field['field_name'], array(
+      ->setComponent($this->field->getFieldName(), array(
         'type' => 'field_test_with_prepare_view',
         'settings' => array(
           'test_formatter_setting_additional' => $formatter_setting,
@@ -207,11 +205,11 @@ class FieldAttachOtherTest extends FieldUnitTestBase {
 
     // Create one entity in each bundle.
     $entity1_init = entity_create('entity_test', array('id' => 1, 'type' => 'entity_test'));
-    $values1 = $this->_generateTestFieldValues($this->field['cardinality']);
+    $values1 = $this->_generateTestFieldValues($this->field->getFieldCardinality());
     $entity1_init->{$this->field_name}->setValue($values1);
 
     $entity2_init = entity_create('entity_test', array('id' => 2, 'type' => 'test_bundle_2'));
-    $values2 = $this->_generateTestFieldValues($this->field['cardinality']);
+    $values2 = $this->_generateTestFieldValues($this->field->getFieldCardinality());
     $entity2_init->{$this->field_name}->setValue($values2);
 
     // Run prepare_view, and check that the entities come out as expected.
@@ -236,9 +234,9 @@ class FieldAttachOtherTest extends FieldUnitTestBase {
    */
   function testFieldAttachCache() {
     // Initialize random values and a test entity.
-    $entity_init = entity_create('entity_test', array('type' => $this->instance['bundle']));
+    $entity_init = entity_create('entity_test', array('type' => $this->instance->bundle));
     $langcode = Language::LANGCODE_NOT_SPECIFIED;
-    $values = $this->_generateTestFieldValues($this->field['cardinality']);
+    $values = $this->_generateTestFieldValues($this->field->getFieldCardinality());
 
     // Non-cacheable entity type.
     $entity_type = 'entity_test';
@@ -279,10 +277,10 @@ class FieldAttachOtherTest extends FieldUnitTestBase {
     $controller->resetCache();
     $controller->load($entity->id());
     $cache = cache('field')->get($cid);
-    $this->assertEqual($cache->data[$this->field_name_2][$langcode], $values, 'Cached: correct cache entry on load');
+    $this->assertEqual($cache->data[$langcode][$this->field_name_2], $values, 'Cached: correct cache entry on load');
 
     // Update with different values, and check that the cache entry is wiped.
-    $values = $this->_generateTestFieldValues($this->field_name_2['cardinality']);
+    $values = $this->_generateTestFieldValues($this->field_2->getFieldCardinality());
     $entity = entity_create($entity_type, array(
       'type' => $entity_type,
       'id' => $entity->id(),
@@ -295,15 +293,15 @@ class FieldAttachOtherTest extends FieldUnitTestBase {
     $controller->resetCache();
     $controller->load($entity->id());
     $cache = cache('field')->get($cid);
-    $this->assertEqual($cache->data[$this->field_name_2][$langcode], $values, 'Cached: correct cache entry on load');
+    $this->assertEqual($cache->data[$langcode][$this->field_name_2], $values, 'Cached: correct cache entry on load');
 
     // Create a new revision, and check that the cache entry is wiped.
     $entity = entity_create($entity_type, array(
       'type' => $entity_type,
       'id' => $entity->id(),
     ));
-    $values = $this->_generateTestFieldValues($this->field_name_2['cardinality']);
-    $entity->{$this->field_name} = $values;
+    $values = $this->_generateTestFieldValues($this->field_2->getFieldCardinality());
+    $entity->{$this->field_name_2} = $values;
     $entity->setNewRevision();
     $entity->save();
     $this->assertFalse(cache('field')->get($cid), 'Cached: no cache entry on new revision creation');
@@ -312,7 +310,7 @@ class FieldAttachOtherTest extends FieldUnitTestBase {
     $controller->resetCache();
     $controller->load($entity->id());
     $cache = cache('field')->get($cid);
-    $this->assertEqual($cache->data[$this->field_name_2][$langcode], $values, 'Cached: correct cache entry on load');
+    $this->assertEqual($cache->data[$langcode][$this->field_name_2], $values, 'Cached: correct cache entry on load');
 
     // Delete, and check that the cache entry is wiped.
     $entity->delete();
@@ -329,38 +327,37 @@ class FieldAttachOtherTest extends FieldUnitTestBase {
     $this->createFieldWithInstance('_2');
 
     $entity_type = 'entity_test';
-    $entity = entity_create($entity_type, array('id' => 1, 'revision_id' => 1, 'type' => $this->instance['bundle']));
-    $langcode = Language::LANGCODE_NOT_SPECIFIED;
+    $entity = entity_create($entity_type, array('id' => 1, 'revision_id' => 1, 'type' => $this->instance->bundle));
 
     // When generating form for all fields.
     $form = array();
     $form_state = form_state_defaults();
-    $form_state['form_display'] = entity_get_form_display($entity_type, $this->instance['bundle'], 'default');
+    $form_state['form_display'] = entity_get_form_display($entity_type, $this->instance->bundle, 'default');
     field_attach_form($entity, $form, $form_state);
 
-    $this->assertEqual($form[$this->field_name][$langcode]['#title'], $this->instance['label'], "First field's form title is {$this->instance['label']}");
-    $this->assertEqual($form[$this->field_name_2][$langcode]['#title'], $this->instance_2['label'], "Second field's form title is {$this->instance_2['label']}");
-    for ($delta = 0; $delta < $this->field['cardinality']; $delta++) {
+    $this->assertEqual($form[$this->field_name]['widget']['#title'], $this->instance->getFieldLabel(), "First field's form title is {$this->instance->getFieldLabel()}");
+    $this->assertEqual($form[$this->field_name_2]['widget']['#title'], $this->instance_2->getFieldLabel(), "Second field's form title is {$this->instance_2->getFieldLabel()}");
+    for ($delta = 0; $delta < $this->field->getFieldCardinality(); $delta++) {
       // field_test_widget uses 'textfield'
-      $this->assertEqual($form[$this->field_name][$langcode][$delta]['value']['#type'], 'textfield', "First field's form delta $delta widget is textfield");
+      $this->assertEqual($form[$this->field_name]['widget'][$delta]['value']['#type'], 'textfield', "First field's form delta $delta widget is textfield");
     }
-    for ($delta = 0; $delta < $this->field_2['cardinality']; $delta++) {
+    for ($delta = 0; $delta < $this->field_2->getFieldCardinality(); $delta++) {
       // field_test_widget uses 'textfield'
-      $this->assertEqual($form[$this->field_name_2][$langcode][$delta]['value']['#type'], 'textfield', "Second field's form delta $delta widget is textfield");
+      $this->assertEqual($form[$this->field_name_2]['widget'][$delta]['value']['#type'], 'textfield', "Second field's form delta $delta widget is textfield");
     }
 
     // When generating form for a single field (the second field).
     $options = array('field_name' => $this->field_name_2);
     $form = array();
     $form_state = form_state_defaults();
-    $form_state['form_display'] = entity_get_form_display($entity_type, $this->instance['bundle'], 'default');
+    $form_state['form_display'] = entity_get_form_display($entity_type, $this->instance->bundle, 'default');
     field_attach_form($entity, $form, $form_state, NULL, $options);
 
     $this->assertFalse(isset($form[$this->field_name]), 'The first field does not exist in the form');
-    $this->assertEqual($form[$this->field_name_2][$langcode]['#title'], $this->instance_2['label'], "Second field's form title is {$this->instance_2['label']}");
-    for ($delta = 0; $delta < $this->field_2['cardinality']; $delta++) {
+    $this->assertEqual($form[$this->field_name_2]['widget']['#title'], $this->instance_2->getFieldLabel(), "Second field's form title is {$this->instance_2->getFieldLabel()}");
+    for ($delta = 0; $delta < $this->field_2->getFieldCardinality(); $delta++) {
       // field_test_widget uses 'textfield'
-      $this->assertEqual($form[$this->field_name_2][$langcode][$delta]['value']['#type'], 'textfield', "Second field's form delta $delta widget is textfield");
+      $this->assertEqual($form[$this->field_name_2]['widget'][$delta]['value']['#type'], 'textfield', "Second field's form delta $delta widget is textfield");
     }
   }
 
@@ -371,24 +368,23 @@ class FieldAttachOtherTest extends FieldUnitTestBase {
     $this->createFieldWithInstance('_2');
 
     $entity_type = 'entity_test';
-    $entity_init = entity_create($entity_type, array('id' => 1, 'revision_id' => 1, 'type' => $this->instance['bundle']));
-    $langcode = Language::LANGCODE_NOT_SPECIFIED;
+    $entity_init = entity_create($entity_type, array('id' => 1, 'revision_id' => 1, 'type' => $this->instance->bundle));
 
     // Build the form for all fields.
     $form = array();
     $form_state = form_state_defaults();
-    $form_state['form_display'] = entity_get_form_display($entity_type, $this->instance['bundle'], 'default');
+    $form_state['form_display'] = entity_get_form_display($entity_type, $this->instance->bundle, 'default');
     field_attach_form($entity_init, $form, $form_state);
 
     // Simulate incoming values.
     // First field.
     $values = array();
     $weights = array();
-    for ($delta = 0; $delta < $this->field['cardinality']; $delta++) {
+    for ($delta = 0; $delta < $this->field->getFieldCardinality(); $delta++) {
       $values[$delta]['value'] = mt_rand(1, 127);
       // Assign random weight.
       do {
-        $weight = mt_rand(0, $this->field['cardinality']);
+        $weight = mt_rand(0, $this->field->getFieldCardinality());
       } while (in_array($weight, $weights));
       $weights[$delta] = $weight;
       $values[$delta]['_weight'] = $weight;
@@ -398,11 +394,11 @@ class FieldAttachOtherTest extends FieldUnitTestBase {
     // Second field.
     $values_2 = array();
     $weights_2 = array();
-    for ($delta = 0; $delta < $this->field_2['cardinality']; $delta++) {
+    for ($delta = 0; $delta < $this->field_2->getFieldCardinality(); $delta++) {
       $values_2[$delta]['value'] = mt_rand(1, 127);
       // Assign random weight.
       do {
-        $weight = mt_rand(0, $this->field_2['cardinality']);
+        $weight = mt_rand(0, $this->field_2->getFieldCardinality());
       } while (in_array($weight, $weights_2));
       $weights_2[$delta] = $weight;
       $values_2[$delta]['_weight'] = $weight;
@@ -413,8 +409,8 @@ class FieldAttachOtherTest extends FieldUnitTestBase {
     // Pretend the form has been built.
     drupal_prepare_form('field_test_entity_form', $form, $form_state);
     drupal_process_form('field_test_entity_form', $form, $form_state);
-    $form_state['values'][$this->field_name][$langcode] = $values;
-    $form_state['values'][$this->field_name_2][$langcode] = $values_2;
+    $form_state['values'][$this->field_name] = $values;
+    $form_state['values'][$this->field_name_2] = $values_2;
 
     // Call field_attach_extract_form_values() for all fields.
     $entity = clone($entity_init);

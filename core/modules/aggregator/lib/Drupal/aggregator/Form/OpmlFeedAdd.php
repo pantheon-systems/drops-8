@@ -84,7 +84,7 @@ class OpmlFeedAdd extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function getFormID() {
+  public function getFormId() {
     return 'aggregator_opml_add';
   }
 
@@ -112,13 +112,6 @@ class OpmlFeedAdd extends FormBase {
       '#default_value' => 3600,
       '#options' => $period,
       '#description' => $this->t('The length of time between feed updates. Requires a correctly configured <a href="@cron">cron maintenance task</a>.', array('@cron' => url('admin/reports/status'))),
-    );
-    $form['block'] = array(
-      '#type' => 'select',
-      '#title' => $this->t('News items in block'),
-      '#default_value' => 5,
-      '#options' => drupal_map_assoc(array(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20)),
-      '#description' => $this->t("Drupal can make a block with the most recent news items of a feed. You can <a href=\"@block-admin\">configure blocks</a> to be displayed in the sidebar of your page. This setting lets you configure the number of news items to show in a feed's block. If you choose '0' these feeds' blocks will be disabled.", array('@block-admin' => url('admin/structure/block'))),
     );
 
     // Handling of categories.
@@ -215,7 +208,6 @@ class OpmlFeedAdd extends FormBase {
         'title' => $feed['title'],
         'url' => $feed['url'],
         'refresh' => $form_state['values']['refresh'],
-        'block' => $form_state['values']['block'],
       ));
       $new_feed->categories = $form_state['values']['category'];
       $new_feed->save();

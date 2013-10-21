@@ -7,7 +7,7 @@
 
 namespace Drupal\block;
 
-use Drupal\Component\Plugin\PluginBase;
+use Drupal\Core\Plugin\PluginBase;
 use Drupal\block\BlockInterface;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Language\Language;
@@ -27,28 +27,12 @@ abstract class BlockBase extends PluginBase implements BlockPluginInterface {
   public function __construct(array $configuration, $plugin_id, array $plugin_definition) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
 
-    $this->configuration += $this->settings() + array(
+    $this->configuration += $this->defaultConfiguration() + array(
       'label' => '',
       'module' => $plugin_definition['module'],
       'label_display' => BlockInterface::BLOCK_LABEL_VISIBLE,
       'cache' => DRUPAL_NO_CACHE,
     );
-  }
-
-  /**
-   * Returns plugin-specific settings for the block.
-   *
-   * Block plugins only need to override this method if they override the
-   * defaults provided in BlockBase::settings().
-   *
-   * @return array
-   *   An array of block-specific settings to override the defaults provided in
-   *   BlockBase::settings().
-   *
-   * @see \Drupal\block\BlockBase::settings().
-   */
-  public function settings() {
-    return array();
   }
 
   /**
@@ -63,6 +47,13 @@ abstract class BlockBase extends PluginBase implements BlockPluginInterface {
    */
   public function setConfiguration(array $configuration) {
     $this->configuration = $configuration;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function defaultConfiguration() {
+    return array();
   }
 
   /**
@@ -100,14 +91,14 @@ abstract class BlockBase extends PluginBase implements BlockPluginInterface {
 
     $form['label'] = array(
       '#type' => 'textfield',
-      '#title' => t('Title'),
+      '#title' => $this->t('Title'),
       '#maxlength' => 255,
       '#default_value' => !empty($this->configuration['label']) ? $this->configuration['label'] : $definition['admin_label'],
       '#required' => TRUE,
     );
     $form['label_display'] = array(
       '#type' => 'checkbox',
-      '#title' => t('Display title'),
+      '#title' => $this->t('Display title'),
       '#default_value' => $this->configuration['label_display'] == BlockInterface::BLOCK_LABEL_VISIBLE,
       '#return_value' => BlockInterface::BLOCK_LABEL_VISIBLE,
     );
@@ -130,8 +121,6 @@ abstract class BlockBase extends PluginBase implements BlockPluginInterface {
    * Most block plugins should not override this method. To add validation
    * for a specific block type, override BlockBase::blockValdiate().
    *
-   * @todo Add inline documentation to this method.
-   *
    * @see \Drupal\block\BlockBase::blockValidate()
    */
   public function validateConfigurationForm(array &$form, array &$form_state) {
@@ -149,11 +138,10 @@ abstract class BlockBase extends PluginBase implements BlockPluginInterface {
    * Most block plugins should not override this method. To add submission
    * handling for a specific block type, override BlockBase::blockSubmit().
    *
-   * @todo Add inline documentation to this method.
-   *
    * @see \Drupal\block\BlockBase::blockSubmit()
    */
   public function submitConfigurationForm(array &$form, array &$form_state) {
+    // Process the block's submission handling if no errors occurred only.
     if (!form_get_errors()) {
       $this->configuration['label'] = $form_state['values']['label'];
       $this->configuration['label_display'] = $form_state['values']['label_display'];

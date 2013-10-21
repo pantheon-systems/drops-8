@@ -34,8 +34,7 @@ class ReadTest extends RESTTestBase {
    * Tests several valid and invalid read requests on all entity types.
    */
   public function testRead() {
-    // @todo once EntityNG is implemented for other entity types expand this at
-    // least to users.
+    // @todo Expand this at least to users.
     // Define the entity types we want to test.
     $entity_types = array('entity_test', 'node');
     foreach ($entity_types as $entity_type) {
@@ -95,4 +94,27 @@ class ReadTest extends RESTTestBase {
     $this->assertResponse(404);
     $this->assertNull(drupal_json_decode($response), 'No valid JSON found.');
   }
+
+  /**
+   * Tests the resource structure.
+   */
+  public function testResourceStructure() {
+    // Enable a service with a format restriction but no authentication.
+    $this->enableService('entity:node', 'GET', 'json');
+    // Create a user account that has the required permissions to read
+    // resources via the REST API.
+    $permissions = $this->entityPermissions('node', 'view');
+    $permissions[] = 'restful get entity:node';
+    $account = $this->drupalCreateUser($permissions);
+    $this->drupalLogin($account);
+
+    // Create an entity programmatically.
+    $entity = $this->entityCreate('node');
+    $entity->save();
+
+    // Read it over the REST API.
+    $response = $this->httpRequest('entity/node/' . $entity->id(), 'GET', NULL, 'application/json');
+    $this->assertResponse('200', 'HTTP response code is correct.');
+  }
+
 }

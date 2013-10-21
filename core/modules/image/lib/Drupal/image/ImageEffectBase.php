@@ -7,7 +7,7 @@
 
 namespace Drupal\image;
 
-use Drupal\Component\Plugin\PluginBase;
+use Drupal\Core\Plugin\PluginBase;
 
 /**
  * Provides a base class for image effects.
@@ -103,10 +103,17 @@ abstract class ImageEffectBase extends PluginBase implements ImageEffectInterfac
       'uuid' => '',
       'weight' => '',
     );
-    $this->configuration = $configuration['data'];
+    $this->configuration = $configuration['data'] + $this->defaultConfiguration();
     $this->uuid = $configuration['uuid'];
     $this->weight = $configuration['weight'];
     return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function defaultConfiguration() {
+    return array();
   }
 
 }

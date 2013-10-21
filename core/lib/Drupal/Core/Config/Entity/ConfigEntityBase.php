@@ -25,7 +25,7 @@ abstract class ConfigEntityBase extends Entity implements ConfigEntityInterface 
    *
    * @var string
    */
-  protected $originalID;
+  protected $originalId;
 
   /**
    * The enabled/disabled status of the configuration entity.
@@ -44,22 +44,24 @@ abstract class ConfigEntityBase extends Entity implements ConfigEntityInterface 
     // Configuration entity IDs are strings, and '0' is a valid ID.
     $original_id = $this->id();
     if ($original_id !== NULL && $original_id !== '') {
-      $this->setOriginalID($original_id);
+      $this->setOriginalId($original_id);
     }
   }
 
   /**
-   * Implements ConfigEntityInterface::getOriginalID().
+   * {@inheritdoc}
    */
-  public function getOriginalID() {
-    return $this->originalID;
+  public function getOriginalId() {
+    return $this->originalId;
   }
 
   /**
-   * Implements ConfigEntityInterface::setOriginalID().
+   * {@inheritdoc}
    */
-  public function setOriginalID($id) {
-    $this->originalID = $id;
+  public function setOriginalId($id) {
+    $this->originalId = $id;
+
+    return $this;
   }
 
   /**
@@ -74,24 +76,16 @@ abstract class ConfigEntityBase extends Entity implements ConfigEntityInterface 
   }
 
   /**
-   * Overrides Entity::get().
-   *
-   * EntityInterface::get() implements support for fieldable entities, but
-   * configuration entities are not fieldable.
+   * {@inheritdoc}
    */
-  public function get($property_name, $langcode = NULL) {
-    // @todo: Add support for translatable properties being not fields.
+  public function get($property_name) {
     return isset($this->{$property_name}) ? $this->{$property_name} : NULL;
   }
 
   /**
-   * Overrides Entity::set().
-   *
-   * EntityInterface::set() implements support for fieldable entities, but
-   * configuration entities are not fieldable.
+   * {@inheritdoc}
    */
-  public function set($property_name, $value, $langcode = NULL, $notify = TRUE) {
-    // @todo: Add support for translatable properties being not fields.
+  public function set($property_name, $value) {
     $this->{$property_name} = $value;
   }
 
@@ -130,7 +124,7 @@ abstract class ConfigEntityBase extends Entity implements ConfigEntityInterface 
   public function createDuplicate() {
     $duplicate = parent::createDuplicate();
     // Prevent the new duplicate from being misinterpreted as a rename.
-    $duplicate->setOriginalID(NULL);
+    $duplicate->setOriginalId(NULL);
     return $duplicate;
   }
 
@@ -149,7 +143,7 @@ abstract class ConfigEntityBase extends Entity implements ConfigEntityInterface 
   }
 
   /**
-   * Overrides \Drupal\Core\Entity\Entity::getExportProperties().
+   * {@inheritdoc}
    */
   public function getExportProperties() {
     // Configuration objects do not have a schema. Extract all key names from
@@ -186,6 +180,13 @@ abstract class ConfigEntityBase extends Entity implements ConfigEntityInterface 
         throw new ConfigDuplicateUUIDException(format_string('Attempt to save a configuration entity %id with UUID %uuid when this entity already exists with UUID %original_uuid', array('%id' => $this->id(), '%uuid' => $this->uuid(), '%original_uuid' => $original->uuid())));
       }
     }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function uri() {
+    return parent::uri('edit-form');
   }
 
 }

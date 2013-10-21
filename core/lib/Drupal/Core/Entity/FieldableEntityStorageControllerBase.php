@@ -7,8 +7,10 @@
 
 namespace Drupal\Core\Entity;
 
+use Drupal\Core\Entity\Field\PrepareCacheInterface;
 use Drupal\field\FieldInterface;
 use Drupal\field\FieldInstanceInterface;
+use Drupal\field\Plugin\Type\FieldType\ConfigFieldItemListInterface;
 use Symfony\Component\DependencyInjection\Container;
 
 abstract class FieldableEntityStorageControllerBase extends EntityStorageControllerBase implements FieldableEntityStorageControllerInterface {
@@ -26,8 +28,10 @@ abstract class FieldableEntityStorageControllerBase extends EntityStorageControl
    * @param array $entities
    *   An array of entities keyed by entity ID.
    * @param int $age
-   *   FIELD_LOAD_CURRENT to load the most recent revision for all fields, or
-   *   FIELD_LOAD_REVISION to load the version indicated by each entity.
+   *   EntityStorageControllerInterface::FIELD_LOAD_CURRENT to load the most
+   *   recent revision for all fields, or
+   *   EntityStorageControllerInterface::FIELD_LOAD_REVISION to load the version
+   *   indicated by each entity.
    */
   protected function loadFieldItems(array $entities, $age) {
     if (empty($entities)) {
@@ -36,14 +40,9 @@ abstract class FieldableEntityStorageControllerBase extends EntityStorageControl
 
     // Only the most current revision of non-deleted fields for cacheable entity
     // types can be cached.
-    $load_current = $age == FIELD_LOAD_CURRENT;
+    $load_current = $age == static::FIELD_LOAD_CURRENT;
     $info = entity_get_info($this->entityType);
     $use_cache = $load_current && $info['field_cache'];
-
-    // Ensure we are working with a BC mode entity.
-    foreach ($entities as $id => $entity) {
-      $entities[$id] = $entity->getBCEntity();
-    }
 
     // Assume all entities will need to be queried. Entities found in the cache
     // will be removed from the list.
@@ -63,8 +62,13 @@ abstract class FieldableEntityStorageControllerBase extends EntityStorageControl
         $cid = "field:{$this->entityType}:$id";
         if (isset($cache[$cid])) {
           unset($queried_entities[$id]);
-          foreach ($cache[$cid]->data as $field_name => $values) {
-            $entity->$field_name = $values;
+          foreach ($cache[$cid]->data as $langcode => $values) {
+            $translation = $entity->getTranslation($langcode);
+            // We do not need to worry about field translatability here, the
+            // translation object will manage that automatically.
+            foreach ($values as $field_name => $items) {
+              $translation->$field_name = $items;
+            }
           }
         }
       }
@@ -75,18 +79,29 @@ abstract class FieldableEntityStorageControllerBase extends EntityStorageControl
       // Let the storage controller actually load the values.
       $this->doLoadFieldItems($queried_entities, $age);
 
-      // Invoke the field type's prepareCache() method.
-      foreach ($queried_entities as $entity) {
-        $this->invokeFieldItemPrepareCache($entity);
-      }
-
       // Build cache data.
+      // @todo: Improve this logic to avoid instantiating field objects once
+      // the field logic is improved to not do that anyway.
       if ($use_cache) {
         foreach ($queried_entities as $id => $entity) {
           $data = array();
-          $instances = field_info_instances($this->entityType, $entity->bundle());
-          foreach ($instances as $instance) {
-            $data[$instance['field_name']] = $queried_entities[$id]->{$instance['field_name']};
+          foreach ($entity->getTranslationLanguages() as $langcode => $language) {
+            $translation = $entity->getTranslation($langcode);
+            foreach ($translation as $field_name => $items) {
+              if ($items instanceof ConfigFieldItemListInterface && !$items->isEmpty()) {
+                foreach ($items as $delta => $item) {
+                  // If the field item needs to prepare the cache data, call the
+                  // corresponding method, otherwise use the values as cache
+                  // data.
+                  if ($item instanceof PrepareCacheInterface) {
+                    $data[$langcode][$field_name][$delta] = $item->getCacheData();
+                  }
+                  else {
+                    $data[$langcode][$field_name][$delta] = $item->getValue();
+                  }
+                }
+              }
+            }
           }
           $cid = "field:{$this->entityType}:$id";
           cache('field')->set($cid, $data);
@@ -108,9 +123,6 @@ abstract class FieldableEntityStorageControllerBase extends EntityStorageControl
    *   TRUE if the entity is being updated, FALSE if it is being inserted.
    */
   protected function saveFieldItems(EntityInterface $entity, $update = TRUE) {
-    // Ensure we are working with a BC mode entity.
-    $entity = $entity->getBCEntity();
-
     $this->doSaveFieldItems($entity, $update);
 
     if ($update) {
@@ -132,9 +144,6 @@ abstract class FieldableEntityStorageControllerBase extends EntityStorageControl
    *   The entity.
    */
   protected function deleteFieldItems(EntityInterface $entity) {
-    // Ensure we are working with a BC mode entity.
-    $entity = $entity->getBCEntity();
-
     $this->doDeleteFieldItems($entity);
 
     $entity_info = $entity->entityInfo();
@@ -154,7 +163,7 @@ abstract class FieldableEntityStorageControllerBase extends EntityStorageControl
    *   The entity. It must have a revision ID attribute.
    */
   protected function deleteFieldItemsRevision(EntityInterface $entity) {
-    $this->doDeleteFieldItemsRevision($entity->getBCEntity());
+    $this->doDeleteFieldItemsRevision($entity);
   }
 
   /**
@@ -165,8 +174,10 @@ abstract class FieldableEntityStorageControllerBase extends EntityStorageControl
    * @param array $entities
    *   An array of entities keyed by entity ID.
    * @param int $age
-   *   FIELD_LOAD_CURRENT to load the most recent revision for all fields, or
-   *   FIELD_LOAD_REVISION to load the version indicated by each entity.
+   *   EntityStorageControllerInterface::FIELD_LOAD_CURRENT to load the most
+   *   recent revision for all fields, or
+   *   EntityStorageControllerInterface::FIELD_LOAD_REVISION to load the version
+   *   indicated by each entity.
    */
   abstract protected function doLoadFieldItems($entities, $age);
 
@@ -291,5 +302,44 @@ abstract class FieldableEntityStorageControllerBase extends EntityStorageControl
    * {@inheritdoc}
    */
   public function onFieldPurge(FieldInterface $field) { }
+
+  /**
+   * Checks translation statuses and invoke the related hooks if needed.
+   *
+   * @param \Drupal\Core\Entity\ContentEntityInterface $entity
+   *   The entity being saved.
+   */
+  protected function invokeTranslationHooks(ContentEntityInterface $entity) {
+    $translations = $entity->getTranslationLanguages(FALSE);
+    $original_translations = $entity->original->getTranslationLanguages(FALSE);
+    $all_translations = array_keys($translations + $original_translations);
+
+    // Notify modules of translation insertion/deletion.
+    foreach ($all_translations as $langcode) {
+      if (isset($translations[$langcode]) && !isset($original_translations[$langcode])) {
+        $this->invokeHook('translation_insert', $entity->getTranslation($langcode));
+      }
+      elseif (!isset($translations[$langcode]) && isset($original_translations[$langcode])) {
+        $this->invokeHook('translation_delete', $entity->getTranslation($langcode));
+      }
+    }
+  }
+
+  /**
+   * Invokes a method on the Field objects within an entity.
+   *
+   * @param string $method
+   *   The method name.
+   * @param \Drupal\Core\Entity\ContentEntityInterface $entity
+   *   The entity object.
+   */
+  protected function invokeFieldMethod($method, ContentEntityInterface $entity) {
+    foreach (array_keys($entity->getTranslationLanguages()) as $langcode) {
+      $translation = $entity->getTranslation($langcode);
+      foreach ($translation as $field) {
+        $field->$method();
+      }
+    }
+  }
 
 }

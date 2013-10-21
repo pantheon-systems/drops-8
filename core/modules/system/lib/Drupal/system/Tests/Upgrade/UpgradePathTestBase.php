@@ -84,9 +84,9 @@ abstract class UpgradePathTestBase extends WebTestBase {
   /**
    * Overrides Drupal\simpletest\WebTestBase::setUp() for upgrade testing.
    *
-   * @see Drupal\simpletest\WebTestBase::prepareDatabasePrefix()
-   * @see Drupal\simpletest\WebTestBase::changeDatabasePrefix()
-   * @see Drupal\simpletest\WebTestBase::prepareEnvironment()
+   * @see \Drupal\simpletest\WebTestBase::prepareDatabasePrefix()
+   * @see \Drupal\simpletest\WebTestBase::changeDatabasePrefix()
+   * @see \Drupal\simpletest\WebTestBase::prepareEnvironment()
    */
   protected function setUp() {
     global $user, $conf;
@@ -117,7 +117,7 @@ abstract class UpgradePathTestBase extends WebTestBase {
 
 
     // Build a minimal, partially mocked environment for unit tests.
-    $this->containerBuild(drupal_container());
+    $this->rebuildContainer();
     // Make sure it survives kernel rebuilds.
     $conf['container_service_providers']['TestServiceProvider'] = 'Drupal\simpletest\TestServiceProvider';
 
@@ -145,6 +145,21 @@ abstract class UpgradePathTestBase extends WebTestBase {
     $this->variable_set('file_temporary_path', $this->temp_files_directory);
 
     $this->pass('Finished loading the dump.');
+
+    // Override $update_free_access in settings.php to allow the anonymous user
+    // to run updates.
+    $install_profile = unserialize(db_query('SELECT value FROM {variable} WHERE name = :name', array(':name' => 'install_profile'))->fetchField());
+    $settings = array(
+      'settings' => array(
+        'install_profile' => (object) array(
+          'value' => $install_profile,
+          'required' => TRUE,
+        ),
+      ),
+    );
+    $this->writeSettings($settings);
+    $this->settingsSet('install_profile', $install_profile);
+    $this->profile = $install_profile;
 
     // Ensure that the session is not written to the new environment and replace
     // the global $user session with uid 1 from the new test site.
@@ -248,7 +263,7 @@ abstract class UpgradePathTestBase extends WebTestBase {
     $this->rebuildContainer();
 
     // Continue.
-    $this->drupalPost(NULL, array(), t('Continue'));
+    $this->drupalPostForm(NULL, array(), t('Continue'));
     if (!$this->assertResponse(200)) {
       throw new \Exception('POST to continue update.php did not return HTTP 200 status.');
     }
@@ -262,7 +277,7 @@ abstract class UpgradePathTestBase extends WebTestBase {
     }
 
     // Go!
-    $this->drupalPost(NULL, array(), t('Apply pending updates'));
+    $this->drupalPostForm(NULL, array(), t('Apply pending updates'));
     if (!$this->assertResponse(200)) {
       throw new \Exception('POST to update.php to apply pending updates did not return HTTP 200 status.');
     }
@@ -291,7 +306,7 @@ abstract class UpgradePathTestBase extends WebTestBase {
 
     // Check if there still are pending updates.
     $this->getUpdatePhp();
-    $this->drupalPost(NULL, array(), t('Continue'));
+    $this->drupalPostForm(NULL, array(), t('Continue'));
     if (!$this->assertText(t('No pending updates.'), 'No pending updates at the end of the update process.')) {
       throw new \Exception('update.php still shows pending updates after execution.');
     }

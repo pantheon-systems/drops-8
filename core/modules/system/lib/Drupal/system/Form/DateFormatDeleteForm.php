@@ -62,8 +62,10 @@ class DateFormatDeleteForm extends EntityConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function getCancelPath() {
-    return 'admin/config/regional/date-time';
+  public function getCancelRoute() {
+    return array(
+      'route_name' => 'system.date_format_list',
+    );
   }
 
   /**

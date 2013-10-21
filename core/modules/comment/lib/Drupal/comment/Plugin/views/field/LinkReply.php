@@ -24,13 +24,23 @@ class LinkReply extends Link {
     return user_access('post comments');
   }
 
+  /**
+   * Prepare the link for replying to the comment.
+   *
+   * @param \Drupal\Core\Entity\EntityInterface $data
+   *   The comment entity.
+   * @param \Drupal\views\ResultRow $values
+   *   The values retrieved from a single row of a view's query result.
+   *
+   * @return string
+   *   Returns a string for the link text.
+   */
   protected function renderLink($data, ResultRow $values) {
     $text = !empty($this->options['text']) ? $this->options['text'] : t('reply');
-    $nid =  $this->getValue($values, 'nid');
-    $cid =  $this->getValue($values, 'cid');
+    $comment = $this->getEntity($values);
 
     $this->options['alter']['make_link'] = TRUE;
-    $this->options['alter']['path'] = "comment/reply/" . $nid . '/' . $cid;
+    $this->options['alter']['path'] = "comment/reply/{$comment->entity_type->value}/{$comment->entity_id->value}/{$comment->field_name->value}/{$comment->id()}";
 
     return $text;
   }

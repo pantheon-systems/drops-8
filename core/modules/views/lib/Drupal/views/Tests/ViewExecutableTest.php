@@ -7,7 +7,6 @@
 
 namespace Drupal\views\Tests;
 
-use Symfony\Component\HttpFoundation\Response;
 use Drupal\views\ViewExecutable;
 use Drupal\views\ViewExecutableFactory;
 use Drupal\views\DisplayBag;
@@ -19,15 +18,17 @@ use Drupal\views\Plugin\views\row\Fields;
 use Drupal\views\Plugin\views\query\Sql;
 use Drupal\views\Plugin\views\pager\PagerPluginBase;
 use Drupal\views\Plugin\views\query\QueryPluginBase;
+use Drupal\views_test_data\Plugin\views\display\DisplayTest;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Tests the ViewExecutable class.
  *
- * @see Drupal\views\ViewExecutable
+ * @see \Drupal\views\ViewExecutable
  */
 class ViewExecutableTest extends ViewUnitTestBase {
 
-  public static $modules = array('system', 'node', 'comment', 'user', 'filter');
+  public static $modules = array('system', 'node', 'comment', 'user', 'filter', 'entity', 'field', 'field_sql_storage', 'text');
 
   /**
    * Views used by this test.
@@ -84,7 +85,9 @@ class ViewExecutableTest extends ViewUnitTestBase {
   protected function setUpFixtures() {
     $this->installSchema('user', array('users'));
     $this->installSchema('node', array('node', 'node_field_data'));
-    $this->installSchema('comment', array('comment', 'node_comment_statistics'));
+    $this->installSchema('comment', array('comment', 'comment_entity_statistics'));
+    $this->installConfig(array('field'));
+    $this->container->get('comment.manager')->addDefaultField('node', 'page');
     parent::setUpFixtures();
 
     $this->installConfig(array('filter'));
@@ -244,6 +247,23 @@ class ViewExecutableTest extends ViewUnitTestBase {
     $this->assertTrue($view->style_plugin instanceof Grid);
     // @todo Change this rowPlugin type too.
     $this->assertTrue($view->rowPlugin instanceof Fields);
+
+    // Test the newDisplay() method.
+    $view = $this->container->get('entity.manager')->getStorageController('view')->create(array('id' => 'test_executable_displays'));
+    $executable = $view->getExecutable();
+
+    $executable->newDisplay('page');
+    $executable->newDisplay('page');
+    $executable->newDisplay('display_test');
+
+    $this->assertTrue($executable->displayHandlers->get('default') instanceof DefaultDisplay);
+    $this->assertFalse(isset($executable->displayHandlers->get('default')->default_display));
+    $this->assertTrue($executable->displayHandlers->get('page_1') instanceof Page);
+    $this->assertTrue($executable->displayHandlers->get('page_1')->default_display instanceof DefaultDisplay);
+    $this->assertTrue($executable->displayHandlers->get('page_2') instanceof Page);
+    $this->assertTrue($executable->displayHandlers->get('page_2')->default_display instanceof DefaultDisplay);
+    $this->assertTrue($executable->displayHandlers->get('display_test_1') instanceof DisplayTest);
+    $this->assertTrue($executable->displayHandlers->get('display_test_1')->default_display instanceof DefaultDisplay);
   }
 
   /**

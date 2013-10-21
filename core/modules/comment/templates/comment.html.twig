@@ -15,7 +15,6 @@
  * - changed: Formatted date and time for when the comment was last changed.
  *   Preprocess functions can reformat it by calling format_date() with the
  *   desired parameters on the 'comment.changed' variable.
- * - new: New comment marker.
  * - permalink: Comment permalink.
  * - submitted: Submission information created from author and created
  *   during template_preprocess_comment().
@@ -28,12 +27,11 @@
  *   through CSS. The default values can be one or more of the following:
  *   - comment: The current template type; e.g., 'theming hook'.
  *   - by-anonymous: Comment by an unregistered user.
- *   - by-node-author: Comment by the author of the parent node.
+ *   - by-{entity-type}-author: Comment by the author of the parent entity,
+ *     eg. by-node-author.
  *   - preview: When previewing a new or edited comment.
  *   The following applies only to viewers who are registered users:
  *   - unpublished: An unpublished comment visible only to administrators.
- *   - by-viewer: Comment by the user currently viewing the page.
- *   - new: New comment since the last visit.
  * - title_prefix: Additional output populated by modules, intended to be
  *   displayed in front of the main title tag that appears in the template.
  * - title_suffix: Additional output populated by modules, intended to be
@@ -56,7 +54,7 @@
  *
  * These two variables are provided for context:
  * - comment: Full comment object.
- * - node: Node entity the comments are attached to.
+ * - entity: Entity the comments are attached to.
  *
  * @see template_preprocess_comment()
  *
@@ -66,9 +64,12 @@
 <article{{ attributes }}>
   {{ title_prefix }}
 
-  {% if new %}
-    <mark class="new">{{ new }}</mark>
-  {% endif %}
+  {#
+  Hide the "new" indicator by default, let a piece of JavaScript ask
+  the server which comments are new for the user. Rendering the final
+  "new" indicator here would break the render cache.
+  #}
+  <mark class="hidden new" data-comment-timestamp="{{ new_indicator_timestamp }}"></mark>
 
   <h3{{ title_attributes }}>{{ title }}</h3>
 

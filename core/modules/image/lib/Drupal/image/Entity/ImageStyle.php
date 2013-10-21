@@ -33,14 +33,16 @@ use Symfony\Component\DependencyInjection\Exception\ServiceNotFoundException;
  *     },
  *     "storage" = "Drupal\Core\Config\Entity\ConfigStorageController",
  *     "list" = "Drupal\image\ImageStyleListController",
- *     "access" = "Drupal\image\ImageStyleAccessController"
  *   },
- *   uri_callback = "image_style_entity_uri",
+ *   admin_permission = "administer image styles",
  *   config_prefix = "image.style",
  *   entity_keys = {
  *     "id" = "name",
  *     "label" = "label",
  *     "uuid" = "uuid"
+ *   },
+ *   links = {
+ *     "edit-form" = "admin/config/media/image-styles/manage/{image_style}"
  *   }
  * )
  */
@@ -99,6 +101,8 @@ class ImageStyle extends ConfigEntityBase implements ImageStyleInterface {
    * {@inheritdoc}
    */
   public function postSave(EntityStorageControllerInterface $storage_controller, $update = TRUE) {
+    parent::postSave($storage_controller, $update);
+
     if ($update) {
       if (!empty($this->original) && $this->id() !== $this->original->id()) {
         // The old image style name needs flushing after a rename.
@@ -117,6 +121,8 @@ class ImageStyle extends ConfigEntityBase implements ImageStyleInterface {
    * {@inheritdoc}
    */
   public static function postDelete(EntityStorageControllerInterface $storage_controller, array $entities) {
+    parent::postDelete($storage_controller, $entities);
+
     foreach ($entities as $style) {
       // Flush cached media for the deleted style.
       $style->flush();
@@ -139,30 +145,29 @@ class ImageStyle extends ConfigEntityBase implements ImageStyleInterface {
    */
   protected static function replaceImageStyle(ImageStyleInterface $style) {
     if ($style->id() != $style->getOriginalID()) {
-      $instances = field_read_instances();
       // Loop through all fields searching for image fields.
-      foreach ($instances as $instance) {
-        if ($instance->getField()->type == 'image') {
-          $view_modes = entity_get_view_modes($instance['entity_type']);
-          $view_modes = array('default') + array_keys($view_modes);
+      foreach (field_read_instances() as $instance) {
+        if ($instance->getFieldType() == 'image') {
+          $field_name = $instance->getFieldName();
+          $view_modes = array('default') + array_keys(entity_get_view_modes($instance->entity_type));
           foreach ($view_modes as $view_mode) {
-            $display = entity_get_display($instance['entity_type'], $instance['bundle'], $view_mode);
-            $display_options = $display->getComponent($instance['field_name']);
+            $display = entity_get_display($instance->entity_type, $instance->bundle, $view_mode);
+            $display_options = $display->getComponent($field_name);
 
             // Check if the formatter involves an image style.
             if ($display_options && $display_options['type'] == 'image' && $display_options['settings']['image_style'] == $style->getOriginalID()) {
               // Update display information for any instance using the image
               // style that was just deleted.
               $display_options['settings']['image_style'] = $style->id();
-              $display->setComponent($instance['field_name'], $display_options)
+              $display->setComponent($field_name, $display_options)
                 ->save();
             }
           }
-          $entity_form_display = entity_get_form_display($instance['entity_type'], $instance['bundle'], 'default');
-          $widget_configuration = $entity_form_display->getComponent($instance['field_name']);
+          $entity_form_display = entity_get_form_display($instance->entity_type, $instance->bundle, 'default');
+          $widget_configuration = $entity_form_display->getComponent($field_name);
           if ($widget_configuration['settings']['preview_image_style'] == $style->getOriginalID()) {
             $widget_options['settings']['preview_image_style'] = $style->id();
-            $entity_form_display->setComponent($instance['field_name'], $widget_options)
+            $entity_form_display->setComponent($field_name, $widget_options)
               ->save();
           }
         }
@@ -201,7 +206,9 @@ class ImageStyle extends ConfigEntityBase implements ImageStyleInterface {
     // \Drupal\image\ImageStyleInterface::deliver()).
     $token_query = array();
     if (!\Drupal::config('image.settings')->get('suppress_itok_output')) {
-      $token_query = array(IMAGE_DERIVATIVE_TOKEN => $this->getPathToken(file_stream_wrapper_uri_normalize($path)));
+      // The passed $path variable can be either a relative path or a full URI.
+      $original_uri = file_uri_scheme($path) ? file_stream_wrapper_uri_normalize($path) : file_build_uri($path);
+      $token_query = array(IMAGE_DERIVATIVE_TOKEN => $this->getPathToken($original_uri));
     }
 
     if ($clean_urls === NULL) {
@@ -249,7 +256,9 @@ class ImageStyle extends ConfigEntityBase implements ImageStyleInterface {
     // Delete the style directory in each registered wrapper.
     $wrappers = file_get_stream_wrappers(STREAM_WRAPPERS_WRITE_VISIBLE);
     foreach ($wrappers as $wrapper => $wrapper_data) {
-      file_unmanaged_delete_recursive($wrapper . '://styles/' . $this->id());
+      if (file_exists($directory = $wrapper . '://styles/' . $this->id())) {
+        file_unmanaged_delete_recursive($directory);
+      }
     }
 
     // Let other modules update as necessary on flush.

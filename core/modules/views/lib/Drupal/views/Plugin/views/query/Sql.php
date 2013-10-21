@@ -263,7 +263,7 @@ class Sql extends QueryPluginBase {
    * @param $alias
    *   What this relationship will be called, and is also the alias
    *   for the table.
-   * @param Drupal\views\Plugin\views\join\JoinPluginBase $join
+   * @param \Drupal\views\Plugin\views\join\JoinPluginBase $join
    *   A Join object (or derived object) to join the alias in.
    * @param $base
    *   The name of the 'base' table this relationship represents; this
@@ -335,7 +335,7 @@ class Sql extends QueryPluginBase {
    *   tables exist and are properly aliased. If set to NULL the path to
    *   the primary table will be ensured. If the path cannot be made, the
    *   table will NOT be added.
-   * @param Drupal\views\Plugin\views\join\JoinPluginBase $join
+   * @param \Drupal\views\Plugin\views\join\JoinPluginBase $join
    *   In some join configurations this table may actually join back through
    *   a different method; this is most likely to be used when tracing
    *   a hierarchy path. (node->parent->parent2->parent3). This parameter
@@ -374,7 +374,7 @@ class Sql extends QueryPluginBase {
    * @param $relationship
    *   The primary table alias this table is related to. If not set, the
    *   primary table will be used.
-   * @param Drupal\views\Plugin\views\join\JoinPluginBase $join
+   * @param \Drupal\views\Plugin\views\join\JoinPluginBase $join
    *   In some join configurations this table may actually join back through
    *   a different method; this is most likely to be used when tracing
    *   a hierarchy path. (node->parent->parent2->parent3). This parameter
@@ -486,7 +486,7 @@ class Sql extends QueryPluginBase {
    *   The relationship to ensure the table links to. Each relationship will
    *   get a unique instance of the table being added. If not specified,
    *   will be the primary table.
-   * @param Drupal\views\Plugin\views\join\JoinPluginBase $join
+   * @param \Drupal\views\Plugin\views\join\JoinPluginBase $join
    *   A Join object (or derived object) to join the alias in.
    *
    * @return
@@ -674,7 +674,7 @@ class Sql extends QueryPluginBase {
    * @param $base_table
    *   The path we're following to get this join.
    *
-   * @return Drupal\views\Plugin\views\join\JoinPluginBase
+   * @return \Drupal\views\Plugin\views\join\JoinPluginBase
    *   A Join object or child object, if one exists.
    */
   public function getJoinData($table, $base_table) {
@@ -816,8 +816,8 @@ class Sql extends QueryPluginBase {
    *   );
    * @endcode
    *
-   * @see Drupal\Core\Database\Query\ConditionInterface::condition()
-   * @see Drupal\Core\Database\Query\Condition
+   * @see \Drupal\Core\Database\Query\ConditionInterface::condition()
+   * @see \Drupal\Core\Database\Query\Condition
    */
   public function addWhere($group, $field, $value = NULL, $operator = NULL) {
     // Ensure all variants of 0 are actually 0. Thus '', 0 and NULL are all
@@ -1028,7 +1028,7 @@ class Sql extends QueryPluginBase {
 
       if (!empty($info['conditions'])) {
         $sub_group = $info['type'] == 'OR' ? db_or() : db_and();
-        foreach ($info['conditions'] as $key => $clause) {
+        foreach ($info['conditions'] as $clause) {
           // DBTNG doesn't support to add the same subquery twice to the main
           // query and the count query, so clone the subquery to have two instances
           // of the same object. - http://drupal.org/node/1112854
@@ -1118,7 +1118,7 @@ class Sql extends QueryPluginBase {
   /**
    * Adds fields to the query.
    *
-   * @param Drupal\Core\Database\Query\SelectInterface $query
+   * @param \Drupal\Core\Database\Query\SelectInterface $query
    *   The drupal query object.
    */
   protected function compileFields($query) {
@@ -1227,9 +1227,6 @@ class Sql extends QueryPluginBase {
       $query->distinct();
     }
 
-    $joins = $where = $having = $orderby = $groupby = '';
-    $fields = $distinct = array();
-
     // Add all the tables to the query via joins. We assume all LEFT joins.
     foreach ($this->table_queue as $table) {
       if (is_object($table['join'])) {
@@ -1321,10 +1318,10 @@ class Sql extends QueryPluginBase {
    */
   public function getWhereArgs() {
     $args = array();
-    foreach ($this->where as $group => $where) {
+    foreach ($this->where as $where) {
       $args = array_merge($args, $where['args']);
     }
-    foreach ($this->having as $group => $having) {
+    foreach ($this->having as $having) {
       $args = array_merge($args, $having['args']);
     }
     return $args;
@@ -1366,7 +1363,6 @@ class Sql extends QueryPluginBase {
    * $view->current_page.
    */
   function execute(ViewExecutable $view) {
-    $external = FALSE; // Whether this query will run against an external database.
     $query = $view->build_info['query'];
     $count_query = $view->build_info['count_query'];
 
@@ -1382,7 +1378,6 @@ class Sql extends QueryPluginBase {
       }
     }
 
-    $items = array();
     if ($query) {
       $additional_arguments = \Drupal::moduleHandler()->invokeAll('views_query_substitutions', array($view));
 
@@ -1542,7 +1537,7 @@ class Sql extends QueryPluginBase {
       // Drupal core currently has no way to load multiple revisions. Sad.
       if ($table['revision']) {
         $entities = array();
-        foreach ($ids as $index => $revision_id) {
+        foreach ($ids as $revision_id) {
           $entity = entity_revision_load($entity_type, $revision_id);
           if ($entity) {
             $entities[$revision_id] = $entity;

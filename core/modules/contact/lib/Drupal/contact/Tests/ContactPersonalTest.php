@@ -54,7 +54,7 @@ class ContactPersonalTest extends WebTestBase {
     parent::setUp();
 
     // Create an admin user.
-    $this->admin_user = $this->drupalCreateUser(array('administer contact forms', 'administer users'));
+    $this->admin_user = $this->drupalCreateUser(array('administer contact forms', 'administer users', 'administer account settings'));
 
     // Create some normal users with their contact forms enabled by default.
     \Drupal::config('contact.settings')->set('user_default_enabled', 1)->save();
@@ -94,6 +94,8 @@ class ContactPersonalTest extends WebTestBase {
     $this->drupalLogin($this->web_user);
     $this->drupalGet('user/' . $this->admin_user->id() . '/contact');
     $this->assertResponse(200);
+    // Check the page title is properly displayed.
+    $this->assertRaw(t('Contact @username', array('@username' => $this->admin_user->getUsername())));
 
     // Test denied access to admin user's own contact form.
     $this->drupalLogout();
@@ -134,7 +136,7 @@ class ContactPersonalTest extends WebTestBase {
     // Disable the personal contact form.
     $this->drupalLogin($this->admin_user);
     $edit = array('contact_default_status' => FALSE);
-    $this->drupalPost('admin/config/people/accounts', $edit, t('Save configuration'));
+    $this->drupalPostForm('admin/config/people/accounts', $edit, t('Save configuration'));
     $this->assertText(t('The configuration options have been saved.'), 'Setting successfully saved.');
     $this->drupalLogout();
 
@@ -171,7 +173,7 @@ class ContactPersonalTest extends WebTestBase {
     $this->drupalGet('user/' . $this->web_user->id() . '/edit');
     $this->assertNoFieldChecked('edit-contact--2');
     $this->assertFalse(\Drupal::service('user.data')->get('contact', $this->web_user->id(), 'enabled'), 'Personal contact form disabled');
-    $this->drupalPost(NULL, array('contact' => TRUE), t('Save'));
+    $this->drupalPostForm(NULL, array('contact' => TRUE), t('Save'));
     $this->assertFieldChecked('edit-contact--2');
     $this->assertTrue(\Drupal::service('user.data')->get('contact', $this->web_user->id(), 'enabled'), 'Personal contact form enabled');
   }
@@ -220,7 +222,7 @@ class ContactPersonalTest extends WebTestBase {
       'subject' => $this->randomName(16),
       'message' => $this->randomName(64),
     );
-    $this->drupalPost('user/' . $account->id() . '/contact', $message, t('Send message'));
+    $this->drupalPostForm('user/' . $account->id() . '/contact', $message, t('Send message'));
     return $message;
   }
 }

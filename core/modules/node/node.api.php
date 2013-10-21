@@ -1,6 +1,8 @@
 <?php
 
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Component\Utility\String;
+use Drupal\Component\Utility\Xss;
 
 /**
  * @file
@@ -95,14 +97,14 @@ use Drupal\Core\Entity\EntityInterface;
  * - Validating a node during editing form submit (calling
  *   node_form_validate()):
  *   - hook_node_validate() (all)
- * - Searching (calling node_search_execute()):
+ * - Searching (using the 'node_search' plugin):
  *   - hook_ranking() (all)
  *   - Query is executed to find matching nodes
  *   - Resulting node is loaded (see Loading section above)
  *   - Resulting node is prepared for viewing (see Viewing a single node above)
- *   - comment_node_update_index() is called.
+ *   - comment_node_update_index() is called (this adds "N comments" text)
  *   - hook_node_search_result() (all)
- * - Search indexing (calling node_update_index()):
+ * - Search indexing (calling updateIndex() on the 'node_search' plugin):
  *   - Node is loaded (see Loading section above)
  *   - Node is prepared for viewing (see Viewing a single node above)
  *   - hook_node_update_index() (all)
@@ -509,6 +511,7 @@ function hook_node_create(\Drupal\Core\Entity\EntityInterface $node) {
  */
 function hook_node_load($nodes, $types) {
   // Decide whether any of $types are relevant to our purposes.
+  $types_we_want_to_process = \Drupal::config('my_types')->get('types');
   if (count(array_intersect($types_we_want_to_process, $types))) {
     // Gather our extra data for each of these nodes.
     $result = db_query('SELECT nid, foo FROM {mytable} WHERE nid IN(:nids)', array(':nids' => array_keys($nodes)));
@@ -539,7 +542,7 @@ function hook_node_load($nodes, $types) {
  * the default home page at path 'node', a recent content block, etc.) See
  * @link node_access Node access rights @endlink for a full explanation.
  *
- * @param Drupal\Core\Entity\EntityInterface|string $node
+ * @param \Drupal\Core\Entity\EntityInterface|string $node
  *   Either a node entity or the machine name of the content type on which to
  *   perform the access check.
  * @param string $op
@@ -604,16 +607,16 @@ function hook_node_access(\Drupal\node\NodeInterface $node, $op, $account, $lang
  * @ingroup node_api_hooks
  */
 function hook_node_prepare_form(\Drupal\node\NodeInterface $node, $form_display, $operation, array &$form_state) {
-  if (!isset($node->comment->value)) {
-    $node->comment = variable_get('comment_' . $node->getType(), COMMENT_NODE_OPEN);
+  if (!isset($node->my_rating)) {
+    $node->my_rating = \Drupal::config("my_rating_{$node->bundle()}")->get('enabled');
   }
 }
 
 /**
  * Act on a node being displayed as a search result.
  *
- * This hook is invoked from node_search_execute(), after node_load() and
- * node_view() have been called.
+ * This hook is invoked from the node search plugin during search execution,
+ * after loading and rendering the node.
  *
  * @param \Drupal\Core\Entity\EntityInterface $node
  *   The node being displayed in a search result.
@@ -627,13 +630,13 @@ function hook_node_prepare_form(\Drupal\node\NodeInterface $node, $form_display,
  *   theming.
  *
  * @see template_preprocess_search_result()
- * @see search-result.tpl.php
+ * @see search-result.html.twig
  *
  * @ingroup node_api_hooks
  */
 function hook_node_search_result(\Drupal\Core\Entity\EntityInterface $node, $langcode) {
-  $comments = db_query('SELECT comment_count FROM {node_comment_statistics} WHERE nid = :nid', array('nid' => $node->id()))->fetchField();
-  return array('comment' => format_plural($comments, '1 comment', '@count comments'));
+  $rating = db_query('SELECT SUM(points) FROM {my_rating} WHERE nid = :nid', array('nid' => $node->id()))->fetchField();
+  return array('rating' => format_plural($rating, '1 point', '@count points'));
 }
 
 /**
@@ -686,8 +689,8 @@ function hook_node_update(\Drupal\Core\Entity\EntityInterface $node) {
 /**
  * Act on a node being indexed for searching.
  *
- * This hook is invoked during search indexing, after node_load(), and after the
- * result of node_view() is added as $node->rendered to the node object.
+ * This hook is invoked during search indexing, after loading, and after the
+ * result of rendering is added as $node->rendered to the node object.
  *
  * @param \Drupal\Core\Entity\EntityInterface $node
  *   The node being indexed.
@@ -701,9 +704,9 @@ function hook_node_update(\Drupal\Core\Entity\EntityInterface $node) {
  */
 function hook_node_update_index(\Drupal\Core\Entity\EntityInterface $node, $langcode) {
   $text = '';
-  $comments = db_query('SELECT subject, comment, format FROM {comment} WHERE nid = :nid AND status = :status', array(':nid' => $node->id(), ':status' => COMMENT_PUBLISHED));
-  foreach ($comments as $comment) {
-    $text .= '<h2>' . check_plain($comment->subject->value) . '</h2>' . $comment->comment_body->processed;
+  $ratings = db_query('SELECT title, description FROM {my_ratings} WHERE nid = :nid', array(':nid' => $node->id()));
+  foreach ($ratings as $rating) {
+    $text .= '<h2>' . String::checkPlain($rating->title) . '</h2>' . Xss::filter($rating->description);
   }
   return $text;
 }
@@ -790,7 +793,6 @@ function hook_node_submit(\Drupal\Core\Entity\EntityInterface $node, $form, &$fo
  *   The language code used for rendering.
  *
  * @see forum_node_view()
- * @see comment_node_view()
  * @see hook_entity_view()
  *
  * @ingroup node_api_hooks

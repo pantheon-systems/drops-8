@@ -7,7 +7,7 @@
 
 namespace Drupal\datetime\Tests;
 
-use Drupal\Core\Entity\Field\FieldInterface;
+use Drupal\Core\Entity\Field\FieldItemListInterface;
 use Drupal\Core\Entity\Field\FieldItemInterface;
 use Drupal\field\Tests\FieldUnitTestBase;
 
@@ -43,7 +43,7 @@ class DateTimeItemTest extends FieldUnitTestBase {
     ));
     $this->field->save();
     $this->instance = entity_create('field_instance', array(
-      'field_name' => $this->field['field_name'],
+      'field_name' => $this->field->getFieldName(),
       'entity_type' => 'entity_test',
       'bundle' => 'entity_test',
       'settings' => array(
@@ -67,7 +67,7 @@ class DateTimeItemTest extends FieldUnitTestBase {
     // Verify entity has been created properly.
     $id = $entity->id();
     $entity = entity_load('entity_test', $id);
-    $this->assertTrue($entity->field_datetime instanceof FieldInterface, 'Field implements interface.');
+    $this->assertTrue($entity->field_datetime instanceof FieldItemListInterface, 'Field implements interface.');
     $this->assertTrue($entity->field_datetime[0] instanceof FieldItemInterface, 'Field item implements interface.');
     $this->assertEqual($entity->field_datetime->value, $value);
     $this->assertEqual($entity->field_datetime[0]->value, $value);

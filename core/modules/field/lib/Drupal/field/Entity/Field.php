@@ -8,8 +8,6 @@
 namespace Drupal\field\Entity;
 
 use Drupal\Component\Utility\Unicode;
-use Drupal\Core\Entity\Annotation\EntityType;
-use Drupal\Core\Annotation\Translation;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\field\FieldException;
@@ -548,8 +546,11 @@ class Field extends ConfigEntityBase implements FieldInterface {
     elseif (array_key_exists($setting_name, $field_type_info['settings'])) {
       return $field_type_info['settings'][$setting_name];
     }
-    else {
+    elseif (array_key_exists($setting_name, $field_type_info['instance_settings'])) {
       return $field_type_info['instance_settings'][$setting_name];
+    }
+    else {
+      return NULL;
     }
   }
 
@@ -600,58 +601,6 @@ class Field extends ConfigEntityBase implements FieldInterface {
    * {@inheritdoc}
    */
   public function getFieldDefaultValue(EntityInterface $entity) { }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function offsetExists($offset) {
-    return isset($this->{$offset}) || in_array($offset, array('columns', 'foreign keys', 'bundles', 'storage_details'));
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function &offsetGet($offset) {
-    switch ($offset) {
-      case 'id':
-        return $this->uuid;
-
-      case 'field_name':
-        return $this->name;
-
-      case 'columns':
-        $this->getSchema();
-        return $this->schema['columns'];
-
-      case 'foreign keys':
-        $this->getSchema();
-        return $this->schema['foreign keys'];
-
-      case 'bundles':
-        $bundles = $this->getBundles();
-        return $bundles;
-    }
-
-    return $this->{$offset};
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function offsetSet($offset, $value) {
-    if (!in_array($offset, array('columns', 'foreign keys', 'bundles', 'storage_details'))) {
-      $this->{$offset} = $value;
-    }
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function offsetUnset($offset) {
-    if (!in_array($offset, array('columns', 'foreign keys', 'bundles', 'storage_details'))) {
-      unset($this->{$offset});
-    }
-  }
 
   /**
    * A list of columns that can not be used as field type columns.
@@ -716,6 +665,13 @@ class Field extends ConfigEntityBase implements FieldInterface {
     // Run the values from getExportProperties() through __construct().
     $values = array_intersect_key($this->getExportProperties(), get_object_vars($this));
     $this->__construct($values);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function isFieldConfigurable() {
+    return TRUE;
   }
 
 }

@@ -8,17 +8,17 @@
 namespace Drupal\language\Form;
 
 use Drupal\Core\Language\Language;
-use Drupal\system\SystemConfigFormBase;
+use Drupal\Core\Form\ConfigFormBase;
 
 /**
  * Configure the selected language negotiation method for this site.
  */
-class NegotiationSelectedForm extends SystemConfigFormBase {
+class NegotiationSelectedForm extends ConfigFormBase {
 
   /**
-   * Implements \Drupal\Core\Form\FormInterface::getFormID().
+   * {@inheritdoc}
    */
-  public function getFormID() {
+  public function getFormId() {
     return 'language_negotiation_configure_selected_form';
   }
 

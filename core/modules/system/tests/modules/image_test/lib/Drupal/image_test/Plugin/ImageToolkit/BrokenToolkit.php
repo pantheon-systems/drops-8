@@ -7,9 +7,6 @@
 
 namespace Drupal\image_test\Plugin\ImageToolkit;
 
-use Drupal\system\Annotation\ImageToolkit;
-use Drupal\Core\Annotation\Translation;
-
 /**
  * Defines a Test toolkit for image manipulation within Drupal.
  *
@@ -21,7 +18,7 @@ use Drupal\Core\Annotation\Translation;
 class BrokenToolkit extends TestToolkit {
 
   /**
-   * Implements \Drupal\system\Plugin\ImageToolkitInterface::isAvailable().
+   * {@inheritdoc}
    */
   public static function isAvailable() {
     return FALSE;

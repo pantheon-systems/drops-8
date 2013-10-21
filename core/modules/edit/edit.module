@@ -24,12 +24,14 @@ function edit_menu() {
   // @todo Remove these menu items in http://drupal.org/node/1954892 when theme
   //   callbacks are replaced with something else.
   $items['edit/metadata'] = array(
-    'route_name' => 'edit_metadata',
+    'route_name' => 'edit.metadata',
     'theme callback' => 'ajax_base_page_theme',
+    'type' => MENU_CALLBACK,
   );
   $items['edit/form/%/%/%/%/%'] = array(
-    'route_name' => 'edit_field_form',
+    'route_name' => 'edit.field_form',
     'theme callback' => 'ajax_base_page_theme',
+    'type' => MENU_CALLBACK,
   );
 
   return $items;
@@ -53,7 +55,7 @@ function edit_permission() {
  * editing' permission.
  */
 function edit_page_build(&$page) {
-  if (!user_access('access in-place editing')) {
+  if (!\Drupal::currentUser()->hasPermission('access in-place editing')) {
     return;
   }
 
@@ -77,7 +79,7 @@ function edit_library_info() {
   );
   $libraries['edit'] = array(
     'title' => 'Edit: in-place editing',
-    'version' => VERSION,
+    'version' => \Drupal::VERSION,
     'js' => array(
       // Core.
       $path . '/js/edit.js' => $options,
@@ -119,7 +121,7 @@ function edit_library_info() {
   );
   $libraries['edit.editorWidget.form'] = array(
     'title' => 'Form in-place editor',
-    'version' => VERSION,
+    'version' => \Drupal::VERSION,
     'js' => array(
       $path . '/js/editors/formEditor.js' => $options,
     ),
@@ -129,7 +131,7 @@ function edit_library_info() {
   );
   $libraries['edit.editorWidget.direct'] = array(
     'title' => 'Direct in-place editor',
-    'version' => VERSION,
+    'version' => \Drupal::VERSION,
     'js' => array(
       $path . '/js/editors/directEditor.js' => $options,
     ),
@@ -139,6 +141,22 @@ function edit_library_info() {
   );
 
   return $libraries;
+}
+
+/**
+ * Implement hook_library_info_alter().
+ *
+ * Allow the admin theme to override the Edit entity toolbar's default styling.
+ * We must do it this way, because an admin theme's hooks do not fire while on
+ * the front-end.
+ */
+function edit_library_info_alter(&$libraries, $module) {
+  if ($module == 'edit' && isset($libraries['edit'])) {
+    $css = _edit_theme_css();
+    foreach ($css as $css_file) {
+      $libraries['edit']['css'][$css_file] = array();
+    }
+  }
 }
 
 /**
@@ -159,12 +177,18 @@ function edit_field_formatter_info_alter(&$info) {
 }
 
 /**
- * Implements hook_preprocess_HOOK() for field.tpl.php.
+ * Implements hook_preprocess_HOOK() for field templates.
  */
 function edit_preprocess_field(&$variables) {
   $element = $variables['element'];
   $entity = $element['#object'];
-  $variables['attributes']['data-edit-id'] = $entity->entityType() . '/' . $entity->id() . '/' . $element['#field_name'] . '/' . $element['#language'] . '/' . $element['#view_mode'];
+
+  // Fields that are not part of the entity (i.e. dynamically injected "pseudo
+  // fields") and computed fields are not editable.
+  $definition = $entity->getPropertyDefinition($element['#field_name']);
+  if ($definition && empty($definition['computed'])) {
+    $variables['attributes']['data-edit-id'] = $entity->entityType() . '/' . $entity->id() . '/' . $element['#field_name'] . '/' . $element['#language'] . '/' . $element['#view_mode'];
+  }
 }
 
 /**
@@ -175,11 +199,40 @@ function edit_entity_view_alter(&$build, EntityInterface $entity, EntityDisplay 
 }
 
 /**
- * Form constructor for the field editing form.
+ * Retrieves the admin theme's Edit stylesheets.
  *
- * @ingroup forms
+ * Admin themes may specify CSS files to make the front-end administration
+ * experience of in-place editing match the administration experience on the
+ * Drupal back-end.
+ * They can specify such CSS files using the "edit_stylesheets" key in
+ * the theme .info.yml file.
+ *
+ * @code
+ * edit_stylesheets[] = css/edit.css
+ * @endcode
+ *
+ * @param string|NULL $theme
+ *   The theme name for which to retrieve the edit_stylesheets CSS files.
+ *
+ * @return array
+ *   An array of CSS file paths.
  */
-function edit_field_form(array $form, array &$form_state, EntityInterface $entity, $field_name, TempStoreFactory $temp_store_factory) {
-  $form_handler = new EditFieldForm();
-  return $form_handler->build($form, $form_state, $entity, $field_name, $temp_store_factory);
+function _edit_theme_css($theme = NULL) {
+  $css = array();
+  if (!isset($theme)) {
+    $theme = Drupal::config('system.theme')->get('admin');
+  }
+  if ($theme_path = drupal_get_path('theme', $theme)) {
+    $info = system_get_info('theme', $theme);
+    if (isset($info['edit_stylesheets'])) {
+      $css = $info['edit_stylesheets'];
+      foreach ($css as $key => $path) {
+        $css[$key] = $theme_path . '/' . $path;
+      }
+    }
+    if (isset($info['base theme'])) {
+      $css = array_merge(_edit_theme_css($info['base theme'], $css));
+    }
+  }
+  return $css;
 }

@@ -19,7 +19,7 @@ class FieldAccessTest extends DrupalUnitTestBase {
    *
    * @var array
    */
-  public static $modules = array('entity', 'entity_test', 'field', 'field_sql_storage', 'system', 'text', 'filter', 'user');
+  public static $modules = array('entity', 'entity_test', 'field', 'system', 'text', 'filter', 'user');
 
   /**
    * Holds the currently active global user ID that initiated the test run.
@@ -70,12 +70,12 @@ class FieldAccessTest extends DrupalUnitTestBase {
     $values = array('name' => 'test');
     $account = entity_create('user', $values);
 
-    $this->assertFalse($entity->field_test_text->access('view', $account->getNGEntity()), 'Access to the field was denied.');
+    $this->assertFalse($entity->field_test_text->access('view', $account), 'Access to the field was denied.');
 
     $entity->field_test_text = 'access alter value';
-    $this->assertFalse($entity->field_test_text->access('view', $account->getNGEntity()), 'Access to the field was denied.');
+    $this->assertFalse($entity->field_test_text->access('view', $account), 'Access to the field was denied.');
 
     $entity->field_test_text = 'standard value';
-    $this->assertTrue($entity->field_test_text->access('view', $account->getNGEntity()), 'Access to the field was granted.');
+    $this->assertTrue($entity->field_test_text->access('view', $account), 'Access to the field was granted.');
   }
 }

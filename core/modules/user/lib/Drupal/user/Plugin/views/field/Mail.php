@@ -11,8 +11,7 @@ use Drupal\Component\Annotation\PluginID;
 use Drupal\views\ResultRow;
 
 /**
-/**
- * Field handler to provide acess control for the email field.
+ * Field handler to provide access control for the email field.
  *
  * @ingroup views_field_handlers
  *
@@ -40,6 +39,9 @@ class Mail extends User {
     );
   }
 
+  /**
+   * {@inheritdoc}
+   */
   protected function renderLink($data, ResultRow $values) {
     parent::renderLink($data, $values);
 

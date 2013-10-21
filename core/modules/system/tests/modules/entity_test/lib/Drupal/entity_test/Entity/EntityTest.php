@@ -7,7 +7,7 @@
 
 namespace Drupal\entity_test\Entity;
 
-use Drupal\Core\Entity\EntityNG;
+use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Entity\Annotation\EntityType;
 use Drupal\Core\Annotation\Translation;
 use Drupal\Core\Language\Language;
@@ -26,7 +26,7 @@ use Drupal\Core\Language\Language;
  *     "form" = {
  *       "default" = "Drupal\entity_test\EntityTestFormController"
  *     },
- *     "translation" = "Drupal\content_translation\ContentTranslationControllerNG"
+ *     "translation" = "Drupal\content_translation\ContentTranslationController"
  *   },
  *   base_table = "entity_test",
  *   fieldable = TRUE,
@@ -39,40 +39,40 @@ use Drupal\Core\Language\Language;
  *   menu_base_path = "entity-test/manage/%entity_test"
  * )
  */
-class EntityTest extends EntityNG {
+class EntityTest extends ContentEntityBase {
 
   /**
    * The entity ID.
    *
-   * @var \Drupal\Core\Entity\Field\FieldInterface
+   * @var \Drupal\Core\Entity\Field\FieldItemListInterface
    */
   public $id;
 
   /**
    * The entity UUID.
    *
-   * @var \Drupal\Core\Entity\Field\FieldInterface
+   * @var \Drupal\Core\Entity\Field\FieldItemListInterface
    */
   public $uuid;
 
   /**
    * The bundle of the test entity.
    *
-   * @var \Drupal\Core\Entity\Field\FieldInterface
+   * @var \Drupal\Core\Entity\Field\FieldItemListInterface
    */
   public $type;
 
   /**
    * The name of the test entity.
    *
-   * @var \Drupal\Core\Entity\Field\FieldInterface
+   * @var \Drupal\Core\Entity\Field\FieldItemListInterface
    */
   public $name;
 
   /**
    * The associated user.
    *
-   * @var \Drupal\Core\Entity\Field\FieldInterface
+   * @var \Drupal\Core\Entity\Field\FieldItemListInterface
    */
   public $user_id;
 

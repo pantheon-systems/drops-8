@@ -75,7 +75,7 @@ class LanguageSelectElementTest extends WebTestBase {
   function testHiddenLanguageSelectElement() {
     // Disable the language module, so that the language select field will not
     // be rendered.
-    module_disable(array('language'));
+    module_uninstall(array('language'));
     $this->drupalGet('form-test/language_select');
     // Check that the language fields were rendered on the page.
     $ids = array('edit-languages-all', 'edit-languages-configurable', 'edit-languages-locked', 'edit-languages-config-and-locked');
@@ -86,7 +86,7 @@ class LanguageSelectElementTest extends WebTestBase {
     // Check that the submitted values were the default values of the language
     // field elements.
     $edit = array();
-    $this->drupalPost(NULL, $edit, t('Submit'));
+    $this->drupalPostForm(NULL, $edit, t('Submit'));
     $values = drupal_json_decode($this->drupalGetContent());
     $this->assertEqual($values['languages_all'], 'xx');
     $this->assertEqual($values['languages_configurable'], 'en');

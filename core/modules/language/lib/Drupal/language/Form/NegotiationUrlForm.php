@@ -7,17 +7,17 @@
 
 namespace Drupal\language\Form;
 
-use Drupal\system\SystemConfigFormBase;
+use Drupal\Core\Form\ConfigFormBase;
 
 /**
  * Configure the URL language negotiation method for this site.
  */
-class NegotiationUrlForm extends SystemConfigFormBase {
+class NegotiationUrlForm extends ConfigFormBase {
 
   /**
-   * Implements \Drupal\Core\Form\FormInterface::getFormID().
+   * {@inheritdoc}
    */
-  public function getFormID() {
+  public function getFormId() {
     return 'language_negotiation_configure_url_form';
   }
 

@@ -1,7 +1,7 @@
-name: 'HAL (Hypertext Application Language)'
+name: 'HAL'
 type: module
-description: 'Serializes entities using HAL'
-package: Core
+description: 'Serializes entities using Hypertext Application Language.'
+package: Web services
 core: 8.x
 dependencies:
   - rest

@@ -365,7 +365,7 @@ function _drupal_rewrite_settings_is_array_index($type) {
  *
  * Makes the new settings global.
  *
- * @param array|NULL $ref
+ * @param array|null $ref
  *   A reference to a nested index in $GLOBALS.
  * @param array|object $variable
  *   The nested value of the setting being copied.
@@ -415,7 +415,7 @@ function _drupal_rewrite_settings_dump($variable, $variable_name) {
  *
  * Dump the value of a value property and adds the comment if it exists.
  *
- * @param stdClass $variable
+ * @param object $variable
  *   A stdClass object with at least a value property.
  * @param string $prefix
  *   A string to prepend to the variable's value.
@@ -437,10 +437,14 @@ function _drupal_rewrite_settings_dump_one(\stdClass $variable, $prefix = '', $s
 /**
  * Creates the config directory and ensures it is operational.
  *
+ * @param int $mode
+ *   Octal value for the permissions. Consult PHP chmod() documentation for
+ *   more information.
+ *
  * @see install_settings_form_submit()
  * @see update_prepare_d8_bootstrap()
  */
-function drupal_install_config_directories() {
+function drupal_install_config_directories($mode = NULL) {
   global $config_directories;
 
   // Add a randomized config directory name to settings.php, unless it was
@@ -473,7 +477,7 @@ function drupal_install_config_directories() {
     // public files directory, which has already been verified to be writable
     // itself. But if it somehow fails anyway, the installation cannot proceed.
     // Bail out using a similar error message as in system_requirements().
-    if (!install_ensure_config_directory($config_type)) {
+    if (!install_ensure_config_directory($config_type, $mode)) {
       throw new Exception(t('The directory %directory could not be created or could not be made writable. To proceed with the installation, either create the directory and modify its permissions manually or ensure that the installer has the permissions to create it automatically. For more information, see the <a href="@handbook_url">online handbook</a>.', array(
         '%directory' => config_get_config_directory($config_type),
         '@handbook_url' => 'http://drupal.org/server-permissions',
@@ -486,10 +490,10 @@ function drupal_install_config_directories() {
     // to the drupal core repo.
     switch ($config_type) {
       case CONFIG_ACTIVE_DIRECTORY:
-        $text = 'This directory contains the active configuration for your Drupal site. To move this configuration between environments, contents from this directory should be placed in the staging directory on the target server. To make this configuration active, see admin/config/development/sync on the target server.';
+        $text = 'This directory contains the active configuration for your Drupal site. To move this configuration between environments, contents from this directory should be placed in the staging directory on the target server. To make this configuration active, see admin/config/development/configuration/sync on the target server.';
         break;
       case CONFIG_STAGING_DIRECTORY:
-        $text = 'This directory contains configuration to be imported into your Drupal site. To make this configuration active, see admin/config/development/sync.';
+        $text = 'This directory contains configuration to be imported into your Drupal site. To make this configuration active, see admin/config/development/configuration/sync.';
         break;
     }
     $text .=  ' For information about deploying configuration between servers, see http://drupal.org/documentation/administer/config';
@@ -539,10 +543,14 @@ function install_verify_config_directory($type) {
  *   Type of config directory to return. Drupal core provides 'active' and
  *   'staging'.
  *
+ * @param int $mode
+ *   Octal value for the permissions. Consult PHP chmod() documentation for
+ *   more information.
+ *
  * @return bool
  *   TRUE if the config directory exists and is writable.
  */
-function install_ensure_config_directory($type) {
+function install_ensure_config_directory($type, $mode = NULL) {
   // The config directory must be defined in settings.php.
   global $config_directories;
   if (!isset($config_directories[$type])) {
@@ -552,7 +560,7 @@ function install_ensure_config_directory($type) {
   // directories that the installer creates.
   else {
     $config_directory = config_get_config_directory($type);
-    return file_prepare_directory($config_directory, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS);
+    return file_prepare_directory($config_directory, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS, $mode);
   }
 }
 
@@ -627,18 +635,18 @@ function drupal_install_system() {
   require_once DRUPAL_ROOT . '/' . $system_path . '/system.install';
   $system_versions = drupal_get_schema_versions('system');
   $system_version = $system_versions ? max($system_versions) : SCHEMA_INSTALLED;
-  Drupal::keyValue('system.schema')->set('system', $system_version);
+  \Drupal::keyValue('system.schema')->set('system', $system_version);
 
   // System module needs to be enabled and the system/module lists need to be
   // reset first in order to allow config_install_default_config() to invoke
   // config import callbacks.
   // @todo Installation profiles may override the system.module config object.
-  Drupal::config('system.module')
+  \Drupal::config('system.module')
     ->set('enabled.system', 0)
     ->save();
 
   // Update the module list to include it.
-  Drupal::moduleHandler()->setModuleList(array('system' => $system_path . '/system.module'));
+  \Drupal::moduleHandler()->setModuleList(array('system' => $system_path . '/system.module'));
 
   config_install_default_config('module', 'system');
 
@@ -1103,6 +1111,9 @@ function db_run_tasks($driver) {
  *
  * @param $driver
  *   The name of the driver.
+ *
+ * @return \Drupal\Core\Database\Install\Tasks
+ *   A class defining the requirements and tasks for installing the database.
  */
 function db_installer_object($driver) {
   // We cannot use Database::getConnection->getDriverClass() here, because

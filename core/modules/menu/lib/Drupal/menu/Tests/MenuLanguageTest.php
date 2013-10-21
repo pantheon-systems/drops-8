@@ -7,6 +7,7 @@
 
 namespace Drupal\menu\Tests;
 
+use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Language\Language;
 
 /**
@@ -40,7 +41,7 @@ class MenuLanguageTest extends MenuWebTestBase {
     $this->drupalLogin($this->admin_user);
 
     // Add some custom languages.
-    foreach (array('aa', 'bb', 'cc') as $language_code) {
+    foreach (array('aa', 'bb', 'cc', 'cs') as $language_code) {
       $language = new Language(array(
         'id' => $language_code,
         'name' => $this->randomName(),
@@ -55,7 +56,7 @@ class MenuLanguageTest extends MenuWebTestBase {
   function testMenuLanguage() {
     // Create a test menu to test the various language-related settings.
     // Machine name has to be lowercase.
-    $menu_name = drupal_strtolower($this->randomName(16));
+    $menu_name = Unicode::strtolower($this->randomName(16));
     $label = $this->randomString();
     $edit = array(
       'id' => $menu_name,
@@ -65,11 +66,9 @@ class MenuLanguageTest extends MenuWebTestBase {
       'default_language[langcode]' => 'bb',
       'default_language[language_show]' => TRUE,
     );
-    $this->drupalPost('admin/structure/menu/add', $edit, t('Save'));
+    $this->drupalPostForm('admin/structure/menu/add', $edit, t('Save'));
 
     // Check that the language settings were saved.
-    // The menu name should have been prefixed.
-    $menu_name = 'menu-' . $menu_name;
     $this->assertEqual(entity_load('menu', $menu_name)->langcode, $edit['langcode']);
     $language_settings = language_get_default_configuration('menu_link', $menu_name);
     $this->assertEqual($language_settings['langcode'], 'bb');
@@ -89,7 +88,7 @@ class MenuLanguageTest extends MenuWebTestBase {
       'link_title' => $link_title,
       'link_path' => $link_path,
     );
-    $this->drupalPost("admin/structure/menu/manage/$menu_name/add", $edit, t('Save'));
+    $this->drupalPostForm("admin/structure/menu/manage/$menu_name/add", $edit, t('Save'));
     // Check the link was added with the correct menu link default language.
     $menu_links = entity_load_multiple_by_properties('menu_link', array('link_title' => $link_title));
     $menu_link = reset($menu_links);
@@ -103,7 +102,7 @@ class MenuLanguageTest extends MenuWebTestBase {
     $edit = array(
       'default_language[langcode]' => 'cc',
     );
-    $this->drupalPost("admin/structure/menu/manage/$menu_name", $edit, t('Save'));
+    $this->drupalPostForm("admin/structure/menu/manage/$menu_name", $edit, t('Save'));
 
     // Check cc is the menu link default.
     $this->assertOptionSelected('edit-default-language-langcode', $edit['default_language[langcode]'], 'The menu link default language was correctly selected.');
@@ -114,7 +113,7 @@ class MenuLanguageTest extends MenuWebTestBase {
       'link_title' => $link_title,
       'link_path' => $link_path,
     );
-    $this->drupalPost("admin/structure/menu/manage/$menu_name/add", $edit, t('Save'));
+    $this->drupalPostForm("admin/structure/menu/manage/$menu_name/add", $edit, t('Save'));
     // Check the link was added with the correct new menu link default language.
     $menu_links = entity_load_multiple_by_properties('menu_link', array('link_title' => $link_title));
     $menu_link = reset($menu_links);
@@ -128,7 +127,7 @@ class MenuLanguageTest extends MenuWebTestBase {
     $edit = array(
       'langcode' => 'bb',
     );
-    $this->drupalPost('admin/structure/menu/item/' . $menu_link->id() . '/edit', $edit, t('Save'));
+    $this->drupalPostForm('admin/structure/menu/item/' . $menu_link->id() . '/edit', $edit, t('Save'));
     $this->assertMenuLink($menu_link->id(), array(
       'menu_name' => $menu_name,
       'link_path' => $link_path,
@@ -146,7 +145,7 @@ class MenuLanguageTest extends MenuWebTestBase {
     $edit = array(
       'default_language[language_show]' => FALSE,
     );
-    $this->drupalPost("admin/structure/menu/manage/$menu_name", $edit, t('Save'));
+    $this->drupalPostForm("admin/structure/menu/manage/$menu_name", $edit, t('Save'));
     $this->assertNoFieldChecked('edit-default-language-language-show');
 
     // Check that the language settings were saved.
@@ -157,6 +156,38 @@ class MenuLanguageTest extends MenuWebTestBase {
     // Check that the language selector is not available on menu link add page.
     $this->drupalGet("admin/structure/menu/manage/$menu_name/add");
     $this->assertNoField('edit-langcode', 'The language selector field was hidden the page');
+  }
+
+  /**
+   * Tests menu configuration is still English after English has been deleted.
+   */
+  function testMenuLanguageRemovedEnglish() {
+    // Create a test menu to test language settings.
+    // Machine name has to be lowercase.
+    $menu_name = Unicode::strtolower($this->randomName(16));
+    $edit = array(
+      'id' => $menu_name,
+      'description' => '',
+      'label' => $this->randomString(),
+      'langcode' => 'en',
+    );
+    $this->drupalPostForm('admin/structure/menu/add', $edit, t('Save'));
+
+    // Check that the language settings were saved.
+    $menu = menu_load($menu_name);
+    $this->assertEqual($menu->langcode, 'en');
+
+    // Remove English language. To do that another language has to be set as
+    // default.
+    $language = language_load('cs');
+    $language->default = TRUE;
+    language_save($language);
+    language_delete('en');
+
+    // Save the menu again and check if the language is still the same.
+    $this->drupalPostForm("admin/structure/menu/manage/$menu_name", array(), t('Save'));
+    $menu = menu_load($menu_name);
+    $this->assertEqual($menu->langcode, 'en');
   }
 
 }

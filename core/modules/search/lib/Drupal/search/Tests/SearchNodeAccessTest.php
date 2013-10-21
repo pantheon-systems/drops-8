@@ -45,7 +45,7 @@ class SearchNodeAccessTest extends SearchTestBase {
     $node = $this->drupalCreateNode(array('body' => array(array('value' => "The bunny's ears were fluffy."))));
 
     // Update the search index.
-    module_invoke_all('update_index');
+    $this->container->get('plugin.manager.search')->createInstance('node_search')->updateIndex();
     search_update_totals();
 
     // Refresh variables after the treatment.
@@ -53,7 +53,7 @@ class SearchNodeAccessTest extends SearchTestBase {
 
     // Submit a phrase wrapped in double quotes to include the punctuation.
     $edit = array('keys' => '"bunny\'s"');
-    $this->drupalPost('search/node', $edit, t('Search'));
+    $this->drupalPostForm('search/node', $edit, t('Search'));
     $this->assertText($node->label());
   }
 }

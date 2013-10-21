@@ -51,6 +51,14 @@ abstract class EntityDisplayBase extends ConfigEntityBase implements EntityDispl
   public $mode;
 
   /**
+   * Whether this display is enabled or not. If the entity (form) display
+   * is disabled, we'll fall back to the 'default' display.
+   *
+   * @var boolean
+   */
+  public $status;
+
+  /**
    * List of component display options, keyed by component name.
    *
    * @var array
@@ -121,6 +129,20 @@ abstract class EntityDisplayBase extends ConfigEntityBase implements EntityDispl
   /**
    * {@inheritdoc}
    */
+  public function save() {
+    $return = parent::save();
+
+    // Reset the render cache for the target entity type.
+    if (\Drupal::entityManager()->hasController($this->targetEntityType, 'render')) {
+      \Drupal::entityManager()->getRenderController($this->targetEntityType)->resetCache();
+    }
+
+    return $return;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function getExportProperties() {
     $names = array(
       'id',
@@ -129,6 +151,7 @@ abstract class EntityDisplayBase extends ConfigEntityBase implements EntityDispl
       'bundle',
       'mode',
       'content',
+      'status',
     );
     $properties = array();
     foreach ($names as $name) {
@@ -209,8 +232,7 @@ abstract class EntityDisplayBase extends ConfigEntityBase implements EntityDispl
     }
 
     if ($instance = field_info_instance($this->targetEntityType, $name, $this->bundle)) {
-      $field = $instance->getField();
-      $options = $this->pluginManager->prepareConfiguration($field['type'], $options);
+      $options = $this->pluginManager->prepareConfiguration($instance->getFieldType(), $options);
 
       // Clear the persisted plugin, if any.
       unset($this->plugins[$name]);

@@ -19,7 +19,7 @@ class AuthTest extends RESTTestBase {
    *
    * @var array
    */
-  public static $modules = array('hal', 'rest', 'entity_test');
+  public static $modules = array('basic_auth', 'hal', 'rest', 'entity_test');
 
   /**
    * {@inheritdoc}
@@ -39,7 +39,7 @@ class AuthTest extends RESTTestBase {
     $entity_type = 'entity_test';
 
     // Enable a test resource through GET method and basic HTTP authentication.
-    $this->enableService('entity:' . $entity_type, 'GET', NULL, array('http_basic'));
+    $this->enableService('entity:' . $entity_type, 'GET', NULL, array('basic_auth'));
 
     // Create an entity programmatically.
     $entity = $this->entityCreate($entity_type);
@@ -49,6 +49,9 @@ class AuthTest extends RESTTestBase {
     $response = $this->httpRequest('entity/' . $entity_type . '/' . $entity->id(), 'GET', NULL, $this->defaultMimeType);
     $this->assertResponse('401', 'HTTP response code is 401 when the request is not authenticated and the user is anonymous.');
     $this->assertText('A fatal error occurred: No authentication credentials provided.');
+
+    // Ensure that cURL settings/headers aren't carried over to next request.
+    unset($this->curlHandle);
 
     // Create a user account that has the required permissions to read
     // resources via the REST API, but the request is authenticated
@@ -61,8 +64,10 @@ class AuthTest extends RESTTestBase {
     // Try to read the resource with session cookie authentication, which is
     // not enabled and should not work.
     $response = $this->httpRequest('entity/' . $entity_type . '/' . $entity->id(), 'GET', NULL, $this->defaultMimeType);
-    $this->assertResponse('403', 'HTTP response code is 403 when the request is authenticated but not authorized.');
-    $this->drupalLogout();
+    $this->assertResponse('401', 'HTTP response code is 401 when the request is authenticated but not authorized.');
+
+    // Ensure that cURL settings/headers aren't carried over to next request.
+    unset($this->curlHandle);
 
     // Now read it with the Basic authentication which is enabled and should
     // work.

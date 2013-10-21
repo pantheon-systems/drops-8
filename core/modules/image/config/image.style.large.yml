@@ -1,12 +1,13 @@
 name: large
+uuid: b05eae5c-1755-4520-b848-72614923a496
 label: 'Large (480x480)'
 effects:
   ddd73aa7-4bd6-4c85-b600-bdf2b1628d1d:
     id: image_scale
     data:
-      width: '480'
-      height: '480'
-      upscale: '1'
-    weight: '0'
+      width: 480
+      height: 480
+      upscale: true
+    weight: 0
     uuid: ddd73aa7-4bd6-4c85-b600-bdf2b1628d1d
 langcode: en

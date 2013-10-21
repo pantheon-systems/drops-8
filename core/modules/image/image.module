@@ -6,6 +6,7 @@
  */
 
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Component\Plugin\Exception\UnknownPluginException;
 use Drupal\field\Entity\Field;
 use Drupal\field\Entity\FieldInstance;
 use Drupal\file\Entity\File;
@@ -69,21 +70,18 @@ function image_help($path, $arg) {
     case 'admin/config/media/image-styles':
       return '<p>' . t('Image styles commonly provide thumbnail sizes by scaling and cropping images, but can also add various effects before an image is displayed. When an image is displayed with a style, a new file is created and the original image is left unchanged.') . '</p>';
     case 'admin/config/media/image-styles/manage/%/add/%':
-      $effect = Drupal::service('plugin.manager.image.effect')->getDefinition($arg[7]);
+      $effect = \Drupal::service('plugin.manager.image.effect')->getDefinition($arg[7]);
       return isset($effect['description']) ? ('<p>' . $effect['description'] . '</p>') : NULL;
     case 'admin/config/media/image-styles/manage/%/effects/%':
-      $effect = entity_load('image_style', $arg[5])->getEffect($arg[7])->getPluginDefinition();
-      return isset($effect['description']) ? ('<p>' . $effect['description'] . '</p>') : NULL;
+      try {
+        $effect = entity_load('image_style', $arg[5])->getEffect($arg[7]);
+      }
+      catch (UnknownPluginException $e) {
+        return NULL;
+      }
+      $effect_definition = $effect->getPluginDefinition();
+      return isset($effect_definition['description']) ? ('<p>' . $effect_definition['description'] . '</p>') : NULL;
   }
-}
-
-/**
- * Entity URI callback for image style.
- */
-function image_style_entity_uri(ImageStyle $style) {
-  return array(
-    'path' => 'admin/config/media/image-styles/manage/' . $style->id(),
-  );
 }
 
 /**
@@ -95,48 +93,36 @@ function image_menu() {
   $items['admin/config/media/image-styles'] = array(
     'title' => 'Image styles',
     'description' => 'Configure styles that can be used for resizing or adjusting images on display.',
-    'route_name' => 'image_style_list',
+    'route_name' => 'image.style_list',
   );
   $items['admin/config/media/image-styles/list'] = array(
     'title' => 'List',
     'description' => 'List the current image styles on the site.',
     'type' => MENU_DEFAULT_LOCAL_TASK,
   );
-  $items['admin/config/media/image-styles/add'] = array(
-    'route_name' => 'image_style_add',
-    'type' => MENU_SIBLING_LOCAL_TASK,
-    'weight' => 1,
-  );
   $items['admin/config/media/image-styles/manage/%image_style'] = array(
     'title' => 'Edit style',
     'description' => 'Configure an image style.',
-    'route_name' => 'image_style_edit',
+    'route_name' => 'image.style_edit',
   );
   $items['admin/config/media/image-styles/manage/%image_style/edit'] = array(
     'title' => 'Edit',
     'type' => MENU_DEFAULT_LOCAL_TASK,
   );
-  $items['admin/config/media/image-styles/manage/%image_style/delete'] = array(
-    'title' => 'Delete',
-    'description' => 'Delete an image style.',
-    'type' => MENU_LOCAL_TASK,
-    'weight' => 10,
-    'route_name' => 'image_style_delete',
-  );
   $items['admin/config/media/image-styles/manage/%/effects/%'] = array(
     'title' => 'Edit image effect',
     'description' => 'Edit an existing effect within a style.',
-    'route_name' => 'image_effect_edit_form',
+    'route_name' => 'image.effect_edit_form',
   );
   $items['admin/config/media/image-styles/manage/%image_style/effects/%/delete'] = array(
     'title' => 'Delete image effect',
     'description' => 'Delete an existing effect from a style.',
-    'route_name' => 'image_effect_delete',
+    'route_name' => 'image.effect_delete',
   );
   $items['admin/config/media/image-styles/manage/%/add/%'] = array(
     'title' => 'Add image effect',
     'description' => 'Add a new effect to a style.',
-    'route_name' => 'image_effect_add_form',
+    'route_name' => 'image.effect_add_form',
   );
 
   return $items;
@@ -237,21 +223,18 @@ function image_file_download($uri) {
   // Private file access for image style derivatives.
   if (strpos($path, 'styles/') === 0) {
     $args = explode('/', $path);
-    // Discard the first part of the path (styles).
-    array_shift($args);
-    // Get the style name from the second part.
-    $style_name = array_shift($args);
-    // Remove the scheme from the path.
-    array_shift($args);
+
+    // Discard "styles", style name, and scheme from the path
+    $args = array_slice($args, 3);
 
     // Then the remaining parts are the path to the image.
     $original_uri = file_uri_scheme($uri) . '://' . implode('/', $args);
 
     // Check that the file exists and is an image.
-    $image = Drupal::service('image.factory')->get($uri);
-    if ($image->getExtension()) {
+    $image = \Drupal::service('image.factory')->get($uri);
+    if ($image->isSupported()) {
       // Check the permissions of the original to grant access to this image.
-      $headers = Drupal::moduleHandler()->invokeAll('file_download', array($original_uri));
+      $headers = \Drupal::moduleHandler()->invokeAll('file_download', array($original_uri));
       // Confirm there's at least one module granting access and none denying access.
       if (!empty($headers) && !in_array(-1, $headers)) {
         return array(
@@ -465,8 +448,12 @@ function image_field_entity_update(FieldInterface $field) {
   // The value of a managed_file element can be an array if #extended == TRUE.
   $fid_new = (isset($field->settings['default_image']['fids']) ? $field->settings['default_image']['fids'] : $field->settings['default_image']);
   $fid_old = (isset($prior_field->settings['default_image']['fids']) ? $prior_field->settings['default_image']['fids'] : $prior_field->settings['default_image']);
+  // Ensure sure that fid_new and old are arrays, because default_image might
+  // be the fallback value 0, see image_field_info().
+  $fid_old = (array) $fid_old;
+  $fid_new = (array) $fid_new;
 
-  $file_new = $fid_new ? file_load($fid_new) : FALSE;
+  $file_new = $fid_new ? file_load(reset($fid_new)) : FALSE;
 
   if ($fid_new != $fid_old) {
 
@@ -478,7 +465,7 @@ function image_field_entity_update(FieldInterface $field) {
     }
 
     // Is there an old file?
-    if ($fid_old && ($file_old = file_load($fid_old[0]))) {
+    if ($fid_old && ($file_old = file_load(reset($fid_old)))) {
       file_usage()->delete($file_old, 'image', 'default_image', $field->uuid);
     }
   }

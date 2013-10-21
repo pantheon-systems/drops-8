@@ -109,7 +109,7 @@ class CKEditorLoadingTest extends WebTestBase {
     $this->assertTrue($editor_js_present, 'Text Editor JavaScript is present.');
     $this->assertTrue(count($body) === 1, 'A body field exists.');
     $this->assertTrue(count($format_selector) === 1, 'A single text format selector exists on the page.');
-    $specific_format_selector = $this->xpath('//select[contains(@class, "filter-list") and contains(@class, "editor") and @data-editor-for="edit-body-und-0-value"]');
+    $specific_format_selector = $this->xpath('//select[contains(@class, "filter-list") and contains(@class, "editor") and @data-editor-for="edit-body-0-value"]');
     $this->assertTrue(count($specific_format_selector) === 1, 'A single text format selector exists on the page and has the "editor" class and a "data-editor-for" attribute with the correct value.');
     $this->assertTrue(isset($settings['ajaxPageState']['js']['core/modules/ckeditor/js/ckeditor.js']), 'CKEditor glue JS is present.');
     $this->assertTrue(isset($settings['ajaxPageState']['js']['core/assets/vendor/ckeditor/ckeditor.js']), 'CKEditor lib JS is present.');
@@ -119,7 +119,7 @@ class CKEditorLoadingTest extends WebTestBase {
     // NOTE: the tests in CKEditorTest already ensure that changing the
     // configuration also results in modified CKEditor configuration, so we
     // don't test that here.
-    module_enable(array('ckeditor_test'));
+    \Drupal::moduleHandler()->install(array('ckeditor_test'));
     $this->container->get('plugin.manager.ckeditor.plugin')->clearCachedDefinitions();
     $editor->settings['toolbar']['buttons'][0][] = 'Llama';
     $editor->save();
@@ -147,7 +147,7 @@ class CKEditorLoadingTest extends WebTestBase {
       // Editor.module's JS present.
       isset($settings['ajaxPageState']['js']['core/modules/editor/js/editor.js']),
       // Body field.
-      $this->xpath('//textarea[@id="edit-body-und-0-value"]'),
+      $this->xpath('//textarea[@id="edit-body-0-value"]'),
       // Format selector.
       $this->xpath('//select[contains(@class, "filter-list")]'),
     );

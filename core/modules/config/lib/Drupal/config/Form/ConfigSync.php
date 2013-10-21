@@ -7,6 +7,7 @@
 
 namespace Drupal\config\Form;
 
+use Drupal\Component\Uuid\UuidInterface;
 use Drupal\Core\Entity\EntityManager;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Config\StorageInterface;
@@ -53,11 +54,6 @@ class ConfigSync extends FormBase {
   protected $eventDispatcher;
 
   /**
-   * @var \Drupal\Core\Config\ConfigFactory;
-   */
-  protected $configFactory;
-
-  /**
    * @var \Drupal\Core\Entity\EntityManager;
    */
   protected $entity_manager;
@@ -68,6 +64,13 @@ class ConfigSync extends FormBase {
    * @var \Drupal\Core\Routing\UrlGeneratorInterface
    */
   protected $urlGenerator;
+
+  /**
+   * The UUID service.
+   *
+   * @var \Drupal\Component\Uuid\UuidInterface
+   */
+  protected $uuidService;
 
   /**
    * Constructs the object.
@@ -81,13 +84,15 @@ class ConfigSync extends FormBase {
    * @param \Symfony\Component\EventDispatcher\EventDispatcherInterface $event_dispatcher
    *   Event dispatcher.
    * @param \Drupal\Core\Config\ConfigFactory $config_factory
-   *   Configuration object factory.
+   *   The config factory.
    * @param \Drupal\Core\Entity\EntityManager $entity_manager
    *   Entity manager.
    * @param \Drupal\Core\Routing\UrlGeneratorInterface $url_generator
    *   The url generator service.
+   * @param \Drupal\Component\Uuid\UuidInterface $uuid_service
+   * The UUID Service.
    */
-  public function __construct(StorageInterface $sourceStorage, StorageInterface $targetStorage, LockBackendInterface $lock, EventDispatcherInterface $event_dispatcher, ConfigFactory $config_factory, EntityManager $entity_manager, UrlGeneratorInterface $url_generator) {
+  public function __construct(StorageInterface $sourceStorage, StorageInterface $targetStorage, LockBackendInterface $lock, EventDispatcherInterface $event_dispatcher, ConfigFactory $config_factory, EntityManager $entity_manager, UrlGeneratorInterface $url_generator, UuidInterface $uuid_service) {
     $this->sourceStorage = $sourceStorage;
     $this->targetStorage = $targetStorage;
     $this->lock = $lock;
@@ -95,6 +100,7 @@ class ConfigSync extends FormBase {
     $this->configFactory = $config_factory;
     $this->entity_manager = $entity_manager;
     $this->urlGenerator = $url_generator;
+    $this->uuidService = $uuid_service;
   }
 
   /**
@@ -108,14 +114,15 @@ class ConfigSync extends FormBase {
       $container->get('event_dispatcher'),
       $container->get('config.factory'),
       $container->get('entity.manager'),
-      $container->get('url_generator')
+      $container->get('url_generator'),
+      $container->get('uuid')
     );
   }
 
   /**
    * {@inheritdoc}
    */
-  public function getFormID() {
+  public function getFormId() {
     return 'config_admin_import_form';
   }
 
@@ -178,7 +185,7 @@ class ConfigSync extends FormBase {
       foreach ($config_files as $config_file) {
         $links['view_diff'] = array(
           'title' => $this->t('View differences'),
-          'href' => $this->urlGenerator->getPathFromRoute('config_diff', array('config_file' => $config_file)),
+          'href' => $this->urlGenerator->getPathFromRoute('config.diff', array('config_file' => $config_file)),
           'attributes' => array(
             'class' => array('use-ajax'),
             'data-accepts' => 'application/vnd.drupal-modal',
@@ -211,7 +218,8 @@ class ConfigSync extends FormBase {
       $this->eventDispatcher,
       $this->configFactory,
       $this->entity_manager,
-      $this->lock
+      $this->lock,
+      $this->uuidService
     );
     if ($config_importer->alreadyImporting()) {
       drupal_set_message($this->t('Another request may be synchronizing configuration already.'));

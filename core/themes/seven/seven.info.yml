@@ -1,6 +1,6 @@
 name: Seven
 type: theme
-description: 'A simple one-column, tableless, fluid width administration theme.'
+description: 'A clean and friendly administration theme.'
 package: Core
 version: VERSION
 core: 8.x
@@ -9,8 +9,9 @@ stylesheets:
     - style.css
 stylesheets-override:
   - vertical-tabs.css
-  - vertical-tabs-rtl.css
   - jquery.ui.theme.css
+edit_stylesheets:
+  - edit.css
 settings:
   # @todo D8: Remove once themes have to be installed.
   shortcut_module_link: '1'

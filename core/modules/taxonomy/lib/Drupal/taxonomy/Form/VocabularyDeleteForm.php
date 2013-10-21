@@ -18,7 +18,7 @@ class VocabularyDeleteForm extends EntityConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function getFormID() {
+  public function getFormId() {
     return 'taxonomy_vocabulary_confirm_delete';
   }
 
@@ -32,8 +32,10 @@ class VocabularyDeleteForm extends EntityConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function getCancelPath() {
-    return 'admin/structure/taxonomy';
+  public function getCancelRoute() {
+    return array(
+      'route_name' => 'taxonomy.vocabulary_list',
+    );
   }
 
   /**

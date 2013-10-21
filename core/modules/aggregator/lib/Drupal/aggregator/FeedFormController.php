@@ -8,13 +8,13 @@
 namespace Drupal\aggregator;
 
 use Drupal\Component\Utility\String;
-use Drupal\Core\Entity\EntityFormControllerNG;
+use Drupal\Core\Entity\ContentEntityFormController;
 use Drupal\Core\Language\Language;
 
 /**
  * Form controller for the aggregator feed edit forms.
  */
-class FeedFormController extends EntityFormControllerNG {
+class FeedFormController extends ContentEntityFormController {
 
   /**
    * {@inheritdoc}
@@ -53,12 +53,6 @@ class FeedFormController extends EntityFormControllerNG {
       '#default_value' => $feed->refresh->value,
       '#options' => $period,
       '#description' => $this->t('The length of time between feed updates. Requires a correctly configured <a href="@cron">cron maintenance task</a>.', array('@cron' => url('admin/reports/status'))),
-    );
-    $form['block'] = array('#type' => 'select',
-      '#title' => $this->t('News items in block'),
-      '#default_value' => $feed->block->value,
-      '#options' => drupal_map_assoc(array(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20)),
-      '#description' => $this->t("Drupal can make a block with the most recent news items of this feed. You can <a href=\"@block-admin\">configure blocks</a> to be displayed in the sidebar of your page. This setting lets you configure the number of news items to show in this feed's block. If you choose '0' this feed's block will be disabled.", array('@block-admin' => url('admin/structure/block'))),
     );
 
     // Handling of categories.
@@ -117,7 +111,7 @@ class FeedFormController extends EntityFormControllerNG {
     $insert = (bool) $feed->id();
     if (!empty($form_state['values']['category'])) {
       // Store category values for post save operations.
-      // @see Drupal\Core\Entity\FeedStorageController::postSave()
+      // @see \Drupal\Core\Entity\FeedStorageController::postSave()
       $feed->categories = $form_state['values']['category'];
     }
     $feed->save();

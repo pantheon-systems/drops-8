@@ -72,7 +72,7 @@ class CustomBlockFieldTest extends CustomBlockTestBase {
     ));
     $this->field->save();
     $this->instance = entity_create('field_instance', array(
-      'field_name' => $this->field->name,
+      'field_name' => $this->field->getFieldName(),
       'entity_type' => 'custom_block',
       'bundle' => 'link',
       'settings' => array(
@@ -81,12 +81,12 @@ class CustomBlockFieldTest extends CustomBlockTestBase {
     ));
     $this->instance->save();
     entity_get_form_display('custom_block', 'link', 'default')
-      ->setComponent($this->field['field_name'], array(
+      ->setComponent($this->field->getFieldName(), array(
         'type' => 'link_default',
       ))
       ->save();
     entity_get_display('custom_block', 'link', 'default')
-      ->setComponent($this->field['field_name'], array(
+      ->setComponent($this->field->getFieldName(), array(
         'type' => 'link',
         'label' => 'hidden',
       ))
@@ -96,19 +96,19 @@ class CustomBlockFieldTest extends CustomBlockTestBase {
     $this->drupalGet('block/add/link');
     $edit = array(
       'info' => $this->randomName(8),
-      $this->field['field_name'] . '[und][0][url]' => 'http://example.com',
-      $this->field['field_name'] . '[und][0][title]' => 'Example.com'
+      $this->field->getFieldName() . '[0][url]' => 'http://example.com',
+      $this->field->getFieldName() . '[0][title]' => 'Example.com'
     );
-    $this->drupalPost(NULL, $edit, t('Save'));
+    $this->drupalPostForm(NULL, $edit, t('Save'));
     $block = entity_load('custom_block', 1);
     $url = 'admin/structure/block/add/custom_block:' . $block->uuid() . '/' . \Drupal::config('system.theme')->get('default');
     // Place the block.
     $instance = array(
-      'machine_name' => drupal_strtolower($edit['info']),
+      'id' => drupal_strtolower($edit['info']),
       'settings[label]' => $edit['info'],
       'region' => 'sidebar_first',
     );
-    $this->drupalPost($url, $instance, t('Save block'));
+    $this->drupalPostForm($url, $instance, t('Save block'));
     // Navigate to home page.
     $this->drupalGet('<front>');
     $this->assertLinkByHref('http://example.com');

@@ -10,7 +10,7 @@ namespace Drupal\node;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Database\Query\SelectInterface;
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\Core\Entity\EntityNG;
+use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\user\Entity\User;
@@ -136,7 +136,6 @@ class NodeGrantDatabaseStorage implements NodeGrantDatabaseStorageInterface {
     foreach ($tables as $nalias => $tableinfo) {
       $table = $tableinfo['table'];
       if (!($table instanceof SelectInterface) && $table == $base_table) {
-        $base_table_found = TRUE;
         // Set the subquery.
         $subquery = $this->database->select('node_access', 'na')
           ->fields('na', array('nid'));

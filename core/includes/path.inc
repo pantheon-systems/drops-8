@@ -22,7 +22,7 @@ function drupal_is_front_page() {
   $is_front_page = &$drupal_static_fast['is_front_page'];
 
   if (!isset($is_front_page)) {
-    $is_front_page = (current_path() == Drupal::config('system.site')->get('page.front'));
+    $is_front_page = (current_path() == \Drupal::config('system.site')->get('page.front'));
   }
 
   return $is_front_page;
@@ -53,7 +53,7 @@ function drupal_match_path($path, $patterns) {
     $replacements = array(
       '|',
       '.*',
-      '\1' . preg_quote(Drupal::config('system.site')->get('page.front'), '/') . '\2'
+      '\1' . preg_quote(\Drupal::config('system.site')->get('page.front'), '/') . '\2'
     );
     $patterns_quoted = preg_quote($patterns, '/');
     $regexps[$patterns] = '/^(' . preg_replace($to_replace, $replacements, $patterns_quoted) . ')$/';
@@ -158,7 +158,7 @@ function path_is_admin($path) {
 function path_get_admin_paths() {
   $patterns = &drupal_static(__FUNCTION__);
   if (!isset($patterns)) {
-    $paths = Drupal::moduleHandler()->invokeAll('admin_paths');
+    $paths = \Drupal::moduleHandler()->invokeAll('admin_paths');
     drupal_alter('admin_paths', $paths);
     // Combine all admin paths into one array, and likewise for non-admin paths,
     // for easier handling.
@@ -201,8 +201,8 @@ function drupal_valid_path($path, $dynamic_allowed = FALSE) {
   elseif ($dynamic_allowed && preg_match('/\/\%/', $path)) {
     // Path is dynamic (ie 'user/%'), so check directly against menu_router table.
     if ($item = db_query("SELECT * FROM {menu_router} where path = :path", array(':path' => $path))->fetchAssoc()) {
-      $item['link_path']  = $form_item['link_path'];
-      $item['link_title'] = $form_item['link_title'];
+      $item['link_path']  = $item['path'];
+      $item['link_title'] = $item['title'];
       $item['external']   = FALSE;
       $item['options'] = '';
       _menu_link_translate($item);
@@ -214,7 +214,7 @@ function drupal_valid_path($path, $dynamic_allowed = FALSE) {
   // Check the new routing system.
   if (!empty($item['route_name'])) {
     $map = array();
-    $route = Drupal::service('router.route_provider')->getRouteByName($item['route_name']);
+    $route = \Drupal::service('router.route_provider')->getRouteByName($item['route_name']);
     $item['access'] = menu_item_route_access($route, $path, $map);
   }
   $menu_admin = FALSE;

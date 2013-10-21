@@ -7,7 +7,7 @@
 
 namespace Drupal\aggregator\Entity;
 
-use Drupal\Core\Entity\EntityNG;
+use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Entity\EntityStorageControllerInterface;
 use Drupal\Core\Entity\Annotation\EntityType;
 use Drupal\Core\Annotation\Translation;
@@ -32,14 +32,14 @@ use Drupal\aggregator\ItemInterface;
  *   }
  * )
  */
-class Item extends EntityNG implements ItemInterface {
+class Item extends ContentEntityBase implements ItemInterface {
 
   /**
    * The feed item ID.
    *
    * @todo rename to id.
    *
-   * @var \Drupal\Core\Entity\Field\FieldInterface
+   * @var \Drupal\Core\Entity\Field\FieldItemListInterface
    */
   public $iid;
 
@@ -48,61 +48,61 @@ class Item extends EntityNG implements ItemInterface {
    *
    * @todo rename to feed_id.
    *
-   * @var \Drupal\Core\Entity\Field\FieldInterface
+   * @var \Drupal\Core\Entity\Field\FieldItemListInterface
    */
   public $fid;
 
   /**
    * Title of the feed item.
    *
-   * @var \Drupal\Core\Entity\Field\FieldInterface
+   * @var \Drupal\Core\Entity\Field\FieldItemListInterface
    */
   public $title;
 
   /**
    * The feed language code.
    *
-   * @var \Drupal\Core\Entity\Field\FieldInterface
+   * @var \Drupal\Core\Entity\Field\FieldItemListInterface
    */
   public $langcode;
 
   /**
    * Link to the feed item.
    *
-   * @var \Drupal\Core\Entity\Field\FieldInterface
+   * @var \Drupal\Core\Entity\Field\FieldItemListInterface
    */
   public $link;
 
   /**
    * Author of the feed item.
    *
-   * @var \Drupal\Core\Entity\Field\FieldInterface
+   * @var \Drupal\Core\Entity\Field\FieldItemListInterface
    */
   public $author;
 
   /**
    * Body of the feed item.
    *
-   * @var \Drupal\Core\Entity\Field\FieldInterface
+   * @var \Drupal\Core\Entity\Field\FieldItemListInterface
    */
   public $description;
 
   /**
    * Posted date of the feed item, as a Unix timestamp.
    *
-   * @var \Drupal\Core\Entity\Field\FieldInterface
+   * @var \Drupal\Core\Entity\Field\FieldItemListInterface
    */
   public $timestamp;
 
   /**
    * Unique identifier for the feed item.
    *
-   * @var \Drupal\Core\Entity\Field\FieldInterface
+   * @var \Drupal\Core\Entity\Field\FieldItemListInterface
    */
   public $guid;
 
   /**
-   * Overrides Drupal\Core\Entity\EntityNG::init().
+   * {@inheritdoc}
    */
   public function init() {
     parent::init();
@@ -136,6 +136,8 @@ class Item extends EntityNG implements ItemInterface {
    * {@inheritdoc}
    */
   public function postCreate(EntityStorageControllerInterface $storage_controller) {
+    parent::postCreate($storage_controller);
+
     if (!isset($this->timestamp->value)) {
       $this->timestamp->value = REQUEST_TIME;
     }
@@ -145,6 +147,8 @@ class Item extends EntityNG implements ItemInterface {
    * {@inheritdoc}
    */
   public function postSave(EntityStorageControllerInterface $storage_controller, $update = TRUE) {
+    parent::postSave($storage_controller, $update);
+
     $storage_controller->saveCategories($this);
   }
 
@@ -152,6 +156,8 @@ class Item extends EntityNG implements ItemInterface {
    * {@inheritdoc}
    */
   public static function preDelete(EntityStorageControllerInterface $storage_controller, array $entities) {
+    parent::preDelete($storage_controller, $entities);
+
     $storage_controller->deleteCategories($entities);
   }
 
@@ -207,4 +213,5 @@ class Item extends EntityNG implements ItemInterface {
     );
     return $fields;
   }
+
 }

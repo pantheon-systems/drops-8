@@ -13,10 +13,6 @@ use Drupal\views\ViewExecutable;
 use Drupal\views_ui\ViewUI;
 use Symfony\Component\DependencyInjection\Container;
 
-if (!defined('DRUPAL_CORE_COMPATIBILITY')) {
-  define('DRUPAL_CORE_COMPATIBILITY', '8.x');
-}
-
 /**
  * Tests the ViewUI class.
  *
@@ -39,10 +35,8 @@ class ViewUIObjectTest extends UnitTestCase {
     $method_args = array();
     $method_args['setOriginalID'] = array(12);
     $method_args['setStatus'] = array(TRUE);
-    $method_args['setNewRevision'] = array(FALSE);
     $method_args['enforceIsNew'] = array(FALSE);
     $method_args['label'] = array(Language::LANGCODE_NOT_SPECIFIED);
-    $method_args['isDefaultRevision'] = array(TRUE);
 
     $reflection = new \ReflectionClass('Drupal\Core\Config\Entity\ConfigEntityInterface');
     $interface_methods = array();

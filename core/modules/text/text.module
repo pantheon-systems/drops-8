@@ -13,7 +13,7 @@ use Drupal\Core\Entity\EntityInterface;
 function text_library_info() {
   $libraries['drupal.text'] = array(
     'title' => 'Text',
-    'version' => VERSION,
+    'version' => \Drupal::VERSION,
     'js' => array(
       drupal_get_path('module', 'text') . '/text.js' => array(),
     ),
@@ -41,42 +41,6 @@ function text_help($path, $arg) {
 }
 
 /**
- * Sanitizes the 'value' or 'summary' data of a text value.
- *
- * Depending on whether the field instance uses text processing, data is run
- * through check_plain() or check_markup().
- *
- * @param bool $text_processing
- *   Whether to process the text via check_markup().
- * @param string $langcode
- *  The language associated with $item.
- * @param array $item
- *   The field value to sanitize.
- * @param string $column
- *   The column to sanitize (either 'value' or 'summary').
- *
- * @return string
- *   The sanitized string.
- */
-function text_sanitize($text_processing, $langcode, $item, $column) {
-  if (isset($item["safe_$column"])) {
-    return $item["safe_$column"];
-  }
-
-  // Optimize by opting out for the trivial 'empty string' case.
-  if ($item[$column] == '') {
-    return '';
-  }
-
-  if ($text_processing) {
-    return check_markup($item[$column], $item['format'], $langcode);
-  }
-  // Escape all HTML and retain newlines.
-  // @see \Drupal\text\Plugin\field\formatter\TextPlainFormatter
-  return nl2br(check_plain($item[$column]));
-}
-
-/**
  * Generates a trimmed, formatted version of a text field value.
  *
  * If the end of the summary is not indicated using the <!--break--> delimiter
@@ -87,11 +51,10 @@ function text_sanitize($text_processing, $langcode, $item, $column) {
  * @param $text
  *   The content for which a summary will be generated.
  * @param $format
- *   The format of the content. If the PHP filter is present and $text contains
- *   PHP code, we do not split it up to prevent parse errors. If the line break
- *   filter is present then we treat newlines embedded in $text as line breaks.
- *   If the htmlcorrector filter is present, it will be run on the generated
- *   summary (if different from the incoming $text).
+ *   The format of the content. If the line break filter is present then we
+ *   treat newlines embedded in $text as line breaks. If the htmlcorrector
+ *   filter is present, it will be run on the generated summary (if different
+ *   from the incoming $text).
  * @param $size
  *   The desired character length of the summary. If omitted, the default value
  *   will be used. Ignored if the special delimiter is present in $text.
@@ -102,7 +65,7 @@ function text_sanitize($text_processing, $langcode, $item, $column) {
 function text_summary($text, $format = NULL, $size = NULL) {
 
   if (!isset($size)) {
-    $size = Drupal::config('text.settings')->get('default_summary_length');
+    $size = \Drupal::config('text.settings')->get('default_summary_length');
   }
 
   // Find where the delimiter is in the body
@@ -127,13 +90,6 @@ function text_summary($text, $format = NULL, $size = NULL) {
     if (!$filters) {
       return '';
     }
-  }
-
-  // We check for the presence of the PHP evaluator filter in the current
-  // format. If the body contains PHP code, we do not split it up to prevent
-  // parse errors.
-  if (isset($format) && $filters->has('php_code') && $filters->get('php_code')->status && strpos($text, '<?') !== FALSE) {
-    return $text;
   }
 
   // If we have a short body, the entire body is the summary.

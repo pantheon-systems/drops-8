@@ -211,6 +211,7 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
 
     $form['displays']['page'] = array(
       '#type' => 'fieldset',
+      '#title' => t('Page settings'),
       '#attributes' => array('class' => array('views-attachment', 'fieldset-no-legend')),
       '#tree' => TRUE,
     );
@@ -248,6 +249,7 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
     );
     $form['displays']['page']['options']['style'] = array(
       '#type' => 'fieldset',
+      '#title' => t('Page display settings'),
       '#attributes' => array('class' => array('container-inline', 'fieldset-no-legend')),
     );
 
@@ -354,6 +356,7 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
 
     $form['displays']['block'] = array(
       '#type' => 'fieldset',
+      '#title' => t('Block settings'),
       '#attributes' => array('class' => array('views-attachment', 'fieldset-no-legend')),
       '#tree' => TRUE,
     );
@@ -385,6 +388,7 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
     );
     $form['displays']['block']['options']['style'] = array(
       '#type' => 'fieldset',
+      '#title' => t('Block display settings'),
       '#attributes' => array('class' => array('container-inline', 'fieldset-no-legend')),
     );
 
@@ -614,7 +618,7 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
   /**
    * Instantiates a view object from form values.
    *
-   * @return Drupal\views_ui\ViewUI
+   * @return \Drupal\views_ui\ViewUI
    *   The instantiated view UI object.
    */
   protected function instantiateView($form, &$form_state) {
@@ -697,14 +701,14 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
     $executable = $view->getExecutable();
 
     // Display: Master
-    $default_display = $view->newDisplay('default', 'Master', 'default');
+    $default_display = $executable->newDisplay('default', 'Master', 'default');
     foreach ($display_options['default'] as $option => $value) {
       $default_display->setOption($option, $value);
     }
 
     // Display: Page
     if (isset($display_options['page'])) {
-      $display = $view->newDisplay('page', 'Page', 'page_1');
+      $display = $executable->newDisplay('page', 'Page', 'page_1');
       // The page display is usually the main one (from the user's point of
       // view). Its options should therefore become the overall view defaults,
       // so that new displays which are added later automatically inherit them.
@@ -712,14 +716,14 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
 
       // Display: Feed (attached to the page).
       if (isset($display_options['feed'])) {
-        $display = $view->newDisplay('feed', 'Feed', 'feed_1');
+        $display = $executable->newDisplay('feed', 'Feed', 'feed_1');
         $this->setOverrideOptions($display_options['feed'], $display, $default_display);
       }
     }
 
     // Display: Block.
     if (isset($display_options['block'])) {
-      $display = $view->newDisplay('block', 'Block', 'block_1');
+      $display = $executable->newDisplay('block', 'Block', 'block_1');
       // When there is no page, the block display options should become the
       // overall view defaults.
       if (!isset($display_options['page'])) {
@@ -1055,11 +1059,11 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
    * @param array $options
    *   An array whose keys are the name of each option and whose values are the
    *   desired values to set.
-   * @param Drupal\views\View\plugin\display\DisplayPluginBase $display
+   * @param \Drupal\views\View\plugin\display\DisplayPluginBase $display
    *   The display handler which the options will be applied to. The default
    *   display will actually be assigned the options (and this display will
    *   inherit them) when possible.
-   * @param Drupal\views\View\plugin\display\DisplayPluginBase $default_display
+   * @param \Drupal\views\View\plugin\display\DisplayPluginBase $default_display
    *   The default display handler, which will store the options when possible.
    */
   protected function setDefaultOptions($options, DisplayPluginBase $display, DisplayPluginBase $default_display) {
@@ -1091,11 +1095,11 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
    * @param array $options
    *   An array whose keys are the name of each option and whose values are the
    *   desired values to set.
-   * @param Drupal\views\View\plugin\display\DisplayPluginBase $display
+   * @param \Drupal\views\View\plugin\display\DisplayPluginBase $display
    *   The display handler which the options will be applied to. The default
    *   display will actually be assigned the options (and this display will
    *   inherit them) when possible.
-   * @param Drupal\views\View\plugin\display\DisplayPluginBase $default_display
+   * @param \Drupal\views\View\plugin\display\DisplayPluginBase $default_display
    *   The default display handler, which will store the options when possible.
    */
   protected function setOverrideOptions(array $options, DisplayPluginBase $display, DisplayPluginBase $default_display) {
@@ -1122,7 +1126,7 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
    * @param bool $unset
    *   Should the view be removed from the list of validated views.
    *
-   * @return Drupal\views_ui\ViewUI $view
+   * @return \Drupal\views_ui\ViewUI $view
    *   The validated view object.
    */
   protected function retrieveValidatedView(array $form, array &$form_state, $unset = TRUE) {
@@ -1143,7 +1147,7 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
    *   The full wizard form array.
    * @param array $form_state
    *   The current state of the wizard form.
-   * @param Drupal\views_ui\ViewUI $view
+   * @param \Drupal\views_ui\ViewUI $view
    *   The validated view object.
    */
   protected function setValidatedView(array $form, array &$form_state, ViewUI $view) {

@@ -7,9 +7,7 @@
 
 namespace Drupal\entity_reference\Plugin\field\widget;
 
-use Drupal\Component\Annotation\Plugin;
-use Drupal\Core\Annotation\Translation;
-use Drupal\Core\Entity\Field\FieldInterface;
+use Drupal\Core\Entity\Field\FieldItemListInterface;
 use Drupal\field\Plugin\Type\Widget\WidgetBase;
 use Symfony\Component\Validator\ConstraintViolationInterface;
 
@@ -70,27 +68,29 @@ abstract class AutocompleteWidgetBase extends WidgetBase {
   /**
    * {@inheritdoc}
    */
-  public function formElement(FieldInterface $items, $delta, array $element, $langcode, array &$form, array &$form_state) {
+  public function formElement(FieldItemListInterface $items, $delta, array $element, array &$form, array &$form_state) {
     global $user;
-    $entity = $element['#entity'];
 
-    // Prepare the autocomplete path.
-    $autocomplete_path = $this->getSetting('autocomplete_path');
-    $autocomplete_path .= '/' . $this->fieldDefinition->getFieldName() . '/' . $entity->entityType() . '/' . $entity->bundle() . '/';
+    $entity = $items->getEntity();
 
-    // Use <NULL> as a placeholder in the URL when we don't have an entity.
-    // Most web servers collapse two consecutive slashes.
-    $id = 'NULL';
-    if ($entity && $entity_id = $entity->id()) {
-      $id = $entity_id;
+    // Prepare the autocomplete route parameters.
+    $autocomplete_route_parameters = array(
+      'type' => $this->getSetting('autocomplete_type'),
+      'field_name' => $this->fieldDefinition->getFieldName(),
+      'entity_type' => $entity->entityType(),
+      'bundle_name' => $entity->bundle(),
+    );
+
+    if ($entity_id = $entity->id()) {
+      $autocomplete_route_parameters['entity_id'] = $entity_id;
     }
-    $autocomplete_path .= $id;
 
     $element += array(
       '#type' => 'textfield',
       '#maxlength' => 1024,
       '#default_value' => implode(', ', $this->getLabels($items)),
-      '#autocomplete_path' => $autocomplete_path,
+      '#autocomplete_route_name' => 'entity_reference.autocomplete',
+      '#autocomplete_route_parameters' => $autocomplete_route_parameters,
       '#size' => $this->getSetting('size'),
       '#placeholder' => $this->getSetting('placeholder'),
       '#element_validate' => array(array($this, 'elementValidate')),
@@ -116,7 +116,7 @@ abstract class AutocompleteWidgetBase extends WidgetBase {
   /**
    * Gets the entity labels.
    */
-  protected function getLabels(FieldInterface $items) {
+  protected function getLabels(FieldItemListInterface $items) {
     if ($items->isEmpty()) {
       return array();
     }
@@ -191,6 +191,17 @@ abstract class AutocompleteWidgetBase extends WidgetBase {
   protected function getSelectionHandlerSetting($setting_name) {
     $settings = $this->getFieldSetting('handler_settings');
     return isset($settings[$setting_name]) ? $settings[$setting_name] : NULL;
+  }
+
+  /**
+   * Checks whether a content entity is referenced.
+   *
+   * @return bool
+   */
+  protected function isContentReferenced() {
+    $target_type = $this->getFieldSetting('target_type');
+    $target_type_info = \Drupal::entityManager()->getDefinition($target_type);
+    return is_subclass_of($target_type_info['class'], '\Drupal\Core\Entity\ContentEntityInterface');
   }
 
 }

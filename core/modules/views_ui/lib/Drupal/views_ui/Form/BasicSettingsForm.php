@@ -7,17 +7,17 @@
 
 namespace Drupal\views_ui\Form;
 
-use Drupal\system\SystemConfigFormBase;
+use Drupal\Core\Form\ConfigFormBase;
 
 /**
  * Form builder for the admin display defaults page.
  */
-class BasicSettingsForm extends SystemConfigFormBase {
+class BasicSettingsForm extends ConfigFormBase {
 
   /**
    * {@inheritdoc}
    */
-  public function getFormID() {
+  public function getFormId() {
     return 'views_ui_admin_settings_basic';
   }
 
@@ -41,22 +41,20 @@ class BasicSettingsForm extends SystemConfigFormBase {
 
     $form['basic']['ui_show_master_display'] = array(
       '#type' => 'checkbox',
-      '#title' => $this->t('Always show the master display'),
-      '#description' => $this->t('Advanced users of views may choose to see the master (i.e. default) display.'),
+      '#title' => $this->t('Always show the master (default) display'),
       '#default_value' => $config->get('ui.show.master_display'),
     );
 
     $form['basic']['ui_show_advanced_column'] = array(
       '#type' => 'checkbox',
       '#title' => $this->t('Always show advanced display settings'),
-      '#description' => $this->t('Default to showing advanced display settings, such as relationships and contextual filters.'),
       '#default_value' => $config->get('ui.show.advanced_column'),
     );
 
     $form['basic']['ui_show_display_embed'] = array(
       '#type' => 'checkbox',
-      '#title' => $this->t('Show the embed display in the ui.'),
-      '#description' => $this->t("Allow advanced user to use the embed view display. The plugin itself works if it's not visible in the ui"),
+      '#title' => t('Allow embedded displays'),
+      '#description' => t('Embedded displays can be used in code via views_embed_view().'),
       '#default_value' => $config->get('ui.show.display_embed'),
     );
 
@@ -95,6 +93,7 @@ class BasicSettingsForm extends SystemConfigFormBase {
 
     $form['live_preview']['options']['ui_show_sql_query_where'] = array(
       '#type' => 'radios',
+      '#title' => t('Show SQL query'),
       '#options' => array(
         'above' => $this->t('Above the preview'),
         'below' => $this->t('Below the preview'),

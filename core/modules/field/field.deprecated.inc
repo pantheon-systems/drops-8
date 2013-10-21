@@ -6,9 +6,7 @@
  */
 
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\Core\Entity\EntityNG;
-use Drupal\Core\Entity\Field\PrepareCacheInterface;
-use Drupal\Core\Language\Language;
+use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\entity\Entity\EntityDisplay;
 use Drupal\field\Field;
 
@@ -24,16 +22,16 @@ use Drupal\field\Field;
  *   keyed by field type name.
  *
  * @deprecated as of Drupal 8.0. Use
- *   Drupal::service('plugin.manager.entity.field.field_type')->getDefinition()
+ *   \Drupal::service('plugin.manager.entity.field.field_type')->getDefinition()
  *   or
- *   Drupal::service('plugin.manager.entity.field.field_type')->getDefinitions()
+ *   \Drupal::service('plugin.manager.entity.field.field_type')->getConfigurableDefinitions().
  */
 function field_info_field_types($field_type = NULL) {
   if ($field_type) {
-    return Drupal::service('plugin.manager.entity.field.field_type')->getDefinition($field_type);
+    return \Drupal::service('plugin.manager.entity.field.field_type')->getDefinition($field_type);
   }
   else {
-    return Drupal::service('plugin.manager.entity.field.field_type')->getDefinitions();
+    return \Drupal::service('plugin.manager.entity.field.field_type')->getConfigurableDefinitions();
   }
 }
 
@@ -48,7 +46,7 @@ function field_info_field_types($field_type = NULL) {
  *   are not defined.
  *
  * @deprecated as of Drupal 8.0. Use
- *   Drupal::service('plugin.manager.entity.field.field_type')->getDefaultSettings()
+ *   \Drupal::service('plugin.manager.entity.field.field_type')->getDefaultSettings()
  */
 function field_info_field_settings($type) {
   return \Drupal::service('plugin.manager.entity.field.field_type')->getDefaultSettings($type);
@@ -65,7 +63,7 @@ function field_info_field_settings($type) {
  *   settings are not defined.
  *
  * @deprecated as of Drupal 8.0. Use
- *   Drupal::service('plugin.manager.entity.field.field_type')->getDefaultInstanceSettings()
+ *   \Drupal::service('plugin.manager.entity.field.field_type')->getDefaultInstanceSettings()
  */
 function field_info_instance_settings($type) {
   return \Drupal::service('plugin.manager.entity.field.field_type')->getDefaultInstanceSettings($type);
@@ -83,9 +81,9 @@ function field_info_instance_settings($type) {
  *   or an array of all existing widget types, keyed by widget type name.
  *
  * @deprecated as of Drupal 8.0. Use
- *   Drupal::service('plugin.manager.field.widget')->getDefinition()
+ *   \Drupal::service('plugin.manager.field.widget')->getDefinition()
  *   or
- *   Drupal::service('plugin.manager.field.widget')->getDefinitions()
+ *   \Drupal::service('plugin.manager.field.widget')->getDefinitions()
  */
 function field_info_widget_types($widget_type = NULL) {
   if ($widget_type) {
@@ -108,7 +106,7 @@ function field_info_widget_types($widget_type = NULL) {
  *   undefined.
  *
  * @deprecated as of Drupal 8.0. Use
- *   Drupal::service('plugin.manager.field.widget')->getDefaultSettings()
+ *   \Drupal::service('plugin.manager.field.widget')->getDefaultSettings()
  */
 function field_info_widget_settings($type) {
   return \Drupal::service('plugin.manager.field.widget')->getDefaultSettings($type);
@@ -127,9 +125,9 @@ function field_info_widget_settings($type) {
  *   formatter type name.
  *
  * @deprecated as of Drupal 8.0. Use
- *   Drupal::service('plugin.manager.field.formatter')->getDefinition()
+ *   \Drupal::service('plugin.manager.field.formatter')->getDefinition()
  *   or
- *   Drupal::service('plugin.manager.field.formatter')->getDefinitions()
+ *   \Drupal::service('plugin.manager.field.formatter')->getDefinitions()
  */
 function field_info_formatter_types($formatter_type = NULL) {
   if ($formatter_type) {
@@ -152,7 +150,7 @@ function field_info_formatter_types($formatter_type = NULL) {
  *   undefined.
  *
  * @deprecated as of Drupal 8.0. Use
- *   Drupal::service('plugin.manager.field.formatter')->getDefaultSettings()
+ *   \Drupal::service('plugin.manager.field.formatter')->getDefaultSettings()
  */
 function field_info_formatter_settings($type) {
   return \Drupal::service('plugin.manager.field.formatter')->getDefaultSettings($type);
@@ -483,15 +481,10 @@ function field_read_instances($conditions = array(), $include_additional = array
  *   // most common case), and will therefore be repeated as many times as
  *   // needed, or 'multiple-values' (one single widget allows the input of
  *   // several values, e.g checkboxes, select box...).
- *   // The sub-array is nested into a $langcode key where $langcode has the
- *   // same value of the $langcode parameter above.
- *   // The '#language' key holds the same value of $langcode and it is used
- *   // to access the field sub-array when $langcode is unknown.
  *   'field_foo' => array(
- *     '#tree' => TRUE,
- *     '#field_name' => The name of the field,
- *     '#language' => $langcode,
- *     $langcode => array(
+ *     '#access' => TRUE if the current user has 'edit' grants for the field,
+ *       FALSE if not.
+ *     'widget' => array(
  *       '#field_name' => The name of the field,
  *       '#language' => $langcode,
  *       '#field_parents' => The 'parents' space for the field in the form,
@@ -563,9 +556,6 @@ function field_read_instances($conditions = array(), $include_additional = array
  * @see field_form_set_state()
  */
 function field_attach_form(EntityInterface $entity, &$form, &$form_state, $langcode = NULL, array $options = array()) {
-  // Ensure we are working with a BC mode entity.
-  $entity = $entity->getBCEntity();
-
   // Set #parents to 'top-level' by default.
   $form += array('#parents' => array());
 
@@ -582,7 +572,7 @@ function field_attach_form(EntityInterface $entity, &$form, &$form_state, $langc
   // Let other modules make changes to the form.
   // Avoid \Drupal::moduleHandler()->invokeAll()
   // to let parameters be taken by reference.
-  foreach (Drupal::moduleHandler()->getImplementations('field_attach_form') as $module) {
+  foreach (\Drupal::moduleHandler()->getImplementations('field_attach_form') as $module) {
     $function = $module . '_field_attach_form';
     $function($entity, $form, $form_state, $langcode);
   }
@@ -605,7 +595,7 @@ function field_attach_form(EntityInterface $entity, &$form, &$form_state, $langc
  * elements. Fieldable entity types should call this function during their own
  * form validation function.
  *
- * @param \Drupal\Core\Entity\EntityInterface $entity
+ * @param \Drupal\Core\Entity\ContentEntityInterface $entity
  *   The entity being submitted. The actual field values will be read
  *   from $form_state['values'].
  * @param $form
@@ -619,12 +609,7 @@ function field_attach_form(EntityInterface $entity, &$form, &$form_state, $langc
  *
  * @deprecated as of Drupal 8.0. Use the entity system instead.
  */
-function field_attach_form_validate(EntityInterface $entity, $form, &$form_state, array $options = array()) {
-  // Only support NG entities.
-  if (!($entity->getNGEntity() instanceof EntityNG)) {
-    return;
-  }
-
+function field_attach_form_validate(ContentEntityInterface $entity, $form, &$form_state, array $options = array()) {
   $has_violations = FALSE;
   foreach ($entity as $field_name => $field) {
     $definition = $field->getDefinition();
@@ -634,10 +619,9 @@ function field_attach_form_validate(EntityInterface $entity, $form, &$form_state
         $has_violations = TRUE;
 
         // Place violations in $form_state.
-        $langcode = field_is_translatable($entity->entityType(), field_info_field($entity->entityType(), $field_name)) ? $entity->language()->id : Language::LANGCODE_NOT_SPECIFIED;
-        $field_state = field_form_get_state($form['#parents'], $field_name, $langcode, $form_state);
+        $field_state = field_form_get_state($form['#parents'], $field_name, $form_state);
         $field_state['constraint_violations'] = $field_violations;
-        field_form_set_state($form['#parents'], $field_name, $langcode, $form_state, $field_state);
+        field_form_set_state($form['#parents'], $field_name, $form_state, $field_state);
       }
     }
   }
@@ -669,9 +653,6 @@ function field_attach_form_validate(EntityInterface $entity, $form, &$form_state
  * @deprecated as of Drupal 8.0. Use the entity system instead.
  */
 function field_attach_extract_form_values(EntityInterface $entity, $form, &$form_state, array $options = array()) {
-  // Ensure we are working with a BC mode entity.
-  $entity = $entity->getBCEntity();
-
   // Extract field values from submitted values.
   $form_display = $form_state['form_display'];
   field_invoke_method('extractFormValues', _field_invoke_widget_target($form_display), $entity, $form, $form_state, $options);
@@ -679,7 +660,7 @@ function field_attach_extract_form_values(EntityInterface $entity, $form, &$form
   // Let other modules act on submitting the entity.
   // Avoid \Drupal::moduleHandler()->invokeAll()
   // to let $form_state be taken by reference.
-  foreach (Drupal::moduleHandler()->getImplementations('field_attach_extract_form_values') as $module) {
+  foreach (\Drupal::moduleHandler()->getImplementations('field_attach_extract_form_values') as $module) {
     $function = $module . 'field_attach_extract_form_values';
     $function($entity, $form, $form_state);
   }
@@ -720,9 +701,6 @@ function field_attach_prepare_view($entity_type, array $entities, array $display
   $prepare = array();
   foreach ($entities as $id => $entity) {
     if (empty($entity->_field_view_prepared)) {
-      // Ensure we are working with a BC mode entity.
-      $entity = $entity->getBCEntity();
-
       // Add this entity to the items to be prepared.
       $prepare[$id] = $entity;
 
@@ -739,8 +717,8 @@ function field_attach_prepare_view($entity_type, array $entities, array $display
   // instance, call the prepareView() method on the formatter object handed by
   // the entity display.
   $target_function = function ($instance) use ($displays) {
-    if (isset($displays[$instance['bundle']])) {
-      return $displays[$instance['bundle']]->getRenderer($instance['field_name']);
+    if (isset($displays[$instance->bundle])) {
+      return $displays[$instance->bundle]->getRenderer($instance->getFieldName());
     }
   };
   $null = NULL;
@@ -776,8 +754,6 @@ function field_attach_prepare_view($entity_type, array $entities, array $display
  * @deprecated as of Drupal 8.0. Use the entity system instead.
  */
 function field_attach_view(EntityInterface $entity, EntityDisplay $display, $langcode = NULL, array $options = array()) {
-  // Ensure we are working with a BC mode entity.
-  $entity = $entity->getBCEntity();
   // Determine the actual language code to display for each field, given the
   // language codes available in the field data.
   $options['langcode'] = field_language($entity, NULL, $langcode);
@@ -785,12 +761,10 @@ function field_attach_view(EntityInterface $entity, EntityDisplay $display, $lan
   // For each instance, call the view() method on the formatter object handed
   // by the entity display.
   $target_function = function ($instance) use ($display) {
-    return $display->getRenderer($instance['field_name']);
+    return $display->getRenderer($instance->getFieldName());
   };
   $null = NULL;
   $output = field_invoke_method('view', $target_function, $entity, $null, $null, $options);
-  // Remove the BC layer now.
-  $entity = $entity->getNGEntity();
 
   // Let other modules alter the renderable array.
   $view_mode = $display->originalMode;
@@ -828,7 +802,6 @@ function field_attach_view(EntityInterface $entity, EntityDisplay $display, $lan
  *   $entity->getTranslation($langcode)->{$field_name}
  */
 function field_get_items(EntityInterface $entity, $field_name, $langcode = NULL) {
-  $entity = $entity->getBCEntity();
   $langcode = field_language($entity, $field_name, $langcode);
   return isset($entity->{$field_name}[$langcode]) ? $entity->{$field_name}[$langcode] : array();
 }
@@ -853,4 +826,33 @@ function field_get_items(EntityInterface $entity, $field_name, $langcode = NULL)
  */
 function field_get_default_value(EntityInterface $entity, $field, $instance, $langcode = NULL) {
   return $instance->getFieldDefaultValue($entity);
+}
+
+/**
+ * Determines whether the user has access to a given field.
+ *
+ * @param string $op
+ *   The operation to be performed. Possible values:
+ *   - edit
+ *   - view
+ * @param \Drupal\field\FieldInterface $field
+ *   The field on which the operation is to be performed.
+ * @param $entity_type
+ *   The type of $entity; for example, 'node' or 'user'.
+ * @param $entity
+ *   (optional) The entity for the operation.
+ * @param $account
+ *   (optional) The account to check, if not given use currently logged in user.
+ *
+ * @return
+ *   TRUE if the operation is allowed; FALSE if the operation is denied.
+ *
+ * @deprecated as of Drupal 8.0. Use
+ *   Drupal\Core\Entity\EntityAccessControllerInterface::fieldAccess()
+ */
+function field_access($op, FieldInterface $field, $entity_type, $entity = NULL, $account = NULL) {
+  $access_controller = \Drupal::entityManager()->getAccessController($entity_type);
+
+  $items = $entity ? $entity->get($field->id()) : NULL;
+  return $access_controller->fieldAccess($op, $field, $account, $items);
 }

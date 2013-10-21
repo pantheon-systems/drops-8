@@ -29,10 +29,10 @@ use Drupal\Core\Language\Language;
  */
 function entity_get_info($entity_type = NULL) {
   if (empty($entity_type)) {
-    return Drupal::entityManager()->getDefinitions();
+    return \Drupal::entityManager()->getDefinitions();
   }
   else {
-    return Drupal::entityManager()->getDefinition($entity_type);
+    return \Drupal::entityManager()->getDefinition($entity_type);
   }
 }
 
@@ -41,10 +41,21 @@ function entity_get_info($entity_type = NULL) {
  */
 function entity_info_cache_clear() {
   drupal_static_reset('entity_get_view_modes');
-  drupal_static_reset('entity_get_bundles');
   // Clear all languages.
-  Drupal::entityManager()->clearCachedDefinitions();
-  Drupal::entityManager()->clearCachedFieldDefinitions();
+  \Drupal::entityManager()->clearCachedDefinitions();
+  \Drupal::entityManager()->clearCachedFieldDefinitions();
+}
+
+/**
+ * Clears the entity render cache for all entity types.
+ */
+function entity_render_cache_clear() {
+  $entity_manager = Drupal::entityManager();
+  foreach ($entity_manager->getDefinitions() as $entity_type => $info) {
+    if ($entity_manager->hasController($entity_type, 'render')) {
+      $entity_manager->getRenderController($entity_type)->resetCache();
+    }
+  }
 }
 
 /**
@@ -56,35 +67,17 @@ function entity_info_cache_clear() {
  *
  * @return array
  *   The bundle info for a specific entity type, or all entity types.
+ *
+ * @see \Drupal\Core\Entity\EntityManager::getBundleInfo()
+ * @see \Drupal\Core\Entity\EntityManager::getAllBundleInfo()
  */
 function entity_get_bundles($entity_type = NULL) {
-  $bundles = &drupal_static(__FUNCTION__);
-  if (!$bundles) {
-    $langcode = language(Language::TYPE_INTERFACE)->id;
-    if ($cache = cache()->get("entity_bundle_info:$langcode")) {
-      $bundles = $cache->data;
-    }
-    else {
-      $bundles = Drupal::moduleHandler()->invokeAll('entity_bundle_info');
-      // If no bundles are provided, use the entity type name and label.
-      foreach (entity_get_info() as $type => $entity_info) {
-        if (!isset($bundles[$type])) {
-          $bundles[$type][$type]['label'] = $entity_info['label'];
-        }
-      }
-      drupal_alter('entity_bundle_info', $bundles);
-      cache()->set("entity_bundle_info:$langcode", $bundles, CacheBackendInterface::CACHE_PERMANENT, array('entity_info' => TRUE));
-    }
+  if (isset($entity_type)) {
+    return \Drupal::entityManager()->getBundleInfo($entity_type);
   }
-
-  if (empty($entity_type)) {
-    return $bundles;
+  else {
+    return \Drupal::entityManager()->getAllBundleInfo();
   }
-  elseif (isset($bundles[$entity_type])) {
-    return $bundles[$entity_type];
-  }
-
-  return array();
 }
 
 /**
@@ -105,10 +98,12 @@ function entity_invoke_bundle_hook($hook, $entity_type, $bundle, $bundle_new = N
 
   // Notify the entity storage controller.
   $method = 'onBundle' . ucfirst($hook);
-  Drupal::entityManager()->getStorageController($entity_type)->$method($bundle, $bundle_new);
-
+  $storage_controller = \Drupal::entityManager()->getStorageController($entity_type);
+  if (method_exists($storage_controller, $method)) {
+    $storage_controller->$method($bundle, $bundle_new);
+  }
   // Invoke hook_entity_bundle_*() hooks.
-  Drupal::moduleHandler()->invokeAll('entity_bundle_' . $hook, array($entity_type, $bundle, $bundle_new));
+  \Drupal::moduleHandler()->invokeAll('entity_bundle_' . $hook, array($entity_type, $bundle, $bundle_new));
 }
 
 /**
@@ -192,12 +187,12 @@ function entity_get_view_modes($entity_type = NULL) {
  *
  * @param string $entity_type
  *   The entity type to load, e.g. node or user.
- * @param int $id
+ * @param mixed $id
  *   The id of the entity to load.
  * @param bool $reset
  *   Whether to reset the internal cache for the requested entity type.
  *
- * @return Drupal\Core\Entity\EntityInterface
+ * @return \Drupal\Core\Entity\EntityInterface
  *   The entity object, or NULL if there is no entity with the given id.
  *
  * @see \Drupal\Core\Entity\EntityManager
@@ -206,7 +201,7 @@ function entity_get_view_modes($entity_type = NULL) {
  * @see \Drupal\Core\Entity\Query\QueryInterface
  */
 function entity_load($entity_type, $id, $reset = FALSE) {
-  $controller = Drupal::entityManager()->getStorageController($entity_type);
+  $controller = \Drupal::entityManager()->getStorageController($entity_type);
   if ($reset) {
     $controller->resetCache(array($id));
   }
@@ -221,7 +216,7 @@ function entity_load($entity_type, $id, $reset = FALSE) {
  * @param int $revision_id
  *   The id of the entity to load.
  *
- * @return Drupal\Core\Entity\EntityInterface
+ * @return \Drupal\Core\Entity\EntityInterface
  *   The entity object, or FALSE if there is no entity with the given revision
  *   id.
  *
@@ -230,7 +225,7 @@ function entity_load($entity_type, $id, $reset = FALSE) {
  * @see \Drupal\Core\Entity\DatabaseStorageController
  */
 function entity_revision_load($entity_type, $revision_id) {
-  return Drupal::entityManager()
+  return \Drupal::entityManager()
     ->getStorageController($entity_type)
     ->loadRevision($revision_id);
 }
@@ -244,7 +239,7 @@ function entity_revision_load($entity_type, $revision_id) {
  *   The revision ID to delete.
  */
 function entity_revision_delete($entity_type, $revision_id) {
-  Drupal::entityManager()
+  \Drupal::entityManager()
     ->getStorageController($entity_type)
     ->deleteRevision($revision_id);
 }
@@ -264,7 +259,7 @@ function entity_revision_delete($entity_type, $revision_id) {
  * @return EntityInterface|FALSE
  *   The entity object, or FALSE if there is no entity with the given UUID.
  *
- * @throws Drupal\Core\Entity\EntityStorageException
+ * @throws \Drupal\Core\Entity\EntityStorageException
  *   Thrown in case the requested entity type does not support UUIDs.
  *
  * @see \Drupal\Core\Entity\EntityManager
@@ -276,7 +271,7 @@ function entity_load_by_uuid($entity_type, $uuid, $reset = FALSE) {
   }
   $uuid_key = $entity_info['entity_keys']['uuid'];
 
-  $controller = Drupal::entityManager()->getStorageController($entity_type);
+  $controller = \Drupal::entityManager()->getStorageController($entity_type);
   if ($reset) {
     $controller->resetCache();
   }
@@ -318,7 +313,7 @@ function entity_load_by_uuid($entity_type, $uuid, $reset = FALSE) {
  * @see \Drupal\Core\Entity\Query\QueryInterface
  */
 function entity_load_multiple($entity_type, array $ids = NULL, $reset = FALSE) {
-  $controller = Drupal::entityManager()->getStorageController($entity_type);
+  $controller = \Drupal::entityManager()->getStorageController($entity_type);
   if ($reset) {
     $controller->resetCache($ids);
   }
@@ -338,7 +333,7 @@ function entity_load_multiple($entity_type, array $ids = NULL, $reset = FALSE) {
  *   An array of entity objects indexed by their ids.
  */
 function entity_load_multiple_by_properties($entity_type, array $values) {
-  return Drupal::entityManager()
+  return \Drupal::entityManager()
     ->getStorageController($entity_type)
     ->loadByProperties($values);
 }
@@ -360,7 +355,7 @@ function entity_load_multiple_by_properties($entity_type, array $values) {
  *   The unchanged entity, or FALSE if the entity cannot be loaded.
  */
 function entity_load_unchanged($entity_type, $id) {
-  return Drupal::entityManager()
+  return \Drupal::entityManager()
     ->getStorageController($entity_type)
     ->loadUnchanged($id);
 }
@@ -374,7 +369,7 @@ function entity_load_unchanged($entity_type, $id) {
  *   An array of entity IDs of the entities to delete.
  */
 function entity_delete_multiple($entity_type, array $ids) {
-  $controller = Drupal::entityManager()->getStorageController($entity_type);
+  $controller = \Drupal::entityManager()->getStorageController($entity_type);
   $entities = $controller->loadMultiple($ids);
   $controller->delete($entities);
 }
@@ -388,11 +383,11 @@ function entity_delete_multiple($entity_type, array $ids) {
  *   An array of values to set, keyed by property name. If the entity type has
  *   bundles the bundle key has to be specified.
  *
- * @return Drupal\Core\Entity\EntityInterface
+ * @return \Drupal\Core\Entity\EntityInterface
  *   A new entity object.
  */
 function entity_create($entity_type, array $values) {
-  return Drupal::entityManager()
+  return \Drupal::entityManager()
     ->getStorageController($entity_type)
     ->create($values);
 }
@@ -400,12 +395,12 @@ function entity_create($entity_type, array $values) {
 /**
  * Gets the entity controller class for an entity type.
  *
- * @return Drupal\Core\Entity\EntityStorageControllerInterface
+ * @return \Drupal\Core\Entity\EntityStorageControllerInterface
  *
  * @deprecated Use \Drupal\Core\Entity\EntityManager::getStorageController().
  */
 function entity_get_controller($entity_type) {
-  return Drupal::entityManager()
+  return \Drupal::entityManager()
     ->getStorageController($entity_type);
 }
 
@@ -415,7 +410,7 @@ function entity_get_controller($entity_type) {
  * This is a wrapper for Drupal\Core\Entity\EntityInterface::label(). This function
  * should only be used as a callback, e.g. for menu title callbacks.
  *
- * @param Drupal\Core\Entity\EntityInterface $entity
+ * @param \Drupal\Core\Entity\EntityInterface $entity
  *   The entity for which to generate the label.
  * @param $langcode
  *   (optional) The language code of the language that should be used for
@@ -425,7 +420,7 @@ function entity_get_controller($entity_type) {
  * @return
  *   The label of the entity, or NULL if there is no label defined.
  *
- * @see Drupal\Core\Entity\EntityInterface::label()
+ * @see \Drupal\Core\Entity\EntityInterface::label()
  */
 function entity_page_label(EntityInterface $entity, $langcode = NULL) {
   return $entity->label($langcode);
@@ -443,7 +438,7 @@ function entity_page_label(EntityInterface $entity, $langcode = NULL) {
  * @deprecated Use \Drupal\Core\Entity\EntityManager::getRenderController().
  */
 function entity_access_controller($entity_type) {
-  return Drupal::entityManager()
+  return \Drupal::entityManager()
     ->getAccessController($entity_type);
 }
 
@@ -465,13 +460,13 @@ function entity_access_controller($entity_type) {
  *   identifying the controlled form. Defaults to 'default' which is the usual
  *   create/edit form.
  *
- * @return Drupal\Core\Entity\EntityFormControllerInterface
+ * @return \Drupal\Core\Entity\EntityFormControllerInterface
  *   An entity form controller instance.
  *
  * @deprecated Use \Drupal\Core\Entity\EntityManager::getFormController().
  */
 function entity_form_controller($entity_type, $operation = 'default') {
-  return Drupal::entityManager()
+  return \Drupal::entityManager()
     ->getFormController($entity_type, $operation);
 }
 
@@ -488,7 +483,7 @@ function entity_form_controller($entity_type, $operation = 'default') {
  */
 function entity_form_state_defaults(EntityInterface $entity, $operation = 'default') {
   $form_state = array();
-  $controller = Drupal::entityManager()->getFormController($entity->entityType(), $operation);
+  $controller = \Drupal::entityManager()->getFormController($entity->entityType(), $operation);
   $controller->setEntity($entity);
   $form_state['build_info']['callback_object'] = $controller;
   $form_state['build_info']['base_form_id'] = $controller->getBaseFormID();
@@ -511,7 +506,7 @@ function entity_form_state_defaults(EntityInterface $entity, $operation = 'defau
  */
 function entity_form_submit(EntityInterface $entity, $operation = 'default', &$form_state = array()) {
   $form_state += entity_form_state_defaults($entity, $operation);
-  $form_id = $form_state['build_info']['callback_object']->getFormID();
+  $form_id = $form_state['build_info']['callback_object']->getFormId();
   drupal_form_submit($form_id, $form_state);
 }
 
@@ -533,57 +528,11 @@ function entity_form_submit(EntityInterface $entity, $operation = 'default', &$f
  * @return
  *   The processed form for the given entity and operation.
  *
- * @deprecated Use Drupal::entityManager()->getForm() or _entity_form from a
+ * @deprecated Use \Drupal::entityManager()->getForm() or _entity_form from a
  *   routing.yml file instead of a page callback.
  */
 function entity_get_form(EntityInterface $entity, $operation = 'default', array $form_state = array()) {
-  return Drupal::entityManager()->getForm($entity, $operation, $form_state);
-}
-
-/**
- * Copies submitted values to entity properties for simple entity forms.
- *
- * During the submission handling of an entity form's "Save", "Preview", and
- * possibly other buttons, the form state's entity needs to be updated with the
- * submitted form values. Each entity form implements its own builder function
- * for doing this, appropriate for the particular entity and form, whereas
- * modules may specify additional builder functions in $form['#entity_builders']
- * for copying the form values of added form elements to entity properties.
- * Many of the main entity builder functions can call this helper function to
- * re-use its logic of copying $form_state['values'][PROPERTY] values to
- * $entity->PROPERTY for all entries in $form_state['values'] that are not
- * field data, and calling field_attach_extract_form_values() to copy field
- * data. Apart from that this helper invokes any additional builder functions
- * that have been specified in $form['#entity_builders'].
- *
- * For some entity forms (e.g., forms with complex non-field data and forms that
- * simultaneously edit multiple entities), this behavior may be inappropriate,
- * so the builder function for such forms needs to implement the required
- * functionality instead of calling this function.
- */
-function entity_form_submit_build_entity($entity_type, $entity, $form, &$form_state, array $options = array()) {
-  $info = entity_get_info($entity_type);
-
-  // Copy top-level form values that are not for fields to entity properties,
-  // without changing existing entity properties that are not being edited by
-  // this form. Copying field values must be done using
-  // field_attach_extract_form_values().
-  $values_excluding_fields = $info['fieldable'] ? array_diff_key($form_state['values'], field_info_instances($entity_type, $entity->bundle())) : $form_state['values'];
-  foreach ($values_excluding_fields as $key => $value) {
-    $entity->set($key, $value);
-  }
-
-  // Invoke all specified builders for copying form values to entity properties.
-  if (isset($form['#entity_builders'])) {
-    foreach ($form['#entity_builders'] as $function) {
-      call_user_func_array($function, array($entity_type, $entity, &$form, &$form_state));
-    }
-  }
-
-  // Copy field values to the entity.
-  if ($info['fieldable']) {
-    field_attach_extract_form_values($entity, $form, $form_state, $options);
-  }
+  return \Drupal::entityManager()->getForm($entity, $operation, $form_state);
 }
 
 /**
@@ -592,13 +541,13 @@ function entity_form_submit_build_entity($entity_type, $entity, $form, &$form_st
  * @param string $entity_type
  *   The type of the entity.
  *
- * @return Drupal\Core\Entity\EntityListControllerInterface
+ * @return \Drupal\Core\Entity\EntityListControllerInterface
  *   An entity list controller.
  *
  * @deprecated Use \Drupal\Core\Entity\EntityManager::getFormController().
  */
 function entity_list_controller($entity_type) {
-  return Drupal::entityManager()
+  return \Drupal::entityManager()
     ->getListController($entity_type);
 }
 
@@ -608,34 +557,39 @@ function entity_list_controller($entity_type) {
  * @param string $entity_type
  *   The type of the entity.
  *
- * @return Drupal\Core\Entity\EntityRenderControllerInterface
+ * @return \Drupal\Core\Entity\EntityRenderControllerInterface
  *   An entity render controller.
  *
  * @deprecated Use \Drupal\Core\Entity\EntityManager::getFormController().
  */
 function entity_render_controller($entity_type) {
-  return Drupal::entityManager()
+  return \Drupal::entityManager()
     ->getRenderController($entity_type);
 }
 
 /**
  * Returns the render array for an entity.
  *
- * @param Drupal\Core\Entity\EntityInterface $entity
+ * @param \Drupal\Core\Entity\EntityInterface $entity
  *   The entity to be rendered.
  * @param string $view_mode
  *   The view mode that should be used to display the entity.
  * @param string $langcode
  *   (optional) For which language the entity should be rendered, defaults to
  *   the current content language.
+ * @param bool $reset
+ *   (optional) Whether to reset the render cache for the requested entity.
+ *   Defaults to FALSE.
  *
  * @return array
  *   A render array for the entity.
  */
-function entity_view(EntityInterface $entity, $view_mode, $langcode = NULL) {
-  return Drupal::entityManager()
-    ->getRenderController($entity->entityType())
-    ->view($entity, $view_mode, $langcode);
+function entity_view(EntityInterface $entity, $view_mode, $langcode = NULL, $reset = FALSE) {
+  $render_controller = \Drupal::entityManager()->getRenderController($entity->entityType());
+  if ($reset) {
+    $render_controller->resetCache(array($entity->id()));
+  }
+  return $render_controller->view($entity, $view_mode, $langcode);
 }
 
 /**
@@ -648,15 +602,20 @@ function entity_view(EntityInterface $entity, $view_mode, $langcode = NULL) {
  * @param string $langcode
  *   (optional) For which language the entity should be rendered, defaults to
  *   the current content language.
+ * @param bool $reset
+ *   (optional) Whether to reset the render cache for the requested entities.
+ *   Defaults to FALSE.
  *
  * @return array
  *   A render array for the entities, indexed by the same keys as the
  *   entities array passed in $entities.
  */
-function entity_view_multiple(array $entities, $view_mode, $langcode = NULL) {
-  return Drupal::entityManager()
-    ->getRenderController(reset($entities)->entityType())
-    ->viewMultiple($entities, $view_mode, $langcode);
+function entity_view_multiple(array $entities, $view_mode, $langcode = NULL, $reset = FALSE) {
+  $render_controller = \Drupal::entityManager()->getRenderController(reset($entities)->entityType());
+  if ($reset) {
+    $render_controller->resetCache(array_keys($entities));
+  }
+  return $render_controller->viewMultiple($entities, $view_mode, $langcode);
 }
 
 /**
@@ -712,6 +671,7 @@ function entity_get_display($entity_type, $bundle, $view_mode) {
       'targetEntityType' => $entity_type,
       'bundle' => $bundle,
       'mode' => $view_mode,
+      'status' => TRUE,
     ));
   }
 
@@ -745,12 +705,20 @@ function entity_get_display($entity_type, $bundle, $view_mode) {
 function entity_get_render_display(EntityInterface $entity, $view_mode) {
   $entity_type = $entity->entityType();
   $bundle = $entity->bundle();
+  $render_view_mode = 'default';
 
-  // Determine the display to use for rendering this entity. Depending on the
-  // configuration of the view mode for this bundle, this will be either the
-  // display associated to the view mode, or the 'default' display.
-  $view_mode_settings = field_view_mode_settings($entity_type, $bundle);
-  $render_view_mode = !empty($view_mode_settings[$view_mode]['status']) ? $view_mode : 'default';
+  // Look at the default display and display for the view mode, and fallback to
+  // the former if the latter does not exist is disabled.
+  if ($view_mode != 'default') {
+    $ids = array(
+      'default' => $entity_type . '.' . $bundle . '.default',
+      $view_mode => $entity_type . '.' . $bundle . '.' . $view_mode,
+    );
+    $entity_displays = entity_load_multiple('entity_display', $ids);
+    if (isset($entity_displays[$ids[$view_mode]]) && $entity_displays[$ids[$view_mode]]->status()) {
+      $render_view_mode = $view_mode;
+    }
+  }
 
   $display = entity_get_display($entity_type, $bundle, $render_view_mode);
   $display->originalMode = $view_mode;
@@ -807,6 +775,7 @@ function entity_get_form_display($entity_type, $bundle, $form_mode) {
       'targetEntityType' => $entity_type,
       'bundle' => $bundle,
       'mode' => $form_mode,
+      'status' => TRUE,
     ));
   }
 
@@ -836,12 +805,20 @@ function entity_get_form_display($entity_type, $bundle, $form_mode) {
 function entity_get_render_form_display(EntityInterface $entity, $form_mode) {
   $entity_type = $entity->entityType();
   $bundle = $entity->bundle();
+  $render_form_mode = 'default';
 
-  // Determine the form display to use for rendering this entity form. Depending
-  // on the configuration of the form mode for this bundle, this will be either
-  // the form display associated to the form mode, or the 'default' display.
-  $form_mode_settings = field_form_mode_settings($entity_type, $bundle);
-  $render_form_mode = !empty($form_mode_settings[$form_mode]['status']) ? $form_mode : 'default';
+  // Look at the default form display and form display for the view mode, and
+  // fallback to the former if the latter does not exist is disabled.
+  if ($form_mode != 'default') {
+    $ids = array(
+      'default' => $entity_type . '.' . $bundle . '.default',
+      $form_mode => $entity_type . '.' . $bundle . '.' . $form_mode,
+    );
+    $entity_form_displays = entity_load_multiple('entity_form_display', $ids);
+    if (isset($entity_form_displays[$ids[$form_mode]]) && $entity_form_displays[$ids[$form_mode]]->status()) {
+      $render_form_mode = $form_mode;
+    }
+  }
 
   $form_display = entity_get_form_display($entity_type, $bundle, $render_form_mode);
   $form_display->originalMode = $form_mode;
@@ -877,5 +854,5 @@ function entity_page_access(EntityInterface $entity, $operation = 'view') {
  *   TRUE if the access is granted. FALSE if access is denied.
  */
 function entity_page_create_access($entity_type, $bundle = NULL) {
-  return Drupal::entityManager()->getAccessController($entity_type)->createAccess($bundle);
+  return \Drupal::entityManager()->getAccessController($entity_type)->createAccess($bundle);
 }

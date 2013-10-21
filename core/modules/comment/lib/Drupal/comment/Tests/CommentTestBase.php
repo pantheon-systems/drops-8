@@ -73,6 +73,9 @@ abstract class CommentTestBase extends WebTestBase {
       'access content',
     ));
 
+    // Create comment field on article.
+    $this->container->get('comment.manager')->addDefaultField('node', 'article');
+
     // Create a test node authored by the web user.
     $this->node = $this->drupalCreateNode(array('type' => 'article', 'promote' => 1, 'uid' => $this->web_user->id()));
   }
@@ -94,16 +97,21 @@ abstract class CommentTestBase extends WebTestBase {
    *   The posted comment or NULL when posted comment was not found.
    */
   function postComment($entity, $comment, $subject = '', $contact = NULL) {
-    $langcode = Language::LANGCODE_NOT_SPECIFIED;
     $edit = array();
-    $edit['comment_body[' . $langcode . '][0][value]'] = $comment;
+    $edit['comment_body[0][value]'] = $comment;
 
-    $preview_mode = variable_get('comment_preview_article', DRUPAL_OPTIONAL);
-    $subject_mode = variable_get('comment_subject_field_article', 1);
+    if ($entity !== NULL) {
+      $instance = $this->container->get('field.info')->getInstance('node', $entity->bundle(), 'comment');
+    }
+    else {
+      $instance = $this->container->get('field.info')->getInstance('node', 'article', 'comment');
+    }
+    $preview_mode = $instance->settings['preview'];
+    $subject_mode = $instance->settings['subject'];
 
     // Must get the page before we test for fields.
     if ($entity !== NULL) {
-      $this->drupalGet('comment/reply/' . $entity->id());
+      $this->drupalGet('comment/reply/node/' . $entity->id() . '/comment');
     }
 
     if ($subject_mode == TRUE) {
@@ -120,19 +128,19 @@ abstract class CommentTestBase extends WebTestBase {
       case DRUPAL_REQUIRED:
         // Preview required so no save button should be found.
         $this->assertNoFieldByName('op', t('Save'), 'Save button not found.');
-        $this->drupalPost(NULL, $edit, t('Preview'));
+        $this->drupalPostForm(NULL, $edit, t('Preview'));
         // Don't break here so that we can test post-preview field presence and
         // function below.
       case DRUPAL_OPTIONAL:
         $this->assertFieldByName('op', t('Preview'), 'Preview button found.');
         $this->assertFieldByName('op', t('Save'), 'Save button found.');
-        $this->drupalPost(NULL, $edit, t('Save'));
+        $this->drupalPostForm(NULL, $edit, t('Save'));
         break;
 
       case DRUPAL_DISABLED:
         $this->assertNoFieldByName('op', t('Preview'), 'Preview button not found.');
         $this->assertFieldByName('op', t('Save'), 'Save button found.');
-        $this->drupalPost(NULL, $edit, t('Save'));
+        $this->drupalPostForm(NULL, $edit, t('Save'));
         break;
     }
     $match = array();
@@ -186,7 +194,7 @@ abstract class CommentTestBase extends WebTestBase {
    *   Comment to delete.
    */
   function deleteComment(CommentInterface $comment) {
-    $this->drupalPost('comment/' . $comment->id() . '/delete', array(), t('Delete'));
+    $this->drupalPostForm('comment/' . $comment->id() . '/delete', array(), t('Delete'));
     $this->assertText(t('The comment and all its replies have been deleted.'), 'Comment deleted.');
   }
 
@@ -197,7 +205,7 @@ abstract class CommentTestBase extends WebTestBase {
    *   Boolean specifying whether the subject field should be enabled.
    */
   function setCommentSubject($enabled) {
-    $this->setCommentSettings('comment_subject_field', ($enabled ? '1' : '0'), 'Comment subject ' . ($enabled ? 'enabled' : 'disabled') . '.');
+    $this->setCommentSettings('subject', ($enabled ? '1' : '0'), 'Comment subject ' . ($enabled ? 'enabled' : 'disabled') . '.');
   }
 
   /**
@@ -220,7 +228,7 @@ abstract class CommentTestBase extends WebTestBase {
         $mode_text = 'required';
         break;
     }
-    $this->setCommentSettings('comment_preview', $mode, format_string('Comment preview @mode_text.', array('@mode_text' => $mode_text)));
+    $this->setCommentSettings('preview', $mode, format_string('Comment preview @mode_text.', array('@mode_text' => $mode_text)));
   }
 
   /**
@@ -231,7 +239,7 @@ abstract class CommentTestBase extends WebTestBase {
    *   comments; FALSE if it should be displayed on its own page.
    */
   function setCommentForm($enabled) {
-    $this->setCommentSettings('comment_form_location', ($enabled ? COMMENT_FORM_BELOW : COMMENT_FORM_SEPARATE_PAGE), 'Comment controls ' . ($enabled ? 'enabled' : 'disabled') . '.');
+    $this->setCommentSettings('form_location', ($enabled ? COMMENT_FORM_BELOW : COMMENT_FORM_SEPARATE_PAGE), 'Comment controls ' . ($enabled ? 'enabled' : 'disabled') . '.');
   }
 
   /**
@@ -244,7 +252,7 @@ abstract class CommentTestBase extends WebTestBase {
    *   - 2: Contact information required.
    */
   function setCommentAnonymous($level) {
-    $this->setCommentSettings('comment_anonymous', $level, format_string('Anonymous commenting set to level @level.', array('@level' => $level)));
+    $this->setCommentSettings('anonymous', $level, format_string('Anonymous commenting set to level @level.', array('@level' => $level)));
   }
 
   /**
@@ -254,7 +262,7 @@ abstract class CommentTestBase extends WebTestBase {
    *   Comments per page value.
    */
   function setCommentsPerPage($number) {
-    $this->setCommentSettings('comment_default_per_page', $number, format_string('Number of comments per page set to @number.', array('@number' => $number)));
+    $this->setCommentSettings('per_page', $number, format_string('Number of comments per page set to @number.', array('@number' => $number)));
   }
 
   /**
@@ -268,7 +276,9 @@ abstract class CommentTestBase extends WebTestBase {
    *   Status message to display.
    */
   function setCommentSettings($name, $value, $message) {
-    variable_set($name . '_article', $value);
+    $instance = $this->container->get('field.info')->getInstance('node', 'article', 'comment');
+    $instance->settings[$name] = $value;
+    $instance->save();
     // Display status message.
     $this->pass($message);
   }
@@ -297,10 +307,10 @@ abstract class CommentTestBase extends WebTestBase {
     $edit = array();
     $edit['operation'] = $operation;
     $edit['comments[' . $comment->id() . ']'] = TRUE;
-    $this->drupalPost('admin/content/comment' . ($approval ? '/approval' : ''), $edit, t('Update'));
+    $this->drupalPostForm('admin/content/comment' . ($approval ? '/approval' : ''), $edit, t('Update'));
 
     if ($operation == 'delete') {
-      $this->drupalPost(NULL, array(), t('Delete comments'));
+      $this->drupalPostForm(NULL, array(), t('Delete comments'));
       $this->assertRaw(format_plural(1, 'Deleted 1 comment.', 'Deleted @count comments.'), format_string('Operation "@operation" was performed on comment.', array('@operation' => $operation)));
     }
     else {

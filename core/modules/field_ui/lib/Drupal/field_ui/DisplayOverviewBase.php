@@ -47,7 +47,7 @@ abstract class DisplayOverviewBase extends OverviewBase {
   public function __construct(EntityManager $entity_manager, FieldTypePluginManager $field_type_manager, PluginManagerBase $plugin_manager) {
     parent::__construct($entity_manager);
 
-    $this->fieldTypes = $field_type_manager->getDefinitions();
+    $this->fieldTypes = $field_type_manager->getConfigurableDefinitions();
     $this->pluginManager = $plugin_manager;
   }
 
@@ -149,10 +149,10 @@ abstract class DisplayOverviewBase extends OverviewBase {
         // checkboxes.
         $options = array();
         $default = array();
-        $display_mode_settings = $this->getDisplayModeSettings();
+        $display_statuses = $this->getDisplayStatuses();
         foreach ($display_modes as $mode_name => $mode_info) {
           $options[$mode_name] = $mode_info['label'];
-          if (!empty($display_mode_settings[$mode_name]['status'])) {
+          if (!empty($display_statuses[$mode_name])) {
             $default[] = $mode_name;
           }
         }
@@ -218,8 +218,8 @@ abstract class DisplayOverviewBase extends OverviewBase {
    *   A table row array.
    */
   protected function buildFieldRow($field_id, FieldInstanceInterface $instance, EntityDisplayBaseInterface $entity_display, array $form, array &$form_state) {
-    $field = $instance->getField();
     $display_options = $entity_display->getComponent($field_id);
+    $label = $instance->getFieldLabel();
 
     $field_row = array(
       '#attributes' => array('class' => array('draggable', 'tabledrag-leaf')),
@@ -227,14 +227,14 @@ abstract class DisplayOverviewBase extends OverviewBase {
       '#region_callback' => array($this, 'getRowRegion'),
       '#js_settings' => array(
         'rowHandler' => 'field',
-        'defaultPlugin' => $this->getDefaultPlugin($field['type']),
+        'defaultPlugin' => $this->getDefaultPlugin($instance->getFieldType()),
       ),
       'human_name' => array(
-        '#markup' => check_plain($instance['label']),
+        '#markup' => check_plain($label),
       ),
       'weight' => array(
         '#type' => 'textfield',
-        '#title' => $this->t('Weight for @title', array('@title' => $instance['label'])),
+        '#title' => $this->t('Weight for @title', array('@title' => $label)),
         '#title_display' => 'invisible',
         '#default_value' => $display_options ? $display_options['weight'] : '0',
         '#size' => 3,
@@ -243,7 +243,7 @@ abstract class DisplayOverviewBase extends OverviewBase {
       'parent_wrapper' => array(
         'parent' => array(
           '#type' => 'select',
-          '#title' => $this->t('Label display for @title', array('@title' => $instance['label'])),
+          '#title' => $this->t('Label display for @title', array('@title' => $label)),
           '#title_display' => 'invisible',
           '#options' => drupal_map_assoc(array_keys($this->getRegions())),
           '#empty_value' => '',
@@ -262,9 +262,9 @@ abstract class DisplayOverviewBase extends OverviewBase {
     $field_row['plugin'] = array(
       'type' => array(
         '#type' => 'select',
-        '#title' => $this->t('Plugin for @title', array('@title' => $instance['label'])),
+        '#title' => $this->t('Plugin for @title', array('@title' => $label)),
         '#title_display' => 'invisible',
-        '#options' => $this->getPluginOptions($field['type']),
+        '#options' => $this->getPluginOptions($instance->getFieldType()),
         '#default_value' => $display_options ? $display_options['type'] : 'hidden',
         '#parents' => array('fields', $field_id, 'type'),
         '#attributes' => array('class' => array('field-plugin-type')),
@@ -355,6 +355,8 @@ abstract class DisplayOverviewBase extends OverviewBase {
             '#markup' => '<div class="field-plugin-summary">' . implode('<br />', $summary) . '</div>',
             '#cell_attributes' => array('class' => array('field-plugin-summary-cell')),
           );
+        }
+        if ($plugin->getSettings()) {
           $field_row['settings_edit'] = $base_button + array(
             '#type' => 'image_button',
             '#name' => $field_id . '_settings_edit',
@@ -506,14 +508,14 @@ abstract class DisplayOverviewBase extends OverviewBase {
     // Save the display.
     $display->save();
 
-    // Handle the 'view modes' checkboxes if present.
+    // Handle the 'display modes' checkboxes if present.
     if ($this->mode == 'default' && !empty($form_values['display_modes_custom'])) {
       $display_modes = $this->getDisplayModes();
-      $display_mode_settings = $this->getDisplayModeSettings();
+      $current_statuses = $this->getDisplayStatuses();
 
-      $display_mode_bundle_settings = array();
+      $statuses = array();
       foreach ($form_values['display_modes_custom'] as $mode => $value) {
-        if (!empty($value) && empty($display_mode_settings[$mode]['status'])) {
+        if (!empty($value) && empty($current_statuses[$mode])) {
           // If no display exists for the newly enabled view mode, initialize
           // it with those from the 'default' view mode, which were used so
           // far.
@@ -526,11 +528,10 @@ abstract class DisplayOverviewBase extends OverviewBase {
           $path = $this->getOverviewPath($mode);
           drupal_set_message($this->t('The %display_mode mode now uses custom display settings. You might want to <a href="@url">configure them</a>.', array('%display_mode' => $display_mode_label, '@url' => url($path))));
         }
-        $display_mode_bundle_settings[$mode]['status'] = !empty($value);
+        $statuses[$mode] = !empty($value);
       }
 
-      // Save updated bundle settings.
-      $this->saveDisplayModeSettings($display_mode_bundle_settings);
+      $this->saveDisplayStatuses($statuses);
     }
 
     drupal_set_message($this->t('Your settings have been saved.'));
@@ -679,20 +680,12 @@ abstract class DisplayOverviewBase extends OverviewBase {
   abstract protected function getDisplayModes();
 
   /**
-   * Returns form or view modes settings for the bundle used by this form.
+   * Returns the display entity type.
    *
-   * @return array
-   *   An array of form or view mode settings.
+   * @return string
+   *   The name of the display entity type.
    */
-  abstract protected function getDisplayModeSettings();
-
-  /**
-   * Saves the updated display mode settings.
-   *
-   * @param array $display_mode_settings
-   *   An array holding updated form or view mode settings.
-   */
-  abstract protected function saveDisplayModeSettings($display_mode_settings);
+  abstract protected function getDisplayType();
 
   /**
    * Returns the region to which a row in the display overview belongs.
@@ -722,6 +715,57 @@ abstract class DisplayOverviewBase extends OverviewBase {
       'visible' => $this->t('Visible'),
       'hidden' => '- ' . $this->t('Hidden') . ' -',
     );
+  }
+
+  /**
+   * Returns entity (form) displays for the current entity display type.
+   *
+   * @return array
+   *   An array holding entity displays or entity form displays.
+   */
+  protected function getDisplays() {
+    $load_ids = array();
+    $display_entity_type = $this->getDisplayType();
+    $entity_info = $this->entityManager->getDefinition($display_entity_type);
+    $config_prefix = $entity_info['config_prefix'];
+    $ids = config_get_storage_names_with_prefix($config_prefix . '.' . $this->entity_type . '.' . $this->bundle);
+    foreach ($ids as $id) {
+      $config_id = str_replace($config_prefix . '.', '', $id);
+      list(,, $display_mode) = explode('.', $config_id);
+      if ($display_mode != 'default') {
+        $load_ids[] = $config_id;
+      }
+    }
+    return entity_load_multiple($display_entity_type, $load_ids);
+  }
+
+  /**
+   * Returns form or view modes statuses for the bundle used by this form.
+   *
+   * @return array
+   *   An array of form or view mode statuses.
+   */
+  protected function getDisplayStatuses() {
+    $display_statuses = array();
+    $displays = $this->getDisplays();
+    foreach ($displays as $display) {
+      $display_statuses[$display->get('mode')] = $display->status();
+    }
+    return $display_statuses;
+  }
+
+  /**
+   * Saves the updated display mode statuses.
+   *
+   * @param array $display_statuses
+   *   An array holding updated form or view mode statuses.
+   */
+  protected function saveDisplayStatuses($display_statuses) {
+    $displays = $this->getDisplays();
+    foreach ($displays as $display) {
+      $display->set('status', $display_statuses[$display->get('mode')]);
+      $display->save();
+    }
   }
 
   /**

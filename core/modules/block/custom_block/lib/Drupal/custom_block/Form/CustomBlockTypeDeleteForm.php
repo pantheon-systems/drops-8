@@ -52,8 +52,10 @@ class CustomBlockTypeDeleteForm extends EntityConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function getCancelPath() {
-    return 'admin/structure/custom-blocks/types';
+  public function getCancelRoute() {
+    return array(
+      'route_name' => 'custom_block.type_list',
+    );
   }
 
   /**
@@ -83,7 +85,7 @@ class CustomBlockTypeDeleteForm extends EntityConfirmFormBase {
    */
   public function submit(array $form, array &$form_state) {
     $this->entity->delete();
-    $form_state['redirect'] = 'admin/structure/custom-blocks/types';
+    $form_state['redirect'] = 'admin/structure/block/custom-blocks/types';
     drupal_set_message(t('Custom block type %label has been deleted.', array('%label' => $this->entity->label())));
     watchdog('custom_block', 'Custom block type %label has been deleted.', array('%label' => $this->entity->label()), WATCHDOG_NOTICE);
   }

@@ -8,7 +8,7 @@
 namespace Drupal\system\Tests\Image;
 
 use Drupal\simpletest\WebTestBase;
-use Drupal\system\Plugin\ImageToolkitManager;
+use Drupal\Component\Utility\String;
 
 /**
  * Base class for image manipulation testing.
@@ -25,7 +25,7 @@ abstract class ToolkitTestBase extends WebTestBase {
   /**
    * The image toolkit.
    *
-   * @var \Drupal\system\Plugin\ImageToolkitInterface
+   * @var \Drupal\Core\ImageToolkit\ImageToolkitInterface
    */
   protected $toolkit;
 
@@ -47,7 +47,7 @@ abstract class ToolkitTestBase extends WebTestBase {
     parent::setUp();
 
     // Use the image_test.module's test toolkit.
-    $manager = new ImageToolkitManager($this->container->get('container.namespaces'), $this->container->get('cache.cache'), $this->container->get('language_manager'));
+    $manager = $this->container->get('image.toolkit.manager');
     $this->toolkit = $manager->createInstance('test');
 
     // Pick a file for testing.
@@ -90,16 +90,16 @@ abstract class ToolkitTestBase extends WebTestBase {
     // Determine if there were any expected that were not called.
     $uncalled = array_diff($expected, $actual);
     if (count($uncalled)) {
-      $this->assertTrue(FALSE, format_string('Expected operations %expected to be called but %uncalled was not called.', array('%expected' => implode(', ', $expected), '%uncalled' => implode(', ', $uncalled))));
+      $this->assertTrue(FALSE, String::format('Expected operations %expected to be called but %uncalled was not called.', array('%expected' => implode(', ', $expected), '%uncalled' => implode(', ', $uncalled))));
     }
     else {
-      $this->assertTrue(TRUE, format_string('All the expected operations were called: %expected', array('%expected' => implode(', ', $expected))));
+      $this->assertTrue(TRUE, String::format('All the expected operations were called: %expected', array('%expected' => implode(', ', $expected))));
     }
 
     // Determine if there were any unexpected calls.
     $unexpected = array_diff($actual, $expected);
     if (count($unexpected)) {
-      $this->assertTrue(FALSE, format_string('Unexpected operations were called: %unexpected.', array('%unexpected' => implode(', ', $unexpected))));
+      $this->assertTrue(FALSE, String::format('Unexpected operations were called: %unexpected.', array('%unexpected' => implode(', ', $unexpected))));
     }
     else {
       $this->assertTrue(TRUE, 'No unexpected operations were called.');

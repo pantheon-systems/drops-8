@@ -7,6 +7,7 @@
 
 namespace Drupal\views_ui\Tests;
 
+use Drupal\Component\Utility\String;
 use Drupal\views\ViewExecutable;
 
 /**
@@ -21,7 +22,7 @@ class HandlerTest extends UITestBase {
    *
    * @var array
    */
-  public static $testViews = array('test_view_empty');
+  public static $testViews = array('test_view_empty', 'test_view_broken', 'test_view_optional');
 
   public static function getInfo() {
     return array(
@@ -81,24 +82,24 @@ class HandlerTest extends UITestBase {
 
       // Area handler types need to use a different handler.
       if (in_array($type, array('header', 'footer', 'empty'))) {
-        $this->drupalPost($add_handler_url, array('name[views.area]' => TRUE), t('Add and configure @handler', array('@handler' => $type_info['ltitle'])));
+        $this->drupalPostForm($add_handler_url, array('name[views.area]' => TRUE), t('Add and configure @handler', array('@handler' => $type_info['ltitle'])));
         $id = 'area';
         $edit_handler_url = "admin/structure/views/nojs/config-item/test_view_empty/default/$type/$id";
       }
       elseif ($type == 'relationship') {
-        $this->drupalPost($add_handler_url, array('name[views_test_data.uid]' => TRUE), t('Add and configure @handler', array('@handler' => $type_info['ltitle'])));
+        $this->drupalPostForm($add_handler_url, array('name[views_test_data.uid]' => TRUE), t('Add and configure @handler', array('@handler' => $type_info['ltitle'])));
         $id = 'uid';
         $edit_handler_url = "admin/structure/views/nojs/config-item/test_view_empty/default/$type/$id";
       }
       else {
-        $this->drupalPost($add_handler_url, array('name[views_test_data.job]' => TRUE), t('Add and configure @handler', array('@handler' => $type_info['ltitle'])));
+        $this->drupalPostForm($add_handler_url, array('name[views_test_data.job]' => TRUE), t('Add and configure @handler', array('@handler' => $type_info['ltitle'])));
         $id = 'job';
         $edit_handler_url = "admin/structure/views/nojs/config-item/test_view_empty/default/$type/$id";
       }
 
       $this->assertUrl($edit_handler_url, array(), 'The user got redirected to the handler edit form.');
       $random_label = $this->randomName();
-      $this->drupalPost(NULL, array('options[admin_label]' => $random_label), t('Apply'));
+      $this->drupalPostForm(NULL, array('options[admin_label]' => $random_label), t('Apply'));
 
       $this->assertUrl('admin/structure/views/view/test_view_empty/edit/default', array(), 'The user got redirected to the views edit form.');
 
@@ -107,16 +108,16 @@ class HandlerTest extends UITestBase {
       $this->assertTrue(isset($links[0]), 'The handler edit link has the right label');
 
       // Save the view and have a look whether the handler was added as expected.
-      $this->drupalPost(NULL, array(), t('Save'));
+      $this->drupalPostForm(NULL, array(), t('Save'));
       $view = $this->container->get('entity.manager')->getStorageController('view')->load('test_view_empty');
       $display = $view->getDisplay('default');
       $this->assertTrue(isset($display['display_options'][$type_info['plural']][$id]), 'Ensure the field was added to the view itself.');
 
       // Remove the item and check that it's removed
-      $this->drupalPost($edit_handler_url, array(), t('Remove'));
+      $this->drupalPostForm($edit_handler_url, array(), t('Remove'));
       $this->assertNoLinkByHref($edit_handler_url, 0, 'The handler edit link does not appears in the UI after removing.');
 
-      $this->drupalPost(NULL, array(), t('Save'));
+      $this->drupalPostForm(NULL, array(), t('Save'));
       $view = $this->container->get('entity.manager')->getStorageController('view')->load('test_view_empty');
       $display = $view->getDisplay('default');
       $this->assertFalse(isset($display['display_options'][$type_info['plural']][$id]), 'Ensure the field was removed from the view itself.');
@@ -125,22 +126,90 @@ class HandlerTest extends UITestBase {
     // Test adding a field of the user table using the uid relationship.
     $type_info = $handler_types['relationship'];
     $add_handler_url = "admin/structure/views/nojs/add-item/test_view_empty/default/relationship";
-    $this->drupalPost($add_handler_url, array('name[views_test_data.uid]' => TRUE), t('Add and configure @handler', array('@handler' => $type_info['ltitle'])));
+    $this->drupalPostForm($add_handler_url, array('name[views_test_data.uid]' => TRUE), t('Add and configure @handler', array('@handler' => $type_info['ltitle'])));
 
     $add_handler_url = "admin/structure/views/nojs/add-item/test_view_empty/default/field";
     $type_info = $handler_types['field'];
-    $this->drupalPost($add_handler_url, array('name[users.signature]' => TRUE), t('Add and configure @handler', array('@handler' => $type_info['ltitle'])));
+    $this->drupalPostForm($add_handler_url, array('name[users.signature]' => TRUE), t('Add and configure @handler', array('@handler' => $type_info['ltitle'])));
     $id = 'signature';
     $edit_handler_url = "admin/structure/views/nojs/config-item/test_view_empty/default/field/$id";
 
     $this->assertUrl($edit_handler_url, array(), 'The user got redirected to the handler edit form.');
     $this->assertFieldByName('options[relationship]', 'uid', 'Ensure the relationship select is filled with the UID relationship.');
-    $this->drupalPost(NULL, array(), t('Apply'));
+    $this->drupalPostForm(NULL, array(), t('Apply'));
 
-    $this->drupalPost(NULL, array(), t('Save'));
+    $this->drupalPostForm(NULL, array(), t('Save'));
     $view = $this->container->get('entity.manager')->getStorageController('view')->load('test_view_empty');
     $display = $view->getDisplay('default');
     $this->assertTrue(isset($display['display_options'][$type_info['plural']][$id]), 'Ensure the field was added to the view itself.');
+  }
+
+  /**
+   * Tests broken handlers.
+   */
+  public function testBrokenHandlers() {
+    $handler_types = ViewExecutable::viewsHandlerTypes();
+    foreach ($handler_types as $type => $type_info) {
+      $this->drupalGet('admin/structure/views/view/test_view_broken/edit');
+
+      $href = "admin/structure/views/nojs/config-item/test_view_broken/default/$type/id_broken";
+
+      $result = $this->xpath('//a[contains(@href, :href)]', array(':href' => $href));
+      $this->assertEqual(count($result), 1, String::format('Handler (%type) edit link found.', array('%type' => $type)));
+
+      $text = t('Broken/missing handler (Module: @module) …', array('@module' => 'views'));
+
+      $this->assertIdentical((string) $result[0], $text, 'Ensure the broken handler text was found.');
+
+      $this->drupalGet($href);
+      $result = $this->xpath('//h1');
+      $this->assertTrue(strpos((string) $result[0], $text) !== FALSE, 'Ensure the broken handler text was found.');
+
+      $description_args = array(
+        '@module' => 'views',
+        '@table' => 'views_test_data',
+        '@field' => 'id_broken',
+      );
+
+      foreach ($description_args as $token => $value) {
+        $this->assertNoText($token, String::format('Raw @token token placeholder not found.', array('@token' => $token)));
+        $this->assertText($value, String::format('Replaced @token value found.', array('@token' => $token)));
+      }
+    }
+  }
+
+  /**
+   * Tests optional handlers.
+   */
+  public function testOptionalHandlers() {
+    $handler_types = ViewExecutable::viewsHandlerTypes();
+    foreach ($handler_types as $type => $type_info) {
+      $this->drupalGet('admin/structure/views/view/test_view_optional/edit');
+
+      $href = "admin/structure/views/nojs/config-item/test_view_optional/default/$type/id_optional";
+
+      $result = $this->xpath('//a[contains(@href, :href)]', array(':href' => $href));
+      $this->assertEqual(count($result), 1, String::format('Handler (%type) edit link found.', array('%type' => $type)));
+
+      $text = t('Optional handler is missing (Module: @module) …', array('@module' => 'views'));
+
+      $this->assertIdentical((string) $result[0], $text, 'Ensure the optional handler link text was found.');
+
+      $this->drupalGet($href);
+      $result = $this->xpath('//h1');
+      $this->assertTrue(strpos((string) $result[0], $text) !== FALSE, 'Ensure the optional handler title was found.');
+
+      $description_args = array(
+        '@module' => 'views',
+        '@table' => 'views_test_data',
+        '@field' => 'id_optional',
+      );
+
+      foreach ($description_args as $token => $value) {
+        $this->assertNoText($token, String::format('Raw @token token placeholder not found.', array('@token' => $token)));
+        $this->assertText($value, String::format('Replaced @token value found.', array('@token' => $token)));
+      }
+    }
   }
 
 }

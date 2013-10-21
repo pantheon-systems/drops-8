@@ -7,7 +7,7 @@
 
 namespace Drupal\user;
 
-use Drupal\system\SystemConfigFormBase;
+use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Config\ConfigFactory;
 use Drupal\Core\Config\Context\ContextInterface;
 use Drupal\Core\Extension\ModuleHandler;
@@ -16,7 +16,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 /**
  * Configure user settings for this site.
  */
-class AccountSettingsForm extends SystemConfigFormBase {
+class AccountSettingsForm extends ConfigFormBase {
 
   /**
    * The module handler.
@@ -52,9 +52,9 @@ class AccountSettingsForm extends SystemConfigFormBase {
   }
 
   /**
-   * Implements \Drupal\Core\Form\FormInterface::getFormID().
+   * {@inheritdoc}
    */
-  public function getFormID() {
+  public function getFormId() {
     return 'user_admin_settings';
   }
 
@@ -134,7 +134,6 @@ class AccountSettingsForm extends SystemConfigFormBase {
       '#title' => $this->t('Enable password strength indicator'),
       '#default_value' => $config->get('password_strength'),
     );
-    form_load_include($form_state, 'inc', 'user', 'user.pages');
     $form['registration_cancellation']['user_cancel_method'] = array(
       '#type' => 'radios',
       '#title' => $this->t('When cancelling a user account'),

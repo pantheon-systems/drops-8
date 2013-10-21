@@ -64,8 +64,13 @@ class MenuDeleteForm extends EntityConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function getCancelPath() {
-    return 'admin/structure/menu/manage/' . $this->entity->id();
+  public function getCancelRoute() {
+    return array(
+      'route_name' => 'menu.menu_edit',
+      'route_parameters' => array(
+        'menu' => $this->entity->id(),
+      ),
+    );
   }
 
   /**
@@ -94,9 +99,8 @@ class MenuDeleteForm extends EntityConfirmFormBase {
   public function submit(array $form, array &$form_state) {
     $form_state['redirect'] = 'admin/structure/menu';
 
-    // System-defined menus may not be deleted - only menus defined by this module.
-    $system_menus = menu_list_system_menus();
-    if (isset($system_menus[$this->entity->id()])) {
+    // Locked menus may not be deleted.
+    if ($this->entity->isLocked()) {
       return;
     }
 

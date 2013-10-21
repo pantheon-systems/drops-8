@@ -7,8 +7,6 @@
 
 namespace Drupal\system\Tests\Entity;
 
-use Drupal\Component\Uuid\Uuid;
-
 /**
  * Tests creation, saving, and loading of entity UUIDs.
  */
@@ -31,6 +29,7 @@ class EntityUUIDTest extends EntityUnitTestBase {
       'entity_test_rev',
       'entity_test_rev_revision',
       'entity_test_mulrev',
+      'entity_test_mulrev_revision',
       'entity_test_mulrev_property_data',
       'entity_test_mulrev_property_revision',
     ));
@@ -54,7 +53,7 @@ class EntityUUIDTest extends EntityUnitTestBase {
    */
   protected function assertCRUD($entity_type) {
     // Verify that no UUID is auto-generated when passing one for creation.
-    $uuid_service = new Uuid();
+    $uuid_service = $this->container->get('uuid');
     $uuid = $uuid_service->generate();
     $custom_entity = entity_create($entity_type, array(
       'name' => $this->randomName(),

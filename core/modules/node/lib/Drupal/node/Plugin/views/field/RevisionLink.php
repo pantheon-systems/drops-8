@@ -28,13 +28,24 @@ class RevisionLink extends Link {
   public function init(ViewExecutable $view, DisplayPluginBase $display, array &$options = NULL) {
     parent::init($view, $display, $options);
 
-    $this->additional_fields['node_vid'] = array('table' => 'node_field_revision', 'field' => 'vid');
+    $this->additional_fields['node_vid'] = array('table' => 'node_revision', 'field' => 'vid');
   }
 
   public function access() {
     return user_access('view revisions') || user_access('administer nodes');
   }
 
+  /**
+   * Prepares the link to point to a node revision.
+   *
+   * @param \Drupal\Core\Entity\EntityInterface $data
+   *   The node revision entity this field belongs to.
+   * @param \Drupal\views\ResultRow $values
+   *   The values retrieved from the view's result set.
+   *
+   * @return string
+   *   Returns a string for the link text.
+   */
   protected function renderLink($data, ResultRow $values) {
     list($node, $vid) = $this->get_revision_entity($values, 'view');
     if (!isset($vid)) {

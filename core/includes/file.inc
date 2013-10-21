@@ -7,6 +7,7 @@
 
 use Drupal\Core\StreamWrapper\LocalStream;
 use Drupal\Component\PhpStorage\MTimeProtectedFastFileStorage;
+use Drupal\Component\Utility\String;
 use Drupal\Core\StreamWrapper\PublicStream;
 
 /**
@@ -190,7 +191,7 @@ function file_get_stream_wrappers($filter = STREAM_WRAPPERS_ALL) {
   $wrappers_storage = &drupal_static(__FUNCTION__);
 
   if (!isset($wrappers_storage)) {
-    $wrappers = Drupal::moduleHandler()->invokeAll('stream_wrappers');
+    $wrappers = \Drupal::moduleHandler()->invokeAll('stream_wrappers');
     foreach ($wrappers as $scheme => $info) {
       // Add defaults.
       $wrappers[$scheme] += array('type' => STREAM_WRAPPERS_NORMAL);
@@ -313,7 +314,7 @@ function file_uri_target($uri) {
  *   'public', 'private' or any other file scheme defined as the default.
  */
 function file_default_scheme() {
-  return Drupal::config('system.file')->get('default_scheme');
+  return \Drupal::config('system.file')->get('default_scheme');
 }
 
 /**
@@ -481,12 +482,15 @@ function file_create_url($uri) {
  *   A bitmask to indicate if the directory should be created if it does
  *   not exist (FILE_CREATE_DIRECTORY) or made writable if it is read-only
  *   (FILE_MODIFY_PERMISSIONS).
+ * @param int $mode
+ *   Octal value for the permissions. Consult PHP chmod() documentation for
+ *   more information.
  *
  * @return
  *   TRUE if the directory exists (or was created) and is writable. FALSE
  *   otherwise.
  */
-function file_prepare_directory(&$directory, $options = FILE_MODIFY_PERMISSIONS) {
+function file_prepare_directory(&$directory, $options = FILE_MODIFY_PERMISSIONS, $mode = NULL) {
   if (!file_stream_wrapper_valid_scheme(file_uri_scheme($directory))) {
     // Only trim if we're not dealing with a stream.
     $directory = rtrim($directory, '/\\');
@@ -497,14 +501,14 @@ function file_prepare_directory(&$directory, $options = FILE_MODIFY_PERMISSIONS)
     // Let mkdir() recursively create directories and use the default directory
     // permissions.
     if ($options & FILE_CREATE_DIRECTORY) {
-      return @drupal_mkdir($directory, NULL, TRUE);
+      return @drupal_mkdir($directory, $mode, TRUE);
     }
     return FALSE;
   }
   // The directory exists, so check to see if it is writable.
   $writable = is_writable($directory);
   if (!$writable && ($options & FILE_MODIFY_PERMISSIONS)) {
-    return drupal_chmod($directory);
+    return drupal_chmod($directory, $mode);
   }
 
   return $writable;
@@ -515,7 +519,7 @@ function file_prepare_directory(&$directory, $options = FILE_MODIFY_PERMISSIONS)
  */
 function file_ensure_htaccess() {
   file_save_htaccess('public://', FALSE);
-  $private_path = Drupal::config('system.file')->get('path.private');
+  $private_path = \Drupal::config('system.file')->get('path.private');
   if (!empty($private_path)) {
     file_save_htaccess('private://', TRUE);
   }
@@ -561,7 +565,7 @@ function file_save_htaccess($directory, $private = TRUE) {
     drupal_chmod($htaccess_path, 0444);
   }
   else {
-    $variables = array('%directory' => $directory, '!htaccess' => '<br />' . nl2br(check_plain($htaccess_lines)));
+    $variables = array('%directory' => $directory, '!htaccess' => '<br />' . nl2br(String::checkPlain($htaccess_lines)));
     watchdog('security', "Security warning: Couldn't write .htaccess file. Please create a .htaccess file in your %directory directory which contains the following lines: <code>!htaccess</code>", $variables, WATCHDOG_ERROR);
   }
 }
@@ -598,6 +602,9 @@ function file_valid_uri($uri) {
  *   is reported.
  * - If file already exists in $destination either the call will error out,
  *   replace the file or rename the file based on the $replace parameter.
+ * - If the $source and $destination are equal, the behavior depends on the
+ *   $replace parameter. FILE_EXIST_REPLACE will error out. FILE_EXIST_RENAME
+ *   will rename the file until the $destination is unique.
  * - Provides a fallback using realpaths if the move fails using stream
  *   wrappers. This can occur because PHP's copy() function does not properly
  *   support streams if safe_mode or open_basedir are enabled. See
@@ -802,7 +809,7 @@ function file_munge_filename($filename, $extensions, $alerts = TRUE) {
   $original = $filename;
 
   // Allow potentially insecure uploads for very savvy users and admin
-  if (!Drupal::config('system.file')->get('allow_insecure_uploads')) {
+  if (!\Drupal::config('system.file')->get('allow_insecure_uploads')) {
     // Remove any null bytes. See http://php.net/manual/en/security.filesystem.nullbytes.php
     $filename = str_replace(chr(0), '', $filename);
 
@@ -1257,8 +1264,8 @@ function file_get_mimetype($uri, $mapping = NULL) {
  *
  * @param $uri
  *   A string containing a URI file, or directory path.
- * @param $mode
- *   Integer value for the permissions. Consult PHP chmod() documentation for
+ * @param int $mode
+ *   Octal value for the permissions. Consult PHP chmod() documentation for
  *   more information.
  *
  * @return bool
@@ -1272,13 +1279,13 @@ function drupal_chmod($uri, $mode = NULL) {
     // that the octal permission numbers can be expressed as integers or strings
     // and will be converted correctly in both cases.
     if (is_dir($uri)) {
-      $mode = octdec(Drupal::config('system.file')->get('chmod.directory'));
+      $mode = octdec(\Drupal::config('system.file')->get('chmod.directory'));
       if (!$mode) {
         $mode = 0775;
       }
     }
     else {
-      $mode = octdec(Drupal::config('system.file')->get('chmod.file'));
+      $mode = octdec(\Drupal::config('system.file')->get('chmod.file'));
       if (!$mode) {
         $mode = 0664;
       }
@@ -1350,7 +1357,7 @@ function drupal_unlink($uri, $context = NULL) {
  * @return string|false
  *   The absolute local filepath (with no symbolic links), or FALSE on failure.
  *
- * @see Drupal\Core\StreamWrapper\StreamWrapperInterface::realpath()
+ * @see \Drupal\Core\StreamWrapper\StreamWrapperInterface::realpath()
  * @see http://php.net/manual/function.realpath.php
  * @ingroup php_wrappers
  */
@@ -1455,8 +1462,8 @@ function drupal_mkdir($uri, $mode = NULL, $recursive = FALSE, $context = NULL) {
     // Configuration system stores default mode as strings.
     $mode = FALSE;
     // During early update there's no container.
-    if (is_object(Drupal::getContainer())) {
-      $mode = octdec(Drupal::config('system.file')->get('chmod.directory'));
+    if (is_object(\Drupal::getContainer())) {
+      $mode = octdec(\Drupal::config('system.file')->get('chmod.directory'));
     }
     if (!$mode) {
       $mode = 0775;
@@ -1608,7 +1615,7 @@ function drupal_tempnam($directory, $prefix) {
  *   A string containing the path to the temporary directory.
  */
 function file_directory_temp() {
-  $config = Drupal::config('system.file');
+  $config = \Drupal::config('system.file');
   $temporary_directory = $config->get('path.temporary');
   if (empty($temporary_directory)) {
     $temporary_directory = file_directory_os_temp();

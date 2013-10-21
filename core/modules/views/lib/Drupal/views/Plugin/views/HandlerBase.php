@@ -22,7 +22,7 @@ abstract class HandlerBase extends PluginBase {
   /**
    * Where the $query object will reside:
    *
-   * @var Drupal\views\Plugin\views\query\QueryPluginBase
+   * @var \Drupal\views\Plugin\views\query\QueryPluginBase
    */
   public $query = NULL;
 
@@ -77,11 +77,19 @@ abstract class HandlerBase extends PluginBase {
   public $relationship = NULL;
 
   /**
+   * Whether or not this handler is optional.
+   *
+   * @var bool
+   */
+  protected $optional = FALSE;
+
+  /**
    * Constructs a Handler object.
    */
   public function __construct(array $configuration, $plugin_id, array $plugin_definition) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
     $this->is_handler = TRUE;
+    $this->optional = !empty($configuration['optional']);
   }
 
   /**
@@ -101,11 +109,6 @@ abstract class HandlerBase extends PluginBase {
 
     if (isset($this->actualField)) {
       $options['field'] = $this->actualField;
-    }
-
-    $plural = $this->definition['plugin_type'];
-    if (isset($types[$plural]['plural'])) {
-      $plural = $types[$plural]['plural'];
     }
 
     $this->unpackOptions($this->options, $options);
@@ -149,6 +152,15 @@ abstract class HandlerBase extends PluginBase {
     $options['admin_label'] = array('default' => '', 'translatable' => TRUE);
 
     return $options;
+  }
+
+  /**
+   * Returns whether this handler is optional.
+   *
+   * @return bool
+   */
+  public function isOptional() {
+    return $this->optional;
   }
 
   /**
@@ -262,11 +274,6 @@ abstract class HandlerBase extends PluginBase {
   }
 
   /**
-   * Validate the options form.
-   */
-  public function validateOptionsForm(&$form, &$form_state) { }
-
-  /**
    * Build the options form.
    */
   public function buildOptionsForm(&$form, &$form_state) {
@@ -309,12 +316,6 @@ abstract class HandlerBase extends PluginBase {
     // @todo Do we really want to keep this hook.
     \Drupal::moduleHandler()->alter('views_handler_options', $this->options, $this->view);
   }
-
-  /**
-   * Perform any necessary changes to the form values prior to storage.
-   * There is no need for this function to actually store the data.
-   */
-  public function submitOptionsForm(&$form, &$form_state) { }
 
   /**
    * Provides the handler some groupby.
@@ -481,7 +482,14 @@ abstract class HandlerBase extends PluginBase {
    * This gives all the handlers some time to set up before any handler has
    * been fully run.
    */
-  public function preQuery() { }
+  public function preQuery() {
+  }
+
+  /**
+   * Don't run a query by default.
+   */
+  public function query() {
+  }
 
   /**
    * Run after the view is executed, before the result is cached.
@@ -544,7 +552,7 @@ abstract class HandlerBase extends PluginBase {
   }
 
   /**
-   * Provide text for the administrative summary
+   * Provide text for the administrative summary.
    */
   public function adminSummary() { }
 
@@ -617,10 +625,12 @@ abstract class HandlerBase extends PluginBase {
   public function validate() { return array(); }
 
   /**
-   * Determine if the handler is considered 'broken', meaning it's a
+   * Determines if the handler is considered 'broken', meaning it's a
    * a placeholder used when a handler can't be found.
    */
-  public function broken() { }
+  public function broken() {
+    return FALSE;
+  }
 
   /**
    * Creates cross-database SQL date formatting.
@@ -653,7 +663,7 @@ abstract class HandlerBase extends PluginBase {
    * @param string $base_table
    *   The table to join to.
    *
-   * @return Drupal\views\Plugin\views\join\JoinPluginBase
+   * @return \Drupal\views\Plugin\views\join\JoinPluginBase
    */
   public static function getTableJoin($table, $base_table) {
     $data = Views::viewsData()->get($table);
@@ -720,11 +730,11 @@ abstract class HandlerBase extends PluginBase {
    *
    * @param string $str
    *   The string to parse.
-   * @param Drupal\views\Plugin\views\HandlerBase|null $handler
+   * @param \Drupal\views\Plugin\views\HandlerBase|null $handler
    *   The handler object to use as a base. If not specified one will
    *   be created.
    *
-   * @return Drupal\views\Plugin\views\HandlerBase|stdClass $handler
+   * @return \Drupal\views\Plugin\views\HandlerBase|stdClass $handler
    *   The new handler object.
    */
   public static function breakPhrase($str, &$handler = NULL) {
@@ -775,11 +785,11 @@ abstract class HandlerBase extends PluginBase {
    *
    * @param string $str
    *   The string to parse.
-   * @param Drupal\views\Plugin\views\HandlerBase|null $handler
+   * @param \Drupal\views\Plugin\views\HandlerBase|null $handler
    *   The object to use as a base. If not specified one will
    *   be created.
    *
-   * @return Drupal\views\Plugin\views\HandlerBase|stdClass $handler
+   * @return \Drupal\views\Plugin\views\HandlerBase|stdClass $handler
    *   The new handler object.
    */
   public static function breakPhraseString($str, &$handler = NULL) {

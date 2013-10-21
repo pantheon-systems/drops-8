@@ -17,7 +17,7 @@ class ConfirmFormTestForm extends ConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function getFormID() {
+  public function getFormId() {
     return 'form_test_confirm_test_form';
   }
 
@@ -31,8 +31,10 @@ class ConfirmFormTestForm extends ConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function getCancelPath() {
-    return 'admin';
+  public function getCancelRoute() {
+    return array(
+      'route_name' => 'system.admin',
+    );
   }
 
   /**

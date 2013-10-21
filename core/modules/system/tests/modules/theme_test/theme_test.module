@@ -14,6 +14,21 @@ function theme_test_theme($existing, $type, $theme, $path) {
   $items['theme_test_template_test_2'] = array(
     'template' => 'theme_test.template_test',
   );
+  $items['theme_test_suggestion_provided'] = array(
+    'template' => 'theme-test-suggestion-provided',
+    'variables' => array(),
+  );
+  $items['theme_test_specific_suggestions'] = array(
+    'template' => 'theme-test-specific-suggestions',
+    'variables' => array(),
+  );
+  $items['theme_test_suggestions'] = array(
+    'template' => 'theme-test-suggestions',
+    'variables' => array(),
+  );
+  $items['theme_test_function_suggestions'] = array(
+    'variables' => array(),
+  );
   $items['theme_test_foo'] = array(
     'variables' => array('foo' => NULL),
   );
@@ -46,80 +61,27 @@ function theme_test_system_theme_info() {
  */
 function theme_test_menu() {
   $items['theme-test/suggestion'] = array(
-    'title' => 'Suggestion',
-    'page callback' => '_theme_test_suggestion',
-    'access callback' => TRUE,
+    'route_name' => 'theme_test.suggestion',
     'theme callback' => '_theme_custom_theme',
     'type' => MENU_CALLBACK,
   );
   $items['theme-test/alter'] = array(
-    'title' => 'Suggestion',
-    'page callback' => '_theme_test_alter',
-    'access callback' => TRUE,
     'theme callback' => '_theme_custom_theme',
-    'type' => MENU_CALLBACK,
-  );
-  $items['theme-test/request-listener'] = array(
-    'page callback' => 'theme_test_request_listener_page_callback',
-    'access callback' => TRUE,
-    'type' => MENU_CALLBACK,
-  );
-  $items['theme-test/template-test'] = array(
-    'page callback' => 'theme_test_template_test_page_callback',
-    'access callback' => TRUE,
-    'type' => MENU_CALLBACK,
-  );
-  $items['theme-test/info/stylesheets'] = array(
-    'page callback' => 'theme_test_info_stylesheets',
-    'access callback' => TRUE,
+    'route_name' => 'theme_test.alter',
     'type' => MENU_CALLBACK,
   );
   $items['theme-test/function-template-overridden'] = array(
     'theme callback' => '_theme_custom_theme',
-    'route_name' => 'function_template_override',
+    'route_name' => 'theme_test.function_template_override',
   );
   return $items;
 }
-
 /**
  * Fake registry loading callback.
  */
 function _theme_test_load_registry() {
   print 'registry initialized';
   return array();
-}
-
-/**
- * Menu callback for testing themed output generated in a request listener.
- */
-function theme_test_request_listener_page_callback() {
-  return $GLOBALS['theme_test_output'];
-}
-
-/**
- * Menu callback for testing template overridding based on filename.
- */
-function theme_test_template_test_page_callback() {
-  return theme('theme_test_template_test');
-}
-
-/**
- * Page callback; Adds stylesheets to test theme .info.yml property processing.
- *
- * @see test_basetheme.info.yml
- * @see test_subtheme.info.yml
- * @see \Drupal\system\Tests\Theme\ThemeInfoStylesTest
- * @see http://drupal.org/node/967266#comment-3689670
- */
-function theme_test_info_stylesheets() {
-  $path = drupal_get_path('module', 'theme_test');
-  drupal_add_css("$path/css/base-override.css");
-  drupal_add_css("$path/css/base-override.sub-remove.css");
-  drupal_add_css("$path/css/base-remove.css");
-  drupal_add_css("$path/css/base-remove.sub-override.css");
-  drupal_add_css("$path/css/sub-override.css");
-  drupal_add_css("$path/css/sub-remove.css");
-  return '';
 }
 
 /**
@@ -130,27 +92,7 @@ function _theme_custom_theme() {
 }
 
 /**
- * Page callback, calls drupal_alter().
- *
- * This is for testing that the theme can have hook_*_alter() implementations
- * that run during page callback execution, even before theme() is called for
- * the first time.
- */
-function _theme_test_alter() {
-  $data = 'foo';
-  drupal_alter('theme_test_alter', $data);
-  return "The altered data is $data.";
-}
-
-/**
- * Page callback, calls a theme hook suggestion.
- */
-function _theme_test_suggestion() {
-  return theme(array('theme_test__suggestion', 'theme_test'), array());
-}
-
-/**
- * Implements hook_preprocess_HOOK() for html.tpl.php.
+ * Implements hook_preprocess_HOOK() for HTML document templates.
  */
 function theme_test_preprocess_html(&$variables) {
   $variables['html_attributes']['theme_test_html_attribute'] = 'theme test html attribute value';
@@ -184,7 +126,13 @@ function theme_theme_test_function_template_override($variables) {
 }
 
 /**
- * Process variables for theme-test-render-element.tpl.php.
+ * Prepares variables for test render element templates.
+ *
+ * Default template: theme-test-render-element.html.twig.
+ *
+ * @param array $variables
+ *   An associative array containing:
+ *   - elements: An associative array containing the properties of the element.
  */
 function template_preprocess_theme_test_render_element(&$variables) {
   $variables['attributes']['data-variables-are-preprocessed'] = TRUE;
@@ -203,4 +151,18 @@ function template_preprocess_theme_test_render_element(&$variables) {
  */
 function theme_theme_test_render_element_children($variables) {
   return drupal_render($variables['element']);
+}
+
+/**
+ * Returns HTML for a theme function suggestion test.
+ */
+function theme_theme_test_function_suggestions($variables) {
+  return 'Original theme function.';
+}
+
+/**
+ * Implements hook_theme_suggestions_HOOK().
+ */
+function theme_test_theme_suggestions_theme_test_suggestion_provided(array $variables) {
+  return array('theme_test_suggestion_provided__' . 'foo');
 }

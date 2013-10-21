@@ -12,6 +12,8 @@ use Drupal\Core\Language\Language;
  *
  * When filter key passed, perform a standard search on the given key,
  * and return the list of matching URL aliases.
+ *
+ * @deprecated Use \Drupal\path\Controller\PathController::adminOverview()
  */
 function path_admin_overview($keys = NULL) {
   // Add the filter form above the overview table.
@@ -19,7 +21,7 @@ function path_admin_overview($keys = NULL) {
   // Enable language column if language.module is enabled or if we have any
   // alias with a language.
   $alias_exists = (bool) db_query_range('SELECT 1 FROM {url_alias} WHERE langcode <> :langcode', 0, 1, array(':langcode' => Language::LANGCODE_NOT_SPECIFIED))->fetchField();
-  $multilanguage = (module_exists('language') || $alias_exists);
+  $multilanguage = (\Drupal::moduleHandler()->moduleExists('language') || $alias_exists);
 
   $header = array();
   $header[] = array('data' => t('Alias'), 'field' => 'alias', 'sort' => 'asc');
@@ -77,7 +79,7 @@ function path_admin_overview($keys = NULL) {
 
     // If the system path maps to a different URL alias, highlight this table
     // row to let the user know of old aliases.
-    if ($data->alias != Drupal::service('path.alias_manager')->getPathAlias($data->source, $data->langcode)) {
+    if ($data->alias != \Drupal::service('path.alias_manager')->getPathAlias($data->source, $data->langcode)) {
       $row['class'] = array('warning');
     }
 
@@ -105,6 +107,9 @@ function path_admin_overview($keys = NULL) {
  *   A form for adding or editing a URL alias.
  *
  * @see path_menu()
+ *
+ * @deprecated Use \Drupal\path\Controller\PathController::adminEdit() or
+ *   \Drupal\path\Controller\PathController::adminEdit()
  */
 function path_admin_edit($path = array()) {
   if ($path) {
@@ -152,7 +157,7 @@ function path_admin_form($form, &$form_state, $path = array('source' => '', 'ali
   );
 
   // A hidden value unless language.module is enabled.
-  if (module_exists('language')) {
+  if (\Drupal::moduleHandler()->moduleExists('language')) {
     $languages = language_list();
     foreach ($languages as $langcode => $language) {
       $language_options[$langcode] = $language->name;
@@ -204,7 +209,7 @@ function path_admin_form($form, &$form_state, $path = array('source' => '', 'ali
  */
 function path_admin_form_delete_submit($form, &$form_state) {
   $destination = array();
-  $query = Drupal::request()->query;
+  $query = \Drupal::request()->query;
   if ($query->has('destination')) {
     $destination = drupal_get_destination();
     $query->remove('destination');
@@ -220,7 +225,7 @@ function path_admin_form_delete_submit($form, &$form_state) {
  */
 function path_admin_form_validate($form, &$form_state) {
   $source = &$form_state['values']['source'];
-  $source = Drupal::service('path.alias_manager')->getSystemPath($source);
+  $source = \Drupal::service('path.alias_manager')->getSystemPath($source);
   $alias = $form_state['values']['alias'];
   $pid = isset($form_state['values']['pid']) ? $form_state['values']['pid'] : 0;
   // Language is only set if language.module is enabled, otherwise save for all
@@ -254,13 +259,13 @@ function path_admin_form_submit($form, &$form_state) {
 
   $pid = isset($form_state['values']['pid']) ? $form_state['values']['pid'] : 0;
   $source = &$form_state['values']['source'];
-  $source = Drupal::service('path.alias_manager')->getSystemPath($source);
+  $source = \Drupal::service('path.alias_manager')->getSystemPath($source);
   $alias = $form_state['values']['alias'];
   // Language is only set if language.module is enabled, otherwise save for all
   // languages.
   $langcode = isset($form_state['values']['langcode']) ? $form_state['values']['langcode'] : Language::LANGCODE_NOT_SPECIFIED;
 
-  Drupal::service('path.crud')->save($source, $alias, $langcode, $pid);
+  \Drupal::service('path.crud')->save($source, $alias, $langcode, $pid);
 
   drupal_set_message(t('The alias has been saved.'));
   $form_state['redirect'] = 'admin/config/search/path';

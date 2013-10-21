@@ -9,7 +9,7 @@ namespace Drupal\system\Tests\Entity;
 
 use Drupal\Core\Language\Language;
 use Drupal\Core\Session\AccountInterface;
-use Drupal\Core\TypedData\AccessibleInterface;
+use Drupal\Core\Access\AccessibleInterface;
 use Drupal\Core\Entity\EntityAccessController;
 
 /**
@@ -29,7 +29,6 @@ class EntityAccessTest extends EntityUnitTestBase  {
 
   function setUp() {
     parent::setUp();
-    $this->installSchema('user', array('users_roles'));
     $this->installSchema('system', array('variable', 'url_alias'));
     $this->installConfig(array('language'));
 
@@ -135,5 +134,25 @@ class EntityAccessTest extends EntityUnitTestBase  {
     $this->assertEntityAccess(array(
       'view' => TRUE,
     ), $translation);
+  }
+
+  /**
+   * Tests hook invocations.
+   */
+  protected function testHooks() {
+    $state = $this->container->get('state');
+    $entity = entity_create('entity_test', array(
+      'name' => 'test',
+    ));
+
+    // Test hook_entity_create_access() and hook_ENTITY_TYPE_create_access().
+    $entity->access('create');
+    $this->assertEqual($state->get('entity_test_entity_create_access'), TRUE);
+    $this->assertEqual($state->get('entity_test_entity_test_create_access'), TRUE);
+
+    // Test hook_entity_access() and hook_ENTITY_TYPE_access().
+    $entity->access('view');
+    $this->assertEqual($state->get('entity_test_entity_access'), TRUE);
+    $this->assertEqual($state->get('entity_test_entity_test_access'), TRUE);
   }
 }

@@ -23,7 +23,10 @@ class LanguageListController extends DraggableListController {
    * {@inheritdoc}
    */
   public function load() {
-    $entities = $this->storage->loadByProperties(array('locked' => '0'));
+    $entities = $this->storage->loadByProperties(array('locked' => FALSE));
+
+    // Sort the entities using the entity class's sort() method.
+    // See \Drupal\Core\Config\Entity\ConfigEntityBase::sort().
     uasort($entities, array($this->entityInfo['class'], 'sort'));
     return $entities;
   }
@@ -31,7 +34,7 @@ class LanguageListController extends DraggableListController {
   /**
    * {@inheritdoc}
    */
-  public function getFormID() {
+  public function getFormId() {
     return 'language_admin_overview_form';
   }
 

@@ -14,6 +14,7 @@ use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\field\FieldInfo;
 use Drupal\taxonomy\TermStorageControllerInterface;
+use Drupal\taxonomy\VocabularyInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -109,7 +110,7 @@ class TermAutocompleteController implements ContainerInjectionInterface {
     $tags_typed = $request->query->get('q');
 
     // Make sure the field exists and is a taxonomy field.
-    if (!($field = $this->fieldInfo->getField($entity_type, $field_name)) || $field['type'] !== 'taxonomy_term_reference') {
+    if (!($field = $this->fieldInfo->getField($entity_type, $field_name)) || $field->getFieldType() !== 'taxonomy_term_reference') {
       // Error string. The JavaScript handler will realize this is not JSON and
       // will display it as debugging information.
       return new Response(t('Taxonomy field @field_name not found.', array('@field_name' => $field_name)), 403);
@@ -125,38 +126,85 @@ class TermAutocompleteController implements ContainerInjectionInterface {
 
       // Part of the criteria for the query come from the field's own settings.
       $vids = array();
-      foreach ($field['settings']['allowed_values'] as $tree) {
+      foreach ($field->getFieldSetting('allowed_values') as $tree) {
         $vids[] = $tree['vocabulary'];
       }
 
-      $this->termEntityQuery->addTag('term_access');
-
-      // Do not select already entered terms.
-      if (!empty($tags_typed)) {
-        $this->termEntityQuery->condition('name', $tags_typed, 'NOT IN');
-      }
-      // Select rows that match by term name.
-      $tids = $this->termEntityQuery
-        ->condition('vid', $vids, 'IN')
-        ->condition('name', $tag_last, 'CONTAINS')
-        ->range(0, 10)
-        ->execute();
-
-      $prefix = count($tags_typed) ? Tags::implode($tags_typed) . ', ' : '';
-      if (!empty($tids)) {
-        $terms = $this->termStorage->loadMultiple(array_keys($tids));
-        foreach ($terms as $term) {
-          $name = $term->label();
-          // Term names containing commas or quotes must be wrapped in quotes.
-          if (strpos($name, ',') !== FALSE || strpos($name, '"') !== FALSE) {
-            $name = '"' . str_replace('"', '""', $name) . '"';
-          }
-          $matches[$prefix . $name] = String::checkPlain($term->label());
-        }
-      }
+      $matches = $this->getMatchingTerms($tags_typed, $vids, $tag_last);
     }
 
     return new JsonResponse($matches);
+  }
+
+  /**
+   * Retrieves suggestions for taxonomy term autocompletion by vocabulary ID.
+   *
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The request object.
+   * @param \Drupal\taxonomy\VocabularyInterface $taxonomy_vocabulary
+   *   The vocabulary to filter by.
+   *
+   * @return \Symfony\Component\HttpFoundation\JsonResponse
+   *   A JSON response containing the autocomplete suggestions for taxonomy
+   *   terms.
+   */
+  public function autocompletePerVid(Request $request, VocabularyInterface $taxonomy_vocabulary) {
+    // A comma-separated list of term names entered in the autocomplete form
+    // element. Only the last term is used for autocompletion.
+    $tags_typed = $request->query->get('q');
+    $tags_typed = Tags::explode($tags_typed);
+    $tag_last = Unicode::strtolower(array_pop($tags_typed));
+
+    $matches = array();
+    if ($tag_last != '') {
+      $vids = array($taxonomy_vocabulary->id());
+      $matches = $this->getMatchingTerms($tags_typed, $vids, $tag_last);
+    }
+    return new JsonResponse($matches);
+  }
+
+  /**
+   * Gets terms which matches some typed terms.
+   *
+   * @param string $tags_typed
+   *   The full typed tags string.
+   * @param array $vids
+   *   An array of vocabulary IDs which
+   * @param $tag_last
+   *   The lasted typed tag.
+   *
+   * @return array
+   *   Returns an array of matching terms.
+   */
+  protected function getMatchingTerms($tags_typed, array $vids, $tag_last) {
+    $matches = array();
+    $this->termEntityQuery->addTag('term_access');
+
+    // Do not select already entered terms.
+    if (!empty($tags_typed)) {
+      $this->termEntityQuery->condition('name', $tags_typed, 'NOT IN');
+    }
+    // Select rows that match by term name.
+    $tids = $this->termEntityQuery
+      ->condition('vid', $vids, 'IN')
+      ->condition('name', $tag_last, 'CONTAINS')
+      ->range(0, 10)
+      ->execute();
+
+    $prefix = count($tags_typed) ? Tags::implode($tags_typed) . ', ' : '';
+    if (!empty($tids)) {
+      $terms = $this->termStorage->loadMultiple(array_keys($tids));
+      foreach ($terms as $term) {
+        $name = $term->label();
+        // Term names containing commas or quotes must be wrapped in quotes.
+        if (strpos($name, ',') !== FALSE || strpos($name, '"') !== FALSE) {
+          $name = '"' . str_replace('"', '""', $name) . '"';
+        }
+        $matches[$prefix . $name] = String::checkPlain($term->label());
+      }
+      return $matches;
+    }
+    return $matches;
   }
 
 }

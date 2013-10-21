@@ -115,8 +115,8 @@ abstract class DisplayPluginBase extends PluginBase {
   }
 
   public function initDisplay(ViewExecutable $view, array &$display, array &$options = NULL) {
-    $this->setOptionDefaults($this->options, $this->defineOptions());
     $this->view = $view;
+    $this->setOptionDefaults($this->options, $this->defineOptions());
     $this->display = &$display;
 
     // Load extenders as soon as possible.
@@ -1411,6 +1411,7 @@ abstract class DisplayPluginBase extends PluginBase {
       case 'title':
         $form['#title'] .= t('The title of this view');
         $form['title'] = array(
+          '#title' => t('Title'),
           '#type' => 'textfield',
           '#description' => t('This title will be displayed with the view, wherever titles are normally displayed; i.e, as the page title, block title, etc.'),
           '#default_value' => $this->getOption('title'),
@@ -1500,6 +1501,8 @@ abstract class DisplayPluginBase extends PluginBase {
 
         $access = $this->getOption('access');
         $form['access']['type'] =  array(
+          '#title' => t('Access'),
+          '#title_display' => 'invisible',
           '#type' => 'radios',
           '#options' => views_fetch_plugin_names('access', $this->getType(), array($this->view->storage->get('base_table'))),
           '#default_value' => $access['type'],
@@ -1535,6 +1538,8 @@ abstract class DisplayPluginBase extends PluginBase {
 
         $cache = $this->getOption('cache');
         $form['cache']['type'] =  array(
+          '#title' => t('Caching'),
+          '#title_display' => 'invisible',
           '#type' => 'radios',
           '#options' => views_fetch_plugin_names('cache', $this->getType(), array($this->view->storage->get('base_table'))),
           '#default_value' => $cache['type'],
@@ -1580,24 +1585,20 @@ abstract class DisplayPluginBase extends PluginBase {
           $this->view->query->buildOptionsForm($form['query']['options'], $form_state);
         }
         break;
-      case 'field_language':
+      case 'field_langcode':
         $form['#title'] .= t('Field Language');
 
-        $entities = entity_get_info();
-        $entity_tables = array();
-        $has_translation_handlers = FALSE;
-        foreach ($entities as $type => $entity_info) {
-          $entity_tables[] = $entity_info['base_table'];
-
-          if (!empty($entity_info['translation'])) {
-            $has_translation_handlers = TRUE;
+        $translatable_entity_tables = array();
+        foreach (\Drupal::entityManager()->getDefinitions() as $entity_info) {
+          if (isset($entity_info['base_table']) && !empty($entity_info['translatable'])) {
+            $translatable_entity_tables[] = $entity_info['base_table'];
           }
         }
 
         // Doesn't make sense to show a field setting here if we aren't querying
         // an entity base table. Also, we make sure that there's at least one
         // entity type with a translation handler attached.
-        if (in_array($this->view->storage->get('base_table'), $entity_tables) && $has_translation_handlers) {
+        if (in_array($this->view->storage->get('base_table'), $translatable_entity_tables)) {
           $languages = array(
             '***CURRENT_LANGUAGE***' => t("Current user's language"),
             '***DEFAULT_LANGUAGE***' => t("Default site language"),
@@ -1626,6 +1627,8 @@ abstract class DisplayPluginBase extends PluginBase {
         $form['#title'] .= t('How should this view be styled');
         $style_plugin = $this->getPlugin('style');
         $form['style'] =  array(
+          '#title' => t('Style'),
+          '#title_display' => 'invisible',
           '#type' => 'radios',
           '#options' => views_fetch_plugin_names('style', $this->getType(), array($this->view->storage->get('base_table'))),
           '#default_value' => $style_plugin->definition['id'],
@@ -1668,6 +1671,8 @@ abstract class DisplayPluginBase extends PluginBase {
         $form['#title'] .= t('How should each row in this view be styled');
         $row_plugin_instance = $this->getPlugin('row');
         $form['row'] =  array(
+          '#title' => t('Row'),
+          '#title_display' => 'invisible',
           '#type' => 'radios',
           '#options' => views_fetch_plugin_names('row', $this->getType(), array($this->view->storage->get('base_table'))),
           '#default_value' => $row_plugin_instance->definition['id'],
@@ -1692,6 +1697,7 @@ abstract class DisplayPluginBase extends PluginBase {
         $options['custom_url'] = t('Custom URL');
         if (count($options)) {
           $form['link_display'] = array(
+            '#title' => t('Custom URL'),
             '#type' => 'radios',
             '#options' => $options,
             '#description' => t("Which display to use to get this display's path for things like summary links, rss feed links, more links, etc."),
@@ -1859,6 +1865,8 @@ abstract class DisplayPluginBase extends PluginBase {
           '#suffix' => '</div>',
         );
         $form['box']['theme'] = array(
+          '#title' => t('Theme'),
+          '#title_display' => 'invisible',
           '#type' => 'select',
           '#options' => $options,
           '#default_value' => $this->theme,
@@ -1987,6 +1995,8 @@ abstract class DisplayPluginBase extends PluginBase {
 
         $exposed_form = $this->getOption('exposed_form');
         $form['exposed_form']['type'] =  array(
+          '#title' => t('Exposed form'),
+          '#title_display' => 'invisible',
           '#type' => 'radios',
           '#options' => views_fetch_plugin_names('exposed_form', $this->getType(), array($this->view->storage->get('base_table'))),
           '#default_value' => $exposed_form['type'],
@@ -2021,6 +2031,8 @@ abstract class DisplayPluginBase extends PluginBase {
 
         $pager = $this->getOption('pager');
         $form['pager']['type'] =  array(
+          '#title' => t('Pager'),
+          '#title_display' => 'invisible',
           '#type' => 'radios',
           '#options' => views_fetch_plugin_names('pager', !$this->usesPager() ? 'basic' : NULL, array($this->view->storage->get('base_table'))),
           '#default_value' => $pager['type'],
@@ -2529,8 +2541,7 @@ abstract class DisplayPluginBase extends PluginBase {
    */
   public function access($account = NULL) {
     if (!isset($account)) {
-      global $user;
-      $account = $user;
+      $account = \Drupal::currentUser();
     }
 
     // Full override.
@@ -2662,6 +2673,14 @@ abstract class DisplayPluginBase extends PluginBase {
   }
 
   /**
+   * Reacts on adding a display.
+   *
+   * @see \Drupal\views\Entity\View::newDisplay()
+   */
+  public function newDisplay() {
+  }
+
+  /**
    * Reacts on deleting a display.
    */
   public function remove() {
@@ -2699,6 +2718,34 @@ abstract class DisplayPluginBase extends PluginBase {
     return TRUE;
   }
 
+ /**
+  * Is the output of the view empty.
+  *
+  * If a view has no result and neither the empty, nor the footer nor the header
+  * does show anything return FALSE.
+  *
+  * @return bool
+  *   Returns TRUE if the output is empty, else FALSE.
+  */
+ public function outputIsEmpty() {
+   if (!empty($this->view->result)) {
+     return FALSE;
+   }
+
+   // Check whether all of the area handlers are empty.
+   foreach (array('empty', 'footer', 'header') as $type) {
+     $handlers = $this->getHandlers($type);
+     foreach ($handlers as $handler) {
+       // If one is not empty, return FALSE now.
+       if (!$handler->isEmpty()) {
+         return FALSE;
+       }
+     }
+   }
+
+   return TRUE;
+ }
+
   /**
    * Provide the block system with any exposed widget blocks for this display.
    */
@@ -2721,7 +2768,7 @@ abstract class DisplayPluginBase extends PluginBase {
   /**
    * Render the exposed form as block.
    *
-   * @return string|NULL
+   * @return string|null
    *  The rendered exposed form as string or NULL otherwise.
    */
   public function viewExposedFormBlocks() {

@@ -52,12 +52,17 @@ abstract class StorageTestBase extends UnitTestBase {
       ->register('service_container', 'Symfony\Component\DependencyInjection\ContainerBuilder')
       ->setSynthetic(TRUE);
     $this->container->set('service_container', $this->container);
+    $this->container->register('settings', 'Drupal\Component\Utility\Settings')
+      ->setFactoryClass('Drupal\Component\Utility\Settings')
+      ->setFactoryMethod('getSingleton');
     $this->container
       ->register('keyvalue', 'Drupal\Core\KeyValueStore\KeyValueFactory')
-      ->addArgument(new Reference('service_container'));
+      ->addArgument(new Reference('service_container'))
+      ->addArgument(new Reference('settings'));
     $this->container
       ->register('keyvalue.expirable', 'Drupal\Core\KeyValueStore\KeyValueExpirableFactory')
-      ->addArgument(new Reference('service_container'));
+      ->addArgument(new Reference('service_container'))
+      ->addArgument(new Reference('settings'));
     // Define two data collections,
     $this->collections = array(0 => 'zero', 1 => 'one');
 
@@ -152,6 +157,9 @@ abstract class StorageTestBase extends UnitTestBase {
     // Verify that a non-existing key returns NULL as value.
     $this->assertNull($stores[0]->get('foo'));
 
+    // Verify that a non-existing key with a default returns the default.
+    $this->assertIdentical($stores[0]->get('foo', 'bar'), 'bar');
+
     // Verify that a FALSE value can be stored.
     $stores[0]->set('foo', FALSE);
     $this->assertIdentical($stores[0]->get('foo'), FALSE);
@@ -202,8 +210,8 @@ abstract class StorageTestBase extends UnitTestBase {
    * destructed, after tearDown() has deleted the database tables. Instead,
    * create the storage objects locally in each test using this method.
    *
-   * @see Drupal\system\Tests\KeyValueStore\DatabaseStorageExpirable
-   * @see Drupal\Core\KeyValueStore\DatabaseStorageExpirable::garbageCollection()
+   * @see \Drupal\system\Tests\KeyValueStore\DatabaseStorageExpirable
+   * @see \Drupal\Core\KeyValueStore\DatabaseStorageExpirable::garbageCollection()
    */
   protected function createStorage() {
     $stores = array();

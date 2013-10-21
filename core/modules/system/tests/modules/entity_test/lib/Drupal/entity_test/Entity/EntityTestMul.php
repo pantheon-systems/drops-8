@@ -24,7 +24,7 @@ use Drupal\Core\Annotation\Translation;
  *     "form" = {
  *       "default" = "Drupal\entity_test\EntityTestFormController"
  *     },
- *     "translation" = "Drupal\content_translation\ContentTranslationControllerNG"
+ *     "translation" = "Drupal\content_translation\ContentTranslationController"
  *   },
  *   base_table = "entity_test_mul",
  *   data_table = "entity_test_mul_property_data",
@@ -33,9 +33,11 @@ use Drupal\Core\Annotation\Translation;
  *   entity_keys = {
  *     "id" = "id",
  *     "uuid" = "uuid",
- *     "bundle" = "type"
+ *     "bundle" = "type",
+ *     "label" = "name"
  *   },
- *   menu_base_path = "entity_test_mul/manage/%entity_test_mul"
+ *   menu_base_path = "entity_test_mul/manage/%entity_test_mul",
+ *   route_base_path = "entity_test_mul/structure/{bundle}"
  * )
  */
 class EntityTestMul extends EntityTest {

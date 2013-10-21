@@ -36,12 +36,8 @@ class AggregatorPluginManager extends DefaultPluginManager {
       'processor' => 'Drupal\aggregator\Annotation\AggregatorProcessor',
     );
 
-    $annotation_namespaces = array(
-      'Drupal\aggregator\Annotation' => DRUPAL_ROOT . '/core/modules/aggregator/lib',
-    );
-
-    parent::__construct("Plugin/aggregator/$type", $namespaces, $annotation_namespaces, $type_annotations[$type]);
-    $this->setCacheBackend($cache_backend, $language_manager, "aggregator_$type");
+    parent::__construct("Plugin/aggregator/$type", $namespaces, $type_annotations[$type]);
+    $this->setCacheBackend($cache_backend, $language_manager, 'aggregator_' . $type . '_plugins');
   }
 
 }

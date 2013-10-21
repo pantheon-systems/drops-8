@@ -1,12 +1,12 @@
-overlay_message:
-  pattern: '/overlay/dismiss-message'
+overlay.message:
+  path: '/overlay/dismiss-message'
   defaults:
     _controller: '\Drupal\overlay\Controller\OverlayController::overlayMessage'
   requirements:
     _access_overlay_dismiss_message: 'TRUE'
 
-overlay_ajax:
-  pattern: '/overlay-ajax/{region}'
+overlay.ajax:
+  path: '/overlay-ajax/{region}'
   defaults:
     _controller: '\Drupal\overlay\Controller\OverlayController::regionRender'
   requirements:

@@ -7,7 +7,6 @@
 
 namespace Drupal\Core\Database;
 
-use Iterator;
 
 /**
  * Empty implementation of a database statement.
@@ -18,9 +17,9 @@ use Iterator;
  * database.  Calling code can then treat it the same as if it were an actual
  * result set that happens to contain no records.
  *
- * @see Drupal\search\SearchQuery
+ * @see \Drupal\search\SearchQuery
  */
-class StatementEmpty implements Iterator, StatementInterface {
+class StatementEmpty implements \Iterator, StatementInterface {
 
   public function execute($args = array(), $options = array()) {
     return FALSE;

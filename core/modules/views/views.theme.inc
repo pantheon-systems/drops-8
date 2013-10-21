@@ -99,7 +99,7 @@ function template_preprocess_views_view(&$variables) {
     // with its HTML, because one view may appear several times on the page. So
     // we set up a hash with the current time, $dom_id, to issue a "unique"
     // identifier for each view. This identifier is written to both
-    // Drupal.settings and the DIV wrapper.
+    // drupalSettings and the DIV wrapper.
     $variables['dom_id'] = $view->dom_id;
     $variables['attributes']['class'][] = 'view-dom-id-' . $variables['dom_id'];
   }
@@ -965,7 +965,7 @@ function template_preprocess_views_view_rss(&$variables) {
 
   $style = $view->style_plugin;
 
-  $config = Drupal::config('system.site');
+  $config = \Drupal::config('system.site');
 
   // The RSS 2.0 "spec" doesn't indicate HTML can be used in the description.
   // We strip all HTML tags, but need to prevent double encoding from properly
@@ -1183,16 +1183,16 @@ function template_preprocess_views_mini_pager(&$variables) {
  * The default style for all views is views-view-unformatted.html.twig.
  *
  * Many styles will then farm out the actual display of each row to a row
- * style; the default row style is views-view-fields.tpl.php.
+ * style; the default row style is views-view-fields.html.twig.
  *
  * Here is an example of all the templates that will be tried in the following
  * case:
  *
  * View, named foobar. Style: unformatted. Row style: Fields. Display: Page.
  *
- * - views-view--foobar--page.tpl.php
- * - views-view--page.tpl.php
- * - views-view--foobar.tpl.php
+ * - views-view--foobar--page.html.twig
+ * - views-view--page.html.twig
+ * - views-view--foobar.html.twig
  * - views-view.html.twig
  *
  * - views-view-unformatted--foobar--page.html.twig
@@ -1200,10 +1200,10 @@ function template_preprocess_views_mini_pager(&$variables) {
  * - views-view-unformatted--foobar.html.twig
  * - views-view-unformatted.html.twig
  *
- * - views-view-fields--foobar--page.tpl.php
- * - views-view-fields--page.tpl.php
- * - views-view-fields--foobar.tpl.php
- * - views-view-fields.tpl.php
+ * - views-view-fields--foobar--page.html.twig
+ * - views-view-fields--page.html.twig
+ * - views-view-fields--foobar.html.twig
+ * - views-view-fields.html.twig
  *
  * Important! When adding a new template to your theme, be sure to flush the
  * theme registry cache!

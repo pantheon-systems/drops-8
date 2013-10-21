@@ -10,7 +10,6 @@ namespace Drupal\views\Plugin\views\row;
 use Drupal\Core\Entity\EntityManager;
 use Drupal\views\Plugin\views\display\DisplayPluginBase;
 use Drupal\views\ViewExecutable;
-use Drupal\views\Annotation\ViewsRow;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -95,7 +94,7 @@ class EntityRow extends RowPluginBase {
   protected function defineOptions() {
     $options = parent::defineOptions();
 
-    $options['view_mode'] = array('default' => '');
+    $options['view_mode'] = array('default' => 'default');
 
     return $options;
   }
@@ -119,7 +118,7 @@ class EntityRow extends RowPluginBase {
    * Return the main options, which are shown in the summary title.
    */
   protected function buildViewModeOptions() {
-    $options = array();
+    $options = array('default' => t('Default'));
     $view_modes = entity_get_view_modes($this->entityType);
     foreach ($view_modes as $mode => $settings) {
       $options[$mode] = $settings['label'];

@@ -46,7 +46,7 @@ class ArgumentDefaultTest extends PluginTestBase {
   /**
    * Tests the argument default test plugin.
    *
-   * @see Drupal\views_test_data\Plugin\views\argument_default\ArgumentDefaultTest
+   * @see \Drupal\views_test_data\Plugin\views\argument_default\ArgumentDefaultTest
    */
   public function testArgumentDefaultPlugin() {
     $view = views_get_view('test_view');
@@ -94,7 +94,7 @@ class ArgumentDefaultTest extends PluginTestBase {
     $edit = array(
       'options[default_argument_type]' => $argument_type,
     );
-    $this->drupalPost('admin/structure/views/nojs/config-item/test_argument_default_current_user/default/argument/uid', $edit, t('Apply'));
+    $this->drupalPostForm('admin/structure/views/nojs/config-item/test_argument_default_current_user/default/argument/uid', $edit, t('Apply'));
 
     // Note, the undefined index error has two spaces after it.
     $error = array(

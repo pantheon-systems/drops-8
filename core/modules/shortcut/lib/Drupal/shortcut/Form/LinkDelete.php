@@ -25,7 +25,7 @@ class LinkDelete extends ConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function getFormID() {
+  public function getFormId() {
     return 'shortcut_link_delete';
   }
 
@@ -39,8 +39,13 @@ class LinkDelete extends ConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function getCancelPath() {
-    return 'admin/config/user-interface/shortcut/manage/' . $this->menuLink->menu_name;
+  public function getCancelRoute() {
+    return array(
+      'route_name' => 'shortcut.set_customize',
+      'route_parameters' => array(
+        'shortcut_set' => str_replace('shortcut-', '', $this->menuLink->menu_name),
+      ),
+    );
   }
 
   /**

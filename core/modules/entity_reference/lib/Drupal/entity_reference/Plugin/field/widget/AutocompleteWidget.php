@@ -7,9 +7,7 @@
 
 namespace Drupal\entity_reference\Plugin\field\widget;
 
-use Drupal\field\Annotation\FieldWidget;
-use Drupal\Core\Annotation\Translation;
-use Drupal\Core\Entity\Field\FieldInterface;
+use Drupal\Core\Entity\Field\FieldItemListInterface;
 use Drupal\entity_reference\Plugin\field\widget\AutocompleteWidgetBase;
 
 /**
@@ -30,7 +28,7 @@ use Drupal\entity_reference\Plugin\field\widget\AutocompleteWidgetBase;
  *   settings = {
  *     "match_operator" = "CONTAINS",
  *     "size" = 60,
- *     "autocomplete_path" = "entity_reference/autocomplete/single",
+ *     "autocomplete_type" = "single",
  *     "placeholder" = ""
  *   }
  * )
@@ -40,7 +38,7 @@ class AutocompleteWidget extends AutocompleteWidgetBase {
   /**
    * {@inheritdoc}
    */
-  public function formElement(FieldInterface $items, $delta, array $element, $langcode, array &$form, array &$form_state) {
+  public function formElement(FieldItemListInterface $items, $delta, array $element, array &$form, array &$form_state) {
     // We let the Field API handles multiple values for us, only take care of
     // the one matching our delta.
     if (isset($items[$delta])) {
@@ -50,7 +48,7 @@ class AutocompleteWidget extends AutocompleteWidgetBase {
       $items->setValue(array());
     }
 
-    return parent::formElement($items, $delta, $element, $langcode, $form, $form_state);
+    return parent::formElement($items, $delta, $element, $form, $form_state);
   }
 
   /**
@@ -63,10 +61,15 @@ class AutocompleteWidget extends AutocompleteWidgetBase {
     $value = '';
     if (!empty($element['#value'])) {
       // Take "label (entity id)', match the id from parenthesis.
-      if (preg_match("/.+\((\d+)\)/", $element['#value'], $matches)) {
+      // @todo: Lookup the entity type's ID data type and use it here.
+      // https://drupal.org/node/2107249
+      if ($this->isContentReferenced() && preg_match("/.+\((\d+)\)/", $element['#value'], $matches)) {
         $value = $matches[1];
       }
-      else {
+      elseif (preg_match("/.+\(([\w.]+)\)/", $element['#value'], $matches)) {
+        $value = $matches[1];
+      }
+      if (!$value) {
         // Try to get a match from the input string when the user didn't use the
         // autocomplete but filled in a value manually.
         $handler = \Drupal::service('plugin.manager.entity_reference.selection')->getSelectionHandler($this->fieldDefinition);

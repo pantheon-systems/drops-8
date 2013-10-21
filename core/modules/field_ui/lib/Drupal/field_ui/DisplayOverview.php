@@ -31,7 +31,7 @@ class DisplayOverview extends DisplayOverviewBase {
   /**
    * {@inheritdoc}
    */
-  public function getFormID() {
+  public function getFormId() {
     return 'field_ui_display_overview_form';
   }
 
@@ -46,7 +46,7 @@ class DisplayOverview extends DisplayOverviewBase {
     $label = array(
       'label' => array(
         '#type' => 'select',
-        '#title' => $this->t('Label display for @title', array('@title' => $instance['label'])),
+        '#title' => $this->t('Label display for @title', array('@title' => $instance->getFieldLabel())),
         '#title_display' => 'invisible',
         '#options' => $this->getFieldLabelOptions(),
         '#default_value' => $display_options ? $display_options['label'] : 'above',
@@ -57,7 +57,7 @@ class DisplayOverview extends DisplayOverviewBase {
     $field_row = array_slice($field_row, 0, $label_position, TRUE) + $label + array_slice($field_row, $label_position, count($field_row) - 1, TRUE);
 
     // Update the (invisible) title of the 'plugin' column.
-    $field_row['plugin']['#title'] = $this->t('Formatter for @title', array('@title' => $instance['label']));
+    $field_row['plugin']['#title'] = $this->t('Formatter for @title', array('@title' => $instance->getFieldLabel()));
     if (!empty($field_row['plugin']['settings_edit_form'])) {
       $plugin_type_info = $entity_display->getRenderer($field_id)->getPluginDefinition();
       $field_row['plugin']['settings_edit_form']['label']['#markup'] = $this->t('Format settings:') . ' <span class="plugin-name">' . $plugin_type_info['label'] . '</span>';
@@ -139,17 +139,8 @@ class DisplayOverview extends DisplayOverviewBase {
   /**
    * {@inheritdoc}
    */
-  protected function getDisplayModeSettings() {
-    return field_view_mode_settings($this->entity_type, $this->bundle);
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  protected function saveDisplayModeSettings($display_mode_settings) {
-    $bundle_settings = field_bundle_settings($this->entity_type, $this->bundle);
-    $bundle_settings['view_modes'] = NestedArray::mergeDeep($bundle_settings['view_modes'], $display_mode_settings);
-    field_bundle_settings($this->entity_type, $this->bundle, $bundle_settings);
+  protected function getDisplayType() {
+    return 'entity_display';
   }
 
   /**

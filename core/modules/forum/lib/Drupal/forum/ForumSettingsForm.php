@@ -7,17 +7,17 @@
 
 namespace Drupal\forum;
 
-use Drupal\system\SystemConfigFormBase;
+use Drupal\Core\Form\ConfigFormBase;
 
 /**
  * Configure forum settings for this site.
  */
-class ForumSettingsForm extends SystemConfigFormBase {
+class ForumSettingsForm extends ConfigFormBase {
 
   /**
    * {@inheritdoc}
    */
-  public function getFormID() {
+  public function getFormId() {
     return 'forum_admin_settings';
   }
 

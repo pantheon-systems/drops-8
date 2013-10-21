@@ -10,7 +10,6 @@ namespace Drupal\system\Tests\TypedData;
 use Drupal\Component\Utility\String;
 use Drupal\simpletest\DrupalUnitTestBase;
 use Drupal\Core\Datetime\DrupalDateTime;
-use DateInterval;
 
 /**
  * Tests primitive data types.
@@ -29,7 +28,7 @@ class TypedDataTest extends DrupalUnitTestBase {
    *
    * @var array
    */
-  public static $modules = array('system', 'field', 'file');
+  public static $modules = array('system', 'entity', 'field', 'file', 'user');
 
   public static function getInfo() {
     return array(
@@ -49,7 +48,7 @@ class TypedDataTest extends DrupalUnitTestBase {
   /**
    * Creates a typed data object and ensures it implements TypedDataInterface.
    *
-   * @see Drupal\Core\TypedData\TypedDataManager::create().
+   * @see \Drupal\Core\TypedData\TypedDataManager::create().
    */
   protected function createTypedData($definition, $value = NULL, $name = NULL) {
     $data = $this->typedData->create($definition, $value, $name);
@@ -194,8 +193,8 @@ class TypedDataTest extends DrupalUnitTestBase {
     $this->assertEqual($typed_data->validate()->count(), 1, 'Validation detected invalid value.');
     // Check implementation of DurationInterface.
     $typed_data = $this->createTypedData(array('type' => 'duration_iso8601'), 'PT20S');
-    $this->assertTrue($typed_data->getDuration() instanceof DateInterval);
-    $typed_data->setDuration(new DateInterval('P40D'));
+    $this->assertTrue($typed_data->getDuration() instanceof \DateInterval);
+    $typed_data->setDuration(new \DateInterval('P40D'));
     // @todo: Should we make this "nicer"?
     $this->assertEqual($typed_data->getValue(), 'P0Y0M40DT0H0M0S');
     $typed_data->setValue(NULL);
@@ -218,8 +217,8 @@ class TypedDataTest extends DrupalUnitTestBase {
     $this->assertEqual($typed_data->validate()->count(), 1, 'Validation detected invalid value.');
     // Check implementation of DurationInterface.
     $typed_data = $this->createTypedData(array('type' => 'timespan'), 20);
-    $this->assertTrue($typed_data->getDuration() instanceof DateInterval);
-    $typed_data->setDuration(new DateInterval('PT4H'));
+    $this->assertTrue($typed_data->getDuration() instanceof \DateInterval);
+    $typed_data->setDuration(new \DateInterval('PT4H'));
     $this->assertEqual($typed_data->getValue(), 60 * 60 * 4);
     $typed_data->setValue(NULL);
     $this->assertNull($typed_data->getDuration());
@@ -549,7 +548,7 @@ class TypedDataTest extends DrupalUnitTestBase {
     // Test validating property containers and make sure the NotNull and Null
     // constraints work with typed data containers.
     $definition = array(
-      'type' => 'integer_field',
+      'type' => 'field_item:integer',
       'constraints' => array(
         'NotNull' => array(),
       ),
@@ -570,12 +569,12 @@ class TypedDataTest extends DrupalUnitTestBase {
 
     // Test the Null constraint with typed data containers.
     $definition = array(
-      'type' => 'integer_field',
+      'type' => 'field_item:float',
       'constraints' => array(
         'Null' => array(),
       ),
     );
-    $field_item = $this->typedData->create($definition, array('value' => 10));
+    $field_item = $this->typedData->create($definition, array('value' => 11.5));
     $violations = $field_item->validate();
     $this->assertEqual($violations->count(), 1);
     $field_item = $this->typedData->create($definition);
@@ -606,7 +605,7 @@ class TypedDataTest extends DrupalUnitTestBase {
     // Test validating a list of a values and make sure property paths starting
     // with "0" are created.
     $definition = array(
-      'type' => 'integer_field',
+      'type' => 'field_item:integer',
       'list' => TRUE,
     );
     $violations = $this->typedData->create($definition, array(array('value' => 10)))->validate();

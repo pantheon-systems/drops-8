@@ -7,9 +7,7 @@
 
 namespace Drupal\options\Plugin\field\widget;
 
-use Drupal\field\Annotation\FieldWidget;
-use Drupal\Core\Annotation\Translation;
-use Drupal\Core\Entity\Field\FieldInterface;
+use Drupal\Core\Entity\Field\FieldItemListInterface;
 
 /**
  * Plugin implementation of the 'options_select' widget.
@@ -30,8 +28,8 @@ class SelectWidget extends OptionsWidgetBase {
   /**
    * {@inheritdoc}
    */
-  public function formElement(FieldInterface $items, $delta, array $element, $langcode, array &$form, array &$form_state) {
-    $element = parent::formElement($items, $delta, $element, $langcode, $form, $form_state);
+  public function formElement(FieldItemListInterface $items, $delta, array $element, array &$form, array &$form_state) {
+    $element = parent::formElement($items, $delta, $element, $form, $form_state);
 
     $element += array(
       '#type' => 'select',

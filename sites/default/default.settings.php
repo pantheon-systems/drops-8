@@ -473,6 +473,35 @@ $settings['update_free_access'] = FALSE;
 # $settings['session_write_interval'] = 180;
 
 /**
+ * String overrides:
+ *
+ * To override specific strings on your site with or without enabling the Locale
+ * module, add an entry to this list. This functionality allows you to change
+ * a small number of your site's default English language interface strings.
+ *
+ * Remove the leading hash signs to enable.
+ *
+ * The "en" part of the variable name, is dynamic and can be any langcode of
+ * any enabled language. (eg locale_custom_strings_de for german).
+ */
+# $settings['locale_custom_strings_en'][''] = array(
+#   'forum'      => 'Discussion board',
+#   '@count min' => '@count minutes',
+# );
+
+/**
+ * A custom theme for the offline page:
+ *
+ * This applies when the site is explicitly set to maintenance mode through the
+ * administration page or when the database is inactive due to an error.
+ * The template file should also be copied into the theme. It is located inside
+ * 'core/modules/system/templates/maintenance-page.html.twig'.
+ *
+ * Note: This setting does not apply to installation and update pages.
+ */
+# $settings['maintenance_theme'] = 'bartik';
+
+/**
  * Base URL (optional).
  *
  * If Drupal is generating incorrect URLs on your site, which could
@@ -574,16 +603,6 @@ ini_set('session.cookie_lifetime', 2000000);
 # $conf['anonymous'] = 'Visitor';
 
 /**
- * A custom theme can be set for the offline page. This applies when the site
- * is explicitly set to maintenance mode through the administration page or when
- * the database is inactive due to an error. It can be set through the
- * 'maintenance_theme' key. The template file should also be copied into the
- * theme. It is located inside 'core/modules/system/maintenance-page.tpl.php'.
- * Note: This setting does not apply to installation and update pages.
- */
-# $conf['maintenance_theme'] = 'bartik';
-
-/**
  * CSS/JS aggregated file gzip compression:
  *
  * By default, when CSS or JS aggregation and clean URLs are enabled Drupal will
@@ -597,20 +616,6 @@ ini_set('session.cookie_lifetime', 2000000);
  */
 # $conf['system.performance']['css']['gzip'] = FALSE;
 # $conf['system.performance']['js']['gzip'] = FALSE;
-
-/**
- * String overrides:
- *
- * To override specific strings on your site with or without enabling the Locale
- * module, add an entry to this list. This functionality allows you to change
- * a small number of your site's default English language interface strings.
- *
- * Remove the leading hash signs to enable.
- */
-# $conf['locale_custom_strings_en'][''] = array(
-#   'forum'      => 'Discussion board',
-#   '@count min' => '@count minutes',
-# );
 
 /**
  * Fast 404 pages:

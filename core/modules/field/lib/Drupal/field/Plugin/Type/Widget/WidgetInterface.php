@@ -7,10 +7,8 @@
 
 namespace Drupal\field\Plugin\Type\Widget;
 
-use Drupal\Core\Entity\EntityInterface;
-use Drupal\field\Entity\FieldInstance;
 use Symfony\Component\Validator\ConstraintViolationInterface;
-use Drupal\Core\Entity\Field\FieldInterface;
+use Drupal\Core\Entity\Field\FieldItemListInterface;
 
 /**
  * Interface definition for field widget plugins.
@@ -42,9 +40,8 @@ interface WidgetInterface extends WidgetBaseInterface {
   /**
    * Returns a short summary for the current widget settings.
    *
-   * If an empty result is returned, the widget is assumed to have no
-   * configurable settings, and no UI will be provided to display a settings
-   * form.
+   * If an empty result is returned, a UI can still be provided to display
+   * a settings form in case the widget has configurable settings.
    *
    * @return array
    *   A short summary of the widget settings.
@@ -75,7 +72,7 @@ interface WidgetInterface extends WidgetBaseInterface {
    * definition and set them as ad-hoc $element['#custom'] properties, for later
    * use by its element callbacks.
    *
-   * @param FieldInterface $items
+   * @param \Drupal\Core\Entity\Field\FieldItemListInterface $items
    *   Array of default values for this field.
    * @param int $delta
    *   The order of this item in the array of subelements (0, 1, 2, etc).
@@ -101,8 +98,6 @@ interface WidgetInterface extends WidgetBaseInterface {
    *     required.
    *   - #delta: The order of this item in the array of subelements; see $delta
    *     above.
-   * @param string $langcode
-   *   The language associated with $items.
    * @param string $form
    *   The form structure where widgets are being attached to. This might be a
    *   full form structure, or a sub-element of a larger form.
@@ -115,7 +110,7 @@ interface WidgetInterface extends WidgetBaseInterface {
    * @see hook_field_widget_form_alter()
    * @see hook_field_widget_WIDGET_TYPE_form_alter()
    */
-  public function formElement(FieldInterface $items, $delta, array $element, $langcode, array &$form, array &$form_state);
+  public function formElement(FieldItemListInterface $items, $delta, array $element, array &$form, array &$form_state);
 
   /**
    * Assigns a field-level validation error to the right widget sub-element.

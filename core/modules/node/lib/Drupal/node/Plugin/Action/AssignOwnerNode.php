@@ -70,7 +70,7 @@ class AssignOwnerNode extends ConfigurableActionBase implements ContainerFactory
   /**
    * {@inheritdoc}
    */
-  protected function getDefaultConfiguration() {
+  public function defaultConfiguration() {
     return array(
       'owner_uid' => '',
     );
@@ -107,7 +107,7 @@ class AssignOwnerNode extends ConfigurableActionBase implements ContainerFactory
         '#type' => 'textfield',
         '#title' => t('Username'),
         '#default_value' => $owner_name,
-        '#autocomplete_route_name' => 'user_autocomplete',
+        '#autocomplete_route_name' => 'user.autocomplete',
         '#size' => '6',
         '#maxlength' => '60',
         '#description' => $description,

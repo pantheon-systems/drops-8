@@ -6,16 +6,10 @@
 
 namespace Drupal\datetime\Plugin\field\widget;
 
-use Drupal\field\Annotation\FieldWidget;
-use Drupal\Core\Annotation\Translation;
+use Drupal\Core\Entity\Field\FieldItemListInterface;
 use Drupal\field\Plugin\Type\Widget\WidgetBase;
-use Drupal\Component\Plugin\Discovery\DiscoveryInterface;
-use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\Field\FieldDefinitionInterface;
-use Drupal\Core\Entity\Field\FieldInterface;
-use Drupal\field\Plugin\PluginSettingsBase;
 use Drupal\field\FieldInstanceInterface;
-use Drupal\Core\Datetime\DrupalDateTime;
 
 /**
  * Plugin implementation of the 'datetime_default' widget.
@@ -66,7 +60,7 @@ class DateTimeDefaultWidget extends WidgetBase {
   /**
    * {@inheritdoc}
    */
-  public function formElement(FieldInterface $items, $delta, array $element, $langcode, array &$form, array &$form_state) {
+  public function formElement(FieldItemListInterface $items, $delta, array $element, array &$form, array &$form_state) {
     $format_type = datetime_default_format_type();
 
     // We are nesting some sub-elements inside the parent, so we need a wrapper.
@@ -118,8 +112,7 @@ class DateTimeDefaultWidget extends WidgetBase {
     // validator will not have access to the field definition.
     $element['value']['#date_element_format'] = $element_format;
     $element['value']['#date_storage_format'] = $storage_format;
-
-    if (!empty($items[$delta]->date)) {
+    if ($items[$delta]->date) {
       $date = $items[$delta]->date;
       // The date was created and verified during field_load(), so it is safe to
       // use without further inspection.

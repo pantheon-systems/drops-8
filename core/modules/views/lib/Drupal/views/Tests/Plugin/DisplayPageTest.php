@@ -17,7 +17,7 @@ use Symfony\Component\Routing\RouteCollection;
 /**
  * Tests the page display plugin.
  *
- * @see Drupal\views\Plugin\display\Page
+ * @see \Drupal\views\Plugin\display\Page
  */
 class DisplayPageTest extends ViewUnitTestBase {
 
@@ -33,7 +33,7 @@ class DisplayPageTest extends ViewUnitTestBase {
    *
    * @var array
    */
-  public static $modules = array('system', 'user');
+  public static $modules = array('system', 'user', 'menu_link', 'field');
 
   /**
    * The router dumper to get all routes.
@@ -57,9 +57,8 @@ class DisplayPageTest extends ViewUnitTestBase {
     parent::setUp();
 
     // Setup the needed tables in order to make the drupal router working.
-    $this->installSchema('system', 'router');
-    $this->installSchema('system', 'url_alias');
-    $this->installSchema('system', 'menu_router');
+    $this->installSchema('system', array('router', 'menu_router', 'url_alias'));
+    $this->installSchema('menu_link', 'menu_links');
   }
 
   /**
@@ -94,9 +93,9 @@ class DisplayPageTest extends ViewUnitTestBase {
    * Checks that the router items are properly registered
    */
   public function testPageRouterItems() {
-    $subscriber = new RouteSubscriber();
+    $subscriber = new RouteSubscriber($this->container->get('entity.manager'), $this->container->get('state'));
     $collection = new RouteCollection();
-    $subscriber->dynamicRoutes(new RouteBuildEvent($collection, 'dynamic_routes'));
+    $subscriber->onDynamicRoutes(new RouteBuildEvent($collection, 'dynamic_routes'));
 
     // Check the controller defaults.
     foreach ($collection as $id => $route) {

@@ -5,213 +5,7 @@
  * Administration functions for language.module.
  */
 
-use Drupal\Core\Language\Language;
 use Drupal\Core\Language\LanguageManager;
-use Symfony\Component\HttpFoundation\RedirectResponse;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
-
-/**
- * User interface for the language addition screen.
- */
-function language_admin_add_form($form, &$form_state) {
-  $predefined_languages = language_admin_predefined_list();
-  $predefined_languages['custom'] = t('Custom language...');
-  $predefined_default = !empty($form_state['values']['predefined_langcode']) ? $form_state['values']['predefined_langcode'] : key($predefined_languages);
-  $form['predefined_langcode'] = array(
-    '#type' => 'select',
-    '#title' => t('Language name'),
-    '#default_value' => $predefined_default,
-    '#options' => $predefined_languages,
-  );
-  $form['predefined_submit'] = array(
-    '#type' => 'submit',
-    '#value' => t('Add language'),
-    '#limit_validation_errors' => array(array('predefined_langcode'), array('predefined_submit')),
-    '#states' => array(
-      'invisible' => array(
-        'select#edit-predefined-langcode' => array('value' => 'custom'),
-      ),
-    ),
-    '#validate' => array('language_admin_add_predefined_form_validate'),
-    '#submit' => array('language_admin_add_form_submit'),
-  );
-
-  $form['custom_language'] = array(
-    '#type' => 'container',
-    '#states' => array(
-      'visible' => array(
-        'select#edit-predefined-langcode' => array('value' => 'custom'),
-      ),
-    ),
-  );
-  _language_admin_common_controls($form['custom_language']);
-  $form['custom_language']['submit'] = array(
-    '#type' => 'submit',
-    '#value' => t('Add custom language'),
-    '#validate' => array('language_admin_add_custom_form_validate'),
-    '#submit' => array('language_admin_add_form_submit'),
-  );
-
-  return $form;
-}
-
-/**
- * Editing screen for a particular language.
- *
- * @param $langcode
- *   Language code of the language to edit.
- */
-function language_admin_edit_form($form, &$form_state, $language) {
-  _language_admin_common_controls($form, $language);
-  $form['actions'] = array('#type' => 'actions');
-  $form['actions']['submit'] = array(
-    '#type' => 'submit',
-    '#value' => t('Save language')
-  );
-  $form['#submit'][] = 'language_admin_edit_form_submit';
-  $form['#validate'][] = 'language_admin_edit_form_validate';
-  return $form;
-}
-
-/**
- * Common elements of the language addition and editing form.
- *
- * @param $form
- *   A parent form item (or empty array) to add items below.
- * @param $language
- *   Language object to edit.
- */
-function _language_admin_common_controls(&$form, $language = NULL) {
-  if (!is_object($language)) {
-    $language = new Language(array('id' => NULL, 'name' => NULL,));
-  }
-  if (isset($language->id)) {
-    $form['langcode_view'] = array(
-      '#type' => 'item',
-      '#title' => t('Language code'),
-      '#markup' => $language->id
-    );
-    $form['langcode'] = array(
-      '#type' => 'value',
-      '#value' => $language->id
-    );
-  }
-  else {
-    $form['langcode'] = array(
-      '#type' => 'textfield',
-      '#title' => t('Language code'),
-      '#maxlength' => 12,
-      '#required' => TRUE,
-      '#default_value' => '',
-      '#disabled' => FALSE,
-      '#description' => t('Use language codes as <a href="@w3ctags">defined by the W3C</a> for interoperability. <em>Examples: "en", "en-gb" and "zh-hant".</em>', array('@w3ctags' => 'http://www.w3.org/International/articles/language-tags/')),
-    );
-  }
-  $form['name'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Language name in English'),
-    '#maxlength' => 64,
-    '#default_value' => @$language->name,
-    '#required' => TRUE,
-  );
-  $form['direction'] = array(
-    '#type' => 'radios',
-    '#title' => t('Direction'),
-    '#required' => TRUE,
-    '#description' => t('Direction that text in this language is presented.'),
-    '#default_value' => @$language->direction,
-    '#options' => array(Language::DIRECTION_LTR => t('Left to right'), Language::DIRECTION_RTL => t('Right to left')),
-  );
-  return $form;
-}
-
-/**
- * Element specific validator for the Add language button.
- */
-function language_admin_add_predefined_form_validate($form, &$form_state) {
-  $langcode = $form_state['values']['predefined_langcode'];
-  if ($langcode == 'custom') {
-    form_set_error('predefined_langcode', t('Fill in the language details and save the language with <em>Add custom language</em>.'));
-  }
-  else {
-    if ($language = language_load($langcode)) {
-      form_set_error('predefined_langcode', t('The language %language (%langcode) already exists.', array('%language' => $language->name, '%langcode' => $langcode)));
-    }
-  }
-}
-
-/**
- * Validate the language addition form on custom language button.
- */
-function language_admin_add_custom_form_validate($form, &$form_state) {
-  if ($form_state['values']['predefined_langcode'] == 'custom') {
-    $langcode = $form_state['values']['langcode'];
-    // Reuse the editing form validation routine if we add a custom language.
-    language_admin_edit_form_validate($form['custom_language'], $form_state);
-
-    if ($language = language_load($langcode)) {
-      form_set_error('langcode', t('The language %language (%langcode) already exists.', array('%language' => $language->name, '%langcode' => $langcode)));
-    }
-  }
-  else {
-    form_set_error('predefined_langcode', t('Use the <em>Add language</em> button to save a predefined language.'));
-  }
-}
-
-/**
- * Process the custom and predefined language addition form submission.
- */
-function language_admin_add_form_submit($form, &$form_state) {
-  $langcode = $form_state['values']['predefined_langcode'];
-  if ($langcode == 'custom') {
-    $langcode = $form_state['values']['langcode'];
-    // Custom language form.
-    $language = new Language(array(
-      'id' => $langcode,
-      'name' => $form_state['values']['name'],
-      'direction' => $form_state['values']['direction'],
-    ));
-  }
-  else {
-    $language = new Language(array('id' => $langcode));
-  }
-  // Save the language and inform the user that it happened.
-  $language = language_save($language);
-  drupal_set_message(t('The language %language has been created and can now be used.', array('%language' => $language->name)));
-
-  // Tell the user they have the option to add a language switcher block
-  // to their theme so they can switch between the languages.
-  drupal_set_message(t('Use one of the language switcher blocks to allow site visitors to switch between languages. You can enable these blocks on the <a href="@block-admin">block administration page</a>.', array('@block-admin' => url('admin/structure/block'))));
-
-  $form_state['redirect'] = 'admin/config/regional/language';
-}
-
-/**
- * Validate the language editing form. Reused for custom language addition too.
- */
-function language_admin_edit_form_validate($form, &$form_state) {
-  // Ensure sane field values for langcode and name.
-  if (!isset($form['langcode_view']) && preg_match('@[^a-zA-Z_-]@', $form_state['values']['langcode'])) {
-    form_set_error('langcode', t('%field may only contain characters a-z, underscores, or hyphens.', array('%field' => $form['langcode']['#title'])));
-  }
-  if ($form_state['values']['name'] != check_plain($form_state['values']['name'])) {
-    form_set_error('name', t('%field cannot contain any markup.', array('%field' => $form['name']['#title'])));
-  }
-}
-
-/**
- * Process the language editing form submission.
- */
-function language_admin_edit_form_submit($form, &$form_state) {
-  // Prepare a language object for saving.
-  $languages = language_list();
-  $langcode = $form_state['values']['langcode'];
-  $language = $languages[$langcode];
-  $language->name = $form_state['values']['name'];
-  $language->direction = $form_state['values']['direction'];
-  language_save($language);
-  $form_state['redirect'] = 'admin/config/regional/language';
-}
 
 /**
  * Prepare a language code list for unused predefined languages.
@@ -232,6 +26,8 @@ function language_admin_predefined_list() {
 
 /**
  * Builds the configuration form for language negotiation.
+ *
+ * @deprecated Use \Drupal\language\Form\LanguageForm::negotiation()
  */
 function language_negotiation_configure_form() {
   language_negotiation_include();
@@ -243,7 +39,7 @@ function language_negotiation_configure_form() {
     '#language_negotiation_info' => language_negotiation_info(),
   );
   $form['#language_types'] = array();
-  $configurable = Drupal::config('system.language.types')->get('configurable');
+  $configurable = \Drupal::config('system.language.types')->get('configurable');
   foreach ($form['#language_types_info'] as $type => $info) {
     // Show locked language types only if they are configurable.
     if (empty($info['locked']) || in_array($type, $configurable)) {
@@ -279,7 +75,7 @@ function language_negotiation_configure_form_table(&$form, $type) {
   );
   // Only show configurability checkbox for the unlocked language types.
   if (empty($info['locked'])) {
-    $configurable = Drupal::config('system.language.types')->get('configurable');
+    $configurable = \Drupal::config('system.language.types')->get('configurable');
     $table_form['configurable'] = array(
       '#type' => 'checkbox',
       '#title' => t('Customize %language_name language detection to differ from User interface text language detection settings.', array('%language_name' => $info['name'])),
@@ -442,7 +238,7 @@ function theme_language_negotiation_configure_form($variables) {
 function language_negotiation_configure_form_submit($form, &$form_state) {
   $configurable_types = $form['#language_types'];
 
-  $stored_values = Drupal::config('system.language.types')->get('configurable');
+  $stored_values = \Drupal::config('system.language.types')->get('configurable');
   $customized = array();
   $method_weights_type = array();
 
@@ -477,96 +273,16 @@ function language_negotiation_configure_form_submit($form, &$form_state) {
 
   // Clear block definitions cache since the available blocks and their names
   // may have been changed based on the configurable types.
-  if (module_exists('block')) {
+  if (\Drupal::moduleHandler()->moduleExists('block')) {
     // If there is an active language switcher for a language type that has been
     // made not configurable, deactivate it first.
     $non_configurable = array_keys(array_diff($customized, array_filter($customized)));
     _language_disable_language_switcher($non_configurable);
-    Drupal::service('plugin.manager.block')->clearCachedDefinitions();
+    \Drupal::service('plugin.manager.block')->clearCachedDefinitions();
   }
 
   $form_state['redirect'] = 'admin/config/regional/language/detection';
   drupal_set_message(t('Language negotiation configuration saved.'));
-}
-
-/**
- * Builds the browser language negotiation method configuration form.
- */
-function language_negotiation_configure_browser_form($form, &$form_state) {
-  $form = array();
-
-  // Initialize a language list to the ones available, including English.
-  $languages = language_list();
-
-  $existing_languages = array();
-  foreach ($languages as $langcode => $language) {
-    $existing_languages[$langcode] = $language->name;
-  }
-
-  // If we have no languages available, present the list of predefined languages
-  // only. If we do have already added languages, set up two option groups with
-  // the list of existing and then predefined languages.
-  if (empty($existing_languages)) {
-    $language_options = language_admin_predefined_list();
-  }
-  else {
-    $language_options = array(
-      t('Existing languages') => $existing_languages,
-      t('Languages not yet added') => language_admin_predefined_list()
-    );
-  }
-
-  $form['mappings'] = array(
-    '#tree' => TRUE,
-    '#theme' => 'language_negotiation_configure_browser_form_table',
-  );
-
-  $mappings = language_get_browser_drupal_langcode_mappings();
-  foreach ($mappings as $browser_langcode => $drupal_langcode) {
-    $form['mappings'][$browser_langcode] = array(
-      'browser_langcode' => array(
-        '#type' => 'textfield',
-        '#default_value' => $browser_langcode,
-        '#size' => 20,
-        '#required' => TRUE,
-      ),
-      'drupal_langcode' => array(
-        '#type' => 'select',
-        '#options' => $language_options,
-        '#default_value' => $drupal_langcode,
-        '#required' => TRUE,
-      ),
-    );
-  }
-
-  // Add empty row.
-  $form['new_mapping'] = array(
-    '#type' => 'details',
-    '#title' => t('Add a new mapping'),
-    '#collapsed' => TRUE,
-    '#tree' => TRUE,
-  );
-  $form['new_mapping']['browser_langcode'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Browser language code'),
-    '#description' => t('Use language codes as <a href="@w3ctags">defined by the W3C</a> for interoperability. <em>Examples: "en", "en-gb" and "zh-hant".</em>', array('@w3ctags' => 'http://www.w3.org/International/articles/language-tags/')),
-    '#default_value' => '',
-    '#size' => 20,
-  );
-  $form['new_mapping']['drupal_langcode'] = array(
-    '#type' => 'select',
-    '#title' => t('Drupal language'),
-    '#options' => $language_options,
-    '#default_value' => '',
-  );
-
-  $form['actions']['#type'] = 'actions';
-  $form['actions']['submit'] = array(
-    '#type' => 'submit',
-    '#value' => t('Save configuration'),
-  );
-
-  return $form;
 }
 
 /**
@@ -621,57 +337,9 @@ function theme_language_negotiation_configure_browser_form_table($variables) {
 }
 
 /**
- * Browser language negotiation form validation.
- */
-function language_negotiation_configure_browser_form_validate($form, &$form_state) {
-  // Array to check if all browser language codes are unique.
-  $unique_values = array();
-
-  // Check all mappings.
-  $mappings = array();
-  if (isset($form_state['values']['mappings'])) {
-    $mappings = $form_state['values']['mappings'];
-    foreach ($mappings as $key => $data) {
-      // Make sure browser_langcode is unique.
-      if (array_key_exists($data['browser_langcode'], $unique_values)) {
-        form_set_error('mappings][' . $key . '][browser_langcode', t('Browser language codes must be unique.'));
-      }
-      elseif (preg_match('/[^a-z\-]/', $data['browser_langcode'])) {
-        form_set_error('mappings][' . $key . '][browser_langcode', t('Browser language codes can only contain lowercase letters and a hyphen(-).'));
-      }
-      $unique_values[$data['browser_langcode']] = $data['drupal_langcode'];
-    }
-  }
-
-  // Check new mapping.
-  $data = $form_state['values']['new_mapping'];
-  if (!empty($data['browser_langcode'])) {
-    // Make sure browser_langcode is unique.
-    if (array_key_exists($data['browser_langcode'], $unique_values)) {
-      form_set_error('mappings][' . $key . '][browser_langcode', t('Browser language codes must be unique.'));
-    }
-    elseif (preg_match('/[^a-z\-]/', $data['browser_langcode'])) {
-      form_set_error('mappings][' . $key . '][browser_langcode', t('Browser language codes can only contain lowercase letters and a hyphen(-).'));
-    }
-    $unique_values[$data['browser_langcode']] = $data['drupal_langcode'];
-  }
-
-  $form_state['mappings'] = $unique_values;
-}
-
-/**
- * Browser language negotiation form submit.
- */
-function language_negotiation_configure_browser_form_submit($form, &$form_state) {
-  $mappings = $form_state['mappings'];
-  if (!empty($mappings)) {
-    language_set_browser_drupal_langcode_mappings($mappings);
-  }
-  $form_state['redirect'] = 'admin/config/regional/language/detection';
-}
-
-/**
  * Returns the content language settings form.
+ *
+ * @deprecated Use \Drupal\language\Controller\LanguageController::contentSettings()
  */
 function language_content_settings_page() {
   return drupal_get_form('language_content_settings_form', language_entity_supported());
@@ -831,7 +499,6 @@ function theme_language_content_settings_table($variables) {
  * Form submission handler for language_content_settings_form().
  */
 function language_content_settings_form_submit(array $form, array &$form_state) {
-  $entity_types = $form_state['values']['entity_types'];
   $settings = &$form_state['values']['settings'];
   foreach ($settings as $entity_type => $entity_settings) {
     foreach ($entity_settings as $bundle => $bundle_settings) {

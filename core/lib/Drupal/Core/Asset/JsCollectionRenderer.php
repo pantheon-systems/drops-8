@@ -7,11 +7,29 @@
 namespace Drupal\Core\Asset;
 
 use Drupal\Core\Asset\AssetCollectionRendererInterface;
+use Drupal\Core\KeyValueStore\KeyValueStoreInterface;
 
 /**
  * Renders JavaScript assets.
  */
 class JsCollectionRenderer implements AssetCollectionRendererInterface {
+
+  /**
+   * The state key/value store.
+   *
+   * @var \Drupal\Core\KeyValueStore\KeyValueStoreInterface
+   */
+  protected $state;
+
+  /**
+   * Constructs a CssCollectionRenderer.
+   *
+   * @param \Drupal\Core\KeyValueStore\KeyValueStoreInterface
+   *   The state key/value store.
+   */
+  public function __construct(KeyValueStoreInterface $state) {
+    $this->state = $state;
+  }
 
   /**
    * {@inheritdoc}
@@ -25,17 +43,13 @@ class JsCollectionRenderer implements AssetCollectionRendererInterface {
     // URL changed. Files that should not be cached (see drupal_add_js())
     // get REQUEST_TIME as query-string instead, to enforce reload on every
     // page request.
-    $default_query_string = variable_get('css_js_query_string', '0');
+    $default_query_string = $this->state->get('system.css_js_query_string') ?: '0';
 
     // For inline JavaScript to validate as XHTML, all JavaScript containing
     // XHTML needs to be wrapped in CDATA. To make that backwards compatible
     // with HTML 4, we need to comment out the CDATA-tag.
     $embed_prefix = "\n<!--//--><![CDATA[//><!--\n";
     $embed_suffix = "\n//--><!]]>\n";
-
-    // Since JavaScript may look for arguments in the URL and act on them, some
-    // third-party code might require the use of a different query string.
-    $js_version_string = variable_get('drupal_js_version_query_string', 'v=');
 
     // Defaults for each SCRIPT element.
     $element_defaults = array(
@@ -65,7 +79,7 @@ class JsCollectionRenderer implements AssetCollectionRendererInterface {
           break;
 
         case 'file':
-          $query_string = empty($js_asset['version']) ? $default_query_string : $js_version_string . $js_asset['version'];
+          $query_string = empty($js_asset['version']) ? $default_query_string : 'v=' . $js_asset['version'];
           $query_string_separator = (strpos($js_asset['data'], '?') !== FALSE) ? '&' : '?';
           $element['#attributes']['src'] = file_create_url($js_asset['data']);
           // Only add the cache-busting query string if this isn't an aggregate

@@ -7,12 +7,11 @@
 
 namespace Drupal\menu_link\Entity;
 
+use Drupal\Core\Language\Language;
 use Drupal\menu_link\MenuLinkInterface;
 use Symfony\Component\Routing\Route;
 use Symfony\Component\HttpFoundation\Request;
 
-use Drupal\Core\Entity\Annotation\EntityType;
-use Drupal\Core\Annotation\Translation;
 use Drupal\Core\Entity\EntityStorageException;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityStorageControllerInterface;
@@ -34,6 +33,7 @@ use Drupal\Core\Entity\Entity;
  *       "default" = "Drupal\menu_link\MenuLinkFormController"
  *     }
  *   },
+ *   admin_permission = "administer menu",
  *   static_cache = FALSE,
  *   base_table = "menu_links",
  *   uri_callback = "menu_link_uri",
@@ -271,6 +271,56 @@ class MenuLink extends Entity implements \ArrayAccess, MenuLinkInterface {
   protected $routeObject;
 
   /**
+   * Boolean indicating whether a new revision should be created on save.
+   *
+   * @var bool
+   */
+  protected $newRevision = FALSE;
+
+  /**
+   * Indicates whether this is the default revision.
+   *
+   * @var bool
+   */
+  protected $isDefaultRevision = TRUE;
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setNewRevision($value = TRUE) {
+    $this->newRevision = $value;
+  }
+  /**
+   * {@inheritdoc}
+   */
+  public function isNewRevision() {
+    $info = $this->entityInfo();
+    return $this->newRevision || (!empty($info['entity_keys']['revision']) && !$this->getRevisionId());
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getRevisionId() {
+    return NULL;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function isTranslatable() {
+    // @todo Inject the entity manager and retrieve bundle info from it.
+    $bundles = entity_get_bundles($this->entityType);
+    return !empty($bundles[$this->bundle()]['translatable']);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function preSaveRevision(EntityStorageControllerInterface $storage_controller, \stdClass $record) {
+  }
+
+  /**
    * Overrides Entity::id().
    */
   public function id() {
@@ -390,6 +440,8 @@ class MenuLink extends Entity implements \ArrayAccess, MenuLinkInterface {
    * {@inheritdoc}
    */
   public static function preDelete(EntityStorageControllerInterface $storage_controller, array $entities) {
+    parent::preDelete($storage_controller, $entities);
+
     // Nothing to do if we don't want to reparent children.
     if ($storage_controller->getPreventReparenting()) {
       return;
@@ -411,6 +463,8 @@ class MenuLink extends Entity implements \ArrayAccess, MenuLinkInterface {
    * {@inheritdoc}
    */
   public static function postDelete(EntityStorageControllerInterface $storage_controller, array $entities) {
+    parent::postDelete($storage_controller, $entities);
+
     $affected_menus = array();
     // Update the has_children status of the parent.
     foreach ($entities as $entity) {
@@ -434,6 +488,8 @@ class MenuLink extends Entity implements \ArrayAccess, MenuLinkInterface {
    * {@inheritdoc}
    */
   public function preSave(EntityStorageControllerInterface $storage_controller) {
+    parent::preSave($storage_controller);
+
     // This is the easiest way to handle the unique internal path '<front>',
     // since a path marked as external does not need to match a router path.
     $this->external = (url_is_external($this->link_path) || $this->link_path == '<front>') ? 1 : 0;
@@ -506,6 +562,8 @@ class MenuLink extends Entity implements \ArrayAccess, MenuLinkInterface {
    * {@inheritdoc}
    */
   public function postSave(EntityStorageControllerInterface $storage_controller, $update = TRUE) {
+    parent::postSave($storage_controller, $update);
+
     // Check the has_children status of the parent.
     $storage_controller->updateParentalStatus($this);
 
@@ -526,10 +584,7 @@ class MenuLink extends Entity implements \ArrayAccess, MenuLinkInterface {
     $request = Request::create('/' . $link_path);
     $request->attributes->set('_system_path', $link_path);
     try {
-      // Use router.dynamic instead of router, because router will call the
-      // legacy router which will call hook_menu() and you will get back to
-      // this method.
-      $result = \Drupal::service('router.dynamic')->matchRequest($request);
+      $result = \Drupal::service('router')->matchRequest($request);
       $return = array();
       $return[] = isset($result['_route']) ? $result['_route'] : '';
       $return[] = $result['_raw_variables']->all();

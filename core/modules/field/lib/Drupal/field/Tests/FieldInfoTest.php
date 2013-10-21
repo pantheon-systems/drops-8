@@ -23,8 +23,8 @@ class FieldInfoTest extends FieldUnitTestBase {
   function testFieldInfo() {
     // Test that field_test module's fields, widgets, and formatters show up.
 
-    $field_test_info = field_test_field_info();
-    $info = \Drupal::service('plugin.manager.entity.field.field_type')->getDefinitions();
+    $field_test_info = $this->getExpectedFieldTypeDefinition();
+    $info = \Drupal::service('plugin.manager.entity.field.field_type')->getConfigurableDefinitions();
     foreach ($field_test_info as $t_key => $field_type) {
       foreach ($field_type as $key => $val) {
         $this->assertEqual($info[$t_key][$key], $val, format_string('Field type %t_key key %key is %value', array('%t_key' => $t_key, '%key' => $key, '%value' => print_r($val, TRUE))));
@@ -49,19 +49,19 @@ class FieldInfoTest extends FieldUnitTestBase {
     $field->save();
     $fields = field_info_fields();
     $this->assertEqual(count($fields), count($core_fields) + 1, 'One new field exists');
-    $this->assertEqual($fields[$field['uuid']]['field_name'], $field['field_name'], 'info fields contains field name');
-    $this->assertEqual($fields[$field['uuid']]['type'], $field['type'], 'info fields contains field type');
-    $this->assertEqual($fields[$field['uuid']]['module'], 'field_test', 'info fields contains field module');
+    $this->assertEqual($fields[$field->uuid]->getFieldName(), $field->getFieldName(), 'info fields contains field name');
+    $this->assertEqual($fields[$field->uuid]->getFieldType(), $field->getFieldType(), 'info fields contains field type');
+    $this->assertEqual($fields[$field->uuid]->module, 'field_test', 'info fields contains field module');
     $settings = array('test_field_setting' => 'dummy test string');
     foreach ($settings as $key => $val) {
-      $this->assertEqual($fields[$field['uuid']]['settings'][$key], $val, format_string('Field setting %key has correct default value %value', array('%key' => $key, '%value' => $val)));
+      $this->assertEqual($fields[$field->uuid]->getFieldSetting($key), $val, format_string('Field setting %key has correct default value %value', array('%key' => $key, '%value' => $val)));
     }
-    $this->assertEqual($fields[$field['uuid']]['cardinality'], 1, 'info fields contains cardinality 1');
-    $this->assertEqual($fields[$field['uuid']]['active'], TRUE, 'info fields contains active 1');
+    $this->assertEqual($fields[$field->uuid]->getFieldCardinality(), 1, 'info fields contains cardinality 1');
+    $this->assertEqual($fields[$field->uuid]->active, TRUE, 'info fields contains active 1');
 
     // Create an instance, verify that it shows up
     $instance_definition = array(
-      'field_name' => $field['name'],
+      'field_name' => $field->getFieldName(),
       'entity_type' => 'entity_test',
       'bundle' => 'entity_test',
       'label' => $this->randomName(),
@@ -72,18 +72,18 @@ class FieldInfoTest extends FieldUnitTestBase {
     $instance->save();
 
     $info = entity_get_info('entity_test');
-    $instances = field_info_instances('entity_test', $instance['bundle']);
+    $instances = field_info_instances('entity_test', $instance->bundle);
     $this->assertEqual(count($instances), 1, format_string('One instance shows up in info when attached to a bundle on a @label.', array(
       '@label' => $info['label']
     )));
-    $this->assertTrue($instance_definition < $instances[$instance['field_name']], 'Instance appears in info correctly');
+    $this->assertTrue($instance_definition < $instances[$instance->getFieldName()], 'Instance appears in info correctly');
 
     // Test a valid entity type but an invalid bundle.
     $instances = field_info_instances('entity_test', 'invalid_bundle');
     $this->assertIdentical($instances, array(), "field_info_instances('entity_test', 'invalid_bundle') returns an empty array.");
 
     // Test invalid entity type and bundle.
-    $instances = field_info_instances('invalid_entity', $instance['bundle']);
+    $instances = field_info_instances('invalid_entity', $instance->bundle);
     $this->assertIdentical($instances, array(), "field_info_instances('invalid_entity', 'entity_test') returns an empty array.");
 
     // Test invalid entity type, no bundle provided.
@@ -133,7 +133,7 @@ class FieldInfoTest extends FieldUnitTestBase {
 
     // Check that all expected settings are in place.
     $field_type = \Drupal::service('plugin.manager.entity.field.field_type')->getDefinition($field_definition['type']);
-    $this->assertEqual($field['settings'], $field_type['settings'], 'All expected default field settings are present.');
+    $this->assertEqual($field->settings, $field_type['settings'], 'All expected default field settings are present.');
   }
 
   /**
@@ -167,7 +167,7 @@ class FieldInfoTest extends FieldUnitTestBase {
 
     // Check that all expected instance settings are in place.
     $field_type = \Drupal::service('plugin.manager.entity.field.field_type')->getDefinition($field_definition['type']);
-    $this->assertEqual($instance['settings'], $field_type['instance_settings'] , 'All expected instance settings are present.');
+    $this->assertEqual($instance->settings, $field_type['instance_settings'] , 'All expected instance settings are present.');
   }
 
   /**
@@ -191,7 +191,7 @@ class FieldInfoTest extends FieldUnitTestBase {
     entity_create('field_instance', $instance_definition);
 
     // Disable coment module. This clears field_info cache.
-    module_disable(array('comment'));
+    module_uninstall(array('comment'));
     $this->assertNull(field_info_instance('comment', 'field', 'comment_node_article'), 'No instances are returned on disabled entity types.');
   }
 
@@ -283,7 +283,7 @@ class FieldInfoTest extends FieldUnitTestBase {
    * Test that the field_info settings convenience functions work.
    */
   function testSettingsInfo() {
-    $info = field_test_field_info();
+    $info = $this->getExpectedFieldTypeDefinition();
     foreach ($info as $type => $data) {
       $field_type_manager = \Drupal::service('plugin.manager.entity.field.field_type');
       $this->assertIdentical($field_type_manager->getDefaultSettings($type), $data['settings'], format_string("field settings service returns %type's field settings", array('%type' => $type)));
@@ -326,5 +326,51 @@ class FieldInfoTest extends FieldUnitTestBase {
     // Test if hook_field_widget_info_alter is beïng called.
     $this->assertTrue(in_array('test_field', $widget_definition['field_types']), "The 'test_field_widget_multiple' widget is enabled for the 'test_field' field type in field_test_field_widget_info_alter().");
   }
+
+  /**
+   * Returns field info definition.
+   */
+  protected function getExpectedFieldTypeDefinition() {
+    return array(
+      'test_field' => array(
+        'label' => t('Test field'),
+        'description' => t('Dummy field type used for tests.'),
+        'settings' => array(
+          'test_field_setting' => 'dummy test string',
+          'changeable' => 'a changeable field setting',
+          'unchangeable' => 'an unchangeable field setting',
+        ),
+        'instance_settings' => array(
+          'test_instance_setting' => 'dummy test string',
+          'test_cached_data' => FALSE,
+        ),
+        'default_widget' => 'test_field_widget',
+        'default_formatter' => 'field_test_default',
+        'class' => 'Drupal\field_test\Plugin\field\field_type\TestItem',
+      ),
+      'shape' => array(
+        'label' => t('Shape'),
+        'description' => t('Another dummy field type.'),
+        'settings' => array(
+          'foreign_key_name' => 'shape',
+        ),
+        'instance_settings' => array(),
+        'default_widget' => 'test_field_widget',
+        'default_formatter' => 'field_test_default',
+        'class' => 'Drupal\field_test\Plugin\field\field_type\ShapeItem',
+      ),
+      'hidden_test_field' => array(
+        'no_ui' => TRUE,
+        'label' => t('Hidden from UI test field'),
+        'description' => t('Dummy hidden field type used for tests.'),
+        'settings' => array(),
+        'instance_settings' => array(),
+        'default_widget' => 'test_field_widget',
+        'default_formatter' => 'field_test_default',
+        'class' => 'Drupal\field_test\Plugin\field\field_type\HiddenTestItem',
+      ),
+    );
+  }
+
 
 }

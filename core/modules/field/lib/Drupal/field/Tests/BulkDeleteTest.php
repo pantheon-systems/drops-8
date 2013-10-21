@@ -7,7 +7,7 @@
 
 namespace Drupal\field\Tests;
 
-use Drupal\Core\Entity\DatabaseStorageController;
+use Drupal\Core\Entity\FieldableDatabaseStorageController;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\field\FieldInterface;
 
@@ -143,7 +143,7 @@ class BulkDeleteTest extends FieldUnitTestBase {
       for ($i = 0; $i < 10; $i++) {
         $entity = entity_create($this->entity_type, array('type' => $bundle));
         foreach ($this->fields as $field) {
-          $entity->{$field['field_name']}->setValue($this->_generateTestFieldValues($field->cardinality));
+          $entity->{$field->getFieldName()}->setValue($this->_generateTestFieldValues($field->getFieldCardinality()));
         }
         $entity->save();
       }
@@ -183,12 +183,12 @@ class BulkDeleteTest extends FieldUnitTestBase {
     $instances = field_read_instances(array('field_id' => $field->uuid, 'deleted' => TRUE), array('include_deleted' => TRUE, 'include_inactive' => TRUE));
     $this->assertEqual(count($instances), 1, 'There is one deleted instance');
     $instance = $instances[0];
-    $this->assertEqual($instance['bundle'], $bundle, 'The deleted instance is for the correct bundle');
+    $this->assertEqual($instance->bundle, $bundle, 'The deleted instance is for the correct bundle');
 
     // Check that the actual stored content did not change during delete.
-    $schema = DatabaseStorageController::_fieldSqlSchema($field);
-    $table = DatabaseStorageController::_fieldTableName($field);
-    $column = DatabaseStorageController::_fieldColumnName($field, 'value');
+    $schema = FieldableDatabaseStorageController::_fieldSqlSchema($field);
+    $table = FieldableDatabaseStorageController::_fieldTableName($field);
+    $column = FieldableDatabaseStorageController::_fieldColumnName($field, 'value');
     $result = db_select($table, 't')
       ->fields('t', array_keys($schema[$table]['fields']))
       ->execute();

@@ -24,7 +24,7 @@ class Gettext {
   /**
    * Reads the given PO files into the database.
    *
-   * @param stdClass $file
+   * @param object $file
    *   File object with an URI property pointing at the file's path.
    *   - "langcode": The language the strings will be added to.
    *   - "uri": File URI.
@@ -44,7 +44,7 @@ class Gettext {
    * @return array
    *   Report array as defined in Drupal\locale\PoDatabaseWriter.
    *
-   * @see Drupal\locale\PoDatabaseWriter
+   * @see \Drupal\locale\PoDatabaseWriter
    */
   static function fileToDatabase($file, $options) {
     // Add the default values to the options array.

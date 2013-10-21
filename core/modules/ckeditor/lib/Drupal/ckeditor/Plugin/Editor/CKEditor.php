@@ -143,6 +143,9 @@ class CKEditor extends EditorBase implements ContainerFactoryPluginInterface {
     $form['plugin_settings'] = array(
       '#type' => 'vertical_tabs',
       '#title' => t('CKEditor plugin settings'),
+      '#attributes' => array(
+        'id' => 'ckeditor-plugin-settings',
+      ),
     );
     $this->ckeditorPluginManager->injectPluginSettingsForm($form, $form_state, $editor);
     if (count(element_children($form['plugins'])) === 0) {
@@ -171,7 +174,7 @@ class CKEditor extends EditorBase implements ContainerFactoryPluginInterface {
     // Build a fake Editor object, which we'll use to generate JavaScript
     // settings for this fake Editor instance.
     $fake_editor = entity_create('editor', array(
-      'format' => '',
+      'format' => $editor->id(),
       'editor' => 'ckeditor',
       'settings' => array(
         // Single toolbar row that contains all existing buttons.
@@ -259,6 +262,11 @@ class CKEditor extends EditorBase implements ContainerFactoryPluginInterface {
     $settings += array(
       'drupalExternalPlugins' => array_map('file_create_url', $external_plugin_files),
     );
+
+    // Parse all CKEditor plugin JavaScript files for translations.
+    if ($this->moduleHandler->moduleExists('locale')) {
+      locale_js_translate(array_values($settings['drupalExternalPlugins']));
+    }
 
     ksort($settings);
 
@@ -378,8 +386,8 @@ class CKEditor extends EditorBase implements ContainerFactoryPluginInterface {
       drupal_get_path('module', 'ckeditor') . '/css/ckeditor-iframe.css',
       drupal_get_path('module', 'system') . '/css/system.module.css',
     );
-    $css = array_merge($css, _ckeditor_theme_css());
     drupal_alter('ckeditor_css', $css, $editor);
+    $css = array_merge($css, _ckeditor_theme_css());
     $css = array_map('file_create_url', $css);
 
     return array_values($css);

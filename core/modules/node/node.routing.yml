@@ -1,76 +1,121 @@
-node_multiple_delete_confirm:
-  pattern: '/admin/content/node/delete'
+node.content_overview:
+  path: '/admin/content'
+  defaults:
+    _title: 'Content'
+    _content: '\Drupal\node\Controller\NodeController::contentOverview'
+  requirements:
+    _permission: 'access content overview'
+
+node.multiple_delete_confirm:
+  path: '/admin/content/node/delete'
   defaults:
     _form: '\Drupal\node\Form\DeleteMultiple'
   requirements:
     _permission: 'administer nodes'
 
-node_page_edit:
-  pattern: '/node/{node}/edit'
+node.page_edit:
+  path: '/node/{node}/edit'
   defaults:
     _entity_form: 'node.edit'
   requirements:
     _entity_access: 'node.update'
 
-node_delete_confirm:
-  pattern: '/node/{node}/delete'
+node.add_page:
+  path: '/node/add'
+  defaults:
+    _title: 'Add page'
+    _content: '\Drupal\node\Controller\NodeController::addPage'
+  options:
+    _access_mode: 'ANY'
+  requirements:
+    _permission: 'administer content types'
+    _node_add_access: 'node'
+
+node.add:
+  path: '/node/add/{node_type}'
+  defaults:
+    _content: '\Drupal\node\Controller\NodeController::add'
+  requirements:
+    _node_add_access: 'node:{node_type}'
+
+node.view:
+  path: '/node/{node}'
+  defaults:
+    _content: '\Drupal\node\Controller\NodeController::page'
+    _title_callback: '\Drupal\node\Controller\NodeController::pageTitle'
+  requirements:
+    _entity_access: 'node.view'
+
+node.delete_confirm:
+  path: '/node/{node}/delete'
   defaults:
     _entity_form: 'node.delete'
   requirements:
     _entity_access: 'node.delete'
 
-node_revision_revert_confirm:
-  pattern: '/node/{node}/revisions/{node_revision}/revert'
+node.revision_overview:
+  path: '/node/{node}/revisions'
+  defaults:
+    _title: 'Revisions'
+    _content: '\Drupal\node\Controller\NodeController::revisionOverview'
+  requirements:
+    _access_node_revision: 'view'
+
+node.revision_show:
+  path: '/node/{node}/revisions/{node_revision}/view'
+  defaults:
+    _content: '\Drupal\node\Controller\NodeController::revisionShow'
+    _title_callback: '\Drupal\node\Controller\NodeController::revisionPageTitle'
+  requirements:
+    _access_node_revision: 'view'
+
+node.revision_revert_confirm:
+  path: '/node/{node}/revisions/{node_revision}/revert'
   defaults:
     _form: '\Drupal\node\Form\NodeRevisionRevertForm'
   requirements:
     _access_node_revision: 'update'
 
-node_revision_delete_confirm:
-  pattern: '/node/{node}/revisions/{node_revision}/delete'
+node.revision_delete_confirm:
+  path: '/node/{node}/revisions/{node_revision}/delete'
   defaults:
     _form: '\Drupal\node\Form\NodeRevisionDeleteForm'
   requirements:
     _access_node_revision: 'delete'
 
-node_overview_types:
-  pattern: '/admin/structure/types'
+node.overview_types:
+  path: '/admin/structure/types'
   defaults:
     _content: '\Drupal\Core\Entity\Controller\EntityListController::listing'
     entity_type: 'node_type'
+    _title: 'Content types'
   requirements:
     _permission: 'administer content types'
 
-node_type_add:
-  pattern: '/admin/structure/types/add'
+node.type_add:
+  path: '/admin/structure/types/add'
   defaults:
     _entity_form: 'node_type.add'
   requirements:
     _permission: 'administer content types'
 
-node_type_edit:
-  pattern: '/admin/structure/types/manage/{node_type}'
+node.type_edit:
+  path: '/admin/structure/types/manage/{node_type}'
   defaults:
     _entity_form: 'node_type.edit'
   requirements:
     _permission: 'administer content types'
 
-node_type_edit_default:
-  pattern: '/admin/structure/types/manage/{node_type}/edit'
-  defaults:
-    _entity_form: 'node_type.edit'
-  requirements:
-    _permission: 'administer content types'
-
-node_type_delete_confirm:
-  pattern: '/admin/structure/types/manage/{node_type}/delete'
+node.type_delete_confirm:
+  path: '/admin/structure/types/manage/{node_type}/delete'
   defaults:
     _entity_form: 'node_type.delete'
+    _title: 'Delete'
   requirements:
     _entity_access: 'node_type.delete'
 
-node_configure_rebuild_confirm:
-  pattern: '/admin/reports/status/rebuild'
+node.configure_rebuild_confirm:
+  path: '/admin/reports/status/rebuild'
   defaults:
     _form: 'Drupal\node\Form\RebuildPermissionsForm'
   requirements:

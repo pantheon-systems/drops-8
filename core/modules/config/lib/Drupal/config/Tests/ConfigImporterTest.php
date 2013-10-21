@@ -60,7 +60,8 @@ class ConfigImporterTest extends DrupalUnitTestBase {
       $this->container->get('event_dispatcher'),
       $this->container->get('config.factory'),
       $this->container->get('entity.manager'),
-      $this->container->get('lock')
+      $this->container->get('lock'),
+      $this->container->get('uuid')
     );
     $this->copyConfig($this->container->get('config.storage'), $this->container->get('config.storage.staging'));
   }
@@ -146,9 +147,9 @@ class ConfigImporterTest extends DrupalUnitTestBase {
       'id' => 'new',
       'uuid' => '30df59bd-7b03-4cf7-bb35-d42fc49f0651',
       'label' => 'New',
-      'weight' => '0',
+      'weight' => 0,
       'style' => '',
-      'status' => '1',
+      'status' => TRUE,
       'langcode' => language_default()->id,
       'protected_property' => '',
     );

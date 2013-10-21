@@ -7,17 +7,17 @@
 
 namespace Drupal\update;
 
-use Drupal\system\SystemConfigFormBase;
+use Drupal\Core\Form\ConfigFormBase;
 
 /**
  * Configure update settings for this site.
  */
-class UpdateSettingsForm extends SystemConfigFormBase {
+class UpdateSettingsForm extends ConfigFormBase {
 
   /**
-   * Implements \Drupal\Core\Form\FormInterface::getFormID().
+   * {@inheritdoc}
    */
-  public function getFormID() {
+  public function getFormId() {
     return 'update_settings';
   }
 

@@ -15,14 +15,14 @@ use Drupal\Core\Database\Database;
 /**
  * Tests the TempStore namespace.
  *
- * @see Drupal\Core\TempStore\TempStore.
+ * @see \Drupal\Core\TempStore\TempStore.
  */
 class TempStoreDatabaseTest extends UnitTestBase {
 
   /**
    * A key/value store factory.
    *
-   * @var Drupal\user\TempStoreFactory
+   * @var \Drupal\user\TempStoreFactory
    */
   protected $storeFactory;
 
@@ -83,7 +83,7 @@ class TempStoreDatabaseTest extends UnitTestBase {
    */
   public function testUserTempStore() {
     // Create a key/value collection.
-    $factory = new TempStoreFactory(Database::getConnection(), new DatabaseLockBackend());
+    $factory = new TempStoreFactory(Database::getConnection(), new DatabaseLockBackend(Database::getConnection()));
     $collection = $this->randomName();
 
     // Create two mock users.

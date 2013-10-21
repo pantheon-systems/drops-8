@@ -15,9 +15,9 @@ use Drupal\Core\Form\ConfirmFormBase;
 class ReindexConfirm extends ConfirmFormBase {
 
   /**
-   * Implements \Drupal\Core\Form\FormInterface::getFormID().
+   * {@inheritdoc}
    */
-  public function getFormID() {
+  public function getFormId() {
     return 'search_reindex_confirm';
   }
 
@@ -25,35 +25,37 @@ class ReindexConfirm extends ConfirmFormBase {
    * Implements \Drupal\Core\Form\ConfirmFormBase::getQuestion().
    */
   public function getQuestion() {
-    return t('Are you sure you want to re-index the site?');
+    return $this->t('Are you sure you want to re-index the site?');
   }
 
   /**
    * Overrides \Drupal\Core\Form\ConfirmFormBase::getDescription().
    */
   public function getDescription() {
-    return t('The search index is not cleared but systematically updated to reflect the new settings. Searching will continue to work but new content won\'t be indexed until all existing content has been re-indexed. This action cannot be undone.');
+    return $this->t('The search index is not cleared but systematically updated to reflect the new settings. Searching will continue to work but new content won\'t be indexed until all existing content has been re-indexed. This action cannot be undone.');
   }
 
   /**
    * Overrides \Drupal\Core\Form\ConfirmFormBase::getConfirmText().
    */
   public function getConfirmText() {
-    return t('Re-index site');
+    return $this->t('Re-index site');
   }
 
   /**
    * Overrides \Drupal\Core\Form\ConfirmFormBase::getCancelText().
    */
   public function getCancelText() {
-    return t('Cancel');
+    return $this->t('Cancel');
   }
 
   /**
-   * Implements \Drupal\Core\Form\ConfirmFormBase::getCancelPath().
+   * {@inheritdoc}
    */
-  public function getCancelPath() {
-    return 'admin/config/search/settings';
+  public function getCancelRoute() {
+    return array(
+      'route_name' => 'search.settings',
+    );
   }
 
   /**
@@ -62,7 +64,7 @@ class ReindexConfirm extends ConfirmFormBase {
   public function submitForm(array &$form, array &$form_state) {
     if ($form['confirm']) {
       search_reindex();
-      drupal_set_message(t('The index will be rebuilt.'));
+      drupal_set_message($this->t('The index will be rebuilt.'));
       $form_state['redirect'] = 'admin/config/search/settings';
       return;
     }

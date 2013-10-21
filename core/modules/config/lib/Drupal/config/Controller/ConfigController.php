@@ -44,12 +44,10 @@ class ConfigController implements ContainerInjectionInterface {
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container) {
-    $file_download = new FileDownloadController();
-    $file_download->setContainer($container);
     return new static(
       $container->get('config.storage'),
       $container->get('config.storage.staging'),
-      $file_download
+      new FileDownloadController()
     );
   }
 
@@ -125,7 +123,7 @@ class ConfigController implements ContainerInjectionInterface {
         ),
       ),
       '#title' => "Back to 'Synchronize configuration' page.",
-      '#href' => 'admin/config/development/sync',
+      '#href' => 'admin/config/development/configuration/sync',
     );
 
     return $build;

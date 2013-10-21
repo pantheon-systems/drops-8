@@ -33,13 +33,13 @@ class CommentRssTest extends CommentTestBase {
   function testCommentRss() {
     // Find comment in RSS feed.
     $this->drupalLogin($this->web_user);
-    $comment = $this->postComment($this->node, $this->randomName(), $this->randomName());
+    $this->postComment($this->node, $this->randomName(), $this->randomName());
     $this->drupalGet('rss.xml');
     $raw = '<comments>' . url('node/' . $this->node->id(), array('fragment' => 'comments', 'absolute' => TRUE)) . '</comments>';
     $this->assertRaw($raw, 'Comments as part of RSS feed.');
 
     // Hide comments from RSS feed and check presence.
-    $this->node->comment = COMMENT_NODE_HIDDEN;
+    $this->node->set('comment', COMMENT_HIDDEN);
     $this->node->save();
     $this->drupalGet('rss.xml');
     $this->assertNoRaw($raw, 'Hidden comments is not a part of RSS feed.');

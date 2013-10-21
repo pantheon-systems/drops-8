@@ -10,6 +10,8 @@ namespace Drupal\image\Form;
 use Drupal\Core\Form\FormBase;
 use Drupal\image\ConfigurableImageEffectInterface;
 use Drupal\image\ImageStyleInterface;
+use Drupal\Component\Plugin\Exception\UnknownPluginException;
+use Drupal\Component\Utility\String;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -34,7 +36,7 @@ abstract class ImageEffectFormBase extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function getFormID() {
+  public function getFormId() {
     return 'image_effect_form';
   }
 
@@ -53,7 +55,12 @@ abstract class ImageEffectFormBase extends FormBase {
    */
   public function buildForm(array $form, array &$form_state, ImageStyleInterface $image_style = NULL, $image_effect = NULL) {
     $this->imageStyle = $image_style;
-    $this->imageEffect = $this->prepareImageEffect($image_effect);
+    try {
+      $this->imageEffect = $this->prepareImageEffect($image_effect);
+    }
+    catch (UnknownPluginException $e) {
+      throw new NotFoundHttpException(String::format("Invalid effect id: '@id'.", array('@id' => $image_effect)));
+    }
     $request = $this->getRequest();
 
     if (!($this->imageEffect instanceof ConfigurableImageEffectInterface)) {

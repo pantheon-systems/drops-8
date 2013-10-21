@@ -41,7 +41,7 @@ function breakpoint_help($path, $arg) {
  *
  * @see _breakpoint_theme_enabled()
  *
- * @todo: This should be removed if https://drupal.org/node/1813100 is resolved.
+ * @todo: This should be removed if https://drupal.org/node/1813110 is resolved.
  */
 function breakpoint_themes_enabled($theme_list) {
   _breakpoint_theme_enabled($theme_list);
@@ -55,24 +55,24 @@ function breakpoint_themes_enabled($theme_list) {
  *
  * @see _breakpoint_delete_breakpoints()
  *
- * @todo: This should be removed if https://drupal.org/node/1813100 is resolved.
+ * @todo: This should be removed if https://drupal.org/node/1813110 is resolved.
  */
 function breakpoint_themes_disabled($theme_list) {
   _breakpoint_delete_breakpoints($theme_list, Breakpoint::SOURCE_TYPE_THEME);
 }
 
 /**
- * Implements hook_modules_enabled().
+ * Implements hook_modules_installed().
  *
  * @param array $modules
  *   An array of the modules that were enabled.
  *
  * @see _breakpoint_modules_enabled()
  *
- * @todo: This should be removed if https://drupal.org/node/1813100 is resolved.
+ * @todo: This should be removed if https://drupal.org/node/1813110 is resolved.
  */
-function breakpoint_modules_enabled($modules) {
-  _breakpoint_modules_enabled($modules);
+function breakpoint_modules_installed($modules) {
+  _breakpoint_modules_installed($modules);
 }
 
 /**
@@ -83,7 +83,7 @@ function breakpoint_modules_enabled($modules) {
  *
  * @see _breakpoint_delete_breakpoints()
  *
- * @todo: This should be removed if https://drupal.org/node/1813100 is resolved.
+ * @todo: This should be removed if https://drupal.org/node/1813110 is resolved.
  */
 function breakpoint_modules_uninstalled($modules) {
   _breakpoint_delete_breakpoints($modules, Breakpoint::SOURCE_TYPE_MODULE);
@@ -106,12 +106,12 @@ function _breakpoint_theme_enabled($theme_list) {
 }
 
 /**
- * Import breakpoints from all new enabled modules.
+ * Import breakpoints from all new installed modules.
  *
  * @param array $modules
- *   An array of the modules that were enabled.
+ *   An array of the modules that were installed.
  */
-function _breakpoint_modules_enabled($modules) {
+function _breakpoint_modules_installed($modules) {
   foreach ($modules as $module) {
     $media_queries = breakpoint_get_module_media_queries($module);
     _breakpoint_import_media_queries($module, $module, Breakpoint::SOURCE_TYPE_MODULE, $media_queries);
@@ -156,7 +156,7 @@ function _breakpoint_import_media_queries($group_name, $label, $source_type, $me
  *   Either Breakpoint::SOURCE_TYPE_THEME or Breakpoint::SOURCE_TYPE_MODULE.
  */
 function _breakpoint_import_breakpoint_groups($source, $source_type) {
-  $breakpoint_groups = Drupal::config($source . '.breakpoint_groups');
+  $breakpoint_groups = \Drupal::config($source . '.breakpoint_groups');
   if ($breakpoint_groups) {
     foreach ($breakpoint_groups->get() as $group_name => $data) {
       // Breakpoints is mandatory, extra check since this is coming from config.
@@ -188,7 +188,7 @@ function _breakpoint_import_breakpoint_groups($source, $source_type) {
  */
 function _breakpoint_delete_breakpoints($list, $source_type) {
   $ids = config_get_storage_names_with_prefix('breakpoint.breakpoint_group.' . $source_type . '.');
-  $entity_info = Drupal::service('entity.manager')->getDefinition('breakpoint_group');
+  $entity_info = \Drupal::service('entity.manager')->getDefinition('breakpoint_group');
 
   // Remove the breakpoint.breakpoint part of the breakpoint identifier.
   foreach ($ids as &$id) {
@@ -202,8 +202,8 @@ function _breakpoint_delete_breakpoints($list, $source_type) {
       $breakpoint_group->delete();
 
       // Get all breakpoints defined by this theme/module.
-      $breakpoint_ids = Drupal::service('config.storage')->listAll('breakpoint.breakpoint.' . $source_type . '.' . $breakpoint_group->id() . '.');
-      $entity_info = Drupal::service('entity.manager')->getDefinition('breakpoint');
+      $breakpoint_ids = \Drupal::service('config.storage')->listAll('breakpoint.breakpoint.' . $source_type . '.' . $breakpoint_group->id() . '.');
+      $entity_info = \Drupal::service('entity.manager')->getDefinition('breakpoint');
 
       // Remove the breakpoint.breakpoint part of the breakpoint identifier.
       foreach ($breakpoint_ids as &$breakpoint_id) {
@@ -260,7 +260,7 @@ function breakpoint_get_theme_media_queries($theme_key) {
     throw new \Exception('Illegal theme_key passed.');
   }
 
-  $config = Drupal::config($theme_key . '.breakpoints');
+  $config = \Drupal::config($theme_key . '.breakpoints');
   if ($config) {
     return $config->get();
   }
@@ -277,11 +277,11 @@ function breakpoint_get_theme_media_queries($theme_key) {
  *   An array of breakpoints in the form $breakpoint['name'] = 'media query'.
  */
 function breakpoint_get_module_media_queries($module) {
-  if (!Drupal::moduleHandler()->moduleExists($module)) {
+  if (!\Drupal::moduleHandler()->moduleExists($module)) {
     throw new \Exception('Illegal module name passed.');
   }
 
-  $config = Drupal::config($module . '.breakpoints');
+  $config = \Drupal::config($module . '.breakpoints');
   if ($config) {
     return $config->get();
   }
@@ -364,7 +364,7 @@ function breakpoint_select_options() {
  * @param string $source_type
  *   Either Breakpoint::SOURCE_TYPE_THEME or Breakpoint::SOURCE_TYPE_MODULE.
  *
- * @return Drupal\breakpoint\Entity\BreakpointGroup
+ * @return \Drupal\breakpoint\Entity\BreakpointGroup
  *
  * @see _breakpoint_import_media_queries()
  * @see _breakpoint_import_breakpoint_groups()

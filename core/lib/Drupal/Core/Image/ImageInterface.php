@@ -13,6 +13,14 @@ namespace Drupal\Core\Image;
 interface ImageInterface {
 
   /**
+   * Checks if the image format is supported.
+   *
+   * @return bool
+   *   Returns TRUE if the image format is supported by the toolkit.
+   */
+  public function isSupported();
+
+  /**
    * Returns the extension of the image file.
    *
    * @return string
@@ -63,6 +71,15 @@ interface ImageInterface {
    *   The size of the file in bytes, or 0 if the file is invalid.
    */
   public function getFileSize();
+
+  /**
+   * Returns the type of the image.
+   *
+   * @return int
+   *   The image type represented by a PHP IMAGETYPE_* constant (e.g.
+   *   IMAGETYPE_JPEG).
+   */
+  public function getType();
 
   /**
    * Returns the MIME type of the image file.
@@ -136,7 +153,7 @@ interface ImageInterface {
    * @return bool
    *   TRUE on success, FALSE on failure.
    *
-   * @see \Drupal\system\Plugin\ImageToolkitInterface::save()
+   * @see \Drupal\Core\ImageToolkit\ImageToolkitInterface::save()
    */
   public function save($destination = NULL);
 
@@ -194,7 +211,7 @@ interface ImageInterface {
    * @return bool
    *   TRUE on success, FALSE on failure.
    *
-   * @see \Drupal\system\Plugin\ImageToolkitInterface::crop()
+   * @see \Drupal\Core\ImageToolkit\ImageToolkitInterface::crop()
    */
   public function crop($x, $y, $width, $height);
 
@@ -209,7 +226,7 @@ interface ImageInterface {
    * @return bool
    *   TRUE on success, FALSE on failure.
    *
-   * @see \Drupal\system\Plugin\ImageToolkitInterface::resize()
+   * @see \Drupal\Core\ImageToolkit\ImageToolkitInterface::resize()
    */
   public function resize($width, $height);
 
@@ -219,7 +236,7 @@ interface ImageInterface {
    * @return bool
    *   TRUE on success, FALSE on failure.
    *
-   * @see \Drupal\system\Plugin\ImageToolkitInterface::desaturate()
+   * @see \Drupal\Core\ImageToolkit\ImageToolkitInterface::desaturate()
    */
   public function desaturate();
 
@@ -238,7 +255,7 @@ interface ImageInterface {
    * @return bool
    *   TRUE on success, FALSE on failure.
    *
-   * @see \Drupal\system\Plugin\ImageToolkitInterface::rotate()
+   * @see \Drupal\Core\ImageToolkit\ImageToolkitInterface::rotate()
    */
   public function rotate($degrees, $background = NULL);
 

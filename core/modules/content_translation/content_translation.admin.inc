@@ -6,40 +6,40 @@
  */
 
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\Field\FieldDefinitionInterface;
 use Drupal\Core\Language\Language;
-use Drupal\field\Entity\Field;
-use Drupal\field\Entity\FieldInstance;
+use Drupal\field\Field as FieldService;
 
 /**
  * Returns a form element to configure field synchronization.
  *
- * @param \Drupal\field\Entity\Field $field
- *   A field definition array.
- * @param \Drupal\field\Entity\FieldInstance $instance
- *   A field instance definition object.
+ * @param \Drupal\Core\Entity\Field\FieldDefinitionInterface $field
+ *   A field definition object.
  *
  * @return array
  *   A form element to configure field synchronization.
  */
-function content_translation_field_sync_widget(Field $field, FieldInstance $instance) {
+function content_translation_field_sync_widget(FieldDefinitionInterface $field) {
   $element = array();
 
-  if (!empty($field['settings']['column_groups']) && count($field['settings']['column_groups']) > 1) {
+  $column_groups = $field->getFieldSetting('column_groups');
+  if (!empty($column_groups) && count($column_groups) > 1) {
     $options = array();
     $default = array();
 
-    foreach ($field['settings']['column_groups'] as $group => $info) {
+    foreach ($column_groups as $group => $info) {
       $options[$group] = $info['label'];
       $default[$group] = !empty($info['translatable']) ? $group : FALSE;
     }
 
     $settings = array('dependent_selectors' => array('instance[settings][translation_sync]' => array('file')));
 
+    $translation_sync = $field->getFieldSetting('translation_sync');
     $element = array(
       '#type' => 'checkboxes',
       '#title' => t('Translatable elements'),
       '#options' => $options,
-      '#default_value' => !empty($instance['settings']['translation_sync']) ? $instance['settings']['translation_sync'] : $default,
+      '#default_value' => !empty($translation_sync) ? $translation_sync : $default,
       '#attached' => array(
         'library' => array(
           array('content_translation', 'drupal.content_translation.admin'),
@@ -74,6 +74,7 @@ function _content_translation_form_language_content_settings_form_alter(array &$
   $form['#attached']['js'][] = array('data' => drupal_get_path('module', 'content_translation') . '/content_translation.admin.js', 'type' => 'file');
 
   $dependent_options_settings = array();
+  $entity_manager = Drupal::entityManager();
   foreach ($form['#labels'] as $entity_type => $label) {
     $entity_info = entity_get_info($entity_type);
     foreach (entity_get_bundles($entity_type) as $bundle => $bundle_info) {
@@ -85,29 +86,48 @@ function _content_translation_form_language_content_settings_form_alter(array &$
       // Only show the checkbox to enable translation if the bundles in the
       // entity might have fields and if there are fields to translate.
       if (!empty($entity_info['fieldable'])) {
-        $fields = field_info_instances($entity_type, $bundle);
+        $fields = $entity_manager->getFieldDefinitions($entity_type, $bundle);
         if ($fields) {
           $form['settings'][$entity_type][$bundle]['translatable'] = array(
             '#type' => 'checkbox',
             '#default_value' => content_translation_enabled($entity_type, $bundle),
           );
 
-          // @todo Exploit field definitions once all core entities and field
-          // types are migrated to the Entity Field API.
-          foreach ($fields as $field_name => $instance) {
-            $field = $instance->getField();
-            $form['settings'][$entity_type][$bundle]['fields'][$field_name] = array(
-              '#label' => $instance['label'],
-              '#type' => 'checkbox',
-              '#default_value' => $field['translatable'],
-            );
-            $column_element = content_translation_field_sync_widget($field, $instance);
-            if ($column_element) {
-              $form['settings'][$entity_type][$bundle]['columns'][$field_name] = $column_element;
+          $field_settings = content_translation_get_config($entity_type, $bundle, 'fields');
+          foreach ($fields as $field_name => $definition) {
+            $translatable = !empty($field_settings[$field_name]);
 
-              if (isset($column_element['#options']['file'])) {
-                $dependent_options_settings["settings[{$entity_type}][{$bundle}][columns][{$field_name}]"] = array('file');
+            // We special case Field API fields as they always natively support
+            // translation.
+            // @todo Remove this special casing as soon as configurable and
+            //   base field definitions are "unified".
+            if (!empty($definition['configurable']) && ($field = FieldService::fieldInfo()->getField($entity_type, $field_name))) {
+              $instance = FieldService::fieldInfo()->getInstance($entity_type, $bundle, $field_name);
+              $form['settings'][$entity_type][$bundle]['fields'][$field_name] = array(
+                '#label' => $instance->getFieldLabel(),
+                '#type' => 'checkbox',
+                '#default_value' => $translatable,
+              );
+              $column_element = content_translation_field_sync_widget($instance);
+              if ($column_element) {
+                $form['settings'][$entity_type][$bundle]['columns'][$field_name] = $column_element;
+
+                // @todo This should not concern only files.
+                if (isset($column_element['#options']['file'])) {
+                  $dependent_options_settings["settings[{$entity_type}][{$bundle}][columns][{$field_name}]"] = array('file');
+                }
               }
+            }
+            // Instead we need to rely on field definitions to determine whether
+            // fields support translation. Whether they are actually enabled is
+            // determined through our settings. As a consequence only fields
+            // that support translation can be enabled or disabled.
+            elseif (isset($field_settings[$field_name]) || !empty($definition['translatable'])) {
+              $form['settings'][$entity_type][$bundle]['fields'][$field_name] = array(
+                '#label' => $definition['label'],
+                '#type' => 'checkbox',
+                '#default_value' => $translatable,
+              );
             }
           }
         }
@@ -326,11 +346,11 @@ function _content_translation_update_field_translatability($settings) {
         foreach ($bundle_settings['fields'] as $field_name => $translatable) {
           // If a field is enabled for translation for at least one instance we
           // need to mark it as translatable.
-          $fields[$entity_type][$field_name] = $translatable || !empty($fields[$entity_type][$field_name]);
+          if (FieldService::fieldInfo()->getField($entity_type, $field_name)) {
+            $fields[$entity_type][$field_name] = $translatable || !empty($fields[$entity_type][$field_name]);
+          }
         }
       }
-      // @todo Store non-configurable field settings to be able to alter their
-      //   definition afterwards.
     }
   }
 
@@ -338,7 +358,7 @@ function _content_translation_update_field_translatability($settings) {
   foreach ($fields as $entity_type => $entity_type_fields) {
     foreach ($entity_type_fields as $field_name => $translatable) {
       $field = field_info_field($entity_type, $field_name);
-      if ($field['translatable'] != $translatable) {
+      if ($field->isFieldTranslatable() != $translatable) {
         // If a field is untranslatable, it can have no data except under
         // Language::LANGCODE_NOT_SPECIFIED. Thus we need a field to be translatable before
         // we convert data to the entity language. Conversely we need to switch
@@ -383,8 +403,8 @@ function _content_translation_update_field_translatability($settings) {
  */
 function content_translation_translatable_switch($translatable, $entity_type, $field_name) {
   $field = field_info_field($entity_type, $field_name);
-  if ($field['translatable'] !== $translatable) {
-    $field['translatable'] = $translatable;
+  if ($field->isFieldTranslatable() !== $translatable) {
+    $field->translatable = $translatable;
     $field->save();
   }
 }
@@ -418,11 +438,12 @@ function content_translation_translatable_batch($translatable, $field_name, &$co
 
     foreach ($entity_types as $entity_type) {
       $field = field_info_field($entity_type, $field_name);
-      $column = isset($field['columns']['value']) ? 'value' : key($field['columns']);
+      $columns = $field->getColumns();
+      $column = isset($columns['value']) ? 'value' : key($columns);
       $query_field = "$field_name.$column";
 
       // How many entities will need processing?
-      $query = Drupal::entityQuery($entity_type);
+      $query = \Drupal::entityQuery($entity_type);
       $count = $query
         ->exists($query_field)
         ->count()
@@ -447,9 +468,10 @@ function content_translation_translatable_batch($translatable, $field_name, &$co
 
     $info = entity_get_info($entity_type);
     $offset = $context['sandbox']['progress_entity_type'][$entity_type];
-    $query = Drupal::entityQuery($entity_type);
+    $query = \Drupal::entityQuery($entity_type);
     $field = field_info_field($entity_type, $field_name);
-    $column = isset($field['columns']['value']) ? 'value' : key($field['columns']);
+    $columns = $field->getColumns();
+    $column = isset($columns['value']) ? 'value' : key($columns);
     $query_field = "$field_name.$column";
     $result = $query
       ->exists($query_field)
@@ -470,10 +492,10 @@ function content_translation_translatable_batch($translatable, $field_name, &$co
 
       // We need a two-step approach while updating field translations: given
       // that field-specific update functions might rely on the stored values to
-      // perform their processing, see for instance file_field_update(), first
-      // we need to store the new translations and only after we can remove the
-      // old ones. Otherwise we might have data loss, since the removal of the
-      // old translations might occur before the new ones are stored.
+      // perform their processing first we need to store the new translations
+      // and only after we can remove the old ones. Otherwise we might have data
+      // loss, since the removal of the old translations might occur before the
+      // new ones are stored.
       if ($translatable && isset($entity->{$field_name}[Language::LANGCODE_NOT_SPECIFIED])) {
         // If the field is being switched to translatable and has data for
         // Language::LANGCODE_NOT_SPECIFIED then we need to move the data to the right

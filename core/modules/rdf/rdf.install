@@ -13,7 +13,7 @@ use Drupal\Component\Uuid\Uuid;
  * @ingroup config_upgrade
  */
 function rdf_update_8000() {
-  $uuid = new Uuid();
+  $uuid = \Drupal::service('uuid');
   $query = db_query("SELECT * FROM {rdf_mapping}");
 
   // Iterate through all the stored mappings.
@@ -23,7 +23,7 @@ function rdf_update_8000() {
     $bundle = $row['bundle'];
 
     // Create a config object for the mapping.
-    $config = Drupal::config("rdf.mapping.$entity_type.$bundle")
+    $config = \Drupal::config("rdf.mapping.$entity_type.$bundle")
       ->set('id', "$entity_type.$bundle")
       ->set('uuid', $uuid->generate())
       ->set('targetEntityType', $entity_type)

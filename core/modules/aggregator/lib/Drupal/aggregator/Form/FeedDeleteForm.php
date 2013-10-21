@@ -7,12 +7,12 @@
 
 namespace Drupal\aggregator\Form;
 
-use Drupal\Core\Entity\EntityNGConfirmFormBase;
+use Drupal\Core\Entity\ContentEntityConfirmFormBase;
 
 /**
  * Provides a form for deleting a feed.
  */
-class FeedDeleteForm extends EntityNGConfirmFormBase {
+class FeedDeleteForm extends ContentEntityConfirmFormBase {
 
   /**
    * {@inheritdoc}
@@ -24,8 +24,10 @@ class FeedDeleteForm extends EntityNGConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function getCancelPath() {
-    return 'admin/config/services/aggregator';
+  public function getCancelRoute() {
+    return array(
+      'route_name' => 'aggregator.admin_overview',
+    );
   }
 
   /**

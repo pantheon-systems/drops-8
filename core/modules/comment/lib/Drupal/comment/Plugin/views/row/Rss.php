@@ -16,7 +16,6 @@ use Drupal\Core\Annotation\Translation;
  *
  * @ViewsRow(
  *   id = "comment_rss",
- *   module = "comment",
  *   title = @Translation("Comment"),
  *   help = @Translation("Display the comment as RSS."),
  *   theme = "views_view_row_rss",
@@ -57,13 +56,12 @@ class Rss extends RowPluginBase {
 
   public function preRender($result) {
     $cids = array();
-    $nids = array();
 
     foreach ($result as $row) {
       $cids[] = $row->cid;
     }
 
-    $this->comments = comment_load_multiple($cids);
+    $this->comments = entity_load_multiple('comment', $cids);
     foreach ($this->comments as $comment) {
       $comment->depth = count(explode('.', $comment->thread->value)) - 1;
     }

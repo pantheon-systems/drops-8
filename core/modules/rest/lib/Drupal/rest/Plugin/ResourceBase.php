@@ -7,8 +7,8 @@
 
 namespace Drupal\rest\Plugin;
 
-use Drupal\Component\Plugin\PluginBase;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
+use Drupal\Core\Plugin\PluginBase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
@@ -92,6 +92,8 @@ abstract class ResourceBase extends PluginBase implements ContainerFactoryPlugin
         // The HTTP method is a requirement for this route.
         '_method' => $method,
         '_permission' => "restful $lower_method $this->pluginId",
+      ), array(
+        '_access_mode' => 'ANY',
       ));
 
       switch ($method) {
@@ -108,7 +110,7 @@ abstract class ResourceBase extends PluginBase implements ContainerFactoryPlugin
           // HTTP Accept headers.
           foreach ($this->serializerFormats as $format_name) {
             // Expose one route per available format.
-            //$format_route = new Route($route->getPattern(), $route->getDefaults(), $route->getRequirements());
+            //$format_route = new Route($route->getPath(), $route->getDefaults(), $route->getRequirements());
             $format_route = clone $route;
             $format_route->addRequirements(array('_format' => $format_name));
             $collection->add("$route_name.$method.$format_name", $format_route);

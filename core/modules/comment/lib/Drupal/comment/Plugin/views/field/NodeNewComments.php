@@ -62,9 +62,9 @@ class NodeNewComments extends Numeric {
   public function init(ViewExecutable $view, DisplayPluginBase $display, array &$options = NULL) {
     parent::init($view, $display, $options);
 
-    $this->additional_fields['nid'] = 'nid';
+    $this->additional_fields['entity_id'] = 'nid';
     $this->additional_fields['type'] = 'type';
-    $this->additional_fields['comment_count'] = array('table' => 'node_comment_statistics', 'field' => 'comment_count');
+    $this->additional_fields['comment_count'] = array('table' => 'comment_entity_statistics', 'field' => 'comment_count');
   }
 
   protected function defineOptions() {
@@ -111,15 +111,14 @@ class NodeNewComments extends Numeric {
     }
 
     if ($nids) {
-      $result = $this->database->query('SELECT n.nid, COUNT(c.cid) as num_comments FROM {node} n INNER JOIN {comment} c ON n.nid = c.nid
+      $result = $this->database->query("SELECT n.nid, COUNT(c.cid) as num_comments FROM {node} n INNER JOIN {comment} c ON n.nid = c.entity_id AND c.entity_type = 'node'
         LEFT JOIN {history} h ON h.nid = n.nid AND h.uid = :h_uid WHERE n.nid IN (:nids)
-        AND c.changed > GREATEST(COALESCE(h.timestamp, :timestamp), :timestamp) AND c.status = :status GROUP BY n.nid', array(
-          ':status' => COMMENT_PUBLISHED,
-          ':h_uid' => $user->id(),
-          ':nids' => $nids,
-          ':timestamp' => HISTORY_READ_LIMIT,
-        ));
-
+        AND c.changed > GREATEST(COALESCE(h.timestamp, :timestamp), :timestamp) AND c.status = :status GROUP BY n.nid", array(
+        ':status' => COMMENT_PUBLISHED,
+        ':h_uid' => $user->id(),
+        ':nids' => $nids,
+        ':timestamp' => HISTORY_READ_LIMIT,
+      ));
       foreach ($result as $node) {
         foreach ($ids[$node->id()] as $id) {
           $values[$id]->{$this->field_alias} = $node->num_comments;
@@ -128,6 +127,17 @@ class NodeNewComments extends Numeric {
     }
   }
 
+  /**
+   * Prepares the link to the first new comment.
+   *
+   * @param string $data
+   *   The XSS safe string for the link text.
+   * @param \Drupal\views\ResultRow $values
+   *   The values retrieved from a single row of a view's query result.
+   *
+   * @return string
+   *   Returns a string for the link text.
+   */
   protected function renderLink($data, ResultRow $values) {
     if (!empty($this->options['link_to_comment']) && $data !== NULL && $data !== '') {
       $node = entity_create('node', array(

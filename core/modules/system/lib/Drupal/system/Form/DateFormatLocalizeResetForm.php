@@ -53,7 +53,7 @@ class DateFormatLocalizeResetForm extends ConfirmFormBase implements ContainerIn
   /**
    * {@inheritdoc}
    */
-  public function getFormID() {
+  public function getFormId() {
     return 'system_date_format_localize_reset_form';
   }
 
@@ -76,8 +76,10 @@ class DateFormatLocalizeResetForm extends ConfirmFormBase implements ContainerIn
   /**
    * {@inheritdoc}
    */
-  public function getCancelPath() {
-    return 'admin/config/regional/date-time/locale';
+  public function getCancelRoute() {
+    return array(
+      'route_name' => 'system.date_format_language_overview',
+    );
   }
 
   /**
@@ -107,6 +109,7 @@ class DateFormatLocalizeResetForm extends ConfirmFormBase implements ContainerIn
     foreach (config_get_storage_names_with_prefix('locale.config.' . $this->language->id . '.system.date_format.') as $config_id) {
       $this->configFactory->get($config_id)->delete();
     }
+    entity_render_cache_clear();
 
     $form_state['redirect'] = 'admin/config/regional/date-time/locale';
   }

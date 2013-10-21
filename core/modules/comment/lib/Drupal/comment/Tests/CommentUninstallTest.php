@@ -32,9 +32,10 @@ class CommentUninstallTest extends WebTestBase {
   protected function setUp() {
     parent::setup();
 
-    // Create a content type so that the comment module creates the
-    // 'comment_body' field upon installation.
-    $this->drupalCreateContentType();
+    // Create an article content type.
+    $this->drupalCreateContentType(array('type' => 'article', 'name' => t('Article')));
+    // Create comment field on article so that adds 'comment_body' field.
+    $this->container->get('comment.manager')->addDefaultField('node', 'article');
   }
 
   /**
@@ -46,7 +47,6 @@ class CommentUninstallTest extends WebTestBase {
     $this->assertNotNull($field, 'The comment_body field exists.');
 
     // Uninstall the comment module which should trigger field deletion.
-    $this->container->get('module_handler')->disable(array('comment'));
     $this->container->get('module_handler')->uninstall(array('comment'));
 
     // Check that the field is now deleted.
@@ -70,7 +70,6 @@ class CommentUninstallTest extends WebTestBase {
 
     // Ensure that uninstallation succeeds even if the field has already been
     // deleted manually beforehand.
-    $this->container->get('module_handler')->disable(array('comment'));
     $this->container->get('module_handler')->uninstall(array('comment'));
   }
 

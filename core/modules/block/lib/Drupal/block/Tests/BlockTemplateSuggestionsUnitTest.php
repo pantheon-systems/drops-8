@@ -10,7 +10,7 @@ namespace Drupal\block\Tests;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Unit tests for template_preprocess_block().
+ * Unit tests for block_theme_suggestions_block().
  */
 class BlockTemplateSuggestionsUnitTest extends WebTestBase {
 
@@ -24,13 +24,13 @@ class BlockTemplateSuggestionsUnitTest extends WebTestBase {
   public static function getInfo() {
     return array(
       'name' => 'Block template suggestions',
-      'description' => 'Test the template_preprocess_block() function.',
+      'description' => 'Test the block_theme_suggestions_block() function.',
       'group' => 'Block',
     );
   }
 
   /**
-   * Test if template_preprocess_block() handles the suggestions right.
+   * Tests template suggestions from block_theme_suggestions_block().
    */
   function testBlockThemeHookSuggestions() {
     // Define a block with a derivative to be preprocessed, which includes both
@@ -38,9 +38,9 @@ class BlockTemplateSuggestionsUnitTest extends WebTestBase {
     // and generates possibilities for each level of derivative.
     // @todo Clarify this comment.
     $block = entity_create('block', array(
-      'plugin' => 'system_menu_block:menu-admin',
+      'plugin' => 'system_menu_block:admin',
       'region' => 'footer',
-      'id' => \Drupal::config('system.theme')->get('default') . '.machinename',
+      'id' => 'machinename',
     ));
 
     $variables = array();
@@ -48,11 +48,8 @@ class BlockTemplateSuggestionsUnitTest extends WebTestBase {
     $variables['elements']['#configuration'] = $block->getPlugin()->getConfiguration();
     $variables['elements']['#plugin_id'] = $block->get('plugin');
     $variables['elements']['content'] = array();
-    // Test adding a class to the block content.
-    $variables['content_attributes']['class'][] = 'test-class';
-    template_preprocess_block($variables);
-    $this->assertEqual($variables['theme_hook_suggestions'], array('block__system', 'block__system_menu_block', 'block__system_menu_block__menu_admin', 'block__machinename'));
-    $this->assertEqual($variables['content_attributes']['class'], array('test-class', 'content'), 'Default .content class added to block content_attributes');
+    $suggestions = block_theme_suggestions_block($variables);
+    $this->assertEqual($suggestions, array('block__system', 'block__system_menu_block', 'block__system_menu_block__admin', 'block__machinename'));
   }
 
 }

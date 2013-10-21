@@ -7,8 +7,6 @@
 
 namespace Drupal\number\Plugin\field\field_type;
 
-use Drupal\Core\Entity\Annotation\FieldType;
-use Drupal\Core\Annotation\Translation;
 use Drupal\field\FieldInterface;
 use Drupal\Component\Utility\MapArray;
 
@@ -17,7 +15,7 @@ use Drupal\Component\Utility\MapArray;
  *
  * @FieldType(
  *   id = "number_decimal",
- *   label = @Translation("Decimal"),
+ *   label = @Translation("Number (decimal)"),
  *   description = @Translation("This field stores a number in the database in a fixed decimal format."),
  *   settings = {
  *     "precision" = "10",

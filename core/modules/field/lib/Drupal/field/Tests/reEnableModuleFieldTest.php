@@ -80,26 +80,18 @@ class reEnableModuleFieldTest extends WebTestBase {
 
     // Display the article node form and verify the telephone widget is present.
     $this->drupalGet('node/add/article');
-    $this->assertFieldByName("field_telephone[und][0][value]", '', 'Widget found.');
+    $this->assertFieldByName("field_telephone[0][value]", '', 'Widget found.');
 
     // Submit an article node with a telephone field so data exist for the
     // field.
     $edit = array(
       "title" => $this->randomName(),
-      "field_telephone[und][0][value]" => "123456789",
+      "field_telephone[0][value]" => "123456789",
     );
-    $this->drupalPost(NULL, $edit, t('Save'));
+    $this->drupalPostForm(NULL, $edit, t('Save'));
     $this->assertRaw('<a href="tel:123456789">');
 
-    // Disable the telephone module and re-enable it.
-    module_disable(array('telephone'));
-    module_enable(array('telephone'));
-
-    // Display the article creation form and verify the widget still exists.
-    $this->drupalGet('node/add/article');
-    $this->assertFieldByName("field_telephone[und][0][value]", '', 'Widget found.');
-
-    // Test that the module can't be disabled from the UI while there is data
+    // Test that the module can't be uninstalled from the UI while there is data
     // for it's fields.
     $admin_user = $this->drupalCreateUser(array('access administration pages', 'administer modules'));
     $this->drupalLogin($admin_user);

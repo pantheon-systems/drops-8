@@ -39,6 +39,7 @@ class ContactSitewideTest extends WebTestBase {
       'access site-wide contact form',
       'administer contact forms',
       'administer users',
+      'administer account settings',
       'administer contact_message fields',
     ));
     $this->drupalLogin($admin_user);
@@ -52,7 +53,7 @@ class ContactSitewideTest extends WebTestBase {
     // Set settings.
     $edit = array();
     $edit['contact_default_status'] = TRUE;
-    $this->drupalPost('admin/config/people/accounts', $edit, t('Save configuration'));
+    $this->drupalPostForm('admin/config/people/accounts', $edit, t('Save configuration'));
     $this->assertText(t('The configuration options have been saved.'));
 
     $this->drupalGet('admin/structure/contact');
@@ -125,6 +126,9 @@ class ContactSitewideTest extends WebTestBase {
     $this->assertEqual($config['reply'], $reply);
     $this->assertNotEqual($id, \Drupal::config('contact.settings')->get('default_category'));
     $this->assertRaw(t('Category %label has been updated.', array('%label' => $label)));
+    // Ensure the label is displayed on the contact page for this category.
+    $this->drupalGet('contact/' . $id);
+    $this->assertText($label);
 
     // Reset the category back to be the default category.
     \Drupal::config('contact.settings')->set('default_category', $id)->save();
@@ -240,9 +244,9 @@ class ContactSitewideTest extends WebTestBase {
       'fields[_add_new_field][type]' => 'text',
     );
     $field_name = 'field_' . $edit['fields[_add_new_field][field_name]'];
-    $this->drupalPost(NULL, $edit, t('Save'));
-    $this->drupalPost(NULL, array(), t('Save field settings'));
-    $this->drupalPost(NULL, array(), t('Save settings'));
+    $this->drupalPostForm(NULL, $edit, t('Save'));
+    $this->drupalPostForm(NULL, array(), t('Save field settings'));
+    $this->drupalPostForm(NULL, array(), t('Save settings'));
 
     // Check that the field is displayed.
     $this->drupalGet('contact/' . $category);
@@ -252,14 +256,14 @@ class ContactSitewideTest extends WebTestBase {
     $edit = array(
       'subject' => $this->randomName(),
       'message' => $this->randomName(),
-      $field_name . '[und][0][value]' => $this->randomName(),
+      $field_name . '[0][value]' => $this->randomName(),
     );
-    $this->drupalPost(NULL, $edit, t('Send message'));
+    $this->drupalPostForm(NULL, $edit, t('Send message'));
     $mails = $this->drupalGetMails();
     $mail = array_pop($mails);
     $this->assertEqual($mail['subject'], t('[@label] @subject', array('@label' => $label, '@subject' => $edit['subject'])));
     $this->assertTrue(strpos($mail['body'], $field_label));
-    $this->assertTrue(strpos($mail['body'], $edit[$field_name . '[und][0][value]']));
+    $this->assertTrue(strpos($mail['body'], $edit[$field_name . '[0][value]']));
   }
 
   /**
@@ -329,7 +333,7 @@ class ContactSitewideTest extends WebTestBase {
     $edit['recipients'] = $recipients;
     $edit['reply'] = $reply;
     $edit['selected'] = ($selected ? TRUE : FALSE);
-    $this->drupalPost('admin/structure/contact/add', $edit, t('Save'));
+    $this->drupalPostForm('admin/structure/contact/add', $edit, t('Save'));
   }
 
   /**
@@ -353,7 +357,7 @@ class ContactSitewideTest extends WebTestBase {
     $edit['recipients'] = $recipients;
     $edit['reply'] = $reply;
     $edit['selected'] = ($selected ? TRUE : FALSE);
-    $this->drupalPost("admin/structure/contact/manage/$id", $edit, t('Save'));
+    $this->drupalPostForm("admin/structure/contact/manage/$id", $edit, t('Save'));
   }
 
   /**
@@ -377,10 +381,10 @@ class ContactSitewideTest extends WebTestBase {
     $edit['subject'] = $subject;
     $edit['message'] = $message;
     if ($id == \Drupal::config('contact.settings')->get('default_category')) {
-      $this->drupalPost('contact', $edit, t('Send message'));
+      $this->drupalPostForm('contact', $edit, t('Send message'));
     }
     else {
-      $this->drupalPost('contact/' . $id, $edit, t('Send message'));
+      $this->drupalPostForm('contact/' . $id, $edit, t('Send message'));
     }
   }
 
@@ -396,7 +400,7 @@ class ContactSitewideTest extends WebTestBase {
         $this->assertResponse(403);
       }
       else {
-        $this->drupalPost("admin/structure/contact/manage/$id/delete", array(), t('Delete'));
+        $this->drupalPostForm("admin/structure/contact/manage/$id/delete", array(), t('Delete'));
         $this->assertRaw(t('Category %label has been deleted.', array('%label' => $category->label())));
         $this->assertFalse(entity_load('contact_category', $id), format_string('Category %category not found', array('%category' => $category->label())));
       }

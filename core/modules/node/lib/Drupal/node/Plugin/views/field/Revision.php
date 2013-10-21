@@ -31,9 +31,6 @@ class Revision extends Node {
     if (!empty($this->options['link_to_node_revision'])) {
       $this->additional_fields['vid'] = 'vid';
       $this->additional_fields['nid'] = 'nid';
-      if (module_exists('translation')) {
-        $this->additional_fields['langcode'] = array('table' => 'node', 'field' => 'langcode');
-      }
     }
   }
   protected function defineOptions() {
@@ -56,9 +53,15 @@ class Revision extends Node {
   }
 
   /**
-   * Render whatever the data is as a link to the node.
+   * Prepares link to the node revision.
    *
-   * Data should be made XSS safe prior to calling this function.
+   * @param string $data
+   *   The XSS safe string for the link text.
+   * @param \Drupal\views\ResultRow $values
+   *   The values retrieved from a single row of a view's query result.
+   *
+   * @return string
+   *   Returns a string for the link text.
    */
   protected function renderLink($data, ResultRow $values) {
     if (!empty($this->options['link_to_node_revision']) && $data !== NULL && $data !== '') {
@@ -66,13 +69,6 @@ class Revision extends Node {
       $nid = $this->getValue($values, 'nid');
       $vid = $this->getValue($values, 'vid');
       $this->options['alter']['path'] = "node/" . $nid . '/revisions/' . $vid . '/view';
-      if (module_exists('translation')) {
-        $langcode = $this->getValue($values, 'langcode');
-        $languages = language_list();
-        if (isset($languages[$langcode])) {
-          $this->options['alter']['langcode'] = $languages[$langcode];
-        }
-      }
     }
     else {
       return parent::renderLink($data, $values);

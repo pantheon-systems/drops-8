@@ -5,16 +5,13 @@
  * Defines an entity type.
  */
 
-use Drupal\Core\Entity\EntityInterface;
-use Drupal\field_test\Entity\TestEntity;
-
 /**
  * Implements hook_entity_info().
  */
 function field_test_entity_info() {
   // If requested, clear the field cache while this is being called. See
   // Drupal\field\Tests\FieldInfoTest::testFieldInfoCache().
-  if (Drupal::state()->get('field_test.clear_info_cache_in_hook_entity_info')) {
+  if (\Drupal::state()->get('field_test.clear_info_cache_in_hook_entity_info')) {
     field_info_cache_clear();
   }
 }
@@ -43,6 +40,8 @@ function field_test_entity_info_translatable($entity_type = NULL, $translatable 
 
 /**
  * Form combining two separate entities.
+ *
+ * @deprecated Use \Drupal\field_test\Form\FieldTestForm::testEntityNestedForm()
  */
 function field_test_entity_nested_form($form, &$form_state, $entity_1, $entity_2) {
   // First entity.
@@ -85,11 +84,17 @@ function field_test_entity_nested_form($form, &$form_state, $entity_1, $entity_2
  * Validate handler for field_test_entity_nested_form().
  */
 function field_test_entity_nested_form_validate($form, &$form_state) {
-  $entity_1 = entity_create('entity_test', $form_state['values']);
+  $entity_1 = entity_create('entity_test', array(
+    'id' => $form_state['values']['id'],
+    'type' => $form_state['values']['type'],
+  ));
   field_attach_extract_form_values($entity_1, $form, $form_state);
   field_attach_form_validate($entity_1, $form, $form_state);
 
-  $entity_2 = entity_create('entity_test', $form_state['values']['entity_2']);
+  $entity_2 = entity_create('entity_test', array(
+    'id' => $form_state['values']['entity_2']['id'],
+    'type' => $form_state['values']['entity_2']['type'],
+  ));
   field_attach_extract_form_values($entity_2, $form['entity_2'], $form_state);
   field_attach_form_validate($entity_2, $form['entity_2'], $form_state);
 }
@@ -98,11 +103,17 @@ function field_test_entity_nested_form_validate($form, &$form_state) {
  * Submit handler for field_test_entity_nested_form().
  */
 function field_test_entity_nested_form_submit($form, &$form_state) {
-  $entity_1 = entity_create('entity_test', $form_state['values']);
+  $entity_1 = entity_create('entity_test', array(
+    'id' => $form_state['values']['id'],
+    'type' => $form_state['values']['type'],
+  ));
   field_attach_extract_form_values($entity_1, $form, $form_state);
   $entity_1->save();
 
-  $entity_2 = entity_create('entity_test', $form_state['values']['entity_2']);
+  $entity_2 = entity_create('entity_test', array(
+    'id' => $form_state['values']['entity_2']['id'],
+    'type' => $form_state['values']['entity_2']['type'],
+  ));
   field_attach_extract_form_values($entity_2, $form['entity_2'], $form_state);
   $entity_2->save();
 

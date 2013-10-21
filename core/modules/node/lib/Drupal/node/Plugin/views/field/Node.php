@@ -33,9 +33,6 @@ class Node extends FieldPluginBase {
     // Don't add the additional fields to groupby
     if (!empty($this->options['link_to_node'])) {
       $this->additional_fields['nid'] = array('table' => 'node', 'field' => 'nid');
-      if (module_exists('translation')) {
-        $this->additional_fields['langcode'] = array('table' => 'node', 'field' => 'langcode');
-      }
     }
   }
 
@@ -60,9 +57,15 @@ class Node extends FieldPluginBase {
   }
 
   /**
-   * Render whatever the data is as a link to the node.
+   * Prepares link to the node.
    *
-   * Data should be made XSS safe prior to calling this function.
+   * @param string $data
+   *   The XSS safe string for the link text.
+   * @param \Drupal\views\ResultRow $values
+   *   The values retrieved from a single row of a view's query result.
+   *
+   * @return string
+   *   Returns a string for the link text.
    */
   protected function renderLink($data, ResultRow $values) {
     if (!empty($this->options['link_to_node']) && !empty($this->additional_fields['nid'])) {

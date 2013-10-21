@@ -32,24 +32,66 @@ class CommentNewIndicatorTest extends CommentTestBase {
   }
 
   /**
+   * Get node "x new comments" metadata from the server for the current user.
+   *
+   * @param array $node_ids
+   *   An array of node IDs.
+   *
+   * @return string
+   *   The response body.
+   */
+  protected function renderNewCommentsNodeLinks(array $node_ids) {
+    // Build POST values.
+    $post = array();
+    for ($i = 0; $i < count($node_ids); $i++) {
+      $post['node_ids[' . $i . ']'] = $node_ids[$i];
+    }
+    $post['field_name'] = 'comment';
+
+    // Serialize POST values.
+    foreach ($post as $key => $value) {
+      // Encode according to application/x-www-form-urlencoded
+      // Both names and values needs to be urlencoded, according to
+      // http://www.w3.org/TR/html4/interact/forms.html#h-17.13.4.1
+      $post[$key] = urlencode($key) . '=' . urlencode($value);
+    }
+    $post = implode('&', $post);
+
+    // Perform HTTP request.
+    return $this->curlExec(array(
+      CURLOPT_URL => url('comments/render_new_comments_node_links', array('absolute' => TRUE)),
+      CURLOPT_POST => TRUE,
+      CURLOPT_POSTFIELDS => $post,
+      CURLOPT_HTTPHEADER => array(
+        'Accept: application/json',
+        'Content-Type: application/x-www-form-urlencoded',
+      ),
+    ));
+  }
+
+  /**
    * Tests new comment marker.
    */
   public function testCommentNewCommentsIndicator() {
     // Test if the right links are displayed when no comment is present for the
     // node.
     $this->drupalLogin($this->admin_user);
-    $this->node = $this->drupalCreateNode(array('type' => 'article', 'promote' => 1, 'comment' => COMMENT_NODE_OPEN));
     $this->drupalGet('node');
     $this->assertNoLink(t('@count comments', array('@count' => 0)));
-    $this->assertNoLink(t('@count new comments', array('@count' => 0)));
     $this->assertLink(t('Read more'));
+    // Verify the data-history-node-last-comment-timestamp attribute, which is
+    // used by the drupal.node-new-comments-link library to determine whether
+    // a "x new comments" link might be necessary or not. We do this in
+    // JavaScript to prevent breaking the render cache.
+    $this->assertIdentical(0, count($this->xpath('//*[@data-history-node-last-comment-timestamp]')), 'data-history-node-last-comment-timestamp attribute is not set.');
 
     // Create a new comment. This helper function may be run with different
     // comment settings so use $comment->save() to avoid complex setup.
     $comment = entity_create('comment', array(
       'cid' => NULL,
-      'nid' => $this->node->id(),
-      'node_type' => $this->node->getType(),
+      'entity_id' => $this->node->id(),
+      'entity_type' => 'node',
+      'field_name' => 'comment',
       'pid' => 0,
       'uid' => $this->loggedInUser->id(),
       'status' => COMMENT_PUBLISHED,
@@ -64,17 +106,31 @@ class CommentNewIndicatorTest extends CommentTestBase {
     // Log in with 'web user' and check comment links.
     $this->drupalLogin($this->web_user);
     $this->drupalGet('node');
-    $this->assertLink(t('1 new comment'));
-    $this->clickLink(t('1 new comment'));
-    $this->assertRaw('<a id="new"></a>', 'Found "new" marker.');
-    $this->assertTrue($this->xpath('//a[@id=:new]/following-sibling::a[1][@id=:comment_id]', array(':new' => 'new', ':comment_id' => 'comment-1')), 'The "new" anchor is positioned at the right comment.');
+    // Verify the data-history-node-last-comment-timestamp attribute. Given its
+    // value, the drupal.node-new-comments-link library would determine that the
+    // node received a comment after the user last viewed it, and hence it would
+    // perform an HTTP request to render the "new comments" node link.
+    $this->assertIdentical(1, count($this->xpath('//*[@data-history-node-last-comment-timestamp="' . $comment->changed->value .  '"]')), 'data-history-node-last-comment-timestamp attribute is set to the correct value.');
+    $this->assertIdentical(1, count($this->xpath('//*[@data-history-node-field-name="comment"]')), 'data-history-node-field-name attribute is set to the correct value.');
+    $response = $this->renderNewCommentsNodeLinks(array($this->node->id()));
+    $this->assertResponse(200);
+    $json = drupal_json_decode($response);
+    $expected = array($this->node->id() => array(
+      'new_comment_count' => 1,
+      'first_new_comment_link' => url('node/' . $this->node->id(), array('fragment' => 'new')),
+    ));
+    $this->assertIdentical($expected, $json);
 
-    // Test if "new comment" link is correctly removed.
-    $this->drupalGet('node');
-    $this->assertLink(t('1 comment'));
-    $this->assertLink(t('Read more'));
-    $this->assertNoLink(t('1 new comment'));
-    $this->assertNoLink(t('@count new comments', array('@count' => 0)));
+    // Failing to specify node IDs for the endpoint should return a 404.
+    $this->renderNewCommentsNodeLinks(array());
+    $this->assertResponse(404);
+
+    // Accessing the endpoint as the anonymous user should return a 403.
+    $this->drupalLogout();
+    $this->renderNewCommentsNodeLinks(array($this->node->id()));
+    $this->assertResponse(403);
+    $this->renderNewCommentsNodeLinks(array());
+    $this->assertResponse(403);
   }
 
 }

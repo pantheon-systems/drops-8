@@ -25,7 +25,6 @@ class FieldTypePluginManager extends DefaultPluginManager {
   protected $defaults = array(
     'settings' => array(),
     'instance_settings' => array(),
-    'list_class' => '\Drupal\field\Plugin\Type\FieldType\ConfigField',
   );
 
   /**
@@ -42,16 +41,28 @@ class FieldTypePluginManager extends DefaultPluginManager {
    *   The module handler.
    */
   public function __construct(\Traversable $namespaces, CacheBackendInterface $cache_backend, LanguageManager $language_manager, ModuleHandlerInterface $module_handler) {
-    $annotation_namespaces = array(
-      'Drupal\Core\Entity\Annotation' => DRUPAL_ROOT . '/core/lib',
-    );
-    parent::__construct('Plugin/field/field_type', $namespaces, $annotation_namespaces, 'Drupal\Core\Entity\Annotation\FieldType');
+    parent::__construct('Plugin/field/field_type', $namespaces, 'Drupal\Core\Entity\Annotation\FieldType');
     $this->alterInfo($module_handler, 'field_info');
-    $this->setCacheBackend($cache_backend, $language_manager, 'field_types');
+    $this->setCacheBackend($cache_backend, $language_manager, 'field_types_plugins');
 
     // @todo Remove once all core field types have been converted (see
     // http://drupal.org/node/2014671).
     $this->discovery = new LegacyFieldTypeDiscoveryDecorator($this->discovery, $module_handler);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function processDefinition(&$definition, $plugin_id) {
+    parent::processDefinition($definition, $plugin_id);
+    if (!isset($definition['list_class'])) {
+      if ($definition['configurable']) {
+        $definition['list_class'] = '\Drupal\field\Plugin\Type\FieldType\ConfigFieldItemList';
+      }
+      else {
+        $definition['list_class'] = '\Drupal\Core\Entity\Field\FieldItemList';
+      }
+    }
   }
 
   /**
@@ -82,6 +93,19 @@ class FieldTypePluginManager extends DefaultPluginManager {
   public function getDefaultInstanceSettings($type) {
     $info = $this->getDefinition($type);
     return isset($info['instance_settings']) ? $info['instance_settings'] : array();
+  }
+
+  /**
+   * Gets the definition of all field types that are configurable.
+   *
+   * @return array
+   *   An array of field type definitions.
+   */
+  public function getConfigurableDefinitions() {
+    $definitions = $this->getDefinitions();
+    return array_filter($definitions, function ($definition) {
+      return $definition['configurable'];
+    });
   }
 
 }

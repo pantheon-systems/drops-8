@@ -67,6 +67,8 @@ class FilterHtmlImageSecureTest extends WebTestBase {
 
     // Setup a node to comment and test on.
     $this->drupalCreateContentType(array('type' => 'page', 'name' => 'Basic page'));
+    // Add a comment field.
+    $this->container->get('comment.manager')->addDefaultField('node', 'page');
     $this->node = $this->drupalCreateNode();
   }
 
@@ -92,16 +94,31 @@ class FilterHtmlImageSecureTest extends WebTestBase {
     $test_images = $this->drupalGetTestFiles('image');
     $test_image = $test_images[0]->filename;
 
+    // Put a test image in the files directory with special filename.
+    $special_filename = 'tést fïle nàme.png';
+    $special_image = rawurlencode($special_filename);
+    $special_uri = str_replace($test_images[0]->filename, $special_filename, $test_images[0]->uri);
+    file_unmanaged_copy($test_images[0]->uri, $special_uri);
+
     // Create a list of test image sources.
     // The keys become the value of the IMG 'src' attribute, the values are the
     // expected filter conversions.
+    $host = $this->container->get('request')->getHost();
+    $host_pattern = '|^http\://' . $host . '(\:[0-9]{0,5})|';
     $images = array(
       $http_base_url . '/' . $druplicon => base_path() . $druplicon,
       $https_base_url . '/' . $druplicon => base_path() . $druplicon,
+      // Test a url that includes a port.
+      preg_replace($host_pattern, 'http://' . $host . ':', $http_base_url . '/' . $druplicon) => base_path() . $druplicon,
+      preg_replace($host_pattern, 'http://' . $host . ':80', $http_base_url . '/' . $druplicon) => base_path() . $druplicon,
+      preg_replace($host_pattern, 'http://' . $host . ':443', $http_base_url . '/' . $druplicon) => base_path() . $druplicon,
+      preg_replace($host_pattern, 'http://' . $host . ':8080', $http_base_url . '/' . $druplicon) => base_path() . $druplicon,
       base_path() . $druplicon => base_path() . $druplicon,
       $files_path . '/' . $test_image => $files_path . '/' . $test_image,
       $http_base_url . '/' . $public_files_path . '/' . $test_image => $files_path . '/' . $test_image,
       $https_base_url . '/' . $public_files_path . '/' . $test_image => $files_path . '/' . $test_image,
+      $http_base_url . '/' . $public_files_path . '/' . $special_image => $files_path . '/' . $special_image,
+      $https_base_url . '/' . $public_files_path . '/' . $special_image => $files_path . '/' . $special_image,
       $files_path . '/example.png' => $red_x_image,
       'http://example.com/' . $druplicon => $red_x_image,
       'https://example.com/' . $druplicon => $red_x_image,
@@ -117,9 +134,9 @@ class FilterHtmlImageSecureTest extends WebTestBase {
       $comment[] = '<img src="' . $image . '" testattribute="' . hash('sha256', $image) . '" />';
     }
     $edit = array(
-      'comment_body[und][0][value]' => implode("\n", $comment),
+      'comment_body[0][value]' => implode("\n", $comment),
     );
-    $this->drupalPost('node/' . $this->node->id(), $edit, t('Save'));
+    $this->drupalPostForm('node/' . $this->node->id(), $edit, t('Save'));
     foreach ($images as $image => $converted) {
       $found = FALSE;
       foreach ($this->xpath('//img[@testattribute="' . hash('sha256', $image) . '"]') as $element) {

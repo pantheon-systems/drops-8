@@ -5,8 +5,8 @@
  * Code required only when fetching information about available updates.
  */
 
-use Guzzle\Http\Exception\RequestException;
 use Drupal\Component\Utility\Crypt;
+use Drupal\update\UpdateFetcher;
 
 /**
  * Page callback: Checks for updates and displays the update status report.
@@ -14,6 +14,8 @@ use Drupal\Component\Utility\Crypt;
  * Manually checks the update status without the use of cron.
  *
  * @see update_menu()
+ *
+ * @deprecated Use \Drupal\update\Controller\UpdateController::updateStatusManually()
  */
 function update_manual_status() {
   _update_refresh();
@@ -38,7 +40,7 @@ function update_manual_status() {
  *   Reference to an array used for Batch API storage.
  */
 function update_fetch_data_batch(&$context) {
-  $queue = Drupal::queue('update_fetch_tasks');
+  $queue = \Drupal::queue('update_fetch_tasks');
   if (empty($context['sandbox']['max'])) {
     $context['finished'] = 0;
     $context['sandbox']['max'] = $queue->numberOfItems();
@@ -109,8 +111,8 @@ function update_fetch_data_finished($success, $results) {
  * Attempts to drain the queue of tasks for release history data to fetch.
  */
 function _update_fetch_data() {
-  $queue = Drupal::queue('update_fetch_tasks');
-  $end = time() + Drupal::config('update.settings')->get('fetch.timeout');
+  $queue = \Drupal::queue('update_fetch_tasks');
+  $end = time() + \Drupal::config('update.settings')->get('fetch.timeout');
   while (time() < $end && ($item = $queue->claimItem())) {
     _update_process_fetch_task($item->data);
     $queue->deleteItem($item);
@@ -131,7 +133,7 @@ function _update_fetch_data() {
  */
 function _update_process_fetch_task($project) {
   global $base_url;
-  $update_config = Drupal::config('update.settings');
+  $update_config = \Drupal::config('update.settings');
   $fail = &drupal_static(__FUNCTION__, array());
   // This can be in the middle of a long-running batch, so REQUEST_TIME won't
   // necessarily be valid.
@@ -139,28 +141,20 @@ function _update_process_fetch_task($project) {
   if (empty($fail)) {
     // If we have valid data about release history XML servers that we have
     // failed to fetch from on previous attempts, load that.
-    $fail = Drupal::keyValueExpirable('update')->get('fetch_failures');
+    $fail = \Drupal::keyValueExpirable('update')->get('fetch_failures');
   }
 
   $max_fetch_attempts = $update_config->get('fetch.max_attempts');
 
   $success = FALSE;
   $available = array();
-  $site_key = Crypt::hmacBase64($base_url, drupal_get_private_key());
-  $url = _update_build_fetch_url($project, $site_key);
-  $fetch_url_base = _update_get_fetch_url_base($project);
+  $site_key = Crypt::hmacBase64($base_url, \Drupal::service('private_key')->get());
+  $update_fetcher = new UpdateFetcher(\Drupal::service('config.factory'), \Drupal::service('http_default_client'));
+  $fetch_url_base = $update_fetcher->getFetchBaseUrl($project);
   $project_name = $project['name'];
 
   if (empty($fail[$fetch_url_base]) || $fail[$fetch_url_base] < $max_fetch_attempts) {
-    try {
-      $data = Drupal::httpClient()
-        ->get($url, array('Accept' => 'text/xml'))
-        ->send()
-        ->getBody(TRUE);
-    }
-    catch (RequestException $exception) {
-      watchdog_exception('update', $exception);
-    }
+    $data = $update_fetcher->fetchProjectData($project, $site_key);
   }
 
   if (!empty($data)) {
@@ -183,17 +177,17 @@ function _update_process_fetch_task($project) {
 
   $frequency = $update_config->get('check.interval_days');
   $available['last_fetch'] = REQUEST_TIME + $request_time_difference;
-  Drupal::keyValueExpirable('update_available_releases')->setWithExpire($project_name, $available, $request_time_difference + (60 * 60 * 24 * $frequency));
+  \Drupal::keyValueExpirable('update_available_releases')->setWithExpire($project_name, $available, $request_time_difference + (60 * 60 * 24 * $frequency));
 
   // Stash the $fail data back in the DB for the next 5 minutes.
-  Drupal::keyValueExpirable('update')->setWithExpire('fetch_failures', $fail, $request_time_difference + (60 * 5));
+  \Drupal::keyValueExpirable('update')->setWithExpire('fetch_failures', $fail, $request_time_difference + (60 * 5));
 
   // Whether this worked or not, we did just (try to) check for updates.
-  Drupal::state()->set('update.last_check', REQUEST_TIME + $request_time_difference);
+  \Drupal::state()->set('update.last_check', REQUEST_TIME + $request_time_difference);
 
   // Now that we processed the fetch task for this project, clear out the
   // record for this task so we're willing to fetch again.
-  Drupal::keyValue('update_fetch_task')->delete($project_name);
+  \Drupal::keyValue('update_fetch_task')->delete($project_name);
 
   return $success;
 }
@@ -210,15 +204,15 @@ function _update_refresh() {
   // since that data (even if it's stale) can be useful during
   // update_get_projects(); for example, to modules that implement
   // hook_system_info_alter() such as cvs_deploy.
-  Drupal::keyValueExpirable('update')->delete('update_project_projects');
-  Drupal::keyValueExpirable('update')->delete('update_project_data');
+  \Drupal::keyValueExpirable('update')->delete('update_project_projects');
+  \Drupal::keyValueExpirable('update')->delete('update_project_data');
 
   $projects = update_get_projects();
 
   // Now that we have the list of projects, we should also clear the available
   // release data, since even if we fail to fetch new data, we need to clear
   // out the stale data at this point.
-  Drupal::keyValueExpirable('update_available_releases')->deleteAll();
+  \Drupal::keyValueExpirable('update_available_releases')->deleteAll();
 
   foreach ($projects as $key => $project) {
     update_create_fetch_task($project);
@@ -245,86 +239,14 @@ function _update_refresh() {
 function _update_create_fetch_task($project) {
   $fetch_tasks = &drupal_static(__FUNCTION__, array());
   if (empty($fetch_tasks)) {
-    $fetch_tasks = Drupal::keyValue('update_fetch_task')->getAll();
+    $fetch_tasks = \Drupal::keyValue('update_fetch_task')->getAll();
   }
   if (empty($fetch_tasks[$project['name']])) {
-    $queue = Drupal::queue('update_fetch_tasks');
+    $queue = \Drupal::queue('update_fetch_tasks');
     $queue->createItem($project);
-    Drupal::keyValue('update_fetch_task')->set($project['name'], $project);
+    \Drupal::keyValue('update_fetch_task')->set($project['name'], $project);
     $fetch_tasks[$project['name']] = REQUEST_TIME;
   }
-}
-
-/**
- * Generates the URL to fetch information about project updates.
- *
- * This figures out the right URL to use, based on the project's .info.yml file
- * and the global defaults. Appends optional query arguments when the site is
- * configured to report usage stats.
- *
- * @param $project
- *   The array of project information from update_get_projects().
- * @param $site_key
- *   (optional) The anonymous site key hash. Defaults to an empty string.
- *
- * @return
- *   The URL for fetching information about updates to the specified project.
- *
- * @see update_fetch_data()
- * @see _update_process_fetch_task()
- * @see update_get_projects()
- */
-function _update_build_fetch_url($project, $site_key = '') {
-  $name = $project['name'];
-  $url = _update_get_fetch_url_base($project);
-  $url .= '/' . $name . '/' . DRUPAL_CORE_COMPATIBILITY;
-
-  // Only append usage infomation if we have a site key and the project is
-  // enabled. We do not want to record usage statistics for disabled projects.
-  if (!empty($site_key) && (strpos($project['project_type'], 'disabled') === FALSE)) {
-    // Append the site key.
-    $url .= (strpos($url, '?') !== FALSE) ? '&' : '?';
-    $url .= 'site_key=';
-    $url .= rawurlencode($site_key);
-
-    // Append the version.
-    if (!empty($project['info']['version'])) {
-      $url .= '&version=';
-      $url .= rawurlencode($project['info']['version']);
-    }
-
-    // Append the list of modules or themes enabled.
-    $list = array_keys($project['includes']);
-    $url .= '&list=';
-    $url .= rawurlencode(implode(',', $list));
-  }
-  return $url;
-}
-
-/**
- * Returns the base of the URL to fetch available update data for a project.
- *
- * @param $project
- *   The array of project information from update_get_projects().
- *
- * @return
- *   The base of the URL used for fetching available update data. This does
- *   not include the path elements to specify a particular project, version,
- *   site_key, etc.
- *
- * @see _update_build_fetch_url()
- */
-function _update_get_fetch_url_base($project) {
-  if (isset($project['info']['project status url'])) {
-    $url = $project['info']['project status url'];
-  }
-  else {
-    $url = Drupal::config('update.settings')->get('fetch.url');
-    if (empty($url)) {
-      $url = UPDATE_DEFAULT_URL;
-    }
-  }
-  return $url;
 }
 
 /**
@@ -337,7 +259,7 @@ function _update_get_fetch_url_base($project) {
  * @see update_requirements()
  */
 function _update_cron_notify() {
-  $update_config = Drupal::config('update.settings');
+  $update_config = \Drupal::config('update.settings');
   module_load_install('update');
   $status = update_requirements('runtime');
   $params = array();
@@ -364,7 +286,7 @@ function _update_cron_notify() {
         // Track when the last mail was successfully sent to avoid sending
         // too many e-mails.
         if ($message['result']) {
-          Drupal::state()->set('update.last_email_notification', REQUEST_TIME);
+          \Drupal::state()->set('update.last_email_notification', REQUEST_TIME);
         }
       }
     }

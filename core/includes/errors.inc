@@ -5,6 +5,7 @@
  * Functions for error handling.
  */
 
+use Drupal\Component\Utility\String;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -117,7 +118,7 @@ function _drupal_decode_exception($exception) {
     '%type' => get_class($exception),
     // The standard PHP exception handler considers that the exception message
     // is plain-text. We mimick this behavior here.
-    '!message' => check_plain($message),
+    '!message' => String::checkPlain($message),
     '%function' => $caller['function'],
     '%file' => $caller['file'],
     '%line' => $caller['line'],
@@ -138,7 +139,7 @@ function _drupal_decode_exception($exception) {
 function _drupal_render_exception_safe($exception) {
   $decode = _drupal_decode_exception($exception);
   unset($decode['backtrace']);
-  return check_plain(strtr('%type: !message in %function (line %line of %file).', $decode));
+  return String::checkPlain(strtr('%type: !message in %function (line %line of %file).', $decode));
 }
 
 /**
@@ -222,7 +223,7 @@ function _drupal_log_error($error, $fatal = FALSE) {
     }
   }
 
-  if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] == 'XMLHttpRequest') {
+  if (\Drupal::request()->isXmlHttpRequest()) {
     if ($fatal) {
       if (error_displayable($error)) {
         // When called from JavaScript, simply output the error message.
@@ -295,7 +296,7 @@ function _drupal_log_error($error, $fatal = FALSE) {
  * DRUPAL_BOOTSTRAP_KERNEL or before Drupal is installed. In all other
  * situations the following code is preferred:
  * @code
- * Drupal::config('system.logging')->get('error_level');
+ * \Drupal::config('system.logging')->get('error_level');
  * @endcode
  *
  * @return string
@@ -303,7 +304,7 @@ function _drupal_log_error($error, $fatal = FALSE) {
  */
 function _drupal_get_error_level() {
   try {
-    return Drupal::config('system.logging')->get('error_level');
+    return \Drupal::config('system.logging')->get('error_level');
   }
   catch (Exception $e) {
     // During very early install the cache_config table does not exist.

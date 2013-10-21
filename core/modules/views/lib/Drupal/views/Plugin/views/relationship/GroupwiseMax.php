@@ -8,8 +8,6 @@
 namespace Drupal\views\Plugin\views\relationship;
 
 use Drupal\Core\Database\Query\AlterableInterface;
-use Drupal\views\ViewExecutable;
-use Drupal\Component\Annotation\PluginID;
 use Drupal\views\Views;
 
 /**
@@ -65,7 +63,7 @@ use Drupal\views\Views;
 class GroupwiseMax extends RelationshipPluginBase {
 
   /**
-   * Defines default values for options.
+   * {@inheritdoc}
    */
   protected function defineOptions() {
     $options = parent::defineOptions();
@@ -81,8 +79,7 @@ class GroupwiseMax extends RelationshipPluginBase {
   }
 
   /**
-   * Extends the relationship's basic options, allowing the user to pick
-   * a sort and an order for it.
+   * {@inheritdoc}
    */
   public function buildOptionsForm(&$form, &$form_state) {
     parent::buildOptionsForm($form, $form_state);
@@ -94,6 +91,8 @@ class GroupwiseMax extends RelationshipPluginBase {
     }
     $base_table_data = Views::viewsData()->get($this->definition['base']);
 
+    // Extends the relationship's basic options, allowing the user to pick a
+    // sort and an order for it.
     $form['subquery_sort'] = array(
       '#type' => 'select',
       '#title' => t('Representative sort criteria'),
@@ -218,8 +217,6 @@ class GroupwiseMax extends RelationshipPluginBase {
     $temp_view->args[] = '**CORRELATED**';
 
     // Add the base table ID field.
-    $views_data = Views::viewsData()->get($this->definition['base']);
-    $base_field = $views_data['table']['base']['field'];
     $temp_view->addItem('default', 'field', $this->definition['base'], $this->definition['field']);
 
     $relationship_id = NULL;
@@ -334,9 +331,7 @@ class GroupwiseMax extends RelationshipPluginBase {
   }
 
   /**
-   * Called to implement a relationship in a query.
-   * This is mostly a copy of our parent's query() except for this bit with
-   * the join class.
+   * {@inheritdoc}
    */
   public function query() {
     // Figure out what base table this relationship brings to the party.

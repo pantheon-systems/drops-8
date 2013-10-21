@@ -43,7 +43,7 @@ class ConfigItem extends ViewsFormBase {
   /**
    * {@inheritdoc}
    */
-  public function getFormID() {
+  public function getFormId() {
     return 'views_ui_config_item_form';
   }
 
@@ -60,7 +60,7 @@ class ConfigItem extends ViewsFormBase {
       'options' => array(
         '#tree' => TRUE,
         '#theme_wrappers' => array('container'),
-        '#attributes' => array('class' => array('scroll')),
+        '#attributes' => array('class' => array('scroll'), 'data-drupal-views-scroll' => TRUE),
       ),
     );
     $executable = $view->getExecutable();
@@ -102,11 +102,12 @@ class ConfigItem extends ViewsFormBase {
 
           // If this relationship is valid for this type, add it to the list.
           $data = Views::viewsData()->get($relationship['table']);
-          $base = $data[$relationship['field']]['relationship']['base'];
-          $base_fields = Views::viewsDataHelper()->fetchFields($base, $form_state['type'], $executable->display_handler->useGroupBy());
-          if (isset($base_fields[$item['table'] . '.' . $item['field']])) {
-            $relationship_handler->init($executable, $executable->display_handler, $relationship);
-            $relationship_options[$relationship['id']] = $relationship_handler->adminLabel();
+          if (isset($data[$relationship['field']]['relationship']['base']) && $base = $data[$relationship['field']]['relationship']['base']) {
+            $base_fields = Views::viewsDataHelper()->fetchFields($base, $form_state['type'], $executable->display_handler->useGroupBy());
+            if (isset($base_fields[$item['table'] . '.' . $item['field']])) {
+              $relationship_handler->init($executable, $executable->display_handler, $relationship);
+              $relationship_options[$relationship['id']] = $relationship_handler->adminLabel();
+            }
           }
         }
 
@@ -167,11 +168,14 @@ class ConfigItem extends ViewsFormBase {
 
       $view->getStandardButtons($form, $form_state, 'views_ui_config_item_form', $name);
       // Add a 'remove' button.
-      $form['buttons']['remove'] = array(
+      $form['actions']['remove'] = array(
         '#type' => 'submit',
         '#value' => $this->t('Remove'),
         '#submit' => array(array($this, 'remove')),
         '#limit_validation_errors' => array(array('override')),
+        '#ajax' => array(
+          'path' => current_path(),
+        ),
       );
     }
 

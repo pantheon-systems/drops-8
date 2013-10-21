@@ -71,7 +71,7 @@ class NodeTypeTest extends NodeTestBase {
       'title_label' => 'title for foo',
       'type' => 'foo',
     );
-    $this->drupalPost('admin/structure/types/add', $edit, t('Save content type'));
+    $this->drupalPostForm('admin/structure/types/add', $edit, t('Save content type'));
     $type_exists = (bool) entity_load('node_type', 'foo');
     $this->assertTrue($type_exists, 'The new content type has been created in the database.');
   }
@@ -84,7 +84,7 @@ class NodeTypeTest extends NodeTestBase {
     $this->drupalLogin($web_user);
 
     $instance = field_info_instance('node', 'body', 'page');
-    $this->assertEqual($instance['label'], 'Body', 'Body field was found.');
+    $this->assertEqual($instance->getFieldLabel(), 'Body', 'Body field was found.');
 
     // Verify that title and body fields are displayed.
     $this->drupalGet('node/add/page');
@@ -95,7 +95,7 @@ class NodeTypeTest extends NodeTestBase {
     $edit = array(
       'title_label' => 'Foo',
     );
-    $this->drupalPost('admin/structure/types/manage/page', $edit, t('Save content type'));
+    $this->drupalPostForm('admin/structure/types/manage/page', $edit, t('Save content type'));
     // Refresh the field information for the rest of the test.
     field_info_cache_clear();
 
@@ -109,7 +109,7 @@ class NodeTypeTest extends NodeTestBase {
       'type' => 'bar',
       'description' => 'Lorem ipsum.',
     );
-    $this->drupalPost('admin/structure/types/manage/page', $edit, t('Save content type'));
+    $this->drupalPostForm('admin/structure/types/manage/page', $edit, t('Save content type'));
     field_info_cache_clear();
 
     $this->drupalGet('node/add');
@@ -121,9 +121,9 @@ class NodeTypeTest extends NodeTestBase {
     $this->assertRaw('Body', 'Body field was found.');
 
     // Remove the body field.
-    $this->drupalPost('admin/structure/types/manage/bar/fields/node.bar.body/delete', array(), t('Delete'));
+    $this->drupalPostForm('admin/structure/types/manage/bar/fields/node.bar.body/delete', array(), t('Delete'));
     // Resave the settings for this type.
-    $this->drupalPost('admin/structure/types/manage/bar', array(), t('Save content type'));
+    $this->drupalPostForm('admin/structure/types/manage/bar', array(), t('Save content type'));
     // Check that the body field doesn't exist.
     $this->drupalGet('node/add/bar');
     $this->assertNoRaw('Body', 'Body field was not found.');
@@ -134,7 +134,7 @@ class NodeTypeTest extends NodeTestBase {
    */
   function testNodeTypeStatus() {
     // Enable all core node modules, and all types should be active.
-    $this->container->get('module_handler')->enable(array('book'), FALSE);
+    $this->container->get('module_handler')->install(array('book'), FALSE);
     $types = node_type_get_types();
     foreach (array('book', 'article', 'page') as $type) {
       $this->assertTrue(isset($types[$type]), format_string('%type is found in node types.', array('%type' => $type)));
@@ -143,14 +143,14 @@ class NodeTypeTest extends NodeTestBase {
 
     // Disable book module and the respective type should still be active, since
     // it is not provided by shipped configuration entity.
-    $this->container->get('module_handler')->disable(array('book'), FALSE);
+    $this->container->get('module_handler')->uninstall(array('book'), FALSE);
     $types = node_type_get_types();
     $this->assertFalse($types['book']->isLocked(), "Book module's node type still active.");
     $this->assertFalse($types['article']->isLocked(), 'Article node type still active.');
     $this->assertFalse($types['page']->isLocked(), 'Basic page node type still active.');
 
-    // Re-enable the modules and verify that the types are active again.
-    $this->container->get('module_handler')->enable(array('book'), FALSE);
+    // Re-install the modules and verify that the types are active again.
+    $this->container->get('module_handler')->install(array('book'), FALSE);
     $types = node_type_get_types();
     foreach (array('book', 'article', 'page') as $type) {
       $this->assertTrue(isset($types[$type]), format_string('%type is found in node types.', array('%type' => $type)));
@@ -192,10 +192,9 @@ class NodeTypeTest extends NodeTestBase {
     );
     $this->assertText(t('This action cannot be undone.'), 'The node type deletion confirmation form is available.');
     // Test that forum node type could not be deleted while forum active.
-    $this->container->get('module_handler')->enable(array('forum'));
+    $this->container->get('module_handler')->install(array('forum'));
     $this->drupalGet('admin/structure/types/manage/forum/delete');
     $this->assertResponse(403);
-    $this->container->get('module_handler')->disable(array('forum'));
     $this->container->get('module_handler')->uninstall(array('forum'));
     $this->drupalGet('admin/structure/types/manage/forum/delete');
     $this->assertResponse(200);

@@ -43,7 +43,7 @@ use Drupal\field\FieldUpdateForbiddenException;
  */
 function hook_field_extra_fields() {
   $extra = array();
-  $module_language_enabled = module_exists('language');
+  $module_language_enabled = \Drupal::moduleHandler()->moduleExists('language');
   $description = t('Node module element');
 
   foreach (node_type_get_types() as $bundle) {
@@ -198,10 +198,8 @@ function hook_field_widget_info_alter(array &$info) {
  *   - form: The form structure to which widgets are being attached. This may be
  *     a full form structure, or a sub-element of a larger form.
  *   - widget: The widget plugin instance.
- *   - field_definition: The field definition.
- *   - entity: The entity.
- *   - langcode: The language associated with $items.
- *   - items: Array of default values for this field.
+ *   - items: The field values, as a
+ *     \Drupal\Core\Entity\Field\FieldItemListInterface object.
  *   - delta: The order of this item in the array of subelements (0, 1, 2, etc).
  *   - default: A boolean indicating whether the form is being shown as a dummy
  *     form to set default values.
@@ -211,7 +209,8 @@ function hook_field_widget_info_alter(array &$info) {
  */
 function hook_field_widget_form_alter(&$element, &$form_state, $context) {
   // Add a css class to widget form elements for all fields of type mytype.
-  if ($context['field']['type'] == 'mytype') {
+  $field_definition = $context['items']->getFieldDefinition();
+  if ($field_definition->getFieldType() == 'mytype') {
     // Be sure not to overwrite existing attributes.
     $element['#attributes']['class'][] = 'myclass';
   }
@@ -239,7 +238,7 @@ function hook_field_widget_WIDGET_TYPE_form_alter(&$element, &$form_state, $cont
   // Code here will only act on widgets of type WIDGET_TYPE.  For example,
   // hook_field_widget_mymodule_autocomplete_form_alter() will only act on
   // widgets of type 'mymodule_autocomplete'.
-  $element['#autocomplete_path'] = 'mymodule/autocomplete_path';
+  $element['#autocomplete_route_name'] = 'mymodule.autocomplete_route';
 }
 
 /**
@@ -572,33 +571,6 @@ function hook_field_purge_instance($instance) {
 /**
  * @} End of "addtogroup field_crud".
  */
-
-/**
- * Determine whether the user has access to a given field.
- *
- * This hook is invoked from field_access() to let modules block access to
- * operations on fields. If no module returns FALSE, the operation is allowed.
- *
- * @param $op
- *   The operation to be performed. Possible values: 'edit', 'view'.
- * @param \Drupal\field\FieldInterface $field
- *   The field on which the operation is to be performed.
- * @param $entity_type
- *   The type of $entity; for example, 'node' or 'user'.
- * @param $entity
- *   (optional) The entity for the operation.
- * @param $account
- *   (optional) The account to check; if not given use currently logged in user.
- *
- * @return
- *   TRUE if the operation is allowed, and FALSE if the operation is denied.
- */
-function hook_field_access($op, \Drupal\field\FieldInterface $field, $entity_type, $entity, $account) {
-  if ($field['field_name'] == 'field_of_interest' && $op == 'edit') {
-    return $account->hasPermission('edit field of interest');
-  }
-  return TRUE;
-}
 
 /**
  * @} End of "addtogroup hooks".

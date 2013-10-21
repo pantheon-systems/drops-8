@@ -1,6 +1,5 @@
 services:
-  access_check.taxonomy_term.create:
-    class: Drupal\taxonomy\Access\TaxonomyTermCreateAccess
-    arguments: ['@entity.manager']
+  taxonomy_term.breadcrumb:
+    class: Drupal\taxonomy\TermBreadcrumbBuilder
     tags:
-      - { name: access_check }
+      - { name: breadcrumb_builder, priority: 1002 }

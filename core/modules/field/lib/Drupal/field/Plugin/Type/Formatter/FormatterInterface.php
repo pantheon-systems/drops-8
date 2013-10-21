@@ -7,8 +7,7 @@
 
 namespace Drupal\field\Plugin\Type\Formatter;
 
-use Drupal\Core\Entity\EntityInterface;
-use Drupal\Core\Entity\Field\FieldInterface;
+use Drupal\Core\Entity\Field\FieldItemListInterface;
 use Drupal\field\Plugin\PluginSettingsInterface;
 
 /**
@@ -36,9 +35,8 @@ interface FormatterInterface extends PluginSettingsInterface {
   /**
    * Returns a short summary for the current formatter settings.
    *
-   * If an empty result is returned, the formatter is assumed to have no
-   * configurable settings, and no UI will be provided to display a settings
-   * form.
+   * If an empty result is returned, a UI can still be provided to display
+   * a settings form in case the formatter has configurable settings.
    *
    * @return array()
    *   A short summary of the formatter settings.
@@ -61,45 +59,33 @@ interface FormatterInterface extends PluginSettingsInterface {
    * Changes or additions to field values are done by alterings the $items
    * parameter by reference.
    *
-   * @param array $entities
-   *   Array of entities being displayed, keyed by entity ID.
-   * @param string $langcode
-   *   The language the field values are to be shown in. If no language is
-   *   provided the current language is used.
-   * @param array $items
-   *   Array of field values for the entities, keyed by entity ID.
+   * @param array $entities_items
+   *   Array of field values (Drupal\Core\Entity\Field\FieldItemListInterface),
+   *   keyed by entity ID.
    */
-  public function prepareView(array $entities, $langcode, array $items);
+  public function prepareView(array $entities_items);
 
   /**
    * Builds a renderable array for one field on one entity instance.
    *
-   * @param Drupal\Core\Entity\EntityInterface $entity
-   *   The entity being displayed.
-   * @param string $langcode
-   *   The language associated with $items.
-   * @param Drupal\Core\Entity\Field\FieldInterface $items
-   *   The field value for the entity for the language.
+   * @param \Drupal\Core\Entity\Field\FieldItemListInterface $items
+   *   The field values to be rendered.
    *
    * @return array
    *   A renderable array for a themed field with its label and all its values.
    */
-  public function view(EntityInterface $entity, $langcode, FieldInterface $items);
+  public function view(FieldItemListInterface $items);
 
   /**
    * Builds a renderable array for a field value.
    *
-   * @param Drupal\Core\Entity\EntityInterface $entity
-   *   The entity being displayed.
-   * @param string $langcode
-   *   The language associated with $items.
-   * @param array $items
-   *   Array of values for this field.
+   * @param \Drupal\Core\Entity\Field\FieldItemListInterface $items
+   *   The field values to be rendered.
    *
    * @return array
    *   A renderable array for $items, as an array of child elements keyed by
    *   numeric indexes starting from 0.
    */
-  public function viewElements(EntityInterface $entity, $langcode, FieldInterface $items);
+  public function viewElements(FieldItemListInterface $items);
 
 }

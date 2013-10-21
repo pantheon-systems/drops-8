@@ -94,7 +94,7 @@ class DatabaseBackend implements CacheBackendInterface {
    * Checks that items are either permanent or did not expire, and unserializes
    * data as appropriate.
    *
-   * @param stdClass $cache
+   * @param object $cache
    *   An item loaded from cache_get() or cache_get_multiple().
    * @param bool $allow_invalid
    *   If FALSE, the method returns FALSE if the cache item is not valid.
@@ -360,7 +360,7 @@ class DatabaseBackend implements CacheBackendInterface {
    * @return int
    *   Sum of all invalidations.
    *
-   * @see Drupal\Core\Cache\DatabaseBackend::flattenTags()
+   * @see \Drupal\Core\Cache\DatabaseBackend::flattenTags()
    */
   protected function checksumTags($flat_tags) {
     $tag_cache = &drupal_static('Drupal\Core\Cache\CacheBackendInterface::tagCache', array());

@@ -7,8 +7,6 @@
 
 namespace Drupal\user\Entity;
 
-use Drupal\Core\Entity\Annotation\EntityType;
-use Drupal\Core\Annotation\Translation;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
 use Drupal\Core\Entity\EntityStorageControllerInterface;
 use Drupal\user\RoleInterface;
@@ -29,12 +27,16 @@ use Drupal\user\RoleInterface;
  *       "delete" = "Drupal\user\Form\UserRoleDelete"
  *     }
  *   },
+ *   admin_permission = "administer permissions",
  *   config_prefix = "user.role",
  *   entity_keys = {
  *     "id" = "id",
  *     "uuid" = "uuid",
  *     "weight" = "weight",
  *     "label" = "label"
+ *   },
+ *   links = {
+ *     "edit-form" = "admin/people/roles/manage/{user_role}"
  *   }
  * )
  */
@@ -78,19 +80,6 @@ class Role extends ConfigEntityBase implements RoleInterface {
   /**
    * {@inheritdoc}
    */
-  public function uri() {
-    return array(
-      'path' => 'admin/people/roles/manage/' . $this->id(),
-      'options' => array(
-        'entity_type' => $this->entityType,
-        'entity' => $this,
-      ),
-    );
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function getPermissions() {
     return $this->permissions;
   }
@@ -124,6 +113,8 @@ class Role extends ConfigEntityBase implements RoleInterface {
    * {@inheritdoc}
    */
   public function preSave(EntityStorageControllerInterface $storage_controller) {
+    parent::preSave($storage_controller);
+
     if (!isset($this->weight) && ($roles = $storage_controller->loadMultiple())) {
       // Set a role weight to make this new role last.
       $max = array_reduce($roles, function($max, $role) {
@@ -137,6 +128,9 @@ class Role extends ConfigEntityBase implements RoleInterface {
    * {@inheritdoc}
    */
   public static function postDelete(EntityStorageControllerInterface $storage_controller, array $entities) {
+    parent::postDelete($storage_controller, $entities);
+
     $storage_controller->deleteRoleReferences(array_keys($entities));
   }
+
 }

@@ -7,7 +7,9 @@
 
 namespace Drupal\views\Plugin\views\area;
 
-use Drupal\Component\Annotation\PluginID;
+use Drupal\Component\Utility\String;
+use Drupal\Component\Utility\Xss;
+use Drupal\views\Plugin\views\style\DefaultSummary;
 
 /**
  * Views area handler to display some configurable result summary.
@@ -18,6 +20,9 @@ use Drupal\Component\Annotation\PluginID;
  */
 class Result extends AreaPluginBase {
 
+  /**
+   * {@inheritdoc}
+   */
   protected function defineOptions() {
     $options = parent::defineOptions();
 
@@ -29,6 +34,9 @@ class Result extends AreaPluginBase {
     return $options;
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function buildOptionsForm(&$form, &$form_state) {
     parent::buildOptionsForm($form, $form_state);
     $item_list = array(
@@ -54,13 +62,21 @@ class Result extends AreaPluginBase {
     );
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  public function query() {
+    if (strpos($this->options['content'], '@total') !== FALSE) {
+      $this->view->get_total_rows = TRUE;
+    }
+  }
 
   /**
-   * Implements \Drupal\views\Plugin\views\area\AreaPluginBase::render().
+   * {@inheritdoc}
    */
   public function render($empty = FALSE) {
     // Must have options and does not work on summaries.
-    if (!isset($this->options['content']) || $this->view->plugin_name == 'default_summary') {
+    if (!isset($this->options['content']) || $this->view->style_plugin instanceof DefaultSummary) {
       return array();
     }
     $output = '';
@@ -72,7 +88,7 @@ class Result extends AreaPluginBase {
     // @TODO: Maybe use a possible is views empty functionality.
     // Not every view has total_rows set, use view->result instead.
     $total = isset($this->view->total_rows) ? $this->view->total_rows : count($this->view->result);
-    $label = check_plain($this->view->storage->label());
+    $label = String::checkPlain($this->view->storage->label());
     if ($per_page === 0) {
       $page_count = 1;
       $start = 1;
@@ -96,7 +112,7 @@ class Result extends AreaPluginBase {
     }
     // Send the output.
     if (!empty($total)) {
-      $output .= filter_xss_admin(str_replace(array_keys($replacements), array_values($replacements), $format));
+      $output .= Xss::filterAdmin(str_replace(array_keys($replacements), array_values($replacements), $format));
     }
     // Return as render array.
     return array(

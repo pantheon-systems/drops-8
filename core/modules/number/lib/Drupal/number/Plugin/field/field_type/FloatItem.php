@@ -7,8 +7,6 @@
 
 namespace Drupal\number\Plugin\field\field_type;
 
-use Drupal\Core\Entity\Annotation\FieldType;
-use Drupal\Core\Annotation\Translation;
 use Drupal\field\FieldInterface;
 
 /**
@@ -16,7 +14,7 @@ use Drupal\field\FieldInterface;
  *
  * @FieldType(
  *   id = "number_float",
- *   label = @Translation("Float"),
+ *   label = @Translation("Number (float)"),
  *   description = @Translation("This field stores a number in the database in a floating point format."),
  *   instance_settings = {
  *     "min" = "",

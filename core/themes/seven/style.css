@@ -115,9 +115,6 @@ ul,
 [dir="rtl"] .item-list ul {
   margin: 0.25em 1.5em 0.25em 0;
 }
-.item-list .pager li {
-  padding: 0.5em;
-}
 .item-list ul li,
 li.leaf,
 ul.menu li {
@@ -439,13 +436,13 @@ ul.inline li {
 ul.inline li {
   display: inline;
 }
-.admin-list {
+ul.admin-list {
   margin: 0;
   padding: 0;
 }
 .admin-list li {
   position: relative;
-  border-top: 1px solid #ccc;
+  border-top: 1px solid #bfbfbf;
   margin: 0;
   list-style-type: none;
   list-style-image: none;
@@ -455,23 +452,33 @@ ul.inline li {
   border: none;
 }
 .admin-list li a {
-  background: url(images/list-item.png) no-repeat 9px 11px; /* LTR */
+  background: url(../../misc/icons/bebebe/chevron-disc-right.svg) no-repeat 1px 16px; /* LTR */
   display: block;
-  padding: 9px 9px 9px 39px; /* LTR */
+  padding: 14px 15px 14px 25px; /* LTR */
   min-height: 0;
 }
+.no-svg .admin-list li a {
+  background-image: url(../../misc/icons/bebebe/chevron-disc-right.png); /* LTR */
+}
 [dir="rtl"] .admin-list li a {
-  background: url(images/list-item-rtl.png) no-repeat right 11px;
-  padding: 9px 39px 9px 9px;
+  background: url(../../misc/icons/bebebe/chevron-disc-left.svg) no-repeat right 16px;
+  padding-right: 25px;
+  padding-left: 15px;
+}
+.no-svg [dir="rtl"] .admin-list li a {
+  background-image: url(../../misc/icons/bebebe/chevron-disc-left.png);
 }
 .admin-list.compact li a {
   background-image:  none;
-  padding: 2px 19px;
+  padding: 2px 0;
 }
 .admin-list li a:hover,
 .admin-list li a:focus,
 .admin-list li a:active {
   text-decoration: none;
+}
+.admin-list li a .label {
+  font-size: 1.0769em;
 }
 .admin-list li a:hover .label,
 .admin-list li a:focus .label,
@@ -483,12 +490,66 @@ div.submitted {
 }
 
 /**
+ * Pagination.
+ * The item-list CSS uses quite strong selectors, we have to match them here to
+ * override.
+ */
+.item-list .pager li {
+  display: inline-block;
+  color: #8c8c8c;
+  font-size: 1.08em;
+  padding: 0 0.6em;
+  margin: 0;
+}
+.item-list .pager a,
+.item-list .pager .pager-current {
+  border-bottom: 2px solid transparent;
+  line-height: 1.55em;
+  padding: 0 5px;
+  text-decoration: none;
+  -webkit-transition: border-bottom-color 0.2s;
+  -moz-transition: border-bottom-color 0.2s;
+  transition: border-bottom-color 0.2s;
+  font-weight: 600;
+  -webkit-font-smoothing: antialiased;
+}
+.item-list .pager a {
+  padding-bottom: 3px;
+}
+.item-list .pager .pager-current {
+  border-bottom-width: 3px;
+  border-bottom-color: #2a678c;
+  color: #2a678c;
+  margin: 0 5px;
+  font-weight: 700;
+}
+.item-list .pager a:focus,
+.item-list .pager a:hover {
+  border-bottom-color: #3395d2;
+  color: #3395d2;
+}
+.item-list .pager-next a,
+.item-list .pager-last a,
+.item-list .pager-first a,
+.item-list .pager-previous a {
+  border-bottom-width: 0;
+  color: #2a678c;
+  font-weight: 600;
+}
+
+/**
  * Tables.
  */
 table {
   width: 100%;
   margin: 0 0 10px;
   font-size: 0.923em;
+}
+caption {
+  text-align: left; /* LTR */
+}
+[dir="rtl"] caption {
+  text-align: right;
 }
 th {
   padding: 10px 12px;
@@ -502,8 +563,12 @@ th {
 [dir="rtl"] th {
   text-align: right;
 }
-tbody tr {
+tr {
   border-bottom: 1px solid #e6e4df;
+  padding: 0.1em 0.6em;
+}
+thead > tr {
+  border-bottom: 1px solid #000;
 }
 tbody tr:hover {
   background: #f7fcff;
@@ -639,15 +704,24 @@ details summary {
 /**
  * Form elements.
  */
+form {
+  margin: 0;
+  padding: 0;
+}
+fieldset {
+  margin: 1em 0;
+}
 .form-item {
   margin: 1em 0;
 }
 .form-type-checkbox {
   padding: 0;
 }
-.form-item label {
+label {
+  display: block;
   margin: 0;
   padding: 0;
+  font-weight: bold;
 }
 .form-item label.option {
   font-size: 0.923em;
@@ -681,7 +755,7 @@ div.description,
   margin: 5px 0;
   line-height: 1.231em;
   font-size: 0.923em;
-  color: #666;
+  color: #555;
 }
 ul.tips li {
   margin: 0.25em 0 0.25em 1.5em; /* LTR */
@@ -1568,13 +1642,6 @@ details.fieldset-no-legend {
  * The contents of the popup dialog on the views edit form.
  */
 
-.views-ui-dialog .ui-dialog-titlebar-close {
-  box-shadow: none;
-  border-color: #cccccc;
-  right: -27px;
-  top: -1px;
-}
-
 .filterable-option .form-item.form-type-checkbox {
   /* This selector is aggressive because Seven's reset for .form-items is aggressive. */
   padding-bottom: 4px;
@@ -1672,7 +1739,12 @@ details.fieldset-no-legend {
 
   [class*="page-node-add-"] #console,
   .page-node-edit #console {
-    margin-right: 2.5em;
+    margin: 0 2em;
+  }
+  [class*="page-node-add-"] .messages,
+  .page-node-edit .messages {
+    margin-top: 1em;
+    margin-bottom: 1em;
   }
 
   .layout-node-form {
@@ -1763,7 +1835,7 @@ details.fieldset-no-legend {
   screen and (max-width: 1020px),
   (orientation: landscape) and (max-device-height: 1020px) {
 
-  .toolbar-vertical .block-list-right,
+  .toolbar-vertical .block-list-secondary,
   .toolbar-vertical .layout-region-node-secondary {
     margin-bottom: 0;
     padding-bottom: 0;

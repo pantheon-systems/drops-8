@@ -30,17 +30,14 @@ function entity_menu() {
   $items['admin/structure/display-modes'] = array(
     'title' => 'Display modes',
     'description' => 'Configure what displays are available for your content and forms.',
-    'page callback' => 'system_admin_menu_block_page',
-    'access arguments' => array('administer display modes'),
-    'file' => 'system.admin.inc',
-    'file path' => drupal_get_path('module', 'system'),
+    'route_name' => 'entity.display_mode',
   );
 
   // View modes.
   $items['admin/structure/display-modes/view'] = array(
     'title' => 'View modes',
     'description' => 'Manage custom view modes.',
-    'route_name' => 'entity_view_mode.list',
+    'route_name' => 'entity.view_mode_list',
   );
   $items['admin/structure/display-modes/view/list'] = array(
     'title' => 'List',
@@ -48,25 +45,25 @@ function entity_menu() {
   );
   $items['admin/structure/display-modes/view/add'] = array(
     'title' => 'Add view mode',
-    'route_name' => 'entity_view_mode.add',
+    'route_name' => 'entity.view_mode_add',
     'type' => MENU_SIBLING_LOCAL_TASK,
   );
   $items['admin/structure/display-modes/view/add/%'] = array(
-    'route_name' => 'entity_view_mode.add_type',
+    'route_name' => 'entity.view_mode_add_type',
   );
   $items['admin/structure/display-modes/view/manage/%'] = array(
     'title' => 'Edit view mode',
-    'route_name' => 'entity_view_mode.edit',
+    'route_name' => 'entity.view_mode_edit',
   );
   $items['admin/structure/display-modes/view/manage/%/delete'] = array(
-    'route_name' => 'entity_view_mode.delete',
+    'route_name' => 'entity.view_mode_delete',
   );
 
   // Form modes.
   $items['admin/structure/display-modes/form'] = array(
     'title' => 'Form modes',
     'description' => 'Manage custom form modes.',
-    'route_name' => 'entity_form_mode.list',
+    'route_name' => 'entity.form_mode_list',
   );
   $items['admin/structure/display-modes/form/list'] = array(
     'title' => 'List',
@@ -74,18 +71,18 @@ function entity_menu() {
   );
   $items['admin/structure/display-modes/form/add'] = array(
     'title' => 'Add form mode',
-    'route_name' => 'entity_form_mode.add',
+    'route_name' => 'entity.form_mode_add',
     'type' => MENU_SIBLING_LOCAL_TASK,
   );
   $items['admin/structure/display-modes/form/add/%'] = array(
-    'route_name' => 'entity_form_mode.add_type',
+    'route_name' => 'entity.form_mode_add_type',
   );
   $items['admin/structure/display-modes/form/manage/%'] = array(
     'title' => 'Edit form mode',
-    'route_name' => 'entity_form_mode.edit',
+    'route_name' => 'entity.form_mode_edit',
   );
   $items['admin/structure/display-modes/form/manage/%/delete'] = array(
-    'route_name' => 'entity_form_mode.delete',
+    'route_name' => 'entity.form_mode_delete',
   );
 
   return $items;
@@ -97,10 +94,10 @@ function entity_menu() {
 function entity_local_actions() {
   return array(
     array(
-      'route_name' => 'entity_view_mode.add',
+      'route_name' => 'entity.view_mode_add',
       'title' => t('Add view mode'),
       'appears_on' => array(
-        'entity_view_mode.list',
+        'entity.view_mode_list',
       ),
     ),
   );
@@ -158,4 +155,19 @@ function entity_entity_bundle_delete($entity_type, $bundle) {
     $id = ConfigStorageController::getIDFromConfigName($id, $entity_info['config_prefix']);
   }
   entity_delete_multiple('entity_form_display', $ids);
+}
+
+/**
+ * Implements hook_module_preuninstall().
+ */
+function entity_module_preuninstall($module) {
+  // Clean up all entity bundles (including field instances) of every entity
+  // type provided by the module that is being uninstalled.
+  foreach (\Drupal::entityManager()->getDefinitions() as $entity_type => $entity_info) {
+    if ($entity_info['module'] == $module) {
+      foreach (array_keys(entity_get_bundles($entity_type)) as $bundle) {
+        entity_invoke_bundle_hook('delete', $entity_type, $bundle);
+      }
+    }
+  }
 }

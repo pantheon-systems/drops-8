@@ -1,5 +1,5 @@
-contextual_render:
-  pattern: '/contextual/render'
+contextual.render:
+  path: '/contextual/render'
   defaults:
     _controller: '\Drupal\contextual\ContextualController::render'
   requirements:

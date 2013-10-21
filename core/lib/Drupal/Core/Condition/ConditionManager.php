@@ -34,12 +34,9 @@ class ConditionManager extends DefaultPluginManager implements ExecutableManager
    */
   public function __construct(\Traversable $namespaces, CacheBackendInterface $cache_backend, LanguageManager $language_manager, ModuleHandlerInterface $module_handler) {
     $this->alterInfo($module_handler, 'condition_info');
-    $this->setCacheBackend($cache_backend, $language_manager, 'condition');
+    $this->setCacheBackend($cache_backend, $language_manager, 'condition_plugins');
 
-    $annotation_namespaces = array(
-      'Drupal\Core\Condition\Annotation' => DRUPAL_ROOT . '/core/lib',
-    );
-    parent::__construct('Plugin/Condition', $namespaces, $annotation_namespaces, 'Drupal\Core\Condition\Annotation\Condition');
+    parent::__construct('Plugin/Condition', $namespaces, 'Drupal\Core\Condition\Annotation\Condition');
   }
 
   /**

@@ -8,7 +8,7 @@
 namespace Drupal\Core\Utility;
 
 /**
- * Defines an interface for a service which generates a link out of a
+ * Defines an interface for generating links from route names and parameters.
  */
 interface LinkGeneratorInterface {
 
@@ -22,7 +22,7 @@ interface LinkGeneratorInterface {
    * However, for links enclosed in translatable text you should use t() and
    * embed the HTML anchor tag directly in the translated string. For example:
    * @code
-   * t('Visit the <a href="@url">content types</a> page', array('@url' => Drupal::url('node_overview_types')));
+   * t('Visit the <a href="@url">content types</a> page', array('@url' => \Drupal::url('node.overview_types')));
    * @endcode
    * This keeps the context of the link title ('settings' in the example) for
    * translators.

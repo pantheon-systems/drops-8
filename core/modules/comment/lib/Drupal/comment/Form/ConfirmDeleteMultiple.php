@@ -13,7 +13,6 @@ use Drupal\Core\Cache\Cache;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Form\ConfirmFormBase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Provides the comment multiple delete confirmation form.
@@ -56,7 +55,7 @@ class ConfirmDeleteMultiple extends ConfirmFormBase implements ContainerInjectio
   /**
    * {@inheritdoc}
    */
-  public function getFormID() {
+  public function getFormId() {
     return 'comment_multiple_delete_confirm';
   }
 
@@ -70,8 +69,7 @@ class ConfirmDeleteMultiple extends ConfirmFormBase implements ContainerInjectio
   /**
    * {@inheritdoc}
    */
-  public function getCancelPath() {
-    return 'admin/content/comment';
+  public function getCancelRoute() {
   }
 
   /**
@@ -84,7 +82,7 @@ class ConfirmDeleteMultiple extends ConfirmFormBase implements ContainerInjectio
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, array &$form_state, Request $request = NULL) {
+  public function buildForm(array $form, array &$form_state) {
     $edit = $form_state['input'];
 
     $form['comments'] = array(
@@ -112,7 +110,11 @@ class ConfirmDeleteMultiple extends ConfirmFormBase implements ContainerInjectio
       $form_state['redirect'] = 'admin/content/comment';
     }
 
-    return parent::buildForm($form, $form_state, $request);
+    $form = parent::buildForm($form, $form_state);
+
+    // @todo Convert to getCancelRoute() after http://drupal.org/node/1986606.
+    $form['actions']['cancel']['#href'] = 'admin/content/comment';
+    return $form;
   }
 
   /**

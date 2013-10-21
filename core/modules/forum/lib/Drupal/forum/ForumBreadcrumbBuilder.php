@@ -7,7 +7,7 @@
 
 namespace Drupal\forum;
 
-use Drupal\Core\Breadcrumb\BreadcrumbBuilderInterface;
+use Drupal\Core\Breadcrumb\BreadcrumbBuilderBase;
 use Drupal\Core\Config\ConfigFactory;
 use Drupal\Core\Entity\EntityManager;
 use Drupal\forum\ForumManagerInterface;
@@ -16,7 +16,7 @@ use Symfony\Cmf\Component\Routing\RouteObjectInterface;
 /**
  * Class to define the forum breadcrumb builder.
  */
-class ForumBreadcrumbBuilder implements BreadcrumbBuilderInterface {
+class ForumBreadcrumbBuilder extends BreadcrumbBuilderBase {
 
   /**
    * Configuration object for this builder.
@@ -59,23 +59,16 @@ class ForumBreadcrumbBuilder implements BreadcrumbBuilderInterface {
    * {@inheritdoc}
    */
   public function build(array $attributes) {
-    // @todo This only works for legacy routes. Once node/% and forum/% are
-    //   converted to the new router this code will need to be updated.
-    if (isset($attributes['_drupal_menu_item']) && ($item = $attributes['_drupal_menu_item']) && $item['path'] == 'node/%') {
-      $node = $item['map'][1];
-      // Load the object in case of missing wildcard loaders.
-      $node = is_object($node) ? $node : node_load($node);
-      if ($this->forumManager->checkNodeType($node)) {
-        $breadcrumb = $this->forumPostBreadcrumb($node);
+    if (!empty($attributes[RouteObjectInterface::ROUTE_NAME])) {
+      $route_name = $attributes[RouteObjectInterface::ROUTE_NAME];
+      if ($route_name == 'node.view' && isset($attributes['node'])) {
+        if ($this->forumManager->checkNodeType($attributes['node'])) {
+          return $this->forumPostBreadcrumb($attributes['node']);
+        }
       }
-    }
-
-    if (!empty($attributes[RouteObjectInterface::ROUTE_NAME]) && $attributes[RouteObjectInterface::ROUTE_NAME] == 'forum_page' && isset($attributes['taxonomy_term'])) {
-      $breadcrumb = $this->forumTermBreadcrumb($attributes['taxonomy_term']);
-    }
-
-    if (!empty($breadcrumb)) {
-      return $breadcrumb;
+      if ($route_name == 'forum.page' && isset($attributes['taxonomy_term'])) {
+        return $this->forumTermBreadcrumb($attributes['taxonomy_term']);
+      }
     }
   }
 
@@ -85,12 +78,12 @@ class ForumBreadcrumbBuilder implements BreadcrumbBuilderInterface {
   protected function forumPostBreadcrumb($node) {
     $vocabulary = $this->entityManager->getStorageController('taxonomy_vocabulary')->load($this->config->get('vocabulary'));
 
-    $breadcrumb[] = l(t('Home'), NULL);
+    $breadcrumb[] = $this->l($this->t('Home'), '<front>');
     $breadcrumb[] = l($vocabulary->label(), 'forum');
     if ($parents = taxonomy_term_load_parents_all($node->forum_tid)) {
       $parents = array_reverse($parents);
       foreach ($parents as $parent) {
-        $breadcrumb[] = l($parent->label(), 'forum/' . $parent->id());
+        $breadcrumb[] = $this->l($parent->label(), 'forum.page', array('taxonomy_term' => $parent->id()));
       }
     }
     return $breadcrumb;
@@ -102,16 +95,16 @@ class ForumBreadcrumbBuilder implements BreadcrumbBuilderInterface {
   protected function forumTermBreadcrumb($term) {
     $vocabulary = $this->entityManager->getStorageController('taxonomy_vocabulary')->load($this->config->get('vocabulary'));
 
-    $breadcrumb[] = l(t('Home'), NULL);
+    $breadcrumb[] = $this->l($this->t('Home'), '<front>');
     if ($term->tid) {
       // Parent of all forums is the vocabulary name.
-      $breadcrumb[] = l($vocabulary->label(), 'forum');
+      $breadcrumb[] = $this->l($vocabulary->label(), 'forum.index');
     }
     // Add all parent forums to breadcrumbs.
     if ($term->parents) {
       foreach (array_reverse($term->parents) as $parent) {
         if ($parent->id() != $term->id()) {
-          $breadcrumb[] = l($parent->label(), 'forum/' . $parent->id());
+          $breadcrumb[] = $this->l($parent->label(), 'forum.page', array('taxonomy_term' => $parent->id()));
         }
       }
     }

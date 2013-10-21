@@ -7,10 +7,7 @@
 
 namespace Drupal\taxonomy\Plugin\field\formatter;
 
-use Drupal\field\Annotation\FieldFormatter;
-use Drupal\Core\Annotation\Translation;
-use Drupal\Core\Entity\EntityInterface;
-use Drupal\Core\Entity\Field\FieldInterface;
+use Drupal\Core\Entity\Field\FieldItemListInterface;
 use Drupal\taxonomy\Plugin\field\formatter\TaxonomyFormatterBase;
 
 /**
@@ -29,7 +26,9 @@ class RSSCategoryFormatter extends TaxonomyFormatterBase {
   /**
    * {@inheritdoc}
    */
-  public function viewElements(EntityInterface $entity, $langcode, FieldInterface $items) {
+  public function viewElements(FieldItemListInterface $items) {
+    $entity = $items->getEntity();
+
     // Terms whose target_id is 'autocreate' do not exist yet and
     // $item->entity is not set. Theme such terms as just their name.
     foreach ($items as $item) {

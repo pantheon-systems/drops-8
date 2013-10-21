@@ -40,7 +40,7 @@ class Rearrange extends ViewsFormBase {
   /**
    * {@inheritdoc}
    */
-  public function getFormID() {
+  public function getFormId() {
     return 'views_ui_rearrange_form';
   }
 
@@ -80,7 +80,7 @@ class Rearrange extends ViewsFormBase {
         array('order', 'sibling', 'weight'),
       ),
       '#tree' => TRUE,
-      '#prefix' => '<div class="scroll">',
+      '#prefix' => '<div class="scroll" data-drupal-views-scroll>',
       '#suffix' => '</div>',
     );
 
@@ -95,33 +95,31 @@ class Rearrange extends ViewsFormBase {
         if (!empty($field['relationship']) && !empty($relationships[$field['relationship']])) {
           $name = '(' . $relationships[$field['relationship']] . ') ' . $name;
         }
-
-        $form['fields'][$id]['name'] = array(
-          '#markup' => $name,
-        );
+        $markup = $name;
       }
       else {
-        $form['fields'][$id]['name'] = array('#markup' => $this->t('Broken field @id', array('@id' => $id)));
+        $name = $id;
+        $markup = $this->t('Broken field @id', array('@id' => $id));
       }
+      $form['fields'][$id]['name'] = array('#markup' => $markup);
 
       $form['fields'][$id]['weight'] = array(
         '#type' => 'textfield',
         '#default_value' => ++$count,
         '#attributes' => array('class' => array('weight')),
+        '#title' => t('Weight for @title', array('@title' => $name)),
+        '#title_display' => 'invisible',
       );
 
       $form['fields'][$id]['removed'] = array(
         '#type' => 'checkbox',
+        '#title' => t('Remove @title', array('@title' => $name)),
+        '#title_display' => 'invisible',
         '#id' => 'views-removed-' . $id,
         '#attributes' => array('class' => array('views-remove-checkbox')),
         '#default_value' => 0,
         '#suffix' => l('<span>' . $this->t('Remove') . '</span>', 'javascript:void()', array('attributes' => array('id' => 'views-remove-link-' . $id, 'class' => array('views-hidden', 'views-button-remove', 'views-remove-link'), 'alt' => $this->t('Remove this item'), 'title' => $this->t('Remove this item')), 'html' => TRUE)),
       );
-    }
-
-    $name = NULL;
-    if (isset($form_state['update_name'])) {
-      $name = $form_state['update_name'];
     }
 
     $view->getStandardButtons($form, $form_state, 'views_ui_rearrange_form');

@@ -3,31 +3,16 @@
 "use strict";
 
 /**
- * Shows the "stylescombo" plugin settings only when the button is enabled.
+ * Ensures that the "stylescombo" button's metadata remains up-to-date.
+ *
+ * Triggers the CKEditorPluginSettingsChanged event whenever the "stylescombo"
+ * plugin settings change, to ensure that the corresponding feature metadata is
+ * immediately updated — i.e. ensure that HTML tags and classes entered here are
+ * known to be "required", which may affect filter settings.
  */
 Drupal.behaviors.ckeditorStylesComboSettings = {
   attach: function (context) {
     var $context = $(context);
-    var $stylesComboVerticalTab = $('#edit-editor-settings-plugins-stylescombo').data('verticalTab');
-
-    // Hide if the "Styles" button is disabled.
-    if ($('.ckeditor-toolbar-disabled li[data-button-name="Styles"]').length === 1) {
-      $stylesComboVerticalTab.tabHide();
-    }
-
-    // React to added/removed toolbar buttons.
-    $context
-      .find('.ckeditor-toolbar-active')
-      .on('CKEditorToolbarChanged.ckeditorStylesComboSettings', function (e, action, button) {
-        if (button === 'Styles') {
-          if (action === 'added') {
-            $stylesComboVerticalTab.tabShow();
-          }
-          else {
-            $stylesComboVerticalTab.tabHide();
-          }
-        }
-      });
 
     // React to changes in the list of user-defined styles: calculate the new
     // stylesSet setting up to 2 times per second, and if it is different, fire
@@ -54,7 +39,7 @@ Drupal.behaviors.ckeditorStylesComboSettings = {
   /**
    * Builds the "stylesSet" configuration part of the CKEditor JS settings.
    *
-   * @see Drupal\ckeditor\Plugin\ckeditor\plugin\StylesCombo::generateStylesSetSetting()
+   * @see \Drupal\ckeditor\Plugin\ckeditor\plugin\StylesCombo::generateStylesSetSetting()
    *
    * Note that this is a more forgiving implementation than the PHP version: the
    * parsing works identically, but instead of failing on invalid styles, we

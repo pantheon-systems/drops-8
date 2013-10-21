@@ -75,9 +75,6 @@ abstract class OverviewBase extends FormBase {
    */
   public function buildForm(array $form, array &$form_state, $entity_type = NULL, $bundle = NULL) {
     $entity_info = $this->entityManager->getDefinition($entity_type);
-    if (!empty($entity_info['bundle_prefix'])) {
-      $bundle = $entity_info['bundle_prefix'] . $bundle;
-    }
 
     $this->entity_type = $entity_type;
     $this->bundle = $bundle;
@@ -107,7 +104,7 @@ abstract class OverviewBase extends FormBase {
    *         'title' => $this->t('Content'),
    *         // Indicates if the region is visible in the UI.
    *         'invisible' => TRUE,
-   *         // A mesage to indicate that there is nothing to be displayed in
+   *         // A message to indicate that there is nothing to be displayed in
    *         // the region.
    *         'message' => $this->t('No field is displayed.'),
    *       ),

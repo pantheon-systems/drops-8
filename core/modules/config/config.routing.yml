@@ -1,29 +1,40 @@
-config_diff:
-  pattern: '/admin/config/development/sync/diff/{config_file}'
+config.diff:
+  path: '/admin/config/development/configuration/sync/diff/{config_file}'
   defaults:
     _content: '\Drupal\config\Controller\ConfigController::diff'
   requirements:
     _permission: 'synchronize configuration'
+
+config_management:
+  path: '/admin/config/development/configuration'
+  defaults:
+    _form: '\Drupal\config\Form\ConfigSync'
+  requirements:
+    _permission: 'synchronize configuration'
+
 config_export_download:
-  pattern: '/admin/config/development/export-download'
+  path: '/admin/config/development/configuration/export-download'
   defaults:
     _controller: '\Drupal\config\Controller\ConfigController::downloadExport'
   requirements:
     _permission: 'export configuration'
-config_export:
-  pattern: '/admin/config/development/export'
+
+config.export:
+  path: '/admin/config/development/configuration/export'
   defaults:
     _form: '\Drupal\config\Form\ConfigExportForm'
   requirements:
     _permission: 'export configuration'
-config_import:
-  pattern: '/admin/config/development/import'
+
+config.import:
+  path: '/admin/config/development/configuration/import'
   defaults:
     _form: '\Drupal\config\Form\ConfigImportForm'
   requirements:
     _permission: 'import configuration'
-config_sync:
-  pattern: '/admin/config/development/sync'
+
+config.sync:
+  path: '/admin/config/development/configuration/sync'
   defaults:
     _form: '\Drupal\config\Form\ConfigSync'
   requirements:

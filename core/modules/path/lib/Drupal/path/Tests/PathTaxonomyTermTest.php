@@ -54,17 +54,23 @@ class PathTaxonomyTermTest extends PathTestBase {
       'description[value]' => $description,
       'path[alias]' => $this->randomName(),
     );
-    $this->drupalPost('admin/structure/taxonomy/manage/' . $vocabulary->id() . '/add', $edit, t('Save'));
+    $this->drupalPostForm('admin/structure/taxonomy/manage/' . $vocabulary->id() . '/add', $edit, t('Save'));
+    $tid = db_query("SELECT tid FROM {taxonomy_term_data} WHERE name = :name", array(':name' => $edit['name']))->fetchField();
 
     // Confirm that the alias works.
     $this->drupalGet($edit['path[alias]']);
     $this->assertText($description, 'Term can be accessed on URL alias.');
 
+    // Confirm the 'canonical' and 'shortlink' URLs.
+    $elements = $this->xpath("//link[contains(@rel, 'canonical') and contains(@href, '" . $edit['path[alias]'] . "')]");
+    $this->assertTrue(!empty($elements), 'Term page contains canonical link URL.');
+    $elements = $this->xpath("//link[contains(@rel, 'shortlink') and contains(@href, 'taxonomy/term/" . $tid . "')]");
+    $this->assertTrue(!empty($elements), 'Term page contains shortlink URL.');
+
     // Change the term's URL alias.
-    $tid = db_query("SELECT tid FROM {taxonomy_term_data} WHERE name = :name", array(':name' => $edit['name']))->fetchField();
     $edit2 = array();
     $edit2['path[alias]'] = $this->randomName();
-    $this->drupalPost('taxonomy/term/' . $tid . '/edit', $edit2, t('Save'));
+    $this->drupalPostForm('taxonomy/term/' . $tid . '/edit', $edit2, t('Save'));
 
     // Confirm that the changed alias works.
     $this->drupalGet($edit2['path[alias]']);
@@ -78,7 +84,7 @@ class PathTaxonomyTermTest extends PathTestBase {
     // Remove the term's URL alias.
     $edit3 = array();
     $edit3['path[alias]'] = '';
-    $this->drupalPost('taxonomy/term/' . $tid . '/edit', $edit3, t('Save'));
+    $this->drupalPostForm('taxonomy/term/' . $tid . '/edit', $edit3, t('Save'));
 
     // Confirm that the alias no longer works.
     $this->drupalGet($edit2['path[alias]']);

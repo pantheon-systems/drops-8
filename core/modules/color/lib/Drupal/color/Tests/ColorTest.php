@@ -88,7 +88,7 @@ class ColorTest extends WebTestBase {
     $this->assertResponse(200);
     $edit['scheme'] = '';
     $edit[$test_values['palette_input']] = '#123456';
-    $this->drupalPost($settings_path, $edit, t('Save configuration'));
+    $this->drupalPostForm($settings_path, $edit, t('Save configuration'));
 
     $this->drupalGet('<front>');
     $stylesheets = \Drupal::config('color.' . $theme)->get('stylesheets');
@@ -100,7 +100,7 @@ class ColorTest extends WebTestBase {
     $this->drupalGet($settings_path);
     $this->assertResponse(200);
     $edit['scheme'] = $test_values['scheme'];
-    $this->drupalPost($settings_path, $edit, t('Save configuration'));
+    $this->drupalPostForm($settings_path, $edit, t('Save configuration'));
 
     $this->drupalGet('<front>');
     $stylesheets = \Drupal::config('color.' . $theme)->get('stylesheets');
@@ -114,7 +114,7 @@ class ColorTest extends WebTestBase {
     $this->drupalGet('<front>');
     $stylesheets = \Drupal::state()->get('drupal_css_cache_files') ?: array();
     $stylesheet_content = '';
-    foreach ($stylesheets as $key => $uri) {
+    foreach ($stylesheets as $uri) {
       $stylesheet_content .= join("\n", file(drupal_realpath($uri)));
     }
     $this->assertTrue(strpos($stylesheet_content, 'public://') === FALSE, 'Make sure the color paths have been translated to local paths. (' . $theme . ')');
@@ -136,7 +136,7 @@ class ColorTest extends WebTestBase {
 
     foreach ($this->colorTests as $color => $is_valid) {
       $edit['palette[bg]'] = $color;
-      $this->drupalPost($settings_path, $edit, t('Save configuration'));
+      $this->drupalPostForm($settings_path, $edit, t('Save configuration'));
 
       if($is_valid) {
         $this->assertText('The configuration options have been saved.');

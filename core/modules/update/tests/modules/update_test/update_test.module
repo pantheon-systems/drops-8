@@ -18,22 +18,6 @@ function update_test_system_theme_info() {
 }
 
 /**
- * Implements hook_menu().
- */
-function update_test_menu() {
-  $items = array();
-
-  $items['update-test'] = array(
-    'title' => t('Update test'),
-    'page callback' => 'update_test_mock_page',
-    'access callback' => TRUE,
-    'type' => MENU_CALLBACK,
-  );
-
-  return $items;
-}
-
-/**
  * Implements hook_system_info_alter().
  *
  * Checks the 'update_test.settings:system_info' configuration and sees if we
@@ -45,7 +29,7 @@ function update_test_menu() {
  * just for that module or theme.
  */
 function update_test_system_info_alter(&$info, $file) {
-  $setting = Drupal::config('update_test.settings')->get('system_info');
+  $setting = \Drupal::config('update_test.settings')->get('system_info');
   foreach (array('#all', $file->name) as $id) {
     if (!empty($setting[$id])) {
       foreach ($setting[$id] as $key => $value) {
@@ -67,7 +51,7 @@ function update_test_system_info_alter(&$info, $file) {
  * module or theme.
  */
 function update_test_update_status_alter(&$projects) {
-  $setting = Drupal::config('update_test.settings')->get('update_status');
+  $setting = \Drupal::config('update_test.settings')->get('update_status');
   if (!empty($setting)) {
     foreach ($projects as $project_name => &$project) {
       foreach (array('#all', $project_name) as $id) {
@@ -101,9 +85,11 @@ function update_test_update_status_alter(&$projects) {
  *   content otherwise.
  *
  * @see update_test_menu()
+ *
+ * @deprecated \Drupal\update_test\Controller\UpdateTestController::updateTest()
  */
 function update_test_mock_page($project_name) {
-  $xml_map = Drupal::config('update_test.settings')->get('xml_map');
+  $xml_map = \Drupal::config('update_test.settings')->get('xml_map');
   if (isset($xml_map[$project_name])) {
     $availability_scenario = $xml_map[$project_name];
   }

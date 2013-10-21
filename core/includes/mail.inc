@@ -119,7 +119,7 @@ define('MAIL_LINE_ENDINGS', isset($_SERVER['WINDIR']) || strpos($_SERVER['SERVER
  *   accepted at php-level, which still doesn't guarantee it to be delivered.)
  */
 function drupal_mail($module, $key, $to, $langcode, $params = array(), $from = NULL, $send = TRUE) {
-  $site_config = Drupal::config('system.site');
+  $site_config = \Drupal::config('system.site');
   $site_mail = $site_config->get('mail');
   if (empty($site_mail)) {
     $site_mail = ini_get('sendmail_from');
@@ -206,7 +206,7 @@ function drupal_mail($module, $key, $to, $langcode, $params = array(), $from = N
  *   A key to identify the e-mail sent. The final e-mail ID for the e-mail
  *   alter hook in drupal_mail() would have been {$module}_{$key}.
  *
- * @return Drupal\Core\Mail\MailInterface
+ * @return \Drupal\Core\Mail\MailInterface
  *   An object that implements Drupal\Core\Mail\MailInterface.
  *
  * @throws \Exception
@@ -214,7 +214,7 @@ function drupal_mail($module, $key, $to, $langcode, $params = array(), $from = N
  * @see \Drupal\Core\Mail\MailFactory::get()
  */
 function drupal_mail_system($module, $key) {
-  return Drupal::service('mail.factory')->get($module, $key);
+  return \Drupal::service('mail.factory')->get($module, $key);
 }
 
 /**
@@ -476,7 +476,7 @@ function _drupal_wrap_mail_line(&$line, $key, $values) {
   }
   if (!$line_is_mime_header) {
     // Use soft-breaks only for purely quoted or unindented text.
-    $line = wordwrap($line, 77 - $values['length'], $values['soft'] ? "  \n" : "\n");
+    $line = wordwrap($line, 77 - $values['length'], $values['soft'] ? " \n" : "\n");
   }
   // Break really long words at the maximum width allowed.
   $line = wordwrap($line, 996 - $values['length'], $values['soft'] ? " \n" : "\n");

@@ -7,17 +7,17 @@
 
 namespace Drupal\form_test;
 
-use Drupal\system\SystemConfigFormBase;
+use Drupal\Core\Form\ConfigFormBase;
 
 /**
- * Tests the SystemConfigFormBase class.
+ * Tests the ConfigFormBase class.
  */
-class SystemConfigFormTestForm extends SystemConfigFormBase {
+class SystemConfigFormTestForm extends ConfigFormBase {
 
   /**
    * {@inheritdoc}
    */
-  public function getFormID() {
+  public function getFormId() {
     return 'form_test_system_config_test_form';
   }
 

@@ -8,16 +8,11 @@
 namespace Drupal\field\Plugin\Type\Widget;
 
 use Drupal\Component\Plugin\Factory\DefaultFactory;
-use Drupal\Component\Plugin\PluginManagerBase;
-use Drupal\Component\Plugin\Discovery\ProcessDecorator;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Entity\Field\FieldTypePluginManager;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Language\LanguageManager;
 use Drupal\Core\Plugin\DefaultPluginManager;
-use Drupal\Core\Plugin\Discovery\CacheDecorator;
-use Drupal\Core\Plugin\Discovery\AlterDecorator;
-use Drupal\Core\Plugin\Discovery\AnnotatedClassDiscovery;
 
 /**
  * Plugin type manager for field widgets.
@@ -54,11 +49,9 @@ class WidgetPluginManager extends DefaultPluginManager {
    *   The 'field type' plugin manager.
    */
   public function __construct(\Traversable $namespaces, CacheBackendInterface $cache_backend, ModuleHandlerInterface $module_handler, LanguageManager $language_manager, FieldTypePluginManager $field_type_manager) {
-    $annotation_namespaces = array('Drupal\field\Annotation' => $namespaces['Drupal\field']);
+    parent::__construct('Plugin/field/widget', $namespaces, 'Drupal\field\Annotation\FieldWidget');
 
-    parent::__construct('Plugin/field/widget', $namespaces, $annotation_namespaces, 'Drupal\field\Annotation\FieldWidget');
-
-    $this->setCacheBackend($cache_backend, $language_manager, 'field_widget_types');
+    $this->setCacheBackend($cache_backend, $language_manager, 'field_widget_types_plugins');
     $this->alterInfo($module_handler, 'field_widget_info');
 
     $this->factory = new WidgetFactory($this);

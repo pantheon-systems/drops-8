@@ -7,8 +7,6 @@
 
 namespace Drupal\entity_reference\Plugin\field\widget;
 
-use Drupal\field\Annotation\FieldWidget;
-use Drupal\Core\Annotation\Translation;
 use Drupal\entity_reference\Plugin\field\widget\AutocompleteWidgetBase;
 
 /**
@@ -24,7 +22,7 @@ use Drupal\entity_reference\Plugin\field\widget\AutocompleteWidgetBase;
  *   settings = {
  *     "match_operator" = "CONTAINS",
  *     "size" = 60,
- *     "autocomplete_path" = "entity_reference/autocomplete/tags",
+ *     "autocomplete_type" = "tags",
  *     "placeholder" = ""
  *   },
  *   multiple_values = TRUE

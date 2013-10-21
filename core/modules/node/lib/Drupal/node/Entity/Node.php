@@ -7,10 +7,8 @@
 
 namespace Drupal\node\Entity;
 
-use Drupal\Core\Entity\EntityNG;
+use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Entity\EntityStorageControllerInterface;
-use Drupal\Core\Entity\Annotation\EntityType;
-use Drupal\Core\Annotation\Translation;
 use Drupal\Core\Language\Language;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\node\NodeInterface;
@@ -36,10 +34,12 @@ use Drupal\node\NodeInterface;
  *   },
  *   base_table = "node",
  *   data_table = "node_field_data",
- *   revision_table = "node_field_revision",
+ *   revision_table = "node_revision",
+ *   revision_data_table = "node_field_revision",
  *   uri_callback = "node_uri",
  *   fieldable = TRUE,
  *   translatable = TRUE,
+ *   render_cache = FALSE,
  *   entity_keys = {
  *     "id" = "nid",
  *     "revision" = "vid",
@@ -59,7 +59,7 @@ use Drupal\node\NodeInterface;
  *   }
  * )
  */
-class Node extends EntityNG implements NodeInterface {
+class Node extends ContentEntityBase implements NodeInterface {
 
   /**
    * Implements Drupal\Core\Entity\EntityInterface::id().
@@ -79,6 +79,8 @@ class Node extends EntityNG implements NodeInterface {
    * {@inheritdoc}
    */
   public function preSave(EntityStorageControllerInterface $storage_controller) {
+    parent::preSave($storage_controller);
+
     // Before saving the node, set changed and revision times.
     $this->changed->value = REQUEST_TIME;
   }
@@ -87,6 +89,8 @@ class Node extends EntityNG implements NodeInterface {
    * {@inheritdoc}
    */
   public function preSaveRevision(EntityStorageControllerInterface $storage_controller, \stdClass $record) {
+    parent::preSaveRevision($storage_controller, $record);
+
     if ($this->newRevision) {
       // When inserting either a new node or a new node revision, $node->log
       // must be set because {node_field_revision}.log is a text column and
@@ -113,11 +117,19 @@ class Node extends EntityNG implements NodeInterface {
    * {@inheritdoc}
    */
   public function postSave(EntityStorageControllerInterface $storage_controller, $update = TRUE) {
+    parent::postSave($storage_controller, $update);
+
     // Update the node access table for this node, but only if it is the
     // default revision. There's no need to delete existing records if the node
     // is new.
     if ($this->isDefaultRevision()) {
       \Drupal::entityManager()->getAccessController('node')->writeGrants($this, $update);
+    }
+
+    // Reindex the node when it is updated. The node is automatically indexed
+    // when it is added, simply by being added to the node table.
+    if ($update) {
+      node_reindex_node_search($this->id());
     }
   }
 
@@ -125,9 +137,12 @@ class Node extends EntityNG implements NodeInterface {
    * {@inheritdoc}
    */
   public static function preDelete(EntityStorageControllerInterface $storage_controller, array $entities) {
-    if (module_exists('search')) {
+    parent::preDelete($storage_controller, $entities);
+
+    // Assure that all nodes deleted are removed from the search index.
+    if (\Drupal::moduleHandler()->moduleExists('search')) {
       foreach ($entities as $entity) {
-        search_reindex($entity->nid->value, 'node');
+        search_reindex($entity->nid->value, 'node_search');
       }
     }
   }
@@ -351,6 +366,7 @@ class Node extends EntityNG implements NodeInterface {
       'property_constraints' => array(
         'value' => array('Length' => array('max' => 255)),
       ),
+      'translatable' => TRUE,
     );
     $properties['uid'] = array(
       'label' => t('User ID'),
@@ -376,13 +392,8 @@ class Node extends EntityNG implements NodeInterface {
       'description' => t('The time that the node was last edited.'),
       'type' => 'integer_field',
       'property_constraints' => array(
-        'value' => array('NodeChanged' => array()),
+        'value' => array('EntityChanged' => array()),
       ),
-    );
-    $properties['comment'] = array(
-      'label' => t('Comment'),
-      'description' => t('Whether comments are allowed on this node: 0 = no, 1 = closed (read only), 2 = open (read/write).'),
-      'type' => 'integer_field',
     );
     $properties['promote'] = array(
       'label' => t('Promote'),
@@ -392,16 +403,6 @@ class Node extends EntityNG implements NodeInterface {
     $properties['sticky'] = array(
       'label' => t('Sticky'),
       'description' => t('A boolean indicating whether the node should be displayed at the top of lists in which it appears.'),
-      'type' => 'boolean_field',
-    );
-    $properties['tnid'] = array(
-      'label' => t('Translation set ID'),
-      'description' => t('The translation set id for this node, which equals the node id of the source post in each set.'),
-      'type' => 'integer_field',
-    );
-    $properties['translate'] = array(
-      'label' => t('Translate'),
-      'description' => t('A boolean indicating whether this translation page needs to be updated.'),
       'type' => 'boolean_field',
     );
     $properties['revision_timestamp'] = array(

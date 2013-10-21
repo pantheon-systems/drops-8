@@ -13,7 +13,7 @@ use Drupal\views\Tests\Plugin\RelationshipJoinTestBase;
 /**
  * Tests the base relationship handler.
  *
- * @see Drupal\views\Plugin\views\relationship\RelationshipPluginBase
+ * @see \Drupal\views\Plugin\views\relationship\RelationshipPluginBase
  */
 class RelationshipTest extends RelationshipJoinTestBase {
 
@@ -125,7 +125,7 @@ class RelationshipTest extends RelationshipJoinTestBase {
 
     $expected_result = $this->dataSet();
     // Alter the expected result to contain the right uids.
-    foreach ($expected_result as $key => &$row) {
+    foreach ($expected_result as &$row) {
       // Only John has an existing author.
       if ($row['name'] == 'John') {
         $row['uid'] = 1;

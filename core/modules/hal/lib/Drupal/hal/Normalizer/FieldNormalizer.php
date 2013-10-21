@@ -22,7 +22,7 @@ class FieldNormalizer extends NormalizerBase {
    *
    * @var string
    */
-  protected $supportedInterfaceOrClass = 'Drupal\Core\Entity\Field\FieldInterface';
+  protected $supportedInterfaceOrClass = 'Drupal\Core\Entity\Field\FieldItemListInterface';
 
   /**
    * Implements \Symfony\Component\Serializer\Normalizer\NormalizerInterface::normalize()
@@ -31,7 +31,7 @@ class FieldNormalizer extends NormalizerBase {
     $normalized_field_items = array();
 
     // Get the field definition.
-    $entity = $field->getParent();
+    $entity = $field->getEntity();
     $field_name = $field->getName();
     $field_definition = $entity->getPropertyDefinition($field_name);
 
@@ -89,7 +89,7 @@ class FieldNormalizer extends NormalizerBase {
   /**
    * Helper function to normalize field items.
    *
-   * @param \Drupal\Core\Entity\Field\FieldInterface $field
+   * @param \Drupal\Core\Entity\Field\FieldItemListInterface $field
    *   The field object.
    * @param string $format
    *   The format.

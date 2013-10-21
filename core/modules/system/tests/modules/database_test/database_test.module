@@ -1,5 +1,6 @@
 <?php
 
+use Drupal\Component\Utility\String;
 use Drupal\Core\Database\Query\AlterableInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
@@ -14,7 +15,7 @@ function database_test_query_alter(AlterableInterface $query) {
 
   if ($query->hasTag('database_test_alter_add_join')) {
     $people_alias = $query->join('test', 'people', "test_task.pid = %alias.id");
-    $name_field = $query->addField($people_alias, 'name', 'name');
+    $query->addField($people_alias, 'name', 'name');
     $query->condition($people_alias . '.id', 2);
   }
 
@@ -45,43 +46,13 @@ function database_test_query_database_test_alter_remove_range_alter(AlterableInt
 }
 
 /**
- * Implements hook_menu().
- */
-function database_test_menu() {
-  $items['database_test/db_query_temporary'] = array(
-    'access callback' => TRUE,
-    'page callback' => 'database_test_db_query_temporary',
-  );
-  $items['database_test/pager_query_even'] = array(
-    'access callback' => TRUE,
-    'page callback' => 'database_test_even_pager_query',
-  );
-  $items['database_test/pager_query_odd'] = array(
-    'access callback' => TRUE,
-    'page callback' => 'database_test_odd_pager_query',
-  );
-  $items['database_test/tablesort'] = array(
-    'access callback' => TRUE,
-    'page callback' => 'database_test_tablesort',
-  );
-  $items['database_test/tablesort_first'] = array(
-    'access callback' => TRUE,
-    'page callback' => 'database_test_tablesort_first',
-  );
-  $items['database_test/tablesort_default_sort'] = array(
-    'access callback' => TRUE,
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('database_test_theme_tablesort'),
-  );
-  return $items;
-}
-
-/**
  * Runs db_query_temporary() and outputs the table name and its number of rows.
  *
  * We need to test that the table created is temporary, so we run it here, in a
  * separate menu callback request; After this request is done, the temporary
  * table should automatically dropped.
+ *
+ * @deprecated \Drupal\database_test\Controller\DatabaseTestController::dbQueryTemporary()
  */
 function database_test_db_query_temporary() {
   $table_name = db_query_temporary('SELECT age FROM {test}', array());
@@ -96,6 +67,8 @@ function database_test_db_query_temporary() {
  *
  * This function does care about the page GET parameter, as set by the
  * simpletest HTTP call.
+ *
+ * @deprecated \Drupal\database_test\Controller\DatabaseTestController::pagerQueryEven()
  */
 function database_test_even_pager_query($limit) {
 
@@ -121,6 +94,8 @@ function database_test_even_pager_query($limit) {
  *
  * This function does care about the page GET parameter, as set by the
  * simpletest HTTP call.
+ *
+ * @deprecated \Drupal\database_test\Controller\DatabaseTestController::pagerQueryOdd()
  */
 function database_test_odd_pager_query($limit) {
 
@@ -146,6 +121,8 @@ function database_test_odd_pager_query($limit) {
  *
  * This function does care about the page GET parameter, as set by the
  * simpletest HTTP call.
+ *
+ * @deprecated \Drupal\database_test\Controller\DatabaseTestController::testTablesort()
  */
 function database_test_tablesort() {
   $header = array(
@@ -176,6 +153,8 @@ function database_test_tablesort() {
  *
  * This function does care about the page GET parameter, as set by the
  * simpletest HTTP call.
+ *
+ * @deprecated \Drupal\database_test\Controller\DatabaseTestController::testTablesortFirst()
  */
 function database_test_tablesort_first() {
   $header = array(
@@ -204,6 +183,8 @@ function database_test_tablesort_first() {
 
 /**
  * Outputs a form without setting a header sort.
+ *
+ * @deprecated \Drupal\database_test\Form\DatabaseTestForm::testTablesortDefaultSort()
  */
 function database_test_theme_tablesort($form, &$form_state) {
   $header = array(
@@ -233,6 +214,7 @@ function database_test_theme_tablesort($form, &$form_state) {
 
   foreach (user_load_multiple($uids) as $account) {
     $options[$account->id()] = array(
+      'title' => array('data' => array('#title' => String::checkPlain($account->getUsername()))),
       'username' => check_plain($account->getUsername()),
       'status' =>  $account->isActive() ? t('active') : t('blocked'),
     );

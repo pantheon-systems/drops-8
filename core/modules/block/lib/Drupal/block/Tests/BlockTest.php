@@ -32,7 +32,7 @@ class BlockTest extends BlockTestBase {
     // Enable a standard block.
     $default_theme = \Drupal::config('system.theme')->get('default');
     $edit = array(
-      'machine_name' => strtolower($this->randomName(8)),
+      'id' => strtolower($this->randomName(8)),
       'region' => 'sidebar_first',
       'settings[label]' => $title,
     );
@@ -40,7 +40,7 @@ class BlockTest extends BlockTestBase {
     // authenticated users.
     $edit['visibility[path][pages]'] = 'user*';
     $edit['visibility[role][roles][' . DRUPAL_AUTHENTICATED_RID . ']'] = TRUE;
-    $this->drupalPost('admin/structure/block/add/' . $block_name . '/' . $default_theme, $edit, t('Save block'));
+    $this->drupalPostForm('admin/structure/block/add/' . $block_name . '/' . $default_theme, $edit, t('Save block'));
     $this->assertText('The block configuration has been saved.', 'Block was saved');
 
     $this->drupalGet('');
@@ -73,14 +73,14 @@ class BlockTest extends BlockTestBase {
     // Enable a standard block.
     $default_theme = \Drupal::config('system.theme')->get('default');
     $edit = array(
-      'machine_name' => strtolower($this->randomName(8)),
+      'id' => strtolower($this->randomName(8)),
       'region' => 'sidebar_first',
       'settings[label]' => $title,
       'visibility[path][visibility]' => BLOCK_VISIBILITY_LISTED,
     );
     // Set the block to be hidden on any user path, and to be shown only to
     // authenticated users.
-    $this->drupalPost('admin/structure/block/add/' . $block_name . '/' . $default_theme, $edit, t('Save block'));
+    $this->drupalPostForm('admin/structure/block/add/' . $block_name . '/' . $default_theme, $edit, t('Save block'));
     $this->assertText('The block configuration has been saved.', 'Block was saved');
 
     $this->drupalGet('user');
@@ -103,15 +103,14 @@ class BlockTest extends BlockTestBase {
     $block = array();
     $block['id'] = 'system_powered_by_block';
     $block['settings[label]'] = $this->randomName(8);
-    $block['machine_name'] = strtolower($this->randomName(8));
     $block['theme'] = \Drupal::config('system.theme')->get('default');
     $block['region'] = 'header';
 
     // Set block title to confirm that interface works and override any custom titles.
-    $this->drupalPost('admin/structure/block/add/' . $block['id'] . '/' . $block['theme'], array('settings[label]' => $block['settings[label]'], 'machine_name' => $block['machine_name'], 'region' => $block['region']), t('Save block'));
+    $this->drupalPostForm('admin/structure/block/add/' . $block['id'] . '/' . $block['theme'], array('settings[label]' => $block['settings[label]'], 'id' => $block['id'], 'region' => $block['region']), t('Save block'));
     $this->assertText(t('The block configuration has been saved.'), 'Block title set.');
     // Check to see if the block was created by checking its configuration.
-    $instance = entity_load('block', $block['theme'] . '.' . $block['machine_name']);
+    $instance = entity_load('block', $block['id']);
 
     $this->assertEqual($instance->label(), $block['settings[label]'], 'Stored block title found.');
 
@@ -122,8 +121,8 @@ class BlockTest extends BlockTestBase {
 
     // Set the block to the disabled region.
     $edit = array();
-    $edit['blocks[' . $block['theme'] . '.' . $block['machine_name'] . '][region]'] = -1;
-    $this->drupalPost('admin/structure/block', $edit, t('Save blocks'));
+    $edit['blocks[' . $block['id'] . '][region]'] = -1;
+    $this->drupalPostForm('admin/structure/block', $edit, t('Save blocks'));
 
     // Confirm that the block is now listed as disabled.
     $this->assertText(t('The block settings have been updated.'), 'Block successfully move to disabled region.');
@@ -133,15 +132,40 @@ class BlockTest extends BlockTestBase {
     $this->assertNoText(t($block['settings[label]']));
     // Check for <div id="block-my-block-instance-name"> if the machine name
     // is my_block_instance_name.
-    $xpath = $this->buildXPathQuery('//div[@id=:id]/*', array(':id' => 'block-' . strtr(strtolower($block['machine_name']), '-', '_')));
+    $xpath = $this->buildXPathQuery('//div[@id=:id]/*', array(':id' => 'block-' . str_replace('_', '-', strtolower($block['id']))));
     $this->assertNoFieldByXPath($xpath, FALSE, 'Block found in no regions.');
 
     // Test deleting the block from the edit form.
-    $this->drupalGet('admin/structure/block/manage/' . $block['theme'] . '.' . $block['machine_name']);
-    $this->drupalPost(NULL, array(), t('Delete'));
+    $this->drupalGet('admin/structure/block/manage/' . $block['id']);
+    $this->drupalPostForm(NULL, array(), t('Delete'));
     $this->assertRaw(t('Are you sure you want to delete the block %name?', array('%name' => $block['settings[label]'])));
-    $this->drupalPost(NULL, array(), t('Delete'));
+    $this->drupalPostForm(NULL, array(), t('Delete'));
     $this->assertRaw(t('The block %name has been removed.', array('%name' => $block['settings[label]'])));
+  }
+
+  /**
+   * Tests that the block form has a theme selector when not passed via the URL.
+   */
+  public function testBlockThemeSelector() {
+    // Enable all themes.
+    theme_enable(array('bartik', 'seven'));
+    $theme_settings = $this->container->get('config.factory')->get('system.theme');
+    foreach (array('bartik', 'stark', 'seven') as $theme) {
+      // Select the 'Powered by Drupal' block to be placed.
+      $block = array();
+      $block['id'] = strtolower($this->randomName());
+      $block['theme'] = $theme;
+      $block['region'] = 'content';
+      $this->drupalPostForm('admin/structure/block/add/system_powered_by_block', $block, t('Save block'));
+      $this->assertText(t('The block configuration has been saved.'));
+      $this->assertUrl('admin/structure/block/list/' . $theme . '?block-placement=' . drupal_html_class($block['id']));
+
+      // Set the default theme and ensure the block is placed.
+      $theme_settings->set('default', $theme)->save();
+      $this->drupalGet('');
+      $elements = $this->xpath('//div[@id = :id]', array(':id' => drupal_html_id('block-' . $block['id'])));
+      $this->assertTrue(!empty($elements), 'The block was found.');
+    }
   }
 
   /**
@@ -151,15 +175,15 @@ class BlockTest extends BlockTestBase {
     $block_name = 'system_powered_by_block';
     // Create a random title for the block.
     $title = $this->randomName(8);
-    $machine_name = strtolower($this->randomName(8));
+    $id = strtolower($this->randomName(8));
     // Enable a standard block.
-    $default_theme = variable_get('theme_default', 'stark');
+    $default_theme = \Drupal::config('system.theme')->get('default') ?: 'stark';
     $edit = array(
-      'machine_name' => $machine_name,
+      'id' => $id,
       'region' => 'sidebar_first',
       'settings[label]' => $title,
     );
-    $this->drupalPost('admin/structure/block/add/' . $block_name . '/' . $default_theme, $edit, t('Save block'));
+    $this->drupalPostForm('admin/structure/block/add/' . $block_name . '/' . $default_theme, $edit, t('Save block'));
     $this->assertText('The block configuration has been saved.', 'Block was saved');
 
     $this->drupalGet('user');
@@ -168,7 +192,7 @@ class BlockTest extends BlockTestBase {
     $edit = array(
       'settings[label_display]' => FALSE,
     );
-    $this->drupalPost('admin/structure/block/manage/' . $default_theme . '.' . $machine_name, $edit, t('Save block'));
+    $this->drupalPostForm('admin/structure/block/manage/' . $id, $edit, t('Save block'));
     $this->assertText('The block configuration has been saved.', 'Block was saved');
 
     $this->drupalGet('user');
@@ -191,8 +215,8 @@ class BlockTest extends BlockTestBase {
     // Set the created block to a specific region.
     $block += array('theme' => \Drupal::config('system.theme')->get('default'));
     $edit = array();
-    $edit['blocks[' . $block['theme'] . '.' . $block['machine_name'] . '][region]'] = $region;
-    $this->drupalPost('admin/structure/block', $edit, t('Save blocks'));
+    $edit['blocks[' . $block['id'] . '][region]'] = $region;
+    $this->drupalPostForm('admin/structure/block', $edit, t('Save blocks'));
 
     // Confirm that the block was moved to the proper region.
     $this->assertText(t('The block settings have been updated.'), format_string('Block successfully moved to %region_name region.', array( '%region_name' => $region)));
@@ -204,7 +228,7 @@ class BlockTest extends BlockTestBase {
     // Confirm that the custom block was found at the proper region.
     $xpath = $this->buildXPathQuery('//div[@class=:region-class]//div[@id=:block-id]/*', array(
       ':region-class' => 'region region-' . drupal_html_class($region),
-      ':block-id' => 'block-' . strtr(strtolower($block['machine_name']), '-', '_'),
+      ':block-id' => 'block-' . str_replace('_', '-', strtolower($block['id'])),
     ));
     $this->assertFieldByXPath($xpath, NULL, t('Block found in %region_name region.', array('%region_name' => drupal_html_class($region))));
   }
@@ -213,7 +237,7 @@ class BlockTest extends BlockTestBase {
    * Test _block_rehash().
    */
   function testBlockRehash() {
-    module_enable(array('block_test'));
+    \Drupal::moduleHandler()->install(array('block_test'));
     $this->assertTrue(module_exists('block_test'), 'Test block module enabled.');
 
     // Clear the block cache to load the block_test module's block definitions.
@@ -222,7 +246,6 @@ class BlockTest extends BlockTestBase {
     // Add a test block.
     $block = array();
     $block['id'] = 'test_cache';
-    $block['machine_name'] = strtolower($this->randomName(8));
     $block['theme'] = \Drupal::config('system.theme')->get('default');
     $block['region'] = 'header';
     $block = $this->drupalPlaceBlock('test_cache', array('region' => 'header'));
@@ -240,102 +263,6 @@ class BlockTest extends BlockTestBase {
     $block = entity_load('block', $block->id());
     $settings = $block->get('settings');
     $this->assertEqual($settings['cache'], DRUPAL_NO_CACHE, "Test block's database entry updated to DRUPAL_NO_CACHE.");
-  }
-
-  /**
-   * Tests blocks belonging to disabled modules.
-   */
-  function testBlockModuleDisable() {
-    module_enable(array('block_test'));
-    $this->assertTrue(module_exists('block_test'), 'Test block module enabled.');
-
-    // Clear the block cache to load the block_test module's block definitions.
-    $manager = $this->container->get('plugin.manager.block');
-    $manager->clearCachedDefinitions();
-
-    // Add test blocks in different regions and confirm they are displayed.
-    $blocks = array();
-    $regions = array('sidebar_first', 'content', 'footer');
-    foreach ($regions as $region) {
-      $blocks[$region] = $this->drupalPlaceBlock('test_cache', array('region' => $region));
-    }
-    $this->drupalGet('');
-    foreach ($regions as $region) {
-      $this->assertText($blocks[$region]->label());
-    }
-
-    // Disable the block test module and refresh the definitions cache.
-    module_disable(array('block_test'), FALSE);
-    $this->assertFalse(module_exists('block_test'), 'Test block module disabled.');
-    $manager->clearCachedDefinitions();
-
-    // Ensure that the block administration page still functions as expected.
-    $this->drupalGet('admin/structure/block');
-    $this->assertResponse(200);
-    // A 200 response is possible with a fatal error, so check the title too.
-    $this->assertTitle(t('Blocks | Drupal'));
-
-    // Ensure that the disabled module's block instance is not listed.
-    foreach ($regions as $region) {
-      $this->assertNoText($blocks[$region]->label());
-    }
-
-    // Ensure that the disabled module's block plugin is no longer available.
-    $this->drupalGet('admin/structure/block/list/' . \Drupal::config('system.theme')->get('default'));
-    $this->assertNoText(t('Test block caching'));
-
-    // Confirm that the block is no longer displayed on the front page.
-    $this->drupalGet('');
-    $this->assertResponse(200);
-    foreach ($regions as $region) {
-      $this->assertNoText($blocks[$region]->label());
-    }
-
-    // Confirm that a different block instance can still be enabled by
-    // submitting the block library form.
-    // Emulate a POST submission rather than using drupalPlaceBlock() to ensure
-    // that the form still functions as expected.
-    $edit = array(
-      'settings[label]' => $this->randomName(8),
-      'machine_name' => strtolower($this->randomName(8)),
-      'region' => 'sidebar_first',
-    );
-    $this->drupalPost('admin/structure/block/add/system_powered_by_block/stark', $edit, t('Save block'));
-    $this->assertText(t('The block configuration has been saved.'));
-    $this->assertText($edit['settings[label]']);
-
-    // Update the weight of a block.
-    $edit = array('blocks[stark.' . $edit['machine_name'] . '][weight]' => -1);
-    $this->drupalPost('admin/structure/block', $edit, t('Save blocks'));
-    $this->assertText(t('The block settings have been updated.'));
-
-    // Re-enable the module and refresh the definitions cache.
-    module_enable(array('block_test'), FALSE);
-    $this->assertTrue(module_exists('block_test'), 'Test block module re-enabled.');
-    $manager->clearCachedDefinitions();
-
-    // Reload the admin page and confirm the block can again be configured.
-    $this->drupalGet('admin/structure/block');
-    foreach ($regions as $region) {
-      $this->assertLinkByHref(url('admin/structure/block/manage/' . $blocks[$region]->id()));
-    }
-
-    // Confirm that the blocks are again displayed on the front page in the
-    // correct regions.
-    $this->drupalGet('');
-    foreach ($regions as $region) {
-      // @todo Use a proper method for this.
-      $name_pieces = explode('.', $blocks[$region]->id());
-      $machine_name = array_pop($name_pieces);
-      $xpath = $this->buildXPathQuery('//div[@class=:region-class]//div[@id=:block-id]/*', array(
-        ':region-class' => 'region region-' . drupal_html_class($region),
-        ':block-id' => 'block-' . strtr(strtolower($machine_name), '-', '_'),
-    ));
-      $this->assertFieldByXPath($xpath, NULL, format_string('Block %name found in the %region region.', array(
-        '%name' => $blocks[$region]->label(),
-        '%region' => $region,
-      )));
-    }
   }
 
 }

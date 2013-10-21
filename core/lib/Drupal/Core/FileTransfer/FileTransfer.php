@@ -7,9 +7,6 @@
 
 namespace Drupal\Core\FileTransfer;
 
-use RecursiveIteratorIterator;
-use RecursiveDirectoryIterator;
-
 /**
  * Defines the base FileTransfer class.
  *
@@ -79,7 +76,7 @@ abstract class FileTransfer {
    * @return object
    *   New instance of the appropriate FileTransfer subclass.
    *
-   * @throws Drupal\Core\FileTransfer\FileTransferException
+   * @throws \Drupal\Core\FileTransfer\FileTransferException
    */
   static function factory($jail, $settings) {
     throw new FileTransferException('FileTransfer::factory() static method not overridden by FileTransfer subclass.');
@@ -140,7 +137,7 @@ abstract class FileTransfer {
    * @param bool $recursive
    *   Pass TRUE to recursively chmod the entire directory specified in $path.
    *
-   * @throws Drupal\Core\FileTransfer\FileTransferException
+   * @throws \Drupal\Core\FileTransfer\FileTransferException
    *
    * @see http://php.net/chmod
    */
@@ -211,7 +208,7 @@ abstract class FileTransfer {
    * @param string $path
    *   A path to check against the jail.
    *
-   * @throws Drupal\Core\FileTransfer\FileTransferException
+   * @throws \Drupal\Core\FileTransfer\FileTransferException
    */
   protected final function checkPath($path) {
     $full_jail = $this->chroot . $this->jail;
@@ -280,7 +277,7 @@ abstract class FileTransfer {
       $destination = $destination . '/' . drupal_basename($source);
     }
     $this->createDirectory($destination);
-    foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($source, RecursiveDirectoryIterator::SKIP_DOTS), RecursiveIteratorIterator::SELF_FIRST) as $filename => $file) {
+    foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($source, \RecursiveDirectoryIterator::SKIP_DOTS), \RecursiveIteratorIterator::SELF_FIRST) as $filename => $file) {
       $relative_path = substr($filename, strlen($source));
       if ($file->isDir()) {
         $this->createDirectory($destination . $relative_path);

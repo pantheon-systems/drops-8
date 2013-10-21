@@ -25,22 +25,17 @@ function views_ui_menu() {
     'route_name' => 'views_ui.list',
   );
 
-  $items['admin/structure/views/add'] = array(
-    'route_name' => 'views_ui.add',
-    'type' => MENU_SIBLING_LOCAL_TASK,
-  );
-
   // @todo - remove all items of type MENU_VISIBLE_IN_BREADCRUMB
   // when there is a route-aware breadcrumb builder.
   $items['admin/structure/views/settings'] = array(
     'title' => 'Settings',
-    'route_name' => 'views_ui.settings.basic',
+    'route_name' => 'views_ui.settings_basic',
     'type' => MENU_VISIBLE_IN_BREADCRUMB,
   );
 
   $items['admin/structure/views/settings/advanced'] = array(
     'title' => 'Advanced',
-    'route_name' => 'views_ui.settings.advanced',
+    'route_name' => 'views_ui.settings_advanced',
     'type' => MENU_VISIBLE_IN_BREADCRUMB,
   );
 
@@ -64,7 +59,7 @@ function views_ui_menu() {
 
   $items['admin/structure/views/view/%/break-lock'] = array(
     'title' => 'Break lock',
-    'route_name' => 'views_ui.breakLock',
+    'route_name' => 'views_ui.break_lock',
     'type' => MENU_VISIBLE_IN_BREADCRUMB,
   );
 
@@ -77,7 +72,7 @@ function views_ui_menu() {
   $items['admin/reports/fields/views-fields'] = array(
     'title' => 'Used in views',
     'description' => 'Overview of fields used in all views.',
-    'route_name' => 'views_ui.reports.fields',
+    'route_name' => 'views_ui.reports_fields',
     'type' => MENU_LOCAL_TASK,
   );
 
@@ -85,7 +80,7 @@ function views_ui_menu() {
   $items['admin/reports/views-plugins'] = array(
     'title' => 'Views plugins',
     'description' => 'Overview of plugins used in all views.',
-    'route_name' => 'views_ui.reports.plugins',
+    'route_name' => 'views_ui.reports_plugins',
   );
 
   return $items;
@@ -193,16 +188,16 @@ function views_ui_library_info() {
 
   $libraries['views_ui.admin'] = array(
     'title' => 'Views UI ADMIN',
-    'version' => VERSION,
+    'version' => \Drupal::VERSION,
     'js' => array(
       $path . 'ajax.js' => array('group' => JS_DEFAULT),
+      $path . 'dialog.views.js' => array('group' => JS_DEFAULT),
       $path . 'views-admin.js' => array('group' => JS_DEFAULT),
     ),
     'dependencies' => array(
       array('system', 'jquery'),
       array('system', 'drupal'),
       array('system', 'drupalSettings'),
-      array('system', 'drupal.debounce'),
       array('system', 'jquery.once'),
       array('system', 'jquery.form'),
       array('system', 'drupal.ajax'),
@@ -210,15 +205,23 @@ function views_ui_library_info() {
     ),
   );
 
+  $libraries['views_ui.listing'] = array(
+    'title' => 'Views UI listing',
+    'version' => Drupal::VERSION,
+    'js' => array(
+      $path . 'views_ui.listing.js' => array('group' => JS_DEFAULT),
+    ),
+  );
+
   return $libraries;
 }
 
 /**
- * Implements hook_preprocess_HOOK() for views-view.html.twig.
+ * Implements hook_preprocess_HOOK() for views templates.
  */
 function views_ui_preprocess_views_view(&$variables) {
   $view = $variables['view'];
-  if (!empty($view->live_preview) && Drupal::moduleHandler()->moduleExists('contextual')) {
+  if (!empty($view->live_preview) && \Drupal::moduleHandler()->moduleExists('contextual')) {
     $view->setShowAdminLinks(FALSE);
     foreach (array('title', 'header', 'exposed', 'rows', 'pager', 'more', 'footer', 'empty', 'attachment_after', 'attachment_before') as $section) {
       if (!empty($variables[$section])) {
@@ -422,7 +425,7 @@ function views_ui_views_analyze(ViewExecutable $view) {
       continue;
     }
     if ($display->hasPath() && $path = $display->getOption('path')) {
-      $normal_path = Drupal::service('path.alias_manager.cached')->getSystemPath($path);
+      $normal_path = \Drupal::service('path.alias_manager.cached')->getSystemPath($path);
       if ($path != $normal_path) {
         $ret[] = Analyzer::formatMessage(t('You have configured display %display with a path which is an path alias as well. This might lead to unwanted effects so better use an internal path.', array('%display' => $display->display['display_title'])), 'warning');
       }

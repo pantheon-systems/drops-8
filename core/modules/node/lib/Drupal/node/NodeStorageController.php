@@ -7,7 +7,7 @@
 
 namespace Drupal\node;
 
-use Drupal\Core\Entity\DatabaseStorageControllerNG;
+use Drupal\Core\Entity\FieldableDatabaseStorageController;
 use Drupal\Core\Entity\EntityInterface;
 
 /**
@@ -16,7 +16,7 @@ use Drupal\Core\Entity\EntityInterface;
  * This extends the Drupal\Core\Entity\DatabaseStorageController class, adding
  * required special handling for node entities.
  */
-class NodeStorageController extends DatabaseStorageControllerNG {
+class NodeStorageController extends FieldableDatabaseStorageController {
 
   /**
    * Overrides Drupal\Core\Entity\DatabaseStorageController::create().
@@ -30,7 +30,7 @@ class NodeStorageController extends DatabaseStorageControllerNG {
   }
 
   /**
-   * Overrides Drupal\Core\Entity\DatabaseStorageControllerNG::attachLoad().
+   * Overrides Drupal\Core\Entity\DatabaseStorageController::attachLoad().
    */
   protected function attachLoad(&$queried_entities, $load_revision = FALSE) {
     $queried_entities = $this->mapFromStorageRecords($queried_entities, $load_revision);
@@ -45,10 +45,10 @@ class NodeStorageController extends DatabaseStorageControllerNG {
     }
 
     if ($load_revision) {
-      $this->loadFieldItems($queried_entities, FIELD_LOAD_REVISION);
+      $this->loadFieldItems($queried_entities, static::FIELD_LOAD_REVISION);
     }
     else {
-      $this->loadFieldItems($queried_entities, FIELD_LOAD_CURRENT);
+      $this->loadFieldItems($queried_entities, static::FIELD_LOAD_CURRENT);
     }
 
     // Besides the list of nodes, pass one additional argument to
@@ -68,16 +68,6 @@ class NodeStorageController extends DatabaseStorageControllerNG {
     foreach (\Drupal::moduleHandler()->getImplementations($this->entityType . '_load') as $module) {
       call_user_func_array($module . '_' . $this->entityType . '_load', $args);
     }
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  protected function mapToDataStorageRecord(EntityInterface $entity, $langcode) {
-    // @todo Remove this once comment is a regular entity field.
-    $record = parent::mapToDataStorageRecord($entity, $langcode);
-    $record->comment = isset($record->comment) ? intval($record->comment) : 0;
-    return $record;
   }
 
   /**

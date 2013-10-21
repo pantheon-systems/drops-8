@@ -15,7 +15,7 @@ class RoutingFixtures {
   /**
    * Create the tables required for the sample data.
    *
-   * @param Drupal\Core\Database\Connection $connection
+   * @param \Drupal\Core\Database\Connection $connection
    *   The connection to use to create the tables.
    */
   public function createTables(Connection $connection) {
@@ -31,7 +31,7 @@ class RoutingFixtures {
   /**
    * Drop the tables used for the sample data.
    *
-   * @param Drupal\Core\Database\Connection $connection
+   * @param \Drupal\Core\Database\Connection $connection
    *   The connection to use to drop the tables.
    */
   public function dropTables(Connection $connection) {
@@ -123,8 +123,8 @@ class RoutingFixtures {
           'not null' => TRUE,
           'default' => '',
         ),
-        'pattern' => array(
-          'description' => 'The path pattern for this URI',
+        'path' => array(
+          'description' => 'The path for this URI',
           'type' => 'varchar',
           'length' => 255,
           'not null' => TRUE,

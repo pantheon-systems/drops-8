@@ -5,8 +5,6 @@
  * Install, update and uninstall functions for the entity module.
  */
 
-use Drupal\Component\Uuid\Uuid;
-
 /**
  * Returns the raw configuration object for an EntityDisplay entity.
  *
@@ -25,13 +23,13 @@ use Drupal\Component\Uuid\Uuid;
  */
 function _update_8000_entity_get_display($entity_type, $bundle, $view_mode) {
   $id = $entity_type . '.' . $bundle . '.' . $view_mode;
-  $config = Drupal::config("entity.display.$id");
+  $config = \Drupal::config("entity.display.$id");
   if ($config->get()) {
     return $config;
   }
 
   // Initialize a fresh structure.
-  $uuid = new Uuid();
+  $uuid = \Drupal::service('uuid');
   $properties = array(
     'id' => $id,
     'uuid' => $uuid->generate(),
@@ -39,6 +37,7 @@ function _update_8000_entity_get_display($entity_type, $bundle, $view_mode) {
     'bundle' => $bundle,
     'mode' => $view_mode,
     'content' => array(),
+    'status' => TRUE,
   );
   foreach ($properties as $key => $value) {
     $config->set($key, $value);
@@ -64,13 +63,13 @@ function _update_8000_entity_get_display($entity_type, $bundle, $view_mode) {
  */
 function _update_8000_entity_get_form_display($entity_type, $bundle, $form_mode) {
   $id = $entity_type . '.' . $bundle . '.' . $form_mode;
-  $config = Drupal::config("entity.form_display.$id");
+  $config = \Drupal::config("entity.form_display.$id");
   if ($config->get()) {
     return $config;
   }
 
   // Initialize a fresh structure.
-  $uuid = new Uuid();
+  $uuid = \Drupal::service('uuid');
   $properties = array(
     'id' => $id,
     'uuid' => $uuid->generate(),
@@ -78,6 +77,7 @@ function _update_8000_entity_get_form_display($entity_type, $bundle, $form_mode)
     'bundle' => $bundle,
     'mode' => $form_mode,
     'content' => array(),
+    'status' => TRUE,
   );
   foreach ($properties as $key => $value) {
     $config->set($key, $value);

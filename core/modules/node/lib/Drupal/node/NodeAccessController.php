@@ -10,11 +10,10 @@ namespace Drupal\node;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Database\Query\SelectInterface;
 use Drupal\Core\Entity\EntityControllerInterface;
-use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Language\Language;
 use Drupal\Core\Entity\EntityAccessController;
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\Core\Entity\EntityNG;
+use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\user\Entity\User;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -31,27 +30,19 @@ class NodeAccessController extends EntityAccessController implements NodeAccessC
    */
   protected $grantStorage;
 
-   /**
-   * The module handler.
-   *
-   * @var \Drupal\Core\Extension\ModuleHandlerInterface
-   */
-  protected $moduleHandler;
-
   /**
    * Constructs a NodeAccessController object.
    *
    * @param string $entity_type
    *   The entity type of the access controller instance.
+   * @param array $entity_info
+   *   An array of entity info for the entity type.
    * @param \Drupal\node\NodeGrantDatabaseStorageInterface $grant_storage
    *   The node grant storage.
-   * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
-   *   The module handler to invoke the alter hook with.
    */
-  public function __construct($entity_type, NodeGrantDatabaseStorageInterface $grant_storage, ModuleHandlerInterface $module_handler) {
-    parent::__construct($entity_type);
+  public function __construct($entity_type, array $entity_info, NodeGrantDatabaseStorageInterface $grant_storage) {
+    parent::__construct($entity_type, $entity_info);
     $this->grantStorage = $grant_storage;
-    $this->moduleHandler = $module_handler;
   }
 
   /**
@@ -60,8 +51,8 @@ class NodeAccessController extends EntityAccessController implements NodeAccessC
   public static function createInstance(ContainerInterface $container, $entity_type, array $entity_info) {
     return new static(
       $entity_type,
-      $container->get('node.grant_storage'),
-      $container->get('module_handler')
+      $entity_info,
+      $container->get('node.grant_storage')
     );
   }
 

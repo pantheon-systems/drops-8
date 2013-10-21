@@ -15,11 +15,15 @@ use Drupal\field\FieldInterface;
  * Implements hook_field_info_alter().
  */
 function entity_reference_field_info_alter(&$info) {
-  if (!Drupal::moduleHandler()->moduleExists('node')) {
-    // Fall back to another primary entity type if the Node module is not
-    // available.
-    $info['entity_reference']['settings']['target_type'] = 'user';
-  }
+  // Make the entity reference field configurable.
+  $info['entity_reference']['configurable'] = TRUE;
+  $info['entity_reference']['class'] = '\Drupal\entity_reference\ConfigurableEntityReferenceItem';
+  $info['entity_reference']['list_class'] = '\Drupal\field\Plugin\Type\FieldType\ConfigFieldItemList';
+  $info['entity_reference']['settings']['target_type'] = \Drupal::moduleHandler()->moduleExists('node') ? 'node' : 'user';
+  $info['entity_reference']['instance_settings']['handler'] = 'default';
+  $info['entity_reference']['instance_settings']['handler_settings'] = array();
+  $info['entity_reference']['default_widget'] = 'entity_reference_autocomplete';
+  $info['entity_reference']['default_formatter'] = 'entity_reference_label';
 }
 
 /**
@@ -27,7 +31,7 @@ function entity_reference_field_info_alter(&$info) {
  *
  * Set the "target_type" property definition for entity reference fields.
  *
- * @see \Drupal\Core\Entity\Plugin\DataType\EntityReferenceItem::getPropertyDefinitions()
+ * @see \Drupal\Core\Entity\Plugin\field\field_type\EntityReferenceItem::getPropertyDefinitions()
  *
  * @param array $info
  *   The property info array as returned by hook_entity_field_info().
@@ -37,15 +41,14 @@ function entity_reference_field_info_alter(&$info) {
 function entity_reference_entity_field_info_alter(&$info, $entity_type) {
   foreach (field_info_instances($entity_type) as $bundle_name => $instances) {
     foreach ($instances as $field_name => $instance) {
-      $field = $instance->getField();
-      if ($field['type'] != 'entity_reference') {
+      if ($instance->getFieldType() != 'entity_reference') {
         continue;
       }
       if (isset($info['definitions'][$field_name])) {
-        $info['definitions'][$field_name]['settings']['target_type'] = $field['settings']['target_type'];
+        $info['definitions'][$field_name]['settings']['target_type'] = $instance->getFieldSetting('target_type');
       }
       elseif (isset($info['optional'][$field_name])) {
-        $info['optional'][$field_name]['settings']['target_type'] = $field['settings']['target_type'];
+        $info['optional'][$field_name]['settings']['target_type'] = $instance->getFieldSetting('target_type');
       }
     }
   }
@@ -74,7 +77,7 @@ function entity_reference_field_entity_update(FieldInterface $field) {
     return;
   }
 
-  if ($field->settings['target_type'] == $field->original->settings['target_type']) {
+  if ($field->getFieldSetting('target_type') == $field->original->getFieldSetting('target_type')) {
     // Target type didn't change.
     return;
   }
@@ -171,7 +174,7 @@ function entity_reference_settings_ajax_submit($form, &$form_state) {
  * Implements hook_options_list().
  */
 function entity_reference_options_list(FieldDefinitionInterface $field_definition, EntityInterface $entity) {
-  if (!$options = Drupal::service('plugin.manager.entity_reference.selection')->getSelectionHandler($field_definition, $entity)->getReferenceableEntities()) {
+  if (!$options = \Drupal::service('plugin.manager.entity_reference.selection')->getSelectionHandler($field_definition, $entity)->getReferenceableEntities()) {
     return array();
   }
 

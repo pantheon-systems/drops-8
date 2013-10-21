@@ -101,7 +101,7 @@ class JavaScriptTest extends DrupalUnitTestBase {
    * Tests adding JavaScript files with additional attributes.
    */
   function testAttributes() {
-    $default_query_string = variable_get('css_js_query_string', '0');
+    $default_query_string = $this->container->get('state')->get('system.css_js_query_string') ?: '0';
 
     drupal_add_library('system', 'drupal');
     drupal_add_js('http://example.com/script.js', array('attributes' => array('defer' => 'defer')));
@@ -122,7 +122,7 @@ class JavaScriptTest extends DrupalUnitTestBase {
     // Enable aggregation.
     \Drupal::config('system.performance')->set('js.preprocess', 1)->save();
 
-    $default_query_string = variable_get('css_js_query_string', '0');
+    $default_query_string = $this->container->get('state')->get('system.css_js_query_string') ?: '0';
 
     drupal_add_library('system', 'drupal');
     drupal_add_js('http://example.com/script.js', array('attributes' => array('defer' => 'defer')));
@@ -148,13 +148,13 @@ class JavaScriptTest extends DrupalUnitTestBase {
     $this->assertTrue(strpos($javascript, 'pathPrefix') > 0, 'Rendered JavaScript header returns pathPrefix setting.');
     $this->assertTrue(strpos($javascript, 'currentPath') > 0, 'Rendered JavaScript header returns currentPath setting.');
 
-    // Only the second of these two entries should appear in Drupal.settings.
+    // Only the second of these two entries should appear in drupalSettings.
     drupal_add_js(array('commonTest' => 'commonTestShouldNotAppear'), 'setting');
     drupal_add_js(array('commonTest' => 'commonTestShouldAppear'), 'setting');
-    // Only the second of these entries should appear in Drupal.settings.
+    // Only the second of these entries should appear in drupalSettings.
     drupal_add_js(array('commonTestJsArrayLiteral' => array('commonTestJsArrayLiteralOldValue')), 'setting');
     drupal_add_js(array('commonTestJsArrayLiteral' => array('commonTestJsArrayLiteralNewValue')), 'setting');
-    // Only the second of these two entries should appear in Drupal.settings.
+    // Only the second of these two entries should appear in drupalSettings.
     drupal_add_js(array('commonTestJsObjectLiteral' => array('key' => 'commonTestJsObjectLiteralOldValue')), 'setting');
     drupal_add_js(array('commonTestJsObjectLiteral' => array('key' => 'commonTestJsObjectLiteralNewValue')), 'setting');
     // Real world test case: multiple elements in a render array are adding the
@@ -275,7 +275,7 @@ class JavaScriptTest extends DrupalUnitTestBase {
    * @see drupal_pre_render_conditional_comments()
    */
   function testBrowserConditionalComments() {
-    $default_query_string = variable_get('css_js_query_string', '0');
+    $default_query_string = $this->container->get('state')->get('system.css_js_query_string') ?: '0';
 
     drupal_add_library('system', 'drupal');
     drupal_add_js('core/misc/collapse.js', array('browsers' => array('IE' => 'lte IE 8', '!IE' => FALSE)));
@@ -304,7 +304,7 @@ class JavaScriptTest extends DrupalUnitTestBase {
    * Tests JavaScript grouping and aggregation.
    */
   function testAggregation() {
-    $default_query_string = variable_get('css_js_query_string', '0');
+    $default_query_string = $this->container->get('state')->get('system.css_js_query_string') ?: '0';
 
     // To optimize aggregation, items with the 'every_page' option are ordered
     // ahead of ones without. The order of JavaScript execution must be the
@@ -563,7 +563,7 @@ class JavaScriptTest extends DrupalUnitTestBase {
     $js = drupal_get_path('module', 'node') . '/node.js';
     drupal_add_js($js);
 
-    $query_string = variable_get('css_js_query_string', '0');
+    $query_string = $this->container->get('state')->get('system.css_js_query_string') ?: '0';
     $scripts = drupal_get_js();
     $this->assertTrue(strpos($scripts, $js . '?' . $query_string), 'Query string was appended correctly to JS.');
   }

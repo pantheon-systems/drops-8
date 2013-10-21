@@ -38,7 +38,6 @@ class HandlerAllTest extends HandlerTestBase {
     'search',
     'statistics',
     'taxonomy',
-    'translation',
     'user',
   );
 
@@ -54,6 +53,8 @@ class HandlerAllTest extends HandlerTestBase {
    * Tests most of the handlers.
    */
   public function testHandlers() {
+    $this->container->get('comment.manager')->addDefaultField('node', 'article');
+
     $object_types = array_keys(ViewExecutable::viewsHandlerTypes());
     foreach ($this->container->get('views.views_data')->get() as $base_table => $info) {
       if (!isset($info['table']['base'])) {

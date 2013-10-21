@@ -7,7 +7,7 @@
 
 namespace Drupal\filter\Plugin;
 
-use Drupal\Component\Plugin\PluginBase;
+use Drupal\Core\Plugin\PluginBase;
 
 /**
  * Provides a base class for Filter plugins.
@@ -104,6 +104,13 @@ abstract class FilterBase extends PluginBase implements FilterInterface {
       'weight' => $this->weight,
       'settings' => $this->settings,
     );
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function defaultConfiguration() {
+    return array();
   }
 
   /**

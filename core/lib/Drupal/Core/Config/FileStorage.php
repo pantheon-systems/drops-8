@@ -106,7 +106,7 @@ class FileStorage implements StorageInterface {
    * Implements Drupal\Core\Config\StorageInterface::write().
    *
    * @throws Symfony\Component\Yaml\Exception\DumpException
-   * @throws Drupal\Core\Config\StorageException
+   * @throws \Drupal\Core\Config\StorageException
    */
   public function write($name, array $data) {
     $data = $this->encode($data);
@@ -175,8 +175,9 @@ class FileStorage implements StorageInterface {
    */
   public function encode($data) {
     // The level where you switch to inline YAML is set to PHP_INT_MAX to ensure
-    // this does not occur.
-    return $this->getDumper()->dump($data, PHP_INT_MAX);
+    // this does not occur. Also set the exceptionOnInvalidType parameter to
+    // TRUE, so exceptions are thrown for an invalid data type.
+    return $this->getDumper()->dump($data, PHP_INT_MAX, 0, TRUE);
   }
 
   /**

@@ -24,6 +24,11 @@ class UpdateModuleHandler extends ModuleHandler {
     if (substr($hook, -6) === '_alter') {
       return array();
     }
+    // theme() is called during updates and fires hooks, so whitelist the
+    // system module.
+    if (substr($hook, 0, 6) == 'theme_') {
+      return array('system');
+    }
     switch ($hook) {
       // hook_requirements is necessary for updates to work.
       case 'requirements':
@@ -58,7 +63,7 @@ class UpdateModuleHandler extends ModuleHandler {
   /**
    * {@inheritdoc}
    */
-  public function enable($module_list, $enable_dependencies = TRUE) {
+  public function install(array $module_list, $enable_dependencies = TRUE) {
     $schema_store = \Drupal::keyValue('system.schema');
     $old_schema = array();
     foreach ($module_list as $module) {
@@ -74,15 +79,12 @@ class UpdateModuleHandler extends ModuleHandler {
           db_create_table($table, $spec);
         }
       }
+
       // Enable the module with a weight of 0.
       $module_config = \Drupal::config('system.module');
       $module_config
         ->set("enabled.$module", 0)
         ->set('enabled', module_config_sort($module_config->get('enabled')))
-        ->save();
-      // Ensure the module is not contained in disabled modules.
-      \Drupal::config('system.module.disabled')
-        ->clear($module)
         ->save();
 
       $current_schema = $schema_store->get($module);
@@ -105,7 +107,7 @@ class UpdateModuleHandler extends ModuleHandler {
       $module_config_path = drupal_get_path('module', $module) . '/config';
       if (is_dir($module_config_path)) {
         $module_filestorage = new FileStorage($module_config_path);
-        $config_storage = drupal_container()->get('config.storage');
+        $config_storage = \Drupal::service('config.storage');
         foreach ($module_filestorage->listAll() as $config_name) {
           // If this file already exists, something in the upgrade path went
           // completely wrong and we want to know.
@@ -134,14 +136,7 @@ class UpdateModuleHandler extends ModuleHandler {
   /**
    * {@inheritdoc}
    */
-  public function disable($module_list, $disable_dependents = TRUE) {
-    throw new \LogicException('Disabling modules is not supported during updates');
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function uninstall($module_list = array(), $uninstall_dependents = TRUE) {
+  public function uninstall(array $module_list, $uninstall_dependents = TRUE) {
     throw new \LogicException('Uninstalling modules is not supported during updates');
   }
 

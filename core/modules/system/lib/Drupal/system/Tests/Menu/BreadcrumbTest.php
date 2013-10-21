@@ -7,7 +7,7 @@
 
 namespace Drupal\system\Tests\Menu;
 
-use Drupal\Core\Language\Language;
+use Drupal\Component\Utility\Unicode;
 
 /**
  * Menu breadcrumbs related tests.
@@ -43,14 +43,12 @@ class BreadcrumbTest extends MenuTestBase {
 
     // This test puts menu links in the Tools menu and then tests for their
     // presence on the page, so we need to ensure that the Tools block will be
-    // displayed in the default theme and admin theme.
-    $settings = array(
-      'machine_name' => 'system_menu_tools',
+    // displayed in the admin theme.
+    $this->drupalPlaceBlock('system_menu_block:tools', array(
+      'machine' => 'system_menu_tools',
       'region' => 'content',
-    );
-    $this->drupalPlaceBlock('system_menu_block:menu-tools', $settings);
-    $settings['theme'] = \Drupal::config('system.theme')->get('admin');
-    $this->drupalPlaceBlock('system_menu_block:menu-tools', $settings);
+      'theme' => \Drupal::config('system.theme')->get('admin'),
+    ));
   }
 
   /**
@@ -58,34 +56,10 @@ class BreadcrumbTest extends MenuTestBase {
    */
   function testBreadCrumbs() {
     // Prepare common base breadcrumb elements.
-    $home = array('<front>' => 'Home');
+    $home = array('' => 'Home');
     $admin = $home + array('admin' => t('Administration'));
     $config = $admin + array('admin/config' => t('Configuration'));
     $type = 'article';
-    $langcode = Language::LANGCODE_NOT_SPECIFIED;
-
-    // Verify breadcrumbs for default local tasks.
-    $expected = array(
-      'menu-test' => t('Menu test root'),
-    );
-    $title = t('Breadcrumbs test: Local tasks');
-    $trail = $home + $expected;
-    $tree = $expected + array(
-      'menu-test/breadcrumb/tasks' => $title,
-    );
-    $this->assertBreadcrumb('menu-test/breadcrumb/tasks', $trail, $title, $tree);
-    $this->assertBreadcrumb('menu-test/breadcrumb/tasks/first', $trail, $title, $tree);
-    $this->assertBreadcrumb('menu-test/breadcrumb/tasks/first/first', $trail, $title, $tree);
-    $trail += array(
-      'menu-test/breadcrumb/tasks' => t('Breadcrumbs test: Local tasks'),
-    );
-    $this->assertBreadcrumb('menu-test/breadcrumb/tasks/first/second', $trail, $title, $tree);
-    $this->assertBreadcrumb('menu-test/breadcrumb/tasks/second', $trail, $title, $tree);
-    $this->assertBreadcrumb('menu-test/breadcrumb/tasks/second/first', $trail, $title, $tree);
-    $trail += array(
-      'menu-test/breadcrumb/tasks/second' => t('Second'),
-    );
-    $this->assertBreadcrumb('menu-test/breadcrumb/tasks/second/second', $trail, $title, $tree);
 
     // Verify Taxonomy administration breadcrumbs.
     $trail = $admin + array(
@@ -141,8 +115,6 @@ class BreadcrumbTest extends MenuTestBase {
       "admin/structure/types/manage/$type/display" => t('Manage display'),
     );
     $this->assertBreadcrumb("admin/structure/types/manage/$type/display/teaser", $trail_teaser);
-    $this->assertBreadcrumb("admin/structure/types/manage/$type/comment/fields", $trail);
-    $this->assertBreadcrumb("admin/structure/types/manage/$type/comment/display", $trail);
     $this->assertBreadcrumb("admin/structure/types/manage/$type/delete", $trail);
     $trail += array(
       "admin/structure/types/manage/$type/fields" => t('Manage fields'),
@@ -163,8 +135,10 @@ class BreadcrumbTest extends MenuTestBase {
     );
     $this->assertBreadcrumb('admin/config/content/formats/add', $trail);
     $this->assertBreadcrumb("admin/config/content/formats/manage/$format_id", $trail);
+    // @todo Remove this part once we have a _title_callback, see
+    //   https://drupal.org/node/2076085.
     $trail += array(
-      "admin/config/content/formats/manage/$format_id" => $format->name,
+      "admin/config/content/formats/manage/$format_id" => Unicode::ucfirst(Unicode::strtolower($format->name)),
     );
     $this->assertBreadcrumb("admin/config/content/formats/manage/$format_id/disable", $trail);
 
@@ -175,9 +149,6 @@ class BreadcrumbTest extends MenuTestBase {
     $this->assertBreadcrumb("node/$nid1", $trail);
     // Also verify that the node does not appear elsewhere (e.g., menu trees).
     $this->assertNoLink($node1->getTitle());
-    // The node itself should not be contained in the breadcrumb on the default
-    // local task, since there is no difference between both pages.
-    $this->assertBreadcrumb("node/$nid1/view", $trail);
     // Also verify that the node does not appear elsewhere (e.g., menu trees).
     $this->assertNoLink($node1->getTitle());
 
@@ -214,55 +185,9 @@ class BreadcrumbTest extends MenuTestBase {
           'plid' => 0,
         )),
       ));
-      $nid2 = $node2->id();
-
-      $trail = $home;
-      $tree = array(
-        "node/$nid2" => $node2->menu['link_title'],
-      );
-      $this->assertBreadcrumb("node/$nid2", $trail, $node2->getTitle(), $tree);
-      // The node itself should not be contained in the breadcrumb on the
-      // default local task, since there is no difference between both pages.
-      $this->assertBreadcrumb("node/$nid2/view", $trail, $node2->getTitle(), $tree);
-      $trail += array(
-        "node/$nid2" => $node2->menu['link_title'],
-      );
-      $this->assertBreadcrumb("node/$nid2/edit", $trail);
-
-      // Create a child node in the current menu.
-      $title = $this->randomName();
-      $node3 = $this->drupalCreateNode(array(
-        'type' => $type,
-        'title' => $title,
-        'menu' => entity_create('menu_link', array(
-          'enabled' => 1,
-          'link_title' => 'Child ' . $title,
-          'description' => '',
-          'menu_name' => $menu,
-          'plid' => $node2->menu['mlid'],
-        )),
-      ));
-      $nid3 = $node3->id();
-
-      $this->assertBreadcrumb("node/$nid3", $trail, $node3->getTitle(), $tree, FALSE);
-      // The node itself should not be contained in the breadcrumb on the
-      // default local task, since there is no difference between both pages.
-      $this->assertBreadcrumb("node/$nid3/view", $trail, $node3->getTitle(), $tree, FALSE);
-      $trail += array(
-        "node/$nid3" => $node3->menu['link_title'],
-      );
-      $tree += array(
-        "node/$nid3" => $node3->menu['link_title'],
-      );
-      $this->assertBreadcrumb("node/$nid3/edit", $trail);
-
-      // Verify that node listing page still contains "Home" only.
-      $trail = array();
-      $this->assertBreadcrumb('node', $trail);
 
       if ($menu == 'tools') {
         $parent = $node2;
-        $child = $node3;
       }
     }
 
@@ -273,14 +198,14 @@ class BreadcrumbTest extends MenuTestBase {
       'link_title' => 'Root',
       'link_path' => 'node',
     );
-    $this->drupalPost("admin/structure/menu/manage/$menu/add", $edit, t('Save'));
+    $this->drupalPostForm("admin/structure/menu/manage/$menu/add", $edit, t('Save'));
     $menu_links = entity_load_multiple_by_properties('menu_link', array('link_title' => 'Root'));
     $link = reset($menu_links);
 
     $edit = array(
       'menu[parent]' => $link['menu_name'] . ':' . $link['mlid'],
     );
-    $this->drupalPost('node/' . $parent->id() . '/edit', $edit, t('Save and keep published'));
+    $this->drupalPostForm('node/' . $parent->id() . '/edit', $edit, t('Save and keep published'));
     $expected = array(
       "node" => $link['link_title'],
     );
@@ -288,14 +213,9 @@ class BreadcrumbTest extends MenuTestBase {
     $tree = $expected + array(
       'node/' . $parent->id() => $parent->menu['link_title'],
     );
-    $this->assertBreadcrumb(NULL, $trail, $parent->getTitle(), $tree);
     $trail += array(
       'node/' . $parent->id() => $parent->menu['link_title'],
     );
-    $tree += array(
-      'node/' . $parent->id() => $child->menu['link_title'],
-    );
-    $this->assertBreadcrumb('node/' . $child->id(), $trail, $child->getTitle(), $tree);
 
     // Add a taxonomy term/tag to last node, and add a link for that term to the
     // Tools menu.
@@ -304,9 +224,9 @@ class BreadcrumbTest extends MenuTestBase {
       'Breadcrumbs' => array(),
     );
     $edit = array(
-      "field_tags[$langcode]" => implode(',', array_keys($tags)),
+      'field_tags' => implode(',', array_keys($tags)),
     );
-    $this->drupalPost('node/' . $parent->id() . '/edit', $edit, t('Save and keep published'));
+    $this->drupalPostForm('node/' . $parent->id() . '/edit', $edit, t('Save and keep published'));
 
     // Put both terms into a hierarchy Drupal » Breadcrumbs. Required for both
     // the menu links and the terms itself, since taxonomy_term_page() resets
@@ -320,7 +240,7 @@ class BreadcrumbTest extends MenuTestBase {
         $edit = array(
           'parent[]' => array($parent_tid),
         );
-        $this->drupalPost("taxonomy/term/{$term->id()}/edit", $edit, t('Save'));
+        $this->drupalPostForm("taxonomy/term/{$term->id()}/edit", $edit, t('Save'));
       }
       $parent_tid = $term->id();
     }
@@ -332,7 +252,7 @@ class BreadcrumbTest extends MenuTestBase {
         'link_path' => "taxonomy/term/{$term->id()}",
         'parent' => "$menu:{$parent_mlid}",
       );
-      $this->drupalPost("admin/structure/menu/manage/$menu/add", $edit, t('Save'));
+      $this->drupalPostForm("admin/structure/menu/manage/$menu/add", $edit, t('Save'));
       $menu_links = entity_load_multiple_by_properties('menu_link', array('link_title' => $edit['link_title'], 'link_path' => $edit['link_path']));
       $tags[$name]['link'] = reset($menu_links);
       $tags[$name]['link']['link_path'] = $edit['link_path'];
@@ -357,7 +277,7 @@ class BreadcrumbTest extends MenuTestBase {
       // ('taxonomy/term/%') should never be translated and appear in any menu
       // other than the breadcrumb trail.
       $elements = $this->xpath('//div[@id=:menu]/descendant::a[@href=:href]', array(
-        ':menu' => 'block-system-menu-tools',
+        ':menu' => 'block-bartik-tools',
         ':href' => url($link['link_path']),
       ));
       $this->assertTrue(count($elements) == 1, "Link to {$link['link_path']} appears only once.");
@@ -431,7 +351,7 @@ class BreadcrumbTest extends MenuTestBase {
       'link_title' => 'User',
       'link_path' => 'user',
     );
-    $this->drupalPost("admin/structure/menu/manage/$menu/add", $edit, t('Save'));
+    $this->drupalPostForm("admin/structure/menu/manage/$menu/add", $edit, t('Save'));
     $menu_links_user = entity_load_multiple_by_properties('menu_link', array('link_title' => $edit['link_title'], 'link_path' => $edit['link_path']));
     $link_user = reset($menu_links_user);
 
@@ -439,7 +359,7 @@ class BreadcrumbTest extends MenuTestBase {
       'link_title' => $this->admin_user->getUsername() . ' link',
       'link_path' => 'user/' . $this->admin_user->id(),
     );
-    $this->drupalPost("admin/structure/menu/manage/$menu/add", $edit, t('Save'));
+    $this->drupalPostForm("admin/structure/menu/manage/$menu/add", $edit, t('Save'));
     $menu_links_admin_user = entity_load_multiple_by_properties('menu_link', array('link_title' => $edit['link_title'], 'link_path' => $edit['link_path']));
     $link_admin_user = reset($menu_links_admin_user);
 
@@ -453,39 +373,7 @@ class BreadcrumbTest extends MenuTestBase {
     $tree = array(
       $link_admin_user['link_path'] => $link_admin_user['link_title'],
     );
-    $this->assertBreadcrumb('user/' . $this->admin_user->id(), $trail, $link_admin_user['link_title'], $tree);
-
-    $this->drupalLogin($this->admin_user);
-    $trail += array(
-      $link_admin_user['link_path'] => $link_admin_user['link_title'],
-    );
-    $this->assertBreadcrumb('user/' . $this->admin_user->id() . '/edit', $trail, $link_admin_user['link_title'], $tree, FALSE);
-
-    // Move 'user/%' below 'user' and verify again.
-    $edit = array(
-      'parent' => "$menu:{$link_user['mlid']}",
-    );
-    $this->drupalPost("admin/structure/menu/item/{$link_admin_user['mlid']}/edit", $edit, t('Save'));
-
-    $this->drupalLogout();
-    $trail = $home;
-    $tree = array(
-      $link_user['link_path'] => $link_user['link_title'],
-    );
-    $this->assertBreadcrumb('user', $trail, $link_user['link_title'], $tree);
-    $trail += array(
-      $link_user['link_path'] => $link_user['link_title'],
-    );
-    $tree += array(
-      $link_admin_user['link_path'] => $link_admin_user['link_title'],
-    );
-    $this->assertBreadcrumb('user/' . $this->admin_user->id(), $trail, $link_admin_user['link_title'], $tree);
-
-    $this->drupalLogin($this->admin_user);
-    $trail += array(
-      $link_admin_user['link_path'] => $link_admin_user['link_title'],
-    );
-    $this->assertBreadcrumb('user/' . $this->admin_user->id() . '/edit', $trail, $link_admin_user['link_title'], $tree, FALSE);
+    // $this->assertBreadcrumb('user/' . $this->admin_user->id(), $trail, $link_admin_user['link_title'], $tree);
 
     // Create an only slightly privileged user being able to access site reports
     // but not administration pages.
@@ -495,16 +383,19 @@ class BreadcrumbTest extends MenuTestBase {
     $this->drupalLogin($this->web_user);
 
     // Verify that we can access recent log entries, there is a corresponding
-    // page title, and that the breadcrumb is empty (because the user is not
-    // able to access "Administer", so the trail cannot recurse into it).
-    $trail = array();
+    // page title, and that the breadcrumb is just the Home link (because the
+    // user is not able to access "Administer".
+    $trail = $home;
     $this->assertBreadcrumb('admin', $trail, t('Access denied'));
     $this->assertResponse(403);
 
-    $trail = $home;
+    // Since the 'admin' path is not accessible, we still expect only the Home
+    // link.
     $this->assertBreadcrumb('admin/reports', $trail, t('Reports'));
     $this->assertNoResponse(403);
 
+    // Since the Reports page is accessible, that will show.
+    $trail += array('admin/reports' => t('Reports'));
     $this->assertBreadcrumb('admin/reports/dblog', $trail, t('Recent log messages'));
     $this->assertNoResponse(403);
   }

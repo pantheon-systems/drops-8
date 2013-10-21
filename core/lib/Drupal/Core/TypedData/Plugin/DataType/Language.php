@@ -9,9 +9,7 @@ namespace Drupal\Core\TypedData\Plugin\DataType;
 
 use Drupal\Core\TypedData\Annotation\DataType;
 use Drupal\Core\Annotation\Translation;
-use InvalidArgumentException;
 use Drupal\Core\Language\Language as LanguageObject;
-use Drupal\Core\TypedData\IdentifiableInterface;
 use Drupal\Core\TypedData\TypedData;
 
 /**
@@ -27,7 +25,7 @@ use Drupal\Core\TypedData\TypedData;
  *   description = @Translation("A language object.")
  * )
  */
-class Language extends TypedData implements IdentifiableInterface {
+class Language extends TypedData {
 
   /**
    * The id of the language.
@@ -65,7 +63,7 @@ class Language extends TypedData implements IdentifiableInterface {
       $this->language = $value;
     }
     elseif (isset($value) && !is_scalar($value)) {
-      throw new InvalidArgumentException('Value is no valid langcode or language object.');
+      throw new \InvalidArgumentException('Value is no valid langcode or language object.');
     }
     else {
       $this->id = $value;

@@ -18,10 +18,26 @@ use Drupal\Core\TypedData\ComplexDataInterface;
  * When implementing this interface which extends Traversable, make sure to list
  * IteratorAggregate or Iterator before this interface in the implements clause.
  *
- * @see \Drupal\Core\Entity\Field\FieldInterface
+ * @see \Drupal\Core\Entity\Field\FieldItemListInterface
  * @see \Drupal\Core\Entity\Field\FieldItemBase
  */
 interface FieldItemInterface extends ComplexDataInterface {
+
+  /**
+   * Gets the entity that field belongs to.
+   *
+   * @return \Drupal\Core\Entity\EntityInterface
+   *   The entity object.
+   */
+  public function getEntity();
+
+  /**
+   * Gets the langcode of the field values held in the object.
+   *
+   * @return $langcode
+   *   The langcode.
+   */
+  public function getLangcode();
 
   /**
    * Gets the field definition.

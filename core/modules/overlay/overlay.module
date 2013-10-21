@@ -5,6 +5,7 @@
  * Displays the Drupal administration interface in an overlay.
  */
 
+use Drupal\Core\Template\RenderWrapper;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -19,7 +20,11 @@ function overlay_help($path, $arg) {
     case 'admin/help#overlay':
       $output = '';
       $output .= '<h3>' . t('About') . '</h3>';
-      $output .= '<p>' . t('The Overlay module makes the administration pages on your site display in a JavaScript overlay of the page you were viewing when you clicked the administrative link, instead of replacing the page in your browser window. Use the close link on the overlay to return to the page you were viewing when you clicked the link. For more information, see the online handbook entry for <a href="@overlay">Overlay module</a>.', array('@overlay' => 'http://drupal.org/documentation/modules/overlay')) . '</p>';
+      $output .= '<p>' . t('The Overlay module uses JavaScript to open administration pages in an overlay of the page you were viewing when you clicked the administrative link, instead of replacing the page in your browser window. This ensures that you return to the page you were viewing once you close the overlay, even if you have visited several administration pages. For more information, see the <a href="!overlay">online documentation for the Overlay module</a>.', array('!overlay' => 'https://drupal.org/documentation/modules/overlay')) . '</p>';
+      $output .= '<dl>';
+      $output .= '<dt>' . t('Disabling the overlay for individual users') . '</dt>';
+      $output .= '<dd>' . t('Users can individually disable the overlay functionality on their <em>Profile page</em>.') . '</dd>';
+      $output .= '</dl>';
       return $output;
   }
 }
@@ -83,7 +88,7 @@ function overlay_field_extra_fields() {
 function overlay_form_user_form_alter(&$form, &$form_state) {
   $account = $form_state['controller']->getEntity();
   if ($account->hasPermission('access overlay')) {
-    $account_data = Drupal::service('user.data')->get('overlay', $account->id(), 'enabled');
+    $account_data = \Drupal::service('user.data')->get('overlay', $account->id(), 'enabled');
     $form['overlay_control'] = array(
       '#type' => 'details',
       '#title' => t('Administrative overlay'),
@@ -105,7 +110,7 @@ function overlay_form_user_form_alter(&$form, &$form_state) {
 function overlay_user_profile_form_submit($form, &$form_state) {
   $account = $form_state['controller']->getEntity();
   if ($account->id() && isset($form_state['values']['overlay'])) {
-    Drupal::service('user.data')->set('overlay', $account->id(), 'enabled', (int) $form_state['values']['overlay']);
+    \Drupal::service('user.data')->set('overlay', $account->id(), 'enabled', (int) $form_state['values']['overlay']);
   }
 }
 
@@ -215,14 +220,14 @@ function overlay_page_alter(&$page) {
  * @see http://drupal.org/node/890284
  */
 function overlay_disable_message() {
-  global $user;
+  $user = \Drupal::currentUser();
 
   $build = array();
   if ($user->isAnonymous() || !$user->hasPermission('access overlay')) {
     return $build;
   }
 
-  $user_data = Drupal::service('user.data')->get('overlay', $user->id());
+  $user_data = \Drupal::service('user.data')->get('overlay', $user->id());
   if (empty($user_data['message_dismissed']) && (!isset($user_data['enabled']) || $user_data['enabled'])) {
     $build = array(
       '#theme' => 'overlay_disable_message',
@@ -326,7 +331,7 @@ function overlay_system_info_alter(&$info, $file, $type) {
 }
 
 /**
- * Implements hook_preprocess_HOOK() for html.tpl.php.
+ * Implements hook_preprocess_HOOK() for HTML document templates.
  *
  * If the current page request is inside the overlay, add appropriate classes
  * to the <body> element, and simplify the page title.
@@ -341,7 +346,7 @@ function overlay_preprocess_html(&$variables) {
 }
 
 /**
- * Implements hook_preprocess_HOOK() for maintenance-page.html.twig.
+ * Implements hook_preprocess_HOOK() for maintenance page templates.
  *
  * If the current page request is inside the overlay, add appropriate classes
  * to the <body> element, and simplify the page title.
@@ -351,16 +356,26 @@ function overlay_preprocess_maintenance_page(&$variables) {
 }
 
 /**
- * Implements template_preprocess_HOOK() for overlay.tpl.php
+ * Prepares variables for overlay templates.
+ *
+ * Default template: overlay.html.twig.
  *
  * If the current page request is inside the overlay, add appropriate classes
  * to the <body> element, and simplify the page title.
  *
- * @see overlay.tpl.php
+ * @param array $variables
+ *   An associative array containing:
+ *   - page: A render element representing the page.
  */
 function template_preprocess_overlay(&$variables) {
   $variables['tabs'] = menu_primary_local_tasks();
-  $variables['title'] = drupal_get_title();
+
+  if (isset($variables['page']['#title'])) {
+    $variables['title'] = $variables['page']['#title'];
+  }
+  else {
+    $variables['title'] = new RenderWrapper('drupal_get_title');
+  }
   $variables['disable_overlay'] = overlay_disable_message();
 
   // Add attributes for the overlay container.
@@ -374,7 +389,7 @@ function template_preprocess_overlay(&$variables) {
 }
 
 /**
- * Implements hook_preprocess_HOOK() for page.tpl.php.
+ * Implements hook_preprocess_HOOK() for page templates.
  *
  * If the current page request is inside the overlay, hide the tabs.
  *
@@ -449,7 +464,6 @@ function overlay_get_mode() {
  * @see \Drupal\overlay\EventSubscriber\OverlaySubscriber::onRequest()
  */
 function overlay_set_mode($mode = NULL) {
-  global $base_path;
   // We're not using drupal_static() here since the static cache is reset in
   // drupal_flush_all_caches(); this could lead to the loss of the overlay when
   // submitting the admin/modules form, for instance.
@@ -467,14 +481,14 @@ function overlay_set_mode($mode = NULL) {
       drupal_add_library('overlay', 'drupal.overlay.parent');
 
       // Allow modules to act upon overlay events.
-      Drupal::moduleHandler()->invokeAll('overlay_parent_initialize');
+      \Drupal::moduleHandler()->invokeAll('overlay_parent_initialize');
       break;
 
     case 'child':
       drupal_add_library('overlay', 'drupal.overlay.child');
 
       // Allow modules to act upon overlay events.
-      Drupal::moduleHandler()->invokeAll('overlay_child_initialize');
+      \Drupal::moduleHandler()->invokeAll('overlay_child_initialize');
       break;
   }
   return $overlay_mode;
@@ -487,13 +501,13 @@ function overlay_overlay_parent_initialize() {
   // Let the client side know which paths are administrative.
   $paths = path_get_admin_paths();
   foreach ($paths as &$type) {
-    $type = str_replace('<front>', Drupal::config('system.site')->get('page.front'), $type);
+    $type = str_replace('<front>', \Drupal::config('system.site')->get('page.front'), $type);
   }
   drupal_add_js(array('overlay' => array('paths' => $paths)), 'setting');
   $path_prefixes = array();
-  if (module_exists('language')) {
+  if (\Drupal::moduleHandler()->moduleExists('language')) {
     language_negotiation_include();
-    if (Drupal::config('language.negotiation')->get('url.source') == LANGUAGE_NEGOTIATION_URL_PREFIX) {
+    if (\Drupal::config('language.negotiation')->get('url.source') == LANGUAGE_NEGOTIATION_URL_PREFIX) {
       // Skip the empty string indicating the default language. We always accept
       // paths without a prefix.
       $path_prefixes = language_negotiation_url_prefixes();
@@ -520,8 +534,8 @@ function overlay_overlay_child_initialize() {
   // at the end of the page request. This allows us to check if anything
   // actually did change, and, if so, trigger an immediate Ajax refresh
   // of the parent window.
-  $token = Drupal::request()->query->get('token');
-  $post = Drupal::request()->request->count();
+  $token = \Drupal::request()->query->get('token');
+  $post = \Drupal::request()->request->count();
   if (!empty($post) || isset($token)) {
     foreach (overlay_supplemental_regions() as $region) {
       overlay_store_rendered_content($region, overlay_render_region($region));

@@ -21,23 +21,30 @@ class ShortcutSetAccessController extends EntityAccessController {
    */
   protected function checkAccess(EntityInterface $entity, $operation, $langcode, AccountInterface $account) {
     switch ($operation) {
-      case 'create':
       case 'update':
-        if (user_access('administer shortcuts', $account)) {
+        if ($account->hasPermission('administer shortcuts')) {
           return TRUE;
         }
-        if (user_access('customize shortcut links', $account)) {
-          return !isset($entity) || $entity == shortcut_current_displayed_set($account);
+        if ($account->hasPermission('customize shortcut links')) {
+          return $entity == shortcut_current_displayed_set($account);
         }
         return FALSE;
         break;
+
       case 'delete':
-        if (!user_access('administer shortcuts', $account)) {
+        if (!$account->hasPermission('administer shortcuts')) {
           return FALSE;
         }
         return $entity->id() != 'default';
         break;
     }
+  }
+
+  /**
+  * {@inheritdoc}
+   */
+  protected function checkCreateAccess(AccountInterface $account, array $context, $entity_bundle = NULL) {
+    return $account->hasPermission('administer shortcuts') || $account->hasPermission('customize shortcut links');
   }
 
 }

@@ -46,14 +46,19 @@ class ImageEffectDeleteForm extends ConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function getCancelPath() {
-    return 'admin/config/media/image-styles/manage/' . $this->imageStyle->id();
+  public function getCancelRoute() {
+    return array(
+      'route_name' => 'image.style_edit',
+      'route_parameters' => array(
+        'image_style' => $this->imageStyle->id(),
+      ),
+    );
   }
 
   /**
    * {@inheritdoc}
    */
-  public function getFormID() {
+  public function getFormId() {
     return 'image_effect_delete_form';
   }
 

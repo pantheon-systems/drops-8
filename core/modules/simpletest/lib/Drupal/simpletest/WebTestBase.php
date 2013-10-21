@@ -17,11 +17,6 @@ use Drupal\Core\Language\Language;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Session\UserSession;
 use Drupal\Core\StreamWrapper\PublicStream;
-use PDO;
-use stdClass;
-use DOMDocument;
-use DOMXPath;
-use SimpleXMLElement;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -62,7 +57,7 @@ abstract class WebTestBase extends TestBase {
    * Indicates that headers should be dumped if verbose output is enabled.
    *
    * Headers are dumped to verbose by drupalGet(), drupalHead(), and
-   * drupalPost().
+   * drupalPostForm().
    *
    * @var bool
    */
@@ -83,9 +78,9 @@ abstract class WebTestBase extends TestBase {
   protected $plainTextContent;
 
   /**
-   * The value of Drupal.settings for the currently-loaded page.
+   * The value of drupalSettings for the currently-loaded page.
    *
-   * Drupal.settings refers to the Drupal.settings JavaScript variable.
+   * drupalSettings refers to the drupalSettings JavaScript variable.
    *
    * @var Array
    */
@@ -94,7 +89,7 @@ abstract class WebTestBase extends TestBase {
   /**
    * The parsed version of the page.
    *
-   * @var SimpleXMLElement
+   * @var \SimpleXMLElement
    */
   protected $elements = NULL;
 
@@ -183,6 +178,13 @@ abstract class WebTestBase extends TestBase {
   protected $curlCookies = array();
 
   /**
+   * An array of custom translations suitable for drupal_rewrite_settings().
+   *
+   * @var array
+   */
+  protected $customTranslations;
+
+  /**
    * Constructor for \Drupal\simpletest\WebTestBase.
    */
   function __construct($test_id = NULL) {
@@ -233,7 +235,7 @@ abstract class WebTestBase extends TestBase {
    *       );
    *     @endcode
    *   - title: Random string.
-   *   - comment: COMMENT_NODE_OPEN.
+   *   - comment: COMMENT_OPEN.
    *   - changed: REQUEST_TIME.
    *   - promote: NODE_NOT_PROMOTED.
    *   - log: Empty string.
@@ -262,13 +264,6 @@ abstract class WebTestBase extends TestBase {
       'type'      => 'page',
       'langcode'  => Language::LANGCODE_NOT_SPECIFIED,
     );
-
-    // Add in comment settings for nodes.
-    if (module_exists('comment')) {
-      $settings += array(
-        'comment' => COMMENT_NODE_OPEN,
-      );
-    }
 
     // Use the original node's created time for existing nodes.
     if (isset($settings['created']) && !isset($settings['date'])) {
@@ -358,7 +353,7 @@ abstract class WebTestBase extends TestBase {
    *   @endcode
    *   The following defaults are provided:
    *   - label: Random string.
-   *   - machine_name: Random string.
+   *   - id: Random string.
    *   - region: 'sidebar_first'.
    *   - theme: The default theme.
    *   - visibility: Empty array.
@@ -373,20 +368,18 @@ abstract class WebTestBase extends TestBase {
     $settings += array(
       'plugin' => $plugin_id,
       'region' => 'sidebar_first',
-      'machine_name' => strtolower($this->randomName(8)),
+      'id' => strtolower($this->randomName(8)),
       'theme' => \Drupal::config('system.theme')->get('default'),
       'label' => $this->randomName(8),
       'visibility' => array(),
       'weight' => 0,
     );
-    foreach (array('region', 'machine_name', 'theme', 'plugin', 'visibility', 'weight') as $key) {
+    foreach (array('region', 'id', 'theme', 'plugin', 'visibility', 'weight') as $key) {
       $values[$key] = $settings[$key];
       // Remove extra values that do not belong in the settings array.
       unset($settings[$key]);
     }
     $values['settings'] = $settings;
-    // Build the ID out of the theme and machine_name.
-    $values['id'] = $values['theme'] . '.' . $values['machine_name'];
     $block = entity_create('block', $values);
     $block->save();
     return $block;
@@ -642,7 +635,7 @@ abstract class WebTestBase extends TestBase {
       'name' => $account->getUsername(),
       'pass' => $account->pass_raw
     );
-    $this->drupalPost('user', $edit, t('Log in'));
+    $this->drupalPostForm('user', $edit, t('Log in'));
 
     // @see WebTestBase::drupalUserIsLoggedIn()
     if (isset($this->session_id)) {
@@ -651,6 +644,7 @@ abstract class WebTestBase extends TestBase {
     $pass = $this->assert($this->drupalUserIsLoggedIn($account), format_string('User %name successfully logged in.', array('%name' => $account->getUsername())), 'User login');
     if ($pass) {
       $this->loggedInUser = $account;
+      $this->container->set('current_user', $account);
     }
   }
 
@@ -694,6 +688,7 @@ abstract class WebTestBase extends TestBase {
       // @see WebTestBase::drupalUserIsLoggedIn()
       unset($this->loggedInUser->session_id);
       $this->loggedInUser = FALSE;
+      $this->container->set('current_user', drupal_anonymous_user());
     }
   }
 
@@ -786,6 +781,22 @@ abstract class WebTestBase extends TestBase {
     $this->settingsSet('cache', array('default' => 'cache.backend.memory'));
     $parameters = $this->installParameters();
     install_drupal($parameters);
+
+    // Set the install_profile so that web requests to the requests to the child
+    // site have the correct profile.
+    $settings = array(
+      'settings' => array(
+        'install_profile' => (object) array(
+          'value' => $this->profile,
+          'required' => TRUE,
+        ),
+      ),
+    );
+    $this->writeSettings($settings);
+    // Override install profile in Settings to so the correct profile is used by
+    // tests.
+    $this->settingsSet('install_profile', $this->profile);
+
     $this->settingsSet('cache', array());
     $this->rebuildContainer();
 
@@ -811,7 +822,7 @@ abstract class WebTestBase extends TestBase {
     }
     if ($modules) {
       $modules = array_unique($modules);
-      $success = module_enable($modules, TRUE);
+      $success = \Drupal::moduleHandler()->install($modules, TRUE);
       $this->assertTrue($success, t('Enabled modules: %modules', array('%modules' => implode(', ', $modules))));
       $this->rebuildContainer();
     }
@@ -912,6 +923,44 @@ abstract class WebTestBase extends TestBase {
   }
 
   /**
+   * Sets custom translations to the settings object and queues them to writing.
+   *
+   * In order for those custom translations to persist (being written in test
+   * site's settings.php) make sure to also call self::writeCustomTranslations()
+   *
+   * @param string $langcode
+   *   The langcode to add translations for.
+   * @param array $values
+   *   Array of values containing the untranslated string and its translation.
+   *   For example:
+   *   @code
+   *   array(
+   *     '' => array('Sunday' => 'domingo'),
+   *     'Long month name' => array('March' => 'marzo'),
+   *   );
+   *   @endcode
+   */
+  protected function addCustomTranslations($langcode, array $values) {
+    $this->settingsSet('locale_custom_strings_' . $langcode, $values);
+    foreach ($values as $key => $translations) {
+      foreach ($translations as $label => $value) {
+        $this->customTranslations['locale_custom_strings_' . $langcode][$key][$label] = (object) array(
+          'value' => $value,
+          'required' => TRUE,
+        );
+      }
+    }
+  }
+
+  /**
+   * Writes custom translations to test site's settings.php.
+   */
+  protected function writeCustomTranslations() {
+    $this->writeSettings(array('settings' => $this->customTranslations));
+    $this->customTranslations = array();
+  }
+
+  /**
    * Overrides \Drupal\simpletest\TestBase::rebuildContainer().
    */
   protected function rebuildContainer() {
@@ -944,7 +993,7 @@ abstract class WebTestBase extends TestBase {
    * Useful after a page request is made that changes a variable in a different
    * thread.
    *
-   * In other words calling a settings page with $this->drupalPost() with a
+   * In other words calling a settings page with $this->drupalPostForm() with a
    * changed value would update a variable to reflect that change, but in the
    * thread that made the call (thread running the test) the changed variable
    * would not be picked up.
@@ -1215,7 +1264,7 @@ abstract class WebTestBase extends TestBase {
     if (!$this->elements) {
       // DOM can load HTML soup. But, HTML soup can throw warnings, suppress
       // them.
-      $htmlDom = new DOMDocument();
+      $htmlDom = new \DOMDocument();
       @$htmlDom->loadHTML('<?xml encoding="UTF-8">' . $this->drupalGetContent());
       if ($htmlDom) {
         $this->pass(t('Valid HTML found on "@path"', array('@path' => $this->getUrl())), t('Browser'));
@@ -1300,7 +1349,7 @@ abstract class WebTestBase extends TestBase {
   }
 
   /**
-   * Executes a POST request on a Drupal page.
+   * Executes a form submission.
    *
    * It will be done as usual POST request with SimpleBrowser.
    *
@@ -1312,11 +1361,11 @@ abstract class WebTestBase extends TestBase {
    *   @code
    *   // First step in form.
    *   $edit = array(...);
-   *   $this->drupalPost('some_url', $edit, t('Save'));
+   *   $this->drupalPostForm('some_url', $edit, t('Save'));
    *
    *   // Second step in form.
    *   $edit = array(...);
-   *   $this->drupalPost(NULL, $edit, t('Save'));
+   *   $this->drupalPostForm(NULL, $edit, t('Save'));
    *   @endcode
    * @param  $edit
    *   Field data in an associative array. Changes the current input fields
@@ -1328,11 +1377,11 @@ abstract class WebTestBase extends TestBase {
    *   @code
    *   <textarea id="edit-body-und-0-value" class="text-full form-textarea
    *    resize-vertical" placeholder="" cols="60" rows="9"
-   *    name="body[und][0][value]"></textarea>
+   *    name="body[0][value]"></textarea>
    *   @endcode
    *   When testing this field using an $edit parameter, the code becomes:
    *   @code
-   *   $edit["body[und][0][value]"] = 'My test value';
+   *   $edit["body[0][value]"] = 'My test value';
    *   @endcode
    *
    *   A checkbox can be set to TRUE to be checked and should be set to FALSE to
@@ -1385,11 +1434,11 @@ abstract class WebTestBase extends TestBase {
    * @param $extra_post
    *   (optional) A string of additional data to append to the POST submission.
    *   This can be used to add POST data for which there are no HTML fields, as
-   *   is done by drupalPostAJAX(). This string is literally appended to the
+   *   is done by drupalPostAjaxForm(). This string is literally appended to the
    *   POST data, so it must already be urlencoded and contain a leading "&"
    *   (e.g., "&extra_var1=hello+world&extra_var2=you%26me").
    */
-  protected function drupalPost($path, $edit, $submit, array $options = array(), array $headers = array(), $form_html_id = NULL, $extra_post = NULL) {
+  protected function drupalPostForm($path, $edit, $submit, array $options = array(), array $headers = array(), $form_html_id = NULL, $extra_post = NULL) {
     $submit_matches = FALSE;
     $ajax = is_array($submit);
     if (isset($path)) {
@@ -1438,13 +1487,7 @@ abstract class WebTestBase extends TestBase {
             }
           }
           else {
-            foreach ($post as $key => $value) {
-              // Encode according to application/x-www-form-urlencoded
-              // Both names and values needs to be urlencoded, according to
-              // http://www.w3.org/TR/html4/interact/forms.html#h-17.13.4.1
-              $post[$key] = urlencode($key) . '=' . urlencode($value);
-            }
-            $post = implode('&', $post) . $extra_post;
+            $post = $this->serializePostValues($post) . $extra_post;
           }
           $out = $this->curlExec(array(CURLOPT_URL => $action, CURLOPT_POST => TRUE, CURLOPT_POSTFIELDS => $post, CURLOPT_HTTPHEADER => $headers));
           // Ensure that any changes to variables in the other thread are picked
@@ -1481,11 +1524,11 @@ abstract class WebTestBase extends TestBase {
   }
 
   /**
-   * Execute an Ajax submission.
+   * Executes an Ajax form submission.
    *
-   * This executes a POST as ajax.js does. It uses the returned JSON data, an
-   * array of commands, to update $this->content using equivalent DOM
-   * manipulation as is used by ajax.js. It also returns the array of commands.
+   * This executes a POST as ajax.js does. The returned JSON data is used to
+   * update $this->content via drupalProcessAjaxResponse(). It also returns
+   * the array of AJAX commands received.
    *
    * @param $path
    *   Location of the form containing the Ajax enabled element to test. Can be
@@ -1506,7 +1549,7 @@ abstract class WebTestBase extends TestBase {
    *   (optional) Options to be forwarded to the url generator.
    * @param $headers
    *   (optional) An array containing additional HTTP request headers, each
-   *   formatted as "name: value". Forwarded to drupalPost().
+   *   formatted as "name: value". Forwarded to drupalPostForm().
    * @param $form_html_id
    *   (optional) HTML ID of the form to be submitted, use when there is more
    *   than one identical form on the same page and the value of the triggering
@@ -1519,12 +1562,13 @@ abstract class WebTestBase extends TestBase {
    * @return
    *   An array of Ajax commands.
    *
-   * @see drupalPost()
+   * @see drupalPostForm()
+   * @see drupalProcessAjaxResponse()
    * @see ajax.js
    */
-  protected function drupalPostAJAX($path, $edit, $triggering_element, $ajax_path = NULL, array $options = array(), array $headers = array(), $form_html_id = NULL, $ajax_settings = NULL) {
-    // Get the content of the initial page prior to calling drupalPost(), since
-    // drupalPost() replaces $this->content.
+  protected function drupalPostAjaxForm($path, $edit, $triggering_element, $ajax_path = NULL, array $options = array(), array $headers = array(), $form_html_id = NULL, $ajax_settings = NULL) {
+    // Get the content of the initial page prior to calling drupalPostForm(),
+    // since drupalPostForm() replaces $this->content.
     if (isset($path)) {
       $this->drupalGet($path, $options);
     }
@@ -1550,10 +1594,10 @@ abstract class WebTestBase extends TestBase {
     }
 
     // Add extra information to the POST data as ajax.js does.
-    $extra_post = '';
+    $extra_post = array();
     if (isset($ajax_settings['submit'])) {
       foreach ($ajax_settings['submit'] as $key => $value) {
-        $extra_post .= '&' . urlencode($key) . '=' . urlencode($value);
+        $extra_post[$key] = $value;
       }
     }
     $ajax_html_ids = array();
@@ -1561,18 +1605,11 @@ abstract class WebTestBase extends TestBase {
       $ajax_html_ids[] = (string) $element['id'];
     }
     if (!empty($ajax_html_ids)) {
-      $extra_post .= '&' . urlencode('ajax_html_ids') . '=' . urlencode(implode(' ', $ajax_html_ids));
+      $extra_post['ajax_html_ids'] = implode(' ', $ajax_html_ids);
     }
-    if (isset($drupal_settings['ajaxPageState'])) {
-      $extra_post .= '&' . urlencode('ajax_page_state[theme]') . '=' . urlencode($drupal_settings['ajaxPageState']['theme']);
-      $extra_post .= '&' . urlencode('ajax_page_state[theme_token]') . '=' . urlencode($drupal_settings['ajaxPageState']['theme_token']);
-      foreach ($drupal_settings['ajaxPageState']['css'] as $key => $value) {
-        $extra_post .= '&' . urlencode("ajax_page_state[css][$key]") . '=1';
-      }
-      foreach ($drupal_settings['ajaxPageState']['js'] as $key => $value) {
-        $extra_post .= '&' . urlencode("ajax_page_state[js][$key]") . '=1';
-      }
-    }
+    $extra_post += $this->getAjaxPageStatePostData();
+    // Now serialize all the $extra_post values, and prepend it with an '&'.
+    $extra_post = '&' . $this->serializePostValues($extra_post);
 
     // Unless a particular path is specified, use the one specified by the
     // Ajax settings, or else 'system/ajax'.
@@ -1581,99 +1618,205 @@ abstract class WebTestBase extends TestBase {
     }
 
     // Submit the POST request.
-    $return = drupal_json_decode($this->drupalPost(NULL, $edit, array('path' => $ajax_path, 'triggering_element' => $triggering_element), $options, $headers, $form_html_id, $extra_post));
+    $return = drupal_json_decode($this->drupalPostForm(NULL, $edit, array('path' => $ajax_path, 'triggering_element' => $triggering_element), $options, $headers, $form_html_id, $extra_post));
 
     // Change the page content by applying the returned commands.
     if (!empty($ajax_settings) && !empty($return)) {
-      // ajax.js applies some defaults to the settings object, so do the same
-      // for what's used by this function.
-      $ajax_settings += array(
-        'method' => 'replaceWith',
-      );
-      // DOM can load HTML soup. But, HTML soup can throw warnings, suppress
-      // them.
-      $dom = new DOMDocument();
-      @$dom->loadHTML($content);
-      // XPath allows for finding wrapper nodes better than DOM does.
-      $xpath = new DOMXPath($dom);
-      foreach ($return as $command) {
-        switch ($command['command']) {
-          case 'settings':
-            $drupal_settings = drupal_merge_js_settings(array($drupal_settings, $command['settings']));
-            break;
-
-          case 'insert':
-            $wrapperNode = NULL;
-            // When a command doesn't specify a selector, use the
-            // #ajax['wrapper'] which is always an HTML ID.
-            if (!isset($command['selector'])) {
-              $wrapperNode = $xpath->query('//*[@id="' . $ajax_settings['wrapper'] . '"]')->item(0);
-            }
-            // @todo Ajax commands can target any jQuery selector, but these are
-            //   hard to fully emulate with XPath. For now, just handle 'head'
-            //   and 'body', since these are used by ajax_render().
-            elseif (in_array($command['selector'], array('head', 'body'))) {
-              $wrapperNode = $xpath->query('//' . $command['selector'])->item(0);
-            }
-            if ($wrapperNode) {
-              // ajax.js adds an enclosing DIV to work around a Safari bug.
-              $newDom = new DOMDocument();
-              @$newDom->loadHTML('<div>' . $command['data'] . '</div>');
-              $newNode = $dom->importNode($newDom->documentElement->firstChild->firstChild, TRUE);
-              $method = isset($command['method']) ? $command['method'] : $ajax_settings['method'];
-              // The "method" is a jQuery DOM manipulation function. Emulate
-              // each one using PHP's DOMNode API.
-              switch ($method) {
-                case 'replaceWith':
-                  $wrapperNode->parentNode->replaceChild($newNode, $wrapperNode);
-                  break;
-                case 'append':
-                  $wrapperNode->appendChild($newNode);
-                  break;
-                case 'prepend':
-                  // If no firstChild, insertBefore() falls back to
-                  // appendChild().
-                  $wrapperNode->insertBefore($newNode, $wrapperNode->firstChild);
-                  break;
-                case 'before':
-                  $wrapperNode->parentNode->insertBefore($newNode, $wrapperNode);
-                  break;
-                case 'after':
-                  // If no nextSibling, insertBefore() falls back to
-                  // appendChild().
-                  $wrapperNode->parentNode->insertBefore($newNode, $wrapperNode->nextSibling);
-                  break;
-                case 'html':
-                  foreach ($wrapperNode->childNodes as $childNode) {
-                    $wrapperNode->removeChild($childNode);
-                  }
-                  $wrapperNode->appendChild($newNode);
-                  break;
-              }
-            }
-            break;
-
-          // @todo Add suitable implementations for these commands in order to
-          //   have full test coverage of what ajax.js can do.
-          case 'remove':
-            break;
-          case 'changed':
-            break;
-          case 'css':
-            break;
-          case 'data':
-            break;
-          case 'restripe':
-            break;
-          case 'add_css':
-            break;
-        }
-      }
-      $content = $dom->saveHTML();
+      $this->drupalProcessAjaxResponse($content, $return, $ajax_settings, $drupal_settings);
     }
+
+    return $return;
+  }
+
+  /**
+   * Processes an AJAX response into current content.
+   *
+   * This processes the AJAX response as ajax.js does. It uses the response's
+   * JSON data, an array of commands, to update $this->content using equivalent
+   * DOM manipulation as is used by ajax.js.
+   * It does not apply custom AJAX commands though, because emulation is only
+   * implemented for the AJAX commands that ship with Drupal core.
+   *
+   * @param string $content
+   *   The current HTML content.
+   * @param array $ajax_response
+   *   An array of AJAX commands.
+   * @param array $ajax_settings
+   *   An array of AJAX settings which will be used to process the response.
+   * @param array $drupal_settings
+   *   An array of settings to update the value of drupalSettings for the
+   *   currently-loaded page.
+   *
+   * @see drupalPostAjaxForm()
+   * @see ajax.js
+   */
+  protected function drupalProcessAjaxResponse($content, array $ajax_response, array $ajax_settings, array $drupal_settings) {
+
+    // ajax.js applies some defaults to the settings object, so do the same
+    // for what's used by this function.
+    $ajax_settings += array(
+      'method' => 'replaceWith',
+    );
+    // DOM can load HTML soup. But, HTML soup can throw warnings, suppress
+    // them.
+    $dom = new \DOMDocument();
+    @$dom->loadHTML($content);
+    // XPath allows for finding wrapper nodes better than DOM does.
+    $xpath = new \DOMXPath($dom);
+    foreach ($ajax_response as $command) {
+      switch ($command['command']) {
+        case 'settings':
+          $drupal_settings = drupal_merge_js_settings(array($drupal_settings, $command['settings']));
+          break;
+
+        case 'insert':
+          $wrapperNode = NULL;
+          // When a command doesn't specify a selector, use the
+          // #ajax['wrapper'] which is always an HTML ID.
+          if (!isset($command['selector'])) {
+            $wrapperNode = $xpath->query('//*[@id="' . $ajax_settings['wrapper'] . '"]')->item(0);
+          }
+          // @todo Ajax commands can target any jQuery selector, but these are
+          //   hard to fully emulate with XPath. For now, just handle 'head'
+          //   and 'body', since these are used by ajax_render().
+          elseif (in_array($command['selector'], array('head', 'body'))) {
+            $wrapperNode = $xpath->query('//' . $command['selector'])->item(0);
+          }
+          if ($wrapperNode) {
+            // ajax.js adds an enclosing DIV to work around a Safari bug.
+            $newDom = new \DOMDocument();
+            @$newDom->loadHTML('<div>' . $command['data'] . '</div>');
+            $newNode = $dom->importNode($newDom->documentElement->firstChild->firstChild, TRUE);
+            $method = isset($command['method']) ? $command['method'] : $ajax_settings['method'];
+            // The "method" is a jQuery DOM manipulation function. Emulate
+            // each one using PHP's DOMNode API.
+            switch ($method) {
+              case 'replaceWith':
+                $wrapperNode->parentNode->replaceChild($newNode, $wrapperNode);
+                break;
+              case 'append':
+                $wrapperNode->appendChild($newNode);
+                break;
+              case 'prepend':
+                // If no firstChild, insertBefore() falls back to
+                // appendChild().
+                $wrapperNode->insertBefore($newNode, $wrapperNode->firstChild);
+                break;
+              case 'before':
+                $wrapperNode->parentNode->insertBefore($newNode, $wrapperNode);
+                break;
+              case 'after':
+                // If no nextSibling, insertBefore() falls back to
+                // appendChild().
+                $wrapperNode->parentNode->insertBefore($newNode, $wrapperNode->nextSibling);
+                break;
+              case 'html':
+                foreach ($wrapperNode->childNodes as $childNode) {
+                  $wrapperNode->removeChild($childNode);
+                }
+                $wrapperNode->appendChild($newNode);
+                break;
+            }
+          }
+          break;
+
+        // @todo Add suitable implementations for these commands in order to
+        //   have full test coverage of what ajax.js can do.
+        case 'remove':
+          break;
+        case 'changed':
+          break;
+        case 'css':
+          break;
+        case 'data':
+          break;
+        case 'restripe':
+          break;
+        case 'add_css':
+          break;
+      }
+    }
+    $content = $dom->saveHTML();
     $this->drupalSetContent($content);
     $this->drupalSetSettings($drupal_settings);
-    return $return;
+  }
+
+  /**
+   * Perform a POST HTTP request.
+   *
+   * @param string $path
+   *   Drupal path where the request should be POSTed to. Will be transformed
+   *   into an absolute path automatically.
+   * @param string $accept
+   *   The value for the "Accept" header. Usually either 'application/json' or
+   *   'application/vnd.drupal-ajax'.
+   * @param array $post
+   *   The POST data. When making a 'application/vnd.drupal-ajax' request, the
+   *   Ajax page state data should be included. Use getAjaxPageStatePostData()
+   *   for that.
+   * @param array $options
+   *   (optional) Options to be forwarded to the url generator. The 'absolute'
+   *   option will automatically be enabled.
+   *
+   * @return
+   *   The content returned from the call to curl_exec().
+   *
+   * @see WebTestBase::getAjaxPageStatePostData()
+   * @see WebTestBase::curlExec()
+   * @see url()
+   */
+  protected function drupalPost($path, $accept, array $post, $options = array()) {
+    return $this->curlExec(array(
+      CURLOPT_URL => url($path, $options + array('absolute' => TRUE)),
+      CURLOPT_POST => TRUE,
+      CURLOPT_POSTFIELDS => $this->serializePostValues($post),
+      CURLOPT_HTTPHEADER => array(
+        'Accept: ' . $accept,
+        'Content-Type: application/x-www-form-urlencoded',
+      ),
+    ));
+  }
+
+  /**
+   * Get the Ajax page state from drupalSettings and prepare it for POSTing.
+   *
+   * @return array
+   *   The Ajax page state POST data.
+   */
+  protected function getAjaxPageStatePostData() {
+    $post = array();
+    $drupal_settings = $this->drupalSettings;
+    if (isset($drupal_settings['ajaxPageState'])) {
+      $post['ajax_page_state[theme]'] = $drupal_settings['ajaxPageState']['theme'];
+      $post['ajax_page_state[theme_token]'] = $drupal_settings['ajaxPageState']['theme_token'];
+      foreach ($drupal_settings['ajaxPageState']['css'] as $key => $value) {
+        $post["ajax_page_state[css][$key]"] = 1;
+      }
+      foreach ($drupal_settings['ajaxPageState']['js'] as $key => $value) {
+        $post["ajax_page_state[js][$key]"] = 1;
+      }
+    }
+    return $post;
+  }
+
+  /**
+   * Serialize POST HTTP request values.
+   *
+   * Encode according to application/x-www-form-urlencoded. Both names and
+   * values needs to be urlencoded, according to
+   * http://www.w3.org/TR/html4/interact/forms.html#h-17.13.4.1
+   *
+   * @param array $post
+   *   The array of values to be POSTed.
+   *
+   * @return string
+   *   The serialized result.
+   */
+  protected function serializePostValues($post = array()) {
+    foreach ($post as $key => $value) {
+      $post[$key] = urlencode($key) . '=' . urlencode($value);
+    }
+    return implode('&', $post);
   }
 
   /**
@@ -1737,7 +1880,7 @@ abstract class WebTestBase extends TestBase {
   }
 
   /**
-   * Handles form input related to drupalPost().
+   * Handles form input related to drupalPostForm().
    *
    * Ensure that the specified fields exist and attempt to create POST data in
    * the correct manner for the particular field type.
@@ -1980,7 +2123,7 @@ abstract class WebTestBase extends TestBase {
    * @return
    *   Option elements in select.
    */
-  protected function getAllOptions(SimpleXMLElement $element) {
+  protected function getAllOptions(\SimpleXMLElement $element) {
     $options = array();
     // Add all options items.
     foreach ($element->option as $option) {
@@ -2270,9 +2413,9 @@ abstract class WebTestBase extends TestBase {
   }
 
   /**
-   * Gets the value of Drupal.settings for the currently-loaded page.
+   * Gets the value of drupalSettings for the currently-loaded page.
    *
-   * Drupal.settings refers to the Drupal.settings JavaScript variable.
+   * drupalSettings refers to the drupalSettings JavaScript variable.
    */
   protected function drupalGetSettings() {
     return $this->drupalSettings;
@@ -2326,9 +2469,9 @@ abstract class WebTestBase extends TestBase {
   }
 
   /**
-   * Sets the value of Drupal.settings for the currently-loaded page.
+   * Sets the value of drupalSettings for the currently-loaded page.
    *
-   * Drupal.settings refers to the Drupal.settings JavaScript variable.
+   * drupalSettings refers to the drupalSettings JavaScript variable.
    */
   protected function drupalSetSettings($settings) {
     $this->drupalSettings = $settings;
@@ -2361,7 +2504,11 @@ abstract class WebTestBase extends TestBase {
       ));
     }
     $options['absolute'] = TRUE;
-    return $this->assertEqual($this->getUrl(), $this->container->get('url_generator')->generateFromPath($path, $options), $message, $group);
+    // Paths in query strings can be encoded or decoded with no functional
+    // difference, decode them for comparison purposes.
+    $actual_url = urldecode($this->getUrl());
+    $expected_url = urldecode($this->container->get('url_generator')->generateFromPath($path, $options));
+    return $this->assertEqual($actual_url, $expected_url, $message, $group);
   }
 
   /**
@@ -2724,11 +2871,7 @@ abstract class WebTestBase extends TestBase {
    *   TRUE on pass, FALSE on fail.
    */
   protected function assertThemeOutput($callback, array $variables = array(), $expected, $message = '', $group = 'Other') {
-    $build = array('#theme' => $callback);
-    foreach($variables as $key => $variable) {
-      $build["#$key"] = $variable;
-    }
-    $output = drupal_render($build);
+    $output = theme($callback, $variables);
     $this->verbose('Variables:' . '<pre>' .  check_plain(var_export($variables, TRUE)) . '</pre>'
       . '<hr />' . 'Result:' . '<pre>' .  check_plain(var_export($output, TRUE)) . '</pre>'
       . '<hr />' . 'Expected:' . '<pre>' .  check_plain(var_export($expected, TRUE)) . '</pre>'
@@ -2806,7 +2949,7 @@ abstract class WebTestBase extends TestBase {
    * @return
    *   The selected value or FALSE.
    */
-  protected function getSelectedItem(SimpleXMLElement $element) {
+  protected function getSelectedItem(\SimpleXMLElement $element) {
     foreach ($element->children() as $item) {
       if (isset($item['selected'])) {
         return $item['value'];

@@ -30,12 +30,16 @@ use Drupal\Core\Annotation\Translation;
  *     },
  *     "list" = "Drupal\node\NodeTypeListController",
  *   },
+ *   admin_permission = "administer content types",
  *   config_prefix = "node.type",
  *   bundle_of = "node",
  *   entity_keys = {
  *     "id" = "type",
  *     "label" = "name",
  *     "uuid" = "uuid"
+ *   },
+ *   links = {
+ *     "edit-form" = "admin/structure/types/manage/{node_type}"
  *   }
  * )
  */
@@ -139,19 +143,6 @@ class NodeType extends ConfigEntityBase implements NodeTypeInterface {
   /**
    * {@inheritdoc}
    */
-  public function uri() {
-    return array(
-      'path' => 'admin/structure/types/manage/' . $this->id(),
-      'options' => array(
-        'entity_type' => $this->entityType,
-        'entity' => $this,
-      ),
-    );
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function getModuleSettings($module) {
     if (isset($this->settings[$module]) && is_array($this->settings[$module])) {
       return $this->settings[$module];
@@ -171,6 +162,8 @@ class NodeType extends ConfigEntityBase implements NodeTypeInterface {
    * {@inheritdoc}
    */
   public function postSave(EntityStorageControllerInterface $storage_controller, $update = TRUE) {
+    parent::postSave($storage_controller, $update);
+
     if (!$update) {
       // Clear the node type cache, so the new type appears.
       \Drupal::cache()->deleteTags(array('node_types' => TRUE));
@@ -209,6 +202,8 @@ class NodeType extends ConfigEntityBase implements NodeTypeInterface {
    * {@inheritdoc}
    */
   public static function postDelete(EntityStorageControllerInterface $storage_controller, array $entities) {
+    parent::postDelete($storage_controller, $entities);
+
     // Clear the node type cache to reflect the removal.
     $storage_controller->resetCache(array_keys($entities));
     foreach ($entities as $entity) {

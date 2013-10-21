@@ -75,6 +75,18 @@ class EntityType extends Plugin {
   );
 
   /**
+   * The name of the default administrative permission.
+   *
+   * The default \Drupal\Core\Entity\EntityAccessController class checks this
+   * permission for all operations in its checkAccess() method. Entities with
+   * more complex permissions can extend this class to do their own access
+   * checks.
+   *
+   * @var string (optional)
+   */
+  public $admin_permission;
+
+  /**
    * Boolean indicating whether fields can be attached to entities of this type.
    *
    * @var bool (optional)
@@ -136,6 +148,14 @@ class EntityType extends Plugin {
    * @var bool (optional)
    */
   public $static_cache = TRUE;
+
+  /**
+   * Boolean indicating whether the rendered output of entities should be
+   * cached.
+   *
+   * @var bool (optional)
+   */
+  public $render_cache = TRUE;
 
   /**
    * Boolean indicating whether entities of this type have multilingual support.
@@ -222,15 +242,6 @@ class EntityType extends Plugin {
    * @var string (optional)
    */
   public $route_base_path;
-
-  /**
-   * The prefix for the bundles of this entity type.
-   *
-   * For example, the comment bundle is prefixed with 'comment_node_'.
-   *
-   * @var string (optional)
-   */
-  public $bundle_prefix;
 
   /**
    * The base menu router path to which the entity admin user interface responds.

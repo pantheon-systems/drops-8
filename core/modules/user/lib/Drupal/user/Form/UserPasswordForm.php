@@ -59,7 +59,7 @@ class UserPasswordForm extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function getFormID() {
+  public function getFormId() {
     return 'user_pass';
   }
 
@@ -84,7 +84,7 @@ class UserPasswordForm extends FormBase {
       ),
     );
     // Allow logged in users to request this also.
-    $user = $this->getCurrentUser();
+    $user = $this->currentUser();
     if ($user->isAuthenticated()) {
       $form['name']['#type'] = 'value';
       $form['name']['#value'] = $user->getEmail();

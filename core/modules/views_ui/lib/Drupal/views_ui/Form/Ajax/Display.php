@@ -51,7 +51,7 @@ class Display extends ViewsFormBase {
   /**
    * {@inheritdoc}
    */
-  public function getFormID() {
+  public function getFormId() {
     return 'views_ui_edit_display_form';
   }
 
@@ -70,7 +70,7 @@ class Display extends ViewsFormBase {
     // Get form from the handler.
     $form['options'] = array(
       '#theme_wrappers' => array('container'),
-      '#attributes' => array('class' => array('scroll')),
+      '#attributes' => array('class' => array('scroll'), 'data-drupal-views-scroll' => TRUE),
     );
     $executable->display_handler->buildOptionsForm($form['options'], $form_state);
 

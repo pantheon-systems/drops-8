@@ -14,7 +14,7 @@ function seven_library_info() {
   $path = drupal_get_path('theme', 'seven');
 
   $libraries['install-page'] = array(
-    'version' => VERSION,
+    'version' => \Drupal::VERSION,
     'js' => array(
       $path . '/js/mobile.install.js' => array(
         'group' => JS_THEME,
@@ -31,26 +31,7 @@ function seven_library_info() {
 }
 
 /**
- * Implements hook_preprocess_HOOK() for maintenance-page.html.twig.
- */
-function seven_preprocess_maintenance_page(&$variables) {
-  // While markup for normal pages is split into page.tpl.php and html.tpl.php,
-  // the markup for the maintenance page is all in the single
-  // maintenance-page.html.twig template. So, to have what's done in
-  // seven_preprocess_html() also happen on the maintenance page, it has to be
-  // called here.
-  seven_preprocess_html($variables);
-}
-
-/**
- * Implements hook_preprocess_HOOK() for html.tpl.php.
- */
-function seven_preprocess_html(&$variables) {
-  drupal_add_library('system', 'normalize');
-}
-
-/**
- * Implements hook_preprocess_HOOK() for page.tpl.php.
+ * Implements hook_preprocess_HOOK() for page templates.
  */
 function seven_preprocess_page(&$variables) {
   $variables['primary_local_tasks'] = $variables['tabs'];
@@ -90,16 +71,16 @@ function seven_node_add_list($variables) {
  * Displays the list of available custom block types for creation.
  */
 function seven_custom_block_add_list($variables) {
-  $content = $variables['content'];
   $output = '';
-  if ($content) {
+  if (!empty($variables['types'])) {
     $output = '<ul class="admin-list">';
-    foreach ($content as $type) {
+    foreach ($variables['types'] as $id => $type) {
       $output .= '<li class="clearfix">';
-      $content = '<span class="label">' . check_plain($type->label()) . '</span>';
-      $content .= '<div class="description">' . filter_xss_admin($type->description) . '</div>';
+      $content = '<span class="label">' . check_plain($type['title']) . '</span>';
+      $content .= '<div class="description">' . filter_xss_admin($type['description']) . '</div>';
+      $options = $type['localized_options'];
       $options['html'] = TRUE;
-      $output .= Drupal::l($content, 'custom_block_add_form' , array('custom_block_type' => $type->id()), $options);
+      $output .= \Drupal::l($content, 'custom_block.add_form', array('custom_block_type' => $id), $options);
       $output .= '</li>';
     }
     $output .= '</ul>';

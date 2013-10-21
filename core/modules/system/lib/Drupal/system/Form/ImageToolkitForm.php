@@ -9,14 +9,14 @@ namespace Drupal\system\Form;
 
 use Drupal\Core\Config\ConfigFactory;
 use Drupal\Core\Config\Context\ContextInterface;
-use Drupal\system\SystemConfigFormBase;
-use Drupal\system\Plugin\ImageToolkitManager;
+use Drupal\Core\Form\ConfigFormBase;
+use Drupal\Core\ImageToolkit\ImageToolkitManager;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Configures image toolkit settings for this site.
  */
-class ImageToolkitForm extends SystemConfigFormBase {
+class ImageToolkitForm extends ConfigFormBase {
 
   /**
    * An array containing currently available toolkits.
@@ -32,7 +32,7 @@ class ImageToolkitForm extends SystemConfigFormBase {
    *   The factory for configuration objects.
    * @param \Drupal\Core\Config\Context\ContextInterface $context
    *   The configuration context used for this configuration object.
-   * @param \Drupal\system\Plugin\ImageToolkitManager $manager
+   * @param \Drupal\Core\ImageToolkit\ImageToolkitManager $manager
    *   The image toolkit plugin manager.
    */
   public function __construct(ConfigFactory $config_factory, ContextInterface $context, ImageToolkitManager $manager) {
@@ -57,7 +57,7 @@ class ImageToolkitForm extends SystemConfigFormBase {
   /**
    * {@inheritdoc}
    */
-  public function getFormID() {
+  public function getFormId() {
     return 'system_image_toolkit_settings';
   }
 

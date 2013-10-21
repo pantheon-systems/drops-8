@@ -43,9 +43,9 @@ class EntityCrudHookTest extends EntityUnitTestBase {
 
   public function setUp() {
     parent::setUp();
-    $this->installSchema('user', array('users_roles', 'users_data'));
-    $this->installSchema('node', array('node', 'node_field_data', 'node_field_revision', 'node_access'));
-    $this->installSchema('comment', array('comment', 'node_comment_statistics'));
+    $this->installSchema('user', array('users_data'));
+    $this->installSchema('node', array('node', 'node_revision', 'node_field_data', 'node_field_revision', 'node_access'));
+    $this->installSchema('comment', array('comment', 'comment_entity_statistics'));
   }
 
   /**
@@ -132,13 +132,14 @@ class EntityCrudHookTest extends EntityUnitTestBase {
    */
   public function testCommentHooks() {
     $account = $this->createUser();
+    $this->enableModules(array('entity', 'filter'));
+    $this->container->get('comment.manager')->addDefaultField('node', 'article', 'comment', COMMENT_OPEN);
 
     $node = entity_create('node', array(
       'uid' => $account->id(),
       'type' => 'article',
       'title' => 'Test node',
       'status' => 1,
-      'comment' => 2,
       'promote' => 0,
       'sticky' => 0,
       'langcode' => Language::LANGCODE_NOT_SPECIFIED,
@@ -150,10 +151,11 @@ class EntityCrudHookTest extends EntityUnitTestBase {
     $_SESSION['entity_crud_hook_test'] = array();
 
     $comment = entity_create('comment', array(
-      'node_type' => 'node_type_' . $node->bundle(),
       'cid' => NULL,
       'pid' => 0,
-      'nid' => $nid,
+      'entity_id' => $nid,
+      'entity_type' => 'node',
+      'field_name' => 'comment',
       'uid' => $account->id(),
       'subject' => 'Test comment',
       'created' => REQUEST_TIME,
@@ -281,7 +283,6 @@ class EntityCrudHookTest extends EntityUnitTestBase {
       'type' => 'article',
       'title' => 'Test node',
       'status' => 1,
-      'comment' => 2,
       'promote' => 0,
       'sticky' => 0,
       'langcode' => Language::LANGCODE_NOT_SPECIFIED,
@@ -520,12 +521,12 @@ class EntityCrudHookTest extends EntityUnitTestBase {
   }
 
   /**
-   * Tests rollback from failed insert in EntityNG.
+   * Tests rollback from failed entity save.
    */
-  function testEntityNGRollback() {
+  function testEntityRollback() {
     // Create a block.
     try {
-      $entity = entity_create('entity_test', array('name' => 'fail_insert'))->save();
+      entity_create('entity_test', array('name' => 'fail_insert'))->save();
       $this->fail('Expected exception has not been thrown.');
     }
     catch (\Exception $e) {

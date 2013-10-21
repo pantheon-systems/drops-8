@@ -39,6 +39,20 @@ abstract class FieldItemBase extends Map implements FieldItemInterface {
   /**
    * {@inheritdoc}
    */
+  public function getEntity() {
+    return $this->getParent()->getEntity();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getLangcode() {
+    return $this->parent->getLangcode();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function getFieldDefinition() {
     return $this->getParent()->getFieldDefinition();
   }

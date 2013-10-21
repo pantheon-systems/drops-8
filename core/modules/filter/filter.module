@@ -125,33 +125,29 @@ function filter_menu() {
   $items['filter/tips'] = array(
     'title' => 'Compose tips',
     'type' => MENU_SUGGESTED_ITEM,
-    'route_name' => 'filter_tips_all',
+    'route_name' => 'filter.tips_all',
   );
   $items['filter/tips/%'] = array(
     'title' => 'Compose tips',
-    'route_name' => 'filter_tips',
+    'route_name' => 'filter.tips',
   );
   $items['admin/config/content/formats'] = array(
     'title' => 'Text formats',
     'description' => 'Configure how content input by users is filtered, including allowed HTML tags. Also allows enabling of module-provided filters.',
-    'route_name' => 'filter_admin_overview',
+    'route_name' => 'filter.admin_overview',
   );
   $items['admin/config/content/formats/list'] = array(
     'title' => 'List',
     'type' => MENU_DEFAULT_LOCAL_TASK,
   );
-  $items['admin/config/content/formats/add'] = array(
-    'route_name' => 'filter_format_add',
-    'type' => MENU_SIBLING_LOCAL_TASK,
-  );
   $items['admin/config/content/formats/manage/%'] = array(
     'title callback' => 'entity_page_label',
     'title arguments' => array(5),
-    'route_name' => 'filter_format_edit',
+    'route_name' => 'filter.format_edit',
   );
   $items['admin/config/content/formats/manage/%/disable'] = array(
     'title' => 'Disable text format',
-    'route_name' => 'filter_admin_disable',
+    'route_name' => 'filter.admin_disable',
   );
   return $items;
 }
@@ -201,14 +197,14 @@ function filter_formats(AccountInterface $account = NULL) {
 
   // All available formats are cached for performance.
   if (!isset($formats['all'])) {
-    $language_interface = Drupal::languageManager()->getLanguage(Language::TYPE_INTERFACE);
-    if ($cache = Drupal::cache()->get("filter_formats:{$language_interface->id}")) {
+    $language_interface = \Drupal::languageManager()->getLanguage(Language::TYPE_INTERFACE);
+    if ($cache = \Drupal::cache()->get("filter_formats:{$language_interface->id}")) {
       $formats['all'] = $cache->data;
     }
     else {
-      $formats['all'] = Drupal::entityManager()->getStorageController('filter_format')->loadByProperties(array('status' => '1'));
+      $formats['all'] = \Drupal::entityManager()->getStorageController('filter_format')->loadByProperties(array('status' => TRUE));
       uasort($formats['all'], 'Drupal\Core\Config\Entity\ConfigEntityBase::sort');
-      Drupal::cache()->set("filter_formats:{$language_interface->id}", $formats['all'], CacheBackendInterface::CACHE_PERMANENT, array('filter_formats' => TRUE));
+      \Drupal::cache()->set("filter_formats:{$language_interface->id}", $formats['all'], CacheBackendInterface::CACHE_PERMANENT, array('filter_formats' => TRUE));
     }
   }
 
@@ -528,7 +524,7 @@ function filter_fallback_format() {
   // existing (and potentially unsafe) text format on the site automatically
   // available to all users. Returning NULL at least guarantees that this
   // cannot happen.
-  return Drupal::config('filter.settings')->get('fallback_format');
+  return \Drupal::config('filter.settings')->get('fallback_format');
 }
 
 /**
@@ -737,7 +733,7 @@ function filter_process_format($element) {
   // If multiple text formats are available, remove the fallback. The
   // "always_show_fallback_choice" is a hidden variable that has no UI. It
   // defaults to false.
-  if (!Drupal::config('filter.settings')->get('always_show_fallback_choice')) {
+  if (!\Drupal::config('filter.settings')->get('always_show_fallback_choice')) {
     $fallback_format = filter_fallback_format();
     if ($element['#format'] !== $fallback_format && count($formats) > 1) {
       unset($formats[$fallback_format]);
@@ -1079,7 +1075,7 @@ function _filter_url($text, $filter) {
   // we cannot cleanly differ between protocols here without hard-coding MAILTO,
   // so '//' is optional for all protocols.
   // @see filter_xss_bad_protocol()
-  $protocols = Drupal::config('system.filter')->get('protocols');
+  $protocols = \Drupal::config('system.filter')->get('protocols');
   $protocols = implode(':(?://)?|', $protocols) . ':(?://)?';
 
   $valid_url_path_characters = "[\p{L}\p{M}\p{N}!\*\';:=\+,\.\$\/%#\[\]\-_~@&]";
@@ -1384,8 +1380,8 @@ function _filter_html_image_secure_process($text) {
     $src = $image->getAttribute('src');
     // Remove absolute URLs pointing to the local domain to prevent mixed
     // content errors.
-    $request = Drupal::request();
-    $image->setAttribute('src', preg_replace('|^https?://' . $request->getHost() . '|', '', $src));
+    $request = \Drupal::request();
+    $image->setAttribute('src', preg_replace('|^https?://' . $request->getHttpHost() . '|', '', $src));
 
     // Verify that $src starts with $base_path.
     // This also ensures that external images cannot be referenced.
@@ -1395,6 +1391,7 @@ function _filter_html_image_secure_process($text) {
       // Ensure the path refers to an actual image by prefixing the image source
       // with the Drupal root and running getimagesize() on it.
       $local_image_path = $local_dir . drupal_substr($src, $base_path_length);
+      $local_image_path = rawurldecode($local_image_path);
       if (@getimagesize($local_image_path)) {
         // The image has the right path. Erroneous images are dealt with below.
         continue;
@@ -1456,7 +1453,7 @@ function filter_library_info() {
 
   $libraries['drupal.filter.admin'] = array(
     'title' => 'Filter',
-    'version' => VERSION,
+    'version' => \Drupal::VERSION,
     'js' => array(
       $path . '/filter.admin.js' => array(),
     ),
@@ -1472,7 +1469,7 @@ function filter_library_info() {
   );
   $libraries['drupal.filter.filter_html.admin'] = array(
     'title' => 'Automatic "Limit allowed HTML tags" filter setting updating.',
-    'version' => VERSION,
+    'version' => \Drupal::VERSION,
     'js' => array(
       $path . '/filter.filter_html.admin.js' => array(),
     ),
@@ -1484,7 +1481,7 @@ function filter_library_info() {
   );
   $libraries['drupal.filter'] = array(
     'title' => 'Filter',
-    'version' => VERSION,
+    'version' => \Drupal::VERSION,
     'js' => array(
       $path . '/filter.js' => array(),
     ),
@@ -1499,7 +1496,7 @@ function filter_library_info() {
   );
   $libraries['caption'] = array(
     'title' => 'Captions for images and alignments',
-    'version' => VERSION,
+    'version' => \Drupal::VERSION,
     'css' => array(
       $path . '/css/filter.caption.css',
     ),

@@ -57,6 +57,9 @@ class MTimeProtectedFileStorageTest extends PhpStorageTestBase {
    *
    * We test two attacks: first changes the file mtime, then the directory
    * mtime too.
+   *
+   * We need to delay over 1 second for mtime test.
+   * @medium
    */
   function testSecurity() {
     $php = $this->storageFactory->get('simpletest');
@@ -71,8 +74,8 @@ class MTimeProtectedFileStorageTest extends PhpStorageTestBase {
     // minimal permissions. fileperms() can return high bits unrelated to
     // permissions, so mask with 0777.
     $this->assertTrue(file_exists($expected_filename));
-    $this->assertSame(fileperms($expected_filename) & 0777, 0400);
-    $this->assertSame(fileperms($expected_directory) & 0777, 0100);
+    $this->assertSame(fileperms($expected_filename) & 0777, 0444);
+    $this->assertSame(fileperms($expected_directory) & 0777, 0777);
 
     // Ensure the root directory for the bin has a .htaccess file denying web
     // access.
@@ -84,7 +87,6 @@ class MTimeProtectedFileStorageTest extends PhpStorageTestBase {
     // a second of the initial save().
     sleep(1);
     for ($i = 0; $i < 2; $i++) {
-      $storageFactory = new PhpStorageFactory();
       $php = $this->storageFactory->get('simpletest');
       $GLOBALS['hacked'] = FALSE;
       $untrusted_code = "<?php\n" . '$GLOBALS["hacked"] = TRUE;';

@@ -38,7 +38,7 @@ class FilterStringTest extends ViewUnitTestBase {
   protected function setUp() {
     parent::setUp();
 
-    $this->installSchema('system', array('menu_router', 'variable', 'key_value_expire'));
+    $this->installSchema('system', array('router', 'menu_router', 'variable', 'key_value_expire'));
   }
 
   function viewsData() {
@@ -88,7 +88,7 @@ class FilterStringTest extends ViewUnitTestBase {
     // the exposed forms cache.
     drupal_static_reset('views_exposed_form_cache');
 
-    $view->storage->newDisplay('page', 'Page', 'page_1');
+    $view->newDisplay('page', 'Page', 'page_1');
     return $view;
   }
 

@@ -1,0 +1,72 @@
+batch_test.redirect:
+  path: '/batch-test/redirect'
+  defaults:
+    _content: '\Drupal\batch_test\Controller\BatchTestController::testRedirect'
+    _title: 'Redirect'
+  requirements:
+    _access:  'TRUE'
+
+batch_test.large_percentage:
+  path: '/batch-test/large-percentage'
+  defaults:
+    _content: '\Drupal\batch_test\Controller\BatchTestController::testLargePercentage'
+    _title: 'Simple page with batch over 100% complete'
+  requirements:
+    _access:  'TRUE'
+
+batch_test.nested_programmatic:
+  path: '/batch-test/nested-programmatic/{value}'
+  defaults:
+    _content: '\Drupal\batch_test\Controller\BatchTestController::testNestedDrupalFormSubmit'
+    _title: 'Nested programmatic'
+    value: '1'
+  requirements:
+    _access: 'TRUE'
+
+batch_test.no_form:
+  path: '/batch-test/no-form'
+  defaults:
+    _content: '\Drupal\batch_test\Controller\BatchTestController::testNoForm'
+    _title: 'Simple page'
+  requirements:
+    _access: 'TRUE'
+
+batch_test.test_form:
+  path: '/batch-test'
+  defaults:
+    _content: '\Drupal\batch_test\Form\BatchTestForm::testForm'
+    _title: 'Batch test'
+  requirements:
+    _access: 'TRUE'
+
+batch_test.multistep:
+  path: '/batch-test/multistep'
+  defaults:
+    _content: '\Drupal\batch_test\Form\BatchTestForm::testMultistepForm'
+    _title: 'Multistep'
+  requirements:
+    _access: 'TRUE'
+
+batch_test.chained:
+  path: '/batch-test/chained'
+  defaults:
+    _content: '\Drupal\batch_test\Form\BatchTestForm::testChainedForm'
+    _title: 'Chained'
+  requirements:
+    _access: 'TRUE'
+
+batch_test.programmatic:
+  path: '/batch-test/programmatic/{value}'
+  defaults:
+    _content: '\Drupal\batch_test\Controller\BatchTestController::testProgrammatic'
+    _title: 'Programmatic'
+    value: '1'
+  requirements:
+    _access: 'TRUE'
+
+batch_test.test_theme:
+  path: '/admin/batch-test/test-theme'
+  defaults:
+    _content: '\Drupal\batch_test\Controller\BatchTestController::testThemeBatch'
+  requirements:
+    _access: 'TRUE'

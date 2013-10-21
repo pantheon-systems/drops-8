@@ -7,6 +7,9 @@
 
 use Drupal\Component\Utility\Crypt;
 use Drupal\Component\Utility\NestedArray;
+use Drupal\Component\Utility\Number;
+use Drupal\Component\Utility\String;
+use Drupal\Component\Utility\Url;
 use Drupal\Core\Form\FormInterface;
 use Drupal\Core\Form\BaseFormIdInterface;
 use Drupal\Core\Database\Database;
@@ -121,6 +124,16 @@ use Symfony\Component\HttpKernel\Event\FilterResponseEvent;
  *   The unique string identifying the desired form.
  */
 function _drupal_form_id($form_arg, &$form_state) {
+  // If the $form_arg is the name of a class, instantiate it.
+  if (is_string($form_arg) && class_exists($form_arg)) {
+    if (in_array('Drupal\Core\DependencyInjection\ContainerInjectionInterface', class_implements($form_arg))) {
+      $form_arg = $form_arg::create(\Drupal::getContainer());
+    }
+    else {
+      $form_arg = new $form_arg();
+    }
+  }
+
   // If the $form_arg implements \Drupal\Core\Form\FormInterface, add that as
   // the callback object and determine the form ID.
   if (is_object($form_arg) && $form_arg instanceof FormInterface) {
@@ -128,7 +141,7 @@ function _drupal_form_id($form_arg, &$form_state) {
     if ($form_arg instanceof BaseFormIdInterface) {
       $form_state['build_info']['base_form_id'] = $form_arg->getBaseFormID();
     }
-    return $form_arg->getFormID();
+    return $form_arg->getFormId();
   }
 
   // Otherwise, the $form_arg is the form ID.
@@ -545,10 +558,10 @@ function drupal_rebuild_form($form_id, &$form_state, $old_form = NULL) {
  * Fetches a form from the cache.
  */
 function form_get_cache($form_build_id, &$form_state) {
-  if ($form = Drupal::keyValueExpirable('form')->get($form_build_id)) {
+  if ($form = \Drupal::keyValueExpirable('form')->get($form_build_id)) {
     global $user;
     if ((isset($form['#cache_token']) && drupal_valid_token($form['#cache_token'])) || (!isset($form['#cache_token']) && $user->isAnonymous())) {
-      if ($stored_form_state = Drupal::keyValueExpirable('form_state')->get($form_build_id)) {
+      if ($stored_form_state = \Drupal::keyValueExpirable('form_state')->get($form_build_id)) {
         // Re-populate $form_state for subsequent rebuilds.
         $form_state = $stored_form_state + $form_state;
 
@@ -582,12 +595,12 @@ function form_set_cache($form_build_id, $form, $form_state) {
     if ($GLOBALS['user']->isAuthenticated()) {
       $form['#cache_token'] = drupal_get_token();
     }
-    Drupal::keyValueExpirable('form')->setWithExpire($form_build_id, $form, $expire);
+    \Drupal::keyValueExpirable('form')->setWithExpire($form_build_id, $form, $expire);
   }
 
   // Cache form state.
   if ($data = array_diff_key($form_state, array_flip(form_state_keys_no_cache()))) {
-    Drupal::keyValueExpirable('form_state')->setWithExpire($form_build_id, $data, $expire);
+    \Drupal::keyValueExpirable('form_state')->setWithExpire($form_build_id, $data, $expire);
   }
 }
 
@@ -820,7 +833,7 @@ function drupal_retrieve_form($form_id, &$form_state) {
     // So, we call the hook if $forms isn't yet populated, OR if it doesn't
     // yet have an entry for the requested form_id.
     if (!isset($forms) || !isset($forms[$form_id])) {
-      $forms = Drupal::moduleHandler()->invokeAll('forms', array($form_id, $args));
+      $forms = \Drupal::moduleHandler()->invokeAll('forms', array($form_id, $args));
     }
     $form_definition = $forms[$form_id];
     if (isset($form_definition['callback arguments'])) {
@@ -1346,8 +1359,8 @@ function drupal_redirect_form($form_state) {
         }
       }
     }
-    $url = url(Drupal::request()->attributes->get('_system_path'), array(
-      'query' => Drupal::request()->query->all(),
+    $url = url(\Drupal::request()->attributes->get('_system_path'), array(
+      'query' => \Drupal::request()->query->all(),
       'absolute' => TRUE,
     ));
     return new RedirectResponse($url);
@@ -2824,7 +2837,7 @@ function form_select_options($element, $choices = NULL) {
       else {
         $selected = '';
       }
-      $options .= '<option value="' . check_plain($key) . '"' . $selected . '>' . check_plain($choice) . '</option>';
+      $options .= '<option value="' . String::checkPlain($key) . '"' . $selected . '>' . String::checkPlain($choice) . '</option>';
     }
   }
   return $options;
@@ -4067,21 +4080,18 @@ function form_pre_render_vertical_tabs($element) {
  */
 function theme_vertical_tabs($variables) {
   $element = $variables['element'];
-  return '<div class="vertical-tabs-panes">' . $element['#children'] . '</div>';
+  return '<div data-vertical-tabs-panes ' . new Attribute($element['#attributes']) . '>' . $element['#children'] . '</div>';
 }
 
 /**
- * Adds autocomplete functionality to elements with a valid #autocomplete_path.
+ * Adds autocomplete functionality to elements with a valid
+ * #autocomplete_route_name.
  *
- * Suppose your autocomplete path in the menu system is 'mymodule_autocomplete.'
+ * Suppose your autocomplete route name is 'mymodule.autocomplete' and its path
+ * is: '/mymodule/autocomplete/{a}/{b}'
  * In your form you have:
  * @code
- * '#autocomplete_path' => 'mymodule_autocomplete/' . $some_key . '/' . $some_id,
- * @endcode
- * Or if your route is called 'mymodule_autocomplete' with the path of
- * '/mymodule-autocomplete/{a}/{b}':
- * @code
- * '#autocomplete_route_name' => 'mymodule_autocomplete',
+ * '#autocomplete_route_name' => 'mymodule.autocomplete',
  * '#autocomplete_route_parameters' => array('a' => $some_key, 'b' => $some_id),
  * @endcode
  * The user types in "keywords" so the full path called is:
@@ -4089,8 +4099,6 @@ function theme_vertical_tabs($variables) {
  *
  * @param array $element
  *   The form element to process. Properties used:
- *   - #autocomplete_path: A system path to be used as callback URL by the
- *     autocomplete JavaScript library.
  *   - #autocomplete_route_name: A route to be used as callback URL by the
  *     autocomplete JavaScript library.
  *   - #autocomplete_route_parameters: The parameters to be used in conjunction
@@ -4106,19 +4114,15 @@ function form_process_autocomplete($element, &$form_state) {
   if (!empty($element['#autocomplete_route_name'])) {
     $parameters = isset($element['#autocomplete_route_parameters']) ? $element['#autocomplete_route_parameters'] : array();
 
-    $path = Drupal::urlGenerator()->generate($element['#autocomplete_route_name'], $parameters);
-    $access = Drupal::service('access_manager')->checkNamedRoute($element['#autocomplete_route_name'], $parameters);
-  }
-  elseif (!empty($element['#autocomplete_path'])) {
-    $path = url($element['#autocomplete_path'], array('absolute' => TRUE));
-    $access = drupal_valid_path($element['#autocomplete_path']);
+    $path = \Drupal::urlGenerator()->generate($element['#autocomplete_route_name'], $parameters);
+    $access = \Drupal::service('access_manager')->checkNamedRoute($element['#autocomplete_route_name'], $parameters);
   }
   if ($access) {
     $element['#attributes']['class'][] = 'form-autocomplete';
     $element['#attached']['library'][] = array('system', 'drupal.autocomplete');
     // Provide a hidden element for the JavaScript behavior to bind to. Since
     // this element is for client-side functionality only, do not process input.
-    // @todo Refactor autocomplete.js to accept Drupal.settings instead of
+    // @todo Refactor autocomplete.js to accept drupalSettings instead of
     //   requiring extraneous markup.
     $element['autocomplete'] = array(
       '#type' => 'hidden',
@@ -4379,12 +4383,12 @@ function form_validate_number(&$element, &$form_state) {
 
   // Ensure that the input is greater than the #min property, if set.
   if (isset($element['#min']) && $value < $element['#min']) {
-    form_error($element, t('%name must be higher or equal to %min.', array('%name' => $name, '%min' => $element['#min'])));
+    form_error($element, t('%name must be higher than or equal to %min.', array('%name' => $name, '%min' => $element['#min'])));
   }
 
   // Ensure that the input is less than the #max property, if set.
   if (isset($element['#max']) && $value > $element['#max']) {
-    form_error($element, t('%name must be below or equal to %max.', array('%name' => $name, '%max' => $element['#max'])));
+    form_error($element, t('%name must be lower than or equal to %max.', array('%name' => $name, '%max' => $element['#max'])));
   }
 
   if (isset($element['#step']) && strtolower($element['#step']) != 'any') {
@@ -4392,7 +4396,7 @@ function form_validate_number(&$element, &$form_state) {
     // #min is set).
     $offset = isset($element['#min']) ? $element['#min'] : 0.0;
 
-    if (!valid_number_step($value, $element['#step'], $offset)) {
+    if (!Number::validStep($value, $element['#step'], $offset)) {
       form_error($element, t('%name is not a valid number.', array('%name' => $name)));
     }
   }
@@ -4533,7 +4537,7 @@ function form_pre_render_color($element) {
 function theme_form($variables) {
   $element = $variables['element'];
   if (isset($element['#action'])) {
-    $element['#attributes']['action'] = drupal_strip_dangerous_protocols($element['#action']);
+    $element['#attributes']['action'] = Url::stripDangerousProtocols($element['#action']);
   }
   element_set_attributes($element, array('method', 'id'));
   if (empty($element['#attributes']['accept-charset'])) {
@@ -4569,7 +4573,7 @@ function theme_textarea($variables) {
   }
 
   $output = '<div' . new Attribute($wrapper_attributes) . '>';
-  $output .= '<textarea' . new Attribute($element['#attributes']) . '>' . check_plain($element['#value']) . '</textarea>';
+  $output .= '<textarea' . new Attribute($element['#attributes']) . '>' . String::checkPlain($element['#value']) . '</textarea>';
   $output .= '</div>';
   return $output;
 }
@@ -4600,7 +4604,7 @@ function form_process_weight($element) {
   $element['#is_weight'] = TRUE;
 
   // If the number of options is small enough, use a select field.
-  $max_elements = Drupal::config('system.site')->get('weight_select_max');
+  $max_elements = \Drupal::config('system.site')->get('weight_select_max');
   if ($element['#delta'] <= $max_elements) {
     $element['#type'] = 'select';
     for ($n = (-1 * $element['#delta']); $n <= $element['#delta']; $n++) {
@@ -4881,11 +4885,11 @@ function _form_set_attributes(&$element, $class = array()) {
  *   A response object.
  */
 function _drupal_form_send_response(Response $response) {
-  $request = Drupal::request();
-  $kernel = Drupal::service('http_kernel');
+  $request = \Drupal::request();
+  $kernel = \Drupal::service('http_kernel');
   $event = new FilterResponseEvent($kernel, $request, $kernel::MASTER_REQUEST, $response);
 
-  Drupal::service('event_dispatcher')->dispatch(KernelEvents::RESPONSE, $event);
+  \Drupal::service('event_dispatcher')->dispatch(KernelEvents::RESPONSE, $event);
   // Prepare and send the response.
   $event->getResponse()
     ->prepare($request)
@@ -4932,9 +4936,9 @@ function _drupal_form_send_response(Response $response) {
  * Note: if the batch 'title', 'init_message', 'progress_message', or
  * 'error_message' could contain any user input, it is the responsibility of
  * the code calling batch_set() to sanitize them first with a function like
- * check_plain() or filter_xss(). Furthermore, if the batch operation
- * returns any user input in the 'results' or 'message' keys of $context,
- * it must also sanitize them first.
+ * \Drupal\Component\Utility\String::checkPlain() or filter_xss(). Furthermore,
+ * if the batch operation returns any user input in the 'results' or 'message'
+ * keys of $context, it must also sanitize them first.
  *
  * Sample batch operations:
  * @code
@@ -4958,8 +4962,8 @@ function _drupal_form_send_response(Response $response) {
  *
  *   $nodes = entity_load_multiple_by_properties('node', array('uid' => $uid, 'type' => $type));
  *   $node = reset($nodes);
- *   $context['results'][] = $node->id() . ' : ' . check_plain($node->label());
- *   $context['message'] = check_plain($node->label());
+ *   $context['results'][] = $node->id() . ' : ' . String::checkPlain($node->label());
+ *   $context['message'] = String::checkPlain($node->label());
  * }
  *
  * // A more advanced example is a multi-step operation that loads all rows,
@@ -4978,10 +4982,10 @@ function _drupal_form_send_response(Response $response) {
  *     ->range(0, $limit)
  *     ->execute();
  *   foreach ($result as $row) {
- *     $context['results'][] = $row->id . ' : ' . check_plain($row->title);
+ *     $context['results'][] = $row->id . ' : ' . String:checkPlain($row->title);
  *     $context['sandbox']['progress']++;
  *     $context['sandbox']['current_id'] = $row->id;
- *     $context['message'] = check_plain($row->title);
+ *     $context['message'] = String:checkPlain($row->title);
  *   }
  *   if ($context['sandbox']['progress'] != $context['sandbox']['max']) {
  *     $context['finished'] = $context['sandbox']['progress'] / $context['sandbox']['max'];
@@ -5173,14 +5177,14 @@ function batch_process($redirect = NULL, $url = 'batch', $redirect_callback = NU
 
       // Clear the way for the redirection to the batch processing page, by
       // saving and unsetting the 'destination', if there is any.
-      $request = Drupal::request();
+      $request = \Drupal::request();
       if ($request->query->has('destination')) {
         $batch['destination'] = $request->query->get('destination');
         $request->query->remove('destination');
       }
 
       // Store the batch.
-      Drupal::service('batch.storage')->create($batch);
+      \Drupal::service('batch.storage')->create($batch);
 
       // Set the batch number in the session to guarantee that it will stay alive.
       $_SESSION['batches'][$batch['id']] = TRUE;

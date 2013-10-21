@@ -21,7 +21,7 @@ use Drupal\Core\Config\ConfigFactory;
 use Drupal\Core\PathProcessor\OutboundPathProcessorInterface;
 
 /**
- * Defines an interface which generates a link with route names and parameters.
+ * Generates URLs from route names and parameters.
  */
 class UrlGenerator extends ProviderBasedGenerator implements UrlGeneratorInterface {
 
@@ -224,10 +224,10 @@ class UrlGenerator extends ProviderBasedGenerator implements UrlGeneratorInterfa
 
     if (!isset($options['external'])) {
       // Return an external link if $path contains an allowed absolute URL. Only
-      // call the slow drupal_strip_dangerous_protocols() if $path contains a ':'
-      // before any / ? or #. Note: we could use url_is_external($path) here, but
-      // that would require another function call, and performance inside url() is
-      // critical.
+      // call the slow \Drupal\Component\Utility\Url::stripDangerousProtocols()
+      // if $path contains a ':' before any / ? or #. Note: we could use
+      // url_is_external($path) here, but that would require another function
+      // call, and performance inside url() is critical.
       $colonpos = strpos($path, ':');
       $options['external'] = ($colonpos !== FALSE && !preg_match('![/?#]!', substr($path, 0, $colonpos)) && Url::stripDangerousProtocols($path) == $path);
     }

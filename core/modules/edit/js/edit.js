@@ -20,11 +20,14 @@
 
 "use strict";
 
-var options = $.extend({
-  strings: {
-    quickEdit: Drupal.t('Quick edit')
+var options = $.extend(drupalSettings.edit,
+  // Merge strings on top of drupalSettings so that they are not mutable.
+  {
+    strings: {
+      quickEdit: Drupal.t('Quick edit')
+    }
   }
-}, drupalSettings.edit);
+);
 
 /**
  * Tracks fields without metadata. Contains objects with the following keys:
@@ -382,16 +385,20 @@ function initializeEntityContextualLink (contextualLink) {
     });
     fieldsAvailableQueue = _.difference(fieldsAvailableQueue, fields);
 
-    // Set up contextual link view after loading any missing in-place editors.
-    loadMissingEditors(function () {
+    // Initialization should only be called once. Use Underscore's once method
+    // to get a one-time use version of the function.
+    var initContextualLink = _.once(function () {
       var $links = $(contextualLink.el).find('.contextual-links');
       var contextualLinkView = new Drupal.edit.ContextualLinkView($.extend({
-        el: $('<li class="quick-edit"><a href=""></a></li>').prependTo($links),
+        el: $('<li class="quick-edit"><a href="" role="button" aria-pressed="false"></a></li>').prependTo($links),
         model: entityModel,
         appModel: Drupal.edit.app.model
       }, options));
       entityModel.set('contextualLinkView', contextualLinkView);
     });
+
+    // Set up ContextualLinkView after loading any missing in-place editors.
+    loadMissingEditors(initContextualLink);
 
     return true;
   }

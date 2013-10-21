@@ -20,7 +20,7 @@ class StringDatabaseStorage implements StringStorageInterface {
   /**
    * The database connection.
    *
-   * @var Drupal\Core\Database\Connection
+   * @var \Drupal\Core\Database\Connection
    */
   protected $connection;
 
@@ -34,7 +34,7 @@ class StringDatabaseStorage implements StringStorageInterface {
   /**
    * Constructs a new StringStorage controller.
    *
-   * @param Drupal\Core\Database\Connection $connection
+   * @param \Drupal\Core\Database\Connection $connection
    *   A Database connection to use for reading and writing configuration data.
    * @param array $options
    *   (optional) Any additional database connection options to use in queries.
@@ -83,7 +83,7 @@ class StringDatabaseStorage implements StringStorageInterface {
 
     if (!empty($values)) {
       $string = new TranslationString($values);
-      $this->checkVersion($string, VERSION);
+      $this->checkVersion($string, \Drupal::VERSION);
       $string->setStorage($this);
       return $string;
     }
@@ -138,7 +138,7 @@ class StringDatabaseStorage implements StringStorageInterface {
   /**
    * Update locations for string.
    *
-   * @param Drupal\locale\StringInterface $string
+   * @param \Drupal\locale\StringInterface $string
    *   The string object.
    */
   protected function updateLocation($string) {
@@ -156,7 +156,7 @@ class StringDatabaseStorage implements StringStorageInterface {
             // This is a new location to add, take care not to duplicate.
             $this->connection->merge('locales_location', $this->options)
               ->key(array('sid' => $string->getId(), 'type' => $type, 'name' => $name))
-              ->fields(array('version' => VERSION))
+              ->fields(array('version' => \Drupal::VERSION))
               ->execute();
             $created = TRUE;
           }
@@ -165,7 +165,7 @@ class StringDatabaseStorage implements StringStorageInterface {
       }
       if ($created) {
         // As we've set a new location, check string version too.
-        $this->checkVersion($string, VERSION);
+        $this->checkVersion($string, \Drupal::VERSION);
       }
     }
   }
@@ -173,7 +173,7 @@ class StringDatabaseStorage implements StringStorageInterface {
   /**
    * Checks whether the string version matches a given version, fix it if not.
    *
-   * @param Drupal\locale\StringInterface $string
+   * @param \Drupal\locale\StringInterface $string
    *   The string object.
    * @param string $version
    *   Drupal version to check against.
@@ -269,7 +269,7 @@ class StringDatabaseStorage implements StringStorageInterface {
   /**
    * Gets table name for storing string object.
    *
-   * @param Drupal\locale\StringInterface $string
+   * @param \Drupal\locale\StringInterface $string
    *   The string object.
    *
    * @return string
@@ -287,7 +287,7 @@ class StringDatabaseStorage implements StringStorageInterface {
   /**
    * Gets keys values that are in a database table.
    *
-   * @param Drupal\locale\StringInterface $string
+   * @param \Drupal\locale\StringInterface $string
    *   The string object.
    *
    * @return array
@@ -453,14 +453,14 @@ class StringDatabaseStorage implements StringStorageInterface {
   /**
    * Createds a database record for a string object.
    *
-   * @param Drupal\locale\StringInterface $string
+   * @param \Drupal\locale\StringInterface $string
    *   The string object.
    *
    * @return bool|int
    *   If the operation failed, returns FALSE.
    *   If it succeeded returns the last insert ID of the query, if one exists.
    *
-   * @throws Drupal\locale\StringStorageException
+   * @throws \Drupal\locale\StringStorageException
    *   If the string is not suitable for this storage, an exception ithrown.
    */
   protected function dbStringInsert($string) {
@@ -487,14 +487,14 @@ class StringDatabaseStorage implements StringStorageInterface {
   /**
    * Updates string object in the database.
    *
-   * @param Drupal\locale\StringInterface $string
+   * @param \Drupal\locale\StringInterface $string
    *   The string object.
    *
    * @return bool|int
    *   If the record update failed, returns FALSE. If it succeeded, returns
    *   SAVED_NEW or SAVED_UPDATED.
    *
-   * @throws Drupal\locale\StringStorageException
+   * @throws \Drupal\locale\StringStorageException
    *   If the string is not suitable for this storage, an exception is thrown.
    */
   protected function dbStringUpdate($string) {

@@ -30,7 +30,7 @@ class ViewsBlock implements ContainerDerivativeInterface {
    *
    * @var string
    */
-  protected $base_plugin_id;
+  protected $basePluginId;
 
   /**
    * The view storage controller.
@@ -93,13 +93,14 @@ class ViewsBlock implements ContainerDerivativeInterface {
 
           if (empty($desc)) {
             if ($display->display['display_title'] == $display->definition['title']) {
-              $desc = t('View: !view', array('!view' => $view->label()));
+              $desc = t('!view', array('!view' => $view->label()));
             }
             else {
-              $desc = t('View: !view: !display', array('!view' => $view->label(), '!display' => $display->display['display_title']));
+              $desc = t('!view: !display', array('!view' => $view->label(), '!display' => $display->display['display_title']));
             }
           }
           $this->derivatives[$delta] = array(
+            'category' => $display->getOption('block_category'),
             'admin_label' => $desc,
             'cache' => $display->getCacheType()
           );

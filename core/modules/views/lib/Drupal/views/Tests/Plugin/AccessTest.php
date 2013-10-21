@@ -37,7 +37,7 @@ class AccessTest extends PluginTestBase {
 
     $this->enableViewsTestModule();
 
-    ViewTestData::importTestViews(get_class($this), array('views_test_data'));
+    ViewTestData::createTestViews(get_class($this), array('views_test_data'));
 
     $this->admin_user = $this->drupalCreateUser(array('access all views'));
     $this->web_user = $this->drupalCreateUser();
@@ -70,7 +70,7 @@ class AccessTest extends PluginTestBase {
   /**
    * Tests static access check.
    *
-   * @see Drupal\views_test\Plugin\views\access\StaticTest
+   * @see \Drupal\views_test\Plugin\views\access\StaticTest
    */
   function testStaticAccessPlugin() {
     $view = views_get_view('test_access_static');

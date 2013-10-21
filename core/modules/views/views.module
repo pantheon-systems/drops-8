@@ -84,7 +84,7 @@ function views_pre_render_view_element($element) {
  * definitions.
  */
 function views_theme($existing, $type, $theme, $path) {
-  Drupal::moduleHandler()->loadInclude('views', 'inc', 'views.theme');
+  \Drupal::moduleHandler()->loadInclude('views', 'inc', 'views.theme');
 
   // Some quasi clever array merging here.
   $base = array(
@@ -121,7 +121,7 @@ function views_theme($existing, $type, $theme, $path) {
   );
 
   $plugins = views_get_plugin_definitions();
-  $module_handler = Drupal::moduleHandler();
+  $module_handler = \Drupal::moduleHandler();
 
   // Register theme functions for all style plugins. It provides a basic auto
   // implementation of theme functions or template files by using the plugin
@@ -234,7 +234,7 @@ function views_plugin_list() {
           $plugins[$key] = array(
             'type' => $type,
             'title' => check_plain($info[$name]['title']),
-            'module' => check_plain($info[$name]['module']),
+            'provider' => check_plain($info[$name]['provider']),
             'views' => array(),
           );
         }
@@ -256,26 +256,37 @@ function views_plugin_list() {
  * node portion of the theme registry.
  */
 function views_preprocess_node(&$variables) {
-  Drupal::moduleHandler()->loadInclude('node', 'views.inc');
+  \Drupal::moduleHandler()->loadInclude('node', 'views.inc');
   // The 'view' attribute of the node is added in
   // \Drupal\views\Plugin\views\row\EntityRow::preRender().
   if (!empty($variables['node']->view) && $variables['node']->view->storage->id()) {
     $variables['view'] = $variables['node']->view;
-    $variables['theme_hook_suggestions'][] = 'node__view__' . $variables['node']->view->storage->id();
-    if (!empty($variables['node']->view->current_display)) {
-      $variables['theme_hook_suggestions'][] = 'node__view__' . $variables['node']->view->storage->id() . '__' . $variables['node']->view->current_display;
-
-      // If a node is being rendered in a view, and the view does not have a path,
-      // prevent drupal from accidentally setting the $page variable:
-      if ($variables['page'] && $variables['view_mode'] == 'full' && !$variables['view']->display_handler->hasPath()) {
-        $variables['page'] = FALSE;
-      }
+    // If a node is being rendered in a view, and the view does not have a path,
+    // prevent drupal from accidentally setting the $page variable:
+    if (!empty($variables['view']->current_display)
+        && $variables['page']
+        && $variables['view_mode'] == 'full'
+        && !$variables['view']->display_handler->hasPath()) {
+      $variables['page'] = FALSE;
     }
   }
 
   // Allow to alter comments and links based on the settings in the row plugin.
   if (!empty($variables['view']->rowPlugin) && $variables['view']->rowPlugin->getPluginId() == 'entity:node') {
     node_row_node_view_preprocess_node($variables);
+  }
+}
+
+/**
+ * Implements hook_theme_suggestions_HOOK_alter().
+ */
+function views_theme_suggestions_node_alter(array &$suggestions, array $variables) {
+  $node = $variables['elements']['#node'];
+  if (!empty($node->view) && $node->view->storage->id()) {
+    $suggestions[] = 'node__view__' . $node->view->storage->id();
+    if (!empty($node->view->current_display)) {
+      $suggestions[] = 'node__view__' . $node->view->storage->id() . '__' . $node->view->current_display;
+    }
   }
 }
 
@@ -288,9 +299,18 @@ function views_preprocess_comment(&$variables) {
   // \Drupal\views\Plugin\views\row\EntityRow::preRender().
   if (!empty($variables['comment']->view) && $variables['comment']->view->storage->id()) {
     $variables['view'] = &$variables['comment']->view;
-    $variables['theme_hook_suggestions'][] = 'comment__view__' . $variables['comment']->view->storage->id();
-    if (!empty($variables['node']->view->current_display)) {
-      $variables['theme_hook_suggestions'][] = 'comment__view__' . $variables['comment']->view->storage->id() . '__' . $variables['comment']->view->current_display;
+  }
+}
+
+/**
+ * Implements hook_theme_suggestions_HOOK_alter().
+ */
+function views_theme_suggestions_comment_alter(array &$suggestions, array $variables) {
+  $comment = $variables['elements']['#comment'];
+  if (!empty($comment->view) && $comment->view->storage->id()) {
+    $suggestions[] = 'comment__view__' . $comment->view->storage->id();
+    if (!empty($comment->view->current_display)) {
+      $suggestions[] = 'comment__view__' . $comment->view->storage->id() . '__' . $comment->view->current_display;
     }
   }
 }
@@ -312,26 +332,12 @@ function views_permission() {
  * Implement hook_menu().
  */
 function views_menu() {
-  // Any event which causes a menu rebuild could potentially mean that the
-  // Views data is updated -- module changes, profile changes, etc.
-  views_invalidate_cache();
   $items = array();
   $items['views/ajax'] = array(
     'title' => 'Views',
     'theme callback' => 'ajax_base_page_theme',
-    'route_name' => 'views_ajax',
+    'route_name' => 'views.ajax',
     'type' => MENU_CALLBACK,
-  );
-  // Define another taxonomy autocomplete because the default one of drupal
-  // does not support a vid a argument anymore
-  $items['admin/views/ajax/autocomplete/taxonomy/%'] = array(
-    'page callback' => 'views_ajax_autocomplete_taxonomy',
-    'page arguments' => array(5),
-    'theme callback' => 'ajax_base_page_theme',
-    'access callback' => 'user_access',
-    'access arguments' => array('access content'),
-    'type' => MENU_CALLBACK,
-    'file' => 'includes/ajax.inc',
   );
   return $items;
 }
@@ -496,8 +502,8 @@ function views_preprocess_html(&$variables) {
   // associated with. This we don't want; for better visual highlighting, we
   // prefer a smaller region to be chosen. The region we prefer differs from
   // theme to theme and depends on the details of the theme's markup in
-  // page.tpl.php, so we can only find it using JavaScript. We therefore remove
-  // the "contextual-region" class from the <body> tag here and add
+  // page.html.twig, so we can only find it using JavaScript. We therefore
+  // remove the "contextual-region" class from the <body> tag here and add
   // JavaScript that will insert it back in the correct place.
   if (!empty($variables['page']['#views_contextual_links'])) {
     $key = array_search('contextual-region', $variables['attributes']['class']);
@@ -696,20 +702,23 @@ function views_invalidate_cache() {
   Cache::deleteTags(array('content' => TRUE));
 
   // Set the menu as needed to be rebuilt.
-  Drupal::state()->set('menu_rebuild_needed', TRUE);
+  \Drupal::state()->set('menu_rebuild_needed', TRUE);
 
-  $module_handler = Drupal::moduleHandler();
+  $module_handler = \Drupal::moduleHandler();
+
+  // Reset the RouteSubscriber from views.
+  \Drupal::getContainer()->get('views.route_subscriber')->reset();
 
   // Set the router to be rebuild.
   // @todo Figure out why the cache rebuild is trigged but the route table
   //   does not exist yet.
   if (db_table_exists('router')) {
-    Drupal::service('router.builder')->rebuild();
+    \Drupal::service('router.builder')->rebuild();
   }
 
   // Invalidate the block cache to update views block derivatives.
   if ($module_handler->moduleExists('block')) {
-    Drupal::service('plugin.manager.block')->clearCachedDefinitions();
+    \Drupal::service('plugin.manager.block')->clearCachedDefinitions();
   }
 
   // Allow modules to respond to the Views cache being cleared.
@@ -746,7 +755,7 @@ function &views_get_page_view() {
  * Set the current 'current view' that is being built/rendered so that it is
  * easy for other modules or items in drupal_eval to identify
  *
- * @return Drupal\views\ViewExecutable
+ * @return \Drupal\views\ViewExecutable
  */
 function &views_set_current_view($view = NULL) {
   static $cache = NULL;
@@ -813,14 +822,14 @@ function views_library_info() {
   $path = drupal_get_path('module', 'views');
   $libraries['views.module'] = array(
     'title' => 'Views base',
-    'version' => VERSION,
+    'version' => \Drupal::VERSION,
     'css' => array(
       "$path/css/views.module.css"
     ),
   );
   $libraries['views.ajax'] = array(
     'title' => 'Views AJAX',
-    'version' => VERSION,
+    'version' => \Drupal::VERSION,
     'js' => array(
       "$path/js/base.js" => array('group' => JS_DEFAULT),
       "$path/js/ajax_view.js" => array('group' => JS_DEFAULT),
@@ -836,7 +845,7 @@ function views_library_info() {
   );
   $libraries['views.contextual-links'] = array(
     'title' => 'Views Contextual links',
-    'version' => VERSION,
+    'version' => \Drupal::VERSION,
     'js' => array(
       // Set to -10 to move it before the contextual links javascript file.
       "$path/js/views-contextual.js" => array('group' => JS_LIBRARY, 'weight' => -10),
@@ -848,7 +857,7 @@ function views_library_info() {
   );
   $libraries['views.exposed-form'] = array(
     'title' => 'Views exposed form',
-    'version' => VERSION,
+    'version' => \Drupal::VERSION,
     'css' => array(
       "$path/css/views.exposed_form.css",
     ),
@@ -913,7 +922,7 @@ function views_get_plugin_definitions() {
  * Get enabled display extenders.
  */
 function views_get_enabled_display_extenders() {
-  $enabled = array_filter((array) Drupal::config('views.settings')->get('display_extenders'));
+  $enabled = array_filter((array) \Drupal::config('views.settings')->get('display_extenders'));
 
   return drupal_map_assoc($enabled);
 }
@@ -944,13 +953,13 @@ function views_get_applicable_views($type) {
     }
   }
 
-  $entity_ids = Drupal::service('entity.query')->get('view')
+  $entity_ids = \Drupal::service('entity.query')->get('view')
     ->condition('status', TRUE)
     ->condition("display.*.display_plugin", $ids, 'IN')
     ->execute();
 
   $result = array();
-  foreach (Drupal::entityManager()->getStorageController('view')->loadMultiple($entity_ids) as $view) {
+  foreach (\Drupal::entityManager()->getStorageController('view')->loadMultiple($entity_ids) as $view) {
     // Check each display to see if it meets the criteria and is enabled.
     $executable = $view->getExecutable();
     $executable->initDisplay();
@@ -968,14 +977,14 @@ function views_get_applicable_views($type) {
  * Returns an array of all views as fully loaded $view objects.
  */
 function views_get_all_views() {
-  return Drupal::entityManager()->getStorageController('view')->loadMultiple();
+  return \Drupal::entityManager()->getStorageController('view')->loadMultiple();
 }
 
 /**
  * Returns an array of all enabled views, as fully loaded $view objects.
  */
 function views_get_enabled_views() {
-  $query = Drupal::entityQuery('view')
+  $query = \Drupal::entityQuery('view')
     ->condition('status', TRUE)
     ->execute();
 
@@ -986,7 +995,7 @@ function views_get_enabled_views() {
  * Returns an array of all disabled views, as fully loaded $view objects.
  */
 function views_get_disabled_views() {
-  $query = Drupal::entityQuery('view')
+  $query = \Drupal::entityQuery('view')
     ->condition('status', FALSE)
     ->execute();
 
@@ -1077,7 +1086,7 @@ function views_get_views_as_options($views_only = FALSE, $filter = 'all', $exclu
 /**
  * Returns whether the view is enabled.
  *
- * @param Drupal\views\Entity\View $view
+ * @param \Drupal\views\Entity\View $view
  *   The view object to check.
  *
  * @return bool
@@ -1090,7 +1099,7 @@ function views_view_is_enabled(View $view) {
 /**
  * Returns whether the view is disabled.
  *
- * @param Drupal\views\Entity\View $view
+ * @param \Drupal\views\Entity\View $view
  *   The view object to check.
  *
  * @return bool
@@ -1103,7 +1112,7 @@ function views_view_is_disabled(View $view) {
 /**
  * Enables and saves a view.
  *
- * @param Drupal\views\Entity\View $view
+ * @param \Drupal\views\Entity\View $view
  *   The View object to disable.
  */
 function views_enable_view(View $view) {
@@ -1113,7 +1122,7 @@ function views_enable_view(View $view) {
 /**
  * Disables and saves a view.
  *
- * @param Drupal\views\Entity\View $view
+ * @param \Drupal\views\Entity\View $view
  *   The View object to disable.
  */
 function views_disable_view(View $view) {
@@ -1126,7 +1135,7 @@ function views_disable_view(View $view) {
  * @param string $name
  *   The name of the view.
  *
- * @return Drupal\views\ViewExecutable
+ * @return \Drupal\views\ViewExecutable
  *   A reference to the $view object.
  *
  * @deprecated as of Drupal 8.0. Use \Drupal\views\Views::getView().
@@ -1345,7 +1354,7 @@ function views_pre_render_views_form_views_form($element) {
     $replace[] = isset($element[$field_name][$row_id]) ? drupal_render($element[$field_name][$row_id]) : '';
   }
   // Add in substitutions from hook_views_form_substitutions().
-  $substitutions = Drupal::moduleHandler()->invokeAll('views_form_substitutions');
+  $substitutions = \Drupal::moduleHandler()->invokeAll('views_form_substitutions');
   foreach ($substitutions as $placeholder => $substitution) {
     $search[] = $placeholder;
     $replace[] = $substitution;
@@ -1686,7 +1695,7 @@ function views_element_validate_tags($element, &$form_state) {
  *   If TRUE, the data will be cached specific to the currently active language.
  */
 function views_cache_set($cid, $data, $use_language = FALSE) {
-  if (Drupal::config('views.settings')->get('skip_cache')) {
+  if (\Drupal::config('views.settings')->get('skip_cache')) {
     return;
   }
   if ($use_language) {
@@ -1710,7 +1719,7 @@ function views_cache_set($cid, $data, $use_language = FALSE) {
  *   The cache or FALSE on failure.
  */
 function views_cache_get($cid, $use_language = FALSE) {
-  if (Drupal::config('views.settings')->get('skip_cache')) {
+  if (\Drupal::config('views.settings')->get('skip_cache')) {
     return FALSE;
   }
   if ($use_language) {

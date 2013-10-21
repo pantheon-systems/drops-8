@@ -177,7 +177,7 @@ class DbLogController extends ControllerBase implements ContainerInjectionInterf
         if (isset($dblog->wid)) {
           // Truncate link_text to 56 chars of message.
           $log_text = Unicode::truncate(filter_xss($message, array()), 56, TRUE, TRUE);
-          $message = $this->l($log_text, 'dblog_event',  array('event_id' => $dblog->wid), array('html' => TRUE));
+          $message = $this->l($log_text, 'dblog.event',  array('event_id' => $dblog->wid), array('html' => TRUE));
         }
       }
       $username = array(
@@ -317,6 +317,30 @@ class DbLogController extends ControllerBase implements ContainerInjectionInterf
       'where' => $where,
       'args' => $args,
     );
+  }
+
+  /**
+   * @todo Remove dblog_top().
+   */
+  public function pageNotFound() {
+    module_load_include('admin.inc', 'dblog');
+    return dblog_top('page not found');
+  }
+
+  /**
+   * @todo Remove dblog_top().
+   */
+  public function accessDenied() {
+    module_load_include('admin.inc', 'dblog');
+    return dblog_top('access denied');
+  }
+
+  /**
+   * @todo Remove dblog_top().
+   */
+  public function search() {
+    module_load_include('admin.inc', 'dblog');
+    return dblog_top('search');
   }
 
 }

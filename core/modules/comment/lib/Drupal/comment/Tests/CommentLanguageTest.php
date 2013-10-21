@@ -7,7 +7,6 @@
 
 namespace Drupal\comment\Tests;
 
-use Drupal\Core\Language\Language;
 use Drupal\simpletest\WebTestBase;
 
 /**
@@ -45,11 +44,11 @@ class CommentLanguageTest extends WebTestBase {
 
     // Add language.
     $edit = array('predefined_langcode' => 'fr');
-    $this->drupalPost('admin/config/regional/language/add', $edit, t('Add language'));
+    $this->drupalPostForm('admin/config/regional/language/add', $edit, t('Add language'));
 
     // Set "Article" content type to use multilingual support.
     $edit = array('language_configuration[language_show]' => TRUE);
-    $this->drupalPost('admin/structure/types/manage/article', $edit, t('Save content type'));
+    $this->drupalPostForm('admin/structure/types/manage/article', $edit, t('Save content type'));
 
     // Enable content language negotiation UI.
     \Drupal::state()->set('language_test.content_language_type', TRUE);
@@ -63,16 +62,19 @@ class CommentLanguageTest extends WebTestBase {
       'language_content[enabled][language-url]' => TRUE,
       'language_content[enabled][language-interface]' => FALSE,
     );
-    $this->drupalPost('admin/config/regional/language/detection', $edit, t('Save settings'));
+    $this->drupalPostForm('admin/config/regional/language/detection', $edit, t('Save settings'));
 
     // Change user language preference, this way interface language is always
     // French no matter what path prefix the URLs have.
     $edit = array('preferred_langcode' => 'fr');
-    $this->drupalPost("user/" . $admin_user->id() . "/edit", $edit, t('Save'));
+    $this->drupalPostForm("user/" . $admin_user->id() . "/edit", $edit, t('Save'));
+
+    // Create comment field on article.
+    $this->container->get('comment.manager')->addDefaultField('node', 'article');
 
     // Make comment body translatable.
     $field = field_info_field('comment', 'comment_body');
-    $field['translatable'] = TRUE;
+    $field->translatable = TRUE;
     $field->save();
     $this->assertTrue(field_is_translatable('comment', $field), 'Comment body is translatable.');
   }
@@ -90,16 +92,15 @@ class CommentLanguageTest extends WebTestBase {
     // language and interface language do not influence comment language, as
     // only content language has to.
     foreach (language_list() as $node_langcode => $node_language) {
-      $langcode_not_specified = Language::LANGCODE_NOT_SPECIFIED;
-
       // Create "Article" content.
       $title = $this->randomName();
       $edit = array(
-        "title" => $title,
-        "body[$langcode_not_specified][0][value]" => $this->randomName(),
-        "langcode" => $node_langcode,
+        'title' => $title,
+        'body[0][value]' => $this->randomName(),
+        'langcode' => $node_langcode,
+        'comment[0][status]' => COMMENT_OPEN,
       );
-      $this->drupalPost("node/add/article", $edit, t('Save'));
+      $this->drupalPostForm("node/add/article", $edit, t('Save'));
       $node = $this->drupalGetNodeByTitle($title);
 
       $prefixes = language_negotiation_url_prefixes();
@@ -109,15 +110,17 @@ class CommentLanguageTest extends WebTestBase {
         $comment_values[$node_langcode][$langcode] = $this->randomName();
         $edit = array(
           'subject' => $this->randomName(),
-          "comment_body[$langcode][0][value]" => $comment_values[$node_langcode][$langcode],
+          'comment_body[0][value]' => $comment_values[$node_langcode][$langcode],
         );
-        $this->drupalPost($prefix . 'node/' . $node->id(), $edit, t('Preview'));
-        $this->drupalPost(NULL, $edit, t('Save'));
+        $this->drupalPostForm($prefix . 'node/' . $node->id(), $edit, t('Preview'));
+        $this->drupalPostForm(NULL, $edit, t('Save'));
 
         // Check that comment language matches the current content language.
         $cid = db_select('comment', 'c')
           ->fields('c', array('cid'))
-          ->condition('nid', $node->id())
+          ->condition('entity_id', $node->id())
+          ->condition('entity_type', 'node')
+          ->condition('field_id', 'node__comment')
           ->orderBy('cid', 'DESC')
           ->range(0, 1)
           ->execute()

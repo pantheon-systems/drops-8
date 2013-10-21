@@ -9,7 +9,6 @@ namespace Drupal\views\Plugin\views\area;
 
 use Drupal\views\Plugin\views\display\DisplayPluginBase;
 use Drupal\views\ViewExecutable;
-use Drupal\Component\Annotation\PluginID;
 
 /**
  * Provides an area handler which renders an entity in a certain view mode.
@@ -46,7 +45,7 @@ class Entity extends TokenizeAreaPluginBase {
     $options['tokenize']['default'] = TRUE;
 
     $options['entity_id'] = array('default' => '');
-    $options['view_mode'] = array('default' => '');
+    $options['view_mode'] = array('default' => 'default');
 
     return $options;
   }
@@ -79,7 +78,7 @@ class Entity extends TokenizeAreaPluginBase {
    *   All view modes of the entity type.
    */
   protected function buildViewModeOptions() {
-    $options = array();
+    $options = array('default' => t('Default'));
     $view_modes = entity_get_view_modes($this->entityType);
     foreach ($view_modes as $mode => $settings) {
       $options[$mode] = $settings['label'];
@@ -89,7 +88,7 @@ class Entity extends TokenizeAreaPluginBase {
   }
 
   /**
-   * Overrides \Drupal\views\Plugin\views\area\AreaPluginBase::render().
+   * {@inheritdoc}
    */
   public function render($empty = FALSE) {
     if (!$empty || !empty($this->options['empty'])) {

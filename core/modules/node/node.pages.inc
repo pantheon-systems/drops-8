@@ -24,6 +24,8 @@ use Drupal\node\NodeInterface;
  *   to the node add page for that one node type and does not return at all.
  *
  * @see node_menu()
+ *
+ * @deprecated Use \Drupal\node\Controller\NodeController::addPage()
  */
 function node_add_page() {
   $content = array();
@@ -80,9 +82,11 @@ function theme_node_add_list($variables) {
  *   A node submission form.
  *
  * @see node_menu()
+ *
+ * @deprecated Use \Drupal\node\Controller\NodeController::add()
  */
 function node_add($node_type) {
-  global $user;
+  $user = \Drupal::currentUser();
 
   $type = $node_type->type;
   $langcode = module_invoke('language', 'get_default_langcode', 'node', $type);
@@ -93,7 +97,7 @@ function node_add($node_type) {
     'langcode' => $langcode ? $langcode : language_default()->id,
   ));
   drupal_set_title(t('Create @name', array('@name' => $node_type->name)), PASS_THROUGH);
-  return Drupal::entityManager()->getForm($node);
+  return \Drupal::entityManager()->getForm($node);
 }
 
 /**
@@ -175,6 +179,8 @@ function theme_node_preview($variables) {
  *   An array as expected by drupal_render().
  *
  * @see node_menu()
+ *
+ * @deprecated Use \Drupal\node\Controller\NodeController::revisionOverview()
  */
 function node_revision_overview($node) {
   drupal_set_title(t('Revisions for %title', array('%title' => $node->label())), PASS_THROUGH);

@@ -24,12 +24,12 @@ class QueryGroupByTest extends ViewUnitTestBase {
    *
    * @var array
    */
-  public static $modules = array('entity_test', 'system', 'field');
+  public static $modules = array('entity_test', 'system', 'field', 'user');
 
   /**
    * The storage controller for the test entity type.
    *
-   * @var \Drupal\Core\Entity\DatabaseStorageController
+   * @var \Drupal\Core\Entity\FieldableDatabaseStorageController
    */
   public $storageController;
 

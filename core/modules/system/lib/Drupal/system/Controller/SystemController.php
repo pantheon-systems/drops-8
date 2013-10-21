@@ -34,7 +34,7 @@ class SystemController extends ControllerBase implements ContainerInjectionInter
   protected $systemManager;
 
   /**
-   * Constructs a new ConfigController.
+   * Constructs a new SystemController.
    *
    * @param \Drupal\system\SystemManager $systemManager
    *   System manager service.
@@ -96,11 +96,9 @@ class SystemController extends ControllerBase implements ContainerInjectionInter
             unset($item['localized_options']['attributes']['title']);
           }
           $block = $item;
-          // @todo Replace system_admin_menu_block() in
-          //   https://drupal.org/node/1987814.
           $block['content'] = array(
             '#theme' => 'admin_block_content',
-            '#content' => system_admin_menu_block($item),
+            '#content' => $this->systemManager->getAdminBlock($item),
           );
 
           if (!empty($block['content'])) {
@@ -137,7 +135,30 @@ class SystemController extends ControllerBase implements ContainerInjectionInter
    */
   public function compactPage($mode) {
     user_cookie_save(array('admin_compact_mode' => ($mode == 'on')));
-    return $this->redirect('front');
+    return $this->redirect('<front>');
+  }
+
+  /**
+   * Provides a single block from the administration menu as a page.
+   */
+  public function systemAdminMenuBlockPage() {
+    return $this->systemManager->getBlockContents();
+  }
+
+  /**
+   * @todo Remove system_themes_page().
+   */
+  public function themesPage() {
+    module_load_include('admin.inc', 'system');
+    return system_themes_page();
+  }
+
+  /**
+   * @todo Remove system_theme_default().
+   */
+  public function themeSetDefault() {
+    module_load_include('admin.inc', 'system');
+    return system_theme_default();
   }
 
 }

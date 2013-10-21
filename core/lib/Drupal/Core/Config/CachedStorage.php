@@ -7,6 +7,7 @@
 
 namespace Drupal\Core\Config;
 
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheBackendInterface;
 
 /**
@@ -21,14 +22,14 @@ class CachedStorage implements StorageInterface, StorageCacheInterface {
   /**
    * The configuration storage to be cached.
    *
-   * @var Drupal\Core\Config\StorageInterface
+   * @var \Drupal\Core\Config\StorageInterface
    */
   protected $storage;
 
   /**
    * The instantiated Cache backend.
    *
-   * @var Drupal\Core\Cache\CacheBackendInterface
+   * @var \Drupal\Core\Cache\CacheBackendInterface
    */
   protected $cache;
 
@@ -42,9 +43,9 @@ class CachedStorage implements StorageInterface, StorageCacheInterface {
   /**
    * Constructs a new CachedStorage controller.
    *
-   * @param Drupal\Core\Config\StorageInterface $storage
+   * @param \Drupal\Core\Config\StorageInterface $storage
    *   A configuration storage controller to be cached.
-   * @param Drupal\Core\Cache\CacheBackendInterface $cache
+   * @param \Drupal\Core\Cache\CacheBackendInterface $cache
    *   A cache backend instance to use for caching.
    */
   public function __construct(StorageInterface $storage, CacheBackendInterface $cache) {
@@ -93,7 +94,7 @@ class CachedStorage implements StorageInterface, StorageCacheInterface {
     $list = array();
     // The names array is passed by reference and will only contain the names of
     // config object not found after the method call.
-    // @see Drupal\Core\Cache\CacheBackendInterface::getMultiple()
+    // @see \Drupal\Core\Cache\CacheBackendInterface::getMultiple()
     $cached_list = $this->cache->getMultiple($names);
 
     if (!empty($names)) {
@@ -120,7 +121,7 @@ class CachedStorage implements StorageInterface, StorageCacheInterface {
       // While not all written data is read back, setting the cache instead of
       // just deleting it avoids cache rebuild stampedes.
       $this->cache->set($name, $data, CacheBackendInterface::CACHE_PERMANENT);
-      $this->cache->deleteTags(array($this::FIND_BY_PREFIX_CACHE_TAG => TRUE));
+      Cache::deleteTags(array($this::FIND_BY_PREFIX_CACHE_TAG => TRUE));
       $this->findByPrefixCache = array();
       return TRUE;
     }
@@ -135,7 +136,7 @@ class CachedStorage implements StorageInterface, StorageCacheInterface {
     // rebuilding the cache before the storage is gone.
     if ($this->storage->delete($name)) {
       $this->cache->delete($name);
-      $this->cache->deleteTags(array($this::FIND_BY_PREFIX_CACHE_TAG => TRUE));
+      Cache::deleteTags(array($this::FIND_BY_PREFIX_CACHE_TAG => TRUE));
       $this->findByPrefixCache = array();
       return TRUE;
     }
@@ -151,7 +152,7 @@ class CachedStorage implements StorageInterface, StorageCacheInterface {
     if ($this->storage->rename($name, $new_name)) {
       $this->cache->delete($name);
       $this->cache->delete($new_name);
-      $this->cache->deleteTags(array($this::FIND_BY_PREFIX_CACHE_TAG => TRUE));
+      Cache::deleteTags(array($this::FIND_BY_PREFIX_CACHE_TAG => TRUE));
       $this->findByPrefixCache = array();
       return TRUE;
     }

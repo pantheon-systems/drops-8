@@ -10,14 +10,14 @@ namespace Drupal\system\Form;
 use Drupal\Core\Config\ConfigFactory;
 use Drupal\Core\Config\Context\ContextInterface;
 use Drupal\Core\KeyValueStore\KeyValueStoreInterface;
-use Drupal\system\SystemConfigFormBase;
+use Drupal\Core\Form\ConfigFormBase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
  * Configure cron settings for this site.
  */
-class CronForm extends SystemConfigFormBase {
+class CronForm extends ConfigFormBase {
 
   /**
    * Stores the state storage service.
@@ -55,7 +55,7 @@ class CronForm extends SystemConfigFormBase {
   /**
    * {@inheritdoc}
    */
-  public function getFormID() {
+  public function getFormId() {
     return 'system_cron_settings';
   }
 
@@ -84,6 +84,7 @@ class CronForm extends SystemConfigFormBase {
     );
 
     $form['cron'] = array(
+      '#title' => t('Cron settings'),
       '#type' => 'details',
     );
     $form['cron']['cron_safe_threshold'] = array(

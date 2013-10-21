@@ -15,7 +15,7 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**
- * Access subscriber for controller requests.
+ * Allows manipulation of the response object when performing a redirect.
  */
 class RedirectResponseSubscriber implements EventSubscriberInterface {
 
@@ -47,7 +47,6 @@ class RedirectResponseSubscriber implements EventSubscriberInterface {
     if ($response instanceOf RedirectResponse) {
       $options = array();
 
-      $redirect_path = $response->getTargetUrl();
       $destination = $event->getRequest()->query->get('destination');
       // A destination in $_GET always overrides the current RedirectResponse.
       // We do not allow absolute URLs to be passed via $_GET, as this can be an

@@ -180,7 +180,7 @@ function theme_views_ui_build_group_filter_form($variables) {
     drupal_render($form['default_group']['All']),
     '',
     array(
-      'data' => Drupal::config('views.settings')->get('ui.exposed_filter_any_label') == 'old_any' ? t('&lt;Any&gt;') : t('- Any -'),
+      'data' => \Drupal::config('views.settings')->get('ui.exposed_filter_any_label') == 'old_any' ? t('&lt;Any&gt;') : t('- Any -'),
       'colspan' => 4,
       'class' => array('class' => 'any-default-radios-row'),
     ),
@@ -276,7 +276,7 @@ function theme_views_ui_rearrange_filter_form(&$variables) {
   }
 
   $output = drupal_render($form['override']);
-  $output .= '<div class="scroll">';
+  $output .= '<div class="scroll" data-drupal-views-scroll>';
   if ($grouping) {
     $output .= drupal_render($form['filter_groups']['operator']);
   }
@@ -315,7 +315,7 @@ function theme_views_ui_rearrange_filter_form(&$variables) {
 
   // When JavaScript is enabled, the button for adding a new group should be
   // hidden, since it will be replaced by a link on the client side.
-  $form['buttons']['add_group']['#attributes']['class'][] = 'js-hide';
+  $form['actions']['add_group']['#attributes']['class'][] = 'js-hide';
 
   // Render the rest of the form and return.
   $output .= drupal_render_children($form);
@@ -483,5 +483,11 @@ function template_preprocess_views_ui_view_preview_section(&$variables) {
     );
     $variables['links'] = $build;
   }
-  $variables['theme_hook_suggestions'][] = 'views_ui_view_preview_section__' . $variables['section'];
+}
+
+/**
+ * Implements hook_theme_suggestions_HOOK().
+ */
+function views_ui_theme_suggestions_views_ui_view_preview_section(array $variables) {
+  return array('views_ui_view_preview_section__' . $variables['section']);
 }

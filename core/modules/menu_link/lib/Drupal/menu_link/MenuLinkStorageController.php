@@ -7,6 +7,7 @@
 
 namespace Drupal\menu_link;
 
+use Drupal\Component\Uuid\UuidInterface;
 use Drupal\Core\Entity\DatabaseStorageController;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityStorageException;
@@ -53,13 +54,13 @@ class MenuLinkStorageController extends DatabaseStorageController implements Men
    *   An array of entity info for the entity type.
    * @param \Drupal\Core\Database\Connection $database
    *   The database connection to be used.
-   * @param \Drupal\field\FieldInfo $field_info
-   *   The field info service.
+   * @param \Drupal\Component\Uuid\UuidInterface $uuid_service
+   *   The UUID Service.
    * @param \Symfony\Cmf\Component\Routing\RouteProviderInterface $route_provider
    *   The route provider service.
    */
-  public function __construct($entity_type, array $entity_info, Connection $database, FieldInfo $field_info, RouteProviderInterface $route_provider) {
-    parent::__construct($entity_type, $entity_info, $database, $field_info);
+  public function __construct($entity_type, array $entity_info, Connection $database, UuidInterface $uuid_service, RouteProviderInterface $route_provider) {
+    parent::__construct($entity_type, $entity_info, $database, $uuid_service);
 
     $this->routeProvider = $route_provider;
 
@@ -88,7 +89,7 @@ class MenuLinkStorageController extends DatabaseStorageController implements Men
       $entity_type,
       $entity_info,
       $container->get('database'),
-      $container->get('field.info'),
+      $container->get('uuid'),
       $container->get('router.route_provider')
     );
   }
@@ -170,7 +171,6 @@ class MenuLinkStorageController extends DatabaseStorageController implements Men
       // Unlike the save() method from DatabaseStorageController, we invoke the
       // 'presave' hook first because we want to allow modules to alter the
       // entity before all the logic from our preSave() method.
-      $this->invokeFieldMethod('preSave', $entity);
       $this->invokeHook('presave', $entity);
       $entity->preSave($this);
 
@@ -186,8 +186,6 @@ class MenuLinkStorageController extends DatabaseStorageController implements Men
           if (!$entity->isNew()) {
             $this->resetCache(array($entity->{$this->idKey}));
             $entity->postSave($this, TRUE);
-            $this->invokeFieldMethod('update', $entity);
-            $this->saveFieldItems($entity, TRUE);
             $this->invokeHook('update', $entity);
           }
           else {
@@ -196,8 +194,6 @@ class MenuLinkStorageController extends DatabaseStorageController implements Men
 
             $entity->enforceIsNew(FALSE);
             $entity->postSave($this, FALSE);
-            $this->invokeFieldMethod('insert', $entity);
-            $this->saveFieldItems($entity, FALSE);
             $this->invokeHook('insert', $entity);
           }
         }
@@ -249,7 +245,7 @@ class MenuLinkStorageController extends DatabaseStorageController implements Men
     if (!empty($this->entityInfo['class'])) {
       // We provide the necessary arguments for PDO to create objects of the
       // specified entity class.
-      // @see Drupal\Core\Entity\EntityInterface::__construct()
+      // @see \Drupal\Core\Entity\EntityInterface::__construct()
       $query_result->setFetchMode(\PDO::FETCH_CLASS, $this->entityInfo['class'], array(array(), $this->entityType));
     }
 

@@ -48,9 +48,9 @@ function hook_block_view_alter(array &$build, \Drupal\block\BlockPluginInterface
  *
  * In this hook name, BASE_BLOCK_ID refers to the block implementation's plugin
  * id, regardless of whether the plugin supports derivatives. For example, for
- * the \Drupal\system\Plugin\block\block\SystemPoweredByBlock block, this would
- * be 'system_powered_by_block' as per that class's annotation. And for the
- * \Drupal\system\Plugin\block\block\SystemMenuBlock block, it would be
+ * the \Drupal\system\Plugin\Block\SystemPoweredByBlock block, this would be
+ * 'system_powered_by_block' as per that class's annotation. And for the
+ * \Drupal\system\Plugin\Block\SystemMenuBlock block, it would be
  * 'system_menu_block' as per that class's annotation, regardless of which menu
  * the derived block is for.
  *
@@ -83,7 +83,7 @@ function hook_block_view_BASE_BLOCK_ID_alter(array &$build, \Drupal\block\BlockP
  * @param string $langcode
  *   The language code to perform the access check operation on.
  *
- * @return bool|NULL
+ * @return bool|null
  *   FALSE denies access. TRUE allows access unless another module returns
  *   FALSE. If all modules return NULL, then default access rules from
  *   \Drupal\block\BlockAccessController::checkAccess() are used.

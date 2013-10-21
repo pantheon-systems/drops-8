@@ -20,7 +20,7 @@ class IntegrationTest extends ViewUnitTestBase {
    *
    * @var array
    */
-  public static $modules = array('aggregator', 'aggregator_test_views', 'system', 'field');
+  public static $modules = array('aggregator', 'aggregator_test_views', 'system', 'entity', 'field');
 
   /**
    * Views used by this test.
@@ -56,7 +56,7 @@ class IntegrationTest extends ViewUnitTestBase {
 
     $this->installSchema('aggregator', array('aggregator_item', 'aggregator_feed', 'aggregator_category_feed', 'aggregator_category', 'aggregator_category_item'));
 
-    ViewTestData::importTestViews(get_class($this), array('aggregator_test_views'));
+    ViewTestData::createTestViews(get_class($this), array('aggregator_test_views'));
 
     $this->itemStorageController = $this->container->get('entity.manager')->getStorageController('aggregator_item');
     $this->feedStorageController = $this->container->get('entity.manager')->getStorageController('aggregator_feed');
@@ -76,6 +76,7 @@ class IntegrationTest extends ViewUnitTestBase {
       // Add a image to ensure that the sanitizing can be tested below.
       $values['author'] = $this->randomName() . '<img src="http://example.com/example.png" \>"';
       $values['link'] = 'http://drupal.org/node/' . mt_rand(1000, 10000);
+      $values['guid'] = $this->randomString();
 
       $aggregator_item = $this->itemStorageController->create($values);
       $aggregator_item->save();

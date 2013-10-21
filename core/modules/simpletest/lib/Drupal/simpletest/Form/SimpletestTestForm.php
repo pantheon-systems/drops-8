@@ -17,7 +17,7 @@ class SimpletestTestForm extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function getFormID() {
+  public function getFormId() {
     return 'simpletest_test_form';
   }
 
@@ -91,12 +91,6 @@ class SimpletestTestForm extends FormBase {
     );
 
     return $form;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function validateForm(array &$form, array &$form_state) {
   }
 
   /**

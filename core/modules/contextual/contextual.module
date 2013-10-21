@@ -12,8 +12,9 @@ function contextual_menu() {
   // @todo Remove this menu item in http://drupal.org/node/1954892 when theme
   //   callbacks are replaced with something else.
   $items['contextual/render'] = array(
-    'route_name' => 'contextual_render',
+    'route_name' => 'contextual.render',
     'theme callback' => 'ajax_base_page_theme',
+    'type' => MENU_CALLBACK,
   );
 
   return $items;
@@ -24,7 +25,7 @@ function contextual_menu() {
  */
 function contextual_toolbar() {
 
-  if (!Drupal::currentUser()->hasPermission('access contextual links')) {
+  if (!\Drupal::currentUser()->hasPermission('access contextual links')) {
     return;
   }
 
@@ -63,7 +64,7 @@ function contextual_toolbar() {
  */
 function contextual_page_build(&$page) {
 
-  if (!Drupal::currentUser()->hasPermission('access contextual links')) {
+  if (!\Drupal::currentUser()->hasPermission('access contextual links')) {
     return;
   }
 
@@ -108,7 +109,7 @@ function contextual_library_info() {
   $libraries['drupal.contextual-links'] = array(
     'title' => 'Contextual Links',
     'website' => 'http://drupal.org/node/473268',
-    'version' => VERSION,
+    'version' => \Drupal::VERSION,
     'js' => array(
       // Add the JavaScript, with a group and weight such that it will run
       // before modules/contextual/js/contextual.toolbar.js.
@@ -130,7 +131,7 @@ function contextual_library_info() {
   );
   $libraries['drupal.contextual-toolbar'] = array(
     'title' => 'Contextual Links Toolbar Tab',
-    'version' => VERSION,
+    'version' => \Drupal::VERSION,
     'js' => array(
       // Add the JavaScript, with a group and weight such that it will run
       // before modules/overlay/overlay-parent.js.

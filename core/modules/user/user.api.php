@@ -283,7 +283,7 @@ function hook_user_update($account) {
  *   The user object on which the operation was just performed.
  */
 function hook_user_login($account) {
-  $config = Drupal::config('system.date');
+  $config = \Drupal::config('system.date');
   // If the user has a NULL time zone, notify them to set a time zone.
   if (!$account->getTimezone() && $config->get('timezone.user.configurable') && $config->get('timezone.user.warn')) {
     drupal_set_message(t('Configure your <a href="@user-edit">account time zone setting</a>.', array('@user-edit' => url("user/" . $account->id() . "/edit", array('query' => drupal_get_destination(), 'fragment' => 'edit-timezone')))));
@@ -346,7 +346,7 @@ function hook_user_view(\Drupal\user\UserInterface $account, \Drupal\entity\Enti
  * If the module wishes to act on the rendered HTML of the user rather than the
  * structured content array, it may use this hook to add a #post_render callback.
  * Alternatively, it could also implement hook_preprocess_HOOK() for
- * user.tpl.php. See drupal_render() and theme() documentation
+ * user.html.twig. See drupal_render() and theme() documentation
  * respectively for details.
  *
  * @param $build

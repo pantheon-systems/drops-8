@@ -25,8 +25,8 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * Additional modules needed in a test may be loaded and added to the fixed
  * module list.
  *
- * @see DrupalUnitTestBase::$modules
- * @see DrupalUnitTestBase::enableModules()
+ * @see \DrupalUnitTestBase::$modules
+ * @see \DrupalUnitTestBase::enableModules()
  */
 abstract class DrupalUnitTestBase extends UnitTestBase {
 
@@ -44,8 +44,8 @@ abstract class DrupalUnitTestBase extends UnitTestBase {
    * Unlike WebTestBase::setUp(), the specified modules are loaded only, but not
    * automatically installed. Modules need to be installed manually, if needed.
    *
-   * @see DrupalUnitTestBase::enableModules()
-   * @see DrupalUnitTestBase::setUp()
+   * @see \DrupalUnitTestBase::enableModules()
+   * @see \DrupalUnitTestBase::setUp()
    *
    * @var array
    */
@@ -73,8 +73,8 @@ abstract class DrupalUnitTestBase extends UnitTestBase {
   /**
    * Sets up Drupal unit test environment.
    *
-   * @see DrupalUnitTestBase::$modules
-   * @see DrupalUnitTestBase
+   * @see \DrupalUnitTestBase::$modules
+   * @see \DrupalUnitTestBase
    */
   protected function setUp() {
     // Copy/prime extension file lists once to avoid filesystem scans.
@@ -136,9 +136,9 @@ abstract class DrupalUnitTestBase extends UnitTestBase {
    * that need to persist a DrupalKernel reboot. This method is called whenever
    * the kernel is rebuilt.
    *
-   * @see DrupalUnitTestBase::setUp()
-   * @see DrupalUnitTestBase::enableModules()
-   * @see DrupalUnitTestBase::disableModules()
+   * @see \DrupalUnitTestBase::setUp()
+   * @see \DrupalUnitTestBase::enableModules()
+   * @see \DrupalUnitTestBase::disableModules()
    */
   public function containerBuild(ContainerBuilder $container) {
     global $conf;
@@ -152,7 +152,7 @@ abstract class DrupalUnitTestBase extends UnitTestBase {
       ->register('config.storage', 'Drupal\Core\Config\FileStorage')
       ->addArgument($this->configDirectories[CONFIG_ACTIVE_DIRECTORY]);
 
-    $conf['keyvalue_default'] = 'keyvalue.memory';
+    $this->settingsSet('keyvalue_default', 'keyvalue.memory');
     $container->set('keyvalue.memory', $this->keyValueFactory);
     if (!$container->has('keyvalue')) {
       // TestBase::setUp puts a completely empty container in
@@ -162,12 +162,17 @@ abstract class DrupalUnitTestBase extends UnitTestBase {
       // away with a simple container holding the absolute bare minimum. When
       // a kernel is overridden then there's no need to re-register the keyvalue
       // service but when a test is happy with the superminimal container put
-      // together here, it still might a keyvalue storage for anything (for
-      // eg. module_enable) using \Drupal::state() -- that's why a memory
-      // service was added in the first place.
+      // together here, it still might a keyvalue storage for anything using
+      // \Drupal::state() -- that's why a memory service was added in the first
+      // place.
+      $container->register('settings', 'Drupal\Component\Utility\Settings')
+        ->setFactoryClass('Drupal\Component\Utility\Settings')
+        ->setFactoryMethod('getSingleton');
+
       $container
         ->register('keyvalue', 'Drupal\Core\KeyValueStore\KeyValueFactory')
-        ->addArgument(new Reference('service_container'));
+        ->addArgument(new Reference('service_container'))
+        ->addArgument(new Reference('settings'));
 
       $container->register('state', 'Drupal\Core\KeyValueStore\KeyValueStoreInterface')
         ->setFactoryService(new Reference('keyvalue'))

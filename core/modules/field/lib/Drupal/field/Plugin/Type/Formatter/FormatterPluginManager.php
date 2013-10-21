@@ -7,17 +7,12 @@
 
 namespace Drupal\field\Plugin\Type\Formatter;
 
-use Drupal\Component\Plugin\PluginManagerBase;
 use Drupal\Component\Plugin\Factory\DefaultFactory;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Entity\Field\FieldTypePluginManager;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Language\LanguageManager;
 use Drupal\Core\Plugin\DefaultPluginManager;
-use Drupal\Core\Plugin\Discovery\CacheDecorator;
-use Drupal\Core\Plugin\Discovery\AnnotatedClassDiscovery;
-use Drupal\Core\Plugin\Discovery\AlterDecorator;
-use Drupal\field\Entity\FieldInstance;
 
 /**
  * Plugin type manager for field formatters.
@@ -54,11 +49,10 @@ class FormatterPluginManager extends DefaultPluginManager {
    *   The 'field type' plugin manager.
    */
   public function __construct(\Traversable $namespaces, CacheBackendInterface $cache_backend, ModuleHandlerInterface $module_handler, LanguageManager $language_manager, FieldTypePluginManager $field_type_manager) {
-    $annotation_namespaces = array('Drupal\field\Annotation' => $namespaces['Drupal\field']);
 
-    parent::__construct('Plugin/field/formatter', $namespaces, $annotation_namespaces, 'Drupal\field\Annotation\FieldFormatter');
+    parent::__construct('Plugin/field/formatter', $namespaces, 'Drupal\field\Annotation\FieldFormatter');
 
-    $this->setCacheBackend($cache_backend, $language_manager, 'field_formatter_types');
+    $this->setCacheBackend($cache_backend, $language_manager, 'field_formatter_types_plugins');
     $this->alterInfo($module_handler, 'field_formatter_info');
     $this->fieldTypeManager = $field_type_manager;
   }

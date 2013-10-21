@@ -58,7 +58,7 @@ function statistics_node_view(EntityInterface $node, EntityDisplay $display, $vi
   }
 
   if ($view_mode != 'rss') {
-    if (user_access('view post access counter')) {
+    if (\Drupal::currentUser()->hasPermission('view post access counter')) {
       $statistics = statistics_get($node->id());
       if ($statistics) {
         $links['statistics_counter']['title'] = format_plural($statistics['totalcount'], '1 view', '@count views');
@@ -73,13 +73,24 @@ function statistics_node_view(EntityInterface $node, EntityDisplay $display, $vi
 }
 
 /**
+ * Implements hook_node_view_alter().
+ */
+function statistics_node_view_alter(&$build, EntityInterface $node, EntityDisplay $display) {
+  // If statistics were added to the node render array, we can't use the render
+  // cache.
+  if (isset($build['links']['statistics'])) {
+    unset($build['#cache']);
+  }
+}
+
+/**
  * Implements hook_menu().
  */
 function statistics_menu() {
   $items['admin/config/system/statistics'] = array(
     'title' => 'Statistics',
     'description' => 'Control details about what and how your site logs content statistics.',
-    'route_name' => 'statistics_settings',
+    'route_name' => 'statistics.settings',
     'access arguments' => array('administer statistics'),
     'weight' => -15,
   );
@@ -90,14 +101,14 @@ function statistics_menu() {
  * Implements hook_cron().
  */
 function statistics_cron() {
-  $statistics_timestamp = Drupal::state()->get('statistics.day_timestamp') ?: 0;
+  $statistics_timestamp = \Drupal::state()->get('statistics.day_timestamp') ?: 0;
 
   if ((REQUEST_TIME - $statistics_timestamp) >= 86400) {
     // Reset day counts.
     db_update('node_counter')
       ->fields(array('daycount' => 0))
       ->execute();
-    Drupal::state()->set('statistics.day_timestamp', REQUEST_TIME);
+    \Drupal::state()->set('statistics.day_timestamp', REQUEST_TIME);
   }
 }
 
@@ -174,7 +185,7 @@ function statistics_get($nid) {
  *   A string as a link, truncated to the width, linked to the given $path.
  */
 function _statistics_link($path, $width = 35) {
-  $title = Drupal::service('path.alias_manager')->getPathAlias($path);
+  $title = \Drupal::service('path.alias_manager')->getPathAlias($path);
   $title = truncate_utf8($title, $width, FALSE, TRUE);
   return l($title, $path);
 }
@@ -211,7 +222,7 @@ function statistics_node_predelete(EntityInterface $node) {
  * Implements hook_ranking().
  */
 function statistics_ranking() {
-  if (Drupal::config('statistics.settings')->get('count_content_views')) {
+  if (\Drupal::config('statistics.settings')->get('count_content_views')) {
     return array(
       'views' => array(
         'title' => t('Number of views'),
@@ -223,7 +234,7 @@ function statistics_ranking() {
         ),
         // Inverse law that maps the highest view count on the site to 1 and 0 to 0.
         'score' => '2.0 - 2.0 / (1.0 + node_counter.totalcount * CAST(:scale AS DECIMAL))',
-        'arguments' => array(':scale' => Drupal::state()->get('statistics.node_counter_scale') ?: 0),
+        'arguments' => array(':scale' => \Drupal::state()->get('statistics.node_counter_scale') ?: 0),
       ),
     );
   }
@@ -233,11 +244,11 @@ function statistics_ranking() {
  * Implements hook_update_index().
  */
 function statistics_update_index() {
-  Drupal::state()->set('statistics.node_counter_scale', 1.0 / max(1, db_query('SELECT MAX(totalcount) FROM {node_counter}')->fetchField()));
+  \Drupal::state()->set('statistics.node_counter_scale', 1.0 / max(1, db_query('SELECT MAX(totalcount) FROM {node_counter}')->fetchField()));
 }
 
 /**
- * Implements hook_preprocess_HOOK() for block.html.twig.
+ * Implements hook_preprocess_HOOK() for block templates.
  */
 function statistics_preprocess_block(&$variables) {
   if ($variables['configuration']['module'] == 'statistics') {
@@ -251,7 +262,7 @@ function statistics_preprocess_block(&$variables) {
 function statistics_library_info() {
   $libraries['drupal.statistics'] = array(
     'title' => 'Statistics',
-    'version' => VERSION,
+    'version' => \Drupal::VERSION,
     'js' => array(
       drupal_get_path('module', 'statistics') . '/statistics.js' => array(
         'scope' => 'footer'
@@ -274,7 +285,7 @@ function statistics_library_info() {
  * to count content views.
  */
 function statistics_block_alter(&$definitions) {
-  $statistics_count_content_views = Drupal::config('statistics.settings')->get('count_content_views');
+  $statistics_count_content_views = \Drupal::config('statistics.settings')->get('count_content_views');
   if (empty($statistics_count_content_views)) {
     unset($definitions['statistics_popular_block']);
   }

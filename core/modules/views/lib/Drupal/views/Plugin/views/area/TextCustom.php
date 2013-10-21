@@ -7,8 +7,6 @@
 
 namespace Drupal\views\Plugin\views\area;
 
-use Drupal\Component\Annotation\PluginID;
-
 /**
  * Views area text handler.
  *
@@ -34,6 +32,7 @@ class TextCustom extends TokenizeAreaPluginBase {
     parent::buildOptionsForm($form, $form_state);
 
     $form['content'] = array(
+      '#title' => t('Content'),
       '#type' => 'textarea',
       '#default_value' => $this->options['content'],
       '#rows' => 6,
@@ -41,7 +40,7 @@ class TextCustom extends TokenizeAreaPluginBase {
   }
 
   /**
-   * Implements \Drupal\views\Plugin\views\area\AreaPluginBase::render().
+   * {@inheritdoc}
    */
   public function render($empty = FALSE) {
     if (!$empty || !empty($this->options['empty'])) {

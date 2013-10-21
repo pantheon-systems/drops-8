@@ -4,6 +4,11 @@ services:
     tags:
       - { name: event_subscriber }
     arguments: ['@language_manager', '@config.context']
+  paramconverter.configentity_admin:
+    class: Drupal\locale\ParamConverter\LocaleAdminPathConfigEntityConverter
+    tags:
+      - { name: paramconverter, priority: 5 }
+    arguments: ['@entity.manager']
   locale.config.typed:
     class: Drupal\locale\LocaleConfigManager
     arguments: ['@config.storage', '@config.storage.schema', '@config.storage.installer', '@locale.storage']
@@ -12,7 +17,7 @@ services:
     arguments: ['@database']
   string_translator.locale.lookup:
     class: Drupal\locale\LocaleTranslation
-    arguments: ['@locale.storage', '@cache.cache', '@lock']
+    arguments: ['@locale.storage', '@cache.cache', '@lock', '@config.factory']
     tags:
       - { name: string_translator }
       - { name: needs_destruction }

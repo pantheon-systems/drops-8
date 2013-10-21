@@ -5,25 +5,8 @@
  * Install, update and uninstall functions for the taxonomy module.
  */
 
-use Drupal\Component\Uuid\Uuid;
-use Drupal\Core\Entity\DatabaseStorageController;
+use Drupal\Core\Entity\FieldableDatabaseStorageController;
 use Drupal\field\Entity\Field;
-
-/**
- * Implements hook_uninstall().
- */
-function taxonomy_uninstall() {
-  Drupal::entityManager()->addNamespaces(new ArrayIterator(array(
-    'Drupal\taxonomy' => DRUPAL_ROOT . '/core/modules/taxonomy/lib',
-  )));
-  drupal_classloader_register('taxonomy', 'core/modules/taxonomy');
-  // Remove taxonomy_term bundles.
-  $config_names = config_get_storage_names_with_prefix('taxonomy.vocabulary.');
-  foreach ($config_names as $config_name) {
-    $vid = substr($config_name, strlen('taxonomy.vocabulary.'));
-    entity_invoke_bundle_hook('delete', 'taxonomy_term', $vid);
-  }
-}
 
 /**
  * Implements hook_schema().
@@ -82,6 +65,12 @@ function taxonomy_schema() {
         'not null' => TRUE,
         'default' => 0,
         'description' => 'The weight of this term in relation to other terms.',
+      ),
+      'changed' => array(
+        'description' => 'The Unix timestamp when the term was most recently saved.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
       ),
     ),
     'primary key' => array('tid'),
@@ -313,11 +302,11 @@ function taxonomy_update_8004() {
  * Convert vocabularies into configuration.
  */
 function taxonomy_update_8005() {
-  $uuid = new Uuid();
+  $uuid = \Drupal::service('uuid');
 
   $result = db_query('SELECT * FROM {taxonomy_vocabulary}');
   foreach ($result as $vocabulary) {
-    $config = Drupal::config('taxonomy.vocabulary.' . $vocabulary->machine_name)
+    $config = \Drupal::config('taxonomy.vocabulary.' . $vocabulary->machine_name)
       ->set('vid', $vocabulary->machine_name)
       ->set('name', $vocabulary->name)
       ->set('uuid', !empty($vocabulary->uuid) ? $vocabulary->uuid : $uuid->generate())
@@ -359,15 +348,15 @@ function taxonomy_update_8006() {
  */
 function taxonomy_update_8007() {
   foreach (config_get_storage_names_with_prefix('field.field.') as $config_name) {
-    $field_config = Drupal::config($config_name);
+    $field_config = \Drupal::config($config_name);
     // Only update taxonomy reference fields that use the default SQL storage.
     if ($field_config->get('type') == 'taxonomy_term_reference') {
       $field = new Field($field_config->get());
 
-      if (db_table_exists(DatabaseStorageController::_fieldTableName($field))) {
+      if (db_table_exists(FieldableDatabaseStorageController::_fieldTableName($field))) {
         $tables = array(
-          DatabaseStorageController::_fieldTableName($field),
-          DatabaseStorageController::_fieldRevisionTableName($field),
+          FieldableDatabaseStorageController::_fieldTableName($field),
+          FieldableDatabaseStorageController::_fieldRevisionTableName($field),
         );
 
         foreach ($tables as $table_name) {
@@ -392,4 +381,18 @@ function taxonomy_update_8007() {
       }
     }
   }
+}
+
+/**
+ * Add a changed column for taxonomy terms.
+ */
+function taxonomy_update_8008() {
+  $spec = array(
+    'description' => 'The Unix timestamp when the term was most recently saved.',
+    'type' => 'int',
+    'not null' => TRUE,
+    'default' => 0,
+    'initial' => REQUEST_TIME,
+  );
+  db_add_field('taxonomy_term_data', 'changed', $spec);
 }

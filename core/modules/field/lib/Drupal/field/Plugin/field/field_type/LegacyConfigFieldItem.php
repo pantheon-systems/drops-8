@@ -8,8 +8,10 @@
 namespace Drupal\field\Plugin\field\field_type;
 
 use Drupal\Core\Entity\Field\PrepareCacheInterface;
+use Drupal\Core\Entity\EntityStorageControllerInterface;
 use Drupal\field\Plugin\Type\FieldType\ConfigFieldItemBase;
 use Drupal\field\FieldInterface;
+use Drupal\field\FieldInstanceInterface;
 
 /**
  * Plugin implementation for legacy field types.
@@ -47,9 +49,9 @@ abstract class LegacyConfigFieldItem extends ConfigFieldItemBase implements Prep
     // Make sure the array received by the legacy callback includes computed
     // properties.
     $item = $this->getValue(TRUE);
-    // The previous hook was never called on an empty item, but EntityNG always
-    // creates a FieldItem element for an empty field.
-    return empty($item) || $callback($item, $this->getInstance()->getField()->type);
+    // The previous hook was never called on an empty item, but
+    // ContentEntityBase always creates a FieldItem element for an empty field.
+    return empty($item) || $callback($item, $this->getFieldDefinition()->getFieldType());
   }
 
   /**
@@ -59,7 +61,7 @@ abstract class LegacyConfigFieldItem extends ConfigFieldItemBase implements Prep
     if ($callback = $this->getLegacyCallback('settings_form')) {
       // hook_field_settings_form() used to receive the $instance (not actually
       // needed), and the value of field_has_data().
-      return $callback($this->getInstance()->getField(), $this->getInstance(), $has_data);
+      return $callback($this->getFieldInstance()->getField(), $this->getFieldInstance(), $has_data);
     }
     return array();
   }
@@ -69,7 +71,7 @@ abstract class LegacyConfigFieldItem extends ConfigFieldItemBase implements Prep
    */
   public function instanceSettingsForm(array $form, array &$form_state) {
     if ($callback = $this->getLegacyCallback('instance_settings_form')) {
-      return $callback($this->getInstance()->getField(), $this->getInstance(), $form_state);
+      return $callback($this->getFieldInstance()->getField(), $this->getFieldInstance(), $form_state);
     }
     return array();
   }
@@ -84,10 +86,9 @@ abstract class LegacyConfigFieldItem extends ConfigFieldItemBase implements Prep
    *
    * @see \Drupal\Core\Entity\DatabaseStorageController::invokeFieldItemPrepareCache()
    */
-  public function prepareCache() {
+  public function getCacheData() {
     if ($callback = $this->getLegacyCallback('load')) {
-      $entity = $this->getParent()->getParent();
-      $langcode = $entity->language()->id;
+      $entity = $this->getEntity();
       $entity_id = $entity->id();
 
       // hook_field_load() receives items keyed by entity id, and alters then by
@@ -96,15 +97,17 @@ abstract class LegacyConfigFieldItem extends ConfigFieldItemBase implements Prep
       $args = array(
         $entity->entityType(),
         array($entity_id => $entity),
-        $this->getInstance()->getField(),
-        array($entity_id => $this->getInstance()),
-        $langcode,
+        $this->getFieldInstance()->getField(),
+        array($entity_id => $this->getFieldInstance()),
+        $this->getLangcode(),
         &$items,
-        FIELD_LOAD_CURRENT,
+        EntityStorageControllerInterface::FIELD_LOAD_CURRENT,
       );
       call_user_func_array($callback, $args);
       $this->setValue($items[$entity_id][0]);
+      return $items[$entity_id][0];
     }
+    return $this->getValue();
   }
 
   /**
@@ -118,8 +121,7 @@ abstract class LegacyConfigFieldItem extends ConfigFieldItemBase implements Prep
     $definition = $this->getPluginDefinition();
     $callback = "{$definition['provider']}_options_list";
     if (function_exists($callback)) {
-      $entity = $this->getParent()->getParent();
-      return $callback($this->getInstance(), $entity);
+      return $callback($this->getFieldDefinition(), $this->getEntity());
     }
   }
 
@@ -139,6 +141,20 @@ abstract class LegacyConfigFieldItem extends ConfigFieldItemBase implements Prep
     if (function_exists($callback)) {
       return $callback;
     }
+  }
+
+  /**
+   * Returns the field instance.
+   *
+   * @return \Drupal\field\Entity\FieldInstanceInterface
+   *   The field instance.
+   */
+  protected function getFieldInstance() {
+    $instance = $this->getFieldDefinition();
+    if (!($instance instanceof FieldInstanceInterface)) {
+      throw new \UnexpectedValueException('LegacyConfigFieldItem::getFieldInstance() called for a field whose definition is not a field instance.');
+    }
+    return $instance;
   }
 
 }

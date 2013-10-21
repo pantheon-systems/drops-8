@@ -1,27 +1,53 @@
-contact_category_delete:
-  pattern: 'admin/structure/contact/manage/{contact_category}/delete'
+contact.category_delete:
+  path: '/admin/structure/contact/manage/{contact_category}/delete'
   defaults:
     _entity_form: contact_category.delete
+    _title: 'Delete'
   requirements:
     _entity_access: contact_category.delete
 
-contact_category_list:
-  pattern: '/admin/structure/contact'
+contact.category_list:
+  path: '/admin/structure/contact'
   defaults:
     _entity_list: 'contact_category'
   requirements:
     _permission: 'administer contact forms'
 
-contact_category_add:
-  pattern: '/admin/structure/contact/add'
+contact.category_add:
+  path: '/admin/structure/contact/add'
   defaults:
     _entity_form: contact_category.add
   requirements:
     _permission: 'administer contact forms'
 
-contact_category_edit:
-  pattern: '/admin/structure/contact/manage/{contact_category}'
+contact.category_edit:
+  path: '/admin/structure/contact/manage/{contact_category}'
   defaults:
     _entity_form: contact_category.edit
   requirements:
     _entity_access: contact_category.update
+
+contact.site_page:
+  path: '/contact'
+  defaults:
+    _title: 'Contact'
+    _content: '\Drupal\contact\Controller\ContactController::contactSitePage'
+    contact_category: NULL
+  requirements:
+    _permission: 'access site-wide contact form'
+
+contact.site_page_category:
+  path: '/contact/{contact_category}'
+  defaults:
+    _title: 'Contact category form'
+    _content: '\Drupal\contact\Controller\ContactController::contactSitePage'
+  requirements:
+    _permission: 'access site-wide contact form'
+
+contact.personal_page:
+  path: '/user/{user}/contact'
+  defaults:
+    _title: 'Contact'
+    _content: '\Drupal\contact\Controller\ContactController::contactPersonalPage'
+  requirements:
+    _access_contact_personal_tab: 'TRUE'

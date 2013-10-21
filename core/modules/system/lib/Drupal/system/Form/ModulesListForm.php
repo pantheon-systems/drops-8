@@ -12,9 +12,10 @@ use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\KeyValueStore\KeyValueStoreExpirableInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Drupal\Core\Access\AccessManager;
 
 /**
- * Provides module enable/disable interface.
+ * Provides module installation interface.
  *
  * The list of modules gets populated by module.info.yml files, which contain
  * each module's name, description, and information about which modules it
@@ -43,7 +44,8 @@ class ModulesListForm extends FormBase {
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('module_handler'),
-      $container->get('keyvalue.expirable')->get('module_list')
+      $container->get('keyvalue.expirable')->get('module_list'),
+      $container->get('access_manager')
     );
   }
 
@@ -54,16 +56,19 @@ class ModulesListForm extends FormBase {
    *   The module handler.
    * @param \Drupal\Core\KeyValueStore\KeyValueStoreExpirableInterface $key_value_expirable
    *   The key value expirable factory.
+   * @param \Drupal\Core\Access\AccessManager $access_manager
+   *   Access manager.
    */
-  public function __construct(ModuleHandlerInterface $module_handler, KeyValueStoreExpirableInterface $key_value_expirable) {
+  public function __construct(ModuleHandlerInterface $module_handler, KeyValueStoreExpirableInterface $key_value_expirable, AccessManager $access_manager) {
     $this->moduleHandler = $module_handler;
     $this->keyValueExpirable = $key_value_expirable;
+    $this->accessManager = $access_manager;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function getFormID() {
+  public function getFormId() {
     return 'system_modules';
   }
 
@@ -117,7 +122,7 @@ class ModulesListForm extends FormBase {
         '#title' => $this->t($package),
         '#theme' => 'system_modules_details',
         '#header' => array(
-          array('data' => '<span class="visually-hidden">' . $this->t('Enabled') . '</span>', 'class' => array('checkbox')),
+          array('data' => '<span class="visually-hidden">' . $this->t('Installed') . '</span>', 'class' => array('checkbox')),
           array('data' => $this->t('Name'), 'class' => array('name')),
           array('data' => $this->t('Description'), 'class' => array('description', RESPONSIVE_PRIORITY_LOW)),
         ),
@@ -193,12 +198,18 @@ class ModulesListForm extends FormBase {
     // Generate link for module's configuration page, if it has one.
     $row['links']['configure'] = array();
     if ($module->status && isset($module->info['configure'])) {
-      if (($configure = menu_get_item($module->info['configure'])) && $configure['access']) {
+      if ($this->accessManager->checkNamedRoute($module->info['configure'])) {
+        $item = menu_get_item(trim($this->url($module->info['configure']), '/'));
         $row['links']['configure'] = array(
           '#type' => 'link',
           '#title' => $this->t('Configure'),
-          '#href' => $configure['href'],
-          '#options' => array('attributes' => array('class' => array('module-link', 'module-link-configure'), 'title' => $configure['description'])),
+          '#route_name' => $module->info['configure'],
+          '#options' => array(
+            'attributes' => array(
+              'class' => array('module-link', 'module-link-configure'),
+              'title' => $item['description'],
+            ),
+          ),
         );
       }
     }
@@ -206,8 +217,9 @@ class ModulesListForm extends FormBase {
     // Present a checkbox for installing and indicating the status of a module.
     $row['enable'] = array(
       '#type' => 'checkbox',
-      '#title' => $this->t('Enable'),
+      '#title' => $this->t('Install'),
       '#default_value' => (bool) $module->status,
+      '#disabled' => (bool) $module->status,
     );
 
     // Disable the checkbox for required modules.
@@ -222,10 +234,10 @@ class ModulesListForm extends FormBase {
     $status = '';
 
     // Check the core compatibility.
-    if ($module->info['core'] != DRUPAL_CORE_COMPATIBILITY) {
+    if ($module->info['core'] != \Drupal::CORE_COMPATIBILITY) {
       $compatible = FALSE;
       $status .= $this->t('This version is not compatible with Drupal !core_version and should be replaced.', array(
-        '!core_version' => DRUPAL_CORE_COMPATIBILITY,
+        '!core_version' => \Drupal::CORE_COMPATIBILITY,
       ));
     }
 
@@ -259,7 +271,7 @@ class ModulesListForm extends FormBase {
         $name = $modules[$dependency]->info['name'];
         // Disable the module's checkbox if it is incompatible with the
         // dependency's version.
-        if ($incompatible_version = drupal_check_incompatibility($version, str_replace(DRUPAL_CORE_COMPATIBILITY . '-', '', $modules[$dependency]->info['version']))) {
+        if ($incompatible_version = drupal_check_incompatibility($version, str_replace(\Drupal::CORE_COMPATIBILITY . '-', '', $modules[$dependency]->info['version']))) {
           $row['#requires'][$dependency] = $this->t('@module (<span class="admin-missing">incompatible with</span> version @version)', array(
             '@module' => $name . $incompatible_version,
             '@version' => $modules[$dependency]->info['version'],
@@ -268,7 +280,7 @@ class ModulesListForm extends FormBase {
         }
         // Disable the checkbox if the dependency is incompatible with this
         // version of Drupal core.
-        elseif ($modules[$dependency]->info['core'] != DRUPAL_CORE_COMPATIBILITY) {
+        elseif ($modules[$dependency]->info['core'] != \Drupal::CORE_COMPATIBILITY) {
           $row['#requires'][$dependency] = $this->t('@module (<span class="admin-missing">incompatible with</span> this version of Drupal core)', array(
             '@module' => $name,
           ));
@@ -301,67 +313,47 @@ class ModulesListForm extends FormBase {
   }
 
   /**
-   * Helper function for building a list of modules to enable or disable.
+   * Helper function for building a list of modules to install.
    *
    * @param array $form_state
    *   The form state array.
    *
    * @return array
-   *   An array of modules to disable/enable and their dependencies.
+   *   An array of modules to install and their dependencies.
    */
   protected function buildModuleList(array $form_state) {
     $packages = $form_state['values']['modules'];
 
-    // Build a list of modules to enable or disable.
+    // Build a list of modules to install.
     $modules = array(
-      'enable' => array(),
-      'disable' => array(),
+      'install' => array(),
       'dependencies' => array(),
-      'missing' => array(),
     );
 
-    // Build a list of missing dependencies.
+    // Required modules have to be installed.
     // @todo This should really not be handled here.
     $data = system_rebuild_module_data();
     foreach ($data as $name => $module) {
-      // Modules with missing dependencies have to be disabled.
-      if ($this->moduleHandler->moduleExists($name)) {
-        foreach (array_keys($module->requires) as $dependency) {
-          if (!isset($data[$dependency])) {
-            $modules['missing'][$dependency][$name] = $module->info['name'];
-            $modules['disable'][$name] = $module->info['name'];
-          }
-        }
-      }
-      elseif (!empty($module->required)) {
-        $modules['enable'][$name] = $module->info['name'];
+      if (!empty($module->required) && !$this->moduleHandler->moduleExists($name)) {
+        $modules['install'][$name] = $module->info['name'];
       }
     }
 
     // First, build a list of all modules that were selected.
     foreach ($packages as $items) {
       foreach ($items as $name => $checkbox) {
-        // Do not override modules that are forced to be enabled/disabled.
-        if (isset($modules['enable'][$name]) || isset($modules['disable'][$name])) {
-          continue;
-        }
-
-        $enabled = $this->moduleHandler->moduleExists($name);
-        if (!$checkbox['enable'] && $enabled) {
-          $modules['disable'][$name] = $data[$name]->info['name'];
-        }
-        elseif ($checkbox['enable'] && !$enabled) {
-          $modules['enable'][$name] = $data[$name]->info['name'];
+        if ($checkbox['enable'] && !$this->moduleHandler->moduleExists($name)) {
+          $modules['install'][$name] = $data[$name]->info['name'];
         }
       }
     }
 
     // Add all dependencies to a list.
-    while (list($module) = each($modules['enable'])) {
+    while (list($module) = each($modules['install'])) {
       foreach (array_keys($data[$module]->requires) as $dependency) {
-        if (!isset($modules['enable'][$dependency]) && !$this->moduleHandler->moduleExists($dependency)) {
+        if (!isset($modules['install'][$dependency]) && !$this->moduleHandler->moduleExists($dependency)) {
           $modules['dependencies'][$module][$dependency] = $data[$dependency]->info['name'];
-          $modules['enable'][$dependency] = $data[$dependency]->info['name'];
+          $modules['install'][$dependency] = $data[$dependency]->info['name'];
         }
       }
     }
@@ -371,11 +363,11 @@ class ModulesListForm extends FormBase {
 
     // Invoke hook_requirements('install'). If failures are detected, make
     // sure the dependent modules aren't installed either.
-    foreach (array_keys($modules['enable']) as $module) {
-      if (drupal_get_installed_schema_version($module) == SCHEMA_UNINSTALLED && !drupal_check_module($module)) {
-        unset($modules['enable'][$module]);
+    foreach (array_keys($modules['install']) as $module) {
+      if (!drupal_check_module($module)) {
+        unset($modules['install'][$module]);
         foreach (array_keys($data[$module]->required_by) as $dependent) {
-          unset($modules['enable'][$dependent]);
+          unset($modules['install'][$dependent]);
           unset($modules['dependencies'][$dependent]);
         }
       }
@@ -388,14 +380,15 @@ class ModulesListForm extends FormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, array &$form_state) {
-    // Retrieve a list of modules to enable/disable and their dependencies.
+    // Retrieve a list of modules to install and their dependencies.
     $modules = $this->buildModuleList($form_state);
 
-    // Check if we have to enable any dependencies. If there is one or more
-    // dependencies that are not enabled yet, redirect to the confirmation form.
+    // Check if we have to install any dependencies. If there is one or more
+    // dependencies that are not installed yet, redirect to the confirmation
+    // form.
     if (!empty($modules['dependencies']) || !empty($modules['missing'])) {
       // Write the list of changed module states into a key value store.
-      $account = $this->getCurrentUser()->id();
+      $account = $this->currentUser()->id();
       $this->keyValueExpirable->setWithExpire($account, $modules, 60);
 
       // Redirect to the confirmation form.
@@ -410,11 +403,8 @@ class ModulesListForm extends FormBase {
     $before = $this->moduleHandler->getModuleList();
 
     // There seem to be no dependencies that would need approval.
-    if (!empty($modules['enable'])) {
-      $this->moduleHandler->enable(array_keys($modules['enable']));
-    }
-    if (!empty($modules['disable'])) {
-      $this->moduleHandler->disable(array_keys($modules['disable']));
+    if (!empty($modules['install'])) {
+      $this->moduleHandler->install(array_keys($modules['install']));
     }
 
     // Gets module list after install process, flushes caches and displays a

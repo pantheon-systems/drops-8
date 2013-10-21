@@ -1,21 +1,22 @@
 format: full_html
 name: 'Full HTML'
-status: '1'
-weight: '1'
+uuid: 3d5d6be5-ac96-4a1b-bc00-c8725edead3c
+status: true
+weight: 1
 roles:
   - administrator
-cache: '1'
+cache: true
 filters:
   filter_caption:
     id: filter_caption
     module: filter
-    status: '1'
-    weight: '9'
+    status: true
+    weight: 9
     settings: {  }
   filter_htmlcorrector:
     id: filter_htmlcorrector
     module: filter
-    status: '1'
-    weight: '10'
+    status: true
+    weight: 10
     settings: {  }
 langcode: en

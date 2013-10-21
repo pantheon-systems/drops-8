@@ -20,7 +20,7 @@ interface ConfigEntityInterface extends EntityInterface {
    * @return string|null
    *   The original ID, if any.
    */
-  public function getOriginalID();
+  public function getOriginalId();
 
   /**
    * Sets the original ID.
@@ -28,9 +28,9 @@ interface ConfigEntityInterface extends EntityInterface {
    * @param string $id
    *   The new ID to set as original ID.
    *
-   * @return void
+   * @return self
    */
-  public function setOriginalID($id);
+  public function setOriginalId($id);
 
   /**
    * Enables the configuration entity.
@@ -74,6 +74,27 @@ interface ConfigEntityInterface extends EntityInterface {
    * @return bool
    */
   public function status();
+
+  /**
+   * Returns the value of a property.
+   *
+   * @param string $property_name
+   *   The name of the property that should be returned.
+   *
+   * @return mixed
+   *   The property, if existing, NULL otherwise.
+   */
+  public function get($property_name);
+
+  /**
+   * Sets the value of a property.
+   *
+   * @param string $property_name
+   *   The name of the property that should be set.
+   * @param mixed $value
+   *   The value the property should be set to.
+   */
+  public function set($property_name, $value);
 
   /**
    * Retrieves the exportable properties of the entity.

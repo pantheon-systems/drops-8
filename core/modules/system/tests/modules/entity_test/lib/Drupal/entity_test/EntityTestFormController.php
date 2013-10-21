@@ -6,13 +6,13 @@
 
 namespace Drupal\entity_test;
 
-use Drupal\Core\Entity\EntityFormControllerNG;
+use Drupal\Core\Entity\ContentEntityFormController;
 use Drupal\Core\Language\Language;
 
 /**
  * Form controller for the test entity edit forms.
  */
-class EntityTestFormController extends EntityFormControllerNG {
+class EntityTestFormController extends ContentEntityFormController {
 
   /**
    * Overrides Drupal\Core\Entity\EntityFormController::form().
@@ -93,7 +93,7 @@ class EntityTestFormController extends EntityFormControllerNG {
     drupal_set_message($message);
 
     if ($entity->id()) {
-      $form_state['redirect'] = $entity->entityType() . '/manage/' . $entity->id() . '/edit';
+      $form_state['redirect'] = $entity->entityType() . '/manage/' . $entity->id();
     }
     else {
       // Error on save.

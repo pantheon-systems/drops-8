@@ -11,6 +11,7 @@
  * @see watchdog()
  */
 
+use Drupal\Component\Utility\MapArray;
 use Drupal\Core\Database\Database;
 
 /**
@@ -21,13 +22,13 @@ function dblog_help($path, $arg) {
     case 'admin/help#dblog':
       $output = '';
       $output .= '<h3>' . t('About') . '</h3>';
-      $output .= '<p>' . t('The Database Logging module logs system events in the Drupal database. For more information, see the online handbook entry for the <a href="@dblog">Database Logging module</a>.', array('@dblog' => 'http://drupal.org/documentation/modules/dblog')) . '</p>';
+      $output .= '<p>' . t('The Database Logging module logs system events in the Drupal database. For more information, see the online handbook entry for the <a href="!dblog">Database Logging module</a>.', array('!dblog' => 'http://drupal.org/documentation/modules/dblog')) . '</p>';
       $output .= '<h3>' . t('Uses') . '</h3>';
       $output .= '<dl>';
       $output .= '<dt>' . t('Monitoring your site') . '</dt>';
-      $output .= '<dd>' . t('The Database Logging module allows you to view an event log on the <a href="@dblog">Recent log messages</a> page. The log is a chronological list of recorded events containing usage data, performance data, errors, warnings and operational information. Administrators should check the log on a regular basis to ensure their site is working properly.', array('@dblog' => url('admin/reports/dblog'))) . '</dd>';
+      $output .= '<dd>' . t('The Database Logging module allows you to view an event log on the <a href="!dblog">Recent log messages</a> page. The log is a chronological list of recorded events containing usage data, performance data, errors, warnings and operational information. Administrators should check the log on a regular basis to ensure their site is working properly.', array('!dblog' => \Drupal::url('dblog.overview'))) . '</dd>';
       $output .= '<dt>' . t('Debugging site problems') . '</dt>';
-      $output .= '<dd>' . t('In case of errors or problems with the site, the <a href="@dblog">Recent log messages</a> page can be useful for debugging, since it shows the sequence of events. The log messages include usage information, warnings, and errors.', array('@dblog' => url('admin/reports/dblog'))) . '</dd>';
+      $output .= '<dd>' . t('In case of errors or problems with the site, the <a href="!dblog">Recent log messages</a> page can be useful for debugging, since it shows the sequence of events. The log messages include usage information, warnings, and errors.', array('!dblog' => \Drupal::url('dblog.overview'))) . '</dd>';
       $output .= '</dl>';
       return $output;
     case 'admin/reports/dblog':
@@ -42,38 +43,29 @@ function dblog_menu() {
   $items['admin/reports/dblog'] = array(
     'title' => 'Recent log messages',
     'description' => 'View events that have recently been logged.',
-    'route_name' => 'dblog_overview',
+    'route_name' => 'dblog.overview',
     'weight' => -1,
   );
   $items['admin/reports/page-not-found'] = array(
     'title' => "Top 'page not found' errors",
     'description' => "View 'page not found' errors (404s).",
-    'page callback' => 'dblog_top',
-    'page arguments' => array('page not found'),
-    'access arguments' => array('access site reports'),
-    'file' => 'dblog.admin.inc',
+    'route_name' => 'dblog.page_not_found',
   );
   $items['admin/reports/access-denied'] = array(
     'title' => "Top 'access denied' errors",
     'description' => "View 'access denied' errors (403s).",
-    'page callback' => 'dblog_top',
-    'page arguments' => array('access denied'),
-    'access arguments' => array('access site reports'),
-    'file' => 'dblog.admin.inc',
+    'route_name' => 'dblog.access_denied',
   );
   $items['admin/reports/event/%'] = array(
     'title' => 'Details',
-    'route_name' => 'dblog_event',
+    'route_name' => 'dblog.event',
   );
 
-  if (module_exists('search')) {
+  if (\Drupal::moduleHandler()->moduleExists('search')) {
     $items['admin/reports/search'] = array(
       'title' => 'Top search phrases',
       'description' => 'View most popular search phrases.',
-      'page callback' => 'dblog_top',
-      'page arguments' => array('search'),
-      'access arguments' => array('access site reports'),
-      'file' => 'dblog.admin.inc',
+      'route_name' => 'dblog.search',
     );
   }
 
@@ -96,7 +88,7 @@ function dblog_page_build(&$page) {
  */
 function dblog_cron() {
   // Cleanup the watchdog table.
-  $row_limit = Drupal::config('dblog.settings')->get('row_limit');
+  $row_limit = \Drupal::config('dblog.settings')->get('row_limit');
 
   // For row limit n, get the wid of the nth row in descending wid order.
   // Counting the most recent n rows avoids issues with wid number sequences,
@@ -131,7 +123,7 @@ function _dblog_get_message_types() {
     $types[] = $object->type;
   }
 
-  return $types;
+  return MapArray::copyValuesToKeys($types);
 }
 
 /**
@@ -166,7 +158,7 @@ function dblog_form_system_logging_settings_alter(&$form, $form_state) {
   $form['dblog_row_limit'] = array(
     '#type' => 'select',
     '#title' => t('Database log messages to keep'),
-    '#default_value' => Drupal::config('dblog.settings')->get('row_limit'),
+    '#default_value' => \Drupal::config('dblog.settings')->get('row_limit'),
     '#options' => array(0 => t('All')) + drupal_map_assoc(array(100, 1000, 10000, 100000, 1000000)),
     '#description' => t('The maximum number of messages to keep in the database log. Requires a <a href="@cron">cron maintenance task</a>.', array('@cron' => url('admin/reports/status')))
   );
@@ -180,5 +172,5 @@ function dblog_form_system_logging_settings_alter(&$form, $form_state) {
  * @see dblog_form_system_logging_settings_alter()
  */
 function dblog_logging_settings_submit($form, &$form_state) {
-  Drupal::config('dblog.settings')->set('row_limit', $form_state['values']['dblog_row_limit'])->save();
+  \Drupal::config('dblog.settings')->set('row_limit', $form_state['values']['dblog_row_limit'])->save();
 }

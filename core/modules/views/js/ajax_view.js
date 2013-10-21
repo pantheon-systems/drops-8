@@ -2,7 +2,7 @@
  * @file
  * Handles AJAX fetching of views, including filter submission and response.
  */
-(function ($) {
+(function ($, Drupal, drupalSettings) {
 
 "use strict";
 
@@ -11,10 +11,13 @@
  */
 Drupal.behaviors.ViewsAjaxView = {};
 Drupal.behaviors.ViewsAjaxView.attach = function() {
-  if (Drupal.settings && Drupal.settings.views && Drupal.settings.views.ajaxViews) {
-    $.each(Drupal.settings.views.ajaxViews, function(i, settings) {
-      Drupal.views.instances[i] = new Drupal.views.ajaxView(settings);
-    });
+  if (drupalSettings && drupalSettings.views && drupalSettings.views.ajaxViews) {
+    var ajaxViews = drupalSettings.views.ajaxViews;
+    for (var i in ajaxViews) {
+      if (ajaxViews.hasOwnProperty(i)) {
+        Drupal.views.instances[i] = new Drupal.views.ajaxView(ajaxViews[i]);
+      }
+    }
   }
 };
 
@@ -29,7 +32,7 @@ Drupal.views.ajaxView = function(settings) {
   this.$view = $(selector);
 
   // Retrieve the path to use for views' ajax.
-  var ajax_path = Drupal.settings.views.ajax_path;
+  var ajax_path = drupalSettings.views.ajax_path;
 
   // If there are multiple views this might've ended up showing up multiple times.
   if (ajax_path.constructor.toString().indexOf("Array") !== -1) {
@@ -145,4 +148,4 @@ Drupal.AjaxCommands.prototype.viewsScrollTop = function (ajax, response) {
   }
 };
 
-})(jQuery);
+})(jQuery, Drupal, drupalSettings);

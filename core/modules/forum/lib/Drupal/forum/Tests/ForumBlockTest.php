@@ -7,7 +7,6 @@
 
 namespace Drupal\forum\Tests;
 
-use Drupal\Core\Language\Language;
 use Drupal\simpletest\WebTestBase;
 use Drupal\Core\Datetime\DrupalDateTime;
 
@@ -99,13 +98,14 @@ class ForumBlockTest extends WebTestBase {
 
     // Comment on the first 5 topics.
     $date = new DrupalDateTime();
-    $langcode = Language::LANGCODE_NOT_SPECIFIED;
     for ($index = 0; $index < 5; $index++) {
       // Get the node from the topic title.
       $node = $this->drupalGetNodeByTitle($topics[$index]);
       $date->modify('+1 minute');
       $comment = entity_create('comment', array(
-        'nid' => $node->id(),
+        'entity_id' => $node->id(),
+        'field_name' => 'comment_forum',
+        'entity_type' => 'node',
         'node_type' => 'node_type_' . $node->bundle(),
         'subject' => $this->randomString(20),
         'comment_body' => $this->randomString(256),
@@ -169,10 +169,9 @@ class ForumBlockTest extends WebTestBase {
       // changing the date.
       $date->modify('+1 minute');
 
-      $langcode = Language::LANGCODE_NOT_SPECIFIED;
       $edit = array(
         'title' => $title,
-        "body[$langcode][0][value]" => $body,
+        'body[0][value]' => $body,
         // Forum posts are ordered by timestamp, so force a unique timestamp by
         // adding the index.
         'date[date]' => $date->format('Y-m-d'),
@@ -180,7 +179,7 @@ class ForumBlockTest extends WebTestBase {
       );
 
       // Create the forum topic, preselecting the forum ID via a URL parameter.
-      $this->drupalPost('node/add/forum/1', $edit, t('Save and publish'));
+      $this->drupalPostForm('node/add/forum', $edit, t('Save and publish'), array('query' => array('forum_id' => 1)));
       $topics[] = $title;
     }
 

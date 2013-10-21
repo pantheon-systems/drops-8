@@ -7,6 +7,9 @@
 
 namespace Drupal\Core\Entity;
 
+use Drupal\Core\Entity\Field\FieldItemListInterface;
+use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\Entity\Field\FieldDefinitionInterface;
 use Drupal\Core\Language\Language;
 use Drupal\Core\Session\AccountInterface;
 
@@ -30,13 +33,30 @@ class EntityAccessController implements EntityAccessControllerInterface {
   protected $entityType;
 
   /**
+   * The entity info array.
+   *
+   * @var array
+   */
+  protected $entityInfo;
+
+  /**
+   * The module handler service.
+   *
+   * @var \Drupal\Core\Extension\ModuleHandlerInterface
+   */
+  protected $moduleHandler;
+
+  /**
    * Constructs an access controller instance.
    *
    * @param string $entity_type
    *   The entity type of the access controller instance.
+   * @param array $entity_info
+   *   An array of entity info for the entity type.
    */
-  public function __construct($entity_type) {
-    $this->entity_type = $entity_type;
+  public function __construct($entity_type, array $entity_info) {
+    $this->entityType = $entity_type;
+    $this->entityInfo = $entity_info;
   }
 
   /**
@@ -50,15 +70,19 @@ class EntityAccessController implements EntityAccessControllerInterface {
       return $access;
     }
 
-    // Invoke hook_entity_access(), hook results take precedence over overridden
-    // implementations of EntityAccessController::checkAccess(). Entities
-    // that have checks that need to be done before the hook is invoked should
-    // do so by overridding this method.
+    // Invoke hook_entity_access() and hook_ENTITY_TYPE_access(). Hook results
+    // take precedence over overridden implementations of
+    // EntityAccessController::checkAccess(). Entities that have checks that
+    // need to be done before the hook is invoked should do so by overriding
+    // this method.
 
     // We grant access to the entity if both of these conditions are met:
     // - No modules say to deny access.
     // - At least one module says to grant access.
-    $access = module_invoke_all($entity->entityType() . '_access', $entity, $operation, $account, $langcode);
+    $access = array_merge(
+      $this->moduleHandler->invokeAll('entity_access', array($entity, $operation, $account, $langcode)),
+      $this->moduleHandler->invokeAll($entity->entityType() . '_access', array($entity, $operation, $account, $langcode))
+    );
 
     if (($return = $this->processAccessHookResults($access)) === NULL) {
       // No module had an opinion about the access, so let's the access
@@ -76,7 +100,7 @@ class EntityAccessController implements EntityAccessControllerInterface {
    * @param array $access
    *   An array of access results of the fired access hook.
    *
-   * @return bool|NULL
+   * @return bool|null
    *   Returns FALSE if access should be denied, TRUE if access should be
    *   granted and NULL if no module denied access.
    */
@@ -113,7 +137,12 @@ class EntityAccessController implements EntityAccessControllerInterface {
    *   could not be determined.
    */
   protected function checkAccess(EntityInterface $entity, $operation, $langcode, AccountInterface $account) {
-    return NULL;
+    if (!empty($this->entityInfo['admin_permission'])) {
+      return $account->hasPermission($this->entityInfo['admin_permission']);
+    }
+    else {
+      return NULL;
+    }
   }
 
   /**
@@ -188,15 +217,19 @@ class EntityAccessController implements EntityAccessControllerInterface {
       return $access;
     }
 
-    // Invoke hook_entity_access(), hook results take precedence over overridden
-    // implementations of EntityAccessController::checkAccess(). Entities
-    // that have checks that need to be done before the hook is invoked should
-    // do so by overridding this method.
+    // Invoke hook_entity_create_access() and hook_ENTITY_TYPE_create_access().
+    // Hook results take precedence over overridden implementations of
+    // EntityAccessController::checkAccess(). Entities that have checks that
+    // need to be done before the hook is invoked should do so by overriding
+    // this method.
 
     // We grant access to the entity if both of these conditions are met:
     // - No modules say to deny access.
     // - At least one module says to grant access.
-    $access = module_invoke_all($this->entity_type . '_create_access', $account, $context['langcode']);
+    $access = array_merge(
+      $this->moduleHandler->invokeAll('entity_create_access', array($account, $context['langcode'])),
+      $this->moduleHandler->invokeAll($this->entityType . '_create_access', array($account, $context['langcode']))
+    );
 
     if (($return = $this->processAccessHookResults($access)) === NULL) {
       // No module had an opinion about the access, so let's the access
@@ -225,7 +258,12 @@ class EntityAccessController implements EntityAccessControllerInterface {
    *   could not be determined.
    */
   protected function checkCreateAccess(AccountInterface $account, array $context, $entity_bundle = NULL) {
-    return NULL;
+    if (!empty($this->entityInfo['admin_permission'])) {
+      return $account->hasPermission($this->entityInfo['admin_permission']);
+    }
+    else {
+      return NULL;
+    }
   }
 
   /**
@@ -242,6 +280,52 @@ class EntityAccessController implements EntityAccessControllerInterface {
       $account = $GLOBALS['user'];
     }
     return $account;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setModuleHandler(ModuleHandlerInterface $module_handler) {
+    $this->moduleHandler = $module_handler;
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function fieldAccess($operation, FieldDefinitionInterface $field_definition, AccountInterface $account = NULL, FieldItemListInterface $items = NULL) {
+    $account = $this->prepareUser($account);
+
+    // Get the default access restriction that lives within this field.
+    $default = $items ? $items->defaultAccess($operation, $account) : TRUE;
+
+    // Invoke hook and collect grants/denies for field access from other
+    // modules. Our default access flag is masked under the ':default' key.
+    $grants = array(':default' => $default);
+    $hook_implementations = $this->moduleHandler->getImplementations('entity_field_access');
+    foreach ($hook_implementations as $module) {
+      $grants = array_merge($grants, array($module => $this->moduleHandler->invoke($module, 'entity_field_access', array($operation, $field_definition, $account, $items))));
+    }
+
+    // Also allow modules to alter the returned grants/denies.
+    $context = array(
+      'operation' => $operation,
+      'field_definition' => $field_definition,
+      'items' => $items,
+      'account' => $account,
+    );
+    $this->moduleHandler->alter('entity_field_access', $grants, $context);
+
+    // One grant being FALSE is enough to deny access immediately.
+    if (in_array(FALSE, $grants, TRUE)) {
+      return FALSE;
+    }
+    // At least one grant has the explicit opinion to allow access.
+    if (in_array(TRUE, $grants, TRUE)) {
+      return TRUE;
+    }
+    // All grants are NULL and have no opinion - deny access in that case.
+    return FALSE;
   }
 
 }
