@@ -24,7 +24,7 @@ class FilterDateTest extends HandlerTestBase {
    *
    * @var array
    */
-  public static $modules = array('views_ui');
+  public static $modules = array('node', 'views_ui');
 
   public static function getInfo() {
     return array(
@@ -149,12 +149,11 @@ class FilterDateTest extends HandlerTestBase {
    * Make sure the validation callbacks works.
    */
   protected function _testUiValidation() {
-    $view = views_get_view('test_filter_date_between');
 
     $this->drupalLogin($this->drupalCreateUser(array('administer views', 'administer site configuration')));
-    menu_router_rebuild();
+
     $this->drupalGet('admin/structure/views/view/test_filter_date_between/edit');
-    $this->drupalGet('admin/structure/views/nojs/config-item/test_filter_date_between/default/filter/created');
+    $this->drupalGet('admin/structure/views/nojs/handler/test_filter_date_between/default/filter/created');
 
     $edit = array();
     // Generate a definitive wrong value, which should be checked by validation.

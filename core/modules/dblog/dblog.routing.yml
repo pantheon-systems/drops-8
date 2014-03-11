@@ -2,6 +2,7 @@ dblog.overview:
   path: '/admin/reports/dblog'
   defaults:
     _content: '\Drupal\dblog\Controller\DbLogController::overview'
+    _title: 'Recent log messages'
   requirements:
     _permission: 'access site reports'
 
@@ -9,6 +10,7 @@ dblog.event:
   path: '/admin/reports/event/{event_id}'
   defaults:
     _content: '\Drupal\dblog\Controller\DbLogController::eventDetails'
+    _title: 'Details'
   requirements:
     _permission: 'access site reports'
 
@@ -16,7 +18,8 @@ dblog.page_not_found:
   path: '/admin/reports/page-not-found'
   defaults:
     _title: "Top 'page not found' errors"
-    _content: '\Drupal\dblog\Controller\DbLogController::pageNotFound'
+    _content: '\Drupal\dblog\Controller\DbLogController::topLogMessages'
+    type: 'page not found'
   requirements:
     _permission: 'access site reports'
 
@@ -24,15 +27,17 @@ dblog.access_denied:
   path: '/admin/reports/access-denied'
   defaults:
     _title: "Top 'access denied' errors"
-    _content: '\Drupal\dblog\Controller\DbLogController::accessDenied'
+    _content: '\Drupal\dblog\Controller\DbLogController::topLogMessages'
+    type: 'access denied'
   requirements:
     _permission: 'access site reports'
 
 dblog.search:
   path: '/admin/reports/search'
   defaults:
-    _content: '\Drupal\dblog\Controller\DbLogController::search'
+    _content: '\Drupal\dblog\Controller\DbLogController::topLogMessages'
     _title: 'Top search phrases'
+    type: 'search'
   requirements:
     _module_dependencies: 'search'
     _permission: 'access site reports'

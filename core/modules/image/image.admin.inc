@@ -54,12 +54,18 @@ function theme_image_style_effects($variables) {
   }
 
   $table = array(
-    '#theme' => 'table',
+    '#type' => 'table',
     '#header' => $header,
     '#rows' => $rows,
     '#attributes' => array('id' => 'image-style-effects'),
+    '#tabledrag' => array(
+      array(
+        'action' => 'order',
+        'relationship' => 'sibling',
+        'group' => 'image-effect-order-weight',
+      ),
+    ),
   );
-  drupal_add_tabledrag('image-style-effects', 'order', 'sibling', 'image-effect-order-weight');
   return drupal_render($table);
 }
 

@@ -14,19 +14,13 @@ use Drupal\breakpoint\InvalidBreakpointNameException;
 use Drupal\breakpoint\InvalidBreakpointSourceException;
 use Drupal\breakpoint\InvalidBreakpointSourceTypeException;
 use Drupal\breakpoint\InvalidBreakpointMediaQueryException;
-use Drupal\Core\Entity\Annotation\EntityType;
-use Drupal\Core\Annotation\Translation;
 
 /**
  * Defines the Breakpoint entity.
  *
- * @EntityType(
+ * @ConfigEntityType(
  *   id = "breakpoint",
  *   label = @Translation("Breakpoint"),
- *   module = "breakpoint",
- *   controllers = {
- *     "storage" = "Drupal\Core\Config\Entity\ConfigStorageController"
- *   },
  *   config_prefix = "breakpoint.breakpoint",
  *   entity_keys = {
  *     "id" = "id",

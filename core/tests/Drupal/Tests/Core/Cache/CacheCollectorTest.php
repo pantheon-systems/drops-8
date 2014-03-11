@@ -7,8 +7,8 @@
 
 namespace Drupal\Tests\Core\Cache;
 
+use Drupal\Core\Cache\Cache;
 use Drupal\Tests\UnitTestCase;
-use Drupal\Core\Cache\CacheBackendInterface;
 
 /**
  * Tests the cache CacheCollector.
@@ -63,6 +63,8 @@ class CacheCollectorTest extends UnitTestCase {
     $this->lock = $this->getMock('Drupal\Core\Lock\LockBackendInterface');
     $this->cid = $this->randomName();
     $this->collector = new CacheCollectorHelper($this->cid, $this->cache, $this->lock);
+
+    $this->getContainerWithCacheBins($this->cache);
   }
 
 
@@ -189,7 +191,7 @@ class CacheCollectorTest extends UnitTestCase {
       ->with($this->cid, FALSE);
     $this->cache->expects($this->once())
       ->method('set')
-      ->with($this->cid, array($key => $value), CacheBackendInterface::CACHE_PERMANENT, array());
+      ->with($this->cid, array($key => $value), Cache::PERMANENT, array());
     $this->lock->expects($this->once())
       ->method('release')
       ->with($this->cid . ':Drupal\Core\Cache\CacheCollector');
@@ -295,7 +297,7 @@ class CacheCollectorTest extends UnitTestCase {
       ->will($this->returnValue($cache));
     $this->cache->expects($this->once())
       ->method('set')
-      ->with($this->cid, array('other key' => 'other value', $key => $value), CacheBackendInterface::CACHE_PERMANENT, array());
+      ->with($this->cid, array('other key' => 'other value', $key => $value), Cache::PERMANENT, array());
     $this->lock->expects($this->once())
       ->method('release')
       ->with($this->cid . ':Drupal\Core\Cache\CacheCollector');
@@ -336,7 +338,7 @@ class CacheCollectorTest extends UnitTestCase {
       ->with($this->cid, TRUE);
     $this->cache->expects($this->once())
       ->method('set')
-      ->with($this->cid, array(), CacheBackendInterface::CACHE_PERMANENT, array());
+      ->with($this->cid, array(), Cache::PERMANENT, array());
     $this->lock->expects($this->once())
       ->method('release')
       ->with($this->cid . ':Drupal\Core\Cache\CacheCollector');

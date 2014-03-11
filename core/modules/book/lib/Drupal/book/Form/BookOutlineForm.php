@@ -8,6 +8,7 @@
 namespace Drupal\book\Form;
 
 use Drupal\Core\Entity\ContentEntityFormController;
+use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\book\BookManager;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -32,19 +33,25 @@ class BookOutlineForm extends ContentEntityFormController {
 
   /**
    * Constructs a BookOutlineForm object.
+   *
+   * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
+   *   The entity manager.
+   * @param \Drupal\book\BookManager $book_manager
+   *   The BookManager service.
    */
-  public function __construct(BookManager $bookManager) {
-    $this->bookManager = $bookManager;
+  public function __construct(EntityManagerInterface $entity_manager, BookManager $book_manager) {
+    parent::__construct($entity_manager);
+    $this->bookManager = $book_manager;
   }
 
   /**
-   * This method lets us inject the services this class needs.
-   *
-   * Only inject services that are actually needed. Which services
-   * are needed will vary by the controller.
+   * {@inheritdoc}
    */
   public static function create(ContainerInterface $container) {
-    return new static($container->get('book.manager'));
+    return new static(
+      $container->get('entity.manager'),
+      $container->get('book.manager')
+    );
   }
 
   /**
@@ -94,7 +101,12 @@ class BookOutlineForm extends ContentEntityFormController {
    * @see book_remove_button_submit()
    */
   public function submit(array $form, array &$form_state) {
-    $form_state['redirect'] = 'node/' . $this->entity->id();
+    $form_state['redirect_route'] = array(
+      'route_name' => 'node.view',
+      'route_parameters' => array(
+        'node' => $this->entity->id(),
+      ),
+    );
     $book_link = $form_state['values']['book'];
     if (!$book_link['bid']) {
       drupal_set_message($this->t('No changes were made'));
@@ -107,7 +119,7 @@ class BookOutlineForm extends ContentEntityFormController {
       if ($this->entity->book['parent_mismatch']) {
         // This will usually only happen when JS is disabled.
         drupal_set_message($this->t('The post has been added to the selected book. You may now position it relative to other pages.'));
-        $form_state['redirect'] = 'node/' . $this->entity->id() . '/outline';
+        $form_state['redirect_route'] = $this->entity->urlInfo('book-outline-form');
       }
       else {
         drupal_set_message($this->t('The book outline has been updated.'));
@@ -122,7 +134,7 @@ class BookOutlineForm extends ContentEntityFormController {
    * {@inheritdoc}
    */
   public function delete(array $form, array &$form_state) {
-    $form_state['redirect'] = 'node/' . $this->entity->id() . '/outline/remove';
+    $form_state['redirect_route'] = $this->entity->urlInfo('book-remove-form');
   }
 
 }

@@ -35,8 +35,7 @@ class ConfigEntityListTest extends WebTestBase {
    * Tests entity list controller methods.
    */
   function testList() {
-    $controller = $this->container->get('entity.manager')
-      ->getListController('config_test');
+    $controller = \Drupal::entityManager()->getListController('config_test');
 
     // Test getStorageController() method.
     $this->assertTrue($controller->getStorageController() instanceof EntityStorageControllerInterface, 'EntityStorageController instance in storage.');
@@ -51,32 +50,25 @@ class ConfigEntityListTest extends WebTestBase {
     $this->assertTrue($entity instanceof ConfigTest, '"Default" ConfigTest entity is an instance of ConfigTest.');
 
     // Test getOperations() method.
-    $uri = $entity->uri();
     $expected_operations = array(
       'edit' => array (
         'title' => t('Edit'),
-        'href' => $uri['path'],
-        'options' => $uri['options'],
         'weight' => 10,
-      ),
+      ) + $entity->urlInfo(),
       'disable' => array(
         'title' => t('Disable'),
-        'href' => $uri['path'] . '/disable',
-        'options' => $uri['options'],
         'weight' => 40,
-      ),
+      ) + $entity->urlInfo('disable'),
       'delete' => array (
         'title' => t('Delete'),
-        'href' => $uri['path'] . '/delete',
-        'options' => $uri['options'],
         'weight' => 100,
-      ),
+      ) + $entity->urlInfo('delete-form'),
     );
 
     $actual_operations = $controller->getOperations($entity);
     // Sort the operations to normalize link order.
-    uasort($actual_operations, 'drupal_sort_weight');
-    $this->assertIdentical($expected_operations, $actual_operations);
+    uasort($actual_operations, array('Drupal\Component\Utility\SortArray', 'sortByWeightElement'));
+    $this->assertIdentical($expected_operations, $actual_operations, 'The operations are identical.');
 
     // Test buildHeader() method.
     $expected_items = array(
@@ -130,26 +122,21 @@ class ConfigEntityListTest extends WebTestBase {
     $entity = $list['default'];
 
     // Test getOperations() method.
-    $uri = $entity->uri();
     $expected_operations = array(
       'edit' => array(
         'title' => t('Edit'),
-        'href' => $uri['path'],
-        'options' => $uri['options'],
         'weight' => 10,
-      ),
+      ) + $entity->urlInfo(),
       'delete' => array(
         'title' => t('Delete'),
-        'href' => $uri['path'] . '/delete',
-        'options' => $uri['options'],
         'weight' => 100,
-      ),
+      ) + $entity->urlInfo('delete-form'),
     );
 
     $actual_operations = $controller->getOperations($entity);
     // Sort the operations to normalize link order.
-    uasort($actual_operations, 'drupal_sort_weight');
-    $this->assertIdentical($expected_operations, $actual_operations);
+    uasort($actual_operations, array('Drupal\Component\Utility\SortArray', 'sortByWeightElement'));
+    $this->assertIdentical($expected_operations, $actual_operations, 'The operations are identical.');
   }
 
   /**

@@ -7,8 +7,6 @@
 
 namespace Drupal\entity\Entity;
 
-use Drupal\Core\Entity\Annotation\EntityType;
-use Drupal\Core\Annotation\Translation;
 use Drupal\entity\EntityDisplayModeBase;
 use Drupal\entity\EntityFormModeInterface;
 
@@ -29,18 +27,17 @@ use Drupal\entity\EntityFormModeInterface;
  * @see entity_get_form_modes()
  * @see hook_entity_form_mode_info_alter()
  *
- * @EntityType(
+ * @ConfigEntityType(
  *   id = "form_mode",
  *   label = @Translation("Form mode"),
- *   module = "entity",
  *   controllers = {
+ *     "storage" = "Drupal\entity\EntityDisplayModeStorageController",
  *     "list" = "Drupal\entity\EntityFormModeListController",
  *     "form" = {
  *       "add" = "Drupal\entity\Form\EntityFormModeAddForm",
  *       "edit" = "Drupal\entity\Form\EntityDisplayModeEditForm",
  *       "delete" = "Drupal\entity\Form\EntityDisplayModeDeleteForm"
- *     },
- *     "storage" = "Drupal\entity\EntityDisplayModeStorageController"
+ *     }
  *   },
  *   admin_permission = "administer display modes",
  *   config_prefix = "entity.form_mode",
@@ -50,7 +47,8 @@ use Drupal\entity\EntityFormModeInterface;
  *     "uuid" = "uuid"
  *   },
  *   links = {
- *     "edit-form" = "admin/structure/display-modes/form/manage/{form_mode}"
+ *     "delete-form" = "entity.form_mode_delete",
+ *     "edit-form" = "entity.form_mode_edit"
  *   }
  * )
  */

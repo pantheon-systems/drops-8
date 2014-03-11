@@ -7,12 +7,11 @@
 
 namespace Drupal\views\Plugin\views\field;
 
-use Drupal\Component\Annotation\PluginID;
+use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\views\Plugin\views\field\FieldPluginBase;
 use Drupal\views\ResultRow;
 use Drupal\views\ViewExecutable;
 use Drupal\views\Plugin\views\display\DisplayPluginBase;
-use Drupal\Core\Entity\EntityManager;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -32,7 +31,7 @@ class EntityLabel extends FieldPluginBase {
   /**
    * EntityManager class.
    *
-   * @var \Drupal\Core\Entity\EntityManager
+   * @var \Drupal\Core\Entity\EntityManagerInterface
    */
   protected $entityManager;
 
@@ -45,10 +44,10 @@ class EntityLabel extends FieldPluginBase {
    *   The plugin_id for the plugin instance.
    * @param array $plugin_definition
    *   The plugin implementation definition.
-   * @param \Drupal\Core\Entity\EntityManager  $manager
+   * @param \Drupal\Core\Entity\EntityManagerInterface $manager
    *   EntityManager that is stored internally and used to load nodes.
    */
-  public function __construct(array $configuration, $plugin_id, array $plugin_definition, EntityManager $manager) {
+  public function __construct(array $configuration, $plugin_id, array $plugin_definition, EntityManagerInterface $manager) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
 
     $this->entityManager = $manager;
@@ -100,16 +99,19 @@ class EntityLabel extends FieldPluginBase {
    * {@inheritdoc}
    */
   public function render(ResultRow $values) {
-    $entity = $this->loadedReferencers[$this->getValue($values, $this->definition['entity type field'])][$this->getValue($values)];
+    $type = $this->getValue($values, $this->definition['entity type field']);
+    $value = $this->getValue($values);
 
-    if (empty($entity)) {
-      return NULL;
+    if (empty($this->loadedReferencers[$type][$value])) {
+      return;
     }
 
+    /** @var $entity \Drupal\Core\Entity\EntityInterface */
+    $entity = $this->loadedReferencers[$type][$value];
+
     if (!empty($this->options['link_to_entity'])) {
-      $uri = $entity->uri();
       $this->options['alter']['make_link'] = TRUE;
-      $this->options['alter']['path'] = $uri['path'];
+      $this->options['alter']['path'] = $entity->getSystemPath();
     }
 
     return $this->sanitizeValue($entity->label());
@@ -123,7 +125,9 @@ class EntityLabel extends FieldPluginBase {
 
     $entity_ids_per_type = array();
     foreach ($values as $value) {
-      $entity_ids_per_type[$this->getValue($value, 'type')][] = $this->getValue($value);
+      if ($type = $this->getValue($value, 'type')) {
+        $entity_ids_per_type[$type][] = $this->getValue($value);
+      }
     }
 
     foreach ($entity_ids_per_type as $type => $ids) {

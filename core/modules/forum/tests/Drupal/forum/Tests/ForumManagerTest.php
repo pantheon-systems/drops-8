@@ -28,17 +28,13 @@ class ForumManagerTest extends UnitTestCase {
    * Tests ForumManager::getIndex().
    */
   public function testGetIndex() {
-    $entity_manager = $this->getMockBuilder('\Drupal\Core\Entity\EntityManager')
-      ->disableOriginalConstructor()
-      ->getMock();
+    $entity_manager = $this->getMock('Drupal\Core\Entity\EntityManagerInterface');
 
     $storage_controller = $this->getMockBuilder('\Drupal\taxonomy\VocabularyStorageController')
       ->disableOriginalConstructor()
       ->getMock();
 
-    $config_factory = $this->getMockBuilder('\Drupal\Core\Config\ConfigFactory')
-      ->disableOriginalConstructor()
-      ->getMock();
+    $config_factory = $this->getMock('\Drupal\Core\Config\ConfigFactoryInterface');
 
     $config = $this->getMockBuilder('\Drupal\Core\Config\Config')
       ->disableOriginalConstructor()

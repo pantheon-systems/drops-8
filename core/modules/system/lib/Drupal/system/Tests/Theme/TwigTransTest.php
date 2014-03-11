@@ -80,11 +80,10 @@ class TwigTransTest extends WebTestBase {
     $this->installLanguages();
 
     // Assign Lolspeak (xx) to be the default language.
-    $edit = array('site_default_language' => 'xx');
-    $this->drupalPostForm('admin/config/regional/settings', $edit, t('Save configuration'));
-
-    // Reset the static cache of the language list.
-    drupal_static_reset('language_list');
+    $language = \Drupal::languageManager()->getLanguage('xx');
+    $language->default = TRUE;
+    language_save($language);
+    $this->rebuildContainer();
 
     // Check that lolspeak is the default language for the site.
     $this->assertEqual(language_default()->id, 'xx', 'Lolspeak is the default language');
@@ -251,6 +250,7 @@ class TwigTransTest extends WebTestBase {
         drupal_unlink($filename);
       }
     }
+    $this->container->get('language_manager')->reset();
   }
 
   /**

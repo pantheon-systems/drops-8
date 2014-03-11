@@ -29,15 +29,15 @@ use Drupal\field\Field;
 function field_info_cache_clear() {
   drupal_static_reset('field_view_mode_settings');
   drupal_static_reset('field_form_mode_settings');
-  drupal_static_reset('field_available_languages');
 
   // @todo: Remove this when field_attach_*_bundle() bundle management
   // functions are moved to the entity API.
   entity_info_cache_clear();
 
   // Clear typed data definitions.
-  \Drupal::typedData()->clearCachedDefinitions();
-  \Drupal::service('plugin.manager.entity.field.field_type')->clearCachedDefinitions();
+  \Drupal::typedDataManager()->clearCachedDefinitions();
+  \Drupal::service('plugin.manager.field.field_type')->clearCachedDefinitions();
+  \Drupal::service('config.factory')->reset();
 
   Field::fieldInfo()->flush();
 }

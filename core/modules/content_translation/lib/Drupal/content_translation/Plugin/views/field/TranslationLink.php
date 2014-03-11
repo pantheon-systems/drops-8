@@ -8,7 +8,6 @@
 namespace Drupal\content_translation\Plugin\views\field;
 
 use Drupal\views\Plugin\views\field\FieldPluginBase;
-use Drupal\Component\Annotation\PluginID;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\views\ResultRow;
 
@@ -65,8 +64,7 @@ class TranslationLink extends FieldPluginBase {
       $text = !empty($this->options['text']) ? $this->options['text'] : t('translate');
 
       $this->options['alter']['make_link'] = TRUE;
-      $uri = $entity->uri();
-      $this->options['alter']['path'] = $uri['path'] . '/translations';
+      $this->options['alter']['path'] = $entity->getSystemPath('drupal:content-translation-overview');
 
       return $text;
     }

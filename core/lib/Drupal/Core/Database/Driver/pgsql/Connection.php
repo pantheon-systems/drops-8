@@ -132,6 +132,7 @@ class Connection extends DatabaseConnection {
         case Database::RETURN_STATEMENT:
           return $stmt;
         case Database::RETURN_AFFECTED:
+          $stmt->allowRowCount = TRUE;
           return $stmt->rowCount();
         case Database::RETURN_INSERT_ID:
           return $this->connection->lastInsertId($options['sequence_name']);
@@ -178,7 +179,7 @@ class Connection extends DatabaseConnection {
 
   public function queryTemporary($query, array $args = array(), array $options = array()) {
     $tablename = $this->generateTemporaryTableName();
-    $this->query(preg_replace('/^SELECT/i', 'CREATE TEMPORARY TABLE {' . $tablename . '} AS SELECT', $query), $args, $options);
+    $this->query('CREATE TEMPORARY TABLE {' . $tablename . '} AS ' . $query, $args, $options);
     return $tablename;
   }
 

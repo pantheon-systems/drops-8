@@ -119,11 +119,11 @@ class FileFieldRevisionTest extends FileFieldTestBase {
     // of the file is older than DRUPAL_MAXIMUM_TEMP_FILE_AGE.
     db_update('file_managed')
       ->fields(array(
-        'timestamp' => REQUEST_TIME - (DRUPAL_MAXIMUM_TEMP_FILE_AGE + 1),
+        'changed' => REQUEST_TIME - (DRUPAL_MAXIMUM_TEMP_FILE_AGE + 1),
       ))
       ->condition('fid', $node_file_r3->id())
       ->execute();
-    drupal_cron_run();
+    \Drupal::service('cron')->run();
 
     $this->assertFileNotExists($node_file_r3, 'Second file is now deleted after deleting third revision, since it is no longer being used by any other nodes.');
     $this->assertFileEntryNotExists($node_file_r3, 'Second file entry is now deleted after deleting third revision, since it is no longer being used by any other nodes.');
@@ -134,11 +134,11 @@ class FileFieldRevisionTest extends FileFieldTestBase {
     // of the file is older than DRUPAL_MAXIMUM_TEMP_FILE_AGE.
     db_update('file_managed')
       ->fields(array(
-        'timestamp' => REQUEST_TIME - (DRUPAL_MAXIMUM_TEMP_FILE_AGE + 1),
+        'changed' => REQUEST_TIME - (DRUPAL_MAXIMUM_TEMP_FILE_AGE + 1),
       ))
       ->condition('fid', $node_file_r1->id())
       ->execute();
-    drupal_cron_run();
+    \Drupal::service('cron')->run();
     $this->assertFileNotExists($node_file_r1, 'Original file is deleted after deleting the entire node with two revisions remaining.');
     $this->assertFileEntryNotExists($node_file_r1, 'Original file entry is deleted after deleting the entire node with two revisions remaining.');
   }

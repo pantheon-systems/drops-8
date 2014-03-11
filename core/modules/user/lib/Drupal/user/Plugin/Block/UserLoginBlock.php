@@ -7,6 +7,7 @@
 
 namespace Drupal\user\Plugin\Block;
 
+use Drupal\Core\Session\AccountInterface;
 use Drupal\block\BlockBase;
 
 /**
@@ -14,16 +15,17 @@ use Drupal\block\BlockBase;
  *
  * @Block(
  *   id = "user_login_block",
- *   admin_label = @Translation("User login")
+ *   admin_label = @Translation("User login"),
+ *   category = @Translation("Forms")
  * )
  */
 class UserLoginBlock extends BlockBase {
 
   /**
-   * Overrides \Drupal\block\BlockBase::access().
+   * {@inheritdoc}
    */
-  public function access() {
-    return (!$GLOBALS['user']->id() && !(arg(0) == 'user' && !is_numeric(arg(1))));
+  public function access(AccountInterface $account) {
+    return (!$account->id() && !(arg(0) == 'user' && !is_numeric(arg(1))));
   }
 
   /**

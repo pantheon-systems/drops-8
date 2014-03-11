@@ -7,10 +7,9 @@
 
 namespace Drupal\taxonomy\Plugin\entity_reference\selection;
 
-use Drupal\Core\Annotation\Translation;
+use Drupal\Component\Utility\String;
 use Drupal\Core\Database\Query\SelectInterface;
-use Drupal\Core\Entity\Field\FieldDefinitionInterface;
-use Drupal\entity_reference\Annotation\EntityReferenceSelection;
+use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\entity_reference\Plugin\entity_reference\selection\SelectionBase;
 
 /**
@@ -38,7 +37,7 @@ class TermSelection extends SelectionBase {
    */
   public static function settingsForm(FieldDefinitionInterface $field_definition) {
     $form = parent::settingsForm($field_definition);
-    $selection_handler_settings = $field_definition->getFieldSetting('handler_settings');
+    $selection_handler_settings = $field_definition->getSetting('handler_settings');
 
     // @todo: Currently allow auto-create only on taxonomy terms.
     $form['auto_create'] = array(
@@ -65,9 +64,9 @@ class TermSelection extends SelectionBase {
 
     foreach ($bundle_names as $bundle) {
       if ($vocabulary = entity_load('taxonomy_vocabulary', $bundle)) {
-        if ($terms = taxonomy_get_tree($vocabulary->id(), 0)) {
+        if ($terms = taxonomy_get_tree($vocabulary->id(), 0, NULL, TRUE)) {
           foreach ($terms as $term) {
-            $options[$vocabulary->id()][$term->id()] = str_repeat('-', $term->depth) . check_plain($term->name);
+            $options[$vocabulary->id()][$term->id()] = str_repeat('-', $term->depth) . String::checkPlain($term->label());
           }
         }
       }

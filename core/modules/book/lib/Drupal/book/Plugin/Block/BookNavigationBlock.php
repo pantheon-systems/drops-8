@@ -8,18 +8,57 @@
 namespace Drupal\book\Plugin\Block;
 
 use Drupal\block\BlockBase;
-use Drupal\block\Annotation\Block;
-use Drupal\Core\Annotation\Translation;
+use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Provides a 'Book navigation' block.
  *
  * @Block(
  *   id = "book_navigation",
- *   admin_label = @Translation("Book navigation")
+ *   admin_label = @Translation("Book navigation"),
+ *   category = @Translation("Menus")
  * )
  */
-class BookNavigationBlock extends BlockBase {
+class BookNavigationBlock extends BlockBase implements ContainerFactoryPluginInterface {
+
+  /**
+   * The request object.
+   *
+   * @var \Symfony\Component\HttpFoundation\Request
+   */
+  protected $request;
+
+  /**
+   * Constructs a new BookNavigationBlock instance.
+   *
+   * @param array $configuration
+   *   A configuration array containing information about the plugin instance.
+   * @param string $plugin_id
+   *   The plugin_id for the plugin instance.
+   * @param array $plugin_definition
+   *   The plugin implementation definition.
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The request object.
+   */
+  public function __construct(array $configuration, $plugin_id, array $plugin_definition, Request $request) {
+    parent::__construct($configuration, $plugin_id, $plugin_definition);
+
+    $this->request = $request;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, array $plugin_definition) {
+    return new static(
+      $configuration,
+      $plugin_id,
+      $plugin_definition,
+      $container->get('request')
+    );
+  }
 
   /**
    * {@inheritdoc}
@@ -62,7 +101,7 @@ class BookNavigationBlock extends BlockBase {
    */
   public function build() {
     $current_bid = 0;
-    if ($node = menu_get_object()) {
+    if ($node = $this->request->get('node')) {
       $current_bid = empty($node->book['bid']) ? 0 : $node->book['bid'];
     }
     if ($this->configuration['block_mode'] == 'all pages') {
@@ -72,7 +111,8 @@ class BookNavigationBlock extends BlockBase {
         if ($book['bid'] == $current_bid) {
           // If the current page is a node associated with a book, the menu
           // needs to be retrieved.
-          $book_menus[$book_id] = menu_tree_output(menu_tree_all_data($node->book['menu_name'], $node->book));
+          $data = \Drupal::service('book.manager')->bookTreeAllData($node->book['menu_name'], $node->book);
+          $book_menus[$book_id] = \Drupal::service('book.manager')->bookTreeOutput($data);
         }
         else {
           // Since we know we will only display a link to the top node, there
@@ -80,16 +120,15 @@ class BookNavigationBlock extends BlockBase {
           $book['in_active_trail'] = FALSE;
           // Check whether user can access the book link.
           $book_node = node_load($book['nid']);
-          $book['access'] = node_access('view', $book_node);
+          $book['access'] = $book_node->access('view');
           $pseudo_tree[0]['link'] = $book;
-          $book_menus[$book_id] = menu_tree_output($pseudo_tree);
+          $book_menus[$book_id] = \Drupal::service('book.manager')->bookTreeOutput($pseudo_tree);
         }
       }
       if ($book_menus) {
         return array(
           '#theme' => 'book_all_books_block',
-          $book_menus
-        );
+        ) + $book_menus;
       }
     }
     elseif ($current_bid) {
@@ -101,10 +140,10 @@ class BookNavigationBlock extends BlockBase {
       $nid = $select->execute()->fetchField();
       // Only show the block if the user has view access for the top-level node.
       if ($nid) {
-        $tree = menu_tree_all_data($node->book['menu_name'], $node->book);
+        $tree = \Drupal::service('book.manager')->bookTreeAllData($node->book['menu_name'], $node->book);
         // There should only be one element at the top level.
         $data = array_shift($tree);
-        $below = menu_tree_output($data['below']);
+        $below = \Drupal::service('book.manager')->bookTreeOutput($data['below']);
         if (!empty($below)) {
           $book_title_link = array('#theme' => 'book_title_link', '#link' => $data['link']);
           return array(

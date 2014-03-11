@@ -10,9 +10,11 @@ namespace Drupal\simpletest;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\DrupalKernel;
 use Drupal\Core\KeyValueStore\KeyValueMemoryFactory;
+use Drupal\Core\Language\Language;
 use Symfony\Component\DependencyInjection\Reference;
 use Drupal\Core\Database\Database;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Base test case class for Drupal unit tests.
@@ -56,11 +58,27 @@ abstract class DrupalUnitTestBase extends UnitTestBase {
   private $themeData;
 
   /**
+   * The configuration directories for this test run.
+   *
+   * @var array
+   */
+  protected $configDirectories = array();
+
+  /**
    * A KeyValueMemoryFactory instance to use when building the container.
    *
    * @var \Drupal\Core\KeyValueStore\KeyValueMemoryFactory.
    */
   protected $keyValueFactory;
+
+  /**
+   * A list of stream wrappers that have been registered for this test.
+   *
+   * @see \Drupal\simpletest\DrupalUnitTestBase::registerStreamWrapper()
+   *
+   * @var array
+   */
+  private $streamWrappers = array();
 
   /**
    * Overrides \Drupal\simpletest\UnitTestBase::__construct().
@@ -71,24 +89,51 @@ abstract class DrupalUnitTestBase extends UnitTestBase {
   }
 
   /**
-   * Sets up Drupal unit test environment.
-   *
-   * @see \DrupalUnitTestBase::$modules
-   * @see \DrupalUnitTestBase
+   * Overrides TestBase::beforePrepareEnvironment().
    */
-  protected function setUp() {
+  protected function beforePrepareEnvironment() {
     // Copy/prime extension file lists once to avoid filesystem scans.
     if (!isset($this->moduleFiles)) {
       $this->moduleFiles = \Drupal::state()->get('system.module.files') ?: array();
       $this->themeFiles = \Drupal::state()->get('system.theme.files') ?: array();
       $this->themeData = \Drupal::state()->get('system.theme.data') ?: array();
     }
+  }
 
+  /**
+   * Create and set new configuration directories.
+   *
+   * @see config_get_config_directory()
+   */
+  protected function prepareConfigDirectories() {
+    $this->configDirectories = array();
+    include_once DRUPAL_ROOT . '/core/includes/install.inc';
+    foreach (array(CONFIG_ACTIVE_DIRECTORY, CONFIG_STAGING_DIRECTORY) as $type) {
+      // Assign the relative path to the global variable.
+      $path = $this->siteDirectory . '/config_' . $type;
+      $GLOBALS['config_directories'][$type] = $path;
+      // Ensure the directory can be created and is writeable.
+      if (!install_ensure_config_directory($type)) {
+        throw new \RuntimeException("Failed to create '$type' config directory $path");
+      }
+      // Provide the already resolved path for tests.
+      $this->configDirectories[$type] = $path;
+    }
+  }
+
+  /**
+   * Sets up Drupal unit test environment.
+   */
+  protected function setUp() {
     $this->keyValueFactory = new KeyValueMemoryFactory();
 
     parent::setUp();
+
+    // Create and set new configuration directories.
+    $this->prepareConfigDirectories();
+
     // Build a minimal, partially mocked environment for unit tests.
-    $this->containerBuild(drupal_container());
+    $this->containerBuild(\Drupal::getContainer());
     // Make sure it survives kernel rebuilds.
     $GLOBALS['conf']['container_service_providers']['TestServiceProvider'] = 'Drupal\simpletest\TestServiceProvider';
 
@@ -100,6 +145,13 @@ abstract class DrupalUnitTestBase extends UnitTestBase {
     // No need to dump it; this test runs in-memory.
     $this->kernel = new DrupalKernel('unit_testing', drupal_classloader(), FALSE);
     $this->kernel->boot();
+
+    // Create a minimal system.module configuration object so that the list of
+    // enabled modules can be maintained allowing
+    // \Drupal\Core\Config\ConfigInstaller::installDefaultConfig() to work.
+    // Write directly to active storage to avoid early instantiation of
+    // the event dispatcher which can prevent modules from registering events.
+    \Drupal::service('config.storage')->write('system.module', array('enabled' => array()));
 
     // Collect and set a fixed module list.
     $class = get_class($this);
@@ -122,10 +174,32 @@ abstract class DrupalUnitTestBase extends UnitTestBase {
     $this->enableModules($modules, FALSE);
     // In order to use theme functions default theme config needs to exist.
     \Drupal::config('system.theme')->set('default', 'stark');
+
+    // Tests based on this class are entitled to use Drupal's File and
+    // StreamWrapper APIs.
+    // @todo Move StreamWrapper management into DrupalKernel.
+    // @see https://drupal.org/node/2028109
+    // The public stream wrapper only depends on the file_public_path setting,
+    // which is provided by UnitTestBase::setUp().
+    $this->registerStreamWrapper('public', 'Drupal\Core\StreamWrapper\PublicStream');
+    // The temporary stream wrapper is able to operate both with and without
+    // configuration.
+    $this->registerStreamWrapper('temporary', 'Drupal\Core\StreamWrapper\TemporaryStream');
   }
 
   protected function tearDown() {
-    $this->kernel->shutdown();
+    if ($this->kernel instanceof DrupalKernel) {
+      $this->kernel->shutdown();
+    }
+    // Before tearing down the test environment, ensure that no stream wrapper
+    // of this test leaks into the parent environment. Unlike all other global
+    // state variables in Drupal, stream wrappers are a global state construct
+    // of PHP core, which has to be maintained manually.
+    // @todo Move StreamWrapper management into DrupalKernel.
+    // @see https://drupal.org/node/2028109
+    foreach ($this->streamWrappers as $scheme) {
+      $this->unregisterStreamWrapper($scheme);
+    }
     parent::tearDown();
   }
 
@@ -141,12 +215,14 @@ abstract class DrupalUnitTestBase extends UnitTestBase {
    * @see \DrupalUnitTestBase::disableModules()
    */
   public function containerBuild(ContainerBuilder $container) {
-    global $conf;
     // Keep the container object around for tests.
     $this->container = $container;
 
+    // Set the default language on the minimal container.
+    $this->container->setParameter('language.default_values', Language::$defaultValues);
+
     $container->register('lock', 'Drupal\Core\Lock\NullLockBackend');
-    $this->settingsSet('cache', array('default' => 'cache.backend.memory'));
+    $container->register('cache_factory', 'Drupal\Core\Cache\MemoryBackendFactory');
 
     $container
       ->register('config.storage', 'Drupal\Core\Config\FileStorage')
@@ -156,7 +232,7 @@ abstract class DrupalUnitTestBase extends UnitTestBase {
     $container->set('keyvalue.memory', $this->keyValueFactory);
     if (!$container->has('keyvalue')) {
       // TestBase::setUp puts a completely empty container in
-      // drupal_container() which is somewhat the mirror of the empty
+      // $this->container which is somewhat the mirror of the empty
       // environment being set up. Unit tests need not to waste time with
       // getting a container set up for them. Drupal Unit Tests might just get
       // away with a simple container holding the absolute bare minimum. When
@@ -174,10 +250,8 @@ abstract class DrupalUnitTestBase extends UnitTestBase {
         ->addArgument(new Reference('service_container'))
         ->addArgument(new Reference('settings'));
 
-      $container->register('state', 'Drupal\Core\KeyValueStore\KeyValueStoreInterface')
-        ->setFactoryService(new Reference('keyvalue'))
-        ->setFactoryMethod('get')
-        ->addArgument('state');
+      $container->register('state', 'Drupal\Core\KeyValueStore\State')
+        ->addArgument(new Reference('keyvalue'));
     }
 
     if ($container->hasDefinition('path_processor_alias')) {
@@ -189,6 +263,12 @@ abstract class DrupalUnitTestBase extends UnitTestBase {
       $definition->clearTag('path_processor_inbound')->clearTag('path_processor_outbound');
     }
 
+    if ($container->hasDefinition('password')) {
+      $container->getDefinition('password')->setArguments(array(1));
+    }
+
+    $request = Request::create('/');
+    $this->container->set('request', $request);
   }
 
   /**
@@ -204,7 +284,7 @@ abstract class DrupalUnitTestBase extends UnitTestBase {
           '@module' => $module,
         )));
       }
-      config_install_default_config('module', $module);
+      \Drupal::service('config.installer')->installDefaultConfig('module', $module);
     }
     $this->pass(format_string('Installed default config: %modules.', array(
       '%modules' => implode(', ', $modules),
@@ -263,15 +343,22 @@ abstract class DrupalUnitTestBase extends UnitTestBase {
     // Set the list of modules in the extension handler.
     $module_handler = $this->container->get('module_handler');
     $module_filenames = $module_handler->getModuleList();
+    // Write directly to active storage to avoid early instantiation of
+    // the event dispatcher which can prevent modules from registering events.
+    $active_storage =  \Drupal::service('config.storage');
+    $system_config = $active_storage->read('system.module');
     foreach ($modules as $module) {
       $module_filenames[$module] = drupal_get_filename('module', $module);
+      // Maintain the list of enabled modules in configuration.
+      $system_config['enabled'][$module] = 0;
     }
+    $active_storage->write('system.module', $system_config);
     $module_handler->setModuleList($module_filenames);
     $module_handler->resetImplementations();
     // Update the kernel to make their services available.
     $this->kernel->updateModules($module_filenames, $module_filenames);
 
-    // Ensure isLoaded() is TRUE in order to make theme() work.
+    // Ensure isLoaded() is TRUE in order to make _theme() work.
     // Note that the kernel has rebuilt the container; this $module_handler is
     // no longer the $module_handler instance from above.
     $module_handler = $this->container->get('module_handler');
@@ -294,15 +381,18 @@ abstract class DrupalUnitTestBase extends UnitTestBase {
     // Unset the list of modules in the extension handler.
     $module_handler = $this->container->get('module_handler');
     $module_filenames = $module_handler->getModuleList();
+    $system_config = $this->container->get('config.factory')->get('system.module');
     foreach ($modules as $module) {
       unset($module_filenames[$module]);
+      $system_config->clear('enabled.' . $module);
     }
+    $system_config->save();
     $module_handler->setModuleList($module_filenames);
     $module_handler->resetImplementations();
     // Update the kernel to remove their services.
     $this->kernel->updateModules($module_filenames, $module_filenames);
 
-    // Ensure isLoaded() is TRUE in order to make theme() work.
+    // Ensure isLoaded() is TRUE in order to make _theme() work.
     // Note that the kernel has rebuilt the container; this $module_handler is
     // no longer the $module_handler instance from above.
     $module_handler = $this->container->get('module_handler');
@@ -310,6 +400,57 @@ abstract class DrupalUnitTestBase extends UnitTestBase {
     $this->pass(format_string('Disabled modules: %modules.', array(
       '%modules' => implode(', ', $modules),
     )));
+  }
+
+  /**
+   * Registers a stream wrapper for this test.
+   *
+   * @param string $scheme
+   *   The scheme to register.
+   * @param string $class
+   *   The fully qualified class name to register.
+   * @param int $type
+   *   The Drupal Stream Wrapper API type. Defaults to
+   *   STREAM_WRAPPERS_LOCAL_NORMAL.
+   */
+  protected function registerStreamWrapper($scheme, $class, $type = STREAM_WRAPPERS_LOCAL_NORMAL) {
+    if (isset($this->streamWrappers[$scheme])) {
+      $this->unregisterStreamWrapper($scheme);
+    }
+    $this->streamWrappers[$scheme] = $scheme;
+    if (($type & STREAM_WRAPPERS_LOCAL) == STREAM_WRAPPERS_LOCAL) {
+      stream_wrapper_register($scheme, $class);
+    }
+    else {
+      stream_wrapper_register($scheme, $class, STREAM_IS_URL);
+    }
+    // @todo Revamp Drupal's stream wrapper API for D8.
+    // @see https://drupal.org/node/2028109
+    $wrappers = &drupal_static('file_get_stream_wrappers');
+    $wrappers[$scheme] = array(
+      'type' => $type,
+      'class' => $class,
+    );
+    $wrappers[STREAM_WRAPPERS_ALL] = $wrappers;
+  }
+
+  /**
+   * Unregisters a stream wrapper previously registered by this test.
+   *
+   * DrupalUnitTestBase::tearDown() automatically cleans up all registered
+   * stream wrappers, so this usually does not have to be called manually.
+   *
+   * @param string $scheme
+   *   The scheme to unregister.
+   */
+  protected function unregisterStreamWrapper($scheme) {
+    stream_wrapper_unregister($scheme);
+    unset($this->streamWrappers[$scheme]);
+    // @todo Revamp Drupal's stream wrapper API for D8.
+    // @see https://drupal.org/node/2028109
+    $wrappers = &drupal_static('file_get_stream_wrappers');
+    unset($wrappers[$scheme]);
+    unset($wrappers[STREAM_WRAPPERS_ALL][$scheme]);
   }
 
 }

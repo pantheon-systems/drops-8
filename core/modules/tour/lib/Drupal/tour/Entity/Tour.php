@@ -8,21 +8,17 @@
 namespace Drupal\tour\Entity;
 
 use Drupal\Core\Config\Entity\ConfigEntityBase;
-use Drupal\Core\Entity\Annotation\EntityType;
-use Drupal\Core\Annotation\Translation;
 use Drupal\tour\TipsBag;
 use Drupal\tour\TourInterface;
 
 /**
  * Defines the configured tour entity.
  *
- * @EntityType(
+ * @ConfigEntityType(
  *   id = "tour",
  *   label = @Translation("Tour"),
- *   module = "tour",
  *   controllers = {
- *     "storage" = "Drupal\Core\Config\Entity\ConfigStorageController",
- *     "render" = "Drupal\tour\TourRenderController"
+ *     "view_builder" = "Drupal\tour\TourViewBuilder"
  *   },
  *   config_prefix = "tour.tour",
  *   entity_keys = {
@@ -56,11 +52,18 @@ class Tour extends ConfigEntityBase implements TourInterface {
   public $label;
 
   /**
-   * The paths in which this tip can be displayed.
+   * The routes on which this tour should be displayed.
    *
    * @var array
    */
-  protected $paths = array();
+  protected $routes = array();
+
+  /**
+   * The routes on which this tour should be displayed, keyed by route id.
+   *
+   * @var array
+   */
+  protected $keyedRoutes;
 
   /**
    * Holds the collection of tips that are attached to this tour.
@@ -88,8 +91,8 @@ class Tour extends ConfigEntityBase implements TourInterface {
   /**
    * {@inheritdoc}
    */
-  public function getPaths() {
-    return $this->paths;
+  public function getRoutes() {
+    return $this->routes;
   }
 
   /**
@@ -124,13 +127,47 @@ class Tour extends ConfigEntityBase implements TourInterface {
   public function getExportProperties() {
     $properties = parent::getExportProperties();
     $names = array(
-      'paths',
+      'routes',
       'tips',
     );
     foreach ($names as $name) {
       $properties[$name] = $this->get($name);
     }
     return $properties;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function hasMatchingRoute($route_name, $route_params) {
+    if (!isset($this->keyedRoutes)) {
+      $this->keyedRoutes = array();
+      foreach ($this->getRoutes() as $route) {
+        $this->keyedRoutes[$route['route_name']] = isset($route['route_params']) ? $route['route_params'] : array();
+      }
+    }
+    if (!isset($this->keyedRoutes[$route_name])) {
+      // We don't know about this route.
+      return FALSE;
+    }
+    if (empty($this->keyedRoutes[$route_name])) {
+      // We don't need to worry about route params, the route name is enough.
+      return TRUE;
+    }
+    foreach ($this->keyedRoutes[$route_name] as $key => $value) {
+      // If a required param is missing or doesn't match, return FALSE.
+      if (empty($route_params[$key]) || $route_params[$key] !== $value) {
+        return FALSE;
+      }
+    }
+    return TRUE;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function resetKeyedRoutes() {
+    unset($this->keyedRoutes);
   }
 
 }

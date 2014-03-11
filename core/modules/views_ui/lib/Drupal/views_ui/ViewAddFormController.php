@@ -46,15 +46,6 @@ class ViewAddFormController extends ViewFormControllerBase {
   /**
    * {@inheritdoc}
    */
-  public function init(array &$form_state) {
-    parent::init($form_state);
-
-    drupal_set_title($this->t('Add new view'));
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   protected function prepareEntity() {
     // Do not prepare the entity while it is being added.
   }
@@ -180,7 +171,7 @@ class ViewAddFormController extends ViewFormControllerBase {
 
     foreach ($errors as $display_errors) {
       foreach ($display_errors as $name => $message) {
-        form_set_error($name, $message);
+        $this->setFormError($name, $form_state, $message);
       }
     }
   }
@@ -190,17 +181,19 @@ class ViewAddFormController extends ViewFormControllerBase {
    */
   public function submit(array $form, array &$form_state) {
     try {
-      $view = $form_state['wizard_instance']->createView($form, $form_state);
+      /** @var $wizard \Drupal\views\Plugin\views\wizard\WizardInterface */
+      $wizard = $form_state['wizard_instance'];
+      $view = $wizard->createView($form, $form_state);
     }
     // @todo Figure out whether it really makes sense to throw and catch exceptions on the wizard.
     catch (WizardException $e) {
       drupal_set_message($e->getMessage(), 'error');
-      $form_state['redirect'] = 'admin/structure/views';
+      $form_state['redirect_route']['route_name'] = 'views_ui.list';
       return;
     }
     $view->save();
 
-    $form_state['redirect'] = array('admin/structure/views/view/' . $view->id());
+    $form_state['redirect_route'] = $view->urlInfo('edit-form');
   }
 
   /**
@@ -212,7 +205,7 @@ class ViewAddFormController extends ViewFormControllerBase {
    *   A reference to a keyed array containing the current state of the form.
    */
   public function cancel(array $form, array &$form_state) {
-    $form_state['redirect'] = 'admin/structure/views';
+    $form_state['redirect_route']['route_name'] = 'views_ui.list';
   }
 
 }

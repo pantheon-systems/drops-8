@@ -10,11 +10,8 @@ namespace Drupal\comment\Controller;
 use Drupal\comment\CommentInterface;
 use Drupal\comment\CommentManagerInterface;
 use Drupal\field\FieldInfo;
-use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
-use Drupal\Core\Session\AccountInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -28,7 +25,7 @@ use Symfony\Component\HttpKernel\HttpKernelInterface;
  *
  * @see \Drupal\comment\Entity\Comment.
  */
-class CommentController extends ControllerBase implements ContainerInjectionInterface {
+class CommentController extends ControllerBase {
 
   /**
    * The HTTP kernel.
@@ -36,20 +33,6 @@ class CommentController extends ControllerBase implements ContainerInjectionInte
    * @var \Symfony\Component\HttpKernel\HttpKernelInterface
    */
   protected $httpKernel;
-
-  /**
-   * The CSRF token manager service.
-   *
-   * @var \Drupal\Core\Access\CsrfTokenGenerator
-   */
-  protected $csrfToken;
-
-  /**
-   * The current user service.
-   *
-   * @var \Drupal\Core\Session\AccountInterface
-   */
-  protected $currentUser;
 
   /**
    * Field info service.
@@ -68,21 +51,15 @@ class CommentController extends ControllerBase implements ContainerInjectionInte
   /**
    * Constructs a CommentController object.
    *
-   * @param \Symfony\Component\HttpKernel\HttpKernelInterface $httpKernel
+   * @param \Symfony\Component\HttpKernel\HttpKernelInterface $http_kernel
    *   HTTP kernel to handle requests.
-   * @param \Drupal\Core\Access\CsrfTokenGenerator $csrf_token
-   *   The CSRF token manager service.
-   * @param \Drupal\Core\Session\AccountInterface $current_user
-   *   The current user service.
    * @param \Drupal\field\FieldInfo $field_info
    *   Field Info service.
    * @param \Drupal\comment\CommentManagerInterface $comment_manager
    *   The comment manager service.
    */
-  public function __construct(HttpKernelInterface $httpKernel, CsrfTokenGenerator $csrf_token, AccountInterface $current_user, FieldInfo $field_info, CommentManagerInterface $comment_manager) {
-    $this->httpKernel = $httpKernel;
-    $this->csrfToken = $csrf_token;
-    $this->currentUser = $current_user;
+  public function __construct(HttpKernelInterface $http_kernel, FieldInfo $field_info, CommentManagerInterface $comment_manager) {
+    $this->httpKernel = $http_kernel;
     $this->fieldInfo = $field_info;
     $this->commentManager = $comment_manager;
   }
@@ -93,8 +70,6 @@ class CommentController extends ControllerBase implements ContainerInjectionInte
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('http_kernel'),
-      $container->get('csrf_token'),
-      $container->get('current_user'),
       $container->get('field.info'),
       $container->get('comment.manager')
     );
@@ -103,31 +78,20 @@ class CommentController extends ControllerBase implements ContainerInjectionInte
   /**
    * Publishes the specified comment.
    *
-   * @param \Symfony\Component\HttpFoundation\Request $request
-   *   The request object.
    * @param \Drupal\comment\CommentInterface $comment
    *   A comment entity.
    *
-   * @throws \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException
    * @return \Symfony\Component\HttpFoundation\RedirectResponse.
+   *   Redirects to the permalink URL for this comment.
    */
-  public function commentApprove(Request $request, CommentInterface $comment) {
-    // @todo CRSF tokens are validated in the content controller until it gets
-    //   moved to the access layer:
-    //   Integrate CSRF link token directly into routing system:
-    //   https://drupal.org/node/1798296.
-    $token = $request->query->get('token');
-    if (!isset($token) || !$this->csrfToken->validate($token, 'comment/' . $comment->id() . '/approve')) {
-      throw new AccessDeniedHttpException();
-    }
-
-    $comment->status->value = COMMENT_PUBLISHED;
+  public function commentApprove(CommentInterface $comment) {
+    $comment->setPublished(TRUE);
     $comment->save();
 
     drupal_set_message($this->t('Comment approved.'));
     $permalink_uri = $comment->permalink();
     $permalink_uri['options']['absolute'] = TRUE;
-    $url = $this->urlGenerator()->generateFromPath($permalink_uri['path'], $permalink_uri['options']);
+    $url = $this->urlGenerator()->generateFromRoute($permalink_uri['route_name'], $permalink_uri['route_parameters'], $permalink_uri['options']);
     return new RedirectResponse($url);
   }
 
@@ -154,18 +118,17 @@ class CommentController extends ControllerBase implements ContainerInjectionInte
    *   The comment listing set to the page on which the comment appears.
    */
   public function commentPermalink(Request $request, CommentInterface $comment) {
-    if ($entity = $this->entityManager()->getStorageController($comment->entity_type->value)->load($comment->entity_id->value)) {
+    if ($entity = $this->entityManager()->getStorageController($comment->getCommentedEntityTypeId())->load($comment->getCommentedEntityId())) {
       // Check access permissions for the entity.
       if (!$entity->access('view')) {
         throw new AccessDeniedHttpException();
       }
-      $instance = $this->fieldInfo->getInstance($entity->entityType(), $entity->bundle(), $comment->field_name->value);
+      $instance = $this->fieldInfo->getInstance($entity->getEntityTypeId(), $entity->bundle(), $comment->getFieldName());
 
       // Find the current display page for this comment.
       $page = comment_get_display_page($comment->id(), $instance);
       // @todo: Cleaner sub request handling.
-      $uri = $entity->uri();
-      $redirect_request = Request::create($uri['path'], 'GET', $request->query->all(), $request->cookies->all(), array(), $request->server->all());
+      $redirect_request = Request::create($entity->getSystemPath(), 'GET', $request->query->all(), $request->cookies->all(), array(), $request->server->all());
       $redirect_request->query->set('page', $page);
       // @todo: Convert the pager to use the request object.
       $request->query->set('page', $page);
@@ -190,7 +153,11 @@ class CommentController extends ControllerBase implements ContainerInjectionInte
     // Legacy nodes only had a single comment field, so use the first comment
     // field on the entity.
     if (!empty($fields) && ($field_names = array_keys($fields)) && ($field_name = reset($field_names))) {
-      return new RedirectResponse($this->urlGenerator()->generateFromPath('comment/reply/node/' . $node->id() . '/' . $field_name, array('absolute' => TRUE)));
+      return $this->redirect('comment.reply', array(
+        'entity_type' => 'node',
+        'entity_id' => $node->id(),
+        'field_name' => $field_name,
+      ));
     }
     throw new NotFoundHttpException();
   }
@@ -202,7 +169,8 @@ class CommentController extends ControllerBase implements ContainerInjectionInte
    *   - replies to comments
    *   - replies to entities
    *   - attempts to reply to entities that can no longer accept comments
-   *   - respecting access permissions ('access comments', 'post comments', etc.)
+   *   - respecting access permissions ('access comments', 'post comments',
+   *     etc.)
    *
    * @param \Symfony\Component\HttpFoundation\Request $request
    *   The current request object.
@@ -216,6 +184,7 @@ class CommentController extends ControllerBase implements ContainerInjectionInte
    *   (optional) Some comments are replies to other comments. In those cases,
    *   $pid is the parent comment's comment ID. Defaults to NULL.
    *
+   * @throws \Symfony\Component\HttpKernel\Exception\NotFoundHttpException
    * @return array|\Symfony\Component\HttpFoundation\RedirectResponse
    *   One of the following:
    *   An associative array containing:
@@ -243,13 +212,14 @@ class CommentController extends ControllerBase implements ContainerInjectionInte
     }
 
     $account = $this->currentUser();
-    $uri = $entity->uri();
+    $uri = $entity->urlInfo();
+    $path = $entity->getSystemPath();
     $build = array();
 
     // Check if the user has the proper permissions.
     if (!$account->hasPermission('post comments')) {
       drupal_set_message($this->t('You are not authorized to post comments.'), 'error');
-      return new RedirectResponse($this->urlGenerator()->generateFromPath($uri['path'], array('absolute' => TRUE)));
+      return $this->redirect($uri['route_name'], $uri['route_parameters']);
     }
 
     // The user is not just previewing a comment.
@@ -257,7 +227,7 @@ class CommentController extends ControllerBase implements ContainerInjectionInte
       $status = $entity->{$field_name}->status;
       if ($status != COMMENT_OPEN) {
         drupal_set_message($this->t("This discussion is closed: you can't post new comments."), 'error');
-        return new RedirectResponse($this->urlGenerator()->generateFromPath($uri['path'], array('absolute' => TRUE)));
+        return $this->redirect($uri['route_name'], $uri['route_parameters']);
       }
 
       // $pid indicates that this is a reply to a comment.
@@ -265,17 +235,17 @@ class CommentController extends ControllerBase implements ContainerInjectionInte
         // Check if the user has the proper permissions.
         if (!$account->hasPermission('access comments')) {
           drupal_set_message($this->t('You are not authorized to view comments.'), 'error');
-          return new RedirectResponse($this->urlGenerator()->generateFromPath($uri['path'], array('absolute' => TRUE)));
+          return $this->redirect($uri['route_name'], $uri['route_parameters']);
         }
         // Load the parent comment.
         $comment = $this->entityManager()->getStorageController('comment')->load($pid);
-        // Check if the parent comment is published and belongs to the current nid.
-        if (($comment->status->value == COMMENT_NOT_PUBLISHED) || ($comment->entity_id->value != $entity->id())) {
+        // Check if the parent comment is published and belongs to the entity.
+        if (!$comment->isPublished() || ($comment->getCommentedEntityId() != $entity->id())) {
           drupal_set_message($this->t('The comment you are replying to does not exist.'), 'error');
-          return new RedirectResponse($this->urlGenerator()->generateFromPath($uri['path'], array('absolute' => TRUE)));
+          return $this->redirect($uri['route_name'], $uri['route_parameters']);
         }
         // Display the parent comment.
-        $build['comment_parent'] = $this->entityManager()->getRenderController('comment')->view($comment);
+        $build['comment_parent'] = $this->entityManager()->getViewBuilder('comment')->view($comment);
       }
 
       // The comment is in response to a entity.
@@ -284,7 +254,7 @@ class CommentController extends ControllerBase implements ContainerInjectionInte
         // redirect loop.
         $entity->{$field_name}->status = COMMENT_HIDDEN;
         // Render array of the entity full view mode.
-        $build['commented_entity'] = $this->entityManager()->getRenderController($entity->entityType())->view($entity, 'full');
+        $build['commented_entity'] = $this->entityManager()->getViewBuilder($entity->getEntityTypeId())->view($entity, 'full');
         unset($build['commented_entity']['#cache']);
         $entity->{$field_name}->status = $status;
       }
@@ -297,10 +267,10 @@ class CommentController extends ControllerBase implements ContainerInjectionInte
     $comment = $this->entityManager()->getStorageController('comment')->create(array(
       'entity_id' => $entity->id(),
       'pid' => $pid,
-      'entity_type' => $entity->entityType(),
-      'field_id' => $entity->entityType() . '__' . $field_name,
+      'entity_type' => $entity->getEntityTypeId(),
+      'field_id' => $entity->getEntityTypeId() . '__' . $field_name,
     ));
-    $build['comment_form'] = $this->entityManager()->getForm($comment);
+    $build['comment_form'] = $this->entityFormBuilder()->getForm($comment);
 
     return $build;
   }
@@ -311,11 +281,13 @@ class CommentController extends ControllerBase implements ContainerInjectionInte
    * @param \Symfony\Component\HttpFoundation\Request $request
    *   The request of the page.
    *
+   * @throws \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException
+   * @throws \Symfony\Component\HttpKernel\Exception\NotFoundHttpException
    * @return \Symfony\Component\HttpFoundation\JsonResponse
    *   The JSON response.
    */
   public function renderNewCommentsNodeLinks(Request $request) {
-    if ($this->currentUser->isAnonymous()) {
+    if ($this->currentUser()->isAnonymous()) {
       throw new AccessDeniedHttpException();
     }
 
@@ -333,20 +305,12 @@ class CommentController extends ControllerBase implements ContainerInjectionInte
       $new = comment_num_new($node->id(), 'node');
       $query = comment_new_page_count($node->{$field_name}->comment_count, $new, $node);
       $links[$nid] = array(
-        'new_comment_count' => (int)$new,
+        'new_comment_count' => (int) $new,
         'first_new_comment_link' => $this->urlGenerator()->generateFromPath('node/' . $node->id(), array('query' => $query, 'fragment' => 'new')),
       );
     }
 
     return new JsonResponse($links);
-  }
-
-  /**
-   * @todo Remove comment_admin().
-   */
-  public function adminPage($type) {
-    module_load_include('admin.inc', 'comment');
-    return comment_admin($type);
   }
 
 }

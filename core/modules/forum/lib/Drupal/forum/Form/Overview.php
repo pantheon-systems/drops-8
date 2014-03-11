@@ -7,9 +7,9 @@
 
 namespace Drupal\forum\Form;
 
+use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\taxonomy\Form\OverviewTerms;
-use Drupal\Core\Config\ConfigFactory;
-use Drupal\Core\Entity\EntityManager;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -22,25 +22,25 @@ class Overview extends OverviewTerms {
   /**
    * Entity manager Service Object.
    *
-   * @var \Drupal\Core\Entity\EntityManager
+   * @var \Drupal\Core\Entity\EntityManagerInterface
    */
   protected $entityManager;
 
   /**
    * Constructs a \Drupal\forum\Form\OverviewForm object.
    *
-   * @param \Drupal\Core\Entity\EntityManager $entity_manager
+   * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
    *   The entity manager service.
    * @param \Drupal\Core\Extension\ModuleHandlerInteface $module_handler
    *   The module handler service.
    */
-  public function __construct(EntityManager $entity_manager, ModuleHandlerInterface $module_handler) {
+  public function __construct(EntityManagerInterface $entity_manager, ModuleHandlerInterface $module_handler) {
     parent::__construct($module_handler);
     $this->entityManager = $entity_manager;
   }
 
   /**
-   * {@inheritdoc}.
+   * {@inheritdoc}
    */
   public static function create(ContainerInterface $container) {
     return new static(
@@ -77,14 +77,14 @@ class Overview extends OverviewTerms {
         unset($form['terms'][$key]['operations']['#links']['delete']);
         if (!empty($term->forum_container->value)) {
           $form['terms'][$key]['operations']['#links']['edit']['title'] = $this->t('edit container');
-          $form['terms'][$key]['operations']['#links']['edit']['href'] = 'admin/structure/forum/edit/container/' . $term->id();
+          $form['terms'][$key]['operations']['#links']['edit']['route_name'] = 'forum.edit_container';
           // We don't want the redirect from the link so we can redirect the
           // delete action.
           unset($form['terms'][$key]['operations']['#links']['edit']['query']['destination']);
         }
         else {
           $form['terms'][$key]['operations']['#links']['edit']['title'] = $this->t('edit forum');
-          $form['terms'][$key]['operations']['#links']['edit']['href'] = 'admin/structure/forum/edit/forum/' . $term->id();
+          $form['terms'][$key]['operations']['#links']['edit']['route_name'] = 'forum.edit_forum';
           // We don't want the redirect from the link so we can redirect the
           // delete action.
           unset($form['terms'][$key]['operations']['#links']['edit']['query']['destination']);

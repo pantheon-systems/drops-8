@@ -8,19 +8,15 @@
 namespace Drupal\picture\Entity;
 
 use Drupal\Core\Config\Entity\ConfigEntityBase;
-use Drupal\Core\Entity\Annotation\EntityType;
-use Drupal\Core\Annotation\Translation;
 use Drupal\picture\PictureMappingInterface;
 
 /**
  * Defines the Picture entity.
  *
- * @EntityType(
+ * @ConfigEntityType(
  *   id = "picture_mapping",
  *   label = @Translation("Picture mapping"),
- *   module = "picture",
  *   controllers = {
- *     "storage" = "Drupal\Core\Config\Entity\ConfigStorageController",
  *     "list" = "Drupal\picture\PictureMappingListController",
  *     "form" = {
  *       "edit" = "Drupal\picture\PictureMappingFormController",
@@ -38,7 +34,8 @@ use Drupal\picture\PictureMappingInterface;
  *     "uuid" = "uuid"
  *   },
  *   links = {
- *     "edit-form" = "admin/config/media/picturemapping/{picture_mapping}"
+ *     "edit-form" = "picture.mapping_page_edit",
+ *     "duplicate-form" = "picture.mapping_page_duplicate"
  *   }
  * )
  */
@@ -96,6 +93,16 @@ class PictureMapping extends ConfigEntityBase implements PictureMappingInterface
     if (isset($this->breakpointGroup) && is_object($this->breakpointGroup)) {
       $this->breakpointGroup = $this->breakpointGroup->id();
     }
+
+    // Split the breakpoint ids into their different parts, as dots as
+    // identifiers are not possible.
+    $loaded_mappings = $this->mappings;
+    $this->mappings = array();
+    foreach ($loaded_mappings as $breakpoint_id => $mapping) {
+      list($source_type, $source, $name) = explode('.', $breakpoint_id);
+      $this->mappings[$source_type][$source][$name] = $mapping;
+    }
+
     parent::save();
     $this->loadBreakpointGroup();
     $this->loadAllMappings();
@@ -129,11 +136,15 @@ class PictureMapping extends ConfigEntityBase implements PictureMappingInterface
     $loaded_mappings = $this->mappings;
     $this->mappings = array();
     if ($this->breakpointGroup) {
-      foreach ($this->breakpointGroup->breakpoints as $breakpoint_id => $breakpoint) {
+      foreach ($this->breakpointGroup->getBreakpoints() as $breakpoint_id => $breakpoint) {
+        // Get the components of the breakpoint ID to match the format of the
+        // configuration file.
+        list($source_type, $source, $name) = explode('.', $breakpoint_id);
+
         // Get the mapping for the default multiplier.
         $this->mappings[$breakpoint_id]['1x'] = '';
-        if (isset($loaded_mappings[$breakpoint_id]['1x'])) {
-          $this->mappings[$breakpoint_id]['1x'] = $loaded_mappings[$breakpoint_id]['1x'];
+        if (isset($loaded_mappings[$source_type][$source][$name]['1x'])) {
+          $this->mappings[$breakpoint_id]['1x'] = $loaded_mappings[$source_type][$source][$name]['1x'];
         }
 
         // Get the mapping for the other multipliers.
@@ -141,8 +152,8 @@ class PictureMapping extends ConfigEntityBase implements PictureMappingInterface
           foreach ($breakpoint->multipliers as $multiplier => $status) {
             if ($status) {
               $this->mappings[$breakpoint_id][$multiplier] = '';
-              if (isset($loaded_mappings[$breakpoint_id][$multiplier])) {
-                $this->mappings[$breakpoint_id][$multiplier] = $loaded_mappings[$breakpoint_id][$multiplier];
+              if (isset($loaded_mappings[$source_type][$source][$name][$multiplier])) {
+                $this->mappings[$breakpoint_id][$multiplier] = $loaded_mappings[$source_type][$source][$name][$multiplier];
               }
             }
           }
@@ -156,7 +167,7 @@ class PictureMapping extends ConfigEntityBase implements PictureMappingInterface
    */
   public function hasMappings() {
     $mapping_found = FALSE;
-    foreach ($this->mappings as $breakpoint => $multipliers) {
+    foreach ($this->mappings as $multipliers) {
       $filtered_array = array_filter($multipliers);
       if (!empty($filtered_array)) {
         $mapping_found = TRUE;

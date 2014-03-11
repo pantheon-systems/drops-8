@@ -7,8 +7,9 @@
 
 namespace Drupal\image\Tests;
 
-use Drupal\Core\Entity\Field\FieldItemListInterface;
-use Drupal\Core\Entity\Field\FieldItemInterface;
+use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Field\FieldItemListInterface;
+use Drupal\Core\Field\FieldItemInterface;
 use Drupal\field\Tests\FieldUnitTestBase;
 
 /**
@@ -52,7 +53,7 @@ class ImageItemTest extends FieldUnitTestBase {
       'name' => 'image_test',
       'entity_type' => 'entity_test',
       'type' => 'image',
-      'cardinality' => FIELD_CARDINALITY_UNLIMITED,
+      'cardinality' => FieldDefinitionInterface::CARDINALITY_UNLIMITED,
     ))->save();
     entity_create('field_instance', array(
       'entity_type' => 'entity_test',
@@ -72,7 +73,7 @@ class ImageItemTest extends FieldUnitTestBase {
    */
   public function testImageItem() {
     // Create a test entity with the image field set.
-    $entity = entity_create('entity_test', array());
+    $entity = entity_create('entity_test');
     $entity->image_test->target_id = $this->image->id();
     $entity->image_test->alt = $alt = $this->randomName();
     $entity->image_test->title = $title = $this->randomName();

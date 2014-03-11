@@ -8,7 +8,8 @@
 namespace Drupal\field_ui\Form;
 
 use Drupal\Core\Entity\EntityConfirmFormBase;
-use Drupal\Core\Entity\EntityManager;
+use Drupal\Core\Entity\EntityManagerInterface;
+use Drupal\field_ui\FieldUI;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -19,17 +20,17 @@ class FieldDeleteForm extends EntityConfirmFormBase {
   /**
    * The entity manager.
    *
-   * @var \Drupal\Core\Entity\EntityManager
+   * @var \Drupal\Core\Entity\EntityManagerInterface
    */
   protected $entityManager;
 
   /**
    * Constructs a new FieldDeleteForm object.
    *
-   * @param \Drupal\Core\Entity\EntityManager $entity_manager
+   * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
    *   The entity manager.
    */
-  public function __construct(EntityManager $entity_manager) {
+  public function __construct(EntityManagerInterface $entity_manager) {
     $this->entityManager = $entity_manager;
   }
 
@@ -46,7 +47,7 @@ class FieldDeleteForm extends EntityConfirmFormBase {
    * {@inheritdoc}
    */
   public function getQuestion() {
-    return $this->t('Are you sure you want to delete the field %field?', array('%field' => $this->entity->getFieldLabel()));
+    return $this->t('Are you sure you want to delete the field %field?', array('%field' => $this->entity->getLabel()));
   }
 
   /**
@@ -60,7 +61,7 @@ class FieldDeleteForm extends EntityConfirmFormBase {
    * {@inheritdoc}
    */
   public function getCancelRoute() {
-    return $this->entityManager->getAdminRouteInfo($this->entity->entity_type, $this->entity->bundle);
+    return FieldUI::getOverviewRouteInfo($this->entity->entity_type, $this->entity->bundle);
   }
 
   /**
@@ -79,8 +80,7 @@ class FieldDeleteForm extends EntityConfirmFormBase {
       drupal_set_message($this->t('There was a problem removing the %field from the %type content type.', array('%field' => $this->entity->label(), '%type' => $bundle_label)), 'error');
     }
 
-    $admin_path = $this->entityManager->getAdminPath($this->entity->entity_type, $this->entity->bundle);
-    $form_state['redirect'] = "$admin_path/fields";
+    $form_state['redirect_route'] = FieldUI::getOverviewRouteInfo($this->entity->entity_type, $this->entity->bundle);
 
     // Fields are purged on cron. However field module prevents disabling modules
     // when field types they provided are used in a field until it is fully

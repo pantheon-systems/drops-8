@@ -7,6 +7,8 @@
 
 namespace Drupal\views\Plugin\views\field;
 
+use Drupal\Component\Utility\Html;
+use Drupal\Component\Utility\String;
 use Drupal\views\Plugin\views\HandlerBase;
 use Drupal\views\Plugin\views\display\DisplayPluginBase;
 use Drupal\views\ResultRow;
@@ -206,7 +208,7 @@ abstract class FieldPluginBase extends HandlerBase {
       }
     }
     if ($this->options['element_type']) {
-      return check_plain($this->options['element_type']);
+      return String::checkPlain($this->options['element_type']);
     }
 
     if ($default_empty) {
@@ -234,7 +236,7 @@ abstract class FieldPluginBase extends HandlerBase {
       }
     }
     if ($this->options['element_label_type']) {
-      return check_plain($this->options['element_label_type']);
+      return String::checkPlain($this->options['element_label_type']);
     }
 
     if ($default_empty) {
@@ -254,7 +256,7 @@ abstract class FieldPluginBase extends HandlerBase {
       }
     }
     if ($this->options['element_wrapper_type']) {
-      return check_plain($this->options['element_wrapper_type']);
+      return String::checkPlain($this->options['element_wrapper_type']);
     }
 
     if ($default_empty) {
@@ -269,7 +271,7 @@ abstract class FieldPluginBase extends HandlerBase {
    *
    * This function can be overridden by fields that want more or fewer
    * elements available, though this seems like it would be an incredibly
-   * rare occurence.
+   * rare occurrence.
    */
   public function getElements() {
     static $elements = NULL;
@@ -850,6 +852,8 @@ abstract class FieldPluginBase extends HandlerBase {
       foreach ($previous as $id => $label) {
         $options[t('Fields')]["[$id]"] = $label;
       }
+      // Add the field to the list of options.
+      $options[t('Fields')]["[{$this->options['id']}]"] = $this->label();
 
       $count = 0; // This lets us prepare the key as we want it printed.
       foreach ($this->view->display_handler->getHandlers('argument') as $arg => $handler) {
@@ -1252,7 +1256,7 @@ abstract class FieldPluginBase extends HandlerBase {
         $more_link_path = $this->options['alter']['more_link_path'];
         $more_link_path = strip_tags(decode_entities(strtr($more_link_path, $tokens)));
 
-        // Take sure that paths which was runned through url() does work as well.
+        // Make sure that paths which were run through url() work as well.
         $base_path = base_path();
         // Checks whether the path starts with the base_path.
         if (strpos($more_link_path, $base_path) === 0) {
@@ -1327,7 +1331,7 @@ abstract class FieldPluginBase extends HandlerBase {
     if ($path != '<front>') {
       // Use strip tags as there should never be HTML in the path.
       // However, we need to preserve special characters like " that
-      // were removed by check_plain().
+      // were removed by String::checkPlain().
       $path = strip_tags(decode_entities(strtr($path, $tokens)));
 
       if (!empty($alter['path_case']) && $alter['path_case'] != 'none') {
@@ -1403,7 +1407,7 @@ abstract class FieldPluginBase extends HandlerBase {
       $options['attributes']['rel'] = $rel;
     }
 
-    $target = check_plain(trim(strtr($alter['target'], $tokens)));
+    $target = String::checkPlain(trim(strtr($alter['target'], $tokens)));
     if (!empty($target)) {
       $options['attributes']['target'] = $target;
     }
@@ -1478,11 +1482,11 @@ abstract class FieldPluginBase extends HandlerBase {
 
       // Use strip tags as there should never be HTML in the path.
       // However, we need to preserve special characters like " that
-      // were removed by check_plain().
+      // were removed by String::checkPlain().
       $tokens['!' . $count] = isset($this->view->args[$count - 1]) ? strip_tags(decode_entities($this->view->args[$count - 1])) : '';
     }
 
-    // Get flattened set of tokens for any array depth in $_GET parameters.
+    // Get flattened set of tokens for any array depth in query parameters.
     $tokens += $this->getTokenValuesRecursive(\Drupal::request()->query->all());
 
     // Now add replacements for our fields.
@@ -1589,8 +1593,7 @@ abstract class FieldPluginBase extends HandlerBase {
   protected function documentSelfTokens(&$tokens) { }
 
   /**
-   * Call out to the theme() function, which probably just calls render() but
-   * allows sites to override output fairly easily.
+   * Pass values to drupal_render() using $this->themeFunctions() as #theme.
    *
    * @param \Drupal\views\ResultRow $values
    *   Holds single row of a view's result set.
@@ -1599,12 +1602,13 @@ abstract class FieldPluginBase extends HandlerBase {
    *   Returns rendered output of the given theme implementation.
    */
   function theme(ResultRow $values) {
-    return theme($this->themeFunctions(),
-      array(
-        'view' => $this->view,
-        'field' => $this,
-        'row' => $values
-      ));
+    $build = array(
+      '#theme' => $this->themeFunctions(),
+      '#view' => $this->view,
+      '#field' => $this,
+      '#row' => $values,
+    );
+    return drupal_render($build);
   }
 
   public function themeFunctions() {
@@ -1642,10 +1646,10 @@ abstract class FieldPluginBase extends HandlerBase {
    *
    * @param array $alter
    *   The alter array of options to use.
-   *     - max_length: Maximum lenght of the string, the rest gets truncated.
+   *     - max_length: Maximum length of the string, the rest gets truncated.
    *     - word_boundary: Trim only on a word boundary.
    *     - ellipsis: Show an ellipsis (...) at the end of the trimmed string.
-   *     - html: Take sure that the html is correct.
+   *     - html: Make sure that the html is correct.
    *
    * @param string $value
    *   The string which should be trimmed.
@@ -1678,7 +1682,7 @@ abstract class FieldPluginBase extends HandlerBase {
       }
     }
     if (!empty($alter['html'])) {
-      $value = _filter_htmlcorrector($value);
+      $value = Html::normalize($value);
     }
 
     return $value;

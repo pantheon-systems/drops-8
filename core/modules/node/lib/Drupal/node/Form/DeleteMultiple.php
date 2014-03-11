@@ -8,9 +8,8 @@
 namespace Drupal\node\Form;
 
 use Drupal\Core\Cache\Cache;
+use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Form\ConfirmFormBase;
-use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
-use Drupal\Core\Entity\EntityManager;
 use Drupal\Component\Utility\String;
 use Drupal\user\TempStoreFactory;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -19,7 +18,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 /**
  * Provides a node deletion confirmation form.
  */
-class DeleteMultiple extends ConfirmFormBase implements ContainerInjectionInterface {
+class DeleteMultiple extends ConfirmFormBase {
 
   /**
    * The array of nodes to delete.
@@ -47,10 +46,10 @@ class DeleteMultiple extends ConfirmFormBase implements ContainerInjectionInterf
    *
    * @param \Drupal\user\TempStoreFactory $temp_store_factory
    *   The tempstore factory.
-   * @param \Drupal\Core\Entity\EntityManager $manager
+   * @param \Drupal\Core\Entity\EntityManagerInterface $manager
    *   The entity manager.
    */
-  public function __construct(TempStoreFactory $temp_store_factory, EntityManager $manager) {
+  public function __construct(TempStoreFactory $temp_store_factory, EntityManagerInterface $manager) {
     $this->tempStoreFactory = $temp_store_factory;
     $this->storageController = $manager->getStorageController('node');
   }
@@ -96,7 +95,7 @@ class DeleteMultiple extends ConfirmFormBase implements ContainerInjectionInterf
    * {@inheritdoc}
    */
   public function buildForm(array $form, array &$form_state) {
-    $this->nodes = $this->tempStoreFactory->get('node_multiple_delete_confirm')->get($GLOBALS['user']->id());
+    $this->nodes = $this->tempStoreFactory->get('node_multiple_delete_confirm')->get(\Drupal::currentUser()->id());
     if (empty($this->nodes)) {
       return new RedirectResponse(url('admin/content', array('absolute' => TRUE)));
     }
@@ -120,13 +119,13 @@ class DeleteMultiple extends ConfirmFormBase implements ContainerInjectionInterf
   public function submitForm(array &$form, array &$form_state) {
     if ($form_state['values']['confirm'] && !empty($this->nodes)) {
       $this->storageController->delete($this->nodes);
-      $this->tempStoreFactory->get('node_multiple_delete_confirm')->delete($GLOBALS['user']->id());
+      $this->tempStoreFactory->get('node_multiple_delete_confirm')->delete(\Drupal::currentUser()->id());
       $count = count($this->nodes);
       watchdog('content', 'Deleted @count posts.', array('@count' => $count));
       drupal_set_message(format_plural($count, 'Deleted 1 post.', 'Deleted @count posts.'));
       Cache::invalidateTags(array('content' => TRUE));
     }
-    $form_state['redirect'] = 'admin/content';
+    $form_state['redirect_route']['route_name'] = 'node.content_overview';
   }
 
 }

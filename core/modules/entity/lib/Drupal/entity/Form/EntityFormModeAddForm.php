@@ -18,13 +18,12 @@ class EntityFormModeAddForm extends EntityDisplayModeAddForm {
    * {@inheritdoc}
    */
   protected function prepareEntity() {
-    $definition = $this->entityManager->getDefinition($this->entityType);
-    if (!$definition['fieldable'] || !isset($definition['controllers']['form'])) {
+    $definition = $this->entityManager->getDefinition($this->targetEntityTypeId);
+    if (!$definition->isFieldable() || !$definition->hasFormClasses()) {
       throw new NotFoundHttpException();
     }
 
-    drupal_set_title(t('Add new %label @entity-type', array('%label' => $definition['label'], '@entity-type' => strtolower($this->entityInfo['label']))), PASS_THROUGH);
-    $this->entity->targetEntityType = $this->entityType;
+    $this->entity->targetEntityType = $this->targetEntityTypeId;
   }
 
 }

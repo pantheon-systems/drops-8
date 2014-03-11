@@ -96,7 +96,7 @@ class BookAdminEditForm extends FormBase {
    */
   public function validateForm(array &$form, array &$form_state) {
     if ($form_state['values']['tree_hash'] != $form_state['values']['tree_current_hash']) {
-      form_set_error('', $this->t('This book has been modified by another user, the changes could not be saved.'));
+      $this->setFormError('', $form_state, $this->t('This book has been modified by another user, the changes could not be saved.'));
     }
   }
 
@@ -163,7 +163,7 @@ class BookAdminEditForm extends FormBase {
       '#tree' => TRUE,
     );
 
-    $tree = book_menu_subtree_data($node->book);
+    $tree = \Drupal::service('book.manager')->bookMenuSubtreeData($node->book);
     // Do not include the book item itself.
     $tree = array_shift($tree);
     if ($tree['below']) {

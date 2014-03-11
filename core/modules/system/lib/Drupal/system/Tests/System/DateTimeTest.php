@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Definition of Drupal\system\Tests\System\DateTimeTest.
+ * Contains \Drupal\system\Tests\System\DateTimeTest.
  */
 
 namespace Drupal\system\Tests\System;
@@ -20,7 +20,7 @@ class DateTimeTest extends WebTestBase {
    *
    * @var array
    */
-  public static $modules = array('language');
+  public static $modules = array('node', 'language');
 
   public static function getInfo() {
     return array(
@@ -96,6 +96,13 @@ class DateTimeTest extends WebTestBase {
     $this->assertText($date_format_id, 'Custom date format appears in the date format list.');
     $this->assertText(t('Delete'), 'Delete link for custom date format appears.');
 
+    // Edit the custom date format and re-save without editing the format.
+    $this->drupalGet('admin/config/regional/date-time');
+    $this->clickLink(t('Edit'));
+    $this->drupalPostForm(NULL, NULL, t('Save format'));
+    $this->assertUrl('admin/config/regional/date-time', array('absolute' => TRUE), 'Correct page redirection.');
+    $this->assertText(t('Custom date format updated.'), 'Custom date format successfully updated.');
+
     // Edit custom date format.
     $this->drupalGet('admin/config/regional/date-time');
     $this->clickLink(t('Edit'));
@@ -115,28 +122,6 @@ class DateTimeTest extends WebTestBase {
     // Make sure the date does not exist in config.
     $date_format = entity_load('date_format', $date_format_id);
     $this->assertFalse($date_format);
-  }
-
-  /**
-   * Test if the date formats are stored properly.
-   */
-  function testDateFormatStorage() {
-    $date_format = entity_create('date_format', array(
-      'id' => 'test_short',
-      'label' => 'testDateFormatStorage Short Format',
-      'pattern' => array('php' => 'dmYHis'),
-    ));
-    $date_format->save();
-
-    $format = $date_format->getPattern();
-    $this->assertEqual('dmYHis', $format, 'Unlocalized date format resides in general config.');
-
-    $date_format->addLocale('en')->save();
-    $format = $date_format->getPattern();
-    $this->assertEqual('dmYHis', $format, 'Localized date format resides in general config too.');
-
-    $format = \Drupal::config('locale.config.en.system.date_format.test_short')->get('pattern.php');
-    $this->assertEqual('dmYHis', $format, 'Localized date format resides in localized config.');
   }
 
   /**

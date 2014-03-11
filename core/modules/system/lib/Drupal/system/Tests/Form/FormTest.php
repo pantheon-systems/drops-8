@@ -16,7 +16,7 @@ class FormTest extends WebTestBase {
    *
    * @var array
    */
-  public static $modules = array('form_test', 'file', 'datetime');
+  public static $modules = array('filter', 'form_test', 'file', 'datetime');
 
   public static function getInfo() {
     return array(
@@ -94,7 +94,7 @@ class FormTest extends WebTestBase {
     $elements['file']['empty_values'] = $empty_strings;
 
     // Regular expression to find the expected marker on required elements.
-    $required_marker_preg = '@<label.*<abbr class="form-required" title="This field is required\.">\*</abbr></label>@';
+    $required_marker_preg = '@<label.*<span class="form-required" aria-hidden="true">\*</span></label>@';
 
     // Go through all the elements and all the empty values for them.
     foreach ($elements as $type => $data) {
@@ -103,7 +103,6 @@ class FormTest extends WebTestBase {
           $form_id = $this->randomName();
           $form = array();
           $form_state = form_state_defaults();
-          form_clear_error();
           $form['op'] = array('#type' => 'submit', '#value' => t('Submit'));
           $element = $data['element']['#title'];
           $form[$element] = $data['element'];
@@ -111,9 +110,12 @@ class FormTest extends WebTestBase {
           $form_state['input'][$element] = $empty;
           $form_state['input']['form_id'] = $form_id;
           $form_state['method'] = 'post';
+          // The form token CSRF protection should not interfere with this test,
+          // so we bypass it by setting the token to FALSE.
+          $form['#token'] = FALSE;
           drupal_prepare_form($form_id, $form, $form_state);
           drupal_process_form($form_id, $form, $form_state);
-          $errors = form_get_errors();
+          $errors = form_get_errors($form_state);
           // Form elements of type 'radios' throw all sorts of PHP notices
           // when you try to render them like this, so we ignore those for
           // testing the required marker.
@@ -237,9 +239,6 @@ class FormTest extends WebTestBase {
    * @see form_test_validate_required_form_no_title()
    */
   function testRequiredTextfieldNoTitle() {
-    $form = $form_state = array();
-    form_test_validate_required_form_no_title($form, $form_state);
-
     // Attempt to submit the form with no required field set.
     $edit = array();
     $this->drupalPostForm('form-test/validate-required-no-title', $edit, 'Submit');
@@ -582,11 +581,11 @@ class FormTest extends WebTestBase {
       // Setup XPath and CSS class depending on #type.
       if (in_array($item['#type'], array('button', 'submit'))) {
         $path = "//!type[contains(@class, :div-class) and @value=:value]";
-        $class = 'form-button-disabled';
+        $class = 'is-disabled';
       }
       elseif (in_array($item['#type'], array('image_button'))) {
         $path = "//!type[contains(@class, :div-class) and @value=:value]";
-        $class = 'image-button-disabled';
+        $class = 'is-disabled';
       }
       else {
         // starts-with() required for checkboxes.
@@ -655,17 +654,6 @@ class FormTest extends WebTestBase {
       ':expected' => $expected,
     ));
     $this->assertTrue(!empty($element), 'The textarea has the proper required attribute.');
-  }
-
-  /**
-   *  Tests error border of multiple fields with same name in a page.
-   */
-  function testMultiFormSameNameErrorClass() {
-    $this->drupalGet('form-test/double-form');
-    $edit = array();
-    $this->drupalPostForm(NULL, $edit, t('Save'));
-    $this->assertFieldByXpath('//input[@id="edit-name" and contains(@class, "error")]', NULL, 'Error input form element class found for first element.');
-    $this->assertNoFieldByXpath('//input[@id="edit-name--2" and contains(@class, "error")]', NULL, 'No error input form element class found for second element.');
   }
 
   /**

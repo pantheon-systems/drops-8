@@ -5,7 +5,10 @@
  * Allows users to manage customizable lists of shortcut links.
  */
 
-use Drupal\shortcut\Entity\Shortcut;
+use Drupal\Core\Routing\UrlMatcher;
+use Drupal\Core\Url;
+use Drupal\shortcut\ShortcutSetInterface;
+use Symfony\Cmf\Component\Routing\RouteObjectInterface;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -36,29 +39,6 @@ function shortcut_help($path, $arg) {
         $output = '<p>' . t('Define which shortcut set you are using on the <a href="@shortcut-link">Shortcuts tab</a> of your account page.', array('@shortcut-link' => url("user/{$user->id()}/shortcuts"))) . '</p>';
         return $output;
       }
-  }
-}
-
-/**
- * Implements hook_entity_bundle_info().
- */
-function shortcut_entity_bundle_info() {
-  $bundles['menu_link']['shortcut'] = array(
-    'label' => t('Shortcut'),
-    'translatable' => FALSE,
-  );
-  return $bundles;
-}
-
-/**
- * Implements hook_TYPE_load().
- */
-function shortcut_menu_link_load($entities) {
-  foreach ($entities as $entity) {
-    // Change the bundle of menu links related to a shortcut.
-    if (strpos($entity->menu_name, 'shortcut-') === 0) {
-      $entity->bundle = 'shortcut';
-    }
   }
 }
 
@@ -96,36 +76,30 @@ function shortcut_menu() {
     'title callback' => 'entity_page_label',
     'title arguments' => array(5),
   );
-  $items['admin/config/user-interface/shortcut/manage/%shortcut_set/links'] = array(
-    'title' => 'List links',
-    'type' => MENU_DEFAULT_LOCAL_TASK,
-  );
-  $items['admin/config/user-interface/shortcut/manage/%shortcut_set/edit'] = array(
-    'title' => 'Edit set name',
-    'route_name' => 'shortcut.set_edit',
-    'type' => MENU_LOCAL_TASK,
-    'weight' => 10,
-  );
-  $items['admin/config/user-interface/shortcut/manage/%shortcut_set/add-link'] = array(
-    'title' => 'Add shortcut',
-    'route_name' => 'shortcut.link_edit',
-    'type' => MENU_LOCAL_ACTION,
-  );
-  $items['admin/config/user-interface/shortcut/link/%menu_link'] = array(
+  $items['admin/config/user-interface/shortcut/link/%shortcut'] = array(
     'title' => 'Edit shortcut',
     'route_name' => 'shortcut.link_edit',
   );
-  $items['admin/config/user-interface/shortcut/link/%menu_link/delete'] = array(
+  $items['admin/config/user-interface/shortcut/link/%shortcut/delete'] = array(
     'title' => 'Delete shortcut',
     'route_name' => 'shortcut.link_delete',
   );
-  $items['user/%user/shortcuts'] = array(
-    'title' => 'Shortcuts',
-    'route_name' => 'shortcut.overview',
-    'type' => MENU_LOCAL_TASK,
-  );
 
   return $items;
+}
+
+/**
+ * Implements hook_menu_link_defaults().
+ */
+function shortcut_menu_link_defaults() {
+  $links['shortcut.admin.config.user-interface.shortcut'] = array(
+    'link_title' => 'Shortcuts',
+    'description' => 'Add and modify shortcut sets.',
+    'route_name' => 'shortcut.set_admin',
+    'parent' => 'system.admin.config.user-interface',
+  );
+
+  return $links;
 }
 
 /**
@@ -141,15 +115,15 @@ function shortcut_admin_paths() {
 /**
  * Access callback for editing a shortcut set.
  *
- * @param $shortcut_set Drupal\shortcut\Entity\Shortcut
+ * @param Drupal\shortcut\ShortcutSetInterface $shortcut_set
  *   (optional) The shortcut set to be edited. If not set, the current user's
  *   shortcut set will be used.
  *
- * @return
+ * @return bool
  *   TRUE if the current user has access to edit the shortcut set, FALSE
  *   otherwise.
  */
-function shortcut_set_edit_access($shortcut_set = NULL) {
+function shortcut_set_edit_access(ShortcutSetInterface $shortcut_set = NULL) {
   $account = \Drupal::currentUser();
   // Sufficiently-privileged users can edit their currently displayed shortcut
   // set, but not other sets. Shortcut administrators can edit any set.
@@ -170,7 +144,7 @@ function shortcut_set_edit_access($shortcut_set = NULL) {
  *   permissions will be checked for switching the logged-in user's own
  *   shortcut set.
  *
- * @return
+ * @return bool
  *   TRUE if the current user has access to switch the shortcut set of the
  *   provided account, FALSE otherwise.
  */
@@ -197,63 +171,19 @@ function shortcut_set_switch_access($account = NULL) {
 }
 
 /**
- * Access callback for editing a link in a shortcut set.
- */
-function shortcut_link_access($menu_link) {
-  // The link must belong to a shortcut set that the current user has access
-  // to edit.
-  $set_name = str_replace('shortcut-', '', $menu_link['menu_name']);
-  if ($shortcut_set = shortcut_set_load($set_name)) {
-    return shortcut_set_edit_access($shortcut_set);
-  }
-  return FALSE;
-}
-
-/**
- * Implements hook_menu_link_delete().
- */
-function shortcut_menu_link_delete($menu_link) {
-  // If the deleted menu link was in a shortcut set, remove it.
-  if (strpos($menu_link->menu_name, 'shortcut-') === 0) {
-    $shortcut = entity_load('shortcut_set', str_replace('shortcut-', '', $menu_link->menu_name));
-    unset($shortcut->links[$menu_link->uuid]);
-    $shortcut->save();
-  }
-}
-
-/**
  * Loads the data for a shortcut set.
  *
- * @param $id
+ * @param string $id
  *   The machine-name of the shortcut set to load.
  *
- * @return object
+ * @return \Drupal\shortcut\ShortcutSetInterface|null
  *   If the shortcut set exists, an object containing the following properties:
  *   - 'id': The internal name of the shortcut set.
  *   - 'label': The title of the shortcut set.
- *   - 'links': An array of links associated with this shortcut set.
  *   If the shortcut set does not exist, the function returns NULL.
  */
 function shortcut_set_load($id) {
   return entity_load('shortcut_set', $id);
-}
-
-/**
- * Resets the link weights in a shortcut set to match their current order.
- *
- * This function can be used, for example, when a new shortcut link is added to
- * the set. If the link is added to the end of the array and this function is
- * called, it will force that link to display at the end of the list.
- *
- * @param object $shortcut_set
- *   An object representing a shortcut set. The link weights of the passed-in
- *   object will be reset as described above.
- */
-function shortcut_set_reset_link_weights(&$shortcut_set) {
-  $weight = -50;
-  foreach ($shortcut_set->links as $menu_link) {
-    $menu_link->weight = ++$weight;
-  }
 }
 
 /**
@@ -405,19 +335,41 @@ function shortcut_valid_link($path) {
 /**
  * Returns an array of shortcut links, suitable for rendering.
  *
- * @param $shortcut_set Drupal\shortcut\Entity\Shortcut
+ * @param \Drupal\shortcut\ShortcutSetInterface $shortcut_set
  *   (optional) An object representing the set whose links will be displayed.
  *   If not provided, the user's current set will be displayed.
- * @return
+ *
+ * @return \Drupal\shortcut\ShortcutInterface[]
  *   An array of shortcut links, in the format returned by the menu system.
  *
  * @see menu_tree()
  */
 function shortcut_renderable_links($shortcut_set = NULL) {
+  $shortcut_links = array();
+
   if (!isset($shortcut_set)) {
     $shortcut_set = shortcut_current_displayed_set();
   }
-  return menu_tree('shortcut-' . $shortcut_set->id());
+
+  $shortcuts = \Drupal::entityManager()->getStorageController('shortcut')->loadByProperties(array('shortcut_set' => $shortcut_set->id()));
+  foreach ($shortcuts as $shortcut) {
+    $links[] = array(
+      'title' => $shortcut->label(),
+      'href' => $shortcut->path->value,
+    );
+  }
+
+  if (!empty($links)) {
+    $shortcut_links = array(
+      '#theme' => 'links__toolbar_shortcuts',
+      '#links' => $links,
+      '#attributes' => array(
+        'class' => array('menu'),
+      ),
+    );
+  }
+
+  return $shortcut_links;
 }
 
 /**
@@ -437,12 +389,23 @@ function shortcut_preprocess_page(&$variables) {
   // shortcuts and if the page's actual content is being shown (for example,
   // we do not want to display it on "access denied" or "page not found"
   // pages).
-  if (shortcut_set_edit_access() && ($item = menu_get_item()) && $item['access']) {
+
+  // Load the router item corresponding to the current page.
+  $request = \Drupal::request();
+  $item = array();
+  if ($route = $request->attributes->get(RouteObjectInterface::ROUTE_NAME)) {
+    $item['href'] = $request->attributes->get('_system_path');
+    // @todo What should be done on a 404/403 page?
+    $item['access'] = TRUE;
+  }
+
+  if (shortcut_set_edit_access() && !empty($item['access'])) {
     $link = current_path();
-    $query_parameters = drupal_get_query_parameters();
-    if (!empty($query_parameters)) {
-     $link .= '?' . drupal_http_build_query($query_parameters);
+    if (!($url = Url::createFromPath($link))) {
+      // Bail out early if we couldn't find a matching route.
+      return;
     }
+
     $query = array(
      'link' => $link,
      'name' => drupal_get_title(),
@@ -452,23 +415,25 @@ function shortcut_preprocess_page(&$variables) {
     $shortcut_set = shortcut_current_displayed_set();
 
     // Check if $link is already a shortcut and set $link_mode accordingly.
-    foreach ($shortcut_set->links as $shortcut) {
-      if ($link == $shortcut['link_path']) {
-        $mlid = $shortcut['mlid'];
+    $shortcuts = \Drupal::entityManager()->getStorageController('shortcut')->loadByProperties(array('shortcut_set' => $shortcut_set->id()));
+    foreach ($shortcuts as $shortcut) {
+      if ($shortcut->getRouteName() == $url->getRouteName() && $shortcut->getRouteParams() == $url->getRouteParameters()) {
+        $shortcut_id = $shortcut->id();
         break;
       }
     }
-    $link_mode = isset($mlid) ? "remove" : "add";
+    $link_mode = isset($shortcut_id) ? "remove" : "add";
 
     if ($link_mode == "add") {
-      $query['token'] = drupal_get_token('shortcut-add-link');
       $link_text = shortcut_set_switch_access() ? t('Add to %shortcut_set shortcuts', array('%shortcut_set' => $shortcut_set->label())) : t('Add to shortcuts');
-      $link_path = 'admin/config/user-interface/shortcut/manage/' . $shortcut_set->id() . '/add-link-inline';
+      $route_name = 'shortcut.link_add_inline';
+      $route_parameters = array('shortcut_set' => $shortcut_set->id());
     }
     else {
-      $query['mlid'] = $mlid;
+      $query['id'] = $shortcut_id;
       $link_text = shortcut_set_switch_access() ? t('Remove from %shortcut_set shortcuts', array('%shortcut_set' => $shortcut_set->label())) : t('Remove from shortcuts');
-      $link_path = 'admin/config/user-interface/shortcut/link/' . $mlid . '/delete';
+      $route_name = 'shortcut.link_delete';
+      $route_parameters = array('shortcut' => $shortcut_id);
     }
 
     if (theme_get_setting('shortcut_module_link')) {
@@ -480,8 +445,9 @@ function shortcut_preprocess_page(&$variables) {
         ),
         '#prefix' => '<div class="add-or-remove-shortcuts ' . $link_mode . '-shortcut">',
         '#type' => 'link',
-        '#title' => '<span class="icon">'. t('Add or remove shortcut') .'</span><span class="text">' . $link_text . '</span>',
-        '#href' => $link_path,
+        '#title' => '<span class="icon"></span><span class="text">'. $link_text .'</span>',
+        '#route_name' => $route_name,
+        '#route_parameters' => $route_parameters,
         '#options' => array('query' => $query, 'html' => TRUE),
         '#suffix' => '</div>',
       );

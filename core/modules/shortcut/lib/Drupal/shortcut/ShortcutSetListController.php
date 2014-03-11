@@ -28,17 +28,14 @@ class ShortcutSetListController extends ConfigEntityListController {
    */
   public function getOperations(EntityInterface $entity) {
     $operations = parent::getOperations($entity);
-    $uri = $entity->uri();
 
     if (isset($operations['edit'])) {
-      $operations['edit']['title'] = t('Edit menu');
-      $operations['edit']['href'] = $uri['path'] . '/edit';
+      $operations['edit']['title'] = t('Edit shortcut set');
     }
 
     $operations['list'] = array(
       'title' => t('List links'),
-      'href' => $uri['path'],
-    );
+    ) + $entity->urlInfo('customize-form');
     return $operations;
   }
 

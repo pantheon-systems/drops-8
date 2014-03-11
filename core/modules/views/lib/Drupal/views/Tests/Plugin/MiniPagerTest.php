@@ -22,6 +22,13 @@ class MiniPagerTest extends PluginTestBase {
   public static $testViews = array('test_mini_pager');
 
   /**
+   * Modules to enable.
+   *
+   * @var array
+   */
+  public static $modules = array('node');
+
+  /**
    * Nodes used by the test.
    *
    * @var array
@@ -49,7 +56,6 @@ class MiniPagerTest extends PluginTestBase {
    * Tests the rendering of mini pagers.
    */
   public function testMiniPagerRender() {
-    menu_router_rebuild();
     $this->drupalGet('test_mini_pager');
     $this->assertText('›› test', 'The next link appears on the first page.');
     $this->assertText('Page 1', 'The current page info shows the first page.');

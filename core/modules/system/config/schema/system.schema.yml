@@ -4,6 +4,9 @@ system.site:
   type: mapping
   label: 'Site information'
   mapping:
+    uuid:
+      type: string
+      label: 'Site UUID'
     name:
       type: label
       label: 'Site name'
@@ -97,7 +100,7 @@ system.date:
         default:
           type: string
           label: 'Default time zone'
-      user:
+        user:
           type: mapping
           label: 'User'
           mapping:
@@ -130,18 +133,12 @@ system.date_format.*:
     locked:
       type: boolean
       label: 'Locked'
-    locales:
-      type: sequence
-      label: 'Languages'
-      sequence:
-        - type: string
-          label: 'Language'
     pattern:
       type: mapping
       label: 'Format string'
       mapping:
         php:
-          type: string
+          type: date_format
           label: 'PHP date format'
         intl:
           type: string
@@ -178,23 +175,6 @@ system.filter:
         - type: string
           label: 'Protocol'
 
-system.language.types:
-  type: mapping
-  label: 'Language types'
-  mapping:
-    all:
-      type: sequence
-      label: 'All language types'
-      sequence:
-        - type: string
-          label: 'Language type'
-    configurable:
-      type: sequence
-      label: 'Configurable language types'
-      sequence:
-        - type: string
-          label: 'Language type'
-
 system.logging:
   type: mapping
   label: 'Logging settings'
@@ -226,9 +206,9 @@ system.performance:
           type: mapping
           label: 'Page cache'
           mapping:
-            enabled:
+            use_internal:
               type: boolean
-              label: 'Cache pages for anonymous users'
+              label: 'Use internal page cache'
             max_age:
               type: integer
               label: 'Max age of page cache'
@@ -242,6 +222,22 @@ system.performance:
         gzip:
           type: boolean
           label: 'Compress CSS files'
+    fast_404:
+      type: mapping
+      label: 'Fast 404 settings'
+      mapping:
+        enabled:
+          type: boolean
+          label: 'Fast 404 enabled'
+        paths:
+          type: string
+          label: 'Regular expression to match'
+        exclude_paths:
+          type: string
+          label: 'Regular expression to not match'
+        html:
+          type: string
+          label: 'Fast 404 page html'
     js:
       type: mapping
       label: 'JavaScript performance settings'
@@ -262,9 +258,6 @@ system.performance:
     stale_file_threshold:
       type: integer
       label: 'Stale file threshold'
-    theme_link:
-      type: boolean
-      label: 'Force inline link rendering'
 
 system.rss:
   type: mapping
@@ -302,8 +295,11 @@ system.theme:
       type: sequence
       label: 'Enabled themes'
       sequence:
-        - type: string
-          label: 'Theme'
+        - type: integer
+          label: 'Weight'
+    default:
+      type: string
+      label: 'Default theme'
 
 system.menu.*:
   type: mapping
@@ -312,6 +308,9 @@ system.menu.*:
     id:
       type: string
       label: 'Menu identifier'
+    uuid:
+      type: string
+      label: 'UUID'
     label:
       type: label
       label: 'Menu label'
@@ -321,3 +320,169 @@ system.menu.*:
     langcode:
       type: string
       label: 'Default language'
+    locked:
+      type: boolean
+      label: ''
+    status:
+      type: boolean
+      label: ''
+
+system.action.*:
+  type: mapping
+  label: 'System action'
+  mapping:
+    id:
+      type: string
+      label: 'ID'
+    uuid:
+      type: string
+      label: 'UUID'
+    label:
+      type: label
+      label: 'Label'
+    status:
+      type: boolean
+      label: 'Status'
+    langcode:
+      type: string
+      label: 'Default language'
+    type:
+      type: string
+      label: 'Type'
+    plugin:
+      type: string
+      label: 'Plugin'
+    configuration:
+      type: action.configuration.[plugin]
+
+system.file:
+  type: mapping
+  label: 'File system'
+  mapping:
+    allow_insecure_uploads:
+      type: boolean
+      label: 'Allow insecure uploads'
+    default_scheme:
+      type: string
+      label: 'Default download method'
+    path:
+      type: mapping
+      label: 'Path settings'
+      mapping:
+        private:
+          type: string
+          label: 'Private file system path'
+        temporary:
+          type: string
+          label: 'Temporary directory'
+
+system.image:
+  type: mapping
+  label: 'Image settings'
+  mapping:
+    toolkit:
+      type: string
+      label: 'Toolkit'
+
+system.image.gd:
+  type: mapping
+  label: 'Image settings'
+  mapping:
+    jpeg_quality:
+      type: integer
+      label: 'JPEG quality'
+
+system.mail:
+  type: mapping
+  label: 'Image settings'
+  mapping:
+    interface:
+      type: mapping
+      label: 'Interface'
+      mapping:
+        default:
+          type: string
+          label: 'Default'
+
+system.module:
+  type: mapping
+  label: 'Module settings'
+  mapping:
+    enabled:
+      type: sequence
+      label: 'Enabled modules'
+      sequence:
+        - type: integer
+          label: 'Weight'
+
+system.theme.global:
+  type: mapping
+  label: 'Theme global settings'
+  mapping:
+    favicon:
+      type: mapping
+      label: 'Shortcut icon settings'
+      mapping:
+        mimetype:
+          type: string
+          label: 'MIME type'
+        path:
+          type: string
+          label: 'Path'
+        url:
+          type: string
+          label: 'URL'
+        use_default:
+          type: boolean
+          label: 'Use the default shortcut icon supplied by the theme'
+    features:
+      type: mapping
+      label: 'Shortcut icon settings'
+      mapping:
+        comment_user_picture:
+          type: boolean
+          label: 'User pictures in comments'
+        comment_user_verification:
+          type: boolean
+          label: 'User verification status in comments'
+        favicon:
+          type: boolean
+          label: 'Shortcut icon'
+        logo:
+          type: boolean
+          label: 'Logo'
+        name:
+          type: boolean
+          label: 'Site name'
+        node_user_picture:
+          type: boolean
+          label: 'User pictures in posts'
+        main_menu:
+          type: boolean
+          label: 'Main menu'
+        secondary_menu:
+          type: boolean
+          label: 'Secondary menu'
+        slogan:
+          type: boolean
+          label: 'Site slogan'
+    logo:
+      type: mapping
+      label: 'Shortcut icon settings'
+      mapping:
+        path:
+          type: string
+          label: 'Logo path'
+        url:
+          type: uri
+          label: 'URL'
+        use_default:
+          type: boolean
+          label: 'Use default'
+
+system.theme.disabled:
+  type: sequence
+  label: 'Disabled themes'
+  sequence:
+    - type: string
+      label: 'Theme'

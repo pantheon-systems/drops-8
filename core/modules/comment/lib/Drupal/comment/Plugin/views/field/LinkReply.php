@@ -7,7 +7,7 @@
 
 namespace Drupal\comment\Plugin\views\field;
 
-use Drupal\Component\Annotation\PluginID;
+use Drupal\Core\Session\AccountInterface;
 use Drupal\views\ResultRow;
 
 /**
@@ -19,9 +19,12 @@ use Drupal\views\ResultRow;
  */
 class LinkReply extends Link {
 
-  public function access() {
+  /**
+   * {@inheritdoc}
+   */
+  public function access(AccountInterface $account) {
     //check for permission to reply to comments
-    return user_access('post comments');
+    return $account->hasPermission('post comments');
   }
 
   /**
@@ -36,11 +39,11 @@ class LinkReply extends Link {
    *   Returns a string for the link text.
    */
   protected function renderLink($data, ResultRow $values) {
-    $text = !empty($this->options['text']) ? $this->options['text'] : t('reply');
+    $text = !empty($this->options['text']) ? $this->options['text'] : t('Reply');
     $comment = $this->getEntity($values);
 
     $this->options['alter']['make_link'] = TRUE;
-    $this->options['alter']['path'] = "comment/reply/{$comment->entity_type->value}/{$comment->entity_id->value}/{$comment->field_name->value}/{$comment->id()}";
+    $this->options['alter']['path'] = "comment/reply/{$comment->getCommentedEntityTypeId()}/{$comment->getCommentedEntityId()}/{$comment->getFieldName()}/{$comment->id()}";
 
     return $text;
   }

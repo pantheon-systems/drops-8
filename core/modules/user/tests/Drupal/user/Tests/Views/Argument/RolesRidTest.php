@@ -20,20 +20,6 @@ use Drupal\user\Plugin\views\argument\RolesRid;
  */
 class RolesRidTest extends UnitTestCase {
 
-  /**
-   * Entity info used by the test.
-   *
-   * @var array
-   */
-  public static $entityInfo = array(
-    'entity_keys' => array(
-      'id' => 'id',
-      'label' => 'label',
-    ),
-    'config_prefix' => 'user.role',
-    'class' => 'Drupal\user\Entity\Role',
-  );
-
   public static function getInfo() {
     return array(
       'name' => 'User: Roles Rid Argument',
@@ -67,14 +53,17 @@ class RolesRidTest extends UnitTestCase {
         array(array('test_rid_1', 'test_rid_2'), array('test_rid_1' => $role1, 'test_rid_2' => $role2)),
       )));
 
-    $entity_manager = $this->getMockBuilder('Drupal\Core\Entity\EntityManager')
-      ->disableOriginalConstructor()
-      ->getMock();
+    $entity_type = $this->getMock('Drupal\Core\Entity\EntityTypeInterface');
+    $entity_type->expects($this->any())
+      ->method('getKey')
+      ->with('label')
+      ->will($this->returnValue('label'));
 
+    $entity_manager = $this->getMock('Drupal\Core\Entity\EntityManagerInterface');
     $entity_manager->expects($this->any())
       ->method('getDefinition')
       ->with($this->equalTo('user_role'))
-      ->will($this->returnValue(static::$entityInfo));
+      ->will($this->returnValue($entity_type));
 
     $entity_manager
       ->expects($this->once())
@@ -82,7 +71,7 @@ class RolesRidTest extends UnitTestCase {
       ->with($this->equalTo('user_role'))
       ->will($this->returnValue($role_storage_controller));
 
-    // @todo \Drupal\Core\Entity\Entity::entityInfo() uses a global call to
+    // @todo \Drupal\Core\Entity\Entity::entityType() uses a global call to
     //   entity_get_info(), which in turn wraps \Drupal::entityManager(). Set
     //   the entity manager until this is fixed.
     $container = new ContainerBuilder();

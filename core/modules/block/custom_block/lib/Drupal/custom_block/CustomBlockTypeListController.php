@@ -41,8 +41,8 @@ class CustomBlockTypeListController extends ConfigEntityListController {
    * Overrides \Drupal\Core\Entity\EntityListController::buildRow().
    */
   public function buildRow(EntityInterface $entity) {
-    $uri = $entity->uri();
-    $row['type'] = l($entity->label(), $uri['path'], $uri['options']);
+    $uri = $entity->urlInfo();
+    $row['type'] = \Drupal::l($entity->label(), $uri['route_name'], $uri['route_parameters'], $uri['options']);
     $row['description'] = filter_xss_admin($entity->description);
     return $row + parent::buildRow($entity);
   }
@@ -50,10 +50,8 @@ class CustomBlockTypeListController extends ConfigEntityListController {
   /**
    * {@inheritdoc}
    */
-  public function render() {
-    // @todo Remove this once https://drupal.org/node/2032535 is in.
-    drupal_set_title(t('Custom block types'));
-    return parent::render();
+  protected function getTitle() {
+    return $this->t('Custom block types');
   }
 
 }

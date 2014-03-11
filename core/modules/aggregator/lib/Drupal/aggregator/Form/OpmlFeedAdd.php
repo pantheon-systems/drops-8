@@ -9,25 +9,17 @@ namespace Drupal\aggregator\Form;
 
 use Drupal\aggregator\FeedStorageControllerInterface;
 use Drupal\Component\Utility\Url;
-use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\Query\QueryFactory;
 use Drupal\Core\Form\FormBase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Guzzle\Http\Exception\RequestException;
 use Guzzle\Http\Exception\BadResponseException;
-use Guzzle\Http\Client;
+use Guzzle\Http\ClientInterface;
 
 /**
  * Imports feeds from OPML.
  */
 class OpmlFeedAdd extends FormBase {
-
-  /**
-   * The database connection object.
-   *
-   * @var \Drupal\Core\Database\Connection
-   */
-  protected $database;
 
   /**
    * The entity query factory object.
@@ -41,31 +33,28 @@ class OpmlFeedAdd extends FormBase {
    *
    * @var \Drupal\aggregator\FeedStorageControllerInterface
    */
-  protected $feedStorage;
+  protected $feedStorageController;
 
   /**
    * The HTTP client to fetch the feed data with.
    *
-   * @var \Guzzle\Http\Client
+   * @var \Guzzle\Http\ClientInterface
    */
   protected $httpClient;
 
   /**
    * Constructs a database object.
    *
-   * @param \Drupal\Core\Database\Connection $database
-   *   The database object.
    * @param \Drupal\Core\Entity\Query\QueryFactory $query_factory
    *   The entity query object.
    * @param \Drupal\aggregator\FeedStorageControllerInterface $feed_storage
    *   The feed storage.
-   * @param \Guzzle\Http\Client $http_client
+   * @param \Guzzle\Http\ClientInterface $http_client
    *   The Guzzle HTTP client.
    */
-  public function __construct(Connection $database, QueryFactory $query_factory, FeedStorageControllerInterface $feed_storage, Client $http_client) {
-    $this->database = $database;
+  public function __construct(QueryFactory $query_factory, FeedStorageControllerInterface $feed_storage, ClientInterface $http_client) {
     $this->queryFactory = $query_factory;
-    $this->feedStorage = $feed_storage;
+    $this->feedStorageController = $feed_storage;
     $this->httpClient = $http_client;
   }
 
@@ -74,7 +63,6 @@ class OpmlFeedAdd extends FormBase {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('database'),
       $container->get('entity.query'),
       $container->get('entity.manager')->getStorageController('aggregator_feed'),
       $container->get('http_default_client')
@@ -114,16 +102,6 @@ class OpmlFeedAdd extends FormBase {
       '#description' => $this->t('The length of time between feed updates. Requires a correctly configured <a href="@cron">cron maintenance task</a>.', array('@cron' => url('admin/reports/status'))),
     );
 
-    // Handling of categories.
-    $options = array_map('check_plain', $this->database->query("SELECT cid, title FROM {aggregator_category} ORDER BY title")->fetchAllKeyed());
-    if ($options) {
-      $form['category'] = array(
-        '#type' => 'checkboxes',
-        '#title' => $this->t('Categorize news items'),
-        '#options' => $options,
-        '#description' => $this->t('New feed items are automatically filed in the checked categories.'),
-      );
-    }
     $form['actions'] = array('#type' => 'actions');
     $form['actions']['submit'] = array(
       '#type' => 'submit',
@@ -138,8 +116,9 @@ class OpmlFeedAdd extends FormBase {
    */
   public function validateForm(array &$form, array &$form_state) {
     // If both fields are empty or filled, cancel.
-    if (empty($form_state['values']['remote']) == empty($_FILES['files']['name']['upload'])) {
-      form_set_error('remote', $this->t('You must <em>either</em> upload a file or enter a URL.'));
+    $file_upload = $this->getRequest()->files->get('files[upload]', NULL, TRUE);
+    if (empty($form_state['values']['remote']) == empty($file_upload)) {
+      $this->setFormError('remote', $form_state, $this->t('You must <em>either</em> upload a file or enter a URL.'));
     }
   }
 
@@ -148,7 +127,7 @@ class OpmlFeedAdd extends FormBase {
    */
   public function submitForm(array &$form, array &$form_state) {
     $validators = array('file_validate_extensions' => array('opml xml'));
-    if ($file = file_save_upload('upload', $validators, FALSE, 0)) {
+    if ($file = file_save_upload('upload', $form_state, $validators, FALSE, 0)) {
       $data = file_get_contents($file->getFileUri());
     }
     else {
@@ -192,28 +171,27 @@ class OpmlFeedAdd extends FormBase {
       $ids = $query
         ->condition($condition)
         ->execute();
-      $result = $this->feedStorage->loadMultiple($ids);
+      $result = $this->feedStorageController->loadMultiple($ids);
       foreach ($result as $old) {
         if (strcasecmp($old->label(), $feed['title']) == 0) {
           drupal_set_message($this->t('A feed named %title already exists.', array('%title' => $old->label())), 'warning');
           continue 2;
         }
-        if (strcasecmp($old->url->value, $feed['url']) == 0) {
-          drupal_set_message($this->t('A feed with the URL %url already exists.', array('%url' => $old->url->value)), 'warning');
+        if (strcasecmp($old->getUrl(), $feed['url']) == 0) {
+          drupal_set_message($this->t('A feed with the URL %url already exists.', array('%url' => $old->getUrl())), 'warning');
           continue 2;
         }
       }
 
-      $new_feed = $this->feedStorage->create(array(
+      $new_feed = $this->feedStorageController->create(array(
         'title' => $feed['title'],
         'url' => $feed['url'],
         'refresh' => $form_state['values']['refresh'],
       ));
-      $new_feed->categories = $form_state['values']['category'];
       $new_feed->save();
     }
 
-    $form_state['redirect'] = 'admin/config/services/aggregator';
+    $form_state['redirect_route']['route_name'] = 'aggregator.admin_overview';
   }
 
   /**

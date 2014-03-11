@@ -7,19 +7,20 @@
 
 namespace Drupal\Core\Entity;
 
-use Drupal\Core\Access\StaticAccessCheckInterface;
+use Drupal\Core\Routing\Access\AccessInterface;
+use Drupal\Core\Session\AccountInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Route;
 
 /**
  * Defines an access checker for entity creation.
  */
-class EntityCreateAccessCheck implements StaticAccessCheckInterface {
+class EntityCreateAccessCheck implements AccessInterface {
 
   /**
    * The entity manager.
    *
-   * @var \Drupal\Core\Entity\EntityManager
+   * @var \Drupal\Core\Entity\EntityManagerInterface
    */
   protected $entityManager;
 
@@ -33,24 +34,17 @@ class EntityCreateAccessCheck implements StaticAccessCheckInterface {
   /**
    * Constructs a EntityCreateAccessCheck object.
    *
-   * @param \Drupal\Core\Entity\EntityManager $entity_manager
+   * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
    *   The entity manager.
    */
-  public function __construct(EntityManager $entity_manager) {
+  public function __construct(EntityManagerInterface $entity_manager) {
     $this->entityManager = $entity_manager;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function appliesTo() {
-    return array($this->requirementsKey);
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function access(Route $route, Request $request) {
+  public function access(Route $route, Request $request, AccountInterface $account) {
     list($entity_type, $bundle) = explode(':', $route->getRequirement($this->requirementsKey) . ':');
 
     // The bundle argument can contain request argument placeholders like
@@ -65,7 +59,7 @@ class EntityCreateAccessCheck implements StaticAccessCheckInterface {
         return static::DENY;
       }
     }
-    return $this->entityManager->getAccessController($entity_type)->createAccess($bundle) ? static::ALLOW : static::DENY;
+    return $this->entityManager->getAccessController($entity_type)->createAccess($bundle, $account) ? static::ALLOW : static::DENY;
   }
 
 }

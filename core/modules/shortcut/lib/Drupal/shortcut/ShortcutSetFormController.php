@@ -65,7 +65,7 @@ class ShortcutSetFormController extends EntityFormController {
     $entity = $this->entity;
     // Check to prevent a duplicate title.
     if ($form_state['values']['label'] != $entity->label() && shortcut_set_title_exists($form_state['values']['label'])) {
-      form_set_error('label', t('The shortcut set %name already exists. Choose another name.', array('%name' => $form_state['values']['label'])));
+      $this->setFormError('label', $form_state, $this->t('The shortcut set %name already exists. Choose another name.', array('%name' => $form_state['values']['label'])));
     }
   }
 
@@ -74,7 +74,7 @@ class ShortcutSetFormController extends EntityFormController {
    */
   public function save(array $form, array &$form_state) {
     $entity = $this->entity;
-    $is_new = !$entity->getOriginalID();
+    $is_new = !$entity->getOriginalId();
     $entity->save();
 
     if ($is_new) {
@@ -83,15 +83,7 @@ class ShortcutSetFormController extends EntityFormController {
     else {
       drupal_set_message(t('Updated set name to %set-name.', array('%set-name' => $entity->label())));
     }
-    $form_state['redirect'] = 'admin/config/user-interface/shortcut/manage/' . $entity->id();
-  }
-
-  /**
-   * Overrides \Drupal\Core\Entity\EntityFormController::delete().
-   */
-  public function delete(array $form, array &$form_state) {
-    $entity = $this->entity;
-    $form_state['redirect'] = 'admin/config/user-interface/shortcut/manage/' . $entity->id() . '/delete';
+    $form_state['redirect_route'] = $this->entity->urlInfo('customize-form');
   }
 
 }

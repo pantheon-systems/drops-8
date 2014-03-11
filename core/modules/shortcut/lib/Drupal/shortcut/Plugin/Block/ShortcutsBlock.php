@@ -8,15 +8,14 @@
 namespace Drupal\shortcut\Plugin\Block;
 
 use Drupal\block\BlockBase;
-use Drupal\block\Annotation\Block;
-use Drupal\Core\Annotation\Translation;
 
 /**
  * Provides a 'Shortcut' block.
  *
  * @Block(
- *  id = "shortcuts",
- *  admin_label = @Translation("Shortcuts")
+ *   id = "shortcuts",
+ *   admin_label = @Translation("Shortcuts"),
+ *   category = @Translation("Menus")
  * )
  */
 class ShortcutsBlock extends BlockBase {

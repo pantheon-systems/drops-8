@@ -8,12 +8,12 @@
 namespace Drupal\filter;
 
 use Drupal\Component\Utility\String;
-use Drupal\Core\Config\ConfigFactory;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\Entity\DraggableListController;
 use Drupal\Core\Entity\EntityControllerInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityStorageControllerInterface;
-use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\Entity\EntityTypeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -29,26 +29,22 @@ class FilterFormatListController extends DraggableListController implements Enti
   /**
    * The config factory service.
    *
-   * @var \Drupal\Core\Config\ConfigFactory
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
    */
   protected $configFactory;
 
   /**
    * Constructs a new FilterFormatListController.
    *
-   * @param string $entity_type
-   *   The type of entity to be listed.
-   * @param array $entity_info
-   *   An array of entity info for the entity type.
+   * @param \Drupal\Core\Entity\EntityTypeInterface $entity_type
+   *   The entity type definition.
    * @param \Drupal\Core\Entity\EntityStorageControllerInterface $storage
    *   The entity storage controller class.
-   * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
-   *   The module handler to invoke hooks on.
-   * @param \Drupal\Core\Config\ConfigFactory $config_factory
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The config factory.
    */
-  public function __construct($entity_type, array $entity_info, EntityStorageControllerInterface $storage, ModuleHandlerInterface $module_handler, ConfigFactory $config_factory) {
-    parent::__construct($entity_type, $entity_info, $storage, $module_handler);
+  public function __construct(EntityTypeInterface $entity_type, EntityStorageControllerInterface $storage, ConfigFactoryInterface $config_factory) {
+    parent::__construct($entity_type, $storage);
 
     $this->configFactory = $config_factory;
   }
@@ -56,12 +52,10 @@ class FilterFormatListController extends DraggableListController implements Enti
   /**
    * {@inheritdoc}
    */
-  public static function createInstance(ContainerInterface $container, $entity_type, array $entity_info) {
+  public static function createInstance(ContainerInterface $container, EntityTypeInterface $entity_type) {
     return new static(
       $entity_type,
-      $entity_info,
-      $container->get('entity.manager')->getStorageController($entity_type),
-      $container->get('module_handler'),
+      $container->get('entity.manager')->getStorageController($entity_type->id()),
       $container->get('config.factory')
     );
   }

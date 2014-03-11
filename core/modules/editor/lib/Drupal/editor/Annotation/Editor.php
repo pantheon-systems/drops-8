@@ -33,10 +33,24 @@ class Editor extends Plugin {
   public $label;
 
   /**
-   * Whether the editor supports the inline editing provided by the Edit module.
+   * Whether the editor supports "allowed content only" filtering.
    *
    * @var boolean
    */
+  public $supports_content_filtering;
+
+  /**
+   * Whether the editor supports the inline editing provided by the Edit module.
+   *
+   * @var bool
+   */
   public $supports_inline_editing;
+
+  /**
+   * Whether this text editor is not vulnerable to XSS attacks.
+   *
+   * @var bool
+   */
+  public $is_xss_safe;
 
 }

@@ -8,6 +8,7 @@
 namespace Drupal\entity_test\Controller;
 
 use Drupal\Core\Entity\EntityInterface;
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Controller routines for entity_test routes.
@@ -24,8 +25,16 @@ class EntityTestController {
   /**
    * @todo Remove entity_test_edit()
    */
-  public function testEdit(EntityInterface $entity) {
+  public function testEdit(Request $request) {
+    $entity = $request->attributes->get($request->attributes->get('_entity_type'));
     return entity_test_edit($entity);
+  }
+
+  /**
+   * Returns an empty page.
+   */
+  public function testAdmin() {
+    return '';
   }
 
 }

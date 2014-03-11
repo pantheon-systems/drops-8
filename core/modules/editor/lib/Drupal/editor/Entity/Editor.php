@@ -8,20 +8,14 @@
 namespace Drupal\editor\Entity;
 
 use Drupal\Core\Config\Entity\ConfigEntityBase;
-use Drupal\Core\Entity\Annotation\EntityType;
-use Drupal\Core\Annotation\Translation;
 use Drupal\editor\EditorInterface;
 
 /**
  * Defines the configured text editor entity.
  *
- * @EntityType(
+ * @ConfigEntityType(
  *   id = "editor",
  *   label = @Translation("Editor"),
- *   module = "editor",
- *   controllers = {
- *     "storage" = "Drupal\Core\Config\Entity\ConfigStorageController"
- *   },
  *   config_prefix = "editor.editor",
  *   entity_keys = {
  *     "id" = "format",
@@ -65,14 +59,6 @@ class Editor extends ConfigEntityBase implements EditorInterface {
    */
   public function id() {
     return $this->format;
-  }
-
-  /**
-   * Overrides Drupal\Core\Entity\Entity::label().
-   */
-  public function label($langcode = NULL) {
-    $format = entity_load('filter_format', $this->format);
-    return $format->name;
   }
 
   /**

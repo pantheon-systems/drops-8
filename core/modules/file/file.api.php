@@ -81,8 +81,8 @@ function hook_file_validate(Drupal\file\FileInterface $file) {
  *   The file entity that is about to be created or updated.
  */
 function hook_file_presave(Drupal\file\FileInterface $file) {
-  // Change the file timestamp to an hour prior.
-  $file->timestamp -= 3600;
+  // Change the owner of the file.
+  $file->uid->value = 1;
 }
 
 /**
@@ -219,8 +219,8 @@ function hook_file_delete(Drupal\file\FileInterface $file) {
  * @see hook_entity_field_access().
  */
 function hook_file_download_access($field, Drupal\Core\Entity\EntityInterface $entity, Drupal\file\FileInterface $file) {
-  if ($entity->entityType() == 'node') {
-    return node_access('view', $entity);
+  if ($entity->getEntityTypeId() == 'node') {
+    return $entity->access('view');
   }
 }
 

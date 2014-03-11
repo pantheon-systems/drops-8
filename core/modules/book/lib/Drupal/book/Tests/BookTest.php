@@ -243,7 +243,7 @@ class BookTest extends WebTestBase {
     static $number = 0; // Used to ensure that when sorted nodes stay in same order.
 
     $edit = array();
-    $edit["title"] = $number . ' - SimpleTest test node ' . $this->randomName(10);
+    $edit['title[0][value]'] = $number . ' - SimpleTest test node ' . $this->randomName(10);
     $edit['body[0][value]'] = 'SimpleTest test body ' . $this->randomName(32) . ' ' . $this->randomName(32);
     $edit['book[bid]'] = $book_nid;
 
@@ -258,7 +258,7 @@ class BookTest extends WebTestBase {
     }
 
     // Check to make sure the book node was created.
-    $node = $this->drupalGetNodeByTitle($edit['title']);
+    $node = $this->drupalGetNodeByTitle($edit['title[0][value]']);
     $this->assertNotNull(($node === FALSE ? NULL : $node), 'Book node found in database.');
     $number++;
 
@@ -434,9 +434,9 @@ class BookTest extends WebTestBase {
     //   'page',
     // );
     // @endcode
-    $current_config = \Drupal::config('book.settings')->init()->get();
+    $current_config = \Drupal::config('book.settings')->get();
     $this->drupalPostForm('admin/structure/book/settings', array(), t('Save configuration'));
-    $this->assertIdentical($current_config, \Drupal::config('book.settings')->init()->get());
+    $this->assertIdentical($current_config, \Drupal::config('book.settings')->get());
 
     // Change the name, machine name and description.
     $edit = array(
@@ -455,9 +455,9 @@ class BookTest extends WebTestBase {
     //   'zebra',
     // );
     // @endcode
-    $current_config = \Drupal::config('book.settings')->init()->get();
+    $current_config = \Drupal::config('book.settings')->get();
     $this->drupalPostForm('admin/structure/book/settings', array(), t('Save configuration'));
-    $this->assertIdentical($current_config, \Drupal::config('book.settings')->init()->get());
+    $this->assertIdentical($current_config, \Drupal::config('book.settings')->get());
 
     $edit = array(
       'name' => 'Animal book',
@@ -473,9 +473,9 @@ class BookTest extends WebTestBase {
     //   'zebra',
     // );
     // @endcode
-    $current_config = \Drupal::config('book.settings')->init()->get();
+    $current_config = \Drupal::config('book.settings')->get();
     $this->drupalPostForm('admin/structure/book/settings', array(), t('Save configuration'));
-    $this->assertIdentical($current_config, \Drupal::config('book.settings')->init()->get());
+    $this->assertIdentical($current_config, \Drupal::config('book.settings')->get());
 
     // Ensure that after all the node type changes book.settings:child_type has
     // the expected value.
@@ -487,7 +487,7 @@ class BookTest extends WebTestBase {
    */
   public function testBookOrdering() {
     // Create new book.
-    $nodes = $this->createBook();
+    $this->createBook();
     $book = $this->book;
 
     $this->drupalLogin($this->admin_user);

@@ -7,19 +7,16 @@
 
 namespace Drupal\entity_test\Entity;
 
+use Drupal\Core\Field\FieldDefinition;
 use Drupal\entity_test\Entity\EntityTest;
-use Drupal\Core\Entity\Annotation\EntityType;
-use Drupal\Core\Annotation\Translation;
 
 /**
  * Defines the test entity class.
  *
- * @EntityType(
+ * @ContentEntityType(
  *   id = "entity_test_rev",
  *   label = @Translation("Test entity - revisions"),
- *   module = "entity_test",
  *   controllers = {
- *     "storage" = "Drupal\entity_test\EntityTestStorageController",
  *     "access" = "Drupal\entity_test\EntityTestAccessController",
  *     "form" = {
  *       "default" = "Drupal\entity_test\EntityTestFormController"
@@ -35,7 +32,10 @@ use Drupal\Core\Annotation\Translation;
  *     "revision" = "revision_id",
  *     "bundle" = "type"
  *   },
- *   menu_base_path = "entity_test_rev/manage/%entity_test_rev"
+ *   links = {
+ *     "canonical" = "entity_test.edit_entity_test_rev",
+ *     "edit-form" = "entity_test.edit_entity_test_rev"
+ *   }
  * )
  */
 class EntityTestRev extends EntityTest {
@@ -43,7 +43,7 @@ class EntityTestRev extends EntityTest {
   /**
    * The entity revision id.
    *
-   * @var \Drupal\Core\Entity\Field\FieldItemListInterface
+   * @var \Drupal\Core\Field\FieldItemListInterface
    */
   public $revision_id;
 
@@ -67,12 +67,13 @@ class EntityTestRev extends EntityTest {
    */
   public static function baseFieldDefinitions($entity_type) {
     $fields = parent::baseFieldDefinitions($entity_type);
-    $fields['revision_id'] = array(
-      'label' => t('ID'),
-      'description' => t('The version id of the test entity.'),
-      'type' => 'integer_field',
-      'read-only' => TRUE,
-    );
+
+    $fields['revision_id'] = FieldDefinition::create('integer')
+      ->setLabel(t('Revision ID'))
+      ->setDescription(t('The version id of the test entity.'))
+      ->setReadOnly(TRUE);
+
     return $fields;
   }
+
 }

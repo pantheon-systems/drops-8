@@ -12,7 +12,7 @@ use Drupal\Core\Config\Entity\ConfigEntityListController;
 use Drupal\Core\Datetime\Date;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityStorageControllerInterface;
-use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\Entity\EntityTypeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -30,19 +30,15 @@ class DateFormatListController extends ConfigEntityListController {
   /**
    * Constructs a new DateFormatListController object.
    *
-   * @param string $entity_type
-   *   The type of entity to be listed.
-   * @param array $entity_info
-   *   An array of entity info for the entity type.
+   * @param \Drupal\Core\Entity\EntityTypeInterface $entity_type
+   *   The entity type definition.
    * @param \Drupal\Core\Entity\EntityStorageControllerInterface $storage
    *   The entity storage controller class.
-   * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
-   *   The module handler to invoke hooks on.
    * @param \Drupal\Core\Datetime\Date $date_service
    *   The date service.
    */
-  public function __construct($entity_type, array $entity_info, EntityStorageControllerInterface $storage, ModuleHandlerInterface $module_handler, Date $date_service) {
-    parent::__construct($entity_type, $entity_info, $storage, $module_handler);
+  public function __construct(EntityTypeInterface $entity_type, EntityStorageControllerInterface $storage, Date $date_service) {
+    parent::__construct($entity_type, $storage);
 
     $this->dateService = $date_service;
   }
@@ -50,12 +46,10 @@ class DateFormatListController extends ConfigEntityListController {
   /**
    * {@inheritdoc}
    */
-  public static function createInstance(ContainerInterface $container, $entity_type, array $entity_info) {
+  public static function createInstance(ContainerInterface $container, EntityTypeInterface $entity_type) {
     return new static(
       $entity_type,
-      $entity_info,
-      $container->get('entity.manager')->getStorageController($entity_type),
-      $container->get('module_handler'),
+      $container->get('entity.manager')->getStorageController($entity_type->id()),
       $container->get('date')
     );
   }

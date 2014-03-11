@@ -2,9 +2,7 @@
 
 /**
  * @file
- * Provide views data and handlers for user.module.
- *
- * @ingroup views_module_handlers
+ * Provide views data for user.module.
  */
 
 use Drupal\views\ViewExecutable;
@@ -36,6 +34,7 @@ function user_views_data() {
     'argument' => array(
       'id' => 'user_uid',
       'name field' => 'name',
+      'empty field name' => \Drupal::config('user.settings')->get('anonymous'),
     ),
     'filter' => array(
       'title' => t('Name'),
@@ -268,18 +267,20 @@ function user_views_data() {
     ),
   );
 
-  $data['users']['signature'] = array(
-    'title' => t('Signature'),
-    'help' => t("The user's signature."),
-    'field' => array(
-      'id' => 'markup',
-      'format' => filter_fallback_format(),
-      'click sortable' => FALSE,
-    ),
-    'filter' => array(
-      'id' => 'string',
-    ),
-  );
+  if (\Drupal::moduleHandler()->moduleExists('filter')) {
+    $data['users']['signature'] = array(
+      'title' => t('Signature'),
+      'help' => t("The user's signature."),
+      'field' => array(
+        'id' => 'markup',
+        'format' => filter_fallback_format(),
+        'click sortable' => FALSE,
+      ),
+      'filter' => array(
+        'id' => 'string',
+      ),
+    );
+  }
 
   if (\Drupal::moduleHandler()->moduleExists('content_translation')) {
     $data['users']['translation_link'] = array(
@@ -315,14 +316,6 @@ function user_views_data() {
     'real field' => 'uid',
     'field' => array(
       'id' => 'user_data',
-    ),
-  );
-
-  $data['users']['user_bulk_form'] = array(
-    'title' => t('Bulk update'),
-    'help' => t('Add a form element that lets you run operations on multiple users.'),
-    'field' => array(
-      'id' => 'user_bulk_form',
     ),
   );
 
@@ -376,13 +369,14 @@ function user_views_data() {
 }
 
 /**
- * Implements hook_views_plugins_row_alter().
- *
- * Replaces the generic row plugin by a custom one for users.
- *
- * @see \Drupal\views\Plugin\views\row\EntityRow
+ * Implements hook_views_data_alter().
  */
-function user_views_plugins_row_alter(array &$plugins) {
-  $plugins['entity:user']['class'] = 'Drupal\user\Plugin\views\row\UserRow';
-  $plugins['entity:user']['provider'] = 'user';
+function user_views_data_alter(&$data) {
+  $data['users']['user_bulk_form'] = array(
+    'title' => t('Bulk update'),
+    'help' => t('Add a form element that lets you run operations on multiple users.'),
+    'field' => array(
+      'id' => 'user_bulk_form',
+    ),
+  );
 }

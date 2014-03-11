@@ -11,7 +11,6 @@ use Drupal\views\ResultRow;
 use Drupal\views\ViewExecutable;
 use Drupal\views\Plugin\views\display\DisplayPluginBase;
 use Drupal\views\Plugin\views\field\FieldPluginBase;
-use Drupal\Component\Annotation\PluginID;
 
 /**
  * Field handler to allow linking to a user account or homepage.
@@ -62,7 +61,7 @@ class Username extends FieldPluginBase {
    */
   protected function renderLink($data, ResultRow $values) {
     if (!empty($this->options['link_to_user'])) {
-      $account = entity_create('user', array());
+      $account = entity_create('user');
       $account->uid = $this->getValue($values, 'uid');
       $account->name = $this->getValue($values);
       $account->homepage = $this->getValue($values, 'homepage');

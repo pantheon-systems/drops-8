@@ -8,20 +8,16 @@
 namespace Drupal\custom_block\Entity;
 
 use Drupal\Core\Config\Entity\ConfigEntityBase;
-use Drupal\Core\Entity\Annotation\EntityType;
-use Drupal\Core\Annotation\Translation;
 use Drupal\Core\Entity\EntityStorageControllerInterface;
 use Drupal\custom_block\CustomBlockTypeInterface;
 
 /**
  * Defines the custom block type entity.
  *
- * @EntityType(
+ * @ConfigEntityType(
  *   id = "custom_block_type",
  *   label = @Translation("Custom block type"),
- *   module = "custom_block",
  *   controllers = {
- *     "storage" = "Drupal\Core\Config\Entity\ConfigStorageController",
  *     "form" = {
  *       "default" = "Drupal\custom_block\CustomBlockTypeFormController",
  *       "add" = "Drupal\custom_block\CustomBlockTypeFormController",
@@ -39,7 +35,8 @@ use Drupal\custom_block\CustomBlockTypeInterface;
  *     "uuid" = "uuid"
  *   },
  *   links = {
- *     "edit-form" = "admin/structure/block/custom-blocks/manage/{custom_block_type}"
+ *     "delete-form" = "custom_block.type_delete",
+ *     "edit-form" = "custom_block.type_edit"
  *   }
  * )
  */
@@ -88,7 +85,9 @@ class CustomBlockType extends ConfigEntityBase implements CustomBlockTypeInterfa
 
     if (!$update) {
       entity_invoke_bundle_hook('create', 'custom_block', $this->id());
-      custom_block_add_body_field($this->id);
+      if (!$this->isSyncing()) {
+        custom_block_add_body_field($this->id);
+      }
     }
     elseif ($this->getOriginalId() != $this->id) {
       entity_invoke_bundle_hook('rename', 'custom_block', $this->getOriginalId(), $this->id);

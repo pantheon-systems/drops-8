@@ -15,16 +15,21 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 class EntityDisplayModeAddForm extends EntityDisplayModeFormBase {
 
   /**
+   * The entity type for which the display mode is being created.
+   *
    * @var string
    */
-  protected $entityType;
+  protected $targetEntityTypeId;
 
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, array &$form_state, $entity_type = NULL) {
-    $this->entityType = $entity_type;
-    return parent::buildForm($form, $form_state);
+  public function buildForm(array $form, array &$form_state, $entity_type_id = NULL) {
+    $this->targetEntityTypeId = $entity_type_id;
+    $form = parent::buildForm($form, $form_state);
+    $definition = $this->entityManager->getDefinition($this->targetEntityTypeId);
+    $form['#title'] = $this->t('Add new %label @entity-type', array('%label' => $definition->getLabel(), '@entity-type' => $this->entityType->getLowercaseLabel()));
+    return $form;
   }
 
   /**
@@ -33,20 +38,19 @@ class EntityDisplayModeAddForm extends EntityDisplayModeFormBase {
   public function validate(array $form, array &$form_state) {
     parent::validate($form, $form_state);
 
-    form_set_value($form['id'], $this->entityType . '.' . $form_state['values']['id'], $form_state);
+    form_set_value($form['id'], $this->targetEntityTypeId . '.' . $form_state['values']['id'], $form_state);
   }
 
   /**
    * {@inheritdoc}
    */
   protected function prepareEntity() {
-    $definition = $this->entityManager->getDefinition($this->entityType);
-    if (!$definition['fieldable'] || !isset($definition['controllers']['render'])) {
+    $definition = $this->entityManager->getDefinition($this->targetEntityTypeId);
+    if (!$definition->isFieldable() || !$definition->hasViewBuilderClass()) {
       throw new NotFoundHttpException();
     }
 
-    drupal_set_title(t('Add new %label @entity-type', array('%label' => $definition['label'], '@entity-type' => strtolower($this->entityInfo['label']))), PASS_THROUGH);
-    $this->entity->targetEntityType = $this->entityType;
+    $this->entity->targetEntityType = $this->targetEntityTypeId;
   }
 
 }

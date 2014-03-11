@@ -7,8 +7,6 @@
 
 namespace Drupal\filter_test\Plugin\Filter;
 
-use Drupal\filter\Annotation\Filter;
-use Drupal\Core\Annotation\Translation;
 use Drupal\filter\Plugin\FilterBase;
 
 /**
@@ -16,10 +14,9 @@ use Drupal\filter\Plugin\FilterBase;
  *
  * @Filter(
  *   id = "filter_test_uncacheable",
- *   module = "filter_test",
  *   title = @Translation("Uncacheable filter"),
  *   description = @Translation("Does nothing, but makes a text format uncacheable"),
- *   type = FILTER_TYPE_TRANSFORM_IRREVERSIBLE,
+ *   type = Drupal\filter\Plugin\FilterInterface::TYPE_TRANSFORM_IRREVERSIBLE,
  *   cache = false
  * )
  */

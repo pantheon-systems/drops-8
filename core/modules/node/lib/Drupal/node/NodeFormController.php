@@ -11,6 +11,7 @@ use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Entity\ContentEntityFormController;
 use Drupal\Core\Language\Language;
+use Drupal\Component\Utility\String;
 
 /**
  * Form controller for the node edit forms.
@@ -28,6 +29,7 @@ class NodeFormController extends ContentEntityFormController {
    * {@inheritdoc}
    */
   protected function prepareEntity() {
+    /** @var \Drupal\node\NodeInterface $node */
     $node = $this->entity;
     // Set up default values, if required.
     $type = entity_load('node_type', $node->bundle());
@@ -43,11 +45,10 @@ class NodeFormController extends ContentEntityFormController {
       foreach (array('status', 'promote', 'sticky') as $key) {
         // Multistep node forms might have filled in something already.
         if ($node->$key->isEmpty()) {
-          $node->$key = (int) in_array($key, $this->settings['options']);
+          $node->$key = (int) !empty($this->settings['options'][$key]);
         }
       }
-      global $user;
-      $node->setAuthorId($user->id());
+      $node->setOwnerId(\Drupal::currentUser()->id());
       $node->setCreatedTime(REQUEST_TIME);
     }
     else {
@@ -56,17 +57,18 @@ class NodeFormController extends ContentEntityFormController {
       $node->log = NULL;
     }
     // Always use the default revision setting.
-    $node->setNewRevision(in_array('revision', $this->settings['options']));
+    $node->setNewRevision(!empty($this->settings['options']['revision']));
   }
 
   /**
    * Overrides Drupal\Core\Entity\EntityFormController::form().
    */
   public function form(array $form, array &$form_state) {
+    /** @var \Drupal\node\NodeInterface $node */
     $node = $this->entity;
 
     if ($this->operation == 'edit') {
-      drupal_set_title(t('<em>Edit @type</em> @title', array('@type' => node_get_type_label($node), '@title' => $node->label())), PASS_THROUGH);
+      $form['#title'] = $this->t('<em>Edit @type</em> @title', array('@type' => node_get_type_label($node), '@title' => $node->label()));
     }
 
     $user_config = \Drupal::config('user.settings');
@@ -74,6 +76,7 @@ class NodeFormController extends ContentEntityFormController {
     if (isset($form_state['node_preview'])) {
       $form['#prefix'] = $form_state['node_preview'];
       $node->in_preview = TRUE;
+      $form['#title'] = $this->t('Preview');
     }
     else {
       unset($node->in_preview);
@@ -99,19 +102,7 @@ class NodeFormController extends ContentEntityFormController {
       '#default_value' => $node->getChangedTime(),
     );
 
-    $node_type = node_type_load($node->getType());
-    if ($node_type->has_title) {
-      $form['title'] = array(
-        '#type' => 'textfield',
-        '#title' => check_plain($node_type->title_label),
-        '#required' => TRUE,
-        '#default_value' => $node->title->value,
-        '#maxlength' => 255,
-        '#weight' => -5,
-      );
-    }
-
-    $language_configuration = module_invoke('language', 'get_default_configuration', 'node', $node->getType());
+    $language_configuration = \Drupal::moduleHandler()->invoke('language', 'get_default_configuration', array('node', $node->getType()));
     $form['langcode'] = array(
       '#title' => t('Language'),
       '#type' => 'language_select',
@@ -191,7 +182,7 @@ class NodeFormController extends ContentEntityFormController {
       '#title' => t('Authored by'),
       '#maxlength' => 60,
       '#autocomplete_route_name' => 'user.autocomplete',
-      '#default_value' => $node->getAuthorId()? $node->getAuthor()->getUsername() : '',
+      '#default_value' => $node->getOwnerId()? $node->getOwner()->getUsername() : '',
       '#weight' => -1,
       '#description' => t('Leave blank for %anonymous.', array('%anonymous' => $user_config->get('anonymous'))),
     );
@@ -231,13 +222,6 @@ class NodeFormController extends ContentEntityFormController {
       '#default_value' => $node->isSticky(),
     );
 
-    // This form uses a button-level #submit handler for the form's main submit
-    // action. node_form_submit() manually invokes all form-level #submit
-    // handlers of the form. Without explicitly setting #submit, Form API would
-    // auto-detect node_form_submit() as submit handler, but that is the
-    // button-level #submit handler for the 'Save' action.
-    $form += array('#submit' => array());
-
     return parent::form($form, $form_state, $node);
   }
 
@@ -249,7 +233,7 @@ class NodeFormController extends ContentEntityFormController {
     $node = $this->entity;
     $preview_mode = $this->settings['preview'];
 
-    $element['submit']['#access'] = $preview_mode != DRUPAL_REQUIRED || (!form_get_errors() && isset($form_state['node_preview']));
+    $element['submit']['#access'] = $preview_mode != DRUPAL_REQUIRED || (!form_get_errors($form_state) && isset($form_state['node_preview']));
 
     // If saving is an option, privileged users get dedicated form submit
     // buttons to adjust the publishing status while saving in one go.
@@ -303,7 +287,7 @@ class NodeFormController extends ContentEntityFormController {
     }
 
     $element['preview'] = array(
-      '#access' => $preview_mode != DRUPAL_DISABLED && (node_access('create', $node) || node_access('update', $node)),
+      '#access' => $preview_mode != DRUPAL_DISABLED && ($node->access('create') || $node->access('update')),
       '#value' => t('Preview'),
       '#weight' => 20,
       '#validate' => array(
@@ -315,7 +299,7 @@ class NodeFormController extends ContentEntityFormController {
       ),
     );
 
-    $element['delete']['#access'] = node_access('delete', $node);
+    $element['delete']['#access'] = $node->access('delete');
     $element['delete']['#weight'] = 100;
 
     return $element;
@@ -328,7 +312,7 @@ class NodeFormController extends ContentEntityFormController {
     $node = $this->buildEntity($form, $form_state);
 
     if ($node->id() && (node_last_changed($node->id(), $this->getFormLangcode($form_state)) > $node->getChangedTime())) {
-      form_set_error('changed', t('The content on this page has either been modified by another user, or you have already submitted modifications using this form. As a result, your changes cannot be saved.'));
+      $this->setFormError('changed', $form_state, $this->t('The content on this page has either been modified by another user, or you have already submitted modifications using this form. As a result, your changes cannot be saved.'));
     }
 
     // Validate the "authored by" field.
@@ -336,14 +320,14 @@ class NodeFormController extends ContentEntityFormController {
       // The use of empty() is mandatory in the context of usernames
       // as the empty string denotes the anonymous user. In case we
       // are dealing with an anonymous user we set the user ID to 0.
-      form_set_error('name', t('The username %name does not exist.', array('%name' => $form_state['values']['name'])));
+      $this->setFormError('name', $form_state, $this->t('The username %name does not exist.', array('%name' => $form_state['values']['name'])));
     }
 
     // Validate the "authored on" field.
     // The date element contains the date object.
     $date = $node->date instanceof DrupalDateTime ? $node->date : new DrupalDateTime($node->date);
     if ($date->hasErrors()) {
-      form_set_error('date', t('You have to specify a valid date.'));
+      $this->setFormError('date', $form_state, $this->t('You have to specify a valid date.'));
     }
 
     // Invoke hook_node_validate() for validation needed by modules.
@@ -375,8 +359,7 @@ class NodeFormController extends ContentEntityFormController {
       $node->setNewRevision();
       // If a new revision is created, save the current user as revision author.
       $node->setRevisionCreationTime(REQUEST_TIME);
-      global $user;
-      $node->setRevisionAuthorId($user->id());
+      $node->setRevisionAuthorId(\Drupal::currentUser()->id());
     }
 
     $node->validated = TRUE;
@@ -400,8 +383,7 @@ class NodeFormController extends ContentEntityFormController {
     // @todo Remove this: we should not have explicit includes in autoloaded
     //   classes.
     module_load_include('inc', 'node', 'node.pages');
-    drupal_set_title(t('Preview'), PASS_THROUGH);
-    $form_state['node_preview'] = node_preview($this->entity);
+    $form_state['node_preview'] = node_preview($this->entity, $form_state);
     $form_state['rebuild'] = TRUE;
   }
 
@@ -437,14 +419,15 @@ class NodeFormController extends ContentEntityFormController {
    * {@inheritdoc}
    */
   public function buildEntity(array $form, array &$form_state) {
+    /** @var \Drupal\node\NodeInterface $entity */
     $entity = parent::buildEntity($form, $form_state);
     // A user might assign the node author by entering a user name in the node
     // form, which we then need to translate to a user ID.
     if (!empty($form_state['values']['name']) && $account = user_load_by_name($form_state['values']['name'])) {
-      $entity->setAuthorId($account->id());
+      $entity->setOwnerId($account->id());
     }
     else {
-      $entity->setAuthorId(0);
+      $entity->setOwnerId(0);
     }
 
     if (!empty($form_state['values']['date']) && $form_state['values']['date'] instanceOf DrupalDateTime) {
@@ -480,7 +463,17 @@ class NodeFormController extends ContentEntityFormController {
     if ($node->id()) {
       $form_state['values']['nid'] = $node->id();
       $form_state['nid'] = $node->id();
-      $form_state['redirect'] = node_access('view', $node) ? 'node/' . $node->id() : '<front>';
+      if ($node->access('view')) {
+        $form_state['redirect_route'] = array(
+          'route_name' => 'node.view',
+          'route_parameters' => array(
+            'node' => $node->id(),
+          ),
+        );
+      }
+      else {
+        $form_state['redirect_route']['route_name'] = '<front>';
+      }
     }
     else {
       // In the unlikely case something went wrong on save, the node will be
@@ -491,20 +484,6 @@ class NodeFormController extends ContentEntityFormController {
 
     // Clear the page and block caches.
     cache_invalidate_tags(array('content' => TRUE));
-  }
-
-  /**
-   * Overrides Drupal\Core\Entity\EntityFormController::delete().
-   */
-  public function delete(array $form, array &$form_state) {
-    $destination = array();
-    $query = \Drupal::request()->query;
-    if ($query->has('destination')) {
-      $destination = drupal_get_destination();
-      $query->remove('destination');
-    }
-    $node = $this->entity;
-    $form_state['redirect'] = array('node/' . $node->id() . '/delete', array('query' => $destination));
   }
 
 }

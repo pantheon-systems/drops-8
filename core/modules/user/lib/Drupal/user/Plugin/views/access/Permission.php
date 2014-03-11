@@ -7,11 +7,8 @@
 
 namespace Drupal\user\Plugin\views\access;
 
-
-use Drupal\views\Annotation\ViewsAccess;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\views\Plugin\views\access\AccessPluginBase;
-use Drupal\Core\Annotation\Translation;
 use Symfony\Component\Routing\Route;
 
 /**
@@ -36,7 +33,7 @@ class Permission extends AccessPluginBase {
    * {@inheritdoc}
    */
   public function access(AccountInterface $account) {
-    return user_access($this->options['perm'], $account) || user_access('access all views', $account);
+    return $account->hasPermission($this->options['perm']) || $account->hasPermission('access all views');
   }
 
   /**
@@ -70,7 +67,7 @@ class Permission extends AccessPluginBase {
 
     // Get list of permissions
     foreach (\Drupal::moduleHandler()->getImplementations('permission') as $module) {
-      $permissions = module_invoke($module, 'permission');
+      $permissions = \Drupal::moduleHandler()->invoke($module, 'permission');
       foreach ($permissions as $name => $perm) {
         $perms[$module_info[$module]['name']][$name] = strip_tags($perm['title']);
       }

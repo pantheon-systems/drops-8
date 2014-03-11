@@ -7,7 +7,6 @@
 
 namespace Drupal\views\Plugin\views\field;
 
-use Drupal\Component\Annotation\PluginID;
 use Drupal\views\ResultRow;
 
 /**
@@ -18,6 +17,14 @@ use Drupal\views\ResultRow;
  * @PluginID("counter")
  */
 class Counter extends FieldPluginBase {
+
+  /**
+   * {@inheritdoc}
+   */
+  public function usesGroupBy() {
+    return FALSE;
+  }
+
 
   protected function defineOptions() {
     $options = parent::defineOptions();

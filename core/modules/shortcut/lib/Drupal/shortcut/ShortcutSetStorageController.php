@@ -8,26 +8,11 @@
 namespace Drupal\shortcut;
 
 use Drupal\Core\Config\Entity\ConfigStorageController;
-use Drupal\shortcut\ShortcutSetInterface;
 
 /**
- * Defines a storage controller for shortcut entities.
+ * Defines a storage controller for shortcut_set entities.
  */
 class ShortcutSetStorageController extends ConfigStorageController implements ShortcutSetStorageControllerInterface {
-
-  /**
-   * Overrides \Drupal\config\ConfigStorageController::attachLoad().
-   */
-  protected function attachLoad(&$queried_entities, $revision_id = FALSE) {
-    parent::attachLoad($queried_entities, $revision_id);
-
-    foreach ($queried_entities as $id => $entity) {
-      $links = menu_load_links('shortcut-' . $id);
-      foreach ($links as $menu_link) {
-        $entity->links[$menu_link->uuid()] = $menu_link;
-      }
-    }
-  }
 
   /**
    * {@inheritdoc}
@@ -77,4 +62,5 @@ class ShortcutSetStorageController extends ConfigStorageController implements Sh
   public function countAssignedUsers(ShortcutSetInterface $shortcut_set) {
     return db_query('SELECT COUNT(*) FROM {shortcut_set_users} WHERE set_name = :name', array(':name' => $shortcut_set->id()))->fetchField();
   }
+
 }

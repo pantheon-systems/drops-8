@@ -7,8 +7,8 @@
 
 namespace Drupal\entity_reference\Tests;
 
-use Drupal\Core\Entity\Field\FieldItemListInterface;
-use Drupal\Core\Entity\Field\FieldItemInterface;
+use Drupal\Core\Field\FieldItemListInterface;
+use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\Language\Language;
 use Drupal\field\Tests\FieldUnitTestBase;
 
@@ -22,7 +22,7 @@ class EntityReferenceItemTest extends FieldUnitTestBase {
    *
    * @var array
    */
-  public static $modules = array('entity_reference', 'taxonomy', 'options');
+  public static $modules = array('entity_reference', 'taxonomy', 'options', 'text', 'filter');
 
   /**
    * The taxonomy vocabulary to test with.
@@ -81,7 +81,7 @@ class EntityReferenceItemTest extends FieldUnitTestBase {
     $tid = $this->term->id();
 
     // Just being able to create the entity like this verifies a lot of code.
-    $entity = entity_create('entity_test', array());
+    $entity = entity_create('entity_test');
     $entity->field_test_taxonomy_term->target_id = $tid;
     $entity->name->value = $this->randomName();
     $entity->save();
@@ -128,7 +128,7 @@ class EntityReferenceItemTest extends FieldUnitTestBase {
     $referenced_entity_id = $this->vocabulary->id();
 
     // Just being able to create the entity like this verifies a lot of code.
-    $entity = entity_create('entity_test', array());
+    $entity = entity_create('entity_test');
     $entity->field_test_taxonomy_vocabulary->target_id = $referenced_entity_id;
     $entity->name->value = $this->randomName();
     $entity->save();

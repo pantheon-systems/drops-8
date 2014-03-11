@@ -8,6 +8,9 @@
 namespace Drupal\Tests;
 
 use Drupal\Component\Utility\Random;
+use Drupal\Component\Utility\String;
+use Drupal\Core\Cache\CacheBackendInterface;
+use Drupal\Core\DependencyInjection\ContainerBuilder;
 
 /**
  * Provides a base class and helpers for Drupal unit tests.
@@ -22,23 +25,35 @@ abstract class UnitTestCase extends \PHPUnit_Framework_TestCase {
   protected $randomGenerator;
 
   /**
-   * This method exists to support the simpletest UI runner.
-   *
-   * It should eventually be replaced with something native to phpunit.
-   *
-   * Also, this method is empty because you can't have an abstract static
-   * method. Sub-classes should always override it.
+   * Provides meta information about this test case, such as test name.
    *
    * @return array
-   *   An array describing the test like so:
-   *   array(
-   *     'name' => 'Something Test',
-   *     'description' => 'Tests Something',
-   *     'group' => 'Something',
-   *   )
+   *   An array of untranslated strings with the following keys:
+   *   - name: An overview of what is tested by the class; for example, "User
+   *     access rules".
+   *   - description: One sentence describing the test, starting with a verb.
+   *   - group: The human-readable name of the module ("Node", "Statistics"), or
+   *     the human-readable name of the Drupal facility tested (e.g. "Form API"
+   *     or "XML-RPC").
    */
   public static function getInfo() {
-    throw new \RuntimeException("Sub-class must implement the getInfo method!");
+    // PHP does not allow us to declare this method as abstract public static,
+    // so we simply throw an exception here if this has not been implemented by
+    // a child class.
+    throw new \RuntimeException(String::format('@class must implement \Drupal\Tests\UnitTestCase::getInfo().', array(
+      '@class' => get_called_class(),
+    )));
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function tearDown() {
+    parent::tearDown();
+    if (\Drupal::getContainer()) {
+      $container = new ContainerBuilder();
+      \Drupal::setContainer($container);
+    }
   }
 
   /**
@@ -107,9 +122,7 @@ abstract class UnitTestCase extends \PHPUnit_Framework_TestCase {
     }
     // Construct a config factory with the array of configuration object stubs
     // as its return map.
-    $config_factory = $this->getMockBuilder('Drupal\Core\Config\ConfigFactory')
-      ->disableOriginalConstructor()
-      ->getMock();
+    $config_factory = $this->getMock('Drupal\Core\Config\ConfigFactoryInterface');
     $config_factory->expects($this->any())
       ->method('get')
       ->will($this->returnValueMap($config_map));
@@ -175,13 +188,35 @@ abstract class UnitTestCase extends \PHPUnit_Framework_TestCase {
    *   A MockBuilder of \Drupal\Core\StringTranslation\TranslationInterface
    */
   public function getStringTranslationStub() {
-    $translation = $this->getMockBuilder('Drupal\Core\StringTranslation\TranslationManager')
-      ->disableOriginalConstructor()
-      ->getMock();
+    $translation = $this->getMock('Drupal\Core\StringTranslation\TranslationInterface');
     $translation->expects($this->any())
       ->method('translate')
-      ->will($this->returnArgument(0));
+      ->will($this->returnCallback(function ($string, array $args = array()) { return strtr($string, $args); }));
     return $translation;
+  }
+
+  /**
+   * Sets up a container with cache bins.
+   *
+   * @param \Drupal\Core\Cache\CacheBackendInterface $backend
+   *   The cache backend to set up.
+   *
+   * @return \Symfony\Component\DependencyInjection\ContainerInterface|\PHPUnit_Framework_MockObject_MockObject
+   *   The container with the cache bins set up.
+   */
+  protected function getContainerWithCacheBins(CacheBackendInterface $backend) {
+    $container = $this->getMock('Symfony\Component\DependencyInjection\ContainerInterface');
+    $container->expects($this->any())
+      ->method('getParameter')
+      ->with('cache_bins')
+      ->will($this->returnValue(array('cache.test' => 'test')));
+    $container->expects($this->any())
+      ->method('get')
+      ->with('cache.test')
+      ->will($this->returnValue($backend));
+
+    \Drupal::setContainer($container);
+    return $container;
   }
 
 }

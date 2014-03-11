@@ -14,10 +14,10 @@ use Drupal\Component\Utility\Unicode;
  * It also applies when the database is unavailable or bootstrap was not
  * complete. Seven is always used for the initial install and update
  * operations. In other cases, Bartik is used, but this can be overridden by
- * setting a "maintenance_theme" key in the $conf variable in settings.php.
+ * setting a "maintenance_theme" key in the $settings variable in settings.php.
  */
 function _drupal_maintenance_theme() {
-  global $theme, $theme_key, $conf;
+  global $theme, $theme_key;
 
   // If $theme is already set, assume the others are set too, and do nothing.
   if (isset($theme)) {
@@ -91,18 +91,10 @@ function _drupal_maintenance_theme() {
     $ancestor = $themes[$ancestor]->base_theme;
   }
   _drupal_theme_initialize($themes[$theme], array_reverse($base_theme), '_theme_load_offline_registry');
-
-  // These CSS files are normally added by system_page_build(), except
-  // system.maintenance.css. When the database is inactive, it's not called so
-  // we add them here.
-  drupal_add_library('system', 'normalize');
-}
-
-/**
- * Builds the registry when the site needs to bypass any database calls.
- */
-function _theme_load_offline_registry($theme, $base_theme = NULL, $theme_engine = NULL) {
-  return _theme_build_registry($theme, $base_theme, $theme_engine);
+  _drupal_theme_initialize($themes[$theme], array_reverse($base_theme));
+  // Prime the theme registry.
+  // @todo Remove global theme variables.
+  Drupal::service('theme.registry');
 }
 
 /**
@@ -170,9 +162,19 @@ function theme_authorize_report($variables) {
         if ($number === '#abort') {
           continue;
         }
-        $items[] = theme('authorize_message', array('message' => $log_message['message'], 'success' => $log_message['success']));
+        $authorize_message = array(
+          '#theme' => 'authorize_message',
+          '#message' => $log_message['message'],
+          '#success' => $log_message['success'],
+        );
+        $items[] = drupal_render($authorize_message);
       }
-      $output .= theme('item_list',  array('items' => $items, 'title' => $heading));
+      $item_list = array(
+        '#theme' => 'item_list',
+        '#items' => $items,
+        '#title' => $heading,
+      );
+      $output .= drupal_render($item_list);
     }
     $output .= '</div>';
   }

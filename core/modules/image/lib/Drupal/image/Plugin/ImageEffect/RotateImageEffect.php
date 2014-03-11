@@ -7,9 +7,7 @@
 
 namespace Drupal\image\Plugin\ImageEffect;
 
-use Drupal\Core\Annotation\Translation;
 use Drupal\Core\Image\ImageInterface;
-use Drupal\image\Annotation\ImageEffect;
 use Drupal\image\ConfigurableImageEffectInterface;
 use Drupal\image\ImageEffectBase;
 
@@ -129,7 +127,7 @@ class RotateImageEffect extends ImageEffectBase implements ConfigurableImageEffe
   public function validateColorEffect(array $element, array &$form_state) {
     if ($element['#value'] != '') {
       if (!preg_match('/^#[0-9A-F]{3}([0-9A-F]{3})?$/', $element['#value'])) {
-        form_error($element, t('!name must be a hexadecimal color value.', array('!name' => $element['#title'])));
+        form_error($element, $form_state, t('!name must be a hexadecimal color value.', array('!name' => $element['#title'])));
       }
     }
   }

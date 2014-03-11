@@ -35,7 +35,7 @@ class ProcessingTest extends WebTestBase {
   function testBatchNoForm() {
     // Displaying the page triggers batch 1.
     $this->drupalGet('batch-test/no-form');
-    $this->assertBatchMessages($this->_resultMessages(1), 'Batch for step 2 performed successfully.');
+    $this->assertBatchMessages($this->_resultMessages('batch_1'), 'Batch for step 2 performed successfully.');
     $this->assertEqual(batch_test_stack(), $this->_resultStack('batch_1'), 'Execution order was correct.');
     $this->assertText('Redirection successful.', 'Redirection after batch execution is correct.');
   }
@@ -153,7 +153,7 @@ class ProcessingTest extends WebTestBase {
   function testBatchLargePercentage() {
     // Displaying the page triggers batch 5.
     $this->drupalGet('batch-test/large-percentage');
-    $this->assertBatchMessages($this->_resultMessages(1), 'Batch for step 2 performed successfully.');
+    $this->assertBatchMessages($this->_resultMessages('batch_5'), 'Batch for step 2 performed successfully.');
     $this->assertEqual(batch_test_stack(), $this->_resultStack('batch_5'), 'Execution order was correct.');
     $this->assertText('Redirection successful.', 'Redirection after batch execution is correct.');
   }
@@ -250,28 +250,28 @@ class ProcessingTest extends WebTestBase {
 
     switch ($id) {
       case 'batch_0':
-        $messages[] = 'results for batch 0<br />none';
+        $messages[] = 'results for batch 0<br>none';
         break;
 
       case 'batch_1':
-        $messages[] = 'results for batch 1<br />op 1: processed 10 elements';
+        $messages[] = 'results for batch 1<br>op 1: processed 10 elements';
         break;
 
       case 'batch_2':
-        $messages[] = 'results for batch 2<br />op 2: processed 10 elements';
+        $messages[] = 'results for batch 2<br>op 2: processed 10 elements';
         break;
 
       case 'batch_3':
-        $messages[] = 'results for batch 3<br />op 1: processed 10 elements<br />op 2: processed 10 elements';
+        $messages[] = 'results for batch 3<br>op 1: processed 10 elements<br>op 2: processed 10 elements';
         break;
 
       case 'batch_4':
-        $messages[] = 'results for batch 4<br />op 1: processed 10 elements';
+        $messages[] = 'results for batch 4<br>op 1: processed 10 elements';
         $messages = array_merge($messages, $this->_resultMessages('batch_2'));
         break;
 
       case 'batch_5':
-        $messages[] = 'results for batch 5<br />op 1: processed 10 elements. $context[\'finished\'] > 1 returned from batch process, with success.';
+        $messages[] = 'results for batch 5<br>op 5: processed 10 elements';
         break;
 
       case 'chained':

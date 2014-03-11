@@ -7,8 +7,9 @@
 
 namespace Drupal\contact\Access;
 
-use Drupal\Core\Access\StaticAccessCheckInterface;
-use Drupal\Core\Config\ConfigFactory;
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Routing\Access\AccessInterface;
+use Drupal\Core\Session\AccountInterface;
 use Drupal\user\UserDataInterface;
 use Symfony\Component\Routing\Route;
 use Symfony\Component\HttpFoundation\Request;
@@ -16,12 +17,12 @@ use Symfony\Component\HttpFoundation\Request;
 /**
  * Access check for contact_personal_page route.
  */
-class ContactPageAccess implements StaticAccessCheckInterface {
+class ContactPageAccess implements AccessInterface {
 
   /**
    * The contact settings config object.
    *
-   * @var \Drupal\Core\Config\ConfigFactory
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
    */
   protected $configFactory;
 
@@ -35,12 +36,12 @@ class ContactPageAccess implements StaticAccessCheckInterface {
   /**
    * Constructs a ContactPageAccess instance.
    *
-   * @param \Drupal\Core\Config\ConfigFactory $config_factory
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The config factory.
    * @param \Drupal\user\UserDataInterface $user_data
    *   The user data service.
    */
-  public function __construct(ConfigFactory $config_factory, UserDataInterface $user_data) {
+  public function __construct(ConfigFactoryInterface $config_factory, UserDataInterface $user_data) {
     $this->configFactory = $config_factory;
     $this->userData = $user_data;
   }
@@ -48,17 +49,8 @@ class ContactPageAccess implements StaticAccessCheckInterface {
   /**
    * {@inheritdoc}
    */
-  public function appliesTo() {
-    return array('_access_contact_personal_tab');
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function access(Route $route, Request $request) {
+  public function access(Route $route, Request $request, AccountInterface $account) {
     $contact_account = $request->attributes->get('user');
-    // @todo revisit after https://drupal.org/node/2048223
-    $user = \Drupal::currentUser();
 
     // Anonymous users cannot have contact forms.
     if ($contact_account->isAnonymous()) {
@@ -66,12 +58,12 @@ class ContactPageAccess implements StaticAccessCheckInterface {
     }
 
     // Users may not contact themselves.
-    if ($user->id() == $contact_account->id()) {
+    if ($account->id() == $contact_account->id()) {
       return static::DENY;
     }
 
     // User administrators should always have access to personal contact forms.
-    if ($user->hasPermission('administer users')) {
+    if ($account->hasPermission('administer users')) {
       return static::ALLOW;
     }
 
@@ -92,7 +84,7 @@ class ContactPageAccess implements StaticAccessCheckInterface {
       return static::DENY;
     }
 
-    return $user->hasPermission('access user contact forms') ? static::ALLOW : static::DENY;
+    return $account->hasPermission('access user contact forms') ? static::ALLOW : static::DENY;
   }
 
 }

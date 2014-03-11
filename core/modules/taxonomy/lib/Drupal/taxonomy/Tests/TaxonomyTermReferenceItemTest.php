@@ -7,9 +7,10 @@
 
 namespace Drupal\taxonomy\Tests;
 
+use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Field\FieldItemListInterface;
+use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\Language\Language;
-use Drupal\Core\Entity\Field\FieldItemListInterface;
-use Drupal\Core\Entity\Field\FieldItemInterface;
 use Drupal\field\Tests\FieldUnitTestBase;
 
 /**
@@ -22,7 +23,7 @@ class TaxonomyTermReferenceItemTest extends FieldUnitTestBase {
    *
    * @var array
    */
-  public static $modules = array('taxonomy', 'options');
+  public static $modules = array('taxonomy', 'options', 'text', 'filter');
 
   public static function getInfo() {
     return array(
@@ -48,7 +49,7 @@ class TaxonomyTermReferenceItemTest extends FieldUnitTestBase {
       'name' => 'field_test_taxonomy',
       'entity_type' => 'entity_test',
       'type' => 'taxonomy_term_reference',
-      'cardinality' => FIELD_CARDINALITY_UNLIMITED,
+      'cardinality' => FieldDefinitionInterface::CARDINALITY_UNLIMITED,
       'settings' => array(
         'allowed_values' => array(
           array(
@@ -77,7 +78,7 @@ class TaxonomyTermReferenceItemTest extends FieldUnitTestBase {
   public function testTaxonomyTermReferenceItem() {
     $tid = $this->term->id();
     // Just being able to create the entity like this verifies a lot of code.
-    $entity = entity_create('entity_test', array());
+    $entity = entity_create('entity_test');
     $entity->field_test_taxonomy->target_id = $this->term->id();
     $entity->name->value = $this->randomName();
     $entity->save();
@@ -85,10 +86,10 @@ class TaxonomyTermReferenceItemTest extends FieldUnitTestBase {
     $entity = entity_load('entity_test', $entity->id());
     $this->assertTrue($entity->field_test_taxonomy instanceof FieldItemListInterface, 'Field implements interface.');
     $this->assertTrue($entity->field_test_taxonomy[0] instanceof FieldItemInterface, 'Field item implements interface.');
-    $this->assertEqual($entity->field_test_taxonomy->target_id, $this->term->id());
-    $this->assertEqual($entity->field_test_taxonomy->entity->name->value, $this->term->name->value);
-    $this->assertEqual($entity->field_test_taxonomy->entity->id(), $tid);
-    $this->assertEqual($entity->field_test_taxonomy->entity->uuid(), $this->term->uuid());
+    $this->assertEqual($entity->field_test_taxonomy->target_id, $this->term->id(), 'Field item contains the expected TID.');
+    $this->assertEqual($entity->field_test_taxonomy->entity->name->value, $this->term->name->value, 'Field item entity contains the expected name.');
+    $this->assertEqual($entity->field_test_taxonomy->entity->id(), $tid, 'Field item entity contains the expected ID.');
+    $this->assertEqual($entity->field_test_taxonomy->entity->uuid(), $this->term->uuid(), 'Field item entity contains the expected UUID.');
 
     // Change the name of the term via the reference.
     $new_name = $this->randomName();
@@ -96,19 +97,19 @@ class TaxonomyTermReferenceItemTest extends FieldUnitTestBase {
     $entity->field_test_taxonomy->entity->save();
     // Verify it is the correct name.
     $term = entity_load('taxonomy_term', $tid);
-    $this->assertEqual($term->name->value, $new_name);
+    $this->assertEqual($term->name->value, $new_name, 'The name of the term was changed.');
 
     // Make sure the computed term reflects updates to the term id.
     $term2 = entity_create('taxonomy_term', array(
       'name' => $this->randomName(),
-      'vid' => $this->term->vid->value,
+      'vid' => $this->term->bundle(),
       'langcode' => Language::LANGCODE_NOT_SPECIFIED,
     ));
     $term2->save();
 
     $entity->field_test_taxonomy->target_id = $term2->id();
-    $this->assertEqual($entity->field_test_taxonomy->entity->id(), $term2->id());
-    $this->assertEqual($entity->field_test_taxonomy->entity->name->value, $term2->name->value);
+    $this->assertEqual($entity->field_test_taxonomy->entity->id(), $term2->id(), 'Field item entity contains the new TID.');
+    $this->assertEqual($entity->field_test_taxonomy->entity->name->value, $term2->name->value, 'Field item entity contains the new name.');
   }
 
 }

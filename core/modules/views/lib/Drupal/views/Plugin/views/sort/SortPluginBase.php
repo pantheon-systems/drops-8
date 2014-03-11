@@ -8,7 +8,6 @@
 namespace Drupal\views\Plugin\views\sort;
 
 use Drupal\views\Plugin\views\HandlerBase;
-use Drupal\Component\Annotation\Plugin;
 
 /**
  * @defgroup views_sort_handlers Views sort handlers
@@ -192,7 +191,7 @@ abstract class SortPluginBase extends HandlerBase {
     // prior to rendering. That's why the preRender for it needs to run first,
     // so that when the next preRender (the one for fieldsets) runs, it gets
     // the flattened data.
-    array_unshift($form['#pre_render'], 'views_ui_pre_render_flatten_data');
+    array_unshift($form['#pre_render'], array(get_class($this), 'preRenderFlattenData'));
     $form['expose']['#flatten'] = TRUE;
 
     $form['expose']['label'] = array(

@@ -23,7 +23,7 @@ use Drupal\Component\Utility\NestedArray;
 class Plugin implements AnnotationInterface {
 
   /**
-   * The plugin definiton read from the class annotation.
+   * The plugin definition read from the class annotation.
    *
    * @var array
    */
@@ -71,10 +71,45 @@ class Plugin implements AnnotationInterface {
   }
 
   /**
-   * Implements Drupal\Core\Annotation\AnnotationInterface::get().
+   * {@inheritdoc}
    */
   public function get() {
     return $this->definition;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getProvider() {
+    return isset($this->definition['provider']) ? $this->definition['provider'] : FALSE;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setProvider($provider) {
+    $this->definition['provider'] = $provider;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getId() {
+    return $this->definition['id'];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getClass() {
+    return $this->definition['class'];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setClass($class) {
+    $this->definition['class'] = $class;
   }
 
 }

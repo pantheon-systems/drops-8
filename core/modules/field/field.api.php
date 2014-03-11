@@ -19,7 +19,7 @@ use Drupal\field\FieldUpdateForbiddenException;
  * should expose them using this hook. The user-defined settings (weight,
  * visible) are automatically applied on rendered forms and displayed entities
  * in a #pre_render callback added by field_attach_form() and
- * field_attach_view().
+ * EntityViewBuilder::viewMultiple().
  *
  * @see hook_field_extra_fields_alter()
  *
@@ -29,7 +29,8 @@ use Drupal\field\FieldUpdateForbiddenException;
  *   'display'). The keys are the name of the elements as appearing in the
  *   renderable array (either the entity form or the displayed entity). The
  *   value is an associative array:
- *   - label: The human readable name of the element.
+ *   - label: The human readable name of the element. Make sure you sanitize
+ *     this appropriately.
  *   - description: A short description of the element contents.
  *   - weight: The default weight of the element.
  *   - visible: (optional) The default visibility of the element. Defaults to
@@ -49,7 +50,7 @@ function hook_field_extra_fields() {
   foreach (node_type_get_types() as $bundle) {
     if ($bundle->has_title) {
       $extra['node'][$bundle->type]['form']['title'] = array(
-        'label' => $bundle->title_label,
+        'label' => check_plain($bundle->title_label),
         'description' => $description,
         'weight' => -5,
       );
@@ -153,10 +154,10 @@ function hook_field_info_alter(&$info) {
  * which widget to use.
  *
  * Widgets are Plugins managed by the
- * Drupal\field\Plugin\Type\Widget\WidgetPluginManager class. A widget is
+ * Drupal\Core\Field\WidgetPluginManager class. A widget is
  * implemented by providing a class that implements
- * Drupal\field\Plugin\Type\Widget\WidgetInterface (in most cases, by
- * subclassing Drupal\field\Plugin\Type\Widget\WidgetBase), and provides the
+ * Drupal\Core\Field\WidgetInterface (in most cases, by
+ * subclassing Drupal\Core\Field\WidgetBase), and provides the
  * proper annotation block.
  *
  * Widgets are @link forms_api_reference.html Form API @endlink
@@ -199,18 +200,18 @@ function hook_field_widget_info_alter(array &$info) {
  *     a full form structure, or a sub-element of a larger form.
  *   - widget: The widget plugin instance.
  *   - items: The field values, as a
- *     \Drupal\Core\Entity\Field\FieldItemListInterface object.
+ *     \Drupal\Core\Field\FieldItemListInterface object.
  *   - delta: The order of this item in the array of subelements (0, 1, 2, etc).
  *   - default: A boolean indicating whether the form is being shown as a dummy
  *     form to set default values.
  *
- * @see \Drupal\field\Plugin\Type\Widget\WidgetBase::formSingleElement()
+ * @see \Drupal\Core\Field\WidgetBase::formSingleElement()
  * @see hook_field_widget_WIDGET_TYPE_form_alter()
  */
 function hook_field_widget_form_alter(&$element, &$form_state, $context) {
   // Add a css class to widget form elements for all fields of type mytype.
   $field_definition = $context['items']->getFieldDefinition();
-  if ($field_definition->getFieldType() == 'mytype') {
+  if ($field_definition->getType() == 'mytype') {
     // Be sure not to overwrite existing attributes.
     $element['#attributes']['class'][] = 'myclass';
   }
@@ -231,7 +232,7 @@ function hook_field_widget_form_alter(&$element, &$form_state, $context) {
  *   An associative array. See hook_field_widget_form_alter() for the structure
  *   and content of the array.
  *
- * @see \Drupal\field\Plugin\Type\Widget\WidgetBase::formSingleElement()
+ * @see \Drupal\Core\Field\WidgetBase::formSingleElement()
  * @see hook_field_widget_form_alter()
  */
 function hook_field_widget_WIDGET_TYPE_form_alter(&$element, &$form_state, $context) {
@@ -258,10 +259,10 @@ function hook_field_widget_WIDGET_TYPE_form_alter(&$element, &$form_state, $cont
  * choose which formatter to use.
  *
  * Formatters are Plugins managed by the
- * Drupal\field\Plugin\Type\Formatter\FormatterPluginManager class. A formatter
+ * Drupal\Core\Field\FormatterPluginManager class. A formatter
  * is implemented by providing a class that implements
- * Drupal\field\Plugin\Type\Formatter\FormatterInterface (in most cases, by
- * subclassing Drupal\field\Plugin\Type\Formatter\FormatterBase), and provides
+ * Drupal\Core\Field\FormatterInterface (in most cases, by
+ * subclassing Drupal\Core\Field\FormatterBase), and provides
  * the proper annotation block.
  *
  * @see field
@@ -354,107 +355,6 @@ function hook_field_attach_extract_form_values(\Drupal\Core\Entity\EntityInterfa
   if (!empty($values['empty_field_foo'])) {
     unset($entity->field_foo);
   }
-}
-
-/**
- * Alter field_attach_preprocess() variables.
- *
- * This hook is invoked while preprocessing field templates in
- * field_attach_preprocess().
- *
- * @param $variables
- *   The variables array is passed by reference and will be populated with field
- *   values.
- * @param $context
- *   An associative array containing:
- *   - entity: The entity with fields to render.
- *   - element: The structured array containing the values ready for rendering.
- */
-function hook_field_attach_preprocess_alter(&$variables, $context) {
-  // @todo Needs function body.
-}
-
-/**
- * Perform alterations on field_attach_view() or field_view_field().
- *
- * This hook is invoked after the field module has performed the operation.
- *
- * @param $output
- *   The structured content array tree for all of the entity's fields.
- * @param $context
- *   An associative array containing:
- *   - entity: The entity with fields to render.
- *   - view_mode: View mode; for example, 'full' or 'teaser'.
- *   - display_options: Either a view mode string or an array of display
- *     options. If this hook is being invoked from field_attach_view(), the
- *     'display_options' element is set to the view mode string. If this hook
- *     is being invoked from field_view_field(), this element is set to the
- *     $display_options argument and the view_mode element is set to '_custom'.
- *     See field_view_field() for more information on what its $display_options
- *     argument contains.
- *   - langcode: The language code used for rendering.
- *
- * @deprecated as of Drupal 8.0. Use the entity system instead.
- */
-function hook_field_attach_view_alter(&$output, $context) {
-  // Append RDF term mappings on displayed taxonomy links.
-  foreach (element_children($output) as $field_name) {
-    $element = &$output[$field_name];
-    if ($element['#field_type'] == 'entity_reference' && $element['#formatter'] == 'entity_reference_label') {
-      foreach ($element['#items'] as $delta => $item) {
-        $term = $item['entity'];
-        if (!empty($term->rdf_mapping['rdftype'])) {
-          $element[$delta]['#options']['attributes']['typeof'] = $term->rdf_mapping['rdftype'];
-        }
-        if (!empty($term->rdf_mapping['name']['predicates'])) {
-          $element[$delta]['#options']['attributes']['property'] = $term->rdf_mapping['name']['predicates'];
-        }
-      }
-    }
-  }
-}
-
-/**
- * Perform alterations on field_language() values.
- *
- * This hook is invoked to alter the array of display language codes for the
- * given entity.
- *
- * @param $display_langcode
- *   A reference to an array of language codes keyed by field name.
- * @param $context
- *   An associative array containing:
- *   - entity: The entity with fields to render.
- *   - langcode: The language code $entity has to be displayed in.
- */
-function hook_field_language_alter(&$display_langcode, $context) {
-  // Do not apply core language fallback rules if they are disabled or if Locale
-  // is not registered as a translation handler.
-  if (field_language_fallback_enabled() && field_has_translation_handler($context['entity']->entityType())) {
-    field_language_fallback($display_langcode, $context['entity'], $context['langcode']);
-  }
-}
-
-/**
- * Alter field_available_languages() values.
- *
- * This hook is invoked from field_available_languages() to allow modules to
- * alter the array of available language codes for the given field.
- *
- * @param $langcodes
- *   A reference to an array of language codes to be made available.
- * @param $context
- *   An associative array containing:
- *   - entity_type: The type of the entity the field is attached to.
- *   - field: A field data structure.
- */
-function hook_field_available_languages_alter(&$langcodes, $context) {
-  // Add an unavailable language code.
-  $langcodes[] = 'xx';
-
-  // Remove an available language code.
-  $index = array_search('yy', $langcodes);
-  unset($langcodes[$index]);
 }
 
 /**

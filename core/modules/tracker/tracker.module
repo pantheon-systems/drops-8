@@ -6,6 +6,7 @@
  */
 
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\comment\CommentInterface;
 use Drupal\node\NodeInterface;
 use Drupal\Core\Session\AccountInterface;
 
@@ -28,6 +29,18 @@ function tracker_help($path, $arg) {
       $output .= '</dl>';
       return $output;
   }
+}
+
+/**
+ * Implements hook_menu_link_defaults().
+ */
+function tracker_menu_link_defaults() {
+  $links['tracker'] = array(
+    'link_title' => 'Recent content',
+    'route_name' => 'tracker.page',
+  );
+
+  return $links;
 }
 
 /**
@@ -92,7 +105,7 @@ function tracker_cron() {
         ->condition('c.entity_id', $row->nid)
         ->condition('c.entity_type', 'node')
         ->condition('c.uid', $row->uid, '<>')
-        ->condition('c.status', COMMENT_PUBLISHED);
+        ->condition('c.status', CommentInterface::PUBLISHED);
 
       // Insert the user-level data for the commenters (except if a commenter
       // is the node's author).
@@ -158,7 +171,7 @@ function _tracker_user_access($account) {
  * Adds new tracking information for this node since it's new.
  */
 function tracker_node_insert(NodeInterface $node, $arg = 0) {
-  _tracker_add($node->id(), $node->getAuthorId(), $node->getChangedTime());
+  _tracker_add($node->id(), $node->getOwnerId(), $node->getChangedTime());
 }
 
 /**
@@ -167,7 +180,7 @@ function tracker_node_insert(NodeInterface $node, $arg = 0) {
  * Adds tracking information for this node since it's been updated.
  */
 function tracker_node_update(NodeInterface $node, $arg = 0) {
-  _tracker_add($node->id(), $node->getAuthorId(), $node->getChangedTime());
+  _tracker_add($node->id(), $node->getOwnerId(), $node->getChangedTime());
 }
 
 /**
@@ -190,11 +203,11 @@ function tracker_node_predelete(EntityInterface $node, $arg = 0) {
  * Comment module doesn't call hook_comment_unpublish() when saving individual
  * comments so we need to check for those here.
  */
-function tracker_comment_update($comment) {
+function tracker_comment_update(CommentInterface $comment) {
   // $comment->save() calls hook_comment_publish() for all published comments
   // so we need to handle all other values here.
-  if ($comment->status->value != COMMENT_PUBLISHED && $comment->entity_type->value == 'node') {
-    _tracker_remove($comment->entity_id->target_id, $comment->uid->target_id, $comment->changed->value);
+  if (!$comment->isPublished() && $comment->getCommentedEntityTypeId() == 'node') {
+    _tracker_remove($comment->getCommentedEntityId(), $comment->getOwnerId(), $comment->getChangedTime());
   }
 }
 
@@ -204,27 +217,27 @@ function tracker_comment_update($comment) {
  * This actually handles the insert and update of published nodes since
  * $comment->save() calls hook_comment_publish() for all published comments.
  */
-function tracker_comment_publish($comment) {
-  if ($comment->entity_type->value == 'node') {
-    _tracker_add($comment->entity_id->target_id, $comment->uid->target_id, $comment->changed->value);
+function tracker_comment_publish(CommentInterface $comment) {
+  if ($comment->getCommentedEntityTypeId() == 'node') {
+    _tracker_add($comment->getCommentedEntityId(), $comment->getOwnerId(), $comment->getChangedTime());
   }
 }
 
 /**
  * Implements hook_comment_unpublish().
  */
-function tracker_comment_unpublish($comment) {
-  if ($comment->entity_type->value == 'node') {
-    _tracker_remove($comment->entity_id->target_id, $comment->uid->target_id, $comment->changed->value);
+function tracker_comment_unpublish(CommentInterface $comment) {
+  if ($comment->getCommentedEntityTypeId() == 'node') {
+    _tracker_remove($comment->getCommentedEntityId(), $comment->getOwnerId(), $comment->getChangedTime());
   }
 }
 
 /**
  * Implements hook_comment_delete().
  */
-function tracker_comment_delete($comment) {
-  if ($comment->entity_type->value == 'node') {
-    _tracker_remove($comment->entity_id->target_id, $comment->uid->target_id, $comment->changed->value);
+function tracker_comment_delete(CommentInterface $comment) {
+  if ($comment->getCommentedEntityTypeId() == 'node') {
+    _tracker_remove($comment->getCommentedEntityId(), $comment->getOwnerId(), $comment->getChangedTime());
   }
 }
 
@@ -285,7 +298,7 @@ function _tracker_calculate_changed($nid) {
   $changed = db_query('SELECT changed FROM {node_field_data} WHERE nid = :nid AND default_langcode = 1 ORDER BY changed DESC', array(':nid' => $nid), array('target' => 'slave'))->fetchField();
   $latest_comment = db_query_range("SELECT cid, changed FROM {comment} WHERE entity_type = 'node' AND entity_id = :nid AND status = :status ORDER BY changed DESC", 0, 1, array(
     ':nid' => $nid,
-    ':status' => COMMENT_PUBLISHED,
+    ':status' => CommentInterface::PUBLISHED,
   ), array('target' => 'slave'))->fetchObject();
   if ($latest_comment && $latest_comment->changed > $changed) {
     $changed = $latest_comment->changed;
@@ -308,22 +321,18 @@ function _tracker_remove($nid, $uid = NULL, $changed = NULL) {
   //   fall back to the default language.
   $node = db_query('SELECT nid, status, uid, changed FROM {node_field_data} WHERE nid = :nid AND default_langcode = 1 ORDER BY changed DESC, status DESC', array(':nid' => $nid))->fetchObject();
 
-  // The user only keeps his or her subscription if both of the following are true:
-  //   (1) The node exists.
-  //   (2) The user is either the node author or has commented on the node.
-  $keep_subscription = FALSE;
-
+  // The user only keeps their subscription if the node exists.
   if ($node) {
-    // Self-authorship is one reason to keep the user's subscription.
+    // And they are the author of the node.
     $keep_subscription = ($node->uid == $uid);
 
-    // Comments are a second reason to keep the user's subscription.
+    // Or if they have commented on the node.
     if (!$keep_subscription) {
       // Check if the user has commented at least once on the given nid.
       $keep_subscription = db_query_range("SELECT COUNT(*) FROM {comment} WHERE entity_type = 'node' AND entity_id = :nid AND uid = :uid AND status = :status", 0, 1, array(
         ':nid' => $nid,
         ':uid' => $uid,
-        ':status' => COMMENT_PUBLISHED,
+        ':status' => CommentInterface::PUBLISHED,
       ))->fetchField();
     }
 

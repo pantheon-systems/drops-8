@@ -7,8 +7,6 @@
 
 namespace Drupal\entity\Entity;
 
-use Drupal\Core\Entity\Annotation\EntityType;
-use Drupal\Core\Annotation\Translation;
 use Drupal\entity\EntityDisplayModeBase;
 use Drupal\entity\EntityViewModeInterface;
 
@@ -30,18 +28,16 @@ use Drupal\entity\EntityViewModeInterface;
  * @see entity_get_view_modes()
  * @see hook_entity_view_mode_info_alter()
  *
- * @EntityType(
+ * @ConfigEntityType(
  *   id = "view_mode",
  *   label = @Translation("View mode"),
- *   module = "entity",
  *   controllers = {
  *     "list" = "Drupal\entity\EntityDisplayModeListController",
  *     "form" = {
  *       "add" = "Drupal\entity\Form\EntityDisplayModeAddForm",
  *       "edit" = "Drupal\entity\Form\EntityDisplayModeEditForm",
  *       "delete" = "Drupal\entity\Form\EntityDisplayModeDeleteForm"
- *     },
- *     "storage" = "Drupal\entity\EntityDisplayModeStorageController"
+ *     }
  *   },
  *   admin_permission = "administer display modes",
  *   config_prefix = "entity.view_mode",
@@ -51,7 +47,8 @@ use Drupal\entity\EntityViewModeInterface;
  *     "uuid" = "uuid"
  *   },
  *   links = {
- *     "edit-form" = "admin/structure/display-modes/view/manage/{view_mode}"
+ *     "delete-form" = "entity.view_mode_delete",
+ *     "edit-form" = "entity.view_mode_edit"
  *   }
  * )
  */

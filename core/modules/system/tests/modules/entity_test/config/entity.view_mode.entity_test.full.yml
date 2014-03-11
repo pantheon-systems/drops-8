@@ -1,0 +1,5 @@
+id: entity_test.full
+label: Full
+status: false
+cache: true
+targetEntityType: entity_test

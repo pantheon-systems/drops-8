@@ -8,8 +8,8 @@
 namespace Drupal\forum;
 
 use Drupal\Core\Breadcrumb\BreadcrumbBuilderBase;
-use Drupal\Core\Config\ConfigFactory;
-use Drupal\Core\Entity\EntityManager;
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\forum\ForumManagerInterface;
 use Symfony\Cmf\Component\Routing\RouteObjectInterface;
 
@@ -28,7 +28,7 @@ class ForumBreadcrumbBuilder extends BreadcrumbBuilderBase {
   /**
    * Stores the Entity manager.
    *
-   * @var \Drupal\Core\Entity\EntityManager
+   * @var \Drupal\Core\Entity\EntityManagerInterface
    */
   protected $entityManager;
 
@@ -42,14 +42,14 @@ class ForumBreadcrumbBuilder extends BreadcrumbBuilderBase {
   /**
    * Constructs a new ForumBreadcrumbBuilder.
    *
-   * @param \Drupal\Core\Entity\EntityManager
+   * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
    *   The entity manager.
-   * @param \Drupal\Core\Config\ConfigFactory $configFactory
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $configFactory
    *   The configuration factory.
    * @param \Drupal\forum\ForumManagerInterface $forum_manager
    *   The forum manager service.
    */
-  public function __construct(EntityManager $entity_manager, ConfigFactory $configFactory, ForumManagerInterface $forum_manager) {
+  public function __construct(EntityManagerInterface $entity_manager, ConfigFactoryInterface $configFactory, ForumManagerInterface $forum_manager) {
     $this->entityManager = $entity_manager;
     $this->config = $configFactory->get('forum.settings');
     $this->forumManager = $forum_manager;
@@ -58,17 +58,22 @@ class ForumBreadcrumbBuilder extends BreadcrumbBuilderBase {
   /**
    * {@inheritdoc}
    */
+  public function applies(array $attributes) {
+    return !empty($attributes[RouteObjectInterface::ROUTE_NAME])
+    && (($attributes[RouteObjectInterface::ROUTE_NAME] == 'node.view' && isset($attributes['node']) && $this->forumManager->checkNodeType($attributes['node']))
+      || ($attributes[RouteObjectInterface::ROUTE_NAME] == 'forum.page' && isset($attributes['taxonomy_term']))
+    );
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function build(array $attributes) {
-    if (!empty($attributes[RouteObjectInterface::ROUTE_NAME])) {
-      $route_name = $attributes[RouteObjectInterface::ROUTE_NAME];
-      if ($route_name == 'node.view' && isset($attributes['node'])) {
-        if ($this->forumManager->checkNodeType($attributes['node'])) {
-          return $this->forumPostBreadcrumb($attributes['node']);
-        }
-      }
-      if ($route_name == 'forum.page' && isset($attributes['taxonomy_term'])) {
-        return $this->forumTermBreadcrumb($attributes['taxonomy_term']);
-      }
+    if ($attributes[RouteObjectInterface::ROUTE_NAME] == 'node.view') {
+      return $this->forumPostBreadcrumb($attributes['node']);
+    }
+    elseif ($attributes[RouteObjectInterface::ROUTE_NAME] == 'forum.page') {
+      return $this->forumTermBreadcrumb($attributes['taxonomy_term']);
     }
   }
 

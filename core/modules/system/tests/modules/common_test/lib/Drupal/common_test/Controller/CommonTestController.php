@@ -8,21 +8,12 @@
 namespace Drupal\common_test\Controller;
 
 use Drupal\Component\Utility\String;
-use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
-use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Controller routines for common_test routes.
  */
-class CommonTestController implements ContainerInjectionInterface {
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function create(ContainerInterface $container) {
-    return new static();
-  }
+class CommonTestController {
 
   /**
    * Returns links to the current page, with and without query strings.
@@ -35,6 +26,9 @@ class CommonTestController implements ContainerInjectionInterface {
         '#type' => 'link',
         '#title' => t('Link with no query string'),
         '#href' => current_path(),
+        '#options' => array(
+          'set_active_class' => TRUE,
+        ),
       ),
       'with_query' => array(
         '#type' => 'link',
@@ -45,6 +39,7 @@ class CommonTestController implements ContainerInjectionInterface {
             'foo' => 'bar',
             'one' => 'two',
           ),
+          'set_active_class' => TRUE,
         ),
       ),
       'with_query_reversed' => array(
@@ -56,23 +51,10 @@ class CommonTestController implements ContainerInjectionInterface {
             'one' => 'two',
             'foo' => 'bar',
           ),
+          'set_active_class' => TRUE,
         ),
       ),
     );
-  }
-
-  /**
-   * Renders an element with an invalid render array key.
-   *
-   * @return array
-   *   A render array.
-   */
-  public function drupalRenderInvalidKeys() {
-    define('SIMPLETEST_COLLECT_ERRORS', FALSE);
-    // Keys that begin with # may contain a value of any type, otherwise they must
-    // contain arrays.
-    $element = array('child' => 'This should be an array.');
-    return drupal_render($element);
   }
 
   /**
@@ -82,11 +64,19 @@ class CommonTestController implements ContainerInjectionInterface {
    *   An empty string.
    */
   public function jsAndCssQuerystring() {
-    drupal_add_library('system', 'drupalSettings');
-    drupal_add_js(drupal_get_path('module', 'node') . '/node.js');
-    drupal_add_css(drupal_get_path('module', 'node') . '/css/node.admin.css');
-    // A relative URI may have a query string.
-    drupal_add_css('/' . drupal_get_path('module', 'node') . '/node-fake.css?arg1=value1&arg2=value2');
+    $attached = array(
+      '#attached' => array(
+        'library' => array(
+          array('node', 'drupal.node'),
+        ),
+        'css' => array(
+          drupal_get_path('module', 'node') . '/css/node.admin.css' => array(),
+          // A relative URI may have a query string.
+          '/' . drupal_get_path('module', 'node') . '/node-fake.css?arg1=value1&arg2=value2' => array(),
+        ),
+      ),
+    );
+    drupal_render($attached);
     return '';
   }
 

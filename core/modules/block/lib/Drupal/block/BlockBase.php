@@ -11,6 +11,7 @@ use Drupal\Core\Plugin\PluginBase;
 use Drupal\block\BlockInterface;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Language\Language;
+use Drupal\Core\Session\AccountInterface;
 
 /**
  * Defines a base block implementation that most blocks plugins will extend.
@@ -66,7 +67,7 @@ abstract class BlockBase extends PluginBase implements BlockPluginInterface {
   /**
    * {@inheritdoc}
    */
-  public function access() {
+  public function access(AccountInterface $account) {
     // By default, the block is visible unless user-configured rules indicate
     // that it should be hidden.
     return TRUE;
@@ -89,6 +90,11 @@ abstract class BlockBase extends PluginBase implements BlockPluginInterface {
       '#value' => $definition['module'],
     );
 
+    $form['admin_label'] = array(
+      '#type' => 'item',
+      '#title' => t('Block description'),
+      '#markup' => $definition['admin_label'],
+    );
     $form['label'] = array(
       '#type' => 'textfield',
       '#title' => $this->t('Title'),
@@ -99,7 +105,7 @@ abstract class BlockBase extends PluginBase implements BlockPluginInterface {
     $form['label_display'] = array(
       '#type' => 'checkbox',
       '#title' => $this->t('Display title'),
-      '#default_value' => $this->configuration['label_display'] == BlockInterface::BLOCK_LABEL_VISIBLE,
+      '#default_value' => ($this->configuration['label_display'] === BlockInterface::BLOCK_LABEL_VISIBLE),
       '#return_value' => BlockInterface::BLOCK_LABEL_VISIBLE,
     );
 
@@ -142,7 +148,7 @@ abstract class BlockBase extends PluginBase implements BlockPluginInterface {
    */
   public function submitConfigurationForm(array &$form, array &$form_state) {
     // Process the block's submission handling if no errors occurred only.
-    if (!form_get_errors()) {
+    if (!form_get_errors($form_state)) {
       $this->configuration['label'] = $form_state['values']['label'];
       $this->configuration['label_display'] = $form_state['values']['label_display'];
       $this->configuration['module'] = $form_state['values']['module'];

@@ -8,7 +8,6 @@
 namespace Drupal\node\Plugin\views\field;
 
 use Drupal\views\Plugin\views\field\FieldPluginBase;
-use Drupal\Component\Annotation\PluginID;
 use Drupal\views\ResultRow;
 
 /**
@@ -19,6 +18,13 @@ use Drupal\views\ResultRow;
  * @PluginID("node_link")
  */
 class Link extends FieldPluginBase {
+
+  /**
+   * {@inheritdoc}
+   */
+  public function usesGroupBy() {
+    return FALSE;
+  }
 
   protected function defineOptions() {
     $options = parent::defineOptions();
@@ -67,7 +73,7 @@ class Link extends FieldPluginBase {
    *   Returns a string for the link text.
    */
   protected function renderLink($node, ResultRow $values) {
-    if (node_access('view', $node)) {
+    if ($node->access('view')) {
       $this->options['alter']['make_link'] = TRUE;
       $this->options['alter']['path'] = 'node/' . $node->id();
       $text = !empty($this->options['text']) ? $this->options['text'] : t('view');

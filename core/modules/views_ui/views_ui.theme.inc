@@ -24,14 +24,10 @@ use Drupal\Core\Template\Attribute;
  *     appended to the setting's description.
  */
 function template_preprocess_views_ui_display_tab_setting(&$variables) {
-  static $zebra = 0;
 
   // Add default class attributes.
   $variables['attributes']['class'][] = 'views-display-setting';
-  $variables['attributes']['class'][] = ($zebra % 2 === 0 ? 'odd' : 'even');
   $variables['attributes']['class'][] = 'clearfix';
-
-  $zebra++;
 
   // Put the primary link to the left side.
   array_unshift($variables['settings_links'], $variables['link']);
@@ -206,8 +202,14 @@ function theme_views_ui_build_group_filter_form($variables) {
       'class' => array('views-filter-groups'),
       'id' => 'views-filter-groups',
     ),
+    '#tabledrag' => array(
+      array(
+        'action' => 'order',
+        'relationship' => 'sibling',
+        'group' => 'weight',
+      )
+    ),
   );
-  drupal_add_tabledrag('views-filter-groups', 'order', 'sibling', 'weight');
   $render_form = drupal_render_children($form);
   return $output . $render_form . drupal_render($table) . drupal_render($form['add_group']) . $more;
 }
@@ -226,7 +228,14 @@ function theme_views_ui_rearrange_filter_form(&$variables) {
     if ($group_id !== 'ungroupable') {
       // Set up tabledrag so that it changes the group dropdown when rows are
       // dragged between groups.
-      drupal_add_tabledrag('views-rearrange-filters', 'match', 'sibling', 'views-group-select', 'views-group-select-' . $group_id);
+      $options = array(
+        'table_id' => 'views-rearrange-filters',
+        'action' => 'match',
+        'relationship' => 'sibling',
+        'group' => 'views-group-select',
+        'subgroup' => 'views-group-select-' . $group_id,
+      );
+      drupal_attach_tabledrag($form['override'], $options);
 
       // Title row, spanning all columns.
       $row = array();
@@ -286,7 +295,6 @@ function theme_views_ui_rearrange_filter_form(&$variables) {
   }
 
   if (!empty($ungroupable_rows)) {
-    drupal_add_tabledrag('views-rearrange-filters-ungroupable', 'order', 'sibling', 'weight');
     $header = array(t('Ungroupable filters'), t('Weight'), array('class' => array('views-hide-label'), 'data' => t('Group')), array('class' => array('views-hide-label'), 'data' => t('Remove')));
     $table = array(
       '#theme' => 'table',
@@ -296,18 +304,31 @@ function theme_views_ui_rearrange_filter_form(&$variables) {
         'id' => 'views-rearrange-filters-ungroupable',
         'class' => array('arrange'),
       ),
+      '#tabledrag' => array(
+        array(
+          'action' => 'order',
+          'relationship' => 'sibling',
+          'group' => 'weight',
+        )
+      ),
     );
     $output .= drupal_render($table);
   }
 
   // Set up tabledrag so that the weights are changed when rows are dragged.
-  drupal_add_tabledrag('views-rearrange-filters', 'order', 'sibling', 'weight');
   $table = array(
     '#theme' => 'table',
     '#rows' => $rows,
     '#attributes' => array(
       'id' => 'views-rearrange-filters',
       'class' => array('arrange'),
+    ),
+    '#tabledrag' => array(
+      array(
+        'action' => 'order',
+        'relationship' => 'sibling',
+        'group' => 'weight',
+      )
     ),
   );
   $output .= drupal_render($table);

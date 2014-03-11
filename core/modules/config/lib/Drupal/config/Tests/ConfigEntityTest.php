@@ -8,6 +8,7 @@
 namespace Drupal\config\Tests;
 
 use Drupal\Core\Entity\EntityMalformedException;
+use Drupal\Core\Entity\EntityStorageException;
 use Drupal\Core\Language\Language;
 use Drupal\simpletest\WebTestBase;
 
@@ -37,7 +38,7 @@ class ConfigEntityTest extends WebTestBase {
   function testCRUD() {
     $default_langcode = language_default()->id;
     // Verify default properties on a newly created empty entity.
-    $empty = entity_create('config_test', array());
+    $empty = entity_create('config_test');
     $this->assertIdentical($empty->id, NULL);
     $this->assertTrue($empty->uuid);
     $this->assertIdentical($empty->label, NULL);
@@ -46,7 +47,7 @@ class ConfigEntityTest extends WebTestBase {
 
     // Verify ConfigEntity properties/methods on the newly created empty entity.
     $this->assertIdentical($empty->isNew(), TRUE);
-    $this->assertIdentical($empty->getOriginalID(), NULL);
+    $this->assertIdentical($empty->getOriginalId(), NULL);
     $this->assertIdentical($empty->bundle(), 'config_test');
     $this->assertIdentical($empty->id(), NULL);
     $this->assertTrue($empty->uuid());
@@ -59,9 +60,15 @@ class ConfigEntityTest extends WebTestBase {
     $this->assertIdentical($empty->get('langcode'), $default_langcode);
 
     // Verify Entity properties/methods on the newly created empty entity.
-    $this->assertIdentical($empty->entityType(), 'config_test');
-    $uri = $empty->uri();
-    $this->assertIdentical($uri['path'], 'admin/structure/config_test/manage');
+    $this->assertIdentical($empty->getEntityTypeId(), 'config_test');
+    // The URI can only be checked after saving.
+    try {
+      $empty->urlInfo();
+      $this->fail('EntityMalformedException was thrown.');
+    }
+    catch (EntityMalformedException $e) {
+      $this->pass('EntityMalformedException was thrown.');
+    }
 
     // Verify that an empty entity cannot be saved.
     try {
@@ -100,14 +107,11 @@ class ConfigEntityTest extends WebTestBase {
 
     // Verify methods on the newly created entity.
     $this->assertIdentical($config_test->isNew(), TRUE);
-    $this->assertIdentical($config_test->getOriginalID(), $expected['id']);
+    $this->assertIdentical($config_test->getOriginalId(), $expected['id']);
     $this->assertIdentical($config_test->id(), $expected['id']);
     $this->assertTrue($config_test->uuid());
     $expected['uuid'] = $config_test->uuid();
     $this->assertIdentical($config_test->label(), $expected['label']);
-
-    $uri = $config_test->uri();
-    $this->assertIdentical($uri['path'], 'admin/structure/config_test/manage/' . $expected['id']);
 
     // Verify that the entity can be saved.
     try {
@@ -118,13 +122,16 @@ class ConfigEntityTest extends WebTestBase {
       $this->fail('EntityMalformedException was not thrown.');
     }
 
+    // The entity path can only be checked after saving.
+    $this->assertIdentical($config_test->getSystemPath(), 'admin/structure/config_test/manage/' . $expected['id']);
+
     // Verify that the correct status is returned and properties did not change.
     $this->assertIdentical($status, SAVED_NEW);
     $this->assertIdentical($config_test->id(), $expected['id']);
     $this->assertIdentical($config_test->uuid(), $expected['uuid']);
     $this->assertIdentical($config_test->label(), $expected['label']);
     $this->assertIdentical($config_test->isNew(), FALSE);
-    $this->assertIdentical($config_test->getOriginalID(), $expected['id']);
+    $this->assertIdentical($config_test->getOriginalId(), $expected['id']);
 
     // Save again, and verify correct status and properties again.
     $status = $config_test->save();
@@ -133,26 +140,20 @@ class ConfigEntityTest extends WebTestBase {
     $this->assertIdentical($config_test->uuid(), $expected['uuid']);
     $this->assertIdentical($config_test->label(), $expected['label']);
     $this->assertIdentical($config_test->isNew(), FALSE);
-    $this->assertIdentical($config_test->getOriginalID(), $expected['id']);
+    $this->assertIdentical($config_test->getOriginalId(), $expected['id']);
 
-    // Re-create the entity with the same ID and verify updated status.
+    // Ensure that creating an entity with the same id as an existing one is not
+    // possible.
     $same_id = entity_create('config_test', array(
       'id' => $config_test->id(),
     ));
     $this->assertIdentical($same_id->isNew(), TRUE);
-    $status = $same_id->save();
-    $this->assertIdentical($status, SAVED_UPDATED);
-
-    // Verify that the entity was overwritten.
-    $same_id = entity_load('config_test', $config_test->id());
-    $this->assertIdentical($same_id->id(), $config_test->id());
-    $this->assertIdentical($same_id->label(), NULL);
-    $this->assertNotEqual($same_id->uuid(), $config_test->uuid());
-
-    // Delete the overridden entity first.
-    $same_id->delete();
-    // Revert to previous state.
-    $config_test->save();
+    try {
+      $same_id->save();
+      $this->fail('Not possible to overwrite an entity entity.');
+    } catch (EntityStorageException $e) {
+      $this->pass('Not possible to overwrite an entity entity.');
+    }
 
     // Verify that renaming the ID returns correct status and properties.
     $ids = array($expected['id'], 'second_' . $this->randomName(4), 'third_' . $this->randomName(4));
@@ -161,7 +162,7 @@ class ConfigEntityTest extends WebTestBase {
       $new_id = $ids[$i];
       // Before renaming, everything should point to the current ID.
       $this->assertIdentical($config_test->id(), $old_id);
-      $this->assertIdentical($config_test->getOriginalID(), $old_id);
+      $this->assertIdentical($config_test->getOriginalId(), $old_id);
 
       // Rename.
       $config_test->id = $new_id;
@@ -172,7 +173,7 @@ class ConfigEntityTest extends WebTestBase {
 
       // Verify that originalID points to new ID directly after renaming.
       $this->assertIdentical($config_test->id(), $new_id);
-      $this->assertIdentical($config_test->getOriginalID(), $new_id);
+      $this->assertIdentical($config_test->getOriginalId(), $new_id);
     }
 
     // Test config entity prepopulation.

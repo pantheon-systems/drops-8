@@ -8,6 +8,7 @@
 namespace Drupal\system\Tests\Common;
 
 use Drupal\simpletest\UnitTestBase;
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Tests cleaning HTML identifiers.
@@ -19,6 +20,18 @@ class HtmlIdentifierUnitTest extends UnitTestBase {
       'description' => 'Test the functions drupal_html_class(), drupal_html_id() and drupal_clean_css_identifier() for expected behavior',
       'group' => 'Common',
     );
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setUp() {
+    parent::setUp();
+
+    $container = \Drupal::getContainer();
+    $request = new Request();
+    $container->set('request', $request);
+    \Drupal::setContainer($container);
   }
 
   /**
@@ -39,6 +52,16 @@ class HtmlIdentifierUnitTest extends UnitTestBase {
     // Verify that double underscores are not stripped from the identifier.
     $identifier = 'css__identifier__with__double__underscores';
     $this->assertIdentical(drupal_clean_css_identifier($identifier), $identifier, 'Verify double underscores pass through.');
+
+    // Verify that an identifier starting with a digit is replaced.
+    $this->assertIdentical(drupal_clean_css_identifier('1cssidentifier', array()), '_cssidentifier', 'Verify identifier starting with a digit is replaced.');
+
+    // Verify that an identifier starting with a hyphen followed by a digit is
+    // replaced.
+    $this->assertIdentical(drupal_clean_css_identifier('-1cssidentifier', array()), '__cssidentifier', 'Verify identifier starting with a hyphen followed by a digit is replaced.');
+
+    // Verify that an identifier starting with two hyphens is replaced.
+    $this->assertIdentical(drupal_clean_css_identifier('--cssidentifier', array()), '__cssidentifier', 'Verify identifier starting with two hyphens is replaced.');
   }
 
   /**

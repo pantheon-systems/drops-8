@@ -149,8 +149,8 @@ class DisplayTest extends PluginTestBase {
 
     // mark is as overridden, yes FALSE, means overridden.
     $view->displayHandlers->get('page')->setOverride('filter_groups', FALSE);
-    $this->assertFalse($view->displayHandlers->get('page')->isDefaulted('filter_groups'), "Take sure that 'filter_groups' is marked as overridden.");
-    $this->assertFalse($view->displayHandlers->get('page')->isDefaulted('filters'), "Take sure that 'filters'' is marked as overridden.");
+    $this->assertFalse($view->displayHandlers->get('page')->isDefaulted('filter_groups'), "Make sure that 'filter_groups' is marked as overridden.");
+    $this->assertFalse($view->displayHandlers->get('page')->isDefaulted('filters'), "Make sure that 'filters'' is marked as overridden.");
   }
 
   /**
@@ -187,6 +187,7 @@ class DisplayTest extends PluginTestBase {
     // Test the renderMoreLink method directly. This could be directly unit
     // tested.
     $more_link = $view->display_handler->renderMoreLink();
+    $more_link = drupal_render($more_link);
     $this->drupalSetContent($more_link);
     $result = $this->xpath('//div[@class=:class]/a', array(':class' => 'more-link'));
     $this->assertEqual($result[0]->attributes()->href, url('test_display_more'), 'The right more link is shown.');
@@ -224,6 +225,10 @@ class DisplayTest extends PluginTestBase {
     $this->drupalSetContent($output);
     $result = $this->xpath('//div[@class=:class]/a', array(':class' => 'more-link'));
     $this->assertTrue(empty($result), 'The more link is not shown when view has more records.');
+
+    // Test the default value of use_more_always.
+    $view = entity_create('view')->getExecutable();
+    $this->assertTrue($view->getDisplay()->getOption('use_more_always'), 'Always display the more link by default.');
   }
 
   /**
@@ -245,6 +250,7 @@ class DisplayTest extends PluginTestBase {
 
     // Rebuild the router, and ensure that the path is not accessible anymore.
     views_invalidate_cache();
+    \Drupal::service('router.builder')->rebuildIfNeeded();
 
     $this->drupalGet('test_display_invalid');
     $this->assertResponse(404);
@@ -292,26 +298,26 @@ class DisplayTest extends PluginTestBase {
       'id' => 'id',
       'value' => array('value' => 7297)
     );
-    $view->setItem('default', 'filter', 'id', $item);
+    $view->setHandler('default', 'filter', 'id', $item);
     $this->executeView($view);
     $this->assertFalse(count($view->result), 'Ensure the result of the view is empty.');
     $this->assertFalse($view->display_handler->outputIsEmpty(), 'Ensure the view output is marked as not empty, because the empty text still appears.');
     $view->destroy();
 
     // Remove the empty area, but mark the header area to still appear.
-    $view->removeItem('default', 'empty', 'area');
-    $item = $view->getItem('default', 'header', 'area');
+    $view->removeHandler('default', 'empty', 'area');
+    $item = $view->getHandler('default', 'header', 'area');
     $item['empty'] = TRUE;
-    $view->setItem('default', 'header', 'area', $item);
+    $view->setHandler('default', 'header', 'area', $item);
     $this->executeView($view);
     $this->assertFalse(count($view->result), 'Ensure the result of the view is empty.');
     $this->assertFalse($view->display_handler->outputIsEmpty(), 'Ensure the view output is marked as not empty, because the header text still appears.');
     $view->destroy();
 
     // Hide the header on empty results.
-    $item = $view->getItem('default', 'header', 'area');
+    $item = $view->getHandler('default', 'header', 'area');
     $item['empty'] = FALSE;
-    $view->setItem('default', 'header', 'area', $item);
+    $view->setHandler('default', 'header', 'area', $item);
     $this->executeView($view);
     $this->assertFalse(count($view->result), 'Ensure the result of the view is empty.');
     $this->assertTrue($view->display_handler->outputIsEmpty(), 'Ensure the view output is marked as empty.');

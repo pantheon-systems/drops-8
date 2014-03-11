@@ -7,6 +7,8 @@
 
 namespace Drupal\Core\Utility;
 
+use Drupal\Core\Url;
+
 /**
  * Defines an interface for generating links from route names and parameters.
  */
@@ -36,8 +38,8 @@ interface LinkGeneratorInterface {
    * @param array $options
    *   (optional) An associative array of additional options. Defaults to an
    *   empty array. It may contain the following elements:
-   *   - 'query': An array of query key/value-pairs (without any URL-encoding) to
-   *     append to the URL.
+   *   - 'query': An array of query key/value-pairs (without any URL-encoding)
+   *     to append to the URL.
    *   - absolute: Whether to force the output to be an absolute link (beginning
    *     with http:). Useful for links that will be displayed outside the site,
    *     such as in an RSS feed. Defaults to FALSE.
@@ -55,6 +57,12 @@ interface LinkGeneratorInterface {
    *     internal to the site, $options['language'] is used to determine whether
    *     the link is "active", or pointing to the current page (the language as
    *     well as the path must match).
+   *   - 'set_active_class': Whether this method should compare the $route_name,
+   *     $parameters, language and query options to the current URL to determine
+   *     whether the link is "active". Defaults to FALSE. If TRUE, an "active"
+   *     class will be applied to the link. It is important to use this
+   *     sparingly since it is usually unnecessary and requires extra
+   *     processing.
    *
    * @return string
    *   An HTML string containing a link to the given route and parameters.
@@ -70,5 +78,18 @@ interface LinkGeneratorInterface {
    * @see \Drupal\Core\Routing\UrlGenerator::generateFromRoute()
    */
   public function generate($text, $route_name, array $parameters = array(), array $options = array());
+
+  /**
+   * Renders a link to a URL.
+   *
+   * @param string $text
+   *   The link text for the anchor tag as a translated string.
+   * @param \Drupal\Core\Url $url
+   *   The URL object used for the link.
+   *
+   * @return string
+   *   An HTML string containing a link to the given route and parameters.
+   */
+  public function generateFromUrl($text, Url $url);
 
 }

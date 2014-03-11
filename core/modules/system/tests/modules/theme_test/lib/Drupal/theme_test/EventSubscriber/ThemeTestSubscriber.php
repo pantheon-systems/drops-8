@@ -7,6 +7,7 @@
 
 namespace Drupal\theme_test\EventSubscriber;
 
+use Symfony\Component\DependencyInjection\ContainerAware;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\HttpKernel\Event\GetResponseEvent;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -14,7 +15,14 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 /**
  * Theme test subscriber for controller requests.
  */
-class ThemeTestSubscriber implements EventSubscriberInterface {
+class ThemeTestSubscriber extends ContainerAware implements EventSubscriberInterface {
+
+  /**
+   * The used container.
+   *
+   * @var \Symfony\Component\DependencyInjection\IntrospectableContainerInterface
+   */
+  protected $container;
 
   /**
    * Generates themed output early in a page request.
@@ -34,12 +42,25 @@ class ThemeTestSubscriber implements EventSubscriberInterface {
       // theme_test_request_listener_page_callback() to test that even when the
       // theme system is initialized this early, it is still capable of
       // returning output and theming the page as a whole.
-      $GLOBALS['theme_test_output'] = theme('more_link', array('url' => 'user', 'title' => 'Themed output generated in a KernelEvents::REQUEST listener'));
+      $more_link = array(
+        '#theme' => 'more_link',
+        '#url' => 'user',
+        '#title' => 'Themed output generated in a KernelEvents::REQUEST listener',
+      );
+      $GLOBALS['theme_test_output'] = drupal_render($more_link);
     }
+  }
+
+  /**
+   * Ensures that the theme registry was not initialized.
+   */
+  public function onView(GetResponseEvent $event) {
+    $request = $event->getRequest();
+    $current_path = $request->attributes->get('_system_path');
     if (strpos($current_path, 'user/autocomplete') === 0) {
-      // Register a fake registry loading callback. If it gets called by
-      // theme_get_registry(), the registry has not been initialized yet.
-      _theme_registry_callback('_theme_test_load_registry', array());
+      if ($this->container->initialized('theme.registry')) {
+        throw new \Exception('registry initialized');
+      }
     }
   }
 
@@ -48,6 +69,7 @@ class ThemeTestSubscriber implements EventSubscriberInterface {
    */
   static function getSubscribedEvents() {
     $events[KernelEvents::REQUEST][] = array('onRequest');
+    $events[KernelEvents::VIEW][] = array('onView', -1000);
     return $events;
   }
 

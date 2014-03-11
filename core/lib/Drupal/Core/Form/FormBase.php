@@ -7,7 +7,7 @@
 
 namespace Drupal\Core\Form;
 
-use Drupal\Core\Config\ConfigFactory;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\DependencyInjection\DependencySerialization;
 use Drupal\Core\Routing\UrlGeneratorInterface;
@@ -44,9 +44,16 @@ abstract class FormBase extends DependencySerialization implements FormInterface
   /**
    * The config factory.
    *
-   * @var \Drupal\Core\Config\ConfigFactory
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
    */
   protected $configFactory;
+
+  /**
+   * The form error handler.
+   *
+   * @var \Drupal\Core\Form\FormErrorInterface
+   */
+  protected $errorHandler;
 
   /**
    * {@inheritdoc}
@@ -126,8 +133,7 @@ abstract class FormBase extends DependencySerialization implements FormInterface
    * @param \Drupal\Core\StringTranslation\TranslationInterface $translation_manager
    *   The translation manager.
    *
-   * @return self
-   *   The entity form.
+   * @return $this
    */
   public function setTranslationManager(TranslationInterface $translation_manager) {
     $this->translationManager = $translation_manager;
@@ -137,13 +143,12 @@ abstract class FormBase extends DependencySerialization implements FormInterface
   /**
    * Sets the config factory for this form.
    *
-   * @param \Drupal\Core\Config\ConfigFactory $config_factory
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The config factory.
    *
-   * @return self
-   *   The form.
+   * @return $this
    */
-  public function setConfigFactory(ConfigFactory $config_factory) {
+  public function setConfigFactory(ConfigFactoryInterface $config_factory) {
     $this->configFactory = $config_factory;
     return $this;
   }
@@ -166,9 +171,12 @@ abstract class FormBase extends DependencySerialization implements FormInterface
    *
    * @param \Symfony\Component\HttpFoundation\Request $request
    *   The request object.
+   *
+   * @return $this
    */
   public function setRequest(Request $request) {
     $this->request = $request;
+    return $this;
   }
 
   /**
@@ -178,7 +186,7 @@ abstract class FormBase extends DependencySerialization implements FormInterface
    *   The current user.
    */
   protected function currentUser() {
-    return $this->getRequest()->attributes->get('_account');
+    return \Drupal::currentUser();
   }
 
   /**
@@ -199,19 +207,59 @@ abstract class FormBase extends DependencySerialization implements FormInterface
    *
    * @param \Drupal\Core\Routing\UrlGeneratorInterface
    *   The URL generator.
+   *
+   * @return $this
    */
   public function setUrlGenerator(UrlGeneratorInterface $url_generator) {
     $this->urlGenerator = $url_generator;
+    return $this;
   }
 
   /**
    * Returns the service container.
    *
+   * This method is marked private to prevent sub-classes from retrieving
+   * services from the container through it. Instead,
+   * \Drupal\Core\DependencyInjection\ContainerInjectionInterface should be used
+   * for injecting services.
+   *
    * @return \Symfony\Component\DependencyInjection\ContainerInterface $container
    *   The service container.
    */
-  protected function container() {
+  private function container() {
     return \Drupal::getContainer();
+  }
+
+  /**
+   * Returns the form error handler.
+   *
+   * @return \Drupal\Core\Form\FormErrorInterface
+   *   The form error handler.
+   */
+  protected function errorHandler() {
+    if (!$this->errorHandler) {
+      $this->errorHandler = \Drupal::service('form_builder');
+    }
+    return $this->errorHandler;
+  }
+
+  /**
+   * Files an error against a form element.
+   *
+   * @param string $name
+   *   The name of the form element.
+   * @param array $form_state
+   *   An associative array containing the current state of the form.
+   * @param string $message
+   *   (optional) The error message to present to the user.
+   *
+   * @see \Drupal\Core\Form\FormErrorInterface::setErrorByName()
+   *
+   * @return $this
+   */
+  protected function setFormError($name, array &$form_state, $message = '') {
+    $this->errorHandler()->setErrorByName($name, $form_state, $message);
+    return $this;
   }
 
 }

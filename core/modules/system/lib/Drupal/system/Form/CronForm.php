@@ -7,9 +7,9 @@
 
 namespace Drupal\system\Form;
 
-use Drupal\Core\Config\ConfigFactory;
-use Drupal\Core\Config\Context\ContextInterface;
-use Drupal\Core\KeyValueStore\KeyValueStoreInterface;
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\CronInterface;
+use Drupal\Core\KeyValueStore\StateInterface;
 use Drupal\Core\Form\ConfigFormBase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -22,23 +22,31 @@ class CronForm extends ConfigFormBase {
   /**
    * Stores the state storage service.
    *
-   * @var \Drupal\Core\KeyValueStore\KeyValueStoreInterface
+   * @var \Drupal\Core\KeyValueStore\StateInterface
    */
   protected $state;
 
   /**
+   * The cron service.
+   *
+   * @var \Drupal\Core\CronInterface
+   */
+  protected $cron;
+
+  /**
    * Constructs a CronForm object.
    *
-   * @param \Drupal\Core\Config\ConfigFactory $config_factory
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The factory for configuration objects.
-   * @param \Drupal\Core\Config\Context\ContextInterface $context
-   *   The configuration context used for this configuration object.
-   * @param \Drupal\Core\KeyValueStore\KeyValueStoreInterface $state
+   * @param \Drupal\Core\KeyValueStore\StateInterface $state
    *   The state key value store.
+   * @param \Drupal\Core\CronInterface $cron
+   *   The cron service.
    */
-  public function __construct(ConfigFactory $config_factory, ContextInterface $context, KeyValueStoreInterface $state) {
-    parent::__construct($config_factory, $context);
+  public function __construct(ConfigFactoryInterface $config_factory, StateInterface $state, CronInterface $cron) {
+    parent::__construct($config_factory);
     $this->state = $state;
+    $this->cron = $cron;
   }
 
   /**
@@ -47,8 +55,8 @@ class CronForm extends ConfigFormBase {
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('config.factory'),
-      $container->get('config.context.free'),
-      $container->get('state')
+      $container->get('state'),
+      $container->get('cron')
     );
   }
 
@@ -114,7 +122,7 @@ class CronForm extends ConfigFormBase {
    */
   public function submitCron(array &$form, array &$form_state) {
     // Run cron manually from Cron form.
-    if (drupal_cron_run()) {
+    if ($this->cron->run()) {
       drupal_set_message(t('Cron run successfully.'));
     }
     else {

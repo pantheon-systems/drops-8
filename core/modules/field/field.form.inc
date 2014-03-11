@@ -6,6 +6,7 @@
  */
 
 use Drupal\Component\Utility\NestedArray;
+use Drupal\Core\Field\FieldDefinitionInterface;
 
 /**
  * Returns HTML for an individual form element.
@@ -24,7 +25,7 @@ function theme_field_multiple_value_form($variables) {
   $element = $variables['element'];
   $output = '';
 
-  if ($element['#cardinality'] > 1 || $element['#cardinality'] == FIELD_CARDINALITY_UNLIMITED) {
+  if ($element['#cardinality_multiple']) {
     $form_required_marker = array('#theme' => 'form_required_marker');
     $required = !empty($element['#required']) ? drupal_render($form_required_marker) : '';
     $table_id = drupal_html_id($element['#field_name'] . '_values');
@@ -54,7 +55,7 @@ function theme_field_multiple_value_form($variables) {
     usort($items, '_field_sort_items_value_helper');
 
     // Add the items as table rows.
-    foreach ($items as $key => $item) {
+    foreach ($items as $item) {
       $item['_weight']['#attributes']['class'] = array($order_class);
       $delta_element = drupal_render($item['_weight']);
       $cells = array(
@@ -69,12 +70,19 @@ function theme_field_multiple_value_form($variables) {
     }
 
     $table = array(
-      '#theme' => 'table',
+      '#type' => 'table',
       '#header' => $header,
       '#rows' => $rows,
       '#attributes' => array(
         'id' => $table_id,
         'class' => array('field-multiple-table'),
+      ),
+      '#tabledrag' => array(
+        array(
+          'action' => 'order',
+          'relationship' => 'sibling',
+          'group' => $order_class,
+        ),
       ),
     );
     $output = '<div class="form-item">';
@@ -82,8 +90,6 @@ function theme_field_multiple_value_form($variables) {
     $output .= $element['#description'] ? '<div class="description">' . $element['#description'] . '</div>' : '';
     $output .= '<div class="clearfix">' . drupal_render($add_more_button) . '</div>';
     $output .= '</div>';
-
-    drupal_add_tabledrag($table_id, 'order', 'sibling', $order_class);
   }
   else {
     foreach (element_children($element) as $key) {
@@ -173,7 +179,7 @@ function field_add_more_js($form, $form_state) {
   $element = NestedArray::getValue($form, array_slice($button['#array_parents'], 0, -1));
 
   // Ensure the widget allows adding additional items.
-  if ($element['#cardinality'] != FIELD_CARDINALITY_UNLIMITED) {
+  if ($element['#cardinality'] != FieldDefinitionInterface::CARDINALITY_UNLIMITED) {
     return;
   }
 

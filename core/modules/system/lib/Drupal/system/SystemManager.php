@@ -7,7 +7,7 @@
 namespace Drupal\system;
 
 use Drupal\Component\Utility\Unicode;
-use Drupal\Core\Entity\EntityManager;
+use Drupal\Core\Entity\EntityManagerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Extension\ModuleHandlerInterface;
@@ -67,10 +67,10 @@ class SystemManager {
    *   The module handler.
    * @param \Drupal\Core\Database\Connection $database
    *   The database connection.
-   * @param \Drupal\Core\Entity\EntityManager $entity_manager
+   * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
    *   The entity manager.
    */
-  public function __construct(ModuleHandlerInterface $module_handler, Connection $database, EntityManager $entity_manager) {
+  public function __construct(ModuleHandlerInterface $module_handler, Connection $database, EntityManagerInterface $entity_manager) {
     $this->moduleHandler = $module_handler;
     $this->database = $database;
     $this->menuLinkStorage = $entity_manager->getStorageController('menu_link');
@@ -169,7 +169,6 @@ class SystemManager {
     }
     else {
       $output = array(
-        '#type' => 'markup',
         '#markup' => t('You do not have any administrative items.'),
       );
     }
@@ -195,10 +194,15 @@ class SystemManager {
     }
 
     if (!isset($item['mlid'])) {
-      $menu_links = $this->menuLinkStorage->loadByProperties(array('router_path' => $item['path'], 'module' => 'system'));
-      $menu_link = reset($menu_links);
-      $item['mlid'] = $menu_link->id();
-      $item['menu_name'] = $menu_link->menu_name;
+      $menu_links = $this->menuLinkStorage->loadByProperties(array('link_path' => $item['path'], 'module' => 'system'));
+      if ($menu_links) {
+        $menu_link = reset($menu_links);
+        $item['mlid'] = $menu_link->id();
+        $item['menu_name'] = $menu_link->menu_name;
+      }
+      else {
+        return array();
+      }
     }
 
     if (isset($this->menuItems[$item['mlid']])) {

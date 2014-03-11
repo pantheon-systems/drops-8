@@ -53,7 +53,7 @@ class CustomBlockTypeFormController extends EntityFormController {
       '#description' => t('Create a new revision by default for this block type.')
     );
 
-    if (module_exists('content_translation')) {
+    if ($this->moduleHandler->moduleExists('content_translation')) {
       $form['language'] = array(
         '#type' => 'details',
         '#title' => t('Language settings'),
@@ -91,25 +91,18 @@ class CustomBlockTypeFormController extends EntityFormController {
     $block_type = $this->entity;
     $status = $block_type->save();
 
-    $uri = $block_type->uri();
+    $uri = $block_type->urlInfo();
+    $edit_link = \Drupal::l($this->t('Edit'), $uri['route_name'], $uri['route_parameters'], $uri['options']);
     if ($status == SAVED_UPDATED) {
       drupal_set_message(t('Custom block type %label has been updated.', array('%label' => $block_type->label())));
-      watchdog('custom_block', 'Custom block type %label has been updated.', array('%label' => $block_type->label()), WATCHDOG_NOTICE, l(t('Edit'), $uri['path'] . '/edit'));
+      watchdog('custom_block', 'Custom block type %label has been updated.', array('%label' => $block_type->label()), WATCHDOG_NOTICE, $edit_link);
     }
     else {
       drupal_set_message(t('Custom block type %label has been added.', array('%label' => $block_type->label())));
-      watchdog('custom_block', 'Custom block type %label has been added.', array('%label' => $block_type->label()), WATCHDOG_NOTICE, l(t('Edit'), $uri['path'] . '/edit'));
+      watchdog('custom_block', 'Custom block type %label has been added.', array('%label' => $block_type->label()), WATCHDOG_NOTICE, $edit_link);
     }
 
-    $form_state['redirect'] = 'admin/structure/block/custom-blocks/types';
-  }
-
-  /**
-   * Overrides \Drupal\Core\Entity\EntityFormController::delete().
-   */
-  public function delete(array $form, array &$form_state) {
-    $block_type = $this->entity;
-    $form_state['redirect'] = 'admin/structure/block/custom-blocks/manage/' . $block_type->id() . '/delete';
+    $form_state['redirect_route']['route_name'] = 'custom_block.type_list';
   }
 
 }

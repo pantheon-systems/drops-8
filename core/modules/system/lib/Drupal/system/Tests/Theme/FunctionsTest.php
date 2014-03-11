@@ -2,17 +2,28 @@
 
 /**
  * @file
- * Definition of Drupal\system\Tests\Theme\FunctionsTest.
+ * Contains \Drupal\system\Tests\Theme\FunctionsTest.
  */
 
 namespace Drupal\system\Tests\Theme;
 
+use Drupal\Core\Session\UserSession;
 use Drupal\simpletest\WebTestBase;
+use Symfony\Cmf\Component\Routing\RouteObjectInterface;
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Tests for common theme functions.
  */
 class FunctionsTest extends WebTestBase {
+
+  /**
+   * Modules to enable.
+   *
+   * @var array
+   */
+  public static $modules = array('router_test');
+
   public static function getInfo() {
     return array(
       'name' => 'Theme functions',
@@ -25,15 +36,37 @@ class FunctionsTest extends WebTestBase {
    * Tests theme_item_list().
    */
   function testItemList() {
-    // Verify that empty variables produce no output.
+    // Verify that empty items produce no output.
     $variables = array();
     $expected = '';
     $this->assertThemeOutput('item_list', $variables, $expected, 'Empty %callback generates no output.');
 
+    // Verify that empty items with title produce no output.
     $variables = array();
     $variables['title'] = 'Some title';
     $expected = '';
     $this->assertThemeOutput('item_list', $variables, $expected, 'Empty %callback with title generates no output.');
+
+    // Verify that empty items produce the empty string.
+    $variables = array();
+    $variables['empty'] = 'No items found.';
+    $expected = '<div class="item-list">No items found.</div>';
+    $this->assertThemeOutput('item_list', $variables, $expected, 'Empty %callback generates empty string.');
+
+    // Verify that empty items produce the empty string with title.
+    $variables = array();
+    $variables['title'] = 'Some title';
+    $variables['empty'] = 'No items found.';
+    $expected = '<div class="item-list"><h3>Some title</h3>No items found.</div>';
+    $this->assertThemeOutput('item_list', $variables, $expected, 'Empty %callback generates empty string with title.');
+
+    // Verify that empty text is not displayed when there are list items.
+    $variables = array();
+    $variables['title'] = 'Some title';
+    $variables['empty'] = 'No items found.';
+    $variables['items'] = array('Un', 'Deux', 'Trois');
+    $expected = '<div class="item-list"><h3>Some title</h3><ul><li>Un</li><li>Deux</li><li>Trois</li></ul></div>';
+    $this->assertThemeOutput('item_list', $variables, $expected, '%callback does not print empty text when there are list items.');
 
     // Verify nested item lists.
     $variables = array();
@@ -94,39 +127,43 @@ class FunctionsTest extends WebTestBase {
     );
 
     $inner_b = '<div class="item-list"><ol id="blist">';
-    $inner_b .= '<li class="odd first">ba</li>';
-    $inner_b .= '<li class="item-class-bb even last">bb</li>';
+    $inner_b .= '<li>ba</li>';
+    $inner_b .= '<li class="item-class-bb">bb</li>';
     $inner_b .= '</ol></div>';
 
     $inner_cb = '<div class="item-list"><ul>';
-    $inner_cb .= '<li class="odd first">cba</li>';
-    $inner_cb .= '<li class="even last">cbb</li>';
+    $inner_cb .= '<li>cba</li>';
+    $inner_cb .= '<li>cbb</li>';
     $inner_cb .= '</ul></div>';
 
     $inner_c = '<div class="item-list"><ul id="clist">';
-    $inner_c .= '<li class="odd first">ca</li>';
-    $inner_c .= '<li class="item-class-cb even">cb' . $inner_cb . '</li>';
-    $inner_c .= '<li class="odd last">cc</li>';
+    $inner_c .= '<li>ca</li>';
+    $inner_c .= '<li class="item-class-cb">cb' . $inner_cb . '</li>';
+    $inner_c .= '<li>cc</li>';
     $inner_c .= '</ul></div>';
 
     $expected = '<div class="item-list">';
     $expected .= '<h3>Some title</h3>';
     $expected .= '<ul id="parentlist">';
-    $expected .= '<li class="odd first">a</li>';
-    $expected .= '<li id="item-id-b" class="even">b' . $inner_b . '</li>';
-    $expected .= '<li class="odd">c' . $inner_c . '</li>';
-    $expected .= '<li id="item-id-d" class="even">d</li>';
-    $expected .= '<li id="item-id-e" class="odd"></li>';
-    $expected .= '<li class="even last">f</li>';
+    $expected .= '<li>a</li>';
+    $expected .= '<li id="item-id-b">b' . $inner_b . '</li>';
+    $expected .= '<li>c' . $inner_c . '</li>';
+    $expected .= '<li id="item-id-d">d</li>';
+    $expected .= '<li id="item-id-e"></li>';
+    $expected .= '<li>f</li>';
     $expected .= '</ul></div>';
 
     $this->assertThemeOutput('item_list', $variables, $expected);
   }
 
   /**
-   * Tests theme_links().
+   * Tests links.html.twig.
    */
   function testLinks() {
+    // Turn off the query for the l() function to compare the active
+    // link correctly.
+    $original_query = \Drupal::request()->query->all();
+    \Drupal::request()->query->replace(array());
     // Verify that empty variables produce no output.
     $variables = array();
     $expected = '';
@@ -136,12 +173,6 @@ class FunctionsTest extends WebTestBase {
     $variables['heading'] = 'Some title';
     $expected = '';
     $this->assertThemeOutput('links', $variables, $expected, 'Empty %callback with heading generates no output.');
-
-    // Set the current path to the front page path.
-    // Required to verify the "active" class in expected links below, and
-    // because the current path is different when running tests manually via
-    // simpletest.module ('batch') and via the testing framework ('').
-    _current_path(\Drupal::config('system.site')->get('page.front'));
 
     // Verify that a list of links is properly rendered.
     $variables = array();
@@ -158,13 +189,19 @@ class FunctionsTest extends WebTestBase {
         'title' => 'Front page',
         'href' => '<front>',
       ),
+      'router-test' => array(
+        'title' => 'Test route',
+        'route_name' => 'router_test.1',
+        'route_parameters' => array(),
+      ),
     );
 
     $expected_links = '';
     $expected_links .= '<ul id="somelinks">';
-    $expected_links .= '<li class="a-link odd first"><a href="' . url('a/link') . '">' . check_plain('A <link>') . '</a></li>';
-    $expected_links .= '<li class="plain-text even">' . check_plain('Plain "text"') . '</li>';
-    $expected_links .= '<li class="front-page odd last active"><a href="' . url('<front>') . '" class="active">' . check_plain('Front page') . '</a></li>';
+    $expected_links .= '<li class="a-link"><a href="' . url('a/link') . '">' . check_plain('A <link>') . '</a></li>';
+    $expected_links .= '<li class="plain-text">' . check_plain('Plain "text"') . '</li>';
+    $expected_links .= '<li class="front-page"><a href="' . url('<front>') . '">' . check_plain('Front page') . '</a></li>';
+    $expected_links .= '<li class="router-test"><a href="' . \Drupal::urlGenerator()->generate('router_test.1') . '">' . check_plain('Test route') . '</a></li>';
     $expected_links .= '</ul>';
 
     // Verify that passing a string as heading works.
@@ -172,6 +209,9 @@ class FunctionsTest extends WebTestBase {
     $expected_heading = '<h2>Links heading</h2>';
     $expected = $expected_heading . $expected_links;
     $this->assertThemeOutput('links', $variables, $expected);
+
+    // Restore the original request's query.
+    \Drupal::request()->query->replace($original_query);
 
     // Verify that passing an array as heading works (core support).
     $variables['heading'] = array('text' => 'Links heading', 'level' => 'h3', 'class' => 'heading');
@@ -194,9 +234,23 @@ class FunctionsTest extends WebTestBase {
     );
     $expected_links = '';
     $expected_links .= '<ul id="somelinks">';
-    $expected_links .= '<li class="a-link odd first"><a href="' . url('a/link') . '" class="a/class">' . check_plain('A <link>') . '</a></li>';
-    $expected_links .= '<li class="plain-text even"><span class="a/class">' . check_plain('Plain "text"') . '</span></li>';
-    $expected_links .= '<li class="front-page odd last active"><a href="' . url('<front>') . '" class="active">' . check_plain('Front page') . '</a></li>';
+    $expected_links .= '<li class="a-link"><a href="' . url('a/link') . '" class="a/class">' . check_plain('A <link>') . '</a></li>';
+    $expected_links .= '<li class="plain-text"><span class="a/class">' . check_plain('Plain "text"') . '</span></li>';
+    $expected_links .= '<li class="front-page"><a href="' . url('<front>') . '">' . check_plain('Front page') . '</a></li>';
+    $expected_links .= '<li class="router-test"><a href="' . \Drupal::urlGenerator()->generate('router_test.1') . '">' . check_plain('Test route') . '</a></li>';
+    $expected_links .= '</ul>';
+    $expected = $expected_heading . $expected_links;
+    $this->assertThemeOutput('links', $variables, $expected);
+
+    // Verify the data- attributes for setting the "active" class on links.
+    $this->container->set('current_user', new UserSession(array('uid' => 1)));
+    $variables['set_active_class'] = TRUE;
+    $expected_links = '';
+    $expected_links .= '<ul id="somelinks">';
+    $expected_links .= '<li class="a-link" data-drupal-link-system-path="a/link"><a href="' . url('a/link') . '" class="a/class" data-drupal-link-system-path="a/link">' . check_plain('A <link>') . '</a></li>';
+    $expected_links .= '<li class="plain-text"><span class="a/class">' . check_plain('Plain "text"') . '</span></li>';
+    $expected_links .= '<li class="front-page" data-drupal-link-system-path="&lt;front&gt;"><a href="' . url('<front>') . '" data-drupal-link-system-path="&lt;front&gt;">' . check_plain('Front page') . '</a></li>';
+    $expected_links .= '<li class="router-test" data-drupal-link-system-path="router_test/test1"><a href="' . \Drupal::urlGenerator()->generate('router_test.1') . '" data-drupal-link-system-path="router_test/test1">' . check_plain('Test route') . '</a></li>';
     $expected_links .= '</ul>';
     $expected = $expected_heading . $expected_links;
     $this->assertThemeOutput('links', $variables, $expected);

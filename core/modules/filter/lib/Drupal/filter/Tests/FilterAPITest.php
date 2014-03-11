@@ -8,7 +8,9 @@
 namespace Drupal\filter\Tests;
 
 use Drupal\Core\TypedData\AllowedValuesInterface;
+use Drupal\Core\TypedData\DataDefinition;
 use Drupal\filter\Plugin\DataType\FilterFormat;
+use Drupal\filter\Plugin\FilterInterface;
 use Drupal\system\Tests\Entity\EntityUnitTestBase;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
 
@@ -37,12 +39,12 @@ class FilterAPITest extends EntityUnitTestBase {
       'format' => 'filtered_html',
       'name' => 'Filtered HTML',
       'filters' => array(
-        // Note that the filter_html filter is of the type FILTER_TYPE_MARKUP_LANGUAGE.
+        // Note that the filter_html filter is of the type FilterInterface::TYPE_MARKUP_LANGUAGE.
         'filter_url' => array(
           'weight' => -1,
           'status' => 1,
         ),
-        // Note that the filter_html filter is of the type FILTER_TYPE_HTML_RESTRICTOR.
+        // Note that the filter_html filter is of the type FilterInterface::TYPE_HTML_RESTRICTOR.
         'filter_html' => array(
           'status' => 1,
           'settings' => array(
@@ -77,49 +79,51 @@ class FilterAPITest extends EntityUnitTestBase {
       'Expected filter result.'
     );
     $this->assertIdentical(
-      check_markup($text, 'filtered_html', '', FALSE, array(FILTER_TYPE_MARKUP_LANGUAGE)),
+      check_markup($text, 'filtered_html', '', FALSE, array(FilterInterface::TYPE_MARKUP_LANGUAGE)),
       $expected_filter_text_without_html_generators,
-      'Expected filter result when skipping FILTER_TYPE_MARKUP_LANGUAGE filters.'
+      'Expected filter result when skipping FilterInterface::TYPE_MARKUP_LANGUAGE filters.'
     );
     // Related to @see FilterSecurityTest.php/testSkipSecurityFilters(), but
     // this check focuses on the ability to filter multiple filter types at once.
     // Drupal core only ships with these two types of filters, so this is the
     // most extensive test possible.
     $this->assertIdentical(
-      check_markup($text, 'filtered_html', '', FALSE, array(FILTER_TYPE_HTML_RESTRICTOR, FILTER_TYPE_MARKUP_LANGUAGE)),
+      check_markup($text, 'filtered_html', '', FALSE, array(FilterInterface::TYPE_HTML_RESTRICTOR, FilterInterface::TYPE_MARKUP_LANGUAGE)),
       $expected_filter_text_without_html_generators,
-      'Expected filter result when skipping FILTER_TYPE_MARKUP_LANGUAGE filters, even when trying to disable filters of the FILTER_TYPE_HTML_RESTRICTOR type.'
+      'Expected filter result when skipping FilterInterface::TYPE_MARKUP_LANGUAGE filters, even when trying to disable filters of the FilterInterface::TYPE_HTML_RESTRICTOR type.'
     );
   }
 
   /**
    * Tests the following functions for a variety of formats:
-   *   - filter_get_html_restrictions_by_format()
-   *   - filter_get_filter_types_by_format()
+   *   - \Drupal\filter\Entity\FilterFormatInterface::getHtmlRestrictions()
+   *   - \Drupal\filter\Entity\FilterFormatInterface::getFilterTypes()
    */
   function testFilterFormatAPI() {
     // Test on filtered_html.
+    $filtered_html_format = entity_load('filter_format', 'filtered_html');
     $this->assertIdentical(
-      filter_get_html_restrictions_by_format('filtered_html'),
+      $filtered_html_format->getHtmlRestrictions(),
       array('allowed' => array('p' => TRUE, 'br' => TRUE, 'strong' => TRUE, 'a' => TRUE, '*' => array('style' => FALSE, 'on*' => FALSE))),
-      'filter_get_html_restrictions_by_format() works as expected for the filtered_html format.'
+      'FilterFormatInterface::getHtmlRestrictions() works as expected for the filtered_html format.'
     );
     $this->assertIdentical(
-      filter_get_filter_types_by_format('filtered_html'),
-      array(FILTER_TYPE_MARKUP_LANGUAGE, FILTER_TYPE_HTML_RESTRICTOR),
-      'filter_get_filter_types_by_format() works as expected for the filtered_html format.'
+      $filtered_html_format->getFilterTypes(),
+      array(FilterInterface::TYPE_MARKUP_LANGUAGE, FilterInterface::TYPE_HTML_RESTRICTOR),
+      'FilterFormatInterface::getFilterTypes() works as expected for the filtered_html format.'
     );
 
     // Test on full_html.
+    $full_html_format = entity_load('filter_format', 'full_html');
     $this->assertIdentical(
-      filter_get_html_restrictions_by_format('full_html'),
+      $full_html_format->getHtmlRestrictions(),
       FALSE, // Every tag is allowed.
-      'filter_get_html_restrictions_by_format() works as expected for the full_html format.'
+      'FilterFormatInterface::getHtmlRestrictions() works as expected for the full_html format.'
     );
     $this->assertIdentical(
-      filter_get_filter_types_by_format('full_html'),
+      $full_html_format->getFilterTypes(),
       array(),
-      'filter_get_filter_types_by_format() works as expected for the full_html format.'
+      'FilterFormatInterface::getFilterTypes() works as expected for the full_html format.'
     );
 
     // Test on stupid_filtered_html, where nothing is allowed.
@@ -137,19 +141,19 @@ class FilterAPITest extends EntityUnitTestBase {
     ));
     $stupid_filtered_html_format->save();
     $this->assertIdentical(
-      filter_get_html_restrictions_by_format('stupid_filtered_html'),
+      $stupid_filtered_html_format->getHtmlRestrictions(),
       array('allowed' => array()), // No tag is allowed.
-      'filter_get_html_restrictions_by_format() works as expected for the stupid_filtered_html format.'
+      'FilterFormatInterface::getHtmlRestrictions() works as expected for the stupid_filtered_html format.'
     );
     $this->assertIdentical(
-      filter_get_filter_types_by_format('stupid_filtered_html'),
-      array(FILTER_TYPE_HTML_RESTRICTOR),
-      'filter_get_filter_types_by_format() works as expected for the stupid_filtered_html format.'
+      $stupid_filtered_html_format->getFilterTypes(),
+      array(FilterInterface::TYPE_HTML_RESTRICTOR),
+      'FilterFormatInterface::getFilterTypes() works as expected for the stupid_filtered_html format.'
     );
 
     // Test on very_restricted_html, where there's two different filters of the
-    // FILTER_TYPE_HTML_RESTRICTOR type, each restricting in different ways.
-    $very_restricted_html = entity_create('filter_format', array(
+    // FilterInterface::TYPE_HTML_RESTRICTOR type, each restricting in different ways.
+    $very_restricted_html_format = entity_create('filter_format', array(
       'format' => 'very_restricted_html',
       'name' => 'Very Restricted HTML',
       'filters' => array(
@@ -174,16 +178,16 @@ class FilterAPITest extends EntityUnitTestBase {
         ),
       )
     ));
-    $very_restricted_html->save();
+    $very_restricted_html_format->save();
     $this->assertIdentical(
-      filter_get_html_restrictions_by_format('very_restricted_html'),
+      $very_restricted_html_format->getHtmlRestrictions(),
       array('allowed' => array('p' => TRUE, 'br' => FALSE, 'a' => array('href' => TRUE), '*' => array('style' => FALSE, 'on*' => FALSE))),
-      'filter_get_html_restrictions_by_format() works as expected for the very_restricted_html format.'
+      'FilterFormatInterface::getHtmlRestrictions() works as expected for the very_restricted_html format.'
     );
     $this->assertIdentical(
-      filter_get_filter_types_by_format('very_restricted_html'),
-      array(FILTER_TYPE_HTML_RESTRICTOR),
-      'filter_get_filter_types_by_format() works as expected for the very_restricted_html format.'
+      $very_restricted_html_format->getFilterTypes(),
+      array(FilterInterface::TYPE_HTML_RESTRICTOR),
+      'FilterFormatInterface::getFilterTypes() works as expected for the very_restricted_html format.'
     );
   }
 
@@ -191,8 +195,8 @@ class FilterAPITest extends EntityUnitTestBase {
    * Tests the function of the typed data type.
    */
   function testTypedDataAPI() {
-    $definition = array('type' => 'filter_format');
-    $data = \Drupal::typedData()->create($definition);
+    $definition = DataDefinition::create('filter_format');
+    $data = \Drupal::typedDataManager()->create($definition);
 
     $this->assertTrue($data instanceof AllowedValuesInterface, 'Typed data object implements \Drupal\Core\TypedData\AllowedValuesInterface');
 

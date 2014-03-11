@@ -2,13 +2,13 @@ base_field: wid
 base_table: watchdog
 core: 8.x
 description: ''
-status: '1'
+status: true
 display:
   default:
     display_plugin: default
     id: default
     display_title: Master
-    position: ''
+    position: null
     display_options:
       access:
         type: none
@@ -52,7 +52,7 @@ display:
     display_plugin: page
     id: page_1
     display_title: Page
-    position: ''
+    position: null
     display_options:
       path: test-dblog
 label: test_dblog

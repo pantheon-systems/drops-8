@@ -9,6 +9,7 @@ namespace Drupal\search\Plugin;
 
 use Drupal\Core\Plugin\PluginBase;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Defines a base class for plugins wishing to support search.
@@ -35,6 +36,13 @@ abstract class SearchPluginBase extends PluginBase implements ContainerFactoryPl
    * @var array
    */
   protected $searchAttributes;
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, array $plugin_definition) {
+    return new static($configuration, $plugin_id, $plugin_definition);
+  }
 
   /**
    * {@inheritdoc}
@@ -80,11 +88,17 @@ abstract class SearchPluginBase extends PluginBase implements ContainerFactoryPl
    */
   public function buildResults() {
     $results = $this->execute();
-    return array(
-      '#theme' => 'search_results',
-      '#results' => $results,
-      '#plugin_id' => $this->getPluginId(),
-    );
+
+    $built = array();
+    foreach ($results as $result) {
+      $built[] = array(
+        '#theme' => 'search_result',
+        '#result' => $result,
+        '#plugin_id' => $this->getPluginId(),
+      );
+    }
+
+    return $built;
   }
 
  /**

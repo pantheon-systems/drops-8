@@ -20,7 +20,7 @@ abstract class TypedData implements TypedDataInterface, PluginInspectionInterfac
   /**
    * The data definition.
    *
-   * @var array
+   * @var \Drupal\Core\TypedData\DataDefinitionInterface
    */
   protected $definition;
 
@@ -41,7 +41,7 @@ abstract class TypedData implements TypedDataInterface, PluginInspectionInterfac
   /**
    * Constructs a TypedData object given its definition and context.
    *
-   * @param array $definition
+   * @param \Drupal\Core\TypedData\DataDefinitionInterface $definition
    *   The data definition.
    * @param string $name
    *   (optional) The name of the created property, or NULL if it is the root
@@ -51,8 +51,12 @@ abstract class TypedData implements TypedDataInterface, PluginInspectionInterfac
    *   root of a typed data tree. Defaults to NULL.
    *
    * @see \Drupal\Core\TypedData\TypedDataManager::create()
+   *
+   * @todo When \Drupal\Core\Config\TypedConfigManager has been fixed to use
+   *   class-based definitions, type-hint $definition to
+   *   DataDefinitionInterface. https://drupal.org/node/1928868
    */
-  public function __construct(array $definition, $name = NULL, TypedDataInterface $parent = NULL) {
+  public function __construct($definition, $name = NULL, TypedDataInterface $parent = NULL) {
     $this->definition = $definition;
     $this->parent = $parent;
     $this->name = $name;
@@ -69,7 +73,7 @@ abstract class TypedData implements TypedDataInterface, PluginInspectionInterfac
    * {@inheritdoc}
    */
   public function getPluginDefinition() {
-    return \Drupal::typedData()->getDefinition($this->definition['type']);
+    return \Drupal::typedDataManager()->getDefinition($this->definition->getDataType());
   }
 
   /**
@@ -109,7 +113,7 @@ abstract class TypedData implements TypedDataInterface, PluginInspectionInterfac
    */
   public function getConstraints() {
     // @todo: Add the typed data manager as proper dependency.
-    return \Drupal::typedData()->getConstraints($this->definition);
+    return \Drupal::typedDataManager()->getConstraints($this->definition);
   }
 
   /**
@@ -117,7 +121,7 @@ abstract class TypedData implements TypedDataInterface, PluginInspectionInterfac
    */
   public function validate() {
     // @todo: Add the typed data manager as proper dependency.
-    return \Drupal::typedData()->getValidator()->validate($this);
+    return \Drupal::typedDataManager()->getValidator()->validate($this);
   }
 
   /**

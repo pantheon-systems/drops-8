@@ -8,7 +8,7 @@
 namespace Drupal\entity\Form;
 
 use Drupal\Core\Entity\EntityFormController;
-use Drupal\Core\Entity\EntityManager;
+use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Entity\Query\QueryFactory;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -27,9 +27,9 @@ abstract class EntityDisplayModeFormBase extends EntityFormController {
   /**
    * The entity type definition.
    *
-   * @var array
+   * @var \Drupal\Core\Entity\EntityTypeInterface
    */
-  protected $entityInfo;
+  protected $entityType;
 
   /**
    * The entity manager.
@@ -43,10 +43,10 @@ abstract class EntityDisplayModeFormBase extends EntityFormController {
    *
    * @param \Drupal\Core\Entity\Query\QueryFactory $query_factory
    *   The entity query factory.
-   * @param \Drupal\Core\Entity\EntityManager $entity_manager
+   * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
    *   The entity manager.
    */
-  public function __construct(QueryFactory $query_factory, EntityManager $entity_manager) {
+  public function __construct(QueryFactory $query_factory, EntityManagerInterface $entity_manager) {
     $this->queryFactory = $query_factory;
     $this->entityManager = $entity_manager;
   }
@@ -66,7 +66,7 @@ abstract class EntityDisplayModeFormBase extends EntityFormController {
    */
   protected function init(array &$form_state) {
     parent::init($form_state);
-    $this->entityInfo = $this->entityManager->getDefinition($this->entity->entityType());
+    $this->entityType = $this->entityManager->getDefinition($this->entity->getEntityTypeId());
   }
 
   /**
@@ -109,8 +109,12 @@ abstract class EntityDisplayModeFormBase extends EntityFormController {
    *   TRUE if the display mode exists, FALSE otherwise.
    */
   public function exists($entity_id, array $element, array $form_state) {
+    // Do not allow to add internal 'default' view mode.
+    if ($entity_id == 'default') {
+      return TRUE;
+    }
     return (bool) $this->queryFactory
-      ->get($this->entity->entityType())
+      ->get($this->entity->getEntityTypeId())
       ->condition('id', $element['#field_prefix'] . $entity_id)
       ->execute();
   }
@@ -119,11 +123,10 @@ abstract class EntityDisplayModeFormBase extends EntityFormController {
    * {@inheritdoc}
    */
   public function save(array $form, array &$form_state) {
-    drupal_set_message(t('Saved the %label @entity-type.', array('%label' => $this->entity->label(), '@entity-type' => strtolower($this->entityInfo['label']))));
+    drupal_set_message(t('Saved the %label @entity-type.', array('%label' => $this->entity->label(), '@entity-type' => $this->entityType->getLowercaseLabel())));
     $this->entity->save();
     entity_info_cache_clear();
-    $short_type = str_replace('_mode', '', $this->entity->entityType());
-    $form_state['redirect'] = "admin/structure/display-modes/$short_type";
+    $form_state['redirect_route']['route_name'] = 'entity.' . $this->entity->getEntityTypeId() . '_list';
   }
 
 }

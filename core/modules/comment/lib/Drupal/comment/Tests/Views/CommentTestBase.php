@@ -20,7 +20,7 @@ abstract class CommentTestBase extends ViewTestBase {
    *
    * @var array
    */
-  public static $modules = array('comment', 'comment_test_views');
+  public static $modules = array('node', 'comment', 'comment_test_views');
 
   /**
    * Stores a comment used by the tests.
@@ -36,7 +36,7 @@ abstract class CommentTestBase extends ViewTestBase {
 
     // Add two users, create a node with the user1 as author and another node
     // with user2 as author. For the second node add a comment from user1.
-    $this->account = $this->drupalCreateUser();
+    $this->account = $this->drupalCreateUser(array('skip comment approval'));
     $this->account2 = $this->drupalCreateUser();
     $this->drupalLogin($this->account);
 

@@ -7,8 +7,9 @@
 
 namespace Drupal\entity_reference\Tests;
 
-use Drupal\Core\Entity\Field\FieldDefinitionInterface;
+use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Language\Language;
+use Drupal\comment\CommentInterface;
 use Drupal\simpletest\WebTestBase;
 
 /**
@@ -119,8 +120,7 @@ class EntityReferenceSelectionAccessTest extends WebTestBase {
 
     // Test as a non-admin.
     $normal_user = $this->drupalCreateUser(array('access content'));
-    $request = $this->container->get('request');
-    $request->attributes->set('_account', $normal_user);
+    $this->container->set('current_user', $normal_user);
     $referenceable_tests = array(
       array(
         'arguments' => array(
@@ -172,7 +172,7 @@ class EntityReferenceSelectionAccessTest extends WebTestBase {
 
     // Test as an admin.
     $admin_user = $this->drupalCreateUser(array('access content', 'bypass node access'));
-    $request->attributes->set('_account', $admin_user);
+    $this->container->set('current_user', $admin_user);
     $referenceable_tests = array(
       array(
         'arguments' => array(
@@ -266,8 +266,7 @@ class EntityReferenceSelectionAccessTest extends WebTestBase {
     }
 
     // Test as a non-admin.
-    $request = $this->container->get('request');
-    $request->attributes->set('_account', $users['non_admin']);
+    $this->container->set('current_user', $users['non_admin']);
     $referenceable_tests = array(
       array(
         'arguments' => array(
@@ -306,7 +305,7 @@ class EntityReferenceSelectionAccessTest extends WebTestBase {
     );
     $this->assertReferenceable($instance, $referenceable_tests, 'User handler');
 
-    $request->attributes->set('_account', $users['admin']);
+    $this->container->set('current_user', $users['admin']);
     $referenceable_tests = array(
       array(
         'arguments' => array(
@@ -409,7 +408,7 @@ class EntityReferenceSelectionAccessTest extends WebTestBase {
         'uid' => 1,
         'cid' => NULL,
         'pid' => 0,
-        'status' => COMMENT_PUBLISHED,
+        'status' => CommentInterface::PUBLISHED,
         'subject' => 'Comment Published <&>',
         'language' => Language::LANGCODE_NOT_SPECIFIED,
       ),
@@ -420,7 +419,7 @@ class EntityReferenceSelectionAccessTest extends WebTestBase {
         'uid' => 1,
         'cid' => NULL,
         'pid' => 0,
-        'status' => COMMENT_NOT_PUBLISHED,
+        'status' => CommentInterface::NOT_PUBLISHED,
         'subject' => 'Comment Unpublished <&>',
         'language' => Language::LANGCODE_NOT_SPECIFIED,
       ),
@@ -431,7 +430,7 @@ class EntityReferenceSelectionAccessTest extends WebTestBase {
         'uid' => 1,
         'cid' => NULL,
         'pid' => 0,
-        'status' => COMMENT_NOT_PUBLISHED,
+        'status' => CommentInterface::NOT_PUBLISHED,
         'subject' => 'Comment Published on Unpublished node <&>',
         'language' => Language::LANGCODE_NOT_SPECIFIED,
       ),
@@ -448,8 +447,7 @@ class EntityReferenceSelectionAccessTest extends WebTestBase {
 
     // Test as a non-admin.
     $normal_user = $this->drupalCreateUser(array('access content', 'access comments'));
-    $request = $this->container->get('request');
-    $request->attributes->set('_account', $normal_user);
+    $this->container->set('current_user', $normal_user);
     $referenceable_tests = array(
       array(
         'arguments' => array(
@@ -488,7 +486,7 @@ class EntityReferenceSelectionAccessTest extends WebTestBase {
 
     // Test as a comment admin.
     $admin_user = $this->drupalCreateUser(array('access content', 'access comments', 'administer comments'));
-    $request->attributes->set('_account', $admin_user);
+    $this->container->set('current_user', $admin_user);
     $referenceable_tests = array(
       array(
         'arguments' => array(
@@ -506,7 +504,7 @@ class EntityReferenceSelectionAccessTest extends WebTestBase {
 
     // Test as a node and comment admin.
     $admin_user = $this->drupalCreateUser(array('access content', 'access comments', 'administer comments', 'bypass node access'));
-    $request->attributes->set('_account', $admin_user);
+    $this->container->set('current_user', $admin_user);
     $referenceable_tests = array(
       array(
         'arguments' => array(

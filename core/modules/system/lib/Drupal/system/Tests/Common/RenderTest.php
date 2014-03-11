@@ -7,19 +7,20 @@
 
 namespace Drupal\system\Tests\Common;
 
-use Drupal\simpletest\WebTestBase;
+use Drupal\Component\Utility\Html;
+use Drupal\simpletest\DrupalUnitTestBase;
 
 /**
  * Tests drupal_render().
  */
-class RenderTest extends WebTestBase {
+class RenderTest extends DrupalUnitTestBase {
 
   /**
    * Modules to enable.
    *
    * @var array
    */
-  public static $modules = array('common_test');
+  public static $modules = array('system', 'common_test');
 
   public static function getInfo() {
     return array(
@@ -27,6 +28,13 @@ class RenderTest extends WebTestBase {
       'description' => 'Performs functional tests on drupal_render().',
       'group' => 'Common',
     );
+  }
+
+  function setUp() {
+    parent::setUp();
+    // There are dependencies in drupal_get_js() on the theme layer so we need
+    // to initialize it.
+    drupal_theme_initialize();
   }
 
   /**
@@ -327,10 +335,10 @@ class RenderTest extends WebTestBase {
    */
   function testDrupalRenderChildrenAttached() {
     // The cache system is turned off for POST requests.
-    $request_method = $_SERVER['REQUEST_METHOD'];
-    $_SERVER['REQUEST_METHOD'] = 'GET';
+    $request_method = \Drupal::request()->getMethod();
+    \Drupal::request()->setMethod('GET');
 
-    // Create an element with a child and subchild.  Each element loads a
+    // Create an element with a child and subchild. Each element loads a
     // different JavaScript file using #attached.
     $parent_js = drupal_get_path('module', 'user') . '/user.js';
     $child_js = drupal_get_path('module', 'forum') . '/forum.js';
@@ -362,14 +370,16 @@ class RenderTest extends WebTestBase {
 
     // Load the element from cache and verify the presence of the #attached
     // JavaScript.
-    drupal_static_reset('drupal_add_js');
-    $this->assertTrue(drupal_render_cache_get($element), 'The element was retrieved from cache.');
+    drupal_static_reset('_drupal_add_js');
+    $element = array('#cache' => array('keys' => array('simpletest', 'drupal_render', 'children_attached')));
+    $this->assertTrue(strlen(drupal_render($element)) > 0, 'The element was retrieved from cache.');
     $scripts = drupal_get_js();
     $this->assertTrue(strpos($scripts, $parent_js), 'The element #attached JavaScript was included when loading from cache.');
     $this->assertTrue(strpos($scripts, $child_js), 'The child #attached JavaScript was included when loading from cache.');
     $this->assertTrue(strpos($scripts, $subchild_js), 'The subchild #attached JavaScript was included when loading from cache.');
 
-    $_SERVER['REQUEST_METHOD'] = $request_method;
+    // Restore the previous request method.
+    \Drupal::request()->setMethod($request_method);
   }
 
   /**
@@ -391,164 +401,13 @@ class RenderTest extends WebTestBase {
   }
 
   /**
-   * Tests rendering form elements without passing through form_builder().
-   */
-  function testDrupalRenderFormElements() {
-    // Define a series of form elements.
-    $element = array(
-      '#type' => 'button',
-      '#value' => $this->randomName(),
-    );
-    $this->assertRenderedElement($element, '//input[@type=:type]', array(':type' => 'submit'));
-
-    $element = array(
-      '#type' => 'textfield',
-      '#title' => $this->randomName(),
-      '#value' => $this->randomName(),
-    );
-    $this->assertRenderedElement($element, '//input[@type=:type]', array(':type' => 'text'));
-
-    $element = array(
-      '#type' => 'password',
-      '#title' => $this->randomName(),
-    );
-    $this->assertRenderedElement($element, '//input[@type=:type]', array(':type' => 'password'));
-
-    $element = array(
-      '#type' => 'textarea',
-      '#title' => $this->randomName(),
-      '#value' => $this->randomName(),
-    );
-    $this->assertRenderedElement($element, '//textarea');
-
-    $element = array(
-      '#type' => 'radio',
-      '#title' => $this->randomName(),
-      '#value' => FALSE,
-    );
-    $this->assertRenderedElement($element, '//input[@type=:type]', array(':type' => 'radio'));
-
-    $element = array(
-      '#type' => 'checkbox',
-      '#title' => $this->randomName(),
-    );
-    $this->assertRenderedElement($element, '//input[@type=:type]', array(':type' => 'checkbox'));
-
-    $element = array(
-      '#type' => 'select',
-      '#title' => $this->randomName(),
-      '#options' => array(
-        0 => $this->randomName(),
-        1 => $this->randomName(),
-      ),
-    );
-    $this->assertRenderedElement($element, '//select');
-
-    $element = array(
-      '#type' => 'file',
-      '#title' => $this->randomName(),
-    );
-    $this->assertRenderedElement($element, '//input[@type=:type]', array(':type' => 'file'));
-
-    $element = array(
-      '#type' => 'item',
-      '#title' => $this->randomName(),
-      '#markup' => $this->randomName(),
-    );
-    $this->assertRenderedElement($element, '//div[contains(@class, :class) and contains(., :markup)]/label[contains(., :label)]', array(
-      ':class' => 'form-type-item',
-      ':markup' => $element['#markup'],
-      ':label' => $element['#title'],
-    ));
-
-    $element = array(
-      '#type' => 'hidden',
-      '#title' => $this->randomName(),
-      '#value' => $this->randomName(),
-    );
-    $this->assertRenderedElement($element, '//input[@type=:type]', array(':type' => 'hidden'));
-
-    $element = array(
-      '#type' => 'link',
-      '#title' => $this->randomName(),
-      '#href' => $this->randomName(),
-      '#options' => array(
-        'absolute' => TRUE,
-      ),
-    );
-    $this->assertRenderedElement($element, '//a[@href=:href and contains(., :title)]', array(
-      ':href' => url($element['#href'], array('absolute' => TRUE)),
-      ':title' => $element['#title'],
-    ));
-
-    $element = array(
-      '#type' => 'details',
-      '#title' => $this->randomName(),
-    );
-    $this->assertRenderedElement($element, '//details/summary[contains(., :title)]', array(
-      ':title' => $element['#title'],
-    ));
-
-    $element = array(
-      '#type' => 'details',
-      '#title' => $this->randomName(),
-    );
-    $this->assertRenderedElement($element, '//details');
-
-    $element['item'] = array(
-      '#type' => 'item',
-      '#title' => $this->randomName(),
-      '#markup' => $this->randomName(),
-    );
-    $this->assertRenderedElement($element, '//details/div/div[contains(@class, :class) and contains(., :markup)]', array(
-      ':class' => 'form-type-item',
-      ':markup' => $element['item']['#markup'],
-    ));
-  }
-
-  /**
-   * Tests rendering elements with invalid keys.
-   */
-  function testDrupalRenderInvalidKeys() {
-    $error = array(
-      '%type' => 'User error',
-      '!message' => '"child" is an invalid render array key',
-      '%function' => 'element_children()',
-    );
-    $message = t('%type: !message in %function (line ', $error);
-
-    \Drupal::config('system.logging')->set('error_level', ERROR_REPORTING_DISPLAY_ALL)->save();
-    $this->drupalGet('common-test/drupal-render-invalid-keys');
-    $this->assertResponse(200, 'Received expected HTTP status code.');
-    $this->assertRaw($message, format_string('Found error message: !message.', array('!message' => $message)));
-  }
-
-  /**
-   * Tests that elements are rendered properly.
-   */
-  protected function assertRenderedElement(array $element, $xpath, array $xpath_args = array()) {
-    $original_element = $element;
-    $this->drupalSetContent(drupal_render($element));
-    $this->verbose('<pre>' .  check_plain(var_export($original_element, TRUE)) . '</pre>'
-      . '<pre>' .  check_plain(var_export($element, TRUE)) . '</pre>'
-      . '<hr />' . $this->drupalGetContent()
-    );
-
-    // @see \Drupal\simpletest\WebTestBase::xpath()
-    $xpath = $this->buildXPathQuery($xpath, $xpath_args);
-    $element += array('#value' => NULL);
-    $this->assertFieldByXPath($xpath, $element['#value'], format_string('#type @type was properly rendered.', array(
-      '@type' => var_export($element['#type'], TRUE),
-    )));
-  }
-
-  /**
    * Tests caching of an empty render item.
    */
   function testDrupalRenderCache() {
-    // Force a request via GET.
-    $request_method = $_SERVER['REQUEST_METHOD'];
-    $_SERVER['REQUEST_METHOD'] = 'GET';
+    // The cache system is turned off for POST requests.
+    $request_method = \Drupal::request()->getMethod();
+    \Drupal::request()->setMethod('GET');
+
     // Create an empty element.
     $test_element = array(
       '#cache' => array(
@@ -587,6 +446,425 @@ class RenderTest extends WebTestBase {
     $this->assertEqual($expected_tags, $actual_tags, 'Cache tags were collected from the element and its subchild.');
 
     // Restore the previous request method.
-    $_SERVER['REQUEST_METHOD'] = $request_method;
+    \Drupal::request()->setMethod($request_method);
   }
+
+  /**
+   * Tests post-render cache callbacks functionality.
+   */
+  function testDrupalRenderPostRenderCache() {
+    $context = array('foo' => $this->randomContextValue());
+    $test_element = array();
+    $test_element['#markup'] = '';
+    $test_element['#attached']['js'][] = array('type' => 'setting', 'data' => array('foo' => 'bar'));
+    $test_element['#post_render_cache']['common_test_post_render_cache'] = array(
+      $context
+    );
+
+    // #cache disabled.
+    drupal_static_reset('_drupal_add_js');
+    $element = $test_element;
+    $element['#markup'] = '<p>#cache disabled</p>';
+    $output = drupal_render($element);
+    $this->assertIdentical($output, '<p>overridden</p>', 'Output is overridden.');
+    $this->assertIdentical($element['#markup'], '<p>overridden</p>', '#markup is overridden.');
+    $this->assertTrue(!isset($element['#context_test']), '#context_test is not set: impossible to modify $element itself, only possible to modify its #markup and #attached properties.');
+    $settings = $this->parseDrupalSettings(drupal_get_js());
+    $this->assertIdentical($settings['foo'], 'bar', 'Original JavaScript setting is added to the page.');
+    $this->assertIdentical($settings['common_test'], $context, '#attached is modified; JavaScript setting is added to page.');
+
+    // The cache system is turned off for POST requests.
+    $request_method = \Drupal::request()->getMethod();
+    \Drupal::request()->setMethod('GET');
+
+    // GET request: #cache enabled, cache miss.
+    drupal_static_reset('_drupal_add_js');
+    $element = $test_element;
+    $element['#cache'] = array('cid' => 'post_render_cache_test_GET');
+    $element['#markup'] = '<p>#cache enabled, GET</p>';
+    $output = drupal_render($element);
+    $this->assertIdentical($output, '<p>overridden</p>', 'Output is overridden.');
+    $this->assertTrue(isset($element['#printed']), 'No cache hit');
+    $this->assertIdentical($element['#markup'], '<p>overridden</p>', '#markup is overridden.');
+    $this->assertTrue(!isset($element['#context_test']), '#context_test is not set: impossible to modify $element itself, only possible to modify its #markup and #attached properties.');
+    $settings = $this->parseDrupalSettings(drupal_get_js());
+    $this->assertIdentical($settings['foo'], 'bar', 'Original JavaScript setting is added to the page.');
+    $this->assertIdentical($settings['common_test'], $context, '#attached is modified; JavaScript setting is added to page.');
+
+    // GET request: validate cached data.
+    $element = array('#cache' => array('cid' => 'post_render_cache_test_GET'));
+    $cached_element = cache()->get(drupal_render_cid_create($element))->data;
+    $expected_element = array(
+      '#markup' => '<p>#cache enabled, GET</p>',
+      '#attached' => $test_element['#attached'],
+      '#post_render_cache' => $test_element['#post_render_cache'],
+    );
+    $this->assertIdentical($cached_element, $expected_element, 'The correct data is cached: the stored #markup and #attached properties are not affected by #post_render_cache callbacks.');
+
+    // GET request: #cache enabled, cache hit.
+    drupal_static_reset('_drupal_add_js');
+    $element['#cache'] = array('cid' => 'post_render_cache_test_GET');
+    $element['#markup'] = '<p>#cache enabled, GET</p>';
+    $output = drupal_render($element);
+    $this->assertIdentical($output, '<p>overridden</p>', 'Output is overridden.');
+    $this->assertFalse(isset($element['#printed']), 'Cache hit');
+    $this->assertIdentical($element['#markup'], '<p>overridden</p>', '#markup is overridden.');
+    $this->assertTrue(!isset($element['#context_test']), '#context_test is not set: impossible to modify $element itself, only possible to modify its #markup and #attached properties.');
+    $settings = $this->parseDrupalSettings(drupal_get_js());
+    $this->assertIdentical($settings['foo'], 'bar', 'Original JavaScript setting is added to the page.');
+    $this->assertIdentical($settings['common_test'], $context, '#attached is modified; JavaScript setting is added to page.');
+
+    // Verify behavior when handling a non-GET request, e.g. a POST request:
+    // also in that case, #post_render_cache callbacks must be called.
+    \Drupal::request()->setMethod('POST');
+
+    // POST request: #cache enabled, cache miss.
+    drupal_static_reset('_drupal_add_js');
+    $element = $test_element;
+    $element['#cache'] = array('cid' => 'post_render_cache_test_POST');
+    $element['#markup'] = '<p>#cache enabled, POST</p>';
+    $output = drupal_render($element);
+    $this->assertIdentical($output, '<p>overridden</p>', 'Output is overridden.');
+    $this->assertTrue(isset($element['#printed']), 'No cache hit');
+    $this->assertIdentical($element['#markup'], '<p>overridden</p>', '#markup is overridden.');
+    $this->assertTrue(!isset($element['#context_test']), '#context_test is not set: impossible to modify $element itself, only possible to modify its #markup and #attached properties.');
+    $settings = $this->parseDrupalSettings(drupal_get_js());
+    $this->assertIdentical($settings['foo'], 'bar', 'Original JavaScript setting is added to the page.');
+    $this->assertIdentical($settings['common_test'], $context, '#attached is modified; JavaScript setting is added to page.');
+
+    // POST request: Ensure no data was cached.
+    $element = array('#cache' => array('cid' => 'post_render_cache_test_POST'));
+    $cached_element = cache()->get(drupal_render_cid_create($element));
+    $this->assertFalse($cached_element, 'No data is cached because this is a POST request.');
+
+    // Restore the previous request method.
+    \Drupal::request()->setMethod($request_method);
+  }
+
+  /**
+   * Tests post-render cache callbacks functionality in children elements.
+   */
+  function testDrupalRenderChildrenPostRenderCache() {
+    // The cache system is turned off for POST requests.
+    $request_method = \Drupal::request()->getMethod();
+    \Drupal::request()->setMethod('GET');
+
+    // Test case 1.
+    // Create an element with a child and subchild. Each element has the same
+    // #post_render_cache callback, but with different contexts.
+    drupal_static_reset('_drupal_add_js');
+    $context_1 = array('foo' => $this->randomContextValue());
+    $context_2 = array('bar' => $this->randomContextValue());
+    $context_3 = array('baz' => $this->randomContextValue());
+    $test_element = array(
+      '#type' => 'details',
+      '#cache' => array(
+        'keys' => array('simpletest', 'drupal_render', 'children_post_render_cache'),
+      ),
+      '#post_render_cache' => array(
+        'common_test_post_render_cache' => array($context_1)
+      ),
+      '#title' => 'Parent',
+      '#attached' => array(
+        'js' => array(
+          array('type' => 'setting', 'data' => array('foo' => 'bar'))
+        ),
+      ),
+    );
+    $test_element['child'] = array(
+      '#type' => 'details',
+      '#post_render_cache' => array(
+        'common_test_post_render_cache' => array($context_2)
+      ),
+      '#title' => 'Child',
+    );
+    $test_element['child']['subchild'] = array(
+      '#post_render_cache' => array(
+        'common_test_post_render_cache' => array($context_3)
+      ),
+      '#markup' => 'Subchild',
+    );
+    $element = $test_element;
+    $output = drupal_render($element);
+    $this->assertIdentical($output, '<p>overridden</p>', 'Output is overridden.');
+    $this->assertTrue(isset($element['#printed']), 'No cache hit');
+    $this->assertIdentical($element['#markup'], '<p>overridden</p>', '#markup is overridden.');
+    $this->assertTrue(!isset($element['#context_test']), '#context_test is not set: impossible to modify $element itself, only possible to modify its #markup and #attached properties.');
+    $settings = $this->parseDrupalSettings(drupal_get_js());
+    $expected_settings = $context_1 + $context_2 + $context_3;
+    $this->assertIdentical($settings['foo'], 'bar', 'Original JavaScript setting is added to the page.');
+    $this->assertIdentical($settings['common_test'], $expected_settings, '#attached is modified; JavaScript settings for each #post_render_cache callback are added to page.');
+
+    // GET request: validate cached data.
+    $element = array('#cache' => $element['#cache']);
+    $cached_element = cache()->get(drupal_render_cid_create($element))->data;
+    $expected_element = array(
+      '#attached' => array(
+        'js' => array(
+          array('type' => 'setting', 'data' => array('foo' => 'bar'))
+        ),
+        'library' => array(
+          array('system', 'drupal.collapse'),
+          array('system', 'drupal.collapse'),
+        ),
+      ),
+      '#post_render_cache' => array(
+        'common_test_post_render_cache' => array(
+          $context_1,
+          $context_2,
+          $context_3,
+        )
+      ),
+    );
+
+    $dom = Html::load($cached_element['#markup']);
+    $xpath = new \DOMXPath($dom);
+    $parent = $xpath->query('//details[@class="form-wrapper" and @open="open"]/summary[@role="button" and @aria-expanded and text()="Parent"]')->length;
+    $child =  $xpath->query('//details[@class="form-wrapper" and @open="open"]/div[@class="details-wrapper"]/details[@class="form-wrapper" and @open="open"]/summary[@role="button" and @aria-expanded and text()="Child"]')->length;
+    $subchild = $xpath->query('//details[@class="form-wrapper" and @open="open"]/div[@class="details-wrapper"]/details[@class="form-wrapper" and @open="open"]/div [@class="details-wrapper" and text()="Subchild"]')->length;
+    $this->assertTrue($parent && $child && $subchild, 'The correct data is cached: the stored #markup is not affected by #post_render_cache callbacks.');
+
+    // Remove markup because it's compared above in the xpath.
+    unset($cached_element['#markup']);
+    $this->assertIdentical($cached_element, $expected_element, 'The correct data is cached: the stored #attached properties are not affected by #post_render_cache callbacks.');
+
+    // GET request: #cache enabled, cache hit.
+    drupal_static_reset('_drupal_add_js');
+    $element = $test_element;
+    $output = drupal_render($element);
+    $this->assertIdentical($output, '<p>overridden</p>', 'Output is overridden.');
+    $this->assertFalse(isset($element['#printed']), 'Cache hit');
+    $this->assertTrue(!isset($element['#context_test']), '#context_test is not set: impossible to modify $element itself, only possible to modify its #markup and #attached properties.');
+    $settings = $this->parseDrupalSettings(drupal_get_js());
+    $this->assertIdentical($settings['foo'], 'bar', 'Original JavaScript setting is added to the page.');
+    $this->assertIdentical($settings['common_test'], $expected_settings, '#attached is modified; JavaScript settings for each #post_render_cache callback are added to page.');
+
+    // Test case 2.
+    // Use the exact same element, but now unset #cache.
+    drupal_static_reset('drupal_add_js');
+    unset($test_element['#cache']);
+    $element = $test_element;
+    $output = drupal_render($element);
+    $this->assertIdentical($output, '<p>overridden</p>', 'Output is overridden.');
+    $this->assertIdentical($element['#markup'], '<p>overridden</p>', '#markup is overridden.');
+    $this->assertTrue(!isset($element['#context_test']), '#context_test is not set: impossible to modify $element itself, only possible to modify its #markup and #attached properties.');
+    $settings = $this->parseDrupalSettings(drupal_get_js());
+    $expected_settings = $context_1 + $context_2 + $context_3;
+    $this->assertIdentical($settings['foo'], 'bar', 'Original JavaScript setting is added to the page.');
+    $this->assertIdentical($settings['common_test'], $expected_settings, '#attached is modified; JavaScript settings for each #post_render_cache callback are added to page.');
+
+    // Test case 3.
+    // Create an element with a child and subchild. Each element has the same
+    // #post_render_cache callback, but with different contexts. Both the
+    // parent and the child elements have #cache set. The cached parent element
+    // must contain the pristine child element, i.e. unaffected by its
+    // #post_render_cache callbacks. I.e. the #post_render_cache callbacks may
+    // not yet have run, or otherwise the cached parent element would contain
+    // personalized data, thereby breaking the render cache.
+    drupal_static_reset('_drupal_add_js');
+    $element = $test_element;
+    $element['#cache']['keys'] = array('simpletest', 'drupal_render', 'children_post_render_cache', 'nested_cache_parent');
+    $element['child']['#cache']['keys'] = array('simpletest', 'drupal_render', 'children_post_render_cache', 'nested_cache_child');
+    $output = drupal_render($element);
+    $this->assertIdentical($output, '<p>overridden</p>', 'Output is overridden.');
+    $this->assertTrue(isset($element['#printed']), 'No cache hit');
+    $this->assertIdentical($element['#markup'], '<p>overridden</p>', '#markup is overridden.');
+    $this->assertTrue(!isset($element['#context_test']), '#context_test is not set: impossible to modify $element itself, only possible to modify its #markup and #attached properties.');
+    $settings = $this->parseDrupalSettings(drupal_get_js());
+    $expected_settings = $context_1 + $context_2 + $context_3;
+    $this->assertIdentical($settings['foo'], 'bar', 'Original JavaScript setting is added to the page.');
+    $this->assertIdentical($settings['common_test'], $expected_settings, '#attached is modified; JavaScript settings for each #post_render_cache callback are added to page.');
+
+    // GET request: validate cached data for both the parent and child.
+    $element = $test_element;
+    $element['#cache']['keys'] = array('simpletest', 'drupal_render', 'children_post_render_cache', 'nested_cache_parent');
+    $element['child']['#cache']['keys'] = array('simpletest', 'drupal_render', 'children_post_render_cache', 'nested_cache_child');
+    $cached_parent_element = cache()->get(drupal_render_cid_create($element))->data;
+    $cached_child_element = cache()->get(drupal_render_cid_create($element['child']))->data;
+    $expected_parent_element = array(
+      '#attached' => array(
+        'js' => array(
+          array('type' => 'setting', 'data' => array('foo' => 'bar'))
+        ),
+        'library' => array(
+          array('system', 'drupal.collapse'),
+          array('system', 'drupal.collapse'),
+        ),
+      ),
+      '#post_render_cache' => array(
+        'common_test_post_render_cache' => array(
+          $context_1,
+          $context_2,
+          $context_3,
+        )
+      ),
+    );
+
+    $dom = Html::load($cached_parent_element['#markup']);
+    $xpath = new \DOMXPath($dom);
+    $parent = $xpath->query('//details[@class="form-wrapper" and @open="open"]/summary[@role="button" and @aria-expanded and text()="Parent"]')->length;
+    $child =  $xpath->query('//details[@class="form-wrapper" and @open="open"]/div[@class="details-wrapper"]/details[@class="form-wrapper" and @open="open"]/summary[@role="button" and @aria-expanded and text()="Child"]')->length;
+    $subchild = $xpath->query('//details[@class="form-wrapper" and @open="open"]/div[@class="details-wrapper"]/details[@class="form-wrapper" and @open="open"]/div [@class="details-wrapper" and text()="Subchild"]')->length;
+    $this->assertTrue($parent && $child && $subchild, 'The correct data is cached for the parent: the stored #markup is not affected by #post_render_cache callbacks.');
+
+    // Remove markup because it's compared above in the xpath.
+    unset($cached_parent_element['#markup']);
+    $this->assertIdentical($cached_parent_element, $expected_parent_element, 'The correct data is cached for the parent: the stored #attached properties are not affected by #post_render_cache callbacks.');
+
+    $expected_child_element = array(
+      '#attached' => array(
+        'library' => array(
+          array('system', 'drupal.collapse'),
+        ),
+      ),
+      '#post_render_cache' => array(
+        'common_test_post_render_cache' => array(
+          $context_2,
+          $context_3,
+        )
+      ),
+    );
+
+    $dom = Html::load($cached_child_element['#markup']);
+    $xpath = new \DOMXPath($dom);
+    $child =  $xpath->query('//details[@class="form-wrapper" and @open="open"]/summary[@role="button" and @aria-expanded and text()="Child"]')->length;
+    $subchild = $xpath->query('//details[@class="form-wrapper" and @open="open"]/div [@class="details-wrapper" and text()="Subchild"]')->length;
+    $this->assertTrue($child && $subchild, 'The correct data is cached for the child: the stored #markup is not affected by #post_render_cache callbacks.');
+
+    // Remove markup because it's compared above in the xpath.
+    unset($cached_child_element['#markup']);
+    $this->assertIdentical($cached_child_element, $expected_child_element, 'The correct data is cached for the child: the stored #attached properties are not affected by #post_render_cache callbacks.');
+
+    // GET request: #cache enabled, cache hit, parent element.
+    drupal_static_reset('_drupal_add_js');
+    $element = $test_element;
+    $element['#cache']['keys'] = array('simpletest', 'drupal_render', 'children_post_render_cache', 'nested_cache_parent');
+    $output = drupal_render($element);
+    $this->assertIdentical($output, '<p>overridden</p>', 'Output is overridden.');
+    $this->assertFalse(isset($element['#printed']), 'Cache hit');
+    $this->assertTrue(!isset($element['#context_test']), '#context_test is not set: impossible to modify $element itself, only possible to modify its #markup and #attached properties.');
+    $settings = $this->parseDrupalSettings(drupal_get_js());
+    $this->assertIdentical($settings['foo'], 'bar', 'Original JavaScript setting is added to the page.');
+    $this->assertIdentical($settings['common_test'], $expected_settings, '#attached is modified; JavaScript settings for each #post_render_cache callback are added to page.');
+
+    // GET request: #cache enabled, cache hit, child element.
+    drupal_static_reset('_drupal_add_js');
+    $element = $test_element;
+    $element['child']['#cache']['keys'] = array('simpletest', 'drupal_render', 'children_post_render_cache', 'nested_cache_child');
+    $element = $element['child'];
+    $output = drupal_render($element);
+    $this->assertIdentical($output, '<p>overridden</p>', 'Output is overridden.');
+    $this->assertFalse(isset($element['#printed']), 'Cache hit');
+    $this->assertTrue(!isset($element['#context_test']), '#context_test is not set: impossible to modify $element itself, only possible to modify its #markup and #attached properties.');
+    $settings = $this->parseDrupalSettings(drupal_get_js());
+    $expected_settings = $context_2 + $context_3;
+    $this->assertTrue(!isset($settings['foo']), 'Parent JavaScript setting is not added to the page.');
+    $this->assertIdentical($settings['common_test'], $expected_settings, '#attached is modified; JavaScript settings for each #post_render_cache callback are added to page.');
+
+    // Restore the previous request method.
+    \Drupal::request()->setMethod($request_method);
+  }
+
+
+  /**
+   * Tests post-render cache-integrated 'render_cache_placeholder' element.
+   */
+  function testDrupalRenderRenderCachePlaceholder() {
+    $context = array('bar' => $this->randomContextValue());
+    $test_element = array(
+      '#type' => 'render_cache_placeholder',
+      '#context' => $context,
+      '#callback' => 'common_test_post_render_cache_placeholder',
+      '#prefix' => '<foo>',
+      '#suffix' => '</foo>'
+    );
+    $expected_output = '<foo><bar>' . $context['bar'] . '</bar></foo>';
+
+    // #cache disabled.
+    drupal_static_reset('_drupal_add_js');
+    $element = $test_element;
+    $output = drupal_render($element);
+    $this->assertIdentical($output, $expected_output, 'Placeholder was replaced in output');
+    $settings = $this->parseDrupalSettings(drupal_get_js());
+    $this->assertIdentical($settings['common_test'], $context, '#attached is modified; JavaScript setting is added to page.');
+
+    // The cache system is turned off for POST requests.
+    $request_method = \Drupal::request()->getMethod();
+    \Drupal::request()->setMethod('GET');
+
+    // GET request: #cache enabled, cache miss.
+    drupal_static_reset('_drupal_add_js');
+    $element = $test_element;
+    $element['#cache'] = array('cid' => 'render_cache_placeholder_test_GET');
+    $output = drupal_render($element);
+    $this->assertIdentical($output, $expected_output, 'Placeholder was replaced in output');
+    $this->assertTrue(isset($element['#printed']), 'No cache hit');
+    $this->assertIdentical($element['#markup'], $expected_output, 'Placeholder was replaced in #markup.');
+    $settings = $this->parseDrupalSettings(drupal_get_js());
+    $this->assertIdentical($settings['common_test'], $context, '#attached is modified; JavaScript setting is added to page.');
+
+    // GET request: validate cached data.
+    $element = array('#cache' => array('cid' => 'render_cache_placeholder_test_GET'));
+    $cached_element = cache()->get(drupal_render_cid_create($element))->data;
+    // Parse unique token out of the markup.
+    $dom = Html::load($cached_element['#markup']);
+    $xpath = new \DOMXPath($dom);
+    $nodes = $xpath->query('//*[@token]');
+    $token = $nodes->item(0)->getAttribute('token');
+    $expected_element = array(
+      '#markup' => '<foo><drupal:render-cache-placeholder callback="common_test_post_render_cache_placeholder" context="bar:' . $context['bar'] .';" token="'. $token . '" /></foo>',
+      '#post_render_cache' => array(
+        'common_test_post_render_cache_placeholder' => array(
+          $token => $context,
+        ),
+      ),
+    );
+    $this->assertIdentical($cached_element, $expected_element, 'The correct data is cached: the stored #markup and #attached properties are not affected by #post_render_cache callbacks.');
+
+    // GET request: #cache enabled, cache hit.
+    drupal_static_reset('_drupal_add_js');
+    $element = $test_element;
+    $element['#cache'] = array('cid' => 'render_cache_placeholder_test_GET');
+    $output = drupal_render($element);
+    $this->assertIdentical($output, $expected_output, 'Placeholder was replaced in output');
+    $this->assertFalse(isset($element['#printed']), 'Cache hit');
+    $this->assertIdentical($element['#markup'], $expected_output, 'Placeholder was replaced in #markup.');
+    $settings = $this->parseDrupalSettings(drupal_get_js());
+    $this->assertIdentical($settings['common_test'], $context, '#attached is modified; JavaScript setting is added to page.');
+
+    // Restore the previous request method.
+    \Drupal::request()->setMethod($request_method);
+  }
+
+  protected function parseDrupalSettings($html) {
+    $startToken = 'drupalSettings = ';
+    $endToken = '}';
+    $start = strpos($html, $startToken) + strlen($startToken);
+    $end = strrpos($html, $endToken);
+    $json  = drupal_substr($html, $start, $end - $start + 1);
+    $parsed_settings = drupal_json_decode($json);
+    return $parsed_settings;
+  }
+
+  /**
+   * Generates a random context value for the post-render cache tests.
+   *
+   * The #context array used by the post-render cache callback will generally
+   * be used to provide metadata like entity IDs, field machine names, paths,
+   * etc. for JavaScript replacement of content or assets. In this test, the
+   * callbacks common_test_post_render_cache() and
+   * common_test_post_render_cache_placeholder() render the context inside test
+   * HTML, so using any random string would sometimes cause random test
+   * failures because the test output would be unparseable. Instead, we provide
+   * random tokens for replacement.
+   *
+   * @see common_test_post_render_cache()
+   * @see common_test_post_render_cache_placeholder()
+   * @see https://drupal.org/node/2151609
+   */
+  protected function randomContextValue() {
+    $tokens = array('llama', 'alpaca', 'camel', 'moose', 'elk');
+    return $tokens[mt_rand(0, 4)];
+  }
+
 }

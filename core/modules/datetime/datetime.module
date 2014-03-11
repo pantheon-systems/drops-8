@@ -104,7 +104,7 @@ function datetime_theme() {
  *   The current state of the form.
  */
 function datetime_datetime_widget_validate(&$element, &$form_state) {
-  if (!form_get_errors()) {
+  if (!form_get_errors($form_state)) {
     $input_exists = FALSE;
     $input = NestedArray::getValue($form_state['values'], $element['#parents'], $input_exists);
     if ($input_exists) {
@@ -142,7 +142,7 @@ function datetime_datetime_widget_validate(&$element, &$form_state) {
  *   The current state of the form.
  */
 function datetime_datelist_widget_validate(&$element, &$form_state) {
-  if (!form_get_errors()) {
+  if (!form_get_errors($form_state)) {
     $input_exists = FALSE;
     $input = NestedArray::getValue($form_state['values'], $element['#parents'], $input_exists);
     if ($input_exists) {
@@ -165,48 +165,6 @@ function datetime_datelist_widget_validate(&$element, &$form_state) {
       }
     }
   }
-}
-
-/**
- * Sets a default value for an empty date field.
- *
- * Callback for $instance['default_value_function'], as implemented by
- * Drupal\datetime\Plugin\field\widget\DateTimeDatepicker.
- *
- * @param $entity_type
- *
- * @param $entity
- *
- * @param array $field
- *
- * @param array $instance
- *
- * @param $langcode
- *
- *
- * @return array
- *
- */
-function datetime_default_value($entity, $field, $instance, $langcode) {
-
-  $value = '';
-  $date = '';
-  if ($instance->getFieldSetting('default_value') == 'now') {
-    // A default value should be in the format and timezone used for date
-    // storage.
-    $date = new DrupalDateTime('now', DATETIME_STORAGE_TIMEZONE);
-    $storage_format = $field->getFieldSetting('datetime_type') == 'date' ? DATETIME_DATE_STORAGE_FORMAT: DATETIME_DATETIME_STORAGE_FORMAT;
-    $value = $date->format($storage_format);
-  }
-
-  // We only provide a default value for the first item, as do all fields.
-  // Otherwise, there is no way to clear out unwanted values on multiple value
-  // fields.
-  $item = array();
-  $item[0]['value'] = $value;
-  $item[0]['date'] = $date;
-
-  return $item;
 }
 
 /**
@@ -574,7 +532,7 @@ function datetime_datetime_validate($element, &$form_state) {
     // If there's empty input and the field is required, set an error. A
     // reminder of the required format in the message provides a good UX.
     elseif (empty($input['date']) && empty($input['time']) && $element['#required']) {
-      form_error($element, t('The %field date is required. Please enter a date in the format %format.', array('%field' => $title, '%format' => datetime_format_example($format))));
+      form_error($element, $form_state, t('The %field date is required. Please enter a date in the format %format.', array('%field' => $title, '%format' => datetime_format_example($format))));
     }
     else {
       // If the date is valid, set it.
@@ -585,7 +543,7 @@ function datetime_datetime_validate($element, &$form_state) {
       // If the date is invalid, set an error. A reminder of the required
       // format in the message provides a good UX.
       else {
-        form_error($element, t('The %field date is invalid. Please enter a date in the format %format.', array('%field' => $title, '%format' => datetime_format_example($format))));
+        form_error($element, $form_state, t('The %field date is invalid. Please enter a date in the format %format.', array('%field' => $title, '%format' => datetime_format_example($format))));
       }
     }
   }
@@ -731,8 +689,6 @@ function datetime_datelist_form_process($element, &$form_state) {
   $order = !empty($element['#date_part_order']) ? $element['#date_part_order'] : array('year', 'month', 'day');
   $text_parts = !empty($element['#date_text_parts']) ? $element['#date_text_parts'] : array();
 
-  $has_time = FALSE;
-
   // Output multi-selector for date.
   foreach ($order as $part) {
     switch ($part) {
@@ -758,28 +714,24 @@ function datetime_datelist_form_process($element, &$form_state) {
       case 'hour':
         $format = in_array('ampm', $element['#date_part_order']) ? 'g': 'G';
         $options = $date_helper->hours($format, $element['#required']);
-        $has_time = TRUE;
         $title = t('Hour');
         break;
 
       case 'minute':
         $format = 'i';
         $options = $date_helper->minutes($format, $element['#required'], $element['#date_increment']);
-        $has_time = TRUE;
         $title = t('Minute');
         break;
 
       case 'second':
         $format = 's';
         $options = $date_helper->seconds($format, $element['#required'], $element['#date_increment']);
-        $has_time = TRUE;
         $title = t('Second');
         break;
 
       case 'ampm':
         $format = 'a';
         $options = $date_helper->ampm($element['#required']);
-        $has_time = TRUE;
         $title = t('AM/PM');
     }
 
@@ -913,15 +865,13 @@ function datetime_datelist_validate($element, &$form_state) {
   $input = NestedArray::getValue($form_state['values'], $element['#parents'], $input_exists);
   if ($input_exists) {
 
-    $title = !empty($element['#title']) ? $element['#title'] : '';
-
     // If there's empty input and the field is not required, set it to empty.
     if (empty($input['year']) && empty($input['month']) && empty($input['day']) && !$element['#required']) {
       form_set_value($element, NULL, $form_state);
     }
     // If there's empty input and the field is required, set an error.
     elseif (empty($input['year']) && empty($input['month']) && empty($input['day']) && $element['#required']) {
-      form_error($element, t('The %field date is required.'));
+      form_error($element, $form_state, t('The %field date is required.'));
     }
     else {
       // If the input is valid, set it.
@@ -931,7 +881,7 @@ function datetime_datelist_validate($element, &$form_state) {
       }
       // If the input is invalid, set an error.
       else {
-        form_error($element, t('The %field date is invalid.'));
+        form_error($element, $form_state, t('The %field date is invalid.'));
       }
     }
   }
@@ -967,7 +917,6 @@ function date_increment_round(&$date, $increment) {
     date_time_set($date, $hour, $minute, $second);
     if ($hour == 24) {
       $day += 1;
-      $hour = 0;
       $year = date_format($date, 'Y');
       $month = date_format($date, 'n');
       date_date_set($date, $year, $month, $day);

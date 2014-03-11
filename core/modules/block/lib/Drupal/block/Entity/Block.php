@@ -8,8 +8,6 @@
 namespace Drupal\block\Entity;
 
 use Drupal\Core\Config\Entity\ConfigEntityBase;
-use Drupal\Core\Entity\Annotation\EntityType;
-use Drupal\Core\Annotation\Translation;
 use Drupal\block\BlockPluginBag;
 use Drupal\block\BlockInterface;
 use Drupal\Core\Entity\EntityStorageControllerInterface;
@@ -17,14 +15,12 @@ use Drupal\Core\Entity\EntityStorageControllerInterface;
 /**
  * Defines a Block configuration entity class.
  *
- * @EntityType(
+ * @ConfigEntityType(
  *   id = "block",
  *   label = @Translation("Block"),
- *   module = "block",
  *   controllers = {
- *     "storage" = "Drupal\Core\Config\Entity\ConfigStorageController",
  *     "access" = "Drupal\block\BlockAccessController",
- *     "render" = "Drupal\block\BlockRenderController",
+ *     "view_builder" = "Drupal\block\BlockViewBuilder",
  *     "list" = "Drupal\block\BlockListController",
  *     "form" = {
  *       "default" = "Drupal\block\BlockFormController",
@@ -32,6 +28,7 @@ use Drupal\Core\Entity\EntityStorageControllerInterface;
  *     }
  *   },
  *   config_prefix = "block.block",
+ *   admin_permission = "administer blocks",
  *   fieldable = FALSE,
  *   entity_keys = {
  *     "id" = "id",
@@ -39,7 +36,8 @@ use Drupal\Core\Entity\EntityStorageControllerInterface;
  *     "uuid" = "uuid"
  *   },
  *   links = {
- *     "edit-form" = "admin/structure/block/manage/{block}"
+ *     "delete-form" = "block.admin_block_delete",
+ *     "edit-form" = "block.admin_edit"
  *   }
  * )
  */
@@ -71,7 +69,7 @@ class Block extends ConfigEntityBase implements BlockInterface {
    *
    * @var string
    */
-  protected $region = BLOCK_REGION_NONE;
+  protected $region = self::BLOCK_REGION_NONE;
 
   /**
    * The block weight.
@@ -120,9 +118,15 @@ class Block extends ConfigEntityBase implements BlockInterface {
   /**
    * Overrides \Drupal\Core\Entity\Entity::label();
    */
-  public function label($langcode = NULL) {
+  public function label() {
     $settings = $this->get('settings');
-    return $settings['label'];
+    if ($settings['label']) {
+      return $settings['label'];
+    }
+    else {
+      $definition = $this->getPlugin()->getPluginDefinition();
+      return $definition['admin_label'];
+    }
   }
 
   /**
@@ -163,7 +167,7 @@ class Block extends ConfigEntityBase implements BlockInterface {
       return $status;
     }
     // Sort by weight, unless disabled.
-    if ($a->get('region') != BLOCK_REGION_NONE) {
+    if ($a->get('region') != static::BLOCK_REGION_NONE) {
       $weight = $a->get('weight') - $b->get('weight');
       if ($weight) {
         return $weight;

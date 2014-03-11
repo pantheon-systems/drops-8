@@ -17,13 +17,6 @@ use Drupal\Component\Utility\String;
 class LocaleUpdateBase extends WebTestBase {
 
   /**
-   * The path of the translations directory where local translations are stored.
-   *
-   * @var string
-   */
-  protected $tranlations_directory;
-
-  /**
    * Timestamp for an old translation.
    *
    * @var integer
@@ -58,6 +51,12 @@ class LocaleUpdateBase extends WebTestBase {
     $this->timestamp_medium = REQUEST_TIME - 200;
     $this->timestamp_new = REQUEST_TIME - 100;
     $this->timestamp_now = REQUEST_TIME;
+
+    // Enable import of translations. By default this is disabled for automated
+    // tests.
+    \Drupal::config('locale.settings')
+      ->set('translation.import_enabled', TRUE)
+      ->save();
   }
 
   /**
@@ -68,7 +67,6 @@ class LocaleUpdateBase extends WebTestBase {
    *   directory.
    */
   protected function setTranslationsDirectory($path) {
-    $this->tranlations_directory = $path;
     file_prepare_directory($path, FILE_CREATE_DIRECTORY);
     \Drupal::config('locale.settings')->set('translation.path', $path)->save();
   }
@@ -82,7 +80,7 @@ class LocaleUpdateBase extends WebTestBase {
   protected function addLanguage($langcode) {
     $edit = array('predefined_langcode' => $langcode);
     $this->drupalPostForm('admin/config/regional/language/add', $edit, t('Add language'));
-    drupal_static_reset('language_list');
+    $this->container->get('language_manager')->reset();
     $this->assertTrue(language_load($langcode), String::format('Language %langcode added.', array('%langcode' => $langcode)));
   }
 

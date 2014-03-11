@@ -7,26 +7,18 @@
 
 namespace Drupal\Core\Utility;
 
+use Drupal\Component\Utility\Json;
 use Drupal\Component\Utility\String;
 use Drupal\Core\Extension\ModuleHandlerInterface;
-use Drupal\Core\Language\Language;
-use Drupal\Core\Language\LanguageManager;
+use Drupal\Core\Path\AliasManagerInterface;
 use Drupal\Core\Template\Attribute;
 use Drupal\Core\Routing\UrlGeneratorInterface;
-use Symfony\Cmf\Component\Routing\RouteObjectInterface;
-use Symfony\Component\HttpFoundation\Request;
+use Drupal\Core\Url;
 
 /**
  * Provides a class which generates a link with route names and parameters.
  */
 class LinkGenerator implements LinkGeneratorInterface {
-
-  /**
-   * Stores some information about the current request, like the language.
-   *
-   * @var array
-   */
-  protected $active;
 
   /**
    * The url generator.
@@ -43,11 +35,11 @@ class LinkGenerator implements LinkGeneratorInterface {
   protected $moduleHandler;
 
   /**
-   * The language manager.
+   * The path alias manager.
    *
-   * @var \Drupal\Core\Language\LanguageManager
+   * @var \Drupal\Core\Path\AliasManagerInterface
    */
-  protected $languageManager;
+  protected $aliasManager;
 
   /**
    * Constructs a LinkGenerator instance.
@@ -56,45 +48,34 @@ class LinkGenerator implements LinkGeneratorInterface {
    *   The url generator.
    * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
    *   The module handler.
-   * @param \Drupal\Core\Language\LanguageManager $language_manager
-   *   The language manager.
+   * @param \Drupal\Core\Path\AliasManagerInterface $alias_manager
+   *   The path alias manager.
    */
-  public function __construct(UrlGeneratorInterface $url_generator, ModuleHandlerInterface $module_handler, LanguageManager $language_manager) {
+  public function __construct(UrlGeneratorInterface $url_generator, ModuleHandlerInterface $module_handler, AliasManagerInterface $alias_manager) {
     $this->urlGenerator = $url_generator;
     $this->moduleHandler = $module_handler;
-    $this->languageManager = $language_manager;
-  }
-
-  /**
-   * Sets the $request property.
-   *
-   * @param \Symfony\Component\HttpFoundation\Request $request
-   *   The HttpRequest object representing the current request.
-   */
-  public function setRequest(Request $request) {
-    // Pre-calculate and store values based on the request that may be used
-    // repeatedly in generate().
-    $raw_variables = $request->attributes->get('_raw_variables');
-    // $raw_variables is a ParameterBag object or NULL.
-    $parameters = $raw_variables ? $raw_variables->all() : array();
-    $this->active = array(
-      'route_name' => $request->attributes->get(RouteObjectInterface::ROUTE_NAME),
-      'language' => $this->languageManager->getLanguage(Language::TYPE_URL)->id,
-      'parameters' => $parameters + (array) $request->query->all(),
-    );
+    $this->aliasManager = $alias_manager;
   }
 
   /**
    * {@inheritdoc}
+   *
+   * For anonymous users, the "active" class will be calculated on the server,
+   * because most sites serve each anonymous user the same cached page anyway.
+   * For authenticated users, the "active" class will be calculated on the
+   * client (through JavaScript), only data- attributes are added to links to
+   * prevent breaking the render cache. The JavaScript is added in
+   * system_page_build().
+   *
+   * @see system_page_build()
    */
-  public function generate($text, $route_name, array $parameters = array(), array $options = array()) {
+  public function generateFromUrl($text, Url $url) {
     // Start building a structured representation of our link to be altered later.
     $variables = array(
       // @todo Inject the service when drupal_render() is converted to one.
       'text' => is_array($text) ? drupal_render($text) : $text,
-      'route_name' => $route_name,
-      'parameters' => $parameters,
-      'options' => $options,
+      'url' => $url,
+      'options' => $url->getOptions(),
     );
 
     // Merge in default options.
@@ -103,30 +84,32 @@ class LinkGenerator implements LinkGeneratorInterface {
       'query' => array(),
       'html' => FALSE,
       'language' => NULL,
+      'set_active_class' => FALSE,
+      'absolute' => FALSE,
     );
+
     // Add a hreflang attribute if we know the language of this link's url and
     // hreflang has not already been set.
     if (!empty($variables['options']['language']) && !isset($variables['options']['attributes']['hreflang'])) {
       $variables['options']['attributes']['hreflang'] = $variables['options']['language']->id;
     }
 
-    // This is only needed for the active class. The generator also combines
-    // the parameters and $options['query'] and adds parameters that are not
-    // path slugs as query strings.
-    $full_parameters = $parameters + (array) $variables['options']['query'];
+    // Set the "active" class if the 'set_active_class' option is not empty.
+    if (!empty($variables['options']['set_active_class'])) {
+      // Add a "data-drupal-link-query" attribute to let the
+      // drupal.active-link library know the query in a standardized manner.
+      if (!empty($variables['options']['query'])) {
+        $query = $variables['options']['query'];
+        ksort($query);
+        $variables['options']['attributes']['data-drupal-link-query'] = Json::encode($query);
+      }
 
-    // Determine whether this link is "active", meaning that it has the same
-    // URL path and query string as the current page. Note that this may be
-    // removed from l() in https://drupal.org/node/1979468 and would be removed
-    // or altered here also.
-    $variables['url_is_active'] = $route_name == $this->active['route_name']
-      // The language of an active link is equal to the current language.
-      && (empty($variables['options']['language']) || $variables['options']['language']->id == $this->active['language'])
-      && $full_parameters == $this->active['parameters'];
-
-    // Add the "active" class if appropriate.
-    if ($variables['url_is_active']) {
-      $variables['options']['attributes']['class'][] = 'active';
+      // Add a "data-drupal-link-system-path" attribute to let the
+      // drupal.active-link library know the path in a standardized manner.
+      if (!isset($variables['options']['attributes']['data-drupal-link-system-path'])) {
+        $path = $url->getInternalPath();
+        $variables['options']['attributes']['data-drupal-link-system-path'] = $this->aliasManager->getSystemPath($path);
+      }
     }
 
     // Remove all HTML and PHP tags from a tooltip, calling expensive strip_tags()
@@ -141,15 +124,25 @@ class LinkGenerator implements LinkGeneratorInterface {
     // Move attributes out of options. generateFromRoute(() doesn't need them.
     $attributes = new Attribute($variables['options']['attributes']);
     unset($variables['options']['attributes']);
+    $url->setOptions($variables['options']);
 
     // The result of the url generator is a plain-text URL. Because we are using
     // it here in an HTML argument context, we need to encode it properly.
-    $url = String::checkPlain($this->urlGenerator->generateFromRoute($variables['route_name'], $variables['parameters'], $variables['options']));
+    $url = String::checkPlain($url->toString());
 
     // Sanitize the link text if necessary.
     $text = $variables['options']['html'] ? $variables['text'] : String::checkPlain($variables['text']);
 
     return '<a href="' . $url . '"' . $attributes . '>' . $text . '</a>';
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function generate($text, $route_name, array $parameters = array(), array $options = array()) {
+    $url = new Url($route_name, $parameters, $options);
+    $url->setUrlGenerator($this->urlGenerator);
+    return $this->generateFromUrl($text, $url);
   }
 
 }

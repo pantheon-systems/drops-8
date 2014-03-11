@@ -20,7 +20,7 @@ abstract class FileFieldTestBase extends WebTestBase {
   *
   * @var array
   */
-  public static $modules = array('file', 'file_module_test', 'field_ui');
+  public static $modules = array('node', 'file', 'file_module_test', 'field_ui');
 
   protected $admin_user;
 
@@ -139,7 +139,7 @@ abstract class FileFieldTestBase extends WebTestBase {
    */
   function uploadNodeFile($file, $field_name, $nid_or_type, $new_revision = TRUE, $extras = array()) {
     $edit = array(
-      "title" => $this->randomName(),
+      'title[0][value]' => $this->randomName(),
       'revision' => (string) (int) $new_revision,
     );
 
@@ -161,7 +161,7 @@ abstract class FileFieldTestBase extends WebTestBase {
     // Attach a file to the node.
     $field = field_info_field('node', $field_name);
     $name = 'files[' . $field_name . '_0]';
-    if ($field->getFieldCardinality() != 1) {
+    if ($field->getCardinality() != 1) {
       $name .= '[]';
     }
     $edit[$name] = drupal_realpath($file->getFileUri());

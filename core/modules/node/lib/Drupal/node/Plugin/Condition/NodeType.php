@@ -8,8 +8,6 @@
 namespace Drupal\node\Plugin\Condition;
 
 use Drupal\Core\Condition\ConditionPluginBase;
-use Drupal\Core\Condition\Annotation\Condition;
-use Drupal\Core\Annotation\Translation;
 
 /**
  * Provides a 'Node Type' condition.
@@ -54,7 +52,7 @@ class NodeType extends ConditionPluginBase {
   public function validateForm(array &$form, array &$form_state) {
     foreach ($form_state['values']['bundles'] as $bundle) {
       if (!in_array($bundle, array_keys(node_type_get_types()))) {
-        form_set_error('bundles', t('You have chosen an invalid node bundle, please check your selection and try again.'));
+        form_set_error('bundles', $form_state, t('You have chosen an invalid node bundle, please check your selection and try again.'));
       }
     }
   }

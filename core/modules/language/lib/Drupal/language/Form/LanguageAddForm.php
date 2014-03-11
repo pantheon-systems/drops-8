@@ -53,15 +53,22 @@ class LanguageAddForm extends LanguageFormBase {
       '#submit' => array(array($this, 'submitForm')),
     );
 
+    $custom_language_states_conditions = array(
+      'select#edit-predefined-langcode' => array('value' => 'custom'),
+    );
     $form['custom_language'] = array(
       '#type' => 'container',
       '#states' => array(
-        'visible' => array(
-          'select#edit-predefined-langcode' => array('value' => 'custom'),
-        ),
+        'visible' => $custom_language_states_conditions,
       ),
     );
     $this->commonForm($form['custom_language']);
+    $form['custom_language']['langcode']['#states'] = array(
+      'required' => $custom_language_states_conditions,
+    );
+    $form['custom_language']['name']['#states'] = array(
+      'required' => $custom_language_states_conditions,
+    );
     $form['custom_language']['submit'] = array(
       '#type' => 'submit',
       '#value' => $this->t('Add custom language'),
@@ -91,12 +98,13 @@ class LanguageAddForm extends LanguageFormBase {
     }
     // Save the language and inform the user that it happened.
     $language = language_save($language);
+
     drupal_set_message($this->t('The language %language has been created and can now be used.', array('%language' => $language->name)));
 
     // Tell the user they have the option to add a language switcher block
     // to their theme so they can switch between the languages.
     drupal_set_message($this->t('Use one of the language switcher blocks to allow site visitors to switch between languages. You can enable these blocks on the <a href="@block-admin">block administration page</a>.', array('@block-admin' => url('admin/structure/block'))));
-    $form_state['redirect'] = 'admin/config/regional/language';
+    $form_state['redirect_route']['route_name'] = 'language.admin_overview';
   }
 
   /**
@@ -117,11 +125,11 @@ class LanguageAddForm extends LanguageFormBase {
       $this->validateCommon($form['custom_language'], $form_state);
 
       if ($language = language_load($langcode)) {
-        form_error($form['custom_language']['langcode'], $this->t('The language %language (%langcode) already exists.', array('%language' => $language->name, '%langcode' => $langcode)));
+        $this->setFormError('langcode', $form_state, $this->t('The language %language (%langcode) already exists.', array('%language' => $language->name, '%langcode' => $langcode)));
       }
     }
     else {
-      form_error($form['predefined_langcode'], $this->t('Use the <em>Add language</em> button to save a predefined language.'));
+      $this->setFormError('predefined_langcode', $form_state, $this->t('Use the <em>Add language</em> button to save a predefined language.'));
     }
   }
 
@@ -131,11 +139,11 @@ class LanguageAddForm extends LanguageFormBase {
   public function validatePredefined($form, &$form_state) {
     $langcode = $form_state['values']['predefined_langcode'];
     if ($langcode == 'custom') {
-      form_error($form['predefined_langcode'], $this->t('Fill in the language details and save the language with <em>Add custom language</em>.'));
+      $this->setFormError('predefined_langcode', $form_state, $this->t('Fill in the language details and save the language with <em>Add custom language</em>.'));
     }
     else {
       if ($language = language_load($langcode)) {
-        form_error($form['predefined_langcode'], $this->t('The language %language (%langcode) already exists.', array('%language' => $language->name, '%langcode' => $langcode)));
+        $this->setFormError('predefined_langcode', $form_state, $this->t('The language %language (%langcode) already exists.', array('%language' => $language->name, '%langcode' => $langcode)));
       }
     }
   }

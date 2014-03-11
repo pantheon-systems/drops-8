@@ -7,8 +7,6 @@
 
 namespace Drupal\node\Plugin\Action;
 
-use Drupal\Core\Annotation\Action;
-use Drupal\Core\Annotation\Translation;
 use Drupal\Core\Action\ActionBase;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\user\TempStoreFactory;
@@ -62,7 +60,7 @@ class DeleteNode extends ActionBase implements ContainerFactoryPluginInterface {
    * {@inheritdoc}
    */
   public function executeMultiple(array $entities) {
-    $this->tempStore->set($GLOBALS['user']->id(), $entities);
+    $this->tempStore->set(\Drupal::currentUser()->id(), $entities);
   }
 
   /**

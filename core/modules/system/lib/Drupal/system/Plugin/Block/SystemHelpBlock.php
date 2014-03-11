@@ -8,10 +8,9 @@
 namespace Drupal\system\Plugin\Block;
 
 use Drupal\block\BlockBase;
-use Drupal\block\Annotation\Block;
-use Drupal\Core\Annotation\Translation;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
+use Drupal\Core\Session\AccountInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -76,9 +75,9 @@ class SystemHelpBlock extends BlockBase implements ContainerFactoryPluginInterfa
   }
 
   /**
-   * Overrides \Drupal\block\BlockBase::access().
+   * {@inheritdoc}
    */
-  public function access() {
+  public function access(AccountInterface $account) {
     $this->help = $this->getActiveHelp($this->request);
     return (bool) $this->help;
   }
@@ -91,13 +90,13 @@ class SystemHelpBlock extends BlockBase implements ContainerFactoryPluginInterfa
    */
   protected function getActiveHelp(Request $request) {
     $output = '';
-    $router_path = menu_tab_root_path();
+    $router_path = $request->attributes->get('_system_path');
     // We will always have a path unless we are on a 403 or 404.
     if (!$router_path) {
       return '';
     }
 
-    $arg = drupal_help_arg(explode('/', $request->attributes->get('_system_path')));
+    $arg = drupal_help_arg(explode('/', $router_path));
 
     foreach ($this->moduleHandler->getImplementations('help') as $module) {
       $function = $module . '_help';

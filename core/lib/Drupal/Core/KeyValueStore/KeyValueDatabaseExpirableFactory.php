@@ -9,43 +9,55 @@ namespace Drupal\Core\KeyValueStore;
 
 use Drupal\Core\DestructableInterface;
 use Drupal\Core\Database\Connection;
-use Drupal\Core\Database\Database;
-use Drupal\Core\KeyValueStore\KeyValueDatabaseFactory;
 
 /**
  * Defines the key/value store factory for the database backend.
  */
-class KeyValueDatabaseExpirableFactory extends KeyValueDatabaseFactory implements DestructableInterface {
+class KeyValueDatabaseExpirableFactory implements KeyValueExpirableFactoryInterface, DestructableInterface {
 
   /**
    * Holds references to each instantiation so they can be terminated.
    *
-   * @var array
+   * @var \Drupal\Core\KeyValueStore\DatabaseStorageExpirable[]
    */
-  protected $storages;
+  protected $storages = array();
 
   /**
-   * Constructs a new key/value expirable database storage object for a given
-   * collection name.
+   * The database connection.
    *
-   * @param string $collection
-   *   The name of the collection holding key and value pairs.
-   * @param \Drupal\Core\Database\Connection $connection
-   *   The connection to run against.
-   * @return \Drupal\Core\KeyValueStore\DatabaseStorageExpirable
-   *   A key/value store implementation for the given $collection.
+   * @var \Drupal\Core\Database\Connection
    */
-  public function get($collection) {
-    $storage = new DatabaseStorageExpirable($collection, $this->connection);
-    $this->storages[] = $storage;
-    return $storage;
+  protected $connection;
+
+  /**
+   * Constructs this factory object.
+   *
+   *
+   * @param \Drupal\Core\Database\Connection $connection
+   *   The Connection object containing the key-value tables.
+   */
+  function __construct(Connection $connection) {
+    $this->connection = $connection;
   }
 
   /**
-   * Implements Drupal\Core\DestructableInterface::terminate().
+   * {@inheritdoc}
+   */
+  public function get($collection) {
+    if (!isset($this->storages[$collection])) {
+      $this->storages[$collection] = new DatabaseStorageExpirable($collection, $this->connection);
+    }
+    return $this->storages[$collection];
+  }
+
+  /**
+   * {@inheritdoc}
    */
   public function destruct() {
-    foreach ($this->storages as $storage) {
+    if (!empty($this->storages)) {
+      // Each instance does garbage collection for all collections, so we can
+      // optimize and only have to call the first, avoids multiple DELETE.
+      $storage = reset($this->storages);
       $storage->destruct();
     }
   }

@@ -7,6 +7,9 @@
 
 namespace Drupal\user;
 
+use Drupal\Core\Entity\EntityManagerInterface;
+use Drupal\Core\Entity\Query\QueryFactory;
+use Drupal\Core\Language\LanguageManager;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
@@ -15,14 +18,19 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
 class RegisterFormController extends AccountFormController {
 
   /**
+   * {@inheritdoc}
+   */
+  public function __construct(EntityManagerInterface $entity_manager, LanguageManager $language_manager, QueryFactory $entity_query) {
+    parent::__construct($entity_manager, $language_manager, $entity_query);
+  }
+
+  /**
    * Overrides Drupal\Core\Entity\EntityFormController::form().
    */
   public function form(array $form, array &$form_state) {
-    global $user;
+    $user = $this->currentUser();
     $account = $this->entity;
-
-    $admin = user_access('administer users');
-
+    $admin = $user->hasPermission('administer users');
     // Pass access information to the submit handler. Running an access check
     // inside the submit function interferes with form processing and breaks
     // hook_form_alter().
@@ -107,31 +115,30 @@ class RegisterFormController extends AccountFormController {
     $account->password = $pass;
 
     // New administrative account without notification.
-    $uri = $account->uri();
     if ($admin && !$notify) {
-      drupal_set_message($this->t('Created a new user account for <a href="@url">%name</a>. No e-mail has been sent.', array('@url' => url($uri['path'], $uri['options']), '%name' => $account->getUsername())));
+      drupal_set_message($this->t('Created a new user account for <a href="@url">%name</a>. No e-mail has been sent.', array('@url' => $account->url(), '%name' => $account->getUsername())));
     }
     // No e-mail verification required; log in user immediately.
     elseif (!$admin && !\Drupal::config('user.settings')->get('verify_mail') && $account->isActive()) {
       _user_mail_notify('register_no_approval_required', $account);
       user_login_finalize($account);
       drupal_set_message($this->t('Registration successful. You are now logged in.'));
-      $form_state['redirect'] = '';
+      $form_state['redirect_route']['route_name'] = '<front>';
     }
     // No administrator approval required.
     elseif ($account->isActive() || $notify) {
       if (!$account->getEmail() && $notify) {
-        drupal_set_message($this->t('The new user <a href="@url">%name</a> was created without an email address, so no welcome message was sent.', array('@url' => url($uri['path'], $uri['options']), '%name' => $account->getUsername())));
+        drupal_set_message($this->t('The new user <a href="@url">%name</a> was created without an email address, so no welcome message was sent.', array('@url' => $account->url(), '%name' => $account->getUsername())));
       }
       else {
         $op = $notify ? 'register_admin_created' : 'register_no_approval_required';
         if (_user_mail_notify($op, $account)) {
           if ($notify) {
-            drupal_set_message($this->t('A welcome message with further instructions has been e-mailed to the new user <a href="@url">%name</a>.', array('@url' => url($uri['path'], $uri['options']), '%name' => $account->getUsername())));
+            drupal_set_message($this->t('A welcome message with further instructions has been e-mailed to the new user <a href="@url">%name</a>.', array('@url' => $account->url(), '%name' => $account->getUsername())));
           }
           else {
             drupal_set_message($this->t('A welcome message with further instructions has been sent to your e-mail address.'));
-            $form_state['redirect'] = '';
+            $form_state['redirect_route']['route_name'] = '<front>';
           }
         }
       }
@@ -140,7 +147,7 @@ class RegisterFormController extends AccountFormController {
     else {
       _user_mail_notify('register_pending_approval', $account);
       drupal_set_message($this->t('Thank you for applying for an account. Your account is currently pending approval by the site administrator.<br />In the meantime, a welcome message with further instructions has been sent to your e-mail address.'));
-      $form_state['redirect'] = '';
+      $form_state['redirect_route']['route_name'] = '<front>';
     }
   }
 }

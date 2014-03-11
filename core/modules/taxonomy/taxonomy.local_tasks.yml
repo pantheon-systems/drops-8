@@ -1,0 +1,18 @@
+taxonomy.term_page:
+  title: 'View'
+  route_name: taxonomy.term_page
+  base_route: taxonomy.term_page
+
+taxonomy.term_edit:
+  title: 'Edit'
+  route_name: taxonomy.term_edit
+  base_route: taxonomy.term_page
+
+taxonomy.overview_terms:
+  title: 'List'
+  route_name: taxonomy.overview_terms
+  base_route: taxonomy.overview_terms
+taxonomy.vocabulary_edit:
+  title: 'Edit'
+  route_name: taxonomy.vocabulary_edit
+  base_route: taxonomy.overview_terms

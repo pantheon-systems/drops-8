@@ -8,7 +8,8 @@
 namespace Drupal\node;
 
 use Drupal\Core\Entity\EntityFormController;
-use Symfony\Component\DependencyInjection\ContainerInterface;
+use Drupal\Component\Utility\MapArray;
+use Drupal\Component\Utility\String;
 
 /**
  * Form controller for node type forms.
@@ -23,20 +24,15 @@ class NodeTypeFormController extends EntityFormController {
 
     $type = $this->entity;
     if ($this->operation == 'add') {
-      drupal_set_title(t('Add content type'));
+      $form['#title'] = String::checkPlain($this->t('Add content type'));
     }
     elseif ($this->operation == 'edit') {
-      drupal_set_title(t('Edit %label content type', array('%label' => $type->label())), PASS_THROUGH);
+      $form['#title'] = $this->t('Edit %label content type', array('%label' => $type->label()));
     }
 
     $node_settings = $type->getModuleSettings('node');
-    // Ensure default settings.
-    $node_settings += array(
-      'options' => array('status', 'promote'),
-      'preview' => DRUPAL_OPTIONAL,
-      'submitted' => TRUE,
-    );
-
+    // Prepare node options to be used for 'checkboxes' form element.
+    $node_settings['options'] = MapArray::copyValuesToKeys(array_keys(array_filter($node_settings['options'])));
     $form['name'] = array(
       '#title' => t('Name'),
       '#type' => 'textfield',
@@ -181,7 +177,7 @@ class NodeTypeFormController extends EntityFormController {
     $id = trim($form_state['values']['type']);
     // '0' is invalid, since elsewhere we check it using empty().
     if ($id == '0') {
-      form_set_error('type', t("Invalid machine-readable name. Enter a name other than %invalid.", array('%invalid' => $id)));
+      $this->setFormError('type', $form_state, $this->t("Invalid machine-readable name. Enter a name other than %invalid.", array('%invalid' => $id)));
     }
   }
 
@@ -197,32 +193,6 @@ class NodeTypeFormController extends EntityFormController {
     // module alters the title field.
     $type->has_title = ($type->title_label != '');
 
-    $variables = $form_state['values'];
-
-    // Do not save settings from vertical tabs.
-    // @todo Fix vertical_tabs.
-    unset($variables['additional_settings__active_tab']);
-
-    // @todo Remove the entire following code after converting node settings of
-    //   Comment and Menu module. https://drupal.org/node/2026165
-    // Remove all node type entity properties.
-    foreach (get_class_vars(get_class($type)) as $key => $value) {
-      unset($variables[$key]);
-    }
-    // Save or reset persistent variable values.
-    foreach ($variables as $key => $value) {
-      $variable_new = $key . '_' . $type->id();
-      $variable_old = $key . '_' . $type->getOriginalID();
-      if (is_array($value)) {
-        $value = array_keys(array_filter($value));
-      }
-      variable_set($variable_new, $value);
-      if ($variable_new != $variable_old) {
-        variable_del($variable_old);
-      }
-    }
-    // Saving the content type after saving the variables allows modules to act
-    // on those variables via hook_node_type_insert().
     $status = $type->save();
 
     $t_args = array('%name' => $type->label());
@@ -235,14 +205,7 @@ class NodeTypeFormController extends EntityFormController {
       watchdog('node', 'Added content type %name.', $t_args, WATCHDOG_NOTICE, l(t('view'), 'admin/structure/types'));
     }
 
-    $form_state['redirect'] = 'admin/structure/types';
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function delete(array $form, array &$form_state) {
-    $form_state['redirect'] = 'admin/structure/types/manage/' . $this->entity->id() . '/delete';
+    $form_state['redirect_route']['route_name'] = 'node.overview_types';
   }
 
 }

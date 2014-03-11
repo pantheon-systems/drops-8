@@ -7,6 +7,7 @@
 
 namespace Drupal\search\Plugin\Block;
 
+use Drupal\Core\Session\AccountInterface;
 use Drupal\block\BlockBase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -16,16 +17,17 @@ use Symfony\Component\HttpFoundation\Request;
  *
  * @Block(
  *   id = "search_form_block",
- *   admin_label = @Translation("Search form")
+ *   admin_label = @Translation("Search form"),
+ *   category = @Translation("Forms")
  * )
  */
 class SearchBlock extends BlockBase {
 
   /**
-   * Overrides \Drupal\block\BlockBase::access().
+   * {@inheritdoc}
    */
-  public function access() {
-    return user_access('search content');
+  public function access(AccountInterface $account) {
+    return $account->hasPermission('search content');
   }
 
   /**

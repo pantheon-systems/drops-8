@@ -330,12 +330,6 @@
   opacity: .70;
   filter: Alpha(Opacity=70);
 }
-.overlay {
-  padding-right: 26px;
-}
-.overlay .ui-dialog-titlebar {
-  background: transparent;
-}
 
 /**
  * Slider

@@ -25,14 +25,14 @@ abstract class EntityUnitTestBase extends DrupalUnitTestBase {
   /**
    * The entity manager service.
    *
-   * @var \Drupal\Core\Entity\EntityManager
+   * @var \Drupal\Core\Entity\EntityManagerInterface
    */
   protected $entityManager;
 
   /**
    * The state service.
    *
-   * @var \Drupal\Core\KeyValueStore\KeyValueStoreInterface
+   * @var \Drupal\Core\KeyValueStore\StateInterface
    */
   protected $state;
 
@@ -91,7 +91,7 @@ abstract class EntityUnitTestBase extends DrupalUnitTestBase {
    *   The reloaded entity.
    */
   protected function reloadEntity(EntityInterface $entity) {
-    $controller = $this->entityManager->getStorageController($entity->entityType());
+    $controller = $this->entityManager->getStorageController($entity->getEntityTypeId());
     $controller->resetCache(array($entity->id()));
     return $controller->load($entity->id());
   }

@@ -9,7 +9,7 @@ namespace Drupal\node\Controller;
 
 use Drupal\Component\Utility\String;
 use Drupal\Core\Controller\ControllerBase;
-use Drupal\Core\Entity\EntityInterface;
+use Drupal\node\NodeTypeInterface;
 use Drupal\node\NodeInterface;
 
 /**
@@ -18,27 +18,63 @@ use Drupal\node\NodeInterface;
 class NodeController extends ControllerBase {
 
   /**
-   * @todo Remove node_admin_nodes().
-   */
-  public function contentOverview() {
-    module_load_include('admin.inc', 'node');
-    return node_admin_nodes();
-  }
-
-  /**
-   * @todo Remove node_add_page().
+   * Displays add content links for available content types.
+   *
+   * Redirects to node/add/[type] if only one content type is available.
+   *
+   * @return array
+   *   A render array for a list of the node types that can be added; however,
+   *   if there is only one node type defined for the site, the function
+   *   redirects to the node add page for that one node type and does not return
+   *   at all.
+   *
+   * @see node_menu()
    */
   public function addPage() {
-    module_load_include('pages.inc', 'node');
-    return node_add_page();
+    $content = array();
+
+    // Only use node types the user has access to.
+    foreach ($this->entityManager()->getStorageController('node_type')->loadMultiple() as $type) {
+      if ($this->entityManager()->getAccessController('node')->createAccess($type->type)) {
+        $content[$type->type] = $type;
+      }
+    }
+
+    // Bypass the node/add listing if only one content type is available.
+    if (count($content) == 1) {
+      $type = array_shift($content);
+      return $this->redirect('node.add', array('node_type' => $type->type));
+    }
+
+    return array(
+      '#theme' => 'node_add_list',
+      '#content' => $content,
+    );
   }
 
   /**
-   * @todo Remove node_add().
+   * Provides the node submission form.
+   *
+   * @param \Drupal\node\NodeTypeInterface $node_type
+   *   The node type entity for the node.
+   *
+   * @return array
+   *   A node submission form.
    */
-  public function add(EntityInterface $node_type) {
-    module_load_include('pages.inc', 'node');
-    return node_add($node_type);
+  public function add(NodeTypeInterface $node_type) {
+    $account = $this->currentUser();
+    $langcode = $this->moduleHandler()->invoke('language', 'get_default_langcode', array('node', $node_type->type));
+
+    $node = $this->entityManager()->getStorageController('node')->create(array(
+      'uid' => $account->id(),
+      'name' => $account->getUsername() ?: '',
+      'type' => $node_type->type,
+      'langcode' => $langcode ? $langcode : $this->languageManager()->getCurrentLanguage()->id,
+    ));
+
+    $form = $this->entityFormBuilder()->getForm($node);
+
+    return $form;
   }
 
   /**
@@ -93,12 +129,12 @@ class NodeController extends ControllerBase {
     $build = $this->buildPage($node);
 
     foreach ($node->uriRelationships() as $rel) {
-      $uri = $node->uri($rel);
+      $uri = $node->urlInfo($rel);
       // Set the node path as the canonical URL to prevent duplicate content.
       $build['#attached']['drupal_add_html_head_link'][] = array(
         array(
         'rel' => $rel,
-        'href' => $this->urlGenerator()->generateFromPath($uri['path'], $uri['options']),
+        'href' => $node->url($rel),
         )
         , TRUE);
 
@@ -107,7 +143,7 @@ class NodeController extends ControllerBase {
         $build['#attached']['drupal_add_html_head_link'][] = array(
           array(
             'rel' => 'shortlink',
-            'href' => $this->urlGenerator()->generateFromPath($uri['path'], array_merge($uri['options'], array('alias' => TRUE))),
+            'href' => $node->url($rel, array('alias' => TRUE)),
           )
         , TRUE);
       }
@@ -126,7 +162,7 @@ class NodeController extends ControllerBase {
    *   The page title.
    */
   public function pageTitle(NodeInterface $node) {
-    return String::checkPlain($node->label());
+    return String::checkPlain($this->entityManager()->getTranslationFromContext($node)->label());
   }
 
   /**
@@ -139,7 +175,20 @@ class NodeController extends ControllerBase {
    *   An array suitable for drupal_render().
    */
   protected function buildPage(NodeInterface $node) {
-    return array('nodes' => $this->entityManager()->getRenderController('node')->view($node));
+    return array('nodes' => $this->entityManager()->getViewBuilder('node')->view($node));
+  }
+
+  /**
+   * The _title_callback for the node.add route.
+   *
+   * @param \Drupal\node\NodeTypeInterface $node_type
+   *   The current node.
+   *
+   * @return string
+   *   The page title.
+   */
+  public function addPageTitle(NodeTypeInterface $node_type) {
+    return $this->t('Create @name', array('@name' => $node_type->name));
   }
 
 }

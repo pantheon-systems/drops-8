@@ -2,9 +2,7 @@
 
 /**
  * @file
- * Provide views data and handlers for taxonomy.module.
- *
- * @ingroup views_module_handlers
+ * Provide views data for taxonomy.module.
  */
 
 use Drupal\Core\Entity\FieldableDatabaseStorageController;
@@ -130,12 +128,12 @@ function taxonomy_views_data() {
   );
 
   // Term description
-  $data['taxonomy_term_data']['description'] = array(
+  $data['taxonomy_term_data']['description__value'] = array(
     'title' => t('Term description'),
     'help' => t('The description associated with a taxonomy term.'),
     'field' => array(
       'id' => 'markup',
-      'format' => array('field' => 'format'),
+      'format' => array('field' => 'description__format'),
       'click sortable' => FALSE,
     ),
     'filter' => array(
@@ -360,7 +358,7 @@ function taxonomy_views_data() {
 function taxonomy_views_data_alter(&$data) {
   $data['node']['term_node_tid'] = array(
     'title' => t('Taxonomy terms on node'),
-    'help' => t('Relate nodes to taxonomy terms, specifiying which vocabulary or vocabularies to use. This relationship will cause duplicated records if there are multiple terms.'),
+    'help' => t('Relate nodes to taxonomy terms, specifying which vocabulary or vocabularies to use. This relationship will cause duplicated records if there are multiple terms.'),
     'relationship' => array(
       'id' => 'node_term_data',
       'label' => t('term'),
@@ -412,13 +410,13 @@ function taxonomy_field_views_data(FieldInterface $field) {
     foreach ($table_data as $field_name => $field_data) {
       if (isset($field_data['filter']) && $field_name != 'delta') {
         $data[$table_name][$field_name]['filter']['id'] = 'taxonomy_index_tid';
-        $allowed_values = $field->getFieldSetting('allowed_values');
+        $allowed_values = $field->getSetting('allowed_values');
         $data[$table_name][$field_name]['filter']['vocabulary'] = $allowed_values[0]['vocabulary'];
       }
     }
 
     // Add the relationship only on the tid field.
-    $field_name = $field->getFieldName();
+    $field_name = $field->getName();
     $data[$table_name][$field_name . '_target_id']['relationship'] = array(
       'id' => 'standard',
       'base' => 'taxonomy_term_data',
@@ -437,23 +435,23 @@ function taxonomy_field_views_data(FieldInterface $field) {
  * Views integration to provide reverse relationships on term references.
  */
 function taxonomy_field_views_data_views_data_alter(array &$data, FieldInterface $field) {
-  $field_name = $field->getFieldName();
-  $entity_type = $field->entity_type;
-  $entity_info = entity_get_info($entity_type);
-  $pseudo_field_name = 'reverse_' . $field_name . '_' . $entity_type;
+  $field_name = $field->getName();
+  $entity_type_id = $field->entity_type;
+  $entity_type = \Drupal::entityManager()->getDefinition($entity_type_id);
+  $pseudo_field_name = 'reverse_' . $field_name . '_' . $entity_type_id;
 
-  list($label) = field_views_field_label($entity_type, $field_name);
+  list($label) = field_views_field_label($entity_type_id, $field_name);
 
   $data['taxonomy_term_data'][$pseudo_field_name]['relationship'] = array(
-    'title' => t('@entity using @field', array('@entity' => $entity_info['label'], '@field' => $label)),
-    'help' => t('Relate each @entity with a @field set to the term.', array('@entity' => $entity_info['label'], '@field' => $label)),
+    'title' => t('@entity using @field', array('@entity' => $entity_type->getLabel(), '@field' => $label)),
+    'help' => t('Relate each @entity with a @field set to the term.', array('@entity' => $entity_type->getLabel(), '@field' => $label)),
     'id' => 'entity_reverse',
     'field_name' => $field_name,
-    'entity_type' => $entity_type,
+    'entity_type' => $entity_type_id,
     'field table' => FieldableDatabaseStorageController::_fieldTableName($field),
     'field field' => $field_name . '_target_id',
-    'base' => $entity_info['base_table'],
-    'base field' => $entity_info['entity_keys']['id'],
+    'base' => $entity_type->getBaseTable(),
+    'base field' => $entity_type->getKey('id'),
     'label' => t('!field_name', array('!field_name' => $field_name)),
     'join_extra' => array(
       0 => array(
@@ -466,28 +464,14 @@ function taxonomy_field_views_data_views_data_alter(array &$data, FieldInterface
 }
 
 /**
- * Helper function to set a breadcrumb for taxonomy.
+ * Implements hook_views_plugins_argument_validator_alter().
+ *
+ * Extend the generic entity argument validator.
+ *
+ * @see \Drupal\views\Plugin\views\argument_validator\Entity
  */
-function views_taxonomy_set_breadcrumb(&$breadcrumb, &$argument) {
-  if (empty($argument->options['set_breadcrumb'])) {
-    return;
-  }
-
-  $args = $argument->view->args;
-  $parents = taxonomy_get_parents_all($argument->argument);
-  foreach (array_reverse($parents) as $parent) {
-    // Unfortunately parents includes the current argument. Skip.
-    if ($parent->id() == $argument->argument) {
-      continue;
-    }
-    if (!empty($argument->options['use_taxonomy_term_path'])) {
-      $path = $parent->uri();
-      $path = $path['path'];
-    }
-    else {
-      $args[$argument->position] = $parent->id();
-      $path = $argument->view->getUrl($args);
-    }
-    $breadcrumb[$path] = check_plain($parent->label());
-  }
+function taxonomy_views_plugins_argument_validator_alter(array &$plugins) {
+  $plugins['entity:taxonomy_term']['title'] = t('Taxonomy term ID');
+  $plugins['entity:taxonomy_term']['class'] = 'Drupal\taxonomy\Plugin\views\argument_validator\Term';
+  $plugins['entity:taxonomy_term']['provider'] = 'taxonomy';
 }

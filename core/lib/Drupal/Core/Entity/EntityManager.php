@@ -7,9 +7,14 @@
 
 namespace Drupal\Core\Entity;
 
+use Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException;
+use Drupal\Component\Plugin\Exception\PluginNotFoundException;
 use Drupal\Component\Plugin\PluginManagerBase;
-use Drupal\Component\Plugin\Factory\DefaultFactory;
 use Drupal\Component\Utility\NestedArray;
+use Drupal\Component\Utility\String;
+use Drupal\Core\Field\FieldDefinition;
+use Drupal\Core\Cache\Cache;
+use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Language\LanguageManager;
 use Drupal\Core\Language\Language;
@@ -17,8 +22,8 @@ use Drupal\Core\Plugin\Discovery\AlterDecorator;
 use Drupal\Core\Plugin\Discovery\CacheDecorator;
 use Drupal\Core\Plugin\Discovery\AnnotatedClassDiscovery;
 use Drupal\Core\Plugin\Discovery\InfoHookDecorator;
-use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\StringTranslation\TranslationInterface;
+use Drupal\Core\TypedData\TranslatableInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -28,14 +33,14 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * annotation and altered by hook_entity_info_alter().
  *
  * The defaults for the plugin definition are provided in
- * \Drupal\Core\Entity\EntityManager::defaults.
+ * \Drupal\Core\Entity\EntityManagerInterface::defaults.
  *
  * @see \Drupal\Core\Entity\Annotation\EntityType
  * @see \Drupal\Core\Entity\EntityInterface
- * @see entity_get_info()
+ * @see \Drupal\Core\Entity\EntityTypeInterface
  * @see hook_entity_info_alter()
  */
-class EntityManager extends PluginManagerBase {
+class EntityManager extends PluginManagerBase implements EntityManagerInterface {
 
   /**
    * The injection container that should be passed into the controller factory.
@@ -91,7 +96,7 @@ class EntityManager extends PluginManagerBase {
   /**
    * The root paths.
    *
-   * @see \Drupal\Core\Entity\EntityManager::__construct().
+   * @see self::__construct().
    *
    * @var \Traversable
    */
@@ -104,7 +109,7 @@ class EntityManager extends PluginManagerBase {
    */
   protected $translationManager;
 
-  /*
+  /**
    * Static cache of bundle information.
    *
    * @var array
@@ -137,36 +142,12 @@ class EntityManager extends PluginManagerBase {
     $this->namespaces = $namespaces;
     $this->translationManager = $translation_manager;
 
-    $this->doDiscovery($namespaces);
-    $this->factory = new DefaultFactory($this->discovery);
-    $this->container = $container;
-  }
-
-  protected function doDiscovery($namespaces) {
     $this->discovery = new AnnotatedClassDiscovery('Entity', $namespaces, 'Drupal\Core\Entity\Annotation\EntityType');
     $this->discovery = new InfoHookDecorator($this->discovery, 'entity_info');
     $this->discovery = new AlterDecorator($this->discovery, 'entity_info');
-    $this->discovery = new CacheDecorator($this->discovery, 'entity_info:' . $this->languageManager->getLanguage(Language::TYPE_INTERFACE)->id, 'cache', CacheBackendInterface::CACHE_PERMANENT, array('entity_info' => TRUE));
-  }
+    $this->discovery = new CacheDecorator($this->discovery, 'entity_info:' . $this->languageManager->getCurrentLanguage()->id, 'cache', Cache::PERMANENT, array('entity_info' => TRUE));
 
-  /**
-   * Add more namespaces to the entity manager.
-   *
-   * This is usually only necessary for uninstall purposes.
-   *
-   * @todo Remove this method, along with doDiscovery(), when
-   * https://drupal.org/node/1199946 is fixed.
-   *
-   * @param \Traversable $namespaces
-   *
-   * @see comment_uninstall()
-   */
-  public function addNamespaces(\Traversable $namespaces) {
-    reset($this->namespaces);
-    $iterator = new \AppendIterator;
-    $iterator->append(new \IteratorIterator($this->namespaces));
-    $iterator->append($namespaces);
-    $this->doDiscovery($iterator);
+    $this->container = $container;
   }
 
   /**
@@ -178,118 +159,52 @@ class EntityManager extends PluginManagerBase {
     $this->bundleInfo = NULL;
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  public function getDefinition($entity_type_id, $exception_on_invalid = FALSE) {
+    if (($entity_type = parent::getDefinition($entity_type_id)) && class_exists($entity_type->getClass())) {
+      return $entity_type;
+    }
+    elseif (!$exception_on_invalid) {
+      return NULL;
+    }
+
+    throw new PluginNotFoundException($entity_type_id, sprintf('The "%s" entity type does not exist.', $entity_type_id));
+  }
 
   /**
-   * Checks whether a certain entity type has a certain controller.
-   *
-   * @param string $entity_type
-   *   The name of the entity type.
-   * @param string $controller_type
-   *   The name of the controller.
-   *
-   * @return bool
-   *   Returns TRUE if the entity type has the controller, else FALSE.
+   * {@inheritdoc}
    */
   public function hasController($entity_type, $controller_type) {
-    $definition = $this->getDefinition($entity_type);
-    return !empty($definition['controllers'][$controller_type]);
+    if ($definition = $this->getDefinition($entity_type)) {
+      return $definition->hasControllerClass($controller_type);
+    }
+    return FALSE;
   }
 
   /**
-   * Returns an entity controller class.
-   *
-   * @param string $entity_type
-   *   The name of the entity type
-   * @param string $controller_type
-   *   The name of the controller.
-   * @param string|null $nested
-   *   (optional) If this controller definition is nested, the name of the key.
-   *   Defaults to NULL.
-   *
-   * @return string
-   *   The class name for this controller instance.
-   */
-  public function getControllerClass($entity_type, $controller_type, $nested = NULL) {
-    $definition = $this->getDefinition($entity_type);
-    if (!$definition) {
-      throw new \InvalidArgumentException(sprintf('The %s entity type does not exist.', $entity_type));
-    }
-    $definition = $definition['controllers'];
-    if (!$definition) {
-      throw new \InvalidArgumentException(sprintf('The entity type (%s) does not exist.', $entity_type));
-    }
-
-    if (empty($definition[$controller_type])) {
-      throw new \InvalidArgumentException(sprintf('The entity type (%s) did not specify a %s controller.', $entity_type, $controller_type));
-    }
-
-    $class = $definition[$controller_type];
-
-    // Some class definitions can be nested.
-    if (isset($nested)) {
-      if (empty($class[$nested])) {
-        throw new \InvalidArgumentException(sprintf("The entity type (%s) did not specify a %s controller: %s.", $entity_type, $controller_type, $nested));
-      }
-
-      $class = $class[$nested];
-    }
-
-    if (!class_exists($class)) {
-      throw new \InvalidArgumentException(sprintf('The entity type (%s) %s controller "%s" does not exist.', $entity_type, $controller_type, $class));
-    }
-
-    return $class;
-  }
-
-  /**
-   * Creates a new storage controller instance.
-   *
-   * @param string $entity_type
-   *   The entity type for this storage controller.
-   *
-   * @return \Drupal\Core\Entity\EntityStorageControllerInterface
-   *   A storage controller instance.
+   * {@inheritdoc}
    */
   public function getStorageController($entity_type) {
-    return $this->getController($entity_type, 'storage');
+    return $this->getController($entity_type, 'storage', 'getStorageClass');
   }
 
   /**
-   * Creates a new list controller instance.
-   *
-   * @param string $entity_type
-   *   The entity type for this list controller.
-   *
-   * @return \Drupal\Core\Entity\EntityListControllerInterface
-   *   A list controller instance.
+   * {@inheritdoc}
    */
   public function getListController($entity_type) {
-    if (!isset($this->controllers['listing'][$entity_type])) {
-      $class = $this->getControllerClass($entity_type, 'list');
-      if (in_array('Drupal\Core\Entity\EntityControllerInterface', class_implements($class))) {
-        $this->controllers['listing'][$entity_type] = $class::createInstance($this->container, $entity_type, $this->getDefinition($entity_type));
-      }
-      else {
-        $this->controllers['listing'][$entity_type] = new $class($entity_type, $this->getStorageController($entity_type));
-      }
-    }
-    return $this->controllers['listing'][$entity_type];
+    return $this->getController($entity_type, 'list', 'getListClass');
   }
 
   /**
-   * Creates a new form controller instance.
-   *
-   * @param string $entity_type
-   *   The entity type for this form controller.
-   * @param string $operation
-   *   The name of the operation to use, e.g., 'default'.
-   *
-   * @return \Drupal\Core\Entity\EntityFormControllerInterface
-   *   A form controller instance.
+   * {@inheritdoc}
    */
   public function getFormController($entity_type, $operation) {
     if (!isset($this->controllers['form'][$operation][$entity_type])) {
-      $class = $this->getControllerClass($entity_type, 'form', $operation);
+      if (!$class = $this->getDefinition($entity_type, TRUE)->getFormClass($operation)) {
+        throw new InvalidPluginDefinitionException($entity_type, sprintf('The "%s" entity type did not specify a "%s" form class.', $entity_type, $operation));
+      }
       if (in_array('Drupal\Core\DependencyInjection\ContainerInjectionInterface', class_implements($class))) {
         $controller = $class::create($this->container);
       }
@@ -307,179 +222,98 @@ class EntityManager extends PluginManagerBase {
   }
 
   /**
-   * Creates a new render controller instance.
-   *
-   * @param string $entity_type
-   *   The entity type for this render controller.
-   *
-   * @return \Drupal\Core\Entity\EntityRenderControllerInterface.
-   *   A render controller instance.
+   * {@inheritdoc}
    */
-  public function getRenderController($entity_type) {
-    return $this->getController($entity_type, 'render');
+  public function getViewBuilder($entity_type) {
+    return $this->getController($entity_type, 'view_builder', 'getViewBuilderClass');
   }
 
   /**
-   * Creates a new access controller instance.
-   *
-   * @param string $entity_type
-   *   The entity type for this access controller.
-   *
-   * @return \Drupal\Core\Entity\EntityAccessControllerInterface.
-   *   A access controller instance.
+   * {@inheritdoc}
    */
   public function getAccessController($entity_type) {
-    if (!isset($this->controllers['access'][$entity_type])) {
-      $controller = $this->getController($entity_type, 'access');
-      $controller->setModuleHandler($this->moduleHandler);
-    }
-    return $this->controllers['access'][$entity_type];
+    return $this->getController($entity_type, 'access', 'getAccessClass');
   }
 
   /**
    * Creates a new controller instance.
    *
    * @param string $entity_type
-   *   The entity type for this access controller.
+   *   The entity type for this controller.
    * @param string $controller_type
    *   The controller type to create an instance for.
+   * @param string $controller_class_getter
+   *   (optional) The method to call on the entity type object to get the controller class.
    *
-   * @return mixed.
+   * @return mixed
    *   A controller instance.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
    */
-  protected function getController($entity_type, $controller_type) {
+  public function getController($entity_type, $controller_type, $controller_class_getter = NULL) {
     if (!isset($this->controllers[$controller_type][$entity_type])) {
-      $class = $this->getControllerClass($entity_type, $controller_type);
-      if (in_array('Drupal\Core\Entity\EntityControllerInterface', class_implements($class))) {
-        $this->controllers[$controller_type][$entity_type] = $class::createInstance($this->container, $entity_type, $this->getDefinition($entity_type));
+      $definition = $this->getDefinition($entity_type, TRUE);
+      if ($controller_class_getter) {
+        $class = $definition->{$controller_class_getter}();
       }
       else {
-        $this->controllers[$controller_type][$entity_type] = new $class($entity_type, $this->getDefinition($entity_type));
+        $class = $definition->getControllerClass($controller_type);
       }
+      if (!$class) {
+        throw new InvalidPluginDefinitionException($entity_type, sprintf('The "%s" entity type did not specify a %s class.', $entity_type, $controller_type));
+      }
+      if (is_subclass_of($class, 'Drupal\Core\Entity\EntityControllerInterface')) {
+        $controller = $class::createInstance($this->container, $definition);
+      }
+      else {
+        $controller = new $class($definition);
+      }
+      if (method_exists($controller, 'setModuleHandler')) {
+        $controller->setModuleHandler($this->moduleHandler);
+      }
+      if (method_exists($controller, 'setTranslationManager')) {
+        $controller->setTranslationManager($this->translationManager);
+      }
+      $this->controllers[$controller_type][$entity_type] = $controller;
     }
     return $this->controllers[$controller_type][$entity_type];
   }
 
   /**
-   * Returns the built and processed entity form for the given entity.
-   *
-   * @param \Drupal\Core\Entity\EntityInterface $entity
-   *   The entity to be created or edited.
-   * @param string $operation
-   *   (optional) The operation identifying the form variation to be returned.
-   *   Defaults to 'default'.
-   * @param array $form_state
-   *   (optional) An associative array containing the current state of the form.
-   *   Use this to pass additional information to the form, such as the
-   *   langcode. Defaults to an empty array.
-   * @code
-   *   $form_state['langcode'] = $langcode;
-   *   $manager = \Drupal::entityManager();
-   *   $form = $manager->getForm($entity, 'default', $form_state);
-   * @endcode
-   *
-   * @return array
-   *   The processed form for the given entity and operation.
+   * {@inheritdoc}
    */
-  public function getForm(EntityInterface $entity, $operation = 'default', array $form_state = array()) {
-    $form_state += entity_form_state_defaults($entity, $operation);
-    $form_id = $form_state['build_info']['callback_object']->getFormId();
-    return drupal_build_form($form_id, $form_state);
-  }
-
-  /**
-   * Returns the administration path for an entity type's bundle.
-   *
-   * @param string $entity_type
-   *   The entity type.
-   * @param string $bundle
-   *   The name of the bundle.
-   *
-   * @return string
-   *   The administration path for an entity type bundle, if it exists.
-   */
-  public function getAdminPath($entity_type, $bundle) {
-    $admin_path = '';
-    $entity_info = $this->getDefinition($entity_type);
-    // Check for an entity type's admin base path.
-    if (isset($entity_info['route_base_path'])) {
-      // Replace any dynamic 'bundle' portion of the path with the actual bundle.
-      $admin_path = str_replace('{bundle}', $bundle, $entity_info['route_base_path']);
+  public function getAdminRouteInfo($entity_type_id, $bundle) {
+    if (($entity_type = $this->getDefinition($entity_type_id)) && $admin_form = $entity_type->getLinkTemplate('admin-form')) {
+      return array(
+        'route_name' => $admin_form,
+        'route_parameters' => array(
+          $entity_type->getBundleEntityType() => $bundle,
+        ),
+      );
     }
-
-    return $admin_path;
   }
 
   /**
-   * Returns the route information for an entity type's bundle.
-   *
-   * @param string $entity_type
-   *   The entity type.
-   * @param string $bundle
-   *   The name of the bundle.
-   *
-   * @return array
-   *   An associative array with the following keys:
-   *   - route_name: The name of the route.
-   *   - route_parameters: (optional) An associative array of parameter names
-   *     and values.
+   * {@inheritdoc}
    */
-  public function getAdminRouteInfo($entity_type, $bundle) {
-    $entity_info = $this->getDefinition($entity_type);
-    return array(
-      'route_name' => "field_ui.overview_$entity_type",
-      'route_parameters' => array(
-        'bundle' => $bundle,
-      )
-    );
-  }
-
-  /**
-   * Gets an array of content entity field definitions.
-   *
-   * If a bundle is passed, fields specific to this bundle are included. Entity
-   * fields are always multi-valued, so 'list' is TRUE for each returned field
-   * definition.
-   *
-   * @param string $entity_type
-   *   The entity type to get field definitions for. Only entity types that
-   *   implement \Drupal\Core\Entity\ContentEntityInterface are supported.
-   * @param string $bundle
-   *   (optional) The entity bundle for which to get field definitions. If NULL
-   *   is passed, no bundle-specific fields are included. Defaults to NULL.
-   *
-   * @return array
-   *   An array of field definitions of entity fields, keyed by field
-   *   name. In addition to the typed data definition keys as described at
-   *   \Drupal\Core\TypedData\TypedDataManager::create() the following keys are
-   *   supported:
-   *   - queryable: Whether the field is queryable via QueryInterface.
-   *     Defaults to TRUE if 'computed' is FALSE or not set, to FALSE otherwise.
-   *   - translatable: Whether the field is translatable. Defaults to FALSE.
-   *   - configurable: A boolean indicating whether the field is configurable
-   *     via field.module. Defaults to FALSE.
-   *
-   * @see \Drupal\Core\TypedData\TypedDataManager::create()
-   * @see \Drupal\Core\Entity\EntityManager::getFieldDefinitionsByConstraints()
-   */
-  public function getFieldDefinitions($entity_type, $bundle = NULL) {
-    if (!isset($this->entityFieldInfo[$entity_type])) {
+  public function getFieldDefinitions($entity_type_id, $bundle = NULL) {
+    if (!isset($this->entityFieldInfo[$entity_type_id])) {
       // First, try to load from cache.
-      $cid = 'entity_field_definitions:' . $entity_type . ':' . $this->languageManager->getLanguage(Language::TYPE_INTERFACE)->id;
+      $cid = 'entity_field_definitions:' . $entity_type_id . ':' . $this->languageManager->getCurrentLanguage()->id;
       if ($cache = $this->cache->get($cid)) {
-        $this->entityFieldInfo[$entity_type] = $cache->data;
+        $this->entityFieldInfo[$entity_type_id] = $cache->data;
       }
       else {
-        $class = $this->factory->getPluginClass($entity_type, $this->getDefinition($entity_type));
+        // @todo: Refactor to allow for per-bundle overrides.
+        // See https://drupal.org/node/2114707.
+        $entity_type = $this->getDefinition($entity_type_id);
+        $class = $entity_type->getClass();
 
-        $base_definitions = $class::baseFieldDefinitions($entity_type);
+        $base_definitions = $class::baseFieldDefinitions($entity_type_id);
         foreach ($base_definitions as &$base_definition) {
-          // Support old-style field types to avoid that all base field
-          // definitions need to be changed.
-          // @todo: Remove after https://drupal.org/node/2047229.
-          $base_definition['type'] = preg_replace('/(.+)_field/', 'field_item:$1', $base_definition['type']);
+          $base_definition->setTargetEntityTypeId($entity_type_id);
         }
-        $this->entityFieldInfo[$entity_type] = array(
+        $this->entityFieldInfo[$entity_type_id] = array(
           'definitions' => $base_definitions,
           // Contains definitions of optional (per-bundle) fields.
           'optional' => array(),
@@ -489,70 +323,56 @@ class EntityManager extends PluginManagerBase {
         );
 
         // Invoke hooks.
-        $result = $this->moduleHandler->invokeAll($entity_type . '_field_info');
-        $this->entityFieldInfo[$entity_type] = NestedArray::mergeDeep($this->entityFieldInfo[$entity_type], $result);
-        $result = $this->moduleHandler->invokeAll('entity_field_info', array($entity_type));
-        $this->entityFieldInfo[$entity_type] = NestedArray::mergeDeep($this->entityFieldInfo[$entity_type], $result);
+        $result = $this->moduleHandler->invokeAll($entity_type_id . '_field_info');
+        $this->entityFieldInfo[$entity_type_id] = NestedArray::mergeDeep($this->entityFieldInfo[$entity_type_id], $result);
+        $result = $this->moduleHandler->invokeAll('entity_field_info', array($entity_type_id));
+        $this->entityFieldInfo[$entity_type_id] = NestedArray::mergeDeep($this->entityFieldInfo[$entity_type_id], $result);
 
-        $hooks = array('entity_field_info', $entity_type . '_field_info');
-        $this->moduleHandler->alter($hooks, $this->entityFieldInfo[$entity_type], $entity_type);
-
-        // Enforce fields to be multiple and untranslatable by default.
-        $entity_info = $this->getDefinition($entity_type);
-        $keys = array_intersect_key(array_filter($entity_info['entity_keys']), array_flip(array('id', 'revision', 'uuid', 'bundle')));
-        $untranslatable_fields = array_flip(array('langcode') + $keys);
+        // Automatically set the field name for non-configurable fields.
         foreach (array('definitions', 'optional') as $key) {
-          foreach ($this->entityFieldInfo[$entity_type][$key] as $name => &$definition) {
-            $definition['list'] = TRUE;
-            // Ensure ids and langcode fields are never made translatable.
-            if (isset($untranslatable_fields[$name]) && !empty($definition['translatable'])) {
-              throw new \LogicException(format_string('The @field field cannot be translatable.', array('@field' => $definition['label'])));
-            }
-            if (!isset($definition['translatable'])) {
-              $definition['translatable'] = FALSE;
+          foreach ($this->entityFieldInfo[$entity_type_id][$key] as $field_name => &$definition) {
+            if ($definition instanceof FieldDefinition) {
+              $definition->setName($field_name);
             }
           }
         }
 
-        $this->cache->set($cid, $this->entityFieldInfo[$entity_type], CacheBackendInterface::CACHE_PERMANENT, array('entity_info' => TRUE, 'entity_field_info' => TRUE));
+        // Invoke alter hooks.
+        $hooks = array('entity_field_info', $entity_type_id . '_field_info');
+        $this->moduleHandler->alter($hooks, $this->entityFieldInfo[$entity_type_id], $entity_type_id);
+
+        // Ensure all basic fields are not defined as translatable.
+        $keys = array_intersect_key(array_filter($entity_type->getKeys()), array_flip(array('id', 'revision', 'uuid', 'bundle')));
+        $untranslatable_fields = array_flip(array('langcode') + $keys);
+        foreach (array('definitions', 'optional') as $key) {
+          foreach ($this->entityFieldInfo[$entity_type_id][$key] as $field_name => &$definition) {
+            if (isset($untranslatable_fields[$field_name]) && $definition->isTranslatable()) {
+              throw new \LogicException(String::format('The @field field cannot be translatable.', array('@field' => $definition->getLabel())));
+            }
+          }
+        }
+
+        $this->cache->set($cid, $this->entityFieldInfo[$entity_type_id], Cache::PERMANENT, array('entity_info' => TRUE, 'entity_field_info' => TRUE));
       }
     }
 
     if (!$bundle) {
-      return $this->entityFieldInfo[$entity_type]['definitions'];
+      return $this->entityFieldInfo[$entity_type_id]['definitions'];
     }
     else {
       // Add in per-bundle fields.
-      if (!isset($this->fieldDefinitions[$entity_type][$bundle])) {
-        $this->fieldDefinitions[$entity_type][$bundle] = $this->entityFieldInfo[$entity_type]['definitions'];
-        if (isset($this->entityFieldInfo[$entity_type]['bundle map'][$bundle])) {
-          $this->fieldDefinitions[$entity_type][$bundle] += array_intersect_key($this->entityFieldInfo[$entity_type]['optional'], array_flip($this->entityFieldInfo[$entity_type]['bundle map'][$bundle]));
+      if (!isset($this->fieldDefinitions[$entity_type_id][$bundle])) {
+        $this->fieldDefinitions[$entity_type_id][$bundle] = $this->entityFieldInfo[$entity_type_id]['definitions'];
+        if (isset($this->entityFieldInfo[$entity_type_id]['bundle map'][$bundle])) {
+          $this->fieldDefinitions[$entity_type_id][$bundle] += array_intersect_key($this->entityFieldInfo[$entity_type_id]['optional'], array_flip($this->entityFieldInfo[$entity_type_id]['bundle map'][$bundle]));
         }
       }
-      return $this->fieldDefinitions[$entity_type][$bundle];
+      return $this->fieldDefinitions[$entity_type_id][$bundle];
     }
   }
 
   /**
-   * Gets an array of entity field definitions based on validation constraints.
-   *
-   * @param string $entity_type
-   *   The entity type to get field definitions for.
-   * @param array $constraints
-   *   An array of entity constraints as used for entities in typed data
-   *   definitions, i.e. an array optionally including a 'Bundle' key.
-   *   For example the constraints used by an entity reference could be:
-   *   @code
-   *   array(
-   *     'Bundle' => 'article',
-   *   )
-   *   @endcode
-   *
-   * @return array
-   *   An array of field definitions of entity fields, keyed by field
-   *   name.
-   *
-   * @see \Drupal\Core\Entity\EntityManager::getFieldDefinitions()
+   * {@inheritdoc}
    */
   public function getFieldDefinitionsByConstraints($entity_type, array $constraints) {
     // @todo: Add support for specifying multiple bundles.
@@ -560,22 +380,16 @@ class EntityManager extends PluginManagerBase {
   }
 
   /**
-   * Clears static and persistent field definition caches.
+   * {@inheritdoc}
    */
   public function clearCachedFieldDefinitions() {
     unset($this->entityFieldInfo);
     unset($this->fieldDefinitions);
-    $this->cache->deleteTags(array('entity_field_info' => TRUE));
+    Cache::deleteTags(array('entity_field_info' => TRUE));
   }
 
   /**
-   * Get the bundle info of an entity type.
-   *
-   * @param string $entity_type
-   *   The entity type.
-   *
-   * @return array
-   *   Returns the bundle information for the specified entity type.
+   * {@inheritdoc}
    */
   public function getBundleInfo($entity_type) {
     $bundle_info = $this->getAllBundleInfo();
@@ -583,27 +397,24 @@ class EntityManager extends PluginManagerBase {
   }
 
   /**
-   * Get the bundle info of all entity types.
-   *
-   * @return array
-   *   An array of all bundle information.
+   * {@inheritdoc}
    */
   public function getAllBundleInfo() {
     if (!isset($this->bundleInfo)) {
-      $langcode = $this->languageManager->getLanguage(Language::TYPE_INTERFACE)->id;
+      $langcode = $this->languageManager->getCurrentLanguage()->id;
       if ($cache = $this->cache->get("entity_bundle_info:$langcode")) {
         $this->bundleInfo = $cache->data;
       }
       else {
         $this->bundleInfo = $this->moduleHandler->invokeAll('entity_bundle_info');
         // If no bundles are provided, use the entity type name and label.
-        foreach ($this->getDefinitions() as $type => $entity_info) {
+        foreach ($this->getDefinitions() as $type => $entity_type) {
           if (!isset($this->bundleInfo[$type])) {
-            $this->bundleInfo[$type][$type]['label'] = $entity_info['label'];
+            $this->bundleInfo[$type][$type]['label'] = $entity_type->getLabel();
           }
         }
         $this->moduleHandler->alter('entity_bundle_info', $this->bundleInfo);
-        $this->cache->set("entity_bundle_info:$langcode", $this->bundleInfo, CacheBackendInterface::CACHE_PERMANENT, array('entity_info' => TRUE));
+        $this->cache->set("entity_bundle_info:$langcode", $this->bundleInfo, Cache::PERMANENT, array('entity_info' => TRUE));
       }
     }
 
@@ -611,18 +422,48 @@ class EntityManager extends PluginManagerBase {
   }
 
   /**
-   * Builds a list of entity type labels suitable for a Form API options list.
-   *
-   * @return array
-   *   An array of entity type labels, keyed by entity type name.
+   * {@inheritdoc}
    */
   public function getEntityTypeLabels() {
     $options = array();
     foreach ($this->getDefinitions() as $entity_type => $definition) {
-      $options[$entity_type] = $definition['label'];
+      $options[$entity_type] = $definition->getLabel();
     }
 
     return $options;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getTranslationFromContext(EntityInterface $entity, $langcode = NULL, $context = array()) {
+    $translation = $entity;
+
+    if ($entity instanceof TranslatableInterface) {
+      if (empty($langcode)) {
+        $langcode = $this->languageManager->getCurrentLanguage(Language::TYPE_CONTENT)->id;
+      }
+
+      // Retrieve language fallback candidates to perform the entity language
+      // negotiation.
+      $context['data'] = $entity;
+      $context += array('operation' => 'entity_view');
+      $candidates = $this->languageManager->getFallbackCandidates($langcode, $context);
+
+      // Ensure the default language has the proper language code.
+      $default_language = $entity->getUntranslated()->language();
+      $candidates[$default_language->id] = Language::LANGCODE_DEFAULT;
+
+      // Return the most fitting entity translation.
+      foreach ($candidates as $candidate) {
+        if ($entity->hasTranslation($candidate)) {
+          $translation = $entity->getTranslation($candidate);
+          break;
+        }
+      }
+    }
+
+    return $translation;
   }
 
 }

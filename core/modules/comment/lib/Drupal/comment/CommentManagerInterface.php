@@ -6,6 +6,7 @@
  */
 
 namespace Drupal\comment;
+use Drupal\Core\Entity\EntityInterface;
 
 /**
  * Comment manager contains common functions to manage comment fields.
@@ -26,8 +27,8 @@ interface CommentManagerInterface {
   /**
    * Utility function to return an array of comment fields.
    *
-   * @param string $entity_type
-   *   The entity type to return fields which are attached on.
+   * @param string $entity_type_id
+   *   The content entity type to which the comment fields are attached.
    *
    * @return array
    *   An array of comment field map definitions, keyed by field name. Each
@@ -38,7 +39,7 @@ interface CommentManagerInterface {
    *
    * @see field_info_field_map()
    */
-  public function getFields($entity_type = NULL);
+  public function getFields($entity_type_id);
 
   /**
    * Utility function to return all comment fields.
@@ -49,7 +50,7 @@ interface CommentManagerInterface {
    * Utility method to add the default comment field to an entity.
    *
    * Attaches a comment field named 'comment' to the given entity type and
-   * bundle. Largely replicates the default behaviour in Drupal 7 and earlier.
+   * bundle. Largely replicates the default behavior in Drupal 7 and earlier.
    *
    * @param string $entity_type
    *   The entity type to attach the default comment field to.
@@ -85,5 +86,22 @@ interface CommentManagerInterface {
    *   The human readable field name.
    */
   public function getFieldUIPageTitle($commented_entity_type, $field_name);
+
+  /**
+   * Provides a message if posting comments is forbidden.
+   *
+   * If authenticated users can post comments, a message is returned that
+   * prompts the anonymous user to log in (or register, if applicable) that
+   * redirects to entity comment form. Otherwise, no message is returned.
+   *
+   * @param \Drupal\Core\Entity\EntityInterface $entity
+   *   The entity to which comments are attached to.
+   * @param string $field_name
+   *   The field name on the entity to which comments are attached to.
+   *
+   * @return string
+   *   HTML for a "you can't post comments" notice.
+   */
+  public function forbiddenMessage(EntityInterface $entity, $field_name);
 
 }

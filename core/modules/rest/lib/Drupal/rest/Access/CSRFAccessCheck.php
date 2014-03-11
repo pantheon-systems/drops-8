@@ -8,6 +8,7 @@
 namespace Drupal\rest\Access;
 
 use Drupal\Core\Access\AccessCheckInterface;
+use Drupal\Core\Session\AccountInterface;
 use Symfony\Component\Routing\Route;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -42,15 +43,16 @@ class CSRFAccessCheck implements AccessCheckInterface {
   /**
    * Implements AccessCheckInterface::access().
    */
-  public function access(Route $route, Request $request) {
+  public function access(Route $route, Request $request, AccountInterface $account) {
     $method = $request->getMethod();
-    $cookie = $request->cookies->get(session_name(), FALSE);
+    $cookie = $request->attributes->get('_authentication_provider') == 'cookie';
+
     // This check only applies if
     // 1. this is a write operation
     // 2. the user was successfully authenticated and
     // 3. the request comes with a session cookie.
     if (!in_array($method, array('GET', 'HEAD', 'OPTIONS', 'TRACE'))
-      && $GLOBALS['user']->isAuthenticated()
+      && $account->isAuthenticated()
       && $cookie
     ) {
       $csrf_token = $request->headers->get('X-CSRF-Token');

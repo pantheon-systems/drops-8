@@ -7,8 +7,8 @@
 
 namespace Drupal\email\Tests;
 
-use Drupal\Core\Entity\Field\FieldItemListInterface;
-use Drupal\Core\Entity\Field\FieldItemInterface;
+use Drupal\Core\Field\FieldItemListInterface;
+use Drupal\Core\Field\FieldItemInterface;
 use Drupal\field\Tests\FieldUnitTestBase;
 
 /**
@@ -59,7 +59,7 @@ class EmailItemTest extends FieldUnitTestBase {
    */
   public function testEmailItem() {
     // Verify entity creation.
-    $entity = entity_create('entity_test', array());
+    $entity = entity_create('entity_test');
     $value = 'test@example.com';
     $entity->field_email = $value;
     $entity->name->value = $this->randomName();

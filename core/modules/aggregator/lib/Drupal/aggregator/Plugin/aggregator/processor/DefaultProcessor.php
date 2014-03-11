@@ -7,13 +7,11 @@
 
 namespace Drupal\aggregator\Plugin\aggregator\processor;
 
-use Drupal\aggregator\Annotation\AggregatorProcessor;
 use Drupal\aggregator\Plugin\AggregatorPluginSettingsBase;
 use Drupal\aggregator\Plugin\ProcessorInterface;
 use Drupal\aggregator\Entity\Feed;
-use Drupal\Core\Annotation\Translation;
 use Drupal\Core\Database\Database;
-use Drupal\Core\Config\ConfigFactory;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -33,7 +31,7 @@ class DefaultProcessor extends AggregatorPluginSettingsBase implements Processor
   /**
    * Contains the configuration object factory.
    *
-   * @var \Drupal\Core\Config\ConfigFactory
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
    */
   protected $configFactory;
 
@@ -46,10 +44,10 @@ class DefaultProcessor extends AggregatorPluginSettingsBase implements Processor
    *   The plugin_id for the plugin instance.
    * @param array $plugin_definition
    *   The plugin implementation definition.
-   * @param \Drupal\Core\Config\ConfigFactory $config
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config
    *   The configuration factory object.
    */
-  public function __construct(array $configuration, $plugin_id, array $plugin_definition, ConfigFactory $config) {
+  public function __construct(array $configuration, $plugin_id, array $plugin_definition, ConfigFactoryInterface $config) {
     $this->configFactory = $config;
     // @todo Refactor aggregator plugins to ConfigEntity so merging
     //   the configuration here is not needed.
@@ -105,14 +103,6 @@ class DefaultProcessor extends AggregatorPluginSettingsBase implements Processor
       '#description' => t('Requires a correctly configured <a href="@cron">cron maintenance task</a>.', array('@cron' => url('admin/reports/status'))),
     );
 
-    $form['processors'][$info['id']]['aggregator_category_selector'] = array(
-      '#type' => 'radios',
-      '#title' => t('Select categories using'),
-      '#default_value' => $this->configuration['source']['category_selector'],
-      '#options' => array('checkboxes' => t('checkboxes'),
-      'select' => t('multiple selector')),
-      '#description' => t('For a small number of categories, checkboxes are easier to use, while a multiple selector works well with large numbers of categories.'),
-    );
     $form['processors'][$info['id']]['aggregator_teaser_length'] = array(
       '#type' => 'select',
       '#title' => t('Length of trimmed description'),
@@ -130,7 +120,6 @@ class DefaultProcessor extends AggregatorPluginSettingsBase implements Processor
     $this->configuration['items']['expire'] = $form_state['values']['aggregator_clear'];
     $this->configuration['items']['teaser_length'] = $form_state['values']['aggregator_teaser_length'];
     $this->configuration['source']['list_max'] = $form_state['values']['aggregator_summary_items'];
-    $this->configuration['source']['category_selector'] = $form_state['values']['aggregator_category_selector'];
     // @todo Refactor aggregator plugins to ConfigEntity so this is not needed.
     $this->setConfiguration($this->configuration);
   }
@@ -143,7 +132,7 @@ class DefaultProcessor extends AggregatorPluginSettingsBase implements Processor
       return;
     }
     foreach ($feed->items as $item) {
-      // @todo: The default entity render controller always returns an empty
+      // @todo: The default entity view builder always returns an empty
       //   array, which is ignored in aggregator_save_item() currently. Should
       //   probably be fixed.
       if (empty($item['title'])) {
@@ -171,17 +160,23 @@ class DefaultProcessor extends AggregatorPluginSettingsBase implements Processor
         $entry = entity_create('aggregator_item', array('langcode' => $feed->language()->id));
       }
       if ($item['timestamp']) {
-        $entry->timestamp->value = $item['timestamp'];
+        $entry->setPostedTime($item['timestamp']);
       }
 
       // Make sure the item title and author fit in the 255 varchar column.
-      $entry->title->value = truncate_utf8($item['title'], 255, TRUE, TRUE);
-      $entry->author->value = truncate_utf8($item['author'], 255, TRUE, TRUE);
+      $entry->setTitle(truncate_utf8($item['title'], 255, TRUE, TRUE));
+      $entry->setAuthor(truncate_utf8($item['author'], 255, TRUE, TRUE));
 
-      $entry->fid->value = $feed->id();
-      $entry->link->value = $item['link'];
-      $entry->description->value = $item['description'];
-      $entry->guid->value = $item['guid'];
+      $entry->setFeedId($feed->id());
+      $entry->setLink($item['link']);
+      $entry->setGuid($item['guid']);
+
+      $description = '';
+      if (!empty($item['description'])) {
+        $description = $item['description'];
+      }
+      $entry->setDescription($description);
+
       $entry->save();
     }
   }

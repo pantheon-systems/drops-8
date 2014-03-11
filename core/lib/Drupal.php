@@ -87,6 +87,11 @@ class Drupal {
   const CORE_COMPATIBILITY = '8.x';
 
   /**
+   * Core minimum schema version.
+   */
+  const CORE_MINIMUM_SCHEMA_VERSION = 8000;
+
+  /**
    * The currently active container object.
    *
    * @var \Symfony\Component\DependencyInjection\ContainerInterface
@@ -106,8 +111,8 @@ class Drupal {
   /**
    * Returns the currently active global container.
    *
-   * @deprecated This method is only useful for the testing environment, and as
-   *   a BC shiv for drupal_container(). It should not be used otherwise.
+   * @deprecated This method is only useful for the testing environment. It
+   * should not be used otherwise.
    *
    * @return \Symfony\Component\DependencyInjection\ContainerInterface
    */
@@ -129,6 +134,29 @@ class Drupal {
    */
   public static function service($id) {
     return static::$container->get($id);
+  }
+
+  /**
+   * Indicates if a service is defined in the container.
+   *
+   * @param string $id
+   *   The ID of the service to check.
+   *
+   * @return bool
+   *   TRUE if the specified service exists, FALSE otherwise.
+   */
+  public static function hasService($id) {
+    return static::$container && static::$container->has($id);
+  }
+
+  /**
+   * Indicates if there is a currently active request object.
+   *
+   * @return bool
+   *   TRUE if there is a currently active request object, FALSE otherwise.
+   */
+  public static function hasRequest() {
+    return static::$container && static::$container->has('request') && static::$container->initialized('request') && static::$container->isScopeActive('request');
   }
 
   /**
@@ -169,7 +197,7 @@ class Drupal {
   /**
    * Retrieves the entity manager service.
    *
-   * @return \Drupal\Core\Entity\EntityManager
+   * @return \Drupal\Core\Entity\EntityManagerInterface
    *   The entity manager service.
    */
   public static function entityManager() {
@@ -242,16 +270,29 @@ class Drupal {
   }
 
   /**
+   * Retrieves the configuration factory.
+   *
+   * This is mostly used to change the override settings on the configuration
+   * factory. For example, changing the language, or turning all overrides on
+   * or off.
+   *
+   * @return \Drupal\Core\Config\ConfigFactoryInterface
+   */
+  public static function configFactory() {
+    return static::$container->get('config.factory');
+  }
+
+  /**
    * Returns a queue for the given queue name.
    *
-   * The following variables can be set by variable_set or $conf overrides:
-   * - queue_class_$name: The class to be used for the queue $name.
-   * - queue_default_class: The class to use when queue_class_$name is not
-   *   defined. Defaults to \Drupal\Core\Queue\System, a reliable backend using
-   *   SQL.
-   * - queue_default_reliable_class: The class to use when queue_class_$name is
-   *   not defined and the queue_default_class is not reliable. Defaults to
-   *   \Drupal\Core\Queue\System.
+   * The following values can be set in your settings.php file's $settings
+   * array to define which services are used for queues:
+   * - queue_reliable_service_$name: The container service to use for the
+   *   reliable queue $name.
+   * - queue_service_$name: The container service to use for the
+   *   queue $name.
+   * - queue_default: The container service to use by default for queues
+   *   without overrides. This defaults to 'queue.database'.
    *
    * @param string $name
    *   The name of the queue to work with.
@@ -288,7 +329,7 @@ class Drupal {
    * needs to be the same across development, production, etc. environments
    * (for example, the system maintenance message) should use \Drupal::config() instead.
    *
-   * @return \Drupal\Core\KeyValueStore\KeyValueStoreInterface
+   * @return \Drupal\Core\KeyValueStore\StateInterface
    */
   public static function state() {
     return static::$container->get('state');
@@ -366,8 +407,8 @@ class Drupal {
    *
    * @see \Drupal\Core\TypedData\TypedDataManager::create()
    */
-  public static function typedData() {
-    return static::$container->get('typed_data');
+  public static function typedDataManager() {
+    return static::$container->get('typed_data_manager');
   }
 
   /**
@@ -520,7 +561,7 @@ class Drupal {
   /**
    * Returns the language manager service.
    *
-   * @return \Drupal\Core\Language\LanguageManager
+   * @return \Drupal\Core\Language\LanguageManagerInterface
    *   The language manager.
    */
   public static function languageManager() {
@@ -530,8 +571,15 @@ class Drupal {
   /**
    * Returns the CSRF token manager service.
    *
+   * The generated token is based on the session ID of the current user. Normally,
+   * anonymous users do not have a session, so the generated token will be
+   * different on every page request. To generate a token for users without a
+   * session, manually start a session prior to calling this function.
+   *
    * @return \Drupal\Core\Access\CsrfTokenGenerator
    *   The CSRF token manager.
+   *
+   * @see drupal_session_start()
    */
   public static function csrfToken() {
     return static::$container->get('csrf_token');
@@ -545,6 +593,16 @@ class Drupal {
    */
   public static function transliteration() {
     return static::$container->get('transliteration');
+  }
+
+  /**
+   * Returns the form builder service.
+   *
+   * @return \Drupal\Core\Form\FormBuilderInterface
+   *   The form builder.
+   */
+  public static function formBuilder() {
+    return static::$container->get('form_builder');
   }
 
 }

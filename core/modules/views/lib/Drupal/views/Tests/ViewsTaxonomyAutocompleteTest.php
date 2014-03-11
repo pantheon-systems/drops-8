@@ -7,8 +7,8 @@
 
 namespace Drupal\views\Tests;
 
+use Drupal\Component\Utility\String;
 use Drupal\views\Tests\ViewTestBase;
-use Drupal\Component\Utility\MapArray;
 use Drupal\Core\Language\Language;
 
 /**
@@ -44,7 +44,7 @@ class ViewsTaxonomyAutocompleteTest extends ViewTestBase {
    *
    * @var array
    */
-  public static $modules = array('taxonomy');
+  public static $modules = array('node', 'taxonomy');
 
   public static function getInfo() {
     return array(
@@ -81,7 +81,10 @@ class ViewsTaxonomyAutocompleteTest extends ViewTestBase {
 
     // Test a with whole name term.
     $label = $this->term1->label();
-    $expected = MapArray::copyValuesToKeys((array) $label);
+    $expected = array(array(
+      'value' => $label,
+      'label' => String::checkPlain($label),
+    ));
     $this->assertIdentical($expected, $this->drupalGetJSON($base_autocomplete_path, array('query' => array('q' => $label))));
     // Test a term by partial name.
     $partial = substr($label, 0, 2);

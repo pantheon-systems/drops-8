@@ -8,9 +8,8 @@
 namespace Drupal\file\Entity;
 
 use Drupal\Core\Entity\ContentEntityBase;
-use Drupal\Core\Entity\Annotation\EntityType;
 use Drupal\Core\Entity\EntityStorageControllerInterface;
-use Drupal\Core\Annotation\Translation;
+use Drupal\Core\Field\FieldDefinition;
 use Drupal\Core\Language\Language;
 use Drupal\file\FileInterface;
 use Drupal\user\UserInterface;
@@ -18,13 +17,12 @@ use Drupal\user\UserInterface;
 /**
  * Defines the file entity class.
  *
- * @EntityType(
+ * @ContentEntityType(
  *   id = "file",
  *   label = @Translation("File"),
- *   module = "file",
  *   controllers = {
  *     "storage" = "Drupal\file\FileStorageController",
- *     "render" = "Drupal\Core\Entity\EntityRenderController"
+ *     "view_builder" = "Drupal\Core\Entity\EntityViewBuilder"
  *   },
  *   base_table = "file_managed",
  *   entity_keys = {
@@ -113,8 +111,15 @@ class File extends ContentEntityBase implements FileInterface {
   /**
    * {@inheritdoc}
    */
+  public function getCreatedTime() {
+    return $this->get('created')->value;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function getChangedTime() {
-    return $this->get('timestamp')->value;
+    return $this->get('changed')->value;
   }
 
   /**
@@ -127,8 +132,24 @@ class File extends ContentEntityBase implements FileInterface {
   /**
    * {@inheritdoc}
    */
-  public function setOwner(UserInterface $user) {
-    return $this->get('uid')->entity = $user;
+  public function getOwnerId() {
+    return $this->get('uid')->target_id;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setOwnerId($uid) {
+    $this->set('uid', $uid);
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setOwner(UserInterface $account) {
+    $this->set('uid', $account->id());
+    return $this;
   }
 
   /**
@@ -180,7 +201,11 @@ class File extends ContentEntityBase implements FileInterface {
   public function preSave(EntityStorageControllerInterface $storage_controller) {
     parent::preSave($storage_controller);
 
-    $this->timestamp = REQUEST_TIME;
+    $this->changed->value = REQUEST_TIME;
+    if (empty($this->created->value)) {
+      $this->created->value = REQUEST_TIME;
+    }
+
     $this->setSize(filesize($this->getFileUri()));
     if (!isset($this->langcode->value)) {
       // Default the file's language code to none, because files are language
@@ -199,10 +224,10 @@ class File extends ContentEntityBase implements FileInterface {
 
     foreach ($entities as $entity) {
       // Delete all remaining references to this file.
-      $file_usage = file_usage()->listUsage($entity);
+      $file_usage = \Drupal::service('file.usage')->listUsage($entity);
       if (!empty($file_usage)) {
         foreach ($file_usage as $module => $usage) {
-          file_usage()->delete($entity, $module);
+          \Drupal::service('file.usage')->delete($entity, $module);
         }
       }
       // Delete the actual file. Failures due to invalid files and files that
@@ -216,60 +241,54 @@ class File extends ContentEntityBase implements FileInterface {
    * {@inheritdoc}
    */
   public static function baseFieldDefinitions($entity_type) {
-    $properties['fid'] = array(
-      'label' => t('File ID'),
-      'description' => t('The file ID.'),
-      'type' => 'integer_field',
-      'read-only' => TRUE,
-    );
-    $properties['uuid'] = array(
-      'label' => t('UUID'),
-      'description' => t('The file UUID.'),
-      'type' => 'uuid_field',
-      'read-only' => TRUE,
-    );
-    $properties['langcode'] = array(
-      'label' => t('Language code'),
-      'description' => t('The file language code.'),
-      'type' => 'language_field',
-    );
-    $properties['uid'] = array(
-      'label' => t('User ID'),
-      'description' => t('The user ID of the file.'),
-      'type' => 'entity_reference_field',
-      'settings' => array('target_type' => 'user'),
-    );
-    $properties['filename'] = array(
-      'label' => t('Filename'),
-      'description' => t('Name of the file with no path components.'),
-      'type' => 'string_field',
-    );
-    $properties['uri'] = array(
-      'label' => t('URI'),
-      'description' => t('The URI to access the file (either local or remote).'),
-      'type' => 'string_field',
-    );
-    $properties['filemime'] = array(
-      'label' => t('File MIME type'),
-      'description' => t("The file's MIME type."),
-      'type' => 'string_field',
-    );
-    $properties['filesize'] = array(
-      'label' => t('File size'),
-      'description' => t('The size of the file in bytes.'),
-      'type' => 'boolean_field',
-    );
-    $properties['status'] = array(
-      'label' => t('Status'),
-      'description' => t('The status of the file, temporary (0) and permanent (1)'),
-      'type' => 'integer_field',
-    );
-    $properties['timestamp'] = array(
-      'label' => t('Created'),
-      'description' => t('The time that the node was created.'),
-      'type' => 'integer_field',
-    );
-    return $properties;
+    $fields['fid'] = FieldDefinition::create('integer')
+      ->setLabel(t('File ID'))
+      ->setDescription(t('The file ID.'))
+      ->setReadOnly(TRUE);
+
+    $fields['uuid'] = FieldDefinition::create('uuid')
+      ->setLabel(t('UUID'))
+      ->setDescription(t('The file UUID.'))
+      ->setReadOnly(TRUE);
+
+    $fields['langcode'] = FieldDefinition::create('language')
+      ->setLabel(t('Language code'))
+      ->setDescription(t('The file language code.'));
+
+    $fields['uid'] = FieldDefinition::create('entity_reference')
+      ->setLabel(t('User ID'))
+      ->setDescription(t('The user ID of the file.'))
+      ->setSetting('target_type', 'user');
+
+    $fields['filename'] = FieldDefinition::create('string')
+      ->setLabel(t('Filename'))
+      ->setDescription(t('Name of the file with no path components.'));
+
+    $fields['uri'] = FieldDefinition::create('uri')
+      ->setLabel(t('URI'))
+      ->setDescription(t('The URI to access the file (either local or remote).'));
+
+    $fields['filemime'] = FieldDefinition::create('string')
+      ->setLabel(t('File MIME type'))
+      ->setDescription(t("The file's MIME type."));
+
+    $fields['filesize'] = FieldDefinition::create('integer')
+      ->setLabel(t('File size'))
+      ->setDescription(t('The size of the file in bytes.'));
+
+    $fields['status'] = FieldDefinition::create('integer')
+      ->setLabel(t('Status'))
+      ->setDescription(t('The status of the file, temporary (0) and permanent (1).'));
+
+    $fields['created'] = FieldDefinition::create('integer')
+      ->setLabel(t('Created'))
+      ->setDescription(t('The timestamp that the file was created.'));
+
+    $fields['changed'] = FieldDefinition::create('integer')
+      ->setLabel(t('Changed'))
+      ->setDescription(t('The timestamp that the file was last changed.'));
+
+    return $fields;
   }
 
 }

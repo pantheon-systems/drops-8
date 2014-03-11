@@ -49,8 +49,7 @@ class EntityTestFormController extends ContentEntityFormController {
     );
 
     // @todo: Is there a better way to check if an entity type is revisionable?
-    $entity_info = $entity->entityInfo();
-    if (!empty($entity_info['entity_keys']['revision']) && !$entity->isNew()) {
+    if ($entity->getEntityType()->hasKey('revision') && !$entity->isNew()) {
       $form['revision'] = array(
         '#type' => 'checkbox',
         '#title' => t('Create new revision'),
@@ -85,15 +84,21 @@ class EntityTestFormController extends ContentEntityFormController {
     $entity->save();
 
     if ($is_new) {
-     $message = t('%entity_type @id has been created.', array('@id' => $entity->id(), '%entity_type' => $entity->entityType()));
+     $message = t('%entity_type @id has been created.', array('@id' => $entity->id(), '%entity_type' => $entity->getEntityTypeId()));
     }
     else {
-      $message = t('%entity_type @id has been updated.', array('@id' => $entity->id(), '%entity_type' => $entity->entityType()));
+      $message = t('%entity_type @id has been updated.', array('@id' => $entity->id(), '%entity_type' => $entity->getEntityTypeId()));
     }
     drupal_set_message($message);
 
     if ($entity->id()) {
-      $form_state['redirect'] = $entity->entityType() . '/manage/' . $entity->id();
+      $entity_type = $entity->getEntityTypeId();
+      $form_state['redirect_route'] = array(
+        'route_name' => "entity_test.edit_$entity_type",
+        'route_parameters' => array(
+          $entity_type => $entity->id(),
+        ),
+      );
     }
     else {
       // Error on save.
@@ -108,7 +113,7 @@ class EntityTestFormController extends ContentEntityFormController {
   public function delete(array $form, array &$form_state) {
     $entity = $this->entity;
     $entity->delete();
-    drupal_set_message(t('%entity_type @id has been deleted.', array('@id' => $entity->id(), '%entity_type' => $entity->entityType())));
-    $form_state['redirect'] = '<front>';
+    drupal_set_message(t('%entity_type @id has been deleted.', array('@id' => $entity->id(), '%entity_type' => $entity->getEntityTypeId())));
+    $form_state['redirect_route']['route_name'] = '<front>';
   }
 }

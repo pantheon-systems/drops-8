@@ -7,6 +7,8 @@
 
 namespace Drupal\hal\Normalizer;
 
+use Drupal\rest\LinkManager\LinkManagerInterface;
+use Drupal\serialization\EntityResolver\EntityResolverInterface;
 use Drupal\serialization\EntityResolver\UuidReferenceInterface;
 
 /**
@@ -19,12 +21,40 @@ class EntityReferenceItemNormalizer extends FieldItemNormalizer implements UuidR
    *
    * @var string
    */
-  protected $supportedInterfaceOrClass = 'Drupal\Core\Entity\Plugin\field\field_type\EntityReferenceItem';
+  protected $supportedInterfaceOrClass = 'Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItem';
+
+  /**
+   * The hypermedia link manager.
+   *
+   * @var \Drupal\rest\LinkManager\LinkManagerInterface
+   */
+  protected $linkManager;
+
+  /**
+   * The entity resolver.
+   *
+   * @var \Drupal\serialization\EntityResolver\EntityResolverInterface
+   */
+  protected $entityResolver;
+
+  /**
+   * Constructs an EntityReferenceItemNormalizer object.
+   *
+   * @param \Drupal\rest\LinkManager\LinkManagerInterface $link_manager
+   *   The hypermedia link manager.
+   * @param \Drupal\serialization\EntityResolver\EntityResolverInterface $entity_Resolver
+   *   The entity resolver.
+   */
+  public function __construct(LinkManagerInterface $link_manager, EntityResolverInterface $entity_Resolver) {
+    $this->linkManager = $link_manager;
+    $this->entityResolver = $entity_Resolver;
+  }
 
   /**
    * Implements \Symfony\Component\Serializer\Normalizer\NormalizerInterface::normalize()
    */
   public function normalize($field_item, $format = NULL, array $context = array()) {
+    /** @var $field_item \Drupal\Core\Field\FieldItemInterface */
     $target_entity = $field_item->get('entity')->getValue();
 
     // If the parent entity passed in a langcode, unset it before normalizing
@@ -48,7 +78,7 @@ class EntityReferenceItemNormalizer extends FieldItemNormalizer implements UuidR
     // objects.
     $field_name = $field_item->getParent()->getName();
     $entity = $field_item->getEntity();
-    $field_uri = $this->linkManager->getRelationUri($entity->entityType(), $entity->bundle(), $field_name);
+    $field_uri = $this->linkManager->getRelationUri($entity->getEntityTypeId(), $entity->bundle(), $field_name);
     return array(
       '_links' => array(
         $field_uri => array($link),
@@ -64,8 +94,8 @@ class EntityReferenceItemNormalizer extends FieldItemNormalizer implements UuidR
    */
   protected function constructValue($data, $context) {
     $field_item = $context['target_instance'];
-    $field_definition = $field_item->getDefinition();
-    $target_type = $field_definition['settings']['target_type'];
+    $field_definition = $field_item->getFieldDefinition();
+    $target_type = $field_definition->getSetting('target_type');
     if ($id = $this->entityResolver->resolve($this, $data, $target_type)) {
       return array('target_id' => $id);
     }

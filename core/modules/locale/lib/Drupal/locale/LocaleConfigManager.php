@@ -7,9 +7,11 @@
 
 namespace Drupal\locale;
 
+use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Language\Language;
 use Drupal\Core\Config\TypedConfigManager;
 use Drupal\Core\Config\StorageInterface;
+use Drupal\Core\Config\ConfigFactoryInterface;
 
 /**
  * Manages localized configuration type plugins.
@@ -36,6 +38,13 @@ class LocaleConfigManager extends TypedConfigManager {
   protected $translations;
 
   /**
+   * The configuration factory.
+   *
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
+   */
+  protected $configFactory;
+
+  /**
    * Creates a new typed configuration manager.
    *
    * @param \Drupal\Core\Config\StorageInterface $configStorage
@@ -47,12 +56,17 @@ class LocaleConfigManager extends TypedConfigManager {
    *   data.
    * @param \Drupal\locale\StringStorageInterface $localeStorage
    *   The locale storage to use for reading string translations.
+   * @param \Drupal\Core\Cache\CacheBackendInterface $cache
+   *   The cache backend to use for caching the definitions.
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
+   *   The configuration factory
    */
-  public function __construct(StorageInterface $configStorage, StorageInterface $schemaStorage, StorageInterface $installStorage, StringStorageInterface $localeStorage) {
+  public function __construct(StorageInterface $configStorage, StorageInterface $schemaStorage, StorageInterface $installStorage, StringStorageInterface $localeStorage, CacheBackendInterface $cache, ConfigFactoryInterface $config_factory) {
     // Note we use the install storage for the parent constructor.
-    parent::__construct($configStorage, $schemaStorage);
+    parent::__construct($configStorage, $schemaStorage, $cache);
     $this->installStorage = $installStorage;
     $this->localeStorage = $localeStorage;
+    $this->configFactory = $config_factory;
   }
 
   /**
@@ -119,7 +133,7 @@ class LocaleConfigManager extends TypedConfigManager {
    *   Configuration data to be saved, that will be only the translated values.
    */
   public function saveTranslationData($name, $langcode, array $data) {
-    $locale_name = self::localeConfigName($langcode, $name);
+    $locale_name = $this->configFactory->getLanguageConfigName($langcode, $name);
     $this->configStorage->write($locale_name, $data);
   }
 
@@ -132,7 +146,7 @@ class LocaleConfigManager extends TypedConfigManager {
    *   Language code.
    */
   public function deleteTranslationData($name, $langcode) {
-    $locale_name = self::localeConfigName($langcode, $name);
+    $locale_name = $this->configFactory->getLanguageConfigName($langcode, $name);
     $this->configStorage->delete($locale_name);
   }
 
@@ -206,7 +220,7 @@ class LocaleConfigManager extends TypedConfigManager {
    *   Language code to delete.
    */
   public function deleteLanguageTranslations($langcode) {
-    $locale_name = self::localeConfigName($langcode);
+    $locale_name = ConfigFactoryInterface::LANGUAGE_CONFIG_PREFIX . '.' . $langcode . '.';
     foreach ($this->configStorage->listAll($locale_name) as $name) {
       $this->configStorage->delete($name);
     }
@@ -291,24 +305,9 @@ class LocaleConfigManager extends TypedConfigManager {
    *   A boolean indicating if a language has configuration translations.
    */
   public function hasTranslation($name, Language $language) {
-    $locale_name = static::localeConfigName($language->id, $name);
+    $locale_name = $this->configFactory->getLanguageConfigName($language->id, $name);
     $translation = $this->configStorage->read($locale_name);
     return !empty($translation);
-  }
-
-  /**
-   * Provides configuration data location for given langcode and name.
-   *
-   * @param string $langcode
-   *   The language code.
-   * @param string|null $name
-   *   Name of the original configuration. Set to NULL to get the name prefix
-   *   for all $langcode overrides.
-   *
-   * @return string
-   */
-  public static function localeConfigName($langcode, $name = NULL) {
-    return rtrim('locale.config.' . $langcode . '.' . $name, '.');
   }
 
 }

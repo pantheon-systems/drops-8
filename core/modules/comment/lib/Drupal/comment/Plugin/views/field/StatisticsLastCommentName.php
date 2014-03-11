@@ -8,7 +8,6 @@
 namespace Drupal\comment\Plugin\views\field;
 
 use Drupal\views\Plugin\views\field\FieldPluginBase;
-use Drupal\Component\Annotation\PluginID;
 use Drupal\views\ResultRow;
 
 /**
@@ -62,7 +61,7 @@ class StatisticsLastCommentName extends FieldPluginBase {
    */
   public function render(ResultRow $values) {
     if (!empty($this->options['link_to_user'])) {
-      $account = entity_create('user', array());
+      $account = entity_create('user');
       $account->name = $this->getValue($values);
       $account->uid = $values->{$this->uid};
       $username = array(

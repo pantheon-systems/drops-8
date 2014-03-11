@@ -7,9 +7,6 @@
 
 namespace Drupal\views\Plugin\views\cache;
 
-use Drupal\views\Annotation\ViewsCache;
-use Drupal\Core\Annotation\Translation;
-
 /**
  * Caching plugin that provides no caching at all.
  *
@@ -23,7 +20,8 @@ use Drupal\Core\Annotation\Translation;
  */
 class None extends CachePluginBase {
 
-  public function cacheStart() { /* do nothing */ }
+  public function cacheStart() {
+  }
 
   public function summaryTitle() {
     return t('None');

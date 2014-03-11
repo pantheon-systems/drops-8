@@ -35,7 +35,9 @@ class SimpletestResultsForm extends FormBase {
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container) {
-    return new static($container->get('database'));
+    return new static(
+      $container->get('database')
+    );
   }
 
   /**
@@ -251,7 +253,7 @@ class SimpletestResultsForm extends FormBase {
     }
 
     if (!$classes) {
-      $form_state['redirect'] = 'admin/config/development/testing';
+      $form_state['redirect_route']['route_name'] = 'simpletest.test_form';
       return;
     }
 
@@ -262,9 +264,13 @@ class SimpletestResultsForm extends FormBase {
     }
 
     // Submit the simpletest test form to rerun the tests.
+    // Under normal circumstances, a form object's submitForm() should never be
+    // called directly, FormBuilder::submitForm() should be called instead.
+    // However, it sets $form_state['programmed'], which disables the Batch API.
     $simpletest_test_form = new SimpletestTestForm();
+    $simpletest_test_form->buildForm($form_execute, $form_state_execute);
     $simpletest_test_form->submitForm($form_execute, $form_state_execute);
-    $form_state['redirect'] = $form_state_execute['redirect'];
+    $form_state['redirect_route'] = $form_state_execute['redirect_route'];
   }
 
   /**

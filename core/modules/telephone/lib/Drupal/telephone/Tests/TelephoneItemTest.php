@@ -7,8 +7,8 @@
 
 namespace Drupal\telephone\Tests;
 
-use Drupal\Core\Entity\Field\FieldItemListInterface;
-use Drupal\Core\Entity\Field\FieldItemInterface;
+use Drupal\Core\Field\FieldItemListInterface;
+use Drupal\Core\Field\FieldItemInterface;
 use Drupal\field\Tests\FieldUnitTestBase;
 
 /**
@@ -52,7 +52,7 @@ class TelephoneItemTest extends FieldUnitTestBase {
    */
   public function testTestItem() {
     // Verify entity creation.
-    $entity = entity_create('entity_test', array());
+    $entity = entity_create('entity_test');
     $value = '+0123456789';
     $entity->field_test = $value;
     $entity->name->value = $this->randomName();

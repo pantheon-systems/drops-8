@@ -7,6 +7,7 @@
 
 namespace Drupal\edit\Tests;
 
+use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Language\Language;
 use Drupal\simpletest\WebTestBase;
 
@@ -65,7 +66,7 @@ class EditAutocompleteTermTest extends WebTestBase {
     );
   }
 
-  function setUp() {
+  protected function setUp() {
     parent::setUp();
 
     $type = $this->drupalCreateContentType(array(
@@ -83,7 +84,7 @@ class EditAutocompleteTermTest extends WebTestBase {
       'entity_type' => 'node',
       'type' => 'taxonomy_term_reference',
       // Set cardinality to unlimited for tagging.
-      'cardinality' => FIELD_CARDINALITY_UNLIMITED,
+      'cardinality' => FieldDefinitionInterface::CARDINALITY_UNLIMITED,
       'settings' => array(
         'allowed_values' => array(
           array(
@@ -193,7 +194,6 @@ class EditAutocompleteTermTest extends WebTestBase {
       $this->assertLink('new term');
     }
   }
-
 
   /**
    * Returns a new term with random name and description in $this->vocabulary.

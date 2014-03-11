@@ -35,7 +35,15 @@ display:
             - '1'
           plugin_id: node_uid_revision
           provider: node
-      sorts: {  }
+      sorts:
+        nid:
+          id: nid
+          table: node
+          field: nid
+          order: ASC
+          plugin_id: standard
+          relationship: none
+          provider: views
       pager:
         type: full
       query:
@@ -47,7 +55,7 @@ display:
     display_plugin: default
     display_title: Master
     id: default
-    position: '0'
+    position: 0
 label: test_filter_node_uid_revision
 id: test_filter_node_uid_revision
 tag: default

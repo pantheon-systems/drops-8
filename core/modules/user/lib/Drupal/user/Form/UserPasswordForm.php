@@ -7,6 +7,7 @@
 
 namespace Drupal\user\Form;
 
+use Drupal\Core\Field\Plugin\Field\FieldType\EmailItem;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Language\Language;
 use Drupal\Core\Language\LanguageManager;
@@ -119,7 +120,7 @@ class UserPasswordForm extends FormBase {
       form_set_value(array('#parents' => array('account')), $account, $form_state);
     }
     else {
-      form_set_error('name', $this->t('Sorry, %name is not recognized as a username or an e-mail address.', array('%name' => $name)));
+      $this->setFormError('name', $form_state, $this->t('Sorry, %name is not recognized as a username or an e-mail address.', array('%name' => $name)));
     }
   }
 
@@ -127,7 +128,7 @@ class UserPasswordForm extends FormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, array &$form_state) {
-    $langcode = $this->languageManager->getLanguage(Language::TYPE_INTERFACE)->id;
+    $langcode = $this->languageManager->getCurrentLanguage()->id;
 
     $account = $form_state['values']['account'];
     // Mail one time login URL and instructions using current language.
@@ -137,7 +138,7 @@ class UserPasswordForm extends FormBase {
       drupal_set_message($this->t('Further instructions have been sent to your e-mail address.'));
     }
 
-    $form_state['redirect'] = 'user';
+    $form_state['redirect_route']['route_name'] = 'user.page';
   }
 
 }

@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Contains \Drupal\comment\Form\DeleteConfirmMultiple.
+ * Contains \Drupal\comment\Form\ConfirmDeleteMultiple.
  */
 
 namespace Drupal\comment\Form;
@@ -10,14 +10,13 @@ namespace Drupal\comment\Form;
 use Drupal\comment\CommentStorageControllerInterface;
 use Drupal\Component\Utility\String;
 use Drupal\Core\Cache\Cache;
-use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Form\ConfirmFormBase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Provides the comment multiple delete confirmation form.
  */
-class ConfirmDeleteMultiple extends ConfirmFormBase implements ContainerInjectionInterface {
+class ConfirmDeleteMultiple extends ConfirmFormBase {
 
   /**
    * The comment storage.
@@ -70,6 +69,9 @@ class ConfirmDeleteMultiple extends ConfirmFormBase implements ContainerInjectio
    * {@inheritdoc}
    */
   public function getCancelRoute() {
+    return array(
+      'route_name' => 'comment.admin',
+    );
   }
 
   /**
@@ -107,14 +109,10 @@ class ConfirmDeleteMultiple extends ConfirmFormBase implements ContainerInjectio
 
     if (!$comment_counter) {
       drupal_set_message($this->t('There do not appear to be any comments to delete, or your selected comment was deleted by another administrator.'));
-      $form_state['redirect'] = 'admin/content/comment';
+      $form_state['redirect_route']['route_name'] = 'comment.admin';
     }
 
-    $form = parent::buildForm($form, $form_state);
-
-    // @todo Convert to getCancelRoute() after http://drupal.org/node/1986606.
-    $form['actions']['cancel']['#href'] = 'admin/content/comment';
-    return $form;
+    return parent::buildForm($form, $form_state);
   }
 
   /**
@@ -128,7 +126,7 @@ class ConfirmDeleteMultiple extends ConfirmFormBase implements ContainerInjectio
       watchdog('content', 'Deleted @count comments.', array('@count' => $count));
       drupal_set_message(format_plural($count, 'Deleted 1 comment.', 'Deleted @count comments.'));
     }
-    $form_state['redirect'] = 'admin/content/comment';
+    $form_state['redirect_route']['route_name'] = 'comment.admin';
   }
 
 }

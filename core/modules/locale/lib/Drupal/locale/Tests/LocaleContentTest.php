@@ -19,7 +19,7 @@ class LocaleContentTest extends WebTestBase {
    *
    * @var array
    */
-  public static $modules = array('locale');
+  public static $modules = array('node', 'locale');
 
   public static function getInfo() {
     return array(
@@ -47,7 +47,6 @@ class LocaleContentTest extends WebTestBase {
     $edit = array();
     $edit['predefined_langcode'] = 'ar';
     $this->drupalPostForm('admin/config/regional/language/add', $edit, t('Add language'));
-    drupal_static_reset('language_list');
 
     $edit = array(
       'site_default_language' => 'ar',
@@ -63,8 +62,6 @@ class LocaleContentTest extends WebTestBase {
    * Test if a content type can be set to multilingual and language is present.
    */
   function testContentTypeLanguageConfiguration() {
-    global $base_url;
-
     $type1 = $this->drupalCreateContentType();
     $type2 = $this->drupalCreateContentType();
 
@@ -86,7 +83,6 @@ class LocaleContentTest extends WebTestBase {
       'direction' => '0',
     );
     $this->drupalPostForm('admin/config/regional/language/add', $edit, t('Add custom language'));
-    drupal_static_reset('language_list');
 
     // Set the content type to use multilingual support.
     $this->drupalGet("admin/structure/types/manage/{$type2->type}");
@@ -97,7 +93,7 @@ class LocaleContentTest extends WebTestBase {
     $this->drupalPostForm("admin/structure/types/manage/{$type2->type}", $edit, t('Save content type'));
     $this->assertRaw(t('The content type %type has been updated.', array('%type' => $type2->name)));
     $this->drupalLogout();
-    drupal_static_reset('language_list');
+    \Drupal::languageManager()->reset();
 
     // Verify language selection is not present on the node add form.
     $this->drupalLogin($web_user);
@@ -154,13 +150,12 @@ class LocaleContentTest extends WebTestBase {
     $edit = array();
     $edit['predefined_langcode'] = 'ar';
     $this->drupalPostForm('admin/config/regional/language/add', $edit, t('Add language'));
-    drupal_static_reset('language_list');
+    \Drupal::languageManager()->reset();
 
     // Install Spanish language.
     $edit = array();
     $edit['predefined_langcode'] = 'es';
     $this->drupalPostForm('admin/config/regional/language/add', $edit, t('Add language'));
-    drupal_static_reset('language_list');
 
     // Set the content type to use multilingual support.
     $this->drupalGet("admin/structure/types/manage/{$type->type}");
@@ -224,7 +219,6 @@ class LocaleContentTest extends WebTestBase {
     // Enable multiple languages.
     $this->drupalPostForm('admin/config/regional/language/edit/en', array('locale_translate_english' => TRUE), t('Save language'));
     $this->drupalPostForm('admin/config/regional/language/add', array('predefined_langcode' => 'zh-hant'), t('Add language'));
-    drupal_static_reset('language_list');
 
     // Create two nodes: English and Chinese.
     $node_en = $this->drupalCreateNode(array('langcode' => 'en'));

@@ -7,10 +7,9 @@
 
 namespace Drupal\views\Plugin\views\display;
 
-use Drupal\views\Annotation\ViewsDisplay;
+use Drupal\Component\Utility\Xss;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
-use Drupal\Core\Annotation\Translation;
 
 /**
  * The plugin that handles a full page.
@@ -36,13 +35,6 @@ class Page extends PathPluginBase {
    * @var bool
    */
   protected $usesAttachments = TRUE;
-
-  /**
-   * Overrides \Drupal\views\Plugin\views\display\DisplayPluginBase::usesBreadcrumb().
-   */
-  public function usesBreadcrumb() {
-    return TRUE;
-  }
 
   /**
    * Overrides \Drupal\views\Plugin\views\display\PathPluginBase::defineOptions().
@@ -76,6 +68,22 @@ class Page extends PathPluginBase {
   }
 
   /**
+   * {@inheritdoc}
+   */
+  protected function getRoute($view_id, $display_id) {
+    $route = parent::getRoute($view_id, $display_id);
+
+    // Move _controller to _content for page displays, which will return a
+    // normal Drupal HTML page.
+    $defaults = $route->getDefaults();
+    $defaults['_content'] = $defaults['_controller'];
+    unset($defaults['_controller']);
+    $route->setDefaults($defaults);
+
+    return $route;
+  }
+
+  /**
    * Overrides \Drupal\views\Plugin\views\display\PathPluginBase::execute().
    */
   public function execute() {
@@ -84,19 +92,19 @@ class Page extends PathPluginBase {
     // Let the world know that this is the page view we're using.
     views_set_page_view($this->view);
 
-    $this->view->getBreadcrumb(TRUE);
-
     // And now render the view.
     $render = $this->view->render();
 
     // First execute the view so it's possible to get tokens for the title.
     // And the title, which is much easier.
-    drupal_set_title(filter_xss_admin($this->view->getTitle()), PASS_THROUGH);
-
-    $response = $this->view->getResponse();
-    $response->setContent(drupal_render_page($render));
-
-    return $response;
+    // @todo Figure out how to support custom response objects. Maybe for pages
+    //   it should be dropped.
+    if (is_array($render)) {
+      $render += array(
+        '#title' => Xss::filterAdmin($this->view->getTitle()),
+      );
+    }
+    return $render;
   }
 
   /**
@@ -375,19 +383,19 @@ class Page extends PathPluginBase {
     if ($form_state['section'] == 'menu') {
       $path = $this->getOption('path');
       if ($form_state['values']['menu']['type'] == 'normal' && strpos($path, '%') !== FALSE) {
-        form_error($form['menu']['type'], t('Views cannot create normal menu items for paths with a % in them.'));
+        form_error($form['menu']['type'], $form_state, t('Views cannot create normal menu items for paths with a % in them.'));
       }
 
       if ($form_state['values']['menu']['type'] == 'default tab' || $form_state['values']['menu']['type'] == 'tab') {
         $bits = explode('/', $path);
         $last = array_pop($bits);
         if ($last == '%') {
-          form_error($form['menu']['type'], t('A display whose path ends with a % cannot be a tab.'));
+          form_error($form['menu']['type'], $form_state, t('A display whose path ends with a % cannot be a tab.'));
         }
       }
 
       if ($form_state['values']['menu']['type'] != 'none' && empty($form_state['values']['menu']['title'])) {
-        form_error($form['menu']['title'], t('Title is required for this menu type.'));
+        form_error($form['menu']['title'], $form_state, t('Title is required for this menu type.'));
       }
     }
   }

@@ -234,7 +234,7 @@ class MenuLinkFormController extends EntityFormController {
       }
     }
     if (!trim($menu_link->link_path) || !drupal_valid_path($menu_link->link_path, TRUE)) {
-      form_set_error('link_path', t("The path '@link_path' is either invalid or you do not have access to it.", array('@link_path' => $menu_link->link_path)));
+      $this->setFormError('link_path', $form_state, $this->t("The path '@link_path' is either invalid or you do not have access to it.", array('@link_path' => $menu_link->link_path)));
     }
 
     parent::validate($form, $form_state);
@@ -262,7 +262,7 @@ class MenuLinkFormController extends EntityFormController {
     // Invoke all specified builders for copying form values to entity properties.
     if (isset($form['#entity_builders'])) {
       foreach ($form['#entity_builders'] as $function) {
-        call_user_func_array($function, array($entity->entityType(), $entity, &$form, &$form_state));
+        call_user_func_array($function, array($entity->getEntityTypeId(), $entity, &$form, &$form_state));
       }
     }
 
@@ -297,7 +297,12 @@ class MenuLinkFormController extends EntityFormController {
 
     if ($saved) {
       drupal_set_message(t('The menu link has been saved.'));
-      $form_state['redirect'] = 'admin/structure/menu/manage/' . $menu_link->menu_name;
+      $form_state['redirect_route'] = array(
+        'route_name' => 'menu.menu_edit',
+        'route_parameters' => array(
+          'menu' => $menu_link->menu_name,
+        ),
+      );
     }
     else {
       drupal_set_message(t('There was an error saving the menu link.'), 'error');
@@ -305,11 +310,4 @@ class MenuLinkFormController extends EntityFormController {
     }
   }
 
-  /**
-   * Overrides EntityFormController::delete().
-   */
-  public function delete(array $form, array &$form_state) {
-    $menu_link = $this->entity;
-    $form_state['redirect'] = 'admin/structure/menu/item/' . $menu_link->id() . '/delete';
-  }
 }

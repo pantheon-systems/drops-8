@@ -6,10 +6,7 @@
  */
 
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\Core\Language\Language;
-use Drupal\taxonomy\Entity\Term;
 use Drupal\field\Field;
-use Drupal\node\NodeInterface;
 
 /**
  * Implements hook_help().
@@ -29,15 +26,15 @@ function forum_help($path, $arg) {
       $output .= '</ul>';
       $output .= '</ul>';
       $output .= '</ul>';
-      $output .= '<p>' . t('For more information, see the online handbook entry for <a href="@forum">Forum module</a>.', array('@forum' => 'http://drupal.org/documentation/modules/forum')) . '</p>';
+      $output .= '<p>' . t('For more information, see <a href="!forum">the online documentation for the Forum module</a>.', array('!forum' => 'https://drupal.org/documentation/modules/forum')) . '</p>';
       $output .= '<h3>' . t('Uses') . '</h3>';
       $output .= '<dl>';
       $output .= '<dt>' . t('Setting up forum structure') . '</dt>';
-      $output .= '<dd>' . t('Visit the <a href="@forums">Forums page</a> to set up containers and forums to hold your discussion topics.', array('@forums' => url('admin/structure/forum'))) . '</dd>';
+      $output .= '<dd>' . t('Visit the <a href="!forums">Forums page</a> to set up containers and forums to hold your discussion topics.', array('!forums' => \Drupal::url('forum.overview'))) . '</dd>';
       $output .= '<dt>' . t('Starting a discussion') . '</dt>';
-      $output .= '<dd>' . t('The <a href="@create-topic">Forum topic</a> link on the <a href="@content-add">Add new content</a> page creates the first post of a new threaded discussion, or thread.', array('@create-topic' => url('node/add/forum'), '@content-add' => url('node/add'))) . '</dd>';
-      $output .= '<dt>' . t('Forum navigation') . '</dt>';
-      $output .= '<dd>' . t('Enabling the Forum module provides a default <em>Forums</em> menu item in the Tools menu that links to the <a href="@forums">Forums page</a>.', array('@forums' => url('forum'))) . '</dd>';
+      $output .= '<dd>' . t('The <a href="!create-topic">Forum topic</a> link on the <a href="!content-add">Add new content</a> page creates the first post of a new threaded discussion, or thread.', array('!create-topic' => \Drupal::url('node.add', array('node_type' => 'forum')), '!content-add' => \Drupal::url('node.add_page'))) . '</dd>';
+      $output .= '<dt>' . t('Navigating in the Forum') . '</dt>';
+      $output .= '<dd>' . t('Enabling the Forum module provides a default <em>Forums</em> menu item in the Tools menu that links to the <a href="!forums">Forums page</a>.', array('!forums' => \Drupal::url('forum.index'))) . '</dd>';
       $output .= '<dt>' . t('Moving forum topics') . '</dt>';
       $output .= '<dd>' . t('A forum topic (and all of its comments) may be moved between forums by selecting a different forum while editing a forum topic. When moving a forum topic between forums, the <em>Leave shadow copy</em> option creates a link in the original forum pointing to the new location.') . '</dd>';
       $output .= '<dt>' . t('Locking and disabling comments') . '</dt>';
@@ -58,14 +55,14 @@ function forum_help($path, $arg) {
           'class' => array('more-help-link'),
         ),
       );
-      $output = drupal_render($container);
+      $output .= drupal_render($container);
       return $output;
     case 'admin/structure/forum/add/container':
       return '<p>' . t('Use containers to group related forums.') . '</p>';
     case 'admin/structure/forum/add/forum':
       return '<p>' . t('A forum holds related forum topics.') . '</p>';
     case 'admin/structure/forum/settings':
-      return '<p>' . t('Adjust the display of your forum topics. Organize the forums on the <a href="@forum-structure">forum structure page</a>.', array('@forum-structure' => url('admin/structure/forum'))) . '</p>';
+      return '<p>' . t('Adjust the display of your forum topics. Organize the forums on the <a href="!forum-structure">forum structure page</a>.', array('!forum-structure' => \Drupal::url('forum.overview'))) . '</p>';
   }
 }
 
@@ -76,15 +73,11 @@ function forum_theme() {
   return array(
     'forums' => array(
       'template' => 'forums',
-      'variables' => array('forums' => NULL, 'topics' => NULL, 'parents' => NULL, 'term' => NULL, 'sortby' => NULL, 'forum_per_page' => NULL),
+      'variables' => array('forums' => array(), 'topics' => array(), 'topics_pager' => array(), 'parents' => NULL, 'term' => NULL, 'sortby' => NULL, 'forum_per_page' => NULL),
     ),
     'forum_list' => array(
       'template' => 'forum-list',
       'variables' => array('forums' => NULL, 'parents' => NULL, 'tid' => NULL),
-    ),
-    'forum_topic_list' => array(
-      'template' => 'forum-topic-list',
-      'variables' => array('tid' => NULL, 'topics' => NULL, 'sortby' => NULL, 'forum_per_page' => NULL),
     ),
     'forum_icon' => array(
       'template' => 'forum-icon',
@@ -119,17 +112,6 @@ function forum_menu() {
     'description' => 'Control forum hierarchy settings.',
     'route_name' => 'forum.overview',
   );
-  $items['admin/structure/forum/list'] = array(
-    'title' => 'List',
-    'type' => MENU_DEFAULT_LOCAL_TASK,
-  );
-  $items['admin/structure/forum/settings'] = array(
-    'title' => 'Settings',
-    'weight' => 100,
-    'type' => MENU_LOCAL_TASK,
-    'parent' => 'admin/structure/forum',
-    'route_name' => 'forum.settings',
-  );
   $items['admin/structure/forum/edit/container/%taxonomy_term'] = array(
     'title' => 'Edit container',
     'route_name' => 'forum.edit_container',
@@ -141,6 +123,24 @@ function forum_menu() {
   $items['admin/structure/forum/delete/forum/%taxonomy_term'] = array(
     'title' => 'Delete forum',
     'route_name' => 'forum.delete',
+  );
+  return $items;
+}
+
+/**
+ * Implements hook_menu_link_defaults().
+ */
+function forum_menu_link_defaults() {
+  $items['forum'] = array(
+    'link_title' => 'Forums',
+    'route_name' => 'forum.index',
+    'menu_name' => 'tools',
+  );
+  $items['forum.admin.overview'] = array(
+    'link_title' => 'Forums',
+    'parent' => 'system.admin.structure',
+    'description' => 'Control forum hierarchy settings.',
+    'route_name' => 'forum.overview',
   );
   return $items;
 }
@@ -160,7 +160,7 @@ function forum_menu_local_tasks(&$data, $route_name) {
     // Loop through all bundles for forum taxonomy vocabulary field.
     $field = Field::fieldInfo()->getField('node', 'taxonomy_forums');
     foreach ($field->getBundles() as $type) {
-      if (node_access('create', $type)) {
+      if (\Drupal::entityManager()->getAccessController('node')->createAccess($type)) {
         $links[$type] = array(
           '#theme' => 'menu_local_action',
           '#link' => array(
@@ -205,10 +205,14 @@ function forum_menu_local_tasks(&$data, $route_name) {
 /**
  * Implements hook_entity_info().
  */
-function forum_entity_info(&$info) {
+function forum_entity_info(&$entity_info) {
+  /** @var $entity_info \Drupal\Core\Entity\EntityTypeInterface[] */
   // Register forum specific form controllers.
-  $info['taxonomy_term']['controllers']['form']['forum'] = 'Drupal\forum\Form\ForumFormController';
-  $info['taxonomy_term']['controllers']['form']['container'] = 'Drupal\forum\Form\ContainerFormController';
+  $entity_info['taxonomy_term']
+    ->setFormClass('forum', 'Drupal\forum\Form\ForumFormController')
+    ->setFormClass('container', 'Drupal\forum\Form\ContainerFormController')
+    ->setLinkTemplate('forum-delete-form', 'forum.delete')
+    ->setLinkTemplate('forum-edit-form', 'forum.edit_forum');
 }
 
 /**
@@ -228,7 +232,10 @@ function forum_entity_bundle_info_alter(&$bundles) {
  */
 function forum_uri($forum) {
   return array(
-    'path' => 'forum/' . $forum->id(),
+    'route_name' => 'forum.page',
+    'route_parameters' => array(
+      'taxonomy_term' => $forum->id(),
+    ),
   );
 }
 
@@ -238,7 +245,7 @@ function forum_uri($forum) {
  * Checks in particular that the node is assigned only a "leaf" term in the
  * forum taxonomy.
  */
-function forum_node_validate(EntityInterface $node, $form) {
+function forum_node_validate(EntityInterface $node, $form, &$form_state) {
   if (\Drupal::service('forum_manager')->checkNodeType($node)) {
     // vocabulary is selected, not a "container" term.
     if (!$node->taxonomy_forums->isEmpty()) {
@@ -252,15 +259,17 @@ function forum_node_validate(EntityInterface $node, $form) {
         }
         $term = $item->entity;
         if (!$term) {
-          form_set_error('taxonomy_forums', t('Select a forum.'));
+          form_set_error('taxonomy_forums', $form_state, t('Select a forum.'));
           continue;
         }
-        $used = db_query_range('SELECT 1 FROM {taxonomy_term_data} WHERE tid = :tid AND vid = :vid', 0, 1, array(
-          ':tid' => $term->id(),
-          ':vid' => $term->bundle(),
-        ))->fetchField();
+        $used = \Drupal::entityQuery('taxonomy_term')
+          ->condition('tid', $term->id())
+          ->condition('vid', $term->bundle())
+          ->range(0, 1)
+          ->count()
+          ->execute();
         if ($used && !empty($term->forum_container->value)) {
-          form_set_error('taxonomy_forums', t('The item %forum is a forum container, not a forum. Select one of the forums below instead.', array('%forum' => $term->label())));
+          form_set_error('taxonomy_forums', $form_state, t('The item %forum is a forum container, not a forum. Select one of the forums below instead.', array('%forum' => $term->label())));
         }
       }
     }
@@ -458,8 +467,8 @@ function forum_permission() {
  * $comment->save() calls hook_comment_publish() for all published comments.
  */
 function forum_comment_publish($comment) {
-  if ($comment->entity_type->value == 'node') {
-    \Drupal::service('forum_manager')->updateIndex($comment->entity_id->value);
+  if ($comment->getCommentedEntityTypeId() == 'node') {
+    \Drupal::service('forum_manager')->updateIndex($comment->getCommentedEntityId());
   }
 }
 
@@ -472,8 +481,8 @@ function forum_comment_publish($comment) {
 function forum_comment_update($comment) {
   // $comment->save() calls hook_comment_publish() for all published comments,
   // so we need to handle all other values here.
-  if (!$comment->status->value && $comment->entity_type->value == 'node') {
-    \Drupal::service('forum_manager')->updateIndex($comment->entity_id->value);
+  if (!$comment->isPublished() && $comment->getCommentedEntityTypeId() == 'node') {
+    \Drupal::service('forum_manager')->updateIndex($comment->getCommentedEntityId());
   }
 }
 
@@ -481,8 +490,8 @@ function forum_comment_update($comment) {
  * Implements hook_comment_unpublish().
  */
 function forum_comment_unpublish($comment) {
-  if ($comment->entity_type->value == 'node') {
-    \Drupal::service('forum_manager')->updateIndex($comment->entity_id->value);
+  if ($comment->getCommentedEntityTypeId() == 'node') {
+    \Drupal::service('forum_manager')->updateIndex($comment->getCommentedEntityId());
   }
 }
 
@@ -490,8 +499,8 @@ function forum_comment_unpublish($comment) {
  * Implements hook_comment_delete().
  */
 function forum_comment_delete($comment) {
-  if ($comment->entity_type->value == 'node') {
-    \Drupal::service('forum_manager')->updateIndex($comment->entity_id->value);
+  if ($comment->getCommentedEntityTypeId() == 'node') {
+    \Drupal::service('forum_manager')->updateIndex($comment->getCommentedEntityId());
   }
 }
 
@@ -645,26 +654,107 @@ function template_preprocess_forums(&$variables) {
         '#tid' => $variables['tid'],
       );
     }
-    else {
-      $variables['forums'] = array();
-    }
 
-    if ($variables['term'] && empty($variables['term']->forum_container->value)) {
-      $variables['topics'] = array(
-        '#theme' => 'forum_topic_list',
-        '#tid' => $variables['tid'],
-        '#topics' => $variables['topics'],
-        '#sortby' => $variables['sortby'],
-        '#forum_per_page' => $variables['forum_per_page'],
+    if ($variables['term'] && empty($variables['term']->forum_container->value) && !empty($variables['topics'])) {
+      global $forum_topic_list_header;
+
+      $table = array(
+        '#theme' => 'table__forum_topic_list',
+        '#responsive' => FALSE,
+        '#attributes' => array('id' => 'forum-topic-' . $variables['tid']),
+        '#header' => array(),
+        '#rows' => array(),
+      );
+
+      if (!empty($forum_topic_list_header)) {
+        $table['#header'] = $forum_topic_list_header;
+      }
+
+      /** @var \Drupal\node\NodeInterface $topic */
+      foreach ($variables['topics'] as $id => $topic) {
+        $variables['topics'][$id]->icon = array(
+          '#theme' => 'forum_icon',
+          '#new_posts' => $topic->new,
+          '#num_posts' => $topic->comment_count,
+          '#comment_mode' => $topic->comment_mode,
+          '#sticky' => $topic->isSticky(),
+          '#first_new' => $topic->first_new,
+        );
+
+        // We keep the actual tid in forum table, if it's different from the
+        // current tid then it means the topic appears in two forums, one of
+        // them is a shadow copy.
+        if ($variables['tid'] != $topic->forum_tid) {
+          $variables['topics'][$id]->moved = TRUE;
+          $variables['topics'][$id]->title = check_plain($topic->getTitle());
+          $variables['topics'][$id]->message = l(t('This topic has been moved'), "forum/$topic->forum_tid");
+        }
+        else {
+          $variables['topics'][$id]->moved = FALSE;
+          $variables['topics'][$id]->title_link = l($topic->getTitle(), 'node/' . $topic->id());
+          $variables['topics'][$id]->message = '';
+        }
+        $forum_submitted = array('#theme' => 'forum_submitted', '#topic' => (object) array(
+          'uid' => $topic->getOwnerId(),
+          'name' => $topic->getOwner()->getUsername(),
+          'created' => $topic->getCreatedTime(),
+        ));
+        $variables['topics'][$id]->submitted = drupal_render($forum_submitted);
+        $forum_submitted = array(
+          '#theme' => 'forum_submitted',
+          '#topic' => isset($topic->last_reply) ? $topic->last_reply : NULL,
+        );
+        $variables['topics'][$id]->last_reply = drupal_render($forum_submitted);
+
+        $variables['topics'][$id]->new_text = '';
+        $variables['topics'][$id]->new_url = '';
+
+        if ($topic->new_replies) {
+          $variables['topics'][$id]->new_text = format_plural($topic->new_replies, '1 new post<span class="visually-hidden"> in topic %title</span>', '@count new posts<span class="visually-hidden"> in topic %title</span>', array('%title' => $variables['topics'][$id]->label()));
+          $variables['topics'][$id]->new_url = url('node/' . $topic->id(), array('query' => comment_new_page_count($topic->comment_count, $topic->new_replies, $topic, 'comment_node_forum'), 'fragment' => 'new'));
+        }
+
+        // Build table rows from topics.
+        $row = array();
+        $row[] = array(
+          'data' => array(
+            $topic->icon,
+            array(
+              '#markup' => '<div class="title"><div>' . $topic->title_link . '</div><div>' . $topic->submitted . '</div></div>',
+            ),
+          ),
+          'class' => array('topic'),
+        );
+
+        if ($topic->moved) {
+          $row[] = array(
+            'data' => $topic->message,
+            'colspan' => '2',
+          );
+        }
+        else {
+          $new_replies = '';
+          if ($topic->new_replies) {
+            $new_replies = '<br /><a href="' . $topic->new_url . '">' . $topic->new_text . '</a>';
+          }
+
+          $row[] = array(
+            'data' => $topic->comment_count . $new_replies,
+            'class' => array('replies'),
+          );
+          $row[] = array(
+            'data' => $topic->last_reply,
+            'class' => array('last-reply'),
+          );
+        }
+        $table['#rows'][] = $row;
+      }
+
+      $variables['topics'] = $table;
+      $variables['topics_pager'] = array(
+        '#theme' => 'pager',
       );
     }
-    else {
-      $variables['topics'] = array();
-    }
-  }
-  else {
-    $variables['forums'] = array();
-    $variables['topics'] = array();
   }
 }
 
@@ -720,92 +810,6 @@ function template_preprocess_forum_list(&$variables) {
   // Give meaning to $tid for themers. $tid actually stands for term ID.
   $variables['forum_id'] = $variables['tid'];
   unset($variables['tid']);
-}
-
-/**
- * Prepares variables for forum topic list templates.
- *
- * Default template: forum-topic-list.html.twig.
- *
- * @param array $variables
- *   An array containing the following elements:
- *   - tid: Taxonomy term ID of the current forum.
- *   - topics: An array of all the topics in the current forum.
- *   - forum_per_page: The maximum number of topics to display per page.
- */
-function template_preprocess_forum_topic_list(&$variables) {
-  global $forum_topic_list_header;
-
-  $header = '';
-  if (!empty($forum_topic_list_header)) {
-    // Create the tablesorting header.
-    $ts = tablesort_init($forum_topic_list_header);
-    foreach ($forum_topic_list_header as $cell) {
-      $cell = tablesort_header($cell, $forum_topic_list_header, $ts);
-      $header .= _theme_table_cell($cell, TRUE);
-    }
-  }
-  $variables['header'] = $header;
-
-  if (!empty($variables['topics'])) {
-    $row = 0;
-    foreach ($variables['topics'] as $id => $topic) {
-      $variables['topics'][$id]->icon = array(
-        '#theme' => 'forum_icon',
-        '#new_posts' => $topic->new,
-        '#num_posts' => $topic->comment_count,
-        '#comment_mode' => $topic->comment_mode,
-        '#sticky' => $topic->isSticky(),
-        '#first_new' => $topic->first_new,
-      );
-      $variables['topics'][$id]->zebra = $row % 2 == 0 ? 'odd' : 'even';
-      $row++;
-
-      // We keep the actual tid in forum table, if it's different from the
-      // current tid then it means the topic appears in two forums, one of
-      // them is a shadow copy.
-      if ($variables['tid'] != $topic->forum_tid) {
-        $variables['topics'][$id]->moved = TRUE;
-        $variables['topics'][$id]->title = check_plain($topic->getTitle());
-        $variables['topics'][$id]->message = l(t('This topic has been moved'), "forum/$topic->forum_tid");
-      }
-      else {
-        $variables['topics'][$id]->moved = FALSE;
-        $variables['topics'][$id]->title_link = l($topic->getTitle(), 'node/' . $topic->id());
-        $variables['topics'][$id]->message = '';
-      }
-      $forum_submitted = array('#theme' => 'forum_submitted', '#topic' => (object) array(
-        'uid' => $topic->getAuthorId(),
-        'name' => $topic->getAuthor()->getUsername(),
-        'created' => $topic->getCreatedTime(),
-      ));
-      $variables['topics'][$id]->submitted = drupal_render($forum_submitted);
-      $forum_submitted = array(
-        '#theme' => 'forum_submitted',
-        '#topic' => isset($topic->last_reply) ? $topic->last_reply : NULL,
-      );
-      $variables['topics'][$id]->last_reply = drupal_render($forum_submitted);
-
-      $variables['topics'][$id]->new_text = '';
-      $variables['topics'][$id]->new_url = '';
-      if ($topic->new_replies) {
-        $variables['topics'][$id]->new_text = format_plural($topic->new_replies, '1 new post<span class="visually-hidden"> in topic %title</span>', '@count new posts<span class="visually-hidden"> in topic %title</span>', array('%title' => $variables['topics'][$id]->label()));
-        $variables['topics'][$id]->new_url = url('node/' . $topic->id(), array('query' => comment_new_page_count($topic->comment_count, $topic->new_replies, $topic, 'comment_node_forum'), 'fragment' => 'new'));
-      }
-
-    }
-  }
-  else {
-    // Make this safe for the template.
-    $variables['topics'] = array();
-  }
-  // Give meaning to $tid for themers. $tid actually stands for term id.
-  $variables['topic_id'] = $variables['tid'];
-  unset($variables['tid']);
-
-  $variables['pager'] = array(
-    '#theme' => 'pager',
-  );
 }
 
 /**

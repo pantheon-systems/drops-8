@@ -8,8 +8,6 @@
 namespace Drupal\node\Plugin\views\wizard;
 
 use Drupal\views\Plugin\views\wizard\WizardPluginBase;
-use Drupal\views\Annotation\ViewsWizard;
-use Drupal\Core\Annotation\Translation;
 
 /**
  * @todo: replace numbers with constants.
@@ -257,7 +255,7 @@ class Node extends WizardPluginBase {
     // entities. If a particular entity type (i.e., bundle) has been
     // selected above, then we only search for taxonomy fields associated
     // with that bundle. Otherwise, we use all bundles.
-    $bundles = array_keys(entity_get_bundles($this->entity_type));
+    $bundles = array_keys(entity_get_bundles($this->entityTypeId));
     // Double check that this is a real bundle before using it (since above
     // we added a dummy option 'all' to the bundle list on the form).
     if (isset($selected_bundle) && in_array($selected_bundle, $bundles)) {
@@ -265,8 +263,8 @@ class Node extends WizardPluginBase {
     }
     $tag_fields = array();
     foreach ($bundles as $bundle) {
-      $display = entity_get_form_display($this->entity_type, $bundle, 'default');
-      foreach (field_info_instances($this->entity_type, $bundle) as $field_name => $instance) {
+      $display = entity_get_form_display($this->entityTypeId, $bundle, 'default');
+      foreach (field_info_instances($this->entityTypeId, $bundle) as $field_name => $instance) {
         $widget = $display->getComponent($field_name);
         // We define "tag-like" taxonomy fields as ones that use the
         // "Autocomplete term widget (tagging)" widget.
@@ -295,12 +293,12 @@ class Node extends WizardPluginBase {
         '#title' => t('tagged with'),
         '#autocomplete_route_name' => 'taxonomy.autocomplete',
         '#autocomplete_route_parameters' => array(
-          'entity_type' => $this->entity_type,
+          'entity_type' => $this->entityTypeId,
           'field_name' => $tag_field_name,
         ),
         '#size' => 30,
         '#maxlength' => 1024,
-        '#entity_type' => $this->entity_type,
+        '#entity_type' => $this->entityTypeId,
         '#field_name' => $tag_field_name,
         '#element_validate' => array('views_ui_taxonomy_autocomplete_validate'),
       );

@@ -52,11 +52,7 @@ class ImageStyleEditForm extends ImageStyleFormBase {
    * {@inheritdoc}
    */
   public function form(array $form, array &$form_state) {
-
-    // @todo Remove drupal_set_title() in http://drupal.org/node/1981644
-    $title = $this->t('Edit style %name', array('%name' => $this->entity->label()));
-    drupal_set_title($title, PASS_THROUGH);
-
+    $form['#title'] = $this->t('Edit style %name', array('%name' => $this->entity->label()));
     $form['#tree'] = TRUE;
     $form['#attached']['css'][drupal_get_path('module', 'image') . '/css/image.admin.css'] = array();
 
@@ -76,7 +72,7 @@ class ImageStyleEditForm extends ImageStyleFormBase {
       // Render effects below parent elements.
       '#weight' => 5,
     );
-    foreach ($this->entity->getEffects()->sort() as $effect) {
+    foreach ($this->entity->getEffects() as $effect) {
       $key = $effect->getUuid();
       $form['effects'][$key]['#weight'] = isset($form_state['input']['effects']) ? $form_state['input']['effects'][$key]['weight'] : NULL;
       $form['effects'][$key]['label'] = array(
@@ -160,7 +156,7 @@ class ImageStyleEditForm extends ImageStyleFormBase {
    */
   public function effectValidate($form, &$form_state) {
     if (!$form_state['values']['new']) {
-      form_error($form['effects']['new']['new'], $this->t('Select an effect to add.'));
+      $this->setFormError('new', $form_state, $this->t('Select an effect to add.'));
     }
   }
 
@@ -188,8 +184,16 @@ class ImageStyleEditForm extends ImageStyleFormBase {
 
     // Load the configuration form for this option.
     if (is_subclass_of($effect['class'], '\Drupal\image\ConfigurableImageEffectInterface')) {
-      $path = 'admin/config/media/image-styles/manage/' . $this->entity->id() . '/add/' . $form_state['values']['new'];
-      $form_state['redirect'] = array($path, array('query' => array('weight' => $form_state['values']['weight'])));
+      $form_state['redirect_route'] = array(
+        'route_name' => 'image.effect_add_form',
+        'route_parameters' => array(
+          'image_style' => $this->entity->id(),
+          'image_effect' => $form_state['values']['new'],
+        ),
+        'options' => array(
+          'query' => array('weight' => $form_state['values']['weight']),
+        ),
+      );
     }
     // If there's no form, immediately add the image effect.
     else {

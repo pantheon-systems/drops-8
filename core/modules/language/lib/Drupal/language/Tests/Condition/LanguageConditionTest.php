@@ -26,7 +26,7 @@ class LanguageConditionTest extends DrupalUnitTestBase {
   /**
    * The language manager.
    *
-   * @var \Drupal\Core\Language\LanguageManager
+   * @var \Drupal\Core\Language\LanguageManagerInterface
    */
   protected $languageManager;
 
@@ -48,9 +48,6 @@ class LanguageConditionTest extends DrupalUnitTestBase {
   protected function setUp() {
     parent::setUp();
 
-    // This is needed for language_default().
-    // @todo remove this when language_default() no longer needs variable_get().
-    $this->installSchema('system', 'variable');
     $this->installConfig(array('language'));
 
     // Setup English.

@@ -125,8 +125,8 @@ class ManyToOneHelper {
 
     // shortcuts
     $options = $this->handler->options;
-    $view = &$this->handler->view;
-    $query = &$this->handler->query;
+    $view = $this->handler->view;
+    $query = $this->handler->query;
 
     if (!empty($options['require_value'])) {
       $join->type = 'INNER';
@@ -220,11 +220,11 @@ class ManyToOneHelper {
             }
             $this->handler->view->many_to_one_aliases[$field][$value] = $this->handler->table . '_value_' . ($this->handler->view->many_to_one_count[$this->handler->table]++);
           }
-          $alias = $this->handler->tableAliases[$value] = $this->addTable($join, $this->handler->view->many_to_one_aliases[$field][$value]);
 
-          // and set table_alias to the first of these.
+          $this->handler->tableAliases[$value] = $this->addTable($join, $this->handler->view->many_to_one_aliases[$field][$value]);
+          // Set tableAlias to the first of these.
           if (empty($this->handler->tableAlias)) {
-            $this->handler->tableAlias = $alias;
+            $this->handler->tableAlias = $this->handler->tableAliases[$value];
           }
         }
       }

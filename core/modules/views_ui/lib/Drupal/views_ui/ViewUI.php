@@ -7,6 +7,8 @@
 
 namespace Drupal\views_ui;
 
+use Drupal\Component\Utility\String;
+use Drupal\Component\Utility\Timer;
 use Drupal\views\Views;
 use Drupal\Core\Entity\EntityStorageControllerInterface;
 use Drupal\views\ViewExecutable;
@@ -100,7 +102,7 @@ class ViewUI implements ViewStorageInterface {
   /**
    * The View storage object.
    *
-   * @var \Drupal\views\Entity\View
+   * @var \Drupal\views\ViewStorageInterface
    */
   protected $storage;
 
@@ -126,17 +128,25 @@ class ViewUI implements ViewStorageInterface {
    * @var array
    */
   public static $forms = array(
-    'add-item' => '\Drupal\views_ui\Form\Ajax\AddItem',
+    'add-handler' => '\Drupal\views_ui\Form\Ajax\AddItem',
     'analyze' => '\Drupal\views_ui\Form\Ajax\Analyze',
-    'config-item' => '\Drupal\views_ui\Form\Ajax\ConfigItem',
-    'config-item-extra' => '\Drupal\views_ui\Form\Ajax\ConfigItemExtra',
-    'config-item-group' => '\Drupal\views_ui\Form\Ajax\ConfigItemGroup',
+    'handler' => '\Drupal\views_ui\Form\Ajax\ConfigHandler',
+    'handler-extra' => '\Drupal\views_ui\Form\Ajax\ConfigHandlerExtra',
+    'handler-group' => '\Drupal\views_ui\Form\Ajax\ConfigHandlerGroup',
     'display' => '\Drupal\views_ui\Form\Ajax\Display',
     'edit-details' => '\Drupal\views_ui\Form\Ajax\EditDetails',
     'rearrange' => '\Drupal\views_ui\Form\Ajax\Rearrange',
     'rearrange-filter' => '\Drupal\views_ui\Form\Ajax\RearrangeFilter',
     'reorder-displays' => '\Drupal\views_ui\Form\Ajax\ReorderDisplays',
   );
+
+  /**
+   * Whether the config is being created, updated or deleted through the
+   * import process.
+   *
+   * @var bool
+   */
+  private $isSyncing = FALSE;
 
   /**
    * Constructs a View UI object.
@@ -185,6 +195,20 @@ class ViewUI implements ViewStorageInterface {
 
   public static function getDefaultAJAXMessage() {
     return '<div class="message">' . t("Click on an item to edit that item's details.") . '</div>';
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setSyncing($syncing) {
+    $this->isSyncing = $syncing;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function isSyncing() {
+    return $this->isSyncing;
   }
 
   /**
@@ -255,7 +279,7 @@ class ViewUI implements ViewStorageInterface {
       $this->cacheSet();
     }
 
-    $form_state['redirect'] = 'admin/structure/views/view/' . $this->id() . '/edit';
+    $form_state['redirect_route'] = $this->urlInfo('edit-form');
   }
 
   /**
@@ -347,11 +371,6 @@ class ViewUI implements ViewStorageInterface {
     }
     // Finally, we never want these cached -- our object cache does that for us.
     $form['#no_cache'] = TRUE;
-
-    // If this isn't an ajaxy form, then we want to set the title.
-    if (!empty($form['#title'])) {
-      drupal_set_title($form['#title']);
-    }
   }
 
   /**
@@ -465,7 +484,7 @@ class ViewUI implements ViewStorageInterface {
         if ($cut = strpos($field, '$')) {
           $field = substr($field, 0, $cut);
         }
-        $id = $this->executable->addItem($form_state['display_id'], $type, $table, $field);
+        $id = $this->executable->addHandler($form_state['display_id'], $type, $table, $field);
 
         // check to see if we have group by settings
         $key = $type;
@@ -479,15 +498,15 @@ class ViewUI implements ViewStorageInterface {
         );
         $handler = Views::handlerManager($key)->getHandler($item);
         if ($this->executable->displayHandlers->get('default')->useGroupBy() && $handler->usesGroupBy()) {
-          $this->addFormToStack('config-item-group', $form_state['display_id'], $type, $id);
+          $this->addFormToStack('handler-group', $form_state['display_id'], $type, $id);
         }
 
         // check to see if this type has settings, if so add the settings form first
         if ($handler && $handler->hasExtraOptions()) {
-          $this->addFormToStack('config-item-extra', $form_state['display_id'], $type, $id);
+          $this->addFormToStack('handler-extra', $form_state['display_id'], $type, $id);
         }
         // Then add the form to the stack
-        $this->addFormToStack('config-item', $form_state['display_id'], $type, $id);
+        $this->addFormToStack('handler', $form_state['display_id'], $type, $id);
       }
     }
 
@@ -592,7 +611,7 @@ class ViewUI implements ViewStorageInterface {
 
       $show_additional_queries = $config->get('ui.show.additional_queries');
 
-      timer_start('views_ui.preview');
+      Timer::start('views_ui.preview');
 
       if ($show_additional_queries) {
         $this->startQueryCapture();
@@ -606,7 +625,7 @@ class ViewUI implements ViewStorageInterface {
         $this->endQueryCapture();
       }
 
-      $this->render_time = timer_stop('views_ui.preview');
+      $this->render_time = Timer::stop('views_ui.preview');
 
       views_ui_contextual_links_suppress_pop();
 
@@ -636,7 +655,7 @@ class ViewUI implements ViewStorageInterface {
                 }
               }
             }
-            $rows['query'][] = array('<strong>' . t('Query') . '</strong>', '<pre>' . check_plain(strtr($query_string, $quoted)) . '</pre>');
+            $rows['query'][] = array('<strong>' . t('Query') . '</strong>', '<pre>' . String::checkPlain(strtr($query_string, $quoted)) . '</pre>');
             if (!empty($this->additionalQueries)) {
               $queries = '<strong>' . t('These queries were run during view rendering:') . '</strong>';
               foreach ($this->additionalQueries as $query) {
@@ -732,7 +751,6 @@ class ViewUI implements ViewStorageInterface {
   public function getFormProgress() {
     $progress = FALSE;
     if (!empty($this->stack)) {
-      $stack = $this->stack;
       // The forms on the stack have integer keys that don't change as the forms
       // are completed, so we can see which ones are still left.
       $keys = array_keys($this->stack);
@@ -783,7 +801,7 @@ class ViewUI implements ViewStorageInterface {
    *   TRUE if the view is locked, FALSE otherwise.
    */
   public function isLocked() {
-    return is_object($this->lock) && ($this->lock->owner != $GLOBALS['user']->id());
+    return is_object($this->lock) && ($this->lock->owner != \Drupal::currentUser()->id());
   }
 
   /**
@@ -822,10 +840,10 @@ class ViewUI implements ViewStorageInterface {
   }
 
   /**
-   * Implements \Drupal\Core\Entity\EntityInterface::entityType().
+   * {@inheritdoc}
    */
-  public function entityType() {
-    return $this->storage->entityType();
+  public function getEntityTypeId() {
+    return $this->storage->getEntityTypeId();
   }
 
   /**
@@ -836,10 +854,10 @@ class ViewUI implements ViewStorageInterface {
   }
 
   /**
-   * Implements \Drupal\Core\Entity\EntityInterface::entityInfo().
+   * {@inheritdoc}
    */
-  public function entityInfo() {
-    return $this->storage->entityInfo();
+  public function getEntityType() {
+    return $this->storage->getEntityType();
   }
 
   /**
@@ -866,15 +884,22 @@ class ViewUI implements ViewStorageInterface {
   /**
    * Implements \Drupal\Core\Entity\EntityInterface::uri().
    */
-  public function uri() {
-    return $this->storage->uri();
+  public function urlInfo($rel = 'edit-form') {
+    return $this->storage->urlInfo($rel);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getSystemPath($rel = 'edit-form') {
+    return $this->storage->getSystemPath($rel);
   }
 
   /**
    * Implements \Drupal\Core\Entity\EntityInterface::label().
    */
-  public function label($langcode = NULL) {
-    return $this->storage->label($langcode);
+  public function label() {
+    return $this->storage->label();
   }
 
   /**
@@ -1116,7 +1141,7 @@ class ViewUI implements ViewStorageInterface {
   /**
    * {@inheritdoc}
    */
-  public static function postLoad(EntityStorageControllerInterface $storage_controller, array $entities) {
+  public static function postLoad(EntityStorageControllerInterface $storage_controller, array &$entities) {
   }
 
   /**
@@ -1140,11 +1165,18 @@ class ViewUI implements ViewStorageInterface {
      return $this->storage->referencedEntities();
    }
 
-   /**
-    * {@inheritdoc}
-    */
-   public function changed() {
-     return $this->storage->changed();
-   }
+  /**
+   * {@inheritdoc}
+   */
+  public function url($rel = 'edit-form', $options = array()) {
+    return $this->storage->url($rel, $options);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function hasLinkTemplate($key) {
+    return $this->storage->hasLinkTemplate($key);
+  }
 
 }

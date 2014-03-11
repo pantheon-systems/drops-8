@@ -141,6 +141,16 @@ class BlockTest extends BlockTestBase {
     $this->assertRaw(t('Are you sure you want to delete the block %name?', array('%name' => $block['settings[label]'])));
     $this->drupalPostForm(NULL, array(), t('Delete'));
     $this->assertRaw(t('The block %name has been removed.', array('%name' => $block['settings[label]'])));
+
+    // Test deleting a block via "Configure block" link.
+    $block = $this->drupalPlaceBlock('system_powered_by_block');
+    $this->drupalGet('admin/structure/block/manage/' . $block->id(), array('query' => array('destination' => 'admin')));
+    $this->drupalPostForm(NULL, array(), t('Delete'));
+    $this->assertRaw(t('Are you sure you want to delete the block %name?', array('%name' => $block->label())));
+    $this->drupalPostForm(NULL, array(), t('Delete'));
+    $this->assertRaw(t('The block %name has been removed.', array('%name' => $block->label())));
+    $this->assertUrl('admin');
+    $this->assertNoRaw($block->id());
   }
 
   /**
@@ -151,6 +161,8 @@ class BlockTest extends BlockTestBase {
     theme_enable(array('bartik', 'seven'));
     $theme_settings = $this->container->get('config.factory')->get('system.theme');
     foreach (array('bartik', 'stark', 'seven') as $theme) {
+      $this->drupalGet('admin/structure/block/list/' . $theme);
+      $this->assertTitle(t('Block layout') . ' | Drupal');
       // Select the 'Powered by Drupal' block to be placed.
       $block = array();
       $block['id'] = strtolower($this->randomName());
@@ -177,7 +189,7 @@ class BlockTest extends BlockTestBase {
     $title = $this->randomName(8);
     $id = strtolower($this->randomName(8));
     // Enable a standard block.
-    $default_theme = \Drupal::config('system.theme')->get('default') ?: 'stark';
+    $default_theme = \Drupal::config('system.theme')->get('default');
     $edit = array(
       'id' => $id,
       'region' => 'sidebar_first',
@@ -194,6 +206,9 @@ class BlockTest extends BlockTestBase {
     );
     $this->drupalPostForm('admin/structure/block/manage/' . $id, $edit, t('Save block'));
     $this->assertText('The block configuration has been saved.', 'Block was saved');
+
+    $this->drupalGet('admin/structure/block/manage/' . $id);
+    $this->assertNoFieldChecked('edit-settings-label-display', 'The display_block option has the correct default value on the configuration form.');
 
     $this->drupalGet('user');
     $this->assertNoText($title, 'Block title was not displayed when hidden.');
@@ -238,7 +253,7 @@ class BlockTest extends BlockTestBase {
    */
   function testBlockRehash() {
     \Drupal::moduleHandler()->install(array('block_test'));
-    $this->assertTrue(module_exists('block_test'), 'Test block module enabled.');
+    $this->assertTrue(\Drupal::moduleHandler()->moduleExists('block_test'), 'Test block module enabled.');
 
     // Clear the block cache to load the block_test module's block definitions.
     $this->container->get('plugin.manager.block')->clearCachedDefinitions();

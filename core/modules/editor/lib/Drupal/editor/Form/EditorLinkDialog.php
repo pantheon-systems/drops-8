@@ -33,8 +33,8 @@ class EditorLinkDialog extends FormBase {
    *   The filter format for which this dialog corresponds.
    */
   public function buildForm(array $form, array &$form_state, FilterFormat $filter_format = NULL) {
-    // The default values are set directly from $_POST, provided by the
-    // editor plugin opening the dialog.
+    // The default values are set directly from \Drupal::request()->request,
+    // provided by the editor plugin opening the dialog.
     $input = isset($form_state['input']['editor_object']) ? $form_state['input']['editor_object'] : array();
 
     $form['#tree'] = TRUE;
@@ -81,7 +81,7 @@ class EditorLinkDialog extends FormBase {
   public function submitForm(array &$form, array &$form_state) {
     $response = new AjaxResponse();
 
-    if (form_get_errors()) {
+    if (form_get_errors($form_state)) {
       unset($form['#prefix'], $form['#suffix']);
       $status_messages = array('#theme' => 'status_messages');
       $output = drupal_render($form);

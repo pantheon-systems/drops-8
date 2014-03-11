@@ -8,8 +8,6 @@
 namespace Drupal\Core\Entity\Plugin\DataType;
 
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\Core\TypedData\Annotation\DataType;
-use Drupal\Core\Annotation\Translation;
 use Drupal\Core\TypedData\DataReferenceBase;
 
 /**
@@ -64,7 +62,7 @@ class EntityReference extends DataReferenceBase {
     if (!isset($this->target) && isset($this->id)) {
       // If we have a valid reference, return the entity object which is typed
       // data itself.
-      $this->target = entity_load($this->definition['constraints']['EntityType'], $this->id);
+      $this->target = entity_load($this->definition->getConstraint('EntityType'), $this->id);
     }
     return $this->target;
   }
@@ -101,7 +99,7 @@ class EntityReference extends DataReferenceBase {
     if (!isset($value) || $value instanceof EntityInterface) {
       $this->target = $value;
     }
-    elseif (!is_scalar($value) || empty($this->definition['constraints']['EntityType'])) {
+    elseif (!is_scalar($value) || (($constraints = $this->definition->getConstraints()) && empty($constraints['EntityType']))) {
       throw new \InvalidArgumentException('Value is not a valid entity.');
     }
     else {

@@ -541,6 +541,8 @@ class Select extends Query implements SelectInterface {
   }
 
   public function orderBy($field, $direction = 'ASC') {
+    // Only allow ASC and DESC, default to ASC.
+    $direction = strtoupper($direction) == 'DESC' ? 'DESC' : 'ASC';
     $this->order[$field] = $direction;
     return $this;
   }
@@ -710,7 +712,11 @@ class Select extends Query implements SelectInterface {
         $table_string = '(' . (string) $subquery . ')';
       }
       else {
-        $table_string = '{' . $this->connection->escapeTable($table['table']) . '}';
+        $table_string = $this->connection->escapeTable($table['table']);
+        // Do not attempt prefixing cross database / schema queries.
+        if (strpos($table_string, '.') === FALSE) {
+          $table_string = '{' . $table_string . '}';
+        }
       }
 
       // Don't use the AS keyword for table aliases, as some
@@ -744,7 +750,7 @@ class Select extends Query implements SelectInterface {
       $query .= "\nORDER BY ";
       $fields = array();
       foreach ($this->order as $field => $direction) {
-        $fields[] = $field . ' ' . $direction;
+        $fields[] = $this->connection->escapeField($field) . ' ' . $direction;
       }
       $query .= implode(', ', $fields);
     }

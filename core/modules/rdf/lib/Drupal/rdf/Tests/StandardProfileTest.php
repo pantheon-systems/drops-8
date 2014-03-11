@@ -168,25 +168,20 @@ class StandardProfileTest extends WebTestBase {
 
     // Set URIs.
     // Image.
-    $image_file = file_load($this->article->get('field_image')->offsetGet(0)->get('target_id')->getValue());
+    $image_file = $this->article->get('field_image')->entity;
     $this->imageUri = entity_load('image_style', 'large')->buildUrl($image_file->getFileUri());
     // Term.
-    $term_uri_info = $this->term->uri();
-    $this->termUri = url($term_uri_info['path'], array('absolute' => TRUE));
+    $this->termUri = $this->term->url('canonical', array('absolute' => TRUE));
     // Article.
-    $article_uri_info = $this->article->uri();
-    $this->articleUri = url($article_uri_info['path'], array('absolute' => TRUE));
+    $this->articleUri = $this->article->url('canonical', array('absolute' => TRUE));
     // Page.
-    $page_uri_info = $this->page->uri();
-    $this->pageUri = url($page_uri_info['path'], array('absolute' => TRUE));
+    $this->pageUri = $this->page->url('canonical', array('absolute' => TRUE));
     // Author.
-    $this->authorUri = url('user/' . $this->adminUser->id(), array('absolute' => TRUE));
+    $this->authorUri = $this->adminUser->url('canonical', array('absolute' => TRUE));
     // Comment.
-    $article_comment_uri_info = $this->articleComment->uri();
-    $this->articleCommentUri = url($article_comment_uri_info['path'], array('absolute' => TRUE));
+    $this->articleCommentUri = $this->articleComment->url('canonical', array('absolute' => TRUE));
     // Commenter.
-    $commenter_uri_info = $this->webUser->uri();
-    $this->commenterUri = url($commenter_uri_info['path'], array('absolute' => TRUE));
+    $this->commenterUri = $this->webUser->url('canonical', array('absolute' => TRUE));
 
     $this->drupalLogout();
   }
@@ -233,7 +228,7 @@ class StandardProfileTest extends WebTestBase {
 
     // @todo Once the image points to the original instead of the processed
     //   image, move this to testArticleProperties().
-    $image_file = file_load($this->article->get('field_image')->offsetGet(0)->get('target_id')->getValue());
+    $image_file = $this->article->get('field_image')->entity;
     $image_uri = entity_load('image_style', 'medium')->buildUrl($image_file->getFileUri());
     $expected_value = array(
       'type' => 'uri',
@@ -251,9 +246,7 @@ class StandardProfileTest extends WebTestBase {
    */
   protected function doArticleRdfaTests() {
     // Feed the HTML into the parser.
-    $uri_info = $this->article->uri();
-    $path = $uri_info['path'];
-    $graph = $this->getRdfGraph($path);
+    $graph = $this->getRdfGraph($this->article->getSystemPath());
 
     // Type.
     $this->assertEqual($graph->type($this->articleUri), 'schema:Article', 'Article type was found (schema:Article).');
@@ -284,12 +277,13 @@ class StandardProfileTest extends WebTestBase {
   protected function doPageRdfaTests() {
     // The standard profile hides the created date on pages. Revert display to
     // true for testing.
-    variable_set('node_submitted_page', TRUE);
+    // @todo Clean-up standard profile defaults.
+    $node_type = entity_load('node_type', 'page');
+    $node_type->settings['node']['submitted'] = TRUE;
+    $node_type->save();
 
     // Feed the HTML into the parser.
-    $uri_info = $this->page->uri();
-    $path = $uri_info['path'];
-    $graph = $this->getRdfGraph($path);
+    $graph = $this->getRdfGraph($this->page->getSystemPath());
 
     // Type.
     $this->assertEqual($graph->type($this->pageUri), 'schema:WebPage', 'Page type was found (schema:WebPage).');
@@ -305,9 +299,7 @@ class StandardProfileTest extends WebTestBase {
     $this->drupalLogin($this->root_user);
 
     // Feed the HTML into the parser.
-    $uri_info = $this->adminUser->uri();
-    $path = $uri_info['path'];
-    $graph = $this->getRdfGraph($path);
+    $graph = $this->getRdfGraph($this->adminUser->getSystemPath());
 
     // User type.
     $this->assertEqual($graph->type($this->authorUri), 'schema:Person', "User type was found (schema:Person) on user page.");
@@ -327,9 +319,7 @@ class StandardProfileTest extends WebTestBase {
    */
   protected function doTermRdfaTests() {
     // Feed the HTML into the parser.
-    $uri_info = $this->term->uri();
-    $path = $uri_info['path'];
-    $graph = $this->getRdfGraph($path);
+    $graph = $this->getRdfGraph($this->term->getSystemPath());
 
     // Term type.
     $this->assertEqual($graph->type($this->termUri), 'schema:Thing', "Term type was found (schema:Thing) on term page.");
@@ -337,7 +327,7 @@ class StandardProfileTest extends WebTestBase {
     // Term name.
     $expected_value = array(
       'type' => 'literal',
-      'value' => $this->term->get('name')->offsetGet(0)->get('value')->getValue(),
+      'value' => $this->term->get('name')->value,
       'lang' => 'en',
     );
     $this->assertTrue($graph->hasProperty($this->termUri, 'http://schema.org/name', $expected_value), "Term name was found (schema:name) on term page.");
@@ -357,13 +347,12 @@ class StandardProfileTest extends WebTestBase {
    *   The word to use in the test assertion message.
    */
   protected function assertRdfaCommonNodeProperties($graph, NodeInterface $node, $message_prefix) {
-    $uri_info = $node->uri();
-    $uri = url($uri_info['path'], array('absolute' => TRUE));
+    $uri = $node->url('canonical', array('absolute' => TRUE));
 
     // Title.
     $expected_value = array(
       'type' => 'literal',
-      'value' => $node->get('title')->offsetGet(0)->get('value')->getValue(),
+      'value' => $node->get('title')->value,
       'lang' => 'en',
     );
     $this->assertTrue($graph->hasProperty($uri, 'http://schema.org/name', $expected_value), "$message_prefix title was found (schema:name).");
@@ -371,7 +360,7 @@ class StandardProfileTest extends WebTestBase {
     // Created date.
     $expected_value = array(
       'type' => 'literal',
-      'value' => date_iso8601($node->get('created')->offsetGet(0)->get('value')->getValue()),
+      'value' => date_iso8601($node->get('created')->value),
       'lang' => 'en',
     );
     $this->assertTrue($graph->hasProperty($uri, 'http://schema.org/dateCreated', $expected_value), "$message_prefix created date was found (schema:dateCreated) in teaser.");
@@ -379,7 +368,7 @@ class StandardProfileTest extends WebTestBase {
     // Body.
     $expected_value = array(
       'type' => 'literal',
-      'value' => $node->get('body')->offsetGet(0)->get('value')->getValue(),
+      'value' => $node->get('body')->value,
       'lang' => 'en',
     );
     $this->assertTrue($graph->hasProperty($uri, 'http://schema.org/text', $expected_value), "$message_prefix body was found (schema:text) in teaser.");
@@ -425,7 +414,7 @@ class StandardProfileTest extends WebTestBase {
     // Tag name.
     $expected_value = array(
       'type' => 'literal',
-      'value' => $this->term->get('name')->offsetGet(0)->get('value')->getValue(),
+      'value' => $this->term->get('name')->value,
       'lang' => 'en',
     );
     // @todo enable with https://drupal.org/node/2072791
@@ -452,7 +441,7 @@ class StandardProfileTest extends WebTestBase {
     // Comment title.
     $expected_value = array(
       'type' => 'literal',
-      'value' => $this->articleComment->get('subject')->offsetGet(0)->get('value')->getValue(),
+      'value' => $this->articleComment->get('subject')->value,
       'lang' => 'en',
     );
     $this->assertTrue($graph->hasProperty($this->articleCommentUri, 'http://schema.org/name', $expected_value), 'Article comment title was found (schema:name).');
@@ -460,13 +449,13 @@ class StandardProfileTest extends WebTestBase {
     // Comment created date.
     $expected_value = array(
       'type' => 'literal',
-      'value' => date_iso8601($this->articleComment->get('created')->offsetGet(0)->get('value')->getValue()),
+      'value' => date_iso8601($this->articleComment->get('created')->value),
       'lang' => 'en',
     );
     $this->assertTrue($graph->hasProperty($this->articleCommentUri, 'http://schema.org/dateCreated', $expected_value), 'Article comment created date was found (schema:dateCreated).');
 
     // Comment body.
-    $text = $this->articleComment->get('comment_body')->offsetGet(0)->get('value')->getValue();
+    $text = $this->articleComment->get('comment_body')->value;
     $expected_value = array(
       'type' => 'literal',
       // There is an extra carriage return in the when parsing comments as
@@ -490,7 +479,7 @@ class StandardProfileTest extends WebTestBase {
     // Comment author name.
     $expected_value = array(
       'type' => 'literal',
-      'value' => $this->webUser->get('name')->offsetGet(0)->get('value')->getValue(),
+      'value' => $this->webUser->getUsername(),
     );
     $this->assertTrue($graph->hasProperty($this->commenterUri, 'http://schema.org/name', $expected_value), 'Comment author name was found (schema:name).');
   }

@@ -58,16 +58,16 @@ class ContentTranslationSyncImageTest extends ContentTranslationTestBase {
 
     entity_create('field_entity', array(
       'name' => $this->fieldName,
-      'entity_type' => $this->entityType,
+      'entity_type' => $this->entityTypeId,
       'type' => 'image',
       'cardinality' => $this->cardinality,
       'translatable' => TRUE,
     ))->save();
 
     entity_create('field_instance', array(
-      'entity_type' => $this->entityType,
+      'entity_type' => $this->entityTypeId,
       'field_name' => $this->fieldName,
-      'bundle' => $this->entityType,
+      'bundle' => $this->entityTypeId,
       'label' => 'Test translatable image field',
       'settings' => array(
         'translation_sync' => array(
@@ -93,7 +93,7 @@ class ContentTranslationSyncImageTest extends ContentTranslationTestBase {
   function testImageFieldSync() {
     // Check that the alt and title fields are enabled for the image field.
     $this->drupalLogin($this->editor);
-    $this->drupalGet('entity_test_mul/structure/' . $this->entityType . '/fields/' . $this->entityType . '.' . $this->entityType . '.' . $this->fieldName);
+    $this->drupalGet('entity_test_mul/structure/' . $this->entityTypeId . '/fields/' . $this->entityTypeId . '.' . $this->entityTypeId . '.' . $this->fieldName);
     $this->assertFieldChecked('edit-instance-settings-translation-sync-alt');
     $this->assertFieldChecked('edit-instance-settings-translation-sync-title');
     $edit = array(
@@ -132,7 +132,7 @@ class ContentTranslationSyncImageTest extends ContentTranslationTestBase {
       'user_id' => mt_rand(1, 128),
       'langcode' => $default_langcode,
     );
-    $entity = entity_create($this->entityType, $values);
+    $entity = entity_create($this->entityTypeId, $values);
 
     // Create some file entities from the generated test files and store them.
     $values = array();
@@ -144,7 +144,7 @@ class ContentTranslationSyncImageTest extends ContentTranslationTestBase {
       // identifier.
       $field_values = array(
         'uri' => $this->files[$index]->uri,
-        'uid' => $GLOBALS['user']->id(),
+        'uid' => \Drupal::currentUser()->id(),
         'status' => FILE_STATUS_PERMANENT,
       );
       $file = entity_create('file', $field_values);
@@ -159,7 +159,7 @@ class ContentTranslationSyncImageTest extends ContentTranslationTestBase {
         'alt' => $default_langcode . '_' . $fid . '_' . $this->randomName(),
         'title' => $default_langcode . '_' . $fid . '_' . $this->randomName(),
       );
-      $entity->{$this->fieldName}->offsetGet($delta)->setValue($item);
+      $entity->{$this->fieldName}->get($delta)->setValue($item);
 
       // Store the generated values keying them by fid for easier lookup.
       $values[$default_langcode][$fid] = $item;
@@ -185,7 +185,7 @@ class ContentTranslationSyncImageTest extends ContentTranslationTestBase {
         'alt' => $langcode . '_' . $fid . '_' . $this->randomName(),
         'title' => $langcode . '_' . $fid . '_' . $this->randomName(),
       );
-      $translation->{$this->fieldName}->offsetGet($delta)->setValue($item);
+      $translation->{$this->fieldName}->get($delta)->setValue($item);
 
       // Again store the generated values keying them by fid for easier lookup.
       $values[$langcode][$fid] = $item;
@@ -205,7 +205,7 @@ class ContentTranslationSyncImageTest extends ContentTranslationTestBase {
     $fids = array();
     foreach ($entity->{$this->fieldName} as $delta => $item) {
       $value = $values[$default_langcode][$item->target_id];
-      $source_item = $translation->{$this->fieldName}->offsetGet($delta);
+      $source_item = $translation->{$this->fieldName}->get($delta);
       $assert = $item->target_id == $source_item->target_id && $item->alt == $value['alt'] && $item->title == $value['title'];
       $this->assertTrue($assert, format_string('Field item @fid has been successfully synchronized.', array('@fid' => $item->target_id)));
       $fids[$item->target_id] = TRUE;
@@ -237,7 +237,7 @@ class ContentTranslationSyncImageTest extends ContentTranslationTestBase {
       // values instead of the target one.
       $fid_langcode = $item->target_id != $removed_fid ? $default_langcode : $langcode;
       $value = $values[$fid_langcode][$item->target_id];
-      $source_item = $translation->{$this->fieldName}->offsetGet($delta);
+      $source_item = $translation->{$this->fieldName}->get($delta);
       $assert = $item->target_id == $source_item->target_id && $item->alt == $value['alt'] && $item->title == $value['title'];
       $this->assertTrue($assert, format_string('Field item @fid has been successfully synchronized.', array('@fid' => $item->target_id)));
     }

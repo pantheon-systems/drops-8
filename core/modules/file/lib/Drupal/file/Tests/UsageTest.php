@@ -15,12 +15,12 @@ class UsageTest extends FileManagedTestBase {
     return array(
       'name' => 'File usage',
       'description' => 'Tests the file usage functions.',
-      'group' => 'File API',
+      'group' => 'File Managed API',
     );
   }
 
   /**
-   * Tests file_usage()->listUsage().
+   * Tests \Drupal\file\FileUsage\DatabaseFileUsageBackend::listUsage().
    */
   function testGetUsage() {
     $file = $this->createFile();
@@ -43,7 +43,7 @@ class UsageTest extends FileManagedTestBase {
       ))
       ->execute();
 
-    $usage = file_usage()->listUsage($file);
+    $usage = $this->container->get('file.usage')->listUsage($file);
 
     $this->assertEqual(count($usage['testing']), 2, 'Returned the correct number of items.');
     $this->assertTrue(isset($usage['testing']['foo'][1]), 'Returned the correct id.');
@@ -53,15 +53,16 @@ class UsageTest extends FileManagedTestBase {
   }
 
   /**
-   * Tests file_usage()->add().
+   * Tests \Drupal\file\FileUsage\DatabaseFileUsageBackend::add().
    */
   function testAddUsage() {
     $file = $this->createFile();
-    file_usage()->add($file, 'testing', 'foo', 1);
+    $file_usage = $this->container->get('file.usage');
+    $file_usage->add($file, 'testing', 'foo', 1);
     // Add the file twice to ensure that the count is incremented rather than
     // creating additional records.
-    file_usage()->add($file, 'testing', 'bar', 2);
-    file_usage()->add($file, 'testing', 'bar', 2);
+    $file_usage->add($file, 'testing', 'bar', 2);
+    $file_usage->add($file, 'testing', 'bar', 2);
 
     $usage = db_select('file_usage', 'f')
       ->fields('f')
@@ -78,10 +79,11 @@ class UsageTest extends FileManagedTestBase {
   }
 
   /**
-   * Tests file_usage()->delete().
+   * Tests \Drupal\file\FileUsage\DatabaseFileUsageBackend::delete().
    */
   function testRemoveUsage() {
     $file = $this->createFile();
+    $file_usage = $this->container->get('file.usage');
     db_insert('file_usage')
       ->fields(array(
         'fid' => $file->id(),
@@ -93,7 +95,7 @@ class UsageTest extends FileManagedTestBase {
       ->execute();
 
     // Normal decrement.
-    file_usage()->delete($file, 'testing', 'bar', 2);
+    $file_usage->delete($file, 'testing', 'bar', 2);
     $count = db_select('file_usage', 'f')
       ->fields('f', array('count'))
       ->condition('f.fid', $file->id())
@@ -102,7 +104,7 @@ class UsageTest extends FileManagedTestBase {
     $this->assertEqual(2, $count, 'The count was decremented correctly.');
 
     // Multiple decrement and removal.
-    file_usage()->delete($file, 'testing', 'bar', 2, 2);
+    $file_usage->delete($file, 'testing', 'bar', 2, 2);
     $count = db_select('file_usage', 'f')
       ->fields('f', array('count'))
       ->condition('f.fid', $file->id())
@@ -111,7 +113,7 @@ class UsageTest extends FileManagedTestBase {
     $this->assertIdentical(FALSE, $count, 'The count was removed entirely when empty.');
 
     // Non-existent decrement.
-    file_usage()->delete($file, 'testing', 'bar', 2);
+    $file_usage->delete($file, 'testing', 'bar', 2);
     $count = db_select('file_usage', 'f')
       ->fields('f', array('count'))
       ->condition('f.fid', $file->id())
@@ -132,7 +134,7 @@ class UsageTest extends FileManagedTestBase {
     db_update('file_managed')
       ->fields(array(
         'status' => 0,
-        'timestamp' => 1,
+        'changed' => 1,
       ))
       ->condition('fid', $temp_old->id())
       ->execute();
@@ -149,7 +151,7 @@ class UsageTest extends FileManagedTestBase {
     // Permanent file that is older than DRUPAL_MAXIMUM_TEMP_FILE_AGE.
     $perm_old = file_save_data('');
     db_update('file_managed')
-      ->fields(array('timestamp' => 1))
+      ->fields(array('changed' => 1))
       ->condition('fid', $temp_old->id())
       ->execute();
     $this->assertTrue(file_exists($perm_old->getFileUri()), 'Old permanent file was created correctly.');

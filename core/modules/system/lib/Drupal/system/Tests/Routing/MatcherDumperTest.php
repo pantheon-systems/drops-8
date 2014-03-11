@@ -13,6 +13,7 @@ use Symfony\Component\Routing\RouteCollection;
 use Drupal\simpletest\UnitTestBase;
 use Drupal\Core\Database\Database;
 use Drupal\Core\Routing\MatcherDumper;
+use Drupal\Tests\Core\Routing\RoutingFixtures;
 
 /**
  * Basic tests for the UrlMatcherDumper.
@@ -45,7 +46,7 @@ class MatcherDumperTest extends UnitTestBase {
   }
 
   /**
-   * Confirms that the dumper can be instantiated successfuly.
+   * Confirms that the dumper can be instantiated successfully.
    */
   function testCreate() {
     $connection = Database::getConnection();
@@ -128,7 +129,7 @@ class MatcherDumperTest extends UnitTestBase {
 
     $this->fixtures->createTables($connection);
 
-    $dumper->dump(array('route_set' => 'test'));
+    $dumper->dump(array('provider' => 'test'));
 
     $record = $connection->query("SELECT * FROM {test_routes} WHERE name= :name", array(':name' => 'test_route'))->fetchObject();
 
@@ -139,6 +140,54 @@ class MatcherDumperTest extends UnitTestBase {
     $this->assertEqual($record->pattern_outline, '/test/%/path', 'Dumped route has correct pattern outline.');
     $this->assertEqual($record->fit, 5 /* 101 in binary */, 'Dumped route has correct fit.');
     $this->assertTrue($loaded_route instanceof Route, 'Route object retrieved successfully.');
-
   }
+
+  /**
+   * Tests that changing the provider of a route updates the dumped value.
+   */
+  public function testDumpRouteProviderRename() {
+    $connection = Database::getConnection();
+    $dumper = new MatcherDumper($connection, 'test_routes');
+    $this->fixtures->createTables($connection);
+
+    $route = new Route('/test');
+    $collection = new RouteCollection();
+    $collection->add('test', $route);
+
+    $dumper->addRoutes($collection);
+    $dumper->dump(array('provider' => 'module_provider'));
+
+    $record = $connection->query("SELECT * FROM {test_routes} WHERE name = :name", array(':name' => 'test'))->fetchObject();
+    $this->assertEqual($record->provider, 'module_provider');
+
+    // Dump the same route name again with a different provider.
+    $dumper->addRoutes($collection);
+    $dumper->dump(array('provider' => 'module_provider2'));
+
+    // Ensure the route has the new provider.
+    $record = $connection->query("SELECT * FROM {test_routes} WHERE provider = :provider", array(':provider' => 'module_provider'))->fetchObject();
+    $this->assertFalse($record);
+
+    $record = $connection->query("SELECT * FROM {test_routes} WHERE provider = :provider", array(':provider' => 'module_provider2'))->fetchObject();
+    $this->assertEqual($record->path, '/test');
+    $this->assertEqual($record->name, 'test');
+
+    // Test dumping an empty route collection.
+    $dumper->addRoutes(new RouteCollection());
+    $dumper->dump(array('provider' => 'module_provider2'));
+
+    // Ensure the route of the provider no longer exists.
+    $record = $connection->query("SELECT * FROM {test_routes} WHERE provider = :provider", array(':provider' => 'module_provider2'))->fetchObject();
+    $this->assertFalse($record);
+
+    $dumper->addRoutes($collection);
+    $dumper->dump(array('provider' => 'module_provider2'));
+
+    // Test with an unset $routes property.
+    $dumper->dump(array('provider' => 'module_provider2'));
+    // Ensure the route of the provider no longer exists.
+    $record = $connection->query("SELECT * FROM {test_routes} WHERE provider = :provider", array(':provider' => 'module_provider2'))->fetchObject();
+    $this->assertFalse($record);
+  }
+
 }

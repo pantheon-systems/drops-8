@@ -13,7 +13,7 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Config\Entity\ConfigEntityListController;
 use Drupal\Core\Entity\EntityControllerInterface;
 use Drupal\Core\Entity\EntityStorageControllerInterface;
-use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\Entity\EntityTypeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -31,32 +31,26 @@ class ViewListController extends ConfigEntityListController implements EntityCon
   /**
    * {@inheritdoc}
    */
-  public static function createInstance(ContainerInterface $container, $entity_type, array $entity_info) {
+  public static function createInstance(ContainerInterface $container, EntityTypeInterface $entity_type) {
     return new static(
       $entity_type,
-      $container->get('entity.manager')->getStorageController($entity_type),
-      $entity_info,
-      $container->get('plugin.manager.views.display'),
-      $container->get('module_handler')
+      $container->get('entity.manager')->getStorageController($entity_type->id()),
+      $container->get('plugin.manager.views.display')
     );
   }
 
   /**
    * Constructs a new EntityListController object.
    *
-   * @param string $entity_type.
-   *   The type of entity to be listed.
+   * @param \Drupal\Core\Entity\EntityTypeInterface $entity_type
+   *   The entity type definition.
    * @param \Drupal\Core\Entity\EntityStorageControllerInterface $storage.
    *   The entity storage controller class.
-   * @param array $entity_info
-   *   An array of entity info for this entity type.
    * @param \Drupal\Component\Plugin\PluginManagerInterface $display_manager
    *   The views display plugin manager to use.
-   * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
-   *   The module handler.
    */
-  public function __construct($entity_type, EntityStorageControllerInterface $storage, $entity_info, PluginManagerInterface $display_manager, ModuleHandlerInterface $module_handler) {
-    parent::__construct($entity_type, $entity_info, $storage, $module_handler);
+  public function __construct(EntityTypeInterface $entity_type, EntityStorageControllerInterface $storage, PluginManagerInterface $display_manager) {
+    parent::__construct($entity_type, $storage);
 
     $this->displayManager = $display_manager;
   }
@@ -104,7 +98,7 @@ class ViewListController extends ConfigEntityListController implements EntityCon
         'path' => implode(', ', $this->getDisplayPaths($view)),
         'operations' => $row['operations'],
       ),
-      'title' => t('Machine name: @name', array('@name' => $view->id())),
+      'title' => $this->t('Machine name: @name', array('@name' => $view->id())),
       'class' => array($view->status() ? 'views-ui-list-enabled' : 'views-ui-list-disabled'),
     );
   }
@@ -115,23 +109,23 @@ class ViewListController extends ConfigEntityListController implements EntityCon
   public function buildHeader() {
     return array(
       'view_name' => array(
-        'data' => t('View name'),
+        'data' => $this->t('View name'),
         'class' => array('views-ui-name'),
       ),
       'description' => array(
-        'data' => t('Description'),
+        'data' => $this->t('Description'),
         'class' => array('views-ui-description'),
       ),
       'tag' => array(
-        'data' => t('Tag'),
+        'data' => $this->t('Tag'),
         'class' => array('views-ui-tag'),
       ),
       'path' => array(
-        'data' => t('Path'),
+        'data' => $this->t('Path'),
         'class' => array('views-ui-path'),
       ),
       'operations' => array(
-        'data' => t('Operations'),
+        'data' => $this->t('Operations'),
         'class' => array('views-ui-operations'),
       ),
     );
@@ -142,40 +136,26 @@ class ViewListController extends ConfigEntityListController implements EntityCon
    */
   public function getOperations(EntityInterface $entity) {
     $operations = parent::getOperations($entity);
-    $uri = $entity->uri();
 
-    $operations['clone'] = array(
-      'title' => t('Clone'),
-      'href' => $uri['path'] . '/clone',
-      'options' => $uri['options'],
-      'weight' => 15,
-    );
+    if ($entity->hasLinkTemplate('clone')) {
+      $operations['clone'] = array(
+        'title' => $this->t('Clone'),
+        'weight' => 15,
+      ) + $entity->urlInfo('clone');
+    }
 
     // Add AJAX functionality to enable/disable operations.
     foreach (array('enable', 'disable') as $op) {
       if (isset($operations[$op])) {
-        $operations[$op]['ajax'] = TRUE;
-        $operations[$op]['query']['token'] = drupal_get_token($op);
+        $operations[$op]['route_name'] = "views_ui.$op";
+        $operations[$op]['route_parameters'] = array('view' => $entity->id());
+
+        // Enable and disable operations should use AJAX.
+        $operations[$op]['attributes']['class'][] = 'use-ajax';
       }
     }
 
     return $operations;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function buildOperations(EntityInterface $entity) {
-    $build = parent::buildOperations($entity);
-
-    // Allow operations to specify that they use AJAX.
-    foreach ($build['#links'] as &$operation) {
-      if (!empty($operation['ajax'])) {
-        $operation['attributes']['class'][] = 'use-ajax';
-      }
-    }
-
-    return $build;
   }
 
   /**
@@ -210,8 +190,8 @@ class ViewListController extends ConfigEntityListController implements EntityCon
       ),
     );
 
-    $list['enabled']['heading']['#markup'] = '<h2>' . t('Enabled') . '</h2>';
-    $list['disabled']['heading']['#markup'] = '<h2>' . t('Disabled') . '</h2>';
+    $list['enabled']['heading']['#markup'] = '<h2>' . $this->t('Enabled') . '</h2>';
+    $list['disabled']['heading']['#markup'] = '<h2>' . $this->t('Disabled') . '</h2>';
     foreach (array('enabled', 'disabled') as $status) {
       $list[$status]['#type'] = 'container';
       $list[$status]['#attributes'] = array('class' => array('views-list-section', $status));
@@ -229,8 +209,8 @@ class ViewListController extends ConfigEntityListController implements EntityCon
     }
     // @todo Use a placeholder for the entity label if this is abstracted to
     // other entity types.
-    $list['enabled']['table']['#empty'] = t('There are no enabled views.');
-    $list['disabled']['table']['#empty'] = t('There are no disabled views.');
+    $list['enabled']['table']['#empty'] = $this->t('There are no enabled views.');
+    $list['disabled']['table']['#empty'] = $this->t('There are no disabled views.');
 
     return $list;
   }

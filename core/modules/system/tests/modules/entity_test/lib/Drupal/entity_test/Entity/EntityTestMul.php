@@ -7,19 +7,17 @@
 
 namespace Drupal\entity_test\Entity;
 
+use Drupal\Core\Field\FieldDefinition;
 use Drupal\entity_test\Entity\EntityTest;
-use Drupal\Core\Entity\Annotation\EntityType;
-use Drupal\Core\Annotation\Translation;
 
 /**
  * Defines the test entity class.
  *
- * @EntityType(
+ * @ContentEntityType(
  *   id = "entity_test_mul",
  *   label = @Translation("Test entity - data table"),
- *   module = "entity_test",
  *   controllers = {
- *     "storage" = "Drupal\entity_test\EntityTestStorageController",
+ *     "view_builder" = "Drupal\entity_test\EntityTestViewBuilder",
  *     "access" = "Drupal\entity_test\EntityTestAccessController",
  *     "form" = {
  *       "default" = "Drupal\entity_test\EntityTestFormController"
@@ -36,8 +34,11 @@ use Drupal\Core\Annotation\Translation;
  *     "bundle" = "type",
  *     "label" = "name"
  *   },
- *   menu_base_path = "entity_test_mul/manage/%entity_test_mul",
- *   route_base_path = "entity_test_mul/structure/{bundle}"
+ *   links = {
+ *     "canonical" = "entity_test.edit_entity_test_mul",
+ *     "edit-form" = "entity_test.edit_entity_test_mul",
+ *     "admin-form" = "entity_test.admin_entity_test_mul"
+ *   }
  * )
  */
 class EntityTestMul extends EntityTest {
@@ -47,11 +48,11 @@ class EntityTestMul extends EntityTest {
    */
   public static function baseFieldDefinitions($entity_type) {
     $fields = parent::baseFieldDefinitions($entity_type);
-    $fields['default_langcode'] = array(
-      'label' => t('Default language'),
-      'description' => t('Flag to indicate whether this is the default language.'),
-      'type' => 'boolean_field',
-    );
+
+    $fields['default_langcode'] = FieldDefinition::create('boolean')
+      ->setLabel(t('Default language'))
+      ->setDescription(t('Flag to indicate whether this is the default language.'));
+
     return $fields;
   }
 

@@ -25,146 +25,6 @@ function language_admin_predefined_list() {
 }
 
 /**
- * Builds the configuration form for language negotiation.
- *
- * @deprecated Use \Drupal\language\Form\LanguageForm::negotiation()
- */
-function language_negotiation_configure_form() {
-  language_negotiation_include();
-
-  $form = array(
-    '#submit' => array('language_negotiation_configure_form_submit'),
-    '#theme' => 'language_negotiation_configure_form',
-    '#language_types_info' => language_types_info(),
-    '#language_negotiation_info' => language_negotiation_info(),
-  );
-  $form['#language_types'] = array();
-  $configurable = \Drupal::config('system.language.types')->get('configurable');
-  foreach ($form['#language_types_info'] as $type => $info) {
-    // Show locked language types only if they are configurable.
-    if (empty($info['locked']) || in_array($type, $configurable)) {
-      $form['#language_types'][] = $type;
-    }
-  }
-  foreach ($form['#language_types'] as $type) {
-    language_negotiation_configure_form_table($form, $type);
-  }
-
-  $form['actions'] = array('#type' => 'actions');
-  $form['actions']['submit'] = array(
-    '#type' => 'submit',
-    '#value' => t('Save settings'),
-  );
-
-  return $form;
-}
-
-/**
- * Builds a language negotiation method configuration table.
- */
-function language_negotiation_configure_form_table(&$form, $type) {
-  $info = $form['#language_types_info'][$type];
-
-  $table_form = array(
-    '#title' => t('@type language detection', array('@type' => $info['name'])),
-    '#tree' => TRUE,
-    '#description' => $info['description'],
-    '#language_negotiation_info' => array(),
-    '#show_operations' => FALSE,
-    'weight' => array('#tree' => TRUE),
-  );
-  // Only show configurability checkbox for the unlocked language types.
-  if (empty($info['locked'])) {
-    $configurable = \Drupal::config('system.language.types')->get('configurable');
-    $table_form['configurable'] = array(
-      '#type' => 'checkbox',
-      '#title' => t('Customize %language_name language detection to differ from User interface text language detection settings.', array('%language_name' => $info['name'])),
-      '#default_value' => in_array($type, $configurable),
-      '#attributes' => array('class' => array('language-customization-checkbox')),
-      '#attached' => array(
-        'library' => array(
-          array('language', 'language.admin')
-        ),
-      ),
-    );
-  }
-
-  $negotiation_info = $form['#language_negotiation_info'];
-  $enabled_methods = variable_get("language_negotiation_$type", array());
-  $methods_weight = variable_get("language_negotiation_methods_weight_$type", array());
-
-  // Add missing data to the methods lists.
-  foreach ($negotiation_info as $method_id => $method) {
-    if (!isset($methods_weight[$method_id])) {
-      $methods_weight[$method_id] = isset($method['weight']) ? $method['weight'] : 0;
-    }
-  }
-
-  // Order methods list by weight.
-  asort($methods_weight);
-
-  foreach ($methods_weight as $method_id => $weight) {
-    // A language method might be no more available if the defining module has
-    // been disabled after the last configuration saving.
-    if (!isset($negotiation_info[$method_id])) {
-      continue;
-    }
-
-    $enabled = isset($enabled_methods[$method_id]);
-    $method = $negotiation_info[$method_id];
-
-    // List the method only if the current type is defined in its 'types' key.
-    // If it is not defined default to all the configurable language types.
-    $types = array_flip(isset($method['types']) ? $method['types'] : $form['#language_types']);
-
-    if (isset($types[$type])) {
-      $table_form['#language_negotiation_info'][$method_id] = $method;
-      $method_name = check_plain($method['name']);
-
-      $table_form['weight'][$method_id] = array(
-        '#type' => 'weight',
-        '#title' => t('Weight for !title language detection method', array('!title' => drupal_strtolower($method_name))),
-        '#title_display' => 'invisible',
-        '#default_value' => $weight,
-        '#attributes' => array('class' => array("language-method-weight-$type")),
-        '#delta' => 20,
-      );
-
-      $table_form['title'][$method_id] = array('#markup' => $method_name);
-
-      $table_form['enabled'][$method_id] = array(
-        '#type' => 'checkbox',
-        '#title' => t('Enable !title language detection method', array('!title' => drupal_strtolower($method_name))),
-        '#title_display' => 'invisible',
-        '#default_value' => $enabled,
-      );
-      if ($method_id === LANGUAGE_NEGOTIATION_SELECTED) {
-        $table_form['enabled'][$method_id]['#default_value'] = TRUE;
-        $table_form['enabled'][$method_id]['#attributes'] = array('disabled' => 'disabled');
-      }
-
-      $table_form['description'][$method_id] = array('#markup' => filter_xss_admin($method['description']));
-
-      $config_op = array();
-      if (isset($method['config'])) {
-        $config_op['configure'] = array(
-          'title' => t('Configure'),
-          'href' => $method['config'],
-        );
-        // If there is at least one operation enabled show the operation column.
-        $table_form['#show_operations'] = TRUE;
-      }
-      $table_form['operation'][$method_id] = array(
-       '#type' => 'operations',
-       '#links' => $config_op,
-      );
-    }
-  }
-
-  $form[$type] = $table_form;
-}
-
-/**
  * Returns HTML for the language negotiation configuration form.
  *
  * @param $variables
@@ -214,75 +74,28 @@ function theme_language_negotiation_configure_form($variables) {
     }
 
     $build = array(
-      '#theme' => 'table',
+      '#type' => 'table',
       '#header' => $header,
       '#rows' => $rows,
       '#attributes' => array('id' => "language-negotiation-methods-$type"),
+      '#tabledrag' => array(
+        array(
+          'action' => 'order',
+          'relationship' => 'sibling',
+          'group' => "language-method-weight-$type",
+        ),
+      ),
     );
+
     $table  = drupal_render($form[$type]['configurable']);
     $table .= drupal_render($build);
     $table .= drupal_render_children($form[$type]);
-
-    drupal_add_tabledrag("language-negotiation-methods-$type", 'order', 'sibling', "language-method-weight-$type");
 
     $output .= '<div class="form-item table-language-group table-' . $type . '-wrapper">' . $title . $description . $table . '</div>';
   }
 
   $output .= drupal_render_children($form);
   return $output;
-}
-
-/**
- * Submit handler for language negotiation settings.
- */
-function language_negotiation_configure_form_submit($form, &$form_state) {
-  $configurable_types = $form['#language_types'];
-
-  $stored_values = \Drupal::config('system.language.types')->get('configurable');
-  $customized = array();
-  $method_weights_type = array();
-
-  foreach ($configurable_types as $type) {
-    $customized[$type] = in_array($type, $stored_values);
-    $method_weights = array();
-    $enabled_methods = $form_state['values'][$type]['enabled'];
-    $enabled_methods[LANGUAGE_NEGOTIATION_SELECTED] = TRUE;
-    $method_weights_input = $form_state['values'][$type]['weight'];
-    if (isset($form_state['values'][$type]['configurable'])) {
-      $customized[$type] = !empty($form_state['values'][$type]['configurable']);
-    }
-
-    foreach ($method_weights_input as $method_id => $weight) {
-      if ($enabled_methods[$method_id]) {
-        $method_weights[$method_id] = $weight;
-      }
-    }
-
-    $method_weights_type[$type] = $method_weights;
-    variable_set("language_negotiation_methods_weight_$type", $method_weights_input);
-  }
-
-  // Update non-configurable language types and the related language negotiation
-  // configuration.
-  language_types_set(array_keys(array_filter($customized)));
-
-  // Update the language negotiations after setting the configurability.
-  foreach ($method_weights_type as $type => $method_weights) {
-    language_negotiation_set($type, $method_weights);
-  }
-
-  // Clear block definitions cache since the available blocks and their names
-  // may have been changed based on the configurable types.
-  if (\Drupal::moduleHandler()->moduleExists('block')) {
-    // If there is an active language switcher for a language type that has been
-    // made not configurable, deactivate it first.
-    $non_configurable = array_keys(array_diff($customized, array_filter($customized)));
-    _language_disable_language_switcher($non_configurable);
-    \Drupal::service('plugin.manager.block')->clearCachedDefinitions();
-  }
-
-  $form_state['redirect'] = 'admin/config/regional/language/detection';
-  drupal_set_message(t('Language negotiation configuration saved.'));
 }
 
 /**
@@ -356,21 +169,21 @@ function language_content_settings_page() {
  * @ingroup forms
  */
 function language_content_settings_form(array $form, array $form_state, array $supported) {
-  $entity_info = entity_get_info();
+  $entity_types = \Drupal::entityManager()->getDefinitions();
   $labels = array();
   $default = array();
 
-  foreach ($supported as $entity_type) {
-    $labels[$entity_type] = isset($entity_info[$entity_type]['label']) ? $entity_info[$entity_type]['label'] : $entity_type;
-    $default[$entity_type] = FALSE;
+  foreach ($supported as $entity_type_id) {
+    $labels[$entity_type_id] = $entity_types[$entity_type_id]->getLabel() ?: $entity_type_id;
+    $default[$entity_type_id] = FALSE;
 
     // Check whether we have any custom setting.
-    foreach (entity_get_bundles($entity_type) as $bundle => $bundle_info) {
-      $conf = language_get_default_configuration($entity_type, $bundle);
+    foreach (entity_get_bundles($entity_type_id) as $bundle => $bundle_info) {
+      $conf = language_get_default_configuration($entity_type_id, $bundle);
       if (!empty($conf['language_show']) || $conf['langcode'] != 'site_default') {
-        $default[$entity_type] = $entity_type;
+        $default[$entity_type_id] = $entity_type_id;
       }
-      $language_configuration[$entity_type][$bundle] = $conf;
+      $language_configuration[$entity_type_id][$bundle] = $conf;
     }
   }
 
@@ -393,33 +206,33 @@ function language_content_settings_form(array $form, array $form_state, array $s
 
   $form['settings'] = array('#tree' => TRUE);
 
-  foreach ($labels as $entity_type => $label) {
-    $info = $entity_info[$entity_type];
+  foreach ($labels as $entity_type_id => $label) {
+    $entity_type = $entity_types[$entity_type_id];
 
-    $form['settings'][$entity_type] = array(
+    $form['settings'][$entity_type_id] = array(
       '#title' => $label,
       '#type' => 'container',
-      '#entity_type' => $entity_type,
+      '#entity_type' => $entity_type_id,
       '#theme' => 'language_content_settings_table',
-      '#bundle_label' => isset($info['bundle_label']) ? $info['bundle_label'] : $label,
+      '#bundle_label' => $entity_type->getBundleLabel() ?: $label,
       '#states' => array(
         'visible' => array(
-          ':input[name="entity_types[' . $entity_type . ']"]' => array('checked' => TRUE),
+          ':input[name="entity_types[' . $entity_type_id . ']"]' => array('checked' => TRUE),
         ),
       ),
     );
 
-    foreach (entity_get_bundles($entity_type) as $bundle => $bundle_info) {
-      $form['settings'][$entity_type][$bundle]['settings'] = array(
+    foreach (entity_get_bundles($entity_type_id) as $bundle => $bundle_info) {
+      $form['settings'][$entity_type_id][$bundle]['settings'] = array(
         '#type' => 'item',
         '#label' => $bundle_info['label'],
         'language' => array(
           '#type' => 'language_configuration',
           '#entity_information' => array(
-            'entity_type' => $entity_type,
+            'entity_type' => $entity_type_id,
             'bundle' => $bundle,
           ),
-          '#default_value' => $language_configuration[$entity_type][$bundle],
+          '#default_value' => $language_configuration[$entity_type_id][$bundle],
         ),
       );
     }

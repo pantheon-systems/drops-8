@@ -10,7 +10,6 @@ namespace Drupal\views\Plugin\views\filter;
 use Drupal\views\ViewExecutable;
 use Drupal\views\Plugin\views\display\DisplayPluginBase;
 use Drupal\views\ManyToOneHelper;
-use Drupal\Component\Annotation\PluginID;
 
 /**
  * Complex filter to handle filtering for many to one relationships,
@@ -107,7 +106,7 @@ class ManyToOne extends InOperator {
     return $operators;
   }
 
-  var $value_form_type = 'select';
+  protected $valueFormType = 'select';
   protected function valueForm(&$form, &$form_state) {
     parent::valueForm($form, $form_state);
 

@@ -59,13 +59,11 @@ class Display extends ViewsFormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, array &$form_state) {
-    $view = &$form_state['view'];
+    $view = $form_state['view'];
     $display_id = $form_state['display_id'];
-    $section = $form_state['section'];
 
     $executable = $view->getExecutable();
     $executable->setDisplay($display_id);
-    $display = &$executable->display[$display_id];
 
     // Get form from the handler.
     $form['options'] = array(
@@ -100,7 +98,7 @@ class Display extends ViewsFormBase {
   public function validateForm(array &$form, array &$form_state) {
     $form_state['view']->getExecutable()->displayHandlers->get($form_state['display_id'])->validateOptionsForm($form['options'], $form_state);
 
-    if (form_get_errors()) {
+    if (form_get_errors($form_state)) {
       $form_state['rerender'] = TRUE;
     }
   }

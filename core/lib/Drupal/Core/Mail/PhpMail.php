@@ -33,7 +33,7 @@ class PhpMail implements MailInterface {
   }
 
   /**
-   * Sends an e-mail message, using Drupal variables and default settings.
+   * Sends an e-mail message.
    *
    * @param array $message
    *   A message array, as described in hook_mail_alter().
@@ -59,7 +59,7 @@ class PhpMail implements MailInterface {
     foreach ($message['headers'] as $name => $value) {
       $mimeheaders[] = $name . ': ' . mime_header_encode($value);
     }
-    $line_endings = settings()->get('mail_line_endings', MAIL_LINE_ENDINGS);
+    $line_endings = settings()->get('mail_line_endings', PHP_EOL);
     // Prepare mail commands.
     $mail_subject = mime_header_encode($message['subject']);
     // Note: e-mail uses CRLF for line-endings. PHP's API requires LF

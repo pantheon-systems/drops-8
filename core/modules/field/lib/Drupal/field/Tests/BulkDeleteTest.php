@@ -143,7 +143,7 @@ class BulkDeleteTest extends FieldUnitTestBase {
       for ($i = 0; $i < 10; $i++) {
         $entity = entity_create($this->entity_type, array('type' => $bundle));
         foreach ($this->fields as $field) {
-          $entity->{$field->getFieldName()}->setValue($this->_generateTestFieldValues($field->getFieldCardinality()));
+          $entity->{$field->getName()}->setValue($this->_generateTestFieldValues($field->getCardinality()));
         }
         $entity->save();
       }
@@ -180,7 +180,7 @@ class BulkDeleteTest extends FieldUnitTestBase {
     $instance->delete();
 
     // The instance still exists, deleted.
-    $instances = field_read_instances(array('field_id' => $field->uuid, 'deleted' => TRUE), array('include_deleted' => TRUE, 'include_inactive' => TRUE));
+    $instances = entity_load_multiple_by_properties('field_instance', array('field_id' => $field->uuid, 'deleted' => TRUE, 'include_deleted' => TRUE));
     $this->assertEqual(count($instances), 1, 'There is one deleted instance');
     $instance = $instances[0];
     $this->assertEqual($instance->bundle, $bundle, 'The deleted instance is for the correct bundle');
@@ -258,18 +258,18 @@ class BulkDeleteTest extends FieldUnitTestBase {
     $this->checkHooksInvocations($hooks, $actual_hooks);
 
     // The instance still exists, deleted.
-    $instances = field_read_instances(array('field_id' => $field->uuid, 'deleted' => TRUE), array('include_deleted' => TRUE, 'include_inactive' => TRUE));
+    $instances = entity_load_multiple_by_properties('field_instance', array('field_id' => $field->uuid, 'deleted' => TRUE, 'include_deleted' => TRUE));
     $this->assertEqual(count($instances), 1, 'There is one deleted instance');
 
     // Purge the instance.
     field_purge_batch($batch_size);
 
     // The instance is gone.
-    $instances = field_read_instances(array('field_id' => $field->uuid, 'deleted' => TRUE), array('include_deleted' => TRUE, 'include_inactive' => TRUE));
+    $instances = entity_load_multiple_by_properties('field_instance', array('field_id' => $field->uuid, 'deleted' => TRUE, 'include_deleted' => TRUE));
     $this->assertEqual(count($instances), 0, 'The instance is gone');
 
     // The field still exists, not deleted, because it has a second instance.
-    $fields = field_read_fields(array('uuid' => $field->uuid), array('include_deleted' => TRUE, 'include_inactive' => TRUE));
+    $fields = entity_load_multiple_by_properties('field_entity', array('uuid' => $field->uuid, 'include_deleted' => TRUE));
     $this->assertTrue(isset($fields[$field->uuid]), 'The field exists and is not deleted');
   }
 
@@ -310,7 +310,7 @@ class BulkDeleteTest extends FieldUnitTestBase {
     field_purge_batch(0);
 
     // The field still exists, not deleted.
-    $fields = field_read_fields(array('uuid' => $field->uuid), array('include_deleted' => TRUE));
+    $fields = entity_load_multiple_by_properties('field_entity', array('uuid' => $field->uuid, 'include_deleted' => TRUE));
     $this->assertTrue(isset($fields[$field->uuid]) && !$fields[$field->uuid]->deleted, 'The field exists and is not deleted');
 
     // Delete the second instance.
@@ -335,14 +335,14 @@ class BulkDeleteTest extends FieldUnitTestBase {
     $this->checkHooksInvocations($hooks, $actual_hooks);
 
     // The field still exists, deleted.
-    $fields = field_read_fields(array('uuid' => $field->uuid), array('include_deleted' => TRUE));
+    $fields = entity_load_multiple_by_properties('field_entity', array('uuid' => $field->uuid, 'include_deleted' => TRUE));
     $this->assertTrue(isset($fields[$field->uuid]) && $fields[$field->uuid]->deleted, 'The field exists and is deleted');
 
     // Purge again to purge the instance and the field.
     field_purge_batch(0);
 
     // The field is gone.
-    $fields = field_read_fields(array('uuid' => $field->uuid), array('include_deleted' => TRUE, 'include_inactive' => TRUE));
+    $fields = entity_load_multiple_by_properties('field_entity', array('uuid' => $field->uuid, 'include_deleted' => TRUE));
     $this->assertEqual(count($fields), 0, 'The field is purged.');
   }
 

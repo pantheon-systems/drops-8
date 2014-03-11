@@ -2,11 +2,12 @@
 
 /**
  * @file
- * Contains \Drupal\views\Tests\ViewExecutableUnitTest.
+ * Contains \Drupal\views\Tests\ViewExecutableTest.
  */
 
 namespace Drupal\views\Tests;
 
+use Drupal\views\Views;
 use Drupal\views\ViewExecutable;
 use Drupal\views\ViewExecutableFactory;
 use Drupal\views\DisplayBag;
@@ -307,10 +308,10 @@ class ViewExecutableTest extends ViewUnitTestBase {
     $view->setResponse($new_response);
     $this->assertIdentical(spl_object_hash($view->getResponse()), spl_object_hash($new_response), 'New response object correctly set.');
 
-    // Test the generateItemId() method.
+    // Test the generateHandlerId() method.
     $test_ids = drupal_map_assoc(array('test', 'test_1'));
-    $this->assertEqual($view->generateItemId('new', $test_ids), 'new');
-    $this->assertEqual($view->generateItemId('test', $test_ids), 'test_2');
+    $this->assertEqual($view->generateHandlerId('new', $test_ids), 'new');
+    $this->assertEqual($view->generateHandlerId('test', $test_ids), 'test_2');
 
     // Test the getPath() method.
     $path = $this->randomName();
@@ -360,8 +361,9 @@ class ViewExecutableTest extends ViewUnitTestBase {
   protected function assertViewDestroy($view) {
     $reflection = new \ReflectionClass($view);
     $defaults = $reflection->getDefaultProperties();
-    // The storage should remain.
+    // The storage and user should remain.
     unset($defaults['storage']);
+    unset($defaults['user']);
 
     foreach ($defaults as $property => $default) {
       $this->assertIdentical($this->getProtectedProperty($view, $property), $default);

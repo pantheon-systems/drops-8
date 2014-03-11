@@ -7,8 +7,6 @@
 
 namespace Drupal\node\Plugin\views\row;
 
-use Drupal\views\Annotation\ViewsRow;
-use Drupal\Core\Annotation\Translation;
 use Drupal\views\Plugin\views\row\RowPluginBase;
 
 /**
@@ -104,6 +102,7 @@ class Rss extends RowPluginBase {
     }
 
     // Load the specified node:
+    /** @var \Drupal\node\NodeInterface $node */
     $node = $this->nodes[$nid];
     if (empty($node)) {
       return;
@@ -111,8 +110,7 @@ class Rss extends RowPluginBase {
 
     $item_text = '';
 
-    $uri = $node->uri();
-    $node->link = url($uri['path'], $uri['options'] + array('absolute' => TRUE));
+    $node->link = $node->url('canonical', array('absolute' => TRUE));
     $node->rss_namespaces = array();
     $node->rss_elements = array(
       array(
@@ -121,7 +119,7 @@ class Rss extends RowPluginBase {
       ),
       array(
         'key' => 'dc:creator',
-        'value' => $node->getAuthor()->getUsername(),
+        'value' => $node->getOwner()->getUsername(),
       ),
       array(
         'key' => 'guid',

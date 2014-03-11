@@ -9,8 +9,6 @@ namespace Drupal\ckeditor\Plugin\CKEditorPlugin;
 
 use Drupal\ckeditor\CKEditorPluginBase;
 use Drupal\ckeditor\CKEditorPluginConfigurableInterface;
-use Drupal\ckeditor\Annotation\CKEditorPlugin;
-use Drupal\Core\Annotation\Translation;
 use Drupal\editor\Entity\Editor;
 
 /**
@@ -72,10 +70,7 @@ class DrupalImage extends CKEditorPluginBase implements CKEditorPluginConfigurab
     form_load_include($form_state, 'inc', 'editor', 'editor.admin');
     $form['image_upload'] = editor_image_upload_settings_form($editor);
     $form['image_upload']['#attached']['library'][] = array('ckeditor', 'drupal.ckeditor.drupalimage.admin');
-    $form['image_upload']['#element_validate'] = array(
-      array($this, 'validateImageUploadSettings'),
-    );
-
+    $form['image_upload']['#element_validate'][] = array($this, 'validateImageUploadSettings');
     return $form;
   }
 

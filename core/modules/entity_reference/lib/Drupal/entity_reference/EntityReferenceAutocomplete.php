@@ -7,7 +7,8 @@
 
 namespace Drupal\entity_reference;
 
-use Drupal\Core\Entity\EntityManager;
+use Drupal\Component\Utility\Tags;
+use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\entity_reference\Plugin\Type\SelectionPluginManager;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
@@ -19,7 +20,7 @@ class EntityReferenceAutocomplete {
   /**
    * The entity manager.
    *
-   * @var \Drupal\Core\Entity\EntityManager
+   * @var \Drupal\Core\Entity\EntityManagerInterface
    */
   protected $entityManager;
 
@@ -33,12 +34,12 @@ class EntityReferenceAutocomplete {
   /**
    * Constructs a EntityReferenceAutocomplete object.
    *
-   * @param \Drupal\Core\Entity\EntityManager $entity_manager
+   * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
    *   The entity manager.
    * @param \Drupal\entity_reference\Plugin\Type\SelectionPluginManager $selection_manager
    *   The Entity reference selection handler plugin manager.
    */
-  public function __construct(EntityManager $entity_manager, SelectionPluginManager $selection_manager) {
+  public function __construct(EntityManagerInterface $entity_manager, SelectionPluginManager $selection_manager) {
     $this->entityManager = $entity_manager;
     $this->selectionHandlerManager = $selection_manager;
   }
@@ -85,7 +86,7 @@ class EntityReferenceAutocomplete {
 
     if (isset($string)) {
       // Get an array of matching entities.
-      $widget = entity_get_form_display($instance->entity_type, $instance->bundle, 'default')->getComponent($instance->getFieldName());
+      $widget = entity_get_form_display($instance->entity_type, $instance->bundle, 'default')->getComponent($instance->getName());
       $match_operator = !empty($widget['settings']['match_operator']) ? $widget['settings']['match_operator'] : 'CONTAINS';
       $entity_labels = $handler->getReferenceableEntities($string, $match_operator, 10);
 
@@ -97,10 +98,8 @@ class EntityReferenceAutocomplete {
           // tags.
           $key = preg_replace('/\s\s+/', ' ', str_replace("\n", '', trim(decode_entities(strip_tags($key)))));
           // Names containing commas or quotes must be wrapped in quotes.
-          if (strpos($key, ',') !== FALSE || strpos($key, '"') !== FALSE) {
-            $key = '"' . str_replace('"', '""', $key) . '"';
-          }
-          $matches[$prefix . $key] = $label;
+          $key = Tags::encode($key);
+          $matches[] = array('value' => $prefix . $key, 'label' => $label);
         }
       }
     }

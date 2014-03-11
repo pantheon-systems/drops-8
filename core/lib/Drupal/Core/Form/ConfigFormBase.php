@@ -7,8 +7,7 @@
 
 namespace Drupal\Core\Form;
 
-use Drupal\Core\Config\ConfigFactory;
-use Drupal\Core\Config\Context\ContextInterface;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Form\FormBase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -20,21 +19,18 @@ abstract class ConfigFormBase extends FormBase {
   /**
    * Stores the configuration factory.
    *
-   * @var \Drupal\Core\Config\ConfigFactory
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
    */
   protected $configFactory;
 
   /**
    * Constructs a \Drupal\system\ConfigFormBase object.
    *
-   * @param \Drupal\Core\Config\ConfigFactory $config_factory
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The factory for configuration objects.
-   * @param \Drupal\Core\Config\Context\ContextInterface $context
-   *   The configuration context to use.
    */
-  public function __construct(ConfigFactory $config_factory, ContextInterface $context) {
+  public function __construct(ConfigFactoryInterface $config_factory) {
     $this->configFactory = $config_factory;
-    $this->configFactory->enterContext($context);
   }
 
   /**
@@ -42,8 +38,7 @@ abstract class ConfigFormBase extends FormBase {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('config.factory'),
-      $container->get('config.context.free')
+      $container->get('config.factory')
     );
   }
 
@@ -73,13 +68,16 @@ abstract class ConfigFormBase extends FormBase {
 
   /**
    * {@inheritdoc}
+   *
+   * Overrides \Drupal\Core\Form\FormBase::config() so that configuration is
+   * returned override free. This ensures that overrides do not pollute saved
+   * configuration.
    */
   protected function config($name) {
-    if (!$this->configFactory) {
-      $container = $this->container();
-      $this->configFactory = $container->get('config.factory');
-      $this->configFactory->enterContext($container->get('config.context.free'));
-    }
-    return $this->configFactory->get($name);
+    $old_state = $this->configFactory->getOverrideState();
+    $this->configFactory->setOverrideState(FALSE);
+    $config = $this->configFactory->get($name);
+    $this->configFactory->setOverrideState($old_state);
+    return $config;
   }
 }

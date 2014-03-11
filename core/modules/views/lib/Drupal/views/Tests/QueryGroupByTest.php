@@ -24,7 +24,7 @@ class QueryGroupByTest extends ViewUnitTestBase {
    *
    * @var array
    */
-  public static $modules = array('entity_test', 'system', 'field', 'user');
+  public static $modules = array('entity', 'entity_test', 'system', 'field', 'user');
 
   /**
    * The storage controller for the test entity type.
@@ -162,7 +162,7 @@ class QueryGroupByTest extends ViewUnitTestBase {
    */
   public function testGroupByCountOnlyFilters() {
     // Check if GROUP BY and HAVING are included when a view
-    // Doesn't display SUM, COUNT, MAX... functions in SELECT statment
+    // Doesn't display SUM, COUNT, MAX... functions in SELECT statement
 
     for ($x = 0; $x < 10; $x++) {
       $this->storageController->create(array('name' => 'name1'))->save();

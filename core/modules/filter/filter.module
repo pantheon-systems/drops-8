@@ -5,40 +5,14 @@
  * Framework for handling the filtering of content.
  */
 
+use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\String;
-use Drupal\Core\Cache\CacheBackendInterface;
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Language\Language;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Template\Attribute;
 use Drupal\filter\FilterFormatInterface;
-
-/**
- * Non-HTML markup language filters that generate HTML.
- *
- * @todo Move into \Drupal\filter\Plugin\Filter\FilterInterface
- */
-const FILTER_TYPE_MARKUP_LANGUAGE = 0;
-
-/**
- * HTML tag and attribute restricting filters.
- *
- * @todo Move into \Drupal\filter\Plugin\Filter\FilterInterface
- */
-const FILTER_TYPE_HTML_RESTRICTOR = 1;
-
-/**
- * Reversible transformation filters.
- *
- * @todo Move into \Drupal\filter\Plugin\Filter\FilterInterface
- */
-const FILTER_TYPE_TRANSFORM_REVERSIBLE = 2;
-
-/**
- * Irreversible transformation filters.
- *
- * @todo Move into \Drupal\filter\Plugin\Filter\FilterInterface
- */
-const FILTER_TYPE_TRANSFORM_IRREVERSIBLE = 3;
+use Drupal\filter\Plugin\FilterInterface;
 
 /**
  * Implements hook_help().
@@ -48,17 +22,20 @@ function filter_help($path, $arg) {
     case 'admin/help#filter':
       $output = '';
       $output .= '<h3>' . t('About') . '</h3>';
-      $output .= '<p>' . t('The Filter module allows administrators to configure text formats. A text format defines the HTML tags, codes, and other input allowed in content and comments, and is a key feature in guarding against potentially damaging input from malicious users. For more information, see the online handbook entry for <a href="@filter">Filter module</a>.', array('@filter' => 'http://drupal.org/documentation/modules/filter/')) . '</p>';
+      $output .= '<p>' . t('The Filter module allows administrators to configure text formats. Text formats define the HTML tags, codes, and other input allowed in text entered in the site and they defend your web site against potentially damaging input from malicious users. A visual text editor can be associated with the text formats by using the <a href="!editor_help">Text Editor module</a>. For more information, see <a href="!filter_do">the online documentation for the Filter module</a>.', array('!filter_do' => 'https://drupal.org/documentation/modules/filter/','!editor_help' => \Drupal::url('help.page', array('name' => 'editor')))) . '</p>';
       $output .= '<h3>' . t('Uses') . '</h3>';
       $output .= '<dl>';
-      $output .= '<dt>' . t('Configuring text formats') . '</dt>';
-      $output .= '<dd>' . t('Configure text formats on the <a href="@formats">Text formats page</a>. <strong>Improper text format configuration is a security risk</strong>. To ensure security, untrusted users should only have access to text formats that restrict them to either plain text or a safe set of HTML tags, since certain HTML tags can allow embedding malicious links or scripts in text. More trusted registered users may be granted permission to use less restrictive text formats in order to create rich content.', array('@formats' => url('admin/config/content/formats'))) . '</dd>';
-      $output .= '<dt>' . t('Applying filters to text') . '</dt>';
-      $output .= '<dd>' . t('Each text format uses filters to manipulate text, and most formats apply several different filters to text in a specific order. Each filter is designed for a specific purpose, and generally either adds, removes, or transforms elements within user-entered text before it is displayed. A filter does not change the actual content, but instead, modifies it temporarily before it is displayed. One filter may remove unapproved HTML tags, while another automatically adds HTML to make URLs display as clickable links.') . '</dd>';
-      $output .= '<dt>' . t('Defining text formats') . '</dt>';
-      $output .= '<dd>' . t('One format is included by default: <em>Plain text</em> (which removes all HTML tags). Additional formats may be created by your installation profile when you install Drupal, and more can be created by an administrator on the <a href="@text-formats">Text formats page</a>.', array('@text-formats' => url('admin/config/content/formats'))) . '</dd>';
+      $output .= '<dt>' . t('Managing text formats') . '</dt>';
+      $output .= '<dd>' . t('You can create and edit text formats on the <a href="!formats">Text formats page</a> (if the Text Editor module is enabled, this page is named Text formats and editors). One text format is included by default: Plain text (which removes all HTML tags). Additional text formats may be created during installation. You can create a text format by clicking "<a href="!add_format">Add text format</a>".', array('!formats' => \Drupal::url('filter.admin_overview'),'!add_format' => \Drupal::url('filter.format_add'))) . '</dd>';
+      $output .= '<dt>' . t('Assigning roles to text formats') . '</dt>';
+      $output .= '<dd>' . t('You can define which users will be able to use each text format by selecting roles. To ensure security, anonymous and untrusted users should only have access to text formats that restrict them to either plain text or a safe set of HTML tags. This is because HTML tags can allow embedding malicious links or scripts in text. More trusted registered users may be granted permission to use less restrictive text formats in order to create rich text. <strong>Improper text format configuration is a security risk</strong>.') . '</dd>';
+      $output .= '<dt>' . t('Selecting filters') . '</dt>';
+      $output .= '<dd><p>' . t('Each text format uses filters that add, remove, or transform elements within user-entered text. For example, one filter removes unapproved HTML tags, while another transforms URLs into clickable links. Filters are applied in a specific order and do not change the actual content, but instead, modify it temporarily before it is displayed.') . '<p>';
+      $output .= '<p>' . t('Each filter can have additional configuration options. For example, for the "Limit allowed HTML tags" filter you need to define the list of HTML tags that the filter leaves in the text.') . '</p></dd>';
+      $output .= '<dt>' . t('Enabling text formats for field editing') . '</dt>';
+      $output .= '<dd>' . t('In the field settings for a field that supports text formats (such as Long text), you can enable the use of text formats by choosing "Filtered text (user selects text format)"  under "Text processing". See the <a href="!field_help">Field module help</a> and the <a href="!field_ui_help">Field UI help</a> pages for general information on fields and how to create and manage them.', array('!field_help' => \Drupal::url('help.page', array('name' => 'field')), '!field_ui_help' => \Drupal::url('help.page', array('name' => 'field_ui')))) . '</dd>';
       $output .= '<dt>' . t('Choosing a text format') . '</dt>';
-      $output .= '<dd>' . t('Users with access to more than one text format can use the <em>Text format</em> widget to choose between available text formats when creating or editing multi-line content. Administrators can define the text formats available to each user role, and control the order of formats listed in the <em>Text format</em> widget on the <a href="@text-formats">Text formats page</a>.', array('@text-formats' => url('admin/config/content/formats'))) . '</dd>';
+      $output .= '<dd>' . t('When creating or editing data in a field that has text formats enabled, users can select the format under the field from the Text format select list.') . '</dd>';
       $output .= '</dl>';
       return $output;
 
@@ -80,16 +57,15 @@ function filter_theme() {
   return array(
     'filter_tips' => array(
       'variables' => array('tips' => NULL, 'long' => FALSE),
-      'file' => 'filter.pages.inc',
+      'template' => 'filter-tips',
     ),
     'text_format_wrapper' => array(
-      'render element' => 'element',
+      'variables' => array('children' => NULL, 'description' => NULL),
+      'template' => 'text-format-wrapper',
     ),
     'filter_guidelines' => array(
       'variables' => array('format' => NULL),
-    ),
-    'filter_html_image_secure_image' => array(
-      'variables' => array('image' => NULL),
+      'template' => 'filter-guidelines',
     ),
     'filter_caption' => array(
       'variables' => array(
@@ -136,10 +112,6 @@ function filter_menu() {
     'description' => 'Configure how content input by users is filtered, including allowed HTML tags. Also allows enabling of module-provided filters.',
     'route_name' => 'filter.admin_overview',
   );
-  $items['admin/config/content/formats/list'] = array(
-    'title' => 'List',
-    'type' => MENU_DEFAULT_LOCAL_TASK,
-  );
   $items['admin/config/content/formats/manage/%'] = array(
     'title callback' => 'entity_page_label',
     'title arguments' => array(5),
@@ -150,6 +122,26 @@ function filter_menu() {
     'route_name' => 'filter.admin_disable',
   );
   return $items;
+}
+
+/**
+ * Implements hook_menu_link_defaults().
+ */
+function filter_menu_link_defaults() {
+  $links['filter.tips'] = array(
+    'link_title' => 'Compose tips',
+    'type' => MENU_SUGGESTED_ITEM,
+    'route_name' => 'filter.tips_all',
+  );
+
+  $links['filter.admin.formats'] = array(
+    'link_title' => 'Text formats',
+    'parent' => 'system.admin.config.content',
+    'description' => 'Configure how content input by users is filtered, including allowed HTML tags. Also allows enabling of module-provided filters.',
+    'route_name' => 'filter.admin_overview',
+  );
+
+  return $links;
 }
 
 /**
@@ -197,14 +189,14 @@ function filter_formats(AccountInterface $account = NULL) {
 
   // All available formats are cached for performance.
   if (!isset($formats['all'])) {
-    $language_interface = \Drupal::languageManager()->getLanguage(Language::TYPE_INTERFACE);
+    $language_interface = \Drupal::languageManager()->getCurrentLanguage();
     if ($cache = \Drupal::cache()->get("filter_formats:{$language_interface->id}")) {
       $formats['all'] = $cache->data;
     }
     else {
       $formats['all'] = \Drupal::entityManager()->getStorageController('filter_format')->loadByProperties(array('status' => TRUE));
       uasort($formats['all'], 'Drupal\Core\Config\Entity\ConfigEntityBase::sort');
-      \Drupal::cache()->set("filter_formats:{$language_interface->id}", $formats['all'], CacheBackendInterface::CACHE_PERMANENT, array('filter_formats' => TRUE));
+      \Drupal::cache()->set("filter_formats:{$language_interface->id}", $formats['all'], Cache::PERMANENT, array('filter_formats' => TRUE));
     }
   }
 
@@ -233,7 +225,7 @@ function filter_formats(AccountInterface $account = NULL) {
  * @see filter_formats()
  */
 function filter_formats_reset() {
-  cache()->deleteTags(array('filter_formats' => TRUE));
+  Cache::deleteTags(array('filter_formats' => TRUE));
   drupal_static_reset('filter_formats');
 }
 
@@ -303,189 +295,14 @@ function filter_get_formats_by_role($rid) {
  * @see filter_fallback_format()
  */
 function filter_default_format(AccountInterface $account = NULL) {
-  global $user;
   if (!isset($account)) {
-    $account = $user;
+    $account = \Drupal::currentUser();
   }
   // Get a list of formats for this user, ordered by weight. The first one
   // available is the user's default format.
   $formats = filter_formats($account);
   $format = reset($formats);
   return $format->format;
-}
-
-/**
- * Retrieves all filter types that are used in a given text format.
- *
- * @param string $format_id
- *   A text format ID.
- *
- * @return array
- *   All filter types used by filters of a given text format.
- *
- * @throws Exception
- */
-function filter_get_filter_types_by_format($format_id) {
-  $filter_types = array();
-
-  if ($format_id) {
-    $filters = entity_load('filter_format', $format_id)->filters();
-    foreach ($filters as $filter) {
-      if ($filter->status) {
-        $filter_types[] = $filter->getType();
-      }
-    }
-  }
-
-  return array_unique($filter_types);
-}
-
-/**
- * Retrieve all HTML restrictions (tags and attributes) for a given text format.
- *
- * Note that restrictions applied to the "*" tag (the wildcard tag, i.e. all
- * tags) are treated just like any other HTML tag. That means that any
- * restrictions applied to it are not automatically applied to all other tags.
- * It is up to the caller to handle this in whatever way it sees fit; this way
- * no information granularity is lost.
- *
- * @param string $format_id
- *   A text format ID.
- *
- * @return array|FALSE
- *   An structured array as returned by FilterInterface::getHTMLRestrictions(),
- *   but with the intersection of all filters in this text format.
- *   Will either indicate blacklisting of tags or whitelisting of tags. In the
- *   latter case, it's possible that restrictions on attributes are also stored.
- *   FALSE means there are no HTML restrictions.
- */
-function filter_get_html_restrictions_by_format($format_id) {
-  $format = entity_load('filter_format', $format_id);
-
-  // Ignore filters that are disabled or don't have HTML restrictions.
-  $filters = array_filter($format->filters()->getAll(), function($filter) {
-    if (!$filter->status) {
-      return FALSE;
-    }
-    if ($filter->getType() === FILTER_TYPE_HTML_RESTRICTOR && $filter->getHTMLRestrictions() !== FALSE) {
-      return TRUE;
-    }
-    return FALSE;
-  });
-
-  if (empty($filters)) {
-    return FALSE;
-  }
-  else {
-    // From the set of remaining filters (they were filtered by array_filter()
-    // above), collect the list of tags and attributes that are allowed by all
-    // filters, i.e. the intersection of all allowed tags and attributes.
-    $restrictions = array_reduce($filters, function($restrictions, $filter) {
-      $new_restrictions = $filter->getHTMLRestrictions();
-
-      // The first filter with HTML restrictions provides the initial set.
-      if (!isset($restrictions)) {
-        return $new_restrictions;
-      }
-      // Subsequent filters with an "allowed html" setting must be intersected
-      // with the existing set, to ensure we only end up with the tags that are
-      // allowed by *all* filters with an "allowed html" setting.
-      else {
-        // Track the union of forbidden (blacklisted) tags.
-        if (isset($new_restrictions['forbidden_tags'])) {
-          if (!isset($restrictions['forbidden_tags'])) {
-            $restrictions['forbidden_tags'] = $new_restrictions['forbidden_tags'];
-          }
-          else {
-            $restrictions['forbidden_tags'] = array_unique(array_merge($restrictions['forbidden_tags'], $new_restrictions['forbidden_tags']));
-          }
-        }
-
-        // Track the intersection of allowed (whitelisted) tags.
-        if (isset($restrictions['allowed'])) {
-          $intersection = $restrictions['allowed'];
-          foreach ($intersection as $tag => $attributes) {
-            // If the current tag is not whitelisted by the new filter, then
-            // it's outside of the intersection.
-            if (!array_key_exists($tag, $new_restrictions['allowed'])) {
-              // The exception is the asterisk (which applies to all tags): it
-              // does not need to be whitelisted by every filter in order to be
-              // used; not every filter needs attribute restrictions on all tags.
-              if ($tag === '*') {
-                continue;
-              }
-              unset($intersection[$tag]);
-            }
-            // The tag is in the intersection, but now we must calculate the
-            // intersection of the allowed attributes.
-            else {
-              $current_attributes = $intersection[$tag];
-              $new_attributes = $new_restrictions['allowed'][$tag];
-              // The current intersection does not allow any attributes, never
-              // allow.
-              if (!is_array($current_attributes) && $current_attributes == FALSE) {
-                continue;
-              }
-              // The new filter allows less attributes (all -> list or none).
-              else if (!is_array($current_attributes) && $current_attributes == TRUE && ($new_attributes == FALSE || is_array($new_attributes))) {
-                $intersection[$tag] = $new_attributes;
-              }
-              // The new filter allows less attributes (list -> none).
-              else if (is_array($current_attributes) && $new_attributes == FALSE) {
-                $intersection[$tag] = $new_attributes;
-              }
-              // The new filter allows more attributes; retain current.
-              else if (is_array($current_attributes) && $new_attributes == TRUE) {
-                continue;
-              }
-              // The new filter allows the same attributes; retain current.
-              else if ($current_attributes == $new_attributes) {
-                continue;
-              }
-              // Both list an array of attribute values; do an intersection,
-              // where we take into account that a value of:
-              //  - TRUE means the attribute value is allowed;
-              //  - FALSE means the attribute value is forbidden;
-              // hence we keep the ANDed result.
-              else {
-                $intersection[$tag] = array_intersect_key($intersection[$tag], $new_attributes);
-                foreach (array_keys($intersection[$tag]) as $attribute_value) {
-                  $intersection[$tag][$attribute_value] = $intersection[$tag][$attribute_value] && $new_attributes[$attribute_value];
-                }
-              }
-            }
-          }
-          $restrictions['allowed'] = $intersection;
-        }
-
-        return $restrictions;
-      }
-    }, NULL);
-
-    // Simplification: if we have both a (intersected) whitelist and a (unioned)
-    // blacklist, then remove any tags from the whitelist that also exist in the
-    // blacklist. Now the whitelist alone expresses all tag-level restrictions,
-    // and we can delete the blacklist.
-    if (isset($restrictions['allowed']) && isset($restrictions['forbidden_tags'])) {
-      foreach ($restrictions['forbidden_tags'] as $tag) {
-        if (isset($restrictions['allowed'][$tag])) {
-          unset($restrictions['allowed'][$tag]);
-        }
-      }
-      unset($restrictions['forbidden_tags']);
-    }
-
-    // Simplification: if the only remaining allowed tag is the asterisk (which
-    // contains attribute restrictions that apply to all tags), and only
-    // whitelisting filters were used, then effectively nothing is allowed.
-    if (isset($restrictions['allowed'])) {
-      if (count($restrictions['allowed']) === 1 && array_key_exists('*', $restrictions['allowed']) && !isset($restrictions['forbidden_tags'])) {
-        $restrictions['allowed'] = array();
-      }
-    }
-
-    return $restrictions;
-  }
 }
 
 /**
@@ -572,7 +389,7 @@ function filter_format_allowcache($format_id) {
  *   (optional) An array of filter types to skip, or an empty array (default)
  *   to skip no filter types. All of the format's filters will be applied,
  *   except for filters of the types that are marked to be skipped.
- *   FILTER_TYPE_HTML_RESTRICTOR is the only type that cannot be skipped.
+ *   FilterInterface::TYPE_HTML_RESTRICTOR is the only type that cannot be skipped.
  *
  * @return
  *   The filtered text.
@@ -589,9 +406,9 @@ function check_markup($text, $format_id = NULL, $langcode = '', $cache = FALSE, 
     return '';
   }
 
-  // Prevent FILTER_TYPE_HTML_RESTRICTOR from being skipped.
-  if (in_array(FILTER_TYPE_HTML_RESTRICTOR, $filter_types_to_skip)) {
-    $filter_types_to_skip = array_diff($filter_types_to_skip, array(FILTER_TYPE_HTML_RESTRICTOR));
+  // Prevent FilterInterface::TYPE_HTML_RESTRICTOR from being skipped.
+  if (in_array(FilterInterface::TYPE_HTML_RESTRICTOR, $filter_types_to_skip)) {
+    $filter_types_to_skip = array_diff($filter_types_to_skip, array(FilterInterface::TYPE_HTML_RESTRICTOR));
   }
 
   // When certain filters should be skipped, don't perform caching.
@@ -643,7 +460,7 @@ function check_markup($text, $format_id = NULL, $langcode = '', $cache = FALSE, 
   // automatically flushed when the text format is updated.
   // @see \Drupal\filter\Entity\FilterFormat::save()
   if ($cache) {
-    cache('filter')->set($cache_id, $text, CacheBackendInterface::CACHE_PERMANENT, array('filter_format' => $format->id()));
+    cache('filter')->set($cache_id, $text, Cache::PERMANENT, array('filter_format' => $format->id()));
   }
 
   return $text;
@@ -769,7 +586,7 @@ function filter_process_format($element) {
   $element['format']['help'] = array(
     '#type' => 'container',
     '#attributes' => array('class' => array('filter-help')),
-    '#markup' => l(t('More information about text formats'), 'filter/tips', array('attributes' => array('target' => '_blank'))),
+    '#markup' => l(t('About text formats'), 'filter/tips', array('attributes' => array('target' => '_blank'))),
     '#weight' => 0,
   );
 
@@ -836,27 +653,6 @@ function filter_form_access_denied($element) {
 }
 
 /**
- * Returns HTML for a text format-enabled form element.
- *
- * @param array $variables
- *   An associative array containing:
- *   - element: A render element containing #children and #description.
- *
- * @ingroup themeable
- */
-function theme_text_format_wrapper($variables) {
-  $element = $variables['element'];
-  $output = '<div class="text-format-wrapper form-item">';
-  $output .= $element['#children'];
-  if (!empty($element['#description'])) {
-    $output .= '<div class="description">' . $element['#description'] . '</div>';
-  }
-  $output .= "</div>\n";
-
-  return $output;
-}
-
-/**
  * Retrieves the filter tips.
  *
  * @param string $format_id
@@ -899,124 +695,77 @@ function _filter_tips($format_id, $long = FALSE) {
 }
 
 /**
- * Parses an HTML snippet and returns it as a DOM object.
+ * Prepares variables for text format guideline templates.
  *
- * This function loads the body part of a partial (X)HTML document and returns
- * a full DOMDocument object that represents this document. You can use
- * filter_dom_serialize() to serialize this DOMDocument back to a XHTML
- * snippet.
- *
- * @param $text
- *   The partial (X)HTML snippet to load. Invalid markup will be corrected on
- *   import.
- *
- * @return
- *   A DOMDocument that represents the loaded (X)HTML snippet.
- */
-function filter_dom_load($text) {
-  $dom_document = new DOMDocument();
-  // Ignore warnings during HTML soup loading.
-  @$dom_document->loadHTML('<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /></head><body>' . $text . '</body></html>');
-
-  return $dom_document;
-}
-
-/**
- * Converts a DOM object back to an HTML snippet.
- *
- * The function serializes the body part of a DOMDocument back to an XHTML
- * snippet. The resulting XHTML snippet will be properly formatted to be
- * compatible with HTML user agents.
- *
- * @param $dom_document
- *   A DOMDocument object to serialize, only the tags below
- *   the first <body> node will be converted.
- *
- * @return
- *   A valid (X)HTML snippet, as a string.
- */
-function filter_dom_serialize($dom_document) {
-  $body_node = $dom_document->getElementsByTagName('body')->item(0);
-  $body_content = '';
-
-  foreach ($body_node->getElementsByTagName('script') as $node) {
-    filter_dom_serialize_escape_cdata_element($dom_document, $node);
-  }
-
-  foreach ($body_node->getElementsByTagName('style') as $node) {
-    filter_dom_serialize_escape_cdata_element($dom_document, $node, '/*', '*/');
-  }
-
-  foreach ($body_node->childNodes as $child_node) {
-    $body_content .= $dom_document->saveXML($child_node);
-  }
-  return $body_content;
-}
-
-/**
- * Adds comments around the <!CDATA section in a dom element.
- *
- * DOMDocument::loadHTML in filter_dom_load() makes CDATA sections from the
- * contents of inline script and style tags.  This can cause HTML 4 browsers to
- * throw exceptions.
- *
- * This function attempts to solve the problem by creating a DocumentFragment
- * and imitating the behavior in drupal_get_js(), commenting the CDATA tag.
- *
- * @param $dom_document
- *   The DOMDocument containing the $dom_element.
- * @param $dom_element
- *   The element potentially containing a CDATA node.
- * @param $comment_start
- *   (optional) A string to use as a comment start marker to escape the CDATA
- *   declaration. Defaults to '//'.
- * @param $comment_end
- *   (optional) A string to use as a comment end marker to escape the CDATA
- *   declaration. Defaults to an empty string.
- */
-function filter_dom_serialize_escape_cdata_element($dom_document, $dom_element, $comment_start = '//', $comment_end = '') {
-  foreach ($dom_element->childNodes as $node) {
-    if (get_class($node) == 'DOMCdataSection') {
-      // See drupal_get_js().  This code is more or less duplicated there.
-      $embed_prefix = "\n<!--{$comment_start}--><![CDATA[{$comment_start} ><!--{$comment_end}\n";
-      $embed_suffix = "\n{$comment_start}--><!]]>{$comment_end}\n";
-
-      // Prevent invalid cdata escaping as this would throw a DOM error.
-      // This is the same behavior as found in libxml2.
-      // Related W3C standard: http://www.w3.org/TR/REC-xml/#dt-cdsection
-      // Fix explanation: http://en.wikipedia.org/wiki/CDATA#Nesting
-      $data = str_replace(']]>', ']]]]><![CDATA[>', $node->data);
-
-      $fragment = $dom_document->createDocumentFragment();
-      $fragment->appendXML($embed_prefix . $data . $embed_suffix);
-      $dom_element->appendChild($fragment);
-      $dom_element->removeChild($node);
-    }
-  }
-}
-
-/**
- * Returns HTML for guidelines for a text format.
+ * Default template: filter-guidelines.html.twig.
  *
  * @param array $variables
  *   An associative array containing:
  *   - format: An object representing a text format.
- *
- * @ingroup themeable
  */
-function theme_filter_guidelines($variables) {
+function template_preprocess_filter_guidelines(&$variables) {
   $format = $variables['format'];
-  $attributes['class'][] = 'filter-guidelines-item';
-  $attributes['class'][] = 'filter-guidelines-' . $format->format;
-  $output = '<div' . new Attribute($attributes) . '>';
-  $output .= '<h4 class="label">' . check_plain($format->name) . '</h4>';
-  $filter_tips = array(
+  $variables['attributes']['class'][] = 'filter-guidelines-item';
+  $variables['attributes']['class'][] = 'filter-guidelines-' . $format->format;
+
+  $variables['tips'] = array(
     '#theme' => 'filter_tips',
     '#tips' => _filter_tips($format->format, FALSE),
   );
-  $output .= drupal_render($filter_tips);
-  $output .= '</div>';
-  return $output;
+}
+
+/**
+ * Prepares variables for filter tips templates.
+ *
+ * Default template: filter-tips.html.twig.
+ *
+ * @param array $variables
+ *   An associative array containing:
+ *   - tips: An array containing descriptions and a CSS ID in the form of
+ *     'module-name/filter-id' (only used when $long is TRUE) for each
+ *     filter in one or more text formats. Example:
+ *     @code
+ *       array(
+ *         'Full HTML' => array(
+ *           0 => array(
+ *             'tip' => 'Web page addresses and e-mail addresses turn into links automatically.',
+ *             'id' => 'filter/2',
+ *           ),
+ *         ),
+ *       );
+ *     @endcode
+ *   - long: (optional) Whether the passed-in filter tips contain extended
+ *     explanations, i.e. intended to be output on the path 'filter/tips'
+ *     (TRUE), or are in a short format, i.e. suitable to be displayed below a
+ *     form element. Defaults to FALSE.
+ */
+function template_preprocess_filter_tips(&$variables) {
+  $tips = $variables['tips'];
+  $long = $variables['long'];
+
+  foreach ($variables['tips'] as $name => $tiplist) {
+    foreach ($tiplist as $tip_key => $tip) {
+      $tiplist[$tip_key]['attributes'] = new Attribute(array());
+      if ($long) {
+        $tiplist[$tip_key]['attributes']['class'] = array('filter-' . str_replace("/", "-", $tip['id']));
+      }
+    }
+
+    $attributes = array(
+      'class' => array(
+        'filter-type',
+        'filter-' . drupal_html_class($name),
+      ),
+    );
+
+    $variables['tips'][$name] = array(
+      'attributes' => new Attribute($attributes),
+      'name' => String::checkPlain($name),
+      'list' => $tiplist,
+    );
+  }
+
+  $variables['multiple'] = count($tips) > 1;
 }
 
 /**
@@ -1033,12 +782,12 @@ function _filter_html($text, $filter) {
   $text = filter_xss($text, $allowed_tags);
 
   if ($filter->settings['filter_html_nofollow']) {
-    $html_dom = filter_dom_load($text);
+    $html_dom = Html::load($text);
     $links = $html_dom->getElementsByTagName('a');
     foreach ($links as $link) {
       $link->setAttribute('rel', 'nofollow');
     }
-    $text = filter_dom_serialize($html_dom);
+    $text = Html::serialize($html_dom);
   }
 
   return trim($text);
@@ -1283,13 +1032,6 @@ function _filter_url_trim($text, $length = NULL) {
 }
 
 /**
- * Scans the input and makes sure that HTML tags are properly closed.
- */
-function _filter_htmlcorrector($text) {
-  return filter_dom_serialize(filter_dom_load($text));
-}
-
-/**
  * Converts line breaks into <p> and <br> in an intelligent fashion.
  *
  * Based on: http://photomatt.net/scripts/autop
@@ -1374,14 +1116,13 @@ function _filter_html_image_secure_process($text) {
   // Find the directory on the server where index.php resides.
   $local_dir = DRUPAL_ROOT . '/';
 
-  $html_dom = filter_dom_load($text);
+  $html_dom = Html::load($text);
   $images = $html_dom->getElementsByTagName('img');
   foreach ($images as $image) {
     $src = $image->getAttribute('src');
-    // Remove absolute URLs pointing to the local domain to prevent mixed
-    // content errors.
-    $request = \Drupal::request();
-    $image->setAttribute('src', preg_replace('|^https?://' . $request->getHttpHost() . '|', '', $src));
+    // Transform absolute image URLs to relative image URLs: prevent problems on
+    // multisite set-ups and prevent mixed content errors.
+    $image->setAttribute('src', file_url_transform_relative($src));
 
     // Verify that $src starts with $base_path.
     // This also ensures that external images cannot be referenced.
@@ -1397,32 +1138,25 @@ function _filter_html_image_secure_process($text) {
         continue;
       }
     }
-    // Replace an invalid image with an error indicator.
-    $filter_html_image_secure_image = array(
-      '#theme' => 'filter_html_image_secure_image',
-      '#image' => $image,
-    );
-    drupal_render($filter_html_image_secure_image);
+    // Allow modules and themes to replace an invalid image with an error
+    // indicator. See filter_filter_secure_image_alter().
+    \Drupal::moduleHandler()->alter('filter_secure_image', $image);
   }
-  $text = filter_dom_serialize($html_dom);
+  $text = Html::serialize($html_dom);
   return $text;
 }
 
 /**
+ * Implements hook_filter_secure_image_alter().
+ *
  * Formats an image DOM element that has an invalid source.
  *
  * @param DOMElement $image
  *   An IMG node to format, parsed from the filtered text.
  *
- * @return void
- *   Unlike other theme functions, the passed in $image is altered by reference.
- *
  * @see _filter_html_image_secure_process()
- * @ingroup themeable
  */
-function theme_filter_html_image_secure_image(&$variables) {
-  $image = $variables['image'];
-
+function filter_filter_secure_image_alter(&$image) {
   // Turn an invalid image into an error indicator.
   $image->setAttribute('src', base_path() . 'core/misc/message-16-error.png');
   $image->setAttribute('alt', t('Image removed.'));

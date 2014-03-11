@@ -8,8 +8,6 @@
 namespace Drupal\views_test_data\Plugin\views\display;
 
 use Drupal\views\Plugin\views\display\DisplayPluginBase;
-use Drupal\views\Annotation\ViewsDisplay;
-use Drupal\Core\Annotation\Translation;
 
 /**
  * Defines a Display test plugin.
@@ -100,7 +98,7 @@ class DisplayTest extends DisplayPluginBase {
     switch ($form_state['section']) {
       case 'test_option':
         if (!trim($form_state['values']['test_option'])) {
-          form_error($form['test_option'], t('You cannot have an empty option.'));
+          form_error($form['test_option'], $form_state, t('You cannot have an empty option.'));
         }
         break;
     }

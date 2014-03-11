@@ -9,18 +9,40 @@
  * layer. Each theme can take control over most of Drupal's output, and
  * has complete control over the CSS.
  *
- * Inside Drupal, the theme layer is utilized by the use of the theme()
+ * Inside Drupal, the theme layer is utilized by the use of the _theme()
  * function, which is passed the name of a component (the theme hook)
  * and an array of variables. For example,
- * theme('table', array('header' => $header, 'rows' => $rows));
- * Additionally, the theme() function can take an array of theme
+ * _theme('table', array('header' => $header, 'rows' => $rows));
+ * Additionally, the _theme() function can take an array of theme
  * hooks, which can be used to provide 'fallback' implementations to
  * allow for more specific control of output. For example, the function:
- * theme(array('table__foo', 'table'), $variables) would look to see if
+ * _theme(array('table__foo', 'table'), $variables) would look to see if
  * 'table__foo' is registered anywhere; if it is not, it would 'fall back'
  * to the generic 'table' implementation. This can be used to attach specific
  * theme functions to named objects, allowing the themer more control over
  * specific types of output.
+ *
+ * Calling the _theme() function directly is highly discouraged. Building a
+ * renderable array is preferred. For example, rather than calling
+ * _theme('table', array()) in-place, one can assemble a renderable array as
+ * follows:
+ *
+ * @code
+ * $table = array(
+ *   '#type' => 'table',
+ *   '#header' => '',
+ *   '#rows' => array(),
+ * );
+ * @endcode
+ *
+ * Note that a table is defined as a type as well as a theme function. Building
+ * it as a type is preferred. The $table array can simply be passed along as
+ * a renderable array in a page build process. If necessary, the array may be
+ * rendered to a string by calling drupal_render().
+ *
+ * @code
+ * $output = drupal_render($table);
+ * @endcode
  *
  * As of Drupal 6, every theme hook is required to be registered by the
  * module that owns it, so that Drupal can tell what to do with it and
@@ -55,10 +77,11 @@
  *
  * The theme system is described and defined in theme.inc.
  *
- * @see theme()
+ * @see _theme()
  * @see hook_theme()
  * @see hooks
  * @see callbacks
+ * @see system_element_info()
  *
  * @} End of "defgroup themeable".
  */
@@ -98,7 +121,7 @@ function hook_form_system_theme_settings_alter(&$form, &$form_state) {
  * preprocess variables for a specific theme hook, whether implemented as a
  * template or function.
  *
- * For more detailed information, see theme().
+ * For more detailed information, see _theme().
  *
  * @param $variables
  *   The variables array (modify in place).
@@ -146,7 +169,7 @@ function hook_preprocess(&$variables, $hook) {
  * hook. It should only be used if a module needs to override or add to the
  * theme preprocessing for a theme hook it didn't define.
  *
- * For more detailed information, see theme().
+ * For more detailed information, see _theme().
  *
  * @param $variables
  *   The variables array (modify in place).
@@ -190,6 +213,55 @@ function hook_theme_suggestions_HOOK(array $variables) {
 }
 
 /**
+ * Alters named suggestions for all theme hooks.
+ *
+ * This hook is invoked for all theme hooks, if you are targeting a specific
+ * theme hook it's best to use hook_theme_suggestions_HOOK_alter().
+ *
+ * The call order is as follows: all existing suggestion alter functions are
+ * called for module A, then all for module B, etc., followed by all for any
+ * base theme(s), and finally for the active theme. The order is
+ * determined by system weight, then by extension (module or theme) name.
+ *
+ * Within each module or theme, suggestion alter hooks are called in the
+ * following order: first, hook_theme_suggestions_alter(); second,
+ * hook_theme_suggestions_HOOK_alter(). So, for each module or theme, the more
+ * general hooks are called first followed by the more specific.
+ *
+ * In the following example, we provide an alternative template suggestion to
+ * node and taxonomy term templates based on the user being logged in.
+ * @code
+ * function MYMODULE_theme_suggestions_alter(array &$suggestions, array $variables, $hook) {
+ *   if (\Drupal::currentUser()->isAuthenticated() && in_array($hook, array('node', 'taxonomy_term'))) {
+ *     $suggestions[] = $hook . '__' . 'logged_in';
+ *   }
+ * }
+ *
+ * @endcode
+ *
+ * @param array $suggestions
+ *   An array of alternate, more specific names for template files or theme
+ *   functions.
+ * @param array $variables
+ *   An array of variables passed to the theme hook. Note that this hook is
+ *   invoked before any variable preprocessing.
+ * @param string $hook
+ *   The base hook name. For example, if '#theme' => 'node__article' is called,
+ *   then $hook will be 'node', not 'node__article'. The specific hook called
+ *   (in this case 'node__article') is available in
+ *   $variables['theme_hook_original'].
+ *
+ * @return array
+ *   An array of theme suggestions.
+ *
+ * @see hook_theme_suggestions_HOOK_alter()
+ */
+function hook_theme_suggestions_alter(array &$suggestions, array $variables, $hook) {
+  // Add an interface-language specific suggestion to all theme hooks.
+  $suggestions[] = $hook . '__' . \Drupal::languageManager()->getLanguage()->id;
+}
+
+/**
  * Alters named suggestions for a specific theme hook.
  *
  * This hook allows any module or theme to provide altenative theme function or
@@ -210,6 +282,7 @@ function hook_theme_suggestions_HOOK(array $variables) {
  *   An array of variables passed to the theme hook. Note that this hook is
  *   invoked before any preprocessing.
  *
+ * @see hook_theme_suggestions_alter()
  * @see hook_theme_suggestions_HOOK()
  */
 function hook_theme_suggestions_HOOK_alter(array &$suggestions, array $variables) {

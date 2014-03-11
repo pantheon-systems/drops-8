@@ -7,9 +7,9 @@
 
 namespace Drupal\contextual\Plugin\views\field;
 
-use Drupal\Component\Annotation\PluginID;
 use Drupal\views\Plugin\views\field\FieldPluginBase;
 use Drupal\views\ResultRow;
+use Drupal\Component\Utility\Json;
 
 /**
  * Provides a handler that adds contextual links.
@@ -19,6 +19,13 @@ use Drupal\views\ResultRow;
  * @PluginID("contextual_links")
  */
 class ContextualLinks extends FieldPluginBase {
+
+  /**
+   * {@inheritdoc}
+   */
+  public function usesGroupBy() {
+    return FALSE;
+  }
 
   protected function defineOptions() {
     $options = parent::defineOptions();
@@ -108,7 +115,7 @@ class ContextualLinks extends FieldPluginBase {
           '',
           array(),
           array(
-            'contextual-views-field-links' => drupal_encode_path(drupal_json_encode($links)),
+            'contextual-views-field-links' => drupal_encode_path(Json::encode($links)),
           )
         )
       );

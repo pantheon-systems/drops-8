@@ -8,12 +8,66 @@
 namespace Drupal\system\Tests;
 
 use Drupal\Component\Utility\NestedArray;
+use Drupal\Core\Session\UserSession;
 use Drupal\simpletest\WebTestBase;
 
 /**
  * Allows testing of the interactive installer.
+ *
+ * @todo Move majority of code into new Drupal\simpletest\InstallerTestBase.
  */
 class InstallerTest extends WebTestBase {
+
+  /**
+   * Custom settings.php values to write for a test run.
+   *
+   * @var array
+   *   An array of settings to write out, in the format expected by
+   *   drupal_rewrite_settings().
+   */
+  protected $settings = array();
+
+  /**
+   * The language code in which to install Drupal.
+   *
+   * @var string
+   */
+  protected $langcode = 'en';
+
+  /**
+   * The installation profile to install.
+   *
+   * @var string
+   */
+  protected $profile = 'minimal';
+
+  /**
+   * Additional parameters to use for installer screens.
+   *
+   * @see WebTestBase::installParameters()
+   *
+   * @var array
+   */
+  protected $parameters = array();
+
+  /**
+   * A string translation map used for translated installer screens.
+   *
+   * Keys are English strings, values are translated strings.
+   *
+   * @var array
+   */
+  protected $translations = array(
+    'Save and continue' => 'Save and continue',
+    'Visit your new site' => 'Visit your new site',
+  );
+
+  /**
+   * Whether the installer has completed.
+   *
+   * @var bool
+   */
+  protected $isInstalled = FALSE;
 
   public static function getInfo() {
     return array(
@@ -23,134 +77,148 @@ class InstallerTest extends WebTestBase {
     );
   }
 
+  /**
+   * Overrides WebTestBase::setUp().
+   */
   protected function setUp() {
-    global $conf;
+    $this->isInstalled = FALSE;
 
-    // When running tests through the SimpleTest UI (vs. on the command line),
-    // SimpleTest's batch conflicts with the installer's batch. Batch API does
-    // not support the concept of nested batches (in which the nested is not
-    // progressive), so we need to temporarily pretend there was no batch.
-    // Back up the currently running SimpleTest batch.
-    $this->originalBatch = batch_get();
+    // Define information about the user 1 account.
+    $this->root_user = new UserSession(array(
+      'uid' => 1,
+      'name' => 'admin',
+      'mail' => 'admin@example.com',
+      'pass_raw' => $this->randomName(),
+    ));
 
-    // Create the database prefix for this test.
-    $this->prepareDatabasePrefix();
-
-    // Prepare the environment for running tests.
-    $this->prepareEnvironment();
-    if (!$this->setupEnvironment) {
-      return FALSE;
+    // If any $settings are defined for this test, copy and prepare an actual
+    // settings.php, so as to resemble a regular installation.
+    if (!empty($this->settings)) {
+      // Not using File API; a potential error must trigger a PHP warning.
+      copy(DRUPAL_ROOT . '/sites/default/default.settings.php', DRUPAL_ROOT . '/' . $this->siteDirectory . '/settings.php');
+      $this->writeSettings($settings);
     }
 
-    // Reset all statics and variables to perform tests in a clean environment.
-    $conf = array();
-    drupal_static_reset();
+    // Note that WebTestBase::installParameters() returns form input values
+    // suitable for a programmed drupal_form_submit().
+    // @see WebTestBase::translatePostValues()
+    $this->parameters = $this->installParameters();
 
-    // Change the database prefix.
-    // All static variables need to be reset before the database prefix is
-    // changed, since \Drupal\Core\Utility\CacheArray implementations attempt to
-    // write back to persistent caches when they are destructed.
-    $this->changeDatabasePrefix();
-    if (!$this->setupDatabasePrefix) {
-      return FALSE;
-    }
-    $variable_groups = array(
-      'system.file' => array(
-        'path.private' =>  $this->private_files_directory,
-        'path.temporary' =>  $this->temp_files_directory,
-      ),
-      'locale.settings' =>  array(
-        'translation.path' => $this->translation_files_directory,
-      ),
-    );
-    foreach ($variable_groups as $config_base => $variables) {
-      foreach ($variables as $name => $value) {
-        NestedArray::setValue($GLOBALS['conf'], array_merge(array($config_base), explode('.', $name)), $value);
-      }
-    }
-    $settings['conf_path'] = (object) array(
-      'value' => $this->public_files_directory,
-      'required' => TRUE,
-    );
-    $settings['config_directories'] = (object) array(
-      'value' => array(),
-      'required' => TRUE,
-    );
-    $this->writeSettings($settings);
+    $this->drupalGet($GLOBALS['base_url'] . '/core/install.php');
 
-    $this->drupalGet($GLOBALS['base_url'] . '/core/install.php?langcode=en&profile=minimal');
-    $this->drupalPostForm(NULL, array(), 'Save and continue');
-    // Reload config directories.
-    include $this->public_files_directory . '/settings.php';
-    $prefix = substr($this->public_files_directory, strlen(conf_path() . '/files/'));
-    foreach ($config_directories as $type => $data) {
-      $GLOBALS['config_directories'][$type]['path'] = $prefix . '/files/' . $data['path'];
+    // Select language.
+    $this->setUpLanguage();
+
+    // Select profile.
+    $this->setUpProfile();
+
+    // Configure settings.
+    $this->setUpSettings();
+
+    // @todo Allow test classes based on this class to act on further installer
+    //   screens.
+
+    // Configure site.
+    $this->setUpSite();
+
+    // Confirm installation.
+    $this->setUpConfirm();
+
+    // Import new settings.php written by the installer.
+    drupal_settings_initialize();
+    foreach ($GLOBALS['config_directories'] as $type => $path) {
+      $this->configDirectories[$type] = $path;
     }
+
+    // After writing settings.php, the installer removes write permissions
+    // from the site directory. To allow drupal_generate_test_ua() to write
+    // a file containing the private key for drupal_valid_test_ua(), the site
+    // directory has to be writable.
+    // WebTestBase::tearDown() will delete the entire test site directory.
+    // Not using File API; a potential error must trigger a PHP warning.
+    chmod(DRUPAL_ROOT . '/' . $this->siteDirectory, 0777);
+
     $this->rebuildContainer();
 
-    foreach ($variable_groups as $config_base => $variables) {
-      $config = \Drupal::config($config_base);
-      foreach ($variables as $name => $value) {
-        $config->set($name, $value);
-      }
-      $config->save();
-    }
+    // Manually configure the test mail collector implementation to prevent
+    // tests from sending out e-mails and collect them in state instead.
+    \Drupal::config('system.mail')
+      ->set('interface.default', 'Drupal\Core\Mail\TestMailCollector')
+      ->save();
 
-    // Use the test mail class instead of the default mail handler class.
-    \Drupal::config('system.mail')->set('interface.default', 'Drupal\Core\Mail\VariableLog')->save();
-
-    drupal_set_time_limit($this->timeLimit);
     // When running from run-tests.sh we don't get an empty current path which
     // would indicate we're on the home page.
     $path = current_path();
     if (empty($path)) {
       _current_path('run-tests');
     }
-    $this->setup = TRUE;
+
+    $this->isInstalled = TRUE;
+  }
+
+  /**
+   * Installer step: Select language.
+   */
+  protected function setUpLanguage() {
+    $edit = array(
+      'langcode' => $this->langcode,
+    );
+    $this->drupalPostForm(NULL, $edit, $this->translations['Save and continue']);
+  }
+
+  /**
+   * Installer step: Select installation profile.
+   */
+  protected function setUpProfile() {
+    $edit = array(
+      'profile' => $this->profile,
+    );
+    $this->drupalPostForm(NULL, $edit, $this->translations['Save and continue']);
+  }
+
+  /**
+   * Installer step: Configure settings.
+   */
+  protected function setUpSettings() {
+    $edit = $this->translatePostValues($this->parameters['forms']['install_settings_form']);
+    $this->drupalPostForm(NULL, $edit, $this->translations['Save and continue']);
+  }
+
+  /**
+   * Installer step: Configure site.
+   */
+  protected function setUpSite() {
+    $edit = $this->translatePostValues($this->parameters['forms']['install_configure_form']);
+    $this->drupalPostForm(NULL, $edit, $this->translations['Save and continue']);
+  }
+
+  /**
+   * Installer step: Confirm installation.
+   */
+  protected function setUpConfirm() {
+    $this->clickLink($this->translations['Visit your new site']);
   }
 
   /**
    * {@inheritdoc}
    *
-   * During setup(), drupalPost calls refreshVariables() which tries to read
-   * variables which are not yet there because the child Drupal is not yet
-   * installed.
+   * WebTestBase::refreshVariables() tries to operate on persistent storage,
+   * which is only available after the installer completed.
    */
   protected function refreshVariables() {
-    if (!empty($this->setup)) {
+    if ($this->isInstalled) {
       parent::refreshVariables();
     }
-  }
-
-  /**
-   * {@inheritdoc}
-   *
-   * This override is necessary because the parent drupalGet() calls t(), which
-   * is not available early during installation.
-   */
-  protected function drupalGet($path, array $options = array(), array $headers = array()) {
-    // We are re-using a CURL connection here. If that connection still has
-    // certain options set, it might change the GET into a POST. Make sure we
-    // clear out previous options.
-    $out = $this->curlExec(array(CURLOPT_HTTPGET => TRUE, CURLOPT_URL => $this->getAbsoluteUrl($path), CURLOPT_NOBODY => FALSE, CURLOPT_HTTPHEADER => $headers));
-    $this->refreshVariables(); // Ensure that any changes to variables in the other thread are picked up.
-
-    // Replace original page output with new output from redirected page(s).
-    if ($new = $this->checkForMetaRefresh()) {
-      $out = $new;
-    }
-    $this->verbose('GET request to: ' . $path .
-                   '<hr />Ending URL: ' . $this->getUrl() .
-                   '<hr />' . $out);
-    return $out;
   }
 
   /**
    * Ensures that the user page is available after every test installation.
    */
   public function testInstaller() {
-    $this->drupalGet('user');
+    $this->assertUrl('user/1');
     $this->assertResponse(200);
+    // Confirm that we are logged-in after installation.
+    $this->assertText($this->root_user->getUsername());
   }
 
 }

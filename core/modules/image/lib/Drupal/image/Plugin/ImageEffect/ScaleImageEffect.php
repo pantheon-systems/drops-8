@@ -7,10 +7,8 @@
 
 namespace Drupal\image\Plugin\ImageEffect;
 
-use Drupal\Core\Annotation\Translation;
 use Drupal\Component\Utility\Image;
 use Drupal\Core\Image\ImageInterface;
-use Drupal\image\Annotation\ImageEffect;
 
 /**
  * Scales an image resource.
@@ -84,7 +82,7 @@ class ScaleImageEffect extends ResizeImageEffect {
    */
   public function validateScaleEffect(array $element, array &$form_state) {
     if (empty($element['width']['#value']) && empty($element['height']['#value'])) {
-      form_error($element, t('Width and height can not both be blank.'));
+      form_error($element, $form_state, t('Width and height can not both be blank.'));
     }
   }
 

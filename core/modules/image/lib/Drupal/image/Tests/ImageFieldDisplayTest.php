@@ -7,6 +7,8 @@
 
 namespace Drupal\image\Tests;
 
+use Drupal\Core\Field\FieldDefinitionInterface;
+
 /**
  * Test class to check that formatters and display settings are working.
  */
@@ -111,7 +113,7 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
       '#width' => 40,
       '#height' => 20,
     );
-    $default_output = l($image, 'node/' . $nid, array('html' => TRUE, 'attributes' => array('class' => 'active')));
+    $default_output = l($image, 'node/' . $nid, array('html' => TRUE));
     $this->drupalGet('node/' . $nid);
     $this->assertRaw($default_output, 'Image linked to content formatter displaying correctly on full node view.');
 
@@ -221,6 +223,19 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
       '%max' => $schema['columns']['title']['length'],
       '%length' => $test_size,
     )));
+
+    // Set cardinality to unlimited and add upload a second image.
+    // The image widget is extending on the file widget, but the image field
+    // type does not have the 'display_field' setting which is expected by
+    // the file widget. This resulted in notices before when cardinality is not
+    // 1, so we need to make sure the file widget prevents these notices by
+    // providing all settings, even if they are not used.
+    // @see FileWidget::formMultipleElements().
+    $this->drupalPostForm('admin/structure/types/manage/article/fields/node.article.' . $field_name . '/field', array('field[cardinality]' => FieldDefinitionInterface::CARDINALITY_UNLIMITED), t('Save field settings'));
+    $edit = array();
+    $edit['files[' . $field_name . '_1][]'] = drupal_realpath($test_image->uri);
+    $this->drupalPostForm('node/' . $node->id() . '/edit', $edit, t('Save and keep published'));
+    $this->assertText(format_string('Article @title has been updated.', array('@title' => $node->getTitle())));
   }
 
   /**
@@ -241,18 +256,27 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
 
     // Add a default image to the public imagefield instance.
     $images = $this->drupalGetTestFiles('image');
+    $alt = $this->randomString(512);
+    $title = $this->randomString(1024);
     $edit = array(
-      'files[field_settings_default_image]' => drupal_realpath($images[0]->uri),
+      'files[field_settings_default_image_fid]' => drupal_realpath($images[0]->uri),
+      'field[settings][default_image][alt]' => $alt,
+      'field[settings][default_image][title]' => $title,
     );
     $this->drupalPostForm("admin/structure/types/manage/article/fields/node.article.$field_name/field", $edit, t('Save field settings'));
     // Clear field info cache so the new default image is detected.
     field_info_cache_clear();
     $field = field_info_field('node', $field_name);
-    $file = file_load($field->getFieldSetting('default_image'));
+    $default_image = $field->getSetting('default_image');
+    $file = file_load($default_image['fid']);
     $this->assertTrue($file->isPermanent(), 'The default image status is permanent.');
     $image = array(
       '#theme' => 'image',
       '#uri' => $file->getFileUri(),
+      '#alt' => $alt,
+      '#title' => $title,
+      '#width' => 40,
+      '#height' => 20,
     );
     $default_output = drupal_render($image);
     $this->drupalGet('node/' . $node->id());
@@ -275,27 +299,31 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
 
     // Remove default image from the field and make sure it is no longer used.
     $edit = array(
-      'field[settings][default_image][fids]' => 0,
+      'field[settings][default_image][fid][fids]' => 0,
     );
     $this->drupalPostForm("admin/structure/types/manage/article/fields/node.article.$field_name/field", $edit, t('Save field settings'));
     // Clear field info cache so the new default image is detected.
     field_info_cache_clear();
     $field = field_info_field('node', $field_name);
-    $this->assertFalse($field->getFieldSetting('default_image'), 'Default image removed from field.');
+    $default_image = $field->getSetting('default_image');
+    $this->assertFalse($default_image['fid'], 'Default image removed from field.');
     // Create an image field that uses the private:// scheme and test that the
     // default image works as expected.
     $private_field_name = strtolower($this->randomName());
     $this->createImageField($private_field_name, 'article', array('uri_scheme' => 'private'));
     // Add a default image to the new field.
     $edit = array(
-      'files[field_settings_default_image]' => drupal_realpath($images[1]->uri),
+      'files[field_settings_default_image_fid]' => drupal_realpath($images[1]->uri),
+      'field[settings][default_image][alt]' => $alt,
+      'field[settings][default_image][title]' => $title,
     );
     $this->drupalPostForm('admin/structure/types/manage/article/fields/node.article.' . $private_field_name . '/field', $edit, t('Save field settings'));
     // Clear field info cache so the new default image is detected.
     field_info_cache_clear();
 
     $private_field = field_info_field('node', $private_field_name);
-    $file = file_load($private_field->getFieldSetting('default_image'));
+    $default_image = $private_field->getSetting('default_image');
+    $file = file_load($default_image['fid']);
     $this->assertEqual('private', file_uri_scheme($file->getFileUri()), 'Default image uses private:// scheme.');
     $this->assertTrue($file->isPermanent(), 'The default image status is permanent.');
     // Create a new node with no image attached and ensure that default private
@@ -304,6 +332,10 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
     $image = array(
       '#theme' => 'image',
       '#uri' => $file->getFileUri(),
+      '#alt' => $alt,
+      '#title' => $title,
+      '#width' => 40,
+      '#height' => 20,
     );
     $default_output = drupal_render($image);
     $this->drupalGet('node/' . $node->id());

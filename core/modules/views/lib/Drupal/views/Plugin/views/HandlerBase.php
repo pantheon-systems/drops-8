@@ -11,6 +11,7 @@ use Drupal\Component\Utility\String;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Component\Utility\Url;
 use Drupal\Component\Utility\Xss;
+use Drupal\Core\Session\AccountInterface;
 use Drupal\views\Plugin\views\display\DisplayPluginBase;
 use Drupal\views\Plugin\views\PluginBase;
 use Drupal\views\ViewExecutable;
@@ -168,7 +169,7 @@ abstract class HandlerBase extends PluginBase {
    */
   public function adminLabel($short = FALSE) {
     if (!empty($this->options['admin_label'])) {
-      $title = check_plain($this->options['admin_label']);
+      $title = String::checkPlain($this->options['admin_label']);
       return $title;
     }
     $title = ($short && isset($this->definition['title short'])) ? $this->definition['title short'] : $this->definition['title'];
@@ -215,7 +216,7 @@ abstract class HandlerBase extends PluginBase {
    * @param $value
    *   The value being rendered.
    * @param $type
-   *   The type of sanitization needed. If not provided, check_plain() is used.
+   *   The type of sanitization needed. If not provided, String::checkPlain() is used.
    *
    * @return string
    *   Returns the safe value.
@@ -280,8 +281,8 @@ abstract class HandlerBase extends PluginBase {
     // Some form elements belong in a fieldset for presentation, but can't
     // be moved into one because of the form_state['values'] hierarchy. Those
     // elements can add a #fieldset => 'fieldset_name' property, and they'll
-    // be moved to their fieldset during preRender.
-    $form['#pre_render'][] = 'views_ui_pre_render_add_fieldset_markup';
+    // be moved to their fieldset during pre_render.
+    $form['#pre_render'][] = array(get_class($this), 'preRenderAddFieldsetMarkup');
 
     parent::buildOptionsForm($form, $form_state);
 
@@ -353,9 +354,7 @@ abstract class HandlerBase extends PluginBase {
    * There is no need for this function to actually store the data.
    */
   public function submitGroupByForm(&$form, &$form_state) {
-    $item =& $form_state['handler']->options;
-
-    $item['group_type'] = $form_state['values']['options']['group_type'];
+    $form_state['handler']->options['group_type'] = $form_state['values']['options']['group_type'];
   }
 
   /**
@@ -448,7 +447,7 @@ abstract class HandlerBase extends PluginBase {
     $this->buildExposeForm($form, $form_state);
 
     // When we click the expose button, we add new gadgets to the form but they
-    // have no data in $_POST so their defaults get wiped out. This prevents
+    // have no data in POST so their defaults get wiped out. This prevents
     // these defaults from getting wiped out. This setting will only be TRUE
     // during a 2nd pass rerender.
     if (!empty($form_state['force_expose_options'])) {
@@ -463,14 +462,15 @@ abstract class HandlerBase extends PluginBase {
   /**
    * Check whether current user has access to this handler.
    *
+   * @param AccountInterface $account
    * @return boolean
    */
-  public function access() {
+  public function access(AccountInterface $account) {
     if (isset($this->definition['access callback']) && function_exists($this->definition['access callback'])) {
       if (isset($this->definition['access arguments']) && is_array($this->definition['access arguments'])) {
-        return call_user_func_array($this->definition['access callback'], $this->definition['access arguments']);
+        return call_user_func_array($this->definition['access callback'], array($account) + $this->definition['access arguments']);
       }
-      return $this->definition['access callback']();
+      return $this->definition['access callback']($account);
     }
 
     return TRUE;
@@ -721,7 +721,7 @@ abstract class HandlerBase extends PluginBase {
       return $views_data['table']['entity type'];
     }
     else {
-      throw new \Exception(format_string('No entity type for field @field on view @view', array('@field' => $this->options['id'], '@view' => $this->view->storage->id())));
+      throw new \Exception(String::format('No entity type for field @field on view @view', array('@field' => $this->options['id'], '@view' => $this->view->storage->id())));
     }
   }
 
@@ -852,7 +852,7 @@ abstract class HandlerBase extends PluginBase {
       $this->defaultExposeOptions();
     }
 
-    $form_state['view']->getExecutable()->setItem($form_state['display_id'], $form_state['type'], $form_state['id'], $item);
+    $form_state['view']->getExecutable()->setHandler($form_state['display_id'], $form_state['type'], $form_state['id'], $item);
 
     $form_state['view']->addFormToStack($form_state['form_key'], $form_state['display_id'], $form_state['type'], $form_state['id'], TRUE, TRUE);
 

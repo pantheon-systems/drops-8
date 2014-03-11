@@ -2,7 +2,7 @@ node.content_overview:
   path: '/admin/content'
   defaults:
     _title: 'Content'
-    _content: '\Drupal\node\Controller\NodeController::contentOverview'
+    _entity_list: 'node'
   requirements:
     _permission: 'access content overview'
 
@@ -23,7 +23,7 @@ node.page_edit:
 node.add_page:
   path: '/node/add'
   defaults:
-    _title: 'Add page'
+    _title: 'Add content'
     _content: '\Drupal\node\Controller\NodeController::addPage'
   options:
     _access_mode: 'ANY'
@@ -35,6 +35,7 @@ node.add:
   path: '/node/add/{node_type}'
   defaults:
     _content: '\Drupal\node\Controller\NodeController::add'
+    _title_callback: '\Drupal\node\Controller\NodeController::addPageTitle'
   requirements:
     _node_add_access: 'node:{node_type}'
 
@@ -73,6 +74,7 @@ node.revision_revert_confirm:
   path: '/node/{node}/revisions/{node_revision}/revert'
   defaults:
     _form: '\Drupal\node\Form\NodeRevisionRevertForm'
+    _title: 'Revert to earlier revision'
   requirements:
     _access_node_revision: 'update'
 
@@ -80,6 +82,7 @@ node.revision_delete_confirm:
   path: '/node/{node}/revisions/{node_revision}/delete'
   defaults:
     _form: '\Drupal\node\Form\NodeRevisionDeleteForm'
+    _title: 'Delete earlier revision'
   requirements:
     _access_node_revision: 'delete'
 
@@ -96,6 +99,7 @@ node.type_add:
   path: '/admin/structure/types/add'
   defaults:
     _entity_form: 'node_type.add'
+    _title: 'Add content type'
   requirements:
     _permission: 'administer content types'
 

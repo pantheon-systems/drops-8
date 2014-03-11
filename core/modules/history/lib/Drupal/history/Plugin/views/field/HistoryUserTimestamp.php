@@ -11,7 +11,6 @@ use Drupal\views\ResultRow;
 use Drupal\views\ViewExecutable;
 use Drupal\views\Plugin\views\display\DisplayPluginBase;
 use Drupal\node\Plugin\views\field\Node;
-use Drupal\Component\Annotation\PluginID;
 
 /**
  * Field handler to display the marker for new content.
@@ -26,16 +25,22 @@ use Drupal\Component\Annotation\PluginID;
 class HistoryUserTimestamp extends Node {
 
   /**
+   * {@inheritdoc}
+   */
+  public function usesGroupBy() {
+    return FALSE;
+  }
+
+  /**
    * Overrides \Drupal\node\Plugin\views\field\Node::init().
    */
   public function init(ViewExecutable $view, DisplayPluginBase $display, array &$options = NULL) {
     parent::init($view, $display, $options);
 
-    global $user;
-    if ($user->isAuthenticated()) {
+    if (\Drupal::currentUser()->isAuthenticated()) {
       $this->additional_fields['created'] = array('table' => 'node_field_data', 'field' => 'created');
       $this->additional_fields['changed'] = array('table' => 'node_field_data', 'field' => 'changed');
-      if (module_exists('comment') && !empty($this->options['comments'])) {
+      if (\Drupal::moduleHandler()->moduleExists('comment') && !empty($this->options['comments'])) {
         $this->additional_fields['last_comment'] = array('table' => 'comment_entity_statistics', 'field' => 'last_comment_timestamp');
       }
     }
@@ -51,7 +56,7 @@ class HistoryUserTimestamp extends Node {
 
   public function buildOptionsForm(&$form, &$form_state) {
     parent::buildOptionsForm($form, $form_state);
-    if (module_exists('comment')) {
+    if (\Drupal::moduleHandler()->moduleExists('comment')) {
       $form['comments'] = array(
         '#type' => 'checkbox',
         '#title' => t('Check for new comments as well'),
@@ -62,8 +67,7 @@ class HistoryUserTimestamp extends Node {
 
   public function query() {
     // Only add ourselves to the query if logged in.
-    global $user;
-    if ($user->isAnonymous()) {
+    if (\Drupal::currentUser()->isAnonymous()) {
       return;
     }
     parent::query();
@@ -77,12 +81,11 @@ class HistoryUserTimestamp extends Node {
     // This code shadows node_mark, but it reads from the db directly and
     // we already have that info.
     $mark = MARK_READ;
-    global $user;
-    if ($user->isAuthenticated()) {
+    if (\Drupal::currentUser()->isAuthenticated()) {
       $last_read = $this->getValue($values);
       $changed = $this->getValue($values, 'changed');
 
-      $last_comment = module_exists('comment') && !empty($this->options['comments']) ?  $this->getValue($values, 'last_comment') : 0;
+      $last_comment = \Drupal::moduleHandler()->moduleExists('comment') && !empty($this->options['comments']) ?  $this->getValue($values, 'last_comment') : 0;
 
       if (!$last_read && $changed > HISTORY_READ_LIMIT) {
         $mark = MARK_NEW;

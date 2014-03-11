@@ -43,7 +43,7 @@ class TermTranslationUITest extends ContentTranslationUITest {
   }
 
   function setUp() {
-    $this->entityType = 'taxonomy_term';
+    $this->entityTypeId = 'taxonomy_term';
     $this->bundle = 'tags';
     $this->name = $this->randomName();
     parent::setUp();
@@ -87,11 +87,11 @@ class TermTranslationUITest extends ContentTranslationUITest {
   public function testTranslationUI() {
     parent::testTranslationUI();
 
-    // Make sure that no row was inserted for taxonomy vocabularies, which do
+    // Make sure that no row was inserted for taxonomy vocabularies which do
     // not have translations enabled.
     $rows = db_query('SELECT * FROM {content_translation}')->fetchAll();
     foreach ($rows as $row) {
-      $this->assertEqual('taxonomy_term', $row->entity_type);
+      $this->assertEqual('taxonomy_term', $row->entity_type, 'Row contains a taxonomy term.');
     }
   }
 
@@ -117,12 +117,12 @@ class TermTranslationUITest extends ContentTranslationUITest {
     $untranslatable_tid = $this->createEntity(array(), $this->langcodes[0], $untranslatable_vocabulary->id());
 
     // Verify translation links.
-    $this->drupalGet('admin/structure/taxonomy/manage/' .  $this->vocabulary->id());
-    $this->assertResponse(200);
-    $this->assertLinkByHref('term/' . $translatable_tid . '/translations');
-    $this->assertLinkByHref('term/' . $translatable_tid . '/edit');
+    $this->drupalGet('admin/structure/taxonomy/manage/' .  $this->vocabulary->id() . '/overview');
+    $this->assertResponse(200, 'The translatable vocabulary page was found.');
+    $this->assertLinkByHref('term/' . $translatable_tid . '/translations', 0, 'The translations link exists for a translatable vocabulary.');
+    $this->assertLinkByHref('term/' . $translatable_tid . '/edit', 0, 'The edit link exists for a translatable vocabulary.');
 
-    $this->drupalGet('admin/structure/taxonomy/manage/' . $untranslatable_vocabulary->id());
+    $this->drupalGet('admin/structure/taxonomy/manage/' . $untranslatable_vocabulary->id() . '/overview');
     $this->assertResponse(200);
     $this->assertLinkByHref('term/' . $untranslatable_tid . '/edit');
     $this->assertNoLinkByHref('term/' . $untranslatable_tid . '/translations');

@@ -7,10 +7,11 @@
 
 namespace Drupal\forum;
 
-use Drupal\Core\Config\ConfigFactory;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Database\Connection;
-use Drupal\Core\Entity\EntityManager;
+use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\StringTranslation\TranslationInterface;
+use Drupal\comment\CommentInterface;
 use Drupal\field\FieldInfo;
 use Drupal\node\NodeInterface;
 
@@ -42,14 +43,14 @@ class ForumManager implements ForumManagerInterface {
   /**
    * Forum settings config object.
    *
-   * @var \Drupal\Core\Config\ConfigFactory
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
    */
   protected $configFactory;
 
   /**
    * Entity manager service
    *
-   * @var \Drupal\Core\Entity\EntityManager
+   * @var \Drupal\Core\Entity\EntityManagerInterface
    */
   protected $entityManager;
 
@@ -112,9 +113,9 @@ class ForumManager implements ForumManagerInterface {
   /**
    * Constructs the forum manager service.
    *
-   * @param \Drupal\Core\Config\ConfigFactory $config_factory
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The config factory service.
-   * @param \Drupal\Core\Entity\EntityManager $entity_manager
+   * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
    *   The entity manager service.
    * @param \Drupal\Core\Database\Connection $connection
    *   The current database connection.
@@ -123,7 +124,7 @@ class ForumManager implements ForumManagerInterface {
    * @param \Drupal\Core\StringTranslation\TranslationInterface $translation_manager
    *   The translation manager service.
    */
-  public function __construct(ConfigFactory $config_factory, EntityManager $entity_manager, Connection $connection, FieldInfo $field_info, TranslationInterface $translation_manager) {
+  public function __construct(ConfigFactoryInterface $config_factory, EntityManagerInterface $entity_manager, Connection $connection, FieldInfo $field_info, TranslationInterface $translation_manager) {
     $this->configFactory = $config_factory;
     $this->entityManager = $entity_manager;
     $this->connection = $connection;
@@ -518,14 +519,14 @@ class ForumManager implements ForumManagerInterface {
   public function updateIndex($nid) {
     $count = $this->connection->query("SELECT COUNT(cid) FROM {comment} c INNER JOIN {forum_index} i ON c.entity_id = i.nid WHERE c.entity_id = :nid AND c.field_id = 'node__comment_forum' AND c.entity_type = 'node' AND c.status = :status", array(
       ':nid' => $nid,
-      ':status' => COMMENT_PUBLISHED,
+      ':status' => CommentInterface::PUBLISHED,
     ))->fetchField();
 
     if ($count > 0) {
       // Comments exist.
       $last_reply = $this->connection->queryRange("SELECT cid, name, created, uid FROM {comment} WHERE entity_id = :nid AND field_id = 'node__comment_forum' AND entity_type = 'node' AND status = :status ORDER BY cid DESC", 0, 1, array(
         ':nid' => $nid,
-        ':status' => COMMENT_PUBLISHED,
+        ':status' => CommentInterface::PUBLISHED,
       ))->fetchObject();
       $this->connection->update('forum_index')
         ->fields( array(

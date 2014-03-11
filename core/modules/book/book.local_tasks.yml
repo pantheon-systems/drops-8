@@ -1,0 +1,15 @@
+book.admin:
+  route_name: book.admin
+  title: 'List'
+  base_route: book.admin
+book.settings:
+  route_name: book.settings
+  title: 'Settings'
+  base_route: book.admin
+  weight: 100
+
+book.outline:
+  route_name: book.outline
+  base_route: node.view
+  title: Outline
+  weight: 2

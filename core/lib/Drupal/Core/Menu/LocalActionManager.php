@@ -11,6 +11,7 @@ use Drupal\Core\Access\AccessManager;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Language\LanguageManager;
+use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Menu\LocalActionInterface;
 use Drupal\Core\Plugin\DefaultPluginManager;
 use Drupal\Component\Plugin\Discovery\ProcessDecorator;
@@ -20,6 +21,7 @@ use Drupal\Core\Plugin\Factory\ContainerFactory;
 use Drupal\Core\Routing\RouteProviderInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Controller\ControllerResolverInterface;
+use Drupal\Core\Session\AccountInterface;
 
 /**
  * Manages discovery and instantiation of menu local action plugins.
@@ -83,10 +85,17 @@ class LocalActionManager extends DefaultPluginManager {
    */
   protected $accessManager;
 
+  /**
+   * The current user.
+   *
+   * @var \Drupal\Core\Session\AccountInterface
+   */
+  protected $account;
+
 /**
    * The plugin instances.
    *
-   * @var array
+   * @var \Drupal\Core\Menu\LocalActionInterface[]
    */
   protected $instances = array();
 
@@ -104,12 +113,14 @@ class LocalActionManager extends DefaultPluginManager {
    *   The module handler.
    * @param \Drupal\Core\Cache\CacheBackendInterface $cache_backend
    *   Cache backend instance to use.
-   * @param \Drupal\Core\Language\LanguageManager $language_manager
+   * @param \Drupal\Core\Language\LanguageManagerInterface $language_manager
    *   The language manager.
    * @param \Drupal\Core\Access\AccessManager $access_manager
    *   The access manager.
+   * @param \Drupal\Core\Session\AccountInterface $account
+   *   The current user.
    */
-  public function __construct(ControllerResolverInterface $controller_resolver, Request $request, RouteProviderInterface $route_provider, ModuleHandlerInterface $module_handler, CacheBackendInterface $cache_backend, LanguageManager $language_manager, AccessManager $access_manager) {
+  public function __construct(ControllerResolverInterface $controller_resolver, Request $request, RouteProviderInterface $route_provider, ModuleHandlerInterface $module_handler, CacheBackendInterface $cache_backend, LanguageManagerInterface $language_manager, AccessManager $access_manager, AccountInterface $account) {
     // Skip calling the parent constructor, since that assumes annotation-based
     // discovery.
     $this->discovery = new YamlDiscovery('local_actions', $module_handler->getModuleDirectories());
@@ -117,6 +128,7 @@ class LocalActionManager extends DefaultPluginManager {
     $this->factory = new ContainerFactory($this);
     $this->routeProvider = $route_provider;
     $this->accessManager = $access_manager;
+    $this->account = $account;
     $this->controllerResolver = $controller_resolver;
     $this->request = $request;
     $this->alterInfo($module_handler, 'menu_local_actions');
@@ -170,10 +182,10 @@ class LocalActionManager extends DefaultPluginManager {
       }
     }
     $links = array();
-    foreach ($this->instances[$route_appears] as $plugin) {
+    foreach ($this->instances[$route_appears] as $plugin_id => $plugin) {
       $route_name = $plugin->getRouteName();
       $route_parameters = $plugin->getRouteParameters($this->request);
-      $links[$route_name] = array(
+      $links[$plugin_id] = array(
         '#theme' => 'menu_local_action',
         '#link' => array(
           'title' => $this->getTitle($plugin),
@@ -181,7 +193,7 @@ class LocalActionManager extends DefaultPluginManager {
           'route_parameters' => $route_parameters,
           'localized_options' => $plugin->getOptions($this->request),
         ),
-        '#access' => $this->accessManager->checkNamedRoute($route_name, $route_parameters),
+        '#access' => $this->accessManager->checkNamedRoute($route_name, $route_parameters, $this->account),
         '#weight' => $plugin->getWeight(),
       );
     }

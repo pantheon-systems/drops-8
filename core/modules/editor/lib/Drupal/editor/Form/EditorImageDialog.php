@@ -33,8 +33,8 @@ class EditorImageDialog extends FormBase {
    *   The filter format for which this dialog corresponds.
    */
   public function buildForm(array $form, array &$form_state, FilterFormat $filter_format = NULL) {
-    // The default values are set directly from $_POST, provided by the
-    // editor plugin opening the dialog.
+    // The default values are set directly from \Drupal::request()->request,
+    // provided by the editor plugin opening the dialog.
     if (!isset($form_state['image_element'])) {
       $form_state['image_element'] = isset($form_state['input']['editor_object']) ? $form_state['input']['editor_object'] : array();
     }
@@ -82,7 +82,7 @@ class EditorImageDialog extends FormBase {
 
     // If the editor has image uploads enabled, show a managed_file form item,
     // otherwise show a (file URL) text form item.
-    if ($editor->image_upload['status'] === '1') {
+    if ($editor->image_upload['status']) {
       $form['attributes']['src']['#access'] = FALSE;
       $form['attributes']['src']['#required'] = FALSE;
     }
@@ -199,11 +199,15 @@ class EditorImageDialog extends FormBase {
     // attributes.
     if (!empty($form_state['values']['fid'][0])) {
       $file = file_load($form_state['values']['fid'][0]);
-      $form_state['values']['attributes']['src'] = file_create_url($file->getFileUri());
+      $file_url = file_create_url($file->getFileUri());
+      // Transform absolute image URLs to relative image URLs: prevent problems
+      // on multisite set-ups and prevent mixed content errors.
+      $file_url = file_url_transform_relative($file_url);
+      $form_state['values']['attributes']['src'] = $file_url;
       $form_state['values']['attributes']['data-editor-file-uuid'] = $file->uuid();
     }
 
-    if (form_get_errors()) {
+    if (form_get_errors($form_state)) {
       unset($form['#prefix'], $form['#suffix']);
       $status_messages = array('#theme' => 'status_messages');
       $output = drupal_render($form);

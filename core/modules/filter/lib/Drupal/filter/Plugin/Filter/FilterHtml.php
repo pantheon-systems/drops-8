@@ -7,8 +7,6 @@
 
 namespace Drupal\filter\Plugin\Filter;
 
-use Drupal\filter\Annotation\Filter;
-use Drupal\Core\Annotation\Translation;
 use Drupal\filter\Plugin\FilterBase;
 
 /**
@@ -16,9 +14,8 @@ use Drupal\filter\Plugin\FilterBase;
  *
  * @Filter(
  *   id = "filter_html",
- *   module = "filter",
  *   title = @Translation("Limit allowed HTML tags"),
- *   type = FILTER_TYPE_HTML_RESTRICTOR,
+ *   type = Drupal\filter\Plugin\FilterInterface::TYPE_HTML_RESTRICTOR,
  *   settings = {
  *     "allowed_html" = "<a> <em> <strong> <cite> <blockquote> <code> <ul> <ol> <li> <dl> <dt> <dd> <h4> <h5> <h6>",
  *     "filter_html_help" = 1,

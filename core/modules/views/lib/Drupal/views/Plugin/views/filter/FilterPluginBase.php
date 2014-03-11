@@ -8,9 +8,8 @@
 namespace Drupal\views\Plugin\views\filter;
 
 use Drupal\views\Plugin\views\HandlerBase;
-use Drupal\Component\Utility\String;
+use Drupal\Component\Utility\String as UtilityString;
 use Drupal\views\Plugin\views\display\DisplayPluginBase;
-use Drupal\Component\Annotation\Plugin;
 use Drupal\views\ViewExecutable;
 
 /**
@@ -164,7 +163,7 @@ abstract class FilterPluginBase extends HandlerBase {
    * Display the filter on the administrative summary
    */
   public function adminSummary() {
-    return check_plain((string) $this->operator) . ' ' . check_plain((string) $this->value);
+    return UtilityString::checkPlain((string) $this->operator) . ' ' . UtilityString::checkPlain((string) $this->value);
   }
 
   /**
@@ -352,7 +351,7 @@ abstract class FilterPluginBase extends HandlerBase {
     $this->buildExposedFiltersGroupForm($form, $form_state);
 
     // When we click the expose button, we add new gadgets to the form but they
-    // have no data in $_POST so their defaults get wiped out. This prevents
+    // have no data in POST so their defaults get wiped out. This prevents
     // these defaults from getting wiped out. This setting will only be TRUE
     // during a 2nd pass rerender.
     if (!empty($form_state['force_build_group_options'])) {
@@ -427,7 +426,7 @@ abstract class FilterPluginBase extends HandlerBase {
       $this->buildGroupOptions();
     }
 
-    $form_state['view']->getExecutable()->setItem($form_state['display_id'], $form_state['type'], $form_state['id'], $item);
+    $form_state['view']->getExecutable()->setHandler($form_state['display_id'], $form_state['type'], $form_state['id'], $item);
 
     $form_state['view']->addFormToStack($form_state['form_key'], $form_state['display_id'], $form_state['type'], $form_state['id'], TRUE, TRUE);
 
@@ -497,7 +496,7 @@ abstract class FilterPluginBase extends HandlerBase {
     // prior to rendering. That's why the preRender for it needs to run first,
     // so that when the next preRender (the one for fieldsets) runs, it gets
     // the flattened data.
-    array_unshift($form['#pre_render'], 'views_ui_pre_render_flatten_data');
+    array_unshift($form['#pre_render'], array(get_class($this), 'preRenderFlattenData'));
     $form['expose']['#flatten'] = TRUE;
 
     if (empty($this->always_required)) {
@@ -575,7 +574,7 @@ abstract class FilterPluginBase extends HandlerBase {
       '#default_value' => $this->options['expose']['remember'],
     );
 
-    $role_options = array_map('check_plain', user_role_names());
+    $role_options = array_map('\Drupal\Component\Utility\String::checkPlain', user_role_names());
     $form['expose']['remember_roles'] = array(
       '#type' => 'checkboxes',
       '#title' => t('User roles'),
@@ -603,15 +602,15 @@ abstract class FilterPluginBase extends HandlerBase {
    */
   public function validateExposeForm($form, &$form_state) {
     if (empty($form_state['values']['options']['expose']['identifier'])) {
-      form_error($form['expose']['identifier'], t('The identifier is required if the filter is exposed.'));
+      form_error($form['expose']['identifier'], $form_state, t('The identifier is required if the filter is exposed.'));
     }
 
     if (!empty($form_state['values']['options']['expose']['identifier']) && $form_state['values']['options']['expose']['identifier'] == 'value') {
-      form_error($form['expose']['identifier'], t('This identifier is not allowed.'));
+      form_error($form['expose']['identifier'], $form_state, t('This identifier is not allowed.'));
     }
 
     if (!$this->view->display_handler->isIdentifierUnique($form_state['id'], $form_state['values']['options']['expose']['identifier'])) {
-      form_error($form['expose']['identifier'], t('This identifier is used by another handler.'));
+      form_error($form['expose']['identifier'], $form_state, t('This identifier is used by another handler.'));
     }
   }
 
@@ -621,15 +620,15 @@ abstract class FilterPluginBase extends HandlerBase {
   protected function buildGroupValidate($form, &$form_state) {
     if (!empty($form_state['values']['options']['group_info'])) {
       if (empty($form_state['values']['options']['group_info']['identifier'])) {
-        form_error($form['group_info']['identifier'], t('The identifier is required if the filter is exposed.'));
+        form_error($form['group_info']['identifier'], $form_state, t('The identifier is required if the filter is exposed.'));
       }
 
       if (!empty($form_state['values']['options']['group_info']['identifier']) && $form_state['values']['options']['group_info']['identifier'] == 'value') {
-        form_error($form['group_info']['identifier'], t('This identifier is not allowed.'));
+        form_error($form['group_info']['identifier'], $form_state, t('This identifier is not allowed.'));
       }
 
       if (!$this->view->display_handler->isIdentifierUnique($form_state['id'], $form_state['values']['options']['group_info']['identifier'])) {
-        form_error($form['group_info']['identifier'], t('This identifier is used by another handler.'));
+        form_error($form['group_info']['identifier'], $form_state, t('This identifier is used by another handler.'));
       }
     }
 
@@ -643,7 +642,7 @@ abstract class FilterPluginBase extends HandlerBase {
           if (!empty($group['title']) && $operators[$group['operator']]['values'] > 0) {
             if ((!is_array($group['value']) && trim($group['value']) == "") ||
                 (is_array($group['value']) && count(array_filter($group['value'], 'static::arrayFilterZero')) == 0)) {
-              form_error($form['group_info']['group_items'][$id]['value'],
+              form_error($form['group_info']['group_items'][$id]['value'], $form_state,
                          t('The value is required if title for this item is defined.'));
             }
           }
@@ -652,7 +651,7 @@ abstract class FilterPluginBase extends HandlerBase {
           if ((!is_array($group['value']) && trim($group['value']) != "") ||
               (is_array($group['value']) && count(array_filter($group['value'], 'static::arrayFilterZero')) > 0)) {
             if (empty($group['title'])) {
-              form_error($form['group_info']['group_items'][$id]['title'],
+              form_error($form['group_info']['group_items'][$id]['title'], $form_state,
                          t('The title is required if value for this item is defined.'));
             }
           }
@@ -666,7 +665,7 @@ abstract class FilterPluginBase extends HandlerBase {
    */
   protected function buildGroupSubmit($form, &$form_state) {
     $groups = array();
-    uasort($form_state['values']['options']['group_info']['group_items'], 'drupal_sort_weight');
+    uasort($form_state['values']['options']['group_info']['group_items'], array('Drupal\Component\Utility\SortArray', 'sortByWeightElement'));
     // Filter out removed items.
 
     // Start from 1 to avoid problems with #default_value in the widget.
@@ -746,7 +745,7 @@ abstract class FilterPluginBase extends HandlerBase {
       $value = $this->options['group_info']['identifier'];
 
       $form[$value] = array(
-        '#title' => String::checkPlain($this->options['group_info']['label']),
+        '#title' => UtilityString::checkPlain($this->options['group_info']['label']),
         '#type' => $this->options['group_info']['widget'],
         '#default_value' => $this->group_info,
         '#options' => $groups,
@@ -832,7 +831,7 @@ abstract class FilterPluginBase extends HandlerBase {
     // prior to rendering. That's why the preRender for it needs to run first,
     // so that when the next preRender (the one for fieldsets) runs, it gets
     // the flattened data.
-    array_unshift($form['#pre_render'], 'views_ui_pre_render_flatten_data');
+    array_unshift($form['#pre_render'], array(get_class($this), 'preRenderFlattenData'));
     $form['group_info']['#flatten'] = TRUE;
 
     if (!empty($this->options['group_info']['identifier'])) {
@@ -1090,7 +1089,7 @@ abstract class FilterPluginBase extends HandlerBase {
     // Add a new row.
     $item['group_info']['group_items'][] = array();
 
-    $form_state['view']->getExecutable()->setItem($form_state['display_id'], $form_state['type'], $form_state['id'], $item);
+    $form_state['view']->getExecutable()->setHandler($form_state['display_id'], $form_state['type'], $form_state['id'], $item);
 
     $form_state['view']->cacheSet();
     $form_state['rerender'] = TRUE;
@@ -1202,12 +1201,12 @@ abstract class FilterPluginBase extends HandlerBase {
    * Transform the input from a grouped filter into a standard filter.
    *
    * When a filter is a group, find the set of operator and values
-   * that the choosed item represents, and inform views that a normal
+   * that the chosen item represents, and inform views that a normal
    * filter was submitted by telling the operator and the value selected.
    *
    * The param $selected_group_id is only passed when the filter uses the
    * checkboxes widget, and this function will be called for each item
-   * choosed in the checkboxes.
+   * chosen in the checkboxes.
    */
   public function convertExposedInput(&$input, $selected_group_id = NULL) {
     if ($this->isAGroup()) {

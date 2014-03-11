@@ -9,16 +9,17 @@ namespace Drupal\field\Entity;
 
 use Drupal\Core\Config\Entity\ConfigEntityBase;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\EntityStorageControllerInterface;
 use Drupal\field\FieldException;
+use Drupal\Core\TypedData\DataDefinition;
 use Drupal\field\FieldInstanceInterface;
 
 /**
  * Defines the Field instance entity.
  *
- * @EntityType(
+ * @ConfigEntityType(
  *   id = "field_instance",
  *   label = @Translation("Field instance"),
- *   module = "field",
  *   controllers = {
  *     "storage" = "Drupal\field\FieldInstanceStorageController"
  *   },
@@ -51,6 +52,13 @@ class FieldInstance extends ConfigEntityBase implements FieldInstanceInterface {
    * @var string
    */
   public $uuid;
+
+  /**
+   * The name of the field attached to the bundle by this instance.
+   *
+   * @var string
+   */
+  public $field_name;
 
   /**
    * The UUID of the field attached to the bundle by this instance.
@@ -207,6 +215,13 @@ class FieldInstance extends ConfigEntityBase implements FieldInstanceInterface {
   public $original = NULL;
 
   /**
+   * The data definition of a field item.
+   *
+   * @var \Drupal\Core\TypedData\DataDefinition
+   */
+  protected $itemDefinition;
+
+  /**
    * Constructs a FieldInstance object.
    *
    * @param array $values
@@ -215,15 +230,15 @@ class FieldInstance extends ConfigEntityBase implements FieldInstanceInterface {
    *   class; see the class property documentation for details. Some array
    *   elements have special meanings and a few are required; these special
    *   elements are:
-   *   - field_name: optional. The name of the field this is an instance of.
-   *   - field_uuid: optional. Either field_uuid or field_name is required
-   *     to build field instance. field_name will gain higher priority.
-   *     If field_name is not provided, field_uuid will be checked then.
+   *   - field_name: The name of the field this is an instance of. This only
+   *     supports non-deleted fields.
+   *   - field_uuid: (optional) The uuid of the field this is an instance of.
+   *     If present, this has priority over the 'field_name' value.
    *   - entity_type: required.
    *   - bundle: required.
    *
    * In most cases, Field instance entities are created via
-   * entity_create('field_instance', $values)), where $values is the same
+   * entity_create('field_instance', $values), where $values is the same
    * parameter as in this constructor.
    *
    * @see entity_create()
@@ -231,32 +246,30 @@ class FieldInstance extends ConfigEntityBase implements FieldInstanceInterface {
    * @ingroup field_crud
    */
   public function __construct(array $values, $entity_type = 'field_instance') {
-    // Accept incoming 'field_name' instead of 'field_uuid', for easier DX on
-    // creation of new instances.
-    if (isset($values['field_name']) && isset($values['entity_type']) && !isset($values['field_uuid'])) {
+    // Field instances configuration is stored with a 'field_uuid' property
+    // unambiguously identifying the field.
+    if (isset($values['field_uuid'])) {
+      $field = field_info_field_by_id($values['field_uuid']);
+      if (!$field) {
+        throw new FieldException(format_string('Attempt to create an instance of unknown field @uuid', array('@uuid' => $values['field_uuid'])));
+      }
+      $values['field_name'] = $field->getName();
+    }
+    // Alternatively, accept incoming 'field_name' instead of 'field_uuid', for
+    // easier DX on creation of new instances (either through programmatic
+    // creation / or through import of default config files).
+    elseif (isset($values['field_name']) && isset($values['entity_type'])) {
       $field = field_info_field($values['entity_type'], $values['field_name']);
       if (!$field) {
         throw new FieldException(format_string('Attempt to create an instance of field @field_name that does not exist on entity type @entity_type.', array('@field_name' => $values['field_name'], '@entity_type' => $values['entity_type'])));
       }
-      $values['field_uuid'] = $field->uuid;
-    }
-    elseif (isset($values['field_uuid'])) {
-      $field = field_info_field_by_id($values['field_uuid']);
-      // field_info_field_by_id() will not find the field if it is inactive.
-      if (!$field) {
-        $field = current(field_read_fields(array('uuid' => $values['field_uuid']), array('include_inactive' => TRUE, 'include_deleted' => TRUE)));
-      }
-      if (!$field) {
-        throw new FieldException(format_string('Attempt to create an instance of unknown field @uuid', array('@uuid' => $values['field_uuid'])));
-      }
+      $values['field_uuid'] = $field->uuid();
     }
     else {
       throw new FieldException('Attempt to create an instance of an unspecified field.');
     }
 
-    // At this point, we should have a 'field_uuid' and a Field. Ditch the
-    // 'field_name' property if it was provided, and assign the $field property.
-    unset($values['field_name']);
+    // At this point, we have a Field we can assign.
     $this->field = $field;
 
     // Discard the 'field_type' entry that is added in config records to ease
@@ -296,6 +309,7 @@ class FieldInstance extends ConfigEntityBase implements FieldInstanceInterface {
       'status',
       'langcode',
       'field_uuid',
+      'field_name',
       'entity_type',
       'bundle',
       'label',
@@ -320,163 +334,117 @@ class FieldInstance extends ConfigEntityBase implements FieldInstanceInterface {
   }
 
   /**
-   * Overrides \Drupal\Core\Entity\Entity::save().
-   *
-   * @return
-   *   Either SAVED_NEW or SAVED_UPDATED, depending on the operation performed.
+   * Overrides \Drupal\Core\Entity\Entity::preSave().
    *
    * @throws \Drupal\field\FieldException
    *   If the field instance definition is invalid.
-   *
    * @throws \Drupal\Core\Entity\EntityStorageException
    *   In case of failures at the configuration storage level.
    */
-  public function save() {
+  public function preSave(EntityStorageControllerInterface $storage_controller) {
+    $entity_manager = \Drupal::entityManager();
+    $field_type_manager = \Drupal::service('plugin.manager.field.field_type');
+
     if ($this->isNew()) {
-      return $this->saveNew();
+      // Set the default instance settings.
+      $this->settings += $field_type_manager->getDefaultInstanceSettings($this->field->type);
+      // Notify the entity storage controller.
+      $entity_manager->getStorageController($this->entity_type)->onInstanceCreate($this);
     }
     else {
-      return $this->saveUpdated();
+      // Some updates are always disallowed.
+      if ($this->entity_type != $this->original->entity_type) {
+        throw new FieldException("Cannot change an existing instance's entity_type.");
+      }
+      if ($this->bundle != $this->original->bundle && empty($this->bundle_rename_allowed)) {
+        throw new FieldException("Cannot change an existing instance's bundle.");
+      }
+      if ($this->field_uuid != $this->original->field_uuid) {
+        throw new FieldException("Cannot change an existing instance's field.");
+      }
+      // Set the default instance settings.
+      $this->settings += $field_type_manager->getDefaultInstanceSettings($this->field->type);
+      // Notify the entity storage controller.
+      $entity_manager->getStorageController($this->entity_type)->onInstanceUpdate($this);
     }
   }
 
   /**
-   * Saves a new field instance definition.
-   *
-   * @return
-   *   SAVED_NEW if the definition was saved.
-   *
-   * @throws \Drupal\field\FieldException
-   *   If the field instance definition is invalid.
-   *
-   * @throws \Drupal\Core\Entity\EntityStorageException
-   *   In case of failures at the configuration storage level.
+   * {@inheritdoc}
    */
-  protected function saveNew() {
-    $instance_controller = \Drupal::entityManager()->getStorageController($this->entityType);
-
-    // Ensure the field instance is unique within the bundle.
-    if ($prior_instance = $instance_controller->load($this->id())) {
-      throw new FieldException(format_string('Attempt to create an instance of field %name on bundle @bundle that already has an instance of that field.', array('%name' => $this->field->name, '@bundle' => $this->bundle)));
-    }
-
-    // Set the field UUID.
-    $this->field_uuid = $this->field->uuid;
-
-    // Ensure default values are present.
-    $this->prepareSave();
-
-    // Save the configuration.
-    $result = parent::save();
+  public function postSave(EntityStorageControllerInterface $storage_controller, $update = TRUE) {
+    // Clear the cache.
     field_cache_clear();
-
-    return $result;
   }
 
   /**
-   * Saves an updated field instance definition.
-   *
-   * @return
-   *   SAVED_UPDATED if the definition was saved.
-   *
-   * @throws \Drupal\field\FieldException
-   *   If the field instance definition is invalid.
-   *
-   * @throws \Drupal\Core\Entity\EntityStorageException
-   *   In case of failures at the configuration storage level.
+   * {@inheritdoc}
    */
-  protected function saveUpdated() {
-    $instance_controller = \Drupal::entityManager()->getStorageController($this->entityType);
+  public static function preDelete(EntityStorageControllerInterface $storage_controller, array $instances) {
+    $state = \Drupal::state();
 
-    $original = $instance_controller->loadUnchanged($this->getOriginalID());
-    $this->original = $original;
+    // Keep the instance definitions in the state storage so we can use them
+    // later during field_purge_batch().
+    $deleted_instances = $state->get('field.instance.deleted') ?: array();
+    foreach ($instances as $instance) {
+      if (!$instance->deleted) {
+        $config = $instance->getExportProperties();
+        $config['deleted'] = TRUE;
+        $deleted_instances[$instance->uuid] = $config;
+      }
+    }
+    $state->set('field.instance.deleted', $deleted_instances);
+  }
 
-    // Some updates are always disallowed.
-    if ($this->entity_type != $original->entity_type) {
-      throw new FieldException("Cannot change an existing instance's entity_type.");
-    }
-    if ($this->bundle != $original->bundle && empty($this->bundle_rename_allowed)) {
-      throw new FieldException("Cannot change an existing instance's bundle.");
-    }
-    if ($this->field_uuid != $original->field_uuid) {
-      throw new FieldException("Cannot change an existing instance's field.");
-    }
+  /**
+   * {@inheritdoc}
+   */
+  public static function postDelete(EntityStorageControllerInterface $storage_controller, array $instances) {
+    $field_controller = \Drupal::entityManager()->getStorageController('field_entity');
 
-    // Ensure default values are present.
-    $this->prepareSave();
+    // Clear the cache upfront, to refresh the results of getBundles().
+    field_cache_clear();
 
     // Notify the entity storage controller.
-    \Drupal::entityManager()->getStorageController($this->entity_type)->onInstanceUpdate($this);
-
-    // Save the configuration.
-    $result = parent::save();
-    field_cache_clear();
-
-    return $result;
-  }
-
-  /**
-   * Prepares the instance definition for saving.
-   */
-  protected function prepareSave() {
-    $field_type_info = \Drupal::service('plugin.manager.entity.field.field_type')->getDefinition($this->field->type);
-
-    // Set the default instance settings.
-    $this->settings += $field_type_info['instance_settings'];
-  }
-
-  /**
-   * Overrides \Drupal\Core\Entity\Entity::delete().
-   *
-   * @param bool $field_cleanup
-   *   (optional) If TRUE, the field will be deleted as well if its last
-   *   instance is being deleted. If FALSE, it is the caller's responsibility to
-   *   handle the case of fields left without instances. Defaults to TRUE.
-   */
-  public function delete($field_cleanup = TRUE) {
-    if (!$this->deleted) {
-      $state = \Drupal::state();
-
-      // Delete the configuration of this instance and save the configuration
-      // in the key_value table so we can use it later during
-      // field_purge_batch().
-      $deleted_instances = $state->get('field.instance.deleted') ?: array();
-      $config = $this->getExportProperties();
-      $config['deleted'] = TRUE;
-      $deleted_instances[$this->uuid] = $config;
-      $state->set('field.instance.deleted', $deleted_instances);
-
-      parent::delete();
-
-      // Notify the entity storage controller.
-      \Drupal::entityManager()->getStorageController($this->entity_type)->onInstanceDelete($this);
-
-      // Clear the cache.
-      field_cache_clear();
-
-      // Remove the instance from the entity form displays.
-      $ids = array();
-      $form_modes = array('default' => array()) + entity_get_form_modes($this->entity_type);
-      foreach (array_keys($form_modes) as $form_mode) {
-        $ids[] = $this->entity_type . '.' . $this->bundle . '.' . $form_mode;
+    foreach ($instances as $instance) {
+      if (!$instance->deleted) {
+        \Drupal::entityManager()->getStorageController($instance->entity_type)->onInstanceDelete($instance);
       }
-      foreach (entity_load_multiple('entity_form_display', $ids) as $form_display) {
-        $form_display->removeComponent($this->field->name)->save();
-      }
+    }
 
-      // Remove the instance from the entity displays.
-      $ids = array();
-      $view_modes = array('default' => array()) + entity_get_view_modes($this->entity_type);
-      foreach (array_keys($view_modes) as $view_mode) {
-        $ids[] = $this->entity_type . '.' . $this->bundle . '.' . $view_mode;
+    // Delete fields that have no more instances.
+    $fields_to_delete = array();
+    foreach ($instances as $instance) {
+      $field = $instance->getField();
+      if (!$instance->deleted && empty($instance->noFieldDelete) && count($field->getBundles()) == 0) {
+        // Key by field UUID to avoid deleting the same field twice.
+        $fields_to_delete[$instance->field_uuid] = $field;
       }
-      foreach (entity_load_multiple('entity_display', $ids) as $display) {
-        $display->removeComponent($this->field->name)->save();
-      }
+    }
+    if ($fields_to_delete) {
+      $field_controller->delete($fields_to_delete);
+    }
 
-      // Delete the field itself if we just deleted its last instance.
-      if ($field_cleanup && count($this->field->getBundles()) == 0) {
-        $this->field->delete();
+    // Cleanup entity displays.
+    $displays_to_update = array();
+    foreach ($instances as $instance) {
+      if (!$instance->deleted) {
+        $view_modes = array('default' => array()) + entity_get_view_modes($instance->entity_type);
+        foreach (array_keys($view_modes) as $mode) {
+          $displays_to_update['entity_view_display'][$instance->entity_type . '.' . $instance->bundle . '.' . $mode][] = $instance->field->name;
+        }
+        $form_modes = array('default' => array()) + entity_get_form_modes($instance->entity_type);
+        foreach (array_keys($form_modes) as $mode) {
+          $displays_to_update['entity_form_display'][$instance->entity_type . '.' . $instance->bundle . '.' . $mode][] = $instance->field->name;
+        }
+      }
+    }
+    foreach ($displays_to_update as $type => $ids) {
+      foreach (entity_load_multiple($type, array_keys($ids)) as $id => $display) {
+        foreach ($ids[$id] as $field_name) {
+          $display->removeComponent($field_name);
+        }
+        $display->save();
       }
     }
   }
@@ -491,40 +459,40 @@ class FieldInstance extends ConfigEntityBase implements FieldInstanceInterface {
   /**
    * {@inheritdoc}
    */
-  public function getFieldName() {
+  public function getName() {
     return $this->field->name;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function getFieldType() {
+  public function getType() {
     return $this->field->type;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function getFieldSettings() {
-    return $this->settings + $this->field->getFieldSettings();
+  public function getSettings() {
+    return $this->settings + $this->field->getSettings();
   }
 
   /**
    * {@inheritdoc}
    */
-  public function getFieldSetting($setting_name) {
+  public function getSetting($setting_name) {
     if (array_key_exists($setting_name, $this->settings)) {
       return $this->settings[$setting_name];
     }
     else {
-      return $this->field->getFieldSetting($setting_name);
+      return $this->field->getSetting($setting_name);
     }
   }
 
   /**
    * {@inheritdoc}
    */
-  public function getFieldPropertyNames() {
+  public function getPropertyNames() {
     $schema = $this->field->getSchema();
     return array_keys($schema['columns']);
   }
@@ -532,62 +500,73 @@ class FieldInstance extends ConfigEntityBase implements FieldInstanceInterface {
   /**
    * {@inheritdoc}
    */
-  public function isFieldTranslatable() {
+  public function isTranslatable() {
     return $this->field->translatable;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function uri() {
-    $path = \Drupal::entityManager()->getAdminPath($this->entity_type, $this->bundle);
-
-    // Use parent URI as fallback, if path is empty.
-    if (empty($path)) {
-      return parent::uri();
+  protected function linkTemplates() {
+    $link_templates = parent::linkTemplates();
+    if (\Drupal::moduleHandler()->moduleExists('field_ui')) {
+      $link_templates['edit-form'] = 'field_ui.instance_edit_' . $this->entity_type;
+      if (isset($link_templates['drupal:config-translation-overview'])) {
+        $link_templates['drupal:config-translation-overview'] .= $link_templates['edit-form'];
+      }
     }
-
-    return array(
-      'path' => $path . '/fields/' . $this->id(),
-      'options' => array(
-        'entity_type' => $this->entityType,
-        'entity' => $this,
-      ),
-    );
+    return $link_templates;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function getFieldLabel() {
+  protected function urlRouteParameters($rel) {
+    $parameters = parent::urlRouteParameters($rel);
+    $entity_type = \Drupal::entityManager()->getDefinition($this->entity_type);
+    $parameters[$entity_type->getBundleEntityType()] = $this->bundle;
+    return $parameters;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getLabel() {
     return $this->label();
   }
 
   /**
    * {@inheritdoc}
    */
-  public function getFieldDescription() {
+  public function getDescription() {
     return $this->description;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function getFieldCardinality() {
+  public function getCardinality() {
     return $this->field->cardinality;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function isFieldRequired() {
+  public function isRequired() {
     return $this->required;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function getFieldDefaultValue(EntityInterface $entity) {
+  public function isMultiple() {
+    return $this->field->isMultiple();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getDefaultValue(EntityInterface $entity) {
     if (!empty($this->default_value_function)) {
       $function = $this->default_value_function;
       return $function($entity, $this->getField(), $this, $entity->language()->id);
@@ -600,6 +579,42 @@ class FieldInstance extends ConfigEntityBase implements FieldInstanceInterface {
   /**
    * {@inheritdoc}
    */
+  public function isConfigurable() {
+    return TRUE;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function isDisplayConfigurable($context) {
+    return TRUE;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getDisplayOptions($display_context) {
+    // Hide configurable fields by default.
+    return array('type' => 'hidden');
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getTargetEntityTypeId() {
+    return $this->entity_type;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function isQueryable() {
+    return TRUE;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function allowBundleRename() {
     $this->bundle_rename_allowed = TRUE;
   }
@@ -607,8 +622,8 @@ class FieldInstance extends ConfigEntityBase implements FieldInstanceInterface {
   /**
    * {@inheritdoc}
    */
-  public function isFieldConfigurable() {
-    return TRUE;
+  public function targetBundle() {
+    return $this->bundle;
   }
 
   /*
@@ -630,6 +645,77 @@ class FieldInstance extends ConfigEntityBase implements FieldInstanceInterface {
     // Run the values from getExportProperties() through __construct().
     $values = array_intersect_key($this->getExportProperties(), get_object_vars($this));
     $this->__construct($values);
+  }
+
+  public function getDataType() {
+    return 'list';
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function isList() {
+    return TRUE;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function isReadOnly() {
+    return FALSE;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function isComputed() {
+    return FALSE;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getClass() {
+    return $this->field->getClass();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getConstraints() {
+    return array();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getConstraint($constraint_name) {
+    return NULL;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getItemDefinition() {
+    if (!isset($this->itemDefinition)) {
+      $this->itemDefinition = DataDefinition::create('field_item:' . $this->field->type)
+        ->setSettings($this->getSettings());
+    }
+    return $this->itemDefinition;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getSchema() {
+    return $this->field->getSchema();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getColumns() {
+    return $this->field->getColumns();
   }
 
 }

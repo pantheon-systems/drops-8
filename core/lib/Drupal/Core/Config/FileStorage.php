@@ -7,7 +7,9 @@
 
 namespace Drupal\Core\Config;
 
+use Drupal\Component\Utility\String;
 use Symfony\Component\Yaml\Dumper;
+use Symfony\Component\Yaml\Exception\DumpException;
 use Symfony\Component\Yaml\Parser;
 
 /**
@@ -105,14 +107,24 @@ class FileStorage implements StorageInterface {
   /**
    * Implements Drupal\Core\Config\StorageInterface::write().
    *
-   * @throws Symfony\Component\Yaml\Exception\DumpException
+   * @throws \Drupal\Core\Config\UnsupportedDataTypeConfigException
    * @throws \Drupal\Core\Config\StorageException
    */
   public function write($name, array $data) {
-    $data = $this->encode($data);
-    $status = @file_put_contents($this->getFilePath($name), $data);
+    try {
+      $data = $this->encode($data);
+    }
+    catch(DumpException $e) {
+      throw new UnsupportedDataTypeConfigException(String::format('Invalid data type for used in config: @name', array('@name' => $name)));
+    }
+
+    $target = $this->getFilePath($name);
+    $status = @file_put_contents($target, $data);
     if ($status === FALSE) {
       throw new StorageException('Failed to write configuration file: ' . $this->getFilePath($name));
+    }
+    else {
+      drupal_chmod($target);
     }
     return TRUE;
   }
@@ -204,11 +216,15 @@ class FileStorage implements StorageInterface {
       throw new StorageException($this->directory . '/ not found.');
     }
     $extension = '.' . static::getFileExtension();
-    $files = glob($this->directory . '/' . $prefix . '*' . $extension);
-    $clean_name = function ($value) use ($extension) {
-      return basename($value, $extension);
-    };
-    return array_map($clean_name, $files);
+    // \GlobIterator on Windows requires an absolute path.
+    $files = new \GlobIterator(realpath($this->directory) . '/' . $prefix . '*' . $extension);
+
+    $names = array();
+    foreach ($files as $file) {
+      $names[] = $file->getBasename($extension);
+    }
+
+    return $names;
   }
 
   /**

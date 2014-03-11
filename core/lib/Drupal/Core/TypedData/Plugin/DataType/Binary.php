@@ -9,8 +9,6 @@ namespace Drupal\Core\TypedData\Plugin\DataType;
 
 use Drupal\Core\TypedData\PrimitiveBase;
 use Drupal\Core\TypedData\Type\BinaryInterface;
-use Drupal\Core\TypedData\Annotation\DataType;
-use Drupal\Core\Annotation\Translation;
 use Drupal\Core\TypedData\TypedData;
 
 /**
@@ -88,5 +86,12 @@ class Binary extends PrimitiveBase implements BinaryInterface {
       $contents .= fread($this->handle, 8192);
     }
     return $contents;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getCastedValue() {
+    return $this->getValue();
   }
 }

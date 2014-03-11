@@ -7,7 +7,6 @@
 
 namespace Drupal\Core\Routing;
 
-use Symfony\Component\Routing\Matcher\Dumper\MatcherDumperInterface;
 use Symfony\Component\Routing\RouteCollection;
 
 use Drupal\Core\Database\Connection;
@@ -16,11 +15,6 @@ use Drupal\Core\Database\Connection;
  * Dumps Route information to a database table.
  */
 class MatcherDumper implements MatcherDumperInterface {
-
-  /**
-   * The maximum number of path elements for a route pattern;
-   */
-  const MAX_PARTS = 9;
 
   /**
    * The database connection to which to dump route information.
@@ -59,10 +53,7 @@ class MatcherDumper implements MatcherDumperInterface {
   }
 
   /**
-   * Adds additional routes to be dumped.
-   *
-   * @param Symfony\Component\Routing\RouteCollection $routes
-   *   A collection of routes to add to this dumper.
+   * {@inheritdoc}
    */
   public function addRoutes(RouteCollection $routes) {
     if (empty($this->routes)) {
@@ -77,8 +68,8 @@ class MatcherDumper implements MatcherDumperInterface {
    * Dumps a set of routes to the router table in the database.
    *
    * Available options:
-   * - route_set:  The route grouping that is being dumped. All existing
-   *   routes with this route set will be deleted on dump.
+   * - provider: The route grouping that is being dumped. All existing
+   *   routes with this provider will be deleted on dump.
    * - base_class: The base class name.
    *
    * @param array $options
@@ -86,51 +77,68 @@ class MatcherDumper implements MatcherDumperInterface {
    */
   public function dump(array $options = array()) {
     $options += array(
-      'route_set' => '',
+      'provider' => '',
     );
-
-    // Convert all of the routes into database records.
-    $insert = $this->connection->insert($this->tableName)->fields(array(
-      'name',
-      'route_set',
-      'fit',
-      'path',
-      'pattern_outline',
-      'number_parts',
-      'route',
-    ));
-
-    foreach ($this->routes as $name => $route) {
-      $route->setOption('compiler_class', '\Drupal\Core\Routing\RouteCompiler');
-      $compiled = $route->compile();
-      $values = array(
-        'name' => $name,
-        'route_set' => $options['route_set'],
-        'fit' => $compiled->getFit(),
-        'path' => $compiled->getPath(),
-        'pattern_outline' => $compiled->getPatternOutline(),
-        'number_parts' => $compiled->getNumParts(),
-        'route' => serialize($route),
-      );
-      $insert->values($values);
+    // If there are no new routes, just delete any previously existing of this
+    // provider.
+    if (empty($this->routes) || !count($this->routes)) {
+      $this->connection->delete($this->tableName)
+        ->condition('provider', $options['provider'])
+        ->execute();
     }
+    // Convert all of the routes into database records.
+    else {
+      $insert = $this->connection->insert($this->tableName)->fields(array(
+        'name',
+        'provider',
+        'fit',
+        'path',
+        'pattern_outline',
+        'number_parts',
+        'route',
+      ));
+      $names = array();
+      foreach ($this->routes as $name => $route) {
+        $route->setOption('compiler_class', '\Drupal\Core\Routing\RouteCompiler');
+        $compiled = $route->compile();
+        $names[] = $name;
+        $values = array(
+          'name' => $name,
+          'provider' => $options['provider'],
+          'fit' => $compiled->getFit(),
+          'path' => $compiled->getPath(),
+          'pattern_outline' => $compiled->getPatternOutline(),
+          'number_parts' => $compiled->getNumParts(),
+          'route' => serialize($route),
+        );
+        $insert->values($values);
+      }
 
-    // Delete any old records in this route set first, then insert the new ones.
-    // That avoids stale data. The transaction makes it atomic to avoid
-    // unstable router states due to random failures.
-    $txn = $this->connection->startTransaction();
+      // Delete any old records of this provider first, then insert the new ones.
+      // That avoids stale data. The transaction makes it atomic to avoid
+      // unstable router states due to random failures.
+      $transaction = $this->connection->startTransaction();
+      try {
+        // Previously existing routes might have been moved to a new provider,
+        // so ensure that none of the names to insert exists. Also delete any
+        // old records of this provider (which may no longer exist).
+        $delete = $this->connection->delete($this->tableName);
+        $or = $delete->orConditionGroup()
+          ->condition('provider', $options['provider'])
+          ->condition('name', $names);
+        $delete->condition($or);
+        $delete->execute();
 
-    $this->connection->delete($this->tableName)
-      ->condition('route_set', $options['route_set'])
-      ->execute();
-
-    $insert->execute();
-
-    // We want to reuse the dumper for multiple route sets, so on dump, flush
-    // the queued routes.
+        // Insert all new routes.
+        $insert->execute();
+      } catch (\Exception $e) {
+        $transaction->rollback();
+        watchdog_exception('Routing', $e);
+        throw $e;
+      }
+    }
+    // The dumper is reused for multiple providers, so reset the queued routes.
     $this->routes = NULL;
-
-    // Transaction ends here.
   }
 
   /**

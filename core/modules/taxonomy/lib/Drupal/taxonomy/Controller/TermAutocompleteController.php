@@ -110,7 +110,7 @@ class TermAutocompleteController implements ContainerInjectionInterface {
     $tags_typed = $request->query->get('q');
 
     // Make sure the field exists and is a taxonomy field.
-    if (!($field = $this->fieldInfo->getField($entity_type, $field_name)) || $field->getFieldType() !== 'taxonomy_term_reference') {
+    if (!($field = $this->fieldInfo->getField($entity_type, $field_name)) || $field->getType() !== 'taxonomy_term_reference') {
       // Error string. The JavaScript handler will realize this is not JSON and
       // will display it as debugging information.
       return new Response(t('Taxonomy field @field_name not found.', array('@field_name' => $field_name)), 403);
@@ -126,7 +126,7 @@ class TermAutocompleteController implements ContainerInjectionInterface {
 
       // Part of the criteria for the query come from the field's own settings.
       $vids = array();
-      foreach ($field->getFieldSetting('allowed_values') as $tree) {
+      foreach ($field->getSetting('allowed_values') as $tree) {
         $vids[] = $tree['vocabulary'];
       }
 
@@ -195,12 +195,9 @@ class TermAutocompleteController implements ContainerInjectionInterface {
     if (!empty($tids)) {
       $terms = $this->termStorage->loadMultiple(array_keys($tids));
       foreach ($terms as $term) {
-        $name = $term->label();
         // Term names containing commas or quotes must be wrapped in quotes.
-        if (strpos($name, ',') !== FALSE || strpos($name, '"') !== FALSE) {
-          $name = '"' . str_replace('"', '""', $name) . '"';
-        }
-        $matches[$prefix . $name] = String::checkPlain($term->label());
+        $name = Tags::encode($term->label());
+        $matches[] = array('value' => $prefix . $name, 'label' => String::checkPlain($term->label()));
       }
       return $matches;
     }

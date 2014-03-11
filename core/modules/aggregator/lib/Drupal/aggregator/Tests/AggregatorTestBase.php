@@ -154,8 +154,8 @@ abstract class AggregatorTestBase extends WebTestBase {
    */
   function updateFeedItems(Feed $feed, $expected_count = NULL) {
     // First, let's ensure we can get to the rss xml.
-    $this->drupalGet($feed->url->value);
-    $this->assertResponse(200, format_string('!url is reachable.', array('!url' => $feed->url->value)));
+    $this->drupalGet($feed->getUrl());
+    $this->assertResponse(200, format_string('!url is reachable.', array('!url' => $feed->getUrl())));
 
     // Attempt to access the update link directly without an access token.
     $this->drupalGet('admin/config/services/aggregator/update/' . $feed->id());
@@ -167,7 +167,6 @@ abstract class AggregatorTestBase extends WebTestBase {
 
     // Ensure we have the right number of items.
     $result = db_query('SELECT iid FROM {aggregator_item} WHERE fid = :fid', array(':fid' => $feed->id()));
-    $items = array();
     $feed->items = array();
     foreach ($result as $item) {
       $feed->items[] = $item->iid;
@@ -205,37 +204,6 @@ abstract class AggregatorTestBase extends WebTestBase {
     $this->removeFeedItems($feed);
     $count = db_query('SELECT COUNT(*) FROM {aggregator_item} WHERE fid = :fid', array(':fid' => $feed->id()))->fetchField();
     $this->assertTrue($count == 0);
-  }
-
-  /**
-   * Pulls feed categories from {aggregator_category_feed} table.
-   *
-   * @param \Drupal\aggregator\Entity\Feed $feed
-   *   Feed object representing the feed.
-   */
-  function getFeedCategories(Feed $feed) {
-    // add the categories to the feed so we can use them
-    $result = db_query('SELECT cid FROM {aggregator_category_feed} WHERE fid = :fid', array(':fid' => $feed->id()));
-
-    foreach ($result as $category) {
-      $feed->categories[] = $category->cid;
-    }
-  }
-
-  /**
-   * Pulls categories from {aggregator_category} table.
-   *
-   * @return array
-   *   An associative array keyed by category ID and values are set to the
-   *   category names.
-   */
-  function getCategories() {
-    $categories = array();
-    $result = db_query('SELECT * FROM {aggregator_category}');
-    foreach ($result as $category) {
-      $categories[$category->cid] = $category;
-    }
-    return $categories;
   }
 
   /**
@@ -359,7 +327,7 @@ EOF;
     // Post $count article nodes.
     for ($i = 0; $i < $count; $i++) {
       $edit = array();
-      $edit['title'] = $this->randomName();
+      $edit['title[0][value]'] = $this->randomName();
       $edit['body[0][value]'] = $this->randomName();
       $this->drupalPostForm('node/add/article', $edit, t('Save'));
     }

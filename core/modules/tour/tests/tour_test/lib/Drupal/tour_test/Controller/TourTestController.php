@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @file
  * Contains \Drupal\tour_test\Controller\TourTestController.
@@ -6,25 +7,22 @@
 
 namespace Drupal\tour_test\Controller;
 
-use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
-use Symfony\Component\DependencyInjection\ContainerInterface;
-
 /**
  * Controller routines for tour_test routes.
  */
-class TourTestController implements ContainerInjectionInterface {
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function create(ContainerInterface $container) {
-    return new static();
-  }
+class TourTestController {
 
   /**
    * Outputs some content for testing tours.
+   *
+   * @param string $locale
+   *  (optional) Dummy locale variable for testing routing parameters. Defaults
+   *   to 'foo'.
+   *
+   * @return array
+   *   Array of markup.
    */
-  public function tourTest1() {
+  public function tourTest1($locale = 'foo') {
     return array(
       'tip-1' => array(
         '#type' => 'container',

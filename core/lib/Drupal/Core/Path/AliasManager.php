@@ -21,13 +21,6 @@ class AliasManager implements AliasManagerInterface {
   protected $connection;
 
   /**
-   * The Key/Value Store to use for state
-   *
-   * @var \Drupal\Core\KeyValueStore\KeyValueStoreInterface
-   */
-  protected $state;
-
-  /**
    * Language manager for retrieving the default langcode when none is specified.
    *
    * @var \Drupal\Core\Language\LanguageManager
@@ -51,7 +44,7 @@ class AliasManager implements AliasManagerInterface {
   /**
    * Holds the array of whitelisted path aliases.
    *
-   * @var \Drupal\Core\Utility\PathAliasWhitelist;
+   * @var \Drupal\Core\Path\AliasWhitelistInterface
    */
   protected $whitelist;
 
@@ -84,12 +77,12 @@ class AliasManager implements AliasManagerInterface {
    *
    * @param \Drupal\Core\Database\Connection $connection
    *   The database connection to use.
-   * @param \Drupal\Core\Path\AliasWhitelist $whitelist
+   * @param \Drupal\Core\Path\AliasWhitelistInterface $whitelist
    *   The whitelist implementation to use.
    * @param \Drupal\Core\Language\LanguageManager $language_manager
    *   The language manager.
    */
-  public function __construct(Connection $connection, AliasWhitelist $whitelist, LanguageManager $language_manager) {
+  public function __construct(Connection $connection, AliasWhitelistInterface $whitelist, LanguageManager $language_manager) {
     $this->connection = $connection;
     $this->languageManager = $language_manager;
     $this->whitelist = $whitelist;
@@ -103,7 +96,7 @@ class AliasManager implements AliasManagerInterface {
     // language. If we used a language different from the one conveyed by the
     // requested URL, we might end up being unable to check if there is a path
     // alias matching the URL path.
-    $path_language = $path_language ?: $this->languageManager->getLanguage(Language::TYPE_URL)->id;
+    $path_language = $path_language ?: $this->languageManager->getCurrentLanguage(Language::TYPE_URL)->id;
     // Lookup the path alias first.
     if (!empty($path) && $source = $this->lookupPathSource($path, $path_language)) {
       $path = $source;
@@ -120,7 +113,7 @@ class AliasManager implements AliasManagerInterface {
     // language. If we used a language different from the one conveyed by the
     // requested URL, we might end up being unable to check if there is a path
     // alias matching the URL path.
-    $path_language = $path_language ?: $this->languageManager->getLanguage(Language::TYPE_URL)->id;
+    $path_language = $path_language ?: $this->languageManager->getCurrentLanguage(Language::TYPE_URL)->id;
     $result = $path;
     if (!empty($path) && $alias = $this->lookupPathAlias($path, $path_language)) {
       $result = $alias;
@@ -132,7 +125,14 @@ class AliasManager implements AliasManagerInterface {
    * Implements \Drupal\Core\Path\AliasManagerInterface::cacheClear().
    */
   public function cacheClear($source = NULL) {
-    $this->lookupMap = array();
+    if ($source) {
+      foreach (array_keys($this->lookupMap) as $lang) {
+        $this->lookupMap[$lang][$source];
+      }
+    }
+    else {
+      $this->lookupMap = array();
+    }
     $this->noSource = array();
     $this->no_aliases = array();
     $this->firstCall = TRUE;

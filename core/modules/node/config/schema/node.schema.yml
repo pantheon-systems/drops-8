@@ -47,7 +47,7 @@ node.type.*:
       label: 'Enabled status of the configuration entity'
     langcode:
       type: string
-      label: 'Language'
+      label: 'Default language'
 
 node.settings.node:
   type: mapping
@@ -61,17 +61,76 @@ node.settings.node:
       label: 'Publishing options'
       mapping:
         status:
-          type: string
+          type: boolean
           label: 'Published'
         promote:
-          type: string
+          type: boolean
           label: 'Promoted to front page'
         sticky:
-          type: string
+          type: boolean
           label: 'Sticky at top of lists'
         revision:
-          type: string
+          type: boolean
           label: 'Create new revision'
     submitted:
       type: boolean
       label: 'Display setting for author and date Submitted by post information'
+
+# Plugin \Drupal\node\Plugin\Search\NodeSearch
+search.plugin.node_search:
+  type: mapping
+  label: 'Content search'
+  mapping:
+    rankings:
+      type: sequence
+      label: 'Content ranking'
+      sequence:
+        - type: integer
+          label: 'Influence'
+
+action.configuration.node_assign_owner_action:
+  type: mapping
+  label: 'Change the author of content configuration'
+  mapping:
+    owner_uid:
+      type: text
+      label: 'Username'
+
+action.configuration.node_unpromote_action:
+  type: action_configuration_default
+  label: 'Demote selected content from front page configuration'
+
+action.configuration.node_promote_action:
+  type: action_configuration_default
+  label: 'Promote selected content from front page configuration'
+
+action.configuration.node_publish_action:
+  type: action_configuration_default
+  label: 'Publish selected content configuration'
+
+action.configuration.node_save_action:
+  type: action_configuration_default
+  label: 'save content configuration'
+
+action.configuration.node_make_sticky_action:
+  type: action_configuration_default
+  label: 'Make selected content sticky configuration'
+
+action.configuration.node_unpublish_by_keyword_action:
+  type: mapping
+  label: 'Unpublish content containing keyword(s) configuration'
+  mapping:
+    keyword:
+      type: sequence
+      label: 'Keywords'
+      sequence:
+        - type: sequence
+          label: 'Keyword'
+
+action.configuration.node_unpublish_action:
+  type: action_configuration_default
+  label: 'Unpublish selected content configuration'
+
+action.configuration.node_unsticky_action:
+  type: action_configuration_default
+  label: 'Publish selected content not sticky configuration'

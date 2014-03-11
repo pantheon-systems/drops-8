@@ -27,14 +27,14 @@ class FrameworkTest extends AjaxTestBase {
   }
 
   /**
-   * Ensures ajax_render() returns JavaScript settings from the page request.
+   * Ensures \Drupal\Core\Ajax\AjaxResponse::ajaxRender() returns JavaScript settings from the page request.
    */
   public function testAJAXRender() {
     // Verify that settings command is generated when JavaScript settings are
-    // set via drupal_add_js().
+    // set via _drupal_add_js().
     $commands = $this->drupalGetAJAX('ajax-test/render');
     $expected = new SettingsCommand(array('ajax' => 'test'), TRUE);
-    $this->assertCommand($commands, $expected->render(), 'ajax_render() loads settings added with drupal_add_js().');
+    $this->assertCommand($commands, $expected->render(), '\Drupal\Core\Ajax\AjaxResponse::ajaxRender() loads settings added with _drupal_add_js().');
   }
 
   /**
@@ -46,16 +46,37 @@ class FrameworkTest extends AjaxTestBase {
 
     // Expected commands, in a very specific order.
     $expected_commands[0] = new SettingsCommand(array('ajax' => 'test'), TRUE);
-    drupal_static_reset('drupal_add_css');
-    drupal_add_css($path . '/css/system.admin.css');
-    drupal_add_css($path . '/css/system.maintenance.css');
-    $expected_commands[1] = new AddCssCommand(drupal_get_css(drupal_add_css(), TRUE));
-    drupal_static_reset('drupal_add_js');
-    drupal_add_js($path . '/system.js');
-    $expected_commands[2] = new PrependCommand('head', drupal_get_js('header', drupal_add_js(), TRUE));
-    drupal_static_reset('drupal_add_js');
-    drupal_add_js($path . '/system.modules.js', array('scope' => 'footer'));
-    $expected_commands[3] = new AppendCommand('body', drupal_get_js('footer', drupal_add_js(), TRUE));
+    drupal_static_reset('_drupal_add_css');
+    $attached = array(
+      '#attached' => array(
+        'css' => array(
+          $path . '/css/system.admin.css' => array(),
+          $path . '/css/system.maintenance.css' => array()
+        ),
+      ),
+    );
+    drupal_render($attached);
+    $expected_commands[1] = new AddCssCommand(drupal_get_css(_drupal_add_css(), TRUE));
+    drupal_static_reset('_drupal_add_js');
+    $attached = array(
+      '#attached' => array(
+        'js' => array(
+          $path . '/system.js' => array(),
+        ),
+      ),
+    );
+    drupal_render($attached);
+    $expected_commands[2] = new PrependCommand('head', drupal_get_js('header', _drupal_add_js(), TRUE));
+    drupal_static_reset('_drupal_add_js');
+    $attached = array(
+      '#attached' => array(
+        'js' => array(
+          $path . '/system.modules.js' => array('scope' => 'footer'),
+        ),
+      ),
+    );
+    drupal_render($attached);
+    $expected_commands[3] = new AppendCommand('body', drupal_get_js('footer', _drupal_add_js(), TRUE));
     $expected_commands[4] = new HtmlCommand('body', 'Hello, world!');
 
     // Load any page with at least one CSS file, at least one JavaScript file
@@ -80,7 +101,7 @@ class FrameworkTest extends AjaxTestBase {
   }
 
   /**
-   * Tests behavior of ajax_render_error().
+   * Tests the behavior of an error alert command.
    */
   public function testAJAXRenderError() {
     // Verify custom error message.
@@ -102,7 +123,7 @@ class FrameworkTest extends AjaxTestBase {
       'css' => drupal_get_path('module', 'system') . '/css/system.admin.css',
       'js' => drupal_get_path('module', 'system') . '/system.js',
     );
-    // CSS files are stored by basename, see drupal_add_css().
+    // CSS files are stored by basename, see _drupal_add_css().
     $expected_css_basename = drupal_basename($expected['css']);
 
     // @todo D8: Add a drupal_css_defaults() helper function.

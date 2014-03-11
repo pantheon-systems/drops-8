@@ -23,7 +23,7 @@ class RouteSubscriberTest extends UnitTestCase {
   /**
    * The mocked entity manager.
    *
-   * @var \Drupal\Core\Entity\EntityManager|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Entity\EntityManagerInterface|\PHPUnit_Framework_MockObject_MockObject
    */
   protected $entityManager;
 
@@ -44,7 +44,7 @@ class RouteSubscriberTest extends UnitTestCase {
   /**
    * The mocked key value storage.
    *
-   * @var \Drupal\Core\KeyValueStore\KeyValueStoreInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\KeyValueStore\StateInterface|\PHPUnit_Framework_MockObject_MockObject
    */
   protected $state;
 
@@ -60,9 +60,7 @@ class RouteSubscriberTest extends UnitTestCase {
   }
 
   protected function setUp() {
-    $this->entityManager = $this->getMockBuilder('\Drupal\Core\Entity\EntityManager')
-      ->disableOriginalConstructor()
-      ->getMock();
+    $this->entityManager = $this->getMock('Drupal\Core\Entity\EntityManagerInterface');
     $this->viewStorageController = $this->getMockBuilder('\Drupal\views\ViewStorageController')
       ->disableOriginalConstructor()
       ->getMock();
@@ -70,7 +68,7 @@ class RouteSubscriberTest extends UnitTestCase {
       ->method('getStorageController')
       ->with('view')
       ->will($this->returnValue($this->viewStorageController));
-    $this->state = $this->getMock('\Drupal\Core\KeyValueStore\KeyValueStoreInterface');
+    $this->state = $this->getMock('\Drupal\Core\KeyValueStore\StateInterface');
     $this->routeSubscriber = new TestRouteSubscriber($this->entityManager, $this->state);
   }
 
@@ -80,9 +78,6 @@ class RouteSubscriberTest extends UnitTestCase {
    * @see \Drupal\views\EventSubscriber\RouteSubscriber::onDynamicRoutes()
    */
   public function testDynamicRoutes() {
-    $collection = new RouteCollection();
-    $route_event = new RouteBuildEvent($collection, 'views');
-
     list($view, $executable, $display_1, $display_2) = $this->setupMocks();
 
     $display_1->expects($this->once())
@@ -92,12 +87,12 @@ class RouteSubscriberTest extends UnitTestCase {
       ->method('collectRoutes')
       ->will($this->returnValue(array('test_id.page_2' => 'views.test_id.page_2')));
 
-    $this->assertNull($this->routeSubscriber->onDynamicRoutes($route_event));
+    $this->routeSubscriber->routes();
 
     $this->state->expects($this->once())
       ->method('set')
       ->with('views.view_route_names', array('test_id.page_1' => 'views.test_id.page_1', 'test_id.page_2' => 'views.test_id.page_2'));
-    $this->routeSubscriber->destruct();
+    $this->routeSubscriber->routeRebuildFinished();
   }
 
   /**
@@ -135,12 +130,12 @@ class RouteSubscriberTest extends UnitTestCase {
     // Ensure that after the alterRoutes the collectRoutes method is just called
     // once (not for page_1 anymore).
 
-    $this->assertNull($this->routeSubscriber->onDynamicRoutes($route_event));
+    $this->routeSubscriber->routes();
 
     $this->state->expects($this->once())
       ->method('set')
       ->with('views.view_route_names', array('test_id.page_1' => 'test_route', 'test_id.page_2' => 'views.test_id.page_2'));
-    $this->routeSubscriber->destruct();
+    $this->routeSubscriber->routeRebuildFinished();
   }
 
   /**

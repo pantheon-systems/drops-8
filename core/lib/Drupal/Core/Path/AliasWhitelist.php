@@ -10,20 +10,18 @@ namespace Drupal\Core\Path;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Cache\CacheCollector;
 use Drupal\Core\Database\Connection;
-use Drupal\Core\DestructableInterface;
-use Drupal\Core\KeyValueStore\KeyValueStoreInterface;
+use Drupal\Core\KeyValueStore\StateInterface;
 use Drupal\Core\Lock\LockBackendInterface;
-use Drupal\Core\Utility\CacheArray;
 
 /**
  * Extends CacheArray to build the path alias whitelist over time.
  */
-class AliasWhitelist extends CacheCollector {
+class AliasWhitelist extends CacheCollector implements AliasWhitelistInterface {
 
   /**
    * The Key/Value Store to use for state.
    *
-   * @var \Drupal\Core\KeyValueStore\KeyValueStoreInterface
+   * @var \Drupal\Core\KeyValueStore\StateInterface
    */
   protected $state;
 
@@ -43,12 +41,12 @@ class AliasWhitelist extends CacheCollector {
    *   The cache backend.
    * @param \Drupal\Core\Lock\LockBackendInterface $lock
    *   The lock backend.
-   * @param \Drupal\Core\KeyValueStore\KeyValueStoreInterface $state
+   * @param \Drupal\Core\KeyValueStore\StateInterface $state
    *   The state keyvalue store.
    * @param \Drupal\Core\Database\Connection $connection
    *   The database connection.
    */
-  public function __construct($cid, CacheBackendInterface $cache, LockBackendInterface $lock, KeyValueStoreInterface $state, Connection $connection) {
+  public function __construct($cid, CacheBackendInterface $cache, LockBackendInterface $lock, StateInterface $state, Connection $connection) {
     parent::__construct($cid, $cache, $lock);
     $this->state = $state;
     $this->connection = $connection;

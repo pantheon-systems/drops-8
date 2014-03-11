@@ -8,8 +8,8 @@
 namespace Drupal\Core\Entity\Controller;
 
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
-use Drupal\Core\Entity\EntityManager;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\EntityManagerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -20,17 +20,17 @@ class EntityViewController implements ContainerInjectionInterface {
   /**
    * The entity manager
    *
-   * @var \Drupal\Core\Entity\EntityManager
+   * @var \Drupal\Core\Entity\EntityManagerInterface
    */
   protected $entityManager;
 
   /**
    * Creates an EntityListController object.
    *
-   * @param \Drupal\Core\Entity\EntityManager $entity_manager
+   * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
    *   The entity manager.
    */
-  public function __construct(EntityManager $entity_manager) {
+  public function __construct(EntityManagerInterface $entity_manager) {
     $this->entityManager = $entity_manager;
   }
 
@@ -62,7 +62,7 @@ class EntityViewController implements ContainerInjectionInterface {
    */
   public function view(EntityInterface $_entity, $view_mode = 'full', $langcode = NULL) {
     return $this->entityManager
-      ->getRenderController($_entity->entityType())
+      ->getViewBuilder($_entity->getEntityTypeId())
       ->view($_entity, $view_mode, $langcode);
   }
 

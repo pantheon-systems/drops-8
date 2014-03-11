@@ -23,7 +23,6 @@ class SpecialAttributesRouteSubscriber extends RouteSubscriberBase {
    */
   protected function alterRoutes(RouteCollection $collection, $module) {
     $special_variables = array(
-      '_account',
       'system_path',
       '_maintenance',
       '_legacy',
@@ -53,11 +52,12 @@ class SpecialAttributesRouteSubscriber extends RouteSubscriberBase {
    *   The route build event.
    *
    * @return bool
-   *   Returns TRUE if the variables were succesfully replaced, otherwise FALSE.
+   *   Returns TRUE if the variables were successfully replaced, otherwise
+   *   FALSE.
    */
   public function onAlterRoutes(RouteBuildEvent $event) {
     $collection = $event->getRouteCollection();
-    return $this->alterRoutes($collection, $event->getModule());
+    return $this->alterRoutes($collection, $event->getProvider());
   }
 
 }

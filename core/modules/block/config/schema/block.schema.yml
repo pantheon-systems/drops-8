@@ -59,9 +59,6 @@ block.block.*:
               sequence:
                - type: string
                  label: 'Node type'
-        visibility__active_tab:
-          type: string
-          label: 'Visibility active tab'
     plugin:
       type: string
       label: 'Plugin'
@@ -87,6 +84,9 @@ block.block.*:
         view_mode:
           type: string
           label: 'View mode'
+        module:
+          type: string
+          label: 'Module'
     langcode:
       type: string
-      label: 'Language code'
+      label: 'Default language'

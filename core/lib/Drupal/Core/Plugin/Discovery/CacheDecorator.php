@@ -9,7 +9,7 @@ namespace Drupal\Core\Plugin\Discovery;
 
 use Drupal\Component\Plugin\Discovery\CachedDiscoveryInterface;
 use Drupal\Component\Plugin\Discovery\DiscoveryInterface;
-use Drupal\Core\Cache\CacheBackendInterface;
+use Drupal\Core\Cache\Cache;
 
 /**
  * Enables static and persistent caching of discovered plugin definitions.
@@ -75,7 +75,7 @@ class CacheDecorator implements CachedDiscoveryInterface {
    * @param array $cache_tags
    *   The cache tags associated with the definition list.
    */
-  public function __construct(DiscoveryInterface $decorated, $cache_key, $cache_bin = 'cache', $cache_expire = CacheBackendInterface::CACHE_PERMANENT, array $cache_tags = array()) {
+  public function __construct(DiscoveryInterface $decorated, $cache_key, $cache_bin = 'cache', $cache_expire = Cache::PERMANENT, array $cache_tags = array()) {
     $this->decorated = $decorated;
     $this->cacheKey = $cache_key;
     $this->cacheBin = $cache_bin;
@@ -132,7 +132,7 @@ class CacheDecorator implements CachedDiscoveryInterface {
    *   and would actually be returned by the getDefinitions() method.
    */
   protected function getCachedDefinitions() {
-    if (!isset($this->definitions) && isset($this->cacheKey) && $cache = cache($this->cacheBin)->get($this->cacheKey)) {
+    if (!isset($this->definitions) && isset($this->cacheKey) && $cache = $this->cache($this->cacheBin)->get($this->cacheKey)) {
       $this->definitions = $cache->data;
     }
     return $this->definitions;
@@ -146,7 +146,7 @@ class CacheDecorator implements CachedDiscoveryInterface {
    */
   protected function setCachedDefinitions($definitions) {
     if (isset($this->cacheKey)) {
-      cache($this->cacheBin)->set($this->cacheKey, $definitions, $this->cacheExpire, $this->cacheTags);
+      $this->cache($this->cacheBin)->set($this->cacheKey, $definitions, $this->cacheExpire, $this->cacheTags);
     }
     $this->definitions = $definitions;
   }
@@ -157,11 +157,11 @@ class CacheDecorator implements CachedDiscoveryInterface {
   public function clearCachedDefinitions() {
     // If there are any cache tags, clear cache based on those.
     if (!empty($this->cacheTags)) {
-      cache($this->cacheBin)->deleteTags($this->cacheTags);
+      Cache::deleteTags($this->cacheTags);
     }
     // Otherwise, just delete the specified cache key.
     else if (isset($this->cacheKey)) {
-      cache($this->cacheBin)->delete($this->cacheKey);
+      $this->cache($this->cacheBin)->delete($this->cacheKey);
     }
     $this->definitions = NULL;
   }
@@ -171,6 +171,13 @@ class CacheDecorator implements CachedDiscoveryInterface {
    */
   public function __call($method, $args) {
     return call_user_func_array(array($this->decorated, $method), $args);
+  }
+
+  /**
+   * Wraps the \Drupal::cache() method.
+   */
+  protected function cache($bin) {
+    return \Drupal::cache($bin);
   }
 
 }

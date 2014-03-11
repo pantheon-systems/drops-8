@@ -6,7 +6,7 @@
  */
 
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\Component\Plugin\Exception\UnknownPluginException;
+use Drupal\Component\Plugin\Exception\PluginNotFoundException;
 use Drupal\field\Entity\Field;
 use Drupal\field\Entity\FieldInstance;
 use Drupal\file\Entity\File;
@@ -76,7 +76,7 @@ function image_help($path, $arg) {
       try {
         $effect = entity_load('image_style', $arg[5])->getEffect($arg[7]);
       }
-      catch (UnknownPluginException $e) {
+      catch (PluginNotFoundException $e) {
         return NULL;
       }
       $effect_definition = $effect->getPluginDefinition();
@@ -95,19 +95,10 @@ function image_menu() {
     'description' => 'Configure styles that can be used for resizing or adjusting images on display.',
     'route_name' => 'image.style_list',
   );
-  $items['admin/config/media/image-styles/list'] = array(
-    'title' => 'List',
-    'description' => 'List the current image styles on the site.',
-    'type' => MENU_DEFAULT_LOCAL_TASK,
-  );
   $items['admin/config/media/image-styles/manage/%image_style'] = array(
     'title' => 'Edit style',
     'description' => 'Configure an image style.',
     'route_name' => 'image.style_edit',
-  );
-  $items['admin/config/media/image-styles/manage/%image_style/edit'] = array(
-    'title' => 'Edit',
-    'type' => MENU_DEFAULT_LOCAL_TASK,
   );
   $items['admin/config/media/image-styles/manage/%/effects/%'] = array(
     'title' => 'Edit image effect',
@@ -129,6 +120,20 @@ function image_menu() {
 }
 
 /**
+ * Implements hook_menu_link_defaults().
+ */
+function image_menu_link_defaults() {
+  $links['image.admin.media.image-styles'] = array(
+    'link_title' => 'Image styles',
+    'description' => 'Configure styles that can be used for resizing or adjusting images on display.',
+    'parent' => 'system.admin.config.media',
+    'route_name' => 'image.style_list',
+  );
+
+  return $links;
+}
+
+/**
  * Implements hook_theme().
  */
 function image_theme() {
@@ -138,10 +143,10 @@ function image_theme() {
       // HTML 4 and XHTML 1.0 always require an alt attribute. The HTML 5 draft
       // allows the alt attribute to be omitted in some cases. Therefore,
       // default the alt attribute to an empty string, but allow code calling
-      // theme('image_style') to pass explicit NULL for it to be omitted.
+      // _theme('image_style') to pass explicit NULL for it to be omitted.
       // Usually, neither omission nor an empty string satisfies accessibility
       // requirements, so it is strongly encouraged for code calling
-      // theme('image_style') to pass a meaningful value for the alt variable.
+      // _theme('image_style') to pass a meaningful value for the alt variable.
       // - http://www.w3.org/TR/REC-html40/struct/objects.html#h-13.8
       // - http://www.w3.org/TR/xhtml1/dtds.html
       // - http://dev.w3.org/html5/spec/Overview.html#alt
@@ -194,7 +199,7 @@ function image_theme() {
       'file' => 'image.field.inc',
     ),
     'image_formatter' => array(
-      'variables' => array('item' => NULL, 'path' => NULL, 'image_style' => NULL),
+      'variables' => array('item' => NULL, 'item_attributes' => NULL, 'path' => NULL, 'image_style' => NULL),
       'file' => 'image.field.inc',
     ),
   );
@@ -344,7 +349,7 @@ function image_style_options($include_empty = TRUE) {
  *     to an empty string, but can be set to NULL for the attribute to be
  *     omitted. Usually, neither omission nor an empty string satisfies
  *     accessibility requirements, so it is strongly encouraged for code calling
- *     theme('image_style') to pass a meaningful value for this variable.
+ *     _theme('image_style') to pass a meaningful value for this variable.
  *     - http://www.w3.org/TR/REC-html40/struct/objects.html#h-13.8
  *     - http://www.w3.org/TR/xhtml1/dtds.html
  *     - http://dev.w3.org/html5/spec/Overview.html#alt
@@ -416,7 +421,7 @@ function image_filter_keyword($value, $current_pixels, $new_pixels) {
  *
  * Transforms default image of image field from array into single value at save.
  */
-function image_entity_presave(EntityInterface $entity, $type) {
+function image_entity_presave(EntityInterface $entity) {
   $field = FALSE;
   if ($entity instanceof FieldInstance) {
     $field = $entity->getField();
@@ -424,13 +429,28 @@ function image_entity_presave(EntityInterface $entity, $type) {
   elseif ($entity instanceof Field) {
     $field = $entity;
   }
-  if ($field && $field->type == 'image' && is_array($entity->settings['default_image'])) {
-    if (!empty($entity->settings['default_image'][0])) {
-      $entity->settings['default_image'] = $entity->settings['default_image'][0];
+  // Exit, if not saving an image field or image field instance entity.
+  if (!$field || $field->type != 'image') {
+    return;
+  }
+
+  $fid = $entity->settings['default_image']['fid'];
+  if ($fid) {
+    $original_fid = isset($entity->original) ? $entity->original->settings['default_image']['fid'] : NULL;
+    if ($fid != $original_fid) {
+      $image = \Drupal::service('image.factory')->get(file_load($fid)->getFileUri());
+      $entity->settings['default_image']['width'] = $image->getWidth();
+      $entity->settings['default_image']['height'] = $image->getHeight();
     }
-    else {
-      $entity->settings['default_image'] = 0;
-    }
+  }
+  else {
+    $entity->settings['default_image'] = array(
+      'fid' => NULL,
+      'alt' => '',
+      'title' => '',
+      'width' => NULL,
+      'height' => NULL,
+    );
   }
 }
 
@@ -446,14 +466,10 @@ function image_field_entity_update(FieldInterface $field) {
   $prior_field = $field->original;
 
   // The value of a managed_file element can be an array if #extended == TRUE.
-  $fid_new = (isset($field->settings['default_image']['fids']) ? $field->settings['default_image']['fids'] : $field->settings['default_image']);
-  $fid_old = (isset($prior_field->settings['default_image']['fids']) ? $prior_field->settings['default_image']['fids'] : $prior_field->settings['default_image']);
-  // Ensure sure that fid_new and old are arrays, because default_image might
-  // be the fallback value 0, see image_field_info().
-  $fid_old = (array) $fid_old;
-  $fid_new = (array) $fid_new;
+  $fid_new = $field->settings['default_image']['fid'];
+  $fid_old = $prior_field->settings['default_image']['fid'];
 
-  $file_new = $fid_new ? file_load(reset($fid_new)) : FALSE;
+  $file_new = $fid_new ? file_load($fid_new) : FALSE;
 
   if ($fid_new != $fid_old) {
 
@@ -461,12 +477,12 @@ function image_field_entity_update(FieldInterface $field) {
     if ($file_new) {
       $file_new->status = FILE_STATUS_PERMANENT;
       $file_new->save();
-      file_usage()->add($file_new, 'image', 'default_image', $field->uuid);
+      \Drupal::service('file.usage')->add($file_new, 'image', 'default_image', $field->uuid);
     }
 
     // Is there an old file?
-    if ($fid_old && ($file_old = file_load(reset($fid_old)))) {
-      file_usage()->delete($file_old, 'image', 'default_image', $field->uuid);
+    if ($fid_old && ($file_old = file_load($fid_old))) {
+      \Drupal::service('file.usage')->delete($file_old, 'image', 'default_image', $field->uuid);
     }
   }
 
@@ -490,29 +506,21 @@ function image_field_instance_update(FieldInstanceInterface $field_instance) {
 
   $prior_instance = $field_instance->original;
 
-  // The value of a managed_file element can be an array if the #extended
-  // property is set to TRUE.
-  $fid_new = $field_instance->settings['default_image'];
-  if (isset($fid_new['fids'])) {
-    $fid_new = $fid_new['fids'];
-  }
-  $fid_old = $prior_instance->settings['default_image'];
-  if (isset($fid_old['fids'])) {
-    $fid_old = $fid_old['fids'];
-  }
+  $fid_new = $field_instance->settings['default_image']['fid'];
+  $fid_old = $prior_instance->settings['default_image']['fid'];
 
   // If the old and new files do not match, update the default accordingly.
-  $file_new = $fid_new ? file_load($fid_new[0]) : FALSE;
+  $file_new = $fid_new ? file_load($fid_new) : FALSE;
   if ($fid_new != $fid_old) {
     // Save the new file, if present.
     if ($file_new) {
       $file_new->status = FILE_STATUS_PERMANENT;
       $file_new->save();
-      file_usage()->add($file_new, 'image', 'default_image', $field_instance->uuid);
+      \Drupal::service('file.usage')->add($file_new, 'image', 'default_image', $field_instance->uuid);
     }
     // Delete the old file, if present.
-    if ($fid_old && ($file_old = file_load($fid_old[0]))) {
-      file_usage()->delete($file_old, 'image', 'default_image', $field_instance->uuid);
+    if ($fid_old && ($file_old = file_load($fid_old))) {
+      \Drupal::service('file.usage')->delete($file_old, 'image', 'default_image', $field_instance->uuid);
     }
   }
 
@@ -534,9 +542,9 @@ function image_field_entity_delete(FieldInterface $field) {
   }
 
   // The value of a managed_file element can be an array if #extended == TRUE.
-  $fid = (isset($field->settings['default_image']['fids']) ? $field->settings['default_image']['fids'] : $field->settings['default_image']);
-  if ($fid && ($file = file_load($fid[0]))) {
-    file_usage()->delete($file, 'image', 'default_image', $field->uuid);
+  $fid = $field->settings['default_image']['fid'];
+  if ($fid && ($file = file_load($fid))) {
+    \Drupal::service('file.usage')->delete($file, 'image', 'default_image', $field->uuid);
   }
 }
 
@@ -550,15 +558,11 @@ function image_field_instance_delete(FieldInstanceInterface $field_instance) {
     return;
   }
 
-  // The value of a managed_file element can be an array if the #extended
-  // property is set to TRUE.
-  $fid = $field_instance->settings['default_image'];
-  if (is_array($fid)) {
-    $fid = $fid['fid'];
-  }
+  // The value of a managed_file element can be an array if #extended == TRUE.
+  $fid = $field_instance->settings['default_image']['fid'];
 
   // Remove the default image when the instance is deleted.
   if ($fid && ($file = file_load($fid))) {
-    file_usage()->delete($file, 'image', 'default_image', $field_instance->uuid);
+    \Drupal::service('file.usage')->delete($file, 'image', 'default_image', $field_instance->uuid);
   }
 }

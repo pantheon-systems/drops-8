@@ -1,6 +1,7 @@
 ajax_test.dialog_contents:
   path: '/ajax-test/dialog-contents'
   defaults:
+    _title: 'AJAX Dialog contents'
     _content: '\Drupal\ajax_test\Controller\AjaxTestController::dialogContents'
   requirements:
     _access: 'TRUE'
@@ -8,7 +9,8 @@ ajax_test.dialog_contents:
 ajax_test.dialog_form:
   path: '/ajax-test/dialog-form'
   defaults:
-    _form: '\Drupal\ajax_test\AjaxTestForm'
+    _title: 'Ajax Form contents'
+    _form: '\Drupal\ajax_test\Form\AjaxTestForm'
   requirements:
     _access: 'TRUE'
 
@@ -37,6 +39,8 @@ ajax_test.order:
   path: '/ajax-test/order'
   defaults:
     _controller: '\Drupal\ajax_test\Controller\AjaxTestController::order'
+  options:
+    _theme: ajax_base_page
   requirements:
     _access: 'TRUE'
 

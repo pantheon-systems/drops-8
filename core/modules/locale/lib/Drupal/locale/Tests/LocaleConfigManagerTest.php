@@ -46,7 +46,9 @@ class LocaleConfigManagerTest extends DrupalUnitTestBase {
       $this->container->get('config.storage.installer'),
       $this->container->get('config.storage.schema'),
       $this->container->get('config.storage.installer'),
-      $this->container->get('locale.storage')
+      $this->container->get('locale.storage'),
+      $this->container->get('cache.config'),
+      $this->container->get('config.factory')
     );
 
     $language = new Language(array('id' => 'de'));

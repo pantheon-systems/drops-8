@@ -8,30 +8,30 @@
 namespace Drupal\editor_test\Plugin\Editor;
 
 use Drupal\editor\Plugin\EditorBase;
-use Drupal\editor\Annotation\Editor;
-use Drupal\Core\Annotation\Translation;
 use Drupal\editor\Entity\Editor as EditorEntity;
 
 /**
- * Defines a Unicorn-powered text editor for Drupal.
+ * Defines a Unicorn-powered text editor for Drupal (for testing purposes).
  *
  * @Editor(
  *   id = "unicorn",
  *   label = @Translation("Unicorn Editor"),
- *   supports_inline_editing = TRUE
+ *   supports_content_filtering = TRUE,
+ *   supports_inline_editing = TRUE,
+ *   is_xss_safe = FALSE
  * )
  */
 class UnicornEditor extends EditorBase {
 
   /**
-   * Implements \Drupal\editor\Plugin\EditPluginInterface::getDefaultSettings().
+   * {@inheritdoc}
    */
   function getDefaultSettings() {
     return array('ponies too' => TRUE);
   }
 
   /**
-   * Implements \Drupal\editor\Plugin\EditPluginInterface::settingsForm().
+   * {@inheritdoc}
    */
   function settingsForm(array $form, array &$form_state, EditorEntity $editor) {
     $form['foo'] = array(
@@ -43,7 +43,7 @@ class UnicornEditor extends EditorBase {
   }
 
   /**
-   * Implements \Drupal\editor\Plugin\EditPluginInterface::getJSSettings().
+   * {@inheritdoc}
    */
   function getJSSettings(EditorEntity $editor) {
     $settings = array();
@@ -54,7 +54,7 @@ class UnicornEditor extends EditorBase {
   }
 
   /**
-   * Implements \Drupal\editor\Plugin\EditPluginInterface::getLibraries().
+   * {@inheritdoc}
    */
   public function getLibraries(EditorEntity $editor) {
     return array(

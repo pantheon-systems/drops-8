@@ -8,8 +8,6 @@
 namespace Drupal\hal\Normalizer;
 
 use Drupal\Component\Utility\NestedArray;
-use Drupal\Core\Language\Language;
-
 use Symfony\Component\Serializer\Exception\LogicException;
 
 /**
@@ -22,7 +20,7 @@ class FieldNormalizer extends NormalizerBase {
    *
    * @var string
    */
-  protected $supportedInterfaceOrClass = 'Drupal\Core\Entity\Field\FieldItemListInterface';
+  protected $supportedInterfaceOrClass = 'Drupal\Core\Field\FieldItemListInterface';
 
   /**
    * Implements \Symfony\Component\Serializer\Normalizer\NormalizerInterface::normalize()
@@ -33,20 +31,20 @@ class FieldNormalizer extends NormalizerBase {
     // Get the field definition.
     $entity = $field->getEntity();
     $field_name = $field->getName();
-    $field_definition = $entity->getPropertyDefinition($field_name);
+    $field_definition = $field->getFieldDefinition();
 
     // If this field is not translatable, it can simply be normalized without
     // separating it into different translations.
-    if (empty($field_definition['translatable'])) {
+    if (!$field_definition->isTranslatable()) {
       $normalized_field_items = $this->normalizeFieldItems($field, $format, $context);
     }
     // Otherwise, the languages have to be extracted from the entity and passed
     // in to the field item normalizer in the context. The langcode is appended
     // to the field item values.
     else {
-      foreach ($entity->getTranslationLanguages() as $lang) {
-        $context['langcode'] = $lang->id == 'und' ? Language::LANGCODE_DEFAULT : $lang->id;
-        $translation = $entity->getTranslation($lang->id);
+      foreach ($entity->getTranslationLanguages() as $language) {
+        $context['langcode'] = $language->id;
+        $translation = $entity->getTranslation($language->id);
         $translated_field = $translation->get($field_name);
         $normalized_field_items = array_merge($normalized_field_items, $this->normalizeFieldItems($translated_field, $format, $context));
       }
@@ -75,7 +73,7 @@ class FieldNormalizer extends NormalizerBase {
       $count = $field->count();
       // Get the next field item instance. The offset will serve as the field
       // item name.
-      $field_item = $field->offsetGet($count);
+      $field_item = $field->get($count);
       $field_item_class = get_class($field_item);
       // Pass in the empty field item object as the target instance.
       $context['target_instance'] = $field_item;
@@ -89,7 +87,7 @@ class FieldNormalizer extends NormalizerBase {
   /**
    * Helper function to normalize field items.
    *
-   * @param \Drupal\Core\Entity\Field\FieldItemListInterface $field
+   * @param \Drupal\Core\Field\FieldItemListInterface $field
    *   The field object.
    * @param string $format
    *   The format.

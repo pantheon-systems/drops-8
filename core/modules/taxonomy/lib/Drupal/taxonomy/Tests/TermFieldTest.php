@@ -80,14 +80,14 @@ class TermFieldTest extends TaxonomyTestBase {
   function testTaxonomyTermFieldValidation() {
     // Test validation with a valid value.
     $term = $this->createTerm($this->vocabulary);
-    $entity = entity_create('entity_test', array());
+    $entity = entity_create('entity_test');
     $entity->{$this->field_name}->target_id = $term->id();
     $violations = $entity->{$this->field_name}->validate();
     $this->assertEqual(count($violations) , 0, 'Correct term does not cause validation error.');
 
     // Test validation with an invalid valid value (wrong vocabulary).
     $bad_term = $this->createTerm($this->createVocabulary());
-    $entity = entity_create('entity_test', array());
+    $entity = entity_create('entity_test');
     $entity->{$this->field_name}->target_id = $bad_term->id();
     $violations = $entity->{$this->field_name}->validate();
     $this->assertEqual(count($violations) , 1, 'Wrong term causes validation error.');
@@ -117,17 +117,15 @@ class TermFieldTest extends TaxonomyTestBase {
 
     // Display the object.
     $entity = entity_load('entity_test', $id);
-    $entities = array($id => $entity);
-    $display = entity_get_display($entity->entityType(), $entity->bundle(), 'full');
-    field_attach_prepare_view('entity_test', $entities, array($entity->bundle() => $display));
-    $entity->content = field_attach_view($entity, $display);
-    $this->content = drupal_render($entity->content);
+    $display = entity_get_display($entity->getEntityTypeId(), $entity->bundle(), 'full');
+    $content = $display->build($entity);
+    $this->drupalSetContent(drupal_render($content));
     $this->assertText($term->label(), 'Term label is displayed.');
 
     // Delete the vocabulary and verify that the widget is gone.
     $this->vocabulary->delete();
     $this->drupalGet('entity_test/add');
-    $this->assertNoFieldByName($this->field_name, '', 'Widget is not displayed');
+    $this->assertNoFieldByName($this->field_name, '', 'Widget is not displayed.');
   }
 
   /**
@@ -158,7 +156,7 @@ class TermFieldTest extends TaxonomyTestBase {
 
     // Check that the field instance is still attached to the vocabulary.
     $field = field_info_field('entity_test', $this->field_name);
-    $allowed_values = $field->getFieldSetting('allowed_values');
+    $allowed_values = $field->getSetting('allowed_values');
     $this->assertEqual($allowed_values[0]['vocabulary'], $new_name, 'Index 0: Machine name was updated correctly.');
     $this->assertEqual($allowed_values[1]['vocabulary'], $new_name, 'Index 1: Machine name was updated correctly.');
     $this->assertEqual($allowed_values[2]['vocabulary'], 'foo', 'Index 2: Machine name was left untouched.');

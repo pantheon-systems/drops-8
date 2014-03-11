@@ -5,7 +5,7 @@
  * Contains \Drupal\Tests\Core\Entity\Controller\EntityViewControllerTest.
  */
 
-namespace Drupal\Core\Tests\Entity\Controller;
+namespace Drupal\Tests\Core\Entity\Controller;
 
 use Drupal\Core\Entity\Controller\EntityViewController;
 use Drupal\Tests\UnitTestCase;
@@ -13,14 +13,17 @@ use Drupal\Tests\UnitTestCase;
 /**
  * Tests the entity view controller.
  *
+ * @group Drupal
+ * @group Entity
+ *
  * @see \Drupal\Core\Entity\Controller\EntityViewController
  */
 class EntityViewControllerTest extends UnitTestCase{
 
   public static function getInfo() {
     return array(
-      'name' => 'Entity route enhancer test',
-      'description' => 'Tests the entity route enhancer.',
+      'name' => 'Entity view controller test',
+      'description' => 'Tests the entity view controller.',
       'group' => 'Entity'
     );
   }
@@ -32,8 +35,8 @@ class EntityViewControllerTest extends UnitTestCase{
    */
   public function testView() {
 
-    // Mock a render controller.
-    $render_controller = $this->getMockBuilder('Drupal\entity_test\EntityTestRenderController')
+    // Mock a view builder.
+    $render_controller = $this->getMockBuilder('Drupal\entity_test\EntityTestViewBuilder')
       ->disableOriginalConstructor()
       ->getMock();
     $render_controller->expects($this->any())
@@ -41,15 +44,13 @@ class EntityViewControllerTest extends UnitTestCase{
       ->will($this->returnValue('Output from rendering the entity'));
 
     // Mock an entity manager.
-    $entity_manager = $this->getMockBuilder('Drupal\Core\Entity\EntityManager')
-      ->disableOriginalConstructor()
-      ->getMock();
+    $entity_manager = $this->getMock('Drupal\Core\Entity\EntityManagerInterface');
     $entity_manager->expects($this->any())
-      ->method('getRenderController')
+      ->method('getViewBuilder')
       ->will($this->returnValue($render_controller));
 
-    // Mock an 'entity_test_render' entity.
-    $entity = $this->getMockBuilder('Drupal\entity_test\Entity\EntityTestRender')
+    // Mock an 'entity_test' entity.
+    $entity = $this->getMockBuilder('Drupal\entity_test\Entity\EntityTest')
       ->disableOriginalConstructor()
       ->getMock();
 

@@ -2,14 +2,10 @@ services:
   access_check.cron:
     class: Drupal\system\Access\CronAccessCheck
     tags:
-      - { name: access_check }
+      - { name: access_check, applies_to: _access_system_cron }
   system.manager:
     class: Drupal\system\SystemManager
     arguments: ['@module_handler', '@database', '@entity.manager']
-  system.breadcrumb.legacy:
-    class: Drupal\system\LegacyBreadcrumbBuilder
-    tags:
-      - {name: breadcrumb_builder, priority: 500}
   system.breadcrumb.default:
     class: Drupal\system\PathBasedBreadcrumbBuilder
     arguments: ['@request', '@entity.manager', '@access_manager', '@router', '@path_processor_manager', '@config.factory',  '@title_resolver']
@@ -19,7 +15,12 @@ services:
     class: Drupal\system\PathProcessor\PathProcessorFiles
     tags:
       - { name: path_processor_inbound, priority: 200 }
-  system.route_subscriber:
-    class: Drupal\system\Routing\RouteSubscriber
+  theme.negotiator.system.batch:
+    class: Drupal\system\Theme\BatchNegotiator
+    arguments: ['@batch.storage']
+    tags:
+      - { name: theme_negotiator, priority: 1000 }
+  system.config_subscriber:
+    class: Drupal\system\SystemConfigSubscriber
     tags:
       - { name: event_subscriber }

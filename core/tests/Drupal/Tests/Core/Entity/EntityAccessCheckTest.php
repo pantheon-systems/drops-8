@@ -29,14 +29,6 @@ class EntityAccessCheckTest extends UnitTestCase {
   }
 
   /**
-   * Tests the appliesTo method for the access checker.
-   */
-  public function testAppliesTo() {
-    $entity_access = new EntityAccessCheck();
-    $this->assertEquals($entity_access->appliesTo(), array('_entity_access'), 'Access checker returned the expected appliesTo() array.');
-  }
-
-  /**
    * Tests the method for checking access to routes.
    */
   public function testAccess() {
@@ -50,7 +42,8 @@ class EntityAccessCheckTest extends UnitTestCase {
       ->will($this->returnValue(TRUE));
     $access_check = new EntityAccessCheck();
     $request->attributes->set('node', $node);
-    $access = $access_check->access($route, $request);
+    $account = $this->getMock('Drupal\Core\Session\AccountInterface');
+    $access = $access_check->access($route, $request, $account);
     $this->assertSame(AccessCheckInterface::ALLOW, $access);
   }
 

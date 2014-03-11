@@ -2,13 +2,17 @@
 
 /**
  * @file
- * Definition of Drupal\search\Tests\SearchKeywordsConditionsTest.
+ * Contains \Drupal\search\Tests\SearchKeywordsConditionsTest.
  */
 
 namespace Drupal\search\Tests;
 
 /**
- * Tests keywords and conditions.
+ * Tests the searching without keywords.
+ *
+ * Verifies that a plugin can override the isSearchExecutable() method to allow
+ * searching without keywords set and that GET query parameters are made
+ * available to plugins during search execution.
  */
 class SearchKeywordsConditionsTest extends SearchTestBase {
 
@@ -22,7 +26,7 @@ class SearchKeywordsConditionsTest extends SearchTestBase {
   public static function getInfo() {
     return array(
       'name' => 'Keywords and conditions',
-      'description' => 'Verify the search pulls in keywords and extra conditions.',
+      'description' => 'Verify the search without keywords set and extra conditions.',
       'group' => 'Search',
     );
   }
@@ -34,9 +38,6 @@ class SearchKeywordsConditionsTest extends SearchTestBase {
     $this->searching_user = $this->drupalCreateUser(array('search content', 'access content', 'access comments', 'skip comment approval'));
     // Login with sufficient privileges.
     $this->drupalLogin($this->searching_user);
-    // Test with all search modules enabled.
-    \Drupal::config('search.settings')->set('active_plugins', array('node_search', 'user_search', 'search_extra_type_search'))->save();
-    \Drupal::state()->set('menu_rebuild_needed', TRUE);
   }
 
   /**

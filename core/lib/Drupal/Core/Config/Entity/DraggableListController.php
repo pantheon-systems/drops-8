@@ -9,7 +9,7 @@ namespace Drupal\Core\Config\Entity;
 
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityStorageControllerInterface;
-use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Form\FormInterface;
 
 /**
@@ -39,14 +39,21 @@ abstract class DraggableListController extends ConfigEntityListController implem
   protected $weightKey = FALSE;
 
   /**
+   * The form builder.
+   *
+   * @var \Drupal\Core\Form\FormBuilderInterface
+   */
+  protected $formBuilder;
+
+  /**
    * {@inheritdoc}
    */
-  public function __construct($entity_type, array $entity_info, EntityStorageControllerInterface $storage, ModuleHandlerInterface $module_handler) {
-    parent::__construct($entity_type, $entity_info, $storage, $module_handler);
+  public function __construct(EntityTypeInterface $entity_type, EntityStorageControllerInterface $storage) {
+    parent::__construct($entity_type, $storage);
 
     // Check if the entity type supports weighting.
-    if (!empty($this->entityInfo['entity_keys']['weight'])) {
-      $this->weightKey = $this->entityInfo['entity_keys']['weight'];
+    if ($this->entityType->hasKey('weight')) {
+      $this->weightKey = $this->entityType->getKey('weight');
     }
   }
 
@@ -87,7 +94,7 @@ abstract class DraggableListController extends ConfigEntityListController implem
    */
   public function render() {
     if (!empty($this->weightKey)) {
-      return drupal_get_form($this);
+      return $this->formBuilder()->getForm($this);
     }
     return parent::render();
   }
@@ -99,9 +106,13 @@ abstract class DraggableListController extends ConfigEntityListController implem
     $form[$this->entitiesKey] = array(
       '#type' => 'table',
       '#header' => $this->buildHeader(),
-      '#empty' => t('There is no @label yet.', array('@label' => $this->entityInfo['label'])),
+      '#empty' => t('There is no @label yet.', array('@label' => $this->entityType->getLabel())),
       '#tabledrag' => array(
-        array('order', 'sibling', 'weight'),
+        array(
+          'action' => 'order',
+          'relationship' => 'sibling',
+          'group' => 'weight',
+        ),
       ),
     );
 
@@ -142,6 +153,19 @@ abstract class DraggableListController extends ConfigEntityListController implem
         $this->entities[$id]->save();
       }
     }
+  }
+
+  /**
+   * Returns the form builder.
+   *
+   * @return \Drupal\Core\Form\FormBuilderInterface
+   *   The form builder.
+   */
+  protected function formBuilder() {
+    if (!$this->formBuilder) {
+      $this->formBuilder = \Drupal::formBuilder();
+    }
+    return $this->formBuilder;
   }
 
 }

@@ -39,7 +39,7 @@ class SessionTest extends WebTestBase {
     $this->assertTrue(drupal_save_session(), 'drupal_save_session() correctly returns TRUE when saving has been enabled.', 'Session');
 
     // Test session hardening code from SA-2008-044.
-    $user = $this->drupalCreateUser(array('access content'));
+    $user = $this->drupalCreateUser();
 
     // Enable sessions.
     $this->sessionReset($user->id());
@@ -78,11 +78,10 @@ class SessionTest extends WebTestBase {
   }
 
   /**
-   * Test data persistence via the session_test module callbacks. Also tests
-   * drupal_session_count() since session data is already generated here.
+   * Test data persistence via the session_test module callbacks.
    */
   function testDataPersistence() {
-    $user = $this->drupalCreateUser(array('access content'));
+    $user = $this->drupalCreateUser(array());
     // Enable sessions.
     $this->sessionReset($user->id());
 
@@ -134,7 +133,7 @@ class SessionTest extends WebTestBase {
     $this->assertNoText($value_1, 'Session has persisted for an authenticated user after logging out and then back in.', 'Session');
 
     // Change session and create another user.
-    $user2 = $this->drupalCreateUser(array('access content'));
+    $user2 = $this->drupalCreateUser(array());
     $this->sessionReset($user2->id());
     $this->drupalLogin($user2);
   }
@@ -199,7 +198,7 @@ class SessionTest extends WebTestBase {
    * Test that sessions are only saved when necessary.
    */
   function testSessionWrite() {
-    $user = $this->drupalCreateUser(array('access content'));
+    $user = $this->drupalCreateUser(array());
     $this->drupalLogin($user);
 
     $sql = 'SELECT u.access, s.timestamp FROM {users} u INNER JOIN {sessions} s ON u.uid = s.uid WHERE u.uid = :uid';
@@ -247,7 +246,7 @@ class SessionTest extends WebTestBase {
    * Test that empty session IDs are not allowed.
    */
   function testEmptySessionID() {
-    $user = $this->drupalCreateUser(array('access content'));
+    $user = $this->drupalCreateUser(array());
     $this->drupalLogin($user);
     $this->drupalGet('session-test/is-logged-in');
     $this->assertResponse(200, 'User is logged in.');

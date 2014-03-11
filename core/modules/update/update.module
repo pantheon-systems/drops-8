@@ -145,6 +145,23 @@ function update_page_build() {
 }
 
 /**
+ * Implements hook_library_info().
+ */
+function update_library_info() {
+  $path = drupal_get_path('module', 'update');
+  $libraries['drupal.update.admin'] = array(
+    'title' => 'Update administration UI',
+    'website' => '',
+    'version' => \Drupal::VERSION,
+    'css' => array(
+      $path . '/css/update.admin.css' => array(),
+    ),
+  );
+
+  return $libraries;
+}
+
+/**
  * Implements hook_menu().
  */
 function update_menu() {
@@ -156,50 +173,23 @@ function update_menu() {
     'route_name' => 'update.status',
     'weight' => -50,
   );
-  $items['admin/reports/updates/list'] = array(
-    'title' => 'List',
-    'access arguments' => array('administer site configuration'),
-    'type' => MENU_DEFAULT_LOCAL_TASK,
-  );
-  $items['admin/reports/updates/settings'] = array(
-    'title' => 'Settings',
-    'route_name' => 'update.settings',
-    'access arguments' => array('administer site configuration'),
-    'type' => MENU_LOCAL_TASK,
-    'weight' => 50,
-  );
-
-  // We want action links for updating projects at a few different locations:
-  // both the module and theme administration pages, and on the available
-  // updates report itself. The menu items will be mostly identical, except the
-  // paths and titles, so we just define them in a loop. We pass in a string
-  // indicating what context we're entering the action from, so that can
-  // customize the appearance as needed.
-  $paths = array(
-    'report' => 'admin/reports/updates',
-    'module' => 'admin/modules',
-    'theme' => 'admin/appearance',
-  );
-  foreach ($paths as $context => $path) {
-    $items[$path . '/install'] = array(
-      'route_name' => "update.{$context}_install",
-      'weight' => 25,
-      'type' => MENU_LOCAL_ACTION,
-    );
-    $items[$path . '/update'] = array(
-      'route_name' => "update.{$context}_update",
-      'weight' => 10,
-      'title' => 'Update',
-      'type' => MENU_LOCAL_TASK,
-    );
-  }
-  // Customize the titles of the action links depending on where they appear.
-  // We use += array() to let the translation extractor find these menu titles.
-  $items['admin/reports/updates/install'] += array('title' => 'Install new module or theme');
-  $items['admin/modules/install'] += array('title' => 'Install new module');
-  $items['admin/appearance/install'] += array('title' => 'Install new theme');
 
   return $items;
+}
+
+/**
+ * Implements hook_menu_link_defaults().
+ */
+function update_menu_link_defaults() {
+  $links['update.admin.reports.updates'] = array(
+    'link_title' => 'Available updates',
+    'description' => 'Get a status report about available updates for your installed modules and themes.',
+    'route_name' => 'update.status',
+    'parent' => 'system.admin.reports',
+    'weight' => -50,
+  );
+
+  return $links;
 }
 
 /**
@@ -357,12 +347,12 @@ function update_get_available($refresh = FALSE) {
 
   // Grab whatever data we currently have.
   $available = \Drupal::keyValueExpirable('update_available_releases')->getAll();
-
-  $projects = update_get_projects();
+  $projects = \Drupal::service('update.manager')->getProjects();
   foreach ($projects as $key => $project) {
     // If there's no data at all, we clearly need to fetch some.
     if (empty($available[$key])) {
-      update_create_fetch_task($project);
+      //update_create_fetch_task($project);
+      \Drupal::service('update.processor')->createFetchTask($project);
       $needs_refresh = TRUE;
       continue;
     }
@@ -385,7 +375,7 @@ function update_get_available($refresh = FALSE) {
     // If we think this project needs to fetch, actually create the task now
     // and remember that we think we're missing some data.
     if (!empty($available[$key]['fetch_status']) && $available[$key]['fetch_status'] == UPDATE_FETCH_PENDING) {
-      update_create_fetch_task($project);
+      \Drupal::service('update.processor')->createFetchTask($project);
       $needs_refresh = TRUE;
     }
   }
@@ -433,6 +423,32 @@ function update_refresh() {
 function update_fetch_data() {
   module_load_include('inc', 'update', 'update.fetch');
   _update_fetch_data();
+}
+
+/**
+ * Batch callback: Performs actions when all fetch tasks have been completed.
+ *
+ * @param $success
+ *   TRUE if the batch operation was successful; FALSE if there were errors.
+ * @param $results
+ *   An associative array of results from the batch operation, including the key
+ *   'updated' which holds the total number of projects we fetched available
+ *   update data for.
+ */
+function update_fetch_data_finished($success, $results) {
+  if ($success) {
+    if (!empty($results)) {
+      if (!empty($results['updated'])) {
+        drupal_set_message(format_plural($results['updated'], 'Checked available update data for one project.', 'Checked available update data for @count projects.'));
+      }
+      if (!empty($results['failures'])) {
+        drupal_set_message(format_plural($results['failures'], 'Failed to get available update data for one project.', 'Failed to get available update data for @count projects.'), 'error');
+      }
+    }
+  }
+  else {
+    drupal_set_message(t('An error occurred trying to get available update data.'), 'error');
+  }
 }
 
 /**
@@ -642,7 +658,7 @@ function update_verify_update_archive($project, $archive_file, $directory) {
   $files = file_scan_directory("$directory/$project", '/^' . DRUPAL_PHP_FUNCTION_PATTERN . '\.info.yml$/', array('key' => 'name', 'min_depth' => 0));
   foreach ($files as $file) {
     // Get the .info.yml file for the module or theme this file belongs to.
-    $info = drupal_parse_info_file($file->uri);
+    $info = \Drupal::service('info_parser')->parse($file->uri);
 
     // If the module or theme is incompatible with Drupal core, set an error.
     if (empty($info['core']) || $info['core'] != \Drupal::CORE_COMPATIBILITY) {

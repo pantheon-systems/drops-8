@@ -19,7 +19,7 @@ class DrupalUnitTestBaseTest extends DrupalUnitTestBase {
    *
    * @var array
    */
-  public static $modules = array('entity_test');
+  public static $modules = array('entity', 'entity_test');
 
   public static function getInfo() {
     return array(
@@ -33,14 +33,14 @@ class DrupalUnitTestBaseTest extends DrupalUnitTestBase {
    * Tests expected behavior of setUp().
    */
   function testSetUp() {
-    $module = 'entity_test';
+    $modules = array('entity', 'entity_test');
     $table = 'entity_test';
 
     // Verify that specified $modules have been loaded.
-    $this->assertTrue(function_exists('entity_test_permission'), "$module.module was loaded.");
+    $this->assertTrue(function_exists('entity_test_permission'), 'entity_test.module was loaded.');
     // Verify that there is a fixed module list.
-    $this->assertIdentical(array_keys(\Drupal::moduleHandler()->getModuleList()), array($module));
-    $this->assertIdentical(\Drupal::moduleHandler()->getImplementations('permission'), array($module));
+    $this->assertIdentical(array_keys(\Drupal::moduleHandler()->getModuleList()), $modules);
+    $this->assertIdentical(\Drupal::moduleHandler()->getImplementations('permission'), $modules);
 
     // Verify that no modules have been installed.
     $this->assertFalse(db_table_exists($table), "'$table' database table not found.");
@@ -53,7 +53,7 @@ class DrupalUnitTestBaseTest extends DrupalUnitTestBase {
     $module = 'field_test';
 
     // Verify that the module does not exist yet.
-    $this->assertFalse(module_exists($module), "$module module not found.");
+    $this->assertFalse(\Drupal::moduleHandler()->moduleExists($module), "$module module not found.");
     $list = array_keys(\Drupal::moduleHandler()->getModuleList());
     $this->assertFalse(in_array($module, $list), "$module module not found in the extension handler's module list.");
     $list = \Drupal::moduleHandler()->getImplementations('permission');
@@ -63,7 +63,7 @@ class DrupalUnitTestBaseTest extends DrupalUnitTestBase {
     $this->enableModules(array($module));
 
     // Verify that the module exists.
-    $this->assertTrue(module_exists($module), "$module module found.");
+    $this->assertTrue(\Drupal::moduleHandler()->moduleExists($module), "$module module found.");
     $list = array_keys(\Drupal::moduleHandler()->getModuleList());
     $this->assertTrue(in_array($module, $list), "$module module found in the extension handler's module list.");
     $list = \Drupal::moduleHandler()->getImplementations('permission');
@@ -78,21 +78,21 @@ class DrupalUnitTestBaseTest extends DrupalUnitTestBase {
     $table = 'node';
 
     // Verify that the module does not exist yet.
-    $this->assertFalse(module_exists($module), "$module module not found.");
+    $this->assertFalse(\Drupal::moduleHandler()->moduleExists($module), "$module module not found.");
     $list = array_keys(\Drupal::moduleHandler()->getModuleList());
     $this->assertFalse(in_array($module, $list), "$module module not found in the extension handler's module list.");
     $list = \Drupal::moduleHandler()->getImplementations('permission');
     $this->assertFalse(in_array($module, $list), "{$module}_permission() in \Drupal::moduleHandler()->getImplementations() not found.");
 
     $this->assertFalse(db_table_exists($table), "'$table' database table not found.");
-    $schema = drupal_get_schema($table);
+    $schema = drupal_get_schema($table, TRUE);
     $this->assertFalse($schema, "'$table' table schema not found.");
 
     // Install the module.
     \Drupal::moduleHandler()->install(array($module));
 
     // Verify that the enabled module exists.
-    $this->assertTrue(module_exists($module), "$module module found.");
+    $this->assertTrue(\Drupal::moduleHandler()->moduleExists($module), "$module module found.");
     $list = array_keys(\Drupal::moduleHandler()->getModuleList());
     $this->assertTrue(in_array($module, $list), "$module module found in the extension handler's module list.");
     $list = \Drupal::moduleHandler()->getImplementations('permission');
@@ -199,37 +199,38 @@ class DrupalUnitTestBaseTest extends DrupalUnitTestBase {
    */
   function testEnableModulesFixedList() {
     // Install system module.
-    $this->container->get('module_handler')->install(array('system'));
+    $this->container->get('module_handler')->install(array('system', 'menu_link'));
+    $entity_manager = \Drupal::entityManager();
 
     // entity_test is loaded via $modules; its entity type should exist.
     $this->assertEqual($this->container->get('module_handler')->moduleExists('entity_test'), TRUE);
-    $this->assertTrue(TRUE == entity_get_info('entity_test'));
+    $this->assertTrue(TRUE == $entity_manager->getDefinition('entity_test'));
 
     // Load some additional modules; entity_test should still exist.
     $this->enableModules(array('entity', 'field', 'text', 'entity_test'));
     $this->assertEqual($this->container->get('module_handler')->moduleExists('entity_test'), TRUE);
-    $this->assertTrue(TRUE == entity_get_info('entity_test'));
+    $this->assertTrue(TRUE == $entity_manager->getDefinition('entity_test'));
 
     // Install some other modules; entity_test should still exist.
-    $this->container->get('module_handler')->install(array('field', 'field_test'), FALSE);
+    $this->container->get('module_handler')->install(array('user', 'field', 'field_test'), FALSE);
     $this->assertEqual($this->container->get('module_handler')->moduleExists('entity_test'), TRUE);
-    $this->assertTrue(TRUE == entity_get_info('entity_test'));
+    $this->assertTrue(TRUE == $entity_manager->getDefinition('entity_test'));
 
     // Uninstall one of those modules; entity_test should still exist.
     $this->container->get('module_handler')->uninstall(array('field_test'));
     $this->assertEqual($this->container->get('module_handler')->moduleExists('entity_test'), TRUE);
-    $this->assertTrue(TRUE == entity_get_info('entity_test'));
+    $this->assertTrue(TRUE == $entity_manager->getDefinition('entity_test'));
 
     // Set the weight of a module; entity_test should still exist.
     module_set_weight('entity', -1);
     $this->assertEqual($this->container->get('module_handler')->moduleExists('entity_test'), TRUE);
-    $this->assertTrue(TRUE == entity_get_info('entity_test'));
+    $this->assertTrue(TRUE == $entity_manager->getDefinition('entity_test'));
 
     // Reactivate the previously uninstalled module.
     $this->enableModules(array('field_test'));
 
     // Create a field and an instance.
-    $display = entity_create('entity_display', array(
+    entity_create('entity_view_display', array(
       'targetEntityType' => 'entity_test',
       'bundle' => 'entity_test',
       'mode' => 'default',
@@ -248,7 +249,7 @@ class DrupalUnitTestBaseTest extends DrupalUnitTestBase {
   }
 
   /**
-   * Tests that theme() works right after loading a module.
+   * Tests that _theme() works right after loading a module.
    */
   function testEnableModulesTheme() {
     $original_element = $element = array(
@@ -257,7 +258,7 @@ class DrupalUnitTestBaseTest extends DrupalUnitTestBase {
       '#attributes' => array(),
     );
     $this->enableModules(array('system'));
-    // theme() throws an exception if modules are not loaded yet.
+    // _theme() throws an exception if modules are not loaded yet.
     $this->assertTrue(drupal_render($element));
 
     $element = $original_element;

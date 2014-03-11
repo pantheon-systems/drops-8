@@ -58,7 +58,6 @@ class EntityQueryTest extends EntityUnitTestBase {
   function setUp() {
     parent::setUp();
     $this->installSchema('entity_test', array('entity_test_mulrev', 'entity_test_mulrev_revision', 'entity_test_mulrev_property_data', 'entity_test_mulrev_property_revision'));
-    $this->installSchema('system', array('variable'));
     $this->installConfig(array('language'));
 
     $figures = drupal_strtolower($this->randomName());
@@ -126,8 +125,6 @@ class EntityQueryTest extends EntityUnitTestBase {
       'name' => $this->randomString(),
     ));
     language_save($langcode);
-    $field_langcodes = &drupal_static('field_available_languages');
-    $field_langcodes['entity_test_mulrev'][$greetings] = array('tr', 'pl');
     // Calculate the cartesian product of the unit array by looking at the
     // bits of $i and add the unit at the bits that are 1. For example,
     // decimal 13 is binary 1101 so unit 3,2 and 0 will be added to the
@@ -311,7 +308,7 @@ class EntityQueryTest extends EntityUnitTestBase {
       ->sort("$greetings.format")
       ->sort('id');
     // As we do not have any conditions, here are the possible colors and
-    // language codes, already in order, with the first occurence of the
+    // language codes, already in order, with the first occurrence of the
     // entity id marked with *:
     // 8  NULL pl *
     // 12 NULL pl *
@@ -507,7 +504,7 @@ class EntityQueryTest extends EntityUnitTestBase {
   /**
    * Test adding a tag and metadata to the Entity query object.
    *
-   * The tags and metadata should propogate to the SQL query object.
+   * The tags and metadata should propagate to the SQL query object.
    */
   function testMetaData() {
     $query = \Drupal::entityQuery('entity_test_mulrev');
@@ -517,6 +514,6 @@ class EntityQueryTest extends EntityUnitTestBase {
       ->execute();
 
     global $efq_test_metadata;
-    $this->assertEqual($efq_test_metadata, 'bar', 'Tag and metadata propogated to the SQL query object.');
+    $this->assertEqual($efq_test_metadata, 'bar', 'Tag and metadata propagated to the SQL query object.');
   }
 }

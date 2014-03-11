@@ -226,7 +226,7 @@ function views_ui_taxonomy_autocomplete_validate($element, &$form_state) {
     // vocabulary IDs.
     $field = field_info_field($element['#entity_type'], $element['#field_name']);
     $vocabularies = array();
-    $allowed_values = $field->getFieldSetting('allowed_values');
+    $allowed_values = $field->getSetting('allowed_values');
     if (!empty($allowed_values)) {
       foreach ($allowed_values as $tree) {
         if ($vocabulary = entity_load('taxonomy_vocabulary', $tree['vocabulary'])) {
@@ -255,95 +255,12 @@ function views_ui_taxonomy_autocomplete_validate($element, &$form_state) {
 }
 
 /**
- * Move form elements into details for presentation purposes.
- *
- * Many views forms use #tree = TRUE to keep their values in a hierarchy for
- * easier storage. Moving the form elements into fieldsets during form building
- * would break up that hierarchy. Therefore, we wait until the preRender stage,
- * where any changes we make affect presentation only and aren't reflected in
- * $form_state['values'].
- */
-function views_ui_pre_render_add_fieldset_markup($form) {
-  foreach (element_children($form) as $key) {
-    $element = $form[$key];
-    // In our form builder functions, we added an arbitrary #fieldset property
-    // to any element that belongs in a fieldset. If this form element has that
-    // property, move it into its fieldset.
-    if (isset($element['#fieldset']) && isset($form[$element['#fieldset']])) {
-      $form[$element['#fieldset']][$key] = $element;
-      // Remove the original element this duplicates.
-      unset($form[$key]);
-    }
-  }
-
-  // Hide the fieldsets if there is nothing in there.
-  if (isset($form['fieldsets']['#value'])) {
-    foreach ($form['fieldsets']['#value'] as $fieldset) {
-      if (!element_children($form[$fieldset])) {
-        $form[$fieldset]['#access'] = FALSE;
-      }
-    }
-  }
-
-  return $form;
-}
-
-/**
- * Flattens the structure of an element containing the #flatten property.
- *
- * If a form element has #flatten = TRUE, then all of it's children
- * get moved to the same level as the element itself.
- * So $form['to_be_flattened'][$key] becomes $form[$key], and
- * $form['to_be_flattened'] gets unset.
- */
-function views_ui_pre_render_flatten_data($form) {
-  foreach (element_children($form) as $key) {
-    $element = $form[$key];
-    if (!empty($element['#flatten'])) {
-      foreach (element_children($element) as $child_key) {
-        $form[$child_key] = $form[$key][$child_key];
-      }
-      // All done, remove the now-empty parent.
-      unset($form[$key]);
-    }
-  }
-
-  return $form;
-}
-
-/**
- * Moves argument options into their place.
- *
- * When configuring the default argument behavior, almost each of the radio
- * buttons has its own fieldset shown bellow it when the radio button is
- * clicked. That fieldset is created through a custom form process callback.
- * Each element that has #argument_option defined and pointing to a default
- * behavior gets moved to the appropriate fieldset.
- * So if #argument_option is specified as 'default', the element is moved
- * to the 'default_options' fieldset.
- */
-function views_ui_pre_render_move_argument_options($form) {
-  foreach (element_children($form) as $key) {
-    $element = $form[$key];
-    if (!empty($element['#argument_option'])) {
-      $container_name = $element['#argument_option'] . '_options';
-      if (isset($form['no_argument']['default_action'][$container_name])) {
-        $form['no_argument']['default_action'][$container_name][$key] = $element;
-      }
-      // Remove the original element this duplicates.
-      unset($form[$key]);
-    }
-  }
-  return $form;
-}
-
-/**
  * Add a <select> dropdown for a given section, allowing the user to
  * change whether this info is stored on the default display or on
  * the current display.
  */
 function views_ui_standard_display_dropdown(&$form, &$form_state, $section) {
-  $view = &$form_state['view'];
+  $view = $form_state['view'];
   $display_id = $form_state['display_id'];
   $executable = $view->getExecutable();
   $displays = $executable->displayHandlers;
@@ -422,10 +339,10 @@ function views_ui_build_form_path($form_state) {
  * #process callback for a button; determines if a button is the form's triggering element.
  *
  * The Form API has logic to determine the form's triggering element based on
- * the data in $_POST. However, it only checks buttons based on a single #value
+ * the data in POST. However, it only checks buttons based on a single #value
  * per button. This function may be added to a button's #process callbacks to
  * extend button click detection to support multiple #values per button. If the
- * data in $_POST matches any value in the button's #values array, then the
+ * data in POST matches any value in the button's #values array, then the
  * button is detected as having been clicked. This can be used when the value
  * (label) of the same logical button may be different based on context (e.g.,
  * "Apply" vs. "Apply and continue").

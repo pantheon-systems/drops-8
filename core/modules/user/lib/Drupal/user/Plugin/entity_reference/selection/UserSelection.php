@@ -7,11 +7,9 @@
 
 namespace Drupal\user\Plugin\entity_reference\selection;
 
-use Drupal\Core\Annotation\Translation;
 use Drupal\Core\Database\Database;
 use Drupal\Core\Database\Query\SelectInterface;
-use Drupal\Core\Entity\Field\FieldDefinitionInterface;
-use Drupal\entity_reference\Annotation\EntityReferenceSelection;
+use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\entity_reference\Plugin\entity_reference\selection\SelectionBase;
 
 /**
@@ -31,7 +29,7 @@ class UserSelection extends SelectionBase {
    * {@inheritdoc}
    */
   public static function settingsForm(FieldDefinitionInterface $field_definition) {
-    $selection_handler_settings = $field_definition->getFieldSetting('handler_settings');
+    $selection_handler_settings = $field_definition->getSetting('handler_settings');
 
     // Merge in default values.
     $selection_handler_settings += array(
@@ -90,9 +88,9 @@ class UserSelection extends SelectionBase {
       $query->condition('name', $match, $match_operator);
     }
 
-    // Adding the 'user_access' tag is sadly insufficient for users: core
+    // Adding the permission check is sadly insufficient for users: core
     // requires us to also know about the concept of 'blocked' and 'active'.
-    if (!user_access('administer users')) {
+    if (!\Drupal::currentUser()->hasPermission('administer users')) {
       $query->condition('status', 1);
     }
     return $query;
@@ -102,7 +100,7 @@ class UserSelection extends SelectionBase {
    * {@inheritdoc}
    */
   public function entityQueryAlter(SelectInterface $query) {
-    if (user_access('administer users')) {
+    if (\Drupal::currentUser()->hasPermission('administer users')) {
       // In addition, if the user is administrator, we need to make sure to
       // match the anonymous user, that doesn't actually have a name in the
       // database.

@@ -7,7 +7,7 @@
 
 namespace Drupal\system\Tests\Ajax;
 
-use Drupal\ajax_test\AjaxTestForm;
+use Drupal\ajax_test\Form\AjaxTestForm;
 
 /**
  * Tests use of dialogs as wrappers for Ajax responses.
@@ -68,7 +68,7 @@ class DialogTest extends AjaxTestBase {
       'settings' => NULL,
       'dialogOptions' => array(
         'modal' => TRUE,
-        'title' => 'Home',
+        'title' => 'Add category',
       ),
     );
     $normal_expected_response = array(
@@ -148,9 +148,9 @@ class DialogTest extends AjaxTestBase {
     $dialog_css_exists = strpos($ajax_result[1]['data'], 'jquery.ui.dialog.css') !== FALSE;
     $this->assertTrue($dialog_css_exists, 'jQuery UI dialog CSS added to the page.');
     $dialog_js_exists = strpos($ajax_result[2]['data'], 'jquery.ui.dialog.js') !== FALSE;
-    $this->assertTrue($dialog_css_exists, 'jQuery UI dialog JS added to the page.');
+    $this->assertTrue($dialog_js_exists, 'jQuery UI dialog JS added to the page.');
     $dialog_js_exists = strpos($ajax_result[2]['data'], 'dialog.ajax.js') !== FALSE;
-    $this->assertTrue($dialog_css_exists, 'Drupal dialog JS added to the page.');
+    $this->assertTrue($dialog_js_exists, 'Drupal dialog JS added to the page.');
 
     // Check that the response matches the expected value.
     $this->assertEqual($modal_expected_response, $ajax_result[3], 'POST request modal dialog JSON response matches.');

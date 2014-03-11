@@ -7,7 +7,7 @@
 
 namespace Drupal\field_ui\Form;
 
-use Drupal\Core\Entity\EntityManager;
+use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\TypedData\TypedDataManager;
 use Drupal\field\FieldInfo;
@@ -30,7 +30,7 @@ class FieldEditForm extends FormBase {
   /**
    * The entity manager.
    *
-   * @var \Drupal\Core\Entity\EntityManager
+   * @var \Drupal\Core\Entity\EntityManagerInterface
    */
   protected $entityManager;
 
@@ -46,7 +46,7 @@ class FieldEditForm extends FormBase {
    *
    * @var \Drupal\Core\TypedData\TypedDataManager
    */
-  protected $typedData;
+  protected $typedDataManager;
 
   /**
    * {@inheritdoc}
@@ -58,17 +58,17 @@ class FieldEditForm extends FormBase {
   /**
    * Constructs a new FieldEditForm object.
    *
-   * @param \Drupal\Core\Entity\EntityManager $entity_manager
+   * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
    *   The entity manager.
    * @param \Drupal\field\FieldInfo $field_info
    *   The field info service.
-   * @param \Drupal\Core\TypedData\TypedDataManager $typed_data
+   * @param \Drupal\Core\TypedData\TypedDataManager $typed_data_manager
    *   The typed data manager.
    */
-  public function __construct(EntityManager $entity_manager, FieldInfo $field_info, TypedDataManager $typed_data) {
+  public function __construct(EntityManagerInterface $entity_manager, FieldInfo $field_info, TypedDataManager $typed_data_manager) {
     $this->entityManager = $entity_manager;
     $this->fieldInfo = $field_info;
-    $this->typedData = $typed_data;
+    $this->typedDataManager = $typed_data_manager;
   }
 
   /**
@@ -78,7 +78,7 @@ class FieldEditForm extends FormBase {
     return new static(
       $container->get('entity.manager'),
       $container->get('field.info'),
-      $container->get('typed_data')
+      $container->get('typed_data_manager')
     );
   }
 
@@ -87,9 +87,11 @@ class FieldEditForm extends FormBase {
    */
   public function buildForm(array $form, array &$form_state, FieldInstanceInterface $field_instance = NULL) {
     $this->instance = $form_state['instance'] = $field_instance;
+    $form['#title'] = $this->instance->label();
 
     $field = $this->instance->getField();
     $form['#field'] = $field;
+    $form['#bundle'] = $this->instance->bundle;
 
     $description = '<p>' . $this->t('These settings apply to the %field field everywhere it is used. These settings impact the way that data is stored in the database and cannot be changed once data has been created.', array('%field' => $this->instance->label())) . '</p>';
 
@@ -106,7 +108,7 @@ class FieldEditForm extends FormBase {
     }
 
     // Build the configurable field values.
-    $cardinality = $field->getFieldCardinality();
+    $cardinality = $field->getCardinality();
     $form['field']['cardinality_container'] = array(
       // We can't use the container element because it doesn't support the title
       // or description properties.
@@ -123,13 +125,13 @@ class FieldEditForm extends FormBase {
       '#title_display' => 'invisible',
       '#options' => array(
         'number' => $this->t('Limited'),
-        FIELD_CARDINALITY_UNLIMITED => $this->t('Unlimited'),
+        FieldInstanceInterface::CARDINALITY_UNLIMITED => $this->t('Unlimited'),
       ),
-      '#default_value' => ($cardinality == FIELD_CARDINALITY_UNLIMITED) ? FIELD_CARDINALITY_UNLIMITED : 'number',
+      '#default_value' => ($cardinality == FieldInstanceInterface::CARDINALITY_UNLIMITED) ? FieldInstanceInterface::CARDINALITY_UNLIMITED : 'number',
     );
     $form['field']['cardinality_container']['cardinality_number'] = array(
       '#type' => 'number',
-      '#default_value' => $cardinality != FIELD_CARDINALITY_UNLIMITED ? $cardinality : 1,
+      '#default_value' => $cardinality != FieldInstanceInterface::CARDINALITY_UNLIMITED ? $cardinality : 1,
       '#min' => 1,
       '#title' => $this->t('Limit'),
       '#title_display' => 'invisible',
@@ -142,10 +144,9 @@ class FieldEditForm extends FormBase {
     );
 
     // Build the non-configurable field values.
-    $form['field']['field_name'] = array('#type' => 'value', '#value' => $field->getFieldName());
-    $form['field']['type'] = array('#type' => 'value', '#value' => $field->getFieldType());
+    $form['field']['field_name'] = array('#type' => 'value', '#value' => $field->getName());
+    $form['field']['type'] = array('#type' => 'value', '#value' => $field->getType());
     $form['field']['module'] = array('#type' => 'value', '#value' => $field->module);
-    $form['field']['active'] = array('#type' => 'value', '#value' => $field->active);
 
     // Add settings provided by the field module. The field module is
     // responsible for not returning settings that cannot be changed if
@@ -157,7 +158,7 @@ class FieldEditForm extends FormBase {
     // FieldItem.
     $ids = (object) array('entity_type' => $this->instance->entity_type, 'bundle' => $this->instance->bundle, 'entity_id' => NULL);
     $entity = _field_create_entity_from_ids($ids);
-    $form['field']['settings'] += $entity->get($field->getFieldName())->offsetGet(0)->settingsForm($form, $form_state, $field->hasData());
+    $form['field']['settings'] += $entity->get($field->getName())->first()->settingsForm($form, $form_state, $field->hasData());
 
     $form['actions'] = array('#type' => 'actions');
     $form['actions']['submit'] = array('#type' => 'submit', '#value' => $this->t('Save field settings'));
@@ -172,7 +173,7 @@ class FieldEditForm extends FormBase {
     $cardinality = $form_state['values']['field']['cardinality'];
     $cardinality_number = $form_state['values']['field']['cardinality_number'];
     if ($cardinality === 'number' && empty($cardinality_number)) {
-      form_error($form['field']['cardinality_container']['cardinality_number'], $this->t('Number of values is required.'));
+      $this->setFormError('field][cardinality_number', $form_state, $this->t('Number of values is required.'));
     }
   }
 
@@ -202,11 +203,19 @@ class FieldEditForm extends FormBase {
     try {
       $field->save();
       drupal_set_message($this->t('Updated field %label field settings.', array('%label' => $this->instance->label())));
-      $next_destination = FieldUI::getNextDestination($this->getRequest());
-      if (empty($next_destination)) {
-        $next_destination = $this->entityManager->getAdminPath($this->instance->entity_type, $this->instance->bundle) . '/fields';
+      $request = $this->getRequest();
+      if (($destinations = $request->query->get('destinations')) && $next_destination = FieldUI::getNextDestination($destinations)) {
+        $request->query->remove('destinations');
+        if (isset($next_destination['route_name'])) {
+          $form_state['redirect_route'] = $next_destination;
+        }
+        else {
+          $form_state['redirect'] = $next_destination;
+        }
       }
-      $form_state['redirect'] = $next_destination;
+      else {
+        $form_state['redirect_route'] = FieldUI::getOverviewRouteInfo($this->instance->entity_type, $this->instance->bundle);
+      }
     }
     catch (\Exception $e) {
       drupal_set_message($this->t('Attempt to update field %label failed: %message.', array('%label' => $this->instance->label(), '%message' => $e->getMessage())), 'error');

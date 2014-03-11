@@ -46,8 +46,6 @@ class LocaleTranslationUiTest extends WebTestBase {
    * Adds a language and tests string translation by users with the appropriate permissions.
    */
   function testStringTranslation() {
-    global $base_url;
-
     // User to add and remove language.
     $admin_user = $this->drupalCreateUser(array('administer languages', 'access administration pages'));
     // User to translate and delete string.
@@ -56,9 +54,6 @@ class LocaleTranslationUiTest extends WebTestBase {
     $langcode = 'xx';
     // The English name for the language. This will be translated.
     $name = $this->randomName(16);
-    // This is the language indicator on the translation search screen for
-    // untranslated strings.
-    $language_indicator = "<em class=\"locale-untranslated\">$langcode</em> ";
     // This will be the translation of $name.
     $translation = $this->randomName(16);
     $translation_to_en = $this->randomName(16);
@@ -94,9 +89,7 @@ class LocaleTranslationUiTest extends WebTestBase {
     // We save the lid from the path.
     $textarea = current($this->xpath('//textarea'));
     $lid = (string) $textarea[0]['name'];
-    $edit = array(
-      $lid => $this->randomName(),
-    );
+
     // No t() here, it's surely not translated yet.
     $this->assertText($name, 'name found on edit screen.');
     $this->assertNoOption('edit-langcode', 'en', 'No way to translate the string to English.');
@@ -116,7 +109,8 @@ class LocaleTranslationUiTest extends WebTestBase {
     );
     $this->drupalPostForm('admin/config/regional/translate', $edit, t('Save translations'));
     $this->assertText(t('The strings have been saved.'), 'The strings have been saved.');
-    $this->assertEqual($this->getUrl(), url('admin/config/regional/translate', array('absolute' => TRUE)), 'Correct page redirection.');
+    $url_bits = explode('?', $this->getUrl());
+    $this->assertEqual($url_bits[0], url('admin/config/regional/translate', array('absolute' => TRUE)), 'Correct page redirection.');
     $search = array(
       'string' => $name,
       'langcode' => $langcode,
@@ -147,7 +141,7 @@ class LocaleTranslationUiTest extends WebTestBase {
     $this->assertRaw($translation_to_en, 'English translation properly saved.');
 
     // Reset the tag cache on the tester side in order to pick up the call to
-    // cache()->deleteTags() on the tested side.
+    // Cache::deleteTags() on the tested side.
     drupal_static_reset('Drupal\Core\Cache\CacheBackendInterface::tagCache');
 
     $this->assertTrue($name != $translation && t($name, array(), array('langcode' => $langcode)) == $translation, 't() works for non-English.');
@@ -230,7 +224,7 @@ class LocaleTranslationUiTest extends WebTestBase {
       'direction' => '0',
     );
     $this->drupalPostForm('admin/config/regional/language/add', $edit, t('Add custom language'));
-    drupal_static_reset('language_list');
+    $this->container->get('language_manager')->reset();
 
     // Build the JavaScript translation file.
 
@@ -276,8 +270,6 @@ class LocaleTranslationUiTest extends WebTestBase {
    * Tests the validation of the translation input.
    */
   function testStringValidation() {
-    global $base_url;
-
     // User to add language and strings.
     $admin_user = $this->drupalCreateUser(array('administer languages', 'access administration pages', 'translate interface'));
     $this->drupalLogin($admin_user);
@@ -316,7 +308,7 @@ class LocaleTranslationUiTest extends WebTestBase {
 
     $textarea = current($this->xpath('//textarea'));
     $lid = (string) $textarea[0]['name'];
-    foreach ($bad_translations as $key => $translation) {
+    foreach ($bad_translations as $translation) {
       $edit = array(
         $lid => $translation,
       );
@@ -332,8 +324,6 @@ class LocaleTranslationUiTest extends WebTestBase {
    * Tests translation search form.
    */
   function testStringSearch() {
-    global $base_url;
-
     // User to add and remove language.
     $admin_user = $this->drupalCreateUser(array('administer languages', 'access administration pages'));
     // User to translate and delete string.
@@ -343,9 +333,6 @@ class LocaleTranslationUiTest extends WebTestBase {
     $langcode = 'xx';
     // The English name for the language. This will be translated.
     $name = $this->randomName(16);
-    // This is the language indicator on the translation search screen for
-    // untranslated strings.
-    $language_indicator = "<em class=\"locale-untranslated\">$langcode</em> ";
     // This will be the translation of $name.
     $translation = $this->randomName(16);
 
@@ -510,7 +497,7 @@ class LocaleTranslationUiTest extends WebTestBase {
     );
     $this->drupalPostForm('admin/config/regional/translate', $search, t('Filter'));
 
-    $source = $this->assertText($translation->getString(), 'Translation is found in search result.');
+    $this->assertText($translation->getString(), 'Translation is found in search result.');
 
     // Submit the translations without changing the translation.
     $textarea = current($this->xpath('//textarea'));
@@ -528,7 +515,7 @@ class LocaleTranslationUiTest extends WebTestBase {
       'customized' => '0',
     );
     $this->drupalPostForm('admin/config/regional/translate', $search, t('Filter'));
-    $source = $this->assertText($string->getString(), 'Translation is not marked as customized.');
+    $this->assertText($string->getString(), 'Translation is not marked as customized.');
 
     // Submit the translations with a new translation.
     $textarea = current($this->xpath('//textarea'));

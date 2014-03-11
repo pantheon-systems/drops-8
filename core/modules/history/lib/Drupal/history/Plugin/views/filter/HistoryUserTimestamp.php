@@ -8,7 +8,6 @@
 namespace Drupal\history\Plugin\views\filter;
 
 use Drupal\views\Plugin\views\filter\FilterPluginBase;
-use Drupal\Component\Annotation\PluginID;
 
 /**
  * Filter for new content.
@@ -24,6 +23,13 @@ class HistoryUserTimestamp extends FilterPluginBase {
 
   // Don't display empty space where the operator would be.
   var $no_operator = TRUE;
+
+  /**
+   * {@inheritdoc}
+   */
+  public function usesGroupBy() {
+    return FALSE;
+  }
 
   public function buildExposeForm(&$form, &$form_state) {
     parent::buildExposeForm($form, $form_state);
@@ -53,9 +59,8 @@ class HistoryUserTimestamp extends FilterPluginBase {
   }
 
   public function query() {
-    global $user;
     // This can only work if we're authenticated in.
-    if (!$user->isAuthenticated()) {
+    if (!\Drupal::currentUser()->isAuthenticated()) {
       return;
     }
 
@@ -75,7 +80,7 @@ class HistoryUserTimestamp extends FilterPluginBase {
 
     $clause = '';
     $clause2 = '';
-    if (module_exists('comment')) {
+    if (\Drupal::moduleHandler()->moduleExists('comment')) {
       $ces = $this->query->ensureTable('comment_entity_statistics', $this->relationship);
       $clause = ("OR $ces.last_comment_timestamp > (***CURRENT_TIME*** - $limit)");
       $clause2 = "OR $field < $ces.last_comment_timestamp";

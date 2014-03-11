@@ -108,12 +108,11 @@ function taxonomy_tokens($type, $tokens, array $data = array(), array $options =
           break;
 
         case 'description':
-          $replacements[$original] = $sanitize ? check_markup($term->description->value, $term->format->value, '', TRUE) : $term->description->value;
+          $replacements[$original] = $sanitize ? $term->description->processed : $term->description->value;
           break;
 
         case 'url':
-          $uri = $term->uri();
-          $replacements[$original] = url($uri['path'], array_merge($uri['options'], array('absolute' => TRUE)));
+          $replacements[$original] = $term->url('canonical', array('absolute' => TRUE));
           break;
 
         case 'node-count':
@@ -167,21 +166,15 @@ function taxonomy_tokens($type, $tokens, array $data = array(), array $options =
           break;
 
         case 'term-count':
-          $query = db_select('taxonomy_term_data');
-          $query->condition('vid', $vocabulary->id());
-          $query->addTag('vocabulary_term_count');
-          $count = $query->countQuery()->execute()->fetchField();
-          $replacements[$original] = $count;
+          $replacements[$original] = \Drupal::entityQuery('taxonomy_term')
+            ->condition('vid', $vocabulary->id())
+            ->addTag('vocabulary_term_count')
+            ->count()
+            ->execute();
           break;
 
         case 'node-count':
-          $query = db_select('taxonomy_index', 'ti');
-          $query->addExpression('COUNT(DISTINCT ti.nid)');
-          $query->leftJoin('taxonomy_term_data', 'td', 'ti.tid = td.tid');
-          $query->condition('td.vid', $vocabulary->id());
-          $query->addTag('vocabulary_node_count');
-          $count = $query->execute()->fetchField();
-          $replacements[$original] = $count;
+          $replacements[$original] = \Drupal::entityManager()->getStorageController('taxonomy_term')->nodeCount($vocabulary->id());
           break;
       }
     }

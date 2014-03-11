@@ -71,7 +71,7 @@ class NodeTypeTest extends NodeTestBase {
       'title_label' => 'title for foo',
       'type' => 'foo',
     );
-    $this->drupalPostForm('admin/structure/types/add', $edit, t('Save content type'));
+    $this->drupalPostForm('admin/structure/types/add', $edit, t('Save and manage fields'));
     $type_exists = (bool) entity_load('node_type', 'foo');
     $this->assertTrue($type_exists, 'The new content type has been created in the database.');
   }
@@ -84,7 +84,7 @@ class NodeTypeTest extends NodeTestBase {
     $this->drupalLogin($web_user);
 
     $instance = field_info_instance('node', 'body', 'page');
-    $this->assertEqual($instance->getFieldLabel(), 'Body', 'Body field was found.');
+    $this->assertEqual($instance->getLabel(), 'Body', 'Body field was found.');
 
     // Verify that title and body fields are displayed.
     $this->drupalGet('node/add/page');

@@ -11,18 +11,14 @@ use Drupal\Core\Config\Entity\ConfigEntityBase;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Entity\EntityStorageControllerInterface;
 use Drupal\system\DateFormatInterface;
-use Drupal\Core\Entity\Annotation\EntityType;
-use Drupal\Core\Annotation\Translation;
 
 /**
  * Defines the Date Format configuration entity class.
  *
- * @EntityType(
+ * @ConfigEntityType(
  *   id = "date_format",
  *   label = @Translation("Date format"),
- *   module = "system",
  *   controllers = {
- *     "storage" = "Drupal\Core\Config\Entity\ConfigStorageController",
  *     "access" = "Drupal\system\DateFormatAccessController",
  *     "list" = "Drupal\system\DateFormatListController",
  *     "form" = {
@@ -37,8 +33,10 @@ use Drupal\Core\Annotation\Translation;
  *     "label" = "label",
  *     "uuid" = "uuid"
  *   },
+ *   admin_permission = "administer site configuration",
  *   links = {
- *     "edit-form" = "admin/config/regional/date-time/formats/manage/{date_format}"
+ *     "delete-form" = "system.date_format_delete",
+ *     "edit-form" = "system.date_format_edit"
  *   }
  * )
  */
@@ -80,18 +78,12 @@ class DateFormat extends ConfigEntityBase implements DateFormatInterface {
   protected $locked = FALSE;
 
   /**
-   * @var array
-   */
-  protected $locales = array();
-
-  /**
    * {@inheritdoc}
    */
   public function getExportProperties() {
     $properties = parent::getExportProperties();
     $names = array(
       'locked',
-      'locales',
       'pattern',
     );
     foreach ($names as $name) {
@@ -118,78 +110,8 @@ class DateFormat extends ConfigEntityBase implements DateFormatInterface {
   /**
    * {@inheritdoc}
    */
-  public function getLocales() {
-    return $this->locales;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function setLocales(array $locales) {
-    $this->locales = $locales;
-    return $this;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function hasLocales() {
-    return !empty($this->locales);
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function addLocale($locale) {
-    $this->locales[] = $locale;
-    $this->locales = array_unique($this->locales);
-    return $this;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function isLocked() {
     return (bool) $this->locked;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function preSave(EntityStorageControllerInterface $storage_controller) {
-    parent::preSave($storage_controller);
-
-    if ($this->hasLocales()) {
-      $config_factory = \Drupal::service('config.factory');
-      $properties = $this->getExportProperties();
-      $languages = language_list();
-      // Check if the suggested language codes are configured.
-      foreach ($this->getLocales() as $langcode) {
-        if (isset($languages[$langcode])) {
-          $config_factory->get('locale.config.' . $langcode . '.system.date_format.' . $this->id())
-            ->setData($properties)
-            ->save();
-        }
-      }
-    }
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function postDelete(EntityStorageControllerInterface $storage_controller, array $entities) {
-    parent::postDelete($storage_controller, $entities);
-
-    // Clean up the localized entry if required.
-    if (\Drupal::moduleHandler()->moduleExists('language')) {
-      $languages = language_list();
-      foreach ($entities as $entity) {
-        $format_id = $entity->id();
-        foreach ($languages as $langcode => $data) {
-          \Drupal::config("locale.config.$langcode.system.date_format.$format_id")->delete();
-        }
-      }
-    }
   }
 
 }

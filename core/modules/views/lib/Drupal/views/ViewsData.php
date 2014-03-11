@@ -8,10 +8,10 @@
 namespace Drupal\views;
 
 use Drupal\Core\Cache\CacheBackendInterface;
-use Drupal\Core\Config\ConfigFactory;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Language\Language;
-use Drupal\Core\Language\LanguageManager;
+use Drupal\Core\Language\LanguageManagerInterface;
 
 /**
  * Class to manage and lazy load cached views data.
@@ -75,7 +75,7 @@ class ViewsData {
   /**
    * The language manager
    *
-   * @var \Drupal\Core\Language\LanguageManager
+   * @var \Drupal\Core\Language\LanguageManagerInterface
    */
   protected $languageManager;
 
@@ -84,19 +84,19 @@ class ViewsData {
    *
    * @param \Drupal\Core\Cache\CacheBackendInterface $cache_backend
    *   The cache backend to use.
-   * @param \Drupal\Core\Config\ConfigFactory $config
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config
    *   The configuration factory object to use.
    * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
    *   The module handler class to use for invoking hooks.
-   * @param \Drupal\Core\Language\LanguageManager $language_manager
+   * @param \Drupal\Core\Language\LanguageManagerInterface $language_manager
    *   The language manager.
    */
-  public function __construct(CacheBackendInterface $cache_backend, ConfigFactory $config, ModuleHandlerInterface $module_handler, LanguageManager $language_manager) {
+  public function __construct(CacheBackendInterface $cache_backend, ConfigFactoryInterface $config, ModuleHandlerInterface $module_handler, LanguageManagerInterface $language_manager) {
     $this->cacheBackend = $cache_backend;
     $this->moduleHandler = $module_handler;
     $this->languageManager = $language_manager;
 
-    $this->langcode = $this->languageManager->getLanguage(Language::TYPE_INTERFACE)->id;
+    $this->langcode = $this->languageManager->getCurrentLanguage()->id;
     $this->skipCache = $config->get('views.settings')->get('skip_cache');
   }
 
@@ -113,7 +113,7 @@ class ViewsData {
   public function get($key = NULL) {
     if ($key) {
       if (!isset($this->storage[$key])) {
-        // Prepare a cache ID.
+        // Prepare a cache ID for get and set.
         $cid = $this->baseCid . ':' . $key;
 
         $from_cache = FALSE;
@@ -135,15 +135,11 @@ class ViewsData {
             $this->storage[$key] = array();
           }
           // Create a cache entry for the requested table.
-          $this->cacheBackend->set($this->prepareCid($cid), $this->storage[$key]);
+          $this->cacheSet($cid, $this->storage[$key]);
         }
       }
-      if (isset($this->storage[$key])) {
-        return $this->storage[$key];
-      }
 
-      // If the key is invalid, return an empty array.
-      return array();
+      return $this->storage[$key];
     }
     else {
       if (!$this->fullyLoaded) {
@@ -170,6 +166,18 @@ class ViewsData {
     }
 
     return $this->cacheBackend->get($this->prepareCid($cid));
+  }
+
+  /**
+   * Sets data to the cache backend.
+   *
+   * @param string $cid
+   *   The cache ID to set.
+   * @param mixed $data
+   *   The data that will be cached.
+   */
+  protected function cacheSet($cid, $data) {
+    return $this->cacheBackend->set($this->prepareCid($cid), $data);
   }
 
   /**
@@ -206,7 +214,7 @@ class ViewsData {
       $this->processEntityTypes($data);
 
       // Keep a record with all data.
-      $this->cacheBackend->set($this->prepareCid($this->baseCid), $data);
+      $this->cacheSet($this->baseCid, $data);
 
       return $data;
     }

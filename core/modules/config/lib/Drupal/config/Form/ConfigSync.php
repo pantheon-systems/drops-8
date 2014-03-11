@@ -7,15 +7,14 @@
 
 namespace Drupal\config\Form;
 
-use Drupal\Component\Uuid\UuidInterface;
-use Drupal\Core\Entity\EntityManager;
+use Drupal\Core\Config\ConfigManagerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Config\StorageInterface;
 use Drupal\Core\Lock\LockBackendInterface;
 use Drupal\Core\Config\StorageComparer;
 use Drupal\Core\Config\ConfigImporter;
 use Drupal\Core\Config\ConfigException;
-use Drupal\Core\Config\ConfigFactory;
+use Drupal\Core\Config\TypedConfigManager;
 use Drupal\Core\Routing\UrlGeneratorInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -54,9 +53,11 @@ class ConfigSync extends FormBase {
   protected $eventDispatcher;
 
   /**
-   * @var \Drupal\Core\Entity\EntityManager;
+   * The configuration manager.
+   *
+   * @var \Drupal\Core\Config\ConfigManagerInterface;
    */
-  protected $entity_manager;
+  protected $configManager;
 
   /**
    * URL generator service.
@@ -66,11 +67,11 @@ class ConfigSync extends FormBase {
   protected $urlGenerator;
 
   /**
-   * The UUID service.
+   * The typed config manager.
    *
-   * @var \Drupal\Component\Uuid\UuidInterface
+   * @var \Drupal\Core\Config\TypedConfigManager
    */
-  protected $uuidService;
+  protected $typedConfigManager;
 
   /**
    * Constructs the object.
@@ -83,24 +84,21 @@ class ConfigSync extends FormBase {
    *   The lock object.
    * @param \Symfony\Component\EventDispatcher\EventDispatcherInterface $event_dispatcher
    *   Event dispatcher.
-   * @param \Drupal\Core\Config\ConfigFactory $config_factory
-   *   The config factory.
-   * @param \Drupal\Core\Entity\EntityManager $entity_manager
-   *   Entity manager.
+   * @param \Drupal\Core\Config\ConfigManager
+   *   Configuration manager.
    * @param \Drupal\Core\Routing\UrlGeneratorInterface $url_generator
    *   The url generator service.
-   * @param \Drupal\Component\Uuid\UuidInterface $uuid_service
-   * The UUID Service.
+   * @param \Drupal\Core\Config\TypedConfigManager $typed_config
+   *   The typed configuration manager.
    */
-  public function __construct(StorageInterface $sourceStorage, StorageInterface $targetStorage, LockBackendInterface $lock, EventDispatcherInterface $event_dispatcher, ConfigFactory $config_factory, EntityManager $entity_manager, UrlGeneratorInterface $url_generator, UuidInterface $uuid_service) {
+  public function __construct(StorageInterface $sourceStorage, StorageInterface $targetStorage, LockBackendInterface $lock, EventDispatcherInterface $event_dispatcher, ConfigManagerInterface $config_manager, UrlGeneratorInterface $url_generator, TypedConfigManager $typed_config) {
     $this->sourceStorage = $sourceStorage;
     $this->targetStorage = $targetStorage;
     $this->lock = $lock;
     $this->eventDispatcher = $event_dispatcher;
-    $this->configFactory = $config_factory;
-    $this->entity_manager = $entity_manager;
+    $this->configManager = $config_manager;
     $this->urlGenerator = $url_generator;
-    $this->uuidService = $uuid_service;
+    $this->typedConfigManager = $typed_config;
   }
 
   /**
@@ -112,10 +110,9 @@ class ConfigSync extends FormBase {
       $container->get('config.storage'),
       $container->get('lock'),
       $container->get('event_dispatcher'),
-      $container->get('config.factory'),
-      $container->get('entity.manager'),
+      $container->get('config.manager'),
       $container->get('url_generator'),
-      $container->get('uuid')
+      $container->get('config.typed')
     );
   }
 
@@ -137,23 +134,31 @@ class ConfigSync extends FormBase {
     );
 
     $source_list = $this->sourceStorage->listAll();
-    $config_comparer = new StorageComparer($this->sourceStorage, $this->targetStorage);
-    if (empty($source_list) || !$config_comparer->createChangelist()->hasChanges()) {
+    $storage_comparer = new StorageComparer($this->sourceStorage, $this->targetStorage);
+    if (empty($source_list) || !$storage_comparer->createChangelist()->hasChanges()) {
       $form['no_changes'] = array(
-        '#markup' => $this->t('There are no configuration changes.'),
+        '#theme' => 'table',
+        '#header' => array('Name', 'Operations'),
+        '#rows' => array(),
+        '#empty' => $this->t('There are no configuration changes.'),
       );
+      $form['actions']['#access'] = FALSE;
+      return $form;
+    }
+    elseif (!$storage_comparer->validateSiteUuid()) {
+      drupal_set_message($this->t('The staged configuration cannot be imported, because it originates from a different site than this site. You can only synchronize configuration between cloned instances of this site.'), 'error');
       $form['actions']['#access'] = FALSE;
       return $form;
     }
     else {
       // Store the comparer for use in the submit.
-      $form_state['storage_comparer'] = $config_comparer;
+      $form_state['storage_comparer'] = $storage_comparer;
     }
 
     // Add the AJAX library to the form for dialog support.
     $form['#attached']['library'][] = array('system', 'drupal.ajax');
 
-    foreach ($config_comparer->getChangelist() as $config_change_type => $config_files) {
+    foreach ($storage_comparer->getChangelist() as $config_change_type => $config_files) {
       if (empty($config_files)) {
         continue;
       }
@@ -216,10 +221,9 @@ class ConfigSync extends FormBase {
     $config_importer = new ConfigImporter(
       $form_state['storage_comparer'],
       $this->eventDispatcher,
-      $this->configFactory,
-      $this->entity_manager,
+      $this->configManager,
       $this->lock,
-      $this->uuidService
+      $this->typedConfigManager
     );
     if ($config_importer->alreadyImporting()) {
       drupal_set_message($this->t('Another request may be synchronizing configuration already.'));

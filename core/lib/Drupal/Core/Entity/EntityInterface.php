@@ -20,7 +20,7 @@ interface EntityInterface extends AccessibleInterface {
    * The UUID is guaranteed to be unique and can be used to identify an entity
    * across multiple systems.
    *
-   * @return string
+   * @return string|null
    *   The UUID of the entity, or NULL if the entity does not have one.
    */
   public function uuid();
@@ -48,7 +48,7 @@ interface EntityInterface extends AccessibleInterface {
    * Usually an entity is new if no ID exists for it yet. However, entities may
    * be enforced to be new with existing IDs too.
    *
-   * @return
+   * @return bool
    *   TRUE if the entity is new, or FALSE if the entity has already been saved.
    *
    * @see \Drupal\Core\Entity\EntityInterface::enforceIsNew()
@@ -70,48 +70,103 @@ interface EntityInterface extends AccessibleInterface {
   public function enforceIsNew($value = TRUE);
 
   /**
-   * Returns the type of the entity.
+   * Returns the ID of the type of the entity.
    *
-   * @return
-   *   The type of the entity.
+   * @return string
+   *   The entity type ID.
    */
-  public function entityType();
+  public function getEntityTypeId();
 
   /**
    * Returns the bundle of the entity.
    *
-   * @return
-   *   The bundle of the entity. Defaults to the entity type if the entity type
-   *   does not make use of different bundles.
+   * @return string
+   *   The bundle of the entity. Defaults to the entity type ID if the entity
+   *   type does not make use of different bundles.
    */
   public function bundle();
 
   /**
    * Returns the label of the entity.
    *
-   * @param $langcode
-   *   (optional) The language code of the language that should be used for
-   *   getting the label. If set to NULL, the entity's default language is
-   *   used.
-   *
-   * @return
+   * @return string|null
    *   The label of the entity, or NULL if there is no label defined.
    */
-  public function label($langcode = NULL);
+  public function label();
 
   /**
    * Returns the URI elements of the entity.
    *
-   * @return
+   * URI templates might be set in the links array in an annotation, for
+   * example:
+   * @code
+   * links = {
+   *   "canonical" = "node.view",
+   *   "edit-form" = "node.page_edit",
+   *   "version-history" = "node.revision_overview"
+   * }
+   * @endcode
+   * or specified in a callback function set like:
+   * @code
+   * uri_callback = "comment_uri",
+   * @endcode
+   * If the path is not set in the links array, the uri_callback function is
+   * used for setting the path. If this does not exist and the link relationship
+   * type is canonical, the path is set using the default template:
+   * entity/entityType/id.
+   *
+   * @param string $rel
+   *   The link relationship type, for example: canonical or edit-form.
+   *
+   * @return mixed[]
    *   An array containing the 'path' and 'options' keys used to build the URI
    *   of the entity, and matching the signature of url().
    */
-  public function uri();
+  public function urlInfo($rel = 'canonical');
+
+  /**
+   * Returns the public URL for this entity.
+   *
+   * @param string $rel
+   *   The link relationship type, for example: canonical or edit-form.
+   * @param array $options
+   *   See \Drupal\Core\Routing\UrlGeneratorInterface::generateFromRoute() for
+   *   the available options.
+   *
+   * @return string
+   *   The URL for this entity.
+   */
+  public function url($rel = 'canonical', $options = array());
+
+  /**
+   * Returns the internal path for this entity.
+   *
+   * self::url() will return the full path including any prefixes, fragments, or
+   * query strings. This path does not include those.
+   *
+   * @param string $rel
+   *   The link relationship type, for example: canonical or edit-form.
+   *
+   * @return string
+   *   The internal path for this entity.
+   */
+  public function getSystemPath($rel = 'canonical');
+
+  /**
+   * Indicates if a link template exists for a given key.
+   *
+   * @param string $key
+   *   The link type.
+   *
+   * @return bool
+   *   TRUE if the link template exists, FALSE otherwise.
+   */
+  public function hasLinkTemplate($key);
 
   /**
    * Returns a list of URI relationships supported by this entity.
    *
-   * @return array
+   * @return string[]
    *   An array of link relationships supported by this entity.
    */
   public function uriRelationships();
@@ -122,7 +177,7 @@ interface EntityInterface extends AccessibleInterface {
    * When saving existing entities, the entity is assumed to be complete,
    * partial updates of entities are not supported.
    *
-   * @return
+   * @return int
    *   Either SAVED_NEW or SAVED_UPDATED, depending on the operation performed.
    *
    * @throws \Drupal\Core\Entity\EntityStorageException
@@ -189,7 +244,7 @@ interface EntityInterface extends AccessibleInterface {
    *
    * @param EntityStorageControllerInterface $storage_controller
    *   The entity storage controller object.
-   * @param array $entities
+   * @param \Drupal\Core\Entity\EntityInterface[] $entities
    *   An array of entities.
    */
   public static function preDelete(EntityStorageControllerInterface $storage_controller, array $entities);
@@ -201,48 +256,44 @@ interface EntityInterface extends AccessibleInterface {
    *
    * @param EntityStorageControllerInterface $storage_controller
    *   The entity storage controller object.
-   * @param array $entities
+   * @param \Drupal\Core\Entity\EntityInterface[] $entities
    *   An array of entities.
    */
   public static function postDelete(EntityStorageControllerInterface $storage_controller, array $entities);
 
   /**
-   * Acts on loaded entities before the load hook is invoked.
+   * Acts on loaded entities.
    *
    * @param EntityStorageControllerInterface $storage_controller
    *   The entity storage controller object.
-   * @param array $entities
+   * @param \Drupal\Core\Entity\EntityInterface[] $entities
    *   An array of entities.
    */
-  public static function postLoad(EntityStorageControllerInterface $storage_controller, array $entities);
+  public static function postLoad(EntityStorageControllerInterface $storage_controller, array &$entities);
 
   /**
    * Creates a duplicate of the entity.
    *
-   * @return \Drupal\Core\Entity\EntityInterface
-   *   A clone of the current entity with all identifiers unset, so saving
-   *   it inserts a new entity into the storage system.
+   * @return static
+   *   A clone of $this with all identifiers unset, so saving it inserts a new
+   *   entity into the storage system.
    */
   public function createDuplicate();
 
   /**
-   * Returns the info of the type of the entity.
+   * Returns the entity type definition.
    *
-   * @see entity_get_info()
+   * @return \Drupal\Core\Entity\EntityTypeInterface
+   *   Entity type definition.
    */
-  public function entityInfo();
+  public function getEntityType();
 
   /**
    * Returns a list of entities referenced by this entity.
    *
-   * @return array
+   * @return \Drupal\Core\Entity\EntityInterface[]
    *   An array of entities.
    */
   public function referencedEntities();
-
-  /**
-   * Acts on an entity after it was saved or deleted.
-   */
-  public function changed();
 
 }

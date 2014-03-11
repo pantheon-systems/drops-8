@@ -93,6 +93,12 @@ class CommentAdminTest extends CommentTestBase {
     $this->assertText(t('Are you sure you want to delete these comments and all their children?'), 'Confirmation required.');
     $this->drupalPostForm(NULL, $edit, t('Delete comments'));
     $this->assertText(t('No comments available.'), 'All comments were deleted.');
+    // Test message when no comments selected.
+    $edit = array(
+      'operation' => 'delete',
+    );
+    $this->drupalPostForm(NULL, $edit, t('Update'));
+    $this->assertText(t('Select one or more comments to perform the update on.'));
   }
 
   /**
@@ -137,7 +143,7 @@ class CommentAdminTest extends CommentTestBase {
     $this->drupalGet('comment/1/approve', array('query' => array('token' => 'forged')));
     $this->assertResponse(403, 'Forged comment approval was denied.');
     $this->drupalGet('node/' . $this->node->id());
-    $this->clickLink(t('approve'));
+    $this->clickLink(t('Approve'));
     $this->drupalLogout();
 
     $this->drupalGet('node/' . $this->node->id());

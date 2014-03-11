@@ -12,30 +12,7 @@
  */
 
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\edit\Form\EditFieldForm;
-use Drupal\Component\Utility\NestedArray;
-use Drupal\entity\Entity\EntityDisplay;
-use Drupal\user\TempStoreFactory;
-
-/**
- * Implements hook_menu().
- */
-function edit_menu() {
-  // @todo Remove these menu items in http://drupal.org/node/1954892 when theme
-  //   callbacks are replaced with something else.
-  $items['edit/metadata'] = array(
-    'route_name' => 'edit.metadata',
-    'theme callback' => 'ajax_base_page_theme',
-    'type' => MENU_CALLBACK,
-  );
-  $items['edit/form/%/%/%/%/%'] = array(
-    'route_name' => 'edit.field_form',
-    'theme callback' => 'ajax_base_page_theme',
-    'type' => MENU_CALLBACK,
-  );
-
-  return $items;
-}
+use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 
 /**
  * Implements hook_permission().
@@ -59,13 +36,12 @@ function edit_page_build(&$page) {
     return;
   }
 
-  $page['#attached']['js'][] = array(
-    'type' => 'setting',
-    'data' => array('edit' => array(
-      'fieldFormURL' => url('edit/form/!entity_type/!id/!field_name/!langcode/!view_mode'),
-      'context' => 'body',
-    )),
-  );
+  // In-place editing is only supported on the front-end.
+  $path = \Drupal::request()->attributes->get('_system_path');
+  if (path_is_admin($path)) {
+    return;
+  }
+
   $page['#attached']['library'][] = array('edit', 'edit');
 }
 
@@ -83,21 +59,22 @@ function edit_library_info() {
     'js' => array(
       // Core.
       $path . '/js/edit.js' => $options,
+      $path . '/js/util.js' => $options,
       // Models.
+      $path . '/js/models/BaseModel.js' => $options,
       $path . '/js/models/AppModel.js' => $options,
       $path . '/js/models/EntityModel.js' => $options,
       $path . '/js/models/FieldModel.js' => $options,
       $path . '/js/models/EditorModel.js' => $options,
       // Views.
       $path . '/js/views/AppView.js' => $options,
-      $path . '/js/views/EditorDecorationView.js' => $options,
-      $path . '/js/views/EntityView.js' => $options,
+      $path . '/js/views/FieldDecorationView.js' => $options,
+      $path . '/js/views/EntityDecorationView.js' => $options,
       $path . '/js/views/EntityToolbarView.js' => $options,
       $path . '/js/views/ContextualLinkView.js' => $options,
       $path . '/js/views/FieldToolbarView.js' => $options,
       $path . '/js/views/EditorView.js' => $options,
       // Other.
-      $path . '/js/util.js' => $options,
       $path . '/js/theme.js' => $options,
     ),
     'css' => array(
@@ -111,6 +88,7 @@ function edit_library_info() {
       array('system', 'backbone'),
       array('system', 'jquery.form'),
       array('system', 'jquery.ui.position'),
+      array('system', 'drupal'),
       array('system', 'drupal.displace'),
       array('system', 'drupal.form'),
       array('system', 'drupal.ajax'),
@@ -119,7 +97,7 @@ function edit_library_info() {
       array('system', 'drupal.dialog'),
     ),
   );
-  $libraries['edit.editorWidget.form'] = array(
+  $libraries['edit.inPlaceEditor.form'] = array(
     'title' => 'Form in-place editor',
     'version' => \Drupal::VERSION,
     'js' => array(
@@ -129,11 +107,11 @@ function edit_library_info() {
       array('edit', 'edit'),
     ),
   );
-  $libraries['edit.editorWidget.direct'] = array(
-    'title' => 'Direct in-place editor',
+  $libraries['edit.inPlaceEditor.plainText'] = array(
+    'title' => 'Plain text in-place editor',
     'version' => \Drupal::VERSION,
     'js' => array(
-      $path . '/js/editors/directEditor.js' => $options,
+      $path . '/js/editors/plainTextEditor.js' => $options,
     ),
     'dependencies' => array(
       array('edit', 'edit'),
@@ -164,12 +142,13 @@ function edit_library_info_alter(&$libraries, $module) {
  *
  * Edit extends the @FieldFormatter annotation with the following keys:
  * - edit: currently only contains one subkey 'editor' which indicates which
- *   in-place editor should be used. Possible values are 'form', 'direct' or
- *   'disabled'.
+ *   in-place editor should be used. Possible values are 'form', 'plain_text',
+ *   'disabled' or another in-place editor other than the ones Edit module
+ *   provides.
  */
 function edit_field_formatter_info_alter(&$info) {
   foreach ($info as $key => $settings) {
-    // Set in-place editor to form if none is supplied.
+    // Set in-place editor to 'form' if none is supplied.
     if (empty($settings['edit'])) {
       $info[$key]['edit'] = array('editor' => 'form');
     }
@@ -181,21 +160,30 @@ function edit_field_formatter_info_alter(&$info) {
  */
 function edit_preprocess_field(&$variables) {
   $element = $variables['element'];
+  /** @var $entity \Drupal\Core\Entity\EntityInterface */
   $entity = $element['#object'];
+
+  // Edit module only supports view modes, not dynamically defined "display
+  // options" (which field_view_field() always names the "_custom" view mode).
+  // @see field_view_field()
+  // @see https://drupal.org/node/2120335
+  if ($element['#view_mode'] === '_custom') {
+    return;
+  }
 
   // Fields that are not part of the entity (i.e. dynamically injected "pseudo
   // fields") and computed fields are not editable.
   $definition = $entity->getPropertyDefinition($element['#field_name']);
-  if ($definition && empty($definition['computed'])) {
-    $variables['attributes']['data-edit-id'] = $entity->entityType() . '/' . $entity->id() . '/' . $element['#field_name'] . '/' . $element['#language'] . '/' . $element['#view_mode'];
+  if ($definition && !$definition->isComputed()) {
+    $variables['attributes']['data-edit-field-id'] = $entity->getEntityTypeId() . '/' . $entity->id() . '/' . $element['#field_name'] . '/' . $element['#language'] . '/' . $element['#view_mode'];
   }
 }
 
 /**
  * Implements hook_entity_view_alter().
  */
-function edit_entity_view_alter(&$build, EntityInterface $entity, EntityDisplay $display) {
-  $build['#attributes']['data-edit-entity'] = $entity->entityType() . '/' . $entity->id();
+function edit_entity_view_alter(&$build, EntityInterface $entity, EntityViewDisplayInterface $display) {
+  $build['#attributes']['data-edit-entity-id'] = $entity->getEntityTypeId() . '/' . $entity->id();
 }
 
 /**

@@ -1,4 +1,5 @@
 <?php
+use Drupal\Core\Entity\EntityInterface;
 
 /**
  * @file
@@ -9,6 +10,7 @@
  * Implements hook_entity_info().
  */
 function field_test_entity_info() {
+  /** @var $entity_info \Drupal\Core\Entity\EntityTypeInterface[] */
   // If requested, clear the field cache while this is being called. See
   // Drupal\field\Tests\FieldInfoTest::testFieldInfoCache().
   if (\Drupal::state()->get('field_test.clear_info_cache_in_hook_entity_info')) {
@@ -20,8 +22,9 @@ function field_test_entity_info() {
  * Implements hook_entity_info_alter().
  */
 function field_test_entity_info_alter(&$entity_info) {
+  /** @var $entity_info \Drupal\Core\Entity\EntityTypeInterface[] */
   foreach (field_test_entity_info_translatable() as $entity_type => $translatable) {
-    $entity_info[$entity_type]['translatable'] = $translatable;
+    $entity_info[$entity_type]->set('translatable', $translatable);
   }
 }
 
@@ -29,7 +32,6 @@ function field_test_entity_info_alter(&$entity_info) {
  * Helper function to enable entity translations.
  */
 function field_test_entity_info_translatable($entity_type = NULL, $translatable = NULL) {
-  drupal_static_reset('field_has_translation_handler');
   $stored_value = &drupal_static(__FUNCTION__, array());
   if (isset($entity_type)) {
     $stored_value[$entity_type] = $translatable;
@@ -43,7 +45,7 @@ function field_test_entity_info_translatable($entity_type = NULL, $translatable 
  *
  * @deprecated Use \Drupal\field_test\Form\FieldTestForm::testEntityNestedForm()
  */
-function field_test_entity_nested_form($form, &$form_state, $entity_1, $entity_2) {
+function field_test_entity_nested_form($form, &$form_state, EntityInterface $entity_1, EntityInterface $entity_2) {
   // First entity.
   foreach (array('id', 'type') as $key) {
     $form[$key] = array(
@@ -51,7 +53,7 @@ function field_test_entity_nested_form($form, &$form_state, $entity_1, $entity_2
       '#value' => $entity_1->$key->value,
     );
   }
-  $form_state['form_display'] = entity_get_form_display($entity_1->entityType(), $entity_1->bundle(), 'default');
+  $form_state['form_display'] = entity_get_form_display($entity_1->getEntityTypeId(), $entity_1->bundle(), 'default');
   field_attach_form($entity_1, $form, $form_state);
 
   // Second entity.
@@ -68,7 +70,7 @@ function field_test_entity_nested_form($form, &$form_state, $entity_1, $entity_2
       '#value' => $entity_2->$key->value,
     );
   }
-  $form_state['form_display'] = entity_get_form_display($entity_1->entityType(), $entity_1->bundle(), 'default');
+  $form_state['form_display'] = entity_get_form_display($entity_1->getEntityTypeId(), $entity_1->bundle(), 'default');
   field_attach_form($entity_2, $form['entity_2'], $form_state);
 
   $form['save'] = array(

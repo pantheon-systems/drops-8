@@ -7,16 +7,12 @@
 
 namespace Drupal\config_test\Entity;
 
-use Drupal\Core\Entity\Annotation\EntityType;
-use Drupal\Core\Annotation\Translation;
-
 /**
  * Defines the ConfigQueryTest configuration entity used by the query test.
  *
- * @EntityType(
+ * @ConfigEntityType(
  *   id = "config_query_test",
  *   label = @Translation("Test configuration for query"),
- *   module = "config_test",
  *   controllers = {
  *     "storage" = "Drupal\config_test\ConfigTestStorageController",
  *     "list" = "Drupal\Core\Config\Entity\ConfigEntityListController",
@@ -29,9 +25,6 @@ use Drupal\Core\Annotation\Translation;
  *     "id" = "id",
  *     "label" = "label",
  *     "uuid" = "uuid"
- *   },
- *   links = {
- *     "edit-form" = "admin/structure/config_test/manage/{config_query_test}"
  *   }
  * )
  *

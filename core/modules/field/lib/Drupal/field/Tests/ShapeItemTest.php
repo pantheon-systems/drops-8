@@ -7,8 +7,8 @@
 
 namespace Drupal\field\Tests;
 
-use Drupal\Core\Entity\Field\FieldItemInterface;
-use Drupal\Core\Entity\Field\FieldItemListInterface;
+use Drupal\Core\Field\FieldItemInterface;
+use Drupal\Core\Field\FieldItemListInterface;
 
 /**
  * Tests the new entity API for the shape field type.
@@ -60,7 +60,7 @@ class ShapeItemTest extends FieldUnitTestBase {
    */
   public function testShapeItem() {
     // Verify entity creation.
-    $entity = entity_create('entity_test', array());
+    $entity = entity_create('entity_test');
     $shape = 'cube';
     $color = 'blue';
     $entity->{$this->field_name}->shape = $shape;

@@ -7,7 +7,7 @@
 
 namespace Drupal\book;
 
-use Drupal\Core\Entity\EntityManager;
+use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\node\NodeInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -26,21 +26,21 @@ class BookExport {
   protected $nodeStorage;
 
   /**
-   * The node render controller.
+   * The node view builder.
    *
-   * @var \Drupal\Core\Entity\EntityRenderControllerInterface
+   * @var \Drupal\Core\Entity\EntityViewBuilderInterface
    */
-  protected $nodeRender;
+  protected $viewBuilder;
 
   /**
    * Constructs a BookExport object.
    *
-   * @param \Drupal\Core\Entity\EntityManager $entityManager
+   * @param \Drupal\Core\Entity\EntityManagerInterface $entityManager
    *   The entity manager.
    */
-  public function __construct(EntityManager $entityManager) {
+  public function __construct(EntityManagerInterface $entityManager) {
     $this->nodeStorage = $entityManager->getStorageController('node');
-    $this->nodeRender = $entityManager->getRenderController('node');
+    $this->viewBuilder = $entityManager->getViewBuilder('node');
   }
 
   /**
@@ -68,7 +68,7 @@ class BookExport {
       throw new \Exception();
     }
 
-    $tree = book_menu_subtree_data($node->book);
+    $tree = \Drupal::service('book.manager')->bookMenuSubtreeData($node->book);
     $contents = $this->exportTraverse($tree, array($this, 'bookNodeExport'));
     return array(
       '#theme' => 'book_export_html',
@@ -125,7 +125,7 @@ class BookExport {
    * @see \Drupal\book\BookExport::exportTraverse()
    */
   protected function bookNodeExport(NodeInterface $node, $children = '') {
-    $build = $this->nodeRender->view($node, 'print', NULL);
+    $build = $this->viewBuilder->view($node, 'print', NULL);
     unset($build['#theme']);
 
     // @todo Rendering should happen in the template using render().

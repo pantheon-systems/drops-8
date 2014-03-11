@@ -7,8 +7,7 @@
 
 namespace Drupal\Core\TypedData\Plugin\DataType;
 
-use Drupal\Core\TypedData\Annotation\DataType;
-use Drupal\Core\Annotation\Translation;
+use Drupal\Core\TypedData\DataDefinition;
 use Drupal\Core\TypedData\TypedData;
 use Drupal\Core\TypedData\ComplexDataInterface;
 
@@ -49,9 +48,7 @@ class Map extends TypedData implements \IteratorAggregate, ComplexDataInterface 
   public function getPropertyDefinitions() {
     $definitions = array();
     foreach ($this->values as $name => $value) {
-      $definitions[$name] = array(
-        'type' => 'any',
-      );
+      $definitions[$name] = DataDefinition::create('any');
     }
     return $definitions;
   }
@@ -63,7 +60,7 @@ class Map extends TypedData implements \IteratorAggregate, ComplexDataInterface 
     // Update the values and return them.
     foreach ($this->properties as $name => $property) {
       $definition = $property->getDefinition();
-      if ($include_computed || empty($definition['computed'])) {
+      if ($include_computed || !$definition->isComputed()) {
         $value = $property->getValue();
         // Only write NULL values if the whole map is not NULL.
         if (isset($this->values) || isset($value)) {
@@ -122,7 +119,7 @@ class Map extends TypedData implements \IteratorAggregate, ComplexDataInterface 
         $value = $this->values[$property_name];
       }
       // If the property is unknown, this will throw an exception.
-      $this->properties[$property_name] = \Drupal::typedData()->getPropertyInstance($this, $property_name, $value);
+      $this->properties[$property_name] = \Drupal::typedDataManager()->getPropertyInstance($this, $property_name, $value);
     }
     return $this->properties[$property_name];
   }
@@ -150,7 +147,7 @@ class Map extends TypedData implements \IteratorAggregate, ComplexDataInterface 
   public function getProperties($include_computed = FALSE) {
     $properties = array();
     foreach ($this->getPropertyDefinitions() as $name => $definition) {
-      if ($include_computed || empty($definition['computed'])) {
+      if ($include_computed || !$definition->isComputed()) {
         $properties[$name] = $this->get($name);
       }
     }
@@ -203,7 +200,7 @@ class Map extends TypedData implements \IteratorAggregate, ComplexDataInterface 
   public function isEmpty() {
     foreach ($this->properties as $property) {
       $definition = $property->getDefinition();
-      if (empty($definition['computed']) && $property->getValue() !== NULL) {
+      if (!$definition->isComputed() && $property->getValue() !== NULL) {
         return FALSE;
       }
     }

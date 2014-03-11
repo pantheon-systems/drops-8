@@ -7,8 +7,8 @@
 
 namespace Drupal\views\Plugin\Derivative;
 
+use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Plugin\Discovery\ContainerDerivativeInterface;
-use Drupal\Core\Entity\EntityManager;
 use Drupal\views\ViewsData;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -38,7 +38,7 @@ class ViewsEntityRow implements ContainerDerivativeInterface {
   /**
    * The entity manager.
    *
-   * @var \Drupal\Core\Entity\EntityManager
+   * @var \Drupal\Core\Entity\EntityManagerInterface
    */
   protected $entityManager;
 
@@ -54,12 +54,12 @@ class ViewsEntityRow implements ContainerDerivativeInterface {
    *
    * @param string $base_plugin_id
    *   The base plugin ID.
-   * @param \Drupal\Core\Entity\EntityManager $entity_manager
+   * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
    *   The entity manager.
    * @param \Drupal\views\ViewsData $views_data
    *   The views data service.
    */
-  public function __construct($base_plugin_id, EntityManager $entity_manager, ViewsData $views_data) {
+  public function __construct($base_plugin_id, EntityManagerInterface $entity_manager, ViewsData $views_data) {
     $this->basePluginId = $base_plugin_id;
     $this->entityManager = $entity_manager;
     $this->viewsData = $views_data;
@@ -91,16 +91,16 @@ class ViewsEntityRow implements ContainerDerivativeInterface {
    * {@inheritdoc}
    */
   public function getDerivativeDefinitions(array $base_plugin_definition) {
-    foreach ($this->entityManager->getDefinitions() as $entity_type => $entity_info) {
+    foreach ($this->entityManager->getDefinitions() as $entity_type_id => $entity_type) {
       // Just add support for entity types which have a views integration.
-      if (isset($entity_info['base_table']) && $this->viewsData->get($entity_info['base_table']) && $this->entityManager->hasController($entity_type, 'render')) {
-        $this->derivatives[$entity_type] = array(
-          'id' => 'entity:' . $entity_type,
+      if (($base_table = $entity_type->getBaseTable()) && $this->viewsData->get($base_table) && $this->entityManager->hasController($entity_type_id, 'view_builder')) {
+        $this->derivatives[$entity_type_id] = array(
+          'id' => 'entity:' . $entity_type_id,
           'provider' => 'views',
-          'title' => $entity_info['label'],
-          'help' => t('Display the @label', array('@label' => $entity_info['label'])),
-          'base' => array($entity_info['base_table']),
-          'entity_type' => $entity_type,
+          'title' => $entity_type->getLabel(),
+          'help' => t('Display the @label', array('@label' => $entity_type->getLabel())),
+          'base' => array($base_table),
+          'entity_type' => $entity_type_id,
           'display_types' => array('normal'),
           'class' => $base_plugin_definition['class'],
         );

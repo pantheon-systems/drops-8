@@ -16,13 +16,13 @@ use Drupal\Component\Utility\Url;
  *
  * @return
  *  The number of the current requested page, within the pager represented by
- *  $element. This is determined from the URL query parameter $_GET['page'], or
- *  0 by default. Note that this number may differ from the actual page being
- *  displayed. For example, if a search for "example text" brings up three
- *  pages of results, but a users visits search/node/example+text?page=10, this
- *  function will return 10, even though the default pager implementation
- *  adjusts for this and still displays the third page of search results at
- *  that URL.
+ *  $element. This is determined from the URL query parameter
+ *  \Drupal::request()->query->get('page'), or 0 by default. Note that this
+ *  number may differ from the actual page being displayed. For example, if a
+ *  search for "example text" brings up three pages of results, but a users
+ *  visits search/node/example+text?page=10, this function will return 10, even
+ *  though the default pager implementation adjusts for this and still displays
+ * the third page of search results at that URL.
  *
  * @see pager_default_initialize()
  */
@@ -36,10 +36,10 @@ function pager_find_page($element = 0) {
 }
 
 /**
- * Initializes a pager for theme('pager').
+ * Initializes a pager for _theme('pager').
  *
  * This function sets up the necessary global variables so that future calls
- * to theme('pager') will render a pager that correctly corresponds to the
+ * to _theme('pager') will render a pager that correctly corresponds to the
  * items being displayed.
  *
  * If the items being displayed result from a database query performed using
@@ -61,16 +61,20 @@ function pager_find_page($element = 0) {
  *   // First find the total number of items and initialize the pager.
  *   $where = "status = 1";
  *   $total = mymodule_select("SELECT COUNT(*) FROM data " . $where)->result();
- *   $num_per_page = variable_get('mymodule_num_per_page', 10);
+ *   $num_per_page = \Drupal::config('mymodule.settings')->get('num_per_page');
  *   $page = pager_default_initialize($total, $num_per_page);
  *
  *   // Next, retrieve and display the items for the current page.
  *   $offset = $num_per_page * $page;
  *   $result = mymodule_select("SELECT * FROM data " . $where . " LIMIT %d, %d", $offset, $num_per_page)->fetchAll();
- *   $output = theme('mymodule_results', array('result' => $result));
+ *   $output = drupal_render(
+ *     '#theme' => 'mymodule_results',
+ *     '#result' => $result,
+ *   );
  *
  *   // Finally, display the pager controls, and return.
- *   $output .= theme('pager');
+ *   $pager = array('#theme' => 'pager');
+ *   $output .= drupal_render($pager);
  *   return $output;
  * @endcode
  *
@@ -85,7 +89,7 @@ function pager_find_page($element = 0) {
  *   // parameter corresponds to an actual page of results that will exist
  *   // within the set.
  *   $page = pager_find_page();
- *   $num_per_page = variable_get('mymodule_num_per_page', 10);
+ *   $num_per_page = \Drupal::config('mymodule.settings')->get('num_per_page');
  *   $offset = $num_per_page * $page;
  *   $result = mymodule_remote_search($keywords, $offset, $num_per_page);
  *
@@ -93,10 +97,16 @@ function pager_find_page($element = 0) {
  *   pager_default_initialize($result->total, $num_per_page);
  *
  *   // Display the search results.
- *   $output = theme('search_results', array('results' => $result->data, 'type' => 'remote'));
+ *   $search_results = array(
+ *     '#theme' => 'search_results',
+ *     '#results' => $result->data,
+ *     '#type' => 'remote',
+ *   );
+ *   $output = drupal_render($search_results);
  *
  *   // Finally, display the pager controls, and return.
- *   $output .= theme('pager');
+ *   $pager = array('#theme' => 'pager');
+ *   $output .= drupal_render($pager);
  *   return $output;
  * @endcode
  *
@@ -109,10 +119,11 @@ function pager_find_page($element = 0) {
  *
  * @return
  *   The number of the current page, within the pager represented by $element.
- *   This is determined from the URL query parameter $_GET['page'], or 0 by
- *   default. However, if a page that does not correspond to the actual range
- *   of the result set was requested, this function will return the closest
- *   page actually within the result set.
+ *   This is determined from the URL query parameter
+ *   \Drupal::request()->query->get('page), or 0 by default. However, if a page
+ *   that does not correspond to the actual range of the result set was
+ *   requested, this function will return the closest page actually within the
+ *   result set.
  */
 function pager_default_initialize($total, $limit, $element = 0) {
   global $pager_page_array, $pager_total, $pager_total_items, $pager_limits;
@@ -147,9 +158,9 @@ function pager_get_query_parameters() {
  *
  * Default template: pager.html.twig.
  *
- * Menu callbacks that display paged query results should call theme('pager') to
- * retrieve a pager control so that users can view other results. Format a list
- * of nearby pages with additional query results.
+ * Menu callbacks that display paged query results should call _theme('pager')
+ * to retrieve a pager control so that users can view other results. Format a
+ * list of nearby pages with additional query results.
  *
  * @param array $variables
  *   An associative array containing:

@@ -12,6 +12,7 @@ use Drupal\Tests\UnitTestCase;
 use Drupal\views\ViewExecutable;
 use Drupal\views_ui\ViewUI;
 use Symfony\Component\DependencyInjection\Container;
+use Symfony\Component\DependencyInjection\ContainerBuilder;
 
 /**
  * Tests the ViewUI class.
@@ -33,7 +34,7 @@ class ViewUIObjectTest extends UnitTestCase {
    */
   public function testEntityDecoration() {
     $method_args = array();
-    $method_args['setOriginalID'] = array(12);
+    $method_args['setOriginalId'] = array(12);
     $method_args['setStatus'] = array(TRUE);
     $method_args['enforceIsNew'] = array(FALSE);
     $method_args['label'] = array(Language::LANGCODE_NOT_SPECIFIED);
@@ -45,7 +46,8 @@ class ViewUIObjectTest extends UnitTestCase {
 
       // EntityInterface::isNew() is missing from the list of methods, because it
       // calls id(), which breaks the ->expect($this->once()) call. Call it later.
-      if ($reflection_method->getName() != 'isNew') {
+      // EntityInterface::isSyncing() is only called during syncing process.
+      if ($reflection_method->getName() != 'isNew' && $reflection_method->getName() != 'isSyncing') {
         if (count($reflection_method->getParameters()) == 0) {
           $method_args[$reflection_method->getName()] = array();
         }
@@ -72,6 +74,48 @@ class ViewUIObjectTest extends UnitTestCase {
     $storage->expects($this->once())
       ->method('isNew');
     $view_ui->isNew();
+  }
+
+  /**
+   * Tests the isLocked method.
+   */
+  public function testIsLocked() {
+    $storage = $this->getMock('Drupal\views\Entity\View', array(), array(array(), 'view'));
+    $executable = $this->getMockBuilder('Drupal\views\ViewExecutable')
+      ->disableOriginalConstructor()
+      ->setConstructorArgs(array($storage))
+      ->getMock();
+    $account = $this->getMock('Drupal\Core\Session\AccountInterface');
+    $account->expects($this->exactly(2))
+      ->method('id')
+      ->will($this->returnValue(1));
+
+    $container = new ContainerBuilder();
+    $container->set('current_user', $account);
+    \Drupal::setContainer($container);
+
+    $view_ui = new ViewUI($storage, $executable);
+
+    // A view_ui without a lock object is not locked.
+    $this->assertFalse($view_ui->isLocked());
+
+    // Set the lock object with a different owner than the mocked account above.
+    $lock = (object) array(
+      'owner' => 2,
+      'data' => array(),
+      'updated' => REQUEST_TIME,
+    );
+    $view_ui->lock = $lock;
+    $this->assertTrue($view_ui->isLocked());
+
+    // Set a different lock object with the same object as the mocked account.
+    $lock = (object) array(
+      'owner' => 1,
+      'data' => array(),
+      'updated' => REQUEST_TIME,
+    );
+    $view_ui->lock = $lock;
+    $this->assertFalse($view_ui->isLocked());
   }
 
 }

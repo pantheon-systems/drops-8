@@ -10,11 +10,10 @@
  * your modifications. Failure to remove write permissions to this file is a
  * security risk.
  *
- * The configuration file to be loaded is based upon the rules below. However
- * if the multisite aliasing file named sites/sites.php is present, it will be
- * loaded, and the aliases in the array $sites will override the default
- * directory rules below. See sites/example.sites.php for more information about
- * aliases.
+ * In order to use the selection rules below the multisite aliasing file named
+ * sites/sites.php must be present. Its optional settings will be loaded, and
+ * the aliases in the array $sites will override the default directory rules
+ * below. See sites/example.sites.php for more information about aliases.
  *
  * The configuration directory will be discovered by stripping the website's
  * hostname from left to right and pathname from right to left. The first
@@ -246,14 +245,8 @@ $drupal_hash_salt = '';
  * Example:
  * @code
  *   $config_directories = array(
- *     CONFIG_ACTIVE_DIRECTORY => array(
- *       'path' => '/some/directory/outside/webroot',
- *       'absolute' => TRUE,
- *     ),
- *     CONFIG_STAGING_DIRECTORY => array(
- *       'path' => '/another/directory/outside/webroot',
- *       'absolute' => TRUE,
- *     ),
+ *     CONFIG_ACTIVE_DIRECTORY => '/some/directory/outside/webroot',
+ *     CONFIG_STAGING_DIRECTORY => '/another/directory/outside/webroot',
  *   );
  * @endcode
  */
@@ -262,12 +255,11 @@ $config_directories = array();
 /**
  * Settings:
  *
- * $settings contains configuration that can not be saved in the configuration
- * system because it is required too early during bootstrap like the database
- * information. It is also used for configuration that is specific for a given
- * environment like reverse proxy settings
+ * $settings contains environment-specific configuration, such as the files
+ * directory and reverse proxy address, and temporary configuration, such as
+ * turning on Twig debugging and security overrides.
  *
- * @see settings_get()
+ * @see \Drupal\Component\Utility\Settings::get()
  */
 
 /**
@@ -456,6 +448,14 @@ $settings['update_free_access'] = FALSE;
 # $settings['mixed_mode_sessions'] = TRUE;
 
 /**
+ * Default mode for for directories and files written by Drupal.
+ *
+ * Value should be in PHP Octal Notation, with leading zero.
+ */
+# $settings['file_chmod_directory'] = 0775;
+# $settings['file_chmod_file'] = 0664;
+
+/**
  * Public file path:
  *
  * A local file system path where public files will be stored. This directory
@@ -500,6 +500,16 @@ $settings['update_free_access'] = FALSE;
  * Note: This setting does not apply to installation and update pages.
  */
 # $settings['maintenance_theme'] = 'bartik';
+
+/**
+ * Enable access to rebuild.php.
+ *
+ * This setting can be enabled to allow Drupal's php and database cached
+ * storage to be cleared via the rebuild.php page. Access to this page can also
+ * be gained by generating a query string from rebuild_token_calculator.sh and
+ * using these parameters in a request to rebuild.php.
+ */
+# $settings['rebuild_access'] = TRUE;
 
 /**
  * Base URL (optional).
@@ -582,25 +592,19 @@ ini_set('session.cookie_lifetime', 2000000);
 # $cookie_domain = '.example.com';
 
 /**
- * Variable overrides:
+ * Configuration overrides.
  *
- * To override specific entries in the 'variable' table for this site,
+ * To globally override specific configuration values for this site,
  * set them here. You usually don't need to use this feature. This is
  * useful in a configuration file for a vhost or directory, rather than
- * the default settings.php. Any configuration setting from the 'variable'
- * table can be given a new value. Note that any values you provide in
- * these variable overrides will not be modifiable from the Drupal
- * administration interface.
+ * the default settings.php.
  *
- * The following overrides are examples:
- * - site_name: Defines the site's name.
- * - $conf['system.theme']['default']: Defines the default theme for this site.
- * - anonymous: Defines the human-readable name of anonymous users.
- * Remove the leading hash signs to enable.
+ * Note that any values you provide in these variable overrides will not be
+ * modifiable from the Drupal administration interface.
  */
-# $conf['system.site']['name'] = 'My Drupal site';
-# $conf['system.theme']['default'] = 'stark';
-# $conf['anonymous'] = 'Visitor';
+# $config['system.site']['name'] = 'My Drupal site';
+# $config['system.theme']['default'] = 'stark';
+# $config['user.settings']['anonymous'] = 'Visitor';
 
 /**
  * CSS/JS aggregated file gzip compression:
@@ -614,8 +618,8 @@ ini_set('session.cookie_lifetime', 2000000);
  * configured to cache and compress these files itself you may want to uncomment
  * one or both of the below lines, which will prevent gzip files being stored.
  */
-# $conf['system.performance']['css']['gzip'] = FALSE;
-# $conf['system.performance']['js']['gzip'] = FALSE;
+# $config['system.performance']['css']['gzip'] = FALSE;
+# $config['system.performance']['js']['gzip'] = FALSE;
 
 /**
  * Fast 404 pages:
@@ -639,9 +643,9 @@ ini_set('session.cookie_lifetime', 2000000);
  *
  * Remove the leading hash signs if you would like to alter this functionality.
  */
-#$conf['system.performance']['fast_404']['exclude_paths'] = '/\/(?:styles)\//';
-#$conf['system.performance']['fast_404']['paths'] = '/\.(?:txt|png|gif|jpe?g|css|js|ico|swf|flv|cgi|bat|pl|dll|exe|asp)$/i';
-#$conf['system.performance']['fast_404']['html'] = '<!DOCTYPE html><html><head><title>404 Not Found</title></head><body><h1>Not Found</h1><p>The requested URL "@path" was not found on this server.</p></body></html>';
+# $config['system.performance']['fast_404']['exclude_paths'] = '/\/(?:styles)\//';
+# $config['system.performance']['fast_404']['paths'] = '/\.(?:txt|png|gif|jpe?g|css|js|ico|swf|flv|cgi|bat|pl|dll|exe|asp)$/i';
+# $config['system.performance']['fast_404']['html'] = '<!DOCTYPE html><html><head><title>404 Not Found</title></head><body><h1>Not Found</h1><p>The requested URL "@path" was not found on this server.</p></body></html>';
 
 /**
  * Load local development override configuration, if available.

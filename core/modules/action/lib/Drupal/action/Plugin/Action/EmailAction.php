@@ -7,10 +7,8 @@
 
 namespace Drupal\action\Plugin\Action;
 
-use Drupal\Core\Annotation\Action;
-use Drupal\Core\Annotation\Translation;
 use Drupal\Core\Action\ConfigurableActionBase;
-use Drupal\Core\Entity\EntityManager;
+use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Utility\Token;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -51,10 +49,10 @@ class EmailAction extends ConfigurableActionBase implements ContainerFactoryPlug
    *   The plugin implementation definition.
    * @param \Drupal\Core\Utility\Token $token
    *   The token service.
-   * @param \Drupal\Core\Entity\EntityManager $entity_manager
+   * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
    *   The entity manager.
    */
-  public function __construct(array $configuration, $plugin_id, array $plugin_definition, Token $token, EntityManager $entity_manager) {
+  public function __construct(array $configuration, $plugin_id, array $plugin_definition, Token $token, EntityManagerInterface $entity_manager) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
 
     $this->token = $token;
@@ -148,7 +146,7 @@ class EmailAction extends ConfigurableActionBase implements ContainerFactoryPlug
   public function validateConfigurationForm(array &$form, array &$form_state) {
     if (!valid_email_address($form_state['values']['recipient']) && strpos($form_state['values']['recipient'], ':mail') === FALSE) {
       // We want the literal %author placeholder to be emphasized in the error message.
-      form_set_error('recipient', t('Enter a valid email address or use a token e-mail address such as %author.', array('%author' => '[node:author:mail]')));
+      form_set_error('recipient', $form_state, t('Enter a valid email address or use a token e-mail address such as %author.', array('%author' => '[node:author:mail]')));
     }
   }
 

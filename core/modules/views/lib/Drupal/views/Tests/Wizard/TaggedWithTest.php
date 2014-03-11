@@ -7,6 +7,8 @@
 
 namespace Drupal\views\Tests\Wizard;
 
+use Drupal\Core\Field\FieldDefinitionInterface;
+
 /**
  * Tests the ability of the views wizard to create views filtered by taxonomy.
  */
@@ -57,7 +59,7 @@ class TaggedWithTest extends WizardTestBase {
       'name' => 'field_views_testing_tags',
       'entity_type' => 'node',
       'type' => 'taxonomy_term_reference',
-      'cardinality' => FIELD_CARDINALITY_UNLIMITED,
+      'cardinality' => FieldDefinitionInterface::CARDINALITY_UNLIMITED,
       'settings' => array(
         'allowed_values' => array(
           array(
@@ -108,15 +110,15 @@ class TaggedWithTest extends WizardTestBase {
 
     // Create three nodes, with different tags.
     $edit = array();
-    $edit['title'] = $node_tag1_title = $this->randomName();
+    $edit['title[0][value]'] = $node_tag1_title = $this->randomName();
     $edit[$this->tag_field->name] = 'tag1';
     $this->drupalPostForm($node_add_path, $edit, t('Save'));
     $edit = array();
-    $edit['title'] = $node_tag1_tag2_title = $this->randomName();
+    $edit['title[0][value]'] = $node_tag1_tag2_title = $this->randomName();
     $edit[$this->tag_field->name] = 'tag1, tag2';
     $this->drupalPostForm($node_add_path, $edit, t('Save'));
     $edit = array();
-    $edit['title'] = $node_no_tags_title = $this->randomName();
+    $edit['title[0][value]'] = $node_no_tags_title = $this->randomName();
     $this->drupalPostForm($node_add_path, $edit, t('Save'));
 
     // Create a view that filters by taxonomy term "tag1". It should show only

@@ -7,7 +7,7 @@
 
 namespace Drupal\hal\Normalizer;
 
-use Drupal\Core\Entity\Field\FieldItemInterface;
+use Drupal\Core\Field\FieldItemInterface;
 
 /**
  * Converts the Drupal field item object structure to HAL array structure.
@@ -19,7 +19,7 @@ class FieldItemNormalizer extends NormalizerBase {
    *
    * @var string
    */
-  protected $supportedInterfaceOrClass = 'Drupal\Core\Entity\Field\FieldItemInterface';
+  protected $supportedInterfaceOrClass = 'Drupal\Core\Field\FieldItemInterface';
 
   /**
    * Implements \Symfony\Component\Serializer\Normalizer\NormalizerInterface::normalize()
@@ -57,8 +57,8 @@ class FieldItemNormalizer extends NormalizerBase {
     if (isset($data['lang'])) {
       $langcode = $data['lang'];
       unset($data['lang']);
-      $field_definition = $field_item->getDefinition();
-      if ($field_definition['translatable']) {
+      $field_definition = $field_item->getFieldDefinition();
+      if ($field_definition->isTranslatable()) {
         $field_item = $this->createTranslatedInstance($field_item, $langcode);
       }
     }
@@ -90,12 +90,12 @@ class FieldItemNormalizer extends NormalizerBase {
    * entity. This is the reason for using target_instances, from which the
    * property path can be traversed up to the root.
    *
-   * @param \Drupal\Core\Entity\Field\FieldItemInterface $field_item
+   * @param \Drupal\Core\Field\FieldItemInterface $field_item
    *   The untranslated field item instance.
    * @param $langcode
    *   The langcode.
    *
-   * @return \Drupal\Core\Entity\Field\FieldItemInterface
+   * @return \Drupal\Core\Field\FieldItemInterface
    *   The translated field item instance.
    */
   protected function createTranslatedInstance(FieldItemInterface $field_item, $langcode) {
@@ -120,7 +120,7 @@ class FieldItemNormalizer extends NormalizerBase {
 
     // Create a new instance at the end of the property path and return it.
     $count = $translation->isEmpty() ? 0 : $translation->count();
-    return $translation->offsetGet($count);
+    return $translation->get($count);
   }
 
 }

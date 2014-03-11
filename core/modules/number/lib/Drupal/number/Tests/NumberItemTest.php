@@ -7,8 +7,8 @@
 
 namespace Drupal\number\Tests;
 
-use Drupal\Core\Entity\Field\FieldItemInterface;
-use Drupal\Core\Entity\Field\FieldItemListInterface;
+use Drupal\Core\Field\FieldItemInterface;
+use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\field\Tests\FieldUnitTestBase;
 
 /**
@@ -54,7 +54,7 @@ class NumberItemTest extends FieldUnitTestBase {
    */
   public function testNumberItem() {
     // Verify entity creation.
-    $entity = entity_create('entity_test', array());
+    $entity = entity_create('entity_test');
     $integer = rand(0, 10);
     $entity->field_integer = $integer;
     $float = 3.14;

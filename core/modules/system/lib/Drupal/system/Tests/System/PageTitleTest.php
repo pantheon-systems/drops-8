@@ -71,16 +71,16 @@ class PageTitleTest extends WebTestBase {
     $this->assertTrue(strpos(drupal_get_title(), '<em>') !== FALSE, 'Tags in title are not converted to entities when $output is PASS_THROUGH.');
     // Generate node content.
     $edit = array(
-      'title' => '!SimpleTest! ' . $title . $this->randomName(20),
+      'title[0][value]' => '!SimpleTest! ' . $title . $this->randomName(20),
       'body[0][value]' => '!SimpleTest! test body' . $this->randomName(200),
     );
     // Create the node with HTML in the title.
     $this->drupalPostForm('node/add/page', $edit, t('Save'));
 
-    $node = $this->drupalGetNodeByTitle($edit["title"]);
+    $node = $this->drupalGetNodeByTitle($edit['title[0][value]']);
     $this->assertNotNull($node, 'Node created and found in database');
     $this->drupalGet("node/" . $node->id());
-    $this->assertText(check_plain($edit["title"]), 'Check to make sure tags in the node title are converted.');
+    $this->assertText(check_plain($edit['title[0][value]']), 'Check to make sure tags in the node title are converted.');
   }
   /**
    * Test if the title of the site is XSS proof.
@@ -130,13 +130,6 @@ class PageTitleTest extends WebTestBase {
   public function testRoutingTitle() {
     // Test the '#title' render array attribute.
     $this->drupalGet('test-render-title');
-
-    $this->assertTitle('Foo | Drupal');
-    $result = $this->xpath('//h1');
-    $this->assertEqual('Foo', (string) $result[0]);
-
-    // Test a controller using _controller instead of _content.
-    $this->drupalGet('test-render-title-controller');
 
     $this->assertTitle('Foo | Drupal');
     $result = $this->xpath('//h1');

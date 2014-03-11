@@ -7,7 +7,6 @@
 
 namespace Drupal\image;
 
-use Drupal\Component\Utility\MapArray;
 use Drupal\Component\Plugin\DefaultPluginBag;
 
 /**
@@ -44,17 +43,21 @@ class ImageEffectBag extends DefaultPluginBag {
     }
     $instance_id = $configuration['uuid'];
     $this->setConfiguration($instance_id, $configuration);
-    $this->addInstanceID($instance_id);
+    $this->addInstanceId($instance_id);
     return $instance_id;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function sort() {
-    uasort($this->configurations, 'drupal_sort_weight');
-    $this->instanceIDs = MapArray::copyValuesToKeys(array_keys($this->configurations));
-    return $this;
+  public function sortHelper($aID, $bID) {
+    $a_weight = $this->get($aID)->getWeight();
+    $b_weight = $this->get($bID)->getWeight();
+    if ($a_weight == $b_weight) {
+      return 0;
+    }
+
+    return ($a_weight < $b_weight) ? -1 : 1;
   }
 
 }

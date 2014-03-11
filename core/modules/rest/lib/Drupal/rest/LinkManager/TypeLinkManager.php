@@ -7,6 +7,7 @@
 
 namespace Drupal\rest\LinkManager;
 
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheBackendInterface;
 
 class TypeLinkManager implements TypeLinkManagerInterface {
@@ -80,26 +81,24 @@ class TypeLinkManager implements TypeLinkManagerInterface {
 
     // Type URIs correspond to bundles. Iterate through the bundles to get the
     // URI and data for them.
-    $entity_info = entity_get_info();
-    foreach (entity_get_bundles() as $entity_type => $bundles) {
-      $entity_type_info = $entity_info[$entity_type];
-      $reflection = new \ReflectionClass($entity_type_info['class']);
+    $entity_types = \Drupal::entityManager()->getDefinitions();
+    foreach (entity_get_bundles() as $entity_type_id => $bundles) {
       // Only content entities are supported currently.
       // @todo Consider supporting config entities.
-      if ($reflection->implementsInterface('\Drupal\Core\Config\Entity\ConfigEntityInterface')) {
+      if ($entity_types[$entity_type_id]->isSubclassOf('\Drupal\Core\Config\Entity\ConfigEntityInterface')) {
         continue;
       }
       foreach ($bundles as $bundle => $bundle_info) {
         // Get a type URI for the bundle.
-        $bundle_uri = $this->getTypeUri($entity_type, $bundle);
+        $bundle_uri = $this->getTypeUri($entity_type_id, $bundle);
         $data[$bundle_uri] = array(
-          'entity_type' => $entity_type,
+          'entity_type' => $entity_type_id,
           'bundle' => $bundle,
         );
       }
     }
     // These URIs only change when entity info changes, so cache it permanently
     // and only clear it when entity_info is cleared.
-    $this->cache->set('rest:links:types', $data, CacheBackendInterface::CACHE_PERMANENT, array('entity_info' => TRUE));
+    $this->cache->set('rest:links:types', $data, Cache::PERMANENT, array('entity_info' => TRUE));
   }
 }

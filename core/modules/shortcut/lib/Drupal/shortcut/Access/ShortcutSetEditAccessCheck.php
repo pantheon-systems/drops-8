@@ -7,26 +7,20 @@
 
 namespace Drupal\shortcut\Access;
 
-use Drupal\Core\Access\StaticAccessCheckInterface;
+use Drupal\Core\Routing\Access\AccessInterface;
+use Drupal\Core\Session\AccountInterface;
 use Symfony\Component\Routing\Route;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Provides an access check for shortcut link delete routes.
  */
-class ShortcutSetEditAccessCheck implements StaticAccessCheckInterface {
+class ShortcutSetEditAccessCheck implements AccessInterface {
 
   /**
    * {@inheritdoc}
    */
-  public function appliesTo() {
-    return array('_access_shortcut_set_edit');
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function access(Route $route, Request $request) {
+  public function access(Route $route, Request $request, AccountInterface $account) {
     $account = \Drupal::currentUser();
     $shortcut_set = $request->attributes->get('shortcut_set');
     // Sufficiently-privileged users can edit their currently displayed shortcut

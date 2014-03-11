@@ -7,62 +7,45 @@
 
 namespace Drupal\edit\Access;
 
-use Drupal\Core\Access\StaticAccessCheckInterface;
-use Drupal\edit\Access\EditEntityFieldAccessCheckInterface;
+use Drupal\Core\Entity\EntityManagerInterface;
+use Drupal\Core\Routing\Access\AccessInterface;
+use Drupal\Core\Session\AccountInterface;
 use Symfony\Component\Routing\Route;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\field\FieldInfo;
-use Drupal\Core\Entity\EntityManager;
 
 /**
  * Access check for editing entity fields.
  */
-class EditEntityFieldAccessCheck implements StaticAccessCheckInterface, EditEntityFieldAccessCheckInterface {
+class EditEntityFieldAccessCheck implements AccessInterface, EditEntityFieldAccessCheckInterface {
 
   /**
    * The entity manager.
    *
-   * @var \Drupal\Core\Entity\EntityManager
+   * @var \Drupal\Core\Entity\EntityManagerInterface
    */
   protected $entityManager;
 
   /**
-   * The field info.
-   *
-   * @var \Drupal\field\FieldInfo
-   */
-  protected $fieldInfo;
-
-  /**
    * Constructs a EditEntityFieldAccessCheck object.
    *
-   * @param \Drupal\Core\Entity\EntityManager $entity_manager
+   * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
    *   The entity manager.
-   * @param \Drupal\field\FieldInfo $field_info
-   *   The field info.
    */
-  public function __construct(EntityManager $entity_manager, FieldInfo $field_info) {
+  public function __construct(EntityManagerInterface $entity_manager) {
     $this->entityManager = $entity_manager;
-    $this->fieldInfo = $field_info;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function appliesTo() {
-    return array('_access_edit_entity_field');
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function access(Route $route, Request $request) {
+  public function access(Route $route, Request $request, AccountInterface $account) {
     // @todo Request argument validation and object loading should happen
     //   elsewhere in the request processing pipeline:
     //   http://drupal.org/node/1798214.
-    $this->validateAndUpcastRequestAttributes($request);
+    if (!$this->validateAndUpcastRequestAttributes($request)) {
+      return static::KILL;
+    }
 
     return $this->accessEditEntityField($request->attributes->get('entity'), $request->attributes->get('field_name'))  ? static::ALLOW : static::DENY;
   }
@@ -83,24 +66,26 @@ class EditEntityFieldAccessCheck implements StaticAccessCheckInterface, EditEnti
       $entity_id = $entity;
       $entity_type = $request->attributes->get('entity_type');
       if (!$entity_type || !$this->entityManager->getDefinition($entity_type)) {
-        throw new NotFoundHttpException();
+        return FALSE;
       }
       $entity = $this->entityManager->getStorageController($entity_type)->load($entity_id);
       if (!$entity) {
-        throw new NotFoundHttpException();
+        return FALSE;
       }
       $request->attributes->set('entity', $entity);
     }
 
     // Validate the field name and language.
     $field_name = $request->attributes->get('field_name');
-    if (!$field_name || !$this->fieldInfo->getInstance($entity->entityType(), $entity->bundle(), $field_name)) {
-      throw new NotFoundHttpException();
+    if (!$field_name || !$entity->hasField($field_name)) {
+      return FALSE;
     }
     $langcode = $request->attributes->get('langcode');
-    if (!$langcode || (field_valid_language($langcode) !== $langcode)) {
-      throw new NotFoundHttpException();
+    if (!$langcode || !$entity->hasTranslation($langcode)) {
+      return FALSE;
     }
+
+    return TRUE;
   }
 
 }

@@ -7,8 +7,6 @@
 
 namespace Drupal\Core\TypedData\Plugin\DataType;
 
-use Drupal\Core\TypedData\Annotation\DataType;
-use Drupal\Core\Annotation\Translation;
 use Drupal\Core\TypedData\PrimitiveBase;
 use Drupal\Core\TypedData\Type\IntegerInterface;
 
@@ -25,4 +23,10 @@ use Drupal\Core\TypedData\Type\IntegerInterface;
  */
 class Integer extends PrimitiveBase implements IntegerInterface {
 
+  /**
+   * {@inheritdoc}
+   */
+  public function getCastedValue() {
+    return (int) $this->value;
+  }
 }

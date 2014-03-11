@@ -7,8 +7,9 @@
 
 namespace Drupal\field_ui\Form;
 
-use Drupal\Core\Entity\EntityManager;
+use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Form\FormBase;
+use Drupal\Component\Utility\String;
 use Drupal\field\FieldInstanceInterface;
 use Drupal\field_ui\FieldUI;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -28,17 +29,17 @@ class FieldInstanceEditForm extends FormBase {
   /**
    * The entity manager.
    *
-   * @var \Drupal\Core\Entity\EntityManager
+   * @var \Drupal\Core\Entity\EntityManagerInterface
    */
   protected $entityManager;
 
   /**
    * Constructs a new field instance form.
    *
-   * @param \Drupal\Core\Entity\EntityManager $entity_manager
+   * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
    *   The entity manager.
    */
-  public function __construct(EntityManager $entity_manager) {
+  public function __construct(EntityManagerInterface $entity_manager) {
     $this->entityManager = $entity_manager;
   }
 
@@ -70,7 +71,7 @@ class FieldInstanceEditForm extends FormBase {
     $bundles = entity_get_bundles();
 
     $form_title = $this->t('%instance settings for %bundle', array(
-      '%instance' => $this->instance->getFieldLabel(),
+      '%instance' => $this->instance->getLabel(),
       '%bundle' => $bundles[$entity_type][$bundle]['label'],
     ));
     $form['#title'] = $form_title;
@@ -79,11 +80,11 @@ class FieldInstanceEditForm extends FormBase {
     // Create an arbitrary entity object (used by the 'default value' widget).
     $ids = (object) array('entity_type' => $this->instance->entity_type, 'bundle' => $this->instance->bundle, 'entity_id' => NULL);
     $form['#entity'] = _field_create_entity_from_ids($ids);
-    $items = $form['#entity']->get($this->instance->getFieldName());
+    $items = $form['#entity']->get($this->instance->getName());
 
     if (!empty($field->locked)) {
       $form['locked'] = array(
-        '#markup' => $this->t('The field %field is locked and cannot be edited.', array('%field' => $this->instance->getFieldLabel())),
+        '#markup' => $this->t('The field %field is locked and cannot be edited.', array('%field' => $this->instance->getLabel())),
       );
       return $form;
     }
@@ -96,7 +97,7 @@ class FieldInstanceEditForm extends FormBase {
     // Build the non-configurable instance values.
     $form['instance']['field_name'] = array(
       '#type' => 'value',
-      '#value' => $this->instance->getFieldName(),
+      '#value' => $this->instance->getName(),
     );
     $form['instance']['entity_type'] = array(
       '#type' => 'value',
@@ -111,7 +112,7 @@ class FieldInstanceEditForm extends FormBase {
     $form['instance']['label'] = array(
       '#type' => 'textfield',
       '#title' => $this->t('Label'),
-      '#default_value' => $this->instance->getFieldLabel() ?: $field->getFieldName(),
+      '#default_value' => $this->instance->getLabel() ?: $field->getName(),
       '#required' => TRUE,
       '#weight' => -20,
     );
@@ -119,7 +120,7 @@ class FieldInstanceEditForm extends FormBase {
     $form['instance']['description'] = array(
       '#type' => 'textarea',
       '#title' => $this->t('Help text'),
-      '#default_value' => $this->instance->getFieldDescription(),
+      '#default_value' => $this->instance->getDescription(),
       '#rows' => 5,
       '#description' => $this->t('Instructions to present to the user below this field on the editing form.<br />Allowed HTML tags: @tags', array('@tags' => _field_filter_xss_display_allowed_tags())) . '<br />' . $this->t('This field supports tokens.'),
       '#weight' => -10,
@@ -128,7 +129,7 @@ class FieldInstanceEditForm extends FormBase {
     $form['instance']['required'] = array(
       '#type' => 'checkbox',
       '#title' => $this->t('Required field'),
-      '#default_value' => $this->instance->isFieldRequired(),
+      '#default_value' => $this->instance->isRequired(),
       '#weight' => -5,
     );
 
@@ -164,7 +165,7 @@ class FieldInstanceEditForm extends FormBase {
    */
   public function validateForm(array &$form, array &$form_state) {
     if (isset($form['instance']['default_value'])) {
-      $items = $form['#entity']->get($this->instance->getFieldName());
+      $items = $form['#entity']->get($this->instance->getName());
       $items->defaultValuesFormValidate($form['instance']['default_value'], $form, $form_state);
     }
   }
@@ -176,7 +177,7 @@ class FieldInstanceEditForm extends FormBase {
     // Handle the default value.
     $default_value = array();
     if (isset($form['instance']['default_value'])) {
-      $items = $form['#entity']->get($this->instance->getFieldName());
+      $items = $form['#entity']->get($this->instance->getName());
       $default_value = $items->defaultValuesFormSubmit($form['instance']['default_value'], $form, $form_state);
     }
     $this->instance->default_value = $default_value;
@@ -187,9 +188,21 @@ class FieldInstanceEditForm extends FormBase {
     }
     $this->instance->save();
 
-    drupal_set_message($this->t('Saved %label configuration.', array('%label' => $this->instance->getFieldLabel())));
+    drupal_set_message($this->t('Saved %label configuration.', array('%label' => $this->instance->getLabel())));
 
-    $form_state['redirect'] = $this->getNextDestination();
+    $request = $this->getRequest();
+    if (($destinations = $request->query->get('destinations')) && $next_destination = FieldUI::getNextDestination($destinations)) {
+      $request->query->remove('destinations');
+      if (isset($next_destination['route_name'])) {
+        $form_state['redirect_route'] = $next_destination;
+      }
+      else {
+        $form_state['redirect'] = $next_destination;
+      }
+    }
+    else {
+      $form_state['redirect_route'] = FieldUI::getOverviewRouteInfo($this->instance->entity_type, $this->instance->bundle);
+    }
   }
 
   /**
@@ -202,21 +215,30 @@ class FieldInstanceEditForm extends FormBase {
       $destination = drupal_get_destination();
       $request->query->remove('destination');
     }
-    $form_state['redirect'] = array('admin/structure/types/manage/' . $this->instance->bundle . '/fields/' . $this->instance->id() . '/delete', array('query' => $destination));
+    $entity_type = $this->entityManager->getDefinition($this->instance->entity_type);
+    $form_state['redirect_route'] = array(
+      'route_name' => 'field_ui.delete_' . $this->instance->entity_type,
+      'route_parameters' => array(
+        $entity_type->getBundleEntityType() => $this->instance->bundle,
+        'field_instance' => $this->instance->id(),
+      ),
+      'options' => array(
+        'query' => $destination,
+      ),
+    );
   }
 
   /**
-   * Returns the next redirect path in a multipage sequence.
+   * The _title_callback for the field instance settings form.
    *
-   * @return string|array
-   *   Either the next path, or an array of redirect paths.
+   * @param \Drupal\field\FieldInstanceInterface $field_instance
+   *   The field instance.
+   *
+   * @return string
+   *   The label of the field instance.
    */
-  protected function getNextDestination() {
-    $next_destination = FieldUI::getNextDestination($this->getRequest());
-    if (empty($next_destination)) {
-      $next_destination = $this->entityManager->getAdminPath($this->instance->entity_type, $this->instance->bundle) . '/fields';
-    }
-    return $next_destination;
+  public function getTitle(FieldInstanceInterface $field_instance) {
+    return String::checkPlain($field_instance->label());
   }
 
 }

@@ -7,8 +7,6 @@
 
 namespace Drupal\Core\TypedData\Plugin\DataType;
 
-use Drupal\Core\TypedData\Annotation\DataType;
-use Drupal\Core\Annotation\Translation;
 use Drupal\Core\TypedData\PrimitiveBase;
 use Drupal\Core\TypedData\Type\UriInterface;
 use Drupal\Core\TypedData\TypedData;
@@ -23,6 +21,6 @@ use Drupal\Core\TypedData\TypedData;
  *   label = @Translation("URI")
  * )
  */
-class Uri extends PrimitiveBase implements UriInterface {
+class Uri extends String implements UriInterface {
 
 }

@@ -38,10 +38,9 @@ class ConfigImportUITest extends WebTestBase {
   function testImport() {
     $name = 'system.site';
     $dynamic_name = 'config_test.dynamic.new';
-    $storage = $this->container->get('config.storage');
     $staging = $this->container->get('config.storage.staging');
 
-    $this->drupalGet('admin/config/development/configuration/sync');
+    $this->drupalGet('admin/config/development/configuration');
     $this->assertText('There are no configuration changes.');
     $this->assertNoFieldById('edit-submit', t('Import all'));
 
@@ -65,7 +64,7 @@ class ConfigImportUITest extends WebTestBase {
     $this->assertIdentical($staging->exists($dynamic_name), TRUE, $dynamic_name . ' found.');
 
     // Verify that both appear as ready to import.
-    $this->drupalGet('admin/config/development/configuration/sync');
+    $this->drupalGet('admin/config/development/configuration');
     $this->assertText($name);
     $this->assertText($dynamic_name);
     $this->assertFieldById('edit-submit', t('Import all'));
@@ -98,7 +97,7 @@ class ConfigImportUITest extends WebTestBase {
     $this->prepareSiteNameUpdate($new_site_name);
 
     // Verify that there are configuration differences to import.
-    $this->drupalGet('admin/config/development/configuration/sync');
+    $this->drupalGet('admin/config/development/configuration');
     $this->assertNoText(t('There are no configuration changes.'));
 
     // Acquire a fake-lock on the import mechanism.
@@ -117,10 +116,26 @@ class ConfigImportUITest extends WebTestBase {
   }
 
   /**
+   * Tests verification of site UUID before importing configuration.
+   */
+  function testImportSiteUuidValidation() {
+    $staging = \Drupal::service('config.storage.staging');
+    // Create updated configuration object.
+    $config_data = \Drupal::config('system.site')->get();
+    // Generate a new site UUID.
+    $config_data['uuid'] = \Drupal::service('uuid')->generate();
+    $staging->write('system.site', $config_data);
+
+    // Verify that there are configuration differences to import.
+    $this->drupalGet('admin/config/development/configuration');
+    $this->assertText(t('The staged configuration cannot be imported, because it originates from a different site than this site. You can only synchronize configuration between cloned instances of this site.'));
+    $this->assertNoFieldById('edit-submit', t('Import all'));
+  }
+
+  /**
    * Tests the screen that shows differences between active and staging.
    */
   function testImportDiff() {
-    $active = $this->container->get('config.storage');
     $staging = $this->container->get('config.storage.staging');
     $config_name = 'config_test.system';
     $change_key = 'foo';

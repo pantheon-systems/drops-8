@@ -2,18 +2,13 @@
 
 /**
  * @file
- * Contains \Drupal\Tests\block\BlockFormControllerTest.
+ * Contains \Drupal\block\Tests\BlockFormControllerTest.
  */
 
-namespace Drupal\Tests\block;
+namespace Drupal\block\Tests;
 
 use Drupal\block\BlockFormController;
 use Drupal\Tests\UnitTestCase;
-
-// @todo Remove once the constants are replaced with constants on classes.
-if (!defined('BLOCK_REGION_NONE')) {
-  define('BLOCK_REGION_NONE', -1);
-}
 
 /**
  * Tests the block form controller.
@@ -36,9 +31,7 @@ class BlockFormControllerTest extends UnitTestCase {
    * @see \Drupal\block\BlockFormController::getUniqueMachineName()
    */
   public function testGetUniqueMachineName() {
-    $block_storage = $this->getMockBuilder('Drupal\Core\Config\Entity\ConfigStorageController')
-      ->disableOriginalConstructor()
-      ->getMock();
+    $block_storage = $this->getMock('Drupal\Core\Config\Entity\ConfigStorageControllerInterface');
     $blocks = array();
 
     $blocks['test'] = $this->getBlockMockWithMachineName('test');
@@ -65,21 +58,15 @@ class BlockFormControllerTest extends UnitTestCase {
       ->with('block', 'AND')
       ->will($this->returnValue($query));
 
-    $entity_manager = $this->getMockBuilder('Drupal\Core\Entity\EntityManager')
-      ->disableOriginalConstructor()
-      ->getMock();
+    $entity_manager = $this->getMock('Drupal\Core\Entity\EntityManagerInterface');
 
     $entity_manager->expects($this->any())
       ->method('getStorageController')
       ->will($this->returnValue($block_storage));
 
-    $language_manager = $this->getMockBuilder('Drupal\Core\Language\LanguageManager')
-      ->disableOriginalConstructor()
-      ->getMock();
+    $language_manager = $this->getMock('Drupal\Core\Language\LanguageManagerInterface');
 
-    $config_factory = $this->getMockBuilder('Drupal\Core\Config\ConfigFactory')
-      ->disableOriginalConstructor()
-      ->getMock();
+    $config_factory = $this->getMock('Drupal\Core\Config\ConfigFactoryInterface');
 
     $block_form_controller = new BlockFormController($entity_manager, $query_factory, $language_manager, $config_factory);
 

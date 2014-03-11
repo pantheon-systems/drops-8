@@ -11,6 +11,7 @@ use Drupal\Core\DrupalKernel;
 use Drupal\Core\Database\Database;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\Utility\Title;
+use Drupal\Core\Utility\Error;
 use Symfony\Component\ClassLoader\ApcClassLoader;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\DependencyInjection\Container;
@@ -138,24 +139,14 @@ const DRUPAL_BOOTSTRAP_KERNEL = 1;
 const DRUPAL_BOOTSTRAP_PAGE_CACHE = 2;
 
 /**
- * Fourth bootstrap phase: initialize database layer.
+ * Fourth bootstrap phase: load code for subsystems and modules.
  */
-const DRUPAL_BOOTSTRAP_DATABASE = 3;
-
-/**
- * Fifth bootstrap phase: initialize the variable system.
- */
-const DRUPAL_BOOTSTRAP_VARIABLES = 4;
-
-/**
- * Sixth bootstrap phase: load code for subsystems and modules.
- */
-const DRUPAL_BOOTSTRAP_CODE = 5;
+const DRUPAL_BOOTSTRAP_CODE = 3;
 
 /**
  * Final bootstrap phase: initialize language, path, theme, and modules.
  */
-const DRUPAL_BOOTSTRAP_FULL = 6;
+const DRUPAL_BOOTSTRAP_FULL = 4;
 
 /**
  * Role ID for anonymous users; should match what's in the "role" table.
@@ -227,30 +218,6 @@ const CONFIG_STAGING_DIRECTORY = 'staging';
 define('DRUPAL_ROOT', dirname(dirname(__DIR__)));
 
 /**
- * @deprecated as of Drupal 8.0.
- * @see \Drupal\Component\Utility\Timer::start
- */
-function timer_start($name) {
-  Timer::start($name);
-}
-
-/**
- * @deprecated as of Drupal 8.0.
- * @see \Drupal\Component\Utility\Timer::read
- */
-function timer_read($name) {
-  return Timer::read($name);
-}
-
-/**
- * @deprecated as of Drupal 8.0.
- * @see \Drupal\Component\Utility\Timer::stop
- */
-function timer_stop($name) {
-  return Timer::stop($name);
-}
-
-/**
  * Returns the appropriate configuration directory.
  *
  * Returns the configuration path based on the site's hostname, port, and
@@ -273,15 +240,15 @@ function timer_stop($name) {
  * @see default.settings.php
  */
 function conf_path($require_settings = TRUE, $reset = FALSE) {
-  $conf_path = &drupal_static(__FUNCTION__, '');
+  static $conf_path;
 
-  if ($conf_path && !$reset) {
+  if (isset($conf_path) && !$reset) {
     return $conf_path;
   }
 
   // Check for a simpletest override.
-  if ($simpletest_conf_path = _drupal_simpletest_conf_path()) {
-    $conf_path = $simpletest_conf_path;
+  if ($test_prefix = drupal_valid_test_ua()) {
+    $conf_path = 'sites/simpletest/' . substr($test_prefix, 10);
     return $conf_path;
   }
 
@@ -293,50 +260,6 @@ function conf_path($require_settings = TRUE, $reset = FALSE) {
   $http_host = $_SERVER['HTTP_HOST'];
   $conf_path = find_conf_path($http_host, $script_name, $require_settings);
   return $conf_path;
-}
-
-/**
- * Determines whether to use an overridden value for conf_path().
- *
- * Simpletest may provide a secondary, test-specific settings.php file to load
- * after the primary one used by the parent site and override its variables.
- * - If the child settings.php does not override $conf_path, then this function
- * returns FALSE and conf_path() returns the directory of the primary
- * settings.php.
- * - If the child settings.php does override $conf_path, then
- * _drupal_load_test_overrides() sets the 'simpletest_conf_path' setting, and
- * this function returns that to conf_path(), causing installations and
- * upgrades to act on that one.
- *
- * @return string|false
- *   The overridden $conf_path, or FALSE if the $conf_path should not currently
- *   be overridden.
- *
- * @see conf_path()
- * @see _drupal_load_test_overrides()
- */
-function _drupal_simpletest_conf_path() {
-  // Ensure that the settings object is available. conf_path() is called once
-  // before the Settings class is included, and at that point it should still
-  // load the primary $conf_path. See drupal_settings_initialize().
-  if (!class_exists('Drupal\Component\Utility\Settings', FALSE)) {
-    return FALSE;
-  }
-
-  // If no $simpletest_conf_path is set, use the normal $conf_path.
-  if (!($simpletest_conf_path = settings()->get('simpletest_conf_path'))) {
-    return FALSE;
-  }
-
-  // Ensure that this is actually a simpletest request. We can't check this
-  // before settings.php is loaded.
-  if (!drupal_valid_test_ua()) {
-    return FALSE;
-  }
-
-  // When the $simpletest_conf_path is set in a valid test request,
-  // return that path.
-  return $simpletest_conf_path;
 }
 
 /**
@@ -418,18 +341,9 @@ function config_get_config_directory($type = CONFIG_ACTIVE_DIRECTORY) {
   global $config_directories;
 
   if (!empty($config_directories[$type])) {
-    // Allow a configuration directory path to be outside of webroot.
-    if (empty($config_directories[$type]['absolute'])) {
-      $path = conf_path() . '/files/' . $config_directories[$type]['path'];
-    }
-    else {
-      $path = $config_directories[$type]['path'];
-    }
+    return $config_directories[$type];
   }
-  else {
-    throw new Exception(format_string('The configuration directory type %type does not exist.', array('%type' => $type)));
-  }
-  return $path;
+  throw new Exception(format_string('The configuration directory type %type does not exist.', array('%type' => $type)));
 }
 
 /**
@@ -457,25 +371,28 @@ function config_get_config_directory($type = CONFIG_ACTIVE_DIRECTORY) {
  * 'REMOTE_ADDR' key.
  *
  * @param $variables
- *   (optional) An associative array of variables within $_SERVER that should
- *   be replaced. If the special element 'url' is provided in this array, it
- *   will be used to populate some of the server defaults; it should be set to
- *   the URL of the current page request, excluding any $_GET request but
- *   including the script name (e.g., http://www.example.com/mysite/index.php).
+ *   (optional) An associative array of variables within
+ *   \Drupal::request()->server that should be replaced. If the special element
+ *   'url' is provided in this array, it will be used to populate some of the
+ *   server defaults; it should be set to the URL of the current page request,
+ *   excluding any GET request but including the script name
+ *   (e.g., http://www.example.com/mysite/index.php).
  *
  * @see conf_path()
  * @see request_uri()
  * @see \Symfony\Component\HttpFoundation\Request::getClientIP()
  */
 function drupal_override_server_variables($variables = array()) {
+  $request = \Drupal::request();
+  $server_vars = $request->server->all();
   // Allow the provided URL to override any existing values in $_SERVER.
   if (isset($variables['url'])) {
     $url = parse_url($variables['url']);
     if (isset($url['host'])) {
-      $_SERVER['HTTP_HOST'] = $url['host'];
+      $server_vars['HTTP_HOST'] = $url['host'];
     }
     if (isset($url['path'])) {
-      $_SERVER['SCRIPT_NAME'] = $url['path'];
+      $server_vars['SCRIPT_NAME'] = $url['path'];
     }
     unset($variables['url']);
   }
@@ -492,7 +409,10 @@ function drupal_override_server_variables($variables = array()) {
     'HTTP_USER_AGENT' => NULL,
   );
   // Replace elements of the $_SERVER array, as appropriate.
-  $_SERVER = $variables + $_SERVER + $defaults;
+  $request->server->replace($variables + $server_vars + $defaults);
+
+  // @todo remove once conf_path() no longer uses $_SERVER.
+  $_SERVER = $request->server->all();
 }
 
 /**
@@ -570,20 +490,33 @@ function drupal_valid_http_host($host) {
  * Sets the base URL, cookie domain, and session name from configuration.
  */
 function drupal_settings_initialize() {
-  global $base_url, $base_path, $base_root, $script_path;
-
   // Export these settings.php variables to the global namespace.
-  global $databases, $cookie_domain, $conf, $db_prefix, $drupal_hash_salt, $base_secure_url, $base_insecure_url, $config_directories;
-  $conf = array();
+  global $base_url, $databases, $cookie_domain, $drupal_hash_salt, $config_directories, $config;
+  $settings = array();
+  $config = array();
 
   // Make conf_path() available as local variable in settings.php.
   $conf_path = conf_path();
   if (is_readable(DRUPAL_ROOT . '/' . $conf_path . '/settings.php')) {
-    include_once DRUPAL_ROOT . '/' . $conf_path . '/settings.php';
+    require DRUPAL_ROOT . '/' . $conf_path . '/settings.php';
   }
-  require_once __DIR__ . '../../lib/Drupal/Component/Utility/Settings.php';
+  // Initialize Settings.
+  new Settings($settings);
+}
 
-  new Settings(isset($settings) ? $settings : array());
+/**
+ * Initializes global request variables.
+ *
+ * @todo D8: Eliminate this entirely in favor of Request object.
+ */
+function _drupal_request_initialize() {
+  // Provided by settings.php.
+  // @see drupal_settings_initialize()
+  global $base_url, $cookie_domain;
+  // Set and derived from $base_url by this function.
+  global $base_path, $base_root, $script_path;
+  global $base_secure_url, $base_insecure_url;
+
   $is_https = isset($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) == 'on';
 
   // Load environmental config, if present.
@@ -781,7 +714,7 @@ function drupal_get_filename($type, $name, $filename = NULL) {
     // Verify that we have an keyvalue service before using it. This is required
     // because this function is called during installation.
     // @todo Inject database connection into KeyValueStore\DatabaseStorage.
-    if (($container = \Drupal::getContainer()) && $container->has('keyvalue') && function_exists('db_query')) {
+    if (\Drupal::hasService('keyvalue') && function_exists('db_query')) {
       if ($type == 'module') {
         if (empty($files[$type])) {
           $files[$type] = \Drupal::moduleHandler()->getModuleList();
@@ -861,124 +794,6 @@ function settings() {
 }
 
 /**
- * Loads the persistent variable table.
- *
- * The variable table is composed of values that have been saved in the table
- * with variable_set() as well as those explicitly specified in the
- * configuration file.
- */
-function variable_initialize($conf = array()) {
-  // NOTE: caching the variables improves performance by 20% when serving
-  // cached pages.
-  if ($cached = cache('bootstrap')->get('variables')) {
-    $variables = $cached->data;
-  }
-  else {
-    // Cache miss. Avoid a stampede.
-    $name = 'variable_init';
-    $lock = \Drupal::lock();
-    if (!$lock->acquire($name, 1)) {
-      // Another request is building the variable cache.
-      // Wait, then re-run this function.
-      $lock->wait($name);
-      return variable_initialize($conf);
-    }
-    else {
-      // Proceed with variable rebuild.
-      $variables = array_map('unserialize', db_query('SELECT name, value FROM {variable}')->fetchAllKeyed());
-      cache('bootstrap')->set('variables', $variables);
-      $lock->release($name);
-    }
-  }
-
-  foreach ($conf as $name => $value) {
-    $variables[$name] = $value;
-  }
-
-  return $variables;
-}
-
-/**
- * Returns a persistent variable.
- *
- * Case-sensitivity of the variable_* functions depends on the database
- * collation used. To avoid problems, always use lower case for persistent
- * variable names.
- *
- * @param $name
- *   The name of the variable to return.
- * @param $default
- *   The default value to use if this variable has never been set.
- *
- * @return
- *   The value of the variable. Unserialization is taken care of as necessary.
- *
- * @deprecated This will be removed in Drupal 8.0. Instead, use the
- *   configuration API.
- *
- * @see \Drupal\Core\Config::get()
- */
-function variable_get($name, $default = NULL) {
-  global $conf;
-
-  return isset($conf[$name]) ? $conf[$name] : $default;
-}
-
-/**
- * Sets a persistent variable.
- *
- * Case-sensitivity of the variable_* functions depends on the database
- * collation used. To avoid problems, always use lower case for persistent
- * variable names.
- *
- * @param $name
- *   The name of the variable to set.
- * @param $value
- *   The value to set. This can be any PHP data type; these functions take care
- *   of serialization as necessary.
- *
- * @deprecated This will be removed in Drupal 8.0. Instead, use the
- *   configuration API.
- *
- * @see \Drupal\Core\Config::set()
- */
-function variable_set($name, $value) {
-  global $conf;
-
-  db_merge('variable')->key(array('name' => $name))->fields(array('value' => serialize($value)))->execute();
-
-  cache('bootstrap')->delete('variables');
-
-  $conf[$name] = $value;
-}
-
-/**
- * Unsets a persistent variable.
- *
- * Case-sensitivity of the variable_* functions depends on the database
- * collation used. To avoid problems, always use lower case for persistent
- * variable names.
- *
- * @param $name
- *   The name of the variable to undefine.
- *
- * @deprecated This will be removed in Drupal 8.0. Instead, use the
- *   configuration API.
- *
- * @see \Drupal\Core\Config::clear()
- */
-function variable_del($name) {
-  global $conf;
-
-  db_delete('variable')
-    ->condition('name', $name)
-    ->execute();
-  cache('bootstrap')->delete('variables');
-
-  unset($conf[$name]);
-}
-
-/**
  * Gets the page cache cid for this request.
  *
  * @param \Symfony\Component\HttpFoundation\Request $request
@@ -1032,44 +847,6 @@ function drupal_page_is_cacheable($allow_caching = NULL) {
 
   return $allow_caching_static && ($_SERVER['REQUEST_METHOD'] == 'GET' || $_SERVER['REQUEST_METHOD'] == 'HEAD')
     && !drupal_is_cli();
-}
-
-/**
- * Includes a file with the provided type and name.
- *
- * This prevents including a theme, engine, module, etc., more than once.
- *
- * @param $type
- *   The type of item to load (i.e. theme, theme_engine, module).
- * @param $name
- *   The name of the item to load.
- *
- * @return
- *   TRUE if the item is loaded or has already been loaded.
- */
-function drupal_load($type, $name) {
-  if ($type == 'module' && \Drupal::moduleHandler()->moduleExists($name)) {
-    return \Drupal::moduleHandler()->load($name);
-  }
-
-  // Once a file is included this can't be reversed during a request so do not
-  // use drupal_static() here.
-  static $files = array();
-
-  if (isset($files[$type][$name])) {
-    return TRUE;
-  }
-
-  $filename = drupal_get_filename($type, $name);
-
-  if ($filename) {
-    include_once DRUPAL_ROOT . '/' . $filename;
-    $files[$type][$name] = TRUE;
-
-    return TRUE;
-  }
-
-  return FALSE;
 }
 
 /**
@@ -1411,6 +1188,9 @@ function format_string($string, array $args = array()) {
  * @see \Drupal\Component\Utility\String::checkPlain()
  * @see drupal_validate_utf8()
  * @ingroup sanitization
+ *
+ * @deprecated as of Drupal 8.0. Use
+ *   Drupal\Component\Utility\String::checkPlain() directly instead.
  */
 function check_plain($text) {
   return String::checkPlain($text);
@@ -1498,7 +1278,7 @@ function request_uri($omit_query_string = FALSE) {
  *   A link to associate with the message.
  *
  * @see watchdog()
- * @see _drupal_decode_exception()
+ * @see \Drupal\Core\Utility\Error::decodeException()
  */
 function watchdog_exception($type, Exception $exception, $message = NULL, $variables = array(), $severity = WATCHDOG_ERROR, $link = NULL) {
 
@@ -1506,7 +1286,7 @@ function watchdog_exception($type, Exception $exception, $message = NULL, $varia
    if (empty($message)) {
      // The exception message is run through
      // \Drupal\Component\Utility\String::checkPlain() by
-     // _drupal_decode_exception().
+     // \Drupal\Core\Utility\Error:decodeException().
      $message = '%type: !message in %function (line %line of %file).';
    }
    // $variables must be an array so that we can add the exception information.
@@ -1514,8 +1294,7 @@ function watchdog_exception($type, Exception $exception, $message = NULL, $varia
      $variables = array();
    }
 
-   require_once __DIR__ . '/errors.inc';
-   $variables += _drupal_decode_exception($exception);
+   $variables += Error::decodeException($exception);
    watchdog($type, $message, $variables, $severity, $link);
 }
 
@@ -1558,7 +1337,7 @@ function watchdog($type, $message, array $variables = NULL, $severity = WATCHDOG
 
   // It is possible that the error handling will itself trigger an error. In that case, we could
   // end up in an infinite loop. To avoid that, we implement a simple static semaphore.
-  if (!$in_error_state && function_exists('module_implements')) {
+  if (!$in_error_state && \Drupal::hasService('module_handler')) {
     $in_error_state = TRUE;
 
     // The user object may not exist in all conditions, so 0 is substituted if needed.
@@ -1586,7 +1365,7 @@ function watchdog($type, $message, array $variables = NULL, $severity = WATCHDOG
       $log_entry['referer'] = $request->headers->get('Referer', '');
       $log_entry['ip'] = $request->getClientIP();
     }
-    catch (\InvalidArgumentException $e) {
+    catch (DependencyInjectionRuntimeException $e) {
       // We are not in a request context.
     }
 
@@ -1707,14 +1486,7 @@ function drupal_get_messages($type = NULL, $clear_queue = TRUE) {
  *   The current page's title.
  */
 function drupal_get_title() {
-  $title = drupal_set_title();
-
-  // During a bootstrap, menu.inc is not included and thus we cannot provide a title.
-  if (!isset($title) && function_exists('menu_get_active_title')) {
-    $title = String::checkPlain(menu_get_active_title());
-  }
-
-  return $title;
+  return drupal_set_title() ?: '';
 }
 
 /**
@@ -1752,9 +1524,18 @@ function drupal_set_title($title = NULL, $output = Title::CHECK_PLAIN) {
  *   The user session object.
  */
 function drupal_anonymous_user() {
+  try {
+    $request = \Drupal::request();
+    $hostname = $request->getClientIP();
+  }
+  catch (DependencyInjectionRuntimeException $e) {
+    // We are not in a request context.
+    $hostname = '';
+  }
+
   $values = array(
     'uid' => 0,
-    'hostname' => \Drupal::request()->getClientIP(),
+    'hostname' => $hostname,
     'roles' => array(DRUPAL_ANONYMOUS_RID),
   );
   return new UserSession($values);
@@ -1765,6 +1546,7 @@ function drupal_anonymous_user() {
  *
  * In order to bootstrap Drupal from another PHP script, you can use this code:
  * @code
+ *   require_once '/path/to/drupal/core/vendor/autoload.php';
  *   require_once '/path/to/drupal/core/includes/bootstrap.inc';
  *   drupal_bootstrap(DRUPAL_BOOTSTRAP_FULL);
  * @endcode
@@ -1776,26 +1558,19 @@ function drupal_anonymous_user() {
  *   - DRUPAL_BOOTSTRAP_CONFIGURATION: Initializes configuration.
  *   - DRUPAL_BOOTSTRAP_KERNEL: Initalizes a kernel.
  *   - DRUPAL_BOOTSTRAP_PAGE_CACHE: Tries to serve a cached page.
- *   - DRUPAL_BOOTSTRAP_DATABASE: Initializes the database layer.
- *   - DRUPAL_BOOTSTRAP_VARIABLES: Initializes the variable system.
  *   - DRUPAL_BOOTSTRAP_CODE: Loads code for subsystems and modules.
  *   - DRUPAL_BOOTSTRAP_FULL: Fully loads Drupal. Validates and fixes input
  *     data.
- * @param $new_phase
- *   A boolean, set to FALSE if calling drupal_bootstrap from inside a
- *   function called from drupal_bootstrap (recursion).
  *
  * @return
  *   The most recently completed phase.
  */
-function drupal_bootstrap($phase = NULL, $new_phase = TRUE) {
+function drupal_bootstrap($phase = NULL) {
   // Not drupal_static(), because does not depend on any run-time information.
   static $phases = array(
     DRUPAL_BOOTSTRAP_CONFIGURATION,
     DRUPAL_BOOTSTRAP_KERNEL,
     DRUPAL_BOOTSTRAP_PAGE_CACHE,
-    DRUPAL_BOOTSTRAP_DATABASE,
-    DRUPAL_BOOTSTRAP_VARIABLES,
     DRUPAL_BOOTSTRAP_CODE,
     DRUPAL_BOOTSTRAP_FULL,
   );
@@ -1806,10 +1581,10 @@ function drupal_bootstrap($phase = NULL, $new_phase = TRUE) {
   // bootstrap state.
   static $stored_phase = -1;
 
-  // When not recursing, store the phase name so it's not forgotten during
-  // recursion. Additionally, ensure that $final_phase is never rolled back to an
-  // earlier bootstrap state.
-  if ($new_phase && $phase > $final_phase) {
+  // Store the phase name so it's not forgotten during recursion. Additionally,
+  // ensure that $final_phase is never rolled back to an earlier bootstrap
+  // state.
+  if ($phase > $final_phase) {
     $final_phase = $phase;
   }
   if (isset($phase)) {
@@ -1835,14 +1610,6 @@ function drupal_bootstrap($phase = NULL, $new_phase = TRUE) {
 
         case DRUPAL_BOOTSTRAP_PAGE_CACHE:
           _drupal_bootstrap_page_cache();
-          break;
-
-        case DRUPAL_BOOTSTRAP_DATABASE:
-          _drupal_bootstrap_database();
-          break;
-
-        case DRUPAL_BOOTSTRAP_VARIABLES:
-          _drupal_bootstrap_variables();
           break;
 
         case DRUPAL_BOOTSTRAP_CODE:
@@ -1895,10 +1662,13 @@ function drupal_handle_request($test_only = FALSE) {
   // @todo Remove this once everything in the bootstrap has been
   //   converted to services in the DIC.
   $kernel->boot();
-  drupal_bootstrap(DRUPAL_BOOTSTRAP_CODE);
 
   // Create a request object from the HttpFoundation.
   $request = Request::createFromGlobals();
+  \Drupal::getContainer()->set('request', $request);
+
+  drupal_bootstrap(DRUPAL_BOOTSTRAP_CODE);
+
   $response = $kernel->handle($request)->prepare($request)->send();
 
   $kernel->terminate($request, $response);
@@ -1970,15 +1740,15 @@ function _drupal_exception_handler($exception) {
 
   try {
     // Log the message to the watchdog and return an error page to the user.
-    _drupal_log_error(_drupal_decode_exception($exception), TRUE);
+    _drupal_log_error(Error::decodeException($exception), TRUE);
   }
   catch (Exception $exception2) {
     // Another uncaught exception was thrown while handling the first one.
     // If we are displaying errors, then do so with no possibility of a further uncaught exception being thrown.
     if (error_displayable()) {
       print '<h1>Additional uncaught exception thrown while handling exception.</h1>';
-      print '<h2>Original</h2><p>' . _drupal_render_exception_safe($exception) . '</p>';
-      print '<h2>Additional</h2><p>' . _drupal_render_exception_safe($exception2) . '</p><hr />';
+      print '<h2>Original</h2><p>' . Error::renderExceptionSafe($exception) . '</p>';
+      print '<h2>Additional</h2><p>' . Error::renderExceptionSafe($exception2) . '</p><hr />';
     }
   }
 }
@@ -1988,11 +1758,27 @@ function _drupal_exception_handler($exception) {
  */
 function _drupal_bootstrap_configuration() {
   drupal_environment_initialize();
+
+  // Indicate that code is operating in a test child site.
+  if ($test_prefix = drupal_valid_test_ua()) {
+    // Only code that interfaces directly with tests should rely on this
+    // constant; e.g., the error/exception handler conditionally adds further
+    // error information into HTTP response headers that are consumed by
+    // Simpletest's internal browser.
+    define('DRUPAL_TEST_IN_CHILD_SITE', TRUE);
+
+    // Log fatal errors to the test site directory.
+    ini_set('log_errors', 1);
+    ini_set('error_log', DRUPAL_ROOT . '/sites/simpletest/' . substr($test_prefix, 10) . '/error.log');
+  }
+  else {
+    // Ensure that no other code defines this.
+    define('DRUPAL_TEST_IN_CHILD_SITE', FALSE);
+  }
+
   // Initialize the configuration, including variables from settings.php.
   drupal_settings_initialize();
-
-  // Make sure we are using the test database prefix in child Drupal sites.
-  _drupal_initialize_db_test_prefix();
+  _drupal_request_initialize();
 
   // Activate the class loader.
   drupal_classloader();
@@ -2013,7 +1799,7 @@ function _drupal_bootstrap_configuration() {
   // Redirect the user to the installation script if Drupal has not been
   // installed yet (i.e., if no $databases array has been defined in the
   // settings.php file) and we are not already installing.
-  if (empty($GLOBALS['databases']) && !drupal_installation_attempted()) {
+  if (empty($GLOBALS['databases']) && !drupal_installation_attempted() && !drupal_is_cli()) {
     include_once __DIR__ . '/install.inc';
     install_goto('core/install.php');
   }
@@ -2028,6 +1814,8 @@ function _drupal_bootstrap_kernel() {
   if (!\Drupal::getContainer()) {
     $kernel = new DrupalKernel('prod', drupal_classloader());
     $kernel->boot();
+    $request = Request::createFromGlobals();
+    \Drupal::getContainer()->set('request', $request);
   }
 }
 
@@ -2038,12 +1826,12 @@ function _drupal_bootstrap_page_cache() {
   global $user;
 
   require_once __DIR__ . '/cache.inc';
+  require_once __DIR__ . '/database.inc';
   // Check for a cache mode force from settings.php.
   if (settings()->get('page_cache_without_database')) {
     $cache_enabled = TRUE;
   }
   else {
-    drupal_bootstrap(DRUPAL_BOOTSTRAP_VARIABLES, FALSE);
     $config = \Drupal::config('system.performance');
     $cache_enabled = $config->get('cache.page.use_internal');
   }
@@ -2152,20 +1940,6 @@ function drupal_get_bootstrap_phase() {
 }
 
 /**
- * Retrieves the Drupal Container to standardize object construction.
- *
- * @deprecated This function has been replaced by the \Drupal class. Use that
- *   instead.
- *
- * @return Symfony\Component\DependencyInjection\ContainerInterface|bool
- *   The instance of the ContainerInterface used to set up and maintain
- *   object instances or FALSE if none exist yet.
- */
-function drupal_container() {
-  return \Drupal::getContainer();
-}
-
-/**
  * Returns the list of enabled modules.
  *
  * @deprecated as of Drupal 8.0. Use
@@ -2193,13 +1967,13 @@ function module_implements($hook) {
 /**
  * Invokes a hook in a particular module.
  *
- * All arguments are passed by value. Use drupal_alter() if you need to pass
- * arguments by reference.
+ * All arguments are passed by value. Use \Drupal::moduleHandler()->alter() if
+ * you need to pass arguments by reference.
  *
- * @deprecated as of Drupal 8.0. Use
+ * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0. Use
  *   \Drupal::moduleHandler()->invoke($module, $hook, $args = array()).
  *
- * @see drupal_alter()
+ * @see \Drupal\Core\Extension\ModuleHandler::alter()
  * @see \Drupal\Core\Extension\ModuleHandler::invoke()
  */
 function module_invoke($module, $hook) {
@@ -2224,7 +1998,7 @@ function module_invoke($module, $hook) {
 function module_invoke_all($hook) {
   $args = func_get_args();
   // Remove $hook from the arguments.
-  array_shift($args);
+  unset($args[0]);
   return \Drupal::moduleHandler()->invokeAll($hook, $args);
 }
 
@@ -2268,10 +2042,9 @@ function module_hook($module, $hook) {
  * Returns the test prefix if this is an internal request from SimpleTest.
  *
  * @param string $new_prefix
- *   Internal use only. A new prefix to be stored. Passed in by tests that use
- *   the test runner from within a test.
+ *   Internal use only. A new prefix to be stored.
  *
- * @return
+ * @return string|FALSE
  *   Either the simpletest prefix (the string "simpletest" followed by any
  *   number of digits) or FALSE if the user agent does not contain a valid
  *   HMAC and timestamp.
@@ -2285,80 +2058,68 @@ function drupal_valid_test_ua($new_prefix = NULL) {
   if (isset($test_prefix)) {
     return $test_prefix;
   }
+  // Unless the below User-Agent and HMAC validation succeeds, we are not in
+  // a test environment.
+  $test_prefix = FALSE;
 
+  // Perform a basic check on the User-Agent HTTP request header first. Any
+  // inbound request that uses the simpletest UA header needs to be validated.
   if (isset($_SERVER['HTTP_USER_AGENT']) && preg_match("/^(simpletest\d+);(.+);(.+);(.+)$/", $_SERVER['HTTP_USER_AGENT'], $matches)) {
     list(, $prefix, $time, $salt, $hmac) = $matches;
     $check_string =  $prefix . ';' . $time . ';' . $salt;
-    // We use the salt from settings.php to make the HMAC key, since
-    // the database is not yet initialized and we can't access any Drupal variables.
+    // Read the hash salt prepared by drupal_generate_test_ua().
+    // This function is called before settings.php is read and Drupal's error
+    // handlers are set up. While Drupal's error handling may be properly
+    // configured on production sites, the server's PHP error_reporting may not.
+    // Ensure that no information leaks on production sites.
+    $key_file = DRUPAL_ROOT . '/sites/simpletest/' . substr($prefix, 10) . '/.htkey';
+    if (!is_readable($key_file)) {
+      header($_SERVER['SERVER_PROTOCOL'] . ' 403 Forbidden');
+      exit;
+    }
+    $private_key = file_get_contents($key_file);
     // The file properties add more entropy not easily accessible to others.
-    $key = drupal_get_hash_salt() . filectime(__FILE__) . fileinode(__FILE__);
+    $key = $private_key . filectime(__FILE__) . fileinode(__FILE__);
     $time_diff = REQUEST_TIME - $time;
-    // We cant use Crypt::hmacBase64() yet because this can be called in very
-    // early bootstrap when autoloader has not been initialized yet.
-    $test_hmac = base64_encode(hash_hmac('sha256', $check_string, $key, TRUE));
-    $test_hmac = strtr($test_hmac, array('+' => '-', '/' => '_', '=' => ''));
+    $test_hmac = Crypt::hmacBase64($check_string, $key);
     // Since we are making a local request a 5 second time window is allowed,
     // and the HMAC must match.
-    if ($time_diff >= 0 && $time_diff <= 5 && $hmac == $test_hmac) {
+    if ($time_diff >= 0 && $time_diff <= 5 && $hmac === $test_hmac) {
       $test_prefix = $prefix;
-      _drupal_load_test_overrides($test_prefix);
-      return $test_prefix;
     }
   }
-
-  $test_prefix = FALSE;
   return $test_prefix;
-}
-
-/**
- * Overrides low-level and environment-specific configuration.
- *
- * Very strictly for internal use only.
- *
- * Loads settings.php from the simpletest public files directory. These files
- * can change the global $conf, the global $config_directories, the return
- * value of conf_path(), and settings().
- *
- * @param string $test_prefix
- *   The simpletest prefix.
- */
-function _drupal_load_test_overrides($test_prefix) {
-  global $conf, $config_directories;
-
-  // Do not use the parent site's config directories. Use only the child site's.
-  // @see \Drupal\simpletest\TestBase::prepareConfigDirectories()
-  $path_prefix = 'simpletest/' . substr($test_prefix, 10);
-  $config_directories = array();
-  foreach (array(CONFIG_ACTIVE_DIRECTORY, CONFIG_STAGING_DIRECTORY) as $type) {
-    $config_directories[$type] = array('path' => $path_prefix . '/config_' . $type);
-  }
-
-  // Check for and load a settings.php file in the simpletest files directory.
-  $filename = conf_path() . '/files/' . $path_prefix . '/settings.php';
-  if (file_exists($filename)) {
-    $settings = settings()->getAll();
-    $conf_path = &drupal_static('conf_path');
-    // This can override $conf, $conf_path, $settings, and $config_directories.
-    include $filename;
-    // Keep the overriden $conf_path alive across drupal_static_reset() calls.
-    // @see conf_path()
-    $settings['simpletest_conf_path'] = $conf_path;
-    new Settings($settings);
-  }
 }
 
 /**
  * Generates a user agent string with a HMAC and timestamp for simpletest.
  */
 function drupal_generate_test_ua($prefix) {
-  static $key;
+  static $key, $last_prefix;
 
-  if (!isset($key)) {
-    // We use the salt from settings.php to make the HMAC key, since
-    // the database is not yet initialized and we can't access any Drupal variables.
+  if (!isset($key) || $last_prefix != $prefix) {
+    $last_prefix = $prefix;
+    $key_file = DRUPAL_ROOT . '/sites/simpletest/' . substr($prefix, 10) . '/.htkey';
+    // When issuing an outbound HTTP client request from within an inbound test
+    // request, then the outbound request has to use the same User-Agent header
+    // as the inbound request. A newly generated private key for the same test
+    // prefix would invalidate all subsequent inbound requests.
+    // @see \Drupal\Core\Http\Plugin\SimpletestHttpRequestSubscriber
+    if (DRUPAL_TEST_IN_CHILD_SITE && $parent_prefix = drupal_valid_test_ua()) {
+      if ($parent_prefix != $prefix) {
+        throw new \RuntimeException("Malformed User-Agent: Expected '$parent_prefix' but got '$prefix'.");
+      }
+      // If the file is not readable, a PHP warning is expected in this case.
+      $private_key = file_get_contents($key_file);
+    }
+    else {
+      // Generate and save a new hash salt for a test run.
+      // Consumed by drupal_valid_test_ua() before settings.php is loaded.
+      $private_key = Crypt::randomStringHashed(55);
+      file_put_contents($key_file, $private_key);
+    }
     // The file properties add more entropy not easily accessible to others.
-    $key = drupal_get_hash_salt() . filectime(__FILE__) . fileinode(__FILE__);
+    $key = $private_key . filectime(__FILE__) . fileinode(__FILE__);
   }
   // Generate a moderately secure HMAC based on the database credentials.
   $salt = uniqid('', TRUE);
@@ -2397,7 +2158,7 @@ function drupal_installation_attempted() {
 function drupal_language_initialize() {
   $language_manager = \Drupal::languageManager();
   $language_manager->init();
-  \Drupal::translation()->setDefaultLangcode($language_manager->getLanguage(Language::TYPE_INTERFACE)->id);
+  \Drupal::translation()->setDefaultLangcode($language_manager->getCurrentLanguage()->id);
 }
 
 /**
@@ -2409,47 +2170,10 @@ function drupal_language_initialize() {
  *   The type of language object needed, e.g. Language::TYPE_INTERFACE.
  *
  * @deprecated as of Drupal 8.0. Use
- *   \Drupal::languageManager()->getLanguage($type).
+ *   \Drupal::languageManager()->getCurrentLanguage().
  */
 function language($type) {
-  return \Drupal::languageManager()->getLanguage($type);
-}
-
-/**
- * Returns an array of the available language types.
- *
- * @return array
- *   An array of all language types where the keys of each are the language type
- *   name and its value is its configurability (TRUE/FALSE).
- */
-function language_types_get_all() {
-  $types = \Drupal::config('system.language.types')->get('all');
-  return $types ? $types : array_keys(language_types_get_default());
-}
-
-/**
- * Returns a list of the built-in language types.
- *
- * @return array
- *   An array of key-values pairs where the key is the language type name and
- *   the value is its configurability (TRUE/FALSE).
- */
-function language_types_get_default() {
-  return array(
-    Language::TYPE_INTERFACE => TRUE,
-    Language::TYPE_CONTENT => FALSE,
-    Language::TYPE_URL => FALSE,
-  );
-}
-
-/**
- * Returns TRUE if there is more than one language enabled.
- *
- * @return bool
- *   TRUE if more than one language is enabled.
- */
-function language_multilingual() {
-  return \Drupal::languageManager()->isMultilingual();
+  return \Drupal::languageManager()->getCurrentLanguage($type);
 }
 
 /**
@@ -2463,98 +2187,12 @@ function language_multilingual() {
  * @return array
  *   An associative array of languages, keyed by the language code, ordered by
  *   weight ascending and name ascending.
+ *
+ * @deprecated as of Drupal 8.0. Use
+ *   \Drupal::languageManager()->getLanguages() instead.
  */
 function language_list($flags = Language::STATE_CONFIGURABLE) {
-
-  $languages = &drupal_static(__FUNCTION__);
-
-  // Initialize master language list.
-  if (!isset($languages)) {
-    // Initialize local language list cache.
-   $languages = array();
-
-    // Fill in master language list based on current configuration.
-    $default = language_default();
-    if (language_multilingual() || \Drupal::moduleHandler()->moduleExists('language')) {
-      // Use language module configuration if available.
-      $language_entities = config_get_storage_names_with_prefix('language.entity');
-
-      // Initialize default property so callers have an easy reference and can
-      // save the same object without data loss.
-      foreach ($language_entities as $langcode_config_name) {
-        $langcode = substr($langcode_config_name, strlen('language.entity.'));
-        $info = \Drupal::config($langcode_config_name)->get();
-        $languages[$langcode] = new Language(array(
-          'default' => ($info['id'] == $default->id),
-          'name' => $info['label'],
-          'id' => $info['id'],
-          'direction' => $info['direction'],
-          'locked' => $info['locked'],
-          'weight' => $info['weight'],
-        ));
-      }
-      Language::sort($languages);
-    }
-    else {
-      // No language module, so use the default language only.
-      $languages = array($default->id => $default);
-      // Add the special languages, they will be filtered later if needed.
-      $languages += language_default_locked_languages($default->weight);
-    }
-  }
-
-  // Filter the full list of languages based on the value of the $all flag. By
-  // default we remove the locked languages, but the caller may request for
-  // those languages to be added as well.
-  $filtered_languages = array();
-
-  // Add the site's default language if flagged as allowed value.
-  if ($flags & Language::STATE_SITE_DEFAULT) {
-    $default = isset($default) ? $default : language_default();
-    // Rename the default language.
-    $default->name = t("Site's default language (@lang_name)", array('@lang_name' => $default->name));
-    $filtered_languages['site_default'] = $default;
-  }
-
-  foreach ($languages as $langcode => $language) {
-    if (($language->locked && !($flags & Language::STATE_LOCKED)) || (!$language->locked && !($flags & Language::STATE_CONFIGURABLE))) {
-      continue;
-     }
-    $filtered_languages[$langcode] = $language;
-  }
-
-  return $filtered_languages;
-}
-
-/**
- * Returns a list of the default locked languages.
- *
- * @param int $weight
- *   An integer value that is used as the start value for the weights of the
- *   locked languages.
- *
- * @return array
- *   An array of language objects.
- */
-function language_default_locked_languages($weight = 0) {
-  $locked_language = array(
-    'default' => FALSE,
-    'locked' => TRUE,
-    'enabled' => TRUE,
-  );
-
-  $languages = array();
-  $languages[Language::LANGCODE_NOT_SPECIFIED] = new Language(array(
-    'id' => Language::LANGCODE_NOT_SPECIFIED,
-    'name' => t('Not specified'),
-    'weight' => ++$weight,
-  ) + $locked_language);
-  $languages[Language::LANGCODE_NOT_APPLICABLE] = new Language(array(
-    'id' => Language::LANGCODE_NOT_APPLICABLE,
-    'name' => t('Not applicable'),
-    'weight' => ++$weight,
-  ) + $locked_language);
-  return $languages;
+  return \Drupal::languageManager()->getLanguages($flags);
 }
 
 /**
@@ -2565,47 +2203,14 @@ function language_default_locked_languages($weight = 0) {
  *
  * @return \Drupal\core\Language\Language|null
  *   A fully-populated language object or NULL.
+ *
+ * @see \Drupal\Core\Language\LanguageManager::getLanguage()
+ *
+ * @deprecated as of Drupal 8.0. Use \Drupal::languageManager()->getLanguage()
+ *   instead.
  */
 function language_load($langcode) {
-  $languages = language_list(Language::STATE_ALL);
-  return isset($languages[$langcode]) ? $languages[$langcode] : NULL;
-}
-
-/**
- * Produced the printed name for a language for display.
- *
- * @param string $langcode
- *   The language code.
- *
- * @return string
- *   The printed name of the language.
- */
-function language_name($langcode) {
-  if ($langcode == Language::LANGCODE_NOT_SPECIFIED) {
-    return t('None');
-  }
-
-  if ($language = language_load($langcode)) {
-    return $language->name;
-  }
-  if (empty($langcode)) {
-    return t('Unknown');
-  }
-  return t('Unknown (@langcode)', array('@langcode' => $langcode));
-}
-
-/**
- * Checks if a language is locked.
- *
- * @param string $langcode
- *   The language code.
- *
- * @return bool
- *   Returns whether the language is locked.
- */
-function language_is_locked($langcode) {
-  $language = language_load($langcode);
-  return ($language ? $language->locked : FALSE);
+  return \Drupal::languageManager()->getLanguage($langcode);
 }
 
 /**
@@ -2613,35 +2218,12 @@ function language_is_locked($langcode) {
  *
  * @return \Drupal\Core\Language\Language
  *   A language object.
+ *
+ * @deprecated as of Drupal 8.0. Use
+ *   \Drupal::languageManager()->getDefaultLanguage() instead.
  */
 function language_default() {
-  $info = variable_get('language_default', array(
-    'id' => 'en',
-    'name' => 'English',
-    'direction' => 0,
-    'weight' => 0,
-    'locked' => 0,
-  ));
-  $info['default'] = TRUE;
-  return new Language($info);
-}
-
-/**
- * Stores or retrieves the path derived during language negotiation.
- *
- * @param string $new_path
- *   The altered path.
- *
- * @todo Replace this with a path processor in language module. See
- *   http://drupal.org/node/1888424.
- */
-function _language_resolved_path($new_path = NULL) {
-  $path = &drupal_static(__FUNCTION__, NULL);
-  if ($new_path === NULL) {
-    return $path;
-  }
-  $path = $new_path;
-  return $path;
+  return \Drupal::languageManager()->getDefaultLanguage();
 }
 
 /**
@@ -2863,12 +2445,12 @@ function drupal_classloader_register($name, $path) {
  *
  * Example:
  * @code
- * function system_get_module_info($property) {
- *   static $info;
- *   if (!isset($info)) {
- *     $info = new ModuleInfo('system_info', 'cache');
+ * function drupal_session_started($set = NULL) {
+ *   static $session_started = FALSE;
+ *   if (isset($set)) {
+ *     $session_started = $set;
  *   }
- *   return $info[$property];
+ *   return $session_started && session_id();
  * }
  * @endcode
  *
@@ -3015,7 +2597,8 @@ function &drupal_register_shutdown_function($callback = NULL) {
       register_shutdown_function('_drupal_shutdown_function');
     }
     $args = func_get_args();
-    array_shift($args);
+    // Remove $callback from the arguments.
+    unset($args[0]);
     // Save callback and arguments
     $callbacks[] = array('callback' => $callback, 'arguments' => $args);
   }
@@ -3038,12 +2621,16 @@ function _drupal_shutdown_function() {
     }
   }
   catch (Exception $exception) {
-    // If we are displaying errors, then do so with no possibility of a further
-    // uncaught exception being thrown.
-    require_once __DIR__ . '/errors.inc';
-    if (error_displayable()) {
-      print '<h1>Uncaught exception thrown in shutdown function.</h1>';
-      print '<p>' . _drupal_render_exception_safe($exception) . '</p><hr />';
+    // If using PHP-FPM then fastcgi_finish_request() will have been fired
+    // preventing further output to the browser.
+    if (!function_exists('fastcgi_finish_request')) {
+      // If we are displaying errors, then do so with no possibility of a
+      // further uncaught exception being thrown.
+      require_once __DIR__ . '/errors.inc';
+      if (error_displayable()) {
+        print '<h1>Uncaught exception thrown in shutdown function.</h1>';
+        print '<p>' . Error::renderExceptionSafe($exception) . '</p><hr />';
+      }
     }
     error_log($exception);
   }

@@ -7,8 +7,9 @@
 
 namespace Drupal\comment\Plugin\views\field;
 
+use Drupal\comment\CommentInterface;
+use Drupal\Core\Session\AccountInterface;
 use Drupal\views\ResultRow;
-use Drupal\Component\Annotation\PluginID;
 
 /**
  * Provides a comment approve link.
@@ -19,9 +20,12 @@ use Drupal\Component\Annotation\PluginID;
  */
 class LinkApprove extends Link {
 
-  public function access() {
+  /**
+   * {@inheritdoc}
+   */
+  public function access(AccountInterface $account) {
     //needs permission to administer comments in general
-    return user_access('administer comments');
+    return $account->hasPermission('administer comments');
   }
 
   /**
@@ -39,11 +43,11 @@ class LinkApprove extends Link {
     $status = $this->getValue($values, 'status');
 
     // Don't show an approve link on published nodes.
-    if ($status == COMMENT_PUBLISHED) {
+    if ($status == CommentInterface::PUBLISHED) {
       return;
     }
 
-    $text = !empty($this->options['text']) ? $this->options['text'] : t('approve');
+    $text = !empty($this->options['text']) ? $this->options['text'] : t('Approve');
     $comment = $this->get_entity($values);
 
     $this->options['alter']['make_link'] = TRUE;

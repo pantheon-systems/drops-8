@@ -7,6 +7,8 @@
 
 namespace Drupal\taxonomy\Tests;
 
+use Drupal\Core\Field\FieldDefinitionInterface;
+
 /**
  * Tests the rendering of term reference fields in RSS feeds.
  */
@@ -39,7 +41,7 @@ class RssTest extends TaxonomyTestBase {
       'name' => $this->field_name,
       'entity_type' => 'node',
       'type' => 'taxonomy_term_reference',
-      'cardinality' => FIELD_CARDINALITY_UNLIMITED,
+      'cardinality' => FieldDefinitionInterface::CARDINALITY_UNLIMITED,
       'settings' => array(
         'allowed_values' => array(
           array(
@@ -92,7 +94,7 @@ class RssTest extends TaxonomyTestBase {
 
     // Post an article.
     $edit = array();
-    $edit["title"] = $this->randomName();
+    $edit['title[0][value]'] = $this->randomName();
     $edit[$this->field_name . '[]'] = $term1->id();
     $this->drupalPostForm('node/add/article', $edit, t('Save'));
 

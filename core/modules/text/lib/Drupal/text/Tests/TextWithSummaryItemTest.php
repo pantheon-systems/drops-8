@@ -8,12 +8,12 @@
 namespace Drupal\text\Tests;
 
 use Drupal\Core\Language\Language;
-use Drupal\Core\Entity\Field\FieldItemListInterface;
-use Drupal\Core\Entity\Field\FieldItemInterface;
+use Drupal\Core\Field\FieldItemListInterface;
+use Drupal\Core\Field\FieldItemInterface;
 use Drupal\field\Tests\FieldUnitTestBase;
 
 /**
- * Tests for \Drupal\text\Plugin\field\field_type\TextWithSummaryItem.
+ * Tests for \Drupal\text\Plugin\Field\FieldType\TextWithSummaryItem.
  */
 class TextWithSummaryItemTest extends FieldUnitTestBase {
 
@@ -68,7 +68,7 @@ class TextWithSummaryItemTest extends FieldUnitTestBase {
     $this->createField($entity_type);
 
     // Create an entity with a summary and no text format.
-    $entity = entity_create($entity_type, array());
+    $entity = entity_create($entity_type);
     $entity->summary_field->value = $value = $this->randomName();
     $entity->summary_field->summary = $summary = $this->randomName();
     $entity->summary_field->format = NULL;
@@ -112,7 +112,7 @@ class TextWithSummaryItemTest extends FieldUnitTestBase {
     $this->createField($entity_type);
 
     // Create an entity with a summary and a text format.
-    $entity = entity_create($entity_type, array());
+    $entity = entity_create($entity_type);
     $entity->summary_field->value = $value = $this->randomName();
     $entity->summary_field->summary = $summary = $this->randomName();
     $entity->summary_field->format = 'plain_text';
@@ -128,7 +128,7 @@ class TextWithSummaryItemTest extends FieldUnitTestBase {
     $entity = entity_load($entity_type, $entity->id());
     $cache = cache('field')->get("field:$entity_type:" . $entity->id());
     $this->assertEqual($cache->data, array(
-      Language::LANGCODE_DEFAULT => array(
+      Language::LANGCODE_NOT_SPECIFIED => array(
         'summary_field' => array(
           0 => array(
             'value' => $value,
@@ -144,7 +144,7 @@ class TextWithSummaryItemTest extends FieldUnitTestBase {
     // Inject fake processed values into the cache to make sure that these are
     // used as-is and not re-calculated when the entity is loaded.
     $data = array(
-      Language::LANGCODE_DEFAULT => array(
+      Language::LANGCODE_NOT_SPECIFIED => array(
         'summary_field' => array(
           0 => array(
             'value' => $value,

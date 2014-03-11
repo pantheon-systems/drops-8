@@ -7,7 +7,8 @@
 
 namespace Drupal\views\Plugin\views\row;
 
-use Drupal\Core\Entity\EntityManager;
+use Drupal\Component\Utility\String;
+use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\views\Plugin\views\display\DisplayPluginBase;
 use Drupal\views\ViewExecutable;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -37,18 +38,18 @@ class EntityRow extends RowPluginBase {
   public $base_field;
 
   /**
-   * Stores the entity type of the result entities.
+   * Stores the entity type ID of the result entities.
    *
    * @var string
    */
-  protected $entityType;
+  protected $entityTypeId;
 
   /**
-   * Contains the entity info of the entity type of this row plugin instance.
+   * Contains the entity type of this row plugin instance.
    *
-   * @see entity_get_info
+   * @var \Drupal\Core\Entity\EntityTypeInterface
    */
-  protected $entityInfo;
+  protected $entityType;
 
   /**
    * Contains an array of render arrays, one for each rendered entity.
@@ -60,10 +61,10 @@ class EntityRow extends RowPluginBase {
   /**
    * {@inheritdoc}
    *
-   * @param \Drupal\Core\Entity\EntityManager $entity_manager
+   * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
    *   The entity manager.
    */
-  public function __construct(array $configuration, $plugin_id, array $plugin_definition, EntityManager $entity_manager) {
+  public function __construct(array $configuration, $plugin_id, array $plugin_definition, EntityManagerInterface $entity_manager) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
 
     $this->entityManager = $entity_manager;
@@ -75,10 +76,10 @@ class EntityRow extends RowPluginBase {
   public function init(ViewExecutable $view, DisplayPluginBase $display, array &$options = NULL) {
     parent::init($view, $display, $options);
 
-    $this->entityType = $this->definition['entity_type'];
-    $this->entityInfo = $this->entityManager->getDefinition($this->entityType);
-    $this->base_table = $this->entityInfo['base_table'];
-    $this->base_field = $this->entityInfo['entity_keys']['id'];
+    $this->entityTypeId = $this->definition['entity_type'];
+    $this->entityType = $this->entityManager->getDefinition($this->entityTypeId);
+    $this->base_table = $this->entityType->getBaseTable();
+    $this->base_field = $this->entityType->getKey('id');
   }
 
   /**
@@ -119,7 +120,7 @@ class EntityRow extends RowPluginBase {
    */
   protected function buildViewModeOptions() {
     $options = array('default' => t('Default'));
-    $view_modes = entity_get_view_modes($this->entityType);
+    $view_modes = entity_get_view_modes($this->entityTypeId);
     foreach ($view_modes as $mode => $settings) {
       $options[$mode] = $settings['label'];
     }
@@ -133,7 +134,7 @@ class EntityRow extends RowPluginBase {
   public function summaryTitle() {
     $options = $this->buildViewModeOptions();
     if (isset($options[$this->options['view_mode']])) {
-      return check_plain($options[$this->options['view_mode']]);
+      return String::checkPlain($options[$this->options['view_mode']]);
     }
     else {
       return t('No view mode selected');

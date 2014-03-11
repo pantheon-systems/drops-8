@@ -10,7 +10,6 @@ namespace Drupal\views\Plugin\views\argument;
 use Drupal\views\ViewExecutable;
 use Drupal\views\Plugin\views\display\DisplayPluginBase;
 use Drupal\views\ManyToOneHelper;
-use Drupal\Component\Annotation\PluginID;
 
 /**
  * Basic argument handler to implement string arguments that may have length
@@ -285,7 +284,7 @@ class String extends ArgumentPluginBase {
    * Override for specific title lookups.
    */
   public function titleQuery() {
-    return drupal_map_assoc($this->value, 'check_plain');
+    return drupal_map_assoc($this->value, '\Drupal\Component\Utility\String::checkPlain');
   }
 
   public function summaryName($data) {

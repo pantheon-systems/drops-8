@@ -19,7 +19,7 @@ class NodeImportCreateTest extends DrupalUnitTestBase {
    *
    * @var array
    */
-  public static $modules = array('node', 'entity', 'field', 'text', 'system');
+  public static $modules = array('node', 'entity', 'field', 'text', 'system', 'user');
 
   /**
    * Set the default field storage backend for fields created during tests.
@@ -28,6 +28,7 @@ class NodeImportCreateTest extends DrupalUnitTestBase {
     parent::setUp();
 
     $this->installSchema('system', array('config_snapshot'));
+    $this->installSchema('user', array('users'));
 
     // Set default storage backend.
     $this->installConfig(array('field'));
@@ -70,7 +71,8 @@ class NodeImportCreateTest extends DrupalUnitTestBase {
     $this->copyConfig($active, $staging);
     // Manually add new node type.
     $src_dir = drupal_get_path('module', 'node_test_config') . '/staging';
-    $this->assertTrue(file_unmanaged_copy("$src_dir/$node_type_config_name.yml", "public://config_staging/$node_type_config_name.yml"));
+    $target_dir = $this->configDirectories[CONFIG_STAGING_DIRECTORY];
+    $this->assertTrue(file_unmanaged_copy("$src_dir/$node_type_config_name.yml", "$target_dir/$node_type_config_name.yml"));
 
     // Import the content of the staging directory.
     $this->configImporter()->import();
@@ -78,6 +80,7 @@ class NodeImportCreateTest extends DrupalUnitTestBase {
     // Check that the content type was created.
     $node_type = entity_load('node_type', $node_type_id);
     $this->assertTrue($node_type, 'Import node type from staging was created.');
+    $this->assertFalse(field_info_instance('node', 'body', $node_type_id));
   }
 
 }

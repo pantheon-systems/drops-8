@@ -8,20 +8,13 @@
 namespace Drupal\custom_block\Controller;
 
 use Drupal\Component\Plugin\PluginManagerInterface;
-use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
+use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\EntityStorageControllerInterface;
 use Drupal\custom_block\CustomBlockTypeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
 
-class CustomBlockController implements ContainerInjectionInterface {
-
-  /**
-   * The entity manager.
-   *
-   * @var \Drupal\Component\Plugin\PluginManagerInterface
-   */
-  protected $entityManager;
+class CustomBlockController extends ControllerBase {
 
   /**
    * The custom block storage controller.
@@ -43,7 +36,6 @@ class CustomBlockController implements ContainerInjectionInterface {
   public static function create(ContainerInterface $container) {
     $entity_manager = $container->get('entity.manager');
     return new static(
-      $entity_manager,
       $entity_manager->getStorageController('custom_block'),
       $entity_manager->getStorageController('custom_block_type')
     );
@@ -52,17 +44,14 @@ class CustomBlockController implements ContainerInjectionInterface {
   /**
    * Constructs a CustomBlock object.
    *
-   * @param \Drupal\Component\Plugin\PluginManagerInterface $entity_manager
-   *   The entity manager.
    * @param \Drupal\Core\Entity\EntityStorageControllerInterface $custom_block_storage
    *   The custom block storage controller.
    * @param \Drupal\Core\Entity\EntityStorageControllerInterface $custom_block_type_storage
    *   The custom block type storage controller.
    */
-  public function __construct(PluginManagerInterface $entity_manager, EntityStorageControllerInterface $custom_block_storage, EntityStorageControllerInterface $custom_block_type_storage) {
+  public function __construct(EntityStorageControllerInterface $custom_block_storage, EntityStorageControllerInterface $custom_block_type_storage) {
     $this->customBlockStorage = $custom_block_storage;
     $this->customBlockTypeStorage = $custom_block_type_storage;
-    $this->entityManager = $entity_manager;
   }
 
   /**
@@ -98,10 +87,6 @@ class CustomBlockController implements ContainerInjectionInterface {
    *   A form array as expected by drupal_render().
    */
   public function addForm(CustomBlockTypeInterface $custom_block_type, Request $request) {
-    // @todo Remove this when https://drupal.org/node/1981644 is in.
-    drupal_set_title(t('Add %type custom block', array(
-      '%type' => $custom_block_type->label()
-    )), PASS_THROUGH);
     $block = $this->customBlockStorage->create(array(
       'type' => $custom_block_type->id()
     ));
@@ -111,7 +96,20 @@ class CustomBlockController implements ContainerInjectionInterface {
       // newly created block in the given theme.
       $block->setTheme($theme);
     }
-    return $this->entityManager->getForm($block);
+    return $this->entityFormBuilder()->getForm($block);
+  }
+
+  /**
+   * Provides the page title for this controller.
+   *
+   * @param \Drupal\custom_block\CustomBlockTypeInterface $custom_block_type
+   *   The custom block type being added.
+   *
+   * @return string
+   *   The page title.
+   */
+  public function getAddFormTitle(CustomBlockTypeInterface $custom_block_type) {
+    return $this->t('Add %type custom block', array('%type' => $custom_block_type->label()));
   }
 
 }

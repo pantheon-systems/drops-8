@@ -19,7 +19,7 @@ class UserAccountLinksTests extends WebTestBase {
    *
    * @var array
    */
-  public static $modules = array('menu', 'block');
+  public static $modules = array('menu', 'block', 'test_page_test');
 
   public static function getInfo() {
     return array(
@@ -27,6 +27,12 @@ class UserAccountLinksTests extends WebTestBase {
       'description' => 'Test user-account links.',
       'group' => 'User'
     );
+  }
+
+  public function setUp() {
+    parent::setUp();
+    // Make test-page default.
+    \Drupal::config('system.site')->set('page.front', 'test-page')->save();
   }
 
   /**
@@ -61,8 +67,11 @@ class UserAccountLinksTests extends WebTestBase {
     $this->drupalGet('<front>');
 
     // For a logged-out user, expect no secondary links.
-    $element = $this->xpath('//ul[@id=:menu_id]', array(':menu_id' => 'secondary-menu'));
-    $this->assertEqual(count($element), 0, 'No secondary-menu for logged-out users.');
+    $tree = menu_build_tree('account');
+    $this->assertEqual(count($tree), 1, 'The secondary links menu contains only one menu link.');
+    $link = reset($tree);
+    $link = $link['link'];
+    $this->assertTrue((bool) $link->hidden, 'The menu link is hidden.');
   }
 
   /**
@@ -120,11 +129,8 @@ class UserAccountLinksTests extends WebTestBase {
     // Check the page title for registered users is "My Account" in menus.
     $this->drupalLogin($this->drupalCreateUser());
     // After login, the client is redirected to /user.
-    $link = $this->xpath('//a[contains(@class, :class)]', array(
-        ':class' => 'active-trail',
-      )
-    );
-    $this->assertEqual((string) $link[0], 'My account', "Page title of /user is 'My Account' in menus for registered users");
+    $this->assertLink(t('My account'), 0, "Page title of /user is 'My Account' in menus for registered users");
+    $this->assertLinkByHref(\Drupal::urlGenerator()->generate('user.page'), 0);
   }
 
 }

@@ -10,14 +10,13 @@ namespace Drupal\system\Form;
 use Drupal\Core\Form\ConfirmFormBase;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\KeyValueStore\KeyValueStoreExpirableInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 
 /**
  * Builds a confirmation form to uninstall selected modules.
  */
-class ModulesUninstallConfirmForm extends ConfirmFormBase implements ContainerInjectionInterface {
+class ModulesUninstallConfirmForm extends ConfirmFormBase {
 
   /**
    * The module handler service.
@@ -137,7 +136,7 @@ class ModulesUninstallConfirmForm extends ConfirmFormBase implements ContainerIn
     $this->moduleHandler->uninstall($this->modules);
 
     drupal_set_message($this->t('The selected modules have been uninstalled.'));
-    $form_state['redirect'] = 'admin/modules/uninstall';
+    $form_state['redirect_route']['route_name'] = 'system.modules_uninstall';
   }
 
 }

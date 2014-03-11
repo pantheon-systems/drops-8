@@ -16,14 +16,6 @@ use Drupal\Core\Session\AccountInterface;
 interface UserInterface extends ContentEntityInterface, AccountInterface {
 
   /**
-   * Returns a list of roles.
-   *
-   * @return array
-   *   List of role IDs.
-   */
-  public function getRoles();
-
-  /**
    * Whether a user has a certain role.
    *
    * @param string $rid
@@ -49,17 +41,6 @@ interface UserInterface extends ContentEntityInterface, AccountInterface {
    *   The role ID to remove.
    */
   public function removeRole($rid);
-
-  /**
-   * Checks whether a user has a certain permission.
-   *
-   * @param string $permission
-   *   The permission string to check.
-   *
-   * @return bool
-   *   TRUE if the user has the permission, FALSE otherwise.
-   */
-  public function hasPermission($permission);
 
   /**
    * Sets the username of this account.
@@ -101,14 +82,6 @@ interface UserInterface extends ContentEntityInterface, AccountInterface {
    *   The called user entity.
    */
   public function setEmail($mail);
-
-  /**
-   * Returns the default theme of the user.
-   *
-   * @return string
-   *   Name of the theme.
-   */
-  public function getDefaultTheme();
 
   /**
    * Returns the user signature.

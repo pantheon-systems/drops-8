@@ -7,17 +7,19 @@
 
 namespace Drupal\comment\Controller;
 
-use Drupal\Component\Utility\String;
-use Drupal\Core\Controller\ControllerBase;
-use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\comment\CommentManagerInterface;
 use Drupal\field\FieldInfo;
+use Drupal\Component\Utility\String;
+use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Form\FormBuilderInterface;
+use Drupal\field_ui\FieldUI;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Returns responses for comment module administrative routes.
  */
-class AdminController extends ControllerBase implements ContainerInjectionInterface {
+class AdminController extends ControllerBase {
 
   /**
    * The field info service.
@@ -34,12 +36,20 @@ class AdminController extends ControllerBase implements ContainerInjectionInterf
   protected $commentManager;
 
   /**
+   * The form builder.
+   *
+   * @var \Drupal\Core\Form\FormBuilderInterface
+   */
+  protected $formBuilder;
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('field.info'),
-      $container->get('comment.manager')
+      $container->get('comment.manager'),
+      $container->get('form_builder')
     );
   }
 
@@ -50,10 +60,13 @@ class AdminController extends ControllerBase implements ContainerInjectionInterf
    *   The field info service.
    * @param \Drupal\comment\CommentManagerInterface $comment_manager
    *   The comment manager service.
+   * @param \Drupal\Core\Form\FormBuilderInterface $form_builder
+   *   The form builder.
    */
-  public function __construct(FieldInfo $field_info, CommentManagerInterface $comment_manager) {
+  public function __construct(FieldInfo $field_info, CommentManagerInterface $comment_manager, FormBuilderInterface $form_builder) {
     $this->fieldInfo = $field_info;
     $this->commentManager = $comment_manager;
+    $this->formBuilder = $form_builder;
   }
 
   /**
@@ -112,7 +125,7 @@ class AdminController extends ControllerBase implements ContainerInjectionInterf
         foreach ($field_info_map['bundles'] as $bundle) {
           if (isset($entity_bundles[$entity_type][$bundle])) {
             // Add the current instance.
-            if ($field_ui_enabled && ($route_info = $this->entityManager()->getAdminRouteInfo($entity_type, $bundle))) {
+            if ($field_ui_enabled && $route_info = FieldUI::getOverviewRouteInfo($entity_type, $bundle)) {
               $row['data']['usage']['data']['#items'][] = $this->l($entity_bundles[$entity_type][$bundle]['label'], $route_info['route_name'], $route_info['route_parameters']);
             }
             else {
@@ -121,7 +134,7 @@ class AdminController extends ControllerBase implements ContainerInjectionInterf
           }
         }
 
-        $row['data']['type']['data'] = String::checkPlain($entity_types[$entity_type]['label']);
+        $row['data']['type']['data'] = String::checkPlain($entity_types[$entity_type]->getLabel());
 
         if ($field_ui_enabled) {
           if ($this->currentUser()->hasPermission('administer comment fields')) {
@@ -189,13 +202,13 @@ class AdminController extends ControllerBase implements ContainerInjectionInterf
 
     $build['usage'] = array(
       '#theme' => 'item_list',
-      '#title' => String::checkPlain($entity_type_info['label']),
+      '#title' => String::checkPlain($entity_type_info->getLabel()),
       '#items' => array(),
     );
     // Loop over all of bundles to which this comment field is attached.
     foreach ($field_info->getBundles() as $bundle) {
       // Add the current instance to the list of bundles.
-      if ($field_ui_enabled && ($route_info = $this->entityManager()->getAdminRouteInfo($commented_entity_type, $bundle))) {
+      if ($field_ui_enabled && $route_info = FieldUI::getOverviewRouteInfo($commented_entity_type, $bundle)) {
         // Add a link to configure the fields on the given bundle and entity
         // type combination.
         $build['usage']['#items'][] = $this->l($entity_bundle_info[$bundle]['label'], $route_info['route_name'], $route_info['route_parameters']);
@@ -223,6 +236,27 @@ class AdminController extends ControllerBase implements ContainerInjectionInterf
    */
   public function bundleTitle($commented_entity_type, $field_name) {
     return $this->commentManager->getFieldUIPageTitle($commented_entity_type, $field_name);
+  }
+
+  /**
+   * Presents an administrative comment listing.
+   *
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The request of the page.
+   * @param string $type
+   *   The type of the overview form ('approval' or 'new') default to 'new'.
+   *
+   * @return array
+   *   Then comment multiple delete confirmation form or the comments overview
+   *   administration form.
+   */
+  public function adminPage(Request $request, $type = 'new') {
+    if ($request->request->get('operation') == 'delete' && $request->request->get('comments')) {
+      return $this->formBuilder->getForm('\Drupal\comment\Form\ConfirmDeleteMultiple', $request);
+    }
+    else {
+      return $this->formBuilder->getForm('\Drupal\comment\Form\CommentAdminOverview', $type);
+    }
   }
 
 }

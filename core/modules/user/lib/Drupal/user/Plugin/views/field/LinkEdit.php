@@ -8,7 +8,6 @@
 namespace Drupal\user\Plugin\views\field;
 
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\Component\Annotation\PluginID;
 use Drupal\views\ResultRow;
 
 /**
@@ -29,8 +28,7 @@ class LinkEdit extends Link {
 
       $text = !empty($this->options['text']) ? $this->options['text'] : t('Edit');
 
-      $uri = $entity->uri();
-      $this->options['alter']['path'] = $uri['path'] . '/edit';
+      $this->options['alter']['path'] = $entity->getSystemPath('edit-form');
       $this->options['alter']['query'] = drupal_get_destination();
 
       return $text;

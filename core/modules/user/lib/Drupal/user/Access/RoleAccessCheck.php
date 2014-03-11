@@ -7,7 +7,8 @@
 
 namespace Drupal\user\Access;
 
-use Drupal\Core\Access\StaticAccessCheckInterface;
+use Drupal\Core\Routing\Access\AccessInterface;
+use Drupal\Core\Session\AccountInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Route;
 
@@ -18,23 +19,14 @@ use Symfony\Component\Routing\Route;
  * single role, users with that role with have access. If you specify multiple
  * ones you can conjunct them with AND by using a "+" and with OR by using ",".
  */
-class RoleAccessCheck implements StaticAccessCheckInterface {
+class RoleAccessCheck implements AccessInterface {
 
   /**
    * {@inheritdoc}
    */
-  public function appliesTo() {
-    return array('_role');
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function access(Route $route, Request $request) {
+  public function access(Route $route, Request $request, AccountInterface $account) {
     // Requirements just allow strings, so this might be a comma separated list.
     $rid_string = $route->getRequirement('_role');
-
-    $account = $request->attributes->get('_account');
 
     $explode_and = array_filter(array_map('trim', explode('+', $rid_string)));
     if (count($explode_and) > 1) {

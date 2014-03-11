@@ -2,11 +2,12 @@
 
 /**
  * @file
- * Definition of Drupal\system\Tests\Database\FetchTest.
+ * Contains \Drupal\system\Tests\Database\FetchTest.
  */
 
 namespace Drupal\system\Tests\Database;
 
+use Drupal\Core\Database\RowCountException;
 use Drupal\Core\Database\StatementInterface;
 
 /**
@@ -126,7 +127,6 @@ class FetchTest extends DatabaseTestBase {
    * Confirms that we can fetch an entire column of a result set at once.
    */
   function testQueryFetchCol() {
-    $records = array();
     $result = db_query('SELECT name FROM {test} WHERE age > :age', array(':age' => 25));
     $column = $result->fetchCol();
     $this->assertIdentical(count($column), 3, 'fetchCol() returns the right number of records.');
@@ -137,4 +137,20 @@ class FetchTest extends DatabaseTestBase {
       $this->assertIdentical($record->name, $column[$i++], 'Column matches direct accesss.');
     }
   }
+
+  /**
+   * Tests that rowCount() throws exception on SELECT query.
+   */
+  public function testRowCount() {
+    $result = db_query('SELECT name FROM {test}');
+    try {
+      $result->rowCount();
+      $exception = FALSE;
+    }
+    catch (RowCountException $e) {
+      $exception = TRUE;
+    }
+    $this->assertTrue($exception, 'Exception was thrown');
+  }
+
 }

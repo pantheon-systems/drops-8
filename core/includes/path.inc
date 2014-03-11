@@ -5,6 +5,7 @@
  * Functions to handle paths in Drupal.
  */
 
+use Drupal\Core\Routing\RequestHelper;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -82,8 +83,8 @@ function current_path() {
   // @todo Remove the check for whether the request service exists and the
   // fallback code below, once the path alias logic has been figured out in
   // http://drupal.org/node/1269742.
-  if (drupal_container()->isScopeActive('request')) {
-    $path = drupal_container()->get('request')->attributes->get('_system_path');
+  if (\Drupal::getContainer()->isScopeActive('request')) {
+    $path = \Drupal::request()->attributes->get('_system_path');
     if ($path !== NULL) {
       return $path;
     }
@@ -112,7 +113,7 @@ function path_load($conditions) {
   elseif (!is_array($conditions)) {
     return FALSE;
   }
-  return drupal_container()->get('path.crud')->load($conditions);
+  return \Drupal::service('path.crud')->load($conditions);
 }
 
 /**
@@ -195,8 +196,22 @@ function drupal_valid_path($path, $dynamic_allowed = FALSE) {
   global $menu_admin;
   // We indicate that a menu administrator is running the menu access check.
   $menu_admin = TRUE;
+  /** @var $route_provider \Drupal\Core\Routing\RouteProviderInterface */
+  $route_provider = \Drupal::service('router.route_provider');
+
+  if ($dynamic_allowed && preg_match('/\/\%/', $path)) {
+    $router_path = '/' . str_replace('%', '{}', $path);
+  }
+  else {
+    $router_path = $path;
+  }
+
   if ($path == '<front>' || url_is_external($path)) {
     $item = array('access' => TRUE);
+  }
+  elseif (($collection = $route_provider->getRoutesByPattern('/' . $router_path)) && $collection->count() > 0) {
+    $routes = $collection->all();
+    $route_name = key($routes);
   }
   elseif ($dynamic_allowed && preg_match('/\/\%/', $path)) {
     // Path is dynamic (ie 'user/%'), so check directly against menu_router table.
@@ -206,16 +221,22 @@ function drupal_valid_path($path, $dynamic_allowed = FALSE) {
       $item['external']   = FALSE;
       $item['options'] = '';
       _menu_link_translate($item);
+      $route_name = $item['route_name'];
     }
   }
   else {
     $item = menu_get_item($path);
+    $route_name = $item['route_name'];
   }
   // Check the new routing system.
-  if (!empty($item['route_name'])) {
+  if (!empty($route_name)) {
     $map = array();
-    $route = \Drupal::service('router.route_provider')->getRouteByName($item['route_name']);
-    $item['access'] = menu_item_route_access($route, $path, $map);
+    $route = \Drupal::service('router.route_provider')->getRouteByName($route_name);
+    $request = RequestHelper::duplicate(\Drupal::request(), '/' . $path);
+    $request->attributes->set('_system_path', $path);
+    $request->attributes->set('_menu_admin', TRUE);
+
+    $item['access'] = menu_item_route_access($route, $path, $map, $request);
   }
   $menu_admin = FALSE;
   return $item && $item['access'];

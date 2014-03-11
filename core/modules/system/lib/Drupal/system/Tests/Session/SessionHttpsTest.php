@@ -9,6 +9,7 @@ namespace Drupal\system\Tests\Session;
 
 use Drupal\simpletest\WebTestBase;
 use Symfony\Component\HttpFoundation\Request;
+use Drupal\Component\Utility\Crypt;
 
 /**
  * Ensure that when running under HTTPS two session cookies are generated.
@@ -32,7 +33,7 @@ class SessionHttpsTest extends WebTestBase {
 
   public function setUp() {
     parent::setUp();
-    $this->request = Request::create('http://example.com/');
+    $this->request = Request::createFromGlobals();
     $this->container->set('request', $this->request);
   }
 
@@ -229,8 +230,8 @@ class SessionHttpsTest extends WebTestBase {
    */
   protected function assertSessionIds($sid, $ssid, $assertion_text) {
     $args = array(
-      ':sid' => $sid,
-      ':ssid' => $ssid,
+      ':sid' => Crypt::hashBase64($sid),
+      ':ssid' => !empty($ssid) ? Crypt::hashBase64($ssid) : '',
     );
     return $this->assertTrue(db_query('SELECT timestamp FROM {sessions} WHERE sid = :sid AND ssid = :ssid', $args)->fetchField(), $assertion_text);
   }

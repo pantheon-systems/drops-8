@@ -8,7 +8,6 @@
 namespace Drupal\Core\Cache;
 
 use Drupal\Core\Database\Connection;
-use Drupal\Core\Database\Database;
 use Drupal\Core\Database\SchemaObjectExistsException;
 
 /**
@@ -118,7 +117,7 @@ class DatabaseBackend implements CacheBackendInterface {
     }
 
     // Check expire time.
-    $cache->valid = $cache->expire == CacheBackendInterface::CACHE_PERMANENT || $cache->expire >= REQUEST_TIME;
+    $cache->valid = $cache->expire == Cache::PERMANENT || $cache->expire >= REQUEST_TIME;
 
     // Check if invalidateTags() has been called with any of the entry's tags.
     if ($cache->checksum_invalidations != $checksum['invalidations']) {
@@ -140,7 +139,7 @@ class DatabaseBackend implements CacheBackendInterface {
   /**
    * Implements Drupal\Core\Cache\CacheBackendInterface::set().
    */
-  public function set($cid, $data, $expire = CacheBackendInterface::CACHE_PERMANENT, array $tags = array()) {
+  public function set($cid, $data, $expire = Cache::PERMANENT, array $tags = array()) {
     $try_again = FALSE;
     try {
       // The bin might not yet exist.
@@ -165,6 +164,14 @@ class DatabaseBackend implements CacheBackendInterface {
    */
   protected function doSet($cid, $data, $expire, $tags) {
     $flat_tags = $this->flattenTags($tags);
+    $deleted_tags = &drupal_static('Drupal\Core\Cache\DatabaseBackend::deletedTags', array());
+    // Remove tags that were already deleted during this request from the static
+    // cache so that another deletion for them will be correctly updated.
+    foreach ($flat_tags as $tag) {
+      if (isset($deleted_tags[$tag])) {
+        unset($deleted_tags[$tag]);
+      }
+    }
     $checksum = $this->checksumTags($flat_tags);
     $fields = array(
       'serialized' => 0,
@@ -210,7 +217,12 @@ class DatabaseBackend implements CacheBackendInterface {
       while (count($cids));
     }
     catch (\Exception $e) {
-      $this->catchException($e);
+      // Create the cache table, which will be empty. This fixes cases during
+      // core install where a cache table is cleared before it is set
+      // with {cache_block} and {cache_menu}.
+      if (!$this->ensureBinExists()) {
+        $this->catchException($e);
+      }
     }
   }
 
@@ -219,7 +231,13 @@ class DatabaseBackend implements CacheBackendInterface {
    */
   public function deleteTags(array $tags) {
     $tag_cache = &drupal_static('Drupal\Core\Cache\CacheBackendInterface::tagCache', array());
+    $deleted_tags = &drupal_static('Drupal\Core\Cache\DatabaseBackend::deletedTags', array());
     foreach ($this->flattenTags($tags) as $tag) {
+      // Only delete tags once per request unless they are written again.
+      if (isset($deleted_tags[$tag])) {
+        continue;
+      }
+      $deleted_tags[$tag] = TRUE;
       unset($tag_cache[$tag]);
       try {
         $this->connection->merge('cache_tags')
@@ -242,7 +260,12 @@ class DatabaseBackend implements CacheBackendInterface {
       $this->connection->truncate($this->bin)->execute();
     }
     catch (\Exception $e) {
-      $this->catchException($e);
+      // Create the cache table, which will be empty. This fixes cases during
+      // core install where a cache table is cleared before it is set
+      // with {cache_block} and {cache_menu}.
+      if (!$this->ensureBinExists()) {
+        $this->catchException($e);
+      }
     }
   }
 
@@ -311,8 +334,8 @@ class DatabaseBackend implements CacheBackendInterface {
    */
   public function garbageCollection() {
     try {
-      Database::getConnection()->delete($this->bin)
-        ->condition('expire', CacheBackendInterface::CACHE_PERMANENT, '<>')
+      $this->connection->delete($this->bin)
+        ->condition('expire', Cache::PERMANENT, '<>')
         ->condition('expire', REQUEST_TIME, '<')
         ->execute();
     }

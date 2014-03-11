@@ -12,7 +12,6 @@ use Drupal\views\Plugin\views\field\FieldPluginBase;
 use Drupal\views\Plugin\views\display\DisplayPluginBase;
 use Drupal\views\ResultRow;
 use Drupal\views\ViewExecutable;
-use Drupal\Component\Annotation\PluginID;
 
 /**
  * Field handler to provide simple renderer that allows linking to a taxonomy
@@ -84,8 +83,7 @@ class Taxonomy extends FieldPluginBase {
         'vid' => $this->getValue($values, 'vid'),
       ));
       $this->options['alter']['make_link'] = TRUE;
-      $uri = $term->uri();
-      $this->options['alter']['path'] = $uri['path'];
+      $this->options['alter']['path'] = $term->getSystemPath();
     }
 
     if (!empty($this->options['convert_spaces'])) {

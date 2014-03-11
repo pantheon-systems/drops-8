@@ -249,9 +249,9 @@ function hook_taxonomy_term_delete(Drupal\taxonomy\Term $term) {
  *
  * @param \Drupal\taxonomy\Entity\Term $term
  *   The term that is being assembled for rendering.
- * @param \Drupal\entity\Entity\EntityDisplay $display
- *   The entity_display object holding the display options configured for the
- *   term components.
+ * @param \Drupal\Core\Entity\Display\EntityViewDisplayInterface $display
+ *   The entity view display holding the display options configured for the term
+ *   components.
  * @param $view_mode
  *   The $view_mode parameter from taxonomy_term_view().
  * @param $langcode
@@ -259,7 +259,7 @@ function hook_taxonomy_term_delete(Drupal\taxonomy\Term $term) {
  *
  * @see hook_entity_view()
  */
-function hook_taxonomy_term_view(\Drupal\taxonomy\Entity\Term $term, \Drupal\entity\Entity\EntityDisplay $display, $view_mode, $langcode) {
+function hook_taxonomy_term_view(\Drupal\taxonomy\Entity\Term $term, \Drupal\Core\Entity\Display\EntityViewDisplayInterface $display, $view_mode, $langcode) {
   // Only do the extra work if the component is configured to be displayed.
   // This assumes a 'mymodule_addition' extra field has been defined for the
   // vocabulary in hook_field_extra_fields().
@@ -282,19 +282,19 @@ function hook_taxonomy_term_view(\Drupal\taxonomy\Entity\Term $term, \Drupal\ent
  * structured content array, it may use this hook to add a #post_render
  * callback. Alternatively, it could also implement
  * hook_preprocess_HOOK() for taxonomy-term.html.twig. See drupal_render() and
- * theme() documentation respectively for details.
+ * _theme() documentation respectively for details.
  *
  * @param $build
  *   A renderable array representing the taxonomy term content.
  * @param \Drupal\taxonomy\Entity\Term $term
  *   The taxonomy term being rendered.
- * @param \Drupal\entity\Entity\EntityDisplay $display
- *   The entity_display object holding the display options configured for the
- *   term components.
+ * @param \Drupal\Core\Entity\Display\EntityViewDisplayInterface $display
+ *   The entity view display holding the display options configured for the term
+ *   components.
  *
  * @see hook_entity_view_alter()
  */
-function hook_taxonomy_term_view_alter(&$build, \Drupal\taxonomy\Entity\Term $term, \Drupal\entity\Entity\EntityDisplay $display) {
+function hook_taxonomy_term_view_alter(&$build, \Drupal\taxonomy\Entity\Term $term, \Drupal\Core\Entity\Display\EntityViewDisplayInterface $display) {
   if ($build['#view_mode'] == 'full' && isset($build['an_additional_field'])) {
     // Change its weight.
     $build['an_additional_field']['#weight'] = -10;

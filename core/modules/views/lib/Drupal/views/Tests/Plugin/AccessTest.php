@@ -24,6 +24,13 @@ class AccessTest extends PluginTestBase {
    */
   public static $testViews = array('test_access_none', 'test_access_static', 'test_access_dynamic');
 
+  /**
+   * Modules to enable.
+   *
+   * @return array
+   */
+  public static $modules = array('node');
+
   public static function getInfo() {
     return array(
       'name' => 'Access',
@@ -86,7 +93,9 @@ class AccessTest extends PluginTestBase {
     $display['display_options']['access']['options']['access'] = TRUE;
     $access_plugin->options['access'] = TRUE;
     $view->save();
-    $this->container->get('router.builder')->rebuild();
+    // Saving a view will cause the router to be rebuilt when the kernel
+    // termination event fires. Simulate that here.
+    $this->container->get('router.builder')->rebuildIfNeeded();
 
     $this->assertTrue($access_plugin->access($this->normal_user));
 

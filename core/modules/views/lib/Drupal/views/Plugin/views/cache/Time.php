@@ -7,9 +7,7 @@
 
 namespace Drupal\views\Plugin\views\cache;
 
-use Drupal\views\Annotation\ViewsCache;
-use Drupal\Core\Cache\CacheBackendInterface;
-use Drupal\Core\Annotation\Translation;
+use Drupal\Core\Cache\Cache;
 
 /**
  * Simple caching of query results for Views displays.
@@ -91,7 +89,7 @@ class Time extends CachePluginBase {
     $custom_fields = array('output_lifespan', 'results_lifespan');
     foreach ($custom_fields as $field) {
       if ($form_state['values']['cache_options'][$field] == 'custom' && !is_numeric($form_state['values']['cache_options'][$field . '_custom'])) {
-        form_error($form[$field .'_custom'], t('Custom time values must be numeric.'));
+        form_error($form[$field .'_custom'], $form_state, t('Custom time values must be numeric.'));
       }
     }
   }
@@ -124,7 +122,7 @@ class Time extends CachePluginBase {
       return time() + $lifespan;
     }
     else {
-      return CacheBackendInterface::CACHE_PERMANENT;
+      return Cache::PERMANENT;
     }
   }
 

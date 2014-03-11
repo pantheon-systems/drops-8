@@ -9,8 +9,6 @@ namespace Drupal\ckeditor_test\Plugin\CKEditorPlugin;
 
 use Drupal\ckeditor\CKEditorPluginContextualInterface;
 use Drupal\Component\Plugin\PluginBase;
-use Drupal\ckeditor\Annotation\CKEditorPlugin;
-use Drupal\Core\Annotation\Translation;
 use Drupal\editor\Entity\Editor;
 
 /**
@@ -28,9 +26,11 @@ class LlamaContextual extends Llama implements CKEditorPluginContextualInterface
    */
   function isEnabled(Editor $editor) {
     // Automatically enable this plugin if the Underline button is enabled.
-    foreach ($editor->settings['toolbar']['buttons'] as $row) {
-      if (in_array('Strike', $row)) {
-        return TRUE;
+    foreach ($editor->settings['toolbar']['rows'] as $row) {
+      foreach ($row as $group) {
+        if (in_array('Strike', $group['items'])) {
+          return TRUE;
+        }
       }
     }
     return FALSE;

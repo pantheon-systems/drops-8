@@ -31,13 +31,9 @@ function standard_install() {
   $user_settings = \Drupal::config('user.settings');
   $user_settings->set('register', USER_REGISTER_VISITORS_ADMINISTRATIVE_APPROVAL)->save();
 
-  // Create user picture field.
-  module_load_install('user');
-  user_install_picture_field();
-
   // Enable default permissions for system roles.
-  user_role_grant_permissions(DRUPAL_ANONYMOUS_RID, array('access content', 'access comments'));
-  user_role_grant_permissions(DRUPAL_AUTHENTICATED_RID, array('access content', 'access comments', 'post comments', 'skip comment approval'));
+  user_role_grant_permissions(DRUPAL_ANONYMOUS_RID, array('access comments'));
+  user_role_grant_permissions(DRUPAL_AUTHENTICATED_RID, array('access comments', 'post comments', 'skip comment approval'));
 
   // Enable all permissions for the administrator role.
   user_role_grant_permissions('administrator', array_keys(\Drupal::moduleHandler()->invokeAll('permission')));
@@ -63,24 +59,21 @@ function standard_install() {
   user_role_grant_permissions(DRUPAL_AUTHENTICATED_RID, array('access site-wide contact form'));
 
   // Populate the default shortcut set.
-  $shortcut_set = shortcut_set_load('default');
-  $menu_link = entity_create('menu_link', array(
-    'link_path' => 'node/add',
-    'link_title' => t('Add content'),
+  $shortcut = entity_create('shortcut', array(
+    'shortcut_set' => 'default',
+    'title' => t('Add content'),
     'weight' => -20,
+    'path' => 'node/add',
   ));
-  $menu_link->save();
-  $shortcut_set->links[$menu_link->uuid()] = $menu_link;
+  $shortcut->save();
 
-  $menu_link = entity_create('menu_link', array(
-    'link_path' => 'admin/content',
-    'link_title' => t('All content'),
+  $shortcut = entity_create('shortcut', array(
+    'shortcut_set' => 'default',
+    'title' => t('All content'),
     'weight' => -19,
+    'path' => 'admin/content',
   ));
-  $menu_link->save();
-  $shortcut_set->links[$menu_link->uuid()] = $menu_link;
-
-  $shortcut_set->save();
+  $shortcut->save();
 
   // Enable the admin theme.
   theme_enable(array('seven'));

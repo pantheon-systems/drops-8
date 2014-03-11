@@ -6,6 +6,7 @@
  */
 
 use Drupal\Core\Language\Language;
+use Drupal\Component\Utility\String;
 
 /**
  * Returns a listing of all defined URL aliases.
@@ -56,7 +57,7 @@ function path_admin_overview($keys = NULL) {
       'attributes' => array('title' => $data->source),
     ));
     if ($multilanguage) {
-      $row['data']['language_name'] = language_name($data->langcode);
+      $row['data']['language_name'] = \Drupal::languageManager()->getLanguageName($data->langcode);
     }
 
     $operations = array();
@@ -113,8 +114,8 @@ function path_admin_overview($keys = NULL) {
  */
 function path_admin_edit($path = array()) {
   if ($path) {
-    drupal_set_title($path['alias']);
     $output = drupal_get_form('path_admin_form', $path);
+    $output['#title'] = String::checkPlain($path['alias']);
   }
   else {
     $output = drupal_get_form('path_admin_form');
@@ -240,10 +241,10 @@ function path_admin_form_validate($form, &$form_state) {
     ->fetchField();
 
   if ($has_alias) {
-    form_set_error('alias', t('The alias %alias is already in use in this language.', array('%alias' => $alias)));
+    form_set_error('alias', $form_state, t('The alias %alias is already in use in this language.', array('%alias' => $alias)));
   }
   if (!drupal_valid_path($source)) {
-    form_set_error('source', t("The path '@link_path' is either invalid or you do not have access to it.", array('@link_path' => $source)));
+    form_set_error('source', $form_state, t("The path '@link_path' is either invalid or you do not have access to it.", array('@link_path' => $source)));
   }
 }
 

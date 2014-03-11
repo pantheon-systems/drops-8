@@ -20,7 +20,7 @@ class ContactSitewideTest extends WebTestBase {
    *
    * @var array
    */
-  public static $modules = array('contact', 'field_ui');
+  public static $modules = array('text', 'contact', 'field_ui');
 
   public static function getInfo() {
     return array(
@@ -90,6 +90,9 @@ class ContactSitewideTest extends WebTestBase {
     $this->drupalGet('contact');
     $this->assertResponse(200);
     $this->assertText(t('The contact form has not been configured.'));
+    // Test access personal category via site-wide contact page.
+    $this->drupalGet('contact/personal');
+    $this->assertResponse(403);
 
     // Add categories.
     // Test invalid recipients.

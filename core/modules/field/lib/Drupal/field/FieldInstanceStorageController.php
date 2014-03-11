@@ -9,14 +9,15 @@ namespace Drupal\field;
 
 use Drupal\Core\Config\Config;
 use Drupal\Core\Config\Entity\ConfigStorageController;
+use Drupal\Core\Entity\EntityManagerInterface;
+use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\Query\QueryFactory;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Drupal\Core\Config\ConfigFactory;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Component\Uuid\UuidInterface;
 use Drupal\Core\Config\StorageInterface;
-use Drupal\Core\Entity\EntityManager;
 use Drupal\Core\Extension\ModuleHandler;
-use Drupal\Core\KeyValueStore\KeyValueStoreInterface;
+use Drupal\Core\KeyValueStore\StateInterface;
 
 /**
  * Controller class for field instances.
@@ -29,34 +30,25 @@ use Drupal\Core\KeyValueStore\KeyValueStoreInterface;
 class FieldInstanceStorageController extends ConfigStorageController {
 
   /**
-   * The module handler.
-   *
-   * @var \Drupal\Core\Extension\ModuleHandler
-   */
-  protected $moduleHandler;
-
-  /**
    * The entity manager.
    *
-   * @var \Drupal\Core\Entity\EntityManager
+   * @var \Drupal\Core\Entity\EntityManagerInterface
    */
   protected $entityManager;
 
   /**
    * The state keyvalue collection.
    *
-   * @var \Drupal\Core\KeyValueStore\KeyValueStoreInterface
+   * @var \Drupal\Core\KeyValueStore\StateInterface
    */
   protected $state;
 
   /**
    * Constructs a FieldInstanceStorageController object.
    *
-   * @param string $entity_type
-   *   The entity type for which the instance is created.
-   * @param array $entity_info
-   *   An array of entity info for the entity type.
-   * @param \Drupal\Core\Config\ConfigFactory $config_factory
+   * @param \Drupal\Core\Entity\EntityTypeInterface $entity_type
+   *   The entity type definition.
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The config factory service.
    * @param \Drupal\Core\Config\StorageInterface $config_storage
    *   The config storage service.
@@ -64,33 +56,28 @@ class FieldInstanceStorageController extends ConfigStorageController {
    *   The entity query factory.
    * @param \Drupal\Component\Uuid\UuidInterface $uuid_service
    *   The UUID service.
-   * @param \Drupal\Core\Entity\EntityManager $entity_manager
+   * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
    *   The entity manager.
-   * @param \Drupal\Core\Extension\ModuleHandler $module_handler
-   *   The module handler.
-   * @param \Drupal\Core\KeyValueStore\KeyValueStoreInterface $state
+   * @param \Drupal\Core\KeyValueStore\StateInterface $state
    *   The state key value store.
    */
-  public function __construct($entity_type, array $entity_info, ConfigFactory $config_factory, StorageInterface $config_storage, QueryFactory $entity_query_factory, UuidInterface $uuid_service, EntityManager $entity_manager, ModuleHandler $module_handler, KeyValueStoreInterface $state) {
-    parent::__construct($entity_type, $entity_info, $config_factory, $config_storage, $entity_query_factory, $uuid_service);
+  public function __construct(EntityTypeInterface $entity_type, ConfigFactoryInterface $config_factory, StorageInterface $config_storage, QueryFactory $entity_query_factory, UuidInterface $uuid_service, EntityManagerInterface $entity_manager, StateInterface $state) {
+    parent::__construct($entity_type, $config_factory, $config_storage, $entity_query_factory, $uuid_service);
     $this->entityManager = $entity_manager;
-    $this->moduleHandler = $module_handler;
     $this->state = $state;
   }
 
   /**
    * {@inheritdoc}
    */
-  public static function createInstance(ContainerInterface $container, $entity_type, array $entity_info) {
+  public static function createInstance(ContainerInterface $container, EntityTypeInterface $entity_type) {
     return new static(
       $entity_type,
-      $entity_info,
       $container->get('config.factory'),
       $container->get('config.storage'),
       $container->get('entity.query'),
       $container->get('uuid'),
       $container->get('entity.manager'),
-      $container->get('module_handler'),
       $container->get('state')
     );
   }
@@ -112,46 +99,32 @@ class FieldInstanceStorageController extends ConfigStorageController {
    * {@inheritdoc}
    */
   public function loadByProperties(array $conditions = array()) {
-    // Include instances of inactive fields if specified in the
-    // $conditions parameters.
-    $include_inactive = $conditions['include_inactive'];
-    unset($conditions['include_inactive']);
     // Include deleted instances if specified in the $conditions parameters.
-    $include_deleted = $conditions['include_deleted'];
+    $include_deleted = isset($conditions['include_deleted']) ? $conditions['include_deleted'] : FALSE;
     unset($conditions['include_deleted']);
 
     // Get instances stored in configuration.
     if (isset($conditions['entity_type']) && isset($conditions['bundle']) && isset($conditions['field_name'])) {
       // Optimize for the most frequent case where we do have a specific ID.
       $id = $conditions['entity_type'] . '.' . $conditions['bundle'] . '.' . $conditions['field_name'];
-      $instances = $this->entityManager->getStorageController($this->entityType)->loadMultiple(array($id));
+      $instances = $this->entityManager->getStorageController($this->entityTypeId)->loadMultiple(array($id));
     }
     else {
       // No specific ID, we need to examine all existing instances.
-      $instances = $this->entityManager->getStorageController($this->entityType)->loadMultiple();
+      $instances = $this->entityManager->getStorageController($this->entityTypeId)->loadMultiple();
     }
 
     // Merge deleted instances (stored in state) if needed.
     if ($include_deleted) {
       $deleted_instances = $this->state->get('field.instance.deleted') ?: array();
       foreach ($deleted_instances as $id => $config) {
-        $instances[$id] = $this->entityManager->getStorageController($this->entityType)->create($config);
+        $instances[$id] = $this->entityManager->getStorageController($this->entityTypeId)->create($config);
       }
-    }
-
-    // Translate "do not include inactive fields" into actual conditions.
-    if (!$include_inactive) {
-      $conditions['field.active'] = TRUE;
     }
 
     // Collect matching instances.
     $matching_instances = array();
     foreach ($instances as $instance) {
-      // Only include instances on unknown entity types if 'include_inactive'.
-      if (!$include_inactive && !$this->entityManager->getDefinition($instance->entity_type)) {
-        continue;
-      }
-
       // Some conditions are checked against the field.
       $field = $instance->getField();
 
@@ -161,10 +134,6 @@ class FieldInstanceStorageController extends ConfigStorageController {
         switch ($key) {
           case 'field_name':
             $checked_value = $field->name;
-            break;
-
-          case 'field.active':
-            $checked_value = $field->active;
             break;
 
           case 'field_id':
@@ -181,8 +150,6 @@ class FieldInstanceStorageController extends ConfigStorageController {
           continue 2;
         }
       }
-
-      $this->moduleHandler->invokeAll('field_read_instance', $instance);
 
       $matching_instances[] = $instance;
     }

@@ -8,8 +8,8 @@
 namespace Drupal\hal\Normalizer;
 
 use Drupal\Component\Utility\NestedArray;
-use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Language\Language;
+use Drupal\rest\LinkManager\LinkManagerInterface;
 use Symfony\Component\Serializer\Exception\UnexpectedValueException;
 
 /**
@@ -25,17 +25,35 @@ class EntityNormalizer extends NormalizerBase {
   protected $supportedInterfaceOrClass = 'Drupal\Core\Entity\EntityInterface';
 
   /**
+   * The hypermedia link manager.
+   *
+   * @var \Drupal\rest\LinkManager\LinkManagerInterface
+   */
+  protected $linkManager;
+
+  /**
+   * Constructs an EntityNormalizer object.
+   *
+   * @param \Drupal\rest\LinkManager\LinkManagerInterface $link_manager
+   *   The hypermedia link manager.
+   */
+  public function __construct(LinkManagerInterface $link_manager) {
+    $this->linkManager = $link_manager;
+  }
+
+  /**
    * Implements \Symfony\Component\Serializer\Normalizer\NormalizerInterface::normalize()
    */
   public function normalize($entity, $format = NULL, array $context = array()) {
     // Create the array of normalized properties, starting with the URI.
+    /** @var $entity \Drupal\Core\Entity\ContentEntityInterface */
     $normalized = array(
       '_links' => array(
         'self' => array(
           'href' => $this->getEntityUri($entity),
         ),
         'type' => array(
-          'href' => $this->linkManager->getTypeUri($entity->entityType(), $entity->bundle()),
+          'href' => $this->linkManager->getTypeUri($entity->getEntityTypeId(), $entity->bundle()),
         ),
       ),
     );
@@ -43,6 +61,7 @@ class EntityNormalizer extends NormalizerBase {
     // If the properties to use were specified, only output those properties.
     // Otherwise, output all properties except internal ID.
     if (isset($context['included_fields'])) {
+      $properties = array();
       foreach ($context['included_fields'] as $property_name) {
         $properties[] = $entity->get($property_name);
       }
@@ -92,7 +111,7 @@ class EntityNormalizer extends NormalizerBase {
     if (isset($data['langcode'])) {
       $langcode = $data['langcode'][0]['value'];
     }
-    elseif (module_exists('language')) {
+    elseif (\Drupal::moduleHandler()->moduleExists('language')) {
       $langcode = language_get_default_langcode($typed_data_ids['entity_type'], $typed_data_ids['bundle']);
     }
     else {
@@ -160,8 +179,7 @@ class EntityNormalizer extends NormalizerBase {
    *   The entity URI.
    */
   protected function getEntityUri($entity) {
-    $uri_info = $entity->uri();
-    return url($uri_info['path'], array('absolute' => TRUE));
+    return $entity->url('canonical', array('absolute' => TRUE));
   }
 
   /**

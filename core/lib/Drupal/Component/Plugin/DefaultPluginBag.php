@@ -7,7 +7,7 @@
 
 namespace Drupal\Component\Plugin;
 
-use Drupal\Component\Plugin\Exception\UnknownPluginException;
+use Drupal\Component\Plugin\Exception\PluginNotFoundException;
 use Drupal\Component\Utility\MapArray;
 
 /**
@@ -75,10 +75,9 @@ class DefaultPluginBag extends PluginBag {
   protected function initializePlugin($instance_id) {
     $configuration = isset($this->configurations[$instance_id]) ? $this->configurations[$instance_id] : array();
     if (!isset($configuration[$this->pluginKey])) {
-      throw new UnknownPluginException($instance_id);
+      throw new PluginNotFoundException($instance_id);
     }
-    $this->pluginInstances[$instance_id] = $this->manager->createInstance($configuration[$this->pluginKey], $configuration);
-    $this->addInstanceID($instance_id);
+    $this->set($instance_id, $this->manager->createInstance($configuration[$this->pluginKey], $configuration));
   }
 
   /**
@@ -131,6 +130,15 @@ class DefaultPluginBag extends PluginBag {
   }
 
   /**
+   * {@inheritdoc}
+   */
+  public function setInstanceIds(array $instance_ids) {
+    parent::setInstanceIds($instance_ids);
+    // Ensure the new order matches the original order.
+    $this->instanceIDs = $this->originalOrder = array_intersect_assoc($this->originalOrder, $this->instanceIDs);
+  }
+
+  /**
    * Updates the configuration for a plugin instance.
    *
    * If there is no plugin instance yet, a new will be instantiated. Otherwise,
@@ -152,8 +160,8 @@ class DefaultPluginBag extends PluginBag {
   /**
    * {@inheritdoc}
    */
-  public function removeInstanceID($instance_id) {
-    parent::removeInstanceID($instance_id);
+  public function removeInstanceId($instance_id) {
+    parent::removeInstanceId($instance_id);
     unset($this->originalOrder[$instance_id]);
     unset($this->configurations[$instance_id]);
   }

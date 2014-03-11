@@ -15,7 +15,7 @@ function ckeditor_help($path, $arg) {
     case 'admin/help#ckeditor':
       $output = '';
       $output .= '<h3>' . t('About') . '</h3>';
-      $output .= '<p>' . t('The CKEditor module provides a visual text editor and adds a toolbar to text fields. Users can use buttons to format content and to create semantically correct and valid HTML. The CKEditor module uses the framework provided by the <a href="!text_editor">Text Editor module</a>. It requires JavaScript to be enabled in the browser. For more information, see <a href="!doc_url">the online documentation for the CKEditor module</a> and the <a href="!cke_url">CKEditor website</a>.', array( '!doc_url' => 'https://drupal.org/documentation/modules/ckeditor', '!cke_url'=>'http://ckeditor.com', '!text_editor' => \Drupal::url('help.page', array('name' => 'editor')))) . '</p>';
+      $output .= '<p>' . t('The CKEditor module provides a visual text editor and adds a toolbar to text fields. Users can use buttons to format content and to create semantically correct and valid HTML. The CKEditor module uses the framework provided by the <a href="!text_editor">Text Editor module</a>. It requires JavaScript to be enabled in the browser. For more information, see <a href="!doc_url">the online documentation for the CKEditor module</a> and the <a href="!cke_url">CKEditor website</a>.', array( '!doc_url' => 'https://drupal.org/documentation/modules/ckeditor', '!cke_url' => 'http://ckeditor.com', '!text_editor' => \Drupal::url('help.page', array('name' => 'editor')))) . '</p>';
       $output .= '<h3>' . t('Uses') . '</h3>';
       $output .= '<dl>';
       $output .= '<dt>' . t('Enabling CKEditor for individual text formats') . '</dt>';
@@ -37,23 +37,19 @@ function ckeditor_help($path, $arg) {
 function ckeditor_library_info() {
   $module_path = drupal_get_path('module', 'ckeditor');
 
-  $settings = array(
-    'ckeditor' => array(
-      'modulePath' => drupal_get_path('module', 'ckeditor'),
-    ),
-  );
   $libraries['drupal.ckeditor'] = array(
     'title' => 'Drupal behavior to enable CKEditor on textareas.',
     'version' => \Drupal::VERSION,
     'js' => array(
       $module_path . '/js/ckeditor.js' => array(),
-      array('data' => $settings, 'type' => 'setting'),
     ),
     'css' => array(
       $module_path . '/css/ckeditor.css' => array(),
     ),
     'dependencies' => array(
+      array('system', 'jquery'),
       array('system', 'drupal'),
+      array('system', 'drupal.debounce'),
       array('ckeditor', 'ckeditor'),
       array('editor', 'drupal.editor'),
     ),
@@ -76,9 +72,11 @@ function ckeditor_library_info() {
       array('system', 'jquery.ui.sortable'),
       array('system', 'jquery.ui.draggable'),
       array('system', 'jquery.ui.touch-punch'),
+      array('system', 'backbone'),
+      array('system', 'drupal.dialog'),
+      array('system', 'drupal.announce'),
       array('ckeditor', 'ckeditor'),
       array('editor', 'drupal.editor.admin'),
-      array('system', 'underscore'),
       // Depend on Vertical Tabs, so that Vertical Tabs' JavaScript is executed
       // first, which ensures its behavior runs first.
       array('system', 'drupal.vertical-tabs'),
@@ -143,6 +141,7 @@ function ckeditor_theme() {
     'ckeditor_settings_toolbar' => array(
       'file' => 'ckeditor.admin.inc',
       'variables' => array('editor' => NULL, 'plugins' => NULL),
+      'template' => 'ckeditor-settings-toolbar',
     ),
   );
 }

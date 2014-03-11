@@ -7,6 +7,8 @@
 
 namespace Drupal\views\Plugin\views\exposed_form;
 
+use Drupal\Component\Utility\String;
+use Drupal\views\Form\ViewsExposedForm;
 use Drupal\views\ViewExecutable;
 use Drupal\views\Plugin\views\display\DisplayPluginBase;
 use Drupal\views\Plugin\views\PluginBase;
@@ -138,7 +140,7 @@ abstract class ExposedFormPluginBase extends PluginBase {
     }
 
     $form_state['exposed_form_plugin'] = $this;
-    $form = drupal_build_form('views_exposed_form', $form_state);
+    $form = \Drupal::formBuilder()->buildForm('\Drupal\views\Form\ViewsExposedForm', $form_state);
 
     if (!$this->view->display_handler->displaysExposed() || (!$block && $this->view->display_handler->getOption('exposed_block'))) {
       return array();
@@ -181,13 +183,24 @@ abstract class ExposedFormPluginBase extends PluginBase {
 
   public function postExecute() { }
 
+  /**
+   * Alters the view exposed form.
+   *
+   * @param $form
+   *   The form build array. Passed by reference.
+   * @param $form_state
+   *   The form state. Passed by reference.
+   */
   public function exposedFormAlter(&$form, &$form_state) {
-    $form['submit']['#value'] = $this->options['submit_button'];
+    if (!empty($this->options['submit_button'])) {
+      $form['actions']['submit']['#value'] = $this->options['submit_button'];
+    }
+
     // Check if there is exposed sorts for this view
     $exposed_sorts = array();
     foreach ($this->view->sort as $id => $handler) {
       if ($handler->canExpose() && $handler->isExposed()) {
-        $exposed_sorts[$id] = check_plain($handler->options['expose']['label']);
+        $exposed_sorts[$id] = String::checkPlain($handler->options['expose']['label']);
       }
     }
 
@@ -226,7 +239,7 @@ abstract class ExposedFormPluginBase extends PluginBase {
     }
 
     if (!empty($this->options['reset_button'])) {
-      $form['reset'] = array(
+      $form['actions']['reset'] = array(
         '#value' => $this->options['reset_button_label'],
         '#type' => 'submit',
         '#weight' => 10,
@@ -242,7 +255,7 @@ abstract class ExposedFormPluginBase extends PluginBase {
 
       // Set the access to FALSE if there is no exposed input.
       if (!array_intersect_key($all_exposed, $this->view->exposed_input)) {
-        $form['reset']['#access'] = FALSE;
+        $form['actions']['reset']['#access'] = FALSE;
       }
     }
 

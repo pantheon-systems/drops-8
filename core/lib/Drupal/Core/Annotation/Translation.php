@@ -7,7 +7,7 @@
 
 namespace Drupal\Core\Annotation;
 
-use Drupal\Component\Annotation\AnnotationInterface;
+use Drupal\Component\Annotation\AnnotationBase;
 
 /**
  * @defgroup plugin_translatable Translatable plugin metadata
@@ -23,11 +23,6 @@ use Drupal\Component\Annotation\AnnotationInterface;
  * @endcode
  * Remove spaces after @ in your actual plugin - these are put into this sample
  * code so that it is not recognized as annotation.
- *
- * You will also need to make sure that your class file includes the line:
- * @code
- *   use Drupal\Core\Annotation\Translation;
- * @endcode
  *
  * It is also possible to provide a context with the text, similar to t():
  * @code
@@ -50,7 +45,7 @@ use Drupal\Component\Annotation\AnnotationInterface;
  *
  * @ingroup plugin_translatable
  */
-class Translation implements AnnotationInterface {
+class Translation extends AnnotationBase {
 
   /**
    * The translation of the value passed to the constructor of the class.

@@ -9,7 +9,6 @@ namespace Drupal\user\Plugin\views\field;
 
 use Drupal\views\Plugin\views\field\FieldPluginBase;
 use Drupal\views\Plugin\views\display\DisplayPluginBase;
-use Drupal\Component\Annotation\PluginID;
 use Drupal\views\ResultRow;
 use Drupal\views\ViewExecutable;
 
@@ -64,10 +63,9 @@ class User extends FieldPluginBase {
    *   Returns a string for the link text.
    */
   protected function renderLink($data, ResultRow $values) {
-    if (!empty($this->options['link_to_user']) && user_access('access user profiles') && ($entity = $this->getEntity($values)) && $data !== NULL && $data !== '') {
+    if (!empty($this->options['link_to_user']) && $this->view->getUser()->hasPermission('access user profiles') && ($entity = $this->getEntity($values)) && $data !== NULL && $data !== '') {
       $this->options['alter']['make_link'] = TRUE;
-      $uri = $entity->uri();
-      $this->options['alter']['path'] = $uri['path'];
+      $this->options['alter']['path'] = $entity->getSystemPath();
     }
     return $data;
   }

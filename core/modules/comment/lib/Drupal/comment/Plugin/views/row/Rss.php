@@ -8,8 +8,6 @@
 namespace Drupal\comment\Plugin\views\row;
 
 use Drupal\views\Plugin\views\row\RowPluginBase;
-use Drupal\views\Annotation\ViewsRow;
-use Drupal\Core\Annotation\Translation;
 
 /**
  * Plugin which formats the comments as RSS items.
@@ -63,7 +61,7 @@ class Rss extends RowPluginBase {
 
     $this->comments = entity_load_multiple('comment', $cids);
     foreach ($this->comments as $comment) {
-      $comment->depth = count(explode('.', $comment->thread->value)) - 1;
+      $comment->depth = count(explode('.', $comment->getThread())) - 1;
     }
 
   }
@@ -100,6 +98,7 @@ class Rss extends RowPluginBase {
     }
 
     // Load the specified comment and its associated node:
+    /** @var $comment \Drupal\comment\CommentInterface */
     $comment = $this->comments[$cid];
     if (empty($comment)) {
       return;
@@ -107,17 +106,16 @@ class Rss extends RowPluginBase {
 
     $item_text = '';
 
-    $uri = $comment->uri();
-    $comment->link = url($uri['path'], $uri['options'] + array('absolute' => TRUE));
+    $comment->link = $comment->url('canonical', array('absolute' => TRUE));
     $comment->rss_namespaces = array();
     $comment->rss_elements = array(
       array(
         'key' => 'pubDate',
-        'value' => gmdate('r', $comment->created->value),
+        'value' => gmdate('r', $comment->getCreatedTime()),
       ),
       array(
         'key' => 'dc:creator',
-        'value' => $comment->name->value,
+        'value' => $comment->getAuthorName(),
       ),
       array(
         'key' => 'guid',

@@ -216,7 +216,10 @@ interface SelectInterface extends ConditionInterface, AlterableInterface, Extend
    * This method is a convenience method for innerJoin().
    *
    * @param $table
-   *   The table against which to join.
+   *   The table against which to join. May be a string or another SelectQuery
+   *   object. If a query object is passed, it will be used as a subselect.
+   *   Unless the table name starts with the database / schema name and a dot
+   *   it will be prefixed.
    * @param $alias
    *   The alias for the table. In most cases this should be the first letter
    *   of the table, or the first letter of each "word" in the table.
@@ -239,7 +242,10 @@ interface SelectInterface extends ConditionInterface, AlterableInterface, Extend
    * Inner Join against another table in the database.
    *
    * @param $table
-   *   The table against which to join.
+   *   The table against which to join. May be a string or another SelectQuery
+   *   object. If a query object is passed, it will be used as a subselect.
+   *   Unless the table name starts with the database / schema name and a dot
+   *   it will be prefixed.
    * @param $alias
    *   The alias for the table. In most cases this should be the first letter
    *   of the table, or the first letter of each "word" in the table.
@@ -262,7 +268,10 @@ interface SelectInterface extends ConditionInterface, AlterableInterface, Extend
    * Left Outer Join against another table in the database.
    *
    * @param $table
-   *   The table against which to join.
+   *   The table against which to join. May be a string or another SelectQuery
+   *   object. If a query object is passed, it will be used as a subselect.
+   *   Unless the table name starts with the database / schema name and a dot
+   *   it will be prefixed.
    * @param $alias
    *   The alias for the table. In most cases this should be the first letter
    *   of the table, or the first letter of each "word" in the table.
@@ -285,7 +294,10 @@ interface SelectInterface extends ConditionInterface, AlterableInterface, Extend
    * Right Outer Join against another table in the database.
    *
    * @param $table
-   *   The table against which to join.
+   *   The table against which to join. May be a string or another SelectQuery
+   *   object. If a query object is passed, it will be used as a subselect.
+   *   Unless the table name starts with the database / schema name and a dot
+   *   it will be prefixed.
    * @param $alias
    *   The alias for the table. In most cases this should be the first letter
    *   of the table, or the first letter of each "word" in the table.
@@ -316,6 +328,8 @@ interface SelectInterface extends ConditionInterface, AlterableInterface, Extend
    * @param $table
    *   The table against which to join. May be a string or another SelectQuery
    *   object. If a query object is passed, it will be used as a subselect.
+   *   Unless the table name starts with the database / schema name and a dot
+   *   it will be prefixed.
    * @param $alias
    *   The alias for the table. In most cases this should be the first letter
    *   of the table, or the first letter of each "word" in the table. If omitted,
@@ -349,9 +363,19 @@ interface SelectInterface extends ConditionInterface, AlterableInterface, Extend
    * called.
    *
    * @param $field
-   *   The field on which to order.
+   *   The field on which to order. The field is escaped for security so only
+   *   valid field and alias names are possible. To order by an expression, add
+   *   the expression with addExpression() first and then use the alias to order
+   *   on.
+   *
+   *   Example:
+   *   <code>
+   *   $query->addExpression('SUBSTRING(thread, 1, (LENGTH(thread) - 1))', 'order_field');
+   *   $query->orderBy('order_field', 'ASC');
+   *   </code>
    * @param $direction
-   *   The direction to sort. Legal values are "ASC" and "DESC".
+   *   The direction to sort. Legal values are "ASC" and "DESC". Any other value
+   *   will be converted to "ASC".
    * @return \Drupal\Core\Database\Query\SelectInterface
    *   The called object.
    */

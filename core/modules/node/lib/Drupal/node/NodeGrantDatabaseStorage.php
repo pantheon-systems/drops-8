@@ -9,7 +9,6 @@ namespace Drupal\node;
 
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Database\Query\SelectInterface;
-use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Session\AccountInterface;
@@ -53,7 +52,7 @@ class NodeGrantDatabaseStorage implements NodeGrantDatabaseStorageInterface {
   /**
    * {@inheritdoc}
    */
-  public function access(EntityInterface $node, $operation, $langcode, AccountInterface $account) {
+  public function access(NodeInterface $node, $operation, $langcode, AccountInterface $account) {
     // If no module implements the hook or the node does not have an id there is
     // no point in querying the database for access grants.
     if (!$this->moduleHandler->getImplementations('node_grants') || !$node->id()) {
@@ -159,7 +158,7 @@ class NodeGrantDatabaseStorage implements NodeGrantDatabaseStorageInterface {
         $subquery->condition('na.grant_' . $op, 1, '>=');
 
         // Add langcode-based filtering if this is a multilingual site.
-        if (language_multilingual()) {
+        if (\Drupal::languageManager()->isMultilingual()) {
           // If no specific langcode to check for is given, use the grant entry
           // which is set as a fallback.
           // If a specific langcode is given, use the grant entry for it.
@@ -230,7 +229,7 @@ class NodeGrantDatabaseStorage implements NodeGrantDatabaseStorageInterface {
    * {@inheritdoc}
    */
   public function delete() {
-    $this->database->delete('node_access')->execute();
+    $this->database->truncate('node_access')->execute();
   }
 
   /**
@@ -254,6 +253,15 @@ class NodeGrantDatabaseStorage implements NodeGrantDatabaseStorageInterface {
    */
   public function count() {
     return $this->database->query('SELECT COUNT(*) FROM {node_access}')->fetchField();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function deleteNodeRecords(array $nids) {
+    $this->database->delete('node_access')
+      ->condition('nid', $nids, 'IN')
+      ->execute();
   }
 
 }

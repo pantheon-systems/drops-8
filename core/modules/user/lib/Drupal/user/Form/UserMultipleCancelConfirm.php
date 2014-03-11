@@ -8,8 +8,8 @@
 namespace Drupal\user\Form;
 
 use Drupal\Component\Utility\String;
-use Drupal\Core\Config\ConfigFactory;
-use Drupal\Core\Entity\EntityManager;
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Form\ConfirmFormBase;
 use Drupal\Core\Routing\UrlGeneratorInterface;
 use Drupal\user\TempStoreFactory;
@@ -32,7 +32,7 @@ class UserMultipleCancelConfirm extends ConfirmFormBase {
   /**
    * The config factory.
    *
-   * @var \Drupal\Core\Config\ConfigFactory
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
    */
   protected $configFactory;
 
@@ -46,7 +46,7 @@ class UserMultipleCancelConfirm extends ConfirmFormBase {
   /**
    * The entity manager.
    *
-   * @var \Drupal\Core\Entity\EntityManager
+   * @var \Drupal\Core\Entity\EntityManagerInterface
    */
   protected $entityManager;
 
@@ -55,14 +55,14 @@ class UserMultipleCancelConfirm extends ConfirmFormBase {
    *
    * @param \Drupal\user\TempStoreFactory $temp_store_factory
    *   The temp store factory.
-   * @param \Drupal\Core\Config\ConfigFactory $config_factory
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The config factory.
    * @param \Drupal\user\UserStorageControllerInterface $user_storage
    *   The user storage controller.
-   * @param \Drupal\Core\Entity\EntityManager $entity_manager
+   * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
    *   The entity manager.
    */
-  public function __construct(TempStoreFactory $temp_store_factory, ConfigFactory $config_factory, UserStorageControllerInterface $user_storage, EntityManager $entity_manager) {
+  public function __construct(TempStoreFactory $temp_store_factory, ConfigFactoryInterface $config_factory, UserStorageControllerInterface $user_storage, EntityManagerInterface $entity_manager) {
     $this->tempStoreFactory = $temp_store_factory;
     $this->configFactory = $config_factory;
     $this->userStorage = $user_storage;
@@ -210,7 +210,7 @@ class UserMultipleCancelConfirm extends ConfirmFormBase {
         }
       }
     }
-    $form_state['redirect'] = 'admin/people';
+    $form_state['redirect_route']['route_name'] = 'user.admin_account';
   }
 
 }

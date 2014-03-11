@@ -17,19 +17,12 @@
  *
  * @see tracker_menu()
  */
-function tracker_page($account = NULL, $set_title = FALSE) {
+function tracker_page($account = NULL) {
   if ($account) {
     $query = db_select('tracker_user', 't')
       ->extend('Drupal\Core\Database\Query\PagerSelectExtender')
       ->addMetaData('base_table', 'tracker_user')
       ->condition('t.uid', $account->id());
-
-    if ($set_title) {
-      // When viewed from user/%user/track, display the name of the user
-      // as page title -- the tab title remains Track so this needs to be done
-      // here and not in the menu definition.
-      drupal_set_title(user_format_name($account));
-    }
   }
   else {
     $query = db_select('tracker_node', 't', array('target' => 'slave'))
@@ -95,7 +88,7 @@ function tracker_page($account = NULL, $set_title = FALSE) {
       $row = array(
         'type' => check_plain(node_get_type_label($node)),
         'title' => array('data' => l($node->getTitle(), 'node/' . $node->id()) . ' ' . drupal_render($mark_build)),
-        'author' => array('data' => array('#theme' => 'username', '#account' => $node->getAuthor())),
+        'author' => array('data' => array('#theme' => 'username', '#account' => $node->getOwner())),
         'replies' => array('class' => array('replies'), 'data' => $comments),
         'last updated' => array('data' => t('!time ago', array('!time' => format_interval(REQUEST_TIME - $node->last_activity)))),
       );

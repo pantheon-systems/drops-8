@@ -7,8 +7,8 @@
 
 namespace Drupal\link\Tests;
 
-use Drupal\Core\Entity\Field\FieldItemListInterface;
-use Drupal\Core\Entity\Field\FieldItemInterface;
+use Drupal\Core\Field\FieldItemListInterface;
+use Drupal\Core\Field\FieldItemInterface;
 use Drupal\field\Tests\FieldUnitTestBase;
 
 /**
@@ -52,13 +52,13 @@ class LinkItemTest extends FieldUnitTestBase {
    */
   public function testLinkItem() {
     // Create entity.
-    $entity = entity_create('entity_test', array());
+    $entity = entity_create('entity_test');
     $url = 'http://www.drupal.org';
     $title = $this->randomName();
     $class = $this->randomName();
     $entity->field_test->url = $url;
     $entity->field_test->title = $title;
-    $entity->field_test->get('attributes')->set('class', $class);
+    $entity->field_test->first()->get('attributes')->set('class', $class);
     $entity->name->value = $this->randomName();
     $entity->save();
 
@@ -79,7 +79,7 @@ class LinkItemTest extends FieldUnitTestBase {
     $new_class = $this->randomName();
     $entity->field_test->url = $new_url;
     $entity->field_test->title = $new_title;
-    $entity->field_test->get('attributes')->set('class', $new_class);
+    $entity->field_test->first()->get('attributes')->set('class', $new_class);
     $this->assertEqual($entity->field_test->url, $new_url);
     $this->assertEqual($entity->field_test->title, $new_title);
     $this->assertEqual($entity->field_test->attributes['class'], $new_class);

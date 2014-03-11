@@ -2,6 +2,7 @@ views_ui.list:
   path: '/admin/structure/views'
   defaults:
     _entity_list: 'view'
+    _title: 'Views'
   requirements:
     _permission: 'administer views'
 
@@ -9,6 +10,7 @@ views_ui.add:
   path: '/admin/structure/views/add'
   defaults:
     _entity_form: 'view.add'
+    _title: 'Add new view'
   requirements:
     _permission: 'administer views'
 
@@ -16,6 +18,7 @@ views_ui.settings_basic:
   path: '/admin/structure/views/settings'
   defaults:
     _form: '\Drupal\views_ui\Form\BasicSettingsForm'
+    _title: 'Settings'
   requirements:
     _permission: 'administer views'
 
@@ -23,6 +26,7 @@ views_ui.settings_advanced:
   path: '/admin/structure/views/settings/advanced'
   defaults:
     _form: '\Drupal\views_ui\Form\AdvancedSettingsForm'
+    _title: 'Advanced'
   requirements:
     _permission: 'administer views'
 
@@ -30,6 +34,7 @@ views_ui.reports_fields:
   path: '/admin/reports/fields/views-fields'
   defaults:
     _content: '\Drupal\views_ui\Controller\ViewsUIController::reportFields'
+    _title: 'Used in views'
   requirements:
     _permission: 'administer views'
 
@@ -37,21 +42,33 @@ views_ui.reports_plugins:
   path: '/admin/reports/views-plugins'
   defaults:
     _content: '\Drupal\views_ui\Controller\ViewsUIController::reportPlugins'
+    _title: 'Views plugins'
   requirements:
     _permission: 'administer views'
 
-views_ui.operation:
-  path: '/admin/structure/views/view/{view}/{op}'
+views_ui.enable:
+  path: '/admin/structure/views/view/{view}/enable'
   defaults:
     _controller: '\Drupal\views_ui\Controller\ViewsUIController::ajaxOperation'
+    op: enable
   requirements:
     _permission: 'administer views'
-    op: 'enable|disable'
+    _csrf_token: 'TRUE'
+
+views_ui.disable:
+  path: '/admin/structure/views/view/{view}/disable'
+  defaults:
+    _controller: '\Drupal\views_ui\Controller\ViewsUIController::ajaxOperation'
+    op: disable
+  requirements:
+    _permission: 'administer views'
+    _csrf_token: 'TRUE'
 
 views_ui.clone:
   path: '/admin/structure/views/view/{view}/clone'
   defaults:
     _entity_form: 'view.clone'
+    _title: 'Clone view'
   requirements:
     _permission: 'administer views'
 
@@ -59,6 +76,7 @@ views_ui.delete:
   path: '/admin/structure/views/view/{view}/delete'
   defaults:
     _entity_form: 'view.delete'
+    _title: 'Delete view'
   requirements:
     _permission: 'administer views'
 
@@ -111,14 +129,14 @@ views_ui.break_lock:
   requirements:
     _permission: 'administer views'
 
-views_ui.form_add_item:
-  path: '/admin/structure/views/{js}/add-item/{view}/{display_id}/{type}'
+views_ui.form_add_handler:
+  path: '/admin/structure/views/{js}/add-handler/{view}/{display_id}/{type}'
   options:
     parameters:
       view:
         tempstore: TRUE
   defaults:
-    _controller: '\Drupal\views_ui\Form\Ajax\AddItem::getForm'
+    _content: '\Drupal\views_ui\Form\Ajax\AddHandler::getForm'
   requirements:
     _permission: 'administer views'
     js: 'nojs|ajax'
@@ -130,7 +148,7 @@ views_ui.form_edit_details:
       view:
         tempstore: TRUE
   defaults:
-    _controller: '\Drupal\views_ui\Form\Ajax\EditDetails::getForm'
+    _content: '\Drupal\views_ui\Form\Ajax\EditDetails::getForm'
   requirements:
     _permission: 'administer views'
     js: 'nojs|ajax'
@@ -142,7 +160,7 @@ views_ui.form_reorder_displays:
       view:
         tempstore: TRUE
   defaults:
-    _controller: '\Drupal\views_ui\Form\Ajax\ReorderDisplays::getForm'
+    _content: '\Drupal\views_ui\Form\Ajax\ReorderDisplays::getForm'
   requirements:
     _permission: 'administer views'
     js: 'nojs|ajax'
@@ -154,7 +172,7 @@ views_ui.form_analyze:
       view:
         tempstore: TRUE
   defaults:
-    _controller: '\Drupal\views_ui\Form\Ajax\Analyze::getForm'
+    _content: '\Drupal\views_ui\Form\Ajax\Analyze::getForm'
   requirements:
     _permission: 'administer views'
     js: 'nojs|ajax'
@@ -166,7 +184,7 @@ views_ui.form_rearrange:
       view:
         tempstore: TRUE
   defaults:
-    _controller: '\Drupal\views_ui\Form\Ajax\Rearrange::getForm'
+    _content: '\Drupal\views_ui\Form\Ajax\Rearrange::getForm'
   requirements:
     _permission: 'administer views'
     js: 'nojs|ajax'
@@ -178,7 +196,7 @@ views_ui.form_rearrange_filter:
       view:
         tempstore: TRUE
   defaults:
-    _controller: '\Drupal\views_ui\Form\Ajax\RearrangeFilter::getForm'
+    _content: '\Drupal\views_ui\Form\Ajax\RearrangeFilter::getForm'
   requirements:
     _permission: 'administer views'
     js: 'nojs|ajax'
@@ -190,43 +208,43 @@ views_ui.form_display:
       view:
         tempstore: TRUE
   defaults:
-    _controller: '\Drupal\views_ui\Form\Ajax\Display::getForm'
+    _content: '\Drupal\views_ui\Form\Ajax\Display::getForm'
   requirements:
     _permission: 'administer views'
     js: 'nojs|ajax'
 
-views_ui.form_config_item:
-  path: '/admin/structure/views/{js}/config-item/{view}/{display_id}/{type}/{id}'
+views_ui.form_handler:
+  path: '/admin/structure/views/{js}/handler/{view}/{display_id}/{type}/{id}'
   options:
     parameters:
       view:
         tempstore: TRUE
   defaults:
-    _controller: '\Drupal\views_ui\Form\Ajax\ConfigItem::getForm'
+    _content: '\Drupal\views_ui\Form\Ajax\ConfigHandler::getForm'
   requirements:
     _permission: 'administer views'
     js: 'nojs|ajax'
 
-views_ui.form_config_item_extra:
-  path: '/admin/structure/views/{js}/config-item-extra/{view}/{display_id}/{type}/{id}'
+views_ui.form_handler_extra:
+  path: '/admin/structure/views/{js}/handler-extra/{view}/{display_id}/{type}/{id}'
   options:
     parameters:
       view:
         tempstore: TRUE
   defaults:
-    _controller: '\Drupal\views_ui\Form\Ajax\ConfigItemExtra::getForm'
+    _content: '\Drupal\views_ui\Form\Ajax\ConfigHandlerExtra::getForm'
   requirements:
     _permission: 'administer views'
     js: 'nojs|ajax'
 
-views_ui.form_config_item_group:
-  path: '/admin/structure/views/{js}/config-item-group/{view}/{display_id}/{type}/{id}'
+views_ui.form_handler_group:
+  path: '/admin/structure/views/{js}/handler-group/{view}/{display_id}/{type}/{id}'
   options:
     parameters:
       view:
         tempstore: TRUE
   defaults:
-    _controller: '\Drupal\views_ui\Form\Ajax\ConfigItemGroup::getForm'
+    _content: '\Drupal\views_ui\Form\Ajax\ConfigHandlerGroup::getForm'
     form_state: NULL
   requirements:
     _permission: 'administer views'

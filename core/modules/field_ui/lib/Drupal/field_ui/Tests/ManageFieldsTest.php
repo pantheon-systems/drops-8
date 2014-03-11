@@ -7,6 +7,7 @@
 
 namespace Drupal\field_ui\Tests;
 
+use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Language\Language;
 use Drupal\Component\Utility\String;
 
@@ -201,12 +202,12 @@ class ManageFieldsTest extends FieldUiTestBase {
 
     // Set to unlimited.
     $edit = array(
-      'field[cardinality]' => FIELD_CARDINALITY_UNLIMITED,
+      'field[cardinality]' => FieldDefinitionInterface::CARDINALITY_UNLIMITED,
     );
     $this->drupalPostForm($field_edit_path, $edit, t('Save field settings'));
     $this->assertText('Updated field Body field settings.');
     $this->drupalGet($field_edit_path);
-    $this->assertFieldByXPath("//select[@name='field[cardinality]']", FIELD_CARDINALITY_UNLIMITED);
+    $this->assertFieldByXPath("//select[@name='field[cardinality]']", FieldDefinitionInterface::CARDINALITY_UNLIMITED);
     $this->assertFieldByXPath("//input[@name='field[cardinality_number]']", 1);
   }
 
@@ -238,11 +239,11 @@ class ManageFieldsTest extends FieldUiTestBase {
     field_info_cache_clear();
     // Assert field settings.
     $field = field_info_field($entity_type, $field_name);
-    $this->assertTrue($field->getFieldSetting('test_field_setting') == $string, 'Field settings were found.');
+    $this->assertTrue($field->getSetting('test_field_setting') == $string, 'Field settings were found.');
 
     // Assert instance settings.
     $instance = field_info_instance($entity_type, $field_name, $bundle);
-    $this->assertTrue($instance->getFieldSetting('test_instance_setting') == $string, 'Field instance settings were found.');
+    $this->assertTrue($instance->getSetting('test_instance_setting') == $string, 'Field instance settings were found.');
   }
 
   /**
@@ -396,12 +397,12 @@ class ManageFieldsTest extends FieldUiTestBase {
     ));
     $field->save();
     entity_create('field_instance', array(
-      'field_uuid' => $field->uuid,
+      'field_name' => $field->name,
       'entity_type' => 'node',
       'bundle' => $this->type,
     ))->save();
     entity_get_form_display('node', $this->type, 'default')
-      ->setComponent($field->id, array(
+      ->setComponent($field->name, array(
         'type' => 'test_field_widget',
       ))
       ->save();
@@ -414,6 +415,8 @@ class ManageFieldsTest extends FieldUiTestBase {
     $this->assertFalse(in_array('edit', $edit_link), 'Edit option for locked field is not present the UI');
     $delete_link = $this->xpath('//tr[@id=:field_name]/td[4]', array(':field_name' => $field->name));
     $this->assertFalse(in_array('delete', $delete_link), 'Delete option for locked field is not present the UI');
+    $this->drupalGet('admin/structure/types/manage/' . $this->type . '/fields/node.' . $this->type . '.' . $field->name . '/delete');
+    $this->assertResponse(403);
   }
 
   /**
@@ -443,7 +446,7 @@ class ManageFieldsTest extends FieldUiTestBase {
     entity_get_form_display('node', $this->type, 'default')
       ->setComponent($field_name)
       ->save();
-    $this->assertTrue(field_read_instance('node', $field_name, $this->type), format_string('An instance of the field %field was created programmatically.', array('%field' => $field_name)));
+    $this->assertTrue(entity_load('field_instance', 'node.' . $this->type . '.' . $field_name), format_string('An instance of the field %field was created programmatically.', array('%field' => $field_name)));
 
     // Check that the newly added instance appears on the 'Manage Fields'
     // screen.
@@ -457,7 +460,7 @@ class ManageFieldsTest extends FieldUiTestBase {
     $this->assertFalse($this->xpath('//select[@id="edit-add-existing-field-field-name"]//option[@value=:field_name]', array(':field_name' => $field_name)), "The 're-use existing field' select respects field types 'no_ui' property.");
 
     // Check that non-configurable fields are not available.
-    $field_types = \Drupal::service('plugin.manager.entity.field.field_type')->getDefinitions();
+    $field_types = \Drupal::service('plugin.manager.field.field_type')->getDefinitions();
     foreach ($field_types as $field_type => $definition) {
       if ($definition['configurable'] && empty($definition['no_ui'])) {
         $this->assertTrue($this->xpath('//select[@id="edit-fields-add-new-field-type"]//option[@value=:field_type]', array(':field_type' => $field_type)), String::format('Configurable field type @field_type is available.', array('@field_type' => $field_type)));
@@ -504,7 +507,7 @@ class ManageFieldsTest extends FieldUiTestBase {
    */
   function testDeleteTaxonomyField() {
     // Create a new field.
-    $bundle_path = 'admin/structure/taxonomy/manage/tags';
+    $bundle_path = 'admin/structure/taxonomy/manage/tags/overview';
     $edit1 = array(
       'fields[_add_new_field][label]' => $this->field_label,
       'fields[_add_new_field][field_name]' => $this->field_name_input,

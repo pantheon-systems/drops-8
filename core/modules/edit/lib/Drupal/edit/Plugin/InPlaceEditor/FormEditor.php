@@ -7,33 +7,32 @@
 
 namespace Drupal\edit\Plugin\InPlaceEditor;
 
-use Drupal\edit\EditorBase;
-use Drupal\edit\Annotation\InPlaceEditor;
-use Drupal\Core\Entity\Field\FieldDefinitionInterface;
+use Drupal\Core\Field\FieldItemListInterface;
+use Drupal\edit\Plugin\InPlaceEditorBase;
 
 /**
- * Defines the form editor.
+ * Defines the form in-place editor.
  *
  * @InPlaceEditor(
  *   id = "form"
  * )
  */
-class FormEditor extends EditorBase {
+class FormEditor extends InPlaceEditorBase {
 
   /**
    * {@inheritdoc}
    */
-  function isCompatible(FieldDefinitionInterface $field_definition, array $items) {
+  public function isCompatible(FieldItemListInterface $items) {
     return TRUE;
   }
 
   /**
-   * Implements \Drupal\edit\EditPluginInterface::getAttachments().
+   * {@inheritdoc}
    */
   public function getAttachments() {
     return array(
       'library' => array(
-        array('edit', 'edit.editorWidget.form'),
+        array('edit', 'edit.inPlaceEditor.form'),
       ),
     );
   }

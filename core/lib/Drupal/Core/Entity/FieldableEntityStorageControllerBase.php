@@ -7,13 +7,90 @@
 
 namespace Drupal\Core\Entity;
 
-use Drupal\Core\Entity\Field\PrepareCacheInterface;
+use Drupal\Component\Utility\String;
+use Drupal\Core\Field\PrepareCacheInterface;
 use Drupal\field\FieldInterface;
 use Drupal\field\FieldInstanceInterface;
-use Drupal\field\Plugin\Type\FieldType\ConfigFieldItemListInterface;
-use Symfony\Component\DependencyInjection\Container;
+use Drupal\Core\Field\ConfigFieldItemListInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 abstract class FieldableEntityStorageControllerBase extends EntityStorageControllerBase implements FieldableEntityStorageControllerInterface {
+
+  /**
+   * The entity bundle key.
+   *
+   * @var string|bool
+   */
+  protected $bundleKey = FALSE;
+
+  /**
+   * Name of the entity class.
+   *
+   * @var string
+   */
+  protected $entityClass;
+
+  /**
+   * Constructs a FieldableEntityStorageControllerBase object.
+   *
+   * @param \Drupal\Core\Entity\EntityTypeInterface $entity_type
+   *   The entity type definition.
+   */
+  public function __construct(EntityTypeInterface $entity_type) {
+    parent::__construct($entity_type);
+
+    $this->bundleKey = $this->entityType->getKey('bundle');
+    $this->entityClass = $this->entityType->getClass();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function createInstance(ContainerInterface $container, EntityTypeInterface $entity_type) {
+    return new static(
+      $entity_type
+    );
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function create(array $values = array()) {
+    $entity_class = $this->entityType->getClass();
+    $entity_class::preCreate($this, $values);
+
+    // We have to determine the bundle first.
+    $bundle = FALSE;
+    if ($this->bundleKey) {
+      if (!isset($values[$this->bundleKey])) {
+        throw new EntityStorageException(String::format('Missing bundle for entity type @type', array('@type' => $this->entityTypeId)));
+      }
+      $bundle = $values[$this->bundleKey];
+    }
+    $entity = new $entity_class(array(), $this->entityTypeId, $bundle);
+
+    foreach ($entity as $name => $field) {
+      if (isset($values[$name])) {
+        $entity->$name = $values[$name];
+      }
+      elseif (!array_key_exists($name, $values)) {
+        $entity->get($name)->applyDefaultValue();
+      }
+      unset($values[$name]);
+    }
+
+    // Set any passed values for non-defined fields also.
+    foreach ($values as $name => $value) {
+      $entity->$name = $value;
+    }
+    $entity->postCreate($this);
+
+    // Modules might need to add or change the data initially held by the new
+    // entity object, for instance to fill-in default values.
+    $this->invokeHook('create', $entity);
+
+    return $entity;
+  }
 
   /**
    * Loads values of configurable fields for a group of entities.
@@ -27,22 +104,24 @@ abstract class FieldableEntityStorageControllerBase extends EntityStorageControl
    *
    * @param array $entities
    *   An array of entities keyed by entity ID.
-   * @param int $age
-   *   EntityStorageControllerInterface::FIELD_LOAD_CURRENT to load the most
-   *   recent revision for all fields, or
-   *   EntityStorageControllerInterface::FIELD_LOAD_REVISION to load the version
-   *   indicated by each entity.
    */
-  protected function loadFieldItems(array $entities, $age) {
+  protected function loadFieldItems(array $entities) {
     if (empty($entities)) {
       return;
+    }
+
+    $age = static::FIELD_LOAD_CURRENT;
+    foreach ($entities as $entity) {
+      if (!$entity->isDefaultRevision()) {
+        $age = static::FIELD_LOAD_REVISION;
+        break;
+      }
     }
 
     // Only the most current revision of non-deleted fields for cacheable entity
     // types can be cached.
     $load_current = $age == static::FIELD_LOAD_CURRENT;
-    $info = entity_get_info($this->entityType);
-    $use_cache = $load_current && $info['field_cache'];
+    $use_cache = $load_current && $this->entityType->isFieldDataCacheable();
 
     // Assume all entities will need to be queried. Entities found in the cache
     // will be removed from the list.
@@ -53,13 +132,13 @@ abstract class FieldableEntityStorageControllerBase extends EntityStorageControl
       // Build the list of cache entries to retrieve.
       $cids = array();
       foreach ($entities as $id => $entity) {
-        $cids[] = "field:{$this->entityType}:$id";
+        $cids[] = "field:{$this->entityTypeId}:$id";
       }
       $cache = cache('field')->getMultiple($cids);
       // Put the cached field values back into the entities and remove them from
       // the list of entities to query.
       foreach ($entities as $id => $entity) {
-        $cid = "field:{$this->entityType}:$id";
+        $cid = "field:{$this->entityTypeId}:$id";
         if (isset($cache[$cid])) {
           unset($queried_entities[$id]);
           foreach ($cache[$cid]->data as $langcode => $values) {
@@ -103,7 +182,7 @@ abstract class FieldableEntityStorageControllerBase extends EntityStorageControl
               }
             }
           }
-          $cid = "field:{$this->entityType}:$id";
+          $cid = "field:{$this->entityTypeId}:$id";
           cache('field')->set($cid, $data);
         }
       }
@@ -126,9 +205,9 @@ abstract class FieldableEntityStorageControllerBase extends EntityStorageControl
     $this->doSaveFieldItems($entity, $update);
 
     if ($update) {
-      $entity_info = $entity->entityInfo();
-      if ($entity_info['field_cache']) {
-        cache('field')->delete('field:' . $entity->entityType() . ':' . $entity->id());
+      $entity_type = $entity->getEntityType();
+      if ($entity_type->isFieldDataCacheable()) {
+        cache('field')->delete('field:' . $entity->getEntityTypeId() . ':' . $entity->id());
       }
     }
   }
@@ -146,9 +225,9 @@ abstract class FieldableEntityStorageControllerBase extends EntityStorageControl
   protected function deleteFieldItems(EntityInterface $entity) {
     $this->doDeleteFieldItems($entity);
 
-    $entity_info = $entity->entityInfo();
-    if ($entity_info['field_cache']) {
-      cache('field')->delete('field:' . $entity->entityType() . ':' . $entity->id());
+    $entity_type = $entity->getEntityType();
+    if ($entity_type->isFieldDataCacheable()) {
+      cache('field')->delete('field:' . $entity->getEntityTypeId() . ':' . $entity->id());
     }
   }
 
@@ -263,9 +342,7 @@ abstract class FieldableEntityStorageControllerBase extends EntityStorageControl
    */
   public function onFieldItemsPurge(EntityInterface $entity, FieldInstanceInterface $instance) {
     if ($values = $this->readFieldItemsToPurge($entity, $instance)) {
-      $field = $instance->getField();
-      $definition = _field_generate_entity_field_definition($field, $instance);
-      $items = \Drupal::typedData()->create($definition, $values, $field->getFieldName(), $entity);
+      $items = \Drupal::typedDataManager()->create($instance, $values, $instance->getName(), $entity);
       $items->delete();
     }
     $this->purgeFieldItems($entity, $instance);
@@ -336,7 +413,7 @@ abstract class FieldableEntityStorageControllerBase extends EntityStorageControl
   protected function invokeFieldMethod($method, ContentEntityInterface $entity) {
     foreach (array_keys($entity->getTranslationLanguages()) as $langcode) {
       $translation = $entity->getTranslation($langcode);
-      foreach ($translation as $field) {
+      foreach ($translation->getProperties(TRUE) as $field) {
         $field->$method();
       }
     }

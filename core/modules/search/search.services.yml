@@ -1,22 +1,8 @@
 services:
   plugin.manager.search:
     class: Drupal\search\SearchPluginManager
-    arguments: ['@container.namespaces', '@config.factory', '@cache.cache', '@language_manager']
+    parent: default_plugin_manager
 
-  access_check.search:
-    class: Drupal\search\Access\SearchAccessCheck
-    arguments: ['@plugin.manager.search']
-    tags:
-      - { name: access_check }
-
-  access_check.search_plugin:
-    class: Drupal\search\Access\SearchPluginAccessCheck
-    arguments: ['@plugin.manager.search']
-    tags:
-      - { name: access_check }
-
-  route_subscriber.search:
-    class: Drupal\search\Routing\SearchRouteSubscriber
-    arguments: ['@plugin.manager.search']
-    tags:
-     - { name: event_subscriber }
+  search.search_page_repository:
+    class: Drupal\search\SearchPageRepository
+    arguments: ['@config.factory', '@entity.manager']

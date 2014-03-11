@@ -8,6 +8,7 @@
 namespace Drupal\node\Tests;
 
 use Drupal\Core\Language\Language;
+use Drupal\comment\CommentInterface;
 use Drupal\simpletest\WebTestBase;
 
 /**
@@ -55,6 +56,7 @@ class NodeAccessPagerTest extends WebTestBase {
         'comment_body' => array(
           array('value' => $this->randomName()),
         ),
+        'status' => CommentInterface::PUBLISHED,
       ));
       $comment->save();
     }

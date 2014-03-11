@@ -325,7 +325,7 @@ class SearchQuery extends SelectExtender {
     $this->parseSearchExpression();
 
     if (count($this->words) == 0) {
-      form_set_error('keys', format_plural(\Drupal::config('search.settings')->get('index.minimum_word_size'), 'You must include at least one positive keyword with 1 character or more.', 'You must include at least one positive keyword with @count characters or more.'));
+      form_set_error('keys', $form_state, format_plural(\Drupal::config('search.settings')->get('index.minimum_word_size'), 'You must include at least one positive keyword with 1 character or more.', 'You must include at least one positive keyword with @count characters or more.'));
       return FALSE;
     }
     if ($this->expressionsIgnored) {
@@ -451,11 +451,9 @@ class SearchQuery extends SelectExtender {
       // Re-normalize scores with multipliers by dividing by the total of all
       // multipliers. The expressions were altered in addScore(), so here just
       // add the arguments for the total.
-      $i = 0;
       $sum = array_sum($this->multiply);
-      foreach ($this->multiply as $total) {
+      for ($i = 0; $i < count($this->multiply); $i++) {
         $this->scoresArguments[':total_' . $i] = $sum;
-        $i++;
       }
     }
 

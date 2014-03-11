@@ -53,36 +53,33 @@ function action_menu() {
     'description' => 'Manage the actions defined for your site.',
     'route_name' => 'action.admin',
   );
-  $items['admin/config/system/actions/manage'] = array(
-    'title' => 'Manage actions',
-    'description' => 'Manage the actions defined for your site.',
-    'type' => MENU_DEFAULT_LOCAL_TASK,
-  );
-  $items['admin/config/system/actions/add'] = array(
-    'title' => 'Create an advanced action',
-    'type' => MENU_VISIBLE_IN_BREADCRUMB,
-    'route_name' => 'action.admin_add',
-  );
-  $items['admin/config/system/actions/configure'] = array(
-    'title' => 'Configure an advanced action',
-    'type' => MENU_VISIBLE_IN_BREADCRUMB,
-    'route_name' => 'action.admin_configure',
-  );
-  $items['admin/config/system/actions/configure/%/delete'] = array(
-    'title' => 'Delete action',
-    'description' => 'Delete an action.',
-    'route_name' => 'action.delete',
-  );
   return $items;
+}
+
+/**
+ * Implements hook_menu_link_defaults().
+ */
+function action_menu_link_defaults() {
+  $links['action.admin.actions'] = array(
+    'link_title' => 'Actions',
+    'description' => 'Manage the actions defined for your site.',
+    'route_name' => 'action.admin',
+    'parent' => 'system.admin.config.system',
+  );
+
+  return $links;
 }
 
 /**
  * Implements hook_entity_info().
  */
 function action_entity_info(&$entity_info) {
-  $entity_info['action']['controllers']['form']['add'] = 'Drupal\action\ActionAddFormController';
-  $entity_info['action']['controllers']['form']['edit'] = 'Drupal\action\ActionEditFormController';
-  $entity_info['action']['controllers']['form']['delete'] = 'Drupal\action\Form\ActionDeleteForm';
-  $entity_info['action']['controllers']['list'] = 'Drupal\action\ActionListController';
-  $entity_info['action']['links']['edit-form'] = 'admin/config/system/actions/configure/{action}';
+  /** @var $entity_info \Drupal\Core\Entity\EntityTypeInterface[] */
+  $entity_info['action']
+    ->setFormClass('add', 'Drupal\action\ActionAddFormController')
+    ->setFormClass('edit', 'Drupal\action\ActionEditFormController')
+    ->setFormClass('delete', 'Drupal\action\Form\ActionDeleteForm')
+    ->setListClass('Drupal\action\ActionListController')
+    ->setLinkTemplate('delete-form', 'action.delete')
+    ->setLinkTemplate('edit-form', 'action.admin_configure');
 }

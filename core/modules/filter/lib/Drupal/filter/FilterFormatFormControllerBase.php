@@ -7,7 +7,7 @@
 
 namespace Drupal\filter;
 
-use Drupal\Core\Config\ConfigFactory;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityFormController;
 use Drupal\Core\Entity\Query\QueryFactory;
 use Drupal\filter\Plugin\Filter\FilterNull;
@@ -21,7 +21,7 @@ abstract class FilterFormatFormControllerBase extends EntityFormController {
   /**
    * The config factory.
    *
-   * @var \Drupal\Core\Config\ConfigFactory
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
    */
   protected $configFactory;
 
@@ -35,12 +35,12 @@ abstract class FilterFormatFormControllerBase extends EntityFormController {
   /**
    * Constructs a new FilterFormatFormControllerBase.
    *
-   * @param \Drupal\Core\Config\ConfigFactory $config_factory
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The config factory.
    * @param \Drupal\Core\Entity\Query\QueryFactory $query_factory
    *   The entity query factory.
    */
-  public function __construct(ConfigFactory $config_factory, QueryFactory $query_factory) {
+  public function __construct(ConfigFactoryInterface $config_factory, QueryFactory $query_factory) {
     $this->configFactory = $config_factory;
     $this->queryFactory = $query_factory;
   }
@@ -137,7 +137,11 @@ abstract class FilterFormatFormControllerBase extends EntityFormController {
       '#attributes' => array('id' => 'filter-order'),
       '#title' => t('Filter processing order'),
       '#tabledrag' => array(
-        array('order', 'sibling', 'filter-order-weight'),
+        array(
+         'action' => 'order',
+         'relationship' => 'sibling',
+         'group' => 'filter-order-weight',
+        ),
       ),
       '#tree' => FALSE,
       '#input' => FALSE,
@@ -232,7 +236,7 @@ abstract class FilterFormatFormControllerBase extends EntityFormController {
       ->condition('name', $format_name)
       ->execute();
     if ($format_exists) {
-      form_set_error('name', t('Text format names must be unique. A format named %name already exists.', array('%name' => $format_name)));
+      $this->setFormError('name', $form_state, $this->t('Text format names must be unique. A format named %name already exists.', array('%name' => $format_name)));
     }
   }
 
@@ -263,7 +267,7 @@ abstract class FilterFormatFormControllerBase extends EntityFormController {
       }
     }
 
-    $form_state['redirect'] = 'admin/config/content/formats';
+    $form_state['redirect_route']['route_name'] = 'filter.admin_overview';
 
     return $this->entity;
   }

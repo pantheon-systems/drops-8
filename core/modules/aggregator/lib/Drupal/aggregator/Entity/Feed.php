@@ -8,152 +8,41 @@
 namespace Drupal\aggregator\Entity;
 
 use Drupal\Core\Entity\ContentEntityBase;
+use Drupal\Core\Field\FieldDefinition;
 use Symfony\Component\DependencyInjection\Container;
 use Drupal\Core\Entity\EntityStorageControllerInterface;
-use Drupal\Core\Entity\Annotation\EntityType;
-use Drupal\Core\Annotation\Translation;
 use Drupal\aggregator\FeedInterface;
 
 /**
  * Defines the aggregator feed entity class.
  *
- * @EntityType(
+ * @ContentEntityType(
  *   id = "aggregator_feed",
  *   label = @Translation("Aggregator feed"),
- *   module = "aggregator",
  *   controllers = {
  *     "storage" = "Drupal\aggregator\FeedStorageController",
- *     "render" = "Drupal\aggregator\FeedRenderController",
+ *     "view_builder" = "Drupal\aggregator\FeedViewBuilder",
  *     "form" = {
  *       "default" = "Drupal\aggregator\FeedFormController",
  *       "delete" = "Drupal\aggregator\Form\FeedDeleteForm",
- *       "remove_items" = "Drupal\aggregator\Form\FeedItemsRemoveForm"
+ *       "remove_items" = "Drupal\aggregator\Form\FeedItemsRemoveForm",
  *     }
+ *   },
+ *   links = {
+ *     "canonical" = "aggregator.feed_view",
+ *     "edit-form" = "aggregator.feed_configure",
+ *     "delete-form" = "aggregator.feed_delete",
  *   },
  *   base_table = "aggregator_feed",
  *   fieldable = TRUE,
  *   entity_keys = {
  *     "id" = "fid",
  *     "label" = "title",
+ *     "uuid" = "uuid",
  *   }
  * )
  */
 class Feed extends ContentEntityBase implements FeedInterface {
-
-  /**
-   * The feed ID.
-   *
-   * @todo rename to id.
-   *
-   * @var \Drupal\Core\Entity\Field\FieldItemListInterface
-   */
-  public $fid;
-
-  /**
-   * Title of the feed.
-   *
-   * @var \Drupal\Core\Entity\Field\FieldItemListInterface
-   */
-  public $title;
-
-  /**
-   * The feed language code.
-   *
-   * @var \Drupal\Core\Entity\Field\FieldItemListInterface
-   */
-  public $langcode;
-
-  /**
-   * URL to the feed.
-   *
-   * @var \Drupal\Core\Entity\Field\FieldItemListInterface
-   */
-  public $url;
-
-  /**
-   * How often to check for new feed items, in seconds.
-   *
-   * @var \Drupal\Core\Entity\Field\FieldItemListInterface
-   */
-  public $refresh;
-
-  /**
-   * Last time feed was checked for new items, as Unix timestamp.
-   *
-   * @var \Drupal\Core\Entity\Field\FieldItemListInterface
-   */
-  public $checked;
-
-  /**
-   * Time when this feed was queued for refresh, 0 if not queued.
-   *
-   * @var \Drupal\Core\Entity\Field\FieldItemListInterface
-   */
-  public $queued;
-
-  /**
-   * The parent website of the feed; comes from the <link> element in the feed.
-   *
-   * @var \Drupal\Core\Entity\Field\FieldItemListInterface
-   */
-  public $link ;
-
-  /**
-   * The parent website's description;
-   * comes from the <description> element in the feed.
-   *
-   * @var \Drupal\Core\Entity\Field\FieldItemListInterface
-   */
-  public $description;
-
-  /**
-   * An image representing the feed.
-   *
-   * @var \Drupal\Core\Entity\Field\FieldItemListInterface
-   */
-  public $image;
-
-  /**
-   * Calculated hash of the feed data, used for validating cache.
-   *
-   * @var \Drupal\Core\Entity\Field\FieldItemListInterface
-   */
-  public $hash;
-
-  /**
-   * Entity tag HTTP response header, used for validating cache.
-   *
-   * @var \Drupal\Core\Entity\Field\FieldItemListInterface
-   */
-  public $etag;
-
-  /**
-   * When the feed was last modified, as a Unix timestamp.
-   *
-   * @var \Drupal\Core\Entity\Field\FieldItemListInterface
-   */
-  public $modified;
-
-  /**
-   * {@inheritdoc}
-   */
-  public function init() {
-    parent::init();
-
-    // We unset all defined properties, so magic getters apply.
-    unset($this->fid);
-    unset($this->title);
-    unset($this->url);
-    unset($this->refresh);
-    unset($this->checked);
-    unset($this->queued);
-    unset($this->link);
-    unset($this->description);
-    unset($this->image);
-    unset($this->hash);
-    unset($this->etag);
-    unset($this->modified);
-  }
 
   /**
    * Implements Drupal\Core\Entity\EntityInterface::id().
@@ -165,7 +54,7 @@ class Feed extends ContentEntityBase implements FeedInterface {
   /**
    * Implements Drupal\Core\Entity\EntityInterface::label().
    */
-  public function label($langcode = NULL) {
+  public function label() {
     return $this->get('title')->value;
   }
 
@@ -178,11 +67,13 @@ class Feed extends ContentEntityBase implements FeedInterface {
       $manager->createInstance($id)->remove($this);
     }
     // Reset feed.
-    $this->checked->value = 0;
-    $this->hash->value = '';
-    $this->etag->value = '';
-    $this->modified->value = 0;
+    $this->setLastCheckedTime(0);
+    $this->setHash('');
+    $this->setEtag('');
+    $this->setLastModified(0);
     $this->save();
+
+    return $this;
   }
 
   /**
@@ -200,7 +91,6 @@ class Feed extends ContentEntityBase implements FeedInterface {
    * {@inheritdoc}
    */
   public static function preDelete(EntityStorageControllerInterface $storage_controller, array $entities) {
-    $storage_controller->deleteCategories($entities);
     foreach ($entities as $entity) {
       // Notify processors to remove stored items.
       $manager = \Drupal::service('plugin.manager.aggregator.processor');
@@ -230,94 +120,227 @@ class Feed extends ContentEntityBase implements FeedInterface {
   /**
    * {@inheritdoc}
    */
-  public function preSave(EntityStorageControllerInterface $storage_controller) {
-    parent::preSave($storage_controller);
-
-    $storage_controller->deleteCategories(array($this->id() => $this));
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function postSave(EntityStorageControllerInterface $storage_controller, $update = FALSE) {
-    parent::postSave($storage_controller, $update);
-
-    if (!empty($this->categories)) {
-      $storage_controller->saveCategories($this, $this->categories);
-    }
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public static function baseFieldDefinitions($entity_type) {
-    $fields['fid'] = array(
-      'label' => t('ID'),
-      'description' => t('The ID of the aggregor feed.'),
-      'type' => 'integer_field',
-      'read-only' => TRUE,
-    );
-    $fields['title'] = array(
-      'label' => t('Title'),
-      'description' => t('The title of the feed.'),
-      'type' => 'string_field',
-    );
-    $fields['langcode'] = array(
-      'label' => t('Language code'),
-      'description' => t('The feed language code.'),
-      'type' => 'language_field',
-    );
-    $fields['url'] = array(
-      'label' => t('URL'),
-      'description' => t('The URL to the feed.'),
-      'type' => 'uri_field',
-    );
-    $fields['refresh'] = array(
-      'label' => t('Refresh'),
-      'description' => t('How often to check for new feed items, in seconds.'),
-      'type' => 'integer_field',
-    );
-    $fields['checked'] = array(
-      'label' => t('Checked'),
-      'description' => t('Last time feed was checked for new items, as Unix timestamp.'),
-      'type' => 'integer_field',
-    );
-    $fields['queued'] = array(
-      'label' => t('Queued'),
-      'description' => t('Time when this feed was queued for refresh, 0 if not queued.'),
-      'type' => 'integer_field',
-    );
-    $fields['link'] = array(
-      'label' => t('Link'),
-      'description' => t('The link of the feed.'),
-      'type' => 'uri_field',
-    );
-    $fields['description'] = array(
-      'label' => t('Description'),
-      'description' => t("The parent website's description that comes from the !description element in the feed.", array('!description' => '<description>')),
-      'type' => 'string_field',
-    );
-    $fields['image'] = array(
-      'label' => t('image'),
-      'description' => t('An image representing the feed.'),
-      'type' => 'uri_field',
-    );
-    $fields['hash'] = array(
-      'label' => t('Hash'),
-      'description' => t('Calculated hash of the feed data, used for validating cache.'),
-      'type' => 'string_field',
-    );
-    $fields['etag'] = array(
-      'label' => t('Etag'),
-      'description' => t('Entity tag HTTP response header, used for validating cache.'),
-      'type' => 'string_field',
-    );
-    $fields['modified'] = array(
-      'label' => t('Modified'),
-      'description' => t('When the feed was last modified, as a Unix timestamp.'),
-      'type' => 'integer_field',
-    );
+    $fields['fid'] = FieldDefinition::create('integer')
+      ->setLabel(t('Feed ID'))
+      ->setDescription(t('The ID of the aggregator feed.'))
+      ->setReadOnly(TRUE);
+
+    $fields['uuid'] = FieldDefinition::create('uuid')
+      ->setLabel(t('UUID'))
+      ->setDescription(t('The aggregator feed UUID.'))
+      ->setReadOnly(TRUE);
+
+    $fields['title'] = FieldDefinition::create('string')
+      ->setLabel(t('Title'))
+      ->setDescription(t('The title of the feed.'));
+
+    $fields['langcode'] = FieldDefinition::create('language')
+      ->setLabel(t('Language code'))
+      ->setDescription(t('The feed language code.'));
+
+    $fields['url'] = FieldDefinition::create('uri')
+      ->setLabel(t('URL'))
+      ->setDescription(t('The URL to the feed.'));
+
+    $fields['refresh'] = FieldDefinition::create('integer')
+      ->setLabel(t('Refresh'))
+      ->setDescription(t('How often to check for new feed items, in seconds.'));
+
+    // @todo Convert to a "timestamp" field in https://drupal.org/node/2145103.
+    $fields['checked'] = FieldDefinition::create('integer')
+      ->setLabel(t('Checked'))
+      ->setDescription(t('Last time feed was checked for new items, as Unix timestamp.'));
+
+    // @todo Convert to a "timestamp" field in https://drupal.org/node/2145103.
+    $fields['queued'] = FieldDefinition::create('integer')
+      ->setLabel(t('Queued'))
+      ->setDescription(t('Time when this feed was queued for refresh, 0 if not queued.'));
+
+    $fields['link'] = FieldDefinition::create('uri')
+      ->setLabel(t('Link'))
+      ->setDescription(t('The link of the feed.'));
+
+    $fields['description'] = FieldDefinition::create('string')
+      ->setLabel(t('Description'))
+      ->setDescription(t("The parent website's description that comes from the !description element in the feed.", array('!description' => '<description>')));
+
+    $fields['image'] = FieldDefinition::create('uri')
+      ->setLabel(t('Image'))
+      ->setDescription(t('An image representing the feed.'));
+
+    $fields['hash'] = FieldDefinition::create('string')
+      ->setLabel(t('Hash'))
+      ->setDescription(t('Calculated hash of the feed data, used for validating cache.'));
+
+    $fields['etag'] = FieldDefinition::create('string')
+      ->setLabel(t('Etag'))
+      ->setDescription(t('Entity tag HTTP response header, used for validating cache.'));
+
+    // @todo Convert to a "changed" field in https://drupal.org/node/2145103.
+    $fields['modified'] = FieldDefinition::create('integer')
+      ->setLabel(t('Modified'))
+      ->setDescription(t('When the feed was last modified, as a Unix timestamp.'));
+
     return $fields;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getUrl() {
+    return $this->get('url')->value;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getRefreshRate() {
+    return $this->get('refresh')->value;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getLastCheckedTime() {
+    return $this->get('checked')->value;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getQueuedTime() {
+    return $this->get('queued')->value;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getWebsiteUrl() {
+    return $this->get('link')->value;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getDescription() {
+    return $this->get('description')->value;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getImage() {
+    return $this->get('image')->value;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getHash() {
+    return $this->get('hash')->value;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getEtag() {
+    return $this->get('etag')->value;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getLastModified() {
+    return $this->get('modified')->value;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setTitle($title) {
+    $this->set('title', $title);
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setUrl($url) {
+    $this->set('url', $url);
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setRefreshRate($refresh) {
+    $this->set('refresh', $refresh);
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setLastCheckedTime($checked) {
+    $this->set('checked', $checked);
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setQueuedTime($queued) {
+    $this->set('queued', $queued);
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setWebsiteUrl($link) {
+    $this->set('link', $link);
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setDescription($description) {
+    $this->set('description', $description);
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setImage($image) {
+    $this->set('image', $image);
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setHash($hash) {
+    $this->set('hash', $hash);
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setEtag($etag) {
+    $this->set('etag', $etag);
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setLastModified($modified) {
+    $this->set('modified', $modified);
+    return $this;
   }
 
 }

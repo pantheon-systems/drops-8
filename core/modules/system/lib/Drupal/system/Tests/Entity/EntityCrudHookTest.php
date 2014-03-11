@@ -78,8 +78,8 @@ class EntityCrudHookTest extends EntityUnitTestBase {
    */
   public function testBlockHooks() {
     $entity = entity_create('block', array(
-      'id' => 'stark.test_html_id',
-      'plugin' => 'test_html_id',
+      'id' => 'stark.test_html',
+      'plugin' => 'test_html',
     ));
 
     $this->assertHookMessageOrder(array(
@@ -188,7 +188,7 @@ class EntityCrudHookTest extends EntityUnitTestBase {
     ));
 
     $_SESSION['entity_crud_hook_test'] = array();
-    $comment->subject->value = 'New subject';
+    $comment->setSubject('New subject');
     $comment->save();
 
     $this->assertHookMessageOrder(array(
@@ -224,7 +224,8 @@ class EntityCrudHookTest extends EntityUnitTestBase {
       'filemime' => 'text/plain',
       'filesize' => filesize($url),
       'status' => 1,
-      'timestamp' => REQUEST_TIME,
+      'created' => REQUEST_TIME,
+      'changed' => REQUEST_TIME,
     ));
 
     $this->assertHookMessageOrder(array(

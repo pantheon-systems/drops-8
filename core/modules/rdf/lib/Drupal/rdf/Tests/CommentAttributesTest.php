@@ -7,6 +7,7 @@
 
 namespace Drupal\rdf\Tests;
 
+use Drupal\comment\CommentInterface;
 use Drupal\comment\Tests\CommentTestBase;
 
 /**
@@ -125,9 +126,6 @@ class CommentAttributesTest extends CommentTestBase {
       'datatype' => 'http://www.w3.org/2001/XMLSchema#integer',
     );
     $this->assertTrue($graph->hasProperty($this->node_uri, 'http://rdfs.org/sioc/ns#num_replies', $expected_value), 'Number of comments found in RDF output of teaser view (sioc:num_replies).');
-    // Makes sure we don't generate the wrong statement for number of comments.
-    $node_comments_uri = url('node/' . $this->node->id(), array('fragment' => 'comments', 'absolute' => TRUE));
-    $this->assertFalse($graph->hasProperty($node_comments_uri, 'http://rdfs.org/sioc/ns#num_replies', $expected_value), 'Number of comments found in RDF output of teaser view mode (sioc:num_replies).');
 
     // Tests number of comments in full node view, expected value is the same.
     $parser = new \EasyRdf_Parser_Rdfa();
@@ -229,9 +227,8 @@ class CommentAttributesTest extends CommentTestBase {
    * @param $account
    *   An array containing information about an anonymous user.
    */
-  function _testBasicCommentRdfaMarkup($graph, $comment, $account = array()) {
-    $uri = $comment->uri();
-    $comment_uri = url($uri['path'], $uri['options'] + array('absolute' => TRUE));
+  function _testBasicCommentRdfaMarkup($graph, CommentInterface $comment, $account = array()) {
+    $comment_uri = $comment->url('canonical', array('absolute' => TRUE));
 
     // Comment type.
     $expected_value = array(
@@ -249,7 +246,7 @@ class CommentAttributesTest extends CommentTestBase {
     // Comment title.
     $expected_value = array(
       'type' => 'literal',
-      'value' => $comment->subject->value,
+      'value' => $comment->getSubject(),
       'lang' => 'en',
     );
     $this->assertTrue($graph->hasProperty($comment_uri, 'http://purl.org/dc/terms/title', $expected_value), 'Comment subject found in RDF output (dc:title).');
@@ -257,14 +254,14 @@ class CommentAttributesTest extends CommentTestBase {
     // Comment date.
     $expected_value = array(
       'type' => 'literal',
-      'value' => date('c', $comment->created->value),
+      'value' => date('c', $comment->getCreatedTime()),
       'datatype' => 'http://www.w3.org/2001/XMLSchema#dateTime',
     );
     $this->assertTrue($graph->hasProperty($comment_uri, 'http://purl.org/dc/terms/date', $expected_value), 'Comment date found in RDF output (dc:date).');
     // Comment date.
     $expected_value = array(
       'type' => 'literal',
-      'value' => date('c', $comment->created->value),
+      'value' => date('c', $comment->getCreatedTime()),
       'datatype' => 'http://www.w3.org/2001/XMLSchema#dateTime',
     );
     $this->assertTrue($graph->hasProperty($comment_uri, 'http://purl.org/dc/terms/created', $expected_value), 'Comment date found in RDF output (dc:created).');
@@ -278,8 +275,8 @@ class CommentAttributesTest extends CommentTestBase {
     $this->assertTrue($graph->hasProperty($comment_uri, 'http://purl.org/rss/1.0/modules/content/encoded', $expected_value), 'Comment body found in RDF output (content:encoded).');
 
     // The comment author can be a registered user or an anonymous user.
-    if ($comment->uid->value > 0) {
-      $author_uri = url('user/' . $comment->uid->value, array('absolute' => TRUE));
+    if ($comment->getOwnerId() > 0) {
+      $author_uri = url('user/' . $comment->getOwnerId(), array('absolute' => TRUE));
       // Comment relation to author.
       $expected_value = array(
         'type' => 'uri',
@@ -307,7 +304,7 @@ class CommentAttributesTest extends CommentTestBase {
     $this->assertTrue($graph->hasProperty($author_uri, 'http://xmlns.com/foaf/0.1/name', $expected_value), 'Comment author name found in RDF output (foaf:name).');
 
     // Comment author homepage (only for anonymous authors).
-    if ($comment->uid->value == 0) {
+    if ($comment->getOwnerId() == 0) {
       $expected_value = array(
         'type' => 'uri',
         'value' => 'http://example.org/',

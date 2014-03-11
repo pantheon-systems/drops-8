@@ -8,8 +8,6 @@
 namespace Drupal\file\Plugin\views\wizard;
 
 use Drupal\views\Plugin\views\wizard\WizardPluginBase;
-use Drupal\views\Annotation\ViewsWizard;
-use Drupal\Core\Annotation\Translation;
 
 /**
  * Tests creating managed files views with the wizard.
@@ -25,7 +23,7 @@ class File extends WizardPluginBase {
   /**
    * Set the created column.
    */
-  protected $createdColumn = 'timestamp';
+  protected $createdColumn = 'created';
 
   /**
    * Set default values for the path field options.

@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Allows the creaation of custom blocks through the user interface.
+ * Allows the creation of custom blocks through the user interface.
  */
 
 use Drupal\custom_block\Entity\CustomBlockType;
@@ -54,23 +54,6 @@ function custom_block_menu_local_tasks(&$data, $route_name) {
       );
     }
   }
-
-  $routes = array_map(function ($theme) {
-    return "block.admin_display_$theme";
-  }, array_keys(list_themes()));
-  if (in_array($route_name, $routes)) {
-    // @todo Move to a LocalAction plugin when https://drupal.org/node/2045267
-    //   allows local actions to work with query strings.
-    $item = menu_get_item('block/add');
-    if ($item['access']) {
-      // Add a destination parameter.
-      $item['localized_options']['query']['theme'] = \Drupal::request()->attributes->get('theme');
-      $data['actions']['block/add'] = array(
-        '#theme' => 'menu_local_action',
-        '#link' => $item,
-      );
-    }
-  }
 }
 
 /**
@@ -81,61 +64,36 @@ function custom_block_menu() {
     'title' => 'Custom block library',
     'description' => 'Manage custom blocks.',
     'route_name' => 'custom_block.list',
-    'type' => MENU_LOCAL_TASK | MENU_NORMAL_ITEM,
+    'type' => MENU_NORMAL_ITEM,
   );
-  $items['admin/structure/block/custom-blocks/list'] = array(
-    'title' => 'Blocks',
-    'type' => MENU_DEFAULT_LOCAL_TASK,
-  );
-  $items['admin/structure/block/custom-blocks/types'] = array(
-    'title' => 'Types',
-    'route_name' => 'custom_block.type_list',
-    'type' => MENU_LOCAL_TASK,
-  );
-  $items['admin/structure/block/custom-blocks/types/add'] = array(
-    'route_name' => 'custom_block.type_add',
-    'type' => MENU_SIBLING_LOCAL_TASK,
-    'weight' => 1,
-  );
+
   $items['admin/structure/block/custom-blocks/manage/%custom_block_type'] = array(
     'title' => 'Edit custom block type',
     'title callback' => 'entity_page_label',
     'title arguments' => array(5),
     'route_name' => 'custom_block.type_edit',
   );
-  $items['admin/structure/block/custom-blocks/manage/%custom_block_type/edit'] = array(
-    'title' => 'Edit',
-    'type' => MENU_DEFAULT_LOCAL_TASK,
-    'weight' => -10,
-  );
+
   $items['block/add'] = array(
     'title' => 'Add custom block',
+    'description' => 'Add custom block',
     'route_name' => 'custom_block.add_page',
   );
-  $items['block/add/%custom_block_type'] = array(
-    'title' => 'Add custom block',
-    'description' => 'Add custom block',
-    'route_name' => 'custom_block.add_form'
-  );
-  // There has to be a base-item in order for contextual links to work.
-  $items['block/%custom_block'] = array(
-    'title' => 'Edit',
-    'route_name' => 'custom_block.edit',
-  );
-  $items['block/%custom_block/edit'] = array(
-    'title' => 'Edit',
-    'weight' => 0,
-    'type' => MENU_DEFAULT_LOCAL_TASK,
-    'context' => MENU_CONTEXT_PAGE | MENU_CONTEXT_INLINE,
-  );
-  $items['block/%custom_block/delete'] = array(
-    'title' => 'Delete',
-    'weight' => 1,
-    'type' => MENU_LOCAL_TASK,
-    'context' => MENU_CONTEXT_INLINE,
-    'route_name' => 'custom_block.delete',
-  );
+
   return $items;
+}
+
+/**
+ * Implements hook_menu_link_defaults().
+ */
+function custom_block_menu_link_defaults() {
+  $links['custom_block.add_page'] = array(
+    'link_title' => 'Add custom block',
+    'description' => 'Add custom block',
+    'route_name' => 'custom_block.add_page',
+  );
+
+  return $links;
 }
 
 /**
@@ -180,10 +138,13 @@ function custom_block_load($id) {
 /**
  * Implements hook_entity_info_alter().
  */
-function custom_block_entity_info_alter(&$types) {
+function custom_block_entity_info_alter(&$entity_info) {
+  /** @var $entity_info \Drupal\Core\Entity\EntityTypeInterface[] */
   // Add a translation handler for fields if the language module is enabled.
   if (\Drupal::moduleHandler()->moduleExists('language')) {
-    $types['custom_block']['translation']['custom_block'] = TRUE;
+    $translation = $entity_info['custom_block']->get('translation');
+    $translation['custom_block'] = TRUE;
+    $entity_info['custom_block']->set('translation', $translation);
   }
 }
 

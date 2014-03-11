@@ -4,10 +4,11 @@
  * Attach custom data fields to Drupal entities.
  */
 
-use Drupal\Core\Entity\EntityInterface;
+use Drupal\Component\Utility\Html;
+use Drupal\Component\Utility\Xss;
+use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Template\Attribute;
-use Drupal\field\FieldInterface;
-use Drupal\field\FieldInstanceInterface;
+use Drupal\entity\Entity\EntityViewDisplay;
 
 /*
  * Load all public Field API functions. Drupal currently has no
@@ -15,7 +16,6 @@ use Drupal\field\FieldInstanceInterface;
  * every page request.
  */
 require_once __DIR__ . '/field.info.inc';
-require_once __DIR__ . '/field.multilingual.inc';
 require_once __DIR__ . '/field.attach.inc';
 require_once __DIR__ . '/field.form.inc';
 require_once __DIR__ . '/field.purge.inc';
@@ -76,11 +76,6 @@ require_once __DIR__ . '/field.deprecated.inc';
  */
 
 /**
- * Value for field API indicating a field accepts an unlimited number of values.
- */
-const FIELD_CARDINALITY_UNLIMITED = -1;
-
-/**
  * Implements hook_help().
  */
 function field_help($path, $arg) {
@@ -92,14 +87,15 @@ function field_help($path, $arg) {
       $output .= '<h3>' . t('Uses') . '</h3>';
       $output .= '<dl>';
       $output .= '<dt>' . t('Enabling field types') . '</dt>';
-      $output .= '<dd>' . t('The Field module provides the infrastructure for fields and field attachment; the field types and input widgets themselves are provided by additional modules. Some of the modules are required; the optional modules can be enabled from the <a href="@modules">Modules administration page</a>. Drupal core includes the following field type modules: Number (required), Text (required), List (required), Taxonomy (optional), Image (optional), and File (optional); the required Options module provides input widgets for other field modules. Additional fields and widgets may be provided by contributed modules, which you can find in the <a href="@contrib">contributed module section of Drupal.org</a>. Currently enabled field and input widget modules:', array('@modules' => url('admin/modules'), '@contrib' => 'http://drupal.org/project/modules', '@options' => url('admin/help/options')));
+      $output .= '<dd>' . t('The Field module provides the infrastructure for fields and field attachment; the field types and input widgets themselves are provided by additional modules. The modules can be enabled from the <a href="@modules">Modules administration page</a>. Drupal core includes the following field type modules: Text, Number, Email, Link, Telephone, Image, File, Options, Taxonomy, and Entity Reference. Additional fields and widgets may be provided by contributed modules, which you can find in the <a href="@contrib">contributed module section of Drupal.org</a>.', array('@modules' => url('admin/modules'), '@contrib' => 'http://drupal.org/project/modules', '@options' => url('admin/help/options')));
 
       // Make a list of all widget and field modules currently enabled, ordered
       // by displayed module name (module names are not translated).
       $items = array();
       $info = system_get_info('module');
       $field_widgets = \Drupal::service('plugin.manager.field.widget')->getDefinitions();
-      $field_types = \Drupal::service('plugin.manager.entity.field.field_type')->getConfigurableDefinitions();
+      $field_types = \Drupal::service('plugin.manager.field.field_type')->getConfigurableDefinitions();
+      $providers = array();
       foreach (array_merge($field_types, $field_widgets) as $plugin) {
         $providers[] = $plugin['provider'];
       }
@@ -118,11 +114,14 @@ function field_help($path, $arg) {
           }
         }
       }
-      $item_list = array(
-        '#theme' => 'item_list',
-        '#items' => $items,
-      );
-      $output .= drupal_render($item_list);
+      if ($items) {
+        $output .= ' ' . t('Currently enabled field and input widget modules:');
+        $item_list = array(
+          '#theme' => 'item_list',
+          '#items' => $items,
+        );
+        $output .= drupal_render($item_list);
+      }
       return $output;
   }
 }
@@ -145,9 +144,6 @@ function field_theme() {
  * Implements hook_cron().
  */
 function field_cron() {
-  // Refresh the 'active' status of fields.
-  field_sync_field_status();
-
   // Do a pass of purging on deleted Field API data, if any exists.
   $limit = \Drupal::config('field.settings')->get('purge_batch_size');
   field_purge_batch($limit);
@@ -160,9 +156,10 @@ function field_cron() {
  * required if there are any active fields of that type.
  */
 function field_system_info_alter(&$info, $file, $type) {
-  // It is not safe to call field_read_fields() during maintenance mode.
+  // It is not safe to call entity_load_multiple_by_properties() during
+  // maintenance mode.
   if ($type == 'module' && !defined('MAINTENANCE_MODE')) {
-    $fields = field_read_fields(array('module' => $file->name), array('include_deleted' => TRUE));
+    $fields = entity_load_multiple_by_properties('field_entity', array('module' => $file->name, 'include_deleted' => TRUE));
     if ($fields) {
       $info['required'] = TRUE;
 
@@ -199,48 +196,22 @@ function field_entity_field_info($entity_type) {
 
   foreach (field_info_instances($entity_type) as $bundle_name => $instances) {
     $optional = $bundle_name != $entity_type;
+    // @todo: Improve hook_entity_field_info() to allow per-bundle field
+    // definitions, such that we can pass on field instances as field
+    // definitions here. See https://drupal.org/node/2114707.
 
     foreach ($instances as $field_name => $instance) {
-      $definition = _field_generate_entity_field_definition($instance->getField());
-
       if ($optional) {
-        $property_info['optional'][$field_name] = $definition;
+        $property_info['optional'][$field_name] = $instance->getField();
         $property_info['bundle map'][$bundle_name][] = $field_name;
       }
       else {
-        $property_info['definitions'][$field_name] = $definition;
+        $property_info['definitions'][$field_name] = $instance->getField();
       }
     }
   }
 
   return $property_info;
-}
-
-/**
- * Generates an entity field definition for a configurable field.
- *
- * @param \Drupal\field\FieldInterface $field
- *   The field definition.
- * @param \Drupal\field\FieldInstanceInterface $instance
- *   (Optional) The field instance definition.
- *
- * @return array
- *   The entity field definition.
- */
-function _field_generate_entity_field_definition(FieldInterface $field, FieldInstanceInterface $instance = NULL) {
-  // @todo: Allow for adding field type settings.
-  $definition = array(
-    'label' => t('Field !name', array('!name' => $field->name)),
-    'type' => 'field_item:' . $field->type,
-    'list' => TRUE,
-    'configurable' => TRUE,
-    'translatable' => !empty($field->translatable),
-  );
-  if ($instance) {
-    $definition['instance'] = $instance;
-  }
-
-  return $definition;
 }
 
 /**
@@ -255,10 +226,10 @@ function field_entity_bundle_create($entity_type, $bundle) {
  * Implements hook_entity_bundle_rename().
  */
 function field_entity_bundle_rename($entity_type, $bundle_old, $bundle_new) {
-  $instances = field_read_instances();
+  $instances = entity_load_multiple_by_properties('field_instance', array('entity_type' => $entity_type, 'bundle' => $bundle_old));
   foreach ($instances as $instance) {
     if ($instance->entity_type == $entity_type && $instance->bundle == $bundle_old) {
-      $id_new = $instance->entity_type . '.' . $bundle_new . '.' . $instance->getFieldName();
+      $id_new = $instance->entity_type . '.' . $bundle_new . '.' . $instance->field_name;
       $instance->id = $id_new;
       $instance->bundle = $bundle_new;
       $instance->allowBundleRename();
@@ -281,10 +252,10 @@ function field_entity_bundle_rename($entity_type, $bundle_old, $bundle_new) {
  * simple DELETE query).
  */
 function field_entity_bundle_delete($entity_type, $bundle) {
-  // Get the instances on the bundle. field_read_instances() must be used
-  // here since field_info_instances() does not return instances for disabled
-  // entity types or bundles.
-  $instances = field_read_instances(array('entity_type' => $entity_type, 'bundle' => $bundle), array('include_inactive' => TRUE));
+  // Get the instances on the bundle. entity_load_multiple_by_properties() must
+  // be used here since field_info_instances() does not return instances for
+  // disabled entity types or bundles.
+  $instances = entity_load_multiple_by_properties('field_instance', array('entity_type' => $entity_type, 'bundle' => $bundle));
   foreach ($instances as $instance) {
     $instance->delete();
   }
@@ -297,79 +268,20 @@ function field_entity_bundle_delete($entity_type, $bundle) {
  * Implements hook_rebuild().
  */
 function field_rebuild() {
-  // Refresh the 'active' status of fields.
-  field_sync_field_status();
+  field_cache_clear();
 }
 
 /**
  * Implements hook_modules_installed().
  */
 function field_modules_installed($modules) {
-  // Refresh the 'active' status of fields.
-  field_sync_field_status();
+  field_cache_clear();
 }
 
 /**
  * Implements hook_modules_uninstalled().
  */
 function field_modules_uninstalled($modules) {
-  // Refresh the 'active' status of fields.
-  field_sync_field_status();
-}
-
-/**
- * Refreshes the 'active' and 'storage[active]' values for fields.
- */
-function field_sync_field_status() {
-  $module_handler = \Drupal::moduleHandler();
-  $state = \Drupal::state();
-
-  // Get both deleted and non-deleted field definitions.
-  $fields = array();
-  foreach (config_get_storage_names_with_prefix('field.field.') as $name) {
-    $field = \Drupal::config($name)->get();
-    $fields[$field['uuid']] = $field;
-  }
-  $deleted_fields = $state->get('field.field.deleted') ?: array();
-  $fields += $deleted_fields;
-
-  if (empty($fields)) {
-    return;
-  }
-
-  // Set the 'module' and 'active' values for the current set of enabled
-  // modules.
-  $changed = array();
-  $modules = $module_handler->getModuleList();
-  $field_types = \Drupal::service('plugin.manager.entity.field.field_type')->getDefinitions();
-  // Set fields with missing field type modules to inactive.
-  foreach ($fields as $uuid => &$field) {
-    // Associate field types.
-    if (isset($field_types[$field['type']]) && ($field['module'] != $field_types[$field['type']]['provider'] || !$field['active'])) {
-      $field['module'] = $field_types[$field['type']]['provider'];
-      $field['active'] = TRUE;
-      $changed[$uuid] = $field;
-    }
-    if (!isset($modules[$field['module']]) && $field['active']) {
-      $field['active'] = FALSE;
-      $changed[$uuid] = $field;
-    }
-  }
-
-  // Store the updated field definitions.
-  foreach ($changed as $uuid => $field) {
-    if (!empty($field['deleted'])) {
-      $deleted_fields[$uuid] = $field;
-    }
-    else {
-      \Drupal::config('field.field.' . $field['id'])
-        ->set('module', $field['module'])
-        ->set('active', $field['active'])
-        ->save();
-    }
-  }
-  $state->set('field.field.deleted', $deleted_fields);
-
   field_cache_clear();
 }
 
@@ -398,7 +310,7 @@ function field_cache_clear() {
  *   UTF-8.
  */
 function field_filter_xss($string) {
-  return _filter_htmlcorrector(filter_xss($string, _field_filter_xss_allowed_tags()));
+  return Html::normalize(Xss::filter($string, _field_filter_xss_allowed_tags()));
 }
 
 /**
@@ -418,7 +330,7 @@ function _field_filter_xss_display_allowed_tags() {
 /**
  * Returns a renderable array for a single field value.
  *
- * @param \Drupal\Core\Entity\EntityInterface $entity
+ * @param \Drupal\Core\Entity\ContentEntityInterface $entity
  *   The entity containing the field to display. Must at least contain the ID
  *   key and the field data to display.
  * @param $field_name
@@ -435,17 +347,19 @@ function _field_filter_xss_display_allowed_tags() {
  * @return
  *   A renderable array for the field value.
  */
-function field_view_value(EntityInterface $entity, $field_name, $item, $display = array(), $langcode = NULL) {
+function field_view_value(ContentEntityInterface $entity, $field_name, $item, $display = array(), $langcode = NULL) {
   $output = array();
 
-  if ($field = field_info_field($entity->entityType(), $field_name)) {
-    // Determine the langcode that will be used by language fallback.
-    $langcode = field_language($entity, $field_name, $langcode);
+  if ($entity->hasField($field_name)) {
+    // Clone the entity since we are going to modify field values.
+    $clone = clone $entity;
+
+    // Apply language fallback.
+    $clone = \Drupal::entityManager()->getTranslationFromContext($clone, $langcode);
 
     // Push the item as the single value for the field, and defer to
     // field_view_field() to build the render array for the whole field.
-    $clone = clone $entity;
-    $clone->getTranslation($langcode)->{$field_name}->setValue(array($item));
+    $clone->{$field_name}->setValue(array($item));
     $elements = field_view_field($clone, $field_name, $display, $langcode);
 
     // Extract the part of the render array we need.
@@ -467,15 +381,15 @@ function field_view_value(EntityInterface $entity, $field_name, $item, $display 
  * isolated field.
  * - Do not use inside node (or any other entity) templates; use
  *   render($content[FIELD_NAME]) instead.
- * - Do not use to display all fields in an entity; use
- *   field_attach_prepare_view() and field_attach_view() instead.
+ * - Do not use to display all fields in an entity; use EntityDisplay::build()
+ *   instead.
  * - The field_view_value() function can be used to output a single formatted
  *   field value, without label or wrapping field markup.
  *
  * The function takes care of invoking the prepare_view steps. It also respects
  * field access permissions.
  *
- * @param \Drupal\Core\Entity\EntityInterface $entity
+ * @param \Drupal\Core\Entity\ContentEntityInterface $entity
  *   The entity containing the field to display.
  * @param $field_name
  *   The name of the field to display.
@@ -508,84 +422,41 @@ function field_view_value(EntityInterface $entity, $field_name, $item, $display 
  *
  * @see field_view_value()
  */
-function field_view_field(EntityInterface $entity, $field_name, $display_options = array(), $langcode = NULL) {
+function field_view_field(ContentEntityInterface $entity, $field_name, $display_options = array(), $langcode = NULL) {
   $output = array();
-  $bundle = $entity->bundle();
-  $entity_type = $entity->entityType();
 
   // Return nothing if the field doesn't exist.
-  $instance = field_info_instance($entity_type, $field_name, $bundle);
-  if (!$instance) {
+  if (!$entity->hasField($field_name)) {
     return $output;
   }
 
-  // Get the formatter object.
+  // Get the display object.
   if (is_string($display_options)) {
     $view_mode = $display_options;
-    $formatter = entity_get_render_display($entity, $view_mode)->getRenderer($field_name);
+    $display = EntityViewDisplay::collectRenderDisplay($entity, $view_mode);
+    foreach ($entity as $name => $items) {
+      if ($name != $field_name) {
+        $display->removeComponent($name);
+      }
+    }
   }
   else {
     $view_mode = '_custom';
-    // hook_field_attach_display_alter() needs to receive the 'prepared'
-    // $display_options, so we cannot let preparation happen internally.
-    $field = field_info_field($entity_type, $field_name);
-    $formatter_manager = drupal_container()->get('plugin.manager.field.formatter');
-    $display_options = $formatter_manager->prepareConfiguration($field->getFieldType(), $display_options);
-    $formatter = $formatter_manager->getInstance(array(
-      'field_definition' => $instance,
-      'view_mode' => $view_mode,
-      'prepare' => FALSE,
-      'configuration' => $display_options,
+    $display = entity_create('entity_view_display', array(
+      'targetEntityType' => $entity->getEntityTypeId(),
+      'bundle' => $entity->bundle(),
+      'mode' => $view_mode,
+      'status' => TRUE,
     ));
+    $display->setComponent($field_name, $display_options);
   }
 
-  if ($formatter) {
-    $display_langcode = field_language($entity, $field_name, $langcode);
-
-    // Invoke the formatter's prepareView() and view() methods.
-    $items = $entity->getTranslation($display_langcode)->get($field_name);
-    $formatter->prepareView(array($entity->id() => $items));
-    $result = $formatter->view($items);
-
-    // Invoke hook_field_attach_view_alter() to let other modules alter the
-    // renderable array, as in a full field_attach_view() execution.
-    $context = array(
-      'entity' => $entity,
-      'view_mode' => $view_mode,
-      'display_options' => $display_options,
-      'langcode' => $display_langcode,
-    );
-    drupal_alter('field_attach_view', $result, $context);
-
-    if (isset($result[$field_name])) {
-      $output = $result[$field_name];
-    }
+  $build = $display->build($entity);
+  if (isset($build[$field_name])) {
+    $output = $build[$field_name];
   }
 
   return $output;
-}
-
-/**
- * Extracts the bundle name from a bundle object.
- *
- * @param $entity_type
- *   The type of $entity; e.g., 'node' or 'user'.
- * @param $bundle
- *   The bundle object (or string if bundles for this entity type do not exist
- *   as standalone objects).
- *
- * @return
- *   The bundle name.
- */
-function field_extract_bundle($entity_type, $bundle) {
-  if (is_string($bundle)) {
-    return $bundle;
-  }
-
-  $info = entity_get_info($entity_type);
-  if (is_object($bundle) && isset($info['bundle_keys']['bundle']) && isset($bundle->{$info['bundle_keys']['bundle']})) {
-    return $bundle->{$info['bundle_keys']['bundle']};
-  }
 }
 
 /**
@@ -635,7 +506,7 @@ function template_preprocess_field(&$variables, $hook) {
   // label, it needs to supply a preprocess function that sets it to the
   // sanitized element title or whatever else is wanted in its place.
   $variables['label_hidden'] = ($element['#label_display'] == 'hidden');
-  $variables['label'] = $variables['label_hidden'] ? NULL : check_plain($element['#title']);
+  $variables['label'] = check_plain($element['#title']);
 
   // We want other preprocess functions and the theme implementation to have
   // fast access to the field item render arrays. The item render array keys
@@ -692,7 +563,7 @@ function template_preprocess_field(&$variables, $hook) {
   // formatters leave them within $element['#items'][$delta]['_attributes'] to
   // be rendered on the item wrappers provided by theme_field().
   foreach ($variables['items'] as $delta => $item) {
-    $variables['item_attributes'][$delta] = !empty($element['#items'][$delta]['_attributes']) ? new Attribute($element['#items'][$delta]['_attributes']) : clone($default_attributes);
+    $variables['item_attributes'][$delta] = !empty($element['#items'][$delta]->_attributes) ? new Attribute($element['#items'][$delta]->_attributes) : clone($default_attributes);
   }
 }
 
@@ -742,7 +613,7 @@ function template_preprocess_field(&$variables, $hook) {
  * the exact performance impact depends on the server configuration and the
  * details of the website.
  *
- * @param $variables
+ * @param array $variables
  *   An associative array containing:
  *   - label_hidden: A boolean indicating whether to show or hide the field
  *     label.
@@ -771,8 +642,7 @@ function theme_field($variables) {
   // Render the items.
   $output .= '<div class="field-items"' . $variables['content_attributes'] . '>';
   foreach ($variables['items'] as $delta => $item) {
-    $classes = 'field-item ' . ($delta % 2 ? 'odd' : 'even');
-    $output .= '<div class="' . $classes . '"' . $variables['item_attributes'][$delta] . '>' . drupal_render($item) . '</div>';
+    $output .= '<div class="field-item"' . $variables['item_attributes'][$delta] . '>' . drupal_render($item) . '</div>';
   }
   $output .= '</div>';
 
@@ -794,15 +664,15 @@ function theme_field($variables) {
  */
 function _field_create_entity_from_ids($ids) {
   $id_properties = array();
-  $info = entity_get_info($ids->entity_type);
-  if (isset($info['entity_keys']['id'])) {
-    $id_properties[$info['entity_keys']['id']] = $ids->entity_id;
+  $entity_type = \Drupal::entityManager()->getDefinition($ids->entity_type);
+  if ($id_key = $entity_type->getKey('id')) {
+    $id_properties[$id_key] = $ids->entity_id;
   }
-  if (!empty($info['entity_keys']['revision']) && isset($ids->revision_id)) {
-    $id_properties[$info['entity_keys']['revision']] = $ids->revision_id;
+  if (isset($ids->revision_id) && $revision_key = $entity_type->getKey('revision')) {
+    $id_properties[$revision_key] = $ids->revision_id;
   }
-  if (!empty($info['entity_keys']['bundle']) && isset($ids->bundle)) {
-    $id_properties[$info['entity_keys']['bundle']] = $ids->bundle;
+  if (isset($ids->bundle) && $bundle_key = $entity_type->getKey('bundle')) {
+    $id_properties[$bundle_key] = $ids->bundle;
   }
   return entity_create($ids->entity_type, $id_properties);
 }

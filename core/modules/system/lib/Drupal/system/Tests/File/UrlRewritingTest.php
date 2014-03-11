@@ -2,10 +2,12 @@
 
 /**
  * @file
- * Definition of Drupal\system\Tests\File\UrlRewritingTest.
+ * Contains Drupal\system\Tests\File\UrlRewritingTest.
  */
 
 namespace Drupal\system\Tests\File;
+
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Tests for file URL rewriting.
@@ -23,12 +25,12 @@ class UrlRewritingTest extends FileTestBase {
     return array(
       'name' => 'File URL rewriting',
       'description' => 'Tests for file URL rewriting.',
-      'group' => 'File',
+      'group' => 'File API',
     );
   }
 
   /**
-   * Test the generating of rewritten shipped file URLs.
+   * Tests the rewriting of shipped file URLs by hook_file_url_alter().
    */
   function testShippedFileURL()  {
     // Test generating an URL to a shipped file (i.e. a file that is part of
@@ -63,10 +65,10 @@ class UrlRewritingTest extends FileTestBase {
   }
 
   /**
-   * Test the generating of rewritten public created file URLs.
+   * Tests the rewriting of public managed file URLs by hook_file_url_alter().
    */
-  function testPublicCreatedFileURL() {
-    // Test generating an URL to a created file.
+  function testPublicManagedFileURL() {
+    // Test generating an URL to a managed file.
 
     // Test alteration of file URLs to use a CDN.
     \Drupal::state()->set('file_test.hook_file_url_alter', 'cdn');
@@ -87,4 +89,29 @@ class UrlRewritingTest extends FileTestBase {
     $url = file_create_url($uri);
     $this->assertEqual('/' . base_path() . '/' . $public_directory_path . '/' . drupal_basename($uri), $url, 'Correctly generated a protocol-relative URL for a created file.');
   }
+
+  /**
+   * Test file_url_transform_relative().
+   */
+  function testRelativeFileURL() {
+    // Disable file_test.module's hook_file_url_alter() implementation.
+    \Drupal::state()->set('file_test.hook_file_url_alter', NULL);
+
+    // Create a mock Request for file_url_transform_relative().
+    $request = Request::create($GLOBALS['base_url']);
+    $this->container->set('request', $request);
+    \Drupal::setContainer($this->container);
+
+    // Shipped file.
+    $filepath = 'core/assets/vendor/jquery/jquery.js';
+    $url = file_create_url($filepath);
+    $this->assertIdentical(base_path() . $filepath, file_url_transform_relative($url));
+
+    // Managed file.
+    $uri = $this->createUri();
+    $url = file_create_url($uri);
+    $public_directory_path = file_stream_wrapper_get_instance_by_scheme('public')->getDirectoryPath();
+    $this->assertIdentical(base_path() . $public_directory_path . '/' . rawurlencode(drupal_basename($uri)), file_url_transform_relative($url));
+  }
+
 }

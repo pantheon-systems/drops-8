@@ -17,14 +17,13 @@
     if (pos !== -1) {
       query = query.substring(pos + 1);
     }
+    var pair;
     var pairs = query.split('&');
-    for(var i in pairs) {
-      if (typeof(pairs[i]) === 'string') {
-        var pair = pairs[i].split('=');
-        // Ignore the 'q' path argument, if present.
-        if (pair[0] !== 'q' && pair[1]) {
-          args[decodeURIComponent(pair[0].replace(/\+/g, ' '))] = decodeURIComponent(pair[1].replace(/\+/g, ' '));
-        }
+    for (var i = 0; i < pairs.length; i++) {
+      pair = pairs[i].split('=');
+      // Ignore the 'q' path argument, if present.
+      if (pair[0] !== 'q' && pair[1]) {
+        args[decodeURIComponent(pair[0].replace(/\+/g, ' '))] = decodeURIComponent(pair[1].replace(/\+/g, ' '));
       }
     }
     return args;
@@ -63,13 +62,13 @@
    */
   Drupal.Views.getPath = function (href) {
     href = Drupal.Views.pathPortion(href);
-    href = href.substring(drupalSettings.basePath.length, href.length);
+    href = href.substring(drupalSettings.path.basePath.length, href.length);
     // 3 is the length of the '?q=' added to the url without clean urls.
     if (href.substring(0, 3) === '?q=') {
       href = href.substring(3, href.length);
     }
     var chars = ['#', '?', '&'];
-    for (var i in chars) {
+    for (var i = 0; i < chars.length; i++) {
       if (href.indexOf(chars[i]) > -1) {
         href = href.substr(0, href.indexOf(chars[i]));
       }

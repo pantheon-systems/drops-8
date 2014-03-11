@@ -6,6 +6,7 @@
  */
 
 use Drupal\editor\Entity\Editor;
+use Drupal\Component\Utility\NestedArray;
 
 /**
  * Subform constructor to configure the text editor's image upload settings.
@@ -104,7 +105,7 @@ function editor_image_upload_settings_form(Editor $editor) {
     '#title' => t('Width'),
     '#title_display' => 'invisible',
     '#type' => 'number',
-    '#default_value' => $editor->image_upload['max_dimensions']['width'],
+    '#default_value' => (empty($editor->image_upload['max_dimensions']['width'])) ? '' : $editor->image_upload['max_dimensions']['width'],
     '#size' => 8,
     '#maxlength' => 8,
     '#min' => 1,
@@ -117,7 +118,7 @@ function editor_image_upload_settings_form(Editor $editor) {
     '#title' => t('Height'),
     '#title_display' => 'invisible',
     '#type' => 'number',
-    '#default_value' => $editor->image_upload['max_dimensions']['height'],
+    '#default_value' => (empty($editor->image_upload['max_dimensions']['height'])) ? '' : $editor->image_upload['max_dimensions']['height'],
     '#size' => 8,
     '#maxlength' => 8,
     '#min' => 1,

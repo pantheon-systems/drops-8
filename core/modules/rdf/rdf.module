@@ -7,6 +7,7 @@
 
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Template\Attribute;
+use Symfony\Cmf\Component\Routing\RouteObjectInterface;
 
 /**
  * Implements hook_help().
@@ -16,7 +17,7 @@ function rdf_help($path, $arg) {
     case 'admin/help#rdf':
       $output = '';
       $output .= '<h3>' . t('About') . '</h3>';
-      $output .= '<p>' . t('The RDF module enriches your content with metadata to let other applications (e.g., search engines, aggregators, and so on) better understand its relationships and attributes. This semantically enriched, machine-readable output for Drupal sites uses the <a href="@rdfa">RDFa specification</a> which allows RDF data to be embedded in HTML markup. Other modules can define mappings of their data to RDF terms, and the RDF module makes this RDF data available to the theme. The core Drupal modules define RDF mappings for their data model, and the core Drupal themes output this RDF metadata information along with the human-readable visual information. For more information, see the online handbook entry for <a href="@rdf">RDF module</a>.', array('@rdfa' => 'http://www.w3.org/TR/xhtml-rdfa-primer/', '@rdf' => 'http://drupal.org/documentation/modules/rdf')) . '</p>';
+      $output .= '<p>' . t('The RDF module enriches your content with metadata to let other applications (e.g., search engines, aggregators, and so on) better understand its relationships and attributes. This semantically enriched, machine-readable output for Drupal sites uses the <a href="!rdfa">RDFa specification</a>, which allows RDF data to be embedded in HTML markup. Other modules can define mappings of their data to RDF terms, and the RDF module makes this RDF data available to the theme. The core Drupal modules define RDF mappings for their data model, and the core Drupal themes output this RDF metadata information along with the human-readable visual information. For more information, see the <a href="!rdf">online documentation for the RDF module</a>.', array('!rdfa' => 'http://www.w3.org/TR/xhtml-rdfa-primer/', '!rdf' => 'https://drupal.org/documentation/modules/rdf')) . '</p>';
       return $output;
   }
 }
@@ -227,12 +228,11 @@ function rdf_comment_load($comments) {
     // to optimize performance for websites that implement an entity cache.
     $created_mapping = rdf_get_mapping('comment', $comment->bundle())
       ->getPreparedFieldMapping('created');
-    $comment->rdf_data['date'] = rdf_rdfa_attributes($created_mapping, $comment->created->value);
-    $entity = entity_load($comment->entity_type->value, $comment->entity_id->value);
-    $uri = $entity->uri();
-    $comment->rdf_data['entity_uri'] = url($uri['path']);
-    if ($comment->pid->target_id) {
-      $comment->rdf_data['pid_uri'] = url('comment/' . $comment->pid->target_id);
+    $comment->rdf_data['date'] = rdf_rdfa_attributes($created_mapping, $comment->getCreatedTime());
+    $entity = $comment->getCommentedEntity();
+    $comment->rdf_data['entity_uri'] = $entity->url();
+    if ($comment->hasParentComment()) {
+      $comment->rdf_data['pid_uri'] = $comment->getParentComment()->url();
     }
   }
 }
@@ -244,6 +244,7 @@ function rdf_theme() {
   return array(
     'rdf_metadata' => array(
       'variables' => array('metadata' => array()),
+      'template' => 'rdf-metadata',
     ),
   );
 }
@@ -258,7 +259,7 @@ function rdf_preprocess_html(&$variables) {
     $variables['html_attributes']['prefix'] = array();
   }
   foreach(rdf_get_namespaces() as $prefix => $uri) {
-    $variables['html_attributes']['prefix'][] = $prefix . ': ' . $uri . "\n";
+    $variables['html_attributes']['prefix'][] = $prefix . ': ' . $uri . " ";
   }
 }
 
@@ -308,8 +309,8 @@ function rdf_preprocess_node(&$variables) {
   }
 
   // Adds RDFa markup annotating the number of comments a node has.
-  $comment_count_mapping = $mapping->getPreparedFieldMapping('comment_count');
-  if (\Drupal::moduleHandler()->moduleExists('comment')) {
+  if (\Drupal::moduleHandler()->moduleExists('comment') && \Drupal::currentUser()->hasPermission('access comments')) {
+    $comment_count_mapping = $mapping->getPreparedFieldMapping('comment_count');
     if (!empty($comment_count_mapping['properties'])) {
       $fields = array_keys(\Drupal::service('comment.manager')->getFields('node'));
       $definitions = array_keys($variables['node']->getPropertyDefinitions());
@@ -317,32 +318,12 @@ function rdf_preprocess_node(&$variables) {
       $count = 0;
       foreach ($valid_fields as $field_name) {
         $count += $variables['node']->get($field_name)->comment_count;
-        // Annotates the 'x comments' link in teaser view.
-        if (isset($variables['content']['links']['comment__' . $field_name]['#links']['comment-comments'])) {
-          $comment_count_attributes = rdf_rdfa_attributes($comment_count_mapping, $variables['node']->get($field_name)->comment_count);
-          // According to RDFa parsing rule number 4, a new subject URI is created
-          // from the href attribute if no rel/rev attribute is present. To get
-          // the original node URL from the about attribute of the parent
-          // container we set an empty rel attribute which triggers rule number 5.
-          // See http://www.w3.org/TR/rdfa-syntax/#sec_5.5.
-          $comment_count_attributes['rel'] = '';
-          $variables['content']['links']['comment__' . $field_name]['#links']['comment-comments']['attributes'] += $comment_count_attributes;
-        }
-      }
-      // In full node view, the number of comments is not displayed by
-      // node.html.twig so it is expressed in RDFa in the <head> tag of the HTML
-      // page.
-      if ($variables['page'] && \Drupal::currentUser()->hasPermission('access comments')) {
-        $element = array(
-          '#tag' => 'meta',
-          '#attributes' => array(
-            'about' => $variables['node_url'],
-            'property' => $comment_count_mapping['properties'],
-            'content' => $count,
-            'datatype' => $comment_count_mapping['datatype'],
-          ),
+        // Adds RDFa markup for the comment count near the node title as metadata
+        $comment_count_attributes = rdf_rdfa_attributes($comment_count_mapping, $variables['node']->get($field_name)->comment_count);
+        $variables['title_suffix']['rdf_meta_comment_count'] = array(
+          '#theme' => 'rdf_metadata',
+          '#metadata' => array($comment_count_attributes),
         );
-        drupal_add_html_head($element, 'rdf_node_comment_count');
       }
     }
   }
@@ -352,8 +333,9 @@ function rdf_preprocess_node(&$variables) {
  * Implements hook_preprocess_HOOK() for user templates.
  */
 function rdf_preprocess_user(&$variables) {
+  /** @var $account \Drupal\user\UserInterface */
   $account = $variables['elements']['#user'];
-  $uri = $account->uri();
+  $uri = $account->urlInfo();
   $mapping = rdf_get_mapping('user', 'user');
   $bundle_mapping = $mapping->getPreparedBundleMapping();
 
@@ -361,11 +343,11 @@ function rdf_preprocess_user(&$variables) {
   // will automatically describe the user.
   if (!empty($bundle_mapping['types'])) {
     $variables['attributes']['typeof'] = $bundle_mapping['types'];
-    $variables['attributes']['about'] = url($uri['path'], $uri['options']);
+    $variables['attributes']['about'] = $account->url();
   }
   // If we are on the user account page, add the relationship between the
   // sioc:UserAccount and the foaf:Person who holds the account.
-  if (current_path() == $uri['path']) {
+  if (\Drupal::request()->attributes->get(RouteObjectInterface::ROUTE_NAME) == $uri['route_name']) {
     // Adds the markup for username as language neutral literal, see
     // rdf_preprocess_username().
     $name_mapping = $mapping->getPreparedFieldMapping('name');
@@ -373,7 +355,7 @@ function rdf_preprocess_user(&$variables) {
       $username_meta = array(
         '#tag' => 'meta',
         '#attributes' => array(
-          'about' => url($uri['path'], $uri['options']),
+          'about' => $account->url(),
           'property' => $name_mapping['properties'],
           'content' => $account->getUsername(),
           'lang' => '',
@@ -450,13 +432,12 @@ function rdf_preprocess_comment(&$variables) {
   $mapping = rdf_get_mapping('comment', $comment->bundle());
   $bundle_mapping = $mapping->getPreparedBundleMapping();
 
-  if (!empty($bundle_mapping['types'])) {
+  if (!empty($bundle_mapping['types']) && !isset($comment->in_preview)) {
     // Adds RDFa markup to the comment container. The about attribute specifies
     // the URI of the resource described within the HTML element, while the
     // typeof attribute indicates its RDF type (e.g., sioc:Post, foaf:Document,
     // and so on.)
-    $uri = $comment->uri();
-    $variables['attributes']['about'] = url($uri['path'], $uri['options']);
+    $variables['attributes']['about'] = $comment->url();
     $variables['attributes']['typeof'] = $bundle_mapping['types'];
   }
 
@@ -510,7 +491,7 @@ function rdf_preprocess_comment(&$variables) {
     $variables['rdf_metadata_attributes'][] = $parent_entity_attributes;
 
     // Adds the relation to parent comment, if it exists.
-    if ($comment->pid->target_id != 0) {
+    if ($comment->hasParentComment()) {
       $parent_comment_attributes['rel'] = $pid_mapping['properties'];
       // The parent comment URI is precomputed as part of the rdf_data so that
       // it can be cached as part of the entity.
@@ -563,27 +544,24 @@ function rdf_preprocess_image(&$variables) {
 }
 
 /**
- * Returns HTML for a series of empty spans for exporting RDF metadata in RDFa.
+ * Prepares variables for RDF metadata templates.
+ *
+ * Default template: rdf-metadata.html.twig.
  *
  * Sometimes it is useful to export data which is not semantically present in
  * the HTML output. For example, a hierarchy of comments is visible for a human
- * but not for machines because this hiearchy is not present in the DOM tree.
+ * but not for machines because this hierarchy is not present in the DOM tree.
  * We can express it in RDFa via empty <span> tags. These aren't visible and
  * give machines extra information about the content and its structure.
  *
- * @param $variables
+ * @param array $variables
  *   An associative array containing:
  *   - metadata: An array of attribute arrays. Each item in the array
  *     corresponds to its own set of attributes, and therefore, needs its own
  *     element.
- *
- * @see rdf_process()
- * @ingroup themeable
- * @ingroup rdf
  */
-function theme_rdf_metadata($variables) {
-  $output = '';
-  foreach ($variables['metadata'] as $attributes) {
+function template_preprocess_rdf_metadata(&$variables) {
+  foreach ($variables['metadata'] as $key => $attributes) {
     // Add a class so that developers viewing the HTML source can see why there
     // are empty <span> tags in the document. The class can also be used to set
     // a CSS display:none rule in a theme where empty spans affect display.
@@ -592,7 +570,6 @@ function theme_rdf_metadata($variables) {
     // be used, but for maximum browser compatibility, W3C recommends the
     // former when serving pages using the text/html media type, see
     // http://www.w3.org/TR/xhtml1/#C_3.
-    $output .= '<span' . new Attribute($attributes) . '></span>';
+    $variables['metadata'][$key] = new Attribute($attributes);
   }
-  return $output;
 }

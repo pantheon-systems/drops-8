@@ -32,6 +32,7 @@ class ReorderDisplays extends ViewsFormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, array &$form_state) {
+    /** @var $view \Drupal\views\ViewStorageInterface */
     $view = $form_state['view'];
     $display_id = $form_state['display_id'];
 
@@ -60,7 +61,11 @@ class ReorderDisplays extends ViewsFormBase {
       '#header' => array($this->t('Display'), $this->t('Weight'), $this->t('Remove')),
       '#empty' => $this->t('No displays available.'),
       '#tabledrag' => array(
-        array('order', 'sibling', 'weight'),
+        array(
+          'action' => 'order',
+          'relationship' => 'sibling',
+          'group' => 'weight',
+        )
       ),
       '#tree' => TRUE,
       '#prefix' => '<div class="scroll" data-drupal-views-scroll>',
@@ -144,6 +149,7 @@ class ReorderDisplays extends ViewsFormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, array &$form_state) {
+    /** @var $view \Drupal\views_ui\ViewUI */
     $view = $form_state['view'];
     $order = array();
 
@@ -186,7 +192,8 @@ class ReorderDisplays extends ViewsFormBase {
 
     // Store in cache.
     $view->cacheSet();
-    $form_state['redirect'] = array('admin/structure/views/view/' . $view->id() . '/edit', array('fragment' => 'views-tab-default'));
+    $form_state['redirect_route'] = $view->urlInfo('edit-form');
+    $form_state['redirect_route']['options']['fragment'] = 'views-tab-default';
   }
 
 }

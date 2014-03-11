@@ -15,11 +15,13 @@ use Drupal\Core\Datetime\DrupalDateTime;
 class CommentPreviewTest extends CommentTestBase {
 
   /**
-   * Modules to enable.
+   * The profile to install as a basis for testing.
    *
-   * @var array
+   * Using the standard profile to test user picture display in comments.
+   *
+   * @var string
    */
-  public static $modules = array('image');
+  protected $profile = 'standard';
 
   public static function getInfo() {
     return array(
@@ -27,32 +29,6 @@ class CommentPreviewTest extends CommentTestBase {
       'description' => 'Test comment preview.',
       'group' => 'Comment',
     );
-  }
-
-  function setUp() {
-    parent::setUp();
-
-    // Create user picture field.
-    module_load_install('user');
-    user_install_picture_field();
-
-    // Add the basic_html filter format from the standard install profile.
-    $filter_format_storage_controller = $this->container->get('entity.manager')->getStorageController('filter_format');
-    $filter_format = $filter_format_storage_controller->create(array(
-      'format' => 'basic_html',
-      'name' => 'Basic HTML',
-      'status' => TRUE,
-      'roles' => array('authenticated'),
-    ), 'filter_format');
-
-    $filter_format->setFilterConfig('filter_html', array(
-      'module' => 'filter',
-      'status' => TRUE,
-      'settings' => array(
-        'allowed_html' => '<a> <em> <strong> <cite> <blockquote> <code> <ul> <ol> <li> <dl> <dt> <dd> <h4> <h5> <h6> <p> <span> <img>',
-      ),
-    ));
-    $filter_format->save();
   }
 
   /**
@@ -160,20 +136,20 @@ class CommentPreviewTest extends CommentTestBase {
 
     // Check that the saved comment is still correct.
     $comment_loaded = comment_load($comment->id(), TRUE);
-    $this->assertEqual($comment_loaded->subject->value, $edit['subject'], 'Subject loaded.');
+    $this->assertEqual($comment_loaded->getSubject(), $edit['subject'], 'Subject loaded.');
     $this->assertEqual($comment_loaded->comment_body->value, $edit['comment_body[0][value]'], 'Comment body loaded.');
-    $this->assertEqual($comment_loaded->name->value, $edit['name'], 'Name loaded.');
-    $this->assertEqual($comment_loaded->created->value, $raw_date, 'Date loaded.');
+    $this->assertEqual($comment_loaded->getAuthorName(), $edit['name'], 'Name loaded.');
+    $this->assertEqual($comment_loaded->getCreatedTime(), $raw_date, 'Date loaded.');
     $this->drupalLogout();
 
     // Check that the date and time of the comment are correct when edited by
     // non-admin users.
     $user_edit = array();
-    $expected_created_time = $comment_loaded->created->value;
+    $expected_created_time = $comment_loaded->getCreatedTime();
     $this->drupalLogin($web_user);
     $this->drupalPostForm('comment/' . $comment->id() . '/edit', $user_edit, t('Save'));
     $comment_loaded = comment_load($comment->id(), TRUE);
-    $this->assertEqual($comment_loaded->created->value, $expected_created_time, 'Expected date and time for comment edited.');
+    $this->assertEqual($comment_loaded->getCreatedTime(), $expected_created_time, 'Expected date and time for comment edited.');
     $this->drupalLogout();
   }
 

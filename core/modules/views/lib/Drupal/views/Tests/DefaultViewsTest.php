@@ -7,6 +7,7 @@
 
 namespace Drupal\views\Tests;
 
+use Drupal\comment\CommentInterface;
 use Drupal\Core\Language\Language;
 use Drupal\simpletest\WebTestBase;
 use Drupal\views\ViewExecutable;
@@ -21,7 +22,7 @@ class DefaultViewsTest extends ViewTestBase {
    *
    * @var array
    */
-  public static $modules = array('views', 'node', 'search', 'comment', 'taxonomy', 'block');
+  public static $modules = array('views', 'node', 'search', 'comment', 'taxonomy', 'block', 'user');
 
   /**
    * An array of argument arrays to use for default views.
@@ -102,16 +103,20 @@ class DefaultViewsTest extends ViewTestBase {
 
       $node = $this->drupalCreateNode($values);
 
-      search_index($node->id(), 'node', $node->body->value, Language::LANGCODE_NOT_SPECIFIED);
-
       $comment = array(
         'uid' => $user->id(),
+        'status' => CommentInterface::PUBLISHED,
         'entity_id' => $node->id(),
         'entity_type' => 'node',
         'field_name' => 'comment'
       );
       entity_create('comment', $comment)->save();
     }
+
+    // Some views, such as the "Who's Online" view, only return results if at
+    // least one user is logged in.
+    $account = $this->drupalCreateUser(array());
+    $this->drupalLogin($account);
   }
 
   /**

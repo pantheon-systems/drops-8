@@ -7,12 +7,10 @@
 
 namespace Drupal\Core\Entity;
 
+use Drupal\Core\Entity\Display\EntityFormDisplayInterface;
 use Drupal\Core\Form\FormBase;
-use Drupal\Core\TypedData\TranslatableInterface;
-use Drupal\entity\EntityFormDisplayInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
-use Drupal\Core\Language\Language;
-use Symfony\Component\DependencyInjection\ContainerInterface;
+use Drupal\entity\Entity\EntityFormDisplay;
 
 /**
  * Base class for entity form controllers.
@@ -62,7 +60,7 @@ class EntityFormController extends FormBase implements EntityFormControllerInter
     // hook_form_alter(), #validate, #submit, and #theme callbacks, but only if
     // it is different from the actual form ID, since callbacks would be invoked
     // twice otherwise.
-    $base_form_id = $this->entity->entityType() . '_form';
+    $base_form_id = $this->entity->getEntityTypeId() . '_form';
     if ($base_form_id == $this->getFormId()) {
       $base_form_id = NULL;
     }
@@ -73,7 +71,7 @@ class EntityFormController extends FormBase implements EntityFormControllerInter
    * {@inheritdoc}
    */
   public function getFormId() {
-    $entity_type = $this->entity->entityType();
+    $entity_type = $this->entity->getEntityTypeId();
     $bundle = $this->entity->bundle();
     $form_id = $entity_type;
     if ($bundle != $entity_type) {
@@ -124,21 +122,12 @@ class EntityFormController extends FormBase implements EntityFormControllerInter
     // Prepare the entity to be presented in the entity form.
     $this->prepareEntity();
 
-    $form_display = entity_get_render_form_display($this->entity, $this->getOperation());
-
-    // Let modules alter the form display.
-    $form_display_context = array(
-      'entity_type' => $this->entity->entityType(),
-      'bundle' => $this->entity->bundle(),
-      'form_mode' => $this->getOperation(),
-    );
-    $this->moduleHandler->alter('entity_form_display', $form_display, $form_display_context);
-
+    $form_display = EntityFormDisplay::collectRenderDisplay($this->entity, $this->getOperation());
     $this->setFormDisplay($form_display, $form_state);
 
     // Invoke the prepare form hooks.
     $this->prepareInvokeAll('entity_prepare_form', $form_state);
-    $this->prepareInvokeAll($this->entity->entityType() . '_prepare_form', $form_state);
+    $this->prepareInvokeAll($this->entity->getEntityTypeId() . '_prepare_form', $form_state);
   }
 
   /**
@@ -150,8 +139,7 @@ class EntityFormController extends FormBase implements EntityFormControllerInter
     $entity = $this->entity;
     // @todo Exploit the Field API to generate the default widgets for the
     // entity properties.
-    $info = $entity->entityInfo();
-    if (!empty($info['fieldable'])) {
+    if ($entity->getEntityType()->isFieldable()) {
       field_attach_form($entity, $form, $form_state, $this->getFormLangcode($form_state));
     }
 
@@ -176,6 +164,10 @@ class EntityFormController extends FormBase implements EntityFormControllerInter
    * @see \Drupal\Core\Entity\EntityFormController::form()
    */
   public function processForm($element, $form_state, $form) {
+    // If the form is cached, process callbacks may not have a valid reference
+    // to the entity object, hence we must restore it.
+    $this->entity = $form_state['controller']->getEntity();
+
     // Assign the weights configured in the form display.
     foreach ($this->getFormDisplay($form_state)->getComponents() as $name => $options) {
       if (isset($element[$name])) {
@@ -184,7 +176,7 @@ class EntityFormController extends FormBase implements EntityFormControllerInter
     }
 
     // Hide or assign weights for extra fields.
-    $extra_fields = field_info_extra_fields($this->entity->entityType(), $this->entity->bundle(), 'form');
+    $extra_fields = field_info_extra_fields($this->entity->getEntityTypeId(), $this->entity->bundle(), 'form');
     foreach ($extra_fields as $extra_field => $info) {
       $component = $this->getFormDisplay($form_state)->getComponent($extra_field);
       if (!$component) {
@@ -269,6 +261,7 @@ class EntityFormController extends FormBase implements EntityFormControllerInter
    * {@inheritdoc}
    */
   public function validate(array $form, array &$form_state) {
+    $this->updateFormLangcode($form_state);
     // @todo Remove this.
     // Execute legacy global validation handlers.
     unset($form_state['validate_handlers']);
@@ -292,8 +285,6 @@ class EntityFormController extends FormBase implements EntityFormControllerInter
   public function submit(array $form, array &$form_state) {
     // Remove button and internal Form API values from submitted values.
     form_state_values_clean($form_state);
-
-    $this->updateFormLangcode($form_state);
     $this->entity = $this->buildEntity($form, $form_state);
     return $this->entity;
   }
@@ -319,13 +310,21 @@ class EntityFormController extends FormBase implements EntityFormControllerInter
    *   A reference to a keyed array containing the current state of the form.
    */
   public function delete(array $form, array &$form_state) {
-    // @todo Perform common delete operations.
+    if ($this->entity->hasLinkTemplate('delete-form')) {
+      $form_state['redirect_route'] = $this->entity->urlInfo('delete-form');
+
+      $query = $this->getRequest()->query;
+      if ($query->has('destination')) {
+        $form_state['redirect_route']['options']['query']['destination'] = $query->get('destination');
+        $query->remove('destination');
+      }
+    }
   }
 
   /**
    * {@inheritdoc}
    */
-  public function getFormLangcode(array $form_state) {
+  public function getFormLangcode(array &$form_state) {
     return $this->entity->language()->id;
   }
 
@@ -374,7 +373,7 @@ class EntityFormController extends FormBase implements EntityFormControllerInter
     // properties.
     if (isset($form['#entity_builders'])) {
       foreach ($form['#entity_builders'] as $function) {
-        call_user_func_array($function, array($entity->entityType(), $entity, &$form, &$form_state));
+        call_user_func_array($function, array($entity->getEntityTypeId(), $entity, &$form, &$form_state));
       }
     }
 

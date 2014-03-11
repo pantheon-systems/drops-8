@@ -7,51 +7,45 @@
 
 namespace Drupal\content_translation\Access;
 
-use Drupal\Core\Entity\EntityManager;
-use Drupal\Core\Access\StaticAccessCheckInterface;
+use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Language\Language;
+use Drupal\Core\Routing\Access\AccessInterface;
+use Drupal\Core\Session\AccountInterface;
 use Symfony\Component\Routing\Route;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Access check for entity translation CRUD operation.
  */
-class ContentTranslationManageAccessCheck implements StaticAccessCheckInterface {
+class ContentTranslationManageAccessCheck implements AccessInterface {
 
   /**
    * The entity type manager.
    *
-   * @var \Drupal\Core\Entity\EntityManager
+   * @var \Drupal\Core\Entity\EntityManagerInterface
    */
   protected $entityManager;
 
   /**
    * Constructs a ContentTranslationManageAccessCheck object.
    *
-   * @param \Drupal\Core\Entity\EntityManager $manager
+   * @param \Drupal\Core\Entity\EntityManagerInterface $manager
    *   The entity type manager.
    */
-  public function __construct(EntityManager $manager) {
+  public function __construct(EntityManagerInterface $manager) {
     $this->entityManager = $manager;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function appliesTo() {
-    return array('_access_content_translation_manage');
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function access(Route $route, Request $request) {
-    $entity_type = $request->attributes->get('_entity_type');
+  public function access(Route $route, Request $request, AccountInterface $account) {
+    $entity_type = $request->attributes->get('_entity_type_id');
+    /** @var $entity \Drupal\Core\Entity\EntityInterface */
     if ($entity = $request->attributes->get($entity_type)) {
       $route_requirements = $route->getRequirements();
       $operation = $route_requirements['_access_content_translation_manage'];
-      $controller_class = $this->entityManager->getControllerClass($entity_type, 'translation');
-      $controller = new $controller_class($entity_type, $entity->entityInfo());
+      $controller = content_translation_controller($entity_type);
 
       // Load translation.
       $translations = $entity->getTranslationLanguages();

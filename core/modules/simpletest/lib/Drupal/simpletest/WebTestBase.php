@@ -18,6 +18,7 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Session\UserSession;
 use Drupal\Core\StreamWrapper\PublicStream;
 use Drupal\Core\Datetime\DrupalDateTime;
+use Drupal\block\Entity\Block;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -200,7 +201,7 @@ abstract class WebTestBase extends TestBase {
    * @param $reset
    *   (optional) Whether to reset the entity cache.
    *
-   * @return \Drupal\Core\Entity\EntityInterface
+   * @return \Drupal\node\NodeInterface
    *   A node entity matching $title.
    */
   function drupalGetNodeByTitle($title, $reset = FALSE) {
@@ -247,7 +248,7 @@ abstract class WebTestBase extends TestBase {
    *   - revision: 1. (Backwards-compatible binary flag indicating whether a
    *     new revision should be created; use 1 to specify a new revision.)
    *
-   * @return \Drupal\node\Entity\Node
+   * @return \Drupal\node\NodeInterface
    *   The created node entity.
    */
   protected function drupalCreateNode(array $settings = array()) {
@@ -277,7 +278,7 @@ abstract class WebTestBase extends TestBase {
         $settings['uid'] = $this->loggedInUser->id();
       }
       else {
-        global $user;
+        $user = \Drupal::currentUser() ?: $GLOBALS['user'];
         $settings['uid'] = $user->id();
       }
     }
@@ -383,6 +384,41 @@ abstract class WebTestBase extends TestBase {
     $block = entity_create('block', $values);
     $block->save();
     return $block;
+  }
+
+  /**
+   * Checks to see whether a block appears on the page.
+   *
+   * @param \Drupal\block\Entity\Block $block
+   *   The block entity to find on the page.
+   */
+  protected function assertBlockAppears(Block $block) {
+    $result = $this->findBlockInstance($block);
+    $this->assertTrue(!empty($result), format_string('Ensure the block @id appears on the page', array('@id' => $block->id())));
+  }
+
+  /**
+   * Checks to see whether a block does not appears on the page.
+   *
+   * @param \Drupal\block\Entity\Block $block
+   *   The block entity to find on the page.
+   */
+  protected function assertNoBlockAppears(Block $block) {
+    $result = $this->findBlockInstance($block);
+    $this->assertFalse(!empty($result), format_string('Ensure the block @id does not appear on the page', array('@id' => $block->id())));
+  }
+
+  /**
+   * Find a block instance on the page.
+   *
+   * @param \Drupal\block\Entity\Block $block
+   *   The block entity to find on the page.
+   *
+   * @return array
+   *   The result from the xpath query.
+   */
+  protected function findBlockInstance(Block $block) {
+    return $this->xpath('//div[@id = :id]', array(':id' => 'block-' . $block->id()));
   }
 
   /**
@@ -645,6 +681,9 @@ abstract class WebTestBase extends TestBase {
     if ($pass) {
       $this->loggedInUser = $account;
       $this->container->set('current_user', $account);
+      // @todo Temporary workaround for not being able to use synchronized
+      //   services in non dumped container.
+      $this->container->get('access_subscriber')->setCurrentUser($account);
     }
   }
 
@@ -658,8 +697,9 @@ abstract class WebTestBase extends TestBase {
     if (!isset($account->session_id)) {
       return FALSE;
     }
-    // @see _drupal_session_read()
-    return (bool) db_query("SELECT sid FROM {users} u INNER JOIN {sessions} s ON u.uid = s.uid WHERE s.sid = :sid", array(':sid' => $account->session_id))->fetchField();
+    // @see _drupal_session_read(). The session ID is hashed before being stored
+    // in the database.
+    return (bool) db_query("SELECT sid FROM {users} u INNER JOIN {sessions} s ON u.uid = s.uid WHERE s.sid = :sid", array(':sid' => Crypt::hashBase64($account->session_id)))->fetchField();
   }
 
   /**
@@ -695,60 +735,25 @@ abstract class WebTestBase extends TestBase {
   /**
    * Sets up a Drupal site for running functional and integration tests.
    *
-   * Generates a random database prefix and installs Drupal with the specified
-   * installation profile in \Drupal\simpletest\WebTestBase::$profile into the
-   * prefixed database. Afterwards, installs any additional modules specified by
-   * the test.
+   * Installs Drupal with the installation profile specified in
+   * \Drupal\simpletest\WebTestBase::$profile into the prefixed database.
+
+   * Afterwards, installs any additional modules specified in the static
+   * \Drupal\simpletest\WebTestBase::$modules property of each class in the
+   * class hierarchy.
    *
    * After installation all caches are flushed and several configuration values
    * are reset to the values of the parent site executing the test, since the
    * default values may be incompatible with the environment in which tests are
    * being executed.
-   *
-   * @param ...
-   *   List of modules to enable for the duration of the test. This can be
-   *   either a single array or a variable number of string arguments.
-   *
-   * @see \Drupal\simpletest\WebTestBase::prepareDatabasePrefix()
-   * @see \Drupal\simpletest\WebTestBase::changeDatabasePrefix()
-   * @see \Drupal\simpletest\WebTestBase::prepareEnvironment()
    */
   protected function setUp() {
-    global $user, $conf;
-
     // When running tests through the Simpletest UI (vs. on the command line),
     // Simpletest's batch conflicts with the installer's batch. Batch API does
     // not support the concept of nested batches (in which the nested is not
     // progressive), so we need to temporarily pretend there was no batch.
     // Backup the currently running Simpletest batch.
     $this->originalBatch = batch_get();
-
-    // Create the database prefix for this test.
-    $this->prepareDatabasePrefix();
-
-    // Prepare the environment for running tests.
-    $this->prepareEnvironment();
-    if (!$this->setupEnvironment) {
-      return FALSE;
-    }
-
-    // Reset all statics and variables to perform tests in a clean environment.
-    $conf = array();
-    drupal_static_reset();
-
-    // Change the database prefix.
-    // All static variables need to be reset before the database prefix is
-    // changed, since \Drupal\Core\Utility\CacheArray implementations attempt to
-    // write back to persistent caches when they are destructed.
-    $this->changeDatabasePrefix();
-    if (!$this->setupDatabasePrefix) {
-      return FALSE;
-    }
-
-    // Set the 'simpletest_parent_profile' variable to add the parent profile's
-    // search path to the child site's search paths.
-    // @see drupal_system_listing()
-    $conf['simpletest_parent_profile'] = $this->originalProfile;
 
     // Define information about the user 1 account.
     $this->root_user = new UserSession(array(
@@ -761,55 +766,86 @@ abstract class WebTestBase extends TestBase {
     // Reset the static batch to remove Simpletest's batch operations.
     $batch = &batch_get();
     $batch = array();
-    $variable_groups = array(
-      'system.file' => array(
-        'path.private' =>  $this->private_files_directory,
-        'path.temporary' =>  $this->temp_files_directory,
-      ),
-      'locale.settings' =>  array(
-        'translation.path' => $this->translation_files_directory,
-      ),
-    );
-    foreach ($variable_groups as $config_base => $variables) {
-      foreach ($variables as $name => $value) {
-        NestedArray::setValue($GLOBALS['conf'], array_merge(array($config_base), explode('.', $name)), $value);
-      }
-    }
-    $this->settingsSet('file_public_path', $this->public_files_directory);
-    // Execute the non-interactive installer.
-    require_once DRUPAL_ROOT . '/core/includes/install.core.inc';
-    $this->settingsSet('cache', array('default' => 'cache.backend.memory'));
-    $parameters = $this->installParameters();
-    install_drupal($parameters);
 
-    // Set the install_profile so that web requests to the requests to the child
-    // site have the correct profile.
-    $settings = array(
-      'settings' => array(
-        'install_profile' => (object) array(
-          'value' => $this->profile,
-          'required' => TRUE,
-        ),
-      ),
+    // Get parameters for install_drupal() before removing global variables.
+    $parameters = $this->installParameters();
+
+    // Prepare installer settings that are not install_drupal() parameters.
+    // Copy and prepare an actual settings.php, so as to resemble a regular
+    // installation.
+    // Not using File API; a potential error must trigger a PHP warning.
+    copy(DRUPAL_ROOT . '/sites/default/default.settings.php', DRUPAL_ROOT . '/' . $this->siteDirectory . '/settings.php');
+
+    // All file system paths are created by System module during installation.
+    // @see system_requirements()
+    // @see TestBase::prepareEnvironment()
+    $settings['settings']['file_public_path'] = (object) array(
+      'value' => $this->public_files_directory,
+      'required' => TRUE,
+    );
+    // Save the original site directory path, so that extensions in the
+    // site-specific directory can still be discovered in the test site
+    // environment.
+    // @see \Drupal\Core\SystemListing::scan()
+    $settings['settings']['test_parent_site'] = (object) array(
+      'value' => $this->originalSite,
+      'required' => TRUE,
+    );
+    // Add the parent profile's search path to the child site's search paths.
+    // @see drupal_system_listing()
+    $settings['conf']['simpletest.settings']['parent_profile'] = (object) array(
+      'value' => $this->originalProfile,
+      'required' => TRUE,
     );
     $this->writeSettings($settings);
-    // Override install profile in Settings to so the correct profile is used by
-    // tests.
-    $this->settingsSet('install_profile', $this->profile);
 
-    $this->settingsSet('cache', array());
+    // Since Drupal is bootstrapped already, install_begin_request() will not
+    // bootstrap into DRUPAL_BOOTSTRAP_CONFIGURATION (again). Hence, we have to
+    // reload the newly written custom settings.php manually.
+    drupal_settings_initialize();
+
+    // Execute the non-interactive installer.
+    require_once DRUPAL_ROOT . '/core/includes/install.core.inc';
+    install_drupal($parameters);
+
+    // Import new settings.php written by the installer.
+    drupal_settings_initialize();
+    foreach ($GLOBALS['config_directories'] as $type => $path) {
+      $this->configDirectories[$type] = $path;
+    }
+
+    // After writing settings.php, the installer removes write permissions
+    // from the site directory. To allow drupal_generate_test_ua() to write
+    // a file containing the private key for drupal_valid_test_ua(), the site
+    // directory has to be writable.
+    // TestBase::restoreEnvironment() will delete the entire site directory.
+    // Not using File API; a potential error must trigger a PHP warning.
+    chmod(DRUPAL_ROOT . '/' . $this->siteDirectory, 0777);
+
     $this->rebuildContainer();
+
+    // Manually create and configure private and temporary files directories.
+    // While these could be preset/enforced in settings.php like the public
+    // files directory above, some tests expect them to be configurable in the
+    // UI. If declared in settings.php, they would no longer be configurable.
+    file_prepare_directory($this->private_files_directory, FILE_CREATE_DIRECTORY);
+    file_prepare_directory($this->temp_files_directory, FILE_CREATE_DIRECTORY);
+    \Drupal::config('system.file')
+      ->set('path.private', $this->private_files_directory)
+      ->set('path.temporary', $this->temp_files_directory)
+      ->save();
+
+    // Manually configure the test mail collector implementation to prevent
+    // tests from sending out e-mails and collect them in state instead.
+    // While this should be enforced via settings.php prior to installation,
+    // some tests expect to be able to test mail system implementations.
+    \Drupal::config('system.mail')
+      ->set('interface.default', 'Drupal\Core\Mail\TestMailCollector')
+      ->save();
 
     // Restore the original Simpletest batch.
     $batch = &batch_get();
     $batch = $this->originalBatch;
-
-    // Set path variables.
-
-    // Set 'parent_profile' of simpletest to add the parent profile's
-    // search path to the child site's search paths.
-    // @see drupal_system_listing()
-    \Drupal::config('simpletest.settings')->set('parent_profile', $this->originalProfile)->save();
 
     // Collect modules to install.
     $class = get_class($this);
@@ -827,30 +863,24 @@ abstract class WebTestBase extends TestBase {
       $this->rebuildContainer();
     }
 
-    // Reset/rebuild all data structures after enabling the modules.
+    // Like DRUPAL_BOOTSTRAP_CONFIGURATION above, any further bootstrap phases
+    // are not re-executed by the installer, as Drupal is bootstrapped already.
+    // Reset/rebuild all data structures after enabling the modules, primarily
+    // to synchronize all data structures and caches between the test runner and
+    // the child site.
+    // Affects e.g. file_get_stream_wrappers().
+    // @see _drupal_bootstrap_code()
+    // @see _drupal_bootstrap_full()
+    // @todo Test-specific setUp() methods may set up further fixtures; find a
+    //   way to execute this after setUp() is done, or to eliminate it entirely.
     $this->resetAll();
 
-    // Now make sure that the file path configurations are saved. This is done
-    // after we install the modules to override default values.
-    foreach ($variable_groups as $config_base => $variables) {
-      $config = \Drupal::config($config_base);
-      foreach ($variables as $name => $value) {
-        $config->set($name, $value);
-      }
-      $config->save();
-    }
-
-    // Use the test mail class instead of the default mail handler class.
-    \Drupal::config('system.mail')->set('interface.default', 'Drupal\Core\Mail\VariableLog')->save();
-
-    drupal_set_time_limit($this->timeLimit);
     // Temporary fix so that when running from run-tests.sh we don't get an
     // empty current path which would indicate we're on the home page.
     $path = current_path();
     if (empty($path)) {
       _current_path('run-tests');
     }
-    $this->setup = TRUE;
   }
 
   /**
@@ -861,6 +891,11 @@ abstract class WebTestBase extends TestBase {
    */
   protected function installParameters() {
     $connection_info = Database::getConnectionInfo();
+    $driver = $connection_info['default']['driver'];
+    unset($connection_info['default']['driver']);
+    unset($connection_info['default']['namespace']);
+    unset($connection_info['default']['pdo']);
+    unset($connection_info['default']['init_commands']);
     $parameters = array(
       'interactive' => FALSE,
       'parameters' => array(
@@ -868,7 +903,10 @@ abstract class WebTestBase extends TestBase {
         'langcode' => 'en',
       ),
       'forms' => array(
-        'install_settings_form' => $connection_info['default'],
+        'install_settings_form' => array(
+          'driver' => $driver,
+          $driver => $connection_info['default'],
+        ),
         'install_configure_form' => array(
           'site_name' => 'Drupal',
           'site_mail' => 'simpletest@example.com',
@@ -893,40 +931,29 @@ abstract class WebTestBase extends TestBase {
   }
 
   /**
-   * Writes a test-specific settings.php file for the child site.
+   * Rewrites the settings.php file of the test site.
    *
-   * The child site loads this after the parent site's settings.php, so settings
-   * here override those.
+   * @param array $settings
+   *   An array of settings to write out, in the format expected by
+   *   drupal_rewrite_settings().
    *
-   * @param $settings An array of settings to write out, in the format expected
-   *   by drupal_rewrite_settings().
-   *
-   * @see _drupal_load_test_overrides()
    * @see drupal_rewrite_settings()
    */
-  protected function writeSettings($settings) {
-    // drupal_rewrite_settings() sets the in-memory global variables in addition
-    // to writing the file. We'll want to restore the original globals.
-    foreach (array_keys($settings) as $variable_name) {
-      $original_globals[$variable_name] = isset($GLOBALS[$variable_name]) ? $GLOBALS[$variable_name] : NULL;
-    }
-
+  protected function writeSettings(array $settings) {
     include_once DRUPAL_ROOT . '/core/includes/install.inc';
-    $filename = $this->public_files_directory . '/settings.php';
-    file_put_contents($filename, "<?php\n");
+    $filename = $this->siteDirectory . '/settings.php';
+    // system_requirements() removes write permissions from settings.php
+    // whenever it is invoked.
+    // Not using File API; a potential error must trigger a PHP warning.
+    chmod($filename, 0666);
     drupal_rewrite_settings($settings, $filename);
-
-    // Restore the original globals.
-    foreach ($original_globals as $variable_name => $value) {
-      $GLOBALS[$variable_name] = $value;
-    }
   }
 
   /**
-   * Sets custom translations to the settings object and queues them to writing.
+   * Queues custom translations to be written to settings.php.
    *
-   * In order for those custom translations to persist (being written in test
-   * site's settings.php) make sure to also call self::writeCustomTranslations()
+   * Use WebTestBase::writeCustomTranslations() to apply and write the queued
+   * translations.
    *
    * @param string $langcode
    *   The langcode to add translations for.
@@ -939,32 +966,56 @@ abstract class WebTestBase extends TestBase {
    *     'Long month name' => array('March' => 'marzo'),
    *   );
    *   @endcode
+   *   Pass an empty array to remove all existing custom translations for the
+   *   given $langcode.
    */
   protected function addCustomTranslations($langcode, array $values) {
-    $this->settingsSet('locale_custom_strings_' . $langcode, $values);
-    foreach ($values as $key => $translations) {
-      foreach ($translations as $label => $value) {
-        $this->customTranslations['locale_custom_strings_' . $langcode][$key][$label] = (object) array(
-          'value' => $value,
-          'required' => TRUE,
-        );
+    // If $values is empty, then the test expects all custom translations to be
+    // cleared.
+    if (empty($values)) {
+      $this->customTranslations[$langcode] = array();
+    }
+    // Otherwise, $values are expected to be merged into previously passed
+    // values, while retaining keys that are not explicitly set.
+    else {
+      foreach ($values as $context => $translations) {
+        foreach ($translations as $original => $translation) {
+          $this->customTranslations[$langcode][$context][$original] = $translation;
+        }
       }
     }
   }
 
   /**
-   * Writes custom translations to test site's settings.php.
+   * Writes custom translations to the test site's settings.php.
+   *
+   * Use TestBase::addCustomTranslations() to queue custom translations before
+   * calling this method.
    */
   protected function writeCustomTranslations() {
-    $this->writeSettings(array('settings' => $this->customTranslations));
-    $this->customTranslations = array();
+    $settings = array();
+    foreach ($this->customTranslations as $langcode => $values) {
+      $settings_key = 'locale_custom_strings_' . $langcode;
+
+      // Update in-memory settings directly.
+      $this->settingsSet($settings_key, $values);
+
+      $settings['settings'][$settings_key] = (object) array(
+        'value' => $values,
+        'required' => TRUE,
+      );
+    }
+    // Only rewrite settings if there are any translation changes to write.
+    if (!empty($settings)) {
+      $this->writeSettings($settings);
+    }
   }
 
   /**
    * Overrides \Drupal\simpletest\TestBase::rebuildContainer().
    */
-  protected function rebuildContainer() {
-    parent::rebuildContainer();
+  protected function rebuildContainer($environment = 'prod') {
+    parent::rebuildContainer($environment);
     // Make sure the url generator has a request object, otherwise calls to
     // $this->drupalGet() will fail.
     $this->prepareRequestForGenerator();
@@ -982,32 +1033,31 @@ abstract class WebTestBase extends TestBase {
     drupal_flush_all_caches();
     $this->container = \Drupal::getContainer();
 
-    // Reload global $conf array and permissions.
+    // Reset static variables and reload permissions.
     $this->refreshVariables();
     $this->checkPermissions(array(), TRUE);
   }
 
   /**
-   * Refreshes the in-memory set of variables.
+   * Refreshes in-memory configuration and state information.
    *
-   * Useful after a page request is made that changes a variable in a different
-   * thread.
+   * Useful after a page request is made that changes configuration or state in
+   * a different thread.
    *
    * In other words calling a settings page with $this->drupalPostForm() with a
-   * changed value would update a variable to reflect that change, but in the
-   * thread that made the call (thread running the test) the changed variable
+   * changed value would update configuration to reflect that change, but in the
+   * thread that made the call (thread running the test) the changed values
    * would not be picked up.
    *
-   * This method clears the variables cache and loads a fresh copy from the
-   * database to ensure that the most up-to-date set of variables is loaded.
+   * This method clears the cache and loads a fresh copy.
    */
   protected function refreshVariables() {
-    global $conf;
-    cache('bootstrap')->delete('variables');
-    $conf = variable_initialize();
     // Clear the tag cache.
     drupal_static_reset('Drupal\Core\Cache\CacheBackendInterface::tagCache');
-    drupal_container()->get('config.factory')->reset();
+    drupal_static_reset('Drupal\Core\Cache\DatabaseBackend::deletedTags');
+
+    $this->container->get('config.factory')->reset();
+    $this->container->get('state')->resetCache();
   }
 
   /**
@@ -1132,14 +1182,30 @@ abstract class WebTestBase extends TestBase {
     if (!empty($this->curlCookies)) {
       $cookies = $this->curlCookies;
     }
-    // In order to debug webtests you need to either set a cookie or have the
-    // xdebug session in the URL. If the developer listens to connection on the
-    // parent site, by default the cookie is not forwarded to the client side,
-    // so you can't debug actual running code. In order to make debuggers work
+    // In order to debug web tests you need to either set a cookie, have the
+    // Xdebug session in the URL or set an environment variable in case of CLI
+    // requests. If the developer listens to connection on the parent site, by
+    // default the cookie is not forwarded to the client side, so you cannot
+    // debug the code running on the child site. In order to make debuggers work
     // this bit of information is forwarded. Make sure that the debugger listens
     // to at least three external connections.
-    if (isset($_COOKIE['XDEBUG_SESSION'])) {
-      $cookies[] = 'XDEBUG_SESSION=' . $_COOKIE['XDEBUG_SESSION'];
+    $request = \Drupal::request();
+    $cookie_params = $request->cookies;
+    if ($cookie_params->has('XDEBUG_SESSION')) {
+      $cookies[] = 'XDEBUG_SESSION=' . $cookie_params->get('XDEBUG_SESSION');
+    }
+    // For CLI requests, the information is stored in $_SERVER.
+    $server = $request->server;
+    if ($server->has('XDEBUG_CONFIG')) {
+      // $_SERVER['XDEBUG_CONFIG'] has the form "key1=value1 key2=value2 ...".
+      $pairs = explode(' ', $server->get('XDEBUG_CONFIG'));
+      foreach ($pairs as $pair) {
+        list($key, $value) = explode('=', $pair);
+        // Account for key-value pairs being separated by multiple spaces.
+        if (trim($key, ' ') == 'idekey') {
+          $cookies[] = 'XDEBUG_SESSION=' . trim($value, ' ');
+        }
+      }
     }
 
     // Merge additional cookies in.
@@ -1255,6 +1321,21 @@ abstract class WebTestBase extends TestBase {
   }
 
   /**
+   * Returns whether the test is being executed from within a test site.
+   *
+   * Mainly used by recursive tests (i.e. to test the testing framework).
+   *
+   * @return bool
+   *   TRUE if this test was instantiated in a request within the test site,
+   *   FALSE otherwise.
+   *
+   * @see _drupal_bootstrap_configuration()
+   */
+  protected function isInChildSite() {
+    return DRUPAL_TEST_IN_CHILD_SITE;
+  }
+
+  /**
    * Parse content returned from curlExec using DOM and SimpleXML.
    *
    * @return
@@ -1297,10 +1378,18 @@ abstract class WebTestBase extends TestBase {
   protected function drupalGet($path, array $options = array(), array $headers = array()) {
     $options['absolute'] = TRUE;
 
+    // The URL generator service is not necessarily available yet; e.g., in
+    // interactive installer tests.
+    if ($this->container->has('url_generator')) {
+      $url = $this->container->get('url_generator')->generateFromPath($path, $options);
+    }
+    else {
+      $url = $this->getAbsoluteUrl($path);
+    }
+
     // We re-using a CURL connection here. If that connection still has certain
     // options set, it might change the GET into a POST. Make sure we clear out
     // previous options.
-    $url = $this->container->get('url_generator')->generateFromPath($path, $options);
     $out = $this->curlExec(array(CURLOPT_HTTPGET => TRUE, CURLOPT_URL => $url, CURLOPT_NOBODY => FALSE, CURLOPT_HTTPHEADER => $headers));
     // Ensure that any changes to variables in the other thread are picked up.
     $this->refreshVariables();
@@ -1625,6 +1714,13 @@ abstract class WebTestBase extends TestBase {
       $this->drupalProcessAjaxResponse($content, $return, $ajax_settings, $drupal_settings);
     }
 
+    $verbose = 'AJAX POST request to: ' . $path;
+    $verbose .= '<br />AJAX controller path: ' . $ajax_path;
+    $verbose .= '<hr />Ending URL: ' . $this->getUrl();
+    $verbose .= '<hr />' . $this->content;
+
+    $this->verbose($verbose);
+
     return $return;
   }
 
@@ -1678,7 +1774,8 @@ abstract class WebTestBase extends TestBase {
           }
           // @todo Ajax commands can target any jQuery selector, but these are
           //   hard to fully emulate with XPath. For now, just handle 'head'
-          //   and 'body', since these are used by ajax_render().
+          //   and 'body', since these are used by
+          //   \Drupal\Core\Ajax\AjaxResponse::ajaxRender().
           elseif (in_array($command['selector'], array('head', 'body'))) {
             $wrapperNode = $xpath->query('//' . $command['selector'])->item(0);
           }
@@ -1817,6 +1914,28 @@ abstract class WebTestBase extends TestBase {
       $post[$key] = urlencode($key) . '=' . urlencode($value);
     }
     return implode('&', $post);
+  }
+
+  /**
+   * Transforms a nested array into a flat array suitable for WebTestBase::drupalPostForm().
+   *
+   * @param array $values
+   *   A multi-dimensional form values array to convert.
+   *
+   * @return array
+   *   The flattened $edit array suitable for WebTestBase::drupalPostForm().
+   */
+  protected function translatePostValues(array $values) {
+    $edit = array();
+    // The easiest and most straightforward way to translate values suitable for
+    // WebTestBase::drupalPostForm() is to actually build the POST data string
+    // and convert the resulting key/value pairs back into a flat array.
+    $query = http_build_query($values);
+    foreach (explode('&', $query) as $item) {
+      list($key, $value) = explode('=', $item);
+      $edit[urldecode($key)] = urldecode($value);
+    }
+    return $edit;
   }
 
   /**
@@ -2048,14 +2167,14 @@ abstract class WebTestBase extends TestBase {
    * used by PHP) doesn't support any form of quotation. This function
    * simplifies the building of XPath expression.
    *
-   * @param $xpath
+   * @param string $xpath
    *   An XPath query, possibly with placeholders in the form ':name'.
-   * @param $args
+   * @param array $args
    *   An array of arguments with keys in the form ':name' matching the
    *   placeholders in the query. The values may be either strings or numeric
    *   values.
    *
-   * @return
+   * @return string
    *   An XPath query with arguments replaced.
    */
   protected function buildXPathQuery($xpath, array $args = array()) {
@@ -2092,10 +2211,14 @@ abstract class WebTestBase extends TestBase {
    *
    * The search is relative to the root element (HTML tag normally) of the page.
    *
-   * @param $xpath
+   * @param string $xpath
    *   The xpath string to use in the search.
+   * @param array $arguments
+   *   An array of arguments with keys in the form ':name' matching the
+   *   placeholders in the query. The values may be either strings or numeric
+   *   values.
    *
-   * @return
+   * @return array
    *   The return value of the xpath search. For details on the xpath string
    *   format and return values see the SimpleXML documentation,
    *   http://php.net/manual/function.simplexml-element-xpath.php.
@@ -2260,7 +2383,7 @@ abstract class WebTestBase extends TestBase {
    */
   protected function clickLink($label, $index = 0) {
     $url_before = $this->getUrl();
-    $urls = $this->xpath('//a[normalize-space(text())=:label]', array(':label' => $label));
+    $urls = $this->xpath('//a[normalize-space()=:label]', array(':label' => $label));
 
     if (isset($urls[$index])) {
       $url_target = $this->getAbsoluteUrl($urls[$index]['href']);
@@ -2432,7 +2555,7 @@ abstract class WebTestBase extends TestBase {
    *   An array containing e-mail messages captured during the current test.
    */
   protected function drupalGetMails($filter = array()) {
-    $captured_emails = \Drupal::state()->get('system.test_email_collector') ?: array();
+    $captured_emails = \Drupal::state()->get('system.test_mail_collector') ?: array();
     $filtered_emails = array();
 
     foreach ($captured_emails as $message) {
@@ -2852,7 +2975,7 @@ abstract class WebTestBase extends TestBase {
    * Asserts themed output.
    *
    * @param $callback
-   *   The name of the theme function to invoke; e.g. 'links' for theme_links().
+   *   The name of the theme hook to invoke; e.g. 'links' for links.html.twig.
    * @param $variables
    *   An array of variables to pass to the theme function.
    * @param $expected
@@ -2871,7 +2994,7 @@ abstract class WebTestBase extends TestBase {
    *   TRUE on pass, FALSE on fail.
    */
   protected function assertThemeOutput($callback, array $variables = array(), $expected, $message = '', $group = 'Other') {
-    $output = theme($callback, $variables);
+    $output = _theme($callback, $variables);
     $this->verbose('Variables:' . '<pre>' .  check_plain(var_export($variables, TRUE)) . '</pre>'
       . '<hr />' . 'Result:' . '<pre>' .  check_plain(var_export($output, TRUE)) . '</pre>'
       . '<hr />' . 'Expected:' . '<pre>' .  check_plain(var_export($expected, TRUE)) . '</pre>'
@@ -3429,7 +3552,7 @@ abstract class WebTestBase extends TestBase {
    *   TRUE on pass, FALSE on fail.
    */
   protected function assertMail($name, $value = '', $message = '', $group = 'E-mail') {
-    $captured_emails = \Drupal::state()->get('system.test_email_collector') ?: array();
+    $captured_emails = \Drupal::state()->get('system.test_mail_collector') ?: array();
     $email = end($captured_emails);
     return $this->assertTrue($email && isset($email[$name]) && $email[$name] == $value, $message, $group);
   }

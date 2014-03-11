@@ -9,9 +9,6 @@ namespace Drupal\Component\Plugin;
 
 /**
  * Defines an object which stores multiple plugin instances to lazy load them.
- *
- * The \ArrayAccess implementation is only for backwards compatibility, it is
- * deprecated and should not be used by new code.
  */
 abstract class PluginBag implements \Iterator, \Countable {
 
@@ -30,7 +27,7 @@ abstract class PluginBag implements \Iterator, \Countable {
   protected $instanceIDs = array();
 
   /**
-   * Initializes a plugin and stores the result in $this->pluginInstances.
+   * Initializes and stores a plugin.
    *
    * @param string $instance_id
    *   The ID of the plugin instance to initialize.
@@ -80,12 +77,13 @@ abstract class PluginBag implements \Iterator, \Countable {
    */
   public function set($instance_id, $value) {
     $this->pluginInstances[$instance_id] = $value;
+    $this->addInstanceId($instance_id);
   }
 
   /**
    * Removes an initialized plugin.
    *
-   * The plugin can still be used, it will be reinitialized.
+   * The plugin can still be used; it will be reinitialized.
    *
    * @param string $instance_id
    *   The ID of the plugin instance to remove.
@@ -95,12 +93,12 @@ abstract class PluginBag implements \Iterator, \Countable {
   }
 
   /**
-   * Adds an instance ID to the array of available instance IDs.
+   * Adds an instance ID to the available instance IDs.
    *
    * @param string $id
    *   The ID of the plugin instance to add.
    */
-  public function addInstanceID($id) {
+  public function addInstanceId($id) {
     if (!isset($this->instanceIDs[$id])) {
       $this->instanceIDs[$id] = $id;
     }
@@ -112,17 +110,17 @@ abstract class PluginBag implements \Iterator, \Countable {
    * @return array
    *   An array of all available instance IDs.
    */
-  public function getInstanceIDs() {
+  public function getInstanceIds() {
     return $this->instanceIDs;
   }
 
   /**
-   * Sets the instance IDs property.
+   * Sets all instance IDs.
    *
    * @param array $instance_ids
    *   An associative array of instance IDs.
    */
-  public function setInstanceIDs(array $instance_ids) {
+  public function setInstanceIds(array $instance_ids) {
     $this->instanceIDs = $instance_ids;
   }
 
@@ -132,49 +130,55 @@ abstract class PluginBag implements \Iterator, \Countable {
    * @param string $instance_id
    *   An image effect instance IDs.
    */
-  public function removeInstanceID($instance_id) {
+  public function removeInstanceId($instance_id) {
     unset($this->instanceIDs[$instance_id]);
     $this->remove($instance_id);
   }
 
   /**
-   * Implements \Iterator::current().
+   * {@inheritdoc}
    */
   public function current() {
     return $this->get($this->key());
   }
 
   /**
-   * Implements \Iterator::next().
+   * {@inheritdoc}
    */
   public function next() {
     next($this->instanceIDs);
   }
 
   /**
-   * Implements \Iterator::key().
+   * {@inheritdoc}
    */
   public function key() {
     return key($this->instanceIDs);
   }
 
   /**
-   * Implements \Iterator::valid().
+   * {@inheritdoc}
    */
   public function valid() {
     $key = key($this->instanceIDs);
-    return $key !== NULL && $key !== FALSE;
+    // Check the key is valid but also that this key yields a plugin from get().
+    // There can be situations where configuration contains data for a plugin
+    // that cannot be instantiated. In this case, this enables us to skip that
+    // plugin during iteration.
+    // @todo Look at removing when https://drupal.org/node/2080823 has been
+    //   solved.
+    return $key !== NULL && $key !== FALSE && $this->get($key);
   }
 
   /**
-   * Implements \Iterator::rewind().
+   * {@inheritdoc}
    */
   public function rewind() {
     reset($this->instanceIDs);
   }
 
   /**
-   * Implements \Countable::count().
+   * {@inheritdoc}
    */
   public function count() {
     return count($this->instanceIDs);

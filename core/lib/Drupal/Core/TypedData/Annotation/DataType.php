@@ -25,10 +25,10 @@ use Drupal\Component\Annotation\Plugin;
  *
  * Furthermore, lists of data items are represented by objects implementing the
  * \Drupal\Core\TypedData\ListInterface. A list contains items of the same data
- * type, is ordered and may contain duplicates. The classed used for a list of
+ * type, is ordered and may contain duplicates. The class used for a list of
  * items of a certain type may be specified using the 'list class' key.
  *
- * @see \Drupal::typedData()
+ * @see \Drupal::typedDataManager()
  * @see \Drupal\Core\TypedData\TypedDataManager::create()
  * @see hook_data_type_info_alter()
  *
@@ -67,7 +67,7 @@ class DataType extends Plugin {
    *
    * @var string
    */
-  public $list_class = '\Drupal\Core\TypedData\ItemList';
+  public $list_class = '\Drupal\Core\TypedData\Plugin\DataType\ItemList';
 
   /**
    * The pre-defined primitive type that this data type maps to.

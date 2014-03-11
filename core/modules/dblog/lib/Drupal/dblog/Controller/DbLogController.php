@@ -13,15 +13,14 @@ use Drupal\Component\Utility\Xss;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Datetime\Date;
-use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
-use Drupal\user\UserStorageControllerInterface;
+use Drupal\Core\Form\FormBuilderInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Returns responses for dblog routes.
  */
-class DbLogController extends ControllerBase implements ContainerInjectionInterface {
+class DbLogController extends ControllerBase {
 
   /**
    * The database service.
@@ -43,10 +42,13 @@ class DbLogController extends ControllerBase implements ContainerInjectionInterf
    * @var \Drupal\Core\Datetime\Date
    */
   protected $date;
+
   /**
-   * @var \Drupal\user\UserStorageControllerInterface
+   * The form builder service.
+   *
+   * @var \Drupal\Core\Form\FormBuilderInterface
    */
-  protected $userStorage;
+  protected $formBuilder;
 
   /**
    * {@inheritdoc}
@@ -56,23 +58,27 @@ class DbLogController extends ControllerBase implements ContainerInjectionInterf
       $container->get('database'),
       $container->get('module_handler'),
       $container->get('date'),
-      $container->get('entity.manager')->getStorageController('user')
+      $container->get('form_builder')
     );
   }
 
   /**
    * Constructs a DbLogController object.
    *
-   * @param Connection $database
+   * @param \Drupal\Core\Database\Connection $database
    *   A database connection.
-   * @param ModuleHandlerInterface $module_handler
+   * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
    *   A module handler.
+   * @param \Drupal\Core\Datetime\Date $date
+   *   The date service.
+   * @param \Drupal\Core\Form\FormBuilderInterface $form_builder
+   *   The form builder service.
    */
-  public function __construct(Connection $database, ModuleHandlerInterface $module_handler, Date $date, UserStorageControllerInterface $user_storage) {
+  public function __construct(Connection $database, ModuleHandlerInterface $module_handler, Date $date, FormBuilderInterface $form_builder) {
     $this->database = $database;
     $this->moduleHandler = $module_handler;
     $this->date = $date;
-    $this->userStorage = $user_storage;
+    $this->formBuilder = $form_builder;
   }
 
   /**
@@ -105,7 +111,6 @@ class DbLogController extends ControllerBase implements ContainerInjectionInterf
    *
    * @see dblog_clear_log_form()
    * @see dblog_event()
-   * @see dblog_filter_form()
    */
   public function overview() {
 
@@ -116,34 +121,34 @@ class DbLogController extends ControllerBase implements ContainerInjectionInterf
 
     $this->moduleHandler->loadInclude('dblog', 'admin.inc');
 
-    $build['dblog_filter_form'] = drupal_get_form('dblog_filter_form');
-    $build['dblog_clear_log_form'] = drupal_get_form('dblog_clear_log_form');
+    $build['dblog_filter_form'] = $this->formBuilder->getForm('Drupal\dblog\Form\DblogFilterForm');
+    $build['dblog_clear_log_form'] = $this->formBuilder->getForm('Drupal\dblog\Form\DblogClearLogForm');
 
     $header = array(
       // Icon column.
       '',
       array(
-        'data' => t('Type'),
+        'data' => $this->t('Type'),
         'field' => 'w.type',
         'class' => array(RESPONSIVE_PRIORITY_MEDIUM)),
       array(
-        'data' => t('Date'),
+        'data' => $this->t('Date'),
         'field' => 'w.wid',
         'sort' => 'desc',
         'class' => array(RESPONSIVE_PRIORITY_LOW)),
-      t('Message'),
+      $this->t('Message'),
       array(
-        'data' => t('User'),
+        'data' => $this->t('User'),
         'field' => 'u.name',
         'class' => array(RESPONSIVE_PRIORITY_MEDIUM)),
       array(
-        'data' => t('Operations'),
+        'data' => $this->t('Operations'),
         'class' => array(RESPONSIVE_PRIORITY_LOW)),
     );
 
     $query = $this->database->select('watchdog', 'w')
-      ->extend('Drupal\Core\Database\Query\PagerSelectExtender')
-      ->extend('Drupal\Core\Database\Query\TableSortExtender');
+      ->extend('\Drupal\Core\Database\Query\PagerSelectExtender')
+      ->extend('\Drupal\Core\Database\Query\TableSortExtender');
     $query->fields('w', array(
       'wid',
       'uid',
@@ -172,7 +177,7 @@ class DbLogController extends ControllerBase implements ContainerInjectionInterf
         }
         // Message to translate with injected variables.
         else {
-          $message = t($dblog->message, unserialize($dblog->variables));
+          $message = $this->t($dblog->message, unserialize($dblog->variables));
         }
         if (isset($dblog->wid)) {
           // Truncate link_text to 56 chars of message.
@@ -188,7 +193,7 @@ class DbLogController extends ControllerBase implements ContainerInjectionInterf
         'data' => array(
           // Cells.
           array('class' => array('icon')),
-          t($dblog->type),
+          $this->t($dblog->type),
           $this->date->format($dblog->timestamp, 'short'),
           $message,
           array('data' => $username),
@@ -204,7 +209,7 @@ class DbLogController extends ControllerBase implements ContainerInjectionInterf
       '#header' => $header,
       '#rows' => $rows,
       '#attributes' => array('id' => 'admin-dblog', 'class' => array('admin-dblog')),
-      '#empty' => t('No log messages available.'),
+      '#empty' => $this->t('No log messages available.'),
     );
     $build['dblog_pager'] = array('#theme' => 'pager');
 
@@ -230,7 +235,7 @@ class DbLogController extends ControllerBase implements ContainerInjectionInterf
       // Check for required properties.
       if (isset($dblog->message) && isset($dblog->variables)) {
         // Inject variables into the message if required.
-        $message = $dblog->variables === 'N;' ? $dblog->message : t($dblog->message, unserialize($dblog->variables));
+        $message = $dblog->variables === 'N;' ? $dblog->message : $this->t($dblog->message, unserialize($dblog->variables));
       }
       $username = array(
         '#theme' => 'username',
@@ -238,39 +243,39 @@ class DbLogController extends ControllerBase implements ContainerInjectionInterf
       );
       $rows = array(
         array(
-          array('data' => t('Type'), 'header' => TRUE),
-          t($dblog->type),
+          array('data' => $this->t('Type'), 'header' => TRUE),
+          $this->t($dblog->type),
         ),
         array(
-          array('data' => t('Date'), 'header' => TRUE),
+          array('data' => $this->t('Date'), 'header' => TRUE),
           $this->date->format($dblog->timestamp, 'long'),
         ),
         array(
-          array('data' => t('User'), 'header' => TRUE),
+          array('data' => $this->t('User'), 'header' => TRUE),
           array('data' => $username),
         ),
         array(
-          array('data' => t('Location'), 'header' => TRUE),
+          array('data' => $this->t('Location'), 'header' => TRUE),
           l($dblog->location, $dblog->location),
         ),
         array(
-          array('data' => t('Referrer'), 'header' => TRUE),
+          array('data' => $this->t('Referrer'), 'header' => TRUE),
           l($dblog->referer, $dblog->referer),
         ),
         array(
-          array('data' => t('Message'), 'header' => TRUE),
+          array('data' => $this->t('Message'), 'header' => TRUE),
           $message,
         ),
         array(
-          array('data' => t('Severity'), 'header' => TRUE),
+          array('data' => $this->t('Severity'), 'header' => TRUE),
           $severity[$dblog->severity],
         ),
         array(
-          array('data' => t('Hostname'), 'header' => TRUE),
+          array('data' => $this->t('Hostname'), 'header' => TRUE),
           String::checkPlain($dblog->hostname),
         ),
         array(
-          array('data' => t('Operations'), 'header' => TRUE),
+          array('data' => $this->t('Operations'), 'header' => TRUE),
           $dblog->link,
         ),
       );
@@ -320,27 +325,68 @@ class DbLogController extends ControllerBase implements ContainerInjectionInterf
   }
 
   /**
-   * @todo Remove dblog_top().
+   * Shows the most frequent log messages of a given event type.
+   *
+   * Messages are not truncated on this page because events detailed herein do
+   * not have links to a detailed view.
+   *
+   * Use one of the above *Report() methods.
+   *
+   * @param string $type
+   *   Type of database log events to display (e.g., 'search').
+   *
+   * @return array
+   *   A build array in the format expected by drupal_render().
    */
-  public function pageNotFound() {
-    module_load_include('admin.inc', 'dblog');
-    return dblog_top('page not found');
-  }
+  public function topLogMessages($type) {
+    $header = array(
+      array('data' => $this->t('Count'), 'field' => 'count', 'sort' => 'desc'),
+      array('data' => $this->t('Message'), 'field' => 'message'),
+    );
 
-  /**
-   * @todo Remove dblog_top().
-   */
-  public function accessDenied() {
-    module_load_include('admin.inc', 'dblog');
-    return dblog_top('access denied');
-  }
+    $count_query = $this->database->select('watchdog');
+    $count_query->addExpression('COUNT(DISTINCT(message))');
+    $count_query->condition('type', $type);
 
-  /**
-   * @todo Remove dblog_top().
-   */
-  public function search() {
-    module_load_include('admin.inc', 'dblog');
-    return dblog_top('search');
+    $query = $this->database->select('watchdog', 'w')
+      ->extend('\Drupal\Core\Database\Query\PagerSelectExtender')
+      ->extend('\Drupal\Core\Database\Query\TableSortExtender');
+    $query->addExpression('COUNT(wid)', 'count');
+    $query = $query
+      ->fields('w', array('message', 'variables'))
+      ->condition('w.type', $type)
+      ->groupBy('message')
+      ->groupBy('variables')
+      ->limit(30)
+      ->orderByHeader($header);
+    $query->setCountQuery($count_query);
+    $result = $query->execute();
+
+    $rows = array();
+    foreach ($result as $dblog) {
+      // Check for required properties.
+      if (isset($dblog->message) && isset($dblog->variables)) {
+        // Messages without variables or user specified text.
+        if ($dblog->variables === 'N;') {
+          $message = $dblog->message;
+        }
+        // Message to translate with injected variables.
+        else {
+          $message = $this->t($dblog->message, unserialize($dblog->variables));
+        }
+      }
+      $rows[] = array($dblog->count, $message);
+    }
+
+    $build['dblog_top_table']  = array(
+      '#theme' => 'table',
+      '#header' => $header,
+      '#rows' => $rows,
+      '#empty' => $this->t('No log messages available.'),
+    );
+    $build['dblog_top_pager'] = array('#theme' => 'pager');
+
+    return $build;
   }
 
 }

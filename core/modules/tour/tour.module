@@ -5,6 +5,27 @@
  * Main functions of the module.
  */
 use Drupal\Core\Cache\CacheBackendInterface;
+use Symfony\Cmf\Component\Routing\RouteObjectInterface;
+
+/**
+ * Implements hook_help().
+ */
+function tour_help($path, $arg) {
+  switch ($path) {
+    case 'admin/help#tour':
+      $output = '';
+      $output .= '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t("The Tour module provides users with guided tours of the site interface. Each tour consists of several tips that highlight elements of the user interface, guide the user through a workflow, or explain key concepts of the website. For more information, see <a href='!tour'>the online documentation for the Tour module</a>.", array('!tour' => 'https://drupal.org/documentation/modules/tour')) . '</p>';
+      $output .= '<h3>' . t('Uses') . '</h3>';
+      $output .= '<dl>';
+      $output .= '<dt>' . t('Viewing tours') . '</dt>';
+      $output .= '<dd>' . t("If a tour is available on a page, a <em>Tour</em> button will be visible in the toolbar. If you click this button the first tip of the tour will appear. The tour continues after clicking the <em>Next</em> button in the tip. To see a tour users must have the permission <em>Access tour</em> and JavaScript must be enabled in the browser") . '</dd>';
+      $output .= '<dt>' . t('Creating tours') . '</dt>';
+      $output .= '<dd>' . t("Tours can be written as YAML-documents with a text editor, or using the contributed <a href='!tour_ui'>Tour UI</a> module. For more information, see <a href='!doc_url'>the online documentation for writing tours</a>.", array('!doc_url' => 'https://drupal.org/developing/api/tour', '!tour_ui' => 'https://drupal.org/project/tour_ui')) . '</dd>';
+      $output .= '</dl>';
+      return $output;
+  }
+}
 
 /**
  * Implements hook_permission().
@@ -28,15 +49,12 @@ function tour_library_info() {
     'title' => 'Tour',
     'version' => \Drupal::VERSION,
     'js' => array(
-      // Add the JavaScript, with a group and weight such that it will run
-      // before modules/overlay/overlay-parent.js.
-      $path . '/js/tour.js' => array('group' => JS_LIBRARY, 'weight' => -1),
+      $path . '/js/tour.js' => array('group' => JS_LIBRARY),
     ),
     'dependencies' => array(
       array('system', 'jquery'),
       array('system', 'drupal'),
       array('system', 'backbone'),
-      array('system', 'jquery.bbq'),
       array('tour', 'jquery.joyride'),
       array('tour', 'tour-styling'),
     ),
@@ -47,7 +65,7 @@ function tour_library_info() {
     'version' => \Drupal::VERSION,
     'css' => array(
       $path . '/css/tour.module.css' => array('media' => 'screen'),
-    )
+    ),
   );
 
   $libraries['jquery.joyride'] = array(
@@ -111,24 +129,23 @@ function tour_preprocess_page(&$variables) {
     return;
   }
 
-  // @todo replace this with http://drupal.org/node/1918768 once it is committed.
-  $path = current_path();
-  $tour_items = array();
-  // Load all of the items and match on path.
-  $tours = entity_load_multiple('tour');
+  // Load all of the items and match on route name.
+  $request = \Drupal::request();
+  $route_name = $request->attributes->get(RouteObjectInterface::ROUTE_NAME);
 
-  $path_alias = drupal_strtolower(\Drupal::service('path.alias_manager')->getPathAlias($path));
-  foreach ($tours as $tour_id => $tour) {
-    // @todo Replace this with an entity query that does path matching when
-    // http://drupal.org/node/1918768 lands.
-    $pages = implode("\n", $tour->getPaths());
-    if (!drupal_match_path($path_alias, $pages) && (($path == $path_alias) || drupal_match_path($path, $pages))) {
-      unset($tours[$tour_id]);
+  $results = \Drupal::entityQuery('tour')
+    ->condition('routes.*.route_name', $route_name)
+    ->execute();
+  if (!empty($results) && $tours = entity_load_multiple('tour', array_keys($results))) {
+    foreach ($tours as $id => $tour) {
+      // Match on params.
+      if (!$tour->hasMatchingRoute($route_name, $request->attributes->get('_raw_variables')->all())) {
+        unset($tours[$id]);
+      }
     }
-  }
-
-  if ($tours) {
-    $variables['page']['help']['tour'] = entity_view_multiple($tours, 'full');
+    if (!empty($tours)) {
+      $variables['page']['help']['tour'] = entity_view_multiple($tours, 'full');
+    }
   }
 }
 

@@ -7,8 +7,7 @@
 
 namespace Drupal\filter\Plugin\Filter;
 
-use Drupal\filter\Annotation\Filter;
-use Drupal\Core\Annotation\Translation;
+use Drupal\Component\Utility\Html;
 use Drupal\filter\Plugin\FilterBase;
 
 /**
@@ -16,9 +15,8 @@ use Drupal\filter\Plugin\FilterBase;
  *
  * @Filter(
  *   id = "filter_htmlcorrector",
- *   module = "filter",
  *   title = @Translation("Correct faulty and chopped off HTML"),
- *   type = FILTER_TYPE_HTML_RESTRICTOR,
+ *   type = Drupal\filter\Plugin\FilterInterface::TYPE_TRANSFORM_IRREVERSIBLE,
  *   weight = 10
  * )
  */
@@ -28,7 +26,7 @@ class FilterHtmlCorrector extends FilterBase {
    * {@inheritdoc}
    */
   public function process($text, $langcode, $cache, $cache_id) {
-    return _filter_htmlcorrector($text);
+    return Html::normalize($text);
   }
 
 }

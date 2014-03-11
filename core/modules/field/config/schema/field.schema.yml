@@ -4,9 +4,6 @@ field.settings:
   type: mapping
   label: 'Field settings'
   mapping:
-    language_fallback:
-      type: boolean
-      label: 'Whether the field display falls back to global language fallback configuration'
     purge_batch_size:
       type: integer
       label: 'Maximum number of field data records to purge'
@@ -27,6 +24,9 @@ field.field.*.*:
     langcode:
       type: string
       label: 'Default language'
+    name:
+      type: string
+      label: 'Name'
     entity_type:
       type: string
       label: 'Entity type'
@@ -38,9 +38,6 @@ field.field.*.*:
     module:
       type: string
       label: 'Module'
-    active:
-      type: boolean
-      label: 'Active'
     locked:
       type: boolean
       label: 'Locked'
@@ -79,6 +76,12 @@ field.instance.*.*.*:
     field_uuid:
       type: string
       label: 'Field UUID'
+    field_name:
+      type: string
+      label: 'Field name'
+    entity_type:
+      type: string
+      label: 'Entity type'
     bundle:
       type: string
       label: 'Bundle'
@@ -101,3 +104,14 @@ field.instance.*.*.*:
     field_type:
       type: string
       label: 'Field type'
+
+entity_form_display.field.hidden:
+  type: entity_field_form_display_base
+  label: '- Hidden - format settings'
+  mapping:
+    settings:
+      type: sequence
+      label: 'Settings'
+      sequence:
+        - type: string
+

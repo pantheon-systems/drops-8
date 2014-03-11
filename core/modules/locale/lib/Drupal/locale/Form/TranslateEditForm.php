@@ -29,7 +29,7 @@ class TranslateEditForm extends TranslateFormBase {
     $filter_values = $this->translateFilterValues();
     $langcode = $filter_values['langcode'];
 
-    drupal_static_reset('language_list');
+    $this->languageManager->reset();
     $languages = language_list();
 
     $langname = isset($langcode) ? $languages[$langcode]->name : "- None -";
@@ -166,8 +166,8 @@ class TranslateEditForm extends TranslateFormBase {
     foreach ($form_state['values']['strings'] as $lid => $translations) {
       foreach ($translations['translations'] as $key => $value) {
         if (!locale_string_is_safe($value)) {
-          form_set_error("strings][$lid][translations][$key", $this->t('The submitted string contains disallowed HTML: %string', array('%string' => $value)));
-          form_set_error("translations][$langcode][$key", $this->t('The submitted string contains disallowed HTML: %string', array('%string' => $value)));
+          $this->setFormError("strings][$lid][translations][$key", $form_state, $this->t('The submitted string contains disallowed HTML: %string', array('%string' => $value)));
+          $this->setFormError("translations][$langcode][$key", $form_state, $this->t('The submitted string contains disallowed HTML: %string', array('%string' => $value)));
           watchdog('locale', 'Attempted submission of a translation string with disallowed HTML: %string', array('%string' => $value), WATCHDOG_WARNING);
         }
       }
@@ -231,7 +231,12 @@ class TranslateEditForm extends TranslateFormBase {
     // Keep the user on the current pager page.
     $page = $this->getRequest()->query->get('page');
     if (isset($page)) {
-      $form_state['redirect'] = array('admin/config/regional/translate', array('query' => array('page' => $page)));
+      $form_state['redirect_route'] = array(
+        'route_name' => 'locale.translate_page',
+        'options' => array(
+          'page' => $page,
+        ),
+      );
     }
 
     if ($updated) {

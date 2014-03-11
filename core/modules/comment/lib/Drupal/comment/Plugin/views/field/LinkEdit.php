@@ -7,7 +7,6 @@
 
 namespace Drupal\comment\Plugin\views\field;
 
-use Drupal\Component\Annotation\PluginID;
 use Drupal\views\ResultRow;
 
 /**
@@ -56,7 +55,7 @@ class LinkEdit extends Link {
       return;
     }
 
-    $text = !empty($this->options['text']) ? $this->options['text'] : t('edit');
+    $text = !empty($this->options['text']) ? $this->options['text'] : t('Edit');
     unset($this->options['alter']['fragment']);
 
     if (!empty($this->options['destination'])) {

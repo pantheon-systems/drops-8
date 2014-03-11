@@ -20,12 +20,19 @@
         "doctrine/lexer": "1.*",
         "doctrine/annotations": "1.*"
     },
+    "minimum-stability": "dev",
+    "require-dev": {
+        "phpunit/phpunit": "~3.7"
+    },
     "autoload": {
         "psr-0": { "Doctrine\\Common\\": "lib/" }
     },
     "extra": {
         "branch-alias": {
-            "dev-master": "2.4.x-dev"
+            "dev-master": "2.5.x-dev"
         }
+    },
+    "archive": {
+        "exclude": ["!vendor", "tests", "*phpunit.xml", ".travis.yml", "build.xml", "build.properties", "composer.phar"]
     }
 }

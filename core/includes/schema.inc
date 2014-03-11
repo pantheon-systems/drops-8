@@ -5,7 +5,7 @@
  * Schema API handling functions.
  */
 
-use Drupal\Core\Cache\CacheBackendInterface;
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Database\Database;
 use Drupal\Core\Utility\SchemaCache;
 
@@ -18,11 +18,6 @@ use Drupal\Core\Utility\SchemaCache;
  * Indicates that a module has not been installed yet.
  */
 const SCHEMA_UNINSTALLED = -1;
-
-/**
- * Indicates that a module has been installed.
- */
-const SCHEMA_INSTALLED = 0;
 
 /**
  * Gets the schema definition of a table, or the whole database schema.
@@ -85,7 +80,7 @@ function drupal_get_complete_schema($rebuild = FALSE) {
         // Cast the result of hook_schema() to an array, as a NULL return value
         // would cause array_merge() to set the $schema variable to NULL as well.
         // That would break modules which use $schema further down the line.
-        $current = (array) module_invoke($module, 'schema');
+        $current = (array) \Drupal::moduleHandler()->invoke($module, 'schema');
         // Set 'module' and 'name' keys for each table, and remove descriptions,
         // as they needlessly slow down cache()->get() for every single request.
         _drupal_schema_initialize($current, $module);
@@ -94,12 +89,12 @@ function drupal_get_complete_schema($rebuild = FALSE) {
       drupal_alter('schema', $schema);
 
       if ($rebuild) {
-        cache()->deleteTags(array('schema' => TRUE));
+        Cache::deleteTags(array('schema' => TRUE));
       }
       // If the schema is empty, avoid saving it: some database engines require
       // the schema to perform queries, and this could lead to infinite loops.
       if (!empty($schema) && (drupal_get_bootstrap_phase() == DRUPAL_BOOTSTRAP_FULL)) {
-        cache()->set('schema', $schema, CacheBackendInterface::CACHE_PERMANENT, array('schema' => TRUE));
+        cache()->set('schema', $schema, Cache::PERMANENT, array('schema' => TRUE));
       }
     }
   }
@@ -273,7 +268,7 @@ function drupal_uninstall_schema($module) {
 function drupal_get_schema_unprocessed($module, $table = NULL) {
   // Load the .install file to get hook_schema.
   module_load_install($module);
-  $schema = module_invoke($module, 'schema');
+  $schema = \Drupal::moduleHandler()->invoke($module, 'schema');
 
   if (isset($table)) {
     if (isset($schema[$table])) {
@@ -534,7 +529,7 @@ function drupal_schema_get_field_value(array $info, $value) {
     elseif ($info['type'] == 'float') {
       $value = (float) $value;
     }
-    else {
+    elseif (!is_array($value)) {
       $value = (string) $value;
     }
   }

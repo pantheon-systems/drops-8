@@ -38,14 +38,14 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
    *
    * @var string
    */
-  protected $entity_type;
+  protected $entityTypeId;
 
   /**
    * Contains the information from entity_get_info of the $entity_type.
    *
-   * @var array
+   * @var \Drupal\Core\Entity\EntityTypeInterface
    */
-  protected $entity_info = array();
+  protected $entityType;
 
   /**
    * An array of validated view objects, keyed by a hash.
@@ -118,11 +118,11 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
 
     $this->base_table = $this->definition['base_table'];
 
-    $entities = entity_get_info();
-    foreach ($entities as $entity_type => $entity_info) {
-      if (isset($entity_info['base_table']) && $this->base_table == $entity_info['base_table']) {
-        $this->entity_info = $entity_info;
-        $this->entity_type = $entity_type;
+    $entity_types = \Drupal::entityManager()->getDefinitions();
+    foreach ($entity_types as $entity_type_id => $entity_type) {
+      if ($this->base_table == $entity_type->getBaseTable()) {
+        $this->entityType = $entity_type;
+        $this->entityTypeId = $entity_type_id;
       }
     }
   }
@@ -198,7 +198,7 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
   }
 
   /**
-   * {@inheritdoc} Drupal\views\Plugin\views\wizard\WizardInterface::buildForm().
+   * {@inheritdoc}
    */
   public function buildForm(array $form, array &$form_state) {
     $style_options = views_fetch_plugin_names('style', 'normal', array($this->base_table));
@@ -510,7 +510,7 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
    *   The display ID (e.g. 'page' or 'block').
    */
   protected function buildFormStyle(array &$form, array &$form_state, $type) {
-    $style_form =& $form['displays'][$type]['options']['style'];
+    $style_form = &$form['displays'][$type]['options']['style'];
     $style = $style_form['style_plugin']['#default_value'];
     $style_plugin = Views::pluginManager('style')->createInstance($style);
     if (isset($style_plugin) && $style_plugin->usesRowPlugin()) {
@@ -561,9 +561,9 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
   protected function buildFilters(&$form, &$form_state) {
     module_load_include('inc', 'views_ui', 'admin');
 
-    $bundles = entity_get_bundles($this->entity_type);
+    $bundles = entity_get_bundles($this->entityTypeId);
     // If the current base table support bundles and has more than one (like user).
-    if (isset($this->entity_info['bundle_keys']) && !empty($bundles)) {
+    if (!empty($bundles) && $this->entityType) {
       // Get all bundles and their human readable names.
       $options = array('all' => t('All'));
       foreach ($bundles as $type => $bundle) {
@@ -837,7 +837,7 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
     $filters = array();
 
     if (!empty($form_state['values']['show']['type']) && $form_state['values']['show']['type'] != 'all') {
-      $bundle_key = $this->entity_info['bundle_keys']['bundle'];
+      $bundle_key = $this->entityType->getKey('bundle');
       // Figure out the table where $bundle_key lives. It may not be the same as
       // the base table for the view; the taxonomy vocabulary machine_name, for
       // example, is stored in taxonomy_vocabulary, not taxonomy_term_data.

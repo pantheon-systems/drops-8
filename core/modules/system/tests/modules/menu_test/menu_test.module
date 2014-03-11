@@ -11,7 +11,7 @@ use Drupal\menu_link\Entity\MenuLink;
  * Implements hook_menu().
  */
 function menu_test_menu() {
-  // The name of the menu changes during the course of the test. Using a $_GET.
+  // The name of the menu changes during the course of the test. Using a GET.
   $items['menu_name_test'] = array(
     'title' => 'Test menu_name router item',
     'route_name' => 'menu_test.menu_name_test',
@@ -64,18 +64,12 @@ function menu_test_menu() {
     'route_name' => 'menu_test.hierarchy_parent_child2',
   );
   // Theme callback tests.
-  $items['menu-test/theme-callback/%'] = array(
-    'title' => 'Page that displays different themes',
-    'route_name' => 'menu_test.theme_callback',
-    'theme callback' => 'menu_test_theme_callback',
-    'theme arguments' => array(2),
-  );
   $items['menu-test/theme-callback/%/inheritance'] = array(
-    'title' => 'Page that tests theme callback inheritance.',
+    'title' => 'Page that tests theme negotiation inheritance.',
     'route_name' => 'menu_test.theme_callback_inheritance',
   );
   $items['menu-test/no-theme-callback'] = array(
-    'title' => 'Page that displays different themes without using a theme callback.',
+    'title' => 'Page that displays different themes without using a theme negotiation.',
     'route_name' => 'menu_test.no_theme_callback',
   );
   // Path containing "exotic" characters.
@@ -108,11 +102,6 @@ function menu_test_menu() {
     'title' => 'List menus',
     'type' => MENU_DEFAULT_LOCAL_TASK,
   );
-  $items['menu-test/hidden/menu/add'] = array(
-    'title' => 'Add menu',
-    'route_name' => 'menu_test.hidden_menu_add',
-    'type' => MENU_LOCAL_ACTION,
-  );
   $items['menu-test/hidden/menu/settings'] = array(
     'title' => 'Settings',
     'route_name' => 'menu_test.hidden_menu_settings',
@@ -126,18 +115,13 @@ function menu_test_menu() {
   $items['menu-test/hidden/menu/manage/%menu/list'] = array(
     'title' => 'List links',
     'type' => MENU_DEFAULT_LOCAL_TASK,
-    'context' => MENU_CONTEXT_PAGE | MENU_CONTEXT_INLINE,
-  );
-  $items['menu-test/hidden/menu/manage/%menu/add'] = array(
-    'title' => 'Add link',
-    'route_name' => 'menu_test.hidden_manage_add',
-    'type' => MENU_LOCAL_ACTION,
+    'context' => MENU_CONTEXT_PAGE,
   );
   $items['menu-test/hidden/menu/manage/%menu/edit'] = array(
     'title' => 'Edit menu',
     'route_name' => 'menu_test.hidden_manage_edit',
     'type' => MENU_LOCAL_TASK,
-    'context' => MENU_CONTEXT_PAGE | MENU_CONTEXT_INLINE,
+    'context' => MENU_CONTEXT_PAGE,
   );
   $items['menu-test/hidden/menu/manage/%menu/delete'] = array(
     'title' => 'Delete menu',
@@ -153,19 +137,9 @@ function menu_test_menu() {
     'title' => 'List',
     'type' => MENU_DEFAULT_LOCAL_TASK,
   );
-  $items['menu-test/hidden/block/add'] = array(
-    'title' => 'Add block',
-    'route_name' => 'menu_test.hidden_block_add',
-    'type' => MENU_LOCAL_ACTION,
-  );
   $items['menu-test/hidden/block/manage/%/%'] = array(
     'title' => 'Configure block',
     'route_name' => 'menu_test.hidden_block_configure',
-  );
-  $items['menu-test/hidden/block/manage/%/%/configure'] = array(
-    'title' => 'Configure block',
-    'type' => MENU_DEFAULT_LOCAL_TASK,
-    'context' => MENU_CONTEXT_INLINE,
   );
   $items['menu-test/hidden/block/manage/%/%/delete'] = array(
     'title' => 'Delete block',
@@ -257,23 +231,14 @@ function menu_test_menu() {
     'route_name' => 'menu_test.title_test_case1',
   );
   $items['menu-title-test/case2'] = array(
-    'title' => 'Example @sub1 - Case @op2',
-    // If '2' is not in quotes, the argument becomes arg(2).
-    'title arguments' => array('@sub1' => 'title', '@op2' => '2'),
+    'title' => 'Example title',
+    'title callback' => 'menu_test_title_callback',
     'route_name' => 'menu_test.title_test_case2',
   );
   $items['menu-title-test/case3'] = array(
-    'title' => 'Example title',
-    'title callback' => 'menu_test_title_callback',
-    'route_name' => 'menu_test.title_test_case3',
-  );
-  $items['menu-title-test/case4'] = array(
     // Title gets completely ignored. Good thing, too.
-    'title' => 'Bike sheds full of blue smurfs',
-    'title callback' => 'menu_test_title_callback',
-    // If '4' is not in quotes, the argument becomes arg(4).
-    'title arguments' => array('Example title', '4'),
-    'route_name' => 'menu_test.title_test_case4',
+    'title' => 'Bike sheds full of blue smurfs WRONG',
+    'route_name' => 'menu_test.title_test_case3',
   );
 
   // Parent page for controller-based local tasks.
@@ -303,22 +268,6 @@ function menu_test_menu() {
     'route_name' => 'menu_test.local_action1',
   );
 
-  $items['menu-test-local-action/hook_menu'] = array(
-    'title' => 'My hook_menu action',
-    'route_name' => 'menu_test.local_action2',
-    'weight' => -10,
-    'type' => MENU_LOCAL_ACTION,
-  );
-
-  $items['menu-test-local-action/dynamic-title'] = array(
-    'title' => 'My dynamic title action',
-    'title callback' => 'menu_test_local_action_dynamic_title',
-    'title arguments' => array(1),
-    'route_name' => 'menu_test.local_action4',
-    'weight' => -10,
-    'type' => MENU_LOCAL_ACTION,
-  );
-
   $items['menu-local-task-test/tasks'] = array(
     'title' => 'Local tasks',
     'route_name' => 'menu_test.local_task_test_tasks',
@@ -329,14 +278,140 @@ function menu_test_menu() {
     'type' => MENU_LOCAL_TASK,
   );
 
+  $items['menu-test/context'] = array(
+    'title' => \Drupal::config('menu_test.menu_item')->get('title'),
+    'route_name' => 'menu_test.context',
+  );
+
   return $items;
 }
 
 /**
- * Title callback: Set a dynamic title for a local action.
+ * Implements hook_menu_link_defaults().
  */
-function menu_test_local_action_dynamic_title($arg) {
-  return t('My @arg action', array('@arg' => $arg));
+function menu_test_menu_link_defaults() {
+  // The name of the menu changes during the course of the test. Using a $_GET.
+  $items['menu_test.menu_name_test'] = array(
+    'link_title' => 'Test menu_name router item',
+    'route_name' => 'menu_test.menu_name_test',
+    'menu_name' => menu_test_menu_name(),
+  );
+  // This item uses SystemController::systemAdminMenuBlockPage() to list child
+  // items.
+  $items['menu_test.menu_callback_description'] = array(
+    'link_title' => 'Menu item title',
+    'description' => 'Menu item description parent',
+    'route_name' => 'menu_test.callback_description',
+  );
+  // This item tests the description key.
+  $items['menu_test.menu_callback_description.description-plain'] = array(
+    'link_title' => 'Menu item with a regular description',
+    'description' => 'Menu item description text',
+    'route_name' => 'menu_test.callback_description_plain',
+    'parent' => 'menu_test.menu_callback_description',
+  );
+  // This item tests using a description callback.
+  $items['menu_callback_description.description-callback'] = array(
+    'link_title' => 'Menu item with a description set with a callback',
+    'route_name' => 'menu_test.callback_description_callback',
+    'parent' => 'menu_test.menu_callback_description',
+  );
+
+  $items['menu_test.menu_no_title_callback'] = array(
+    'link_title' => 'A title with @placeholder',
+    'route_name' => 'menu_test.menu_no_title_callback',
+  );
+
+  // Hierarchical tests.
+  $items['menu_test.hierarchy_parent'] = array(
+    'link_title' => 'Parent menu router',
+    'route_name' => 'menu_test.hierarchy_parent',
+  );
+  $items['menu_test.hierarchy_parent.child'] = array(
+    'link_title' => 'Child menu router',
+    'route_name' => 'menu_test.hierarchy_parent_child',
+    'parent' => 'menu_test.hierarchy_parent',
+  );
+  $items['menu_test.hierarchy_parent.child2.child'] = array(
+    'link_title' => 'Unattached subchild router',
+    'route_name' => 'menu_test.hierarchy_parent_child2',
+    'parent' => 'menu_test.hierarchy_parent.child',
+  );
+  // Path containing "exotic" characters.
+  $exotic = " -._~!$'\"()*@[]?&+%#,;=:" . // "Special" ASCII characters.
+    "%23%25%26%2B%2F%3F" . // Characters that look like a percent-escaped string.
+    "éøïвβ中國書۞"; // Characters from various non-ASCII alphabets.
+  $items['menu_test.exotic_path'] = array(
+    'link_title' => '"Exotic" path',
+    'route_name' => 'menu_test.exotic_path',
+    'route_parameters' => array('exotic' => $exotic),
+  );
+
+  // Hidden tests; base parents.
+  // Same structure as in Menu and Block modules. Since those structures can
+  // change, we need to simulate our own in here.
+  $items['menu_test'] = array(
+    'link_title' => 'Menu test root',
+    'route_name' => 'menu_test.menu_test',
+  );
+  $items['menu_test.hidden'] = array(
+    'link_title' => 'Hidden test root',
+    'route_name' => 'menu_test.hidden',
+    'parent' => 'menu_test',
+  );
+
+  // Hidden tests; one dynamic argument.
+  $items['menu_test.hidden.menu'] = array(
+    'link_title' => 'Menus',
+    'route_name' => 'menu_test.hidden_menu',
+    'parent' => 'menu_test.hidden',
+  );
+
+  // Hidden tests; two dynamic arguments.
+  $items['menu_test.hidden.block'] = array(
+    'link_title' => 'Blocks',
+    'route_name' => 'menu_test.hidden_block',
+    'parent' => 'menu_test.hidden',
+  );
+
+  // Menu trail tests.
+  // @see MenuTrailTestCase
+  $items['menu_test.menu-trail'] = array(
+    'link_title' => 'Menu trail - Case 1',
+    'route_name' => 'menu_test.menu_trail',
+    'parent' => 'menu_test',
+  );
+  $items['menu_test.admin.config.development.menu-trail'] = array(
+    'link_title' => 'Menu trail - Case 2',
+    'description' => 'Tests menu_tree_set_path()',
+    'route_name' => 'menu_test.menu_trail_admin',
+    'parent' => 'system.admin.config.development',
+  );
+  $items['menu_test.custom-403-page'] = array(
+    'link_title' => 'Custom 403 page',
+    'route_name' => 'menu_test.custom_403',
+    'parent' => 'menu_test',
+  );
+  $items['menu_test.custom-404-page'] = array(
+    'link_title' => 'Custom 404 page',
+    'route_name' => 'menu_test.custom_404',
+    'parent' => 'menu_test',
+  );
+  // Test the access key.
+  $items['menu_test.menu-title-test.case1'] = array(
+    'link_title' => 'Example title - Case 1',
+    'route_name' => 'menu_test.title_test_case1',
+  );
+  $items['menu_test.menu-title-test.case2'] = array(
+    'link_title' => 'Example title',
+    'route_name' => 'menu_test.title_test_case2',
+  );
+  $items['menu_test.menu-title-test.case3'] = array(
+    // Title gets completely ignored. Good thing, too.
+    'link_title' => 'Bike sheds full of blue smurfs',
+    'route_name' => 'menu_test.title_test_case3',
+  );
+  return $items;
 }
 
 /**
@@ -482,7 +557,7 @@ function menu_test_custom_403_404_callback() {
 }
 
 /**
- * Page callback: Tests the theme callback functionality.
+ * Page callback: Tests the theme negotiation functionality.
  *
  * @param bool $inherited
  *   (optional) TRUE when the requested page is intended to inherit
@@ -500,64 +575,13 @@ function menu_test_theme_page_callback($inherited = FALSE) {
   global $theme_key;
   // Initialize the theme system so that $theme_key will be populated.
   drupal_theme_initialize();
-  // Now check both the requested custom theme and the actual theme being used.
-  $custom_theme = menu_get_custom_theme();
-  $requested_theme = empty($custom_theme) ? 'NONE' : $custom_theme;
-  $output = "Custom theme: $requested_theme. Actual theme: $theme_key.";
+  // Now we check what the theme negotiator service returns.
+  $active_theme = \Drupal::service('theme.negotiator')->getActiveTheme('getActiveTheme');
+  $output = "Active theme: $active_theme. Actual theme: $theme_key.";
   if ($inherited) {
-    $output .= ' Theme callback inheritance is being tested.';
+    $output .= ' Theme negotiation inheritance is being tested.';
   }
   return $output;
-}
-
-/**
- * Theme callback: Tests the theme callback functionality.
- *
- * Retrieves the theme key of the theme to use for the current request based on
- * the theme name provided in the URL.
- *
- * @param string $argument
- *   The argument passed in from the URL.
- *
- * @return string
- *   The name of the custom theme to request for the current page.
- *
- * @see menu_test_menu().
- */
-function menu_test_theme_callback($argument) {
-  // Test using the variable administrative theme.
-  if ($argument == 'use-admin-theme') {
-    return \Drupal::config('system.theme')->get('admin');
-  }
-  // Test using a theme that exists, but may or may not be enabled.
-  elseif ($argument == 'use-stark-theme') {
-    return 'stark';
-  }
-  // Test using a theme that does not exist.
-  elseif ($argument == 'use-fake-theme') {
-    return 'fake_theme';
-  }
-  // For any other value of the URL argument, do not return anything. This
-  // allows us to test that returning nothing from a theme callback function
-  // causes the page to correctly fall back on using the main site theme.
-}
-
-/**
- * Implements hook_custom_theme().
- *
- * If an appropriate variable has been set in the database, request the theme
- * that is stored there. Otherwise, do not attempt to dynamically set the theme.
- */
-function menu_test_custom_theme() {
-  // When requested by one of the MenuTrailTestCase tests, record the initial
-  // active trail during Drupal's bootstrap (before the user is redirected to a
-  // custom 403 or 404 page). See menu_test_custom_403_404_callback().
-  if (\Drupal::state()->get('menu_test.record_active_trail') ?: FALSE) {
-    \Drupal::state()->set('menu_test.active_trail_initial', menu_get_active_trail());
-  }
-  if ($theme = \Drupal::state()->get('menu_test.hook_custom_theme_name') ?: FALSE) {
-    return $theme;
-  }
 }
 
 /**

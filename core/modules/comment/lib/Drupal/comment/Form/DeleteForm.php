@@ -10,6 +10,7 @@ namespace Drupal\comment\Form;
 use Drupal\comment\CommentManagerInterface;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Entity\ContentEntityConfirmFormBase;
+use Drupal\Core\Entity\EntityManagerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -27,10 +28,13 @@ class DeleteForm extends ContentEntityConfirmFormBase {
   /**
    * Constructs a DeleteForm object.
    *
+   * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
+   *   The entity manager.
    * @param \Drupal\comment\CommentManagerInterface $comment_manager
    *   The comment manager service.
    */
-  public function __construct(CommentManagerInterface $comment_manager) {
+  public function __construct(EntityManagerInterface $entity_manager, CommentManagerInterface $comment_manager) {
+    parent::__construct($entity_manager);
     $this->commentManager = $comment_manager;
   }
 
@@ -39,6 +43,7 @@ class DeleteForm extends ContentEntityConfirmFormBase {
    */
   public static function create(ContainerInterface $container) {
     return new static(
+      $container->get('entity.manager'),
       $container->get('comment.manager')
     );
   }
@@ -58,7 +63,8 @@ class DeleteForm extends ContentEntityConfirmFormBase {
 
     // @todo Convert to getCancelRoute() after http://drupal.org/node/1987778.
     $uri = $this->commentManager->getParentEntityUri($this->entity);
-    $actions['cancel']['#href'] = $uri['path'];
+    $actions['cancel']['#route_name'] = $uri['route_name'];
+    $actions['cancel']['#route_parameters'] = $uri['route_parameters'];
 
     return $actions;
   }
@@ -94,8 +100,7 @@ class DeleteForm extends ContentEntityConfirmFormBase {
     // Clear the cache so an anonymous user sees that his comment was deleted.
     Cache::invalidateTags(array('content' => TRUE));
 
-    $uri = $this->commentManager->getParentEntityUri($this->entity);
-    $form_state['redirect'] = $uri['path'];
+    $form_state['redirect_route'] = $this->commentManager->getParentEntityUri($this->entity);
   }
 
 }

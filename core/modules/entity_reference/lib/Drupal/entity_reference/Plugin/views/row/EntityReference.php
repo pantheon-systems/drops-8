@@ -7,8 +7,6 @@
 
 namespace Drupal\entity_reference\Plugin\views\row;
 
-use Drupal\views\Annotation\ViewsRow;
-use Drupal\Core\Annotation\Translation;
 use Drupal\views\Plugin\views\row\Fields;
 
 /**
@@ -53,7 +51,7 @@ class EntityReference extends Fields {
   public function preRender($row) {
     // Force all fields to be inline by default.
     if (empty($this->options['inline'])) {
-      $fields = $this->view->getItems('field', $this->displayHandler->display['id']);
+      $fields = $this->view->getHandlers('field', $this->displayHandler->display['id']);
       $this->options['inline'] = drupal_map_assoc(array_keys($fields));
     }
 

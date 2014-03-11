@@ -2,13 +2,13 @@ base_field: id
 base_table: views_test_data
 core: 8.x
 description: ''
-status: '1'
+status: true
 display:
   default:
     display_plugin: default
     id: default
     display_title: Master
-    position: ''
+    position: null
     display_options:
       access:
         type: perm
@@ -21,7 +21,7 @@ display:
       pager:
         type: some
         options:
-          items_per_page: '5'
+          items_per_page: 5
       style:
         type: default
       row:
@@ -37,11 +37,11 @@ display:
     display_plugin: block
     id: block_1
     display_title: Block
-    position: ''
+    position: null
     display_options:
       field:
         title:
-          link_to_node: '1'
+          link_to_node: true
 label: test_view_block
 module: views
 id: test_view_block

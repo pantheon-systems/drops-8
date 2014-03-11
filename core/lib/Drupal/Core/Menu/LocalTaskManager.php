@@ -9,6 +9,7 @@ namespace Drupal\Core\Menu;
 
 use Drupal\Component\Plugin\Exception\PluginException;
 use Drupal\Core\Access\AccessManager;
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Controller\ControllerResolverInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
@@ -18,6 +19,7 @@ use Drupal\Core\Plugin\Discovery\ContainerDerivativeDiscoveryDecorator;
 use Drupal\Core\Plugin\Discovery\YamlDiscovery;
 use Drupal\Core\Plugin\Factory\ContainerFactory;
 use Drupal\Core\Routing\RouteProviderInterface;
+use Drupal\Core\Session\AccountInterface;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -39,10 +41,10 @@ class LocalTaskManager extends DefaultPluginManager {
     'route_parameters' => array(),
     // The static title for the local task.
     'title' => '',
-    // The plugin ID of the root tab.
-    'tab_root_id' => '',
+    // The route name where the root tab appears.
+    'base_route' => '',
     // The plugin ID of the parent tab (or NULL for the top-level tab).
-    'tab_parent_id' => NULL,
+    'parent_id' => NULL,
     // The weight of the tab.
     'weight' => NULL,
     // The default link options.
@@ -89,6 +91,13 @@ class LocalTaskManager extends DefaultPluginManager {
   protected $accessManager;
 
   /**
+   * The current user.
+   *
+   * @var \Drupal\Core\Session\AccountInterface
+   */
+  protected $account;
+
+  /**
    * Constructs a \Drupal\Core\Menu\LocalTaskManager object.
    *
    * @param \Drupal\Core\Controller\ControllerResolverInterface $controller_resolver
@@ -105,8 +114,10 @@ class LocalTaskManager extends DefaultPluginManager {
    *   The language manager.
    * @param \Drupal\Core\Access\AccessManager $access_manager
    *   The access manager.
+   * @param \Drupal\Core\Session\AccountInterface $account
+   *   The current user.
    */
-  public function __construct(ControllerResolverInterface $controller_resolver, Request $request, RouteProviderInterface $route_provider, ModuleHandlerInterface $module_handler, CacheBackendInterface $cache, LanguageManager $language_manager, AccessManager $access_manager) {
+  public function __construct(ControllerResolverInterface $controller_resolver, Request $request, RouteProviderInterface $route_provider, ModuleHandlerInterface $module_handler, CacheBackendInterface $cache, LanguageManager $language_manager, AccessManager $access_manager, AccountInterface $account) {
     $this->discovery = new YamlDiscovery('local_tasks', $module_handler->getModuleDirectories());
     $this->discovery = new ContainerDerivativeDiscoveryDecorator($this->discovery);
     $this->factory = new ContainerFactory($this);
@@ -114,6 +125,7 @@ class LocalTaskManager extends DefaultPluginManager {
     $this->request = $request;
     $this->routeProvider = $route_provider;
     $this->accessManager = $access_manager;
+    $this->account = $account;
     $this->alterInfo($module_handler, 'local_tasks');
     $this->setCacheBackend($cache, $language_manager, 'local_task_plugins', array('local_task' => TRUE));
   }
@@ -160,7 +172,7 @@ class LocalTaskManager extends DefaultPluginManager {
     if (!isset($this->instances[$route_name])) {
       $this->instances[$route_name] = array();
       if ($cache = $this->cacheBackend->get($this->cacheKey . ':' . $route_name)) {
-        $tab_root_ids = $cache->data['tab_root_ids'];
+        $base_routes = $cache->data['base_routes'];
         $parents = $cache->data['parents'];
         $children = $cache->data['children'];
       }
@@ -168,47 +180,56 @@ class LocalTaskManager extends DefaultPluginManager {
         $definitions = $this->getDefinitions();
         // We build the hierarchy by finding all tabs that should
         // appear on the current route.
-        $tab_root_ids = array();
+        $base_routes = array();
         $parents = array();
         $children = array();
         foreach ($definitions as $plugin_id => $task_info) {
+          // Fill in the base_route from the parent to insure consistency.
+          if (!empty($task_info['parent_id']) && !empty($definitions[$task_info['parent_id']])) {
+            $task_info['base_route'] = $definitions[$task_info['parent_id']]['base_route'];
+            // Populate the definitions we use in the next loop. Using a
+            // reference like &$task_info causes bugs.
+            $definitions[$plugin_id]['base_route'] = $definitions[$task_info['parent_id']]['base_route'];
+          }
           if ($route_name == $task_info['route_name']) {
-            $tab_root_ids[$task_info['tab_root_id']] = $task_info['tab_root_id'];
+            if(!empty($task_info['base_route'])) {
+              $base_routes[$task_info['base_route']] = $task_info['base_route'];
+            }
             // Tabs that link to the current route are viable parents
             // and their parent and children should be visible also.
             // @todo - this only works for 2 levels of tabs.
             // instead need to iterate up.
             $parents[$plugin_id] = TRUE;
-            if (!empty($task_info['tab_parent_id'])) {
-              $parents[$task_info['tab_parent_id']] = TRUE;
+            if (!empty($task_info['parent_id'])) {
+              $parents[$task_info['parent_id']] = TRUE;
             }
           }
         }
-        if ($tab_root_ids) {
+        if ($base_routes) {
           // Find all the plugins with the same root and that are at the top
           // level or that have a visible parent.
           foreach ($definitions  as $plugin_id => $task_info) {
-            if (!empty($tab_root_ids[$task_info['tab_root_id']]) && (empty($task_info['tab_parent_id']) || !empty($parents[$task_info['tab_parent_id']]))) {
+            if (!empty($base_routes[$task_info['base_route']]) && (empty($task_info['parent_id']) || !empty($parents[$task_info['parent_id']]))) {
               // Concat '> ' with root ID for the parent of top-level tabs.
-              $parent = empty($task_info['tab_parent_id']) ? '> ' . $task_info['tab_root_id'] : $task_info['tab_parent_id'];
+              $parent = empty($task_info['parent_id']) ? '> ' . $task_info['base_route'] : $task_info['parent_id'];
               $children[$parent][$plugin_id] = $task_info;
             }
           }
         }
         $data = array(
-          'tab_root_ids' => $tab_root_ids,
+          'base_routes' => $base_routes,
           'parents' => $parents,
           'children' => $children,
         );
-        $this->cacheBackend->set($this->cacheKey . ':' . $route_name, $data, CacheBackendInterface::CACHE_PERMANENT, array('local_task'));
+        $this->cacheBackend->set($this->cacheKey . ':' . $route_name, $data, Cache::PERMANENT, $this->cacheTags);
       }
       // Create a plugin instance for each element of the hierarchy.
-      foreach ($tab_root_ids as $root_id) {
+      foreach ($base_routes as $base_route) {
         // Convert the tree keyed by plugin IDs into a simple one with
         // integer depth.  Create instances for each plugin along the way.
         $level = 0;
         // We used this above as the top-level parent array key.
-        $next_parent = '> ' . $root_id;
+        $next_parent = '> ' . $base_route;
         do {
           $parent = $next_parent;
           $next_parent = FALSE;
@@ -265,15 +286,14 @@ class LocalTaskManager extends DefaultPluginManager {
         $route_parameters = $child->getRouteParameters($this->request);
 
         // Find out whether the user has access to the task.
-        $access = $this->accessManager->checkNamedRoute($route_name, $route_parameters);
+        $access = $this->accessManager->checkNamedRoute($route_name, $route_parameters, $this->account);
         if ($access) {
           $active = $this->isRouteActive($current_route_name, $route_name, $route_parameters);
 
           // The plugin may have been set active in getLocalTasksForRoute() if
           // one of its child tabs is the active tab.
           $active = $active || $child->getActive();
-          // @todo It might make sense to use menu link entities instead of
-          //   arrays.
+          // @todo It might make sense to use link render elements instead.
 
           $link = array(
             'title' => $this->getTitle($child),

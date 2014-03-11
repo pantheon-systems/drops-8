@@ -40,8 +40,6 @@ class BulkFormTest extends UserTestBase {
       'action' => 'user_block_user_action',
     );
     $this->drupalPostForm('test-user-bulk-form', $edit, t('Apply'));
-    // @todo Validation errors are only shown on page refresh.
-    $this->drupalGet('test-user-bulk-form');
     $this->assertText(t('No users selected.'));
 
     // Assign a role to a user.
@@ -84,7 +82,7 @@ class BulkFormTest extends UserTestBase {
 
     // Remove the user status filter from the view.
     $view = views_get_view('test_user_bulk_form');
-    $view->removeItem('default', 'filter', 'status');
+    $view->removeHandler('default', 'filter', 'status');
     $view->storage->save();
 
     // Ensure the anonymous user is found.

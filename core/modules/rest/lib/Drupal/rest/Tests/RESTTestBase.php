@@ -29,10 +29,32 @@ abstract class RESTTestBase extends WebTestBase {
    */
   protected $defaultMimeType;
 
+  /**
+   * The entity type to use for testing.
+   *
+   * @var string
+   */
+  protected $testEntityType = 'entity_test';
+
+  /**
+   * The default authentication provider to use for testing REST operations.
+   *
+   * @var array
+   */
+  protected $defaultAuth;
+
+  /**
+   * Modules to enable.
+   *
+   * @var array
+   */
+  public static $modules = array('rest', 'entity_test', 'node');
+
   protected function setUp() {
     parent::setUp();
     $this->defaultFormat = 'hal_json';
     $this->defaultMimeType = 'application/hal+json';
+    $this->defaultAuth = array('cookie');
     // Create a test content type for node testing.
     $this->drupalCreateContentType(array('name' => 'resttest', 'type' => 'resttest'));
   }
@@ -198,25 +220,31 @@ abstract class RESTTestBase extends WebTestBase {
    * @param array $auth
    *   (Optional) The list of valid authentication methods.
    */
-  protected function enableService($resource_type, $method = 'GET', $format = NULL, $auth = array()) {
+  protected function enableService($resource_type, $method = 'GET', $format = NULL, $auth = NULL) {
     // Enable REST API for this entity type.
     $config = \Drupal::config('rest.settings');
     $settings = array();
+
     if ($resource_type) {
-      if ($format) {
-        $settings[$resource_type][$method]['supported_formats'][] = $format;
+      if ($format == NULL) {
+        $format = $this->defaultFormat;
       }
-      else {
-        $settings[$resource_type][$method] = array();
+      $settings[$resource_type][$method]['supported_formats'][] = $format;
+
+      if ($auth == NULL) {
+        $auth = $this->defaultAuth;
       }
-    }
-    if (is_array($auth) && !empty($auth)) {
       $settings[$resource_type][$method]['supported_auth'] = $auth;
     }
-
     $config->set('resources', $settings);
     $config->save();
+    $this->rebuildCache();
+  }
 
+  /**
+   * Rebuilds routing caches.
+   */
+  protected function rebuildCache() {
     // Rebuild routing cache, so that the REST API paths are available.
     $this->container->get('router.builder')->rebuild();
     // Reset the Simpletest permission cache, so that the new resource
@@ -294,5 +322,20 @@ abstract class RESTTestBase extends WebTestBase {
             return array('delete any resttest content');
         }
     }
+  }
+
+  /**
+   * Loads an entity based on the location URL returned in the location header.
+   *
+   * @param string $location_url
+   *   The URL returned in the Location header.
+   *
+   * @return \Drupal\Core\Entity\Entity|FALSE.
+   *   The entity or FALSE if there is no matching entity.
+   */
+  protected function loadEntityFromLocationHeader($location_url) {
+    $url_parts = explode('/', $location_url);
+    $id = end($url_parts);
+    return entity_load($this->testEntityType, $id);
   }
 }

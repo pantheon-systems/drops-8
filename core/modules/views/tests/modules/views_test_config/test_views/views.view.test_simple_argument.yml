@@ -51,7 +51,6 @@ display:
           wildcard: all
           wildcard_substitution: All
           title: ''
-          breadcrumb: ''
           default_argument_type: fixed
           default_argument: ''
           validate:
@@ -84,7 +83,7 @@ display:
     display_plugin: default
     display_title: Master
     id: default
-    position: '0'
+    position: 0
 label: ''
 id: test_simple_argument
 tag: ''

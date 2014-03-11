@@ -7,34 +7,34 @@
 
 namespace Drupal\edit_test\Plugin\InPlaceEditor;
 
-use Drupal\edit\EditorBase;
-use Drupal\edit\Annotation\InPlaceEditor;
-use Drupal\Core\Entity\Field\FieldDefinitionInterface;
+use Drupal\Core\Field\FieldItemListInterface;
+use Drupal\edit\Plugin\InPlaceEditorBase;
 
 /**
- * Defines the wysiwyg editor.
+ * Defines the 'wysiwyg' in-place editor.
  *
  * @InPlaceEditor(
  *   id = "wysiwyg",
- *   alternativeTo = {"direct"}
+ *   alternativeTo = {"plain_text"}
  * )
  */
-class WysiwygEditor extends EditorBase {
+class WysiwygEditor extends InPlaceEditorBase {
 
   /**
    * {@inheritdoc}
    */
-  function isCompatible(FieldDefinitionInterface $field_definition, array $items) {
+  public function isCompatible(FieldItemListInterface $items) {
+    $field_definition = $items->getFieldDefinition();
+
     // This editor is incompatible with multivalued fields.
-    if ($field_definition->getFieldCardinality() != 1) {
+    if ($field_definition->getCardinality() != 1) {
       return FALSE;
     }
     // This editor is compatible with processed ("rich") text fields; but only
     // if there is a currently active text format and that text format is the
     // 'full_html' text format.
-    elseif ($field_definition->getFieldSetting('text_processing')) {
-      $format_id = $items[0]['format'];
-      if (isset($format_id) && $format_id === 'full_html') {
+    elseif ($field_definition->getSetting('text_processing')) {
+      if ($items[0]->format === 'full_html') {
         return TRUE;
       }
       return FALSE;
@@ -44,14 +44,13 @@ class WysiwygEditor extends EditorBase {
   /**
    * {@inheritdoc}
    */
-  function getMetadata(FieldDefinitionInterface $field_definition, array $items) {
-    $format_id = $items[0]['format'];
-    $metadata['format'] = $format_id;
+  public function getMetadata(FieldItemListInterface $items) {
+    $metadata['format'] = $items[0]->format;
     return $metadata;
   }
 
   /**
-   * Implements \Drupal\edit\EditPluginInterface::getAttachments().
+   * {@inheritdoc}
    */
   public function getAttachments() {
     return array(
@@ -60,4 +59,5 @@ class WysiwygEditor extends EditorBase {
       ),
     );
   }
+
 }

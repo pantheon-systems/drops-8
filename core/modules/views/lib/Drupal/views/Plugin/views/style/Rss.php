@@ -7,9 +7,6 @@
 
 namespace Drupal\views\Plugin\views\style;
 
-use Drupal\views\Annotation\ViewsStyle;
-use Drupal\Core\Annotation\Translation;
-
 /**
  * Default style plugin to render an RSS feed.
  *
@@ -44,7 +41,8 @@ class Rss extends StylePluginBase {
     $url = url($this->view->getUrl(NULL, $path), $url_options);
     if ($display->hasPath()) {
       if (empty($this->preview)) {
-        drupal_add_feed($url, $title);
+        $build['#attached']['drupal_add_feed'][] = array($url, $title);
+        drupal_render($build);
       }
     }
     else {
@@ -56,13 +54,13 @@ class Rss extends StylePluginBase {
         '#url' => $url,
         '#title' => $title,
       );
-      $this->view->feed_icon .= drupal_render($feed_icon);
-      drupal_add_html_head_link(array(
+      $feed_icon['#attached']['drupal_add_html_head_link'][][] = array(
         'rel' => 'alternate',
         'type' => 'application/rss+xml',
         'title' => $title,
-        'href' => $url
-      ));
+        'href' => $url,
+      );
+      $this->view->feed_icon .= drupal_render($feed_icon);
     }
   }
 
@@ -136,14 +134,14 @@ class Rss extends StylePluginBase {
       $rows .= $this->view->rowPlugin->render($row);
     }
 
-    $output = theme($this->themeFunctions(),
-      array(
-        'view' => $this->view,
-        'options' => $this->options,
-        'rows' => $rows
-      ));
+    $build = array(
+      '#theme' => $this->themeFunctions(),
+      '#view' => $this->view,
+      '#options' => $this->options,
+      '#rows' => $rows,
+    );
     unset($this->view->row_index);
-    return $output;
+    return drupal_render($build);
   }
 
 }

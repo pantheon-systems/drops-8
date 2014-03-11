@@ -7,9 +7,8 @@
 
 namespace Drupal\language\Form;
 
-use Drupal\Core\Config\ConfigFactory;
-use Drupal\Core\Config\Context\ContextInterface;
-use Drupal\Core\Entity\EntityManager;
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Form\ConfigFormBase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -21,22 +20,20 @@ class ContentLanguageSettingsForm extends ConfigFormBase {
   /**
    * The entity manager.
    *
-   * @var \Drupal\Core\Entity\EntityManager
+   * @var \Drupal\Core\Entity\EntityManagerInterface
    */
   protected $entityManager;
 
   /**
    * Constructs a ContentLanguageSettingsForm object.
    *
-   * @param \Drupal\Core\Config\ConfigFactory $config_factory
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The config factory.
-   * @param \Drupal\Core\Config\Context\ContextInterface $context
-   *   The configuration context to use.
-   * @param \Drupal\Core\Entity\EntityManager $entity_manager
+   * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
    *   The entity manager.
    */
-  public function __construct(ConfigFactory $config_factory, ContextInterface $context, EntityManager $entity_manager) {
-    parent::__construct($config_factory, $context);
+  public function __construct(ConfigFactoryInterface $config_factory, EntityManagerInterface $entity_manager) {
+    parent::__construct($config_factory);
 
     $this->entityManager = $entity_manager;
   }
@@ -47,8 +44,7 @@ class ContentLanguageSettingsForm extends ConfigFormBase {
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('config.factory'),
-      $container->get('config.context.free'),
-      $container->get('plugin.manager.entity')
+      $container->get('entity.manager')
     );
   }
 
@@ -60,9 +56,9 @@ class ContentLanguageSettingsForm extends ConfigFormBase {
    */
   protected function entitySupported() {
     $supported = array();
-    foreach ($this->entityManager->getDefinitions() as $entity_type => $info) {
-      if (!empty($info['translatable'])) {
-        $supported[$entity_type] = $entity_type;
+    foreach ($this->entityManager->getDefinitions() as $entity_type_id => $entity_type) {
+      if ($entity_type->isTranslatable()) {
+        $supported[$entity_type_id] = $entity_type_id;
       }
     }
     return $supported;
@@ -79,23 +75,23 @@ class ContentLanguageSettingsForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, array &$form_state) {
-    $entity_info = $this->entityManager->getDefinitions();
+    $entity_types = $this->entityManager->getDefinitions();
     $labels = array();
     $default = array();
 
     $bundles = entity_get_bundles();
     $language_configuration = array();
-    foreach ($this->entitySupported() as $entity_type) {
-      $labels[$entity_type] = isset($entity_info[$entity_type]['label']) ? $entity_info[$entity_type]['label'] : $entity_type;
-      $default[$entity_type] = FALSE;
+    foreach ($this->entitySupported() as $entity_type_id) {
+      $labels[$entity_type_id] = $entity_types[$entity_type_id]->getLabel() ?: $entity_type_id;
+      $default[$entity_type_id] = FALSE;
 
       // Check whether we have any custom setting.
       foreach ($bundles as $bundle => $bundle_info) {
-        $conf = language_get_default_configuration($entity_type, $bundle);
+        $conf = language_get_default_configuration($entity_type_id, $bundle);
         if (!empty($conf['language_show']) || $conf['langcode'] != 'site_default') {
-          $default[$entity_type] = $entity_type;
+          $default[$entity_type_id] = $entity_type_id;
         }
-        $language_configuration[$entity_type][$bundle] = $conf;
+        $language_configuration[$entity_type_id][$bundle] = $conf;
       }
     }
 
@@ -119,33 +115,33 @@ class ContentLanguageSettingsForm extends ConfigFormBase {
 
     $form['settings'] = array('#tree' => TRUE);
 
-    foreach ($labels as $entity_type => $label) {
-      $info = $entity_info[$entity_type];
+    foreach ($labels as $entity_type_id => $label) {
+      $entity_type = $entity_types[$entity_type_id];
 
-      $form['settings'][$entity_type] = array(
+      $form['settings'][$entity_type_id] = array(
         '#title' => $label,
         '#type' => 'container',
-        '#entity_type' => $entity_type,
+        '#entity_type' => $entity_type_id,
         '#theme' => 'language_content_settings_table',
-        '#bundle_label' => isset($info['bundle_label']) ? $info['bundle_label'] : $label,
+        '#bundle_label' => $entity_type->getBundleLabel() ?: $label,
         '#states' => array(
           'visible' => array(
-            ':input[name="entity_types[' . $entity_type . ']"]' => array('checked' => TRUE),
+            ':input[name="entity_types[' . $entity_type_id . ']"]' => array('checked' => TRUE),
           ),
         ),
       );
 
       foreach ($bundles as $bundle => $bundle_info) {
-        $form['settings'][$entity_type][$bundle]['settings'] = array(
+        $form['settings'][$entity_type_id][$bundle]['settings'] = array(
           '#type' => 'item',
           '#label' => $bundle_info['label'],
           'language' => array(
             '#type' => 'language_configuration',
             '#entity_information' => array(
-              'entity_type' => $entity_type,
+              'entity_type' => $entity_type_id,
               'bundle' => $bundle,
             ),
-            '#default_value' => $language_configuration[$entity_type][$bundle],
+            '#default_value' => $language_configuration[$entity_type_id][$bundle],
           ),
         );
       }

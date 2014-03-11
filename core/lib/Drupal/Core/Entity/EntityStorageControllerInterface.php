@@ -11,8 +11,8 @@ namespace Drupal\Core\Entity;
  * Defines a common interface for entity controller classes.
  *
  * All entity controller classes specified via the "controllers['storage']" key
- * returned by \Drupal\Core\Entity\EntityManager or hook_entity_info_alter()
- * have to implement this interface.
+ * returned by \Drupal\Core\Entity\EntityManagerInterface or
+ * hook_entity_info_alter() have to implement this interface.
  *
  * Most simple, SQL-based entity controllers will do better by extending
  * Drupal\Core\Entity\DatabaseStorageController instead of implementing this
@@ -111,14 +111,14 @@ interface EntityStorageControllerInterface {
   /**
    * Constructs a new entity object, without permanently saving it.
    *
-   * @param $values
-   *   An array of values to set, keyed by property name. If the entity type has
-   *   bundles the bundle key has to be specified.
+   * @param array $values
+   *   (optional) An array of values to set, keyed by property name. If the
+   *   entity type has bundles, the bundle key has to be specified.
    *
    * @return \Drupal\Core\Entity\EntityInterface
    *   A new entity object.
    */
-  public function create(array $values);
+  public function create(array $values = array());
 
   /**
    * Deletes permanently saved entities.
@@ -150,7 +150,24 @@ interface EntityStorageControllerInterface {
    * Gets the name of the service for the query for this entity storage.
    *
    * @return string
+   *   The name of the service for the query for this entity storage.
    */
   public function getQueryServicename();
+
+  /**
+   * Returns the entity type ID.
+   *
+   * @return string
+   *   The entity type ID.
+   */
+  public function getEntityTypeId();
+
+  /**
+   * Returns the entity type definition.
+   *
+   * @return \Drupal\Core\Entity\EntityTypeInterface
+   *   Entity type definition.
+   */
+  public function getEntityType();
 
 }

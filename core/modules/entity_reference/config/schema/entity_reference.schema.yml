@@ -1,0 +1,147 @@
+# Schema for the configuration files of the Entity Reference module.
+
+field.entity_reference.settings:
+  type: mapping
+  label: 'Settings'
+  mapping:
+    target_type:
+      type: string
+      label: 'Type of item to reference'
+
+field.entity_reference.instance_settings:
+  type: mapping
+  label: 'Entity reference settings'
+  mapping:
+    handler:
+      type: string
+      label: 'Reference method'
+    handler_settings:
+      type: entity_reference.[%parent.handler].handler_settings
+      label: 'Reference method settings'
+
+field.entity_reference.value:
+  type: sequence
+  label: 'Default value'
+  sequence:
+    - type: mapping
+      label: 'Default'
+      mapping:
+        target_id:
+          type: integer
+          label: 'Value'
+
+entity_reference.default.handler_settings:
+  type: mapping
+  label: 'View handler settings'
+  mapping:
+    target_bundles:
+      type: sequence
+      label: 'types'
+      sequence:
+        - type: string
+          label: 'Type'
+    sort:
+      type: mapping
+      label: 'Sort settings'
+      mapping:
+        field:
+          type: string
+          label: 'Sort by'
+        direction:
+          type: string
+          label: 'Sort direction'
+    filter:
+      type: mapping
+      label: 'Filter settings'
+      mapping:
+        type:
+          type: string
+          label: 'Filter by'
+        role:
+          type: sequence
+          label: 'Restrict to the selected roles'
+          sequence:
+            - type: string
+              label: 'Role'
+    auto_create:
+      type: boolean
+      label: 'Create referenced entities if they don''t already exist'
+
+entity_view_display.field.entity_reference_entity_view:
+  type: entity_field_view_display_base
+  label: 'Entity reference rendered entity display format settings'
+  mapping:
+    settings:
+      type: mapping
+      label: 'Settings'
+      mapping:
+        view_mode:
+          type: string
+          label: 'View mode'
+        link:
+          type: boolean
+          label: 'Show links'
+
+entity_view_display.field.entity_reference_entity_id:
+  type: entity_field_view_display_base
+  label: 'Entity reference entity ID display format settings'
+  mapping:
+    settings:
+      type: sequence
+      label: 'Settings'
+      sequence:
+        - type: string
+
+entity_view_display.field.entity_reference_label:
+  type: entity_field_view_display_base
+  label: 'Entity reference label display format settings'
+  mapping:
+    settings:
+      type: mapping
+      label: 'Settings'
+      mapping:
+        link:
+          type: boolean
+          label: 'Link label to the referenced entity'
+
+entity_form_display.field.entity_reference_autocomplete_tags:
+  type: entity_field_form_display_base
+  label: 'Entity reference autocomplete (Tags style) display format settings'
+  mapping:
+    settings:
+      type: mapping
+      label: 'Settings'
+      mapping:
+        match_operator:
+          type: string
+          label: 'Autocomplete matching'
+        size:
+          type: integer
+          label: 'Size of textfield'
+        autocomplete_type:
+          type: string
+          label: 'Autocomplete type'
+        placeholder:
+          type: label
+          label: 'Placeholder'
+
+entity_form_display.field.entity_reference_autocomplete:
+  type: entity_field_form_display_base
+  label: 'Entity reference autocomplete display format settings'
+  mapping:
+    settings:
+      type: mapping
+      label: 'Settings'
+      mapping:
+        match_operator:
+          type: string
+          label: 'Autocomplete matching'
+        size:
+          type: integer
+          label: 'Size of textfield'
+        autocomplete_type:
+          type: string
+          label: 'Autocomplete type'
+        placeholder:
+          type: label
+          label: 'Placeholder'

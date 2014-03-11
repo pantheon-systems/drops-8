@@ -7,8 +7,6 @@
 
 namespace Drupal\filter_test\Plugin\Filter;
 
-use Drupal\filter\Annotation\Filter;
-use Drupal\Core\Annotation\Translation;
 use Drupal\filter\Plugin\FilterBase;
 use Drupal\Component\Utility\Xss;
 
@@ -17,10 +15,9 @@ use Drupal\Component\Utility\Xss;
  *
  * @Filter(
  *   id = "filter_test_restrict_tags_and_attributes",
- *   module = "filter_test",
  *   title = @Translation("Tag and attribute restricting filter"),
- *   description = @Translation("Used for testing filter_get_html_restrictions_by_format()."),
- *   type = FILTER_TYPE_HTML_RESTRICTOR
+ *   description = @Translation("Used for testing \Drupal\filter\Entity\FilterFormatInterface::getHtmlRestrictions()."),
+ *   type = Drupal\filter\Plugin\FilterInterface::TYPE_HTML_RESTRICTOR
  * )
  */
 class FilterTestRestrictTagsAndAttributes extends FilterBase {

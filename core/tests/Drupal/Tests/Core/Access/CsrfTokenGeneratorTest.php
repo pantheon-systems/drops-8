@@ -49,7 +49,6 @@ class CsrfTokenGeneratorTest extends UnitTestCase {
       ->will($this->returnValue($this->key));
 
     $this->generator = new CsrfTokenGenerator($private_key);
-    $this->generator->setRequest(new Request());
   }
 
   /**
@@ -79,20 +78,78 @@ class CsrfTokenGeneratorTest extends UnitTestCase {
     $account->expects($this->once())
       ->method('isAnonymous')
       ->will($this->returnValue(TRUE));
-    $request = new Request();
-    $request->attributes->set('_account', $account);
-    $this->generator->setRequest($request);
+    $this->generator->setCurrentUser($account);
     $this->assertTrue($this->generator->validate($token, 'foo', TRUE));
 
     $account = $this->getMock('Drupal\Core\Session\AccountInterface');
     $account->expects($this->once())
       ->method('isAnonymous')
       ->will($this->returnValue(FALSE));
-    $request = new Request();
-    $request->attributes->set('_account', $account);
-    $this->generator->setRequest($request);
+    $this->generator->setCurrentUser($account);
 
     $this->assertFalse($this->generator->validate($token, 'foo', TRUE));
+  }
+
+  /**
+   * Tests CsrfTokenGenerator::validate() with different parameter types.
+   *
+   * @param mixed $token
+   *   The token to be validated.
+   * @param mixed $value
+   *   (optional) An additional value to base the token on.
+   *
+   * @dataProvider providerTestValidateParameterTypes
+   */
+  public function testValidateParameterTypes($token, $value) {
+    // The following check might throw PHP fatals and notices, so we disable
+    // error assertions.
+    set_error_handler(function () {return TRUE;});
+    $this->assertFalse($this->generator->validate($token, $value));
+    restore_error_handler();
+  }
+
+  /**
+   * Provides data for testValidateParameterTypes.
+   *
+   * @return array
+   *   An array of data used by the test.
+   */
+  public function providerTestValidateParameterTypes() {
+    return array(
+      array(array(), ''),
+      array(TRUE, 'foo'),
+      array(0, 'foo'),
+    );
+  }
+
+  /**
+   * Tests CsrfTokenGenerator::validate() with invalid parameter types.
+   *
+   * @param mixed $token
+   *   The token to be validated.
+   * @param mixed $value
+   *   (optional) An additional value to base the token on.
+   *
+   * @dataProvider providerTestInvalidParameterTypes
+   * @expectedException InvalidArgumentException
+   */
+  public function testInvalidParameterTypes($token, $value = '') {
+    $this->generator->validate($token, $value);
+  }
+
+  /**
+   * Provides data for testInvalidParameterTypes.
+   *
+   * @return array
+   *   An array of data used by the test.
+   */
+  public function providerTestInvalidParameterTypes() {
+    return array(
+      array(NULL, new \stdClass()),
+      array(0, array()),
+      array('', array()),
+      array(array(), array()),
+    );
   }
 
 }

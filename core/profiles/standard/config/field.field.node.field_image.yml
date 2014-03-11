@@ -4,10 +4,14 @@ name: field_image
 entity_type: node
 type: image
 module: image
-active: '1'
 settings:
   uri_scheme: public
-  default_image: false
+  default_image:
+    fid: null
+    alt: ''
+    title: ''
+    width: null
+    height: null
   column_groups:
     file:
       label: File
@@ -21,11 +25,11 @@ settings:
     title:
       label: Title
       translatable: true
-locked: '0'
-cardinality: '1'
-translatable: '0'
+locked: false
+cardinality: 1
+translatable: false
 indexes:
   target_id:
     - target_id
-status: 1
+status: true
 langcode: und

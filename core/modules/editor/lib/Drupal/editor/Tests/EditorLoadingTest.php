@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Definition of \Drupal\editor\Tests\EditorLoadingTest.
+ * Contains \Drupal\editor\Tests\EditorLoadingTest.
  */
 
 namespace Drupal\editor\Tests;
@@ -29,7 +29,7 @@ class EditorLoadingTest extends WebTestBase {
     );
   }
 
-  function setUp() {
+  public function setUp() {
     parent::setUp();
 
     // Add text formats.
@@ -66,7 +66,7 @@ class EditorLoadingTest extends WebTestBase {
   /**
    * Tests loading of text editors.
    */
-  function testLoading() {
+  public function testLoading() {
     // Only associate a text editor with the "Full HTML" text format.
     $editor = entity_create('editor', array(
       'format' => 'full_html',
@@ -79,7 +79,7 @@ class EditorLoadingTest extends WebTestBase {
     // - doesn't have access to the full_html text format, so: no text editor.
     $this->drupalLogin($this->normal_user);
     $this->drupalGet('node/add/article');
-    list($settings, $editor_settings_present, $editor_js_present, $body, $format_selector) = $this->getThingsToCheck();
+    list( , $editor_settings_present, $editor_js_present, $body, $format_selector) = $this->getThingsToCheck();
     $this->assertFalse($editor_settings_present, 'No Text Editor module settings.');
     $this->assertFalse($editor_js_present, 'No Text Editor JavaScript.');
     $this->assertTrue(count($body) === 1, 'A body field exists.');
@@ -96,6 +96,8 @@ class EditorLoadingTest extends WebTestBase {
       'format' => 'full_html',
       'editor' => 'unicorn',
       'editorSettings' => array('ponyModeEnabled' => TRUE),
+      'editorSupportsContentFiltering' => TRUE,
+      'isXssSafe' => FALSE,
     )));
     $this->assertTrue($editor_settings_present, "Text Editor module's JavaScript settings are on the page.");
     $this->assertIdentical($expected, $settings['editor'], "Text Editor module's JavaScript settings on the page are correct.");
@@ -123,6 +125,8 @@ class EditorLoadingTest extends WebTestBase {
       'format' => 'plain_text',
       'editor' => 'unicorn',
       'editorSettings' => array('ponyModeEnabled' => TRUE),
+      'editorSupportsContentFiltering' => TRUE,
+      'isXssSafe' => FALSE,
     )));
     $this->assertTrue($editor_settings_present, "Text Editor module's JavaScript settings are on the page.");
     $this->assertIdentical($expected, $settings['editor'], "Text Editor module's JavaScript settings on the page are correct.");
@@ -144,7 +148,7 @@ class EditorLoadingTest extends WebTestBase {
     // The untrusted user tries to edit content that is written in a text format
     // that (s)he is not allowed to use.
     $this->drupalGet('node/1/edit');
-    list($settings, $editor_settings_present, $editor_js_present, $body, $format_selector) = $this->getThingsToCheck();
+    list( , $editor_settings_present, $editor_js_present, $body, $format_selector) = $this->getThingsToCheck();
     $this->assertFalse($editor_settings_present, 'No Text Editor module settings.');
     $this->assertFalse($editor_js_present, 'No Text Editor JavaScript.');
     $this->assertTrue(count($body) === 1, 'A body field exists.');
@@ -169,4 +173,5 @@ class EditorLoadingTest extends WebTestBase {
       $this->xpath('//select[contains(@class, "filter-list")]'),
     );
   }
+
 }

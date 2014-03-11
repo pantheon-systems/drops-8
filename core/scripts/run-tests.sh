@@ -6,7 +6,7 @@
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-use Drupal\Core\StreamWrapper\PublicStream;
+use Drupal\Component\Utility\Timer;
 
 const SIMPLETEST_SCRIPT_COLOR_PASS = 32; // Green.
 const SIMPLETEST_SCRIPT_COLOR_FAIL = 31; // Red.
@@ -33,12 +33,16 @@ else {
 
 // Bootstrap to perform initial validation or other operations.
 drupal_bootstrap(DRUPAL_BOOTSTRAP_CODE);
-simpletest_classloader_register();
 
 if (!\Drupal::moduleHandler()->moduleExists('simpletest')) {
-  simpletest_script_print_error("The simpletest module must be enabled before this script can run.");
+  simpletest_script_print_error("The Testing (simpletest) module must be installed before this script can run.");
   exit;
 }
+simpletest_classloader_register();
+// We have to add a Request.
+$request = \Symfony\Component\HttpFoundation\Request::createFromGlobals();
+$container = \Drupal::getContainer();
+$container->set('request', $request);
 
 if ($args['clean']) {
   // Clean up left-over times and directories.
@@ -201,7 +205,7 @@ function simpletest_script_parse_args() {
     'php' => '',
     'concurrency' => 1,
     'all' => FALSE,
-    'module' => FALSE,
+    'module' => NULL,
     'class' => FALSE,
     'file' => FALSE,
     'color' => FALSE,
@@ -266,6 +270,8 @@ function simpletest_script_init($server_software) {
 
   $host = 'localhost';
   $path = '';
+  $port = '80';
+
   // Determine location of php command automatically, unless a command line argument is supplied.
   if (!empty($args['php'])) {
     $php = $args['php'];
@@ -289,7 +295,8 @@ function simpletest_script_init($server_software) {
   if (!empty($args['url'])) {
     $parsed_url = parse_url($args['url']);
     $host = $parsed_url['host'] . (isset($parsed_url['port']) ? ':' . $parsed_url['port'] : '');
-    $path = isset($parsed_url['path']) ? rtrim($parsed_url['path']) : '';
+    $path = isset($parsed_url['path']) ? rtrim(rtrim($parsed_url['path']), '/') : '';
+    $port = (isset($parsed_url['port']) ? $parsed_url['port'] : $port);
     if ($path == '/') {
       $path = '';
     }
@@ -303,6 +310,7 @@ function simpletest_script_init($server_software) {
   $_SERVER['HTTP_HOST'] = $host;
   $_SERVER['REMOTE_ADDR'] = '127.0.0.1';
   $_SERVER['SERVER_ADDR'] = '127.0.0.1';
+  $_SERVER['SERVER_PORT'] = $port;
   $_SERVER['SERVER_SOFTWARE'] = $server_software;
   $_SERVER['SERVER_NAME'] = 'localhost';
   $_SERVER['REQUEST_URI'] = $path .'/';
@@ -326,6 +334,10 @@ function simpletest_script_init($server_software) {
 /**
  * Get all available tests from simpletest and PHPUnit.
  *
+ * @param string $module
+ *   Name of a module. If set then only tests belonging to this module are
+ *   returned.
+ *
  * @return
  *   An array of tests keyed with the groups specified in each of the tests
  *   getInfo() method and then keyed by the test class. An example of the array
@@ -341,9 +353,9 @@ function simpletest_script_init($server_software) {
  *     );
  *   @endcode
  */
-function simpletest_script_get_all_tests() {
-  $tests = simpletest_test_get_all();
-  $tests['PHPUnit'] = simpletest_phpunit_get_available_tests();
+function simpletest_script_get_all_tests($module = NULL) {
+  $tests = simpletest_test_get_all($module);
+  $tests['PHPUnit'] = simpletest_phpunit_get_available_tests($module);
   return $tests;
 }
 
@@ -403,8 +415,7 @@ function simpletest_script_execute_batch($test_classes) {
           echo 'FATAL ' . $child['class'] . ': test runner returned a non-zero error code (' . $status['exitcode'] . ').' . "\n";
           if ($args['die-on-fail']) {
             list($db_prefix, ) = simpletest_last_test_get($child['test_id']);
-            $public_files = PublicStream::basePath();
-            $test_directory = $public_files . '/simpletest/' . substr($db_prefix, 10);
+            $test_directory = 'sites/simpletest/' . substr($db_prefix, 10);
             echo 'Simpletest database and files kept and test exited immediately on fail so should be reproducible if you change settings.php to use the database prefix '. $db_prefix . ' and config directories in '. $test_directory . "\n";
             $args['keep-results'] = TRUE;
             // Exit repeat loop immediately.
@@ -472,20 +483,20 @@ function simpletest_script_run_phpunit($test_id, $class) {
  * Bootstrap Drupal and run a single test.
  */
 function simpletest_script_run_one_test($test_id, $test_class) {
-  global $args, $conf;
+  global $args;
 
   try {
     // Bootstrap Drupal.
     drupal_bootstrap(DRUPAL_BOOTSTRAP_CODE);
-
     simpletest_classloader_register();
-
-    // Override configuration according to command line parameters.
-    $conf['simpletest.settings']['verbose'] = $args['verbose'];
-    $conf['simpletest.settings']['clear_results'] = !$args['keep-results'];
+    // We have to add a Request.
+    $request = \Symfony\Component\HttpFoundation\Request::createFromGlobals();
+    $container = \Drupal::getContainer();
+    $container->set('request', $request);
 
     $test = new $test_class($test_id);
     $test->dieOnFail = (bool) $args['die-on-fail'];
+    $test->verbose = (bool) $args['verbose'];
     $test->run();
     $info = $test->getInfo();
 
@@ -570,10 +581,9 @@ function simpletest_script_cleanup($test_id, $test_class, $exitcode) {
   // Read the log file in case any fatal errors caused the test to crash.
   simpletest_log_read($test_id, $db_prefix, $test_class);
 
-  // Check whether a test file directory was setup already.
-  // @see prepareEnvironment()
-  $public_files = PublicStream::basePath();
-  $test_directory = $public_files . '/simpletest/' . substr($db_prefix, 10);
+  // Check whether a test site directory was setup already.
+  // @see \Drupal\simpletest\TestBase::prepareEnvironment()
+  $test_directory = DRUPAL_ROOT . '/sites/simpletest/' . substr($db_prefix, 10);
   if (is_dir($test_directory)) {
     // Output the error_log.
     if (is_file($test_directory . '/error.log')) {
@@ -582,8 +592,7 @@ function simpletest_script_cleanup($test_id, $test_class, $exitcode) {
         $messages[] = $errors;
       }
     }
-
-    // Delete the test files directory.
+    // Delete the test site directory.
     // simpletest_clean_temporary_directories() cannot be used here, since it
     // would also delete file directories of other tests that are potentially
     // running concurrently.
@@ -619,8 +628,8 @@ function simpletest_script_get_test_list() {
   global $args;
 
   $test_list = array();
-  if ($args['all']) {
-    $groups = simpletest_script_get_all_tests();
+  if ($args['all'] || $args['module']) {
+    $groups = simpletest_script_get_all_tests($args['module']);
     $all_tests = array();
     foreach ($groups as $group => $tests) {
       $all_tests = array_merge($all_tests, array_keys($tests));
@@ -631,20 +640,6 @@ function simpletest_script_get_test_list() {
     if ($args['class']) {
       foreach ($args['test_names'] as $class_name) {
         $test_list[] = $class_name;
-      }
-    }
-    elseif ($args['module']) {
-      $modules = drupal_system_listing('/^' . DRUPAL_PHP_FUNCTION_PATTERN . '\.module$/', 'modules', 'name', 0);
-      foreach ($args['test_names'] as $module) {
-        // PSR-0 only.
-        $dir = dirname($modules[$module]->uri) . "/lib/Drupal/$module/Tests";
-        $files = file_scan_directory($dir, '@\.php$@', array(
-          'key' => 'name',
-          'recurse' => TRUE,
-        ));
-        foreach ($files as $test => $file) {
-          $test_list[] = "Drupal\\$module\\Tests\\$test";
-        }
       }
     }
     elseif ($args['file']) {
@@ -668,7 +663,10 @@ function simpletest_script_get_test_list() {
         }
         else {
           foreach ($matches[1] as $class_name) {
-            $test_list[] = $namespace . '\\' . $class_name;
+            $namespace_class = $namespace . '\\' . $class_name;
+            if (is_subclass_of($namespace_class, '\Drupal\simpletest\TestBase') || is_subclass_of($namespace_class, '\Drupal\Tests\UnitTestCase')) {
+              $test_list[] = $namespace_class;
+            }
           }
         }
       }
@@ -720,7 +718,7 @@ function simpletest_script_reporter_init() {
 
   echo "Test run started:\n";
   echo " " . format_date($_SERVER['REQUEST_TIME'], 'long') . "\n";
-  timer_start('run-tests');
+  Timer::start('run-tests');
   echo "\n";
 
   echo "Test summary\n";
@@ -803,7 +801,7 @@ function simpletest_script_reporter_write_xml_results() {
  */
 function simpletest_script_reporter_timer_stop() {
   echo "\n";
-  $end = timer_stop('run-tests');
+  $end = Timer::stop('run-tests');
   echo "Test run duration: " . format_interval($end['time'] / 1000);
   echo "\n\n";
 }

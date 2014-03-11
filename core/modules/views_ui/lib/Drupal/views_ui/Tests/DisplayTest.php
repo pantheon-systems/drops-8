@@ -9,11 +9,12 @@ namespace Drupal\views_ui\Tests;
 
 use Drupal\Component\Utility\String;
 
+use Drupal\views\Views;
+use Drupal\Core\Template\Attribute;
+
 /**
  * Tests the handling of displays in the UI, adding removing etc.
  */
-use Drupal\views\Views;
-
 class DisplayTest extends UITestBase {
 
   /**
@@ -219,13 +220,13 @@ class DisplayTest extends UITestBase {
     $definitions = Views::pluginManager('display')->getDefinitions();
 
     $expected = array(
-      'parent path' => 'admin/structure/views/view',
-      'argument properties' => array('id'),
+      'route_name' => 'views_ui.edit',
+      'route_parameters_names' => array('view' => 'id'),
     );
 
     // Test the expected views_ui array exists on each definition.
     foreach ($definitions as $definition) {
-      $this->assertIdentical($definition['contextual links']['views_ui'], $expected, 'Expected views_ui array found in plugin definition.');
+      $this->assertIdentical($definition['contextual links']['views_ui_edit'], $expected, 'Expected views_ui array found in plugin definition.');
     }
   }
 
@@ -264,6 +265,16 @@ class DisplayTest extends UITestBase {
     // Test setting the link display in the UI form.
     $path = 'admin/structure/views/view/test_display/edit/block_1';
     $link_display_path = 'admin/structure/views/nojs/display/test_display/block_1/link_display';
+
+    // Test the link text displays 'None' and not 'Block 1'
+    $this->drupalGet($path);
+    $result = $this->xpath("//a[contains(@href, :path)]", array(':path' => $link_display_path));
+    $this->assertEqual($result[0], t('None'), 'Make sure that the link option summary shows "None" by default.');
+
+    $this->drupalGet($link_display_path);
+    $this->assertFieldChecked('edit-link-display-0');
+
+    // Test the default radio option on the link display form.
     $this->drupalPostForm($link_display_path, array('link_display' => 'page_1'), t('Apply'));
     // The form redirects to the master display.
     $this->drupalGet($path);
@@ -271,12 +282,16 @@ class DisplayTest extends UITestBase {
     $result = $this->xpath("//a[contains(@href, :path)]", array(':path' => $link_display_path));
     $this->assertEqual($result[0], 'Page', 'Make sure that the link option summary shows the right linked display.');
 
-    $link_display_path = 'admin/structure/views/nojs/display/test_display/block_1/link_display';
-    $this->drupalPostForm($link_display_path, array('link_display' => 'custom_url'), t('Apply'));
+    $this->drupalPostForm($link_display_path, array('link_display' => 'custom_url', 'link_url' => 'a-custom-url'), t('Apply'));
     // The form redirects to the master display.
     $this->drupalGet($path);
 
     $this->assertLink(t('Custom URL'), 0, 'The link option has custom url as summary.');
+
+    // Test the default link_url value for new display
+    $this->drupalPostForm(NULL, array(), t('Add Block'));
+    $this->clickLink(t('Custom URL'));
+    $this->assertFieldByName('link_url', 'a-custom-url');
   }
 
   /**
@@ -288,9 +303,9 @@ class DisplayTest extends UITestBase {
     $view->enable()->save();
 
     $this->drupalGet('test-display');
-    $id = 'views_ui:admin/structure/views/view:test_display:location=page&name=test_display&display_id=page_1';
+    $id = 'views_ui_edit:view=test_display:location=page&name=test_display&display_id=page_1';
     // @see \Drupal\contextual\Tests\ContextualDynamicContextTest:assertContextualLinkPlaceHolder()
-    $this->assertRaw('<div data-contextual-id="'. $id . '"></div>', format_string('Contextual link placeholder with id @id exists.', array('@id' => $id)));
+    $this->assertRaw('<div' . new Attribute(array('data-contextual-id' => $id)) . '></div>', format_string('Contextual link placeholder with id @id exists.', array('@id' => $id)));
 
     // Get server-rendered contextual links.
     // @see \Drupal\contextual\Tests\ContextualDynamicContextTest:renderContextualLinks()
@@ -298,7 +313,7 @@ class DisplayTest extends UITestBase {
     $response = $this->drupalPost('contextual/render', 'application/json', $post, array('query' => array('destination' => 'test-display')));
     $this->assertResponse(200);
     $json = drupal_json_decode($response);
-    $this->assertIdentical($json[$id], '<ul class="contextual-links"><li class="views-ui-edit odd first last"><a href="' . base_path() . 'admin/structure/views/view/test_display/edit/page_1?destination=test-display">Edit view</a></li></ul>');
+    $this->assertIdentical($json[$id], '<ul class="contextual-links"><li class="views-uiedit"><a href="' . base_path() . 'admin/structure/views/view/test_display/edit/page_1">Edit view</a></li></ul>');
   }
 
   /**
@@ -321,4 +336,27 @@ class DisplayTest extends UITestBase {
     $this->assertTrue($elements, 'The disabled class was found on the form wrapper.');
   }
 
+  /**
+   * Tests the action links on the edit display UI.
+   */
+  public function testActionLinks() {
+    // Change the display title of a display so it contains characters that will
+    // be escaped when rendered.
+    $display_title = "'<test>'";
+    $this->drupalGet('admin/structure/views/view/test_display');
+    $display_title_path = 'admin/structure/views/nojs/display/test_display/block_1/display_title';
+    $this->drupalPostForm($display_title_path, array('display_title' => $display_title), t('Apply'));
+
+    $placeholder = array('!display_title' => $display_title);
+    // Ensure that the dropdown buttons are displayed correctly.
+    $this->assertFieldByXpath('//input[@type="submit"]', t('Clone !display_title', $placeholder));
+    $this->assertFieldByXpath('//input[@type="submit"]', t('Delete !display_title', $placeholder));
+    $this->assertFieldByXpath('//input[@type="submit"]', t('Disable !display_title', $placeholder));
+    $this->assertNoFieldByXpath('//input[@type="submit"]', t('Enable !display_title', $placeholder));
+
+    // Disable the display so we can test the rendering of the "Enable" button.
+    $this->drupalPostForm(NULL, NULL, t('Disable !display_title', $placeholder));
+    $this->assertFieldByXpath('//input[@type="submit"]', t('Enable !display_title', $placeholder));
+    $this->assertNoFieldByXpath('//input[@type="submit"]', t('Disable !display_title', $placeholder));
+  }
 }

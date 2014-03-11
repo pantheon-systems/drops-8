@@ -7,9 +7,9 @@
 
 namespace Drupal\system\Plugin\ImageToolkit;
 
-use Drupal\Core\Plugin\PluginBase;
 use Drupal\Core\Image\ImageInterface;
-use Drupal\Core\ImageToolkit\ImageToolkitInterface;
+use Drupal\Core\ImageToolkit\ImageToolkitBase;
+use Drupal\Component\Utility\Image as ImageUtility;
 
 /**
  * Defines the GD2 toolkit for image manipulation within Drupal.
@@ -19,7 +19,7 @@ use Drupal\Core\ImageToolkit\ImageToolkitInterface;
  *   title = @Translation("GD2 image manipulation toolkit")
  * )
  */
-class GDToolkit extends PluginBase implements ImageToolkitInterface {
+class GDToolkit extends ImageToolkitBase {
 
   /**
    * {@inheritdoc}
@@ -50,6 +50,11 @@ class GDToolkit extends PluginBase implements ImageToolkitInterface {
    * {@inheritdoc}
    */
   public function resize(ImageInterface $image, $width, $height) {
+    // @todo Dimensions computation will be moved into a dedicated functionality
+    //   in https://drupal.org/node/2108307.
+    $width = (int) round($width);
+    $height = (int) round($height);
+
     $res = $this->createTmp($image, $width, $height);
 
     if (!imagecopyresampled($res, $image->getResource(), 0, 0, 0, 0, $width, $height, $image->getWidth(), $image->getHeight())) {
@@ -121,6 +126,14 @@ class GDToolkit extends PluginBase implements ImageToolkitInterface {
    * {@inheritdoc}
    */
   public function crop(ImageInterface $image, $x, $y, $width, $height) {
+    // @todo Dimensions computation will be moved into a dedicated functionality
+    //   in https://drupal.org/node/2108307.
+    $aspect = $image->getHeight() / $image->getWidth();
+    $height = empty($height) ? $width * $aspect : $height;
+    $width = empty($width) ? $height / $aspect : $width;
+    $width = (int) round($width);
+    $height = (int) round($height);
+
     $res = $this->createTmp($image, $width, $height);
 
     if (!imagecopyresampled($res, $image->getResource(), 0, 0, $x, $y, $width, $height, $width, $height)) {
@@ -147,6 +160,42 @@ class GDToolkit extends PluginBase implements ImageToolkitInterface {
     }
 
     return imagefilter($image->getResource(), IMG_FILTER_GRAYSCALE);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function scale(ImageInterface $image, $width = NULL, $height = NULL, $upscale = FALSE) {
+    // @todo Dimensions computation will be moved into a dedicated functionality
+    //   in https://drupal.org/node/2108307.
+    $dimensions = array(
+      'width' => $image->getWidth(),
+      'height' => $image->getHeight(),
+    );
+
+    // Scale the dimensions - if they don't change then just return success.
+    if (!ImageUtility::scaleDimensions($dimensions, $width, $height, $upscale)) {
+      return TRUE;
+    }
+
+    return $this->resize($image, $dimensions['width'], $dimensions['height']);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function scaleAndCrop(ImageInterface $image, $width, $height) {
+    // @todo Dimensions computation will be moved into a dedicated functionality
+    //   in https://drupal.org/node/2108307.
+    $scale = max($width / $image->getWidth(), $height / $image->getHeight());
+    $x = ($image->getWidth() * $scale - $width) / 2;
+    $y = ($image->getHeight() * $scale - $height) / 2;
+
+    if ($this->resize($image, $image->getWidth() * $scale, $image->getHeight() * $scale)) {
+      return $this->crop($image, $x, $y, $width, $height);
+    }
+
+    return FALSE;
   }
 
   /**
@@ -275,14 +324,30 @@ class GDToolkit extends PluginBase implements ImageToolkitInterface {
   /**
    * {@inheritdoc}
    */
-  public static function isAvailable() {
-    if ($check = get_extension_funcs('gd')) {
-      if (in_array('imagegd2', $check)) {
-        // GD2 support is available.
-        return TRUE;
-      }
+  public function getRequirements() {
+    $requirements = array();
+
+    $info = gd_info();
+    $requirements['version'] = array(
+      'title' => t('GD library'),
+      'value' => $info['GD Version'],
+    );
+
+    // Check for filter and rotate support.
+    if (!function_exists('imagefilter') || !function_exists('imagerotate')) {
+      $requirements['version']['severity'] = REQUIREMENT_WARNING;
+      $requirements['version']['description'] = t('The GD Library for PHP is enabled, but was compiled without support for functions used by the rotate and desaturate effects. It was probably compiled using the official GD libraries from http://www.libgd.org instead of the GD library bundled with PHP. You should recompile PHP --with-gd using the bundled GD library. See <a href="@url">the PHP manual</a>.', array('@url' => 'http://www.php.net/manual/book.image.php'));
     }
-    return FALSE;
+
+    return $requirements;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function isAvailable() {
+    // GD2 support is available.
+    return function_exists('imagegd2');
   }
 
   /**

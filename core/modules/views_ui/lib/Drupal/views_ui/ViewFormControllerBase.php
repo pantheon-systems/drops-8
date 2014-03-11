@@ -73,8 +73,8 @@ abstract class ViewFormControllerBase extends EntityFormController {
    *
    * This returns an array of arrays. Each array represents a single
    * file. The array format is:
-   * - file: The fully qualified name of the file to send to drupal_add_css
-   * - options: An array of options to pass to drupal_add_css.
+   * - file: The fully qualified name of the file to send to _drupal_add_css
+   * - options: An array of options to pass to _drupal_add_css.
    */
   public static function getAdminCSS() {
     $module_path = drupal_get_path('module', 'views_ui');
@@ -120,10 +120,10 @@ abstract class ViewFormControllerBase extends EntityFormController {
         '#weight' => $display['position'],
         '#link' => array(
           'title' => $this->getDisplayLabel($view, $id),
-          'href' => 'admin/structure/views/view/' . $view->id() . '/edit/' . $id,
           'localized_options' => array(),
-        ),
+        ) + $view->urlInfo('edit-display-form'),
       );
+      $tabs[$id]['#link']['route_parameters']['display_id'] = $id;
       if (!empty($display['deleted'])) {
         $tabs[$id]['#link']['localized_options']['attributes']['class'][] = 'views-display-deleted-link';
       }

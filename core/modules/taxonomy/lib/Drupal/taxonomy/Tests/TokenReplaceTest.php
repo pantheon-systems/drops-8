@@ -7,6 +7,7 @@
 
 namespace Drupal\taxonomy\Tests;
 
+use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Language\Language;
 
 /**
@@ -32,7 +33,7 @@ class TokenReplaceTest extends TaxonomyTestBase {
       'name' => $this->field_name,
       'entity_type' => 'node',
       'type' => 'taxonomy_term_reference',
-      'cardinality' => FIELD_CARDINALITY_UNLIMITED,
+      'cardinality' => FieldDefinitionInterface::CARDINALITY_UNLIMITED,
       'settings' => array(
         'allowed_values' => array(
           array(
@@ -87,7 +88,7 @@ class TokenReplaceTest extends TaxonomyTestBase {
     $tests = array();
     $tests['[term:tid]'] = $term1->id();
     $tests['[term:name]'] = check_plain($term1->name->value);
-    $tests['[term:description]'] = check_markup($term1->description->value, $term1->format->value);
+    $tests['[term:description]'] = $term1->description->processed;
     $tests['[term:url]'] = url('taxonomy/term/' . $term1->id(), array('absolute' => TRUE));
     $tests['[term:node-count]'] = 0;
     $tests['[term:parent:name]'] = '[term:parent:name]';
@@ -102,7 +103,7 @@ class TokenReplaceTest extends TaxonomyTestBase {
     $tests = array();
     $tests['[term:tid]'] = $term2->id();
     $tests['[term:name]'] = check_plain($term2->name->value);
-    $tests['[term:description]'] = check_markup($term2->description->value, $term2->format->value);
+    $tests['[term:description]'] = $term2->description->processed;
     $tests['[term:url]'] = url('taxonomy/term/' . $term2->id(), array('absolute' => TRUE));
     $tests['[term:node-count]'] = 1;
     $tests['[term:parent:name]'] = check_plain($term1->name->value);

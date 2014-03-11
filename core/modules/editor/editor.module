@@ -5,11 +5,14 @@
  * Adds bindings for client-side "text editors" to text formats.
  */
 
+use Drupal\Component\Utility\Html;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\editor\Entity\Editor;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\field\Field;
+use Drupal\filter\FilterFormatInterface;
+use Drupal\filter\Plugin\FilterInterface;
 
 /**
  * Implements hook_help().
@@ -19,14 +22,13 @@ function editor_help($path, $arg) {
     case 'admin/help#editor':
       $output = '';
       $output .= '<h3>' . t('About') . '</h3>';
-      $output .= '<p>' . t('The Text Editor module provides a framework that other modules (such as <a href="@ckeditor">CKEditor module</a>) can use to provide toolbars and other functionality that allow users to format text more easily than typing HTML tags directly. For more information, see the <a href="@documentation">online documentation for the Text Editor module</a>.', array('@documentation' => 'https://drupal.org/documentation/modules/editor', '@ckeditor' => url('admin/help/ckeditor'))) . '</p>';
+      $output .= '<p>' . t('The Text Editor module provides a framework that other modules (such as <a href="!ckeditor">CKEditor module</a>) can use to provide toolbars and other functionality that allow users to format text more easily than typing HTML tags directly. For more information, see the <a href="!documentation">online documentation for the Text Editor module</a>.', array('!documentation' => 'https://drupal.org/documentation/modules/editor', '!ckeditor' => \Drupal::url('help.page', array('name' => 'ckeditor')))) . '</p>';
       $output .= '<h3>' . t('Uses') . '</h3>';
       $output .= '<dl>';
       $output .= '<dt>' . t('Installing text editors') . '</dt>';
-      $output .= '<dd>' . t('The Text Editor module provides a framework for managing editors. To use it, you also need to enable a text editor. This can either be the core <a href="@ckeditor">CKEditor module</a>, which can be enabled on the <a href="@extend">Extend page</a>, or a contributed module for any other text editor.
-When installing a contributed text editor module, be sure to check the installation instructions, because you will most likely need to download and install an external library as well as the Drupal module.', array('@ckeditor' => url('admin/help/ckeditor'), '@extend' => url('admin/modules'))) . '</dd>';
+      $output .= '<dd>' . t('The Text Editor module provides a framework for managing editors. To use it, you also need to enable a text editor. This can either be the core <a href="!ckeditor">CKEditor module</a>, which can be enabled on the <a href="!extend">Extend page</a>, or a contributed module for any other text editor. When installing a contributed text editor module, be sure to check the installation instructions, because you will most likely need to download and install an external library as well as the Drupal module.', array('!ckeditor' => \Drupal::url('help.page', array('name' => 'ckeditor')), '!extend' => \Drupal::url('system.modules_list'))) . '</dd>';
       $output .= '<dt>' . t('Enabling a text editor for a text format') . '</dt>';
-      $output .= '<dd>' . t('On the <a href="@formats">Text formats and editors page</a> you can see which text editor is associated with each text format. You can change this by clicking on the <em>Configure</em> link, and then choosing a text editor or <em>none</em> from the <em>Text editor</em> drop-down list. The text editor will then be displayed with any text field for which this text format is chosen.', array('@formats' => url('admin/config/content/formats'))) . '</dd>';
+      $output .= '<dd>' . t('On the <a href="!formats">Text formats and editors page</a> you can see which text editor is associated with each text format. You can change this by clicking on the <em>Configure</em> link, and then choosing a text editor or <em>none</em> from the <em>Text editor</em> drop-down list. The text editor will then be displayed with any text field for which this text format is chosen.', array('!formats' => \Drupal::url('filter.admin_overview'))) . '</dd>';
       $output .= '<dt>' . t('Configuring a text editor') . '</dt>';
       $output .= '<dd>' . t('Once a text editor is associated with a text format, you can configure it by clicking on the <em>Configure</em> link for this format. Depending on the specific text editor, you can configure it for example by adding buttons to its toolbar. Typically these buttons provide formatting or editing tools, and they often insert HTML tags into the field source. For details, see the help page of the specific text editor.') . '</dd>';
       $output .= '<dt>' . t('Using different text editors and formats') . '</dt>';
@@ -45,6 +47,14 @@ When installing a contributed text editor module, be sure to check the installat
 function editor_menu_alter(&$items) {
   $items['admin/config/content/formats']['title'] = 'Text formats and editors';
   $items['admin/config/content/formats']['description'] = 'Configure how user-contributed content is filtered and formatted, as well as the text editor user interface (WYSIWYGs or toolbars).';
+}
+
+/**
+ * Implements hook_menu_link_defaults_alter().
+ */
+function editor_menu_link_defaults_alter(array &$links) {
+  $links['filter.admin.formats']['link_title'] = 'Text formats and editors';
+  $links['filter.admin.formats']['description'] = 'Configure how user-contributed content is filtered and formatted, as well as the text editor user interface (WYSIWYGs or toolbars).';
 }
 
 /**
@@ -94,6 +104,7 @@ function editor_library_info() {
       array('system', 'drupal'),
       array('system', 'drupalSettings'),
       array('system', 'jquery.once'),
+      array('system', 'drupal.dialog'),
     ),
   );
 
@@ -111,21 +122,13 @@ function editor_library_info() {
     ),
   );
 
-  $libraries['edit.formattedTextEditor.editor'] = array(
-    'title' => 'Formatted text editor',
+  $libraries['edit.inPlaceEditor.formattedText'] = array(
+    'title' => 'Formatted text in-place editor',
     'version' => \Drupal::VERSION,
     'js' => array(
       $path . '/js/editor.formattedTextEditor.js' => array(
         'scope' => 'footer',
         'attributes' => array('defer' => TRUE),
-      ),
-      array(
-        'type' => 'setting',
-        'data' => array(
-          'editor' => array(
-            'getUntransformedTextURL' => url('editor/!entity_type/!id/!field_name/!langcode/!view_mode'),
-          )
-        )
       ),
     ),
     'dependencies' => array(
@@ -137,21 +140,6 @@ function editor_library_info() {
   );
 
   return $libraries;
-}
-
-/**
- * Implements hook_menu().
- */
-function editor_menu() {
-  // @todo Remove this menu item in http://drupal.org/node/1954892 when theme
-  //   callbacks are replaced with something else.
-  $items['editor/%/%/%/%/%'] = array(
-    'route_name' => 'editor.field_untransformed_text',
-    'theme callback' => 'ajax_base_page_theme',
-    'type' => MENU_CALLBACK,
-  );
-
-  return $items;
 }
 
 /**
@@ -183,12 +171,11 @@ function editor_form_filter_format_form_alter(&$form, &$form_state) {
   if (!isset($form_state['editor'])) {
     $format_id = $form_state['controller']->getEntity()->id();
     $form_state['editor'] = editor_load($format_id);
-    $form_state['editor_manager'] = \Drupal::service('plugin.manager.editor');
   }
   $editor = $form_state['editor'];
-  $manager = $form_state['editor_manager'];
 
   // Associate a text editor with this text format.
+  $manager = \Drupal::service('plugin.manager.editor');
   $editor_options = $manager->listOptions();
   $form['editor'] = array(
     // Position the editor selection before the filter settings (weight of 0),
@@ -295,7 +282,7 @@ function editor_form_filter_admin_format_validate($form, &$form_state) {
   // selected a text editor and has then clicked 'Save configuration', we should
   // point out that the user must still configure the text editor.
   if ($form_state['values']['editor']['editor'] !== '' && empty($form_state['editor'])) {
-    form_set_error('editor][editor', t('You must configure the selected text editor.'));
+    form_set_error('editor][editor', $form_state, t('You must configure the selected text editor.'));
   }
 }
 
@@ -354,7 +341,8 @@ function editor_pre_render_format($element) {
   $format_ids = array_keys($element['format']['format']['#options']);
 
   // Early-return if no text editor is associated with any of the text formats.
-  if (count(entity_load_multiple('editor', $format_ids)) === 0) {
+  $editors = entity_load_multiple('editor', $format_ids);
+  if (count($editors) === 0) {
     return $element;
   }
 
@@ -379,6 +367,12 @@ function editor_pre_render_format($element) {
     $element['format']['format']['#attributes']['data-editor-for'] = $field_id;
   }
 
+  // Hide the text format's filters' guidelines of those text formats that have
+  // a text editor associated: they're rather useless when using a text editor.
+  foreach ($editors as $format_id => $editor) {
+    $element['format']['guidelines'][$format_id]['#access'] = FALSE;
+  }
+
   // Attach Text Editor module's (this module) library.
   $element['#attached']['library'][] = array('editor', 'drupal.editor');
 
@@ -386,7 +380,99 @@ function editor_pre_render_format($element) {
   $manager = \Drupal::service('plugin.manager.editor');
   $element['#attached'] = NestedArray::mergeDeep($element['#attached'], $manager->getAttachments($format_ids));
 
+  // Apply XSS filters when editing content if necessary. Some types of text
+  // editors cannot guarantee that the end user won't become a victim of XSS.
+  if (!empty($element['value']['#value'])) {
+    $original = $element['value']['#value'];
+    $format = entity_load('filter_format', $element['format']['format']['#value']);
+
+    // Ensure XSS-safety for the current text format/editor.
+    $filtered = editor_filter_xss($original, $format);
+    if ($filtered !== FALSE) {
+      $element['value']['#value'] = $filtered;
+    }
+
+    // Only when the user has access to multiple text formats, we must add data-
+    // attributes for the original value and change tracking, because they are
+    // only necessary when the end user can switch between text formats/editors.
+    if ($element['format']['format']['#access']) {
+      $element['value']['#attributes']['data-editor-value-is-changed'] = 'false';
+      $element['value']['#attributes']['data-editor-value-original'] = $original;
+    }
+  }
+
   return $element;
+}
+
+/**
+ * Applies text editor XSS filtering.
+ *
+ * @param string $html
+ *   The HTML string that will be passed to the text editor.
+ * @param \Drupal\filter\FilterFormatInterface $format
+ *   The text format whose text editor will be used.
+ * @param \Drupal\filter\FilterFormatInterface $original_format|null
+ *   (optional) The original text format (i.e. when switching text formats,
+ *   $format is the text format that is going to be used, $original_format is
+ *   the one that was being used initially, the one that is stored in the
+ *   database when editing).
+ *
+ * @return string|false
+ *   FALSE when no XSS filtering needs to be applied (either because no text
+ *   editor is associated with the text format, or because the text editor is
+ *   safe from XSS attacks, or because the text format does not use any XSS
+ *   protection filters), otherwise the XSS filtered string.
+ *
+ * @see https://drupal.org/node/2099741
+ */
+function editor_filter_xss($html, FilterFormatInterface $format, FilterFormatInterface $original_format = NULL) {
+  $editor = editor_load($format->id());
+
+  // If no text editor is associated with this text format, then we don't need
+  // text editor XSS filtering either.
+  if (!isset($editor)) {
+    return FALSE;
+  }
+
+  // If the text editor associated with this text format guarantees security,
+  // then we also don't need text editor XSS filtering.
+  $definition = \Drupal::service('plugin.manager.editor')->getDefinition($editor->editor);
+  if ($definition['is_xss_safe'] === TRUE) {
+    return FALSE;
+  }
+
+  // If there is no filter preventing XSS attacks in the text format being used,
+  // then no text editor XSS filtering is needed either. (Because then the
+  // editing user can already be attacked by merely viewing the content.)
+  // e.g.: an admin user creates content in Full HTML and then edits it, no text
+  // format switching happens; in this case, no text editor XSS filtering is
+  // desirable, because it would strip style attributes, amongst others.
+  $current_filter_types = $format->getFilterTypes();
+  if (!in_array(FilterInterface::TYPE_HTML_RESTRICTOR, $current_filter_types, TRUE)) {
+    if ($original_format === NULL) {
+      return FALSE;
+    }
+    // Unless we are switching from another text format, in which case we must
+    // first check whether a filter preventing XSS attacks is used in that text
+    // format, and if so, we must still apply XSS filtering.
+    // e.g.: an anonymous user creates content in Restricted HTML, an admin user
+    // edits it (then no XSS filtering is applied because no text editor is
+    // used), and switches to Full HTML (for which a text editor is used). Then
+    // we must apply XSS filtering to protect the admin user.
+    else {
+      $original_filter_types = $original_format->getFilterTypes();
+      if (!in_array(FilterInterface::TYPE_HTML_RESTRICTOR, $original_filter_types, TRUE)) {
+        return FALSE;
+      }
+    }
+  }
+
+  // Otherwise, apply the text editor XSS filter. We use the default one unless
+  // a module tells us to use a different one.
+  $editor_xss_filter_class = '\Drupal\editor\EditorXssFilter\Standard';
+  \Drupal::moduleHandler()->alter('editor_xss_filter', $editor_xss_filter_class, $format, $original_format);
+
+  return call_user_func($editor_xss_filter_class . '::filterXss', $html, $format, $original_format);
 }
 
 /**
@@ -488,7 +574,7 @@ function _editor_record_file_usage(array $uuids, EntityInterface $entity) {
       $file->status = FILE_STATUS_PERMANENT;
       $file->save();
     }
-    file_usage()->add($file, 'editor', $entity->entityType(), $entity->id());
+    \Drupal::service('file.usage')->add($file, 'editor', $entity->getEntityTypeId(), $entity->id());
   }
 }
 
@@ -508,7 +594,7 @@ function _editor_record_file_usage(array $uuids, EntityInterface $entity) {
 function _editor_delete_file_usage(array $uuids, EntityInterface $entity, $count) {
   foreach ($uuids as $uuid) {
     $file = entity_load_by_uuid('file', $uuid);
-    file_usage()->delete($file, 'editor', $entity->entityType(), $entity->id(), $count);
+    \Drupal::service('file.usage')->delete($file, 'editor', $entity->getEntityTypeId(), $entity->id(), $count);
   }
 }
 
@@ -550,7 +636,7 @@ function _editor_get_processed_text_fields(ContentEntityInterface $entity) {
   // Find all configurable fields, because only they could have a
   // text_processing setting.
   $configurable_fields = array_keys(array_filter($properties, function ($definition) {
-    return isset($definition['configurable']) && $definition['configurable'] === TRUE;
+    return $definition->isConfigurable();
   }));
   if (empty($configurable_fields)) {
     return array();
@@ -559,9 +645,9 @@ function _editor_get_processed_text_fields(ContentEntityInterface $entity) {
   // Only return fields that have text processing enabled.
   return array_filter($configurable_fields, function ($field) use ($entity) {
     $settings = Field::fieldInfo()
-      ->getInstance($entity->entityType(), $entity->bundle(), $field)
-      ->getFieldSettings();
-    return isset($settings['text_processing']) && $settings['text_processing'] === '1';
+      ->getInstance($entity->getEntityTypeId(), $entity->bundle(), $field)
+      ->getSettings();
+    return isset($settings['text_processing']) && $settings['text_processing'] === TRUE;
   });
 }
 
@@ -576,7 +662,7 @@ function _editor_get_processed_text_fields(ContentEntityInterface $entity) {
  *   An array of all found UUIDs.
  */
 function _editor_parse_file_uuids($text) {
-  $dom = filter_dom_load($text);
+  $dom = Html::load($text);
   $xpath = new \DOMXPath($dom);
   $uuids = array();
   foreach ($xpath->query('//*[@data-editor-file-uuid]') as $node) {

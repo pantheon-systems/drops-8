@@ -84,7 +84,7 @@ class CategoryFormController extends EntityFormController {
     foreach ($recipients as &$recipient) {
       $recipient = trim($recipient);
       if (!valid_email_address($recipient)) {
-        form_set_error('recipients', t('%recipient is an invalid e-mail address.', array('%recipient' => $recipient)));
+        $this->setFormError('recipients', $form_state, $this->t('%recipient is an invalid e-mail address.', array('%recipient' => $recipient)));
       }
     }
     $form_state['values']['recipients'] = $recipients;
@@ -97,14 +97,16 @@ class CategoryFormController extends EntityFormController {
     $category = $this->entity;
     $status = $category->save();
 
-    $uri = $category->uri();
+    $uri = $category->urlInfo();
+    $edit_link = \Drupal::l($this->t('Edit'), $uri['route_name'], $uri['route_parameters'], $uri['options']);
+
     if ($status == SAVED_UPDATED) {
       drupal_set_message(t('Category %label has been updated.', array('%label' => $category->label())));
-      watchdog('contact', 'Category %label has been updated.', array('%label' => $category->label()), WATCHDOG_NOTICE, l(t('Edit'), $uri['path'] . '/edit'));
+      watchdog('contact', 'Category %label has been updated.', array('%label' => $category->label()), WATCHDOG_NOTICE, $edit_link);
     }
     else {
       drupal_set_message(t('Category %label has been added.', array('%label' => $category->label())));
-      watchdog('contact', 'Category %label has been added.', array('%label' => $category->label()), WATCHDOG_NOTICE, l(t('Edit'), $uri['path'] . '/edit'));
+      watchdog('contact', 'Category %label has been added.', array('%label' => $category->label()), WATCHDOG_NOTICE, $edit_link);
     }
 
     // Update the default category.
@@ -121,14 +123,7 @@ class CategoryFormController extends EntityFormController {
         ->save();
     }
 
-    $form_state['redirect'] = 'admin/structure/contact';
-  }
-
-  /**
-   * Overrides Drupal\Core\Entity\EntityFormController::delete().
-   */
-  public function delete(array $form, array &$form_state) {
-    $form_state['redirect'] = 'admin/structure/contact/manage/' . $this->entity->id() . '/delete';
+    $form_state['redirect_route']['route_name'] = 'contact.category_list';
   }
 
 }

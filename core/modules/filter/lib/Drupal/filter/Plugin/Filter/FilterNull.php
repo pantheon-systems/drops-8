@@ -7,8 +7,6 @@
 
 namespace Drupal\filter\Plugin\Filter;
 
-use Drupal\filter\Annotation\Filter;
-use Drupal\Core\Annotation\Translation;
 use Drupal\filter\Plugin\FilterBase;
 
 /**
@@ -20,9 +18,8 @@ use Drupal\filter\Plugin\FilterBase;
  *
  * @Filter(
  *   id = "filter_null",
- *   module = "filter",
  *   title = @Translation("Provides a fallback for missing filters. Do not use."),
- *   type = FILTER_TYPE_HTML_RESTRICTOR,
+ *   type = Drupal\filter\Plugin\FilterInterface::TYPE_HTML_RESTRICTOR,
  *   weight = -10
  * )
  */

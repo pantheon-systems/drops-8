@@ -7,10 +7,10 @@
 
 namespace Drupal\serialization\Tests\Normalizer;
 
+use Drupal\Core\TypedData\DataDefinition;
 use Drupal\Tests\UnitTestCase;
 use Drupal\serialization\Normalizer\ListNormalizer;
-use Drupal\Core\TypedData\ItemList;
-use Drupal\Core\TypedData\Plugin\DataType\Integer;
+use Drupal\Core\TypedData\Plugin\DataType\ItemList;
 
 /**
  * Tests the ListNormalizer class.
@@ -62,21 +62,21 @@ class ListNormalizerTest extends UnitTestCase {
       ->method('getPropertyInstance')
       ->will($this->returnValue($typed_data));
 
-    // Set up a mock container as ItemList() will call for the 'typed_data'
+    // Set up a mock container as ItemList() will call for the 'typed_data_manager'
     // service.
     $container = $this->getMockBuilder('Symfony\Component\DependencyInjection\ContainerBuilder')
       ->setMethods(array('get'))
       ->getMock();
     $container->expects($this->any())
       ->method('get')
-      ->with($this->equalTo('typed_data'))
+      ->with($this->equalTo('typed_data_manager'))
       ->will($this->returnValue($typed_data_manager));
 
     \Drupal::setContainer($container);
 
     $this->normalizer = new ListNormalizer();
 
-    $this->list = new ItemList(array());
+    $this->list = new ItemList(new DataDefinition());
     $this->list->setValue($this->expectedListValues);
   }
 

@@ -7,8 +7,6 @@
 
 namespace Drupal\node\Plugin\views\argument_validator;
 
-use Drupal\views\Annotation\ViewsArgumentValidator;
-use Drupal\Core\Annotation\Translation;
 use Drupal\views\Plugin\views\argument_validator\ArgumentValidatorPluginBase;
 
 /**
@@ -93,7 +91,7 @@ class Node extends ArgumentValidatorPluginBase {
         }
 
         if (!empty($this->options['access'])) {
-          if (!node_access($this->options['access_op'], $node)) {
+          if (!$node->access($this->options['access_op'])) {
             return FALSE;
           }
         }
@@ -125,7 +123,7 @@ class Node extends ArgumentValidatorPluginBase {
           }
 
           if (!empty($this->options['access'])) {
-            if (!node_access($this->options['access_op'], $node)) {
+            if (!$node->access($this->options['access_op'])) {
               return FALSE;
             }
           }

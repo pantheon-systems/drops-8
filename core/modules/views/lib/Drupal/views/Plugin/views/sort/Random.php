@@ -7,14 +7,19 @@
 
 namespace Drupal\views\Plugin\views\sort;
 
-use Drupal\Component\Annotation\PluginID;
-
 /**
  * Handle a random sort.
  *
  * @PluginID("random")
  */
 class Random extends SortPluginBase {
+
+  /**
+   * {@inheritdoc}
+   */
+  public function usesGroupBy() {
+    return FALSE;
+  }
 
   public function query() {
     $this->query->addOrderBy('rand');

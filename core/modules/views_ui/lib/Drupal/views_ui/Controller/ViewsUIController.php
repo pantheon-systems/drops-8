@@ -7,33 +7,22 @@
 
 namespace Drupal\views_ui\Controller;
 
+use Drupal\Component\Utility\String;
+use Drupal\Core\Controller\ControllerBase;
 use Drupal\views\ViewExecutable;
 use Drupal\views\ViewStorageInterface;
 use Drupal\views_ui\ViewUI;
 use Drupal\views\ViewsData;
-use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
-use Drupal\Core\Entity\EntityManager;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\RedirectResponse;
 use Drupal\Core\Ajax\AjaxResponse;
 use Drupal\Core\Ajax\ReplaceCommand;
-use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
-use Drupal\Core\Routing\UrlGeneratorInterface;
-use Drupal\Core\Utility\LinkGeneratorInterface;
 
 /**
  * Returns responses for Views UI routes.
  */
-class ViewsUIController implements ContainerInjectionInterface {
-
-  /**
-   * Stores the Entity manager.
-   *
-   * @var \Drupal\Core\Entity\EntityManager
-   */
-  protected $entityManager;
+class ViewsUIController extends ControllerBase {
 
   /**
    * Stores the Views data cache object.
@@ -43,34 +32,13 @@ class ViewsUIController implements ContainerInjectionInterface {
   protected $viewsData;
 
   /**
-   * The URL generator to use.
-   *
-   * @var \Drupal\Core\Routing\UrlGeneratorInterface
-   */
-  protected $urlGenerator;
-
-  /**
-   * The link generator to use.
-   *
-   * @var \Drupal\Core\Utility\LinkGeneratorInterface
-   */
-  protected $linkGenerator;
-
-  /**
    * Constructs a new \Drupal\views_ui\Controller\ViewsUIController object.
    *
-   * @param \Drupal\Core\Entity\EntityManager $entity_manager
-   *   The Entity manager.
    * @param \Drupal\views\ViewsData views_data
    *   The Views data cache object.
-   * @param \Drupal\Core\Routing\UrlGeneratorInterface
-   *   The URL generator.
    */
-  public function __construct(EntityManager $entity_manager, ViewsData $views_data, UrlGeneratorInterface $url_generator, LinkGeneratorInterface $link_generator) {
-    $this->entityManager = $entity_manager;
+  public function __construct(ViewsData $views_data) {
     $this->viewsData = $views_data;
-    $this->urlGenerator = $url_generator;
-    $this->linkGenerator = $link_generator;
   }
 
   /**
@@ -78,10 +46,7 @@ class ViewsUIController implements ContainerInjectionInterface {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('entity.manager'),
-      $container->get('views.views_data'),
-      $container->get('url_generator'),
-      $container->get('link_generator')
+      $container->get('views.views_data')
     );
   }
 
@@ -92,7 +57,7 @@ class ViewsUIController implements ContainerInjectionInterface {
    *   The Views fields report page.
    */
   public function reportFields() {
-    $views = $this->entityManager->getStorageController('view')->loadMultiple();
+    $views = $this->entityManager()->getStorageController('view')->loadMultiple();
 
     // Fetch all fieldapi fields which are used in views
     // Therefore search in all views, displays and handler-types.
@@ -104,7 +69,7 @@ class ViewsUIController implements ContainerInjectionInterface {
       foreach ($executable->displayHandlers as $display_id => $display) {
         if ($executable->setDisplay($display_id)) {
           foreach ($handler_types as $type => $info) {
-            foreach ($executable->getItems($type, $display_id) as $item) {
+            foreach ($executable->getHandlers($type, $display_id) as $item) {
               $table_data = $this->viewsData->get($item['table']);
               if (isset($table_data[$item['field']]) && isset($table_data[$item['field']][$type])
                 && $field_data = $table_data[$item['field']][$type]) {
@@ -122,9 +87,9 @@ class ViewsUIController implements ContainerInjectionInterface {
     $header = array(t('Field name'), t('Used in'));
     $rows = array();
     foreach ($fields as $field_name => $views) {
-      $rows[$field_name]['data'][0] = check_plain($field_name);
+      $rows[$field_name]['data'][0] = String::checkPlain($field_name);
       foreach ($views as $view) {
-        $rows[$field_name]['data'][1][] = $this->linkGenerator->generate($view, 'views_ui.edit', array('view' => $view));
+        $rows[$field_name]['data'][1][] = $this->l($view, 'views_ui.edit', array('view' => $view));
       }
       $rows[$field_name]['data'][1] = implode(', ', $rows[$field_name]['data'][1]);
     }
@@ -152,7 +117,7 @@ class ViewsUIController implements ContainerInjectionInterface {
     foreach ($rows as &$row) {
       // Link each view name to the view itself.
       foreach ($row['views'] as $row_name => $view) {
-        $row['views'][$row_name] = $this->linkGenerator->generate($view, 'views_ui.edit', array('view' => $view));
+        $row['views'][$row_name] = $this->l($view, 'views_ui.edit', array('view' => $view));
       }
       $row['views'] = implode(', ', $row['views']);
     }
@@ -181,27 +146,21 @@ class ViewsUIController implements ContainerInjectionInterface {
    *   Either returns a rebuilt listing page as an AJAX response, or redirects
    *   back to the listing page.
    *
-   * @throws \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException
    */
   public function ajaxOperation(ViewStorageInterface $view, $op, Request $request) {
-    if (!drupal_valid_token($request->query->get('token'), $op)) {
-      // Throw an access denied exception if the token is invalid or missing.
-      throw new AccessDeniedHttpException();
-    }
-
     // Perform the operation.
     $view->$op()->save();
 
     // If the request is via AJAX, return the rendered list as JSON.
     if ($request->request->get('js')) {
-      $list = $this->entityManager->getListController('view')->render();
+      $list = $this->entityManager()->getListController('view')->render();
       $response = new AjaxResponse();
       $response->addCommand(new ReplaceCommand('#views-entity-list', drupal_render($list)));
       return $response;
     }
 
     // Otherwise, redirect back to the page.
-    return new RedirectResponse($this->urlGenerator->generate('views_ui.list', array(), TRUE));
+    return $this->redirect('views_ui.list');
   }
 
   /**
@@ -217,7 +176,7 @@ class ViewsUIController implements ContainerInjectionInterface {
     $matches = array();
     $string = $request->query->get('q');
     // Get matches from default views.
-    $views = $this->entityManager->getStorageController('view')->loadMultiple();
+    $views = $this->entityManager()->getStorageController('view')->loadMultiple();
     foreach ($views as $view) {
       $tag = $view->get('tag');
       if ($tag && strpos($tag, $string) === 0) {
@@ -250,10 +209,10 @@ class ViewsUIController implements ContainerInjectionInterface {
     if (isset($data['table']['base']['title'])) {
       $name .= ' (' . $data['table']['base']['title'] . ')';
     }
-    drupal_set_title($name);
+    $build['#title'] = $name;
 
-    $build['edit'] = $this->entityManager->getForm($view, 'edit', array('display_id' => $display_id));
-    $build['preview'] = $this->entityManager->getForm($view, 'preview', array('display_id' => $display_id));
+    $build['edit'] = $this->entityFormBuilder()->getForm($view, 'edit', array('display_id' => $display_id));
+    $build['preview'] = $this->entityFormBuilder()->getForm($view, 'preview', array('display_id' => $display_id));
     return $build;
   }
 

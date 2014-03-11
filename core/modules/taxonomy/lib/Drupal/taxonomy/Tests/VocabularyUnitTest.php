@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Definition of Drupal\taxonomy\Tests\VocabularyUnitTest.
+ * Contains \Drupal\taxonomy\Tests\VocabularyUnitTest.
  */
 
 namespace Drupal\taxonomy\Tests;
@@ -45,7 +45,7 @@ class VocabularyUnitTest extends TaxonomyTestBase {
     }
 
     // Assert that there are no terms left.
-    $this->assertEqual(0, db_query('SELECT COUNT(*) FROM {taxonomy_term_data}')->fetchField());
+    $this->assertEqual(0, db_query('SELECT COUNT(*) FROM {taxonomy_term_data}')->fetchField(), 'There are no terms remaining.');
 
     // Create a new vocabulary and add a few terms to it.
     $vocabulary = $this->createVocabulary();
@@ -61,12 +61,12 @@ class VocabularyUnitTest extends TaxonomyTestBase {
     $terms[4]->save();
 
     // Assert that there are now 5 terms.
-    $this->assertEqual(5, db_query('SELECT COUNT(*) FROM {taxonomy_term_data}')->fetchField());
+    $this->assertEqual(5, db_query('SELECT COUNT(*) FROM {taxonomy_term_data}')->fetchField(), 'There are 5 terms found.');
 
     $vocabulary->delete();
 
     // Assert that there are no terms left.
-    $this->assertEqual(0, db_query('SELECT COUNT(*) FROM {taxonomy_term_data}')->fetchField());
+    $this->assertEqual(0, db_query('SELECT COUNT(*) FROM {taxonomy_term_data}')->fetchField(), 'All terms are deleted.');
   }
 
   /**
@@ -85,8 +85,7 @@ class VocabularyUnitTest extends TaxonomyTestBase {
 
     // Load the vocabulary.
     $new_vocabulary = entity_load('taxonomy_vocabulary', $original_vocabulary->id());
-    $this->assertEqual($new_vocabulary->name, $vocabulary->name);
-    $this->assertEqual($new_vocabulary->name, $vocabulary->name);
+    $this->assertEqual($new_vocabulary->name, $vocabulary->name, 'The vocabulary was loaded.');
 
     // Delete the vocabulary.
     $this->vocabulary->delete();
@@ -120,20 +119,12 @@ class VocabularyUnitTest extends TaxonomyTestBase {
     $names = taxonomy_vocabulary_get_names();
     $this->assertEqual($names[$vocabulary1->id()], $vocabulary1->id(), 'Vocabulary 1 name found.');
 
-    // Fetch all of the vocabularies using entity_load_multiple().
-    // Confirm that the vocabularies are ordered by weight.
-    $vocabularies = entity_load_multiple('taxonomy_vocabulary');
-    taxonomy_vocabulary_sort($vocabularies);
-    $this->assertEqual(array_shift($vocabularies)->id(), $vocabulary1->id(), 'Vocabulary was found in the vocabularies array.');
-    $this->assertEqual(array_shift($vocabularies)->id(), $vocabulary2->id(), 'Vocabulary was found in the vocabularies array.');
-    $this->assertEqual(array_shift($vocabularies)->id(), $vocabulary3->id(), 'Vocabulary was found in the vocabularies array.');
-
     // Fetch the vocabularies with entity_load_multiple(), specifying IDs.
     // Ensure they are returned in the same order as the original array.
     $vocabularies = entity_load_multiple('taxonomy_vocabulary', array($vocabulary3->id(), $vocabulary2->id(), $vocabulary1->id()));
-    $this->assertEqual(array_shift($vocabularies)->id(), $vocabulary3->id(), 'Vocabulary loaded successfully by ID.');
-    $this->assertEqual(array_shift($vocabularies)->id(), $vocabulary2->id(), 'Vocabulary loaded successfully by ID.');
-    $this->assertEqual(array_shift($vocabularies)->id(), $vocabulary1->id(), 'Vocabulary loaded successfully by ID.');
+    $loaded_order = array_keys($vocabularies);
+    $expected_order = array($vocabulary3->id(), $vocabulary2->id(), $vocabulary1->id());
+    $this->assertIdentical($loaded_order, $expected_order);
 
     // Test loading vocabularies by their properties.
     $controller = $this->container->get('entity.manager')->getStorageController('taxonomy_vocabulary');

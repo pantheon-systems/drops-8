@@ -16,19 +16,27 @@ use Drupal\taxonomy\Entity\Term;
  * @deprecated Use \Drupal\taxonomy\Controller\TaxonomyController::termPage()
  */
 function taxonomy_term_page(Term $term) {
-  // Assign the term name as the page title.
-  drupal_set_title($term->label());
-
-  drupal_add_feed('taxonomy/term/' . $term->id() . '/feed', 'RSS - ' . $term->label());
+  $build['#attached']['drupal_add_feed'][] = array('taxonomy/term/' . $term->id() . '/feed', 'RSS - ' . $term->label());
 
   foreach ($term->uriRelationships() as $rel) {
-    $uri = $term->uri($rel);
     // Set the term path as the canonical URL to prevent duplicate content.
-    drupal_add_html_head_link(array('rel' => $rel, 'href' => url($uri['path'], $uri['options'])), TRUE);
+    $build['#attached']['drupal_add_html_head_link'][] = array(
+      array(
+        'rel' => $rel,
+        'href' => $term->url($rel),
+      ),
+      TRUE,
+    );
 
     if ($rel == 'canonical') {
       // Set the non-aliased canonical path as a default shortlink.
-      drupal_add_html_head_link(array('rel' => 'shortlink', 'href' => url($uri['path'], array_merge($uri['options'], array('alias' => TRUE)))), TRUE);
+      $build['#attached']['drupal_add_html_head_link'][] = array(
+        array(
+          'rel' => 'shortlink',
+          'href' => $term->url($rel, array('alias' => TRUE)),
+        ),
+        TRUE,
+      );
     }
   }
 
@@ -64,7 +72,7 @@ function taxonomy_term_feed(Term $term) {
   $channel['title'] = \Drupal::config('system.site')->get('name') . ' - ' . $term->label();
   // Only display the description if we have a single term, to avoid clutter and confusion.
   // HTML will be removed from feed description.
-  $channel['description'] = check_markup($term->description->value, $term->format->value, '', TRUE);
+  $channel['description'] = $term->description->processed;
   $nids = taxonomy_select_nodes($term->id(), FALSE, \Drupal::config('system.rss')->get('items.limit'));
 
   return node_feed($nids, $channel);

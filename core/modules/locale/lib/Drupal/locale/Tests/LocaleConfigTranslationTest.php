@@ -35,6 +35,12 @@ class LocaleConfigTranslationTest extends WebTestBase {
     parent::setUp();
     // Add a default locale storage for all these tests.
     $this->storage = $this->container->get('locale.storage');
+
+    // Enable import of translations. By default this is disabled for automated
+    // tests.
+    \Drupal::config('locale.settings')
+      ->set('translation.import_enabled', TRUE)
+      ->save();
   }
 
   /**
@@ -83,18 +89,48 @@ class LocaleConfigTranslationTest extends WebTestBase {
     $translation = $wrapper->getTranslation($langcode);
     $properties = $translation->getProperties();
     $this->assertEqual(count($properties), 1, 'Got the right number of properties after translation');
-//    $this->assertEqual($properties['name']->getValue(), $site_name, 'Got the right translation for site name after translation');
 
     // Check the translated site name is displayed.
     $this->drupalGet($langcode);
     $this->assertText($site_name, 'The translated site name is displayed after translations refreshed.');
+
+    // Check default medium date format exists and create a translation for it.
+    $string = $this->storage->findString(array('source' => 'D, m/d/Y - H:i', 'context' => '', 'type' => 'configuration'));
+    $this->assertTrue($string, 'Configuration date formats have been created upon installation.');
+
+    // Translate using the UI so configuration is refreshed.
+    $search = array(
+      'string' => $string->source,
+      'langcode' => $langcode,
+      'translation' => 'all',
+    );
+    $this->drupalPostForm('admin/config/regional/translate', $search, t('Filter'));
+    $textareas = $this->xpath('//textarea');
+    $textarea = current($textareas);
+    $lid = (string) $textarea[0]['name'];
+    $edit = array(
+      $lid => 'D',
+    );
+    $this->drupalPostForm('admin/config/regional/translate', $edit, t('Save translations'));
+
+    $wrapper = $this->container->get('locale.config.typed')->get('system.date_format.medium');
+
+    // Get translation and check we've only got the site name.
+    $translation = $wrapper->getTranslation($langcode);
+    $format = $translation->get('pattern')->get('php')->getValue();
+    $this->assertEqual($format, 'D', 'Got the right date format pattern after translation.');
+
+    // Formatting the date 8 / 27 / 1985 @ 13:37 EST with pattern D should
+    // display "Tue".
+    $formatted_date = format_date(494015820, $type = 'medium', NULL, NULL, $langcode);
+    $this->assertEqual($formatted_date, 'Tue', 'Got the right formatted date using the date format translation pattern.');
 
     // Assert strings from image module config are not available.
     $string = $this->storage->findString(array('source' => 'Medium (220x220)', 'context' => '', 'type' => 'configuration'));
     $this->assertFalse($string, 'Configuration strings have been created upon installation.');
 
     // Enable the image module.
-    $this->drupalPostForm('admin/modules', array('modules[Core][image][enable]' => "1"), t('Save configuration'));
+    $this->drupalPostForm('admin/modules', array('modules[Field types][image][enable]' => "1"), t('Save configuration'));
     $this->resetAll();
 
     $string = $this->storage->findString(array('source' => 'Medium (220x220)', 'context' => '', 'type' => 'configuration'));
@@ -135,14 +171,15 @@ class LocaleConfigTranslationTest extends WebTestBase {
     $this->assertEqual($property->getValue(), $image_style_label, 'Got the right translation for image style name after translation');
 
     // Quick test to ensure translation file exists.
-    $this->assertEqual(\Drupal::config('locale.config.xx.image.style.medium')->get('label'), $image_style_label);
+    $language_config_name = \Drupal::configFactory()->getLanguageConfigName('xx', 'image.style.medium');
+    $this->assertEqual(\Drupal::config($language_config_name)->get('label'), $image_style_label);
 
     // Uninstall the module.
     $this->drupalPostForm('admin/modules/uninstall', array('uninstall[image]' => "image"), t('Uninstall'));
     $this->drupalPostForm(NULL, array(), t('Uninstall'));
 
     // Ensure that the translated configuration has been removed.
-    $this->assertFalse(\Drupal::config('locale.config.xx.image.style.medium')->get('label'), 'Translated configuration for image module removed.');
+    $this->assertFalse(\Drupal::config($language_config_name)->get('label'), 'Translated configuration for image module removed.');
 
     // Translate default category using the UI so configuration is refreshed.
     $category_label = $this->randomName(20);

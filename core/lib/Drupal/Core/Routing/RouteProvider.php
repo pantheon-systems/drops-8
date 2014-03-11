@@ -8,6 +8,7 @@
 namespace Drupal\Core\Routing;
 
 use Drupal\Component\Utility\String;
+use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
 use Symfony\Component\Routing\RouteCollection;
@@ -18,7 +19,7 @@ use \Drupal\Core\Database\Connection;
 /**
  * A Route Provider front-end for all Drupal-stored routes.
  */
-class RouteProvider implements RouteProviderInterface {
+class RouteProvider implements RouteProviderInterface, EventSubscriberInterface {
 
   /**
    * The database connection from which to read route information.
@@ -35,6 +36,13 @@ class RouteProvider implements RouteProviderInterface {
   protected $tableName;
 
   /**
+   * The route builder.
+   *
+   * @var \Drupal\Core\Routing\RouteBuilderInterface
+   */
+  protected $routeBuilder;
+
+  /**
    * A cache of already-loaded routes, keyed by route name.
    *
    * @var array
@@ -46,11 +54,14 @@ class RouteProvider implements RouteProviderInterface {
    *
    * @param \Drupal\Core\Database\Connection $connection
    *   A database connection object.
+   * @param \Drupal\Core\Routing\RouteBuilderInterface $route_builder
+   *   The route builder.
    * @param string $table
    *   The table in the database to use for matching.
    */
-  public function __construct(Connection $connection, $table = 'router') {
+  public function __construct(Connection $connection, RouteBuilderInterface $route_builder, $table = 'router') {
     $this->connection = $connection;
+    $this->routeBuilder = $route_builder;
     $this->tableName = $table;
   }
 
@@ -99,7 +110,12 @@ class RouteProvider implements RouteProviderInterface {
 
     $collection = $this->getRoutesByPath($path);
 
-    if (!count($collection)) {
+    // Try rebuilding the router if it is necessary.
+    if (!$collection->count() && $this->routeBuilder->rebuildIfNeeded()) {
+      $collection = $this->getRoutesByPath($path);
+    }
+
+    if (!$collection->count()) {
       throw new ResourceNotFoundException(String::format("The route for '@path' could not be found", array('@path' => $path)));
     }
 
@@ -181,7 +197,7 @@ class RouteProvider implements RouteProviderInterface {
   public function getCandidateOutlines(array $parts) {
     $number_parts = count($parts);
     $ancestors = array();
-    $length =  $number_parts - 1;
+    $length = $number_parts - 1;
     $end = (1 << $number_parts) - 1;
 
     // The highest possible mask is a 1 bit for every part of the path. We will
@@ -240,13 +256,13 @@ class RouteProvider implements RouteProviderInterface {
   protected function getRoutesByPath($path) {
     // Filter out each empty value, though allow '0' and 0, which would be
     // filtered out by empty().
-    $parts = array_slice(array_filter(explode('/', $path), function($value) {
+    $parts = array_values(array_filter(explode('/', $path), function($value) {
       return $value !== NULL && $value !== '';
-    }), 0, MatcherDumper::MAX_PARTS);
+    }));
 
     $ancestors = $this->getCandidateOutlines($parts);
 
-    $routes = $this->connection->query("SELECT name, route FROM {" . $this->connection->escapeTable($this->tableName) . "} WHERE pattern_outline IN (:patterns) ORDER BY fit DESC", array(
+    $routes = $this->connection->query("SELECT name, route FROM {" . $this->connection->escapeTable($this->tableName) . "} WHERE pattern_outline IN (:patterns) ORDER BY fit DESC, name ASC", array(
       ':patterns' => $ancestors,
     ))
       ->fetchAllKeyed();
@@ -260,6 +276,28 @@ class RouteProvider implements RouteProviderInterface {
     }
 
     return $collection;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getAllRoutes() {
+    return new LazyLoadingRouteCollection($this->connection, $this->tableName);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function reset() {
+    $this->routes  = array();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  static function getSubscribedEvents() {
+    $events[RoutingEvents::FINISHED][] = array('reset');
+    return $events;
   }
 
 }

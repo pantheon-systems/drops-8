@@ -7,13 +7,21 @@
 
 namespace Drupal\Core\StringTranslation;
 
-use Drupal\Core\StringTranslation\Translator\TranslatorInterface;
 use Drupal\Component\Utility\String;
+use Drupal\Core\Language\LanguageManagerInterface;
+use Drupal\Core\StringTranslation\Translator\TranslatorInterface;
 
 /**
  * Defines a chained translation implementation combining multiple translators.
  */
 class TranslationManager implements TranslationInterface, TranslatorInterface {
+
+  /**
+   * The language manager.
+   *
+   * @var \Drupal\Core\Language\LanguageManagerInterface
+   */
+  protected $languageManager;
 
   /**
    * An array of active translators keyed by priority.
@@ -46,11 +54,24 @@ class TranslationManager implements TranslationInterface, TranslatorInterface {
 
   /**
    * Constructs a TranslationManager object.
+   *
+   * @param \Drupal\Core\Language\LanguageManagerInterface
+   *   The language manager.
    */
-  public function __construct() {
-    // @todo Inject language_manager or config system after language_default
-    //   variable is converted to CMI.
-    $this->defaultLangcode = language_default()->id;
+  public function __construct(LanguageManagerInterface $language_manager) {
+    $this->languageManager = $language_manager;
+    $this->defaultLangcode = $language_manager->getDefaultLanguage()->id;
+  }
+
+  /**
+   * Initializes the injected language manager with the translation manager.
+   *
+   * This should be called right after instantiating the translation manager to
+   * make it available to the language manager without introducing a circular
+   * dependency.
+   */
+  public function initLanguageManager() {
+    $this->languageManager->setTranslation($this);
   }
 
   /**
@@ -123,6 +144,43 @@ class TranslationManager implements TranslationInterface, TranslatorInterface {
     }
     else {
       return String::format($string, $args);
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function formatPlural($count, $singular, $plural, array $args = array(), array $options = array()) {
+    $args['@count'] = $count;
+    // Join both forms to search a translation.
+    $translatable_string = implode(LOCALE_PLURAL_DELIMITER, array($singular, $plural));
+    // Translate as usual.
+    $translated_strings = $this->translate($translatable_string, $args, $options);
+    // Split joined translation strings into array.
+    $translated_array = explode(LOCALE_PLURAL_DELIMITER, $translated_strings);
+
+    if ($count == 1) {
+      return $translated_array[0];
+    }
+
+    // Get the plural index through the gettext formula.
+    // @todo implement static variable to minimize function_exists() usage.
+    $index = (function_exists('locale_get_plural')) ? locale_get_plural($count, isset($options['langcode']) ? $options['langcode'] : NULL) : -1;
+    if ($index == 0) {
+      // Singular form.
+      return $translated_array[0];
+    }
+    else {
+      if (isset($translated_array[$index])) {
+        // N-th plural form.
+        return $translated_array[$index];
+      }
+      else {
+        // If the index cannot be computed or there's no translation, use
+        // the second plural form as a fallback (which allows for most flexiblity
+        // with the replaceable @count value).
+        return $translated_array[1];
+      }
     }
   }
 

@@ -7,6 +7,8 @@
 
 namespace Drupal\field\Tests;
 
+use Drupal\Core\Field\FieldDefinitionInterface;
+
 class FormTest extends FieldTestBase {
 
   /**
@@ -73,7 +75,7 @@ class FormTest extends FieldTestBase {
       'name' => 'field_unlimited',
       'entity_type' => 'entity_test',
       'type' => 'test_field',
-      'cardinality' => FIELD_CARDINALITY_UNLIMITED,
+      'cardinality' => FieldDefinitionInterface::CARDINALITY_UNLIMITED,
     );
 
     $this->instance = array(
@@ -613,7 +615,7 @@ class FormTest extends FieldTestBase {
     $this->instance->default_value = NULL;
     $this->instance->save();
     entity_get_form_display($entity_type, $this->instance->bundle, 'default')
-      ->setComponent($this->instance->getFieldName(), array(
+      ->setComponent($this->instance->getName(), array(
         'type' => 'test_field_widget',
       ))
       ->save();
@@ -633,7 +635,7 @@ class FormTest extends FieldTestBase {
 
     // Set the field back to hidden.
     entity_get_form_display($entity_type, $this->instance->bundle, 'default')
-      ->removeComponent($this->instance->getFieldName())
+      ->removeComponent($this->instance->getName())
       ->save();
 
     // Create a new revision.

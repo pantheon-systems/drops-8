@@ -2,9 +2,7 @@
 
 /**
  * @file
- * Provide views data and handlers for file.module.
- *
- * @ingroup views_module_handlers
+ * Provide views data for file.module.
  */
 
 use Drupal\Core\Entity\FieldableDatabaseStorageController;
@@ -49,6 +47,15 @@ function file_views_data() {
     ),
     'sort' => array(
       'id' => 'standard',
+    ),
+    'relationship' => array(
+      'title' => t('File usage'),
+      'help' => t('Relate file entities to their usage.'),
+      'id' => 'standard',
+      'base' => 'file_usage',
+      'base field' => 'fid',
+      'field' => 'fid',
+      'label' => t('File usage'),
     ),
   );
 
@@ -147,15 +154,30 @@ function file_views_data() {
     ),
   );
 
-  // timestamp field
-  $data['file_managed']['timestamp'] = array(
+  // The created field.
+  $data['file_managed']['created'] = array(
     'title' => t('Upload date'),
     'help' => t('The date the file was uploaded.'),
     'field' => array(
       'id' => 'date',
     ),
     'sort' => array(
-      'id' => 'date'
+      'id' => 'date',
+    ),
+    'filter' => array(
+      'id' => 'date',
+    ),
+  );
+
+  // The changed field.
+  $data['file_managed']['changed'] = array(
+    'title' => t('Modified date'),
+    'help' => t('The date the file was last changed.'),
+    'field' => array(
+      'id' => 'date',
+    ),
+    'sort' => array(
+      'id' => 'date',
     ),
     'filter' => array(
       'id' => 'date',
@@ -182,11 +204,6 @@ function file_views_data() {
   // that we can create relationships from files to entities, and then on each core entity type base
   // table so that we can provide general relationships between entities and files.
   $data['file_usage']['table']['join'] = array(
-    // Link ourself to the {file_managed} table so we can provide file->entity relationships.
-    'file_managed' => array(
-      'field' => 'fid',
-      'left_field' => 'fid',
-    ),
     // Link ourself to the {node} table so we can provide node->file relationships.
     'node' => array(
       'field' => 'id',
@@ -467,12 +484,12 @@ function file_field_views_data(FieldInterface $field) {
   $data = field_views_field_default_views_data($field);
   foreach ($data as $table_name => $table_data) {
     // Add the relationship only on the fid field.
-    $data[$table_name][$field->getFieldName() . '_target_id']['relationship'] = array(
+    $data[$table_name][$field->getName() . '_target_id']['relationship'] = array(
       'id' => 'standard',
       'base' => 'file_managed',
       'entity type' => 'file',
       'base field' => 'target_id',
-      'label' => t('file from !field_name', array('!field_name' => $field->getFieldName())),
+      'label' => t('file from !field_name', array('!field_name' => $field->getName())),
     );
   }
 
@@ -485,23 +502,23 @@ function file_field_views_data(FieldInterface $field) {
  * Views integration to provide reverse relationships on file fields.
  */
 function file_field_views_data_views_data_alter(array &$data, FieldInterface $field) {
-  $entity_type = $field->entity_type;
-  $entity_info = entity_get_info($entity_type);
-  $field_name = $field->getFieldName();
-  $pseudo_field_name = 'reverse_' . $field_name . '_' . $entity_type;
+  $entity_type_id = $field->entity_type;
+  $entity_type = \Drupal::entityManager()->getDefinition($entity_type_id);
+  $field_name = $field->getName();
+  $pseudo_field_name = 'reverse_' . $field_name . '_' . $entity_type_id;
 
-  list($label) = field_views_field_label($entity_type, $field_name);
+  list($label) = field_views_field_label($entity_type_id, $field_name);
 
   $data['file_managed'][$pseudo_field_name]['relationship'] = array(
-    'title' => t('@entity using @field', array('@entity' => $entity_info['label'], '@field' => $label)),
-    'help' => t('Relate each @entity with a @field set to the file.', array('@entity' => $entity_info['label'], '@field' => $label)),
+    'title' => t('@entity using @field', array('@entity' => $entity_type->getLabel(), '@field' => $label)),
+    'help' => t('Relate each @entity with a @field set to the file.', array('@entity' => $entity_type->getLabel(), '@field' => $label)),
     'id' => 'entity_reverse',
     'field_name' => $field_name,
-    'entity_type' => $entity_type,
+    'entity_type' => $entity_type_id,
     'field table' => FieldableDatabaseStorageController::_fieldTableName($field),
     'field field' => $field_name . '_target_id',
-    'base' => $entity_info['base_table'],
-    'base field' => $entity_info['entity_keys']['id'],
+    'base' => $entity_type->getBaseTable(),
+    'base field' => $entity_type->getKey('id'),
     'label' => t('!field_name', array('!field_name' => $field_name)),
     'join_extra' => array(
       0 => array(

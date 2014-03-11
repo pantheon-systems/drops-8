@@ -7,7 +7,7 @@
 
 namespace Drupal\Core\Mail;
 
-use Drupal\Core\Config\ConfigFactory;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Component\Utility\String;
 
 /**
@@ -32,10 +32,10 @@ class MailFactory {
   /**
    * Constructs a MailFActory object.
    *
-   * @param \Drupal\Core\Config\ConfigFactory $configFactory
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $configFactory
    *   The configuration factory.
    */
-  public function __construct(ConfigFactory $configFactory) {
+  public function __construct(ConfigFactoryInterface $configFactory) {
     $this->mailConfig = $configFactory->get('system.mail');
   }
 
@@ -62,7 +62,7 @@ class MailFactory {
    * @code
    * array(
    *   'default' => 'Drupal\Core\Mail\PhpMail',
-   *   'user' => 'DevelMailLog',
+   *   'user' => 'Drupal\devel\DevelMailLog',
    * );
    * @endcode
    *
@@ -72,8 +72,8 @@ class MailFactory {
    * @code
    * array(
    *   'default' => 'Drupal\Core\Mail\PhpMail',
-   *   'user' => 'DevelMailLog',
-   *   'contact_page_autoreply' => 'DrupalDevNullMailSend',
+   *   'user' => 'Drupal\devel\DevelMailLog',
+   *   'contact_page_autoreply' => 'Drupal\example\NullMail',
    * );
    * @endcode
    *

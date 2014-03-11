@@ -7,7 +7,6 @@
 
 namespace Drupal\system\Form;
 
-use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Form\ConfirmFormBase;
 use Drupal\Core\KeyValueStore\KeyValueStoreExpirableInterface;
@@ -17,7 +16,7 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
 /**
  * Builds a confirmation form for enabling modules with dependencies.
  */
-class ModulesListConfirmForm extends ConfirmFormBase implements ContainerInjectionInterface {
+class ModulesListConfirmForm extends ConfirmFormBase {
 
   /**
    * The module handler service.
@@ -153,7 +152,7 @@ class ModulesListConfirmForm extends ConfirmFormBase implements ContainerInjecti
       drupal_set_message($this->t('The configuration options have been saved.'));
     }
 
-    $form_state['redirect'] = 'admin/modules';
+    $form_state['redirect_route']['route_name'] = 'system.modules_list';
   }
 
 }

@@ -5,13 +5,14 @@
  * Contains \Drupal\views_ui\Tests\ViewListControllerTest
  */
 
-namespace Drupal\views_ui\Tests {
-
+namespace Drupal\views_ui\Tests;
 
 use Drupal\Core\DependencyInjection\ContainerBuilder;
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Tests\UnitTestCase;
 use Drupal\views\Entity\View;
 use Drupal\views\ViewExecutableFactory;
+use Drupal\views_ui\ViewListController;
 
 class ViewListControllerTest extends UnitTestCase {
 
@@ -32,7 +33,6 @@ class ViewListControllerTest extends UnitTestCase {
     $storage_controller = $this->getMockBuilder('Drupal\views\ViewStorageController')
       ->disableOriginalConstructor()
       ->getMock();
-    $entity_info = array();
     $display_manager = $this->getMockBuilder('\Drupal\views\Plugin\ViewsPluginManager')
       ->disableOriginalConstructor()
       ->getMock();
@@ -78,7 +78,7 @@ class ViewListControllerTest extends UnitTestCase {
       array(array(), 'default', $display_manager->getDefinition('default'))
     );
     $route_provider = $this->getMock('Drupal\Core\Routing\RouteProviderInterface');
-    $state = $this->getMock('\Drupal\Core\KeyValueStore\KeyValueStoreInterface');
+    $state = $this->getMock('\Drupal\Core\KeyValueStore\StateInterface');
     $page_display = $this->getMock('Drupal\views\Plugin\views\display\Page',
       array('initDisplay', 'getPath'),
       array(array(), 'default', $display_manager->getDefinition('page'), $route_provider, $state)
@@ -115,21 +115,17 @@ class ViewListControllerTest extends UnitTestCase {
       )));
 
     $container = new ContainerBuilder();
-    $executable_factory = new ViewExecutableFactory();
+    $user = $this->getMock('Drupal\Core\Session\AccountInterface');
+    $executable_factory = new ViewExecutableFactory($user);
     $container->set('views.executable', $executable_factory);
     $container->set('plugin.manager.views.display', $display_manager);
     \Drupal::setContainer($container);
 
-    $module_handler = $this->getMockBuilder('Drupal\Core\Extension\ModuleHandler')
-      ->disableOriginalConstructor()
-      ->getMock();
-
     // Setup a view list controller with a mocked buildOperations method,
     // because t() is called on there.
-    $view_list_controller = $this->getMock('Drupal\views_ui\ViewListController', array('buildOperations'), array('view', $storage_controller, $entity_info, $display_manager, $module_handler));
-    $view_list_controller->expects($this->any())
-      ->method('buildOperations')
-      ->will($this->returnValue(array()));
+    $entity_type = $this->getMock('Drupal\Core\Entity\EntityTypeInterface');
+    $view_list_controller = new TestViewListController($entity_type, $storage_controller, $display_manager);
+    $view_list_controller->setTranslationManager($this->getStringTranslationStub());
 
     $view = new View($values, 'view');
 
@@ -141,13 +137,10 @@ class ViewListControllerTest extends UnitTestCase {
 
 }
 
-}
+class TestViewListController extends ViewListController {
 
-// @todo Remove this once t() is converted to a service.
-namespace {
-  if (!function_exists('t')) {
-    function t($string) {
-      return $string;
-    }
+  public function buildOperations(EntityInterface $entity) {
+    return array();
   }
+
 }

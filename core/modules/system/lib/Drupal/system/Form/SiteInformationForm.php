@@ -7,8 +7,7 @@
 
 namespace Drupal\system\Form;
 
-use Drupal\Core\Config\ConfigFactory;
-use Drupal\Core\Config\Context\ContextInterface;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Path\AliasManagerInterface;
 use Drupal\Core\Form\ConfigFormBase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -28,15 +27,13 @@ class SiteInformationForm extends ConfigFormBase {
   /**
    * Constructs a SiteInformationForm object.
    *
-   * @param \Drupal\Core\Config\ConfigFactory $config_factory
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The factory for configuration objects.
-   * @param \Drupal\Core\Config\Context\ContextInterface $context
-   *   The configuration context used for this configuration object.
    * @param \Drupal\Core\Path\AliasManagerInterface $alias_manager
    *   The path alias manager.
    */
-  public function __construct(ConfigFactory $config_factory, ContextInterface $context, AliasManagerInterface $alias_manager) {
-    parent::__construct($config_factory, $context);
+  public function __construct(ConfigFactoryInterface $config_factory, AliasManagerInterface $alias_manager) {
+    parent::__construct($config_factory);
 
     $this->aliasManager = $alias_manager;
   }
@@ -47,7 +44,6 @@ class SiteInformationForm extends ConfigFormBase {
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('config.factory'),
-      $container->get('config.context.free'),
       $container->get('path.alias_manager')
     );
   }
@@ -144,7 +140,7 @@ class SiteInformationForm extends ConfigFormBase {
     }
     // Validate front page path.
     if (!drupal_valid_path($form_state['values']['site_frontpage'])) {
-      form_set_error('site_frontpage', t("The path '%path' is either invalid or you do not have access to it.", array('%path' => $form_state['values']['site_frontpage'])));
+      $this->setFormError('site_frontpage', $form_state, $this->t("The path '%path' is either invalid or you do not have access to it.", array('%path' => $form_state['values']['site_frontpage'])));
     }
     // Get the normal paths of both error pages.
     if (!empty($form_state['values']['site_403'])) {
@@ -155,11 +151,11 @@ class SiteInformationForm extends ConfigFormBase {
     }
     // Validate 403 error path.
     if (!empty($form_state['values']['site_403']) && !drupal_valid_path($form_state['values']['site_403'])) {
-      form_set_error('site_403', t("The path '%path' is either invalid or you do not have access to it.", array('%path' => $form_state['values']['site_403'])));
+      $this->setFormError('site_403', $form_state, $this->t("The path '%path' is either invalid or you do not have access to it.", array('%path' => $form_state['values']['site_403'])));
     }
     // Validate 404 error path.
     if (!empty($form_state['values']['site_404']) && !drupal_valid_path($form_state['values']['site_404'])) {
-      form_set_error('site_404', t("The path '%path' is either invalid or you do not have access to it.", array('%path' => $form_state['values']['site_404'])));
+      $this->setFormError('site_404', $form_state, $this->t("The path '%path' is either invalid or you do not have access to it.", array('%path' => $form_state['values']['site_404'])));
     }
 
     parent::validateForm($form, $form_state);

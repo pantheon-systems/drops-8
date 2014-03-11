@@ -7,18 +7,27 @@ tour.tour.*:
     id:
       type: string
       label: 'ID'
+    uuid:
+      type: string
+      label: 'UUID'
+    module:
+      type: string
+      label: 'Providing module'
     label:
       type: label
       label: 'Label'
+    status:
+      type: boolean
+      label: 'Enabled'
     langcode:
       type: string
-      label: 'Language'
-    paths:
+      label: 'Default language'
+    routes:
       type: sequence
-      label: 'Path settings'
+      label: 'Route settings'
       sequence:
-        - type: path
-          label: 'Path'
+        - type: route
+          label: 'Route'
     tips:
       type: sequence
       label: 'Tips'
@@ -42,6 +51,9 @@ tour.tip:
     weight:
       type: integer
       label: 'Weight'
+    location:
+      type: string
+      label: 'Location'
     attributes:
       type: sequence
       label: 'Attributes'
@@ -56,5 +68,3 @@ tour.tip.text:
     body:
       type: text
       label: 'Body'
-
-

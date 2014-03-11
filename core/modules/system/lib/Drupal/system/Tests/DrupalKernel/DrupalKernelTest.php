@@ -10,12 +10,12 @@ namespace Drupal\system\Tests\DrupalKernel;
 use Drupal\Core\DrupalKernel;
 use Drupal\Component\PhpStorage\MTimeProtectedFastFileStorage;
 use Drupal\Component\PhpStorage\FileReadOnlyStorage;
-use Drupal\simpletest\UnitTestBase;
+use Drupal\simpletest\DrupalUnitTestBase;
 
 /**
  * Tests compilation of the DIC.
  */
-class DrupalKernelTest extends UnitTestBase {
+class DrupalKernelTest extends DrupalUnitTestBase {
 
   public static function getInfo() {
     return array(
@@ -26,16 +26,19 @@ class DrupalKernelTest extends UnitTestBase {
   }
 
   function setUp() {
-    parent::setUp();
-    global $conf;
-    $conf['php_storage']['service_container']= array(
+    // DrupalKernel relies on global $config_directories and requires those
+    // directories to exist. Therefore, create the directories, but do not
+    // invoke DrupalUnitTestBase::setUp(), since that would set up further
+    // environment aspects, which would distort this test, because it tests
+    // the DrupalKernel (re-)building itself.
+    $this->prepareConfigDirectories();
+
+    $this->settingsSet('php_storage', array('service_container' => array(
       'bin' => 'service_container',
       'class' => 'Drupal\Component\PhpStorage\MTimeProtectedFileStorage',
       'directory' => DRUPAL_ROOT . '/' . $this->public_files_directory . '/php',
       'secret' => drupal_get_hash_salt(),
-    );
-    // Use a non-persistent cache to avoid queries to non-existing tables.
-    $this->settingsSet('cache', array('default' => 'cache.backend.memory'));
+    )));
   }
 
   /**
@@ -65,8 +68,9 @@ class DrupalKernelTest extends UnitTestBase {
 
     // Now use the read-only storage implementation, simulating a "production"
     // environment.
-    global $conf;
-    $conf['php_storage']['service_container']['class'] = 'Drupal\Component\PhpStorage\FileReadOnlyStorage';
+    $php_storage = settings()->get('php_storage');
+    $php_storage['service_container']['class'] = 'Drupal\Component\PhpStorage\FileReadOnlyStorage';
+    $this->settingsSet('php_storage', $php_storage);
     $kernel = new DrupalKernel('testing', $classloader);
     $kernel->updateModules($module_enabled);
     $kernel->boot();

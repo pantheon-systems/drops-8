@@ -68,23 +68,6 @@ form_test.autocomplete_2:
   requirements:
     _permission: 'access autocomplete test'
 
-form_test.wrapper:
-  path: '/form_test/wrapper-callback'
-  defaults:
-    _title: 'Form wrapper callback test'
-    _content: '\Drupal\form_test\Controller\FormTestController::wrapperCallback'
-    form_id: 'form_test_wrapper_callback_form'
-  requirements:
-    _access: 'TRUE'
-
-form_test.double_form:
-  path: '/form-test/double-form'
-  defaults:
-    _title: 'Double form test'
-    _content: '\Drupal\form_test\Controller\FormTestController::doubleForm'
-  requirements:
-    _access: 'TRUE'
-
 form_test.alter_form:
   path: '/form-test/alter'
   defaults:
@@ -433,3 +416,11 @@ form_test.form_state_database:
     _title: 'Form state with a database connection'
   requirements:
     _access: 'TRUE'
+
+form_test.two_instances:
+  path: '/form-test/two-instances-of-same-form'
+  defaults:
+    _content: '\Drupal\form_test\Controller\FormTestController::twoFormInstances'
+  requirements:
+    _module_dependencies: 'node'
+    _permission: 'create page content'

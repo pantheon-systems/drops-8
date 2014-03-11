@@ -8,20 +8,21 @@
 namespace Drupal\search\Plugin\views\row;
 
 use Drupal\views\Plugin\views\row\RowPluginBase;
-use Drupal\views\Annotation\ViewsRow;
-use Drupal\Core\Annotation\Translation;
 
 /**
- * Plugin which performs a node_view on the resulting object.
+ * Row handler plugin for displaying search results.
  *
  * @ViewsRow(
  *   id = "search_view",
- *   title = @Translation("Search"),
+ *   title = @Translation("Search results"),
  *   help = @Translation("Provides a row plugin to display search results.")
  * )
  */
 class SearchRow extends RowPluginBase {
 
+  /**
+   * {@inheritdoc}
+   */
   protected function defineOptions() {
     $options = parent::defineOptions();
 
@@ -30,6 +31,9 @@ class SearchRow extends RowPluginBase {
     return $options;
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function buildOptionsForm(&$form, &$form_state) {
     $form['score'] = array(
       '#type' => 'checkbox',
@@ -39,7 +43,7 @@ class SearchRow extends RowPluginBase {
   }
 
   /**
-   * Override the behavior of the render() function.
+   * {@inheritdoc}
    */
   public function render($row) {
     return array(

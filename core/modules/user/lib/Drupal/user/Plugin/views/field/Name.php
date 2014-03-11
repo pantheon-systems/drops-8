@@ -9,7 +9,6 @@ namespace Drupal\user\Plugin\views\field;
 
 use Drupal\user\Plugin\views\field\User;
 use Drupal\views\Plugin\views\display\DisplayPluginBase;
-use Drupal\Component\Annotation\PluginID;
 use Drupal\views\ResultRow;
 use Drupal\views\ViewExecutable;
 
@@ -79,7 +78,7 @@ class Name extends User {
    * {@inheritdoc}
    */
   protected function renderLink($data, ResultRow $values) {
-    $account = entity_create('user', array());
+    $account = entity_create('user');
     $account->uid = $this->getValue($values, 'uid');
     $account->name = $this->getValue($values);
     if (!empty($this->options['link_to_user']) || !empty($this->options['overwrite_anonymous'])) {

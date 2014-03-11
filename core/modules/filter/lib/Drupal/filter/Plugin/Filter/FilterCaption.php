@@ -7,11 +7,10 @@
 
 namespace Drupal\filter\Plugin\Filter;
 
+use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\String;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Component\Utility\Xss;
-use Drupal\Core\Annotation\Translation;
-use Drupal\filter\Annotation\Filter;
 use Drupal\filter\Plugin\FilterBase;
 
 /**
@@ -19,10 +18,9 @@ use Drupal\filter\Plugin\FilterBase;
  *
  * @Filter(
  *   id = "filter_caption",
- *   module = "filter",
  *   title = @Translation("Display image captions and align images"),
  *   description = @Translation("Uses data-caption and data-align attributes on &lt;img&gt; tags to caption and align images."),
- *   type = FILTER_TYPE_TRANSFORM_REVERSIBLE
+ *   type = Drupal\filter\Plugin\FilterInterface::TYPE_TRANSFORM_REVERSIBLE
  * )
  */
 class FilterCaption extends FilterBase {
@@ -31,11 +29,9 @@ class FilterCaption extends FilterBase {
    * {@inheritdoc}
    */
   public function process($text, $langcode, $cache, $cache_id) {
-    $search = array();
-    $replace = array();
 
     if (stristr($text, 'data-caption') !== FALSE || stristr($text, 'data-align') !== FALSE) {
-      $dom = filter_dom_load($text);
+      $dom = Html::load($text);
       $xpath = new \DOMXPath($dom);
       foreach ($xpath->query('//*[@data-caption or @data-align]') as $node) {
         $caption = NULL;
@@ -62,9 +58,16 @@ class FilterCaption extends FilterBase {
           }
         }
 
-        // If neither attribute has a value after validation, then don't
-        // transform the HTML.
-        if ($caption === NULL && $align === NULL) {
+        // Don't transform the HTML if there isn't a caption after validation.
+        if ($caption === NULL) {
+          // If there is a valid alignment, then transform the data-align
+          // attribute to a corresponding alignment class.
+          if ($align !== NULL) {
+            $classes = $node->getAttribute('class');
+            $classes = (strlen($classes) > 0) ? explode(' ', $classes) : array();
+            $classes[] = 'align-' . $align;
+            $node->setAttribute('class', implode(' ', $classes));
+          }
           continue;
         }
 
@@ -80,7 +83,7 @@ class FilterCaption extends FilterBase {
         $altered_html = drupal_render($filter_caption);
 
         // Load the altered HTML into a new DOMDocument and retrieve the element.
-        $updated_node = filter_dom_load($altered_html)->getElementsByTagName('body')
+        $updated_node = Html::load($altered_html)->getElementsByTagName('body')
           ->item(0)
           ->childNodes
           ->item(0);
@@ -92,7 +95,7 @@ class FilterCaption extends FilterBase {
         $node->parentNode->replaceChild($updated_node, $node);
       }
 
-      return filter_dom_serialize($dom);
+      return Html::serialize($dom);
     }
 
     return $text;

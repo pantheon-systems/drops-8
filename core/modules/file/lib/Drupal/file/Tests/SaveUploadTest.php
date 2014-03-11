@@ -30,13 +30,13 @@ class SaveUploadTest extends FileManagedTestBase {
     return array(
       'name' => 'File uploading',
       'description' => 'Tests the file uploading functions.',
-      'group' => 'File API',
+      'group' => 'File Managed API',
     );
   }
 
   function setUp() {
     parent::setUp();
-    $account = $this->drupalCreateUser(array('access content'));
+    $account = $this->drupalCreateUser();
     $this->drupalLogin($account);
 
     $image_files = $this->drupalGetTestFiles('image');

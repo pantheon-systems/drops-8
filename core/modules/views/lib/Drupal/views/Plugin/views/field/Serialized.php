@@ -7,7 +7,7 @@
 
 namespace Drupal\views\Plugin\views\field;
 
-use Drupal\Component\Annotation\PluginID;
+use Drupal\Component\Utility\String;
 use Drupal\views\ResultRow;
 
 /**
@@ -56,7 +56,7 @@ class Serialized extends FieldPluginBase {
   public function validateOptionsForm(&$form, &$form_state) {
     // Require a key if the format is key.
     if ($form_state['values']['options']['format'] == 'key' && $form_state['values']['options']['key'] == '') {
-      form_error($form['key'], t('You have to enter a key if you want to display a key of the data.'));
+      form_error($form['key'], $form_state, t('You have to enter a key if you want to display a key of the data.'));
     }
   }
 
@@ -67,11 +67,11 @@ class Serialized extends FieldPluginBase {
     $value = $values->{$this->field_alias};
 
     if ($this->options['format'] == 'unserialized') {
-      return check_plain(print_r(unserialize($value), TRUE));
+      return String::checkPlain(print_r(unserialize($value), TRUE));
     }
     elseif ($this->options['format'] == 'key' && !empty($this->options['key'])) {
       $value = (array) unserialize($value);
-      return check_plain($value[$this->options['key']]);
+      return String::checkPlain($value[$this->options['key']]);
     }
 
     return $value;

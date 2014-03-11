@@ -7,8 +7,6 @@
 
 namespace Drupal\Core\TypedData\Plugin\DataType;
 
-use Drupal\Core\TypedData\Annotation\DataType;
-use Drupal\Core\Annotation\Translation;
 use Drupal\Core\TypedData\PrimitiveBase;
 use Drupal\Core\TypedData\Type\FloatInterface;
 
@@ -25,4 +23,10 @@ use Drupal\Core\TypedData\Type\FloatInterface;
  */
 class Float extends PrimitiveBase implements FloatInterface {
 
+  /**
+   * {@inheritdoc}
+   */
+  public function getCastedValue() {
+    return (float) $this->value;
+  }
 }

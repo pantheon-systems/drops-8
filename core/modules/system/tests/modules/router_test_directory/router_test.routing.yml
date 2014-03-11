@@ -30,7 +30,7 @@ router_test.4:
 router_test.6:
   path: '/router_test/test6'
   defaults:
-    _controller: '\Drupal\router_test\TestControllers::test1'
+    _content: '\Drupal\router_test\TestControllers::test1'
   requirements:
     _access: 'TRUE'
 
@@ -86,3 +86,44 @@ router_test.13:
   defaults:
     _content: '\Drupal\router_test\TestContent::testAccount'
 
+router_test.14:
+  path: '/router_test/test14/{uid}'
+  requirements:
+    _access: 'TRUE'
+  defaults:
+    _controller: '\Drupal\router_test\TestControllers::test9'
+
+router_test.hierarchy_parent:
+  path: '/menu-test/parent'
+  defaults:
+    _controller: '\Drupal\router_test\TestControllers::test'
+  requirements:
+    _access: 'TRUE'
+
+router_test.hierarchy_parent_child1:
+  path: '/menu-test/parent/child-1'
+  defaults:
+    _controller: '\Drupal\router_test\TestControllers::test'
+  requirements:
+    _access: 'TRUE'
+
+router_test.hierarchy_parent_child1_1:
+  path: '/menu-test/parent/child-1/child-1-1'
+  defaults:
+    _controller: '\Drupal\router_test\TestControllers::test'
+  requirements:
+    _access: 'TRUE'
+
+router_test.hierarchy_parent_child1_2:
+  path: '/menu-test/parent/child-1/child-1-2'
+  defaults:
+    _controller: '\Drupal\router_test\TestControllers::test'
+  requirements:
+    _access: 'TRUE'
+
+router_test.hierarchy_parent_child2:
+  path: '/menu-test/parent/child-2'
+  defaults:
+    _controller: '\Drupal\router_test\TestControllers::test'
+  requirements:
+    _access: 'TRUE'

@@ -10,7 +10,6 @@ namespace Drupal\views\Tests;
 use Drupal\Core\Database\Query\SelectInterface;
 use Drupal\simpletest\WebTestBase;
 use Drupal\views\ViewExecutable;
-use Drupal\block\Entity\Block;
 
 /**
  * Defines a base class for Views testing in the full web test environment.
@@ -211,7 +210,7 @@ abstract class ViewTestBase extends WebTestBase {
    *   message is provided, the message will indicate the button label.
    *
    * @return bool
-   *   TRUE if the asserion was succesful, or FALSE on failure.
+   *   TRUE if the asserion was successful, or FALSE on failure.
    */
   protected function helperButtonHasLabel($id, $expected_label, $message = 'Label has the expected value: %label.') {
     return $this->assertFieldById($id, $expected_label, t($message, array('%label' => $expected_label)));
@@ -226,6 +225,9 @@ abstract class ViewTestBase extends WebTestBase {
    *   (optional) An array of the view arguments to use for the view.
    */
   protected function executeView($view, $args = array()) {
+    // A view does not really work outside of a request scope, due to many
+    // dependencies like the current user.
+    $this->container->enterScope('request');
     $view->setDisplay();
     $view->preExecute($args);
     $view->execute();
@@ -234,41 +236,6 @@ abstract class ViewTestBase extends WebTestBase {
       $verbose_message .= '<pre>Arguments: ' . print_r($view->build_info['query']->getArguments(), TRUE) . '</pre>';
     }
     $this->verbose($verbose_message);
-  }
-
-  /**
-   * Checks to see whether a block appears on the page.
-   *
-   * @param \Drupal\block\Entity\Block $block
-   *   The block entity to find on the page.
-   */
-  protected function assertBlockAppears(Block $block) {
-    $result = $this->findBlockInstance($block);
-    $this->assertTrue(!empty($result), format_string('Ensure the block @id appears on the page', array('@id' => $block->id())));
-  }
-
-  /**
-   * Checks to see whether a block does not appears on the page.
-   *
-   * @param \Drupal\block\Entity\Block $block
-   *   The block entity to find on the page.
-   */
-  protected function assertNoBlockAppears(Block $block) {
-    $result = $this->findBlockInstance($block);
-    $this->assertFalse(!empty($result), format_string('Ensure the block @id does not appear on the page', array('@id' => $block->id())));
-  }
-
-  /**
-   * Find a block instance on the page.
-   *
-   * @param \Drupal\block\Entity\Block $block
-   *   The block entity to find on the page.
-   *
-   * @return array
-   *   The result from the xpath query.
-   */
-  protected function findBlockInstance(Block $block) {
-    return $this->xpath('//div[@id = :id]', array(':id' => 'block-' . $block->id()));
   }
 
   /**

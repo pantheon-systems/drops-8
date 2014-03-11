@@ -10,6 +10,7 @@ namespace Drupal\comment;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\FieldableDatabaseStorageController;
 use Drupal\Core\Entity\EntityChangedInterface;
+use Drupal\user\EntityOwnerInterface;
 
 /**
  * Defines the controller class for comments.
@@ -18,11 +19,6 @@ use Drupal\Core\Entity\EntityChangedInterface;
  * required special handling for comment entities.
  */
 class CommentStorageController extends FieldableDatabaseStorageController implements CommentStorageControllerInterface {
-
-  /**
-   * The thread for which a lock was acquired.
-   */
-  protected $threadLock = '';
 
   /**
    * {@inheritdoc}
@@ -39,12 +35,12 @@ class CommentStorageController extends FieldableDatabaseStorageController implem
   /**
    * {@inheritdoc}
    */
-  protected function attachLoad(&$records, $load_revision = FALSE) {
+  protected function postLoad(array &$queried_entities) {
     // Prepare standard comment fields.
-    foreach ($records as &$record) {
+    foreach ($queried_entities as &$record) {
       $record->name = $record->uid ? $record->registered_name : $record->name;
     }
-    parent::attachLoad($records, $load_revision);
+    parent::postLoad($queried_entities);
   }
 
   /**
@@ -59,10 +55,10 @@ class CommentStorageController extends FieldableDatabaseStorageController implem
 
     $query = $this->database->select('comment', 'c');
     $query->addExpression('COUNT(cid)');
-    $count = $query->condition('c.entity_id', $comment->entity_id->value)
-      ->condition('c.entity_type', $comment->entity_type->value)
-      ->condition('c.field_id', $comment->field_id->value)
-      ->condition('c.status', COMMENT_PUBLISHED)
+    $count = $query->condition('c.entity_id', $comment->getCommentedEntityId())
+      ->condition('c.entity_type', $comment->getCommentedEntityTypeId())
+      ->condition('c.field_id', $comment->getFieldId())
+      ->condition('c.status', CommentInterface::PUBLISHED)
       ->execute()
       ->fetchField();
 
@@ -70,10 +66,10 @@ class CommentStorageController extends FieldableDatabaseStorageController implem
       // Comments exist.
       $last_reply = $this->database->select('comment', 'c')
         ->fields('c', array('cid', 'name', 'changed', 'uid'))
-        ->condition('c.entity_id', $comment->entity_id->value)
-        ->condition('c.entity_type', $comment->entity_type->value)
-        ->condition('c.field_id', $comment->field_id->value)
-        ->condition('c.status', COMMENT_PUBLISHED)
+        ->condition('c.entity_id', $comment->getCommentedEntityId())
+        ->condition('c.entity_type', $comment->getCommentedEntityTypeId())
+        ->condition('c.field_id', $comment->getFieldId())
+        ->condition('c.status', CommentInterface::PUBLISHED)
         ->orderBy('c.created', 'DESC')
         ->range(0, 1)
         ->execute()
@@ -88,15 +84,25 @@ class CommentStorageController extends FieldableDatabaseStorageController implem
           'last_comment_uid' => $last_reply->uid,
         ))
         ->key(array(
-          'entity_id' => $comment->entity_id->value,
-          'entity_type' => $comment->entity_type->value,
-          'field_id' => $comment->field_id->value,
+          'entity_id' => $comment->getCommentedEntityId(),
+          'entity_type' => $comment->getCommentedEntityTypeId(),
+          'field_id' => $comment->getFieldId(),
         ))
         ->execute();
     }
     else {
       // Comments do not exist.
-      $entity = entity_load($comment->entity_type->value, $comment->entity_id->value);
+      $entity = $comment->getCommentedEntity();
+      // Get the user ID from the entity if it's set, or default to the
+      // currently logged in user.
+      if ($entity instanceof EntityOwnerInterface) {
+        $last_comment_uid = $entity->getOwnerId();
+      }
+      if (!isset($last_comment_uid)) {
+        // Default to current user when entity does not implement
+        // EntityOwnerInterface or author is not set.
+        $last_comment_uid = \Drupal::currentUser()->id();
+      }
       $this->database->update('comment_entity_statistics')
         ->fields(array(
           'cid' => 0,
@@ -105,14 +111,11 @@ class CommentStorageController extends FieldableDatabaseStorageController implem
           // REQUEST_TIME.
           'last_comment_timestamp' => ($entity instanceof EntityChangedInterface) ? $entity->getChangedTime() : REQUEST_TIME,
           'last_comment_name' => '',
-          // @todo Use $entity->getAuthorId() after https://drupal.org/node/2078387
-          // Get the user ID from the entity if it's set, or default to the
-          // currently logged in user.
-          'last_comment_uid' => $entity->hasField('uid') ? $entity->get('uid')->value : \Drupal::currentUser()->id(),
+          'last_comment_uid' => $last_comment_uid,
         ))
-        ->condition('entity_id', $comment->entity_id->value)
-        ->condition('entity_type', $comment->entity_type->value)
-        ->condition('field_id', $comment->field_id->value)
+        ->condition('entity_id', $comment->getCommentedEntityId())
+        ->condition('entity_type', $comment->getCommentedEntityTypeId())
+        ->condition('field_id', $comment->getFieldId())
         ->execute();
     }
   }
@@ -122,9 +125,9 @@ class CommentStorageController extends FieldableDatabaseStorageController implem
    */
   public function getMaxThread(EntityInterface $comment) {
     $query = $this->database->select('comment', 'c')
-      ->condition('entity_id', $comment->entity_id->value)
-      ->condition('field_id', $comment->field_id->value)
-      ->condition('entity_type', $comment->entity_type->value);
+      ->condition('entity_id', $comment->getCommentedEntityId())
+      ->condition('field_id', $comment->getFieldId())
+      ->condition('entity_type', $comment->getCommentedEntityTypeId());
     $query->addExpression('MAX(thread)', 'thread');
     return $query->execute()
       ->fetchField();
@@ -135,10 +138,10 @@ class CommentStorageController extends FieldableDatabaseStorageController implem
    */
   public function getMaxThreadPerThread(EntityInterface $comment) {
     $query = $this->database->select('comment', 'c')
-      ->condition('entity_id', $comment->entity_id->value)
-      ->condition('field_id', $comment->field_id->value)
-      ->condition('entity_type', $comment->entity_type->value)
-      ->condition('thread', $comment->pid->entity->thread->value . '.%', 'LIKE');
+      ->condition('entity_id', $comment->getCommentedEntityId())
+      ->condition('field_id', $comment->getFieldId())
+      ->condition('entity_type', $comment->getCommentedEntityTypeId())
+      ->condition('thread', $comment->getParentComment()->getThread() . '.%', 'LIKE');
     $query->addExpression('MAX(thread)', 'thread');
     return $query->execute()
       ->fetchField();
@@ -154,4 +157,5 @@ class CommentStorageController extends FieldableDatabaseStorageController implem
       ->execute()
       ->fetchCol();
   }
+
 }

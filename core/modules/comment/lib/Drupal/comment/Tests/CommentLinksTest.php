@@ -8,6 +8,7 @@
 namespace Drupal\comment\Tests;
 
 use Drupal\Core\Language\Language;
+use Drupal\comment\CommentInterface;
 
 /**
  * Tests comment links based on environment configurations.
@@ -146,7 +147,7 @@ class CommentLinksTest extends CommentTestBase {
           'field_name' => 'comment',
           'pid' => 0,
           'uid' => 0,
-          'status' => COMMENT_PUBLISHED,
+          'status' => CommentInterface::PUBLISHED,
           'subject' => $this->randomName(),
           'hostname' => '127.0.0.1',
           'langcode' => Language::LANGCODE_NOT_SPECIFIED,
@@ -259,7 +260,7 @@ class CommentLinksTest extends CommentTestBase {
 
         // Anonymous users should see a note to log in or register in case
         // authenticated users are allowed to post comments.
-        // @see theme_comment_post_forbidden()
+        // @see \Drupal\comment\CommentManagerInterface::forbiddenMessage()
         if (!$this->loggedInUser) {
           if (user_access('post comments', $this->web_user)) {
             // The note depends on whether users are actually able to register.

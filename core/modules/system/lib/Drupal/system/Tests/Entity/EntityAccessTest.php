@@ -15,9 +15,7 @@ use Drupal\Core\Entity\EntityAccessController;
 /**
  * Tests the entity access controller.
  */
-class EntityAccessTest extends EntityUnitTestBase  {
-
-  public static $modules = array('language', 'locale');
+class EntityAccessTest extends EntityLanguageTestBase  {
 
   public static function getInfo() {
     return array(
@@ -29,16 +27,7 @@ class EntityAccessTest extends EntityUnitTestBase  {
 
   function setUp() {
     parent::setUp();
-    $this->installSchema('system', array('variable', 'url_alias'));
-    $this->installConfig(array('language'));
-
-    // Create the default languages.
-    $default_language = language_save(language_default());
-    $languages = language_default_locked_languages($default_language->weight);
-    foreach ($languages as $language) {
-      language_save($language);
-    }
-
+    $this->installSchema('system', 'url_alias');
   }
 
   /**
@@ -97,7 +86,7 @@ class EntityAccessTest extends EntityUnitTestBase  {
     $controller = $this->container->get('entity.manager')->getAccessController('entity_test_default_access');
     $this->assertTrue($controller instanceof EntityAccessController, 'The default entity controller is used for the entity_test_default_access entity type.');
 
-    $entity = entity_create('entity_test_default_access', array());
+    $entity = entity_create('entity_test_default_access');
     $this->assertEntityAccess(array(
       'create' => FALSE,
       'update' => FALSE,

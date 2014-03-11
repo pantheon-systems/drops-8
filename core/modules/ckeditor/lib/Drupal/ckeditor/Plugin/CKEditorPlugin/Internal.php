@@ -9,9 +9,8 @@ namespace Drupal\ckeditor\Plugin\CKEditorPlugin;
 
 use Drupal\ckeditor\CKEditorPluginBase;
 use Drupal\Component\Utility\NestedArray;
-use Drupal\ckeditor\Annotation\CKEditorPlugin;
-use Drupal\Core\Annotation\Translation;
 use Drupal\editor\Entity\Editor;
+use Drupal\filter\Plugin\FilterInterface;
 
 /**
  * Defines the "internal" plugin (i.e. core plugins part of our CKEditor build).
@@ -47,7 +46,7 @@ class Internal extends CKEditorPluginBase {
       'customConfig' => '', // Don't load CKEditor's config.js file.
       'pasteFromWordPromptCleanup' => TRUE,
       'resize_dir' => 'vertical',
-      'justifyClasses' => array('align-left', 'align-center', 'align-right', 'align-justify'),
+      'justifyClasses' => array('text-align-left', 'text-align-center', 'text-align-right', 'text-align-justify'),
     );
 
     // Add the allowedContent setting, which ensures CKEditor only allows tags
@@ -55,7 +54,13 @@ class Internal extends CKEditorPluginBase {
     $config['allowedContent'] = $this->generateAllowedContentSetting($editor);
 
     // Add the format_tags setting, if its button is enabled.
-    $toolbar_buttons = array_unique(NestedArray::mergeDeepArray($editor->settings['toolbar']['buttons']));
+    $toolbar_rows = array();
+    foreach ($editor->settings['toolbar']['rows'] as $row_number => $row) {
+      $toolbar_rows[] = array_reduce($editor->settings['toolbar']['rows'][$row_number], function (&$result, $button_group) {
+        return array_merge($result, $button_group['items']);
+      }, array());
+    }
+    $toolbar_buttons = array_unique(NestedArray::mergeDeepArray($toolbar_rows));
     if (in_array('Format', $toolbar_buttons)) {
       $config['format_tags'] = $this->generateFormatTagsSetting($editor);
     }
@@ -220,17 +225,14 @@ class Internal extends CKEditorPluginBase {
         'label' => t('Maximize'),
         'image_alternative' => $button('maximize'),
       ),
-      // No plugin, separator "buttons" for toolbar builder UI use only.
-      '|' => array(
-        'label' => t('Group separator'),
-        'image_alternative' => '<a href="#" role="button" aria-label="' . t('Button group separator') . '" class="ckeditor-group-separator"></a>',
-        'attributes' => array('class' => array('ckeditor-group-button-separator')),
-        'multiple' => TRUE,
-      ),
+      // No plugin, separator "button" for toolbar builder UI use only.
       '-' => array(
         'label' => t('Separator'),
         'image_alternative' => '<a href="#" role="button" aria-label="' . t('Button separator') . '" class="ckeditor-separator"></a>',
-        'attributes' => array('class' => array('ckeditor-button-separator')),
+        'attributes' => array(
+          'class' => array('ckeditor-button-separator'),
+          'data-drupal-ckeditor-type' => 'separator',
+        ),
         'multiple' => TRUE,
       ),
     );
@@ -257,7 +259,7 @@ class Internal extends CKEditorPluginBase {
     $possible_format_tags = array('h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'pre');
     foreach ($possible_format_tags as $tag) {
       $input = '<' . $tag . '>TEST</' . $tag . '>';
-      $output = trim(check_markup($input, $editor->format));
+      $output = trim(check_markup($input, $editor->format, '', TRUE));
       if ($input == $output) {
         $format_tags[] = $tag;
       }
@@ -284,8 +286,9 @@ class Internal extends CKEditorPluginBase {
    */
   protected function generateAllowedContentSetting(Editor $editor) {
     // When nothing is disallowed, set allowedContent to true.
-    $filter_types = filter_get_filter_types_by_format($editor->format);
-    if (!in_array(FILTER_TYPE_HTML_RESTRICTOR, $filter_types)) {
+    $format = entity_load('filter_format', $editor->format);
+    $filter_types = $format->getFilterTypes();
+    if (!in_array(FilterInterface::TYPE_HTML_RESTRICTOR, $filter_types)) {
       return TRUE;
     }
     // Generate setting that accurately reflects allowed tags and attributes.
@@ -302,7 +305,7 @@ class Internal extends CKEditorPluginBase {
         }
       };
 
-      $html_restrictions = filter_get_html_restrictions_by_format($editor->format);
+      $html_restrictions = $format->getHtmlRestrictions();
       // When all HTML is allowed, also set allowedContent to true.
       if ($html_restrictions === FALSE) {
         return TRUE;

@@ -39,17 +39,21 @@ class SystemTestController extends ControllerBase {
   }
 
   /**
+   * Set cache tag on on the returned render array.
+   */
+  function system_test_cache_tags_page() {
+    $build['main'] = array(
+      '#markup' => 'Cache tags page example',
+      '#cache' => array('tags' => array('system_test_cache_tags_page' => TRUE)),
+    );
+    return $build;
+  }
+
+  /**
    * @todo Remove system_test_authorize_init_page().
    */
   public function authorizeInit($page_title) {
     return system_test_authorize_init_page($page_title);
-  }
-
-  /**
-   * @todo Remove as part of https://drupal.org/node/1775842.
-   */
-  public function variableGet() {
-    return variable_get('simpletest_bootstrap_variable_test');
   }
 
   /**
@@ -64,6 +68,14 @@ class SystemTestController extends ControllerBase {
    */
   public function shutdownFunctions($arg1, $arg2) {
     system_test_page_shutdown_functions($arg1, $arg2);
+    // If using PHP-FPM then fastcgi_finish_request() will have been fired
+    // preventing further output to the browser which means that the escaping of
+    // the exception message can not be tested.
+    // @see _drupal_shutdown_function()
+    // @see \Drupal\system\Tests\System\ShutdownFunctionsTest
+    if (function_exists('fastcgi_finish_request')) {
+      return 'The function fastcgi_finish_request exists when serving the request.';
+    }
   }
 
 }

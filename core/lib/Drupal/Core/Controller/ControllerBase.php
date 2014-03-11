@@ -7,6 +7,8 @@
 
 namespace Drupal\Core\Controller;
 
+use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
@@ -28,14 +30,21 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
  *
  * @see \Drupal\Core\DependencyInjection\ContainerInjectionInterface
  */
-abstract class ControllerBase {
+abstract class ControllerBase implements ContainerInjectionInterface {
 
   /**
    * The entity manager.
    *
-   * @var \Drupal\Core\Entity\EntityManager
+   * @var \Drupal\Core\Entity\EntityManagerInterface
    */
   protected $entityManager;
+
+  /**
+   * The entity form builder.
+   *
+   * @var \Drupal\Core\Entity\EntityFormBuilderInterface
+   */
+  protected $entityFormBuilder;
 
   /**
    * The language manager.
@@ -94,9 +103,23 @@ abstract class ControllerBase {
   protected $moduleHandler;
 
   /**
+   * The form builder.
+   *
+   * @var \Drupal\Core\Form\FormBuilderInterface
+   */
+  protected $formBuilder;
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container) {
+    return new static();
+  }
+
+  /**
    * Retrieves the entity manager service.
    *
-   * @return \Drupal\Core\Entity\EntityManager
+   * @return \Drupal\Core\Entity\EntityManagerInterface
    *   The entity manager service.
    */
   protected function entityManager() {
@@ -104,6 +127,19 @@ abstract class ControllerBase {
       $this->entityManager = $this->container()->get('entity.manager');
     }
     return $this->entityManager;
+  }
+
+  /**
+   * Retrieves the entity form builder.
+   *
+   * @return \Drupal\Core\Entity\EntityFormBuilderInterface
+   *   The entity form builder.
+   */
+  protected function entityFormBuilder() {
+    if (!$this->entityFormBuilder) {
+      $this->entityFormBuilder = $this->container()->get('entity.form_builder');
+    }
+    return $this->entityFormBuilder;
   }
 
   /**
@@ -189,6 +225,18 @@ abstract class ControllerBase {
   }
 
   /**
+   * Returns the form builder service.
+   *
+   * @return \Drupal\Core\Form\FormBuilderInterface
+   */
+  protected function formBuilder() {
+    if (!$this->formBuilder) {
+      $this->formBuilder = $this->container()->get('form_builder');
+    }
+    return $this->formBuilder;
+  }
+
+  /**
    * Returns the URL generator service.
    *
    * @return \Drupal\Core\Routing\UrlGeneratorInterface
@@ -265,15 +313,20 @@ abstract class ControllerBase {
   /**
    * Returns the service container.
    *
+   * This method is marked private to prevent sub-classes from retrieving
+   * services from the container through it. Instead,
+   * \Drupal\Core\DependencyInjection\ContainerInjectionInterface should be used
+   * for injecting services.
+   *
    * @return \Symfony\Component\DependencyInjection\ContainerInterface $container
    *   The service container.
    */
-  protected function container() {
+  private function container() {
     return \Drupal::getContainer();
   }
 
   /**
-   * Returns a redirect response object for the specified
+   * Returns a redirect response object for the specified route.
    *
    * @param string $route_name
    *   The name of the route to which to redirect.
@@ -281,6 +334,7 @@ abstract class ControllerBase {
    *   Parameters for the route.
    * @param int $status
    *   The HTTP redirect status code for the redirect. The default is 302 Found.
+   *
    * @return \Symfony\Component\HttpFoundation\RedirectResponse
    *   A redirect response object that may be returned by the controller.
    */

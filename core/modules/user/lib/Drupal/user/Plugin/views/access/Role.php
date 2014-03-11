@@ -8,8 +8,6 @@
 namespace Drupal\user\Plugin\views\access;
 
 use Drupal\views\Plugin\views\access\AccessPluginBase;
-use Drupal\views\Annotation\ViewsAccess;
-use Drupal\Core\Annotation\Translation;
 use Symfony\Component\Routing\Route;
 use Drupal\Core\Session\AccountInterface;
 
@@ -35,14 +33,16 @@ class Role extends AccessPluginBase {
    * {@inheritdoc}
    */
   public function access(AccountInterface $account) {
-    return user_access('access all views', $account) || array_intersect(array_filter($this->options['role']), $account->getRoles());
+    return $account->hasPermission('access all views') || array_intersect(array_filter($this->options['role']), $account->getRoles());
   }
 
   /**
    * {@inheritdoc}
    */
   public function alterRouteDefinition(Route $route) {
-    $route->setRequirement('_role_id', $this->options['role']);
+    if ($this->options['role']) {
+      $route->setRequirement('_role', (string) implode(',', $this->options['role']));
+    }
   }
 
   public function summaryTitle() {
@@ -74,14 +74,14 @@ class Role extends AccessPluginBase {
       '#type' => 'checkboxes',
       '#title' => t('Role'),
       '#default_value' => $this->options['role'],
-      '#options' => array_map('check_plain', $this->getRoles()),
+      '#options' => array_map('\Drupal\Component\Utility\String::checkPlain', user_role_names()),
       '#description' => t('Only the checked roles will be able to access this display. Note that users with "access all views" can see any view, regardless of role.'),
     );
   }
 
   public function validateOptionsForm(&$form, &$form_state) {
     if (!array_filter($form_state['values']['access_options']['role'])) {
-      form_error($form['role'], t('You must select at least one role if type is "by role"'));
+      form_error($form['role'], $form_state, t('You must select at least one role if type is "by role"'));
     }
   }
 

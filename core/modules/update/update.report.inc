@@ -32,8 +32,6 @@ function theme_update_report($variables) {
   $header = array();
   $rows = array();
 
-  $notification_level = \Drupal::config('update.settings')->get('notification.threshold');
-
   // Create an array of status values keyed by module or theme name, since
   // we'll need this while generating the report if we have to cross reference
   // anything (e.g. subthemes which have base themes missing an update).
@@ -201,7 +199,7 @@ function theme_update_report($variables) {
     $row .= "<div class=\"info\">\n";
     if (!empty($project['extra'])) {
       $row .= '<div class="extra">' . "\n";
-      foreach ($project['extra'] as $key => $value) {
+      foreach ($project['extra'] as $value) {
         $row .= '<div class="' . implode(' ', $value['class']) . '">';
         $row .= check_plain($value['label']) . ': ';
         $row .= drupal_placeholder($value['data']);
@@ -295,7 +293,16 @@ function theme_update_report($variables) {
       $output .= drupal_render($table);
     }
   }
-  drupal_add_css(drupal_get_path('module', 'update') . '/css/update.admin.css');
+
+  $assets = array(
+    '#attached' => array(
+      'library' => array(
+        array('update', 'drupal.update.admin'),
+      ),
+    )
+  );
+  drupal_render($assets);
+
   return $output;
 }
 

@@ -9,7 +9,9 @@ namespace Drupal\aggregator;
 
 use Drupal\Component\Utility\String;
 use Drupal\Core\Entity\ContentEntityFormController;
+use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Language\Language;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Form controller for the aggregator feed edit forms.
@@ -43,38 +45,17 @@ class FeedFormController extends ContentEntityFormController {
     $form['url'] = array(
       '#type' => 'url',
       '#title' => $this->t('URL'),
-      '#default_value' => $feed->url->value,
+      '#default_value' => $feed->getUrl(),
       '#maxlength' => NULL,
       '#description' => $this->t('The fully-qualified URL of the feed.'),
       '#required' => TRUE,
     );
     $form['refresh'] = array('#type' => 'select',
       '#title' => $this->t('Update interval'),
-      '#default_value' => $feed->refresh->value,
+      '#default_value' => $feed->getRefreshRate(),
       '#options' => $period,
       '#description' => $this->t('The length of time between feed updates. Requires a correctly configured <a href="@cron">cron maintenance task</a>.', array('@cron' => url('admin/reports/status'))),
     );
-
-    // Handling of categories.
-    $options = array();
-    $values = array();
-    $categories = db_query('SELECT c.cid, c.title FROM {aggregator_category} c ORDER BY title');
-    foreach ($categories as $category) {
-      $options[$category->cid] = String::checkPlain($category->title);
-      if (!empty($feed->categories) && in_array($category->cid, array_keys($feed->categories))) {
-        $values[] = $category->cid;
-      }
-    }
-
-    if ($options) {
-      $form['category'] = array(
-        '#type' => 'checkboxes',
-        '#title' => $this->t('Categorize news items'),
-        '#default_value' => $values,
-        '#options' => $options,
-        '#description' => $this->t('New feed items are automatically filed in the checked categories.'),
-      );
-    }
 
     return parent::form($form, $form_state, $feed);
   }
@@ -85,19 +66,14 @@ class FeedFormController extends ContentEntityFormController {
   public function validate(array $form, array &$form_state) {
     $feed = $this->buildEntity($form, $form_state);
     // Check for duplicate titles.
-    if ($feed->id()) {
-      $result = db_query("SELECT title, url FROM {aggregator_feed} WHERE (title = :title OR url = :url) AND fid <> :fid", array(':title' => $feed->label(), ':url' => $feed->url->value, ':fid' => $feed->id()));
-    }
-    else {
-      $result = db_query("SELECT title, url FROM {aggregator_feed} WHERE title = :title OR url = :url", array(':title' => $feed->label(), ':url' => $feed->url->value));
-    }
-
+    $feed_storage_controller = $this->entityManager->getStorageController('aggregator_feed');
+    $result = $feed_storage_controller->getFeedDuplicates($feed);
     foreach ($result as $item) {
       if (strcasecmp($item->title, $feed->label()) == 0) {
-        form_set_error('title', $this->t('A feed named %feed already exists. Enter a unique title.', array('%feed' => $feed->label())));
+        $this->setFormError('title', $form_state, $this->t('A feed named %feed already exists. Enter a unique title.', array('%feed' => $feed->label())));
       }
-      if (strcasecmp($item->url, $feed->url->value) == 0) {
-        form_set_error('url', $this->t('A feed with this URL %url already exists. Enter a unique URL.', array('%url' => $feed->url->value)));
+      if (strcasecmp($item->url, $feed->getUrl()) == 0) {
+        $this->setFormError('url', $form_state, $this->t('A feed with this URL %url already exists. Enter a unique URL.', array('%url' => $feed->getUrl())));
       }
     }
     parent::validate($form, $form_state);
@@ -109,32 +85,20 @@ class FeedFormController extends ContentEntityFormController {
   public function save(array $form, array &$form_state) {
     $feed = $this->entity;
     $insert = (bool) $feed->id();
-    if (!empty($form_state['values']['category'])) {
-      // Store category values for post save operations.
-      // @see \Drupal\Core\Entity\FeedStorageController::postSave()
-      $feed->categories = $form_state['values']['category'];
-    }
     $feed->save();
     if ($insert) {
       drupal_set_message($this->t('The feed %feed has been updated.', array('%feed' => $feed->label())));
       if (arg(0) == 'admin') {
-        $form_state['redirect'] = 'admin/config/services/aggregator';
+        $form_state['redirect_route']['route_name'] = 'aggregator.admin_overview';
       }
       else {
-        $form_state['redirect'] = 'aggregator/sources/' . $feed->id();
+        $form_state['redirect_route'] = $feed->urlInfo('canonical');
       }
     }
     else {
       watchdog('aggregator', 'Feed %feed added.', array('%feed' => $feed->label()), WATCHDOG_NOTICE, l($this->t('view'), 'admin/config/services/aggregator'));
       drupal_set_message($this->t('The feed %feed has been added.', array('%feed' => $feed->label())));
     }
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function delete(array $form, array &$form_state) {
-    $form_state['redirect'] = 'admin/config/services/aggregator/delete/feed/' . $this->entity->id();
   }
 
 }

@@ -5,12 +5,8 @@
  * API functions for processing and sending e-mail.
  */
 
-/**
- * Auto-detect appropriate line endings for e-mails.
- *
- * $settings['mail_line_endings'] will override this setting.
- */
-define('MAIL_LINE_ENDINGS', isset($_SERVER['WINDIR']) || strpos($_SERVER['SERVER_SOFTWARE'], 'Win32') !== FALSE ? "\r\n" : "\n");
+use Drupal\Component\Utility\Html;
+use Drupal\Component\Utility\Xss;
 
 /**
  * Composes and optionally sends an e-mail message.
@@ -103,8 +99,8 @@ define('MAIL_LINE_ENDINGS', isset($_SERVER['WINDIR']) || strpos($_SERVER['SERVER
  *   Language code to use to compose the e-mail.
  * @param array $params
  *   (optional) Parameters to build the e-mail.
- * @param string|null $from
- *   Sets From to this value, if given.
+ * @param string|null $reply
+ *   Optional e-mail address to be used to answer.
  * @param bool $send
  *   If TRUE, drupal_mail() will call drupal_mail_system()->mail() to deliver
  *   the message, and store the result in $message['result']. Modules
@@ -118,13 +114,12 @@ define('MAIL_LINE_ENDINGS', isset($_SERVER['WINDIR']) || strpos($_SERVER['SERVER
  *   written to the watchdog. (Success means nothing more than the message being
  *   accepted at php-level, which still doesn't guarantee it to be delivered.)
  */
-function drupal_mail($module, $key, $to, $langcode, $params = array(), $from = NULL, $send = TRUE) {
+function drupal_mail($module, $key, $to, $langcode, $params = array(), $reply = NULL, $send = TRUE) {
   $site_config = \Drupal::config('system.site');
   $site_mail = $site_config->get('mail');
   if (empty($site_mail)) {
     $site_mail = ini_get('sendmail_from');
   }
-  $default_from = $site_mail;
 
   // Bundle up the variables into a structured array for altering.
   $message = array(
@@ -132,7 +127,8 @@ function drupal_mail($module, $key, $to, $langcode, $params = array(), $from = N
     'module'   => $module,
     'key'      => $key,
     'to'       => $to,
-    'from'     => isset($from) ? $from : $default_from,
+    'from'     => $site_mail,
+    'reply-to' => $reply,
     'langcode' => $langcode,
     'params'   => $params,
     'send'     => TRUE,
@@ -147,21 +143,20 @@ function drupal_mail($module, $key, $to, $langcode, $params = array(), $from = N
     'Content-Transfer-Encoding' => '8Bit',
     'X-Mailer'                  => 'Drupal'
   );
-  if ($default_from) {
-    // To prevent e-mail from looking like spam, the addresses in the Sender and
-    // Return-Path headers should have a domain authorized to use the originating
-    // SMTP server.
-    $headers['Sender'] = $headers['Return-Path'] = $default_from;
-    $headers['From'] = $site_config->get('name') . ' <' . $default_from . '>';
-  }
-  if ($from && $from != $default_from) {
-    $headers['From'] = $from;
+  // To prevent e-mail from looking like spam, the addresses in the Sender and
+  // Return-Path headers should have a domain authorized to use the
+  // originating SMTP server.
+  $headers['Sender'] = $headers['Return-Path'] = $site_mail;
+  $headers['From'] = $site_config->get('name') . ' <' . $site_mail . '>';
+  if ($reply) {
+    $headers['Reply-to'] = $reply;
   }
   $message['headers'] = $headers;
 
   // Build the e-mail (get subject and body, allow additional headers) by
-  // invoking hook_mail() on this module. We cannot use module_invoke() as
-  // we need to have $message by reference in hook_mail().
+  // invoking hook_mail() on this module. We cannot use
+  // moduleHandler()->invoke() as we need to have $message by reference in
+  // hook_mail().
   if (function_exists($function = $module . '_mail')) {
     $function($key, $message, $params);
   }
@@ -188,7 +183,7 @@ function drupal_mail($module, $key, $to, $langcode, $params = array(), $from = N
       $message['result'] = $system->mail($message);
       // Log errors.
       if (!$message['result']) {
-        watchdog('mail', 'Error sending e-mail (from %from to %to).', array('%from' => $message['from'], '%to' => $message['to']), WATCHDOG_ERROR);
+        watchdog('mail', 'Error sending e-mail (from %from to %to with reply-to %reply).', array('%from' => $message['from'], '%to' => $message['to'], '%reply' => $message['reply-to'] ? $message['reply-to'] : t('not set')), WATCHDOG_ERROR);
         drupal_set_message(t('Unable to send e-mail. Contact the site administrator if the problem persists.'), 'error');
       }
     }
@@ -296,7 +291,7 @@ function drupal_html_to_text($string, $allowed_tags = NULL) {
   $allowed_tags = isset($allowed_tags) ? array_intersect($supported_tags, $allowed_tags) : $supported_tags;
 
   // Make sure tags, entities and attributes are well-formed and properly nested.
-  $string = _filter_htmlcorrector(filter_xss($string, $allowed_tags));
+  $string = Html::normalize(Xss::filter($string, $allowed_tags));
 
   // Apply inline styles.
   $string = preg_replace('!</?(em|i)((?> +)[^>]*)?>!i', '/', $string);
@@ -431,7 +426,7 @@ function drupal_html_to_text($string, $allowed_tags = NULL) {
       if (isset($casing)) {
         $chunk = $casing($chunk);
       }
-      $line_endings = settings()->get('mail_line_endings', MAIL_LINE_ENDINGS);
+      $line_endings = settings()->get('mail_line_endings', PHP_EOL);
       // Format it and apply the current indentation.
       $output .= drupal_wrap_mail($chunk, implode('', $indent)) . $line_endings;
       // Remove non-quotation markers from indentation.

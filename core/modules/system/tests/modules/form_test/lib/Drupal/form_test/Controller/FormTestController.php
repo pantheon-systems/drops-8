@@ -30,23 +30,9 @@ class FormTestController extends ControllerBase {
     );
     $node1 = $this->entityManager()->getStorageController('node')->create($values);
     $node2 = clone($node1);
-    $return['node_form_1'] = $this->entityManager()->getForm($node1);
-    $return['node_form_2'] = $this->entityManager()->getForm($node2);
+    $return['node_form_1'] = $this->entityFormBuilder()->getForm($node1);
+    $return['node_form_2'] = $this->entityFormBuilder()->getForm($node2);
     return $return;
-  }
-
-  /**
-   * @todo Remove form_test_wrapper_callback().
-   */
-  public function wrapperCallback($form_id) {
-    return form_test_wrapper_callback($form_id);
-  }
-
-  /**
-   * @todo Remove form_test_double_form().
-   */
-  public function doubleForm() {
-    return form_test_double_form();
   }
 
 }

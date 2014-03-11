@@ -9,27 +9,28 @@ namespace Drupal\node\Entity;
 
 use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Entity\EntityStorageControllerInterface;
+use Drupal\Core\Field\FieldDefinition;
 use Drupal\Core\Language\Language;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\node\NodeInterface;
+use Drupal\user\UserInterface;
 
 /**
  * Defines the node entity class.
  *
- * @EntityType(
+ * @ContentEntityType(
  *   id = "node",
  *   label = @Translation("Content"),
  *   bundle_label = @Translation("Content type"),
- *   module = "node",
  *   controllers = {
- *     "storage" = "Drupal\node\NodeStorageController",
- *     "render" = "Drupal\node\NodeRenderController",
+ *     "view_builder" = "Drupal\node\NodeViewBuilder",
  *     "access" = "Drupal\node\NodeAccessController",
  *     "form" = {
  *       "default" = "Drupal\node\NodeFormController",
  *       "delete" = "Drupal\node\Form\NodeDeleteForm",
  *       "edit" = "Drupal\node\NodeFormController"
  *     },
+ *     "list" = "Drupal\node\NodeListController",
  *     "translation" = "Drupal\node\NodeTranslationController"
  *   },
  *   base_table = "node",
@@ -47,15 +48,14 @@ use Drupal\node\NodeInterface;
  *     "label" = "title",
  *     "uuid" = "uuid"
  *   },
- *   bundle_keys = {
- *     "bundle" = "type"
- *   },
- *   route_base_path = "admin/structure/types/manage/{bundle}",
+ *   bundle_entity_type = "node_type",
  *   permission_granularity = "bundle",
  *   links = {
- *     "canonical" = "/node/{node}",
- *     "edit-form" = "/node/{node}/edit",
- *     "version-history" = "/node/{node}/revisions"
+ *     "canonical" = "node.view",
+ *     "delete-form" = "node.delete_confirm",
+ *     "edit-form" = "node.page_edit",
+ *     "version-history" = "node.revision_overview",
+ *     "admin-form" = "node.type_edit"
  *   }
  * )
  */
@@ -73,6 +73,17 @@ class Node extends ContentEntityBase implements NodeInterface {
    */
   public function getRevisionId() {
     return $this->get('vid')->value;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function preCreate(EntityStorageControllerInterface $storage_controller, array &$values) {
+    parent::preCreate($storage_controller, $values);
+    // @todo Handle this through property defaults.
+    if (empty($values['created'])) {
+      $values['created'] = REQUEST_TIME;
+    }
   }
 
   /**
@@ -150,6 +161,14 @@ class Node extends ContentEntityBase implements NodeInterface {
   /**
    * {@inheritdoc}
    */
+  public static function postDelete(EntityStorageControllerInterface $storage_controller, array $nodes) {
+    parent::postDelete($storage_controller, $nodes);
+    \Drupal::service('node.grant_storage')->deleteNodeRecords(array_keys($nodes));
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function getType() {
     return $this->bundle();
   }
@@ -163,7 +182,7 @@ class Node extends ContentEntityBase implements NodeInterface {
     }
 
     return \Drupal::entityManager()
-      ->getAccessController($this->entityType)
+      ->getAccessController($this->entityTypeId)
       ->access($this, $operation, $this->prepareLangcode(), $account);
   }
 
@@ -178,7 +197,7 @@ class Node extends ContentEntityBase implements NodeInterface {
       // Load languages the node exists in.
       $node_translations = $this->getTranslationLanguages();
       // Load the language from content negotiation.
-      $content_negotiation_langcode = \Drupal::languageManager()->getLanguage(Language::TYPE_CONTENT)->id;
+      $content_negotiation_langcode = \Drupal::languageManager()->getCurrentLanguage(Language::TYPE_CONTENT)->id;
       // If there is a translation available, use it.
       if (isset($node_translations[$content_negotiation_langcode])) {
         $langcode = $content_negotiation_langcode;
@@ -273,22 +292,30 @@ class Node extends ContentEntityBase implements NodeInterface {
   /**
    * {@inheritdoc}
    */
-  public function getAuthor() {
+  public function getOwner() {
     return $this->get('uid')->entity;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function getAuthorId() {
+  public function getOwnerId() {
     return $this->get('uid')->target_id;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function setAuthorId($uid) {
+  public function setOwnerId($uid) {
     $this->set('uid', $uid);
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setOwner(UserInterface $account) {
+    $this->set('uid', $account->id());
     return $this;
   }
 
@@ -326,104 +353,103 @@ class Node extends ContentEntityBase implements NodeInterface {
    * {@inheritdoc}
    */
   public static function baseFieldDefinitions($entity_type) {
-    $properties['nid'] = array(
-      'label' => t('Node ID'),
-      'description' => t('The node ID.'),
-      'type' => 'integer_field',
-      'read-only' => TRUE,
-    );
-    $properties['uuid'] = array(
-      'label' => t('UUID'),
-      'description' => t('The node UUID.'),
-      'type' => 'uuid_field',
-      'read-only' => TRUE,
-    );
-    $properties['vid'] = array(
-      'label' => t('Revision ID'),
-      'description' => t('The node revision ID.'),
-      'type' => 'integer_field',
-      'read-only' => TRUE,
-    );
-    $properties['type'] = array(
-      'label' => t('Type'),
-      'description' => t('The node type.'),
-      'type' => 'string_field',
-      'read-only' => TRUE,
-    );
-    $properties['langcode'] = array(
-      'label' => t('Language code'),
-      'description' => t('The node language code.'),
-      'type' => 'language_field',
-    );
-    $properties['title'] = array(
-      'label' => t('Title'),
-      'description' => t('The title of this node, always treated as non-markup plain text.'),
-      'type' => 'string_field',
-      'required' => TRUE,
-      'settings' => array(
+    $fields['nid'] = FieldDefinition::create('integer')
+      ->setLabel(t('Node ID'))
+      ->setDescription(t('The node ID.'))
+      ->setReadOnly(TRUE);
+
+    $fields['uuid'] = FieldDefinition::create('uuid')
+      ->setLabel(t('UUID'))
+      ->setDescription(t('The node UUID.'))
+      ->setReadOnly(TRUE);
+
+    $fields['vid'] = FieldDefinition::create('integer')
+      ->setLabel(t('Revision ID'))
+      ->setDescription(t('The node revision ID.'))
+      ->setReadOnly(TRUE);
+
+    $fields['type'] = FieldDefinition::create('entity_reference')
+      ->setLabel(t('Type'))
+      ->setDescription(t('The node type.'))
+      ->setSetting('target_type', 'node_type')
+      ->setReadOnly(TRUE);
+
+    $fields['langcode'] = FieldDefinition::create('language')
+      ->setLabel(t('Language code'))
+      ->setDescription(t('The node language code.'));
+
+    $fields['title'] = FieldDefinition::create('text')
+      // @todo Account for $node_type->title_label when per-bundle overrides are
+      //   possible - https://drupal.org/node/2114707.
+      ->setLabel(t('Title'))
+      ->setDescription(t('The title of this node, always treated as non-markup plain text.'))
+      ->setClass('\Drupal\node\NodeTitleItemList')
+      ->setRequired(TRUE)
+      ->setTranslatable(TRUE)
+      ->setSettings(array(
         'default_value' => '',
-      ),
-      'property_constraints' => array(
-        'value' => array('Length' => array('max' => 255)),
-      ),
-      'translatable' => TRUE,
-    );
-    $properties['uid'] = array(
-      'label' => t('User ID'),
-      'description' => t('The user ID of the node author.'),
-      'type' => 'entity_reference_field',
-      'settings' => array(
+        'max_length' => 255,
+        'text_processing' => 0,
+      ))
+      ->setDisplayOptions('view', array(
+        'label' => 'hidden',
+        'type' => 'text_default',
+        'weight' => -5,
+      ))
+      ->setDisplayOptions('form', array(
+        'type' => 'text_textfield',
+        'weight' => -5,
+      ))
+      ->setDisplayConfigurable('form', TRUE);
+
+    $fields['uid'] = FieldDefinition::create('entity_reference')
+      ->setLabel(t('User ID'))
+      ->setDescription(t('The user ID of the node author.'))
+      ->setSettings(array(
         'target_type' => 'user',
         'default_value' => 0,
-      ),
-    );
-    $properties['status'] = array(
-      'label' => t('Publishing status'),
-      'description' => t('A boolean indicating whether the node is published.'),
-      'type' => 'boolean_field',
-    );
-    $properties['created'] = array(
-      'label' => t('Created'),
-      'description' => t('The time that the node was created.'),
-      'type' => 'integer_field',
-    );
-    $properties['changed'] = array(
-      'label' => t('Changed'),
-      'description' => t('The time that the node was last edited.'),
-      'type' => 'integer_field',
-      'property_constraints' => array(
-        'value' => array('EntityChanged' => array()),
-      ),
-    );
-    $properties['promote'] = array(
-      'label' => t('Promote'),
-      'description' => t('A boolean indicating whether the node should be displayed on the front page.'),
-      'type' => 'boolean_field',
-    );
-    $properties['sticky'] = array(
-      'label' => t('Sticky'),
-      'description' => t('A boolean indicating whether the node should be displayed at the top of lists in which it appears.'),
-      'type' => 'boolean_field',
-    );
-    $properties['revision_timestamp'] = array(
-      'label' => t('Revision timestamp'),
-      'description' => t('The time that the current revision was created.'),
-      'type' => 'integer_field',
-      'queryable' => FALSE,
-    );
-    $properties['revision_uid'] = array(
-      'label' => t('Revision user ID'),
-      'description' => t('The user ID of the author of the current revision.'),
-      'type' => 'entity_reference_field',
-      'settings' => array('target_type' => 'user'),
-      'queryable' => FALSE,
-    );
-    $properties['log'] = array(
-      'label' => t('Log'),
-      'description' => t('The log entry explaining the changes in this version.'),
-      'type' => 'string_field',
-    );
-    return $properties;
+      ));
+
+    $fields['status'] = FieldDefinition::create('boolean')
+      ->setLabel(t('Publishing status'))
+      ->setDescription(t('A boolean indicating whether the node is published.'));
+
+    // @todo Convert to a "created" field in https://drupal.org/node/2145103.
+    $fields['created'] = FieldDefinition::create('integer')
+      ->setLabel(t('Created'))
+      ->setDescription(t('The time that the node was created.'));
+
+    // @todo Convert to a "changed" field in https://drupal.org/node/2145103.
+    $fields['changed'] = FieldDefinition::create('integer')
+      ->setLabel(t('Changed'))
+      ->setDescription(t('The time that the node was last edited.'))
+      ->setPropertyConstraints('value', array('EntityChanged' => array()));
+
+    $fields['promote'] = FieldDefinition::create('boolean')
+      ->setLabel(t('Promote'))
+      ->setDescription(t('A boolean indicating whether the node should be displayed on the front page.'));
+
+    $fields['sticky'] = FieldDefinition::create('boolean')
+      ->setLabel(t('Sticky'))
+      ->setDescription(t('A boolean indicating whether the node should be displayed at the top of lists in which it appears.'));
+
+    // @todo Convert to a "timestamp" field in https://drupal.org/node/2145103.
+    $fields['revision_timestamp'] = FieldDefinition::create('integer')
+      ->setLabel(t('Revision timestamp'))
+      ->setDescription(t('The time that the current revision was created.'))
+      ->setQueryable(FALSE);
+
+    $fields['revision_uid'] = FieldDefinition::create('entity_reference')
+      ->setLabel(t('Revision user ID'))
+      ->setDescription(t('The user ID of the author of the current revision.'))
+      ->setSettings(array('target_type' => 'user'))
+      ->setQueryable(FALSE);
+
+    $fields['log'] = FieldDefinition::create('string')
+      ->setLabel(t('Log'))
+      ->setDescription(t('The log entry explaining the changes in this revision.'));
+
+    return $fields;
   }
 
 }

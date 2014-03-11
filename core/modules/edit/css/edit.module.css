@@ -1,8 +1,9 @@
 /**
- * @file edit.module.css
+ * @file
+ * Generic base styles for edit module.
  *
  * Note: every class is prefixed with "edit-" to prevent collisions with modules
- * or themes. In IPE-specific DOM subtrees, this is not necessary.
+ * or themes. In Edit module-specific DOM subtrees, this is not necessary.
  */
 
 /**
@@ -34,7 +35,7 @@
 }
 
 /**
- * Edit mode: type=direct.
+ * In-place editors that don't use a popup.
  */
 .edit-validation-errors {
   z-index: 300;
@@ -53,7 +54,7 @@
 }
 
 /**
- * Edit mode: type=form.
+ * Styling specific to the 'form' in-place editor.
  */
 #edit_backstage {
   display: none;

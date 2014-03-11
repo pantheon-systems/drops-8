@@ -21,7 +21,7 @@ use Drupal\file\FileInterface;
  * @deprecated Use \Drupal\locale\Form\LocaleForm::import()
  */
 function locale_translate_import_form($form, &$form_state) {
-  drupal_static_reset('language_list');
+  Drupal::languageManager()->reset();
   $languages = language_list();
 
   // Initialize a language list to the ones available, including English if we
@@ -53,10 +53,16 @@ function locale_translate_import_form($form, &$form_state) {
     'file_validate_extensions' => array('po'),
     'file_validate_size' => array(file_upload_max_size()),
   );
+  $file_description = array(
+    '#theme'             => 'file_upload_help',
+    '#description'       => t('A Gettext Portable Object file.'),
+    '#upload_validators' => $validators,
+  );
+
   $form['file'] = array(
     '#type' => 'file',
     '#title' => t('Translation file'),
-    '#description' => theme('file_upload_help', array('description' => t('A Gettext Portable Object file.'), 'upload_validators' => $validators)),
+    '#description' => drupal_render($file_description),
     '#size' => 50,
     '#upload_validators' => $validators,
     '#attributes' => array('class' => array('file-import-input')),
@@ -111,7 +117,7 @@ function locale_translate_import_form($form, &$form_state) {
  */
 function locale_translate_import_form_submit($form, &$form_state) {
   // Ensure we have the file uploaded.
-  if ($file = file_save_upload('file', $form['file']['#upload_validators'], 'translations://', 0)) {
+  if ($file = file_save_upload('file', $form_state, $form['file']['#upload_validators'], 'translations://', 0)) {
 
     // Add language, if not yet supported.
     $language = language_load($form_state['values']['langcode']);
@@ -132,12 +138,12 @@ function locale_translate_import_form_submit($form, &$form_state) {
     batch_set($batch);
   }
   else {
-    form_set_error('file', t('File to import not found.'));
+    form_set_error('file', $form_state, t('File to import not found.'));
     $form_state['rebuild'] = TRUE;
     return;
   }
 
-  $form_state['redirect'] = 'admin/config/regional/translate';
+  $form_state['redirect_route']['route_name'] = 'locale.translate_page';
   return;
 }
 
@@ -736,7 +742,7 @@ function locale_translate_file_attach_properties($file, $options = array()) {
  *   Defaults to all languagues
  *
  * @return boolean
- *   TRUE if files are removed sucessfully. FALSE if one or more files could
+ *   TRUE if files are removed successfully. FALSE if one or more files could
  *   not be deleted.
  */
 function locale_translate_delete_translation_files($projects = array(), $langcodes = array()) {

@@ -7,8 +7,10 @@
 
 namespace Drupal\language\Tests;
 
-use Drupal\simpletest\WebTestBase;
+use Drupal\Component\Utility\UserAgent;
 use Drupal\Core\Language\Language;
+use Drupal\simpletest\WebTestBase;
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Test browser language detection.
@@ -33,7 +35,7 @@ class LanguageBrowserDetectionUnitTest extends WebTestBase {
   function testLanguageFromBrowser() {
     // The order of the languages is only important if the browser language
     // codes are having the same qvalue, otherwise the one with the highest
-    // qvalue is prefered. The automatically generated generic tags are always
+    // qvalue is preferred. The automatically generated generic tags are always
     // having a lower qvalue.
 
     $languages = array(
@@ -77,7 +79,7 @@ class LanguageBrowserDetectionUnitTest extends WebTestBase {
     );
 
     $test_cases = array(
-      // Equal qvalue for each language, choose the site prefered one.
+      // Equal qvalue for each language, choose the site preferred one.
       'en,en-US,fr-CA,fr,es-MX' => 'en',
       'en-US,en,fr-CA,fr,es-MX' => 'en',
       'fr,en' => 'en',
@@ -153,9 +155,9 @@ class LanguageBrowserDetectionUnitTest extends WebTestBase {
       'zh-cht' => 'zh-hant',
     );
 
+    $mappings = $this->container->get('config.factory')->get('language.mappings')->get();
     foreach ($test_cases as $accept_language => $expected_result) {
-      $_SERVER['HTTP_ACCEPT_LANGUAGE'] = $accept_language;
-      $result = language_from_browser($languages);
+      $result = UserAgent::getBestMatchingLangcode($accept_language, array_keys($languages), $mappings);
       $this->assertIdentical($result, $expected_result, format_string("Language selection '@accept-language' selects '@result', result = '@actual'", array('@accept-language' => $accept_language, '@result' => $expected_result, '@actual' => isset($result) ? $result : 'none')));
     }
   }

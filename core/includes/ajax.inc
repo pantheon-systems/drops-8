@@ -5,7 +5,7 @@
  * Functions for use with Drupal's Ajax framework.
  */
 
-use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Drupal\Component\Utility\Json;
 
 /**
  * @defgroup ajax Ajax framework
@@ -50,7 +50,8 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
  *     #ajax['callback'], which returns the form element that has been updated
  *     and needs to be returned to the browser, or alternatively, an array of
  *     custom Ajax commands.
- *   - The array is serialized using ajax_render() and sent to the browser.
+ *   - The array is serialized using
+ *     \Drupal\Core\Ajax\AjaxResponse::ajaxRender() and sent to the browser.
  *   - The browser unserializes the returned JSON string into an array of
  *     command objects and executes each command, resulting in the old page
  *     content within and including the HTML element specified by
@@ -79,7 +80,7 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
  *       'wrapper' => 'replace_textfield_div',
  *      ),
  *   );
-
+ *
  *   // This entire form element will be replaced with an updated value.
  *   $form['replace_textfield'] = array(
  *     '#type' => 'textfield',
@@ -125,11 +126,12 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
  *   executed by the calling code.
  * - #ajax['path']: The menu path to use for the request. This is often omitted
  *   and the default is used. This path should map
- *   to a menu page callback that returns data using ajax_render(). Defaults to
- *   'system/ajax', which invokes \Drupal\system\FormAjaxController::content(),
- *   eventually calling the function named in #ajax['callback']. If you use a
- *   custom path, you must set up the menu entry and handle the entire callback
- *   in your own code.
+ *   to a controller that returns data using
+ *   \Drupal\Core\Ajax\AjaxResponse::ajaxRender(). Defaults to 'system/ajax',
+ *   which invokes \Drupal\system\FormAjaxController::content(), eventually
+ *   calling the function named in #ajax['callback']. If you use a custom path,
+ *   you must set up the menu entry and handle the entire callback in your own
+ *   code.
  * - #ajax['wrapper']: The CSS ID of the area to be replaced by the content
  *   returned by the #ajax['callback'] function. The content returned from
  *   the callback will replace the entire element named by #ajax['wrapper'].
@@ -185,9 +187,10 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
  * '/ajax/' so that the submit handler can tell if the form was submitted
  * in a degraded state or not.
  *
- * When responding to Ajax requests, the server should do what it needs to do
- * for that request, then create a commands array. This commands array will
- * be converted to a JSON object and returned to the client, which will then
+ * As a developer you basically create a \Drupal\Core\Ajax\AjaxResponse and add
+ * a couple of \Drupal\Core\Ajax\CommandInterface onto it, which will be
+ * converted to a commands array automatically. This commands array will be
+ * converted to a JSON object and returned to the client, which will then
  * iterate over the array and process it like a macro language.
  *
  * Each command item is an associative array which will be converted to a
@@ -216,7 +219,8 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
  * @code
  *   $commands = array();
  *   $commands[] = ajax_command_replace(NULL, $output);
- *   $commands[] = ajax_command_prepend(NULL, theme('status_messages'));
+ *   $status_messages = array('#theme' => 'status_messages');
+ *   $commands[] = ajax_command_prepend(NULL, drupal_render($status_messages));
  *   return array('#type' => 'ajax', '#commands' => $commands);
  * @endcode
  *
@@ -241,18 +245,18 @@ function ajax_render($commands = array()) {
     // since the base page ought to have at least one JS file and one CSS file
     // loaded. It probably indicates an error, and rather than making the page
     // reload all of the files, instead we return no new files.
-    if (empty($_POST['ajax_page_state'][$type])) {
+    if (!\Drupal::request()->request->get("ajax_page_state[$type]", NULL, TRUE)) {
       $items[$type] = array();
     }
     else {
-      $function = 'drupal_add_' . $type;
+      $function = '_drupal_add_' . $type;
       $items[$type] = $function();
       drupal_alter($type, $items[$type]);
       // @todo Inline CSS and JS items are indexed numerically. These can't be
       //   reliably diffed with array_diff_key(), since the number can change
       //   due to factors unrelated to the inline content, so for now, we strip
       //   the inline items from Ajax responses, and can add support for them
-      //   when drupal_add_css() and drupal_add_js() are changed to use a hash
+      //   when _drupal_add_css() and _drupal_add_js() are changed to use a hash
       //   of the inline content as the array key.
       foreach ($items[$type] as $key => $item) {
         if (is_numeric($key)) {
@@ -290,7 +294,7 @@ function ajax_render($commands = array()) {
   }
 
   // Now add a command to merge changes and additions to drupalSettings.
-  $scripts = drupal_add_js();
+  $scripts = _drupal_add_js();
   if (!empty($scripts['settings'])) {
     $settings = drupal_merge_js_settings($scripts['settings']['data']);
     array_unshift($commands, ajax_command_settings($settings, TRUE));
@@ -299,43 +303,7 @@ function ajax_render($commands = array()) {
   // Allow modules to alter any Ajax response.
   drupal_alter('ajax_render', $commands);
 
-  return drupal_json_encode($commands);
-}
-
-/**
- * Theme callback: Returns the correct theme for an Ajax request.
- *
- * Many different pages can invoke an Ajax request to system/ajax or another
- * generic Ajax path. It is almost always desired for an Ajax response to be
- * rendered using the same theme as the base page, because most themes are built
- * with the assumption that they control the entire page, so if the CSS for two
- * themes are both loaded for a given page, they may conflict with each other.
- * For example, Bartik is Drupal's default theme, and Seven is Drupal's default
- * administration theme. Depending on whether the "Use the administration theme
- * when editing or creating content" checkbox is checked, the node edit form may
- * be displayed in either theme, but the Ajax response to the Field module's
- * "Add another item" button should be rendered using the same theme as the rest
- * of the page. Therefore, system_menu() sets the 'theme callback' for
- * 'system/ajax' to this function, and it is recommended that modules
- * implementing other generic Ajax paths do the same.
- *
- * @see system_menu()
- * @see file_menu()
- */
-function ajax_base_page_theme() {
-  if (!empty($_POST['ajax_page_state']['theme']) && !empty($_POST['ajax_page_state']['theme_token'])) {
-    $theme = $_POST['ajax_page_state']['theme'];
-    $token = $_POST['ajax_page_state']['theme_token'];
-
-    // Prevent a request forgery from giving a person access to a theme they
-    // shouldn't be otherwise allowed to see. However, since everyone is allowed
-    // to see the default theme, token validation isn't required for that, and
-    // bypassing it allows most use-cases to work even when accessed from the
-    // page cache.
-    if ($theme === \Drupal::config('system.theme')->get('default') || drupal_valid_token($token, $theme)) {
-      return $theme;
-    }
-  }
+  return Json::encode($commands);
 }
 
 /**
@@ -398,7 +366,8 @@ function ajax_prepare_response($page_callback_result) {
     $commands[] = ajax_command_insert(NULL, $html);
     // Add the status messages inside the new content's wrapper element, so that
     // on subsequent Ajax requests, it is treated as old content.
-    $commands[] = ajax_command_prepend(NULL, theme('status_messages'));
+    $status_messages = array('#theme' => 'status_messages');
+    $commands[] = ajax_command_prepend(NULL, drupal_render($status_messages));
   }
 
   return $commands;
@@ -594,266 +563,3 @@ function ajax_pre_render_element($element) {
 /**
  * @} End of "defgroup ajax".
  */
-
-/**
- * @defgroup ajax_commands Ajax framework commands
- * @{
- * Functions to create various Ajax commands.
- *
- * These functions can be used to create arrays for use with the
- * ajax_render() function.
- */
-
-/**
- * Creates a Drupal Ajax 'alert' command.
- *
- * The 'alert' command instructs the client to display a JavaScript alert
- * dialog box.
- *
- * This command is implemented by Drupal.AjaxCommands.prototype.alert()
- * defined in misc/ajax.js.
- *
- * @param $text
- *   The message string to display to the user.
- *
- * @return
- *   An array suitable for use with the ajax_render() function.
- */
-function ajax_command_alert($text) {
-  return array(
-    'command' => 'alert',
-    'text' => $text,
-  );
-}
-
-/**
- * Creates a Drupal Ajax 'insert' command using the method in #ajax['method'].
- *
- * This command instructs the client to insert the given HTML using whichever
- * jQuery DOM manipulation method has been specified in the #ajax['method']
- * variable of the element that triggered the request.
- *
- * This command is implemented by Drupal.AjaxCommands.prototype.insert()
- * defined in misc/ajax.js.
- *
- * @param $selector
- *   A jQuery selector string. If the command is a response to a request from
- *   an #ajax form element then this value can be NULL.
- * @param $html
- *   The data to use with the jQuery method.
- * @param $settings
- *   An optional array of settings that will be used for this command only.
- *
- * @return
- *   An array suitable for use with the ajax_render() function.
- */
-function ajax_command_insert($selector, $html, $settings = NULL) {
-  return array(
-    'command' => 'insert',
-    'method' => NULL,
-    'selector' => $selector,
-    'data' => $html,
-    'settings' => $settings,
-  );
-}
-
-/**
- * Creates a Drupal Ajax 'insert/prepend' command.
- *
- * The 'insert/prepend' command instructs the client to use jQuery's prepend()
- * method to prepend the given HTML content to the inside each element matched
- * by the given selector.
- *
- * This command is implemented by Drupal.AjaxCommands.prototype.insert()
- * defined in misc/ajax.js.
- *
- * @param $selector
- *   A jQuery selector string. If the command is a response to a request from
- *   an #ajax form element then this value can be NULL.
- * @param $html
- *   The data to use with the jQuery prepend() method.
- * @param $settings
- *   An optional array of settings that will be used for this command only.
- *
- * @return
- *   An array suitable for use with the ajax_render() function.
- *
- * @see http://docs.jquery.com/Manipulation/prepend#content
- */
-function ajax_command_prepend($selector, $html, $settings = NULL) {
-  return array(
-    'command' => 'insert',
-    'method' => 'prepend',
-    'selector' => $selector,
-    'data' => $html,
-    'settings' => $settings,
-  );
-}
-
-/**
- * Creates a Drupal Ajax 'insert/append' command.
- *
- * The 'insert/append' command instructs the client to use jQuery's append()
- * method to append the given HTML content to the inside of each element matched
- * by the given selector.
- *
- * This command is implemented by Drupal.AjaxCommands.prototype.insert()
- * defined in misc/ajax.js.
- *
- * @param $selector
- *   A jQuery selector string. If the command is a response to a request from
- *   an #ajax form element then this value can be NULL.
- * @param $html
- *   The data to use with the jQuery append() method.
- * @param $settings
- *   An optional array of settings that will be used for this command only.
- *
- * @return
- *   An array suitable for use with the ajax_render() function.
- *
- * @see http://docs.jquery.com/Manipulation/append#content
- */
-function ajax_command_append($selector, $html, $settings = NULL) {
-  return array(
-    'command' => 'insert',
-    'method' => 'append',
-    'selector' => $selector,
-    'data' => $html,
-    'settings' => $settings,
-  );
-}
-
-/**
- * Creates a Drupal Ajax 'remove' command.
- *
- * The 'remove' command instructs the client to use jQuery's remove() method
- * to remove each of elements matched by the given selector, and everything
- * within them.
- *
- * This command is implemented by Drupal.AjaxCommands.prototype.remove()
- * defined in misc/ajax.js.
- *
- * @param $selector
- *   A jQuery selector string. If the command is a response to a request from
- *   an #ajax form element then this value can be NULL.
- *
- * @return
- *   An array suitable for use with the ajax_render() function.
- *
- * @see http://docs.jquery.com/Manipulation/remove#expr
- */
-function ajax_command_remove($selector) {
-  return array(
-    'command' => 'remove',
-    'selector' => $selector,
-  );
-}
-
-/**
- * Creates a Drupal Ajax 'changed' command.
- *
- * This command instructs the client to mark each of the elements matched by the
- * given selector as 'ajax-changed'.
- *
- * This command is implemented by Drupal.AjaxCommands.prototype.changed()
- * defined in misc/ajax.js.
- *
- * @param $selector
- *   A jQuery selector string. If the command is a response to a request from
- *   an #ajax form element then this value can be NULL.
- * @param $asterisk
- *   An optional CSS selector which must be inside $selector. If specified,
- *   an asterisk will be appended to the HTML inside the $asterisk selector.
- *
- * @return
- *   An array suitable for use with the ajax_render() function.
- */
-function ajax_command_changed($selector, $asterisk = '') {
-  return array(
-    'command' => 'changed',
-    'selector' => $selector,
-    'asterisk' => $asterisk,
-  );
-}
-
-/**
- * Creates a Drupal Ajax 'css' command.
- *
- * The 'css' command will instruct the client to use the jQuery css() method
- * to apply the CSS arguments to elements matched by the given selector.
- *
- * This command is implemented by Drupal.AjaxCommands.prototype.css()
- * defined in misc/ajax.js.
- *
- * @param $selector
- *   A jQuery selector string. If the command is a response to a request from
- *   an #ajax form element then this value can be NULL.
- * @param $argument
- *   An array of key/value pairs to set in the CSS for the selector.
- *
- * @return
- *   An array suitable for use with the ajax_render() function.
- *
- * @see http://docs.jquery.com/CSS/css#properties
- */
-function ajax_command_css($selector, $argument) {
-  return array(
-    'command' => 'css',
-    'selector' => $selector,
-    'argument' => $argument,
-  );
-}
-
-/**
- * Creates a Drupal Ajax 'settings' command.
- *
- * The 'settings' command instructs the client either to use the given array as
- * the settings for ajax-loaded content or to extend drupalSettings with the
- * given array, depending on the value of the $merge parameter.
- *
- * This command is implemented by Drupal.AjaxCommands.prototype.settings()
- * defined in misc/ajax.js.
- *
- * @param $argument
- *   An array of key/value pairs to add to the settings. This will be utilized
- *   for all commands after this if they do not include their own settings
- *   array.
- * @param $merge
- *   Whether or not the passed settings in $argument should be merged into the
- *   global drupalSettings on the page. By default (FALSE), the settings that
- *   are passed to Drupal.attachBehaviors will not include the global
- *   drupalSettings.
- *
- * @return
- *   An array suitable for use with the ajax_render() function.
- */
-function ajax_command_settings($argument, $merge = FALSE) {
-  return array(
-    'command' => 'settings',
-    'settings' => $argument,
-    'merge' => $merge,
-  );
-}
-
-/**
- * Creates a Drupal Ajax 'add_css' command.
- *
- * This method will add css via ajax in a cross-browser compatible way.
- *
- * This command is implemented by Drupal.AjaxCommands.prototype.add_css()
- * defined in misc/ajax.js.
- *
- * @param $styles
- *   A string that contains the styles to be added.
- *
- * @return
- *   An array suitable for use with the ajax_render() function.
- *
- * @see misc/ajax.js
- */
-function ajax_command_add_css($styles) {
-  return array(
-    'command' => 'add_css',
-    'data' => $styles,
-  );
-}

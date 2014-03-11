@@ -85,7 +85,6 @@ class ModulesUninstallForm extends FormBase {
     $profile = drupal_get_profile();
 
     // Sort all modules by their name.
-    $this->moduleHandler->loadInclude('system', 'inc', 'system.admin');
     uasort($uninstallable, 'system_sort_modules_by_info_name');
 
     $form['uninstall'] = array('#tree' => TRUE);
@@ -129,7 +128,7 @@ class ModulesUninstallForm extends FormBase {
     // Form submitted, but no modules selected.
     if (!array_filter($form_state['values']['uninstall'])) {
       drupal_set_message($this->t('No modules selected.'), 'error');
-      $form_state['redirect'] = 'admin/modules/uninstall';
+      $form_state['redirect_route']['route_name'] = 'system.modules_uninstall';
     }
   }
 
@@ -144,6 +143,6 @@ class ModulesUninstallForm extends FormBase {
     $this->keyValueExpirable->setWithExpire($account, $uninstall, 60);
 
     // Redirect to the confirm form.
-    $form_state['redirect'] = 'admin/modules/uninstall/confirm';
+    $form_state['redirect_route']['route_name'] = 'system.modules_uninstall_confirm';
   }
 }

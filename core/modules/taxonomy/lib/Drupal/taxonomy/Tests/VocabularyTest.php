@@ -72,8 +72,8 @@ class VocabularyTest extends TaxonomyTestBase {
     $this->drupalPostForm('admin/structure/taxonomy/add', $edit, t('Save'));
 
     $site_name = \Drupal::config('system.site')->get('name');
-    $this->assertTitle(t('Don\'t Panic | @site-name', array('@site-name' => $site_name)));
-    $this->assertNoTitle(t('Don&#039;t Panic | @site-name', array('@site-name' => $site_name)));
+    $this->assertTitle(t('Don\'t Panic | @site-name', array('@site-name' => $site_name)), 'The page title contains the escaped character.');
+    $this->assertNoTitle(t('Don&#039;t Panic | @site-name', array('@site-name' => $site_name)), 'The page title does not contain an encoded character.');
   }
 
   /**
@@ -98,7 +98,6 @@ class VocabularyTest extends TaxonomyTestBase {
     // Load the vocabularies from the database.
     $this->container->get('entity.manager')->getStorageController('taxonomy_vocabulary')->resetCache();
     $new_vocabularies = entity_load_multiple('taxonomy_vocabulary');
-    taxonomy_vocabulary_sort($new_vocabularies);
 
     // Check that the weights are saved in the database correctly.
     foreach ($vocabularies as $key => $vocabulary) {
@@ -142,7 +141,7 @@ class VocabularyTest extends TaxonomyTestBase {
 
     // Delete the vocabulary.
     $edit = array();
-    $this->drupalPostForm('admin/structure/taxonomy/manage/' . $vocabulary->id() . '/edit', $edit, t('Delete'));
+    $this->drupalPostForm('admin/structure/taxonomy/manage/' . $vocabulary->id(), $edit, t('Delete'));
     $this->assertRaw(t('Are you sure you want to delete the vocabulary %name?', array('%name' => $vocabulary->name)), '[confirm deletion] Asks for confirmation.');
     $this->assertText(t('Deleting a vocabulary will delete all the terms in it. This action cannot be undone.'), '[confirm deletion] Inform that all terms will be deleted.');
 
