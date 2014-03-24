@@ -418,40 +418,6 @@ function drupal_settings_initialize() {
   if (is_readable(DRUPAL_ROOT . '/' . $conf_path . '/settings.php')) {
     require DRUPAL_ROOT . '/' . $conf_path . '/settings.php';
   }
-
-  // Load environmental config, if present.
-  if (isset($_SERVER['PRESSFLOW_SETTINGS'])) {
-    $pressflow_settings = json_decode($_SERVER['PRESSFLOW_SETTINGS'], TRUE);
-    foreach ($pressflow_settings as $key => $value) {
-      // One level of depth should be enough for $conf and $database.
-      if ($key == 'conf') {
-        foreach($value as $conf_key => $conf_value) {
-          $conf[$conf_key] = $conf_value;
-        }
-      }
-      elseif ($key == 'databases') {
-        // Protect default configuration but allow the specification of
-        // additional databases. Also, allows fun things with 'prefix' if they
-        // want to try multisite.
-        if (!isset($databases) || !is_array($databases)) {
-          $databases = array();
-        }
-        $databases = array_replace_recursive($databases, $value);
-      }
-      else {
-        $$key = $value;
-      }
-    }
-  }
-
-  // Load CMI directory config, if present.
-  if (isset($_SERVER['PRESSFLOW_SETTINGS'])) {
-    $config_directories = array(
-      CONFIG_ACTIVE_DIRECTORY => 'config_active',
-      CONFIG_STAGING_DIRECTORY => 'config_staging',
-    );
-  }
-
   // Initialize Settings.
   new Settings($settings);
 }
@@ -470,18 +436,6 @@ function _drupal_request_initialize() {
   global $base_secure_url, $base_insecure_url;
 
   $is_https = isset($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) == 'on';
-
-  // Load CMI directory config, if present.
-  if (isset($_SERVER['PRESSFLOW_SETTINGS'])) {
-    $config_directories = array(
-      CONFIG_ACTIVE_DIRECTORY => array(
-        'path' => 'config_active',
-      ),
-      CONFIG_STAGING_DIRECTORY => array(
-        'path' => 'config_staging',
-      ),
-    );
-  }
 
   if (isset($base_url)) {
     // Parse fixed base URL from settings.php.
@@ -1714,68 +1668,6 @@ function _drupal_bootstrap_page_cache() {
       drupal_add_http_header('X-Drupal-Cache', 'MISS');
     }
   }
-}
-
-/**
- * In a test environment, get the test db prefix and set it in $databases.
- */
-function _drupal_initialize_db_test_prefix() {
-  // The user agent header is used to pass a database prefix in the request when
-  // running tests. However, for security reasons, it is imperative that we
-  // validate we ourselves made the request.
-  if ($test_prefix = drupal_valid_test_ua()) {
-    // Set the test run id for use in other parts of Drupal.
-    $test_info = &$GLOBALS['drupal_test_info'];
-    $test_info['test_run_id'] = $test_prefix;
-    $test_info['in_child_site'] = TRUE;
-
-    foreach ($GLOBALS['databases']['default'] as &$value) {
-      // Extract the current default database prefix.
-      if (!isset($value['prefix'])) {
-        $current_prefix = '';
-      }
-      elseif (is_array($value['prefix'])) {
-        $current_prefix = $value['prefix']['default'];
-      }
-      else {
-        $current_prefix = $value['prefix'];
-      }
-
-      // Remove the current database prefix and replace it by our own.
-      $value['prefix'] = array(
-        'default' => $current_prefix . $test_prefix,
-      );
-    }
-  }
-}
-
-/**
- * Initializes the database system by loading database.inc.
- */
-function _drupal_bootstrap_database() {
-  // Initialize the database system. Note that the connection
-  // won't be initialized until it is actually requested.
-  require_once __DIR__ . '/database.inc';
-}
-
-/**
- * Loads system variables and all enabled bootstrap modules.
- */
-function _drupal_bootstrap_variables() {
-  global $conf;
-
-  // Redirect the user to the installation script if Drupal has not been
-  // installed yet. We accomplish this by checking for the sessions table.
-  //
-  // This is logic similar to what we see in _drupal_bootstrap_configuration(),
-  // but this is done later in the bootstrapping to connect to the database.
-  if (isset($_SERVER['PRESSFLOW_SETTINGS']) && !db_table_exists('sessions') && $_SERVER['SCRIPT_NAME'] != '/core/install.php') {
-    include_once __DIR__ . '/install.inc';
-    install_goto('core/install.php');
-  }
-
-  // Load variables from the database, but do not overwrite variables set in settings.php.
-  $conf = variable_initialize(isset($conf) ? $conf : array());
 }
 
 /**

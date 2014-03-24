@@ -328,35 +328,6 @@ function install_begin_request(&$install_state) {
   $install_state['database_verified'] = install_verify_database_settings();
   $install_state['settings_verified'] = $install_state['config_verified'] && $install_state['database_verified'];
 
-  // Override $install_state['settings_verified'], if server configuration is present
-  if (isset($_SERVER['PRESSFLOW_SETTINGS'])) {
-    $install_state['settings_verified'] = TRUE;
-  }
-
-  // If it is not, replace the configuration storage with the InstallStorage
-  // implementation, for the following reasons:
-  // - The first call into drupal_container() will try to set up the regular
-  //   runtime configuration storage, using the CachedStorage by default. It
-  //   calls config_get_config_directory() to retrieve the config directory to
-  //   use, but that throws an exception, since $config_directories is not
-  //   defined since there is no settings.php yet. If there is a prepared
-  //   settings.php already, then the returned directory still cannot be used,
-  //   because it does not necessarily exist. The installer ensures that it
-  //   exists and is writeable in a later step.
-  // - The installer outputs maintenance theme pages and performs many other
-  //   operations, which try to load configuration. Since there is no active
-  //   configuration yet, and because the configuration system does not have a
-  //   notion of default values at runtime, data is missing in many places. The
-  //   lack of data does not trigger errors, but results in a broken user
-  //   interface (e.g., missing page title, etc).
-  // - The actual configuration data to read during installation is essentially
-  //   the default configuration provided by the installation profile and
-  //   modules (most notably System module). The InstallStorage therefore reads
-  //   from the default configuration directories of extensions.
-  // This override is reverted as soon as the config directory and the
-  // database has been set up successfully.
-  // @see drupal_install_config_directories()
-  // @see install_settings_form_submit()
   if ($install_state['settings_verified']) {
     try {
       $system_schema = system_schema();
