@@ -418,24 +418,6 @@ function drupal_settings_initialize() {
   if (is_readable(DRUPAL_ROOT . '/' . $conf_path . '/settings.php')) {
     require DRUPAL_ROOT . '/' . $conf_path . '/settings.php';
   }
-  // Initialize Settings.
-  new Settings($settings);
-}
-
-/**
- * Initializes global request variables.
- *
- * @todo D8: Eliminate this entirely in favor of Request object.
- */
-function _drupal_request_initialize() {
-  // Provided by settings.php.
-  // @see drupal_settings_initialize()
-  global $base_url, $cookie_domain;
-  // Set and derived from $base_url by this function.
-  global $base_path, $base_root, $script_path;
-  global $base_secure_url, $base_insecure_url;
-
-  $is_https = isset($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) == 'on';
 
   // Load environmental config, if present.
   if (isset($_SERVER['PRESSFLOW_SETTINGS'])) {
@@ -461,6 +443,33 @@ function _drupal_request_initialize() {
       }
     }
   }
+
+  // Load CMI directory config, if present.
+  if (isset($_SERVER['PRESSFLOW_SETTINGS'])) {
+    $config_directories = array(
+      CONFIG_ACTIVE_DIRECTORY => 'config_active',
+      CONFIG_STAGING_DIRECTORY => 'config_staging',
+    );
+  }
+
+  // Initialize Settings.
+  new Settings($settings);
+}
+
+/**
+ * Initializes global request variables.
+ *
+ * @todo D8: Eliminate this entirely in favor of Request object.
+ */
+function _drupal_request_initialize() {
+  // Provided by settings.php.
+  // @see drupal_settings_initialize()
+  global $base_url, $cookie_domain;
+  // Set and derived from $base_url by this function.
+  global $base_path, $base_root, $script_path;
+  global $base_secure_url, $base_insecure_url;
+
+  $is_https = isset($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) == 'on';
 
   // Load CMI directory config, if present.
   if (isset($_SERVER['PRESSFLOW_SETTINGS'])) {
