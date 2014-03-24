@@ -328,6 +328,11 @@ function install_begin_request(&$install_state) {
   $install_state['database_verified'] = install_verify_database_settings();
   $install_state['settings_verified'] = $install_state['config_verified'] && $install_state['database_verified'];
 
+  // Override $install_state['settings_verified'], if server configuration is present
+  if (isset($_SERVER['PRESSFLOW_SETTINGS'])) {
+    $install_state['settings_verified'] = TRUE;
+  }
+
   if ($install_state['settings_verified']) {
     try {
       $system_schema = system_schema();

@@ -32,9 +32,8 @@ if (isset($_SERVER['PANTHEON_ENVIRONMENT'])) {
  * Issue: https://github.com/pantheon-systems/drops-8/issues/9
  *
  */
-if (isset($_SERVER['PANTHEON_ENVIRONMENT'])) {
-  $install_state['settings_verified'] = TRUE;
-}
+
+// This change is made in core/includes/install.core.inc 
 
 /**
  * Allow Drupal 8 to Cleanly Redirect to Install.php For New Sites.
