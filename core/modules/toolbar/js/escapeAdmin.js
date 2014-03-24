@@ -16,7 +16,7 @@
   // there is not need to save the current path because the page is loaded within
   // an existing "workflow".
   if (!pathInfo.currentPathIsAdmin && !/destination=/.test(windowLocation.search)) {
-    sessionStorage.setItem('escapeAdminPath', windowLocation.pathname.substring(pathInfo.basePath.length) + windowLocation.search);
+    sessionStorage.setItem('escapeAdminPath', windowLocation);
   }
 
   /**
@@ -29,8 +29,8 @@
     attach: function () {
       var $toolbarEscape = $('[data-toolbar-escape-admin]').once('escapeAdmin');
       if ($toolbarEscape.length) {
-        if (pathInfo.currentPathIsAdmin && escapeAdminPath) {
-          $toolbarEscape.attr('href', Drupal.url(escapeAdminPath));
+        if (pathInfo.currentPathIsAdmin && escapeAdminPath !== null) {
+          $toolbarEscape.attr('href', escapeAdminPath);
           $toolbarEscape.closest('.toolbar-tab').removeClass('hidden');
         }
       }

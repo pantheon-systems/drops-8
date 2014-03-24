@@ -7,6 +7,7 @@
 
 namespace Drupal\views\Tests\Plugin;
 
+use Drupal\views\Views;
 use Drupal\views\ViewExecutable;
 
 /**
@@ -44,7 +45,7 @@ class CacheTest extends PluginTestBase {
    */
   public function testTimeCaching() {
     // Create a basic result which just 2 results.
-    $view = views_get_view('test_cache');
+    $view = Views::getView('test_cache');
     $view->setDisplay();
     $view->display_handler->overrideOption('cache', array(
       'type' => 'time',
@@ -64,10 +65,10 @@ class CacheTest extends PluginTestBase {
       'age' => 29,
       'job' => 'Banjo',
     );
-    drupal_write_record('views_test_data', $record);
+    db_insert('views_test_data')->fields($record)->execute();
 
     // The Result should be the same as before, because of the caching.
-    $view = views_get_view('test_cache');
+    $view = Views::getView('test_cache');
     $view->setDisplay();
     $view->display_handler->overrideOption('cache', array(
       'type' => 'time',
@@ -89,7 +90,7 @@ class CacheTest extends PluginTestBase {
    */
   function testNoneCaching() {
     // Create a basic result which just 2 results.
-    $view = views_get_view('test_cache');
+    $view = Views::getView('test_cache');
     $view->setDisplay();
     $view->display_handler->overrideOption('cache', array(
       'type' => 'none',
@@ -106,11 +107,10 @@ class CacheTest extends PluginTestBase {
       'age' => 29,
       'job' => 'Banjo',
     );
-
-    drupal_write_record('views_test_data', $record);
+    db_insert('views_test_data')->fields($record)->execute();
 
     // The Result changes, because the view is not cached.
-    $view = views_get_view('test_cache');
+    $view = Views::getView('test_cache');
     $view->setDisplay();
     $view->display_handler->overrideOption('cache', array(
       'type' => 'none',
@@ -129,7 +129,7 @@ class CacheTest extends PluginTestBase {
     // Create a view with output caching enabled.
     // Some hook_views_pre_render in views_test_data.module adds the test css/js file.
     // so they should be added to the css/js storage.
-    $view = views_get_view('test_view');
+    $view = Views::getView('test_view');
     $view->setDisplay();
     $view->storage->set('id', 'test_cache_header_storage');
     $view->display_handler->overrideOption('cache', array(

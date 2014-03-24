@@ -9,6 +9,7 @@ namespace Drupal\Core\Field;
 
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Component\Utility\SortArray;
+use Drupal\Component\Utility\String;
 use Symfony\Component\Validator\ConstraintViolationInterface;
 
 /**
@@ -74,7 +75,7 @@ abstract class WidgetBase extends PluginSettingsBase implements WidgetInterface 
     if ($this->handlesMultipleValues() || isset($get_delta)) {
       $delta = isset($get_delta) ? $get_delta : 0;
       $element = array(
-        '#title' => check_plain($this->fieldDefinition->getLabel()),
+        '#title' => String::checkPlain($this->fieldDefinition->getLabel()),
         '#description' => field_filter_xss(\Drupal::token()->replace($this->fieldDefinition->getDescription())),
       );
       $element = $this->formSingleElement($items, $delta, $element, $form, $form_state);
@@ -110,25 +111,21 @@ abstract class WidgetBase extends PluginSettingsBase implements WidgetInterface 
     // Most widgets need their internal structure preserved in submitted values.
     $elements += array('#tree' => TRUE);
 
-    $return = array(
-      $field_name => array(
-        // Aid in theming of widgets by rendering a classified container.
-        '#type' => 'container',
-        // Assign a different parent, to keep the main id for the widget itself.
-        '#parents' => array_merge($parents, array($field_name . '_wrapper')),
-        '#attributes' => array(
-          'class' => array(
-            'field-type-' . drupal_html_class($this->fieldDefinition->getType()),
-            'field-name-' . drupal_html_class($field_name),
-            'field-widget-' . drupal_html_class($this->getPluginId()),
-          ),
+    return array(
+      // Aid in theming of widgets by rendering a classified container.
+      '#type' => 'container',
+      // Assign a different parent, to keep the main id for the widget itself.
+      '#parents' => array_merge($parents, array($field_name . '_wrapper')),
+      '#attributes' => array(
+        'class' => array(
+          'field-type-' . drupal_html_class($this->fieldDefinition->getType()),
+          'field-name-' . drupal_html_class($field_name),
+          'field-widget-' . drupal_html_class($this->getPluginId()),
         ),
-        '#access' => $items->access('edit'),
-        'widget' => $elements,
       ),
+      '#access' => $items->access('edit'),
+      'widget' => $elements,
     );
-
-    return $return;
   }
 
   /**
@@ -161,7 +158,7 @@ abstract class WidgetBase extends PluginSettingsBase implements WidgetInterface 
     $id_prefix = implode('-', array_merge($parents, array($field_name)));
     $wrapper_id = drupal_html_id($id_prefix . '-add-more-wrapper');
 
-    $title = check_plain($this->fieldDefinition->getLabel());
+    $title = String::checkPlain($this->fieldDefinition->getLabel());
     $description = field_filter_xss(\Drupal::token()->replace($this->fieldDefinition->getDescription()));
 
     $elements = array();
@@ -217,17 +214,61 @@ abstract class WidgetBase extends PluginSettingsBase implements WidgetInterface 
           '#value' => t('Add another item'),
           '#attributes' => array('class' => array('field-add-more-submit')),
           '#limit_validation_errors' => array(array_merge($parents, array($field_name))),
-          '#submit' => array('field_add_more_submit'),
+          '#submit' => array(array(get_class($this), 'addMoreSubmit')),
           '#ajax' => array(
-              'callback' => 'field_add_more_js',
-              'wrapper' => $wrapper_id,
-              'effect' => 'fade',
+            'callback' => array(get_class($this), 'addMoreAjax'),
+            'wrapper' => $wrapper_id,
+            'effect' => 'fade',
           ),
         );
       }
     }
 
     return $elements;
+  }
+
+  /**
+   * Submission handler for the "Add another item" button.
+   */
+  public static function addMoreSubmit(array $form, array &$form_state) {
+    $button = $form_state['triggering_element'];
+
+    // Go one level up in the form, to the widgets container.
+    $element = NestedArray::getValue($form, array_slice($button['#array_parents'], 0, -1));
+    $field_name = $element['#field_name'];
+    $parents = $element['#field_parents'];
+
+    // Increment the items count.
+    $field_state = field_form_get_state($parents, $field_name, $form_state);
+    $field_state['items_count']++;
+    field_form_set_state($parents, $field_name, $form_state, $field_state);
+
+    $form_state['rebuild'] = TRUE;
+  }
+
+  /**
+   * Ajax callback for the "Add another item" button.
+   *
+   * This returns the new page content to replace the page content made obsolete
+   * by the form submission.
+   */
+  public static function addMoreAjax(array $form, array $form_state) {
+    $button = $form_state['triggering_element'];
+
+    // Go one level up in the form, to the widgets container.
+    $element = NestedArray::getValue($form, array_slice($button['#array_parents'], 0, -1));
+
+    // Ensure the widget allows adding additional items.
+    if ($element['#cardinality'] != FieldDefinitionInterface::CARDINALITY_UNLIMITED) {
+      return;
+    }
+
+    // Add a DIV around the delta receiving the Ajax effect.
+    $delta = $element['#max_delta'];
+    $element[$delta]['#prefix'] = '<div class="ajax-new-content">' . (isset($element[$delta]['#prefix']) ? $element[$delta]['#prefix'] : '');
+    $element[$delta]['#suffix'] = (isset($element[$delta]['#suffix']) ? $element[$delta]['#suffix'] : '') . '</div>';
+
+    return $element;
   }
 
   /**
@@ -260,7 +301,7 @@ abstract class WidgetBase extends PluginSettingsBase implements WidgetInterface 
         'delta' => $delta,
         'default' => !empty($entity->field_ui_default_value),
       );
-      drupal_alter(array('field_widget_form', 'field_widget_' . $this->getPluginId() . '_form'), $element, $form_state, $context);
+      \Drupal::moduleHandler()->alter(array('field_widget_form', 'field_widget_' . $this->getPluginId() . '_form'), $element, $form_state, $context);
     }
 
     return $element;

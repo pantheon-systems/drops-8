@@ -1,0 +1,57 @@
+# Schema for the configuration files of the Responsive Image module.
+
+responsive_image.mappings.*:
+  type: mapping
+  label: 'Responsive image mapping'
+  mapping:
+    id:
+      type: string
+      label: 'Machine-readable name'
+    uuid:
+      type: string
+      label: 'UUID'
+    label:
+      type: label
+      label: 'Label'
+    mappings:
+      type: sequence
+      label: 'Mappings'
+      sequence:
+        - type: sequence
+          label: 'Source type'
+          sequence:
+            - type: sequence
+              label: 'Source'
+              sequence:
+                - type: sequence
+                  label: 'Machine name'
+                  sequence:
+                    - type: string
+                      label: 'Image style'
+    breakpointGroup:
+      type: string
+      label: 'Breakpoint group'
+    status:
+      type: boolean
+      label: 'Status'
+    langcode:
+      type: string
+      label: 'Default language'
+
+entity_view_display.field.responsive_image:
+  type: entity_field_view_display_base
+  label: 'Responsive image list format settings'
+  mapping:
+    settings:
+      type: mapping
+      label: 'Settings'
+      mapping:
+        responsive_image_mapping:
+          type: string
+          label: 'Responsive image mapping'
+        fallback_image_style:
+          type: string
+          label: 'Fallback image style'
+        image_link:
+          type: string
+          label: 'Link image to'

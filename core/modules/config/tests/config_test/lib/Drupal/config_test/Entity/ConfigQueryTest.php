@@ -20,11 +20,10 @@ namespace Drupal\config_test\Entity;
  *       "default" = "Drupal\config_test\ConfigTestFormController"
  *     }
  *   },
- *   config_prefix = "config_query_test.dynamic",
+ *   config_prefix = "query",
  *   entity_keys = {
  *     "id" = "id",
- *     "label" = "label",
- *     "uuid" = "uuid"
+ *     "label" = "label"
  *   }
  * )
  *

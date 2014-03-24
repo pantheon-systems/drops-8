@@ -103,7 +103,7 @@ function locale_translation_build_projects() {
 
     // Create or update the project record.
     db_merge('locale_project')
-      ->key(array('name' => $project->name))
+      ->key('name', $project->name)
       ->fields(array(
         'name' => $project->name,
         'project_type' => $project->project_type,
@@ -144,7 +144,7 @@ function locale_translation_project_list() {
     $project_info->processInfoList($projects, $theme_data, 'theme', TRUE, $additional_whitelist);
 
     // Allow other modules to alter projects before fetching and comparing.
-    drupal_alter('locale_translation_projects', $projects);
+    \Drupal::moduleHandler()->alter('locale_translation_projects', $projects);
   }
   return $projects;
 }
@@ -162,7 +162,7 @@ function locale_translation_project_list() {
  * project = myproject" in its .info.yml file. This function will add a project
  * "myproject" to the info data.
  *
- * @param array $data
+ * @param \Drupal\Core\Extension\Extension[] $data
  *   Array of .info.yml file data.
  * @param string $type
  *   The project type. i.e. module, theme.

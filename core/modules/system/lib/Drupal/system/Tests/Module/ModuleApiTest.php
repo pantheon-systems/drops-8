@@ -85,17 +85,17 @@ class ModuleApiTest extends WebTestBase {
    */
   function testModuleImplements() {
     // Clear the cache.
-    cache('bootstrap')->delete('module_implements');
-    $this->assertFalse(cache('bootstrap')->get('module_implements'), 'The module implements cache is empty.');
+    \Drupal::cache('bootstrap')->delete('module_implements');
+    $this->assertFalse(\Drupal::cache('bootstrap')->get('module_implements'), 'The module implements cache is empty.');
     $this->drupalGet('');
-    $this->assertTrue(cache('bootstrap')->get('module_implements'), 'The module implements cache is populated after requesting a page.');
+    $this->assertTrue(\Drupal::cache('bootstrap')->get('module_implements'), 'The module implements cache is populated after requesting a page.');
 
     // Test again with an authenticated user.
     $this->user = $this->drupalCreateUser();
     $this->drupalLogin($this->user);
-    cache('bootstrap')->delete('module_implements');
+    \Drupal::cache('bootstrap')->delete('module_implements');
     $this->drupalGet('');
-    $this->assertTrue(cache('bootstrap')->get('module_implements'), 'The module implements cache is populated after requesting a page.');
+    $this->assertTrue(\Drupal::cache('bootstrap')->get('module_implements'), 'The module implements cache is populated after requesting a page.');
 
     // Prime ModuleHandler's hook implementation cache by invoking a random hook
     // name. The subsequent \Drupal\Core\Extension\ModuleHandler::install()
@@ -128,13 +128,13 @@ class ModuleApiTest extends WebTestBase {
   }
 
   /**
-   * Test that module_invoke_all() can load a hook defined in hook_hook_info().
+   * Test that \Drupal::moduleHandler()->invokeAll() can load a hook defined in hook_hook_info().
    */
   function testModuleInvokeAll() {
     \Drupal::moduleHandler()->install(array('module_test'), FALSE);
     $this->resetAll();
     $this->drupalGet('module-test/hook-dynamic-loading-invoke-all');
-    $this->assertText('success!', 'module_invoke_all() dynamically loads a hook defined in hook_hook_info().');
+    $this->assertText('success!', '\Drupal::moduleHandler()->invokeAll() dynamically loads a hook defined in hook_hook_info().');
   }
 
   /**

@@ -63,7 +63,7 @@ function file_element_info() {
     '#multiple' => FALSE,
     '#extended' => FALSE,
     '#attached' => array(
-      'library' => array(array('file','drupal.file')),
+      'library' => array('file/drupal.file'),
     ),
   );
   return $types;
@@ -110,8 +110,8 @@ function file_load($fid, $reset = FALSE) {
 /**
  * Returns the file usage service.
  *
- * @deprecated as of Drupal 8.0. Use \Drupal::service('file.usage') instead, or
- *   even better have the file usage service injected into your object.
+ * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
+ *   Use \Drupal::service('file.usage').
  *
  * @return \Drupal\file\FileUsage\FileUsageInterface.
  */
@@ -406,7 +406,7 @@ function file_validate_is_image(File $file) {
 
   $image = \Drupal::service('image.factory')->get($file->getFileUri());
   if (!$image->isSupported()) {
-    $toolkit = \Drupal::service('image.toolkit');
+    $toolkit = \Drupal::service('image.toolkit.manager')->getDefaultToolkit();
     $extensions = array();
     foreach ($toolkit->supportedTypes() as $image_type) {
       $extensions[] = Unicode::strtoupper(image_type_to_extension($image_type));
@@ -453,7 +453,7 @@ function file_validate_image_resolution(File $file, $maximum_dimensions = 0, $mi
       if ($image->getWidth() > $width || $image->getHeight() > $height) {
         // Try to resize the image to fit the dimensions.
         $image = $image_factory->get($file->getFileUri());
-        if ($image->getResource()) {
+        if ($image->isExisting()) {
           $image->scale($width, $height);
           $image->save();
           $file->filesize = $image->getFileSize();
@@ -660,7 +660,7 @@ function file_file_download($uri, $field_type = 'file') {
           'field' => $field,
           'file' => $file,
         );
-        drupal_alter('file_download_access', $grants, $context);
+        \Drupal::moduleHandler()->alter('file_download_access', $grants, $context);
 
         if (in_array(TRUE, $grants)) {
           // If TRUE is returned, access is granted and no further checks are
@@ -1933,29 +1933,6 @@ function file_get_file_references(File $file, $field = NULL, $age = EntityStorag
 /**
  * @} End of "defgroup file-module-api".
  */
-
-/**
- * Implements hook_library_info().
- */
-function file_library_info() {
-  $libraries['drupal.file'] = array(
-    'title' => 'File',
-    'version' => \Drupal::VERSION,
-    'js' => array(
-      drupal_get_path('module', 'file') . '/file.js' => array(),
-    ),
-    'css' => array(
-      drupal_get_path('module', 'file') . '/css/file.admin.css'
-    ),
-    'dependencies' => array(
-      array('system', 'jquery'),
-      array('system', 'drupal'),
-      array('system', 'drupalSettings'),
-    ),
-  );
-
-  return $libraries;
-}
 
 /**
  * Implements hook_permission().

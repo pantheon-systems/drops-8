@@ -7,6 +7,7 @@
 
 namespace Drupal\contact;
 
+use Drupal\Component\Utility\String;
 use Drupal\Core\Entity\ContentEntityFormController;
 use Drupal\Core\Language\Language;
 use Drupal\user\UserInterface;
@@ -27,7 +28,7 @@ class MessageFormController extends ContentEntityFormController {
    * Overrides Drupal\Core\Entity\EntityFormController::form().
    */
   public function form(array $form, array &$form_state) {
-    global $user;
+    $user = \Drupal::currentUser();
     $message = $this->entity;
     $form = parent::form($form, $form_state, $message);
     $form['#attributes']['class'][] = 'contact-form';
@@ -52,7 +53,7 @@ class MessageFormController extends ContentEntityFormController {
       '#required' => TRUE,
     );
     if ($user->isAnonymous()) {
-      $form['#attached']['library'][] = array('system', 'jquery.cookie');
+      $form['#attached']['library'][] = 'core/jquery.cookie';
       $form['#attributes']['class'][] = 'user-info-from-cookie';
     }
     // Do not allow authenticated users to alter the name or e-mail values to
@@ -61,12 +62,12 @@ class MessageFormController extends ContentEntityFormController {
       $form['name']['#type'] = 'item';
       $form['name']['#value'] = $user->getUsername();
       $form['name']['#required'] = FALSE;
-      $form['name']['#markup'] = check_plain($user->getUsername());
+      $form['name']['#markup'] = String::checkPlain($user->getUsername());
 
       $form['mail']['#type'] = 'item';
       $form['mail']['#value'] = $user->getEmail();
       $form['mail']['#required'] = FALSE;
-      $form['mail']['#markup'] = check_plain($user->getEmail());
+      $form['mail']['#markup'] = String::checkPlain($user->getEmail());
     }
 
     // The user contact form has a preset recipient.
@@ -138,9 +139,9 @@ class MessageFormController extends ContentEntityFormController {
    * Overrides Drupal\Core\Entity\EntityFormController::save().
    */
   public function save(array $form, array &$form_state) {
-    global $user;
+    $user = \Drupal::currentUser();
 
-    $language_interface = language(Language::TYPE_INTERFACE);
+    $language_interface = \Drupal::languageManager()->getCurrentLanguage();
     $message = $this->entity;
 
     $sender = clone user_load($user->id());

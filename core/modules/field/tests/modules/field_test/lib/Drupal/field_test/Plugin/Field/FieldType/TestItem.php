@@ -10,7 +10,7 @@ namespace Drupal\field_test\Plugin\Field\FieldType;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\PrepareCacheInterface;
 use Drupal\Core\TypedData\DataDefinition;
-use Drupal\Core\Field\ConfigFieldItemBase;
+use Drupal\Core\Field\FieldItemBase;
 
 /**
  * Defines the 'test_field' entity field item.
@@ -32,26 +32,16 @@ use Drupal\Core\Field\ConfigFieldItemBase;
  *   default_formatter = "field_test_default"
  * )
  */
-class TestItem extends ConfigFieldItemBase implements PrepareCacheInterface {
-
-  /**
-   * Property definitions of the contained properties.
-   *
-   * @see TestItem::getPropertyDefinitions()
-   *
-   * @var array
-   */
-  static $propertyDefinitions;
+class TestItem extends FieldItemBase implements PrepareCacheInterface {
 
   /**
    * {@inheritdoc}
    */
-  public function getPropertyDefinitions() {
-    if (!isset(static::$propertyDefinitions)) {
-      static::$propertyDefinitions['value'] = DataDefinition::create('integer')
-        ->setLabel(t('Test integer value'));
-    }
-    return static::$propertyDefinitions;
+  public static function propertyDefinitions(FieldDefinitionInterface $field_definition) {
+    $properties['value'] = DataDefinition::create('integer')
+      ->setLabel(t('Test integer value'));
+
+    return $properties;
   }
 
   /**

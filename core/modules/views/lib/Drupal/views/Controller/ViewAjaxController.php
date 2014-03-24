@@ -7,7 +7,7 @@
 
 namespace Drupal\views\Controller;
 
-use Drupal\Component\Utility\Url;
+use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Ajax\ReplaceCommand;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Entity\EntityStorageControllerInterface;
@@ -115,7 +115,7 @@ class ViewAjaxController implements ContainerInjectionInterface {
         // Overwrite the destination.
         // @see drupal_get_destination()
         $origin_destination = $path;
-        $query = Url::buildQuery($request->query->all());
+        $query = UrlHelper::buildQuery($request->query->all());
         if ($query != '') {
           $origin_destination .= '?' . $query;
         }
@@ -131,7 +131,7 @@ class ViewAjaxController implements ContainerInjectionInterface {
         $view->dom_id = $dom_id;
 
         $preview = $view->preview($display_id, $args);
-        $response->addCommand(new ReplaceCommand(".view-dom-id-$dom_id", drupal_render($preview)));
+        $response->addCommand(new ReplaceCommand(".view-dom-id-$dom_id", $this->drupalRender($preview)));
         return $response;
       }
       else {
@@ -141,6 +141,22 @@ class ViewAjaxController implements ContainerInjectionInterface {
     else {
       throw new NotFoundHttpException();
     }
+  }
+
+  /**
+   * Wraps drupal_render.
+   *
+   * @param array $elements
+   *   The structured array describing the data to be rendered.
+   *
+   * @return string
+   *   The rendered HTML.
+   *
+   * @todo Remove once drupal_render is converted to autoloadable code.
+   * @see https://drupal.org/node/2171071
+   */
+  protected function drupalRender(array $elements) {
+    return drupal_render($elements);
   }
 
 }

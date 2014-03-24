@@ -5,6 +5,7 @@
  * Administration functions for language.module.
  */
 
+use Drupal\Component\Utility\String;
 use Drupal\Core\Language\LanguageManager;
 
 /**
@@ -39,7 +40,7 @@ function theme_language_negotiation_configure_form($variables) {
 
   foreach ($form['#language_types'] as $type) {
     $rows = array();
-    $title = '<h4 class="label">' . $form[$type]['#title'] . '</h4>';
+    $title = '<h2>' . $form[$type]['#title'] . '</h2>';
     $description = '<div class="description">' . $form[$type]['#description'] . '</div>';
 
     foreach ($form[$type]['title'] as $id => $element) {
@@ -139,7 +140,7 @@ function theme_language_negotiation_configure_browser_form_table($variables) {
   );
 
   $table = array(
-    '#theme' => 'table',
+    '#type' => 'table',
     '#header' => $header,
     '#rows' => $rows,
     '#attributes' => array('id' => 'lang-neg-browser'),
@@ -152,7 +153,8 @@ function theme_language_negotiation_configure_browser_form_table($variables) {
 /**
  * Returns the content language settings form.
  *
- * @deprecated Use \Drupal\language\Controller\LanguageController::contentSettings()
+ * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
+ *   Use \Drupal\language\Controller\LanguageController::contentSettings().
  */
 function language_content_settings_page() {
   return drupal_get_form('language_content_settings_form', language_entity_supported());
@@ -273,7 +275,7 @@ function template_preprocess_language_content_settings_table(&$variables) {
           'data' => array(
             '#prefix' => '<label>',
             '#suffix' => '</label>',
-            '#markup' => check_plain($element[$bundle]['settings']['#label']),
+            '#markup' => String::checkPlain($element[$bundle]['settings']['#label']),
           ),
           'class' => array('bundle'),
         ),
@@ -290,7 +292,7 @@ function template_preprocess_language_content_settings_table(&$variables) {
     '#title' => $element['#title'],
     '#header' => $header,
     '#rows' => $rows,
-    '#theme' => 'table',
+    '#type' => 'table',
   );
 }
 

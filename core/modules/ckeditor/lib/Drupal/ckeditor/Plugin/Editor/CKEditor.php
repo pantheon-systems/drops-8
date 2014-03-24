@@ -136,7 +136,7 @@ class CKEditor extends EditorBase implements ContainerFactoryPluginInterface {
     $form['toolbar'] = array(
       '#type' => 'container',
       '#attached' => array(
-        'library' => array(array('ckeditor', 'drupal.ckeditor.admin')),
+        'library' => array('ckeditor/drupal.ckeditor.admin'),
         'js' => array(
           array(
             'type' => 'setting',
@@ -313,7 +313,7 @@ class CKEditor extends EditorBase implements ContainerFactoryPluginInterface {
     // be expensive to calculate all the time. The cache is cleared on core
     // upgrades which is the only situation the CKEditor file listing should
     // change.
-    $langcode_cache = cache('ckeditor.languages')->get('langcodes');
+    $langcode_cache = \Drupal::cache()->get('ckeditor.langcodes');
     if (!empty($langcode_cache)) {
       $langcodes = $langcode_cache->data;
     }
@@ -325,7 +325,7 @@ class CKEditor extends EditorBase implements ContainerFactoryPluginInterface {
         $langcode = $language_file->getBasename('.js');
         $langcodes[$langcode] = $langcode;
       }
-      cache('ckeditor.languages')->set('langcodes', $langcodes);
+      \Drupal::cache()->set('ckeditor.langcodes', $langcodes);
     }
 
     // Get language mapping if available to map to Drupal language codes.
@@ -353,16 +353,14 @@ class CKEditor extends EditorBase implements ContainerFactoryPluginInterface {
    */
   public function getLibraries(EditorEntity $editor) {
     $libraries = array(
-      array('ckeditor', 'drupal.ckeditor'),
+      'ckeditor/drupal.ckeditor',
     );
 
     // Get the required libraries for any enabled plugins.
     $enabled_plugins = array_keys($this->ckeditorPluginManager->getEnabledPluginFiles($editor));
     foreach ($enabled_plugins as $plugin_id) {
       $plugin = $this->ckeditorPluginManager->createInstance($plugin_id);
-      $additional_libraries = array_udiff($plugin->getLibraries($editor), $libraries, function($a, $b) {
-        return $a[0] === $b[0] && $a[1] === $b[1] ? 0 : 1;
-      });
+      $additional_libraries = array_diff($plugin->getLibraries($editor), $libraries);
       $libraries = array_merge($libraries, $additional_libraries);
     }
 
@@ -405,7 +403,7 @@ class CKEditor extends EditorBase implements ContainerFactoryPluginInterface {
       drupal_get_path('module', 'ckeditor') . '/css/ckeditor-iframe.css',
       drupal_get_path('module', 'system') . '/css/system.module.css',
     );
-    drupal_alter('ckeditor_css', $css, $editor);
+    $this->moduleHandler->alter('ckeditor_css', $css, $editor);
     $css = array_merge($css, _ckeditor_theme_css());
     $css = array_map('file_create_url', $css);
 

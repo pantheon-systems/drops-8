@@ -147,7 +147,6 @@ function update_check_requirements($skip_warnings = FALSE) {
   // them if the caller has indicated they should be skipped.
   if ($severity == REQUIREMENT_ERROR || ($severity == REQUIREMENT_WARNING && !$skip_warnings)) {
     update_task_list('requirements');
-    drupal_set_title('Requirements problem');
     $status = array(
       '#theme' => 'status_report',
       '#requirements' => $requirements,
@@ -157,6 +156,7 @@ function update_check_requirements($skip_warnings = FALSE) {
     drupal_add_http_header('Content-Type', 'text/html; charset=utf-8');
     $maintenance_page = array(
       '#theme' => 'maintenance_page',
+      '#title' => 'Requirements problem',
       '#content' => $status_report,
     );
     print drupal_render($maintenance_page);
@@ -434,7 +434,7 @@ function update_get_update_list() {
         continue;
       }
 
-      $updates = drupal_map_assoc($updates);
+      $updates = array_combine($updates, $updates);
       foreach (array_keys($updates) as $update) {
         if ($update == \Drupal::CORE_MINIMUM_SCHEMA_VERSION) {
           $ret[$module]['warning'] = '<em>' . $module . '</em> module cannot be updated. It contains an update numbered as ' . \Drupal::CORE_MINIMUM_SCHEMA_VERSION . ' which is reserved for the earliest installation of a module in Drupal ' .  \Drupal::CORE_COMPATIBILITY . ', before any updates. In order to update <em>' . $module . '</em> module, you will need to install a version of the module with valid updates.';
@@ -825,7 +825,7 @@ function update_language_list($flags = Language::STATE_CONFIGURABLE) {
     if (\Drupal::languageManager()->isMultilingual() || \Drupal::moduleHandler()->moduleExists('language')) {
       // Use language module configuration if available. We can not use
       // entity_load_multiple() because this breaks during updates.
-      $language_entities = config_get_storage_names_with_prefix('language.entity.');
+      $language_entities = \Drupal::configFactory()->listAll('language.entity.');
 
       // Initialize default property so callers have an easy reference and can
       // save the same object without data loss.

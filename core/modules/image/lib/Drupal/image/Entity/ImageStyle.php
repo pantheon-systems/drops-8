@@ -8,12 +8,13 @@
 namespace Drupal\image\Entity;
 
 use Drupal\Core\Config\Entity\ConfigEntityBase;
+use Drupal\Core\Config\Entity\EntityWithPluginBagInterface;
 use Drupal\Core\Entity\EntityStorageControllerInterface;
 use Drupal\image\ImageEffectBag;
 use Drupal\image\ImageEffectInterface;
 use Drupal\image\ImageStyleInterface;
 use Drupal\Component\Utility\Crypt;
-use Drupal\Component\Utility\Url;
+use Drupal\Component\Utility\UrlHelper;
 use Symfony\Component\DependencyInjection\Exception\ServiceNotFoundException;
 
 /**
@@ -32,11 +33,10 @@ use Symfony\Component\DependencyInjection\Exception\ServiceNotFoundException;
  *     "list" = "Drupal\image\ImageStyleListController",
  *   },
  *   admin_permission = "administer image styles",
- *   config_prefix = "image.style",
+ *   config_prefix = "style",
  *   entity_keys = {
  *     "id" = "name",
- *     "label" = "label",
- *     "uuid" = "uuid"
+ *     "label" = "label"
  *   },
  *   links = {
  *     "flush-form" = "image.style_flush",
@@ -45,7 +45,7 @@ use Symfony\Component\DependencyInjection\Exception\ServiceNotFoundException;
  *   }
  * )
  */
-class ImageStyle extends ConfigEntityBase implements ImageStyleInterface {
+class ImageStyle extends ConfigEntityBase implements ImageStyleInterface, EntityWithPluginBagInterface {
 
   /**
    * The name of the image style to use as replacement upon delete.
@@ -69,13 +69,6 @@ class ImageStyle extends ConfigEntityBase implements ImageStyleInterface {
   public $label;
 
   /**
-   * The UUID for this entity.
-   *
-   * @var string
-   */
-  public $uuid;
-
-  /**
    * The array of image effects for this image style.
    *
    * @var array
@@ -88,6 +81,11 @@ class ImageStyle extends ConfigEntityBase implements ImageStyleInterface {
    * @var \Drupal\image\ImageEffectBag
    */
   protected $effectsBag;
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $pluginConfigKey = 'effects';
 
   /**
    * Overrides Drupal\Core\Entity\Entity::id().
@@ -226,7 +224,7 @@ class ImageStyle extends ConfigEntityBase implements ImageStyleInterface {
     $file_url = file_create_url($uri);
     // Append the query string with the token, if necessary.
     if ($token_query) {
-      $file_url .= (strpos($file_url, '?') !== FALSE ? '&' : '?') . Url::buildQuery($token_query);
+      $file_url .= (strpos($file_url, '?') !== FALSE ? '&' : '?') . UrlHelper::buildQuery($token_query);
     }
 
     return $file_url;
@@ -262,9 +260,6 @@ class ImageStyle extends ConfigEntityBase implements ImageStyleInterface {
     drupal_theme_rebuild();
 
     // Clear page caches when flushing.
-    if ($module_handler->moduleExists('block')) {
-      \Drupal::cache('block')->deleteAll();
-    }
     \Drupal::cache('page')->deleteAll();
     return $this;
   }
@@ -283,7 +278,7 @@ class ImageStyle extends ConfigEntityBase implements ImageStyleInterface {
     }
 
     $image = \Drupal::service('image.factory')->get($original_uri);
-    if (!$image->getResource()) {
+    if (!$image->isExisting()) {
       return FALSE;
     }
 
@@ -358,6 +353,13 @@ class ImageStyle extends ConfigEntityBase implements ImageStyleInterface {
   /**
    * {@inheritdoc}
    */
+  public function getPluginBag() {
+    return $this->getEffects();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function saveImageEffect(array $configuration) {
     $effect_id = $this->getEffects()->updateConfiguration($configuration);
     $this->save();
@@ -369,7 +371,12 @@ class ImageStyle extends ConfigEntityBase implements ImageStyleInterface {
    */
   public function getExportProperties() {
     $properties = parent::getExportProperties();
-    $properties['effects'] = $this->getEffects()->getConfiguration();
+    $names = array(
+      'effects',
+    );
+    foreach ($names as $name) {
+      $properties[$name] = $this->get($name);
+    }
     return $properties;
   }
 
@@ -394,4 +401,5 @@ class ImageStyle extends ConfigEntityBase implements ImageStyleInterface {
     $this->set('name', $name);
     return $this;
   }
+
 }

@@ -93,29 +93,6 @@ function block_permission() {
 }
 
 /**
- * Implements hook_menu().
- *
- * @todo Clarify the documentation for the per-plugin block admin links.
- */
-function block_menu() {
-  $items['admin/structure/block'] = array(
-    'title' => 'Block layout',
-    'description' => 'Configure what block content appears in your site\'s sidebars and other regions.',
-    'route_name' => 'block.admin_display',
-  );
-  $items['admin/structure/block/manage/%block'] = array(
-    'title' => 'Configure block',
-    'route_name' => 'block.admin_edit',
-  );
-  $items['admin/structure/block/add/%/%'] = array(
-    'title' => 'Place block',
-    'type' => MENU_VISIBLE_IN_BREADCRUMB,
-    'route_name' => 'block.admin_add',
-  );
-  return $items;
-}
-
-/**
  * Implements hook_menu_link_defaults().
  */
 function block_menu_link_defaults() {
@@ -274,7 +251,7 @@ function _block_rehash($theme = NULL) {
       $block->disable()->save();
     }
     // Set region to none if not enabled.
-    if (!$status) {
+    if (!$status && $region != BlockInterface::BLOCK_REGION_NONE) {
       $block->set('region', BlockInterface::BLOCK_REGION_NONE);
       $block->save();
     }
@@ -546,38 +523,4 @@ function block_language_delete($language) {
       $block->save();
     }
   }
-}
-
-/**
- * Implements hook_library_info().
- */
-function block_library_info() {
-  $libraries['drupal.block'] = array(
-    'title' => 'Block',
-    'version' => \Drupal::VERSION,
-    'js' => array(
-      drupal_get_path('module', 'block') . '/block.js' => array(),
-    ),
-    'dependencies' => array(
-      array('system', 'jquery'),
-      array('system', 'drupal'),
-    ),
-  );
-  $libraries['drupal.block.admin'] = array(
-    'title' => 'Block admin',
-    'version' => \Drupal::VERSION,
-    'js' => array(
-      drupal_get_path('module', 'block') . '/js/block.admin.js' => array(),
-    ),
-    'css' => array(
-      drupal_get_path('module', 'block') . '/css/block.admin.css' => array(),
-    ),
-    'dependencies' => array(
-      array('system', 'jquery'),
-      array('system', 'drupal'),
-      array('system', 'drupal.ajax'),
-    ),
-  );
-
-  return $libraries;
 }

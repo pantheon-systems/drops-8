@@ -12,7 +12,6 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
-use Drupal\Component\Utility\MapArray;
 use Drupal\Core\Ajax\AjaxResponse;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\field\FieldInfo;
@@ -205,14 +204,8 @@ class EditController extends ControllerBase {
       $entity = $this->tempStoreFactory->get('edit')->get($entity->uuid());
 
       // Closure to render the field given a view mode.
-      // @todo Drupal 8 will — but does not yet — require PHP 5.4:
-      //       https://drupal.org/node/2152073. One of the new features in that
-      //       version is $this support for closures. See
-      //       http://php.net/manual/en/migration54.new-features.php.
-      //       That will allow us to get rid of this ugly $that = $this mess.
-      $that = $this;
-      $render_field_in_view_mode = function ($view_mode_id) use ($entity, $field_name, $langcode, $that) {
-        return $that->renderField($entity, $field_name, $langcode, $view_mode_id);
+      $render_field_in_view_mode = function ($view_mode_id) use ($entity, $field_name, $langcode) {
+        return $this->renderField($entity, $field_name, $langcode, $view_mode_id);
       };
 
       // Re-render the updated field.
@@ -221,7 +214,7 @@ class EditController extends ControllerBase {
       // Re-render the updated field for other view modes (i.e. for other
       // instances of the same logical field on the user's page).
       $other_view_mode_ids = $request->request->get('other_view_modes') ?: array();
-      $other_view_modes = MapArray::copyValuesToKeys($other_view_mode_ids, $render_field_in_view_mode);
+      $other_view_modes = array_map($render_field_in_view_mode, array_combine($other_view_mode_ids, $other_view_mode_ids));
 
       $response->addCommand(new FieldFormSavedCommand($output, $other_view_modes));
     }
@@ -270,16 +263,12 @@ class EditController extends ControllerBase {
    *   Rendered HTML.
    *
    * @see hook_edit_render_field()
-   *
-   * @todo Until Drupal 8 requires PHP 5.4, we cannot call $this inside a
-   *       closure (see higher), which also means anything called from a closure
-   *       must be public. So, until https://drupal.org/node/2152073 lands, use
-   *       "public" instead of "protected".
    */
-  public function renderField(EntityInterface $entity, $field_name, $langcode, $view_mode_id) {
+  protected function renderField(EntityInterface $entity, $field_name, $langcode, $view_mode_id) {
     $entity_view_mode_ids = array_keys(entity_get_view_modes($entity->getEntityTypeId()));
     if (in_array($view_mode_id, $entity_view_mode_ids)) {
-      $output = field_view_field($entity, $field_name, $view_mode_id, $langcode);
+      $entity = \Drupal::entityManager()->getTranslationFromContext($entity, $langcode);
+      $output = $entity->get($field_name)->view($view_mode_id);
     }
     else {
       // Each part of a custom (non-Entity Display) view mode ID is separated

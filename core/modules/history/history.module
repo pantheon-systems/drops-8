@@ -107,7 +107,7 @@ function history_write($nid, $account = NULL) {
 
   if ($account->isAuthenticated()) {
     db_merge('history')
-      ->key(array(
+      ->keys(array(
         'uid' => $account->id(),
         'nid' => $nid,
       ))
@@ -145,7 +145,7 @@ function history_node_view_alter(&$build, EntityInterface $node, EntityViewDispl
         ),
       ),
       'library' => array(
-        array('history', 'drupal.history'),
+        'history/drupal.history',
       ),
     );
   }
@@ -181,27 +181,6 @@ function history_user_delete($account) {
   db_delete('history')
     ->condition('uid', $account->id())
     ->execute();
-}
-
-/**
- * Implements hook_library_info().
- */
-function history_library_info() {
-  $libraries['drupal.history'] = array(
-    'title' => 'History',
-    'version' => \Drupal::VERSION,
-    'js' => array(
-      drupal_get_path('module', 'history') . '/js/history.js' => array(),
-    ),
-    'dependencies' => array(
-      array('system', 'jquery'),
-      array('system', 'drupalSettings'),
-      array('system', 'drupal'),
-      array('system', 'drupal.ajax'),
-    ),
-  );
-
-  return $libraries;
 }
 
 /**

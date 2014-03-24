@@ -44,7 +44,7 @@ class TaxonomyImageTest extends TaxonomyTestBase {
     // Add a field instance to the vocabulary.
     $entity_type = 'taxonomy_term';
     $name = 'field_test';
-    entity_create('field_entity', array(
+    entity_create('field_config', array(
       'name' => $name,
       'entity_type' => $entity_type,
       'type' => 'image',
@@ -52,7 +52,7 @@ class TaxonomyImageTest extends TaxonomyTestBase {
         'uri_scheme' => 'private',
       ),
     ))->save();
-    entity_create('field_instance', array(
+    entity_create('field_instance_config', array(
       'field_name' => $name,
       'entity_type' => $entity_type,
       'bundle' => $this->vocabulary->id(),
@@ -84,7 +84,7 @@ class TaxonomyImageTest extends TaxonomyTestBase {
     $this->drupalPostForm('admin/structure/taxonomy/manage/' . $this->vocabulary->id()  . '/add', $edit, t('Save'));
     $terms = entity_load_multiple_by_properties('taxonomy_term', array('name' => $edit['name']));
     $term = reset($terms);
-    $this->assertText(t('Created new term @name.', array('@name' => $term->label())));
+    $this->assertText(t('Created new term @name.', array('@name' => $term->getName())));
 
     // Create a user that should have access to the file and one that doesn't.
     $access_user = $this->drupalCreateUser(array('access content'));

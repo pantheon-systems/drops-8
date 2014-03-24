@@ -40,11 +40,9 @@ use Drupal\entity\EntityFormModeInterface;
  *     }
  *   },
  *   admin_permission = "administer display modes",
- *   config_prefix = "entity.form_mode",
  *   entity_keys = {
  *     "id" = "id",
- *     "label" = "label",
- *     "uuid" = "uuid"
+ *     "label" = "label"
  *   },
  *   links = {
  *     "delete-form" = "entity.form_mode_delete",

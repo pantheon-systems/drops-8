@@ -7,8 +7,13 @@
 
 namespace Drupal\field_ui;
 
+use Drupal\Component\Plugin\PluginManagerBase;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Entity\Display\EntityDisplayInterface;
+use Drupal\Core\Entity\EntityManagerInterface;
+use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\Field\FieldTypePluginManager;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -22,14 +27,42 @@ class DisplayOverview extends DisplayOverviewBase {
   protected $displayContext = 'view';
 
   /**
+   * Stores the module manager.
+   *
+   * @var \Drupal\Core\Extension\ModuleHandlerInterface
+   */
+  protected $moduleHandler;
+
+  /**
+   * Constructs a new class instance.
+   *
+   * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
+   *   The entity manager.
+   * @param \Drupal\Core\Field\FieldTypePluginManager $field_type_manager
+   *   The field type manager.
+   * @param \Drupal\Component\Plugin\PluginManagerBase $plugin_manager
+   *   The widget or formatter plugin manager.
+   * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
+   *   The module handler class to use for invoking hooks.
+   * @param \Drupal\Core\Config\ConfigFactory $config_factory
+   *   The configuration factory.
+   */
+  public function __construct(EntityManagerInterface $entity_manager, FieldTypePluginManager $field_type_manager, PluginManagerBase $plugin_manager, ModuleHandlerInterface $module_handler, ConfigFactoryInterface $config_factory) {
+    parent::__construct($entity_manager, $field_type_manager, $plugin_manager, $config_factory);
+    $this->moduleHandler = $module_handler;
+  }
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('entity.manager'),
       $container->get('plugin.manager.field.field_type'),
-      $container->get('plugin.manager.field.formatter')
-    );
+      $container->get('plugin.manager.field.formatter'),
+      $container->get('module_handler'),
+      $container->get('config.factory')
+  );
   }
 
   /**
@@ -204,7 +237,7 @@ class DisplayOverview extends DisplayOverviewBase {
       'view_mode' => $this->mode,
       'form' => $form,
     );
-    drupal_alter('field_formatter_settings_form', $settings_form, $form_state, $context);
+    $this->moduleHandler->alter('field_formatter_settings_form', $settings_form, $form_state, $context);
   }
 
   /**
@@ -216,7 +249,7 @@ class DisplayOverview extends DisplayOverviewBase {
       'field_definition' => $field_definition,
       'view_mode' => $this->mode,
     );
-    drupal_alter('field_formatter_settings_summary', $summary, $context);
+    $this->moduleHandler->alter('field_formatter_settings_summary', $summary, $context);
   }
 
 }

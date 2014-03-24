@@ -1,10 +1,9 @@
 id: node.article.field_tags
-uuid: 09fed4e4-c628-468a-9607-7dcd01f55a59
 entity_type: node
 bundle: article
 field_name: field_tags
 label: Tags
-description: 'Enter a comma-separated list of words to describe your content.'
+description: 'Enter a comma-separated list. For example: Amsterdam, Mexico City, "Cleveland, Ohio"'
 required: false
 default_value: {  }
 default_value_function: ''

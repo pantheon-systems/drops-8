@@ -31,8 +31,8 @@ class EditorManager extends DefaultPluginManager {
    *   The module handler to invoke the alter hook with.
    */
   public function __construct(\Traversable $namespaces, CacheBackendInterface $cache_backend, LanguageManager $language_manager, ModuleHandlerInterface $module_handler) {
-    parent::__construct('Plugin/Editor', $namespaces, 'Drupal\editor\Annotation\Editor');
-    $this->alterInfo($module_handler, 'editor_info');
+    parent::__construct('Plugin/Editor', $namespaces, $module_handler, 'Drupal\editor\Annotation\Editor');
+    $this->alterInfo('editor_info');
     $this->setCacheBackend($cache_backend, $language_manager, 'editor_plugins');
   }
 
@@ -77,8 +77,8 @@ class EditorManager extends DefaultPluginManager {
       // Libraries.
       $attachments['library'] = array_merge($attachments['library'], $plugin->getLibraries($editor));
 
-      // JavaScript settings.
-      $settings[$format_id] = array(
+      // Format-specific JavaScript settings.
+      $settings['editor']['formats'][$format_id] = array(
         'format' => $format_id,
         'editor' => $editor->editor,
         'editorSettings' => $plugin->getJSSettings($editor),
@@ -87,8 +87,8 @@ class EditorManager extends DefaultPluginManager {
       );
     }
 
-    // We have all JavaScript settings, allow other modules to alter them.
-    drupal_alter('editor_js_settings', $settings);
+    // Allow other modules to alter all JavaScript settings.
+    $this->moduleHandler->alter('editor_js_settings', $settings);
 
     if (empty($attachments['library']) && empty($settings)) {
       return array();
@@ -96,7 +96,7 @@ class EditorManager extends DefaultPluginManager {
 
     $attachments['js'][] = array(
       'type' => 'setting',
-      'data' => array('editor' => array('formats' => $settings)),
+      'data' => $settings,
     );
 
     return $attachments;

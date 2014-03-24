@@ -8,6 +8,7 @@
 namespace Drupal\aggregator\Entity;
 
 use Drupal\Core\Entity\ContentEntityBase;
+use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\FieldDefinition;
 use Symfony\Component\DependencyInjection\Container;
 use Drupal\Core\Entity\EntityStorageControllerInterface;
@@ -120,7 +121,7 @@ class Feed extends ContentEntityBase implements FeedInterface {
   /**
    * {@inheritdoc}
    */
-  public static function baseFieldDefinitions($entity_type) {
+  public static function baseFieldDefinitions(EntityTypeInterface $entity_type) {
     $fields['fid'] = FieldDefinition::create('integer')
       ->setLabel(t('Feed ID'))
       ->setDescription(t('The ID of the aggregator feed.'))
@@ -147,13 +148,11 @@ class Feed extends ContentEntityBase implements FeedInterface {
       ->setLabel(t('Refresh'))
       ->setDescription(t('How often to check for new feed items, in seconds.'));
 
-    // @todo Convert to a "timestamp" field in https://drupal.org/node/2145103.
-    $fields['checked'] = FieldDefinition::create('integer')
+    $fields['checked'] = FieldDefinition::create('timestamp')
       ->setLabel(t('Checked'))
       ->setDescription(t('Last time feed was checked for new items, as Unix timestamp.'));
 
-    // @todo Convert to a "timestamp" field in https://drupal.org/node/2145103.
-    $fields['queued'] = FieldDefinition::create('integer')
+    $fields['queued'] = FieldDefinition::create('timestamp')
       ->setLabel(t('Queued'))
       ->setDescription(t('Time when this feed was queued for refresh, 0 if not queued.'));
 
@@ -177,8 +176,9 @@ class Feed extends ContentEntityBase implements FeedInterface {
       ->setLabel(t('Etag'))
       ->setDescription(t('Entity tag HTTP response header, used for validating cache.'));
 
-    // @todo Convert to a "changed" field in https://drupal.org/node/2145103.
-    $fields['modified'] = FieldDefinition::create('integer')
+    // This is updated by the fetcher and not when the feed is saved, therefore
+    // it's a timestamp and not a changed field.
+    $fields['modified'] = FieldDefinition::create('timestamp')
       ->setLabel(t('Modified'))
       ->setDescription(t('When the feed was last modified, as a Unix timestamp.'));
 

@@ -128,7 +128,8 @@ Markup
 - Daniel F. Kudwien 'sun' http://drupal.org/user/54136
 
 Migrate
-- Károly Négyesi 'chx' http://drupal.org/user/9446
+- Ben Dougherty 'benjy' https://drupal.org/user/1852732
+- Claudiu Cristea "claudiu.cristea"  https://drupal.org/user/56348
 - Mike Ryan 'mikeryan' http://drupal.org/user/4420
 
 Menu system
@@ -352,15 +353,15 @@ Path module
 Phone module
 - Dave Reid 'davereid' http://drupal.org/user/53892
 
-Picture module
-- Peter Droogmans 'attiks' http://drupal.org/user/105002
-
 RDF module
 - Stéphane Corlosquet 'scor' http://drupal.org/user/52142
 
 REST module
 - Klaus Purer 'klausi' http://drupal.org/user/262198
 - Larry Garfield 'Crell' http://drupal.org/user/26398
+
+Responsive Image module
+- Peter Droogmans 'attiks' http://drupal.org/user/105002
 
 Search module
 - Jennifer Hodgdon 'jhodgdon' https://drupal.org/user/155601
@@ -374,7 +375,9 @@ Shortcut module
 - ?
 
 Simpletest module
-- Jimmy Berry 'boombatower' http://drupal.org/user/214218
+- Daniel F. Kudwien 'sun' http://drupal.org/user/54136
+- Sascha Grossenbacher 'Berdir' http://drupal.org/user/214652
+- Alex Pott 'alexpott' http://drupal.org/user/157725
 
 Statistics module
 - Tim Millwood 'timmillwood' http://drupal.org/user/227849

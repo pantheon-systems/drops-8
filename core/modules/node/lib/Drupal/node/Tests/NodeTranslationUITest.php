@@ -155,17 +155,17 @@ class NodeTranslationUITest extends ContentTranslationUITest {
         'created' => REQUEST_TIME - mt_rand(0, 1000),
       );
       $edit = array(
-        'name' => $user->getUsername(),
-        'date[date]' => format_date($values[$langcode]['created'], 'custom', 'Y-m-d'),
-        'date[time]' => format_date($values[$langcode]['created'], 'custom', 'H:i:s'),
+        'uid' => $user->getUsername(),
+        'created[date]' => format_date($values[$langcode]['created'], 'custom', 'Y-m-d'),
+        'created[time]' => format_date($values[$langcode]['created'], 'custom', 'H:i:s'),
       );
       $this->drupalPostForm($path, $edit, $this->getFormSubmitAction($entity), array('language' => $languages[$langcode]));
     }
 
     $entity = entity_load($this->entityTypeId, $this->entityId, TRUE);
     foreach ($this->langcodes as $langcode) {
-      $this->assertEqual($entity->translation[$langcode]['uid'] == $values[$langcode]['uid'], 'Translation author correctly stored.');
-      $this->assertEqual($entity->translation[$langcode]['created'] == $values[$langcode]['created'], 'Translation date correctly stored.');
+      $this->assertEqual($entity->translation[$langcode]['uid'], $values[$langcode]['uid'], 'Translation author correctly stored.');
+      $this->assertEqual($entity->translation[$langcode]['created'], $values[$langcode]['created'], 'Translation date correctly stored.');
     }
   }
 
@@ -245,6 +245,19 @@ class NodeTranslationUITest extends ContentTranslationUITest {
     \Drupal::moduleHandler()->install(array('views'), TRUE);
     $this->rebuildContainer();
     $this->doTestTranslations('node', $values);
+
+    // Enable the translation language renderer.
+    $view = \Drupal::entityManager()->getStorageController('view')->load('frontpage');
+    $display = &$view->getDisplay('default');
+    $display['display_options']['row']['options']['rendering_language'] = 'translation_language_renderer';
+    $view->save();
+
+    // Test that the frontpage view displays all translated nodes correctly by
+    // checking that the title for each translation is present.
+    $this->drupalGet('node');
+    foreach ($this->langcodes as $langcode) {
+      $this->assertText($values[$langcode]['title'][0]['value']);
+    }
 
     // Test that the node page displays the correct translations.
     $this->doTestTranslations('node/' . $node->id(), $values);

@@ -9,10 +9,12 @@ namespace Drupal\Core;
 
 use Drupal\Component\PhpStorage\PhpStorageFactory;
 use Drupal\Core\Config\BootstrapConfigStorageFactory;
+use Drupal\Core\Config\NullStorage;
 use Drupal\Core\CoreServiceProvider;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\DependencyInjection\ServiceProviderInterface;
 use Drupal\Core\DependencyInjection\YamlFileLoader;
+use Drupal\Core\Extension\ExtensionDiscovery;
 use Drupal\Core\Language\Language;
 use Symfony\Component\Config\Loader\LoaderInterface;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBag;
@@ -80,12 +82,9 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
   protected $newModuleList;
 
   /**
-   * An array of module data objects.
+   * List of available modules and installation profiles.
    *
-   * The data objects have the same data structure as returned by
-   * file_scan_directory() but only the uri property is used.
-   *
-   * @var array
+   * @var \Drupal\Core\Extension\Extension[]
    */
   protected $moduleData = array();
 
@@ -204,7 +203,6 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
    * {@inheritdoc}
    */
   public function discoverServiceProviders() {
-    $this->configStorage = BootstrapConfigStorageFactory::get();
     $serviceProviders = array(
       'CoreServiceProvider' => new CoreServiceProvider(),
     );
@@ -216,7 +214,7 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     // Ensure we know what modules are enabled and that their namespaces are
     // registered.
     if (!isset($this->moduleList)) {
-      $module_list = $this->configStorage->read('system.module');
+      $module_list = $this->getConfigStorage()->read('system.module');
       $this->moduleList = isset($module_list['enabled']) ? $module_list['enabled'] : array();
     }
     $module_filenames = $this->getModuleFileNames();
@@ -289,27 +287,34 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
    * @param $module
    *   The name of the module.
    *
-   * @return \stdClass|bool
-   *   Returns a stdClass object if the module data is found containing at
-   *   least an uri property with the module path, for example
-   *   core/modules/user/user.module.
+   * @return \Drupal\Core\Extension\Extension|bool
+   *   Returns an Extension object if the module is found, FALSE otherwise.
    */
   protected function moduleData($module) {
     if (!$this->moduleData) {
       // First, find profiles.
-      $profiles_scanner = new SystemListing();
-      $all_profiles = $profiles_scanner->scan('/^' . DRUPAL_PHP_FUNCTION_PATTERN . '\.profile$/', 'profiles');
-      $profiles = array_keys(array_intersect_key($this->moduleList, $all_profiles));
+      $listing = new ExtensionDiscovery();
+      $listing->setProfileDirectories(array());
+      $all_profiles = $listing->scan('profile');
+      $profiles = array_intersect_key($all_profiles, $this->moduleList);
+
       // If a module is within a profile directory but specifies another
       // profile for testing, it needs to be found in the parent profile.
-      if (($parent_profile_config = $this->configStorage->read('simpletest.settings')) && isset($parent_profile_config['parent_profile']) && $parent_profile_config['parent_profile'] != $profiles[0]) {
+      $settings = $this->getConfigStorage()->read('simpletest.settings');
+      $parent_profile = !empty($settings['parent_profile']) ? $settings['parent_profile'] : NULL;
+      if ($parent_profile && !isset($profiles[$parent_profile])) {
         // In case both profile directories contain the same extension, the
         // actual profile always has precedence.
-        array_unshift($profiles, $parent_profile_config['parent_profile']);
+        $profiles = array($parent_profile => $all_profiles[$parent_profile]) + $profiles;
       }
+
+      $profile_directories = array_map(function ($profile) {
+        return $profile->getPath();
+      }, $profiles);
+      $listing->setProfileDirectories($profile_directories);
+
       // Now find modules.
-      $modules_scanner = new SystemListing($profiles);
-      $this->moduleData = $all_profiles + $modules_scanner->scan('/^' . DRUPAL_PHP_FUNCTION_PATTERN . '\.module$/', 'modules');
+      $this->moduleData = $profiles + $listing->scan('module');
     }
     return isset($this->moduleData[$module]) ? $this->moduleData[$module] : FALSE;
   }
@@ -322,8 +327,8 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
    */
   public function updateModules(array $module_list, array $module_filenames = array()) {
     $this->newModuleList = $module_list;
-    foreach ($module_filenames as $module => $filename) {
-      $this->moduleData[$module] = (object) array('uri' => $filename);
+    foreach ($module_filenames as $name => $extension) {
+      $this->moduleData[$name] = $extension;
     }
     // If we haven't yet booted, we don't need to do anything: the new module
     // list will take effect when boot() is called. If we have already booted,
@@ -364,8 +369,7 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     $this->containerNeedsDumping = FALSE;
     $persist = $this->getServicesToPersist();
     // The request service requires custom persisting logic, since it is also
-    // potentially scoped. During Drupal installation, there is a request
-    // service without a request scope.
+    // potentially scoped.
     $request_scope = FALSE;
     if (isset($this->container)) {
       if ($this->container->isScopeActive('request')) {
@@ -406,7 +410,7 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
       // from the container.
       $container_modules = $this->container->getParameter('container.modules');
       $namespaces_before = $this->classLoader->getPrefixes();
-      $this->registerNamespaces($this->getModuleNamespaces($container_modules));
+      $this->registerNamespaces($this->container->getParameter('container.namespaces'));
 
       // If 'container.modules' is wrong, the container must be rebuilt.
       if (!isset($this->moduleList)) {
@@ -494,7 +498,7 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     $container = $this->getContainerBuilder();
     $container->set('kernel', $this);
     $container->setParameter('container.service_providers', $this->serviceProviderClasses);
-    $container->setParameter('container.modules', $this->getModuleFileNames());
+    $container->setParameter('container.modules', $this->getModulesParameter());
 
     // Get a list of namespaces and put it onto the container.
     $namespaces = $this->getModuleNamespaces($this->getModuleFileNames());
@@ -515,10 +519,11 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     // avoids the circular dependencies that would created by
     // \Drupal\language\LanguageServiceProvider::alter() and allows the default
     // language to not be English in the installer.
-    $system = BootstrapConfigStorageFactory::get()->read('system.site');
     $default_language_values = Language::$defaultValues;
-    if ($default_language_values['id'] != $system['langcode']) {
-      $default_language_values = array('id' => $system['langcode'], 'default' => TRUE);
+    if ($system = $this->getConfigStorage()->read('system.site')) {
+      if ($default_language_values['id'] != $system['langcode']) {
+        $default_language_values = array('id' => $system['langcode'], 'default' => TRUE);
+      }
     }
     $container->setParameter('language.default_values', $default_language_values);
 
@@ -638,13 +643,51 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
   }
 
   /**
+   * Returns the active configuration storage to use during building the container.
+   *
+   * @return \Drupal\Core\Config\StorageInterface
+   */
+  protected function getConfigStorage() {
+    if (!isset($this->configStorage)) {
+      // The active configuration storage may not exist yet; e.g., in the early
+      // installer. Catch the exception thrown by config_get_config_directory().
+      try {
+        $this->configStorage = BootstrapConfigStorageFactory::get();
+      }
+      catch (\Exception $e) {
+        $this->configStorage = new NullStorage();
+      }
+    }
+    return $this->configStorage;
+  }
+
+  /**
+   * Returns an array of Extension class parameters for all enabled modules.
+   *
+   * @return array
+   */
+  protected function getModulesParameter() {
+    $extensions = array();
+    foreach ($this->moduleList as $name => $weight) {
+      if ($data = $this->moduleData($name)) {
+        $extensions[$name] = array(
+          'type' => $data->getType(),
+          'pathname' => $data->getPathname(),
+          'filename' => $data->getExtensionFilename(),
+        );
+      }
+    }
+    return $extensions;
+  }
+
+  /**
    * Returns the file name for each enabled module.
    */
   protected function getModuleFileNames() {
     $filenames = array();
     foreach ($this->moduleList as $module => $weight) {
       if ($data = $this->moduleData($module)) {
-        $filenames[$module] = $data->uri;
+        $filenames[$module] = $data->getPathname();
       }
     }
     return $filenames;

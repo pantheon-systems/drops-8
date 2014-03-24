@@ -167,8 +167,8 @@ class ViewListController extends ConfigEntityListController implements EntityCon
     $list['#attributes']['id'] = 'views-entity-list';
 
     $list['#attached']['css'] = ViewFormControllerBase::getAdminCSS();
-    $list['#attached']['library'][] = array('system', 'drupal.ajax');
-    $list['#attached']['library'][] = array('views_ui', 'views_ui.listing');
+    $list['#attached']['library'][] = 'core/drupal.ajax';
+    $list['#attached']['library'][] = 'views_ui/views_ui.listing';
 
     $form['filters'] = array(
       '#type' => 'container',
@@ -196,7 +196,7 @@ class ViewListController extends ConfigEntityListController implements EntityCon
       $list[$status]['#type'] = 'container';
       $list[$status]['#attributes'] = array('class' => array('views-list-section', $status));
       $list[$status]['table'] = array(
-        '#theme' => 'table',
+        '#type' => 'table',
         '#attributes' => array(
           'class' => array('views-listing-table'),
         ),

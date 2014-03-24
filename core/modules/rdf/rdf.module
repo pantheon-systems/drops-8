@@ -5,7 +5,6 @@
  * Enables semantically enriched output for Drupal sites in the form of RDFa.
  */
 
-use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Template\Attribute;
 use Symfony\Cmf\Component\Routing\RouteObjectInterface;
 
@@ -113,8 +112,13 @@ function rdf_get_namespaces() {
   // namespace, do not use \Drupal::moduleHandler()->invokeAll().
   foreach (\Drupal::moduleHandler()->getImplementations('rdf_namespaces') as $module) {
     $function = $module . '_rdf_namespaces';
-    if (function_exists($function)) {
-      $namespaces = NestedArray::mergeDeep($function(), $namespaces);
+    foreach($function() as $prefix => $namespace) {
+      if (array_key_exists($prefix, $namespaces) && $namespace !== $namespaces[$prefix]) {
+        throw new Exception(t('Tried to map @prefix to @namespace, but @prefix is already mapped to @orig_namespace.', array('@prefix' => $prefix, '@namespace' => $namespace, '@orig_namespace' => $namespaces[$prefix])));
+      }
+      else {
+        $namespaces[$prefix] = $namespace;
+      }
     }
   }
   return $namespaces;
@@ -313,7 +317,7 @@ function rdf_preprocess_node(&$variables) {
     $comment_count_mapping = $mapping->getPreparedFieldMapping('comment_count');
     if (!empty($comment_count_mapping['properties'])) {
       $fields = array_keys(\Drupal::service('comment.manager')->getFields('node'));
-      $definitions = array_keys($variables['node']->getPropertyDefinitions());
+      $definitions = array_keys($variables['node']->getFieldDefinitions());
       $valid_fields = array_intersect($fields, $definitions);
       $count = 0;
       foreach ($valid_fields as $field_name) {
@@ -409,6 +413,11 @@ function rdf_preprocess_username(&$variables) {
   $homepage_mapping = $mapping->getPreparedFieldMapping('homepage');
   if (!empty($variables['homepage']) && !empty($homepage_mapping)) {
     $attributes['rel'] = $homepage_mapping['properties'];
+  }
+  // Long usernames are truncated by template_preprocess_username(). Store the
+  // full name in the content attribute so it can be extracted in RDFa.
+  if ($variables['truncated']) {
+    $attributes['content'] = check_plain($variables['name_raw']);
   }
   // The remaining attributes can have multiple values listed, with whitespace
   // separating the values in the RDFa attributes
@@ -527,7 +536,7 @@ function rdf_preprocess_taxonomy_term(&$variables) {
       'about' => url('taxonomy/term/' . $term->id()),
       'typeof' => $bundle_mapping['types'],
       'property' => $name_field_mapping['properties'],
-      'content' => $term->label(),
+      'content' => $term->getName(),
     ),
   );
   drupal_add_html_head($term_label_meta, 'rdf_term_label');

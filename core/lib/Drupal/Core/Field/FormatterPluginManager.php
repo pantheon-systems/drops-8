@@ -49,17 +49,17 @@ class FormatterPluginManager extends DefaultPluginManager {
    */
   public function __construct(\Traversable $namespaces, CacheBackendInterface $cache_backend, ModuleHandlerInterface $module_handler, LanguageManager $language_manager, FieldTypePluginManagerInterface $field_type_manager) {
 
-    parent::__construct('Plugin/Field/FieldFormatter', $namespaces, 'Drupal\Core\Field\Annotation\FieldFormatter');
+    parent::__construct('Plugin/Field/FieldFormatter', $namespaces, $module_handler, 'Drupal\Core\Field\Annotation\FieldFormatter');
 
     $this->setCacheBackend($cache_backend, $language_manager, 'field_formatter_types_plugins');
-    $this->alterInfo($module_handler, 'field_formatter_info');
+    $this->alterInfo('field_formatter_info');
     $this->fieldTypeManager = $field_type_manager;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function createInstance($plugin_id, array $configuration) {
+  public function createInstance($plugin_id, array $configuration = array()) {
     $plugin_definition = $this->getDefinition($plugin_id);
     $plugin_class = DefaultFactory::getPluginClass($plugin_id, $plugin_definition);
 
@@ -167,13 +167,15 @@ class FormatterPluginManager extends DefaultPluginManager {
    */
   public function getOptions($field_type = NULL) {
     if (!isset($this->formatterOptions)) {
-      $field_types = $this->fieldTypeManager->getDefinitions();
       $options = array();
-      foreach ($this->getDefinitions() as $name => $formatter) {
-        foreach ($formatter['field_types'] as $formatter_field_type) {
+      $field_types = $this->fieldTypeManager->getDefinitions();
+      $formatter_types = $this->getDefinitions();
+      uasort($formatter_types, array('Drupal\Component\Utility\SortArray', 'sortByWeightElement'));
+      foreach ($formatter_types as $name => $formatter_type) {
+        foreach ($formatter_type['field_types'] as $formatter_field_type) {
           // Check that the field type exists.
           if (isset($field_types[$formatter_field_type])) {
-            $options[$formatter_field_type][$name] = $formatter['label'];
+            $options[$formatter_field_type][$name] = $formatter_type['label'];
           }
         }
       }

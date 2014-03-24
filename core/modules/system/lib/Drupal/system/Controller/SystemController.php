@@ -137,12 +137,10 @@ class SystemController extends ControllerBase {
           );
 
           if (!empty($block['content']['#content'])) {
-            $block['show'] = TRUE;
+            // Prepare for sorting as in function _menu_tree_check_access().
+            // The weight is offset so it is always positive, with a uniform 5-digits.
+            $blocks[(50000 + $item['weight']) . ' ' . $item['title'] . ' ' . $item['mlid']] = $block;
           }
-
-          // Prepare for sorting as in function _menu_tree_check_access().
-          // The weight is offset so it is always positive, with a uniform 5-digits.
-          $blocks[(50000 + $item['weight']) . ' ' . $item['title'] . ' ' . $item['mlid']] = $block;
         }
       }
     }
@@ -200,17 +198,17 @@ class SystemController extends ControllerBase {
       if (!empty($theme->info['hidden'])) {
         continue;
       }
-      $theme->is_default = ($theme->name == $theme_default);
+      $theme->is_default = ($theme->getName() == $theme_default);
 
       // Identify theme screenshot.
       $theme->screenshot = NULL;
       // Create a list which includes the current theme and all its base themes.
-      if (isset($themes[$theme->name]->base_themes)) {
-        $theme_keys = array_keys($themes[$theme->name]->base_themes);
-        $theme_keys[] = $theme->name;
+      if (isset($themes[$theme->getName()]->base_themes)) {
+        $theme_keys = array_keys($themes[$theme->getName()]->base_themes);
+        $theme_keys[] = $theme->getName();
       }
       else {
-        $theme_keys = array($theme->name);
+        $theme_keys = array($theme->getName());
       }
       // Look for a screenshot in the current theme or in its closest ancestor.
       foreach (array_reverse($theme_keys) as $theme_key) {
@@ -239,18 +237,18 @@ class SystemController extends ControllerBase {
       $theme->operations = array();
       if (!empty($theme->status) || !$theme->incompatible_core && !$theme->incompatible_php && !$theme->incompatible_base && !$theme->incompatible_engine) {
         // Create the operations links.
-        $query['theme'] = $theme->name;
-        if ($this->themeAccess->checkAccess($theme->name)) {
+        $query['theme'] = $theme->getName();
+        if ($this->themeAccess->checkAccess($theme->getName())) {
           $theme->operations[] = array(
             'title' => $this->t('Settings'),
             'route_name' => 'system.theme_settings_theme',
-            'route_parameters' => array('theme' => $theme->name),
+            'route_parameters' => array('theme' => $theme->getName()),
             'attributes' => array('title' => $this->t('Settings for !theme theme', array('!theme' => $theme->info['name']))),
           );
         }
         if (!empty($theme->status)) {
           if (!$theme->is_default) {
-            if ($theme->name != $admin_theme) {
+            if ($theme->getName() != $admin_theme) {
               $theme->operations[] = array(
                 'title' => $this->t('Disable'),
                 'route_name' => 'system.theme_disable',
@@ -259,13 +257,13 @@ class SystemController extends ControllerBase {
               );
             }
             $theme->operations[] = array(
-              'title' => $this->t('Set default'),
+              'title' => $this->t('Set as default'),
               'route_name' => 'system.theme_set_default',
               'query' => $query,
               'attributes' => array('title' => $this->t('Set !theme as default theme', array('!theme' => $theme->info['name']))),
             );
           }
-          $admin_theme_options[$theme->name] = $theme->info['name'];
+          $admin_theme_options[$theme->getName()] = $theme->info['name'];
         }
         else {
           $theme->operations[] = array(
@@ -275,7 +273,7 @@ class SystemController extends ControllerBase {
             'attributes' => array('title' => $this->t('Enable !theme theme', array('!theme' => $theme->info['name']))),
           );
           $theme->operations[] = array(
-            'title' => $this->t('Enable and set default'),
+            'title' => $this->t('Enable and set as default'),
             'route_name' => 'system.theme_set_default',
             'query' => $query,
             'attributes' => array('title' => $this->t('Enable !theme as default theme', array('!theme' => $theme->info['name']))),
@@ -290,7 +288,7 @@ class SystemController extends ControllerBase {
         $theme->classes[] = 'theme-default';
         $theme->notes[] = $this->t('default theme');
       }
-      if ($theme->name == $admin_theme || ($theme->is_default && $admin_theme == '0')) {
+      if ($theme->getName() == $admin_theme || ($theme->is_default && $admin_theme == '0')) {
         $theme->classes[] = 'theme-admin';
         $theme->notes[] = $this->t('admin theme');
       }

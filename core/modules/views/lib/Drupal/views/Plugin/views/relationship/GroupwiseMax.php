@@ -121,7 +121,7 @@ class GroupwiseMax extends RelationshipPluginBase {
     // WIP: This stuff doens't work yet: namespacing issues.
     // A list of suitable views to pick one as the subview.
     $views = array('' => '- None -');
-    $all_views = views_get_all_views();
+    $all_views = Views::getAllViews();
     foreach ($all_views as $view) {
       // Only get views that are suitable:
       // - base must the base that our relationship joins towards
@@ -170,7 +170,7 @@ class GroupwiseMax extends RelationshipPluginBase {
    */
   public function submitOptionsForm(&$form, &$form_state) {
     $cid = 'views_relationship_groupwise_max:' . $this->view->storage->id() . ':' . $this->view->current_display . ':' . $this->options['id'];
-    cache('views_results')->delete($cid);
+    \Drupal::cache('views_results')->delete($cid);
   }
 
   /**
@@ -189,7 +189,7 @@ class GroupwiseMax extends RelationshipPluginBase {
   protected function leftQuery($options) {
     // Either load another view, or create one on the fly.
     if ($options['subquery_view']) {
-      $temp_view = views_get_view($options['subquery_view']);
+      $temp_view = Views::getView($options['subquery_view']);
       // Remove all fields from default display
       unset($temp_view->display['default']['display_options']['fields']);
     }
@@ -357,13 +357,13 @@ class GroupwiseMax extends RelationshipPluginBase {
     else {
       // Get the stored subquery SQL string.
       $cid = 'views_relationship_groupwise_max:' . $this->view->storage->id() . ':' . $this->view->current_display . ':' . $this->options['id'];
-      $cache = cache('views_results')->get($cid);
+      $cache = \Drupal::cache('views_results')->get($cid);
       if (isset($cache->data)) {
         $def['left_query'] = $cache->data;
       }
       else {
         $def['left_query'] = $this->leftQuery($this->options);
-        cache('views_results')->set($cid, $def['left_query']);
+        \Drupal::cache('views_results')->set($cid, $def['left_query']);
       }
     }
 

@@ -12,7 +12,7 @@ namespace Drupal\Core\Entity;
  *
  * All entity controller classes specified via the "controllers['storage']" key
  * returned by \Drupal\Core\Entity\EntityManagerInterface or
- * hook_entity_info_alter() have to implement this interface.
+ * hook_entity_type_alter() have to implement this interface.
  *
  * Most simple, SQL-based entity controllers will do better by extending
  * Drupal\Core\Entity\DatabaseStorageController instead of implementing this
@@ -153,6 +153,21 @@ interface EntityStorageControllerInterface {
    *   The name of the service for the query for this entity storage.
    */
   public function getQueryServicename();
+
+  /**
+   * Returns an entity query instance.
+   *
+   * @param string $conjunction
+   *   (optional) The logical operator for the query, either:
+   *   - AND: all of the conditions on the query need to match.
+   *   - OR: at least one of the conditions on the query need to match.
+   *
+   * @return \Drupal\Core\Entity\Query\QueryInterface
+   *   The query instance.
+   *
+   * @see \Drupal\Core\Entity\EntityStorageControllerInterface::getQueryServicename()
+   */
+  public function getQuery($conjunction = 'AND');
 
   /**
    * Returns the entity type ID.

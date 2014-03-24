@@ -52,34 +52,6 @@ function contact_permission() {
 }
 
 /**
- * Implements hook_menu().
- */
-function contact_menu() {
-  $items['admin/structure/contact'] = array(
-    'title' => 'Contact form categories',
-    'description' => 'Create a system contact form and set up categories for the form to use.',
-    'route_name' => 'contact.category_list',
-  );
-  $items['admin/structure/contact/manage/%contact_category'] = array(
-    'title' => 'Edit contact category',
-    'route_name' => 'contact.category_edit',
-  );
-
-  $items['contact'] = array(
-    'title' => 'Contact',
-    'route_name' => 'contact.site_page',
-    'menu_name' => 'footer',
-    'type' => MENU_SUGGESTED_ITEM,
-  );
-  $items['contact/%contact_category'] = array(
-    'title' => 'Contact category form',
-    'route_name' => 'contact.site_page_category',
-    'type' => MENU_VISIBLE_IN_BREADCRUMB,
-  );
-  return $items;
-}
-
-/**
  * Implements hook_menu_link_defaults().
  */
 function contact_menu_link_defaults() {
@@ -100,11 +72,11 @@ function contact_menu_link_defaults() {
 }
 
 /**
- * Implements hook_entity_info_alter().
+ * Implements hook_entity_type_alter().
  */
-function contact_entity_info_alter(&$entity_info) {
-  /** @var $entity_info \Drupal\Core\Entity\EntityTypeInterface[] */
-  $entity_info['user']->setLinkTemplate('contact-form', 'contact.personal_page');
+function contact_entity_type_alter(array &$entity_types) {
+  /** @var $entity_types \Drupal\Core\Entity\EntityTypeInterface[] */
+  $entity_types['user']->setLinkTemplate('contact-form', 'contact.personal_page');
 }
 
 /**
@@ -112,7 +84,7 @@ function contact_entity_info_alter(&$entity_info) {
  */
 function contact_entity_bundle_info() {
   $bundles = array();
-  foreach (config_get_storage_names_with_prefix('contact.category.') as $config_name) {
+  foreach (\Drupal::configFactory()->listAll('contact.category.') as $config_name) {
     $config = \Drupal::config($config_name);
     $bundles['contact_message'][$config->get('id')]['label'] = $config->get('label');
   }
@@ -252,10 +224,11 @@ function contact_form_user_form_alter(&$form, &$form_state) {
   $form['contact'] = array(
     '#type' => 'details',
     '#title' => t('Contact settings'),
+    '#open' => TRUE,
     '#weight' => 5,
   );
   $account = $form_state['controller']->getEntity();
-  $account_data = !user_is_anonymous() ? \Drupal::service('user.data')->get('contact', $account->id(), 'enabled') : NULL;
+  $account_data = !\Drupal::currentUser()->isAnonymous() ? \Drupal::service('user.data')->get('contact', $account->id(), 'enabled') : NULL;
   $form['contact']['contact'] = array(
     '#type' => 'checkbox',
     '#title' => t('Personal contact form'),
@@ -286,6 +259,7 @@ function contact_form_user_admin_settings_alter(&$form, &$form_state) {
   $form['contact'] = array(
     '#type' => 'details',
     '#title' => t('Contact settings'),
+    '#open' => TRUE,
     '#weight' => 0,
   );
   $form['contact']['contact_default_status'] = array(

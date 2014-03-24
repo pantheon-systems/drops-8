@@ -7,7 +7,6 @@
 
 namespace Drupal\config\Form;
 
-use Drupal\Component\Utility\MapArray;
 use Drupal\Core\Config\StorageInterface;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
@@ -75,7 +74,7 @@ class ConfigSingleExportForm extends FormBase {
    */
   public function buildForm(array $form, array &$form_state, $config_type = NULL, $config_name = NULL) {
     foreach ($this->entityManager->getDefinitions() as $entity_type => $definition) {
-      if ($definition->getConfigPrefix() && $definition->hasKey('uuid')) {
+      if ($definition->isSubclassOf('Drupal\Core\Config\Entity\ConfigEntityInterface')) {
         $this->definitions[$entity_type] = $definition;
       }
     }
@@ -182,7 +181,8 @@ class ConfigSingleExportForm extends FormBase {
       }, $this->definitions);
 
       // Find all config, and then filter our anything matching a config prefix.
-      $names = MapArray::copyValuesToKeys($this->configStorage->listAll());
+      $names = $this->configStorage->listAll();
+      $names = array_combine($names, $names);
       foreach ($names as $config_name) {
         foreach ($config_prefixes as $config_prefix) {
           if (strpos($config_name, $config_prefix) === 0) {

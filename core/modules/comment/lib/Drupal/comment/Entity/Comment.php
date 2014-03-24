@@ -11,6 +11,7 @@ use Drupal\Component\Utility\Number;
 use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\comment\CommentInterface;
 use Drupal\Core\Entity\EntityStorageControllerInterface;
+use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\FieldDefinition;
 use Drupal\Core\Language\Language;
 use Drupal\Core\TypedData\DataDefinition;
@@ -37,7 +38,6 @@ use Drupal\user\UserInterface;
  *   uri_callback = "comment_uri",
  *   fieldable = TRUE,
  *   translatable = TRUE,
- *   render_cache = FALSE,
  *   entity_keys = {
  *     "id" = "cid",
  *     "bundle" = "field_id",
@@ -133,12 +133,6 @@ class Comment extends ContentEntityBase implements CommentInterface {
         } while (!\Drupal::lock()->acquire($lock_name));
         $this->threadLock = $lock_name;
       }
-      if (is_null($this->getCreatedTime())) {
-        $this->setCreatedTime(REQUEST_TIME);
-      }
-      if (is_null($this->getChangedTime())) {
-        $this->set('changed', $this->getCreatedTime());
-      }
       // We test the value with '===' because we need to modify anonymous
       // users as well.
       if ($this->getOwnerId() === \Drupal::currentUser()->id() && \Drupal::currentUser()->isAuthenticated()) {
@@ -160,7 +154,7 @@ class Comment extends ContentEntityBase implements CommentInterface {
     // Update the {comment_entity_statistics} table prior to executing the hook.
     $storage_controller->updateEntityStatistics($this);
     if ($this->isPublished()) {
-      module_invoke_all('comment_publish', $this);
+      \Drupal::moduleHandler()->invokeAll('comment_publish', array($this));
     }
   }
 
@@ -191,6 +185,17 @@ class Comment extends ContentEntityBase implements CommentInterface {
   /**
    * {@inheritdoc}
    */
+  public function referencedEntities() {
+    $referenced_entities = parent::referencedEntities();
+    if ($this->getCommentedEntityId()) {
+      $referenced_entities[] = $this->getCommentedEntity();
+    }
+    return $referenced_entities;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function permalink() {
     $entity = $this->getCommentedEntity();
     $uri = $entity->urlInfo();
@@ -202,7 +207,7 @@ class Comment extends ContentEntityBase implements CommentInterface {
   /**
    * {@inheritdoc}
    */
-  public static function baseFieldDefinitions($entity_type) {
+  public static function baseFieldDefinitions(EntityTypeInterface $entity_type) {
     $fields['cid'] = FieldDefinition::create('integer')
       ->setLabel(t('Comment ID'))
       ->setDescription(t('The comment ID.'))
@@ -265,16 +270,13 @@ class Comment extends ContentEntityBase implements CommentInterface {
       ->setDescription(t("The comment author's hostname."))
       ->setSetting('max_length', 128);
 
-    // @todo Convert to a "created" field in https://drupal.org/node/2145103.
-    $fields['created'] = FieldDefinition::create('integer')
+    $fields['created'] = FieldDefinition::create('created')
       ->setLabel(t('Created'))
       ->setDescription(t('The time that the comment was created.'));
 
-    // @todo Convert to a "changed" field in https://drupal.org/node/2145103.
-    $fields['changed'] = FieldDefinition::create('integer')
+    $fields['changed'] = FieldDefinition::create('changed')
       ->setLabel(t('Changed'))
-      ->setDescription(t('The time that the comment was last edited.'))
-      ->setPropertyConstraints('value', array('EntityChanged' => array()));
+      ->setDescription(t('The time that the comment was last edited.'));
 
     $fields['status'] = FieldDefinition::create('boolean')
       ->setLabel(t('Publishing status'))

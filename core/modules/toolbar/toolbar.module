@@ -68,7 +68,7 @@ function toolbar_element_info() {
     '#theme' => 'toolbar',
     '#attached' => array(
       'library' => array(
-        array('toolbar', 'toolbar'),
+        'toolbar/toolbar',
       ),
     ),
     // Metadata for the toolbar wrapping element.
@@ -194,7 +194,7 @@ function toolbar_pre_render($element) {
   // Get toolbar items from all modules that implement hook_toolbar().
   $items = \Drupal::moduleHandler()->invokeAll('toolbar');
   // Allow for altering of hook_toolbar().
-  drupal_alter('toolbar', $items);
+  \Drupal::moduleHandler()->alter('toolbar', $items);
   // Sort the children.
   uasort($items, 'element_sort');
 
@@ -346,7 +346,7 @@ function toolbar_toolbar() {
     ),
     '#attached' => array(
       'library' => array(
-        array('toolbar', 'toolbar.escapeAdmin'),
+        'toolbar/toolbar.escapeAdmin',
       ),
     ),
     '#weight' => -20,
@@ -496,77 +496,6 @@ function toolbar_get_rendered_subtrees() {
 }
 
 /**
- * Implements hook_library_info().
- */
-function toolbar_library_info() {
-  $path = drupal_get_path('module', 'toolbar');
-  $libraries['toolbar'] = array(
-    'title' => 'Toolbar',
-    'version' => \Drupal::VERSION,
-    'js' => array(
-      // Core.
-      $path . '/js/toolbar.js' => array(),
-      // Models.
-      $path . '/js/models/MenuModel.js' => array(),
-      $path . '/js/models/ToolbarModel.js' => array(),
-      // Views.
-      $path . '/js/views/BodyVisualView.js' => array(),
-      $path . '/js/views/MenuVisualView.js' => array(),
-      $path . '/js/views/ToolbarAuralView.js' => array(),
-      $path . '/js/views/ToolbarVisualView.js' => array(),
-    ),
-    'css' => array(
-      $path . '/css/toolbar.module.css',
-      $path . '/css/toolbar.theme.css',
-      $path . '/css/toolbar.icons.css',
-    ),
-    'dependencies' => array(
-      array('system', 'modernizr'),
-      array('system', 'jquery'),
-      array('system', 'drupal'),
-      array('system', 'drupalSettings'),
-      array('system', 'drupal.announce'),
-      array('system', 'backbone'),
-      array('system', 'matchmedia'),
-      array('system', 'jquery.once'),
-      array('system', 'drupal.displace'),
-      array('toolbar', 'toolbar.menu'),
-    ),
-  );
-
-  $libraries['toolbar.menu'] = array(
-    'title' => 'Toolbar nested accordion menus.',
-    'version' => \Drupal::VERSION,
-    'js' => array(
-      $path . '/js/toolbar.menu.js' => array(),
-    ),
-    'css' => array(
-      $path . '/css/toolbar.menu.css',
-    ),
-    'dependencies' => array(
-      array('system', 'jquery'),
-      array('system', 'drupal'),
-      array('system', 'jquery.once'),
-    ),
-  );
-  $libraries['toolbar.escapeAdmin'] = array(
-    'title' => 'Provides a button to escape the administration area.',
-    'version' => \Drupal::VERSION,
-    'js' => array(
-      $path . '/js/escapeAdmin.js',
-    ),
-    'dependencies' => array(
-      array('system', 'jquery'),
-      array('system', 'drupal'),
-      array('system', 'drupalSettings'),
-      array('system', 'jquery.once'),
-    ),
-  );
-
-  return $libraries;
-}
-
-/**
  * Returns the hash of the per-user rendered toolbar subtrees.
  *
  * @return string
@@ -575,7 +504,7 @@ function toolbar_library_info() {
 function _toolbar_get_subtrees_hash() {
   $uid = \Drupal::currentUser()->id();
   $cid = _toolbar_get_user_cid($uid);
-  if ($cache = cache('toolbar')->get($cid)) {
+  if ($cache = \Drupal::cache('toolbar')->get($cid)) {
     $hash = $cache->data;
   }
   else {
@@ -585,7 +514,7 @@ function _toolbar_get_subtrees_hash() {
     // caches later, based on the user's ID regardless of language.
     // Clear the cache when the 'locale' tag is deleted. This ensures a fresh
     // subtrees rendering when string translations are made.
-    cache('toolbar')->set($cid, $hash, Cache::PERMANENT, array('user' => array($uid), 'locale' => TRUE,));
+    \Drupal::cache('toolbar')->set($cid, $hash, Cache::PERMANENT, array('user' => array($uid), 'locale' => TRUE,));
   }
   return $hash;
 }
@@ -647,7 +576,7 @@ function _toolbar_get_user_cid($uid) {
  *   (optional) The user ID whose toolbar cache entry to clear.
  */
 function _toolbar_clear_user_cache($uid = NULL) {
-  $cache = cache('toolbar');
+  $cache = \Drupal::cache('toolbar');
   if (!$cache->isEmpty()) {
     // Clear by the 'user' tag in order to delete all caches, in any language,
     // associated with this user.

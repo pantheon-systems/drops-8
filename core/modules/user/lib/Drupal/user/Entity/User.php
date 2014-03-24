@@ -10,7 +10,9 @@ namespace Drupal\user\Entity;
 use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Entity\EntityStorageControllerInterface;
 use Drupal\Core\Entity\EntityMalformedException;
+use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\FieldDefinition;
+use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\user\UserInterface;
 
 /**
@@ -71,9 +73,6 @@ class User extends ContentEntityBase implements UserInterface {
   static function preCreate(EntityStorageControllerInterface $storage_controller, array &$values) {
     parent::preCreate($storage_controller, $values);
 
-    if (!isset($values['created'])) {
-      $values['created'] = REQUEST_TIME;
-    }
     // Users always have the authenticated user role.
     $values['roles'][] = DRUPAL_AUTHENTICATED_RID;
   }
@@ -121,7 +120,7 @@ class User extends ContentEntityBase implements UserInterface {
       // user and recreate the current one.
       if ($this->pass->value != $this->original->pass->value) {
         drupal_session_destroy_uid($this->id());
-        if ($this->id() == $GLOBALS['user']->id()) {
+        if ($this->id() == \Drupal::currentUser()->id()) {
           drupal_session_regenerate();
         }
       }
@@ -423,7 +422,7 @@ class User extends ContentEntityBase implements UserInterface {
   /**
    * {@inheritdoc}
    */
-  public static function baseFieldDefinitions($entity_type) {
+  public static function baseFieldDefinitions(EntityTypeInterface $entity_type) {
     $fields['uid'] = FieldDefinition::create('integer')
       ->setLabel(t('User ID'))
       ->setDescription(t('The user ID.'))
@@ -487,19 +486,16 @@ class User extends ContentEntityBase implements UserInterface {
       ->setDescription(t('Whether the user is active (1) or blocked (0).'))
       ->setSetting('default_value', 1);
 
-    // @todo Convert to a "created" field in https://drupal.org/node/2145103.
-    $fields['created'] = FieldDefinition::create('integer')
+    $fields['created'] = FieldDefinition::create('created')
       ->setLabel(t('Created'))
       ->setDescription(t('The time that the user was created.'));
 
-    // @todo Convert to a "timestamp" field in https://drupal.org/node/2145103.
-    $fields['access'] = FieldDefinition::create('integer')
+    $fields['access'] = FieldDefinition::create('timestamp')
       ->setLabel(t('Last access'))
       ->setDescription(t('The time that the user last accessed the site.'))
       ->setSetting('default_value', 0);
 
-    // @todo Convert to a "timestamp" field in https://drupal.org/node/2145103.
-    $fields['login'] = FieldDefinition::create('integer')
+    $fields['login'] = FieldDefinition::create('timestamp')
       ->setLabel(t('Last login'))
       ->setDescription(t('The time that the user last logged in.'))
       ->setSetting('default_value', 0);
@@ -513,6 +509,7 @@ class User extends ContentEntityBase implements UserInterface {
     // https://drupal.org/node/2044859.
     $fields['roles'] = FieldDefinition::create('string')
       ->setLabel(t('Roles'))
+      ->setCardinality(FieldDefinitionInterface::CARDINALITY_UNLIMITED)
       ->setDescription(t('The roles the user has.'));
 
     return $fields;

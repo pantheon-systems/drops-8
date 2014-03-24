@@ -2,14 +2,15 @@
 
 /**
  * @file
- * Contains \Drupal\email\Plugin\Field\FieldType\LinkItem.
+ * Contains \Drupal\link\Plugin\Field\FieldType\LinkItem.
  */
 
 namespace Drupal\link\Plugin\Field\FieldType;
 
-use Drupal\Core\Field\ConfigFieldItemBase;
-use Drupal\Core\TypedData\DataDefinition;
+use Drupal\Core\Field\FieldItemBase;
 use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\TypedData\DataDefinition;
+use Drupal\Core\TypedData\MapDataDefinition;
 
 /**
  * Plugin implementation of the 'link' field type.
@@ -25,30 +26,22 @@ use Drupal\Core\Field\FieldDefinitionInterface;
  *   default_formatter = "link"
  * )
  */
-class LinkItem extends ConfigFieldItemBase {
-
-  /**
-   * Definitions of the contained properties.
-   *
-   * @var array
-   */
-  static $propertyDefinitions;
+class LinkItem extends FieldItemBase {
 
   /**
    * {@inheritdoc}
    */
-  public function getPropertyDefinitions() {
-    if (!isset(static::$propertyDefinitions)) {
-      static::$propertyDefinitions['url'] = DataDefinition::create('uri')
-        ->setLabel(t('URL'));
+  public static function propertyDefinitions(FieldDefinitionInterface $field_definition) {
+    $properties['url'] = DataDefinition::create('uri')
+      ->setLabel(t('URL'));
 
-      static::$propertyDefinitions['title'] = DataDefinition::create('string')
-        ->setLabel(t('Link text'));
+    $properties['title'] = DataDefinition::create('string')
+      ->setLabel(t('Link text'));
 
-      static::$propertyDefinitions['attributes'] = DataDefinition::create('map')
-        ->setLabel(t('Attributes'));
-    }
-    return static::$propertyDefinitions;
+    $properties['attributes'] = MapDataDefinition::create()
+      ->setLabel(t('Attributes'));
+
+    return $properties;
   }
 
   /**

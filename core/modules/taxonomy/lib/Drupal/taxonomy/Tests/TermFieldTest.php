@@ -43,7 +43,7 @@ class TermFieldTest extends TaxonomyTestBase {
 
     // Setup a field and instance.
     $this->field_name = drupal_strtolower($this->randomName());
-    $this->field = entity_create('field_entity', array(
+    $this->field = entity_create('field_config', array(
       'name' => $this->field_name,
       'entity_type' => 'entity_test',
       'type' => 'taxonomy_term_reference',
@@ -57,7 +57,7 @@ class TermFieldTest extends TaxonomyTestBase {
       )
     ));
     $this->field->save();
-    entity_create('field_instance', array(
+    entity_create('field_instance_config', array(
       'field_name' => $this->field_name,
       'entity_type' => 'entity_test',
       'bundle' => 'entity_test',
@@ -102,7 +102,7 @@ class TermFieldTest extends TaxonomyTestBase {
 
     // Display creation form.
     $this->drupalGet('entity_test/add');
-    $this->assertFieldByName($this->field_name, '', 'Widget is displayed.');
+    $this->assertFieldByName($this->field_name, NULL, 'Widget is displayed.');
 
     // Submit with some value.
     $edit = array(
@@ -120,7 +120,7 @@ class TermFieldTest extends TaxonomyTestBase {
     $display = entity_get_display($entity->getEntityTypeId(), $entity->bundle(), 'full');
     $content = $display->build($entity);
     $this->drupalSetContent(drupal_render($content));
-    $this->assertText($term->label(), 'Term label is displayed.');
+    $this->assertText($term->getName(), 'Term label is displayed.');
 
     // Delete the vocabulary and verify that the widget is gone.
     $this->vocabulary->delete();

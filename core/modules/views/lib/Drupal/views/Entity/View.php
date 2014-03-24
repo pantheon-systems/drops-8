@@ -26,11 +26,9 @@ use Drupal\views\ViewExecutable;
  *     "access" = "Drupal\views\ViewAccessController"
  *   },
  *   admin_permission = "administer views",
- *   config_prefix = "views.view",
  *   entity_keys = {
  *     "id" = "id",
  *     "label" = "label",
- *     "uuid" = "uuid",
  *     "status" = "status"
  *   }
  * )
@@ -96,13 +94,6 @@ class View extends ConfigEntityBase implements ViewStorageInterface {
    * @var string
    */
   protected $base_field = 'nid';
-
-  /**
-   * The UUID for this entity.
-   *
-   * @var string
-   */
-  public $uuid = NULL;
 
   /**
    * Stores a reference to the executable version of this view.
@@ -176,6 +167,7 @@ class View extends ConfigEntityBase implements ViewStorageInterface {
     }
 
     $plugin = Views::pluginManager('display')->getDefinition($plugin_id);
+
     if (empty($plugin)) {
       $plugin['title'] = t('Broken');
     }
@@ -208,6 +200,7 @@ class View extends ConfigEntityBase implements ViewStorageInterface {
       'id' => $id,
       'display_title' => $title,
       'position' => count($this->display),
+      'provider' => $plugin['provider'],
       'display_options' => array(),
     );
 

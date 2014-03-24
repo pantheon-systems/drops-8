@@ -21,12 +21,10 @@ use Drupal\system\MenuInterface;
  *   controllers = {
  *     "access" = "Drupal\system\MenuAccessController"
  *   },
- *   config_prefix = "system.menu",
  *   admin_permission = "administer menu",
  *   entity_keys = {
  *     "id" = "id",
- *     "label" = "label",
- *     "uuid" = "uuid"
+ *     "label" = "label"
  *   }
  * )
  */
@@ -38,13 +36,6 @@ class Menu extends ConfigEntityBase implements MenuInterface {
    * @var string
    */
   public $id;
-
-  /**
-   * The menu UUID.
-   *
-   * @var string
-   */
-  public $uuid;
 
   /**
    * The human-readable name of the menu entity.

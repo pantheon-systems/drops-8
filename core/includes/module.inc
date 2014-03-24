@@ -5,6 +5,8 @@
  * API for loading and interacting with Drupal modules.
  */
 
+use Drupal\Core\Cache\Cache;
+use Drupal\Core\Extension\ExtensionDiscovery;
 
 /**
  * Builds a list of bootstrap modules and enabled modules and themes.
@@ -30,7 +32,7 @@
  */
 function system_list($type) {
   $lists = &drupal_static(__FUNCTION__);
-  if ($cached = cache('bootstrap')->get('system_list')) {
+  if ($cached = \Drupal::cache('bootstrap')->get('system_list')) {
     $lists = $cached->data;
   }
   else {
@@ -61,38 +63,11 @@ function system_list($type) {
         $lists['filepaths'][] = array(
           'type' => 'theme',
           'name' => $name,
-          'filepath' => $theme->filename,
+          'filepath' => $theme->getPathname(),
         );
       }
     }
-    // @todo Move into list_themes(). Read info for a particular requested
-    //   theme from state instead.
-    foreach ($lists['theme'] as $key => $theme) {
-      if (!empty($theme->info['base theme'])) {
-        // Make a list of the theme's base themes.
-        require_once __DIR__ . '/theme.inc';
-        $lists['theme'][$key]->base_themes = drupal_find_base_themes($lists['theme'], $key);
-        // Don't proceed if there was a problem with the root base theme.
-        if (!current($lists['theme'][$key]->base_themes)) {
-          continue;
-        }
-        // Determine the root base theme.
-        $base_key = key($lists['theme'][$key]->base_themes);
-        // Add to the list of sub-themes for each of the theme's base themes.
-        foreach (array_keys($lists['theme'][$key]->base_themes) as $base_theme) {
-          $lists['theme'][$base_theme]->sub_themes[$key] = $lists['theme'][$key]->info['name'];
-        }
-        // Add the base theme's theme engine info.
-        $lists['theme'][$key]->info['engine'] = $lists['theme'][$base_key]->info['engine'];
-      }
-      else {
-        // A plain theme is its own base theme.
-        $base_key = $key;
-      }
-      // Set the theme engine prefix.
-      $lists['theme'][$key]->prefix = ($lists['theme'][$key]->info['engine'] == 'theme') ? $base_key : $lists['theme'][$key]->info['engine'];
-    }
-    cache('bootstrap')->set('system_list', $lists);
+    \Drupal::cache('bootstrap')->set('system_list', $lists);
   }
   // To avoid a separate database lookup for the filepath, prime the
   // drupal_get_filename() static cache with all enabled modules and themes.
@@ -110,8 +85,16 @@ function system_list_reset() {
   drupal_static_reset('system_list');
   drupal_static_reset('system_rebuild_module_data');
   drupal_static_reset('list_themes');
-  cache('bootstrap')->delete('system_list');
-  cache()->delete('system_info');
+  \Drupal::cache('bootstrap')->delete('system_list');
+  \Drupal::cache()->delete('system_info');
+
+  // Clear the library info cache.
+  // Libraries may be provided by all extension types, and may be altered by any
+  // other extensions (types) due to the nature of
+  // \Drupal\Core\Extension\ModuleHandler::alter() and the fact that profiles
+  // are recorded and handled as modules.
+  Cache::invalidateTags(array('extension' => TRUE));
+
   // Remove last known theme data state.
   // This causes system_list() to call system_rebuild_theme_data() on its next
   // invocation. When enabling a module that implements hook_system_info_alter()
@@ -204,8 +187,10 @@ function module_load_include($type, $module, $name = NULL) {
 /**
  * Installs a given list of modules.
  *
- * @deprecated as of Drupal 8.0. Use
- *  \Drupal::moduleHandler()->install($module_list, $enable_dependencies = TRUE)
+ * @see \Drupal\Core\Extension\ModuleHandlerInterface::install()
+ *
+ * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0. Use
+ *   \Drupal::moduleHandler()->install($module_list, $enable_dependencies = TRUE).
  */
 function module_install($module_list, $enable_dependencies = TRUE) {
   return \Drupal::moduleHandler()->install($module_list, $enable_dependencies);
@@ -214,8 +199,10 @@ function module_install($module_list, $enable_dependencies = TRUE) {
 /**
  * Installs a given list of modules.
  *
- * @deprecated as of Drupal 8.0. Use
- *   \Drupal::moduleHandler()->install($module_list, $enable_dependencies = TRUE).
+ * @see \Drupal\Core\Extension\ModuleHandlerInterface::module_install()
+ *
+ * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0. Use
+ *   \Drupal::moduleHandler()->uninstall($module_list, $enable_dependencies = TRUE).
  */
 function module_uninstall($module_list = array(), $uninstall_dependents = TRUE) {
   return \Drupal::moduleHandler()->uninstall($module_list, $uninstall_dependents);
@@ -285,14 +272,19 @@ function module_uninstall($module_list = array(), $uninstall_dependents = TRUE) 
  * Returns an array of modules required by core.
  */
 function drupal_required_modules() {
-  $files = drupal_system_listing('/^' . DRUPAL_PHP_FUNCTION_PATTERN . '\.info.yml$/', 'modules');
+  $listing = new ExtensionDiscovery();
+  $files = $listing->scan('module');
   $required = array();
 
-  // An installation profile is required and one must always be loaded.
-  $required[] = drupal_get_profile();
+  // Unless called by the installer, an installation profile is required and
+  // must always be loaded. drupal_get_profile() also returns the installation
+  // profile in the installer, but only after it has been selected.
+  if ($profile = drupal_get_profile()) {
+    $required[] = $profile;
+  }
 
   foreach ($files as $name => $file) {
-    $info = \Drupal::service('info_parser')->parse($file->uri);
+    $info = \Drupal::service('info_parser')->parse($file->getPathname());
     if (!empty($info) && !empty($info['required']) && $info['required']) {
       $required[] = $name;
     }

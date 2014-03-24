@@ -9,6 +9,7 @@ namespace Drupal\taxonomy\Entity;
 
 use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Entity\EntityStorageControllerInterface;
+use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\FieldDefinition;
 use Drupal\Core\Language\Language;
 use Drupal\Core\TypedData\DataDefinition;
@@ -54,91 +55,10 @@ use Drupal\taxonomy\TermInterface;
 class Term extends ContentEntityBase implements TermInterface {
 
   /**
-   * The taxonomy term ID.
-   *
-   * @var \Drupal\Core\Field\FieldItemListInterface
-   */
-  public $tid;
-
-  /**
-   * The term UUID.
-   *
-   * @var \Drupal\Core\Field\FieldItemListInterface
-   */
-  public $uuid;
-
-  /**
-   * The taxonomy vocabulary ID this term belongs to.
-   *
-   * @var \Drupal\Core\Field\FieldItemListInterface
-   */
-  public $vid;
-
-  /**
-   * Name of the term.
-   *
-   * @var \Drupal\Core\Field\FieldItemListInterface
-   */
-  public $name;
-
-  /**
-   * Description of the term.
-   *
-   * @var \Drupal\Core\Field\FieldItemListInterface
-   */
-  public $description;
-
-  /**
-   * The text format name for the term's description.
-   *
-   * @var \Drupal\Core\Field\FieldItemListInterface
-   */
-  public $format;
-
-  /**
-   * The weight of this term.
-   *
-   * This property stores the weight of this term in relation to other terms of
-   * the same vocabulary.
-   *
-   * @var \Drupal\Core\Field\FieldItemListInterface
-   */
-  public $weight;
-
-  /**
-   * The parent term(s) for this term.
-   *
-   * This property is not loaded, but may be used to modify the term parents via
-   * Term::save().
-   *
-   * The property can be set to an array of term IDs. An entry of 0 means this
-   * term does not have any parents. When omitting this variable during an
-   * update, the existing hierarchy for the term remains unchanged.
-   *
-   * @var \Drupal\Core\Field\FieldItemListInterface
-   */
-  public $parent;
-
-  /**
-   * Implements Drupal\Core\Entity\EntityInterface::id().
+   * {@inheritdoc}
    */
   public function id() {
     return $this->get('tid')->value;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  protected function init() {
-    parent::init();
-    unset($this->tid);
-    unset($this->uuid);
-    unset($this->vid);
-    unset($this->name);
-    unset($this->weight);
-    unset($this->format);
-    unset($this->description);
-    unset($this->parent);
   }
 
   /**
@@ -173,16 +93,6 @@ class Term extends ContentEntityBase implements TermInterface {
   /**
    * {@inheritdoc}
    */
-  public function preSave(EntityStorageControllerInterface $storage_controller) {
-    parent::preSave($storage_controller);
-
-    // Before saving the term, set changed time.
-    $this->changed->value = REQUEST_TIME;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function postSave(EntityStorageControllerInterface $storage_controller, $update = TRUE) {
     parent::postSave($storage_controller, $update);
 
@@ -197,7 +107,7 @@ class Term extends ContentEntityBase implements TermInterface {
   /**
    * {@inheritdoc}
    */
-  public static function baseFieldDefinitions($entity_type) {
+  public static function baseFieldDefinitions(EntityTypeInterface $entity_type) {
     $fields['tid'] = FieldDefinition::create('integer')
       ->setLabel(t('Term ID'))
       ->setDescription(t('The term ID.'))
@@ -242,10 +152,9 @@ class Term extends ContentEntityBase implements TermInterface {
       ->setSetting('default_value', 0)
       ->setConstraints(array('TermParent' => array()));
 
-    $fields['changed'] = FieldDefinition::create('integer')
+    $fields['changed'] = FieldDefinition::create('changed')
       ->setLabel(t('Changed'))
-      ->setDescription(t('The time that the term was last edited.'))
-      ->setPropertyConstraints('value', array('EntityChanged' => array()));
+      ->setDescription(t('The time that the term was last edited.'));
 
     return $fields;
   }
@@ -254,7 +163,74 @@ class Term extends ContentEntityBase implements TermInterface {
    * {@inheritdoc}
    */
   public function getChangedTime() {
-    return $this->changed->value;
+    return $this->get('changed')->value;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getDescription() {
+    return $this->get('description')->value;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setDescription($description) {
+    $this->set('description', $description);
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getFormat() {
+    return $this->get('description')->format;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setFormat($format) {
+    $this->get('description')->format = $format;
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getName() {
+    return $this->label();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setName($name) {
+    $this->set('name', $name);
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getWeight() {
+    return $this->get('weight')->value;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setWeight($weight) {
+    $this->set('weight', $weight);
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getVocabularyId() {
+    return $this->get('vid')->target_id;
   }
 
 }

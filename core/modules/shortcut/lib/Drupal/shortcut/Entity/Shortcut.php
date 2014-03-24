@@ -2,15 +2,15 @@
 
 /**
  * @file
- * Contains \Drupal\shortcut\Plugin\Core\Entity\Shortcut.
+ * Contains \Drupal\shortcut\Entity\Shortcut.
  */
 
 namespace Drupal\shortcut\Entity;
 
 use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Entity\EntityStorageControllerInterface;
+use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\FieldDefinition;
-use Drupal\Core\Routing\UrlMatcher;
 use Drupal\Core\Url;
 use Drupal\shortcut\ShortcutInterface;
 
@@ -20,7 +20,6 @@ use Drupal\shortcut\ShortcutInterface;
  * @ContentEntityType(
  *   id = "shortcut",
  *   label = @Translation("Shortcut link"),
- *   module = "shortcut",
  *   controllers = {
  *     "access" = "Drupal\shortcut\ShortcutAccessController",
  *     "form" = {
@@ -133,7 +132,7 @@ class Shortcut extends ContentEntityBase implements ShortcutInterface {
   /**
    * {@inheritdoc}
    */
-  public static function baseFieldDefinitions($entity_type) {
+  public static function baseFieldDefinitions(EntityTypeInterface $entity_type) {
     $fields['id'] = FieldDefinition::create('integer')
       ->setLabel(t('ID'))
       ->setDescription(t('The ID of the shortcut.'))

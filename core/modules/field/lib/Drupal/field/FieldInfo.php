@@ -12,6 +12,7 @@ use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Field\FieldTypePluginManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\Language\LanguageManagerInterface;
 
 /**
  * Provides field and instance definitions for the current runtime environment.
@@ -58,7 +59,14 @@ class FieldInfo {
    *
    * @var \Drupal\Core\Config\ConfigFactoryInterface
    */
-  protected $config;
+  protected $configFactory;
+
+  /**
+   * The language manager.
+   *
+   * @var \Drupal\Core\Language\LanguageManager
+   */
+  protected $languageManager;
 
   /**
    * Lightweight map of fields across entity types and bundles.
@@ -70,7 +78,7 @@ class FieldInfo {
   /**
    * List of $field structures keyed by ID. Includes deleted fields.
    *
-   * @var \Drupal\field\FieldInterface[]
+   * @var \Drupal\field\FieldConfigInterface[]
    */
   protected $fieldsById = array();
 
@@ -128,18 +136,21 @@ class FieldInfo {
    *
    * @param \Drupal\Core\Cache\CacheBackendInterface $cache_backend
    *   The cache backend to use.
-   * @param \Drupal\Core\Config\ConfigFactoryInterface $config
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The configuration factory object to use.
    * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
    *   The module handler class to use for invoking hooks.
    * @param \Drupal\Core\Field\FieldTypePluginManagerInterface $field_type_manager
    *   The 'field type' plugin manager.
+   * @param \Drupal\Core\Language\LanguageManagerInterface $language_manager
+   *   The language manager to use.
    */
-  public function __construct(CacheBackendInterface $cache_backend, ConfigFactoryInterface $config, ModuleHandlerInterface $module_handler, FieldTypePluginManagerInterface $field_type_manager) {
+  public function __construct(CacheBackendInterface $cache_backend, ConfigFactoryInterface $config_factory, ModuleHandlerInterface $module_handler, FieldTypePluginManagerInterface $field_type_manager, LanguageManagerInterface $language_manager) {
     $this->cacheBackend = $cache_backend;
     $this->moduleHandler = $module_handler;
-    $this->config = $config;
+    $this->configFactory = $config_factory;
     $this->fieldTypeManager = $field_type_manager;
+    $this->languageManager = $language_manager;
   }
 
   /**
@@ -190,13 +201,13 @@ class FieldInfo {
     $map = array();
 
     // Get fields.
-    foreach (config_get_storage_names_with_prefix('field.field.') as $config_id) {
-      $field_config = $this->config->get($config_id)->get();
+    foreach ($this->configFactory->listAll('field.field.') as $config_id) {
+      $field_config = $this->configFactory->get($config_id)->get();
       $fields[$field_config['uuid']] = $field_config;
     }
     // Get field instances.
-    foreach (config_get_storage_names_with_prefix('field.instance.') as $config_id) {
-      $instance_config = $this->config->get($config_id)->get();
+    foreach ($this->configFactory->listAll('field.instance.') as $config_id) {
+      $instance_config = $this->configFactory->get($config_id)->get();
       $field_uuid = $instance_config['field_uuid'];
       if (isset($fields[$field_uuid])) {
         $field = $fields[$field_uuid];
@@ -215,7 +226,7 @@ class FieldInfo {
   /**
    * Returns all fields, including deleted ones.
    *
-   * @return \Drupal\field\FieldInterface[]
+   * @return \Drupal\field\FieldConfigInterface[]
    *   An array of field entities, keyed by field ID.
    */
   public function getFields() {
@@ -230,7 +241,7 @@ class FieldInfo {
     }
     else {
       // Collect and prepare fields.
-      foreach (entity_load_multiple_by_properties('field_entity', array('include_deleted' => TRUE)) as $field) {
+      foreach (entity_load_multiple_by_properties('field_config', array('include_deleted' => TRUE)) as $field) {
         $this->fieldsById[$field->uuid()] = $this->prepareField($field);
       }
 
@@ -276,7 +287,7 @@ class FieldInfo {
         // be set by subsequent getBundleInstances() calls.
         $this->getFields();
 
-        foreach (entity_load_multiple('field_instance') as $instance) {
+        foreach (entity_load_multiple('field_instance_config') as $instance) {
           $instance = $this->prepareInstance($instance);
           $this->bundleInstances[$instance->entity_type][$instance->bundle][$instance->getName()] = $instance;
         }
@@ -306,7 +317,7 @@ class FieldInfo {
    * @param string $field_name
    *   The field name.
    *
-   * @return \Drupal\field\FieldInterface|null
+   * @return \Drupal\field\FieldConfigInterface|null
    *   The field definition, or NULL if no field was found.
    */
   public function getField($entity_type, $field_name) {
@@ -322,7 +333,7 @@ class FieldInfo {
     // Do not check the (large) persistent cache, but read the definition.
 
     // Cache miss: read from definition.
-    if ($field = entity_load('field_entity', $entity_type . '.' . $field_name)) {
+    if ($field = entity_load('field_config', $entity_type . '.' . $field_name)) {
       $field = $this->prepareField($field);
 
       // Save in the "static" cache.
@@ -342,7 +353,7 @@ class FieldInfo {
    * @param string $field_id
    *   The field ID.
    *
-   * @return \Drupal\field\FieldInterface|null
+   * @return \Drupal\field\FieldConfigInterface|null
    *   The field entity, or NULL if no field was found.
    */
   public function getFieldById($field_id) {
@@ -358,7 +369,7 @@ class FieldInfo {
     // bundle.
 
     // Cache miss: read from definition.
-    if ($fields = entity_load_multiple_by_properties('field_entity', array('uuid' => $field_id, 'include_deleted' => TRUE))) {
+    if ($fields = entity_load_multiple_by_properties('field_config', array('uuid' => $field_id, 'include_deleted' => TRUE))) {
       $field = current($fields);
       $field = $this->prepareField($field);
 
@@ -386,7 +397,7 @@ class FieldInfo {
    * @param string $bundle
    *   The bundle name.
    *
-   * @return \Drupal\field\FieldInstanceInterface[]
+   * @return \Drupal\field\FieldInstanceConfigInterface[]
    *   An array of field instance entities, keyed by field name.
    */
   public function getBundleInstances($entity_type, $bundle) {
@@ -451,7 +462,7 @@ class FieldInfo {
       // Load and prepare the corresponding fields and instances entities.
       if ($config_ids) {
         // Place the fields in our global "static".
-        $loaded_fields = entity_load_multiple('field_entity', array_keys($config_ids));
+        $loaded_fields = entity_load_multiple('field_config', array_keys($config_ids));
         foreach ($loaded_fields as $field) {
           if (!isset($this->fieldsById[$field->uuid()])) {
             $field = $this->prepareField($field);
@@ -464,7 +475,7 @@ class FieldInfo {
         }
 
         // Then collect the instances.
-        $loaded_instances = entity_load_multiple('field_instance', array_values($config_ids));
+        $loaded_instances = entity_load_multiple('field_instance_config', array_values($config_ids));
         foreach ($loaded_instances as $instance) {
           $instance = $this->prepareInstance($instance);
           $instances[$instance->getName()] = $instance;
@@ -500,7 +511,7 @@ class FieldInfo {
    * @param string $field_name
    *   The field name for the instance.
    *
-   * @return \Drupal\field\FieldInstanceInterface|null
+   * @return \Drupal\field\FieldInstanceConfigInterface|null
    *   The field instance entity, or NULL if it does not exist.
    */
   function getInstance($entity_type, $bundle, $field_name) {
@@ -527,8 +538,11 @@ class FieldInfo {
       return $this->bundleExtraFields[$entity_type][$bundle];
     }
 
-    // Read from the persistent cache.
-    if ($cached = $this->cacheBackend->get("field_info:bundle_extra:$entity_type:$bundle")) {
+    // Read from the persistent cache. Since hook_field_extra_fields() and
+    // hook_field_extra_fields_alter() might contain t() calls, we cache per
+    // language.
+    $langcode = $this->languageManager->getCurrentLanguage()->id;
+    if ($cached = $this->cacheBackend->get("field_info:bundle_extra:$langcode:$entity_type:$bundle")) {
       $this->bundleExtraFields[$entity_type][$bundle] = $cached->data;
       return $this->bundleExtraFields[$entity_type][$bundle];
     }
@@ -537,13 +551,13 @@ class FieldInfo {
     // shape of the hook, we have no other way than collecting extra fields on
     // all bundles.
     $extra = $this->moduleHandler->invokeAll('field_extra_fields');
-    drupal_alter('field_extra_fields', $extra);
+    $this->moduleHandler->alter('field_extra_fields', $extra);
     $info = isset($extra[$entity_type][$bundle]) ? $extra[$entity_type][$bundle] : array();
     $info += array('form' => array(), 'display' => array());
 
     // Store in the 'static' and persistent caches.
     $this->bundleExtraFields[$entity_type][$bundle] = $info;
-    $this->cacheBackend->set("field_info:bundle_extra:$entity_type:$bundle", $info, Cache::PERMANENT, array('field_info' => TRUE));
+    $this->cacheBackend->set("field_info:bundle_extra:$langcode:$entity_type:$bundle", $info, Cache::PERMANENT, array('field_info' => TRUE));
 
     return $this->bundleExtraFields[$entity_type][$bundle];
   }
@@ -551,13 +565,13 @@ class FieldInfo {
   /**
    * Prepares a field for the current run-time context.
    *
-   * @param \Drupal\field\FieldInterface $field
+   * @param \Drupal\field\FieldConfigInterface $field
    *   The field entity to update.
    *
-   * @return \Drupal\field\FieldInterface
+   * @return \Drupal\field\FieldConfigInterface
    *   The field that was prepared.
    */
-  public function prepareField(FieldInterface $field) {
+  public function prepareField(FieldConfigInterface $field) {
     // Make sure all expected field settings are present.
     $field->settings += $this->fieldTypeManager->getDefaultSettings($field->getType());
 
@@ -567,13 +581,13 @@ class FieldInfo {
   /**
    * Prepares a field instance for the current run-time context.
    *
-   * @param \Drupal\field\FieldInstanceInterface $instance
+   * @param \Drupal\field\FieldInstanceConfigInterface $instance
    *   The field instance entity to prepare.
    *
-   * @return \Drupal\field\FieldInstanceInterface
+   * @return \Drupal\field\FieldInstanceConfigInterface
    *   The field instance that was prepared.
    */
-  public function prepareInstance(FieldInstanceInterface $instance) {
+  public function prepareInstance(FieldInstanceConfigInterface $instance) {
     // Make sure all expected instance settings are present.
     $instance->settings += $this->fieldTypeManager->getDefaultInstanceSettings($instance->getType());
 

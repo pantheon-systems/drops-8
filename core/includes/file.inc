@@ -6,7 +6,7 @@
  */
 
 use Drupal\Core\StreamWrapper\LocalStream;
-use Drupal\Component\PhpStorage\MTimeProtectedFastFileStorage;
+use Drupal\Component\PhpStorage\FileStorage;
 use Drupal\Component\Utility\String;
 use Drupal\Core\StreamWrapper\PublicStream;
 
@@ -199,12 +199,14 @@ const FILE_STATUS_PERMANENT = 1;
  * @see hook_stream_wrappers_alter()
  */
 function file_get_stream_wrappers($filter = STREAM_WRAPPERS_ALL) {
-  $wrappers_storage = &drupal_static(__FUNCTION__);
+  $wrappers_storage = &drupal_static(__FUNCTION__, array());
 
-  if (!isset($wrappers_storage)) {
+  if (empty($wrappers_storage)) {
+    // Initialize $wrappers_storage, so that we are not calling this method
+    // repeatedly if no stream wrappers exist.
+    $wrappers_storage[STREAM_WRAPPERS_ALL] = array();
     $wrappers = array();
-    $container = \Drupal::getContainer();
-    if (is_object($container) && $container->has('module_handler')) {
+    if (\Drupal::hasService('module_handler')) {
       $wrappers = \Drupal::moduleHandler()->invokeAll('stream_wrappers');
       foreach ($wrappers as $scheme => $info) {
         // Add defaults.
@@ -448,7 +450,7 @@ function file_stream_wrapper_get_instance_by_scheme($scheme) {
 function file_create_url($uri) {
   // Allow the URI to be altered, e.g. to serve a file from a CDN or static
   // file server.
-  drupal_alter('file_url', $uri);
+  \Drupal::moduleHandler()->alter('file_url', $uri);
 
   $scheme = file_uri_scheme($uri);
 
@@ -579,17 +581,16 @@ function file_ensure_htaccess() {
 /**
  * Creates a .htaccess file in the given directory.
  *
- * @param $directory
+ * @param string $directory
  *   The directory.
- * @param $private
- *   FALSE indicates that $directory should be an open and public directory.
- *   The default is TRUE which indicates a private and protected directory.
- *
- * @return bool
- *   TRUE if the .htaccess file could be created or existed already, FALSE
- *   otherwise.
+ * @param bool $private
+ *   (Optional) FALSE indicates that $directory should be a web-accessible
+ *   directory. Defaults to TRUE which indicates a private directory.
+ * @param bool $force_overwrite
+ *   (Optional) Set to TRUE to attempt to overwrite the existing .htaccess file
+ *   if one is already present. Defaults to FALSE.
  */
-function file_save_htaccess($directory, $private = TRUE) {
+function file_save_htaccess($directory, $private = TRUE, $force_overwrite = FALSE) {
   if (file_uri_scheme($directory)) {
     $htaccess_path = file_stream_wrapper_uri_normalize($directory . '/.htaccess');
   }
@@ -598,19 +599,11 @@ function file_save_htaccess($directory, $private = TRUE) {
     $htaccess_path = $directory . '/.htaccess';
   }
 
-  if (file_exists($htaccess_path)) {
+  if (file_exists($htaccess_path) && !$force_overwrite) {
     // Short circuit if the .htaccess file already exists.
     return TRUE;
   }
-
-  if ($private) {
-    // Private .htaccess file.
-    $htaccess_lines = MTimeProtectedFastFileStorage::HTACCESS;
-  }
-  else {
-    // Public .htaccess file.
-    $htaccess_lines = "SetHandler Drupal_Security_Do_Not_Remove_See_SA_2006_006\nOptions None\nOptions +FollowSymLinks";
-  }
+  $htaccess_lines = file_htaccess_lines($private);
 
   // Write the .htaccess file.
   if (file_exists($directory) && is_writable($directory) && file_put_contents($htaccess_path, $htaccess_lines)) {
@@ -621,6 +614,23 @@ function file_save_htaccess($directory, $private = TRUE) {
     watchdog('security', "Security warning: Couldn't write .htaccess file. Please create a .htaccess file in your %directory directory which contains the following lines: <code>!htaccess</code>", $variables, WATCHDOG_ERROR);
     return FALSE;
   }
+}
+
+/**
+ * Returns the standard .htaccess lines that Drupal writes to file directories.
+ *
+ * @param bool $private
+ *   (Optional) Set to FALSE to return the .htaccess lines for a web-accessible
+ *   public directory. The default is TRUE, which returns the .htaccess lines
+ *   for a private directory that should not be web-accessible.
+ *
+ * @return string
+ *   The desired contents of the .htaccess file.
+ *
+ * @see file_create_htaccess()
+ */
+function file_htaccess_lines($private = TRUE) {
+  return FileStorage::htaccessLines($private);
 }
 
 /**
@@ -658,7 +668,7 @@ function file_valid_uri($uri) {
  *   will rename the file until the $destination is unique.
  * - Provides a fallback using realpaths if the move fails using stream
  *   wrappers. This can occur because PHP's copy() function does not properly
- *   support streams if safe_mode or open_basedir are enabled. See
+ *   support streams if open_basedir is enabled. See
  *   https://bugs.php.net/bug.php?id=60456
  *
  * @param $source
@@ -1079,8 +1089,8 @@ function file_unmanaged_delete_recursive($path, $callback = NULL) {
 /**
  * Moves an uploaded file to a new location.
  *
- * PHP's move_uploaded_file() does not properly support streams if safe_mode
- * or open_basedir are enabled, so this function fills that gap.
+ * PHP's move_uploaded_file() does not properly support streams if open_basedir
+ * is enabled, so this function fills that gap.
  *
  * Compatibility: normal paths and stream wrappers.
  *
@@ -1098,9 +1108,9 @@ function file_unmanaged_delete_recursive($path, $callback = NULL) {
  */
 function drupal_move_uploaded_file($filename, $uri) {
   $result = @move_uploaded_file($filename, $uri);
-  // PHP's move_uploaded_file() does not properly support streams if safe_mode
-  // or open_basedir are enabled so if the move failed, try finding a real path
-  // and retry the move operation.
+  // PHP's move_uploaded_file() does not properly support streams if
+  // open_basedir is enabled so if the move failed, try finding a real path and
+  // retry the move operation.
   if (!$result) {
     if ($realpath = drupal_realpath($uri)) {
       $result = move_uploaded_file($filename, $realpath);

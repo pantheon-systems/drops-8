@@ -9,6 +9,7 @@ namespace Drupal\filter\Entity;
 
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
+use Drupal\Core\Config\Entity\EntityWithPluginBagInterface;
 use Drupal\Core\Entity\EntityStorageControllerInterface;
 use Drupal\filter\FilterFormatInterface;
 use Drupal\filter\FilterBag;
@@ -29,12 +30,11 @@ use Drupal\filter\Plugin\FilterInterface;
  *     "list" = "Drupal\filter\FilterFormatListController",
  *     "access" = "Drupal\filter\FilterFormatAccessController",
  *   },
- *   config_prefix = "filter.format",
+ *   config_prefix = "format",
  *   admin_permission = "administer filters",
  *   entity_keys = {
  *     "id" = "format",
  *     "label" = "name",
- *     "uuid" = "uuid",
  *     "weight" = "weight",
  *     "status" = "status"
  *   },
@@ -44,7 +44,7 @@ use Drupal\filter\Plugin\FilterInterface;
  *   }
  * )
  */
-class FilterFormat extends ConfigEntityBase implements FilterFormatInterface {
+class FilterFormat extends ConfigEntityBase implements FilterFormatInterface, EntityWithPluginBagInterface {
 
   /**
    * Unique machine name of the format.
@@ -67,13 +67,6 @@ class FilterFormat extends ConfigEntityBase implements FilterFormatInterface {
    * @var string
    */
   public $name;
-
-  /**
-   * The UUID for this entity.
-   *
-   * @var string
-   */
-  public $uuid;
 
   /**
    * Weight of this format in the text format selector.
@@ -136,6 +129,11 @@ class FilterFormat extends ConfigEntityBase implements FilterFormatInterface {
   /**
    * {@inheritdoc}
    */
+  protected $pluginConfigKey = 'filters';
+
+  /**
+   * {@inheritdoc}
+   */
   public function id() {
     return $this->format;
   }
@@ -144,11 +142,19 @@ class FilterFormat extends ConfigEntityBase implements FilterFormatInterface {
    * {@inheritdoc}
    */
   public function filters($instance_id = NULL) {
+    $filter_bag = $this->getPluginBag();
+    if (isset($instance_id)) {
+      return $filter_bag->get($instance_id);
+    }
+    return $filter_bag;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getPluginBag() {
     if (!isset($this->filterBag)) {
       $this->filterBag = new FilterBag(\Drupal::service('plugin.manager.filter'), $this->filters);
-    }
-    if (isset($instance_id)) {
-      return $this->filterBag->get($instance_id);
     }
     return $this->filterBag;
   }
@@ -159,7 +165,7 @@ class FilterFormat extends ConfigEntityBase implements FilterFormatInterface {
   public function setFilterConfig($instance_id, array $configuration) {
     $this->filters[$instance_id] = $configuration;
     if (isset($this->filterBag)) {
-      $this->filterBag->setConfiguration($instance_id, $configuration);
+      $this->filterBag->setInstanceConfiguration($instance_id, $configuration);
     }
     return $this;
   }
@@ -169,9 +175,13 @@ class FilterFormat extends ConfigEntityBase implements FilterFormatInterface {
    */
   public function getExportProperties() {
     $properties = parent::getExportProperties();
-    // Sort and export the configuration of all filters.
-    $properties['filters'] = $this->filters()->sort()->getConfiguration();
-
+    // @todo Make self::$weight and self::$cache protected and add them here.
+    $names = array(
+      'filters',
+    );
+    foreach ($names as $name) {
+      $properties[$name] = $this->get($name);
+    }
     return $properties;
   }
 
@@ -182,7 +192,7 @@ class FilterFormat extends ConfigEntityBase implements FilterFormatInterface {
     parent::disable();
 
     // Allow modules to react on text format deletion.
-    module_invoke_all('filter_format_disable', $this);
+    \Drupal::moduleHandler()->invokeAll('filter_format_disable', array($this));
 
     // Clear the filter cache whenever a text format is disabled.
     filter_formats_reset();
@@ -195,6 +205,9 @@ class FilterFormat extends ConfigEntityBase implements FilterFormatInterface {
    * {@inheritdoc}
    */
   public function preSave(EntityStorageControllerInterface $storage_controller) {
+    // Ensure the filters have been sorted before saving.
+    $this->filters()->sort();
+
     parent::preSave($storage_controller);
 
     $this->name = trim($this->label());

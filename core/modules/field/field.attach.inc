@@ -29,12 +29,12 @@ use Drupal\Core\Field\FieldDefinitionInterface;
  * The Field Attach API uses the concept of bundles: the set of fields for a
  * given entity is defined on a per-bundle basis. The collection of bundles for
  * an entity type is added to the entity definition with
- * hook_entity_info_alter(). For instance, node_entity_info_alter() exposes
+ * hook_entity_type_alter(). For instance, node_entity_type_alter() exposes
  * each node type as its own bundle. This means that the set of fields of a
  * node is determined by the node type.
  *
  * The Field API reads the bundle name for a given entity from a particular
- * property of the entity object, and hook_entity_info_alter() defines which
+ * property of the entity object, and hook_entity_type_alter() defines which
  * property to use. For instance, \Drupal\node\Entity\Node specifies:
  * @code
  *   entity_keys = {
@@ -91,20 +91,13 @@ function field_invoke_method($method, $target_function, EntityInterface $entity,
     $target = call_user_func($target_function, $field_definition);
 
     if (method_exists($target, $method)) {
-      $items = $entity->get($field_definition->getName());
+      $field_name = $field_definition->getName();
+      $items = $entity->get($field_name);
       $items->filterEmptyItems();
 
       $result = $target->$method($items, $a, $b);
-
       if (isset($result)) {
-        // For methods with array results, we merge results together.
-        // For methods with scalar results, we collect results in an array.
-        if (is_array($result)) {
-          $return = array_merge($return, $result);
-        }
-        else {
-          $return[] = $result;
-        }
+        $return[$field_name] = $result;
       }
     }
   }
@@ -124,31 +117,18 @@ function field_invoke_method($method, $target_function, EntityInterface $entity,
  * @param $options
  *   An associative array of options, as provided to field_invoke_method(). Only
  *   the following keys are considered:
- *   - deleted
  *   - field_name
- *   - field_id
  *   See field_invoke_method() for details.
  *
  * @return
  *   The array of selected field definitions.
  */
 function _field_invoke_get_field_definitions($entity_type, $bundle, $options) {
-  // @todo Replace with \Drupal::entityManager()->getFieldDefinition() after
-  //   [#2047229] lands.
-  $entity = _field_create_entity_from_ids((object) array('entity_type' => $entity_type, 'bundle' => $bundle, 'entity_id' => NULL));
-  $field_definitions = array();
+  $definitions = \Drupal::entityManager()->getFieldDefinitions($entity_type, $bundle);
   if (isset($options['field_name'])) {
-    if ($entity->hasField($options['field_name'])) {
-      $field_definitions[] = $entity->get($options['field_name'])->getFieldDefinition();
-    }
+    $definitions = array_intersect_key($definitions, array($options['field_name'] => TRUE));
   }
-  else {
-    foreach ($entity as $items) {
-      $field_definitions[] = $items->getFieldDefinition();
-    }
-  }
-
-  return $field_definitions;
+  return $definitions;
 }
 
 /**

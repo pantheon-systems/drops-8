@@ -33,8 +33,8 @@ class CKEditorPluginManager extends DefaultPluginManager {
    *   The module handler to invoke the alter hook with.
    */
   public function __construct(\Traversable $namespaces, CacheBackendInterface $cache_backend, LanguageManager $language_manager, ModuleHandlerInterface $module_handler) {
-    parent::__construct('Plugin/CKEditorPlugin', $namespaces, 'Drupal\ckeditor\Annotation\CKEditorPlugin');
-    $this->alterInfo($module_handler, 'ckeditor_plugin_info');
+    parent::__construct('Plugin/CKEditorPlugin', $namespaces, $module_handler, 'Drupal\ckeditor\Annotation\CKEditorPlugin');
+    $this->alterInfo('ckeditor_plugin_info');
     $this->setCacheBackend($cache_backend, $language_manager, 'ckeditor_plugins');
   }
 
@@ -156,6 +156,7 @@ class CKEditorPluginManager extends DefaultPluginManager {
         $form['plugins'][$plugin_id] = array(
           '#type' => 'details',
           '#title' => $definitions[$plugin_id]['label'],
+          '#open' => TRUE,
           '#group' => 'editor][settings][plugin_settings',
           '#attributes' => array(
             'data-ckeditor-plugin-id' => $plugin_id,

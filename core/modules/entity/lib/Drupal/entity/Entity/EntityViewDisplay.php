@@ -19,10 +19,12 @@ use Drupal\entity\EntityDisplayBase;
  * @ConfigEntityType(
  *   id = "entity_view_display",
  *   label = @Translation("Entity view display"),
- *   config_prefix = "entity.view_display",
+ *   controllers = {
+ *     "storage" = "Drupal\Core\Config\Entity\ConfigStorageController"
+ *   },
+ *   config_prefix = "view_display",
  *   entity_keys = {
  *     "id" = "id",
- *     "uuid" = "uuid",
  *     "status" = "status"
  *   }
  * )
@@ -52,7 +54,7 @@ class EntityViewDisplay extends EntityDisplayBase implements EntityViewDisplayIn
    * party code to alter the display options held in the display before they are
    * used to generate render arrays.
    *
-   * @param \Drupal\Core\Entity\EntityInterface[] $entities
+   * @param \Drupal\Core\Entity\ContentEntityInterface[] $entities
    *   The entities being rendered. They should all be of the same entity type.
    * @param string $view_mode
    *   The view mode being rendered.
@@ -144,7 +146,7 @@ class EntityViewDisplay extends EntityDisplayBase implements EntityViewDisplayIn
    *
    * See the collectRenderDisplays() method for details.
    *
-   * @param \Drupal\Core\Entity\EntityInterface $entity
+   * @param \Drupal\Core\Entity\ContentEntityInterface $entity
    *   The entity being rendered.
    * @param string $view_mode
    *   The view mode.
@@ -154,7 +156,7 @@ class EntityViewDisplay extends EntityDisplayBase implements EntityViewDisplayIn
    *
    * @see \Drupal\entity\Entity\EntityDisplay::collectRenderDisplays()
    */
-  public static function collectRenderDisplay($entity, $view_mode) {
+  public static function collectRenderDisplay(ContentEntityInterface $entity, $view_mode) {
     $displays = static::collectRenderDisplays(array($entity), $view_mode);
     return $displays[$entity->bundle()];
   }
@@ -228,7 +230,7 @@ class EntityViewDisplay extends EntityDisplayBase implements EntityViewDisplayIn
         // Then let the formatter build the output for each entity.
         foreach ($entities as $key => $entity) {
           $items = $entity->get($field_name);
-          $build[$key] += $formatter->view($items);
+          $build[$key][$field_name] = $formatter->view($items);
         }
       }
     }

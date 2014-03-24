@@ -18,7 +18,7 @@ class EntityQueryAggregateTest extends EntityUnitTestBase {
    *
    * @var array
    */
-  public static $modules = array('number');
+  public static $modules = array();
 
   /**
    * The entity_test storage controller to create the test entities.
@@ -58,13 +58,13 @@ class EntityQueryAggregateTest extends EntityUnitTestBase {
     // Add some fieldapi fields to be used in the test.
     for ($i = 1; $i <= 2; $i++) {
       $field_name = 'field_test_' . $i;
-      entity_create('field_entity', array(
+      entity_create('field_config', array(
         'name' => $field_name,
         'entity_type' => 'entity_test',
-        'type' => 'number_integer',
+        'type' => 'integer',
         'cardinality' => 2,
       ))->save();
-      entity_create('field_instance', array(
+      entity_create('field_instance_config', array(
         'field_name' => $field_name,
         'entity_type' => 'entity_test',
         'bundle' => 'entity_test',

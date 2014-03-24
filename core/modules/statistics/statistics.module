@@ -27,7 +27,7 @@ function statistics_help($path, $arg) {
       $output .= '</dl>';
       return $output;
     case 'admin/config/system/statistics':
-      return '<p>' . t('Settings for the statistical information that Drupal will keep about the site. See <a href="@statistics">site statistics</a> for the actual information.', array('@statistics' => url('admin/reports/hits'))) . '</p>';
+      return '<p>' . t('Settings for the statistical information that Drupal will keep about the site.') . '</p>';
   }
 }
 
@@ -50,7 +50,7 @@ function statistics_permission() {
  */
 function statistics_node_view(EntityInterface $node, EntityViewDisplayInterface $display, $view_mode) {
   if (!$node->isNew() && $view_mode == 'full' && node_is_page($node) && empty($node->in_preview)) {
-    $node->content['statistics_content_counter']['#attached']['library'][] = array('statistics', 'drupal.statistics');
+    $node->content['statistics_content_counter']['#attached']['library'][] = 'statistics/drupal.statistics';
     $settings = array('data' => array('nid' => $node->id()), 'url' => url(drupal_get_path('module', 'statistics') . '/statistics.php'));
     $node->content['statistics_content_counter']['#attached']['js'][] = array(
       'data' => array('statistics' => $settings),
@@ -76,19 +76,6 @@ function statistics_node_links_alter(array &$node_links, NodeInterface $entity, 
       }
     }
   }
-}
-
-/**
- * Implements hook_menu().
- */
-function statistics_menu() {
-  $items['admin/config/system/statistics'] = array(
-    'title' => 'Statistics',
-    'description' => 'Control details about what and how your site logs content statistics.',
-    'route_name' => 'statistics.settings',
-    'weight' => -15,
-  );
-  return $items;
 }
 
 /**
@@ -120,7 +107,7 @@ function statistics_cron() {
   }
 
   // Calculate the maximum of node views, for node search ranking.
-  \Drupal::state()->set('statistics.node_counter_scale', 1.0 / max(1, db_query('SELECT MAX(totalcount) FROM {node_counter}')->fetchField()));
+  \Drupal::state()->set('statistics.node_counter_scale', 1.0 / max(1.0, db_query('SELECT MAX(totalcount) FROM {node_counter}')->fetchField()));
 }
 
 /**
@@ -243,9 +230,12 @@ function statistics_ranking() {
           'alias' => 'node_counter',
           'on' => 'node_counter.nid = i.sid',
         ),
-        // Inverse law that maps the highest view count on the site to 1 and 0 to 0.
-        'score' => '2.0 - 2.0 / (1.0 + node_counter.totalcount * :scale)',
-        'arguments' => array(':scale' => (float) \Drupal::state()->get('statistics.node_counter_scale') ?: 0),
+        // Inverse law that maps the highest view count on the site to 1 and 0
+        // to 0. Note that the CAST here is necessary for PostgreSQL, because
+        // the PostgreSQL PDO driver sometimes puts values in as strings
+        // instead of numbers in complex expressions like this.
+        'score' => '2.0 - 2.0 / (1.0 + node_counter.totalcount * (CAST (:statistics_scale AS DECIMAL(10,4))))',
+        'arguments' => array(':statistics_scale' => \Drupal::state()->get('statistics.node_counter_scale') ?: 0),
       ),
     );
   }
@@ -258,28 +248,6 @@ function statistics_preprocess_block(&$variables) {
   if ($variables['configuration']['module'] == 'statistics') {
     $variables['attributes']['role'] = 'navigation';
   }
-}
-
-/**
- * Implements hook_library_info().
- */
-function statistics_library_info() {
-  $libraries['drupal.statistics'] = array(
-    'title' => 'Statistics',
-    'version' => \Drupal::VERSION,
-    'js' => array(
-      drupal_get_path('module', 'statistics') . '/statistics.js' => array(
-        'scope' => 'footer'
-      ),
-    ),
-    'dependencies' => array(
-      array('system', 'jquery'),
-      array('system', 'drupal'),
-      array('system', 'drupalSettings'),
-    ),
-  );
-
-  return $libraries;
 }
 
 /**

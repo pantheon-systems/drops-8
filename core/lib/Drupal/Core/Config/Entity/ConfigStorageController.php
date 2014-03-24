@@ -38,13 +38,6 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 class ConfigStorageController extends EntityStorageControllerBase implements ConfigStorageControllerInterface {
 
   /**
-   * Name of the entity's UUID property.
-   *
-   * @var string
-   */
-  protected $uuidKey = 'uuid';
-
-  /**
    * The UUID service.
    *
    * @var \Drupal\Component\Uuid\UuidInterface
@@ -73,13 +66,6 @@ class ConfigStorageController extends EntityStorageControllerBase implements Con
   protected $configStorage;
 
   /**
-   * The entity query factory.
-   *
-   * @var \Drupal\Core\Entity\Query\QueryFactory
-   */
-  protected $entityQueryFactory;
-
-  /**
    * Constructs a ConfigStorageController object.
    *
    * @param \Drupal\Core\Entity\EntityTypeInterface $entity_type
@@ -88,12 +74,10 @@ class ConfigStorageController extends EntityStorageControllerBase implements Con
    *   The config factory service.
    * @param \Drupal\Core\Config\StorageInterface $config_storage
    *   The config storage service.
-   * @param \Drupal\Core\Entity\Query\QueryFactory $entity_query_factory
-   *   The entity query factory.
    * @param \Drupal\Component\Uuid\UuidInterface $uuid_service
    *   The UUID service.
    */
-  public function __construct(EntityTypeInterface $entity_type, ConfigFactoryInterface $config_factory, StorageInterface $config_storage, QueryFactory $entity_query_factory, UuidInterface $uuid_service) {
+  public function __construct(EntityTypeInterface $entity_type, ConfigFactoryInterface $config_factory, StorageInterface $config_storage, UuidInterface $uuid_service) {
     parent::__construct($entity_type);
 
     $this->idKey = $this->entityType->getKey('id');
@@ -101,7 +85,6 @@ class ConfigStorageController extends EntityStorageControllerBase implements Con
 
     $this->configFactory = $config_factory;
     $this->configStorage = $config_storage;
-    $this->entityQueryFactory = $entity_query_factory;
     $this->uuidService = $uuid_service;
   }
 
@@ -113,7 +96,6 @@ class ConfigStorageController extends EntityStorageControllerBase implements Con
       $entity_type,
       $container->get('config.factory'),
       $container->get('config.storage'),
-      $container->get('entity.query'),
       $container->get('uuid')
     );
   }
@@ -177,13 +159,6 @@ class ConfigStorageController extends EntityStorageControllerBase implements Con
    */
   public function deleteRevision($revision_id) {
     return NULL;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getQuery($conjunction = 'AND') {
-    return $this->entityQueryFactory->get($this->entityTypeId, $conjunction);
   }
 
   /**
@@ -261,8 +236,8 @@ class ConfigStorageController extends EntityStorageControllerBase implements Con
     $entity->enforceIsNew();
 
     // Assign a new UUID if there is none yet.
-    if (!isset($entity->{$this->uuidKey})) {
-      $entity->{$this->uuidKey} = $this->uuidService->generate();
+    if (!$entity->uuid()) {
+      $entity->set('uuid', $this->uuidService->generate());
     }
     $entity->postCreate($this);
 
@@ -389,9 +364,9 @@ class ConfigStorageController extends EntityStorageControllerBase implements Con
    */
   protected function invokeHook($hook, EntityInterface $entity) {
     // Invoke the hook.
-    module_invoke_all($this->entityTypeId . '_' . $hook, $entity);
+    $this->moduleHandler->invokeAll($this->entityTypeId . '_' . $hook, array($entity));
     // Invoke the respective entity-level hook.
-    module_invoke_all('entity_' . $hook, $entity, $this->entityTypeId);
+    $this->moduleHandler->invokeAll('entity_' . $hook, array($entity, $this->entityTypeId));
   }
 
   /**

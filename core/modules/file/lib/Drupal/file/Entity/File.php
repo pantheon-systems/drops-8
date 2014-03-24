@@ -9,6 +9,7 @@ namespace Drupal\file\Entity;
 
 use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Entity\EntityStorageControllerInterface;
+use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\FieldDefinition;
 use Drupal\Core\Language\Language;
 use Drupal\file\FileInterface;
@@ -201,19 +202,7 @@ class File extends ContentEntityBase implements FileInterface {
   public function preSave(EntityStorageControllerInterface $storage_controller) {
     parent::preSave($storage_controller);
 
-    $this->changed->value = REQUEST_TIME;
-    if (empty($this->created->value)) {
-      $this->created->value = REQUEST_TIME;
-    }
-
     $this->setSize(filesize($this->getFileUri()));
-    if (!isset($this->langcode->value)) {
-      // Default the file's language code to none, because files are language
-      // neutral more often than language dependent. Until we have better
-      // flexible settings.
-      // @todo See http://drupal.org/node/258785 and followups.
-      $this->langcode = Language::LANGCODE_NOT_SPECIFIED;
-    }
   }
 
   /**
@@ -240,7 +229,7 @@ class File extends ContentEntityBase implements FileInterface {
   /**
    * {@inheritdoc}
    */
-  public static function baseFieldDefinitions($entity_type) {
+  public static function baseFieldDefinitions(EntityTypeInterface $entity_type) {
     $fields['fid'] = FieldDefinition::create('integer')
       ->setLabel(t('File ID'))
       ->setDescription(t('The file ID.'))
@@ -280,11 +269,11 @@ class File extends ContentEntityBase implements FileInterface {
       ->setLabel(t('Status'))
       ->setDescription(t('The status of the file, temporary (0) and permanent (1).'));
 
-    $fields['created'] = FieldDefinition::create('integer')
+    $fields['created'] = FieldDefinition::create('created')
       ->setLabel(t('Created'))
       ->setDescription(t('The timestamp that the file was created.'));
 
-    $fields['changed'] = FieldDefinition::create('integer')
+    $fields['changed'] = FieldDefinition::create('changed')
       ->setLabel(t('Changed'))
       ->setDescription(t('The timestamp that the file was last changed.'));
 

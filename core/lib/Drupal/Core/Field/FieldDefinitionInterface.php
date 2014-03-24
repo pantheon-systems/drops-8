@@ -8,7 +8,7 @@
 namespace Drupal\Core\Field;
 
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\Core\TypedData\ListDefinitionInterface;
+use Drupal\Core\TypedData\ListDataDefinitionInterface;
 
 /**
  * Defines an interface for entity field definitions.
@@ -27,18 +27,19 @@ use Drupal\Core\TypedData\ListDefinitionInterface;
  * It is up to the class implementing this interface to manage where the
  * information comes from. For example, field.module provides an implementation
  * based on two levels of configuration. It allows the site administrator to add
- * custom fields to any entity type and bundle via the "field_entity" and
- * "field_instance" configuration entities. The former for storing configuration
- * that is independent of which entity type and bundle the field is added to,
- * and the latter for storing configuration that is specific to the entity type
- * and bundle. The class that implements "field_instance" configuration entities
- * also implements this interface, returning information from either itself, or
- * from the corresponding "field_entity" configuration, as appropriate.
+ * custom fields to any entity type and bundle via the "field_config" and
+ * "field_instance_config" configuration entities. The former for storing
+ * configuration that is independent of which entity type and bundle the field
+ * is added to, and the latter for storing configuration that is specific to the
+ * entity type and bundle. The class that implements "field_instance_config"
+ * configuration entities also implements this interface, returning information
+ * from either itself, or from the corresponding "field_config" configuration,
+ * as appropriate.
  *
  * However, entity base fields, such as $node->title, are not managed by
- * field.module and its "field_entity"/"field_instance" configuration entities.
- * Therefore, their definitions are provided by different objects based on the
- * class \Drupal\Core\Field\FieldDefinition, which implements this
+ * field.module and its "field_config"/"field_instance_config" configuration
+ * entities. Therefore, their definitions are provided by different objects
+ * based on the class \Drupal\Core\Field\FieldDefinition, which implements this
  * interface as well.
  *
  * Field definitions may fully define a concrete data object (e.g.,
@@ -51,7 +52,7 @@ use Drupal\Core\TypedData\ListDefinitionInterface;
  * based on that abstract definition, even though that abstract definition can
  * differ from the concrete definition of any particular node's body field.
  */
-interface FieldDefinitionInterface extends ListDefinitionInterface {
+interface FieldDefinitionInterface extends ListDataDefinitionInterface {
 
   /**
    * Value indicating a field accepts an unlimited number of values.
@@ -101,22 +102,6 @@ interface FieldDefinitionInterface extends ListDefinitionInterface {
    *   The setting value.
    */
   public function getSetting($setting_name);
-
-  /**
-   * Returns the names of the field's subproperties.
-   *
-   * A field is a list of items, and each item can contain one or more
-   * properties. All items for a given field contain the same property names,
-   * but the values can be different for each item.
-   *
-   * For example, an email field might just contain a single 'value' property,
-   * while a link field might contain 'title' and 'url' properties, and a text
-   * field might contain 'value', 'summary', and 'format' properties.
-   *
-   * @return array
-   *   The property names.
-   */
-  public function getPropertyNames();
 
   /**
    * Returns whether the field is translatable.
@@ -256,6 +241,54 @@ interface FieldDefinitionInterface extends ListDefinitionInterface {
   public function getDefaultValue(EntityInterface $entity);
 
   /**
+   * Gets the definition of a contained property.
+   *
+   * @param string $name
+   *   The name of property.
+   *
+   * @return \Drupal\Core\TypedData\DataDefinitionInterface|null
+   *   The definition of the property or NULL if the property does not exist.
+   */
+  public function getPropertyDefinition($name);
+
+  /**
+   * Gets an array of property definitions of contained properties.
+   *
+   * @return \Drupal\Core\TypedData\DataDefinitionInterface[]
+   *   An array of property definitions of contained properties, keyed by
+   *   property name.
+   */
+  public function getPropertyDefinitions();
+
+  /**
+   * Returns the names of the field's subproperties.
+   *
+   * A field is a list of items, and each item can contain one or more
+   * properties. All items for a given field contain the same property names,
+   * but the values can be different for each item.
+   *
+   * For example, an email field might just contain a single 'value' property,
+   * while a link field might contain 'title' and 'url' properties, and a text
+   * field might contain 'value', 'summary', and 'format' properties.
+   *
+   * @return array
+   *   The property names.
+   */
+  public function getPropertyNames();
+
+  /**
+   * Returns the name of the main property, if any.
+   *
+   * Some field items consist mainly of one main property, e.g. the value of a
+   * text field or the @code target_id @endcode of an entity reference. If the
+   * field item has no main property, the method returns NULL.
+   *
+   * @return string|null
+   *   The name of the value property, or NULL if there is none.
+   */
+  public function getMainPropertyName();
+
+  /**
    * Returns the ID of the type of the entity this field is attached to.
    *
    * This method should not be confused with EntityInterface::entityType()
@@ -299,7 +332,7 @@ interface FieldDefinitionInterface extends ListDefinitionInterface {
    *   The array of field columns, keyed by column name, in the same format
    *   returned by getSchema().
    *
-   * @see \Drupal\field\Entity\FieldInterface::getSchema()
+   * @see \Drupal\Core\Field\FieldDefinitionInterface::getSchema()
    */
   public function getColumns();
 

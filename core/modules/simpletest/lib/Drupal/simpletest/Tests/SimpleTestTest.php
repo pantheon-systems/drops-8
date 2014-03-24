@@ -162,7 +162,7 @@ class SimpleTestTest extends WebTestBase {
         $this->drupalGet('admin/config/development/testing');
 
         $edit = array();
-        $edit['Drupal\simpletest\Tests\SimpleTestTest'] = TRUE;
+        $edit['tests[Drupal\simpletest\Tests\SimpleTestTest]'] = TRUE;
         $this->drupalPostForm(NULL, $edit, t('Run tests'));
 
         // Parse results and confirm that they are correct.
@@ -233,7 +233,7 @@ class SimpleTestTest extends WebTestBase {
 
     $this->assertAssertion("Debug: 'Foo'", 'Debug', 'Fail', 'SimpleTestTest.php', 'Drupal\simpletest\Tests\SimpleTestTest->stubTest()');
 
-    $this->assertEqual('6 passes, 5 fails, 2 exceptions, 1 debug message', $this->childTestResults['summary'], 'Stub test summary is correct');
+    $this->assertEqual('6 passes, 5 fails, 2 exceptions, 1 debug message', $this->childTestResults['summary']);
 
     $this->test_ids[] = $test_id = $this->getTestIdFromResults();
     $this->assertTrue($test_id, 'Found test ID in results.');

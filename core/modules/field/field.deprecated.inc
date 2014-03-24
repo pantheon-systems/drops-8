@@ -35,8 +35,8 @@ use Drupal\field\Field;
  * );
  * @endcode
  *
- * @deprecated as of Drupal 8.0. Use
- *   Field::fieldInfo()->getFieldMap().
+ * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
+ *   Use \Drupal\field\Field::fieldInfo()->getFieldMap().
  */
 function field_info_field_map() {
   return Field::fieldInfo()->getFieldMap();
@@ -52,13 +52,13 @@ function field_info_field_map() {
  *   non-deleted field. For deleted fields, use field_info_field_by_id().
  *
  * @return
- *   The \Drupal\field\FieldInterface field definition, as returned by
+ *   The \Drupal\field\FieldConfigInterface field definition, as returned by
  *   entity_load_multiple_by_properties(), NULL if the field was not found.
  *
  * @see field_info_field_by_id()
-
- * @deprecated as of Drupal 8.0. Use
- *   Field::fieldInfo()->getField($field_name).
+ *
+ * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
+ *   Use \Drupal\field\Field::fieldInfo()->getField($field_name).
  */
 function field_info_field($entity_type, $field_name) {
   return Field::fieldInfo()->getField($entity_type, $field_name);
@@ -71,13 +71,13 @@ function field_info_field($entity_type, $field_name) {
  *   The ID of the field to retrieve. $field_id can refer to a deleted field.
  *
  * @return
- *   The \Drupal\field\FieldInterface field definition, as returned by
+ *   The \Drupal\field\FieldConfigInterface field definition, as returned by
  *   entity_load_multiple_by_properties(), NULL if the field was not found.
  *
  * @see field_info_field()
  *
- * @deprecated as of Drupal 8.0. Use
- *   Field::fieldInfo()->getFieldById($field_id).
+ * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
+ *   Use \Drupal\field\Field::fieldInfo()->getFieldById($field_id).
  */
 function field_info_field_by_id($field_id) {
   return Field::fieldInfo()->getFieldById($field_id);
@@ -93,14 +93,14 @@ function field_info_field_by_id($field_id) {
  * field_info_instances($entity_type, $bundle), it is recommended to use the
  * getField() method on each $instance instead.
  *
- * @return \Drupal\field\FieldInterface[]
- *   An array of FieldInterface configuration entities, keyed by UUID.
+ * @return \Drupal\field\FieldConfigInterface[]
+ *   An array of FieldConfigInterface configuration entities, keyed by UUID.
  *
  * @see field_info_field()
  * @see field_info_field_by_id()
  *
- * @deprecated as of Drupal 8.0. Use
- *   Field::fieldInfo()->getFields().
+ * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
+ *   Use \Drupal\field\Field::fieldInfo()->getFields().
  */
 function field_info_field_by_ids() {
   return Field::fieldInfo()->getFields();
@@ -131,10 +131,10 @@ function field_info_field_by_ids() {
  *   type, keyed by bundle name. If $entity_type and $bundle_name are set,
  *   return all instances for that bundle.
  *
- * @deprecated as of Drupal 8.0. Use
- *   Field::fieldInfo()->getInstances(),
- *   Field::fieldInfo()->getInstances($entity_type) or
- *   Field::fieldInfo()->getBundleInstances($entity_type, $bundle_name).
+ * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0. Use
+ *   \Drupal\field\Field::fieldInfo()->getInstances(),
+ *   \Drupal\field\Field::fieldInfo()->getInstances($entity_type) or
+ *   \Drupal\field\Field::fieldInfo()->getBundleInstances($entity_type, $bundle_name).
  */
 function field_info_instances($entity_type = NULL, $bundle_name = NULL) {
   $cache = Field::fieldInfo();
@@ -168,8 +168,8 @@ function field_info_instances($entity_type = NULL, $bundle_name = NULL) {
  *   An associative array of instance data for the specific field and bundle;
  *   NULL if the instance does not exist.
  *
- * @deprecated as of Drupal 8.0. Use
- *   Field::fieldInfo()->getInstance($entity_type, $bundle_name, $field_name).
+ * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
+ *   Use \Drupal\field\Field::fieldInfo()->getInstance($entity_type, $bundle_name, $field_name).
  */
 function field_info_instance($entity_type, $field_name, $bundle_name) {
   return Field::fieldInfo()->getInstance($entity_type, $bundle_name, $field_name);
@@ -273,7 +273,8 @@ function field_info_instance($entity_type, $field_name, $bundle_name) {
  *   An associative array of additional options. See field_invoke_method() for
  *   details.
  *
- * @deprecated as of Drupal 8.0. Use the entity system instead.
+ * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
+ *   Use the entity system instead, see https://drupal.org/developing/api/entity
  *
  * @see field_form_get_state()
  * @see field_form_set_state()
@@ -328,12 +329,13 @@ function field_attach_form(EntityInterface $entity, &$form, &$form_state, $langc
  *   An associative array of additional options. See field_invoke_method() for
  *   details.
  *
- * @deprecated as of Drupal 8.0. Use the entity system instead.
+ * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
+ *   Use the entity system instead, see https://drupal.org/developing/api/entity
  */
 function field_attach_form_validate(ContentEntityInterface $entity, $form, &$form_state, array $options = array()) {
   $has_violations = FALSE;
   foreach ($entity as $field_name => $field) {
-    $definition = $field->getDefinition();
+    $definition = $field->getFieldDefinition();
     if ($definition->isConfigurable() && (empty($options['field_name']) || $options['field_name'] == $field_name)) {
       $field_violations = $field->validate();
       if (count($field_violations)) {
@@ -372,7 +374,8 @@ function field_attach_form_validate(ContentEntityInterface $entity, $form, &$for
  *   An associative array of additional options. See field_invoke_method() for
  *   details.
  *
- * @deprecated as of Drupal 8.0. Use the entity system instead.
+ * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
+ *   Use the entity system instead, see https://drupal.org/developing/api/entity
  */
 function field_attach_extract_form_values(EntityInterface $entity, $form, &$form_state, array $options = array()) {
   // Extract field values from submitted values.

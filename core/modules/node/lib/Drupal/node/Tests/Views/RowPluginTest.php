@@ -6,7 +6,9 @@
  */
 
 namespace Drupal\node\Tests\Views;
+
 use Drupal\Core\Language\Language;
+use Drupal\views\Views;
 
 /**
  * Tests the node row plugin.
@@ -109,7 +111,7 @@ class RowPluginTest extends NodeTestBase {
    * Tests the node row plugin.
    */
   public function testRowPlugin() {
-    $view = views_get_view('test_node_row_plugin');
+    $view = Views::getView('test_node_row_plugin');
     $view->initDisplay();
     $view->setDisplay('page_1');
     $view->initStyle();
@@ -134,6 +136,7 @@ class RowPluginTest extends NodeTestBase {
 
     // Test with links disabled.
     $view->rowPlugin->options['links'] = FALSE;
+    \Drupal::entityManager()->getViewBuilder('node')->resetCache();
     $output = $view->preview();
     $output = drupal_render($output);
     $this->drupalSetContent($output);
@@ -143,6 +146,7 @@ class RowPluginTest extends NodeTestBase {
 
     // Test with links enabled.
     $view->rowPlugin->options['links'] = TRUE;
+    \Drupal::entityManager()->getViewBuilder('node')->resetCache();
     $output = $view->preview();
     $output = drupal_render($output);
     $this->drupalSetContent($output);

@@ -7,6 +7,7 @@
 
 namespace Drupal\comment;
 
+use Drupal\comment\Plugin\Field\FieldType\CommentItemInterface;
 use Drupal\Component\Utility\String;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Cache\Cache;
@@ -98,7 +99,7 @@ class CommentFormController extends ContentEntityFormController {
     $is_admin = $comment->id() && $this->currentUser->hasPermission('administer comments');
 
     if (!$this->currentUser->isAuthenticated() && $anonymous_contact != COMMENT_ANONYMOUS_MAYNOT_CONTACT) {
-      $form['#attached']['library'][] = array('system', 'jquery.cookie');
+      $form['#attached']['library'][] = 'core/jquery.cookie';
       $form['#attributes']['class'][] = 'user-info-from-cookie';
     }
 
@@ -118,7 +119,6 @@ class CommentFormController extends ContentEntityFormController {
       $form['author'] += array(
         '#type' => 'details',
         '#title' => $this->t('Administration'),
-        '#collapsed' => TRUE,
       );
     }
 
@@ -226,7 +226,7 @@ class CommentFormController extends ContentEntityFormController {
     // Add internal comment properties.
     $original = $comment->getUntranslated();
     foreach (array('cid', 'pid', 'entity_id', 'entity_type', 'field_id', 'uid', 'langcode') as $key) {
-      $key_name = key($comment->$key->first()->getPropertyDefinitions());
+      $key_name = key($comment->$key->getFieldDefinition()->getPropertyDefinitions());
       $form[$key] = array('#type' => 'value', '#value' => $original->$key->{$key_name});
     }
 
@@ -381,7 +381,7 @@ class CommentFormController extends ContentEntityFormController {
     $field_name = $comment->getFieldName();
     $uri = $entity->urlInfo();
 
-    if ($this->currentUser->hasPermission('post comments') && ($this->currentUser->hasPermission('administer comments') || $entity->{$field_name}->status == COMMENT_OPEN)) {
+    if ($this->currentUser->hasPermission('post comments') && ($this->currentUser->hasPermission('administer comments') || $entity->{$field_name}->status == CommentItemInterface::OPEN)) {
       // Save the anonymous user information to a cookie for reuse.
       if ($this->currentUser->isAnonymous()) {
         user_cookie_save(array_intersect_key($form_state['values'], array_flip(array('name', 'mail', 'homepage'))));

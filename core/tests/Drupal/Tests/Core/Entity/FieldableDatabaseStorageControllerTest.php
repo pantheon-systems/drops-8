@@ -77,12 +77,12 @@ class FieldableDatabaseStorageControllerTest extends UnitTestCase {
       ->with('test_entity')
       ->will($this->returnValue($definition));
     $entity_manager->expects($this->any())
-      ->method('getFieldDefinitions')
+      ->method('getBaseFieldDefinitions')
       ->with('test_entity')
       ->will($this->returnValue($fields));
 
     // Define a field definition for a test_field field.
-    $field = $this->getMock('\Drupal\field\FieldInterface');
+    $field = $this->getMock('\Drupal\field\FieldConfigInterface');
     $field->deleted = FALSE;
     $field->entity_type = 'test_entity';
     $field->name = 'test_field';

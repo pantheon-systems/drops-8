@@ -12,7 +12,7 @@ use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Field\FieldTypePluginManagerInterface;
 use Drupal\field_ui\OverviewBase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Drupal\field\Entity\Field;
+use Drupal\field\Entity\FieldConfig;
 
 /**
  * Field UI field overview form.
@@ -124,7 +124,7 @@ class FieldOverview extends OverviewBase {
       $field = $instance->getField();
       $route_parameters = array(
         $this->bundleEntityType => $this->bundle,
-        'field_instance' => $instance->id(),
+        'field_instance_config' => $instance->id(),
       );
       $table[$name] = array(
         '#attributes' => array(
@@ -212,7 +212,7 @@ class FieldOverview extends OverviewBase {
           '#description' => $this->t('A unique machine-readable name containing letters, numbers, and underscores.'),
           // Calculate characters depending on the length of the field prefix
           // setting. Maximum length is 32.
-          '#maxlength' => Field::NAME_MAX_LENGTH - strlen($field_prefix),
+          '#maxlength' => FieldConfig::NAME_MAX_LENGTH - strlen($field_prefix),
           '#prefix' => '<div class="add-new-placeholder">&nbsp;</div>',
           '#machine_name' => array(
             'source' => array('fields', $name, 'label'),
@@ -288,6 +288,7 @@ class FieldOverview extends OverviewBase {
     // We can set the 'rows_order' element, needed by theme_field_ui_table(),
     // here instead of a #pre_render callback because this form doesn't have the
     // tabledrag behavior anymore.
+    $table['#regions']['content']['rows_order'] = array();
     foreach (element_children($table) as $name) {
       $table['#regions']['content']['rows_order'][] = $name;
     }
@@ -384,6 +385,7 @@ class FieldOverview extends OverviewBase {
    * Overrides \Drupal\field_ui\OverviewBase::submitForm().
    */
   public function submitForm(array &$form, array &$form_state) {
+    $error = FALSE;
     $form_values = $form_state['values']['fields'];
     $destinations = array();
 
@@ -406,8 +408,8 @@ class FieldOverview extends OverviewBase {
 
       // Create the field and instance.
       try {
-        $this->entityManager->getStorageController('field_entity')->create($field)->save();
-        $new_instance = $this->entityManager->getStorageController('field_instance')->create($instance);
+        $this->entityManager->getStorageController('field_config')->create($field)->save();
+        $new_instance = $this->entityManager->getStorageController('field_instance_config')->create($instance);
         $new_instance->save();
 
         // Make sure the field is displayed in the 'default' form mode (using
@@ -428,7 +430,7 @@ class FieldOverview extends OverviewBase {
         // configured for new fields.
         $route_parameters = array(
           $this->bundleEntityType => $this->bundle,
-          'field_instance' => $new_instance->id(),
+          'field_instance_config' => $new_instance->id(),
         );
         $destinations[] = array('route_name' => 'field_ui.field_edit_' . $this->entity_type, 'route_parameters' => $route_parameters);
         $destinations[] = array('route_name' => 'field_ui.instance_edit_' . $this->entity_type, 'route_parameters' => $route_parameters);
@@ -437,7 +439,8 @@ class FieldOverview extends OverviewBase {
         $form_state['fields_added']['_add_new_field'] = $values['field_name'];
       }
       catch (\Exception $e) {
-        drupal_set_message($this->t('There was a problem creating field %label: !message', array('%label' => $instance->getLabel(), '!message' => $e->getMessage())), 'error');
+        $error = TRUE;
+        drupal_set_message($this->t('There was a problem creating field %label: !message', array('%label' => $instance['label'], '!message' => $e->getMessage())), 'error');
       }
     }
 
@@ -458,7 +461,7 @@ class FieldOverview extends OverviewBase {
         );
 
         try {
-          $new_instance = $this->entityManager->getStorageController('field_instance')->create($instance);
+          $new_instance = $this->entityManager->getStorageController('field_instance_config')->create($instance);
           $new_instance->save();
 
           // Make sure the field is displayed in the 'default' form mode (using
@@ -479,14 +482,15 @@ class FieldOverview extends OverviewBase {
             'route_name' => 'field_ui.instance_edit_' . $this->entity_type,
             'route_parameters' => array(
               $this->bundleEntityType => $this->bundle,
-              'field_instance' => $new_instance->id(),
+              'field_instance_config' => $new_instance->id(),
             ),
           );
           // Store new field information for any additional submit handlers.
           $form_state['fields_added']['_add_existing_field'] = $instance['field_name'];
         }
         catch (\Exception $e) {
-          drupal_set_message($this->t('There was a problem creating field instance %label: @message.', array('%label' => $instance->getLabel(), '@message' => $e->getMessage())), 'error');
+          $error = TRUE;
+          drupal_set_message($this->t('There was a problem creating field instance %label: @message.', array('%label' => $instance['label'], '@message' => $e->getMessage())), 'error');
         }
       }
     }
@@ -496,7 +500,7 @@ class FieldOverview extends OverviewBase {
       $destinations[] = $destination['destination'];
       $form_state['redirect_route'] = FieldUI::getNextDestination($destinations, $form_state);
     }
-    else {
+    elseif (!$error) {
       drupal_set_message($this->t('Your settings have been saved.'));
     }
   }
@@ -526,7 +530,7 @@ class FieldOverview extends OverviewBase {
     // Load the instances and build the list of options.
     if ($instance_ids) {
       $field_types = $this->fieldTypeManager->getDefinitions();
-      $instances = $this->entityManager->getStorageController('field_instance')->loadMultiple($instance_ids);
+      $instances = $this->entityManager->getStorageController('field_instance_config')->loadMultiple($instance_ids);
       foreach ($instances as $instance) {
         // Do not show:
         // - locked fields,

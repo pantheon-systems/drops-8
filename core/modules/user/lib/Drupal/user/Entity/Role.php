@@ -28,10 +28,9 @@ use Drupal\user\RoleInterface;
  *     }
  *   },
  *   admin_permission = "administer permissions",
- *   config_prefix = "user.role",
+ *   config_prefix = "role",
  *   entity_keys = {
  *     "id" = "id",
- *     "uuid" = "uuid",
  *     "weight" = "weight",
  *     "label" = "label"
  *   },
@@ -50,13 +49,6 @@ class Role extends ConfigEntityBase implements RoleInterface {
    * @var string
    */
   public $id;
-
-  /**
-   * The UUID of this role.
-   *
-   * @var string
-   */
-  public $uuid;
 
   /**
    * The human-readable label of this role.

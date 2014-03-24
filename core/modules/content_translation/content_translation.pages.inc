@@ -15,7 +15,8 @@ use Drupal\Core\Entity\ContentEntityInterface;
  * @param \Drupal\Core\Entity\EntityInterface $entity
  *   The entity whose translation overview should be displayed.
  *
- * @deprecated Use \Drupal\content_translation\Controller\ContentTranslationController::overview()
+ * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
+ *   Use \Drupal\content_translation\Controller\ContentTranslationController::overview().
  */
 function content_translation_overview(EntityInterface $entity) {
   $controller = content_translation_controller($entity->getEntityTypeId());
@@ -135,7 +136,7 @@ function content_translation_overview(EntityInterface $entity) {
   $build['#entity'] = $entity;
 
   $build['content_translation_overview'] = array(
-    '#theme' => 'table',
+    '#type' => 'table',
     '#header' => $header,
     '#rows' => $rows,
   );
@@ -178,11 +179,12 @@ function _content_translation_get_switch_links($path) {
  * @return array
  *   A processed form array ready to be rendered.
  *
- * @deprecated Use \Drupal\content_translation\Controller\ContentTranslationController::add()
+ * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
+ *   Use \Drupal\content_translation\Controller\ContentTranslationController::add().
  */
 function content_translation_add_page(EntityInterface $entity, Language $source = NULL, Language $target = NULL) {
   $source = !empty($source) ? $source : $entity->language();
-  $target = !empty($target) ? $target : language(Language::TYPE_CONTENT);
+  $target = !empty($target) ? $target : \Drupal::languageManager()->getCurrentLanguage(Language::TYPE_CONTENT);
   // @todo Exploit the upcoming hook_entity_prepare() when available.
   content_translation_prepare_translation($entity, $source, $target);
   $form_state['langcode'] = $target->id;
@@ -204,10 +206,11 @@ function content_translation_add_page(EntityInterface $entity, Language $source 
  * @return array
  *   A processed form array ready to be rendered.
  *
- * @deprecated Use \Drupal\content_translation\Controller\ContentTranslationController::edit()
+ * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
+ *   Use \Drupal\content_translation\Controller\ContentTranslationController::edit().
  */
 function content_translation_edit_page(EntityInterface $entity, Language $language = NULL) {
-  $language = !empty($language) ? $language : language(Language::TYPE_CONTENT);
+  $language = !empty($language) ? $language : \Drupal::languageManager()->getCurrentLanguage(Language::TYPE_CONTENT);
   $form_state['langcode'] = $language->id;
   $form_state['content_translation']['translation_form'] = TRUE;
   return \Drupal::service('entity.form_builder')->getForm($entity, 'default', $form_state);

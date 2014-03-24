@@ -63,7 +63,7 @@ abstract class FilterFormatFormControllerBase extends EntityFormController {
     $is_fallback = ($format->id() == $this->configFactory->get('filter.settings')->get('fallback_format'));
 
     $form['#tree'] = TRUE;
-    $form['#attached']['library'][] = array('filter', 'drupal.filter.admin');
+    $form['#attached']['library'][] = 'filter/drupal.filter.admin';
 
     $form['name'] = array(
       '#type' => 'textfield',
@@ -190,6 +190,7 @@ abstract class FilterFormatFormControllerBase extends EntityFormController {
         $form['filters']['settings'][$name] = array(
           '#type' => 'details',
           '#title' => $filter->getLabel(),
+          '#open' => TRUE,
           '#weight' => $filter->weight,
           '#parents' => array('filters', $name, 'settings'),
           '#group' => 'filter_settings',

@@ -27,14 +27,14 @@ class TextWithSummaryItemTest extends FieldUnitTestBase {
   /**
    * Field entity.
    *
-   * @var \Drupal\field\Entity\Field.
+   * @var \Drupal\field\Entity\FieldConfig.
    */
   protected $field;
 
   /**
    * Field instance.
    *
-   * @var \Drupal\field\Entity\FieldInstance
+   * @var \Drupal\field\Entity\FieldInstanceConfig
    */
   protected $instance;
 
@@ -126,7 +126,7 @@ class TextWithSummaryItemTest extends FieldUnitTestBase {
     // Load the entity and check that the field cache contains the expected
     // data.
     $entity = entity_load($entity_type, $entity->id());
-    $cache = cache('field')->get("field:$entity_type:" . $entity->id());
+    $cache = \Drupal::cache('field')->get("field:$entity_type:" . $entity->id());
     $this->assertEqual($cache->data, array(
       Language::LANGCODE_NOT_SPECIFIED => array(
         'summary_field' => array(
@@ -156,7 +156,7 @@ class TextWithSummaryItemTest extends FieldUnitTestBase {
         ),
       ),
     );
-    cache('field')->set("field:$entity_type:" . $entity->id(), $data);
+    \Drupal::cache('field')->set("field:$entity_type:" . $entity->id(), $data);
     $entity = entity_load($entity_type, $entity->id(), TRUE);
     $this->assertEqual($entity->summary_field->processed, 'Cached processed value');
     $this->assertEqual($entity->summary_field->summary_processed, 'Cached summary processed value');
@@ -175,7 +175,7 @@ class TextWithSummaryItemTest extends FieldUnitTestBase {
    */
   protected function createField($entity_type) {
     // Create a field .
-    $this->field = entity_create('field_entity', array(
+    $this->field = entity_create('field_config', array(
       'name' => 'summary_field',
       'entity_type' => $entity_type,
       'type' => 'text_with_summary',
@@ -184,7 +184,7 @@ class TextWithSummaryItemTest extends FieldUnitTestBase {
       )
     ));
     $this->field->save();
-    $this->instance = entity_create('field_instance', array(
+    $this->instance = entity_create('field_instance_config', array(
       'field_name' => $this->field->name,
       'entity_type' => $entity_type,
       'bundle' => $entity_type,

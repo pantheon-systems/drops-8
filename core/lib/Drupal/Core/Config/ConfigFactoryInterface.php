@@ -58,7 +58,7 @@ interface ConfigFactoryInterface {
    * @param array $names
    *   List of names of configuration objects.
    *
-   * @return array
+   * @return \Drupal\Core\Config\Config[]
    *   List of successfully loaded configuration objects, keyed by name.
    */
   public function loadMultiple(array $names);
@@ -66,7 +66,7 @@ interface ConfigFactoryInterface {
   /**
    * Resets and re-initializes configuration objects. Internal use only.
    *
-   * @param string $name
+   * @param string|null $name
    *   (optional) The name of the configuration object to reset. If omitted, all
    *   configuration objects are reset.
    *
@@ -119,7 +119,7 @@ interface ConfigFactoryInterface {
   /**
    * Sets the language to be used in configuration overrides.
    *
-   * @param \Drupal\Core\Language\Language $language
+   * @param \Drupal\Core\Language\Language|null $language
    *   The language object to be set on the config factory. Used to override
    *   configuration by language.
    *
@@ -190,5 +190,14 @@ interface ConfigFactoryInterface {
    *   An array containing matching configuration object names.
    */
   public function listAll($prefix = '');
+
+  /**
+   * Adds config factory override services.
+   *
+   * @param \Drupal\Core\Config\ConfigFactoryOverrideInterface $config_factory_override
+   *   The config factory override service to add. It is added at the end of the
+   *   priority list (lower priority relative to existing ones).
+   */
+  public function addOverride(ConfigFactoryOverrideInterface $config_factory_override);
 
 }

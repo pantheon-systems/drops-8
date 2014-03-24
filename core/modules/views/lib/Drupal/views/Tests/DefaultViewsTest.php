@@ -11,6 +11,7 @@ use Drupal\comment\CommentInterface;
 use Drupal\Core\Language\Language;
 use Drupal\simpletest\WebTestBase;
 use Drupal\views\ViewExecutable;
+use Drupal\views\Views;
 
 /**
  * Tests for views default views.
@@ -62,7 +63,7 @@ class DefaultViewsTest extends ViewTestBase {
 
     // Setup a field and instance.
     $this->field_name = drupal_strtolower($this->randomName());
-    entity_create('field_entity', array(
+    entity_create('field_config', array(
       'name' => $this->field_name,
       'entity_type' => 'node',
       'type' => 'taxonomy_term_reference',
@@ -75,7 +76,7 @@ class DefaultViewsTest extends ViewTestBase {
         ),
       )
     ))->save();
-    entity_create('field_instance', array(
+    entity_create('field_instance_config', array(
       'field_name' => $this->field_name,
       'entity_type' => 'node',
       'bundle' => 'page',
@@ -189,10 +190,11 @@ class DefaultViewsTest extends ViewTestBase {
     );
     $this->drupalCreateNode($node);
 
-    $view = views_get_view('archive');
+    $view = Views::getView('archive');
     $view->setDisplay('page_1');
     $this->executeView($view);
-    $column_map = drupal_map_assoc(array('nid', 'created_year_month', 'num_records'));
+    $columns = array('nid', 'created_year_month', 'num_records');
+    $column_map = array_combine($columns, $columns);
     // Create time of additional nodes created in the setup method.
     $created_year_month = date('Ym', REQUEST_TIME - 3600);
     $expected_result = array(

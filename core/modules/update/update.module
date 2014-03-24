@@ -145,39 +145,6 @@ function update_page_build() {
 }
 
 /**
- * Implements hook_library_info().
- */
-function update_library_info() {
-  $path = drupal_get_path('module', 'update');
-  $libraries['drupal.update.admin'] = array(
-    'title' => 'Update administration UI',
-    'website' => '',
-    'version' => \Drupal::VERSION,
-    'css' => array(
-      $path . '/css/update.admin.css' => array(),
-    ),
-  );
-
-  return $libraries;
-}
-
-/**
- * Implements hook_menu().
- */
-function update_menu() {
-  $items = array();
-
-  $items['admin/reports/updates'] = array(
-    'title' => 'Available updates',
-    'description' => 'Get a status report about available updates for your installed modules and themes.',
-    'route_name' => 'update.status',
-    'weight' => -50,
-  );
-
-  return $items;
-}
-
-/**
  * Implements hook_menu_link_defaults().
  */
 function update_menu_link_defaults() {
@@ -629,7 +596,7 @@ function theme_update_last_check($variables) {
  * an .info.yml file which claims that the code is compatible with the current
  * version of Drupal core.
  *
- * @see drupal_system_listing()
+ * @see \Drupal\Core\Extension\ExtensionDiscovery
  * @see _system_rebuild_module_data()
  */
 function update_verify_update_archive($project, $archive_file, $directory) {

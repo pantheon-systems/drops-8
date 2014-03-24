@@ -63,7 +63,7 @@ class FieldItemDeriver implements ContainerDerivativeInterface {
   /**
    * {@inheritdoc}
    */
-  public function getDerivativeDefinition($derivative_id, array $base_plugin_definition) {
+  public function getDerivativeDefinition($derivative_id, $base_plugin_definition) {
     if (!isset($this->derivatives)) {
       $this->getDerivativeDefinitions($base_plugin_definition);
     }
@@ -75,8 +75,10 @@ class FieldItemDeriver implements ContainerDerivativeInterface {
   /**
    * {@inheritdoc}
    */
-  public function getDerivativeDefinitions(array $base_plugin_definition) {
+  public function getDerivativeDefinitions($base_plugin_definition) {
     foreach ($this->fieldTypePluginManager->getDefinitions() as $plugin_id => $definition) {
+      $definition['definition_class'] = '\Drupal\Core\Field\TypedData\FieldItemDataDefinition';
+      $definition['list_definition_class'] = '\Drupal\Core\Field\FieldDefinition';
       $this->derivatives[$plugin_id] = $definition;
     }
     return $this->derivatives;

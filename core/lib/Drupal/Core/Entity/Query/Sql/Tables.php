@@ -12,7 +12,7 @@ use Drupal\Core\Entity\EntityStorageControllerInterface;
 use Drupal\Core\Entity\FieldableDatabaseStorageController;
 use Drupal\Core\Entity\Plugin\DataType\EntityReference;
 use Drupal\Core\Entity\Query\QueryException;
-use Drupal\field\Entity\Field;
+use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Field as FieldInfo;
 
 /**
@@ -118,7 +118,7 @@ class Tables implements TablesInterface {
           $next = $specifiers[$key + 1];
           // Is this a field column?
           $columns = $field->getColumns();
-          if (isset($columns[$next]) || in_array($next, Field::getReservedColumns())) {
+          if (isset($columns[$next]) || in_array($next, FieldConfig::getReservedColumns())) {
             // Use it.
             $column = $next;
             // Do not process it again.
@@ -144,7 +144,7 @@ class Tables implements TablesInterface {
             $entity = $entity_manager
               ->getStorageController($entity_type_id)
               ->create($values);
-            $propertyDefinitions = $entity->$field_name->getPropertyDefinitions();
+            $propertyDefinitions = $entity->$field_name->getFieldDefinition()->getPropertyDefinitions();
 
             // If the column is not yet known, ie. the
             // $node->field_image->entity case then use first property as
@@ -198,14 +198,14 @@ class Tables implements TablesInterface {
           $entity = $entity_manager
             ->getStorageController($entity_type_id)
             ->create($values);
-          $propertyDefinitions = $entity->$specifier->getPropertyDefinitions();
+          $propertyDefinitions = $entity->$specifier->getFieldDefinition()->getPropertyDefinitions();
           $relationship_specifier = $specifiers[$key + 1];
           $next_index_prefix = $relationship_specifier;
         }
         // Check for a valid relationship.
         if (isset($propertyDefinitions[$relationship_specifier]) && $entity->get($specifier)->first()->get('entity') instanceof EntityReference) {
           // If it is, use the entity type.
-          $entity_type_id = $propertyDefinitions[$relationship_specifier]->getConstraint('EntityType');
+          $entity_type_id = $propertyDefinitions[$relationship_specifier]->getTargetDefinition()->getEntityTypeId();
           $entity_type = $entity_manager->getDefinition($entity_type_id);
           // Add the new entity base table using the table and sql column.
           $join_condition= '%alias.' . $entity_type->getKey('id') . " = $table.$sql_column";

@@ -26,13 +26,12 @@ use Drupal\contact\CategoryInterface;
  *       "delete" = "Drupal\contact\Form\CategoryDeleteForm"
  *     }
  *   },
- *   config_prefix = "contact.category",
+ *   config_prefix = "category",
  *   admin_permission = "administer contact forms",
  *   bundle_of = "contact_message",
  *   entity_keys = {
  *     "id" = "id",
- *     "label" = "label",
- *     "uuid" = "uuid"
+ *     "label" = "label"
  *   },
  *   links = {
  *     "delete-form" = "contact.category_delete",
@@ -48,13 +47,6 @@ class Category extends ConfigEntityBase implements CategoryInterface {
    * @var string
    */
   public $id;
-
-  /**
-   * The category UUID.
-   *
-   * @var string
-   */
-  public $uuid;
 
   /**
    * The category label.

@@ -9,6 +9,7 @@ namespace Drupal\node\Entity;
 
 use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Entity\EntityStorageControllerInterface;
+use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\FieldDefinition;
 use Drupal\Core\Language\Language;
 use Drupal\Core\Session\AccountInterface;
@@ -40,7 +41,6 @@ use Drupal\user\UserInterface;
  *   uri_callback = "node_uri",
  *   fieldable = TRUE,
  *   translatable = TRUE,
- *   render_cache = FALSE,
  *   entity_keys = {
  *     "id" = "nid",
  *     "revision" = "vid",
@@ -73,27 +73,6 @@ class Node extends ContentEntityBase implements NodeInterface {
    */
   public function getRevisionId() {
     return $this->get('vid')->value;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function preCreate(EntityStorageControllerInterface $storage_controller, array &$values) {
-    parent::preCreate($storage_controller, $values);
-    // @todo Handle this through property defaults.
-    if (empty($values['created'])) {
-      $values['created'] = REQUEST_TIME;
-    }
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function preSave(EntityStorageControllerInterface $storage_controller) {
-    parent::preSave($storage_controller);
-
-    // Before saving the node, set changed and revision times.
-    $this->changed->value = REQUEST_TIME;
   }
 
   /**
@@ -352,7 +331,7 @@ class Node extends ContentEntityBase implements NodeInterface {
   /**
    * {@inheritdoc}
    */
-  public static function baseFieldDefinitions($entity_type) {
+  public static function baseFieldDefinitions(EntityTypeInterface $entity_type) {
     $fields['nid'] = FieldDefinition::create('integer')
       ->setLabel(t('Node ID'))
       ->setDescription(t('The node ID.'))
@@ -378,26 +357,22 @@ class Node extends ContentEntityBase implements NodeInterface {
       ->setLabel(t('Language code'))
       ->setDescription(t('The node language code.'));
 
-    $fields['title'] = FieldDefinition::create('text')
-      // @todo Account for $node_type->title_label when per-bundle overrides are
-      //   possible - https://drupal.org/node/2114707.
+    $fields['title'] = FieldDefinition::create('string')
       ->setLabel(t('Title'))
       ->setDescription(t('The title of this node, always treated as non-markup plain text.'))
-      ->setClass('\Drupal\node\NodeTitleItemList')
       ->setRequired(TRUE)
       ->setTranslatable(TRUE)
       ->setSettings(array(
         'default_value' => '',
         'max_length' => 255,
-        'text_processing' => 0,
       ))
       ->setDisplayOptions('view', array(
         'label' => 'hidden',
-        'type' => 'text_default',
+        'type' => 'string',
         'weight' => -5,
       ))
       ->setDisplayOptions('form', array(
-        'type' => 'text_textfield',
+        'type' => 'string',
         'weight' => -5,
       ))
       ->setDisplayConfigurable('form', TRUE);
@@ -414,16 +389,13 @@ class Node extends ContentEntityBase implements NodeInterface {
       ->setLabel(t('Publishing status'))
       ->setDescription(t('A boolean indicating whether the node is published.'));
 
-    // @todo Convert to a "created" field in https://drupal.org/node/2145103.
-    $fields['created'] = FieldDefinition::create('integer')
+    $fields['created'] = FieldDefinition::create('created')
       ->setLabel(t('Created'))
       ->setDescription(t('The time that the node was created.'));
 
-    // @todo Convert to a "changed" field in https://drupal.org/node/2145103.
-    $fields['changed'] = FieldDefinition::create('integer')
+    $fields['changed'] = FieldDefinition::create('changed')
       ->setLabel(t('Changed'))
-      ->setDescription(t('The time that the node was last edited.'))
-      ->setPropertyConstraints('value', array('EntityChanged' => array()));
+      ->setDescription(t('The time that the node was last edited.'));
 
     $fields['promote'] = FieldDefinition::create('boolean')
       ->setLabel(t('Promote'))
@@ -433,8 +405,7 @@ class Node extends ContentEntityBase implements NodeInterface {
       ->setLabel(t('Sticky'))
       ->setDescription(t('A boolean indicating whether the node should be displayed at the top of lists in which it appears.'));
 
-    // @todo Convert to a "timestamp" field in https://drupal.org/node/2145103.
-    $fields['revision_timestamp'] = FieldDefinition::create('integer')
+    $fields['revision_timestamp'] = FieldDefinition::create('timestamp')
       ->setLabel(t('Revision timestamp'))
       ->setDescription(t('The time that the current revision was created.'))
       ->setQueryable(FALSE);
@@ -449,6 +420,19 @@ class Node extends ContentEntityBase implements NodeInterface {
       ->setLabel(t('Log'))
       ->setDescription(t('The log entry explaining the changes in this revision.'));
 
+    return $fields;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function bundleFieldDefinitions(EntityTypeInterface $entity_type, $bundle, array $base_field_definitions) {
+    $node_type = node_type_load($bundle);
+    $fields = array();
+    if (isset($node_type->title_label)) {
+      $fields['title'] = clone $base_field_definitions['title'];
+      $fields['title']->setLabel($node_type->title_label);
+    }
     return $fields;
   }
 

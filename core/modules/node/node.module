@@ -336,20 +336,20 @@ function node_type_get_types() {
  *   An array of node type labels, keyed by the node type name.
  */
 function node_type_get_names() {
-  $cid = 'node_type:names:' . language(Language::TYPE_INTERFACE)->id;
-  if ($cache = cache()->get($cid)) {
+  $cid = 'node_type:names:' . \Drupal::languageManager()->getCurrentLanguage()->id;
+  if ($cache = \Drupal::cache()->get($cid)) {
     return $cache->data;
   }
   // Not using node_type_get_types() or entity_load_multiple() here, to allow
-  // this function being used in hook_entity_info() implementations.
+  // this function being used in hook_entity_type_build() implementations.
   // @todo Consider to convert this into a generic config entity helper.
-  $config_names = config_get_storage_names_with_prefix('node.type.');
+  $config_names = \Drupal::configFactory()->listAll('node.type.');
   $names = array();
   foreach ($config_names as $config_name) {
     $config = \Drupal::config($config_name);
     $names[$config->get('type')] = $config->get('name');
   }
-  cache()->set($cid, $names, Cache::PERMANENT, array(
+  \Drupal::cache()->set($cid, $names, Cache::PERMANENT, array(
     'node_type' => array_keys($names),
     'node_types' => TRUE,
   ));
@@ -415,7 +415,7 @@ function node_add_body_field(NodeTypeInterface $type, $label = 'Body') {
   $field = field_info_field('node', 'body');
   $instance = field_info_instance('node', 'body', $type->id());
   if (empty($field)) {
-    $field = entity_create('field_entity', array(
+    $field = entity_create('field_config', array(
       'name' => 'body',
       'entity_type' => 'node',
       'type' => 'text_with_summary',
@@ -423,7 +423,7 @@ function node_add_body_field(NodeTypeInterface $type, $label = 'Body') {
     $field->save();
   }
   if (empty($instance)) {
-    $instance = entity_create('field_instance', array(
+    $instance = entity_create('field_instance_config', array(
       'field_name' => 'body',
       'entity_type' => 'node',
       'bundle' => $type->id(),
@@ -898,7 +898,7 @@ function theme_node_search_admin($variables) {
     $rows[] = $row;
   }
   $table = array(
-    '#theme' => 'table',
+    '#type' => 'table',
     '#header' => $header,
     '#rows' => $rows,
   );
@@ -937,53 +937,6 @@ function _node_revision_access(NodeInterface $node, $op = 'view', $account = NUL
 }
 
 /**
- * Implements hook_menu().
- */
-function node_menu() {
-  $items['admin/content'] = array(
-    'title' => 'Content',
-    'description' => 'Find and manage content.',
-    'route_name' => 'node.content_overview',
-    'weight' => -10,
-  );
-
-  $items['admin/structure/types'] = array(
-    'title' => 'Content types',
-    'description' => 'Manage content types, including default status, front page promotion, comment settings, etc.',
-    'route_name' => 'node.overview_types',
-  );
-  $items['node/add'] = array(
-    'title' => 'Add content',
-    'route_name' => 'node.add_page',
-  );
-  $items['node/add/%node_type'] = array(
-    'description callback' => 'node_type_get_description',
-    'description arguments' => array(2),
-    'route_name' => 'node.add',
-  );
-  $items['node/%node'] = array(
-    'title callback' => 'node_page_title',
-    'title arguments' => array(1),
-    // The controller also sets the #title in case the routes' title is
-    // overridden by a menu link.
-    'route_name' => 'node.view',
-  );
-  $items['node/%node/revisions/%node_revision/view'] = array(
-    'title' => 'Revisions',
-    'route_name' => 'node.revision_show',
-  );
-  $items['node/%node/revisions/%node_revision/revert'] = array(
-    'title' => 'Revert to earlier revision',
-    'route_name' => 'node.revision_revert_confirm',
-  );
-  $items['node/%node/revisions/%node_revision/delete'] = array(
-    'title' => 'Delete earlier revision',
-    'route_name' => 'node.revision_delete_confirm',
-  );
-  return $items;
-}
-
-/**
  * Implements hook_menu_link_defaults().
  */
 function node_menu_link_defaults() {
@@ -1006,23 +959,6 @@ function node_menu_link_defaults() {
     'route_name' => 'node.add_page',
   );
   return $links;
-}
-
-/**
- * Implements hook_menu_local_tasks().
- */
-function node_menu_local_tasks(&$data, $route_name) {
-  // Add action link to 'node/add' on 'admin/content' page.
-  // @todo Switch to inspecting route name in https://drupal.org/node/2021161.
-  if (current_path() == 'admin/content') {
-    $item = menu_get_item('node/add');
-    if ($item['access']) {
-      $data['actions'][] = array(
-        '#theme' => 'menu_local_action',
-        '#link' => $item,
-      );
-    }
-  }
 }
 
 /**
@@ -1134,7 +1070,6 @@ function node_form_block_form_alter(&$form, &$form_state) {
   $form['visibility']['node_type'] = array(
     '#type' => 'details',
     '#title' => t('Content types'),
-    '#collapsed' => TRUE,
     '#group' => 'visibility',
     '#weight' => 5,
   );
@@ -1212,7 +1147,7 @@ function node_block_access($block) {
  */
 function node_feed($nids = FALSE, $channel = array()) {
   global $base_url;
-  $language_content = language(Language::TYPE_CONTENT);
+  $language_content = \Drupal::languageManager()->getCurrentLanguage(Language::TYPE_CONTENT);
   $rss_config = \Drupal::config('system.rss');
 
   if ($nids === FALSE) {
@@ -1329,11 +1264,12 @@ function node_view_multiple($nodes, $view_mode = 'teaser', $langcode = NULL) {
  * @see node_form_system_site_information_settings_form_submit()
  */
 function node_form_system_site_information_settings_form_alter(&$form, &$form_state, $form_id) {
+  $options = array(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30);
   $form['front_page']['default_nodes_main'] = array(
     '#type' => 'select',
     '#title' => t('Number of posts on front page'),
     '#default_value' => \Drupal::config('node.settings')->get('items_per_page'),
-    '#options' => drupal_map_assoc(array(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30)),
+    '#options' => array_combine($options, $options),
     '#access' => (\Drupal::config('system.site')->get('page.front') == 'node'),
     '#description' => t('The maximum number of posts displayed on overview pages such as the front page.'),
   );
@@ -1547,7 +1483,7 @@ function node_access_grants($op, $account = NULL) {
   // Fetch node access grants from other modules.
   $grants = \Drupal::moduleHandler()->invokeAll('node_grants', array($account, $op));
   // Allow modules to alter the assigned grants.
-  drupal_alter('node_grants', $grants, $account, $op);
+  \Drupal::moduleHandler()->alter('node_grants', $grants, $account, $op);
 
   return array_merge(array('all' => array(0)), $grants);
 }
@@ -1755,7 +1691,7 @@ function node_access_rebuild($batch_mode = FALSE) {
   if (!isset($batch)) {
     drupal_set_message(t('Content permissions have been rebuilt.'));
     node_access_needs_rebuild(FALSE);
-    cache_invalidate_tags(array('content' => TRUE));
+    Cache::invalidateTags(array('content' => TRUE));
   }
 }
 
@@ -1819,7 +1755,7 @@ function _node_access_rebuild_batch_finished($success, $results, $operations) {
   else {
     drupal_set_message(t('The content access permissions have not been properly rebuilt.'), 'error');
   }
-  cache_invalidate_tags(array('content' => TRUE));
+  Cache::invalidateTags(array('content' => TRUE));
 }
 
 /**
@@ -1842,9 +1778,9 @@ function node_modules_installed($modules) {
  */
 function node_modules_uninstalled($modules) {
   // Remove module-specific settings from all node types.
-  $config_names = config_get_storage_names_with_prefix('node.type.');
+  $config_names = \Drupal::configFactory()->listAll('node.type.');
   foreach ($config_names as $config_name) {
-    $config = config($config_name);
+    $config = \Drupal::config($config_name);
     $changed = FALSE;
     foreach ($modules as $module) {
       if ($config->get('settings.' . $module)) {
@@ -1895,50 +1831,6 @@ function node_language_delete($language) {
     ->fields(array('langcode' => ''))
     ->condition('langcode', $language->id)
     ->execute();
-}
-
-/**
- * Implements hook_library_info().
- */
-function node_library_info() {
-  $libraries['drupal.node'] = array(
-    'title' => 'Node',
-    'version' => \Drupal::VERSION,
-    'js' => array(
-      drupal_get_path('module', 'node') . '/node.js' => array(),
-    ),
-    'dependencies' => array(
-      array('system', 'jquery'),
-      array('system', 'drupal'),
-      array('system', 'drupalSettings'),
-      array('system', 'drupal.form'),
-    ),
-  );
-  $libraries['drupal.node.preview'] = array(
-    'title' => 'Node preview',
-    'version' => \Drupal::VERSION,
-    'js' => array(
-      drupal_get_path('module', 'node') . '/node.preview.js' => array(),
-    ),
-    'dependencies' => array(
-      array('system', 'jquery'),
-      array('system', 'drupal'),
-    ),
-  );
-  $libraries['drupal.content_types'] = array(
-    'title' => 'Content types',
-    'version' => \Drupal::VERSION,
-    'js' => array(
-      drupal_get_path('module', 'node') . '/content_types.js' => array(),
-    ),
-    'dependencies' => array(
-      array('system', 'jquery'),
-      array('system', 'drupal'),
-      array('system', 'drupal.form'),
-    ),
-  );
-
-  return $libraries;
 }
 
 /**

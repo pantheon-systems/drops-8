@@ -124,20 +124,6 @@ interface FieldItemListInterface extends ListInterface, AccessibleInterface {
   public function __unset($property_name);
 
   /**
-   * Gets the definition of a property of the first field item.
-   *
-   * @see \Drupal\Core\Field\FieldItemInterface::getPropertyDefinition()
-   */
-  public function getPropertyDefinition($name);
-
-  /**
-   * Gets an array of property definitions of the first field item.
-   *
-   * @see \Drupal\Core\Field\FieldItemInterface::getPropertyDefinitions()
-   */
-  public function getPropertyDefinitions();
-
-  /**
    * Defines custom presave behavior for field values.
    *
    * This method is called before either insert() or update() methods, and
@@ -177,5 +163,69 @@ interface FieldItemListInterface extends ListInterface, AccessibleInterface {
    * called for entity types that support revisioning.
    */
   public function deleteRevision();
+
+  /**
+   * Returns a renderable array for the field items.
+   *
+   * @param array $display_options
+   *   Can be either the name of a view mode, or an array of display settings.
+   *   See EntityViewBuilderInterface::viewField() for more information.
+   *
+   * @return array
+   *   A renderable array for the field values.
+   *
+   * @see \Drupal\Core\Entity\EntityViewBuilderInterface::viewField()
+   * @see \Drupal\Core\Field\FieldItemInterface::view()
+   */
+  public function view($display_options = array());
+
+  /**
+   * Returns a form for the default value input.
+   *
+   * Invoked from \Drupal\field_ui\Form\FieldInstanceEditForm to allow
+   * administrators to configure instance-level default value.
+   *
+   * @param array $form
+   *   The form where the settings form is being included in.
+   * @param array $form_state
+   *   The form state of the (entire) configuration form.
+   *
+   * @return array
+   *   The form definition for the field instance default value.
+   */
+  public function defaultValuesForm(array &$form, array &$form_state);
+
+  /**
+   * Validates the submitted default value.
+   *
+   * Invoked from \Drupal\field_ui\Form\FieldInstanceEditForm to allow
+   * administrators to configure instance-level default value.
+   *
+   * @param array $element
+   *   The default value form element.
+   * @param array $form
+   *   The form where the settings form is being included in.
+   * @param array $form_state
+   *   The form state of the (entire) configuration form.
+   */
+  public function defaultValuesFormValidate(array $element, array &$form, array &$form_state);
+
+  /**
+   * Processes the submitted default value.
+   *
+   * Invoked from \Drupal\field_ui\Form\FieldInstanceEditForm to allow
+   * administrators to configure instance-level default value.
+   *
+   * @param array $element
+   *   The default value form element.
+   * @param array $form
+   *   The form where the settings form is being included in.
+   * @param array $form_state
+   *   The form state of the (entire) configuration form.
+   *
+   * @return array
+   *   The field instance default value.
+   */
+  public function defaultValuesFormSubmit(array $element, array &$form, array &$form_state);
 
 }

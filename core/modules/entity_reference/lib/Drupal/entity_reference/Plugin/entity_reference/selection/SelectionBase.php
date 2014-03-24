@@ -102,9 +102,10 @@ class SelectionBase implements SelectionInterface {
 
     $target_type_info = \Drupal::entityManager()->getDefinition($target_type);
     if ($target_type_info->isSubclassOf('\Drupal\Core\Entity\ContentEntityInterface')) {
-      // @todo Use Entity::getPropertyDefinitions() when all entity types are
+      // @todo Use Entity::getFieldDefinitions() when all entity types are
       // converted to the new Field API.
-      $fields = drupal_map_assoc(drupal_schema_fields_sql($entity_type->getBaseTable()));
+      $fields = drupal_schema_fields_sql($entity_type->getBaseTable());
+      $fields = array_combine($fields, $fields);
       foreach (field_info_instances($target_type) as $bundle_instances) {
         foreach ($bundle_instances as $instance_name => $instance) {
           foreach ($instance->getField()->getColumns() as $column_name => $column_info) {
@@ -309,7 +310,7 @@ class SelectionBase implements SelectionInterface {
 
     $query->alterTags = array($tag => TRUE);
     $query->alterMetaData['base_table'] = $base_table;
-    drupal_alter(array('query', 'query_' . $tag), $query);
+    \Drupal::moduleHandler()->alter(array('query', 'query_' . $tag), $query);
 
     // Restore the tags and metadata.
     $query->alterTags = $old_tags;

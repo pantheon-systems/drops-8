@@ -9,7 +9,9 @@ namespace Drupal\forum;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Database\Connection;
+use Drupal\Core\DependencyInjection\DependencySerialization;
 use Drupal\Core\Entity\EntityManagerInterface;
+use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\comment\CommentInterface;
 use Drupal\field\FieldInfo;
@@ -18,7 +20,7 @@ use Drupal\node\NodeInterface;
 /**
  * Provides forum manager service.
  */
-class ForumManager implements ForumManagerInterface {
+class ForumManager extends DependencySerialization implements ForumManagerInterface {
 
   /**
    * Forum sort order, newest first.
@@ -135,24 +137,21 @@ class ForumManager implements ForumManagerInterface {
   /**
    * {@inheritdoc}
    */
-  public function getTopics($tid) {
+  public function getTopics($tid, AccountInterface $account) {
     $config = $this->configFactory->get('forum.settings');
     $forum_per_page = $config->get('topics.page_limit');
     $sortby = $config->get('topics.order');
 
-    global $forum_topic_list_header;
-    $user = \Drupal::currentUser();
-
-    $forum_topic_list_header = array(
+    $header = array(
       array('data' => $this->t('Topic'), 'field' => 'f.title'),
       array('data' => $this->t('Replies'), 'field' => 'f.comment_count'),
       array('data' => $this->t('Last reply'), 'field' => 'f.last_comment_timestamp'),
     );
 
     $order = $this->getTopicOrder($sortby);
-    for ($i = 0; $i < count($forum_topic_list_header); $i++) {
-      if ($forum_topic_list_header[$i]['field'] == $order['field']) {
-        $forum_topic_list_header[$i]['sort'] = $order['sort'];
+    for ($i = 0; $i < count($header); $i++) {
+      if ($header[$i]['field'] == $order['field']) {
+        $header[$i]['sort'] = $order['sort'];
       }
     }
 
@@ -165,7 +164,7 @@ class ForumManager implements ForumManagerInterface {
       ->addTag('node_access')
       ->addMetaData('base_table', 'forum_index')
       ->orderBy('f.sticky', 'DESC')
-      ->orderByHeader($forum_topic_list_header)
+      ->orderByHeader($header)
       ->limit($forum_per_page);
 
     $count_query = $this->connection->select('forum_index', 'f');
@@ -207,7 +206,7 @@ class ForumManager implements ForumManagerInterface {
 
       $query
         ->orderBy('f.sticky', 'DESC')
-        ->orderByHeader($forum_topic_list_header)
+        ->orderByHeader($header)
         ->condition('n.nid', $nids)
         // @todo This should be actually filtering on the desired node language
         //   and just fall back to the default language.
@@ -231,14 +230,14 @@ class ForumManager implements ForumManagerInterface {
     $topics = array();
     $first_new_found = FALSE;
     foreach ($result as $topic) {
-      if ($user->isAuthenticated()) {
+      if ($account->isAuthenticated()) {
         // A forum is new if the topic is new, or if there are new comments since
         // the user's last visit.
         if ($topic->forum_tid != $tid) {
           $topic->new = 0;
         }
         else {
-          $history = $this->lastVisit($topic->id());
+          $history = $this->lastVisit($topic->id(), $account);
           $topic->new_replies = $this->numberNew($topic->id(), $history);
           $topic->new = $topic->new_replies || ($topic->last_comment_timestamp > $history);
         }
@@ -266,7 +265,7 @@ class ForumManager implements ForumManagerInterface {
       $topics[$topic->id()] = $topic;
     }
 
-    return $topics;
+    return array('topics' => $topics, 'header' => $header);
 
   }
 
@@ -322,18 +321,18 @@ class ForumManager implements ForumManagerInterface {
    *
    * @param int $nid
    *   The node ID.
+   * @param \Drupal\Core\Session\AccountInterface $account
+   *   Account to fetch last time for.
    *
    * @return int
    *   The timestamp when the user last viewed this node, if the user has
    *   previously viewed the node; otherwise HISTORY_READ_LIMIT.
    */
-  protected function lastVisit($nid) {
-    $user = \Drupal::currentUser();
-
+  protected function lastVisit($nid, AccountInterface $account) {
     if (empty($this->history[$nid])) {
       $result = $this->connection->select('history', 'h')
         ->fields('h', array('nid', 'timestamp'))
-        ->condition('uid', $user->id())
+        ->condition('uid', $account->id())
         ->execute();
       foreach ($result as $t) {
         $this->history[$t->nid] = $t->timestamp > HISTORY_READ_LIMIT ? $t->timestamp : HISTORY_READ_LIMIT;
@@ -474,7 +473,7 @@ class ForumManager implements ForumManagerInterface {
     // Reset the index.
     $this->index = NULL;
     // Reset history.
-    $this->history = NULL;
+    $this->history = array();
   }
 
   /**
@@ -558,6 +557,29 @@ class ForumManager implements ForumManagerInterface {
    */
   protected function t($string, array $args = array(), array $options = array()) {
     return $this->translationManager->translate($string, $args, $options);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function __sleep() {
+    $vars = parent::__sleep();
+    // Do not serialize static cache.
+    unset($vars['history'], $vars['index'], $vars['lastPostData'], $vars['forumChildren'], $vars['forumStatistics']);
+    return $vars;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function __wakeup() {
+    parent::__wakeup();
+    // Initialize static cache.
+    $this->history = array();
+    $this->lastPostData = array();
+    $this->forumChildren = array();
+    $this->forumStatistics = array();
+    $this->index = NULL;
   }
 
 }

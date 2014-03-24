@@ -10,7 +10,7 @@ namespace Drupal\Core\Form;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Component\Utility\Unicode;
-use Drupal\Component\Utility\Url as UrlHelper;
+use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\HttpKernel;
@@ -329,7 +329,7 @@ class FormBuilder implements FormBuilderInterface {
       $form['#build_id'] = $old_form['#build_id'];
     }
     else {
-      $form['#build_id'] = 'form-' . Crypt::hashBase64(uniqid(mt_rand(), TRUE) . mt_rand());
+      $form['#build_id'] = 'form-' . Crypt::randomBytesBase64();
     }
 
     // #action defaults to request_uri(), but in case of Ajax and other partial
@@ -553,6 +553,15 @@ class FormBuilder implements FormBuilderInterface {
       if (isset($form['#token']) && $form['#token'] === FALSE) {
         unset($form['#token']);
       }
+      // Form values for programmed form submissions typically do not include a
+      // value for the submit button. But without a triggering element, a
+      // potentially existing #limit_validation_errors property on the primary
+      // submit button is not taken account. Therefore, check whether there is
+      // exactly one submit button in the form, and if so, automatically use it
+      // as triggering_element.
+      if ($form_state['programmed'] && !isset($form_state['triggering_element']) && count($form_state['buttons']) == 1) {
+        $form_state['triggering_element'] = reset($form_state['buttons']);
+      }
       $this->validateForm($form_id, $form, $form_state);
 
       // drupal_html_id() maintains a cache of element IDs it has seen, so it
@@ -603,10 +612,14 @@ class FormBuilder implements FormBuilderInterface {
         // Set a flag to indicate the the form has been processed and executed.
         $form_state['executed'] = TRUE;
 
-        // Redirect the form based on values in $form_state.
-        $redirect = $this->redirectForm($form_state);
-        if (is_object($redirect)) {
-          return $redirect;
+        // If no response has been set, process the form redirect.
+        if (!isset($form_state['response']) && $redirect = $this->redirectForm($form_state)) {
+          $form_state['response'] = $redirect;
+        }
+
+        // If there is a response was set, return it instead of continuing.
+        if (isset($form_state['response']) && $form_state['response'] instanceof Response) {
+          return $form_state['response'];
         }
       }
 
@@ -672,7 +685,7 @@ class FormBuilder implements FormBuilderInterface {
     // @see self::buildForm()
     // @see self::rebuildForm()
     if (!isset($form['#build_id'])) {
-      $form['#build_id'] = 'form-' . Crypt::hashBase64(uniqid(mt_rand(), TRUE) . mt_rand());
+      $form['#build_id'] = 'form-' . Crypt::randomBytesBase64();
     }
     $form['form_build_id'] = array(
       '#type' => 'hidden',

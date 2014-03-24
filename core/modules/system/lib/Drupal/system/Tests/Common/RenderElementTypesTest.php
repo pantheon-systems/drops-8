@@ -8,22 +8,36 @@
 namespace Drupal\system\Tests\Common;
 
 use Drupal\Component\Utility\String;
-use Drupal\Component\Utility\Url;
+use Drupal\Component\Utility\UrlHelper;
 use Drupal\Component\Utility\Xss;
 use Drupal\Core\Language\Language;
 use Drupal\Core\Template\Attribute;
-use Drupal\simpletest\WebTestBase;
+use Drupal\simpletest\DrupalUnitTestBase;
 
 /**
  * Tests the markup of core render element types passed to drupal_render().
  */
-class RenderElementTypesTest extends WebTestBase {
+class RenderElementTypesTest extends DrupalUnitTestBase {
+
+  /**
+   * Modules to enable.
+   *
+   * @var array
+   */
+  public static $modules = array('system');
+
   public static function getInfo() {
     return array(
       'name' => 'Render element types',
       'description' => 'Tests the markup of core render element types passed to drupal_render().',
       'group' => 'Common',
     );
+  }
+
+  protected function setUp() {
+    parent::setUp();
+    $this->installConfig(array('system'));
+    $this->container->get('theme_handler')->enable(array('stark'));
   }
 
   /**
@@ -70,7 +84,7 @@ class RenderElementTypesTest extends WebTestBase {
           '#type' => 'container',
           '#markup' => 'foo',
         ),
-        'expected' => '<div>foo</div>',
+        'expected' => '<div>foo</div>' . "\n",
       ),
       // Container with a class.
       array(
@@ -82,7 +96,7 @@ class RenderElementTypesTest extends WebTestBase {
             'class' => 'bar',
           ),
         ),
-        'expected' => '<div class="bar">foo</div>',
+        'expected' => '<div class="bar">foo</div>' . "\n",
       ),
       // Container with children.
       array(
@@ -93,7 +107,7 @@ class RenderElementTypesTest extends WebTestBase {
             '#markup' => 'foo',
           ),
         ),
-        'expected' => '<div>foo</div>',
+        'expected' => '<div>foo</div>' . "\n",
       ),
     );
 
@@ -147,37 +161,19 @@ class RenderElementTypesTest extends WebTestBase {
     $html_attributes['dir'] = $language_interface->direction ? 'rtl' : 'ltr';
 
     $site_config = \Drupal::config('system.site');
-    $site_name = $site_config->get('name');
-    $site_slogan = $site_config->get('slogan');
-    if ($title = drupal_get_title()) {
-      $head_title = array(
-        'title' => strip_tags($title),
-        'name' => String::checkPlain($site_config->get('name')),
-      );
-    }
-    else {
-      $head_title = array('name' => String::checkPlain($site_name));
-      if ($site_slogan) {
-        $head_title['slogan'] = strip_tags(Xss::filterAdmin($site_slogan));
-      }
-    }
-    $head_title = implode(' | ', $head_title);
 
     // Add favicon.
     $favicon = theme_get_setting('favicon.url');
     $type = theme_get_setting('favicon.mimetype');
-    drupal_add_html_head_link(array('rel' => 'shortcut icon', 'href' => Url::stripDangerousProtocols($favicon), 'type' => $type));
+    drupal_add_html_head_link(array('rel' => 'shortcut icon', 'href' => UrlHelper::stripDangerousProtocols($favicon), 'type' => $type));
 
     // Build CSS links.
     drupal_static_reset('_drupal_add_css');
-    $path = drupal_get_path('module', 'system');
     $default_css = array(
       '#attached' => array(
-        'css' => array(
-          $path . '/css/system.module.css',
-          $path . '/css/system.admin.css',
-          $path . '/css/system.maintenance.css',
-          $path . '/css/system.theme.css',
+        'library' => array(
+          'core/normalize',
+          'system/maintenance',
         ),
       ),
     );
@@ -218,21 +214,22 @@ EOT;
     $placeholders = array(
       '!html_attributes' => $html_attributes->__toString(),
       '!head' => drupal_get_html_head(),
-      '!head_title' => $head_title,
+      '!head_title' => $site_config->get('name'),
       '!styles' => drupal_get_css($css),
       '!scripts' => drupal_get_js(),
       '!attributes.class' => 'maintenance-page in-maintenance no-sidebars',
       '!front_page' => url(),
       '!logo' => theme_get_setting('logo.url'),
       '!site_name' => $site_config->get('name'),
-      '!title' => $title ? '<h1>' . $title . '</h1>' : '',
+      '!title' => '',
       '!content' => '<span>foo</span>',
     );
 
     // We have to reset drupal_add_css between each test.
-    drupal_static_reset('_drupal_add_css');
+    drupal_static_reset();
 
     // Test basic string for maintenance page content.
+    // No page title is set, so it should default to the site name.
     $elements = array(
       array(
         'name' => "#theme 'maintenance_page' with content of <span>foo</span>",
@@ -248,9 +245,14 @@ EOT;
     $this->assertElements($elements);
 
     // Test render array for maintenance page content.
-    drupal_static_reset('_drupal_add_css');
+    drupal_static_reset();
     $elements[0]['name'] = "#theme 'maintenance_page' with content as a render array";
     $elements[0]['value']['#content'] = array('#markup' => '<span>foo</span>');
+    // Testing with a page title, which should be combined with the site name.
+    $title = t('A non-empty title');
+    $elements[0]['value']['#page']['#title'] = $title;
+    $elements[0]['placeholders']['!title'] = '<h1>' . $title . '</h1>';
+    $elements[0]['placeholders']['!head_title'] = strip_tags($title) . ' | ' . String::checkPlain($site_config->get('name'));
     $this->assertElements($elements);
   }
 

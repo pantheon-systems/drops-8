@@ -8,6 +8,7 @@
 namespace Drupal\search\Entity;
 
 use Drupal\Core\Config\Entity\ConfigEntityBase;
+use Drupal\Core\Config\Entity\EntityWithPluginBagInterface;
 use Drupal\Core\Entity\EntityStorageControllerInterface;
 use Drupal\Component\Plugin\ConfigurablePluginInterface;
 use Drupal\search\Plugin\SearchIndexingInterface;
@@ -39,17 +40,16 @@ use Drupal\search\SearchPageInterface;
  *     "disable" = "search.disable",
  *     "set-default" = "search.set_default"
  *   },
- *   config_prefix = "search.page",
+ *   config_prefix = "page",
  *   entity_keys = {
  *     "id" = "id",
  *     "label" = "label",
- *     "uuid" = "uuid",
  *     "weight" = "weight",
  *     "status" = "status"
  *   }
  * )
  */
-class SearchPage extends ConfigEntityBase implements SearchPageInterface {
+class SearchPage extends ConfigEntityBase implements SearchPageInterface, EntityWithPluginBagInterface {
 
   /**
    * The name (plugin ID) of the search page entity.
@@ -64,13 +64,6 @@ class SearchPage extends ConfigEntityBase implements SearchPageInterface {
    * @var string
    */
   public $label;
-
-  /**
-   * The UUID of the search page entity.
-   *
-   * @var string
-   */
-  public $uuid;
 
   /**
    * The configuration of the search page entity.
@@ -112,17 +105,23 @@ class SearchPage extends ConfigEntityBase implements SearchPageInterface {
   /**
    * {@inheritdoc}
    */
-  public function __construct(array $values, $entity_type) {
-    parent::__construct($values, $entity_type);
-
-    $this->pluginBag = new SearchPluginBag($this->searchPluginManager(), array($this->plugin), $this->configuration, $this->id());
-  }
+  protected $pluginConfigKey = 'configuration';
 
   /**
    * {@inheritdoc}
    */
   public function getPlugin() {
-    return $this->pluginBag->get($this->plugin);
+    return $this->getPluginBag()->get($this->plugin);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getPluginBag() {
+    if (!$this->pluginBag) {
+      $this->pluginBag = new SearchPluginBag($this->searchPluginManager(), $this->plugin, $this->configuration, $this->id());
+    }
+    return $this->pluginBag;
   }
 
   /**
@@ -130,7 +129,7 @@ class SearchPage extends ConfigEntityBase implements SearchPageInterface {
    */
   public function setPlugin($plugin_id) {
     $this->plugin = $plugin_id;
-    $this->pluginBag->addInstanceID($plugin_id);
+    $this->getPluginBag()->addInstanceID($plugin_id);
   }
 
   /**
@@ -188,19 +187,6 @@ class SearchPage extends ConfigEntityBase implements SearchPageInterface {
     //   is in.
     if (!isset($this->weight)) {
       $this->weight = $this->isDefaultSearch() ? -10 : 0;
-    }
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function preSave(EntityStorageControllerInterface $storage_controller) {
-    parent::preSave($storage_controller);
-
-    $plugin = $this->getPlugin();
-    // If this plugin has any configuration, ensure that it is set.
-    if ($plugin instanceof ConfigurablePluginInterface) {
-      $this->set('configuration', $plugin->getConfiguration());
     }
   }
 

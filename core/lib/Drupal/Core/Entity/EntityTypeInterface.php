@@ -10,8 +10,8 @@ namespace Drupal\Core\Entity;
 /**
  * Provides an interface for an entity type and its metadata.
  *
- * Additional information can be provided by modules: hook_entity_info() can be
- * implemented to define new properties, while hook_entity_info_alter() can be
+ * Additional information can be provided by modules: hook_entity_type_build() can be
+ * implemented to define new properties, while hook_entity_type_alter() can be
  * implemented to alter existing data and fill-in defaults. Module-specific
  * properties should be documented in the hook implementations defining them.
  */
@@ -229,6 +229,8 @@ interface EntityTypeInterface {
    *
    * @return string
    *   The class for this operation's form for this entity type.
+   *
+   * @see \Drupal\Core\Entity\EntityFormBuilderInterface
    */
   public function getFormClass($operation);
 
@@ -238,9 +240,12 @@ interface EntityTypeInterface {
    * @param string $operation
    *   The operation to use this form class for.
    * @param string $class
-   *   The form class to use for the operation.
+   *   The form class implementing
+   *   \Drupal\Core\Entity\EntityFormControllerInterface.
    *
    * @return static
+   *
+   * @see \Drupal\Core\Entity\EntityFormBuilderInterface
    */
   public function setFormClass($operation, $class);
 

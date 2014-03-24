@@ -34,11 +34,7 @@ class TranslateEditForm extends TranslateFormBase {
 
     $langname = isset($langcode) ? $languages[$langcode]->name : "- None -";
 
-    $path = drupal_get_path('module', 'locale');
-    $form['#attached']['css'] = array(
-      $path . '/css/locale.admin.css',
-    );
-    $form['#attached']['library'][] = array('locale', 'drupal.locale.admin');
+    $form['#attached']['library'][] = 'locale/drupal.locale.admin';
 
     $form['langcode'] = array(
       '#type' => 'value',

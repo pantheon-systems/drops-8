@@ -8,6 +8,7 @@
 namespace Drupal\field_ui;
 
 use Drupal\Component\Plugin\PluginManagerBase;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\Display\EntityDisplayInterface;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
@@ -41,6 +42,13 @@ abstract class DisplayOverviewBase extends OverviewBase {
   protected $fieldTypes;
 
   /**
+   * The config factory.
+   *
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
+   */
+  protected $configFactory;
+
+  /**
    * Constructs a new DisplayOverviewBase.
    *
    * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
@@ -49,12 +57,15 @@ abstract class DisplayOverviewBase extends OverviewBase {
    *   The field type manager.
    * @param \Drupal\Component\Plugin\PluginManagerBase $plugin_manager
    *   The widget or formatter plugin manager.
+   * @param \Drupal\Core\Config\ConfigFactory $config_factory
+   *   The configuration factory.
    */
-  public function __construct(EntityManagerInterface $entity_manager, FieldTypePluginManagerInterface $field_type_manager, PluginManagerBase $plugin_manager) {
+  public function __construct(EntityManagerInterface $entity_manager, FieldTypePluginManagerInterface $field_type_manager, PluginManagerBase $plugin_manager, ConfigFactoryInterface $config_factory) {
     parent::__construct($entity_manager);
 
-    $this->fieldTypes = $field_type_manager->getConfigurableDefinitions();
+    $this->fieldTypes = $field_type_manager->getDefinitions();
     $this->pluginManager = $plugin_manager;
+    $this->configFactory = $config_factory;
   }
 
   /**
@@ -64,7 +75,8 @@ abstract class DisplayOverviewBase extends OverviewBase {
     return new static(
       $container->get('entity.manager'),
       $container->get('plugin.manager.field.field_type'),
-      $container->get('plugin.manager.field.widget')
+      $container->get('plugin.manager.field.widget'),
+      $container->get('config.factory')
     );
   }
 
@@ -92,17 +104,8 @@ abstract class DisplayOverviewBase extends OverviewBase {
    *   The array of field definitions
    */
   protected function getFieldDefinitions() {
-    // @todo Replace this entire implementation with
-    //   \Drupal::entityManager()->getFieldDefinition() when it can hand the
-    //   $instance objects - https://drupal.org/node/2114707
-    $entity = _field_create_entity_from_ids((object) array('entity_type' => $this->entity_type, 'bundle' => $this->bundle, 'entity_id' => NULL));
-    $field_definitions = array();
-    foreach ($entity as $field_name => $items) {
-      $field_definitions[$field_name] = $items->getFieldDefinition();
-    }
-
     $context = $this->displayContext;
-    return array_filter($field_definitions, function(FieldDefinitionInterface $field_definition) use ($context) {
+    return array_filter($this->entityManager->getFieldDefinitions($this->entity_type, $this->bundle), function(FieldDefinitionInterface $field_definition) use ($context) {
       return $field_definition->isDisplayConfigurable($context);
     });
   }
@@ -186,7 +189,6 @@ abstract class DisplayOverviewBase extends OverviewBase {
         $form['modes'] = array(
           '#type' => 'details',
           '#title' => $this->t('Custom display settings'),
-          '#collapsed' => TRUE,
         );
         // Collect options and default values for the 'Custom display settings'
         // checkboxes.
@@ -234,7 +236,7 @@ abstract class DisplayOverviewBase extends OverviewBase {
     $form['actions'] = array('#type' => 'actions');
     $form['actions']['submit'] = array('#type' => 'submit', '#value' => $this->t('Save'));
 
-    $form['#attached']['library'][] = array('field_ui', 'drupal.field_ui');
+    $form['#attached']['library'][] = 'field_ui/drupal.field_ui';
 
     return $form;
   }
@@ -259,6 +261,7 @@ abstract class DisplayOverviewBase extends OverviewBase {
     $display_options = $entity_display->getComponent($field_name);
     $label = $field_definition->getLabel();
 
+    $regions = array_keys($this->getRegions());
     $field_row = array(
       '#attributes' => array('class' => array('draggable', 'tabledrag-leaf')),
       '#row_type' => 'field',
@@ -283,7 +286,7 @@ abstract class DisplayOverviewBase extends OverviewBase {
           '#type' => 'select',
           '#title' => $this->t('Label display for @title', array('@title' => $label)),
           '#title_display' => 'invisible',
-          '#options' => drupal_map_assoc(array_keys($this->getRegions())),
+          '#options' => array_combine($regions, $regions),
           '#empty_value' => '',
           '#attributes' => array('class' => array('field-parent')),
           '#parents' => array('fields', $field_name, 'parent'),
@@ -433,6 +436,7 @@ abstract class DisplayOverviewBase extends OverviewBase {
   protected function buildExtraFieldRow($field_id, $extra_field, EntityDisplayInterface $entity_display) {
     $display_options = $entity_display->getComponent($field_id);
 
+    $regions = array_keys($this->getRegions());
     $extra_field_row = array(
       '#attributes' => array('class' => array('draggable', 'tabledrag-leaf')),
       '#row_type' => 'extra_field',
@@ -454,7 +458,7 @@ abstract class DisplayOverviewBase extends OverviewBase {
           '#type' => 'select',
           '#title' => $this->t('Parents for @title', array('@title' => $extra_field['label'])),
           '#title_display' => 'invisible',
-          '#options' => drupal_map_assoc(array_keys($this->getRegions())),
+          '#options' => array_combine($regions, $regions),
           '#empty_value' => '',
           '#attributes' => array('class' => array('field-parent')),
           '#parents' => array('fields', $field_id, 'parent'),
@@ -771,7 +775,7 @@ abstract class DisplayOverviewBase extends OverviewBase {
     $display_entity_type = $this->getDisplayType();
     $entity_type = $this->entityManager->getDefinition($display_entity_type);
     $config_prefix = $entity_type->getConfigPrefix();
-    $ids = config_get_storage_names_with_prefix($config_prefix . '.' . $this->entity_type . '.' . $this->bundle . '.');
+    $ids = $this->configFactory->listAll($config_prefix . '.' . $this->entity_type . '.' . $this->bundle . '.');
     foreach ($ids as $id) {
       $config_id = str_replace($config_prefix . '.', '', $id);
       list(,, $display_mode) = explode('.', $config_id);

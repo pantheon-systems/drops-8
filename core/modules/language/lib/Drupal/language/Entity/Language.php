@@ -28,12 +28,11 @@ use Drupal\language\LanguageInterface;
  *     }
  *   },
  *   admin_permission = "administer languages",
- *   config_prefix = "language.entity",
+ *   config_prefix = "entity",
  *   entity_keys = {
  *     "id" = "id",
  *     "label" = "label",
- *     "weight" = "weight",
- *     "uuid" = "uuid"
+ *     "weight" = "weight"
  *   },
  *   links = {
  *     "delete-form" = "language.delete",
@@ -49,15 +48,6 @@ class Language extends ConfigEntityBase implements LanguageInterface {
    * @var string
    */
   public $id;
-
-  /**
-   * The language UUID.
-   *
-   * This is assigned automatically when the language is created.
-   *
-   * @var string
-   */
-  public $uuid;
 
   /**
    * The human-readable label for the language.

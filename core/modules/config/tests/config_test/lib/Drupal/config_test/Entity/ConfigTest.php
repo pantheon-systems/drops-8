@@ -25,11 +25,10 @@ use Drupal\config_test\ConfigTestInterface;
  *     },
  *     "access" = "Drupal\config_test\ConfigTestAccessController"
  *   },
- *   config_prefix = "config_test.dynamic",
+ *   config_prefix = "dynamic",
  *   entity_keys = {
  *     "id" = "id",
  *     "label" = "label",
- *     "uuid" = "uuid",
  *     "status" = "status"
  *   },
  *   links = {
@@ -48,13 +47,6 @@ class ConfigTest extends ConfigEntityBase implements ConfigTestInterface {
    * @var string
    */
   public $id;
-
-  /**
-   * The UUID for the configuration entity.
-   *
-   * @var string
-   */
-  public $uuid;
 
   /**
    * The human-readable name of the configuration entity.

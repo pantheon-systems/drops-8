@@ -49,29 +49,50 @@ interface ModuleHandlerInterface {
   public function reload();
 
   /**
-   * Returns a list of currently active modules.
+   * Returns the list of currently active modules.
    *
-   * @return array
+   * @return \Drupal\Core\Extension\Extension[]
    *   An associative array whose keys are the names of the modules and whose
-   *   values are the module filenames.
+   *   values are Extension objects.
    */
   public function getModuleList();
 
   /**
-   * Explicitly sets the moduleList property to the passed in array of modules.
+   * Sets an explicit list of currently active modules.
    *
-   * @param array $module_list
+   * @param \Drupal\Core\Extension\Extension[] $module_list
    *   An associative array whose keys are the names of the modules and whose
-   *   values are the module filenames.
+   *   values are Extension objects.
    */
   public function setModuleList(array $module_list = array());
+
+  /**
+   * Adds a module to the list of currently active modules.
+   *
+   * @param string $name
+   *   The module name; e.g., 'node'.
+   * @param string $path
+   *   The module path; e.g., 'core/modules/node'.
+   */
+  public function addModule($name, $path);
+
+  /**
+   * Adds an installation profile to the list of currently active modules.
+   *
+   * @param string $name
+   *   The profile name; e.g., 'standard'.
+   * @param string $path
+   *   The profile path; e.g., 'core/profiles/standard'.
+   */
+  public function addProfile($name, $path);
 
   /**
    * Determines which modules require and are required by each module.
    *
    * @param array $modules
    *   An array of module objects keyed by module name. Each object contains
-   *   information discovered during a Drupal\Core\SystemListing scan.
+   *   information discovered during a Drupal\Core\Extension\ExtensionDiscovery
+   *   scan.
    *
    * @return
    *   The same array with the new keys for each module:
@@ -80,7 +101,7 @@ interface ModuleHandlerInterface {
    *   - required_by: An array with the keys being the modules that will not work
    *     without this module.
    *
-   * @see \Drupal\Core\SystemListing
+   * @see \Drupal\Core\Extension\ExtensionDiscovery
    */
   public function buildModuleDependencies(array $modules);
 

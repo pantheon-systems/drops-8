@@ -102,9 +102,11 @@ class Drupal {
    * Sets a new global container.
    *
    * @param \Symfony\Component\DependencyInjection\ContainerInterface $container
-   *   A new container instance to replace the current.
+   *   A new container instance to replace the current. NULL may be passed by
+   *   testing frameworks to ensure that the global state of a previous
+   *   environment does not leak into a test.
    */
-  public static function setContainer(ContainerInterface $container) {
+  public static function setContainer(ContainerInterface $container = NULL) {
     static::$container = $container;
   }
 
@@ -245,6 +247,8 @@ class Drupal {
    * Returns the locking layer instance.
    *
    * @return \Drupal\Core\Lock\LockBackendInterface
+   *
+   * @ingroup lock
    */
   public static function lock() {
     return static::$container->get('lock');
@@ -277,6 +281,7 @@ class Drupal {
    * or off.
    *
    * @return \Drupal\Core\Config\ConfigFactoryInterface
+   *   The configuration factory service.
    */
   public static function configFactory() {
     return static::$container->get('config.factory');
@@ -454,7 +459,7 @@ class Drupal {
    *     displayed outside the site, such as in an RSS feed.
    *   - 'language': An optional language object used to look up the alias
    *     for the URL. If $options['language'] is omitted, the language will be
-   *     obtained from language(Language::TYPE_URL).
+   *     obtained from \Drupal::languageManager()->getCurrentLanguage(Language::TYPE_URL).
    *   - 'https': Whether this URL should point to a secure location. If not
    *     defined, the current scheme is used, so the user stays on HTTP or HTTPS
    *     respectively. if mixed mode sessions are permitted, TRUE enforces HTTPS

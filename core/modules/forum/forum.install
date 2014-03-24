@@ -5,8 +5,6 @@
  * Install, update, and uninstall functions for the Forum module.
  */
 
-use Drupal\Core\Language\Language;
-
 /**
  * Implements hook_install().
  */
@@ -22,7 +20,7 @@ function forum_install() {
   // is being enabled at the same time as taxonomy after both modules have been
   // enabled, the field might exist but still be marked inactive.
   if (!field_info_field('node', 'taxonomy_forums')) {
-    entity_create('field_entity', array(
+    entity_create('field_config', array(
       'name' => 'taxonomy_forums',
       'entity_type' => 'node',
       'type' => 'taxonomy_term_reference',
@@ -47,7 +45,7 @@ function forum_install() {
     $term->save();
 
     // Create the instance on the bundle.
-    entity_create('field_instance', array(
+    entity_create('field_instance_config', array(
       'field_name' => 'taxonomy_forums',
       'entity_type' => 'node',
       'label' => 'Forums',
@@ -77,25 +75,13 @@ function forum_install() {
       ->save();
   }
   // Add the comment field to the forum node type.
-  $fields = entity_load_multiple_by_properties('field_entity', array(
+  $fields = entity_load_multiple_by_properties('field_config', array(
     'type' => 'comment',
     'name' => 'comment_forum',
     'include_deleted' => FALSE,
   ));
   if (empty($fields)) {
-    Drupal::service('comment.manager')->addDefaultField('node', 'forum', 'comment_forum', COMMENT_OPEN);
-  }
-}
-
-/**
- * Implements hook_module_preinstall().
- */
-function forum_module_preinstall($module) {
-  $list_boolean = \Drupal::service('plugin.manager.field.field_type')->getDefinition('list_boolean');
-  if (empty($list_boolean) && $module == 'forum') {
-    // Make sure that the list_boolean field type is available before our
-    // default config is installed.
-    field_info_cache_clear();
+    Drupal::service('comment.manager')->addDefaultField('node', 'forum', 'comment_forum');
   }
 }
 

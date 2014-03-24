@@ -45,18 +45,6 @@ function action_permission() {
 }
 
 /**
- * Implements hook_menu().
- */
-function action_menu() {
-  $items['admin/config/system/actions'] = array(
-    'title' => 'Actions',
-    'description' => 'Manage the actions defined for your site.',
-    'route_name' => 'action.admin',
-  );
-  return $items;
-}
-
-/**
  * Implements hook_menu_link_defaults().
  */
 function action_menu_link_defaults() {
@@ -71,11 +59,11 @@ function action_menu_link_defaults() {
 }
 
 /**
- * Implements hook_entity_info().
+ * Implements hook_entity_type_build().
  */
-function action_entity_info(&$entity_info) {
-  /** @var $entity_info \Drupal\Core\Entity\EntityTypeInterface[] */
-  $entity_info['action']
+function action_entity_type_build(array &$entity_types) {
+  /** @var $entity_types \Drupal\Core\Entity\EntityTypeInterface[] */
+  $entity_types['action']
     ->setFormClass('add', 'Drupal\action\ActionAddFormController')
     ->setFormClass('edit', 'Drupal\action\ActionEditFormController')
     ->setFormClass('delete', 'Drupal\action\Form\ActionDeleteForm')

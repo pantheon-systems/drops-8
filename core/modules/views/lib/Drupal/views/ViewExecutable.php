@@ -445,7 +445,7 @@ class ViewExecutable extends DependencySerialization {
     $this->user = $user;
 
     // Add the default css for a view.
-    $this->element['#attached']['library'][] = array('views', 'views.module');
+    $this->element['#attached']['library'][] = 'views/views.module';
   }
 
   /**
@@ -1361,7 +1361,7 @@ class ViewExecutable extends DependencySerialization {
       // Let the themes play too, because pre render is a very themey thing.
       if (isset($GLOBALS['base_theme_info']) && isset($GLOBALS['theme'])) {
         foreach ($GLOBALS['base_theme_info'] as $base) {
-          $module_handler->invoke($base->name, 'views_pre_render', array($this));
+          $module_handler->invoke($base->getName(), 'views_pre_render', array($this));
         }
 
         $module_handler->invoke($GLOBALS['theme'], 'views_pre_render', array($this));
@@ -1385,7 +1385,7 @@ class ViewExecutable extends DependencySerialization {
     // Let the themes play too, because post render is a very themey thing.
     if (isset($GLOBALS['base_theme_info']) && isset($GLOBALS['theme'])) {
       foreach ($GLOBALS['base_theme_info'] as $base) {
-        $module_handler->invoke($base->name, 'views_post_render', array($this));
+        $module_handler->invoke($base->getName(), 'views_post_render', array($this));
       }
 
       $module_handler->invoke($GLOBALS['theme'], 'views_post_render', array($this));
@@ -1509,28 +1509,6 @@ class ViewExecutable extends DependencySerialization {
       $this->displayHandlers->get($id)->attachTo($cloned_view, $this->current_display);
     }
     $this->is_attachment = FALSE;
-  }
-
-  /**
-   * Called to get hook_menu() information from the view and the named display handler.
-   *
-   * @param $display_id
-   *   A display id.
-   * @param $callbacks
-   *   A menu callback array passed from views_menu_alter().
-   */
-  public function executeHookMenu($display_id = NULL, &$callbacks = array()) {
-    // Prepare the view with the information we have.
-
-    // This was probably already called, but it's good to be safe.
-    if (!$this->setDisplay($display_id)) {
-      return FALSE;
-    }
-
-    // Execute the view
-    if (isset($this->display_handler)) {
-      return $this->display_handler->executeHookMenu($callbacks);
-    }
   }
 
   /**

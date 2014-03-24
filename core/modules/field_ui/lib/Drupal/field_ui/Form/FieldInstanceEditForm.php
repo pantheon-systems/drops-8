@@ -10,7 +10,7 @@ namespace Drupal\field_ui\Form;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Component\Utility\String;
-use Drupal\field\FieldInstanceInterface;
+use Drupal\field\FieldInstanceConfigInterface;
 use Drupal\field_ui\FieldUI;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -22,7 +22,7 @@ class FieldInstanceEditForm extends FormBase {
   /**
    * The field instance being edited.
    *
-   * @var \Drupal\field\FieldInstanceInterface
+   * @var \Drupal\field\FieldInstanceConfigInterface
    */
   protected $instance;
 
@@ -62,8 +62,8 @@ class FieldInstanceEditForm extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, array &$form_state, FieldInstanceInterface $field_instance = NULL) {
-    $this->instance = $form_state['instance'] = $field_instance;
+  public function buildForm(array $form, array &$form_state, FieldInstanceConfigInterface $field_instance_config = NULL) {
+    $this->instance = $form_state['instance'] = $field_instance_config;
 
     $bundle = $this->instance->bundle;
     $entity_type = $this->instance->entity_type;
@@ -142,6 +142,7 @@ class FieldInstanceEditForm extends FormBase {
       $element += array(
         '#type' => 'details',
         '#title' => $this->t('Default value'),
+        '#open' => TRUE,
         '#description' => $this->t('The default value for this field, used when creating new content.'),
       );
       $form['instance']['default_value'] = $element;
@@ -220,7 +221,7 @@ class FieldInstanceEditForm extends FormBase {
       'route_name' => 'field_ui.delete_' . $this->instance->entity_type,
       'route_parameters' => array(
         $entity_type->getBundleEntityType() => $this->instance->bundle,
-        'field_instance' => $this->instance->id(),
+        'field_instance_config' => $this->instance->id(),
       ),
       'options' => array(
         'query' => $destination,
@@ -231,14 +232,14 @@ class FieldInstanceEditForm extends FormBase {
   /**
    * The _title_callback for the field instance settings form.
    *
-   * @param \Drupal\field\FieldInstanceInterface $field_instance
+   * @param \Drupal\field\FieldInstanceConfigInterface $field_instance_config
    *   The field instance.
    *
    * @return string
    *   The label of the field instance.
    */
-  public function getTitle(FieldInstanceInterface $field_instance) {
-    return String::checkPlain($field_instance->label());
+  public function getTitle(FieldInstanceConfigInterface $field_instance_config) {
+    return String::checkPlain($field_instance_config->label());
   }
 
 }

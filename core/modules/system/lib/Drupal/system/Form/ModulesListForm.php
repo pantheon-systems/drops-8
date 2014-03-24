@@ -8,6 +8,10 @@
 namespace Drupal\system\Form;
 
 use Drupal\Component\Utility\Unicode;
+use Drupal\Core\Entity\EntityManagerInterface;
+use Drupal\Core\Entity\Query\QueryFactory;
+use Drupal\Core\Entity\Query\QueryFactoryInterface;
+use Drupal\Core\Extension\Extension;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\KeyValueStore\KeyValueStoreExpirableInterface;
@@ -39,13 +43,29 @@ class ModulesListForm extends FormBase {
   protected $keyValueExpirable;
 
   /**
+   * The entity manager.
+   *
+   * @var \Drupal\Core\Entity\EntityManagerInterface
+   */
+  protected $entityManager;
+
+  /**
+   * The query factory.
+   *
+   * @var \Drupal\Core\Entity\Query\QueryFactory
+   */
+  protected $queryFactory;
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('module_handler'),
       $container->get('keyvalue.expirable')->get('module_list'),
-      $container->get('access_manager')
+      $container->get('access_manager'),
+      $container->get('entity.manager'),
+      $container->get('entity.query')
     );
   }
 
@@ -58,11 +78,17 @@ class ModulesListForm extends FormBase {
    *   The key value expirable factory.
    * @param \Drupal\Core\Access\AccessManager $access_manager
    *   Access manager.
+   * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
+   *   The entity manager.
+   * @param \Drupal\Core\Entity\Query\QueryFactory $query_factory
+   *   The entity query factory.
    */
-  public function __construct(ModuleHandlerInterface $module_handler, KeyValueStoreExpirableInterface $key_value_expirable, AccessManager $access_manager) {
+  public function __construct(ModuleHandlerInterface $module_handler, KeyValueStoreExpirableInterface $key_value_expirable, AccessManager $access_manager, EntityManagerInterface $entity_manager, QueryFactory $query_factory) {
     $this->moduleHandler = $module_handler;
     $this->keyValueExpirable = $key_value_expirable;
     $this->accessManager = $access_manager;
+    $this->entityManager = $entity_manager;
+    $this->queryFactory = $query_factory;
   }
 
   /**
@@ -120,6 +146,7 @@ class ModulesListForm extends FormBase {
       $form['modules'][$package] += array(
         '#type' => 'details',
         '#title' => $this->t($package),
+        '#open' => TRUE,
         '#theme' => 'system_modules_details',
         '#header' => array(
           array('data' => '<span class="visually-hidden">' . $this->t('Installed') . '</span>', 'class' => array('checkbox')),
@@ -135,7 +162,7 @@ class ModulesListForm extends FormBase {
     // Lastly, sort all packages by title.
     uasort($form['modules'], 'element_sort_by_title');
 
-    $form['#attached']['library'][] = array('system', 'drupal.system.modules');
+    $form['#attached']['library'][] = 'system/drupal.system.modules';
     $form['actions'] = array('#type' => 'actions');
     $form['actions']['submit'] = array(
       '#type' => 'submit',
@@ -150,14 +177,14 @@ class ModulesListForm extends FormBase {
    *
    * @param array $modules
    *   The list existing modules.
-   * @param object $module
+   * @param \Drupal\Core\Extension\Extension $module
    *   The module for which to build the form row.
    * @param $distribution
    *
    * @return array
    *   The form row for the given module.
    */
-  protected function buildRow(array $modules, $module, $distribution) {
+  protected function buildRow(array $modules, Extension $module, $distribution) {
     // Set the basic properties.
     $row['#required'] = array();
     $row['#requires'] = array();
@@ -173,12 +200,12 @@ class ModulesListForm extends FormBase {
 
     // Generate link for module's help page, if there is one.
     $row['links']['help'] = array();
-    if ($help && $module->status && in_array($module->name, $this->moduleHandler->getImplementations('help'))) {
-      if ($this->moduleHandler->invoke($module->name, 'help', array("admin/help#$module->name", $help))) {
+    if ($help && $module->status && in_array($module->getName(), $this->moduleHandler->getImplementations('help'))) {
+      if ($this->moduleHandler->invoke($module->getName(), 'help', array('admin/help#' . $module->getName(), $help))) {
         $row['links']['help'] = array(
           '#type' => 'link',
           '#title' => $this->t('Help'),
-          '#href' => "admin/help/$module->name",
+          '#href' => 'admin/help/' . $module->getName(),
           '#options' => array('attributes' => array('class' =>  array('module-link', 'module-link-help'), 'title' => $this->t('Help'))),
         );
       }
@@ -186,12 +213,12 @@ class ModulesListForm extends FormBase {
 
     // Generate link for module's permission, if the user has access to it.
     $row['links']['permissions'] = array();
-    if ($module->status && user_access('administer permissions') && in_array($module->name, $this->moduleHandler->getImplementations('permission'))) {
+    if ($module->status && user_access('administer permissions') && in_array($module->getName(), $this->moduleHandler->getImplementations('permission'))) {
       $row['links']['permissions'] = array(
         '#type' => 'link',
         '#title' => $this->t('Permissions'),
         '#href' => 'admin/people/permissions',
-        '#options' => array('fragment' => 'module-' . $module->name, 'attributes' => array('class' => array('module-link', 'module-link-permissions'), 'title' => $this->t('Configure permissions'))),
+        '#options' => array('fragment' => 'module-' . $module->getName(), 'attributes' => array('class' => array('module-link', 'module-link-permissions'), 'title' => $this->t('Configure permissions'))),
       );
     }
 
@@ -199,7 +226,11 @@ class ModulesListForm extends FormBase {
     $row['links']['configure'] = array();
     if ($module->status && isset($module->info['configure'])) {
       if ($this->accessManager->checkNamedRoute($module->info['configure'], array(), \Drupal::currentUser())) {
-        $item = menu_get_item(trim($this->url($module->info['configure']), '/'));
+        $result = $this->queryFactory->get('menu_link')
+          ->condition('route_name', $module->info['configure'])
+          ->execute();
+        $menu_items = $this->entityManager->getStorageController('menu_link')->loadMultiple($result);
+        $item = reset($menu_items);
         $row['links']['configure'] = array(
           '#type' => 'link',
           '#title' => $this->t('Configure'),

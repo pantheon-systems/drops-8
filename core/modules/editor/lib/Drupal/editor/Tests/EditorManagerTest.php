@@ -78,6 +78,7 @@ class EditorManagerTest extends DrupalUnitTestBase {
     // Enable the Text Editor Test module, which has the Unicorn Editor and
     // clear the editor manager's cache so it is picked up.
     $this->enableModules(array('editor_test'));
+    $this->editorManager = $this->container->get('plugin.manager.editor');
     $this->editorManager->clearCachedDefinitions();
 
     // Case 2: a text editor available.
@@ -94,7 +95,7 @@ class EditorManagerTest extends DrupalUnitTestBase {
     $this->assertIdentical(array(), $this->editorManager->getAttachments(array()), 'No attachments when one text editor is enabled and retrieving attachments for zero text formats.');
     $expected = array(
       'library' => array(
-        0 => array('edit_test', 'unicorn'),
+        0 => 'edit_test/unicorn',
       ),
       'js' => array(
         0 => array(

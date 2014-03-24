@@ -53,20 +53,6 @@ function field_ui_help($path, $arg) {
 }
 
 /**
- * Implements hook_menu().
- */
-function field_ui_menu() {
-  $items['admin/reports/fields'] = array(
-    'title' => 'Field list',
-    'description' => 'Overview of fields on all entity types.',
-    'route_name' => 'field_ui.list',
-    'type' => MENU_NORMAL_ITEM,
-  );
-
-  return $items;
-}
-
-/**
  * Implements hook_menu_link_defaults().
  */
 function field_ui_menu_link_defaults() {
@@ -130,16 +116,16 @@ function field_ui_element_info() {
 }
 
 /**
- * Implements hook_entity_info().
+ * Implements hook_entity_type_build().
  */
-function field_ui_entity_info(&$entity_info) {
-  /** @var $entity_info \Drupal\Core\Entity\EntityTypeInterface[] */
-  $entity_info['field_instance']->setFormClass('delete', 'Drupal\field_ui\Form\FieldDeleteForm');
-  $entity_info['field_entity']->setListClass('Drupal\field_ui\FieldListController');
+function field_ui_entity_type_build(array &$entity_types) {
+  /** @var $entity_types \Drupal\Core\Entity\EntityTypeInterface[] */
+  $entity_types['field_instance_config']->setFormClass('delete', 'Drupal\field_ui\Form\FieldInstanceConfigDeleteForm');
+  $entity_types['field_config']->setListClass('Drupal\field_ui\FieldConfigListController');
 
-  foreach ($entity_info as $info) {
-    if ($bundle = $info->getBundleOf()) {
-      $info
+  foreach ($entity_types as $entity_type) {
+    if ($bundle = $entity_type->getBundleOf()) {
+      $entity_type
         ->setLinkTemplate('field_ui-fields', "field_ui.overview_$bundle")
         ->setLinkTemplate('field_ui-form-display', "field_ui.form_display_overview_$bundle")
         ->setLinkTemplate('field_ui-display', "field_ui.display_overview_$bundle");
@@ -226,30 +212,6 @@ function field_ui_form_node_type_form_submit($form, &$form_state) {
 }
 
 /**
- * Implements hook_library_info().
- */
-function field_ui_library_info() {
-  $libraries['drupal.field_ui'] = array(
-    'title' => 'Field UI',
-    'version' => \Drupal::VERSION,
-    'js' => array(
-      drupal_get_path('module', 'field_ui') . '/field_ui.js' => array(),
-    ),
-    'css' => array(
-      drupal_get_path('module', 'field_ui') . '/css/field_ui.admin.css' => array(),
-    ),
-    'dependencies' => array(
-      array('system', 'jquery'),
-      array('system', 'drupal'),
-      array('system', 'drupalSettings'),
-      array('system', 'jquery.once'),
-    ),
-  );
-
-  return $libraries;
-}
-
-/**
  * Implements hook_view_mode_presave().
  */
 function field_ui_view_mode_presave(EntityViewModeInterface $view_mode) {
@@ -275,7 +237,7 @@ function field_ui_view_mode_delete(EntityViewModeInterface $view_mode) {
  */
 function theme_field_ui_table($variables) {
   $elements = $variables['elements'];
-  $table = array('#theme' => 'table');
+  $table = array('#type' => 'table');
 
   // Add table headers and attributes.
   foreach (array('#header', '#attributes') as $key) {

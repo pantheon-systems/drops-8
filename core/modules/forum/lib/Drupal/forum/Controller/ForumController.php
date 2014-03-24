@@ -82,12 +82,15 @@ class ForumController extends ControllerBase {
     $taxonomy_term->parents = $this->forumManager->getParents($taxonomy_term->id());
 
     if (empty($taxonomy_term->forum_container->value)) {
-      $topics = $this->forumManager->getTopics($taxonomy_term->id());
+      $build = $this->forumManager->getTopics($taxonomy_term->id(), $this->currentUser());
+      $topics = $build['topics'];
+      $header = $build['header'];
     }
     else {
       $topics = '';
+      $header = array();
     }
-    return $this->build($taxonomy_term->forums, $taxonomy_term, $topics, $taxonomy_term->parents);
+    return $this->build($taxonomy_term->forums, $taxonomy_term, $topics, $taxonomy_term->parents, $header);
   }
 
   /**
@@ -122,24 +125,27 @@ class ForumController extends ControllerBase {
    *   The topics of this forum.
    * @param array $parents
    *   The parent forums in relation this forum.
+   * @param array $header
+   *   Array of header cells.
    *
    * @return array
    *   A render array.
    */
-  protected function build($forums, TermInterface $term, $topics = array(), $parents = array()) {
+  protected function build($forums, TermInterface $term, $topics = array(), $parents = array(), $header = array()) {
     $config = $this->config('forum.settings');
     $build = array(
       '#theme' => 'forums',
       '#forums' => $forums,
       '#topics' => $topics,
       '#parents' => $parents,
+      '#header' => $header,
       '#term' => $term,
       '#sortby' => $config->get('topics.order'),
       '#forums_per_page' => $config->get('topics.page_limit'),
     );
-    $build['#attached']['library'][] = array('forum', 'forum.index');
+    $build['#attached']['library'][] = 'forum/forum.index';
     if (empty($term->forum_container->value)) {
-      $build['#attached']['drupal_add_feed'][] = array('taxonomy/term/' . $term->id() . '/feed', 'RSS - ' . $term->label());
+      $build['#attached']['drupal_add_feed'][] = array('taxonomy/term/' . $term->id() . '/feed', 'RSS - ' . $term->getName());
     }
 
     return $build;

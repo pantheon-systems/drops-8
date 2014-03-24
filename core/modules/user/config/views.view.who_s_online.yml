@@ -14,9 +14,11 @@ display:
         type: perm
         options:
           perm: 'access user profiles'
+        provider: user
       cache:
         type: none
         options: {  }
+        provider: views
       query:
         type: views_query
         options:
@@ -25,6 +27,7 @@ display:
           slave: false
           query_comment: false
           query_tags: {  }
+        provider: views
       exposed_form:
         type: basic
         options:
@@ -35,11 +38,13 @@ display:
           expose_sort_order: true
           sort_asc_label: Asc
           sort_desc_label: Desc
+        provider: views
       pager:
         type: some
         options:
           items_per_page: 10
           offset: 0
+        provider: views
       style:
         type: html_list
         options:
@@ -50,8 +55,10 @@ display:
           type: ul
           wrapper_class: item-list
           class: ''
+        provider: views
       row:
         type: fields
+        provider: views
       fields:
         name:
           id: name
@@ -194,5 +201,4 @@ label: 'Who''s online block'
 module: views
 id: who_s_online
 tag: default
-uuid: 67a78cad-cf14-4f0d-9705-05d50cd84eaa
 langcode: en

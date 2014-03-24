@@ -7,7 +7,6 @@
 
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Database\Database;
-use Drupal\Core\Utility\SchemaCache;
 
 /**
  * @addtogroup schemaapi
@@ -33,11 +32,8 @@ const SCHEMA_UNINSTALLED = -1;
 function drupal_get_schema($table = NULL, $rebuild = FALSE) {
   static $schema;
 
-  if ($rebuild || !isset($table)) {
+  if ($rebuild || !isset($schema)) {
     $schema = drupal_get_complete_schema($rebuild);
-  }
-  elseif (!isset($schema)) {
-    $schema = new SchemaCache();
   }
 
   if (!isset($table)) {
@@ -65,7 +61,7 @@ function drupal_get_complete_schema($rebuild = FALSE) {
 
   if (!isset($schema) || $rebuild) {
     // Try to load the schema from cache.
-    if (!$rebuild && $cached = cache()->get('schema')) {
+    if (!$rebuild && $cached = \Drupal::cache()->get('schema')) {
       $schema = $cached->data;
     }
     // Otherwise, rebuild the schema cache.
@@ -82,19 +78,16 @@ function drupal_get_complete_schema($rebuild = FALSE) {
         // That would break modules which use $schema further down the line.
         $current = (array) \Drupal::moduleHandler()->invoke($module, 'schema');
         // Set 'module' and 'name' keys for each table, and remove descriptions,
-        // as they needlessly slow down cache()->get() for every single request.
+        // as they needlessly slow down \Drupal::cache()->get() for every single request.
         _drupal_schema_initialize($current, $module);
         $schema = array_merge($schema, $current);
       }
-      drupal_alter('schema', $schema);
+      \Drupal::moduleHandler()->alter('schema', $schema);
 
-      if ($rebuild) {
-        Cache::deleteTags(array('schema' => TRUE));
-      }
       // If the schema is empty, avoid saving it: some database engines require
       // the schema to perform queries, and this could lead to infinite loops.
       if (!empty($schema) && (drupal_get_bootstrap_phase() == DRUPAL_BOOTSTRAP_FULL)) {
-        cache()->set('schema', $schema, Cache::PERMANENT, array('schema' => TRUE));
+        \Drupal::cache()->set('schema', $schema, Cache::PERMANENT);
       }
     }
   }

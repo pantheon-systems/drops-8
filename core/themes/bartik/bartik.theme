@@ -100,30 +100,13 @@ function bartik_preprocess_maintenance_page(&$variables) {
   $libraries = array(
     '#attached' => array(
       'library' => array(
-        array('bartik', 'maintenance_page'),
+        'bartik/maintenance_page',
       ),
     ),
   );
 
   // Set the options that apply to both page and maintenance page.
   _bartik_process_page($variables);
-}
-
-/**
- * Implements hook_library_info().
- */
-function bartik_library_info() {
-  $path = drupal_get_path('theme', 'bartik');
-  $libraries['maintenance_page'] = array(
-    'version' => \DRUPAL::VERSION,
-    'css' => array(
-      $path . '/css/maintenance-page.css' => array(
-        'group' => CSS_AGGREGATE_THEME,
-      ),
-    ),
-  );
-
-  return $libraries;
 }
 
 /**
@@ -134,6 +117,16 @@ function bartik_preprocess_node(&$variables) {
   // displayed on the page.
   if ($variables['teaser'] || !empty($variables['content']['comments']['comment_form'])) {
     unset($variables['content']['links']['comment']['#links']['comment-add']);
+  }
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for block templates.
+ */
+function bartik_preprocess_block(&$variables) {
+  // Add a clearfix class to system branding blocks.
+  if ($variables['plugin_id'] == 'system_branding_block') {
+    $variables['attributes']['class'][] = 'clearfix';
   }
 }
 
@@ -176,8 +169,8 @@ function bartik_field__taxonomy_term_reference($variables) {
 }
 
 /**
-+ * Helper function for handling the site name and slogan.
-+ */
+ * Helper function for handling the site name and slogan.
+ */
 function _bartik_process_page(&$variables) {
   $site_config = \Drupal::config('system.site');
   // Always print the site name and slogan, but if they are toggled off, we'll

@@ -201,8 +201,8 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
    * {@inheritdoc}
    */
   public function buildForm(array $form, array &$form_state) {
-    $style_options = views_fetch_plugin_names('style', 'normal', array($this->base_table));
-    $feed_row_options = views_fetch_plugin_names('row', 'feed', array($this->base_table));
+    $style_options = Views::fetchPluginNames('style', 'normal', array($this->base_table));
+    $feed_row_options = Views::fetchPluginNames('row', 'feed', array($this->base_table));
     $path_prefix = url(NULL, array('absolute' => TRUE));
 
     // Add filters and sorts which apply to the view as a whole.
@@ -548,7 +548,7 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
    */
   protected function rowStyleOptions() {
     // Get all available row plugins by default.
-    $options = views_fetch_plugin_names('row', 'normal', array($this->base_table));
+    $options = Views::fetchPluginNames('row', 'normal', array($this->base_table));
     return $options;
   }
 
@@ -760,6 +760,7 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
     // Add default options array to each plugin type.
     foreach ($display_options as &$options) {
       $options['options'] = array();
+      $options['provider'] = 'views';
     }
 
     // Add a least one field so the view validates and the user has a preview.
@@ -859,7 +860,7 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
       $handler = $table_data[$bundle_key]['filter']['id'];
       $handler_definition = Views::pluginManager('filter')->getDefinition($handler);
       if ($handler == 'in_operator' || is_subclass_of($handler_definition['class'], 'Drupal\\views\\Plugin\\views\\filter\\InOperator')) {
-        $value = drupal_map_assoc(array($form_state['values']['show']['type']));
+        $value = array($form_state['values']['show']['type'] => $form_state['values']['show']['type']);
       }
       // Otherwise, use just a single value.
       else {

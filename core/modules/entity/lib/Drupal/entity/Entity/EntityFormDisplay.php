@@ -17,15 +17,14 @@ use Drupal\entity\EntityDisplayBase;
  * @ConfigEntityType(
  *   id = "entity_form_display",
  *   label = @Translation("Entity form display"),
- *   config_prefix = "entity.form_display",
+ *   config_prefix = "form_display",
  *   entity_keys = {
  *     "id" = "id",
- *     "uuid" = "uuid",
  *     "status" = "status"
  *   }
  * )
  */
-class EntityFormDisplay extends EntityDisplayBase implements EntityFormDisplayInterface, \Serializable {
+class EntityFormDisplay extends EntityDisplayBase implements EntityFormDisplayInterface {
 
   /**
    * {@inheritdoc}
@@ -148,20 +147,20 @@ class EntityFormDisplay extends EntityDisplayBase implements EntityFormDisplayIn
   /**
    * {@inheritdoc}
    */
-  public function serialize() {
+  public function __sleep() {
     // Only store the definition, not external objects or derived data.
-    $data = $this->getExportProperties() + array('entityType' => $this->getEntityTypeId());
-    return serialize($data);
+    $keys = array_keys($this->getExportProperties());
+    $keys[] = 'entityTypeId';
+    return $keys;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function unserialize($serialized) {
-    $data = unserialize($serialized);
-    $entity_type = $data['entityType'];
-    unset($data['entityType']);
-    $this->__construct($data, $entity_type);
+  public function __wakeup() {
+    // Run the values from getExportProperties() through __construct().
+    $values = array_intersect_key($this->getExportProperties(), get_object_vars($this));
+    $this->__construct($values, $this->entityTypeId);
   }
 
 }

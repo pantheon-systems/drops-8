@@ -712,7 +712,7 @@ class ViewUI implements ViewStorageInterface {
     // Assemble the preview, the query info, and the query statistics in the
     // requested order.
     $table = array(
-      '#theme' => 'table',
+      '#type' => 'table',
       '#prefix' => '<div class="views-query-info">',
       '#suffix' => '</div>',
     );
@@ -1009,10 +1009,10 @@ class ViewUI implements ViewStorageInterface {
   }
 
   /**
-   * Implements \Drupal\Core\TypedData\TypedDataInterface::getDefinition().
+   * Implements \Drupal\Core\TypedData\TypedDataInterface::getDataDefinition().
    */
-  public function getDefinition() {
-    return $this->storage->getDefinition();
+  public function getDataDefinition() {
+    return $this->storage->getDataDefinition();
   }
 
   /**

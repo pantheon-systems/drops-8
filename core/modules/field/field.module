@@ -7,8 +7,11 @@
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\Xss;
 use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Extension\Extension;
 use Drupal\Core\Template\Attribute;
 use Drupal\entity\Entity\EntityViewDisplay;
+use Drupal\field\Field;
 
 /*
  * Load all public Field API functions. Drupal currently has no
@@ -155,11 +158,11 @@ function field_cron() {
  * Goes through a list of all modules that provide a field type and makes them
  * required if there are any active fields of that type.
  */
-function field_system_info_alter(&$info, $file, $type) {
+function field_system_info_alter(&$info, Extension $file, $type) {
   // It is not safe to call entity_load_multiple_by_properties() during
   // maintenance mode.
   if ($type == 'module' && !defined('MAINTENANCE_MODE')) {
-    $fields = entity_load_multiple_by_properties('field_entity', array('module' => $file->name, 'include_deleted' => TRUE));
+    $fields = entity_load_multiple_by_properties('field_config', array('module' => $file->getName(), 'include_deleted' => TRUE));
     if ($fields) {
       $info['required'] = TRUE;
 
@@ -189,29 +192,14 @@ function field_system_info_alter(&$info, $file, $type) {
 }
 
 /**
- * Implements hook_entity_field_info() to define all configured fields.
+ * Implements hook_entity_bundle_field_info().
  */
-function field_entity_field_info($entity_type) {
-  $property_info = array();
-
-  foreach (field_info_instances($entity_type) as $bundle_name => $instances) {
-    $optional = $bundle_name != $entity_type;
-    // @todo: Improve hook_entity_field_info() to allow per-bundle field
-    // definitions, such that we can pass on field instances as field
-    // definitions here. See https://drupal.org/node/2114707.
-
-    foreach ($instances as $field_name => $instance) {
-      if ($optional) {
-        $property_info['optional'][$field_name] = $instance->getField();
-        $property_info['bundle map'][$bundle_name][] = $field_name;
-      }
-      else {
-        $property_info['definitions'][$field_name] = $instance->getField();
-      }
-    }
+function field_entity_bundle_field_info(EntityTypeInterface $entity_type, $bundle, array $base_field_definitions) {
+  if ($entity_type->isFieldable()) {
+    // Configurable fields, which are always attached to a specific bundle, are
+    // added 'by bundle'.
+    return Field::fieldInfo()->getBundleInstances($entity_type->id(), $bundle);
   }
-
-  return $property_info;
 }
 
 /**
@@ -226,7 +214,7 @@ function field_entity_bundle_create($entity_type, $bundle) {
  * Implements hook_entity_bundle_rename().
  */
 function field_entity_bundle_rename($entity_type, $bundle_old, $bundle_new) {
-  $instances = entity_load_multiple_by_properties('field_instance', array('entity_type' => $entity_type, 'bundle' => $bundle_old));
+  $instances = entity_load_multiple_by_properties('field_instance_config', array('entity_type' => $entity_type, 'bundle' => $bundle_old));
   foreach ($instances as $instance) {
     if ($instance->entity_type == $entity_type && $instance->bundle == $bundle_old) {
       $id_new = $instance->entity_type . '.' . $bundle_new . '.' . $instance->field_name;
@@ -255,7 +243,7 @@ function field_entity_bundle_delete($entity_type, $bundle) {
   // Get the instances on the bundle. entity_load_multiple_by_properties() must
   // be used here since field_info_instances() does not return instances for
   // disabled entity types or bundles.
-  $instances = entity_load_multiple_by_properties('field_instance', array('entity_type' => $entity_type, 'bundle' => $bundle));
+  $instances = entity_load_multiple_by_properties('field_instance_config', array('entity_type' => $entity_type, 'bundle' => $bundle));
   foreach ($instances as $instance) {
     $instance->delete();
   }
@@ -289,7 +277,7 @@ function field_modules_uninstalled($modules) {
  * Clears the field info and field data caches.
  */
 function field_cache_clear() {
-  cache('field')->deleteAll();
+  \Drupal::cache('field')->deleteAll();
   field_info_cache_clear();
 }
 
@@ -325,138 +313,6 @@ function _field_filter_xss_allowed_tags() {
  */
 function _field_filter_xss_display_allowed_tags() {
   return '<' . implode('> <', _field_filter_xss_allowed_tags()) . '>';
-}
-
-/**
- * Returns a renderable array for a single field value.
- *
- * @param \Drupal\Core\Entity\ContentEntityInterface $entity
- *   The entity containing the field to display. Must at least contain the ID
- *   key and the field data to display.
- * @param $field_name
- *   The name of the field to display.
- * @param $item
- *   The field item value to display.
- * @param $display
- *   Can be either the name of a view mode, or an array of display settings. See
- *   field_view_field() for more information.
- * @param $langcode
- *   (Optional) The language of the value in $item. If not provided, the current
- *   language will be assumed.
- *
- * @return
- *   A renderable array for the field value.
- */
-function field_view_value(ContentEntityInterface $entity, $field_name, $item, $display = array(), $langcode = NULL) {
-  $output = array();
-
-  if ($entity->hasField($field_name)) {
-    // Clone the entity since we are going to modify field values.
-    $clone = clone $entity;
-
-    // Apply language fallback.
-    $clone = \Drupal::entityManager()->getTranslationFromContext($clone, $langcode);
-
-    // Push the item as the single value for the field, and defer to
-    // field_view_field() to build the render array for the whole field.
-    $clone->{$field_name}->setValue(array($item));
-    $elements = field_view_field($clone, $field_name, $display, $langcode);
-
-    // Extract the part of the render array we need.
-    $output = isset($elements[0]) ? $elements[0] : array();
-    if (isset($elements['#access'])) {
-      $output['#access'] = $elements['#access'];
-    }
-  }
-
-  return $output;
-}
-
-/**
- * Returns a renderable array for the value of a single field in an entity.
- *
- * The resulting output is a fully themed field with label and multiple values.
- *
- * This function can be used by third-party modules that need to output an
- * isolated field.
- * - Do not use inside node (or any other entity) templates; use
- *   render($content[FIELD_NAME]) instead.
- * - Do not use to display all fields in an entity; use EntityDisplay::build()
- *   instead.
- * - The field_view_value() function can be used to output a single formatted
- *   field value, without label or wrapping field markup.
- *
- * The function takes care of invoking the prepare_view steps. It also respects
- * field access permissions.
- *
- * @param \Drupal\Core\Entity\ContentEntityInterface $entity
- *   The entity containing the field to display.
- * @param $field_name
- *   The name of the field to display.
- * @param $display_options
- *   Can be either:
- *   - The name of a view mode. The field will be displayed according to the
- *     display settings specified for this view mode in the $instance
- *     definition for the field in the entity's bundle. If no display settings
- *     are found for the view mode, the settings for the 'default' view mode
- *     will be used.
- *   - An array of display options. The following key/value pairs are allowed:
- *     - label: (string) Position of the label. The default 'field' theme
- *       implementation supports the values 'inline', 'above' and 'hidden'.
- *       Defaults to 'above'.
- *     - type: (string) The formatter to use. Defaults to the
- *       'default_formatter' for the field type. The default formatter will also
- *       be used if the requested formatter is not available.
- *     - settings: (array) Settings specific to the formatter. Defaults to the
- *       formatter's default settings.
- *     - weight: (float) The weight to assign to the renderable element.
- *       Defaults to 0.
- * @param $langcode
- *   (Optional) The language code the field values are to be shown in. The
- *   site's current language fallback logic will be applied when no values are
- *   available for the given language code. If no language code is provided the
- *   current language will be used.
- *
- * @return
- *   A renderable array for the field value.
- *
- * @see field_view_value()
- */
-function field_view_field(ContentEntityInterface $entity, $field_name, $display_options = array(), $langcode = NULL) {
-  $output = array();
-
-  // Return nothing if the field doesn't exist.
-  if (!$entity->hasField($field_name)) {
-    return $output;
-  }
-
-  // Get the display object.
-  if (is_string($display_options)) {
-    $view_mode = $display_options;
-    $display = EntityViewDisplay::collectRenderDisplay($entity, $view_mode);
-    foreach ($entity as $name => $items) {
-      if ($name != $field_name) {
-        $display->removeComponent($name);
-      }
-    }
-  }
-  else {
-    $view_mode = '_custom';
-    $display = entity_create('entity_view_display', array(
-      'targetEntityType' => $entity->getEntityTypeId(),
-      'bundle' => $entity->bundle(),
-      'mode' => $view_mode,
-      'status' => TRUE,
-    ));
-    $display->setComponent($field_name, $display_options);
-  }
-
-  $build = $display->build($entity);
-  if (isset($build[$field_name])) {
-    $output = $build[$field_name];
-  }
-
-  return $output;
 }
 
 /**
@@ -642,7 +498,7 @@ function theme_field($variables) {
   // Render the items.
   $output .= '<div class="field-items"' . $variables['content_attributes'] . '>';
   foreach ($variables['items'] as $delta => $item) {
-    $output .= '<div class="field-item"' . $variables['item_attributes'][$delta] . '>' . drupal_render($item) . '</div>';
+    $output .= '<div class="field-item"' . $variables['item_attributes'][$delta] . '>' . drupal_render($item, TRUE) . '</div>';
   }
   $output .= '</div>';
 

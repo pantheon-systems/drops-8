@@ -11,6 +11,7 @@ use Drupal\Component\Utility\String;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\views\ViewExecutable;
 use Drupal\views\ViewStorageInterface;
+use Drupal\views\Views;
 use Drupal\views_ui\ViewUI;
 use Drupal\views\ViewsData;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -97,7 +98,7 @@ class ViewsUIController extends ControllerBase {
     // Sort rows by field name.
     ksort($rows);
     $output = array(
-      '#theme' => 'table',
+      '#type' => 'table',
       '#header' => $header,
       '#rows' => $rows,
       '#empty' => t('No fields have been used in views yet.'),
@@ -113,7 +114,7 @@ class ViewsUIController extends ControllerBase {
    *   The Views plugins report page.
    */
   public function reportPlugins() {
-    $rows = views_plugin_list();
+    $rows = Views::pluginList();
     foreach ($rows as &$row) {
       // Link each view name to the view itself.
       foreach ($row['views'] as $row_name => $view) {
@@ -125,7 +126,7 @@ class ViewsUIController extends ControllerBase {
     // Sort rows by field name.
     ksort($rows);
     return array(
-      '#theme' => 'table',
+      '#type' => 'table',
       '#header' => array(t('Type'), t('Name'), t('Provided by'), t('Used in')),
       '#rows' => $rows,
       '#empty' => t('There are no enabled views.'),

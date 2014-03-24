@@ -74,25 +74,6 @@ function system_requirements($phase) {
     return $requirements;
   }
 
-  // Test PHP register_globals setting.
-  $requirements['php_register_globals'] = array(
-    'title' => t('PHP register globals'),
-  );
-  $register_globals = trim(ini_get('register_globals'));
-  // Unfortunately, ini_get() may return many different values, and we can't
-  // be certain which values mean 'on', so we instead check for 'not off'
-  // since we never want to tell the user that their site is secure
-  // (register_globals off), when it is in fact on. We can only guarantee
-  // register_globals is off if the value returned is 'off', '', or 0.
-  if (!empty($register_globals) && strtolower($register_globals) != 'off') {
-    $requirements['php_register_globals']['description'] = t('<em>register_globals</em> is enabled. Drupal requires this configuration directive to be disabled. Your site may not be secure when <em>register_globals</em> is enabled. The PHP manual has instructions for <a href="@url">how to change configuration settings</a>.', array('@url' => 'http://php.net/configuration.changes'));
-    $requirements['php_register_globals']['severity'] = REQUIREMENT_ERROR;
-    $requirements['php_register_globals']['value'] = t("Enabled ('@value')", array('@value' => $register_globals));
-  }
-  else {
-    $requirements['php_register_globals']['value'] = t('Disabled');
-  }
-
   // Test for PHP extensions.
   $requirements['php_extensions'] = array(
     'title' => t('PHP extensions'),
@@ -262,6 +243,39 @@ function system_requirements($phase) {
       );
     }
     $requirements['settings.php']['title'] = t('Configuration files');
+  }
+
+  // Test the contents of the .htaccess files.
+  if ($phase == 'runtime') {
+    // Try to write the .htaccess files first, to prevent false alarms in case
+    // (for example) the /tmp directory was wiped.
+    file_ensure_htaccess();
+    $htaccess_files['public://.htaccess'] = array(
+      'title' => t('Public files directory'),
+      'directory' => drupal_realpath('public://'),
+    );
+    if (\Drupal::config('system.file')->get('path.private')) {
+      $htaccess_files['private://.htaccess'] = array(
+        'title' => t('Private files directory'),
+        'directory' => drupal_realpath('private://'),
+      );
+    }
+    $htaccess_files['temporary://.htaccess'] = array(
+      'title' => t('Temporary files directory'),
+      'directory' => drupal_realpath('temporary://'),
+    );
+    foreach ($htaccess_files as $htaccess_file => $info) {
+      // Check for the string which was added to the recommended .htaccess file
+      // in the latest security update.
+      if (!file_exists($htaccess_file) || !($contents = @file_get_contents($htaccess_file)) || strpos($contents, 'Drupal_Security_Do_Not_Remove_See_SA_2013_003') === FALSE) {
+        $requirements[$htaccess_file] = array(
+          'title' => $info['title'],
+          'value' => t('Not fully protected'),
+          'severity' => REQUIREMENT_ERROR,
+          'description' => t('See <a href="@url">@url</a> for information about the recommended .htaccess file which should be added to the %directory directory to help protect against arbitrary code execution.', array('@url' => 'http://drupal.org/SA-CORE-2013-003', '%directory' => $info['directory'])),
+        );
+      }
+    }
   }
 
   // Report cron status.
@@ -560,7 +574,7 @@ function system_install() {
     ->save();
 
   // Populate the cron key state variable.
-  $cron_key = Crypt::randomStringHashed(55);
+  $cron_key = Crypt::randomBytesBase64(55);
   \Drupal::state()->set('system.cron_key', $cron_key);
 
   // Populate the site UUID.
@@ -713,161 +727,6 @@ function system_schema() {
       'all' => array('name', 'collection', 'expire'),
       'expire' => array('expire'),
     ),
-  );
-
-  $schema['menu_router'] = array(
-    'description' => 'Maps paths to various callbacks (access, page and title)',
-    'fields' => array(
-      'path' => array(
-        'description' => 'Primary Key: the Drupal path this entry describes',
-        'type' => 'varchar',
-        'length' => 255,
-        'not null' => TRUE,
-        'default' => '',
-      ),
-      'load_functions' => array(
-        'description' => 'A serialized array of function names (like node_load) to be called to load an object corresponding to a part of the current path.',
-        'type' => 'blob',
-        'not null' => TRUE,
-      ),
-      'to_arg_functions' => array(
-        'description' => 'A serialized array of function names (like user_uid_optional_to_arg) to be called to replace a part of the router path with another string.',
-        'type' => 'blob',
-        'not null' => TRUE,
-      ),
-      'access_callback' => array(
-        'description' => 'The callback which determines the access to this router path. Defaults to user_access.',
-        'type' => 'varchar',
-        'length' => 255,
-        'not null' => TRUE,
-        'default' => '',
-      ),
-      'access_arguments' => array(
-        'description' => 'A serialized array of arguments for the access callback.',
-        'type' => 'blob',
-        'not null' => FALSE,
-      ),
-      'page_callback' => array(
-        'description' => 'The name of the function that renders the page.',
-        'type' => 'varchar',
-        'length' => 255,
-        'not null' => TRUE,
-        'default' => '',
-      ),
-      'page_arguments' => array(
-        'description' => 'A serialized array of arguments for the page callback.',
-        'type' => 'blob',
-        'not null' => FALSE,
-      ),
-      'fit' => array(
-        'description' => 'A numeric representation of how specific the path is.',
-        'type' => 'int',
-        'not null' => TRUE,
-        'default' => 0,
-      ),
-      'number_parts' => array(
-        'description' => 'Number of parts in this router path.',
-        'type' => 'int',
-        'not null' => TRUE,
-        'default' => 0,
-        'size' => 'small',
-      ),
-      'context' => array(
-        'description' => 'Only for local tasks (tabs) - the context of a local task to control its placement.',
-        'type' => 'int',
-        'not null' => TRUE,
-        'default' => 0,
-      ),
-      'tab_parent' => array(
-        'description' => 'Only for local tasks (tabs) - the router path of the parent page (which may also be a local task).',
-        'type' => 'varchar',
-        'length' => 255,
-        'not null' => TRUE,
-        'default' => '',
-      ),
-      'tab_root' => array(
-        'description' => 'Router path of the closest non-tab parent page. For pages that are not local tasks, this will be the same as the path.',
-        'type' => 'varchar',
-        'length' => 255,
-        'not null' => TRUE,
-        'default' => '',
-      ),
-      'title' => array(
-        'description' => 'The title for the current page, or the title for the tab if this is a local task.',
-        'type' => 'varchar',
-        'length' => 255,
-        'not null' => TRUE,
-        'default' => '',
-      ),
-      'title_callback' => array(
-        'description' => 'A function which will alter the title. Defaults to t()',
-        'type' => 'varchar',
-        'length' => 255,
-        'not null' => TRUE,
-        'default' => '',
-      ),
-      'title_arguments' => array(
-        'description' => 'A serialized array of arguments for the title callback. If empty, the title will be used as the sole argument for the title callback.',
-        'type' => 'varchar',
-        'length' => 255,
-        'not null' => TRUE,
-        'default' => '',
-      ),
-      'type' => array(
-        'description' => 'Numeric representation of the type of the menu item, like MENU_LOCAL_TASK.',
-        'type' => 'int',
-        'not null' => TRUE,
-        'default' => 0,
-      ),
-      'description' => array(
-        'description' => 'A description of this item.',
-        'type' => 'text',
-        'not null' => TRUE,
-      ),
-      'description_callback' => array(
-        'description' => 'A function which will alter the description. Defaults to t().',
-        'type' => 'varchar',
-        'length' => 255,
-        'not null' => TRUE,
-        'default' => '',
-      ),
-      'description_arguments' => array(
-        'description' => 'A serialized array of arguments for the description callback. If empty, the description will be used as the sole argument for the description callback.',
-        'type' => 'varchar',
-        'length' => 255,
-        'not null' => TRUE,
-        'default' => '',
-      ),
-      'position' => array(
-        'description' => 'The position of the block (left or right) on the system administration page for this item.',
-        'type' => 'varchar',
-        'length' => 255,
-        'not null' => TRUE,
-        'default' => '',
-      ),
-      'weight' => array(
-        'description' => 'Weight of the element. Lighter weights are higher up, heavier weights go down.',
-        'type' => 'int',
-        'not null' => TRUE,
-        'default' => 0,
-      ),
-      'include_file' => array(
-        'description' => 'The file to include for this element, usually the page callback function lives in this file.',
-        'type' => 'text',
-        'size' => 'medium',
-      ),
-      'route_name' => array(
-        'description' => 'The machine name of a defined Symfony Route this menu item represents.',
-        'type' => 'varchar',
-        'length' => 255,
-      ),
-    ),
-    'indexes' => array(
-      'fit' => array('fit'),
-      'tab_parent' => array(array('tab_parent', 64), 'weight', 'title'),
-      'tab_root_weight_title' => array(array('tab_root', 64), 'weight', 'title'),
-    ),
-    'primary key' => array('path'),
   );
 
   $schema['queue'] = array(

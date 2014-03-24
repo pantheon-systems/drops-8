@@ -34,8 +34,28 @@ class ConfigEntityType extends EntityType {
    * {@inheritdoc}
    */
   public function getConfigPrefix() {
-    return isset($this->config_prefix) ? $this->config_prefix : FALSE;
+    if (isset($this->config_prefix)) {
+      $config_prefix = $this->config_prefix;
+    }
+    else {
+      $config_prefix = $this->id();
+    }
+    // Ensure that all configuration entities are prefixed by the module that
+    // provides the configuration entity type. This ensures that default
+    // configuration will be created as expected during module install and
+    // dependencies can be calculated without the modules that provide the
+    // entity types being installed.
+    return $this->provider . '.' . $config_prefix;
   }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getKeys() {
+    // Always add a default 'uuid' key.
+    return array('uuid' => 'uuid') + parent::getKeys();
+  }
+
 
   /**
    * {@inheritdoc}

@@ -11,7 +11,6 @@
  * @see watchdog()
  */
 
-use Drupal\Component\Utility\MapArray;
 use Drupal\Core\Database\Database;
 
 /**
@@ -34,42 +33,6 @@ function dblog_help($path, $arg) {
     case 'admin/reports/dblog':
       return '<p>' . t('The Database Logging module monitors your website, capturing system events in a log (shown here) to be reviewed by an authorized individual at a later time. This log is a list of recorded events containing usage data, performance data, errors, warnings and operational information. It is vital to check the Recent log messages report on a regular basis, as it is often the only way to tell what is going on.') . '</p>';
   }
-}
-
-/**
- * Implements hook_menu().
- */
-function dblog_menu() {
-  $items['admin/reports/dblog'] = array(
-    'title' => 'Recent log messages',
-    'description' => 'View events that have recently been logged.',
-    'route_name' => 'dblog.overview',
-    'weight' => -1,
-  );
-  $items['admin/reports/page-not-found'] = array(
-    'title' => "Top 'page not found' errors",
-    'description' => "View 'page not found' errors (404s).",
-    'route_name' => 'dblog.page_not_found',
-  );
-  $items['admin/reports/access-denied'] = array(
-    'title' => "Top 'access denied' errors",
-    'description' => "View 'access denied' errors (403s).",
-    'route_name' => 'dblog.access_denied',
-  );
-  $items['admin/reports/event/%'] = array(
-    'title' => 'Details',
-    'route_name' => 'dblog.event',
-  );
-
-  if (\Drupal::moduleHandler()->moduleExists('search')) {
-    $items['admin/reports/search'] = array(
-      'title' => 'Top search phrases',
-      'description' => 'View most popular search phrases.',
-      'route_name' => 'dblog.search',
-    );
-  }
-
-  return $items;
 }
 
 /**
@@ -159,7 +122,7 @@ function _dblog_get_message_types() {
     $types[] = $object->type;
   }
 
-  return MapArray::copyValuesToKeys($types);
+  return array_combine($types, $types);
 }
 
 /**
@@ -191,11 +154,12 @@ function dblog_watchdog(array $log_entry) {
  * Implements hook_form_FORM_ID_alter() for system_logging_settings().
  */
 function dblog_form_system_logging_settings_alter(&$form, $form_state) {
+  $row_limits = array(100, 1000, 10000, 100000, 1000000);
   $form['dblog_row_limit'] = array(
     '#type' => 'select',
     '#title' => t('Database log messages to keep'),
     '#default_value' => \Drupal::config('dblog.settings')->get('row_limit'),
-    '#options' => array(0 => t('All')) + drupal_map_assoc(array(100, 1000, 10000, 100000, 1000000)),
+    '#options' => array(0 => t('All')) + array_combine($row_limits, $row_limits),
     '#description' => t('The maximum number of messages to keep in the database log. Requires a <a href="@cron">cron maintenance task</a>.', array('@cron' => url('admin/reports/status')))
   );
 

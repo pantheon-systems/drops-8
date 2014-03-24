@@ -166,7 +166,7 @@ abstract class ContentTranslationTestBase extends WebTestBase {
     content_translation_set_config($this->entityTypeId, $this->bundle, 'enabled', TRUE);
     drupal_static_reset();
     entity_info_cache_clear();
-    menu_router_rebuild();
+    \Drupal::service('router.builder')->rebuild();
   }
 
   /**
@@ -175,14 +175,14 @@ abstract class ContentTranslationTestBase extends WebTestBase {
   protected function setupTestFields() {
     $this->fieldName = 'field_test_et_ui_test';
 
-    entity_create('field_entity', array(
+    entity_create('field_config', array(
       'name' => $this->fieldName,
       'type' => 'text',
       'entity_type' => $this->entityTypeId,
       'cardinality' => 1,
       'translatable' => TRUE,
     ))->save();
-    entity_create('field_instance', array(
+    entity_create('field_instance_config', array(
       'entity_type' => $this->entityTypeId,
       'field_name' => $this->fieldName,
       'bundle' => $this->bundle,

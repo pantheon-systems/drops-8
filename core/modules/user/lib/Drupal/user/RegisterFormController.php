@@ -41,10 +41,10 @@ class RegisterFormController extends AccountFormController {
 
     // If we aren't admin but already logged on, go to the user page instead.
     if (!$admin && $user->isAuthenticated()) {
-      return new RedirectResponse(url('user/' . $user->id(), array('absolute' => TRUE)));
+      return new RedirectResponse(url('user/' . \Drupal::currentUser()->id(), array('absolute' => TRUE)));
     }
 
-    $form['#attached']['library'][] = array('system', 'jquery.cookie');
+    $form['#attached']['library'][] = 'core/jquery.cookie';
     $form['#attributes']['class'][] = 'user-info-from-cookie';
 
     // Start with the default user account fields.

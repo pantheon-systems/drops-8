@@ -10,7 +10,7 @@ namespace Drupal\system\Tests\Menu;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Tests menu router and hook_menu() functionality.
+ * Tests menu router and hook_menu_link_defaults() functionality.
  */
 class MenuRouterTest extends WebTestBase {
 
@@ -45,7 +45,7 @@ class MenuRouterTest extends WebTestBase {
   public static function getInfo() {
     return array(
       'name' => 'Menu router',
-      'description' => 'Tests menu router and hook_menu() functionality.',
+      'description' => 'Tests menu router and hook_menu_link_defaults() functionality.',
       'group' => 'Menu',
     );
   }
@@ -64,13 +64,11 @@ class MenuRouterTest extends WebTestBase {
     $this->doTestTitleMenuCallback();
     $this->doTestMenuOptionalPlaceholders();
     $this->doTestMenuOnRoute();
-    $this->doTestMenuGetItemNoAncestors();
     $this->doTestMenuName();
     $this->doTestMenuItemTitlesCases();
     $this->doTestMenuLinkMaintain();
     $this->doTestMenuLinkOptions();
     $this->doTestMenuItemHooks();
-    $this->doTestDescriptionMenuItems();
     $this->doTestHookMenuIntegration();
     $this->doTestExoticPath();
   }
@@ -120,7 +118,6 @@ class MenuRouterTest extends WebTestBase {
     // Verify that the menu router item title is output as page title.
     $this->drupalGet('menu_callback_description');
     $this->assertText(t('Menu item description text'));
-    $this->assertRaw(check_plain('<strong>Menu item description arguments</strong>'));
   }
 
   /**
@@ -170,7 +167,7 @@ class MenuRouterTest extends WebTestBase {
   }
 
   /**
-   * Tests for menu_name parameter for hook_menu().
+   * Tests for menu_name parameter for hook_menu_link_defaults().
    */
   protected function doTestMenuName() {
     $admin_user = $this->drupalCreateUser(array('administer site configuration'));
@@ -203,14 +200,6 @@ class MenuRouterTest extends WebTestBase {
 
     $this->assertEqual($child_link['plid'], $parent_link['mlid'], 'The parent of a directly attached child is correct.');
     $this->assertEqual($unattached_child_link['plid'], $parent_link['mlid'], 'The parent of a non-directly attached child is correct.');
-  }
-
-  /**
-   * Test menu_get_item() with empty ancestors.
-   */
-  protected function doTestMenuGetItemNoAncestors() {
-    \Drupal::state()->set('menu.masks', array());
-    $this->drupalGet('');
   }
 
   /**
