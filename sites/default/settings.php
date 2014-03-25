@@ -78,3 +78,13 @@ if (isset($_SERVER['PRESSFLOW_SETTINGS'])) {
     }
   }
 }
+
+/**
+ * Handle Hash Salt Value from Drupal
+ *
+ * Issue: https://github.com/pantheon-systems/drops-8/issues/10
+ *
+ */
+if (isset($_SERVER['PANTHEON_ENVIRONMENT'])) {
+  $settings['hash_salt'] = 'PANTHEON-LOLWAT';
+}
