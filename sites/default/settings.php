@@ -1,17 +1,6 @@
 <?php
 
 /**
- * Override the SERVER_PORT value to insure that Symphony knows the right port
- * for sites running on Pantheon. 
- *
- * Issue: https://github.com/pantheon-systems/drops-8/issues/4
- *
- */
-if (isset($_SERVER['PANTHEON_ENVIRONMENT'])) {
-  $_SERVER['SERVER_PORT'] = (!isset($_SERVER['HTTP_X_SSL']) || $_SERVER['HTTP_X_SSL'] != 'ON') ? 80 : 443;
-}
-
-/**
  * Add the Drupal 8 CMI Directory Information directly in settings.php to make sure
  * Drupal knows all about that. 
  *
