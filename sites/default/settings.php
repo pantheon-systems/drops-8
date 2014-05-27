@@ -30,12 +30,8 @@ if (isset($_SERVER['PANTHEON_ENVIRONMENT'])) {
  * Issue: https://github.com/pantheon-systems/drops-8/issues/3
  *
  */
-if (function_exists('db_table_exists')) {
-  if (isset($_SERVER['PRESSFLOW_SETTINGS']) && !db_table_exists('sessions') && $_SERVER['SCRIPT_NAME'] != '/core/install.php') {
-    include_once __DIR__ . '/install.inc';
-    install_goto('core/install.php');
-  }
-}
+
+// This change has been made in _drupal_bootstrap_code()
 
 /**
  * Override the $databases variable to pass the correct Database credentials
