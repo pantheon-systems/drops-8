@@ -10,7 +10,7 @@
 if (isset($_SERVER['PANTHEON_ENVIRONMENT'])) {
   $config_directories = array(
     CONFIG_ACTIVE_DIRECTORY => 'sites/default/files/config/active',
-    CONFIG_STAGING_DIRECTORY => 'sites/default/files/config/staging',
+    CONFIG_STAGING_DIRECTORY => 'sites/default/config',
   );
 }
 
