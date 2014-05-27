@@ -8,14 +8,14 @@
 namespace Drupal\hal\Normalizer;
 
 use Drupal\Core\Entity\EntityManagerInterface;
-use Drupal\file\Plugin\Core\Entity\File;
+use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\rest\LinkManager\LinkManagerInterface;
-use Guzzle\Http\ClientInterface;
+use GuzzleHttp\ClientInterface;
 
 /**
  * Converts the Drupal entity object structure to a HAL array structure.
  */
-class FileEntityNormalizer extends EntityNormalizer {
+class FileEntityNormalizer extends ContentEntityNormalizer {
 
   /**
    * The interface or class that this Normalizer supports.
@@ -25,16 +25,9 @@ class FileEntityNormalizer extends EntityNormalizer {
   protected $supportedInterfaceOrClass = 'Drupal\file\FileInterface';
 
   /**
-   * The entity manager.
-   *
-   * @var \Drupal\Core\Entity\EntityManagerInterface
-   */
-  protected $entityManager;
-
-  /**
    * The HTTP client.
    *
-   * @var \Guzzle\Http\ClientInterface
+   * @var \GuzzleHttp\ClientInterface
    */
   protected $httpClient;
 
@@ -43,15 +36,16 @@ class FileEntityNormalizer extends EntityNormalizer {
    *
    * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
    *   The entity manager.
-   * @param \Guzzle\Http\ClientInterface $http_client
+   * @param \GuzzleHttp\ClientInterface $http_client
    *   The HTTP Client.
    * @param \Drupal\rest\LinkManager\LinkManagerInterface $link_manager
    *   The hypermedia link manager.
+   * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
+   *   The module handler.
    */
-  public function __construct(EntityManagerInterface $entity_manager, ClientInterface $http_client, LinkManagerInterface $link_manager) {
-    parent::__construct($link_manager);
+  public function __construct(EntityManagerInterface $entity_manager, ClientInterface $http_client, LinkManagerInterface $link_manager, ModuleHandlerInterface $module_handler) {
+    parent::__construct($link_manager, $entity_manager, $module_handler);
 
-    $this->entityManager = $entity_manager;
     $this->httpClient = $http_client;
   }
 
@@ -70,14 +64,12 @@ class FileEntityNormalizer extends EntityNormalizer {
    * {@inheritdoc}
    */
   public function denormalize($data, $class, $format = NULL, array $context = array()) {
-    $file_data = $this->httpClient->get($data['uri'][0]['value'])
-      ->send()
-      ->getBody(TRUE);
+    $file_data = $this->httpClient->get($data['uri'][0]['value'])->getBody(TRUE);
 
     $path = 'temporary://' . drupal_basename($data['uri'][0]['value']);
     $data['uri'] = file_unmanaged_save_data($file_data, $path);
 
-    return $this->entityManager->getStorageController('file')->create($data);
+    return $this->entityManager->getStorage('file')->create($data);
   }
 
 }

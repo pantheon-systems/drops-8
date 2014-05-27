@@ -19,7 +19,7 @@ interface ConfigInstallerInterface {
    * directories for all other extensions to locate any configuration with its
    * name prefix. For example, the Node module provides the frontpage view as a
    * default configuration file:
-   * core/modules/node/config/views.view.frontpage.yml
+   * core/modules/node/config/install/views.view.frontpage.yml
    * When the Views module is installed after the Node module is already
    * enabled, the frontpage view will be installed.
    *
@@ -36,5 +36,39 @@ interface ConfigInstallerInterface {
    * @see \Drupal\Core\Config\ExtensionInstallStorage
    */
   public function installDefaultConfig($type, $name);
+
+  /**
+   * Sets the configuration storage that provides the default configuration.
+   *
+   * @param \Drupal\Core\Config\StorageInterface $storage
+   *
+   * @return self
+   *   The configuration installer.
+   */
+  public function setSourceStorage(StorageInterface $storage);
+
+  /**
+   * Resets the configuration storage that provides the default configuration.
+   *
+   * @return self
+   *   The configuration installer.
+   */
+  public function resetSourceStorage();
+
+  /**
+   * Sets the status of the isSyncing flag.
+   *
+   * @param bool $status
+   *   The status of the sync flag.
+   */
+  public function setSyncing($status);
+
+  /**
+   * Gets the syncing state.
+   *
+   * @return bool
+   *   Returns TRUE is syncing flag set.
+   */
+  public function isSyncing();
 
 }

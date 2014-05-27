@@ -8,6 +8,7 @@
 namespace Drupal\hal\Normalizer;
 
 use Drupal\Core\Field\FieldItemInterface;
+use Symfony\Component\Serializer\Exception\InvalidArgumentException;
 
 /**
  * Converts the Drupal field item object structure to HAL array structure.
@@ -25,7 +26,7 @@ class FieldItemNormalizer extends NormalizerBase {
    * Implements \Symfony\Component\Serializer\Normalizer\NormalizerInterface::normalize()
    */
   public function normalize($field_item, $format = NULL, array $context = array()) {
-    $values = $field_item->getPropertyValues();
+    $values = $field_item->toArray();
     if (isset($context['langcode'])) {
       $values['lang'] = $context['langcode'];
     }
@@ -45,10 +46,10 @@ class FieldItemNormalizer extends NormalizerBase {
    */
   public function denormalize($data, $class, $format = NULL, array $context = array()) {
     if (!isset($context['target_instance'])) {
-      throw new LogicException('$context[\'target_instance\'] must be set to denormalize with the FieldItemNormalizer');
+      throw new InvalidArgumentException('$context[\'target_instance\'] must be set to denormalize with the FieldItemNormalizer');
     }
     if ($context['target_instance']->getParent() == NULL) {
-      throw new LogicException('The field item passed in via $context[\'target_instance\'] must have a parent set.');
+      throw new InvalidArgumentException('The field item passed in via $context[\'target_instance\'] must have a parent set.');
     }
 
     $field_item = $context['target_instance'];
@@ -99,28 +100,19 @@ class FieldItemNormalizer extends NormalizerBase {
    *   The translated field item instance.
    */
   protected function createTranslatedInstance(FieldItemInterface $field_item, $langcode) {
-    $parent = $field_item->getParent();
-    $ancestors = array();
+    $field_items = $field_item->getParent();
 
     // Remove the untranslated instance from the field's list of items.
-    $parent->offsetUnset($field_item->getName());
+    $field_items->offsetUnset($field_item->getName());
 
-    // Get the property path.
-    while (!method_exists($parent, 'getTranslation')) {
-      array_unshift($ancestors, $parent);
-      $parent = $parent->getParent();
-    }
+    // Get the entity in the requested language and the field's item list from
+    // that.
+    $entity_translation = $field_item->getEntity()->getTranslation($langcode);
+    $field_items_translation = $entity_translation->get($field_item->getFieldDefinition()->getName());
 
-    // Recreate the property path with translations.
-    $translation = $parent->getTranslation($langcode);
-    foreach ($ancestors as $ancestor) {
-      $ancestor_name =  $ancestor->getName();
-      $translation = $translation->get($ancestor_name);
-    }
-
-    // Create a new instance at the end of the property path and return it.
-    $count = $translation->isEmpty() ? 0 : $translation->count();
-    return $translation->get($count);
+    // Create a new instance and return it.
+    $count = $field_items_translation->isEmpty() ? 0 : $field_items_translation->count();
+    return $field_items_translation->get($count);
   }
 
 }

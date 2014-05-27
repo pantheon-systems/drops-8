@@ -7,10 +7,10 @@
 
 use Drupal\Component\Utility\Html;
 use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Render\Element;
 use Drupal\editor\Entity\Editor;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\field\Field;
 use Drupal\filter\FilterFormatInterface;
 use Drupal\filter\Plugin\FilterInterface;
 
@@ -45,8 +45,8 @@ function editor_help($path, $arg) {
  * of text editors.
  */
 function editor_menu_link_defaults_alter(array &$links) {
-  $links['filter.admin.formats']['link_title'] = 'Text formats and editors';
-  $links['filter.admin.formats']['description'] = 'Configure how user-contributed content is filtered and formatted, as well as the text editor user interface (WYSIWYGs or toolbars).';
+  $links['filter.admin_overview']['title'] = 'Text formats and editors';
+  $links['filter.admin_overview']['description'] = 'Configure how user-contributed content is filtered and formatted, as well as the text editor user interface (WYSIWYGs or toolbars).';
 }
 
 /**
@@ -77,7 +77,7 @@ function editor_form_filter_admin_overview_alter(&$form, $form_state) {
 
   // Then splice in the name of each text editor for each text format.
   $editors = \Drupal::service('plugin.manager.editor')->getDefinitions();
-  foreach (element_children($form['formats']) as $format_id) {
+  foreach (Element::children($form['formats']) as $format_id) {
     $editor = editor_load($format_id);
     $editor_name = ($editor && isset($editors[$editor->editor])) ? $editors[$editor->editor]['label'] : drupal_placeholder('—');
     $editor_column['editor'] = array('#markup' => $editor_name);
@@ -556,22 +556,10 @@ function _editor_get_processed_text_fields(ContentEntityInterface $entity) {
     return array();
   }
 
-  // Find all configurable fields, because only they could have a
-  // text_processing setting.
-  $configurable_fields = array_keys(array_filter($field_definitions, function ($definition) {
-    return $definition->isConfigurable();
-  }));
-  if (empty($configurable_fields)) {
-    return array();
-  }
-
   // Only return fields that have text processing enabled.
-  return array_filter($configurable_fields, function ($field) use ($entity) {
-    $settings = Field::fieldInfo()
-      ->getInstance($entity->getEntityTypeId(), $entity->bundle(), $field)
-      ->getSettings();
-    return isset($settings['text_processing']) && $settings['text_processing'] === TRUE;
-  });
+  return array_keys(array_filter($field_definitions, function ($definition) {
+    return $definition->getSetting('text_processing') === TRUE;
+  }));
 }
 
 /**

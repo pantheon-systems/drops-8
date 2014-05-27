@@ -7,8 +7,8 @@
 
 namespace Drupal\Core\Field\Plugin\Field\FieldType;
 
-use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldItemBase;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\TypedData\DataDefinition;
 
 /**
@@ -18,7 +18,7 @@ use Drupal\Core\TypedData\DataDefinition;
  *   id = "boolean",
  *   label = @Translation("Boolean"),
  *   description = @Translation("An entity field containing a boolean value."),
- *   configurable = FALSE
+ *   no_ui = TRUE
  * )
  */
 class BooleanItem extends FieldItemBase {
@@ -26,7 +26,7 @@ class BooleanItem extends FieldItemBase {
   /**
    * {@inheritdoc}
    */
-  public static function propertyDefinitions(FieldDefinitionInterface $field_definition) {
+  public static function propertyDefinitions(FieldStorageDefinitionInterface $field_definition) {
     $properties['value'] = DataDefinition::create('boolean')
       ->setLabel(t('Boolean value'));
 
@@ -36,7 +36,7 @@ class BooleanItem extends FieldItemBase {
   /**
    * {@inheritdoc}
    */
-  public static function schema(FieldDefinitionInterface $field_definition) {
+  public static function schema(FieldStorageDefinitionInterface $field_definition) {
     return array(
       'columns' => array(
         'value' => array(

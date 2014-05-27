@@ -19,7 +19,7 @@ use Drupal\Core\Field\FieldDefinition;
  *   id = "contact_message",
  *   label = @Translation("Contact message"),
  *   controllers = {
- *     "storage" = "Drupal\Core\Entity\FieldableNullStorageController",
+ *     "storage" = "Drupal\Core\Entity\ContentEntityNullStorage",
  *     "view_builder" = "Drupal\contact\MessageViewBuilder",
  *     "form" = {
  *       "default" = "Drupal\contact\MessageFormController"
@@ -38,7 +38,7 @@ use Drupal\Core\Field\FieldDefinition;
 class Message extends ContentEntityBase implements MessageInterface {
 
   /**
-   * Overrides Drupal\Core\Entity\Entity::id().
+   * {@inheritdoc}
    */
   public function id() {
     return NULL;

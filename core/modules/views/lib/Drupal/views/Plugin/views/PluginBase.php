@@ -10,6 +10,7 @@ namespace Drupal\views\Plugin\views;
 use Drupal\Component\Utility\String;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Plugin\PluginBase as ComponentPluginBase;
+use Drupal\Core\Render\Element;
 use Drupal\views\Plugin\views\display\DisplayPluginBase;
 use Drupal\views\ViewExecutable;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -82,7 +83,7 @@ abstract class PluginBase extends ComponentPluginBase implements ContainerFactor
   /**
    * Constructs a Plugin object.
    */
-  public function __construct(array $configuration, $plugin_id, array $plugin_definition) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
 
     $this->definition = $plugin_definition + $configuration;
@@ -91,7 +92,7 @@ abstract class PluginBase extends ComponentPluginBase implements ContainerFactor
   /**
    * {@inheritdoc}
    */
-  public static function create(ContainerInterface $container, array $configuration, $plugin_id, array $plugin_definition) {
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
     return new static($configuration, $plugin_id, $plugin_definition);
   }
 
@@ -380,7 +381,7 @@ abstract class PluginBase extends ComponentPluginBase implements ContainerFactor
    *   The form build array.
    */
   public static function preRenderAddFieldsetMarkup(array $form) {
-    foreach (element_children($form) as $key) {
+    foreach (Element::children($form) as $key) {
       $element = $form[$key];
       // In our form builder functions, we added an arbitrary #fieldset property
       // to any element that belongs in a fieldset. If this form element has
@@ -409,10 +410,10 @@ abstract class PluginBase extends ComponentPluginBase implements ContainerFactor
    *   The form build array.
    */
   public static function preRenderFlattenData($form) {
-    foreach (element_children($form) as $key) {
+    foreach (Element::children($form) as $key) {
       $element = $form[$key];
       if (!empty($element['#flatten'])) {
-        foreach (element_children($element) as $child_key) {
+        foreach (Element::children($element) as $child_key) {
           $form[$child_key] = $form[$key][$child_key];
         }
         // All done, remove the now-empty parent.
@@ -421,6 +422,18 @@ abstract class PluginBase extends ComponentPluginBase implements ContainerFactor
     }
 
     return $form;
+  }
+
+  /**
+   * Returns an array of module dependencies for this plugin.
+   *
+   * Dependencies are a list of module names, which might depend on the
+   * configuration.
+   *
+   * @return array
+   */
+  public function getDependencies() {
+    return array();
   }
 
 }

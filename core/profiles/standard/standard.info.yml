@@ -16,12 +16,12 @@ dependencies:
   - contact
   - datetime
   - custom_block
-  - edit
+  - quickedit
   - editor
   - entity_reference
   - help
   - image
-  - menu
+  - menu_ui
   - options
   - path
   - taxonomy
@@ -35,3 +35,6 @@ dependencies:
   - views
   - views_ui
   - tour
+themes:
+  - bartik
+  - seven

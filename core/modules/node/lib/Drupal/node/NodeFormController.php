@@ -50,8 +50,6 @@ class NodeFormController extends ContentEntityFormController {
       // Remove the log message from the original node entity.
       $node->log = NULL;
     }
-    // Always use the default revision setting.
-    $node->setNewRevision(!empty($this->settings['options']['revision']));
   }
 
   /**
@@ -123,7 +121,7 @@ class NodeFormController extends ContentEntityFormController {
     $form['revision'] = array(
       '#type' => 'checkbox',
       '#title' => t('Create new revision'),
-      '#default_value' => $node->isNewRevision(),
+      '#default_value' => !empty($this->settings['options']['revision']),
       '#access' => $node->isNewRevision() || user_access('administer nodes'),
       '#group' => 'revision_information',
     );
@@ -349,11 +347,14 @@ class NodeFormController extends ContentEntityFormController {
     $node = parent::submit($form, $form_state);
 
     // Save as a new revision if requested to do so.
-    if (!empty($form_state['values']['revision'])) {
+    if (!empty($form_state['values']['revision']) && $form_state['values']['revision'] != FALSE) {
       $node->setNewRevision();
       // If a new revision is created, save the current user as revision author.
       $node->setRevisionCreationTime(REQUEST_TIME);
       $node->setRevisionAuthorId(\Drupal::currentUser()->id());
+    }
+    else {
+      $node->setNewRevision(FALSE);
     }
 
     $node->validated = TRUE;
@@ -441,7 +442,7 @@ class NodeFormController extends ContentEntityFormController {
     $node = $this->entity;
     $insert = $node->isNew();
     $node->save();
-    $node_link = l(t('view'), 'node/' . $node->id());
+    $node_link = l(t('View'), 'node/' . $node->id());
     $watchdog_args = array('@type' => $node->getType(), '%title' => $node->label());
     $t_args = array('@type' => node_get_type_label($node), '%title' => $node->label());
 

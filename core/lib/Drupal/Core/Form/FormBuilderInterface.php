@@ -41,10 +41,10 @@ interface FormBuilderInterface extends FormErrorInterface {
    *   - The name of a function that builds the form.
    * @param ...
    *   Any additional arguments are passed on to the functions called by
-   *   drupal_get_form(), including the unique form constructor function. For
-   *   example, the node_edit form requires that a node object is passed in here
-   *   when it is called. These are available to implementations of
-   *   hook_form_alter() and hook_form_FORM_ID_alter() as the array
+   *   \Drupal::formBuilder()->getForm(), including the unique form constructor
+   *   function. For example, the node_edit form requires that a node object is
+   *   passed in here when it is called. These are available to implementations
+   *   of hook_form_alter() and hook_form_FORM_ID_alter() as the array
    *   $form_state['build_info']['args'].
    *
    * @return array
@@ -164,6 +164,12 @@ interface FormBuilderInterface extends FormErrorInterface {
    *     likely to occur during Ajax operations.
    *   - programmed: If TRUE, the form was submitted programmatically, usually
    *     invoked via self::submitForm(). Defaults to FALSE.
+   *   - programmed_bypass_access_check: If TRUE, programmatic form submissions
+   *     are processed without taking #access into account. Set this to FALSE
+   *     when submitting a form programmatically with values that may have been
+   *     input by the user executing the current request; this will cause
+   *     #access to be respected as it would on a normal form submission.
+   *     Defaults to TRUE.
    *   - process_input: Boolean flag. TRUE signifies correct form submission.
    *     This is always TRUE for programmed forms coming from self::submitForm()
    *     (see 'programmed' key), or if the form_id coming from the

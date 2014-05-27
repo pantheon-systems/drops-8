@@ -12,6 +12,7 @@ use Drupal\migrate\ProcessPluginBase;
 use Drupal\migrate\MigrateException;
 use Drupal\migrate\MigrateExecutable;
 use Drupal\migrate\Row;
+use Drupal\migrate\MigrateSkipRowException;
 
 /**
  * This plugin changes the current value based on a static lookup map.
@@ -39,8 +40,14 @@ class StaticMap extends ProcessPluginBase {
     }
     $new_value = NestedArray::getValue($this->configuration['map'], $new_value, $key_exists);
     if (!$key_exists) {
+      if (isset($this->configuration['default_value'])) {
+        if (!empty($this->configuration['bypass'])) {
+          throw new MigrateException('Setting both default_value and bypass is invalid.');
+        }
+        return $this->configuration['default_value'];
+      }
       if (empty($this->configuration['bypass'])) {
-        throw new MigrateException('Lookup failed.');
+        throw new MigrateSkipRowException();
       }
       else {
         return $value;
@@ -50,4 +57,3 @@ class StaticMap extends ProcessPluginBase {
   }
 
 }
-

@@ -87,7 +87,7 @@ class CommentFormController extends ContentEntityFormController {
   public function form(array $form, array &$form_state) {
     /** @var \Drupal\comment\CommentInterface $comment */
     $comment = $this->entity;
-    $entity = $this->entityManager->getStorageController($comment->getCommentedEntityTypeId())->load($comment->getCommentedEntityId());
+    $entity = $this->entityManager->getStorage($comment->getCommentedEntityTypeId())->load($comment->getCommentedEntityId());
     $field_name = $comment->getFieldName();
     $instance = $this->fieldInfo->getInstance($entity->getEntityTypeId(), $entity->bundle(), $field_name);
 
@@ -278,7 +278,7 @@ class CommentFormController extends ContentEntityFormController {
 
     if (!empty($form_state['values']['cid'])) {
       // Verify the name in case it is being changed from being anonymous.
-      $accounts = $this->entityManager->getStorageController('user')->loadByProperties(array('name' => $form_state['values']['name']));
+      $accounts = $this->entityManager->getStorage('user')->loadByProperties(array('name' => $form_state['values']['name']));
       $account = reset($accounts);
       $form_state['values']['uid'] = $account ? $account->id() : 0;
 
@@ -295,7 +295,7 @@ class CommentFormController extends ContentEntityFormController {
       // author of this comment was an anonymous user, verify that no registered
       // user with this name exists.
       if ($form_state['values']['name']) {
-        $accounts = $this->entityManager->getStorageController('user')->loadByProperties(array('name' => $form_state['values']['name']));
+        $accounts = $this->entityManager->getStorage('user')->loadByProperties(array('name' => $form_state['values']['name']));
         if (!empty($accounts)) {
           $this->setFormError('name', $form_state, $this->t('The name you used belongs to a registered user.'));
         }
@@ -391,7 +391,7 @@ class CommentFormController extends ContentEntityFormController {
       $form_state['values']['cid'] = $comment->id();
 
       // Add an entry to the watchdog log.
-      watchdog('content', 'Comment posted: %subject.', array('%subject' => $comment->getSubject()), WATCHDOG_NOTICE, l(t('view'), 'comment/' . $comment->id(), array('fragment' => 'comment-' . $comment->id())));
+      watchdog('content', 'Comment posted: %subject.', array('%subject' => $comment->getSubject()), WATCHDOG_NOTICE, l(t('View'), 'comment/' . $comment->id(), array('fragment' => 'comment-' . $comment->id())));
 
       // Explain the approval queue if necessary.
       if (!$comment->isPublished()) {
@@ -410,7 +410,8 @@ class CommentFormController extends ContentEntityFormController {
         $query['page'] = $page;
       }
       // Redirect to the newly posted comment.
-      $uri['options'] += array('query' => $query, 'fragment' => 'comment-' . $comment->id());
+      $uri->setOption('query', $query);
+      $uri->setOption('fragment', 'comment-' . $comment->id());
     }
     else {
       watchdog('content', 'Comment: unauthorized comment submitted or comment submitted to a closed post %subject.', array('%subject' => $comment->getSubject()), WATCHDOG_WARNING);

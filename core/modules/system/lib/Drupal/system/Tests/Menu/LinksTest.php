@@ -155,9 +155,7 @@ class LinksTest extends WebTestBase {
     // links.
     $links = $this->createLinkHierarchy($module);
     // Don't do that at home.
-    db_delete('menu_links')
-      ->condition('mlid', $links['child-1']['mlid'])
-      ->execute();
+    entity_delete_multiple('menu_link', array($links['child-1']['mlid']));
 
     $expected_hierarchy = array(
       'parent' => FALSE,
@@ -184,7 +182,9 @@ class LinksTest extends WebTestBase {
   }
 
   /**
-   * Tests automatic reparenting of menu links derived from hook_menu_link_defaults.
+   * Tests automatic reparenting.
+   *
+   * Runs tests on menu links defined by the menu_link.static service.
    */
   function testMenuLinkRouterReparenting() {
     // Run all the standard parenting tests on menu links derived from
@@ -269,7 +269,7 @@ class LinksTest extends WebTestBase {
     \Drupal::service('router.builder')->rebuild();
     menu_link_rebuild_defaults();
     $result = $menu_link = \Drupal::entityQuery('menu_link')->condition('machine_name', 'menu_test')->execute();
-    $menu_links = \Drupal::entityManager()->getStorageController('menu_link')->loadMultiple($result);
+    $menu_links = \Drupal::entityManager()->getStorage('menu_link')->loadMultiple($result);
     $this->assertEqual(count($menu_links), 1);
     $menu_link = reset($menu_links);
     $this->assertEqual($menu_link->machine_name, 'menu_test');
@@ -277,7 +277,7 @@ class LinksTest extends WebTestBase {
     // Uninstall the module and ensure the menu link got removed.
     \Drupal::moduleHandler()->uninstall(array('menu_test'));
     $result = $menu_link = \Drupal::entityQuery('menu_link')->condition('machine_name', 'menu_test')->execute();
-    $menu_links = \Drupal::entityManager()->getStorageController('menu_link')->loadMultiple($result);
+    $menu_links = \Drupal::entityManager()->getStorage('menu_link')->loadMultiple($result);
     $this->assertEqual(count($menu_links), 0);
   }
 

@@ -7,7 +7,7 @@
 
 namespace Drupal\text\Plugin\Field\FieldType;
 
-use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
 
 /**
  * Plugin implementation of the 'text_long' field type.
@@ -16,9 +16,6 @@ use Drupal\Core\Field\FieldDefinitionInterface;
  *   id = "text_long",
  *   label = @Translation("Long text"),
  *   description = @Translation("This field stores long text in the database."),
- *   instance_settings = {
- *     "text_processing" = "0"
- *   },
  *   default_widget = "text_textarea",
  *   default_formatter = "text_default"
  * )
@@ -28,7 +25,7 @@ class TextLongItem extends TextItemBase {
   /**
    * {@inheritdoc}
    */
-  public static function schema(FieldDefinitionInterface $field_definition) {
+  public static function schema(FieldStorageDefinitionInterface $field_definition) {
     return array(
       'columns' => array(
         'value' => array(

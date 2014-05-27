@@ -9,10 +9,9 @@ namespace Drupal\system;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Symfony\Cmf\Component\Routing\RouteObjectInterface;
-use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Extension\ModuleHandlerInterface;
-use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * System Manager Service.
@@ -36,9 +35,16 @@ class SystemManager {
   /**
    * The menu link storage.
    *
-   * @var \Drupal\menu_link\MenuLinkStorageControllerInterface
+   * @var \Drupal\menu_link\MenuLinkStorageInterface
    */
   protected $menuLinkStorage;
+
+  /**
+   * The request stack.
+   *
+   * @var \Symfony\Component\HttpFoundation\RequestStack
+   */
+  protected $requestStack;
 
   /**
    * A static cache of menu items.
@@ -63,13 +69,6 @@ class SystemManager {
   const REQUIREMENT_ERROR = 2;
 
   /**
-   * The request object.
-   *
-   * @var \Symfony\Component\HttpFoundation\Request
-   */
-  protected $request;
-
-  /**
    * Constructs a SystemManager object.
    *
    * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
@@ -78,21 +77,14 @@ class SystemManager {
    *   The database connection.
    * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
    *   The entity manager.
+   * @param \Symfony\Component\HttpFoundation\RequestStack
+   *   The request stack.
    */
-  public function __construct(ModuleHandlerInterface $module_handler, Connection $database, EntityManagerInterface $entity_manager) {
+  public function __construct(ModuleHandlerInterface $module_handler, Connection $database, EntityManagerInterface $entity_manager, RequestStack $request_stack) {
     $this->moduleHandler = $module_handler;
     $this->database = $database;
-    $this->menuLinkStorage = $entity_manager->getStorageController('menu_link');
-  }
-
-  /**
-   * Sets the current request.
-   *
-   * @param \Symfony\Component\HttpFoundation\Request $request
-   *   The request object.
-   */
-  public function setRequest(Request $request) {
-    $this->request = $request;
+    $this->menuLinkStorage = $entity_manager->getStorage('menu_link');
+    $this->requestStack = $request_stack;
   }
 
   /**
@@ -179,7 +171,8 @@ class SystemManager {
    *   A render array suitable for drupal_render.
    */
   public function getBlockContents() {
-    $route_name = $this->request->attributes->get(RouteObjectInterface::ROUTE_NAME);
+    $request = $this->requestStack->getCurrentRequest();
+    $route_name = $request->attributes->get(RouteObjectInterface::ROUTE_NAME);
     $items = $this->menuLinkStorage->loadByProperties(array('route_name' => $route_name));
     $item = reset($items);
     if ($content = $this->getAdminBlock($item)) {

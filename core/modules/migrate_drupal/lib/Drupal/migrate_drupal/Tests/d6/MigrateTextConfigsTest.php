@@ -7,7 +7,6 @@
 
 namespace Drupal\migrate_drupal\Tests\d6;
 
-use Drupal\migrate\MigrateMessage;
 use Drupal\migrate\MigrateExecutable;
 use Drupal\migrate_drupal\Tests\MigrateDrupalTestBase;
 
@@ -35,18 +34,25 @@ class MigrateTextConfigsTest extends MigrateDrupalTestBase {
   }
 
   /**
+   * {@inheritdoc}
+   */
+  protected function setUp() {
+    parent::setUp();
+    $migration = entity_load('migration', 'd6_text_settings');
+    $dumps = array(
+      dirname(__DIR__) . '/Dump/Drupal6TextSettings.php',
+    );
+    $this->prepare($migration, $dumps);
+    $executable = new MigrateExecutable($migration, $this);
+    $executable->import();
+  }
+
+  /**
    * Tests migration of text variables to text.settings.yml.
    */
   public function testTextSettings() {
-    $migration = entity_load('migration', 'd6_text_settings');
-    $dumps = array(
-      drupal_get_path('module', 'migrate_drupal') . '/lib/Drupal/migrate_drupal/Tests/Dump/Drupal6TextSettings.php',
-    );
-    $this->prepare($migration, $dumps);
-    $executable = new MigrateExecutable($migration, new MigrateMessage());
-    $executable->import();
     $config = \Drupal::config('text.settings');
-    $this->assertIdentical($config->get('default_summary_length'), 600);
+    $this->assertIdentical($config->get('default_summary_length'), 456);
   }
 
 }

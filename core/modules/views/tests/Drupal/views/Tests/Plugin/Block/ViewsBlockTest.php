@@ -15,9 +15,6 @@ use Drupal\block\Plugin\views\display\Block;
 if (!defined('BLOCK_LABEL_VISIBLE')) {
   define('BLOCK_LABEL_VISIBLE', 'visible');
 }
-if (!defined('DRUPAL_NO_CACHE')) {
-  define('DRUPAL_NO_CACHE', -1);
-}
 
 /**
  * Tests the views block plugin.
@@ -48,11 +45,11 @@ class ViewsBlockTest extends UnitTestCase {
   protected $view;
 
   /**
-   * The view storage controller.
+   * The view storage.
    *
-   * @var \Drupal\Core\Entity\EntityStorageControllerInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Entity\EntityStorageInterface|\PHPUnit_Framework_MockObject_MockObject
    */
-  protected $storageController;
+  protected $storage;
 
   /**
    * The mocked user account.
@@ -101,11 +98,11 @@ class ViewsBlockTest extends UnitTestCase {
       ->with($this->view)
       ->will($this->returnValue($this->executable));
 
-    $this->storageController = $this->getMockBuilder('Drupal\views\ViewStorageController')
+    $this->storage = $this->getMockBuilder('Drupal\Core\Config\Entity\ConfigEntityStorage')
       ->disableOriginalConstructor()
       ->getMock();
 
-    $this->storageController->expects($this->any())
+    $this->storage->expects($this->any())
       ->method('load')
       ->with('test_view')
       ->will($this->returnValue($this->view));
@@ -128,8 +125,9 @@ class ViewsBlockTest extends UnitTestCase {
     $block_id = 'views_block:test_view-block_1';
     $config = array();
     $definition = array();
-    $definition['module'] = 'views';
-    $plugin = new ViewsBlock($config, $block_id, $definition, $this->executableFactory, $this->storageController, $this->account);
+
+    $definition['provider'] = 'views';
+    $plugin = new ViewsBlock($config, $block_id, $definition, $this->executableFactory, $this->storage, $this->account);
 
     $this->assertEquals($build, $plugin->build());
   }
@@ -149,8 +147,9 @@ class ViewsBlockTest extends UnitTestCase {
     $block_id = 'views_block:test_view-block_1';
     $config = array();
     $definition = array();
-    $definition['module'] = 'views';
-    $plugin = new ViewsBlock($config, $block_id, $definition, $this->executableFactory, $this->storageController, $this->account);
+
+    $definition['provider'] = 'views';
+    $plugin = new ViewsBlock($config, $block_id, $definition, $this->executableFactory, $this->storage, $this->account);
 
     $this->assertEquals(array(), $plugin->build());
   }

@@ -5,6 +5,7 @@
  * Allows users to manage customizable lists of shortcut links.
  */
 
+use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Routing\UrlMatcher;
 use Drupal\Core\Url;
 use Drupal\shortcut\ShortcutSetInterface;
@@ -59,30 +60,6 @@ function shortcut_permission() {
       'description' => t('From all shortcut sets, select one to be own active set. Without this permission, an administrator selects shortcut sets for users.'),
     ),
   );
-}
-
-/**
- * Implements hook_menu_link_defaults().
- */
-function shortcut_menu_link_defaults() {
-  $links['shortcut.admin.config.user-interface.shortcut'] = array(
-    'link_title' => 'Shortcuts',
-    'description' => 'Add and modify shortcut sets.',
-    'route_name' => 'shortcut.set_admin',
-    'parent' => 'system.admin.config.user-interface',
-  );
-
-  return $links;
-}
-
-/**
- * Implements hook_admin_paths().
- */
-function shortcut_admin_paths() {
-  $paths = array(
-    'user/*/shortcuts' => TRUE,
-  );
-  return $paths;
 }
 
 /**
@@ -169,7 +146,7 @@ function shortcut_set_load($id) {
  */
 function shortcut_set_assign_user($shortcut_set, $account) {
   \Drupal::entityManager()
-    ->getStorageController('shortcut_set')
+    ->getStorage('shortcut_set')
     ->assignUser($shortcut_set, $account);
 }
 
@@ -188,7 +165,7 @@ function shortcut_set_assign_user($shortcut_set, $account) {
  */
 function shortcut_set_unassign_user($account) {
   return (bool) \Drupal::entityManager()
-    ->getStorageController('shortcut_set')
+    ->getStorage('shortcut_set')
     ->unassignUser($account);
 }
 
@@ -217,7 +194,7 @@ function shortcut_current_displayed_set($account = NULL) {
   // If none was found, try to find a shortcut set that is explicitly assigned
   // to this user.
   $shortcut_set_name = \Drupal::entityManager()
-    ->getStorageController('shortcut_set')
+    ->getStorage('shortcut_set')
     ->getAssignedToUser($account);
   if ($shortcut_set_name) {
     $shortcut_set = shortcut_set_load($shortcut_set_name);
@@ -302,7 +279,7 @@ function shortcut_valid_link($path) {
   }
 
   // An empty path is valid too and will be converted to <front>.
-  return (!url_is_external($path) && (\Drupal::service('router.route_provider')->getRoutesByPattern('/' . $path)->count() > 0)) || empty($path) || $path == '<front>';
+  return (!UrlHelper::isExternal($path) && (\Drupal::service('router.route_provider')->getRoutesByPattern('/' . $path)->count() > 0)) || empty($path) || $path == '<front>';
 }
 
 /**
@@ -314,8 +291,6 @@ function shortcut_valid_link($path) {
  *
  * @return \Drupal\shortcut\ShortcutInterface[]
  *   An array of shortcut links, in the format returned by the menu system.
- *
- * @see menu_tree()
  */
 function shortcut_renderable_links($shortcut_set = NULL) {
   $shortcut_links = array();
@@ -324,7 +299,7 @@ function shortcut_renderable_links($shortcut_set = NULL) {
     $shortcut_set = shortcut_current_displayed_set();
   }
 
-  $shortcuts = \Drupal::entityManager()->getStorageController('shortcut')->loadByProperties(array('shortcut_set' => $shortcut_set->id()));
+  $shortcuts = \Drupal::entityManager()->getStorage('shortcut')->loadByProperties(array('shortcut_set' => $shortcut_set->id()));
   foreach ($shortcuts as $shortcut) {
     $links[] = array(
       'title' => $shortcut->label(),
@@ -349,7 +324,7 @@ function shortcut_renderable_links($shortcut_set = NULL) {
  * Implements hook_preprocess_HOOK() for block templates.
  */
 function shortcut_preprocess_block(&$variables) {
-  if ($variables['configuration']['module'] == 'shortcut') {
+  if ($variables['configuration']['provider'] == 'shortcut') {
     $variables['attributes']['role'] = 'navigation';
   }
 }
@@ -387,7 +362,7 @@ function shortcut_preprocess_page(&$variables) {
     $shortcut_set = shortcut_current_displayed_set();
 
     // Check if $link is already a shortcut and set $link_mode accordingly.
-    $shortcuts = \Drupal::entityManager()->getStorageController('shortcut')->loadByProperties(array('shortcut_set' => $shortcut_set->id()));
+    $shortcuts = \Drupal::entityManager()->getStorage('shortcut')->loadByProperties(array('shortcut_set' => $shortcut_set->id()));
     foreach ($shortcuts as $shortcut) {
       if ($shortcut->getRouteName() == $url->getRouteName() && $shortcut->getRouteParams() == $url->getRouteParameters()) {
         $shortcut_id = $shortcut->id();
@@ -439,7 +414,8 @@ function shortcut_toolbar() {
     $configure_link = array(
       '#type' => 'link',
       '#title' => t('Edit shortcuts'),
-      '#href' => 'admin/config/user-interface/shortcut/manage/' . $shortcut_set->id(),
+      '#route_name' => 'shortcut.set_customize',
+      '#route_parameters' => array('shortcut_set' => $shortcut_set->id()),
       '#options' => array('attributes' => array('class' => array('edit-shortcuts'))),
     );
   }
@@ -450,11 +426,9 @@ function shortcut_toolbar() {
         '#type' => 'link',
         '#title' => t('Shortcuts'),
         '#href' => 'admin/config/user-interface/shortcut',
-        '#options' => array(
-          'attributes' => array(
-            'title' => t('Shortcuts'),
-            'class' => array('toolbar-icon', 'toolbar-icon-shortcut'),
-          ),
+        '#attributes' => array(
+          'title' => t('Shortcuts'),
+          'class' => array('toolbar-icon', 'toolbar-icon-shortcut'),
         ),
       ),
       'tray' => array(

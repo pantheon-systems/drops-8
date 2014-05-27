@@ -66,7 +66,7 @@ class CustomBlockTypeTest extends CustomBlockTestBase {
     $this->assertTrue($block_type, 'The new block type has been created.');
 
     // Check that the block type was created in site default language.
-    $default_langcode = language_default()->id;
+    $default_langcode = \Drupal::languageManager()->getDefaultLanguage()->id;
     $this->assertEqual($block_type->langcode, $default_langcode);
   }
 
@@ -146,10 +146,10 @@ class CustomBlockTypeTest extends CustomBlockTestBase {
     $type = $this->createCustomBlockType('foo');
     $type = $this->createCustomBlockType('bar');
 
-    // Get the custom block storage controller.
-    $storage_controller = $this->container
+    // Get the custom block storage.
+    $storage = $this->container
       ->get('entity.manager')
-      ->getStorageController('custom_block');
+      ->getStorage('custom_block');
 
     // Enable all themes.
     theme_enable(array('bartik', 'seven'));
@@ -178,15 +178,15 @@ class CustomBlockTypeTest extends CustomBlockTestBase {
           $this->clickLink('foo');
         }
         // Create a new block.
-        $edit = array('info' => $this->randomName(8));
+        $edit = array('info[0][value]' => $this->randomName(8));
         $this->drupalPostForm(NULL, $edit, t('Save'));
-        $blocks = $storage_controller->loadByProperties(array('info' => $edit['info']));
+        $blocks = $storage->loadByProperties(array('info' => $edit['info[0][value]']));
         if (!empty($blocks)) {
           $block = reset($blocks);
           $destination = 'admin/structure/block/add/custom_block:' . $block->uuid() . '/' . $theme;
           $this->assertUrl(url($destination, array('absolute' => TRUE)));
           $this->drupalPostForm(NULL, array(), t('Save block'));
-          $this->assertUrl(url("admin/structure/block/list/$theme", array('absolute' => TRUE, 'query' => array('block-placement' => drupal_html_class($edit['info'])))));
+          $this->assertUrl(url("admin/structure/block/list/$theme", array('absolute' => TRUE, 'query' => array('block-placement' => drupal_html_class($edit['info[0][value]'])))));
         }
         else {
           $this->fail('Could not load created block.');
@@ -199,9 +199,9 @@ class CustomBlockTypeTest extends CustomBlockTestBase {
     $this->drupalGet('admin/structure/block/custom-blocks');
     $this->clickLink(t('Add custom block'));
     $this->clickLink('foo');
-    $edit = array('info' => $this->randomName(8));
+    $edit = array('info[0][value]' => $this->randomName(8));
     $this->drupalPostForm(NULL, $edit, t('Save'));
-    $blocks = $storage_controller->loadByProperties(array('info' => $edit['info']));
+    $blocks = $storage->loadByProperties(array('info' => $edit['info[0][value]']));
     if (!empty($blocks)) {
       $destination = 'admin/structure/block/custom-blocks';
       $this->assertUrl(url($destination, array('absolute' => TRUE)));

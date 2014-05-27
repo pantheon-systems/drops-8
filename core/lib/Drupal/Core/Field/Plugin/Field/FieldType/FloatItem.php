@@ -7,7 +7,7 @@
 
 namespace Drupal\Core\Field\Plugin\Field\FieldType;
 
-use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\TypedData\DataDefinition;
 
 /**
@@ -17,12 +17,6 @@ use Drupal\Core\TypedData\DataDefinition;
  *   id = "float",
  *   label = @Translation("Number (float)"),
  *   description = @Translation("This field stores a number in the database in a floating point format."),
- *   instance_settings = {
- *     "min" = "",
- *     "max" = "",
- *     "prefix" = "",
- *     "suffix" = ""
- *   },
  *   default_widget = "number",
  *   default_formatter = "number_decimal"
  * )
@@ -32,7 +26,7 @@ class FloatItem extends NumericItemBase {
   /**
    * {@inheritdoc}
    */
-  public static function propertyDefinitions(FieldDefinitionInterface $field_definition) {
+  public static function propertyDefinitions(FieldStorageDefinitionInterface $field_definition) {
     $properties['value'] = DataDefinition::create('float')
       ->setLabel(t('Float value'));
 
@@ -42,7 +36,7 @@ class FloatItem extends NumericItemBase {
   /**
    * {@inheritdoc}
    */
-  public static function schema(FieldDefinitionInterface $field_definition) {
+  public static function schema(FieldStorageDefinitionInterface $field_definition) {
     return array(
       'columns' => array(
         'value' => array(

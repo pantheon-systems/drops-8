@@ -12,7 +12,7 @@ namespace Drupal\views\Plugin\views\area;
  *
  * @ingroup views_area_handlers
  *
- * @PluginID("text_custom")
+ * @ViewsArea("text_custom")
  */
 class TextCustom extends TokenizeAreaPluginBase {
 
@@ -53,7 +53,7 @@ class TextCustom extends TokenizeAreaPluginBase {
   }
 
   /**
-   * Render a text area with filter_xss_admin.
+   * Render a text area with \Drupal\Component\Utility\Xss::filterAdmin().
    */
   public function renderTextarea($value) {
     if ($value) {

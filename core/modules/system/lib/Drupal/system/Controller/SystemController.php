@@ -7,7 +7,7 @@
 
 namespace Drupal\system\Controller;
 
-use Drupal\Component\Utility\Json;
+use Drupal\Component\Serialization\Json;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\Query\QueryFactory;
 use Drupal\Core\Extension\ThemeHandlerInterface;
@@ -108,7 +108,7 @@ class SystemController extends ControllerBase {
       ->condition('link_path', 'admin/config')
       ->condition('module', 'system');
     $result = $query->execute();
-    $menu_link_storage = $this->entityManager()->getStorageController('menu_link');
+    $menu_link_storage = $this->entityManager()->getStorage('menu_link');
     if ($system_link = $menu_link_storage->loadMultiple($result)) {
       $system_link = reset($system_link);
       $query = $this->queryFactory->get('menu_link')
@@ -183,16 +183,19 @@ class SystemController extends ControllerBase {
    *
    * @return string
    *   An HTML string of the theme listing page.
+   *
+   * @todo Move into ThemeController.
    */
   public function themesPage() {
     $config = $this->config('system.theme');
-    // Get current list of themes.
-    $themes = $this->themeHandler->listInfo();
+    // Get all available themes.
+    $themes = $this->themeHandler->rebuildThemeData();
     uasort($themes, 'system_sort_modules_by_info_name');
 
     $theme_default = $config->get('default');
-    $theme_groups  = array();
+    $theme_groups  = array('enabled' => array(), 'disabled' => array());
     $admin_theme = $config->get('admin');
+    $admin_theme_options = array();
 
     foreach ($themes as &$theme) {
       if (!empty($theme->info['hidden'])) {
@@ -317,14 +320,6 @@ class SystemController extends ControllerBase {
     $build[] = $this->formBuilder->getForm('Drupal\system\Form\ThemeAdminForm', $admin_theme_options);
 
     return $build;
-  }
-
-  /**
-   * @todo Remove system_theme_default().
-   */
-  public function themeSetDefault() {
-    module_load_include('admin.inc', 'system');
-    return system_theme_default();
   }
 
   /**

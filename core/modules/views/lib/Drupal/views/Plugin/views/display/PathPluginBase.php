@@ -7,7 +7,7 @@
 
 namespace Drupal\views\Plugin\views\display;
 
-use Drupal\Core\KeyValueStore\StateInterface;
+use Drupal\Core\State\StateInterface;
 use Drupal\Core\Routing\RouteCompiler;
 use Drupal\Core\Routing\RouteProviderInterface;
 use Drupal\views\Views;
@@ -35,7 +35,7 @@ abstract class PathPluginBase extends DisplayPluginBase implements DisplayRouter
   /**
    * The state key value store.
    *
-   * @var \Drupal\Core\KeyValueStore\StateInterface
+   * @var \Drupal\Core\State\StateInterface
    */
   protected $state;
 
@@ -46,14 +46,14 @@ abstract class PathPluginBase extends DisplayPluginBase implements DisplayRouter
    *   A configuration array containing information about the plugin instance.
    * @param string $plugin_id
    *   The plugin_id for the plugin instance.
-   * @param array $plugin_definition
+   * @param mixed $plugin_definition
    *   The plugin implementation definition.
    * @param \Drupal\Core\Routing\RouteProviderInterface $route_provider
    *   The route provider.
-   * @param \Drupal\Core\KeyValueStore\StateInterface $state
+   * @param \Drupal\Core\State\StateInterface $state
    *   The state key value store.
    */
-  public function __construct(array $configuration, $plugin_id, array $plugin_definition, RouteProviderInterface $route_provider, StateInterface $state) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, RouteProviderInterface $route_provider, StateInterface $state) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
 
     $this->routeProvider = $route_provider;
@@ -63,7 +63,7 @@ abstract class PathPluginBase extends DisplayPluginBase implements DisplayRouter
   /**
    * {@inheritdoc}
    */
-  public static function create(ContainerInterface $container, array $configuration, $plugin_id, array $plugin_definition) {
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
     return new static(
       $configuration,
       $plugin_id,
@@ -139,10 +139,7 @@ abstract class PathPluginBase extends DisplayPluginBase implements DisplayRouter
     // page arguments so the argument actually comes through.
     $arg_counter = 0;
 
-    $this->view->initHandlers();
-    $view_arguments = (array) $this->view->argument;
-
-    $argument_ids = array_keys($view_arguments);
+    $argument_ids = array_keys((array) $this->getOption('arguments'));
     $total_arguments = count($argument_ids);
 
     $argument_map = array();
@@ -200,7 +197,7 @@ abstract class PathPluginBase extends DisplayPluginBase implements DisplayRouter
     $route->setOption('_access_mode', 'ANY');
 
     // Set the argument map, in order to support named parameters.
-    $route->setDefault('_view_argument_map', $argument_map);
+    $route->setOption('_view_argument_map', $argument_map);
 
     return $route;
   }
@@ -247,10 +244,6 @@ abstract class PathPluginBase extends DisplayPluginBase implements DisplayRouter
         $route = $this->getRoute($view_id, $display_id);
 
         $path = $route->getPath();
-        // Load the argument IDs from the view executable.
-        $view_arguments = (array) $this->view->argument;
-        $argument_ids = array_keys($view_arguments);
-
         // Replace the path with the original parameter names and add a mapping.
         $argument_map = array();
         // We assume that the numeric ids of the parameters match the one from
@@ -260,7 +253,7 @@ abstract class PathPluginBase extends DisplayPluginBase implements DisplayRouter
           $argument_map['arg_' . $position] = $parameter_name;
         }
         // Set the corrected path and the mapping to the route object.
-        $route->setDefault('_view_argument_map', $argument_map);
+        $route->setOption('_view_argument_map', $argument_map);
         $route->setPath($path);
 
         $collection->add($name, $route);
@@ -281,9 +274,6 @@ abstract class PathPluginBase extends DisplayPluginBase implements DisplayRouter
     // views_arg_load -- which lives in views.module.
 
     $bits = explode('/', $this->getOption('path'));
-    $page_arguments = array($this->view->storage->id(), $this->display['id']);
-    $this->view->initHandlers();
-    $view_arguments = $this->view->argument;
 
     // Replace % with %views_arg for menu autoloading and add to the
     // page arguments so the argument actually comes through.
@@ -312,7 +302,7 @@ abstract class PathPluginBase extends DisplayPluginBase implements DisplayRouter
           'load arguments'  => array($this->view->storage->id(), $this->display['id'], '%index'),
           'machine_name' => $menu_link_id,
         );
-        $links[$menu_link_id]['link_title'] = $menu['title'];
+        $links[$menu_link_id]['title'] = $menu['title'];
         $links[$menu_link_id]['description'] = $menu['description'];
 
         if (isset($menu['weight'])) {
@@ -391,6 +381,8 @@ abstract class PathPluginBase extends DisplayPluginBase implements DisplayRouter
           '#field_prefix' => '<span dir="ltr">' . url(NULL, array('absolute' => TRUE)),
           '#field_suffix' => '</span>&lrm;',
           '#attributes' => array('dir' => 'ltr'),
+          // Account for the leading backslash.
+          '#maxlength' => 254,
         );
         break;
     }

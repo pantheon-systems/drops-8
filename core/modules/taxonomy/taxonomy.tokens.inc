@@ -6,6 +6,7 @@
  */
 
 use Drupal\Component\Utility\String;
+use Drupal\Component\Utility\Xss;
 
 /**
  * Implements hook_token_info().
@@ -164,7 +165,7 @@ function taxonomy_tokens($type, $tokens, array $data = array(), array $options =
           break;
 
         case 'description':
-          $replacements[$original] = $sanitize ? filter_xss($vocabulary->description) : $vocabulary->description;
+          $replacements[$original] = $sanitize ? Xss::filter($vocabulary->description) : $vocabulary->description;
           break;
 
         case 'term-count':
@@ -176,7 +177,7 @@ function taxonomy_tokens($type, $tokens, array $data = array(), array $options =
           break;
 
         case 'node-count':
-          $replacements[$original] = \Drupal::entityManager()->getStorageController('taxonomy_term')->nodeCount($vocabulary->id());
+          $replacements[$original] = \Drupal::entityManager()->getStorage('taxonomy_term')->nodeCount($vocabulary->id());
           break;
       }
     }

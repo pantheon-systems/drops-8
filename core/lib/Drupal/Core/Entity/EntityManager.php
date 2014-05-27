@@ -24,7 +24,8 @@ use Drupal\Core\Plugin\Discovery\AnnotatedClassDiscovery;
 use Drupal\Core\Plugin\Discovery\InfoHookDecorator;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\TypedData\TranslatableInterface;
-use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\DependencyInjection\ContainerAwareInterface;
+use Symfony\Component\DependencyInjection\ContainerAwareTrait;
 
 /**
  * Manages entity type plugin definitions.
@@ -40,14 +41,16 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * @see \Drupal\Core\Entity\EntityTypeInterface
  * @see hook_entity_type_alter()
  */
-class EntityManager extends PluginManagerBase implements EntityManagerInterface {
+class EntityManager extends PluginManagerBase implements EntityManagerInterface, ContainerAwareInterface  {
+
+  use ContainerAwareTrait;
 
   /**
-   * The injection container that should be passed into the controller factory.
+   * Extra fields by bundle.
    *
-   * @var \Symfony\Component\DependencyInjection\ContainerInterface
+   * @var array
    */
-  protected $container;
+  protected $extraFields = array();
 
   /**
    * Contains instantiated controllers keyed by controller type and entity type.
@@ -92,6 +95,16 @@ class EntityManager extends PluginManagerBase implements EntityManagerInterface 
   protected $fieldDefinitions;
 
   /**
+   * Static cache of field storage definitions per entity type.
+   *
+   * Elements of the array:
+   *  - $entity_type_id: \Drupal\Core\Field\FieldDefinition[]
+   *
+   * @var array
+   */
+  protected $fieldStorageDefinitions;
+
+  /**
    * The root paths.
    *
    * @see self::__construct().
@@ -115,13 +128,18 @@ class EntityManager extends PluginManagerBase implements EntityManagerInterface 
   protected $bundleInfo;
 
   /**
+   * Static cache of display modes information.
+   *
+   * @var array
+   */
+  protected $displayModeInfo = array();
+
+  /**
    * Constructs a new Entity plugin manager.
    *
    * @param \Traversable $namespaces
    *   An object that implements \Traversable which contains the root paths
    *   keyed by the corresponding namespace to look for plugin implementations,
-   * @param \Symfony\Component\DependencyInjection\ContainerInterface $container
-   *   The service container this object should use.
    * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
    *   The module handler.
    * @param \Drupal\Core\Cache\CacheBackendInterface $cache
@@ -131,7 +149,7 @@ class EntityManager extends PluginManagerBase implements EntityManagerInterface 
    * @param \Drupal\Core\StringTranslation\TranslationInterface $translation_manager
    *   The string translationManager.
    */
-  public function __construct(\Traversable $namespaces, ContainerInterface $container, ModuleHandlerInterface $module_handler, CacheBackendInterface $cache, LanguageManager $language_manager, TranslationInterface $translation_manager) {
+  public function __construct(\Traversable $namespaces, ModuleHandlerInterface $module_handler, CacheBackendInterface $cache, LanguageManager $language_manager, TranslationInterface $translation_manager) {
     // Allow the plugin definition to be altered by hook_entity_type_alter().
 
     $this->moduleHandler = $module_handler;
@@ -143,9 +161,8 @@ class EntityManager extends PluginManagerBase implements EntityManagerInterface 
     $this->discovery = new AnnotatedClassDiscovery('Entity', $namespaces, 'Drupal\Core\Entity\Annotation\EntityType');
     $this->discovery = new InfoHookDecorator($this->discovery, 'entity_type_build');
     $this->discovery = new AlterDecorator($this->discovery, 'entity_type');
-    $this->discovery = new CacheDecorator($this->discovery, 'entity_type:' . $this->languageManager->getCurrentLanguage()->id, 'cache', Cache::PERMANENT, array('entity_types' => TRUE));
+    $this->discovery = new CacheDecorator($this->discovery, 'entity_type:' . $this->languageManager->getCurrentLanguage()->id, 'discovery', Cache::PERMANENT, array('entity_types' => TRUE));
 
-    $this->container = $container;
   }
 
   /**
@@ -155,6 +172,8 @@ class EntityManager extends PluginManagerBase implements EntityManagerInterface 
     parent::clearCachedDefinitions();
 
     $this->bundleInfo = NULL;
+    $this->displayModeInfo = array();
+    $this->extraFields = array();
   }
 
   /**
@@ -184,15 +203,15 @@ class EntityManager extends PluginManagerBase implements EntityManagerInterface 
   /**
    * {@inheritdoc}
    */
-  public function getStorageController($entity_type) {
+  public function getStorage($entity_type) {
     return $this->getController($entity_type, 'storage', 'getStorageClass');
   }
 
   /**
    * {@inheritdoc}
    */
-  public function getListController($entity_type) {
-    return $this->getController($entity_type, 'list', 'getListClass');
+  public function getListBuilder($entity_type) {
+    return $this->getController($entity_type, 'list_builder', 'getListBuilderClass');
   }
 
   /**
@@ -316,23 +335,51 @@ class EntityManager extends PluginManagerBase implements EntityManagerInterface 
    *
    * @param string $entity_type_id
    *   The entity type ID. Only entity types that implement
-   *   \Drupal\Core\Entity\ContentEntityInterface are supported
+   *   \Drupal\Core\Entity\ContentEntityInterface are supported.
    *
    * @return \Drupal\Core\Field\FieldDefinitionInterface[]
    *   An array of field definitions, keyed by field name.
    *
    * @throws \LogicException
-   *   Thrown if one of the entity keys is flagged as translatable.
+   *   Thrown if a config entity type is given or if one of the entity keys is
+   *   flagged as translatable.
    */
   protected function buildBaseFieldDefinitions($entity_type_id) {
     $entity_type = $this->getDefinition($entity_type_id);
     $class = $entity_type->getClass();
 
-    $base_field_definitions = $class::baseFieldDefinitions($entity_type);
+    // Fail with an exception for config entity types.
+    if (!$entity_type->isSubclassOf('\Drupal\Core\Entity\ContentEntityInterface')) {
+      throw new \LogicException(String::format('Getting the base fields is not supported for entity type @type.', array('@type' => $entity_type->getLabel())));
+    }
 
-    // Invoke hook.
-    $result = $this->moduleHandler->invokeAll('entity_base_field_info', array($entity_type));
-    $base_field_definitions = NestedArray::mergeDeep($base_field_definitions, $result);
+    // Retrieve base field definitions and assign them the entity type provider.
+    $base_field_definitions = $class::baseFieldDefinitions($entity_type);
+    $provider = $entity_type->getProvider();
+    foreach ($base_field_definitions as $definition) {
+      // @todo Remove this check once FieldDefinitionInterface exposes a proper
+      //  provider setter. See https://drupal.org/node/2225961.
+      if ($definition instanceof FieldDefinition) {
+        $definition->setProvider($provider);
+      }
+    }
+
+    // Retrieve base field definitions from modules.
+    foreach ($this->moduleHandler->getImplementations('entity_base_field_info') as $module) {
+      $module_definitions = $this->moduleHandler->invoke($module, 'entity_base_field_info', array($entity_type));
+      if (!empty($module_definitions)) {
+        // Ensure the provider key actually matches the name of the provider
+        // defining the field.
+        foreach ($module_definitions as $field_name => $definition) {
+          // @todo Remove this check once FieldDefinitionInterface exposes a
+          //  proper provider setter. See https://drupal.org/node/2225961.
+          if ($definition instanceof FieldDefinition) {
+            $definition->setProvider($module);
+          }
+          $base_field_definitions[$field_name] = $definition;
+        }
+      }
+    }
 
     // Automatically set the field name for non-configurable fields.
     foreach ($base_field_definitions as $field_name => $base_field_definition) {
@@ -345,15 +392,17 @@ class EntityManager extends PluginManagerBase implements EntityManagerInterface 
     // Invoke alter hook.
     $this->moduleHandler->alter('entity_base_field_info', $base_field_definitions, $entity_type);
 
-    // Ensure all basic fields are not defined as translatable.
-    $keys = array_intersect_key(array_filter($entity_type->getKeys()), array_flip(array('id', 'revision', 'uuid', 'bundle')));
-    $untranslatable_fields = array_flip(array('langcode') + $keys);
-    foreach ($base_field_definitions as $field_name => $definition) {
-      if (isset($untranslatable_fields[$field_name]) && $definition->isTranslatable()) {
-        throw new \LogicException(String::format('The @field field cannot be translatable.', array('@field' => $definition->getLabel())));
+    // Ensure defined entity keys are there and have proper revisionable and
+    // translatable values.
+    $keys = array_filter($entity_type->getKeys() + array('langcode' => 'langcode'));
+    foreach ($keys as $key => $field_name) {
+      if (isset($base_field_definitions[$field_name]) && in_array($key, array('id', 'revision', 'uuid', 'bundle')) && $base_field_definitions[$field_name]->isRevisionable()) {
+        throw new \LogicException(String::format('The @field field cannot be revisionable as it is used as @key entity key.', array('@field' => $base_field_definitions[$field_name]->getLabel(), '@key' => $key)));
+      }
+      if (isset($base_field_definitions[$field_name]) && in_array($key, array('id', 'revision', 'uuid', 'bundle', 'langcode')) && $base_field_definitions[$field_name]->isTranslatable()) {
+        throw new \LogicException(String::format('The @field field cannot be translatable as it is used as @key entity key.', array('@field' => $base_field_definitions[$field_name]->getLabel(), '@key' => $key)));
       }
     }
-
     return $base_field_definitions;
   }
 
@@ -403,10 +452,31 @@ class EntityManager extends PluginManagerBase implements EntityManagerInterface 
 
     // Allow the entity class to override the base fields.
     $bundle_field_definitions = $class::bundleFieldDefinitions($entity_type, $bundle, $base_field_definitions);
+    $provider = $entity_type->getProvider();
+    foreach ($bundle_field_definitions as $definition) {
+      // @todo Remove this check once FieldDefinitionInterface exposes a proper
+      //  provider setter. See https://drupal.org/node/2225961.
+      if ($definition instanceof FieldDefinition) {
+        $definition->setProvider($provider);
+      }
+    }
 
-    // Invoke 'per bundle' hook.
-    $result = $this->moduleHandler->invokeAll('entity_bundle_field_info', array($entity_type, $bundle, $base_field_definitions));
-    $bundle_field_definitions = NestedArray::mergeDeep($bundle_field_definitions, $result);
+    // Retrieve base field definitions from modules.
+    foreach ($this->moduleHandler->getImplementations('entity_bundle_field_info') as $module) {
+      $module_definitions = $this->moduleHandler->invoke($module, 'entity_bundle_field_info', array($entity_type, $bundle, $base_field_definitions));
+      if (!empty($module_definitions)) {
+        // Ensure the provider key actually matches the name of the provider
+        // defining the field.
+        foreach ($module_definitions as $field_name => $definition) {
+          // @todo Remove this check once FieldDefinitionInterface exposes a
+          //  proper provider setter. See https://drupal.org/node/2225961.
+          if ($definition instanceof FieldDefinition) {
+            $definition->setProvider($module);
+          }
+          $bundle_field_definitions[$field_name] = $definition;
+        }
+      }
+    }
 
     // Automatically set the field name for non-configurable fields.
     foreach ($bundle_field_definitions as $field_name => $field_definition) {
@@ -425,9 +495,74 @@ class EntityManager extends PluginManagerBase implements EntityManagerInterface 
   /**
    * {@inheritdoc}
    */
+  public function getFieldStorageDefinitions($entity_type_id) {
+    if (!isset($this->fieldStorageDefinitions[$entity_type_id])) {
+      $this->fieldStorageDefinitions[$entity_type_id] = array();
+      // Add all non-computed base fields.
+      foreach ($this->getBaseFieldDefinitions($entity_type_id) as $field_name => $definition) {
+        if (!$definition->isComputed()) {
+          $this->fieldStorageDefinitions[$entity_type_id][$field_name] = $definition;
+        }
+      }
+      // Not prepared, try to load from cache.
+      $cid = 'entity_field_storage_definitions:' . $entity_type_id . ':' . $this->languageManager->getCurrentLanguage()->id;
+      if ($cache = $this->cache->get($cid)) {
+        $field_storage_definitions = $cache->data;
+      }
+      else {
+        // Rebuild the definitions and put it into the cache.
+        $field_storage_definitions = $this->buildFieldStorageDefinitions($entity_type_id);
+        $this->cache->set($cid, $field_storage_definitions, Cache::PERMANENT, array('entity_types' => TRUE, 'entity_field_info' => TRUE));
+      }
+      $this->fieldStorageDefinitions[$entity_type_id] += $field_storage_definitions;
+    }
+    return $this->fieldStorageDefinitions[$entity_type_id];
+  }
+
+  /**
+   * Builds field storage definitions for an entity type.
+   *
+   * @param string $entity_type_id
+   *   The entity type ID. Only entity types that implement
+   *   \Drupal\Core\Entity\ContentEntityInterface are supported
+   *
+   * @return \Drupal\Core\Field\FieldStorageDefinitionInterface[]
+   *   An array of field storage definitions, keyed by field name.
+   */
+  protected function buildFieldStorageDefinitions($entity_type_id) {
+    $entity_type = $this->getDefinition($entity_type_id);
+    $field_definitions = array();
+
+    // Retrieve base field definitions from modules.
+    foreach ($this->moduleHandler->getImplementations('entity_field_storage_info') as $module) {
+      $module_definitions = $this->moduleHandler->invoke($module, 'entity_field_storage_info', array($entity_type));
+      if (!empty($module_definitions)) {
+        // Ensure the provider key actually matches the name of the provider
+        // defining the field.
+        foreach ($module_definitions as $field_name => $definition) {
+          // @todo Remove this check once FieldDefinitionInterface exposes a
+          //  proper provider setter. See https://drupal.org/node/2225961.
+          if ($definition instanceof FieldDefinition) {
+            $definition->setProvider($module);
+          }
+          $field_definitions[$field_name] = $definition;
+        }
+      }
+    }
+
+    // Invoke alter hook.
+    $this->moduleHandler->alter('entity_field_storage_info', $field_definitions, $entity_type);
+
+    return $field_definitions;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function clearCachedFieldDefinitions() {
     $this->baseFieldDefinitions = array();
     $this->fieldDefinitions = array();
+    $this->fieldStorageDefinitions = array();
     Cache::deleteTags(array('entity_field_info' => TRUE));
   }
 
@@ -462,6 +597,42 @@ class EntityManager extends PluginManagerBase implements EntityManagerInterface 
     }
 
     return $this->bundleInfo;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getExtraFields($entity_type_id, $bundle) {
+    // Read from the "static" cache.
+    if (isset($this->extraFields[$entity_type_id][$bundle])) {
+      return $this->extraFields[$entity_type_id][$bundle];
+    }
+
+    // Read from the persistent cache. Since hook_entity_extra_field_info() and
+    // hook_entity_extra_field_info_alter() might contain t() calls, we cache
+    // per language.
+    $cache_id = 'entity_bundle_extra_fields:' . $entity_type_id . ':' . $bundle . ':' . $this->languageManager->getCurrentLanguage()->id;
+    $cached = $this->cache->get($cache_id);
+    if ($cached) {
+      $this->extraFields[$entity_type_id][$bundle] = $cached->data;
+      return $this->extraFields[$entity_type_id][$bundle];
+    }
+
+    $extra = $this->moduleHandler->invokeAll('entity_extra_field_info');
+    $this->moduleHandler->alter('entity_extra_field_info', $extra);
+    $info = isset($extra[$entity_type_id][$bundle]) ? $extra[$entity_type_id][$bundle] : array();
+    $info += array(
+      'form' => array(),
+      'display' => array(),
+    );
+
+    // Store in the 'static' and persistent caches.
+    $this->extraFields[$entity_type_id][$bundle] = $info;
+    $this->cache->set($cache_id, $info, Cache::PERMANENT, array(
+      'entity_field_info' => TRUE,
+    ));
+
+    return $this->extraFields[$entity_type_id][$bundle];
   }
 
   /**
@@ -507,6 +678,125 @@ class EntityManager extends PluginManagerBase implements EntityManagerInterface 
     }
 
     return $translation;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getAllViewModes() {
+    return $this->getAllDisplayModesByEntityType('view_mode');
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getViewModes($entity_type_id) {
+    return $this->getDisplayModesByEntityType('view_mode', $entity_type_id);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getAllFormModes() {
+    return $this->getAllDisplayModesByEntityType('form_mode');
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getFormModes($entity_type_id) {
+    return $this->getDisplayModesByEntityType('form_mode', $entity_type_id);
+  }
+
+  /**
+   * Returns the entity display mode info for all entity types.
+   *
+   * @param string $display_type
+   *   The display type to be retrieved. It can be "view_mode" or "form_mode".
+   *
+   * @return array
+   *   The display mode info for all entity types.
+   */
+  protected function getAllDisplayModesByEntityType($display_type) {
+    if (!isset($this->displayModeInfo[$display_type])) {
+      $key = 'entity_' . $display_type . '_info';
+      $langcode = $this->languageManager->getCurrentLanguage(Language::TYPE_INTERFACE)->id;
+      if ($cache = $this->cache->get("$key:$langcode")) {
+        $this->displayModeInfo[$display_type] = $cache->data;
+      }
+      else {
+        $this->displayModeInfo[$display_type] = array();
+        foreach ($this->getStorage($display_type)->loadMultiple() as $display_mode) {
+          list($display_mode_entity_type, $display_mode_name) = explode('.', $display_mode->id(), 2);
+          $this->displayModeInfo[$display_type][$display_mode_entity_type][$display_mode_name] = (array) $display_mode;
+        }
+        $this->moduleHandler->alter($key, $this->displayModeInfo[$display_type]);
+        $this->cache->set("$key:$langcode", $this->displayModeInfo[$display_type], CacheBackendInterface::CACHE_PERMANENT, array('entity_types' => TRUE));
+      }
+    }
+
+    return $this->displayModeInfo[$display_type];
+  }
+
+  /**
+   * Returns the entity display mode info for a specific entity type.
+   *
+   * @param string $display_type
+   *   The display type to be retrieved. It can be "view_mode" or "form_mode".
+   * @param string $entity_type_id
+   *   The entity type whose display mode info should be returned.
+   *
+   * @return array
+   *   The display mode info for a specific entity type.
+   */
+  protected function getDisplayModesByEntityType($display_type, $entity_type_id) {
+    if (isset($this->displayModeInfo[$display_type][$entity_type_id])) {
+      return $this->displayModeInfo[$display_type][$entity_type_id];
+    }
+    else {
+      $display_modes = $this->getAllDisplayModesByEntityType($display_type);
+      if (isset($display_modes[$entity_type_id])) {
+        return $display_modes[$entity_type_id];
+      }
+    }
+    return array();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getViewModeOptions($entity_type, $include_disabled = FALSE) {
+    return $this->getDisplayModeOptions('view_mode', $entity_type, $include_disabled);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getFormModeOptions($entity_type, $include_disabled = FALSE) {
+    return $this->getDisplayModeOptions('form_mode', $entity_type, $include_disabled);
+  }
+
+  /**
+   * Returns an array of display mode options.
+   *
+   * @param string $display_type
+   *   The display type to be retrieved. It can be "view_mode" or "form_mode".
+   * @param string $entity_type_id
+   *   The entity type whose display mode options should be returned.
+   * @param bool $include_disabled
+   *   Force to include disabled display modes. Defaults to FALSE.
+   *
+   * @return array
+   *   An array of display mode labels, keyed by the display mode ID.
+   */
+  protected function getDisplayModeOptions($display_type, $entity_type_id, $include_disabled = FALSE) {
+    $options = array('default' => t('Default'));
+    foreach ($this->getDisplayModesByEntityType($display_type, $entity_type_id) as $mode => $settings) {
+      if (!empty($settings['status']) || $include_disabled) {
+        $options[$mode] = $settings['label'];
+      }
+    }
+    return $options;
   }
 
 }

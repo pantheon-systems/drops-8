@@ -1,0 +1,38 @@
+id: node.forum
+targetEntityType: node
+bundle: forum
+types:
+  - 'schema:Discussion'
+fieldMappings:
+  title:
+    properties:
+      - 'schema:name'
+  created:
+    properties:
+      - 'schema:dateCreated'
+    datatype_callback:
+      callable: 'date_iso8601'
+  changed:
+    properties:
+      - 'schema:dateModified'
+    datatype_callback:
+      callable: 'date_iso8601'
+  body:
+    properties:
+      - 'schema:text'
+  uid:
+    properties:
+      - 'schema:author'
+    mapping_type: 'rel'
+  comment_count:
+    properties:
+      - 'schema:interactionCount'
+    datatype_callback:
+      callable: 'Drupal\rdf\SchemaOrgDataConverter::interactionCount'
+      arguments:
+        interaction_type: 'UserComments'
+dependencies:
+  entity:
+    - node.type.forum
+  module:
+    - node

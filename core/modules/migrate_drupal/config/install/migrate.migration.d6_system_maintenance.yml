@@ -1,0 +1,12 @@
+id: d6_system_maintenance
+source:
+  plugin: variable
+  variables:
+    - site_offline
+    - site_offline_message
+process:
+  enable: site_offline
+  message: site_offline_message
+destination:
+  plugin: config
+  config_name: system.maintenance

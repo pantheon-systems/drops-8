@@ -16,14 +16,14 @@ use Drupal\user\UserAuth;
  * @group Drupal
  * @group User
  *
- * @coverDefaultClass \Drupal\user\UserAuth
+ * @coversDefaultClass \Drupal\user\UserAuth
  */
 class UserAuthTest extends UnitTestCase {
 
   /**
-   * The mock user storage controller.
+   * The mock user storage.
    *
-   * @var \Drupal\Core\Entity\EntityStorageControllerInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Entity\EntityStorageInterface|\PHPUnit_Framework_MockObject_MockObject
    */
   protected $userStorage;
 
@@ -77,12 +77,11 @@ class UserAuthTest extends UnitTestCase {
    * {@inheritdoc}
    */
   public function setUp() {
-    $this->userStorage = $this->getMock('Drupal\Core\Entity\EntityStorageControllerInterface');
+    $this->userStorage = $this->getMock('Drupal\Core\Entity\EntityStorageInterface');
 
     $entity_manager = $this->getMock('Drupal\Core\Entity\EntityManagerInterface');
-    // Getting the user storage controller should only happen once per test.
-    $entity_manager->expects($this->once())
-      ->method('getStorageController')
+    $entity_manager->expects($this->any())
+      ->method('getStorage')
       ->with('user')
       ->will($this->returnValue($this->userStorage));
 
@@ -99,7 +98,7 @@ class UserAuthTest extends UnitTestCase {
   /**
    * Tests failing authentication with missing credential parameters.
    *
-   * @covers ::authenticate()
+   * @covers ::authenticate
    *
    * @dataProvider providerTestAuthenticateWithMissingCredentials
    */
@@ -127,7 +126,7 @@ class UserAuthTest extends UnitTestCase {
   /**
    * Tests the authenticate method with no account returned.
    *
-   * @covers ::authenticate()
+   * @covers ::authenticate
    */
   public function testAuthenticateWithNoAccountReturned() {
     $this->userStorage->expects($this->once())
@@ -141,7 +140,7 @@ class UserAuthTest extends UnitTestCase {
   /**
    * Tests the authenticate method with an incorrect password.
    *
-   * @covers ::authenticate()
+   * @covers ::authenticate
    */
   public function testAuthenticateWithIncorrectPassword() {
     $this->userStorage->expects($this->once())
@@ -160,7 +159,7 @@ class UserAuthTest extends UnitTestCase {
   /**
    * Tests the authenticate method with a correct password.
    *
-   * @covers ::authenticate()
+   * @covers ::authenticate
    */
   public function testAuthenticateWithCorrectPassword() {
     $this->testUser->expects($this->once())
@@ -183,7 +182,7 @@ class UserAuthTest extends UnitTestCase {
   /**
    * Tests the authenticate method with a correct password and new password hash.
    *
-   * @covers ::authenticate()
+   * @covers ::authenticate
    */
   public function testAuthenticateWithCorrectPasswordAndNewPasswordHash() {
     $this->testUser->expects($this->once())

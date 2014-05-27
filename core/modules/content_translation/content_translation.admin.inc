@@ -6,10 +6,11 @@
  */
 
 use Drupal\Component\Utility\String;
-use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Language\Language;
+use Drupal\Core\Render\Element;
 use Drupal\field\Field as FieldService;
+use Drupal\field\FieldInstanceConfigInterface;
 
 /**
  * Returns a form element to configure field synchronization.
@@ -23,7 +24,8 @@ use Drupal\field\Field as FieldService;
 function content_translation_field_sync_widget(FieldDefinitionInterface $field) {
   $element = array();
 
-  $column_groups = $field->getSetting('column_groups');
+  $definition = \Drupal::service('plugin.manager.field.field_type')->getDefinition($field->getType());
+  $column_groups = $definition['column_groups'];
   if (!empty($column_groups) && count($column_groups) > 1) {
     $options = array();
     $default = array();
@@ -102,14 +104,13 @@ function _content_translation_form_language_content_settings_form_alter(array &$
             // translation.
             // @todo Remove this special casing as soon as configurable and
             //   base field definitions are "unified".
-            if ($definition->isConfigurable() && ($field = FieldService::fieldInfo()->getField($entity_type_id, $field_name))) {
-              $instance = FieldService::fieldInfo()->getInstance($entity_type_id, $bundle, $field_name);
+            if ($definition instanceof FieldInstanceConfigInterface) {
               $form['settings'][$entity_type_id][$bundle]['fields'][$field_name] = array(
-                '#label' => $instance->getLabel(),
+                '#label' => $definition->getLabel(),
                 '#type' => 'checkbox',
                 '#default_value' => $translatable,
               );
-              $column_element = content_translation_field_sync_widget($instance);
+              $column_element = content_translation_field_sync_widget($definition);
               if ($column_element) {
                 $form['settings'][$entity_type_id][$bundle]['columns'][$field_name] = $column_element;
 
@@ -157,8 +158,8 @@ function _content_translation_preprocess_language_content_settings_table(&$varia
   array_unshift($build['#header'], array('data' => t('Translatable'), 'class' => array('translatable')));
   $rows = array();
 
-  foreach (element_children($element) as $bundle) {
-    $field_names = !empty($element[$bundle]['fields']) ? element_children($element[$bundle]['fields']) : array();
+  foreach (Element::children($element) as $bundle) {
+    $field_names = !empty($element[$bundle]['fields']) ? Element::children($element[$bundle]['fields']) : array();
     if (!empty($element[$bundle]['translatable'])) {
       $checkbox_id = $element[$bundle]['translatable']['#id'];
     }
@@ -213,7 +214,7 @@ function _content_translation_preprocess_language_content_settings_table(&$varia
 
       if (!empty($element[$bundle]['columns'][$field_name])) {
         $column_element = &$element[$bundle]['columns'][$field_name];
-        foreach (element_children($column_element) as $key) {
+        foreach (Element::children($column_element) as $key) {
           $column_label = $column_element[$key]['#title'];
           unset($column_element[$key]['#title']);
           $rows[] = array(
@@ -277,7 +278,7 @@ function content_translation_form_language_content_settings_validate(array $form
 
         $values = $bundle_settings['settings']['language'];
         if (empty($values['language_show']) && \Drupal::languageManager()->isLanguageLocked($values['langcode'])) {
-          foreach (language_list(Language::STATE_LOCKED) as $language) {
+          foreach (\Drupal::languageManager()->getLanguages(Language::STATE_LOCKED) as $language) {
             $locked_languages[] = $language->name;
           }
           form_set_error($name, $form_state, t('Translation is not supported if language is always one of: @locked_languages', array('@locked_languages' => implode(', ', $locked_languages))));

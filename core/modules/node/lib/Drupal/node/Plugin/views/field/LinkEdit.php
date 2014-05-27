@@ -15,7 +15,7 @@ use Drupal\views\ResultRow;
  *
  * @ingroup views_field_handlers
  *
- * @PluginID("node_link_edit")
+ * @ViewsField("node_link_edit")
  */
 class LinkEdit extends Link {
 
@@ -40,7 +40,7 @@ class LinkEdit extends Link {
     $this->options['alter']['path'] = "node/" . $node->id() . "/edit";
     $this->options['alter']['query'] = drupal_get_destination();
 
-    $text = !empty($this->options['text']) ? $this->options['text'] : t('edit');
+    $text = !empty($this->options['text']) ? $this->options['text'] : t('Edit');
     return $text;
   }
 

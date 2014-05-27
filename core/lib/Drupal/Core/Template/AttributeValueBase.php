@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Definition of Drupal\Core\Template\AttributeValueBase.
+ * Contains \Drupal\Core\Template\AttributeValueBase.
  */
 
 namespace Drupal\Core\Template;
@@ -15,13 +15,6 @@ use Drupal\Component\Utility\String;
  * @see \Drupal\Core\Template\Attribute
  */
 abstract class AttributeValueBase {
-
-  /**
-   * Whether this attribute hsa been printed already.
-   *
-   * @var bool
-   */
-  protected $printed = FALSE;
 
   /**
    * The value itself.
@@ -58,16 +51,6 @@ abstract class AttributeValueBase {
     if (isset($this->value)) {
       return String::checkPlain($this->name) . '="' . $this . '"';
     }
-  }
-
-  /**
-   * Whether this attribute hsa been printed already.
-   *
-   * @return bool
-   *   TRUE if this attribute has been printed, FALSE otherwise.
-   */
-  public function printed() {
-    return $this->printed;
   }
 
   /**

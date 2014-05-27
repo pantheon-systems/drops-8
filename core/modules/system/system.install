@@ -9,6 +9,7 @@ use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Database\Database;
 use Drupal\Core\Language\Language;
 use Drupal\Core\StreamWrapper\PublicStream;
+use Drupal\Component\Utility\Settings;
 
 /**
  * Implements hook_requirements().
@@ -335,7 +336,7 @@ function system_requirements($phase) {
   // unless overrides are provided in settings.php.
   if ($phase == 'install') {
     $directories = array();
-    if ($file_public_path = settings()->get('file_public_path')) {
+    if ($file_public_path = Settings::get('file_public_path')) {
       $directories[] = $file_public_path;
     }
     else {
@@ -447,7 +448,7 @@ function system_requirements($phase) {
 
   // Verify the update.php access setting
   if ($phase == 'runtime') {
-    if (settings()->get('update_free_access')) {
+    if (Settings::get('update_free_access')) {
       $requirements['update access'] = array(
         'value' => t('Not protected'),
         'severity' => REQUIREMENT_ERROR,
@@ -530,7 +531,7 @@ function system_requirements($phase) {
     }
     $requirements['update status']['title'] = t('Update notifications');
 
-    if (settings()->get('rebuild_access')) {
+    if (Settings::get('rebuild_access')) {
       $requirements['rebuild access'] = array(
         'title' => t('Rebuild access'),
         'value' => t('Enabled'),
@@ -566,13 +567,6 @@ function system_requirements($phase) {
  * Implements hook_install().
  */
 function system_install() {
-  // Enable and set the default theme. Can't use theme_enable() this early in
-  // installation.
-  \Drupal::service('config.installer')->installDefaultConfig('theme', 'stark');
-  \Drupal::config('system.theme')
-    ->set('default', 'stark')
-    ->save();
-
   // Populate the cron key state variable.
   $cron_key = Crypt::randomBytesBase64(55);
   \Drupal::state()->set('system.cron_key', $cron_key);
@@ -811,7 +805,8 @@ function system_schema() {
       ),
       'route' => array(
         'description' => 'A serialized Route object',
-        'type' => 'text',
+        'type' => 'blob',
+        'size' => 'big',
       ),
       'number_parts' => array(
         'description' => 'Number of parts in this router path.',

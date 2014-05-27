@@ -25,14 +25,15 @@ use Drupal\entity\EntityViewModeInterface;
  * replicate the settings of the 'default' view mode, thus reducing the amount
  * of display configurations to keep track of.
  *
- * @see entity_get_view_modes()
+ * @see \Drupal\Core\Entity\EntityManagerInterface::getAllViewModes()
+ * @see \Drupal\Core\Entity\EntityManagerInterface::getViewModes()
  * @see hook_entity_view_mode_info_alter()
  *
  * @ConfigEntityType(
  *   id = "view_mode",
  *   label = @Translation("View mode"),
  *   controllers = {
- *     "list" = "Drupal\entity\EntityDisplayModeListController",
+ *     "list_builder" = "Drupal\entity\EntityDisplayModeListBuilder",
  *     "form" = {
  *       "add" = "Drupal\entity\Form\EntityDisplayModeAddForm",
  *       "edit" = "Drupal\entity\Form\EntityDisplayModeEditForm",

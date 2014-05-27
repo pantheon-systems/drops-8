@@ -62,9 +62,7 @@ class NodeDeleteForm extends ContentEntityConfirmFormBase {
     $actions = parent::actions($form, $form_state);
 
     // @todo Convert to getCancelRoute() after http://drupal.org/node/1987778.
-    $uri = $this->entity->urlInfo();
-    $actions['cancel']['#route_name'] = $uri['route_name'];
-    $actions['cancel']['#route_parameters'] = $uri['route_parameters'];
+    $actions['cancel'] += $this->entity->urlInfo()->toRenderArray();
 
     return $actions;
   }
@@ -88,7 +86,7 @@ class NodeDeleteForm extends ContentEntityConfirmFormBase {
   public function submit(array $form, array &$form_state) {
     $this->entity->delete();
     watchdog('content', '@type: deleted %title.', array('@type' => $this->entity->bundle(), '%title' => $this->entity->label()));
-    $node_type_storage = $this->entityManager->getStorageController('node_type');
+    $node_type_storage = $this->entityManager->getStorage('node_type');
     $node_type = $node_type_storage->load($this->entity->bundle())->label();
     drupal_set_message(t('@type %title has been deleted.', array('@type' => $node_type, '%title' => $this->entity->label())));
     Cache::invalidateTags(array('content' => TRUE));

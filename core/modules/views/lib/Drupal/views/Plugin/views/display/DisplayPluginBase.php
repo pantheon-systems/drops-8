@@ -8,6 +8,7 @@
 namespace Drupal\views\Plugin\views\display;
 
 use Drupal\Component\Utility\String;
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Language\Language;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Theme\Registry;
@@ -121,7 +122,7 @@ abstract class DisplayPluginBase extends PluginBase {
    * @todo Replace DisplayPluginBase::$display with
    *   DisplayPluginBase::$configuration to standardize with other plugins.
    */
-  public function __construct(array $configuration, $plugin_id, array $plugin_definition) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition) {
     parent::__construct(array(), $plugin_id, $plugin_definition);
   }
 
@@ -157,15 +158,16 @@ abstract class DisplayPluginBase extends PluginBase {
     $skip_cache = \Drupal::config('views.settings')->get('skip_cache');
 
     if (empty($view->editing) || !$skip_cache) {
-      $cid = 'unpackOptions:' . hash('sha256', serialize(array($this->options, $options))) . ':' . \Drupal::languageManager()->getCurrentLanguage()->id;
+      $cid = 'views:unpack_options:' . hash('sha256', serialize(array($this->options, $options))) . ':' . \Drupal::languageManager()->getCurrentLanguage()->id;
       if (empty(static::$unpackOptions[$cid])) {
-        $cache = \Drupal::cache('views_info')->get($cid);
+        $cache = \Drupal::cache('data')->get($cid);
         if (!empty($cache->data)) {
           $this->options = $cache->data;
         }
         else {
           $this->unpackOptions($this->options, $options);
-          \Drupal::cache('views_info')->set($cid, $this->options);
+          $id = $this->view->storage->id();
+          \Drupal::cache('data')->set($cid, $this->options, Cache::PERMANENT, array('extension' => array(TRUE, 'views'), 'view' => array($id => $id)));
         }
         static::$unpackOptions[$cid] = $this->options;
       }
@@ -881,7 +883,7 @@ abstract class DisplayPluginBase extends PluginBase {
   public function getHandlers($type) {
     if (!isset($this->handlers[$type])) {
       $this->handlers[$type] = array();
-      $types = ViewExecutable::viewsHandlerTypes();
+      $types = ViewExecutable::getHandlerTypes();
       $plural = $types[$type]['plural'];
 
       foreach ($this->getOption($plural) as $id => $info) {
@@ -1124,7 +1126,7 @@ abstract class DisplayPluginBase extends PluginBase {
     $options['title'] = array(
       'category' => 'title',
       'title' => t('Title'),
-      'value' => $title,
+      'value' => views_ui_truncate($title, 32),
       'desc' => t('Change the title that this display will use.'),
     );
 
@@ -1147,8 +1149,8 @@ abstract class DisplayPluginBase extends PluginBase {
 
     if ($style_plugin_instance->usesRowPlugin()) {
       $row_plugin_instance = $this->getPlugin('row');
-      $row_summary = empty($row_plugin_instance->definition['title']) ? t('Missing style plugin') : $row_plugin_instance->summaryTitle();
-      $row_title = empty($row_plugin_instance->definition['title']) ? t('Missing style plugin') : $row_plugin_instance->pluginTitle();
+      $row_summary = empty($row_plugin_instance->definition['title']) ? t('Missing row plugin') : $row_plugin_instance->summaryTitle();
+      $row_title = empty($row_plugin_instance->definition['title']) ? t('Missing row plugin') : $row_plugin_instance->pluginTitle();
 
       $options['row'] = array(
         'category' => 'format',
@@ -1427,6 +1429,7 @@ abstract class DisplayPluginBase extends PluginBase {
           '#type' => 'textfield',
           '#description' => t('This title will be displayed with the view, wherever titles are normally displayed; i.e, as the page title, block title, etc.'),
           '#default_value' => $this->getOption('title'),
+          '#maxlength' => 255,
         );
         break;
       case 'css_class':
@@ -2285,7 +2288,7 @@ abstract class DisplayPluginBase extends PluginBase {
     }
 
     // Validate handlers
-    foreach (ViewExecutable::viewsHandlerTypes() as $type => $info) {
+    foreach (ViewExecutable::getHandlerTypes() as $type => $info) {
       foreach ($this->getHandlers($type) as $handler) {
         $result = $handler->validate();
         if (!empty($result) && is_array($result)) {
@@ -2324,7 +2327,7 @@ abstract class DisplayPluginBase extends PluginBase {
    *
    */
   public function isIdentifierUnique($id, $identifier) {
-    foreach (ViewExecutable::viewsHandlerTypes() as $type => $info) {
+    foreach (ViewExecutable::getHandlerTypes() as $type => $info) {
       foreach ($this->getHandlers($type) as $key => $handler) {
         if ($handler->canExpose() && $handler->isExposed()) {
           if ($handler->isAGroup()) {
@@ -2383,7 +2386,6 @@ abstract class DisplayPluginBase extends PluginBase {
 
       $blocks[$delta] = array(
         'info' => $desc,
-        'cache' => DRUPAL_NO_CACHE,
       );
     }
 
@@ -2449,7 +2451,7 @@ abstract class DisplayPluginBase extends PluginBase {
 
     // Build a map of plural => singular for handler types.
     $type_map = array();
-    foreach (ViewExecutable::viewsHandlerTypes() as $type => $info) {
+    foreach (ViewExecutable::getHandlerTypes() as $type => $info) {
       $type_map[$info['plural']] = $type;
     }
 
@@ -2488,7 +2490,7 @@ abstract class DisplayPluginBase extends PluginBase {
    *   The name of the handler type option.
    */
   protected function mergeHandler($type) {
-    $types = ViewExecutable::viewsHandlerTypes();
+    $types = ViewExecutable::getHandlerTypes();
 
     $options = $this->getOption($types[$type]['plural']);
     foreach ($this->getHandlers($type) as $id => $handler) {

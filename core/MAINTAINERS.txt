@@ -54,12 +54,11 @@ Configuration system
 - Daniel F. Kudwien 'sun' http://drupal.org/user/54136
 - Alex Pott 'alexpott' http://drupal.org/user/157725
 - Matthew Tift 'mtift' https://drupal.org/user/751908
-- Justin Randell 'beejeebus' https://drupal.org/user/38580
 
 Configuration entity system
+- Alex Pott 'alexpott' http://drupal.org/user/157725
 - Daniel F. Kudwien 'sun' http://drupal.org/user/54136
 - Tim Plunkett 'tim.plunkett' http://drupal.org/user/241634
-- Justin Randell 'beejeebus' https://drupal.org/user/38580
 
 Cron system
 - Derek Wright 'dww' http://drupal.org/user/46549
@@ -397,7 +396,8 @@ Text module
 - ?
 
 Toolbar module
-- ?
+- Jesse Renée Beach 'jessebeach' http://drupal.org/user/748566
+- Théodore Biadala 'nod_' http://drupal.org/user/598310
 
 Tour module
 - Nick Schuch 'nick_schuch' http://drupal.org/user/1412036
@@ -463,3 +463,15 @@ Multi-lingual
 
 Web services
 - Larry Garfield 'Crell' http://drupal.org/user/26398
+
+Core mentoring leads
+---------------------
+
+The Drupal Core mentoring leads inspire, enable, and encourage new core
+contributors. They also work on the core tools, process, and community to make
+it easier for new contributors to get involved. The mentoring leads are:
+
+- Jess Myrbo 'xjm' http://drupal.org/user/65776
+- Cathy Theys 'YesCT' https://drupal.org/user/258568
+- Scott Reeves 'Cottser' http://drupal.org/user/1167326
+- Andrea Soper 'ZenDoodles' https://drupal.org/user/226976

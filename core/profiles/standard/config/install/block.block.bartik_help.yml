@@ -1,0 +1,26 @@
+id: bartik_help
+theme: bartik
+weight: 0
+status: true
+langcode: en
+region: help
+plugin: system_help_block
+settings:
+  label: 'System Help'
+  provider: system
+  label_display: '0'
+visibility:
+  path:
+    visibility: 0
+    pages: ''
+  role:
+    roles: {  }
+  node_type:
+    types:
+      article: '0'
+      page: '0'
+dependencies:
+  module:
+    - system
+  theme:
+    - bartik

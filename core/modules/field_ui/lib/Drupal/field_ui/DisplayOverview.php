@@ -169,14 +169,14 @@ class DisplayOverview extends DisplayOverviewBase {
    * {@inheritdoc}
    */
   protected function getDefaultPlugin($field_type) {
-    return $this->fieldTypes[$field_type]['default_formatter'];
+    return isset($this->fieldTypes[$field_type]['default_formatter']) ? $this->fieldTypes[$field_type]['default_formatter'] : NULL;
   }
 
   /**
    * {@inheritdoc}
    */
   protected function getDisplayModes() {
-    return entity_get_view_modes($this->entity_type);
+    return $this->entityManager->getViewModes($this->entity_type);
   }
 
   /**

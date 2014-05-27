@@ -8,10 +8,10 @@
 namespace Drupal\Tests\Component\PhpStorage;
 
 use Drupal\Tests\UnitTestCase;
-use Drupal\Component\PhpStorage\PhpStorageFactory;
+use Drupal\Core\PhpStorage\PhpStorageFactory;
 
 /**
- * Base test for PHP storage controllers.
+ * Base test for PHP storages.
  */
 abstract class PhpStorageTestBase extends UnitTestCase {
 
@@ -32,7 +32,7 @@ abstract class PhpStorageTestBase extends UnitTestCase {
   }
 
   /**
-   * Assert that a PHP storage controller's load/save/delete operations work.
+   * Assert that a PHP storage's load/save/delete operations work.
    */
   public function assertCRUD($php) {
     $name = $this->randomName() . '/' . $this->randomName() . '.php';

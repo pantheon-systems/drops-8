@@ -8,6 +8,7 @@
 namespace Drupal\forum\Form;
 
 use Drupal\Core\Entity\EntityManagerInterface;
+use Drupal\Core\Render\Element;
 use Drupal\taxonomy\Form\OverviewTerms;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
@@ -62,7 +63,7 @@ class Overview extends OverviewTerms {
   public function buildForm(array $form, array &$form_state) {
     $forum_config = $this->config('forum.settings');
     $vid = $forum_config->get('vocabulary');
-    $vocabulary = $this->entityManager->getStorageController('taxonomy_vocabulary')->load($vid);
+    $vocabulary = $this->entityManager->getStorage('taxonomy_vocabulary')->load($vid);
     if (!$vocabulary) {
       throw new NotFoundHttpException();
     }
@@ -70,7 +71,7 @@ class Overview extends OverviewTerms {
     // Build base taxonomy term overview.
     $form = parent::buildForm($form, $form_state, $vocabulary);
 
-    foreach (element_children($form['terms']) as $key) {
+    foreach (Element::children($form['terms']) as $key) {
       if (isset($form['terms'][$key]['#term'])) {
         $term = $form['terms'][$key]['#term'];
         $form['terms'][$key]['term']['#href'] = 'forum/' . $term->id();

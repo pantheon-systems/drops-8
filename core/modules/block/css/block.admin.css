@@ -1,13 +1,3 @@
-#blocks tr.region-title td {
-  font-weight: bold;
-}
-#blocks tr.region-message {
-  font-weight: normal;
-  color: #999;
-}
-#blocks tr.region-populated {
-  display: none;
-}
 .block-region {
   background-color: #ff6;
   margin-top: 4px;
@@ -114,11 +104,10 @@ screen and (min-width: 780px),
  * toolbar width (240px). In this case, 240px + 780px.
  */
 @media
-screen and (max-width: 1020px),
-(orientation: landscape) and (max-device-height: 1020px) {
+screen and (max-width: 1020px) {
 
-  .toolbar-vertical .block-list-primary,
-  .toolbar-vertical .block-list-secondary {
+  .toolbar-vertical.toolbar-tray-open .block-list-primary,
+  .toolbar-vertical.toolbar-tray-open .block-list-secondary {
     float: none;
     width: auto;
     padding-right: 0;

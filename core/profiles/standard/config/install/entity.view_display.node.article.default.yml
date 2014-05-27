@@ -1,0 +1,34 @@
+id: node.article.default
+targetEntityType: node
+bundle: article
+mode: default
+status: true
+content:
+  field_image:
+    label: hidden
+    type: image
+    settings:
+      image_style: large
+      image_link: ''
+    weight: -1
+  body:
+    label: hidden
+    type: text_default
+    weight: 0
+    settings: {  }
+  field_tags:
+    type: taxonomy_term_reference_link
+    weight: 10
+    label: above
+    settings: {  }
+dependencies:
+  entity:
+    - field.instance.node.article.body
+    - field.instance.node.article.field_image
+    - field.instance.node.article.field_tags
+    - node.type.article
+  module:
+    - comment
+    - image
+    - taxonomy
+    - text

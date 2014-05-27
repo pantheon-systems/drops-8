@@ -8,6 +8,8 @@
 namespace Drupal\entity;
 
 use Drupal\Core\Config\Entity\ConfigEntityBase;
+use Drupal\Core\Config\Entity\ConfigEntityInterface;
+use Drupal\Core\Entity\EntityStorageInterface;
 
 /**
  * Base class for config entity types that hold settings for form and view modes.
@@ -60,7 +62,9 @@ abstract class EntityDisplayModeBase extends ConfigEntityBase implements EntityD
   /**
    * {@inheritdoc}
    */
-  public static function sort($a, $b) {
+  public static function sort(ConfigEntityInterface $a, ConfigEntityInterface $b) {
+    /** @var \Drupal\entity\EntityDisplayModeInterface $a */
+    /** @var \Drupal\entity\EntityDisplayModeInterface $b */
     // Sort by the type of entity the view mode is used for.
     $a_type = $a->getTargetType();
     $b_type = $b->getTargetType();
@@ -73,6 +77,32 @@ abstract class EntityDisplayModeBase extends ConfigEntityBase implements EntityD
    */
   public function getTargetType() {
     return $this->targetEntityType;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function calculateDependencies() {
+    parent::calculateDependencies();
+    $target_entity_type = \Drupal::entityManager()->getDefinition($this->targetEntityType);
+    $this->addDependency('module', $target_entity_type->getProvider());
+    return $this->dependencies;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function preSave(EntityStorageInterface $storage) {
+    parent::preSave($storage);
+    \Drupal::entityManager()->clearCachedDefinitions();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function preDelete(EntityStorageInterface $storage, array $entities) {
+    parent::preDelete($storage, $entities);
+    \Drupal::entityManager()->clearCachedDefinitions();
   }
 
 }

@@ -12,7 +12,7 @@ use Drupal\Core\Database\Connection;
 use Drupal\Core\Database\Query\SelectExtender;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
-use Drupal\Core\KeyValueStore\StateInterface;
+use Drupal\Core\State\StateInterface;
 use Drupal\Core\Language\Language;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Access\AccessibleInterface;
@@ -20,6 +20,7 @@ use Drupal\Core\Database\Query\Condition;
 use Drupal\node\NodeInterface;
 use Drupal\search\Plugin\ConfigurableSearchPluginBase;
 use Drupal\search\Plugin\SearchIndexingInterface;
+use Drupal\Search\SearchQuery;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -63,7 +64,7 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
   /**
    * The Drupal state object used to set 'node.cron_last'.
    *
-   * @var \Drupal\Core\KeyValueStore\StateInterface
+   * @var \Drupal\Core\State\StateInterface
    */
   protected $state;
 
@@ -104,7 +105,7 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
   /**
    * {@inheritdoc}
    */
-  static public function create(ContainerInterface $container, array $configuration, $plugin_id, array $plugin_definition) {
+  static public function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
     return new static(
       $configuration,
       $plugin_id,
@@ -125,7 +126,7 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
    *   A configuration array containing information about the plugin instance.
    * @param string $plugin_id
    *   The plugin_id for the plugin instance.
-   * @param array $plugin_definition
+   * @param mixed $plugin_definition
    *   The plugin implementation definition.
    * @param \Drupal\Core\Database\Connection $database
    *   A database connection object.
@@ -135,12 +136,12 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
    *   A module manager object.
    * @param \Drupal\Core\Config\Config $search_settings
    *   A config object for 'search.settings'.
-   * @param \Drupal\Core\KeyValueStore\StateInterface $state
+   * @param \Drupal\Core\State\StateInterface $state
    *   The Drupal state object used to set 'node.cron_last'.
    * @param \Drupal\Core\Session\AccountInterface $account
    *   The $account object to use for checking for access to advanced search.
    */
-  public function __construct(array $configuration, $plugin_id, array $plugin_definition, Connection $database, EntityManagerInterface $entity_manager, ModuleHandlerInterface $module_handler, Config $search_settings, StateInterface $state, AccountInterface $account = NULL) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, Connection $database, EntityManagerInterface $entity_manager, ModuleHandlerInterface $module_handler, Config $search_settings, StateInterface $state, AccountInterface $account = NULL) {
     $this->database = $database;
     $this->entityManager = $entity_manager;
     $this->moduleHandler = $module_handler;
@@ -155,6 +156,17 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
    */
   public function access($operation = 'view', AccountInterface $account = NULL) {
     return !empty($account) && $account->hasPermission('access content');
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function isSearchExecutable() {
+    // Node search is executable if we have keywords or an advanced parameter.
+    // At least, we should parse out the parameters and see if there are any
+    // keyword matches in that case, rather than just printing out the
+    // "Please enter keywords" message.
+    return !empty($this->keywords) || (isset($this->searchParameters['f']) && count($this->searchParameters['f']));
   }
 
   /**
@@ -182,7 +194,8 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
     // the URL: ?f[]=type:page&f[]=term:27&f[]=term:13&f[]=langcode:en
     // So $parameters['f'] looks like:
     // array('type:page', 'term:27', 'term:13', 'langcode:en');
-    // We need to parse this out into query conditions.
+    // We need to parse this out into query conditions, some of which go into
+    // the keywords string, and some of which are separate conditions.
     $parameters = $this->getParameters();
     if (!empty($parameters['f']) && is_array($parameters['f'])) {
       $filters = array();
@@ -195,6 +208,7 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
           $filters[$m[1]][$m[2]] = $m[2];
         }
       }
+
       // Now turn these into query conditions. This assumes that everything in
       // $filters is a known type of advanced search.
       foreach ($filters as $option => $matched) {
@@ -211,15 +225,11 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
         }
       }
     }
-    // Only continue if the first pass query matches.
-    if (!$query->executeFirstPass()) {
-      return array();
-    }
 
     // Add the ranking expressions.
     $this->addNodeRankings($query);
 
-    // Load results.
+    // Run the query and load results.
     $find = $query
       // Add the language code of the indexed item to the result of the query,
       // since the node will be rendered using the respective language.
@@ -231,7 +241,22 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
       ->limit(10)
       ->execute();
 
-    $node_storage = $this->entityManager->getStorageController('node');
+    // Check query status and set messages if needed.
+    $status = $query->getStatus();
+
+    if ($status & SearchQuery::EXPRESSIONS_IGNORED) {
+      drupal_set_message($this->t('Your search used too many AND/OR expressions. Only the first @count terms were included in this search.', array('@count' => $this->searchSettings->get('and_or_limit'))), 'warning');
+    }
+
+    if ($status & SearchQuery::LOWER_CASE_OR) {
+      drupal_set_message($this->t('Search for either of the two terms with uppercase <strong>OR</strong>. For example, <strong>cats OR dogs</strong>.'), 'warning');
+    }
+
+    if ($status & SearchQuery::NO_POSITIVE_KEYWORDS) {
+      drupal_set_message(\Drupal::translation()->formatPlural($this->searchSettings->get('index.minimum_word_size'), 'You must include at least one positive keyword with 1 character or more.', 'You must include at least one positive keyword with @count characters or more.'), 'warning');
+    }
+
+    $node_storage = $this->entityManager->getStorage('node');
     $node_render = $this->entityManager->getViewBuilder('node');
 
     foreach ($find as $item) {
@@ -254,7 +279,7 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
       );
       $results[] = array(
         'link' => $node->url('canonical', array('absolute' => TRUE, 'language' => $language)),
-        'type' => check_plain($this->entityManager->getStorageController('node_type')->load($node->bundle())->label()),
+        'type' => check_plain($this->entityManager->getStorage('node_type')->load($node->bundle())->label()),
         'title' => $node->label(),
         'user' => drupal_render($username),
         'date' => $node->getChangedTime(),
@@ -295,24 +320,18 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
    * {@inheritdoc}
    */
   public function updateIndex() {
+    // Interpret the cron limit setting as the maximum number of nodes to index
+    // per cron run.
     $limit = (int) $this->searchSettings->get('index.cron_limit');
 
-    $result = $this->database->queryRange("SELECT DISTINCT n.nid, d.reindex FROM {node} n LEFT JOIN {search_dataset} d ON d.type = :type AND d.sid = n.nid WHERE d.sid IS NULL OR d.reindex <> 0 ORDER BY d.reindex ASC, n.nid ASC", 0, $limit, array(':type' => $this->getPluginId()), array('target' => 'slave'));
+    $result = $this->database->queryRange("SELECT n.nid, MAX(sd.reindex) FROM {node} n LEFT JOIN {search_dataset} sd ON sd.sid = n.nid AND sd.type = :type WHERE sd.sid IS NULL OR sd.reindex <> 0 GROUP BY n.nid ORDER BY MAX(sd.reindex) is null DESC, MAX(sd.reindex) ASC, n.nid ASC", 0, $limit, array(':type' => $this->getPluginId()), array('target' => 'slave'));
     $nids = $result->fetchCol();
     if (!$nids) {
       return;
     }
 
-    // The indexing throttle should be aware of the number of language variants
-    // of a node.
-    $counter = 0;
-    $node_storage = $this->entityManager->getStorageController('node');
+    $node_storage = $this->entityManager->getStorage('node');
     foreach ($node_storage->loadMultiple($nids) as $node) {
-      // Determine when the maximum number of indexable items is reached.
-      $counter += count($node->getTranslationLanguages());
-      if ($counter > $limit) {
-        break;
-      }
       $this->indexNode($node);
     }
   }
@@ -367,7 +386,8 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
    */
   public function indexStatus() {
     $total = $this->database->query('SELECT COUNT(*) FROM {node}')->fetchField();
-    $remaining = $this->database->query("SELECT COUNT(*) FROM {node} n LEFT JOIN {search_dataset} d ON d.type = :type AND d.sid = n.nid WHERE d.sid IS NULL OR d.reindex <> 0", array(':type' => $this->getPluginId()))->fetchField();
+    $remaining = $this->database->query("SELECT COUNT(DISTINCT n.nid) FROM {node} n LEFT JOIN {search_dataset} sd ON sd.sid = n.nid AND sd.type = :type WHERE sd.sid IS NULL OR sd.reindex <> 0", array(':type' => $this->getPluginId()))->fetchField();
+
     return array('remaining' => $remaining, 'total' => $total);
   }
 
@@ -375,7 +395,7 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
    * {@inheritdoc}
    */
   public function searchFormAlter(array &$form, array &$form_state) {
-    // Add keyword boxes.
+    // Add advanced search keyword-related boxes.
     $form['advanced'] = array(
       '#type' => 'details',
       '#title' => t('Advanced search'),
@@ -450,25 +470,18 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
         '#options' => $language_options,
       );
     }
-
-    // Add a submit handler.
-    $form['#submit'][] = array($this, 'searchFormSubmit');
   }
 
-  /**
-   * Handles submission of elements added in searchFormAlter().
-   *
-   * @param array $form
-   *   Nested array of form elements that comprise the form.
-   * @param array $form_state
-   *   A keyed array containing the current state of the form.
+  /*
+   * {@inheritdoc}
    */
-  public function searchFormSubmit(array &$form, array &$form_state) {
-    // Initialize using any existing basic search keywords.
-    $keys = $form_state['values']['processed_keys'];
-    $filters = array();
+  public function buildSearchUrlQuery($form_state) {
+    // Read keyword and advanced search information from the form values,
+    // and put these into the GET parameters.
+    $keys = trim($form_state['values']['keys']);
 
-    // Collect extra restrictions.
+    // Collect extra filters.
+    $filters = array();
     if (isset($form_state['values']['type']) && is_array($form_state['values']['type'])) {
       // Retrieve selected types - Form API sets the value of unselected
       // checkboxes to 0.
@@ -504,21 +517,17 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
     if ($form_state['values']['phrase'] != '') {
       $keys .= ' "' . str_replace('"', ' ', $form_state['values']['phrase']) . '"';
     }
-    if (!empty($keys)) {
-      form_set_value($form['basic']['processed_keys'], trim($keys), $form_state);
-    }
-    $options = array();
+    $keys = trim($keys);
+
+    // Put the keywords and advanced parameters into GET parameters. Make sure
+    // to put keywords into the query even if it is empty, because the page
+    // controller uses that to decide it's time to check for search results.
+    $query = array('keys' => $keys);
     if ($filters) {
-      $options['query'] = array('f' => $filters);
+      $query['f'] = $filters;
     }
 
-    $form_state['redirect_route'] = array(
-      'route_name' => 'search.view_' . $form_state['search_page_id'],
-      'route_parameters' => array(
-        'keys' => $keys,
-      ),
-      'options' => $options,
-    );
+    return $query;
   }
 
   /**

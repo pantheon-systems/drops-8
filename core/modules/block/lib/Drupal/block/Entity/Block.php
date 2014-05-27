@@ -7,10 +7,13 @@
 
 namespace Drupal\block\Entity;
 
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
 use Drupal\block\BlockPluginBag;
 use Drupal\block\BlockInterface;
+use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Config\Entity\EntityWithPluginBagInterface;
+use Drupal\Core\Entity\EntityStorageInterface;
 
 /**
  * Defines a Block configuration entity class.
@@ -21,7 +24,7 @@ use Drupal\Core\Config\Entity\EntityWithPluginBagInterface;
  *   controllers = {
  *     "access" = "Drupal\block\BlockAccessController",
  *     "view_builder" = "Drupal\block\BlockViewBuilder",
- *     "list" = "Drupal\block\BlockListController",
+ *     "list_builder" = "Drupal\block\BlockListBuilder",
  *     "form" = {
  *       "default" = "Drupal\block\BlockFormController",
  *       "delete" = "Drupal\block\Form\BlockDeleteForm"
@@ -127,10 +130,10 @@ class Block extends ConfigEntityBase implements BlockInterface, EntityWithPlugin
   }
 
   /**
-   * Overrides \Drupal\Core\Config\Entity\ConfigEntityBase::getExportProperties();
+   * {@inheritdoc}
    */
-  public function getExportProperties() {
-    $properties = parent::getExportProperties();
+  public function toArray() {
+    $properties = parent::toArray();
     $names = array(
       'theme',
       'region',
@@ -148,7 +151,7 @@ class Block extends ConfigEntityBase implements BlockInterface, EntityWithPlugin
   /**
    * Sorts active blocks by weight; sorts inactive blocks by name.
    */
-  public static function sort($a, $b) {
+  public static function sort(ConfigEntityInterface $a, ConfigEntityInterface $b) {
     // Separate enabled from disabled.
     $status = $b->get('status') - $a->get('status');
     if ($status) {
@@ -163,6 +166,27 @@ class Block extends ConfigEntityBase implements BlockInterface, EntityWithPlugin
     }
     // Sort by label.
     return strcmp($a->label(), $b->label());
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function calculateDependencies() {
+    parent::calculateDependencies();
+    $this->addDependency('theme', $this->theme);
+    return $this->dependencies;
+  }
+
+  /**
+   * {@inheritdoc}
+   *
+   * Block configuration entities are a special case: one block entity stores
+   * the placement of one block in one theme. Instead of using an entity type-
+   * specific list cache tag like most entities, use the cache tag of the theme
+   * this block is placed in instead.
+   */
+  public function getListCacheTags() {
+    return array('theme' => $this->theme);
   }
 
 }

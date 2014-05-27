@@ -1,0 +1,207 @@
+base_field: uid
+base_table: users
+core: 8.x
+description: 'Shows the user names of the most recently active users, and the total number of active users.'
+status: true
+display:
+  default:
+    display_plugin: default
+    id: default
+    display_title: Master
+    position: 0
+    display_options:
+      access:
+        type: perm
+        options:
+          perm: 'access user profiles'
+        provider: user
+      cache:
+        type: none
+        options: {  }
+        provider: views
+      query:
+        type: views_query
+        options:
+          disable_sql_rewrite: false
+          distinct: false
+          slave: false
+          query_comment: false
+          query_tags: {  }
+        provider: views
+      exposed_form:
+        type: basic
+        options:
+          submit_button: Apply
+          reset_button: false
+          reset_button_label: Reset
+          exposed_sorts_label: 'Sort by'
+          expose_sort_order: true
+          sort_asc_label: Asc
+          sort_desc_label: Desc
+        provider: views
+      pager:
+        type: some
+        options:
+          items_per_page: 10
+          offset: 0
+        provider: views
+      style:
+        type: html_list
+        options:
+          grouping: {  }
+          row_class: ''
+          default_row_class: true
+          row_class_special: true
+          type: ul
+          wrapper_class: item-list
+          class: ''
+        provider: views
+      row:
+        type: fields
+        provider: views
+      fields:
+        name:
+          id: name
+          table: users
+          field: name
+          label: ''
+          plugin_id: user_name
+          alter:
+            alter_text: false
+            make_link: false
+            absolute: false
+            trim: false
+            word_boundary: false
+            ellipsis: false
+            strip_tags: false
+            html: false
+          hide_empty: false
+          empty_zero: false
+          link_to_user: true
+          overwrite_anonymous: false
+          relationship: none
+          group_type: group
+          admin_label: ''
+          exclude: false
+          element_type: ''
+          element_class: ''
+          element_label_type: ''
+          element_label_class: ''
+          element_label_colon: true
+          element_wrapper_type: ''
+          element_wrapper_class: ''
+          element_default_classes: true
+          empty: ''
+          hide_alter_empty: true
+          anonymous_text: ''
+          format_username: true
+      filters:
+        status:
+          value: true
+          table: users
+          field: status
+          id: status
+          expose:
+            operator: '0'
+          group: 1
+          plugin_id: boolean
+        access:
+          id: access
+          table: users
+          field: access
+          relationship: none
+          group_type: group
+          admin_label: ''
+          operator: '>='
+          value:
+            min: ''
+            max: ''
+            value: '-15 minutes'
+            type: offset
+          group: 1
+          exposed: false
+          expose:
+            operator_id: access_op
+            label: 'Last access'
+            description: 'A user is considered online for this long after they have last viewed a page.'
+            use_operator: false
+            operator: access_op
+            identifier: access
+            required: false
+            remember: false
+            multiple: false
+            remember_roles:
+              authenticated: authenticated
+              anonymous: '0'
+              administrator: '0'
+          is_grouped: false
+          group_info:
+            label: ''
+            description: ''
+            identifier: ''
+            optional: true
+            widget: select
+            multiple: false
+            remember: false
+            default_group: All
+            default_group_multiple: {  }
+            group_items: {  }
+          plugin_id: date
+      sorts:
+        access:
+          id: access
+          table: users
+          field: access
+          order: DESC
+          relationship: none
+          group_type: group
+          admin_label: ''
+          exposed: false
+          expose:
+            label: ''
+          granularity: second
+          provider: views
+          plugin_id: date
+      title: 'Who''s online'
+      header:
+        result:
+          id: result
+          table: views
+          field: result
+          relationship: none
+          group_type: group
+          admin_label: ''
+          empty: false
+          content: 'There are currently @total users online.'
+          plugin_id: result
+      footer: {  }
+      empty:
+        area_text_custom:
+          id: area_text_custom
+          table: views
+          field: area_text_custom
+          relationship: none
+          group_type: group
+          admin_label: ''
+          empty: true
+          tokenize: false
+          content: 'There are currently 0 users online.'
+          plugin_id: text_custom
+      relationships: {  }
+      arguments: {  }
+  who_s_online_block:
+    display_plugin: block
+    id: who_s_online_block
+    display_title: 'Who''s online'
+    position: 1
+    display_options:
+      block_description: 'Who''s online'
+      display_description: 'A list of users that are currently logged in.'
+label: 'Who''s online block'
+module: user
+id: who_s_online
+tag: default
+langcode: en
+dependencies:
+  module:
+    - user

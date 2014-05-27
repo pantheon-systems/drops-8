@@ -7,12 +7,15 @@
 
 namespace Drupal\field_ui;
 
+use Drupal\Core\Entity\EntityListBuilderInterface;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Field\FieldTypePluginManagerInterface;
+use Drupal\Core\Render\Element;
 use Drupal\field_ui\OverviewBase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\field\Entity\FieldConfig;
+use Drupal\field\FieldInstanceConfigInterface;
 
 /**
  * Field UI field overview form.
@@ -27,26 +30,16 @@ class FieldOverview extends OverviewBase {
   protected $fieldTypeManager;
 
   /**
-   * The module handler service.
-   *
-   * @var \Drupal\Core\Extension\ModuleHandlerInterface
-   */
-  protected $moduleHandler;
-
-  /**
    * Constructs a new FieldOverview.
    *
    * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
    *   The entity manager.
    * @param \Drupal\Core\Field\FieldTypePluginManagerInterface $field_type_manager
    *   The field type manager
-   * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
-   *   The module handler to invoke hooks on.
    */
-  public function __construct(EntityManagerInterface $entity_manager, FieldTypePluginManagerInterface $field_type_manager, ModuleHandlerInterface $module_handler) {
+  public function __construct(EntityManagerInterface $entity_manager, FieldTypePluginManagerInterface $field_type_manager) {
     parent::__construct($entity_manager);
     $this->fieldTypeManager = $field_type_manager;
-    $this->moduleHandler = $module_handler;
   }
 
   /**
@@ -55,8 +48,7 @@ class FieldOverview extends OverviewBase {
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('entity.manager'),
-      $container->get('plugin.manager.field.field_type'),
-      $container->get('module_handler')
+      $container->get('plugin.manager.field.field_type')
     );
   }
 
@@ -88,8 +80,10 @@ class FieldOverview extends OverviewBase {
     parent::buildForm($form, $form_state, $entity_type_id, $bundle);
 
     // Gather bundle information.
-    $instances = field_info_instances($this->entity_type, $this->bundle);
-    $field_types = $this->fieldTypeManager->getConfigurableDefinitions();
+    $instances = array_filter(\Drupal::entityManager()->getFieldDefinitions($this->entity_type, $this->bundle), function ($field_definition) {
+      return $field_definition instanceof FieldInstanceConfigInterface;
+    });
+    $field_types = $this->fieldTypeManager->getDefinitions();
 
     // Field prefix.
     $field_prefix = \Drupal::config('field_ui.settings')->get('field_prefix');
@@ -145,30 +139,9 @@ class FieldOverview extends OverviewBase {
         ),
       );
 
-      $links = array();
-      $links['edit'] = array(
-        'title' => $this->t('Edit'),
-        'route_name' => 'field_ui.instance_edit_' . $this->entity_type,
-        'route_parameters' => $route_parameters,
-        'attributes' => array('title' => $this->t('Edit instance settings.')),
-      );
-      $links['field-settings'] = array(
-        'title' => $this->t('Field settings'),
-        'route_name' => 'field_ui.field_edit_' . $this->entity_type,
-        'route_parameters' => $route_parameters,
-        'attributes' => array('title' => $this->t('Edit field settings.')),
-      );
-      $links['delete'] = array(
-        'title' => $this->t('Delete'),
-        'route_name' => 'field_ui.delete_' . $this->entity_type,
-        'route_parameters' => $route_parameters,
-        'attributes' => array('title' => $this->t('Delete instance.')),
-      );
-      // Allow altering the operations on this entity listing.
-      $this->moduleHandler->alter('entity_operation', $links, $instance);
       $table[$name]['operations']['data'] = array(
         '#type' => 'operations',
-        '#links' => $links,
+        '#links' => $this->entityManager->getListBuilder('field_instance_config')->getOperations($instance),
       );
 
       if (!empty($field->locked)) {
@@ -289,14 +262,17 @@ class FieldOverview extends OverviewBase {
     // here instead of a #pre_render callback because this form doesn't have the
     // tabledrag behavior anymore.
     $table['#regions']['content']['rows_order'] = array();
-    foreach (element_children($table) as $name) {
+    foreach (Element::children($table) as $name) {
       $table['#regions']['content']['rows_order'][] = $name;
     }
 
     $form['fields'] = $table;
 
     $form['actions'] = array('#type' => 'actions');
-    $form['actions']['submit'] = array('#type' => 'submit', '#value' => $this->t('Save'));
+    $form['actions']['submit'] = array(
+      '#type' => 'submit',
+      '#button_type' => 'primary',
+      '#value' => $this->t('Save'));
 
     return $form;
   }
@@ -408,8 +384,8 @@ class FieldOverview extends OverviewBase {
 
       // Create the field and instance.
       try {
-        $this->entityManager->getStorageController('field_config')->create($field)->save();
-        $new_instance = $this->entityManager->getStorageController('field_instance_config')->create($instance);
+        $this->entityManager->getStorage('field_config')->create($field)->save();
+        $new_instance = $this->entityManager->getStorage('field_instance_config')->create($instance);
         $new_instance->save();
 
         // Make sure the field is displayed in the 'default' form mode (using
@@ -461,7 +437,7 @@ class FieldOverview extends OverviewBase {
         );
 
         try {
-          $new_instance = $this->entityManager->getStorageController('field_instance_config')->create($instance);
+          $new_instance = $this->entityManager->getStorage('field_instance_config')->create($instance);
           $new_instance->save();
 
           // Make sure the field is displayed in the 'default' form mode (using
@@ -530,7 +506,7 @@ class FieldOverview extends OverviewBase {
     // Load the instances and build the list of options.
     if ($instance_ids) {
       $field_types = $this->fieldTypeManager->getDefinitions();
-      $instances = $this->entityManager->getStorageController('field_instance_config')->loadMultiple($instance_ids);
+      $instances = $this->entityManager->getStorage('field_instance_config')->loadMultiple($instance_ids);
       foreach ($instances as $instance) {
         // Do not show:
         // - locked fields,

@@ -7,6 +7,7 @@
 
 namespace Drupal\rest\Tests;
 
+use Drupal\Component\Serialization\Json;
 use Drupal\Core\Language\Language;
 use Drupal\rest\Tests\RESTTestBase;
 
@@ -50,23 +51,23 @@ class ReadTest extends RESTTestBase {
       $entity = $this->entityCreate($entity_type);
       $entity->save();
       // Read it over the REST API.
-      $response = $this->httpRequest('entity/' . $entity_type . '/' . $entity->id(), 'GET', NULL, $this->defaultMimeType);
+      $response = $this->httpRequest($entity->getSystemPath(), 'GET', NULL, $this->defaultMimeType);
       $this->assertResponse('200', 'HTTP response code is correct.');
       $this->assertHeader('content-type', $this->defaultMimeType);
-      $data = drupal_json_decode($response);
+      $data = Json::decode($response);
       // Only assert one example property here, other properties should be
       // checked in serialization tests.
       $this->assertEqual($data['uuid'][0]['value'], $entity->uuid(), 'Entity UUID is correct');
 
       // Try to read the entity with an unsupported mime format.
-      $this->httpRequest('entity/' . $entity_type . '/' . $entity->id(), 'GET', NULL, 'application/wrongformat');
-      $this->assertResponse(406);
+      $response = $this->httpRequest($entity->getSystemPath(), 'GET', NULL, 'application/wrongformat');
+      $this->assertResponse(200);
+      $this->assertHeader('Content-type', 'text/html; charset=UTF-8');
 
       // Try to read an entity that does not exist.
-      $response = $this->httpRequest('entity/' . $entity_type . '/9999', 'GET', NULL, $this->defaultMimeType);
+      $response = $this->httpRequest($entity_type . '/9999', 'GET', NULL, $this->defaultMimeType);
       $this->assertResponse(404);
-      $decoded = drupal_json_decode($response);
-      $this->assertEqual($decoded['error'], 'Entity with ID 9999 not found', 'Response message is correct.');
+      $this->assertText('A fatal error occurred: The "' . $entity_type . '" parameter was not converted for the path', 'Response message is correct.');
 
       // Make sure that field level access works and that the according field is
       // not available in the response. Only applies to entity_test.
@@ -74,25 +75,25 @@ class ReadTest extends RESTTestBase {
       if ($entity_type == 'entity_test') {
         $entity->field_test_text->value = 'no access value';
         $entity->save();
-        $response = $this->httpRequest('entity/' . $entity_type . '/' . $entity->id(), 'GET', NULL, $this->defaultMimeType);
+        $response = $this->httpRequest($entity->getSystemPath(), 'GET', NULL, $this->defaultMimeType);
         $this->assertResponse(200);
         $this->assertHeader('content-type', $this->defaultMimeType);
-        $data = drupal_json_decode($response);
+        $data = Json::decode($response);
         $this->assertFalse(isset($data['field_test_text']), 'Field access protected field is not visible in the response.');
       }
 
       // Try to read an entity without proper permissions.
       $this->drupalLogout();
-      $response = $this->httpRequest('entity/' . $entity_type . '/' . $entity->id(), 'GET', NULL, $this->defaultMimeType);
+      $response = $this->httpRequest($entity->getSystemPath(), 'GET', NULL, $this->defaultMimeType);
       $this->assertResponse(403);
-      $this->assertNull(drupal_json_decode($response), 'No valid JSON found.');
+      $this->assertNull(Json::decode($response), 'No valid JSON found.');
     }
     // Try to read a resource which is not REST API enabled.
     $account = $this->drupalCreateUser();
     $this->drupalLogin($account);
-    $response = $this->httpRequest('entity/user/' . $account->id(), 'GET', NULL, $this->defaultMimeType);
+    $response = $this->httpRequest($account->getSystemPath(), 'GET', NULL, $this->defaultMimeType);
     $this->assertResponse(404);
-    $this->assertNull(drupal_json_decode($response), 'No valid JSON found.');
+    $this->assertNull(Json::decode($response), 'No valid JSON found.');
   }
 
   /**
@@ -113,7 +114,7 @@ class ReadTest extends RESTTestBase {
     $entity->save();
 
     // Read it over the REST API.
-    $response = $this->httpRequest('entity/node/' . $entity->id(), 'GET', NULL, 'application/json');
+    $response = $this->httpRequest($entity->getSystemPath(), 'GET', NULL, 'application/json');
     $this->assertResponse('200', 'HTTP response code is correct.');
   }
 

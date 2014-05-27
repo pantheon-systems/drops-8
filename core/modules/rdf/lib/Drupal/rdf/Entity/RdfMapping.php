@@ -8,7 +8,7 @@
 namespace Drupal\rdf\Entity;
 
 use Drupal\Core\Config\Entity\ConfigEntityBase;
-use Drupal\Core\Entity\EntityStorageControllerInterface;
+use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\rdf\RdfMappingInterface;
 
 /**
@@ -136,18 +136,23 @@ class RdfMapping extends ConfigEntityBase implements RdfMappingInterface {
   /**
    * {@inheritdoc}
    */
-  public function getExportProperties() {
+  public function toArray() {
     $names = array(
-      'id',
       'uuid',
       'targetEntityType',
       'bundle',
       'types',
       'fieldMappings',
     );
-    $properties = array();
+    $properties = array(
+      'id' => $this->id(),
+    );
     foreach ($names as $name) {
       $properties[$name] = $this->get($name);
+    }
+    if (!empty($this->dependencies)) {
+      // Add protected dependencies property if set.
+      $properties['dependencies'] = $this->dependencies;
     }
     return $properties;
   }
@@ -155,8 +160,25 @@ class RdfMapping extends ConfigEntityBase implements RdfMappingInterface {
   /**
    * {@inheritdoc}
    */
-  public function postSave(EntityStorageControllerInterface $storage_controller, $update = TRUE) {
-    parent::postSave($storage_controller, $update);
+  public function calculateDependencies() {
+    parent::calculateDependencies();
+    $entity_type = \Drupal::entityManager()->getDefinition($this->targetEntityType);
+    $this->addDependency('module', $entity_type->getProvider());
+    $bundle_entity_type_id = $entity_type->getBundleEntityType();
+    if ($bundle_entity_type_id != 'bundle') {
+      // If the target entity type uses entities to manage its bundles then
+      // depend on the bundle entity.
+      $bundle_entity = \Drupal::entityManager()->getStorage($bundle_entity_type_id)->load($this->bundle);
+      $this->addDependency('entity', $bundle_entity->getConfigDependencyName());
+    }
+    return $this->dependencies;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function postSave(EntityStorageInterface $storage, $update = TRUE) {
+    parent::postSave($storage, $update);
 
     if (\Drupal::entityManager()->hasController($this->targetEntityType, 'view_builder')) {
       \Drupal::entityManager()->getViewBuilder($this->targetEntityType)->resetCache();

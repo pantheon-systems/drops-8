@@ -8,6 +8,7 @@
 namespace Drupal\views\Tests\Handler;
 
 use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Language\Language;
 use Drupal\views\Tests\ViewTestBase;
 use Drupal\views\Views;
 
@@ -83,7 +84,7 @@ class AreaEntityTest extends ViewTestBase {
     for ($i = 0; $i < 3; $i++) {
       $random_label = $this->randomName();
       $data = array('bundle' => 'entity_test', 'name' => $random_label);
-      $entity_test = $this->container->get('entity.manager')->getStorageController('entity_test')->create($data);
+      $entity_test = $this->container->get('entity.manager')->getStorage('entity_test')->create($data);
       $entity_test->save();
       $entities[] = $entity_test;
       \Drupal::state()->set('entity_test_entity_access.view.' . $entity_test->id(), $i != 2);
@@ -100,6 +101,11 @@ class AreaEntityTest extends ViewTestBase {
     $result = $this->xpath('//div[@class = "view-footer"]');
     $this->assertTrue(strpos(trim((string) $result[0]), $entities[1]->label()) !== FALSE, 'The rendered entity appears in the footer of the view.');
     $this->assertTrue(strpos(trim((string) $result[0]), 'full') !== FALSE, 'The rendered entity appeared in the right view mode.');
+
+    // Mark entity_test test view_mode as customizable.
+    $view_mode = \Drupal::entityManager()->getStorage('view_mode')->load('entity_test.test');
+    $view_mode->status = TRUE;
+    $view_mode->save();
 
     // Change the view mode of the area handler.
     $view = Views::getView('test_entity_area');
@@ -126,7 +132,6 @@ class AreaEntityTest extends ViewTestBase {
     $form_state = array();
     $form_state['type'] = 'header';
     $view->display_handler->getHandler('header', 'entity_entity_test')->buildOptionsForm($form, $form_state);
-    $this->assertTrue(isset($form['view_mode']['#options']['full']), 'Ensure that the full view mode is available.');
     $this->assertTrue(isset($form['view_mode']['#options']['test']), 'Ensure that the test view mode is available.');
     $this->assertTrue(isset($form['view_mode']['#options']['default']), 'Ensure that the default view mode is available.');
   }

@@ -6,11 +6,9 @@
 
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\Xss;
-use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Config\ConfigImporter;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Extension\Extension;
-use Drupal\Core\Template\Attribute;
-use Drupal\entity\Entity\EntityViewDisplay;
 use Drupal\field\Field;
 
 /*
@@ -19,7 +17,6 @@ use Drupal\field\Field;
  * every page request.
  */
 require_once __DIR__ . '/field.info.inc';
-require_once __DIR__ . '/field.attach.inc';
 require_once __DIR__ . '/field.form.inc';
 require_once __DIR__ . '/field.purge.inc';
 require_once __DIR__ . '/field.deprecated.inc';
@@ -48,7 +45,7 @@ require_once __DIR__ . '/field.deprecated.inc';
  * type 'image'. The administrator (again, via a UI) creates two Field
  * Instances, one attaching the field 'subtitle' to the 'node' bundle 'article'
  * and one attaching the field 'photo' to the 'node' bundle 'article'. When the
- * node storage controller loads an Article node, it loads the values of the
+ * node storage loads an Article node, it loads the values of the
  * 'subtitle' and 'photo' fields because they are both attached to the 'node'
  * bundle 'article'.
  *
@@ -97,7 +94,7 @@ function field_help($path, $arg) {
       $items = array();
       $info = system_get_info('module');
       $field_widgets = \Drupal::service('plugin.manager.field.widget')->getDefinitions();
-      $field_types = \Drupal::service('plugin.manager.field.field_type')->getConfigurableDefinitions();
+      $field_types = \Drupal::service('plugin.manager.field.field_type')->getUiDefinitions();
       $providers = array();
       foreach (array_merge($field_types, $field_widgets) as $plugin) {
         $providers[] = $plugin['provider'];
@@ -127,20 +124,6 @@ function field_help($path, $arg) {
       }
       return $output;
   }
-}
-
-/**
- * Implements hook_theme().
- */
-function field_theme() {
-  return array(
-    'field' => array(
-      'render element' => 'element',
-    ),
-    'field_multiple_value_form' => array(
-      'render element' => 'element',
-    ),
-  );
 }
 
 /**
@@ -192,6 +175,28 @@ function field_system_info_alter(&$info, Extension $file, $type) {
 }
 
 /**
+ * Implements hook_entity_field_storage_info().
+ */
+function field_entity_field_storage_info(\Drupal\Core\Entity\EntityTypeInterface $entity_type) {
+  // Expose storage definitions for all exposed bundle fields.
+  if ($entity_type->isFieldable()) {
+    // Query by filtering on the ID as this is more efficient than filtering
+    // on the entity_type property directly.
+    $ids = \Drupal::entityQuery('field_config')
+      ->condition('id', $entity_type->id() . '.', 'STARTS_WITH')
+      ->execute();
+
+    // Fetch all fields and key them by field name.
+    $field_configs = entity_load_multiple('field_config', $ids);
+    $result = array();
+    foreach ($field_configs as $field_config) {
+      $result[$field_config->getName()] = $field_config;
+    }
+    return $result;
+  }
+}
+
+/**
  * Implements hook_entity_bundle_field_info().
  */
 function field_entity_bundle_field_info(EntityTypeInterface $entity_type, $bundle, array $base_field_definitions) {
@@ -218,7 +223,7 @@ function field_entity_bundle_rename($entity_type, $bundle_old, $bundle_new) {
   foreach ($instances as $instance) {
     if ($instance->entity_type == $entity_type && $instance->bundle == $bundle_old) {
       $id_new = $instance->entity_type . '.' . $bundle_new . '.' . $instance->field_name;
-      $instance->id = $id_new;
+      $instance->set('id', $id_new);
       $instance->bundle = $bundle_new;
       $instance->allowBundleRename();
       $instance->save();
@@ -277,14 +282,15 @@ function field_modules_uninstalled($modules) {
  * Clears the field info and field data caches.
  */
 function field_cache_clear() {
-  \Drupal::cache('field')->deleteAll();
+  \Drupal::cache('entity')->deleteAll();
   field_info_cache_clear();
 }
 
 /**
  * Filters an HTML string to prevent cross-site-scripting (XSS) vulnerabilities.
  *
- * Like filter_xss_admin(), but with a shorter list of allowed tags.
+ * Like \Drupal\Component\Utility\Xss::filterAdmin(), but with a shorter list
+ * of allowed tags.
  *
  * Used for items entered by administrators, like field descriptions, allowed
  * values, where some (mainly inline) mark-up may be desired (so
@@ -316,197 +322,8 @@ function _field_filter_xss_display_allowed_tags() {
 }
 
 /**
- * Implements hook_page_build().
- */
-function field_page_build(&$page) {
-  $path = drupal_get_path('module', 'field');
-  $page['#attached']['css'][$path . '/css/field.module.css'] = array('every_page' => TRUE);
-}
-
-/**
- * Implements hook_theme_suggestions_HOOK().
- */
-function field_theme_suggestions_field(array $variables) {
-  $suggestions = array();
-  $element = $variables['element'];
-
-  $suggestions[] = 'field__' . $element['#field_type'];
-  $suggestions[] = 'field__' . $element['#field_name'];
-  $suggestions[] = 'field__' . $element['#entity_type'] . '__' . $element['#bundle'];
-  $suggestions[] = 'field__' . $element['#entity_type'] . '__' . $element['#field_name'];
-  $suggestions[] = 'field__' . $element['#entity_type'] . '__' . $element['#field_name'] . '__' . $element['#bundle'];
-
-  return $suggestions;
-}
-
-/**
- * Prepares variables for field templates.
- *
- * Default template: field.html.twig.
- *
- * @param array $variables
- *   An associative array containing:
- *   - element: A render element representing the field.
- *   - attributes: A string containing the attributes for the wrapping div.
- *   - title_attributes: A string containing the attributes for the title.
- *   - content_attributes: A string containing the attributes for the content's
- *     div.
- */
-function template_preprocess_field(&$variables, $hook) {
-  $element = $variables['element'];
-
-  // There's some overhead in calling check_plain() so only call it if the label
-  // variable is being displayed. Otherwise, set it to NULL to avoid PHP
-  // warnings if a theme implementation accesses the variable even when it's
-  // supposed to be hidden. If a theme implementation needs to print a hidden
-  // label, it needs to supply a preprocess function that sets it to the
-  // sanitized element title or whatever else is wanted in its place.
-  $variables['label_hidden'] = ($element['#label_display'] == 'hidden');
-  $variables['label'] = check_plain($element['#title']);
-
-  // We want other preprocess functions and the theme implementation to have
-  // fast access to the field item render arrays. The item render array keys
-  // (deltas) should always be numerically indexed starting from 0, and looping
-  // on those keys is faster than calling element_children() or looping on all
-  // keys within $element, since that requires traversal of all element
-  // properties.
-  $variables['items'] = array();
-  $delta = 0;
-  while (!empty($element[$delta])) {
-    $variables['items'][$delta] = $element[$delta];
-    $delta++;
-  }
-
-  // Add default CSS classes. Since there can be many fields rendered on a page,
-  // save some overhead by calling strtr() directly instead of
-  // drupal_html_class().
-  $variables['entity_type_css'] = strtr($element['#entity_type'], '_', '-');
-  $variables['field_name_css'] = strtr($element['#field_name'], '_', '-');
-  $variables['field_type_css'] = strtr($element['#field_type'], '_', '-');
-  $variables['attributes']['class'] = array(
-    'field',
-    'field-' . $variables['entity_type_css'] . '--' . $variables['field_name_css'],
-    'field-name-' . $variables['field_name_css'],
-    'field-type-' . $variables['field_type_css'],
-    'field-label-' . $element['#label_display'],
-  );
-  // Add a "clearfix" class to the wrapper since we float the label and the
-  // field items in field.module.css if the label is inline.
-  if ($element['#label_display'] == 'inline') {
-    $variables['attributes']['class'][] = 'clearfix';
-  }
-
-  static $default_attributes;
-  if (!isset($default_attributes)) {
-    $default_attributes = new Attribute;
-  }
-  // The default theme implementation for fields is a function.
-  // template_preprocess() (which initializes the attributes, title_attributes,
-  // and content_attributes arrays) does not run for theme function
-  // implementations. Additionally, Attribute objects for the three variables
-  // below only get instantiated for template file implementations, and we need
-  // Attribute objects for printing in both theme functions and template files.
-  // For best performance, we only instantiate Attribute objects when needed.
-  $variables['attributes'] = isset($variables['attributes']) ? new Attribute($variables['attributes']) : clone $default_attributes;
-  $variables['title_attributes'] = isset($variables['title_attributes']) ? new Attribute($variables['title_attributes']) : clone($default_attributes);
-  $variables['content_attributes'] = isset($variables['content_attributes']) ? new Attribute($variables['content_attributes']) : clone($default_attributes);
-
-  // Modules (e.g., rdf.module) can add field item attributes (to
-  // $item->_attributes) within hook_entity_prepare_view(). Some field
-  // formatters move those attributes into some nested formatter-specific
-  // element in order have them rendered on the desired HTML element (e.g., on
-  // the <a> element of a field item being rendered as a link). Other field
-  // formatters leave them within $element['#items'][$delta]['_attributes'] to
-  // be rendered on the item wrappers provided by theme_field().
-  foreach ($variables['items'] as $delta => $item) {
-    $variables['item_attributes'][$delta] = !empty($element['#items'][$delta]->_attributes) ? new Attribute($element['#items'][$delta]->_attributes) : clone($default_attributes);
-  }
-}
-
-/**
  * @} End of "defgroup field".
  */
-
-/**
- * Returns HTML for a field.
- *
- * This is the default theme implementation to display the value of a field.
- * Theme developers who are comfortable with overriding theme functions may do
- * so in order to customize this markup. This function can be overridden with
- * varying levels of specificity. For example, for a field named 'body'
- * displayed on the 'article' content type, any of the following functions will
- * override this default implementation. The first of these functions that
- * exists is used:
- * - THEMENAME_field__body__article()
- * - THEMENAME_field__article()
- * - THEMENAME_field__body()
- * - THEMENAME_field()
- *
- * Theme developers who prefer to customize templates instead of overriding
- * functions may copy the "field.html.twig" from the "modules/field/theme"
- * folder of the Drupal installation to somewhere within the theme's folder and
- * customize it, just like customizing other Drupal templates such as
- * page.html.twig or node.html.twig. However, it takes longer for the server to
- * process templates than to call a function, so for websites with many fields
- * displayed on a page, this can result in a noticeable slowdown of the website.
- * For these websites, developers are discouraged from placing a field.html.twig
- * file into the theme's folder, but may customize templates for specific
- * fields. For example, for a field named 'body' displayed on the 'article'
- * content type, any of the following templates will override this default
- * implementation. The first of these templates that exists is used:
- * - field--body--article.html.twig
- * - field--article.html.twig
- * - field--body.html.twig
- * - field.html.twig
- * So, if the body field on the article content type needs customization, a
- * field--body--article.html.twig file can be added within the theme's folder.
- * Because it's a template, it will result in slightly more time needed to
- * display that field, but it will not impact other fields, and therefore, is
- * unlikely to cause a noticeable change in website performance. A very rough
- * guideline is that if a page is being displayed with more than 100 fields and
- * they are all themed with a template instead of a function, it can add up to
- * 5% to the time it takes to display that page. This is a guideline only and
- * the exact performance impact depends on the server configuration and the
- * details of the website.
- *
- * @param array $variables
- *   An associative array containing:
- *   - label_hidden: A boolean indicating whether to show or hide the field
- *     label.
- *   - title_attributes: A string containing the attributes for the title.
- *   - label: The label for the field.
- *   - content_attributes: A string containing the attributes for the content's
- *     div.
- *   - items: An array of field items.
- *   - item_attributes: An array of attributes for each item.
- *   - classes: A string containing the classes for the wrapping div.
- *   - attributes: A string containing the attributes for the wrapping div.
- *
- * @see template_preprocess_field()
- * @see field.html.twig
- *
- * @ingroup themeable
- */
-function theme_field($variables) {
-  $output = '';
-
-  // Render the label, if it's not hidden.
-  if (!$variables['label_hidden']) {
-    $output .= '<div class="field-label"' . $variables['title_attributes'] . '>' . $variables['label'] . '</div>';
-  }
-
-  // Render the items.
-  $output .= '<div class="field-items"' . $variables['content_attributes'] . '>';
-  foreach ($variables['items'] as $delta => $item) {
-    $output .= '<div class="field-item"' . $variables['item_attributes'][$delta] . '>' . drupal_render($item, TRUE) . '</div>';
-  }
-  $output .= '</div>';
-
-  // Render the top-level DIV.
-  $output = '<div' . $variables['attributes'] . '>' . $output . '</div>';
-
-  return $output;
-}
 
 /**
  * Assembles a partial entity structure with initial IDs.
@@ -545,4 +362,50 @@ function field_hook_info() {
   );
 
   return $hooks;
+}
+
+/**
+ * Implements hook_config_import_steps_alter().
+ */
+function field_config_import_steps_alter(&$sync_steps, ConfigImporter $config_importer) {
+  $fields = \Drupal\field\ConfigImporterFieldPurger::getFieldsToPurge(
+    $config_importer->getStorageComparer()->getSourceStorage()->read('core.extension'),
+    $config_importer->getStorageComparer()->getChangelist('delete')
+  );
+  if ($fields) {
+    // Add a step to the beginning of the configuration synchronization process
+    // to purge field data where the module that provides the field is being
+    // uninstalled.
+    array_unshift($sync_steps, array('\Drupal\field\ConfigImporterFieldPurger', 'process'));
+  };
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * Adds a warning if field data will be permanently removed by the configuration
+ * synchronization.
+ *
+ * @see \Drupal\field\ConfigImporterFieldPurger
+ */
+function field_form_config_admin_import_form_alter(&$form, &$form_state) {
+  // Only display the message when there is a storage comparer available and the
+  // form is not submitted.
+  if (isset($form_state['storage_comparer']) && empty($form_state['input'])) {
+    $fields = \Drupal\field\ConfigImporterFieldPurger::getFieldsToPurge(
+      $form_state['storage_comparer']->getSourceStorage()->read('core.extension'),
+      $form_state['storage_comparer']->getChangelist('delete')
+    );
+    if ($fields) {
+      foreach ($fields as $field) {
+        $field_labels[] = $field->label();
+      }
+      drupal_set_message(\Drupal::translation()->formatPlural(
+        count($fields),
+        'This synchronization will delete data from the field %fields.',
+        'This synchronization will delete data from the fields: %fields.',
+        array('%fields' => implode(', ', $field_labels))
+      ), 'warning');
+    }
+  }
 }

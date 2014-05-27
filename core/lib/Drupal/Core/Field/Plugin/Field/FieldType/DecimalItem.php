@@ -7,7 +7,7 @@
 
 namespace Drupal\Core\Field\Plugin\Field\FieldType;
 
-use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\TypedData\DataDefinition;
 
 /**
@@ -17,16 +17,6 @@ use Drupal\Core\TypedData\DataDefinition;
  *   id = "decimal",
  *   label = @Translation("Number (decimal)"),
  *   description = @Translation("This field stores a number in the database in a fixed decimal format."),
- *   settings = {
- *     "precision" = "10",
- *     "scale" = "2"
- *   },
- *   instance_settings = {
- *     "min" = "",
- *     "max" = "",
- *     "prefix" = "",
- *     "suffix" = ""
- *   },
  *   default_widget = "number",
  *   default_formatter = "number_decimal"
  * )
@@ -36,7 +26,18 @@ class DecimalItem extends NumericItemBase {
   /**
    * {@inheritdoc}
    */
-  public static function propertyDefinitions(FieldDefinitionInterface $field_definition) {
+  public static function defaultSettings() {
+    return array(
+      'precision' => 10,
+      'scale' => 2,
+    ) + parent::defaultSettings();
+  }
+
+  /**
+   * {@inheritdoc}
+
+   */
+  public static function propertyDefinitions(FieldStorageDefinitionInterface $field_definition) {
     $properties['value'] = DataDefinition::create('string')
       ->setLabel(t('Decimal value'));
 
@@ -46,7 +47,7 @@ class DecimalItem extends NumericItemBase {
   /**
    * {@inheritdoc}
    */
-  public static function schema(FieldDefinitionInterface $field_definition) {
+  public static function schema(FieldStorageDefinitionInterface $field_definition) {
     return array(
       'columns' => array(
         'value' => array(

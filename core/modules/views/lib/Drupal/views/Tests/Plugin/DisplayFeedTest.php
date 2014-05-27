@@ -51,7 +51,7 @@ class DisplayFeedTest extends PluginTestBase {
   public function testFeedUI() {
     $this->drupalGet('admin/structure/views');
     // Verify that the page lists the test_display_feed view.
-    // Regression test: ViewsListController::getDisplayPaths() did not properly
+    // Regression test: ViewListBuilder::getDisplayPaths() did not properly
     // check whether a DisplayBag was returned in iterating over all displays.
     $this->assertText('test_display_feed');
 
@@ -96,7 +96,7 @@ class DisplayFeedTest extends PluginTestBase {
     $result = $this->xpath('//title');
     $this->assertEqual($result[0], $site_name, 'The site title is used for the feed title.');
 
-    $view = $this->container->get('entity.manager')->getStorageController('view')->load('test_display_feed');
+    $view = $this->container->get('entity.manager')->getStorage('view')->load('test_display_feed');
     $display = &$view->getDisplay('feed_1');
     $display['display_options']['sitename_title'] = 0;
     $view->save();

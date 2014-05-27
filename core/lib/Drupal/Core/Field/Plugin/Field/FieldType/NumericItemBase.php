@@ -17,6 +17,18 @@ abstract class NumericItemBase extends FieldItemBase {
   /**
    * {@inheritdoc}
    */
+  public static function defaultInstanceSettings() {
+    return array(
+      'min' => '',
+      'max' => '',
+      'prefix' => '',
+      'suffix' => '',
+    ) + parent::defaultInstanceSettings();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function instanceSettingsForm(array $form, array &$form_state) {
     $element = array();
     $settings = $this->getSettings();

@@ -5,8 +5,10 @@
  * API for handling file uploads and server file management.
  */
 
+use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\StreamWrapper\LocalStream;
 use Drupal\Component\PhpStorage\FileStorage;
+use Drupal\Component\Utility\Settings;
 use Drupal\Component\Utility\String;
 use Drupal\Core\StreamWrapper\PublicStream;
 
@@ -108,8 +110,10 @@ define('STREAM_WRAPPERS_LOCAL_NORMAL', STREAM_WRAPPERS_LOCAL | STREAM_WRAPPERS_N
  * - filesize: The size of the file in bytes.
  * - status: A bitmapped field indicating the status of the file. The first 8
  *   bits are reserved for Drupal core. The least significant bit indicates
- *   temporary (0) or permanent (1). Temporary files older than
- *   DRUPAL_MAXIMUM_TEMP_FILE_AGE will be removed during cron runs.
+ *   temporary (0) or permanent (1). Temporary files will be removed during
+ *   cron runs if they are older than the configuration value
+ *   "system.file.temporary_maximum_age", and if clean-up is enabled. Permanent
+ *   files will not be removed.
  * - timestamp: UNIX timestamp for the date the file was added to the database.
  */
 
@@ -141,9 +145,10 @@ const FILE_EXISTS_ERROR = 2;
 /**
  * Indicates that the file is permanent and should not be deleted.
  *
- * Temporary files older than DRUPAL_MAXIMUM_TEMP_FILE_AGE will be removed
- * during cron runs, but permanent files will not be removed during the file
- * garbage collection process.
+ * Temporary files older than the system.file.temporary_maximum_age
+ * configuration value will be, if clean-up not disabled, removed during cron
+ * runs, but permanent files will not be removed during the file garbage
+ * collection process.
  */
 const FILE_STATUS_PERMANENT = 1;
 
@@ -468,7 +473,7 @@ function file_create_url($uri) {
     else {
       // If this is not a properly formatted stream, then it is a shipped file.
       // Therefore, return the urlencoded URI with the base URL prepended.
-      return $GLOBALS['base_url'] . '/' . drupal_encode_path($uri);
+      return $GLOBALS['base_url'] . '/' . UrlHelper::encodePath($uri);
     }
   }
   elseif ($scheme == 'http' || $scheme == 'https') {
@@ -1336,25 +1341,15 @@ function file_get_mimetype($uri, $mapping = NULL) {
 function drupal_chmod($uri, $mode = NULL) {
   if (!isset($mode)) {
     if (is_dir($uri)) {
-      $mode = settings()->get('file_chmod_directory', FILE_CHMOD_DIRECTORY);
+      $mode = Settings::get('file_chmod_directory', FILE_CHMOD_DIRECTORY);
     }
     else {
-      $mode = settings()->get('file_chmod_file', FILE_CHMOD_FILE);
+      $mode = Settings::get('file_chmod_file', FILE_CHMOD_FILE);
     }
   }
 
-  // If this URI is a stream, pass it off to the appropriate stream wrapper.
-  // Otherwise, attempt PHP's chmod. This allows use of drupal_chmod even
-  // for unmanaged files outside of the stream wrapper interface.
-  if ($wrapper = file_stream_wrapper_get_instance_by_uri($uri)) {
-    if ($wrapper->chmod($mode)) {
-      return TRUE;
-    }
-  }
-  else {
-    if (@chmod($uri, $mode)) {
-      return TRUE;
-    }
+  if (@chmod($uri, $mode)) {
+    return TRUE;
   }
 
   watchdog('file', 'The file permissions could not be set on %uri.', array('%uri' => $uri), WATCHDOG_ERROR);
@@ -1513,7 +1508,7 @@ function drupal_basename($uri, $suffix = NULL) {
  */
 function drupal_mkdir($uri, $mode = NULL, $recursive = FALSE, $context = NULL) {
   if (!isset($mode)) {
-    $mode = settings()->get('file_chmod_directory', FILE_CHMOD_DIRECTORY);
+    $mode = Settings::get('file_chmod_directory', FILE_CHMOD_DIRECTORY);
   }
 
   // If the URI has a scheme, don't override the umask - schemes can handle this

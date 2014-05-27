@@ -74,7 +74,7 @@ class ConfigHandler extends ViewsFormBase {
         $form['markup'] = array('#markup' => $this->t("Error: handler for @table > @field doesn't exist!", array('@table' => $item['table'], '@field' => $item['field'])));
       }
       else {
-        $types = ViewExecutable::viewsHandlerTypes();
+        $types = ViewExecutable::getHandlerTypes();
 
         // If this item can come from the default display, show a dropdown
         // that lets the user choose which display the changes should apply to.
@@ -204,7 +204,7 @@ class ConfigHandler extends ViewsFormBase {
     // Run it through the handler's submit function.
     $form_state['handler']->submitOptionsForm($form['options'], $form_state);
     $item = $form_state['handler']->options;
-    $types = ViewExecutable::viewsHandlerTypes();
+    $types = ViewExecutable::getHandlerTypes();
 
     // For footer/header $handler_type is area but $type is footer/header.
     // For all other handle types it's the same.
@@ -237,6 +237,14 @@ class ConfigHandler extends ViewsFormBase {
     // This unpacks only options that are in the definition, ensuring random
     // extra stuff on the form is not sent through.
     $handler->unpackOptions($handler->options, $options, NULL, FALSE);
+
+    // Add any dependencies as the handler is saved. Put it here so
+    // it does not need to be declared in defineOptions().
+    if ($dependencies = $handler->getDependencies()) {
+      $handler->options['dependencies'] = $dependencies;
+    }
+    // Add the module providing the handler as a dependency as well.
+    $handler->options['dependencies']['module'][] = $handler->definition['provider'];
 
     // Store the item back on the view
     $executable->setHandler($form_state['display_id'], $form_state['type'], $form_state['id'], $handler->options);

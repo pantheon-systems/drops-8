@@ -20,7 +20,7 @@ use Drupal\Core\Entity\ContentEntityInterface;
  */
 function content_translation_overview(EntityInterface $entity) {
   $controller = content_translation_controller($entity->getEntityTypeId());
-  $languages = language_list();
+  $languages = \Drupal::languageManager()->getLanguages();
   $original = $entity->getUntranslated()->language()->id;
   $translations = $entity->getTranslationLanguages();
   $administrator = \Drupal::currentUser()->hasPermission('administer languages');
@@ -37,8 +37,8 @@ function content_translation_overview(EntityInterface $entity) {
 
     // Determine whether the current entity is translatable.
     $translatable = FALSE;
-    foreach (field_info_instances($entity->getEntityTypeId(), $entity->bundle()) as $instance) {
-      if ($instance->isTranslatable()) {
+    foreach (\Drupal::entityManager()->getFieldDefinitions($entity->getEntityTypeId(), $entity->bundle()) as $field_definition) {
+      if ($field_definition->isTranslatable()) {
         $translatable = TRUE;
         break;
       }
@@ -229,6 +229,6 @@ function content_translation_edit_page(EntityInterface $entity, Language $langua
 function content_translation_prepare_translation(EntityInterface $entity, Language $source, Language $target) {
   if ($entity instanceof ContentEntityInterface) {
     $source_translation = $entity->getTranslation($source->id);
-    $entity->addTranslation($target->id, $source_translation->getPropertyValues());
+    $entity->addTranslation($target->id, $source_translation->toArray());
   }
 }

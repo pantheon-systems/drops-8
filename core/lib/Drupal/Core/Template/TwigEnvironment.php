@@ -2,12 +2,12 @@
 
 /**
  * @file
- * Definition of Drupal\Core\Template\TwigEnvironment.
+ * Contains \Drupal\Core\Template\TwigEnvironment.
  */
 
 namespace Drupal\Core\Template;
 
-use Drupal\Component\PhpStorage\PhpStorageFactory;
+use Drupal\Core\PhpStorage\PhpStorageFactory;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Extension\ThemeHandlerInterface;
 

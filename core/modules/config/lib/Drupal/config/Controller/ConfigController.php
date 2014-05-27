@@ -8,6 +8,7 @@
 namespace Drupal\config\Controller;
 
 use Drupal\Component\Archiver\ArchiveTar;
+use Drupal\Component\Serialization\Yaml;
 use Drupal\Core\Config\ConfigManagerInterface;
 use Drupal\Core\Config\StorageInterface;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
@@ -81,13 +82,12 @@ class ConfigController implements ContainerInjectionInterface {
    * Downloads a tarball of the site configuration.
    */
   public function downloadExport() {
+    file_unmanaged_delete(file_directory_temp() . '/config.tar.gz');
+
     $archiver = new ArchiveTar(file_directory_temp() . '/config.tar.gz', 'gz');
-    $config_dir = config_get_config_directory();
-    $config_files = array();
-    foreach (\Drupal::service('config.storage')->listAll() as $config_name) {
-      $config_files[] = $config_dir . '/' . $config_name . '.yml';
+    foreach (\Drupal::service('config.storage')->listAll() as $name) {
+      $archiver->addString("$name.yml", Yaml::encode(\Drupal::config($name)->get()));
     }
-    $archiver->createModify($config_files, '', config_get_config_directory());
 
     $request = new Request(array('file' => 'config.tar.gz'));
     return $this->fileDownloadController->download($request, 'temporary');
@@ -102,15 +102,15 @@ class ConfigController implements ContainerInjectionInterface {
    * @return string
    *   Table showing a two-way diff between the active and staged configuration.
    */
-  public function diff($config_file) {
+  public function diff($source_name, $target_name = NULL) {
 
-    $diff = $this->configManager->diff($this->targetStorage, $this->sourceStorage, $config_file);
+    $diff = $this->configManager->diff($this->targetStorage, $this->sourceStorage, $source_name, $target_name);
     $formatter = new \DrupalDiffFormatter();
     $formatter->show_header = FALSE;
 
     $build = array();
 
-    $build['#title'] = t('View changes of @config_file', array('@config_file' => $config_file));
+    $build['#title'] = t('View changes of @config_file', array('@config_file' => $source_name));
     // Add the CSS for the inline diff.
     $build['#attached']['css'][] = drupal_get_path('module', 'system') . '/css/system.diff.css';
 

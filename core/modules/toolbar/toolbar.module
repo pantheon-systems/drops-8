@@ -7,6 +7,7 @@
 
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Language\Language;
+use Drupal\Core\Render\Element;
 use Drupal\Core\Template\Attribute;
 use Drupal\Component\Utility\Crypt;
 use Symfony\Component\HttpFoundation\Response;
@@ -196,7 +197,7 @@ function toolbar_pre_render($element) {
   // Allow for altering of hook_toolbar().
   \Drupal::moduleHandler()->alter('toolbar', $items);
   // Sort the children.
-  uasort($items, 'element_sort');
+  uasort($items, array('\Drupal\Component\Utility\SortArray', 'sortByWeightProperty'));
 
   // Merge in the original toolbar values.
   $element = array_merge($element, $items);
@@ -230,7 +231,7 @@ function template_preprocess_toolbar(&$variables) {
   $variables['trays'] = array();
   $variables['tabs'] = array();
   $variables['remainder'] = array();
-  foreach (element_children($element) as $key) {
+  foreach (Element::children($element) as $key) {
     // Add the tray.
     if (isset($element[$key]['tray'])) {
       $variables['trays'][$key] = array(
@@ -259,7 +260,7 @@ function template_preprocess_toolbar(&$variables) {
 
     // Add other non-tray, non-tab child elements to the remainder variable for
     // later rendering.
-    foreach (element_children($element[$key]) as $child_key) {
+    foreach (Element::children($element[$key]) as $child_key) {
       if (!in_array($child_key, array('tray', 'tab'))) {
         $variables['remainder'][$key][$child_key] = $element[$key][$child_key];
       }
@@ -317,6 +318,8 @@ function toolbar_pre_render_item($element) {
     $element['tray']['#wrapper_attributes']['class'][] = 'toolbar-tray';
   }
 
+  $element['tab']['#attributes']['class'][] = 'toolbar-item';
+
   return $element;
 }
 
@@ -333,12 +336,10 @@ function toolbar_toolbar() {
       '#type' => 'link',
       '#title' => t('Back to site'),
       '#href' => '<front>',
-      '#options' => array(
-        'attributes' => array(
-          'title' => t('Return to site content'),
-          'class' => array('toolbar-icon', 'toolbar-icon-escape-admin'),
-          'data-toolbar-escape-admin' => TRUE,
-        ),
+      '#attributes' => array(
+        'title' => t('Return to site content'),
+        'class' => array('toolbar-icon', 'toolbar-icon-escape-admin'),
+        'data-toolbar-escape-admin' => TRUE,
       ),
     ),
     '#wrapper_attributes' => array(
@@ -358,6 +359,9 @@ function toolbar_toolbar() {
   // Add attributes to the links before rendering.
   toolbar_menu_navigation_links($tree);
 
+  /** @var \Drupal\menu_link\MenuTreeInterface $menu_tree */
+  $menu_tree = \Drupal::service('menu_link.tree');
+
   $menu = array(
     '#heading' => t('Administration menu'),
     'toolbar_administration' => array(
@@ -365,7 +369,7 @@ function toolbar_toolbar() {
       '#attributes' => array(
         'class' => array('toolbar-menu-administration'),
       ),
-      'administration_menu' => menu_tree_output($tree),
+      'administration_menu' => $menu_tree->renderTree($tree),
     ),
   );
 
@@ -374,10 +378,12 @@ function toolbar_toolbar() {
   // toolbar_subtrees route. We provide the JavaScript requesting that JSONP
   // script here with the hash parameter that is needed for that route.
   // @see toolbar_subtrees_jsonp()
+  $langcode = \Drupal::languageManager()->getCurrentLanguage()->id;
   $menu['toolbar_administration']['#attached']['js'][] = array(
     'type' => 'setting',
     'data' => array('toolbar' => array(
-      'subtreesHash' => _toolbar_get_subtrees_hash(),
+      'subtreesHash' => _toolbar_get_subtrees_hash($langcode),
+      'langcode' => $langcode,
     )),
   );
 
@@ -389,17 +395,15 @@ function toolbar_toolbar() {
       '#type' => 'link',
       '#title' => t('Manage'),
       '#href' => 'admin',
-      '#options' => array(
-        'attributes' => array(
-          'title' => t('Admin menu'),
-          'class' => array('toolbar-icon', 'toolbar-icon-menu'),
-          // A data attribute that indicates to the client to defer loading of
-          // the admin menu subtrees until this tab is activated. Admin menu
-          // subtrees will not render to the DOM if this attribute is removed.
-          // The value of the attribute is intentionally left blank. Only the
-          // presence of the attribute is necessary.
-          'data-drupal-subtrees' => '',
-        ),
+      '#attributes' => array(
+        'title' => t('Admin menu'),
+        'class' => array('toolbar-icon', 'toolbar-icon-menu'),
+        // A data attribute that indicates to the client to defer loading of
+        // the admin menu subtrees until this tab is activated. Admin menu
+        // subtrees will not render to the DOM if this attribute is removed.
+        // The value of the attribute is intentionally left blank. Only the
+        // presence of the attribute is necessary.
+        'data-drupal-subtrees' => '',
       ),
     ),
     'tray' => $menu,
@@ -417,6 +421,8 @@ function toolbar_toolbar() {
  */
 function toolbar_get_menu_tree() {
   $tree = array();
+  /** @var \Drupal\menu_link\MenuTreeInterface $menu_tree */
+  $menu_tree = \Drupal::service('menu_link.tree');
   $query = \Drupal::entityQuery('menu_link')
     ->condition('menu_name', 'admin')
     ->condition('module', 'system')
@@ -424,7 +430,7 @@ function toolbar_get_menu_tree() {
   $result = $query->execute();
   if (!empty($result)) {
     $admin_link = menu_link_load(reset($result));
-    $tree = menu_build_tree('admin', array(
+    $tree = $menu_tree->buildTree('admin', array(
       'expanded' => array($admin_link['mlid']),
       'min_depth' => $admin_link['depth'] + 1,
       'max_depth' => $admin_link['depth'] + 1,
@@ -467,21 +473,22 @@ function toolbar_menu_navigation_links(&$tree) {
  */
 function toolbar_get_rendered_subtrees() {
   $subtrees = array();
+  /** @var \Drupal\menu_link\MenuTreeInterface $menu_tree */
+  $menu_tree = \Drupal::service('menu_link.tree');
   $tree = toolbar_get_menu_tree();
   foreach ($tree as $tree_item) {
     $item = $tree_item['link'];
     if (!$item['hidden'] && $item['access']) {
       if ($item['has_children']) {
-        $query = db_select('menu_links');
-        $query->addField('menu_links', 'mlid');
-        $query->condition('has_children', 1);
+        $query = \Drupal::entityQuery('menu_link')
+          ->condition('has_children', 1);
         for ($i=1; $i <= $item['depth']; $i++) {
           $query->condition('p' . $i, $item['p' . $i]);
         }
-        $parents = $query->execute()->fetchCol();
-        $subtree = menu_build_tree($item['menu_name'], array('expanded' => $parents, 'min_depth' => $item['depth']+1));
+        $parents = $query->execute();
+        $subtree = $menu_tree->buildTree($item['menu_name'], array('expanded' => $parents, 'min_depth' => $item['depth']+1));
         toolbar_menu_navigation_links($subtree);
-        $subtree = menu_tree_output($subtree);
+        $subtree = $menu_tree->renderTree($subtree);
         $subtree = drupal_render($subtree);
       }
       else {
@@ -498,12 +505,15 @@ function toolbar_get_rendered_subtrees() {
 /**
  * Returns the hash of the per-user rendered toolbar subtrees.
  *
+ * @param string $langcode
+ *   The langcode of the current request.
+ *
  * @return string
  *   The hash of the admin_menu subtrees.
  */
-function _toolbar_get_subtrees_hash() {
+function _toolbar_get_subtrees_hash($langcode) {
   $uid = \Drupal::currentUser()->id();
-  $cid = _toolbar_get_user_cid($uid);
+  $cid = _toolbar_get_user_cid($uid, $langcode);
   if ($cache = \Drupal::cache('toolbar')->get($cid)) {
     $hash = $cache->data;
   }
@@ -561,12 +571,14 @@ function toolbar_user_role_update(RoleInterface $role) {
  *
  * @param int $uid
  *   A user ID.
+ * @param string $langcode
+ *   The langcode of the current request.
  *
  * @return string
  *   A unique cache ID for the user.
  */
-function _toolbar_get_user_cid($uid) {
-  return 'toolbar_' . $uid . ':' . \Drupal::languageManager()->getCurrentLanguage()->id;
+function _toolbar_get_user_cid($uid, $langcode) {
+  return 'toolbar_' . $uid . ':' . $langcode;
 }
 
 /**

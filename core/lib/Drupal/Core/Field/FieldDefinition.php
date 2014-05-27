@@ -68,6 +68,37 @@ class FieldDefinition extends ListDataDefinition implements FieldDefinitionInter
   }
 
   /**
+   * Creates a new field definition based upon a field storage definition.
+   *
+   * In cases where one needs a field storage definitions to act like full
+   * field definitions, this creates a new field definition based upon the
+   * (limited) information available. That way it is possible to use the field
+   * definition in places where a full field definition is required; e.g., with
+   * widgets or formatters.
+   *
+   * @param \Drupal\Core\Field\FieldStorageDefinitionInterface $definition
+   *   The field storage definition to base the new field definition upon.
+   *
+   * @return $this
+   */
+  public static function createFromFieldStorageDefinition(FieldStorageDefinitionInterface $definition) {
+    return static::create($definition->getType())
+      ->setCardinality($definition->getCardinality())
+      ->setConstraints($definition->getConstraints())
+      ->setCustomStorage($definition->hasCustomStorage())
+      ->setDescription($definition->getDescription())
+      ->setLabel($definition->getLabel())
+      ->setName($definition->getName())
+      ->setProvider($definition->getProvider())
+      ->setQueryable($definition->isQueryable())
+      ->setRequired($definition->isRequired())
+      ->setRevisionable($definition->isRevisionable())
+      ->setSettings($definition->getSettings())
+      ->setTargetEntityTypeId($definition->getTargetEntityTypeId())
+      ->setTranslatable($definition->isTranslatable());
+  }
+
+  /**
    * {@inheritdoc}
    */
   public static function createFromItemType($item_type) {
@@ -151,6 +182,26 @@ class FieldDefinition extends ListDataDefinition implements FieldDefinitionInter
   /**
    * {@inheritdoc}
    */
+  public function getProvider() {
+    return $this->definition['provider'];
+  }
+
+  /**
+   * Sets the name of the provider of this field.
+   *
+   * @param string $provider
+   *   The provider name to set.
+   *
+   * @return $this
+   */
+  public function setProvider($provider) {
+    $this->definition['provider'] = $provider;
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function isTranslatable() {
     return !empty($this->definition['translatable']);
   }
@@ -161,11 +212,32 @@ class FieldDefinition extends ListDataDefinition implements FieldDefinitionInter
    * @param bool $translatable
    *   Whether the field is translatable.
    *
-   * @return static
+   * @return $this
    *   The object itself for chaining.
    */
   public function setTranslatable($translatable) {
     $this->definition['translatable'] = $translatable;
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function isRevisionable() {
+    return !empty($this->definition['revisionable']);
+  }
+
+  /**
+   * Sets whether the field is revisionable.
+   *
+   * @param bool $revisionable
+   *   Whether the field is revisionable.
+   *
+   * @return $this
+   *   The object itself for chaining.
+   */
+  public function setRevisionable($revisionable) {
+    $this->definition['revisionable'] = $revisionable;
     return $this;
   }
 
@@ -301,13 +373,6 @@ class FieldDefinition extends ListDataDefinition implements FieldDefinitionInter
    */
   public function isDisplayConfigurable($display_context) {
     return isset($this->definition['display'][$display_context]['configurable']) ? $this->definition['display'][$display_context]['configurable'] : FALSE;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function isConfigurable() {
-    return FALSE;
   }
 
   /**
@@ -451,6 +516,27 @@ class FieldDefinition extends ListDataDefinition implements FieldDefinitionInter
    */
   public static function getReservedColumns() {
     return array('deleted');
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function hasCustomStorage() {
+    return !empty($this->definition['custom_storage']);
+  }
+
+  /**
+   * Sets the storage behavior for this field.
+   *
+   * @param bool $custom_storage
+   *   Pass FALSE if the storage takes care of storing the field,
+   *   TRUE otherwise.
+   *
+   * @return $this
+   */
+  public function setCustomStorage($custom_storage) {
+    $this->definition['custom_storage'] = $custom_storage;
+    return $this;
   }
 
 }

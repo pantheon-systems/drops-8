@@ -18,13 +18,19 @@ use Drupal\Core\Field\FieldItemListInterface;
  *   description = @Translation("Display the label of the referenced entities."),
  *   field_types = {
  *     "entity_reference"
- *   },
- *   settings = {
- *     "link" = TRUE
  *   }
  * )
  */
 class EntityReferenceLabelFormatter extends EntityReferenceFormatterBase {
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function defaultSettings() {
+    return array(
+      'link' => TRUE,
+    ) + parent::defaultSettings();
+  }
 
   /**
    * {@inheritdoc}
@@ -68,10 +74,7 @@ class EntityReferenceLabelFormatter extends EntityReferenceFormatterBase {
           $elements[$delta] = array(
             '#type' => 'link',
             '#title' => $label,
-            '#route_name' => $uri['route_name'],
-            '#route_parameters' => $uri['route_parameters'],
-            '#options' => $uri['options'],
-          );
+          ) + $uri->toRenderArray();
         }
         else {
           $elements[$delta] = array('#markup' => check_plain($label));

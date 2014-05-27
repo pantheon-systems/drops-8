@@ -8,7 +8,7 @@
 namespace Drupal\taxonomy\Entity;
 
 use Drupal\Core\Config\Entity\ConfigEntityBase;
-use Drupal\Core\Entity\EntityStorageControllerInterface;
+use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\field\Field;
 use Drupal\taxonomy\VocabularyInterface;
 
@@ -19,8 +19,8 @@ use Drupal\taxonomy\VocabularyInterface;
  *   id = "taxonomy_vocabulary",
  *   label = @Translation("Taxonomy vocabulary"),
  *   controllers = {
- *     "storage" = "Drupal\taxonomy\VocabularyStorageController",
- *     "list" = "Drupal\taxonomy\VocabularyListController",
+ *     "storage" = "Drupal\taxonomy\VocabularyStorage",
+ *     "list_builder" = "Drupal\taxonomy\VocabularyListBuilder",
  *     "form" = {
  *       "default" = "Drupal\taxonomy\VocabularyFormController",
  *       "reset" = "Drupal\taxonomy\Form\VocabularyResetForm",
@@ -96,13 +96,13 @@ class Vocabulary extends ConfigEntityBase implements VocabularyInterface {
   /**
    * {@inheritdoc}
    */
-  public function postSave(EntityStorageControllerInterface $storage_controller, $update = TRUE) {
-    parent::postSave($storage_controller, $update);
+  public function postSave(EntityStorageInterface $storage, $update = TRUE) {
+    parent::postSave($storage, $update);
 
     if (!$update) {
       entity_invoke_bundle_hook('create', 'taxonomy_term', $this->id());
     }
-    elseif ($this->getOriginalId() != $this->id()) {
+    elseif ($this->getOriginalId() != $this->id() && !$this->isSyncing()) {
       // Reflect machine name changes in the definitions of existing 'taxonomy'
       // fields.
       $field_ids = array();
@@ -115,7 +115,7 @@ class Vocabulary extends ConfigEntityBase implements VocabularyInterface {
         }
       }
 
-      $fields = \Drupal::entityManager()->getStorageController('field_config')->loadMultiple($field_ids);
+      $fields = \Drupal::entityManager()->getStorage('field_config')->loadMultiple($field_ids);
 
       foreach ($fields as $field) {
         $update_field = FALSE;
@@ -134,24 +134,31 @@ class Vocabulary extends ConfigEntityBase implements VocabularyInterface {
       // Update bundles.
       entity_invoke_bundle_hook('rename', 'taxonomy_term', $this->getOriginalId(), $this->id());
     }
-    $storage_controller->resetCache($update ? array($this->getOriginalId()) : array());
+    $storage->resetCache($update ? array($this->getOriginalId()) : array());
   }
 
   /**
    * {@inheritdoc}
    */
-  public static function preDelete(EntityStorageControllerInterface $storage_controller, array $entities) {
-    parent::preDelete($storage_controller, $entities);
+  public static function preDelete(EntityStorageInterface $storage, array $entities) {
+    parent::preDelete($storage, $entities);
 
     // Only load terms without a parent, child terms will get deleted too.
-    entity_delete_multiple('taxonomy_term', $storage_controller->getToplevelTids(array_keys($entities)));
+    entity_delete_multiple('taxonomy_term', $storage->getToplevelTids(array_keys($entities)));
   }
 
   /**
    * {@inheritdoc}
    */
-  public static function postDelete(EntityStorageControllerInterface $storage_controller, array $entities) {
-    parent::postDelete($storage_controller, $entities);
+  public static function postDelete(EntityStorageInterface $storage, array $entities) {
+    parent::postDelete($storage, $entities);
+
+    // Reset caches.
+    $storage->resetCache(array_keys($entities));
+
+    if (reset($entities)->isSyncing()) {
+      return;
+    }
 
     $vocabularies = array();
     foreach ($entities as $vocabulary) {
@@ -181,7 +188,7 @@ class Vocabulary extends ConfigEntityBase implements VocabularyInterface {
       }
     }
     // Reset caches.
-    $storage_controller->resetCache(array_keys($vocabularies));
+    $storage->resetCache(array_keys($vocabularies));
   }
 
 }

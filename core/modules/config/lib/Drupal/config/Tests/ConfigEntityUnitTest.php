@@ -23,9 +23,9 @@ class ConfigEntityUnitTest extends DrupalUnitTestBase {
   public static $modules = array('config_test');
 
   /**
-   * The config_test entity storage controller.
+   * The config_test entity storage.
    *
-   * @var \Drupal\Core\Config\Entity\ConfigStorageControllerInterface
+   * @var \Drupal\Core\Config\Entity\ConfigEntityStorageInterface
    */
   protected $storage;
 
@@ -42,13 +42,13 @@ class ConfigEntityUnitTest extends DrupalUnitTestBase {
    */
   protected function setUp() {
     parent::setUp();
-    $this->storage = $this->container->get('entity.manager')->getStorageController('config_test');
+    $this->storage = $this->container->get('entity.manager')->getStorage('config_test');
   }
 
   /**
-   * Tests storage controller methods.
+   * Tests storage methods.
    */
-  public function testStorageControllerMethods() {
+  public function testStorageMethods() {
     $entity_type = \Drupal::entityManager()->getDefinition('config_test');
 
     $expected = $entity_type->getConfigPrefix() . '.';
@@ -95,16 +95,6 @@ class ConfigEntityUnitTest extends DrupalUnitTestBase {
     foreach ($entities as $entity) {
       $this->assertIdentical($entity->get('style'), $style, 'The loaded entity has the correct style value specified.');
     }
-  }
-
-  /**
-   * Tests getOriginalId() and setOriginalId().
-   */
-  protected function testGetOriginalId() {
-    $entity = $this->storage->create(array());
-    $id = $this->randomName();
-    $this->assertIdentical(spl_object_hash($entity->setOriginalId($id)), spl_object_hash($entity));
-    $this->assertIdentical($entity->getOriginalId(), $id);
   }
 
 }

@@ -7,7 +7,7 @@
 
 namespace Drupal\taxonomy\Plugin\Field\FieldType;
 
-use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItem;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\TypedData\AllowedValuesInterface;
@@ -19,23 +19,28 @@ use Drupal\Core\TypedData\AllowedValuesInterface;
  *   id = "taxonomy_term_reference",
  *   label = @Translation("Term Reference"),
  *   description = @Translation("This field stores a reference to a taxonomy term."),
- *   settings = {
- *     "target_type" = "taxonomy_term",
- *     "options_list_callback" = NULL,
- *     "allowed_values" = {
- *       {
- *         "vocabulary" = "",
- *         "parent" = "0"
- *       }
- *     }
- *   },
- *   instance_settings = { },
  *   default_widget = "options_select",
  *   default_formatter = "taxonomy_term_reference_link",
  *   list_class = "\Drupal\taxonomy\Plugin\Field\FieldType\TaxonomyTermReferenceFieldItemList"
  * )
  */
 class TaxonomyTermReferenceItem extends EntityReferenceItem implements AllowedValuesInterface {
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function defaultSettings() {
+    return array(
+      'target_type' => 'taxonomy_term',
+      'options_list_callback' => NULL,
+      'allowed_values' => array(
+        array(
+          'vocabulary' => '',
+          'parent' => 0,
+        ),
+      ),
+    ) + parent::defaultSettings();
+  }
 
   /**
    * {@inheritdoc}
@@ -89,7 +94,7 @@ class TaxonomyTermReferenceItem extends EntityReferenceItem implements AllowedVa
   /**
    * {@inheritdoc}
    */
-  public static function schema(FieldDefinitionInterface $field_definition) {
+  public static function schema(FieldStorageDefinitionInterface $field_definition) {
     return array(
       'columns' => array(
         'target_id' => array(

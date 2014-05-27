@@ -1,7 +1,7 @@
 services:
   plugin.manager.language_negotiation_method:
     class: Drupal\language\LanguageNegotiationMethodManager
-    arguments: ['@container.namespaces', '@cache.cache', '@module_handler']
+    arguments: ['@container.namespaces', '@cache.discovery', '@module_handler']
   language_negotiator:
     class: Drupal\language\LanguageNegotiator
     arguments: ['@language_manager', '@plugin.manager.language_negotiation_method', '@config.factory', '@settings']
@@ -11,3 +11,8 @@ services:
     class: Drupal\language\EventSubscriber\ConfigSubscriber
     tags:
       - { name: event_subscriber }
+  language.config_factory_override:
+    class: Drupal\language\Config\LanguageConfigFactoryOverride
+    arguments: ['@config.storage', '@event_dispatcher', '@config.typed']
+    tags:
+      - { name: config.factory.override, priority: -254 }

@@ -7,13 +7,12 @@
 
 namespace Drupal\Core\Config;
 
+use Drupal\Component\Serialization\Yaml;
+use Drupal\Component\Serialization\Exception\InvalidDataTypeException;
 use Drupal\Component\Utility\String;
-use Symfony\Component\Yaml\Dumper;
-use Symfony\Component\Yaml\Exception\DumpException;
-use Symfony\Component\Yaml\Parser;
 
 /**
- * Defines the file storage controller.
+ * Defines the file storage.
  */
 class FileStorage implements StorageInterface {
 
@@ -25,21 +24,7 @@ class FileStorage implements StorageInterface {
   protected $directory = '';
 
   /**
-   * A shared YAML dumper instance.
-   *
-   * @var Symfony\Component\Yaml\Dumper
-   */
-  protected $dumper;
-
-  /**
-   * A shared YAML parser instance.
-   *
-   * @var Symfony\Component\Yaml\Parser
-   */
-  protected $parser;
-
-  /**
-   * Constructs a new FileStorage controller.
+   * Constructs a new FileStorage.
    *
    * @param string $directory
    *   A directory path to use for reading and writing of configuration files.
@@ -69,6 +54,18 @@ class FileStorage implements StorageInterface {
   }
 
   /**
+   * Check if the directory exists and create it if not.
+   */
+  protected function ensureStorage() {
+    $success = file_prepare_directory($this->directory, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS);
+    $success = $success && file_save_htaccess($this->directory, TRUE, TRUE);
+    if (!$success) {
+      throw new StorageException("Failed to create config directory {$this->directory}");
+    }
+    return $this;
+  }
+
+  /**
    * Implements Drupal\Core\Config\StorageInterface::exists().
    */
   public function exists($name) {
@@ -78,16 +75,22 @@ class FileStorage implements StorageInterface {
   /**
    * Implements Drupal\Core\Config\StorageInterface::read().
    *
-   * @throws Symfony\Component\Yaml\Exception\ParseException
+   * @throws \Drupal\Core\Config\UnsupportedDataTypeConfigException
    */
   public function read($name) {
     if (!$this->exists($name)) {
       return FALSE;
     }
     $data = file_get_contents($this->getFilePath($name));
-    // @todo Yaml throws a ParseException on invalid data. Is it expected to be
-    //   caught or not?
-    $data = $this->decode($data);
+    try {
+      $data = $this->decode($data);
+    }
+    catch (InvalidDataTypeException $e) {
+      throw new UnsupportedDataTypeConfigException(String::format('Invalid data type in config @name: !message', array(
+        '@name' => $name,
+        '!message' => $e->getMessage(),
+      )));
+    }
     return $data;
   }
 
@@ -105,21 +108,26 @@ class FileStorage implements StorageInterface {
   }
 
   /**
-   * Implements Drupal\Core\Config\StorageInterface::write().
-   *
-   * @throws \Drupal\Core\Config\UnsupportedDataTypeConfigException
-   * @throws \Drupal\Core\Config\StorageException
+   * {@inheritdoc}
    */
   public function write($name, array $data) {
     try {
       $data = $this->encode($data);
     }
-    catch(DumpException $e) {
-      throw new UnsupportedDataTypeConfigException(String::format('Invalid data type for used in config: @name', array('@name' => $name)));
+    catch (InvalidDataTypeException $e) {
+      throw new StorageException(String::format('Invalid data type in config @name: !message', array(
+        '@name' => $name,
+        '!message' => $e->getMessage(),
+      )));
     }
 
     $target = $this->getFilePath($name);
     $status = @file_put_contents($target, $data);
+    if ($status === FALSE) {
+      // Try to make sure the directory exists and try witing again.
+      $this->ensureStorage();
+      $status = @file_put_contents($target, $data);
+    }
     if ($status === FALSE) {
       throw new StorageException('Failed to write configuration file: ' . $this->getFilePath($name));
     }
@@ -154,51 +162,17 @@ class FileStorage implements StorageInterface {
   }
 
   /**
-   * Gets the YAML dumper instance.
-   *
-   * @return Symfony\Component\Yaml\Dumper
-   */
-  protected function getDumper() {
-    if (!isset($this->dumper)) {
-      $this->dumper = new Dumper();
-      // Set Yaml\Dumper's default indentation for nested nodes/collections to
-      // 2 spaces for consistency with Drupal coding standards.
-      $this->dumper->setIndentation(2);
-    }
-    return $this->dumper;
-  }
-
-  /**
-   * Gets the YAML parser instance.
-   *
-   * @return Symfony\Component\Yaml\Parser
-   */
-  protected function getParser() {
-    if (!isset($this->parser)) {
-      $this->parser = new Parser();
-    }
-    return $this->parser;
-  }
-
-  /**
    * Implements Drupal\Core\Config\StorageInterface::encode().
-   *
-   * @throws Symfony\Component\Yaml\Exception\DumpException
    */
   public function encode($data) {
-    // The level where you switch to inline YAML is set to PHP_INT_MAX to ensure
-    // this does not occur. Also set the exceptionOnInvalidType parameter to
-    // TRUE, so exceptions are thrown for an invalid data type.
-    return $this->getDumper()->dump($data, PHP_INT_MAX, 0, TRUE);
+    return Yaml::encode($data);
   }
 
   /**
    * Implements Drupal\Core\Config\StorageInterface::decode().
-   *
-   * @throws Symfony\Component\Yaml\Exception\ParseException
    */
   public function decode($raw) {
-    $data = $this->getParser()->parse($raw);
+    $data = Yaml::decode($raw);
     // A simple string is valid YAML for any reason.
     if (!is_array($data)) {
       return FALSE;
@@ -213,7 +187,7 @@ class FileStorage implements StorageInterface {
     // glob() silently ignores the error of a non-existing search directory,
     // even with the GLOB_ERR flag.
     if (!file_exists($this->directory)) {
-      throw new StorageException($this->directory . '/ not found.');
+      return array();
     }
     $extension = '.' . static::getFileExtension();
     // \GlobIterator on Windows requires an absolute path.

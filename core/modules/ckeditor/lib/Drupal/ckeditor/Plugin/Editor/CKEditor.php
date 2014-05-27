@@ -12,6 +12,7 @@ use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\ckeditor\CKEditorPluginManager;
 use Drupal\Core\Language\Language;
 use Drupal\Core\Language\LanguageManager;
+use Drupal\Core\Render\Element;
 use Drupal\editor\Plugin\EditorBase;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\editor\Entity\Editor as EditorEntity;
@@ -58,7 +59,7 @@ class CKEditor extends EditorBase implements ContainerFactoryPluginInterface {
    *   A configuration array containing information about the plugin instance.
    * @param string $plugin_id
    *   The plugin_id for the plugin instance.
-   * @param array $plugin_definition
+   * @param mixed $plugin_definition
    *   The plugin implementation definition.
    * @param \Drupal\ckeditor\CKEditorPluginManager $ckeditor_plugin_manager
    *   The CKEditor plugin manager.
@@ -67,7 +68,7 @@ class CKEditor extends EditorBase implements ContainerFactoryPluginInterface {
    * @param \Drupal\Core\Language\LanguageManager $language_manager
    *   The language manager.
    */
-  public function __construct(array $configuration, $plugin_id, array $plugin_definition, CKEditorPluginManager $ckeditor_plugin_manager, ModuleHandlerInterface $module_handler, LanguageManager $language_manager) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, CKEditorPluginManager $ckeditor_plugin_manager, ModuleHandlerInterface $module_handler, LanguageManager $language_manager) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
     $this->ckeditorPluginManager = $ckeditor_plugin_manager;
     $this->moduleHandler = $module_handler;
@@ -77,7 +78,7 @@ class CKEditor extends EditorBase implements ContainerFactoryPluginInterface {
   /**
    * {@inheritdoc}
    */
-  public static function create(ContainerInterface $container, array $configuration, $plugin_id, array $plugin_definition) {
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
     return new static(
       $configuration,
       $plugin_id,
@@ -165,7 +166,7 @@ class CKEditor extends EditorBase implements ContainerFactoryPluginInterface {
       ),
     );
     $this->ckeditorPluginManager->injectPluginSettingsForm($form, $form_state, $editor);
-    if (count(element_children($form['plugins'])) === 0) {
+    if (count(Element::children($form['plugins'])) === 0) {
       unset($form['plugins']);
       unset($form['plugin_settings']);
     }

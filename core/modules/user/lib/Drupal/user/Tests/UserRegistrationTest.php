@@ -55,7 +55,7 @@ class UserRegistrationTest extends WebTestBase {
     $edit['name'] = $name = $this->randomName();
     $edit['mail'] = $mail = $edit['name'] . '@example.com';
     $this->drupalPostForm('user/register', $edit, t('Create new account'));
-    $this->container->get('entity.manager')->getStorageController('user')->resetCache();
+    $this->container->get('entity.manager')->getStorage('user')->resetCache();
     $accounts = entity_load_multiple_by_properties('user', array('name' => $name, 'mail' => $mail));
     $new_user = reset($accounts);
     $this->assertFalse($new_user->isActive(), 'New account is blocked until approved by an administrator.');
@@ -84,7 +84,7 @@ class UserRegistrationTest extends WebTestBase {
     $edit['pass[pass1]'] = $new_pass = $this->randomName();
     $edit['pass[pass2]'] = $new_pass;
     $this->drupalPostForm('user/register', $edit, t('Create new account'));
-    $this->container->get('entity.manager')->getStorageController('user')->resetCache();
+    $this->container->get('entity.manager')->getStorage('user')->resetCache();
     $accounts = entity_load_multiple_by_properties('user', array('name' => $name, 'mail' => $mail));
     $new_user = reset($accounts);
     $this->assertNotNull($new_user, 'New account successfully created with matching passwords.');
@@ -186,8 +186,8 @@ class UserRegistrationTest extends WebTestBase {
     $this->assertTrue(($new_user->getCreatedTime() > REQUEST_TIME - 20 ), 'Correct creation time.');
     $this->assertEqual($new_user->isActive(), $config_user_settings->get('register') == USER_REGISTER_VISITORS ? 1 : 0, 'Correct status field.');
     $this->assertEqual($new_user->getTimezone(), $config_system_date->get('timezone.default'), 'Correct time zone field.');
-    $this->assertEqual($new_user->langcode->value, language_default()->id, 'Correct language field.');
-    $this->assertEqual($new_user->preferred_langcode->value, language_default()->id, 'Correct preferred language field.');
+    $this->assertEqual($new_user->langcode->value, \Drupal::languageManager()->getDefaultLanguage()->id, 'Correct language field.');
+    $this->assertEqual($new_user->preferred_langcode->value, \Drupal::languageManager()->getDefaultLanguage()->id, 'Correct preferred language field.');
     $this->assertEqual($new_user->init->value, $mail, 'Correct init field.');
   }
 

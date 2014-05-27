@@ -26,7 +26,7 @@ class FieldInfoTest extends FieldUnitTestBase {
     // Test that field_test module's fields, widgets, and formatters show up.
 
     $field_test_info = $this->getExpectedFieldTypeDefinition();
-    $entity_type = \Drupal::service('plugin.manager.field.field_type')->getConfigurableDefinitions();
+    $entity_type = \Drupal::service('plugin.manager.field.field_type')->getDefinitions();
     foreach ($field_test_info as $t_key => $field_type) {
       foreach ($field_type as $key => $val) {
         $this->assertEqual($entity_type[$t_key][$key], $val, format_string('Field type %t_key key %key is %value', array('%t_key' => $t_key, '%key' => $key, '%value' => print_r($val, TRUE))));
@@ -133,8 +133,8 @@ class FieldInfoTest extends FieldUnitTestBase {
     $field = field_info_field('entity_test', $field_definition['name']);
 
     // Check that all expected settings are in place.
-    $field_type = \Drupal::service('plugin.manager.field.field_type')->getDefinition($field_definition['type']);
-    $this->assertEqual($field->settings, $field_type['settings'], 'All expected default field settings are present.');
+    $field_type_manager = \Drupal::service('plugin.manager.field.field_type');
+    $this->assertEqual($field->settings, $field_type_manager->getDefaultSettings($field_definition['type']), 'All expected default field settings are present.');
   }
 
   /**
@@ -167,8 +167,8 @@ class FieldInfoTest extends FieldUnitTestBase {
     $instance = field_info_instance($instance_definition['entity_type'], $instance_definition['field_name'], $instance_definition['bundle']);
 
     // Check that all expected instance settings are in place.
-    $field_type = \Drupal::service('plugin.manager.field.field_type')->getDefinition($field_definition['type']);
-    $this->assertEqual($instance->settings, $field_type['instance_settings'] , 'All expected instance settings are present.');
+    $field_type_manager = \Drupal::service('plugin.manager.field.field_type');
+    $this->assertEqual($instance->settings, $field_type_manager->getDefaultInstanceSettings($field_definition['type']) , 'All expected instance settings are present.');
   }
 
   /**
@@ -292,8 +292,8 @@ class FieldInfoTest extends FieldUnitTestBase {
     $info = $this->getExpectedFieldTypeDefinition();
     foreach ($info as $type => $data) {
       $field_type_manager = \Drupal::service('plugin.manager.field.field_type');
-      $this->assertIdentical($field_type_manager->getDefaultSettings($type), $data['settings'], format_string("field settings service returns %type's field settings", array('%type' => $type)));
-      $this->assertIdentical($field_type_manager->getDefaultInstanceSettings($type), $data['instance_settings'], format_string("field instance settings service returns %type's field instance settings", array('%type' => $type)));
+      $this->assertIdentical($field_type_manager->getDefaultSettings($type), $data['class']::defaultSettings(), format_string("field settings service returns %type's field settings", array('%type' => $type)));
+      $this->assertIdentical($field_type_manager->getDefaultInstanceSettings($type), $data['class']::defaultInstanceSettings(), format_string("field instance settings service returns %type's field instance settings", array('%type' => $type)));
     }
   }
 
@@ -341,15 +341,6 @@ class FieldInfoTest extends FieldUnitTestBase {
       'test_field' => array(
         'label' => t('Test field'),
         'description' => t('Dummy field type used for tests.'),
-        'settings' => array(
-          'test_field_setting' => 'dummy test string',
-          'changeable' => 'a changeable field setting',
-          'unchangeable' => 'an unchangeable field setting',
-        ),
-        'instance_settings' => array(
-          'test_instance_setting' => 'dummy test string',
-          'test_cached_data' => FALSE,
-        ),
         'default_widget' => 'test_field_widget',
         'default_formatter' => 'field_test_default',
         'class' => 'Drupal\field_test\Plugin\Field\FieldType\TestItem',
@@ -357,10 +348,6 @@ class FieldInfoTest extends FieldUnitTestBase {
       'shape' => array(
         'label' => t('Shape'),
         'description' => t('Another dummy field type.'),
-        'settings' => array(
-          'foreign_key_name' => 'shape',
-        ),
-        'instance_settings' => array(),
         'default_widget' => 'test_field_widget',
         'default_formatter' => 'field_test_default',
         'class' => 'Drupal\field_test\Plugin\Field\FieldType\ShapeItem',
@@ -369,48 +356,11 @@ class FieldInfoTest extends FieldUnitTestBase {
         'no_ui' => TRUE,
         'label' => t('Hidden from UI test field'),
         'description' => t('Dummy hidden field type used for tests.'),
-        'settings' => array(),
-        'instance_settings' => array(),
         'default_widget' => 'test_field_widget',
         'default_formatter' => 'field_test_default',
         'class' => 'Drupal\field_test\Plugin\Field\FieldType\HiddenTestItem',
       ),
     );
-  }
-
-  /**
-   * Tests that the extra fields can be translated.
-   */
-  function testFieldInfoExtraFieldsTranslation() {
-    $this->enableModules(array('language', 'locale'));
-    $this->installSchema('locale', array('locales_source', 'locales_target', 'locales_location'));
-    foreach (array('en', 'hu') as $id) {
-      $language = new Language(array(
-        'id' => $id,
-      ));
-      language_save($language);
-    }
-    $locale_storage = $this->container->get('locale.storage');
-
-    // Create test source string.
-    $en_string = $locale_storage->createString(array(
-      'source' => 'User name and password',
-      'context' => '',
-    ))->save();
-
-    // Create translation for new string and save it.
-    $translated_string = $this->randomString();
-    $locale_storage->createTranslation(array(
-      'lid' => $en_string->lid,
-      'language' => 'hu',
-      'translation' => $translated_string,
-    ))->save();
-
-    // Check that the label is translated.
-    \Drupal::translation()->setDefaultLangcode('hu');
-    $field_info = \Drupal::service('field.info');
-    $user_fields = $field_info->getBundleExtraFields('user', 'user');
-    $this->assertEqual($user_fields['form']['account']['label'], $translated_string);
   }
 
 }

@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Definition of Drupal\Core\Template\AttributeArray.
+ * Contains \Drupal\Core\Template\AttributeArray.
  */
 
 namespace Drupal\Core\Template;
@@ -66,7 +66,6 @@ class AttributeArray extends AttributeValueBase implements \ArrayAccess, \Iterat
    * Implements the magic __toString() method.
    */
   public function __toString() {
-    $this->printed = TRUE;
     return String::checkPlain(implode(' ', $this->value));
   }
 

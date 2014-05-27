@@ -7,7 +7,7 @@
 
 namespace Drupal\taxonomy\Tests;
 
-use Drupal\Component\Utility\Json;
+use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\Tags;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Component\Utility\String;
@@ -258,14 +258,19 @@ class TermTest extends TaxonomyTestBase {
     $third_term->save();
 
     // Try to autocomplete a term name that matches both terms.
-    // We should get both term in a json encoded string.
+    // We should get both terms in a json encoded string.
     $input = '10/';
     $path = 'taxonomy/autocomplete/node/taxonomy_' . $this->vocabulary->id();
     // The result order is not guaranteed, so check each term separately.
     $result = $this->drupalGet($path, array('query' => array('q' => $input)));
-    $data = drupal_json_decode($result);
-    $this->assertEqual($data[0]['label'], String::checkPlain($first_term->getName()), 'Autocomplete returned the first matching term');
-    $this->assertEqual($data[1]['label'], String::checkPlain($second_term->getName()), 'Autocomplete returned the second matching term');
+    // Pull the label properties from the array of arrays.
+    $data = Json::decode($result);
+    $data = array_map(function ($item) {
+      return $item['label'];
+    }, $data);
+
+    $this->assertTrue(in_array(String::checkPlain($first_term->getName()), $data), 'Autocomplete returned the first matching term');
+    $this->assertTrue(in_array(String::checkPlain($second_term->getName()), $data), 'Autocomplete returned the second matching term');
 
     // Try to autocomplete a term name that matches first term.
     // We should only get the first term in a json encoded string.
@@ -296,8 +301,8 @@ class TermTest extends TaxonomyTestBase {
    */
   function testTermInterface() {
     $edit = array(
-      'name' => $this->randomName(12),
-      'description[value]' => $this->randomName(100),
+      'name[0][value]' => $this->randomName(12),
+      'description[0][value]' => $this->randomName(100),
     );
     // Explicitly set the parents field to 'root', to ensure that
     // TermFormController::save() handles the invalid term ID correctly.
@@ -306,7 +311,7 @@ class TermTest extends TaxonomyTestBase {
     // Create the term to edit.
     $this->drupalPostForm('admin/structure/taxonomy/manage/' . $this->vocabulary->id() . '/add', $edit, t('Save'));
 
-    $terms = taxonomy_term_load_multiple_by_name($edit['name']);
+    $terms = taxonomy_term_load_multiple_by_name($edit['name[0][value]']);
     $term = reset($terms);
     $this->assertNotNull($term, 'Term found in database.');
 
@@ -316,14 +321,14 @@ class TermTest extends TaxonomyTestBase {
     // Test edit link as accessed from Taxonomy administration pages.
     // Because Simpletest creates its own database when running tests, we know
     // the first edit link found on the listing page is to our term.
-    $this->clickLink(t('edit'));
+    $this->clickLink(t('Edit'), 1);
 
-    $this->assertRaw($edit['name'], 'The randomly generated term name is present.');
-    $this->assertText($edit['description[value]'], 'The randomly generated term description is present.');
+    $this->assertRaw($edit['name[0][value]'], 'The randomly generated term name is present.');
+    $this->assertText($edit['description[0][value]'], 'The randomly generated term description is present.');
 
     $edit = array(
-      'name' => $this->randomName(14),
-      'description[value]' => $this->randomName(102),
+      'name[0][value]' => $this->randomName(14),
+      'description[0][value]' => $this->randomName(102),
     );
 
     // Edit the term.
@@ -331,25 +336,25 @@ class TermTest extends TaxonomyTestBase {
 
     // Check that the term is still present at admin UI after edit.
     $this->drupalGet('admin/structure/taxonomy/manage/' . $this->vocabulary->id() . '/overview');
-    $this->assertText($edit['name'], 'The randomly generated term name is present.');
-    $this->assertLink(t('edit'));
+    $this->assertText($edit['name[0][value]'], 'The randomly generated term name is present.');
+    $this->assertLink(t('Edit'));
 
     // Check the term link can be clicked through to the term page.
-    $this->clickLink($edit['name']);
+    $this->clickLink($edit['name[0][value]']);
     $this->assertResponse(200, 'Term page can be accessed via the listing link.');
 
     // View the term and check that it is correct.
     $this->drupalGet('taxonomy/term/' . $term->id());
-    $this->assertText($edit['name'], 'The randomly generated term name is present.');
-    $this->assertText($edit['description[value]'], 'The randomly generated term description is present.');
+    $this->assertText($edit['name[0][value]'], 'The randomly generated term name is present.');
+    $this->assertText($edit['description[0][value]'], 'The randomly generated term description is present.');
 
     // Did this page request display a 'term-listing-heading'?
-    $this->assertPattern('|class="taxonomy-term-description"|', 'Term page displayed the term description element.');
+    $this->assertTrue($this->xpath('//div[contains(@class, "field-taxonomy-term--description")]'), 'Term page displayed the term description element.');
     // Check that it does NOT show a description when description is blank.
     $term->setDescription(NULL);
     $term->save();
     $this->drupalGet('taxonomy/term/' . $term->id());
-    $this->assertNoPattern('|class="taxonomy-term-description"|', 'Term page did not display the term description when description was blank.');
+    $this->assertFalse($this->xpath('//div[contains(@class, "field-taxonomy-term--description")]'), 'Term page did not display the term description when description was blank.');
 
     // Check that the description value is processed.
     $value = $this->randomName();
@@ -437,19 +442,19 @@ class TermTest extends TaxonomyTestBase {
 
     // Add a new term with multiple parents.
     $edit = array(
-      'name' => $this->randomName(12),
-      'description[value]' => $this->randomName(100),
+      'name[0][value]' => $this->randomName(12),
+      'description[0][value]' => $this->randomName(100),
       'parent[]' => array(0, $parent->id()),
     );
     // Save the new term.
     $this->drupalPostForm('admin/structure/taxonomy/manage/' . $this->vocabulary->id() . '/add', $edit, t('Save'));
 
     // Check that the term was successfully created.
-    $terms = taxonomy_term_load_multiple_by_name($edit['name']);
+    $terms = taxonomy_term_load_multiple_by_name($edit['name[0][value]']);
     $term = reset($terms);
     $this->assertNotNull($term, 'Term found in database.');
-    $this->assertEqual($edit['name'], $term->getName(), 'Term name was successfully saved.');
-    $this->assertEqual($edit['description[value]'], $term->getDescription(), 'Term description was successfully saved.');
+    $this->assertEqual($edit['name[0][value]'], $term->getName(), 'Term name was successfully saved.');
+    $this->assertEqual($edit['description[0][value]'], $term->getDescription(), 'Term description was successfully saved.');
     // Check that the parent tid is still there. The other parent (<root>) is
     // not added by taxonomy_term_load_parents().
     $parents = taxonomy_term_load_parents($term->id());

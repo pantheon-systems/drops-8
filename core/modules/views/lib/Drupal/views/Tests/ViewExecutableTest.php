@@ -88,6 +88,10 @@ class ViewExecutableTest extends ViewUnitTestBase {
     $this->installSchema('node', array('node', 'node_field_data'));
     $this->installSchema('comment', array('comment', 'comment_entity_statistics'));
     $this->installConfig(array('field'));
+    entity_create('node_type', array(
+      'type' => 'page',
+      'name' => 'Page',
+    ))->save();
     $this->container->get('comment.manager')->addDefaultField('node', 'page');
     parent::setUpFixtures();
 
@@ -118,7 +122,7 @@ class ViewExecutableTest extends ViewUnitTestBase {
     $view->initHandlers();
 
     // Check for all handler types.
-    $handler_types = array_keys(ViewExecutable::viewsHandlerTypes());
+    $handler_types = array_keys(ViewExecutable::getHandlerTypes());
     foreach ($handler_types as $type) {
       // The views_test integration doesn't have relationships.
       if ($type == 'relationship') {
@@ -250,7 +254,7 @@ class ViewExecutableTest extends ViewUnitTestBase {
     $this->assertTrue($view->rowPlugin instanceof Fields);
 
     // Test the newDisplay() method.
-    $view = $this->container->get('entity.manager')->getStorageController('view')->create(array('id' => 'test_executable_displays'));
+    $view = $this->container->get('entity.manager')->getStorage('view')->create(array('id' => 'test_executable_displays'));
     $executable = $view->getExecutable();
 
     $executable->newDisplay('page');
@@ -388,10 +392,10 @@ class ViewExecutableTest extends ViewUnitTestBase {
   }
 
   /**
-   * Tests ViewExecutable::viewsHandlerTypes().
+   * Tests ViewExecutable::getHandlerTypes().
    */
-  public function testViewsHandlerTypes() {
-    $types = ViewExecutable::viewsHandlerTypes();
+  public function testGetHandlerTypes() {
+    $types = ViewExecutable::getHandlerTypes();
     foreach (array('field', 'filter', 'argument', 'sort', 'header', 'footer', 'empty') as $type) {
       $this->assertTrue(isset($types[$type]));
       // @todo The key on the display should be footers, headers and empties

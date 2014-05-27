@@ -7,7 +7,9 @@
 
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Drupal\Component\Utility\Crypt;
+use Drupal\Component\Utility\OpCodeCache;
 use Drupal\Component\Utility\Settings;
+use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Database\Database;
 use Drupal\Core\DrupalKernel;
 use Drupal\Core\Extension\ExtensionDiscovery;
@@ -211,6 +213,10 @@ function drupal_rewrite_settings($settings = array(), $settings_file = NULL) {
   }
   $contents = file_get_contents(DRUPAL_ROOT . '/' . $settings_file);
   if ($contents !== FALSE) {
+    // Initialize the contents for the settings.php file if it is empty.
+    if (trim($contents) === '') {
+      $contents = "<?php\n";
+    }
     // Step through each token in settings.php and replace any variables that
     // are in the passed-in array.
     $buffer = '';
@@ -298,7 +304,7 @@ function drupal_rewrite_settings($settings = array(), $settings_file = NULL) {
             else {
               // If the expression was $a = 1 + 2; then we replaced 1 and
               // the + is unexpected.
-              throw new Exception('Unepxected token after replacing value.');
+              throw new Exception('Unexpected token after replacing value.');
             }
             break;
         }
@@ -317,9 +323,14 @@ function drupal_rewrite_settings($settings = array(), $settings_file = NULL) {
       // In case any $settings variables were written, import them into the
       // Settings singleton.
       if (!empty($settings_settings)) {
-        $old_settings = settings()->getAll();
+        $old_settings = Settings::getAll();
         new Settings($settings_settings + $old_settings);
       }
+      // The existing settings.php file might have been included already. In
+      // case an opcode cache is enabled, the rewritten contents of the file
+      // will not be reflected in this process. Ensure to invalidate the file
+      // in case an opcode cache is enabled.
+      OpCodeCache::invalidate(DRUPAL_ROOT . '/' . $settings_file);
     }
   }
   else {
@@ -623,10 +634,7 @@ function drupal_verify_profile($install_state) {
  *   to set the default language.
  */
 function drupal_install_system($install_state) {
-  // Create tables.
-  drupal_install_schema('system');
-
-  // Immediately boot a new kernel into the regular production environment.
+  // Boot a new kernel into a regular production environment.
   $request = \Drupal::hasRequest() ? \Drupal::request() : FALSE;
 
   unset($GLOBALS['conf']['container_service_providers']['InstallerServiceProvider']);
@@ -636,34 +644,14 @@ function drupal_install_system($install_state) {
   if ($request) {
     $kernel->getContainer()->enterScope('request');
     $kernel->getContainer()->set('request', $request, 'request');
+    $kernel->getContainer()->get('request_stack')->push($request);
   }
 
-  $system_path = drupal_get_path('module', 'system');
-  require_once DRUPAL_ROOT . '/' . $system_path . '/system.install';
+  // Install base system configuration.
+  \Drupal::service('config.installer')->installDefaultConfig('core', 'core');
 
-  // Set the schema version to the number of the last update provided by the
-  // module, or the minimum core schema version.
-  $system_version = \Drupal::CORE_MINIMUM_SCHEMA_VERSION;
-  $system_versions = drupal_get_schema_versions('system');
-  if ($system_versions) {
-    $system_version = max(max($system_versions), $system_version);
-  }
-  \Drupal::keyValue('system.schema')->set('system', $system_version);
-
-  // System module needs to be enabled and the system/module lists need to be
-  // reset first in order to allow installation of default configuration to
-  // invoke config import callbacks.
-  // @todo Installation profiles may override the system.module config object.
-  \Drupal::config('system.module')
-    ->set('enabled.system', 0)
-    ->save();
-
-  // Update the module list to include it. Reboot the kernel too.
-  \Drupal::moduleHandler()->addModule('system', 'core/modules/system');
-  $module_list = \Drupal::moduleHandler()->getModuleList();
-  $kernel->updateModules($module_list);
-
-  \Drupal::service('config.installer')->installDefaultConfig('module', 'system');
+  // Install System module.
+  \Drupal::moduleHandler()->install(array('system'), FALSE);
 
   // Ensure default language is saved.
   if (isset($install_state['parameters']['langcode'])) {
@@ -671,8 +659,6 @@ function drupal_install_system($install_state) {
       ->set('langcode', $install_state['parameters']['langcode'])
       ->save();
   }
-
-  \Drupal::moduleHandler()->invoke('system', 'install');
 }
 
 /**
@@ -923,7 +909,7 @@ function drupal_current_script_url($query = array()) {
   $uri = $_SERVER['SCRIPT_NAME'];
   $query = array_merge(drupal_get_query_parameters(), $query);
   if (!empty($query)) {
-    $uri .= '?' . drupal_http_build_query($query);
+    $uri .= '?' . UrlHelper::buildQuery($query);
   }
   return $uri;
 }
@@ -1091,6 +1077,7 @@ function install_profile_info($profile, $langcode = 'en') {
     // Set defaults for module info.
     $defaults = array(
       'dependencies' => array(),
+      'themes' => array('stark'),
       'description' => '',
       'version' => NULL,
       'hidden' => FALSE,
@@ -1099,15 +1086,14 @@ function install_profile_info($profile, $langcode = 'en') {
     $profile_file = drupal_get_path('profile', $profile) . "/$profile.info.yml";
     $info = \Drupal::service('info_parser')->parse($profile_file);
     $info += $defaults;
-    $info['dependencies'] = array_unique(array_merge(
-      drupal_required_modules(),
-      $info['dependencies'],
-      ($langcode != 'en' && !empty($langcode) ? array('locale') : array()))
-    );
 
     // drupal_required_modules() includes the current profile as a dependency.
-    // Since a module can't depend on itself we remove that element of the array.
-    array_shift($info['dependencies']);
+    // Remove that dependency, since a module cannot depend on itself.
+    $required = array_diff(drupal_required_modules(), array($profile));
+
+    $locale = !empty($langcode) && $langcode != 'en' ? array('locale') : array();
+
+    $info['dependencies'] = array_unique(array_merge($required, $info['dependencies'], $locale));
 
     $cache[$profile] = $info;
   }

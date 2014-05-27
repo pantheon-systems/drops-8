@@ -94,10 +94,17 @@ class UserSession implements AccountInterface {
   protected $timezone;
 
   /**
+   * The hostname for this user session.
+   *
+   * @var string
+   */
+  protected $hostname = '';
+
+  /**
    * Constructs a new user session.
    *
    * @param array $values
-   *   Array of initial values for the user sesion.
+   *   Array of initial values for the user session.
    */
   public function __construct(array $values = array()) {
     foreach ($values as $key => $value) {
@@ -115,8 +122,14 @@ class UserSession implements AccountInterface {
   /**
    * {@inheritdoc}
    */
-  public function getRoles() {
-    return $this->roles;
+  public function getRoles($exclude_locked_roles = FALSE) {
+    $roles = $this->roles;
+
+    if ($exclude_locked_roles) {
+      $roles = array_diff($roles, array('anonymous', 'authenticated'));
+    }
+
+    return $roles;
   }
 
   /**
@@ -128,7 +141,7 @@ class UserSession implements AccountInterface {
       return TRUE;
     }
 
-    $roles = \Drupal::entityManager()->getStorageController('user_role')->loadMultiple($this->getRoles());
+    $roles = \Drupal::entityManager()->getStorage('user_role')->loadMultiple($this->getRoles());
 
     foreach ($roles as $role) {
       if ($role->hasPermission($permission)) {
@@ -228,6 +241,13 @@ class UserSession implements AccountInterface {
    */
   public function getLastAccessedTime() {
     return $this->timestamp;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getHostname() {
+    return $this->hostname;
   }
 
 }

@@ -1,0 +1,28 @@
+id: bartik_footer
+theme: bartik
+weight: 0
+status: true
+langcode: en
+region: footer
+plugin: 'system_menu_block:footer'
+settings:
+  label: 'Footer menu'
+  provider: system
+  label_display: visible
+visibility:
+  path:
+    visibility: 0
+    pages: ''
+  role:
+    roles: {  }
+  node_type:
+    types:
+      article: '0'
+      page: '0'
+dependencies:
+  entity:
+    - system.menu.footer
+  module:
+    - system
+  theme:
+    - bartik

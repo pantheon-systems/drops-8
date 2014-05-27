@@ -34,6 +34,13 @@ class NullStorageExpirable implements KeyValueStoreExpirableInterface {
   }
 
   /**
+   * {@inheritdoc}
+   */
+  public function has($key) {
+    return FALSE;
+  }
+
+  /**
    * Implements Drupal\Core\KeyValueStore\KeyValueStoreInterface::get().
    */
   public function get($key, $default = NULL) {
@@ -68,6 +75,12 @@ class NullStorageExpirable implements KeyValueStoreExpirableInterface {
    * Implements Drupal\Core\KeyValueStore\KeyValueStoreInterface::setMultiple().
    */
   public function setMultiple(array $data) { }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function rename($key, $new_key) {
+  }
 
   /**
    * Implements Drupal\Core\KeyValueStore\KeyValueStoreInterface::delete().

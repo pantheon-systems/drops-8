@@ -21,7 +21,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *
  * @see \Drupal\user\UserDataInterface
  *
- * @PluginID("user_data")
+ * @ViewsField("user_data")
  */
 class UserData extends FieldPluginBase {
 
@@ -35,14 +35,14 @@ class UserData extends FieldPluginBase {
   /**
    * {@inheritdoc}
    */
-  public static function create(ContainerInterface $container, array $configuration, $plugin_id, array $plugin_definition) {
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
     return new static($configuration, $plugin_id, $plugin_definition, $container->get('user.data'));
   }
 
   /**
    * Constructs a UserData object.
    */
-  public function __construct(array $configuration, $plugin_id, array $plugin_definition, UserDataInterface $user_data) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, UserDataInterface $user_data) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
 
     $this->userData = $user_data;

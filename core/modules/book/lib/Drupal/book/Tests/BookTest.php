@@ -271,7 +271,7 @@ class BookTest extends WebTestBase {
       $edit['book[pid]'] = $parent;
       $this->drupalPostForm(NULL, $edit, t('Save'));
       // Make sure the parent was flagged as having children.
-      $parent_node = \Drupal::entityManager()->getStorageController('node')->loadUnchanged($parent);
+      $parent_node = \Drupal::entityManager()->getStorage('node')->loadUnchanged($parent);
       $this->assertFalse(empty($parent_node->book['has_children']), 'Parent node is marked as having children');
     }
     else {
@@ -550,7 +550,7 @@ class BookTest extends WebTestBase {
     $edit = array();
     $edit['book[bid]'] = '1';
     $this->drupalPostForm('node/' . $empty_book->id() . '/outline', $edit, t('Add to book outline'));
-    $node = \Drupal::entityManager()->getStorageController('node')->load($empty_book->id());
+    $node = \Drupal::entityManager()->getStorage('node')->load($empty_book->id());
     // Test the book array.
     $this->assertEqual($node->book['nid'], $empty_book->id());
     $this->assertEqual($node->book['bid'], $empty_book->id());
@@ -571,7 +571,7 @@ class BookTest extends WebTestBase {
     $edit = array();
     $edit['book[bid]'] = $node->id();
     $this->drupalPostForm('node/' . $node->id() . '/edit', $edit, t('Save'));
-    $node = \Drupal::entityManager()->getStorageController('node')->load($node->id());
+    $node = \Drupal::entityManager()->getStorage('node')->load($node->id());
 
     // Test the book array.
     $this->assertEqual($node->book['nid'], $node->id());
@@ -583,6 +583,26 @@ class BookTest extends WebTestBase {
     // Test the form itself.
     $this->drupalGet('node/' . $node->id() . '/edit');
     $this->assertOptionSelected('edit-book-bid', $node->id());
+  }
+
+  /**
+   * Tests that saveBookLink() returns something.
+   */
+  public function testSaveBookLink() {
+    $book_manager = \Drupal::service('book.manager');
+
+    // Mock a link for a new book.
+    $link = array('nid' => 1, 'has_children' => 0, 'original_bid' => 0, 'parent_depth_limit' => 8, 'pid' => 0, 'weight' => 0, 'bid' => 1);
+    $new = TRUE;
+
+    // Save the link.
+    $return = $book_manager->saveBookLink($link, $new);
+
+    // Add the link defaults to $link so we have something to compare to the return from saveBookLink().
+    $link += $book_manager->getLinkDefaults($link['nid']);
+
+    // Test the return from saveBookLink.
+    $this->assertEqual($return, $link);
   }
 
 }

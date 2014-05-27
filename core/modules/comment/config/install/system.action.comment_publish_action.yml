@@ -1,0 +1,9 @@
+id: comment_publish_action
+label: 'Publish comment'
+status: true
+langcode: en
+type: comment
+plugin: comment_publish_action
+dependencies:
+  module:
+    - comment

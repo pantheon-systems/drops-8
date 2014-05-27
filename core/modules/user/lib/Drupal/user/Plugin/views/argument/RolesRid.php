@@ -17,16 +17,16 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *
  * @ingroup views_argument_handlers
  *
- * @PluginID("users_roles_rid")
+ * @ViewsArgument("users_roles_rid")
  */
 class RolesRid extends ManyToOne {
 
   /**
-   * The role entity storage controller
+   * The role entity storage
    *
-   * @var \Drupal\user\RoleStorageController
+   * @var \Drupal\user\RoleStorage
    */
-  protected $roleStorageController;
+  protected $roleStorage;
 
   /**
    * Constructs a \Drupal\user\Plugin\views\argument\RolesRid object.
@@ -35,21 +35,21 @@ class RolesRid extends ManyToOne {
    *   A configuration array containing information about the plugin instance.
    * @param string $plugin_id
    *   The plugin_id for the plugin instance.
-   * @param array $plugin_definition
+   * @param mixed $plugin_definition
    *   The plugin implementation definition.
    * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
    *   The entity manager.
    */
-  public function __construct(array $configuration, $plugin_id, array $plugin_definition, EntityManagerInterface $entity_manager) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, EntityManagerInterface $entity_manager) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
 
-    $this->roleStorageController = $entity_manager->getStorageController('user_role');
+    $this->roleStorage = $entity_manager->getStorage('user_role');
   }
 
   /**
    * {@inheritdoc}
    */
-  public static function create(ContainerInterface $container, array $configuration, $plugin_id, array $plugin_definition) {
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
     return parent::create($container, $configuration, $plugin_id, $plugin_definition, $container->get('entity.manager'));
   }
 
@@ -57,7 +57,7 @@ class RolesRid extends ManyToOne {
    * {@inheritdoc}
    */
   public function title_query() {
-    $entities = $this->roleStorageController->loadMultiple($this->value);
+    $entities = $this->roleStorage->loadMultiple($this->value);
     $titles = array();
     foreach ($entities as $entity) {
       $titles[] = String::checkPlain($entity->label());

@@ -54,29 +54,13 @@ class TermFormController extends ContentEntityFormController {
    */
   public function form(array $form, array &$form_state) {
     $term = $this->entity;
-    $vocab_storage = $this->entityManager->getStorageController('taxonomy_vocabulary');
+    $vocab_storage = $this->entityManager->getStorage('taxonomy_vocabulary');
     $vocabulary = $vocab_storage->load($term->bundle());
 
     $parent = array_keys(taxonomy_term_load_parents($term->id()));
     $form_state['taxonomy']['parent'] = $parent;
     $form_state['taxonomy']['vocabulary'] = $vocabulary;
 
-    $form['name'] = array(
-      '#type' => 'textfield',
-      '#title' => $this->t('Name'),
-      '#default_value' => $term->getName(),
-      '#maxlength' => 255,
-      '#required' => TRUE,
-      '#weight' => -5,
-    );
-
-    $form['description'] = array(
-      '#type' => 'text_format',
-      '#title' => $this->t('Description'),
-      '#default_value' => $term->getDescription(),
-      '#format' => $term->getFormat(),
-      '#weight' => 0,
-    );
     $language_configuration = $this->moduleHandler->moduleExists('language') ? language_get_default_configuration('taxonomy_term', $vocabulary->id()) : FALSE;
     $form['langcode'] = array(
       '#type' => 'language_select',
@@ -190,11 +174,11 @@ class TermFormController extends ContentEntityFormController {
     switch ($term->save()) {
       case SAVED_NEW:
         drupal_set_message($this->t('Created new term %term.', array('%term' => $term->getName())));
-        watchdog('taxonomy', 'Created new term %term.', array('%term' => $term->getName()), WATCHDOG_NOTICE, l($this->t('edit'), 'taxonomy/term/' . $term->id() . '/edit'));
+        watchdog('taxonomy', 'Created new term %term.', array('%term' => $term->getName()), WATCHDOG_NOTICE, l($this->t('Edit'), 'taxonomy/term/' . $term->id() . '/edit'));
         break;
       case SAVED_UPDATED:
         drupal_set_message($this->t('Updated term %term.', array('%term' => $term->getName())));
-        watchdog('taxonomy', 'Updated term %term.', array('%term' => $term->getName()), WATCHDOG_NOTICE, l($this->t('edit'), 'taxonomy/term/' . $term->id() . '/edit'));
+        watchdog('taxonomy', 'Updated term %term.', array('%term' => $term->getName()), WATCHDOG_NOTICE, l($this->t('Edit'), 'taxonomy/term/' . $term->id() . '/edit'));
         // Clear the page and block caches to avoid stale data.
         Cache::invalidateTags(array('content' => TRUE));
         break;

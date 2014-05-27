@@ -234,7 +234,11 @@ abstract class DisplayOverviewBase extends OverviewBase {
     );
 
     $form['actions'] = array('#type' => 'actions');
-    $form['actions']['submit'] = array('#type' => 'submit', '#value' => $this->t('Save'));
+    $form['actions']['submit'] = array(
+      '#type' => 'submit',
+      '#button_type' => 'primary',
+      '#value' => $this->t('Save'),
+    );
 
     $form['#attached']['library'][] = 'field_ui/drupal.field_ui';
 
@@ -360,6 +364,7 @@ abstract class DisplayOverviewBase extends OverviewBase {
               '#type' => 'actions',
               'save_settings' => $base_button + array(
                 '#type' => 'submit',
+                '#button_type' => 'primary',
                 '#name' => $field_name . '_plugin_settings_update',
                 '#value' => $this->t('Update'),
                 '#op' => 'update',
@@ -399,8 +404,7 @@ abstract class DisplayOverviewBase extends OverviewBase {
         }
 
         // Check selected plugin settings to display edit link or not.
-        $plugin_definition = $plugin->getPluginDefinition();
-        if ($plugin_definition['settings']) {
+        if ($this->pluginManager->getDefaultSettings($display_options['type'])) {
           $field_row['settings_edit'] = $base_button + array(
             '#type' => 'image_button',
             '#name' => $field_name . '_settings_edit',

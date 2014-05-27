@@ -15,36 +15,16 @@ use Drupal\Core\Entity\EntityInterface;
 interface ConfigEntityInterface extends EntityInterface {
 
   /**
-   * Returns the original ID.
-   *
-   * @return string|null
-   *   The original ID, if any.
-   */
-  public function getOriginalId();
-
-  /**
-   * Sets the original ID.
-   *
-   * @param string $id
-   *   The new ID to set as original ID.
-   *
-   * @return self
-   */
-  public function setOriginalId($id);
-
-  /**
    * Enables the configuration entity.
    *
-   * @return \Drupal\Core\Config\Entity\ConfigEntityInterface
-   *   The configuration entity.
+   * @return $this
    */
   public function enable();
 
   /**
    * Disables the configuration entity.
    *
-   * @return \Drupal\Core\Config\Entity\ConfigEntityInterface
-   *   The configuration entity.
+   * @return $this
    */
   public function disable();
 
@@ -54,8 +34,7 @@ interface ConfigEntityInterface extends EntityInterface {
    * @param bool $status
    *   The status of the configuration entity.
    *
-   * @return \Drupal\Core\Config\Entity\ConfigEntityInterface
-   *   The class instance that this method is called on.
+   * @return $this
    */
   public function setStatus($status);
 
@@ -64,6 +43,8 @@ interface ConfigEntityInterface extends EntityInterface {
    *
    * @param bool $status
    *   The status of the sync flag.
+   *
+   * @return $this
    */
   public function setSyncing($status);
 
@@ -80,16 +61,58 @@ interface ConfigEntityInterface extends EntityInterface {
    *     checking and managing the status.
    *
    * @return bool
+   *   Whether the entity is enabled or not.
    */
   public function status();
 
   /**
-   * Returns whether the configuration entity is created, updated or deleted
-   * through the import process.
+   * Returns whether this entity is being changed as part of an import process.
+   *
+   * If you are writing code that responds to a change in this entity (insert,
+   * update, delete, presave, etc.), and your code would result in a
+   * configuration change (whether related to this configuration entity, another
+   * configuration entity, or non-entity configuration) or your code would
+   * result in a change to this entity itself, you need to check and see if this
+   * entity change is part of an import process, and skip executing your code if
+   * that is the case.
+   *
+   * For example, \Drupal\node\Entity\NodeType::postSave() adds the default body
+   * field to newly created node type configuration entities, which is a
+   * configuration change. You would not want this code to run during an import,
+   * because imported entities were already given the body field when they were
+   * originally created, and the imported configuration includes all of their
+   * currently-configured fields. On the other hand,
+   * \Drupal\field\Entity\Field::preSave() and the methods it calls make sure
+   * that the storage tables are created or updated for the field configuration
+   * entity, which is not a configuration change, and it must be done whether
+   * due to an import or not. So, the first method should check
+   * $entity->isSyncing() and skip executing if it returns TRUE, and the second
+   * should not perform this check.
+   *
+   * @return bool
+   *   TRUE if the configuration entity is being created, updated, or deleted
+   *   through the import process.
+   */
+  public function isSyncing();
+
+  /**
+   * Returns whether this entity is being changed during the uninstall process.
+   *
+   * If you are writing code that responds to a change in this entity (insert,
+   * update, delete, presave, etc.), and your code would result in a
+   * configuration change (whether related to this configuration entity, another
+   * configuration entity, or non-entity configuration) or your code would
+   * result in a change to this entity itself, you need to check and see if this
+   * entity change is part of an uninstall process, and skip executing your code
+   * if that is the case.
+   *
+   * For example, \Drupal\language\Entity\Language::preDelete() prevents the API
+   * from deleting the default language. However during an uninstall of the
+   * language module it is expected that the default language should be deleted.
    *
    * @return bool
    */
-  public function isSyncing();
+  public function isUninstalling();
 
   /**
    * Returns the value of a property.
@@ -98,7 +121,7 @@ interface ConfigEntityInterface extends EntityInterface {
    *   The name of the property that should be returned.
    *
    * @return mixed
-   *   The property, if existing, NULL otherwise.
+   *   The property if it exists, or NULL otherwise.
    */
   public function get($property_name);
 
@@ -109,17 +132,25 @@ interface ConfigEntityInterface extends EntityInterface {
    *   The name of the property that should be set.
    * @param mixed $value
    *   The value the property should be set to.
+   *
+   * @return $this
    */
   public function set($property_name, $value);
 
   /**
-   * Retrieves the exportable properties of the entity.
-   *
-   * These are the values that get saved into config.
+   * Calculates dependencies and stores them in the dependency property.
    *
    * @return array
-   *   An array of exportable properties and their values.
+   *   An array of dependencies grouped by type (module, theme, entity).
    */
-  public function getExportProperties();
+  public function calculateDependencies();
+
+  /**
+   * Gets the configuration dependency name.
+   *
+   * @return string
+   *   The configuration dependency name.
+   */
+  public function getConfigDependencyName();
 
 }

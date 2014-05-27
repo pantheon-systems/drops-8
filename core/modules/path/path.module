@@ -55,21 +55,6 @@ function path_permission() {
 }
 
 /**
- * Implements hook_menu_link_defaults().
- */
-function path_menu_link_defaults() {
-  $links['path.admin.overview'] = array(
-    'link_title' => 'URL aliases',
-    'description' => "Change your site's URL paths by aliasing them.",
-    'route_name' => 'path.admin_overview',
-    'parent' => 'system.admin.config.search',
-    'weight' => -5,
-  );
-
-  return $links;
-}
-
-/**
  * Implements hook_form_BASE_FORM_ID_alter() for node_form().
  *
  * @see path_form_element_validate()
@@ -82,7 +67,7 @@ function path_form_node_form_alter(&$form, $form_state) {
     if ($node->language()->id != Language::LANGCODE_NOT_SPECIFIED) {
       $conditions['langcode'] = $node->language()->id;
     }
-    $path = \Drupal::service('path.crud')->load($conditions);
+    $path = \Drupal::service('path.alias_storage')->load($conditions);
     if ($path === FALSE) {
       $path = array();
     }
@@ -146,15 +131,7 @@ function path_form_element_validate($element, &$form_state, $complete_form) {
     $path = $form_state['values']['path'];
 
     // Ensure that the submitted alias does not exist yet.
-    $query = db_select('url_alias')
-      ->condition('alias', $path['alias'])
-      ->condition('langcode', $path['langcode']);
-    if (!empty($path['source'])) {
-      $query->condition('source', $path['source'], '<>');
-    }
-    $query->addExpression('1');
-    $query->range(0, 1);
-    if ($query->execute()->fetchField()) {
+    if (\Drupal::service('path.alias_storage')->aliasExists($path['alias'], $path['langcode'], $path['source'])) {
       form_error($element, $form_state, t('The alias is already in use.'));
     }
   }
@@ -168,7 +145,7 @@ function path_form_taxonomy_term_form_alter(&$form, $form_state) {
   // Make sure this does not show up on the delete confirmation form.
   if (empty($form_state['confirm_delete'])) {
     $term = $form_state['controller']->getEntity();
-    $path = ($term->id() ? \Drupal::service('path.crud')->load(array('source' => 'taxonomy/term/' . $term->id())) : array());
+    $path = ($term->id() ? \Drupal::service('path.alias_storage')->load(array('source' => 'taxonomy/term/' . $term->id())) : array());
     if ($path === FALSE) {
       $path = array();
     }

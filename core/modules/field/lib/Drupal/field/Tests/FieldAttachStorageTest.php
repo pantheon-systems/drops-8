@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Definition of Drupal\field\Tests\FieldAttachStorageTest.
+ * Contains \Drupal\field\Tests\FieldAttachStorageTest.
  */
 
 namespace Drupal\field\Tests;
@@ -70,9 +70,9 @@ class FieldAttachStorageTest extends FieldUnitTestBase {
       $values[$current_revision] = $current_values;
     }
 
-    $storage_controller =  $this->container->get('entity.manager')->getStorageController($entity_type);
-    $storage_controller->resetCache();
-    $entity = $storage_controller->load($entity_id);
+    $storage =  $this->container->get('entity.manager')->getStorage($entity_type);
+    $storage->resetCache();
+    $entity = $storage->load($entity_id);
     // Confirm current revision loads the correct data.
     // Number of values per field loaded equals the field cardinality.
     $this->assertEqual(count($entity->{$this->field_name}), $cardinality, 'Current revision: expected number of values');
@@ -87,7 +87,7 @@ class FieldAttachStorageTest extends FieldUnitTestBase {
 
     // Confirm each revision loads the correct data.
     foreach (array_keys($values) as $revision_id) {
-      $entity = $storage_controller->loadRevision($revision_id);
+      $entity = $storage->loadRevision($revision_id);
       // Number of values per field loaded equals the field cardinality.
       $this->assertEqual(count($entity->{$this->field_name}), $cardinality, format_string('Revision %revision_id: expected number of values.', array('%revision_id' => $revision_id)));
       for ($delta = 0; $delta < $cardinality; $delta++) {
@@ -146,8 +146,10 @@ class FieldAttachStorageTest extends FieldUnitTestBase {
     foreach ($bundles as $index => $bundle) {
       $entities[$index] = entity_create($entity_type, array('id' => $index, 'revision_id' => $index, 'type' => $bundle));
       $entity = clone($entities[$index]);
-      $instances = field_info_instances($entity_type, $bundle);
-      foreach ($instances as $field_name => $instance) {
+      foreach ($field_names as $field_name) {
+        if (!$entity->hasField($field_name)) {
+          continue;
+        }
         $values[$index][$field_name] = mt_rand(1, 127);
         $entity->$field_name->setValue(array('value' => $values[$index][$field_name]));
       }
@@ -156,12 +158,14 @@ class FieldAttachStorageTest extends FieldUnitTestBase {
     }
 
     // Check that a single load correctly loads field values for both entities.
-    $controller = \Drupal::entityManager()->getStorageController($entity->getEntityTypeId());
+    $controller = \Drupal::entityManager()->getStorage($entity->getEntityTypeId());
     $controller->resetCache();
     $entities = $controller->loadMultiple();
     foreach ($entities as $index => $entity) {
-      $instances = field_info_instances($entity_type, $bundles[$index]);
-      foreach ($instances as $field_name => $instance) {
+      foreach ($field_names as $field_name) {
+        if (!$entity->hasField($field_name)) {
+          continue;
+        }
         // The field value loaded matches the one inserted.
         $this->assertEqual($entity->{$field_name}->value, $values[$index][$field_name], format_string('Entity %index: expected value was found.', array('%index' => $index)));
         // The value added in hook_field_load() is found.
@@ -185,6 +189,9 @@ class FieldAttachStorageTest extends FieldUnitTestBase {
     $entity->enforceIsNew();
     $entity = $this->entitySaveReload($entity);
     $this->assertTrue($entity->{$this->field_name}->isEmpty(), 'Insert: NULL field results in no value saved');
+
+    // All saves after this point should be updates, not inserts.
+    $entity_init->enforceIsNew(FALSE);
 
     // Add some real data.
     $entity = clone($entity_init);
@@ -267,7 +274,7 @@ class FieldAttachStorageTest extends FieldUnitTestBase {
     $entity->setNewRevision();
     $entity->save();
     $vids[] = $entity->getRevisionId();
-    $controller = $this->container->get('entity.manager')->getStorageController($entity->getEntityTypeId());
+    $controller = $this->container->get('entity.manager')->getStorage($entity->getEntityTypeId());
     $controller->resetCache();
 
     // Confirm each revision loads
@@ -334,7 +341,7 @@ class FieldAttachStorageTest extends FieldUnitTestBase {
     $this->assertIdentical($this->instance->bundle, $new_bundle, "Bundle name has been updated in the instance.");
 
     // Verify the field data is present on load.
-    $controller = $this->container->get('entity.manager')->getStorageController($entity->getEntityTypeId());
+    $controller = $this->container->get('entity.manager')->getStorage($entity->getEntityTypeId());
     $controller->resetCache();
     $entity = $controller->load($entity->id());
     $this->assertEqual(count($entity->{$this->field_name}), $cardinality, "Bundle name has been updated in the field storage");
@@ -389,7 +396,7 @@ class FieldAttachStorageTest extends FieldUnitTestBase {
     entity_test_delete_bundle($this->instance->bundle, $entity_type);
 
     // Verify no data gets loaded
-    $controller = $this->container->get('entity.manager')->getStorageController($entity->getEntityTypeId());
+    $controller = $this->container->get('entity.manager')->getStorage($entity->getEntityTypeId());
     $controller->resetCache();
     $entity= $controller->load($entity->id());
 

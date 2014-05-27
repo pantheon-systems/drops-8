@@ -1,0 +1,9 @@
+id: node_unpublish_action
+label: 'Unpublish content'
+status: true
+langcode: en
+type: node
+plugin: node_unpublish_action
+dependencies:
+  module:
+    - node

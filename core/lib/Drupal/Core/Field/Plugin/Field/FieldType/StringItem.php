@@ -7,7 +7,7 @@
 
 namespace Drupal\Core\Field\Plugin\Field\FieldType;
 
-use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Field\FieldItemBase;
 use Drupal\Core\TypedData\DataDefinition;
 
@@ -18,10 +18,7 @@ use Drupal\Core\TypedData\DataDefinition;
  *   id = "string",
  *   label = @Translation("String"),
  *   description = @Translation("An entity field containing a string value."),
- *   settings = {
- *     "max_length" = "255"
- *   },
- *   configurable = FALSE,
+ *   no_ui = TRUE,
  *   default_widget = "string",
  *   default_formatter = "string"
  * )
@@ -31,7 +28,16 @@ class StringItem extends FieldItemBase {
   /**
    * {@inheritdoc}
    */
-  public static function propertyDefinitions(FieldDefinitionInterface $field_definition) {
+  public static function defaultSettings() {
+    return array(
+      'max_length' => 255,
+    ) + parent::defaultSettings();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function propertyDefinitions(FieldStorageDefinitionInterface $field_definition) {
     $properties['value'] = DataDefinition::create('string')
       ->setLabel(t('Text value'));
 
@@ -41,7 +47,7 @@ class StringItem extends FieldItemBase {
   /**
    * {@inheritdoc}
    */
-  public static function schema(FieldDefinitionInterface $field_definition) {
+  public static function schema(FieldStorageDefinitionInterface $field_definition) {
     return array(
       'columns' => array(
         'value' => array(

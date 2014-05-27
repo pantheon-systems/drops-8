@@ -1,0 +1,13 @@
+id: taxonomy_term.forums.default
+targetEntityType: taxonomy_term
+bundle: forums
+mode: default
+status: true
+content:
+  description:
+    weight: 0
+hidden: {  }
+status: true
+dependencies:
+  entity:
+    - taxonomy.vocabulary.forums

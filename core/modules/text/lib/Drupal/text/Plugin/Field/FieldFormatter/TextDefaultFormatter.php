@@ -19,9 +19,9 @@ use Drupal\Core\Field\FieldItemListInterface;
  *   field_types = {
  *     "text",
  *     "text_long",
- *     "text_with_summary"
+ *     "text_with_summary",
  *   },
- *   edit = {
+ *   quickedit = {
  *     "editor" = "plain_text"
  *   }
  * )

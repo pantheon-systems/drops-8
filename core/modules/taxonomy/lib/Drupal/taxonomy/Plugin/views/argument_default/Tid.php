@@ -38,12 +38,12 @@ class Tid extends ArgumentDefaultPluginBase {
    *   A configuration array containing information about the plugin instance.
    * @param string $plugin_id
    *   The plugin_id for the plugin instance.
-   * @param array $plugin_definition
+   * @param mixed $plugin_definition
    *   The plugin implementation definition.
    * @param \Symfony\Component\HttpFoundation\Request $request
    *   The request object.
    */
-  public function __construct(array $configuration, $plugin_id, array $plugin_definition, Request $request) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, Request $request) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
     $this->request = $request;
   }
@@ -51,7 +51,7 @@ class Tid extends ArgumentDefaultPluginBase {
   /**
    * {@inheritdoc}
    */
-  public static function create(ContainerInterface $container, array $configuration, $plugin_id, array $plugin_definition) {
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
     return new static(
       $configuration,
       $plugin_id,
@@ -168,12 +168,11 @@ class Tid extends ArgumentDefaultPluginBase {
       // Just check, if a node could be detected.
       if (($node = $this->request->attributes->has('node')) && $node instanceof NodeInterface) {
         $taxonomy = array();
-        $instances = field_info_instances('node', $node->getType());
-        foreach ($instances as $instance) {
-          $field = $instance->getField();
-          if ($field->type == 'taxonomy_term_reference') {
-            foreach ($node->get($field->name) as $item) {
-              $taxonomy[$item->target_id] = $field->settings['allowed_values'][0]['vocabulary'];
+        foreach ($node->getFieldDefinitions() as $field) {
+          if ($field->getType() == 'taxonomy_term_reference') {
+            foreach ($node->get($field->getName()) as $item) {
+              $allowed_values = $field->getSetting('allowed_values');
+              $taxonomy[$item->target_id] = $allowed_values[0]['vocabulary'];
             }
           }
         }

@@ -7,11 +7,12 @@
 
 namespace Drupal\menu_link;
 
+use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Entity\EntityFormController;
 use Drupal\Core\Language\Language;
 use Drupal\Core\Path\AliasManagerInterface;
 use Drupal\Core\Routing\UrlGenerator;
-use Drupal\menu_link\MenuLinkStorageControllerInterface;
+use Drupal\menu_link\MenuLinkStorageInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -20,11 +21,11 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 class MenuLinkFormController extends EntityFormController {
 
   /**
-   * The menu link storage controller.
+   * The menu link storage.
    *
-   * @var \Drupal\menu_link\MenuLinkStorageControllerInterface
+   * @var \Drupal\menu_link\MenuLinkStorageInterface
    */
-  protected $menuLinkStorageController;
+  protected $menuLinkStorage;
 
   /**
    * The path alias manager.
@@ -43,15 +44,15 @@ class MenuLinkFormController extends EntityFormController {
   /**
    * Constructs a new MenuLinkFormController object.
    *
-   * @param \Drupal\menu_link\MenuLinkStorageControllerInterface $menu_link_storage_controller
+   * @param \Drupal\menu_link\MenuLinkStorageInterface $menu_link_storage
    *   The menu link storage.
    * @param \Drupal\Core\Path\AliasManagerInterface $path_alias_manager
    *   The path alias manager.
    * @param \Drupal\Core\Routing\UrlGenerator $url_generator
    *   The URL generator.
    */
-  public function __construct(MenuLinkStorageControllerInterface $menu_link_storage_controller, AliasManagerInterface $path_alias_manager, UrlGenerator $url_generator) {
-    $this->menuLinkStorageController = $menu_link_storage_controller;
+  public function __construct(MenuLinkStorageInterface $menu_link_storage, AliasManagerInterface $path_alias_manager, UrlGenerator $url_generator) {
+    $this->menuLinkStorage = $menu_link_storage;
     $this->pathAliasManager = $path_alias_manager;
     $this->urlGenerator = $url_generator;
   }
@@ -61,7 +62,7 @@ class MenuLinkFormController extends EntityFormController {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('entity.manager')->getStorageController('menu_link'),
+      $container->get('entity.manager')->getStorage('menu_link'),
       $container->get('path.alias_manager.cached'),
       $container->get('url_generator')
     );
@@ -98,7 +99,7 @@ class MenuLinkFormController extends EntityFormController {
     if (isset($menu_link->options['fragment'])) {
       $path .= '#' . $menu_link->options['fragment'];
     }
-    if ($menu_link->module == 'menu') {
+    if ($menu_link->module == 'menu_ui') {
       $form['link_path'] = array(
         '#type' => 'textfield',
         '#title' => t('Path'),
@@ -137,7 +138,7 @@ class MenuLinkFormController extends EntityFormController {
     );
 
     // Generate a list of possible parents (not including this link or descendants).
-    $options = menu_parent_options(menu_get_menus(), $menu_link);
+    $options = menu_ui_parent_options(menu_ui_get_menus(), $menu_link);
     $default = $menu_link->menu_name . ':' . $menu_link->plid;
     if (!isset($options[$default])) {
       $default = 'tools:0';
@@ -152,7 +153,7 @@ class MenuLinkFormController extends EntityFormController {
     );
 
     // Get number of items in menu so the weight selector is sized appropriately.
-    $delta = $this->menuLinkStorageController->countMenuLinks($menu_link->menu_name);
+    $delta = $this->menuLinkStorage->countMenuLinks($menu_link->menu_name);
     $form['weight'] = array(
       '#type' => 'weight',
       '#title' => t('Weight'),
@@ -212,7 +213,7 @@ class MenuLinkFormController extends EntityFormController {
       $menu_link->link_path = $normal_path;
       $form_state['values']['link_path'] = $normal_path;
     }
-    if (!url_is_external($menu_link->link_path)) {
+    if (!UrlHelper::isExternal($menu_link->link_path)) {
       $parsed_link = parse_url($menu_link->link_path);
       if (isset($parsed_link['query'])) {
         $menu_link->options['query'] = array();
@@ -298,7 +299,7 @@ class MenuLinkFormController extends EntityFormController {
     if ($saved) {
       drupal_set_message(t('The menu link has been saved.'));
       $form_state['redirect_route'] = array(
-        'route_name' => 'menu.menu_edit',
+        'route_name' => 'menu_ui.menu_edit',
         'route_parameters' => array(
           'menu' => $menu_link->menu_name,
         ),

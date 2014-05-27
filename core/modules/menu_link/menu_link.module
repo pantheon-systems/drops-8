@@ -5,6 +5,7 @@
  * Enables users to create menu links.
  */
 
+use Drupal\Core\Url;
 use Drupal\menu_link\Entity\MenuLink;
 use Drupal\menu_link\MenuLinkInterface;
 use Symfony\Cmf\Component\Routing\RouteObjectInterface;
@@ -14,7 +15,7 @@ function menu_link_help($path, $arg) {
     case 'admin/help#menu_link':
       $output = '';
       $output .= '<h3>' . t('About') . '</h3>';
-      $output .= '<p>' . t('The Menu Link module allows users to create menu links. It is required by the Menu module, which provides an interface for managing menus. See the <a href="!menu-help">Menu module help page</a> for more information.', array('!menu-help' => \Drupal::url('help.page', array('name' => 'menu')))) . '</p>';
+      $output .= '<p>' . t('The Menu Link module allows users to create menu links. It is required by the Menu module, which provides an interface for managing menus. See the <a href="!menu-help">Menu module help page</a> for more information.', array('!menu-help' => \Drupal::url('help.page', array('name' => 'menu_ui')))) . '</p>';
       return $output;
   }
 }
@@ -26,10 +27,7 @@ function menu_link_help($path, $arg) {
  *   A menu link entity.
  */
 function menu_link_uri(MenuLink $menu_link) {
-  return array(
-    'route_name' => $menu_link->route_name,
-    'route_parameters' => $menu_link->route_parameters,
-  );
+  return new Url($menu_link->route_name, $menu_link->route_parameters);
 }
 
 /**
@@ -100,7 +98,7 @@ function menu_link_delete_multiple(array $mlids, $force = FALSE, $prevent_repare
   }
 
   $controller = \Drupal::entityManager()
-    ->getStorageController('menu_link');
+    ->getStorage('menu_link');
   if (!$force) {
     $entity_query = \Drupal::entityQuery('menu_link');
     $group = $entity_query->orConditionGroup()
@@ -155,7 +153,7 @@ function menu_link_save(MenuLink $menu_link) {
  */
 function menu_link_maintain($module, $op, $link_path, $link_title = NULL) {
   $menu_link_controller = \Drupal::entityManager()
-    ->getStorageController('menu_link');
+    ->getStorage('menu_link');
   switch ($op) {
     case 'insert':
       $menu_link = entity_create('menu_link', array(
@@ -205,12 +203,12 @@ function menu_link_maintain($module, $op, $link_path, $link_title = NULL) {
 function menu_link_system_breadcrumb_alter(array &$breadcrumb, array $attributes, array $context) {
   // Custom breadcrumb behavior for editing menu links, we append a link to
   // the menu in which the link is found.
-  if (!empty($attributes[RouteObjectInterface::ROUTE_NAME]) && $attributes[RouteObjectInterface::ROUTE_NAME] == 'menu.link_edit' && !empty($attributes['menu_link'])) {
+  if (!empty($attributes[RouteObjectInterface::ROUTE_NAME]) && $attributes[RouteObjectInterface::ROUTE_NAME] == 'menu_ui.link_edit' && !empty($attributes['menu_link'])) {
     $menu_link = $attributes['menu_link'];
     if (($menu_link instanceof MenuLinkInterface) && !$menu_link->isNew()) {
       // Add a link to the menu admin screen.
       $menu = entity_load('menu', $menu_link->menu_name);
-      $breadcrumb[] = Drupal::l($menu->label(), 'menu.menu_edit', array('menu' => $menu->id));
+      $breadcrumb[] = Drupal::l($menu->label(), 'menu_ui.menu_edit', array('menu' => $menu->id));
     }
   }
 }

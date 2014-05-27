@@ -17,6 +17,11 @@ use Symfony\Component\HttpFoundation\Request;
 interface ConfigurableLanguageManagerInterface extends LanguageManagerInterface {
 
   /**
+   * Rebuild the container to register services needed on multilingual sites.
+   */
+  public static function rebuildServices();
+
+  /**
    * Injects the request object.
    *
    * @param \Symfony\Component\HttpFoundation\Request
@@ -77,5 +82,18 @@ interface ConfigurableLanguageManagerInterface extends LanguageManagerInterface 
    * Updates locked system language weights.
    */
   public function updateLockedLanguageWeights();
+
+  /**
+   * Gets a language config override object.
+   *
+   * @param string $langcode
+   *   The language code for the override.
+   * @param string $name
+   *   The language configuration object name.
+   *
+   * @return \Drupal\Core\Config\Config
+   *   The language config override object.
+   */
+  public function getLanguageConfigOverride($langcode, $name);
 
 }

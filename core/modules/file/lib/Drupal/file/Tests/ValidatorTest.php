@@ -79,7 +79,7 @@ class ValidatorTest extends FileManagedUnitTestBase {
     $this->assertEqual(count($errors), 1, 'Small images report an error.', 'File');
 
     // Maximum size.
-    if ($this->container->has('image.toolkit.manager')) {
+    if ($this->container->get('image.factory')->getToolkitId()) {
       // Copy the image so that the original doesn't get resized.
       copy('core/misc/druplicon.png', 'temporary://druplicon.png');
       $this->image->setFileUri('temporary://druplicon.png');
@@ -133,7 +133,7 @@ class ValidatorTest extends FileManagedUnitTestBase {
     $user = entity_create('user', array('uid' => 2, 'name' => $this->randomName()));
     $user->enforceIsNew();
     $user->save();
-    $this->container->set('current_user', $user);
+    \Drupal::currentUser()->setAccount($user);
 
     // Create a file with a size of 1000 bytes, and quotas of only 1 byte.
     $file = entity_create('file', array('filesize' => 1000));

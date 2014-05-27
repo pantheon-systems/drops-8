@@ -8,7 +8,8 @@
 namespace Drupal\rest;
 
 use Symfony\Cmf\Component\Routing\RouteObjectInterface;
-use Symfony\Component\DependencyInjection\ContainerAware;
+use Symfony\Component\DependencyInjection\ContainerAwareInterface;
+use Symfony\Component\DependencyInjection\ContainerAwareTrait;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -18,20 +19,21 @@ use Symfony\Component\Serializer\Exception\UnexpectedValueException;
 /**
  * Acts as intermediate request forwarder for resource plugins.
  */
-class RequestHandler extends ContainerAware {
+class RequestHandler implements ContainerAwareInterface {
+
+  use ContainerAwareTrait;
 
   /**
    * Handles a web API request.
    *
    * @param Symfony\Component\HttpFoundation\Request $request
    *   The HTTP request object.
-   * @param mixed $id
-   *   The resource ID.
    *
    * @return \Symfony\Component\HttpFoundation\Response
    *   The response object.
    */
-  public function handle(Request $request, $id = NULL) {
+  public function handle(Request $request) {
+
     $plugin = $request->attributes->get(RouteObjectInterface::ROUTE_OBJECT)->getDefault('_plugin');
     $method = strtolower($request->getMethod());
 
@@ -69,13 +71,24 @@ class RequestHandler extends ContainerAware {
       }
     }
 
+    // Determine the request parameters that should be passed to the resource
+    // plugin.
+    $route_parameters = $request->attributes->get('_route_params');
+    $parameters = array();
+    // Filter out all internal parameters starting with "_".
+    foreach ($route_parameters as $key => $parameter) {
+      if ($key{0} !== '_') {
+        $parameters[] = $parameter;
+      }
+    }
+
     // Invoke the operation on the resource plugin.
     // All REST routes are restricted to exactly one format, so instead of
     // parsing it out of the Accept headers again, we can simply retrieve the
     // format requirement. If there is no format associated, just pick JSON.
     $format = $request->attributes->get(RouteObjectInterface::ROUTE_OBJECT)->getRequirement('_format') ?: 'json';
     try {
-      $response = $resource->{$method}($id, $unserialized, $request);
+      $response = call_user_func_array(array($resource, $method), array_merge($parameters, array($unserialized, $request)));
     }
     catch (HttpException $e) {
       $error['error'] = $e->getMessage();

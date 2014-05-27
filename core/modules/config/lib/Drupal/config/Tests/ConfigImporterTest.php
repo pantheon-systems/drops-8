@@ -7,6 +7,7 @@
 
 namespace Drupal\config\Tests;
 
+use Drupal\Component\Utility\String;
 use Drupal\Core\Config\ConfigImporter;
 use Drupal\Core\Config\ConfigImporterException;
 use Drupal\Core\Config\StorageComparer;
@@ -29,7 +30,7 @@ class ConfigImporterTest extends DrupalUnitTestBase {
    *
    * @var array
    */
-  public static $modules = array('config_test', 'system');
+  public static $modules = array('config_test', 'system', 'config_import_test');
 
   public static function getInfo() {
     return array(
@@ -50,6 +51,8 @@ class ConfigImporterTest extends DrupalUnitTestBase {
     // so it has to be cleared out manually.
     unset($GLOBALS['hook_config_test']);
 
+    $this->copyConfig($this->container->get('config.storage'), $this->container->get('config.storage.staging'));
+
     // Set up the ConfigImporter object for testing.
     $storage_comparer = new StorageComparer(
       $this->container->get('config.storage.staging'),
@@ -60,9 +63,11 @@ class ConfigImporterTest extends DrupalUnitTestBase {
       $this->container->get('event_dispatcher'),
       $this->container->get('config.manager'),
       $this->container->get('lock'),
-      $this->container->get('config.typed')
+      $this->container->get('config.typed'),
+      $this->container->get('module_handler'),
+      $this->container->get('theme_handler'),
+      $this->container->get('string_translation')
     );
-    $this->copyConfig($this->container->get('config.storage'), $this->container->get('config.storage.staging'));
   }
 
   /**
@@ -109,7 +114,10 @@ class ConfigImporterTest extends DrupalUnitTestBase {
       $this->assertFalse(FALSE, 'ConfigImporterException not thrown, invalid import was not stopped due to mis-matching site UUID.');
     }
     catch (ConfigImporterException $e) {
-      $this->assertEqual($e->getMessage(), 'Site UUID in source storage does not match the target storage.');
+      $this->assertEqual($e->getMessage(), 'There were errors validating the config synchronization.');
+      $error_log = $this->configImporter->getErrors();
+      $expected = array('Site UUID in source storage does not match the target storage.');
+      $this->assertEqual($expected, $error_log);
     }
   }
 
@@ -145,8 +153,9 @@ class ConfigImporterTest extends DrupalUnitTestBase {
     $this->assertTrue(isset($GLOBALS['hook_config_test']['predelete']));
     $this->assertTrue(isset($GLOBALS['hook_config_test']['delete']));
 
-    // Verify that there is nothing more to import.
-    $this->assertFalse($this->configImporter->hasUnprocessedChanges());
+    $this->assertFalse($this->configImporter->hasUnprocessedConfigurationChanges());
+    $logs = $this->configImporter->getErrors();
+    $this->assertEqual(count($logs), 0);
   }
 
   /**
@@ -166,9 +175,11 @@ class ConfigImporterTest extends DrupalUnitTestBase {
       'label' => 'New',
       'weight' => 0,
       'style' => '',
+      'test_dependencies' => array(),
       'status' => TRUE,
       'uuid' => '30df59bd-7b03-4cf7-bb35-d42fc49f0651',
-      'langcode' => language_default()->id,
+      'langcode' => \Drupal::languageManager()->getDefaultLanguage()->id,
+      'dependencies' => array(),
       'protected_property' => '',
     );
     $staging->write($dynamic_name, $original_dynamic_data);
@@ -190,8 +201,280 @@ class ConfigImporterTest extends DrupalUnitTestBase {
     $this->assertFalse(isset($GLOBALS['hook_config_test']['predelete']));
     $this->assertFalse(isset($GLOBALS['hook_config_test']['delete']));
 
+    // Verify that hook_config_import_steps_alter() can add steps to
+    // configuration synchronization.
+    $this->assertTrue(isset($GLOBALS['hook_config_test']['config_import_steps_alter']));
+
     // Verify that there is nothing more to import.
-    $this->assertFalse($this->configImporter->hasUnprocessedChanges());
+    $this->assertFalse($this->configImporter->hasUnprocessedConfigurationChanges());
+    $logs = $this->configImporter->getErrors();
+    $this->assertEqual(count($logs), 0);
+  }
+
+  /**
+   * Tests that secondary writes are overwritten.
+   */
+  function testSecondaryWritePrimaryFirst() {
+    $name_primary = 'config_test.dynamic.primary';
+    $name_secondary = 'config_test.dynamic.secondary';
+    $staging = $this->container->get('config.storage.staging');
+    $uuid = $this->container->get('uuid');
+
+    $values_primary = array(
+      'id' => 'primary',
+      'label' => 'Primary',
+      'weight' => 0,
+      'uuid' => $uuid->generate(),
+    );
+    $staging->write($name_primary, $values_primary);
+    $values_secondary = array(
+      'id' => 'secondary',
+      'label' => 'Secondary Sync',
+      'weight' => 0,
+      'uuid' => $uuid->generate(),
+      // Add a dependency on primary, to ensure that is synced first.
+      'dependencies' => array(
+        'entity' => array($name_primary),
+      )
+    );
+    $staging->write($name_secondary, $values_secondary);
+
+    // Import.
+    $this->configImporter->reset()->import();
+
+    $entity_storage = \Drupal::entityManager()->getStorage('config_test');
+    $primary = $entity_storage->load('primary');
+    $this->assertEqual($primary->id(), 'primary');
+    $this->assertEqual($primary->uuid(), $values_primary['uuid']);
+    $this->assertEqual($primary->label(), $values_primary['label']);
+    $secondary = $entity_storage->load('secondary');
+    $this->assertEqual($secondary->id(), 'secondary');
+    $this->assertEqual($secondary->uuid(), $values_secondary['uuid']);
+    $this->assertEqual($secondary->label(), $values_secondary['label']);
+
+    $logs = $this->configImporter->getErrors();
+    $this->assertEqual(count($logs), 1);
+    $this->assertEqual($logs[0], String::format('Deleted and replaced configuration entity "@name"', array('@name' => $name_secondary)));
+  }
+
+  /**
+   * Tests that secondary writes are overwritten.
+   */
+  function testSecondaryWriteSecondaryFirst() {
+    $name_primary = 'config_test.dynamic.primary';
+    $name_secondary = 'config_test.dynamic.secondary';
+    $staging = $this->container->get('config.storage.staging');
+    $uuid = $this->container->get('uuid');
+
+    $values_primary = array(
+      'id' => 'primary',
+      'label' => 'Primary',
+      'weight' => 0,
+      'uuid' => $uuid->generate(),
+      // Add a dependency on secondary, so that is synced first.
+      'dependencies' => array(
+        'entity' => array($name_secondary),
+      )
+    );
+    $staging->write($name_primary, $values_primary);
+    $values_secondary = array(
+      'id' => 'secondary',
+      'label' => 'Secondary Sync',
+      'weight' => 0,
+      'uuid' => $uuid->generate(),
+    );
+    $staging->write($name_secondary, $values_secondary);
+
+    // Import.
+    $this->configImporter->reset()->import();
+
+    $entity_storage = \Drupal::entityManager()->getStorage('config_test');
+    $primary = $entity_storage->load('primary');
+    $this->assertEqual($primary->id(), 'primary');
+    $this->assertEqual($primary->uuid(), $values_primary['uuid']);
+    $this->assertEqual($primary->label(), $values_primary['label']);
+    $secondary = $entity_storage->load('secondary');
+    $this->assertEqual($secondary->id(), 'secondary');
+    $this->assertEqual($secondary->uuid(), $values_secondary['uuid']);
+    $this->assertEqual($secondary->label(), $values_secondary['label']);
+
+    $logs = $this->configImporter->getErrors();
+    $this->assertEqual(count($logs), 1);
+    $message = String::format('config_test entity with ID @name already exists', array('@name' => 'secondary'));
+    $this->assertEqual($logs[0], String::format('Unexpected error during import with operation @op for @name: @message.', array('@op' => 'create', '@name' => $name_primary, '@message' => $message)));
+  }
+
+  /**
+   * Tests that secondary updates for deleted files work as expected.
+   */
+  function testSecondaryUpdateDeletedDeleterFirst() {
+    $name_deleter = 'config_test.dynamic.deleter';
+    $name_deletee = 'config_test.dynamic.deletee';
+    $name_other = 'config_test.dynamic.other';
+    $storage = $this->container->get('config.storage');
+    $staging = $this->container->get('config.storage.staging');
+    $uuid = $this->container->get('uuid');
+
+    $values_deleter = array(
+      'id' => 'deleter',
+      'label' => 'Deleter',
+      'weight' => 0,
+      'uuid' => $uuid->generate(),
+    );
+    $storage->write($name_deleter, $values_deleter);
+    $values_deleter['label'] = 'Updated Deleter';
+    $staging->write($name_deleter, $values_deleter);
+    $values_deletee = array(
+      'id' => 'deletee',
+      'label' => 'Deletee',
+      'weight' => 0,
+      'uuid' => $uuid->generate(),
+      // Add a dependency on deleter, to make sure that is synced first.
+      'dependencies' => array(
+        'entity' => array($name_deleter),
+      )
+    );
+    $storage->write($name_deletee, $values_deletee);
+    $values_deletee['label'] = 'Updated Deletee';
+    $staging->write($name_deletee, $values_deletee);
+
+    // Ensure that import will continue after the error.
+    $values_other = array(
+      'id' => 'other',
+      'label' => 'Other',
+      'weight' => 0,
+      'uuid' => $uuid->generate(),
+      // Add a dependency on deleter, to make sure that is synced first. This
+      // will also be synced after the deletee due to alphabetical ordering.
+      'dependencies' => array(
+        'entity' => array($name_deleter),
+      )
+    );
+    $storage->write($name_other, $values_other);
+    $values_other['label'] = 'Updated other';
+    $staging->write($name_other, $values_other);
+
+    // Check update changelist order.
+    $updates = $this->configImporter->reset()->getStorageComparer()->getChangelist('update');
+    $expected = array(
+      $name_deleter,
+      $name_deletee,
+      $name_other,
+    );
+    $this->assertIdentical($expected, $updates);
+
+    // Import.
+    $this->configImporter->import();
+
+    $entity_storage = \Drupal::entityManager()->getStorage('config_test');
+    $deleter = $entity_storage->load('deleter');
+    $this->assertEqual($deleter->id(), 'deleter');
+    $this->assertEqual($deleter->uuid(), $values_deleter['uuid']);
+    $this->assertEqual($deleter->label(), $values_deleter['label']);
+
+    // The deletee was deleted in
+    // \Drupal\config_test\Entity\ConfigTest::postSave().
+    $this->assertFalse($entity_storage->load('deletee'));
+
+    $other = $entity_storage->load('other');
+    $this->assertEqual($other->id(), 'other');
+    $this->assertEqual($other->uuid(), $values_other['uuid']);
+    $this->assertEqual($other->label(), $values_other['label']);
+
+    $logs = $this->configImporter->getErrors();
+    $this->assertEqual(count($logs), 1);
+    $this->assertEqual($logs[0], String::format('Update target "@name" is missing.', array('@name' => $name_deletee)));
+  }
+
+  /**
+   * Tests that secondary updates for deleted files work as expected.
+   */
+  function testSecondaryUpdateDeletedDeleteeFirst() {
+    $name_deleter = 'config_test.dynamic.deleter';
+    $name_deletee = 'config_test.dynamic.deletee';
+    $storage = $this->container->get('config.storage');
+    $staging = $this->container->get('config.storage.staging');
+    $uuid = $this->container->get('uuid');
+
+    $values_deleter = array(
+      'id' => 'deleter',
+      'label' => 'Deleter',
+      'weight' => 0,
+      'uuid' => $uuid->generate(),
+      // Add a dependency on deletee, to make sure that is synced first.
+      'dependencies' => array(
+        'entity' => array($name_deletee),
+      ),
+    );
+    $storage->write($name_deleter, $values_deleter);
+    $values_deleter['label'] = 'Updated Deleter';
+    $staging->write($name_deleter, $values_deleter);
+    $values_deletee = array(
+      'id' => 'deletee',
+      'label' => 'Deletee',
+      'weight' => 0,
+      'uuid' => $uuid->generate(),
+    );
+    $storage->write($name_deletee, $values_deletee);
+    $values_deletee['label'] = 'Updated Deletee';
+    $staging->write($name_deletee, $values_deletee);
+
+    // Import.
+    $this->configImporter->reset()->import();
+
+    $entity_storage = \Drupal::entityManager()->getStorage('config_test');
+    $deleter = $entity_storage->load('deleter');
+    $this->assertEqual($deleter->id(), 'deleter');
+    $this->assertEqual($deleter->uuid(), $values_deleter['uuid']);
+    $this->assertEqual($deleter->label(), $values_deleter['label']);
+    // @todo The deletee entity does not exist as the update worked but the
+    //   entity was deleted after that. There is also no log message as this
+    //   happened outside of the config importer.
+    $this->assertFalse($entity_storage->load('deletee'));
+    $logs = $this->configImporter->getErrors();
+    $this->assertEqual(count($logs), 0);
+  }
+
+  /**
+   * Tests that secondary deletes for deleted files work as expected.
+   */
+  function testSecondaryDeletedDeleteeSecond() {
+    $name_deleter = 'config_test.dynamic.deleter';
+    $name_deletee = 'config_test.dynamic.deletee';
+    $storage = $this->container->get('config.storage');
+
+    $uuid = $this->container->get('uuid');
+
+    $values_deleter = array(
+      'id' => 'deleter',
+      'label' => 'Deleter',
+      'weight' => 0,
+      'uuid' => $uuid->generate(),
+      // Add a dependency on deletee, to make sure this delete is synced first.
+      'dependencies' => array(
+        'entity' => array($name_deletee),
+      ),
+    );
+    $storage->write($name_deleter, $values_deleter);
+    $values_deletee = array(
+      'id' => 'deletee',
+      'label' => 'Deletee',
+      'weight' => 0,
+      'uuid' => $uuid->generate(),
+    );
+    $storage->write($name_deletee, $values_deletee);
+
+    // Import.
+    $this->configImporter->reset()->import();
+
+    $entity_storage = \Drupal::entityManager()->getStorage('config_test');
+    $this->assertFalse($entity_storage->load('deleter'));
+    $this->assertFalse($entity_storage->load('deletee'));
+    // The deletee entity does not exist as the delete worked and although the
+    // delete occurred in \Drupal\config_test\Entity\ConfigTest::postDelete()
+    // this does not matter.
+    $logs = $this->configImporter->getErrors();
+    $this->assertEqual(count($logs), 0);
   }
 
   /**
@@ -246,7 +529,9 @@ class ConfigImporterTest extends DrupalUnitTestBase {
     $this->assertFalse(isset($GLOBALS['hook_config_test']['delete']));
 
     // Verify that there is nothing more to import.
-    $this->assertFalse($this->configImporter->hasUnprocessedChanges());
+    $this->assertFalse($this->configImporter->hasUnprocessedConfigurationChanges());
+    $logs = $this->configImporter->getErrors();
+    $this->assertEqual(count($logs), 0);
   }
 }
 

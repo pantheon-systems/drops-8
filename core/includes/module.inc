@@ -9,26 +9,18 @@ use Drupal\Core\Cache\Cache;
 use Drupal\Core\Extension\ExtensionDiscovery;
 
 /**
- * Builds a list of bootstrap modules and enabled modules and themes.
+ * Builds a list of enabled themes.
  *
  * @param $type
  *   The type of list to return:
- *   - module_enabled: All enabled modules.
- *   - bootstrap: All enabled modules required for bootstrap.
- *   - theme: All themes.
+ *   - theme: All enabled themes.
  *
  * @return
- *   An associative array of modules or themes, keyed by name. For $type
- *   'bootstrap' and 'module_enabled', the array values equal the keys.
+ *   An associative array of themes, keyed by name.
  *   For $type 'theme', the array values are objects representing the
  *   respective database row, with the 'info' property already unserialized.
  *
  * @see list_themes()
- *
- * @todo There are too many layers/levels of caching involved for system_list()
- *   data. Consider to add a \Drupal::config($name, $cache = TRUE) argument to allow
- *   callers like system_list() to force-disable a possible configuration
- *   storage controller cache or some other way to circumvent it/take it over.
  */
 function system_list($type) {
   $lists = &drupal_static(__FUNCTION__);
@@ -40,32 +32,15 @@ function system_list($type) {
       'theme' => array(),
       'filepaths' => array(),
     );
-    // Build a list of themes.
-    $enabled_themes = (array) \Drupal::config('system.theme')->get('enabled');
-    // @todo Themes include all themes, including disabled/uninstalled. This
-    //   system.theme.data state will go away entirely as soon as themes have
-    //   a proper installation status.
-    // @see http://drupal.org/node/1067408
-    $theme_data = \Drupal::state()->get('system.theme.data');
-    if (empty($theme_data)) {
-      // @todo: system_list() may be called from _drupal_bootstrap_code(), in
-      // which case system.module is not loaded yet.
-      // Prevent a filesystem scan in drupal_load() and include it directly.
-      // @see http://drupal.org/node/1067408
-      require_once DRUPAL_ROOT . '/core/modules/system/system.module';
-      $theme_data = system_rebuild_theme_data();
-    }
+    // ThemeHandler maintains the 'system.theme.data' state record.
+    $theme_data = \Drupal::state()->get('system.theme.data', array());
     foreach ($theme_data as $name => $theme) {
-      $theme->status = (int) isset($enabled_themes[$name]);
       $lists['theme'][$name] = $theme;
-      // Build a list of filenames so drupal_get_filename can use it.
-      if (isset($enabled_themes[$name])) {
-        $lists['filepaths'][] = array(
-          'type' => 'theme',
-          'name' => $name,
-          'filepath' => $theme->getPathname(),
-        );
-      }
+      $lists['filepaths'][] = array(
+        'type' => 'theme',
+        'name' => $name,
+        'filepath' => $theme->getPathname(),
+      );
     }
     \Drupal::cache('bootstrap')->set('system_list', $lists);
   }
@@ -84,25 +59,17 @@ function system_list($type) {
 function system_list_reset() {
   drupal_static_reset('system_list');
   drupal_static_reset('system_rebuild_module_data');
-  drupal_static_reset('list_themes');
   \Drupal::cache('bootstrap')->delete('system_list');
-  \Drupal::cache()->delete('system_info');
 
   // Clear the library info cache.
   // Libraries may be provided by all extension types, and may be altered by any
   // other extensions (types) due to the nature of
   // \Drupal\Core\Extension\ModuleHandler::alter() and the fact that profiles
   // are recorded and handled as modules.
+  // @todo Trigger an event upon module install/uninstall and theme
+  //   enable/disable, and move this into an event subscriber.
+  // @see https://drupal.org/node/2206347
   Cache::invalidateTags(array('extension' => TRUE));
-
-  // Remove last known theme data state.
-  // This causes system_list() to call system_rebuild_theme_data() on its next
-  // invocation. When enabling a module that implements hook_system_info_alter()
-  // to inject a new (testing) theme or manipulate an existing theme, then that
-  // will cause system_list_reset() to be called, but theme data is not
-  // necessarily rebuilt afterwards.
-  // @todo Obsolete with proper installation status for themes.
-  \Drupal::state()->delete('system.theme.data');
 }
 
 /**
@@ -305,11 +272,11 @@ function drupal_required_modules() {
  */
 function module_set_weight($module, $weight) {
   // Update the module weight in the config file that contains it.
-  $module_config = \Drupal::config('system.module');
-  if ($module_config->get("enabled.$module") !== NULL) {
-    $module_config
-      ->set("enabled.$module", $weight)
-      ->set('enabled', module_config_sort($module_config->get('enabled')))
+  $extension_config = \Drupal::config('core.extension');
+  if ($extension_config->get("module.$module") !== NULL) {
+    $extension_config
+      ->set("module.$module", $weight)
+      ->set('module', module_config_sort($extension_config->get('module')))
       ->save();
 
     // Prepare the new module list, sorted by weight, including filenames.
@@ -317,7 +284,7 @@ function module_set_weight($module, $weight) {
     $module_handler = \Drupal::moduleHandler();
     $current_module_filenames = $module_handler->getModuleList();
     $current_modules = array_fill_keys(array_keys($current_module_filenames), 0);
-    $current_modules = module_config_sort(array_merge($current_modules, $module_config->get('enabled')));
+    $current_modules = module_config_sort(array_merge($current_modules, $extension_config->get('module')));
     $module_filenames = array();
     foreach ($current_modules as $name => $weight) {
       $module_filenames[$name] = $current_module_filenames[$name];

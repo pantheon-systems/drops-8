@@ -102,16 +102,12 @@ class TaxonomyTermReferenceRdfaTest extends FieldRdfaTestBase {
   /**
    * Tests the plain formatter.
    */
-  public function testPlainFormatter() {
-    $this->assertFormatterRdfa('taxonomy_term_reference_plain', 'http://schema.org/about', $this->term->getName(), 'literal');
-  }
-
-  /**
-   * Tests the link formatter.
-   */
-  public function testLinkFormatter() {
+  public function testAllFormatters() {
+    // Tests the plain formatter.
+    $this->assertFormatterRdfa(array('type' => 'taxonomy_term_reference_plain'), 'http://schema.org/about', array('value' => $this->term->getName(), 'type' => 'literal'));
+    // Tests the link formatter.
     $term_uri = $this->getAbsoluteUri($this->term);
-    $this->assertFormatterRdfa('taxonomy_term_reference_link', 'http://schema.org/about', $term_uri, 'uri');
+    $this->assertFormatterRdfa(array('type'=>'taxonomy_term_reference_link'), 'http://schema.org/about', array('value' => $term_uri, 'type' => 'uri'));
   }
 
 }

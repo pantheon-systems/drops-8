@@ -11,7 +11,7 @@ use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheBackendInterface;
 
 /**
- * Defines the cached storage controller.
+ * Defines the cached storage.
  *
  * The class gets another storage and a cache backend injected. It reads from
  * the cache and delegates the read to the storage on a cache miss. It also
@@ -41,10 +41,10 @@ class CachedStorage implements StorageInterface, StorageCacheInterface {
   protected $findByPrefixCache = array();
 
   /**
-   * Constructs a new CachedStorage controller.
+   * Constructs a new CachedStorage.
    *
    * @param \Drupal\Core\Config\StorageInterface $storage
-   *   A configuration storage controller to be cached.
+   *   A configuration storage to be cached.
    * @param \Drupal\Core\Cache\CacheBackendInterface $cache
    *   A cache backend instance to use for caching.
    */
@@ -93,9 +93,12 @@ class CachedStorage implements StorageInterface, StorageCacheInterface {
       $list = $this->storage->readMultiple($names);
       // Cache configuration objects that were loaded from the storage, cache
       // missing configuration objects as an explicit FALSE.
+      $items = array();
       foreach ($names as $name) {
-        $this->cache->set($name, isset($list[$name]) ? $list[$name] : FALSE);
+        $items[$name] = array('data' => isset($list[$name]) ? $list[$name] : FALSE);
       }
+
+      $this->cache->setMultiple($items);
     }
 
     // Add the configuration objects from the cache to the list.

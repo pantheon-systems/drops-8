@@ -18,6 +18,16 @@ namespace Drupal\Core\Entity;
 interface EntityTypeInterface {
 
   /**
+   * The maximum length of ID, in characters.
+   */
+  const ID_MAX_LENGTH = 32;
+
+  /**
+   * The maximum length of bundle name, in characters.
+   */
+  const BUNDLE_MAX_LENGTH = 32;
+
+  /**
    * Gets any arbitrary property.
    *
    * @param string $property
@@ -136,7 +146,7 @@ interface EntityTypeInterface {
   /**
    * Indicates if the persistent cache of field data should be used.
    *
-   * @todo Used by FieldableEntityStorageControllerBase only.
+   * @todo Used by ContentEntityStorageBase only.
    *
    * The persistent cache should usually only be disabled if a higher level
    * persistent cache is available for the entity type.
@@ -185,7 +195,7 @@ interface EntityTypeInterface {
    *   types (listed below) and the values are the names of the classes that
    *   implement that controller:
    *   - storage: The name of the class used to load the objects. The class must
-   *     implement \Drupal\Core\Entity\EntityStorageControllerInterface.
+   *     implement \Drupal\Core\Entity\EntityStorageInterface.
    *   - form: An associative array where the keys are the names of the
    *     different form operations (such as 'create', 'edit', or 'delete') and
    *     the values are the names of the controller classes for those
@@ -194,7 +204,7 @@ interface EntityTypeInterface {
    *     entity forms when the forms are similar. The classes must implement
    *     \Drupal\Core\Entity\EntityFormControllerInterface.
    *   - list: The name of the class that provides listings of the entities. The
-   *     class must implement \Drupal\Core\Entity\EntityListControllerInterface.
+   *     class must implement \Drupal\Core\Entity\EntityListBuilderInterface.
    *   - render: The name of the class that is used to render the entities. The
    *     class must implement \Drupal\Core\Entity\EntityViewBuilderInterface.
    *   - access: The name of the class that is used for access checks. The class
@@ -263,7 +273,7 @@ interface EntityTypeInterface {
    * @return string
    *   The class for this entity type's list.
    */
-  public function getListClass();
+  public function getListBuilderClass();
 
   /**
    * Sets the list class.
@@ -273,7 +283,7 @@ interface EntityTypeInterface {
    *
    * @return static
    */
-  public function setListClass($class);
+  public function setListBuilderClass($class);
 
   /**
    * Indicates if this entity type has a list class.
@@ -281,7 +291,7 @@ interface EntityTypeInterface {
    * @return bool
    *   TRUE if there is a list for this entity type, FALSE otherwise.
    */
-  public function hasListClass();
+  public function hasListBuilderClass();
 
   /**
    * Returns the view builder class.
@@ -514,7 +524,7 @@ interface EntityTypeInterface {
   /**
    * Returns the name of the entity's base table.
    *
-   * @todo Used by DatabaseStorageController only.
+   * @todo Used by ContentEntityDatabaseStorage only.
    *
    * @return string|bool
    *   The name of the entity's base table, or FALSE if none exists.
@@ -544,7 +554,7 @@ interface EntityTypeInterface {
   /**
    * Returns the name of the entity's revision data table.
    *
-   * @todo Used by FieldableDatabaseStorageController only.
+   * @todo Used by ContentEntityDatabaseStorage only.
    *
    * @return string|bool
    *   The name of the entity type's revision data table.
@@ -554,7 +564,7 @@ interface EntityTypeInterface {
   /**
    * Returns the name of the entity's revision table.
    *
-   * @todo Used by FieldableDatabaseStorageController only.
+   * @todo Used by ContentEntityDatabaseStorage only.
    *
    * @return string|bool
    *   The name of the entity type's revision table.
@@ -564,7 +574,7 @@ interface EntityTypeInterface {
   /**
    * Returns the name of the entity's data table.
    *
-   * @todo Used by FieldableDatabaseStorageController only.
+   * @todo Used by ContentEntityDatabaseStorage only.
    *
    * @return string|bool
    *   The name of the entity type's data table.

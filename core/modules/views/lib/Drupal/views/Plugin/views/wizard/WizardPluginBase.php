@@ -113,7 +113,7 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
   /**
    * Constructs a WizardPluginBase object.
    */
-  public function __construct(array $configuration, $plugin_id, array $plugin_definition) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
 
     $this->base_table = $this->definition['base_table'];
@@ -241,11 +241,14 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
     $form['displays']['page']['options']['title'] = array(
       '#title' => t('Page title'),
       '#type' => 'textfield',
+      '#maxlength' => 255,
     );
     $form['displays']['page']['options']['path'] = array(
       '#title' => t('Path'),
       '#type' => 'textfield',
       '#field_prefix' => $path_prefix,
+      // Account for the leading backslash.
+      '#maxlength' => 254,
     );
     $form['displays']['page']['options']['style'] = array(
       '#type' => 'fieldset',
@@ -292,8 +295,8 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
       '#prefix' => '<div id="edit-page-link-properties-wrapper">',
       '#suffix' => '</div>',
     );
-    if (\Drupal::moduleHandler()->moduleExists('menu')) {
-      $menu_options = menu_get_menus();
+    if (\Drupal::moduleHandler()->moduleExists('menu_ui')) {
+      $menu_options = menu_ui_get_menus();
     }
     else {
       // These are not yet translated.
@@ -332,6 +335,8 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
         '#title' => t('Feed path'),
         '#type' => 'textfield',
         '#field_prefix' => $path_prefix,
+        // Account for the leading backslash.
+        '#maxlength' => 254,
       );
       // This will almost never be visible.
       $form['displays']['page']['options']['feed_properties']['row_plugin'] = array(
@@ -385,6 +390,7 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
     $form['displays']['block']['options']['title'] = array(
       '#title' => t('Block title'),
       '#type' => 'textfield',
+      '#maxlength' => 255,
     );
     $form['displays']['block']['options']['style'] = array(
       '#type' => 'fieldset',
@@ -761,6 +767,7 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
     foreach ($display_options as &$options) {
       $options['options'] = array();
       $options['provider'] = 'views';
+      $options['dependencies'] = array();
     }
 
     // Add a least one field so the view validates and the user has a preview.

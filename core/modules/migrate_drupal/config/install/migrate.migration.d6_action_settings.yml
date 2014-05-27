@@ -1,0 +1,10 @@
+id: d6_action_settings
+source:
+  plugin: variable
+  variables:
+    - actions_max_stack
+process:
+  recursion_limit: actions_max_stack
+destination:
+  plugin: config
+  config_name: action.settings

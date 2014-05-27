@@ -7,7 +7,7 @@
 
 namespace Drupal\Core\Field\Plugin\Field\FieldType;
 
-use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Field\FieldItemBase;
 use Drupal\Core\Language\Language;
 use Drupal\Core\TypedData\DataDefinition;
@@ -20,7 +20,7 @@ use Drupal\Core\TypedData\DataReferenceDefinition;
  *   id = "language",
  *   label = @Translation("Language"),
  *   description = @Translation("An entity field referencing a language."),
- *   configurable = FALSE,
+ *   no_ui = TRUE,
  *   constraints = {
  *     "ComplexData" = {
  *       "value" = {"Length" = {"max" = 12}}
@@ -33,7 +33,7 @@ class LanguageItem extends FieldItemBase {
   /**
    * {@inheritdoc}
    */
-  public static function propertyDefinitions(FieldDefinitionInterface $field_definition) {
+  public static function propertyDefinitions(FieldStorageDefinitionInterface $field_definition) {
     $properties['value'] = DataDefinition::create('string')
       ->setLabel(t('Language code'));
 
@@ -50,7 +50,7 @@ class LanguageItem extends FieldItemBase {
   /**
    * {@inheritdoc}
    */
-  public static function schema(FieldDefinitionInterface $field_definition) {
+  public static function schema(FieldStorageDefinitionInterface $field_definition) {
     return array(
       'columns' => array(
         'value' => array(

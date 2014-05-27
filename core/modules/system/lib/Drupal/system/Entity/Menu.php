@@ -7,9 +7,8 @@
 
 namespace Drupal\system\Entity;
 
-use Drupal\Core\Cache\Cache;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
-use Drupal\Core\Entity\EntityStorageControllerInterface;
+use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\system\MenuInterface;
 
 /**
@@ -61,8 +60,8 @@ class Menu extends ConfigEntityBase implements MenuInterface {
   /**
    * {@inheritdoc}
    */
-  public function getExportProperties() {
-    $properties = parent::getExportProperties();
+  public function toArray() {
+    $properties = parent::toArray();
     // @todo Make $description protected and include it here, see
     //   https://drupal.org/node/2030645.
     $names = array(
@@ -79,24 +78,6 @@ class Menu extends ConfigEntityBase implements MenuInterface {
    */
   public function isLocked() {
     return (bool) $this->locked;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function postSave(EntityStorageControllerInterface $storage_controller, $update = TRUE) {
-    parent::postSave($storage_controller, $update);
-
-    Cache::invalidateTags(array('menu' => $this->id()));
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function postDelete(EntityStorageControllerInterface $storage_controller, array $entities) {
-    parent::postDelete($storage_controller, $entities);
-
-    Cache::invalidateTags(array('menu' => array_keys($entities)));
   }
 
 }

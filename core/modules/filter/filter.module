@@ -7,8 +7,10 @@
 
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\String;
+use Drupal\Component\Utility\Xss;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Language\Language;
+use Drupal\Core\Render\Element;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Template\Attribute;
 use Drupal\filter\FilterFormatInterface;
@@ -95,26 +97,6 @@ function filter_element_info() {
 }
 
 /**
- * Implements hook_menu_link_defaults().
- */
-function filter_menu_link_defaults() {
-  $links['filter.tips'] = array(
-    'link_title' => 'Compose tips',
-    'type' => MENU_SUGGESTED_ITEM,
-    'route_name' => 'filter.tips_all',
-  );
-
-  $links['filter.admin.formats'] = array(
-    'link_title' => 'Text formats',
-    'parent' => 'system.admin.config.content',
-    'description' => 'Configure how content input by users is filtered, including allowed HTML tags. Also allows enabling of module-provided filters.',
-    'route_name' => 'filter.admin_overview',
-  );
-
-  return $links;
-}
-
-/**
  * Implements hook_permission().
  */
 function filter_permission() {
@@ -164,7 +146,7 @@ function filter_formats(AccountInterface $account = NULL) {
       $formats['all'] = $cache->data;
     }
     else {
-      $formats['all'] = \Drupal::entityManager()->getStorageController('filter_format')->loadByProperties(array('status' => TRUE));
+      $formats['all'] = \Drupal::entityManager()->getStorage('filter_format')->loadByProperties(array('status' => TRUE));
       uasort($formats['all'], 'Drupal\Core\Config\Entity\ConfigEntityBase::sort');
       \Drupal::cache()->set("filter_formats:{$language_interface->id}", $formats['all'], Cache::PERMANENT, array('filter_formats' => TRUE));
     }
@@ -180,7 +162,7 @@ function filter_formats(AccountInterface $account = NULL) {
   if (!isset($formats['user'][$account_id])) {
     $formats['user'][$account_id] = array();
     foreach ($formats['all'] as $format) {
-      if ($format->access('view', $account)) {
+      if ($format->access('use', $account)) {
         $formats['user'][$account_id][$format->format] = $format;
       }
     }
@@ -195,7 +177,6 @@ function filter_formats(AccountInterface $account = NULL) {
  * @see filter_formats()
  */
 function filter_formats_reset() {
-  Cache::deleteTags(array('filter_formats' => TRUE));
   drupal_static_reset('filter_formats');
 }
 
@@ -344,8 +325,8 @@ function filter_format_allowcache($format_id) {
  * @param $text
  *   The text to be filtered.
  * @param $format_id
- *   (optional) The format ID of the text to be filtered. If no format is
- *   assigned, the fallback format will be used. Defaults to NULL.
+ *   (optional) The machine name of the filter format to be used to filter the
+ *   text. Defaults to the fallback format. See filter_fallback_format().
  * @param $langcode
  *   (optional) The language code of the text to be filtered, e.g. 'en' for
  *   English. This allows filters to be language aware so language specific
@@ -491,7 +472,7 @@ function filter_process_format($element) {
   );
   // Move this element into sub-element 'value'.
   unset($element['value']);
-  foreach (element_properties($element) as $key) {
+  foreach (Element::properties($element) as $key) {
     if (!in_array($key, $blacklist)) {
       $element['value'][$key] = $element[$key];
     }
@@ -596,7 +577,7 @@ function filter_process_format($element) {
 
     // Hide the text format selector and any other child element (such as text
     // field's summary).
-    foreach (element_children($element) as $key) {
+    foreach (Element::children($element) as $key) {
       if ($key != 'value') {
         $element[$key]['#access'] = FALSE;
       }
@@ -747,7 +728,7 @@ function template_preprocess_filter_tips(&$variables) {
  */
 function _filter_html($text, $filter) {
   $allowed_tags = preg_split('/\s+|<|>/', $filter->settings['allowed_html'], -1, PREG_SPLIT_NO_EMPTY);
-  $text = filter_xss($text, $allowed_tags);
+  $text = Xss::filter($text, $allowed_tags);
 
   if ($filter->settings['filter_html_nofollow']) {
     $html_dom = Html::load($text);
@@ -791,7 +772,7 @@ function _filter_url($text, $filter) {
   // the identical list. While '//' is technically optional for MAILTO only,
   // we cannot cleanly differ between protocols here without hard-coding MAILTO,
   // so '//' is optional for all protocols.
-  // @see filter_xss_bad_protocol()
+  // @see \Drupal\Component\Utility\UrlHelper::filterBadProtocol()
   $protocols = \Drupal::config('system.filter')->get('protocols');
   $protocols = implode(':(?://)?|', $protocols) . ':(?://)?';
 

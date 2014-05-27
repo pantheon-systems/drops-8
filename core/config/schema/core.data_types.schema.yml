@@ -1,0 +1,216 @@
+# Basic scalar data types from typed data.
+boolean:
+  label: 'Boolean'
+  class: '\Drupal\Core\TypedData\Plugin\DataType\Boolean'
+email:
+  label: 'Email'
+  class: '\Drupal\Core\TypedData\Plugin\DataType\Email'
+integer:
+  label: 'Integer'
+  class: '\Drupal\Core\TypedData\Plugin\DataType\Integer'
+float:
+  label: 'Float'
+  class: '\Drupal\Core\TypedData\Plugin\DataType\Float'
+string:
+  label: 'String'
+  class: '\Drupal\Core\TypedData\Plugin\DataType\String'
+uri:
+  label: 'Uri'
+  class: '\Drupal\Core\TypedData\Plugin\DataType\Uri'
+
+# Basic data types for configuration.
+undefined:
+  label: 'Undefined'
+  class: '\Drupal\Core\Config\Schema\Property'
+mapping:
+  label: Mapping
+  class: '\Drupal\Core\Config\Schema\Mapping'
+sequence:
+  label: Sequence
+  class: '\Drupal\Core\Config\Schema\Sequence'
+
+# Default mapping for unknown types or types not found.
+default:
+  type: undefined
+  label: 'Unknown'
+
+# Simple extended data types:
+
+# Human readable string that must be plain text and editable with a text field.
+label:
+  type: string
+  label: 'Label'
+  translatable: true
+
+# Internal Drupal path
+path:
+  type: string
+  label: 'Path'
+
+# Human readable string that can contain multiple lines of text or HTML.
+text:
+  type: string
+  label: 'Text'
+  translatable: true
+
+# PHP Date format string that is translatable.
+date_format:
+  type: string
+  label: 'PHP date format'
+  translatable: true
+
+# Complex extended data types:
+
+# Mail text with subject and body parts.
+mail:
+  type: mapping
+  label: 'Mail'
+  mapping:
+    subject:
+      type: label
+      label: 'Subject'
+    body:
+      type: text
+      label: 'Body'
+
+# Filter with module and status.
+filter:
+  type: mapping
+  label: 'Filter'
+  mapping:
+    id:
+      type: string
+      label: 'ID'
+    provider:
+      type: string
+      label: 'Provider'
+    status:
+      type: boolean
+      label: 'Status'
+    weight:
+      type: integer
+      label: 'Weight'
+    settings:
+      type: filter_settings.[%parent.id]
+
+
+# System action configuration base.
+action_configuration_default:
+  type: sequence
+  label: 'Action configuration'
+  sequence:
+    - type: string
+
+theme_settings:
+  type: mapping
+  mapping:
+    favicon:
+      type: mapping
+      label: 'Shortcut icon settings'
+      mapping:
+        mimetype:
+          type: string
+          label: 'MIME type'
+        path:
+          type: string
+          label: 'Path'
+        url:
+          type: string
+          label: 'URL'
+        use_default:
+          type: boolean
+          label: 'Use the default shortcut icon supplied by the theme'
+    features:
+      type: mapping
+      label: 'Shortcut icon settings'
+      mapping:
+        comment_user_picture:
+          type: boolean
+          label: 'User pictures in comments'
+        comment_user_verification:
+          type: boolean
+          label: 'User verification status in comments'
+        favicon:
+          type: boolean
+          label: 'Shortcut icon'
+        logo:
+          type: boolean
+          label: 'Logo'
+        name:
+          type: boolean
+          label: 'Site name'
+        node_user_picture:
+          type: boolean
+          label: 'User pictures in posts'
+        main_menu:
+          type: boolean
+          label: 'Main menu'
+        secondary_menu:
+          type: boolean
+          label: 'Secondary menu'
+        slogan:
+          type: boolean
+          label: 'Site slogan'
+    logo:
+      type: mapping
+      label: 'Shortcut icon settings'
+      mapping:
+        path:
+          type: string
+          label: 'Logo path'
+        url:
+          type: uri
+          label: 'URL'
+        use_default:
+          type: boolean
+          label: 'Use default'
+
+theme_breakpoints_default:
+  type: sequence
+  sequence:
+    - type: string
+      label: 'Breakpoint value'
+
+views_field_bulk_form:
+  type: views_field
+  label: 'Bulk operation'
+  mapping:
+    action_title:
+      type: label
+      label: 'Action title'
+
+# Array of routes with route_name and route_params keys.
+route:
+  type: mapping
+  label: 'Route'
+  mapping:
+    route_name:
+      type: text
+      label: 'Route Name'
+    route_params:
+      type: sequence
+      label: 'Route Params'
+      sequence:
+        - type: string
+          label: 'Param'
+
+# Config dependencies.
+config_dependencies:
+  type: mapping
+  label: 'Configuration dependencies'
+  mapping:
+    entity:
+      type: sequence
+      label: 'Entity dependencies'
+      sequence:
+        - type: string
+    module:
+      type: sequence
+      label: 'Module dependencies'
+      sequence:
+        - type: string
+    theme:
+      type: sequence
+      label: 'Theme dependencies'
+      sequence:
+        - type: string

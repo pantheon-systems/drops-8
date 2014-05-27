@@ -7,13 +7,12 @@
 
 namespace Drupal\aggregator\Form;
 
-use Drupal\aggregator\FeedStorageControllerInterface;
+use Drupal\aggregator\FeedStorageInterface;
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Form\FormBase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Guzzle\Http\Exception\RequestException;
-use Guzzle\Http\Exception\BadResponseException;
-use Guzzle\Http\ClientInterface;
+use GuzzleHttp\Exception\RequestException;
+use GuzzleHttp\ClientInterface;
 
 /**
  * Imports feeds from OPML.
@@ -23,27 +22,27 @@ class OpmlFeedAdd extends FormBase {
   /**
    * The feed storage.
    *
-   * @var \Drupal\aggregator\FeedStorageControllerInterface
+   * @var \Drupal\aggregator\FeedStorageInterface
    */
-  protected $feedStorageController;
+  protected $feedStorage;
 
   /**
    * The HTTP client to fetch the feed data with.
    *
-   * @var \Guzzle\Http\ClientInterface
+   * @var \GuzzleHttp\ClientInterface
    */
   protected $httpClient;
 
   /**
    * Constructs a database object.
    *
-   * @param \Drupal\aggregator\FeedStorageControllerInterface $feed_storage
+   * @param \Drupal\aggregator\FeedStorageInterface $feed_storage
    *   The feed storage.
-   * @param \Guzzle\Http\ClientInterface $http_client
+   * @param \GuzzleHttp\ClientInterface $http_client
    *   The Guzzle HTTP client.
    */
-  public function __construct(FeedStorageControllerInterface $feed_storage, ClientInterface $http_client) {
-    $this->feedStorageController = $feed_storage;
+  public function __construct(FeedStorageInterface $feed_storage, ClientInterface $http_client) {
+    $this->feedStorage = $feed_storage;
     $this->httpClient = $http_client;
   }
 
@@ -52,8 +51,8 @@ class OpmlFeedAdd extends FormBase {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('entity.manager')->getStorageController('aggregator_feed'),
-      $container->get('http_default_client')
+      $container->get('entity.manager')->getStorage('aggregator_feed'),
+      $container->get('http_client')
     );
   }
 
@@ -115,20 +114,14 @@ class OpmlFeedAdd extends FormBase {
    */
   public function submitForm(array &$form, array &$form_state) {
     $validators = array('file_validate_extensions' => array('opml xml'));
-    if ($file = file_save_upload('upload', $form_state, $validators, FALSE, 0)) {
+    if ($file = file_save_upload('upload', $validators, FALSE, 0)) {
       $data = file_get_contents($file->getFileUri());
     }
     else {
       // @todo Move this to a fetcher implementation.
       try {
-        $response = $this->httpClient->get($form_state['values']['remote'])->send();
+        $response = $this->httpClient->get($form_state['values']['remote']);
         $data = $response->getBody(TRUE);
-      }
-      catch (BadResponseException $e) {
-        $response = $e->getResponse();
-        watchdog('aggregator', 'Failed to download OPML file due to "%error".', array('%error' => $response->getStatusCode() . ' ' . $response->getReasonPhrase()), WATCHDOG_WARNING);
-        drupal_set_message($this->t('Failed to download OPML file due to "%error".', array('%error' => $response->getStatusCode() . ' ' . $response->getReasonPhrase())));
-        return;
       }
       catch (RequestException $e) {
         watchdog('aggregator', 'Failed to download OPML file due to "%error".', array('%error' => $e->getMessage()), WATCHDOG_WARNING);
@@ -152,14 +145,14 @@ class OpmlFeedAdd extends FormBase {
       }
 
       // Check for duplicate titles or URLs.
-      $query = $this->feedStorageController->getQuery();
+      $query = $this->feedStorage->getQuery();
       $condition = $query->orConditionGroup()
         ->condition('title', $feed['title'])
         ->condition('url', $feed['url']);
       $ids = $query
         ->condition($condition)
         ->execute();
-      $result = $this->feedStorageController->loadMultiple($ids);
+      $result = $this->feedStorage->loadMultiple($ids);
       foreach ($result as $old) {
         if (strcasecmp($old->label(), $feed['title']) == 0) {
           drupal_set_message($this->t('A feed named %title already exists.', array('%title' => $old->label())), 'warning');
@@ -171,7 +164,7 @@ class OpmlFeedAdd extends FormBase {
         }
       }
 
-      $new_feed = $this->feedStorageController->create(array(
+      $new_feed = $this->feedStorage->create(array(
         'title' => $feed['title'],
         'url' => $feed['url'],
         'refresh' => $form_state['values']['refresh'],

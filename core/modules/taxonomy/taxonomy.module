@@ -6,8 +6,10 @@
  */
 
 use Drupal\Component\Utility\Tags;
-use Drupal\Core\Entity\FieldableDatabaseStorageController;
+use Drupal\Core\Entity\ContentEntityDatabaseStorage;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Render\Element;
+use Drupal\Core\Url;
 use Drupal\file\FileInterface;
 use Drupal\node\Entity\Node;
 use Drupal\taxonomy\Entity\Term;
@@ -126,44 +128,9 @@ function taxonomy_entity_bundle_info() {
  * Entity URI callback.
  */
 function taxonomy_term_uri($term) {
-  return array(
-    'route_name' => 'taxonomy.term_page',
-    'route_parameters' => array(
-      'taxonomy_term' => $term->id(),
-    ),
-  );
-}
-
-/**
- * Implements hook_field_extra_fields().
- */
-function taxonomy_field_extra_fields() {
-  $return = array();
-  foreach (entity_get_bundles('taxonomy_term') as $bundle => $bundle_info) {
-    $return['taxonomy_term'][$bundle] = array(
-      'form' => array(
-        'name' => array(
-          'label' => t('Name'),
-          'description' => t('Term name textfield'),
-          'weight' => -5,
-        ),
-        'description' => array(
-          'label' => t('Description'),
-          'description' => t('Term description textarea'),
-          'weight' => 0,
-        ),
-      ),
-      'display' => array(
-        'description' => array(
-          'label' => t('Description'),
-          'description' => t('Term description'),
-          'weight' => 0,
-        ),
-      ),
-    );
-  }
-
-  return $return;
+  return new Url('taxonomy.term_page', array(
+    'taxonomy_term' => $term->id(),
+  ));
 }
 
 /**
@@ -231,33 +198,6 @@ function taxonomy_theme() {
       'template' => 'taxonomy-term',
     ),
   );
-}
-
-/**
- * Implements hook_menu_link_defaults().
- */
-function taxonomy_menu_link_defaults() {
-  $links['taxonomy.admin.structure.vocabulary'] = array(
-    'link_title' => 'Taxonomy',
-    'parent' => 'system.admin.structure',
-    'description' => 'Manage tagging, categorization, and classification of your content.',
-    'route_name' => 'taxonomy.vocabulary_list',
-  );
-
-  return $links;
-}
-
-/**
- * Implements hook_admin_paths().
- */
-function taxonomy_admin_paths() {
-  $paths = array(
-    'taxonomy/term/*/edit' => TRUE,
-    'taxonomy/term/*/delete' => TRUE,
-    'taxonomy/term/*/translations' => TRUE,
-    'taxonomy/term/*/translations/*' => TRUE,
-  );
-  return $paths;
 }
 
 /**
@@ -378,12 +318,13 @@ function template_preprocess_taxonomy_term(&$variables) {
 
   $variables['url'] = $term->url();
   // We use name here because that is what appears in the UI.
-  $variables['name'] = String::checkPlain($term->getName());
+  $variables['name'] = $variables['elements']['name'];
+  unset($variables['elements']['name']);
   $variables['page'] = $variables['view_mode'] == 'full' && taxonomy_term_is_page($term);
 
   // Helpful $content variable for templates.
   $variables['content'] = array();
-  foreach (element_children($variables['elements']) as $key) {
+  foreach (Element::children($variables['elements']) as $key) {
     $variables['content'][$key] = $variables['elements'][$key];
   }
 
@@ -412,7 +353,7 @@ function taxonomy_term_is_page(Term $term) {
  * Clear all static cache variables for terms.
  */
 function taxonomy_terms_static_reset() {
-  \Drupal::entityManager()->getStorageController('taxonomy_term')->resetCache();
+  \Drupal::entityManager()->getStorage('taxonomy_term')->resetCache();
 }
 
 /**
@@ -422,7 +363,7 @@ function taxonomy_terms_static_reset() {
  *   An array of ids to reset in entity controller cache.
  */
 function taxonomy_vocabulary_static_reset(array $ids = NULL) {
-  \Drupal::entityManager()->getStorageController('taxonomy_vocabulary')->resetCache($ids);
+  \Drupal::entityManager()->getStorage('taxonomy_vocabulary')->resetCache($ids);
 }
 
 /**
@@ -460,7 +401,7 @@ function taxonomy_term_load_parents($tid) {
   $parents = &drupal_static(__FUNCTION__, array());
 
   if ($tid && !isset($parents[$tid])) {
-    $tids = \Drupal::entityManager()->getStorageController('taxonomy_term')->loadParents($tid);
+    $tids = \Drupal::entityManager()->getStorage('taxonomy_term')->loadParents($tid);
     $parents[$tid] = entity_load_multiple('taxonomy_term', $tids);
   }
 
@@ -497,18 +438,16 @@ function taxonomy_term_load_parents_all($tid) {
  *
  * @param $tid
  *   A taxonomy term ID.
- * @param $vid
- *   An optional vocabulary ID to restrict the child search.
  *
  * @return
  *   An array of term objects that are the children of the term $tid, or an
  *   empty array when no children exist.
  */
-function taxonomy_term_load_children($tid, $vid = NULL) {
+function taxonomy_term_load_children($tid) {
   $children = &drupal_static(__FUNCTION__, array());
 
   if ($tid && !isset($children[$tid])) {
-    $tids = \Drupal::entityManager()->getStorageController('taxonomy_term')->loadChildren($tid);
+    $tids = \Drupal::entityManager()->getStorage('taxonomy_term')->loadChildren($tid);
     $children[$tid] = entity_load_multiple('taxonomy_term', $tids);
   }
 
@@ -549,7 +488,7 @@ function taxonomy_get_tree($vid, $parent = 0, $max_depth = NULL, $load_entities 
     $parents[$vid] = array();
     $terms[$vid] = array();
 
-    $result = \Drupal::entityManager()->getStorageController('taxonomy_term')->loadTree($vid);
+    $result = \Drupal::entityManager()->getStorage('taxonomy_term')->loadTree($vid);
 
     foreach ($result as $term) {
       $children[$vid][$term->parent][] = $term->tid;
@@ -837,7 +776,7 @@ function taxonomy_node_insert(EntityInterface $node) {
 function taxonomy_build_node_index($node) {
   // We maintain a denormalized table of term/node relationships, containing
   // only data for current, published nodes.
-  if (!\Drupal::config('taxonomy.settings')->get('maintain_index_table') || !(\Drupal::entityManager()->getStorageController('node') instanceof FieldableDatabaseStorageController)) {
+  if (!\Drupal::config('taxonomy.settings')->get('maintain_index_table') || !(\Drupal::entityManager()->getStorage('node') instanceof ContentEntityDatabaseStorage)) {
     return;
   }
 
@@ -847,10 +786,9 @@ function taxonomy_build_node_index($node) {
   if ($status && $node->isDefaultRevision()) {
     // Collect a unique list of all the term IDs from all node fields.
     $tid_all = array();
-    foreach (field_info_instances('node', $node->getType()) as $instance) {
-      $field = $instance->getField();
+    foreach ($node->getFieldDefinitions() as $field) {
       $field_name = $field->getName();
-      if ($field->module == 'taxonomy') {
+      if ($field->getType() == 'taxonomy_term_reference') {
         foreach ($node->getTranslationLanguages() as $language) {
           foreach ($node->getTranslation($language->id)->$field_name as $item) {
             if (!$item->isEmpty()) {
@@ -862,16 +800,12 @@ function taxonomy_build_node_index($node) {
     }
     // Insert index entries for all the node's terms.
     if (!empty($tid_all)) {
-      $query = db_insert('taxonomy_index')->fields(array('nid', 'tid', 'sticky', 'created'));
       foreach ($tid_all as $tid) {
-        $query->values(array(
-          'nid' => $node->id(),
-          'tid' => $tid,
-          'sticky' => $sticky,
-          'created' => $node->getCreatedTime(),
-        ));
+        db_merge('taxonomy_index')
+          ->key(array('nid' => $node->id(), 'tid' => $tid))
+          ->fields(array('sticky' => $sticky, 'created' => $node->getCreatedTime()))
+          ->execute();
       }
-      $query->execute();
     }
   }
 }

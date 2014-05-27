@@ -9,6 +9,8 @@ namespace Drupal\config_test\Entity;
 
 use Drupal\Core\Config\Entity\ConfigEntityBase;
 use Drupal\config_test\ConfigTestInterface;
+use Drupal\Core\Config\Entity\ConfigEntityInterface;
+use Drupal\Core\Entity\EntityStorageInterface;
 
 /**
  * Defines the ConfigTest configuration entity.
@@ -17,8 +19,8 @@ use Drupal\config_test\ConfigTestInterface;
  *   id = "config_test",
  *   label = @Translation("Test configuration"),
  *   controllers = {
- *     "storage" = "Drupal\config_test\ConfigTestStorageController",
- *     "list" = "Drupal\config_test\ConfigTestListController",
+ *     "storage" = "Drupal\config_test\ConfigTestStorage",
+ *     "list_builder" = "Drupal\config_test\ConfigTestListBuilder",
  *     "form" = {
  *       "default" = "Drupal\config_test\ConfigTestFormController",
  *       "delete" = "Drupal\config_test\Form\ConfigTestDeleteForm"
@@ -70,6 +72,13 @@ class ConfigTest extends ConfigEntityBase implements ConfigTestInterface {
   public $style;
 
   /**
+   * Test dependencies.
+   *
+   * @var array;
+   */
+  public $test_dependencies = array();
+
+  /**
    * A protected property of the configuration entity.
    *
    * @var string
@@ -77,10 +86,10 @@ class ConfigTest extends ConfigEntityBase implements ConfigTestInterface {
   protected $protected_property;
 
   /**
-   * Overrides \Drupal\Core\Config\Entity\ConfigEntityBase::getExportProperties();
+   * {@inheritdoc}
    */
-  public function getExportProperties() {
-    $properties = parent::getExportProperties();
+  public function toArray() {
+    $properties = parent::toArray();
     $protected_names = array(
       'protected_property',
     );
@@ -93,9 +102,52 @@ class ConfigTest extends ConfigEntityBase implements ConfigTestInterface {
   /**
    * Overrides \Drupal\Core\Config\Entity\ConfigEntityBase::sort().
    */
-  public static function sort($a, $b) {
+  public static function sort(ConfigEntityInterface $a, ConfigEntityInterface $b) {
     \Drupal::state()->set('config_entity_sort', TRUE);
     return parent::sort($a, $b);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function postSave(EntityStorageInterface $storage, $update = TRUE) {
+    // Used to test secondary writes during config sync.
+    if ($this->id() == 'primary') {
+      $secondary = $storage->create(array(
+        'id' => 'secondary',
+        'label' => 'Secondary Default',
+      ));
+      $secondary->save();
+    }
+    if ($this->id() == 'deleter') {
+      $deletee = $storage->load('deletee');
+      $deletee->delete();
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function postDelete(EntityStorageInterface $storage, array $entities) {
+    parent::postDelete($storage, $entities);
+    foreach ($entities as $entity) {
+      if ($entity->id() == 'deleter') {
+        $deletee = $storage->load('deletee');
+        $deletee->delete();
+      }
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function calculateDependencies() {
+    parent::calculateDependencies();
+    foreach ($this->test_dependencies as $type => $deps) {
+      foreach ($deps as $dep) {
+        $this->addDependency($type, $dep);
+      }
+    }
   }
 
 }

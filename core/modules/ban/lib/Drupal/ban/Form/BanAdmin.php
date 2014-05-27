@@ -8,7 +8,7 @@
 namespace Drupal\ban\Form;
 
 use Drupal\Core\Form\FormBase;
-use Drupal\ban\BanIpManager;
+use Drupal\ban\BanIpManagerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -17,16 +17,16 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 class BanAdmin extends FormBase {
 
   /**
-   * @var \Drupal\ban\BanIpManager
+   * @var \Drupal\ban\BanIpManagerInterface
    */
   protected $ipManager;
 
   /**
    * Constructs a new BanAdmin object.
    *
-   * @param \Drupal\ban\BanIpManager $ip_manager
+   * @param \Drupal\ban\BanIpManagerInterface $ip_manager
    */
-  public function __construct(BanIpManager $ip_manager) {
+  public function __construct(BanIpManagerInterface $ip_manager) {
     $this->ipManager = $ip_manager;
   }
 
@@ -50,8 +50,9 @@ class BanAdmin extends FormBase {
    * {@inheritdoc}
    *
    * @param string $default_ip
-   *   (optional) IP address to be passed on to drupal_get_form() for use as the
-   *   default value of the IP address form field.
+   *   (optional) IP address to be passed on to
+   *   \Drupal::formBuilder()->getForm() for use as the default value of the IP
+   *   address form field.
    */
   public function buildForm(array $form, array &$form_state, $default_ip = '') {
     $rows = array();
@@ -62,7 +63,7 @@ class BanAdmin extends FormBase {
       $row[] = $ip->ip;
       $links = array();
       $links['delete'] = array(
-        'title' => $this->t('delete'),
+        'title' => $this->t('Delete'),
         'route_name' => 'ban.delete',
         'route_parameters' => array('ban_id' => $ip->iid),
       );

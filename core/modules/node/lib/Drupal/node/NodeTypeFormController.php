@@ -9,6 +9,7 @@ namespace Drupal\node;
 
 use Drupal\Core\Entity\EntityFormController;
 use Drupal\Component\Utility\String;
+use Drupal\Core\Entity\EntityTypeInterface;
 
 /**
  * Form controller for node type forms.
@@ -45,7 +46,7 @@ class NodeTypeFormController extends EntityFormController {
     $form['type'] = array(
       '#type' => 'machine_name',
       '#default_value' => $type->id(),
-      '#maxlength' => 32,
+      '#maxlength' => EntityTypeInterface::BUNDLE_MAX_LENGTH,
       '#disabled' => $type->isLocked(),
       '#machine_name' => array(
         'exists' => 'node_type_load',
@@ -200,7 +201,7 @@ class NodeTypeFormController extends EntityFormController {
     }
     elseif ($status == SAVED_NEW) {
       drupal_set_message(t('The content type %name has been added.', $t_args));
-      watchdog('node', 'Added content type %name.', $t_args, WATCHDOG_NOTICE, l(t('view'), 'admin/structure/types'));
+      watchdog('node', 'Added content type %name.', $t_args, WATCHDOG_NOTICE, l(t('View'), 'admin/structure/types'));
     }
 
     $form_state['redirect_route']['route_name'] = 'node.overview_types';

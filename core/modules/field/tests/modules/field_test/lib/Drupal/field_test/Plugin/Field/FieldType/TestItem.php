@@ -7,7 +7,7 @@
 
 namespace Drupal\field_test\Plugin\Field\FieldType;
 
-use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Field\PrepareCacheInterface;
 use Drupal\Core\TypedData\DataDefinition;
 use Drupal\Core\Field\FieldItemBase;
@@ -19,15 +19,6 @@ use Drupal\Core\Field\FieldItemBase;
  *   id = "test_field",
  *   label = @Translation("Test field"),
  *   description = @Translation("Dummy field type used for tests."),
- *   settings = {
- *     "test_field_setting" = "dummy test string",
- *     "changeable" =  "a changeable field setting",
- *     "unchangeable" = "an unchangeable field setting"
- *   },
- *   instance_settings = {
- *     "test_instance_setting" = "dummy test string",
- *     "test_cached_data" = FALSE
- *   },
  *   default_widget = "test_field_widget",
  *   default_formatter = "field_test_default"
  * )
@@ -37,7 +28,28 @@ class TestItem extends FieldItemBase implements PrepareCacheInterface {
   /**
    * {@inheritdoc}
    */
-  public static function propertyDefinitions(FieldDefinitionInterface $field_definition) {
+  public static function defaultSettings() {
+    return array(
+      'test_field_setting' => 'dummy test string',
+      'changeable' => 'a changeable field setting',
+      'unchangeable' => 'an unchangeable field setting',
+    ) + parent::defaultSettings();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function defaultInstanceSettings() {
+    return array(
+      'test_instance_setting' => 'dummy test string',
+      'test_cached_data' => FALSE,
+    ) + parent::defaultInstanceSettings();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function propertyDefinitions(FieldStorageDefinitionInterface $field_definition) {
     $properties['value'] = DataDefinition::create('integer')
       ->setLabel(t('Test integer value'));
 
@@ -47,7 +59,7 @@ class TestItem extends FieldItemBase implements PrepareCacheInterface {
   /**
    * {@inheritdoc}
    */
-  public static function schema(FieldDefinitionInterface $field_definition) {
+  public static function schema(FieldStorageDefinitionInterface $field_definition) {
     return array(
       'columns' => array(
         'value' => array(

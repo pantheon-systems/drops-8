@@ -8,7 +8,7 @@
 namespace Drupal\text\Plugin\Field\FieldType;
 
 use Drupal\Core\Field\FieldItemBase;
-use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Field\PrepareCacheInterface;
 use Drupal\Core\TypedData\DataDefinition;
 
@@ -20,7 +20,16 @@ abstract class TextItemBase extends FieldItemBase implements PrepareCacheInterfa
   /**
    * {@inheritdoc}
    */
-  public static function propertyDefinitions(FieldDefinitionInterface $field_definition) {
+  public static function defaultInstanceSettings() {
+    $settings = parent::defaultInstanceSettings();
+    $settings['text_processing'] = 0;
+    return $settings;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function propertyDefinitions(FieldStorageDefinitionInterface $field_definition) {
     $properties['value'] = DataDefinition::create('string')
       ->setLabel(t('Text value'));
 

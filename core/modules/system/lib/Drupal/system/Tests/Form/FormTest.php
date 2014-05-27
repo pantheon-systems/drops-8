@@ -7,7 +7,9 @@
 
 namespace Drupal\system\Tests\Form;
 
+use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\String;
+use Drupal\Core\Render\Element;
 use Drupal\simpletest\WebTestBase;
 
 class FormTest extends WebTestBase {
@@ -273,7 +275,7 @@ class FormTest extends WebTestBase {
     $this->assertRaw(t('!name field is required.', array('!name' => 'required_checkbox')), 'A required checkbox is actually mandatory');
 
     // Now try to submit the form correctly.
-    $values = drupal_json_decode($this->drupalPostForm(NULL, array('required_checkbox' => 1), t('Submit')));
+    $values = Json::decode($this->drupalPostForm(NULL, array('required_checkbox' => 1), t('Submit')));
     $expected_values = array(
       'disabled_checkbox_on' => 'disabled_checkbox_on',
       'disabled_checkbox_off' => '',
@@ -327,7 +329,7 @@ class FormTest extends WebTestBase {
       'multiple_no_default_required[]' => 'three',
     );
     $this->drupalPostForm(NULL, $edit, 'Submit');
-    $values = drupal_json_decode($this->drupalGetContent());
+    $values = Json::decode($this->drupalGetContent());
 
     // Verify expected values.
     $expected = array(
@@ -491,7 +493,7 @@ class FormTest extends WebTestBase {
     // Build a submission that tries to hijack the form by submitting input for
     // elements that are disabled.
     $edit = array();
-    foreach (element_children($form) as $key) {
+    foreach (Element::children($form) as $key) {
       if (isset($form[$key]['#test_hijack_value'])) {
         if (is_array($form[$key]['#test_hijack_value'])) {
           foreach ($form[$key]['#test_hijack_value'] as $subkey => $value) {
@@ -507,7 +509,7 @@ class FormTest extends WebTestBase {
     // Submit the form with no input, as the browser does for disabled elements,
     // and fetch the $form_state['values'] that is passed to the submit handler.
     $this->drupalPostForm('form-test/disabled-elements', array(), t('Submit'));
-    $returned_values['normal'] = drupal_json_decode($this->content);
+    $returned_values['normal'] = Json::decode($this->content);
 
     // Do the same with input, as could happen if JavaScript un-disables an
     // element. drupalPostForm() emulates a browser by not submitting input for
@@ -529,7 +531,7 @@ class FormTest extends WebTestBase {
     )));
 
     $this->drupalPostForm(NULL, $edit, t('Submit'));
-    $returned_values['hijacked'] = drupal_json_decode($this->content);
+    $returned_values['hijacked'] = Json::decode($this->content);
 
     // Ensure that the returned values match the form's default values in both
     // cases.
@@ -542,7 +544,7 @@ class FormTest extends WebTestBase {
    * Assert that the values submitted to a form matches the default values of the elements.
    */
   function assertFormValuesDefault($values, $form) {
-    foreach (element_children($form) as $key) {
+    foreach (Element::children($form) as $key) {
       if (isset($form[$key]['#default_value'])) {
         if (isset($form[$key]['#expected_value'])) {
           $expected_value = $form[$key]['#expected_value'];

@@ -1,5 +1,0 @@
-id: user.full
-label: 'User account'
-status: false
-cache: true
-targetEntityType: user

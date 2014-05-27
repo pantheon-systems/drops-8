@@ -8,7 +8,7 @@
 namespace Drupal\custom_block\Entity;
 
 use Drupal\Core\Entity\ContentEntityBase;
-use Drupal\Core\Entity\EntityStorageControllerInterface;
+use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\FieldDefinition;
 use Drupal\custom_block\CustomBlockInterface;
@@ -22,7 +22,7 @@ use Drupal\custom_block\CustomBlockInterface;
  *   bundle_label = @Translation("Custom Block type"),
  *   controllers = {
  *     "access" = "Drupal\custom_block\CustomBlockAccessController",
- *     "list" = "Drupal\custom_block\CustomBlockListController",
+ *     "list_builder" = "Drupal\custom_block\CustomBlockListBuilder",
  *     "view_builder" = "Drupal\custom_block\CustomBlockViewBuilder",
  *     "form" = {
  *       "add" = "Drupal\custom_block\CustomBlockFormController",
@@ -30,7 +30,7 @@ use Drupal\custom_block\CustomBlockInterface;
  *       "delete" = "Drupal\custom_block\Form\CustomBlockDeleteForm",
  *       "default" = "Drupal\custom_block\CustomBlockFormController"
  *     },
- *     "translation" = "Drupal\custom_block\CustomBlockTranslationController"
+ *     "translation" = "Drupal\custom_block\CustomBlockTranslationHandler"
  *   },
  *   admin_permission = "administer blocks",
  *   base_table = "custom_block",
@@ -79,13 +79,6 @@ class CustomBlock extends ContentEntityBase implements CustomBlockInterface {
   /**
    * {@inheritdoc}
    */
-  public function getRevisionId() {
-    return $this->get('revision_id')->value;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function setTheme($theme) {
     $this->theme = $theme;
     return $this;
@@ -101,8 +94,8 @@ class CustomBlock extends ContentEntityBase implements CustomBlockInterface {
   /**
    * {@inheritdoc}
    */
-  public function postSave(EntityStorageControllerInterface $storage_controller, $update = TRUE) {
-    parent::postSave($storage_controller, $update);
+  public function postSave(EntityStorageInterface $storage, $update = TRUE) {
+    parent::postSave($storage, $update);
 
     // Invalidate the block cache to update custom block-based derivatives.
     \Drupal::service('plugin.manager.block')->clearCachedDefinitions();
@@ -118,8 +111,8 @@ class CustomBlock extends ContentEntityBase implements CustomBlockInterface {
   /**
    * {@inheritdoc}
    */
-  public function preSaveRevision(EntityStorageControllerInterface $storage_controller, \stdClass $record) {
-    parent::preSaveRevision($storage_controller, $record);
+  public function preSaveRevision(EntityStorageInterface $storage, \stdClass $record) {
+    parent::preSaveRevision($storage, $record);
 
     if ($this->isNewRevision()) {
       // When inserting either a new custom block or a new custom_block
@@ -158,7 +151,8 @@ class CustomBlock extends ContentEntityBase implements CustomBlockInterface {
     $fields['id'] = FieldDefinition::create('integer')
       ->setLabel(t('Custom block ID'))
       ->setDescription(t('The custom block ID.'))
-      ->setReadOnly(TRUE);
+      ->setReadOnly(TRUE)
+      ->setSetting('unsigned', TRUE);
 
     $fields['uuid'] = FieldDefinition::create('uuid')
       ->setLabel(t('UUID'))
@@ -168,28 +162,39 @@ class CustomBlock extends ContentEntityBase implements CustomBlockInterface {
     $fields['revision_id'] = FieldDefinition::create('integer')
       ->setLabel(t('Revision ID'))
       ->setDescription(t('The revision ID.'))
-      ->setReadOnly(TRUE);
+      ->setReadOnly(TRUE)
+      ->setSetting('unsigned', TRUE);
 
     $fields['langcode'] = FieldDefinition::create('language')
       ->setLabel(t('Language code'))
       ->setDescription(t('The custom block language code.'));
 
     $fields['info'] = FieldDefinition::create('string')
-      ->setLabel(t('Subject'))
-      ->setDescription(t('The custom block name.'));
+      ->setLabel(t('Block description'))
+      ->setDescription(t('A brief description of your block.'))
+      ->setRevisionable(TRUE)
+      ->setRequired(TRUE)
+      ->setDisplayOptions('form', array(
+        'type' => 'string',
+        'weight' => -5,
+      ))
+      ->setDisplayConfigurable('form', TRUE);
 
     $fields['type'] = FieldDefinition::create('entity_reference')
       ->setLabel(t('Block type'))
       ->setDescription(t('The block type.'))
-      ->setSetting('target_type', 'custom_block_type');
+      ->setSetting('target_type', 'custom_block_type')
+      ->setSetting('max_length', EntityTypeInterface::BUNDLE_MAX_LENGTH);
 
     $fields['log'] = FieldDefinition::create('string')
       ->setLabel(t('Revision log message'))
-      ->setDescription(t('The revision log message.'));
+      ->setDescription(t('The revision log message.'))
+      ->setRevisionable(TRUE);
 
     $fields['changed'] = FieldDefinition::create('changed')
       ->setLabel(t('Changed'))
-      ->setDescription(t('The time that the custom block was last edited.'));
+      ->setDescription(t('The time that the custom block was last edited.'))
+      ->setRevisionable(TRUE);
 
     return $fields;
   }

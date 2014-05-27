@@ -7,6 +7,7 @@
 
 namespace Drupal\field\Tests;
 
+use Drupal\Component\Utility\Xss;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Language\Language;
 use Drupal\simpletest\DrupalUnitTestBase;
@@ -109,7 +110,7 @@ abstract class FieldUnitTestBase extends DrupalUnitTestBase {
    */
   protected function entitySaveReload(EntityInterface $entity) {
     $entity->save();
-    $controller = $this->container->get('entity.manager')->getStorageController($entity->getEntityTypeId());
+    $controller = $this->container->get('entity.manager')->getStorage($entity->getEntityTypeId());
     $controller->resetCache();
     return $controller->load($entity->id());
   }
@@ -235,7 +236,7 @@ abstract class FieldUnitTestBase extends DrupalUnitTestBase {
     if (!$message) {
       $message = t('Raw "@raw" found', array('@raw' => $text));
     }
-    return $this->assert(strpos(filter_xss($this->content, array()), $text) !== FALSE, $message, $group);
+    return $this->assert(strpos(Xss::filter($this->content, array()), $text) !== FALSE, $message, $group);
   }
 
   /**
@@ -260,6 +261,6 @@ abstract class FieldUnitTestBase extends DrupalUnitTestBase {
     if (!$message) {
       $message = t('Raw "@raw" not found', array('@raw' => $text));
     }
-    return $this->assert(strpos(filter_xss($this->content, array()), $text) === FALSE, $message, $group);
+    return $this->assert(strpos(Xss::filter($this->content, array()), $text) === FALSE, $message, $group);
   }
 }

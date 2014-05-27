@@ -1,5 +1,0 @@
-id: node.full
-label: 'Full content'
-status: false
-cache: true
-targetEntityType: node

@@ -82,7 +82,7 @@ class EntityRow extends RowPluginBase {
    * @param \Drupal\Core\Language\LanguageManagerInterface $language_manager
    *   The language manager.
    */
-  public function __construct(array $configuration, $plugin_id, array $plugin_definition, EntityManagerInterface $entity_manager, LanguageManagerInterface $language_manager) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, EntityManagerInterface $entity_manager, LanguageManagerInterface $language_manager) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
 
     $this->entityManager = $entity_manager;
@@ -104,7 +104,7 @@ class EntityRow extends RowPluginBase {
   /**
    * {@inheritdoc}
    */
-  public static function create(ContainerInterface $container, array $configuration, $plugin_id, array $plugin_definition) {
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
     return new static($configuration, $plugin_id, $plugin_definition, $container->get('entity.manager'), $container->get('language_manager'));
   }
 
@@ -128,10 +128,9 @@ class EntityRow extends RowPluginBase {
   public function buildOptionsForm(&$form, &$form_state) {
     parent::buildOptionsForm($form, $form_state);
 
-    $options = $this->buildViewModeOptions();
     $form['view_mode'] = array(
       '#type' => 'select',
-      '#options' => $options,
+      '#options' => \Drupal::entityManager()->getViewModeOptions($this->entityTypeId),
       '#title' => t('View mode'),
       '#default_value' => $this->options['view_mode'],
     );
@@ -144,19 +143,6 @@ class EntityRow extends RowPluginBase {
       '#default_value' => $this->options['rendering_language'],
       '#access' => $this->languageManager->isMultilingual(),
     );
-  }
-
-  /**
-   * Return the main options, which are shown in the summary title.
-   */
-  protected function buildViewModeOptions() {
-    $options = array('default' => t('Default'));
-    $view_modes = entity_get_view_modes($this->entityTypeId);
-    foreach ($view_modes as $mode => $settings) {
-      $options[$mode] = $settings['label'];
-    }
-
-    return $options;
   }
 
   /**
@@ -178,7 +164,7 @@ class EntityRow extends RowPluginBase {
    * Overrides Drupal\views\Plugin\views\PluginBase::summaryTitle().
    */
   public function summaryTitle() {
-    $options = $this->buildViewModeOptions();
+    $options = \Drupal::entityManager()->getViewModeOptions($this->entityTypeId);
     if (isset($options[$this->options['view_mode']])) {
       return String::checkPlain($options[$this->options['view_mode']]);
     }

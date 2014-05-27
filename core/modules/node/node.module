@@ -8,8 +8,10 @@
  * API pattern.
  */
 
-use Drupal\Component\Utility\String;
+use Drupal\Component\Utility\Xss;
 use Drupal\Core\Language\Language;
+use Drupal\Core\Render\Element;
+use Drupal\Core\Url;
 use Symfony\Component\HttpFoundation\Response;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Database\Query\AlterableInterface;
@@ -21,7 +23,10 @@ use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Entity\Display\EntityFormDisplayInterface;
 use Drupal\Core\Template\Attribute;
 use Drupal\file\Entity\File;
+use Drupal\language\Entity\Language as LanguageEntity;
 use Symfony\Cmf\Component\Routing\RouteObjectInterface;
+use Drupal\block\Entity\Block;
+use Drupal\Core\Session\AccountInterface;
 
 /**
  * Denotes that the node is not published.
@@ -133,12 +138,12 @@ function node_help($path, $arg) {
     case 'node/%/edit':
       $node = node_load($arg[1]);
       $type = node_type_load($node->bundle());
-      return (!empty($type->help) ? filter_xss_admin($type->help) : '');
+      return (!empty($type->help) ? Xss::filterAdmin($type->help) : '');
   }
 
   if ($arg[0] == 'node' && $arg[1] == 'add' && $arg[2]) {
     $type = node_type_load($arg[2]);
-    return (!empty($type->help) ? filter_xss_admin($type->help) : '');
+    return (!empty($type->help) ? Xss::filterAdmin($type->help) : '');
   }
 }
 
@@ -228,32 +233,9 @@ function node_entity_form_display_alter(EntityFormDisplayInterface $form_display
  *   An array with 'path' as the key and the path to the node as its value.
  */
 function node_uri(NodeInterface $node) {
-  return array(
-    'route_name' => 'node.view',
-    'route_parameters' => array(
-      'node' => $node->id(),
-    ),
-  );
-}
-
-/**
- * Implements hook_admin_paths().
- */
-function node_admin_paths() {
-  if (\Drupal::config('node.settings')->get('use_admin_theme')) {
-    $paths = array(
-      'node/*/edit' => TRUE,
-      'node/*/delete' => TRUE,
-      'node/*/revisions' => TRUE,
-      'node/*/revisions/*/revert' => TRUE,
-      'node/*/revisions/*/delete' => TRUE,
-      'node/*/translations' => TRUE,
-      'node/*/translations/*' => TRUE,
-      'node/add' => TRUE,
-      'node/add/*' => TRUE,
-    );
-    return $paths;
-  }
+  return new Url('node.view', array(
+    'node' => $node->id(),
+  ));
 }
 
 /**
@@ -286,12 +268,12 @@ function node_title_list($result, $title = NULL) {
 /**
  * Determines the type of marker to be displayed for a given node.
  *
- * @param $nid
+ * @param int $nid
  *   Node ID whose history supplies the "last viewed" timestamp.
- * @param $timestamp
+ * @param int $timestamp
  *   Time which is compared against node's "last viewed" timestamp.
  *
- * @return
+ * @return int
  *   One of the MARK constants.
  */
 function node_mark($nid, $timestamp) {
@@ -318,7 +300,7 @@ function node_mark($nid, $timestamp) {
  *
  * This list can include types that are queued for addition or deletion.
  *
- * @return array
+ * @return \Drupal\node\NodeTypeInterface[]
  *   An array of node type entities, keyed by ID.
  *
  * @see node_type_load()
@@ -332,7 +314,7 @@ function node_type_get_types() {
  *
  * This list can include types that are queued for addition or deletion.
  *
- * @return array
+ * @return string[]
  *   An array of node type labels, keyed by the node type name.
  */
 function node_type_get_names() {
@@ -446,21 +428,27 @@ function node_add_body_field(NodeTypeInterface $type, $label = 'Body') {
         'type' => 'text_default',
       ))
       ->save();
-    entity_get_display('node', $type->type, 'teaser')
-      ->setComponent('body', array(
-        'label' => 'hidden',
-        'type' => 'text_summary_or_trimmed',
-      ))
-      ->save();
+
+    // The teaser view mode is created by the Standard profile and therefore
+    // might not exist.
+    $view_modes = \Drupal::entityManager()->getViewModes('node');
+    if (isset($view_modes['teaser'])) {
+      entity_get_display('node', $type->type, 'teaser')
+        ->setComponent('body', array(
+          'label' => 'hidden',
+          'type' => 'text_summary_or_trimmed',
+        ))
+        ->save();
+    }
   }
 
   return $instance;
 }
 
 /**
- * Implements hook_field_extra_fields().
+ * Implements hook_entity_extra_field_info().
  */
-function node_field_extra_fields() {
+function node_entity_extra_field_info() {
   $extra = array();
   $module_language_enabled = \Drupal::moduleHandler()->moduleExists('language');
   $description = t('Node module element');
@@ -605,7 +593,7 @@ function node_preprocess_html(&$variables) {
  * Implements hook_preprocess_HOOK() for block templates.
  */
 function node_preprocess_block(&$variables) {
-  if ($variables['configuration']['module'] == 'node') {
+  if ($variables['configuration']['provider'] == 'node') {
     switch ($variables['elements']['#plugin_id']) {
       case 'node_syndicate_block':
         $variables['attributes']['role'] = 'complementary';
@@ -658,14 +646,16 @@ function template_preprocess_node(&$variables) {
   );
   $variables['name'] = drupal_render($username);
 
-  $variables['node_url'] = $node->url();
+  $variables['node_url'] = $node->url('canonical', array(
+    'language' => $node->language(),
+  ));
   $variables['label'] = $variables['elements']['title'];
   unset($variables['elements']['title']);
   $variables['page'] = $variables['view_mode'] == 'full' && node_is_page($node);
 
   // Helpful $content variable for templates.
   $variables += array('content' => array());
-  foreach (element_children($variables['elements']) as $key) {
+  foreach (Element::children($variables['elements']) as $key) {
     $variables['content'][$key] = $variables['elements'][$key];
   }
 
@@ -890,7 +880,7 @@ function theme_node_search_admin($variables) {
   $output = drupal_render($form['info']);
 
   $header = array(t('Factor'), t('Influence'));
-  foreach (element_children($form['factors']) as $key) {
+  foreach (Element::children($form['factors']) as $key) {
     $row = array();
     $row[] = $form['factors'][$key]['#title'];
     $form['factors'][$key]['#title_display'] = 'invisible';
@@ -906,59 +896,6 @@ function theme_node_search_admin($variables) {
 
   $output .= drupal_render_children($form);
   return $output;
-}
-
-/**
- * Access callback: Checks node revision access.
- *
- * @param \Drupal\node\NodeInterface $node
- *   The node to check.
- * @param $op
- *   (optional) The specific operation being checked. Defaults to 'view.'
- * @param object $account
- *   (optional) A user object representing the user for whom the operation is
- *   to be performed. Determines access for a user other than the current user.
- *   Defaults to NULL.
- * @param $langcode
- *   (optional) Language code for the variant of the node. Different language
- *   variants might have different permissions associated. If NULL, the
- *   original langcode of the node is used. Defaults to NULL.
- *
- * @return
- *   TRUE if the operation may be performed, FALSE otherwise.
- *
- * @see node_menu()
- */
-function _node_revision_access(NodeInterface $node, $op = 'view', $account = NULL, $langcode = NULL) {
-  if ($account === NULL) {
-    $account = \Drupal::currentUser();
-  }
-  return \Drupal::service('access_check.node.revision')->checkAccess($node, $account, $op, $langcode);
-}
-
-/**
- * Implements hook_menu_link_defaults().
- */
-function node_menu_link_defaults() {
-  $links['node.admin.content'] = array(
-    'link_title' => 'Content',
-    'route_name' => 'node.content_overview',
-    'parent' => 'system.admin',
-    'description' => 'Find and manage content.',
-    'weight' => -10,
-  );
-
-  $links['node.admin.structure.types'] = array(
-    'link_title' => 'Content types',
-    'parent' => 'system.admin.structure',
-    'description' => 'Manage content types, including default status, front page promotion, comment settings, etc.',
-    'route_name' => 'node.overview_types',
-  );
-  $links['node.add'] = array(
-    'link_title' => 'Add content',
-    'route_name' => 'node.add_page',
-  );
-  return $links;
 }
 
 /**
@@ -1088,7 +1025,11 @@ function node_form_block_form_alter(&$form, &$form_state) {
  * Checks the content type specific visibility settings and removes the block
  * if the visibility conditions are not met.
  */
-function node_block_access($block) {
+function node_block_access(Block $block, $operation, AccountInterface $account, $langcode) {
+  // Only affect access when viewing the block.
+  if ($operation != 'view') {
+    return;
+  }
   $visibility = $block->get('visibility');
   if (!empty($visibility)) {
     if (!empty($visibility['node_type']['types'])) {
@@ -1312,6 +1253,7 @@ function node_form_system_themes_admin_form_submit($form, &$form_state) {
   \Drupal::config('node.settings')
     ->set('use_admin_theme', $form_state['values']['use_admin_theme'])
     ->save();
+  \Drupal::service('router.builder')->setRebuildNeeded();
 }
 
 /**
@@ -1464,22 +1406,16 @@ function node_permissions_get_configured_types() {
  * grants array by reference. This hook allows for complex business logic to be
  * applied when integrating multiple node access modules.
  *
- * @param $op
+ * @param string $op
  *   The operation that the user is trying to perform.
- * @param $account
- *   (optional) The user object for the user performing the operation. If
- *   omitted, the current user is used.  Defaults to NULL.
+ * @param \Drupal\Core\Session\AccountInterface $account
+ *   The account object for the user performing the operation.
  *
- * @return
+ * @return array
  *   An associative array in which the keys are realms, and the values are
  *   arrays of grants for those realms.
  */
-function node_access_grants($op, $account = NULL) {
-
-  if (!isset($account)) {
-    $account = \Drupal::currentUser();
-  }
-
+function node_access_grants($op, AccountInterface $account) {
   // Fetch node access grants from other modules.
   $grants = \Drupal::moduleHandler()->invokeAll('node_grants', array($account, $op));
   // Allow modules to alter the assigned grants.
@@ -1823,13 +1759,13 @@ function node_file_download_access($field, EntityInterface $entity, File $file) 
 }
 
 /**
- * Implements hook_language_delete().
+ * Implements hook_ENTITY_TYPE_delete() for 'language_entity'.
  */
-function node_language_delete($language) {
+function node_language_entity_delete(LanguageEntity $language) {
   // On nodes with this language, unset the language.
   db_update('node_revision')
     ->fields(array('langcode' => ''))
-    ->condition('langcode', $language->id)
+    ->condition('langcode', $language->id())
     ->execute();
 }
 

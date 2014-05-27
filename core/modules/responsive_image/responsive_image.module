@@ -69,21 +69,6 @@ function responsive_image_menu() {
 }
 
 /**
- * Implements hook_menu_link_defaults().
- */
-function responsive_image_menu_link_defaults() {
-  $links['responsive_image.admin.config.responsive_imagemapping'] = array(
-    'link_title' => 'Responsive image mappings',
-    'description' => 'Manage responsive image mappings',
-    'weight' => 10,
-    'route_name' => 'responsive_image.mapping_page',
-    'parent' => 'system.admin.config.media',
-  );
-
-  return $links;
-}
-
-/**
  * Load one responsive image by its identifier.
  *
  * @param int $id
@@ -202,6 +187,7 @@ function theme_responsive_image_formatter($variables) {
  *   - alt: The alternative text for text-based browsers.
  *   - title: The title text is displayed when the image is hovered in some
  *     popular browsers.
+ *   - style_name: The name of the style to be used as a fallback image.
  *   - breakpoints: An array containing breakpoints.
  *
  * @ingroup themeable
@@ -282,19 +268,6 @@ function theme_responsive_image($variables) {
       $output[] = drupal_render($responsive_image_source);
     }
 
-    // Output the fallback image.
-    $image_style = array(
-      '#theme' => 'image_style',
-      '#style_name' => $variables['style_name'],
-      '#width' => $variables['width'],
-      '#height' => $variables['height'],
-    );
-    foreach (array('uri', 'alt', 'title', 'attributes') as $key) {
-      if (isset($variables[$key])) {
-        $image_style["#$key"] = $variables[$key];
-      }
-    }
-    $output[] = '  <noscript>' . drupal_render($image_style) . '</noscript>';
     $output[] = '</picture>';
     return implode("\n", $output);
   }

@@ -12,6 +12,9 @@ use Drupal\Tests\UnitTestCase;
 /**
  * Tests the ForumManager.
  *
+ * @group Forum
+ * @group Drupal
+ *
  * @see \Drupal\forum\ForumManager
  */
 class ForumManagerTest extends UnitTestCase {
@@ -30,7 +33,7 @@ class ForumManagerTest extends UnitTestCase {
   public function testGetIndex() {
     $entity_manager = $this->getMock('Drupal\Core\Entity\EntityManagerInterface');
 
-    $storage_controller = $this->getMockBuilder('\Drupal\taxonomy\VocabularyStorageController')
+    $storage = $this->getMockBuilder('\Drupal\taxonomy\VocabularyStorage')
       ->disableOriginalConstructor()
       ->getMock();
 
@@ -49,13 +52,13 @@ class ForumManagerTest extends UnitTestCase {
       ->will($this->returnValue('forums'));
 
     $entity_manager->expects($this->once())
-      ->method('getStorageController')
-      ->will($this->returnValue($storage_controller));
+      ->method('getStorage')
+      ->will($this->returnValue($storage));
 
     // This is sufficient for testing purposes.
     $term = new \stdClass();
 
-    $storage_controller->expects($this->once())
+    $storage->expects($this->once())
       ->method('create')
       ->will($this->returnValue($term));
 

@@ -23,7 +23,7 @@ class FeedParserTest extends AggregatorTestBase {
 
   function setUp() {
     parent::setUp();
-    // Do not remove old aggregator items during these tests, since our sample
+    // Do not delete old aggregator items during these tests, since our sample
     // feeds have hardcoded dates in them (which may be expired when this test
     // is run).
     $this->container->get('config.factory')->get('aggregator.settings')->set('items.expire', AGGREGATOR_CLEAR_NEVER)->save();
@@ -39,7 +39,7 @@ class FeedParserTest extends AggregatorTestBase {
    */
   function testRSS091Sample() {
     $feed = $this->createFeed($this->getRSS091Sample());
-    aggregator_refresh($feed);
+    $feed->refreshItems();
     $this->drupalGet('aggregator/sources/' . $feed->id());
     $this->assertResponse(200, format_string('Feed %name exists.', array('%name' => $feed->label())));
     $this->assertText('First example feed item title');
@@ -61,7 +61,7 @@ class FeedParserTest extends AggregatorTestBase {
    */
   function testAtomSample() {
     $feed = $this->createFeed($this->getAtomSample());
-    aggregator_refresh($feed);
+    $feed->refreshItems();
     $this->drupalGet('aggregator/sources/' . $feed->id());
     $this->assertResponse(200, format_string('Feed %name exists.', array('%name' => $feed->label())));
     $this->assertText('Atom-Powered Robots Run Amok');
@@ -75,7 +75,7 @@ class FeedParserTest extends AggregatorTestBase {
    */
   function testHtmlEntitiesSample() {
     $feed = $this->createFeed($this->getHtmlEntitiesSample());
-    aggregator_refresh($feed);
+    $feed->refreshItems();
     $this->drupalGet('aggregator/sources/' . $feed->id());
     $this->assertResponse(200, format_string('Feed %name exists.', array('%name' => $feed->label())));
     $this->assertRaw("Quote&quot; Amp&amp;");
@@ -89,7 +89,7 @@ class FeedParserTest extends AggregatorTestBase {
     $invalid_url = url('aggregator/redirect', array('absolute' => TRUE));
     $feed = entity_create('aggregator_feed', array('url' => $invalid_url));
     $feed->save();
-    aggregator_refresh($feed);
+    $feed->refreshItems();
 
     // Make sure that the feed URL was updated correctly.
     $this->assertEqual($feed->getUrl(), url('aggregator/test-feed', array('absolute' => TRUE)));

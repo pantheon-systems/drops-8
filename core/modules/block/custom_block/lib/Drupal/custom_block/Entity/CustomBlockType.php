@@ -8,7 +8,7 @@
 namespace Drupal\custom_block\Entity;
 
 use Drupal\Core\Config\Entity\ConfigEntityBase;
-use Drupal\Core\Entity\EntityStorageControllerInterface;
+use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\custom_block\CustomBlockTypeInterface;
 
 /**
@@ -24,7 +24,7 @@ use Drupal\custom_block\CustomBlockTypeInterface;
  *       "edit" = "Drupal\custom_block\CustomBlockTypeFormController",
  *       "delete" = "Drupal\custom_block\Form\CustomBlockTypeDeleteForm"
  *     },
- *     "list" = "Drupal\custom_block\CustomBlockTypeListController"
+ *     "list_builder" = "Drupal\custom_block\CustomBlockTypeListBuilder"
  *   },
  *   admin_permission = "administer blocks",
  *   config_prefix = "type",
@@ -72,10 +72,10 @@ class CustomBlockType extends ConfigEntityBase implements CustomBlockTypeInterfa
   /**
    * {@inheritdoc}
    */
-  public function postSave(EntityStorageControllerInterface $storage_controller, $update = TRUE) {
-    parent::postSave($storage_controller, $update);
+  public function postSave(EntityStorageInterface $storage, $update = TRUE) {
+    parent::postSave($storage, $update);
 
-    if (!$update) {
+    if (!$update && !$this->isSyncing()) {
       entity_invoke_bundle_hook('create', 'custom_block', $this->id());
       if (!$this->isSyncing()) {
         custom_block_add_body_field($this->id);
@@ -89,8 +89,8 @@ class CustomBlockType extends ConfigEntityBase implements CustomBlockTypeInterfa
   /**
    * {@inheritdoc}
    */
-  public static function postDelete(EntityStorageControllerInterface $storage_controller, array $entities) {
-    parent::postDelete($storage_controller, $entities);
+  public static function postDelete(EntityStorageInterface $storage, array $entities) {
+    parent::postDelete($storage, $entities);
 
     foreach ($entities as $entity) {
       entity_invoke_bundle_hook('delete', 'custom_block', $entity->id());

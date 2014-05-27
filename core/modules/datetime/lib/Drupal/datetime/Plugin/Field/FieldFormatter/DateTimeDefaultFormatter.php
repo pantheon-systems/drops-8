@@ -9,7 +9,7 @@ namespace Drupal\datetime\Plugin\Field\FieldFormatter;
 
 use Drupal\Core\Datetime\Date;
 use Drupal\Core\Datetime\DrupalDateTime;
-use Drupal\Core\Entity\EntityStorageControllerInterface;
+use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
@@ -24,13 +24,19 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *   label = @Translation("Default"),
  *   field_types = {
  *     "datetime"
- *   },
- *   settings = {
- *     "format_type" = "medium",
  *   }
  * )
  */
 class DateTimeDefaultFormatter extends FormatterBase implements ContainerFactoryPluginInterface {
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function defaultSettings() {
+    return array(
+      'format_type' => 'medium',
+    ) + parent::defaultSettings();
+  }
 
   /**
    * The date service.
@@ -40,9 +46,9 @@ class DateTimeDefaultFormatter extends FormatterBase implements ContainerFactory
   protected $dateService;
 
   /**
-   * The date storage controller.
+   * The date storage.
    *
-   * @var \Drupal\Core\Entity\EntityStorageControllerInterface
+   * @var \Drupal\Core\Entity\EntityStorageInterface
    */
   protected $dateStorage;
 
@@ -51,7 +57,7 @@ class DateTimeDefaultFormatter extends FormatterBase implements ContainerFactory
    *
    * @param string $plugin_id
    *   The plugin_id for the formatter.
-   * @param array $plugin_definition
+   * @param mixed $plugin_definition
    *   The plugin implementation definition.
    * @param \Drupal\Core\Field\FieldDefinitionInterface $field_definition
    *   The definition of the field to which the formatter is associated.
@@ -63,10 +69,10 @@ class DateTimeDefaultFormatter extends FormatterBase implements ContainerFactory
    *   The view mode.
    * @param \Drupal\Core\Datetime\Date $date_service
    *   The date service.
-   * @param \Drupal\Core\Entity\EntityStorageControllerInterface $date_storage
-   *   The date storage controller.
+   * @param \Drupal\Core\Entity\EntityStorageInterface $date_storage
+   *   The date storage.
    */
-  public function __construct($plugin_id, array $plugin_definition, FieldDefinitionInterface $field_definition, array $settings, $label, $view_mode, Date $date_service, EntityStorageControllerInterface $date_storage) {
+  public function __construct($plugin_id, $plugin_definition, FieldDefinitionInterface $field_definition, array $settings, $label, $view_mode, Date $date_service, EntityStorageInterface $date_storage) {
     parent::__construct($plugin_id, $plugin_definition, $field_definition, $settings, $label, $view_mode);
 
     $this->dateService = $date_service;
@@ -76,7 +82,7 @@ class DateTimeDefaultFormatter extends FormatterBase implements ContainerFactory
   /**
    * {@inheritdoc}
    */
-  public static function create(ContainerInterface $container, array $configuration, $plugin_id, array $plugin_definition) {
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
     return new static(
       $plugin_id,
       $plugin_definition,
@@ -85,7 +91,7 @@ class DateTimeDefaultFormatter extends FormatterBase implements ContainerFactory
       $configuration['label'],
       $configuration['view_mode'],
       $container->get('date'),
-      $container->get('entity.manager')->getStorageController('date_format')
+      $container->get('entity.manager')->getStorage('date_format')
     );
   }
 

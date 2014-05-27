@@ -1,0 +1,9 @@
+id: node_make_sticky_action
+label: 'Make content sticky'
+status: true
+langcode: en
+type: node
+plugin: node_make_sticky_action
+dependencies:
+  module:
+    - node

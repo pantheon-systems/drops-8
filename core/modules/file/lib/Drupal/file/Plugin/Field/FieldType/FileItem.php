@@ -7,7 +7,7 @@
 
 namespace Drupal\file\Plugin\Field\FieldType;
 
-use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItem;
 use Drupal\Core\TypedData\DataDefinition;
 
@@ -18,18 +18,6 @@ use Drupal\Core\TypedData\DataDefinition;
  *   id = "file",
  *   label = @Translation("File"),
  *   description = @Translation("This field stores the ID of a file as an integer value."),
- *   settings = {
- *     "target_type" = "file",
- *     "display_field" = "0",
- *     "display_default" = "0",
- *     "uri_scheme" = ""
- *   },
- *   instance_settings = {
- *     "file_extensions" = "txt",
- *     "file_directory" = "",
- *     "max_filesize" = "",
- *     "description_field" = "0"
- *   },
  *   default_widget = "file_generic",
  *   default_formatter = "file_default",
  *   list_class = "\Drupal\file\Plugin\Field\FieldType\FileFieldItemList"
@@ -40,7 +28,31 @@ class FileItem extends EntityReferenceItem {
   /**
    * {@inheritdoc}
    */
-  public static function schema(FieldDefinitionInterface $field_definition) {
+  public static function defaultSettings() {
+    return array(
+      'target_type' => 'file',
+      'display_field' => 0,
+      'display_default' => 0,
+      'uri_scheme' => file_default_scheme(),
+    ) + parent::defaultSettings();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function defaultInstanceSettings() {
+    return array(
+      'file_extensions' => 'txt',
+      'file_directory' => '',
+      'max_filesize' => '',
+      'description_field' => 0,
+    ) + parent::defaultInstanceSettings();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function schema(FieldStorageDefinitionInterface $field_definition) {
     return array(
       'columns' => array(
         'target_id' => array(
@@ -78,7 +90,7 @@ class FileItem extends EntityReferenceItem {
   /**
    * {@inheritdoc}
    */
-  public static function propertyDefinitions(FieldDefinitionInterface $field_definition) {
+  public static function propertyDefinitions(FieldStorageDefinitionInterface $field_definition) {
     $properties = parent::propertyDefinitions($field_definition);
 
     $properties['display'] = DataDefinition::create('boolean')

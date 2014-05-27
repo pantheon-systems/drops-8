@@ -109,8 +109,8 @@ interface ContentEntityInterface extends EntityInterface, RevisionableInterface,
    * @param string $name
    *   The name of the field.
    *
-   * @return \Drupal\Core\Field\FieldDefinitionInterface|false
-   *   The definition of the field or FALSE if the field does not exist.
+   * @return \Drupal\Core\Field\FieldDefinitionInterface|null
+   *   The definition of the field or null if the field does not exist.
    */
   public function getFieldDefinition($name);
 
@@ -123,5 +123,16 @@ interface ContentEntityInterface extends EntityInterface, RevisionableInterface,
    * @see \Drupal\Core\Entity\EntityManagerInterface::getFieldDefinitions()
    */
   public function getFieldDefinitions();
+
+  /**
+   * Returns an array of all field values.
+   *
+   * Gets an array of plain field values, including only non-computed values.
+   * Note that the structure varies by entity type and bundle.
+   *
+   * @return array
+   *   An array of field values, keyed by field name.
+   */
+  public function toArray();
 
 }

@@ -21,6 +21,17 @@ interface KeyValueStoreInterface {
   public function getCollectionName();
 
   /**
+   * Returns whether a given key exists in the store.
+   *
+   * @param string $key
+   *   The key to check.
+   *
+   * @return bool
+   *   TRUE if the key exists, FALSE otherwise.
+   */
+  public function has($key);
+
+  /**
    * Returns the stored value for a given key.
    *
    * @param string $key
@@ -84,6 +95,16 @@ interface KeyValueStoreInterface {
    *   An associative array of key/value pairs.
    */
   public function setMultiple(array $data);
+
+  /**
+   * Renames a key.
+   *
+   * @param string $key
+   *   The key to rename.
+   * @param string $new_key
+   *   The new key name.
+   */
+  public function rename($key, $new_key);
 
   /**
    * Deletes an item from the key/value store.

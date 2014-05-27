@@ -16,7 +16,7 @@ display:
           style_plugin: default_summary
           table: views
           validate:
-            type: user
+            type: entity:user
           plugin_id: 'null'
           provider: views
       cache:

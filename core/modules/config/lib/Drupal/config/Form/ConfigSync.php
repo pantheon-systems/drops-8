@@ -7,11 +7,16 @@
 
 namespace Drupal\config\Form;
 
+use Drupal\Component\Uuid\UuidInterface;
+use Drupal\Core\Config\ConfigImporterException;
+use Drupal\Core\Config\ConfigImporter;
+use Drupal\Core\Entity\EntityManagerInterface;
+use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\Extension\ThemeHandlerInterface;
 use Drupal\Core\Config\ConfigManagerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Config\StorageInterface;
 use Drupal\Core\Lock\LockBackendInterface;
-use Drupal\Core\Config\BatchConfigImporter;
 use Drupal\Core\Config\StorageComparer;
 use Drupal\Core\Config\TypedConfigManager;
 use Drupal\Core\Routing\UrlGeneratorInterface;
@@ -73,6 +78,20 @@ class ConfigSync extends FormBase {
   protected $typedConfigManager;
 
   /**
+   * The module handler.
+   *
+   * @var \Drupal\Core\Extension\ModuleHandlerInterface
+   */
+  protected $moduleHandler;
+
+  /**
+   * The theme handler.
+   *
+   * @var \Drupal\Core\Extension\ThemeHandlerInterface
+   */
+  protected $themeHandler;
+
+  /**
    * Constructs the object.
    *
    * @param \Drupal\Core\Config\StorageInterface $sourceStorage
@@ -89,8 +108,12 @@ class ConfigSync extends FormBase {
    *   The url generator service.
    * @param \Drupal\Core\Config\TypedConfigManager $typed_config
    *   The typed configuration manager.
+   * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
+   *   The module handler
+   * @param \Drupal\Core\Extension\ThemeHandlerInterface $theme_handler
+   *   The theme handler
    */
-  public function __construct(StorageInterface $sourceStorage, StorageInterface $targetStorage, LockBackendInterface $lock, EventDispatcherInterface $event_dispatcher, ConfigManagerInterface $config_manager, UrlGeneratorInterface $url_generator, TypedConfigManager $typed_config) {
+  public function __construct(StorageInterface $sourceStorage, StorageInterface $targetStorage, LockBackendInterface $lock, EventDispatcherInterface $event_dispatcher, ConfigManagerInterface $config_manager, UrlGeneratorInterface $url_generator, TypedConfigManager $typed_config, ModuleHandlerInterface $module_handler, ThemeHandlerInterface $theme_handler) {
     $this->sourceStorage = $sourceStorage;
     $this->targetStorage = $targetStorage;
     $this->lock = $lock;
@@ -98,6 +121,8 @@ class ConfigSync extends FormBase {
     $this->configManager = $config_manager;
     $this->urlGenerator = $url_generator;
     $this->typedConfigManager = $typed_config;
+    $this->moduleHandler = $module_handler;
+    $this->themeHandler = $theme_handler;
   }
 
   /**
@@ -111,7 +136,9 @@ class ConfigSync extends FormBase {
       $container->get('event_dispatcher'),
       $container->get('config.manager'),
       $container->get('url_generator'),
-      $container->get('config.typed')
+      $container->get('config.typed'),
+      $container->get('module_handler'),
+      $container->get('theme_handler')
     );
   }
 
@@ -157,8 +184,8 @@ class ConfigSync extends FormBase {
     // Add the AJAX library to the form for dialog support.
     $form['#attached']['library'][] = 'core/drupal.ajax';
 
-    foreach ($storage_comparer->getChangelist() as $config_change_type => $config_files) {
-      if (empty($config_files)) {
+    foreach ($storage_comparer->getChangelist() as $config_change_type => $config_names) {
+      if (empty($config_names)) {
         continue;
       }
 
@@ -170,15 +197,19 @@ class ConfigSync extends FormBase {
       );
       switch ($config_change_type) {
         case 'create':
-          $form[$config_change_type]['heading']['#value'] = format_plural(count($config_files), '@count new', '@count new');
+          $form[$config_change_type]['heading']['#value'] = format_plural(count($config_names), '@count new', '@count new');
           break;
 
         case 'update':
-          $form[$config_change_type]['heading']['#value'] = format_plural(count($config_files), '@count changed', '@count changed');
+          $form[$config_change_type]['heading']['#value'] = format_plural(count($config_names), '@count changed', '@count changed');
           break;
 
         case 'delete':
-          $form[$config_change_type]['heading']['#value'] = format_plural(count($config_files), '@count removed', '@count removed');
+          $form[$config_change_type]['heading']['#value'] = format_plural(count($config_names), '@count removed', '@count removed');
+          break;
+
+        case 'rename':
+          $form[$config_change_type]['heading']['#value'] = format_plural(count($config_names), '@count renamed', '@count renamed');
           break;
       }
       $form[$config_change_type]['list'] = array(
@@ -186,10 +217,18 @@ class ConfigSync extends FormBase {
         '#header' => array('Name', 'Operations'),
       );
 
-      foreach ($config_files as $config_file) {
+      foreach ($config_names as $config_name) {
+        if ($config_change_type == 'rename') {
+          $names = $storage_comparer->extractRenameNames($config_name);
+          $href = $this->urlGenerator->getPathFromRoute('config.diff', array('source_name' => $names['old_name'], 'target_name' => $names['new_name']));
+          $config_name = $this->t('!source_name to !target_name', array('!source_name' => $names['old_name'], '!target_name' => $names['new_name']));
+        }
+        else {
+          $href = $this->urlGenerator->getPathFromRoute('config.diff', array('source_name' => $config_name));
+        }
         $links['view_diff'] = array(
           'title' => $this->t('View differences'),
-          'href' => $this->urlGenerator->getPathFromRoute('config.diff', array('config_file' => $config_file)),
+          'href' => $href,
           'attributes' => array(
             'class' => array('use-ajax'),
             'data-accepts' => 'application/vnd.drupal-modal',
@@ -199,7 +238,7 @@ class ConfigSync extends FormBase {
           ),
         );
         $form[$config_change_type]['list']['#rows'][] = array(
-          'name' => $config_file,
+          'name' => $config_name,
           'operations' => array(
             'data' => array(
               '#type' => 'operations',
@@ -217,49 +256,70 @@ class ConfigSync extends FormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, array &$form_state) {
-    $config_importer = new BatchConfigImporter(
+    $config_importer = new ConfigImporter(
       $form_state['storage_comparer'],
       $this->eventDispatcher,
       $this->configManager,
       $this->lock,
-      $this->typedConfigManager
+      $this->typedConfigManager,
+      $this->moduleHandler,
+      $this->themeHandler,
+      $this->translationManager()
     );
     if ($config_importer->alreadyImporting()) {
       drupal_set_message($this->t('Another request may be synchronizing configuration already.'));
     }
     else{
-      $config_importer->initialize();
-      $batch = array(
-        'operations' => array(
-          array(array(get_class($this), 'processBatch'), array($config_importer)),
-        ),
-        'finished' => array(get_class($this), 'finishBatch'),
-        'title' => t('Synchronizing configuration'),
-        'init_message' => t('Starting configuration synchronization.'),
-        'progress_message' => t('Synchronized @current configuration files out of @total.'),
-        'error_message' => t('Configuration synchronization has encountered an error.'),
-        'file' => drupal_get_path('module', 'config') . '/config.admin.inc',
-      );
+      try {
+        $sync_steps = $config_importer->initialize();
+        $batch = array(
+          'operations' => array(),
+          'finished' => array(get_class($this), 'finishBatch'),
+          'title' => t('Synchronizing configuration'),
+          'init_message' => t('Starting configuration synchronization.'),
+          'progress_message' => t('Completed @current step of @total.'),
+          'error_message' => t('Configuration synchronization has encountered an error.'),
+          'file' => drupal_get_path('module', 'config') . '/config.admin.inc',
+        );
+        foreach ($sync_steps as $sync_step) {
+          $batch['operations'][] = array(array(get_class($this), 'processBatch'), array($config_importer, $sync_step));
+        }
 
-      batch_set($batch);
+        batch_set($batch);
+      }
+      catch (ConfigImporterException $e) {
+        // There are validation errors.
+        drupal_set_message($this->t('The configuration synchronization failed validation.'));
+        foreach ($config_importer->getErrors() as $message) {
+          drupal_set_message($message, 'error');
+        }
+      }
     }
   }
 
   /**
    * Processes the config import batch and persists the importer.
    *
-   * @param BatchConfigImporter $config_importer
+   * @param \Drupal\Core\Config\ConfigImporter $config_importer
    *   The batch config importer object to persist.
+   * @param string $sync_step
+   *   The synchronisation step to do.
    * @param $context
    *   The batch context.
    */
-  public static function processBatch(BatchConfigImporter $config_importer, &$context) {
+  public static function processBatch(ConfigImporter $config_importer, $sync_step, &$context) {
     if (!isset($context['sandbox']['config_importer'])) {
       $context['sandbox']['config_importer'] = $config_importer;
     }
 
     $config_importer = $context['sandbox']['config_importer'];
-    $config_importer->processBatch($context);
+    $config_importer->doSyncStep($sync_step, $context);
+    if ($errors = $config_importer->getErrors()) {
+      if (!isset($context['results']['errors'])) {
+        $context['results']['errors'] = array();
+      }
+      $context['results']['errors'] += $errors;
+    }
   }
 
   /**
@@ -270,7 +330,16 @@ class ConfigSync extends FormBase {
    */
   public static function finishBatch($success, $results, $operations) {
     if ($success) {
-      drupal_set_message(\Drupal::translation()->translate('The configuration was imported successfully.'));
+      if (!empty($results['errors'])) {
+        foreach ($results['errors'] as $error) {
+          drupal_set_message($error, 'error');
+          watchdog('config_sync', $error, NULL, WATCHDOG_ERROR);
+        }
+        drupal_set_message(\Drupal::translation()->translate('The configuration was imported with errors.'), 'warning');
+      }
+      else {
+        drupal_set_message(\Drupal::translation()->translate('The configuration was imported successfully.'));
+      }
     }
     else {
       // An error occurred.

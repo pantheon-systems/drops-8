@@ -2,12 +2,12 @@
 
 /**
  * @file
- * Definition of Drupal\Core\Template\Attribute.
+ * Contains \Drupal\Core\Template\Attribute.
  */
 
 namespace Drupal\Core\Template;
-use Drupal\Component\Utility\String;
 
+use Drupal\Component\Utility\String;
 
 /**
  * A class that can be used for collecting then rendering HTML attributtes.
@@ -112,11 +112,9 @@ class Attribute implements \ArrayAccess, \IteratorAggregate {
   public function __toString() {
     $return = '';
     foreach ($this->storage as $name => $value) {
-      if (!$value->printed()) {
-        $rendered = $value->render();
-        if ($rendered) {
-          $return .= ' ' . $rendered;
-        }
+      $rendered = $value->render();
+      if ($rendered) {
+        $return .= ' ' . $rendered;
       }
     }
     return $return;

@@ -38,8 +38,7 @@ abstract class AggregatorTestBase extends WebTestBase {
   /**
    * Creates an aggregator feed.
    *
-   * This method simulates the form submission on path
-   * admin/config/services/aggregator/add/feed.
+   * This method simulates the form submission on path aggregator/sources/add.
    *
    * @param $feed_url
    *   (optional) If given, feed will be created with this URL, otherwise
@@ -54,10 +53,10 @@ abstract class AggregatorTestBase extends WebTestBase {
    */
   function createFeed($feed_url = NULL, array $edit = array()) {
     $edit = $this->getFeedEditArray($feed_url, $edit);
-    $this->drupalPostForm('admin/config/services/aggregator/add/feed', $edit, t('Save'));
-    $this->assertRaw(t('The feed %name has been added.', array('%name' => $edit['title'])), format_string('The feed !name has been added.', array('!name' => $edit['title'])));
+    $this->drupalPostForm('aggregator/sources/add', $edit, t('Save'));
+    $this->assertRaw(t('The feed %name has been added.', array('%name' => $edit['title[0][value]'])), format_string('The feed !name has been added.', array('!name' => $edit['title[0][value]'])));
 
-    $fid = db_query("SELECT fid FROM {aggregator_feed} WHERE title = :title AND url = :url", array(':title' => $edit['title'], ':url' => $edit['url']))->fetchField();
+    $fid = db_query("SELECT fid FROM {aggregator_feed} WHERE title = :title AND url = :url", array(':title' => $edit['title[0][value]'], ':url' => $edit['url[0][value]']))->fetchField();
     $this->assertTrue(!empty($fid), 'The feed found in database.');
     return aggregator_feed_load($fid);
   }
@@ -69,7 +68,7 @@ abstract class AggregatorTestBase extends WebTestBase {
    *   Feed object representing the feed.
    */
   function deleteFeed(FeedInterface $feed) {
-    $this->drupalPostForm('admin/config/services/aggregator/delete/feed/' . $feed->id(), array(), t('Delete'));
+    $this->drupalPostForm('aggregator/sources/' . $feed->id() . '/delete', array(), t('Delete'));
     $this->assertRaw(t('The feed %title has been deleted.', array('%title' => $feed->label())), 'Feed deleted successfully.');
   }
 
@@ -94,8 +93,8 @@ abstract class AggregatorTestBase extends WebTestBase {
       ));
     }
     $edit += array(
-      'title' => $feed_name,
-      'url' => $feed_url,
+      'title[0][value]' => $feed_name,
+      'url[0][value]' => $feed_url,
       'refresh' => '900',
     );
     return $edit;
@@ -184,24 +183,24 @@ abstract class AggregatorTestBase extends WebTestBase {
    * @param \Drupal\aggregator\FeedInterface $feed
    *   Feed object representing the feed.
    */
-  function removeFeedItems(FeedInterface $feed) {
-    $this->drupalPostForm('admin/config/services/aggregator/remove/' . $feed->id(), array(), t('Remove items'));
-    $this->assertRaw(t('The news items from %title have been removed.', array('%title' => $feed->label())), 'Feed items removed.');
+  function deleteFeedItems(FeedInterface $feed) {
+    $this->drupalPostForm('admin/config/services/aggregator/delete/' . $feed->id(), array(), t('Delete items'));
+    $this->assertRaw(t('The news items from %title have been deleted.', array('%title' => $feed->label())), 'Feed items deleted.');
   }
 
   /**
-   * Adds and removes feed items and ensure that the count is zero.
+   * Adds and deletes feed items and ensure that the count is zero.
    *
    * @param \Drupal\aggregator\FeedInterface $feed
    *   Feed object representing the feed.
    * @param int $expected_count
    *   Expected number of feed items.
    */
-  function updateAndRemove(FeedInterface $feed, $expected_count) {
+  function updateAndDelete(FeedInterface $feed, $expected_count) {
     $this->updateFeedItems($feed, $expected_count);
     $count = db_query('SELECT COUNT(*) FROM {aggregator_item} WHERE fid = :fid', array(':fid' => $feed->id()))->fetchField();
     $this->assertTrue($count);
-    $this->removeFeedItems($feed);
+    $this->deleteFeedItems($feed);
     $count = db_query('SELECT COUNT(*) FROM {aggregator_item} WHERE fid = :fid', array(':fid' => $feed->id()))->fetchField();
     $this->assertTrue($count == 0);
   }
@@ -234,7 +233,7 @@ abstract class AggregatorTestBase extends WebTestBase {
   function getValidOpml($feeds) {
     // Properly escape URLs so that XML parsers don't choke on them.
     foreach ($feeds as &$feed) {
-      $feed['url'] = htmlspecialchars($feed['url']);
+      $feed['url[0][value]'] = htmlspecialchars($feed['url[0][value]']);
     }
     /**
      * Does not have an XML declaration, must pass the parser.
@@ -244,18 +243,18 @@ abstract class AggregatorTestBase extends WebTestBase {
   <head></head>
   <body>
     <!-- First feed to be imported. -->
-    <outline text="{$feeds[0]['title']}" xmlurl="{$feeds[0]['url']}" />
+    <outline text="{$feeds[0]['title[0][value]']}" xmlurl="{$feeds[0]['url[0][value]']}" />
 
     <!-- Second feed. Test string delimitation and attribute order. -->
-    <outline xmlurl='{$feeds[1]['url']}' text='{$feeds[1]['title']}'/>
+    <outline xmlurl='{$feeds[1]['url[0][value]']}' text='{$feeds[1]['title[0][value]']}'/>
 
     <!-- Test for duplicate URL and title. -->
-    <outline xmlurl="{$feeds[0]['url']}" text="Duplicate URL"/>
-    <outline xmlurl="http://duplicate.title" text="{$feeds[1]['title']}"/>
+    <outline xmlurl="{$feeds[0]['url[0][value]']}" text="Duplicate URL"/>
+    <outline xmlurl="http://duplicate.title" text="{$feeds[1]['title[0][value]']}"/>
 
     <!-- Test that feeds are only added with required attributes. -->
-    <outline text="{$feeds[2]['title']}" />
-    <outline xmlurl="{$feeds[2]['url']}" />
+    <outline text="{$feeds[2]['title[0][value]']}" />
+    <outline xmlurl="{$feeds[2]['url[0][value]']}" />
   </body>
 </opml>
 EOF;

@@ -1,0 +1,8 @@
+id: user.compact
+label: Compact
+status: true
+cache: true
+targetEntityType: user
+dependencies:
+  module:
+    - user

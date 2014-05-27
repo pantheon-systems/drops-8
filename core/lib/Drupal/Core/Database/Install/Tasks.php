@@ -255,7 +255,7 @@ abstract class Tasks {
     $form['advanced_options']['prefix'] = array(
       '#type' => 'textfield',
       '#title' => t('Table name prefix'),
-      '#default_value' => '',
+      '#default_value' => empty($database['prefix']) ? '' : $database['prefix'],
       '#size' => 45,
       '#description' => t('If more than one application will be sharing this database, a unique table name prefix–such as %prefix–will prevent collisions.', array('%prefix' => $db_prefix)),
       '#weight' => 10,
@@ -276,7 +276,7 @@ abstract class Tasks {
       '#title' => t('Port number'),
       '#default_value' => empty($database['port']) ? '' : $database['port'],
       '#min' => 0,
-      '#max' => 65536,
+      '#max' => 65535,
     );
 
     return $form;
@@ -299,7 +299,7 @@ abstract class Tasks {
 
     // Verify the table prefix.
     if (!empty($database['prefix']) && is_string($database['prefix']) && !preg_match('/^[A-Za-z0-9_.]+$/', $database['prefix'])) {
-      $errors[$database['driver'] . '][advanced_options][db_prefix'] = t('The database table prefix you have entered, %prefix, is invalid. The table prefix can only contain alphanumeric characters, periods, or underscores.', array('%prefix' => $database['prefix']));
+      $errors[$database['driver'] . '][prefix'] = t('The database table prefix you have entered, %prefix, is invalid. The table prefix can only contain alphanumeric characters, periods, or underscores.', array('%prefix' => $database['prefix']));
     }
 
     return $errors;

@@ -15,6 +15,16 @@ services:
     class: Drupal\user\Access\LoginStatusCheck
     tags:
       - { name: access_check, applies_to: _user_is_logged_in }
+  cache_context.user:
+    class: Drupal\user\Cache\UserCacheContext
+    arguments: ['@current_user']
+    tags:
+      - { name: cache.context}
+  cache_context.user.roles:
+    class: Drupal\user\Cache\UserRolesCacheContext
+    arguments: ['@current_user']
+    tags:
+      - { name: cache.context}
   user.data:
     class: Drupal\user\UserData
     arguments: ['@database']
@@ -27,12 +37,12 @@ services:
       - { name: event_subscriber }
   theme.negotiator.admin_theme:
     class: Drupal\user\Theme\AdminNegotiator
-    arguments: ['@current_user', '@config.factory', '@entity.manager']
+    arguments: ['@current_user', '@config.factory', '@entity.manager', '@router.admin_context']
     tags:
       - { name: theme_negotiator, priority: -40 }
   user.permissions_hash:
     class: Drupal\user\PermissionsHash
-    arguments: ['@private_key', '@cache.cache']
+    arguments: ['@private_key', '@cache.default']
   user.auth:
     class: Drupal\user\UserAuth
     arguments: ['@entity.manager', '@password']

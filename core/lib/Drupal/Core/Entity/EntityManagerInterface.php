@@ -57,6 +57,26 @@ interface EntityManagerInterface extends PluginManagerInterface {
   public function getFieldDefinitions($entity_type_id, $bundle);
 
   /**
+   * Gets the field storage definitions for a content entity type.
+   *
+   * This returns all field storage definitions for base fields and bundle
+   * fields of an entity type. Note that field storage definitions of a base
+   * field equal the full base field definition (i.e. they implement
+   * FieldDefinitionInterface), while the storage definitions for bundle fields
+   * may implement FieldStorageDefinitionInterface only.
+   *
+   * @param string $entity_type_id
+   *   The entity type ID. Only content entities are supported.
+   *
+   * @return \Drupal\Core\Field\FieldStorageDefinitionInterface[]
+   *   The array of field storage definitions for the entity type, keyed by
+   *   field name.
+   *
+   * @see \Drupal\Core\Field\FieldStorageDefinitionInterface
+   */
+  public function getFieldStorageDefinitions($entity_type_id);
+
+  /**
    * Creates a new access controller instance.
    *
    * @param string $entity_type
@@ -84,15 +104,15 @@ interface EntityManagerInterface extends PluginManagerInterface {
   public function getAdminRouteInfo($entity_type_id, $bundle);
 
   /**
-   * Creates a new storage controller instance.
+   * Creates a new storage instance.
    *
    * @param string $entity_type
-   *   The entity type for this storage controller.
+   *   The entity type for this storage.
    *
-   * @return \Drupal\Core\Entity\EntityStorageControllerInterface
-   *   A storage controller instance.
+   * @return \Drupal\Core\Entity\EntityStorageInterface
+   *   A storage instance.
    */
-  public function getStorageController($entity_type);
+  public function getStorage($entity_type);
 
   /**
    * Get the bundle info of all entity types.
@@ -119,15 +139,15 @@ interface EntityManagerInterface extends PluginManagerInterface {
   public function getViewBuilder($entity_type);
 
   /**
-   * Creates a new list controller instance.
+   * Creates a new entity list builder.
    *
    * @param string $entity_type
-   *   The entity type for this list controller.
+   *   The entity type for this list builder.
    *
-   * @return \Drupal\Core\Entity\EntityListControllerInterface
-   *   A list controller instance.
+   * @return \Drupal\Core\Entity\EntityListBuilderInterface
+   *   An entity list builder instance.
    */
-  public function getListController($entity_type);
+  public function getListBuilder($entity_type);
 
   /**
    * Creates a new form controller instance.
@@ -187,6 +207,35 @@ interface EntityManagerInterface extends PluginManagerInterface {
   public function getBundleInfo($entity_type);
 
   /**
+   * Retrieves the "extra fields" for a bundle.
+   *
+   * @param string $entity_type_id
+   *   The entity type ID.
+   * @param string $bundle
+   *   The bundle name.
+   *
+   * @return array
+   *   A nested array of 'pseudo-field' elements. Each list is nested within the
+   *   following keys: entity type, bundle name, context (either 'form' or
+   *   'display'). The keys are the name of the elements as appearing in the
+   *   renderable array (either the entity form or the displayed entity). The
+   *   value is an associative array:
+   *   - label: The human readable name of the element. Make sure you sanitize
+   *     this appropriately.
+   *   - description: A short description of the element contents.
+   *   - weight: The default weight of the element.
+   *   - visible: (optional) The default visibility of the element. Defaults to
+   *     TRUE.
+   *   - edit: (optional) String containing markup (normally a link) used as the
+   *     element's 'edit' operation in the administration interface. Only for
+   *     'form' context.
+   *   - delete: (optional) String containing markup (normally a link) used as the
+   *     element's 'delete' operation in the administration interface. Only for
+   *     'form' context.
+   */
+  public function getExtraFields($entity_type_id, $bundle);
+
+  /**
    * Returns the entity translation to be used in the given context.
    *
    * This will check whether a translation for the desired language is available
@@ -234,5 +283,69 @@ interface EntityManagerInterface extends PluginManagerInterface {
    *   An array of entity type objects.
    */
   public function getDefinitions();
+
+  /**
+   * Returns the entity view mode info for all entity types.
+   *
+   * @return array
+   *   The view mode info for all entity types.
+   */
+  public function getAllViewModes();
+
+  /**
+   * Returns the entity view mode info for a specific entity type.
+   *
+   * @param string $entity_type_id
+   *   The entity type whose view mode info should be returned.
+   *
+   * @return array
+   *   The view mode info for a specific entity type.
+   */
+  public function getViewModes($entity_type_id);
+
+  /**
+   * Returns the entity form mode info for all entity types.
+   *
+   * @return array
+   *   The form mode info for all entity types.
+   */
+  public function getAllFormModes();
+
+  /**
+   * Returns the entity form mode info for a specific entity type.
+   *
+   * @param string $entity_type_id
+   *   The entity type whose form mode info should be returned.
+   *
+   * @return array
+   *   The form mode info for a specific entity type.
+   */
+  public function getFormModes($entity_type_id);
+
+  /**
+   * Returns an array of view mode options.
+   *
+   * @param string $entity_type_id
+   *   The entity type whose view mode options should be returned.
+   * @param bool $include_disabled
+   *   Force to include disabled view modes. Defaults to FALSE.
+   *
+   * @return array
+   *   An array of view mode labels, keyed by the display mode ID.
+   */
+  public function getViewModeOptions($entity_type_id, $include_disabled = FALSE);
+
+  /**
+   * Returns an array of form mode options.
+   *
+   * @param string $entity_type_id
+   *   The entity type whose form mode options should be returned.
+   * @param bool $include_disabled
+   *   Force to include disabled form modes. Defaults to FALSE.
+   *
+   * @return array
+   *   An array of form mode labels, keyed by the display mode ID.
+   */
+  public function getFormModeOptions($entity_type_id, $include_disabled = FALSE);
 
 }

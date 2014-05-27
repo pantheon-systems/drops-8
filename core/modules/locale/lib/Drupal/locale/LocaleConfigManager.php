@@ -12,6 +12,8 @@ use Drupal\Core\Language\Language;
 use Drupal\Core\Config\TypedConfigManager;
 use Drupal\Core\Config\StorageInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\language\Config\LanguageConfigFactoryOverrideInterface;
+use Drupal\language\ConfigurableLanguageManagerInterface;
 
 /**
  * Manages localized configuration type plugins.
@@ -19,7 +21,7 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 class LocaleConfigManager extends TypedConfigManager {
 
   /**
-   * A storage controller instance for reading default configuration data.
+   * A storage instance for reading default configuration data.
    *
    * @var \Drupal\Core\Config\StorageInterface
    */
@@ -45,14 +47,21 @@ class LocaleConfigManager extends TypedConfigManager {
   protected $configFactory;
 
   /**
+   * The language manager.
+   *
+   * @var \Drupal\language\ConfigurableLanguageManagerInterface
+   */
+  protected $languageManager;
+
+  /**
    * Creates a new typed configuration manager.
    *
    * @param \Drupal\Core\Config\StorageInterface $configStorage
-   *   The storage controller object to use for reading configuration data.
+   *   The storage object to use for reading configuration data.
    * @param \Drupal\Core\Config\StorageInterface $schemaStorage
-   *   The storage controller object to use for reading schema data.
+   *   The storage object to use for reading schema data.
    * @param \Drupal\Core\Config\StorageInterface $installStorage
-   *   The storage controller object to use for reading default configuration
+   *   The storage object to use for reading default configuration
    *   data.
    * @param \Drupal\locale\StringStorageInterface $localeStorage
    *   The locale storage to use for reading string translations.
@@ -60,13 +69,16 @@ class LocaleConfigManager extends TypedConfigManager {
    *   The cache backend to use for caching the definitions.
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The configuration factory
+   * @param \Drupal\language\ConfigurableLanguageManagerInterface
+   *   The language manager.
    */
-  public function __construct(StorageInterface $configStorage, StorageInterface $schemaStorage, StorageInterface $installStorage, StringStorageInterface $localeStorage, CacheBackendInterface $cache, ConfigFactoryInterface $config_factory) {
+  public function __construct(StorageInterface $configStorage, StorageInterface $schemaStorage, StorageInterface $installStorage, StringStorageInterface $localeStorage, CacheBackendInterface $cache, ConfigFactoryInterface $config_factory, ConfigurableLanguageManagerInterface $language_manager) {
     // Note we use the install storage for the parent constructor.
     parent::__construct($configStorage, $schemaStorage, $cache);
     $this->installStorage = $installStorage;
     $this->localeStorage = $localeStorage;
     $this->configFactory = $config_factory;
+    $this->languageManager = $language_manager;
   }
 
   /**
@@ -133,8 +145,7 @@ class LocaleConfigManager extends TypedConfigManager {
    *   Configuration data to be saved, that will be only the translated values.
    */
   public function saveTranslationData($name, $langcode, array $data) {
-    $locale_name = $this->configFactory->getLanguageConfigName($langcode, $name);
-    $this->configStorage->write($locale_name, $data);
+    $this->languageManager->getLanguageConfigOverride($langcode, $name)->setData($data)->save();
   }
 
   /**
@@ -146,8 +157,7 @@ class LocaleConfigManager extends TypedConfigManager {
    *   Language code.
    */
   public function deleteTranslationData($name, $langcode) {
-    $locale_name = $this->configFactory->getLanguageConfigName($langcode, $name);
-    $this->configStorage->delete($locale_name);
+    $this->languageManager->getLanguageConfigOverride($langcode, $name)->delete();
   }
 
   /**
@@ -220,7 +230,7 @@ class LocaleConfigManager extends TypedConfigManager {
    *   Language code to delete.
    */
   public function deleteLanguageTranslations($langcode) {
-    $locale_name = ConfigFactoryInterface::LANGUAGE_CONFIG_PREFIX . '.' . $langcode . '.';
+    $locale_name = LanguageConfigFactoryOverrideInterface::LANGUAGE_CONFIG_PREFIX . '.' . $langcode . '.';
     foreach ($this->configStorage->listAll($locale_name) as $name) {
       $this->configStorage->delete($name);
     }
@@ -305,9 +315,8 @@ class LocaleConfigManager extends TypedConfigManager {
    *   A boolean indicating if a language has configuration translations.
    */
   public function hasTranslation($name, Language $language) {
-    $locale_name = $this->configFactory->getLanguageConfigName($language->id, $name);
-    $translation = $this->configStorage->read($locale_name);
-    return !empty($translation);
+    $translation = $this->languageManager->getLanguageConfigOverride($language->id, $name);
+    return !$translation->isNew();
   }
 
 }

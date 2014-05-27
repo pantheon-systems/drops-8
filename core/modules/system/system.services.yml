@@ -5,18 +5,20 @@ services:
       - { name: access_check, applies_to: _access_system_cron }
   system.manager:
     class: Drupal\system\SystemManager
-    arguments: ['@module_handler', '@database', '@entity.manager']
-    calls:
-      - [setRequest, ['@?request=']]
+    arguments: ['@module_handler', '@database', '@entity.manager', '@request_stack']
   system.breadcrumb.default:
     class: Drupal\system\PathBasedBreadcrumbBuilder
-    arguments: ['@request', '@entity.manager', '@access_manager', '@router', '@path_processor_manager', '@config.factory',  '@title_resolver']
+    arguments: ['@router.request_context', '@access_manager', '@router', '@path_processor_manager', '@config.factory',  '@title_resolver', '@current_user']
     tags:
       - { name: breadcrumb_builder, priority: 0 }
   path_processor.files:
     class: Drupal\system\PathProcessor\PathProcessorFiles
     tags:
       - { name: path_processor_inbound, priority: 200 }
+  system.admin_path.route_subscriber:
+    class: Drupal\system\EventSubscriber\AdminRouteSubscriber
+    tags:
+      - { name: event_subscriber }
   theme.negotiator.system.batch:
     class: Drupal\system\Theme\BatchNegotiator
     arguments: ['@batch.storage']
@@ -24,5 +26,10 @@ services:
       - { name: theme_negotiator, priority: 1000 }
   system.config_subscriber:
     class: Drupal\system\SystemConfigSubscriber
+    tags:
+      - { name: event_subscriber }
+  system.automatic_cron:
+    class: Drupal\system\EventSubscriber\AutomaticCron
+    arguments: ['@cron', '@config.factory', '@state']
     tags:
       - { name: event_subscriber }

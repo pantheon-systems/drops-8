@@ -11,6 +11,7 @@ use Drupal\Component\Utility\NestedArray;
 use Drupal\Component\Utility\SortArray;
 use Drupal\Component\Utility\String;
 use Symfony\Component\Validator\ConstraintViolationInterface;
+use Symfony\Component\Validator\ConstraintViolationListInterface;
 
 /**
  * Base class for 'Field widget' plugin implementations.
@@ -36,14 +37,14 @@ abstract class WidgetBase extends PluginSettingsBase implements WidgetInterface 
    *
    * @param array $plugin_id
    *   The plugin_id for the widget.
-   * @param array $plugin_definition
+   * @param mixed $plugin_definition
    *   The plugin implementation definition.
    * @param \Drupal\Core\Field\FieldDefinitionInterface $field_definition
    *   The definition of the field to which the widget is associated.
    * @param array $settings
    *   The widget settings.
    */
-  public function __construct($plugin_id, array $plugin_definition, FieldDefinitionInterface $field_definition, array $settings) {
+  public function __construct($plugin_id, $plugin_definition, FieldDefinitionInterface $field_definition, array $settings) {
     parent::__construct(array(), $plugin_id, $plugin_definition);
     $this->fieldDefinition = $field_definition;
     $this->settings = $settings;
@@ -61,7 +62,6 @@ abstract class WidgetBase extends PluginSettingsBase implements WidgetInterface 
       $field_state = array(
         'items_count' => count($items),
         'array_parents' => array(),
-        'constraint_violations' => array(),
       );
       field_form_set_state($parents, $field_name, $form_state, $field_state);
     }
@@ -123,7 +123,6 @@ abstract class WidgetBase extends PluginSettingsBase implements WidgetInterface 
           'field-widget-' . drupal_html_class($this->getPluginId()),
         ),
       ),
-      '#access' => $items->access('edit'),
       'widget' => $elements,
     );
   }
@@ -154,9 +153,6 @@ abstract class WidgetBase extends PluginSettingsBase implements WidgetInterface 
         $is_multiple = ($cardinality > 1);
         break;
     }
-
-    $id_prefix = implode('-', array_merge($parents, array($field_name)));
-    $wrapper_id = drupal_html_id($id_prefix . '-add-more-wrapper');
 
     $title = String::checkPlain($this->fieldDefinition->getLabel());
     $description = field_filter_xss(\Drupal::token()->replace($this->fieldDefinition->getDescription()));
@@ -201,13 +197,17 @@ abstract class WidgetBase extends PluginSettingsBase implements WidgetInterface 
         '#required' => $this->fieldDefinition->isRequired(),
         '#title' => $title,
         '#description' => $description,
-        '#prefix' => '<div id="' . $wrapper_id . '">',
-        '#suffix' => '</div>',
         '#max_delta' => $max,
       );
 
       // Add 'add more' button, if not working with a programmed form.
       if ($cardinality == FieldDefinitionInterface::CARDINALITY_UNLIMITED && empty($form_state['programmed'])) {
+
+        $id_prefix = implode('-', array_merge($parents, array($field_name)));
+        $wrapper_id = drupal_html_id($id_prefix . '-add-more-wrapper');
+        $elements['#prefix'] = '<div id="' . $wrapper_id . '">';
+        $elements['#suffix'] = '</div>';
+
         $elements['add_more'] = array(
           '#type' => 'submit',
           '#name' => strtr($id_prefix, '-', '_') . '_add_more',
@@ -355,12 +355,12 @@ abstract class WidgetBase extends PluginSettingsBase implements WidgetInterface 
   /**
    * {@inheritdoc}
    */
-  public function flagErrors(FieldItemListInterface $items, array $form, array &$form_state) {
+  public function flagErrors(FieldItemListInterface $items, ConstraintViolationListInterface $violations, array $form, array &$form_state) {
     $field_name = $this->fieldDefinition->getName();
 
     $field_state = field_form_get_state($form['#parents'], $field_name, $form_state);
 
-    if (!empty($field_state['constraint_violations'])) {
+    if ($violations->count()) {
       $form_builder = \Drupal::formBuilder();
 
       // Locate the correct element in the the form.
@@ -384,7 +384,7 @@ abstract class WidgetBase extends PluginSettingsBase implements WidgetInterface 
         $handles_multiple = $this->handlesMultipleValues();
 
         $violations_by_delta = array();
-        foreach ($field_state['constraint_violations'] as $violation) {
+        foreach ($violations as $violation) {
           // Separate violations by delta.
           $property_path = explode('.', $violation->getPropertyPath());
           $delta = array_shift($property_path);
@@ -396,6 +396,7 @@ abstract class WidgetBase extends PluginSettingsBase implements WidgetInterface 
           $violation->arrayPropertyPath = $property_path;
         }
 
+        /** @var \Symfony\Component\Validator\ConstraintViolationInterface[] $delta_violations */
         foreach ($violations_by_delta as $delta => $delta_violations) {
           // Pass violations to the main element:
           // - if this is a multiple-value widget,
@@ -416,9 +417,6 @@ abstract class WidgetBase extends PluginSettingsBase implements WidgetInterface 
             }
           }
         }
-        // Reinitialize the errors list for the next submit.
-        $field_state['constraint_violations'] = array();
-        field_form_set_state($form['#parents'], $field_name, $form_state, $field_state);
       }
     }
   }

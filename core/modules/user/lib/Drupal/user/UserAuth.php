@@ -8,7 +8,7 @@
 namespace Drupal\user;
 
 use Drupal\Core\Entity\EntityManagerInterface;
-use Drupal\Core\Entity\EntityStorageControllerInterface;
+use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Password\PasswordInterface;
 
 /**
@@ -17,11 +17,11 @@ use Drupal\Core\Password\PasswordInterface;
 class UserAuth implements UserAuthInterface {
 
   /**
-   * The user storage.
+   * The entity manager.
    *
-   * @var \Drupal\Core\Entity\EntityStorageControllerInterface
+   * @var \Drupal\Core\Entity\EntityManagerInterface
    */
-  protected $storage;
+  protected $entityManager;
 
   /**
    * The password service.
@@ -33,13 +33,13 @@ class UserAuth implements UserAuthInterface {
   /**
    * Constructs a UserAuth object.
    *
-   * @param \Drupal\Core\Entity\EntityStorageControllerInterface $storage
+   * @param \Drupal\Core\Entity\EntityStorageInterface $storage
    *   The user storage.
    * @param \Drupal\Core\Password\PasswordInterface $password_checker
    *   The password service.
    */
   public function __construct(EntityManagerInterface $entity_manager, PasswordInterface $password_checker) {
-    $this->storage = $entity_manager->getStorageController('user');
+    $this->entityManager = $entity_manager;
     $this->passwordChecker = $password_checker;
   }
 
@@ -50,7 +50,7 @@ class UserAuth implements UserAuthInterface {
     $uid = FALSE;
 
     if (!empty($username) && !empty($password)) {
-      $account_search = $this->storage->loadByProperties(array('name' => $username));
+      $account_search = $this->entityManager->getStorage('user')->loadByProperties(array('name' => $username));
 
       if ($account = reset($account_search)) {
         if ($this->passwordChecker->check($password, $account)) {

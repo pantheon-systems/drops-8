@@ -7,6 +7,7 @@
 
 namespace Drupal\system\Tests\Form;
 
+use Drupal\Component\Serialization\Json;
 use Drupal\simpletest\WebTestBase;
 use Drupal\Core\Language\Language;
 
@@ -58,7 +59,7 @@ class LanguageSelectElementTest extends WebTestBase {
     foreach ($ids as $id => $flags) {
       $this->assertField($id, format_string('The @id field was found on the page.', array('@id' => $id)));
       $options = array();
-      foreach (language_list($flags) as $langcode => $language) {
+      foreach ($this->container->get('language_manager')->getLanguages($flags) as $langcode => $language) {
         $options[$langcode] = $language->locked ? t('- @name -', array('@name' => $language->name)) : $language->name;
       }
       $this->_testLanguageSelectElementOptions($id, $options);
@@ -89,7 +90,7 @@ class LanguageSelectElementTest extends WebTestBase {
     // field elements.
     $edit = array();
     $this->drupalPostForm(NULL, $edit, t('Submit'));
-    $values = drupal_json_decode($this->drupalGetContent());
+    $values = Json::decode($this->drupalGetContent());
     $this->assertEqual($values['languages_all'], 'xx');
     $this->assertEqual($values['languages_configurable'], 'en');
     $this->assertEqual($values['languages_locked'], Language::LANGCODE_NOT_SPECIFIED);

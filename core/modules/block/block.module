@@ -7,6 +7,8 @@
 
 use Drupal\block\BlockInterface;
 use Drupal\Component\Plugin\Exception\PluginException;
+use Drupal\language\Entity\Language;
+use Drupal\system\Entity\Menu;
 use Symfony\Cmf\Component\Routing\RouteObjectInterface;
 
 /**
@@ -60,7 +62,7 @@ function block_help($path, $arg) {
     }
     $themes = list_themes();
     $output = '<p>' . t('This page provides a drag-and-drop interface for adding a block to a region, and for controlling the order of blocks within regions. To add a block to a region, or to configure its specific title and visibility settings, click the block title under <em>Place blocks</em>. Since not all themes implement the same regions, or display regions in the same way, blocks are positioned on a per-theme basis. Remember that your changes will not be saved until you click the <em>Save blocks</em> button at the bottom of the page.') . '</p>';
-    $output .= '<p>' . l(t('Demonstrate block regions (@theme)', array('@theme' => $themes[$demo_theme]->info['name'])), 'admin/structure/block/demo/' . $demo_theme) . '</p>';
+    $output .= '<p>' . l(t('Demonstrate block regions (!theme)', array('!theme' => $themes[$demo_theme]->info['name'])), 'admin/structure/block/demo/' . $demo_theme) . '</p>';
     return $output;
   }
 }
@@ -90,20 +92,6 @@ function block_permission() {
       'title' => t('Administer blocks'),
     ),
   );
-}
-
-/**
- * Implements hook_menu_link_defaults().
- */
-function block_menu_link_defaults() {
-  $links['block.admin.structure'] = array(
-    'link_title' => 'Block layout',
-    'parent' => 'system.admin.structure',
-    'description' => 'Configure what block content appears in your site\'s sidebars and other regions.',
-    'route_name' => 'block.admin_display',
-  );
-
-  return $links;
 }
 
 /**
@@ -169,52 +157,16 @@ function block_page_build(&$page) {
 function block_get_blocks_by_region($region) {
   $build = array();
   if ($list = block_list($region)) {
-    $build = _block_get_renderable_region($list);
-  }
-  return $build;
-}
-
-/**
- * Gets an array of blocks suitable for drupal_render().
- *
- * @param $list
- *   A list of blocks such as that returned by block_list().
- *
- * @return
- *   A renderable array.
- */
-function _block_get_renderable_region($list = array()) {
-  $build = array();
-  // Block caching is not compatible with node_access modules. We also
-  // preserve the submission of forms in blocks, by fetching from cache
-  // only if the request method is 'GET' (or 'HEAD'). User 1 being out of
-  // the regular 'roles define permissions' schema, it brings too many
-  // chances of having unwanted output get in the cache and later be served
-  // to other users. We therefore exclude user 1 from block caching.
-  $not_cacheable = \Drupal::currentUser()->id() == 1 ||
-    count(\Drupal::moduleHandler()->getImplementations('node_grants')) ||
-    !\Drupal::request()->isMethodSafe();
-
-  foreach ($list as $key => $block) {
-    $settings = $block->get('settings');
-    if ($not_cacheable || in_array($settings['cache'], array(DRUPAL_NO_CACHE, DRUPAL_CACHE_CUSTOM))) {
-      // Non-cached blocks get built immediately.
-      if ($block->access()) {
+    foreach ($list as $key => $block) {
+      if ($block->access('view')) {
         $build[$key] = entity_view($block, 'block');
       }
     }
-    else {
-      $build[$key] = array(
-        '#block' => $block,
-        '#weight' => $block->get('weight'),
-        '#pre_render' => array('_block_get_renderable_block'),
-        '#cache' => array(
-          'keys' => array($key, $settings['module']),
-          'granularity' => $settings['cache'],
-          'bin' => 'block',
-          'tags' => array('content' => TRUE),
-        ),
-      );
+    // If none of the blocks in this region are visible, then don't set anything
+    // else in the render array, because that would cause the region to show up.
+    if (!empty($build)) {
+      // block_list() already returned the blocks in sorted order.
+      $build['#sorted'] = TRUE;
     }
   }
   return $build;
@@ -342,9 +294,7 @@ function block_list($region) {
     $blocks[$region] = array();
   }
 
-  uasort($blocks[$region], function($first, $second) {
-    return $first->weight === $second->weight ? 0 : ($first->weight < $second->weight ? -1 : 1);
-  });
+  uasort($blocks[$region], 'Drupal\block\Entity\Block::sort');
 
   return $blocks[$region];
 }
@@ -365,26 +315,6 @@ function block_load($entity_id) {
 }
 
 /**
- * Builds the content and label for a block.
- *
- * For cacheable blocks, this is called during #pre_render.
- *
- * @param $element
- *   A renderable array.
- *
- * @return
- *   A renderable array.
- */
-function _block_get_renderable_block($element) {
-  $block = $element['#block'];
-  // Don't bother to build blocks that aren't accessible.
-  if ($element['#access'] = $block->access()) {
-    $element += entity_view($block, 'block');
-  }
-  return $element;
-}
-
-/**
  * Implements hook_rebuild().
  */
 function block_rebuild() {
@@ -401,7 +331,7 @@ function block_rebuild() {
 function block_theme_suggestions_block(array $variables) {
   $suggestions = array();
 
-  $suggestions[] = 'block__' . $variables['elements']['#configuration']['module'];
+  $suggestions[] = 'block__' . $variables['elements']['#configuration']['provider'];
   // Hyphens (-) and underscores (_) play a special role in theme suggestions.
   // Theme suggestions should only contain underscores, because within
   // drupal_find_theme_templates(), underscores are converted to hyphens to
@@ -456,9 +386,14 @@ function template_preprocess_block(&$variables) {
   $variables['derivative_plugin_id'] = $variables['elements']['#derivative_plugin_id'];
   $variables['label'] = !empty($variables['configuration']['label_display']) ? $variables['configuration']['label'] : '';
   $variables['content'] = $variables['elements']['content'];
+  // A block's label is configuration: it is static. Allow dynamic labels to be
+  // set in the render array.
+  if (isset($variables['elements']['content']['#title']) && !empty($variables['configuration']['label_display'])) {
+    $variables['label'] = $variables['elements']['content']['#title'];
+  }
 
   $variables['attributes']['class'][] = 'block';
-  $variables['attributes']['class'][] = drupal_html_class('block-' . $variables['configuration']['module']);
+  $variables['attributes']['class'][] = drupal_html_class('block-' . $variables['configuration']['provider']);
 
   // Add default class for block content.
   $variables['content_attributes']['class'][] = 'content';
@@ -488,37 +423,27 @@ function block_user_role_delete($role) {
 /**
  * Implements hook_menu_delete().
  */
-function block_menu_delete($menu) {
-  foreach (entity_load_multiple('block') as $block) {
-    if ($block->get('plugin') == 'system_menu_block:' . $menu->id()) {
-      $block->delete();
+function block_menu_delete(Menu $menu) {
+  if (!$menu->isSyncing()) {
+    foreach (entity_load_multiple('block') as $block) {
+      if ($block->get('plugin') == 'system_menu_block:' . $menu->id()) {
+        $block->delete();
+      }
     }
   }
 }
 
 /**
- * Implements hook_admin_paths().
- */
-function block_admin_paths() {
-  $paths = array(
-    // Exclude the block demonstration page from admin treatment.
-    // This allows us to present this page in its true form, full page.
-    'admin/structure/block/demo/*' => FALSE,
-  );
-  return $paths;
-}
-
-/**
- * Implements hook_language_delete().
+ * Implements hook_ENTITY_TYPE_delete() for 'language_entity'.
  *
  * Delete the potential block visibility settings of the deleted language.
  */
-function block_language_delete($language) {
+function block_language_entity_delete(Language $language) {
   // Remove the block visibility settings for the deleted language.
   foreach (entity_load_multiple('block') as $block) {
     $visibility = $block->get('visibility');
-    if (isset($visibility['language']['langcodes'][$language->id])) {
-      unset($visibility['language']['langcodes'][$language->id]);
+    if (isset($visibility['language']['langcodes'][$language->id()])) {
+      unset($visibility['language']['langcodes'][$language->id()]);
       $block->set('visibility', $visibility);
       $block->save();
     }

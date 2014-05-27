@@ -91,9 +91,8 @@ class CommentController extends ControllerBase {
 
     drupal_set_message($this->t('Comment approved.'));
     $permalink_uri = $comment->permalink();
-    $permalink_uri['options']['absolute'] = TRUE;
-    $url = $this->urlGenerator()->generateFromRoute($permalink_uri['route_name'], $permalink_uri['route_parameters'], $permalink_uri['options']);
-    return new RedirectResponse($url);
+    $permalink_uri->setAbsolute();
+    return new RedirectResponse($permalink_uri->toString());
   }
 
   /**
@@ -119,7 +118,7 @@ class CommentController extends ControllerBase {
    *   The comment listing set to the page on which the comment appears.
    */
   public function commentPermalink(Request $request, CommentInterface $comment) {
-    if ($entity = $this->entityManager()->getStorageController($comment->getCommentedEntityTypeId())->load($comment->getCommentedEntityId())) {
+    if ($entity = $this->entityManager()->getStorage($comment->getCommentedEntityTypeId())->load($comment->getCommentedEntityId())) {
       // Check access permissions for the entity.
       if (!$entity->access('view')) {
         throw new AccessDeniedHttpException();
@@ -208,19 +207,18 @@ class CommentController extends ControllerBase {
 
     // Check if entity and field exists.
     $fields = $this->commentManager->getFields($entity_type);
-    if (empty($fields[$field_name]) || !($entity = $this->entityManager()->getStorageController($entity_type)->load($entity_id))) {
+    if (empty($fields[$field_name]) || !($entity = $this->entityManager()->getStorage($entity_type)->load($entity_id))) {
       throw new NotFoundHttpException();
     }
 
     $account = $this->currentUser();
-    $uri = $entity->urlInfo();
-    $path = $entity->getSystemPath();
+    $uri = $entity->urlInfo()->setAbsolute();
     $build = array();
 
     // Check if the user has the proper permissions.
     if (!$account->hasPermission('post comments')) {
       drupal_set_message($this->t('You are not authorized to post comments.'), 'error');
-      return $this->redirect($uri['route_name'], $uri['route_parameters']);
+      return new RedirectResponse($uri->toString());
     }
 
     // The user is not just previewing a comment.
@@ -228,7 +226,7 @@ class CommentController extends ControllerBase {
       $status = $entity->{$field_name}->status;
       if ($status != CommentItemInterface::OPEN) {
         drupal_set_message($this->t("This discussion is closed: you can't post new comments."), 'error');
-        return $this->redirect($uri['route_name'], $uri['route_parameters']);
+        return new RedirectResponse($uri->toString());
       }
 
       // $pid indicates that this is a reply to a comment.
@@ -236,14 +234,14 @@ class CommentController extends ControllerBase {
         // Check if the user has the proper permissions.
         if (!$account->hasPermission('access comments')) {
           drupal_set_message($this->t('You are not authorized to view comments.'), 'error');
-          return $this->redirect($uri['route_name'], $uri['route_parameters']);
+          return new RedirectResponse($uri->toString());
         }
         // Load the parent comment.
-        $comment = $this->entityManager()->getStorageController('comment')->load($pid);
+        $comment = $this->entityManager()->getStorage('comment')->load($pid);
         // Check if the parent comment is published and belongs to the entity.
         if (!$comment->isPublished() || ($comment->getCommentedEntityId() != $entity->id())) {
           drupal_set_message($this->t('The comment you are replying to does not exist.'), 'error');
-          return $this->redirect($uri['route_name'], $uri['route_parameters']);
+          return new RedirectResponse($uri->toString());
         }
         // Display the parent comment.
         $build['comment_parent'] = $this->entityManager()->getViewBuilder('comment')->view($comment);
@@ -265,7 +263,7 @@ class CommentController extends ControllerBase {
     }
 
     // Show the actual reply box.
-    $comment = $this->entityManager()->getStorageController('comment')->create(array(
+    $comment = $this->entityManager()->getStorage('comment')->create(array(
       'entity_id' => $entity->id(),
       'pid' => $pid,
       'entity_type' => $entity->getEntityTypeId(),

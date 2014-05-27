@@ -35,21 +35,30 @@ class MigrateSimpletestConfigsTest extends MigrateDrupalTestBase {
   }
 
   /**
-   * Tests migration of simpletest variables to simpletest.settings.yml.
+   * {@inheritdoc}
    */
-  public function testSimpletestSettings() {
+  protected function setUp() {
+    parent::setUp();
     $migration = entity_load('migration', 'd6_simpletest_settings');
     $dumps = array(
-      drupal_get_path('module', 'migrate_drupal') . '/lib/Drupal/migrate_drupal/Tests/Dump/Drupal6SimpletestSettings.php',
+      dirname(__DIR__) . '/Dump/Drupal6SimpletestSettings.php',
     );
     $this->prepare($migration, $dumps);
     $executable = new MigrateExecutable($migration, new MigrateMessage());
     $executable->import();
+  }
+
+  /**
+   * Tests migration of simpletest variables to simpletest.settings.yml.
+   */
+  public function testSimpletestSettings() {
     $config = \Drupal::config('simpletest.settings');
     $this->assertIdentical($config->get('clear_results'), TRUE);
     $this->assertIdentical($config->get('httpauth.method'), CURLAUTH_BASIC);
-    $this->assertIdentical($config->get('httpauth.password'), NULL);
-    $this->assertIdentical($config->get('httpauth.username'), NULL);
+    // NULL in the dump means defaults which is empty string. Same as omitting
+    // them.
+    $this->assertIdentical($config->get('httpauth.password'), '');
+    $this->assertIdentical($config->get('httpauth.username'), '');
     $this->assertIdentical($config->get('verbose'), TRUE);
   }
 }

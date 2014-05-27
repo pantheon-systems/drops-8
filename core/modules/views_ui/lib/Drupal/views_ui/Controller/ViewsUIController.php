@@ -58,12 +58,12 @@ class ViewsUIController extends ControllerBase {
    *   The Views fields report page.
    */
   public function reportFields() {
-    $views = $this->entityManager()->getStorageController('view')->loadMultiple();
+    $views = $this->entityManager()->getStorage('view')->loadMultiple();
 
     // Fetch all fieldapi fields which are used in views
     // Therefore search in all views, displays and handler-types.
     $fields = array();
-    $handler_types = ViewExecutable::viewsHandlerTypes();
+    $handler_types = ViewExecutable::getHandlerTypes();
     foreach ($views as $view) {
       $executable = $view->getExecutable();
       $executable->initDisplay();
@@ -154,7 +154,7 @@ class ViewsUIController extends ControllerBase {
 
     // If the request is via AJAX, return the rendered list as JSON.
     if ($request->request->get('js')) {
-      $list = $this->entityManager()->getListController('view')->render();
+      $list = $this->entityManager()->getListBuilder('view')->render();
       $response = new AjaxResponse();
       $response->addCommand(new ReplaceCommand('#views-entity-list', drupal_render($list)));
       return $response;
@@ -177,7 +177,7 @@ class ViewsUIController extends ControllerBase {
     $matches = array();
     $string = $request->query->get('q');
     // Get matches from default views.
-    $views = $this->entityManager()->getStorageController('view')->loadMultiple();
+    $views = $this->entityManager()->getStorage('view')->loadMultiple();
     foreach ($views as $view) {
       $tag = $view->get('tag');
       if ($tag && strpos($tag, $string) === 0) {

@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Definition of Drupal\Core\Template\AttributeString.
+ * Contains \Drupal\Core\Template\AttributeString.
  */
 
 namespace Drupal\Core\Template;
@@ -30,7 +30,6 @@ class AttributeString extends AttributeValueBase {
    * Implements the magic __toString() method.
    */
   public function __toString() {
-    $this->printed = TRUE;
     return String::checkPlain($this->value);
   }
 

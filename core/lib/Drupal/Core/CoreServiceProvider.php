@@ -7,6 +7,8 @@
 
 namespace Drupal\Core;
 
+use Drupal\Core\Cache\CacheContextsPass;
+use Drupal\Component\Utility\Settings;
 use Drupal\Core\Cache\ListCacheBinsPass;
 use Drupal\Core\Config\ConfigFactoryOverridePass;
 use Drupal\Core\DependencyInjection\ServiceProviderInterface;
@@ -24,6 +26,7 @@ use Drupal\Core\DependencyInjection\Compiler\RegisterStringTranslatorsPass;
 use Drupal\Core\DependencyInjection\Compiler\RegisterBreadcrumbBuilderPass;
 use Drupal\Core\DependencyInjection\Compiler\RegisterAuthenticationPass;
 use Drupal\Core\DependencyInjection\Compiler\RegisterTwigExtensionsPass;
+use Drupal\Core\Http\HttpClientSubscriberPass;
 use Drupal\Core\Plugin\PluginManagerPass;
 use Drupal\Core\Theme\ThemeNegotiatorPass;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -72,6 +75,7 @@ class CoreServiceProvider implements ServiceProviderInterface  {
     $container->addCompilerPass(new RegisterPathProcessorsPass());
     $container->addCompilerPass(new RegisterRouteProcessorsPass());
     $container->addCompilerPass(new ListCacheBinsPass());
+    $container->addCompilerPass(new CacheContextsPass());
     // Add the compiler pass for appending string translators.
     $container->addCompilerPass(new RegisterStringTranslatorsPass());
     // Add the compiler pass that will process the tagged breadcrumb builder
@@ -89,6 +93,8 @@ class CoreServiceProvider implements ServiceProviderInterface  {
     $container->addCompilerPass(new RegisterTwigExtensionsPass());
     // Register plugin managers.
     $container->addCompilerPass(new PluginManagerPass());
+    // Register HTTP client subscribers.
+    $container->addCompilerPass(new HttpClientSubscriberPass());
   }
 
   /**
@@ -109,15 +115,12 @@ class CoreServiceProvider implements ServiceProviderInterface  {
         // @todo ensure garbage collection of expired files.
         // When in the installer, twig_cache must be FALSE until we know the
         // files folder is writable.
-        'cache' => drupal_installation_attempted() ? FALSE : settings()->get('twig_cache', TRUE),
+        'cache' => drupal_installation_attempted() ? FALSE : Settings::get('twig_cache', TRUE),
         // @todo Remove in followup issue
         // @see http://drupal.org/node/1712444.
         'autoescape' => FALSE,
-        // @todo Remove in followup issue
-        // @see http://drupal.org/node/1806538.
-        'strict_variables' => FALSE,
-        'debug' => settings()->get('twig_debug', FALSE),
-        'auto_reload' => settings()->get('twig_auto_reload', NULL),
+        'debug' => Settings::get('twig_debug', FALSE),
+        'auto_reload' => Settings::get('twig_auto_reload', NULL),
       ))
       ->addArgument(new Reference('module_handler'))
       ->addArgument(new Reference('theme_handler'))

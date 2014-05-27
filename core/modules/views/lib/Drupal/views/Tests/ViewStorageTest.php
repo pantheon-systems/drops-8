@@ -8,7 +8,7 @@
 namespace Drupal\views\Tests;
 
 use Drupal\Core\Entity\EntityTypeInterface;
-use Drupal\views\ViewStorageController;
+use Drupal\Core\Config\Entity\ConfigEntityStorage;
 use Drupal\views\Entity\View;
 use Drupal\views\Plugin\views\display\Page;
 use Drupal\views\Plugin\views\display\DefaultDisplay;
@@ -16,10 +16,10 @@ use Drupal\views\Plugin\views\display\Feed;
 use Drupal\views\Views;
 
 /**
- * Tests the functionality of View and ViewStorageController.
+ * Tests the functionality of View and ConfigEntityStorage.
  *
  * @see \Drupal\views\Entity\View
- * @see \Drupal\views\ViewStorageController
+ * @see \Drupal\Core\Config\Entity\ConfigEntityStorage
  */
 class ViewStorageTest extends ViewUnitTestBase {
 
@@ -48,9 +48,9 @@ class ViewStorageTest extends ViewUnitTestBase {
   protected $entityType;
 
   /**
-   * The configuration entity storage controller.
+   * The configuration entity storage.
    *
-   * @var \Drupal\views\ViewStorageController
+   * @var \Drupal\Core\Config\Entity\ConfigEntityStorage
    */
   protected $controller;
 
@@ -75,13 +75,10 @@ class ViewStorageTest extends ViewUnitTestBase {
   function testConfigurationEntityCRUD() {
     // Get the configuration entity type and controller.
     $this->entityType = \Drupal::entityManager()->getDefinition('view');
-    $this->controller = $this->container->get('entity.manager')->getStorageController('view');
+    $this->controller = $this->container->get('entity.manager')->getStorage('view');
 
     // Confirm that an info array has been returned.
     $this->assertTrue($this->entityType instanceof EntityTypeInterface, 'The View info array is loaded.');
-
-    // Confirm we have the correct controller class.
-    $this->assertTrue($this->controller instanceof ViewStorageController, 'The correct controller is loaded.');
 
     // CRUD tests.
     $this->loadTests();
@@ -242,6 +239,17 @@ class ViewStorageTest extends ViewUnitTestBase {
     $id = $view->addDisplay('page');
     $display = $view->get('display');
     $this->assertEqual($display[$id]['display_title'], 'Page 3');
+
+    // Ensure the 'default' display always has position zero, regardless of when
+    // it was created relative to other displays.
+    $displays = $view->get('display');
+    $displays['default']['deleted'] = TRUE;
+    $view->set('display', $displays);
+    $view->set('id', $this->randomName());
+    $view->save();
+    $view->addDisplay('default', $random_title);
+    $displays = $view->get('display');
+    $this->assertEqual($displays['default']['position'], 0, 'Default displays are always in position zero');
 
     // Tests Drupal\views\Entity\View::generateDisplayId().
     // @todo Sadly this method is not public so it cannot be tested.

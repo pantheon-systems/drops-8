@@ -29,48 +29,20 @@ interface ImageInterface {
   public function isExisting();
 
   /**
-   * Returns the extension of the image file.
+   * Returns the height of the image.
    *
-   * @return string
-   *   The extension of the file, or an empty string if the file is invalid.
-   */
-  public function getExtension();
-
-  /**
-   * Returns the height of the image file.
-   *
-   * @return int
-   *   The height of the file, or 0 if the file is invalid.
+   * @return int|null
+   *   The height of the image, or NULL if the image is invalid.
    */
   public function getHeight();
 
   /**
-   * Sets the height of the image file.
+   * Returns the width of the image.
    *
-   * @param int $height
-   *
-   * @return self
-   *   Returns this image file.
-   */
-  public function setHeight($height);
-
-  /**
-   * Returns the width of the image file.
-   *
-   * @return int
-   *   The width of the file, or 0 if the file is invalid.
+   * @return int|null
+   *   The width of the image, or NULL if the image is invalid.
    */
   public function getWidth();
-
-  /**
-   * Sets the width of the image file.
-   *
-   * @param int $width
-   *
-   * @return self
-   *   Returns this image file.
-   */
-  public function setWidth($width);
 
   /**
    * Returns the size of the image file.
@@ -93,7 +65,8 @@ interface ImageInterface {
    * Returns the MIME type of the image file.
    *
    * @return string
-   *   The MIME type of the file, or an empty string if the file is invalid.
+   *   The MIME type of the image file, or an empty string if the image is
+   *   invalid.
    */
   public function getMimeType();
 
@@ -119,7 +92,7 @@ interface ImageInterface {
   /**
    * Returns the image toolkit used for this image file.
    *
-   * @return string
+   * @return \Drupal\Core\ImageToolkit\ImageToolkitInterface
    *   The image toolkit.
    */
   public function getToolkit();

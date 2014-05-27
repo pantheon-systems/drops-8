@@ -32,21 +32,6 @@ function config_translation_help($path) {
 }
 
 /**
- * Implements hook_menu_link_defaults().
- */
-function config_translation_menu_link_defaults() {
-  $links['config_translation.admin.config-translation'] = array(
-    'link_title' => 'Configuration translation',
-    'parent' => 'system.admin.config.regional',
-    'description' => 'Translate the configuration.',
-    'route_name' => 'config_translation.mapper_list',
-    'weight' => 30,
-  );
-
-  return $links;
-}
-
-/**
  * Implements hook_permission().
  */
 function config_translation_permission() {
@@ -71,6 +56,28 @@ function config_translation_theme() {
 }
 
 /**
+ * Implements hook_themes_enabled().
+ */
+function config_translation_themes_enabled() {
+  // Themes can provide *.config_translation.yml declarations.
+  // @todo Make ThemeHandler trigger an event instead and make
+  //   ConfigMapperManager plugin manager subscribe to it.
+  // @see https://drupal.org/node/2206347
+  \Drupal::service('plugin.manager.config_translation.mapper')->clearCachedDefinitions();
+}
+
+/**
+ * Implements hook_themes_disabled().
+ */
+function config_translation_themes_disabled() {
+  // Themes can provide *.config_translation.yml declarations.
+  // @todo Make ThemeHandler trigger an event instead and make
+  //   ConfigMapperManager plugin manager subscribe to it.
+  // @see https://drupal.org/node/2206347
+  \Drupal::service('plugin.manager.config_translation.mapper')->clearCachedDefinitions();
+}
+
+/**
  * Implements hook_entity_type_alter().
  */
 function config_translation_entity_type_alter(array &$entity_types) {
@@ -78,15 +85,15 @@ function config_translation_entity_type_alter(array &$entity_types) {
   foreach ($entity_types as $entity_type_id => $entity_type) {
     if ($entity_type->isSubclassOf('Drupal\Core\Config\Entity\ConfigEntityInterface')) {
       if ($entity_type_id == 'block') {
-        $class = 'Drupal\config_translation\Controller\ConfigTranslationBlockListController';
+        $class = 'Drupal\config_translation\Controller\ConfigTranslationBlockListBuilder';
       }
       elseif ($entity_type_id == 'field_instance_config') {
-        $class = 'Drupal\config_translation\Controller\ConfigTranslationFieldInstanceListController';
+        $class = 'Drupal\config_translation\Controller\ConfigTranslationFieldInstanceListBuilder';
         // Will be filled in dynamically, see \Drupal\field\Entity\FieldInstanceConfig::linkTemplates().
         $entity_type->setLinkTemplate('drupal:config-translation-overview', 'config_translation.item.overview.');
       }
       else {
-        $class = 'Drupal\config_translation\Controller\ConfigTranslationEntityListController';
+        $class = 'Drupal\config_translation\Controller\ConfigTranslationEntityListBuilder';
       }
       $entity_type->setControllerClass('config_translation_list', $class);
 
@@ -159,15 +166,18 @@ function config_translation_config_translation_info(&$info) {
 }
 
 /**
- * Implements hook_entity_operation_alter().
+ * Implements hook_entity_operation().
  */
-function config_translation_entity_operation_alter(array &$operations, EntityInterface $entity) {
+function config_translation_entity_operation(EntityInterface $entity) {
+  $operations = array();
   if (\Drupal::currentUser()->hasPermission('translate configuration')) {
     $operations['translate'] = array(
       'title' => t('Translate'),
       'weight' => 50,
-    ) + $entity->urlInfo('drupal:config-translation-overview');
+    ) + $entity->urlInfo('drupal:config-translation-overview')->toArray();
   }
+
+  return $operations;
 }
 
 /**

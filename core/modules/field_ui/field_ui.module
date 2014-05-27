@@ -6,6 +6,7 @@
  */
 
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Render\Element;
 use Drupal\entity\EntityViewModeInterface;
 use Drupal\field_ui\FieldUI;
 use Drupal\field_ui\Plugin\Derivative\FieldUiLocalTask;
@@ -50,20 +51,6 @@ function field_ui_help($path, $arg) {
     case 'admin/reports/fields':
       return '<p>' . t('This list shows all fields currently in use for easy reference.') . '</p>';
   }
-}
-
-/**
- * Implements hook_menu_link_defaults().
- */
-function field_ui_menu_link_defaults() {
-  $links['field_ui.admin.reports.fields'] = array(
-    'link_title' => 'Field list',
-    'description' => 'Overview of fields on all entity types.',
-    'route_name' => 'field_ui.list',
-    'parent' => 'system.admin.reports',
-  );
-
-  return $links;
 }
 
 /**
@@ -121,7 +108,8 @@ function field_ui_element_info() {
 function field_ui_entity_type_build(array &$entity_types) {
   /** @var $entity_types \Drupal\Core\Entity\EntityTypeInterface[] */
   $entity_types['field_instance_config']->setFormClass('delete', 'Drupal\field_ui\Form\FieldInstanceConfigDeleteForm');
-  $entity_types['field_config']->setListClass('Drupal\field_ui\FieldConfigListController');
+  $entity_types['field_instance_config']->setListBuilderClass('Drupal\field_ui\FieldInstanceConfigListBuilder');
+  $entity_types['field_config']->setListBuilderClass('Drupal\field_ui\FieldConfigListBuilder');
 
   foreach ($entity_types as $entity_type) {
     if ($bundle = $entity_type->getBundleOf()) {
@@ -172,9 +160,10 @@ function field_ui_form_node_type_form_alter(&$form, $form_state) {
 }
 
 /**
- * Implements hook_entity_operation_alter().
+ * Implements hook_entity_operation().
  */
-function field_ui_entity_operation_alter(array &$operations, EntityInterface $entity) {
+function field_ui_entity_operation(EntityInterface $entity) {
+  $operations = array();
   $info = $entity->getEntityType();
   // Add manage fields and display links if this entity type is the bundle
   // of another.
@@ -183,21 +172,23 @@ function field_ui_entity_operation_alter(array &$operations, EntityInterface $en
       $operations['manage-fields'] = array(
         'title' => t('Manage fields'),
         'weight' => 15,
-      ) + $entity->urlInfo('field_ui-fields');
+      ) + $entity->urlInfo('field_ui-fields')->toArray();
     }
     if (user_access('administer '. $bundle_of . ' form display')) {
       $operations['manage-form-display'] = array(
         'title' => t('Manage form display'),
         'weight' => 20,
-      ) + $entity->urlInfo('field_ui-form-display');
+      ) + $entity->urlInfo('field_ui-form-display')->toArray();
     }
     if (user_access('administer '. $bundle_of . ' display')) {
       $operations['manage-display'] = array(
         'title' => t('Manage display'),
         'weight' => 25,
-      ) + $entity->urlInfo('field_ui-display');
+      ) + $entity->urlInfo('field_ui-display')->toArray();
     }
   }
+
+  return $operations;
 }
 
 /**
@@ -288,7 +279,7 @@ function theme_field_ui_table($variables) {
       }
 
       // Render children as table cells.
-      foreach (element_children($element) as $cell_key) {
+      foreach (Element::children($element) as $cell_key) {
         $child = &$element[$cell_key];
         // Do not render a cell for children of #type 'value'.
         if (!(isset($child['#type']) && $child['#type'] == 'value')) {

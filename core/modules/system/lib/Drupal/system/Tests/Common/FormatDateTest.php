@@ -42,7 +42,7 @@ class FormatDateTest extends WebTestBase {
       ->set('timezone.user.configurable', 1)
       ->save();
     $formats = $this->container->get('entity.manager')
-      ->getStorageController('date_format')
+      ->getStorage('date_format')
       ->loadMultiple(array('long', 'medium', 'short'));
     $formats['long']->setPattern('l, j. F Y - G:i')->save();
     $formats['medium']->setPattern('j. F Y - G:i')->save();
@@ -128,7 +128,7 @@ class FormatDateTest extends WebTestBase {
     $this->drupalPostForm('user/' . $test_user->id() . '/edit', $edit, t('Save'));
 
     // Disable session saving as we are about to modify the global $user.
-    drupal_save_session(FALSE);
+    \Drupal::service('session_manager')->disable();
     // Save the original user and language and then replace it with the test user and language.
     $real_user = $user;
     $user = user_load($test_user->id(), TRUE);
@@ -158,6 +158,6 @@ class FormatDateTest extends WebTestBase {
     $language_interface->id = $real_language;
     // Restore default time zone.
     date_default_timezone_set(drupal_get_user_timezone());
-    drupal_save_session(TRUE);
+    \Drupal::service('session_manager')->enable();
   }
 }

@@ -8,7 +8,6 @@
 namespace Drupal\Core\EventSubscriber;
 
 use Drupal\Core\Extension\ModuleHandlerInterface;
-use Drupal\Core\Extension\CachedModuleHandlerInterface;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\HttpKernel\Event\PostResponseEvent;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -42,10 +41,7 @@ class RequestCloseSubscriber implements EventSubscriberInterface {
    *   The Event to process.
    */
   public function onTerminate(PostResponseEvent $event) {
-    if ($this->moduleHandler instanceof CachedModuleHandlerInterface) {
-      $this->moduleHandler->writeCache();
-    }
-    system_run_automated_cron();
+    $this->moduleHandler->writeCache();
   }
 
   /**

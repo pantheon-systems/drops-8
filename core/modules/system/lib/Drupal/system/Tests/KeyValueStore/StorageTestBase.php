@@ -54,7 +54,7 @@ abstract class StorageTestBase extends UnitTestBase {
     $this->container->set('service_container', $this->container);
     $this->container->register('settings', 'Drupal\Component\Utility\Settings')
       ->setFactoryClass('Drupal\Component\Utility\Settings')
-      ->setFactoryMethod('getSingleton');
+      ->setFactoryMethod('getInstance');
     $this->container
       ->register('keyvalue', 'Drupal\Core\KeyValueStore\KeyValueFactory')
       ->addArgument(new Reference('service_container'))
@@ -83,8 +83,10 @@ abstract class StorageTestBase extends UnitTestBase {
 
     // Verify that an item can be stored.
     $stores[0]->set('foo', $this->objects[0]);
+    $this->assertTrue($stores[0]->has('foo'));
     $this->assertIdenticalObject($this->objects[0], $stores[0]->get('foo'));
     // Verify that the other collection is not affected.
+    $this->assertFalse($stores[1]->has('foo'));
     $this->assertFalse($stores[1]->get('foo'));
 
     // Verify that an item can be updated.
@@ -100,9 +102,11 @@ abstract class StorageTestBase extends UnitTestBase {
 
     // Verify that an item can be deleted.
     $stores[0]->delete('foo');
+    $this->assertFalse($stores[0]->has('foo'));
     $this->assertFalse($stores[0]->get('foo'));
 
     // Verify that the other collection is not affected.
+    $this->assertTrue($stores[1]->has('foo'));
     $this->assertIdenticalObject($this->objects[2], $stores[1]->get('foo'));
     $stores[1]->delete('foo');
     $this->assertFalse($stores[1]->get('foo'));
@@ -199,6 +203,20 @@ abstract class StorageTestBase extends UnitTestBase {
     $this->assertIdenticalObject($this->objects[1], $stores[0]->get($key));
     // Verify that the other collection is still not affected.
     $this->assertFalse($stores[1]->get($key));
+  }
+
+  /**
+   * Tests the rename operation.
+   */
+  public function testRename() {
+    $stores = $this->createStorage();
+    $store = $stores[0];
+
+    $store->set('old', 'thing');
+    $this->assertIdentical($store->get('old'), 'thing');
+    $store->rename('old', 'new');
+    $this->assertIdentical($store->get('new'), 'thing');
+    $this->assertNull($store->get('old'));
   }
 
   /**

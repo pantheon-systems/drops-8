@@ -7,6 +7,7 @@
 
 namespace Drupal\system\Tests\Module;
 
+use Drupal\Core\Config\InstallStorage;
 use Drupal\Core\Database\Database;
 use Drupal\Core\Config\FileStorage;
 use Drupal\simpletest\WebTestBase;
@@ -95,7 +96,7 @@ abstract class ModuleTestBase extends WebTestBase {
    *   TRUE if configuration has been installed, FALSE otherwise.
    */
   function assertModuleConfig($module) {
-    $module_config_dir = drupal_get_path('module', $module) . '/config';
+    $module_config_dir = drupal_get_path('module', $module) . '/'. InstallStorage::CONFIG_INSTALL_DIRECTORY;
     if (!is_dir($module_config_dir)) {
       return;
     }
@@ -193,6 +194,6 @@ abstract class ModuleTestBase extends WebTestBase {
       ->countQuery()
       ->execute()
       ->fetchField();
-    $this->assertTrue($count > 0, format_string('watchdog table contains @count rows for @message', array('@count' => $count, '@message' => $message)));
+    $this->assertTrue($count > 0, format_string('watchdog table contains @count rows for @message', array('@count' => $count, '@message' => format_string($message, $variables))));
   }
 }

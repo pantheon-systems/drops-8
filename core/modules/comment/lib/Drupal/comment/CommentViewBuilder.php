@@ -98,7 +98,7 @@ class CommentViewBuilder extends EntityViewBuilder {
     foreach ($entities as $entity) {
       $uids[] = $entity->getOwnerId();
     }
-    $this->entityManager->getStorageController('user')->loadMultiple(array_unique($uids));
+    $this->entityManager->getStorage('user')->loadMultiple(array_unique($uids));
 
     parent::buildContent($entities, $displays, $view_mode, $langcode);
 
@@ -111,7 +111,7 @@ class CommentViewBuilder extends EntityViewBuilder {
     // Load entities in bulk. This is more performant than using
     // $comment->getCommentedEntity() as we can load them in bulk per type.
     foreach ($commented_entity_ids as $entity_type => $entity_ids) {
-      $commented_entities[$entity_type] = $this->entityManager->getStorageController($entity_type)->loadMultiple($entity_ids);
+      $commented_entities[$entity_type] = $this->entityManager->getStorage($entity_type)->loadMultiple($entity_ids);
     }
 
     foreach ($entities as $entity) {
@@ -241,14 +241,14 @@ class CommentViewBuilder extends EntityViewBuilder {
           'html' => TRUE,
         );
       }
-      if (empty($links)) {
+      if (empty($links) && \Drupal::currentUser()->isAnonymous()) {
         $links['comment-forbidden']['title'] = \Drupal::service('comment.manager')->forbiddenMessage($commented_entity, $entity->getFieldName());
         $links['comment-forbidden']['html'] = TRUE;
       }
     }
 
     // Add translations link for translation-enabled comment bundles.
-    if ($container->get('module_handler')->moduleExists('content_translation') && content_translation_translate_access($entity)) {
+    if (\Drupal::moduleHandler()->moduleExists('content_translation') && content_translation_translate_access($entity)) {
       $links['comment-translations'] = array(
         'title' => t('Translate'),
         'href' => 'comment/' . $entity->id() . '/translations',
@@ -318,7 +318,7 @@ class CommentViewBuilder extends EntityViewBuilder {
       return $element;
     }
     $entity = \Drupal::entityManager()
-      ->getStorageController($context['entity_type'])
+      ->getStorage($context['entity_type'])
       ->load($context['entity_id']);
     $field_name = $context['field_name'];
     $query = comment_new_page_count($entity->{$field_name}->comment_count, $new, $entity);

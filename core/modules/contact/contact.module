@@ -52,26 +52,6 @@ function contact_permission() {
 }
 
 /**
- * Implements hook_menu_link_defaults().
- */
-function contact_menu_link_defaults() {
-  $links['contact.admin.categories'] = array(
-    'link_title' => 'Contact form categories',
-    'parent' => 'system.admin.structure',
-    'description' => 'Create a system contact form and set up categories for the form to use.',
-    'route_name' => 'contact.category_list',
-  );
-
-  $links['contact.site_page'] = array(
-    'link_title' => 'Contact',
-    'route_name' => 'contact.site_page',
-    'menu_name' => 'footer',
-    'type' => MENU_SUGGESTED_ITEM,
-  );
-  return $links;
-}
-
-/**
  * Implements hook_entity_type_alter().
  */
 function contact_entity_type_alter(array &$entity_types) {
@@ -92,9 +72,9 @@ function contact_entity_bundle_info() {
 }
 
 /**
- * Implements hook_field_extra_fields().
+ * Implements hook_entity_extra_field_info().
  */
-function contact_field_extra_fields() {
+function contact_entity_extra_field_info() {
   $fields = array();
   foreach (array_keys(entity_get_bundles('contact_message')) as $bundle) {
     $fields['contact_message'][$bundle]['form']['name'] = array(
@@ -228,7 +208,9 @@ function contact_form_user_form_alter(&$form, &$form_state) {
     '#weight' => 5,
   );
   $account = $form_state['controller']->getEntity();
-  $account_data = !\Drupal::currentUser()->isAnonymous() ? \Drupal::service('user.data')->get('contact', $account->id(), 'enabled') : NULL;
+  if (!\Drupal::currentUser()->isAnonymous() && $account->id()) {
+    $account_data = \Drupal::service('user.data')->get('contact', $account->id(), 'enabled');
+  }
   $form['contact']['contact'] = array(
     '#type' => 'checkbox',
     '#title' => t('Personal contact form'),

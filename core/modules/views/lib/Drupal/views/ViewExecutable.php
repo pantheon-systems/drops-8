@@ -332,7 +332,7 @@ class ViewExecutable extends DependencySerialization {
   /**
    * Stores the current response object.
    *
-   * @var Symfony\Component\HttpFoundation\Response
+   * @var \Symfony\Component\HttpFoundation\Response
    */
   protected $response = NULL;
 
@@ -786,7 +786,7 @@ class ViewExecutable extends DependencySerialization {
   public function initHandlers() {
     $this->initDisplay();
     if (empty($this->inited)) {
-      foreach ($this::viewsHandlerTypes() as $key => $info) {
+      foreach ($this::getHandlerTypes() as $key => $info) {
         $this->_initHandler($key, $info);
       }
       $this->inited = TRUE;
@@ -863,7 +863,7 @@ class ViewExecutable extends DependencySerialization {
    * Run the preQuery() on all active handlers.
    */
   protected function _preQuery() {
-    foreach ($this::viewsHandlerTypes() as $key => $info) {
+    foreach ($this::getHandlerTypes() as $key => $info) {
       $handlers = &$this->$key;
       $position = 0;
       foreach ($handlers as $id => $handler) {
@@ -878,7 +878,7 @@ class ViewExecutable extends DependencySerialization {
    * Run the postExecute() on all active handlers.
    */
   protected function _postExecute() {
-    foreach ($this::viewsHandlerTypes() as $key => $info) {
+    foreach ($this::getHandlerTypes() as $key => $info) {
       $handlers = &$this->$key;
       foreach ($handlers as $id => $handler) {
         $handlers[$id]->postExecute($this->result);
@@ -892,7 +892,7 @@ class ViewExecutable extends DependencySerialization {
    * @param $key
    *   One of 'argument', 'field', 'sort', 'filter', 'relationship'
    * @param $info
-   *   The $info from viewsHandlerTypes for this object.
+   *   The $info from getHandlerTypes for this object.
    */
   protected function _initHandler($key, $info) {
     // Load the requested items from the display onto the object.
@@ -1770,7 +1770,7 @@ class ViewExecutable extends DependencySerialization {
    * collected.
    */
   public function destroy() {
-    foreach ($this::viewsHandlerTypes() as $type => $info) {
+    foreach ($this::getHandlerTypes() as $type => $info) {
       if (isset($this->$type)) {
         foreach ($this->{$type} as $handler) {
           $handler->destroy();
@@ -1838,75 +1838,8 @@ class ViewExecutable extends DependencySerialization {
    *   - (optional) type: The actual internal used handler type. This key is
    *     just used for header,footer,empty to link to the internal type: area.
    */
-  public static function viewsHandlerTypes() {
-    static $retval = NULL;
-
-    // Statically cache this so t() doesn't run a bajillion times.
-    if (!isset($retval)) {
-      $retval = array(
-        'field' => array(
-          'title' => t('Fields'), // title
-          'ltitle' => t('fields'), // lowercase title for mid-sentence
-          'stitle' => t('Field'), // singular title
-          'lstitle' => t('field'), // singular lowercase title for mid sentence
-          'plural' => 'fields',
-        ),
-        'argument' => array(
-          'title' => t('Contextual filters'),
-          'ltitle' => t('contextual filters'),
-          'stitle' => t('Contextual filter'),
-          'lstitle' => t('contextual filter'),
-          'plural' => 'arguments',
-        ),
-        'sort' => array(
-          'title' => t('Sort criteria'),
-          'ltitle' => t('sort criteria'),
-          'stitle' => t('Sort criterion'),
-          'lstitle' => t('sort criterion'),
-          'plural' => 'sorts',
-        ),
-        'filter' => array(
-          'title' => t('Filter criteria'),
-          'ltitle' => t('filter criteria'),
-          'stitle' => t('Filter criterion'),
-          'lstitle' => t('filter criterion'),
-          'plural' => 'filters',
-        ),
-        'relationship' => array(
-          'title' => t('Relationships'),
-          'ltitle' => t('relationships'),
-          'stitle' => t('Relationship'),
-          'lstitle' => t('Relationship'),
-          'plural' => 'relationships',
-        ),
-        'header' => array(
-          'title' => t('Header'),
-          'ltitle' => t('header'),
-          'stitle' => t('Header'),
-          'lstitle' => t('Header'),
-          'plural' => 'header',
-          'type' => 'area',
-        ),
-        'footer' => array(
-          'title' => t('Footer'),
-          'ltitle' => t('footer'),
-          'stitle' => t('Footer'),
-          'lstitle' => t('Footer'),
-          'plural' => 'footer',
-          'type' => 'area',
-        ),
-        'empty' => array(
-          'title' => t('No results behavior'),
-          'ltitle' => t('no results behavior'),
-          'stitle' => t('No results behavior'),
-          'lstitle' => t('No results behavior'),
-          'plural' => 'empty',
-          'type' => 'area',
-        ),
-      );
-    }
-
-    return $retval;
+  public static function getHandlerTypes() {
+    return Views::getHandlerTypes();
   }
 
   /**
@@ -1915,28 +1848,8 @@ class ViewExecutable extends DependencySerialization {
    * @return array
    *   An array of plugin type strings.
    */
-  public static function getPluginTypes() {
-    return array(
-      'access',
-      'area',
-      'argument',
-      'argument_default',
-      'argument_validator',
-      'cache',
-      'display_extender',
-      'display',
-      'exposed_form',
-      'field',
-      'filter',
-      'join',
-      'pager',
-      'query',
-      'relationship',
-      'row',
-      'sort',
-      'style',
-      'wizard',
-    );
+  public static function getPluginTypes($type = NULL) {
+    return Views::getPluginTypes($type);
   }
 
   /**
@@ -1962,7 +1875,7 @@ class ViewExecutable extends DependencySerialization {
    *   The unique ID for this handler instance.
    */
   public function addHandler($display_id, $type, $table, $field, $options = array(), $id = NULL) {
-    $types = $this::viewsHandlerTypes();
+    $types = $this::getHandlerTypes();
     $this->setDisplay($display_id);
 
     $fields = $this->displayHandlers->get($display_id)->getOption($types[$type]['plural']);
@@ -2040,7 +1953,7 @@ class ViewExecutable extends DependencySerialization {
     }
 
     // Get info about the types so we can get the right data.
-    $types = static::viewsHandlerTypes();
+    $types = static::getHandlerTypes();
     return $this->displayHandlers->get($display_id)->getOption($types[$type]['plural']);
   }
 
@@ -2060,7 +1973,7 @@ class ViewExecutable extends DependencySerialization {
    */
   public function getHandler($display_id, $type, $id) {
     // Get info about the types so we can get the right data.
-    $types = static::viewsHandlerTypes();
+    $types = static::getHandlerTypes();
     // Initialize the display
     $this->setDisplay($display_id);
 
@@ -2086,7 +1999,7 @@ class ViewExecutable extends DependencySerialization {
    */
   public function setHandler($display_id, $type, $id, $item) {
     // Get info about the types so we can get the right data.
-    $types = static::viewsHandlerTypes();
+    $types = static::getHandlerTypes();
     // Initialize the display.
     $this->setDisplay($display_id);
 
@@ -2112,7 +2025,7 @@ class ViewExecutable extends DependencySerialization {
    */
   public function removeHandler($display_id, $type, $id) {
     // Get info about the types so we can get the right data.
-    $types = static::viewsHandlerTypes();
+    $types = static::getHandlerTypes();
     // Initialize the display.
     $this->setDisplay($display_id);
 
@@ -2237,6 +2150,18 @@ class ViewExecutable extends DependencySerialization {
     }
 
     return FALSE;
+  }
+
+  /**
+   * Calculates dependencies for the view.
+   *
+   * @see \Drupal\views\Entity\View::calculateDependencies()
+   *
+   * @return array
+   *   An array of dependencies grouped by type (module, theme, entity).
+   */
+  public function calculateDependencies() {
+    return $this->storage->calculateDependencies();
   }
 
 }

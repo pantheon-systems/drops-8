@@ -84,20 +84,6 @@ function image_help($path, $arg) {
 }
 
 /**
- * Implements hook_menu_link_defaults().
- */
-function image_menu_link_defaults() {
-  $links['image.admin.media.image-styles'] = array(
-    'link_title' => 'Image styles',
-    'description' => 'Configure styles that can be used for resizing or adjusting images on display.',
-    'parent' => 'system.admin.config.media',
-    'route_name' => 'image.style_list',
-  );
-
-  return $links;
-}
-
-/**
  * Implements hook_theme().
  */
 function image_theme() {
@@ -390,12 +376,18 @@ function image_entity_presave(EntityInterface $entity) {
   $entity_type_id = $entity->getEntityTypeId();
   if ($entity_type_id == 'field_instance_config') {
     $field = $entity->getField();
+    $default_settings = \Drupal::service('plugin.manager.field.field_type')->getDefaultInstanceSettings('image');
   }
   elseif ($entity_type_id == 'field_config') {
     $field = $entity;
+    $default_settings = \Drupal::service('plugin.manager.field.field_type')->getDefaultSettings('image');
   }
   // Exit, if not saving an image field or image field instance entity.
   if (!$field || $field->type != 'image') {
+    return;
+  }
+
+  if ($field->isSyncing()) {
     return;
   }
 
@@ -403,20 +395,19 @@ function image_entity_presave(EntityInterface $entity) {
   if ($fid) {
     $original_fid = isset($entity->original) ? $entity->original->settings['default_image']['fid'] : NULL;
     if ($fid != $original_fid) {
-      $image = \Drupal::service('image.factory')->get(file_load($fid)->getFileUri());
-      $entity->settings['default_image']['width'] = $image->getWidth();
-      $entity->settings['default_image']['height'] = $image->getHeight();
+      $file = file_load($fid);
+      if ($file) {
+        $image = \Drupal::service('image.factory')->get($file->getFileUri());
+        $entity->settings['default_image']['width'] = $image->getWidth();
+        $entity->settings['default_image']['height'] = $image->getHeight();
+      }
+      else {
+        $entity->settings['default_image']['fid'] = NULL;
+      }
     }
   }
-  else {
-    $entity->settings['default_image'] = array(
-      'fid' => NULL,
-      'alt' => '',
-      'title' => '',
-      'width' => NULL,
-      'height' => NULL,
-    );
-  }
+
+  $entity->settings['default_image'] += $default_settings['default_image'];
 }
 
 /**

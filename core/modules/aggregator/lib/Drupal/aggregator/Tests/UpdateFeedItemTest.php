@@ -29,7 +29,7 @@ class UpdateFeedItemTest extends AggregatorTestBase {
     $feed = $this->createFeed();
     if (!empty($feed)) {
       $this->updateFeedItems($feed, $this->getDefaultFeedItemCount());
-      $this->removeFeedItems($feed);
+      $this->deleteFeedItems($feed);
     }
 
     // Delete feed.
@@ -37,20 +37,20 @@ class UpdateFeedItemTest extends AggregatorTestBase {
 
     // Test updating feed items without valid timestamp information.
     $edit = array(
-      'title' => "Feed without publish timestamp",
-      'url' => $this->getRSS091Sample(),
+      'title[0][value]' => "Feed without publish timestamp",
+      'url[0][value]' => $this->getRSS091Sample(),
     );
 
-    $this->drupalGet($edit['url']);
-    $this->assertResponse(array(200), format_string('URL !url is accessible', array('!url' => $edit['url'])));
+    $this->drupalGet($edit['url[0][value]']);
+    $this->assertResponse(array(200), format_string('URL !url is accessible', array('!url' => $edit['url[0][value]'])));
 
-    $this->drupalPostForm('admin/config/services/aggregator/add/feed', $edit, t('Save'));
-    $this->assertRaw(t('The feed %name has been added.', array('%name' => $edit['title'])), format_string('The feed !name has been added.', array('!name' => $edit['title'])));
+    $this->drupalPostForm('aggregator/sources/add', $edit, t('Save'));
+    $this->assertRaw(t('The feed %name has been added.', array('%name' => $edit['title[0][value]'])), format_string('The feed !name has been added.', array('!name' => $edit['title[0][value]'])));
 
-    $fid = db_query("SELECT fid FROM {aggregator_feed} WHERE url = :url", array(':url' => $edit['url']))->fetchField();
+    $fid = db_query("SELECT fid FROM {aggregator_feed} WHERE url = :url", array(':url' => $edit['url[0][value]']))->fetchField();
     $feed = aggregator_feed_load($fid);
 
-    aggregator_refresh($feed);
+    $feed->refreshItems();
     $before = db_query('SELECT timestamp FROM {aggregator_item} WHERE fid = :fid', array(':fid' => $feed->id()))->fetchField();
 
     // Sleep for 3 second.
@@ -64,7 +64,7 @@ class UpdateFeedItemTest extends AggregatorTestBase {
         'modified' => 0,
       ))
       ->execute();
-    aggregator_refresh($feed);
+    $feed->refreshItems();
 
     $after = db_query('SELECT timestamp FROM {aggregator_item} WHERE fid = :fid', array(':fid' => $feed->id()))->fetchField();
     $this->assertTrue($before === $after, format_string('Publish timestamp of feed item was not updated (!before === !after)', array('!before' => $before, '!after' => $after)));

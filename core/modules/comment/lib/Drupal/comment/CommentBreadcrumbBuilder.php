@@ -51,10 +51,9 @@ class CommentBreadcrumbBuilder extends BreadcrumbBuilderBase {
 
     $breadcrumb[] = $this->l($this->t('Home'), '<front>');
     $entity = $this->entityManager
-      ->getStorageController($attributes['entity_type'])
+      ->getStorage($attributes['entity_type'])
       ->load($attributes['entity_id']);
-    $uri = $entity->urlInfo();
-    $breadcrumb[] = \Drupal::l($entity->label(), $uri['route_name'], $uri['route_parameters'], $uri['options']);
+    $breadcrumb[] = \Drupal::linkGenerator()->generateFromUrl($entity->label(), $entity->urlInfo());
     return $breadcrumb;
   }
 

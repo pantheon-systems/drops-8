@@ -1,0 +1,20 @@
+id: taxonomy_term.forum_container
+status: true
+langcode: en
+name: forum_container
+type: list_boolean
+settings:
+  allowed_values:
+    - ''
+    - ''
+  allowed_values_function: ''
+module: options
+entity_type: taxonomy_term
+locked: true
+cardinality: 1
+translatable: false
+indexes: {  }
+dependencies:
+  module:
+    - options
+    - taxonomy

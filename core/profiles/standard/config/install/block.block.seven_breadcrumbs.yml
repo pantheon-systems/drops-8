@@ -1,0 +1,26 @@
+id: seven_breadcrumbs
+theme: seven
+weight: -2
+status: false
+langcode: en
+region: '-1'
+plugin: system_breadcrumb_block
+settings:
+  label: Breadcrumbs
+  provider: system
+  label_display: '0'
+visibility:
+  path:
+    visibility: 0
+    pages: ''
+  role:
+    roles: {  }
+  node_type:
+    types:
+      article: '0'
+      page: '0'
+dependencies:
+  module:
+    - system
+  theme:
+    - seven

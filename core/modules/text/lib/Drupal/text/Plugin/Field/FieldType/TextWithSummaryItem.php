@@ -7,7 +7,7 @@
 
 namespace Drupal\text\Plugin\Field\FieldType;
 
-use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\TypedData\DataDefinition;
 
 /**
@@ -17,10 +17,6 @@ use Drupal\Core\TypedData\DataDefinition;
  *   id = "text_with_summary",
  *   label = @Translation("Long text and summary"),
  *   description = @Translation("This field stores long text in the database along with optional summary text."),
- *   instance_settings = {
- *     "text_processing" = "1",
- *     "display_summary" = "0"
- *   },
  *   default_widget = "text_textarea_with_summary",
  *   default_formatter = "text_default"
  * )
@@ -30,7 +26,17 @@ class TextWithSummaryItem extends TextItemBase {
   /**
    * {@inheritdoc}
    */
-  public static function propertyDefinitions(FieldDefinitionInterface $field_definition) {
+  public static function defaultInstanceSettings() {
+    return array(
+      'text_processing' => 1,
+      'display_summary' => 0,
+    ) + parent::defaultInstanceSettings();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function propertyDefinitions(FieldStorageDefinitionInterface $field_definition) {
     $properties = parent::propertyDefinitions($field_definition);
 
     $properties['summary'] = DataDefinition::create('string')
@@ -49,7 +55,7 @@ class TextWithSummaryItem extends TextItemBase {
   /**
    * {@inheritdoc}
    */
-  public static function schema(FieldDefinitionInterface $field_definition) {
+  public static function schema(FieldStorageDefinitionInterface $field_definition) {
     return array(
       'columns' => array(
         'value' => array(

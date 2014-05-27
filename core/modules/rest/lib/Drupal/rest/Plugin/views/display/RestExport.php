@@ -8,7 +8,7 @@
 namespace Drupal\rest\Plugin\views\display;
 
 
-use Drupal\Core\KeyValueStore\StateInterface;
+use Drupal\Core\State\StateInterface;
 use Drupal\Core\Routing\RouteProviderInterface;
 use Drupal\Core\ContentNegotiation;
 use Drupal\views\ViewExecutable;
@@ -93,18 +93,18 @@ class RestExport extends PathPluginBase {
    *   A configuration array containing information about the plugin instance.
    * @param string $plugin_id
    *   The plugin_id for the plugin instance.
-   * @param array $plugin_definition
+   * @param mixed $plugin_definition
    *   The plugin implementation definition.
    * @param \Drupal\Core\Routing\RouteProviderInterface $route_provider
    *   The route provider
-   * @param \Drupal\Core\KeyValueStore\StateInterface $state
+   * @param \Drupal\Core\State\StateInterface $state
    *   The state key value store.
    * @param \Drupal\Core\ContentNegotiation $content_negotiation
    *   The content negotiation library.
    * @param \Symfony\Component\HttpFoundation\Request $request
    *   The request object.
    */
-  public function __construct(array $configuration, $plugin_id, array $plugin_definition, RouteProviderInterface $route_provider, StateInterface $state, ContentNegotiation $content_negotiation, Request $request) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, RouteProviderInterface $route_provider, StateInterface $state, ContentNegotiation $content_negotiation, Request $request) {
     parent::__construct($configuration, $plugin_id, $plugin_definition, $route_provider, $state);
     $this->contentNegotiation = $content_negotiation;
     $this->request = $request;
@@ -113,7 +113,7 @@ class RestExport extends PathPluginBase {
   /**
    * {@inheritdoc}
    */
-  public static function create(ContainerInterface $container, array $configuration, $plugin_id, array $plugin_definition) {
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
     return new static(
       $configuration,
       $plugin_id,

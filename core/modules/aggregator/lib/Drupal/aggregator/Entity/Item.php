@@ -8,7 +8,7 @@
 namespace Drupal\aggregator\Entity;
 
 use Drupal\Core\Entity\ContentEntityBase;
-use Drupal\Core\Entity\EntityStorageControllerInterface;
+use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\aggregator\ItemInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\FieldDefinition;
@@ -20,7 +20,7 @@ use Drupal\Core\Field\FieldDefinition;
  *   id = "aggregator_item",
  *   label = @Translation("Aggregator feed item"),
  *   controllers = {
- *     "storage" = "Drupal\aggregator\ItemStorageController",
+ *     "storage" = "Drupal\aggregator\ItemStorage",
  *     "view_builder" = "Drupal\aggregator\ItemViewBuilder"
  *   },
  *   base_table = "aggregator_item",
@@ -32,13 +32,6 @@ use Drupal\Core\Field\FieldDefinition;
  * )
  */
 class Item extends ContentEntityBase implements ItemInterface {
-
-  /**
-   * Implements Drupal\Core\Entity\EntityInterface::id().
-   */
-  public function id() {
-    return $this->get('iid')->value;
-  }
 
   /**
    * Implements Drupal\Core\Entity\EntityInterface::label().
@@ -54,7 +47,8 @@ class Item extends ContentEntityBase implements ItemInterface {
     $fields['iid'] = FieldDefinition::create('integer')
       ->setLabel(t('Aggregator item ID'))
       ->setDescription(t('The ID of the feed item.'))
-      ->setReadOnly(TRUE);
+      ->setReadOnly(TRUE)
+      ->setSetting('unsigned', TRUE);
 
     $fields['fid'] = FieldDefinition::create('entity_reference')
       ->setLabel(t('Aggregator feed ID'))

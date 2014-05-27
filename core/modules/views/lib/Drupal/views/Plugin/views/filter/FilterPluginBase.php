@@ -7,6 +7,7 @@
 
 namespace Drupal\views\Plugin\views\filter;
 
+use Drupal\Core\Render\Element;
 use Drupal\views\Plugin\views\HandlerBase;
 use Drupal\Component\Utility\String as UtilityString;
 use Drupal\views\Plugin\views\display\DisplayPluginBase;
@@ -355,7 +356,7 @@ abstract class FilterPluginBase extends HandlerBase {
     // these defaults from getting wiped out. This setting will only be TRUE
     // during a 2nd pass rerender.
     if (!empty($form_state['force_build_group_options'])) {
-      foreach (element_children($form['group_info']) as $id) {
+      foreach (Element::children($form['group_info']) as $id) {
         if (isset($form['group_info'][$id]['#default_value']) && !isset($form['group_info'][$id]['#value'])) {
           $form['group_info'][$id]['#value'] = $form['group_info'][$id]['#default_value'];
         }
@@ -399,6 +400,7 @@ abstract class FilterPluginBase extends HandlerBase {
         '#type' => 'submit',
         '#value' => t('Grouped filters'),
         '#submit' => array(array($this, 'buildGroupForm')),
+        '#attributes' => array('class' => array('use-ajax-submit')),
       );
       $form['group_button']['radios']['radios']['#default_value'] = 0;
     }
@@ -408,6 +410,7 @@ abstract class FilterPluginBase extends HandlerBase {
         '#type' => 'submit',
         '#value' => t('Single filter'),
         '#submit' => array(array($this, 'buildGroupForm')),
+        '#attributes' => array('class' => array('use-ajax-submit')),
       );
       $form['group_button']['radios']['radios']['#default_value'] = 1;
     }
@@ -468,6 +471,7 @@ abstract class FilterPluginBase extends HandlerBase {
         '#type' => 'submit',
         '#value' => t('Expose filter'),
         '#submit' => array(array($this, 'displayExposedForm')),
+        '#attributes' => array('class' => array('use-ajax-submit')),
       );
       $form['expose_button']['checkbox']['checkbox']['#default_value'] = 0;
     }
@@ -480,6 +484,7 @@ abstract class FilterPluginBase extends HandlerBase {
         '#type' => 'submit',
         '#value' => t('Hide filter'),
         '#submit' => array(array($this, 'displayExposedForm')),
+        '#attributes' => array('class' => array('use-ajax-submit')),
       );
       $form['expose_button']['checkbox']['checkbox']['#default_value'] = 1;
     }
@@ -965,7 +970,7 @@ abstract class FilterPluginBase extends HandlerBase {
       // from to 'Between', 'Not Between', etc, and two or more widgets
       // are displayed.
       $without_children = TRUE;
-      foreach (element_children($row['value']) as $children) {
+      foreach (Element::children($row['value']) as $children) {
         $has_state = FALSE;
         $states = array();
         foreach ($row['value'][$children]['#states']['visible'] as $key => $state) {
@@ -1061,6 +1066,7 @@ abstract class FilterPluginBase extends HandlerBase {
       '#type' => 'submit',
       '#value' => t('Add another item'),
       '#submit' => array(array($this, 'addGroupForm')),
+      '#attributes' => array('class' => array('use-ajax-submit')),
     );
 
     $js = array();

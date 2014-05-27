@@ -88,10 +88,11 @@ class BreadcrumbTest extends MenuTestBase {
     );
     $this->assertBreadcrumb('admin/structure/menu/manage/tools', $trail);
 
-    $mlid_node_add = db_query('SELECT mlid FROM {menu_links} WHERE link_path = :href AND module = :module', array(
-      ':href' => 'node/add',
-      ':module' => 'system',
-    ))->fetchField();
+    $mlid_node_add = \Drupal::entityQuery('menu_link')
+      ->condition('machine_name', 'node.add_page')
+      ->condition('module', 'node')
+      ->execute();
+    $mlid_node_add = reset($mlid_node_add);
     $trail += array(
       'admin/structure/menu/manage/tools' => t('Tools'),
     );
@@ -137,7 +138,7 @@ class BreadcrumbTest extends MenuTestBase {
     // @todo Remove this part once we have a _title_callback, see
     //   https://drupal.org/node/2076085.
     $trail += array(
-      "admin/config/content/formats/manage/$format_id" => Unicode::ucfirst(Unicode::strtolower($format->name)),
+      "admin/config/content/formats/manage/$format_id" => $format->label(),
     );
     $this->assertBreadcrumb("admin/config/content/formats/manage/$format_id/disable", $trail);
 

@@ -24,20 +24,20 @@ use Drupal\views\Plugin\views\argument_validator\Entity;
 class TermName extends Entity {
 
   /**
-   * The taxonomy term storage controller.
+   * The taxonomy term storage.
    *
-   * @var \Drupal\taxonomy\TermStorageControllerInterface
+   * @var \Drupal\taxonomy\TermStorageInterface
    */
-  protected $termStorageController;
+  protected $termStorage;
 
   /**
    * {@inheritdoc}
    */
-  public function __construct(array $configuration, $plugin_id, array $plugin_definition, EntityManagerInterface $entity_manager) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, EntityManagerInterface $entity_manager) {
     parent::__construct($configuration, $plugin_id, $plugin_definition, $entity_manager);
     // Not handling exploding term names.
     $this->multipleCapable = FALSE;
-    $this->termStorageController = $entity_manager->getStorageController('taxonomy_term');
+    $this->termStorage = $entity_manager->getStorage('taxonomy_term');
   }
 
   /**
@@ -70,7 +70,7 @@ class TermName extends Entity {
     if ($this->options['transform']) {
       $argument = str_replace('-', ' ', $argument);
     }
-    $terms = $this->termStorageController->loadByProperties(array('name' => $argument));
+    $terms = $this->termStorage->loadByProperties(array('name' => $argument));
 
     if (!$terms) {
       // Returned empty array no terms with the name.

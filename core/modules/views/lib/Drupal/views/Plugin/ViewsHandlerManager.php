@@ -13,6 +13,7 @@ use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Plugin\DefaultPluginManager;
 use Drupal\views\ViewsData;
+use Symfony\Component\DependencyInjection\Container;
 
 /**
  * Plugin type manager for all views handlers.
@@ -31,7 +32,7 @@ class ViewsHandlerManager extends DefaultPluginManager {
    *
    * @var string
    *
-   * @see \Drupal\views\ViewExecutable::viewsHandlerTypes().
+   * @see \Drupal\views\ViewExecutable::getHandlerTypes().
    */
   protected $handlerType;
 
@@ -53,9 +54,10 @@ class ViewsHandlerManager extends DefaultPluginManager {
    *   The module handler to invoke the alter hook with.
    */
   public function __construct($handler_type, \Traversable $namespaces, ViewsData $views_data, CacheBackendInterface $cache_backend, LanguageManagerInterface $language_manager, ModuleHandlerInterface $module_handler) {
-    parent::__construct("Plugin/views/$handler_type", $namespaces, $module_handler, 'Drupal\Component\Annotation\PluginID');
+    $plugin_definition_annotation_name = 'Drupal\views\Annotation\Views' . Container::camelize($handler_type);
+    parent::__construct("Plugin/views/$handler_type", $namespaces, $module_handler, $plugin_definition_annotation_name);
 
-    $this->setCacheBackend($cache_backend, $language_manager, "views:$handler_type");
+    $this->setCacheBackend($cache_backend, $language_manager, "views:$handler_type", array('extension' => array(TRUE, 'views')));
 
     $this->viewsData = $views_data;
     $this->handlerType = $handler_type;
@@ -126,6 +128,18 @@ class ViewsHandlerManager extends DefaultPluginManager {
 
     // Finally, use the 'broken' handler.
     return $this->createInstance('broken', array('optional' => $optional, 'original_configuration' => $item));
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function createInstance($plugin_id, array $configuration = array()) {
+    $instance = parent::createInstance($plugin_id, $configuration);
+    if ($instance instanceof HandlerBase) {
+      $instance->setModuleHandler($this->moduleHandler);
+      $instance->setViewsData($this->viewsData);
+    }
+    return $instance;
   }
 
 }

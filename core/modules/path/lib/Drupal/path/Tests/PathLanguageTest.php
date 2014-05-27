@@ -79,6 +79,7 @@ class PathLanguageTest extends PathTestBase {
   function testAliasTranslation() {
     $english_node = $this->drupalCreateNode(array('type' => 'page', 'langcode' => 'en'));
     $english_alias = $this->randomName();
+    $translatable = !$english_node->isNew() && $english_node->isTranslatable() && count($english_node->getTranslationLanguages()) > 1 && ($field = $english_node->getFieldDefinition('status')) && $field->isTranslatable();
 
     // Edit the node to set language and path.
     $edit = array();
@@ -98,7 +99,7 @@ class PathLanguageTest extends PathTestBase {
     $edit['body[0][value]'] = $this->randomName();
     $french_alias = $this->randomName();
     $edit['path[alias]'] = $french_alias;
-    $this->drupalPostForm(NULL, $edit, t('Save'));
+    $this->drupalPostForm(NULL, $edit, t('Save') . ' ' . ($translatable ? t('(this translation)') : t('(all translations)')));
 
     // Clear the path lookup cache.
     $this->container->get('path.alias_manager')->cacheClear();
@@ -106,7 +107,7 @@ class PathLanguageTest extends PathTestBase {
     // Languages are cached on many levels, and we need to clear those caches.
     $this->container->get('language_manager')->reset();
     $this->rebuildContainer();
-    $languages = language_list();
+    $languages = $this->container->get('language_manager')->getLanguages();
 
     // Ensure the node was created.
     $english_node = node_load($english_node->id(), TRUE);
@@ -120,7 +121,7 @@ class PathLanguageTest extends PathTestBase {
     // Confirm that the alias is returned by url(). Languages are cached on
     // many levels, and we need to clear those caches.
     $this->container->get('language_manager')->reset();
-    $languages = language_list();
+    $languages = $this->container->get('language_manager')->getLanguages();
     $url = $this->container->get('url_generator')->generateFromPath('node/' . $french_node->id(), array('language' => $languages['fr']));
 
     $this->assertTrue(strpos($url, $edit['path[alias]']), 'URL contains the path alias.');

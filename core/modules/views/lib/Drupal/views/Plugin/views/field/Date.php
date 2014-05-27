@@ -7,7 +7,7 @@
 
 namespace Drupal\views\Plugin\views\field;
 
-use Drupal\Core\Entity\EntityStorageControllerInterface;
+use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\views\ResultRow;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\Core\Datetime\Date as DateService;
@@ -17,7 +17,7 @@ use Drupal\Core\Datetime\Date as DateService;
  *
  * @ingroup views_field_handlers
  *
- * @PluginID("date")
+ * @ViewsField("date")
  */
 class Date extends FieldPluginBase {
 
@@ -31,7 +31,7 @@ class Date extends FieldPluginBase {
   /**
    * The date format storage.
    *
-   * @var \Drupal\Core\Entity\EntityStorageControllerInterface
+   * @var \Drupal\Core\Entity\EntityStorageInterface
    */
   protected $dateFormatStorage;
 
@@ -42,14 +42,14 @@ class Date extends FieldPluginBase {
    *   A configuration array containing information about the plugin instance.
    * @param string $plugin_id
    *   The plugin ID for the plugin instance.
-   * @param array $plugin_definition
+   * @param mixed $plugin_definition
    *   The plugin implementation definition.
    * @param \Drupal\Core\Datetime\Date $date_service
    *   The date service.
-   * @param \Drupal\Core\Entity\EntityStorageControllerInterface $date_format_storage
+   * @param \Drupal\Core\Entity\EntityStorageInterface $date_format_storage
    *   The date format storage.
    */
-  public function __construct(array $configuration, $plugin_id, array $plugin_definition, DateService $date_service, EntityStorageControllerInterface $date_format_storage) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, DateService $date_service, EntityStorageInterface $date_format_storage) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
 
     $this->dateService = $date_service;
@@ -59,13 +59,13 @@ class Date extends FieldPluginBase {
   /**
    * {@inheritdoc}
    */
-  public static function create(ContainerInterface $container, array $configuration, $plugin_id, array $plugin_definition) {
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
     return new static(
       $configuration,
       $plugin_id,
       $plugin_definition,
       $container->get('date'),
-      $container->get('entity.manager')->getStorageController('date_format')
+      $container->get('entity.manager')->getStorage('date_format')
     );
   }
 

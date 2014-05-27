@@ -8,9 +8,13 @@
 namespace Drupal\contact;
 
 use Drupal\Component\Utility\String;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\ContentEntityFormController;
+use Drupal\Core\Entity\EntityManagerInterface;
+use Drupal\Core\Flood\FloodInterface;
 use Drupal\Core\Language\Language;
 use Drupal\user\UserInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Form controller for contact message forms.
@@ -23,6 +27,48 @@ class MessageFormController extends ContentEntityFormController {
    * @var \Drupal\contact\MessageInterface
    */
   protected $entity;
+
+  /**
+   * The config factory service.
+   *
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
+   */
+  protected $configFactory;
+
+  /**
+   * The flood control mechanism.
+   *
+   * @var \Drupal\Core\Flood\FloodInterface
+   */
+  protected $flood;
+
+  /**
+   * Constructs a MessageFormController object.
+   *
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
+   *   The factory for configuration objects.
+   * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
+   *   The entity manager.
+   * @param \Drupal\Core\Flood\FloodInterface $flood
+   *   The flood control mechanism.
+   */
+  public function __construct(ConfigFactoryInterface $config_factory, EntityManagerInterface $entity_manager, FloodInterface $flood) {
+    parent::__construct($entity_manager);
+
+    $this->configFactory = $config_factory;
+    $this->flood = $flood;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container) {
+    return new static(
+      $container->get('config.factory'),
+      $container->get('entity.manager'),
+      $container->get('flood')
+    );
+  }
 
   /**
    * Overrides Drupal\Core\Entity\EntityFormController::form().
@@ -146,8 +192,8 @@ class MessageFormController extends ContentEntityFormController {
 
     $sender = clone user_load($user->id());
     if ($user->isAnonymous()) {
-      // At this point, $sender contains drupal_anonymous_user(), so we need to
-      // take over the submitted form values.
+      // At this point, $sender contains an anonymous user, so we need to take
+      // over the submitted form values.
       $sender->name = $message->getSenderName();
       $sender->mail = $message->getSenderMail();
       // Save the anonymous user information to a cookie for reuse.
@@ -195,19 +241,20 @@ class MessageFormController extends ContentEntityFormController {
       drupal_mail('contact', 'page_autoreply', $sender->getEmail(), $language_interface->id, $params);
     }
 
-    \Drupal::service('flood')->register('contact', \Drupal::config('contact.settings')->get('flood.interval'));
+    $config = $this->configFactory->get('contact.settings');
+    $this->flood->register('contact', $config->get('flood.interval'));
     if (!$message->isPersonal()) {
       watchdog('contact', '%sender-name (@sender-from) sent an e-mail regarding %category.', array(
-        '%sender-name' => $sender->name,
+        '%sender-name' => $sender->getUsername(),
         '@sender-from' => $sender->getEmail(),
         '%category' => $category->label(),
       ));
     }
     else {
       watchdog('contact', '%sender-name (@sender-from) sent %recipient-name an e-mail.', array(
-        '%sender-name' => $sender->name,
+        '%sender-name' => $sender->getUsername(),
         '@sender-from' => $sender->getEmail(),
-        '%recipient-name' => $message->recipient->name,
+        '%recipient-name' => $message->getPersonalRecipient()->getUsername(),
       ));
     }
 

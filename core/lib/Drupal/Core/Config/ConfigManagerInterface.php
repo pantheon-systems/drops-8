@@ -32,21 +32,32 @@ interface ConfigManagerInterface {
   public function getEntityManager();
 
   /**
+   * Gets the config factory.
+   *
+   * @return \Drupal\Core\Config\ConfigFactoryInterface
+   *   The entity manager.
+   */
+  public function getConfigFactory();
+
+  /**
    * Return a formatted diff of a named config between two storages.
    *
    * @param \Drupal\Core\Config\StorageInterface $source_storage
    *   The storage to diff configuration from.
    * @param \Drupal\Core\Config\StorageInterface $target_storage
    *   The storage to diff configuration to.
-   * @param string $name
-   *   The name of the configuration object to diff.
+   * @param string $source_name
+   *   The name of the configuration object in the source storage to diff.
+   * @param string $target_name
+   *   (optional) The name of the configuration object in the target storage.
+   *   If omitted, the source name is used.
    *
    * @return core/lib/Drupal/Component/Diff
    *   A formatted string showing the difference between the two storages.
    *
    * @todo Make renderer injectable
    */
-  public function diff(StorageInterface $source_storage, StorageInterface $target_storage, $name);
+  public function diff(StorageInterface $source_storage, StorageInterface $target_storage, $source_name, $target_name = NULL);
 
   /**
    * Creates a configuration snapshot following a successful import.
@@ -67,5 +78,36 @@ interface ConfigManagerInterface {
    *   The name of the module or theme to install configuration for.
    */
   public function uninstall($type, $name);
+
+  /**
+   * Finds config entities that are dependent on extensions or entities.
+   *
+   * @param string $type
+   *   The type of dependency being checked. Either 'module', 'theme', 'entity'.
+   * @param array $names
+   *   The specific names to check. If $type equals 'module' or 'theme' then it
+   *   should be a list of module names or theme names. In the case of entity it
+   *   should be a list of full configuration object names.
+   *
+   * @return \Drupal\Core\Config\Entity\ConfigEntityDependency[]
+   *   An array of configuration entity dependency objects.
+   */
+  public function findConfigEntityDependents($type, array $names);
+
+  /**
+   * Finds config entities that are dependent on extensions or entities.
+   *
+   * @param string $type
+   *   The type of dependency being checked. Either 'module', 'theme', 'entity'.
+   * @param array $names
+   *   The specific names to check. If $type equals 'module' or 'theme' then it
+   *   should be a list of module names or theme names. In the case of entity it
+   *   should be a list of full configuration object names.
+   *
+   * @return \Drupal\Core\Config\Entity\ConfigEntityInterface[]
+   *   An array of dependencies as configuration entities.
+   */
+  public function findConfigEntityDependentsAsEntities($type, array $names);
+
 
 }

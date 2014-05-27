@@ -67,11 +67,9 @@
  * language negotiation rule that may have been applied previously.
  *
  * @see template_preprocess_node()
- *
- * @ingroup themeable
  */
 #}
-<article id="node-{{ node.id }}" class="{{ attributes.class}} clearfix"{{ attributes }} role="article">
+<article id="node-{{ node.id }}" class="{{ attributes.class }} clearfix" role="article"{{ attributes|without('id', 'class', 'role') }}>
 
   <header>
     {{ title_prefix }}

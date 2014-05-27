@@ -106,6 +106,13 @@ class ManageFieldsTest extends FieldUiTestBase {
     foreach (array('Add new field', 'Re-use existing field') as $element) {
       $this->assertText($element, format_string('"@element" was found.', array('@element' => $element)));
     }
+
+    // Assert entity operations for all field instances.
+    $result = $this->xpath('//ul[@class = "dropbutton"]/li/a');
+    $url = base_path() . "admin/structure/types/manage/$type/fields/node.$type.body";
+    $this->assertIdentical($url, (string) $result[0]['href']);
+    $this->assertIdentical("$url/field", (string) $result[1]['href']);
+    $this->assertIdentical("$url/delete", (string) $result[2]['href']);
   }
 
   /**
@@ -489,7 +496,7 @@ class ManageFieldsTest extends FieldUiTestBase {
     // Check that non-configurable fields are not available.
     $field_types = \Drupal::service('plugin.manager.field.field_type')->getDefinitions();
     foreach ($field_types as $field_type => $definition) {
-      if ($definition['configurable'] && empty($definition['no_ui'])) {
+      if (empty($definition['no_ui'])) {
         $this->assertTrue($this->xpath('//select[@id="edit-fields-add-new-field-type"]//option[@value=:field_type]', array(':field_type' => $field_type)), String::format('Configurable field type @field_type is available.', array('@field_type' => $field_type)));
       }
       else {

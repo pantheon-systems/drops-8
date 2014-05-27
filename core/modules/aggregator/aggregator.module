@@ -6,7 +6,7 @@
  */
 
 use Drupal\aggregator\FeedInterface;
-use Drupal\Component\Plugin\Exception\PluginException;
+use Drupal\Component\Utility\Xss;
 
 /**
  * Denotes that a feed's items should never expire.
@@ -37,9 +37,9 @@ function aggregator_help($path, $arg) {
     case 'admin/config/services/aggregator':
       // Don't use placeholders for possibility to change URLs for translators.
       $output = '<p>' . t('Thousands of sites (particularly news sites and blogs) publish their latest headlines and posts in feeds, using a number of standardized XML-based formats. Formats supported by the aggregator include <a href="http://cyber.law.harvard.edu/rss/">RSS</a>, <a href="http://www.w3.org/RDF/">RDF</a>, and <a href="http://www.atomenabled.org">Atom</a>.') . '</p>';
-      $output .= '<p>' . t('Current feeds are listed below, and <a href="!addfeed">new feeds may be added</a>. At the <a href="!block">blocks administration page</a> you can enable for each feed the block <em>Aggregator feed</a> that contains the <em>latest items</em> .', array('!addfeed' => \Drupal::url('aggregator.feed_add'), '!block' => \Drupal::url('block.admin_display'))) . '</p>';
+      $output .= '<p>' . t('Current feeds are listed below, and <a href="!addfeed">new feeds may be added</a>. At the <a href="!block">blocks administration page</a> you can enable for each feed the block <em>Aggregator feed</em> that contains the <em>latest items</em> .', array('!addfeed' => \Drupal::url('aggregator.feed_add'), '!block' => \Drupal::url('block.admin_display'))) . '</p>';
       return $output;
-    case 'admin/config/services/aggregator/add/feed':
+    case 'aggregator/sources/add':
       return '<p>' . t('Add a feed in RSS, RDF or Atom format. A feed may only have one entry.') . '</p>';
     case 'admin/config/services/aggregator/add/opml':
       return '<p>' . t('<abbr title="Outline Processor Markup Language">OPML</abbr> is an XML format used to exchange multiple feeds between aggregators. A single OPML document may contain a collection of many feeds. Drupal can parse such a file and import all feeds at once, saving you the effort of adding them manually. You may either upload a local file from your computer or enter a URL where Drupal can download it.') . '</p>';
@@ -88,31 +88,6 @@ function aggregator_theme() {
 }
 
 /**
- * Implements hook_menu_link_defaults().
- */
-function aggregator_menu_link_defaults() {
-  $links = array();
-  $links['aggregator.admin_overview'] = array(
-    'link_title' => 'Feed aggregator',
-    'description' => "Configure which content your site aggregates from other sites, how often it polls them, and how they're categorized.",
-    'route_name' => 'aggregator.admin_overview',
-    'parent' => 'system.admin.config.services',
-    'weight' => 10,
-  );
-  $links['aggregator'] = array(
-    'link_title' => 'Feed aggregator',
-    'weight' => 5,
-    'route_name' => 'aggregator.page_last',
-  );
-  $links['aggregator.sources'] = array(
-    'link_title' => 'Sources',
-    'route_name' => 'aggregator.sources',
-  );
-
-  return $links;
-}
-
-/**
  * Implements hook_permission().
  */
 function aggregator_permission() {
@@ -132,12 +107,10 @@ function aggregator_permission() {
  * Queues news feeds for updates once their refresh interval has elapsed.
  */
 function aggregator_cron() {
-  $result = db_query('SELECT fid FROM {aggregator_feed} WHERE queued = 0 AND checked + refresh < :time AND refresh <> :never', array(
-    ':time' => REQUEST_TIME,
-    ':never' => AGGREGATOR_CLEAR_NEVER
-  ));
   $queue = \Drupal::queue('aggregator_feeds');
-  foreach ($result->fetchCol() as $fid) {
+
+  $result = \Drupal::entityManager()->getStorage('aggregator_feed')->getFeedIdsToRefresh();
+  foreach ($result as $fid) {
     $feed = aggregator_feed_load($fid);
     if ($queue->createItem($feed)) {
       // Add timestamp to avoid queueing item more than once.
@@ -146,11 +119,18 @@ function aggregator_cron() {
     }
   }
 
-  // Remove queued timestamp after 6 hours assuming the update has failed.
-  db_update('aggregator_feed')
-    ->fields(array('queued' => 0))
+  // Delete queued timestamp after 6 hours assuming the update has failed.
+  $result = \Drupal::entityQuery('aggregator_feed')
     ->condition('queued', REQUEST_TIME - (3600 * 6), '<')
     ->execute();
+
+  if ($result) {
+    $feeds = entity_load_multiple('aggregator_feed', $result);
+    foreach ($feeds as $feed) {
+      $feed->setQueuedTime(0);
+      $feed->save();
+    }
+  }
 }
 
 /**
@@ -159,98 +139,14 @@ function aggregator_cron() {
 function aggregator_queue_info() {
   $queues['aggregator_feeds'] = array(
     'title' => t('Aggregator refresh'),
-    'worker callback' => 'aggregator_refresh',
+    'worker callback' => function (FeedInterface $feed) {
+      $feed->refreshItems();
+    },
     'cron' => array(
       'time' => 60,
     ),
   );
   return $queues;
-}
-
-/**
- * Checks a news feed for new items.
- *
- * @param \Drupal\aggregator\FeedInterface $feed
- *   An object describing the feed to be refreshed.
- */
-function aggregator_refresh(FeedInterface $feed) {
-  // Store feed URL to track changes.
-  $feed_url = $feed->getUrl();
-
-  $config = \Drupal::config('aggregator.settings');
-  // Fetch the feed.
-  $fetcher_manager = \Drupal::service('plugin.manager.aggregator.fetcher');
-  try {
-    $success = $fetcher_manager->createInstance($config->get('fetcher'))->fetch($feed);
-  }
-  catch (PluginException $e) {
-    $success = FALSE;
-    watchdog_exception('aggregator', $e);
-  }
-
-  // Retrieve processor manager now.
-  $processor_manager = \Drupal::service('plugin.manager.aggregator.processor');
-  // Store instances in an array so we dont have to instantiate new objects.
-  $processor_instances = array();
-  foreach ($config->get('processors') as $processor) {
-    try {
-      $processor_instances[$processor] = $processor_manager->createInstance($processor);
-    }
-    catch (PluginException $e) {
-      watchdog_exception('aggregator', $e);
-    }
-  }
-
-  // We store the hash of feed data in the database. When refreshing a
-  // feed we compare stored hash and new hash calculated from downloaded
-  // data. If both are equal we say that feed is not updated.
-  $hash = hash('sha256', $feed->source_string);
-
-  if ($success && ($feed->getHash() != $hash)) {
-    // Parse the feed.
-    $parser_manager = \Drupal::service('plugin.manager.aggregator.parser');
-    try {
-      if ($parser_manager->createInstance($config->get('parser'))->parse($feed)) {
-        if ($feed->getWebsiteUrl()) {
-          $feed->setWebsiteUrl($feed->getUrl());
-        }
-        $feed->setHash($hash);
-        // Update feed with parsed data.
-        $feed->save();
-
-        // Log if feed URL has changed.
-        if ($feed->getUrl() != $feed_url) {
-          watchdog('aggregator', 'Updated URL for feed %title to %url.', array('%title' => $feed->label(), '%url' => $feed->getUrl()));
-        }
-
-        watchdog('aggregator', 'There is new syndicated content from %site.', array('%site' => $feed->label()));
-        drupal_set_message(t('There is new syndicated content from %site.', array('%site' => $feed->label())));
-
-        // If there are items on the feed, let enabled processors process them.
-        if (!empty($feed->items)) {
-          foreach ($processor_instances as $instance) {
-            $instance->process($feed);
-          }
-        }
-      }
-    }
-    catch (PluginException $e) {
-      watchdog_exception('aggregator', $e);
-    }
-  }
-  else {
-    drupal_set_message(t('There is no new syndicated content from %site.', array('%site' => $feed->label())));
-  }
-
-  // Regardless of successful or not, indicate that this feed has been checked.
-  $feed->setLastCheckedTime(REQUEST_TIME);
-  $feed->setQueuedTime(0);
-  $feed->save();
-
-  // Processing is done, call postProcess on enabled processors.
-  foreach ($processor_instances as $instance) {
-    $instance->postProcess($feed);
-  }
 }
 
 /**
@@ -276,14 +172,14 @@ function aggregator_feed_load($fid) {
  *   The filtered content.
  */
 function aggregator_filter_xss($value) {
-  return filter_xss($value, preg_split('/\s+|<|>/', \Drupal::config('aggregator.settings')->get('items.allowed_html'), -1, PREG_SPLIT_NO_EMPTY));
+  return Xss::filter($value, preg_split('/\s+|<|>/', \Drupal::config('aggregator.settings')->get('items.allowed_html'), -1, PREG_SPLIT_NO_EMPTY));
 }
 
 /**
  * Implements hook_preprocess_HOOK() for block templates.
  */
 function aggregator_preprocess_block(&$variables) {
-  if ($variables['configuration']['module'] == 'aggregator') {
+  if ($variables['configuration']['provider'] == 'aggregator') {
     $variables['attributes']['role'] = 'complementary';
   }
 }

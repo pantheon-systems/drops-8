@@ -1,0 +1,8 @@
+id: node.search_index
+label: 'Search index'
+status: false
+cache: true
+targetEntityType: node
+dependencies:
+  module:
+    - node

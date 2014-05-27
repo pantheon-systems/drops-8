@@ -18,6 +18,8 @@ use Drupal\Core\Database\ConnectionNotDefinedException;
 use Drupal\Core\Config\StorageInterface;
 use Drupal\Core\DrupalKernel;
 use Drupal\Core\Language\Language;
+use Drupal\Core\Session\AccountProxy;
+use Drupal\Core\Session\AnonymousUserSession;
 use Drupal\Core\StreamWrapper\PublicStream;
 use Drupal\Core\Utility\Error;
 use Symfony\Component\HttpFoundation\Request;
@@ -825,9 +827,6 @@ abstract class TestBase {
     if ($methods) {
       $test_methods = array_intersect($test_methods, $methods);
     }
-    if (defined("$class::SORT_METHODS")) {
-      sort($test_methods);
-    }
     foreach ($test_methods as $method) {
       // Insert a fail record. This will be deleted on completion to ensure
       // that testing completed.
@@ -1008,7 +1007,7 @@ abstract class TestBase {
 
     // Backup current in-memory configuration.
     $this->originalSite = conf_path();
-    $this->originalSettings = settings()->getAll();
+    $this->originalSettings = Settings::getAll();
     $this->originalConfig = $GLOBALS['config'];
     // @todo Remove all remnants of $GLOBALS['conf'].
     // @see https://drupal.org/node/2183323
@@ -1018,21 +1017,16 @@ abstract class TestBase {
     $this->originalContainer = clone \Drupal::getContainer();
     $this->originalLanguage = $language_interface;
     $this->originalConfigDirectories = $GLOBALS['config_directories'];
-    if (isset($GLOBALS['theme_key'])) {
-      $this->originalThemeKey = $GLOBALS['theme_key'];
-    }
-    $this->originalTheme = isset($GLOBALS['theme']) ? $GLOBALS['theme'] : NULL;
 
     // Save further contextual information.
     // Use the original files directory to avoid nesting it within an existing
     // simpletest directory if a test is executed within a test.
-    $this->originalFileDirectory = settings()->get('file_public_path', conf_path() . '/files');
+    $this->originalFileDirectory = Settings::get('file_public_path', conf_path() . '/files');
     $this->originalProfile = drupal_get_profile();
     $this->originalUser = isset($user) ? clone $user : NULL;
 
     // Ensure that the current session is not changed by the new environment.
-    require_once DRUPAL_ROOT . '/' . settings()->get('session_inc', 'core/includes/session.inc');
-    drupal_save_session(FALSE);
+    \Drupal::service('session_manager')->disable();
 
     // Save and clean the shutdown callbacks array because it is static cached
     // and will be changed by the test run. Otherwise it will contain callbacks
@@ -1053,6 +1047,9 @@ abstract class TestBase {
     $this->translation_files_directory = $this->siteDirectory . '/translations';
 
     $this->generatedTestFiles = FALSE;
+
+    // Ensure the configImporter is refreshed for each test.
+    $this->configImporter = NULL;
 
     // Unregister all custom stream wrappers of the parent site.
     // Availability of Drupal stream wrappers varies by test base class:
@@ -1090,7 +1087,7 @@ abstract class TestBase {
 
     // Run all tests as a anonymous user by default, web tests will replace that
     // during the test set up.
-    $this->container->set('current_user', drupal_anonymous_user());
+    $this->container->set('current_user', new AnonymousUserSession());
 
     \Drupal::setContainer($this->container);
 
@@ -1100,6 +1097,10 @@ abstract class TestBase {
     unset($GLOBALS['conf']);
     unset($GLOBALS['theme_key']);
     unset($GLOBALS['theme']);
+    unset($GLOBALS['theme_info']);
+    unset($GLOBALS['base_theme_info']);
+    unset($GLOBALS['theme_engine']);
+    unset($GLOBALS['theme_path']);
 
     // Log fatal errors.
     ini_set('log_errors', 1);
@@ -1141,6 +1142,12 @@ abstract class TestBase {
   protected function rebuildContainer($environment = 'testing') {
     // Preserve the request object after the container rebuild.
     $request = \Drupal::request();
+    // When called from InstallerTestBase, the current container is the minimal
+    // container from TestBase::prepareEnvironment(), which does not contain a
+    // request stack.
+    if (\Drupal::getContainer()->initialized('request_stack')) {
+      $request_stack = \Drupal::service('request_stack');
+    }
 
     $this->kernel = new DrupalKernel($environment, drupal_classloader(), FALSE);
     $this->kernel->boot();
@@ -1149,7 +1156,19 @@ abstract class TestBase {
     $this->container = \Drupal::getContainer();
     // The current user is set in TestBase::prepareEnvironment().
     $this->container->set('request', $request);
-    $this->container->set('current_user', \Drupal::currentUser());
+    if (isset($request_stack)) {
+      $this->container->set('request_stack', $request_stack);
+    }
+    else {
+      $this->container->get('request_stack')->push($request);
+    }
+    $this->container->get('current_user')->setAccount(\Drupal::currentUser());
+
+    // The request context is normally set by the router_listener from within
+    // its KernelEvents::REQUEST listener. In the simpletest parent site this
+    // event is not fired, therefore it is necessary to updated the request
+    // context manually here.
+    $this->container->get('router.request_context')->fromRequest($request);
   }
 
   /**
@@ -1221,16 +1240,18 @@ abstract class TestBase {
     $connection_info = Database::getConnectionInfo('default');
     $databases['default']['default'] = $connection_info['default'];
 
-    // Restore original globals.
-    if (isset($this->originalThemeKey)) {
-      $GLOBALS['theme_key'] = $this->originalThemeKey;
-    }
-    $GLOBALS['theme'] = $this->originalTheme;
-
     // Reset all static variables.
     // All destructors of statically cached objects have been invoked above;
     // this second reset is guaranteed to reset everything to nothing.
     drupal_static_reset();
+
+    // Reset global theme variables.
+    unset($GLOBALS['theme_key']);
+    unset($GLOBALS['theme']);
+    unset($GLOBALS['theme_info']);
+    unset($GLOBALS['base_theme_info']);
+    unset($GLOBALS['theme_engine']);
+    unset($GLOBALS['theme_path']);
 
     // Restore original in-memory configuration.
     $GLOBALS['config'] = $this->originalConfig;
@@ -1255,7 +1276,7 @@ abstract class TestBase {
 
     // Restore original user session.
     $this->container->set('current_user', $this->originalUser);
-    drupal_save_session(TRUE);
+    \Drupal::service('session_manager')->enable();
   }
 
   /**
@@ -1331,7 +1352,7 @@ abstract class TestBase {
    * @see \Drupal\Component\Utility\Settings::get()
    */
   protected function settingsSet($name, $value) {
-    $settings = settings()->getAll();
+    $settings = Settings::getAll();
     $settings[$name] = $value;
     new Settings($settings);
   }
@@ -1513,7 +1534,10 @@ abstract class TestBase {
         $this->container->get('event_dispatcher'),
         $this->container->get('config.manager'),
         $this->container->get('lock'),
-        $this->container->get('config.typed')
+        $this->container->get('config.typed'),
+        $this->container->get('module_handler'),
+        $this->container->get('theme_handler'),
+        $this->container->get('string_translation')
       );
     }
     // Always recalculate the changelist when called.

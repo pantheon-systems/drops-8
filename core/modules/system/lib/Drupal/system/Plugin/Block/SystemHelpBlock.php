@@ -52,14 +52,14 @@ class SystemHelpBlock extends BlockBase implements ContainerFactoryPluginInterfa
    *   A configuration array containing information about the plugin instance.
    * @param string $plugin_id
    *   The plugin_id for the plugin instance.
-   * @param array $plugin_definition
+   * @param mixed $plugin_definition
    *   The plugin implementation definition.
    * @param \Symfony\Component\HttpFoundation\Request $request
    *   The current request.
    * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
    *   The module handler.
    */
-  public function __construct(array $configuration, $plugin_id, array $plugin_definition, Request $request, ModuleHandlerInterface $module_handler) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, Request $request, ModuleHandlerInterface $module_handler) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
 
     $this->request = $request;
@@ -69,7 +69,7 @@ class SystemHelpBlock extends BlockBase implements ContainerFactoryPluginInterfa
   /**
    * {@inheritdoc}
    */
-  public static function create(ContainerInterface $container, array $configuration, $plugin_id, array $plugin_definition) {
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
     return new static(
       $configuration, $plugin_id, $plugin_definition, $container->get('request'), $container->get('module_handler'));
   }
@@ -91,8 +91,8 @@ class SystemHelpBlock extends BlockBase implements ContainerFactoryPluginInterfa
   protected function getActiveHelp(Request $request) {
     $output = '';
     $router_path = $request->attributes->get('_system_path');
-    // We will always have a path unless we are on a 403 or 404.
-    if (!$router_path) {
+    // Do not show on a 403 or 404 page.
+    if ($request->attributes->has('exception')) {
       return '';
     }
 
@@ -115,6 +115,26 @@ class SystemHelpBlock extends BlockBase implements ContainerFactoryPluginInterfa
     return array(
       '#children' => $this->help,
     );
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function defaultConfiguration() {
+    // Modify the default max age for the System Help block: help text is static
+    // for a given URL, except when a module is updated, in which case
+    // update.php must be run, which clears all caches. Thus it's safe to cache
+    // the output for this block forever on a per-URL basis.
+    return array('cache' => array('max_age' => \Drupal\Core\Cache\Cache::PERMANENT));
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function getRequiredCacheContexts() {
+    // The "System Help" block must be cached per URL: help is defined for a
+    // given path, and does not come with any access restrictions.
+    return array('cache_context.url');
   }
 
 }

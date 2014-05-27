@@ -5,6 +5,8 @@
  * Functions for error handling.
  */
 
+use Drupal\Component\Utility\Xss;
+use Drupal\Core\Page\DefaultHtmlPageRenderer;
 use Drupal\Core\Utility\Error;
 use Drupal\Component\Utility\String;
 use Symfony\Component\HttpFoundation\Response;
@@ -70,7 +72,7 @@ function _drupal_error_handler_real($error_level, $message, $filename, $line, $c
       '%type' => isset($types[$error_level]) ? $severity_msg : 'Unknown error',
       // The standard PHP error handler considers that the error messages
       // are HTML. We mimick this behavior here.
-      '!message' => filter_xss_admin($message),
+      '!message' => Xss::filterAdmin($message),
       '%function' => $caller['function'],
       '%file' => $caller['file'],
       '%line' => $caller['line'],
@@ -231,12 +233,7 @@ function _drupal_log_error($error, $fatal = FALSE) {
         install_display_output($output, $GLOBALS['install_state']);
       }
       else {
-        $output = array(
-          '#theme' => 'maintenance_page',
-          '#title' => 'Error',
-          '#content' => $message,
-        );
-        $output = drupal_render($output);
+        $output = DefaultHtmlPageRenderer::renderPage($message, 'Error');
       }
 
       $response = new Response($output, 500);

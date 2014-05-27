@@ -136,14 +136,14 @@ class FormDisplayOverview extends DisplayOverviewBase {
    * {@inheritdoc}
    */
   protected function getDefaultPlugin($field_type) {
-    return $this->fieldTypes[$field_type]['default_widget'];
+    return isset($this->fieldTypes[$field_type]['default_widget']) ? $this->fieldTypes[$field_type]['default_widget'] : NULL;
   }
 
   /**
    * {@inheritdoc}
    */
   protected function getDisplayModes() {
-    return entity_get_form_modes($this->entity_type);
+    return $this->entityManager->getFormModes($this->entity_type);
   }
 
   /**

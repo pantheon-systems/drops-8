@@ -7,7 +7,7 @@
 
 namespace Drupal\system\Plugin\views\field;
 
-use Drupal\Core\Entity\EntityStorageControllerInterface;
+use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\views\Plugin\views\display\DisplayPluginBase;
 use Drupal\views\Plugin\views\field\FieldPluginBase;
 use Drupal\views\Plugin\views\style\Table;
@@ -18,14 +18,14 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 /**
  * Defines a actions-based bulk operation form element.
  *
- * @PluginID("bulk_form")
+ * @ViewsField("bulk_form")
  */
 class BulkForm extends FieldPluginBase {
 
   /**
-   * The action storage controller.
+   * The action storage.
    *
-   * @var \Drupal\Core\Entity\EntityStorageControllerInterface
+   * @var \Drupal\Core\Entity\EntityStorageInterface
    */
   protected $actionStorage;
 
@@ -43,12 +43,12 @@ class BulkForm extends FieldPluginBase {
    *   A configuration array containing information about the plugin instance.
    * @param string $plugin_id
    *   The plugin ID for the plugin instance.
-   * @param array $plugin_definition
+   * @param mixed $plugin_definition
    *   The plugin implementation definition.
-   * @param \Drupal\Core\Entity\EntityStorageControllerInterface $storage
-   *   The action storage controller.
+   * @param \Drupal\Core\Entity\EntityStorageInterface $storage
+   *   The action storage.
    */
-  public function __construct(array $configuration, $plugin_id, array $plugin_definition, EntityStorageControllerInterface $storage) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, EntityStorageInterface $storage) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
 
     $this->actionStorage = $storage;
@@ -57,8 +57,8 @@ class BulkForm extends FieldPluginBase {
   /**
    * {@inheritdoc}
    */
-  public static function create(ContainerInterface $container, array $configuration, $plugin_id, array $plugin_definition) {
-    return new static($configuration, $plugin_id, $plugin_definition, $container->get('entity.manager')->getStorageController('action'));
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
+    return new static($configuration, $plugin_id, $plugin_definition, $container->get('entity.manager')->getStorage('action'));
   }
 
   /**
@@ -267,7 +267,6 @@ class BulkForm extends FieldPluginBase {
       }
 
       $count = count(array_filter($form_state['values'][$this->options['id']]));
-      $action = $this->actions[$form_state['values']['action']];
       if ($count) {
         drupal_set_message($this->translationManager()->formatPlural($count, '%action was applied to @count item.', '%action was applied to @count items.', array(
           '%action' => $action->label(),

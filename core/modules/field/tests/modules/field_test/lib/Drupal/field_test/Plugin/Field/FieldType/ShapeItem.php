@@ -7,7 +7,7 @@
 
 namespace Drupal\field_test\Plugin\Field\FieldType;
 
-use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\TypedData\DataDefinition;
 use Drupal\Core\Field\FieldItemBase;
 
@@ -18,9 +18,6 @@ use Drupal\Core\Field\FieldItemBase;
  *   id = "shape",
  *   label = @Translation("Shape"),
  *   description = @Translation("Another dummy field type."),
- *   settings = {
- *     "foreign_key_name" = "shape"
- *   },
  *   default_widget = "test_field_widget",
  *   default_formatter = "field_test_default"
  * )
@@ -30,7 +27,16 @@ class ShapeItem extends FieldItemBase {
   /**
    * {@inheritdoc}
    */
-  public static function propertyDefinitions(FieldDefinitionInterface $field_definition) {
+  public static function defaultSettings() {
+    return array(
+      'foreign_key_name' => 'shape',
+    ) + parent::defaultSettings();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function propertyDefinitions(FieldStorageDefinitionInterface $field_definition) {
     $properties['shape'] = DataDefinition::create('string')
       ->setLabel(t('Shape'));
 
@@ -43,7 +49,7 @@ class ShapeItem extends FieldItemBase {
   /**
    * {@inheritdoc}
    */
-  public static function schema(FieldDefinitionInterface $field_definition) {
+  public static function schema(FieldStorageDefinitionInterface $field_definition) {
     $foreign_keys = array();
     // The 'foreign keys' key is not always used in tests.
     if ($field_definition->getSetting('foreign_key_name')) {

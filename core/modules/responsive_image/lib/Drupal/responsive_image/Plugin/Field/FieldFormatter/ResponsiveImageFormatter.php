@@ -18,15 +18,21 @@ use Drupal\image\Plugin\Field\FieldFormatter\ImageFormatterBase;
  *   label = @Translation("Responsive image"),
  *   field_types = {
  *     "image",
- *   },
- *   settings = {
- *     "responsive_image_mapping" = "",
- *     "fallback_image_style" = "",
- *     "image_link" = "",
  *   }
  * )
  */
 class ResponsiveImageFormatter extends ImageFormatterBase {
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function defaultSettings() {
+    return array(
+      'responsive_image_mapping' => '',
+      'fallback_image_style' => '',
+      'image_link' => '',
+    ) + parent::defaultSettings();
+  }
 
   /**
    * {@inheritdoc}
@@ -129,13 +135,13 @@ class ResponsiveImageFormatter extends ImageFormatterBase {
 
     $responsive_image_mapping = entity_load('responsive_image_mapping', $this->getSetting('responsive_image_mapping'));
     if ($responsive_image_mapping) {
-      foreach ($responsive_image_mapping->mappings as $breakpoint_name => $multipliers) {
+      foreach ($responsive_image_mapping->getMappings() as $breakpoint_name => $multipliers) {
         // Make sure there are multipliers.
         if (!empty($multipliers)) {
           // Make sure that the breakpoint exists and is enabled.
           // @todo add the following when breakpoint->status is added again:
           // $responsive_image_mapping->breakpointGroup->breakpoints[$breakpoint_name]->status
-          $breakpoint = $responsive_image_mapping->breakpointGroup->getBreakpointById($breakpoint_name);
+          $breakpoint = $responsive_image_mapping->getBreakpointGroup()->getBreakpointById($breakpoint_name);
           if ($breakpoint) {
             // Determine the enabled multipliers.
             $multipliers = array_intersect_key($multipliers, $breakpoint->multipliers);

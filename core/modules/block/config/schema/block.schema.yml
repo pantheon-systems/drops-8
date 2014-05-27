@@ -19,9 +19,9 @@ block.block.*:
     weight:
       type: integer
       label: 'Weight'
-    module:
+    provider:
       type: string
-      label: 'Module'
+      label: 'Provider'
     status:
       type: boolean
       label: 'Status'
@@ -73,8 +73,18 @@ block.block.*:
           type: string
           label: 'Display title'
         cache:
-          type: integer
-          label: 'Cache'
+          type: mapping
+          label: 'Cache settings'
+          mapping:
+            max_age:
+              type: integer
+              label: 'Maximum age'
+            contexts:
+              type: sequence
+              label: 'Vary by context'
+              sequence:
+                - type: string
+                  label: 'Context'
         status:
           type: boolean
           label: 'Status'
@@ -84,9 +94,12 @@ block.block.*:
         view_mode:
           type: string
           label: 'View mode'
-        module:
+        provider:
           type: string
-          label: 'Module'
+          label: 'Provider'
     langcode:
       type: string
       label: 'Default language'
+    dependencies:
+      type: config_dependencies
+      label: 'Dependencies'

@@ -17,7 +17,7 @@ use Drupal\views\ViewExecutable;
  *
  * @ingroup views_field_handlers
  *
- * @PluginID("term_link_edit")
+ * @ViewsField("term_link_edit")
  */
 class LinkEdit extends FieldPluginBase {
 
@@ -66,7 +66,7 @@ class LinkEdit extends FieldPluginBase {
         'vid' => $values->{$this->aliases['vid']},
       ));
       if ($term->access('update')) {
-        $text = !empty($this->options['text']) ? $this->options['text'] : t('edit');
+        $text = !empty($this->options['text']) ? $this->options['text'] : t('Edit');
         return l($text, 'taxonomy/term/'. $tid . '/edit', array('query' => drupal_get_destination()));
       }
     }

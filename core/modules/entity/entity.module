@@ -8,7 +8,7 @@
  * entity system.
  */
 
-use Drupal\Core\Config\Entity\ConfigStorageController;
+use Drupal\Core\Config\Entity\ConfigEntityStorage;
 
 /**
  * Implements hook_help().
@@ -45,36 +45,6 @@ function entity_permission() {
 }
 
 /**
- * Implements hook_menu_link_defaults().
- */
-function entity_menu_link_defaults() {
-  $links['entity.admin.structure.display_modes'] = array(
-    'link_title' => 'Display modes',
-    'description' => 'Configure what displays are available for your content and forms.',
-    'route_name' => 'entity.display_mode',
-    'parent' => 'system.admin.structure',
-  );
-
-  // View modes.
-  $links['entity.admin.structure.display_modes.view'] = array(
-    'link_title' => 'View modes',
-    'description' => 'Manage custom view modes.',
-    'route_name' => 'entity.view_mode_list',
-    'parent' => 'entity.admin.structure.display_modes',
-  );
-
-  // Form modes.
-  $links['entity.admin.structure.display_modes.form'] = array(
-    'link_title' => 'Form modes',
-    'description' => 'Manage custom form modes.',
-    'route_name' => 'entity.form_mode_list',
-    'parent' => 'entity.admin.structure.display_modes',
-  );
-
-  return $links;
-}
-
-/**
  * Implements hook_entity_bundle_rename().
  */
 function entity_entity_bundle_rename($entity_type_id, $bundle_old, $bundle_new) {
@@ -83,10 +53,10 @@ function entity_entity_bundle_rename($entity_type_id, $bundle_old, $bundle_new) 
   if ($bundle_old !== $bundle_new) {
     $ids = \Drupal::configFactory()->listAll('entity.view_display.' . $entity_type_id . '.' . $bundle_old . '.');
     foreach ($ids as $id) {
-      $id = ConfigStorageController::getIDFromConfigName($id, $entity_type->getConfigPrefix());
+      $id = ConfigEntityStorage::getIDFromConfigName($id, $entity_type->getConfigPrefix());
       $display = entity_load('entity_view_display', $id);
       $new_id = $entity_type_id . '.' . $bundle_new . '.' . $display->mode;
-      $display->id = $new_id;
+      $display->set('id', $new_id);
       $display->bundle = $bundle_new;
       $display->save();
     }
@@ -97,10 +67,10 @@ function entity_entity_bundle_rename($entity_type_id, $bundle_old, $bundle_new) 
   if ($bundle_old !== $bundle_new) {
     $ids = \Drupal::configFactory()->listAll('entity.form_display.' . $entity_type_id . '.' . $bundle_old . '.');
     foreach ($ids as $id) {
-      $id = ConfigStorageController::getIDFromConfigName($id, $entity_type->getConfigPrefix());
+      $id = ConfigEntityStorage::getIDFromConfigName($id, $entity_type->getConfigPrefix());
       $form_display = entity_load('entity_form_display', $id);
       $new_id = $entity_type_id . '.' . $bundle_new . '.' . $form_display->mode;
-      $form_display->id = $new_id;
+      $form_display->set('id', $new_id);
       $form_display->bundle = $bundle_new;
       $form_display->save();
     }
@@ -115,7 +85,7 @@ function entity_entity_bundle_delete($entity_type_id, $bundle) {
   $entity_type = \Drupal::entityManager()->getDefinition('entity_view_display');
   $ids = \Drupal::configFactory()->listAll('entity.view_display.' . $entity_type_id . '.' . $bundle . '.');
   foreach ($ids as &$id) {
-    $id = ConfigStorageController::getIDFromConfigName($id, $entity_type->getConfigPrefix());
+    $id = ConfigEntityStorage::getIDFromConfigName($id, $entity_type->getConfigPrefix());
   }
   entity_delete_multiple('entity_view_display', $ids);
 
@@ -123,7 +93,7 @@ function entity_entity_bundle_delete($entity_type_id, $bundle) {
   $entity_type = \Drupal::entityManager()->getDefinition('entity_form_display');
   $ids = \Drupal::configFactory()->listAll('entity.form_display.' . $entity_type_id . '.' . $bundle . '.');
   foreach ($ids as &$id) {
-    $id = ConfigStorageController::getIDFromConfigName($id, $entity_type->getConfigPrefix());
+    $id = ConfigEntityStorage::getIDFromConfigName($id, $entity_type->getConfigPrefix());
   }
   entity_delete_multiple('entity_form_display', $ids);
 }

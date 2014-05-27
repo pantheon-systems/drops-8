@@ -1,4 +1,8 @@
 <?php
+/**
+ * @file
+ * Functions that need to be loaded on every Drupal request.
+ */
 
 use Drupal\Component\Utility\Crypt;
 use Drupal\Component\Utility\NestedArray;
@@ -23,12 +27,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Drupal\Core\Language\Language;
 use Drupal\Core\Lock\DatabaseLockBackend;
 use Drupal\Core\Lock\LockBackendInterface;
-use Drupal\Core\Session\UserSession;
-
-/**
- * @file
- * Functions that need to be loaded on every Drupal request.
- */
+use Drupal\Core\Session\AnonymousUserSession;
 
 /**
  * Minimum supported version of PHP.
@@ -337,7 +336,7 @@ function config_get_config_directory($type = CONFIG_ACTIVE_DIRECTORY) {
   if (!empty($config_directories[$type])) {
     return $config_directories[$type];
   }
-  throw new Exception(format_string('The configuration directory type %type does not exist.', array('%type' => $type)));
+  throw new \Exception(format_string('The configuration directory type %type does not exist.', array('%type' => $type)));
 }
 
 /**
@@ -560,9 +559,11 @@ function _drupal_request_initialize() {
  * the above, depending on where the module is located.
  *
  * @param $type
- *   The type of the item (theme, theme_engine, module, profile).
+ *   The type of the item; one of 'core', 'profile', 'module', 'theme', or
+ *   'theme_engine'.
  * @param $name
- *   The name of the item for which the filename is requested.
+ *   The name of the item for which the filename is requested. Ignored for
+ *   $type 'core'.
  * @param $filename
  *   The filename of the item if it is to be set explicitly rather
  *   than by consulting the database.
@@ -574,6 +575,14 @@ function drupal_get_filename($type, $name, $filename = NULL) {
   // The location of files will not change during the request, so do not use
   // drupal_static().
   static $files = array();
+
+  // Type 'core' only exists to simplify application-level logic; it always maps
+  // to the /core directory, whereas $name is ignored. It is only requested via
+  // drupal_get_path(). /core/core.info.yml does not exist, but is required
+  // since drupal_get_path() returns the dirname() of the returned pathname.
+  if ($type === 'core') {
+    return 'core/core.info.yml';
+  }
 
   // Profiles are converted into modules in system_rebuild_module_data().
   // @todo Remove false-exposure of profiles as modules.
@@ -622,20 +631,6 @@ function drupal_get_filename($type, $name, $filename = NULL) {
 }
 
 /**
- * Returns a setting.
- *
- * Settings can be set in settings.php in the $settings array and requested
- * by this function. Settings should be used over configuration for read-only,
- * possibly low bootstrap configuration that is environment specific.
- *
- * @return \Drupal\Component\Utility\Settings
- *   The settings object.
- */
-function settings() {
-  return Settings::getSingleton();
-}
-
-/**
  * Gets the page cache cid for this request.
  *
  * @param \Symfony\Component\HttpFoundation\Request $request
@@ -668,7 +663,7 @@ function drupal_page_cache_get_cid(Request $request) {
  */
 function drupal_page_get_cache(Request $request) {
   if (drupal_page_is_cacheable()) {
-    return \Drupal::cache('page')->get(drupal_page_cache_get_cid($request));
+    return \Drupal::cache('render')->get(drupal_page_cache_get_cid($request));
   }
 }
 
@@ -900,6 +895,13 @@ function drupal_serve_page_from_cache(stdClass $cache, Response $response, Reque
   // max-age > 0, allowing the page to be cached by external proxies, when a
   // session cookie is present unless the Vary header has been replaced.
   $max_age = !$request->cookies->has(session_name()) || isset($boot_headers['vary']) ? $config->get('cache.page.max_age') : 0;
+  // RFC 2616, section 14.21 says: 'To mark a response as "never expires," an
+  // origin server sends an Expires date approximately one year from the time
+  // the response is sent. HTTP/1.1 servers SHOULD NOT send Expires dates more
+  // than one year in the future.'
+  if ($max_age > 31536000 || $max_age === \Drupal\Core\Cache\Cache::PERMANENT) {
+    $max_age = 31536000;
+  }
   $response->headers->set('Cache-Control', 'public, max-age=' . $max_age);
 
   // Entity tag should change if the output changes.
@@ -939,7 +941,7 @@ function drupal_serve_page_from_cache(stdClass $cache, Response $response, Reque
   // fields that fully determines whether a cache is permitted to use the
   // response to reply to a subsequent request for a given URL without
   // revalidation.
-  if (!isset($boot_headers['vary']) && !settings()->get('omit_vary_cookie')) {
+  if (!isset($boot_headers['vary']) && !Settings::get('omit_vary_cookie')) {
     $response->setVary('Cookie', FALSE);
   }
 
@@ -1330,23 +1332,13 @@ function drupal_get_messages($type = NULL, $clear_queue = TRUE) {
  *
  * @return \Drupal\Core\Session\AccountInterface
  *   The user session object.
+ *
+ * @deprecated in Drupal 8.x-dev. Will be removed before Drupal 8.0 by
+ *   https://drupal.org/node/2185315. Use
+ *   \Drupal\Core\Session\AnonymousUserSession.
  */
 function drupal_anonymous_user() {
-  try {
-    $request = \Drupal::request();
-    $hostname = $request->getClientIP();
-  }
-  catch (DependencyInjectionRuntimeException $e) {
-    // We are not in a request context.
-    $hostname = '';
-  }
-
-  $values = array(
-    'uid' => 0,
-    'hostname' => $hostname,
-    'roles' => array(DRUPAL_ANONYMOUS_RID),
-  );
-  return new UserSession($values);
+  return new AnonymousUserSession();
 }
 
 /**
@@ -1473,7 +1465,9 @@ function drupal_handle_request($test_only = FALSE) {
 
   // Create a request object from the HttpFoundation.
   $request = Request::createFromGlobals();
-  \Drupal::getContainer()->set('request', $request);
+  $container = \Drupal::getContainer();
+  $container->set('request', $request);
+  $container->get('request_stack')->push($request);
 
   drupal_bootstrap(DRUPAL_BOOTSTRAP_CODE);
 
@@ -1507,7 +1501,7 @@ function drupal_get_user_timezone() {
  *   A salt based on information in settings.php, not in the database.
  */
 function drupal_get_hash_salt() {
-  $hash_salt = settings()->get('hash_salt');
+  $hash_salt = Settings::get('hash_salt');
   // This should never happen, as it breaks user logins and many other services.
   // Therefore, explicitly notify the user (developer) by throwing an exception.
   if (empty($hash_salt)) {
@@ -1623,7 +1617,9 @@ function _drupal_bootstrap_kernel() {
     $kernel = new DrupalKernel('prod', drupal_classloader());
     $kernel->boot();
     $request = Request::createFromGlobals();
-    \Drupal::getContainer()->set('request', $request);
+    $container = \Drupal::getContainer();
+    $container->set('request', $request);
+    $container->get('request_stack')->push($request);
   }
 }
 
@@ -1635,7 +1631,7 @@ function _drupal_bootstrap_page_cache() {
 
   require_once __DIR__ . '/database.inc';
   // Check for a cache mode force from settings.php.
-  if (settings()->get('page_cache_without_database')) {
+  if (Settings::get('page_cache_without_database')) {
     $cache_enabled = TRUE;
   }
   else {
@@ -1648,7 +1644,7 @@ function _drupal_bootstrap_page_cache() {
   // to serve a cached page.
   if (!$request->cookies->has(session_name()) && $cache_enabled) {
     // Make sure there is a user object because its timestamp will be checked.
-    $user = drupal_anonymous_user();
+    $user = new AnonymousUserSession();
     // Get the page from the cache.
     $cache = drupal_page_get_cache($request);
     // If there is a cached page, display it.
@@ -2106,7 +2102,7 @@ function drupal_classloader($class_loader = NULL) {
     // findFile() method, but none of the others. The actual registry is still
     // in ClassLoader.
     if (!isset($class_loader)) {
-      $class_loader = settings()->get('class_loader', 'default');
+      $class_loader = Settings::get('class_loader', 'default');
     }
     if ($class_loader === 'apc') {
       require_once __DIR__ . '/../vendor/symfony/class-loader/Symfony/Component/ClassLoader/ApcClassLoader.php';
@@ -2128,7 +2124,10 @@ function drupal_classloader($class_loader = NULL) {
  */
 function drupal_classloader_register($name, $path) {
   $loader = drupal_classloader();
-  $loader->add('Drupal\\' . $name, DRUPAL_ROOT . '/' . $path . '/lib');
+  $loader->addPsr4('Drupal\\' . $name . '\\', array(
+    DRUPAL_ROOT . '/' . $path . '/lib/Drupal/' . $name,
+    DRUPAL_ROOT . '/' . $path . '/src',
+  ));
 }
 
 /**
@@ -2180,12 +2179,12 @@ function drupal_classloader_register($name, $path) {
  *
  * Example:
  * @code
- * function drupal_session_started($set = NULL) {
- *   static $session_started = FALSE;
- *   if (isset($set)) {
- *     $session_started = $set;
+ * function mymodule_log_stream_handle($new_handle = NULL) {
+ *   static $handle;
+ *   if (isset($new_handle)) {
+ *     $handle = $new_handle;
  *   }
- *   return $session_started && session_id();
+ *   return $handle;
  * }
  * @endcode
  *

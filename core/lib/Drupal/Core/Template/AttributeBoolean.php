@@ -2,10 +2,11 @@
 
 /**
  * @file
- * Definition of Drupal\Core\Template\AttributeBoolean.
+ * Contains \Drupal\Core\Template\AttributeBoolean.
  */
 
 namespace Drupal\Core\Template;
+
 use Drupal\Component\Utility\String;
 
 /**
@@ -41,7 +42,6 @@ class AttributeBoolean extends AttributeValueBase {
    * Implements the magic __toString() method.
    */
   public function __toString() {
-    $this->printed = TRUE;
     return $this->value === FALSE ? '' : String::checkPlain($this->name);
   }
 

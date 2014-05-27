@@ -8,7 +8,7 @@
 namespace Drupal\system\Plugin\Derivative;
 
 use Drupal\Component\Plugin\Derivative\DerivativeBase;
-use Drupal\Core\Entity\EntityStorageControllerInterface;
+use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Plugin\Discovery\ContainerDerivativeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -22,17 +22,17 @@ class SystemMenuBlock extends DerivativeBase implements ContainerDerivativeInter
   /**
    * The menu storage.
    *
-   * @var \Drupal\Core\Entity\EntityStorageControllerInterface
+   * @var \Drupal\Core\Entity\EntityStorageInterface
    */
   protected $menuStorage;
 
   /**
    * Constructs new SystemMenuBlock.
    *
-   * @param \Drupal\Core\Entity\EntityStorageControllerInterface $menu_storage
+   * @param \Drupal\Core\Entity\EntityStorageInterface $menu_storage
    *   The menu storage.
    */
-  public function __construct(EntityStorageControllerInterface $menu_storage) {
+  public function __construct(EntityStorageInterface $menu_storage) {
     $this->menuStorage = $menu_storage;
   }
 
@@ -41,7 +41,7 @@ class SystemMenuBlock extends DerivativeBase implements ContainerDerivativeInter
    */
   public static function create(ContainerInterface $container, $base_plugin_id) {
     return new static(
-      $container->get('entity.manager')->getStorageController('menu')
+      $container->get('entity.manager')->getStorage('menu')
     );
   }
 
@@ -52,7 +52,7 @@ class SystemMenuBlock extends DerivativeBase implements ContainerDerivativeInter
     foreach ($this->menuStorage->loadMultiple() as $menu => $entity) {
       $this->derivatives[$menu] = $base_plugin_definition;
       $this->derivatives[$menu]['admin_label'] = $entity->label();
-      $this->derivatives[$menu]['cache'] = DRUPAL_NO_CACHE;
+      $this->derivatives[$menu]['config_dependencies']['entity'] = array($entity->getConfigDependencyName());
     }
     return $this->derivatives;
   }

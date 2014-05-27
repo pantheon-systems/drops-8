@@ -6,6 +6,7 @@
  */
 
 use Drupal\Component\Utility\Unicode;
+use Drupal\Component\Utility\Settings;
 
 /**
  * Sets up the theming system for maintenance page.
@@ -24,12 +25,13 @@ function _drupal_maintenance_theme() {
     return;
   }
 
-  require_once DRUPAL_ROOT . '/' . settings()->get('path_inc', 'core/includes/path.inc');
+  require_once DRUPAL_ROOT . '/' . Settings::get('path_inc', 'core/includes/path.inc');
   require_once __DIR__ . '/theme.inc';
   require_once __DIR__ . '/common.inc';
   require_once __DIR__ . '/unicode.inc';
   require_once __DIR__ . '/file.inc';
   require_once __DIR__ . '/module.inc';
+  require_once __DIR__ . '/database.inc';
   Unicode::check();
 
   // Install and update pages are treated differently to prevent theming overrides.
@@ -38,21 +40,14 @@ function _drupal_maintenance_theme() {
       $custom_theme = $GLOBALS['install_state']['theme'];
     }
     else {
-      $custom_theme = settings()->get('maintenance_theme', 'seven');
+      $custom_theme = Settings::get('maintenance_theme', 'seven');
     }
   }
   else {
-    // The bootstrap was not complete. So we are operating in a crippled
-    // environment, we need to bootstrap just enough to allow hook invocations
-    // to work. See _drupal_log_error().
-    if (!class_exists('Drupal\Core\Database\Database', FALSE)) {
-      require_once __DIR__ . '/database.inc';
-    }
-
     // Use the maintenance theme if specified, otherwise attempt to use the
     // default site theme.
     try {
-      $custom_theme = settings()->get('maintenance_theme', '');
+      $custom_theme = Settings::get('maintenance_theme', '');
       if (!$custom_theme) {
         $config = \Drupal::config('system.theme');
         $custom_theme = $config->get('default');
@@ -71,13 +66,21 @@ function _drupal_maintenance_theme() {
   }
 
   // Ensure that system.module is loaded.
-  if (!function_exists('_system_rebuild_theme_data')) {
+  if (!function_exists('system_rebuild_theme_data')) {
     $module_handler = \Drupal::moduleHandler();
     $module_handler->addModule('system', 'core/modules/system');
     $module_handler->load('system');
   }
 
   $themes = list_themes();
+
+  // If no themes are installed yet, or if the requested custom theme is not
+  // installed, retrieve all available themes.
+  if (empty($themes) || !isset($themes[$custom_theme])) {
+    $theme_handler = \Drupal::service('theme_handler');
+    $themes = $theme_handler->rebuildThemeData();
+    $theme_handler->addTheme($themes[$custom_theme]);
+  }
 
   // list_themes() triggers a \Drupal\Core\Extension\ModuleHandler::alter() in
   // maintenance mode, but we can't let themes alter the .info.yml data until
@@ -108,23 +111,16 @@ function _drupal_maintenance_theme() {
  *   An associative array containing:
  *   - items: An associative array of maintenance tasks.
  *   - active: The key for the currently active maintenance task.
- *   - variant: A variant name to be used for a CSS class.
  *
  * @ingroup themeable
  */
 function theme_task_list($variables) {
   $items = $variables['items'];
   $active = $variables['active'];
-  if (isset($variables['variant'])) {
-    $class = $variables['variant'] . '-task-list';
-  }
-  else {
-    $class = 'task-list';
-  }
 
   $done = isset($items[$active]) || $active == NULL;
   $output = '<h2 class="visually-hidden">Installation tasks</h2>';
-  $output .= '<ol class="' . $class . '">';
+  $output .= '<ol class="task-list">';
 
   foreach ($items as $k => $item) {
     if ($active == $k) {

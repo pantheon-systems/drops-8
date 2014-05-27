@@ -1,0 +1,26 @@
+id: stark_tools
+theme: stark
+weight: 0
+status: true
+langcode: en
+region: sidebar_first
+plugin: 'system_menu_block:tools'
+settings:
+  label: Tools
+  provider: system
+  label_display: visible
+visibility:
+  path:
+    visibility: 0
+    pages: ''
+  role:
+    roles: {  }
+  node_type:
+    types: {  }
+dependencies:
+  entity:
+    - system.menu.tools
+  module:
+    - system
+  theme:
+    - stark

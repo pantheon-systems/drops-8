@@ -32,11 +32,11 @@ class EmailAction extends ConfigurableActionBase implements ContainerFactoryPlug
   protected $token;
 
   /**
-   * The user storage controller.
+   * The user storage.
    *
-   * @var \Drupal\Core\Entity\EntityStorageControllerInterface
+   * @var \Drupal\Core\Entity\EntityStorageInterface
    */
-  protected $storageController;
+  protected $storage;
 
   /**
    * Constructs a EmailAction object.
@@ -45,24 +45,24 @@ class EmailAction extends ConfigurableActionBase implements ContainerFactoryPlug
    *   A configuration array containing information about the plugin instance.
    * @param string $plugin_id
    *   The plugin ID for the plugin instance.
-   * @param array $plugin_definition
+   * @param mixed $plugin_definition
    *   The plugin implementation definition.
    * @param \Drupal\Core\Utility\Token $token
    *   The token service.
    * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
    *   The entity manager.
    */
-  public function __construct(array $configuration, $plugin_id, array $plugin_definition, Token $token, EntityManagerInterface $entity_manager) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, Token $token, EntityManagerInterface $entity_manager) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
 
     $this->token = $token;
-    $this->storageController = $entity_manager->getStorageController('user');
+    $this->storage = $entity_manager->getStorage('user');
   }
 
   /**
    * {@inheritdoc}
    */
-  public static function create(ContainerInterface $container, array $configuration, $plugin_id, array $plugin_definition) {
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
     return new static($configuration, $plugin_id, $plugin_definition,
       $container->get('token'),
       $container->get('entity.manager')
@@ -82,7 +82,7 @@ class EmailAction extends ConfigurableActionBase implements ContainerFactoryPlug
     // If the recipient is a registered user with a language preference, use
     // the recipient's preferred language. Otherwise, use the system default
     // language.
-    $recipient_accounts = $this->storageController->loadByProperties(array('mail' => $recipient));
+    $recipient_accounts = $this->storage->loadByProperties(array('mail' => $recipient));
     $recipient_account = reset($recipient_accounts);
     if ($recipient_account) {
       $langcode = $recipient_account->getPreferredLangcode();

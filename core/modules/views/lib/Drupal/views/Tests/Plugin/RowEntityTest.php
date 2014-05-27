@@ -7,6 +7,7 @@
 
 namespace Drupal\views\Tests\Plugin;
 
+use Drupal\Component\Utility\Xss;
 use Drupal\views\Views;
 use Drupal\views\Tests\ViewUnitTestBase;
 
@@ -78,7 +79,6 @@ class RowEntityTest extends ViewUnitTestBase {
     $form_state['view'] = $view->storage;
     $view->rowPlugin->buildOptionsForm($form, $form_state);
 
-    $this->assertTrue(isset($form['view_mode']['#options']['full']), 'Ensure that the full view mode is available');
     $this->assertTrue(isset($form['view_mode']['#options']['default']), 'Ensure that the default view mode is available');
   }
 
@@ -103,7 +103,7 @@ class RowEntityTest extends ViewUnitTestBase {
     if (!$message) {
       $message = t('Raw "@raw" found', array('@raw' => $text));
     }
-    return $this->assert(strpos(filter_xss($this->content, array()), $text) !== FALSE, $message, $group);
+    return $this->assert(strpos(Xss::filter($this->content, array()), $text) !== FALSE, $message, $group);
   }
 
 }

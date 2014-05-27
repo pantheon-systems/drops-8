@@ -76,19 +76,19 @@ class ForumFormController extends TermFormController {
    */
   public function save(array $form, array &$form_state) {
     $term = $this->entity;
-    $term_storage = $this->entityManager->getStorageController('taxonomy_term');
+    $term_storage = $this->entityManager->getStorage('taxonomy_term');
     $status = $term_storage->save($term);
 
     switch ($status) {
       case SAVED_NEW:
         drupal_set_message($this->t('Created new @type %term.', array('%term' => $term->getName(), '@type' => $this->forumFormType)));
-        watchdog('forum', 'Created new @type %term.', array('%term' => $term->getName(), '@type' => $this->forumFormType), WATCHDOG_NOTICE, l($this->t('edit'), 'admin/structure/forum/edit/' . $this->urlStub . '/' . $term->id()));
+        watchdog('forum', 'Created new @type %term.', array('%term' => $term->getName(), '@type' => $this->forumFormType), WATCHDOG_NOTICE, l($this->t('Edit'), 'admin/structure/forum/edit/' . $this->urlStub . '/' . $term->id()));
         $form_state['values']['tid'] = $term->id();
         break;
 
       case SAVED_UPDATED:
         drupal_set_message($this->t('The @type %term has been updated.', array('%term' => $term->getName(), '@type' => $this->forumFormType)));
-        watchdog('taxonomy', 'Updated @type %term.', array('%term' => $term->getName(), '@type' => $this->forumFormType), WATCHDOG_NOTICE, l($this->t('edit'), 'admin/structure/forum/edit/' . $this->urlStub . '/' . $term->id()));
+        watchdog('taxonomy', 'Updated @type %term.', array('%term' => $term->getName(), '@type' => $this->forumFormType), WATCHDOG_NOTICE, l($this->t('Edit'), 'admin/structure/forum/edit/' . $this->urlStub . '/' . $term->id()));
         // Clear the page and block caches to avoid stale data.
         Cache::invalidateTags(array('content' => TRUE));
         break;
@@ -106,7 +106,9 @@ class ForumFormController extends TermFormController {
 
     $query = $this->getRequest()->query;
     if ($query->has('destination')) {
-      $form_state['redirect_route']['options']['query']['destination'] = $query->get('destination');
+      $redirect_query = $form_state['redirect_route']->getOption('query') ?: array();
+      $redirect_query['destination'] = $query->get('destination');
+      $form_state['redirect_route']->setOption('query', $redirect_query);
       $query->remove('destination');
     }
   }

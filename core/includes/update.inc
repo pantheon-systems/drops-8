@@ -14,6 +14,7 @@ use Drupal\Component\Utility\String;
 use Drupal\Core\Config\FileStorage;
 use Drupal\Core\Config\ConfigException;
 use Drupal\Core\DrupalKernel;
+use Drupal\Core\Page\DefaultHtmlPageRenderer;
 use Drupal\Core\Utility\Error;
 use Drupal\Component\Uuid\Uuid;
 use Drupal\Component\Utility\NestedArray;
@@ -23,21 +24,22 @@ use Symfony\Component\HttpFoundation\Request;
  * Disables any extensions that are incompatible with the current core version.
  */
 function update_fix_compatibility() {
+  $extension_config = \Drupal::config('core.extension');
+  $save = FALSE;
   foreach (array('module', 'theme') as $type) {
-    $config = \Drupal::config("system.$type");
-    $save = FALSE;
-    foreach ($config->get('enabled') as $name => $weight) {
+    foreach ($extension_config->get($type) as $name => $weight) {
       if (update_check_incompatibility($name, $type)) {
-        $config->clear("enabled.$name");
+        $extension_config->clear("$type.$name");
+        if ($type === 'theme') {
+          $extension_config->set("disabled.theme.$name", 0);
+        }
         $save = TRUE;
       }
     }
-    if ($save) {
-      if ($type == 'module') {
-        $config->set('enabled', module_config_sort($config->get('enabled')));
-      }
-      $config->save();
-    }
+  }
+  if ($save) {
+    $extension_config->set('module', module_config_sort($extension_config->get('module')));
+    $extension_config->save();
   }
 }
 
@@ -146,20 +148,15 @@ function update_check_requirements($skip_warnings = FALSE) {
   // If there are errors, always display them. If there are only warnings, skip
   // them if the caller has indicated they should be skipped.
   if ($severity == REQUIREMENT_ERROR || ($severity == REQUIREMENT_WARNING && !$skip_warnings)) {
-    update_task_list('requirements');
-    $status = array(
+    $regions['sidebar_first'] = update_task_list('requirements');
+    $status_report = array(
       '#theme' => 'status_report',
       '#requirements' => $requirements,
     );
-    $status_report = drupal_render($status);
-    $status_report .= 'Check the messages and <a href="' . check_url(drupal_requirements_url($severity)) . '">try again</a>.';
+    $status_report['#suffix'] = 'Check the messages and <a href="' . check_url(drupal_requirements_url($severity)) . '">try again</a>.';
+
     drupal_add_http_header('Content-Type', 'text/html; charset=utf-8');
-    $maintenance_page = array(
-      '#theme' => 'maintenance_page',
-      '#title' => 'Requirements problem',
-      '#content' => $status_report,
-    );
-    print drupal_render($maintenance_page);
+    print DefaultHtmlPageRenderer::renderPage($status_report, 'Requirements problem', 'maintenance', $regions);
     exit();
   }
 }
@@ -821,7 +818,7 @@ function update_language_list($flags = Language::STATE_CONFIGURABLE) {
    $languages = array();
 
     // Fill in master language list based on current configuration.
-    $default = language_default();
+    $default = \Drupal::languageManager()->getDefaultLanguage();
     if (\Drupal::languageManager()->isMultilingual() || \Drupal::moduleHandler()->moduleExists('language')) {
       // Use language module configuration if available. We can not use
       // entity_load_multiple() because this breaks during updates.
@@ -858,7 +855,7 @@ function update_language_list($flags = Language::STATE_CONFIGURABLE) {
 
   // Add the site's default language if flagged as allowed value.
   if ($flags & Language::STATE_SITE_DEFAULT) {
-    $default = isset($default) ? $default : language_default();
+    $default = isset($default) ? $default : \Drupal::languageManager()->getDefaultLanguage();
     // Rename the default language.
     $default->name = t("Site's default language (@lang_name)", array('@lang_name' => $default->name));
     $filtered_languages['site_default'] = $default;

@@ -7,7 +7,6 @@
 
 namespace Drupal\migrate_drupal\Tests\d6;
 
-use Drupal\migrate\MigrateMessage;
 use Drupal\migrate\MigrateExecutable;
 use Drupal\migrate_drupal\Tests\MigrateDrupalTestBase;
 
@@ -28,16 +27,23 @@ class MigrateFieldConfigsTest extends MigrateDrupalTestBase {
   }
 
   /**
+   * {@inheritdoc}
+   */
+  public function setUp() {
+    parent::setUp();
+    $migration = entity_load('migration', 'd6_field_settings');
+    $dumps = array(
+      dirname(__DIR__) . '/Dump/Drupal6FieldSettings.php',
+    );
+    $this->prepare($migration, $dumps);
+    $executable = new MigrateExecutable($migration, $this);
+    $executable->import();
+  }
+
+  /**
    * Tests migration of field variables to field.settings.yml.
    */
   public function testFieldSettings() {
-    $migration = entity_load('migration', 'd6_field_settings');
-    $dumps = array(
-      drupal_get_path('module', 'migrate_drupal') . '/lib/Drupal/migrate_drupal/Tests/Dump/Drupal6FieldSettings.php',
-    );
-    $this->prepare($migration, $dumps);
-    $executable = new MigrateExecutable($migration, new MigrateMessage());
-    $executable->import();
     $config = \Drupal::config('field.settings');
     $this->assertIdentical($config->get('language_fallback'), TRUE);
   }

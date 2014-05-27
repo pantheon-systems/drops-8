@@ -11,12 +11,15 @@ use Drupal\Component\Utility\String;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Component\Utility\Xss;
+use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\Render\Element;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\views\Plugin\views\display\DisplayPluginBase;
 use Drupal\views\Plugin\views\PluginBase;
 use Drupal\views\ViewExecutable;
 use Drupal\Core\Database\Database;
 use Drupal\views\Views;
+use Drupal\views\ViewsData;
 
 abstract class HandlerBase extends PluginBase {
 
@@ -85,9 +88,23 @@ abstract class HandlerBase extends PluginBase {
   protected $optional = FALSE;
 
   /**
+   * The module handler.
+   *
+   * @var \Drupal\Core\Extension\ModuleHandlerInterface
+   */
+  protected $moduleHandler;
+
+  /**
+   * The views data service.
+   *
+   * @var \Drupal\views\ViewsData
+   */
+  protected $viewsData;
+
+  /**
    * Constructs a Handler object.
    */
-  public function __construct(array $configuration, $plugin_id, array $plugin_definition) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
     $this->is_handler = TRUE;
     $this->optional = !empty($configuration['optional']);
@@ -151,6 +168,7 @@ abstract class HandlerBase extends PluginBase {
     $options['relationship'] = array('default' => 'none');
     $options['group_type'] = array('default' => 'group');
     $options['admin_label'] = array('default' => '', 'translatable' => TRUE);
+    $options['dependencies'] = array('default' => array());
 
     return $options;
   }
@@ -173,7 +191,7 @@ abstract class HandlerBase extends PluginBase {
       return $title;
     }
     $title = ($short && isset($this->definition['title short'])) ? $this->definition['title short'] : $this->definition['title'];
-    return t('!group: !title', array('!group' => $this->definition['group'], '!title' => $title));
+    return $this->t('!group: !title', array('!group' => $this->definition['group'], '!title' => $title));
   }
 
   /**
@@ -259,18 +277,13 @@ abstract class HandlerBase extends PluginBase {
       default:
         return $string;
       case 'upper':
-        return drupal_strtoupper($string);
+        return Unicode::strtoupper($string);
       case 'lower':
-        return drupal_strtolower($string);
+        return Unicode::strtolower($string);
       case 'ucfirst':
-        return drupal_strtoupper(drupal_substr($string, 0, 1)) . drupal_substr($string, 1);
+        return Unicode::ucfirst($string);
       case 'ucwords':
-        if (Unicode::getStatus() == Unicode::STATUS_MULTIBYTE) {
-          return mb_convert_case($string, MB_CASE_TITLE);
-        }
-        else {
-          return ucwords($string);
-        }
+        return Unicode::ucwords($string);
     }
   }
 
@@ -298,8 +311,8 @@ abstract class HandlerBase extends PluginBase {
     );
     $form['admin_label']['admin_label'] = array(
       '#type' => 'textfield',
-      '#title' => t('Administrative title'),
-      '#description' => t('This title will be displayed on the views edit page instead of the default one. This might be useful if you have the same item twice.'),
+      '#title' => $this->t('Administrative title'),
+      '#description' => $this->t('This title will be displayed on the views edit page instead of the default one. This might be useful if you have the same item twice.'),
       '#default_value' => $this->options['admin_label'],
       '#parents' => array('options', 'admin_label'),
     );
@@ -313,7 +326,30 @@ abstract class HandlerBase extends PluginBase {
     );
     // Allow to alter the default values brought into the form.
     // @todo Do we really want to keep this hook.
-    \Drupal::moduleHandler()->alter('views_handler_options', $this->options, $this->view);
+    $this->getModuleHandler()->alter('views_handler_options', $this->options, $this->view);
+  }
+
+  /**
+   * Gets the module handler.
+   *
+   * @return \Drupal\Core\Extension\ModuleHandlerInterface
+   */
+  protected function getModuleHandler() {
+    if (!$this->moduleHandler) {
+      $this->moduleHandler = \Drupal::moduleHandler();
+    }
+
+    return $this->moduleHandler;
+  }
+
+  /**
+   * Sets the module handler.
+   *
+   * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
+   *   The module handler.
+   */
+  public function setModuleHandler(ModuleHandlerInterface $module_handler) {
+    $this->moduleHandler = $module_handler;
   }
 
   /**
@@ -340,9 +376,9 @@ abstract class HandlerBase extends PluginBase {
 
     $form['group_type'] = array(
       '#type' => 'select',
-      '#title' => t('Aggregation type'),
+      '#title' => $this->t('Aggregation type'),
       '#default_value' => $this->options['group_type'],
-      '#description' => t('Select the aggregation function to use on this field.'),
+      '#description' => $this->t('Select the aggregation function to use on this field.'),
       '#options' => $group_types,
     );
   }
@@ -449,7 +485,7 @@ abstract class HandlerBase extends PluginBase {
     // these defaults from getting wiped out. This setting will only be TRUE
     // during a 2nd pass rerender.
     if (!empty($form_state['force_expose_options'])) {
-      foreach (element_children($form['expose']) as $id) {
+      foreach (Element::children($form['expose']) as $id) {
         if (isset($form['expose'][$id]['#default_value']) && !isset($form['expose'][$id]['#value'])) {
           $form['expose'][$id]['#value'] = $form['expose'][$id]['#default_value'];
         }
@@ -654,6 +690,29 @@ abstract class HandlerBase extends PluginBase {
   }
 
   /**
+   * Gets views data service.
+   *
+   * @return \Drupal\views\ViewsData
+   */
+  protected function getViewsData() {
+    if (!$this->viewsData) {
+      $this->viewsData = Views::viewsData();
+    }
+
+    return $this->viewsData;
+  }
+
+  /**
+   * Sets the views data service.
+   *
+   * @param \Drupal\views\ViewsData $views_data
+   *   The views data.
+   */
+  public function setViewsData(ViewsData $views_data) {
+    $this->viewsData = $views_data;
+  }
+
+  /**
    * Fetches a handler to join one table to a primary table from the data cache.
    *
    * @param string $table
@@ -709,10 +768,10 @@ abstract class HandlerBase extends PluginBase {
     // If the user has configured a relationship on the handler take that into
     // account.
     if (!empty($this->options['relationship']) && $this->options['relationship'] != 'none') {
-      $views_data = Views::viewsData()->get($this->view->relationship->table);
+      $views_data = $this->getViewsData()->get($this->view->relationship->table);
     }
     else {
-      $views_data = Views::viewsData()->get($this->view->storage->get('base_table'));
+      $views_data = $this->getViewsData()->get($this->view->storage->get('base_table'));
     }
 
     if (isset($views_data['table']['entity type'])) {
@@ -868,7 +927,7 @@ abstract class HandlerBase extends PluginBase {
     // Run it through the handler's submit function.
     $this->submitOptionsForm($form['options'], $form_state);
     $item = $this->options;
-    $types = ViewExecutable::viewsHandlerTypes();
+    $types = ViewExecutable::getHandlerTypes();
 
     // For footer/header $handler_type is area but $type is footer/header.
     // For all other handle types it's the same.

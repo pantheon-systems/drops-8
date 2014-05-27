@@ -171,6 +171,18 @@ class FieldDefinitionTest extends UnitTestCase {
   }
 
   /**
+   * Tests field revisionable methods.
+   */
+  public function testFieldRevisionable() {
+    $definition = FieldDefinition::create($this->fieldType);
+    $this->assertFalse($definition->isRevisionable());
+    $definition->setRevisionable(TRUE);
+    $this->assertTrue($definition->isRevisionable());
+    $definition->setRevisionable(FALSE);
+    $this->assertFalse($definition->isRevisionable());
+  }
+
+  /**
    * Tests field cardinality.
    */
   public function testFieldCardinality() {
@@ -195,11 +207,25 @@ class FieldDefinitionTest extends UnitTestCase {
   }
 
   /**
-   * Tests configurable.
+   * Tests provider.
    */
-  public function testFieldConfigurable() {
+  public function testFieldProvider() {
     $definition = FieldDefinition::create($this->fieldType);
-    $this->assertFalse($definition->isConfigurable());
+    $provider = $this->randomName();
+    $definition->setProvider($provider);
+    $this->assertEquals($provider, $definition->getProvider());
+  }
+
+  /**
+   * Tests custom storage.
+   */
+  public function testCustomStorage() {
+    $definition = FieldDefinition::create($this->fieldType);
+    $this->assertFalse($definition->hasCustomStorage());
+    $definition->setCustomStorage(TRUE);
+    $this->assertTrue($definition->hasCustomStorage());
+    $definition->setCustomStorage(FALSE);
+    $this->assertFalse($definition->hasCustomStorage());
   }
 
 }

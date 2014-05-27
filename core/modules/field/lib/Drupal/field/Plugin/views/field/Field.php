@@ -7,11 +7,14 @@
 
 namespace Drupal\field\Plugin\views\field;
 
+use Drupal\Component\Utility\Xss;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityManagerInterface;
-use Drupal\Core\Entity\EntityStorageControllerInterface;
+use Drupal\Core\Field\FieldDefinition;
+use Drupal\Core\Entity\EntityStorageInterface;
+use Drupal\Core\Render\Element;
 use Drupal\field\Field as FieldHelper;
-use Drupal\Core\Entity\FieldableDatabaseStorageController;
+use Drupal\Core\Entity\ContentEntityDatabaseStorage;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FormatterPluginManager;
 use Drupal\Core\Language\Language;
@@ -28,7 +31,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *
  * @ingroup views_field_handlers
  *
- * @PluginID("field")
+ * @ViewsField("field")
  */
 class Field extends FieldPluginBase {
 
@@ -40,11 +43,20 @@ class Field extends FieldPluginBase {
   public $items = array();
 
   /**
-   * The field information as returned by field_info_field().
+   * The field definition to use.
    *
-   * @var \Drupal\field\FieldConfigInterface
+   * A field storage definition turned into a field definition, so it can be
+   * used with widgets and formatters. See
+   * FieldDefinition::createFromFieldStorageDefinition().
+   *
+   * @var \Drupal\Core\Field\FieldDefinitionInterface
    */
-  public $field_info;
+  protected $fieldDefinition;
+
+  /**
+   * The field config.
+   */
+  protected $fieldConfig;
 
   /**
    * Does the field supports multiple field values.
@@ -102,7 +114,7 @@ class Field extends FieldPluginBase {
    *   A configuration array containing information about the plugin instance.
    * @param string $plugin_id
    *   The plugin_id for the plugin instance.
-   * @param array $plugin_definition
+   * @param mixed $plugin_definition
    *   The plugin implementation definition.
    * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
    *   The field formatter plugin manager.
@@ -111,7 +123,7 @@ class Field extends FieldPluginBase {
    * @param \Drupal\Core\Language\LanguageManager $language_manager
    *   The language manager.
    */
-  public function __construct(array $configuration, $plugin_id, array $plugin_definition, EntityManagerInterface $entity_manager, FormatterPluginManager $formatter_plugin_manager, LanguageManager $language_manager) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, EntityManagerInterface $entity_manager, FormatterPluginManager $formatter_plugin_manager, LanguageManager $language_manager) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
 
     $this->entityManager = $entity_manager;
@@ -122,7 +134,7 @@ class Field extends FieldPluginBase {
   /**
    * {@inheritdoc}
    */
-  public static function create(ContainerInterface $container, array $configuration, $plugin_id, array $plugin_definition) {
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
     return new static(
       $configuration,
       $plugin_id,
@@ -134,17 +146,43 @@ class Field extends FieldPluginBase {
   }
 
   /**
+   * Gets the field definition.
+   *
+   * @return \Drupal\Core\Field\FieldDefinitionInterface
+   *   The field definition used by this handler.
+   */
+  protected function getFieldDefinition() {
+    if (!$this->fieldDefinition) {
+      $field_config = $this->getFieldConfig();
+      $this->fieldDefinition = FieldDefinition::createFromFieldStorageDefinition($field_config);
+    }
+    return $this->fieldDefinition;
+  }
+
+  /**
+   * Gets the field configuration.
+   *
+   * @return \Drupal\field\FieldConfigInterface
+   */
+  protected function getFieldConfig() {
+    if (!$this->fieldConfig) {
+      $this->fieldConfig = FieldHelper::fieldInfo()->getField($this->definition['entity_type'], $this->definition['field_name']);
+    }
+    return $this->fieldConfig;
+  }
+
+  /**
    * Overrides \Drupal\views\Plugin\views\field\FieldPluginBase::init().
    */
   public function init(ViewExecutable $view, DisplayPluginBase $display, array &$options = NULL) {
     parent::init($view, $display, $options);
 
-    $this->field_info = FieldHelper::fieldInfo()->getField($this->definition['entity_type'], $this->definition['field_name']);
     $this->multiple = FALSE;
     $this->limit_values = FALSE;
 
-    $cardinality = $this->field_info->getCardinality();
-    if ($this->field_info->isMultiple()) {
+    $field_info = $this->getFieldDefinition();
+    $cardinality = $field_info->getCardinality();
+    if ($field_info->isMultiple()) {
       $this->multiple = TRUE;
 
       // If "Display all values in the same row" is FALSE, then we always limit
@@ -172,7 +210,7 @@ class Field extends FieldPluginBase {
   public function access(AccountInterface $account) {
     $base_table = $this->get_base_table();
     $access_controller = $this->entityManager->getAccessController($this->definition['entity_tables'][$base_table]);
-    return $access_controller->fieldAccess('view', $this->field_info, $account);
+    return $access_controller->fieldAccess('view', $this->getFieldDefinition(), $account);
   }
 
   /**
@@ -219,6 +257,7 @@ class Field extends FieldPluginBase {
       unset($fields[$entity_type_key]);
     }
 
+    $field_definition = $this->getFieldDefinition();
     if ($use_groupby) {
       // Add the fields that we're actually grouping on.
       $options = array();
@@ -228,12 +267,12 @@ class Field extends FieldPluginBase {
       $options += is_array($this->options['group_columns']) ? $this->options['group_columns'] : array();
 
       $fields = array();
-      $rkey = $this->definition['is revision'] ? EntityStorageControllerInterface::FIELD_LOAD_REVISION : EntityStorageControllerInterface::FIELD_LOAD_CURRENT;
+      $rkey = $this->definition['is revision'] ? EntityStorageInterface::FIELD_LOAD_REVISION : EntityStorageInterface::FIELD_LOAD_CURRENT;
       // Go through the list and determine the actual column name from field api.
       foreach ($options as $column) {
         $name = $column;
-        if (isset($this->field_info['storage_details']['sql'][$rkey][$this->table][$column])) {
-          $name = $this->field_info['storage_details']['sql'][$rkey][$this->table][$column];
+        if (isset($field_definition['storage_details']['sql'][$rkey][$this->table][$column])) {
+          $name = $field_definition['storage_details']['sql'][$rkey][$this->table][$column];
         }
 
         $fields[$column] = $name;
@@ -248,7 +287,7 @@ class Field extends FieldPluginBase {
       $this->addAdditionalFields($fields);
 
       // Filter by langcode, if field translation is enabled.
-      $field = $this->field_info;
+      $field = $field_definition;
       if ($field->isTranslatable() && !empty($this->view->display_handler->options['field_langcode_add_to_query'])) {
         $column = $this->tableAlias . '.langcode';
         // By the same reason as field_language the field might be Language::LANGCODE_NOT_SPECIFIED in reality so allow it as well.
@@ -309,7 +348,7 @@ class Field extends FieldPluginBase {
 
     $this->ensureMyTable();
     $field = field_info_field($this->definition['entity_type'], $this->definition['field_name']);
-    $column = FieldableDatabaseStorageController::_fieldColumnName($field, $this->options['click_sort_column']);
+    $column = ContentEntityDatabaseStorage::_fieldColumnName($field, $this->options['click_sort_column']);
     if (!isset($this->aliases[$column])) {
       // Column is not in query; add a sort on it (without adding the column).
       $this->aliases[$column] = $this->tableAlias . '.' . $column;
@@ -393,7 +432,7 @@ class Field extends FieldPluginBase {
   public function buildOptionsForm(&$form, &$form_state) {
     parent::buildOptionsForm($form, $form_state);
 
-    $field = $this->field_info;
+    $field = $this->getFieldDefinition();
     $formatters = $this->formatterPluginManager->getOptions($field->getType());
     $column_names = array_keys($field->getColumns());
 
@@ -472,7 +511,7 @@ class Field extends FieldPluginBase {
    * Provide options for multiple value fields.
    */
   function multiple_options_form(&$form, &$form_state) {
-    $field = $this->field_info;
+    $field = $this->getFieldDefinition();
 
     $form['multiple_field_settings'] = array(
       '#type' => 'details',
@@ -599,7 +638,7 @@ class Field extends FieldPluginBase {
     // With "field API" fields, the column target of the grouping function
     // and any additional grouping columns must be specified.
 
-    $field_columns = array_keys($this->field_info->getColumns());
+    $field_columns = array_keys($this->getFieldDefinition()->getColumns());
     $group_columns = array(
       'entity_id' => t('Entity ID'),
     ) + array_map('ucfirst', array_combine($field_columns, $field_columns));
@@ -649,7 +688,7 @@ class Field extends FieldPluginBase {
       }
 
       if ($this->options['multi_type'] == 'separator') {
-        return implode(filter_xss_admin($this->options['separator']), $items);
+        return implode(Xss::filterAdmin($this->options['separator']), $items);
       }
       else {
         $item_list = array(
@@ -692,7 +731,7 @@ class Field extends FieldPluginBase {
       return array(array('rendered' => drupal_render($render_array)));
     }
 
-    foreach (element_children($render_array) as $count) {
+    foreach (Element::children($render_array) as $count) {
       $items[$count]['rendered'] = $render_array[$count];
       // FieldItemListInterface::view() adds an #access property to the render
       // array that determines whether or not the current user is allowed to
@@ -824,17 +863,18 @@ class Field extends FieldPluginBase {
   }
 
   protected function documentSelfTokens(&$tokens) {
-    $field = $this->field_info;
+    $field = $this->getFieldDefinition();
     foreach ($field->getColumns() as $id => $column) {
       $tokens['[' . $this->options['id'] . '-' . $id . ']'] = t('Raw @column', array('@column' => $id));
     }
   }
 
   protected function addSelfTokens(&$tokens, $item) {
-    $field = $this->field_info;
+    $field = $this->getFieldDefinition();
     foreach ($field->getColumns() as $id => $column) {
-      // Use filter_xss_admin because it's user data and we can't be sure it is safe.
-      // We know nothing about the data, though, so we can't really do much else.
+      // Use \Drupal\Component\Utility\Xss::filterAdmin() because it's user data
+      // and we can't be sure it is safe. We know nothing about the data,
+      // though, so we can't really do much else.
 
       if (isset($item['raw'])) {
         // If $item['raw'] is an array then we can use as is, if it's an object
@@ -843,7 +883,7 @@ class Field extends FieldPluginBase {
                (is_object($item['raw']) ? (array)$item['raw'] : NULL);
       }
       if (isset($raw) && isset($raw[$id]) && is_scalar($raw[$id])) {
-        $tokens['[' . $this->options['id'] . '-' . $id . ']'] = filter_xss_admin($raw[$id]);
+        $tokens['[' . $this->options['id'] . '-' . $id . ']'] = Xss::filterAdmin($raw[$id]);
       }
       else {
         // Make sure that empty values are replaced as well.
@@ -857,7 +897,7 @@ class Field extends FieldPluginBase {
    * according to the settings.
    */
   function field_langcode(EntityInterface $entity) {
-    if ($this->field_info->isTranslatable()) {
+    if ($this->getFieldDefinition()->isTranslatable()) {
       $default_langcode = language_default()->id;
       $langcode = str_replace(
         array('***CURRENT_LANGUAGE***', '***DEFAULT_LANGUAGE***'),
@@ -878,5 +918,14 @@ class Field extends FieldPluginBase {
       return Language::LANGCODE_NOT_SPECIFIED;
     }
   }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getDependencies() {
+    // Add the module providing the configured field as a dependency.
+    return array('entity' => array($this->getFieldConfig()->getConfigDependencyName()));
+  }
+
 
 }

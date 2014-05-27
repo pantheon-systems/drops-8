@@ -7,8 +7,8 @@
 
 namespace Drupal\config\Tests;
 
+use Drupal\Component\Serialization\Yaml;
 use Drupal\simpletest\WebTestBase;
-use Symfony\Component\Yaml\Yaml;
 
 /**
  * Tests the user interface for importing/exporting a single configuration.
@@ -34,7 +34,7 @@ class ConfigSingleImportExportTest extends WebTestBase {
    * Tests importing a single configuration file.
    */
   public function testImport() {
-    $storage = \Drupal::entityManager()->getStorageController('config_test');
+    $storage = \Drupal::entityManager()->getStorage('config_test');
     $uuid = \Drupal::service('uuid');
 
     $this->drupalLogin($this->drupalCreateUser(array('import configuration')));
@@ -73,6 +73,14 @@ EOD;
     $this->drupalPostForm('admin/config/development/configuration/single/import', $edit, t('Import'));
     $this->assertText(t('An entity with this machine name already exists but the UUID does not match.'));
 
+    // Attempt an import with a custom ID.
+    $edit['custom_entity_id'] = 'custom_id';
+    $this->drupalPostForm('admin/config/development/configuration/single/import', $edit, t('Import'));
+    $this->assertRaw(t('Are you sure you want to create new %name @type?', array('%name' => 'custom_id', '@type' => 'test configuration')));
+    $this->drupalPostForm(NULL, array(), t('Confirm'));
+    $entity = $storage->load('custom_id');
+    $this->assertRaw(t('The @entity_type %label was imported.', array('@entity_type' => 'config_test', '%label' => $entity->label())));
+
     // Perform an import with a unique ID and UUID.
     $import = <<<EOD
 id: second
@@ -103,12 +111,11 @@ EOD;
    */
   public function testImportSimpleConfiguration() {
     $this->drupalLogin($this->drupalCreateUser(array('import configuration')));
-    $yaml = new Yaml();
     $config = \Drupal::config('system.site')->set('name', 'Test simple import');
     $edit = array(
       'config_type' => 'system.simple',
       'config_name' => $config->getName(),
-      'import' => $yaml->dump($config->get()),
+      'import' => Yaml::encode($config->get()),
     );
     $this->drupalPostForm('admin/config/development/configuration/single/import', $edit, t('Import'));
     $this->assertRaw(t('Are you sure you want to update the %name @type?', array('%name' => $config->getName(), '@type' => 'simple configuration')));
@@ -143,8 +150,8 @@ EOD;
     $this->drupalGet('admin/config/development/configuration/single/export/date_format/fallback');
     $this->assertFieldByXPath('//select[@name="config_name"]//option[@selected="selected"]', t('Fallback date format'), 'The fallback date format config entity is selected when specified in the URL.');
 
-    $fallback_date = \Drupal::entityManager()->getStorageController('date_format')->load('fallback');
-    $data = \Drupal::service('config.storage')->encode($fallback_date->getExportProperties());
+    $fallback_date = \Drupal::entityManager()->getStorage('date_format')->load('fallback');
+    $data = Yaml::encode($fallback_date->toArray());
     $this->assertFieldByXPath('//textarea[@name="export"]', $data, 'The fallback date format config entity export code is displayed.');
   }
 

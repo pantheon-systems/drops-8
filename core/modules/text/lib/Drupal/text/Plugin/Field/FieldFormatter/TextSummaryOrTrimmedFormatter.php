@@ -16,10 +16,7 @@ namespace Drupal\text\Plugin\Field\FieldFormatter;
  *   field_types = {
  *     "text_with_summary"
  *   },
- *   settings = {
- *     "trim_length" = "600"
- *   },
- *   edit = {
+ *   quickedit = {
  *     "editor" = "form"
  *   }
  * )

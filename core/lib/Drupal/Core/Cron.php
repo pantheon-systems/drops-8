@@ -8,10 +8,12 @@
 namespace Drupal\Core;
 
 use Drupal\Core\Extension\ModuleHandlerInterface;
-use Drupal\Core\KeyValueStore\StateInterface;
+use Drupal\Core\State\StateInterface;
 use Drupal\Core\Lock\LockBackendInterface;
 use Drupal\Core\Queue\QueueFactory;
-use Drupal\Core\Session\UserSession;
+use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\Core\Session\AnonymousUserSession;
+use Drupal\Core\Session\SessionManagerInterface;
 
 /**
  * The Drupal core Cron service.
@@ -42,9 +44,23 @@ class Cron implements CronInterface {
   /**
    * The state service.
    *
-   * @var \Drupal\Core\KeyValueStore\StateInterface
+   * @var \Drupal\Core\State\StateInterface
    */
   protected $state;
+
+  /**
+   * The current user.
+   *
+   * @var \Drupal\Core\Session\AccountProxyInterface
+   */
+  protected $currentUser;
+
+  /**
+   * The session manager.
+   *
+   * @var \Drupal\Core\Session\SessionManagerInterface
+   */
+  protected $sessionManager;
 
   /**
    * Constructs a cron object.
@@ -55,14 +71,20 @@ class Cron implements CronInterface {
    *   The lock service.
    * @param \Drupal\Core\Queue\QueueFactory $queue_factory
    *   The queue service.
-   * @param \Drupal\Core\KeyValueStore\StateInterface $state
+   * @param \Drupal\Core\State\StateInterface $state
    *   The state service.
+   * @param \Drupal\Core\Session\AccountProxyInterface $current_user
+   *    The current user.
+   * @param \Drupal\Core\Session\SessionManagerInterface $session_manager
+   *   The session manager.
    */
-  public function __construct(ModuleHandlerInterface $module_handler, LockBackendInterface $lock, QueueFactory $queue_factory, StateInterface $state) {
+  public function __construct(ModuleHandlerInterface $module_handler, LockBackendInterface $lock, QueueFactory $queue_factory, StateInterface $state, AccountProxyInterface $current_user, SessionManagerInterface $session_manager) {
     $this->moduleHandler = $module_handler;
     $this->lock = $lock;
     $this->queueFactory = $queue_factory;
     $this->state = $state;
+    $this->currentUser = $current_user;
+    $this->sessionManager = $session_manager;
   }
 
   /**
@@ -73,15 +95,13 @@ class Cron implements CronInterface {
     @ignore_user_abort(TRUE);
 
     // Prevent session information from being saved while cron is running.
-    $original_session_saving = drupal_save_session();
-    drupal_save_session(FALSE);
+    $original_session_saving = $this->sessionManager->isEnabled();
+    $this->sessionManager->disable();
 
     // Force the current user to anonymous to ensure consistent permissions on
     // cron runs.
-    // @todo This currently does not work, as it will not affect the current
-    //   user being injected into services.
-    $original_user = $GLOBALS['user'];
-    $GLOBALS['user'] = new UserSession();
+    $original_user = $this->currentUser->getAccount();
+    $this->currentUser->setAccount(new AnonymousUserSession());
 
     // Try to allocate enough time to run all the hook_cron implementations.
     drupal_set_time_limit(240);
@@ -147,10 +167,10 @@ class Cron implements CronInterface {
     }
 
     // Restore the user.
-    // @todo This currently does not work, as it will not affect the current
-    //   user being injected into services.
-    $GLOBALS['user'] = $original_user;
-    drupal_save_session($original_session_saving);
+    $this->currentUser->setAccount($original_user);
+    if ($original_session_saving) {
+      $this->sessionManager->enable();
+    }
 
     return $return;
   }

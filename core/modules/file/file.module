@@ -5,10 +5,11 @@
  * Defines a "managed_file" Form API field and a "file" field for Field module.
  */
 
+use Drupal\Core\Render\Element;
 use Drupal\file\Entity\File;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Component\Utility\Unicode;
-use Drupal\Core\Entity\EntityStorageControllerInterface;
+use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Template\Attribute;
 use Drupal\file\FileUsage\FileUsageInterface;
 
@@ -172,11 +173,14 @@ function file_copy(File $source, $destination = NULL, $replace = FILE_EXISTS_REN
     $file->setFileUri($uri);
     $file->setFilename(drupal_basename($uri));
     // If we are replacing an existing file re-use its database record.
+    // @todo Do not create a new entity in order to update it, see
+    //   https://drupal.org/node/2241865
     if ($replace == FILE_EXISTS_REPLACE) {
       $existing_files = entity_load_multiple_by_properties('file', array('uri' => $uri));
       if (count($existing_files)) {
         $existing = reset($existing_files);
         $file->fid = $existing->id();
+        $file->setOriginalId($existing->id());
         $file->setFilename($existing->getFilename());
       }
     }
@@ -253,6 +257,7 @@ function file_move(File $source, $destination = NULL, $replace = FILE_EXISTS_REN
         $existing = reset($existing_files);
         $delete_source = TRUE;
         $file->fid = $existing->id();
+        $file->uuid = $existing->uuid();
       }
     }
     // If we are renaming around an existing file (rather than a directory),
@@ -383,7 +388,7 @@ function file_validate_size(File $file, $file_limit = 0, $user_limit = 0) {
   }
 
   // Save a query by only calling spaceUsed() when a limit is provided.
-  if ($user_limit && (\Drupal::entityManager()->getStorageController('file')->spaceUsed($user->id()) + $file->getSize()) > $user_limit) {
+  if ($user_limit && (\Drupal::entityManager()->getStorage('file')->spaceUsed($user->id()) + $file->getSize()) > $user_limit) {
     $errors[] = t('The file is %filesize which would exceed your disk quota of %quota.', array('%filesize' => format_size($file->getSize()), '%quota' => format_size($user_limit)));
   }
 
@@ -406,9 +411,8 @@ function file_validate_is_image(File $file) {
 
   $image = \Drupal::service('image.factory')->get($file->getFileUri());
   if (!$image->isSupported()) {
-    $toolkit = \Drupal::service('image.toolkit.manager')->getDefaultToolkit();
     $extensions = array();
-    foreach ($toolkit->supportedTypes() as $image_type) {
+    foreach ($image->getToolkit()->supportedTypes() as $image_type) {
       $extensions[] = Unicode::strtoupper(image_type_to_extension($image_type));
     }
     $errors[] = t('Image type not supported. Allowed types: @types.', array('@types' => implode(', ', $extensions)));
@@ -520,11 +524,14 @@ function file_save_data($data, $destination = NULL, $replace = FILE_EXISTS_RENAM
       'status' => FILE_STATUS_PERMANENT,
     ));
     // If we are replacing an existing file re-use its database record.
+    // @todo Do not create a new entity in order to update it, see
+    //   https://drupal.org/node/2241865
     if ($replace == FILE_EXISTS_REPLACE) {
       $existing_files = entity_load_multiple_by_properties('file', array('uri' => $uri));
       if (count($existing_files)) {
         $existing = reset($existing_files);
         $file->fid = $existing->id();
+        $file->setOriginalId($existing->id());
         $file->setFilename($existing->getFilename());
       }
     }
@@ -619,7 +626,7 @@ function file_file_download($uri, $field_type = 'file') {
   }
 
   // Find out which (if any) fields of this type contain the file.
-  $references = file_get_file_references($file, NULL, EntityStorageControllerInterface::FIELD_LOAD_CURRENT, $field_type);
+  $references = file_get_file_references($file, NULL, EntityStorageInterface::FIELD_LOAD_CURRENT, $field_type);
 
   // Stop processing if there are no references in order to avoid returning
   // headers for files controlled by other modules. Make an exception for
@@ -693,9 +700,18 @@ function file_file_download($uri, $field_type = 'file') {
  * Implements file_cron()
  */
 function file_cron() {
-  $result = \Drupal::entityManager()->getStorageController('file')->retrieveTemporaryFiles();
-  foreach ($result as $row) {
-    if ($file = file_load($row->fid)) {
+  $age = \Drupal::config('system.file')->get('temporary_maximum_age');
+
+  // Only delete temporary files if older than $age. Note that automatic cleanup
+  // is disabled if $age set to 0.
+  if ($age) {
+    $fids = Drupal::entityQuery('file')
+      ->condition('status', FILE_STATUS_PERMANENT, '<>')
+      ->condition('changed', REQUEST_TIME - $age, '<')
+      ->range(0, 100)
+      ->execute();
+    $files = file_load_multiple($fids);
+    foreach ($files as $file) {
       $references = \Drupal::service('file.usage')->listUsage($file);
       if (empty($references)) {
         if (file_exists($file->getFileUri())) {
@@ -759,7 +775,7 @@ function file_cron() {
  *   - source: Path to the file before it is moved.
  *   - destination: Path to the file after it is moved (same as 'uri').
  */
-function file_save_upload($form_field_name, array &$form_state, $validators = array(), $destination = FALSE, $delta = NULL, $replace = FILE_EXISTS_RENAME) {
+function file_save_upload($form_field_name, $validators = array(), $destination = FALSE, $delta = NULL, $replace = FILE_EXISTS_RENAME) {
   $user = \Drupal::currentUser();
   static $upload_cache;
 
@@ -917,7 +933,7 @@ function file_save_upload($form_field_name, array &$form_state, $validators = ar
       else {
         $message .= ' ' . array_pop($errors);
       }
-      form_set_error($form_field_name, $form_state, $message);
+      drupal_set_message($message, 'error');
       $files[$i] = FALSE;
       continue;
     }
@@ -927,7 +943,7 @@ function file_save_upload($form_field_name, array &$form_state, $validators = ar
     // operations.
     $file->uri = $file->destination;
     if (!drupal_move_uploaded_file($file_info->getRealPath(), $file->getFileUri())) {
-      form_set_error($form_field_name, $form_state, t('File upload error. Could not move uploaded file.'));
+      drupal_set_message(t('File upload error. Could not move uploaded file.'), 'error');
       watchdog('file', 'Upload error. Could not move uploaded file %file to destination %destination.', array('%file' => $file->filename, '%destination' => $file->uri));
       $files[$i] = FALSE;
       continue;
@@ -937,11 +953,14 @@ function file_save_upload($form_field_name, array &$form_state, $validators = ar
     drupal_chmod($file->getFileUri());
 
     // If we are replacing an existing file re-use its database record.
+    // @todo Do not create a new entity in order to update it, see
+    //   https://drupal.org/node/2241865
     if ($replace == FILE_EXISTS_REPLACE) {
       $existing_files = entity_load_multiple_by_properties('file', array('uri' => $file->getFileUri()));
       if (count($existing_files)) {
         $existing = reset($existing_files);
         $file->fid = $existing->id();
+        $file->setOriginalId($existing->id());
       }
     }
 
@@ -1413,7 +1432,7 @@ function file_managed_file_submit($form, &$form_state) {
     // Get files that will be removed.
     if ($element['#multiple']) {
       $remove_fids = array();
-      foreach (element_children($element) as $name) {
+      foreach (Element::children($element) as $name) {
         if (strpos($name, 'file_') === 0 && $element[$name]['selected']['#value']) {
           $remove_fids[] = (int) substr($name, 5);
         }
@@ -1486,7 +1505,7 @@ function file_managed_file_save_upload($element, array &$form_state) {
   $files_uploaded = $element['#multiple'] && count(array_filter($file_upload)) > 0;
   $files_uploaded |= !$element['#multiple'] && !empty($file_upload);
   if ($files_uploaded) {
-    if (!$files = file_save_upload($upload_name, $form_state, $element['#upload_validators'], $destination)) {
+    if (!$files = file_save_upload($upload_name, $element['#upload_validators'], $destination)) {
       watchdog('file', 'The file upload failed. %upload', array('%upload' => $upload_name));
       form_set_error($upload_name, $form_state, t('Files in the !name field were unable to be uploaded.', array('!name' => $element['#title'])));
       return array();
@@ -1843,9 +1862,9 @@ function file_icon_map(File $file) {
  *   reference check to the given field.
  * @param $age
  *   (optional) A constant that specifies which references to count. Use
- *   EntityStorageControllerInterface::FIELD_LOAD_REVISION to retrieve all
+ *   EntityStorageInterface::FIELD_LOAD_REVISION to retrieve all
  *   references within all revisions or
- *   EntityStorageControllerInterface::FIELD_LOAD_CURRENT to retrieve references
+ *   EntityStorageInterface::FIELD_LOAD_CURRENT to retrieve references
  *   only in the current revisions.
  * @param $field_type
  *   (optional) The name of a field type. If given, limits the reference check
@@ -1857,7 +1876,7 @@ function file_icon_map(File $file) {
  *   A multidimensional array. The keys are field_name, entity_type,
  *   entity_id and the value is an entity referencing this file.
  */
-function file_get_file_references(File $file, $field = NULL, $age = EntityStorageControllerInterface::FIELD_LOAD_REVISION, $field_type = 'file') {
+function file_get_file_references(File $file, $field = NULL, $age = EntityStorageInterface::FIELD_LOAD_REVISION, $field_type = 'file') {
   $references = &drupal_static(__FUNCTION__, array());
   $field_columns = &drupal_static(__FUNCTION__ . ':field_columns', array());
 
@@ -1871,7 +1890,7 @@ function file_get_file_references(File $file, $field = NULL, $age = EntityStorag
       // The usage table contains usage of every revision. If we are looking
       // for every revision or the entity does not support revisions then
       // every usage is already a match.
-      $match_entity_type = $age == EntityStorageControllerInterface::FIELD_LOAD_REVISION || !$entity_type->hasKey('revision');
+      $match_entity_type = $age == EntityStorageInterface::FIELD_LOAD_REVISION || !$entity_type->hasKey('revision');
       $entities = entity_load_multiple($entity_type_id, array_keys($entity_ids));
       foreach ($entities as $entity) {
         $bundle = $entity->bundle();
@@ -1879,13 +1898,12 @@ function file_get_file_references(File $file, $field = NULL, $age = EntityStorag
         if (!isset($file_fields[$entity_type_id][$bundle])) {
           $file_fields[$entity_type_id][$bundle] = array();
           // This contains the possible field names.
-          $instances = field_info_instances($entity_type_id, $bundle);
-          foreach ($instances as $field_name => $instance) {
-            $field_type = $instance->getType();
+          foreach ($entity->getFieldDefinitions() as $field_name => $field_definition) {
+            $field_type = $field_definition->getType();
             // If this is the first time this field type is seen, check
             // whether it references files.
             if (!isset($field_columns[$field_type])) {
-              $field_columns[$field_type] = file_field_find_file_reference_column($instance->getField());
+              $field_columns[$field_type] = file_field_find_file_reference_column($field_definition);
             }
             // If the field type does reference files then record it.
             if ($field_columns[$field_type]) {

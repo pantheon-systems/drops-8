@@ -10,7 +10,7 @@ namespace Drupal\user\Form;
 use Drupal\Core\Flood\FloodInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\user\UserAuthInterface;
-use Drupal\user\UserStorageControllerInterface;
+use Drupal\user\UserStorageInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -26,9 +26,9 @@ class UserLoginForm extends FormBase {
   protected $flood;
 
   /**
-   * The user storage controller.
+   * The user storage.
    *
-   * @var \Drupal\user\UserStorageControllerInterface
+   * @var \Drupal\user\UserStorageInterface
    */
   protected $userStorage;
 
@@ -44,12 +44,12 @@ class UserLoginForm extends FormBase {
    *
    * @param \Drupal\Core\Flood\FloodInterface $flood
    *   The flood service.
-   * @param \Drupal\user\UserStorageControllerInterface $user_storage
-   *   The user storage controller.
+   * @param \Drupal\user\UserStorageInterface $user_storage
+   *   The user storage.
    * @param \Drupal\user\UserAuthInterface $user_auth
    *   The user authentication object.
    */
-  public function __construct(FloodInterface $flood, UserStorageControllerInterface $user_storage, UserAuthInterface $user_auth) {
+  public function __construct(FloodInterface $flood, UserStorageInterface $user_storage, UserAuthInterface $user_auth) {
     $this->flood = $flood;
     $this->userStorage = $user_storage;
     $this->userAuth = $user_auth;
@@ -61,7 +61,7 @@ class UserLoginForm extends FormBase {
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('flood'),
-      $container->get('entity.manager')->getStorageController('user'),
+      $container->get('entity.manager')->getStorage('user'),
       $container->get('user.auth')
     );
   }
@@ -116,10 +116,17 @@ class UserLoginForm extends FormBase {
    */
   public function submitForm(array &$form, array &$form_state) {
     $account = $this->userStorage->load($form_state['uid']);
-    $form_state['redirect_route'] = array(
-      'route_name' => 'user.view',
-      'route_parameters' => array('user' => $account->id()),
-    );
+
+    // A destination was set, probably on an exception controller,
+    if (!$this->request->request->has('destination')) {
+      $form_state['redirect_route'] = array(
+        'route_name' => 'user.view',
+        'route_parameters' => array('user' => $account->id()),
+      );
+    }
+    else {
+      $this->request->query->set('destination', $this->request->request->get('destination'));
+    }
 
     user_login_finalize($account);
   }

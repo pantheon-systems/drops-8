@@ -15,7 +15,7 @@ use Drupal\views\ResultRow;
  *
  * @ingroup views_field_handlers
  *
- * @PluginID("node_link_delete")
+ * @ViewsField("node_link_delete")
  */
 class LinkDelete extends Link {
 
@@ -40,7 +40,7 @@ class LinkDelete extends Link {
     $this->options['alter']['path'] = $node->getSystemPath('delete-form');
     $this->options['alter']['query'] = drupal_get_destination();
 
-    $text = !empty($this->options['text']) ? $this->options['text'] : t('delete');
+    $text = !empty($this->options['text']) ? $this->options['text'] : t('Delete');
     return $text;
   }
 

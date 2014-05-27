@@ -43,7 +43,7 @@ class PathPluginBaseTest extends UnitTestCase {
   /**
    * The mocked key value storage.
    *
-   * @var \Drupal\Core\KeyValueStore\StateInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\State\StateInterface|\PHPUnit_Framework_MockObject_MockObject
    */
   protected $state;
 
@@ -62,7 +62,7 @@ class PathPluginBaseTest extends UnitTestCase {
     parent::setUp();
 
     $this->routeProvider = $this->getMock('Drupal\Core\Routing\RouteProviderInterface');
-    $this->state = $this->getMock('\Drupal\Core\KeyValueStore\StateInterface');
+    $this->state = $this->getMock('\Drupal\Core\State\StateInterface');
     $this->pathPlugin = $this->getMockBuilder('Drupal\views\Plugin\views\display\PathPluginBase')
       ->setConstructorArgs(array(array(), 'path_base', array(), $this->routeProvider, $this->state))
       ->setMethods(NULL)
@@ -188,8 +188,6 @@ class PathPluginBaseTest extends UnitTestCase {
     /** @var \Drupal\views\ViewExecutable|\PHPUnit_Framework_MockObject_MockObject $view */
     list($view) = $this->setupViewExecutableAccessPlugin();
 
-    $view->expects($this->once())
-      ->method('initHandlers');
     $view->argument = array();
     $view->argument['nid'] = $this->getMockBuilder('Drupal\views\Plugin\views\argument\ArgumentPluginBase')
       ->disableOriginalConstructor()
@@ -212,7 +210,7 @@ class PathPluginBaseTest extends UnitTestCase {
     $this->assertEquals('/test_route/{node}/example', $route->getPath());
     $this->assertEquals('test_id', $route->getDefault('view_id'));
     $this->assertEquals('page_1', $route->getDefault('display_id'));
-    $this->assertEquals(array('arg_0' => 'node'), $route->getDefault('_view_argument_map'));
+    $this->assertEquals(array('arg_0' => 'node'), $route->getOption('_view_argument_map'));
   }
 
   /**
@@ -248,7 +246,7 @@ class PathPluginBaseTest extends UnitTestCase {
     $this->assertEquals('page_1', $route->getDefault('display_id'));
     // Ensure that the path did not changed and placeholders are respected.
     $this->assertEquals('/test_route/{parameter}', $route->getPath());
-    $this->assertEquals(array('arg_0' => 'parameter'), $route->getDefault('_view_argument_map'));
+    $this->assertEquals(array('arg_0' => 'parameter'), $route->getOption('_view_argument_map'));
   }
 
   /**

@@ -7,11 +7,13 @@
 
 namespace Drupal\views_ui;
 
+use Drupal\Component\Utility\Xss;
 use Drupal\Core\Ajax\AjaxResponse;
 use Drupal\Core\Ajax\HtmlCommand;
 use Drupal\Core\Ajax\ReplaceCommand;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Component\Utility\String;
+use Drupal\Core\Render\Element;
 use Drupal\user\TempStoreFactory;
 use Drupal\views\Views;
 use Symfony\Component\HttpFoundation\Request;
@@ -689,7 +691,7 @@ class ViewEditFormController extends ViewFormControllerBase {
         ),
         'clone' => array(
           'title' => $this->t('Clone view'),
-        ) + $view->urlInfo('clone'),
+        ) + $view->urlInfo('clone')->toArray(),
         'reorder' => array(
           'title' => $this->t('Reorder displays'),
           'href' => "admin/structure/views/nojs/reorder-displays/{$view->id()}/$display_id",
@@ -701,7 +703,7 @@ class ViewEditFormController extends ViewFormControllerBase {
     if ($view->access('delete')) {
       $element['extra_actions']['#links']['delete'] = array(
         'title' => $this->t('Delete view'),
-      ) + $view->urlInfo('delete-form');
+      ) + $view->urlInfo('delete-form')->toArray();
     }
 
     // Let other modules add additional links here.
@@ -911,7 +913,7 @@ class ViewEditFormController extends ViewFormControllerBase {
     $executable->setDisplay($display['id']);
     $executable->initStyle();
 
-    $types = $executable->viewsHandlerTypes();
+    $types = $executable->getHandlerTypes();
 
     $build = array(
       '#theme_wrappers' => array('views_ui_display_tab_bucket'),
@@ -1048,7 +1050,7 @@ class ViewEditFormController extends ViewFormControllerBase {
         $field_name = '(' . $relationships[$field['relationship']] . ') ' . $field_name;
       }
 
-      $description = filter_xss_admin($handler->adminSummary());
+      $description = Xss::filterAdmin($handler->adminSummary());
       $link_text = $field_name . (empty($description) ? '' : " ($description)");
       $link_attributes = array('class' => array('views-ajax-link'));
       if (!empty($field['exclude'])) {
@@ -1114,7 +1116,7 @@ class ViewEditFormController extends ViewFormControllerBase {
    */
   public static function addMicroweights(&$build) {
     $count = 0;
-    foreach (element_children($build) as $key) {
+    foreach (Element::children($build) as $key) {
       if (!isset($build[$key]['#weight'])) {
         $build[$key]['#weight'] = $count/1000;
       }

@@ -7,16 +7,17 @@
 
 namespace Drupal\contextual\Plugin\views\field;
 
+use Drupal\Component\Serialization\Json;
+use Drupal\Component\Utility\UrlHelper;
 use Drupal\views\Plugin\views\field\FieldPluginBase;
 use Drupal\views\ResultRow;
-use Drupal\Component\Utility\Json;
 
 /**
  * Provides a handler that adds contextual links.
  *
  * @ingroup views_field_handlers
  *
- * @PluginID("contextual_links")
+ * @ViewsField("contextual_links")
  */
 class ContextualLinks extends FieldPluginBase {
 
@@ -115,7 +116,7 @@ class ContextualLinks extends FieldPluginBase {
           '',
           array(),
           array(
-            'contextual-views-field-links' => drupal_encode_path(Json::encode($links)),
+            'contextual-views-field-links' => UrlHelper::encodePath(Json::encode($links)),
           )
         )
       );

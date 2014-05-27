@@ -7,11 +7,11 @@
 
 namespace Drupal\Core\Config;
 
-use Drupal\Core\Config\InstallStorage;
-use Drupal\Core\Config\StorageException;
-
 /**
- * Defines the file storage controller for metadata files.
+ * Storage to access configuration and schema in enabled extensions.
+ *
+ * @see \Drupal\Core\Config\ConfigInstaller
+ * @see \Drupal\Core\Config\TypedConfigManager
  */
 class ExtensionInstallStorage extends InstallStorage {
 
@@ -28,16 +28,13 @@ class ExtensionInstallStorage extends InstallStorage {
    * @param \Drupal\Core\Config\StorageInterface $config_storage
    *   The active configuration store where the list of enabled modules and
    *   themes is stored.
+   * @param string $directory
+   *   The directory to scan in each extension to scan for files. Defaults to
+   *   'config'.
    */
-  public function __construct(StorageInterface $config_storage) {
+  public function __construct(StorageInterface $config_storage, $directory = self::CONFIG_INSTALL_DIRECTORY) {
     $this->configStorage = $config_storage;
-  }
-
-  /**
-   * Resets the static cache.
-   */
-  public function reset() {
-    $this->folders = NULL;
+    $this->directory = $directory;
   }
 
   /**
@@ -55,13 +52,14 @@ class ExtensionInstallStorage extends InstallStorage {
   protected function getAllFolders() {
     if (!isset($this->folders)) {
       $this->folders = array();
-      $modules = $this->configStorage->read('system.module');
-      if (isset($modules['enabled'])) {
-        $this->folders += $this->getComponentNames('module', array_keys($modules['enabled']));
+      $this->folders += $this->getComponentNames('core', array('core'));
+
+      $extensions = $this->configStorage->read('core.extension');
+      if (!empty($extensions['module'])) {
+        $this->folders += $this->getComponentNames('module', array_keys($extensions['module']));
       }
-      $themes = $this->configStorage->read('system.theme');
-      if (isset($themes['enabled'])) {
-        $this->folders += $this->getComponentNames('theme', array_keys($themes['enabled']));
+      if (!empty($extensions['theme'])) {
+        $this->folders += $this->getComponentNames('theme', array_keys($extensions['theme']));
       }
 
       // The install profile can override module default configuration. We do

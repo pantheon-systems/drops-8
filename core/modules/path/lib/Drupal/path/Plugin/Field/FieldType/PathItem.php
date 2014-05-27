@@ -7,7 +7,7 @@
 
 namespace Drupal\path\Plugin\Field\FieldType;
 
-use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Field\FieldItemBase;
 use Drupal\Core\TypedData\DataDefinition;
 
@@ -18,7 +18,7 @@ use Drupal\Core\TypedData\DataDefinition;
  *   id = "path",
  *   label = @Translation("Path"),
  *   description = @Translation("An entity field containing a path alias and related data."),
- *   configurable = FALSE
+ *   no_ui = TRUE
  * )
  */
 class PathItem extends FieldItemBase {
@@ -26,7 +26,7 @@ class PathItem extends FieldItemBase {
   /**
    * {@inheritdoc}
    */
-  public static function propertyDefinitions(FieldDefinitionInterface $field_definition) {
+  public static function propertyDefinitions(FieldStorageDefinitionInterface $field_definition) {
     $properties['alias'] = DataDefinition::create('string')
         ->setLabel(t('Path alias'));
     $properties['pid'] = DataDefinition::create('string')
@@ -37,7 +37,7 @@ class PathItem extends FieldItemBase {
   /**
    * {@inheritdoc}
    */
-  public static function schema(FieldDefinitionInterface $field_definition) {
+  public static function schema(FieldStorageDefinitionInterface $field_definition) {
     return array();
   }
 
@@ -58,7 +58,7 @@ class PathItem extends FieldItemBase {
       // Ensure fields for programmatic executions.
       $langcode = $entity->language()->id;
 
-      if ($path = \Drupal::service('path.crud')->save($entity->getSystemPath(), $this->alias, $langcode)) {
+      if ($path = \Drupal::service('path.alias_storage')->save($entity->getSystemPath(), $this->alias, $langcode)) {
         $this->pid = $path['pid'];
       }
     }
@@ -70,7 +70,7 @@ class PathItem extends FieldItemBase {
   public function update() {
     // Delete old alias if user erased it.
     if ($this->pid && !$this->alias) {
-      \Drupal::service('path.crud')->delete(array('pid' => $this->pid));
+      \Drupal::service('path.alias_storage')->delete(array('pid' => $this->pid));
     }
     // Only save a non-empty alias.
     elseif ($this->alias) {
@@ -79,7 +79,7 @@ class PathItem extends FieldItemBase {
       // Ensure fields for programmatic executions.
       $langcode = $entity->language()->id;
 
-      \Drupal::service('path.crud')->save($entity->getSystemPath(), $this->alias, $langcode, $this->pid);
+      \Drupal::service('path.alias_storage')->save($entity->getSystemPath(), $this->alias, $langcode, $this->pid);
     }
   }
 
@@ -89,7 +89,7 @@ class PathItem extends FieldItemBase {
   public function delete() {
     // Delete all aliases associated with this entity.
     $entity = $this->getEntity();
-    \Drupal::service('path.crud')->delete(array('source' => $entity->getSystemPath()));
+    \Drupal::service('path.alias_storage')->delete(array('source' => $entity->getSystemPath()));
   }
 
 }

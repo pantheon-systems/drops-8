@@ -20,6 +20,13 @@ class MemoryStorage extends StorageBase {
   protected $data = array();
 
   /**
+   * {@inheritdoc}
+   */
+  public function has($key) {
+    return array_key_exists($key, $this->data);
+  }
+
+  /**
    * Implements Drupal\Core\KeyValueStore\KeyValueStoreInterface::get().
    */
   public function get($key, $default = NULL) {
@@ -63,6 +70,14 @@ class MemoryStorage extends StorageBase {
    */
   public function setMultiple(array $data) {
     $this->data = $data + $this->data;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function rename($key, $new_key) {
+    $this->data[$new_key] = $this->data[$key];
+    unset($this->data[$key]);
   }
 
   /**

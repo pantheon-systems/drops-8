@@ -9,7 +9,7 @@ namespace Drupal\views\EventSubscriber;
 
 use Drupal\Core\Page\HtmlPage;
 use Drupal\Core\Entity\EntityManagerInterface;
-use Drupal\Core\KeyValueStore\StateInterface;
+use Drupal\Core\State\StateInterface;
 use Drupal\Core\Routing\RouteSubscriberBase;
 use Drupal\Core\Routing\RoutingEvents;
 use Drupal\views\Plugin\views\display\DisplayRouterInterface;
@@ -40,16 +40,16 @@ class RouteSubscriber extends RouteSubscriberBase {
   protected $viewsDisplayPairs;
 
   /**
-   * The view storage controller.
+   * The view storage.
    *
-   * @var \Drupal\Core\Entity\EntityStorageControllerInterface
+   * @var \Drupal\Core\Entity\EntityStorageInterface
    */
-  protected $viewStorageController;
+  protected $viewStorage;
 
   /**
    * The state key value store.
    *
-   * @var \Drupal\Core\KeyValueStore\StateInterface
+   * @var \Drupal\Core\State\StateInterface
    */
   protected $state;
 
@@ -65,11 +65,11 @@ class RouteSubscriber extends RouteSubscriberBase {
    *
    * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
    *   The entity manager.
-   * @param \Drupal\Core\KeyValueStore\StateInterface $state
+   * @param \Drupal\Core\State\StateInterface $state
    *   The state key value store.
    */
   public function __construct(EntityManagerInterface $entity_manager, StateInterface $state) {
-    $this->viewStorageController = $entity_manager->getStorageController('view');
+    $this->viewStorage = $entity_manager->getStorage('view');
     $this->state = $state;
   }
 
@@ -136,7 +136,7 @@ class RouteSubscriber extends RouteSubscriberBase {
     $collection = new RouteCollection();
     foreach ($this->getViewsDisplayIDsWithRoute() as $pair) {
       list($view_id, $display_id) = explode('.', $pair);
-      $view = $this->viewStorageController->load($view_id);
+      $view = $this->viewStorage->load($view_id);
       // @todo This should have an executable factory injected.
       if (($view = $view->getExecutable()) && $view instanceof ViewExecutable) {
         if ($view->setDisplay($display_id) && $display = $view->displayHandlers->get($display_id)) {
@@ -158,7 +158,7 @@ class RouteSubscriber extends RouteSubscriberBase {
   protected function alterRoutes(RouteCollection $collection, $provider) {
     foreach ($this->getViewsDisplayIDsWithRoute() as $pair) {
       list($view_id, $display_id) = explode('.', $pair);
-      $view = $this->viewStorageController->load($view_id);
+      $view = $this->viewStorage->load($view_id);
       // @todo This should have an executable factory injected.
       if (($view = $view->getExecutable()) && $view instanceof ViewExecutable) {
         if ($view->setDisplay($display_id) && $display = $view->displayHandlers->get($display_id)) {

@@ -20,7 +20,8 @@
  * @link authorize Authorized operation helper functions @endlink
  */
 
-use Symfony\Component\HttpFoundation\Request;
+use Drupal\Component\Utility\Settings;
+use Drupal\Core\Page\DefaultHtmlPageRenderer;
 
 // Change the directory to the Drupal root.
 chdir('..');
@@ -46,9 +47,8 @@ const MAINTENANCE_MODE = 'update';
  *   TRUE if the current user can run authorize.php, and FALSE if not.
  */
 function authorize_access_allowed() {
-  require_once DRUPAL_ROOT . '/' . settings()->get('session_inc', 'core/includes/session.inc');
-  drupal_session_initialize();
-  return settings()->get('allow_authorize_operations', TRUE) && user_access('administer software updates');
+  \Drupal::service('session_manager')->initialize();
+  return Settings::get('allow_authorize_operations', TRUE) && user_access('administer software updates');
 }
 
 // *** Real work of the script begins here. ***
@@ -80,8 +80,6 @@ if (authorize_access_allowed()) {
   // Load both the Form API and Batch API.
   require_once __DIR__ . '/includes/form.inc';
   require_once __DIR__ . '/includes/batch.inc';
-  // Load the code that drives the authorize process.
-  require_once __DIR__ . '/includes/authorize.inc';
 
   if (isset($_SESSION['authorize_page_title'])) {
     $page_title = $_SESSION['authorize_page_title'];
@@ -139,7 +137,7 @@ if (authorize_access_allowed()) {
     }
     elseif (!$batch = batch_get()) {
       // We have a batch to process, show the filetransfer form.
-      $elements = drupal_get_form('authorize_filetransfer_form');
+      $elements = \Drupal::formBuilder()->getForm('Drupal\Core\FileTransfer\Form\FileTransferAuthorizeForm');
       $output = drupal_render($elements);
     }
   }
@@ -155,13 +153,7 @@ else {
 
 if (!empty($output)) {
   drupal_add_http_header('Content-Type', 'text/html; charset=utf-8');
-  $maintenance_page = array(
-    '#page' => array(
-      '#title' => $page_title,
-    ),
-    '#theme' => 'maintenance_page',
-    '#content' => $output,
+  print DefaultHtmlPageRenderer::renderPage($output, $page_title, 'maintenance', array(
     '#show_messages' => $show_messages,
-  );
-  print drupal_render($maintenance_page);
+  ));
 }

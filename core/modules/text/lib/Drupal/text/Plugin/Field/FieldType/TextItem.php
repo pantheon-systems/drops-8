@@ -7,7 +7,7 @@
 
 namespace Drupal\text\Plugin\Field\FieldType;
 
-use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
 
 /**
  * Plugin implementation of the 'text' field type.
@@ -16,12 +16,6 @@ use Drupal\Core\Field\FieldDefinitionInterface;
  *   id = "text",
  *   label = @Translation("Text"),
  *   description = @Translation("This field stores varchar text in the database."),
- *   settings = {
- *     "max_length" = "255"
- *   },
- *   instance_settings = {
- *     "text_processing" = "0"
- *   },
  *   default_widget = "text_textfield",
  *   default_formatter = "text_default"
  * )
@@ -31,7 +25,16 @@ class TextItem extends TextItemBase {
   /**
    * {@inheritdoc}
    */
-  public static function schema(FieldDefinitionInterface $field_definition) {
+  public static function defaultSettings() {
+    return array(
+      'max_length' => 255,
+    ) + parent::defaultSettings();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function schema(FieldStorageDefinitionInterface $field_definition) {
     return array(
       'columns' => array(
         'value' => array(

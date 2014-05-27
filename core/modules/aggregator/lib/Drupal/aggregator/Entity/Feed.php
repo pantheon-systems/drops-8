@@ -11,7 +11,7 @@ use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\FieldDefinition;
 use Symfony\Component\DependencyInjection\Container;
-use Drupal\Core\Entity\EntityStorageControllerInterface;
+use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\aggregator\FeedInterface;
 
 /**
@@ -21,12 +21,12 @@ use Drupal\aggregator\FeedInterface;
  *   id = "aggregator_feed",
  *   label = @Translation("Aggregator feed"),
  *   controllers = {
- *     "storage" = "Drupal\aggregator\FeedStorageController",
+ *     "storage" = "Drupal\aggregator\FeedStorage",
  *     "view_builder" = "Drupal\aggregator\FeedViewBuilder",
  *     "form" = {
  *       "default" = "Drupal\aggregator\FeedFormController",
  *       "delete" = "Drupal\aggregator\Form\FeedDeleteForm",
- *       "remove_items" = "Drupal\aggregator\Form\FeedItemsRemoveForm",
+ *       "delete_items" = "Drupal\aggregator\Form\FeedItemsDeleteForm",
  *     }
  *   },
  *   links = {
@@ -46,13 +46,6 @@ use Drupal\aggregator\FeedInterface;
 class Feed extends ContentEntityBase implements FeedInterface {
 
   /**
-   * Implements Drupal\Core\Entity\EntityInterface::id().
-   */
-  public function id() {
-    return $this->get('fid')->value;
-  }
-
-  /**
    * Implements Drupal\Core\Entity\EntityInterface::label().
    */
   public function label() {
@@ -62,11 +55,9 @@ class Feed extends ContentEntityBase implements FeedInterface {
   /**
    * {@inheritdoc}
    */
-  public function removeItems() {
-    $manager = \Drupal::service('plugin.manager.aggregator.processor');
-    foreach ($manager->getDefinitions() as $id => $definition) {
-      $manager->createInstance($id)->remove($this);
-    }
+  public function deleteItems() {
+    \Drupal::service('aggregator.items.importer')->delete($this);
+
     // Reset feed.
     $this->setLastCheckedTime(0);
     $this->setHash('');
@@ -80,7 +71,21 @@ class Feed extends ContentEntityBase implements FeedInterface {
   /**
    * {@inheritdoc}
    */
-  public static function preCreate(EntityStorageControllerInterface $storage_controller, array &$values) {
+  public function refreshItems() {
+    $success = \Drupal::service('aggregator.items.importer')->refresh($this);
+
+    // Regardless of successful or not, indicate that it has been checked.
+    $this->setLastCheckedTime(REQUEST_TIME);
+    $this->setQueuedTime(0);
+    $this->save();
+
+    return $success;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function preCreate(EntityStorageInterface $storage, array &$values) {
     $values += array(
       'link' => '',
       'description' => '',
@@ -91,20 +96,17 @@ class Feed extends ContentEntityBase implements FeedInterface {
   /**
    * {@inheritdoc}
    */
-  public static function preDelete(EntityStorageControllerInterface $storage_controller, array $entities) {
+  public static function preDelete(EntityStorageInterface $storage, array $entities) {
     foreach ($entities as $entity) {
-      // Notify processors to remove stored items.
-      $manager = \Drupal::service('plugin.manager.aggregator.processor');
-      foreach ($manager->getDefinitions() as $id => $definition) {
-        $manager->createInstance($id)->remove($entity);
-      }
+      // Notify processors to delete stored items.
+      \Drupal::service('aggregator.items.importer')->delete($entity);
     }
   }
 
   /**
    * {@inheritdoc}
    */
-  public static function postDelete(EntityStorageControllerInterface $storage_controller, array $entities) {
+  public static function postDelete(EntityStorageInterface $storage, array $entities) {
     if (\Drupal::moduleHandler()->moduleExists('block')) {
       // Make sure there are no active blocks for these feeds.
       $ids = \Drupal::entityQuery('block')
@@ -112,7 +114,7 @@ class Feed extends ContentEntityBase implements FeedInterface {
         ->condition('settings.feed', array_keys($entities))
         ->execute();
       if ($ids) {
-        $block_storage = \Drupal::entityManager()->getStorageController('block');
+        $block_storage = \Drupal::entityManager()->getStorage('block');
         $block_storage->delete($block_storage->loadMultiple($ids));
       }
     }
@@ -125,7 +127,8 @@ class Feed extends ContentEntityBase implements FeedInterface {
     $fields['fid'] = FieldDefinition::create('integer')
       ->setLabel(t('Feed ID'))
       ->setDescription(t('The ID of the aggregator feed.'))
-      ->setReadOnly(TRUE);
+      ->setReadOnly(TRUE)
+      ->setSetting('unsigned', TRUE);
 
     $fields['uuid'] = FieldDefinition::create('uuid')
       ->setLabel(t('UUID'))
@@ -134,7 +137,13 @@ class Feed extends ContentEntityBase implements FeedInterface {
 
     $fields['title'] = FieldDefinition::create('string')
       ->setLabel(t('Title'))
-      ->setDescription(t('The title of the feed.'));
+      ->setDescription(t('The name of the feed (or the name of the website providing the feed).'))
+      ->setRequired(TRUE)
+      ->setSetting('max_length', 255)
+      ->setDisplayOptions('form', array(
+        'type' => 'string',
+        'weight' => -5,
+      ));
 
     $fields['langcode'] = FieldDefinition::create('language')
       ->setLabel(t('Language code'))
@@ -142,11 +151,28 @@ class Feed extends ContentEntityBase implements FeedInterface {
 
     $fields['url'] = FieldDefinition::create('uri')
       ->setLabel(t('URL'))
-      ->setDescription(t('The URL to the feed.'));
+      ->setDescription(t('The fully-qualified URL of the feed.'))
+      ->setRequired(TRUE)
+      ->setSetting('max_length', NULL)
+      ->setDisplayOptions('form', array(
+        'type' => 'uri',
+        'weight' => -3,
+      ));
 
-    $fields['refresh'] = FieldDefinition::create('integer')
-      ->setLabel(t('Refresh'))
-      ->setDescription(t('How often to check for new feed items, in seconds.'));
+    $intervals = array(900, 1800, 3600, 7200, 10800, 21600, 32400, 43200, 64800, 86400, 172800, 259200, 604800, 1209600, 2419200);
+    $period = array_map('format_interval', array_combine($intervals, $intervals));
+    $period[AGGREGATOR_CLEAR_NEVER] = t('Never');
+
+    $fields['refresh'] = FieldDefinition::create('list_integer')
+      ->setLabel(t('Update interval'))
+      ->setDescription(t('The length of time between feed updates. Requires a correctly configured <a href="@cron">cron maintenance task</a>.', array('@cron' => url('admin/reports/status'))))
+      ->setSetting('unsigned', TRUE)
+      ->setRequired(TRUE)
+      ->setSetting('allowed_values', $period)
+      ->setDisplayOptions('form', array(
+        'type' => 'options_select',
+        'weight' => -2,
+      ));
 
     $fields['checked'] = FieldDefinition::create('timestamp')
       ->setLabel(t('Checked'))
@@ -160,7 +186,7 @@ class Feed extends ContentEntityBase implements FeedInterface {
       ->setLabel(t('Link'))
       ->setDescription(t('The link of the feed.'));
 
-    $fields['description'] = FieldDefinition::create('string')
+    $fields['description'] = FieldDefinition::create('string_long')
       ->setLabel(t('Description'))
       ->setDescription(t("The parent website's description that comes from the !description element in the feed.", array('!description' => '<description>')));
 

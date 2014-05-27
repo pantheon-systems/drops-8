@@ -7,6 +7,7 @@
 
 namespace Drupal\Core\Entity;
 
+use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Field\FieldItemInterface;
@@ -46,12 +47,9 @@ class EntityViewBuilder extends EntityControllerBase implements EntityController
   /**
    * The cache bin used to store the render cache.
    *
-   * @todo Defaults to 'cache' for now, until http://drupal.org/node/1194136 is
-   * fixed.
-   *
    * @var string
    */
-  protected $cacheBin = 'cache';
+  protected $cacheBin = 'render';
 
   /**
    * The language manager.
@@ -147,19 +145,22 @@ class EntityViewBuilder extends EntityControllerBase implements EntityController
       '#view_mode' => $view_mode,
       '#langcode' => $langcode,
       '#cache' => array(
-        'tags' =>  array(
-          $this->entityTypeId . '_view' => TRUE,
-          $this->entityTypeId => array($entity->id()),
-        ),
-      )
+        'tags' =>  NestedArray::mergeDeep($this->getCacheTag(), $entity->getCacheTag()),
+      ),
     );
 
     // Cache the rendered output if permitted by the view mode and global entity
     // type configuration.
     if ($this->isViewModeCacheable($view_mode) && !$entity->isNew() && $entity->isDefaultRevision() && $this->entityType->isRenderCacheable()) {
       $return['#cache'] += array(
-        'keys' => array('entity_view', $this->entityTypeId, $entity->id(), $view_mode),
-        'granularity' => DRUPAL_CACHE_PER_ROLE,
+        'keys' => array(
+          'entity_view',
+          $this->entityTypeId,
+          $entity->id(),
+          $view_mode,
+          'cache_context.theme',
+          'cache_context.user.roles',
+        ),
         'bin' => $this->cacheBin,
       );
 
@@ -268,16 +269,15 @@ class EntityViewBuilder extends EntityControllerBase implements EntityController
    */
   public function resetCache(array $entities = NULL) {
     if (isset($entities)) {
-      $tags = array();
+      // Always invalidate the ENTITY_TYPE_list tag.
+      $tags = array($this->entityTypeId . '_list' => TRUE);
       foreach ($entities as $entity) {
-        $id = $entity->id();
-        $tags[$this->entityTypeId][$id] = $id;
-        $tags[$this->entityTypeId . '_view_' . $entity->bundle()] = TRUE;
+        $tags = NestedArray::mergeDeep($tags, $entity->getCacheTag());
       }
-      Cache::deleteTags($tags);
+      Cache::invalidateTags($tags);
     }
     else {
-      Cache::deleteTags(array($this->entityTypeId . '_view' => TRUE));
+      Cache::invalidateTags($this->getCacheTag());
     }
   }
 
@@ -356,8 +356,15 @@ class EntityViewBuilder extends EntityControllerBase implements EntityController
       // The 'default' is not an actual view mode.
       return TRUE;
     }
-    $view_modes_info = entity_get_view_modes($this->entityTypeId);
+    $view_modes_info = $this->entityManager->getViewModes($this->entityTypeId);
     return !empty($view_modes_info[$view_mode]['cache']);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getCacheTag() {
+    return array($this->entityTypeId . '_view' => TRUE);
   }
 
 }

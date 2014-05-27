@@ -19,16 +19,16 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *
  * @ingroup views_field_handlers
  *
- * @PluginID("user_permissions")
+ * @ViewsField("user_permissions")
  */
 class Permissions extends PrerenderList {
 
   /**
-   * The role storage controller.
+   * The role storage.
    *
-   * @var \Drupal\user\RoleStorageControllerInterface
+   * @var \Drupal\user\RoleStorageInterface
    */
-  protected $roleStorageController;
+  protected $roleStorage;
 
   /**
    * The module handler.
@@ -44,24 +44,24 @@ class Permissions extends PrerenderList {
    *   A configuration array containing information about the plugin instance.
    * @param string $plugin_id
    *   The plugin_id for the plugin instance.
-   * @param array $plugin_definition
+   * @param mixed $plugin_definition
    *   The plugin implementation definition.
    * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
    *   The module handler.
    * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
    *   The entity manager
    */
-  public function __construct(array $configuration, $plugin_id, array $plugin_definition, ModuleHandlerInterface $module_handler, EntityManagerInterface $entity_manager) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, ModuleHandlerInterface $module_handler, EntityManagerInterface $entity_manager) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
 
-    $this->roleStorageController = $entity_manager->getStorageController('user_role');
+    $this->roleStorage = $entity_manager->getStorage('user_role');
     $this->moduleHandler = $module_handler;
   }
 
   /**
    * {@inheritdoc}
    */
-  public static function create(ContainerInterface $container, array $configuration, $plugin_id, array $plugin_definition) {
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
     return new static($configuration, $plugin_id, $plugin_definition, $container->get('module_handler'), $container->get('entity.manager'));
   }
 
@@ -96,7 +96,7 @@ class Permissions extends PrerenderList {
     }
 
     if ($rids) {
-      $roles = $this->roleStorageController->loadMultiple(array_keys($rids));
+      $roles = $this->roleStorage->loadMultiple(array_keys($rids));
       foreach ($rids as $rid => $role_uids) {
         foreach ($roles[$rid]->getPermissions() as $permission) {
           foreach ($role_uids as $uid) {

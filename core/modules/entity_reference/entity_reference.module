@@ -9,6 +9,7 @@ use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Database\Query\AlterableInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Render\Element;
 use Drupal\field\FieldConfigInterface;
 
 /**
@@ -40,12 +41,9 @@ function entity_reference_help($path, $arg) {
  */
 function entity_reference_field_info_alter(&$info) {
   // Make the entity reference field configurable.
-  $info['entity_reference']['configurable'] = TRUE;
+  $info['entity_reference']['no_ui'] = FALSE;
   $info['entity_reference']['class'] = '\Drupal\entity_reference\ConfigurableEntityReferenceItem';
   $info['entity_reference']['list_class'] = '\Drupal\entity_reference\Plugin\Field\FieldType\ConfigurableEntityReferenceFieldItemList';
-  $info['entity_reference']['settings']['target_type'] = \Drupal::moduleHandler()->moduleExists('node') ? 'node' : 'user';
-  $info['entity_reference']['instance_settings']['handler'] = 'default';
-  $info['entity_reference']['instance_settings']['handler_settings'] = array();
   $info['entity_reference']['default_widget'] = 'entity_reference_autocomplete';
   $info['entity_reference']['default_formatter'] = 'entity_reference_label';
   $info['entity_reference']['provider'] = 'entity_reference';
@@ -71,6 +69,11 @@ function entity_reference_field_widget_info_alter(&$info) {
 function entity_reference_field_config_update(FieldConfigInterface $field) {
   if ($field->type != 'entity_reference') {
     // Only act on entity reference fields.
+    return;
+  }
+
+  if ($field->isSyncing()) {
+    // Don't change anything during a configuration sync.
     return;
   }
 
@@ -121,7 +124,7 @@ function _entity_reference_field_instance_settings_ajax_process_element(&$elemen
     );
   }
 
-  foreach (element_children($element) as $key) {
+  foreach (Element::children($element) as $key) {
     _entity_reference_field_instance_settings_ajax_process_element($element[$key], $main_form);
   }
 }

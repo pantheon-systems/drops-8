@@ -5,10 +5,11 @@
  * Add language handling functionality to Drupal.
  */
 
-use Drupal\Component\PhpStorage\PhpStorageFactory;
+use Drupal\Core\PhpStorage\PhpStorageFactory;
 use Drupal\Core\Language\Language;
 use Drupal\language\ConfigurableLanguageManager;
 use Drupal\language\ConfigurableLanguageManagerInterface;
+use Drupal\language\Entity\Language as LanguageEntity;
 use Drupal\language\Plugin\LanguageNegotiation\LanguageNegotiationUI;
 use Drupal\language\Plugin\LanguageNegotiation\LanguageNegotiationUrl;
 use Drupal\language\Plugin\LanguageNegotiation\LanguageNegotiationUrlFallback;
@@ -33,7 +34,7 @@ function language_help($path, $arg) {
       return $output;
 
     case 'admin/config/regional/language':
-      return '<p>' . t('With multiple languages enabled, registered users may select their preferred language and authors can assign a specific language to content. The selection of what language is used to display page elements is made depending on the detection menthod settings in the <a href="@detection">Detection and Selection</a> tab.', array('@detection' => url('admin/config/regional/language/detection'))) . '</p>';
+      return '<p>' . t('Reorder the added languages to set their order in the language switcher block and, when editing content, in the list of selectable languages. This ordering does not impact <a href="@detection">detection and selection</a>.', array('@detection' => url('admin/config/regional/language/detection'))) . '</p>';
 
     case 'admin/config/regional/language/add':
       return '<p>' . t('Add a language to be supported by your site. If your desired language is not available, pick <em>Custom language...</em> at the end and provide a language code and other details manually.') . '</p>';
@@ -66,29 +67,6 @@ function language_help($path, $arg) {
     case 'admin/config/regional/content-language':
       return t('Change language settings for <em>content types</em>, <em>taxonomy vocabularies</em>, <em>user profiles</em>, or any other supported element on your site. By default, language settings hide the language selector and the language is the site\'s default language.');
   }
-}
-
-/**
- * Implements hook_menu_link_defaults().
- */
-function language_menu_link_defaults() {
-  // Base language management and configuration.
-  $links['language.admin.language.admin_overview'] = array(
-    'link_title' => 'Languages',
-    'description' => 'Configure languages for content and the user interface.',
-    'route_name' => 'language.admin_overview',
-    'parent' => 'system.admin.config.regional',
-  );
-  // Content language settings.
-  $links['language.admin.language.content_settings_page'] = array(
-    'link_title' => 'Content language',
-    'description' => 'Configure language support for content.',
-    'route_name' => 'language.content_settings_page',
-    'parent' => 'system.admin.config.regional',
-    'weight' => 10,
-  );
-
-  return $links;
 }
 
 /**
@@ -183,7 +161,7 @@ function language_process_language_select($element) {
   // set the options.
   if (!isset($element['#options'])) {
     $element['#options'] = array();
-    foreach (language_list($element['#languages']) as $langcode => $language) {
+    foreach (\Drupal::languageManager()->getLanguages($element['#languages']) as $langcode => $language) {
       $element['#options'][$langcode] = $language->locked ? t('- @name -', array('@name' => $language->name)) : $language->name;
     }
   }
@@ -225,12 +203,12 @@ function language_element_info() {
  */
 function language_configuration_element_default_options() {
   $language_options = array(
-    'site_default' => t("Site's default language (!language)", array('!language' => language_default()->name)),
+    'site_default' => t("Site's default language (!language)", array('!language' => \Drupal::languageManager()->getDefaultLanguage()->name)),
     'current_interface' => t('Current interface language'),
     'authors_default' => t("Author's preferred language"),
   );
 
-  $languages = language_list(Language::STATE_ALL);
+  $languages = \Drupal::languageManager()->getLanguages(Language::STATE_ALL);
   foreach ($languages as $langcode => $language) {
     $language_options[$langcode] = $language->locked ? t('- @name -', array('@name' => $language->name)) : $language->name;
   }
@@ -405,7 +383,7 @@ function language_get_default_langcode($entity_type, $bundle) {
   $language_interface = \Drupal::languageManager()->getCurrentLanguage();
   switch ($configuration['langcode']) {
     case 'site_default':
-      $default_value = language_default()->id;
+      $default_value = \Drupal::languageManager()->getDefaultLanguage()->id;
       break;
 
     case 'current_interface':
@@ -448,49 +426,19 @@ function language_save($language) {
   }
   $language->is_new = $language_entity->isNew();
 
-  // Let other modules modify $language before saved.
-  \Drupal::moduleHandler()->invokeAll('language_presave', array($language));
-
   // Assign language properties to language entity.
   $language_entity->label = isset($language->name) ? $language->name : '';
   $language_entity->direction = isset($language->direction) ? $language->direction : '0';
   $language_entity->locked = !empty($language->locked);
   $language_entity->weight = isset($language->weight) ? $language->weight : 0;
-
-  // Save the record and inform others about the change.
-  $multilingual = \Drupal::languageManager()->isMultilingual();
+  $language_entity->setDefault(!empty($language->default));
   $language_entity->save();
   $t_args = array('%language' => $language->name, '%langcode' => $language->id);
   if ($language->is_new) {
-    \Drupal::moduleHandler()->invokeAll('language_insert', array($language));
     watchdog('language', 'The %language (%langcode) language has been created.', $t_args);
   }
   else {
-    \Drupal::moduleHandler()->invokeAll('language_update', array($language));
     watchdog('language', 'The %language (%langcode) language has been updated.', $t_args);
-  }
-
-  if (!empty($language->default)) {
-    // Update the config. Saving the configuration fires and event that causes
-    // the container to be rebuilt.
-    \Drupal::config('system.site')->set('langcode', $language->id)->save();
-    \Drupal::service('language.default')->set($language);
-  }
-
-  $language_manager = \Drupal::languageManager();
-  $language_manager->reset();
-  if ($language_manager instanceof ConfigurableLanguageManagerInterface) {
-    $language_manager->updateLockedLanguageWeights();
-  }
-
-  // Update URL Prefixes for all languages after the new default language is
-  // propagated and the language_list() cache is flushed.
-  language_negotiation_url_prefixes_update();
-
-  // If after adding this language the site will become multilingual, we need to
-  // rebuild language services.
-  if (!$multilingual && $language->is_new) {
-    ConfigurableLanguageManager::rebuildServices();
   }
 
   return $language;
@@ -506,11 +454,9 @@ function language_save($language) {
  *   TRUE if language is successfully deleted. Otherwise FALSE.
  */
 function language_delete($langcode) {
-  $languages = language_list(Language::STATE_ALL);
+  $languages = \Drupal::languageManager()->getLanguages(Language::STATE_ALL);
   if (isset($languages[$langcode]) && !$languages[$langcode]->locked) {
     $language = $languages[$langcode];
-
-    \Drupal::moduleHandler()->invokeAll('language_delete', array($language));
 
     // Remove the language.
     entity_delete_multiple('language_entity', array($language->id));
@@ -580,7 +526,7 @@ function language_negotiation_url_prefixes() {
  */
 function language_negotiation_url_prefixes_update() {
   $prefixes = language_negotiation_url_prefixes();
-  foreach (language_list() as $language) {
+  foreach (\Drupal::languageManager()->getLanguages() as $language) {
     // The prefix for this language should be updated if it's not assigned yet
     // or the prefix is set to the empty string.
     if (empty($prefixes[$language->id])) {
@@ -637,31 +583,31 @@ function language_modules_uninstalled($modules) {
 }
 
 /**
- * Implements hook_language_insert().
+ * Implements hook_ENTITY_TYPE_insert() for 'language_entity'.
  */
-function language_language_insert($language) {
+function language_language_entity_insert(LanguageEntity $language) {
   if (!empty($language->locked)) {
     return;
   }
 
   // Add language to the list of language domains.
   $domains = language_negotiation_url_domains();
-  $domains[$language->id] = '';
+  $domains[$language->id()] = '';
   language_negotiation_url_domains_save($domains);
 }
 
 /**
- * Implements hook_language_delete().
+ * Implements hook_ENTITY_TYPE_delete() for 'language_entity'.
  */
-function language_language_delete($language) {
+function language_language_entity_delete(LanguageEntity $language) {
   // Remove language from language prefix list.
   $prefixes = language_negotiation_url_prefixes();
-  unset($prefixes[$language->id]);
+  unset($prefixes[$language->id()]);
   language_negotiation_url_prefixes_save($prefixes);
 
   // Remove language from language domain list.
   $domains = language_negotiation_url_domains();
-  unset($domains[$language->id]);
+  unset($domains[$language->id()]);
   language_negotiation_url_domains_save($domains);
 }
 
@@ -669,7 +615,7 @@ function language_language_delete($language) {
  * Implements hook_preprocess_HOOK() for block templates.
  */
 function language_preprocess_block(&$variables) {
-  if ($variables['configuration']['module'] == 'language') {
+  if ($variables['configuration']['provider'] == 'language') {
     $variables['attributes']['role'] = 'navigation';
   }
 }
@@ -708,8 +654,8 @@ function language_set_browser_drupal_langcode_mappings($mappings) {
  * @see language_system_regional_settings_form_submit()
  */
 function language_form_system_regional_settings_alter(&$form, &$form_state) {
-  $languages = language_list();
-  $default = language_default();
+  $languages = \Drupal::languageManager()->getLanguages();
+  $default = \Drupal::languageManager()->getDefaultLanguage();
   foreach ($languages as $key => $language) {
     $language_options[$key] = $language->name;
   }
@@ -731,7 +677,7 @@ function language_form_system_regional_settings_alter(&$form, &$form_state) {
  * @see language_form_system_regional_settings_alter()
  */
 function language_system_regional_settings_form_submit($form, &$form_state) {
-  $languages = language_list();
+  $languages = \Drupal::languageManager()->getLanguages();
   $language = $languages[$form_state['values']['site_default_language']];
   $language->default = TRUE;
   language_save($language);

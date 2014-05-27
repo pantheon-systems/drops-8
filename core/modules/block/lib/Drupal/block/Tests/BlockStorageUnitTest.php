@@ -7,7 +7,7 @@
 
 namespace Drupal\block\Tests;
 
-use Drupal\Core\Config\Entity\ConfigStorageController;
+use Drupal\Core\Config\Entity\ConfigEntityStorage;
 use Drupal\simpletest\DrupalUnitTestBase;
 use Drupal\block_test\Plugin\Block\TestHtmlBlock;
 use Drupal\Component\Plugin\Exception\PluginException;
@@ -27,9 +27,9 @@ class BlockStorageUnitTest extends DrupalUnitTestBase {
   public static $modules = array('block', 'block_test', 'system');
 
   /**
-   * The block storage controller.
+   * The block storage.
    *
-   * @var \Drupal\Core\Config\Entity\ConfigStorageControllerInterface.
+   * @var \Drupal\Core\Config\Entity\ConfigEntityStorageInterface.
    */
   protected $controller;
 
@@ -44,19 +44,18 @@ class BlockStorageUnitTest extends DrupalUnitTestBase {
   protected function setUp() {
     parent::setUp();
 
-    $this->controller = $this->container->get('entity.manager')->getStorageController('block');
+    $this->controller = $this->container->get('entity.manager')->getStorage('block');
   }
 
   /**
    * Tests CRUD operations.
    */
   public function testBlockCRUD() {
-    $this->assertTrue($this->controller instanceof ConfigStorageController, 'The block storage controller is loaded.');
+    $this->assertTrue($this->controller instanceof ConfigEntityStorage, 'The block storage is loaded.');
 
     // Run each test method in the same installation.
     $this->createTests();
     $this->loadTests();
-    $this->renderTests();
     $this->deleteTests();
   }
 
@@ -94,15 +93,19 @@ class BlockStorageUnitTest extends DrupalUnitTestBase {
       'id' => 'test_block',
       'weight' => NULL,
       'status' => TRUE,
-      'langcode' => language_default()->id,
+      'langcode' => \Drupal::languageManager()->getDefaultLanguage()->id,
+      'dependencies' => array('module' => array('block_test'), 'theme' => array('stark')),
       'theme' => 'stark',
       'region' => '-1',
       'plugin' => 'test_html',
       'settings' => array(
         'label' => '',
-        'module' => 'block_test',
+        'provider' => 'block_test',
         'label_display' => BlockInterface::BLOCK_LABEL_VISIBLE,
-        'cache' => DRUPAL_NO_CACHE,
+        'cache' => array(
+          'max_age' => 0,
+          'contexts' => array(),
+        ),
       ),
       'visibility' => NULL,
     );
@@ -112,7 +115,7 @@ class BlockStorageUnitTest extends DrupalUnitTestBase {
   }
 
   /**
-   * Tests the rendering of blocks.
+   * Tests the loading of blocks.
    */
   protected function loadTests() {
     $entity = $this->controller->load('test_block');
@@ -124,57 +127,6 @@ class BlockStorageUnitTest extends DrupalUnitTestBase {
     $this->assertTrue($entity->get('status'));
     $this->assertEqual($entity->get('theme'), 'stark');
     $this->assertTrue($entity->uuid());
-  }
-
-  /**
-   * Tests the rendering of blocks.
-   */
-  protected function renderTests() {
-    // Test the rendering of a block.
-    $entity = entity_load('block', 'test_block');
-    $output = entity_view($entity, 'block');
-    $expected = array();
-    $expected[] = '<div class="block block-block-test" id="block-test-block">';
-    $expected[] = '  ';
-    $expected[] = '    ';
-    $expected[] = '';
-    $expected[] = '  <div class="content">';
-    $expected[] = '          ';
-    $expected[] = '      </div>';
-    $expected[] = '</div>';
-    $expected[] = '';
-    $expected_output = implode("\n", $expected);
-    $this->assertEqual(drupal_render($output), $expected_output);
-
-    // Reset the HTML IDs so that the next render is not affected.
-    drupal_static_reset('drupal_html_id');
-
-    // Test the rendering of a block with a given title.
-    $entity = $this->controller->create(array(
-      'id' => 'test_block2',
-      'theme' => 'stark',
-      'plugin' => 'test_html',
-      'settings' => array(
-        'label' => 'Powered by Bananas',
-      ),
-    ));
-    $entity->save();
-    $output = entity_view($entity, 'block');
-    $expected = array();
-    $expected[] = '<div class="block block-block-test" id="block-test-block2">';
-    $expected[] = '  ';
-    $expected[] = '      <h2>Powered by Bananas</h2>';
-    $expected[] = '    ';
-    $expected[] = '';
-    $expected[] = '  <div class="content">';
-    $expected[] = '          ';
-    $expected[] = '      </div>';
-    $expected[] = '</div>';
-    $expected[] = '';
-    $expected_output = implode("\n", $expected);
-    $this->assertEqual(drupal_render($output), $expected_output);
-    // Clean up this entity.
-    $entity->delete();
   }
 
   /**
