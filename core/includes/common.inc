@@ -2945,6 +2945,13 @@ function _drupal_bootstrap_code() {
     $allowed_protocols = array('http', 'https');
   }
   UrlHelper::setAllowedProtocols($allowed_protocols);
+
+  // Redirect the user to the installation script if Drupal has not been
+  // installed yet. We accomplish this by checking for the sessions table.
+  if (isset($_SERVER['PRESSFLOW_SETTINGS']) && !db_table_exists('sessions') && $_SERVER['SCRIPT_NAME'] != '/core/install.php') {
+    include_once __DIR__ . '/install.inc';
+    install_goto('core/install.php');
+  }
 }
 
 /**
