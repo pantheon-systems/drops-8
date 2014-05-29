@@ -7,12 +7,12 @@
 
 namespace Drupal\Tests\Core\PathProcessor;
 
-use Drupal\Component\Utility\Settings;
 use Drupal\Core\Language\Language;
 use Drupal\Core\PathProcessor\PathProcessorAlias;
 use Drupal\Core\PathProcessor\PathProcessorDecode;
 use Drupal\Core\PathProcessor\PathProcessorFront;
 use Drupal\Core\PathProcessor\PathProcessorManager;
+use Drupal\Core\Site\Settings;
 use Drupal\language\HttpKernel\PathProcessorLanguage;
 use Drupal\language\Plugin\LanguageNegotiation\LanguageNegotiationUrl;
 use Symfony\Component\HttpFoundation\Request;
@@ -110,7 +110,7 @@ class PathProcessorTest extends UnitTestCase {
     );
 
     $alias_manager->expects($this->any())
-      ->method('getSystemPath')
+      ->method('getPathByAlias')
       ->will($this->returnValueMap($system_path_map));
 
     // Create a stub config factory with all config settings that will be checked

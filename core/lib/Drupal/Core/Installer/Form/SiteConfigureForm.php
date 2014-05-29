@@ -147,26 +147,23 @@ class SiteConfigureForm extends FormBase {
       '#title' => $this->t('Site maintenance account'),
     );
     $form['admin_account']['account']['#tree'] = TRUE;
+    $form['admin_account']['account']['mail'] = array(
+      '#type' => 'email',
+      '#title' => $this->t('E-mail address'),
+      '#required' => TRUE,
+    );
     $form['admin_account']['account']['name'] = array(
       '#type' => 'textfield',
       '#title' => $this->t('Username'),
       '#maxlength' => USERNAME_MAX_LENGTH,
       '#description' => $this->t('Spaces are allowed; punctuation is not allowed except for periods, hyphens, and underscores.'),
       '#required' => TRUE,
-      '#weight' => -10,
       '#attributes' => array('class' => array('username')),
-    );
-    $form['admin_account']['account']['mail'] = array(
-      '#type' => 'email',
-      '#title' => $this->t('E-mail address'),
-      '#required' => TRUE,
-      '#weight' => -5,
     );
     $form['admin_account']['account']['pass'] = array(
       '#type' => 'password_confirm',
       '#required' => TRUE,
       '#size' => 25,
-      '#weight' => 0,
     );
 
     $form['regional_settings'] = array(
@@ -257,6 +254,8 @@ class SiteConfigureForm extends FormBase {
       // Add the site maintenance account's email address to the list of
       // addresses to be notified when updates are available, if selected.
       if ($form_state['values']['update_status_module'][2]) {
+        // Reset the configuration factory so it is updated with the new module.
+        $this->resetConfigFactory();
         $this->config('update.settings')->set('notification.emails', array($form_state['values']['account']['mail']))->save();
       }
     }

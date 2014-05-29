@@ -9,7 +9,7 @@ services:
     arguments: ['@service_container', '%cache_contexts%' ]
   cache_context.url:
     class: Drupal\Core\Cache\UrlCacheContext
-    arguments: ['@request']
+    arguments: ['@request_stack']
     tags:
       - { name: cache.context}
   cache_context.language:
@@ -19,12 +19,20 @@ services:
       - { name: cache.context}
   cache_context.theme:
     class: Drupal\Core\Cache\ThemeCacheContext
-    arguments: ['@request', '@theme.negotiator']
+    arguments: ['@request_stack', '@theme.negotiator']
     tags:
       - { name: cache.context}
   cache.backend.database:
     class: Drupal\Core\Cache\DatabaseBackendFactory
     arguments: ['@database']
+  cache.backend.apcu:
+    class: Drupal\Core\Cache\ApcuBackendFactory
+  cache.backend.php:
+    class: Drupal\Core\Cache\PhpBackendFactory
+  cache.backend.memory:
+    class: Drupal\Core\Cache\MemoryBackendFactory
+  cache.backend.null:
+    class: Drupal\Core\Cache\NullBackendFactory
   cache.bootstrap:
     class: Drupal\Core\Cache\CacheBackendInterface
     tags:
@@ -32,13 +40,6 @@ services:
     factory_method: get
     factory_service: cache_factory
     arguments: [bootstrap]
-  cache.config:
-    class: Drupal\Core\Cache\CacheBackendInterface
-    tags:
-      - { name: cache.bin }
-    factory_method: get
-    factory_service: cache_factory
-    arguments: [config]
   cache.default:
     class: Drupal\Core\Cache\CacheBackendInterface
     tags:
@@ -76,11 +77,12 @@ services:
     arguments: [discovery]
   config.manager:
     class: Drupal\Core\Config\ConfigManager
-    arguments: ['@entity.manager', '@config.factory', '@config.typed', '@string_translation', '@config.storage']
+    arguments: ['@entity.manager', '@config.factory', '@config.typed', '@string_translation', '@config.storage', '@event_dispatcher']
   config.factory:
     class: Drupal\Core\Config\ConfigFactory
     tags:
       - { name: event_subscriber }
+      - { name: service_collector, tag: 'config.factory.override', call: addOverride }
     arguments: ['@config.storage', '@event_dispatcher', '@config.typed']
   config.installer:
     class: Drupal\Core\Config\ConfigInstaller
@@ -108,7 +110,7 @@ services:
     class: Drupal\Core\Config\InstallStorage
   config.typed:
     class: Drupal\Core\Config\TypedConfigManager
-    arguments: ['@config.storage', '@config.storage.schema', '@cache.config']
+    arguments: ['@config.storage', '@config.storage.schema', '@cache.discovery']
   cron:
     class: Drupal\Core\Cron
     arguments: ['@module_handler', '@lock', '@queue', '@state', '@current_user', '@session_manager']
@@ -119,9 +121,13 @@ services:
     arguments: [default]
   form_builder:
     class: Drupal\Core\Form\FormBuilder
-    arguments: ['@module_handler', '@keyvalue.expirable', '@event_dispatcher', '@url_generator', '@string_translation', '@?csrf_token', '@?http_kernel']
-    calls:
-      - [setRequest, ['@?request=']]
+    arguments: ['@form_validator', '@form_submitter', '@module_handler', '@keyvalue.expirable', '@event_dispatcher', '@request_stack', '@class_resolver', '@?csrf_token', '@?http_kernel']
+  form_validator:
+    class: Drupal\Core\Form\FormValidator
+    arguments: ['@request_stack', '@string_translation', '@csrf_token']
+  form_submitter:
+    class: Drupal\Core\Form\FormSubmitter
+    arguments: ['@request_stack', '@url_generator']
   keyvalue:
     class: Drupal\Core\KeyValueStore\KeyValueFactory
     arguments: ['@service_container', '@settings']
@@ -136,6 +142,18 @@ services:
     arguments: ['@serialization.phpserialize', '@database']
     tags:
       - { name: needs_destruction }
+  logger.factory:
+    class: Drupal\Core\Logger\LoggerChannelFactory
+    parent: container.trait
+    tags:
+      - { name: service_collector, tag: logger, call: addLogger }
+  logger.channel.default:
+    class: Drupal\Core\Logger\LoggerChannel
+    factory_method: get
+    factory_service: logger.factory
+    arguments: ['system']
+  logger.log_message_parser:
+    class: Drupal\Core\Logger\LogMessageParser
 
   serialization.json:
     class: Drupal\Component\Serialization\Json
@@ -145,8 +163,8 @@ services:
     class: Drupal\Component\Serialization\Yaml
 
   settings:
-    class: Drupal\Component\Utility\Settings
-    factory_class: Drupal\Component\Utility\Settings
+    class: Drupal\Core\Site\Settings
+    factory_class: Drupal\Core\Site\Settings
     factory_method: getInstance
   state:
     class: Drupal\Core\State\State
@@ -166,16 +184,16 @@ services:
     arguments: [path_alias_whitelist, '@cache.default', '@lock', '@state', '@path.alias_storage']
   path.alias_manager:
     class: Drupal\Core\Path\AliasManager
-    arguments: ['@path.alias_storage', '@path.alias_whitelist', '@language_manager']
+    arguments: ['@path.alias_storage', '@path.alias_whitelist', '@language_manager', '@cache.data']
   http_client:
     class: Drupal\Core\Http\Client
-  http_client_simpletest_subscriber:
-    class: Drupal\Core\Http\Plugin\SimpletestHttpRequestSubscriber
     tags:
-      - { name: http_client_subscriber }
+      - { name: service_collector, tag: http_client_subscriber, call: attach }
   theme.negotiator:
     class: Drupal\Core\Theme\ThemeNegotiator
     arguments: ['@access_check.theme', '@request_stack']
+    tags:
+      - { name: service_collector, tag: theme_negotiator, call: addNegotiator }
   theme.negotiator.default:
     class: Drupal\Core\Theme\DefaultNegotiator
     arguments: ['@config.factory']
@@ -206,7 +224,7 @@ services:
     arguments: ['@config.factory', '@module_handler', '@state', '@info_parser', '@config.installer', '@router.builder']
   entity.manager:
     class: Drupal\Core\Entity\EntityManager
-    arguments: ['@container.namespaces', '@module_handler', '@cache.discovery', '@language_manager', '@string_translation']
+    arguments: ['@container.namespaces', '@module_handler', '@cache.discovery', '@language_manager', '@string_translation', '@class_resolver', '@typed_data_manager']
     parent: container.trait
     tags:
       - { name: plugin_manager_cache_clear }
@@ -227,7 +245,7 @@ services:
     parent: default_plugin_manager
   plugin.manager.action:
     class: Drupal\Core\Action\ActionManager
-    arguments: ['@container.namespaces']
+    arguments: ['@container.namespaces', '@cache.discovery', '@language_manager', '@module_handler']
   plugin.manager.menu.local_action:
     class: Drupal\Core\Menu\LocalActionManager
     arguments: ['@controller_resolver', '@request_stack', '@router.route_provider', '@module_handler', '@cache.discovery', '@language_manager', '@access_manager', '@current_user']
@@ -252,7 +270,11 @@ services:
     arguments: ['@service_container']
   controller_resolver:
     class: Drupal\Core\Controller\ControllerResolver
-    parent: container.trait
+    arguments: ['@class_resolver', '@logger.channel.default']
+  class_resolver:
+    class: Drupal\Core\DependencyInjection\ClassResolver
+    calls:
+      - [setContainer, ['@service_container']]
   title_resolver:
     class: Drupal\Core\Controller\TitleResolver
     arguments: ['@controller_resolver', '@string_translation']
@@ -276,6 +298,8 @@ services:
     arguments: ['@language_manager']
     calls:
       - [initLanguageManager]
+    tags:
+      - { name: service_collector, tag: string_translator, call: addTranslator }
   database.slave:
     class: Drupal\Core\Database\Connection
     factory_class: Drupal\Core\Database\Database
@@ -294,9 +318,6 @@ services:
   lock:
     class: Drupal\Core\Lock\DatabaseLockBackend
     arguments: ['@database']
-  user.tempstore:
-    class: Drupal\user\TempStoreFactory
-    arguments: ['@serialization.phpserialize', '@database', '@lock']
   router.request_context:
     class: Symfony\Component\Routing\RequestContext
     tags:
@@ -321,9 +342,11 @@ services:
     arguments: ['@router.route_provider']
     calls:
       - [setFinalMatcher, ['@router.matcher.final_matcher']]
+    tags:
+      - { name: service_collector, tag: route_filter, call: addRouteFilter }
   url_generator:
     class: Drupal\Core\Routing\UrlGenerator
-    arguments: ['@router.route_provider', '@path_processor_manager', '@route_processor_manager', '@config.factory', '@settings']
+    arguments: ['@router.route_provider', '@path_processor_manager', '@route_processor_manager', '@config.factory', '@settings', '@logger.channel.default']
     calls:
       - [setRequest, ['@?request']]
       - [setContext, ['@?router.request_context']]
@@ -333,6 +356,8 @@ services:
   router.dynamic:
     class: Symfony\Cmf\Component\Routing\DynamicRouter
     arguments: ['@router.request_context', '@router.matcher', '@url_generator']
+    tags:
+      - { name: service_collector, tag: route_enhancer, call: addRouteEnhancer }
   router:
     class: Symfony\Cmf\Component\Routing\ChainRouter
     calls:
@@ -354,6 +379,9 @@ services:
   entity.query.sql:
     class: Drupal\Core\Entity\Query\Sql\QueryFactory
     arguments: ['@database']
+  entity.query.keyvalue:
+    class: Drupal\Core\Entity\KeyValueStore\Query\QueryFactory
+    arguments: ['@keyvalue']
   router.dumper:
     class: Drupal\Core\Routing\MatcherDumper
     arguments: ['@database', '@state']
@@ -365,9 +393,6 @@ services:
     arguments: ['@router.builder', '@lock']
     tags:
       - { name: event_subscriber }
-  path.alias_manager.cached:
-    class: Drupal\Core\CacheDecorator\AliasManagerCacheDecorator
-    arguments: ['@path.alias_manager', '@cache.data']
   path.alias_storage:
     class: Drupal\Core\Path\AliasStorage
     arguments: ['@database', '@module_handler']
@@ -403,6 +428,12 @@ services:
     tags:
       - { name: paramconverter }
     arguments: ['@entity.manager']
+  paramconverter.configentity_admin:
+    class: Drupal\Core\ParamConverter\AdminPathConfigEntityConverter
+    tags:
+      # Use a higher priority than EntityConverter, see the class for details.
+      - { name: paramconverter, priority: 5 }
+    arguments: ['@entity.manager', '@config.factory', '@router.admin_context']
   route_subscriber.module:
     class: Drupal\Core\EventSubscriber\ModuleRouteSubscriber
     tags:
@@ -445,7 +476,7 @@ services:
       - { name: event_subscriber }
   route_content_form_controller_subscriber:
     class: Drupal\Core\EventSubscriber\ContentFormControllerSubscriber
-    arguments: ['@controller_resolver', '@form_builder']
+    arguments: ['@class_resolver', '@controller_resolver', '@form_builder']
     parent: container.trait
     tags:
       - { name: event_subscriber }
@@ -459,13 +490,13 @@ services:
       - { name: event_subscriber }
   controller.page:
     class: Drupal\Core\Controller\HtmlPageController
-    arguments: ['@controller_resolver', '@string_translation', '@title_resolver']
+    arguments: ['@controller_resolver', '@title_resolver', '@url_generator']
   controller.ajax:
     class: Drupal\Core\Controller\AjaxController
     arguments: ['@controller_resolver', '@ajax_response_renderer']
   controller.entityform:
     class: Drupal\Core\Entity\HtmlEntityFormController
-    arguments: ['@controller_resolver', '@service_container', '@entity.manager']
+    arguments: ['@class_resolver', '@controller_resolver', '@service_container', '@entity.manager']
   controller.dialog:
     class: Drupal\Core\Controller\DialogController
     arguments: ['@controller_resolver', '@title_resolver']
@@ -499,9 +530,11 @@ services:
   csrf_token:
     class: Drupal\Core\Access\CsrfTokenGenerator
     arguments: ['@private_key']
+  access_arguments_resolver:
+    class: Drupal\Core\Access\AccessArgumentsResolver
   access_manager:
     class: Drupal\Core\Access\AccessManager
-    arguments: ['@router.route_provider', '@url_generator', '@paramconverter_manager']
+    arguments: ['@router.route_provider', '@url_generator', '@paramconverter_manager', '@access_arguments_resolver']
     calls:
       - [setContainer, ['@service_container']]
       - [setRequest, ['@?request']]
@@ -536,7 +569,7 @@ services:
       - { name: access_check, applies_to: _access_theme }
   access_check.custom:
     class: Drupal\Core\Access\CustomAccessCheck
-    arguments: ['@controller_resolver']
+    arguments: ['@controller_resolver', '@access_arguments_resolver']
     tags:
       - { name: access_check, applies_to: _custom_access }
   access_check.csrf:
@@ -546,13 +579,14 @@ services:
     arguments: ['@csrf_token']
   maintenance_mode_subscriber:
     class: Drupal\Core\EventSubscriber\MaintenanceModeSubscriber
+    arguments: ['@state', '@config.factory', '@string_translation', '@url_generator', '@current_user']
     tags:
       - { name: event_subscriber }
   path_subscriber:
     class: Drupal\Core\EventSubscriber\PathSubscriber
     tags:
       - { name: event_subscriber }
-    arguments: ['@path.alias_manager.cached', '@path_processor_manager']
+    arguments: ['@path.alias_manager', '@path_processor_manager']
   legacy_request_subscriber:
     class: Drupal\Core\EventSubscriber\LegacyRequestSubscriber
     tags:
@@ -561,7 +595,7 @@ services:
     class: Drupal\Core\EventSubscriber\FinishResponseSubscriber
     tags:
       - { name: event_subscriber }
-    arguments: ['@language_manager']
+    arguments: ['@language_manager', '@config.factory']
     scope: request
   redirect_response_subscriber:
     class: Drupal\Core\EventSubscriber\RedirectResponseSubscriber
@@ -585,7 +619,7 @@ services:
     arguments: ['@config.manager', '@config.storage', '@config.storage.snapshot']
   exception_controller:
     class: Drupal\Core\Controller\ExceptionController
-    arguments: ['@content_negotiation', '@string_translation', '@title_resolver', '@html_page_renderer', '@html_fragment_renderer']
+    arguments: ['@content_negotiation', '@title_resolver', '@html_page_renderer', '@html_fragment_renderer', '@string_translation', '@url_generator']
     calls:
       - [setContainer, ['@service_container']]
   exception_listener:
@@ -595,8 +629,13 @@ services:
     arguments: [['@exception_controller', execute]]
   route_processor_manager:
     class: Drupal\Core\RouteProcessor\RouteProcessorManager
+    tags:
+      - { name: service_collector, tag: route_processor_outbound, call: addOutbound }
   path_processor_manager:
     class: Drupal\Core\PathProcessor\PathProcessorManager
+    tags:
+      - { name: service_collector, tag: path_processor_inbound, call: addInbound }
+      - { name: service_collector, tag: path_processor_outbound, call: addOutbound }
   path_processor_decode:
     class: Drupal\Core\PathProcessor\PathProcessorDecode
     tags:
@@ -648,6 +687,8 @@ services:
   breadcrumb:
     class: Drupal\Core\Breadcrumb\BreadcrumbManager
     arguments: ['@module_handler']
+    tags:
+      - { name: service_collector, tag: breadcrumb_builder, call: addBuilder }
   token:
     class: Drupal\Core\Utility\Token
     arguments: ['@module_handler', '@cache.discovery', '@language_manager']
@@ -725,11 +766,6 @@ services:
       - { name: needs_destruction }
   authentication:
     class: Drupal\Core\Authentication\AuthenticationManager
-  authentication.cookie:
-    class: Drupal\Core\Authentication\Provider\Cookie
-    arguments: ['@session_manager']
-    tags:
-      - { name: authentication_provider, priority: 0 }
   authentication_subscriber:
     class: Drupal\Core\EventSubscriber\AuthenticationSubscriber
     tags:
@@ -740,9 +776,12 @@ services:
     arguments: ['@authentication', '@request']
   session_manager:
     class: Drupal\Core\Session\SessionManager
-    arguments: ['@request_stack', '@database']
+    arguments: ['@request_stack', '@database', '@session_manager.metadata_bag', '@settings']
     tags:
       - { name: persist }
+  session_manager.metadata_bag:
+    class: Drupal\Core\Session\MetadataBag
+    arguments: ['@settings']
   asset.css.collection_renderer:
     class: Drupal\Core\Asset\CssCollectionRenderer
     arguments: [ '@state' ]
@@ -772,3 +811,6 @@ services:
     arguments: ['@cache.discovery', '@module_handler']
   info_parser:
     class: Drupal\Core\Extension\InfoParser
+  element_info:
+    class: Drupal\Core\Render\ElementInfo
+    arguments: ['@module_handler']

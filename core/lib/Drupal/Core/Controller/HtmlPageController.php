@@ -7,7 +7,7 @@
 
 namespace Drupal\Core\Controller;
 
-use Drupal\Core\StringTranslation\TranslationInterface;
+use Drupal\Core\Routing\UrlGeneratorInterface;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -27,13 +27,13 @@ class HtmlPageController extends HtmlControllerBase {
    *
    * @param \Drupal\Core\Controller\ControllerResolverInterface $controller_resolver
    *   The controller resolver.
-   * @param \Drupal\Core\StringTranslation\TranslationInterface $translation_manager
-   *   The translation manager.
    * @param \Drupal\Core\Controller\TitleResolverInterface $title_resolver
    *   The title resolver.
+   * @param \Drupal\Core\Routing\UrlGeneratorInterface $url_generator
+   *   The url generator.
    */
-  public function __construct(ControllerResolverInterface $controller_resolver, TranslationInterface $translation_manager, TitleResolverInterface $title_resolver) {
-    parent::__construct($translation_manager, $title_resolver);
+  public function __construct(ControllerResolverInterface $controller_resolver, TitleResolverInterface $title_resolver, UrlGeneratorInterface $url_generator) {
+    parent::__construct($title_resolver, $url_generator);
 
     $this->controllerResolver = $controller_resolver;
   }

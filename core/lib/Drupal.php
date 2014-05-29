@@ -618,8 +618,22 @@ class Drupal {
    * @return bool
    *   Returns TRUE is syncing flag set.
    */
-  public function isConfigSyncing() {
+  public static function isConfigSyncing() {
     return static::$container->get('config.installer')->isSyncing();
+  }
+
+  /**
+   * Returns a channel logger object.
+   *
+   * @param string $channel
+   *   The name of the channel. Can be any string, but the general practice is
+   *   to use the name of the subsystem calling this.
+   *
+   * @return \Drupal\Core\Logger\LoggerChannelInterface
+   *   The logger for this channel.
+   */
+  public static function logger($channel) {
+    return static::$container->get('logger.factory')->get($channel);
   }
 
 }

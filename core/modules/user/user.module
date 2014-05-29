@@ -8,12 +8,14 @@ use Drupal\Core\Session\AnonymousUserSession;
 use \Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Url;
 use Drupal\file\Entity\File;
+use Drupal\user\Entity\Role;
 use Drupal\user\Entity\User;
 use Drupal\user\UserInterface;
 use Drupal\user\RoleInterface;
 use Drupal\Core\Template\Attribute;
 use Drupal\Core\TypedData\DataDefinition;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Drupal\menu_link\Entity\MenuLink;
 
@@ -46,9 +48,9 @@ const USER_REGISTER_VISITORS_ADMINISTRATIVE_APPROVAL = 'visitors_admin_approval'
 /**
  * Implement hook_help().
  */
-function user_help($path, $arg) {
-  switch ($path) {
-    case 'admin/help#user':
+function user_help($route_name, Request $request) {
+  switch ($route_name) {
+    case 'help.page.user':
       $output = '';
       $output .= '<h3>' . t('About') . '</h3>';
       $output .= '<p>' . t('The User module allows users to register, log in, and log out. It also allows users with proper permissions to manage user roles and permissions. For more information, see the <a href="!user_docs">online documentation for the User module</a>.', array('!user_docs' => 'https://drupal.org/documentation/modules/user')) . '</p>';
@@ -66,11 +68,14 @@ function user_help($path, $arg) {
       $output .= '<dd>' . t('Because User accounts are an <a href="!entity_help">entity type</a>, you can extend them by adding <a href="!field_help">fields</a> through the Manage fields tab on the <a href="!accounts">Account settings page</a>. By adding fields for e.g., a picture, a biography, or address, you can a create a custom profile for the users of the website.', array('!entity_help' => \Drupal::url('help.page', array('name' => 'entity')),'!field_help'=>\Drupal::url('help.page', array('name' => 'field')), '!accounts' => \Drupal::url('user.account_settings'))) . '</dd>';
       $output .= '</dl>';
       return $output;
-    case 'admin/people/create':
+
+    case 'user.admin_create':
       return '<p>' . t("This web page allows administrators to register new users. Users' e-mail addresses and usernames must be unique.") . '</p>';
-    case 'admin/people/permissions':
+
+    case 'user.admin_permissions':
       return '<p>' . t('Permissions let you control what users can do and see on your site. You can define a specific set of permissions for each role. (See the <a href="@role">Roles</a> page to create a role). Two important roles to consider are Authenticated Users and Administrators. Any permissions granted to the Authenticated Users role will be given to any user who can log into your site. You can make any role the Administrator role for the site, meaning this will be granted all new permissions automatically. You can do this on the <a href="@settings">User Settings</a> page. You should be careful to ensure that only trusted users are given this access and level of control of your site.', array('@role' => url('admin/people/roles'), '@settings' => url('admin/config/people/accounts'))) . '</p>';
-    case 'admin/people/roles':
+
+    case 'user.role_list':
       $output = '<p>' . t('Roles allow you to fine tune the security and administration of Drupal. A role defines a group of users that have certain privileges as defined on the <a href="@permissions">permissions page</a>. Examples of roles include: anonymous user, authenticated user, moderator, administrator and so on. In this area you will define the names and order of the roles on your site. It is recommended to order your roles from least permissive (anonymous user) to most permissive (administrator). To delete a role choose "edit role".', array('@permissions' => url('admin/people/permissions'))) . '</p>';
       $output .= '<p>' . t('Drupal has three special user roles:') . '</p>';
       $output .= '<ul>';
@@ -79,14 +84,15 @@ function user_help($path, $arg) {
       $output .= '<li>' . t('Administrator role: this role is automatically granted all new permissions when you install a new module. Configure which role is the administrator role on the <a href="@account_settings">Account settings page</a>.', array('@account_settings' => url('admin/config/people/accounts'))) . '</li>';
       $output .= '</ul>';
       return $output;
-    case 'admin/config/people/accounts/fields':
+
+    case 'field_ui.overview_user':
       return '<p>' . t('This form lets administrators add and edit fields for storing user data.') . '</p>';
-    case 'admin/config/people/accounts/form-display':
+
+    case 'field_ui.form_display_overview_user':
       return '<p>' . t('This form lets administrators configure how form fields should be displayed when editing a user profile.') . '</p>';
-    case 'admin/config/people/accounts/display':
+
+    case 'field_ui.display_overview_user':
       return '<p>' . t('This form lets administrators configure how fields should be displayed when rendering a user profile page.') . '</p>';
-    case 'admin/people/search':
-      return '<p>' . t('Enter a simple pattern ("*" may be used as a wildcard match) to search for a username or e-mail address. For example, one may search for "br" and Drupal might return "brian", "brad", and "brenda@example.com".') . '</p>';
   }
 }
 
@@ -146,14 +152,6 @@ function user_js_alter(&$javascript) {
 }
 
 /**
- * Implements hook_entity_bundle_info().
- */
-function user_entity_bundle_info() {
-  $bundles['user']['user']['label'] = t('User');
-  return $bundles;
-}
-
-/**
  * Entity URI callback.
  */
 function user_uri($user) {
@@ -165,13 +163,15 @@ function user_uri($user) {
 /**
  * Populates $entity->account for each prepared entity.
  *
- * Called by Drupal\Core\Entity\EntityViewBuilderInterface::buildContent()
+ * Called by Drupal\Core\Entity\EntityViewBuilderInterface::buildComponents()
  * implementations.
  *
+ * @param array &$build
+ *   A renderable array representing the entity content.
  * @param \Drupal\user\EntityOwnerInterface[] $entities
  *   The entities keyed by entity ID.
  */
-function user_attach_accounts(array $entities) {
+function user_attach_accounts(array &$build, array $entities) {
   $uids = array();
   foreach ($entities as $entity) {
     $uids[] = $entity->getOwnerId();
@@ -199,7 +199,8 @@ function user_attach_accounts(array $entities) {
  * preprocess stage.
  */
 function user_picture_enabled() {
-  return (bool) field_info_instance('user', 'user_picture', 'user');
+  $field_definitions = \Drupal::entityManager()->getFieldDefinitions('user', 'user');
+  return isset($field_definitions['user_picture']);
 }
 
 /**
@@ -261,9 +262,15 @@ function user_entity_extra_field_info() {
  * @see user_load_by_mail()
  * @see user_load_by_name()
  * @see \Drupal\Core\Entity\Query\QueryInterface
+ *
+ * @deprecated in Drupal 8.x, will be removed before Drupal 9.0.
+ *   Use \Drupal\user\Entity\User::loadMultiple().
  */
 function user_load_multiple(array $uids = NULL, $reset = FALSE) {
-  return entity_load_multiple('user', $uids, $reset);
+  if ($reset) {
+    \Drupal::entityManager()->getStorage('user')->resetCache($uids);
+  }
+  return User::loadMultiple($uids);
 }
 
 /**
@@ -288,10 +295,16 @@ function user_load_multiple(array $uids = NULL, $reset = FALSE) {
  *   A fully-loaded user object upon successful user load, or NULL if the user
  *   cannot be loaded.
  *
+ * @deprecated in Drupal 8.x, will be removed before Drupal 9.0.
+ *   Use \Drupal\user\Entity\User::load().
+ *
  * @see user_load_multiple()
  */
 function user_load($uid, $reset = FALSE) {
-  return entity_load('user', $uid, $reset);
+  if ($reset) {
+    \Drupal::entityManager()->getStorage('user')->resetCache(array($uid));
+  }
+  return User::load($uid);
 }
 
 /**
@@ -503,9 +516,9 @@ function user_permission() {
 /**
  * Implements hook_user_view().
  */
-function user_user_view(UserInterface $account, EntityViewDisplayInterface $display) {
+function user_user_view(array &$build, UserInterface $account, EntityViewDisplayInterface $display) {
   if ($display->getComponent('member_for')) {
-    $account->content['member_for'] = array(
+    $build['member_for'] = array(
       '#type' => 'item',
       '#title' => t('Member for'),
       '#markup' => format_interval(REQUEST_TIME - $account->getCreatedTime()),
@@ -527,7 +540,7 @@ function _user_language_selector_langcode_value($element, $input, &$form_state) 
 /**
  * Form validation handler for the current password on the user account form.
  *
- * @see AccountFormController::form()
+ * @see AccountForm::form()
  */
 function user_validate_current_pass(&$form, &$form_state) {
   $account = $form_state['user'];
@@ -828,7 +841,7 @@ function user_pass_reset_url($account, $options = array()) {
  * @param array $options
  *   (optional) A keyed array of settings. Supported options are:
  *   - langcode: A language code to be used when generating locale-sensitive
-  *    URLs. If langcode is NULL the users preferred language is used.
+ *     URLs. If langcode is NULL the users preferred language is used.
  *
  * @return
  *   A unique URL that may be used to confirm the cancellation of the user
@@ -1293,9 +1306,12 @@ function user_roles($membersonly = FALSE, $permission = NULL) {
  * @return
  *   A fully-loaded role object if a role with the given ID exists, or NULL
  *   otherwise.
+ *
+ * @deprecated in Drupal 8.x, will be removed before Drupal 9.0.
+ *   Use \Drupal\user\Entity\Role::load().
  */
 function user_role_load($rid) {
-  return entity_load('user_role', $rid);
+  return Role::load($rid);
 }
 
 /**

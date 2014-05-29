@@ -9,7 +9,7 @@ namespace Drupal\Core\SwitchPsr4;
  *
  * E.g.:
  * core/modules/action/{lib/Drupal/action → src}/ActionAccessController.php
- * core/modules/action/{lib/Drupal/action → src}/ActionAddFormController.php
+ * core/modules/action/{lib/Drupal/action → src}/ActionAddForm.php
  */
 
 // Determine DRUPAL_ROOT.
@@ -201,6 +201,8 @@ function process_extension($name, $dir) {
   // Clean up.
   require_dir_empty("$dir/lib/Drupal");
   rmdir("$dir/lib/Drupal");
+  require_dir_empty("$dir/lib");
+  rmdir("$dir/lib");
 }
 
 /**

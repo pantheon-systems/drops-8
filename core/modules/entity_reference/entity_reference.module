@@ -10,14 +10,17 @@ use Drupal\Core\Database\Query\AlterableInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Render\Element;
+use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldInstanceConfig;
 use Drupal\field\FieldConfigInterface;
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Implements hook_help().
  */
-function entity_reference_help($path, $arg) {
-  switch ($path) {
-    case 'admin/help#entity_reference':
+function entity_reference_help($route_name, Request $request) {
+  switch ($route_name) {
+    case 'help.page.entity_reference':
       $output = '';
       $output .= '<h3>' . t('About') . '</h3>';
       $output .= '<p>' . t('The Entity Reference module allows you to create fields that contain links to other entities (such as content items, taxonomy terms, etc.) within the site. This allows you, for example, to include a link to a user within a content item. For more information, see <a href="!er_do">the online documentation for the Entity Reference module</a>, the <a href="!entity_help">Entity module help page</a>, and the <a href="!field_help">Field module help page</a>.', array('!field_help' => \Drupal::url('help.page', array('name' => 'field')),'!entity_help' => \Drupal::url('help.page', array('name' => 'entity')), '!er_do' => 'https://drupal.org/documentation/modules/entityreference')) . '</p>';
@@ -91,7 +94,7 @@ function entity_reference_field_config_update(FieldConfigInterface $field) {
 
   foreach ($field->bundles() as $entity_type => $bundles) {
     foreach ($bundles as $bundle) {
-      $instance = field_info_instance($entity_type, $field_name, $bundle);
+      $instance = FieldInstanceConfig::loadByName($entity_type, $bundle, $field_name);
       $instance->settings['handler_settings'] = array();
       $instance->save();
     }
@@ -203,14 +206,9 @@ function entity_reference_query_entity_reference_alter(AlterableInterface $query
  * @see \Drupal\entity_reference\Plugin\entity_reference\selection\SelectionBase::settingsForm()
  */
 function entity_reference_create_instance($entity_type, $bundle, $field_name, $field_label, $target_entity_type, $selection_handler = 'default', $selection_handler_settings = array(), $cardinality = 1) {
-  // If a field type we know should exist isn't found, clear the field cache.
-  if (!\Drupal::service('plugin.manager.field.field_type')->getDefinition('entity_reference')) {
-    field_cache_clear();
-  }
-
   // Look for or add the specified field to the requested entity bundle.
-  $field = field_info_field($entity_type, $field_name);
-  $instance = field_info_instance($entity_type, $field_name, $bundle);
+  $field = FieldConfig::loadByName($entity_type, $field_name);
+  $instance = FieldInstanceConfig::loadByName($entity_type, $bundle, $field_name);
 
   if (empty($field)) {
     $field = array(

@@ -12,14 +12,14 @@ use Drupal\views_ui\ViewUI;
 use Drupal\views\Analyzer;
 use Drupal\Core\Ajax\AjaxResponse;
 use Drupal\Core\Ajax\ReplaceCommand;
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Implements hook_help().
  */
-function views_ui_help($path, $arg) {
-
-  switch ($path) {
-    case 'admin/help#views_ui':
+function views_ui_help($route_name, Request $request) {
+  switch ($route_name) {
+    case 'help.page.views_ui':
       $output = '';
       $output .= '<h3>' . t('About') . '</h3>';
       $output .= '<p>' . t('The Views UI module provides an interface for managing views for the <a href="@views">Views module</a>. For more information, see the <a href="@handbook">online documentation for the Views UI module</a>.', array('@views' => \Drupal::url('help.page', array('name' => 'views')), '@handbook' => 'https://drupal.org/documentation/modules/views_ui')) . '</p>';
@@ -44,11 +44,11 @@ function views_ui_help($path, $arg) {
 function views_ui_entity_type_build(array &$entity_types) {
   /** @var $entity_types \Drupal\Core\Entity\EntityTypeInterface[] */
   $entity_types['view']
-    ->setFormClass('edit', 'Drupal\views_ui\ViewEditFormController')
-    ->setFormClass('add', 'Drupal\views_ui\ViewAddFormController')
-    ->setFormClass('preview', 'Drupal\views_ui\ViewPreviewFormController')
-    ->setFormClass('clone', 'Drupal\views_ui\ViewCloneFormController')
-    ->setFormClass('delete', 'Drupal\views_ui\ViewDeleteFormController')
+    ->setFormClass('edit', 'Drupal\views_ui\ViewEditForm')
+    ->setFormClass('add', 'Drupal\views_ui\ViewAddForm')
+    ->setFormClass('preview', 'Drupal\views_ui\ViewPreviewForm')
+    ->setFormClass('clone', 'Drupal\views_ui\ViewCloneForm')
+    ->setFormClass('delete', 'Drupal\views_ui\ViewDeleteForm')
     ->setFormClass('break_lock', 'Drupal\views_ui\Form\BreakLockForm')
     ->setListBuilderClass('Drupal\views_ui\ViewListBuilder')
     ->setLinkTemplate('edit-form', 'views_ui.edit')
@@ -320,7 +320,7 @@ function views_ui_views_analyze(ViewExecutable $view) {
       continue;
     }
     if ($display->hasPath() && $path = $display->getOption('path')) {
-      $normal_path = \Drupal::service('path.alias_manager.cached')->getSystemPath($path);
+      $normal_path = \Drupal::service('path.alias_manager')->getPathByAlias($path);
       if ($path != $normal_path) {
         $ret[] = Analyzer::formatMessage(t('You have configured display %display with a path which is an path alias as well. This might lead to unwanted effects so better use an internal path.', array('%display' => $display->display['display_title'])), 'warning');
       }

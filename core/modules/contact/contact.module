@@ -1,4 +1,5 @@
 <?php
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * @file
@@ -8,9 +9,9 @@
 /**
  * Implements hook_help().
  */
-function contact_help($path, $arg) {
-  switch ($path) {
-    case 'admin/help#contact':
+function contact_help($route_name, Request $request) {
+  switch ($route_name) {
+    case 'help.page.contact':
       $output = '';
       $output .= '<h3>' . t('About') . '</h3>';
       $output .= '<p>' . t('The Contact module allows visitors to contact site administrators and other users. Users specify a subject, write their message, and can have a copy of their message sent to their own e-mail address. For more information, see the online handbook entry for <a href="@contact">Contact module</a>.', array('@contact' => 'http://drupal.org/documentation/modules/contact')) . '</p>';
@@ -26,7 +27,8 @@ function contact_help($path, $arg) {
       $output .= '<dd>' . t('If you would like additional text to appear on the site-wide or personal contact page, use a block. You can create and edit blocks on the <a href="@blocks">Blocks administration page</a>.', array('@blocks' => url('admin/structure/block'))) . '</dd>';
       $output .= '</dl>';
       return $output;
-    case 'admin/structure/contact':
+
+    case 'contact.category_list':
       $output = '<p>' . t('Add one or more categories on this page to set up your site-wide <a href="@form">contact form</a>.', array('@form' => url('contact'))) . '</p>';
       $output .= '<p>' . t('A <em>Contact</em> menu item is added to the <em>Footer</em> menu, which you can modify on the <a href="@menu-settings">Menus administration page</a>.', array('@menu-settings' => url('admin/structure/menu'))) . '</p>';
       $output .= '<p>' . t('If you would like additional text to appear on the site-wide contact page, use a block. You can create and edit blocks on the <a href="@blocks">Blocks administration page</a>.', array('@blocks' => url('admin/structure/block'))) . '</p>';
@@ -57,18 +59,6 @@ function contact_permission() {
 function contact_entity_type_alter(array &$entity_types) {
   /** @var $entity_types \Drupal\Core\Entity\EntityTypeInterface[] */
   $entity_types['user']->setLinkTemplate('contact-form', 'contact.personal_page');
-}
-
-/**
- * Implements hook_entity_bundle_info().
- */
-function contact_entity_bundle_info() {
-  $bundles = array();
-  foreach (\Drupal::configFactory()->listAll('contact.category.') as $config_name) {
-    $config = \Drupal::config($config_name);
-    $bundles['contact_message'][$config->get('id')]['label'] = $config->get('label');
-  }
-  return $bundles;
 }
 
 /**
@@ -123,19 +113,6 @@ function contact_entity_extra_field_info() {
     'weight' => 5,
   );
   return $fields;
-}
-
-/**
- * Loads a contact category.
- *
- * @param $id
- *   The ID of the contact category to load.
- *
- * @return \Drupal\contact\Entity\Category|null
- *   A Category object or NULL if the requested $id does not exist.
- */
-function contact_category_load($id) {
-  return entity_load('contact_category', $id);
 }
 
 /**
@@ -198,7 +175,7 @@ function contact_mail($key, &$message, $params) {
  *
  * Add the enable personal contact form to an individual user's account page.
  *
- * @see \Drupal\user\ProfileFormController::form()
+ * @see \Drupal\user\ProfileForm::form()
  */
 function contact_form_user_form_alter(&$form, &$form_state) {
   $form['contact'] = array(

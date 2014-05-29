@@ -1,8 +1,8 @@
 <?php
 
 use Drupal\Component\Utility\UrlHelper;
-use Drupal\Component\Utility\Settings;
 use Drupal\Core\DrupalKernel;
+use Drupal\Core\Config\BootstrapConfigStorageFactory;
 use Drupal\Core\Database\Database;
 use Drupal\Core\Database\DatabaseExceptionWrapper;
 use Drupal\Core\Database\Install\TaskException;
@@ -12,6 +12,7 @@ use Drupal\Core\Installer\Exception\NoProfilesException;
 use Drupal\Core\Language\Language;
 use Drupal\Core\Language\LanguageManager;
 use Drupal\Core\Page\DefaultHtmlPageRenderer;
+use Drupal\Core\Site\Settings;
 use Drupal\Core\StringTranslation\Translator\FileTranslation;
 use Drupal\Core\Extension\ExtensionDiscovery;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
@@ -381,8 +382,10 @@ function install_begin_request(&$install_state) {
   $container->get('string_translation')
     ->addTranslator($container->get('string_translator.file_translation'));
 
-  // Add in installation language if present.
+  // Set the default language to the selected language, if any.
   if (isset($install_state['parameters']['langcode'])) {
+    $default_language = new Language(array('id' => $install_state['parameters']['langcode']));
+    $container->get('language.default')->set($default_language);
     \Drupal::translation()->setDefaultLangcode($install_state['parameters']['langcode']);
   }
 
@@ -433,15 +436,14 @@ function install_begin_request(&$install_state) {
     $task = NULL;
 
     // Do not install over a configured settings.php.
-    if (!empty($GLOBALS['databases'])) {
+    if (Database::getConnectionInfo()) {
       throw new AlreadyInstalledException($container->get('string_translation'));
     }
   }
 
-  // Ensure that the active configuration directory is empty before installation
-  // starts.
+  // Ensure that the active configuration is empty before installation starts.
   if ($install_state['config_verified'] && empty($task)) {
-    $config = \Drupal::service('config.storage')->listAll();
+    $config = BootstrapConfigStorageFactory::get()->listAll();
     if (!empty($config)) {
       $task = NULL;
       throw new AlreadyInstalledException($container->get('string_translation'));
@@ -1009,9 +1011,8 @@ function install_verify_completed_task() {
  * Verifies that settings.php specifies a valid database connection.
  */
 function install_verify_database_settings() {
-  global $databases;
-  if (!empty($databases)) {
-    $database = $databases['default']['default'];
+  if ($database = Database::getConnectionInfo()) {
+    $database = $database['default'];
     $settings_file = './' . conf_path(FALSE) . '/settings.php';
     $errors = install_database_errors($database, $settings_file);
     if (empty($errors)) {
@@ -1025,7 +1026,6 @@ function install_verify_database_settings() {
  * Checks a database connection and returns any errors.
  */
 function install_database_errors($database, $settings_file) {
-  global $databases;
   $errors = array();
 
   // Check database type.
@@ -1037,18 +1037,13 @@ function install_database_errors($database, $settings_file) {
   else {
     // Run driver specific validation
     $errors += $database_types[$driver]->validateDatabaseSettings($database);
-
+    if (!empty($errors)) {
+      // No point to try further.
+      return $errors;
+    }
     // Run tasks associated with the database type. Any errors are caught in the
     // calling function.
-    $databases['default']['default'] = $database;
-    // Just changing the global doesn't get the new information processed.
-    // We need to close any active connections and tell the Database class to
-    // re-parse $databases.
-    if (Database::isActiveConnection()) {
-      Database::closeConnection();
-    }
-    Database::parseConnectionInfo();
-
+    Database::addConnectionInfo('default', 'default', $database);
     try {
       db_run_tasks($driver);
     }
@@ -1517,7 +1512,6 @@ function install_profile_modules(&$install_state) {
     'operations' => $operations,
     'title' => t('Installing @drupal', array('@drupal' => drupal_install_profile_distribution_name())),
     'error_message' => t('The installation has encountered an error.'),
-    'finished' => '_install_profile_modules_finished',
   );
   return $batch;
 }
@@ -1695,10 +1689,10 @@ function install_finished(&$install_state) {
   // Installation profiles are always loaded last.
   module_set_weight($profile, 1000);
 
-  // Flush all caches to ensure that any full bootstraps during the installer
-  // do not leave stale cached data, and that any content types or other items
-  // registered by the installation profile are registered correctly.
-  drupal_flush_all_caches();
+  // Build the router once after installing all modules.
+  // This would normally happen upon KernelEvents::TERMINATE, but since the
+  // installer does not use an HttpKernel, that event is never triggered.
+  \Drupal::service('router.builder')->rebuild();
 
   // Run cron to populate update status tables (if available) so that users
   // will be warned if they've installed an out of date Drupal version.
@@ -1736,15 +1730,6 @@ function _install_module_batch($module, $module_name, &$context) {
   \Drupal::moduleHandler()->install(array($module), FALSE);
   $context['results'][] = $module;
   $context['message'] = t('Installed %module module.', array('%module' => $module_name));
-}
-
-/**
- * 'Finished' callback for module installation batch.
- */
-function _install_profile_modules_finished($success, $results, $operations) {
-  // Flush all caches to complete the module installation process. Subsequent
-  // installation tasks will now have full access to the profile's modules.
-  drupal_flush_all_caches();
 }
 
 /**

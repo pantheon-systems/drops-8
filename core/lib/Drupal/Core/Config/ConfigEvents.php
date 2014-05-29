@@ -30,7 +30,7 @@ final class ConfigEvents {
   /**
    * Name of event fired when renaming a configuration object.
    *
-   * @see \Drupal\Core\Config\ConfigFactory::rename().
+   * @see \Drupal\Core\Config\ConfigFactoryInterface::rename().
    */
   const RENAME = 'config.rename';
 
@@ -49,5 +49,13 @@ final class ConfigEvents {
    * @see \Drupal\Core\EventSubscriber\ConfigSnapshotSubscriber::onConfigImporterImport().
    */
   const IMPORT = 'config.importer.import';
+
+  /**
+   * Name of event fired to collect information on all collections.
+   *
+   * @see \Drupal\Core\Config\ConfigManager::getConfigCollectionInfo()
+   * @see \Drupal\Core\Config\ConfigCollectionInfo
+   */
+  const COLLECTION_INFO = 'config.collection_info';
 
 }

@@ -1,0 +1,56 @@
+<?php
+
+/**
+ * @file
+ * Contains \Drupal\migrate_drupal\Tests\d6\MigrateSystemFileTest.
+ */
+
+namespace Drupal\migrate_drupal\Tests\d6;
+
+use Drupal\migrate\MigrateMessage;
+use Drupal\migrate\MigrateExecutable;
+use Drupal\migrate_drupal\Tests\MigrateDrupalTestBase;
+
+/**
+ * Tests migration of filesystem variables to configuration.
+ */
+class MigrateSystemFileTest extends MigrateDrupalTestBase {
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function getInfo() {
+    return array(
+      'name'  => 'Migrate variables to system.*.yml',
+      'description'  => 'Upgrade variables to system.*.yml',
+      'group' => 'Migrate Drupal',
+    );
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function setUp() {
+    parent::setUp();
+    $migration = entity_load('migration', 'd6_system_file');
+    $dumps = array(
+      $this->getDumpDirectory() . '/Drupal6SystemFile.php',
+    );
+    $this->prepare($migration, $dumps);
+    $executable = new MigrateExecutable($migration, new MigrateMessage());
+    $executable->import();
+  }
+
+  /**
+   * Tests migration of system (file) variables to system.file.yml.
+   */
+  public function testSystemFile() {
+    $old_state = \Drupal::configFactory()->getOverrideState();
+    \Drupal::configFactory()->setOverrideState(FALSE);
+    $config = \Drupal::config('system.file');
+    $this->assertIdentical($config->get('path.private'), 'core/modules/simpletest/files');
+    $this->assertIdentical($config->get('path.temporary'), 'files/temp');
+    \Drupal::configFactory()->setOverrideState($old_state);
+  }
+
+}

@@ -11,7 +11,9 @@
  * ability to install contributed modules and themes via an user interface.
  */
 
-use Drupal\Component\Utility\Settings;
+use Drupal\Core\Site\Settings;
+use Symfony\Cmf\Component\Routing\RouteObjectInterface;
+use Symfony\Component\HttpFoundation\Request;
 
 // These are internally used constants for this code, do not modify.
 
@@ -63,12 +65,9 @@ const UPDATE_FETCH_PENDING = -4;
 /**
  * Implements hook_help().
  */
-function update_help($path, $arg) {
-  switch ($path) {
-    case 'admin/reports/updates':
-      return '<p>' . t('Here you can find information about available updates for your installed modules and themes. Note that each module or theme is part of a "project", which may or may not have the same name, and might include multiple modules or themes within it.') . '</p>';
-
-    case 'admin/help#update':
+function update_help($route_name, Request $request) {
+  switch ($route_name) {
+    case 'help.page.update':
       $output = '';
       $output .= '<h3>' . t('About') . '</h3>';
       $output .= '<p>' . t("The Update Manager module periodically checks for new versions of your site's software (including contributed modules and themes), and alerts administrators to available updates. In order to provide update information, anonymous usage statistics are sent to Drupal.org. If desired, you may disable the Update Manager module from the <a href='@modules'>Module administration page</a>. For more information, see the online handbook entry for <a href='@update'>Update Manager module</a>.", array('@update' => 'http://drupal.org/documentation/modules/update', '@modules' => url('admin/modules'))) . '</p>';
@@ -89,6 +88,9 @@ function update_help($path, $arg) {
       }
       $output .= '</dl>';
       return $output;
+
+    case 'update.status':
+      return '<p>' . t('Here you can find information about available updates for your installed modules and themes. Note that each module or theme is part of a "project", which may or may not have the same name, and might include multiple modules or themes within it.') . '</p>';
   }
 }
 
@@ -96,8 +98,11 @@ function update_help($path, $arg) {
  * Implements hook_page_build().
  */
 function update_page_build() {
-  if (arg(0) == 'admin' && user_access('administer site configuration')) {
-    switch (current_path()) {
+  /** @var \Drupal\Core\Routing\AdminContext $admin_context */
+  $admin_context = \Drupal::service('router.admin_context');
+  if ($admin_context->isAdminRoute(\Drupal::request()->attributes->get(RouteObjectInterface::ROUTE_OBJECT)) && \Drupal::currentUser()->hasPermission('administer site configuration')) {
+    $current_path = current_path();
+    switch ($current_path) {
       // These pages don't need additional nagging.
       case 'admin/appearance/update':
       case 'admin/appearance/install':

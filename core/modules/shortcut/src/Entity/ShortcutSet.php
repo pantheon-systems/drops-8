@@ -22,9 +22,9 @@ use Drupal\shortcut\ShortcutSetInterface;
  *     "access" = "Drupal\shortcut\ShortcutSetAccessController",
  *     "list_builder" = "Drupal\shortcut\ShortcutSetListBuilder",
  *     "form" = {
- *       "default" = "Drupal\shortcut\ShortcutSetFormController",
- *       "add" = "Drupal\shortcut\ShortcutSetFormController",
- *       "edit" = "Drupal\shortcut\ShortcutSetFormController",
+ *       "default" = "Drupal\shortcut\ShortcutSetForm",
+ *       "add" = "Drupal\shortcut\ShortcutSetForm",
+ *       "edit" = "Drupal\shortcut\ShortcutSetForm",
  *       "customize" = "Drupal\shortcut\Form\SetCustomize",
  *       "delete" = "Drupal\shortcut\Form\ShortcutSetDeleteForm"
  *     }
@@ -60,11 +60,11 @@ class ShortcutSet extends ConfigEntityBase implements ShortcutSetInterface {
   /**
    * {@inheritdoc}
    */
-  public function postCreate(EntityStorageInterface $storage) {
-    parent::postCreate($storage);
+  public function postSave(EntityStorageInterface $storage, $update = TRUE) {
+    parent::postSave($storage, $update);
 
     // Generate menu-compatible set name.
-    if (!$this->getOriginalId()) {
+    if (!$update && !$this->getOriginalId()) {
       // Save a new shortcut set with links copied from the user's default set.
       $default_set = shortcut_default_set();
       foreach ($default_set->getShortcuts() as $shortcut) {

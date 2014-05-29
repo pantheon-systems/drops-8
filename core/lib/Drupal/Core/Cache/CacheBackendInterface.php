@@ -68,6 +68,12 @@ interface CacheBackendInterface {
   /**
    * Stores data in the persistent cache.
    *
+   * Core cache implementations set the created time on cache item with
+   * microtime(TRUE) rather than REQUEST_TIME_FLOAT, because the created time
+   * of cache items should match when they are created, not when the request
+   * started. Apart from being more accurate, this increases the chance an
+   * item will legitimately be considered valid.
+   *
    * @param string $cid
    *   The cache ID of the data to store.
    * @param mixed $data
@@ -257,15 +263,4 @@ interface CacheBackendInterface {
    * Remove a cache bin.
    */
   public function removeBin();
-
-  /**
-   * Checks if a cache bin is empty.
-   *
-   * A cache bin is considered empty if it does not contain any valid data for
-   * any cache ID.
-   *
-   * @return
-   *   TRUE if the cache bin specified is empty.
-   */
-  public function isEmpty();
 }

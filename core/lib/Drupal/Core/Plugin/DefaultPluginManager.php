@@ -8,6 +8,8 @@
 namespace Drupal\Core\Plugin;
 
 use Drupal\Component\Plugin\Discovery\CachedDiscoveryInterface;
+use Drupal\Component\Plugin\Discovery\DiscoveryCachedTrait;
+use Drupal\Component\Plugin\Exception\PluginNotFoundException;
 use Drupal\Core\Plugin\Discovery\ContainerDerivativeDiscoveryDecorator;
 use Drupal\Component\Plugin\PluginManagerBase;
 use Drupal\Component\Plugin\PluginManagerInterface;
@@ -25,12 +27,7 @@ use Drupal\Core\Plugin\Factory\ContainerFactory;
  */
 class DefaultPluginManager extends PluginManagerBase implements PluginManagerInterface, CachedDiscoveryInterface {
 
-  /**
-   * Cached definitions array.
-   *
-   * @var array
-   */
-  protected $definitions;
+  use DiscoveryCachedTrait;
 
   /**
    * Cache backend instance.
@@ -164,20 +161,6 @@ class DefaultPluginManager extends PluginManagerBase implements PluginManagerInt
   /**
    * {@inheritdoc}
    */
-  public function getDefinition($plugin_id) {
-    // Fetch definitions if they're not loaded yet.
-    if (!isset($this->definitions)) {
-      $this->getDefinitions();
-    }
-    // Avoid using a ternary that would create a copy of the array.
-    if (isset($this->definitions[$plugin_id])) {
-      return $this->definitions[$plugin_id];
-    }
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function getDefinitions() {
     $definitions = $this->getCachedDefinitions();
     if (!isset($definitions)) {
@@ -270,6 +253,11 @@ class DefaultPluginManager extends PluginManagerBase implements PluginManagerInt
     // If this plugin was provided by a module that does not exist, remove the
     // plugin definition.
     foreach ($definitions as $plugin_id => $plugin_definition) {
+      // If the plugin definition is an object, attempt to convert it to an
+      // array, if that is not possible, skip further processing.
+      if (is_object($plugin_definition) && !($plugin_definition = (array) $plugin_definition)) {
+        continue;
+      }
       if (isset($plugin_definition['provider']) && !in_array($plugin_definition['provider'], array('Core', 'Component')) && !$this->moduleHandler->moduleExists($plugin_definition['provider'])) {
         unset($definitions[$plugin_id]);
       }

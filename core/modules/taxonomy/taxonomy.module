@@ -16,6 +16,7 @@ use Drupal\taxonomy\Entity\Term;
 use Drupal\taxonomy\Entity\Vocabulary;
 use Drupal\taxonomy\VocabularyInterface;
 use Drupal\Component\Utility\String;
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Denotes that no term in the vocabulary has a parent.
@@ -43,9 +44,9 @@ const TAXONOMY_HIERARCHY_MULTIPLE = 2;
 /**
  * Implements hook_help().
  */
-function taxonomy_help($path, $arg) {
-  switch ($path) {
-    case 'admin/help#taxonomy':
+function taxonomy_help($route_name, Request $request) {
+  switch ($route_name) {
+    case 'help.page.taxonomy':
       $output = '';
       $output .= '<h3>' . t('About') . '</h3>';
       $output .= '<p>' . t('The Taxonomy module allows you to classify the content of your website. To classify content, you define <em>vocabularies</em> that contain related <em>terms</em>, and then assign the vocabularies to content types. For more information, see the online handbook entry for the <a href="@taxonomy">Taxonomy module</a>.', array('@taxonomy' => 'http://drupal.org/documentation/modules/taxonomy')) . '</p>';
@@ -72,11 +73,13 @@ function taxonomy_help($path, $arg) {
       $output .= '<dd>' . t('There are <a href="@taxcontrib">many contributed modules</a> that extend the behavior of the Taxonomy module for both display and organization of terms.', array('@taxcontrib' => 'http://drupal.org/project/modules?filters=tid:71&solrsort=sis_project_release_usage%20desc'));
       $output .= '</dl>';
       return $output;
-    case 'admin/structure/taxonomy':
+
+    case 'taxonomy.vocabulary_list':
       $output = '<p>' . t('Taxonomy is for categorizing content. Terms are grouped into vocabularies. For example, a vocabulary called "Fruit" would contain the terms "Apple" and "Banana".') . '</p>';
       return $output;
-    case 'admin/structure/taxonomy/manage/%':
-      $vocabulary = entity_load('taxonomy_vocabulary', $arg[4]);
+
+    case 'taxonomy.overview_terms':
+      $vocabulary = $request->attributes->get('taxonomy_vocabulary');
       switch ($vocabulary->hierarchy) {
         case TAXONOMY_HIERARCHY_DISABLED:
           return '<p>' . t('You can reorganize the terms in %capital_name using their drag-and-drop handles, and group terms under a parent term by sliding them under and to the right of the parent.', array('%capital_name' => drupal_ucfirst($vocabulary->name), '%name' => $vocabulary->name)) . '</p>';
@@ -110,18 +113,6 @@ function taxonomy_permission() {
     );
   }
   return $permissions;
-}
-
-/**
- * Implements hook_entity_bundle_info().
- */
-function taxonomy_entity_bundle_info() {
-  $bundles = array();
-  foreach (taxonomy_vocabulary_get_names() as $id) {
-    $config = \Drupal::config('taxonomy.vocabulary.' . $id);
-    $bundles['taxonomy_term'][$id]['label'] = $config->get('name');
-  }
-  return $bundles;
 }
 
 /**
@@ -263,7 +254,7 @@ function taxonomy_term_view(Term $term, $view_mode = 'full', $langcode = NULL) {
   return entity_view($term, $view_mode, $langcode);
 }
 
- /**
+/**
  * Constructs a drupal_render() style array from an array of loaded terms.
  *
  * @param array $terms
@@ -602,8 +593,8 @@ function taxonomy_term_load_multiple_by_name($name, $vocabulary = NULL) {
  * @see entity_load_multiple()
  * @see \Drupal\Core\Entity\Query\EntityQueryInterface
  *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- *   Use entity_load_multiple('taxonomy_term', $tids).
+ * @deprecated in Drupal 8.x, will be removed before Drupal 9.0.
+ *   Use \Drupal\taxonomy\Entity\Term::loadMultiple().
  *
  * @param array $tids
  *   (optional) An array of entity IDs. If omitted, all entities are loaded.
@@ -613,7 +604,7 @@ function taxonomy_term_load_multiple_by_name($name, $vocabulary = NULL) {
  *   found, an empty array is returned.
  */
 function taxonomy_term_load_multiple(array $tids = NULL) {
-  return entity_load_multiple('taxonomy_term', $tids);
+  return Term::loadMultiple($tids);
 }
 
 /**
@@ -625,8 +616,8 @@ function taxonomy_term_load_multiple(array $tids = NULL) {
  *
  * @see entity_load_multiple()
  *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- *   Use entity_load_multiple('taxonomy_vocabulary', $vids).
+ * @deprecated in Drupal 8.x, will be removed before Drupal 9.0.
+ *   Use \Drupal\taxonomy\Entity\Vocabulary::loadMultiple().
  *
  * @param array $vids
  *   (optional) An array of entity IDs. If omitted, all entities are loaded.
@@ -635,14 +626,14 @@ function taxonomy_term_load_multiple(array $tids = NULL) {
  *  An array of vocabulary objects, indexed by vid.
  */
 function taxonomy_vocabulary_load_multiple(array $vids = NULL) {
-  return entity_load_multiple('taxonomy_vocabulary', $vids);
+  return Vocabulary::loadMultiple($vids);
 }
 
 /**
  * Return the taxonomy vocabulary entity matching a vocabulary ID.
  *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- *   Use entity_load('taxonomy_vocabulary', $vid).
+ * @deprecated in Drupal 8.x, will be removed before Drupal 9.0.
+ *   Use \Drupal\taxonomy\Entity\Vocabulary::load().
  *
  * @param int $vid
  *   The vocabulary's ID.
@@ -652,14 +643,14 @@ function taxonomy_vocabulary_load_multiple(array $vids = NULL) {
  *   statically cached.
  */
 function taxonomy_vocabulary_load($vid) {
-  return entity_load('taxonomy_vocabulary', $vid);
+  return Vocabulary::load($vid);
 }
 
 /**
  * Return the taxonomy term entity matching a term ID.
  *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- *   Use entity_load('taxonomy_term', $tid).
+ * @deprecated in Drupal 8.x, will be removed before Drupal 9.0.
+ *   Use \Drupal\taxonomy\Entity\Term::load().
  *
  * @param $tid
  *   A term's ID
@@ -672,7 +663,7 @@ function taxonomy_term_load($tid) {
   if (!is_numeric($tid)) {
     return NULL;
   }
-  return entity_load('taxonomy_term', $tid);
+  return Term::load($tid);
 }
 
 /**

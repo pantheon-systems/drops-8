@@ -7,6 +7,8 @@
 
 namespace Drupal\shortcut\Tests;
 
+use Drupal\shortcut\Entity\Shortcut;
+use Drupal\shortcut\Entity\ShortcutSet;
 use Drupal\shortcut\ShortcutSetInterface;
 use Drupal\simpletest\WebTestBase;
 
@@ -53,7 +55,7 @@ abstract class ShortcutTestBase extends WebTestBase {
       $this->drupalCreateContentType(array('type' => 'article', 'name' => 'Article'));
 
       // Populate the default shortcut set.
-      $shortcut = entity_create('shortcut', array(
+      $shortcut = Shortcut::create(array(
         'set' => 'default',
         'title' => t('Add content'),
         'weight' => -20,
@@ -61,7 +63,7 @@ abstract class ShortcutTestBase extends WebTestBase {
       ));
       $shortcut->save();
 
-      $shortcut = entity_create('shortcut', array(
+      $shortcut = Shortcut::create(array(
         'set' => 'default',
         'title' => t('All content'),
         'weight' => -19,
@@ -79,7 +81,7 @@ abstract class ShortcutTestBase extends WebTestBase {
 
     // Log in as admin and grab the default shortcut set.
     $this->drupalLogin($this->admin_user);
-    $this->set = shortcut_set_load('default');
+    $this->set = ShortcutSet::load('default');
     shortcut_set_assign_user($this->set, $this->admin_user);
   }
 
@@ -87,7 +89,7 @@ abstract class ShortcutTestBase extends WebTestBase {
    * Creates a generic shortcut set.
    */
   function generateShortcutSet($label = '', $id = NULL) {
-    $set = entity_create('shortcut_set', array(
+    $set = ShortcutSet::create(array(
       'id' => isset($id) ? $id : strtolower($this->randomName()),
       'label' => empty($label) ? $this->randomString() : $label,
     ));

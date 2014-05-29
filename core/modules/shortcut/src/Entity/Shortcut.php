@@ -7,6 +7,7 @@
 
 namespace Drupal\shortcut\Entity;
 
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
@@ -23,8 +24,9 @@ use Drupal\shortcut\ShortcutInterface;
  *   controllers = {
  *     "access" = "Drupal\shortcut\ShortcutAccessController",
  *     "form" = {
- *       "default" = "Drupal\shortcut\ShortcutFormController",
- *       "add" = "Drupal\shortcut\ShortcutFormController",
+ *       "default" = "Drupal\shortcut\ShortcutForm",
+ *       "add" = "Drupal\shortcut\ShortcutForm",
+ *       "edit" = "Drupal\shortcut\ShortcutForm",
  *       "delete" = "Drupal\shortcut\Form\ShortcutDeleteForm"
  *     },
  *     "translation" = "Drupal\content_translation\ContentTranslationHandler"
@@ -39,9 +41,12 @@ use Drupal\shortcut\ShortcutInterface;
  *     "label" = "title"
  *   },
  *   links = {
+ *     "canonical" = "shortcut.link_edit",
  *     "delete-form" = "shortcut.link_delete",
- *     "edit-form" = "shortcut.link_edit"
- *   }
+ *     "edit-form" = "shortcut.link_edit",
+ *     "admin-form" = "shortcut.link_edit"
+ *   },
+ *   bundle_entity_type = "shortcut_set"
  * )
  */
 class Shortcut extends ContentEntityBase implements ShortcutInterface {
@@ -95,15 +100,14 @@ class Shortcut extends ContentEntityBase implements ShortcutInterface {
    * {@inheritdoc}
    */
   public function getRouteParams() {
-    $value = $this->get('route_parameters')->getValue();
-    return reset($value);
+    return $this->get('route_parameters')->first()->getValue();
   }
 
   /**
    * {@inheritdoc}
    */
   public function setRouteParams($route_parameters) {
-    $this->set('route_parameters', array('value' => $route_parameters));
+    $this->set('route_parameters', array($route_parameters));
     return $this;
   }
 
@@ -127,6 +131,21 @@ class Shortcut extends ContentEntityBase implements ShortcutInterface {
     $url = Url::createFromPath($this->path->value);
     $this->setRouteName($url->getRouteName());
     $this->setRouteParams($url->getRouteParameters());
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function postSave(EntityStorageInterface $storage, $update = TRUE) {
+    parent::postSave($storage, $update);
+
+    // Entity::postSave() calls Entity::invalidateTagsOnSave(), which only
+    // handles the regular cases. The Shortcut entity has one special case: a
+    // newly created shortcut is *also* added to a shortcut set, so we must
+    // invalidate the associated shortcut set's cache tag.
+    if (!$update) {
+      Cache::invalidateTags($this->getCacheTag());
+    }
   }
 
   /**
@@ -197,6 +216,20 @@ class Shortcut extends ContentEntityBase implements ShortcutInterface {
     $fields['path']->setItemDefinition($item_definition);
 
     return $fields;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getCacheTag() {
+    return $this->shortcut_set->entity->getCacheTag();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getListCacheTags() {
+    return $this->shortcut_set->entity->getListCacheTags();
   }
 
 }

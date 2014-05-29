@@ -13,6 +13,7 @@ use Drupal\block\BlockPluginInterface;
 use Drupal\user\UserInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use GuzzleHttp\Exception\RequestException;
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * New users will be set to the default time zone at registration.
@@ -29,7 +30,7 @@ const DRUPAL_USER_TIMEZONE_EMPTY = 1;
  */
 const DRUPAL_USER_TIMEZONE_SELECT = 2;
 
- /**
+/**
  * Disabled option on forms and settings
  */
 const DRUPAL_DISABLED = 0;
@@ -73,11 +74,11 @@ const EMAIL_MAX_LENGTH = 254;
 /**
  * Implements hook_help().
  */
-function system_help($path, $arg) {
+function system_help($route_name, Request $request) {
   global $base_url;
 
-  switch ($path) {
-    case 'admin/help#system':
+  switch ($route_name) {
+    case 'help.page.system':
       $output = '';
       $output .= '<h3>' . t('About') . '</h3>';
       $output .= '<p>' . t('The System module is integral to the site, and provides basic but extensible functionality for use by other modules and themes. Some integral elements of Drupal are contained in and managed by the System module, including caching, enabling and disabling modules and themes, preparing and displaying the administrative page, and configuring fundamental site settings. A number of key system maintenance operations are also part of the System module. For more information, see the online handbook entry for <a href="@system">System module</a>.', array('@system' => 'http://drupal.org/documentation/modules/system')) . '</p>';
@@ -95,18 +96,23 @@ function system_help($path, $arg) {
       $output .= '<dd>' . t('The System module also handles basic configuration options for your site, including <a href="@date-time-settings">Date and time settings</a>, <a href="@file-system">File system settings</a>, <a href="@site-info">Site name and other information</a>, and a <a href="@maintenance-mode">Maintenance mode</a> for taking your site temporarily offline.', array('@date-time-settings' => url('admin/config/regional/date-time'), '@file-system' => url('admin/config/media/file-system'), '@site-info' => url('admin/config/system/site-information'), '@maintenance-mode' => url('admin/config/development/maintenance'))) . '</dd>';
       $output .= '</dl>';
       return $output;
-    case 'admin/index':
+
+    case 'system.admin_index':
       return '<p>' . t('This page shows you all available administration tasks for each module.') . '</p>';
-    case 'admin/appearance':
+
+    case 'system.themes_page':
       $output = '<p>' . t('Set and configure the default theme for your website.  Alternative <a href="@themes">themes</a> are available.', array('@themes' => 'http://drupal.org/project/themes')) . '</p>';
       return $output;
-    case 'admin/appearance/settings/' . $arg[3]:
+
+    case 'system.theme_settings_theme':
       $theme_list = list_themes();
-      $theme = $theme_list[$arg[3]];
+      $theme = $theme_list[$request->attributes->get('theme')];
       return '<p>' . t('These options control the display settings for the %name theme. When your site is displayed using this theme, these settings will be used.', array('%name' => $theme->info['name'])) . '</p>';
-    case 'admin/appearance/settings':
+
+    case 'system.theme_settings':
       return '<p>' . t('These options control the default display settings for your entire site, across all themes. Unless they have been overridden by a specific theme, these settings will be used.') . '</p>';
-    case 'admin/modules':
+
+    case 'system.modules_list':
       $output = '<p>' . t('Download additional <a href="@modules">contributed modules</a> to extend Drupal\'s functionality.', array('@modules' => 'http://drupal.org/project/modules')) . '</p>';
       if (\Drupal::moduleHandler()->moduleExists('update')) {
         if (update_manager_access()) {
@@ -120,19 +126,29 @@ function system_help($path, $arg) {
         $output .= '<p>' . t('Regularly review available updates to maintain a secure and current site. Always run the <a href="@update-php">update script</a> each time a module is updated. Enable the Update Manager module to update and install modules and themes.', array('@update-php' => $base_url . '/core/update.php')) . '</p>';
       }
       return $output;
-    case 'admin/modules/uninstall':
+
+    case 'system.modules_uninstall':
       return '<p>' . t('The uninstall process removes all data related to a module.') . '</p>';
-    case 'admin/structure/block/manage':
-      if ($arg[4] == 'system' && $arg[5] == 'powered-by') {
+
+    case 'block.admin_edit':
+      if (($block = $request->attributes->get('block')) && $block->get('plugin') == 'system_powered_by_block') {
         return '<p>' . t('The <em>Powered by Drupal</em> block is an optional link to the home page of the Drupal project. While there is absolutely no requirement that sites feature this link, it may be used to show support for Drupal.') . '</p>';
       }
       break;
-    case 'admin/config/development/maintenance':
+
+    case 'block.admin_add':
+      if ($request->attributes->get('plugin_id') == 'system_powered_by_block') {
+        return '<p>' . t('The <em>Powered by Drupal</em> block is an optional link to the home page of the Drupal project. While there is absolutely no requirement that sites feature this link, it may be used to show support for Drupal.') . '</p>';
+      }
+      break;
+
+    case 'system.site_maintenance_mode':
       if (\Drupal::currentUser()->id() == 1) {
         return '<p>' . t('Use maintenance mode when making major updates, particularly if the updates could disrupt visitors or the update process. Examples include upgrading, importing or exporting content, modifying a theme, modifying content types, and making backups.') . '</p>';
       }
       break;
-    case 'admin/reports/status':
+
+    case 'system.status':
       return '<p>' . t("Here you can find a short overview of your site's parameters as well as any problems detected with your installation. It may be useful to copy and paste this information into support requests filed on drupal.org's support forums and project issue queues. Before filing a support request, ensure that your web server meets the <a href=\"@system-requirements\">system requirements.</a>", array('@system-requirements' => 'http://drupal.org/requirements')) . '</p>';
   }
 }
@@ -196,6 +212,7 @@ function system_theme() {
     'system_admin_index' => array(
       'variables' => array('menu_items' => NULL),
       'file' => 'system.admin.inc',
+      'template' => 'system-admin-index',
     ),
     'system_compact_link' => array(
       'variables' => array(),
@@ -234,6 +251,7 @@ function system_permission() {
     ),
     'access site reports' => array(
       'title' => t('View site reports'),
+      'restrict access' => TRUE,
     ),
   );
 }
@@ -626,12 +644,6 @@ function system_element_info() {
     '#theme' => 'table',
   );
 
-  // Other elements.
-  $types['render_cache_placeholder'] = array(
-    '#callback' => '',
-    '#context' => array(),
-  );
-
   return $types;
 }
 
@@ -639,14 +651,16 @@ function system_element_info() {
  * Implements hook_theme_suggestions_HOOK().
  */
 function system_theme_suggestions_html(array $variables) {
-  return theme_get_suggestions(arg(), 'html');
+  $path_args = explode('/', current_path());
+  return theme_get_suggestions($path_args, 'html');
 }
 
 /**
  * Implements hook_theme_suggestions_HOOK().
  */
 function system_theme_suggestions_page(array $variables) {
-  return theme_get_suggestions(arg(), 'page');
+  $path_args = explode('/', current_path());
+  return theme_get_suggestions($path_args, 'page');
 }
 
 /**
@@ -1295,7 +1309,7 @@ function system_rebuild_module_data() {
  * @return \Drupal\Core\Extension\Extension[]
  *   Array of all available themes and their data.
  *
- * @deprecated 8.x
+ * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
  *   Use \Drupal::service('theme_handler')->rebuildThemeData().
  */
 function system_rebuild_theme_data() {
@@ -1453,7 +1467,7 @@ function system_get_module_admin_tasks($module, array $info) {
     if (isset($links[$machine_name])) {
       $task = $links[$machine_name];
       // The link description, either derived from 'description' in the default
-      // menu link or customized via menu module is used as title attribute.
+      // menu link or customized via Menu UI module is used as title attribute.
       if (!empty($task['localized_options']['attributes']['title'])) {
         $task['description'] = $task['localized_options']['attributes']['title'];
         unset($task['localized_options']['attributes']['title']);
@@ -1705,19 +1719,19 @@ function theme_system_config_form($variables) {
  * Implements hook_path_update().
  */
 function system_path_update() {
-  \Drupal::service('path.alias_manager.cached')->cacheClear();
+  \Drupal::service('path.alias_manager')->cacheClear();
 }
 
 /**
  * Implements hook_path_insert().
  */
 function system_path_insert() {
-  \Drupal::service('path.alias_manager.cached')->cacheClear();
+  \Drupal::service('path.alias_manager')->cacheClear();
 }
 
 /**
  * Implements hook_path_delete().
  */
 function system_path_delete($path) {
-  \Drupal::service('path.alias_manager.cached')->cacheClear();
+  \Drupal::service('path.alias_manager')->cacheClear();
 }

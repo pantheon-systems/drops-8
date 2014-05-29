@@ -91,7 +91,6 @@ class UserAgent {
       // first occurrence of '-' otherwise we get a non-existing language zh.
       // All other languages use a langcode without a '-', so we can safely
       // split on the first occurrence of it.
-      $generic_tag = '';
       if (strlen($langcode) > 7 && (substr($langcode, 0, 7) == 'zh-hant' || substr($langcode, 0, 7) == 'zh-hans')) {
         $generic_tag = substr($langcode, 0, 7);
       }
@@ -106,7 +105,7 @@ class UserAgent {
       }
     }
 
-    // Find the enabled language with the greatest qvalue, following the rules
+    // Find the added language with the greatest qvalue, following the rules
     // of RFC 2616 (section 14.4). If several languages have the same qvalue,
     // prefer the one with the greatest weight.
     $best_match_langcode = FALSE;

@@ -17,10 +17,14 @@ interface EntityManagerInterface extends PluginManagerInterface {
   /**
    * Builds a list of entity type labels suitable for a Form API options list.
    *
+   * @param bool $group
+   *   (optional) Whether to group entity types by plugin group (e.g. 'content',
+   *   'config'). Defaults to FALSE.
+   *
    * @return array
    *   An array of entity type labels, keyed by entity type name.
    */
-  public function getEntityTypeLabels();
+  public function getEntityTypeLabels($group = FALSE);
 
   /**
    * Gets the base field definitions for a content entity type.
@@ -77,6 +81,17 @@ interface EntityManagerInterface extends PluginManagerInterface {
   public function getFieldStorageDefinitions($entity_type_id);
 
   /**
+   * Collects a lightweight map of fields across bundles.
+   *
+   * @return array
+   *   An array keyed by entity type. Each value is an array which keys are
+   *   field names and value is an array with two entries:
+   *   - type: The field type.
+   *   - bundles: The bundles in which the field appears.
+   */
+  public function getFieldMap();
+
+  /**
    * Creates a new access controller instance.
    *
    * @param string $entity_type
@@ -128,6 +143,16 @@ interface EntityManagerInterface extends PluginManagerInterface {
   public function clearCachedDefinitions();
 
   /**
+   * Clears static and persistent field definition caches.
+   */
+  public function clearCachedFieldDefinitions();
+
+  /**
+   * Clears static and persistent bundles.
+   */
+  public function clearCachedBundles();
+
+  /**
    * Creates a new view builder instance.
    *
    * @param string $entity_type
@@ -150,22 +175,17 @@ interface EntityManagerInterface extends PluginManagerInterface {
   public function getListBuilder($entity_type);
 
   /**
-   * Creates a new form controller instance.
+   * Creates a new form instance.
    *
    * @param string $entity_type
-   *   The entity type for this form controller.
+   *   The entity type for this form.
    * @param string $operation
    *   The name of the operation to use, e.g., 'default'.
    *
-   * @return \Drupal\Core\Entity\EntityFormControllerInterface
-   *   A form controller instance.
+   * @return \Drupal\Core\Entity\EntityFormInterface
+   *   A form instance.
    */
-  public function getFormController($entity_type, $operation);
-
-  /**
-   * Clears static and persistent field definition caches.
-   */
-  public function clearCachedFieldDefinitions();
+  public function getFormObject($entity_type, $operation);
 
   /**
    * Checks whether a certain entity type has a certain controller.
@@ -259,28 +279,16 @@ interface EntityManagerInterface extends PluginManagerInterface {
   public function getTranslationFromContext(EntityInterface $entity, $langcode = NULL, $context = array());
 
   /**
-   * Returns the entity type info for a specific entity type.
-   *
-   * @param string $entity_type_id
-   *   The ID of the entity type.
-   * @param bool $exception_on_invalid
-   *   (optional) If TRUE, an invalid entity type ID will throw an exception.
-   *   Defaults to FALSE.
+   * {@inheritdoc}
    *
    * @return \Drupal\Core\Entity\EntityTypeInterface|null
-   *   Returns the entity type object, or NULL if the entity type ID is invalid
-   *   and $exception_on_invalid is TRUE.
-   *
-   * @throws \InvalidArgumentException
-   *   Thrown if $entity_type_id is invalid and $exception_on_invalid is TRUE.
    */
-  public function getDefinition($entity_type_id, $exception_on_invalid = FALSE);
+  public function getDefinition($entity_type_id, $exception_on_invalid = TRUE);
 
   /**
-   * Returns an array of entity type info, keyed by entity type name.
+   * {@inheritdoc}
    *
    * @return \Drupal\Core\Entity\EntityTypeInterface[]
-   *   An array of entity type objects.
    */
   public function getDefinitions();
 

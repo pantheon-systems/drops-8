@@ -172,6 +172,40 @@ interface EntityInterface extends AccessibleInterface {
   public function uriRelationships();
 
   /**
+   * Loads an entity.
+   *
+   * @param mixed $id
+   *   The id of the entity to load.
+   *
+   * @return static
+   *   The entity object or NULL if there is no entity with the given ID.
+   */
+  public static function load($id);
+
+  /**
+   * Loads one or more entities.
+   *
+   * @param array $ids
+   *   An array of entity IDs, or NULL to load all entities.
+   *
+   * @return static[]
+   *   An array of entity objects indexed by their IDs.
+   */
+  public static function loadMultiple(array $ids = NULL);
+
+  /**
+   * Constructs a new entity object, without permanently saving it.
+   *
+   * @param array $values
+   *   (optional) An array of values to set, keyed by property name. If the
+   *   entity type has bundles, the bundle key has to be specified.
+   *
+   * @return static
+   *   The entity object.
+   */
+  public static function create(array $values = array());
+
+  /**
    * Saves an entity permanently.
    *
    * When saving existing entities, the entity is assumed to be complete,

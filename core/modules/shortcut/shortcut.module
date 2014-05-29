@@ -5,9 +5,11 @@
  * Allows users to manage customizable lists of shortcut links.
  */
 
+use Drupal\Component\Utility\NestedArray;
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Routing\UrlMatcher;
 use Drupal\Core\Url;
+use Drupal\shortcut\Entity\ShortcutSet;
 use Drupal\shortcut\ShortcutSetInterface;
 use Symfony\Cmf\Component\Routing\RouteObjectInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -15,11 +17,9 @@ use Symfony\Component\HttpFoundation\Request;
 /**
  * Implements hook_help().
  */
-function shortcut_help($path, $arg) {
-  $user = \Drupal::currentUser();
-
-  switch ($path) {
-    case 'admin/help#shortcut':
+function shortcut_help($route_name, Request $request) {
+  switch ($route_name) {
+    case 'help.page.shortcut':
       $output = '<h3>' . t('About') . '</h3>';
       $output .= '<p>' . t('The Shortcut module allows users to create sets of <em>shortcut</em> links to commonly-visited pages of the site. Shortcuts are contained within <em>sets</em>. Each user with <em>Select any shortcut set</em> permission can select a shortcut set created by anyone at the site. For more information, see the online handbook entry for <a href="!shortcut">Shortcut module</a>.', array('!shortcut' => 'http://drupal.org/documentation/modules/shortcut')) . '</p>';
       $output .= '<h3>' . t('Uses') . '</h3>';
@@ -34,8 +34,10 @@ function shortcut_help($path, $arg) {
       $output .= '</dl>';
       return $output;
 
-    case 'admin/config/user-interface/shortcut':
-    case 'admin/config/user-interface/shortcut/%':
+    case 'shortcut.set_admin':
+    case 'shortcut.set_add':
+    case 'shortcut.set_edit':
+      $user = \Drupal::currentUser();
       if ($user->hasPermission('switch shortcut sets')) {
         $output = '<p>' . t('Define which shortcut set you are using on the <a href="@shortcut-link">Shortcuts tab</a> of your account page.', array('@shortcut-link' => url("user/{$user->id()}/shortcuts"))) . '</p>';
         return $output;
@@ -121,22 +123,6 @@ function shortcut_set_switch_access($account = NULL) {
 }
 
 /**
- * Loads the data for a shortcut set.
- *
- * @param string $id
- *   The machine-name of the shortcut set to load.
- *
- * @return \Drupal\shortcut\ShortcutSetInterface|null
- *   If the shortcut set exists, an object containing the following properties:
- *   - 'id': The internal name of the shortcut set.
- *   - 'label': The title of the shortcut set.
- *   If the shortcut set does not exist, the function returns NULL.
- */
-function shortcut_set_load($id) {
-  return entity_load('shortcut_set', $id);
-}
-
-/**
  * Assigns a user to a particular shortcut set.
  *
  * @param $shortcut_set Drupal\shortcut\Entity\Shortcut
@@ -197,7 +183,7 @@ function shortcut_current_displayed_set($account = NULL) {
     ->getStorage('shortcut_set')
     ->getAssignedToUser($account);
   if ($shortcut_set_name) {
-    $shortcut_set = shortcut_set_load($shortcut_set_name);
+    $shortcut_set = ShortcutSet::load($shortcut_set_name);
   }
   // Otherwise, use the default set.
   else {
@@ -232,7 +218,7 @@ function shortcut_default_set($account = NULL) {
   $suggestions = array_reverse(\Drupal::moduleHandler()->invokeAll('shortcut_default_set', array($account)));
   $suggestions[] = 'default';
   foreach ($suggestions as $name) {
-    if ($shortcut_set = shortcut_set_load($name)) {
+    if ($shortcut_set = ShortcutSet::load($name)) {
       break;
     }
   }
@@ -273,7 +259,7 @@ function shortcut_set_title_exists($title) {
  */
 function shortcut_valid_link($path) {
   // Do not use URL aliases.
-  $normal_path = \Drupal::service('path.alias_manager')->getSystemPath($path);
+  $normal_path = \Drupal::service('path.alias_manager')->getPathByAlias($path);
   if ($path != $normal_path) {
     $path = $normal_path;
   }
@@ -299,12 +285,15 @@ function shortcut_renderable_links($shortcut_set = NULL) {
     $shortcut_set = shortcut_current_displayed_set();
   }
 
+  /** @var \Drupal\shortcut\ShortcutInterface[] $shortcuts  */
   $shortcuts = \Drupal::entityManager()->getStorage('shortcut')->loadByProperties(array('shortcut_set' => $shortcut_set->id()));
+  $all_cache_tags = array();
   foreach ($shortcuts as $shortcut) {
     $links[] = array(
       'title' => $shortcut->label(),
       'href' => $shortcut->path->value,
     );
+    $all_cache_tags[] = $shortcut->getCacheTag();
   }
 
   if (!empty($links)) {
@@ -313,6 +302,9 @@ function shortcut_renderable_links($shortcut_set = NULL) {
       '#links' => $links,
       '#attributes' => array(
         'class' => array('menu'),
+      ),
+      '#cache' => array(
+        'tags' => NestedArray::mergeDeepArray($all_cache_tags),
       ),
     );
   }
@@ -341,7 +333,6 @@ function shortcut_preprocess_page(&$variables) {
   $request = \Drupal::request();
   $item = array();
   if ($route = $request->attributes->get(RouteObjectInterface::ROUTE_NAME)) {
-    $item['href'] = $request->attributes->get('_system_path');
     // @todo What should be done on a 404/403 page?
     $item['access'] = TRUE;
   }

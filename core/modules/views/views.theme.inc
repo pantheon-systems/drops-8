@@ -121,7 +121,7 @@ function template_preprocess_views_view(&$variables) {
     }
 
     $container = \Drupal::getContainer();
-    $form_object = new ViewsForm($container->get('controller_resolver'), $container->get('url_generator'), $container->get('request'), $view->storage->id(), $view->current_display);
+    $form_object = new ViewsForm($container->get('class_resolver'), $container->get('url_generator'), $container->get('request'), $view->storage->id(), $view->current_display);
     $form = \Drupal::formBuilder()->getForm($form_object, $view, $output);
     // The form is requesting that all non-essential views elements be hidden,
     // usually because the rendered step is not a view result.
@@ -275,19 +275,19 @@ function template_preprocess_views_view_fields(&$variables) {
 }
 
 /**
-* Returns HTML for multiple views fields.
-*
-* @param $variables
-*   An associative array containing:
-*   - fields: An array of field objects. Each field object contains:
-*     - separator: A string that separates the fields.
-*     - wrapper_suffix: A string added to the beginning of the fields.
-*     - label_html: An HTML string that labels the fields.
-*     - content: The fields.
-*     - wrapper_suffix: A string added to the end of the fields.
-*
-* @see template_preprocess_views_view_fields()
-*/
+ * Returns HTML for multiple views fields.
+ *
+ * @param $variables
+ *   An associative array containing:
+ *   - fields: An array of field objects. Each field object contains:
+ *     - separator: A string that separates the fields.
+ *     - wrapper_suffix: A string added to the beginning of the fields.
+ *     - label_html: An HTML string that labels the fields.
+ *     - content: The fields.
+ *     - wrapper_suffix: A string added to the end of the fields.
+ *
+ * @see template_preprocess_views_view_fields()
+ */
 function theme_views_view_fields($variables) {
   $fields = $variables['fields'];
   $output = '';
@@ -320,7 +320,7 @@ function theme_views_view_fields($variables) {
  *     grouping.
  *   - content: The content to be grouped.
  *   - title: The group heading.
-  */
+ */
 function template_preprocess_views_view_grouping(&$variables) {
   $variables['content'] = $variables['view']->style_plugin->renderGroupingSets($variables['rows'], $variables['grouping_level']);
 }
@@ -499,8 +499,6 @@ function template_preprocess_views_view_table(&$variables) {
   $options = $view->style_plugin->options;
   $handler = $view->style_plugin;
 
-  $row_class_special = isset($options['row_class_special']) ? $options['row_class_special'] : TRUE;
-
   $fields = &$view->field;
   $columns = $handler->sanitizeColumns($options['columns'], $fields);
 
@@ -676,18 +674,8 @@ function template_preprocess_views_view_table(&$variables) {
     $variables['header'] = array();
   }
 
-  $count = 0;
   foreach ($variables['rows'] as $num => $row) {
     $variables['rows'][$num]['attributes'] = array();
-    if ($row_class_special) {
-      $variables['rows'][$num]['attributes']['class'][] = ($count++ % 2 == 0) ? 'odd' : 'even';
-      if ($num === 0) {
-        $variables['rows'][$num]['attributes']['class'][] = 'views-row-first';
-      }
-      elseif ($num === (count($variables['rows']) - 1)) {
-        $variables['rows'][$num]['attributes']['class'][] = 'views-row-last';
-      }
-    }
     if ($row_class = $handler->getRowClass($num)) {
       $variables['rows'][$num]['attributes']['class'][] = $row_class;
     }
@@ -878,27 +866,12 @@ function template_preprocess_views_view_unformatted(&$variables) {
   $options = $style->options;
 
   $default_row_class = isset($options['default_row_class']) ? $options['default_row_class'] : FALSE;
-  $row_class_special = isset($options['row_class_special']) ? $options['row_class_special'] : FALSE;
-  // Set up striping values.
-  $count = 0;
-  $max = count($rows);
   foreach ($rows as $id => $row) {
     $variables['rows'][$id] = array();
     $variables['rows'][$id]['content'] = $row;
     $variables['rows'][$id]['attributes'] = array();
-    $count++;
     if ($default_row_class) {
       $variables['rows'][$id]['attributes']['class'][] = 'views-row';
-      $variables['rows'][$id]['attributes']['class'][] = 'views-row-' . $count;
-    }
-    if ($row_class_special) {
-      $variables['rows'][$id]['attributes']['class'][] = 'views-row-' . ($count % 2 ? 'odd' : 'even');
-      if ($count == 1) {
-        $variables['rows'][$id]['attributes']['class'][] = 'views-row-first';
-      }
-      if ($count == $max) {
-        $variables['rows'][$id]['attributes']['class'][] = 'views-row-last';
-      }
     }
     if ($row_class = $view->style_plugin->getRowClass($id)) {
       $variables['rows'][$id]['attributes']['class'][] = $row_class;

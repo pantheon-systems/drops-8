@@ -7,15 +7,14 @@
 
 namespace Drupal\Tests\Core\Form {
 
-use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Form\FormInterface;
-use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
  * Tests the form builder.
+ *
+ * @coversDefaultClass \Drupal\Core\Form\FormBuilder
  *
  * @group Drupal
  * @group Form
@@ -31,17 +30,6 @@ class FormBuilderTest extends FormTestBase {
       'description' => 'Tests the form builder.',
       'group' => 'Form API',
     );
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function setUp() {
-    parent::setUp();
-
-    $container = new ContainerBuilder();
-    $container->set('url_generator', $this->urlGenerator);
-    \Drupal::setContainer($container);
   }
 
   /**
@@ -217,140 +205,6 @@ class FormBuilderTest extends FormTestBase {
     }
     $this->assertSame($response, $form_state['response']);
   }
-
-  /**
-   * Tests the redirectForm() method when a redirect is expected.
-   *
-   * @param array $form_state
-   *   An array of form state data to use for the redirect.
-   * @param string $result
-   *   The URL the redirect is targeting.
-   * @param int $status
-   *   (optional) The HTTP status code for the redirect.
-   *
-   * @dataProvider providerTestRedirectWithResult
-   */
-  public function testRedirectWithResult($form_state, $result, $status = 302) {
-    $this->urlGenerator->expects($this->once())
-      ->method('generateFromPath')
-      ->will($this->returnValueMap(array(
-        array(NULL, array('query' => array(), 'absolute' => TRUE), '<front>'),
-        array('foo', array('absolute' => TRUE), 'foo'),
-        array('bar', array('query' => array('foo' => 'baz'), 'absolute' => TRUE), 'bar'),
-        array('baz', array('absolute' => TRUE), 'baz'),
-      ))
-    );
-
-    $form_state += $this->formBuilder->getFormStateDefaults();
-    $redirect = $this->formBuilder->redirectForm($form_state);
-    $this->assertSame($result, $redirect->getTargetUrl());
-    $this->assertSame($status, $redirect->getStatusCode());
-  }
-
-  /**
-   * Tests the redirectForm() with redirect_route when a redirect is expected.
-   *
-   * @param array $form_state
-   *   An array of form state data to use for the redirect.
-   * @param string $result
-   *   The URL the redirect is targeting.
-   * @param int $status
-   *   (optional) The HTTP status code for the redirect.
-   *
-   * @dataProvider providerTestRedirectWithRouteWithResult
-   */
-  public function testRedirectWithRouteWithResult($form_state, $result, $status = 302) {
-    $this->urlGenerator->expects($this->once())
-      ->method('generateFromRoute')
-      ->will($this->returnValueMap(array(
-          array('test_route_a', array(), array('absolute' => TRUE), 'test-route'),
-          array('test_route_b', array('key' => 'value'), array('absolute' => TRUE), 'test-route/value'),
-        ))
-      );
-
-    $form_state += $this->formBuilder->getFormStateDefaults();
-    $redirect = $this->formBuilder->redirectForm($form_state);
-    $this->assertSame($result, $redirect->getTargetUrl());
-    $this->assertSame($status, $redirect->getStatusCode());
-  }
-
-  /**
-   * Tests the redirectForm() method with a response object.
-   */
-  public function testRedirectWithResponseObject() {
-    $redirect = new RedirectResponse('/example');
-    $form_state['redirect'] = $redirect;
-
-    $form_state += $this->formBuilder->getFormStateDefaults();
-    $result_redirect = $this->formBuilder->redirectForm($form_state);
-
-    $this->assertSame($redirect, $result_redirect);
-  }
-
-  /**
-   * Tests the redirectForm() method when no redirect is expected.
-   *
-   * @param array $form_state
-   *   An array of form state data to use for the redirect.
-   *
-   * @dataProvider providerTestRedirectWithoutResult
-   */
-  public function testRedirectWithoutResult($form_state) {
-    $this->urlGenerator->expects($this->never())
-      ->method('generateFromPath');
-    $this->urlGenerator->expects($this->never())
-      ->method('generateFromRoute');
-    $form_state += $this->formBuilder->getFormStateDefaults();
-    $redirect = $this->formBuilder->redirectForm($form_state);
-    $this->assertNull($redirect);
-  }
-
-  /**
-   * Provides test data for testing the redirectForm() method with a redirect.
-   *
-   * @return array
-   *   Returns some test data.
-   */
-  public function providerTestRedirectWithResult() {
-    return array(
-      array(array(), '<front>'),
-      array(array('redirect' => 'foo'), 'foo'),
-      array(array('redirect' => array('foo')), 'foo'),
-      array(array('redirect' => array('foo')), 'foo'),
-      array(array('redirect' => array('bar', array('query' => array('foo' => 'baz')))), 'bar'),
-      array(array('redirect' => array('baz', array(), 301)), 'baz', 301),
-    );
-  }
-
-  /**
-   * Provides test data for testing the redirectForm() method with a route name.
-   *
-   * @return array
-   *   Returns some test data.
-   */
-  public function providerTestRedirectWithRouteWithResult() {
-    return array(
-      array(array('redirect_route' => array('route_name' => 'test_route_a')), 'test-route'),
-      array(array('redirect_route' => array('route_name' => 'test_route_b', 'route_parameters' => array('key' => 'value'))), 'test-route/value'),
-      array(array('redirect_route' => new Url('test_route_b', array('key' => 'value'))), 'test-route/value'),
-    );
-  }
-
-  /**
-   * Provides test data for testing the redirectForm() method with no redirect.
-   *
-   * @return array
-   *   Returns some test data.
-   */
-  public function providerTestRedirectWithoutResult() {
-    return array(
-      array(array('programmed' => TRUE)),
-      array(array('rebuild' => TRUE)),
-      array(array('no_redirect' => TRUE)),
-      array(array('redirect' => FALSE)),
-    );
-  }
-
   /**
    * Tests the getForm() method with a string based form ID.
    */
@@ -470,188 +324,6 @@ class FormBuilderTest extends FormTestBase {
   }
 
   /**
-   * Tests the submitForm() method.
-   */
-  public function testSubmitForm() {
-    $form_id = 'test_form_id';
-    $expected_form = $form_id();
-    $expected_form['test']['#required'] = TRUE;
-    $expected_form['options']['#required'] = TRUE;
-    $expected_form['value']['#required'] = TRUE;
-
-    $form_arg = $this->getMock('Drupal\Core\Form\FormInterface');
-    $form_arg->expects($this->exactly(5))
-      ->method('getFormId')
-      ->will($this->returnValue($form_id));
-    $form_arg->expects($this->exactly(5))
-      ->method('buildForm')
-      ->will($this->returnValue($expected_form));
-
-    $form_state = array();
-    $form_state['values']['test'] = $this->randomName();
-    $form_state['values']['op'] = 'Submit';
-    $this->formBuilder->submitForm($form_arg, $form_state);
-    $errors = $this->formBuilder->getErrors($form_state);
-    $this->assertNotEmpty($errors['options']);
-
-    $form_state = array();
-    $form_state['values']['test'] = $this->randomName();
-    $form_state['values']['options'] = 'foo';
-    $form_state['values']['op'] = 'Submit';
-    $this->formBuilder->submitForm($form_arg, $form_state);
-    $errors = $this->formBuilder->getErrors($form_state);
-    $this->assertEmpty($errors);
-
-    $form_state = array();
-    $form_state['values']['test'] = $this->randomName();
-    $form_state['values']['options'] = array('foo');
-    $form_state['values']['op'] = 'Submit';
-    $this->formBuilder->submitForm($form_arg, $form_state);
-    $errors = $this->formBuilder->getErrors($form_state);
-    $this->assertEmpty($errors);
-
-    $form_state = array();
-    $form_state['values']['test'] = $this->randomName();
-    $form_state['values']['options'] = array('foo', 'baz');
-    $form_state['values']['op'] = 'Submit';
-    $this->formBuilder->submitForm($form_arg, $form_state);
-    $errors = $this->formBuilder->getErrors($form_state);
-    $this->assertNotEmpty($errors['options']);
-
-    $form_state = array();
-    $form_state['values']['test'] = $this->randomName();
-    $form_state['values']['options'] = $this->randomName();
-    $form_state['values']['op'] = 'Submit';
-    $this->formBuilder->submitForm($form_arg, $form_state);
-    $errors = $this->formBuilder->getErrors($form_state);
-    $this->assertNotEmpty($errors['options']);
-  }
-
-  /**
-   * Tests the flattenOptions() method.
-   *
-   * @dataProvider providerTestFlattenOptions
-   */
-  public function testFlattenOptions($options) {
-    $form_id = 'test_form_id';
-    $expected_form = $form_id();
-    $expected_form['select']['#required'] = TRUE;
-    $expected_form['select']['#options'] = $options;
-
-    $form_arg = $this->getMockForm($form_id, $expected_form);
-
-    $form_state = array();
-    $form_state['values']['select'] = 'foo';
-    $form_state['values']['op'] = 'Submit';
-    $this->formBuilder->submitForm($form_arg, $form_state);
-    $errors = $this->formBuilder->getErrors($form_state);
-    $this->assertEmpty($errors);
-  }
-
-  /**
-   * Provides test data for the flattenOptions() method.
-   *
-   * @return array
-   */
-  public function providerTestFlattenOptions() {
-    $object = new \stdClass();
-    $object->option = array('foo' => 'foo');
-    return array(
-      array(array('foo' => 'foo')),
-      array(array(array('foo' => 'foo'))),
-      array(array($object)),
-    );
-  }
-
-  /**
-   * Tests the setErrorByName() method.
-   *
-   * @param array|null $limit_validation_errors
-   *   The errors to limit validation for, NULL will run all validation.
-   * @param array $expected_errors
-   *   The errors expected to be set.
-   *
-   * @dataProvider providerTestSetErrorByName
-   */
-  public function testSetErrorByName($limit_validation_errors, $expected_errors) {
-    $form_id = 'test_form_id';
-    $expected_form = $form_id();
-    $expected_form['actions']['submit']['#submit'][] = 'test_form_id_custom_submit';
-    $expected_form['actions']['submit']['#limit_validation_errors'] = $limit_validation_errors;
-
-    $form_arg = $this->getMockForm($form_id, $expected_form);
-    $form_builder = $this->formBuilder;
-    $form_arg->expects($this->once())
-      ->method('validateForm')
-      ->will($this->returnCallback(function (array &$form, array &$form_state) use ($form_builder) {
-        $form_builder->setErrorByName('test', $form_state, 'Fail 1');
-        $form_builder->setErrorByName('test', $form_state, 'Fail 2');
-        $form_builder->setErrorByName('options', $form_state);
-      }));
-
-    $form_state = array();
-    $form_state['values']['test'] = $this->randomName();
-    $form_state['values']['options'] = 'foo';
-    $form_state['values']['op'] = 'Submit';
-    $this->formBuilder->submitForm($form_arg, $form_state);
-
-    $errors = $this->formBuilder->getErrors($form_state);
-    $this->assertSame($expected_errors, $errors);
-  }
-
-  /**
-   * Provides test data for testing the setErrorByName() method.
-   *
-   * @return array
-   *   Returns some test data.
-   */
-  public function providerTestSetErrorByName() {
-    return array(
-      // Only validate the 'options' element.
-      array(array(array('options')), array('options' => '')),
-      // Do not limit an validation, and, ensuring the first error is returned
-      // for the 'test' element.
-      array(NULL, array('test' => 'Fail 1', 'options' => '')),
-      // Limit all validation.
-      array(array(), array()),
-    );
-  }
-
-  /**
-   * Tests the getError() method.
-   *
-   * @dataProvider providerTestGetError
-   */
-  public function testGetError($parents, $expected = NULL) {
-    $form_state = array();
-    // Set errors on a top level and a child element, and a nested element.
-    $this->formBuilder->setErrorByName('foo', $form_state, 'Fail 1');
-    $this->formBuilder->setErrorByName('foo][bar', $form_state, 'Fail 2');
-    $this->formBuilder->setErrorByName('baz][bim', $form_state, 'Fail 3');
-
-    $element['#parents'] = $parents;
-    $error = $this->formBuilder->getError($element, $form_state);
-    $this->assertSame($expected, $error);
-  }
-
-  /**
-   * Provides test data for testing the getError() method.
-   *
-   * @return array
-   *   Returns some test data.
-   */
-  public function providerTestGetError() {
-    return array(
-      array(array('foo'), 'Fail 1'),
-      array(array('foo', 'bar'), 'Fail 1'),
-      array(array('baz')),
-      array(array('baz', 'bim'), 'Fail 3'),
-      array(array($this->randomName())),
-      array(array()),
-    );
-  }
-
-  /**
    * Tests the getCache() method.
    */
   public function testGetCache() {
@@ -703,8 +375,7 @@ class FormBuilderTest extends FormTestBase {
     $form_state['input']['form_id'] = $form_id;
     $form_state['input']['form_build_id'] = $form['#build_id'];
     $this->formBuilder->buildForm($form_id, $form_state);
-    $errors = $this->formBuilder->getErrors($form_state);
-    $this->assertEmpty($errors);
+    $this->assertEmpty($form_state['errors']);
   }
 
   /**
@@ -726,6 +397,29 @@ class FormBuilderTest extends FormTestBase {
     // Do an initial build of the form and track the build ID.
     $form_state = array();
     $this->formBuilder->buildForm($form_arg, $form_state);
+  }
+
+  /**
+   * Tests that HTML IDs are unique when rebuilding a form with errors.
+   */
+  public function testUniqueHtmlId() {
+    $form_id = 'test_form_id';
+    $expected_form = $form_id();
+    $expected_form['test']['#required'] = TRUE;
+
+    // Mock a form object that will be built two times.
+    $form_arg = $this->getMock('Drupal\Core\Form\FormInterface');
+    $form_arg->expects($this->exactly(2))
+      ->method('buildForm')
+      ->will($this->returnValue($expected_form));
+
+    $form_state = array();
+    $form = $this->simulateFormSubmission($form_id, $form_arg, $form_state);
+    $this->assertSame($form_id, $form['#id']);
+
+    $form_state = array();
+    $form = $this->simulateFormSubmission($form_id, $form_arg, $form_state);
+    $this->assertSame("$form_id--2", $form['#id']);
   }
 
 }
@@ -752,6 +446,7 @@ class TestFormInjected extends TestForm implements ContainerInjectionInterface {
 namespace {
   function test_form_id_custom_submit(array &$form, array &$form_state) {
   }
+  // @todo Remove once watchdog() is removed.
   if (!defined('WATCHDOG_ERROR')) {
     define('WATCHDOG_ERROR', 3);
   }

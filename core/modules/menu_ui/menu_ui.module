@@ -20,6 +20,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Drupal\menu_link\Entity\MenuLink;
 use Drupal\menu_link\MenuLinkStorage;
 use Drupal\node\NodeInterface;
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Maximum length of menu name as entered by the user. Database length is 32
@@ -30,12 +31,12 @@ const MENU_MAX_MENU_NAME_LENGTH_UI = 27;
 /**
  * Implements hook_help().
  */
-function menu_ui_help($path, $arg) {
-  switch ($path) {
-    case 'admin/help#menu_ui':
+function menu_ui_help($route_name, Request $request) {
+  switch ($route_name) {
+    case 'help.page.menu_ui':
       $output = '';
       $output .= '<h3>' . t('About') . '</h3>';
-      $output .= '<p>' . t('The Menu module provides an interface for managing menus. A menu is a hierarchical collection of links, which can be within or external to the site, generally used for navigation. For more information, see the <a href="!menu">online documentation for the Menu module</a>.', array('!menu' => 'https://drupal.org/documentation/modules/menu/')) . '</p>';
+      $output .= '<p>' . t('The Menu UI module provides an interface for managing menus. A menu is a hierarchical collection of links, which can be within or external to the site, generally used for navigation. For more information, see the <a href="!menu">online documentation for the Menu UI module</a>.', array('!menu' => 'https://drupal.org/documentation/modules/menu/')) . '</p>';
       $output .= '<h3>' . t('Uses') . '</h3>';
       $output .= '<dl>';
       $output .= '<dt>' . t('Managing menus') . '</dt>';
@@ -45,10 +46,10 @@ function menu_ui_help($path, $arg) {
       $output .= '</dl>';
       return $output;
   }
-  if ($path == 'admin/structure/menu/add' && \Drupal::moduleHandler()->moduleExists('block')) {
-      return '<p>' . t('You can enable the newly-created block for this menu on the <a href="!blocks">Block layout page</a>.', array('!blocks' => \Drupal::url('block.admin_display'))) . '</p>';
+  if ($route_name == 'menu_ui.menu_add' && \Drupal::moduleHandler()->moduleExists('block')) {
+    return '<p>' . t('You can enable the newly-created block for this menu on the <a href="!blocks">Block layout page</a>.', array('!blocks' => \Drupal::url('block.admin_display'))) . '</p>';
   }
-  elseif ($path == 'admin/structure/menu' && \Drupal::moduleHandler()->moduleExists('block')) {
+  elseif ($route_name == 'menu_ui.overview_page' && \Drupal::moduleHandler()->moduleExists('block')) {
     return '<p>' . t('Each menu has a corresponding block that is managed on the <a href="!blocks">Block layout page</a>.', array('!blocks' => \Drupal::url('block.admin_display'))) . '</p>';
   }
 }
@@ -70,8 +71,8 @@ function menu_ui_permission() {
 function menu_ui_entity_type_build(array &$entity_types) {
   /** @var $entity_types \Drupal\Core\Entity\EntityTypeInterface[] */
   $entity_types['menu']
-    ->setFormClass('add', 'Drupal\menu_ui\MenuFormController')
-    ->setFormClass('edit', 'Drupal\menu_ui\MenuFormController')
+    ->setFormClass('add', 'Drupal\menu_ui\MenuForm')
+    ->setFormClass('edit', 'Drupal\menu_ui\MenuForm')
     ->setFormClass('delete', 'Drupal\menu_ui\Form\MenuDeleteForm')
     ->setListBuilderClass('Drupal\menu_ui\MenuListBuilder')
     ->setLinkTemplate('add-form', 'menu_ui.link_add')
@@ -110,18 +111,6 @@ function menu_ui_theme() {
       'render element' => 'form',
     ),
   );
-}
-
-/**
- * Load the data for a single custom menu.
- *
- * @param $menu_name
- *   The unique name of a custom menu to load.
- * @return
- *   Array defining the custom menu, or NULL if the menu doesn't exist.
- */
-function menu_ui_load($menu_name) {
-  return entity_load('menu', $menu_name);
 }
 
 /**
@@ -300,12 +289,10 @@ function menu_ui_block_view_system_menu_block_alter(array &$build, BlockPluginIn
   // Add contextual links for system menu blocks.
   $menus = menu_list_system_menus();
   $menu_name = $block->getDerivativeId();
-  if (isset($menus[$menu_name]) && isset($build['content'])) {
-    foreach (Element::children($build['content']) as $key) {
-      $build['#contextual_links']['menu'] = array(
-        'route_parameters' => array('menu' => $build['content'][$key]['#original_link']['menu_name']),
-      );
-    }
+  if (isset($menus[$menu_name])) {
+    $build['#contextual_links']['menu'] = array(
+      'route_parameters' => array('menu' => $menu_name),
+    );
   }
 }
 
@@ -379,7 +366,7 @@ function menu_ui_node_save(EntityInterface $node) {
  * Implements hook_node_predelete().
  */
 function menu_ui_node_predelete(EntityInterface $node) {
-  // Delete all menu module links that point to this node.
+  // Delete all Menu UI module links that point to this node.
   $query = \Drupal::entityQuery('menu_link')
     ->condition('link_path', 'node/' . $node->id())
     ->condition('module', 'menu');
@@ -585,7 +572,7 @@ function menu_ui_node_submit(EntityInterface $node, $form, $form_state) {
  *
  * Adds menu options to the node type form.
  *
- * @see NodeTypeFormController::form().
+ * @see NodeTypeForm::form().
  * @see menu_ui_form_node_type_form_submit().
  */
 function menu_ui_form_node_type_form_alter(&$form, $form_state) {

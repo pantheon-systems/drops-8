@@ -1,8 +1,8 @@
 <?php
 
-use Drupal\Component\Utility\Settings;
 use Drupal\Core\Database\Database;
 use Drupal\Core\Database\Query\Condition;
+use Drupal\Core\Site\Settings;
 
 /**
  * @file
@@ -255,14 +255,14 @@ function db_query_range($query, $from, $count, array $args = array(), array $opt
 }
 
 /**
- * Executes a query string and saves the result set to a temporary table.
+ * Executes a SELECT query string and saves the result set to a temporary table.
  *
  * The execution of the query string happens against the active database.
  *
  * @param $query
- *   The prepared statement query to run. Although it will accept both named and
- *   unnamed placeholders, named placeholders are strongly preferred as they are
- *   more self-documenting.
+ *   The prepared SELECT statement query to run. Although it will accept both
+ *   named and unnamed placeholders, named placeholders are strongly preferred
+ *   as they are more self-documenting.
  * @param $args
  *   An array of values to substitute into the query. If the query uses named
  *   placeholders, this is an associative array in any order. If the query uses

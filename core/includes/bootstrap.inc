@@ -5,8 +5,8 @@
  */
 
 use Drupal\Component\Utility\Crypt;
+use Drupal\Component\Utility\Environment;
 use Drupal\Component\Utility\NestedArray;
-use Drupal\Component\Utility\Settings;
 use Drupal\Component\Utility\String;
 use Drupal\Component\Utility\Timer;
 use Drupal\Component\Utility\Unicode;
@@ -15,6 +15,7 @@ use Drupal\Core\DrupalKernel;
 use Drupal\Core\Database\Database;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\Extension\ExtensionDiscovery;
+use Drupal\Core\Site\Settings;
 use Drupal\Core\Utility\Title;
 use Drupal\Core\Utility\Error;
 use Symfony\Component\ClassLoader\ApcClassLoader;
@@ -157,13 +158,6 @@ const DRUPAL_ANONYMOUS_RID = 'anonymous';
  * Role ID for authenticated users; should match what's in the "role" table.
  */
 const DRUPAL_AUTHENTICATED_RID = 'authenticated';
-
-/**
- * The number of bytes in a kilobyte.
- *
- * For more information, visit http://en.wikipedia.org/wiki/Kilobyte.
- */
-const DRUPAL_KILOBYTE = 1024;
 
 /**
  * The maximum number of characters in a module or theme name.
@@ -343,9 +337,6 @@ function config_get_config_directory($type = CONFIG_ACTIVE_DIRECTORY) {
  * Initializes the PHP environment.
  */
 function drupal_environment_initialize() {
-  if (!isset($_SERVER['HTTP_REFERER'])) {
-    $_SERVER['HTTP_REFERER'] = '';
-  }
   if (!isset($_SERVER['SERVER_PROTOCOL']) || ($_SERVER['SERVER_PROTOCOL'] != 'HTTP/1.0' && $_SERVER['SERVER_PROTOCOL'] != 'HTTP/1.1')) {
     $_SERVER['SERVER_PROTOCOL'] = 'HTTP/1.0';
   }
@@ -408,7 +399,8 @@ function drupal_valid_http_host($host) {
  */
 function drupal_settings_initialize() {
   // Export these settings.php variables to the global namespace.
-  global $base_url, $databases, $cookie_domain, $config_directories, $config;
+  global $base_url, $cookie_domain, $config_directories, $config;
+  $databases = array();
   $settings = array();
   $config = array();
 
@@ -417,6 +409,8 @@ function drupal_settings_initialize() {
   if (is_readable(DRUPAL_ROOT . '/' . $conf_path . '/settings.php')) {
     require DRUPAL_ROOT . '/' . $conf_path . '/settings.php';
   }
+  // Initialize Database.
+  Database::setMultipleConnectionInfo($databases);
   // Initialize Settings.
   new Settings($settings);
 }
@@ -650,25 +644,26 @@ function drupal_page_cache_get_cid(Request $request) {
 /**
  * Retrieves the current page from the cache.
  *
- * Note: we do not serve cached pages to authenticated users, or to anonymous
- * users when $_SESSION is non-empty. $_SESSION may contain status messages
- * from a form submission, the contents of a shopping cart, or other user-
- * specific content that should not be cached and displayed to other users.
- *
  * @param \Symfony\Component\HttpFoundation\Request $request
  *   The request for this page.
  *
- * @return
- *   The cache object, if the page was found in the cache, NULL otherwise.
+ * @return \Symfony\Component\HttpFoundation\Response
+ *   The response, if the page was found in the cache, NULL otherwise.
  */
 function drupal_page_get_cache(Request $request) {
-  if (drupal_page_is_cacheable()) {
-    return \Drupal::cache('render')->get(drupal_page_cache_get_cid($request));
+  $cache = \Drupal::cache('render')->get(drupal_page_cache_get_cid($request));
+  if ($cache) {
+    return $cache->data;
   }
 }
 
 /**
  * Determines the cacheability of the current page.
+ *
+ * Note: we do not serve cached pages to authenticated users, or to anonymous
+ * users when $_SESSION is non-empty. $_SESSION may contain status messages
+ * from a form submission, the contents of a shopping cart, or other user-
+ * specific content that should not be cached and displayed to other users.
  *
  * @param $allow_caching
  *   Set to FALSE if you want to prevent this page to get cached.
@@ -818,7 +813,7 @@ function drupal_send_headers($default_headers = array(), $only_default = FALSE) 
  * fresh page on every request. This prevents authenticated users from seeing
  * locally cached pages.
  *
- * Also give each page a unique ETag. This will force clients to include both
+ * Also give each page a unique ETag. This should force clients to include both
  * an If-Modified-Since header and an If-None-Match header when doing
  * conditional requests for the page (required by RFC 2616, section 13.3.4),
  * making the validation more robust. This is a workaround for a bug in Mozilla
@@ -868,100 +863,59 @@ function drupal_page_header() {
  * and the conditions match those currently in the cache, a 304 Not Modified
  * response is sent.
  */
-function drupal_serve_page_from_cache(stdClass $cache, Response $response, Request $request) {
-  $config = \Drupal::config('system.performance');
+function drupal_serve_page_from_cache(Response $response, Request $request) {
+  // Only allow caching in the browser and prevent that the response is stored
+  // by an external proxy server when the following conditions apply:
+  // 1. There is a session cookie on the request.
+  // 2. The Vary: Cookie header is on the response.
+  // 3. The Cache-Control header does not contain the no-cache directive.
+  if ($request->cookies->has(session_name()) &&
+    in_array('Cookie', $response->getVary()) &&
+    !$response->headers->hasCacheControlDirective('no-cache')) {
 
-  // First half: we must determine if we should be returning a 304.
+    $response->setPrivate();
+  }
 
   // Negotiate whether to use compression.
-  $page_compression = !empty($cache->data['page_compressed']) && extension_loaded('zlib');
-  $return_compressed = $page_compression && $request->server->has('HTTP_ACCEPT_ENCODING') && strpos($request->server->get('HTTP_ACCEPT_ENCODING'), 'gzip') !== FALSE;
-
-  // Get headers. Keys are lower-case.
-  $boot_headers = drupal_get_http_header();
-
-  foreach ($cache->data['headers'] as $name => $value) {
-    // In the case of a 304 response, certain headers must be sent, and the
-    // remaining may not (see RFC 2616, section 10.3.5).
-    $name_lower = strtolower($name);
-    if (in_array($name_lower, array('content-location', 'expires', 'cache-control', 'vary')) && !isset($boot_headers[$name_lower])) {
-      $response->headers->set($name, $value);
-      unset($cache->data['headers'][$name]);
-    }
-  }
-
-  // If the client sent a session cookie, a cached copy will only be served
-  // to that one particular client due to Vary: Cookie. Thus, do not set
-  // max-age > 0, allowing the page to be cached by external proxies, when a
-  // session cookie is present unless the Vary header has been replaced.
-  $max_age = !$request->cookies->has(session_name()) || isset($boot_headers['vary']) ? $config->get('cache.page.max_age') : 0;
-  // RFC 2616, section 14.21 says: 'To mark a response as "never expires," an
-  // origin server sends an Expires date approximately one year from the time
-  // the response is sent. HTTP/1.1 servers SHOULD NOT send Expires dates more
-  // than one year in the future.'
-  if ($max_age > 31536000 || $max_age === \Drupal\Core\Cache\Cache::PERMANENT) {
-    $max_age = 31536000;
-  }
-  $response->headers->set('Cache-Control', 'public, max-age=' . $max_age);
-
-  // Entity tag should change if the output changes.
-  $response->setEtag($cache->created);
-
-  // See if the client has provided the required HTTP headers.
-  $if_modified_since = $request->server->has('HTTP_IF_MODIFIED_SINCE') ? strtotime($request->server->get('HTTP_IF_MODIFIED_SINCE')) : FALSE;
-  $if_none_match = $request->server->has('HTTP_IF_NONE_MATCH') ? stripslashes($request->server->get('HTTP_IF_NONE_MATCH')) : FALSE;
-
-  if ($if_modified_since && $if_none_match
-      && $if_none_match == $response->headers->get('etag') // etag must match
-      && $if_modified_since == $cache->created) {  // if-modified-since must match
-    $response->setStatusCode(304);
-    return;
-  }
-
-  // Second half: we're not returning a 304, so put in other headers.
-
-  // Send the remaining headers.
-  foreach ($cache->data['headers'] as $name => $value) {
-    $response->headers->set($name, $value);
-    drupal_add_http_header($name, $value);
-  }
-
-  $response->setLastModified(\DateTime::createFromFormat('U', $cache->created));
-
-  // HTTP/1.0 proxies does not support the Vary header, so prevent any caching
-  // by sending an Expires date in the past. HTTP/1.1 clients ignores the
-  // Expires header if a Cache-Control: max-age= directive is specified (see RFC
-  // 2616, section 14.9.3).
-  if (!$response->getExpires()) {
-    $response->setExpires(\DateTime::createFromFormat('j-M-Y H:i:s T', '19-Nov-1978 05:00:00 GMT'));
-  }
-
-  // Allow HTTP proxies to cache pages for anonymous users without a session
-  // cookie. The Vary header is used to indicates the set of request-header
-  // fields that fully determines whether a cache is permitted to use the
-  // response to reply to a subsequent request for a given URL without
-  // revalidation.
-  if (!isset($boot_headers['vary']) && !Settings::get('omit_vary_cookie')) {
-    $response->setVary('Cookie', FALSE);
-  }
-
-  if ($page_compression) {
-    $response->setVary('accept-encoding', FALSE);
-    // If page_compression is enabled, the cache contains gzipped data.
-    if ($return_compressed) {
-      // $cache->data['body'] is already gzip'ed, so make sure
+  if ($response->headers->get('Content-Encoding') == 'gzip' && extension_loaded('zlib')) {
+    if (strpos($request->headers->get('Accept-Encoding'), 'gzip') !== FALSE) {
+      // The response content is already gzip'ed, so make sure
       // zlib.output_compression does not compress it once more.
       ini_set('zlib.output_compression', '0');
-      $response->headers->set('content-encoding', 'gzip');
     }
     else {
-      // The client does not support compression, so unzip the data in the
-      // cache. Strip the gzip header and run uncompress.
-      $cache->data['body'] = gzinflate(substr(substr($cache->data['body'], 10), 0, -8));
+      // The client does not support compression. Decompress the content and
+      // remove the Content-Encoding header.
+      $content = $response->getContent();
+      $content = gzinflate(substr(substr($content, 10), 0, -8));
+      $response->setContent($content);
+      $response->headers->remove('Content-Encoding');
     }
   }
 
-  $response->setContent($cache->data['body']);
+  // Perform HTTP revalidation.
+  // @todo Use Response::isNotModified() as per https://drupal.org/node/2259489
+  $last_modified = $response->getLastModified();
+  if ($last_modified) {
+    // See if the client has provided the required HTTP headers.
+    $if_modified_since = $request->server->has('HTTP_IF_MODIFIED_SINCE') ? strtotime($request->server->get('HTTP_IF_MODIFIED_SINCE')) : FALSE;
+    $if_none_match = $request->server->has('HTTP_IF_NONE_MATCH') ? stripslashes($request->server->get('HTTP_IF_NONE_MATCH')) : FALSE;
+
+    if ($if_modified_since && $if_none_match
+      && $if_none_match == $response->getEtag() // etag must match
+      && $if_modified_since == $last_modified->getTimestamp()) {  // if-modified-since must match
+      $response->setStatusCode(304);
+      $response->setContent(NULL);
+
+      // In the case of a 304 response, certain headers must be sent, and the
+      // remaining may not (see RFC 2616, section 10.3.5).
+      foreach (array_keys($response->headers->all()) as $name) {
+        if (!in_array($name, array('content-location', 'expires', 'cache-control', 'vary'))) {
+          $response->headers->remove($name);
+        }
+      }
+    }
+  }
 }
 
 /**
@@ -1177,58 +1131,18 @@ function watchdog_exception($type, Exception $exception, $message = NULL, $varia
  * @param $link
  *   A link to associate with the message.
  *
+ * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
+ *   Use \Drupal::logger($channel)->log($severity, $message, $context), or any
+ *   of the shortcut methods of \Psr\Log\LoggerTrait.
+ *
  * @see watchdog_severity_levels()
  * @see hook_watchdog()
  */
-function watchdog($type, $message, array $variables = NULL, $severity = WATCHDOG_NOTICE, $link = NULL) {
-  global $user, $base_root;
-
-  static $in_error_state = FALSE;
-
-  // It is possible that the error handling will itself trigger an error. In that case, we could
-  // end up in an infinite loop. To avoid that, we implement a simple static semaphore.
-  if (!$in_error_state && \Drupal::hasService('module_handler')) {
-    $in_error_state = TRUE;
-
-    // The user object may not exist in all conditions, so 0 is substituted if needed.
-    $user_uid = isset($user) ? $user->id() : 0;
-
-    // Prepare the fields to be logged
-    $log_entry = array(
-      'type'        => $type,
-      'message'     => $message,
-      'variables'   => $variables,
-      'severity'    => $severity,
-      'link'        => $link,
-      'user'        => $user,
-      'uid'         => $user_uid,
-      'request_uri' => '',
-      'referer'     => '',
-      'ip'          => '',
-      // Request time isn't accurate for long processes, use time() instead.
-      'timestamp'   => time(),
-    );
-
-    try {
-      $request = \Drupal::request();
-      $log_entry['request_uri'] = $request->getUri();
-      $log_entry['referer'] = $request->headers->get('Referer', '');
-      $log_entry['ip'] = $request->getClientIP();
-    }
-    catch (DependencyInjectionRuntimeException $e) {
-      // We are not in a request context.
-    }
-
-    // Call the logging hooks to log/process the message
-    foreach (\Drupal::moduleHandler()->getImplementations('watchdog') as $module) {
-      $function = $module . '_watchdog';
-      $function($log_entry);
-    }
-
-    // It is critical that the semaphore is only cleared here, in the parent
-    // watchdog() call (not outside the loop), to prevent recursive execution.
-    $in_error_state = FALSE;
+function watchdog($type, $message, array $variables = array(), $severity = WATCHDOG_NOTICE, $link = NULL) {
+  if ($link) {
+    $variables['link'] = $link;
   }
+  \Drupal::service('logger.factory')->get($type)->log($severity, $message, $variables);
 }
 
 /**
@@ -1499,15 +1413,12 @@ function drupal_get_user_timezone() {
  *
  * @return
  *   A salt based on information in settings.php, not in the database.
+ *
+ * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0. Use
+ *   \Drupal\Core\Site\Settings::getHashSalt() instead.
  */
 function drupal_get_hash_salt() {
-  $hash_salt = Settings::get('hash_salt');
-  // This should never happen, as it breaks user logins and many other services.
-  // Therefore, explicitly notify the user (developer) by throwing an exception.
-  if (empty($hash_salt)) {
-    throw new \RuntimeException('Missing $settings[\'hash_salt\'] in settings.php.');
-  }
-  return $hash_salt;
+  return Settings::getHashSalt();
 }
 
 /**
@@ -1601,7 +1512,7 @@ function _drupal_bootstrap_configuration() {
   // Redirect the user to the installation script if Drupal has not been
   // installed yet (i.e., if no $databases array has been defined in the
   // settings.php file) and we are not already installing.
-  if (empty($GLOBALS['databases']) && !drupal_installation_attempted() && !drupal_is_cli()) {
+  if (!Database::getConnectionInfo() && !drupal_installation_attempted() && !drupal_is_cli()) {
     include_once __DIR__ . '/install.inc';
     install_goto('core/install.php');
   }
@@ -1627,8 +1538,6 @@ function _drupal_bootstrap_kernel() {
  * Attempts to serve a page from the cache.
  */
 function _drupal_bootstrap_page_cache() {
-  global $user;
-
   require_once __DIR__ . '/database.inc';
   // Check for a cache mode force from settings.php.
   if (Settings::get('page_cache_without_database')) {
@@ -1639,29 +1548,22 @@ function _drupal_bootstrap_page_cache() {
     $cache_enabled = $config->get('cache.page.use_internal');
   }
 
-  $request = Request::createFromGlobals();
+  $request = \Drupal::request();
   // If there is no session cookie and cache is enabled (or forced), try
   // to serve a cached page.
-  if (!$request->cookies->has(session_name()) && $cache_enabled) {
-    // Make sure there is a user object because its timestamp will be checked.
-    $user = new AnonymousUserSession();
+  if (!$request->cookies->has(session_name()) && $cache_enabled && drupal_page_is_cacheable()) {
     // Get the page from the cache.
-    $cache = drupal_page_get_cache($request);
+    $response = drupal_page_get_cache($request);
     // If there is a cached page, display it.
-    if (is_object($cache)) {
-      $response = new Response();
+    if ($response) {
       $response->headers->set('X-Drupal-Cache', 'HIT');
-      date_default_timezone_set(drupal_get_user_timezone());
 
-      drupal_serve_page_from_cache($cache, $response, $request);
+      drupal_serve_page_from_cache($response, $request);
 
       // We are done.
       $response->prepare($request);
       $response->send();
       exit;
-    }
-    else {
-      drupal_add_http_header('X-Drupal-Cache', 'MISS');
     }
   }
 }
@@ -2041,6 +1943,8 @@ function _current_path($path = NULL) {
  *   The component specified by $index, or NULL if the specified component was
  *   not found. If called without arguments, it returns an array containing all
  *   the components of the current path.
+ *
+ * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
  */
 function arg($index = NULL, $path = NULL) {
   // Even though $arguments doesn't need to be resettable for any functional
@@ -2386,18 +2290,12 @@ function _drupal_shutdown_function() {
  * @return
  *   TRUE if there is sufficient memory to allow the operation, or FALSE
  *   otherwise.
+ *
+ * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
+ *   Use \Drupal\Component\Utility\Environment::checkMemoryLimit().
  */
 function drupal_check_memory_limit($required, $memory_limit = NULL) {
-  if (!isset($memory_limit)) {
-    $memory_limit = ini_get('memory_limit');
-  }
-
-  // There is sufficient memory if:
-  // - No memory limit is set.
-  // - The memory limit is set to unlimited (-1).
-  // - The memory limit is greater than or equal to the memory required for
-  //   the operation.
-  return ((!$memory_limit) || ($memory_limit == -1) || (parse_size($memory_limit) >= parse_size($required)));
+  return Environment::checkMemoryLimit($required, $memory_limit);
 }
 
 /**

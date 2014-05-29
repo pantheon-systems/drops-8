@@ -216,21 +216,14 @@ class MemoryBackend implements CacheBackendInterface {
   }
 
   /**
-   * Implements Drupal\Core\Cache\CacheBackendInterface::isEmpty().
-   */
-  public function isEmpty() {
-    return empty($this->cache);
-  }
-
-  /**
    * Implements Drupal\Core\Cache\CacheBackendInterface::garbageCollection()
    */
   public function garbageCollection() {
   }
 
- /**
-  * {@inheritdoc}
-  */
+  /**
+   * {@inheritdoc}
+   */
   public function removeBin() {}
 
 }

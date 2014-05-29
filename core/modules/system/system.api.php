@@ -168,6 +168,13 @@ function hook_queue_info_alter(&$queues) {
  *   The worker callback may throw an exception to indicate there was a problem.
  *   The cron process will log the exception, and leave the item in the queue to
  *   be processed again later.
+ * @throws \Drupal\Core\Queue\SuspendQueueException
+ *   More specifically, a SuspendQueueException should be thrown when the
+ *   callback is aware that the problem will affect all subsequent workers of
+ *   its queue. For example, a callback that makes HTTP requests may find that
+ *   the remote server is not responding. The cron process will behave as with a
+ *   normal Exception, and in addition will not attempt to process further items
+ *   from the current item's queue during the current cron run.
  *
  * @see \Drupal\Core\Cron::run()
  */
@@ -185,32 +192,11 @@ function callback_queue_worker($queue_item_data) {
  * specify their default values. The values returned by this hook will be
  * merged with the elements returned by form constructor implementations and so
  * can return defaults for any Form APIs keys in addition to those explicitly
- * mentioned below.
+ * documented by \Drupal\Core\Render\ElementInfoInterface::getInfo().
  *
- * Each of the form element types defined by this hook is assumed to have
- * a matching theme function, e.g. theme_elementtype(), which should be
- * registered with hook_theme() as normal.
- *
- * For more information about custom element types see the explanation at
- * http://drupal.org/node/169815.
- *
- * @return
- *  An associative array describing the element types being defined. The array
- *  contains a sub-array for each element type, with the machine-readable type
- *  name as the key. Each sub-array has a number of possible attributes:
- *  - "#input": boolean indicating whether or not this element carries a value
- *    (even if it's hidden).
- *  - "#process": array of callback functions taking $element, $form_state,
- *    and $complete_form.
- *  - "#after_build": array of callables taking $element and $form_state.
- *  - "#validate": array of callback functions taking $form and $form_state.
- *  - "#element_validate": array of callback functions taking $element and
- *    $form_state.
- *  - "#pre_render": array of callables taking $element.
- *  - "#post_render": array of callables taking $children and $element.
- *  - "#submit": array of callback functions taking $form and $form_state.
- *  - "#title_display": optional string indicating if and how #title should be
- *    displayed, see the form-element template and theme_form_element_label().
+ * @return array
+ *   An associative array with structure identical to that of the return value
+ *   of \Drupal\Core\Render\ElementInfoInterface::getInfo().
  *
  * @see hook_element_info_alter()
  * @see system_element_info()
@@ -228,15 +214,16 @@ function hook_element_info() {
  * A module may implement this hook in order to alter the element type defaults
  * defined by a module.
  *
- * @param $type
- *   All element type defaults as collected by hook_element_info().
+ * @param array $types
+ *   An associative array with structure identical to that of the return value
+ *   of \Drupal\Core\Render\ElementInfoInterface::getInfo().
  *
  * @see hook_element_info()
  */
-function hook_element_info_alter(&$type) {
+function hook_element_info_alter(array &$types) {
   // Decrease the default size of textfields.
-  if (isset($type['textfield']['#size'])) {
-    $type['textfield']['#size'] = 40;
+  if (isset($types['textfield']['#size'])) {
+    $types['textfield']['#size'] = 40;
   }
 }
 
@@ -311,8 +298,6 @@ function hook_library_info_alter(&$libraries, $module) {
  *
  * @param array $library
  *   The JavaScript/CSS library that is being added.
- * @param string $extension
- *   The name of the extension that registered the library.
  * @param string $name
  *   The name of the library.
  *
@@ -1201,94 +1186,6 @@ function hook_template_preprocess_default_variables_alter(&$variables) {
 }
 
 /**
- * Log an event message.
- *
- * This hook allows modules to route log events to custom destinations, such as
- * SMS, Email, pager, syslog, ...etc.
- *
- * @param array $log_entry
- *   An associative array containing the following keys:
- *   - type: The type of message for this entry.
- *   - user: The user object for the user who was logged in when the event
- *     happened.
- *   - uid: The user ID for the user who was logged in when the event happened.
- *   - request_uri: The request URI for the page the event happened in.
- *   - referer: The page that referred the user to the page where the event
- *     occurred.
- *   - ip: The IP address where the request for the page came from.
- *   - timestamp: The UNIX timestamp of the date/time the event occurred.
- *   - severity: The severity of the message; one of the following values as
- *     defined in @link http://www.faqs.org/rfcs/rfc3164.html RFC 3164: @endlink
- *     - WATCHDOG_EMERGENCY: Emergency, system is unusable.
- *     - WATCHDOG_ALERT: Alert, action must be taken immediately.
- *     - WATCHDOG_CRITICAL: Critical conditions.
- *     - WATCHDOG_ERROR: Error conditions.
- *     - WATCHDOG_WARNING: Warning conditions.
- *     - WATCHDOG_NOTICE: Normal but significant conditions.
- *     - WATCHDOG_INFO: Informational messages.
- *     - WATCHDOG_DEBUG: Debug-level messages.
- *   - link: An optional link provided by the module that called the watchdog()
- *     function.
- *   - message: The text of the message to be logged. Variables in the message
- *     are indicated by using placeholder strings alongside the variables
- *     argument to declare the value of the placeholders. See t() for
- *     documentation on how the message and variable parameters interact.
- *   - variables: An array of variables to be inserted into the message on
- *     display. Will be NULL or missing if a message is already translated or if
- *     the message is not possible to translate.
- */
-function hook_watchdog(array $log_entry) {
-  global $base_url;
-  $language_interface = \Drupal::languageManager()->getCurrentLanguage();
-
-  $severity_list = array(
-    WATCHDOG_EMERGENCY     => t('Emergency'),
-    WATCHDOG_ALERT     => t('Alert'),
-    WATCHDOG_CRITICAL     => t('Critical'),
-    WATCHDOG_ERROR       => t('Error'),
-    WATCHDOG_WARNING   => t('Warning'),
-    WATCHDOG_NOTICE    => t('Notice'),
-    WATCHDOG_INFO      => t('Info'),
-    WATCHDOG_DEBUG     => t('Debug'),
-  );
-
-  $to = 'someone@example.com';
-  $params = array();
-  $params['subject'] = t('[@site_name] @severity_desc: Alert from your web site', array(
-    '@site_name' => \Drupal::config('system.site')->get('name'),
-    '@severity_desc' => $severity_list[$log_entry['severity']],
-  ));
-
-  $params['message']  = "\nSite:         @base_url";
-  $params['message'] .= "\nSeverity:     (@severity) @severity_desc";
-  $params['message'] .= "\nTimestamp:    @timestamp";
-  $params['message'] .= "\nType:         @type";
-  $params['message'] .= "\nIP Address:   @ip";
-  $params['message'] .= "\nRequest URI:  @request_uri";
-  $params['message'] .= "\nReferrer URI: @referer_uri";
-  $params['message'] .= "\nUser:         (@uid) @name";
-  $params['message'] .= "\nLink:         @link";
-  $params['message'] .= "\nMessage:      \n\n@message";
-
-  $params['message'] = t($params['message'], array(
-    '@base_url'      => $base_url,
-    '@severity'      => $log_entry['severity'],
-    '@severity_desc' => $severity_list[$log_entry['severity']],
-    '@timestamp'     => format_date($log_entry['timestamp']),
-    '@type'          => $log_entry['type'],
-    '@ip'            => $log_entry['ip'],
-    '@request_uri'   => $log_entry['request_uri'],
-    '@referer_uri'   => $log_entry['referer'],
-    '@uid'           => $log_entry['uid'],
-    '@name'          => $log_entry['user']->name,
-    '@link'          => strip_tags($log_entry['link']),
-    '@message'       => strip_tags($log_entry['message']),
-  ));
-
-  drupal_mail('emaillog', 'entry', $to, $language_interface->id, $params);
-}
-
-/**
  * Prepare a message based on parameters; called from drupal_mail().
  *
  * Note that hook_mail(), unlike hook_mail_alter(), is only called on the
@@ -1998,25 +1895,32 @@ function hook_install() {
  * hooks. See @link update_api Update versions of API functions @endlink for
  * details.
  *
- * If your update task is potentially time-consuming, you'll need to implement a
- * multipass update to avoid PHP timeouts. Multipass updates use the $sandbox
- * parameter provided by the batch API (normally, $context['sandbox']) to store
- * information between successive calls, and the $sandbox['#finished'] value
- * to provide feedback regarding completion level.
+ * The $sandbox parameter should be used when a multipass update is needed, in
+ * circumstances where running the whole update at once could cause PHP to
+ * timeout. Each pass is run in a way that avoids PHP timeouts, provided each
+ * pass remains under the timeout limit. To signify that an update requires
+ * at least one more pass, set $sandbox['#finished'] to a number less than 1
+ * (you need to do this each pass). The value of $sandbox['#finished'] will be
+ * unset between passes but all other data in $sandbox will be preserved. The
+ * system will stop iterating this update when $sandbox['#finished'] is left
+ * unset or set to a number higher than 1. It is recommended that
+ * $sandbox['#finished'] is initially set to 0, and then updated each pass to a
+ * number between 0 and 1 that represents the overall % completed for this
+ * update, finishing with 1.
  *
- * See the batch operations page for more information on how to use the
- * @link http://drupal.org/node/180528 Batch API. @endlink
+ * See the @link batch Batch operations topic @endlink for more information on
+ * how to use the Batch API.
  *
- * @param $sandbox
+ * @param array $sandbox
  *   Stores information for multipass updates. See above for more information.
  *
- * @throws \Drupal\Core\Utility\UpdateException, PDOException
+ * @throws \Drupal\Core\Utility\UpdateException|PDOException
  *   In case of error, update hooks should throw an instance of
  *   Drupal\Core\Utility\UpdateException with a meaningful message for the user.
  *   If a database query fails for whatever reason, it will throw a
  *   PDOException.
  *
- * @return
+ * @return string|null
  *   Optionally, update hooks may return a translated string that will be
  *   displayed to the user after the update has completed. If no message is
  *   returned, no message will be presented to the user.
@@ -2327,27 +2231,6 @@ function hook_install_tasks(&$install_state) {
     ),
   );
   return $tasks;
-}
-
-/**
- * Alter XHTML HEAD tags before they are rendered by drupal_get_html_head().
- *
- * Elements available to be altered are only those added using
- * drupal_add_html_head_link() or drupal_add_html_head(). CSS and JS files
- * are handled using _drupal_add_css() and _drupal_add_js(), so the head links
- * for those files will not appear in the $head_elements array.
- *
- * @param $head_elements
- *   An array of renderable elements. Generally the values of the #attributes
- *   array will be the most likely target for changes.
- */
-function hook_html_head_alter(&$head_elements) {
-  foreach ($head_elements as $key => $element) {
-    if (isset($element['#attributes']['rel']) && $element['#attributes']['rel'] == 'canonical') {
-      // I want a custom canonical URL.
-      $head_elements[$key]['#attributes']['href'] = mymodule_canonical_url();
-    }
-  }
 }
 
 /**

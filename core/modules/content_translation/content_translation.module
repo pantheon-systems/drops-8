@@ -7,21 +7,23 @@
 
 use Drupal\content_translation\Plugin\Derivative\ContentTranslationLocalTasks;
 use Drupal\Core\Entity\ContentEntityInterface;
-use Drupal\Core\Entity\EntityFormControllerInterface;
+use Drupal\Core\Entity\EntityFormInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\FieldDefinition;
 use Drupal\Core\Language\Language;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\TypedData\TranslatableInterface;
+use Drupal\field\Entity\FieldInstanceConfig;
 use Drupal\node\NodeInterface;
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Implements hook_help().
  */
-function content_translation_help($path, $arg) {
-  switch ($path) {
-    case 'admin/help#content_translation':
+function content_translation_help($route_name, Request $request) {
+  switch ($route_name) {
+    case 'help.page.content_translation':
       $output = '';
       $output .= '<h3>' . t('About') . '</h3>';
       $output .= '<p>' . t('The Content Translation module allows you to create and manage translations for your Drupal site content. You can specify which elements need to be translated at the content-type level for content items and comments, at the vocabulary level for taxonomy terms, and at the site level for user accounts. Other modules may provide additional elements that can be translated. For more information, see the online handbook entry for <a href="!url">Content Translation</a>.', array('!url' => 'http://drupal.org/documentation/modules/translation_entity')) . '</p>';
@@ -41,7 +43,7 @@ function content_translation_help($path, $arg) {
       $output .= '</dl>';
       return $output;
 
-    case 'admin/config/regional/content-language':
+    case 'language.content_settings_page':
       $output = '';
       if (!\Drupal::languageManager()->isMultilingual()) {
         $output .= '<br/>' . t('Before you can translate content, there must be at least two languages added on the <a href="!url">languages administration</a> page.', array('!url' => url('admin/config/regional/language')));
@@ -360,19 +362,19 @@ function content_translation_controller($entity_type_id) {
 }
 
 /**
- * Returns the entity form controller for the given form.
+ * Returns the entity form for the given form.
  *
  * @param array $form_state
- *   The form state array holding the entity form controller.
+ *   The form state array holding the entity form.
  *
- * @return \Drupal\Core\Entity\EntityFormControllerInterface;
+ * @return \Drupal\Core\Entity\EntityFormInterface;
  *   An instance of the content translation form interface or FALSE if not an
  *   entity form.
  *
  * @todo Move to \Drupal\content_translation\ContentTranslationManager.
  */
 function content_translation_form_controller(array $form_state) {
-  return isset($form_state['controller']) && $form_state['controller'] instanceof EntityFormControllerInterface ? $form_state['controller'] : FALSE;
+  return isset($form_state['controller']) && $form_state['controller'] instanceof EntityFormInterface ? $form_state['controller'] : FALSE;
 }
 
 /**
@@ -814,7 +816,7 @@ function content_translation_language_configuration_element_submit(array $form, 
 
   if (content_translation_enabled($context['entity_type'], $context['bundle']) != $enabled) {
     content_translation_set_config($context['entity_type'], $context['bundle'], 'enabled', $enabled);
-    entity_info_cache_clear();
+    \Drupal::entityManager()->clearCachedDefinitions();
     \Drupal::service('router.builder')->setRebuildNeeded();
   }
 }
@@ -865,7 +867,7 @@ function content_translation_save_settings($settings) {
         // Store whether fields have translation enabled or not.
         if (!empty($bundle_settings['columns'])) {
           foreach ($bundle_settings['columns'] as $field_name => $column_settings) {
-            $instance = field_info_instance($entity_type, $field_name, $bundle);
+            $instance = FieldInstanceConfig::loadByName($entity_type, $bundle, $field_name);
             if ($instance->isTranslatable()) {
               $instance->settings['translation_sync'] = $column_settings;
             }
@@ -882,6 +884,6 @@ function content_translation_save_settings($settings) {
   }
 
   // Ensure entity and menu router information are correctly rebuilt.
-  entity_info_cache_clear();
+  \Drupal::entityManager()->clearCachedDefinitions();
   \Drupal::service('router.builder')->setRebuildNeeded();
 }

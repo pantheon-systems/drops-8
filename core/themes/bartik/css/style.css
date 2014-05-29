@@ -9,9 +9,9 @@ body {
   border: 0;
   outline: 0;
 }
-a:link,
-a:visited {
+a {
   text-decoration: none;
+  border-bottom: 1px dotted;
 }
 a:hover,
 a:active,
@@ -19,7 +19,17 @@ a:focus,
 .link:hover,
 .link:active,
 .link:focus {
-  text-decoration: underline;
+  text-decoration: none;
+  border-bottom-style: solid;
+}
+.field-type-image a,
+h1 a,
+h2 a,
+[role*=banner] a,
+.feed-icon,
+.contextual-links a,
+.toolbar a {
+  border-bottom: none !important;
 }
 h1,
 h2,
@@ -270,23 +280,20 @@ table ul.links li {
   font-size: 0.929em;
 }
 .item-list .pager li {
-  padding: 0;
+  padding: 10px 15px;
 }
 .item-list .pager a {
   display: inline-block;
-  padding: 10px 15px;
 }
-.item-list .pager .pager-first a {
+.item-list .pager li.pager-first,
+.item-list .pager li.pager-previous {
   padding: 10px 10px 10px 0;
 }
-.item-list .pager .pager-previous a {
+.item-list .pager li.pager-ellipsis {
   padding: 10px 0;
 }
-.item-list .pager .pager-current {
-  padding: 0 10px;
-}
-.item-list .pager .pager-next a,
-.item-list .pager .pager-last a {
+.item-list .pager li.pager-last,
+.item-list .pager li.pager-next {
   padding: 10px 0 10px 10px;
 }
 ul.menu li {
@@ -430,7 +437,7 @@ h1.site-name {
   background: #fff;
   background: rgba(255, 255, 255, 0.8);
 }
-.region-header .form-required {
+.region-header .form-required:after {
   color: #eee;
   color: rgba(255, 255, 255, 0.7);
 }
@@ -977,7 +984,6 @@ ul.links {
 #footer-wrapper .block .content a:focus {
   color: #fefefe;
   color: rgba(255, 255, 255, 0.95);
-  text-decoration: underline;
 }
 #footer-wrapper .block {
   margin: 20px 0;
@@ -1395,6 +1401,12 @@ input.form-submit:focus {
   margin-bottom: 2em;
 }
 
+/* Vertical Tabs Reset */
+ul.vertical-tabs-list {
+  margin: -1px 0 -1px -15em;
+  padding: 0;
+}
+
 /* Contact Form */
 .contact-form #edit-name {
   width: 75%;
@@ -1764,7 +1776,7 @@ div.admin-panel .description {
 /* ----------- media queries ------------------------------- */
 
 @media all and (min-width: 461px) and (max-width: 900px) {
- /* ------------ Header and Menus -------------------------- */
+  /* ------------ Header and Menus -------------------------- */
 
  .region-header {
     margin: .5em 5px .75em;

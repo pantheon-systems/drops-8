@@ -85,8 +85,8 @@ interface EntityTypeInterface {
    *     property and its value must be numeric.
    *   - revision: (optional) The name of the property that contains the
    *     revision ID of the entity. The Field API assumes that all revision IDs
-   *     are unique across all entities of a type. This entry can be omitted if
-   *     the entities of this type are not versionable.
+   *     are unique across all entities of a type. If this entry is omitted
+   *     the entities of this type are not revisionable.
    *   - bundle: (optional) The name of the property that contains the bundle
    *     name for the entity. The bundle name defines which set of fields are
    *     attached to the entity (e.g. what nodes call "content type"). This
@@ -202,7 +202,7 @@ interface EntityTypeInterface {
    *     operations. The name of the operation is passed also to the form
    *     controller's constructor, so that one class can be used for multiple
    *     entity forms when the forms are similar. The classes must implement
-   *     \Drupal\Core\Entity\EntityFormControllerInterface.
+   *     \Drupal\Core\Entity\EntityFormInterface.
    *   - list: The name of the class that provides listings of the entities. The
    *     class must implement \Drupal\Core\Entity\EntityListBuilderInterface.
    *   - render: The name of the class that is used to render the entities. The
@@ -251,7 +251,7 @@ interface EntityTypeInterface {
    *   The operation to use this form class for.
    * @param string $class
    *   The form class implementing
-   *   \Drupal\Core\Entity\EntityFormControllerInterface.
+   *   \Drupal\Core\Entity\EntityFormInterface.
    *
    * @return static
    *
@@ -540,6 +540,13 @@ interface EntityTypeInterface {
    * @return bool
    */
   public function isTranslatable();
+
+  /**
+   * Indicates whether entities of this type have revision support.
+   *
+   * @return bool
+   */
+  public function isRevisionable();
 
   /**
    * Returns the config prefix used by the configuration entity type.

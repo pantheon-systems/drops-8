@@ -16,6 +16,9 @@ use Drupal\Core\Config\StorageException;
 use Drupal\Core\Language\Language;
 use Drupal\Core\Extension\Extension;
 use Drupal\Core\Extension\ExtensionNameLengthException;
+use Drupal\Core\Page\FeedLinkElement;
+use Drupal\Core\Page\LinkElement;
+use Drupal\Core\Page\MetaElement;
 use Drupal\Core\Template\Attribute;
 use Drupal\Core\Template\RenderWrapper;
 use Drupal\Core\Theme\ThemeSettings;
@@ -1230,7 +1233,7 @@ function template_preprocess_links(&$variables) {
 
           // Add a "data-drupal-link-system-path" attribute to let the
           // drupal.active-link library know the path in a standardized manner.
-          $li_attributes['data-drupal-link-system-path'] = \Drupal::service('path.alias_manager.cached')->getSystemPath($path);
+          $li_attributes['data-drupal-link-system-path'] = \Drupal::service('path.alias_manager')->getPathByAlias($path);
         }
 
         $item['link'] = $link_element;
@@ -1411,9 +1414,11 @@ function drupal_pre_render_table(array $element) {
 }
 
 /**
- * Returns HTML for a table.
+ * Prepares variables for table templates.
  *
- * @param $variables
+ * Default template: table.html.twig.
+ *
+ * @param array $variables
  *   An associative array containing:
  *   - header: An array containing the table headers. Each element of the array
  *     can be either a localized string or an associative array with the
@@ -1495,157 +1500,177 @@ function drupal_pre_render_table(array $element) {
  *   - empty: The message to display in an extra row if table does not have any
  *     rows.
  */
-function theme_table($variables) {
-  $header = $variables['header'];
-  $rows = $variables['rows'];
-  $attributes = $variables['attributes'];
-  $caption = $variables['caption'];
-  $colgroups = $variables['colgroups'];
-  $sticky = $variables['sticky'];
-  $responsive = $variables['responsive'];
-  $empty = $variables['empty'];
-
-  $output = '<table' . new Attribute($attributes) . ">\n";
-
-  if (isset($caption)) {
-    $output .= '<caption>' . $caption . "</caption>\n";
-  }
+function template_preprocess_table(&$variables) {
+  $is_sticky = !empty($variables['sticky']);
+  $is_responsive = !empty($variables['responsive']);
 
   // Format the table columns:
-  if (count($colgroups)) {
-    foreach ($colgroups as $colgroup) {
-      $attributes = array();
-
+  if (!empty($variables['colgroups'])) {
+    foreach ($variables['colgroups'] as &$colgroup) {
       // Check if we're dealing with a simple or complex column
       if (isset($colgroup['data'])) {
-        foreach ($colgroup as $key => $value) {
-          if ($key == 'data') {
-            $cols = $value;
-          }
-          else {
-            $attributes[$key] = $value;
-          }
-        }
+        $cols = $colgroup['data'];
+        unset($colgroup['data']);
+        $colgroup_attributes = $colgroup;
       }
       else {
         $cols = $colgroup;
+        $colgroup_attributes = array();
       }
+      $colgroup = array();
+      $colgroup['attributes'] = new Attribute($colgroup_attributes);
+      $colgroup['cols'] = array();
 
-      // Build colgroup
-      if (is_array($cols) && count($cols)) {
-        $output .= ' <colgroup' . new Attribute($attributes) . '>';
-        foreach ($cols as $col) {
-          $output .= ' <col' . new Attribute($col) . ' />';
+      // Build columns.
+      if (is_array($cols) && !empty($cols)) {
+        foreach ($cols as $col_key => $col) {
+          $colgroup['cols'][$col_key]['attributes'] = new Attribute($col);
         }
-        $output .= " </colgroup>\n";
-      }
-      else {
-        $output .= ' <colgroup' . new Attribute($attributes) . " />\n";
       }
     }
   }
 
   // Add the 'empty' row message if available.
-  if (!count($rows) && $empty) {
+  if (empty($variables['rows']) && isset($variables['empty'])) {
     $header_count = 0;
-    foreach ($header as $header_cell) {
-      if (is_array($header_cell)) {
-        $header_count += isset($header_cell['colspan']) ? $header_cell['colspan'] : 1;
+    foreach ($variables['header'] as $header_cell) {
+      if (is_array($header_cell) && isset($header_cell['colspan'])) {
+        $header_count += $header_cell['colspan'];
       }
       else {
         $header_count++;
       }
     }
-    $rows[] = array(array('data' => $empty, 'colspan' => $header_count, 'class' => array('empty', 'message')));
+    $variables['rows'][] = array(array(
+      'data' => $variables['empty'],
+      'colspan' => $header_count,
+      'class' => array('empty', 'message'),
+    ));
   }
 
-  $responsive = array();
+  // Build an associative array of responsive classes keyed by column.
+  $responsive_classes = array();
+
   // Format the table header:
-  if (count($header)) {
-    $ts = tablesort_init($header);
-    // HTML requires that the thead tag has tr tags in it followed by tbody
-    // tags. Using ternary operator to check and see if we have any rows.
-    $output .= (count($rows) ? ' <thead><tr>' : ' <tr>');
-    $i = 0;
-    foreach ($header as $cell) {
-      $i++;
-      // Track responsive classes for each column as needed. Only the header
-      // cells for a column are marked up with the responsive classes by a
-      // module developer or themer. The responsive classes on the header cells
-      // must be transferred to the content cells.
-      if (!empty($cell['class']) && is_array($cell['class'])) {
-        if (in_array(RESPONSIVE_PRIORITY_MEDIUM, $cell['class'])) {
-          $responsive[$i] =  RESPONSIVE_PRIORITY_MEDIUM;
-        }
-        elseif (in_array(RESPONSIVE_PRIORITY_LOW, $cell['class'])) {
-          $responsive[$i] =  RESPONSIVE_PRIORITY_LOW;
-        }
+  $ts = array();
+  if (!empty($variables['header'])) {
+    $ts = tablesort_init($variables['header']);
+
+    foreach ($variables['header'] as $col_key => $cell) {
+      if (!is_array($cell)) {
+        $cell_content = $cell;
+        $cell_attributes = new Attribute();
+        $is_header = TRUE;
       }
-      $cell = tablesort_header($cell, $header, $ts);
-      $output .= _theme_table_cell($cell, TRUE);
+      else {
+        $cell_content = '';
+        if (isset($cell['data'])) {
+          $cell_content = $cell['data'];
+          unset($cell['data']);
+        }
+        // Flag the cell as a header or not and remove the flag.
+        $is_header = isset($cell['header']) ? $cell['header'] : TRUE;
+        unset($cell['header']);
+
+        // Track responsive classes for each column as needed. Only the header
+        // cells for a column are marked up with the responsive classes by a
+        // module developer or themer. The responsive classes on the header cells
+        // must be transferred to the content cells.
+        if (!empty($cell['class']) && is_array($cell['class'])) {
+          if (in_array(RESPONSIVE_PRIORITY_MEDIUM, $cell['class'])) {
+            $responsive_classes[$col_key] = RESPONSIVE_PRIORITY_MEDIUM;
+          }
+          elseif (in_array(RESPONSIVE_PRIORITY_LOW, $cell['class'])) {
+            $responsive_classes[$col_key] = RESPONSIVE_PRIORITY_LOW;
+          }
+        }
+
+        if (is_array($cell_content)) {
+          $cell_content = drupal_render($cell_content);
+        }
+
+        tablesort_header($cell_content, $cell, $variables['header'], $ts);
+
+        // tablesort_header() removes the 'sort' and 'field' keys.
+        $cell_attributes = new Attribute($cell);
+      }
+      $variables['header'][$col_key] = array();
+      $variables['header'][$col_key]['tag'] = $is_header ? 'th' : 'td';
+      $variables['header'][$col_key]['attributes'] = $cell_attributes;
+      $variables['header'][$col_key]['content'] = $cell_content;
     }
-    // Using ternary operator to close the tags based on whether or not there are rows
-    $output .= (count($rows) ? " </tr></thead>\n" : "</tr>\n");
-  }
-  else {
-    $ts = array();
   }
 
-  // Format the table rows:
-  if (count($rows)) {
-    $output .= "<tbody>\n";
+  if (!empty($variables['rows'])) {
     $flip = array('even' => 'odd', 'odd' => 'even');
     $class = 'even';
-    foreach ($rows as $row) {
+    foreach ($variables['rows'] as $row_key => $row) {
       // Check if we're dealing with a simple or complex row
       if (isset($row['data'])) {
         $cells = $row['data'];
         $no_striping = isset($row['no_striping']) ? $row['no_striping'] : FALSE;
 
         // Set the attributes array and exclude 'data' and 'no_striping'.
-        $attributes = $row;
-        unset($attributes['data']);
-        unset($attributes['no_striping']);
+        $row_attributes = $row;
+        unset($row_attributes['data']);
+        unset($row_attributes['no_striping']);
       }
       else {
         $cells = $row;
-        $attributes = array();
+        $row_attributes = array();
         $no_striping = FALSE;
       }
-      if (count($cells)) {
-        // Add odd/even class
-        if (!$no_striping) {
-          $class = $flip[$class];
-          $attributes['class'][] = $class;
-        }
 
-        // Build row
-        $output .= ' <tr' . new Attribute($attributes) . '>';
-        $i = 0;
-        foreach ($cells as $cell) {
-          $i++;
-          // Add active class if needed for sortable tables.
-          $cell = tablesort_cell($cell, $header, $ts, $i);
-          // Copy RESPONSIVE_PRIORITY_LOW/RESPONSIVE_PRIORITY_MEDIUM
-          // class from header to cell as needed.
-          if (isset($responsive[$i])) {
-            if (is_array($cell)) {
-              $cell['class'][] = $responsive[$i];
+      // Add odd/even class.
+      if (!$no_striping) {
+        $class = $flip[$class];
+        $row_attributes['class'][] = $class;
+      }
+
+      // Build row.
+      $variables['rows'][$row_key] = array();
+      $variables['rows'][$row_key]['attributes'] = new Attribute($row_attributes);
+      $variables['rows'][$row_key]['cells'] = array();
+      if (!empty($cells)) {
+        foreach ($cells as $col_key => $cell) {
+          if (!is_array($cell)) {
+            $cell_content = $cell;
+            $cell_attributes = array();
+            $is_header = FALSE;
+          }
+          else {
+            $cell_content = '';
+            if (isset($cell['data'])) {
+              $cell_content = $cell['data'];
+              unset($cell['data']);
             }
-            else {
-              $cell = array('data' => $cell, 'class' => $responsive[$i]);
+            // Flag the cell as a header or not and remove the flag.
+            $is_header = !empty($cell['header']);
+            unset($cell['header']);
+
+            $cell_attributes = $cell;
+
+            if (is_array($cell_content)) {
+              $cell_content = drupal_render($cell_content);
             }
           }
-          $output .= _theme_table_cell($cell);
+          // Add active class if needed for sortable tables.
+          if (isset($variables['header'][$col_key]['data']) && $variables['header'][$col_key]['data'] == $ts['name'] && !empty($variables['header'][$col_key]['field'])) {
+            $cell_attributes['class'][] = 'active';
+          }
+          // Copy RESPONSIVE_PRIORITY_LOW/RESPONSIVE_PRIORITY_MEDIUM
+          // class from header to cell as needed.
+          if (isset($responsive_classes[$col_key])) {
+            $cell_attributes['class'][] = $responsive_classes[$col_key];
+          }
+
+          $variables['rows'][$row_key]['cells'][$col_key]['tag'] = $is_header ? 'th' : 'td';
+          $variables['rows'][$row_key]['cells'][$col_key]['attributes'] = new Attribute($cell_attributes);
+          $variables['rows'][$row_key]['cells'][$col_key]['content'] = $cell_content;
         }
-        $output .= " </tr>\n";
       }
     }
-    $output .= "</tbody>\n";
   }
-
-  $output .= "</table>\n";
-  return $output;
 }
 
 /**
@@ -1822,47 +1847,6 @@ function template_preprocess_container(&$variables) {
  */
 
 /**
- * Returns HTML output for a single table cell for theme_table().
- *
- * @param $cell
- *   Array of cell information, or string to display in cell.
- * @param bool $header
- *   TRUE if this cell is a table header cell, FALSE if it is an ordinary
- *   table cell. If $cell is an array with element 'header' set to TRUE, that
- *   will override the $header parameter.
- *
- * @return
- *   HTML for the cell.
- */
-function _theme_table_cell($cell, $header = FALSE) {
-  $attributes = '';
-
-  if (is_array($cell)) {
-    $data = isset($cell['data']) ? $cell['data'] : '';
-    // Cell's data property can be a string or a renderable array.
-    if (is_array($data)) {
-      $data = drupal_render($data);
-    }
-    $header |= isset($cell['header']);
-    unset($cell['data']);
-    unset($cell['header']);
-    $attributes = new Attribute($cell);
-  }
-  else {
-    $data = $cell;
-  }
-
-  if ($header) {
-    $output = "<th$attributes>$data</th>";
-  }
-  else {
-    $output = "<td$attributes>$data</td>";
-  }
-
-  return $output;
-}
-
-/**
  * Adds a default set of helper variables for preprocessors and templates.
  *
  * This function is called for theme hooks implemented as templates only, not
@@ -2000,8 +1984,9 @@ function template_preprocess_html(&$variables) {
   $body_classes[] = $variables['logged_in'] ? 'logged-in' : 'not-logged-in';
   $variables['attributes']['class'] = $body_classes;
 
+  $path_args = explode('/', current_path());
   // Populate the body classes.
-  if ($suggestions = theme_get_suggestions(arg(), 'page', '-')) {
+  if ($suggestions = theme_get_suggestions($path_args, 'page', '-')) {
     foreach ($suggestions as $suggestion) {
       if ($suggestion != 'page-front') {
         // Add current suggestion to page classes to make it possible to theme
@@ -2016,7 +2001,7 @@ function template_preprocess_html(&$variables) {
   // Construct page title.
   if ($page->hasTitle()) {
     $head_title = array(
-      'title' => strip_tags($page->getTitle()),
+      'title' => trim(strip_tags($page->getTitle())),
       'name' => String::checkPlain($site_config->get('name')),
     );
   }
@@ -2038,32 +2023,24 @@ function template_preprocess_html(&$variables) {
   $variables['head_title_array'] = $head_title;
   $variables['head_title'] = implode(' | ', $head_title);
 
-  // Display the html.html.twig's default mobile metatags for responsive design.
-  $elements = array(
-    'MobileOptimized' => array(
-      '#tag' => 'meta',
-      '#attributes' => array(
-        'name' => 'MobileOptimized',
-        'content' => 'width',
-      ),
-    ),
-    'HandheldFriendly' => array(
-      '#tag' => 'meta',
-      '#attributes' => array(
-        'name' => 'HandheldFriendly',
-        'content' => 'true',
-      ),
-    ),
-    'viewport' => array(
-      '#tag' => 'meta',
-      '#attributes' => array(
-        'name' => 'viewport',
-        'content' => 'width=device-width',
-      ),
-    ),
-  );
-  foreach ($elements as $name => $element) {
-    drupal_add_html_head($element, $name);
+  // @todo Remove drupal_*_html_head() and refactor accordingly.
+  $html_heads = drupal_get_html_head(FALSE);
+  uasort($html_heads, 'Drupal\Component\Utility\SortArray::sortByWeightElement');
+  foreach ($html_heads as $name => $tag) {
+    if ($tag['#tag'] == 'link') {
+      $link = new LinkElement($name, isset($tag['#attributes']['content']) ? $tag['#attributes']['content'] : NULL, $tag['#attributes']);
+      if (!empty($tag['#noscript'])) {
+        $link->setNoScript();
+      }
+      $page->addLinkElement($link);
+    }
+    elseif ($tag['#tag'] == 'meta') {
+      $metatag = new MetaElement(NULL, $tag['#attributes']);
+      if (!empty($tag['#noscript'])) {
+        $metatag->setNoScript();
+      }
+      $page->addMetaElement($metatag);
+    }
   }
 
   $variables['page_top'][] = array('#markup' => $page->getBodyTop());
@@ -2075,7 +2052,9 @@ function template_preprocess_html(&$variables) {
   $variables['page_bottom'][] = array('#markup' => $footer_scripts);
 
   // Wrap function calls in an object so they can be called when printed.
-  $variables['head'] = new RenderWrapper('drupal_get_html_head');
+  $variables['head'] = new RenderWrapper(function() use ($page) {
+    return implode("\n", $page->getMetaElements()) . implode("\n", $page->getLinkElements());
+  });
   $variables['styles'] = new RenderWrapper('drupal_get_css');
   $variables['scripts'] = new RenderWrapper('drupal_get_js');
 }
@@ -2088,9 +2067,6 @@ function template_preprocess_html(&$variables) {
  * Most themes utilize their own copy of page.html.twig. The default is located
  * inside "modules/system/page.html.twig". Look in there for the full list of
  * variables.
- *
- * Uses the arg() function to generate a series of page template suggestions
- * based on the current path.
  *
  * @see drupal_render_page()
  */
@@ -2130,7 +2106,19 @@ function template_preprocess_page(&$variables) {
     $variables['secondary_menu'] = theme_get_setting('features.secondary_menu') ? menu_secondary_menu() : array();
     $variables['action_links']   = menu_get_local_actions();
     $variables['tabs']           = menu_local_tabs();
-    $variables['feed_icons']     = drupal_get_feeds();
+
+    // Convert drupal_get_feeds to feed links on the page object.
+    /** @var \Drupal\Core\Page\HtmlPage $page */
+    $page = $variables['page']['#page'];
+    // Render the feed icons.
+    $variables['feed_icons'] = array();
+    foreach ($page->getFeedLinkElements() as $link) {
+      $variables['feed_icons'][] = array(
+        '#theme' => 'feed_icon',
+        '#url' => $link->getAttributes()['href'],
+        '#title' => $link->getAttributes()['title'],
+      );
+    }
   }
   else {
     $variables['main_menu']      = array();
@@ -2196,7 +2184,7 @@ function template_preprocess_page(&$variables) {
  * additional suggestions or classes on the path of the current page.
  *
  * @param $args
- *   An array of path arguments, such as from function arg().
+ *   An array of path arguments.
  * @param $base
  *   A string identifying the base 'thing' from which more specific suggestions
  *   are derived. For example, 'page' or 'html'.
@@ -2403,16 +2391,6 @@ function template_preprocess_field(&$variables, $hook) {
   if (!isset($default_attributes)) {
     $default_attributes = new Attribute;
   }
-  // The default theme implementation for fields is a function.
-  // template_preprocess() (which initializes the attributes, title_attributes,
-  // and content_attributes arrays) does not run for theme function
-  // implementations. Additionally, Attribute objects for the three variables
-  // below only get instantiated for template file implementations, and we need
-  // Attribute objects for printing in both theme functions and template files.
-  // For best performance, we only instantiate Attribute objects when needed.
-  $variables['attributes'] = isset($variables['attributes']) ? new Attribute($variables['attributes']) : clone $default_attributes;
-  $variables['title_attributes'] = isset($variables['title_attributes']) ? new Attribute($variables['title_attributes']) : clone($default_attributes);
-  $variables['content_attributes'] = isset($variables['content_attributes']) ? new Attribute($variables['content_attributes']) : clone($default_attributes);
 
   // Modules (e.g., rdf.module) can add field item attributes (to
   // $item->_attributes) within hook_entity_prepare_view(). Some field
@@ -2583,6 +2561,7 @@ function drupal_common_theme() {
     ),
     'table' => array(
       'variables' => array('header' => NULL, 'rows' => NULL, 'attributes' => array(), 'caption' => NULL, 'colgroups' => array(), 'sticky' => FALSE, 'responsive' => TRUE, 'empty' => ''),
+      'template' => 'table',
     ),
     'tablesort_indicator' => array(
       'variables' => array('style' => NULL),
@@ -2689,9 +2668,6 @@ function drupal_common_theme() {
     'form_element' => array(
       'render element' => 'element',
       'template' => 'form-element',
-    ),
-    'form_required_marker' => array(
-      'render element' => 'element',
     ),
     'form_element_label' => array(
       'render element' => 'element',

@@ -8,7 +8,7 @@
 namespace Drupal\Core\Http;
 
 use Drupal\Component\Utility\NestedArray;
-use Drupal\Component\Utility\Settings;
+use Drupal\Core\Site\Settings;
 use GuzzleHttp\Client as GuzzleClient;
 use GuzzleHttp\Event\SubscriberInterface;
 
@@ -31,7 +31,7 @@ class Client extends GuzzleClient {
       'verify' => TRUE,
       'timeout' => 30,
       'headers' => array(
-        'User-Agent' => 'Drupal (+http://drupal.org/)',
+        'User-Agent' => 'Drupal/' . \Drupal::VERSION . ' (+https://drupal.org/) ' . static::getDefaultUserAgent(),
       ),
     );
 

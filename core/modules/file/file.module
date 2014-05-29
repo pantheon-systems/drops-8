@@ -5,6 +5,7 @@
  * Defines a "managed_file" Form API field and a "file" field for Field module.
  */
 
+use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Render\Element;
 use Drupal\file\Entity\File;
 use Drupal\Component\Utility\NestedArray;
@@ -12,6 +13,7 @@ use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Template\Attribute;
 use Drupal\file\FileUsage\FileUsageInterface;
+use Symfony\Component\HttpFoundation\Request;
 
 // Load all Field module hooks for File.
 require_once __DIR__ . '/file.field.inc';
@@ -19,9 +21,9 @@ require_once __DIR__ . '/file.field.inc';
 /**
  * Implements hook_help().
  */
-function file_help($path, $arg) {
-  switch ($path) {
-    case 'admin/help#file':
+function file_help($route_name, Request $request) {
+  switch ($route_name) {
+    case 'help.page.file':
       $output = '';
       $output .= '<h3>' . t('About') . '</h3>';
       $output .= '<p>' . t('The File module allows you to create fields that contain files. See the <a href="!field">Field module help</a> and the <a href="!field_ui">Field UI help</a> pages for general information on fields and how to create and manage them. For more information, see the <a href="!file_documentation">online documentation for the File module</a>.', array('!field' => \Drupal::url('help.page', array('name' => 'field')), '!field_ui' => \Drupal::url('help.page', array('name' => 'field_ui')), '!file_documentation' => 'https://drupal.org/documentation/modules/file')) . '</p>';
@@ -81,13 +83,19 @@ function file_element_info() {
  * @return array
  *   An array of file entities, indexed by fid.
  *
+ * @deprecated in Drupal 8.x, will be removed before Drupal 9.0.
+ *   Use \Drupal\file\Entity\File::loadMultiple().
+ *
  * @see hook_file_load()
  * @see file_load()
  * @see entity_load()
  * @see \Drupal\Core\Entity\Query\EntityQueryInterface
  */
 function file_load_multiple(array $fids = NULL, $reset = FALSE) {
-  return entity_load_multiple('file', $fids, $reset);
+  if ($reset) {
+    \Drupal::entityManager()->getStorage('file')->resetCache($fids);
+  }
+  return File::loadMultiple($fids);
 }
 
 /**
@@ -101,11 +109,17 @@ function file_load_multiple(array $fids = NULL, $reset = FALSE) {
  * @return \Drupal\file\FileInterface
  *   A file entity or NULL if the file was not found.
  *
+ * @deprecated in Drupal 8.x, will be removed before Drupal 9.0.
+ *   Use \Drupal\file\Entity\File::load().
+ *
  * @see hook_file_load()
  * @see file_load_multiple()
  */
 function file_load($fid, $reset = FALSE) {
-  return entity_load('file', $fid, $reset);
+  if ($reset) {
+    \Drupal::entityManager()->getStorage('file')->resetCache(array($fid));
+  }
+  return File::load($fid);
 }
 
 /**
@@ -647,8 +661,9 @@ function file_file_download($uri, $field_type = 'file') {
   // reference denied access, access is denied.
   foreach ($references as $field_name => $field_references) {
     foreach ($field_references as $entity_type => $entities) {
+      $field_storage_definitions = \Drupal::entityManager()->getFieldStorageDefinitions($entity_type);
+      $field = $field_storage_definitions[$field_name];
       foreach ($entities as $entity) {
-        $field = field_info_field($entity_type, $field_name);
         // Check if access to this field is not disallowed.
         if (!$entity->get($field_name)->access('view')) {
           $denied = TRUE;
@@ -1857,8 +1872,8 @@ function file_icon_map(File $file) {
  *
  * @param \Drupal\file\File $file
  *   A file entity.
- * @param $field
- *   (optional) A field array to be used for this check. If given, limits the
+ * @param \Drupal\Core\Field\FieldDefinitionInterface $field
+ *   (optional) A field definition to be used for this check. If given, limits the
  *   reference check to the given field.
  * @param $age
  *   (optional) A constant that specifies which references to count. Use
@@ -1876,7 +1891,7 @@ function file_icon_map(File $file) {
  *   A multidimensional array. The keys are field_name, entity_type,
  *   entity_id and the value is an entity referencing this file.
  */
-function file_get_file_references(File $file, $field = NULL, $age = EntityStorageInterface::FIELD_LOAD_REVISION, $field_type = 'file') {
+function file_get_file_references(File $file, FieldDefinitionInterface $field = NULL, $age = EntityStorageInterface::FIELD_LOAD_REVISION, $field_type = 'file') {
   $references = &drupal_static(__FUNCTION__, array());
   $field_columns = &drupal_static(__FUNCTION__ . ':field_columns', array());
 
@@ -1938,7 +1953,8 @@ function file_get_file_references(File $file, $field = NULL, $age = EntityStorag
   if ($field || $field_type) {
     foreach ($return as $field_name => $data) {
       foreach (array_keys($data) as $entity_type_id) {
-        $current_field = field_info_field($entity_type_id, $field_name);
+        $field_storage_definitions = \Drupal::entityManager()->getFieldStorageDefinitions($entity_type_id);
+        $current_field = $field_storage_definitions[$field_name];
         if (($field_type && $current_field->getType() != $field_type) || ($field && $field->uuid() != $current_field->uuid())) {
           unset($return[$field_name][$entity_type_id]);
         }

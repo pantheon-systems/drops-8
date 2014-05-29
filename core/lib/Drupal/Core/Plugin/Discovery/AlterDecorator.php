@@ -3,16 +3,20 @@
 /**
  * @file
  * Definition of Drupal\Core\Plugin\Discovery\AlterDiscoveryDecorator.
-*/
+ */
 
 namespace Drupal\Core\Plugin\Discovery;
 
 use Drupal\Component\Plugin\Discovery\DiscoveryInterface;
+use Drupal\Component\Plugin\Discovery\DiscoveryTrait;
 
 /**
  * Enables altering of discovered plugin definitions.
  */
 class AlterDecorator implements DiscoveryInterface {
+
+  use DiscoveryTrait;
+
   /**
    * The name of the alter hook that will be implemented by this discovery instance.
    *
@@ -41,15 +45,6 @@ class AlterDecorator implements DiscoveryInterface {
     $this->decorated = $decorated;
     $this->hook = $hook;
   }
-
-  /**
-   * Implements Drupal\Component\Plugin\Discovery\DiscoveryInterface::getDefinition().
-   */
-  public function getDefinition($plugin_id) {
-    $definitions = $this->getDefinitions();
-    return isset($definitions[$plugin_id]) ? $definitions[$plugin_id] : NULL;
-  }
-
 
   /**
    * Implements Drupal\Component\Plugin\Discovery\DiscoveryInterface::getDefinitions().

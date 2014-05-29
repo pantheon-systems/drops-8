@@ -12,6 +12,7 @@ use Drupal\Core\Config\Entity\ConfigDependencyManager;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\StringTranslation\TranslationManager;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 /**
  * The ConfigManager provides helper functions for the configuration system.
@@ -54,6 +55,27 @@ class ConfigManager implements ConfigManagerInterface {
   protected $activeStorage;
 
   /**
+   * The event dispatcher.
+   *
+   * @var \Symfony\Component\EventDispatcher\EventDispatcherInterface
+   */
+  protected $eventDispatcher;
+
+  /**
+   * The configuration collection info.
+   *
+   * @var \Drupal\Core\Config\ConfigCollectionInfo
+   */
+  protected $configCollectionInfo;
+
+  /**
+   * The configuration storages keyed by collection name.
+   *
+   * @var \Drupal\Core\Config\StorageInterface[]
+   */
+  protected $storages;
+
+  /**
    * Creates ConfigManager objects.
    *
    * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
@@ -64,13 +86,18 @@ class ConfigManager implements ConfigManagerInterface {
    *   The typed config manager.
    * @param \Drupal\Core\StringTranslation\TranslationManager $string_translation
    *   The string translation service.
+   * @param \Drupal\Core\Config\StorageInterface $active_storage
+   *   The active configuration storage.
+   * @param \Symfony\Component\EventDispatcher\EventDispatcherInterface $event_dispatcher
+   *   The event dispatcher.
    */
-  public function __construct(EntityManagerInterface $entity_manager, ConfigFactoryInterface $config_factory, TypedConfigManager $typed_config_manager, TranslationManager $string_translation, StorageInterface $active_storage) {
+  public function __construct(EntityManagerInterface $entity_manager, ConfigFactoryInterface $config_factory, TypedConfigManager $typed_config_manager, TranslationManager $string_translation, StorageInterface $active_storage, EventDispatcherInterface $event_dispatcher) {
     $this->entityManager = $entity_manager;
     $this->configFactory = $config_factory;
     $this->typedConfigManager = $typed_config_manager;
     $this->stringTranslation = $string_translation;
     $this->activeStorage = $active_storage;
+    $this->eventDispatcher = $event_dispatcher;
   }
 
   /**
@@ -100,7 +127,11 @@ class ConfigManager implements ConfigManagerInterface {
   /**
    * {@inheritdoc}
    */
-  public function diff(StorageInterface $source_storage, StorageInterface $target_storage, $source_name, $target_name = NULL) {
+  public function diff(StorageInterface $source_storage, StorageInterface $target_storage, $source_name, $target_name = NULL, $collection = StorageInterface::DEFAULT_COLLECTION) {
+    if ($collection != StorageInterface::DEFAULT_COLLECTION) {
+      $source_storage = $source_storage->createCollection($collection);
+      $target_storage = $target_storage->createCollection($collection);
+    }
     if (!isset($target_name)) {
       $target_name = $source_name;
     }
@@ -131,9 +162,22 @@ class ConfigManager implements ConfigManagerInterface {
    * {@inheritdoc}
    */
   public function createSnapshot(StorageInterface $source_storage, StorageInterface $snapshot_storage) {
+    // Empty the snapshot of all configuration.
     $snapshot_storage->deleteAll();
+    foreach ($snapshot_storage->getAllCollectionNames() as $collection) {
+      $snapshot_collection = $snapshot_storage->createCollection($collection);
+      $snapshot_collection->deleteAll();
+    }
     foreach ($source_storage->listAll() as $name) {
       $snapshot_storage->write($name, $source_storage->read($name));
+    }
+    // Copy collections as well.
+    foreach ($source_storage->getAllCollectionNames() as $collection) {
+      $source_collection = $source_storage->createCollection($collection);
+      $snapshot_collection = $snapshot_storage->createCollection($collection);
+      foreach ($source_collection->listAll() as $name) {
+        $snapshot_collection->write($name, $source_collection->read($name));
+      }
     }
   }
 
@@ -156,6 +200,13 @@ class ConfigManager implements ConfigManagerInterface {
     foreach ($config_names as $config_name) {
       $this->configFactory->get($config_name)->delete();
     }
+
+    // Remove any matching configuration from collections.
+    foreach ($this->activeStorage->getAllCollectionNames() as $collection) {
+      $collection_storage = $this->activeStorage->createCollection($collection);
+      $collection_storage->deleteAll($name . '.');
+    }
+
     $schema_dir = drupal_get_path($type, $name) . '/' . InstallStorage::CONFIG_SCHEMA_DIRECTORY;
     if (is_dir($schema_dir)) {
       // Refresh the schema cache if uninstalling an extension that provides
@@ -214,6 +265,24 @@ class ConfigManager implements ConfigManagerInterface {
       $entities_to_return = array_merge($entities_to_return, array_values($storage->loadMultiple($entities_to_load)));
     }
     return $entities_to_return;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function supportsConfigurationEntities($collection) {
+    return $collection == StorageInterface::DEFAULT_COLLECTION;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getConfigCollectionInfo() {
+    if (!isset($this->configCollectionInfo)) {
+      $this->configCollectionInfo = new ConfigCollectionInfo();
+      $this->eventDispatcher->dispatch(ConfigEvents::COLLECTION_INFO, $this->configCollectionInfo);
+    }
+    return $this->configCollectionInfo;
   }
 
 }

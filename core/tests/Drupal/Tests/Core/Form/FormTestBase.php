@@ -12,6 +12,7 @@ use Drupal\Core\Form\FormInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Tests\UnitTestCase;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -29,44 +30,61 @@ abstract class FormTestBase extends UnitTestCase {
   protected $formBuilder;
 
   /**
+   * @var \Drupal\Core\Form\FormValidatorInterface|\PHPUnit_Framework_MockObject_MockObject
+   */
+  protected $formValidator;
+
+  /**
+   * @var \Drupal\Core\Form\FormSubmitterInterface|\PHPUnit_Framework_MockObject_MockObject
+   */
+  protected $formSubmitter;
+
+  /**
    * The mocked URL generator.
    *
-   * @var \PHPUnit_Framework_MockObject_MockObject|\Drupal\Core\Routing\UrlGeneratorInterface
+   * @var \Drupal\Core\Routing\UrlGeneratorInterface|\PHPUnit_Framework_MockObject_MockObject
    */
   protected $urlGenerator;
 
   /**
    * The mocked module handler.
    *
-   * @var \PHPUnit_Framework_MockObject_MockObject|\Drupal\Core\Extension\ModuleHandlerInterface
+   * @var \Drupal\Core\Extension\ModuleHandlerInterface|\PHPUnit_Framework_MockObject_MockObject
    */
   protected $moduleHandler;
 
   /**
    * The expirable key value store used by form cache.
    *
-   * @var \PHPUnit_Framework_MockObject_MockObject|\Drupal\Core\KeyValueStore\KeyValueStoreExpirableInterface
+   * @var \Drupal\Core\KeyValueStore\KeyValueStoreExpirableInterface|\PHPUnit_Framework_MockObject_MockObject
    */
   protected $formCache;
 
   /**
    * The expirable key value store used by form state cache.
    *
-   * @var \PHPUnit_Framework_MockObject_MockObject|\Drupal\Core\KeyValueStore\KeyValueStoreExpirableInterface
+   * @var \Drupal\Core\KeyValueStore\KeyValueStoreExpirableInterface|\PHPUnit_Framework_MockObject_MockObject
    */
   protected $formStateCache;
 
   /**
    * The current user.
    *
-   * @var \PHPUnit_Framework_MockObject_MockObject|\Drupal\Core\Session\AccountInterface
+   * @var \Drupal\Core\Session\AccountInterface|\PHPUnit_Framework_MockObject_MockObject
    */
   protected $account;
 
   /**
+   * The controller resolver.
+   *
+   * @var \Drupal\Core\Controller\ControllerResolverInterface|\PHPUnit_Framework_MockObject_MockObject
+   */
+  protected $controllerResolver;
+
+  /**
    * The CSRF token generator.
    *
-   * @var \PHPUnit_Framework_MockObject_MockObject|\Drupal\Core\Access\CsrfTokenGenerator
+   * @var \Drupal\Core\Access\CsrfTokenGenerator|\PHPUnit_Framework_MockObject_MockObject
    */
   protected $csrfToken;
 
@@ -78,26 +96,40 @@ abstract class FormTestBase extends UnitTestCase {
   protected $request;
 
   /**
+   * The request stack.
+   *
+   * @var \Symfony\Component\HttpFoundation\RequestStack
+   */
+  protected $requestStack;
+
+  /**
+   * The class results.
+   *
+   * @var \Drupal\Core\DependencyInjection\ClassResolverInterface|\PHPUnit_Framework_MockObject_MockObject
+   */
+  protected $classResolver;
+
+  /**
    * The event dispatcher.
    *
-   * @var \PHPUnit_Framework_MockObject_MockObject|\Symfony\Component\EventDispatcher\EventDispatcherInterface
+   * @var \Symfony\Component\EventDispatcher\EventDispatcherInterface|\PHPUnit_Framework_MockObject_MockObject
    */
   protected $eventDispatcher;
 
   /**
    * The expirable key value factory.
    *
-   * @var \PHPUnit_Framework_MockObject_MockObject|\Drupal\Core\KeyValueStore\KeyValueExpirableFactory
+   * @var \Drupal\Core\KeyValueStore\KeyValueExpirableFactory|\PHPUnit_Framework_MockObject_MockObject
    */
   protected $keyValueExpirableFactory;
 
   /**
-   * @var \PHPUnit_Framework_MockObject_MockObject|\Drupal\Core\StringTranslation\TranslationInterface
+   * @var \Drupal\Core\StringTranslation\TranslationInterface|\PHPUnit_Framework_MockObject_MockObject
    */
   protected $translationManager;
 
   /**
-   * @var \PHPUnit_Framework_MockObject_MockObject|\Drupal\Core\HttpKernel
+   * @var \Drupal\Core\HttpKernel|\PHPUnit_Framework_MockObject_MockObject
    */
   protected $httpKernel;
 
@@ -116,19 +148,30 @@ abstract class FormTestBase extends UnitTestCase {
         array('form_state', $this->formStateCache),
       )));
 
-    $this->eventDispatcher = $this->getMock('Symfony\Component\EventDispatcher\EventDispatcherInterface');
     $this->urlGenerator = $this->getMock('Drupal\Core\Routing\UrlGeneratorInterface');
-    $this->translationManager = $this->getStringTranslationStub();
+    $this->classResolver = $this->getClassResolverStub();
     $this->csrfToken = $this->getMockBuilder('Drupal\Core\Access\CsrfTokenGenerator')
       ->disableOriginalConstructor()
       ->getMock();
     $this->httpKernel = $this->getMockBuilder('Drupal\Core\HttpKernel')
       ->disableOriginalConstructor()
       ->getMock();
-    $this->request = new Request();
     $this->account = $this->getMock('Drupal\Core\Session\AccountInterface');
+    $this->request = new Request();
+    $this->eventDispatcher = $this->getMock('Symfony\Component\EventDispatcher\EventDispatcherInterface');
+    $this->requestStack = new RequestStack();
+    $this->requestStack->push($this->request);
+    $this->formValidator = $this->getMockBuilder('Drupal\Core\Form\FormValidator')
+      ->setConstructorArgs(array($this->requestStack, $this->getStringTranslationStub(), $this->csrfToken))
+      ->setMethods(array('drupalSetMessage'))
+      ->getMock();
+    $this->formSubmitter = $this->getMockBuilder('Drupal\Core\Form\FormSubmitter')
+      ->setConstructorArgs(array($this->requestStack, $this->urlGenerator))
+      ->setMethods(array('batchGet', 'drupalInstallationAttempted'))
+      ->getMock();
 
-    $this->setupFormBuilder();
+    $this->formBuilder = new TestFormBuilder($this->formValidator, $this->formSubmitter, $this->moduleHandler, $this->keyValueExpirableFactory, $this->eventDispatcher, $this->requestStack, $this->classResolver, $this->csrfToken, $this->httpKernel);
+    $this->formBuilder->setCurrentUser($this->account);
   }
 
   /**
@@ -136,15 +179,6 @@ abstract class FormTestBase extends UnitTestCase {
    */
   protected function tearDown() {
     $this->formBuilder->drupalStaticReset();
-  }
-
-  /**
-   * Sets up a new form builder object to test.
-   */
-  protected function setupFormBuilder() {
-    $this->formBuilder = new TestFormBuilder($this->moduleHandler, $this->keyValueExpirableFactory, $this->eventDispatcher, $this->urlGenerator, $this->translationManager, $this->csrfToken, $this->httpKernel);
-    $this->formBuilder->setRequest($this->request);
-    $this->formBuilder->setCurrentUser($this->account);
   }
 
   /**
@@ -277,25 +311,6 @@ class TestFormBuilder extends FormBuilder {
   /**
    * {@inheritdoc}
    */
-  protected function drupalInstallationAttempted() {
-    return FALSE;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  protected function drupalSetMessage($message = NULL, $type = 'status', $repeat = FALSE) {
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  protected function watchdog($type, $message, array $variables = NULL, $severity = WATCHDOG_NOTICE, $link = NULL) {
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   protected function drupalHtmlClass($class) {
     return $class;
   }
@@ -318,14 +333,6 @@ class TestFormBuilder extends FormBuilder {
    */
   public function drupalStaticReset($name = NULL) {
     static::$seenIds = array();
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  protected function &batchGet() {
-    $batch = array();
-    return $batch;
   }
 
 }

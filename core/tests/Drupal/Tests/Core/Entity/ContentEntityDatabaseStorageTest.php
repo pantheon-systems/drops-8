@@ -52,11 +52,11 @@ class ContentEntityDatabaseStorageTest extends UnitTestCase {
       ->method('getKey')
       ->will($this->returnValueMap(array(
         array('id', 'id'),
-        array('revision_id', 'revision_id'),
+        array('revision', 'revision'),
       )));
     $definition->expects($this->once())
       ->method('hasKey')
-      ->with('revision_id')
+      ->with('revision')
       ->will($this->returnValue(TRUE));
 
     $field_type_manager->expects($this->exactly(2))
@@ -68,8 +68,8 @@ class ContentEntityDatabaseStorageTest extends UnitTestCase {
 
     $fields['id'] = FieldDefinition::create('string')
       ->setName('id');
-    $fields['revision_id'] = FieldDefinition::create('string')
-      ->setName('revision_id');
+    $fields['revision'] = FieldDefinition::create('string')
+      ->setName('revision');
 
     $entity_manager->expects($this->any())
       ->method('getDefinition')
@@ -142,10 +142,8 @@ class ContentEntityDatabaseStorageTest extends UnitTestCase {
       ->method('getKeys')
       ->will($this->returnValue(array('id' => 'id')));
     $entity_type->expects($this->atLeastOnce())
-      ->method('hasKey')
-      ->will($this->returnCallback(function ($key) {
-        return $key == 'id';
-      }));
+      ->method('isRevisionable')
+      ->will($this->returnValue(FALSE));
     $entity_manager->expects($this->atLeastOnce())
       ->method('getDefinition')
       ->with('test_entity_type')
@@ -154,10 +152,7 @@ class ContentEntityDatabaseStorageTest extends UnitTestCase {
     $connection = $this->getMockBuilder('Drupal\Core\Database\Connection')
       ->disableOriginalConstructor()
       ->getMock();
-    $field_info = $this->getMockBuilder('\Drupal\field\FieldInfo')
-      ->disableOriginalConstructor()
-      ->getMock();
-    $entity_storage = new ContentEntityDatabaseStorage($entity_type, $connection, $field_info);
+    $entity_storage = new ContentEntityDatabaseStorage($entity_type, $connection, $entity_manager);
 
     $entity = $entity_storage->create();
     $entity->expects($this->atLeastOnce())

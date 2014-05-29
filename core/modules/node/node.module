@@ -12,10 +12,15 @@ use Drupal\Component\Utility\Xss;
 use Drupal\Core\Language\Language;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Url;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Database\Query\AlterableInterface;
 use Drupal\Core\Database\Query\SelectInterface;
+use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldInstanceConfig;
+use Drupal\node\Entity\Node;
+use Drupal\node\Entity\NodeType;
 use Drupal\node\NodeTypeInterface;
 use Drupal\node\NodeInterface;
 use Drupal\Core\Entity\EntityInterface;
@@ -85,13 +90,13 @@ const NODE_ACCESS_IGNORE = NULL;
 /**
  * Implements hook_help().
  */
-function node_help($path, $arg) {
+function node_help($route_name, Request $request) {
   // Remind site administrators about the {node_access} table being flagged
   // for rebuild. We don't need to issue the message on the confirm form, or
   // while the rebuild is being processed.
-  if ($path != 'admin/reports/status/rebuild' && $path != 'batch' && strpos($path, '#') === FALSE
-      && user_access('access administration pages') && node_access_needs_rebuild()) {
-    if ($path == 'admin/reports/status') {
+  if ($route_name != 'node.configure_rebuild_confirm' && $route_name != 'system.batch_page.normal' && $route_name != 'help.page.node' && $route_name != 'help.main'
+    && user_access('access administration pages') && node_access_needs_rebuild()) {
+    if ($route_name == 'system.status') {
       $message = t('The content access permissions need to be rebuilt.');
     }
     else {
@@ -100,8 +105,8 @@ function node_help($path, $arg) {
     drupal_set_message($message, 'error');
   }
 
-  switch ($path) {
-    case 'admin/help#node':
+  switch ($route_name) {
+    case 'help.page.node':
       $output = '';
       $output .= '<h3>' . t('About') . '</h3>';
       $output .= '<p>' . t('The Node module manages the creation, editing, deletion, settings, and display of the main site content. Content items managed by the Node module are typically displayed as pages on your site, and include a title, some meta-data (author, creation time, content type, etc.), and optional fields containing text or other data (fields are managed by the <a href="!field">Field module</a>). For more information, see <a href="!node">the online documentation for the Node module</a>.', array('!node' => 'https://drupal.org/documentation/modules/node', '!field' => \Drupal::url('help.page', array('name' => 'field')))) . '</p>';
@@ -120,30 +125,31 @@ function node_help($path, $arg) {
       $output .= '</dl>';
       return $output;
 
-    case 'admin/structure/types/add':
+    case 'node.type_add':
       return '<p>' . t('Individual content types can have different fields, behaviors, and permissions assigned to them.') . '</p>';
 
-    case 'admin/structure/types/manage/%/form-display':
-      $type = entity_load('node_type', $arg[4]);
+    case 'field_ui.form_display_overview_node':
+    case 'field_ui.form_display_overview_form_mode_node':
+      $type = $request->attributes->get('node_type');
       return '<p>' . t('Content items can be edited using different form modes. Here, you can define which fields are shown and hidden when %type content is edited in each form mode, and define how the field form widgets are displayed in each form mode.', array('%type' => $type->label())) . '</p>' ;
 
-    case 'admin/structure/types/manage/%/display':
-      $type =  entity_load('node_type', $arg[4]);
+    case 'field_ui.display_overview_node':
+    case 'field_ui.display_overview_view_mode_node':
+      $type = $request->attributes->get('node_type');
       return '<p>' . t('Content items can be displayed using different view modes: Teaser, Full content, Print, RSS, etc. <em>Teaser</em> is a short format that is typically used in lists of multiple content items. <em>Full content</em> is typically used when the content is displayed on its own page.') . '</p>' .
         '<p>' . t('Here, you can define which fields are shown and hidden when %type content is displayed in each view mode, and define how the fields are displayed in each view mode.', array('%type' => $type->label())) . '</p>';
 
-    case 'node/%/revisions':
+    case 'node.revision_overview':
       return '<p>' . t('Revisions allow you to track differences between multiple versions of your content, and revert back to older versions.') . '</p>';
 
-    case 'node/%/edit':
-      $node = node_load($arg[1]);
-      $type = node_type_load($node->bundle());
+    case 'node.page_edit':
+      $node = $request->attributes->get('node');
+      $type = $node->getType();
       return (!empty($type->help) ? Xss::filterAdmin($type->help) : '');
-  }
 
-  if ($arg[0] == 'node' && $arg[1] == 'add' && $arg[2]) {
-    $type = node_type_load($arg[2]);
-    return (!empty($type->help) ? Xss::filterAdmin($type->help) : '');
+    case 'node.add':
+      $type = $request->attributes->get('node_type');
+      return (!empty($type->help) ? Xss::filterAdmin($type->help) : '');
   }
 }
 
@@ -175,21 +181,9 @@ function node_theme() {
     ),
     'field__node__title' => array(
       'base hook' => 'field',
+      'template' => 'field--node--title',
     ),
   );
-}
-
-/**
- * Implements hook_entity_bundle_info().
- */
-function node_entity_bundle_info() {
-  $bundles = array();
-  // Bundles must provide a human readable name so we can create help and error
-  // messages.
-  foreach (node_type_get_names() as $id => $label) {
-    $bundles['node'][$id]['label'] = $label;
-  }
-  return $bundles;
 }
 
 /**
@@ -229,8 +223,8 @@ function node_entity_form_display_alter(EntityFormDisplayInterface $form_display
  * @param \Drupal\node\NodeInterface $node
  *   A node entity.
  *
- * @return array
- *   An array with 'path' as the key and the path to the node as its value.
+ * @return \Drupal\core\Url
+ *   A Url object that provides a URL to the view page for $node.
  */
 function node_uri(NodeInterface $node) {
   return new Url('node.view', array(
@@ -303,10 +297,13 @@ function node_mark($nid, $timestamp) {
  * @return \Drupal\node\NodeTypeInterface[]
  *   An array of node type entities, keyed by ID.
  *
+ * @deprecated in Drupal 8.x, will be removed before Drupal 9.0.
+ *   Use \Drupal\node\Entity\NodeType::loadMultiple().
+ *
  * @see node_type_load()
  */
 function node_type_get_types() {
-  return entity_load_multiple('node_type');
+  return NodeType::loadMultiple();
 }
 
 /**
@@ -318,24 +315,9 @@ function node_type_get_types() {
  *   An array of node type labels, keyed by the node type name.
  */
 function node_type_get_names() {
-  $cid = 'node_type:names:' . \Drupal::languageManager()->getCurrentLanguage()->id;
-  if ($cache = \Drupal::cache()->get($cid)) {
-    return $cache->data;
-  }
-  // Not using node_type_get_types() or entity_load_multiple() here, to allow
-  // this function being used in hook_entity_type_build() implementations.
-  // @todo Consider to convert this into a generic config entity helper.
-  $config_names = \Drupal::configFactory()->listAll('node.type.');
-  $names = array();
-  foreach ($config_names as $config_name) {
-    $config = \Drupal::config($config_name);
-    $names[$config->get('type')] = $config->get('name');
-  }
-  \Drupal::cache()->set($cid, $names, Cache::PERMANENT, array(
-    'node_type' => array_keys($names),
-    'node_types' => TRUE,
-  ));
-  return $names;
+  return array_map(function ($bundle_info) {
+    return $bundle_info['label'];
+  }, \Drupal::entityManager()->getBundleInfo('node'));
 }
 
 /**
@@ -376,9 +358,12 @@ function node_type_get_description(NodeTypeInterface $node_type) {
  *
  * @return \Drupal\node\NodeTypeInterface
  *   A node type object or NULL if $name does not exist.
+ *
+ * @deprecated in Drupal 8.x, will be removed before Drupal 9.0.
+ *   Use \Drupal\node\Entity\NodeType::load().
  */
 function node_type_load($name) {
-  return entity_load('node_type', $name);
+  return NodeType::load($name);
 }
 
 /**
@@ -394,8 +379,8 @@ function node_type_load($name) {
  */
 function node_add_body_field(NodeTypeInterface $type, $label = 'Body') {
    // Add or remove the body field, as needed.
-  $field = field_info_field('node', 'body');
-  $instance = field_info_instance('node', 'body', $type->id());
+  $field = FieldConfig::loadByName('node', 'body');
+  $instance = FieldInstanceConfig::loadByName('node', $type->id(), 'body');
   if (empty($field)) {
     $field = entity_create('field_config', array(
       'name' => 'body',
@@ -491,10 +476,7 @@ function node_entity_extra_field_info() {
  *   The number of nodes whose node type field was modified.
  */
 function node_type_update_nodes($old_id, $new_id) {
-  return db_update('node')
-    ->fields(array('type' => $new_id))
-    ->condition('type', $old_id)
-    ->execute();
+  return \Drupal::entityManager()->getStorage('node')->updateType($old_id, $new_id);
 }
 
 /**
@@ -513,11 +495,17 @@ function node_type_update_nodes($old_id, $new_id) {
  * @return \Drupal\node\NodeInterface[]
  *   An array of node entities indexed by nid.
  *
+ * @deprecated in Drupal 8.x, will be removed before Drupal 9.0.
+ *   Use \Drupal\node\Entity\Node::loadMultiple().
+ *
  * @see entity_load_multiple()
  * @see \Drupal\Core\Entity\Query\EntityQueryInterface
  */
 function node_load_multiple(array $nids = NULL, $reset = FALSE) {
-  return entity_load_multiple('node', $nids, $reset);
+  if ($reset) {
+    \Drupal::entityManager()->getStorage('node')->resetCache($nids);
+  }
+  return Node::loadMultiple($nids);
 }
 
 /**
@@ -531,9 +519,15 @@ function node_load_multiple(array $nids = NULL, $reset = FALSE) {
  *
  * @return \Drupal\node\NodeInterface|null
  *   A fully-populated node entity, or NULL if the node is not found.
+ *
+ * @deprecated in Drupal 8.x, will be removed before Drupal 9.0.
+ *   Use \Drupal\node\Entity\Node::load().
  */
 function node_load($nid = NULL, $reset = FALSE) {
-  return entity_load('node', $nid, $reset);
+  if ($reset) {
+    \Drupal::entityManager()->getStorage('node')->resetCache(array($nid));
+  }
+  return Node::load($nid);
 }
 
 /**
@@ -608,9 +602,13 @@ function node_preprocess_block(&$variables) {
 function node_theme_suggestions_node(array $variables) {
   $suggestions = array();
   $node = $variables['elements']['#node'];
+  $sanitized_view_mode = strtr($variables['elements']['#view_mode'], '.', '_');
 
+  $suggestions[] = 'node__' . $sanitized_view_mode;
   $suggestions[] = 'node__' . $node->bundle();
+  $suggestions[] = 'node__' . $node->bundle() . '__' . $sanitized_view_mode;
   $suggestions[] = 'node__' . $node->id();
+  $suggestions[] = 'node__' . $node->id() . '__' . $sanitized_view_mode;
 
   return $suggestions;
 }
@@ -706,23 +704,6 @@ function template_preprocess_node(&$variables) {
 }
 
 /**
- * Returns HTML for the node title field.
- *
- * This is an override of theme_field() for the node title field. See that
- * function for documentation about its details and overrides.
- *
- * @param array $variables
- *   An associative array. See theme_field() for details.
- *
- * @see theme_field()
- *
- * @ingroup themeable
- */
-function theme_field__node__title($variables) {
-  return '<span' . $variables['attributes'] . '>' . drupal_render($variables['items']) . '</span>';
-}
-
-/**
  * Implements hook_permission().
  */
 function node_permission() {
@@ -815,31 +796,18 @@ function node_user_cancel($edit, $account, $method) {
   switch ($method) {
     case 'user_cancel_block_unpublish':
       // Unpublish nodes (current revisions).
-      module_load_include('inc', 'node', 'node.admin');
-      $nodes = db_select('node_field_data', 'n')
-        ->distinct()
-        ->fields('n', array('nid'))
+      $nids = \Drupal::entityQuery('node')
         ->condition('uid', $account->id())
-        ->execute()
-        ->fetchCol();
-      node_mass_update($nodes, array('status' => 0), NULL, TRUE);
+        ->execute();
+      module_load_include('inc', 'node', 'node.admin');
+      node_mass_update($nids, array('status' => 0), NULL, TRUE);
       break;
 
     case 'user_cancel_reassign':
-      // Anonymize nodes (current revisions).
+      // Anonymize all of the nodes for this old account.
       module_load_include('inc', 'node', 'node.admin');
-      $nodes = db_select('node_field_data', 'n')
-        ->distinct()
-        ->fields('n', array('nid'))
-        ->condition('uid', $account->id())
-        ->execute()
-        ->fetchCol();
-      node_mass_update($nodes, array('uid' => 0), NULL, TRUE);
-      // Anonymize old revisions.
-      db_update('node_field_revision')
-        ->fields(array('uid' => 0))
-        ->condition('uid', $account->id())
-        ->execute();
+      $vids = \Drupal::entityManager()->getStorage('node')->userRevisionIds($account);
+      node_mass_update($vids, array('uid' => 0), NULL, TRUE, TRUE);
       break;
   }
 }
@@ -850,15 +818,13 @@ function node_user_cancel($edit, $account, $method) {
 function node_user_predelete($account) {
   // Delete nodes (current revisions).
   // @todo Introduce node_mass_delete() or make node_mass_update() more flexible.
-  $nodes = db_select('node_field_data', 'n')
-    ->distinct()
-    ->fields('n', array('nid'))
+  $nids = \Drupal::entityQuery('node')
     ->condition('uid', $account->id())
-    ->execute()
-    ->fetchCol();
-  entity_delete_multiple('node', $nodes);
+    ->execute();
+  entity_delete_multiple('node', $nids);
   // Delete old revisions.
-  $revisions = db_query('SELECT DISTINCT vid FROM {node_field_revision} WHERE uid = :uid', array(':uid' => $account->id()))->fetchCol();
+  $storage_controller = \Drupal::entityManager()->getStorage('node');
+  $revisions = $storage_controller->userRevisionIds($account);
   foreach ($revisions as $revision) {
     node_revision_delete($revision);
   }
@@ -924,34 +890,13 @@ function node_page_title(NodeInterface $node) {
  *
  * @return string
  *   A unix timestamp indicating the last time the node was changed.
+ *
+ * @todo Remove once https://drupal.org/node/2002180 is resolved. It's only used
+ *       for validation, which will be done by EntityChangedConstraintValidator.
  */
 function node_last_changed($nid, $langcode = NULL) {
-  if (isset($langcode)) {
-    $result = db_query('SELECT changed FROM {node_field_data} WHERE nid = :nid AND langcode = :langcode', array(':nid' => $nid, ':langcode' => $langcode))->fetch();
-  }
-  else {
-    $result = db_query('SELECT changed FROM {node_field_data} WHERE nid = :nid AND default_langcode = :default_langcode', array(':nid' => $nid, ':default_langcode' => 1))->fetch();
-  }
-  return is_object($result) ? $result->changed : FALSE;
-}
-
-/**
- * Returns a list of all the existing revision numbers for the node passed in.
- *
- * @param \Drupal\node\NodeInterface $node
- *   The node entity.
- *
- * @return
- *   An associative array keyed by node revision number.
- */
-function node_revision_list(NodeInterface $node) {
-  $revisions = array();
-  $result = db_query('SELECT nr.vid, nfr.title, nr.log, nr.revision_uid AS uid, n.vid AS current_vid, nr.revision_timestamp, u.name FROM {node_field_revision} nfr JOIN {node_revision} nr ON nr.vid = nfr.vid LEFT JOIN {node} n ON n.vid = nfr.vid INNER JOIN {users} u ON u.uid = nr.revision_uid WHERE nfr.nid = :nid AND nfr.default_langcode = 1 ORDER BY nfr.vid DESC', array(':nid' => $node->id()));
-  foreach ($result as $revision) {
-    $revisions[$revision->vid] = $revision;
-  }
-
-  return $revisions;
+  $changed = \Drupal::entityManager()->getStorage('node')->loadUnchanged($nid)->getChangedTime();
+  return $changed ? $changed : FALSE;
 }
 
 /**
@@ -965,31 +910,31 @@ function node_revision_list(NodeInterface $node) {
  *   visible to the current user.
  */
 function node_get_recent($number = 10) {
-  $query = db_select('node_field_data', 'n');
+  $account = \Drupal::currentUser();
+  $query = \Drupal::entityQuery('node');
 
-  if (!user_access('bypass node access')) {
+  if (!$account->hasPermission('bypass node access')) {
     // If the user is able to view their own unpublished nodes, allow them
     // to see these in addition to published nodes. Check that they actually
     // have some unpublished nodes to view before adding the condition.
-    if (user_access('view own unpublished content') && $own_unpublished = db_query('SELECT DISTINCT nid FROM {node_field_data} WHERE uid = :uid AND status = :status', array(':uid' => \Drupal::currentUser()->id(), ':status' => NODE_NOT_PUBLISHED))->fetchCol()) {
-      $query->condition(db_or()
-        ->condition('n.status', NODE_PUBLISHED)
-        ->condition('n.nid', $own_unpublished, 'IN')
-      );
+    $access_query =  \Drupal::entityQuery('node')
+      ->condition('uid', $account->id())
+      ->condition('status', NODE_NOT_PUBLISHED);
+    if ($account->hasPermission('view own unpublished content') && ($own_unpublished = $access_query->execute())) {
+      $query->orConditionGroup()
+        ->condition('status', NODE_PUBLISHED)
+        ->condition('nid', $own_unpublished, 'IN');
     }
     else {
       // If not, restrict the query to published nodes.
-      $query->condition('n.status', NODE_PUBLISHED);
+      $query->condition('status', NODE_PUBLISHED);
     }
-  }
+   }
   $nids = $query
-    ->distinct()
-    ->fields('n', array('nid'))
-    ->orderBy('n.changed', 'DESC')
+    ->sort('changed', 'DESC')
     ->range(0, $number)
     ->addTag('node_access')
-    ->execute()
-    ->fetchCol();
+    ->execute();
 
   $nodes = node_load_multiple($nids);
 
@@ -1092,16 +1037,13 @@ function node_feed($nids = FALSE, $channel = array()) {
   $rss_config = \Drupal::config('system.rss');
 
   if ($nids === FALSE) {
-    $nids = db_select('node_field_data', 'n')
-      ->distinct()
-      ->fields('n', array('nid'))
-      ->condition('n.promote', 1)
-      ->condition('n.status', 1)
-      ->orderBy('n.created', 'DESC')
+    $nids = \Drupal::entityQuery('node')
+      ->condition('status', 1)
+      ->condition('promote', 1)
+      ->sort('created', 'DESC')
       ->range(0, $rss_config->get('items.limit'))
       ->addTag('node_access')
-      ->execute()
-      ->fetchCol();
+      ->execute();
   }
 
   $item_length = $rss_config->get('items.view_mode');
@@ -1286,9 +1228,9 @@ function node_form_system_themes_admin_form_submit($form, &$form_state) {
  * the process above is followed except that hook_node_access() is not called on
  * each node for performance reasons and for proper functioning of the pager
  * system. When adding a node listing to your module, be sure to use a dynamic
- * query created by db_select() and add a tag of "node_access". This will allow
- * modules dealing with node access to ensure only nodes to which the user has
- * access are retrieved, through the use of hook_query_TAG_alter().
+ * entity query and add a tag of "node_access". This will allow modules dealing
+ * with node access to ensure only nodes to which the user has access are
+ * retrieved, through the use of hook_query_TAG_alter().
  *
  * Note: Even a single module returning NODE_ACCESS_DENY from hook_node_access()
  * will block access to the node. Therefore, implementers should take care to
@@ -1763,10 +1705,7 @@ function node_file_download_access($field, EntityInterface $entity, File $file) 
  */
 function node_language_entity_delete(LanguageEntity $language) {
   // On nodes with this language, unset the language.
-  db_update('node_revision')
-    ->fields(array('langcode' => ''))
-    ->condition('langcode', $language->id())
-    ->execute();
+  \Drupal::entityManager()->getStorage('node')->clearRevisionsLanguage($language);
 }
 
 /**

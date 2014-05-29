@@ -1,4 +1,4 @@
-# Schema for configuration files of the Menu module.
+# Schema for configuration files of the Menu UI module.
 
 menu_ui.settings:
   type: mapping
@@ -19,5 +19,8 @@ menu.entity.node.*:
   label: 'Per-content type menu settings'
   mapping:
     available_menus:
-      type: array
+      type: sequence
       label: 'Available menus'
+      sequence:
+       - type: string
+         label: 'Menu machine name'

@@ -5,12 +5,14 @@
  * Redirects logging messages to syslog.
  */
 
+use Symfony\Component\HttpFoundation\Request;
+
 /**
  * Implements hook_help().
  */
-function syslog_help($path, $arg) {
-  switch ($path) {
-    case 'admin/help#syslog':
+function syslog_help($route_name, Request $request) {
+  switch ($route_name) {
+    case 'help.page.syslog':
       $output = '';
       $output .= '<h3>' . t('About') . '</h3>';
       $output .= '<p>' . t("The Syslog module logs events by sending messages to the logging facility of your web server's operating system. Syslog is an operating system administrative logging tool that provides valuable information for use in system management and security auditing. Most suited to medium and large sites, Syslog provides filtering tools that allow messages to be routed by type and severity. For more information, see the <a href='!syslog'>online documentation for the Syslog module</a>, as well as PHP's documentation pages for the <a href='!php_openlog'>openlog</a> and <a href='!php_syslog'>syslog</a> functions.", array('!syslog' => 'https://drupal.org/documentation/modules/syslog', '!php_openlog' => 'http://www.php.net/manual/function.openlog.php', '!php_syslog' => 'http://www.php.net/manual/function.syslog.php')) . '</p>';
@@ -86,37 +88,4 @@ function syslog_facility_list() {
     LOG_LOCAL6 => 'LOG_LOCAL6',
     LOG_LOCAL7 => 'LOG_LOCAL7',
   );
-}
-
-/**
- * Implements hook_watchdog().
- */
-function syslog_watchdog(array $log_entry) {
-  global $base_url;
-
-  $log_init = &drupal_static(__FUNCTION__, FALSE);
-  $config = \Drupal::config('syslog.settings');
-
-  if (!$log_init) {
-    $log_init = TRUE;
-    $facility = $config->get('facility');
-    if ($facility === '') {
-      $facility = defined('LOG_LOCAL0') ? LOG_LOCAL0 : LOG_USER;
-    }
-    openlog($config->get('identity'), LOG_NDELAY, $facility);
-  }
-
-  $message = strtr($config->get('format'), array(
-    '!base_url'    => $base_url,
-    '!timestamp'   => $log_entry['timestamp'],
-    '!type'        => $log_entry['type'],
-    '!ip'          => $log_entry['ip'],
-    '!request_uri' => $log_entry['request_uri'],
-    '!referer'     => $log_entry['referer'],
-    '!uid'         => $log_entry['uid'],
-    '!link'        => strip_tags($log_entry['link']),
-    '!message'     => strip_tags(!isset($log_entry['variables']) ? $log_entry['message'] : strtr($log_entry['message'], $log_entry['variables'])),
-  ));
-
-  syslog($log_entry['severity'], $message);
 }

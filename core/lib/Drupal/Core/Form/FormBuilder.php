@@ -9,20 +9,16 @@ namespace Drupal\Core\Form;
 
 use Drupal\Component\Utility\Crypt;
 use Drupal\Component\Utility\NestedArray;
-use Drupal\Component\Utility\Settings;
-use Drupal\Component\Utility\Unicode;
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Access\CsrfTokenGenerator;
+use Drupal\Core\DependencyInjection\ClassResolverInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\HttpKernel;
 use Drupal\Core\KeyValueStore\KeyValueExpirableFactoryInterface;
 use Drupal\Core\Render\Element;
-use Drupal\Core\Routing\UrlGeneratorInterface;
-use Drupal\Core\StringTranslation\TranslationInterface;
-use Drupal\Core\Url;
+use Drupal\Core\Site\Settings;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
-use Symfony\Component\HttpFoundation\RedirectResponse;
-use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\FilterResponseEvent;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
@@ -31,7 +27,7 @@ use Symfony\Component\HttpKernel\KernelEvents;
 /**
  * Provides form building and processing.
  */
-class FormBuilder implements FormBuilderInterface {
+class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormSubmitterInterface {
 
   /**
    * The module handler.
@@ -43,7 +39,7 @@ class FormBuilder implements FormBuilderInterface {
   /**
    * The factory for expirable key value stores used by form cache.
    *
-   * @var \Drupal\Core\KeyValueStore\KeyValueFactoryInterface
+   * @var \Drupal\Core\KeyValueStore\KeyValueExpirableFactoryInterface
    */
   protected $keyValueExpirableFactory;
 
@@ -55,25 +51,11 @@ class FormBuilder implements FormBuilderInterface {
   protected $eventDispatcher;
 
   /**
-   * The URL generator.
+   * The request stack.
    *
-   * @var \Drupal\Core\Routing\UrlGeneratorInterface
+   * @var \Symfony\Component\HttpFoundation\RequestStack
    */
-  protected $urlGenerator;
-
-  /**
-   * The translation manager service.
-   *
-   * @var \Drupal\Core\StringTranslation\TranslationInterface
-   */
-  protected $translationManager;
-
-  /**
-   * The current request.
-   *
-   * @var \Symfony\Component\HttpFoundation\Request
-   */
-  protected $request;
+  protected $requestStack;
 
   /**
    * The CSRF token generator to validate the form token.
@@ -90,6 +72,13 @@ class FormBuilder implements FormBuilderInterface {
   protected $httpKernel;
 
   /**
+   * The class resolver.
+   *
+   * @var \Drupal\Core\DependencyInjection\ClassResolverInterface
+   */
+  protected $classResolver;
+
+  /**
    * The current user.
    *
    * @var \Drupal\Core\Session\AccountInterface
@@ -97,52 +86,45 @@ class FormBuilder implements FormBuilderInterface {
   protected $currentUser;
 
   /**
-   * An array of known forms.
-   *
-   * @see self::retrieveForms()
-   *
-   * @var array
+   * @var \Drupal\Core\Form\FormValidatorInterface
    */
-  protected $forms;
+  protected $formValidator;
 
   /**
-   * An array of validated forms.
-   *
-   * @var array
+   * @var \Drupal\Core\Form\FormSubmitterInterface
    */
-  protected $validatedForms = array();
-
-  /**
-   * An array of options used for recursive flattening.
-   *
-   * @var array
-   */
-  protected $flattenedOptions = array();
+  protected $formSubmitter;
 
   /**
    * Constructs a new FormBuilder.
    *
+   * @param \Drupal\Core\Form\FormValidatorInterface $form_validator
+   *   The form validator.
+   * @param \Drupal\Core\Form\FormSubmitterInterface $form_submitter
+   *   The form submission processor.
    * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
    *   The module handler.
    * @param \Drupal\Core\KeyValueStore\KeyValueExpirableFactoryInterface $key_value_expirable_factory
    *   The keyvalue expirable factory.
    * @param \Symfony\Component\EventDispatcher\EventDispatcherInterface $event_dispatcher
    *   The event dispatcher.
-   * @param \Drupal\Core\Routing\UrlGeneratorInterface $url_generator
-   *   The URL generator.
-   * @param \Drupal\Core\StringTranslation\TranslationInterface $translation_manager
-   *   The translation manager.
+   * @param \Symfony\Component\HttpFoundation\RequestStack $request_stack
+   *   The request stack.
+   * @param \Drupal\Core\DependencyInjection\ClassResolverInterface $class_resolver
+   *   The class resolver.
    * @param \Drupal\Core\Access\CsrfTokenGenerator $csrf_token
    *   The CSRF token generator.
    * @param \Drupal\Core\HttpKernel $http_kernel
    *   The HTTP kernel.
    */
-  public function __construct(ModuleHandlerInterface $module_handler, KeyValueExpirableFactoryInterface $key_value_expirable_factory, EventDispatcherInterface $event_dispatcher, UrlGeneratorInterface $url_generator, TranslationInterface $translation_manager, CsrfTokenGenerator $csrf_token = NULL, HttpKernel $http_kernel = NULL) {
+  public function __construct(FormValidatorInterface $form_validator, FormSubmitterInterface $form_submitter, ModuleHandlerInterface $module_handler, KeyValueExpirableFactoryInterface $key_value_expirable_factory, EventDispatcherInterface $event_dispatcher, RequestStack $request_stack, ClassResolverInterface $class_resolver, CsrfTokenGenerator $csrf_token = NULL, HttpKernel $http_kernel = NULL) {
+    $this->formValidator = $form_validator;
+    $this->formSubmitter = $form_submitter;
     $this->moduleHandler = $module_handler;
     $this->keyValueExpirableFactory = $key_value_expirable_factory;
     $this->eventDispatcher = $event_dispatcher;
-    $this->urlGenerator = $url_generator;
-    $this->translationManager = $translation_manager;
+    $this->requestStack = $request_stack;
+    $this->classResolver = $class_resolver;
     $this->csrfToken = $csrf_token;
     $this->httpKernel = $http_kernel;
   }
@@ -151,15 +133,12 @@ class FormBuilder implements FormBuilderInterface {
    * {@inheritdoc}
    */
   public function getFormId($form_arg, &$form_state) {
-    // If the $form_arg is the name of a class, instantiate it.
+    // If the $form_arg is the name of a class, instantiate it. Don't allow
+    // arbitrary strings to be passed to the class resolver.
     if (is_string($form_arg) && class_exists($form_arg)) {
-      if (in_array('Drupal\Core\DependencyInjection\ContainerInjectionInterface', class_implements($form_arg))) {
-        $form_arg = $form_arg::create(\Drupal::getContainer());
-      }
-      else {
-        $form_arg = new $form_arg();
-      }
+      $form_arg = $this->classResolver->getInstanceFromDefinition($form_arg);
     }
+
     // If the $form_arg implements \Drupal\Core\Form\FormInterface, add that as
     // the callback object and determine the form ID.
     if (is_object($form_arg) && $form_arg instanceof FormInterface) {
@@ -200,7 +179,8 @@ class FormBuilder implements FormBuilderInterface {
     $form_id = $this->getFormId($form_id, $form_state);
 
     if (!isset($form_state['input'])) {
-      $form_state['input'] = $form_state['method'] == 'get' ? $this->request->query->all() : $this->request->request->all();
+      $request = $this->requestStack->getCurrentRequest();
+      $form_state['input'] = $form_state['method'] == 'get' ? $request->query->all() : $request->request->all();
     }
 
     if (isset($_SESSION['batch_form_state'])) {
@@ -301,6 +281,7 @@ class FormBuilder implements FormBuilderInterface {
         'files' => array(),
       ),
       'temporary' => array(),
+      'validation_complete' => FALSE,
       'submitted' => FALSE,
       'executed' => FALSE,
       'programmed' => FALSE,
@@ -431,6 +412,7 @@ class FormBuilder implements FormBuilderInterface {
       'input',
       'method',
       'submit_handlers',
+      'validation_complete',
       'submitted',
       'executed',
       'validate_handlers',
@@ -564,7 +546,7 @@ class FormBuilder implements FormBuilderInterface {
       if ($form_state['programmed'] && !isset($form_state['triggering_element']) && count($form_state['buttons']) == 1) {
         $form_state['triggering_element'] = reset($form_state['buttons']);
       }
-      $this->validateForm($form_id, $form, $form_state);
+      $this->formValidator->validateForm($form_id, $form, $form_state);
 
       // drupal_html_id() maintains a cache of element IDs it has seen, so it
       // can prevent duplicates. We want to be sure we reset that cache when a
@@ -576,52 +558,9 @@ class FormBuilder implements FormBuilderInterface {
         $this->drupalStaticReset('drupal_html_id');
       }
 
-      if ($form_state['submitted'] && !$this->getAnyErrors() && !$form_state['rebuild']) {
-        // Execute form submit handlers.
-        $this->executeHandlers('submit', $form, $form_state);
-
-        // If batches were set in the submit handlers, we process them now,
-        // possibly ending execution. We make sure we do not react to the batch
-        // that is already being processed (if a batch operation performs a
-        // self::submitForm).
-        if ($batch = &$this->batchGet() && !isset($batch['current_set'])) {
-          // Store $form_state information in the batch definition.
-          // We need the full $form_state when either:
-          // - Some submit handlers were saved to be called during batch
-          //   processing. See self::executeHandlers().
-          // - The form is multistep.
-          // In other cases, we only need the information expected by
-          // self::redirectForm().
-          if ($batch['has_form_submits'] || !empty($form_state['rebuild'])) {
-            $batch['form_state'] = $form_state;
-          }
-          else {
-            $batch['form_state'] = array_intersect_key($form_state, array_flip(array('programmed', 'rebuild', 'storage', 'no_redirect', 'redirect', 'redirect_route')));
-          }
-
-          $batch['progressive'] = !$form_state['programmed'];
-          $response = batch_process();
-          if ($batch['progressive']) {
-            return $response;
-          }
-
-          // Execution continues only for programmatic forms.
-          // For 'regular' forms, we get redirected to the batch processing
-          // page. Form redirection will be handled in _batch_finished(),
-          // after the batch is processed.
-        }
-
-        // Set a flag to indicate the the form has been processed and executed.
-        $form_state['executed'] = TRUE;
-
-        // If no response has been set, process the form redirect.
-        if (!isset($form_state['response']) && $redirect = $this->redirectForm($form_state)) {
-          $form_state['response'] = $redirect;
-        }
-
-        // If there is a response was set, return it instead of continuing.
-        if (isset($form_state['response']) && $form_state['response'] instanceof Response) {
-          return $form_state['response'];
+      if (!$form_state['rebuild'] && !$this->formValidator->getAnyErrors()) {
+        if ($submit_response = $this->formSubmitter->doSubmitForm($form, $form_state)) {
+          return $submit_response;
         }
       }
 
@@ -806,478 +745,77 @@ class FormBuilder implements FormBuilderInterface {
    * {@inheritdoc}
    */
   public function validateForm($form_id, &$form, &$form_state) {
-    if (isset($this->validatedForms[$form_id]) && empty($form_state['must_validate'])) {
-      return;
-    }
-
-    // If the session token was set by self::prepareForm(), ensure that it
-    // matches the current user's session.
-    if (isset($form['#token'])) {
-      if (!$this->csrfToken->validate($form_state['values']['form_token'], $form['#token'])) {
-        $path = $this->request->attributes->get('_system_path');
-        $query = UrlHelper::filterQueryParameters($this->request->query->all());
-        $url = $this->urlGenerator->generateFromPath($path, array('query' => $query));
-
-        // Setting this error will cause the form to fail validation.
-        $this->setErrorByName('form_token', $form_state, $this->t('The form has become outdated. Copy any unsaved work in the form below and then <a href="@link">reload this page</a>.', array('@link' => $url)));
-
-        // Stop here and don't run any further validation handlers, because they
-        // could invoke non-safe operations which opens the door for CSRF
-        // vulnerabilities.
-        $this->finalizeValidation($form_id, $form, $form_state);
-        return;
-      }
-    }
-
-    // Recursively validate each form element.
-    $this->doValidateForm($form, $form_state, $form_id);
-    $this->finalizeValidation($form_id, $form, $form_state);
-
-    // If validation errors are limited then remove any non validated form values,
-    // so that only values that passed validation are left for submit callbacks.
-    if (isset($form_state['triggering_element']['#limit_validation_errors']) && $form_state['triggering_element']['#limit_validation_errors'] !== FALSE) {
-      $values = array();
-      foreach ($form_state['triggering_element']['#limit_validation_errors'] as $section) {
-        // If the section exists within $form_state['values'], even if the value
-        // is NULL, copy it to $values.
-        $section_exists = NULL;
-        $value = NestedArray::getValue($form_state['values'], $section, $section_exists);
-        if ($section_exists) {
-          NestedArray::setValue($values, $section, $value);
-        }
-      }
-      // A button's #value does not require validation, so for convenience we
-      // allow the value of the clicked button to be retained in its normal
-      // $form_state['values'] locations, even if these locations are not
-      // included in #limit_validation_errors.
-      if (!empty($form_state['triggering_element']['#is_button'])) {
-        $button_value = $form_state['triggering_element']['#value'];
-
-        // Like all input controls, the button value may be in the location
-        // dictated by #parents. If it is, copy it to $values, but do not
-        // override what may already be in $values.
-        $parents = $form_state['triggering_element']['#parents'];
-        if (!NestedArray::keyExists($values, $parents) && NestedArray::getValue($form_state['values'], $parents) === $button_value) {
-          NestedArray::setValue($values, $parents, $button_value);
-        }
-
-        // Additionally, self::doBuildForm() places the button value in
-        // $form_state['values'][BUTTON_NAME]. If it's still there, after
-        // validation handlers have run, copy it to $values, but do not override
-        // what may already be in $values.
-        $name = $form_state['triggering_element']['#name'];
-        if (!isset($values[$name]) && isset($form_state['values'][$name]) && $form_state['values'][$name] === $button_value) {
-          $values[$name] = $button_value;
-        }
-      }
-      $form_state['values'] = $values;
-    }
-  }
-
-  /**
-   * Finalizes validation.
-   *
-   * @param string $form_id
-   *   The unique string identifying the form.
-   * @param array $form
-   *   An associative array containing the structure of the form.
-   * @param array $form_state
-   *   An associative array containing the current state of the form.
-   */
-  protected function finalizeValidation($form_id, &$form, &$form_state) {
-    // After validation, loop through and assign each element its errors.
-    $this->setElementErrorsFromFormState($form, $form_state);
-    // Mark this form as validated.
-    $this->validatedForms[$form_id] = TRUE;
+    $this->formValidator->validateForm($form_id, $form, $form_state);
   }
 
   /**
    * {@inheritdoc}
    */
   public function redirectForm($form_state) {
-    // Skip redirection for form submissions invoked via self::submitForm().
-    if (!empty($form_state['programmed'])) {
-      return;
-    }
-    // Skip redirection if rebuild is activated.
-    if (!empty($form_state['rebuild'])) {
-      return;
-    }
-    // Skip redirection if it was explicitly disallowed.
-    if (!empty($form_state['no_redirect'])) {
-      return;
-    }
-
-    // Allow using redirect responses directly if needed.
-    if (isset($form_state['redirect']) && $form_state['redirect'] instanceof RedirectResponse) {
-      return $form_state['redirect'];
-    }
-
-    // Check for a route-based redirection.
-    if (isset($form_state['redirect_route'])) {
-      // @todo Remove once all redirects are converted to Url.
-      if (!($form_state['redirect_route'] instanceof Url)) {
-        $form_state['redirect_route'] += array(
-          'route_parameters' => array(),
-          'options' => array(),
-        );
-        $form_state['redirect_route'] = new Url($form_state['redirect_route']['route_name'], $form_state['redirect_route']['route_parameters'], $form_state['redirect_route']['options']);
-      }
-
-      $form_state['redirect_route']->setAbsolute();
-      return new RedirectResponse($form_state['redirect_route']->toString());
-    }
-
-    // Only invoke a redirection if redirect value was not set to FALSE.
-    if (!isset($form_state['redirect']) || $form_state['redirect'] !== FALSE) {
-      if (isset($form_state['redirect'])) {
-        if (is_array($form_state['redirect'])) {
-          if (isset($form_state['redirect'][1])) {
-            $options = $form_state['redirect'][1];
-          }
-          else {
-            $options = array();
-          }
-          // Redirections should always use absolute URLs.
-          $options['absolute'] = TRUE;
-          if (isset($form_state['redirect'][2])) {
-            $status_code = $form_state['redirect'][2];
-          }
-          else {
-            $status_code = 302;
-          }
-          return new RedirectResponse($this->urlGenerator->generateFromPath($form_state['redirect'][0], $options), $status_code);
-        }
-        else {
-          // This function can be called from the installer, which guarantees
-          // that $redirect will always be a string, so catch that case here
-          // and use the appropriate redirect function.
-          if ($this->drupalInstallationAttempted()) {
-            install_goto($form_state['redirect']);
-          }
-          else {
-            return new RedirectResponse($this->urlGenerator->generateFromPath($form_state['redirect'], array('absolute' => TRUE)));
-          }
-        }
-      }
-      $url = $this->urlGenerator->generateFromPath($this->request->attributes->get('_system_path'), array(
-        'query' => $this->request->query->all(),
-        'absolute' => TRUE,
-      ));
-      return new RedirectResponse($url);
-    }
-  }
-
-  /**
-   * Performs validation on form elements.
-   *
-   * First ensures required fields are completed, #maxlength is not exceeded,
-   * and selected options were in the list of options given to the user. Then
-   * calls user-defined validators.
-   *
-   * @param $elements
-   *   An associative array containing the structure of the form.
-   * @param $form_state
-   *   A keyed array containing the current state of the form. The current
-   *   user-submitted data is stored in $form_state['values'], though
-   *   form validation functions are passed an explicit copy of the
-   *   values for the sake of simplicity. Validation handlers can also
-   *   $form_state to pass information on to submit handlers. For example:
-   *     $form_state['data_for_submission'] = $data;
-   *   This technique is useful when validation requires file parsing,
-   *   web service requests, or other expensive requests that should
-   *   not be repeated in the submission step.
-   * @param $form_id
-   *   A unique string identifying the form for validation, submission,
-   *   theming, and hook_form_alter functions.
-   */
-  protected function doValidateForm(&$elements, &$form_state, $form_id = NULL) {
-    // Recurse through all children.
-    foreach (Element::children($elements) as $key) {
-      if (isset($elements[$key]) && $elements[$key]) {
-        $this->doValidateForm($elements[$key], $form_state);
-      }
-    }
-
-    // Validate the current input.
-    if (!isset($elements['#validated']) || !$elements['#validated']) {
-      // The following errors are always shown.
-      if (isset($elements['#needs_validation'])) {
-        // Verify that the value is not longer than #maxlength.
-        if (isset($elements['#maxlength']) && Unicode::strlen($elements['#value']) > $elements['#maxlength']) {
-          $this->setError($elements, $form_state, $this->t('!name cannot be longer than %max characters but is currently %length characters long.', array('!name' => empty($elements['#title']) ? $elements['#parents'][0] : $elements['#title'], '%max' => $elements['#maxlength'], '%length' => Unicode::strlen($elements['#value']))));
-        }
-
-        if (isset($elements['#options']) && isset($elements['#value'])) {
-          if ($elements['#type'] == 'select') {
-            $options = $this->flattenOptions($elements['#options']);
-          }
-          else {
-            $options = $elements['#options'];
-          }
-          if (is_array($elements['#value'])) {
-            $value = in_array($elements['#type'], array('checkboxes', 'tableselect')) ? array_keys($elements['#value']) : $elements['#value'];
-            foreach ($value as $v) {
-              if (!isset($options[$v])) {
-                $this->setError($elements, $form_state, $this->t('An illegal choice has been detected. Please contact the site administrator.'));
-                $this->watchdog('form', 'Illegal choice %choice in !name element.', array('%choice' => $v, '!name' => empty($elements['#title']) ? $elements['#parents'][0] : $elements['#title']), WATCHDOG_ERROR);
-              }
-            }
-          }
-          // Non-multiple select fields always have a value in HTML. If the user
-          // does not change the form, it will be the value of the first option.
-          // Because of this, form validation for the field will almost always
-          // pass, even if the user did not select anything. To work around this
-          // browser behavior, required select fields without a #default_value
-          // get an additional, first empty option. In case the submitted value
-          // is identical to the empty option's value, we reset the element's
-          // value to NULL to trigger the regular #required handling below.
-          // @see form_process_select()
-          elseif ($elements['#type'] == 'select' && !$elements['#multiple'] && $elements['#required'] && !isset($elements['#default_value']) && $elements['#value'] === $elements['#empty_value']) {
-            $elements['#value'] = NULL;
-            $this->setValue($elements, NULL, $form_state);
-          }
-          elseif (!isset($options[$elements['#value']])) {
-            $this->setError($elements, $form_state, $this->t('An illegal choice has been detected. Please contact the site administrator.'));
-            $this->watchdog('form', 'Illegal choice %choice in %name element.', array('%choice' => $elements['#value'], '%name' => empty($elements['#title']) ? $elements['#parents'][0] : $elements['#title']), WATCHDOG_ERROR);
-          }
-        }
-      }
-
-      // While this element is being validated, it may be desired that some
-      // calls to self::setErrorByName() be suppressed and not result in a form
-      // error, so that a button that implements low-risk functionality (such as
-      // "Previous" or "Add more") that doesn't require all user input to be
-      // valid can still have its submit handlers triggered. The triggering
-      // element's #limit_validation_errors property contains the information
-      // for which errors are needed, and all other errors are to be suppressed.
-      // The #limit_validation_errors property is ignored if submit handlers
-      // will run, but the element doesn't have a #submit property, because it's
-      // too large a security risk to have any invalid user input when executing
-      // form-level submit handlers.
-      if (isset($form_state['triggering_element']['#limit_validation_errors']) && ($form_state['triggering_element']['#limit_validation_errors'] !== FALSE) && !($form_state['submitted'] && !isset($form_state['triggering_element']['#submit']))) {
-        $form_state['limit_validation_errors'] = $form_state['triggering_element']['#limit_validation_errors'];
-      }
-      // If submit handlers won't run (due to the submission having been
-      // triggered by an element whose #executes_submit_callback property isn't
-      // TRUE), then it's safe to suppress all validation errors, and we do so
-      // by default, which is particularly useful during an Ajax submission
-      // triggered by a non-button. An element can override this default by
-      // setting the #limit_validation_errors property. For button element
-      // types, #limit_validation_errors defaults to FALSE (via
-      // system_element_info()), so that full validation is their default
-      // behavior.
-      elseif (isset($form_state['triggering_element']) && !isset($form_state['triggering_element']['#limit_validation_errors']) && !$form_state['submitted']) {
-        $form_state['limit_validation_errors'] = array();
-      }
-      // As an extra security measure, explicitly turn off error suppression if
-      // one of the above conditions wasn't met. Since this is also done at the
-      // end of this function, doing it here is only to handle the rare edge
-      // case where a validate handler invokes form processing of another form.
-      else {
-        $form_state['limit_validation_errors'] = NULL;
-      }
-
-      // Make sure a value is passed when the field is required.
-      if (isset($elements['#needs_validation']) && $elements['#required']) {
-        // A simple call to empty() will not cut it here as some fields, like
-        // checkboxes, can return a valid value of '0'. Instead, check the
-        // length if it's a string, and the item count if it's an array.
-        // An unchecked checkbox has a #value of integer 0, different than
-        // string '0', which could be a valid value.
-        $is_empty_multiple = (!count($elements['#value']));
-        $is_empty_string = (is_string($elements['#value']) && Unicode::strlen(trim($elements['#value'])) == 0);
-        $is_empty_value = ($elements['#value'] === 0);
-        if ($is_empty_multiple || $is_empty_string || $is_empty_value) {
-          // Flag this element as #required_but_empty to allow #element_validate
-          // handlers to set a custom required error message, but without having
-          // to re-implement the complex logic to figure out whether the field
-          // value is empty.
-          $elements['#required_but_empty'] = TRUE;
-        }
-      }
-
-      // Call user-defined form level validators.
-      if (isset($form_id)) {
-        $this->executeHandlers('validate', $elements, $form_state);
-      }
-      // Call any element-specific validators. These must act on the element
-      // #value data.
-      elseif (isset($elements['#element_validate'])) {
-        foreach ($elements['#element_validate'] as $callback) {
-          call_user_func_array($callback, array(&$elements, &$form_state, &$form_state['complete_form']));
-        }
-      }
-
-      // Ensure that a #required form error is thrown, regardless of whether
-      // #element_validate handlers changed any properties. If $is_empty_value
-      // is defined, then above #required validation code ran, so the other
-      // variables are also known to be defined and we can test them again.
-      if (isset($is_empty_value) && ($is_empty_multiple || $is_empty_string || $is_empty_value)) {
-        if (isset($elements['#required_error'])) {
-          $this->setError($elements, $form_state, $elements['#required_error']);
-        }
-        // A #title is not mandatory for form elements, but without it we cannot
-        // set a form error message. So when a visible title is undesirable,
-        // form constructors are encouraged to set #title anyway, and then set
-        // #title_display to 'invisible'. This improves accessibility.
-        elseif (isset($elements['#title'])) {
-          $this->setError($elements, $form_state, $this->t('!name field is required.', array('!name' => $elements['#title'])));
-        }
-        else {
-          $this->setError($elements, $form_state);
-        }
-      }
-
-      $elements['#validated'] = TRUE;
-    }
-
-    // Done validating this element, so turn off error suppression.
-    // self::doValidateForm() turns it on again when starting on the next
-    // element, if it's still appropriate to do so.
-    $form_state['limit_validation_errors'] = NULL;
-  }
-
-  /**
-   * Stores the errors of each element directly on the element.
-   *
-   * Because self::getError() and self::getErrors() require the $form_state,
-   * we must provide a way for non-form functions to check the errors for a
-   * specific element. The most common usage of this is a #pre_render callback.
-   *
-   * @param array $elements
-   *   An associative array containing the structure of a form element.
-   * @param array $form_state
-   *   An associative array containing the current state of the form.
-   */
-  protected function setElementErrorsFromFormState(array &$elements, array &$form_state) {
-    // Recurse through all children.
-    foreach (Element::children($elements) as $key) {
-      if (isset($elements[$key]) && $elements[$key]) {
-        $this->setElementErrorsFromFormState($elements[$key], $form_state);
-      }
-    }
-    // Store the errors for this element on the element directly.
-    $elements['#errors'] = $this->getError($elements, $form_state);
+    return $this->formSubmitter->redirectForm($form_state);
   }
 
   /**
    * {@inheritdoc}
    */
-  public function executeHandlers($type, &$form, &$form_state) {
-    // If there was a button pressed, use its handlers.
-    if (isset($form_state[$type . '_handlers'])) {
-      $handlers = $form_state[$type . '_handlers'];
-    }
-    // Otherwise, check for a form-level handler.
-    elseif (isset($form['#' . $type])) {
-      $handlers = $form['#' . $type];
-    }
-    else {
-      $handlers = array();
-    }
+  public function executeValidateHandlers(&$form, &$form_state) {
+    $this->formValidator->executeValidateHandlers($form, $form_state);
+  }
 
-    foreach ($handlers as $function) {
-      // Check if a previous _submit handler has set a batch, but make sure we
-      // do not react to a batch that is already being processed (for instance
-      // if a batch operation performs a self::submitForm()).
-      if ($type == 'submit' && ($batch = &$this->batchGet()) && !isset($batch['id'])) {
-        // Some previous submit handler has set a batch. To ensure correct
-        // execution order, store the call in a special 'control' batch set.
-        // See _batch_next_set().
-        $batch['sets'][] = array('form_submit' => $function);
-        $batch['has_form_submits'] = TRUE;
-      }
-      else {
-        call_user_func_array($function, array(&$form, &$form_state));
-      }
-    }
+  /**
+   * {@inheritdoc}
+   */
+  public function executeSubmitHandlers(&$form, &$form_state) {
+    $this->formSubmitter->executeSubmitHandlers($form, $form_state);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function doSubmitForm(&$form, &$form_state) {
+    throw new \LogicException('Use FormBuilderInterface::processForm() instead.');
   }
 
   /**
    * {@inheritdoc}
    */
   public function setErrorByName($name, array &$form_state, $message = '') {
-    if (!isset($form_state['errors'][$name])) {
-      $record = TRUE;
-      if (isset($form_state['limit_validation_errors'])) {
-        // #limit_validation_errors is an array of "sections" within which user
-        // input must be valid. If the element is within one of these sections,
-        // the error must be recorded. Otherwise, it can be suppressed.
-        // #limit_validation_errors can be an empty array, in which case all
-        // errors are suppressed. For example, a "Previous" button might want
-        // its submit action to be triggered even if none of the submitted
-        // values are valid.
-        $record = FALSE;
-        foreach ($form_state['limit_validation_errors'] as $section) {
-          // Exploding by '][' reconstructs the element's #parents. If the
-          // reconstructed #parents begin with the same keys as the specified
-          // section, then the element's values are within the part of
-          // $form_state['values'] that the clicked button requires to be valid,
-          // so errors for this element must be recorded. As the exploded array
-          // will all be strings, we need to cast every value of the section
-          // array to string.
-          if (array_slice(explode('][', $name), 0, count($section)) === array_map('strval', $section)) {
-            $record = TRUE;
-            break;
-          }
-        }
-      }
-      if ($record) {
-        $form_state['errors'][$name] = $message;
-        $this->request->attributes->set('_form_errors', TRUE);
-        if ($message) {
-          $this->drupalSetMessage($message, 'error');
-        }
-      }
-    }
-
-    return $form_state['errors'];
+    $this->formValidator->setErrorByName($name, $form_state, $message);
   }
 
   /**
    * {@inheritdoc}
    */
   public function clearErrors(array &$form_state) {
-    $form_state['errors'] = array();
-    $this->request->attributes->set('_form_errors', FALSE);
+    $this->formValidator->clearErrors($form_state);
   }
 
   /**
    * {@inheritdoc}
    */
   public function getErrors(array $form_state) {
-    return $form_state['errors'];
+    return $this->formValidator->getErrors($form_state);
   }
 
   /**
    * {@inheritdoc}
    */
   public function getAnyErrors() {
-    return (bool) $this->request->attributes->get('_form_errors');
+    return $this->formValidator->getAnyErrors();
   }
 
   /**
    * {@inheritdoc}
    */
   public function getError($element, array &$form_state) {
-    if ($errors = $this->getErrors($form_state)) {
-      $parents = array();
-      foreach ($element['#parents'] as $parent) {
-        $parents[] = $parent;
-        $key = implode('][', $parents);
-        if (isset($errors[$key])) {
-          return $errors[$key];
-        }
-      }
-    }
+    return $this->formValidator->getError($element, $form_state);
   }
 
   /**
    * {@inheritdoc}
    */
   public function setError(&$element, array &$form_state, $message = '') {
-    $this->setErrorByName(implode('][', $element['#parents']), $form_state, $message);
+    $this->formValidator->setError($element, $form_state, $message);
   }
 
   /**
@@ -1683,51 +1221,21 @@ class FormBuilder implements FormBuilderInterface {
   }
 
   /**
-   * {@inheritdoc}
-   */
-  public function flattenOptions(array $array) {
-    $this->flattenedOptions = array();
-    $this->doFlattenOptions($array);
-    return $this->flattenedOptions;
-  }
-
-  /**
-   * Iterates over an array building a flat array with duplicate keys removed.
-   *
-   * This function also handles cases where objects are passed as array values.
-   *
-   * @param array $array
-   *   The form options array to process.
-   */
-  protected function doFlattenOptions(array $array) {
-    foreach ($array as $key => $value) {
-      if (is_object($value)) {
-        $this->doFlattenOptions($value->option);
-      }
-      elseif (is_array($value)) {
-        $this->doFlattenOptions($value);
-      }
-      else {
-        $this->flattenedOptions[$key] = 1;
-      }
-    }
-  }
-
-  /**
    * Triggers kernel.response and sends a form response.
    *
    * @param \Symfony\Component\HttpFoundation\Response $response
    *   A response object.
    */
   protected function sendResponse(Response $response) {
-    $event = new FilterResponseEvent($this->httpKernel, $this->request, HttpKernelInterface::MASTER_REQUEST, $response);
+    $request = $this->requestStack->getCurrentRequest();
+    $event = new FilterResponseEvent($this->httpKernel, $request, HttpKernelInterface::MASTER_REQUEST, $response);
 
     $this->eventDispatcher->dispatch(KernelEvents::RESPONSE, $event);
     // Prepare and send the response.
     $event->getResponse()
-      ->prepare($this->request)
+      ->prepare($request)
       ->send();
-    $this->httpKernel->terminate($this->request, $response);
+    $this->httpKernel->terminate($request, $response);
   }
 
   /**
@@ -1737,31 +1245,6 @@ class FormBuilder implements FormBuilderInterface {
    */
   protected function getElementInfo($type) {
     return element_info($type);
-  }
-
-  /**
-   * Wraps drupal_installation_attempted().
-   *
-   * @return bool
-   */
-  protected function drupalInstallationAttempted() {
-    return drupal_installation_attempted();
-  }
-
-  /**
-   * Wraps watchdog().
-   */
-  protected function watchdog($type, $message, array $variables = NULL, $severity = WATCHDOG_NOTICE, $link = NULL) {
-    watchdog($type, $message, $variables, $severity, $link);
-  }
-
-  /**
-   * Wraps drupal_set_message().
-   *
-   * @return array|null
-   */
-  protected function drupalSetMessage($message = NULL, $type = 'status', $repeat = FALSE) {
-    return drupal_set_message($message, $type, $repeat);
   }
 
   /**
@@ -1805,29 +1288,6 @@ class FormBuilder implements FormBuilderInterface {
       }
     }
     return $this->currentUser;
-  }
-
-  /**
-   * Translates a string to the current language or to a given language.
-   *
-   * See the t() documentation for details.
-   */
-  protected function t($string, array $args = array(), array $options = array()) {
-    return $this->translationManager->translate($string, $args, $options);
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function setRequest(Request $request) {
-    $this->request = $request;
-  }
-
-  /**
-   * Wraps batch_get().
-   */
-  protected function &batchGet() {
-    return batch_get();
   }
 
 }

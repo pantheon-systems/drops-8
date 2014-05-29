@@ -9,13 +9,14 @@ use Drupal\Core\Url;
 use Drupal\menu_link\Entity\MenuLink;
 use Drupal\menu_link\MenuLinkInterface;
 use Symfony\Cmf\Component\Routing\RouteObjectInterface;
+use Symfony\Component\HttpFoundation\Request;
 
-function menu_link_help($path, $arg) {
-  switch ($path) {
-    case 'admin/help#menu_link':
+function menu_link_help($route_name, Request $request) {
+  switch ($route_name) {
+    case 'help.page.menu_link':
       $output = '';
       $output .= '<h3>' . t('About') . '</h3>';
-      $output .= '<p>' . t('The Menu Link module allows users to create menu links. It is required by the Menu module, which provides an interface for managing menus. See the <a href="!menu-help">Menu module help page</a> for more information.', array('!menu-help' => \Drupal::url('help.page', array('name' => 'menu_ui')))) . '</p>';
+      $output .= '<p>' . t('The Menu Link module allows users to create menu links. It is required by the Menu UI module, which provides an interface for managing menus. See the <a href="!menu-help">Menu UI module help page</a> for more information.', array('!menu-help' => \Drupal::url('help.page', array('name' => 'menu_ui')))) . '</p>';
       return $output;
   }
 }
@@ -44,9 +45,15 @@ function menu_link_uri(MenuLink $menu_link) {
  *
  * @return \Drupal\menu_link\Entity\MenuLink|null
  *   A menu link entity, or NULL if there is no entity with the given ID.
+ *
+ * @deprecated in Drupal 8.x, will be removed before Drupal 9.0.
+ *   Use \Drupal\menu_link\Entity\MenuLink::load().
  */
 function menu_link_load($mlid = NULL, $reset = FALSE) {
-  return entity_load('menu_link', $mlid, $reset);
+  if ($reset) {
+    \Drupal::entityManager()->getStorage('menu_link')->resetCache(array($mlid));
+  }
+  return MenuLink::load($mlid);
 }
 
 /**
@@ -62,9 +69,15 @@ function menu_link_load($mlid = NULL, $reset = FALSE) {
  *
  * @see menu_link_load()
  * @see entity_load_multiple()
+ *
+ * @deprecated in Drupal 8.x, will be removed before Drupal 9.0.
+ *   Use \Drupal\menu_link\Entity\MenuLink::loadMultiple().
  */
 function menu_link_load_multiple(array $mlids = NULL, $reset = FALSE) {
-  return entity_load_multiple('menu_link', $mlids, $reset);
+  if ($reset) {
+    \Drupal::entityManager()->getStorage('menu_link')->resetCache($mlids);
+  }
+  return MenuLink::loadMultiple($mlids);
 }
 
 /**

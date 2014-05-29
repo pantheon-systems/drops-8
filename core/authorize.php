@@ -20,7 +20,7 @@
  * @link authorize Authorized operation helper functions @endlink
  */
 
-use Drupal\Component\Utility\Settings;
+use Drupal\Core\Site\Settings;
 use Drupal\Core\Page\DefaultHtmlPageRenderer;
 
 // Change the directory to the Drupal root.
@@ -62,6 +62,7 @@ require_once __DIR__ . '/includes/ajax.inc';
 // Prepare a minimal bootstrap.
 drupal_bootstrap(DRUPAL_BOOTSTRAP_PAGE_CACHE);
 $request = \Drupal::request();
+\Drupal::service('request_stack')->push($request);
 
 // We have to enable the user and system modules, even to check access and
 // display errors via the maintenance theme.
@@ -146,7 +147,7 @@ if (authorize_access_allowed()) {
 }
 else {
   drupal_add_http_header('Status', '403 Forbidden');
-  watchdog('access denied', 'authorize.php', NULL, WATCHDOG_WARNING);
+  watchdog('access denied', 'authorize.php', array(), WATCHDOG_WARNING);
   $page_title = t('Access denied');
   $output = t('You are not allowed to access this page.');
 }
