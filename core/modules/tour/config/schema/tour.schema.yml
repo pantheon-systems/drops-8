@@ -1,27 +1,18 @@
 # Schema for the configuration files of the Tour module.
 
 tour.tour.*:
-  type: mapping
+  type: config_entity
   label: 'Tour settings'
   mapping:
     id:
       type: string
       label: 'ID'
-    uuid:
-      type: string
-      label: 'UUID'
-    module:
-      type: string
-      label: 'Providing module'
     label:
       type: label
       label: 'Label'
-    status:
-      type: boolean
-      label: 'Enabled'
-    langcode:
+    module:
       type: string
-      label: 'Default language'
+      label: 'Providing module'
     routes:
       type: sequence
       label: 'Route settings'
@@ -34,9 +25,6 @@ tour.tour.*:
       sequence:
         - type: tour.tip.[plugin]
           label: 'Tour tip'
-    dependencies:
-      type: config_dependencies
-      label: 'Dependencies'
 
 tour.tip:
   type: mapping

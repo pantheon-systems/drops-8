@@ -11,8 +11,21 @@ use Drupal\Core\Executable\ExecutablePluginBase;
 
 /**
  * Provides a basis for fulfilling contexts for condition plugins.
+ *
+ * @see \Drupal\Core\Condition\Annotation\Condition
+ * @see \Drupal\Core\Condition\ConditionInterface
+ * @see \Drupal\Core\Condition\ConditionManager
+ *
+ * @ingroup plugin_api
  */
 abstract class ConditionPluginBase extends ExecutablePluginBase implements ConditionInterface {
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function contextDefinitions() {
+    return [];
+  }
 
   /**
    * {@inheritdoc}
@@ -37,7 +50,7 @@ abstract class ConditionPluginBase extends ExecutablePluginBase implements Condi
     $form['negate'] = array(
       '#type' => 'checkbox',
       '#title' => $this->t('Negate the condition.'),
-      '#default_value' => isset($this->configuration['negate']) ? $this->configuration['negate'] : FALSE,
+      '#default_value' => $this->configuration['negate'],
     );
     return $form;
   }
@@ -83,7 +96,9 @@ abstract class ConditionPluginBase extends ExecutablePluginBase implements Condi
    * {@inheritdoc}
    */
   public function defaultConfiguration() {
-    return array();
+    return array(
+      'negate' => FALSE,
+    );
   }
 
   /**

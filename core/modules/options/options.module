@@ -7,14 +7,15 @@
 
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Entity\Exception\FieldStorageDefinitionUpdateForbiddenException;
 use Drupal\field\FieldConfigInterface;
 use Drupal\field\FieldConfigUpdateForbiddenException;
-use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Implements hook_help().
  */
-function options_help($route_name, Request $request) {
+function options_help($route_name, RouteMatchInterface $route_match) {
   switch ($route_name) {
     case 'help.page.options':
       $output = '';
@@ -100,7 +101,7 @@ function options_field_config_update_forbid(FieldConfigInterface $field, FieldCo
     $prior_allowed_values = $prior_field->getSetting('allowed_values');
     $lost_keys = array_diff(array_keys($prior_allowed_values), array_keys($allowed_values));
     if (_options_values_in_use($field->entity_type, $field->getName(), $lost_keys)) {
-      throw new FieldConfigUpdateForbiddenException(t('A list field (@field_name) with existing data cannot have its keys changed.', array('@field_name' => $field->getName())));
+      throw new FieldStorageDefinitionUpdateForbiddenException(t('A list field (@field_name) with existing data cannot have its keys changed.', array('@field_name' => $field->getName())));
     }
   }
 }

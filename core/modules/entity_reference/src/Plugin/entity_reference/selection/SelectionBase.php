@@ -7,6 +7,7 @@
 
 namespace Drupal\entity_reference\Plugin\entity_reference\selection;
 
+use Drupal\Component\Utility\String;
 use Drupal\Core\Database\Query\AlterableInterface;
 use Drupal\Core\Database\Query\SelectInterface;
 use Drupal\Core\Entity\EntityInterface;
@@ -21,7 +22,7 @@ use Drupal\entity_reference\Plugin\Type\Selection\SelectionInterface;
  *   label = @Translation("Default"),
  *   group = "default",
  *   weight = 0,
- *   derivative = "Drupal\entity_reference\Plugin\Derivative\SelectionBase"
+ *   deriver = "Drupal\entity_reference\Plugin\Derivative\SelectionBase"
  * )
  */
 class SelectionBase implements SelectionInterface {
@@ -108,12 +109,12 @@ class SelectionBase implements SelectionInterface {
         });
         foreach ($bundle_fields as $instance_name => $field_definition) {
           /* @var \Drupal\Core\Field\FieldDefinitionInterface $field_definition */
-          $columns = $field_definition->getColumns();
+          $columns = $field_definition->getFieldStorageDefinition()->getColumns();
           // If there is more than one column, display them all, otherwise just
           // display the field label.
           // @todo: Use property labels instead of the column name.
           if (count($columns) > 1) {
-            foreach ($field_definition->getColumns() as $column_name => $column_info) {
+            foreach ($columns as $column_name => $column_info) {
               $fields[$instance_name . '.' . $column_name] = t('@label (@column)', array('@label' => $field_definition->getLabel(), '@column' => $column_name));
             }
           }
@@ -183,7 +184,7 @@ class SelectionBase implements SelectionInterface {
     $entities = entity_load_multiple($target_type, $result);
     foreach ($entities as $entity_id => $entity) {
       $bundle = $entity->bundle();
-      $options[$bundle][$entity_id] = check_plain($entity->label());
+      $options[$bundle][$entity_id] = String::checkPlain($entity->label());
     }
 
     return $options;
@@ -220,7 +221,11 @@ class SelectionBase implements SelectionInterface {
    * {@inheritdoc}
    */
   public function validateAutocompleteInput($input, &$element, &$form_state, $form, $strict = TRUE) {
-    $entities = $this->getReferenceableEntities($input, '=', 6);
+    $bundled_entities = $this->getReferenceableEntities($input, '=', 6);
+    $entities = array();
+    foreach ($bundled_entities as $entities_list) {
+      $entities += $entities_list;
+    }
     $params = array(
       '%value' => $input,
       '@value' => $input,

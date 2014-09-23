@@ -33,8 +33,7 @@ use Drupal\Core\Entity\EntityStorageInterface;
  *   admin_permission = "administer blocks",
  *   fieldable = FALSE,
  *   entity_keys = {
- *     "id" = "id",
- *     "label" = "label"
+ *     "id" = "id"
  *   },
  *   links = {
  *     "delete-form" = "block.admin_block_delete",
@@ -87,13 +86,6 @@ class Block extends ConfigEntityBase implements BlockInterface, EntityWithPlugin
   protected $pluginBag;
 
   /**
-   * The visibility settings.
-   *
-   * @var array
-   */
-  protected $visibility;
-
-  /**
    * {@inheritdoc}
    */
   public function getPlugin() {
@@ -135,25 +127,6 @@ class Block extends ConfigEntityBase implements BlockInterface, EntityWithPlugin
   }
 
   /**
-   * {@inheritdoc}
-   */
-  public function toArray() {
-    $properties = parent::toArray();
-    $names = array(
-      'theme',
-      'region',
-      'weight',
-      'plugin',
-      'settings',
-      'visibility',
-    );
-    foreach ($names as $name) {
-      $properties[$name] = $this->get($name);
-    }
-    return $properties;
-  }
-
-  /**
    * Sorts active blocks by weight; sorts inactive blocks by name.
    */
   public static function sort(ConfigEntityInterface $a, ConfigEntityInterface $b) {
@@ -192,6 +165,13 @@ class Block extends ConfigEntityBase implements BlockInterface, EntityWithPlugin
    */
   public function getListCacheTags() {
     return array('theme' => $this->theme);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getVisibility() {
+    return $this->getPlugin()->getVisibilityConditions()->getConfiguration();
   }
 
 }

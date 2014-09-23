@@ -142,7 +142,8 @@ abstract class GenericCacheBackendUnitTestBase extends DrupalUnitTestBase {
     $this->assert(is_object($cached), "Backend returned an object for cache id test1.");
     $this->assertIdentical($with_backslash, $cached->data);
     $this->assertTrue($cached->valid, 'Item is marked as valid.');
-    $this->assertTrue($cached->created >= REQUEST_TIME && $cached->created < microtime(TRUE), 'Created time is correct.');
+    // We need to round because microtime may be rounded up in the backend.
+    $this->assertTrue($cached->created >= REQUEST_TIME && $cached->created <= round(microtime(TRUE), 3), 'Created time is correct.');
     $this->assertEqual($cached->expire, Cache::PERMANENT, 'Expire time is correct.');
 
     $this->assertIdentical(FALSE, $backend->get('test2'), "Backend does not contain data for cache id test2.");
@@ -151,7 +152,7 @@ abstract class GenericCacheBackendUnitTestBase extends DrupalUnitTestBase {
     $this->assert(is_object($cached), "Backend returned an object for cache id test2.");
     $this->assertIdentical(array('value' => 3), $cached->data);
     $this->assertTrue($cached->valid, 'Item is marked as valid.');
-    $this->assertTrue($cached->created >= REQUEST_TIME && $cached->created < microtime(TRUE), 'Created time is correct.');
+    $this->assertTrue($cached->created >= REQUEST_TIME && $cached->created <= round(microtime(TRUE), 3), 'Created time is correct.');
     $this->assertEqual($cached->expire, REQUEST_TIME + 3, 'Expire time is correct.');
 
     $backend->set('test3', 'foobar', REQUEST_TIME - 3);
@@ -159,7 +160,7 @@ abstract class GenericCacheBackendUnitTestBase extends DrupalUnitTestBase {
     $cached = $backend->get('test3', TRUE);
     $this->assert(is_object($cached), 'Backend returned an object for cache id test3.');
     $this->assertFalse($cached->valid, 'Item is marked as valid.');
-    $this->assertTrue($cached->created >= REQUEST_TIME && $cached->created < microtime(TRUE), 'Created time is correct.');
+    $this->assertTrue($cached->created >= REQUEST_TIME && $cached->created <= round(microtime(TRUE), 3), 'Created time is correct.');
     $this->assertEqual($cached->expire, REQUEST_TIME - 3, 'Expire time is correct.');
 
     $this->assertIdentical(FALSE, $backend->get('test4'), "Backend does not contain data for cache id test4.");
@@ -169,7 +170,7 @@ abstract class GenericCacheBackendUnitTestBase extends DrupalUnitTestBase {
     $this->assert(is_object($cached), "Backend returned an object for cache id test4.");
     $this->assertIdentical($with_eof, $cached->data);
     $this->assertTrue($cached->valid, 'Item is marked as valid.');
-    $this->assertTrue($cached->created >= REQUEST_TIME && $cached->created < microtime(TRUE), 'Created time is correct.');
+    $this->assertTrue($cached->created >= REQUEST_TIME && $cached->created <= round(microtime(TRUE), 3), 'Created time is correct.');
     $this->assertEqual($cached->expire, Cache::PERMANENT, 'Expire time is correct.');
 
     $this->assertIdentical(FALSE, $backend->get('test5'), "Backend does not contain data for cache id test5.");
@@ -179,7 +180,7 @@ abstract class GenericCacheBackendUnitTestBase extends DrupalUnitTestBase {
     $this->assert(is_object($cached), "Backend returned an object for cache id test5.");
     $this->assertIdentical($with_eof_and_semicolon, $cached->data);
     $this->assertTrue($cached->valid, 'Item is marked as valid.');
-    $this->assertTrue($cached->created >= REQUEST_TIME && $cached->created < microtime(TRUE), 'Created time is correct.');
+    $this->assertTrue($cached->created >= REQUEST_TIME && $cached->created <= round(microtime(TRUE), 3), 'Created time is correct.');
     $this->assertEqual($cached->expire, Cache::PERMANENT, 'Expire time is correct.');
 
     $with_variable = array('foo' => '$bar');
@@ -187,6 +188,25 @@ abstract class GenericCacheBackendUnitTestBase extends DrupalUnitTestBase {
     $cached = $backend->get('test6');
     $this->assert(is_object($cached), "Backend returned an object for cache id test6.");
     $this->assertIdentical($with_variable, $cached->data);
+
+    // Make sure that a cached object is not affected by changing the original.
+    $data = new \stdClass();
+    $data->value = 1;
+    $data->obj = new \stdClass();
+    $data->obj->value = 2;
+    $backend->set('test7', $data);
+    $expected_data = clone $data;
+    // Add a property to the original. It should not appear in the cached data.
+    $data->this_should_not_be_in_the_cache = TRUE;
+    $cached = $backend->get('test7');
+    $this->assert(is_object($cached), "Backend returned an object for cache id test7.");
+    $this->assertEqual($expected_data, $cached->data);
+    $this->assertFalse(isset($cached->data->this_should_not_be_in_the_cache));
+    // Add a property to the cache data. It should not appear when we fetch
+    // the data from cache again.
+    $cached->data->this_should_not_be_in_the_cache = TRUE;
+    $fresh_cached = $backend->get('test7');
+    $this->assertFalse(isset($fresh_cached->data->this_should_not_be_in_the_cache));
   }
 
   /**
@@ -274,7 +294,7 @@ abstract class GenericCacheBackendUnitTestBase extends DrupalUnitTestBase {
     $this->assert(isset($ret['test7']), "Existing cache id test7 is set.");
     // Test return - ensure that objects has expected properties.
     $this->assertTrue($ret['test2']->valid, 'Item is marked as valid.');
-    $this->assertTrue($ret['test2']->created >= REQUEST_TIME && $ret['test2']->created < microtime(TRUE), 'Created time is correct.');
+    $this->assertTrue($ret['test2']->created >= REQUEST_TIME && $ret['test2']->created <= round(microtime(TRUE), 3), 'Created time is correct.');
     $this->assertEqual($ret['test2']->expire, Cache::PERMANENT, 'Expire time is correct.');
     // Test return - ensure it does not contain nonexistent cache ids.
     $this->assertFalse(isset($ret['test19']), "Nonexistent cache id test19 is not set.");

@@ -7,6 +7,7 @@
 
 namespace Drupal\field_ui;
 
+use Drupal\Component\Utility\String;
 use Drupal\Core\Entity\EntityListBuilderInterface;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
@@ -115,7 +116,7 @@ class FieldOverview extends OverviewBase {
 
     // Fields.
     foreach ($instances as $name => $instance) {
-      $field = $instance->getField();
+      $field = $instance->getFieldStorageDefinition();
       $route_parameters = array(
         $this->bundleEntityType => $this->bundle,
         'field_instance_config' => $instance->id(),
@@ -125,7 +126,7 @@ class FieldOverview extends OverviewBase {
           'id' => drupal_html_class($name),
         ),
         'label' => array(
-          '#markup' => check_plain($instance->getLabel()),
+          '#markup' => String::checkPlain($instance->getLabel()),
         ),
         'field_name' => array(
           '#markup' => $instance->getName(),
@@ -210,7 +211,7 @@ class FieldOverview extends OverviewBase {
         // contrib modules can form_alter() the value for newly created fields.
         'translatable' => array(
           '#type' => 'value',
-          '#value' => FALSE,
+          '#value' => TRUE,
         ),
       );
     }
@@ -380,6 +381,8 @@ class FieldOverview extends OverviewBase {
         'entity_type' => $this->entity_type,
         'bundle' => $this->bundle,
         'label' => $values['label'],
+        // Field translatability should be explicitly enabled by the users.
+        'translatable' => FALSE,
       );
 
       // Create the field and instance.
@@ -512,7 +515,7 @@ class FieldOverview extends OverviewBase {
         // - locked fields,
         // - fields that should not be added via user interface.
         $field_type = $instance->getType();
-        $field = $instance->getField();
+        $field = $instance->getFieldStorageDefinition();
         if (empty($field->locked) && empty($field_types[$field_type]['no_ui'])) {
           $options[$instance->getName()] = array(
             'type' => $field_type,

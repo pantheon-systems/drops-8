@@ -12,6 +12,15 @@ use Drupal\Component\Annotation\Plugin;
 /**
  * Defines an filter annotation object.
  *
+ * Plugin Namespace: Plugin\Filter
+ *
+ * For a working example, see \Drupal\filter\Plugin\Filter\FilterHtml
+ *
+ * @see \Drupal\filter\FilterPluginManager
+ * @see \Drupal\filter\Plugin\FilterInterface
+ * @see \Drupal\filter\Plugin\FilterBase
+ * @see plugin_api
+ *
  * @Annotation
  */
 class Filter extends Plugin {
@@ -63,16 +72,6 @@ class Filter extends Plugin {
    * @var bool (optional)
    */
   public $status = FALSE;
-
-  /**
-   * Specifies whether the filtered text can be cached.
-   *
-   * Note that setting this to FALSE makes the entire text format not cacheable,
-   * which may have an impact on the site's overall performance.
-   *
-   * @var bool (optional)
-   */
-  public $cache = TRUE;
 
   /**
    * The default settings for the filter.

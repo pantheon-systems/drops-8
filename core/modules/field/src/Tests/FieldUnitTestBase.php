@@ -9,7 +9,7 @@ namespace Drupal\field\Tests;
 
 use Drupal\Component\Utility\Xss;
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\Core\Language\Language;
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\simpletest\DrupalUnitTestBase;
 
 /**
@@ -36,9 +36,9 @@ abstract class FieldUnitTestBase extends DrupalUnitTestBase {
    */
   function setUp() {
     parent::setUp();
-    $this->installSchema('entity_test', 'entity_test');
+    $this->installEntitySchema('entity_test');
+    $this->installEntitySchema('user');
     $this->installSchema('system', array('sequences'));
-    $this->installSchema('user', array('users', 'users_roles'));
 
     // Set default storage backend and configure the theme system.
     $this->installConfig(array('field', 'system'));
@@ -77,8 +77,7 @@ abstract class FieldUnitTestBase extends DrupalUnitTestBase {
     $this->$field->save();
     $this->$field_id = $this->{$field}->uuid();
     $this->$instance_definition = array(
-      'field_name' => $this->$field_name,
-      'entity_type' => $entity_type,
+      'field' => $this->$field,
       'bundle' => $bundle,
       'label' => $this->randomName() . '_label',
       'description' => $this->randomName() . '_description',
@@ -145,11 +144,11 @@ abstract class FieldUnitTestBase extends DrupalUnitTestBase {
    *   The array of expected values.
    * @param $langcode
    *   (Optional) The language code for the values. Defaults to
-   *   Drupal\Core\Language\Language::LANGCODE_NOT_SPECIFIED.
+   *   \Drupal\Core\Language\LanguageInterface::LANGCODE_NOT_SPECIFIED.
    * @param $column
    *   (Optional) The name of the column to check. Defaults to 'value'.
    */
-  function assertFieldValues(EntityInterface $entity, $field_name, $expected_values, $langcode = Language::LANGCODE_NOT_SPECIFIED, $column = 'value') {
+  function assertFieldValues(EntityInterface $entity, $field_name, $expected_values, $langcode = LanguageInterface::LANGCODE_NOT_SPECIFIED, $column = 'value') {
     // Re-load the entity to make sure we have the latest changes.
     entity_get_controller($entity->getEntityTypeId())->resetCache(array($entity->id()));
     $e = entity_load($entity->getEntityTypeId(), $entity->id());

@@ -7,9 +7,10 @@
 
 namespace Drupal\text\Tests\Formatter;
 
+use Drupal\Component\Utility\String;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
-use Drupal\Core\Language\Language;
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\simpletest\DrupalUnitTestBase;
 
 /**
@@ -48,7 +49,7 @@ class TextPlainUnitTest extends DrupalUnitTestBase {
 
     // Configure the theme system.
     $this->installConfig(array('system', 'field'));
-    $this->installSchema('entity_test', 'entity_test');
+    $this->installEntitySchema('entity_test');
 
     // @todo Add helper methods for all of the following.
 
@@ -76,9 +77,8 @@ class TextPlainUnitTest extends DrupalUnitTestBase {
     $this->field->save();
 
     $this->instance = entity_create('field_instance_config', array(
-      'entity_type' => $this->entity_type,
+      'field' => $this->field,
       'bundle' => $this->bundle,
-      'field_name' => $this->field_name,
       'label' => $this->randomName(),
       'settings' => $this->instance_settings,
     ));
@@ -92,7 +92,7 @@ class TextPlainUnitTest extends DrupalUnitTestBase {
       ));
     $this->display->save();
 
-    $this->langcode = Language::LANGCODE_NOT_SPECIFIED;
+    $this->langcode = LanguageInterface::LANGCODE_NOT_SPECIFIED;
   }
 
   /**
@@ -145,7 +145,7 @@ class TextPlainUnitTest extends DrupalUnitTestBase {
    * @return string
    *   The $message with exported replacement tokens, sanitized for HTML output.
    *
-   * @see check_plain()
+   * @see \Drupal\Component\Utility\String::checkPlain()
    * @see format_string()
    */
   protected function formatString($message, array $args) {
@@ -305,7 +305,7 @@ class TextPlainUnitTest extends DrupalUnitTestBase {
     $this->renderEntityFields($entity, $this->display);
     $this->assertText($value);
     $this->assertNoRaw($value);
-    $this->assertRaw(nl2br(check_plain($value)));
+    $this->assertRaw(nl2br(String::checkPlain($value)));
   }
 
 }

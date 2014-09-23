@@ -7,13 +7,13 @@
 
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
+use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\node\NodeInterface;
-use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Implements hook_help().
  */
-function statistics_help($route_name, Request $request) {
+function statistics_help($route_name, RouteMatchInterface $route_match) {
   switch ($route_name) {
     case 'help.page.statistics':
       $output = '';
@@ -155,7 +155,7 @@ function statistics_get($nid) {
 
   if ($nid > 0) {
     // Retrieve an array with both totalcount and daycount.
-    return db_query('SELECT totalcount, daycount, timestamp FROM {node_counter} WHERE nid = :nid', array(':nid' => $nid), array('target' => 'slave'))->fetchAssoc();
+    return db_query('SELECT totalcount, daycount, timestamp FROM {node_counter} WHERE nid = :nid', array(':nid' => $nid), array('target' => 'replica'))->fetchAssoc();
   }
 }
 

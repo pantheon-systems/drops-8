@@ -11,7 +11,7 @@ use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\EventSubscriber\HtmlViewSubscriber;
-use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\system\Tests\Cache\PageCacheTagsTestBase;
 
 /**
@@ -68,7 +68,6 @@ abstract class EntityCacheTagsTestBase extends PageCacheTagsTestBase {
     if ($this->entity->getEntityType()->isFieldable()) {
       // Add field, so we can modify the Field and FieldInstance entities to
       // verify that changes to those indeed clear cache tags.
-      $field_name = drupal_strtolower($this->randomName());
       entity_create('field_config', array(
         'name' => 'configurable_field',
         'entity_type' => $this->entity->getEntityTypeId(),
@@ -163,7 +162,7 @@ abstract class EntityCacheTagsTestBase extends PageCacheTagsTestBase {
       'name' => $field_name,
       'entity_type' => $entity_type,
       'type' => 'entity_reference',
-      'cardinality' => FieldDefinitionInterface::CARDINALITY_UNLIMITED,
+      'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
       'settings' => array(
         'target_type' => $referenced_entity->getEntityTypeId(),
       ),
@@ -230,7 +229,8 @@ abstract class EntityCacheTagsTestBase extends PageCacheTagsTestBase {
     $non_referencing_entity_path = $this->non_referencing_entity->getSystemPath();
     $listing_path = 'entity_test/list/' . $entity_type . '_reference/' . $entity_type . '/' . $this->entity->id();
 
-    $theme_cache_tags = array('content:1', 'theme:stark', 'theme_global_settings:1');
+    $render_cache_tags = array('rendered:1');
+    $theme_cache_tags = array('theme:stark', 'theme_global_settings:1');
 
     $view_cache_tag = array();
     if ($this->entity->getEntityType()->hasControllerClass('view_builder')) {
@@ -255,35 +255,32 @@ abstract class EntityCacheTagsTestBase extends PageCacheTagsTestBase {
     $non_referencing_entity_cache_tags = explode(' ', HtmlViewSubscriber::convertCacheTagsToHeader($non_referencing_entity_cache_tags));
 
 
-    // Prime the page cache for the referencing entity.
+    $this->pass("Test referencing entity.", 'Debug');
     $this->verifyPageCache($referencing_entity_path, 'MISS');
-
     // Verify a cache hit, but also the presence of the correct cache tags.
-    $tags = array_merge($theme_cache_tags, $referencing_entity_cache_tags);
+    $tags = array_merge($render_cache_tags, $theme_cache_tags, $referencing_entity_cache_tags);
     $this->verifyPageCache($referencing_entity_path, 'HIT', $tags);
-
     // Also verify the existence of an entity render cache entry.
-    $cid = 'entity_view:entity_test:' . $this->referencing_entity->id() . ':full:stark:r.anonymous';
-    $this->verifyRenderCache($cid, $referencing_entity_cache_tags);
+    $cid = 'entity_view:entity_test:' . $this->referencing_entity->id() . ':full:stark:r.anonymous:' . date_default_timezone_get();
+    $tags = array_merge($render_cache_tags, $referencing_entity_cache_tags);
+    $this->verifyRenderCache($cid, $tags);
 
-    // Prime the page cache for the non-referencing entity.
+    $this->pass("Test non-referencing entity.", 'Debug');
     $this->verifyPageCache($non_referencing_entity_path, 'MISS');
-
     // Verify a cache hit, but also the presence of the correct cache tags.
-    $tags = array_merge($theme_cache_tags, $non_referencing_entity_cache_tags);
+    $tags = array_merge($render_cache_tags, $theme_cache_tags, $non_referencing_entity_cache_tags);
     $this->verifyPageCache($non_referencing_entity_path, 'HIT', $tags);
-
     // Also verify the existence of an entity render cache entry.
-    $cid = 'entity_view:entity_test:' . $this->non_referencing_entity->id() . ':full:stark:r.anonymous';
-    $this->verifyRenderCache($cid, $non_referencing_entity_cache_tags);
+    $cid = 'entity_view:entity_test:' . $this->non_referencing_entity->id() . ':full:stark:r.anonymous:' . date_default_timezone_get();
+    $tags = array_merge($render_cache_tags, $non_referencing_entity_cache_tags);
+    $this->verifyRenderCache($cid, $tags);
 
 
-
+    $this->pass("Test listing of referencing entities.", 'Debug');
     // Prime the page cache for the listing of referencing entities.
     $this->verifyPageCache($listing_path, 'MISS');
-
     // Verify a cache hit, but also the presence of the correct cache tags.
-    $tags = array_merge($theme_cache_tags, $referencing_entity_cache_tags);
+    $tags = array_merge($render_cache_tags, $theme_cache_tags, $referencing_entity_cache_tags);
     $this->verifyPageCache($listing_path, 'HIT', $tags);
 
 
@@ -439,9 +436,10 @@ abstract class EntityCacheTagsTestBase extends PageCacheTagsTestBase {
       \Drupal::entityManager()->getViewBuilder('entity_test')->getCacheTag()
     );
     $referencing_entity_cache_tags = explode(' ', HtmlViewSubscriber::convertCacheTagsToHeader($referencing_entity_cache_tags));
-    $tags = array_merge($theme_cache_tags, $referencing_entity_cache_tags);
+    $tags = array_merge($render_cache_tags, $theme_cache_tags, $referencing_entity_cache_tags);
     $this->verifyPageCache($referencing_entity_path, 'HIT', $tags);
-    $this->verifyPageCache($listing_path, 'HIT', $theme_cache_tags);
+    $tags = array_merge($render_cache_tags, $theme_cache_tags);
+    $this->verifyPageCache($listing_path, 'HIT', $tags);
   }
 
   /**

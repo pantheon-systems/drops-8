@@ -9,8 +9,11 @@ namespace Drupal\config_translation\Tests;
 
 use Drupal\config_translation\ConfigMapperManager;
 use Drupal\Core\Language\Language;
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\TypedData\TypedDataInterface;
 use Drupal\Tests\UnitTestCase;
+use Drupal\Core\TypedData\DataDefinition;
+use Drupal\Core\TypedData\DataDefinitionInterface;
 
 /**
  * Tests ConfigMapperManager.
@@ -30,7 +33,7 @@ class ConfigMapperManagerTest extends UnitTestCase {
   /**
    * The typed configuration manager used for testing.
    *
-   * @var \Drupal\Core\Config\TypedConfigManager|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Config\TypedConfigManagerInterface|\PHPUnit_Framework_MockObject_MockObject
    */
   protected $typedConfigManager;
 
@@ -50,11 +53,10 @@ class ConfigMapperManagerTest extends UnitTestCase {
     $language_manager = $this->getMock('Drupal\Core\Language\LanguageManagerInterface');
     $language_manager->expects($this->once())
       ->method('getCurrentLanguage')
-      ->with(Language::TYPE_INTERFACE)
+      ->with(LanguageInterface::TYPE_INTERFACE)
       ->will($this->returnValue($language));
 
-    $this->typedConfigManager = $this->getMockBuilder('Drupal\Core\Config\TypedConfigManager')
-      ->disableOriginalConstructor()
+    $this->typedConfigManager = $this->getMockBuilder('Drupal\Core\Config\TypedConfigManagerInterface')
       ->getMock();
 
     $module_handler = $this->getMock('Drupal\Core\Extension\ModuleHandlerInterface');
@@ -162,10 +164,11 @@ class ConfigMapperManagerTest extends UnitTestCase {
    *   The mocked schema element.
    */
   protected function getElement(array $definition) {
+    $data_definition = new DataDefinition($definition);
     $element = $this->getMock('Drupal\Core\TypedData\TypedDataInterface');
     $element->expects($this->any())
       ->method('getDataDefinition')
-      ->will($this->returnValue($definition));
+      ->will($this->returnValue($data_definition));
     return $element;
   }
 

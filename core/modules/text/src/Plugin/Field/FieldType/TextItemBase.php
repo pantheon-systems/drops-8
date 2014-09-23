@@ -9,13 +9,12 @@ namespace Drupal\text\Plugin\Field\FieldType;
 
 use Drupal\Core\Field\FieldItemBase;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
-use Drupal\Core\Field\PrepareCacheInterface;
 use Drupal\Core\TypedData\DataDefinition;
 
 /**
  * Base class for 'text' configurable field types.
  */
-abstract class TextItemBase extends FieldItemBase implements PrepareCacheInterface {
+abstract class TextItemBase extends FieldItemBase {
 
   /**
    * {@inheritdoc}
@@ -50,7 +49,7 @@ abstract class TextItemBase extends FieldItemBase implements PrepareCacheInterfa
    * {@inheritdoc}
    */
   public function applyDefaultValue($notify = TRUE) {
-    // Default to a simple check_plain().
+    // Default to a simple \Drupal\Component\Utility\String::checkPlain().
     // @todo: Add in the filter default format here.
     $this->setValue(array('format' => NULL), $notify);
     return $this;
@@ -62,26 +61,6 @@ abstract class TextItemBase extends FieldItemBase implements PrepareCacheInterfa
   public function isEmpty() {
     $value = $this->get('value')->getValue();
     return $value === NULL || $value === '';
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getCacheData() {
-    $data = $this->getValue();
-    // Where possible, generate the processed (sanitized) version of each
-    // textual property (e.g., 'value', 'summary') within this field item early
-    // so that it is cached in the field cache. This avoids the need to look up
-    // the sanitized value in the filter cache separately.
-    $text_processing = $this->getSetting('text_processing');
-    if (!$text_processing || filter_format_allowcache($this->get('format')->getValue())) {
-      foreach ($this->definition->getPropertyDefinitions() as $property => $definition) {
-        if ($definition->getClass() == '\Drupal\text\TextProcessed') {
-          $data[$property] = $this->get($property)->getValue();
-        }
-      }
-    }
-    return $data;
   }
 
   /**

@@ -7,7 +7,7 @@
 
 namespace Drupal\image_test\Plugin\ImageToolkit;
 
-use Drupal\Core\Image\ImageInterface;
+use Drupal\Component\Utility\Unicode;
 use Drupal\Core\ImageToolkit\ImageToolkitBase;
 
 /**
@@ -19,6 +19,13 @@ use Drupal\Core\ImageToolkit\ImageToolkitBase;
  * )
  */
 class TestToolkit extends ImageToolkitBase {
+
+  /**
+   * Image type represented by a PHP IMAGETYPE_* constant (e.g. IMAGETYPE_JPEG).
+   *
+   * @var int
+   */
+  protected $type;
 
   /**
    * The width of the image.
@@ -62,42 +69,23 @@ class TestToolkit extends ImageToolkitBase {
   /**
    * {@inheritdoc}
    */
-  public function getInfo(ImageInterface $image) {
-    $this->logCall('get_info', array($image));
-
-    $details = array();
-    $data = getimagesize($image->getSource());
-
-    if (isset($data) && is_array($data) && in_array($data[2], static::supportedTypes())) {
-      $details['type'] = $data[2];
+  public function parseFile() {
+    $this->logCall('parseFile', array());
+    $data = @getimagesize($this->getImage()->getSource());
+    if ($data && in_array($data[2], static::supportedTypes())) {
+      $this->setType($data[2]);
       $this->width = $data[0];
       $this->height = $data[1];
-      $this->load($image->getSource(), $details);
+      return TRUE;
     }
-    return $details;
-  }
-
-  /**
-   * Mimick loading the image from a file.
-   *
-   * @param string $source
-   *   String specifying the path of the image file.
-   * @param array $details
-   *   An array of image details.
-   *
-   * @return bool
-   *   TRUE or FALSE, based on success.
-   */
-  protected function load($source, array $details) {
-    $this->logCall('load', array($source, $details));
-    return TRUE;
+    return FALSE;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function save(ImageInterface $image, $destination) {
-    $this->logCall('save', array($image, $destination));
+  public function save($destination) {
+    $this->logCall('save', array($destination));
     // Return false so that image_save() doesn't try to chmod the destination
     // file that we didn't bother to create.
     return FALSE;
@@ -106,48 +94,48 @@ class TestToolkit extends ImageToolkitBase {
   /**
    * {@inheritdoc}
    */
-  public function crop(ImageInterface $image, $x, $y, $width, $height) {
-    $this->logCall('crop', array($image, $x, $y, $width, $height));
+  public function crop($x, $y, $width, $height) {
+    $this->logCall('crop', array($x, $y, $width, $height));
     return TRUE;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function resize(ImageInterface $image, $width, $height) {
-    $this->logCall('resize', array($image, $width, $height));
+  public function resize($width, $height) {
+    $this->logCall('resize', array($width, $height));
     return TRUE;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function rotate(ImageInterface $image, $degrees, $background = NULL) {
-    $this->logCall('rotate', array($image, $degrees, $background));
+  public function rotate($degrees, $background = NULL) {
+    $this->logCall('rotate', array($degrees, $background));
     return TRUE;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function desaturate(ImageInterface $image) {
-    $this->logCall('desaturate', array($image));
+  public function desaturate() {
+    $this->logCall('desaturate', array());
     return TRUE;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function scale(ImageInterface $image, $width = NULL, $height = NULL, $upscale = FALSE) {
-    $this->logCall('scale', array($image, $width, $height, $upscale));
+  public function scale($width = NULL, $height = NULL, $upscale = FALSE) {
+    $this->logCall('scale', array($width, $height, $upscale));
     return TRUE;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function scaleAndCrop(ImageInterface $image, $width, $height) {
-    $this->logCall('scaleAndCrop', array($image, $width, $height));
+  public function scaleAndCrop($width, $height) {
+    $this->logCall('scaleAndCrop', array($width, $height));
     return TRUE;
   }
 
@@ -155,8 +143,8 @@ class TestToolkit extends ImageToolkitBase {
    * Stores the values passed to a toolkit call.
    *
    * @param string $op
-   *   One of the image toolkit operations: 'get_info', 'load', 'save',
-   *   'settings', 'resize', 'rotate', 'crop', 'desaturate'.
+   *   One of the image toolkit operations: 'parseFile', 'save', 'settings',
+   *   'resize', 'rotate', 'crop', 'desaturate'.
    * @param array $args
    *   Values passed to hook.
    *
@@ -172,15 +160,49 @@ class TestToolkit extends ImageToolkitBase {
   /**
    * {@inheritdoc}
    */
-  public function getWidth(ImageInterface $image) {
+  public function getWidth() {
     return $this->width;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function getHeight(ImageInterface $image) {
+  public function getHeight() {
     return $this->height;
+  }
+
+  /**
+   * Returns the type of the image.
+   *
+   * @return int
+   *   The image type represented by a PHP IMAGETYPE_* constant (e.g.
+   *   IMAGETYPE_JPEG).
+   */
+  public function getType() {
+    return $this->type;
+  }
+
+  /**
+   * Sets the PHP type of the image.
+   *
+   * @param int $type
+   *   The image type represented by a PHP IMAGETYPE_* constant (e.g.
+   *   IMAGETYPE_JPEG).
+   *
+   * @return this
+   */
+  public function setType($type) {
+    if (in_array($type, static::supportedTypes())) {
+      $this->type = $type;
+    }
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getMimeType() {
+    return $this->getType() ? image_type_to_mime_type($this->getType()) : '';
   }
 
   /**
@@ -193,7 +215,22 @@ class TestToolkit extends ImageToolkitBase {
   /**
    * {@inheritdoc}
    */
-  public static function supportedTypes() {
+  public static function getSupportedExtensions() {
+    $extensions = array();
+    foreach (static::supportedTypes() as $image_type) {
+      $extensions[] = Unicode::strtolower(image_type_to_extension($image_type, FALSE));
+    }
+    return $extensions;
+  }
+
+  /**
+   * Returns a list of image types supported by the toolkit.
+   *
+   * @return array
+   *   An array of available image types. An image type is represented by a PHP
+   *   IMAGETYPE_* constant (e.g. IMAGETYPE_JPEG, IMAGETYPE_PNG, etc.).
+   */
+  protected static function supportedTypes() {
     return array(IMAGETYPE_PNG, IMAGETYPE_JPEG, IMAGETYPE_GIF);
   }
 

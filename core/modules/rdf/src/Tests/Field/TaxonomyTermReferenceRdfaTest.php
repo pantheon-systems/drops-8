@@ -6,9 +6,10 @@
 
 namespace Drupal\rdf\Tests\Field;
 
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\rdf\Tests\Field\FieldRdfaTestBase;
 use Drupal\Core\Field\FieldDefinitionInterface;
-use Drupal\Core\Language\Language;
+use Drupal\Core\Language\LanguageInterface;
 
 /**
  * Tests the RDFa output of the taxonomy term reference field formatter.
@@ -50,12 +51,12 @@ class TaxonomyTermReferenceRdfaTest extends FieldRdfaTestBase {
   public function setUp() {
     parent::setUp();
 
-    $this->installSchema('taxonomy', array('taxonomy_term_data', 'taxonomy_term_hierarchy'));
+    $this->installEntitySchema('taxonomy_term');
 
     $vocabulary = entity_create('taxonomy_vocabulary', array(
       'name' => $this->randomName(),
       'vid' => drupal_strtolower($this->randomName()),
-      'langcode' => Language::LANGCODE_NOT_SPECIFIED,
+      'langcode' => LanguageInterface::LANGCODE_NOT_SPECIFIED,
     ));
     $vocabulary->save();
 
@@ -63,7 +64,7 @@ class TaxonomyTermReferenceRdfaTest extends FieldRdfaTestBase {
       'name' => $this->fieldName,
       'entity_type' => 'entity_test',
       'type' => 'taxonomy_term_reference',
-      'cardinality' => FieldDefinitionInterface::CARDINALITY_UNLIMITED,
+      'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
       'settings' => array(
         'allowed_values' => array(
           array(
@@ -82,7 +83,7 @@ class TaxonomyTermReferenceRdfaTest extends FieldRdfaTestBase {
     $this->term = entity_create('taxonomy_term', array(
       'name' => $this->randomName(),
       'vid' => $vocabulary->id(),
-      'langcode' => Language::LANGCODE_NOT_SPECIFIED,
+      'langcode' => LanguageInterface::LANGCODE_NOT_SPECIFIED,
     ));
     $this->term->save();
 

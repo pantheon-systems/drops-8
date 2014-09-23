@@ -5,6 +5,7 @@
  * Hooks provided by Drupal core and the System module.
  */
 
+use Drupal\Component\Utility\String;
 use Drupal\Core\Utility\UpdateException;
 
 /**
@@ -312,7 +313,7 @@ function hook_library_alter(array &$library, $name) {
 
     $language_interface = \Drupal::languageManager()->getCurrentLanguage();
     $settings['jquery']['ui']['datepicker'] = array(
-      'isRTL' => $language_interface->direction == Language::DIRECTION_RTL,
+      'isRTL' => $language_interface->direction == LanguageInterface::DIRECTION_RTL,
       'firstDay' => \Drupal::config('system.date')->get('first_day'),
     );
     $library['js'][] = array(
@@ -894,16 +895,15 @@ function hook_module_implements_alter(&$implementations, $hook) {
  *   @code
  *     array('<a href="/">Home</a>');
  *   @endcode
- * @param array $attributes
- *   Attributes representing the current page, coming from
- *   \Drupal::request()->attributes.
+ * @param \Drupal\Core\Routing\RouteMatchInterface $route_match
+ *   The current route match.
  * @param array $context
  *   May include the following key:
  *   - builder: the instance of
  *     \Drupal\Core\Breadcrumb\BreadcrumbBuilderInterface that constructed this
  *     breadcrumb, or NULL if no builder acted based on the current attributes.
  */
-function hook_system_breadcrumb_alter(array &$breadcrumb, array $attributes, array $context) {
+function hook_system_breadcrumb_alter(array &$breadcrumb, \Drupal\Core\Routing\RouteMatchInterface $route_match, array $context) {
   // Add an item to the end of the breadcrumb.
   $breadcrumb[] = Drupal::l(t('Text'), 'example_route_name');
 }
@@ -969,6 +969,8 @@ function hook_system_info_alter(array &$info, \Drupal\Core\Extension\Extension $
  *     is specific to the permission you are defining.
  *
  * @see theme_user_permission_description()
+ *
+ * @ingroup user_api
  */
 function hook_permission() {
   return array(
@@ -977,6 +979,49 @@ function hook_permission() {
       'description' => t('Perform administration tasks for my module.'),
     ),
   );
+}
+
+/**
+ * Provide online user help.
+ *
+ * By implementing hook_help(), a module can make documentation available to
+ * the user for the module as a whole, or for specific pages. Help for
+ * developers should usually be provided via function header comments in the
+ * code, or in special API example files.
+ *
+ * The page-specific help information provided by this hook appears as a system
+ * help block on that page. The module overview help information is displayed
+ * by the Help module. It can be accessed from the page at admin/help or from
+ * the Extend page.
+ *
+ * For detailed usage examples of:
+ * - Module overview help, see content_translation_help(). Module overview
+ *   help should follow
+ *   @link https://drupal.org/node/632280 the standard help template. @endlink
+ * - Page-specific help using only routes, see book_help().
+ * - Page-specific help using routes and $request, see block_help().
+ *
+ * @param string $route_name
+ *   For page-specific help, use the route name as identified in the
+ *   module's routing.yml file. For module overview help, the route name
+ *   will be in the form of "help.page.$modulename".
+ * @param Drupal\Core\Routing\RouteMatchInterface $route_match
+ *   The current route match. This can be used to generate different help
+ *   output for different pages that share the same route.
+ *
+ * @return string
+ *   A localized string containing the help text.
+ */
+function hook_help($route_name, \Drupal\Core\Routing\RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    // Main module help for the block module.
+    case 'help.page.block':
+      return '<p>' . t('Blocks are boxes of content rendered into an area, or region, of a web page. The default theme Bartik, for example, implements the regions "Sidebar first", "Sidebar second", "Featured", "Content", "Header", "Footer", etc., and a block may appear in any one of these areas. The <a href="!blocks">blocks administration page</a> provides a drag-and-drop interface for assigning a block to a region, and for controlling the order of blocks within regions.', array('!blocks' => \Drupal::url('block.admin_display'))) . '</p>';
+
+    // Help for another path in the block module.
+    case 'block.admin_display':
+      return '<p>' . t('This page provides a drag-and-drop interface for assigning a block to a region, and for controlling the order of blocks within regions. Since not all themes implement the same regions, or display regions in the same way, blocks are positioned on a per-theme basis. Remember that your changes will not be saved until you click the <em>Save blocks</em> button at the bottom of the page.') . '</p>';
+  }
 }
 
 /**
@@ -1199,7 +1244,7 @@ function hook_template_preprocess_default_variables_alter(&$variables) {
  *     or drupal_mail() for possible id values.
  *   - to: The address or addresses the message will be sent to. The
  *     formatting of this string must comply with RFC 2822.
- *   - subject: Subject of the e-mail to be sent. This must not contain any
+ *   - subject: Subject of the email to be sent. This must not contain any
  *     newline characters, or the mail may not be sent properly. drupal_mail()
  *     sets this to an empty string when the hook is invoked.
  *   - body: An array of lines containing the message to be sent. Drupal will
@@ -1240,7 +1285,7 @@ function hook_mail($key, &$message, $params) {
     $node = $params['node'];
     $variables += array(
       '%uid' => $node->getOwnerId(),
-      '%node_url' => url('node/' . $node->id(), array('absolute' => TRUE)),
+      '%url' => url('node/' . $node->id(), array('absolute' => TRUE)),
       '%node_type' => node_get_type_label($node),
       '%title' => $node->getTitle(),
       '%teaser' => $node->teaser,
@@ -2385,7 +2430,7 @@ function hook_tokens($type, $tokens, array $data = array(), array $options = arr
           break;
 
         case 'title':
-          $replacements[$original] = $sanitize ? check_plain($node->getTitle()) : $node->getTitle();
+          $replacements[$original] = $sanitize ? String::checkPlain($node->getTitle()) : $node->getTitle();
           break;
 
         case 'edit-url':
@@ -2395,7 +2440,7 @@ function hook_tokens($type, $tokens, array $data = array(), array $options = arr
         // Default values for the chained tokens handled below.
         case 'author':
           $account = $node->getOwner() ? $node->getOwner() : user_load(0);
-          $replacements[$original] = $sanitize ? check_plain($account->label()) : $account->label();
+          $replacements[$original] = $sanitize ? String::checkPlain($account->label()) : $account->label();
           break;
 
         case 'created':
@@ -2475,7 +2520,8 @@ function hook_tokens_alter(array &$replacements, array $context) {
  *   - types: An associative array of token types (groups). Each token type is
  *     an associative array with the following components:
  *     - name: The translated human-readable short name of the token type.
- *     - description: A translated longer description of the token type.
+ *     - description (optional): A translated longer description of the token
+ *       type.
  *     - needs-data: The type of data that must be provided to
  *       \Drupal\Core\Utility\Token::replace() in the $data argument (i.e., the
  *       key name in $data) in order for tokens of this type to be used in the
@@ -2491,7 +2537,7 @@ function hook_tokens_alter(array &$replacements, array $context) {
  *     tokens, each token item is keyed by the machine name of the token, and
  *     each token item has the following components:
  *     - name: The translated human-readable short name of the token.
- *     - description: A translated longer description of the token.
+ *     - description (optional): A translated longer description of the token.
  *     - type (optional): A 'needs-data' data type supplied by this token, which
  *       should match a 'needs-data' value from another token type. For example,
  *       the node author token provides a user object, which can then be used
@@ -2515,7 +2561,6 @@ function hook_token_info() {
   );
   $node['title'] = array(
     'name' => t("Title"),
-    'description' => t("The title of the node."),
   );
   $node['edit-url'] = array(
     'name' => t("Edit URL"),
@@ -2525,12 +2570,10 @@ function hook_token_info() {
   // Chained tokens for nodes.
   $node['created'] = array(
     'name' => t("Date created"),
-    'description' => t("The date the node was posted."),
     'type' => 'date',
   );
   $node['author'] = array(
     'name' => t("Author"),
-    'description' => t("The author of the node."),
     'type' => 'user',
   );
 

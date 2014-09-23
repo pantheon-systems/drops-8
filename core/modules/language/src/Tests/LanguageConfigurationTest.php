@@ -7,7 +7,7 @@
 
 namespace Drupal\language\Tests;
 
-use Drupal\Core\Language\Language;
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\simpletest\WebTestBase;
 
 /**
@@ -34,7 +34,6 @@ class LanguageConfigurationTest extends WebTestBase {
    * Functional tests for adding, editing and deleting languages.
    */
   function testLanguageConfiguration() {
-    global $base_url;
 
     // User to add and remove language.
     $admin_user = $this->drupalCreateUser(array('administer languages', 'access administration pages', 'administer site configuration'));
@@ -160,7 +159,7 @@ class LanguageConfigurationTest extends WebTestBase {
     \Drupal::languageManager()->reset();
     $max_configurable_language_weight = $this->getHighestConfigurableLanguageWeight();
     $replacements = array('@event' => $state);
-    foreach (\Drupal::languageManager()->getLanguages(Language::STATE_LOCKED) as $locked_language) {
+    foreach (\Drupal::languageManager()->getLanguages(LanguageInterface::STATE_LOCKED) as $locked_language) {
       $replacements['%language'] = $locked_language->name;
       $this->assertTrue($locked_language->weight > $max_configurable_language_weight, format_string('System language %language has higher weight than configurable languages @event', $replacements));
     }

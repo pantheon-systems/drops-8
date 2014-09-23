@@ -7,6 +7,7 @@
 
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Datetime\DrupalDateTime;
+use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Template\Attribute;
 use Drupal\datetime\DateHelper;
 use Drupal\node\NodeInterface;
@@ -27,20 +28,38 @@ const DATETIME_DATETIME_STORAGE_FORMAT = 'Y-m-d\TH:i:s';
 const DATETIME_DATE_STORAGE_FORMAT = 'Y-m-d';
 
 /**
+ * Implements hook_help().
+ */
+function datetime_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    case 'help.page.datetime':
+      $output = '';
+      $output .= '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('The Datetime module provides a Date field that stores dates and times. It also provides the Form API elements <em>datetime</em> and <em>datelist</em> for use in programming modules. See the <a href="!field">Field module help</a> and the <a href="!field_ui">Field UI module help</a> pages for general information on fields and how to create and manage them. For more information, see the <a href="!datetime_do">online documentation for the Datetime module</a>.', array('!field' => \Drupal::url('help.page', array('name' => 'field')), '!field_ui' => \Drupal::url('help.page', array('name' => 'field_ui')), '!datetime_do' => 'https://drupal.org/documentation/modules/datetime')) . '</p>';
+      $output .= '<h3>' . t('Uses') . '</h3>';
+      $output .= '<dl>';
+      $output .= '<dt>' . t('Managing and displaying date fields') . '</dt>';
+      $output .= '<dd>' . t('The <em>settings</em> and the <em>display</em> of the Date field can be configured separately. See the <a href="!field_ui">Field UI help</a> for more information on how to manage fields and their display.', array('!field_ui' => \Drupal::url('help.page', array('name' => 'field_ui')))) . '</dd>';
+      $output .= '<dt>' . t('Displaying dates') . '</dt>';
+      $output .= '<dd>' . t('Dates can be displayed using the <em>Plain</em> or the <em>Default</em> formatter. The <em>Plain</em> formatter displays the date in the <a href="http://en.wikipedia.org/wiki/ISO_8601">ISO 8601</a> format. If you choose the <em>Default</em> formatter, you can choose a format from a predefined list that can be managed on the <a href="!date_format_list">Date and time formats</a> page.', array('!date_format_list'=> \Drupal::url('system.date_format_list'))) . '</dd>';
+      $output .= '</dl>';
+      return $output;
+    }
+}
+
+/**
  * Implements hook_element_info().
  */
 function datetime_element_info() {
-  $format_type = datetime_default_format_type();
-
   $date_format = '';
   $time_format = '';
   // Date formats cannot be loaded during install or update.
   if (!defined('MAINTENANCE_MODE')) {
     if ($date_format_entity = entity_load('date_format', 'html_date')) {
-      $date_format = $date_format_entity->getPattern($format_type);
+      $date_format = $date_format_entity->getPattern();
     }
     if ($time_format_entity = entity_load('date_format', 'html_time')) {
-      $time_format = $time_format_entity->getPattern($format_type);
+      $time_format = $time_format_entity->getPattern();
     }
   }
   $types['datetime'] = array(
@@ -51,7 +70,6 @@ function datetime_element_info() {
     '#theme' => 'datetime_form',
     '#theme_wrappers' => array('datetime_wrapper'),
     '#date_date_format' => $date_format,
-    '#date_format_string_type' => $format_type,
     '#date_date_element' => 'date',
     '#date_date_callbacks' => array(),
     '#date_time_format' => $time_format,
@@ -341,7 +359,7 @@ function template_preprocess_datetime_wrapper(&$variables) {
  *   The form element whose value has been processed.
  */
 function datetime_datetime_form_process($element, &$form_state) {
-  $format_settings = array('format_string_type' => $element['#date_format_string_type']);
+  $format_settings = array();
   // The value callback has populated the #value array.
   $date = !empty($element['#value']['object']) ? $element['#value']['object'] : NULL;
 
@@ -468,8 +486,7 @@ function form_type_datetime_value($element, $input = FALSE) {
     try {
       $date_time_format = trim($date_format . ' ' . $time_format);
       $date_time_input = trim($date_input . ' ' . $time_input);
-      $date_time_settings = array('format_string_type' => $element['#date_format_string_type']);
-      $date = DrupalDateTime::createFromFormat($date_time_format, $date_time_input, $timezone, $date_time_settings);
+      $date = DrupalDateTime::createFromFormat($date_time_format, $date_time_input, $timezone);
     }
     catch (\Exception $e) {
       $date = NULL;
@@ -484,8 +501,8 @@ function form_type_datetime_value($element, $input = FALSE) {
     $date = $element['#default_value'];
     if ($date instanceOf DrupalDateTime && !$date->hasErrors()) {
       $input = array(
-        'date'   => $date->format($element['#date_date_format'], array('format_string_type' => $element['#date_format_string_type'])),
-        'time'   => $date->format($element['#date_time_format'], array('format_string_type' => $element['#date_format_string_type'])),
+        'date'   => $date->format($element['#date_date_format']),
+        'time'   => $date->format($element['#date_time_format']),
         'object' => $date,
       );
     }
@@ -564,16 +581,15 @@ function datetime_datetime_validate($element, &$form_state) {
  *   if this is not a HTML5 element.
  */
 function datetime_html5_format($part, $element) {
-  $format_type = datetime_default_format_type();
   switch ($part) {
     case 'date':
       switch ($element['#date_date_element']) {
         case 'date':
-          return entity_load('date_format', 'html_date')->getPattern($format_type);
+          return entity_load('date_format', 'html_date')->getPattern();
 
         case 'datetime':
         case 'datetime-local':
-          return entity_load('date_format', 'html_datetime')->getPattern($format_type);
+          return entity_load('date_format', 'html_datetime')->getPattern();
 
         default:
           return $element['#date_date_format'];
@@ -583,7 +599,7 @@ function datetime_html5_format($part, $element) {
     case 'time':
       switch ($element['#date_time_element']) {
         case 'time':
-          return entity_load('date_format', 'html_time')->getPattern($format_type);
+          return entity_load('date_format', 'html_time')->getPattern();
 
         default:
           return $element['#date_time_format'];
@@ -604,12 +620,11 @@ function datetime_html5_format($part, $element) {
  *
  */
 function datetime_format_example($format) {
-  $format_type = datetime_default_format_type();
   $date = &drupal_static(__FUNCTION__);
   if (empty($date)) {
     $date = new DrupalDateTime();
   }
-  return $date->format($format, array('format_string_type' => $format_type));
+  return $date->format($format);
 }
 
 /**
@@ -987,12 +1002,10 @@ function datetime_range_years($string, $date = NULL) {
  * Implements hook_form_BASE_FORM_ID_alter() for node forms.
  */
 function datetime_form_node_form_alter(&$form, &$form_state, $form_id) {
-  $format_type = datetime_default_format_type();
-
   // Alter the 'Authored on' date to use datetime.
   $form['created']['#type'] = 'datetime';
-  $date_format = entity_load('date_format', 'html_date')->getPattern($format_type);
-  $time_format = entity_load('date_format', 'html_time')->getPattern($format_type);
+  $date_format = entity_load('date_format', 'html_date')->getPattern();
+  $time_format = entity_load('date_format', 'html_time')->getPattern();
   $form['created']['#description'] = t('Format: %format. Leave blank to use the time of form submission.', array('%format' => datetime_format_example($date_format . ' ' . $time_format)));
   unset($form['created']['#maxlength']);
 }

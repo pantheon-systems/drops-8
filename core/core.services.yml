@@ -19,7 +19,11 @@ services:
       - { name: cache.context}
   cache_context.theme:
     class: Drupal\Core\Cache\ThemeCacheContext
-    arguments: ['@request_stack', '@theme.negotiator']
+    arguments: ['@current_route_match', '@theme.negotiator']
+    tags:
+      - { name: cache.context}
+  cache_context.timezone:
+    class: Drupal\Core\Cache\TimeZoneCacheContext
     tags:
       - { name: cache.context}
   cache.backend.database:
@@ -92,10 +96,12 @@ services:
   config.storage.active:
     class: Drupal\Core\Config\DatabaseStorage
     arguments: ['@database', 'config']
+    public: false
   config.storage.file:
     class: Drupal\Core\Config\FileStorage
     factory_class: Drupal\Core\Config\FileStorageFactory
     factory_method: getActive
+    public: false
   config.storage.staging:
     class: Drupal\Core\Config\FileStorage
     factory_class: Drupal\Core\Config\FileStorageFactory
@@ -111,9 +117,15 @@ services:
   config.typed:
     class: Drupal\Core\Config\TypedConfigManager
     arguments: ['@config.storage', '@config.storage.schema', '@cache.discovery']
+  context.handler:
+    class: Drupal\Core\Plugin\Context\ContextHandler
+    arguments: ['@typed_data_manager']
   cron:
     class: Drupal\Core\Cron
     arguments: ['@module_handler', '@lock', '@queue', '@state', '@current_user', '@session_manager']
+  diff.formatter:
+    class: Drupal\Core\Diff\DiffFormatter
+    arguments: ['@config.factory']
   database:
     class: Drupal\Core\Database\Connection
     factory_class: Drupal\Core\Database\Database
@@ -191,9 +203,13 @@ services:
       - { name: service_collector, tag: http_client_subscriber, call: attach }
   theme.negotiator:
     class: Drupal\Core\Theme\ThemeNegotiator
-    arguments: ['@access_check.theme', '@request_stack']
+    arguments: ['@access_check.theme']
     tags:
       - { name: service_collector, tag: theme_negotiator, call: addNegotiator }
+  theme.negotiator.request_subscriber:
+    class: Drupal\Core\EventSubscriber\ThemeNegotiatorRequestSubscriber
+    tags:
+      - { name: event_subscriber }
   theme.negotiator.default:
     class: Drupal\Core\Theme\DefaultNegotiator
     arguments: ['@config.factory']
@@ -201,21 +217,19 @@ services:
       - { name: theme_negotiator, priority: -100 }
   theme.negotiator.ajax_base_page:
     class: Drupal\Core\Theme\AjaxBasePageNegotiator
-    arguments: ['@csrf_token', '@config.factory']
+    arguments: ['@csrf_token', '@config.factory', '@request_stack']
     tags:
       - { name: theme_negotiator, priority: 1000 }
   container.namespaces:
     class: ArrayObject
     arguments: [ '%container.namespaces%' ]
-    tags:
-      - { name: persist }
   container.trait:
     abstract: true
     calls:
       - [setContainer, ['@service_container']]
   default_plugin_manager:
     abstract: true
-    arguments: ['@container.namespaces', '@cache.discovery', '@language_manager', '@module_handler']
+    arguments: ['@container.namespaces', '@cache.discovery', '@module_handler']
   module_handler:
     class: Drupal\Core\Extension\ModuleHandler
     arguments: ['%container.modules%', '@cache.bootstrap']
@@ -233,19 +247,19 @@ services:
     arguments: ['@entity.manager', '@form_builder']
   plugin.manager.field.field_type:
     class: Drupal\Core\Field\FieldTypePluginManager
-    arguments: ['@container.namespaces', '@cache.discovery', '@language_manager', '@module_handler']
+    arguments: ['@container.namespaces', '@cache.discovery', '@module_handler']
   plugin.manager.field.widget:
     class: Drupal\Core\Field\WidgetPluginManager
-    arguments: ['@container.namespaces', '@cache.discovery', '@module_handler', '@language_manager', '@plugin.manager.field.field_type']
+    arguments: ['@container.namespaces', '@cache.discovery', '@module_handler', '@plugin.manager.field.field_type']
   plugin.manager.field.formatter:
     class: Drupal\Core\Field\FormatterPluginManager
-    arguments: ['@container.namespaces', '@cache.discovery', '@module_handler', '@language_manager', '@plugin.manager.field.field_type']
+    arguments: ['@container.namespaces', '@cache.discovery', '@module_handler', '@plugin.manager.field.field_type']
   plugin.manager.archiver:
     class: Drupal\Core\Archiver\ArchiverManager
     parent: default_plugin_manager
   plugin.manager.action:
     class: Drupal\Core\Action\ActionManager
-    arguments: ['@container.namespaces', '@cache.discovery', '@language_manager', '@module_handler']
+    arguments: ['@container.namespaces', '@cache.discovery', '@module_handler']
   plugin.manager.menu.local_action:
     class: Drupal\Core\Menu\LocalActionManager
     arguments: ['@controller_resolver', '@request_stack', '@router.route_provider', '@module_handler', '@cache.discovery', '@language_manager', '@access_manager', '@current_user']
@@ -255,6 +269,9 @@ services:
   plugin.manager.menu.contextual_link:
     class: Drupal\Core\Menu\ContextualLinkManager
     arguments: ['@controller_resolver', '@module_handler', '@cache.discovery', '@language_manager', '@access_manager', '@current_user', '@request_stack']
+  plugin.manager.display_variant:
+    class: Drupal\Core\Display\VariantManager
+    parent: default_plugin_manager
   plugin.cache_clearer:
     class: Drupal\Core\Plugin\CachedDiscoveryClearer
   request:
@@ -265,6 +282,9 @@ services:
     class: Symfony\Component\HttpFoundation\RequestStack
     tags:
       - { name: persist }
+  current_route_match:
+     class: Drupal\Core\Routing\CurrentRouteMatch
+     arguments: ['@request_stack']
   event_dispatcher:
     class: Symfony\Component\EventDispatcher\ContainerAwareEventDispatcher
     arguments: ['@service_container']
@@ -300,11 +320,11 @@ services:
       - [initLanguageManager]
     tags:
       - { name: service_collector, tag: string_translator, call: addTranslator }
-  database.slave:
+  database.replica:
     class: Drupal\Core\Database\Connection
     factory_class: Drupal\Core\Database\Database
     factory_method: getConnection
-    arguments: [slave]
+    arguments: [replica]
   typed_data_manager:
     class: Drupal\Core\TypedData\TypedDataManager
     parent: default_plugin_manager
@@ -396,6 +416,10 @@ services:
   path.alias_storage:
     class: Drupal\Core\Path\AliasStorage
     arguments: ['@database', '@module_handler']
+  path.matcher:
+    class: Drupal\Core\Path\PathMatcher
+    arguments: ['@config.factory']
+
 # The argument to the hashing service defined in services.yml, to the
 # constructor of PhpassHashedPassword is the log2 number of iterations for
 # password stretching.
@@ -416,8 +440,8 @@ services:
       - { name: route_filter }
   paramconverter_manager:
     class: Drupal\Core\ParamConverter\ParamConverterManager
-    calls:
-      - [setContainer, ['@service_container']]
+    tags:
+      - { name: service_collector, tag: paramconverter, call: addConverter }
   paramconverter_subscriber:
     class: Drupal\Core\EventSubscriber\ParamConverterSubscriber
     tags:
@@ -439,11 +463,14 @@ services:
     tags:
       - { name: event_subscriber }
     arguments: ['@module_handler']
+  resolver_manager.entity:
+    class: Drupal\Core\Entity\EntityResolverManager
+    arguments: ['@entity.manager', '@controller_resolver', '@class_resolver']
   route_subscriber.entity:
     class: Drupal\Core\EventSubscriber\EntityRouteAlterSubscriber
     tags:
       - { name: event_subscriber }
-    arguments: ['@entity.manager']
+    arguments: ['@resolver_manager.entity']
   reverse_proxy_subscriber:
     class: Drupal\Core\EventSubscriber\ReverseProxySubscriber
     tags:
@@ -587,10 +614,6 @@ services:
     tags:
       - { name: event_subscriber }
     arguments: ['@path.alias_manager', '@path_processor_manager']
-  legacy_request_subscriber:
-    class: Drupal\Core\EventSubscriber\LegacyRequestSubscriber
-    tags:
-      - { name: event_subscriber }
   finish_response_subscriber:
     class: Drupal\Core\EventSubscriber\FinishResponseSubscriber
     tags:
@@ -664,7 +687,7 @@ services:
     arguments: ['@database', '@request_stack']
   plugin.manager.mail:
     class: Drupal\Core\Mail\MailManager
-    arguments: ['@container.namespaces', '@cache.discovery', '@language_manager', '@module_handler', '@config.factory']
+    arguments: ['@container.namespaces', '@cache.discovery', '@module_handler', '@config.factory']
   plugin.manager.condition:
     class: Drupal\Core\Condition\ConditionManager
     parent: default_plugin_manager
@@ -680,7 +703,7 @@ services:
       - { name: event_subscriber }
   image.toolkit.manager:
     class: Drupal\Core\ImageToolkit\ImageToolkitManager
-    arguments: ['@container.namespaces', '@cache.discovery', '@language_manager', '@config.factory', '@module_handler']
+    arguments: ['@container.namespaces', '@cache.discovery', '@config.factory', '@module_handler']
   image.factory:
     class: Drupal\Core\Image\ImageFactory
     arguments: ['@image.toolkit.manager']
@@ -695,8 +718,8 @@ services:
   batch.storage:
     class: Drupal\Core\Batch\BatchStorage
     arguments: ['@database']
-  slave_database_ignore__subscriber:
-    class: Drupal\Core\EventSubscriber\SlaveDatabaseIgnoreSubscriber
+  replica_database_ignore__subscriber:
+    class: Drupal\Core\EventSubscriber\ReplicaDatabaseIgnoreSubscriber
     tags:
       - {name: event_subscriber}
   country_manager:
@@ -808,9 +831,26 @@ services:
     class: Drupal\Core\Asset\AssetDumper
   library.discovery:
     class: Drupal\Core\Asset\LibraryDiscovery
-    arguments: ['@cache.discovery', '@module_handler']
+    arguments: ['@library.discovery.collector']
+  library.discovery.collector:
+    class: Drupal\Core\Asset\LibraryDiscoveryCollector
+    arguments: ['@cache.discovery', '@lock', '@library.discovery.parser']
+    tags:
+      - { name: needs_destruction }
+  library.discovery.parser:
+    class: Drupal\Core\Asset\LibraryDiscoveryParser
+    arguments: ['@module_handler']
   info_parser:
     class: Drupal\Core\Extension\InfoParser
   element_info:
     class: Drupal\Core\Render\ElementInfo
     arguments: ['@module_handler']
+  file.mime_type.guesser:
+    class: Drupal\Core\File\MimeType\MimeTypeGuesser
+    tags:
+      - { name: service_collector, tag: mime_type_guesser, call: addGuesser }
+  file.mime_type.guesser.extension:
+    class: Drupal\Core\File\MimeType\ExtensionMimeTypeGuesser
+    arguments: ['@module_handler']
+    tags:
+      - { name: mime_type_guesser }

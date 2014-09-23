@@ -7,12 +7,12 @@
 
 use Drupal\Component\Utility\Html;
 use Drupal\Core\Entity\EntityInterface;
-use Symfony\Component\HttpFoundation\Request;
+use Drupal\Core\Routing\RouteMatchInterface;
 
 /**
  * Implements hook_help().
  */
-function text_help($route_name, Request $request) {
+function text_help($route_name, RouteMatchInterface $route_match) {
   switch ($route_name) {
     case 'help.page.text':
       $output = '';
@@ -156,20 +156,6 @@ function text_summary($text, $format = NULL, $size = NULL) {
   }
 
   return $summary;
-}
-
-/**
- * Implements hook_filter_format_update().
- */
-function text_filter_format_update($format) {
-  \Drupal::entityManager()->clearCachedFieldDefinitions();
-}
-
-/**
- * Implements hook_filter_format_disable().
- */
-function text_filter_format_disable($format) {
-  \Drupal::entityManager()->clearCachedFieldDefinitions();
 }
 
 /**

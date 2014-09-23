@@ -60,7 +60,7 @@ function user_pass_reset($form, &$form_state, $uid, $timestamp, $hashed_pass, $a
           // user_login_finalize() also updates the login timestamp of the
           // user, which invalidates further use of the one-time login link.
           user_login_finalize($account);
-          watchdog('user', 'User %name used one-time login link at time %timestamp.', array('%name' => $account->getUsername(), '%timestamp' => $timestamp));
+          \Drupal::logger('user')->notice('User %name used one-time login link at time %timestamp.', array('%name' => $account->getUsername(), '%timestamp' => $timestamp));
           drupal_set_message(t('You have just used your one-time login link. It is no longer necessary to use this link to log in. Please change your password.'));
           // Let the user's password be changed without the current password check.
           $token = Crypt::randomBytesBase64(55);
@@ -105,7 +105,11 @@ function user_pass_reset($form, &$form_state, $uid, $timestamp, $hashed_pass, $a
  *
  * @param array $variables
  *   An associative array containing:
- *   - account: The user account.
+ *   - elements: An associative array containing the user information and any
+ *     fields attached to the user. Properties used:
+ *     - #user: A \Drupal\user\Entity\User object. The user account of the
+ *       profile being viewed.
+ *   - attributes: HTML attributes for the containing element.
  */
 function template_preprocess_user(&$variables) {
   $account = $variables['elements']['#user'];
@@ -120,7 +124,7 @@ function template_preprocess_user(&$variables) {
 }
 
 /**
- * Menu callback; Cancel a user account via e-mail confirmation link.
+ * Menu callback; Cancel a user account via email confirmation link.
  *
  * @see user_cancel_confirm_form()
  * @see user_cancel_url()

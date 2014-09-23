@@ -7,9 +7,9 @@
 
 namespace Drupal\image\Tests;
 
-use Drupal\Core\Field\FieldDefinitionInterface;
-use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Field\FieldItemInterface;
+use Drupal\Core\Field\FieldItemListInterface;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\field\Tests\FieldUnitTestBase;
 
 /**
@@ -47,13 +47,14 @@ class ImageItemTest extends FieldUnitTestBase {
   public function setUp() {
     parent::setUp();
 
-    $this->installSchema('file', array('file_managed', 'file_usage'));
+    $this->installEntitySchema('file');
+    $this->installSchema('file', array('file_usage'));
 
     entity_create('field_config', array(
       'name' => 'image_test',
       'entity_type' => 'entity_test',
       'type' => 'image',
-      'cardinality' => FieldDefinitionInterface::CARDINALITY_UNLIMITED,
+      'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
     ))->save();
     entity_create('field_instance_config', array(
       'entity_type' => 'entity_test',

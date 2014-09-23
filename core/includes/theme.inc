@@ -13,17 +13,17 @@ use Drupal\Component\Utility\UrlHelper;
 use Drupal\Component\Utility\Xss;
 use Drupal\Core\Config\Config;
 use Drupal\Core\Config\StorageException;
-use Drupal\Core\Language\Language;
 use Drupal\Core\Extension\Extension;
 use Drupal\Core\Extension\ExtensionNameLengthException;
 use Drupal\Core\Page\FeedLinkElement;
 use Drupal\Core\Page\LinkElement;
 use Drupal\Core\Page\MetaElement;
+use Drupal\Core\Routing\RouteMatch;
 use Drupal\Core\Template\Attribute;
-use Drupal\Core\Template\RenderWrapper;
 use Drupal\Core\Theme\ThemeSettings;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Render\Element;
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * @defgroup content_flags Content markers
@@ -91,8 +91,12 @@ function drupal_theme_access($theme) {
 
 /**
  * Initializes the theme system by loading the theme.
+ *
+ * @param RouteMatch $route_match
+ *   The route match to use for theme initialization.
+// @todo Force calling methods to provide as RouteMatch.
  */
-function drupal_theme_initialize() {
+function drupal_theme_initialize(RouteMatch $route_match = NULL) {
   global $theme, $theme_key;
 
   // If $theme is already set, assume the others are set, too, and do nothing
@@ -102,11 +106,12 @@ function drupal_theme_initialize() {
 
   $themes = list_themes();
 
-  // @todo Let the theme.negotiator listen to the kernel request event.
   // Determine the active theme for the theme negotiator service. This includes
   // the default theme as well as really specific ones like the ajax base theme.
-  $request = \Drupal::request();
-  $theme = \Drupal::service('theme.negotiator')->determineActiveTheme($request);
+  if (!$route_match) {
+    $route_match = \Drupal::routeMatch();
+  }
+  $theme = \Drupal::service('theme.negotiator')->determineActiveTheme($route_match);
 
   // If no theme could be negotiated, or if the negotiated theme is not within
   // the list of enabled themes, fall back to the default theme output of core
@@ -453,7 +458,7 @@ function _theme($hook, $variables = array()) {
       // Only log a message when not trying theme suggestions ($hook being an
       // array).
       if (!isset($candidate)) {
-        watchdog('theme', 'Theme hook %hook not found.', array('%hook' => $hook), WATCHDOG_WARNING);
+        \Drupal::logger('theme')->warning('Theme hook %hook not found.', array('%hook' => $hook));
       }
       // There is no theme implementation for the hook passed. Return FALSE so
       // the function calling _theme() can differentiate between a hook that
@@ -1674,26 +1679,6 @@ function template_preprocess_table(&$variables) {
 }
 
 /**
- * Returns HTML for a marker for new or updated content.
- *
- * @param $variables
- *   An associative array containing:
- *   - type: Number representing the marker type to display. See MARK_NEW,
- *     MARK_UPDATED, MARK_READ.
- */
-function theme_mark($variables) {
-  $type = $variables['status'];
-  if (\Drupal::currentUser()->isAuthenticated()) {
-    if ($type == MARK_NEW) {
-      return ' <span class="marker">' . t('new') . '</span>';
-    }
-    elseif ($type == MARK_UPDATED) {
-      return ' <span class="marker">' . t('updated') . '</span>';
-    }
-  }
-}
-
-/**
  * Prepares variables for item list templates.
  *
  * Default template: item-list.html.twig.
@@ -1964,7 +1949,7 @@ function drupal_pre_render_page(array $element) {
  *   An associative array containing:
  *   - page: A render element representing the page.
  *
- * @see system_elements()
+ * @see system_element_info()
  */
 function template_preprocess_html(&$variables) {
   /** @var $page \Drupal\Core\Page\HtmlPage */
@@ -1972,7 +1957,7 @@ function template_preprocess_html(&$variables) {
 
   $variables['html_attributes'] = $page->getHtmlAttributes();
   $variables['attributes'] = $page->getBodyAttributes();
-  $variables['page'] = $page->getContent();
+  $variables['page'] = $page;
 
   // Compile a list of classes that are going to be applied to the body element.
   // This allows advanced theming based on context (home page, node of certain type, etc.).
@@ -2042,21 +2027,8 @@ function template_preprocess_html(&$variables) {
       $page->addMetaElement($metatag);
     }
   }
-
   $variables['page_top'][] = array('#markup' => $page->getBodyTop());
   $variables['page_bottom'][] = array('#markup' => $page->getBodyBottom());
-
-  // Add footer scripts as '#markup' so they can be rendered with other
-  // elements in page_bottom.
-  $footer_scripts = new RenderWrapper('drupal_get_js', array('footer'));
-  $variables['page_bottom'][] = array('#markup' => $footer_scripts);
-
-  // Wrap function calls in an object so they can be called when printed.
-  $variables['head'] = new RenderWrapper(function() use ($page) {
-    return implode("\n", $page->getMetaElements()) . implode("\n", $page->getLinkElements());
-  });
-  $variables['styles'] = new RenderWrapper('drupal_get_css');
-  $variables['scripts'] = new RenderWrapper('drupal_get_js');
 }
 
 /**
@@ -2136,6 +2108,7 @@ function template_preprocess_page(&$variables) {
       '#heading' => array(
         'text' => t('Main menu'),
         'class' => array('visually-hidden'),
+        'attributes' => array('id' => 'links__system_main_menu'),
       ),
       '#set_active_class' => TRUE,
     );
@@ -2147,12 +2120,13 @@ function template_preprocess_page(&$variables) {
       '#heading' => array(
         'text' => t('Secondary menu'),
         'class' => array('visually-hidden'),
+        'attributes' => array('id' => 'links__system_secondary_menu'),
       ),
       '#set_active_class' => TRUE,
     );
   }
 
-  if ($node = \Drupal::request()->attributes->get('node')) {
+  if ($node = \Drupal::routeMatch()->getParameter('node')) {
     $variables['node'] = $node;
   }
 
@@ -2170,7 +2144,7 @@ function template_preprocess_page(&$variables) {
   if (!defined('MAINTENANCE_MODE')) {
     $variables['breadcrumb'] = array(
       '#theme' => 'breadcrumb',
-      '#breadcrumb' => \Drupal::service('breadcrumb')->build(\Drupal::request()->attributes->all()),
+      '#breadcrumb' => \Drupal::service('breadcrumb')->build(\Drupal::routeMatch()),
     );
   }
 }
@@ -2569,6 +2543,7 @@ function drupal_common_theme() {
     ),
     'mark' => array(
       'variables' => array('status' => MARK_NEW),
+      'template' => 'mark',
     ),
     'item_list' => array(
       'variables' => array('items' => array(), 'title' => '', 'list_type' => 'ul', 'attributes' => array(), 'empty' => NULL),
@@ -2630,6 +2605,7 @@ function drupal_common_theme() {
     // From form.inc.
     'input' => array(
       'render element' => 'element',
+      'template' => 'input',
     ),
     'select' => array(
       'render element' => 'element',
@@ -2646,9 +2622,6 @@ function drupal_common_theme() {
     'radios' => array(
       'render element' => 'element',
       'template' => 'radios',
-    ),
-    'date' => array(
-      'render element' => 'element',
     ),
     'checkboxes' => array(
       'render element' => 'element',
@@ -2671,6 +2644,7 @@ function drupal_common_theme() {
     ),
     'form_element_label' => array(
       'render element' => 'element',
+      'template' => 'form-element-label',
     ),
     'vertical_tabs' => array(
       'render element' => 'element',

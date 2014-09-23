@@ -7,7 +7,7 @@
 
 namespace Drupal\Core\Field;
 
-use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Field\TypedData\FieldItemDataDefinition;
 use Drupal\Core\TypedData\ListDataDefinition;
 use Drupal\field\FieldException;
@@ -15,7 +15,7 @@ use Drupal\field\FieldException;
 /**
  * A class for defining entity fields.
  */
-class FieldDefinition extends ListDataDefinition implements FieldDefinitionInterface {
+class FieldDefinition extends ListDataDefinition implements FieldDefinitionInterface, FieldStorageDefinitionInterface {
 
   /**
    * The field type.
@@ -253,7 +253,7 @@ class FieldDefinition extends ListDataDefinition implements FieldDefinitionInter
    * Sets the maximum number of items allowed for the field.
    *
    * Possible values are positive integers or
-   * FieldDefinitionInterface::CARDINALITY_UNLIMITED.
+   * FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED.
    *
    * @param int $cardinality
    *  The field cardinality.
@@ -378,8 +378,57 @@ class FieldDefinition extends ListDataDefinition implements FieldDefinitionInter
   /**
    * {@inheritdoc}
    */
-  public function getDefaultValue(EntityInterface $entity) {
-    return $this->getSetting('default_value');
+  public function getDefaultValue(ContentEntityInterface $entity) {
+    // Allow custom default values function.
+    if (!empty($this->definition['default_value_callback'])) {
+      $value = call_user_func($this->definition['default_value_callback'], $entity, $this);
+    }
+    else {
+      $value = isset($this->definition['default_value']) ? $this->definition['default_value'] : NULL;
+    }
+    // Allow the field type to process default values.
+    $field_item_list_class = $this->getClass();
+    return $field_item_list_class::processDefaultValue($value, $entity, $this);
+  }
+
+  /**
+   * Sets a custom default value callback.
+   *
+   * If set, the callback overrides any set default value.
+   *
+   * @param callable|null $callback
+   *   The callback to invoke for getting the default value (pass NULL to unset
+   *   a previously set callback). The callback will be invoked with the
+   *   following arguments:
+   *   - \Drupal\Core\Entity\ContentEntityInterface $entity
+   *     The entity being created.
+   *   - \Drupal\Core\Field\FieldDefinitionInterface $definition
+   *     The field definition.
+   *   It should return the default value as documented by
+   *   \Drupal\Core\Field\FieldDefinitionInterface::getDefaultValue().
+   *
+   * @return $this
+   */
+  public function setDefaultValueCallback($callback) {
+    $this->definition['default_value_callback'] = $callback;
+    return $this;
+  }
+
+  /**
+   * Sets a default value.
+   *
+   * Note that if a default value callback is set, it will take precedence over
+   * any value set here.
+   *
+   * @param mixed $value
+   *   The default value in the format as returned by
+   *   \Drupal\Core\Field\FieldDefinitionInterface::getDefaultValue().
+   *
+   * @return $this
+   */
+  public function setDefaultValue($value) {
+    $this->definition['default_value'] = $value;
+    return $this;
   }
 
   /**
@@ -460,11 +509,30 @@ class FieldDefinition extends ListDataDefinition implements FieldDefinitionInter
    * @param string $entity_type_id
    *   The name of the target entity type to set.
    *
-   * @return static
-   *   The object itself for chaining.
+   * @return $this
    */
   public function setTargetEntityTypeId($entity_type_id) {
     $this->definition['entity_type'] = $entity_type_id;
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getBundle() {
+    return isset($this->definition['bundle']) ? $this->definition['bundle'] : NULL;
+  }
+
+  /**
+   * Sets the bundle this field is defined for.
+   *
+   * @param string|null $bundle
+   *   The bundle, or NULL if the field is not bundle-specific.
+   *
+   * @return $this
+   */
+  public function setBundle($bundle) {
+    $this->definition['bundle'] = $bundle;
     return $this;
   }
 
@@ -480,6 +548,7 @@ class FieldDefinition extends ListDataDefinition implements FieldDefinitionInter
       // Fill in default values.
       $schema += array(
         'columns' => array(),
+        'unique keys' => array(),
         'indexes' => array(),
         'foreign keys' => array(),
       );
@@ -526,7 +595,7 @@ class FieldDefinition extends ListDataDefinition implements FieldDefinitionInter
    * {@inheritdoc}
    */
   public function hasCustomStorage() {
-    return !empty($this->definition['custom_storage']);
+    return !empty($this->definition['custom_storage']) || $this->isComputed();
   }
 
   /**
@@ -537,10 +606,30 @@ class FieldDefinition extends ListDataDefinition implements FieldDefinitionInter
    *   TRUE otherwise.
    *
    * @return $this
+   *
+   * @throws \LogicException
+   *   Thrown if custom storage is to be set to FALSE for a computed field.
    */
   public function setCustomStorage($custom_storage) {
+    if (!$custom_storage && $this->isComputed()) {
+      throw new \LogicException("Entity storage cannot store a computed field.");
+    }
     $this->definition['custom_storage'] = $custom_storage;
     return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getFieldStorageDefinition() {
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getUniqueStorageIdentifier() {
+    return $this->getTargetEntityTypeId() . '-' . $this->getName();
   }
 
 }

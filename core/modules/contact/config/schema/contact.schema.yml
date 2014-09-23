@@ -1,15 +1,12 @@
 # Schema for the configuration files of the Contact module.
 
 contact.category.*:
-  type: mapping
+  type: config_entity
   label: 'Contact category'
   mapping:
     id:
       type: string
-      label: 'Category identifier'
-    uuid:
-      type: string
-      label: 'UUID'
+      label: 'ID'
     label:
       type: label
       label: 'Label'
@@ -18,19 +15,13 @@ contact.category.*:
       label: 'Recipients'
       sequence:
         - type: email
-          label: 'E-mail address'
+          label: 'Email address'
     reply:
       type: text
       label: 'Auto-reply'
     weight:
       type: integer
       label: 'Weight'
-    status:
-      type: boolean
-      label: 'Status'
-    langcode:
-      type: string
-      label: 'Default language'
 
 contact.settings:
   type: mapping

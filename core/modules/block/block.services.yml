@@ -1,8 +1,23 @@
 services:
   plugin.manager.block:
     class: Drupal\block\BlockManager
-    arguments: ['@container.namespaces', '@cache.discovery', '@language_manager', '@module_handler', '@string_translation']
+    arguments: ['@container.namespaces', '@cache.discovery', '@module_handler', '@string_translation']
   theme.negotiator.block.admin_demo:
     class: Drupal\block\Theme\AdminDemoNegotiator
     tags:
       - { name: theme_negotiator, priority: 1000 }
+  block.current_user_context:
+    class: Drupal\block\EventSubscriber\CurrentUserContext
+    arguments: ['@current_user', '@entity.manager']
+    tags:
+      - { name: 'event_subscriber' }
+  block.current_language_context:
+    class: Drupal\block\EventSubscriber\CurrentLanguageContext
+    arguments: ['@language_manager']
+    tags:
+      - { name: 'event_subscriber' }
+  block.node_route_context:
+    class: Drupal\block\EventSubscriber\NodeRouteContext
+    arguments: ['@current_route_match']
+    tags:
+      - { name: 'event_subscriber' }

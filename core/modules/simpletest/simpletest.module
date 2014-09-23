@@ -4,8 +4,8 @@ use Drupal\Core\Database\Database;
 use Drupal\Core\Page\HtmlPage;
 use Drupal\Core\Extension\ExtensionDiscovery;
 use Drupal\Core\Render\Element;
+use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\simpletest\TestBase;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Process\PhpExecutableFinder;
 
 /**
@@ -16,7 +16,7 @@ use Symfony\Component\Process\PhpExecutableFinder;
 /**
  * Implements hook_help().
  */
-function simpletest_help($route_name, Request $request) {
+function simpletest_help($route_name, RouteMatchInterface $route_match) {
   switch ($route_name) {
     case 'help.page.simpletest':
       $output = '';
@@ -465,29 +465,32 @@ function simpletest_test_get_all($module = NULL) {
         $all_data += $listing->scan('profile', TRUE);
         $all_data += $listing->scan('theme', TRUE);
       }
+
+      // Scan all extension folders for class files.
       $classes = array();
       foreach ($all_data as $name => $data) {
-        $extension_dir = DRUPAL_ROOT . '/' . $data->getPath();
 
-        // Build directories in which the test files would reside.
-        $tests_dirs = array(
-          $extension_dir . '/lib/Drupal/' . $name . '/Tests',
-          $extension_dir . '/src/Tests',
-        );
+        // Build the directory in which simpletest test classes would reside.
+        $tests_dir = DRUPAL_ROOT . '/' . $data->getPath() . '/src/Tests';
 
+        // Check if the directory exists.
+        if (!is_dir($tests_dir)) {
+          // This extension has no directory for simpletest cases.
+          continue;
+        }
+
+        // Scan the directory for class files.
+        $files = file_scan_directory($tests_dir, '/\.php$/');
+        if (empty($files)) {
+          // No class files found.
+          continue;
+        }
+
+        // Convert the file names into the namespaced class names.
+        $strlen = strlen($tests_dir) + 1;
         $namespace = 'Drupal\\' . $name . '\Tests\\';
-        // Scan it for test files if it exists.
-        foreach ($tests_dirs as $tests_dir) {
-          if (is_dir($tests_dir)) {
-            $files = file_scan_directory($tests_dir, '/\.php$/');
-            if (!empty($files)) {
-              $strlen = strlen($tests_dir) + 1;
-              // Convert the file names into the namespaced class names.
-              foreach ($files as $file) {
-                $classes[] = $namespace . str_replace('/', '\\', substr($file->uri, $strlen, -4));
-              }
-            }
-          }
+        foreach ($files as $file) {
+          $classes[] = $namespace . str_replace('/', '\\', substr($file->uri, $strlen, -4));
         }
       }
 
@@ -776,6 +779,7 @@ function simpletest_phpunit_get_available_tests($module = NULL) {
     // Find all the tests and get a list of unique class names.
     $test_suite = $configuration->getTestSuiteConfiguration(NULL);
     $test_classes = array();
+    /** @var $test_suite \PHPUnit_Framework_TestSuite[] */
     foreach ($test_suite as $test) {
       // PHPUnit returns a warning message if something is wrong with a test,
       // throw an exception to avoid an error when trying to call getInfo() on
@@ -784,9 +788,9 @@ function simpletest_phpunit_get_available_tests($module = NULL) {
         throw new RuntimeException($test->getMessage());
       }
 
-      $name = get_class($test);
+      $name = $test->getName();
       if (!array_key_exists($name, $test_classes) && (!$module || substr($name, 0, $n) == $prefix)) {
-        $test_classes[$name] = $test->getInfo();
+        $test_classes[$name] = $name::getInfo();
       }
     }
 

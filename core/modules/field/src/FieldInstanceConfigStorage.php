@@ -108,18 +108,23 @@ class FieldInstanceConfigStorage extends ConfigEntityStorage {
     if (isset($conditions['entity_type']) && isset($conditions['bundle']) && isset($conditions['field_name'])) {
       // Optimize for the most frequent case where we do have a specific ID.
       $id = $conditions['entity_type'] . '.' . $conditions['bundle'] . '.' . $conditions['field_name'];
-      $instances = $this->entityManager->getStorage($this->entityTypeId)->loadMultiple(array($id));
+      $instances = $this->loadMultiple(array($id));
     }
     else {
       // No specific ID, we need to examine all existing instances.
-      $instances = $this->entityManager->getStorage($this->entityTypeId)->loadMultiple();
+      $instances = $this->loadMultiple();
     }
 
     // Merge deleted instances (stored in state) if needed.
     if ($include_deleted) {
       $deleted_instances = $this->state->get('field.instance.deleted') ?: array();
+      $deleted_fields = $this->state->get('field.field.deleted') ?: array();
       foreach ($deleted_instances as $id => $config) {
-        $instances[$id] = $this->entityManager->getStorage($this->entityTypeId)->create($config);
+        // If the field itself is deleted, inject it directly in the instance.
+        if (isset($deleted_fields[$config['field_uuid']])) {
+          $config['field'] = $this->entityManager->getStorage('field_config')->create($deleted_fields[$config['field_uuid']]);
+        }
+        $instances[$id] = $this->create($config);
       }
     }
 
@@ -127,7 +132,7 @@ class FieldInstanceConfigStorage extends ConfigEntityStorage {
     $matching_instances = array();
     foreach ($instances as $instance) {
       // Some conditions are checked against the field.
-      $field = $instance->getField();
+      $field = $instance->getFieldStorageDefinition();
 
       // Only keep the instance if it matches all conditions.
       foreach ($conditions as $key => $value) {
@@ -141,6 +146,10 @@ class FieldInstanceConfigStorage extends ConfigEntityStorage {
             $checked_value = $instance->field_uuid;
             break;
 
+          case 'uuid';
+            $checked_value = $instance->uuid();
+            break;
+
           default:
             $checked_value = $instance->$key;
             break;
@@ -152,7 +161,10 @@ class FieldInstanceConfigStorage extends ConfigEntityStorage {
         }
       }
 
-      $matching_instances[] = $instance;
+      // When returning deleted instances, key the results by UUID since they
+      // can include several instances with the same ID.
+      $key = $include_deleted ? $instance->uuid() : $instance->id();
+      $matching_instances[$key] = $instance;
     }
 
     return $matching_instances;

@@ -8,8 +8,8 @@
 namespace Drupal\system\Tests\Entity;
 
 use Drupal\comment\Plugin\Field\FieldType\CommentItemInterface;
-use Drupal\Core\Language\Language;
 use Drupal\Core\Database\Database;
+use Drupal\Core\Language\LanguageInterface;
 
 /**
  * Tests invocation of hooks when performing an action.
@@ -44,9 +44,14 @@ class EntityCrudHookTest extends EntityUnitTestBase {
 
   public function setUp() {
     parent::setUp();
+
+    $this->installEntitySchema('node');
+    $this->installEntitySchema('comment');
+
     $this->installSchema('user', array('users_data'));
-    $this->installSchema('node', array('node', 'node_revision', 'node_field_data', 'node_field_revision', 'node_access'));
-    $this->installSchema('comment', array('comment', 'comment_entity_statistics'));
+    $this->installSchema('file', array('file_usage'));
+    $this->installSchema('node', array('node_access'));
+    $this->installSchema('comment', array('comment_entity_statistics'));
   }
 
   /**
@@ -148,7 +153,7 @@ class EntityCrudHookTest extends EntityUnitTestBase {
       'status' => 1,
       'promote' => 0,
       'sticky' => 0,
-      'langcode' => Language::LANGCODE_NOT_SPECIFIED,
+      'langcode' => LanguageInterface::LANGCODE_NOT_SPECIFIED,
       'created' => REQUEST_TIME,
       'changed' => REQUEST_TIME,
     ));
@@ -167,7 +172,7 @@ class EntityCrudHookTest extends EntityUnitTestBase {
       'created' => REQUEST_TIME,
       'changed' => REQUEST_TIME,
       'status' => 1,
-      'langcode' => Language::LANGCODE_NOT_SPECIFIED,
+      'langcode' => LanguageInterface::LANGCODE_NOT_SPECIFIED,
     ));
 
     $this->assertHookMessageOrder(array(
@@ -219,7 +224,8 @@ class EntityCrudHookTest extends EntityUnitTestBase {
    * Tests hook invocations for CRUD operations on files.
    */
   public function testFileHooks() {
-    $this->installSchema('file', array('file_managed', 'file_usage'));
+    $this->installEntitySchema('file');
+
     $url = 'public://entity_crud_hook_test.file';
     file_put_contents($url, 'Test test test');
     $file = entity_create('file', array(
@@ -292,7 +298,7 @@ class EntityCrudHookTest extends EntityUnitTestBase {
       'status' => 1,
       'promote' => 0,
       'sticky' => 0,
-      'langcode' => Language::LANGCODE_NOT_SPECIFIED,
+      'langcode' => LanguageInterface::LANGCODE_NOT_SPECIFIED,
       'created' => REQUEST_TIME,
       'changed' => REQUEST_TIME,
     ));
@@ -346,12 +352,12 @@ class EntityCrudHookTest extends EntityUnitTestBase {
    * Tests hook invocations for CRUD operations on taxonomy terms.
    */
   public function testTaxonomyTermHooks() {
-    $this->installSchema('taxonomy', array('taxonomy_term_data', 'taxonomy_term_hierarchy'));
+    $this->installEntitySchema('taxonomy_term');
 
     $vocabulary = entity_create('taxonomy_vocabulary', array(
       'name' => 'Test vocabulary',
       'vid' => 'test',
-      'langcode' => Language::LANGCODE_NOT_SPECIFIED,
+      'langcode' => LanguageInterface::LANGCODE_NOT_SPECIFIED,
       'description' => NULL,
       'module' => 'entity_crud_hook_test',
     ));
@@ -361,7 +367,7 @@ class EntityCrudHookTest extends EntityUnitTestBase {
     $term = entity_create('taxonomy_term', array(
       'vid' => $vocabulary->id(),
       'name' => 'Test term',
-      'langcode' => Language::LANGCODE_NOT_SPECIFIED,
+      'langcode' => LanguageInterface::LANGCODE_NOT_SPECIFIED,
       'description' => NULL,
       'format' => 1,
     ));
@@ -415,12 +421,12 @@ class EntityCrudHookTest extends EntityUnitTestBase {
    * Tests hook invocations for CRUD operations on taxonomy vocabularies.
    */
   public function testTaxonomyVocabularyHooks() {
-    $this->installSchema('taxonomy', array('taxonomy_term_data', 'taxonomy_term_hierarchy'));
+    $this->installEntitySchema('taxonomy_term');
 
     $vocabulary = entity_create('taxonomy_vocabulary', array(
       'name' => 'Test vocabulary',
       'vid' => 'test',
-      'langcode' => Language::LANGCODE_NOT_SPECIFIED,
+      'langcode' => LanguageInterface::LANGCODE_NOT_SPECIFIED,
       'description' => NULL,
       'module' => 'entity_crud_hook_test',
     ));

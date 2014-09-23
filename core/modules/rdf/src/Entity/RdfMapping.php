@@ -78,7 +78,7 @@ class RdfMapping extends ConfigEntityBase implements RdfMappingInterface {
     if (isset($this->types)) {
       return array('types' => $this->types);
     }
-    return NULL;
+    return array();
   }
 
   /**
@@ -105,7 +105,7 @@ class RdfMapping extends ConfigEntityBase implements RdfMappingInterface {
     if (isset($this->fieldMappings[$field_name])) {
       $field_mapping = array_merge($field_mapping, $this->fieldMappings[$field_name]);
     }
-    return $field_mapping;
+    return empty($field_mapping['properties']) ? array() : $field_mapping;
   }
 
   /**
@@ -115,7 +115,7 @@ class RdfMapping extends ConfigEntityBase implements RdfMappingInterface {
     if (isset($this->fieldMappings[$field_name])) {
       return $this->fieldMappings[$field_name];
     }
-    return NULL;
+    return array();
   }
 
   /**
@@ -131,30 +131,6 @@ class RdfMapping extends ConfigEntityBase implements RdfMappingInterface {
    */
   public function id() {
     return $this->targetEntityType . '.' . $this->bundle;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function toArray() {
-    $names = array(
-      'uuid',
-      'targetEntityType',
-      'bundle',
-      'types',
-      'fieldMappings',
-    );
-    $properties = array(
-      'id' => $this->id(),
-    );
-    foreach ($names as $name) {
-      $properties[$name] = $this->get($name);
-    }
-    if (!empty($this->dependencies)) {
-      // Add protected dependencies property if set.
-      $properties['dependencies'] = $this->dependencies;
-    }
-    return $properties;
   }
 
   /**

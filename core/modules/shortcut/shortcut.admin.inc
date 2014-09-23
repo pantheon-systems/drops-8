@@ -4,6 +4,7 @@
  * @file
  * Administrative page callbacks for the shortcut module.
  */
+use Drupal\Component\Utility\String;
 use Drupal\shortcut\Entity\ShortcutSet;
 
 /**
@@ -20,7 +21,6 @@ use Drupal\shortcut\Entity\ShortcutSet;
  * @return
  *   An array representing the form definition.
  *
- * @ingroup forms
  * @see shortcut_set_switch_validate()
  * @see shortcut_set_switch_submit()
  *
@@ -40,7 +40,7 @@ function shortcut_set_switch($form, &$form_state, $account = NULL) {
 
   $options = array();
   foreach ($sets as $name => $set) {
-    $options[$name] = check_plain($set->label());
+    $options[$name] = String::checkPlain($set->label());
   }
 
   // Only administrators can add shortcut sets.

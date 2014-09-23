@@ -12,7 +12,7 @@ system.site:
       label: 'Site name'
     mail:
       type: email
-      label: 'E-mail address'
+      label: 'Email address'
     slogan:
       type: label
       label: 'Slogan'
@@ -115,37 +115,39 @@ system.date:
               label: 'Remind users at login if their time zone is not set'
 
 system.date_format.*:
-  type: mapping
+  type: config_entity
   label: 'Date format'
   mapping:
     id:
       type: string
-      label: 'Date format identifier'
-    uuid:
-      type: string
-      label: 'UUID'
+      label: 'ID'
     label:
       type: label
-      label: 'Date format label'
-    status:
-      type: boolean
-      label: 'Enabled'
+      label: 'Label'
     locked:
       type: boolean
       label: 'Locked'
     pattern:
-      type: mapping
-      label: 'Format string'
-      mapping:
-        php:
-          type: date_format
-          label: 'PHP date format'
-        intl:
-          type: string
-          label: 'Intl date format'
+      type: date_format
+      label: 'PHP date format'
     langcode:
       type: string
       label: 'Default language'
+
+system.diff:
+  type: mapping
+  label: 'Diff settings'
+  mapping:
+    context:
+      type: mapping
+      label: 'Context'
+      mapping:
+        lines_leading:
+          type: integer
+          label: 'Number of leading lines in a diff'
+        lines_trailing:
+          type: integer
+          label: 'Number of trailing lines in a diff'
 
 system.filter:
   type: mapping
@@ -279,50 +281,32 @@ system.theme:
       label: 'Default theme'
 
 system.menu.*:
-  type: mapping
+  type: config_entity
   label: 'Menu'
   mapping:
     id:
       type: string
-      label: 'Menu identifier'
-    uuid:
-      type: string
-      label: 'UUID'
+      label: 'ID'
     label:
       type: label
-      label: 'Menu label'
+      label: 'Label'
     description:
       type: label
       label: 'Menu description'
-    langcode:
-      type: string
-      label: 'Default language'
     locked:
-      type: boolean
-      label: ''
-    status:
       type: boolean
       label: ''
 
 system.action.*:
-  type: mapping
+  type: config_entity
   label: 'System action'
   mapping:
     id:
       type: string
       label: 'ID'
-    uuid:
-      type: string
-      label: 'UUID'
     label:
       type: label
       label: 'Label'
-    status:
-      type: boolean
-      label: 'Status'
-    langcode:
-      type: string
-      label: 'Default language'
     type:
       type: string
       label: 'Type'
@@ -331,9 +315,6 @@ system.action.*:
       label: 'Plugin'
     configuration:
       type: action.configuration.[%parent.plugin]
-    dependencies:
-      type: config_dependencies
-      label: 'Dependencies'
 
 system.file:
   type: mapping
@@ -377,7 +358,7 @@ system.image.gd:
 
 system.mail:
   type: mapping
-  label: 'Image settings'
+  label: 'Mail system'
   mapping:
     interface:
       type: mapping
@@ -390,3 +371,23 @@ system.mail:
 system.theme.global:
   type: theme_settings
   label: 'Theme global settings'
+
+block.settings.system_branding_block:
+  type: block_settings
+  label: 'Branding block'
+  mapping:
+    use_site_logo:
+      type: boolean
+      label: 'Use site logo'
+    use_site_name:
+      type: boolean
+      label: 'Use site name'
+    use_site_slogan:
+      type: boolean
+      label: 'Use site slogan'
+
+condition.plugin.request_path:
+  type: condition.plugin
+  mapping:
+    pages:
+      type: string

@@ -7,8 +7,8 @@
 
 namespace Drupal\taxonomy\Tests;
 
-use Drupal\Core\Language\Language;
 use Drupal\content_translation\Tests\ContentTranslationUITest;
+use Drupal\Core\Language\LanguageInterface;
 
 /**
  * Tests the Term Translation UI.
@@ -60,7 +60,7 @@ class TermTranslationUITest extends ContentTranslationUITest {
       'name' => $this->bundle,
       'description' => $this->randomName(),
       'vid' => $this->bundle,
-      'langcode' => Language::LANGCODE_NOT_SPECIFIED,
+      'langcode' => LanguageInterface::LANGCODE_NOT_SPECIFIED,
       'weight' => mt_rand(0, 10),
     ));
     $this->vocabulary->save();
@@ -121,19 +121,25 @@ class TermTranslationUITest extends ContentTranslationUITest {
     $this->admin_user = $this->drupalCreateUser(array_merge(parent::getTranslatorPermissions(), array('access administration pages', 'administer taxonomy')));
     $this->drupalLogin($this->admin_user);
 
-    $translatable_tid = $this->createEntity(array(), $this->langcodes[0], $this->vocabulary->id());
+    $values = array(
+      'name' => $this->randomName(),
+    );
+    $translatable_tid = $this->createEntity($values, $this->langcodes[0], $this->vocabulary->id());
 
     // Create an untranslatable vocabulary.
     $untranslatable_vocabulary = entity_create('taxonomy_vocabulary', array(
       'name' => 'untranslatable_voc',
       'description' => $this->randomName(),
       'vid' => 'untranslatable_voc',
-      'langcode' => Language::LANGCODE_NOT_SPECIFIED,
+      'langcode' => LanguageInterface::LANGCODE_NOT_SPECIFIED,
       'weight' => mt_rand(0, 10),
     ));
     $untranslatable_vocabulary->save();
 
-    $untranslatable_tid = $this->createEntity(array(), $this->langcodes[0], $untranslatable_vocabulary->id());
+    $values = array(
+      'name' => $this->randomName(),
+    );
+    $untranslatable_tid = $this->createEntity($values, $this->langcodes[0], $untranslatable_vocabulary->id());
 
     // Verify translation links.
     $this->drupalGet('admin/structure/taxonomy/manage/' .  $this->vocabulary->id() . '/overview');

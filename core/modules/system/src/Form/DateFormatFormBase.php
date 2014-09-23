@@ -11,7 +11,7 @@ use Drupal\Core\Ajax\AjaxResponse;
 use Drupal\Core\Ajax\ReplaceCommand;
 use Drupal\Core\Config\Entity\ConfigEntityStorageInterface;
 use Drupal\Core\Datetime\Date;
-use Drupal\Core\Language\Language;
+use Drupal\Core\Language\LanguageInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Entity\EntityForm;
@@ -20,13 +20,6 @@ use Drupal\Core\Entity\EntityForm;
  * Provides a base form for date formats.
  */
 abstract class DateFormatFormBase extends EntityForm {
-
-  /**
-   * The date pattern type.
-   *
-   * @var string
-   */
-  protected $patternType;
 
   /**
    * The date service.
@@ -52,7 +45,6 @@ abstract class DateFormatFormBase extends EntityForm {
    */
   public function __construct(Date $date_service, ConfigEntityStorageInterface $date_format_storage) {
     $date = new DrupalDateTime();
-    $this->patternType = $date->canUseIntl() ? DrupalDateTime::INTL : DrupalDateTime::PHP;
 
     $this->dateService = $date_service;
     $this->dateFormatStorage = $date_format_storage;
@@ -136,17 +128,11 @@ abstract class DateFormatFormBase extends EntityForm {
       ),
     );
 
-    if (class_exists('intlDateFormatter')) {
-      $description = t('A user-defined date format. See the <a href="@url">PHP manual</a> for available options.', array('@url' => 'http://userguide.icu-project.org/formatparse/datetime'));
-    }
-    else {
-      $description = t('A user-defined date format. See the <a href="@url">PHP manual</a> for available options.', array('@url' => 'http://php.net/manual/function.date.php'));
-    }
     $form['date_format_pattern'] = array(
       '#type' => 'textfield',
       '#title' => t('Format string'),
       '#maxlength' => 100,
-      '#description' => $description,
+      '#description' => $this->t('A user-defined date format. See the <a href="@url">PHP manual</a> for available options.', array('@url' => 'http://php.net/manual/function.date.php')),
       '#default_value' => '',
       '#field_suffix' => ' <small id="edit-date-format-suffix"></small>',
       '#ajax' => array(
@@ -160,8 +146,8 @@ abstract class DateFormatFormBase extends EntityForm {
     $form['langcode'] = array(
       '#type' => 'language_select',
       '#title' => t('Language'),
-      '#languages' => Language::STATE_ALL,
-      '#default_value' => $this->entity->langcode,
+      '#languages' => LanguageInterface::STATE_ALL,
+      '#default_value' => $this->entity->language()->getId(),
     );
 
     return parent::form($form, $form_state);
@@ -190,7 +176,7 @@ abstract class DateFormatFormBase extends EntityForm {
    */
   public function submit(array $form, array &$form_state) {
     $form_state['redirect_route']['route_name'] = 'system.date_format_list';
-    $form_state['values']['pattern'][$this->patternType] = trim($form_state['values']['date_format_pattern']);
+    $form_state['values']['pattern'] = trim($form_state['values']['date_format_pattern']);
 
     parent::submit($form, $form_state);
     $this->entity->save();

@@ -11,7 +11,7 @@ use Drupal\Component\Utility\String;
 use Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Config\Schema\ArrayElement;
-use Drupal\Core\Config\TypedConfigManager;
+use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Extension\ThemeHandlerInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
@@ -31,7 +31,7 @@ class ConfigMapperManager extends DefaultPluginManager implements ConfigMapperMa
   /**
    * The typed config manager.
    *
-   * @var \Drupal\Core\Config\TypedConfigManager
+   * @var \Drupal\Core\Config\TypedConfigManagerInterface
    */
   protected $typedConfigManager;
 
@@ -61,10 +61,10 @@ class ConfigMapperManager extends DefaultPluginManager implements ConfigMapperMa
    *   The language manager.
    * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
    *   The module handler.
-   * @param \Drupal\Core\Config\TypedConfigManager $typed_config_manager
+   * @param \Drupal\Core\Config\TypedConfigManagerInterface $typed_config_manager
    *   The typed config manager.
    */
-  public function __construct(CacheBackendInterface $cache_backend, LanguageManagerInterface $language_manager, ModuleHandlerInterface $module_handler, TypedConfigManager $typed_config_manager, ThemeHandlerInterface $theme_handler) {
+  public function __construct(CacheBackendInterface $cache_backend, LanguageManagerInterface $language_manager, ModuleHandlerInterface $module_handler, TypedConfigManagerInterface $typed_config_manager, ThemeHandlerInterface $theme_handler) {
     $this->typedConfigManager = $typed_config_manager;
 
     // Look at all themes and modules.
@@ -97,7 +97,9 @@ class ConfigMapperManager extends DefaultPluginManager implements ConfigMapperMa
     $this->themeHandler = $theme_handler;
 
     $this->alterInfo('config_translation_info');
-    $this->setCacheBackend($cache_backend, $language_manager, 'config_translation_info_plugins');
+    // Config translation only uses an info hook discovery, cache by language.
+    $cache_key = 'config_translation_info_plugins' . ':' . $language_manager->getCurrentLanguage()->getId();
+    $this->setCacheBackend($cache_backend, $cache_key, array('config_translation_info_plugins' => TRUE));
   }
 
   /**
@@ -124,6 +126,13 @@ class ConfigMapperManager extends DefaultPluginManager implements ConfigMapperMa
     if (!isset($definition['base_route_name'])) {
       throw new InvalidPluginDefinitionException($plugin_id, String::format("The plugin definition of the mapper '%plugin_id' does not contain a base_route_name.", array('%plugin_id' => $plugin_id)));
     }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function buildDataDefinition(array $definition, $value = NULL, $name = NULL, $parent = NULL) {
+    return $this->typedConfigManager->buildDataDefinition($definition, $value, $name, $parent);
   }
 
   /**

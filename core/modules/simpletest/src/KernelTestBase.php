@@ -7,11 +7,14 @@
 
 namespace Drupal\simpletest;
 
+use Drupal\Component\Utility\String;
 use Drupal\Core\Database\Database;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\DrupalKernel;
 use Drupal\Core\KeyValueStore\KeyValueMemoryFactory;
 use Drupal\Core\Language\Language;
+use Drupal\Core\Site\Settings;
+use Drupal\Core\Entity\Schema\EntitySchemaProviderInterface;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -28,6 +31,8 @@ use Symfony\Component\HttpFoundation\Request;
  *
  * @see \Drupal\simpletest\KernelTestBase::$modules
  * @see \Drupal\simpletest\KernelTestBase::enableModules()
+ *
+ * @ingroup testing
  */
 abstract class KernelTestBase extends UnitTestBase {
 
@@ -101,6 +106,10 @@ abstract class KernelTestBase extends UnitTestBase {
    * Create and set new configuration directories.
    *
    * @see config_get_config_directory()
+   *
+   * @throws \RuntimeException
+   *   Thrown when CONFIG_ACTIVE_DIRECTORY or CONFIG_STAGING_DIRECTORY cannot
+   *   be created or made writable.
    */
   protected function prepareConfigDirectories() {
     $this->configDirectories = array();
@@ -124,27 +133,42 @@ abstract class KernelTestBase extends UnitTestBase {
   protected function setUp() {
     $this->keyValueFactory = new KeyValueMemoryFactory();
 
+    // Allow for test-specific overrides.
+    $settings_services_file = DRUPAL_ROOT . '/' . $this->originalSite . '/testing.services.yml';
+    if (file_exists($settings_services_file)) {
+      // Copy the testing-specific service overrides in place.
+      copy($settings_services_file, DRUPAL_ROOT . '/' . $this->siteDirectory . '/services.yml');
+    }
+
     parent::setUp();
 
     // Create and set new configuration directories.
     $this->prepareConfigDirectories();
 
-    // Build a minimal, partially mocked environment for unit tests.
-    $this->containerBuild(\Drupal::getContainer());
-    // Make sure it survives kernel rebuilds.
+    // Add this test class as a service provider.
+    // @todo Remove the indirection; implement ServiceProviderInterface instead.
     $GLOBALS['conf']['container_service_providers']['TestServiceProvider'] = 'Drupal\simpletest\TestServiceProvider';
 
-    \Drupal::state()->set('system.module.files', $this->moduleFiles);
-    \Drupal::state()->set('system.theme.files', $this->themeFiles);
-
-    // Bootstrap the kernel.
-    // No need to dump it; this test runs in-memory.
-    $this->kernel = new DrupalKernel('unit_testing', drupal_classloader(), FALSE);
+    // Back up settings from TestBase::prepareEnvironment().
+    $settings = Settings::getAll();
+    // Bootstrap a new kernel. Don't use createFromRequest so we don't mess with settings.
+    $this->kernel = new DrupalKernel('testing', drupal_classloader(), FALSE);
+    $request = Request::create('/');
+    $this->kernel->setSitePath(DrupalKernel::findSitePath($request));
     $this->kernel->boot();
 
-    $request = Request::create('/');
+    // Restore and merge settings.
+    // DrupalKernel::boot() initializes new Settings, and the containerBuild()
+    // method sets additional settings.
+    new Settings($settings + Settings::getAll());
+
+    // Set the request scope.
+    $this->container = $this->kernel->getContainer();
     $this->container->set('request', $request);
     $this->container->get('request_stack')->push($request);
+
+    $this->container->get('state')->set('system.module.files', $this->moduleFiles);
+    $this->container->get('state')->set('system.theme.files', $this->themeFiles);
 
     // Create a minimal core.extension configuration object so that the list of
     // enabled modules can be maintained allowing
@@ -169,10 +193,10 @@ abstract class KernelTestBase extends UnitTestBase {
     // Modules have been collected in reverse class hierarchy order; modules
     // defined by base classes should be sorted first. Then, merge the results
     // together.
+    $modules = array_reverse($modules);
+    $modules = call_user_func_array('array_merge_recursive', $modules);
     if ($modules) {
-      $modules = array_reverse($modules);
-      $modules = call_user_func_array('array_merge_recursive', $modules);
-      $this->enableModules($modules, FALSE);
+      $this->enableModules($modules);
     }
     // In order to use theme functions default theme config needs to exist.
     \Drupal::config('system.theme')->set('default', 'stark');
@@ -283,6 +307,9 @@ abstract class KernelTestBase extends UnitTestBase {
    *
    * @param array $modules
    *   A list of modules for which to install default configuration.
+   *
+   * @throws \RuntimeException
+   *   Thrown when any module listed in $modules is not enabled.
    */
   protected function installConfig(array $modules) {
     foreach ($modules as $module) {
@@ -305,6 +332,10 @@ abstract class KernelTestBase extends UnitTestBase {
    *   The name of the module that defines the table's schema.
    * @param string|array $tables
    *   The name or an array of the names of the tables to install.
+   *
+   * @throws \RuntimeException
+   *   Thrown when $module is not enabled or when the table schema cannot be
+   *   found in the module specified.
    */
   protected function installSchema($module, $tables) {
     // drupal_get_schema_unprocessed() is technically able to install a schema
@@ -338,6 +369,42 @@ abstract class KernelTestBase extends UnitTestBase {
     )));
   }
 
+
+
+  /**
+   * Installs the tables for a specific entity type.
+   *
+   * @param string $entity_type_id
+   *   The ID of the entity type.
+   *
+   * @throws \RuntimeException
+   *   Thrown when the entity type does not support automatic schema installation.
+   */
+  protected function installEntitySchema($entity_type_id) {
+    /** @var \Drupal\Core\Entity\EntityManagerInterface $entity_manager */
+    $entity_manager = $this->container->get('entity.manager');
+    /** @var \Drupal\Core\Database\Schema $schema_handler */
+    $schema_handler = $this->container->get('database')->schema();
+
+    $storage = $entity_manager->getStorage($entity_type_id);
+    if ($storage instanceof EntitySchemaProviderInterface) {
+      $schema = $storage->getSchema();
+      foreach ($schema as $table_name => $table_schema) {
+        $schema_handler->createTable($table_name, $table_schema);
+      }
+
+      $this->pass(String::format('Installed entity type tables for the %entity_type entity type: %tables', array(
+        '%entity_type' => $entity_type_id,
+        '%tables' => '{' . implode('}, {', array_keys($schema)) . '}',
+      )));
+    }
+    else {
+      throw new \RuntimeException(String::format('Entity type %entity_type does not support automatic schema installation.', array(
+        '%entity-type' => $entity_type_id,
+      )));
+    }
+  }
+
   /**
    * Enables modules for this test.
    *
@@ -369,8 +436,7 @@ abstract class KernelTestBase extends UnitTestBase {
     // Ensure isLoaded() is TRUE in order to make _theme() work.
     // Note that the kernel has rebuilt the container; this $module_handler is
     // no longer the $module_handler instance from above.
-    $module_handler = $this->container->get('module_handler');
-    $module_handler->reload();
+    $this->container->get('module_handler')->reload();
     $this->pass(format_string('Enabled modules: %modules.', array(
       '%modules' => implode(', ', $modules),
     )));

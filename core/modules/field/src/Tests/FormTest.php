@@ -7,7 +7,8 @@
 
 namespace Drupal\field\Tests;
 
-use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Component\Utility\String;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
 
 /**
  * Tests field form handling.
@@ -78,7 +79,7 @@ class FormTest extends FieldTestBase {
       'name' => 'field_unlimited',
       'entity_type' => 'entity_test',
       'type' => 'test_field',
-      'cardinality' => FieldDefinitionInterface::CARDINALITY_UNLIMITED,
+      'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
     );
 
     $this->instance = array(
@@ -107,7 +108,7 @@ class FormTest extends FieldTestBase {
     $this->drupalGet('entity_test/add');
 
     // Create token value expected for description.
-    $token_description = check_plain(\Drupal::config('system.site')->get('name')) . '_description';
+    $token_description = String::checkPlain(\Drupal::config('system.site')->get('name')) . '_description';
     $this->assertText($token_description, 'Token replacement for description is displayed');
     $this->assertFieldByName("{$field_name}[0][value]", '', 'Widget is displayed');
     $this->assertNoField("{$field_name}[1][value]", 'No extraneous widget is displayed');
@@ -539,7 +540,6 @@ class FormTest extends FieldTestBase {
     $form_state = form_state_defaults();
     $display->buildForm($entity, $form, $form_state);
 
-    $this->assertEqual($form[$field_name_no_access]['widget'][0]['value']['#entity_type'], $entity_type, 'The correct entity type is set in the field structure.');
     $this->assertFalse($form[$field_name_no_access]['#access'], 'Field #access is FALSE for the field without edit access.');
 
     // Display creation form.

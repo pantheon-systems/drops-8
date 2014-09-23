@@ -54,8 +54,9 @@ class FieldHelpTest extends WebTestBase {
     // Visit the Help page and make sure no warnings or notices are thrown.
     $this->drupalGet('admin/help/field');
 
-    // Enable the Options, E-mail and Field API Test modules.
+    // Enable the Options, Email and Field API Test modules.
     \Drupal::moduleHandler()->install(array('options', 'field_test'));
+    $this->resetAll();
     \Drupal::service('plugin.manager.field.widget')->clearCachedDefinitions();
     \Drupal::service('plugin.manager.field.field_type')->clearCachedDefinitions();
 

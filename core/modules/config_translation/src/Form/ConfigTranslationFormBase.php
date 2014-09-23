@@ -10,11 +10,11 @@ namespace Drupal\config_translation\Form;
 use Drupal\config_translation\ConfigMapperManagerInterface;
 use Drupal\Core\Config\Config;
 use Drupal\Core\Config\Schema\Element;
-use Drupal\Core\Config\TypedConfigManager;
+use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Form\BaseFormIdInterface;
 use Drupal\Core\Form\FormBase;
-use Drupal\Core\Language\Language;
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\language\Config\LanguageConfigOverride;
 use Drupal\language\ConfigurableLanguageManagerInterface;
 use Drupal\locale\StringStorageInterface;
@@ -30,7 +30,7 @@ abstract class ConfigTranslationFormBase extends FormBase implements BaseFormIdI
   /**
    * The typed configuration manager.
    *
-   * @var \Drupal\Core\Config\TypedConfigManager
+   * @var \Drupal\Core\Config\TypedConfigManagerInterface
    */
   protected $typedConfigManager;
 
@@ -72,14 +72,14 @@ abstract class ConfigTranslationFormBase extends FormBase implements BaseFormIdI
   /**
    * The language of the configuration translation.
    *
-   * @var \Drupal\Core\Language\Language
+   * @var \Drupal\Core\Language\LanguageInterface
    */
   protected $language;
 
   /**
    * The language of the configuration translation source.
    *
-   * @var \Drupal\Core\Language\Language
+   * @var \Drupal\Core\Language\LanguageInterface
    */
   protected $sourceLanguage;
 
@@ -93,7 +93,7 @@ abstract class ConfigTranslationFormBase extends FormBase implements BaseFormIdI
   /**
    * Creates manage form object with string translation storage.
    *
-   * @param \Drupal\Core\Config\TypedConfigManager $typed_config_manager
+   * @param \Drupal\Core\Config\TypedConfigManagerInterface $typed_config_manager
    *   The typed configuration manager.
    * @param \Drupal\config_translation\ConfigMapperManagerInterface $config_mapper_manager
    *   The configuration mapper manager.
@@ -102,7 +102,7 @@ abstract class ConfigTranslationFormBase extends FormBase implements BaseFormIdI
    * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
    *   The module handler to invoke the alter hook.
    */
-  public function __construct(TypedConfigManager $typed_config_manager, ConfigMapperManagerInterface $config_mapper_manager, StringStorageInterface $locale_storage, ModuleHandlerInterface $module_handler, ConfigurableLanguageManagerInterface $language_manager) {
+  public function __construct(TypedConfigManagerInterface $typed_config_manager, ConfigMapperManagerInterface $config_mapper_manager, StringStorageInterface $locale_storage, ModuleHandlerInterface $module_handler, ConfigurableLanguageManagerInterface $language_manager) {
     $this->typedConfigManager = $typed_config_manager;
     $this->configMapperManager = $config_mapper_manager;
     $this->localeStorage = $locale_storage;
@@ -272,7 +272,10 @@ abstract class ConfigTranslationFormBase extends FormBase implements BaseFormIdI
     foreach ($schema as $key => $element) {
       // Make the specific element key, "$base_key.$key".
       $element_key = implode('.', array_filter(array($base_key, $key)));
-      $definition = $element->getDataDefinition() + array('label' => $this->t('N/A'));
+      $definition = $element->getDataDefinition();
+      if (!$definition->getLabel()) {
+        $definition->setLabel($this->t('N/A'));
+      }
       if ($element instanceof Element) {
         // Build sub-structure and include it with a wrapper in the form
         // if there are any translatable elements there.
@@ -336,7 +339,9 @@ abstract class ConfigTranslationFormBase extends FormBase implements BaseFormIdI
           '#type' => 'item',
         );
 
-        $definition += array('form_element_class' => '\Drupal\config_translation\FormElement\Textfield');
+        if (!isset($definition['form_element_class'])) {
+          $definition['form_element_class'] = '\Drupal\config_translation\FormElement\Textfield';
+        }
 
         /** @var \Drupal\config_translation\FormElement\ElementInterface $form_element */
         $form_element = new $definition['form_element_class']();
@@ -349,7 +354,7 @@ abstract class ConfigTranslationFormBase extends FormBase implements BaseFormIdI
   /**
    * Sets configuration based on a nested form value array.
    *
-   * @param \Drupal\Core\Language\Language $language
+   * @param \Drupal\Core\Language\LanguageInterface $language
    *   Set the configuration in this language.
    * @param \Drupal\Core\Config\Config $base_config
    *   Base configuration values, in the source language.
@@ -373,7 +378,7 @@ abstract class ConfigTranslationFormBase extends FormBase implements BaseFormIdI
    * @return array
    *   Translation configuration override data.
    */
-  protected function setConfig(Language $language, Config $base_config, LanguageConfigOverride $config_translation, array $config_values, $shipped_config = FALSE) {
+  protected function setConfig(LanguageInterface $language, Config $base_config, LanguageConfigOverride $config_translation, array $config_values, $shipped_config = FALSE) {
     foreach ($config_values as $key => $value) {
       if (is_array($value) && !isset($value['translation'])) {
         // Traverse into this level in the configuration.

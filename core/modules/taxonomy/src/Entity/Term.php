@@ -11,8 +11,6 @@ use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\FieldDefinition;
-use Drupal\Core\Language\Language;
-use Drupal\Core\TypedData\DataDefinition;
 use Drupal\taxonomy\TermInterface;
 
 /**
@@ -115,8 +113,7 @@ class Term extends ContentEntityBase implements TermInterface {
     $fields['vid'] = FieldDefinition::create('entity_reference')
       ->setLabel(t('Vocabulary'))
       ->setDescription(t('The vocabulary to which the term is assigned.'))
-      ->setSetting('target_type', 'taxonomy_vocabulary')
-      ->setSetting('max_length', EntityTypeInterface::BUNDLE_MAX_LENGTH);
+      ->setSetting('target_type', 'taxonomy_vocabulary');
 
     $fields['langcode'] = FieldDefinition::create('language')
       ->setLabel(t('Language code'))
@@ -157,15 +154,16 @@ class Term extends ContentEntityBase implements TermInterface {
     $fields['weight'] = FieldDefinition::create('integer')
       ->setLabel(t('Weight'))
       ->setDescription(t('The weight of this term in relation to other terms.'))
-      ->setSetting('default_value', 0);
+      ->setDefaultValue(0);
 
     // @todo Convert this to an entity_reference field, see
     // https://drupal.org/node/1915056
     $fields['parent'] = FieldDefinition::create('integer')
       ->setLabel(t('Term Parents'))
       ->setDescription(t('The parents of this term.'))
+      ->setCardinality(FieldDefinition::CARDINALITY_UNLIMITED)
       // Save new terms with no parents by default.
-      ->setSetting('default_value', 0)
+      ->setDefaultValue(0)
       ->setSetting('unsigned', TRUE)
       ->addConstraint('TermParent', array());
 

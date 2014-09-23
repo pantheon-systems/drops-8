@@ -12,7 +12,6 @@ use Drupal\Core\Entity\EntityMalformedException;
 use Drupal\Core\Entity\EntityStorageException;
 use Drupal\Core\Config\Entity\ConfigEntityStorage;
 use Drupal\Core\Config\Entity\Exception\ConfigEntityIdLengthException;
-use Drupal\Core\Language\Language;
 use Drupal\simpletest\WebTestBase;
 
 /**
@@ -47,11 +46,10 @@ class ConfigEntityTest extends WebTestBase {
     $default_langcode = \Drupal::languageManager()->getDefaultLanguage()->id;
     // Verify default properties on a newly created empty entity.
     $empty = entity_create('config_test');
-    $this->assertIdentical($empty->id, NULL);
-    $this->assertTrue($empty->uuid);
+    $this->assertTrue($empty->uuid());
     $this->assertIdentical($empty->label, NULL);
     $this->assertIdentical($empty->style, NULL);
-    $this->assertIdentical($empty->langcode, $default_langcode);
+    $this->assertIdentical($empty->language()->getId(), $default_langcode);
 
     // Verify ConfigEntity properties/methods on the newly created empty entity.
     $this->assertIdentical($empty->isNew(), TRUE);
@@ -65,7 +63,7 @@ class ConfigEntityTest extends WebTestBase {
     $this->assertTrue($empty->get('uuid'));
     $this->assertIdentical($empty->get('label'), NULL);
     $this->assertIdentical($empty->get('style'), NULL);
-    $this->assertIdentical($empty->get('langcode'), $default_langcode);
+    $this->assertIdentical($empty->language()->getId(), $default_langcode);
 
     // Verify Entity properties/methods on the newly created empty entity.
     $this->assertIdentical($empty->getEntityTypeId(), 'config_test');
@@ -106,12 +104,11 @@ class ConfigEntityTest extends WebTestBase {
       'label' => $this->randomString(),
       'style' => $this->randomName(),
     ));
-    $this->assertIdentical($config_test->id, $expected['id']);
-    $this->assertTrue($config_test->uuid);
-    $this->assertNotEqual($config_test->uuid, $empty->uuid);
+    $this->assertTrue($config_test->uuid());
+    $this->assertNotEqual($config_test->uuid(), $empty->uuid());
     $this->assertIdentical($config_test->label, $expected['label']);
     $this->assertIdentical($config_test->style, $expected['style']);
-    $this->assertIdentical($config_test->langcode, $default_langcode);
+    $this->assertIdentical($config_test->language()->getId(), $default_langcode);
 
     // Verify methods on the newly created entity.
     $this->assertIdentical($config_test->isNew(), TRUE);
@@ -160,7 +157,7 @@ class ConfigEntityTest extends WebTestBase {
     try {
       $id_length_config_test->save();
       $this->pass(String::format("config_test entity with ID length @length was saved.", array(
-        '@length' => strlen($id_length_config_test->id))
+        '@length' => strlen($id_length_config_test->id()))
       ));
     }
     catch (ConfigEntityIdLengthException $e) {
@@ -174,7 +171,7 @@ class ConfigEntityTest extends WebTestBase {
     try {
       $id_length_config_test->save();
       $this->pass(String::format("config_test entity with ID length @length was saved.", array(
-        '@length' => strlen($id_length_config_test->id),
+        '@length' => strlen($id_length_config_test->id()),
       )));
     }
     catch (ConfigEntityIdLengthException $e) {
@@ -188,13 +185,13 @@ class ConfigEntityTest extends WebTestBase {
     try {
       $status = $id_length_config_test->save();
       $this->fail(String::format("config_test entity with ID length @length exceeding the maximum allowed length of @max saved successfully", array(
-        '@length' => strlen($id_length_config_test->id),
+        '@length' => strlen($id_length_config_test->id()),
         '@max' => static::MAX_ID_LENGTH,
       )));
     }
     catch (ConfigEntityIdLengthException $e) {
       $this->pass(String::format("config_test entity with ID length @length exceeding the maximum allowed length of @max failed to save", array(
-        '@length' => strlen($id_length_config_test->id),
+        '@length' => strlen($id_length_config_test->id()),
         '@max' => static::MAX_ID_LENGTH,
       )));
     }
@@ -222,7 +219,7 @@ class ConfigEntityTest extends WebTestBase {
       $this->assertIdentical($config_test->getOriginalId(), $old_id);
 
       // Rename.
-      $config_test->id = $new_id;
+      $config_test->set('id', $new_id);
       $this->assertIdentical($config_test->id(), $new_id);
       $status = $config_test->save();
       $this->assertIdentical($status, SAVED_UPDATED);

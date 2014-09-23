@@ -9,7 +9,7 @@ namespace Drupal\taxonomy;
 
 use Drupal\Core\Entity\EntityForm;
 use Drupal\Core\Entity\EntityTypeInterface;
-use Drupal\Core\Language\Language;
+use Drupal\Core\Language\LanguageInterface;
 
 /**
  * Base form for vocabulary edit forms.
@@ -57,8 +57,8 @@ class VocabularyForm extends EntityForm {
     $form['langcode'] = array(
       '#type' => 'language_select',
       '#title' => $this->t('Vocabulary language'),
-      '#languages' => Language::STATE_ALL,
-      '#default_value' => $vocabulary->langcode,
+      '#languages' => LanguageInterface::STATE_ALL,
+      '#default_value' => $vocabulary->language()->getId(),
     );
     if ($this->moduleHandler->moduleExists('language')) {
       $form['default_terms_language'] = array(

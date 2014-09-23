@@ -30,6 +30,15 @@ class KernelTestBaseTest extends KernelTestBase {
   }
 
   /**
+   * {@inheritdoc}
+   */
+  protected function setUp() {
+    $original_container = \Drupal::getContainer();
+    parent::setUp();
+    $this->assertNotIdentical(\Drupal::getContainer(), $original_container, 'KernelTestBase test creates a new container.');
+  }
+
+  /**
    * Tests expected behavior of setUp().
    */
   function testSetUp() {
@@ -75,7 +84,7 @@ class KernelTestBaseTest extends KernelTestBase {
    */
   function testEnableModulesInstall() {
     $module = 'node';
-    $table = 'node';
+    $table = 'node_access';
 
     // Verify that the module does not exist yet.
     $this->assertFalse(\Drupal::moduleHandler()->moduleExists($module), "$module module not found.");
@@ -108,9 +117,9 @@ class KernelTestBaseTest extends KernelTestBase {
    */
   function testEnableModulesInstallContainer() {
     // Install Node module.
-    $this->enableModules(array('field', 'node'));
+    $this->enableModules(array('user', 'field', 'node'));
 
-    $this->installSchema('node', array('node', 'node_field_data'));
+    $this->installEntitySchema('node', array('node', 'node_field_data'));
     // Perform an entity query against node.
     $query = \Drupal::entityQuery('node');
     // Disable node access checks, since User module is not enabled.
@@ -125,7 +134,7 @@ class KernelTestBaseTest extends KernelTestBase {
    */
   function testInstallSchema() {
     $module = 'entity_test';
-    $table = 'entity_test';
+    $table = 'entity_test_example';
     // Verify that we can install a table from the module schema.
     $this->installSchema($module, $table);
     $this->assertTrue(db_table_exists($table), "'$table' database table found.");
@@ -169,6 +178,18 @@ class KernelTestBaseTest extends KernelTestBase {
     $this->assertTrue(db_table_exists($table), "'$table' database table found.");
     $schema = drupal_get_schema($table);
     $this->assertTrue($schema, "'$table' table schema found.");
+  }
+
+  /**
+   * Tests expected behavior of installEntitySchema().
+   */
+  function testInstallEntitySchema() {
+    $entity = 'entity_test';
+    // The entity_test Entity has a field that depends on the User module.
+    $this->enableModules(array('user'));
+    // Verity that the entity schema is created properly.
+    $this->installEntitySchema($entity);
+    $this->assertTrue(db_table_exists($entity), "'$entity' database table found.");
   }
 
   /**
@@ -242,8 +263,7 @@ class KernelTestBaseTest extends KernelTestBase {
     ));
     $field->save();
     entity_create('field_instance_config', array(
-      'field_name' => $field->name,
-      'entity_type' => 'entity_test',
+      'field' => $field,
       'bundle' => 'entity_test',
     ))->save();
   }

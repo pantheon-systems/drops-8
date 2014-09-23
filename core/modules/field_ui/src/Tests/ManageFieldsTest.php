@@ -7,9 +7,9 @@
 
 namespace Drupal\field_ui\Tests;
 
-use Drupal\Core\Field\FieldDefinitionInterface;
-use Drupal\Core\Language\Language;
 use Drupal\Component\Utility\String;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldInstanceConfig;
 
@@ -42,7 +42,7 @@ class ManageFieldsTest extends FieldUiTestBase {
     $vocabulary = entity_create('taxonomy_vocabulary', array(
       'name' => 'Tags',
       'vid' => 'tags',
-      'langcode' => Language::LANGCODE_NOT_SPECIFIED,
+      'langcode' => LanguageInterface::LANGCODE_NOT_SPECIFIED,
     ));
     $vocabulary->save();
 
@@ -212,12 +212,12 @@ class ManageFieldsTest extends FieldUiTestBase {
 
     // Set to unlimited.
     $edit = array(
-      'field[cardinality]' => FieldDefinitionInterface::CARDINALITY_UNLIMITED,
+      'field[cardinality]' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
     );
     $this->drupalPostForm($field_edit_path, $edit, t('Save field settings'));
     $this->assertText('Updated field Body field settings.');
     $this->drupalGet($field_edit_path);
-    $this->assertFieldByXPath("//select[@name='field[cardinality]']", FieldDefinitionInterface::CARDINALITY_UNLIMITED);
+    $this->assertFieldByXPath("//select[@name='field[cardinality]']", FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED);
     $this->assertFieldByXPath("//input[@name='field[cardinality_number]']", 1);
   }
 
@@ -425,8 +425,7 @@ class ManageFieldsTest extends FieldUiTestBase {
     ));
     $field->save();
     entity_create('field_instance_config', array(
-      'field_name' => $field->name,
-      'entity_type' => 'node',
+      'field' => $field,
       'bundle' => $this->type,
     ))->save();
     entity_get_form_display('node', $this->type, 'default')

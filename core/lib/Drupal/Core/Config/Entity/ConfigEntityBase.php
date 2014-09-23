@@ -10,11 +10,12 @@ namespace Drupal\Core\Config\Entity;
 use Drupal\Component\Plugin\ConfigurablePluginInterface;
 use Drupal\Component\Utility\String;
 use Drupal\Core\Cache\Cache;
+use Drupal\Core\Config\Schema\SchemaIncompleteException;
 use Drupal\Core\Entity\Entity;
 use Drupal\Core\Config\ConfigDuplicateUUIDException;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityWithPluginBagsInterface;
-use Drupal\Core\Language\Language;
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Plugin\PluginDependencyTrait;
 
 /**
@@ -54,14 +55,14 @@ abstract class ConfigEntityBase extends Entity implements ConfigEntityInterface 
    *
    * @var bool
    */
-  public $status = TRUE;
+  protected $status = TRUE;
 
   /**
    * The UUID for this entity.
    *
    * @var string
    */
-  public $uuid;
+  protected $uuid;
 
   /**
    * Whether the config is being created, updated or deleted through the
@@ -83,7 +84,7 @@ abstract class ConfigEntityBase extends Entity implements ConfigEntityInterface 
    *
    * @var string
    */
-  public $langcode = Language::LANGCODE_NOT_SPECIFIED;
+  protected $langcode = LanguageInterface::LANGCODE_NOT_SPECIFIED;
 
   /**
    * Overrides Entity::__construct().
@@ -240,17 +241,33 @@ abstract class ConfigEntityBase extends Entity implements ConfigEntityInterface 
    * {@inheritdoc}
    */
   public function toArray() {
-    // Configuration objects do not have a schema. Extract all key names from
-    // class properties.
-    $class_info = new \ReflectionClass($this);
     $properties = array();
-    foreach ($class_info->getProperties(\ReflectionProperty::IS_PUBLIC) as $property) {
-      $name = $property->getName();
-      $properties[$name] = $this->get($name);
+    $config_name = $this->getEntityType()->getConfigPrefix() . '.' . $this->id();
+    $definition = $this->getTypedConfig()->getDefinition($config_name);
+    if (!isset($definition['mapping'])) {
+      throw new SchemaIncompleteException(String::format('Incomplete or missing schema for @config_name', array('@config_name' => $config_name)));
     }
-    // Add protected dependencies property.
-    $properties['dependencies'] = $this->dependencies;
+    $id_key = $this->getEntityType()->getKey('id');
+    foreach (array_keys($definition['mapping']) as $name) {
+      // Special handling for IDs so that computed compound IDs work.
+      // @see \Drupal\entity\EntityDisplayBase::id()
+      if ($name == $id_key) {
+        $properties[$name] = $this->id();
+      }
+      else {
+        $properties[$name] = $this->get($name);
+      }
+    }
     return $properties;
+  }
+
+  /**
+   * Gets the typed config manager.
+   *
+   * @return \Drupal\Core\Config\TypedConfigManagerInterface
+   */
+  protected function getTypedConfig() {
+    return \Drupal::service('config.typed');
   }
 
   /**

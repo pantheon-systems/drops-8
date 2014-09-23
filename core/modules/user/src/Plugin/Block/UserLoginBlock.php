@@ -25,7 +25,7 @@ class UserLoginBlock extends BlockBase {
   /**
    * {@inheritdoc}
    */
-  public function access(AccountInterface $account) {
+  protected function blockAccess(AccountInterface $account) {
     $route_name = \Drupal::request()->attributes->get(RouteObjectInterface::ROUTE_NAME);
     return ($account->isAnonymous() && !in_array($route_name, array('user.register', 'user.login', 'user.logout')));
   }
@@ -53,7 +53,7 @@ class UserLoginBlock extends BlockBase {
     }
     $items['request_password'] = l(t('Request new password'), 'user/password', array(
       'attributes' => array(
-        'title' => t('Request new password via e-mail.'),
+        'title' => t('Request new password via email.'),
         'class' => array('request-password-link'),
       ),
     ));

@@ -38,7 +38,8 @@ class CommentValidationTest extends EntityUnitTestBase {
    */
   public function setUp() {
     parent::setUp();
-    $this->installSchema('node', array('node', 'node_field_data', 'node_field_revision', 'node_revision'));
+    $this->installEntitySchema('node');
+    $this->installEntitySchema('comment');
     $this->installSchema('comment', array('comment_entity_statistics'));
   }
 
@@ -46,11 +47,21 @@ class CommentValidationTest extends EntityUnitTestBase {
    * Tests the comment validation constraints.
    */
   public function testValidation() {
+    // Add comment type.
+    $this->entityManager->getStorage('comment_type')->create(array(
+      'id' => 'comment',
+      'label' => 'comment',
+      'target_entity_type_id' => 'node',
+    ))->save();
+
     // Add comment field to content.
     $this->entityManager->getStorage('field_config')->create(array(
       'entity_type' => 'node',
       'name' => 'comment',
       'type' => 'comment',
+      'settings' => array(
+        'comment_type' => 'comment',
+      )
     ))->save();
 
     // Create a page node type.

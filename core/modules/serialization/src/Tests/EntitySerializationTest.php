@@ -7,8 +7,7 @@
 
 namespace Drupal\serialization\Tests;
 
-use Drupal\Core\Language\Language;
-use Symfony\Component\Serializer\Serializer;
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\Component\Utility\String;
 
 /**
@@ -80,17 +79,11 @@ class EntitySerializationTest extends NormalizerTestBase {
       'id' => array(
         array('value' => 1),
       ),
-      'revision_id' => array(
-        array('value' => 1),
-      ),
       'uuid' => array(
         array('value' => $this->entity->uuid()),
       ),
       'langcode' => array(
-        array('value' => Language::LANGCODE_NOT_SPECIFIED),
-      ),
-      'default_langcode' => array(
-        array('value' => NULL),
+        array('value' => LanguageInterface::LANGCODE_NOT_SPECIFIED),
       ),
       'name' => array(
         array('value' => $this->values['name']),
@@ -100,6 +93,9 @@ class EntitySerializationTest extends NormalizerTestBase {
       ),
       'user_id' => array(
         array('target_id' => $this->values['user_id']),
+      ),
+      'revision_id' => array(
+        array('value' => 1),
       ),
       'field_test_text' => array(
         array(
@@ -141,13 +137,12 @@ class EntitySerializationTest extends NormalizerTestBase {
     // order.
     $expected = array(
       'id' => '<id><value>' . $this->entity->id() . '</value></id>',
-      'revision_id' => '<revision_id><value>' . $this->entity->getRevisionId() . '</value></revision_id>',
       'uuid' => '<uuid><value>' . $this->entity->uuid() . '</value></uuid>',
-      'langcode' => '<langcode><value>' . Language::LANGCODE_NOT_SPECIFIED . '</value></langcode>',
-      'default_langcode' => '<default_langcode><value/></default_langcode>',
+      'langcode' => '<langcode><value>' . LanguageInterface::LANGCODE_NOT_SPECIFIED . '</value></langcode>',
       'name' => '<name><value>' . $this->values['name'] . '</value></name>',
       'type' => '<type><value>entity_test_mulrev</value></type>',
       'user_id' => '<user_id><target_id>' . $this->values['user_id'] . '</target_id></user_id>',
+      'revision_id' => '<revision_id><value>' . $this->entity->getRevisionId() . '</value></revision_id>',
       'field_test_text' => '<field_test_text><value>' . $this->values['field_test_text']['value'] . '</value><format>' . $this->values['field_test_text']['format'] . '</format></field_test_text>',
     );
     // Sort it in the same order as normalised.

@@ -9,7 +9,7 @@ namespace Drupal\menu_link;
 
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Entity\EntityForm;
-use Drupal\Core\Language\Language;
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Path\AliasManagerInterface;
 use Drupal\Core\Routing\UrlGenerator;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -174,14 +174,14 @@ class MenuLinkForm extends EntityForm {
     // Without Language module menu links inherit the menu language and no
     // language selector is shown.
     else {
-      $default_langcode = ($menu_link->isNew() ? entity_load('menu', $menu_link->menu_name)->langcode : $menu_link->langcode);
+      $default_langcode = ($menu_link->isNew() ? entity_load('menu', $menu_link->menu_name)->language()->getId() : $menu_link->langcode);
       $language_show = FALSE;
     }
 
     $form['langcode'] = array(
       '#type' => 'language_select',
       '#title' => t('Language'),
-      '#languages' => Language::STATE_ALL,
+      '#languages' => LanguageInterface::STATE_ALL,
       '#default_value' => $default_langcode,
       '#access' => $language_show,
     );

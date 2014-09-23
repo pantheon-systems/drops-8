@@ -34,8 +34,8 @@ class DateTimeDefaultWidget extends WidgetBase {
   /**
    * {@inheritdoc}
    */
-  public function __construct($plugin_id, $plugin_definition, FieldDefinitionInterface $field_definition, array $settings) {
-    parent::__construct($plugin_id, $plugin_definition, $field_definition, $settings);
+  public function __construct($plugin_id, $plugin_definition, FieldDefinitionInterface $field_definition, array $settings, array $third_party_settings) {
+    parent::__construct($plugin_id, $plugin_definition, $field_definition, $settings, $third_party_settings);
 
     // @todo Inject this once https://drupal.org/node/2035317 is in.
     $this->dateStorage = \Drupal::entityManager()->getStorage('date_format');
@@ -45,8 +45,6 @@ class DateTimeDefaultWidget extends WidgetBase {
    * {@inheritdoc}
    */
   public function formElement(FieldItemListInterface $items, $delta, array $element, array &$form, array &$form_state) {
-    $format_type = datetime_default_format_type();
-
     // We are nesting some sub-elements inside the parent, so we need a wrapper.
     // We also need to add another #title attribute at the top level for ease in
     // identifying this item in error messages. We do not want to display this
@@ -62,7 +60,7 @@ class DateTimeDefaultWidget extends WidgetBase {
       case DateTimeItem::DATETIME_TYPE_DATE:
         $date_type = 'date';
         $time_type = 'none';
-        $date_format = $this->dateStorage->load('html_date')->getPattern($format_type);
+        $date_format = $this->dateStorage->load('html_date')->getPattern();
         $time_format = '';
         $element_format = $date_format;
         $storage_format = DATETIME_DATE_STORAGE_FORMAT;
@@ -71,8 +69,8 @@ class DateTimeDefaultWidget extends WidgetBase {
       default:
         $date_type = 'date';
         $time_type = 'time';
-        $date_format = $this->dateStorage->load('html_date')->getPattern($format_type);
-        $time_format = $this->dateStorage->load('html_time')->getPattern($format_type);
+        $date_format = $this->dateStorage->load('html_date')->getPattern();
+        $time_format = $this->dateStorage->load('html_time')->getPattern();
         $element_format = $date_format . ' ' . $time_format;
         $storage_format = DATETIME_DATETIME_STORAGE_FORMAT;
         break;

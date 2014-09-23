@@ -2,14 +2,14 @@
 
 /**
  * @file
- * Contains Drupal\views\Plugin\views\display\DisplayPluginBase.
+ * Contains \Drupal\views\Plugin\views\display\DisplayPluginBase.
  */
 
 namespace Drupal\views\Plugin\views\display;
 
 use Drupal\Component\Utility\String;
 use Drupal\Core\Cache\Cache;
-use Drupal\Core\Language\Language;
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Theme\Registry;
 use Drupal\views\Plugin\views\area\AreaPluginBase;
@@ -22,16 +22,26 @@ use Symfony\Component\DependencyInjection\Exception\RuntimeException as Dependen
 /**
  * @defgroup views_display_plugins Views display plugins
  * @{
- * Display plugins control how Views interact with the rest of Drupal.
+ * Plugins to handle the overall display of views.
  *
- * They can handle creating Views from a Drupal page hook; they can
- * handle creating Views from a Drupal block hook. They can also
- * handle creating Views from an external module source.
+ * Display plugins are responsible for controlling where a view is rendered;
+ * that is, how it is exposed to other parts of Drupal. 'Page' and 'block' are
+ * the most commonly used display plugins. Each view also has a 'master' (or
+ * 'default') display that includes information shared between all its
+ * displays (see \Drupal\views\Plugin\views\display\DefaultDisplay).
+ *
+ * Display plugins extend \Drupal\views\Plugin\views\display\DisplayPluginBase.
+ * They must be annotated with \Drupal\views\Plugin\Annotation\ViewsDisplay
+ * annotation, and they must be in namespace directory Plugin\views\display.
+ *
+ * @ingroup views_plugins
+ *
+ * @see plugin_api
+ * @see views_display_extender_plugins
  */
 
 /**
- * The default display plugin handler. Display plugins handle options and
- * basic mechanisms for different output methods.
+ * Base class for views display plugins.
  */
 abstract class DisplayPluginBase extends PluginBase {
 
@@ -180,11 +190,11 @@ abstract class DisplayPluginBase extends PluginBase {
       $this->unpackOptions($this->options, $options);
     }
 
-    // Convert the field_language and field_language_add_to_query settings.
-    $field_language = $this->getOption('field_language');
+    // Convert the field_langcode and field_language_add_to_query settings.
+    $field_langcode = $this->getOption('field_langcode');
     $field_language_add_to_query = $this->getOption('field_language_add_to_query');
     if (isset($field_langcode)) {
-      $this->setOption('field_langcode', $field_language);
+      $this->setOption('field_langcode', $field_langcode);
       $this->setOption('field_langcode_add_to_query', $field_language_add_to_query);
       $changed = TRUE;
     }
@@ -1243,7 +1253,7 @@ abstract class DisplayPluginBase extends PluginBase {
     $languages = array(
         '***CURRENT_LANGUAGE***' => t("Current user's language"),
         '***DEFAULT_LANGUAGE***' => t("Default site language"),
-        Language::LANGCODE_NOT_SPECIFIED => t('Language neutral'),
+        LanguageInterface::LANGCODE_NOT_SPECIFIED => t('Language neutral'),
     );
     if (\Drupal::moduleHandler()->moduleExists('language')) {
       $languages = array_merge($languages, language_list());
@@ -1617,7 +1627,7 @@ abstract class DisplayPluginBase extends PluginBase {
           $languages = array(
             '***CURRENT_LANGUAGE***' => t("Current user's language"),
             '***DEFAULT_LANGUAGE***' => t("Default site language"),
-            Language::LANGCODE_NOT_SPECIFIED => t('Language neutral'),
+            LanguageInterface::LANGCODE_NOT_SPECIFIED => t('Language neutral'),
           );
           $languages = array_merge($languages, views_language_list());
 
@@ -1950,7 +1960,7 @@ abstract class DisplayPluginBase extends PluginBase {
       case 'group_by':
         $this->setOption($section, $form_state['values'][$section]);
         break;
-      case 'field_language':
+      case 'field_langcode':
         $this->setOption('field_langcode', $form_state['values']['field_langcode']);
         $this->setOption('field_langcode_add_to_query', $form_state['values']['field_langcode_add_to_query']);
         break;

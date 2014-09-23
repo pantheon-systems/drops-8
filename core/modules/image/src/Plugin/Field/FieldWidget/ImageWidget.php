@@ -85,7 +85,7 @@ class ImageWidget extends FileWidget {
   protected function formMultipleElements(FieldItemListInterface $items, array &$form, array &$form_state) {
     $elements = parent::formMultipleElements($items, $form, $form_state);
 
-    $cardinality = $this->fieldDefinition->getCardinality();
+    $cardinality = $this->fieldDefinition->getFieldStorageDefinition()->getCardinality();
     $file_upload_help = array(
       '#theme' => 'file_upload_help',
       '#description' => '',
@@ -166,7 +166,7 @@ class ImageWidget extends FileWidget {
       }
       else {
         $image = \Drupal::service('image.factory')->get($file->getFileUri());
-        if ($image->isExisting()) {
+        if ($image->isValid()) {
           $variables['width'] = $image->getWidth();
           $variables['height'] = $image->getHeight();
         }
@@ -218,7 +218,7 @@ class ImageWidget extends FileWidget {
       '#element_validate' => $element['#title_field_required'] == 1 ? array(array(get_called_class(), 'validateRequiredFields')) : array(),
     );
 
-    return $element;
+    return parent::process($element, $form_state, $form);
   }
 
   /**

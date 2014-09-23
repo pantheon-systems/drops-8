@@ -67,8 +67,7 @@ class PageCacheTagsIntegrationTest extends WebTestBase {
     // Place a block, but only make it visible on full node page 2.
     $block = $this->drupalPlaceBlock('views_block:comments_recent-block_1', array(
       'visibility' => array(
-        'path' => array(
-          'visibility' => BLOCK_VISIBILITY_LISTED,
+        'request_path' => array(
           'pages' => 'node/' . $node_2->id(),
         ),
       )
@@ -76,7 +75,7 @@ class PageCacheTagsIntegrationTest extends WebTestBase {
 
     // Full node page 1.
     $this->verifyPageCacheTags('node/' . $node_1->id(), array(
-      'content:1',
+      'rendered:1',
       'theme:bartik',
       'theme_global_settings:1',
       'block_view:1',
@@ -101,7 +100,7 @@ class PageCacheTagsIntegrationTest extends WebTestBase {
 
     // Full node page 2.
     $this->verifyPageCacheTags('node/' . $node_2->id(), array(
-      'content:1',
+      'rendered:1',
       'theme:bartik',
       'theme_global_settings:1',
       'block_view:1',

@@ -7,6 +7,7 @@
 
 namespace Drupal\entity_reference\Tests;
 
+use Drupal\Component\Utility\String;
 use Drupal\simpletest\WebTestBase;
 
 /**
@@ -66,7 +67,7 @@ class EntityReferenceSelectionSortTest extends WebTestBase {
     ));
     $field->save();
     $instance = entity_create('field_instance_config', array(
-      'field_name' => 'test_field',
+      'field' => $field,
       'entity_type' => 'entity_test',
       'bundle' => 'test_bundle',
       'settings' => array(
@@ -115,7 +116,7 @@ class EntityReferenceSelectionSortTest extends WebTestBase {
       $node = entity_create('node', $values);
       $node->save();
       $nodes[$key] = $node;
-      $node_labels[$key] = check_plain($node->label());
+      $node_labels[$key] = String::checkPlain($node->label());
     }
 
     // Test as a non-admin.

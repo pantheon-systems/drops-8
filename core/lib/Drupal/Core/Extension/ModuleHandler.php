@@ -11,6 +11,7 @@ use Drupal\Component\Graph\Graph;
 use Drupal\Component\Serialization\Yaml;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Cache\CacheBackendInterface;
+use Drupal\Core\Entity\Schema\EntitySchemaProviderInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -150,6 +151,16 @@ class ModuleHandler implements ModuleHandlerInterface {
   /**
    * {@inheritdoc}
    */
+  public function getModule($name) {
+    if (isset($this->moduleList[$name])) {
+      return $this->moduleList[$name];
+    }
+    throw new \InvalidArgumentException(sprintf('The module %s does not exist.', $name));
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function setModuleList(array $module_list = array()) {
     $this->moduleList = $module_list;
     // Reset the implementations, so a new call triggers a reloading of the
@@ -183,7 +194,7 @@ class ModuleHandler implements ModuleHandlerInterface {
    */
   protected function add($type, $name, $path) {
     $pathname = "$path/$name.info.yml";
-    $filename = file_exists("$path/$name.$type") ? "$name.$type" : NULL;
+    $filename = file_exists(DRUPAL_ROOT . "/$path/$name.$type") ? "$name.$type" : NULL;
     $this->moduleList[$name] = new Extension($type, $pathname, $filename);
     $this->resetImplementations();
   }
@@ -651,21 +662,18 @@ class ModuleHandler implements ModuleHandlerInterface {
         return TRUE;
       }
 
-      // Conditionally add the dependencies to the list of modules.
-      if ($enable_dependencies) {
-        // Add dependencies to the list. The new modules will be processed as
-        // the while loop continues.
-        while (list($module) = each($module_list)) {
-          foreach (array_keys($module_data[$module]->requires) as $dependency) {
-            if (!isset($module_data[$dependency])) {
-              // The dependency does not exist.
-              return FALSE;
-            }
+      // Add dependencies to the list. The new modules will be processed as
+      // the while loop continues.
+      while (list($module) = each($module_list)) {
+        foreach (array_keys($module_data[$module]->requires) as $dependency) {
+          if (!isset($module_data[$dependency])) {
+            // The dependency does not exist.
+            return FALSE;
+          }
 
-            // Skip already installed modules.
-            if (!isset($module_list[$dependency]) && !isset($installed_modules[$dependency])) {
-              $module_list[$dependency] = $dependency;
-            }
+          // Skip already installed modules.
+          if (!isset($module_list[$dependency]) && !isset($installed_modules[$dependency])) {
+            $module_list[$dependency] = $dependency;
           }
         }
       }
@@ -799,6 +807,22 @@ class ModuleHandler implements ModuleHandlerInterface {
         }
         drupal_set_installed_schema_version($module, $version);
 
+        // Install any entity schemas belonging to the module.
+        $entity_manager = \Drupal::entityManager();
+        $schema = \Drupal::database()->schema();
+        foreach ($entity_manager->getDefinitions() as $entity_type) {
+          if ($entity_type->getProvider() == $module) {
+            $storage = $entity_manager->getStorage($entity_type->id());
+            if ($storage instanceof EntitySchemaProviderInterface) {
+              foreach ($storage->getSchema() as $table_name => $table_schema) {
+                if (!$schema->tableExists($table_name)) {
+                  $schema->createTable($table_name, $table_schema);
+                }
+              }
+            }
+          }
+        }
+
         // Record the fact that it was installed.
         $modules_installed[] = $module;
 
@@ -890,6 +914,22 @@ class ModuleHandler implements ModuleHandlerInterface {
 
       // Remove all configuration belonging to the module.
       \Drupal::service('config.manager')->uninstall('module', $module);
+
+      // Remove any entity schemas belonging to the module.
+      $entity_manager = \Drupal::entityManager();
+      $schema = \Drupal::database()->schema();
+      foreach ($entity_manager->getDefinitions() as $entity_type) {
+        if ($entity_type->getProvider() == $module) {
+          $storage = $entity_manager->getStorage($entity_type->id());
+          if ($storage instanceof EntitySchemaProviderInterface) {
+            foreach ($storage->getSchema() as $table_name => $table_schema) {
+              if ($schema->tableExists($table_name)) {
+                $schema->dropTable($table_name);
+              }
+            }
+          }
+        }
+      }
 
       // Remove the schema.
       drupal_uninstall_schema($module);

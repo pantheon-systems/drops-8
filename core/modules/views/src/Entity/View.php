@@ -195,7 +195,9 @@ class View extends ConfigEntityBase implements ViewStorageInterface {
     $display_options = array(
       'display_plugin' => $plugin_id,
       'id' => $id,
-      'display_title' => $title,
+      // Cast the display title to a string since it is an object.
+      // @see \Drupal\Core\StringTranslation\TranslationWrapper
+      'display_title' => (string) $title,
       'position' => $id === 'default' ? 0 : count($this->display),
       'provider' => $plugin['provider'],
       'display_options' => array(),
@@ -241,32 +243,6 @@ class View extends ConfigEntityBase implements ViewStorageInterface {
   /**
    * {@inheritdoc}
    */
-  public function toArray() {
-    $names = array(
-      'base_field',
-      'base_table',
-      'core',
-      'description',
-      'status',
-      'display',
-      'label',
-      'module',
-      'id',
-      'tag',
-      'uuid',
-      'langcode',
-      'dependencies',
-    );
-    $properties = array();
-    foreach ($names as $name) {
-      $properties[$name] = $this->get($name);
-    }
-    return $properties;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function calculateDependencies() {
     parent::calculateDependencies();
 
@@ -275,7 +251,10 @@ class View extends ConfigEntityBase implements ViewStorageInterface {
     // Ensure that the view is dependent on the module that provides the schema
     // for the base table.
     $schema = $this->drupalGetSchema($this->base_table);
-    if ($this->module != $schema['module']) {
+    // @todo Entity base tables are no longer registered in hook_schema(). Once
+    //   we automate the views data for entity types add the entity type
+    //   type provider as a dependency. See https://drupal.org/node/1740492.
+    if ($schema && $this->module != $schema['module']) {
       $this->addDependency('module', $schema['module']);
     }
 
@@ -283,7 +262,6 @@ class View extends ConfigEntityBase implements ViewStorageInterface {
     foreach (Views::getHandlerTypes() as $type) {
       $handler_types[] = $type['plural'];
     }
-
     foreach ($this->get('display') as $display) {
       // Collect all dependencies of all handlers.
       foreach ($handler_types as $handler_type) {
@@ -296,10 +274,10 @@ class View extends ConfigEntityBase implements ViewStorageInterface {
             // Add the additional dependencies from the handler configuration.
             if (!empty($handler['dependencies'])) {
               $this->addDependencies($handler['dependencies']);
-            }
           }
         }
       }
+    }
 
       // Collect all dependencies of plugins.
       foreach (Views::getPluginTypes('plugin') as $plugin_type) {

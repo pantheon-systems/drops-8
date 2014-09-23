@@ -24,7 +24,7 @@ class FilterAPITest extends EntityUnitTestBase {
 
   public static function getInfo() {
     return array(
-      'name' => 'API',
+      'name' => 'Filter API',
       'description' => 'Test the behavior of the API of the Filter module.',
       'group' => 'Filter',
     );
@@ -34,36 +34,6 @@ class FilterAPITest extends EntityUnitTestBase {
     parent::setUp();
 
     $this->installConfig(array('system', 'filter'));
-
-    // Create Filtered HTML format.
-    $filtered_html_format = entity_create('filter_format', array(
-      'format' => 'filtered_html',
-      'name' => 'Filtered HTML',
-      'filters' => array(
-        // Note that the filter_html filter is of the type FilterInterface::TYPE_MARKUP_LANGUAGE.
-        'filter_url' => array(
-          'weight' => -1,
-          'status' => 1,
-        ),
-        // Note that the filter_html filter is of the type FilterInterface::TYPE_HTML_RESTRICTOR.
-        'filter_html' => array(
-          'status' => 1,
-          'settings' => array(
-            'allowed_html' => '<p> <br> <strong> <a>',
-          ),
-        ),
-      )
-    ));
-    $filtered_html_format->save();
-
-    // Create Full HTML format.
-    $full_html_format = entity_create('filter_format', array(
-      'format' => 'full_html',
-      'name' => 'Full HTML',
-      'weight' => 1,
-      'filters' => array(),
-    ));
-    $full_html_format->save();
   }
 
   /**
@@ -105,13 +75,17 @@ class FilterAPITest extends EntityUnitTestBase {
     $expected_filtered_text = "Text with evil content and a URL: <a href=\"http://drupal.org\">http://drupal.org</a>!";
     $expected_filter_text_without_html_generators = "Text with evil content and a URL: http://drupal.org!";
 
+    $actual_filtered_text = check_markup($text, 'filtered_html', '', array());
+    $this->verbose("Actual:<pre>$actual_filtered_text</pre>Expected:<pre>$expected_filtered_text</pre>");
     $this->assertIdentical(
-      check_markup($text, 'filtered_html', '', FALSE, array()),
+      $actual_filtered_text,
       $expected_filtered_text,
       'Expected filter result.'
     );
+    $actual_filtered_text_without_html_generators = check_markup($text, 'filtered_html', '', array(FilterInterface::TYPE_MARKUP_LANGUAGE));
+    $this->verbose("Actual:<pre>$actual_filtered_text_without_html_generators</pre>Expected:<pre>$expected_filter_text_without_html_generators</pre>");
     $this->assertIdentical(
-      check_markup($text, 'filtered_html', '', FALSE, array(FilterInterface::TYPE_MARKUP_LANGUAGE)),
+      $actual_filtered_text_without_html_generators,
       $expected_filter_text_without_html_generators,
       'Expected filter result when skipping FilterInterface::TYPE_MARKUP_LANGUAGE filters.'
     );
@@ -119,8 +93,10 @@ class FilterAPITest extends EntityUnitTestBase {
     // this check focuses on the ability to filter multiple filter types at once.
     // Drupal core only ships with these two types of filters, so this is the
     // most extensive test possible.
+    $actual_filtered_text_without_html_generators = check_markup($text, 'filtered_html', '', array(FilterInterface::TYPE_HTML_RESTRICTOR, FilterInterface::TYPE_MARKUP_LANGUAGE));
+    $this->verbose("Actual:<pre>$actual_filtered_text_without_html_generators</pre>Expected:<pre>$expected_filter_text_without_html_generators</pre>");
     $this->assertIdentical(
-      check_markup($text, 'filtered_html', '', FALSE, array(FilterInterface::TYPE_HTML_RESTRICTOR, FilterInterface::TYPE_MARKUP_LANGUAGE)),
+      $actual_filtered_text_without_html_generators,
       $expected_filter_text_without_html_generators,
       'Expected filter result when skipping FilterInterface::TYPE_MARKUP_LANGUAGE filters, even when trying to disable filters of the FilterInterface::TYPE_HTML_RESTRICTOR type.'
     );
@@ -221,6 +197,73 @@ class FilterAPITest extends EntityUnitTestBase {
       array(FilterInterface::TYPE_HTML_RESTRICTOR),
       'FilterFormatInterface::getFilterTypes() works as expected for the very_restricted_html format.'
     );
+  }
+
+  /**
+   * Tests the 'processed_text' element.
+   *
+   * check_markup() is a wrapper for the 'processed_text' element, for use in
+   * simple scenarios; the 'processed_text' element has more advanced features:
+   * it lets filters attach assets, associate cache tags and define
+   * #post_render_cache callbacks.
+   * This test focuses solely on those advanced features.
+   */
+  function testProcessedTextElement() {
+    entity_create('filter_format', array(
+      'format' => 'element_test',
+      'name' => 'processed_text element test format',
+      'filters' => array(
+        'filter_test_assets' => array(
+          'weight' => -1,
+          'status' => TRUE,
+        ),
+        'filter_test_cache_tags' => array(
+          'weight' => 0,
+          'status' => TRUE,
+        ),
+        'filter_test_post_render_cache' => array(
+          'weight' => 1,
+          'status' => TRUE,
+        ),
+        // Run the HTML corrector filter last, because it has the potential to
+        // break the render cache placeholders added by the
+        // filter_test_post_render_cache filter.
+        'filter_htmlcorrector' => array(
+          'weight' => 10,
+          'status' => TRUE,
+        ),
+      ),
+    ))->save();
+
+    $build = array(
+      '#type' => 'processed_text',
+      '#text' => '<p>Hello, world!</p>',
+      '#format' => 'element_test',
+    );
+    drupal_render($build);
+
+    // Verify the assets, cache tags and #post_render_cache callbacks.
+    $expected_assets = array(
+      // The assets attached by the filter_test_assets filter.
+      'library' => array(
+        'filter/caption',
+      ),
+    );
+    $this->assertEqual($expected_assets, $build['#attached'], 'Expected assets present');
+    $expected_cache_tags = array(
+      // The cache tag set by the processed_text element itself.
+      'filter_format' => array(
+        'element_test' => 'element_test',
+      ),
+      // The cache tags set by the filter_test_cache_tags filter.
+      'foo' => array(
+        'bar' => 'bar',
+        'baz' => 'baz',
+      ),
+    );
+    $this->assertEqual($expected_cache_tags, $build['#cache']['tags'], 'Expected cache tags present.');
+    $expected_markup = '<p>Hello, world!</p><p>This is a dynamic llama.</p>';
+    $this->assertEqual($expected_markup, $build['#markup'], 'Expected #post_render_cache callback has been applied.');
   }
 
   /**

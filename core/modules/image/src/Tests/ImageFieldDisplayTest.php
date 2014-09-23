@@ -7,7 +7,7 @@
 
 namespace Drupal\image\Tests;
 
-use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\field\Entity\FieldConfig;
 
 /**
@@ -73,7 +73,7 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
       '#width' => 40,
       '#height' => 20,
     );
-    $default_output = drupal_render($image);
+    $default_output = str_replace("\n", NULL, drupal_render($image));
     $this->assertRaw($default_output, 'Default formatter displaying correctly on full node view.');
 
     // Test the image linked to file formatter.
@@ -123,11 +123,19 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
       '#width' => 40,
       '#height' => 20,
     );
-    $default_output = l($image, 'node/' . $nid, array('html' => TRUE));
     $this->drupalGet('node/' . $nid);
     $cache_tags_header = $this->drupalGetHeader('X-Drupal-Cache-Tags');
     $this->assertTrue(!preg_match('/ image_style\:/', $cache_tags_header), 'No image style cache tag found.');
-    $this->assertRaw($default_output, 'Image linked to content formatter displaying correctly on full node view.');
+    $elements = $this->xpath(
+      '//a[@href=:path]/img[@src=:url and @alt="" and @width=:width and @height=:height]',
+      array(
+        ':path' => url('node/' . $nid),
+        ':url' => file_create_url($image['#uri']),
+        ':width' => $image['#width'],
+        ':height' => $image['#height'],
+      )
+    );
+    $this->assertEqual(count($elements), 1, 'Image linked to content formatter displaying correctly on full node view.');
 
     // Test the image style 'thumbnail' formatter.
     $display_options['settings']['image_link'] = '';
@@ -183,7 +191,7 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
     $this->drupalGet('node/add/article');
     $this->assertText(t('50 KB limit.'), 'Image widget max file size is displayed on article form.');
     $this->assertText(t('Allowed types: ' . $test_image_extension . '.'), 'Image widget allowed file types displayed on article form.');
-    $this->assertText(t('Images must be between 10x10 and 100x100 pixels.'), 'Image widget allowed resolution displayed on article form.');
+    $this->assertText(t('Images must be larger than 10x10 pixels. Images larger than 100x100 pixels will be resized.'), 'Image widget allowed resolution displayed on article form.');
 
     // We have to create the article first and then edit it because the alt
     // and title fields do not display until the image has been attached.
@@ -218,7 +226,7 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
       $field_name . '[0][title]' => $image['#title'],
     );
     $this->drupalPostForm('node/' . $nid . '/edit', $edit, t('Save and keep published'));
-    $default_output = drupal_render($image);
+    $default_output = str_replace("\n", NULL, drupal_render($image));
     $this->assertRaw($default_output, 'Image displayed using user supplied alt and title attributes.');
 
     // Verify that alt/title longer than allowed results in a validation error.
@@ -228,7 +236,7 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
       $field_name . '[0][title]' => $this->randomName($test_size),
     );
     $this->drupalPostForm('node/' . $nid . '/edit', $edit, t('Save and keep published'));
-    $schema = $instance->getField()->getSchema();
+    $schema = $instance->getFieldStorageDefinition()->getSchema();
     $this->assertRaw(t('Alternate text cannot be longer than %max characters but is currently %length characters long.', array(
       '%max' => $schema['columns']['alt']['length'],
       '%length' => $test_size,
@@ -245,11 +253,19 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
     // 1, so we need to make sure the file widget prevents these notices by
     // providing all settings, even if they are not used.
     // @see FileWidget::formMultipleElements().
-    $this->drupalPostForm('admin/structure/types/manage/article/fields/node.article.' . $field_name . '/field', array('field[cardinality]' => FieldDefinitionInterface::CARDINALITY_UNLIMITED), t('Save field settings'));
+    $this->drupalPostForm('admin/structure/types/manage/article/fields/node.article.' . $field_name . '/field', array('field[cardinality]' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED), t('Save field settings'));
     $edit = array();
     $edit['files[' . $field_name . '_1][]'] = drupal_realpath($test_image->uri);
     $this->drupalPostForm('node/' . $node->id() . '/edit', $edit, t('Save and keep published'));
     $this->assertText(format_string('Article @title has been updated.', array('@title' => $node->getTitle())));
+
+    // Assert ImageWidget::process() calls FieldWidget::process().
+    $this->drupalGet('node/' . $node->id() . '/edit');
+    $edit = array();
+    $edit['files[' . $field_name . '_2][]'] = drupal_realpath($test_image->uri);
+    $this->drupalPostAjaxForm(NULL, $edit, $field_name . '_2_upload_button');
+    $this->assertNoRaw('<input multiple type="file" id="edit-' . strtr($field_name, '_', '-') . '-2-upload" name="files[' . $field_name . '_2][]" size="22" class="form-file">');
+    $this->assertRaw('<input multiple type="file" id="edit-' . strtr($field_name, '_', '-') . '-3-upload" name="files[' . $field_name . '_3][]" size="22" class="form-file">');
   }
 
   /**
@@ -294,7 +310,7 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
       '#width' => 40,
       '#height' => 20,
     );
-    $default_output = drupal_render($image);
+    $default_output = str_replace("\n", NULL, drupal_render($image));
     $this->drupalGet('node/' . $node->id());
     $cache_tags_header = $this->drupalGetHeader('X-Drupal-Cache-Tags');
     $this->assertTrue(!preg_match('/ image_style\:/', $cache_tags_header), 'No image style cache tag found.');
@@ -310,7 +326,7 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
       '#width' => 40,
       '#height' => 20,
     );
-    $image_output = drupal_render($image);
+    $image_output = str_replace("\n", NULL, drupal_render($image));
     $this->drupalGet('node/' . $nid);
     $cache_tags_header = $this->drupalGetHeader('X-Drupal-Cache-Tags');
     $this->assertTrue(!preg_match('/ image_style\:/', $cache_tags_header), 'No image style cache tag found.');
@@ -357,7 +373,7 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
       '#width' => 40,
       '#height' => 20,
     );
-    $default_output = drupal_render($image);
+    $default_output = str_replace("\n", NULL, drupal_render($image));
     $this->drupalGet('node/' . $node->id());
     $cache_tags_header = $this->drupalGetHeader('X-Drupal-Cache-Tags');
     $this->assertTrue(!preg_match('/ image_style\:/', $cache_tags_header), 'No image style cache tag found.');

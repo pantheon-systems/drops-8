@@ -13,7 +13,7 @@ use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\Field\FieldItemListInterface;
-use Drupal\Core\Language\Language;
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\TypedData\TranslatableInterface;
 use Drupal\Core\Render\Element;
@@ -22,6 +22,8 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Base class for entity view controllers.
+ *
+ * @ingroup entity_api
  */
 class EntityViewBuilder extends EntityControllerBase implements EntityControllerInterface, EntityViewBuilderInterface {
 
@@ -109,7 +111,7 @@ class EntityViewBuilder extends EntityControllerBase implements EntityController
    */
   public function viewMultiple(array $entities = array(), $view_mode = 'full', $langcode = NULL) {
     if (!isset($langcode)) {
-      $langcode = $this->languageManager->getCurrentLanguage(Language::TYPE_CONTENT)->id;
+      $langcode = $this->languageManager->getCurrentLanguage(LanguageInterface::TYPE_CONTENT)->id;
     }
 
     $build_list = array(
@@ -174,6 +176,9 @@ class EntityViewBuilder extends EntityControllerBase implements EntityController
           $view_mode,
           'cache_context.theme',
           'cache_context.user.roles',
+          // @todo Move this out of here and into field formatters that depend
+          //       on the timezone. Blocked on https://drupal.org/node/2099137.
+          'cache_context.timezone',
         ),
         'bin' => $this->cacheBin,
       );

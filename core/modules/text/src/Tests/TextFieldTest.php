@@ -7,6 +7,7 @@
 
 namespace Drupal\text\Tests;
 
+use Drupal\Component\Utility\String;
 use Drupal\simpletest\WebTestBase;
 
 /**
@@ -58,8 +59,7 @@ class TextFieldTest extends WebTestBase {
     ));
     $this->field->save();
     entity_create('field_instance_config', array(
-      'field_name' => $this->field->name,
-      'entity_type' => 'entity_test',
+      'field' => $this->field,
       'bundle' => 'entity_test',
     ))->save();
 
@@ -98,8 +98,7 @@ class TextFieldTest extends WebTestBase {
     ));
     $this->field->save();
     entity_create('field_instance_config', array(
-      'field_name' => $this->field_name,
-      'entity_type' => 'entity_test',
+      'field' => $this->field,
       'bundle' => 'entity_test',
       'label' => $this->randomName() . '_label',
       'settings' => array(
@@ -165,8 +164,7 @@ class TextFieldTest extends WebTestBase {
     ));
     $this->field->save();
     entity_create('field_instance_config', array(
-      'field_name' => $this->field_name,
-      'entity_type' => 'entity_test',
+      'field' => $this->field,
       'bundle' => 'entity_test',
       'label' => $this->randomName() . '_label',
       'settings' => array(
@@ -215,7 +213,7 @@ class TextFieldTest extends WebTestBase {
     $content = $display->build($entity);
     $this->drupalSetContent(drupal_render($content));
     $this->assertNoRaw($value, 'HTML tags are not displayed.');
-    $this->assertRaw(check_plain($value), 'Escaped HTML is displayed correctly.');
+    $this->assertRaw(String::checkPlain($value), 'Escaped HTML is displayed correctly.');
 
     // Create a new text format that does not escape HTML, and grant the user
     // access to it.

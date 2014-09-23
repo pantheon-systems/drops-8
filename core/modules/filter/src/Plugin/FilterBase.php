@@ -11,6 +11,11 @@ use Drupal\Core\Plugin\PluginBase;
 
 /**
  * Provides a base class for Filter plugins.
+ *
+ * @see \Drupal\filter\Annotation\Filter
+ * @see \Drupal\filter\FilterPluginManager
+ * @see \Drupal\filter\Plugin\FilterInterface
+ * @see plugin_api
  */
 abstract class FilterBase extends PluginBase implements FilterInterface {
 
@@ -45,13 +50,6 @@ abstract class FilterBase extends PluginBase implements FilterInterface {
   public $weight = 0;
 
   /**
-   * A Boolean indicating whether the text processed by this filter may be cached.
-   *
-   * @var bool
-   */
-  public $cache = TRUE;
-
-  /**
    * An associative array containing the configured settings of this filter.
    *
    * @var array
@@ -72,7 +70,6 @@ abstract class FilterBase extends PluginBase implements FilterInterface {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
 
     $this->provider = $this->pluginDefinition['provider'];
-    $this->cache = $this->pluginDefinition['cache'];
 
     $this->setConfiguration($configuration);
   }
@@ -154,7 +151,7 @@ abstract class FilterBase extends PluginBase implements FilterInterface {
   /**
    * {@inheritdoc}
    */
-  public function prepare($text, $langcode, $cache, $cache_id) {
+  public function prepare($text, $langcode) {
     return $text;
   }
 

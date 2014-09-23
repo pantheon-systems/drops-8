@@ -7,13 +7,14 @@
 
 namespace Drupal\node\Plugin\Search;
 
+use Drupal\Component\Utility\String;
 use Drupal\Core\Config\Config;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Database\Query\SelectExtender;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\State\StateInterface;
-use Drupal\Core\Language\Language;
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Access\AccessibleInterface;
 use Drupal\Core\Database\Query\Condition;
@@ -181,7 +182,7 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
 
     // Build matching conditions.
     $query = $this->database
-      ->select('search_index', 'i', array('target' => 'slave'))
+      ->select('search_index', 'i', array('target' => 'replica'))
       ->extend('Drupal\search\SearchQuery')
       ->extend('Drupal\Core\Database\Query\PagerSelectExtender');
     $query->join('node_field_data', 'n', 'n.nid = i.sid');
@@ -279,7 +280,7 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
       );
       $results[] = array(
         'link' => $node->url('canonical', array('absolute' => TRUE, 'language' => $language)),
-        'type' => check_plain($this->entityManager->getStorage('node_type')->load($node->bundle())->label()),
+        'type' => String::checkPlain($this->entityManager->getStorage('node_type')->load($node->bundle())->label()),
         'title' => $node->label(),
         'user' => drupal_render($username),
         'date' => $node->getChangedTime(),
@@ -324,7 +325,7 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
     // per cron run.
     $limit = (int) $this->searchSettings->get('index.cron_limit');
 
-    $result = $this->database->queryRange("SELECT n.nid, MAX(sd.reindex) FROM {node} n LEFT JOIN {search_dataset} sd ON sd.sid = n.nid AND sd.type = :type WHERE sd.sid IS NULL OR sd.reindex <> 0 GROUP BY n.nid ORDER BY MAX(sd.reindex) is null DESC, MAX(sd.reindex) ASC, n.nid ASC", 0, $limit, array(':type' => $this->getPluginId()), array('target' => 'slave'));
+    $result = $this->database->queryRange("SELECT n.nid, MAX(sd.reindex) FROM {node} n LEFT JOIN {search_dataset} sd ON sd.sid = n.nid AND sd.type = :type WHERE sd.sid IS NULL OR sd.reindex <> 0 GROUP BY n.nid ORDER BY MAX(sd.reindex) is null DESC, MAX(sd.reindex) ASC, n.nid ASC", 0, $limit, array(':type' => $this->getPluginId()), array('target' => 'replica'));
     $nids = $result->fetchCol();
     if (!$nids) {
       return;
@@ -358,7 +359,7 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
       unset($build['#theme']);
       $node->rendered = drupal_render($build);
 
-      $text = '<h1>' . check_plain($node->label($language->id)) . '</h1>' . $node->rendered;
+      $text = '<h1>' . String::checkPlain($node->label($language->id)) . '</h1>' . $node->rendered;
 
       // Fetch extra data normally not visible.
       $extra = $this->moduleHandler->invokeAll('node_update_index', array($node, $language->id));
@@ -430,7 +431,7 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
     );
 
     // Add node types.
-    $types = array_map('check_plain', node_type_get_names());
+    $types = array_map(array('\Drupal\Component\Utility\String', 'checkPlain'), node_type_get_names());
     $form['advanced']['types-fieldset'] = array(
       '#type' => 'fieldset',
       '#title' => t('Types'),
@@ -452,7 +453,7 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
 
     // Add languages.
     $language_options = array();
-    $language_list = \Drupal::languageManager()->getLanguages(Language::STATE_ALL);
+    $language_list = \Drupal::languageManager()->getLanguages(LanguageInterface::STATE_ALL);
     foreach ($language_list as $langcode => $language) {
       // Make locked languages appear special in the list.
       $language_options[$langcode] = $language->locked ? t('- @name -', array('@name' => $language->name)) : $language->name;

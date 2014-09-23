@@ -7,6 +7,7 @@
     "php": ">=5.4.2",
     "sdboyer/gliph": "0.1.*",
     "symfony/class-loader": "2.4.*",
+    "symfony/css-selector": "2.4.*",
     "symfony/dependency-injection": "2.4.*",
     "symfony/event-dispatcher": "2.4.*",
     "symfony/http-foundation": "2.4.*",
@@ -18,11 +19,12 @@
     "twig/twig": "1.15.*",
     "doctrine/common": "dev-master#a45d110f71c323e29f41eb0696fa230e3fa1b1b5",
     "doctrine/annotations": "dev-master#463d926a8dcc49271cb7db5a08364a70ed6e3cd3",
-    "guzzlehttp/guzzle": "4.0.*",
+    "guzzlehttp/guzzle": "4.1.*",
     "kriswallsmith/assetic": "1.1.*@alpha",
     "symfony-cmf/routing": "1.1.*@alpha",
     "easyrdf/easyrdf": "0.8.*",
-    "phpunit/phpunit": "3.7.*",
+    "phpunit/phpunit": "4.1.*",
+    "phpunit/phpunit-mock-objects": "dev-master#e60bb929c50ae4237aaf680a4f6773f4ee17f0a2",
     "zendframework/zend-feed": "2.2.*"
   },
   "autoload": {

@@ -7,6 +7,7 @@
 
 namespace Drupal\Core\Field\Plugin\Field\FieldType;
 
+use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Field\FieldItemBase;
@@ -27,6 +28,7 @@ use Drupal\Core\TypedData\DataReferenceDefinition;
  *   label = @Translation("Entity reference"),
  *   description = @Translation("An entity field containing an entity reference."),
  *   no_ui = TRUE,
+ *   list_class = "\Drupal\Core\Field\EntityReferenceFieldItemList",
  *   constraints = {"ValidReference" = {}}
  * )
  */
@@ -114,7 +116,9 @@ class EntityReferenceItem extends FieldItemBase {
         'target_id' => array(
           'description' => 'The ID of the target entity.',
           'type' => 'varchar',
-          'length' => '255',
+          // If the target entities act as bundles for another entity type,
+          // their IDs should not exceed the maximum length for bundles.
+          'length' => $target_type_info->getBundleOf() ? EntityTypeInterface::BUNDLE_MAX_LENGTH : 255,
         ),
       );
     }
@@ -127,30 +131,6 @@ class EntityReferenceItem extends FieldItemBase {
     );
 
     return $schema;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function __get($name) {
-    $name = ($name == 'value') ? 'target_id' : $name;
-    return parent::__get($name);
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function get($property_name) {
-    $property_name = ($property_name == 'value') ? 'target_id' : $property_name;
-    return parent::get($property_name);
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function __isset($property_name) {
-    $property_name = ($property_name == 'value') ? 'target_id' : $property_name;
-    return parent::__isset($property_name);
   }
 
   /**

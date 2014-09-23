@@ -23,7 +23,7 @@ class RowEntityTest extends ViewUnitTestBase {
    *
    * @var array
    */
-  public static $modules = array('taxonomy', 'text', 'filter', 'field', 'entity', 'system');
+  public static $modules = array('taxonomy', 'text', 'filter', 'field', 'entity', 'system', 'menu_link');
 
   /**
    * Views used by this test.
@@ -53,7 +53,7 @@ class RowEntityTest extends ViewUnitTestBase {
   protected function setUp() {
     parent::setUp();
 
-    $this->installSchema('taxonomy', array('taxonomy_term_data', 'taxonomy_term_hierarchy'));
+    $this->installEntitySchema('taxonomy_term');
     $this->installConfig(array('taxonomy'));
     \Drupal::service('router.builder')->rebuild();
   }

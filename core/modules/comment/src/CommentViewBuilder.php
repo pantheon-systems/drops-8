@@ -15,7 +15,6 @@ use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityViewBuilder;
 use Drupal\entity\Entity\EntityViewDisplay;
-use Drupal\Core\Language\Language;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -111,7 +110,7 @@ class CommentViewBuilder extends EntityViewBuilder {
         throw new \InvalidArgumentException(t('Invalid entity for comment.'));
       }
       $build[$id]['#entity'] = $entity;
-      $build[$id]['#theme'] = 'comment__' . $entity->getFieldId() . '__' . $commented_entity->bundle();
+      $build[$id]['#theme'] = 'comment__' . $entity->getFieldName() . '__' . $commented_entity->bundle();
       $callback = '\Drupal\comment\CommentViewBuilder::renderLinks';
       $context = array(
         'comment_entity_id' => $entity->id(),
@@ -120,16 +119,31 @@ class CommentViewBuilder extends EntityViewBuilder {
         'commented_entity_type' => $commented_entity->getEntityTypeId(),
         'commented_entity_id' => $commented_entity->id(),
         'in_preview' => !empty($entity->in_preview),
-        'token' => drupal_render_cache_generate_token(),
       );
+      $placeholder = drupal_render_cache_generate_placeholder($callback, $context);
       $build[$id]['links'] = array(
         '#post_render_cache' => array(
           $callback => array(
             $context,
           ),
         ),
-        '#markup' => drupal_render_cache_generate_placeholder($callback, $context, $context['token']),
+        '#markup' => $placeholder,
       );
+
+      $account = comment_prepare_author($entity);
+      if (\Drupal::config('user.settings')->get('signatures') && $account->getSignature()) {
+        $build[$id]['signature'] = array(
+          '#type' => 'processed_text',
+          '#text' => $account->getSignature(),
+          '#format' => $account->getSignatureFormat(),
+          '#langcode' => $entity->language()->getId(),
+        );
+        // The signature will only be rendered in the theme layer, which means
+        // its associated cache tags will not bubble up. Work around this for
+        // now by already rendering the signature here.
+        // @todo remove this work-around, see https://drupal.org/node/2273277
+        drupal_render($build[$id]['signature'], TRUE);
+      }
 
       if (!isset($build[$id]['#attached'])) {
         $build[$id]['#attached'] = array();
@@ -167,7 +181,7 @@ class CommentViewBuilder extends EntityViewBuilder {
    */
   public static function renderLinks(array $element, array $context) {
     $callback = '\Drupal\comment\CommentViewBuilder::renderLinks';
-    $placeholder = drupal_render_cache_generate_placeholder($callback, $context, $context['token']);
+    $placeholder = drupal_render_cache_generate_placeholder($callback, $context);
     $links = array(
       '#theme' => 'links__comment',
       '#pre_render' => array('drupal_pre_render_links'),

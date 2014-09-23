@@ -5,14 +5,14 @@
  * Enables semantically enriched output for Drupal sites in the form of RDFa.
  */
 
+use Drupal\Component\Utility\String;
+use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Template\Attribute;
-use Symfony\Cmf\Component\Routing\RouteObjectInterface;
-use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Implements hook_help().
  */
-function rdf_help($route_name, Request $request) {
+function rdf_help($route_name, RouteMatchInterface $route_match) {
   switch ($route_name) {
     case 'help.page.rdf':
       $output = '';
@@ -214,7 +214,7 @@ function rdf_entity_prepare_view($entity_type, array $entities, array $displays)
     // be displayed.
     foreach ($displays[$entity->bundle()]->getComponents() as $name => $options) {
       $field_mapping = $mapping->getPreparedFieldMapping($name);
-      if ($field_mapping['properties']) {
+      if ($field_mapping) {
         foreach ($entity->get($name) as $item) {
           $item->_attributes += rdf_rdfa_attributes($field_mapping, $item->getValue());
         }
@@ -279,7 +279,7 @@ function rdf_preprocess_node(&$variables) {
   $bundle = $variables['node']->bundle();
   $mapping = rdf_get_mapping('node', $bundle);
   $bundle_mapping = $mapping->getPreparedBundleMapping('node', $bundle);
-  $variables['attributes']['about'] = empty($variables['node_url']) ? NULL: $variables['node_url'];
+  $variables['attributes']['about'] = empty($variables['url']) ? NULL: $variables['url'];
   $variables['attributes']['typeof'] = empty($bundle_mapping['types']) ? NULL : $bundle_mapping['types'];
 
   // Adds RDFa markup for the node title as metadata because wrapping the title
@@ -297,20 +297,19 @@ function rdf_preprocess_node(&$variables) {
 
   // Adds RDFa markup for the relation between the node and its author.
   $author_mapping = $mapping->getPreparedFieldMapping('uid');
-  if (!empty($author_mapping['properties']) && $variables['submitted']) {
-    $author_attributes = array('rel' => $author_mapping['properties']);
-    $variables['submitted'] = '<span ' . new Attribute($author_attributes) . '>' . $variables['submitted'] . '</span>';
+  if (!empty($author_mapping['properties']) && $variables['display_submitted']) {
+    $variables['author_attributes']['rel'] = $author_mapping['properties'];
   }
 
   // Adds RDFa markup for the date.
   $created_mapping = $mapping->getPreparedFieldMapping('created');
-  if (!empty($created_mapping) && $variables['submitted']) {
+  if (!empty($created_mapping) && $variables['display_submitted']) {
     $date_attributes = rdf_rdfa_attributes($created_mapping, $variables['node']->getCreatedTime());
     $rdf_metadata = array(
       '#theme' => 'rdf_metadata',
       '#metadata' => array($date_attributes),
     );
-    $variables['submitted'] .= drupal_render($rdf_metadata);
+    $variables['metadata'] = drupal_render($rdf_metadata);
   }
 
   // Adds RDFa markup annotating the number of comments a node has.
@@ -323,7 +322,8 @@ function rdf_preprocess_node(&$variables) {
       $count = 0;
       foreach ($valid_fields as $field_name) {
         $count += $variables['node']->get($field_name)->comment_count;
-        // Adds RDFa markup for the comment count near the node title as metadata
+        // Adds RDFa markup for the comment count near the node title as
+        // metadata.
         $comment_count_attributes = rdf_rdfa_attributes($comment_count_mapping, $variables['node']->get($field_name)->comment_count);
         $variables['title_suffix']['rdf_meta_comment_count'] = array(
           '#theme' => 'rdf_metadata',
@@ -352,7 +352,7 @@ function rdf_preprocess_user(&$variables) {
   }
   // If we are on the user account page, add the relationship between the
   // sioc:UserAccount and the foaf:Person who holds the account.
-  if (\Drupal::request()->attributes->get(RouteObjectInterface::ROUTE_NAME) == $uri->getRouteName()) {
+  if (\Drupal::routeMatch()->getRouteName() == $uri->getRouteName()) {
     // Adds the markup for username as language neutral literal, see
     // rdf_preprocess_username().
     $name_mapping = $mapping->getPreparedFieldMapping('name');
@@ -418,7 +418,7 @@ function rdf_preprocess_username(&$variables) {
   // Long usernames are truncated by template_preprocess_username(). Store the
   // full name in the content attribute so it can be extracted in RDFa.
   if ($variables['truncated']) {
-    $attributes['content'] = check_plain($variables['name_raw']);
+    $attributes['content'] = String::checkPlain($variables['name_raw']);
   }
   // The remaining attributes can have multiple values listed, with whitespace
   // separating the values in the RDFa attributes
@@ -531,16 +531,18 @@ function rdf_preprocess_taxonomy_term(&$variables) {
   $bundle_mapping = $mapping->getPreparedBundleMapping();
   $name_field_mapping = $mapping->getPreparedFieldMapping('name');
   // Adds the RDF type of the term and the term name in a <meta> tag.
-  $term_label_meta = array(
-    '#tag' => 'meta',
-    '#attributes' => array(
-      'about' => url('taxonomy/term/' . $term->id()),
-      'typeof' => $bundle_mapping['types'],
-      'property' => $name_field_mapping['properties'],
-      'content' => $term->getName(),
-    ),
-  );
-  drupal_add_html_head($term_label_meta, 'rdf_term_label');
+  if (!empty($name_field_mapping)) {
+    $term_label_meta = array(
+      '#tag' => 'meta',
+      '#attributes' => array(
+        'about' => url('taxonomy/term/' . $term->id()),
+        'typeof' => $bundle_mapping['types'],
+        'property' => $name_field_mapping['properties'],
+        'content' => $term->getName(),
+      ),
+    );
+    drupal_add_html_head($term_label_meta, 'rdf_term_label');
+  }
 }
 
 /**

@@ -70,6 +70,9 @@ language.negotiation:
           sequence:
             - type: string
               label: 'Domain'
+    selected_langcode:
+      type: string
+      label: 'Selected language'
 
 language.mappings:
   type: sequence
@@ -79,18 +82,15 @@ language.mappings:
       label: 'Language'
 
 language.entity.*:
-  type: mapping
+  type: config_entity
   label: 'Language'
   mapping:
     id:
       type: string
       label: 'ID'
-    uuid:
-      type: string
-      label: 'UUID'
     label:
       type: label
-      label: 'Language name'
+      label: 'Label'
     direction:
       type: integer
       label: 'Direction'
@@ -100,12 +100,6 @@ language.entity.*:
     locked:
       type: boolean
       label: 'Locked'
-    status:
-      type: boolean
-      label: 'Status'
-    langcode:
-      type: string
-      label: 'Default language'
 
 language.settings:
   type: mapping
@@ -135,3 +129,11 @@ language.settings:
                         language_show:
                           type: boolean
                           label: 'Show language selector on create and edit pages'
+
+condition.plugin.language:
+  type: condition.plugin
+  mapping:
+    langcodes:
+      type: sequence
+      sequence:
+        - type: string

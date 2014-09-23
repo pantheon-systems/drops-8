@@ -19,7 +19,7 @@ use Drupal\Component\Utility\String;
 use Drupal\Component\Utility\Tags;
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Cache\Cache;
-use Drupal\Core\Language\Language;
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Site\Settings;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Request;
@@ -349,13 +349,13 @@ function drupal_get_destination() {
  */
 
 /**
- * Verifies the syntax of the given e-mail address.
+ * Verifies the syntax of the given email address.
  *
  * This uses the
- * @link http://php.net/manual/filter.filters.validate.php PHP e-mail validation filter. @endlink
+ * @link http://php.net/manual/filter.filters.validate.php PHP email validation filter. @endlink
  *
  * @param $mail
- *   A string containing an e-mail address.
+ *   A string containing an email address.
  *
  * @return
  *   TRUE if the address is in a valid format.
@@ -415,7 +415,7 @@ function check_url($uri) {
  * Arbitrary elements may be added using the $args associative array.
  */
 function format_rss_channel($title, $link, $description, $items, $langcode = NULL, $args = array()) {
-  $langcode = $langcode ? $langcode : \Drupal::languageManager()->getCurrentLanguage(Language::TYPE_CONTENT)->id;
+  $langcode = $langcode ? $langcode : \Drupal::languageManager()->getCurrentLanguage(LanguageInterface::TYPE_CONTENT)->id;
 
   $output = "<channel>\n";
   $output .= ' <title>' . String::checkPlain($title) . "</title>\n";
@@ -706,30 +706,6 @@ function _format_date_callback(array $matches = NULL, $new_langcode = NULL) {
     }
   }
   return $cache[$langcode][$code][$string];
-}
-
-/**
- * Retrieves the correct datetime format type for this system.
- *
- * This value is sometimes required when the format type needs to be determined
- * before a date can be created.
- *
- * @return string
- *   A string as defined in \DrupalComponent\Datetime\DateTimePlus.php: either
- *   'intl' or 'php', depending on whether IntlDateFormatter is available.
- */
-function datetime_default_format_type() {
-  static $drupal_static_fast;
-  if (!isset($drupal_static_fast)) {
-    $drupal_static_fast['format_type'] = &drupal_static(__FUNCTION__);
-  }
-  $format_type = &$drupal_static_fast['format_type'];
-
-  if (!isset($format_type)) {
-    $date = new DrupalDateTime();
-    $format_type = $date->canUseIntl() ? DrupalDateTime::INTL : DrupalDateTime::PHP;
-  }
-  return $format_type;
 }
 
 /**
@@ -1797,7 +1773,7 @@ function _drupal_add_js($data = NULL, $options = NULL) {
             'currentPath' => $current_path,
             'currentPathIsAdmin' => $current_path_is_admin,
             'isFront' => drupal_is_front_page(),
-            'currentLanguage' => \Drupal::languageManager()->getCurrentLanguage(Language::TYPE_URL)->id,
+            'currentLanguage' => \Drupal::languageManager()->getCurrentLanguage(LanguageInterface::TYPE_URL)->id,
           );
           if (!empty($current_query)) {
             ksort($current_query);
@@ -2628,77 +2604,6 @@ function drupal_valid_token($token, $value = '') {
 }
 
 /**
- * Loads code for subsystems and modules, and registers stream wrappers.
- */
-function _drupal_bootstrap_code() {
-  require_once __DIR__ . '/../../' . Settings::get('path_inc', 'core/includes/path.inc');
-  require_once __DIR__ . '/module.inc';
-  require_once __DIR__ . '/theme.inc';
-  require_once __DIR__ . '/pager.inc';
-  require_once __DIR__ . '/../../' . Settings::get('menu_inc', 'core/includes/menu.inc');
-  require_once __DIR__ . '/tablesort.inc';
-  require_once __DIR__ . '/file.inc';
-  require_once __DIR__ . '/unicode.inc';
-  require_once __DIR__ . '/form.inc';
-  require_once __DIR__ . '/mail.inc';
-  require_once __DIR__ . '/ajax.inc';
-  require_once __DIR__ . '/errors.inc';
-  require_once __DIR__ . '/schema.inc';
-  require_once __DIR__ . '/entity.inc';
-
-  // Load all enabled modules
-  \Drupal::moduleHandler()->loadAll();
-
-  // Make sure all stream wrappers are registered.
-  file_get_stream_wrappers();
-  // Ensure mt_rand() is reseeded to prevent random values from one page load
-  // being exploited to predict random values in subsequent page loads.
-  $seed = unpack("L", Crypt::randomBytes(4));
-  mt_srand($seed[1]);
-
-  // Set the allowed protocols once we have the config available.
-  $allowed_protocols = \Drupal::config('system.filter')->get('protocols');
-  if (!isset($allowed_protocols)) {
-    // \Drupal\Component\Utility\UrlHelper::filterBadProtocol() is called by the
-    // installer and update.php, in which case the configuration may not exist
-    // (yet). Provide a minimal default set of allowed protocols for these
-    // cases.
-    $allowed_protocols = array('http', 'https');
-  }
-  UrlHelper::setAllowedProtocols($allowed_protocols);
-
-  // Redirect the user to the installation script if Drupal has not been
-  // installed yet. We accomplish this by checking for the sessions table.
-  if (isset($_SERVER['PRESSFLOW_SETTINGS']) && !db_table_exists('sessions') && $_SERVER['SCRIPT_NAME'] != '/core/install.php') {
-    include_once __DIR__ . '/install.inc';
-    install_goto('core/install.php');
-  }
-}
-
-/**
- * Temporary BC function for scripts not using DrupalKernel.
- *
- * DrupalKernel skips this and replicates it via event listeners.
- *
- * @see \Drupal\Core\EventSubscriber\PathSubscriber;
- * @see \Drupal\Core\EventSubscriber\LegacyRequestSubscriber;
- */
-function _drupal_bootstrap_full($skip = FALSE) {
-  static $called = FALSE;
-
-  if ($called || $skip) {
-    $called = TRUE;
-    return;
-  }
-
-  // Let all modules take action before the menu system handles the request.
-  // We do not want this while running update.php.
-  if (!defined('MAINTENANCE_MODE') || MAINTENANCE_MODE != 'update') {
-    drupal_theme_initialize();
-  }
-}
-
-/**
  * Stores the current page in the cache.
  *
  * If page_compression is enabled, a gzipped version of the page is stored in
@@ -3336,8 +3241,16 @@ function drupal_render(&$elements, $is_recursive_call = FALSE) {
   // Make any final changes to the element before it is rendered. This means
   // that the $element or the children can be altered or corrected before the
   // element is rendered into the final text.
+  /** @var \Drupal\Core\Controller\ControllerResolverInterface $controller_resolver */
+  $controller_resolver = \Drupal::service('controller_resolver');
   if (isset($elements['#pre_render'])) {
     foreach ($elements['#pre_render'] as $callable) {
+      if (is_string($callable) && strpos($callable, '::') === FALSE) {
+        $callable = $controller_resolver->getControllerFromDefinition($callable);
+      }
+      else {
+        $callable = $callable;
+      }
       $elements = call_user_func($callable, $elements);
     }
   }
@@ -3438,6 +3351,12 @@ function drupal_render(&$elements, $is_recursive_call = FALSE) {
   // which allows the output'ed text to be filtered.
   if (isset($elements['#post_render'])) {
     foreach ($elements['#post_render'] as $callable) {
+      if (is_string($callable) && strpos($callable, '::') === FALSE) {
+        $callable = $controller_resolver->getControllerFromDefinition($callable);
+      }
+      else {
+        $callable = $callable;
+      }
       $elements['#children'] = call_user_func($callable, $elements['#children'], $elements);
     }
   }
@@ -3499,7 +3418,6 @@ function drupal_render(&$elements, $is_recursive_call = FALSE) {
  *
  * @return string
  *   The rendered HTML of all children of the element.
-
  * @see drupal_render()
  */
 function drupal_render_children(&$element, $children_keys = NULL) {
@@ -3676,14 +3594,17 @@ function drupal_render_cache_set(&$markup, array $elements) {
     $data['#post_render_cache'] = $elements['#post_render_cache'];
   }
 
+  // Tag every render cache item with the "rendered" cache tag. This allows us
+  // to invalidate the entire render cache, regardless of the cache bin.
+  $cache_tags = $elements['#cache']['tags'] ?: array();
+  $cache_tags['rendered'] = TRUE;
+
   // Persist cache tags associated with this element.
-  if (isset($elements['#cache']['tags'])) {
-    $data['#cache']['tags'] = $elements['#cache']['tags'];
-  }
+  $data['#cache']['tags'] = $cache_tags;
 
   $bin = isset($elements['#cache']['bin']) ? $elements['#cache']['bin'] : 'render';
   $expire = isset($elements['#cache']['expire']) ? $elements['#cache']['expire'] : Cache::PERMANENT;
-  \Drupal::cache($bin)->set($cid, $data, $expire, $elements['#cache']['tags']);
+  \Drupal::cache($bin)->set($cid, $data, $expire, $cache_tags);
 }
 
 /**
@@ -3693,33 +3614,41 @@ function drupal_render_cache_set(&$markup, array $elements) {
  * placeholders, but should also be called by #post_render_cache callbacks that
  * want to replace the placeholder with the final markup.
  *
- * @param callable $callback
+ * @param string $callback
  *   The #post_render_cache callback that will replace the placeholder with its
  *   eventual markup.
  * @param array $context
- *   An array providing context for the #post_render_cache callback.
- * @param string $token
- *   A unique token to uniquely identify the placeholder.
+ *   An array providing context for the #post_render_cache callback. This array
+ *   will be altered to provide a 'token' key/value pair, if not already
+ *   provided, to uniquely identify the generated placeholder.
  *
  * @return string
  *   The generated placeholder HTML.
  *
+ * @throws \Exception
+ *
  * @see drupal_render_cache_get()
  */
-function drupal_render_cache_generate_placeholder($callback, array $context, $token) {
-  // Serialize the context into a HTML attribute; unserializing is unnecessary.
-  $context_attribute = '';
-  foreach ($context as $key => $value) {
-    $context_attribute .= $key . ':' . $value . ';';
+function drupal_render_cache_generate_placeholder($callback, array &$context) {
+  if (is_string($callback) && strpos($callback, '::') === FALSE) {
+    /** @var \Drupal\Core\Controller\ControllerResolverInterface $controller_resolver */
+    $controller_resolver = \Drupal::service('controller_resolver');
+    $callable = \Drupal::service('controller_resolver')->getControllerFromDefinition($callback);
   }
-  return '<drupal:render-cache-placeholder callback="' . $callback . '" context="' . $context_attribute . '" token="' . $token . '" />';
-}
+  else {
+   $callable = $callback;
+  }
 
-/**
- * Generates a unique token for use in a #post_render_cache placeholder.
- */
-function drupal_render_cache_generate_token() {
-  return \Drupal\Component\Utility\Crypt::randomBytesBase64(55);
+  if (!is_callable($callable)) {
+    throw new Exception(t('$callable must be a callable function or of the form service_id:method.'));
+  }
+
+  // Generate a unique token if one is not already provided.
+  $context += array(
+    'token' => \Drupal\Component\Utility\Crypt::randomBytesBase64(55),
+  );
+
+  return '<drupal-render-cache-placeholder callback="' . $callback . '" token="' . $context['token'] . '"></drupal-render-cache-placeholder>';
 }
 
 /**
@@ -3741,13 +3670,19 @@ function drupal_render_cache_generate_token() {
  */
 function _drupal_render_process_post_render_cache(array &$elements) {
   if (isset($elements['#post_render_cache'])) {
-    // Call all #post_render_cache callbacks, while passing the provided context
-    // and if keyed by a number, no token is passed, otherwise, the token string
-    // is passed to the callback as well. This token is used to uniquely
-    // identify the placeholder in the markup.
-    foreach ($elements['#post_render_cache'] as $callback => $options) {
-      foreach ($elements['#post_render_cache'][$callback] as $token => $context) {
-        $elements = call_user_func_array($callback, array($elements, $context));
+    /** @var \Drupal\Core\Controller\ControllerResolverInterface $controller_resolver */
+    $controller_resolver = \Drupal::service('controller_resolver');
+
+    // Call all #post_render_cache callbacks, passing the provided context.
+    foreach (array_keys($elements['#post_render_cache']) as $callback) {
+      if (strpos($callback, '::') === FALSE) {
+        $callable = $controller_resolver->getControllerFromDefinition($callback);
+      }
+      else {
+        $callable = $callback;
+      }
+      foreach ($elements['#post_render_cache'][$callback] as $context) {
+        $elements = call_user_func_array($callable, array($elements, $context));
       }
     }
     // Make sure that any attachments added in #post_render_cache callbacks are

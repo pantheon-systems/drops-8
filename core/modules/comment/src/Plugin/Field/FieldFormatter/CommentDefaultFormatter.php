@@ -75,6 +75,7 @@ class CommentDefaultFormatter extends FormatterBase implements ContainerFactoryP
       $configuration['settings'],
       $configuration['label'],
       $configuration['view_mode'],
+      $configuration['third_party_settings'],
       $container->get('current_user'),
       $container->get('entity.manager')->getStorage('comment'),
       $container->get('entity.manager')->getViewBuilder('comment')
@@ -96,6 +97,8 @@ class CommentDefaultFormatter extends FormatterBase implements ContainerFactoryP
    *   The formatter label display setting.
    * @param string $view_mode
    *   The view mode.
+   * @param array $third_party_settings
+   *   Third party settings.
    * @param \Drupal\Core\Session\AccountInterface $current_user
    *   The current user.
    * @param \Drupal\comment\CommentStorageInterface $comment_storage
@@ -103,8 +106,8 @@ class CommentDefaultFormatter extends FormatterBase implements ContainerFactoryP
    * @param \Drupal\Core\Entity\EntityViewBuilderInterface $comment_view_builder
    *   The comment view builder.
    */
-  public function __construct($plugin_id, $plugin_definition, FieldDefinitionInterface $field_definition, array $settings, $label, $view_mode, AccountInterface $current_user, CommentStorageInterface $comment_storage, EntityViewBuilderInterface $comment_view_builder) {
-    parent::__construct($plugin_id, $plugin_definition, $field_definition, $settings, $label, $view_mode);
+  public function __construct($plugin_id, $plugin_definition, FieldDefinitionInterface $field_definition, array $settings, $label, $view_mode, array $third_party_settings, AccountInterface $current_user, CommentStorageInterface $comment_storage, EntityViewBuilderInterface $comment_view_builder) {
+    parent::__construct($plugin_id, $plugin_definition, $field_definition, $settings, $label, $view_mode, $third_party_settings);
     $this->viewBuilder = $comment_view_builder;
     $this->storage = $comment_storage;
     $this->currentUser = $current_user;
@@ -176,20 +179,20 @@ class CommentDefaultFormatter extends FormatterBase implements ContainerFactoryP
           // All other users need a user-specific form, which would break the
           // render cache: hence use a #post_render_cache callback.
           else {
-            $callback = '\Drupal\comment\Plugin\Field\FieldFormatter\CommentDefaultFormatter::renderForm';
+            $callback = 'comment.post_render_cache:renderForm';
             $context = array(
               'entity_type' => $entity->getEntityTypeId(),
               'entity_id' => $entity->id(),
               'field_name' => $field_name,
-              'token' => drupal_render_cache_generate_token(),
             );
+            $placeholder = drupal_render_cache_generate_placeholder($callback, $context);
             $output['comment_form'] = array(
               '#post_render_cache' => array(
                 $callback => array(
                   $context,
                 ),
               ),
-              '#markup' => drupal_render_cache_generate_placeholder($callback, $context, $context['token']),
+              '#markup' => $placeholder,
             );
           }
         }
@@ -205,33 +208,6 @@ class CommentDefaultFormatter extends FormatterBase implements ContainerFactoryP
     }
 
     return $elements;
-  }
-
-  /**
-   * #post_render_cache callback; replaces placeholder with comment form.
-   *
-   * @param array $element
-   *   The renderable array that contains the to be replaced placeholder.
-   * @param array $context
-   *   An array with the following keys:
-   *   - entity_type: an entity type
-   *   - entity_id: an entity ID
-   *   - field_name: a comment field name
-   *
-   * @return array
-   *   A renderable array containing the comment form.
-   */
-  public static function renderForm(array $element, array $context) {
-    $callback = '\Drupal\comment\Plugin\Field\FieldFormatter\CommentDefaultFormatter::renderForm';
-    $placeholder = drupal_render_cache_generate_placeholder($callback, $context, $context['token']);
-    $entity = entity_load($context['entity_type'], $context['entity_id']);
-    $form = comment_add($entity, $context['field_name']);
-    // @todo: This only works as long as assets are still tracked in a global
-    //   static variable, see https://drupal.org/node/2238835
-    $markup = drupal_render($form, TRUE);
-    $element['#markup'] = str_replace($placeholder, $markup, $element['#markup']);
-
-    return $element;
   }
 
   /**

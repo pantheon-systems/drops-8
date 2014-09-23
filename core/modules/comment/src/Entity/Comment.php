@@ -13,8 +13,7 @@ use Drupal\comment\CommentInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\FieldDefinition;
-use Drupal\Core\Language\Language;
-use Drupal\Core\TypedData\DataDefinition;
+use Drupal\field\Entity\FieldConfig;
 use Drupal\user\UserInterface;
 
 /**
@@ -40,7 +39,7 @@ use Drupal\user\UserInterface;
  *   translatable = TRUE,
  *   entity_keys = {
  *     "id" = "cid",
- *     "bundle" = "field_id",
+ *     "bundle" = "comment_type",
  *     "label" = "subject",
  *     "uuid" = "uuid"
  *   },
@@ -48,8 +47,9 @@ use Drupal\user\UserInterface;
  *     "canonical" = "comment.permalink",
  *     "delete-form" = "comment.confirm_delete",
  *     "edit-form" = "comment.edit_page",
- *     "admin-form" = "comment.bundle"
- *   }
+ *     "admin-form" = "comment.type_edit"
+ *   },
+ *   bundle_entity_type = "comment_type"
  * )
  */
 class Comment extends ContentEntityBase implements CommentInterface {
@@ -233,23 +233,19 @@ class Comment extends ContentEntityBase implements CommentInterface {
     $fields['uid'] = FieldDefinition::create('entity_reference')
       ->setLabel(t('User ID'))
       ->setDescription(t('The user ID of the comment author.'))
-      ->setSettings(array(
-        'target_type' => 'user',
-        'default_value' => 0,
-      ));
+      ->setSetting('target_type', 'user')
+      ->setDefaultValue(0);
 
     $fields['name'] = FieldDefinition::create('string')
       ->setLabel(t('Name'))
       ->setDescription(t("The comment author's name."))
-      ->setSettings(array(
-        'default_value' => '',
-        'max_length' => 60,
-      ))
+      ->setSetting('max_length', 60)
+      ->setDefaultValue('')
       ->addConstraint('CommentName', array());
 
     $fields['mail'] = FieldDefinition::create('email')
       ->setLabel(t('Email'))
-      ->setDescription(t("The comment author's e-mail address."));
+      ->setDescription(t("The comment author's email address."));
 
     $fields['homepage'] = FieldDefinition::create('uri')
       ->setLabel(t('Homepage'))
@@ -273,7 +269,8 @@ class Comment extends ContentEntityBase implements CommentInterface {
 
     $fields['status'] = FieldDefinition::create('boolean')
       ->setLabel(t('Publishing status'))
-      ->setDescription(t('A boolean indicating whether the comment is published.'));
+      ->setDescription(t('A boolean indicating whether the comment is published.'))
+      ->setDefaultValue(TRUE);
 
     $fields['thread'] = FieldDefinition::create('string')
       ->setLabel(t('Thread place'))
@@ -284,20 +281,15 @@ class Comment extends ContentEntityBase implements CommentInterface {
       ->setLabel(t('Entity type'))
       ->setDescription(t('The entity type to which this comment is attached.'));
 
-    // @todo Convert to the entity_reference field in
-    // https://drupal.org/node/2149859.
-    $fields['field_id'] = FieldDefinition::create('string')
-      ->setLabel(t('Field ID'))
-      ->setDescription(t('The comment field id.'));
+    $fields['comment_type'] = FieldDefinition::create('entity_reference')
+      ->setLabel(t('Comment Type'))
+      ->setDescription(t('The comment type.'))
+      ->setSetting('target_type', 'comment_type');
 
     $fields['field_name'] = FieldDefinition::create('string')
       ->setLabel(t('Comment field name'))
       ->setDescription(t('The field name through which this comment was added.'))
-      ->setComputed(TRUE);
-
-    $item_definition = $fields['field_name']->getItemDefinition();
-    $item_definition->setClass('\Drupal\comment\CommentFieldNameItem');
-    $fields['field_name']->setItemDefinition($item_definition);
+      ->setSetting('max_length', 32);
 
     return $fields;
   }
@@ -306,10 +298,12 @@ class Comment extends ContentEntityBase implements CommentInterface {
    * {@inheritdoc}
    */
   public static function bundleFieldDefinitions(EntityTypeInterface $entity_type, $bundle, array $base_field_definitions) {
-    list($target_type) = explode('__', $bundle, 2);
-    $fields['entity_id'] = clone $base_field_definitions['entity_id'];
-    $fields['entity_id']->setSetting('target_type', $target_type);
-    return $fields;
+    if ($comment_type = CommentType::load($bundle)) {
+      $fields['entity_id'] = clone $base_field_definitions['entity_id'];
+      $fields['entity_id']->setSetting('target_type', $comment_type->getTargetEntityTypeId());
+      return $fields;
+    }
+    return array();
   }
 
   /**
@@ -351,15 +345,8 @@ class Comment extends ContentEntityBase implements CommentInterface {
   /**
    * {@inheritdoc}
    */
-  public function getFieldId() {
-    return $this->get('field_id')->value;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function setFieldId($field_id) {
-    $this->set('field_id', $field_id);
+  public function setFieldName($field_name) {
+    $this->set('field_name', $field_name);
     return $this;
   }
 
@@ -389,6 +376,9 @@ class Comment extends ContentEntityBase implements CommentInterface {
    * {@inheritdoc}
    */
   public function getAuthorName() {
+    if ($this->get('uid')->target_id) {
+      return $this->get('uid')->entity->label();
+    }
     return $this->get('name')->value ?: \Drupal::config('user.settings')->get('anonymous');
   }
 
@@ -505,8 +495,9 @@ class Comment extends ContentEntityBase implements CommentInterface {
    * {@inheritdoc}
    */
   public static function preCreate(EntityStorageInterface $storage, array &$values) {
-    if (empty($values['field_id']) && !empty($values['field_name']) && !empty($values['entity_type'])) {
-      $values['field_id'] = $values['entity_type'] . '__' . $values['field_name'];
+    if (empty($values['comment_type']) && !empty($values['field_name']) && !empty($values['entity_type'])) {
+      $field = FieldConfig::loadByName($values['entity_type'], $values['field_name']);
+      $values['comment_type'] = $field->getSetting('comment_type');
     }
   }
 
@@ -538,6 +529,16 @@ class Comment extends ContentEntityBase implements CommentInterface {
   public function setOwner(UserInterface $account) {
     $this->set('uid', $account->id());
     return $this;
+  }
+
+  /**
+   * Get the comment type ID for this comment.
+   *
+   * @return string
+   *   The ID of the comment type.
+   */
+  public function getTypeId() {
+    return $this->bundle();
   }
 
 }

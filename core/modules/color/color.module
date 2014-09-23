@@ -8,12 +8,12 @@ use Drupal\Core\Asset\CssOptimizer;
 use Drupal\Component\Utility\Bytes;
 use Drupal\Component\Utility\Environment;
 use Drupal\Component\Utility\String;
-use Symfony\Component\HttpFoundation\Request;
+use Drupal\Core\Routing\RouteMatchInterface;
 
 /**
  * Implements hook_help().
  */
-function color_help($route_name, Request $request) {
+function color_help($route_name, RouteMatchInterface $route_match) {
   switch ($route_name) {
     case 'help.page.color':
       $output = '<h3>' . t('About') . '</h3>';
@@ -164,7 +164,6 @@ function color_get_palette($theme, $default = FALSE) {
  *
  * @see color_scheme_form_validate()
  * @see color_scheme_form_submit()
- * @ingroup forms
  */
 function color_scheme_form($complete_form, &$form_state, $theme) {
   $base = drupal_get_path('module', 'color');

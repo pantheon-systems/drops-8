@@ -22,7 +22,7 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
  *   id = "entity",
  *   label = @Translation("Entity"),
  *   serialization_class = "Drupal\Core\Entity\Entity",
- *   derivative = "Drupal\rest\Plugin\Derivative\EntityDerivative",
+ *   deriver = "Drupal\rest\Plugin\Derivative\EntityDerivative",
  *   uri_paths = {
  *     "canonical" = "/entity/{entity_type}/{entity}",
  *     "http://drupal.org/link-relations/create" = "/entity/{entity_type}"
@@ -133,6 +133,13 @@ class EntityResource extends ResourceBase {
     // Overwrite the received properties.
     foreach ($entity as $field_name => $field) {
       if (isset($entity->{$field_name})) {
+        // It is not possible to set the language to NULL as it is automatically
+        // re-initialized. As it must not be empty, skip it if it is.
+        // @todo: Use the langcode entity key when available. See
+        //   https://drupal.org/node/2143729.
+        if ($field_name == 'langcode' && $field->isEmpty()) {
+          continue;
+        }
         if ($field->isEmpty() && !$original_entity->get($field_name)->access('delete')) {
           throw new AccessDeniedHttpException(t('Access denied on deleting field @field.', array('@field' => $field_name)));
         }
@@ -207,4 +214,20 @@ class EntityResource extends ResourceBase {
       throw new HttpException(422, $message);
     }
   }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function getBaseRoute($canonical_path, $method) {
+    $route = parent::getBaseRoute($canonical_path, $method);
+    $definition = $this->getPluginDefinition();
+
+    $parameters = $route->getOption('parameters') ?: array();
+    $parameters[$definition['entity_type']]['type'] = 'entity:' . $definition['entity_type'];
+    $route->setOption('parameters', $parameters);
+
+    return $route;
+  }
+
+
 }

@@ -91,6 +91,13 @@ class Editor extends ConfigEntityBase implements EditorInterface {
   /**
    * {@inheritdoc}
    */
+  public function label() {
+    return $this->getFilterFormat()->label();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function calculateDependencies() {
     parent::calculateDependencies();
     // Create a dependency on the associated FilterFormat.
@@ -167,23 +174,6 @@ class Editor extends ConfigEntityBase implements EditorInterface {
   public function setImageUploadSettings(array $image_upload_settings) {
     $this->image_upload = $image_upload_settings;
     return $this;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function toArray() {
-    $properties = parent::toArray();
-    $names = array(
-      'format',
-      'editor',
-      'settings',
-      'image_upload',
-    );
-    foreach ($names as $name) {
-      $properties[$name] = $this->get($name);
-    }
-    return $properties;
   }
 
 }

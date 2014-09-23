@@ -5,8 +5,8 @@
  * Functions to support theming in the Bartik theme.
  */
 
+use Drupal\Component\Utility\String;
 use Drupal\Component\Utility\Xss;
-use Drupal\Core\Template\RenderWrapper;
 use Drupal\Core\Template\Attribute;
 
 /**
@@ -21,18 +21,18 @@ function bartik_preprocess_page(&$variables) {
   $attributes = $page_object->getBodyAttributes();
   $classes = $attributes['class'];
   if (!empty($variables['page']['sidebar_first']) && !empty($variables['page']['sidebar_second'])) {
-    $classes[] = 'two-sidebars';
+    $classes[] = 'layout-two-sidebars';
   }
   elseif (!empty($variables['page']['sidebar_first'])) {
-    $classes[] = 'one-sidebar';
-    $classes[] = 'sidebar-first';
+    $classes[] = 'layout-one-sidebar';
+    $classes[] = 'layout-sidebar-first';
   }
   elseif (!empty($variables['page']['sidebar_second'])) {
-    $classes[] = 'one-sidebar';
-    $classes[] = 'sidebar-second';
+    $classes[] = 'layout-one-sidebar';
+    $classes[] = 'layout-sidebar-second';
   }
   else {
-    $classes[] = 'no-sidebars';
+    $classes[] = 'layout-no-sidebars';
   }
 
   if (!empty($variables['page']['featured'])) {
@@ -181,7 +181,7 @@ function _bartik_process_page(&$variables) {
   $variables['hide_site_slogan'] = theme_get_setting('features.slogan') ? FALSE : TRUE;
   if ($variables['hide_site_name']) {
     // If toggle_name is FALSE, the site_name will be empty, so we rebuild it.
-    $variables['site_name'] = check_plain($site_config->get('name'));
+    $variables['site_name'] = String::checkPlain($site_config->get('name'));
   }
   if ($variables['hide_site_slogan']) {
     // If toggle_site_slogan is FALSE, the site_slogan will be empty, so we

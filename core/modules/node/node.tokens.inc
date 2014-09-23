@@ -5,7 +5,8 @@
  * Builds placeholder replacement tokens for node-related data.
  */
 
-use Drupal\Core\Language\Language;
+use Drupal\Component\Utility\String;
+use Drupal\Core\Language\LanguageInterface;
 
 /**
  * Implements hook_token_info().
@@ -28,7 +29,6 @@ function node_token_info() {
   );
   $node['type'] = array(
     'name' => t("Content type"),
-    'description' => t("The type of the node."),
   );
   $node['type-name'] = array(
     'name' => t("Content type name"),
@@ -36,7 +36,6 @@ function node_token_info() {
   );
   $node['title'] = array(
     'name' => t("Title"),
-    'description' => t("The title of the node."),
   );
   $node['body'] = array(
     'name' => t("Body"),
@@ -62,7 +61,6 @@ function node_token_info() {
   // Chained tokens for nodes.
   $node['created'] = array(
     'name' => t("Date created"),
-    'description' => t("The date the node was posted."),
     'type' => 'date',
   );
   $node['changed'] = array(
@@ -72,7 +70,6 @@ function node_token_info() {
   );
   $node['author'] = array(
     'name' => t("Author"),
-    'description' => t("The author of the node."),
     'type' => 'user',
   );
 
@@ -94,7 +91,7 @@ function node_tokens($type, $tokens, array $data = array(), array $options = arr
     $langcode = $options['langcode'];
   }
   else {
-    $langcode = Language::LANGCODE_DEFAULT;
+    $langcode = LanguageInterface::LANGCODE_DEFAULT;
   }
   $sanitize = !empty($options['sanitize']);
 
@@ -116,16 +113,16 @@ function node_tokens($type, $tokens, array $data = array(), array $options = arr
           break;
 
         case 'type':
-          $replacements[$original] = $sanitize ? check_plain($node->getType()) : $node->getType();
+          $replacements[$original] = $sanitize ? String::checkPlain($node->getType()) : $node->getType();
           break;
 
         case 'type-name':
           $type_name = node_get_type_label($node);
-          $replacements[$original] = $sanitize ? check_plain($type_name) : $type_name;
+          $replacements[$original] = $sanitize ? String::checkPlain($type_name) : $type_name;
           break;
 
         case 'title':
-          $replacements[$original] = $sanitize ? check_plain($node->getTitle()) : $node->getTitle();
+          $replacements[$original] = $sanitize ? String::checkPlain($node->getTitle()) : $node->getTitle();
           break;
 
         case 'body':
@@ -164,7 +161,7 @@ function node_tokens($type, $tokens, array $data = array(), array $options = arr
           break;
 
         case 'langcode':
-          $replacements[$original] = $sanitize ? check_plain($node->language()->id) : $node->language()->id;
+          $replacements[$original] = $sanitize ? String::checkPlain($node->language()->id) : $node->language()->id;
           break;
 
         case 'url':
@@ -178,7 +175,7 @@ function node_tokens($type, $tokens, array $data = array(), array $options = arr
         // Default values for the chained tokens handled below.
         case 'author':
           $account = $node->getOwner() ? $node->getOwner() : user_load(0);
-          $replacements[$original] = $sanitize ? check_plain($account->label()) : $account->label();
+          $replacements[$original] = $sanitize ? String::checkPlain($account->label()) : $account->label();
           break;
 
         case 'created':

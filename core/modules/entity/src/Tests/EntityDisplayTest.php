@@ -69,6 +69,7 @@ class EntityDisplayTest extends DrupalUnitTestBase {
       'type' => 'string',
       'weight' => -5,
       'settings' => array(),
+      'third_party_settings' => array(),
     );
     $this->assertEqual($display->getComponents(), $expected);
 
@@ -153,8 +154,7 @@ class EntityDisplayTest extends DrupalUnitTestBase {
     ));
     $field->save();
     $instance = entity_create('field_instance_config', array(
-      'field_name' => $field_name,
-      'entity_type' => 'entity_test',
+      'field' => $field,
       'bundle' => 'entity_test',
     ));
     $instance->save();
@@ -175,6 +175,7 @@ class EntityDisplayTest extends DrupalUnitTestBase {
       'label' => 'above',
       'type' => $default_formatter,
       'settings' => $formatter_settings,
+      'third_party_settings' => array(),
     );
     $this->assertEqual($display->getComponent($field_name), $expected);
 
@@ -222,12 +223,14 @@ class EntityDisplayTest extends DrupalUnitTestBase {
         'label' => 'above',
         'type' => 'text_default',
         'settings' => $formatter_settings,
+        'third_party_settings' => array(),
         'weight' => 10,
       ),
       'test_display_non_configurable' => array(
         'label' => 'above',
         'type' => 'text_default',
         'settings' => $formatter_settings,
+        'third_party_settings' => array(),
         'weight' => 11,
       ),
     );
@@ -268,7 +271,7 @@ class EntityDisplayTest extends DrupalUnitTestBase {
    */
   public function testRenameDeleteBundle() {
     $this->enableModules(array('field_test', 'node', 'system', 'text'));
-    $this->installSchema('node', array('node'));
+    $this->installEntitySchema('node');
 
     // Create a node bundle, display and form display object.
     entity_create('node_type', array('type' => 'article'))->save();
@@ -328,8 +331,7 @@ class EntityDisplayTest extends DrupalUnitTestBase {
     ));
     $field->save();
     $instance = entity_create('field_instance_config', array(
-      'field_name' => $field_name,
-      'entity_type' => 'entity_test',
+      'field' => $field,
       'bundle' => 'entity_test',
     ));
     $instance->save();

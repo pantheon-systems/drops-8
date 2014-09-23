@@ -12,12 +12,13 @@ use Drupal\Core\Field\FieldDefinition;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Field\FieldItemInterface;
-use Drupal\Core\Language\Language;
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\TypedData\ComplexDataDefinitionInterface;
 use Drupal\Core\TypedData\DataDefinitionInterface;
 use Drupal\Core\TypedData\Type\StringInterface;
 use Drupal\Core\TypedData\TypedDataInterface;
 use Drupal\field\Entity\FieldInstanceConfig;
+use Drupal\node\Entity\NodeType;
 
 /**
  * Tests Entity API base functionality.
@@ -41,18 +42,12 @@ class EntityFieldTest extends EntityUnitTestBase  {
 
   public function setUp() {
     parent::setUp();
-    $this->installSchema('user', array('users_data'));
-    $this->installSchema('node', array('node', 'node_revision', 'node_field_data', 'node_field_revision', 'node_access'));
-    $this->installSchema('entity_test', array(
-      'entity_test_mul',
-      'entity_test_mul_property_data',
-      'entity_test_rev',
-      'entity_test_rev_revision',
-      'entity_test_mulrev',
-      'entity_test_mulrev_revision',
-      'entity_test_mulrev_property_data',
-      'entity_test_mulrev_property_revision'
-    ));
+
+    $this->installEntitySchema('node');
+
+    $this->installEntitySchema('entity_test_rev');
+    $this->installEntitySchema('entity_test_mul');
+    $this->installEntitySchema('entity_test_mulrev');
 
     // Create the test field.
     entity_test_install();
@@ -190,8 +185,8 @@ class EntityFieldTest extends EntityUnitTestBase  {
     $this->assertFalse(isset($entity->name->value), format_string('%entity_type: Name is not set.', array('%entity_type' => $entity_type)));
 
     // Access the language field.
-    $this->assertEqual(Language::LANGCODE_NOT_SPECIFIED, $entity->langcode->value, format_string('%entity_type: Language code can be read.', array('%entity_type' => $entity_type)));
-    $this->assertEqual(\Drupal::languageManager()->getLanguage(Language::LANGCODE_NOT_SPECIFIED), $entity->langcode->language, format_string('%entity_type: Language object can be read.', array('%entity_type' => $entity_type)));
+    $this->assertEqual(LanguageInterface::LANGCODE_NOT_SPECIFIED, $entity->langcode->value, format_string('%entity_type: Language code can be read.', array('%entity_type' => $entity_type)));
+    $this->assertEqual(\Drupal::languageManager()->getLanguage(LanguageInterface::LANGCODE_NOT_SPECIFIED), $entity->langcode->language, format_string('%entity_type: Language object can be read.', array('%entity_type' => $entity_type)));
 
     // Change the language by code.
     $entity->langcode->value = \Drupal::languageManager()->getDefaultLanguage()->id;
@@ -199,7 +194,7 @@ class EntityFieldTest extends EntityUnitTestBase  {
     $this->assertEqual(\Drupal::languageManager()->getDefaultLanguage(), $entity->langcode->language, format_string('%entity_type: Language object can be read.', array('%entity_type' => $entity_type)));
 
     // Revert language by code then try setting it by language object.
-    $entity->langcode->value = Language::LANGCODE_NOT_SPECIFIED;
+    $entity->langcode->value = LanguageInterface::LANGCODE_NOT_SPECIFIED;
     $entity->langcode->language = \Drupal::languageManager()->getDefaultLanguage();
     $this->assertEqual(\Drupal::languageManager()->getDefaultLanguage()->id, $entity->langcode->value, format_string('%entity_type: Language code can be read.', array('%entity_type' => $entity_type)));
     $this->assertEqual(\Drupal::languageManager()->getDefaultLanguage(), $entity->langcode->language, format_string('%entity_type: Language object can be read.', array('%entity_type' => $entity_type)));
@@ -329,8 +324,8 @@ class EntityFieldTest extends EntityUnitTestBase  {
     // Access the name field.
     $this->assertEqual(1, $entity->id->value, format_string('%entity_type: ID value can be read.', array('%entity_type' => $entity_type)));
     $this->assertTrue(is_string($entity->uuid->value), format_string('%entity_type: UUID value can be read.', array('%entity_type' => $entity_type)));
-    $this->assertEqual(Language::LANGCODE_NOT_SPECIFIED, $entity->langcode->value, format_string('%entity_type: Language code can be read.', array('%entity_type' => $entity_type)));
-    $this->assertEqual(\Drupal::languageManager()->getLanguage(Language::LANGCODE_NOT_SPECIFIED), $entity->langcode->language, format_string('%entity_type: Language object can be read.', array('%entity_type' => $entity_type)));
+    $this->assertEqual(LanguageInterface::LANGCODE_NOT_SPECIFIED, $entity->langcode->value, format_string('%entity_type: Language code can be read.', array('%entity_type' => $entity_type)));
+    $this->assertEqual(\Drupal::languageManager()->getLanguage(LanguageInterface::LANGCODE_NOT_SPECIFIED), $entity->langcode->language, format_string('%entity_type: Language object can be read.', array('%entity_type' => $entity_type)));
     $this->assertEqual($this->entity_user->id(), $entity->user_id->target_id, format_string('%entity_type: User id can be read.', array('%entity_type' => $entity_type)));
     $this->assertEqual($this->entity_user->getUsername(), $entity->user_id->entity->name->value, format_string('%entity_type: User name can be read.', array('%entity_type' => $entity_type)));
     $this->assertEqual($this->entity_field_text, $entity->field_test_text->value, format_string('%entity_type: Text field can be read.', array('%entity_type' => $entity_type)));
@@ -404,7 +399,7 @@ class EntityFieldTest extends EntityUnitTestBase  {
     $this->assertEqual($userref_properties['target_id']->getDataType(), 'integer', $entity_type .': Entity id property of the user found.');
     $this->assertEqual($userref_properties['entity']->getDataType(), 'entity_reference', $entity_type .': Entity reference property of the user found.');
 
-    $textfield_properties = $entity->field_test_text->getFieldDefinition()->getPropertyDefinitions();
+    $textfield_properties = $entity->field_test_text->getFieldDefinition()->getFieldStorageDefinition()->getPropertyDefinitions();
     $this->assertEqual($textfield_properties['value']->getDataType(), 'string', $entity_type .': String value property of the test-text field found.');
     $this->assertEqual($textfield_properties['format']->getDataType(), 'filter_format', $entity_type .': String format field of the test-text field found.');
     $this->assertEqual($textfield_properties['processed']->getDataType(), 'string', $entity_type .': String processed property of the test-text field found.');
@@ -504,7 +499,7 @@ class EntityFieldTest extends EntityUnitTestBase  {
     // the user name and other user entity strings as well.
     $target_strings = array(
       $entity->uuid->value,
-      Language::LANGCODE_NOT_SPECIFIED,
+      LanguageInterface::LANGCODE_NOT_SPECIFIED,
       $this->entity_name,
       // Bundle name.
       $entity->bundle(),
@@ -584,6 +579,8 @@ class EntityFieldTest extends EntityUnitTestBase  {
     $this->assertEqual($violations->count(), 1);
 
     // Test bundle validation.
+    NodeType::create(array('type' => 'article'))
+      ->save();
     $definition = FieldDefinition::create('entity_reference')
       ->setLabel('Test entity')
       ->setSettings(array(

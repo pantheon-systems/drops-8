@@ -21,7 +21,7 @@ class CommentDefaultFormatterCacheTagsTest extends EntityUnitTestBase {
    *
    * @var array
    */
-  public static $modules = array('entity_test', 'comment');
+  public static $modules = array('entity_test', 'comment', 'menu_link');
 
   /**
    * {@inheritdoc}
@@ -47,7 +47,8 @@ class CommentDefaultFormatterCacheTagsTest extends EntityUnitTestBase {
     $current_user->setAccount($this->createUser(array(), array('access comments')));
 
     // Install tables and config needed to render comments.
-    $this->installSchema('comment', array('comment', 'comment_entity_statistics'));
+    $this->installSchema('comment', array('comment_entity_statistics'));
+    $this->installEntitySchema('comment');
     $this->installConfig(array('system', 'filter'));
 
     // Comment rendering generates links, so build the router.
@@ -56,25 +57,7 @@ class CommentDefaultFormatterCacheTagsTest extends EntityUnitTestBase {
 
     // Set up a field, so that the entity that'll be referenced bubbles up a
     // cache tag when rendering it entirely.
-    entity_create('field_config', array(
-      'name' => 'comment',
-      'entity_type' => 'entity_test',
-      'type' => 'comment',
-      'settings' => array(),
-    ))->save();
-    entity_create('field_instance_config', array(
-      'entity_type' => 'entity_test',
-      'bundle' => 'entity_test',
-      'field_name' => 'comment',
-      'label' => 'Comment',
-      'settings' => array(),
-    ))->save();
-    entity_get_display('entity_test', 'entity_test', 'default')
-      ->setComponent('comment', array(
-        'type' => 'comment_default',
-        'settings' => array(),
-      ))
-      ->save();
+    \Drupal::service('comment.manager')->addDefaultField('entity_test', 'entity_test');
   }
 
   /**
@@ -109,6 +92,7 @@ class CommentDefaultFormatterCacheTagsTest extends EntityUnitTestBase {
       'entity_id' => $commented_entity->id(),
       'entity_type' => 'entity_test',
       'field_name' => 'comment',
+      'comment_type' => 'comment',
       'status' => CommentInterface::PUBLISHED,
       'uid' => $user->id(),
     ));

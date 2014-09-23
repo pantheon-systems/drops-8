@@ -8,7 +8,7 @@
 namespace Drupal\Core\Entity;
 
 use Drupal\Core\Cache\Cache;
-use Drupal\Core\DependencyInjection\DependencySerialization;
+use Drupal\Core\DependencyInjection\DependencySerializationTrait;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Component\Utility\String;
 use Drupal\Component\Utility\Unicode;
@@ -17,13 +17,15 @@ use Drupal\Core\Entity\Exception\AmbiguousEntityClassException;
 use Drupal\Core\Entity\Exception\NoCorrespondingEntityClassException;
 use Drupal\Core\Entity\Exception\UndefinedLinkTemplateException;
 use Drupal\Core\Language\Language;
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
 
 /**
  * Defines a base entity class.
  */
-abstract class Entity extends DependencySerialization implements EntityInterface {
+abstract class Entity implements EntityInterface {
+  use DependencySerializationTrait;
 
   /**
    * The entity type.
@@ -283,7 +285,7 @@ abstract class Entity extends DependencySerialization implements EntityInterface
     }
     return $this->entityManager()
       ->getAccessController($this->entityTypeId)
-      ->access($this, $operation, Language::LANGCODE_DEFAULT, $account);
+      ->access($this, $operation, LanguageInterface::LANGCODE_DEFAULT, $account);
   }
 
   /**
@@ -293,7 +295,8 @@ abstract class Entity extends DependencySerialization implements EntityInterface
     $language = $this->languageManager()->getLanguage($this->langcode);
     if (!$language) {
       // Make sure we return a proper language object.
-      $language = new Language(array('id' => Language::LANGCODE_NOT_SPECIFIED));
+      $langcode = $this->langcode ?: LanguageInterface::LANGCODE_NOT_SPECIFIED;
+      $language = new Language(array('id' => $langcode));
     }
     return $language;
   }
@@ -555,14 +558,18 @@ abstract class Entity extends DependencySerialization implements EntityInterface
    * Acts on entities of which this entity is a bundle entity type.
    */
   protected function onUpdateBundleEntity() {
-    // If this entity is a bundle entity type of another entity type, and we're
-    // updating an existing entity, and that other entity type has a view
-    // builder class, then invalidate the render cache of entities for which
-    // this entity is a bundle.
     $bundle_of = $this->getEntityType()->getBundleOf();
-    $entity_manager = \Drupal::entityManager();
-    if ($bundle_of !== FALSE && $entity_manager->hasController($bundle_of, 'view_builder')) {
-      $entity_manager->getViewBuilder($bundle_of)->resetCache();
+    if ($bundle_of !== FALSE) {
+      // If this entity is a bundle entity type of another entity type, and we're
+      // updating an existing entity, and that other entity type has a view
+      // builder class, then invalidate the render cache of entities for which
+      // this entity is a bundle.
+      $entity_manager = $this->entityManager();
+      if ($entity_manager->hasController($bundle_of, 'view_builder')) {
+        $entity_manager->getViewBuilder($bundle_of)->resetCache();
+      }
+      // Entity bundle field definitions may depend on bundle settings.
+      $entity_manager->clearCachedFieldDefinitions();
     }
   }
 

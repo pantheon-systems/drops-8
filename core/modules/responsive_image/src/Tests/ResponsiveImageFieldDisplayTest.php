@@ -7,7 +7,6 @@
 
 namespace Drupal\responsive_image\Tests;
 
-use Drupal\Core\Language\Language;
 use Drupal\breakpoint\Entity\Breakpoint;
 use Drupal\image\Tests\ImageFieldTestBase;
 
@@ -133,7 +132,7 @@ class ResponsiveImageFieldDisplayTest extends ImageFieldTestBase {
       '#width' => 40,
       '#height' => 20,
     );
-    $default_output = drupal_render($image);
+    $default_output = str_replace("\n", NULL, drupal_render($image));
     $this->assertRaw($default_output, 'Default formatter displaying correctly on full node view.');
 
     // Use the responsive image formatter linked to file formatter.

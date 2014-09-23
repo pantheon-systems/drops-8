@@ -15,7 +15,6 @@ use Drupal\Core\Config\StorageComparer;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\Database\ConnectionNotDefinedException;
 use Drupal\Core\Config\StorageInterface;
-use Drupal\Core\DrupalKernel;
 use Drupal\Core\Language\Language;
 use Drupal\Core\Session\AccountProxy;
 use Drupal\Core\Session\AnonymousUserSession;
@@ -52,6 +51,13 @@ abstract class TestBase {
    * @var string
    */
   protected $databasePrefix = NULL;
+
+  /**
+   * The site directory of the original parent site.
+   *
+   * @var string
+   */
+  protected $originalSite;
 
   /**
    * The original file directory, before it was changed for testing purposes.
@@ -653,7 +659,7 @@ abstract class TestBase {
    *   TRUE if the assertion succeeded, FALSE otherwise.
    *
    * @see TestBase::prepareEnvironment()
-   * @see _drupal_bootstrap_configuration()
+   * @see \Drupal\Core\DrupalKernel::bootConfiguration()
    */
   protected function assertNoErrorsLogged() {
     // Since PHP only creates the error.log file when an actual error is
@@ -1156,8 +1162,8 @@ abstract class TestBase {
       $captured_emails = $state->get('system.test_mail_collector') ?: array();
       $emailCount = count($captured_emails);
       if ($emailCount) {
-        $message = $emailCount == 1 ? '1 e-mail was sent during this test.' : $emailCount . ' e-mails were sent during this test.';
-        $this->pass($message, 'E-mail');
+        $message = $emailCount == 1 ? '1 email was sent during this test.' : $emailCount . ' emails were sent during this test.';
+        $this->pass($message, 'Email');
       }
     }
 

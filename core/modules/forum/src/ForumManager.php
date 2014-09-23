@@ -9,19 +9,22 @@ namespace Drupal\forum;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Database\Connection;
-use Drupal\Core\DependencyInjection\DependencySerialization;
+use Drupal\Core\DependencyInjection\DependencySerializationTrait;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
-use Drupal\comment\CommentInterface;
 use Drupal\node\NodeInterface;
 
 /**
  * Provides forum manager service.
  */
-class ForumManager extends DependencySerialization implements ForumManagerInterface {
+class ForumManager implements ForumManagerInterface {
   use StringTranslationTrait;
+  use DependencySerializationTrait {
+    __wakeup as defaultWakeup;
+    __sleep as defaultSleep;
+  }
 
   /**
    * Forum sort order, newest first.
@@ -170,7 +173,7 @@ class ForumManager extends DependencySerialization implements ForumManagerInterf
         ->extend('Drupal\Core\Database\Query\TableSortExtender');
       $query->fields('n', array('nid'));
 
-      $query->join('comment_entity_statistics', 'ces', "n.nid = ces.entity_id AND ces.field_id = 'node__comment_forum' AND ces.entity_type = 'node'");
+      $query->join('comment_entity_statistics', 'ces', "n.nid = ces.entity_id AND ces.field_name = 'comment_forum' AND ces.entity_type = 'node'");
       $query->fields('ces', array(
         'cid',
         'last_comment_uid',
@@ -341,7 +344,7 @@ class ForumManager extends DependencySerialization implements ForumManagerInterf
     // Query "Last Post" information for this forum.
     $query = $this->connection->select('node_field_data', 'n');
     $query->join('forum', 'f', 'n.vid = f.vid AND f.tid = :tid', array(':tid' => $tid));
-    $query->join('comment_entity_statistics', 'ces', "n.nid = ces.entity_id AND ces.field_id = 'node__comment_forum' AND ces.entity_type = 'node'");
+    $query->join('comment_entity_statistics', 'ces', "n.nid = ces.entity_id AND ces.field_name = 'comment_forum' AND ces.entity_type = 'node'");
     $query->join('users', 'u', 'ces.last_comment_uid = u.uid');
     $query->addExpression('CASE ces.last_comment_uid WHEN 0 THEN ces.last_comment_name ELSE u.name END', 'last_comment_name');
 
@@ -379,7 +382,7 @@ class ForumManager extends DependencySerialization implements ForumManagerInterf
     if (empty($this->forumStatistics)) {
       // Prime the statistics.
       $query = $this->connection->select('node_field_data', 'n');
-      $query->join('comment_entity_statistics', 'ces', "n.nid = ces.entity_id AND ces.field_id = 'node__comment_forum' AND ces.entity_type = 'node'");
+      $query->join('comment_entity_statistics', 'ces', "n.nid = ces.entity_id AND ces.field_name = 'comment_forum' AND ces.entity_type = 'node'");
       $query->join('forum', 'f', 'n.vid = f.vid');
       $query->addExpression('COUNT(n.nid)', 'topic_count');
       $query->addExpression('SUM(ces.comment_count)', 'comment_count');
@@ -499,46 +502,8 @@ class ForumManager extends DependencySerialization implements ForumManagerInterf
   /**
    * {@inheritdoc}
    */
-  public function updateIndex($nid) {
-    $count = $this->connection->query("SELECT COUNT(cid) FROM {comment} c INNER JOIN {forum_index} i ON c.entity_id = i.nid WHERE c.entity_id = :nid AND c.field_id = 'node__comment_forum' AND c.entity_type = 'node' AND c.status = :status", array(
-      ':nid' => $nid,
-      ':status' => CommentInterface::PUBLISHED,
-    ))->fetchField();
-
-    if ($count > 0) {
-      // Comments exist.
-      $last_reply = $this->connection->queryRange("SELECT cid, name, created, uid FROM {comment} WHERE entity_id = :nid AND field_id = 'node__comment_forum' AND entity_type = 'node' AND status = :status ORDER BY cid DESC", 0, 1, array(
-        ':nid' => $nid,
-        ':status' => CommentInterface::PUBLISHED,
-      ))->fetchObject();
-      $this->connection->update('forum_index')
-        ->fields( array(
-          'comment_count' => $count,
-          'last_comment_timestamp' => $last_reply->created,
-        ))
-        ->condition('nid', $nid)
-        ->execute();
-    }
-    else {
-      // Comments do not exist.
-      // @todo This should be actually filtering on the desired node language and
-      //   just fall back to the default language.
-      $node = $this->connection->query('SELECT uid, created FROM {node_field_data} WHERE nid = :nid AND default_langcode = 1', array(':nid' => $nid))->fetchObject();
-      $this->connection->update('forum_index')
-        ->fields( array(
-          'comment_count' => 0,
-          'last_comment_timestamp' => $node->created,
-        ))
-        ->condition('nid', $nid)
-        ->execute();
-    }
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function __sleep() {
-    $vars = parent::__sleep();
+    $vars = $this->defaultSleep();
     // Do not serialize static cache.
     unset($vars['history'], $vars['index'], $vars['lastPostData'], $vars['forumChildren'], $vars['forumStatistics']);
     return $vars;
@@ -548,7 +513,7 @@ class ForumManager extends DependencySerialization implements ForumManagerInterf
    * {@inheritdoc}
    */
   public function __wakeup() {
-    parent::__wakeup();
+    $this->defaultWakeup();
     // Initialize static cache.
     $this->history = array();
     $this->lastPostData = array();

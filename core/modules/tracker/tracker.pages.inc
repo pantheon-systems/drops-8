@@ -5,6 +5,8 @@
  * User page callbacks for tracker.module.
  */
 
+use Drupal\Component\Utility\String;
+
 
 /**
  * Page callback: Generates a page of tracked nodes for the site.
@@ -25,7 +27,7 @@ function tracker_page($account = NULL) {
       ->condition('t.uid', $account->id());
   }
   else {
-    $query = db_select('tracker_node', 't', array('target' => 'slave'))
+    $query = db_select('tracker_node', 't', array('target' => 'replica'))
       ->extend('Drupal\Core\Database\Query\PagerSelectExtender')
       ->addMetaData('base_table', 'tracker_node');
   }
@@ -61,7 +63,7 @@ function tracker_page($account = NULL) {
     GROUP BY n.nid
     ORDER BY n.changed DESC", array(
       ':nids' => array_keys($nodes)
-    ), array('target' => 'slave'))->fetchAllKeyed();
+    ), array('target' => 'replica'))->fetchAllKeyed();
     foreach ($result as $nid => $comment_count) {
       $nodes[$nid]->last_activity = $tracker_data[$nid]->changed;
       $nodes[$nid]->comment_count = $comment_count;
@@ -86,7 +88,7 @@ function tracker_page($account = NULL) {
       );
 
       $row = array(
-        'type' => check_plain(node_get_type_label($node)),
+        'type' => String::checkPlain(node_get_type_label($node)),
         'title' => array('data' => l($node->getTitle(), 'node/' . $node->id()) . ' ' . drupal_render($mark_build)),
         'author' => array('data' => array('#theme' => 'username', '#account' => $node->getOwner())),
         'replies' => array('class' => array('replies'), 'data' => $comments),

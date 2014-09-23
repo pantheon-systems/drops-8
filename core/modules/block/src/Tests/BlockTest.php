@@ -40,8 +40,9 @@ class BlockTest extends BlockTestBase {
     );
     // Set the block to be hidden on any user path, and to be shown only to
     // authenticated users.
-    $edit['visibility[path][pages]'] = 'user*';
-    $edit['visibility[role][roles][' . DRUPAL_AUTHENTICATED_RID . ']'] = TRUE;
+    $edit['settings[visibility][request_path][pages]'] = 'user*';
+    $edit['settings[visibility][request_path][negate]'] = TRUE;
+    $edit['settings[visibility][user_role][roles][' . DRUPAL_AUTHENTICATED_RID . ']'] = TRUE;
     $this->drupalPostForm('admin/structure/block/add/' . $block_name . '/' . $default_theme, $edit, t('Save block'));
     $this->assertText('The block configuration has been saved.', 'Block was saved');
 
@@ -65,8 +66,7 @@ class BlockTest extends BlockTestBase {
   }
 
   /**
-   * Test block visibility when using "pages" restriction but leaving
-   * "pages" textarea empty
+   * Test block visibility when leaving "pages" textarea empty.
    */
   function testBlockVisibilityListedEmpty() {
     $block_name = 'system_powered_by_block';
@@ -78,7 +78,7 @@ class BlockTest extends BlockTestBase {
       'id' => strtolower($this->randomName(8)),
       'region' => 'sidebar_first',
       'settings[label]' => $title,
-      'visibility[path][visibility]' => BLOCK_VISIBILITY_LISTED,
+      'settings[visibility][request_path][negate]' => TRUE,
     );
     // Set the block to be hidden on any user path, and to be shown only to
     // authenticated users.
@@ -300,19 +300,19 @@ class BlockTest extends BlockTestBase {
     $expected_cache_tags = array(
       'theme:stark',
       'theme_global_settings:1',
-      'content:1',
       'block_view:1',
       'block:powered',
       'block_plugin:system_powered_by_block',
+      'rendered:1',
     );
     $this->assertIdentical($cache_entry->tags, $expected_cache_tags);
     $cache_entry = \Drupal::cache('render')->get('entity_view:block:powered:en:stark');
     $expected_cache_tags = array(
-      'content:1',
       'block_view:1',
       'block:powered',
       'theme:stark',
       'block_plugin:system_powered_by_block',
+      'rendered:1',
     );
     $this->assertIdentical($cache_entry->tags, $expected_cache_tags);
 
@@ -340,28 +340,28 @@ class BlockTest extends BlockTestBase {
     $expected_cache_tags = array(
       'theme:stark',
       'theme_global_settings:1',
-      'content:1',
       'block_view:1',
       'block:powered-2',
       'block:powered',
       'block_plugin:system_powered_by_block',
+      'rendered:1',
     );
     $this->assertEqual($cache_entry->tags, $expected_cache_tags);
     $expected_cache_tags = array(
-      'content:1',
       'block_view:1',
       'block:powered',
       'theme:stark',
       'block_plugin:system_powered_by_block',
+      'rendered:1',
     );
     $cache_entry = \Drupal::cache('render')->get('entity_view:block:powered:en:stark');
     $this->assertIdentical($cache_entry->tags, $expected_cache_tags);
     $expected_cache_tags = array(
-      'content:1',
       'block_view:1',
       'block:powered-2',
       'theme:stark',
       'block_plugin:system_powered_by_block',
+      'rendered:1',
     );
     $cache_entry = \Drupal::cache('render')->get('entity_view:block:powered-2:en:stark');
     $this->assertIdentical($cache_entry->tags, $expected_cache_tags);

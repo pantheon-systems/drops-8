@@ -13,8 +13,6 @@ services:
     class: Drupal\comment\CommentStatistics
     arguments: ['@database', '@current_user', '@entity.manager', '@state']
 
-  comment.route_enhancer:
-      class: Drupal\comment\Routing\CommentBundleEnhancer
-      arguments: ['@entity.manager']
-      tags:
-        - { name: route_enhancer}
+  comment.post_render_cache:
+    class: Drupal\comment\CommentPostRenderCache
+    arguments: ['@entity.manager', '@entity.form_builder']

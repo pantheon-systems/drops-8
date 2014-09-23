@@ -8,7 +8,6 @@
 namespace Drupal\dblog\Tests;
 
 use Drupal\Component\Utility\Xss;
-use Drupal\Core\Language\Language;
 use Drupal\dblog\Controller\DbLogController;
 use Drupal\simpletest\WebTestBase;
 
@@ -70,6 +69,7 @@ class DbLogTest extends WebTestBase {
     $this->verifyCron($row_limit);
     $this->verifyEvents();
     $this->verifyReports();
+    $this->verifyBreadcrumbs();
 
     // Login the regular user.
     $this->drupalLogin($this->any_user);
@@ -138,7 +138,7 @@ class DbLogTest extends WebTestBase {
       'user'        => $this->big_user,
       'uid'         => $this->big_user->id(),
       'request_uri' => $base_root . request_uri(),
-      'referer'     => isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : '',
+      'referer'     => \Drupal::request()->server->get('HTTP_REFERER'),
       'ip'          => '127.0.0.1',
       'timestamp'   => REQUEST_TIME,
       );
@@ -186,11 +186,23 @@ class DbLogTest extends WebTestBase {
 
     // View the database log event page.
     $wid = db_query('SELECT MIN(wid) FROM {watchdog}')->fetchField();
-    $this->drupalGet('admin/reports/event/' . $wid);
+    $this->drupalGet('admin/reports/dblog/event/' . $wid);
     $this->assertResponse($response);
     if ($response == 200) {
       $this->assertText(t('Details'), 'DBLog event node was displayed');
     }
+
+  }
+
+  /**
+   * Generates and then verifies breadcrumbs.
+   */
+  private function verifyBreadcrumbs() {
+    // View the database log event page.
+    $wid = db_query('SELECT MIN(wid) FROM {watchdog}')->fetchField();
+    $this->drupalGet('admin/reports/dblog/event/' . $wid);
+    $xpath = '//nav[@class="breadcrumb"]/ol/li[last()]/a';
+    $this->assertEqual(current($this->xpath($xpath)), 'Recent log messages', 'DBLogs link displayed at breadcrumb in event page.');
   }
 
   /**
@@ -274,7 +286,7 @@ class DbLogTest extends WebTestBase {
       foreach ($links->attributes() as $attr => $value) {
         if ($attr == 'href') {
           // Extract link to details page.
-          $link = drupal_substr($value, strpos($value, 'admin/reports/event/'));
+          $link = drupal_substr($value, strpos($value, 'admin/reports/dblog/event/'));
           $this->drupalGet($link);
           // Check for full message text on the details page.
           $this->assertRaw($message, 'DBLog event details was found: [delete user]');
@@ -421,7 +433,7 @@ class DbLogTest extends WebTestBase {
       'user'        => $this->big_user,
       'uid'         => $this->big_user->id(),
       'request_uri' => $base_root . request_uri(),
-      'referer'     => isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : '',
+      'referer'     => \Drupal::request()->server->get('HTTP_REFERER'),
       'ip'          => '127.0.0.1',
       'timestamp'   => REQUEST_TIME,
     );

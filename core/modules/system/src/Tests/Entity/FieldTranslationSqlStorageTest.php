@@ -9,7 +9,7 @@ namespace Drupal\system\Tests\Entity;
 
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\ContentEntityDatabaseStorage;
-use Drupal\Core\Language\Language;
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\field\Entity\FieldConfig;
 
 /**
@@ -48,14 +48,14 @@ class FieldTranslationSqlStorageTest extends EntityLanguageTestBase {
     $entity->langcode->value = $langcode;
     $entity->save();
     $this->assertFieldStorageLangcode($entity, 'Field language successfully changed.');
-    $langcode = Language::LANGCODE_NOT_SPECIFIED;
+    $langcode = LanguageInterface::LANGCODE_NOT_SPECIFIED;
     $entity->langcode->value = $langcode;
     $entity->save();
     $this->assertFieldStorageLangcode($entity, 'Field language successfully changed to language neutral.');
 
     // Test that after switching field translatability things keep working as
     // before.
-    $this->toggleFieldTranslatability($entity_type);
+    $this->toggleFieldTranslatability($entity_type, $entity_type);
     $entity = $this->reloadEntity($entity);
     foreach (array($this->field_name, $this->untranslatable_field_name) as $field_name) {
       $this->assertEqual($entity->get($field_name)->value, $values[$field_name], 'Field language works as expected after switching translatability.');
@@ -63,14 +63,14 @@ class FieldTranslationSqlStorageTest extends EntityLanguageTestBase {
 
     // Test that after disabling field translatability translated values are not
     // loaded.
-    $this->toggleFieldTranslatability($entity_type);
+    $this->toggleFieldTranslatability($entity_type, $entity_type);
     $entity = $this->reloadEntity($entity);
     $entity->langcode->value = $this->langcodes[0];
     $translation = $entity->addTranslation($this->langcodes[1]);
     $translated_value = $this->randomName();
     $translation->get($this->field_name)->value = $translated_value;
     $translation->save();
-    $this->toggleFieldTranslatability($entity_type);
+    $this->toggleFieldTranslatability($entity_type, $entity_type);
     $entity = $this->reloadEntity($entity);
     $this->assertEqual($entity->getTranslation($this->langcodes[1])->get($this->field_name)->value, $values[$this->field_name], 'Existing field translations are not loaded for untranslatable fields.');
   }

@@ -10,8 +10,9 @@ namespace Drupal\config_translation\FormElement;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Ajax\AjaxResponse;
 use Drupal\Core\Ajax\ReplaceCommand;
-use Drupal\Core\Language\Language;
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
+use Drupal\Core\TypedData\DataDefinitionInterface;
 
 /**
  * Defines the date format element for the configuration translation interface.
@@ -22,13 +23,8 @@ class DateFormat implements ElementInterface {
   /**
    * {@inheritdoc}
    */
-  public function getFormElement(array $definition, Language $language, $value) {
-    if (class_exists('intlDateFormatter')) {
-      $description = $this->t('A user-defined date format. See the <a href="@url">PHP manual</a> for available options.', array('@url' => 'http://userguide.icu-project.org/formatparse/datetime'));
-    }
-    else {
-      $description = $this->t('A user-defined date format. See the <a href="@url">PHP manual</a> for available options.', array('@url' => 'http://php.net/manual/function.date.php'));
-    }
+  public function getFormElement(DataDefinitionInterface $definition, LanguageInterface $language, $value) {
+    $description = $this->t('A user-defined date format. See the <a href="@url">PHP manual</a> for available options.', array('@url' => 'http://php.net/manual/function.date.php'));
     $format = $this->t('Displayed as %date_format', array('%date_format' => \Drupal::service('date')->format(REQUEST_TIME, 'custom', $value)));
     return array(
       '#type' => 'textfield',

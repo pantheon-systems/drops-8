@@ -5,90 +5,54 @@
  * Describes hooks and plugins provided by the Views module.
  */
 
+use Drupal\Core\Language\LanguageInterface;
+
+/**
+ * @defgroup views_overview Views overview
+ * @{
+ * Overview of the Views module API
+ *
+ * The Views module is a generalized query and display engine, which can be used
+ * to make views (formatted lists, grids, feeds, and other output) of items
+ * (often entities, but can be other types of data). Developers can interact
+ * with Views in several ways:
+ * - Provide plugins: Views plugins govern nearly every aspect of views,
+ *   including querying (sorting, filtering, etc.) and display (at several
+ *   levels of granularity, ranging from the entire view to the details of a
+ *   field). See the @link views_plugins Views plugins topic @endlink for
+ *   more information.
+ * - Provide data: Data types can be provided to Views by implementing
+ *   hook_views_data(), and data types provided by other modules can be
+ *   altered by implementing hook_views_data_alter().
+ * - Implement hooks: A few operations in Views can be influenced by hooks.
+ *   See the @link Views hooks topic @endlink for a list.
+ * - Theming: See the @link views_templates Views templates topic @endlink
+ *   for more information.
+ *
+ * @see \Drupal\views\ViewExecutable
+ * @}
+ */
+
 /**
  * @defgroup views_plugins Views plugins
  *
  * Views plugins are objects that are used to build and render the view.
- * Plugins are registered by extending one of the Views base plugin classes
- * and defining settings in the plugin annotation.
+ * See individual views plugin topics for more information about the
+ * specifics of each plugin type, and the
+ * @link plugin_api Plugin API topic @endlink for more information about
+ * plugins in general.
  *
- * Views has the following types of plugins:
- * - Access: Access plugins are responsible for controlling access to the
- *   view. Views includes plugins for checking user roles and individual
- *   permissions. Access plugins extend
- *   \Drupal\views\Plugin\views\access\AccessPluginBase.
- * - Argument default: Argument default plugins allow pluggable ways of
- *   providing default values for contextual filters. This is useful for
- *   blocks and other display types lacking a natural argument input.
- *   Examples are plugins to extract node and user IDs from the URL. Argument
- *   default plugins extend
- *   \Drupal\views\Plugin\views\argument_default\ArgumentDefaultPluginBase.
- * - Argument validator: Validator plugins can ensure arguments are valid,
- *   and even do transformations on the arguments. They can also provide
- *   replacement patterns for the view title. For example, the 'content'
- *   validator verifies verifies that the argument value corresponds to a
- *   node, loads that node and provides the node title as a replacement
- *   pattern. Argument validator plugins extend
- *   \Drupal\views\Plugin\views\argument_validator\ArgumentValidatorPluginBase.
- * - Cache: Cache plugins control the storage and loading of caches.
- *   Currently they can do both result and render caching. It might also be
- *   possible to cache the generated query. Cache plugins extend
- *   \Drupal\views\Plugin\views\cache\CachePluginBase.
- * - Display: Display plugins are responsible for controlling where a View is
- *   rendered; that is, how it is exposed to other parts of Drupal. 'Page'
- *   and 'block' are the most commonly used display plugins. Each View also
- *   has a 'master' (or 'default') display that includes information shared
- *   between all its displays. (See
- *   \Drupal\views\Plugin\views\display\DefaultDisplay.) Display plugins extend
- *   \Drupal\views\Plugin\views\display\DisplayPluginBase.
- * - Display extender: Display extender plugins allow additional options or
- *   configurations to added to views across all display types. For example,
- *   if you wanted to allow site users to add certain metadata to the rendered
- *   output of every view display regardless of display type, you could provide
- *   this option as a display extender. Display extender plugins extend
- *   \Drupal\views\Plugin\views\display_extender\DisplayExtenderPluginBase.
- * - Exposed form: Exposed form plugins are responsible for building,
- *   rendering, and controlling exposed forms. Exposed form plugins extend
- *   \Drupal\views\Plugin\views\display\DisplayPluginBase.
- * - Handlers: Handler plugins help build the view query object that the query
- *   plugin then executes to retrieve the data from the storage backend (see
- *   below). There are several types of handlers:
- *   - Area handlers: Extend \Drupal\views\Plugin\views\area\AreaHandlerBase
- *   - Argument handlers: Extend
- *     \Drupal\views\Plugin\views\argument\ArgumentHandlerBase
- *   - Field handlers: Extend \Drupal\views\Plugin\views\field\FieldHandlerBase
- *   - Filter handlers: Extend
- *     \Drupal\views\Plugin\views\filter\FilterHandlerBase
- *   - Relationship handlers:
- *     Extend \Drupal\views\Plugin\views\relationship\RelationshipHandlerBase
- *   - Sort handlers: Extend \Drupal\views\Plugin\views\sort:SortHandlerBase
- * - Pager: Pager plugins take care of everything regarding pagers, including
- *   getting setting the total number of items to render the pager and
- *   setting the global pager arrays. Pager plugins extend
- *   \Drupal\views\Plugin\views\pager\PagerPluginBase.
- * - Query: Query plugins generate and execute a built query object against a
- *   particular storage backend, converting the Views query object into an
- *   actual query. The only default implementation is SQL. (Note that most
- *   handler plugins currently rely on the SQL query plugin.) Query plugins
- *   extend \Drupal\views\Plugin\views\query\QueryPluginBase.
- * - Row style: Row styles handle rendering each individual record from the
- *   main view table. The two default implementations render the entire entity
- *   (nodes only), or selected fields. Row style plugins extend
- *   \Drupal\views\Plugin\views\row\RowPluginBase).
- * - Style: Style plugins control how a view is displayed. For the most part
- *   they are object wrappers around theme templates. Examples of styles
- *   include HTML lists, tables, etc. Style plugins extend
- *   \Drupal\views\Plugin\views\style\StylePluginBase.
+ * Some Views plugins are known as handlers. Handler plugins help build the
+ * view query object: filtering, contextual filtering, sorting, relationships,
+ * etc.
  *
- * @todo Add an explanation for each type of handler.
- * @todo Document how to use annotations and what goes in them.
- * @todo Add @ingroup to all the base plugins for this group.
- * @todo Add a separate @ingroup for all plugins?
  * @todo Document specific options on the appropriate plugin base classes.
  * @todo Add examples.
  *
  * @see \Drupal\views\Plugin\views\PluginBase
  * @see \Drupal\views\Plugin\views\HandlerBase
+ * @see plugin_api
+ * @see annotation
  */
 
 /**
@@ -229,7 +193,7 @@ function hook_views_data() {
     'help' => t('Just a numeric field.'),
     'field' => array(
       'id' => 'numeric',
-     ),
+    ),
     'filter' => array(
       'id' => 'numeric',
     ),
@@ -327,6 +291,145 @@ function hook_views_data_alter(array &$data) {
 }
 
 /**
+ * Override the default Views data for a Field API field.
+ *
+ * The field module's implementation of hook_views_data() invokes this for each
+ * field, in the module that defines the field type (as declared in the field
+ * array). It is not invoked in other modules.
+ *
+ * If no hook implementation exists, hook_views_data() falls back to
+ * field_views_field_default_views_data().
+ *
+ * @param \Drupal\field\FieldConfigInterface $field
+ *   The field config entity.
+ *
+ * @return array
+ *   An array of views data, in the same format as the return value of
+ *   hook_views_data().
+ *
+ * @see field_views_data()
+ * @see hook_field_views_data_alter()
+ * @see hook_field_views_data_views_data_alter()
+ */
+function hook_field_views_data(\Drupal\field\FieldConfigInterface $field) {
+  $data = field_views_field_default_views_data($field);
+  foreach ($data as $table_name => $table_data) {
+    // Add the relationship only on the target_id field.
+    $data[$table_name][$field->getName() . '_target_id']['relationship'] = array(
+      'id' => 'standard',
+      'base' => 'file_managed',
+      'base field' => 'target_id',
+      'label' => t('image from !field_name', array('!field_name' => $field->getName())),
+    );
+  }
+
+  return $data;
+}
+
+/**
+ * Alter the Views data for a single Field API field.
+ *
+ * This is called on all modules even if there is no hook_field_views_data()
+ * implementation for the field, and therefore may be used to alter the
+ * default data that field_views_field_default_views_data() supplies for the
+ * field.
+ *
+ *  @param array $data
+ *    The views data for the field. This has the same format as the return
+ *    value of hook_views_data().
+ *  @param \Drupal\field\FieldConfigInterface $field
+ *    The field config entity.
+ *
+ * @see field_views_data()
+ * @see hook_field_views_data()
+ * @see hook_field_views_data_views_data_alter()
+ */
+function hook_field_views_data_alter(array &$data, \Drupal\field\FieldConfigInterface $field) {
+  $entity_type_id = $field->entity_type;
+  $field_name = $field->getName();
+  $entity_type = \Drupal::entityManager()->getDefinition($entity_type_id);
+  $pseudo_field_name = 'reverse_' . $field_name . '_' . $entity_type_id;
+
+  list($label) = field_views_field_label($entity_type_id, $field_name);
+
+  $data['file_managed'][$pseudo_field_name]['relationship'] = array(
+    'title' => t('@entity using @field', array('@entity' => $entity_type->getLabel(), '@field' => $label)),
+    'help' => t('Relate each @entity with a @field set to the image.', array('@entity' => $entity_type->getLabel(), '@field' => $label)),
+    'id' => 'entity_reverse',
+    'field_name' => $field_name,
+    'entity_type' => $entity_type_id,
+    'field table' => ContentEntityDatabaseStorage::_fieldTableName($field),
+    'field field' => $field_name . '_target_id',
+    'base' => $entity_type->getBaseTable(),
+    'base field' => $entity_type->getKey('id'),
+    'label' => t('!field_name', array('!field_name' => $field_name)),
+    'join_extra' => array(
+      0 => array(
+        'field' => 'deleted',
+        'value' => 0,
+        'numeric' => TRUE,
+      ),
+    ),
+  );
+}
+
+/**
+ * Alter the Views data on a per field basis.
+ *
+ * The field module's implementation of hook_views_data_alter() invokes this for
+ * each field, in the module that defines the field type (as declared in the
+ * field array). It is not invoked in other modules.
+ *
+ * Unlike hook_field_views_data_alter(), this operates on the whole of the views
+ * data. This allows a field module to add data that concerns its fields in
+ * other tables, which would not yet be defined at the point when
+ * hook_field_views_data() and hook_field_views_data_alter() are invoked. For
+ * example, entityreference adds reverse relationships on the tables for the
+ * entities which are referenced by entityreference fields.
+ *
+ * (Note: this is weirdly named so as not to conflict with
+ * hook_field_views_data_alter().)
+ *
+ * @param array $data
+ *   The views data.
+ * @param \Drupal\field\FieldConfigInterface $field
+ *   The field config entity.
+ *
+ * @see hook_field_views_data()
+ * @see hook_field_views_data_alter()
+ * @see field_views_data_alter()
+ */
+function hook_field_views_data_views_data_alter(array &$data, \Drupal\field\FieldConfigInterface $field) {
+  $field_name = $field->getName();
+  $data_key = 'field_data_' . $field_name;
+  $entity_type_id = $field->entity_type;
+  $entity_type = \Drupal::entityManager()->getDefinition($entity_type_id);
+  $pseudo_field_name = 'reverse_' . $field_name . '_' . $entity_type_id;
+  list($label) = field_views_field_label($entity_type_id, $field_name);
+
+  // Views data for this field is in $data[$data_key].
+  $data[$data_key][$pseudo_field_name]['relationship'] = array(
+    'title' => t('@entity using @field', array('@entity' => $entity_type->getLabel(), '@field' => $label)),
+    'help' => t('Relate each @entity with a @field set to the term.', array('@entity' => $entity_type->getLabel(), '@field' => $label)),
+    'id' => 'entity_reverse',
+    'field_name' => $field_name,
+    'entity_type' => $entity_type_id,
+    'field table' => ContentEntityDatabaseStorage::_fieldTableName($field),
+    'field field' => $field_name . '_target_id',
+    'base' => $entity_type->getBaseTable(),
+    'base field' => $entity_type->getKey('id'),
+    'label' => t('!field_name', array('!field_name' => $field_name)),
+    'join_extra' => array(
+      0 => array(
+        'field' => 'deleted',
+        'value' => 0,
+        'numeric' => TRUE,
+      ),
+    ),
+  );
+}
+
+/**
  * Replace special strings in the query before it is executed.
  *
  * @param \Drupal\views\ViewExecutable $view
@@ -341,7 +444,7 @@ function hook_views_query_substitutions(ViewExecutable $view) {
   return array(
     '***CURRENT_VERSION***' => \Drupal::VERSION,
     '***CURRENT_TIME***' => REQUEST_TIME,
-    '***CURRENT_LANGUAGE***' => \Drupal::languageManager()->getCurrentLanguage(\Drupal\Core\Language\Language::TYPE_CONTENT)->id,
+    '***CURRENT_LANGUAGE***' => \Drupal::languageManager()->getCurrentLanguage(LanguageInterface::TYPE_CONTENT)->id,
     '***DEFAULT_LANGUAGE***' => \Drupal::languageManager()->getDefaultLanguage()->id,
   );
 }

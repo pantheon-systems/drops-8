@@ -9,7 +9,7 @@ use Drupal\Component\Utility\Xss;
 use Drupal\Core\Config\ConfigImporter;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Extension\Extension;
-use Symfony\Component\HttpFoundation\Request;
+use Drupal\Core\Routing\RouteMatchInterface;
 
 /*
  * Load all public Field API functions. Drupal currently has no
@@ -52,36 +52,23 @@ require_once __DIR__ . '/field.purge.inc';
  *   types like Text and Node Reference along with the associated form elements
  *   and display formatters.
  *
- * - @link field_crud Field CRUD API @endlink: Create, updates, and deletes
- *   fields, bundles (a.k.a. "content types"), and instances. Modules use this
- *   API, often in hook_install(), to create custom data structures.
- *
- * - @link field_attach Field Attach API @endlink: Connects entity types to the
- *   Field API. Field Attach API functions load, store, generate Form API
- *   structures, display, and perform a variety of other functions for field
- *   data connected to individual entities. Fieldable entity types like node and
- *   user use this API to make themselves fieldable.
- *
  * - @link field_purge Field API bulk data deletion @endlink: Cleans up after
  *   bulk deletion operations such as deletion of field or field_instance.
- *
- * - @link field_language Field language API @endlink: Provides native
- *   multilingual support for the Field API.
  */
 
 /**
  * Implements hook_help().
  */
-function field_help($route_name, Request $request) {
+function field_help($route_name, RouteMatchInterface $route_match) {
   switch ($route_name) {
     case 'help.page.field':
       $output = '';
       $output .= '<h3>' . t('About') . '</h3>';
-      $output .= '<p>' . t('The Field module allows custom data fields to be defined for <em>entity</em> types (entities include content items, comments, user accounts, and taxonomy terms). The Field module takes care of storing, loading, editing, and rendering field data. Most users will not interact with the Field module directly, but will instead use the <a href="@field-ui-help">Field UI module</a> user interface. Module developers can use the Field API to make new entity types "fieldable" and thus allow fields to be attached to them. For more information, see the online handbook entry for <a href="@field">Field module</a>.', array('@field-ui-help' => url('admin/help/field_ui'), '@field' => 'http://drupal.org/documentation/modules/field')) . '</p>';
+      $output .= '<p>' . t('The Field module allows custom data fields to be defined for <a href="!entity-help"><em>entity</em></a> types (entities include content items, comments, user accounts, and taxonomy terms). The Field module takes care of storing, loading, editing, and rendering field data. Most users will not interact with the Field module directly, but will instead use the <a href="!field-ui-help">Field UI module</a> user interface. Module developers can use the Field API to make new entity types "fieldable" and thus allow fields to be attached to them. For more information, see the <a href="!field">online documentation for the Field module</a>.', array('!entity-help' => \Drupal::url('help.page', array('name' => 'entity')), '!field-ui-help' => \Drupal::url('help.page', array('name' => 'field_ui')), '!field' => 'https://drupal.org/documentation/modules/field')) . '</p>';
       $output .= '<h3>' . t('Uses') . '</h3>';
       $output .= '<dl>';
       $output .= '<dt>' . t('Enabling field types') . '</dt>';
-      $output .= '<dd>' . t('The Field module provides the infrastructure for fields and field attachment; the field types and input widgets themselves are provided by additional modules. The modules can be enabled from the <a href="@modules">Modules administration page</a>. Drupal core includes the following field type modules: Text, Number, Email, Link, Telephone, Image, File, Options, Taxonomy, and Entity Reference. Additional fields and widgets may be provided by contributed modules, which you can find in the <a href="@contrib">contributed module section of Drupal.org</a>.', array('@modules' => url('admin/modules'), '@contrib' => 'http://drupal.org/project/modules', '@options' => url('admin/help/options')));
+      $output .= '<dd>' . t('The Field module provides the infrastructure for fields and field attachment; the field types and input widgets themselves are provided by additional modules. Some of the modules are required; the optional modules can be enabled from the <a href="!modules">Extend administration page</a>. Additional fields and widgets may be provided by contributed modules, which you can find in the <a href="!contrib">contributed module section of Drupal.org</a>.', array('!modules' => \Drupal::url('system.modules_list'), '!contrib' => 'https://drupal.org/project/modules'));
 
       // Make a list of all widget and field modules currently enabled, ordered
       // by displayed module name (module names are not translated).
@@ -211,19 +198,26 @@ function field_entity_bundle_field_info(EntityTypeInterface $entity_type, $bundl
   }
 }
 
-
 /**
  * Implements hook_entity_bundle_rename().
  */
 function field_entity_bundle_rename($entity_type, $bundle_old, $bundle_new) {
-  $instances = entity_load_multiple_by_properties('field_instance_config', array('entity_type' => $entity_type, 'bundle' => $bundle_old));
+  $instances = entity_load_multiple_by_properties('field_instance_config', array('entity_type' => $entity_type, 'bundle' => $bundle_old, 'include_deleted' => TRUE));
   foreach ($instances as $instance) {
-    if ($instance->entity_type == $entity_type && $instance->bundle == $bundle_old) {
-      $id_new = $instance->entity_type . '.' . $bundle_new . '.' . $instance->field_name;
-      $instance->set('id', $id_new);
-      $instance->bundle = $bundle_new;
+    $id_new = $instance->entity_type . '.' . $bundle_new . '.' . $instance->field_name;
+    $instance->set('id', $id_new);
+    $instance->bundle = $bundle_new;
+    // Save non-deleted instances.
+    if (!$instance->isDeleted()) {
       $instance->allowBundleRename();
       $instance->save();
+    }
+    // Update deleted instances directly in the state storage.
+    else {
+      $state = \Drupal::state();
+      $deleted_instances = $state->get('field.instance.deleted') ?: array();
+      $deleted_instances[$instance->uuid] = $instance->toArray();
+      $state->set('field.instance.deleted', $deleted_instances);
     }
   }
 }

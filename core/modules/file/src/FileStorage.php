@@ -30,12 +30,26 @@ class FileStorage extends ContentEntityDatabaseStorage implements FileStorageInt
   /**
    * {@inheritdoc}
    */
-  public function retrieveTemporaryFiles() {
-    // Use separate placeholders for the status to avoid a bug in some versions
-    // of PHP. See http://drupal.org/node/352956.
-    return $this->database->query('SELECT fid FROM {' . $this->entityType->getBaseTable() . '} WHERE status <> :permanent AND changed < :changed', array(
-      ':permanent' => FILE_STATUS_PERMANENT,
-      ':changed' => REQUEST_TIME - DRUPAL_MAXIMUM_TEMP_FILE_AGE
-    ));
+  public function getSchema() {
+    $schema = parent::getSchema();
+
+    // Marking the respective fields as NOT NULL makes the indexes more
+    // performant.
+    $schema['file_managed']['fields']['status']['not null'] = TRUE;
+    $schema['file_managed']['fields']['changed']['not null'] = TRUE;
+    $schema['file_managed']['fields']['uri']['not null'] = TRUE;
+
+    // @todo There should be a 'binary' field type or setting.
+    $schema['file_managed']['fields']['uri']['binary'] = TRUE;
+    $schema['file_managed']['indexes'] += array(
+      'file__status' => array('status'),
+      'file__changed' => array('changed'),
+    );
+    $schema['file_managed']['unique keys'] += array(
+      'file__uri' => array('uri'),
+    );
+
+    return $schema;
   }
+
 }

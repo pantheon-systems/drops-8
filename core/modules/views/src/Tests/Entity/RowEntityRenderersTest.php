@@ -23,7 +23,7 @@ class RowEntityRenderersTest extends ViewUnitTestBase {
    *
    * @var array
    */
-  public static $modules = array('entity', 'field', 'filter', 'text', 'node', 'user', 'language');
+  public static $modules = array('entity', 'field', 'filter', 'text', 'node', 'user', 'language', 'menu_link');
 
   /**
    * Views used by this test.
@@ -56,8 +56,9 @@ class RowEntityRenderersTest extends ViewUnitTestBase {
   protected function setUp() {
     parent::setUp();
 
-    $this->installSchema('node', array('node', 'node_revision', 'node_field_data', 'node_field_revision', 'node_access'));
-    $this->installSchema('user', array('users'));
+    $this->installEntitySchema('node');
+    $this->installEntitySchema('user');
+    $this->installSchema('node', array('node_access'));
     $this->installConfig(array('node', 'language'));
 
     // The node.view route must exist when nodes are rendered.

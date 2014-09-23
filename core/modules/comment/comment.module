@@ -12,20 +12,23 @@
 
 use Drupal\comment\CommentInterface;
 use Drupal\comment\Entity\Comment;
+use Drupal\comment\Entity\CommentType;
 use Drupal\comment\Plugin\Field\FieldType\CommentItemInterface;
+use Drupal\Component\Utility\String;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\entity\Entity\EntityViewDisplay;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Url;
+use Drupal\field\Entity\FieldConfig;
 use Drupal\field\FieldInstanceConfigInterface;
 use Drupal\field\FieldConfigInterface;
 use Drupal\file\FileInterface;
 use Drupal\user\EntityOwnerInterface;
 use Drupal\node\NodeInterface;
-use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Comments are displayed in a flat list - expanded.
@@ -76,53 +79,26 @@ define('COMMENT_NEW_LIMIT', REQUEST_TIME - 30 * 24 * 60 * 60);
 /**
  * Implements hook_help().
  */
-function comment_help($route_name, Request $request) {
+function comment_help($route_name, RouteMatchInterface $route_match) {
   switch ($route_name) {
     case 'help.page.comment':
       $output = '<h3>' . t('About') . '</h3>';
-      $output .= '<p>' . t('The Comment module allows users to comment on site content, set commenting defaults and permissions, and moderate comments. For more information, see the online handbook entry for <a href="@comment">Comment module</a>.', array('@comment' => 'http://drupal.org/documentation/modules/comment')) . '</p>';
+      $output .= '<p>' . t('The Comment module allows users to comment on site content, set commenting defaults and permissions, and moderate comments. For more information, see the <a href="!comment">online documentation for the Comment module</a>.', array('!comment' => 'https://drupal.org/documentation/modules/comment')) . '</p>';
       $output .= '<h3>' . t('Uses') . '</h3>';
       $output .= '<dl>';
-      $output .= '<dt>' . t('Default and custom settings') . '</dt>';
-      $output .= '<dd>' . t("Comment functionality can be attached to any Drupal entity, eg. a content <a href='@content-type'>type</a> and the behavior can be customised to suit. Each entity can have its own default comment settings configured as: <em>Open</em> to allow new comments, <em>Hidden</em> to hide existing comments and prevent new comments, or <em>Closed</em> to view existing comments, but prevent new comments. These defaults will apply to all new content created (changes to the settings on existing content must be done manually). Other comment settings can also be customized per content type and entity, and can be overridden for any given item of content. When a comment has no replies, it remains editable by its author, as long as the author has a user account and is logged in.", array('@content-type' => url('admin/structure/types'))) . '</dd>';
-      $output .= '<dt>' . t('Comment approval') . '</dt>';
-      $output .= '<dd>' . t("Comments from users who have the <em>Skip comment approval</em> permission are published immediately. All other comments are placed in the <a href='@comment-approval'>Unapproved comments</a> queue, until a user who has permission to <em>Administer comments</em> publishes or deletes them. Published comments can be bulk managed on the <a href='@admin-comment'>Published comments</a> administration page.", array('@comment-approval' => url('admin/content/comment/approval'), '@admin-comment' => url('admin/content/comment'))) . '</dd>';
+      $output .= '<dt>' . t('Enabling commenting and configuring defaults') . '</dt>';
+      $output .= '<dd>' . t('Comment functionality can be enabled for any <a href="!entity-help" title="Entity module help">entity sub-type</a> (for example, a <a href="!content-type">content type</a>). On the Manage fields page for each entity sub-type, you can enable commenting by adding a Comments field. The entity sub-types each have their own default comment settings configured as: <em>Open</em> to allow new comments, <em>Closed</em> to view existing comments, but prevent new comments, or <em>Hidden</em> to hide existing comments and prevent new comments.', array('!content-type' => \Drupal::url('node.overview_types'), '!entity-help' => \Drupal::url('help.page', array('name' => 'entity')))) . '</dd>';
+      $output .= '<dt>' . t('Overriding default settings') . '</dt>';
+      $output .= '<dd>' . t('When you create an entity item, you can override the default comment settings. Changing the entity sub-type defaults will not affect existing entity items, whether they used the default settings or had overrides.') . '</dd>';
+      $output .= '<dt>' . t('Approving and managing comments') . '</dt>';
+      $output .= '<dd>' . t('Comments from users who have the <em>Skip comment approval</em> permission are published immediately. All other comments are placed in the <a href="!comment-approval">Unapproved comments</a> queue, until a user who has permission to <em>Administer comments and comment settings</em> publishes or deletes them. Published comments can be bulk managed on the <a href="!admin-comment">Published comments</a> administration page. When a comment has no replies, it remains editable by its author, as long as the author has <em>Edit own comments</em> permission.', array('!comment-approval' => \Drupal::url('comment.admin_approval'), '!admin-comment' => \Drupal::url('comment.admin'))) . '</dd>';
       $output .= '</dl>';
       return $output;
 
-    case 'comment.bundle_list':
-      $output = '<p>' . t('This page provides a list of all comment forms on the site and allows you to manage the fields, form and display settings for each.') . '</p>';
+    case 'comment.type_list':
+      $output = '<p>' . t('This page provides a list of all comment types on the site and allows you to manage the fields, form and display settings for each.') . '</p>';
       return $output;
   }
-}
-
-/**
- * Implements hook_entity_bundle_info().
- */
-function comment_entity_bundle_info() {
-  $bundles = array();
-  $ids = \Drupal::entityQuery('field_config')
-    ->condition('type', 'comment')
-    ->execute();
-  $config_factory = \Drupal::configFactory();
-  foreach ($ids as $id) {
-    // @todo: We can not rely on the field map here, so we need to manually look
-    //   for a matching field instance to use for the label. Remove this in
-    //   https://drupal.org/node/2228763.
-    list($entity_type_id, $field_name) = explode('.', $id);
-    $instance_ids = $config_factory->listAll('field.instance.' . $entity_type_id . '.');
-    // Look for an instance for this field.
-    foreach ($instance_ids as $instance_id) {
-      $instance_field_name = substr($instance_id, strrpos($instance_id, '.') + 1);
-      if ($instance_field_name == $field_name) {
-        $config = \Drupal::config($instance_id);
-        $bundles['comment'][$entity_type_id . '__' . $field_name] = array(
-          'label' => $config->get('label'),
-        );
-      }
-    }
-  }
-  return $bundles;
 }
 
 /**
@@ -143,23 +119,21 @@ function comment_uri(CommentInterface $comment) {
  */
 function comment_entity_extra_field_info() {
   $return = array();
-  foreach (\Drupal::service('comment.manager')->getAllFields() as $entity_type => $fields) {
-    foreach ($fields as $field_name => $field_info) {
-      $return['comment'][$entity_type . '__' . $field_name] = array(
-        'form' => array(
-          'author' => array(
-            'label' => t('Author'),
-            'description' => t('Author textfield'),
-            'weight' => -2,
-          ),
-          'subject' => array(
-            'label' => t('Subject'),
-            'description' => t('Subject textfield'),
-            'weight' => -1,
-          ),
+  foreach (CommentType::loadMultiple() as $comment_type) {
+    $return['comment'][$comment_type->id()] = array(
+      'form' => array(
+        'author' => array(
+          'label' => t('Author'),
+          'description' => t('Author textfield'),
+          'weight' => -2,
         ),
-      );
-    }
+        'subject' => array(
+          'label' => t('Subject'),
+          'description' => t('Subject textfield'),
+          'weight' => -1,
+        ),
+      ),
+    );
   }
 
   return $return;
@@ -179,40 +153,6 @@ function comment_theme() {
       'template' => 'comment-wrapper',
     ),
   );
-}
-
-/**
- * Implements hook_menu_link_defaults_alter()
- */
-function comment_menu_link_defaults_alter(&$links) {
-  if (isset($links['node.content_overview'])) {
-    // Add comments to the description for admin/content if any.
-    $links['node.content_overview']['description'] = 'Administer content and comments.';
-  }
-  if (\Drupal::moduleHandler()->moduleExists('node')) {
-    $links['comment.admin']['parent'] = 'node.content_overview';
-  }
-}
-
-/**
- * Returns a menu title which includes the number of unapproved comments.
- *
- * @todo Move to the comment manager and replace by a entity query?
- */
-function comment_count_unpublished() {
-  $count = db_query('SELECT COUNT(cid) FROM {comment} WHERE status = :status', array(
-    ':status' => CommentInterface::NOT_PUBLISHED,
-  ))->fetchField();
-  return t('Unapproved comments (@count)', array('@count' => $count));
-}
-
-/**
- * Implements hook_ENTITY_TYPE_insert() for 'field_instance_config'.
- */
-function comment_field_instance_config_insert(FieldInstanceConfigInterface $instance) {
-  if ($instance->getType() == 'comment' && !$instance->isSyncing()) {
-    \Drupal::service('comment.manager')->addBodyField($instance->entity_type, $instance->getName());
-  }
 }
 
 /**
@@ -248,22 +188,15 @@ function comment_field_instance_config_update(FieldInstanceConfigInterface $inst
 }
 
 /**
- * Implements hook_ENTITY_TYPE_delete() for 'field_config'.
- */
-function comment_field_config_delete(FieldConfigInterface $field) {
-  if ($field->getType() == 'comment') {
-    // Delete all fields and displays attached to the comment bundle.
-    entity_invoke_bundle_hook('delete', 'comment', $field->entity_type . '__' . $field->getName());
-  }
-}
-
-/**
  * Implements hook_ENTITY_TYPE_insert() for 'field_config'.
  */
 function comment_field_config_insert(FieldConfigInterface $field) {
   if ($field->getType() == 'comment') {
-    // Delete all fields and displays attached to the comment bundle.
-    entity_invoke_bundle_hook('insert', 'comment', $field->getTargetEntityTypeId() . '__' . $field->getName());
+    // Check that the target entity type uses an integer ID.
+    $entity_type_id = $field->getTargetEntityTypeId();
+    if (!_comment_entity_uses_integer_id($entity_type_id)) {
+      throw new \UnexpectedValueException('You cannot attach a comment field to an entity with a non-integer ID field');
+    }
   }
 }
 
@@ -273,9 +206,9 @@ function comment_field_config_insert(FieldConfigInterface $field) {
 function comment_field_instance_config_delete(FieldInstanceConfigInterface $instance) {
   if ($instance->getType() == 'comment') {
     // Delete all comments that used by the entity bundle.
-    $comments = db_query("SELECT cid FROM {comment} WHERE entity_type = :entity_type AND field_id = :field_id", array(
+    $comments = db_query("SELECT cid FROM {comment} WHERE entity_type = :entity_type AND field_name = :field_name", array(
       ':entity_type' => $instance->getEntityTypeId(),
-      ':field_id' => $instance->getEntityTypeId() . '__' . $instance->getName(),
+      ':field_name' => $instance->getName(),
     ))->fetchCol();
     entity_delete_multiple('comment', $comments);
   }
@@ -288,6 +221,10 @@ function comment_permission() {
   return array(
     'administer comments' => array(
       'title' => t('Administer comments and comment settings'),
+    ),
+    'administer comment types' => array(
+      'title' => t('Administer comment types and settings'),
+      'restrict access' => TRUE,
     ),
     'access comments' => array(
       'title' => t('View comments'),
@@ -343,7 +280,7 @@ function comment_new_page_count($num_comments, $new_replies, ContentEntityInterf
       ->fields('comment', array('thread'))
       ->condition('entity_id', $entity->id())
       ->condition('entity_type', $entity->getEntityTypeId())
-      ->condition('field_id', $entity->getEntityTypeId() . '__' . $field_name)
+      ->condition('field_name', $field_name)
       ->condition('status', CommentInterface::PUBLISHED)
       ->orderBy('created', 'DESC')
       ->orderBy('cid', 'DESC')
@@ -365,11 +302,11 @@ function comment_new_page_count($num_comments, $new_replies, ContentEntityInterf
     // Find the number of the first comment of the first unread thread.
     $count = db_query('SELECT COUNT(*) FROM {comment} WHERE entity_id = :entity_id
                       AND entity_type = :entity_type
-                      AND field_id = :field_id
+                      AND field_name = :field_name
                       AND status = :status AND SUBSTRING(thread, 1, (LENGTH(thread) - 1)) < :thread', array(
       ':status' => CommentInterface::PUBLISHED,
       ':entity_id' => $entity->id(),
-      ':field_id' => $entity->getEntityTypeId() . '__' . $field_name,
+      ':field_name' => $field_name,
       ':entity_type' => $entity->getEntityTypeId(),
       ':thread' => $first_thread,
     ))->fetchField();
@@ -583,10 +520,12 @@ function comment_node_view_alter(array &$build, EntityInterface $node, EntityVie
  *   The renderable array for the comment addition form.
  */
 function comment_add(EntityInterface $entity, $field_name = 'comment', $pid = NULL) {
+  $field = Fieldconfig::loadByName($entity->getEntityTypeId(), $field_name);
   $values = array(
     'entity_type' => $entity->getEntityTypeId(),
     'entity_id' => $entity->id(),
-    'field_id' => $entity->getEntityTypeId() . '__' . $field_name,
+    'field_name' => $field_name,
+    'comment_type' => $field->getSetting('bundle'),
     'pid' => $pid,
   );
   $comment = entity_create('comment', $values);
@@ -675,7 +614,7 @@ function comment_get_thread(EntityInterface $entity, $field_name, $mode, $commen
   $query
     ->condition('c.entity_id', $entity->id())
     ->condition('c.entity_type', $entity->getEntityTypeId())
-    ->condition('c.field_id', $entity->getEntityTypeId() . '__' . $field_name)
+    ->condition('c.field_name', $field_name)
     ->addTag('entity_access')
     ->addTag('comment_filter')
     ->addMetaData('base_table', 'comment')
@@ -688,7 +627,7 @@ function comment_get_thread(EntityInterface $entity, $field_name, $mode, $commen
   $count_query
     ->condition('c.entity_id', $entity->id())
     ->condition('c.entity_type', $entity->getEntityTypeId())
-    ->condition('c.field_id', $entity->getEntityTypeId() . '__' . $field_name)
+    ->condition('c.field_name', $field_name)
     ->addTag('entity_access')
     ->addTag('comment_filter')
     ->addMetaData('base_table', 'comment')
@@ -790,25 +729,15 @@ function comment_view_multiple($comments, $view_mode = 'full', $langcode = NULL)
 /**
  * Implements hook_form_FORM_ID_alter().
  */
-function comment_form_field_ui_field_instance_edit_form_alter(&$form, $form_state) {
-  if ($form['#field']->getType() == 'comment') {
-    // Collect translation settings.
-    if (\Drupal::moduleHandler()->moduleExists('content_translation')) {
-      array_unshift($form['#submit'], 'comment_translation_configuration_element_submit');
-    }
-
-    // Hide required checkbox.
-    $form['instance']['required']['#access'] = FALSE;
-  }
-}
-
-/**
- * Implements hook_form_FORM_ID_alter().
- */
 function comment_form_field_ui_field_overview_form_alter(&$form, $form_state) {
   $request = \Drupal::request();
   if ($form['#entity_type'] == 'comment' && $request->attributes->has('commented_entity_type')) {
     $form['#title'] = \Drupal::service('comment.manager')->getFieldUIPageTitle($request->attributes->get('commented_entity_type'), $request->attributes->get('field_name'));
+  }
+  $entity_type_id = $form['#entity_type'];
+  if (!_comment_entity_uses_integer_id($entity_type_id)) {
+    // You cannot use comment fields on entity types with non-integer IDs.
+    unset($form['fields']['_add_new_field']['type']['#options']['comment']);
   }
 }
 
@@ -845,28 +774,6 @@ function comment_form_field_ui_field_edit_form_alter(&$form, $form_state) {
 }
 
 /**
- * Form submission handler for field_ui_field_edit_form().
- *
- * This handles the comment translation settings added by
- * _comment_field_instance_settings_form_process().
- *
- * @see _comment_field_instance_settings_form_process()
- */
-function comment_translation_configuration_element_submit($form, &$form_state) {
-  // The comment translation settings form element is embedded into the instance
-  // settings form. Hence we need to provide to the regular submit handler a
-  // manipulated form state to make it process comment settings instead of the
-  // host entity.
-  $key = 'language_configuration';
-  $comment_form_state = array(
-    'content_translation' => array('key' => $key),
-    'language' => array($key => array('entity_type' => 'comment', 'bundle' => $form['#field']->name)),
-    'values' => array($key => array('content_translation' => $form_state['values']['content_translation'])),
-  );
-  content_translation_language_configuration_element_submit($form, $comment_form_state);
-}
-
-/**
  * Implements hook_entity_load().
  *
  * @see \Drupal\comment\Plugin\Field\FieldType\CommentItem::propertyDefinitions()
@@ -884,14 +791,11 @@ function comment_entity_load($entities, $entity_type) {
   // comment statistics properties, which are defined on each CommentItem field.
   $result = \Drupal::service('comment.statistics')->read($entities, $entity_type);
   foreach ($result as $record) {
-    $parts = explode('__', $record->field_id, 2);
-    list(, $field_name) = $parts;
-
     // Skip fields that entity does not have.
-    if (!$entities[$record->entity_id]->hasField($field_name)) {
+    if (!$entities[$record->entity_id]->hasField($record->field_name)) {
       continue;
     }
-    $comment_statistics = $entities[$record->entity_id]->get($field_name);
+    $comment_statistics = $entities[$record->entity_id]->get($record->field_name);
     $comment_statistics->cid = $record->cid;
     $comment_statistics->last_comment_timestamp = $record->last_comment_timestamp;
     $comment_statistics->last_comment_name = $record->last_comment_name;
@@ -923,15 +827,34 @@ function comment_entity_predelete(EntityInterface $entity) {
   // entity type that has an integer ID, $entity->id() might be a string
   // containing a number), and then cast it to an integer when querying.
   if ($entity->getEntityType()->isFieldable() && is_numeric($entity->id())) {
-    $cids = db_select('comment', 'c')
-      ->fields('c', array('cid'))
-      ->condition('entity_id', (int) $entity->id())
-      ->condition('entity_type', $entity->getEntityTypeId())
-      ->execute()
-      ->fetchCol();
+    $entity_query = \Drupal::entityQuery('comment');
+    $entity_query->condition('entity_id', (int) $entity->id());
+    $entity_query->condition('entity_type', $entity->getEntityTypeId());
+    $cids = $entity_query->execute();
     entity_delete_multiple('comment', $cids);
     \Drupal::service('comment.statistics')->delete($entity);
   }
+}
+
+/**
+ * Determines if an entity type is using an integer-based ID definition.
+ *
+ * @param string $entity_type_id
+ *   The ID the represents the entity type.
+ *
+ * @return bool
+ *   Returns TRUE if the entity type has an integer-based ID definition and
+ *   FALSE otherwise.
+ */
+function _comment_entity_uses_integer_id($entity_type_id) {
+  $entity_type = \Drupal::entityManager()->getDefinition($entity_type_id);
+  $entity_type_id_key = $entity_type->getKey('id');
+  if ($entity_type_id_key === FALSE) {
+    return FALSE;
+  }
+  $field_definitions = \Drupal::entityManager()->getBaseFieldDefinitions($entity_type->id());
+  $entity_type_id_definition = $field_definitions[$entity_type_id_key];
+  return $entity_type_id_definition->getType() === 'integer';
 }
 
 /**
@@ -1054,7 +977,9 @@ function comment_user_cancel($edit, $account, $method) {
  * Implements hook_user_predelete().
  */
 function comment_user_predelete($account) {
-  $cids = db_query('SELECT c.cid FROM {comment} c WHERE uid = :uid', array(':uid' => $account->id()))->fetchCol();
+  $entity_query = \Drupal::entityQuery('comment');
+  $entity_query->condition('uid', $account->id());
+  $cids = $entity_query->execute();
   entity_delete_multiple('comment', $cids);
 }
 
@@ -1148,7 +1073,7 @@ function comment_num_new($entity_id, $entity_type, $field_name = NULL, $timestam
       ->condition('c.created', $timestamp, '>');
     if ($field_name) {
       // Limit to a particular field.
-      $query->condition('c.field_id', $entity_type . '__' . $field_name);
+      $query->condition('c.field_name', $field_name);
     }
 
     return $query->execute()
@@ -1180,7 +1105,7 @@ function comment_get_display_ordinal($cid, FieldDefinitionInterface $field_defin
   // Count how many comments (c1) are before $cid (c2) in display order. This is
   // the 0-based display ordinal.
   $query = db_select('comment', 'c1');
-  $query->innerJoin('comment', 'c2', 'c2.entity_id = c1.entity_id AND c2.entity_type = c1.entity_type AND c2.field_id = c1.field_id');
+  $query->innerJoin('comment', 'c2', 'c2.entity_id = c1.entity_id AND c2.entity_type = c1.entity_type AND c2.field_name = c1.field_name');
   $query->addExpression('COUNT(*)', 'count');
   $query->condition('c2.cid', $cid);
   if (!user_access('administer comments')) {
@@ -1248,7 +1173,7 @@ function comment_preview(CommentInterface $comment, array &$form_state) {
 
     if (!empty($account) && $account->isAuthenticated()) {
       $comment->setOwner($account);
-      $comment->setAuthorName(check_plain($account->getUsername()));
+      $comment->setAuthorName(String::checkPlain($account->getUsername()));
     }
     elseif (empty($author_name)) {
       $comment->setAuthorName(\Drupal::config('user.settings')->get('anonymous'));
@@ -1369,8 +1294,9 @@ function template_preprocess_comment(&$variables) {
     $variables['user_picture'] = array();
   }
 
-  if (\Drupal::config('user.settings')->get('signatures') && $account->getSignature()) {
-    $variables['signature'] = check_markup($account->getSignature(), $account->getSignatureFormat(), '', TRUE) ;
+  if (isset($variables['elements']['signature'])) {
+    $variables['signature'] = $variables['elements']['signature']['#markup'];
+    unset($variables['elements']['signature']);
   }
   else {
     $variables['signature'] = '';

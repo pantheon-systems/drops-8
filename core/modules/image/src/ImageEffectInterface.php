@@ -7,8 +7,8 @@
 
 namespace Drupal\image;
 
-use Drupal\Component\Plugin\PluginInspectionInterface;
 use Drupal\Component\Plugin\ConfigurablePluginInterface;
+use Drupal\Component\Plugin\PluginInspectionInterface;
 use Drupal\Core\Image\ImageInterface;
 
 /**
@@ -74,8 +74,7 @@ interface ImageEffectInterface extends PluginInspectionInterface, ConfigurablePl
    * @param int $weight
    *   The weight for this image effect.
    *
-   * @return self
-   *   This image effect.
+   * @return $this
    */
   public function setWeight($weight);
 

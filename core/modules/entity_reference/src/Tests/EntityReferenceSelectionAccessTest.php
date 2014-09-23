@@ -7,8 +7,9 @@
 
 namespace Drupal\entity_reference\Tests;
 
+use Drupal\Component\Utility\String;
 use Drupal\Core\Field\FieldDefinitionInterface;
-use Drupal\Core\Language\Language;
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\comment\CommentInterface;
 use Drupal\simpletest\WebTestBase;
 
@@ -74,8 +75,7 @@ class EntityReferenceSelectionAccessTest extends WebTestBase {
     ));
     $field->save();
     $instance = entity_create('field_instance_config', array(
-      'field_name' => 'test_field',
-      'entity_type' => 'entity_test',
+      'field' => $field,
       'bundle' => 'test_bundle',
       'settings' => array(
         'handler' => 'default',
@@ -115,7 +115,7 @@ class EntityReferenceSelectionAccessTest extends WebTestBase {
       $node = entity_create('node', $values);
       $node->save();
       $nodes[$key] = $node;
-      $node_labels[$key] = check_plain($node->label());
+      $node_labels[$key] = String::checkPlain($node->label());
     }
 
     // Test as a non-admin.
@@ -217,8 +217,7 @@ class EntityReferenceSelectionAccessTest extends WebTestBase {
     ));
     $field->save();
     $instance = entity_create('field_instance_config', array(
-      'field_name' => 'test_field',
-      'entity_type' => 'entity_test',
+      'field' => $field,
       'bundle' => 'test_bundle',
       'settings' => array(
         'handler' => 'default',
@@ -262,7 +261,7 @@ class EntityReferenceSelectionAccessTest extends WebTestBase {
         $account = $values;
       }
       $users[$key] = $account;
-      $user_labels[$key] = check_plain($account->getUsername());
+      $user_labels[$key] = String::checkPlain($account->getUsername());
     }
 
     // Test as a non-admin.
@@ -363,8 +362,7 @@ class EntityReferenceSelectionAccessTest extends WebTestBase {
     ));
     $field->save();
     $instance = entity_create('field_instance_config', array(
-      'field_name' => 'test_field',
-      'entity_type' => 'entity_test',
+      'field' => $field,
       'bundle' => 'test_bundle',
       'settings' => array(
         'handler' => 'default',
@@ -410,7 +408,7 @@ class EntityReferenceSelectionAccessTest extends WebTestBase {
         'pid' => 0,
         'status' => CommentInterface::PUBLISHED,
         'subject' => 'Comment Published <&>',
-        'language' => Language::LANGCODE_NOT_SPECIFIED,
+        'language' => LanguageInterface::LANGCODE_NOT_SPECIFIED,
       ),
       'published_unpublished' => array(
         'entity_id' => $nodes['published']->id(),
@@ -421,7 +419,7 @@ class EntityReferenceSelectionAccessTest extends WebTestBase {
         'pid' => 0,
         'status' => CommentInterface::NOT_PUBLISHED,
         'subject' => 'Comment Unpublished <&>',
-        'language' => Language::LANGCODE_NOT_SPECIFIED,
+        'language' => LanguageInterface::LANGCODE_NOT_SPECIFIED,
       ),
       'unpublished_published' => array(
         'entity_id' => $nodes['unpublished']->id(),
@@ -432,7 +430,7 @@ class EntityReferenceSelectionAccessTest extends WebTestBase {
         'pid' => 0,
         'status' => CommentInterface::NOT_PUBLISHED,
         'subject' => 'Comment Published on Unpublished node <&>',
-        'language' => Language::LANGCODE_NOT_SPECIFIED,
+        'language' => LanguageInterface::LANGCODE_NOT_SPECIFIED,
       ),
     );
 
@@ -442,7 +440,7 @@ class EntityReferenceSelectionAccessTest extends WebTestBase {
       $comment = entity_create('comment', $values);
       $comment->save();
       $comments[$key] = $comment;
-      $comment_labels[$key] = check_plain($comment->label());
+      $comment_labels[$key] = String::checkPlain($comment->label());
     }
 
     // Test as a non-admin.
@@ -454,7 +452,7 @@ class EntityReferenceSelectionAccessTest extends WebTestBase {
           array(NULL, 'CONTAINS'),
         ),
         'result' => array(
-          'node__comment' => array(
+          'comment' => array(
             $comments['published_published']->cid->value => $comment_labels['published_published'],
           ),
         ),
@@ -464,7 +462,7 @@ class EntityReferenceSelectionAccessTest extends WebTestBase {
           array('Published', 'CONTAINS'),
         ),
         'result' => array(
-          'node__comment' => array(
+          'comment' => array(
             $comments['published_published']->cid->value => $comment_labels['published_published'],
           ),
         ),
@@ -493,7 +491,7 @@ class EntityReferenceSelectionAccessTest extends WebTestBase {
           array(NULL, 'CONTAINS'),
         ),
         'result' => array(
-          'node__comment' => array(
+          'comment' => array(
             $comments['published_published']->cid->value => $comment_labels['published_published'],
             $comments['published_unpublished']->cid->value => $comment_labels['published_unpublished'],
           ),
@@ -511,7 +509,7 @@ class EntityReferenceSelectionAccessTest extends WebTestBase {
           array(NULL, 'CONTAINS'),
         ),
         'result' => array(
-          'node__comment' => array(
+          'comment' => array(
             $comments['published_published']->cid->value => $comment_labels['published_published'],
             $comments['published_unpublished']->cid->value => $comment_labels['published_unpublished'],
             $comments['unpublished_published']->cid->value => $comment_labels['unpublished_published'],

@@ -8,8 +8,8 @@
 namespace Drupal\quickedit\Tests;
 
 use Drupal\Component\Serialization\Json;
-use Drupal\Core\Field\FieldDefinitionInterface;
-use Drupal\Core\Language\Language;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\simpletest\WebTestBase;
 
 /**
@@ -85,7 +85,7 @@ class QuickEditAutocompleteTermTest extends WebTestBase {
       'entity_type' => 'node',
       'type' => 'taxonomy_term_reference',
       // Set cardinality to unlimited for tagging.
-      'cardinality' => FieldDefinitionInterface::CARDINALITY_UNLIMITED,
+      'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
       'settings' => array(
         'allowed_values' => array(
           array(
@@ -211,7 +211,7 @@ class QuickEditAutocompleteTermTest extends WebTestBase {
       // Use the first available text format.
       'format' => $format->format,
       'vid' => $this->vocabulary->id(),
-      'langcode' => Language::LANGCODE_NOT_SPECIFIED,
+      'langcode' => LanguageInterface::LANGCODE_NOT_SPECIFIED,
     ));
     $term->save();
     return $term;

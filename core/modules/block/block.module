@@ -6,31 +6,14 @@
  */
 
 use Drupal\block\BlockInterface;
+use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\language\Entity\Language;
 use Drupal\system\Entity\Menu;
-use Symfony\Cmf\Component\Routing\RouteObjectInterface;
-use Symfony\Component\HttpFoundation\Request;
-
-/**
- * Shows this block on every page except the listed pages.
- */
-const BLOCK_VISIBILITY_NOTLISTED = 0;
-
-/**
- * Shows this block on only the listed pages.
- */
-const BLOCK_VISIBILITY_LISTED = 1;
-
-/**
- * Shows this block if the associated PHP code returns TRUE.
- */
-const BLOCK_VISIBILITY_PHP = 2;
-
 
 /**
  * Implements hook_help().
  */
-function block_help($route_name, Request $request) {
+function block_help($route_name, RouteMatchInterface $route_match) {
   switch ($route_name) {
     case 'help.page.block':
       $output = '';
@@ -49,12 +32,12 @@ function block_help($route_name, Request $request) {
       $output .= '<dt>' . t('Controlling visibility') . '</dt>';
       $output .= '<dd>' . t('You can control the visibility of a block by restricting it to specific pages, content types, and/or roles by setting the appropriate options under <em>Visibility settings</em> of the block configuration.') . '</dd>';
       $output .= '<dt>' . t('Adding custom blocks') . '</dt>';
-      $output .= '<dd>' . t('You can add custom blocks, if the the <em>Custom Block</em> module is enabled on the <a href="!extend">Extend page</a>. For more information, see the <a href="!customblock-help">Custom Block help page</a>.', array('!extend' => \Drupal::url('system.modules_list'), '!customblock-help' => \Drupal::url('help.page', array('name' => 'custom_block')))) . '</dd>';
+      $output .= '<dd>' . t('You can add custom blocks, if the the <em>Custom Block</em> module is enabled on the <a href="!extend">Extend page</a>. For more information, see the <a href="!blockcontent-help">Custom Block help page</a>.', array('!extend' => \Drupal::url('system.modules_list'), '!blockcontent-help' => \Drupal::url('help.page', array('name' => 'block_content')))) . '</dd>';
       $output .= '</dl>';
       return $output;
   }
   if ($route_name == 'block.admin_display' || $route_name == 'block.admin_display_theme') {
-    $demo_theme = $request->attributes->get('theme', \Drupal::config('system.theme')->get('default'));
+    $demo_theme = $route_match->getParameter('theme') ?: \Drupal::config('system.theme')->get('default');
     $themes = list_themes();
     $output = '<p>' . t('This page provides a drag-and-drop interface for adding a block to a region, and for controlling the order of blocks within regions. To add a block to a region, or to configure its specific title and visibility settings, click the block title under <em>Place blocks</em>. Since not all themes implement the same regions, or display regions in the same way, blocks are positioned on a per-theme basis. Remember that your changes will not be saved until you click the <em>Save blocks</em> button at the bottom of the page.') . '</p>';
     $output .= '<p>' . l(t('Demonstrate block regions (!theme)', array('!theme' => $themes[$demo_theme]->info['name'])), 'admin/structure/block/demo/' . $demo_theme) . '</p>';
@@ -102,23 +85,12 @@ function block_page_build(&$page) {
 
   // Fetch a list of regions for the current theme.
   $all_regions = system_region_list($theme);
-  if (\Drupal::request()->attributes->get(RouteObjectInterface::ROUTE_NAME) != 'block.admin_demo') {
-    // Load all region content assigned via blocks.
-    foreach (array_keys($all_regions) as $region) {
-      // Assign blocks to region.
-      if ($blocks = block_get_blocks_by_region($region)) {
-        $page[$region] = $blocks;
-      }
-    }
-    // Once we've finished attaching all blocks to the page, clear the static
-    // cache to allow modules to alter the block list differently in different
-    // contexts. For example, any code that triggers hook_page_build() more
-    // than once in the same page request may need to alter the block list
-    // differently each time, so that only certain parts of the page are
-    // actually built. We do not clear the cache any earlier than this, though,
-    // because it is used each time block_get_blocks_by_region() gets called
-    // above.
-    drupal_static_reset('block_list');
+  if (\Drupal::routeMatch()->getRouteName() != 'block.admin_demo') {
+    // Create a full page display variant, which will load blocks into their
+    // regions.
+    $page += \Drupal::service('plugin.manager.display_variant')
+      ->createInstance('full_page')
+      ->build();
   }
   else {
     // Append region description if we are rendering the regions demo page.
@@ -138,33 +110,6 @@ function block_page_build(&$page) {
       '#weight' => -10,
     );
   }
-}
-
-/**
- * Gets a renderable array of a region containing all enabled blocks.
- *
- * @param $region
- *   The requested region.
- *
- * @return
- *   A renderable array of a region containing all enabled blocks.
- */
-function block_get_blocks_by_region($region) {
-  $build = array();
-  if ($list = block_list($region)) {
-    foreach ($list as $key => $block) {
-      if ($block->access('view')) {
-        $build[$key] = entity_view($block, 'block');
-      }
-    }
-    // If none of the blocks in this region are visible, then don't set anything
-    // else in the render array, because that would cause the region to show up.
-    if (!empty($build)) {
-      // block_list() already returned the blocks in sorted order.
-      $build['#sorted'] = TRUE;
-    }
-  }
-  return $build;
 }
 
 /**
@@ -258,43 +203,6 @@ function block_theme_initialize($theme) {
 }
 
 /**
- * Returns all blocks in the specified region for the current user.
- *
- * @param $region
- *   The name of a region.
- *
- * @return
- *   An array of block objects, indexed with the configuration object name
- *   that represents the configuration. If you are displaying your blocks in
- *   one or two sidebars, you may check whether this array is empty to see
- *   how many columns are going to be displayed.
- */
-function block_list($region) {
-  $blocks = &drupal_static(__FUNCTION__);
-
-  if (!isset($blocks)) {
-    global $theme;
-    $blocks = array();
-    foreach (entity_load_multiple_by_properties('block', array('theme' => $theme)) as $block_id => $block) {
-      // Onlye include valid blocks in the list.
-      // @todo Remove this check as part of https://drupal.org/node/1776830.
-      if ($block->getPlugin()) {
-        $blocks[$block->get('region')][$block_id] = $block;
-      }
-    }
-  }
-
-  // Create an empty array if there are no entries.
-  if (!isset($blocks[$region])) {
-    $blocks[$region] = array();
-  }
-
-  uasort($blocks[$region], 'Drupal\block\Entity\Block::sort');
-
-  return $blocks[$region];
-}
-
-/**
  * Implements hook_rebuild().
  */
 function block_rebuild() {
@@ -329,10 +237,8 @@ function block_theme_suggestions_block(array $variables) {
     $suggestions[] = $suggestion .= '__' . strtr($part, '-', '_');
   }
 
-  if ($id = $variables['elements']['#block']->id()) {
-    $config_id = explode('.', $id);
-    $machine_name = array_pop($config_id);
-    $suggestions[] = 'block__' . $machine_name;
+  if (!empty($variables['elements']['#id'])) {
+    $suggestions[] = 'block__' . $variables['elements']['#id'];
   }
 
   return $suggestions;
@@ -379,9 +285,16 @@ function template_preprocess_block(&$variables) {
   $variables['content_attributes']['class'][] = 'content';
 
   // Create a valid HTML ID and make sure it is unique.
-  if ($id = $variables['elements']['#block']->id()) {
-    $variables['attributes']['id'] = drupal_html_id('block-' . $id);
+  if (!empty($variables['elements']['#id'])) {
+    $variables['attributes']['id'] = drupal_html_id('block-' . $variables['elements']['#id']);
   }
+
+  // Proactively add aria-describedby if possible to improve accessibility.
+  if ($variables['label'] && isset($variables['attributes']['role'])) {
+    $variables['title_attributes']['id'] = drupal_html_id($variables['label']);
+    $variables['attributes']['aria-describedby'] = $variables['title_attributes']['id'];
+  }
+
 }
 
 /**
@@ -391,10 +304,11 @@ function template_preprocess_block(&$variables) {
  */
 function block_user_role_delete($role) {
   foreach (entity_load_multiple('block') as $block) {
-    $visibility = $block->get('visibility');
-    if (isset($visibility['roles']['roles'][$role->id()])) {
-      unset($visibility['roles']['roles'][$role->id()]);
-      $block->set('visibility', $visibility);
+    /** @var $block \Drupal\block\BlockInterface */
+    $visibility = $block->getVisibility();
+    if (isset($visibility['user_role']['roles'][$role->id()])) {
+      unset($visibility['user_role']['roles'][$role->id()]);
+      $block->getPlugin()->setVisibilityConfig('user_role', $visibility['user_role']);
       $block->save();
     }
   }
@@ -421,10 +335,11 @@ function block_menu_delete(Menu $menu) {
 function block_language_entity_delete(Language $language) {
   // Remove the block visibility settings for the deleted language.
   foreach (entity_load_multiple('block') as $block) {
-    $visibility = $block->get('visibility');
+    /** @var $block \Drupal\block\BlockInterface */
+    $visibility = $block->getVisibility();
     if (isset($visibility['language']['langcodes'][$language->id()])) {
       unset($visibility['language']['langcodes'][$language->id()]);
-      $block->set('visibility', $visibility);
+      $block->getPlugin()->setVisibilityConfig('language', $visibility['language']);
       $block->save();
     }
   }

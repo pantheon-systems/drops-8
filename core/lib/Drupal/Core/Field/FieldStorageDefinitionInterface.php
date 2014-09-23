@@ -77,12 +77,22 @@ interface FieldStorageDefinitionInterface {
   public function getSetting($setting_name);
 
   /**
-   * Returns whether the field is translatable.
+   * Returns whether the field supports translation.
    *
    * @return bool
-   *   TRUE if the field is translatable.
+   *   TRUE if the field supports translation.
    */
   public function isTranslatable();
+
+  /**
+   * Sets whether the field supports translation.
+   *
+   * @param bool $translatable
+   *   Whether the field supports translation.
+   *
+   * @return $this
+   */
+  public function setTranslatable($translatable);
 
   /**
    * Returns whether the field is revisionable.
@@ -193,8 +203,8 @@ interface FieldStorageDefinitionInterface {
    * This method should not be confused with EntityInterface::entityType()
    * (configurable fields are config entities, and thus implement both
    * interfaces):
-   *   - FieldDefinitionInterface::getTargetEntityTypeId() answers "as a field,
-   *     which entity type are you attached to?".
+   *   - FieldStorageDefinitionInterface::getTargetEntityTypeId() answers "as a
+   *     field, which entity type are you attached to?".
    *   - EntityInterface::getEntityTypeId() answers "as a (config) entity, what
    *     is your own entity type".
    *
@@ -231,14 +241,15 @@ interface FieldStorageDefinitionInterface {
    *   The array of field columns, keyed by column name, in the same format
    *   returned by getSchema().
    *
-   * @see \Drupal\Core\Field\FieldDefinitionInterface::getSchema()
+   * @see \Drupal\Core\Field\FieldStorageDefinitionInterface::getSchema()
    */
   public function getColumns();
 
   /**
    * Returns an array of validation constraints.
    *
-   * See \Drupal\Core\TypedData\TypedDataManager::getConstraints() for details.
+   * See \Drupal\Core\TypedData\DataDefinitionInterface::getConstraints() for
+   * details.
    *
    * @return array[]
    *   An array of validation constraint definitions, keyed by constraint name.
@@ -252,7 +263,8 @@ interface FieldStorageDefinitionInterface {
   /**
    * Returns a validation constraint.
    *
-   * See \Drupal\Core\TypedData\TypedDataManager::getConstraints() for details.
+   * See \Drupal\Core\TypedData\DataDefinitionInterface::getConstraints() for
+   * details.
    *
    * @param string $constraint_name
    *   The name of the the constraint, i.e. its plugin id.
@@ -284,5 +296,12 @@ interface FieldStorageDefinitionInterface {
    *   FALSE if the storage takes care of storing the field, TRUE otherwise.
    */
   public function hasCustomStorage();
+
+  /**
+   * Returns a unique identifier for the field.
+   *
+   * @return string
+   */
+  public function getUniqueStorageIdentifier();
 
 }

@@ -9,7 +9,7 @@ namespace Drupal\Core\Path;
 
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\CacheDecorator\CacheDecoratorInterface;
-use Drupal\Core\Language\Language;
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Language\LanguageManager;
 use Drupal\Core\Language\LanguageManagerInterface;
 
@@ -135,7 +135,7 @@ class AliasManager implements AliasManagerInterface, CacheDecoratorInterface {
     if ($this->cacheNeedsWriting && !empty($this->cacheKey)) {
       // Start with the preloaded path lookups, so that cached entries for other
       // languages will not be lost.
-      $path_lookups_lookups = $this->preloadedPathLookups ?: array();
+      $path_lookups = $this->preloadedPathLookups ?: array();
       foreach ($this->lookupMap as $langcode => $lookups) {
         $path_lookups[$langcode] = array_keys($lookups);
         if (!empty($this->noAlias[$langcode])) {
@@ -144,7 +144,7 @@ class AliasManager implements AliasManagerInterface, CacheDecoratorInterface {
       }
 
       if (!empty($path_lookups)) {
-        $twenty_four_hours_four_hours = 60 * 60 * 24;
+        $twenty_four_hours = 60 * 60 * 24;
         $this->cache->set($this->cacheKey, $path_lookups, REQUEST_TIME + $twenty_four_hours);
       }
     }
@@ -158,7 +158,7 @@ class AliasManager implements AliasManagerInterface, CacheDecoratorInterface {
     // language. If we used a language different from the one conveyed by the
     // requested URL, we might end up being unable to check if there is a path
     // alias matching the URL path.
-    $langcode = $langcode ?: $this->languageManager->getCurrentLanguage(Language::TYPE_URL)->id;
+    $langcode = $langcode ?: $this->languageManager->getCurrentLanguage(LanguageInterface::TYPE_URL)->id;
 
     // If we already know that there are no paths for this alias simply return.
     if (empty($alias) || !empty($this->noPath[$langcode][$alias])) {
@@ -192,7 +192,7 @@ class AliasManager implements AliasManagerInterface, CacheDecoratorInterface {
     // language. If we used a language different from the one conveyed by the
     // requested URL, we might end up being unable to check if there is a path
     // alias matching the URL path.
-    $langcode = $langcode ?: $this->languageManager->getCurrentLanguage(Language::TYPE_URL)->id;
+    $langcode = $langcode ?: $this->languageManager->getCurrentLanguage(LanguageInterface::TYPE_URL)->id;
 
     // Check the path whitelist, if the top-level part before the first /
     // is not in the list, then there is no need to do anything further,

@@ -40,11 +40,22 @@ abstract class LocalTaskIntegrationTest extends UnitTestCase {
    */
   protected $moduleHandler;
 
+  /**
+   * The container.
+   *
+   * @var \Symfony\Component\DependencyInjection\ContainerBuilder
+   */
+  protected $container;
+
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp() {
     $container = new ContainerBuilder();
     $config_factory = $this->getConfigFactoryStub(array());
     $container->set('config.factory', $config_factory);
     \Drupal::setContainer($container);
+    $this->container = $container;
   }
 
   /**
@@ -63,7 +74,6 @@ abstract class LocalTaskIntegrationTest extends UnitTestCase {
     $property->setValue($manager, $controllerResolver);
 
     // todo mock a request with a route.
-    $request = $this->getMock('Symfony\Component\HttpFoundation\Request');
     $request_stack = new RequestStack();
     $property = new \ReflectionProperty('Drupal\Core\Menu\LocalTaskManager', 'requestStack');
     $property->setAccessible(TRUE);
@@ -117,13 +127,8 @@ abstract class LocalTaskIntegrationTest extends UnitTestCase {
     $property->setAccessible(TRUE);
     $property->setValue($manager, $factory);
 
-    $language_manager = $this->getMock('Drupal\Core\Language\LanguageManagerInterface');
-    $language_manager->expects($this->any())
-      ->method('getCurrentLanguage')
-      ->will($this->returnValue(new Language(array('id' => 'en'))));
-
     $cache_backend = $this->getMock('Drupal\Core\Cache\CacheBackendInterface');
-    $manager->setCacheBackend($cache_backend, $language_manager, 'local_task', array('local_task' => 1));
+    $manager->setCacheBackend($cache_backend, 'local_task.en', array('local_task' => 1));
 
     return $manager;
   }

@@ -36,7 +36,7 @@ class Drupal6ContactCategory extends Drupal6DumpBase {
           'type' => 'text',
           'not null' => TRUE,
           'size' => 'big',
-          'description' => 'Comma-separated list of recipient e-mail addresses.',
+          'description' => 'Comma-separated list of recipient email addresses.',
         ),
         'reply' => array(
           'type' => 'text',
@@ -82,6 +82,14 @@ class Drupal6ContactCategory extends Drupal6DumpBase {
         'reply' => 'Thanks for contacting us, we will reply ASAP!',
         'weight' => '1',
         'selected' => '1',
+      ))
+      ->values(array(
+        'cid' => '3',
+        'category' => 'A category much longer than thirty two characters',
+        'recipients' => 'fortyninechars@example.com',
+        'reply' => '',
+        'weight' => '2',
+        'selected' => '0',
       ))
       ->execute();
     $this->setModuleVersion('contact', '6001');

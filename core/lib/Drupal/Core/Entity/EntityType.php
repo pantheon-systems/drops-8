@@ -14,6 +14,8 @@ use Drupal\Core\StringTranslation\StringTranslationTrait;
 
 /**
  * Provides an implementation of an entity type and its metadata.
+ *
+ * @ingroup entity_api
  */
 class EntityType implements EntityTypeInterface {
 
@@ -215,6 +217,15 @@ class EntityType implements EntityTypeInterface {
     foreach ($definition as $property => $value) {
       $this->{$property} = $value;
     }
+
+    // Ensure defaults.
+    $this->entity_keys += array(
+      'revision' => '',
+      'bundle' => ''
+    );
+    $this->controllers += array(
+      'access' => 'Drupal\Core\Entity\EntityAccessController',
+    );
   }
 
   /**
@@ -257,7 +268,7 @@ class EntityType implements EntityTypeInterface {
    * {@inheritdoc}
    */
   public function getKeys() {
-    return $this->entity_keys + array('revision' => '', 'bundle' => '');
+    return $this->entity_keys;
   }
 
   /**
@@ -316,9 +327,7 @@ class EntityType implements EntityTypeInterface {
    * {@inheritdoc}
    */
   public function getControllerClasses() {
-    return $this->controllers + array(
-      'access' => 'Drupal\Core\Entity\EntityAccessController',
-    );
+    return $this->controllers;
   }
 
   /**

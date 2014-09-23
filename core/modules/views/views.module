@@ -12,8 +12,9 @@
 use Drupal\Component\Utility\String;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Database\Query\AlterableInterface;
-use Drupal\Core\Language\Language;
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Render\Element;
+use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\views\Plugin\Derivative\ViewsLocalTask;
 use Drupal\Core\Template\AttributeArray;
 use Drupal\views\ViewExecutable;
@@ -21,12 +22,11 @@ use Drupal\Component\Plugin\Exception\PluginException;
 use Drupal\views\Entity\View;
 use Drupal\views\Views;
 use Drupal\field\FieldInstanceConfigInterface;
-use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Implements hook_help().
  */
-function views_help($route_name, Request $request) {
+function views_help($route_name, RouteMatchInterface $route_match) {
   switch ($route_name) {
     case 'help.page.views':
       $output = '';
@@ -507,15 +507,15 @@ function views_add_contextual_links(&$render_element, $location, ViewExecutable 
  *   array.
  * @param int $flags
  *   (optional) Specifies the state of the languages that have to be returned.
- *   It can be: Language::STATE_CONFIGURABLE, Language::STATE_LOCKED,
- *   Language::STATE_ALL.
+ *   It can be: LanguageInterface::STATE_CONFIGURABLE,
+ *   LanguageInterface::STATE_LOCKED, LanguageInterface::STATE_ALL.
  *
  * @return array
  *   An array of language names (or $field) keyed by the langcode.
  *
  * @see locale_language_list()
  */
-function views_language_list($field = 'name', $flags = Language::STATE_ALL) {
+function views_language_list($field = 'name', $flags = LanguageInterface::STATE_ALL) {
   $languages = \Drupal::languageManager()->getLanguages($flags);
   $list = array();
   foreach ($languages as $language) {
@@ -552,8 +552,8 @@ function views_field_instance_config_delete(FieldInstanceConfigInterface $field_
  * Invalidate the views cache, forcing a rebuild on the next grab of table data.
  */
 function views_invalidate_cache() {
-  // Clear the page and block cache and Views' info cache entries.
-  Cache::deleteTags(array('content' => TRUE, 'extension' => 'views'));
+  // Clear Views' info cache entries.
+  Cache::deleteTags(array('extension' => 'views'));
 
   // Set the menu as needed to be rebuilt.
   \Drupal::service('router.builder')->setRebuildNeeded();

@@ -12,29 +12,10 @@ use Drupal\Component\Utility\UrlHelper;
 use Drupal\Component\Utility\Xss;
 use Drupal\Core\Database\Database;
 use Drupal\Core\Form\OptGroup;
-use Drupal\Core\Language\Language;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Template\Attribute;
 use Drupal\Core\Utility\Color;
 use Symfony\Component\HttpFoundation\RedirectResponse;
-
-/**
- * @defgroup forms Form builder functions
- * @{
- * Functions that build an abstract representation of a HTML form.
- *
- * All modules should declare their form builder functions to be in this
- * group and each builder function should reference its validate and submit
- * functions using \@see. Conversely, validate and submit functions should
- * reference the form builder function using \@see. For examples, of this see
- * system_modules_uninstall() or user_pass(), the latter of which has the
- * following in its doxygen documentation:
- * - \@ingroup forms
- * - \@see user_pass_validate()
- * - \@see user_pass_submit()
- *
- * @}
- */
 
 /**
  * @defgroup form_api Form generation
@@ -983,7 +964,7 @@ function form_select_options($element, $choices = NULL) {
       $options .= form_select_options($element, $choice);
       $options .= '</optgroup>';
     }
-    elseif (is_object($choice)) {
+    elseif (is_object($choice) && isset($choice->option)) {
       $options .= form_select_options($element, $choice->option);
     }
     else {
@@ -1233,29 +1214,32 @@ function password_confirm_validate($element, &$element_state) {
 }
 
 /**
- * Returns HTML for an #date form element.
+ * Adds form-specific attributes to a 'date' #type element.
  *
  * Supports HTML5 types of 'date', 'datetime', 'datetime-local', and 'time'.
  * Falls back to a plain textfield. Used as a sub-element by the datetime
  * element type.
  *
- * @param array $variables
- *   An associative array containing:
- *   - element: An associative array containing the properties of the element.
- *     Properties used: #title, #value, #options, #description, #required,
- *     #attributes, #id, #name, #type, #min, #max, #step, #value, #size.
+ * @param array $element
+ *   An associative array containing the properties of the element.
+ *   Properties used: #title, #value, #options, #description, #required,
+ *   #attributes, #id, #name, #type, #min, #max, #step, #value, #size.
  *
- * @ingroup themeable
+ * Note: The input "name" attribute needs to be sanitized before output, which
+ *       is currently done by initializing Drupal\Core\Template\Attribute with
+ *       all the attributes.
+ *
+ * @return array
+ *   The $element with prepared variables ready for #theme 'input__date'.
  */
-function theme_date($variables) {
-  $element = $variables['element'];
-  if (empty($element['attribute']['type'])) {
-    $element['attribute']['type'] = 'date';
+function form_pre_render_date($element) {
+  if (empty($element['#attributes']['type'])) {
+    $element['#attributes']['type'] = 'date';
   }
   Element::setAttributes($element, array('id', 'name', 'type', 'min', 'max', 'step', 'value', 'size'));
-  _form_set_attributes($element, array('form-' . $element['attribute']['type']));
+  _form_set_attributes($element, array('form-' . $element['#attributes']['type']));
 
-  return '<input' . new Attribute($element['#attributes']) . ' />';
+  return $element;
 }
 
 /**
@@ -2324,31 +2308,18 @@ function form_process_autocomplete($element, &$form_state) {
 }
 
 /**
- * Preprocesses variables for theme_input().
+ * Prepares variables for input templates.
  *
- * @param array $variables
- *   An associative array containing:
- *   - element: An associative array containing the properties of the element.
- */
-function template_preprocess_input(&$variables) {
-  $element = $variables['element'];
-  $variables['attributes'] = new Attribute($element['#attributes']);
-}
-
-/**
- * Returns HTML for an input form element.
+ * Default template: input.html.twig.
  *
  * @param array $variables
  *   An associative array containing:
  *   - element: An associative array containing the properties of the element.
  *     Properties used: #attributes.
- *
- * @ingroup themeable
  */
-function theme_input($variables) {
+function template_preprocess_input(&$variables) {
   $element = $variables['element'];
-  $attributes = $variables['attributes'];
-  return '<input' . $attributes . ' />' . drupal_render_children($element);
+  $variables['children'] = $element['#children'];
 }
 
 /**
@@ -2484,7 +2455,7 @@ function form_validate_email(&$element, &$form_state) {
   form_set_value($element, $value, $form_state);
 
   if ($value !== '' && !valid_email_address($value)) {
-    form_error($element, $form_state, t('The e-mail address %mail is not valid.', array('%mail' => $value)));
+    form_error($element, $form_state, t('The email address %mail is not valid.', array('%mail' => $value)));
   }
 }
 
@@ -2947,7 +2918,7 @@ function template_preprocess_form_element(&$variables) {
 }
 
 /**
- * Returns HTML for a form element label and required marker.
+ * Prepares variables for form label templates.
  *
  * Form element labels include the #title and a #required marker. The label is
  * associated with the element itself by the element #id. Labels may appear
@@ -2962,53 +2933,46 @@ function template_preprocess_form_element(&$variables) {
  * required. That is especially important for screenreader users to know
  * which field is required.
  *
- * @param $variables
+ * @param array $variables
  *   An associative array containing:
  *   - element: An associative array containing the properties of the element.
  *     Properties used: #required, #title, #id, #value, #description.
- *
- * @ingroup themeable
  */
-function theme_form_element_label($variables) {
+function template_preprocess_form_element_label(&$variables) {
   $element = $variables['element'];
   // If title and required marker are both empty, output no label.
-  if ((!isset($element['#title']) || $element['#title'] === '') && empty($element['#required'])) {
-    return '';
-  }
-
-  $title = Xss::filterAdmin($element['#title']);
-
-  $attributes = array();
+  $variables['title'] = (isset($element['#title']) && $element['#title'] !== '') ? Xss::filterAdmin($element['#title']) : '';
+  $variables['attributes'] = array();
   // Style the label as class option to display inline with the element.
   if ($element['#title_display'] == 'after') {
-    $attributes['class'][] = 'option';
+    $variables['attributes']['class'][] = 'option';
   }
   // Show label only to screen readers to avoid disruption in visual flows.
   elseif ($element['#title_display'] == 'invisible') {
-    $attributes['class'][] = 'visually-hidden';
+    $variables['attributes']['class'][] = 'visually-hidden';
   }
 
   // A #for property of a dedicated #type 'label' element as precedence.
   if (!empty($element['#for'])) {
-    $attributes['for'] = $element['#for'];
+    $variables['attributes']['for'] = $element['#for'];
     // A custom #id allows the referenced form input element to refer back to
     // the label element; e.g., in the 'aria-labelledby' attribute.
     if (!empty($element['#id'])) {
-      $attributes['id'] = $element['#id'];
+      $variables['attributes']['id'] = $element['#id'];
     }
   }
   // Otherwise, point to the #id of the form input element.
   elseif (!empty($element['#id'])) {
-    $attributes['for'] = $element['#id'];
+    $variables['attributes']['for'] = $element['#id'];
   }
 
   // For required elements a 'form-required' class is appended to the
   // label attributes.
+  $variables['required'] = FALSE;
   if (!empty($element['#required'])) {
-    $attributes['class'][] = 'form-required';
+    $variables['required'] = TRUE;
+    $variables['attributes']['class'][] = 'form-required';
   }
-
-  return '<label' . new Attribute($attributes) . '>' . $title . '</label>';
 }
 
 /**

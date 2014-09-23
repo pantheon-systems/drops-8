@@ -14,6 +14,8 @@ use Drupal\Core\DependencyInjection\ContainerBuilder;
 
 /**
  * Provides a base class and helpers for Drupal unit tests.
+ *
+ * @ingroup testing
  */
 abstract class UnitTestCase extends \PHPUnit_Framework_TestCase {
 
@@ -242,7 +244,7 @@ abstract class UnitTestCase extends \PHPUnit_Framework_TestCase {
       ->method('getInstanceFromDefinition')
       ->will($this->returnCallback(function ($class) {
         if (is_subclass_of($class, 'Drupal\Core\DependencyInjection\ContainerInjectionInterface')) {
-          return $class::create(\Drupal::getContainer());
+          return $class::create(new ContainerBuilder());
         }
         else {
           return new $class();

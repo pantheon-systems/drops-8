@@ -12,21 +12,15 @@ filter.settings:
       label: 'Always show fallback choice'
 
 filter.format.*:
-  type: mapping
+  type: config_entity
   label: 'Text formats'
   mapping:
-    format:
-      type: string
-      label: 'Machine name'
     name:
       type: label
       label: 'Name'
-    uuid:
+    format:
       type: string
-      label: 'UUID'
-    status:
-      type: boolean
-      label: 'Enabled'
+      label: 'Machine name'
     weight:
       type: integer
       label: 'Weight'
@@ -36,9 +30,6 @@ filter.format.*:
       sequence:
         - type: string
           label: 'Role'
-    cache:
-      type: boolean
-      label: 'Cache'
     filters:
       type: sequence
       label: 'Enabled filters'
@@ -47,6 +38,9 @@ filter.format.*:
     langcode:
       type: string
       label: 'Default language'
+    dependencies:
+      type: config_dependencies
+      label: 'Dependencies'
 
 filter_settings.*:
   type: sequence

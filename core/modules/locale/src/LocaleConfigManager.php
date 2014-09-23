@@ -8,10 +8,10 @@
 namespace Drupal\locale;
 
 use Drupal\Core\Cache\CacheBackendInterface;
-use Drupal\Core\Language\Language;
 use Drupal\Core\Config\TypedConfigManager;
 use Drupal\Core\Config\StorageInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\language\ConfigurableLanguageManagerInterface;
 
 /**
@@ -96,9 +96,10 @@ class LocaleConfigManager extends TypedConfigManager {
     // We get only the data that didn't change from default.
     $data = $this->compareConfigData($default, $updated);
     $definition = $this->getDefinition($name);
+    $data_definition = $this->buildDataDefinition($definition, $data);
     // Unless the configuration has a explicit language code we assume English.
     $langcode = isset($default['langcode']) ? $default['langcode'] : 'en';
-    $wrapper = new LocaleTypedConfig($definition, $name, $langcode, $this);
+    $wrapper = new LocaleTypedConfig($data_definition, $name, $langcode, $this);
     $wrapper->setValue($data);
     return $wrapper;
   }
@@ -307,13 +308,13 @@ class LocaleConfigManager extends TypedConfigManager {
    *
    * @param string $name
    *   Configuration name.
-   * @param \Drupal\Core\Language\Language $language
+   * @param \Drupal\Core\Language\LanguageInterface $language
    *   A language object.
    *
    * @return bool
    *   A boolean indicating if a language has configuration translations.
    */
-  public function hasTranslation($name, Language $language) {
+  public function hasTranslation($name, LanguageInterface $language) {
     $translation = $this->languageManager->getLanguageConfigOverride($language->id, $name);
     return !$translation->isNew();
   }

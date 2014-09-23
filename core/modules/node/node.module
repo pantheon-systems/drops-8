@@ -9,12 +9,11 @@
  */
 
 use Drupal\Component\Utility\Xss;
-use Drupal\Core\Language\Language;
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Render\Element;
+use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Url;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Drupal\Core\Cache\Cache;
 use Drupal\Core\Database\Query\AlterableInterface;
 use Drupal\Core\Database\Query\SelectInterface;
 use Drupal\field\Entity\FieldConfig;
@@ -29,7 +28,6 @@ use Drupal\Core\Entity\Display\EntityFormDisplayInterface;
 use Drupal\Core\Template\Attribute;
 use Drupal\file\Entity\File;
 use Drupal\language\Entity\Language as LanguageEntity;
-use Symfony\Cmf\Component\Routing\RouteObjectInterface;
 use Drupal\block\Entity\Block;
 use Drupal\Core\Session\AccountInterface;
 
@@ -90,7 +88,7 @@ const NODE_ACCESS_IGNORE = NULL;
 /**
  * Implements hook_help().
  */
-function node_help($route_name, Request $request) {
+function node_help($route_name, RouteMatchInterface $route_match) {
   // Remind site administrators about the {node_access} table being flagged
   // for rebuild. We don't need to issue the message on the confirm form, or
   // while the rebuild is being processed.
@@ -117,7 +115,7 @@ function node_help($route_name, Request $request) {
       $output .= '<dt>' . t('Creating custom content types') . '</dt>';
       $output .= '<dd>' . t('The Node module gives users with the <em>Administer content types</em> permission the ability to <a href="!content-new">create new content types</a> in addition to the default ones already configured. Creating custom content types allows you the flexibility to add <a href="!field">fields</a> and configure default settings that suit the differing needs of various site content.', array('!content-new' => \Drupal::url('node.type_add'), '!field' => \Drupal::url('help.page', array('name' => 'field')))) . '</dd>';
       $output .= '<dt>' . t('Administering content') . '</dt>';
-      $output .= '<dd>' . t('The <a href="!content">Content administration page</a> allows you to review and bulk manage your site content.', array('!content' => \Drupal::url('node.content_overview'))) . '</dd>';
+      $output .= '<dd>' . t('The <a href="!content">Content administration page</a> allows you to review and bulk manage your site content.', array('!content' => \Drupal::url('system.admin_content'))) . '</dd>';
       $output .= '<dt>' . t('Creating revisions') . '</dt>';
       $output .= '<dd>' . t('The Node module also enables you to create multiple versions of any content, and revert to older versions using the <em>Revision information</em> settings.') . '</dd>';
       $output .= '<dt>' . t('User permissions') . '</dt>';
@@ -130,12 +128,12 @@ function node_help($route_name, Request $request) {
 
     case 'field_ui.form_display_overview_node':
     case 'field_ui.form_display_overview_form_mode_node':
-      $type = $request->attributes->get('node_type');
+      $type = $route_match->getParameter('node_type');
       return '<p>' . t('Content items can be edited using different form modes. Here, you can define which fields are shown and hidden when %type content is edited in each form mode, and define how the field form widgets are displayed in each form mode.', array('%type' => $type->label())) . '</p>' ;
 
     case 'field_ui.display_overview_node':
     case 'field_ui.display_overview_view_mode_node':
-      $type = $request->attributes->get('node_type');
+      $type = $route_match->getParameter('node_type');
       return '<p>' . t('Content items can be displayed using different view modes: Teaser, Full content, Print, RSS, etc. <em>Teaser</em> is a short format that is typically used in lists of multiple content items. <em>Full content</em> is typically used when the content is displayed on its own page.') . '</p>' .
         '<p>' . t('Here, you can define which fields are shown and hidden when %type content is displayed in each view mode, and define how the fields are displayed in each view mode.', array('%type' => $type->label())) . '</p>';
 
@@ -143,12 +141,12 @@ function node_help($route_name, Request $request) {
       return '<p>' . t('Revisions allow you to track differences between multiple versions of your content, and revert back to older versions.') . '</p>';
 
     case 'node.page_edit':
-      $node = $request->attributes->get('node');
+      $node = $route_match->getParameter('node');
       $type = $node->getType();
       return (!empty($type->help) ? Xss::filterAdmin($type->help) : '');
 
     case 'node.add':
-      $type = $request->attributes->get('node_type');
+      $type = $route_match->getParameter('node_type');
       return (!empty($type->help) ? Xss::filterAdmin($type->help) : '');
   }
 }
@@ -209,11 +207,6 @@ function node_entity_view_display_alter(EntityViewDisplayInterface $display, $co
 function node_entity_form_display_alter(EntityFormDisplayInterface $form_display, $context) {
   if ($context['entity_type'] == 'node') {
     $node_type = node_type_load($context['bundle']);
-    // @todo Reconsider when per-bundle overrides of field definitions are
-    //   possible - https://drupal.org/node/2114707.
-    if (!$node_type->has_title) {
-      $form_display->removeComponent('title');
-    }
   }
 }
 
@@ -391,8 +384,7 @@ function node_add_body_field(NodeTypeInterface $type, $label = 'Body') {
   }
   if (empty($instance)) {
     $instance = entity_create('field_instance_config', array(
-      'field_name' => 'body',
-      'entity_type' => 'node',
+      'field' => $field,
       'bundle' => $type->id(),
       'label' => $label,
       'settings' => array('display_summary' => TRUE),
@@ -566,9 +558,9 @@ function node_revision_delete($revision_id) {
  *   The ID of the node if this is a full page view, otherwise FALSE.
  */
 function node_is_page(NodeInterface $node) {
-  $request = \Drupal::request();
-  if ($request->attributes->get(RouteObjectInterface::ROUTE_NAME) == 'node.view') {
-    $page_node = $request->attributes->get('node');
+  $route_match = \Drupal::routeMatch();
+  if ($route_match->getRouteName() == 'node.view') {
+    $page_node = $route_match->getParameter('node');
   }
   return (!empty($page_node) ? $page_node->id() == $node->id() : FALSE);
 }
@@ -578,8 +570,8 @@ function node_is_page(NodeInterface $node) {
  */
 function node_preprocess_html(&$variables) {
   // If on an individual node page, add the node type to body classes.
-  if (($node = \Drupal::request()->attributes->get('node')) && $node instanceof NodeInterface) {
-    $variables['attributes']['class'][] = drupal_html_class('node-type-' . $node->getType());
+  if (($node = \Drupal::routeMatch()->getParameter('node')) && $node instanceof NodeInterface) {
+    $variables['attributes']['class'][] = drupal_html_class('node--type-' . $node->getType());
   }
 }
 
@@ -642,9 +634,9 @@ function template_preprocess_node(&$variables) {
     '#account' => $node->getOwner(),
     '#link_options' => array('attributes' => array('rel' => 'author')),
   );
-  $variables['name'] = drupal_render($username);
+  $variables['author_name'] = drupal_render($username);
 
-  $variables['node_url'] = $node->url('canonical', array(
+  $variables['url'] = $node->url('canonical', array(
     'language' => $node->language(),
   ));
   $variables['label'] = $variables['elements']['title'];
@@ -660,23 +652,17 @@ function template_preprocess_node(&$variables) {
   // Display post information only on certain node types.
   // Avoid loading the entire node type config entity here that may not exist.
   $node_type_config = \Drupal::config('node.type.' . $node->bundle());
+  // Used by RDF to add attributes around the author and date submitted.
+  $variables['author_attributes'] = new Attribute();
   // Display submitted by default.
   $variables['display_submitted'] = $node_type_config->isNew() || $node_type_config->get('settings.node.submitted');
   if ($variables['display_submitted']) {
-    $variables['submitted'] = t('Submitted by !username on !datetime', array('!username' => $variables['name'], '!datetime' => $variables['date']));
     if (theme_get_setting('features.node_user_picture')) {
       // To change user picture settings (e.g. image style), edit the 'compact'
       // view mode on the User entity. Note that the 'compact' view mode might
       // not be configured, so remember to always check the theme setting first.
-      $variables['user_picture'] = user_view($node->getOwner(), 'compact');
+      $variables['author_picture'] = user_view($node->getOwner(), 'compact');
     }
-    else {
-      $variables['user_picture'] = array();
-    }
-  }
-  else {
-    $variables['submitted'] = '';
-    $variables['user_picture'] = '';
   }
 
   // Add article ARIA role.
@@ -684,23 +670,22 @@ function template_preprocess_node(&$variables) {
 
   // Gather node classes.
   $variables['attributes']['class'][] = 'node';
-  $variables['attributes']['class'][] = drupal_html_class('node-' . $node->bundle());
+  $variables['attributes']['class'][] = drupal_html_class('node--type-' . $node->bundle());
   if ($node->isPromoted()) {
-    $variables['attributes']['class'][] = 'promoted';
+    $variables['attributes']['class'][] = 'node--promoted';
   }
   if ($node->isSticky()) {
-    $variables['attributes']['class'][] = 'sticky';
+    $variables['attributes']['class'][] = 'node--sticky';
   }
   if (!$node->isPublished()) {
-    $variables['attributes']['class'][] = 'unpublished';
+    $variables['attributes']['class'][] = 'node--unpublished';
   }
   if ($variables['view_mode']) {
-    $variables['attributes']['class'][] = drupal_html_class('view-mode-' . $variables['view_mode']);
+    $variables['attributes']['class'][] = drupal_html_class('node--view-mode-' . $variables['view_mode']);
   }
   if (isset($variables['preview'])) {
-    $variables['attributes']['class'][] = 'preview';
+    $variables['attributes']['class'][] = 'node--preview';
   }
-  $variables['content_attributes']['class'][] = 'content';
 }
 
 /**
@@ -715,6 +700,7 @@ function node_permission() {
     ),
     'administer content types' => array(
       'title' => t('Administer content types'),
+      'description' => t('Promote, change ownership, edit revisions, and perform other tasks across all content types.'),
       'restrict access' => TRUE,
     ),
     'administer nodes' => array(
@@ -807,7 +793,10 @@ function node_user_cancel($edit, $account, $method) {
       // Anonymize all of the nodes for this old account.
       module_load_include('inc', 'node', 'node.admin');
       $vids = \Drupal::entityManager()->getStorage('node')->userRevisionIds($account);
-      node_mass_update($vids, array('uid' => 0), NULL, TRUE, TRUE);
+      node_mass_update($vids, array(
+        'uid' => 0,
+        'revision_uid' => 0,
+      ), NULL, TRUE, TRUE);
       break;
   }
 }
@@ -942,71 +931,6 @@ function node_get_recent($number = 10) {
 }
 
 /**
- * Implements hook_form_FORM_ID_alter() for block_form().
- *
- * Adds node-type specific visibility options to block configuration form.
- */
-function node_form_block_form_alter(&$form, &$form_state) {
-  $block = $form_state['controller']->getEntity();
-  $visibility = $block->get('visibility');
-  $form['visibility']['node_type'] = array(
-    '#type' => 'details',
-    '#title' => t('Content types'),
-    '#group' => 'visibility',
-    '#weight' => 5,
-  );
-  $form['visibility']['node_type']['types'] = array(
-    '#type' => 'checkboxes',
-    '#title' => t('Show block for specific content types'),
-    '#default_value' => !empty($visibility['node_type']['types']) ? $visibility['node_type']['types'] : array(),
-    '#options' => node_type_get_names(),
-    '#description' => t('Show this block only on pages that display content of the given type(s). If you select no types, there will be no type-specific limitation.'),
-  );
-}
-
-/**
- * Implements hook_block_access().
- *
- * Checks the content type specific visibility settings and removes the block
- * if the visibility conditions are not met.
- */
-function node_block_access(Block $block, $operation, AccountInterface $account, $langcode) {
-  // Only affect access when viewing the block.
-  if ($operation != 'view') {
-    return;
-  }
-  $visibility = $block->get('visibility');
-  if (!empty($visibility)) {
-    if (!empty($visibility['node_type']['types'])) {
-      $allowed_types = array_filter($visibility['node_type']['types']);
-    }
-    if (empty($allowed_types)) {
-      // There are no node types selected in visibility settings so there is
-      // nothing to do.
-      // @see node_form_block_form_alter()
-      return;
-    }
-
-    // For blocks with node types associated, if the node type does not match
-    // the settings from this block, deny access to it.
-    $request = \Drupal::request();
-    if ($node = $request->attributes->get('node')) {
-      // Page has node.
-      return in_array($node->bundle(), $allowed_types);
-    }
-    // This is a node creation page.
-    // $request->attributes->has('node_type') would also match administration
-    // configuration pages, which the previous URI path options did not.
-    if ($request->attributes->get(RouteObjectInterface::ROUTE_NAME) == 'node.add') {
-      $node_type = $request->attributes->get('node_type');
-      return in_array($node_type->id(), $allowed_types);
-    }
-
-    return FALSE;
-  }
-}
-
-/**
  * Page callback: Generates and prints an RSS feed.
  *
  * Generates an RSS feed from an array of node IDs, and prints it with an HTTP
@@ -1033,7 +957,7 @@ function node_block_access(Block $block, $operation, AccountInterface $account, 
  */
 function node_feed($nids = FALSE, $channel = array()) {
   global $base_url;
-  $language_content = \Drupal::languageManager()->getCurrentLanguage(Language::TYPE_CONTENT);
+  $language_content = \Drupal::languageManager()->getCurrentLanguage(LanguageInterface::TYPE_CONTENT);
   $rss_config = \Drupal::config('system.rss');
 
   if ($nids === FALSE) {
@@ -1210,9 +1134,9 @@ function node_form_system_themes_admin_form_submit($form, &$form_state) {
  *
  * Next, all implementations of hook_node_access() will be called. Each
  * implementation may explicitly allow, explicitly deny, or ignore the access
- * request. If at least one module says to deny the request, it will be rejected.
- * If no modules deny the request and at least one says to allow it, the request
- * will be permitted.
+ * request. If at least one module says to deny the request, it will be
+ * rejected. If no modules deny the request and at least one says to allow it,
+ * the request will be permitted.
  *
  * If all modules ignore the access request, then the node_access table is used
  * to determine access. All node access modules are queried using
@@ -1547,7 +1471,8 @@ function node_access_rebuild($batch_mode = FALSE) {
       // Try to allocate enough time to rebuild node grants
       drupal_set_time_limit(240);
 
-      // Rebuild newest nodes first so that recent content becomes available quickly.
+      // Rebuild newest nodes first so that recent content becomes available
+      // quickly.
       $entity_query = \Drupal::entityQuery('node');
       $entity_query->sort('nid', 'DESC');
       $nids = $entity_query->execute();
@@ -1569,7 +1494,6 @@ function node_access_rebuild($batch_mode = FALSE) {
   if (!isset($batch)) {
     drupal_set_message(t('Content permissions have been rebuilt.'));
     node_access_needs_rebuild(FALSE);
-    Cache::invalidateTags(array('content' => TRUE));
   }
 }
 
@@ -1633,7 +1557,6 @@ function _node_access_rebuild_batch_finished($success, $results, $operations) {
   else {
     drupal_set_message(t('The content access permissions have not been properly rebuilt.'), 'error');
   }
-  Cache::invalidateTags(array('content' => TRUE));
 }
 
 /**

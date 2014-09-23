@@ -38,10 +38,10 @@ class EntityTest extends NormalizerTestBase {
 
     \Drupal::service('router.builder')->rebuild();
     $this->installSchema('system', array('sequences'));
-    $this->installSchema('node', array('node', 'node_field_data', 'node_revision', 'node_field_revision'));
-    $this->installSchema('comment', array('comment', 'comment_entity_statistics'));
-    $this->installSchema('user', array('users_roles'));
-    $this->installSchema('taxonomy', array('taxonomy_term_data', 'taxonomy_term_hierarchy'));
+    $this->installSchema('comment', array('comment_entity_statistics'));
+    $this->installEntitySchema('node');
+    $this->installEntitySchema('comment');
+    $this->installEntitySchema('taxonomy_term');
   }
 
   /**
@@ -53,6 +53,15 @@ class EntityTest extends NormalizerTestBase {
 
     $user = entity_create('user', array('name' => $this->randomName()));
     $user->save();
+
+    // Add comment type.
+    $this->container->get('entity.manager')->getStorage('comment_type')->create(array(
+      'id' => 'comment',
+      'label' => 'comment',
+      'target_entity_type_id' => 'node',
+    ))->save();
+
+    $this->container->get('comment.manager')->addDefaultField('node', 'example_type');
 
     $node = entity_create('node', array(
       'title' => $this->randomName(),
@@ -129,6 +138,15 @@ class EntityTest extends NormalizerTestBase {
     $user = entity_create('user', array('name' => $this->randomName()));
     $user->save();
 
+    // Add comment type.
+    $this->container->get('entity.manager')->getStorage('comment_type')->create(array(
+      'id' => 'comment',
+      'label' => 'comment',
+      'target_entity_type_id' => 'node',
+    ))->save();
+
+    $this->container->get('comment.manager')->addDefaultField('node', 'example_type');
+
     $node = entity_create('node', array(
       'title' => $this->randomName(),
       'uid' => $user->id(),
@@ -142,8 +160,6 @@ class EntityTest extends NormalizerTestBase {
       )
     ));
     $node->save();
-
-    $this->container->get('comment.manager')->addDefaultField('node', 'example_type');
 
     $comment = entity_create('comment', array(
       'uid' => $user->id(),

@@ -42,9 +42,11 @@ uri:
 mapping:
   label: Mapping
   class: '\Drupal\Core\Config\Schema\Mapping'
+  definition_class: '\Drupal\Core\TypedData\MapDataDefinition'
 sequence:
   label: Sequence
   class: '\Drupal\Core\Config\Schema\Sequence'
+  definition_class: '\Drupal\Core\TypedData\ListDataDefinition'
 
 # Simple extended data types:
 
@@ -68,7 +70,7 @@ text:
 # PHP Date format string that is translatable.
 date_format:
   type: string
-  label: 'PHP date format'
+  label: 'Date format'
   translatable: true
 
 # HTML color value.
@@ -109,7 +111,6 @@ filter:
       label: 'Weight'
     settings:
       type: filter_settings.[%parent.id]
-
 
 # System action configuration base.
 action_configuration_default:
@@ -231,3 +232,100 @@ config_dependencies:
       label: 'Theme dependencies'
       sequence:
         - type: string
+
+config_entity:
+  type: mapping
+  mapping:
+    uuid:
+      type: string
+      label: 'UUID'
+    langcode:
+      type: string
+      label: 'Default language'
+    status:
+      type: boolean
+      label: 'Status'
+    dependencies:
+      type: config_dependencies
+      label: 'Dependencies'
+
+block_settings:
+  type: mapping
+  label: 'Block settings'
+  mapping:
+    id:
+      type: string
+      label: 'ID'
+    label:
+      type: label
+      label: 'Description'
+    label_display:
+      type: string
+      label: 'Display title'
+    cache:
+      type: mapping
+      label: 'Cache settings'
+      mapping:
+        max_age:
+          type: integer
+          label: 'Maximum age'
+        contexts:
+          type: sequence
+          label: 'Vary by context'
+          sequence:
+            - type: string
+              label: 'Context'
+    status:
+      type: boolean
+      label: 'Status'
+    info:
+      type: label
+      label: 'Admin info'
+    view_mode:
+      type: string
+      label: 'View mode'
+    visibility:
+      type: sequence
+      label: 'Visibility Conditions'
+      sequence:
+        - type: condition.plugin.[id]
+          label: 'Visibility Condition'
+    provider:
+      type: string
+      label: 'Provider'
+
+condition.plugin:
+  type: mapping
+  label: 'Condition'
+  mapping:
+    id:
+      type: string
+      label: 'ID'
+    negate:
+      type: boolean
+      label: 'Negate'
+    uuid:
+      type: string
+      label: 'UUID'
+    context_mapping:
+      type: sequence
+      label: 'Context assignments'
+      sequence:
+        - type: string
+
+display_variant.plugin:
+  type: mapping
+  label: 'Display variant'
+  mapping:
+    id:
+      type: string
+      label: 'ID'
+    label:
+      type: label
+      label: 'Label'
+    weight:
+      type: integer
+      label: 'Weight'
+    uuid:
+      type: string
+      label: 'UUID'

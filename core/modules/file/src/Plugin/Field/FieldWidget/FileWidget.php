@@ -7,10 +7,11 @@
 
 namespace Drupal\file\Plugin\Field\FieldWidget;
 
-use Drupal\Core\Field\FieldDefinitionInterface;
-use Drupal\Core\Field\WidgetBase;
-use Drupal\Core\Field\FieldItemListInterface;
+use Drupal\Component\Utility\String;
 use Drupal\Component\Utility\NestedArray;
+use Drupal\Core\Field\FieldItemListInterface;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
+use Drupal\Core\Field\WidgetBase;
 use Drupal\Core\Render\Element;
 
 /**
@@ -81,9 +82,9 @@ class FileWidget extends WidgetBase {
     }
 
     // Determine the number of widgets to display.
-    $cardinality = $this->fieldDefinition->getCardinality();
+    $cardinality = $this->fieldDefinition->getFieldStorageDefinition()->getCardinality();
     switch ($cardinality) {
-      case FieldDefinitionInterface::CARDINALITY_UNLIMITED:
+      case FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED:
         $max = count($items);
         $is_multiple = TRUE;
         break;
@@ -94,7 +95,7 @@ class FileWidget extends WidgetBase {
         break;
     }
 
-    $title = check_plain($this->fieldDefinition->getLabel());
+    $title = String::checkPlain($this->fieldDefinition->getLabel());
     $description = field_filter_xss($this->fieldDefinition->getDescription());
 
     $elements = array();
@@ -130,7 +131,7 @@ class FileWidget extends WidgetBase {
     }
 
     $empty_single_allowed = ($cardinality == 1 && $delta == 0);
-    $empty_multiple_allowed = ($cardinality == FieldDefinitionInterface::CARDINALITY_UNLIMITED || $delta < $cardinality) && empty($form_state['programmed']);
+    $empty_multiple_allowed = ($cardinality == FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED || $delta < $cardinality) && empty($form_state['programmed']);
 
     // Add one more empty row for new uploads except when this is a programmed
     // multiple form as it is not necessary.
@@ -158,8 +159,8 @@ class FileWidget extends WidgetBase {
       $elements['#title'] = $title;
 
       $elements['#description'] = $description;
-      $elements['#field_name'] = $element['#field_name'];
-      $elements['#language'] = $element['#language'];
+      $elements['#field_name'] = $field_name;
+      $elements['#language'] = $items->getLangcode();
       $elements['#display_field'] = (bool) $this->getFieldSetting('display_field');
       // The field settings include defaults for the field type. However, this
       // widget is a base class for other widgets (e.g., ImageWidget) that may
@@ -197,7 +198,7 @@ class FileWidget extends WidgetBase {
       'description_field' => NULL,
     );
 
-    $cardinality = $this->fieldDefinition->getCardinality();
+    $cardinality = $this->fieldDefinition->getFieldStorageDefinition()->getCardinality();
     $defaults = array(
       'fids' => array(),
       'display' => (bool) $field_settings['display_default'],
@@ -217,6 +218,8 @@ class FileWidget extends WidgetBase {
       // Allows this field to return an array instead of a single value.
       '#extended' => TRUE,
       // Add properties needed by value() and process() methods.
+      '#field_name' => $this->fieldDefinition->getName(),
+      '#entity_type' => $items->getEntity()->getEntityTypeId(),
       '#display_field' => (bool) $field_settings['display_field'],
       '#display_default' => $field_settings['display_default'],
       '#description_field' => $field_settings['description_field'],

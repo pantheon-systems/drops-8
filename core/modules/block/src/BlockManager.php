@@ -9,7 +9,7 @@ namespace Drupal\block;
 
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
-use Drupal\Core\Language\LanguageManager;
+use Drupal\Core\Plugin\Context\ContextAwarePluginManagerTrait;
 use Drupal\Core\Plugin\DefaultPluginManager;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
@@ -24,6 +24,7 @@ use Drupal\Core\StringTranslation\StringTranslationTrait;
 class BlockManager extends DefaultPluginManager implements BlockManagerInterface {
 
   use StringTranslationTrait;
+  use ContextAwarePluginManagerTrait;
 
   /**
    * An array of all available modules and their data.
@@ -40,18 +41,16 @@ class BlockManager extends DefaultPluginManager implements BlockManagerInterface
    *   keyed by the corresponding namespace to look for plugin implementations.
    * @param \Drupal\Core\Cache\CacheBackendInterface $cache_backend
    *   Cache backend instance to use.
-   * @param \Drupal\Core\Language\LanguageManager $language_manager
-   *   The language manager.
    * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
    *   The module handler to invoke the alter hook with.
    * @param \Drupal\Core\StringTranslation\TranslationInterface $string_translation
    *   The translation manager.
    */
-  public function __construct(\Traversable $namespaces, CacheBackendInterface $cache_backend, LanguageManager $language_manager, ModuleHandlerInterface $module_handler, TranslationInterface $string_translation) {
+  public function __construct(\Traversable $namespaces, CacheBackendInterface $cache_backend, ModuleHandlerInterface $module_handler, TranslationInterface $string_translation) {
     parent::__construct('Plugin/Block', $namespaces, $module_handler, 'Drupal\block\Annotation\Block');
 
     $this->alterInfo('block');
-    $this->setCacheBackend($cache_backend, $language_manager, 'block_plugins');
+    $this->setCacheBackend($cache_backend, 'block_plugins');
     $this->stringTranslation = $string_translation;
   }
 
@@ -106,7 +105,7 @@ class BlockManager extends DefaultPluginManager implements BlockManagerInterface
    */
   public function getSortedDefinitions() {
     // Sort the plugins first by category, then by label.
-    $definitions = $this->getDefinitions();
+    $definitions = $this->getDefinitionsForContexts();
     uasort($definitions, function ($a, $b) {
       if ($a['category'] != $b['category']) {
         return strnatcasecmp($a['category'], $b['category']);

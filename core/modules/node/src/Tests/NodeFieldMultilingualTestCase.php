@@ -11,6 +11,7 @@ use Drupal\field\Entity\FieldConfig;
 use Drupal\language\Plugin\LanguageNegotiation\LanguageNegotiationUrl;
 use Drupal\simpletest\WebTestBase;
 use Drupal\Core\Language\Language;
+use Drupal\Core\Language\LanguageInterface;
 
 /**
  * Functional test for multilingual fields.
@@ -101,7 +102,7 @@ class NodeFieldMultilingualTestCase extends WebTestBase {
     $this->assertTrue($node->language()->id == $langcode && $node->body->value == $body_value, 'Field language correctly changed.');
 
     // Enable content language URL detection.
-    $this->container->get('language_negotiator')->saveConfiguration(Language::TYPE_CONTENT, array(LanguageNegotiationUrl::METHOD_ID => 0));
+    $this->container->get('language_negotiator')->saveConfiguration(LanguageInterface::TYPE_CONTENT, array(LanguageNegotiationUrl::METHOD_ID => 0));
 
     // Test multilingual field language fallback logic.
     $this->drupalGet("it/node/{$node->id()}");
@@ -133,9 +134,9 @@ class NodeFieldMultilingualTestCase extends WebTestBase {
 
     // Check if node body is showed.
     $this->drupalGet('node/' . $node->id());
-    $body = $this->xpath('//article[@id=:id]//div[@class=:class]/descendant::p', array(
-      ':id' => 'node-' . $node->id(),
-      ':class' => 'content',
+     $body = $this->xpath('//article[contains(concat(" ", normalize-space(@class), " "), :node-class)]//div[contains(concat(" ", normalize-space(@class), " "), :content-class)]/descendant::p', array(
+      ':node-class' => ' node ',
+      ':content-class' => 'node__content',
     ));
     $this->assertEqual(current($body), $node->body->value, 'Node body found.');
   }

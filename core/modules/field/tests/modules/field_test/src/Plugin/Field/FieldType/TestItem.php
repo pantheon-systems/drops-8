@@ -8,7 +8,6 @@
 namespace Drupal\field_test\Plugin\Field\FieldType;
 
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
-use Drupal\Core\Field\PrepareCacheInterface;
 use Drupal\Core\TypedData\DataDefinition;
 use Drupal\Core\Field\FieldItemBase;
 
@@ -23,7 +22,7 @@ use Drupal\Core\Field\FieldItemBase;
  *   default_formatter = "field_test_default"
  * )
  */
-class TestItem extends FieldItemBase implements PrepareCacheInterface {
+class TestItem extends FieldItemBase {
 
   /**
    * {@inheritdoc}
@@ -77,7 +76,7 @@ class TestItem extends FieldItemBase implements PrepareCacheInterface {
   /**
    * {@inheritdoc}
    */
-  public function settingsForm(array $form, array &$form_state, $has_data) {
+  public function settingsForm(array &$form, array &$form_state, $has_data) {
     $form['test_field_setting'] = array(
       '#type' => 'textfield',
       '#title' => t('Field test field setting'),
@@ -102,20 +101,6 @@ class TestItem extends FieldItemBase implements PrepareCacheInterface {
     );
 
     return $form;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getCacheData() {
-    // To keep the test non-intrusive, only act for instances with the
-    // 'test_cached_data' setting explicitly set to TRUE. Also don't add
-    // anything on empty values.
-    if ($this->getSetting('test_cached_data') && !$this->isEmpty()) {
-      // Set the additional value so that getValue() will return it.
-      $this->additional_key = 'additional_value';
-    }
-    return $this->getValue();
   }
 
   /**

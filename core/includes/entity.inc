@@ -8,7 +8,6 @@
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Entity\EntityStorageException;
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\Core\Language\Language;
 
 /**
  * Clears the entity render cache for all entity types.
@@ -58,16 +57,22 @@ function entity_get_bundles($entity_type = NULL) {
  *   NULL.
  */
 function entity_invoke_bundle_hook($hook, $entity_type, $bundle, $bundle_new = NULL) {
-  \Drupal::entityManager()->clearCachedBundles();
+  $entity_manager = \Drupal::entityManager();
+
+  $entity_manager->clearCachedBundles();
 
   // Notify the entity storage.
   $method = 'onBundle' . ucfirst($hook);
-  $storage = \Drupal::entityManager()->getStorage($entity_type);
+  $storage = $entity_manager->getStorage($entity_type);
   if (method_exists($storage, $method)) {
     $storage->$method($bundle, $bundle_new);
   }
   // Invoke hook_entity_bundle_*() hooks.
   \Drupal::moduleHandler()->invokeAll('entity_bundle_' . $hook, array($entity_type, $bundle, $bundle_new));
+  // Clear the cached field definitions (not needed in case of 'create').
+  if ($hook == 'rename' || $hook == 'delete') {
+    $entity_manager->clearCachedFieldDefinitions();
+  }
 }
 
 /**
@@ -141,8 +146,6 @@ function entity_revision_delete($entity_type, $revision_id) {
  *   The entity type to load; e.g., 'node' or 'user'.
  * @param string $uuid
  *   The UUID of the entity to load.
- * @param bool $reset
- *   Whether to reset the internal cache for the requested entity type.
  *
  * @return EntityInterface|FALSE
  *   The entity object, or FALSE if there is no entity with the given UUID.
@@ -151,20 +154,11 @@ function entity_revision_delete($entity_type, $revision_id) {
  *   Thrown in case the requested entity type does not support UUIDs.
  *
  * @see \Drupal\Core\Entity\EntityManagerInterface
+ *
+ * @deprecated Use \Drupal::entityManager()->loadEntityByUuid();
  */
-function entity_load_by_uuid($entity_type_id, $uuid, $reset = FALSE) {
-  $entity_type = \Drupal::entityManager()->getDefinition($entity_type_id);
-
-  if (!$uuid_key = $entity_type->getKey('uuid')) {
-    throw new EntityStorageException("Entity type $entity_type_id does not support UUIDs.");
-  }
-
-  $controller = \Drupal::entityManager()->getStorage($entity_type_id);
-  if ($reset) {
-    $controller->resetCache();
-  }
-  $entities = $controller->loadByProperties(array($uuid_key => $uuid));
-  return reset($entities);
+function entity_load_by_uuid($entity_type_id, $uuid) {
+  return \Drupal::entityManager()->loadEntityByUuid($entity_type_id, $uuid);
 }
 
 /**

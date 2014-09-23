@@ -6,11 +6,8 @@
  */
 
 use Drupal\Component\Utility\String;
-use Drupal\Core\Cache\Cache;
-use Drupal\Core\Language\Language;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Template\Attribute;
-use Symfony\Cmf\Component\Routing\RouteObjectInterface;
 
 /**
  * @defgroup menu Menu and routing system
@@ -481,7 +478,7 @@ function menu_local_tasks($level = 0) {
     $data['tabs'] = array();
     $data['actions'] = array();
 
-    $route_name = \Drupal::request()->attributes->get(RouteObjectInterface::ROUTE_NAME);
+    $route_name = \Drupal::routeMatch()->getRouteName();
     if (!empty($route_name)) {
       $manager = \Drupal::service('plugin.manager.menu.local_task');
       $local_tasks = $manager->getTasksBuild($route_name);
@@ -536,7 +533,7 @@ function menu_secondary_local_tasks() {
  */
 function menu_get_local_actions() {
   $links = menu_local_tasks();
-  $route_name = Drupal::request()->attributes->get(RouteObjectInterface::ROUTE_NAME);
+  $route_name = Drupal::routeMatch()->getRouteName();
   $manager = \Drupal::service('plugin.manager.menu.local_action');
   return $manager->getActionsForRoute($route_name) + $links['actions'];
 }
@@ -812,7 +809,7 @@ function menu_link_rebuild_defaults() {
       }
       else {
         if (empty($link['route_name']) && empty($link['link_path'])) {
-          watchdog('error', 'Menu_link %machine_name does neither provide a route_name nor a link_path, so it got skipped.', array('%machine_name' => $machine_name));
+          \Drupal::logger('menu_link')->error('Menu_link %machine_name does neither provide a route_name nor a link_path, so it got skipped.', array('%machine_name' => $machine_name));
           continue;
         }
         $menu_link = $menu_link_storage->createFromDefaultLink($link);
@@ -906,24 +903,22 @@ function menu_delete_links($menu_name) {
 }
 
 /**
- * Clears the page and block caches at most twice per page load.
+ * Updates the expanded menu item state at most twice per page load.
  */
-function _menu_clear_page_cache() {
-  $cache_cleared = &drupal_static(__FUNCTION__, 0);
+function _menu_update_expanded_menus() {
+  $expanded_menus_updated = &drupal_static(__FUNCTION__, 0);
 
-  // Clear the page and block caches, but at most twice, including at
+  // Update the expanded menu item state, but at most twice, including at
   //  the end of the page load when there are multiple links saved or deleted.
-  if ($cache_cleared == 0) {
-    Cache::invalidateTags(array('content' => TRUE));
+  if ($expanded_menus_updated == 0) {
     // Keep track of which menus have expanded items.
     _menu_set_expanded_menus();
-    $cache_cleared = 1;
+    $expanded_menus_updated = 1;
   }
-  elseif ($cache_cleared == 1) {
-    drupal_register_shutdown_function('Drupal\Core\Cache\Cache::invalidateTags', array('content' => TRUE));
+  elseif ($expanded_menus_updated == 1) {
     // Keep track of which menus have expanded items.
     drupal_register_shutdown_function('_menu_set_expanded_menus');
-    $cache_cleared = 2;
+    $expanded_menus_updated = 2;
   }
 }
 

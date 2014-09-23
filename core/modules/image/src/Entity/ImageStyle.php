@@ -276,7 +276,7 @@ class ImageStyle extends ConfigEntityBase implements ImageStyleInterface, Entity
     }
 
     $image = \Drupal::service('image.factory')->get($original_uri);
-    if (!$image->isExisting()) {
+    if (!$image->isValid()) {
       return FALSE;
     }
 
@@ -348,24 +348,10 @@ class ImageStyle extends ConfigEntityBase implements ImageStyleInterface, Entity
   /**
    * {@inheritdoc}
    */
-  public function saveImageEffect(array $configuration) {
-    $effect_id = $this->getEffects()->updateConfiguration($configuration);
-    $this->save();
-    return $effect_id;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function toArray() {
-    $properties = parent::toArray();
-    $names = array(
-      'effects',
-    );
-    foreach ($names as $name) {
-      $properties[$name] = $this->get($name);
-    }
-    return $properties;
+  public function addImageEffect(array $configuration) {
+    $configuration['uuid'] = $this->uuidGenerator()->generate();
+    $this->getEffects()->addInstanceId($configuration['uuid'], $configuration);
+    return $configuration['uuid'];
   }
 
   /**

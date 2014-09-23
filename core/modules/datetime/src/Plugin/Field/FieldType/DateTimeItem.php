@@ -8,7 +8,6 @@
 namespace Drupal\datetime\Plugin\Field\FieldType;
 
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
-use Drupal\Core\Field\PrepareCacheInterface;
 use Drupal\Core\TypedData\DataDefinition;
 use Drupal\Core\Field\FieldItemBase;
 
@@ -24,7 +23,7 @@ use Drupal\Core\Field\FieldItemBase;
  *   list_class = "\Drupal\datetime\Plugin\Field\FieldType\DateTimeFieldItemList"
  * )
  */
-class DateTimeItem extends FieldItemBase implements PrepareCacheInterface {
+class DateTimeItem extends FieldItemBase {
 
   /**
    * {@inheritdoc}
@@ -84,7 +83,7 @@ class DateTimeItem extends FieldItemBase implements PrepareCacheInterface {
   /**
    * {@inheritdoc}
    */
-  public function settingsForm(array $form, array &$form_state, $has_data) {
+  public function settingsForm(array &$form, array &$form_state, $has_data) {
     $element = array();
 
     $element['datetime_type'] = array(
@@ -99,21 +98,6 @@ class DateTimeItem extends FieldItemBase implements PrepareCacheInterface {
     );
 
     return $element;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getCacheData() {
-    $data = $this->getValue();
-    // The function generates a Date object for each field early so that it is
-    // cached in the field cache. This avoids the need to generate the object
-    // later. The date will be retrieved in UTC, the local timezone adjustment
-    // must be made in real time, based on the preferences of the site and user.
-    if (!empty($data['value'])) {
-      $data['date'] = $this->date;
-    }
-    return $data;
   }
 
   /**

@@ -7,8 +7,6 @@
 
 namespace Drupal\node\Tests;
 
-use Drupal\Core\Cache\Cache;
-
 /**
  * Functional tests for the node module blocks.
  */
@@ -113,9 +111,6 @@ class NodeBlockFunctionalTest extends NodeTestBase {
 
     // Post an additional node.
     $node4 = $this->drupalCreateNode($default_settings);
-    // drupalCreateNode() does not automatically flush content caches unlike
-    // posting a node from a node form.
-    Cache::invalidateTags(array('content' => TRUE));
 
     // Test that all four nodes are shown.
     $this->drupalGet('');
@@ -128,14 +123,14 @@ class NodeBlockFunctionalTest extends NodeTestBase {
     $block = $this->drupalPlaceBlock('system_powered_by_block', array(
       'visibility' => array(
         'node_type' => array(
-          'types' => array(
+          'bundles' => array(
             'article' => 'article',
           ),
         ),
       ),
     ));
-    $visibility = $block->get('visibility');
-    $this->assertTrue(isset($visibility['node_type']['types']['article']), 'Visibility settings were saved to configuration');
+    $visibility = $block->getVisibility();
+    $this->assertTrue(isset($visibility['node_type']['bundles']['article']), 'Visibility settings were saved to configuration');
 
     // Create a page node.
     $node5 = $this->drupalCreateNode(array('uid' => $this->adminUser->id(), 'type' => 'page'));

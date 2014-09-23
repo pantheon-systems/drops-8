@@ -9,9 +9,8 @@ namespace Drupal\system\Tests\Entity;
 
 use Drupal\Core\Database\Database;
 use Drupal\Core\Entity\ContentEntityDatabaseStorage;
-use Drupal\field\FieldException;
+use Drupal\Core\Entity\Exception\FieldStorageDefinitionUpdateForbiddenException;
 use Drupal\field\Entity\FieldConfig;
-use Drupal\system\Tests\Entity\EntityUnitTestBase;
 
 /**
  * Tests field storage.
@@ -66,7 +65,8 @@ class FieldSqlStorageTest extends EntityUnitTestBase {
 
   function setUp() {
     parent::setUp();
-    $this->installSchema('entity_test', array('entity_test_rev', 'entity_test_rev_revision'));
+
+    $this->installEntitySchema('entity_test_rev');
     $entity_type = 'entity_test_rev';
 
     $this->field_name = strtolower($this->randomName());
@@ -79,8 +79,7 @@ class FieldSqlStorageTest extends EntityUnitTestBase {
     ));
     $this->field->save();
     $this->instance = entity_create('field_instance_config', array(
-      'field_name' => $this->field_name,
-      'entity_type' => $entity_type,
+      'field' => $this->field,
       'bundle' => $entity_type
     ));
     $this->instance->save();
@@ -305,8 +304,7 @@ class FieldSqlStorageTest extends EntityUnitTestBase {
     ));
     $field->save();
     $instance = entity_create('field_instance_config', array(
-      'field_name' => 'decimal52',
-      'entity_type' => $entity_type,
+      'field' => $field,
       'bundle' => $entity_type,
     ));
     $instance->save();
@@ -323,7 +321,7 @@ class FieldSqlStorageTest extends EntityUnitTestBase {
       $field->save();
       $this->fail(t('Cannot update field schema with data.'));
     }
-    catch (FieldException $e) {
+    catch (FieldStorageDefinitionUpdateForbiddenException $e) {
       $this->pass(t('Cannot update field schema with data.'));
     }
   }
@@ -372,8 +370,7 @@ class FieldSqlStorageTest extends EntityUnitTestBase {
     ));
     $field->save();
     $instance = entity_create('field_instance_config', array(
-      'field_name' => $field_name,
-      'entity_type' => $entity_type,
+      'field' => $field,
       'bundle' => $entity_type,
     ));
     $instance->save();
@@ -515,9 +512,9 @@ class FieldSqlStorageTest extends EntityUnitTestBase {
       'name' => $field_name,
       'type' => 'test_field',
     ));
-    $expected = 'short_entity_type__' . substr(hash('sha256', $field->uuid), 0, 10);
+    $expected = 'short_entity_type__' . substr(hash('sha256', $field->uuid()), 0, 10);
     $this->assertEqual(ContentEntityDatabaseStorage::_fieldTableName($field), $expected);
-    $expected = 'short_entity_type_r__' . substr(hash('sha256', $field->uuid), 0, 10);
+    $expected = 'short_entity_type_r__' . substr(hash('sha256', $field->uuid()), 0, 10);
     $this->assertEqual(ContentEntityDatabaseStorage::_fieldRevisionTableName($field), $expected);
 
     // Long entity type, short field name
@@ -528,9 +525,9 @@ class FieldSqlStorageTest extends EntityUnitTestBase {
       'name' => $field_name,
       'type' => 'test_field',
     ));
-    $expected = 'long_entity_type_abcdefghijklmnopq__' . substr(hash('sha256', $field->uuid), 0, 10);
+    $expected = 'long_entity_type_abcdefghijklmnopq__' . substr(hash('sha256', $field->uuid()), 0, 10);
     $this->assertEqual(ContentEntityDatabaseStorage::_fieldTableName($field), $expected);
-    $expected = 'long_entity_type_abcdefghijklmnopq_r__' . substr(hash('sha256', $field->uuid), 0, 10);
+    $expected = 'long_entity_type_abcdefghijklmnopq_r__' . substr(hash('sha256', $field->uuid()), 0, 10);
     $this->assertEqual(ContentEntityDatabaseStorage::_fieldRevisionTableName($field), $expected);
 
     // Long entity type and field name.
@@ -541,9 +538,9 @@ class FieldSqlStorageTest extends EntityUnitTestBase {
       'name' => $field_name,
       'type' => 'test_field',
     ));
-    $expected = 'long_entity_type_abcdefghijklmnopq__' . substr(hash('sha256', $field->uuid), 0, 10);
+    $expected = 'long_entity_type_abcdefghijklmnopq__' . substr(hash('sha256', $field->uuid()), 0, 10);
     $this->assertEqual(ContentEntityDatabaseStorage::_fieldTableName($field), $expected);
-    $expected = 'long_entity_type_abcdefghijklmnopq_r__' . substr(hash('sha256', $field->uuid), 0, 10);
+    $expected = 'long_entity_type_abcdefghijklmnopq_r__' . substr(hash('sha256', $field->uuid()), 0, 10);
     $this->assertEqual(ContentEntityDatabaseStorage::_fieldRevisionTableName($field), $expected);
     // Try creating a second field and check there are no clashes.
     $field2 = entity_create('field_config', array(
@@ -561,10 +558,10 @@ class FieldSqlStorageTest extends EntityUnitTestBase {
       'type' => 'test_field',
       'deleted' => TRUE,
     ));
-    $expected = 'field_deleted_data_' . substr(hash('sha256', $field->uuid), 0, 10);
-    $this->assertEqual(ContentEntityDatabaseStorage::_fieldTableName($field), $expected);
-    $expected = 'field_deleted_revision_' . substr(hash('sha256', $field->uuid), 0, 10);
-    $this->assertEqual(ContentEntityDatabaseStorage::_fieldRevisionTableName($field), $expected);
+    $expected = 'field_deleted_data_' . substr(hash('sha256', $field->uuid()), 0, 10);
+    $this->assertEqual(ContentEntityDatabaseStorage::_fieldTableName($field, TRUE), $expected);
+    $expected = 'field_deleted_revision_' . substr(hash('sha256', $field->uuid()), 0, 10);
+    $this->assertEqual(ContentEntityDatabaseStorage::_fieldRevisionTableName($field, TRUE), $expected);
   }
 
 }

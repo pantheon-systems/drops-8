@@ -5,15 +5,16 @@
  * Defines a "managed_file" Form API field and a "file" field for Field module.
  */
 
+use Drupal\Component\Utility\String;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Render\Element;
+use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\file\Entity\File;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Template\Attribute;
 use Drupal\file\FileUsage\FileUsageInterface;
-use Symfony\Component\HttpFoundation\Request;
 
 // Load all Field module hooks for File.
 require_once __DIR__ . '/file.field.inc';
@@ -21,7 +22,7 @@ require_once __DIR__ . '/file.field.inc';
 /**
  * Implements hook_help().
  */
-function file_help($route_name, Request $request) {
+function file_help($route_name, RouteMatchInterface $route_match) {
   switch ($route_name) {
     case 'help.page.file':
       $output = '';
@@ -173,10 +174,10 @@ function file_usage() {
 function file_copy(File $source, $destination = NULL, $replace = FILE_EXISTS_RENAME) {
   if (!file_valid_uri($destination)) {
     if (($realpath = drupal_realpath($source->getFileUri())) !== FALSE) {
-      watchdog('file', 'File %file (%realpath) could not be copied because the destination %destination is invalid. This is often caused by improper use of file_copy() or a missing stream wrapper.', array('%file' => $source->getFileUri(), '%realpath' => $realpath, '%destination' => $destination));
+      \Drupal::logger('file')->notice('File %file (%realpath) could not be copied because the destination %destination is invalid. This is often caused by improper use of file_copy() or a missing stream wrapper.', array('%file' => $source->getFileUri(), '%realpath' => $realpath, '%destination' => $destination));
     }
     else {
-      watchdog('file', 'File %file could not be copied because the destination %destination is invalid. This is often caused by improper use of file_copy() or a missing stream wrapper.', array('%file' => $source->getFileUri(), '%destination' => $destination));
+      \Drupal::logger('file')->notice('File %file could not be copied because the destination %destination is invalid. This is often caused by improper use of file_copy() or a missing stream wrapper.', array('%file' => $source->getFileUri(), '%destination' => $destination));
     }
     drupal_set_message(t('The specified file %file could not be copied because the destination is invalid. More information is available in the system log.', array('%file' => $source->getFileUri())), 'error');
     return FALSE;
@@ -250,10 +251,10 @@ function file_copy(File $source, $destination = NULL, $replace = FILE_EXISTS_REN
 function file_move(File $source, $destination = NULL, $replace = FILE_EXISTS_RENAME) {
   if (!file_valid_uri($destination)) {
     if (($realpath = drupal_realpath($source->getFileUri())) !== FALSE) {
-      watchdog('file', 'File %file (%realpath) could not be moved because the destination %destination is invalid. This may be caused by improper use of file_move() or a missing stream wrapper.', array('%file' => $source->getFileUri(), '%realpath' => $realpath, '%destination' => $destination));
+      \Drupal::logger('file')->notice('File %file (%realpath) could not be moved because the destination %destination is invalid. This may be caused by improper use of file_move() or a missing stream wrapper.', array('%file' => $source->getFileUri(), '%realpath' => $realpath, '%destination' => $destination));
     }
     else {
-      watchdog('file', 'File %file could not be moved because the destination %destination is invalid. This may be caused by improper use of file_move() or a missing stream wrapper.', array('%file' => $source->getFileUri(), '%destination' => $destination));
+      \Drupal::logger('file')->notice('File %file could not be moved because the destination %destination is invalid. This may be caused by improper use of file_move() or a missing stream wrapper.', array('%file' => $source->getFileUri(), '%destination' => $destination));
     }
     drupal_set_message(t('The specified file %file could not be moved because the destination is invalid. More information is available in the system log.', array('%file' => $source->getFileUri())), 'error');
     return FALSE;
@@ -410,7 +411,7 @@ function file_validate_size(File $file, $file_limit = 0, $user_limit = 0) {
 }
 
 /**
- * Checks that the file is recognized by Image::getInfo() as an image.
+ * Checks that the file is recognized as a valid image.
  *
  * @param \Drupal\file\File $file
  *   A file entity.
@@ -423,13 +424,11 @@ function file_validate_size(File $file, $file_limit = 0, $user_limit = 0) {
 function file_validate_is_image(File $file) {
   $errors = array();
 
-  $image = \Drupal::service('image.factory')->get($file->getFileUri());
-  if (!$image->isSupported()) {
-    $extensions = array();
-    foreach ($image->getToolkit()->supportedTypes() as $image_type) {
-      $extensions[] = Unicode::strtoupper(image_type_to_extension($image_type));
-    }
-    $errors[] = t('Image type not supported. Allowed types: @types.', array('@types' => implode(', ', $extensions)));
+  $image_factory = \Drupal::service('image.factory');
+  $image = $image_factory->get($file->getFileUri());
+  if (!$image->isValid()) {
+    $supported_extensions = $image_factory->getSupportedExtensions();
+    $errors[] = t('Image type not supported. Allowed types: %types', array('%types' => implode(' ', $supported_extensions)));
   }
 
   return $errors;
@@ -464,21 +463,19 @@ function file_validate_image_resolution(File $file, $maximum_dimensions = 0, $mi
   // Check first that the file is an image.
   $image_factory = \Drupal::service('image.factory');
   $image = $image_factory->get($file->getFileUri());
-  if ($image->isSupported()) {
+  if ($image->isValid()) {
     if ($maximum_dimensions) {
       // Check that it is smaller than the given dimensions.
       list($width, $height) = explode('x', $maximum_dimensions);
       if ($image->getWidth() > $width || $image->getHeight() > $height) {
         // Try to resize the image to fit the dimensions.
-        $image = $image_factory->get($file->getFileUri());
-        if ($image->isExisting()) {
-          $image->scale($width, $height);
+        if ($image->scale($width, $height)) {
           $image->save();
           $file->filesize = $image->getFileSize();
           drupal_set_message(t('The image was resized to fit within the maximum allowed dimensions of %dimensions pixels.', array('%dimensions' => $maximum_dimensions)));
         }
         else {
-          $errors[] = t('The image is too large; the maximum dimensions are %dimensions pixels.', array('%dimensions' => $maximum_dimensions));
+          $errors[] = t('The image exceeds the maximum allowed dimensions and an attempt to resize it failed.');
         }
       }
     }
@@ -525,7 +522,7 @@ function file_save_data($data, $destination = NULL, $replace = FILE_EXISTS_RENAM
     $destination = file_default_scheme() . '://';
   }
   if (!file_valid_uri($destination)) {
-    watchdog('file', 'The data could not be saved because the destination %destination is invalid. This may be caused by improper use of file_save_data() or a missing stream wrapper.', array('%destination' => $destination));
+    \Drupal::logger('file')->notice('The data could not be saved because the destination %destination is invalid. This may be caused by improper use of file_save_data() or a missing stream wrapper.', array('%destination' => $destination));
     drupal_set_message(t('The data could not be saved because the destination is invalid. More information is available in the system log.'), 'error');
     return FALSE;
   }
@@ -586,29 +583,31 @@ function file_get_content_headers(File $file) {
  */
 function file_theme() {
   return array(
-    // file.module.
+    // From file.module.
     'file_link' => array(
       'variables' => array('file' => NULL, 'icon_directory' => NULL, 'description' => NULL, 'attributes' => array()),
-    ),
-    'file_icon' => array(
-      'variables' => array('file' => NULL, 'icon_directory' => NULL),
+      'template' => 'file-link',
     ),
     'file_managed_file' => array(
       'render element' => 'element',
+      'template' => 'file-managed-file',
     ),
 
-    // file.field.inc.
+    // From file.field.inc.
     'file_widget' => array(
       'render element' => 'element',
+      'template' => 'file-widget',
+      'file' => 'file.field.inc',
     ),
     'file_widget_multiple' => array(
       'render element' => 'element',
-    ),
-    'file_formatter_table' => array(
-      'variables' => array('items' => NULL),
+      'template' => 'file-widget-multiple',
+      'file' => 'file.field.inc',
     ),
     'file_upload_help' => array(
       'variables' => array('description' => NULL, 'upload_validators' => NULL, 'cardinality' => NULL),
+      'template' => 'file-upload-help',
+      'file' => 'file.field.inc',
     ),
   );
 }
@@ -733,11 +732,11 @@ function file_cron() {
           $file->delete();
         }
         else {
-          watchdog('file system', 'Could not delete temporary file "%path" during garbage collection', array('%path' => $file->getFileUri()), WATCHDOG_ERROR);
+          \Drupal::logger('file system')->error('Could not delete temporary file "%path" during garbage collection', array('%path' => $file->getFileUri()));
         }
       }
       else {
-        watchdog('file system', 'Did not delete temporary file "%path" during garbage collection because it is in use by the following modules: %modules.', array('%path' => $file->getFileUri(), '%modules' => implode(', ', array_keys($references))), WATCHDOG_INFO);
+        \Drupal::logger('file system')->info('Did not delete temporary file "%path" during garbage collection because it is in use by the following modules: %modules.', array('%path' => $file->getFileUri(), '%modules' => implode(', ', array_keys($references))));
       }
     }
   }
@@ -959,7 +958,7 @@ function file_save_upload($form_field_name, $validators = array(), $destination 
     $file->uri = $file->destination;
     if (!drupal_move_uploaded_file($file_info->getRealPath(), $file->getFileUri())) {
       drupal_set_message(t('File upload error. Could not move uploaded file.'), 'error');
-      watchdog('file', 'Upload error. Could not move uploaded file %file to destination %destination.', array('%file' => $file->filename, '%destination' => $file->uri));
+      \Drupal::logger('file')->notice('Upload error. Could not move uploaded file %file to destination %destination.', array('%file' => $file->filename, '%destination' => $file->uri));
       $files[$i] = FALSE;
       continue;
     }
@@ -1052,15 +1051,15 @@ function file_tokens($type, $tokens, array $data = array(), array $options = arr
 
         // Essential file data
         case 'name':
-          $replacements[$original] = $sanitize ? check_plain($file->getFilename()) : $file->getFilename();
+          $replacements[$original] = $sanitize ? String::checkPlain($file->getFilename()) : $file->getFilename();
           break;
 
         case 'path':
-          $replacements[$original] = $sanitize ? check_plain($file->getFileUri()) : $file->getFileUri();
+          $replacements[$original] = $sanitize ? String::checkPlain($file->getFileUri()) : $file->getFileUri();
           break;
 
         case 'mime':
-          $replacements[$original] = $sanitize ? check_plain($file->getMimeType()) : $file->getMimeType();
+          $replacements[$original] = $sanitize ? String::checkPlain($file->getMimeType()) : $file->getMimeType();
           break;
 
         case 'size':
@@ -1068,7 +1067,7 @@ function file_tokens($type, $tokens, array $data = array(), array $options = arr
           break;
 
         case 'url':
-          $replacements[$original] = $sanitize ? check_plain(file_create_url($file->getFileUri())) : file_create_url($file->getFileUri());
+          $replacements[$original] = $sanitize ? String::checkPlain(file_create_url($file->getFileUri())) : file_create_url($file->getFileUri());
           break;
 
         // These tokens are default variations on the chained tokens handled below.
@@ -1082,7 +1081,7 @@ function file_tokens($type, $tokens, array $data = array(), array $options = arr
 
         case 'owner':
           $name = $file->getOwner()->label();
-          $replacements[$original] = $sanitize ? check_plain($name) : $name;
+          $replacements[$original] = $sanitize ? String::checkPlain($name) : $name;
           break;
       }
     }
@@ -1511,7 +1510,7 @@ function file_managed_file_save_upload($element, array &$form_state) {
 
   $destination = isset($element['#upload_location']) ? $element['#upload_location'] : NULL;
   if (isset($destination) && !file_prepare_directory($destination, FILE_CREATE_DIRECTORY)) {
-    watchdog('file', 'The upload directory %directory for the file field !name could not be created or is not accessible. A newly uploaded file could not be saved in this directory as a consequence, and the upload was canceled.', array('%directory' => $destination, '!name' => $element['#field_name']));
+    \Drupal::logger('file')->notice('The upload directory %directory for the file field !name could not be created or is not accessible. A newly uploaded file could not be saved in this directory as a consequence, and the upload was canceled.', array('%directory' => $destination, '!name' => $element['#field_name']));
     form_set_error($upload_name, $form_state, t('The file could not be uploaded.'));
     return FALSE;
   }
@@ -1521,7 +1520,7 @@ function file_managed_file_save_upload($element, array &$form_state) {
   $files_uploaded |= !$element['#multiple'] && !empty($file_upload);
   if ($files_uploaded) {
     if (!$files = file_save_upload($upload_name, $element['#upload_validators'], $destination)) {
-      watchdog('file', 'The file upload failed. %upload', array('%upload' => $upload_name));
+      \Drupal::logger('file')->notice('The file upload failed. %upload', array('%upload' => $upload_name));
       form_set_error($upload_name, $form_state, t('Files in the !name field were unable to be uploaded.', array('!name' => $element['#title'])));
       return array();
     }
@@ -1537,32 +1536,25 @@ function file_managed_file_save_upload($element, array &$form_state) {
 }
 
 /**
- * Returns HTML for a managed file element.
+ * Prepares variables for file form widget templates.
  *
- * @param $variables
+ * Default template: file-managed-file.html.twig.
+ *
+ * @param array $variables
  *   An associative array containing:
  *   - element: A render element representing the file.
- *
- * @ingroup themeable
  */
-function theme_file_managed_file($variables) {
+function template_preprocess_file_managed_file(&$variables) {
   $element = $variables['element'];
 
-  $attributes = array();
+  $variables['attributes'] = array();
   if (isset($element['#id'])) {
-    $attributes['id'] = $element['#id'];
+    $variables['attributes']['id'] = $element['#id'];
   }
   if (!empty($element['#attributes']['class'])) {
-    $attributes['class'] = (array) $element['#attributes']['class'];
+    $variables['attributes']['class'] = (array) $element['#attributes']['class'];
   }
-  $attributes['class'][] = 'form-managed-file';
-
-  // This wrapper is required to apply JS behaviors and CSS styling.
-  $output = '';
-  $output .= '<div' . new Attribute($attributes) . '>';
-  $output .= drupal_render_children($element);
-  $output .= '</div>';
-  return $output;
+  $variables['attributes']['class'][] = 'form-managed-file';
 }
 
 /**
@@ -1601,23 +1593,33 @@ function file_managed_file_pre_render($element) {
 }
 
 /**
- * Returns HTML for a link to a file.
+ * Prepares variables for file link templates.
  *
- * @param $variables
+ * Default template: file-link.html.twig.
+ *
+ * @param array $variables
  *   An associative array containing:
  *   - file: A file object to which the link will be created.
  *   - icon_directory: (optional) A path to a directory of icons to be used for
- *     files. Defaults to the value of the "icon.directory"
- *     variable.
+ *     files. Defaults to the value of the "icon.directory" variable.
  *   - description: A description to be displayed instead of the filename.
  *   - attributes: An associative array of attributes to be placed in the a tag.
- *
- * @ingroup themeable
  */
-function theme_file_link($variables) {
+function template_preprocess_file_link(&$variables) {
   $file = $variables['file'];
   $options = array(
     'attributes' => $variables['attributes'],
+  );
+  $icon_directory = $variables['icon_directory'];
+
+  $url = file_create_url($file->getFileUri());
+  $file_entity = ($file instanceof File) ? $file : file_load($file->fid);
+  $variables['icon'] = array(
+    '#theme' => 'image__file_icon',
+    '#uri' => file_icon_url($file_entity, $icon_directory),
+    '#alt' => '',
+    '#title' => check_plain($file_entity->getFilename()),
+    '#attributes' => array('class' => 'file-icon'),
   );
 
   // Set options as per anchor format described at
@@ -1626,41 +1628,15 @@ function theme_file_link($variables) {
 
   // Use the description as the link text if available.
   if (empty($variables['description'])) {
-    $link_text = $file->getFilename();
+    $link_text = $file_entity->getFilename();
   }
   else {
     $link_text = $variables['description'];
-    $options['attributes']['title'] = check_plain($file->getFilename());
+    $options['attributes']['title'] = String::checkPlain($file_entity->getFilename());
   }
 
-  $file_icon = array(
-    '#theme' => 'file_icon',
-    '#file' => $file,
-    '#icon_directory' => $variables['icon_directory'],
-  );
-
-  return '<span class="file">' . drupal_render($file_icon) . ' ' . l($link_text, file_create_url($file->getFileUri()), $options) . '</span>';
-}
-
-/**
- * Returns HTML for an image with an appropriate icon for the given file.
- *
- * @param $variables
- *   An associative array containing:
- *   - file: A file entity for which to make an icon.
- *   - icon_directory: (optional) A path to a directory of icons to be used for
- *     files. Defaults to the value of the "icon.directory"
- *     variable.
- *
- * @ingroup themeable
- */
-function theme_file_icon($variables) {
-  $file = $variables['file'];
-  $icon_directory = $variables['icon_directory'];
-
-  $mime = check_plain($file->getMimeType());
-  $icon_url = file_icon_url($file, $icon_directory);
-  return '<img class="file-icon" alt="" title="' . $mime . '" src="' . $icon_url . '" />';
+  $variables['link'] = l($link_text, $url, $options);
+  $variables['attributes'] = array('class' => array('file'));
 }
 
 /**

@@ -7,7 +7,7 @@
 
 namespace Drupal\taxonomy\Tests;
 
-use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
 
 /**
  * Tests the rendering of term reference fields in RSS feeds.
@@ -41,7 +41,7 @@ class RssTest extends TaxonomyTestBase {
       'name' => $this->field_name,
       'entity_type' => 'node',
       'type' => 'taxonomy_term_reference',
-      'cardinality' => FieldDefinitionInterface::CARDINALITY_UNLIMITED,
+      'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
       'settings' => array(
         'allowed_values' => array(
           array(
@@ -53,9 +53,8 @@ class RssTest extends TaxonomyTestBase {
     ));
     $this->field->save();
     entity_create('field_instance_config', array(
-      'field_name' => $this->field_name,
+      'field' => $this->field,
       'bundle' => 'article',
-      'entity_type' => 'node',
     ))->save();
     entity_get_form_display('node', 'article', 'default')
       ->setComponent($this->field_name, array(

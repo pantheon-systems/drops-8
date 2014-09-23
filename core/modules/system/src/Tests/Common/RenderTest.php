@@ -500,7 +500,7 @@ class RenderTest extends DrupalUnitTestBase {
       '#markup' => '<p>#cache enabled, GET</p>',
       '#attached' => $test_element['#attached'],
       '#post_render_cache' => $test_element['#post_render_cache'],
-      '#cache' => array('tags' => array()),
+      '#cache' => array('tags' => array('rendered' => TRUE)),
     );
     $this->assertIdentical($cached_element, $expected_element, 'The correct data is cached: the stored #markup and #attached properties are not affected by #post_render_cache callbacks.');
 
@@ -617,7 +617,7 @@ class RenderTest extends DrupalUnitTestBase {
           $context_3,
         )
       ),
-      '#cache' => array('tags' => array()),
+      '#cache' => array('tags' => array('rendered' => TRUE)),
     );
 
     $dom = Html::load($cached_element['#markup']);
@@ -698,7 +698,7 @@ class RenderTest extends DrupalUnitTestBase {
           $context_3,
         )
       ),
-      '#cache' => array('tags' => array()),
+      '#cache' => array('tags' => array('rendered' => TRUE)),
     );
 
     $dom = Html::load($cached_parent_element['#markup']);
@@ -724,7 +724,7 @@ class RenderTest extends DrupalUnitTestBase {
           $context_3,
         )
       ),
-      '#cache' => array('tags' => array()),
+      '#cache' => array('tags' => array('rendered' => TRUE)),
     );
 
     $dom = Html::load($cached_child_element['#markup']);
@@ -771,16 +771,18 @@ class RenderTest extends DrupalUnitTestBase {
   function testDrupalRenderRenderCachePlaceholder() {
     $context = array(
       'bar' => $this->randomContextValue(),
-      'token' => drupal_render_cache_generate_token(),
     );
     $callback = 'common_test_post_render_cache_placeholder';
+    $placeholder = drupal_render_cache_generate_placeholder($callback, $context);
+    $this->assertIdentical($placeholder, Html::normalize($placeholder), 'Placeholder unaltered by Html::normalize() which is used by FilterHtmlCorrector.');
+
     $test_element = array(
       '#post_render_cache' => array(
         $callback => array(
           $context
         ),
       ),
-      '#markup' => drupal_render_cache_generate_placeholder($callback, $context, $context['token']),
+      '#markup' => $placeholder,
       '#prefix' => '<foo>',
       '#suffix' => '</foo>'
     );
@@ -825,13 +827,13 @@ class RenderTest extends DrupalUnitTestBase {
     $this->assertIdentical($token, $expected_token, 'The tokens are identical');
     // Verify the token is in the cached element.
     $expected_element = array(
-      '#markup' => '<foo><drupal:render-cache-placeholder callback="common_test_post_render_cache_placeholder" context="bar:' . $context['bar'] . ';token:' . $expected_token . ';" token="'. $expected_token . '" /></foo>',
+      '#markup' => '<foo><drupal-render-cache-placeholder callback="common_test_post_render_cache_placeholder" token="'. $expected_token . '"></drupal-render-cache-placeholder></foo>',
       '#post_render_cache' => array(
         'common_test_post_render_cache_placeholder' => array(
           $context
         ),
       ),
-      '#cache' => array('tags' => array()),
+      '#cache' => array('tags' => array('rendered' => TRUE)),
     );
     $this->assertIdentical($cached_element, $expected_element, 'The correct data is cached: the stored #markup and #attached properties are not affected by #post_render_cache callbacks.');
 
@@ -860,16 +862,16 @@ class RenderTest extends DrupalUnitTestBase {
     );
     $context = array(
       'bar' => $this->randomContextValue(),
-      'token' => drupal_render_cache_generate_token(),
     );
     $callback = 'common_test_post_render_cache_placeholder';
+    $placeholder = drupal_render_cache_generate_placeholder($callback, $context);
     $test_element = array(
       '#post_render_cache' => array(
         $callback => array(
           $context
         ),
       ),
-      '#markup' => drupal_render_cache_generate_placeholder($callback, $context, $context['token']),
+      '#markup' => $placeholder,
       '#prefix' => '<foo>',
       '#suffix' => '</foo>'
     );
@@ -923,13 +925,13 @@ class RenderTest extends DrupalUnitTestBase {
     $this->assertIdentical($token, $expected_token, 'The tokens are identical for the child element');
     // Verify the token is in the cached element.
     $expected_element = array(
-      '#markup' => '<foo><drupal:render-cache-placeholder callback="common_test_post_render_cache_placeholder" context="bar:' . $context['bar'] . ';token:' . $expected_token . ';" token="'. $expected_token . '" /></foo>',
+      '#markup' => '<foo><drupal-render-cache-placeholder callback="common_test_post_render_cache_placeholder" token="'. $expected_token . '"></drupal-render-cache-placeholder></foo>',
       '#post_render_cache' => array(
         'common_test_post_render_cache_placeholder' => array(
           $context,
         ),
       ),
-      '#cache' => array('tags' => array()),
+      '#cache' => array('tags' => array('rendered' => TRUE)),
     );
     $this->assertIdentical($cached_element, $expected_element, 'The correct data is cached for the child element: the stored #markup and #attached properties are not affected by #post_render_cache callbacks.');
 
@@ -948,13 +950,13 @@ class RenderTest extends DrupalUnitTestBase {
     $this->assertIdentical($token, $expected_token, 'The tokens are identical for the parent element');
     // Verify the token is in the cached element.
     $expected_element = array(
-      '#markup' => '<div><foo><drupal:render-cache-placeholder callback="common_test_post_render_cache_placeholder" context="bar:' . $context['bar'] . ';token:' . $expected_token . ';" token="'. $expected_token . '" /></foo></div>' . "\n",
+      '#markup' => '<div><foo><drupal-render-cache-placeholder callback="common_test_post_render_cache_placeholder" token="'. $expected_token . '"></drupal-render-cache-placeholder></foo></div>' . "\n",
       '#post_render_cache' => array(
         'common_test_post_render_cache_placeholder' => array(
           $context,
         ),
       ),
-      '#cache' => array('tags' => array()),
+      '#cache' => array('tags' => array('rendered' => TRUE)),
     );
     $this->assertIdentical($cached_element, $expected_element, 'The correct data is cached for the parent element: the stored #markup and #attached properties are not affected by #post_render_cache callbacks.');
 
@@ -977,13 +979,13 @@ class RenderTest extends DrupalUnitTestBase {
     $this->assertIdentical($token, $expected_token, 'The tokens are identical for the child element');
     // Verify the token is in the cached element.
     $expected_element = array(
-      '#markup' => '<foo><drupal:render-cache-placeholder callback="common_test_post_render_cache_placeholder" context="bar:' . $context['bar'] . ';token:' . $expected_token . ';" token="'. $expected_token . '" /></foo>',
+      '#markup' => '<foo><drupal-render-cache-placeholder callback="common_test_post_render_cache_placeholder" token="'. $expected_token . '"></drupal-render-cache-placeholder></foo>',
       '#post_render_cache' => array(
         'common_test_post_render_cache_placeholder' => array(
           $context,
         ),
       ),
-      '#cache' => array('tags' => array()),
+      '#cache' => array('tags' => array('rendered' => TRUE)),
     );
     $this->assertIdentical($cached_element, $expected_element, 'The correct data is cached for the child element: the stored #markup and #attached properties are not affected by #post_render_cache callbacks.');
 

@@ -8,21 +8,21 @@
 namespace Drupal\field\Plugin\views\field;
 
 use Drupal\Component\Utility\Xss;
+use Drupal\Core\Entity\ContentEntityDatabaseStorage;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityManagerInterface;
-use Drupal\Core\Field\FieldDefinition;
 use Drupal\Core\Entity\EntityStorageInterface;
-use Drupal\Core\Render\Element;
-use Drupal\Core\Entity\ContentEntityDatabaseStorage;
-use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Field\FieldDefinition;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Field\FormatterPluginManager;
-use Drupal\Core\Language\Language;
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Language\LanguageManager;
+use Drupal\Core\Render\Element;
 use Drupal\Core\Session\AccountInterface;
-use Drupal\views\Views;
-use Drupal\views\ViewExecutable;
 use Drupal\views\Plugin\views\display\DisplayPluginBase;
 use Drupal\views\Plugin\views\field\FieldPluginBase;
+use Drupal\views\ViewExecutable;
+use Drupal\views\Views;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -181,8 +181,8 @@ class Field extends FieldPluginBase {
     $this->limit_values = FALSE;
 
     $field_definition = $this->getFieldDefinition();
-    $cardinality = $field_definition->getCardinality();
-    if ($field_definition->isMultiple()) {
+    $cardinality = $field_definition->getFieldStorageDefinition()->getCardinality();
+    if ($field_definition->getFieldStorageDefinition()->isMultiple()) {
       $this->multiple = TRUE;
 
       // If "Display all values in the same row" is FALSE, then we always limit
@@ -290,12 +290,14 @@ class Field extends FieldPluginBase {
       $field = $field_definition;
       if ($field->isTranslatable() && !empty($this->view->display_handler->options['field_langcode_add_to_query'])) {
         $column = $this->tableAlias . '.langcode';
-        // By the same reason as field_language the field might be Language::LANGCODE_NOT_SPECIFIED in reality so allow it as well.
+        // By the same reason as field_language the field might be
+        // LanguageInterface::LANGCODE_NOT_SPECIFIED in reality so allow it as
+        // well.
         // @see this::field_langcode()
         $default_langcode = language_default()->id;
         $langcode = str_replace(
           array('***CURRENT_LANGUAGE***', '***DEFAULT_LANGUAGE***'),
-          array($this->languageManager->getCurrentLanguage(Language::TYPE_CONTENT), $default_langcode),
+          array($this->languageManager->getCurrentLanguage(LanguageInterface::TYPE_CONTENT), $default_langcode),
           $this->view->display_handler->options['field_langcode']
         );
         $placeholder = $this->placeholder();
@@ -532,7 +534,7 @@ class Field extends FieldPluginBase {
     // translating prefix and suffix separately.
     list($prefix, $suffix) = explode('@count', t('Display @count value(s)'));
 
-    if ($field->getCardinality() == FieldDefinitionInterface::CARDINALITY_UNLIMITED) {
+    if ($field->getCardinality() == FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED) {
       $type = 'textfield';
       $options = NULL;
       $size = 5;
@@ -902,21 +904,21 @@ class Field extends FieldPluginBase {
       $default_langcode = language_default()->id;
       $langcode = str_replace(
         array('***CURRENT_LANGUAGE***', '***DEFAULT_LANGUAGE***'),
-        array($this->languageManager->getCurrentLanguage(Language::TYPE_CONTENT), $default_langcode),
-        $this->view->display_handler->options['field_language']
+        array($this->languageManager->getCurrentLanguage(LanguageInterface::TYPE_CONTENT)->id, $default_langcode),
+        $this->view->display_handler->options['field_langcode']
       );
 
       // Give the Entity Field API a chance to fallback to a different language
-      // (or Language::LANGCODE_NOT_SPECIFIED), in case the field has no data
-      // for the selected language. FieldItemListInterface::view() does this as
-      // well, but since the returned language code is used before calling it,
-      // the fallback needs to happen explicitly.
+      // (or LanguageInterface::LANGCODE_NOT_SPECIFIED), in case the field has
+      // no data for the selected language. FieldItemListInterface::view() does
+      // this as well, but since the returned language code is used before
+      // calling it, the fallback needs to happen explicitly.
       $langcode = $this->entityManager->getTranslationFromContext($entity, $langcode)->language()->id;
 
       return $langcode;
     }
     else {
-      return Language::LANGCODE_NOT_SPECIFIED;
+      return LanguageInterface::LANGCODE_NOT_SPECIFIED;
     }
   }
 

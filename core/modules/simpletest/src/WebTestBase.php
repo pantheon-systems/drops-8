@@ -16,17 +16,21 @@ use Drupal\Core\DrupalKernel;
 use Drupal\Core\Database\Database;
 use Drupal\Core\Database\ConnectionNotDefinedException;
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\Core\Language\Language;
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Session\AnonymousUserSession;
 use Drupal\Core\Session\UserSession;
+use Drupal\Core\Site\Settings;
 use Drupal\Core\StreamWrapper\PublicStream;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\block\Entity\Block;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\CssSelector\CssSelector;
 
 /**
  * Test case for typical Drupal tests.
+ *
+ * @ingroup testing
  */
 abstract class WebTestBase extends TestBase {
 
@@ -172,6 +176,8 @@ abstract class WebTestBase extends TestBase {
 
   /**
    * The kernel used in this test.
+   *
+   * @var \Drupal\Core\DrupalKernel
    */
   protected $kernel;
 
@@ -251,7 +257,7 @@ abstract class WebTestBase extends TestBase {
    *   - status: NODE_PUBLISHED.
    *   - sticky: NODE_NOT_STICKY.
    *   - type: 'page'.
-   *   - langcode: Language::LANGCODE_NOT_SPECIFIED.
+   *   - langcode: LanguageInterface::LANGCODE_NOT_SPECIFIED.
    *   - uid: The currently logged in user, or the user running test.
    *   - revision: 1. (Backwards-compatible binary flag indicating whether a
    *     new revision should be created; use 1 to specify a new revision.)
@@ -270,7 +276,7 @@ abstract class WebTestBase extends TestBase {
       'status'    => NODE_PUBLISHED,
       'sticky'    => NODE_NOT_STICKY,
       'type'      => 'page',
-      'langcode'  => Language::LANGCODE_NOT_SPECIFIED,
+      'langcode'  => LanguageInterface::LANGCODE_NOT_SPECIFIED,
     );
 
     // Use the original node's created time for existing nodes.
@@ -285,7 +291,7 @@ abstract class WebTestBase extends TestBase {
         $settings['uid'] = $this->loggedInUser->id();
       }
       else {
-        $user = \Drupal::currentUser() ?: drupal_anonymous_user();
+        $user = \Drupal::currentUser() ?: new AnonymousUserSession();
         $settings['uid'] = $user->id();
       }
     }
@@ -401,7 +407,7 @@ abstract class WebTestBase extends TestBase {
    *   @endcode
    *   The following defaults are provided:
    *   - label: Random string.
-   *   - id: Random string.
+   *   - ID: Random string.
    *   - region: 'sidebar_first'.
    *   - theme: The default theme.
    *   - visibility: Empty array.
@@ -426,10 +432,13 @@ abstract class WebTestBase extends TestBase {
         'max_age' => 0,
       ),
     );
-    foreach (array('region', 'id', 'theme', 'plugin', 'visibility', 'weight') as $key) {
+    foreach (array('region', 'id', 'theme', 'plugin', 'weight') as $key) {
       $values[$key] = $settings[$key];
       // Remove extra values that do not belong in the settings array.
       unset($settings[$key]);
+    }
+    foreach ($settings['visibility'] as $id => $visibility) {
+      $settings['visibility'][$id]['id'] = $id;
     }
     $values['settings'] = $settings;
     $block = entity_create('block', $values);
@@ -818,7 +827,8 @@ abstract class WebTestBase extends TestBase {
     // Copy and prepare an actual settings.php, so as to resemble a regular
     // installation.
     // Not using File API; a potential error must trigger a PHP warning.
-    copy(DRUPAL_ROOT . '/sites/default/default.settings.php', DRUPAL_ROOT . '/' . $this->siteDirectory . '/settings.php');
+    $directory = DRUPAL_ROOT . '/' . $this->siteDirectory;
+    copy(DRUPAL_ROOT . '/sites/default/default.settings.php', $directory . '/settings.php');
 
     // All file system paths are created by System module during installation.
     // @see system_requirements()
@@ -842,18 +852,32 @@ abstract class WebTestBase extends TestBase {
       'required' => TRUE,
     );
     $this->writeSettings($settings);
+    // Allow for test-specific overrides.
+    $settings_testing_file = DRUPAL_ROOT . '/' . $this->originalSite . '/settings.testing.php';
+    if (file_exists($settings_testing_file)) {
+      // Copy the testing-specific settings.php overrides in place.
+      copy($settings_testing_file, $directory . '/settings.testing.php');
+      // Add the name of the testing class to settings.php and include the
+      // testing specific overrides
+      file_put_contents($directory . '/settings.php', "\n\$test_class = '" . get_class($this) ."';\n" . 'include DRUPAL_ROOT . \'/\' . $site_path . \'/settings.testing.php\';' ."\n", FILE_APPEND);
+    }
+    $settings_services_file = DRUPAL_ROOT . '/' . $this->originalSite . '/testing.services.yml';
+    if (file_exists($settings_services_file)) {
+      // Copy the testing-specific service overrides in place.
+      copy($settings_services_file, $directory . '/services.yml');
+    }
 
     // Since Drupal is bootstrapped already, install_begin_request() will not
     // bootstrap into DRUPAL_BOOTSTRAP_CONFIGURATION (again). Hence, we have to
     // reload the newly written custom settings.php manually.
-    drupal_settings_initialize();
+    Settings::initialize($directory);
 
     // Execute the non-interactive installer.
     require_once DRUPAL_ROOT . '/core/includes/install.core.inc';
     install_drupal($parameters);
 
     // Import new settings.php written by the installer.
-    drupal_settings_initialize();
+    Settings::initialize($directory);
     foreach ($GLOBALS['config_directories'] as $type => $path) {
       $this->configDirectories[$type] = $path;
     }
@@ -864,9 +888,15 @@ abstract class WebTestBase extends TestBase {
     // directory has to be writable.
     // TestBase::restoreEnvironment() will delete the entire site directory.
     // Not using File API; a potential error must trigger a PHP warning.
-    chmod(DRUPAL_ROOT . '/' . $this->siteDirectory, 0777);
+    chmod($directory, 0777);
 
-    $this->rebuildContainer();
+    $request = \Drupal::request();
+    $this->kernel = DrupalKernel::createFromRequest($request, drupal_classloader(), 'prod', TRUE);
+    // Force the container to be built from scratch instead of loaded from the
+    // disk. This forces us to not accidently load the parent site.
+    $container = $this->kernel->rebuildContainer();
+    $this->kernel->prepareLegacyRequest($request);
+    $config = $container->get('config.factory');
 
     // Manually create and configure private and temporary files directories.
     // While these could be preset/enforced in settings.php like the public
@@ -874,16 +904,16 @@ abstract class WebTestBase extends TestBase {
     // UI. If declared in settings.php, they would no longer be configurable.
     file_prepare_directory($this->private_files_directory, FILE_CREATE_DIRECTORY);
     file_prepare_directory($this->temp_files_directory, FILE_CREATE_DIRECTORY);
-    \Drupal::config('system.file')
+    $config->get('system.file')
       ->set('path.private', $this->private_files_directory)
       ->set('path.temporary', $this->temp_files_directory)
       ->save();
 
     // Manually configure the test mail collector implementation to prevent
-    // tests from sending out e-mails and collect them in state instead.
+    // tests from sending out emails and collect them in state instead.
     // While this should be enforced via settings.php prior to installation,
     // some tests expect to be able to test mail system implementations.
-    \Drupal::config('system.mail')
+    $config->get('system.mail')
       ->set('interface.default', 'test_mail_collector')
       ->save();
 
@@ -891,10 +921,10 @@ abstract class WebTestBase extends TestBase {
     // environment optimizations for all tests to avoid needless overhead and
     // ensure a sane default experience for test authors.
     // @see https://drupal.org/node/2259167
-    \Drupal::config('system.logging')
+    $config->get('system.logging')
       ->set('error_level', 'verbose')
       ->save();
-    \Drupal::config('system.performance')
+    $config->get('system.performance')
       ->set('css.preprocess', FALSE)
       ->set('js.preprocess', FALSE)
       ->save();
@@ -914,22 +944,20 @@ abstract class WebTestBase extends TestBase {
     }
     if ($modules) {
       $modules = array_unique($modules);
-      $success = \Drupal::moduleHandler()->install($modules, TRUE);
+      $success = $container->get('module_handler')->install($modules, TRUE);
       $this->assertTrue($success, String::format('Enabled modules: %modules', array('%modules' => implode(', ', $modules))));
       $this->rebuildContainer();
     }
 
-    // Like DRUPAL_BOOTSTRAP_CONFIGURATION above, any further bootstrap phases
-    // are not re-executed by the installer, as Drupal is bootstrapped already.
     // Reset/rebuild all data structures after enabling the modules, primarily
     // to synchronize all data structures and caches between the test runner and
     // the child site.
     // Affects e.g. file_get_stream_wrappers().
-    // @see _drupal_bootstrap_code()
-    // @see _drupal_bootstrap_full()
+    // @see \Drupal\Core\DrupalKernel::bootCode()
     // @todo Test-specific setUp() methods may set up further fixtures; find a
     //   way to execute this after setUp() is done, or to eliminate it entirely.
     $this->resetAll();
+    $this->kernel->prepareLegacyRequest($request);
 
     // Temporary fix so that when running from run-tests.sh we don't get an
     // empty current path which would indicate we're on the home page.
@@ -1079,34 +1107,16 @@ abstract class WebTestBase extends TestBase {
    * @see TestBase::prepareEnvironment()
    * @see TestBase::restoreEnvironment()
    *
-   * @todo Fix http://drupal.org/node/1708692 so that module enable/disable
+   * @todo Fix https://www.drupal.org/node/2021959 so that module enable/disable
    *   changes are immediately reflected in \Drupal::getContainer(). Until then,
    *   tests can invoke this workaround when requiring services from newly
    *   enabled modules to be immediately available in the same request.
    */
-  protected function rebuildContainer($environment = 'prod') {
-    // Preserve the request object after the container rebuild.
+  protected function rebuildContainer() {
+    // Maintain the current global request object.
     $request = \Drupal::request();
-    // When called from InstallerTestBase, the current container is the minimal
-    // container from TestBase::prepareEnvironment(), which does not contain a
-    // request stack.
-    if (\Drupal::getContainer()->initialized('request_stack')) {
-      $request_stack = \Drupal::service('request_stack');
-    }
-
-    $this->kernel = new DrupalKernel($environment, drupal_classloader(), TRUE, FALSE);
-    $this->kernel->boot();
-    // DrupalKernel replaces the container in \Drupal::getContainer() with a
-    // different object, so we need to replace the instance on this test class.
-    $this->container = \Drupal::getContainer();
-    // The current user is set in TestBase::prepareEnvironment().
-    $this->container->set('request', $request);
-    if (isset($request_stack)) {
-      $this->container->set('request_stack', $request_stack);
-    }
-    else {
-      $this->container->get('request_stack')->push($request);
-    }
+    // Rebuild the kernel and bring it back to a fully bootstrapped state.
+    $this->container = $this->kernel->rebuildContainer();
     $this->container->get('current_user')->setAccount(\Drupal::currentUser());
 
     // The request context is normally set by the router_listener from within
@@ -1428,7 +1438,7 @@ abstract class WebTestBase extends TestBase {
    *   TRUE if this test was instantiated in a request within the test site,
    *   FALSE otherwise.
    *
-   * @see _drupal_bootstrap_configuration()
+   * @see \Drupal\Core\DrupalKernel::bootConfiguration()
    */
   protected function isInChildSite() {
     return DRUPAL_TEST_IN_CHILD_SITE;
@@ -1501,7 +1511,7 @@ abstract class WebTestBase extends TestBase {
     $verbose = 'GET request to: ' . $path .
                '<hr />Ending URL: ' . $this->getUrl();
     if ($this->dumpHeaders) {
-      $verbose .= '<hr />Headers: <pre>' . check_plain(var_export(array_map('trim', $this->headers), TRUE)) . '</pre>';
+      $verbose .= '<hr />Headers: <pre>' . String::checkPlain(var_export(array_map('trim', $this->headers), TRUE)) . '</pre>';
     }
     $verbose .= '<hr />' . $out;
 
@@ -1691,7 +1701,7 @@ abstract class WebTestBase extends TestBase {
           $verbose = 'POST request to: ' . $path;
           $verbose .= '<hr />Ending URL: ' . $this->getUrl();
           if ($this->dumpHeaders) {
-            $verbose .= '<hr />Headers: <pre>' . check_plain(var_export(array_map('trim', $this->headers), TRUE)) . '</pre>';
+            $verbose .= '<hr />Headers: <pre>' . String::checkPlain(var_export(array_map('trim', $this->headers), TRUE)) . '</pre>';
           }
           $verbose .= '<hr />Fields: ' . highlight_string('<?php ' . var_export($post_array, TRUE), TRUE);
           $verbose .= '<hr />' . $out;
@@ -2091,7 +2101,7 @@ abstract class WebTestBase extends TestBase {
     if ($this->dumpHeaders) {
       $this->verbose('GET request to: ' . $path .
                      '<hr />Ending URL: ' . $this->getUrl() .
-                     '<hr />Headers: <pre>' . check_plain(var_export(array_map('trim', $this->headers), TRUE)) . '</pre>');
+                     '<hr />Headers: <pre>' . String::checkPlain(var_export(array_map('trim', $this->headers), TRUE)) . '</pre>');
     }
 
     return $out;
@@ -2339,6 +2349,22 @@ abstract class WebTestBase extends TestBase {
   }
 
   /**
+   * Performs a CSS selection based search on the contents of the internal
+   * browser. The search is relative to the root element (HTML tag normally) of
+   * the page.
+   *
+   * @param $selector string
+   *   CSS selector to use in the search.
+   *
+   * @return \SimpleXMLElement
+   *   The return value of the xpath search performed after converting the css
+   *   selector to an XPath selector.
+   */
+  protected function cssSelect($selector) {
+    return $this->xpath(CssSelector::toXPath($selector));
+  }
+
+  /**
    * Get all option elements, including nested options, in a select.
    *
    * @param $element
@@ -2396,8 +2422,6 @@ abstract class WebTestBase extends TestBase {
    *
    * @param $label
    *   Text between the anchor tags.
-   * @param $index
-   *   Link position counting from zero.
    * @param $message
    *   (optional) A message to display with the assertion. Do not translate
    *   messages: use format_string() to embed variables in the message text, not
@@ -2646,14 +2670,14 @@ abstract class WebTestBase extends TestBase {
   }
 
   /**
-   * Gets an array containing all e-mails sent during this test case.
+   * Gets an array containing all emails sent during this test case.
    *
    * @param $filter
-   *   An array containing key/value pairs used to filter the e-mails that are
+   *   An array containing key/value pairs used to filter the emails that are
    *   returned.
    *
    * @return
-   *   An array containing e-mail messages captured during the current test.
+   *   An array containing email messages captured during the current test.
    */
   protected function drupalGetMails($filter = array()) {
     $captured_emails = \Drupal::state()->get('system.test_mail_collector') ?: array();
@@ -2870,7 +2894,7 @@ abstract class WebTestBase extends TestBase {
     if (!$message) {
       $message = !$not_exists ? String::format('"@text" found', array('@text' => $text)) : String::format('"@text" not found', array('@text' => $text));
     }
-    return $this->assert($not_exists == (strpos($this->plainTextContent, $text) === FALSE), $message, $group);
+    return $this->assert($not_exists == (strpos($this->plainTextContent, (string) $text) === FALSE), $message, $group);
   }
 
   /**
@@ -3096,9 +3120,9 @@ abstract class WebTestBase extends TestBase {
    */
   protected function assertThemeOutput($callback, array $variables = array(), $expected, $message = '', $group = 'Other') {
     $output = _theme($callback, $variables);
-    $this->verbose('Variables:' . '<pre>' .  check_plain(var_export($variables, TRUE)) . '</pre>'
-      . '<hr />' . 'Result:' . '<pre>' .  check_plain(var_export($output, TRUE)) . '</pre>'
-      . '<hr />' . 'Expected:' . '<pre>' .  check_plain(var_export($expected, TRUE)) . '</pre>'
+    $this->verbose('Variables:' . '<pre>' .  String::checkPlain(var_export($variables, TRUE)) . '</pre>'
+      . '<hr />' . 'Result:' . '<pre>' .  String::checkPlain(var_export($output, TRUE)) . '</pre>'
+      . '<hr />' . 'Expected:' . '<pre>' .  String::checkPlain(var_export($expected, TRUE)) . '</pre>'
       . '<hr />' . $output
     );
     if (!$message) {
@@ -3114,7 +3138,9 @@ abstract class WebTestBase extends TestBase {
    * @param $xpath
    *   XPath used to find the field.
    * @param $value
-   *   (optional) Value of the field to assert.
+   *   (optional) Value of the field to assert. You may pass in NULL (default)
+   *   to skip checking the actual value, while still checking that the field
+   *   exists.
    * @param $message
    *   (optional) A message to display with the assertion. Do not translate
    *   messages: use format_string() to embed variables in the message text, not
@@ -3189,12 +3215,13 @@ abstract class WebTestBase extends TestBase {
   }
 
   /**
-   * Asserts that a field does not exist in the current page by the given XPath.
+   * Asserts that a field doesn't exist or its value doesn't match, by XPath.
    *
    * @param $xpath
    *   XPath used to find the field.
    * @param $value
-   *   (optional) Value of the field to assert.
+   *   (optional) Value for the field, to assert that the field's value on the
+   *   page doesn't match it.
    * @param $message
    *   (optional) A message to display with the assertion. Do not translate
    *   messages: use format_string() to embed variables in the message text, not
@@ -3232,7 +3259,9 @@ abstract class WebTestBase extends TestBase {
    * @param $name
    *   Name of field to assert.
    * @param $value
-   *   Value of the field to assert.
+   *   (optional) Value of the field to assert. You may pass in NULL (default)
+   *   to skip checking the actual value, while still checking that the field
+   *   exists.
    * @param $message
    *   (optional) A message to display with the assertion. Do not translate
    *   messages: use format_string() to embed variables in the message text, not
@@ -3269,7 +3298,10 @@ abstract class WebTestBase extends TestBase {
    * @param $name
    *   Name of field to assert.
    * @param $value
-   *   Value of the field to assert.
+   *   (optional) Value for the field, to assert that the field's value on the
+   *   page doesn't match it. You may pass in NULL to skip checking the
+   *   value, while still checking that the field doesn't exist. However, the
+   *   default value ('') asserts that the field value is not an empty string.
    * @param $message
    *   (optional) A message to display with the assertion. Do not translate
    *   messages: use format_string() to embed variables in the message text, not
@@ -3288,12 +3320,15 @@ abstract class WebTestBase extends TestBase {
   }
 
   /**
-   * Asserts that a field exists with the given id and value.
+   * Asserts that a field exists with the given ID and value.
    *
    * @param $id
-   *   Id of field to assert.
+   *   ID of field to assert.
    * @param $value
-   *   Value of the field to assert.
+   *   (optional) Value for the field to assert. You may pass in NULL to skip
+   *   checking the value, while still checking that the field exists.
+   *   However, the default value ('') asserts that the field value is an empty
+   *   string.
    * @param $message
    *   (optional) A message to display with the assertion. Do not translate
    *   messages: use format_string() to embed variables in the message text, not
@@ -3312,12 +3347,15 @@ abstract class WebTestBase extends TestBase {
   }
 
   /**
-   * Asserts that a field does not exist with the given id and value.
+   * Asserts that a field does not exist with the given ID and value.
    *
    * @param $id
-   *   Id of field to assert.
+   *   ID of field to assert.
    * @param $value
-   *   Value of the field to assert.
+   *   (optional) Value for the field, to assert that the field's value on the
+   *   page doesn't match it. You may pass in NULL to skip checking the value,
+   *   while still checking that the field doesn't exist. However, the default
+   *   value ('') asserts that the field value is not an empty string.
    * @param $message
    *   (optional) A message to display with the assertion. Do not translate
    *   messages: use format_string() to embed variables in the message text, not
@@ -3339,7 +3377,7 @@ abstract class WebTestBase extends TestBase {
    * Asserts that a checkbox field in the current page is checked.
    *
    * @param $id
-   *   Id of field to assert.
+   *   ID of field to assert.
    * @param $message
    *   (optional) A message to display with the assertion. Do not translate
    *   messages: use format_string() to embed variables in the message text, not
@@ -3362,7 +3400,7 @@ abstract class WebTestBase extends TestBase {
    * Asserts that a checkbox field in the current page is not checked.
    *
    * @param $id
-   *   Id of field to assert.
+   *   ID of field to assert.
    * @param $message
    *   (optional) A message to display with the assertion. Do not translate
    *   messages: use format_string() to embed variables in the message text, not
@@ -3385,7 +3423,7 @@ abstract class WebTestBase extends TestBase {
    * Asserts that a select option in the current page exists.
    *
    * @param $id
-   *   Id of select field to assert.
+   *   ID of select field to assert.
    * @param $option
    *   Option to assert.
    * @param $message
@@ -3410,7 +3448,7 @@ abstract class WebTestBase extends TestBase {
    * Asserts that a select option in the current page does not exist.
    *
    * @param $id
-   *   Id of select field to assert.
+   *   ID of select field to assert.
    * @param $option
    *   Option to assert.
    * @param $message
@@ -3436,7 +3474,7 @@ abstract class WebTestBase extends TestBase {
    * Asserts that a select option in the current page is checked.
    *
    * @param $id
-   *   Id of select field to assert.
+   *   ID of select field to assert.
    * @param $option
    *   Option to assert.
    * @param $message
@@ -3463,7 +3501,7 @@ abstract class WebTestBase extends TestBase {
    * Asserts that a select option in the current page is not checked.
    *
    * @param $id
-   *   Id of select field to assert.
+   *   ID of select field to assert.
    * @param $option
    *   Option to assert.
    * @param $message
@@ -3485,10 +3523,10 @@ abstract class WebTestBase extends TestBase {
   }
 
   /**
-   * Asserts that a field exists with the given name or id.
+   * Asserts that a field exists with the given name or ID.
    *
    * @param $field
-   *   Name or id of field to assert.
+   *   Name or ID of field to assert.
    * @param $message
    *   (optional) A message to display with the assertion. Do not translate
    *   messages: use format_string() to embed variables in the message text, not
@@ -3507,10 +3545,10 @@ abstract class WebTestBase extends TestBase {
   }
 
   /**
-   * Asserts that a field does not exist with the given name or id.
+   * Asserts that a field does not exist with the given name or ID.
    *
    * @param $field
-   *   Name or id of field to assert.
+   *   Name or ID of field to assert.
    * @param $message
    *   (optional) A message to display with the assertion. Do not translate
    *   messages: use format_string() to embed variables in the message text, not
@@ -3631,7 +3669,7 @@ abstract class WebTestBase extends TestBase {
   }
 
   /**
-   * Asserts that the most recently sent e-mail message has the given value.
+   * Asserts that the most recently sent email message has the given value.
    *
    * The field in $name must have the content described in $value.
    *
@@ -3647,20 +3685,20 @@ abstract class WebTestBase extends TestBase {
    * @param $group
    *   (optional) The group this message is in, which is displayed in a column
    *   in test output. Use 'Debug' to indicate this is debugging output. Do not
-   *   translate this string. Defaults to 'E-mail'; most tests do not override
+   *   translate this string. Defaults to 'Email'; most tests do not override
    *   this default.
    *
    * @return
    *   TRUE on pass, FALSE on fail.
    */
-  protected function assertMail($name, $value = '', $message = '', $group = 'E-mail') {
+  protected function assertMail($name, $value = '', $message = '', $group = 'Email') {
     $captured_emails = \Drupal::state()->get('system.test_mail_collector') ?: array();
     $email = end($captured_emails);
     return $this->assertTrue($email && isset($email[$name]) && $email[$name] == $value, $message, $group);
   }
 
   /**
-   * Asserts that the most recently sent e-mail message has the string in it.
+   * Asserts that the most recently sent email message has the string in it.
    *
    * @param $field_name
    *   Name of field or message property to assert: subject, body, id, ...
@@ -3702,7 +3740,7 @@ abstract class WebTestBase extends TestBase {
   }
 
   /**
-   * Asserts that the most recently sent e-mail message has the pattern in it.
+   * Asserts that the most recently sent email message has the pattern in it.
    *
    * @param $field_name
    *   Name of field or message property to assert: subject, body, id, ...

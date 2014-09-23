@@ -11,7 +11,7 @@ use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\FieldDefinition;
-use Drupal\Core\Language\Language;
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\node\NodeInterface;
 use Drupal\user\UserInterface;
@@ -65,28 +65,32 @@ class Node extends ContentEntityBase implements NodeInterface {
   /**
    * {@inheritdoc}
    */
+  public function preSave(EntityStorageInterface $storage) {
+    parent::preSave($storage);
+
+    // If no owner has been set explicitly, make the current user the owner.
+    if (!$this->getOwner()) {
+      $this->setOwnerId(\Drupal::currentUser()->id());
+    }
+    // If no revision author has been set explicitly, make the node owner the
+    // revision author.
+    if (!$this->getRevisionAuthor()) {
+      $this->setRevisionAuthorId($this->getOwnerId());
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function preSaveRevision(EntityStorageInterface $storage, \stdClass $record) {
     parent::preSaveRevision($storage, $record);
 
-    if ($this->newRevision) {
-      // When inserting either a new node or a new node revision, $node->log
-      // must be set because {node_field_revision}.log is a text column and
-      // therefore cannot have a default value. However, it might not be set at
-      // this point (for example, if the user submitting a node form does not
-      // have permission to create revisions), so we ensure that it is at least
-      // an empty string in that case.
-      // @todo Make the {node_field_revision}.log column nullable so that we
-      //   can remove this check.
-      if (!isset($record->log)) {
-        $record->log = '';
-      }
-    }
-    elseif (isset($this->original) && (!isset($record->log) || $record->log === '')) {
+    if (!$this->isNewRevision() && isset($this->original) && (!isset($record->revision_log) || $record->revision_log === '')) {
       // If we are updating an existing node without adding a new revision, we
-      // need to make sure $entity->log is reset whenever it is empty.
+      // need to make sure $entity->revision_log is reset whenever it is empty.
       // Therefore, this code allows us to avoid clobbering an existing log
       // entry with an empty one.
-      $record->log = $this->original->log->value;
+      $record->revision_log = $this->original->revision_log->value;
     }
   }
 
@@ -163,7 +167,7 @@ class Node extends ContentEntityBase implements NodeInterface {
       // Load languages the node exists in.
       $node_translations = $this->getTranslationLanguages();
       // Load the language from content negotiation.
-      $content_negotiation_langcode = \Drupal::languageManager()->getCurrentLanguage(Language::TYPE_CONTENT)->id;
+      $content_negotiation_langcode = \Drupal::languageManager()->getCurrentLanguage(LanguageInterface::TYPE_CONTENT)->id;
       // If there is a translation available, use it.
       if (isset($node_translations[$content_negotiation_langcode])) {
         $langcode = $content_negotiation_langcode;
@@ -353,10 +357,8 @@ class Node extends ContentEntityBase implements NodeInterface {
       ->setRequired(TRUE)
       ->setTranslatable(TRUE)
       ->setRevisionable(TRUE)
-      ->setSettings(array(
-        'default_value' => '',
-        'max_length' => 255,
-      ))
+      ->setDefaultValue('')
+      ->setSetting('max_length', 255)
       ->setDisplayOptions('view', array(
         'label' => 'hidden',
         'type' => 'string',
@@ -372,10 +374,7 @@ class Node extends ContentEntityBase implements NodeInterface {
       ->setLabel(t('Author'))
       ->setDescription(t('The user that is the node author.'))
       ->setRevisionable(TRUE)
-      ->setSettings(array(
-        'target_type' => 'user',
-        'default_value' => 0,
-      ))
+      ->setSetting('target_type', 'user')
       ->setTranslatable(TRUE);
 
     $fields['status'] = FieldDefinition::create('boolean')
@@ -408,7 +407,7 @@ class Node extends ContentEntityBase implements NodeInterface {
       ->setRevisionable(TRUE)
       ->setTranslatable(TRUE);
 
-    $fields['revision_timestamp'] = FieldDefinition::create('timestamp')
+    $fields['revision_timestamp'] = FieldDefinition::create('created')
       ->setLabel(t('Revision timestamp'))
       ->setDescription(t('The time that the current revision was created.'))
       ->setQueryable(FALSE)
@@ -417,12 +416,12 @@ class Node extends ContentEntityBase implements NodeInterface {
     $fields['revision_uid'] = FieldDefinition::create('entity_reference')
       ->setLabel(t('Revision user ID'))
       ->setDescription(t('The user ID of the author of the current revision.'))
-      ->setSettings(array('target_type' => 'user'))
+      ->setSetting('target_type', 'user')
       ->setQueryable(FALSE)
       ->setRevisionable(TRUE);
 
-    $fields['log'] = FieldDefinition::create('string')
-      ->setLabel(t('Log'))
+    $fields['revision_log'] = FieldDefinition::create('string_long')
+      ->setLabel(t('Revision log message'))
       ->setDescription(t('The log entry explaining the changes in this revision.'))
       ->setRevisionable(TRUE)
       ->setTranslatable(TRUE);
@@ -436,10 +435,30 @@ class Node extends ContentEntityBase implements NodeInterface {
   public static function bundleFieldDefinitions(EntityTypeInterface $entity_type, $bundle, array $base_field_definitions) {
     $node_type = node_type_load($bundle);
     $fields = array();
+
+    // When deleting a node type the corresponding node displays are deleted as
+    // well. In order to be deleted, they need to be loaded first. Entity
+    // displays, however, fetch the field definitions of the respective entity
+    // type to fill in their defaults. Therefore this function ends up being
+    // called with a non-existing bundle.
+    // @todo Fix this in https://drupal.org/node/2248795
+    if (!$node_type) {
+      return $fields;
+    }
+
     if (isset($node_type->title_label)) {
       $fields['title'] = clone $base_field_definitions['title'];
       $fields['title']->setLabel($node_type->title_label);
     }
+
+    $options = $node_type->getModuleSettings('node')['options'];
+    $fields['status'] = clone $base_field_definitions['status'];
+    $fields['status']->setDefaultValue(!empty($options['status']) ? NODE_PUBLISHED : NODE_NOT_PUBLISHED);
+    $fields['promote'] = clone $base_field_definitions['promote'];
+    $fields['promote']->setDefaultValue(!empty($options['promote']) ? NODE_PROMOTED : NODE_NOT_PROMOTED);
+    $fields['sticky'] = clone $base_field_definitions['sticky'];
+    $fields['sticky']->setDefaultValue(!empty($options['sticky']) ? NODE_STICKY : NODE_NOT_STICKY);
+
     return $fields;
   }
 

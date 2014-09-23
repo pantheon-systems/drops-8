@@ -10,11 +10,12 @@ namespace Drupal\Core\Field;
 use Drupal\Component\Plugin\Factory\DefaultFactory;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
-use Drupal\Core\Language\LanguageManager;
 use Drupal\Core\Plugin\DefaultPluginManager;
 
 /**
  * Plugin type manager for field widgets.
+ *
+ * @ingroup field_widget
  */
 class WidgetPluginManager extends DefaultPluginManager {
 
@@ -42,15 +43,13 @@ class WidgetPluginManager extends DefaultPluginManager {
    *   Cache backend instance to use.
    * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
    *   The module handler.
-   * @param \Drupal\Core\Language\LanguageManager $language_manager
-   *   The language manager.
    * @param \Drupal\Core\Field\FieldTypePluginManagerInterface $field_type_manager
    *   The 'field type' plugin manager.
    */
-  public function __construct(\Traversable $namespaces, CacheBackendInterface $cache_backend, ModuleHandlerInterface $module_handler, LanguageManager $language_manager, FieldTypePluginManagerInterface $field_type_manager) {
+  public function __construct(\Traversable $namespaces, CacheBackendInterface $cache_backend, ModuleHandlerInterface $module_handler, FieldTypePluginManagerInterface $field_type_manager) {
     parent::__construct('Plugin/Field/FieldWidget', $namespaces, $module_handler, 'Drupal\Core\Field\Annotation\FieldWidget');
 
-    $this->setCacheBackend($cache_backend, $language_manager, 'field_widget_types_plugins');
+    $this->setCacheBackend($cache_backend, 'field_widget_types_plugins');
     $this->alterInfo('field_widget_info');
 
     $this->factory = new WidgetFactory($this);
@@ -74,6 +73,8 @@ class WidgetPluginManager extends DefaultPluginManager {
    *       used if the requested widget is not available.
    *     - settings: (array) Settings specific to the widget. Each setting
    *       defaults to the default value specified in the widget definition.
+   *     - third_party_settings: (array) Settings provided by other extensions
+   *       through hook_field_formatter_third_party_settings_form().
    *
    * @return \Drupal\Core\Field\WidgetInterface|null
    *   A Widget object or NULL when plugin is not found.
@@ -127,7 +128,7 @@ class WidgetPluginManager extends DefaultPluginManager {
       return $plugin_class::create(\Drupal::getContainer(), $configuration, $plugin_id, $plugin_definition);
     }
 
-    return new $plugin_class($plugin_id, $plugin_definition, $configuration['field_definition'], $configuration['settings']);
+    return new $plugin_class($plugin_id, $plugin_definition, $configuration['field_definition'], $configuration['settings'], $configuration['third_party_settings']);
   }
 
 
@@ -146,6 +147,7 @@ class WidgetPluginManager extends DefaultPluginManager {
     // Fill in defaults for missing properties.
     $configuration += array(
       'settings' => array(),
+      'third_party_settings' => array(),
     );
     // If no widget is specified, use the default widget.
     if (!isset($configuration['type'])) {

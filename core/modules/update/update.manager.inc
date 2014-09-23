@@ -36,6 +36,7 @@
  * root.
  */
 
+use Drupal\Component\Utility\String;
 use Drupal\Core\Updater\Updater;
 use Drupal\Core\FileTransfer\Local;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -61,7 +62,6 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
  * @see update_manager_update_form_validate()
  * @see update_manager_update_form_submit()
  * @see update_menu()
- * @ingroup forms
  *
  * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0. Use
  *   \Drupal\update\Form\UpdateForm::reportUpdate() or
@@ -108,14 +108,14 @@ function update_manager_update_form($form, $form_state = array(), $context) {
         $project_name = l($project['title'], $project['link']);
       }
       else {
-        $project_name = check_plain($project['title']);
+        $project_name = String::checkPlain($project['title']);
       }
     }
     elseif (!empty($project['info']['name'])) {
-      $project_name = check_plain($project['info']['name']);
+      $project_name = String::checkPlain($project['info']['name']);
     }
     else {
-      $project_name = check_plain($name);
+      $project_name = String::checkPlain($name);
     }
     if ($project['project_type'] == 'theme' || $project['project_type'] == 'theme-disabled') {
       $project_name .= ' ' . t('(Theme)');
@@ -396,7 +396,6 @@ function update_manager_download_batch_finished($success, $results) {
  *
  * @see update_manager_update_ready_form_submit()
  * @see update_menu()
- * @ingroup forms
  */
 function update_manager_update_ready_form($form, &$form_state) {
   if (!_update_manager_check_backends($form, 'update')) {
@@ -510,7 +509,6 @@ function update_manager_update_ready_form_submit($form, &$form_state) {
  * @see update_manager_install_form_validate()
  * @see update_manager_install_form_submit()
  * @see update_menu()
- * @ingroup forms
  *
  * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0. Use
  *   \Drupal\update\Form\UpdateForm::reportInstall() or

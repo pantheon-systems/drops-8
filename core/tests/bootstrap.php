@@ -56,21 +56,12 @@ function drupal_phpunit_contrib_extension_directory_roots() {
  */
 function drupal_phpunit_register_extension_dirs(Composer\Autoload\ClassLoader $loader, $dirs) {
   foreach ($dirs as $extension => $dir) {
-    // Register PSR-0 test directories.
-    // @todo Remove this, when the transition to PSR-4 is complete.
-    $lib_path = $dir . '/lib';
-    if (is_dir($lib_path)) {
-      $loader->add('Drupal\\' . $extension, $lib_path);
-    }
-    $tests_path = $dir . '/tests';
-    if (is_dir($tests_path)) {
-      $loader->add('Drupal\\' . $extension, $tests_path);
-    }
-    // Register PSR-4 test directories.
     if (is_dir($dir . '/src')) {
+      // Register the PSR-4 directory for module-provided classes.
       $loader->addPsr4('Drupal\\' . $extension . '\\', $dir . '/src');
     }
     if (is_dir($dir . '/tests/src')) {
+      // Register the PSR-4 directory for PHPUnit test classes.
       $loader->addPsr4('Drupal\\' . $extension . '\Tests\\', $dir . '/tests/src');
     }
   }
@@ -90,12 +81,13 @@ $dirs = array_map('drupal_phpunit_find_extension_directories', $extension_roots)
 $dirs = array_reduce($dirs, 'array_merge', array());
 drupal_phpunit_register_extension_dirs($loader, $dirs);
 
-// Look into removing this later.
+// Look into removing these later.
 define('REQUEST_TIME', (int) $_SERVER['REQUEST_TIME']);
+define('DRUPAL_ROOT', realpath(__DIR__ . '/../../'));
 
 // Set sane locale settings, to ensure consistent string, dates, times and
 // numbers handling.
-// @see drupal_environment_initialize()
+// @see \Drupal\Core\DrupalKernel::bootEnvironment()
 setlocale(LC_ALL, 'C');
 
 // Set the default timezone. While this doesn't cause any tests to fail, PHP

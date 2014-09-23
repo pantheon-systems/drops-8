@@ -7,10 +7,10 @@
 
 namespace Drupal\taxonomy\Tests;
 
-use Drupal\Core\Field\FieldDefinitionInterface;
-use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Field\FieldItemInterface;
-use Drupal\Core\Language\Language;
+use Drupal\Core\Field\FieldItemListInterface;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\field\Tests\FieldUnitTestBase;
 
 /**
@@ -42,13 +42,12 @@ class TaxonomyTermReferenceItemTest extends FieldUnitTestBase {
 
   public function setUp() {
     parent::setUp();
-    $this->installSchema('taxonomy', 'taxonomy_term_data');
-    $this->installSchema('taxonomy', 'taxonomy_term_hierarchy');
+    $this->installEntitySchema('taxonomy_term');
 
     $vocabulary = entity_create('taxonomy_vocabulary', array(
       'name' => $this->randomName(),
       'vid' => drupal_strtolower($this->randomName()),
-      'langcode' => Language::LANGCODE_NOT_SPECIFIED,
+      'langcode' => LanguageInterface::LANGCODE_NOT_SPECIFIED,
     ));
     $vocabulary->save();
 
@@ -56,7 +55,7 @@ class TaxonomyTermReferenceItemTest extends FieldUnitTestBase {
       'name' => 'field_test_taxonomy',
       'entity_type' => 'entity_test',
       'type' => 'taxonomy_term_reference',
-      'cardinality' => FieldDefinitionInterface::CARDINALITY_UNLIMITED,
+      'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
       'settings' => array(
         'allowed_values' => array(
           array(
@@ -74,7 +73,7 @@ class TaxonomyTermReferenceItemTest extends FieldUnitTestBase {
     $this->term = entity_create('taxonomy_term', array(
       'name' => $this->randomName(),
       'vid' => $vocabulary->id(),
-      'langcode' => Language::LANGCODE_NOT_SPECIFIED,
+      'langcode' => LanguageInterface::LANGCODE_NOT_SPECIFIED,
     ));
     $this->term->save();
   }
@@ -110,7 +109,7 @@ class TaxonomyTermReferenceItemTest extends FieldUnitTestBase {
     $term2 = entity_create('taxonomy_term', array(
       'name' => $this->randomName(),
       'vid' => $this->term->getVocabularyId(),
-      'langcode' => Language::LANGCODE_NOT_SPECIFIED,
+      'langcode' => LanguageInterface::LANGCODE_NOT_SPECIFIED,
     ));
     $term2->save();
 

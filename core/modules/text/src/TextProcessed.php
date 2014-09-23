@@ -34,7 +34,7 @@ class TextProcessed extends TypedData {
     parent::__construct($definition, $name, $parent);
 
     if ($definition->getSetting('text source') === NULL) {
-      throw new \InvalidArgumentException("The definition's 'source' key has to specify the name of the text property to be processed.");
+      throw new \InvalidArgumentException("The definition's 'text source' key has to specify the name of the text property to be processed.");
     }
   }
 
@@ -49,7 +49,8 @@ class TextProcessed extends TypedData {
     $item = $this->getParent();
     $text = $item->{($this->definition->getSetting('text source'))};
 
-    // Avoid running check_markup() or check_plain() on empty strings.
+    // Avoid running check_markup() or
+    // \Drupal\Component\Utility\String::checkPlain() on empty strings.
     if (!isset($text) || $text === '') {
       $this->processed = '';
     }

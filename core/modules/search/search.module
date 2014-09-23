@@ -5,8 +5,9 @@
  * Enables site-wide keyword searching.
  */
 
+use Drupal\Component\Utility\String;
 use Drupal\Component\Utility\Unicode;
-use Symfony\Component\HttpFoundation\Request;
+use Drupal\Core\Routing\RouteMatchInterface;
 
 /**
  * Matches all 'N' Unicode character classes (numbers)
@@ -66,12 +67,12 @@ define('PREG_CLASS_CJK', '\x{1100}-\x{11FF}\x{3040}-\x{309F}\x{30A1}-\x{318E}' .
 /**
  * Implements hook_help().
  */
-function search_help($route_name, Request $request) {
+function search_help($route_name, RouteMatchInterface $route_match) {
   switch ($route_name) {
     case 'help.page.search':
       $output = '';
       $output .= '<h3>' . t('About') . '</h3>';
-      $output .= '<p>' . t('The Search module provides the ability to index and search for content by exact keywords, and for users by username or e-mail. For more information, see the online handbook entry for <a href="@search-module">Search module</a>.', array('@search-module' => 'http://drupal.org/documentation/modules/search', '@search' => url('search'))) . '</p>';
+      $output .= '<p>' . t('The Search module provides the ability to index and search for content by exact keywords, and for users by username or email. For more information, see the online handbook entry for <a href="@search-module">Search module</a>.', array('@search-module' => 'http://drupal.org/documentation/modules/search', '@search' => url('search'))) . '</p>';
       $output .= '<h3>' . t('Uses') . '</h3>';
       $output .= '<dl>';
       $output .= '<dt>' . t('Searching content and users') . '</dt>';
@@ -221,7 +222,7 @@ function search_update_totals() {
   // Update word IDF (Inverse Document Frequency) counts for new/changed words.
   foreach (search_dirty() as $word => $dummy) {
     // Get total count
-    $total = db_query("SELECT SUM(score) FROM {search_index} WHERE word = :word", array(':word' => $word), array('target' => 'slave'))->fetchField();
+    $total = db_query("SELECT SUM(score) FROM {search_index} WHERE word = :word", array(':word' => $word), array('target' => 'replica'))->fetchField();
     // Apply Zipf's law to equalize the probability distribution.
     $total = log10(1 + 1/(max(1, $total)));
     db_merge('search_total')
@@ -232,7 +233,7 @@ function search_update_totals() {
   // Find words that were deleted from search_index, but are still in
   // search_total. We use a LEFT JOIN between the two tables and keep only the
   // rows which fail to join.
-  $result = db_query("SELECT t.word AS realword, i.word FROM {search_total} t LEFT JOIN {search_index} i ON t.word = i.word WHERE i.word IS NULL", array(), array('target' => 'slave'));
+  $result = db_query("SELECT t.word AS realword, i.word FROM {search_total} t LEFT JOIN {search_index} i ON t.word = i.word WHERE i.word IS NULL", array(), array('target' => 'replica'));
   $or = db_or();
   foreach ($result as $word) {
     $or->condition('word', $word->realword);
@@ -550,12 +551,7 @@ function search_mark_for_reindex($type, $sid) {
  * data. Most of the system is handled by the Search module, so this must be
  * enabled for all of the search features to work.
  *
- * To be discovered, the plugins must implement
- * \Drupal\search\Plugin\SearchInterface and be annotated as
- * \Drupal\search\Annotation\SearchPlugin plugins. Defining a plugin will allow
- * administrators to set up one or more search pages using this plugin.
- *
- * There are three ways to interact with the search system:
+ * There are two ways to interact with the search system:
  * - Specifically for searching nodes, you can implement
  *   hook_node_update_index() and hook_node_search_result(). However, note that
  *   the search system already indexes all visible output of a node; i.e.,
@@ -568,12 +564,16 @@ function search_mark_for_reindex($type, $sid) {
  *   Each of these corresponds to a tab on the /search page, which can be
  *   used to perform searches. You will also need to implement the execute()
  *   method from the interface to perform the search. A base class is provided
- *   in \Drupal\search\Plugin\SearchPluginBase.
+ *   in \Drupal\search\Plugin\SearchPluginBase. For more information about
+ *   plugins, see the @link plugin_api Plugin API topic. @endlink
  *
  * If your module needs to provide a more complicated search form, then you
  * need to implement it yourself. In that case, you may wish to define it as a
  * local task (tab) under the /search page (e.g. /search/mymodule) so that users
  * can easily find it.
+ *
+ * @see plugin_api
+ * @see annotation
  */
 
 /**
@@ -675,7 +675,7 @@ function search_excerpt($keys, $text, $langcode = NULL) {
     // We didn't find any keyword matches, so just return the first part of the
     // text. We also need to re-encode any HTML special characters that we
     // entity-decoded above.
-    return check_plain(truncate_utf8($text, 256, TRUE, TRUE));
+    return String::checkPlain(truncate_utf8($text, 256, TRUE, TRUE));
   }
 
   // Sort the text ranges by starting position.
@@ -712,11 +712,11 @@ function search_excerpt($keys, $text, $langcode = NULL) {
     $out[] = substr($text, $from, $to - $from);
   }
 
-  // Combine the text chunks with "..." separators. The "..." needs to be
-  // translated. Let translators have the ... separator text as one chunk.
-  $dots = explode('!excerpt', t('... !excerpt ... !excerpt ...'));
-  $text = (isset($new_ranges[0]) ? '' : $dots[0]) . implode($dots[1], $out) . (($max_end < strlen($text) - 1) ? $dots[2] : '');
-  $text = check_plain($text);
+  // Combine the text chunks with "…" separators. The "…" needs to be
+  // translated. Let translators have the … separator text as one chunk.
+  $ellipses = explode('!excerpt', t('… !excerpt … !excerpt …'));
+  $text = (isset($new_ranges[0]) ? '' : $ellipses[0]) . implode($ellipses[1], $out) . (($max_end < strlen($text) - 1) ? $ellipses[2] : '');
+  $text = String::checkPlain($text);
 
   // Highlight keywords. Must be done at once to prevent conflicts ('strong'
   // and '<strong>').

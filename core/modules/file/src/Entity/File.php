@@ -11,7 +11,7 @@ use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\FieldDefinition;
-use Drupal\Core\Language\Language;
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\file\FileInterface;
 use Drupal\user\UserInterface;
 
@@ -43,7 +43,7 @@ class File extends ContentEntityBase implements FileInterface {
    * @var array
    */
   protected $values = array(
-    'langcode' => array(Language::LANGCODE_DEFAULT => array(0 => array('value' => Language::LANGCODE_NOT_SPECIFIED))),
+    'langcode' => array(LanguageInterface::LANGCODE_DEFAULT => array(0 => array('value' => LanguageInterface::LANGCODE_NOT_SPECIFIED))),
   );
 
   /**
@@ -72,6 +72,13 @@ class File extends ContentEntityBase implements FileInterface {
    */
   public function setFileUri($uri) {
     $this->get('uri')->value = $uri;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function url($rel = 'canonical', $options = array()) {
+    return file_create_url($this->getFileUri());
   }
 
   /**
@@ -249,7 +256,8 @@ class File extends ContentEntityBase implements FileInterface {
 
     $fields['uri'] = FieldDefinition::create('uri')
       ->setLabel(t('URI'))
-      ->setDescription(t('The URI to access the file (either local or remote).'));
+      ->setDescription(t('The URI to access the file (either local or remote).'))
+      ->setSetting('max_length', 255);
 
     $fields['filemime'] = FieldDefinition::create('string')
       ->setLabel(t('File MIME type'))
@@ -258,11 +266,12 @@ class File extends ContentEntityBase implements FileInterface {
     $fields['filesize'] = FieldDefinition::create('integer')
       ->setLabel(t('File size'))
       ->setDescription(t('The size of the file in bytes.'))
-      ->setSetting('unsigned', TRUE);
+      ->setSetting('unsigned', TRUE)
+      ->setSetting('size', 'big');
 
-    $fields['status'] = FieldDefinition::create('integer')
+    $fields['status'] = FieldDefinition::create('boolean')
       ->setLabel(t('Status'))
-      ->setDescription(t('The status of the file, temporary (0) and permanent (1).'));
+      ->setDescription(t('The status of the file, temporary (FALSE) and permanent (TRUE).'));
 
     $fields['created'] = FieldDefinition::create('created')
       ->setLabel(t('Created'))

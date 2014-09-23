@@ -8,7 +8,6 @@
 namespace Drupal\system\Tests\System;
 
 use Drupal\simpletest\WebTestBase;
-use Drupal\Core\Language\Language;
 
 /**
  * Tests generic date and time handling capabilities of Drupal.
@@ -132,7 +131,7 @@ class DateTimeTest extends WebTestBase {
     $date_format = entity_create('date_format', array(
       'id' => 'xss_short',
       'label' => 'XSS format',
-      'pattern' => array('php' => '\<\s\c\r\i\p\t\>\a\l\e\r\t\(\'\X\S\S\'\)\;\<\/\s\c\r\i\p\t\>'),
+      'pattern' => '\<\s\c\r\i\p\t\>\a\l\e\r\t\(\'\X\S\S\'\)\;\<\/\s\c\r\i\p\t\>',
     ));
     $date_format->save();
 

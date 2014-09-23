@@ -7,9 +7,9 @@
 
 namespace Drupal\locale\Tests;
 
-use Drupal\Core\Cache\Cache;
 use Drupal\simpletest\WebTestBase;
 use Drupal\Core\Language\Language;
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\Component\Utility\String;
 
 /**
@@ -152,7 +152,7 @@ class LocaleTranslationUiTest extends WebTestBase {
     $this->container->get('string_translation')->reset();
     // Now we should get the proper fresh translation from t().
     $this->assertTrue($name != $translation_to_en && t($name, array(), array('langcode' => 'en')) == $translation_to_en, 't() works for English.');
-    $this->assertTrue(t($name, array(), array('langcode' => Language::LANGCODE_SYSTEM)) == $name, 't() works for Language::LANGCODE_SYSTEM.');
+    $this->assertTrue(t($name, array(), array('langcode' => LanguageInterface::LANGCODE_SYSTEM)) == $name, 't() works for LanguageInterface::LANGCODE_SYSTEM.');
 
     $search = array(
       'string' => $name,
@@ -262,7 +262,6 @@ class LocaleTranslationUiTest extends WebTestBase {
     // Test JavaScript translation rebuilding.
     file_unmanaged_delete($js_file);
     $this->assertTrue($result = !file_exists($js_file), String::format('JavaScript file deleted: %file', array('%file' => $result ? $js_file : 'found')));
-    Cache::invalidateTags(array('content' => TRUE));
     _locale_rebuild_js($langcode);
     $this->assertTrue($result = file_exists($js_file), String::format('JavaScript file rebuilt: %file', array('%file' => $result ? $js_file : 'not found')));
   }

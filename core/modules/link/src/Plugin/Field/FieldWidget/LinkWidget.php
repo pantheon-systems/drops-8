@@ -87,8 +87,7 @@ class LinkWidget extends WidgetBase {
     // Post-process the title field to make it conditionally required if URL is
     // non-empty. Omit the validation on the field edit form, since the field
     // settings cannot be saved otherwise.
-    $is_field_edit_form = ($element['#entity'] === NULL);
-    if (!$is_field_edit_form && $this->getFieldSetting('title') == DRUPAL_REQUIRED) {
+    if (empty($form_state['default_value_widget']) && $this->getFieldSetting('title') == DRUPAL_REQUIRED) {
       $element['#element_validate'][] = array($this, 'validateTitle');
     }
 
@@ -103,7 +102,7 @@ class LinkWidget extends WidgetBase {
 
     // If cardinality is 1, ensure a label is output for the field by wrapping it
     // in a details element.
-    if ($this->fieldDefinition->getCardinality() == 1) {
+    if ($this->fieldDefinition->getFieldStorageDefinition()->getCardinality() == 1) {
       $element += array(
         '#type' => 'fieldset',
       );

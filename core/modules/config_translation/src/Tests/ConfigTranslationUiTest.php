@@ -11,6 +11,7 @@ use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Config\FileStorage;
 use Drupal\Core\Language\Language;
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\simpletest\WebTestBase;
 
 /**
@@ -403,7 +404,7 @@ class ConfigTranslationUiTest extends WebTestBase {
       // Update translatable fields.
       $edit = array(
         'config_names[system.date_format.' . $id . '][label][translation]' => $id . ' - FR',
-        'config_names[system.date_format.' . $id . '][pattern][pattern.php][translation]' => 'D',
+        'config_names[system.date_format.' . $id . '][pattern][translation]' => 'D',
       );
 
       // Save language specific version of form.
@@ -413,7 +414,7 @@ class ConfigTranslationUiTest extends WebTestBase {
       $override = \Drupal::languageManager()->getLanguageConfigOverride('fr', 'system.date_format.' . $id);
       $expected = array(
         'label' => $id . ' - FR',
-        'pattern' => array('php' => 'D'),
+        'pattern' => 'D',
       );
       $this->assertEqual($expected, $override->get());
 
@@ -494,7 +495,7 @@ class ConfigTranslationUiTest extends WebTestBase {
     $this->container
       ->get('config.factory')
       ->get('system.site')
-      ->set('langcode', Language::LANGCODE_NOT_SPECIFIED)
+      ->set('langcode', LanguageInterface::LANGCODE_NOT_SPECIFIED)
       ->save();
 
     // Make sure translation tab does not exist on the configuration page.

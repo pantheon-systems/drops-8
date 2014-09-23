@@ -57,7 +57,9 @@ class EntityQueryTest extends EntityUnitTestBase {
 
   function setUp() {
     parent::setUp();
-    $this->installSchema('entity_test', array('entity_test_mulrev', 'entity_test_mulrev_revision', 'entity_test_mulrev_property_data', 'entity_test_mulrev_property_revision'));
+
+    $this->installEntitySchema('entity_test_mulrev');
+
     $this->installConfig(array('language'));
 
     $figures = drupal_strtolower($this->randomName());
@@ -83,8 +85,7 @@ class EntityQueryTest extends EntityUnitTestBase {
       entity_test_create_bundle($bundle);
       foreach ($fields as $field) {
         entity_create('field_instance_config', array(
-          'field_name' => $field->name,
-          'entity_type' => 'entity_test_mulrev',
+          'field' => $field,
           'bundle' => $bundle,
         ))->save();
       }
@@ -440,8 +441,7 @@ class EntityQueryTest extends EntityUnitTestBase {
     $field->save();
     $bundle = $this->randomName();
     entity_create('field_instance_config', array(
-      'field_name' => $field_name,
-      'entity_type' => 'entity_test',
+      'field' => $field,
       'bundle' => $bundle,
     ))->save();
 

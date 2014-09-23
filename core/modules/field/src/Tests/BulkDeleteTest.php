@@ -136,8 +136,7 @@ class BulkDeleteTest extends FieldUnitTestBase {
     foreach ($this->bundles as $bundle) {
       foreach ($this->fields as $field) {
         entity_create('field_instance_config', array(
-          'field_name' => $field->name,
-          'entity_type' => $this->entity_type,
+          'field' => $field,
           'bundle' => $bundle,
         ))->save();
       }
@@ -181,9 +180,9 @@ class BulkDeleteTest extends FieldUnitTestBase {
     $instance->delete();
 
     // The instance still exists, deleted.
-    $instances = entity_load_multiple_by_properties('field_instance_config', array('field_id' => $field->uuid, 'deleted' => TRUE, 'include_deleted' => TRUE));
+    $instances = entity_load_multiple_by_properties('field_instance_config', array('field_id' => $field->uuid(), 'deleted' => TRUE, 'include_deleted' => TRUE));
     $this->assertEqual(count($instances), 1, 'There is one deleted instance');
-    $instance = $instances[0];
+    $instance = $instances[$instance->uuid()];
     $this->assertEqual($instance->bundle, $bundle, 'The deleted instance is for the correct bundle');
 
     // Check that the actual stored content did not change during delete.
@@ -259,19 +258,19 @@ class BulkDeleteTest extends FieldUnitTestBase {
     $this->checkHooksInvocations($hooks, $actual_hooks);
 
     // The instance still exists, deleted.
-    $instances = entity_load_multiple_by_properties('field_instance_config', array('field_id' => $field->uuid, 'deleted' => TRUE, 'include_deleted' => TRUE));
+    $instances = entity_load_multiple_by_properties('field_instance_config', array('field_id' => $field->uuid(), 'deleted' => TRUE, 'include_deleted' => TRUE));
     $this->assertEqual(count($instances), 1, 'There is one deleted instance');
 
     // Purge the instance.
     field_purge_batch($batch_size);
 
     // The instance is gone.
-    $instances = entity_load_multiple_by_properties('field_instance_config', array('field_id' => $field->uuid, 'deleted' => TRUE, 'include_deleted' => TRUE));
+    $instances = entity_load_multiple_by_properties('field_instance_config', array('field_id' => $field->uuid(), 'deleted' => TRUE, 'include_deleted' => TRUE));
     $this->assertEqual(count($instances), 0, 'The instance is gone');
 
     // The field still exists, not deleted, because it has a second instance.
-    $fields = entity_load_multiple_by_properties('field_config', array('uuid' => $field->uuid, 'include_deleted' => TRUE));
-    $this->assertTrue(isset($fields[$field->uuid]), 'The field exists and is not deleted');
+    $fields = entity_load_multiple_by_properties('field_config', array('uuid' => $field->uuid(), 'include_deleted' => TRUE));
+    $this->assertTrue(isset($fields[$field->uuid()]), 'The field exists and is not deleted');
   }
 
   /**
@@ -307,12 +306,19 @@ class BulkDeleteTest extends FieldUnitTestBase {
     }
     $this->checkHooksInvocations($hooks, $actual_hooks);
 
+    // The instance still exists, deleted.
+    $instances = entity_load_multiple_by_properties('field_instance_config', array('uuid' => $instance->uuid(), 'include_deleted' => TRUE));
+    $this->assertTrue(isset($instances[$instance->uuid()]) && $instances[$instance->uuid()]->deleted, 'The instance exists and is deleted');
+
     // Purge again to purge the instance.
     field_purge_batch(0);
 
+    // The instance is gone.
+    $instances = entity_load_multiple_by_properties('field_instance_config', array('uuid' => $instance->uuid(), 'include_deleted' => TRUE));
+    $this->assertEqual(count($instances), 0, 'The instance is purged.');
     // The field still exists, not deleted.
-    $fields = entity_load_multiple_by_properties('field_config', array('uuid' => $field->uuid, 'include_deleted' => TRUE));
-    $this->assertTrue(isset($fields[$field->uuid]) && !$fields[$field->uuid]->deleted, 'The field exists and is not deleted');
+    $fields = entity_load_multiple_by_properties('field_config', array('uuid' => $field->uuid(), 'include_deleted' => TRUE));
+    $this->assertTrue(isset($fields[$field->uuid()]) && !$fields[$field->uuid()]->deleted, 'The field exists and is not deleted');
 
     // Delete the second instance.
     $bundle = next($this->bundles);
@@ -335,15 +341,19 @@ class BulkDeleteTest extends FieldUnitTestBase {
     }
     $this->checkHooksInvocations($hooks, $actual_hooks);
 
-    // The field still exists, deleted.
-    $fields = entity_load_multiple_by_properties('field_config', array('uuid' => $field->uuid, 'include_deleted' => TRUE));
-    $this->assertTrue(isset($fields[$field->uuid]) && $fields[$field->uuid]->deleted, 'The field exists and is deleted');
+    // The field and instance still exist, deleted.
+    $instances = entity_load_multiple_by_properties('field_instance_config', array('uuid' => $instance->uuid(), 'include_deleted' => TRUE));
+    $this->assertTrue(isset($instances[$instance->uuid()]) && $instances[$instance->uuid()]->deleted, 'The instance exists and is deleted');
+    $fields = entity_load_multiple_by_properties('field_config', array('uuid' => $field->uuid(), 'include_deleted' => TRUE));
+    $this->assertTrue(isset($fields[$field->uuid()]) && $fields[$field->uuid()]->deleted, 'The field exists and is deleted');
 
     // Purge again to purge the instance and the field.
     field_purge_batch(0);
 
-    // The field is gone.
-    $fields = entity_load_multiple_by_properties('field_config', array('uuid' => $field->uuid, 'include_deleted' => TRUE));
+    // The field and instance are gone.
+    $instances = entity_load_multiple_by_properties('field_instance_config', array('uuid' => $instance->uuid(), 'include_deleted' => TRUE));
+    $this->assertEqual(count($instances), 0, 'The instance is purged.');
+    $fields = entity_load_multiple_by_properties('field_config', array('uuid' => $field->uuid(), 'include_deleted' => TRUE));
     $this->assertEqual(count($fields), 0, 'The field is purged.');
   }
 

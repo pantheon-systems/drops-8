@@ -8,7 +8,7 @@
 namespace Drupal\Core;
 
 use Drupal\Component\Utility\UrlHelper;
-use Drupal\Core\DependencyInjection\DependencySerialization;
+use Drupal\Core\DependencyInjection\DependencySerializationTrait;
 use Drupal\Core\Routing\MatchingRouteNotFoundException;
 use Drupal\Core\Routing\UrlGeneratorInterface;
 use Symfony\Cmf\Component\Routing\RouteObjectInterface;
@@ -18,7 +18,8 @@ use Symfony\Component\Routing\Exception\ResourceNotFoundException;
 /**
  * Defines an object that holds information about a URL.
  */
-class Url extends DependencySerialization {
+class Url {
+  use DependencySerializationTrait;
 
   /**
    * The URL generator.
@@ -83,7 +84,7 @@ class Url extends DependencySerialization {
    *     displayed outside the site, such as in an RSS feed.
    *   - 'language': An optional language object used to look up the alias
    *     for the URL. If $options['language'] is omitted, it defaults to the
-   *     current language for the language type Language::TYPE_URL.
+   *     current language for the language type LanguageInterface::TYPE_URL.
    *   - 'https': Whether this URL should point to a secure location. If not
    *     defined, the current scheme is used, so the user stays on HTTP or HTTPS
    *     respectively. if mixed mode sessions are permitted, TRUE enforces HTTPS
