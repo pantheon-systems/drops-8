@@ -85,7 +85,7 @@ class BookAdminEditForm extends FormBase {
    * {@inheritdoc}
    */
   public function validateForm(array &$form, FormStateInterface $form_state) {
-    if ($form_state['values']['tree_hash'] != $form_state['values']['tree_current_hash']) {
+    if ($form_state->getValue('tree_hash') != $form_state->getValue('tree_current_hash')) {
       $form_state->setErrorByName('', $this->t('This book has been modified by another user, the changes could not be saved.'));
     }
   }
@@ -96,13 +96,14 @@ class BookAdminEditForm extends FormBase {
   public function submitForm(array &$form, FormStateInterface $form_state) {
     // Save elements in the same order as defined in post rather than the form.
     // This ensures parents are updated before their children, preventing orphans.
-    $order = array_flip(array_keys($form_state['input']['table']));
+    $user_input = $form_state->getUserInput();
+    $order = array_flip(array_keys($user_input['table']));
     $form['table'] = array_merge($order, $form['table']);
 
     foreach (Element::children($form['table']) as $key) {
       if ($form['table'][$key]['#item']) {
         $row = $form['table'][$key];
-        $values = $form_state['values']['table'][$key];
+        $values = $form_state->getValue(array('table', $key));
 
         // Update menu item if moved.
         if ($row['pid']['#default_value'] != $values['pid'] || $row['weight']['#default_value'] != $values['weight']) {

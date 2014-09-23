@@ -64,7 +64,7 @@ class NodeController extends ControllerBase implements ContainerInjectionInterfa
 
     // Only use node types the user has access to.
     foreach ($this->entityManager()->getStorage('node_type')->loadMultiple() as $type) {
-      if ($this->entityManager()->getAccessController('node')->createAccess($type->type)) {
+      if ($this->entityManager()->getAccessControlHandler('node')->createAccess($type->type)) {
         $content[$type->type] = $type;
       }
     }
@@ -91,14 +91,8 @@ class NodeController extends ControllerBase implements ContainerInjectionInterfa
    *   A node submission form.
    */
   public function add(NodeTypeInterface $node_type) {
-    $account = $this->currentUser();
-    $langcode = $this->moduleHandler()->invoke('language', 'get_default_langcode', array('node', $node_type->type));
-
     $node = $this->entityManager()->getStorage('node')->create(array(
-      'uid' => $account->id(),
-      'name' => $account->getUsername() ?: '',
       'type' => $node_type->type,
-      'langcode' => $langcode ? $langcode : $this->languageManager()->getCurrentLanguage()->id,
     ));
 
     $form = $this->entityFormBuilder()->getForm($node);
@@ -173,7 +167,7 @@ class NodeController extends ControllerBase implements ContainerInjectionInterfa
             '#theme' => 'username',
             '#account' => $revision_author,
           );
-          $row[] = array('data' => $this->t('!date by !username', array('!date' => $this->l($this->dateFormatter->format($revision->revision_timestamp->value, 'short'), 'node.view', array('node' => $node->id())), '!username' => drupal_render($username)))
+          $row[] = array('data' => $this->t('!date by !username', array('!date' => $this->l($this->dateFormatter->format($revision->revision_timestamp->value, 'short'), 'entity.node.canonical', array('node' => $node->id())), '!username' => drupal_render($username)))
             . (($revision->revision_log->value != '') ? '<p class="revision-log">' . Xss::filter($revision->revision_log->value) . '</p>' : ''),
             'class' => array('revision-current'));
           $row[] = array('data' => String::placeholder($this->t('current revision')), 'class' => array('revision-current'));

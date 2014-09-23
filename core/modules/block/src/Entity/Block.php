@@ -21,8 +21,8 @@ use Drupal\Core\Entity\EntityStorageInterface;
  * @ConfigEntityType(
  *   id = "block",
  *   label = @Translation("Block"),
- *   controllers = {
- *     "access" = "Drupal\block\BlockAccessController",
+ *   handlers = {
+ *     "access" = "Drupal\block\BlockAccessControlHandler",
  *     "view_builder" = "Drupal\block\BlockViewBuilder",
  *     "list_builder" = "Drupal\block\BlockListBuilder",
  *     "form" = {

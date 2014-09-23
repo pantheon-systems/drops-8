@@ -6,7 +6,7 @@
  */
 
 use Drupal\Component\Utility\NestedArray;
-use Drupal\Core\Entity\ContentEntityDatabaseStorage;
+use Drupal\Core\Entity\Sql\SqlContentEntityStorage;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\field\FieldStorageConfigInterface;
 use Drupal\field\FieldInstanceConfigInterface;
@@ -22,7 +22,7 @@ function field_views_data() {
   $module_handler = \Drupal::moduleHandler();
 
   foreach (\Drupal::entityManager()->getStorage('field_storage_config')->loadMultiple() as $field) {
-    if (_field_views_is_sql_entity_type($field)) {
+    if (_field_views_get_entity_type_storage($field)) {
       $result = (array) $module_handler->invoke($field->module, 'field_views_data', array($field));
       if (empty($result)) {
         $result = field_views_field_default_views_data($field);
@@ -48,7 +48,7 @@ function field_views_data() {
  */
 function field_views_data_alter(&$data) {
   foreach (\Drupal::entityManager()->getStorage('field_storage_config')->loadMultiple() as $field) {
-    if (_field_views_is_sql_entity_type($field)) {
+    if (_field_views_get_entity_type_storage($field)) {
       $function = $field->module . '_field_views_data_views_data_alter';
       if (function_exists($function)) {
         $function($data, $field);
@@ -63,12 +63,17 @@ function field_views_data_alter(&$data) {
  * @param \Drupal\field\FieldStorageConfigInterface $field_storage
  *   The field storage definition.
  *
- * @return bool
- *   True if the entity type uses ContentEntityDatabaseStorage.
+ * @return \Drupal\Core\Entity\Sql\SqlContentEntityStorage
+ *   Returns the entity type storage if supported.
  */
-function _field_views_is_sql_entity_type(FieldStorageConfigInterface $field_storage) {
+function _field_views_get_entity_type_storage(FieldStorageConfigInterface $field_storage) {
+  $result = FALSE;
   $entity_manager = \Drupal::entityManager();
-  return $entity_manager->hasDefinition($field_storage->entity_type) && $entity_manager->getStorage($field_storage->entity_type) instanceof ContentEntityDatabaseStorage;
+  if ($entity_manager->hasDefinition($field_storage->getTargetEntityTypeId())) {
+    $storage = $entity_manager->getStorage($field_storage->getTargetEntityTypeId());
+    $result = $storage instanceof SqlContentEntityStorage ? $storage : FALSE;
+  }
+  return $result;
 }
 
 /**
@@ -120,56 +125,106 @@ function field_views_field_default_views_data(FieldStorageConfigInterface $field
   if (!$field_storage->getBundles()) {
     return $data;
   }
+  // Check whether the entity type storage is supported.
+  $storage = _field_views_get_entity_type_storage($field_storage);
+  if (!$storage) {
+    return $data;
+  }
 
   $field_name = $field_storage->getName();
   $field_columns = $field_storage->getColumns();
 
   // Grab information about the entity type tables.
+  // We need to join to both the base table and the data table, if available.
   $entity_manager = \Drupal::entityManager();
-  $entity_type_id = $field_storage->entity_type;
+  $entity_type_id = $field_storage->getTargetEntityTypeId();
   $entity_type = $entity_manager->getDefinition($entity_type_id);
-  if (!$entity_table = $entity_type->getBaseTable()) {
+  if (!$base_table = $entity_type->getBaseTable()) {
+    // We cannot do anything if for some reason there is no base table.
     return $data;
   }
-  $entity_tables = array($entity_table => $entity_type_id);
+  $entity_tables = array($base_table => $entity_type_id);
+  // Some entities may not have a data table.
+  $data_table = $entity_type->getDataTable();
+  if ($data_table) {
+    $entity_tables[$data_table] = $entity_type_id;
+  }
   $entity_revision_table = $entity_type->getRevisionTable();
   $supports_revisions = $entity_type->hasKey('revision') && $entity_revision_table;
   if ($supports_revisions) {
     $entity_tables[$entity_revision_table] = $entity_type_id;
+    $entity_revision_data_table = $entity_type->getRevisionDataTable();
+    if ($entity_revision_data_table) {
+      $entity_tables[$entity_revision_data_table] = $entity_type_id;
+    }
   }
 
   // Description of the field tables.
+  // @todo Generalize this code to make it work with any table layout. See
+  //   https://drupal.org/node/2079019.
+  $table_mapping = $storage->getTableMapping();
   $field_tables = array(
     EntityStorageInterface::FIELD_LOAD_CURRENT => array(
-      'table' => ContentEntityDatabaseStorage::_fieldTableName($field_storage),
+      'table' => $table_mapping->getDedicatedDataTableName($field_storage),
       'alias' => "{$entity_type_id}__{$field_name}",
     ),
   );
   if ($supports_revisions) {
     $field_tables[EntityStorageInterface::FIELD_LOAD_REVISION] = array(
-      'table' => ContentEntityDatabaseStorage::_fieldRevisionTableName($field_storage),
+      'table' => $table_mapping->getDedicatedRevisionTableName($field_storage),
       'alias' => "{$entity_type_id}_revision__{$field_name}",
     );
   }
 
   // Build the relationships between the field table and the entity tables.
   $table_alias = $field_tables[EntityStorageInterface::FIELD_LOAD_CURRENT]['alias'];
-  $data[$table_alias]['table']['join'][$entity_table] = array(
-    'left_field' => $entity_type->getKey('id'),
-    'field' => 'entity_id',
-    'extra' => array(
-      array('field' => 'deleted', 'value' => 0, 'numeric' => TRUE),
-    ),
-  );
-  if ($supports_revisions) {
-    $table_alias = $field_tables[EntityStorageInterface::FIELD_LOAD_REVISION]['alias'];
-    $data[$table_alias]['table']['join'][$entity_revision_table] = array(
-      'left_field' => $entity_type->getKey('revision'),
-      'field' => 'revision_id',
+  if ($data_table) {
+    // Tell Views how to join to the base table, via the data table.
+    $data[$table_alias]['table']['join'][$base_table] = array(
+      'left_table' => $data_table,
+      'left_field' => $entity_type->getKey('id'),
+      'field' => 'entity_id',
+      'extra' => array(
+        array('field' => 'deleted', 'value' => 0, 'numeric' => TRUE),
+        array('left_field' => 'langcode', 'field' => 'langcode'),
+      ),
+    );
+  }
+  else {
+    // If there is no data table, just join directly.
+    $data[$table_alias]['table']['join'][$base_table] = array(
+      'left_field' => $entity_type->getKey('id'),
+      'field' => 'entity_id',
       'extra' => array(
         array('field' => 'deleted', 'value' => 0, 'numeric' => TRUE),
       ),
     );
+  }
+
+  if ($supports_revisions) {
+    $table_alias = $field_tables[EntityStorageInterface::FIELD_LOAD_REVISION]['alias'];
+    if ($entity_revision_data_table) {
+      // Tell Views how to join to the revision table, via the data table.
+      $data[$table_alias]['table']['join'][$entity_revision_table] = array(
+        'left_table' => $entity_revision_data_table,
+        'left_field' => $entity_type->getKey('revision'),
+        'field' => 'revision_id',
+        'extra' => array(
+          array('field' => 'deleted', 'value' => 0, 'numeric' => TRUE),
+          array('left_field' => 'langcode', 'field' => 'langcode'),
+        ),
+      );
+    }
+    else {
+      // If there is no data table, just join directly.
+      $data[$table_alias]['table']['join'][$entity_revision_table] = array(
+        'left_field' => $entity_type->getKey('revision'),
+        'field' => 'revision_id',
+        'extra' => array(
+          array('field' => 'deleted', 'value' => 0, 'numeric' => TRUE),
+        ),
+      );
+    }
   }
 
   $group_name = $entity_type->getLabel();
@@ -178,7 +233,7 @@ function field_views_field_default_views_data(FieldStorageConfigInterface $field
   // Build the list of additional fields to add to queries.
   $add_fields = array('delta', 'langcode', 'bundle');
   foreach (array_keys($field_columns) as $column) {
-    $add_fields[] = ContentEntityDatabaseStorage::_fieldColumnName($field_storage, $column);
+    $add_fields[] = $table_mapping->getFieldColumnName($field_storage, $column);
   }
   // Determine the label to use for the field. We don't have a label available
   // at the field level, so we just go through all instances and take the one
@@ -214,7 +269,7 @@ function field_views_field_default_views_data(FieldStorageConfigInterface $field
       if ($type == EntityStorageInterface::FIELD_LOAD_CURRENT) {
         if ($label != $label_name) {
           $aliases[] = array(
-            'base' => $entity_table,
+            'base' => $base_table,
             'group' => $group_name,
             'title' => $label_name,
             'help' => t('This is an alias of @group: @field.', array('@group' => $group_name, '@field' => $label)),
@@ -302,11 +357,10 @@ function field_views_field_default_views_data(FieldStorageConfigInterface $field
       else {
         $group = t('@group (historical data)', array('@group' => $group_name));
       }
-      $column_real_name = ContentEntityDatabaseStorage::_fieldColumnName($field_storage, $column);
+      $column_real_name = $table_mapping->getFieldColumnName($field_storage, $column);
 
       // Load all the fields from the table by default.
-      $field_sql_schema = ContentEntityDatabaseStorage::_fieldSqlSchema($field_storage);
-      $additional_fields = array_keys($field_sql_schema[$table]['fields']);
+      $additional_fields = $table_mapping->getAllColumns($table);
 
       $data[$table_alias][$column_real_name] = array(
         'group' => $group,

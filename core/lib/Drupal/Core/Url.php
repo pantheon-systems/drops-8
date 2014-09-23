@@ -9,11 +9,10 @@ namespace Drupal\Core;
 
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\DependencyInjection\DependencySerializationTrait;
-use Drupal\Core\Routing\MatchingRouteNotFoundException;
 use Drupal\Core\Routing\UrlGeneratorInterface;
+use Drupal\Core\Session\AccountInterface;
 use Symfony\Cmf\Component\Routing\RouteObjectInterface;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\Routing\Exception\ResourceNotFoundException;
 
 /**
  * Defines an object that holds information about a URL.
@@ -27,6 +26,13 @@ class Url {
    * @var \Drupal\Core\Routing\UrlGeneratorInterface
    */
   protected $urlGenerator;
+
+  /**
+   * The access manager
+   *
+   * @var \Drupal\Core\Access\AccessManagerInterface
+   */
+  protected $accessManager;
 
   /**
    * The route name.
@@ -97,13 +103,22 @@ class Url {
   }
 
   /**
-   * Returns the Url object matching a path.
+   * Returns the Url object matching a path. READ THE FOLLOWING SECURITY NOTE.
+   *
+   * SECURITY NOTE: The path is not checked to be valid and accessible by the
+   * current user to allow storing and reusing Url objects by different users.
+   * The 'path.validator' service getUrlIfValid() method should be used instead
+   * of this one if validation and access check is desired. Otherwise,
+   * 'access_manager' service checkNamedRoute() method should be used on the
+   * router name and parameters stored in the Url object returned by this
+   * method.
    *
    * @param string $path
    *   A path (e.g. 'node/1', 'http://drupal.org').
    *
    * @return static
-   *   An Url object.
+   *   An Url object. Warning: the object is created even if the current user
+   *   can not access the path.
    *
    * @throws \Drupal\Core\Routing\MatchingRouteNotFoundException
    *   Thrown when the path cannot be matched.
@@ -117,42 +132,31 @@ class Url {
 
     // Special case the front page route.
     if ($path == '<front>') {
-      $route_name = $path;
-      $route_parameters = array();
+      return new static($path);
     }
     else {
-      // Look up the route name and parameters used for the given path.
-      try {
-        $result = \Drupal::service('router')->match('/' . $path);
-      }
-      catch (ResourceNotFoundException $e) {
-        throw new MatchingRouteNotFoundException(sprintf('No matching route could be found for the path "%s"', $path), 0, $e);
-      }
-      $route_name = $result[RouteObjectInterface::ROUTE_NAME];
-      $route_parameters = $result['_raw_variables']->all();
+      return static::createFromRequest(Request::create("/$path"));
     }
-    return new static($route_name, $route_parameters);
   }
 
   /**
-   * Returns the Url object matching a request.
+   * Returns the Url object matching a request. READ THE SECURITY NOTE ON createFromPath().
    *
    * @param \Symfony\Component\HttpFoundation\Request $request
    *   A request object.
    *
    * @return static
-   *   A Url object.
+   *   A Url object. Warning: the object is created even if the current user
+   *   would get an access denied running the same request via the normal page
+   *   flow.
    *
    * @throws \Drupal\Core\Routing\MatchingRouteNotFoundException
    *   Thrown when the request cannot be matched.
    */
   public static function createFromRequest(Request $request) {
-    try {
-      $result = \Drupal::service('router')->matchRequest($request);
-    }
-    catch (ResourceNotFoundException $e) {
-      throw new MatchingRouteNotFoundException(sprintf('No matching route could be found for the request: %s', $request), 0, $e);
-    }
+    // We use the router without access checks because URL objects might be
+    // created and stored for different users.
+    $result = \Drupal::service('router.no_access_checks')->matchRequest($request);
     $route_name = $result[RouteObjectInterface::ROUTE_NAME];
     $route_parameters = $result['_raw_variables']->all();
     return new static($route_name, $route_parameters);
@@ -390,6 +394,7 @@ class Url {
         '#route_name' => $this->getRouteName(),
         '#route_parameters' => $this->getRouteParameters(),
         '#options' => $this->getOptions(),
+        '#access_callback' => array(get_class(), 'renderAccess'),
       );
     }
   }
@@ -413,6 +418,45 @@ class Url {
       throw new \UnexpectedValueException('External URLs do not have internal representations.');
     }
     return $this->urlGenerator()->getPathFromRoute($this->getRouteName(), $this->getRouteParameters());
+  }
+
+  /**
+   * Checks this Url object against applicable access check services.
+   *
+   * Determines whether the route is accessible or not.
+   *
+   * @param \Drupal\Core\Session\AccountInterface $account
+   *   (optional) Run access checks for this account. Defaults to the current
+   *   user.
+   *
+   * @return bool
+   *   Returns TRUE if the user has access to the url, otherwise FALSE.
+   */
+  public function access(AccountInterface $account = NULL) {
+    return $this->accessManager()->checkNamedRoute($this->getRouteName(), $this->getRouteParameters(), $account);
+  }
+
+  /**
+   * Checks a Url render element against applicable access check services.
+   *
+   * @param array $element
+   *   A render element as returned from \Drupal\Core\Url::toRenderArray().
+   *
+   * @return bool
+   *   Returns TRUE if the current user has access to the url, otherwise FALSE.
+   */
+  public static function renderAccess(array $element) {
+    return (new static($element['#route_name'], $element['#route_parameters'], $element['#options']))->access();
+  }
+
+  /**
+   * @return \Drupal\Core\Access\AccessManagerInterface
+   */
+  protected function accessManager() {
+    if (!isset($this->accessManager)) {
+      $this->accessManager = \Drupal::service('access_manager');
+    }
+    return $this->accessManager;
   }
 
   /**

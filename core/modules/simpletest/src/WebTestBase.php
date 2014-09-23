@@ -8,14 +8,18 @@
 namespace Drupal\simpletest;
 
 use Drupal\Component\Serialization\Json;
+use Drupal\Component\Serialization\Yaml;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Component\Utility\String;
+use Drupal\Core\Cache\Cache;
+use Drupal\Core\DependencyInjection\YamlFileLoader;
 use Drupal\Core\DrupalKernel;
 use Drupal\Core\Database\Database;
 use Drupal\Core\Database\ConnectionNotDefinedException;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Language\LanguageInterface;
+use Drupal\Core\Render\Element;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Session\AnonymousUserSession;
 use Drupal\Core\Session\UserSession;
@@ -221,16 +225,8 @@ abstract class WebTestBase extends TestBase {
    *       );
    *     @endcode
    *   - title: Random string.
-   *   - comment: CommentItemInterface::OPEN.
-   *   - promote: NODE_NOT_PROMOTED.
-   *   - log: Empty string.
-   *   - status: NODE_PUBLISHED.
-   *   - sticky: NODE_NOT_STICKY.
    *   - type: 'page'.
-   *   - langcode: LanguageInterface::LANGCODE_NOT_SPECIFIED.
-   *   - uid: The currently logged in user, or the user running test.
-   *   - revision: 1. (Backwards-compatible binary flag indicating whether a
-   *     new revision should be created; use 1 to specify a new revision.)
+   *   - uid: The currently logged in user, or anonymous.
    *
    * @return \Drupal\node\NodeInterface
    *   The created node entity.
@@ -238,44 +234,15 @@ abstract class WebTestBase extends TestBase {
   protected function drupalCreateNode(array $settings = array()) {
     // Populate defaults array.
     $settings += array(
-      'body'      => array(array()),
+      'body'      => array(array(
+        'value' => $this->randomMachineName(32),
+        'format' => filter_default_format(),
+      )),
       'title'     => $this->randomMachineName(8),
-      'promote'   => NODE_NOT_PROMOTED,
-      'revision'  => 1,
-      'log'       => '',
-      'status'    => NODE_PUBLISHED,
-      'sticky'    => NODE_NOT_STICKY,
       'type'      => 'page',
-      'langcode'  => LanguageInterface::LANGCODE_NOT_SPECIFIED,
+      'uid'       => \Drupal::currentUser()->id(),
     );
-
-    // Use the original node's created time for existing nodes.
-    if (isset($settings['created']) && !isset($settings['date'])) {
-      $settings['date'] = format_date($settings['created'], 'custom', 'Y-m-d H:i:s O');
-    }
-
-    // If the node's user uid is not specified manually, use the currently
-    // logged in user if available, or else the user running the test.
-    if (!isset($settings['uid'])) {
-      if ($this->loggedInUser) {
-        $settings['uid'] = $this->loggedInUser->id();
-      }
-      else {
-        $user = \Drupal::currentUser() ?: new AnonymousUserSession();
-        $settings['uid'] = $user->id();
-      }
-    }
-
-    // Merge body field value and format separately.
-    $settings['body'][0] += array(
-      'value' => $this->randomMachineName(32),
-      'format' => filter_default_format(),
-    );
-
     $node = entity_create('node', $settings);
-    if (!empty($settings['revision'])) {
-      $node->setNewRevision();
-    }
     $node->save();
 
     return $node;
@@ -339,26 +306,37 @@ abstract class WebTestBase extends TestBase {
    * @see drupal_render()
    */
   protected function drupalBuildEntityView(EntityInterface $entity, $view_mode = 'full', $langcode = NULL, $reset = FALSE) {
+    $ensure_fully_built = function(&$elements) use (&$ensure_fully_built) {
+      // If the default values for this element have not been loaded yet, populate
+      // them.
+      if (isset($elements['#type']) && empty($elements['#defaults_loaded'])) {
+        $elements += element_info($elements['#type']);
+      }
+
+      // Make any final changes to the element before it is rendered. This means
+      // that the $element or the children can be altered or corrected before the
+      // element is rendered into the final text.
+      if (isset($elements['#pre_render'])) {
+        foreach ($elements['#pre_render'] as $callable) {
+          $elements = call_user_func($callable, $elements);
+        }
+      }
+
+      // And recurse.
+      $children = Element::children($elements, TRUE);
+      foreach ($children as $key) {
+        $ensure_fully_built($elements[$key]);
+      }
+    };
+
     $render_controller = $this->container->get('entity.manager')->getViewBuilder($entity->getEntityTypeId());
     if ($reset) {
       $render_controller->resetCache(array($entity->id()));
     }
-    $elements = $render_controller->view($entity, $view_mode, $langcode);
-    // If the default values for this element have not been loaded yet, populate
-    // them.
-    if (isset($elements['#type']) && empty($elements['#defaults_loaded'])) {
-      $elements += element_info($elements['#type']);
-    }
+    $build = $render_controller->view($entity, $view_mode, $langcode);
+    $ensure_fully_built($build);
 
-    // Make any final changes to the element before it is rendered. This means
-    // that the $element or the children can be altered or corrected before the
-    // element is rendered into the final text.
-    if (isset($elements['#pre_render'])) {
-      foreach ($elements['#pre_render'] as $callable) {
-        $elements = call_user_func($callable, $elements);
-      }
-    }
-    return $elements;
+    return $build;
   }
 
   /**
@@ -647,7 +625,7 @@ abstract class WebTestBase extends TestBase {
    *   TRUE if the permissions are valid, FALSE otherwise.
    */
   protected function checkPermissions(array $permissions) {
-    $available = array_keys(\Drupal::moduleHandler()->invokeAll('permission'));
+    $available = array_keys(\Drupal::service('user.permissions')->getPermissions());
     $valid = TRUE;
     foreach ($permissions as $permission) {
       if (!in_array($permission, $available)) {
@@ -704,9 +682,6 @@ abstract class WebTestBase extends TestBase {
     if ($pass) {
       $this->loggedInUser = $account;
       $this->container->get('current_user')->setAccount($account);
-      // @todo Temporary workaround for not being able to use synchronized
-      //   services in non dumped container.
-      $this->container->get('access_subscriber')->setCurrentUser($account);
     }
   }
 
@@ -722,15 +697,7 @@ abstract class WebTestBase extends TestBase {
     }
     // The session ID is hashed before being stored in the database.
     // @see \Drupal\Core\Session\SessionHandler::read()
-    return (bool) db_query("SELECT sid FROM {users} u INNER JOIN {sessions} s ON u.uid = s.uid WHERE s.sid = :sid", array(':sid' => Crypt::hashBase64($account->session_id)))->fetchField();
-  }
-
-  /**
-   * Generate a token for the currently logged in user.
-   */
-  protected function drupalGetToken($value = '') {
-    $private_key = \Drupal::service('private_key')->get();
-    return Crypt::hmacBase64($value, $this->session_id . $private_key);
+    return (bool) db_query("SELECT sid FROM {users_field_data} u INNER JOIN {sessions} s ON u.uid = s.uid AND u.default_langcode = 1 WHERE s.sid = :sid", array(':sid' => Crypt::hashBase64($account->session_id)))->fetchField();
   }
 
   /**
@@ -815,6 +782,7 @@ abstract class WebTestBase extends TestBase {
     // Not using File API; a potential error must trigger a PHP warning.
     $directory = DRUPAL_ROOT . '/' . $this->siteDirectory;
     copy(DRUPAL_ROOT . '/sites/default/default.settings.php', $directory . '/settings.php');
+    copy(DRUPAL_ROOT . '/sites/default/default.services.yml', $directory . '/services.yml');
 
     // All file system paths are created by System module during installation.
     // @see system_requirements()
@@ -856,14 +824,15 @@ abstract class WebTestBase extends TestBase {
     // Since Drupal is bootstrapped already, install_begin_request() will not
     // bootstrap into DRUPAL_BOOTSTRAP_CONFIGURATION (again). Hence, we have to
     // reload the newly written custom settings.php manually.
-    Settings::initialize($directory);
+    $class_loader = require DRUPAL_ROOT . '/core/vendor/autoload.php';
+    Settings::initialize($directory, $class_loader);
 
     // Execute the non-interactive installer.
     require_once DRUPAL_ROOT . '/core/includes/install.core.inc';
     install_drupal($parameters);
 
     // Import new settings.php written by the installer.
-    Settings::initialize($directory);
+    Settings::initialize($directory, $class_loader);
     foreach ($GLOBALS['config_directories'] as $type => $path) {
       $this->configDirectories[$type] = $path;
     }
@@ -877,7 +846,7 @@ abstract class WebTestBase extends TestBase {
     chmod($directory, 0777);
 
     $request = \Drupal::request();
-    $this->kernel = DrupalKernel::createFromRequest($request, drupal_classloader(), 'prod', TRUE);
+    $this->kernel = DrupalKernel::createFromRequest($request, $class_loader, 'prod', TRUE);
     $this->kernel->prepareLegacyRequest($request);
     // Force the container to be built from scratch instead of loaded from the
     // disk. This forces us to not accidently load the parent site.
@@ -990,8 +959,9 @@ abstract class WebTestBase extends TestBase {
               'pass2' => $this->root_user->pass_raw,
             ),
           ),
-          // form_type_checkboxes_value() requires NULL instead of FALSE values
-          // for programmatic form submissions to disable a checkbox.
+          // \Drupal\Core\Render\Element\Checkboxes::valueCallback() requires
+          // NULL instead of FALSE values for programmatic form submissions to
+          // disable a checkbox.
           'update_status_module' => array(
             1 => NULL,
             2 => NULL,
@@ -1019,6 +989,26 @@ abstract class WebTestBase extends TestBase {
     // Not using File API; a potential error must trigger a PHP warning.
     chmod($filename, 0666);
     drupal_rewrite_settings($settings, $filename);
+  }
+
+  /**
+   * Changes parameters in the services.yml file.
+   *
+   * @param $name
+   *   The name of the parameter.
+   * @param $value
+   *   The value of the parameter.
+   */
+  protected function setContainerParameter($name, $value) {
+    $filename = $this->siteDirectory . '/services.yml';
+    chmod($filename, 0666);
+
+    $services = Yaml::decode(file_get_contents($filename));
+    $services['parameters'][$name] = $value;
+    file_put_contents($filename, Yaml::encode($services));
+
+    // Clear the YML file cache.
+    YamlFileLoader::reset();
   }
 
   /**
@@ -1147,9 +1137,17 @@ abstract class WebTestBase extends TestBase {
    */
   protected function refreshVariables() {
     // Clear the tag cache.
+    // @todo Replace drupal_static() usage within classes and provide a
+    //   proper interface for invoking reset() on a cache backend:
+    //   https://www.drupal.org/node/2311945.
     drupal_static_reset('Drupal\Core\Cache\CacheBackendInterface::tagCache');
     drupal_static_reset('Drupal\Core\Cache\DatabaseBackend::deletedTags');
     drupal_static_reset('Drupal\Core\Cache\DatabaseBackend::invalidatedTags');
+    foreach (Cache::getBins() as $backend) {
+      if (is_callable(array($backend, 'reset'))) {
+        $backend->reset();
+      }
+    }
 
     $this->container->get('config.factory')->reset();
     $this->container->get('state')->resetCache();
@@ -1829,6 +1827,10 @@ abstract class WebTestBase extends TestBase {
     // XPath allows for finding wrapper nodes better than DOM does.
     $xpath = new \DOMXPath($dom);
     foreach ($ajax_response as $command) {
+      // Error messages might be not commands.
+      if (!is_array($command)) {
+        continue;
+      }
       switch ($command['command']) {
         case 'settings':
           $drupal_settings = drupal_merge_js_settings(array($drupal_settings, $command['settings']));

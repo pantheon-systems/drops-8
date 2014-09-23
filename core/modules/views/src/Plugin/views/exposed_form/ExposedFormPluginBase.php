@@ -64,7 +64,7 @@ abstract class ExposedFormPluginBase extends PluginBase {
 
     $form['reset_button'] = array(
       '#type' => 'checkbox',
-      '#title' => t('Include reset button (resets all applied exposed filters).'),
+      '#title' => t('Include reset button (resets all applied exposed filters)'),
       '#default_value' => $this->options['reset_button'],
     );
 
@@ -129,27 +129,28 @@ abstract class ExposedFormPluginBase extends PluginBase {
    */
   public function renderExposedForm($block = FALSE) {
     // Deal with any exposed filters we may have, before building.
-    $form_state = new FormState(array(
-      'view' => &$this->view,
-      'display' => &$this->view->display_handler->display,
-      'method' => 'get',
-      'rerender' => TRUE,
-      'no_redirect' => TRUE,
-      'always_process' => TRUE,
-    ));
+    $form_state = (new FormState())
+      ->setStorage([
+        'view' => $this->view,
+        'display' => &$this->view->display_handler->display,
+        'rerender' => TRUE,
+      ])
+      ->setMethod('get')
+      ->setAlwaysProcess()
+      ->disableRedirect();
 
     // Some types of displays (eg. attachments) may wish to use the exposed
     // filters of their parent displays instead of showing an additional
     // exposed filter form for the attachment as well as that for the parent.
     if (!$this->view->display_handler->displaysExposed() || (!$block && $this->view->display_handler->getOption('exposed_block'))) {
-      unset($form_state['rerender']);
+      $form_state->set('rerender', NULL);
     }
 
     if (!empty($this->ajax)) {
-      $form_state['ajax'] = TRUE;
+      $form_state->set('ajax', TRUE);
     }
 
-    $form_state['exposed_form_plugin'] = $this;
+    $form_state->set('exposed_form_plugin', $this);
     $form = \Drupal::formBuilder()->buildForm('\Drupal\views\Form\ViewsExposedForm', $form_state);
 
     if (!$this->view->display_handler->displaysExposed() || (!$block && $this->view->display_handler->getOption('exposed_block'))) {
@@ -224,17 +225,19 @@ abstract class ExposedFormPluginBase extends PluginBase {
         'ASC' => $this->options['sort_asc_label'],
         'DESC' => $this->options['sort_desc_label'],
       );
-      if (isset($form_state['input']['sort_by']) && isset($this->view->sort[$form_state['input']['sort_by']])) {
-        $default_sort_order = $this->view->sort[$form_state['input']['sort_by']]->options['order'];
+      $user_input = $form_state->getUserInput();
+      if (isset($user_input['sort_by']) && isset($this->view->sort[$user_input['sort_by']])) {
+        $default_sort_order = $this->view->sort[$user_input['sort_by']]->options['order'];
       }
       else {
         $first_sort = reset($this->view->sort);
         $default_sort_order = $first_sort->options['order'];
       }
 
-      if (!isset($form_state['input']['sort_by'])) {
+      if (!isset($user_input['sort_by'])) {
         $keys = array_keys($exposed_sorts);
-        $form_state['input']['sort_by'] = array_shift($keys);
+        $user_input['sort_by'] = array_shift($keys);
+        $form_state->setUserInput($user_input);
       }
 
       if ($this->options['expose_sort_order']) {
@@ -272,13 +275,13 @@ abstract class ExposedFormPluginBase extends PluginBase {
     $pager = $this->view->display_handler->getPlugin('pager');
     if ($pager) {
       $pager->exposedFormAlter($form, $form_state);
-      $form_state['pager_plugin'] = $pager;
+      $form_state->set('pager_plugin', $pager);
     }
   }
 
   public function exposedFormValidate(&$form, FormStateInterface $form_state) {
-    if (isset($form_state['pager_plugin'])) {
-      $form_state['pager_plugin']->exposedFormValidate($form, $form_state);
+    if ($pager_plugin = $form_state->get('pager_plugin')) {
+      $pager_plugin->exposedFormValidate($form, $form_state);
     }
   }
 
@@ -294,11 +297,11 @@ abstract class ExposedFormPluginBase extends PluginBase {
    *   $view->exposed_raw_input
    */
   public function exposedFormSubmit(&$form, FormStateInterface $form_state, &$exclude) {
-    if (!empty($form_state['values']['op']) && $form_state['values']['op'] == $this->options['reset_button_label']) {
+    if (!$form_state->isValueEmpty('op') && $form_state->getValue('op') == $this->options['reset_button_label']) {
       $this->resetForm($form, $form_state);
     }
-    if (isset($form_state['pager_plugin'])) {
-      $form_state['pager_plugin']->exposedFormSubmit($form, $form_state, $exclude);
+    if ($pager_plugin = $form_state->get('pager_plugin')) {
+      $pager_plugin->exposedFormSubmit($form, $form_state, $exclude);
       $exclude[] = 'pager_plugin';
     }
   }
@@ -318,15 +321,12 @@ abstract class ExposedFormPluginBase extends PluginBase {
 
     // Set the form to allow redirect.
     if (empty($this->view->live_preview)) {
-      $form_state['no_redirect'] = FALSE;
+      $form_state->disableRedirect(FALSE);
     }
     else {
-      $form_state['rebuild'] = TRUE;
+      $form_state->setRebuild();
       $this->view->exposed_data = array();
     }
-
-    $form_state['redirect'] = current_path();
-    $form_state['values'] = array();
   }
 
 }

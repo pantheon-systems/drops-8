@@ -9,6 +9,7 @@ namespace Drupal\node\Tests;
 
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\content_translation\Tests\ContentTranslationUITest;
+use Drupal\Core\Language\LanguageInterface;
 
 /**
  * Tests the Node Translation UI.
@@ -31,7 +32,7 @@ class NodeTranslationUITest extends ContentTranslationUITest {
    */
   protected $profile = 'standard';
 
-  function setUp() {
+  protected function setUp() {
     $this->entityTypeId = 'node';
     $this->bundle = 'article';
     parent::setUp();
@@ -152,11 +153,11 @@ class NodeTranslationUITest extends ContentTranslationUITest {
         'promote' => (bool) mt_rand(0, 1),
       );
       $edit = array(
-        'uid' => $user->getUsername(),
-        'created[date]' => format_date($values[$langcode]['created'], 'custom', 'Y-m-d'),
-        'created[time]' => format_date($values[$langcode]['created'], 'custom', 'H:i:s'),
-        'sticky' => $values[$langcode]['sticky'],
-        'promote' => $values[$langcode]['promote'],
+        'uid[0][target_id]' => $user->getUsername(),
+        'created[0][value][date]' => format_date($values[$langcode]['created'], 'custom', 'Y-m-d'),
+        'created[0][value][time]' => format_date($values[$langcode]['created'], 'custom', 'H:i:s'),
+        'sticky[value]' => $values[$langcode]['sticky'],
+        'promote[value]' => $values[$langcode]['promote'],
       );
       $this->drupalPostForm($path, $edit, $this->getFormSubmitAction($entity, $langcode), array('language' => $languages[$langcode]));
     }
@@ -181,7 +182,7 @@ class NodeTranslationUITest extends ContentTranslationUITest {
     $article = $this->drupalCreateNode(array('type' => 'article', 'langcode' => $this->langcodes[0]));
 
     // Set up Seven as the admin theme and use it for node editing.
-    $this->container->get('theme_handler')->enable(array('seven'));
+    $this->container->get('theme_handler')->install(array('seven'));
     $edit = array();
     $edit['admin_theme'] = 'seven';
     $edit['use_admin_theme'] = TRUE;
@@ -194,6 +195,9 @@ class NodeTranslationUITest extends ContentTranslationUITest {
     $this->drupalPostForm('admin/appearance', $edit, t('Save configuration'));
     $this->drupalGet('node/' . $article->id() . '/translations');
     $this->assertNoRaw('"theme":"seven"', 'Translation uses frontend theme if edit is frontend.');
+
+    // Assert presence of translation page itself (vs. DisabledBundle below).
+    $this->assertResponse(200);
   }
 
   /**
@@ -205,13 +209,18 @@ class NodeTranslationUITest extends ContentTranslationUITest {
     $this->drupalCreateContentType(array('type' => $disabledBundle, 'name' => $disabledBundle));
 
     // Create a node for each bundle.
-    $enabledNode = $this->drupalCreateNode(array('type' => $this->bundle));
+    $node = $this->drupalCreateNode(array(
+      'type' => $this->bundle,
+      'langcode' => LanguageInterface::LANGCODE_NOT_SPECIFIED,
+    ));
 
-    // Make sure that only a single row was inserted into the
-    // {content_translation} table.
+    // Make sure that nothing was inserted into the {content_translation} table.
     $rows = db_query('SELECT * FROM {content_translation}')->fetchAll();
-    $this->assertEqual(1, count($rows));
-    $this->assertEqual($enabledNode->id(), reset($rows)->entity_id);
+    $this->assertEqual(0, count($rows));
+
+    // Ensure the translation tab is not accessible.
+    $this->drupalGet('node/' . $node->id() . '/translations');
+    $this->assertResponse(403);
   }
 
   /**
@@ -296,6 +305,9 @@ class NodeTranslationUITest extends ContentTranslationUITest {
 
     // Test that the node page displays the correct translations.
     $this->doTestTranslations('node/' . $node->id(), $values);
+
+    // Test that the node page has the correct alternate hreflang links.
+    $this->doTestAlternateHreflangLinks('node/' . $node->id());
   }
 
   /**
@@ -311,6 +323,28 @@ class NodeTranslationUITest extends ContentTranslationUITest {
     foreach ($this->langcodes as $langcode) {
       $this->drupalGet($path, array('language' => $languages[$langcode]));
       $this->assertText($values[$langcode]['title'][0]['value'], format_string('The %langcode node translation is correctly displayed.', array('%langcode' => $langcode)));
+    }
+  }
+
+  /**
+   * Tests that the given path provides the correct alternate hreflang links.
+   *
+   * @param string $path
+   *   The path to be tested.
+   */
+  protected function doTestAlternateHreflangLinks($path) {
+    $languages = $this->container->get('language_manager')->getLanguages();
+    foreach ($this->langcodes as $langcode) {
+      $urls[$langcode] = url($path, array('absolute' => TRUE, 'language' => $languages[$langcode]));
+    }
+    foreach ($this->langcodes as $langcode) {
+      $this->drupalGet($path, array('language' => $languages[$langcode]));
+      foreach ($urls as $alternate_langcode => $url) {
+        // Retrieve desired link elements from the HTML head.
+        $links = $this->xpath('head/link[@rel = "alternate" and @href = :href and @hreflang = :hreflang]',
+          array(':href' => $url, ':hreflang' => $alternate_langcode));
+        $this->assert(isset($links[0]), format_string('The %langcode node translation has the correct alternate hreflang link for %alternate_langcode: %link.', array('%langcode' => $langcode, '%alternate_langcode' => $alternate_langcode, '%link' => $url)));
+      }
     }
   }
 

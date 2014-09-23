@@ -46,17 +46,17 @@ class Name extends InOperator {
       '#autocomplete_route_name' => 'user.autocomplete_anonymous',
     );
 
-    if (!empty($form_state['exposed']) && !isset($form_state['input'][$this->options['expose']['identifier']])) {
-      $form_state['input'][$this->options['expose']['identifier']] = $default_value;
+    $user_input = $form_state->getUserInput();
+    if ($form_state->get('exposed') && !isset($user_input[$this->options['expose']['identifier']])) {
+      $user_input[$this->options['expose']['identifier']] = $default_value;
+      $form_state->setUserInput($user_input);
     }
   }
 
   protected function valueValidate($form, FormStateInterface $form_state) {
-    $values = Tags::explode($form_state['values']['options']['value']);
-    $uids = $this->validate_user_strings($form['value'], $form_state, $values);
-
-    if ($uids) {
-      $form_state['values']['options']['value'] = $uids;
+    $values = Tags::explode($form_state->getValue(array('options', 'value')));
+    if ($uids = $this->validate_user_strings($form['value'], $form_state, $values)) {
+      $form_state->setValue(array('options', 'value'), $uids);
     }
   }
 
@@ -83,7 +83,7 @@ class Name extends InOperator {
     }
 
     $identifier = $this->options['expose']['identifier'];
-    $input = $form_state['values'][$identifier];
+    $input = $form_state->getValue($identifier);
 
     if ($this->options['is_grouped'] && isset($this->options['group_info']['group_items'][$input])) {
       $this->operator = $this->options['group_info']['group_items'][$input]['operator'];
@@ -135,7 +135,7 @@ class Name extends InOperator {
     }
 
     if ($missing) {
-      form_error($form, $form_state, format_plural(count($missing), 'Unable to find user: @users', 'Unable to find users: @users', array('@users' => implode(', ', array_keys($missing)))));
+      $form_state->setError($form, format_plural(count($missing), 'Unable to find user: @users', 'Unable to find users: @users', array('@users' => implode(', ', array_keys($missing)))));
     }
 
     return $uids;

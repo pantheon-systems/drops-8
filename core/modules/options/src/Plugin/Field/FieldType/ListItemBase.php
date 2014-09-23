@@ -7,6 +7,8 @@
 
 namespace Drupal\options\Plugin\Field\FieldType;
 
+use Drupal\Core\Field\AllowedTagsXssTrait;
+use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldItemBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Form\OptGroup;
@@ -17,6 +19,8 @@ use Drupal\Core\TypedData\AllowedValuesInterface;
  * Plugin base class inherited by the options field types.
  */
 abstract class ListItemBase extends FieldItemBase implements AllowedValuesInterface {
+
+  use AllowedTagsXssTrait;
 
   /**
    * {@inheritdoc}
@@ -62,6 +66,13 @@ abstract class ListItemBase extends FieldItemBase implements AllowedValuesInterf
     $allowed_options = options_allowed_values($this->getFieldDefinition(), $this->getEntity());
     return $allowed_options;
   }
+
+  /**
+   * {@inheritdoc}
+   */
+   public static function generateSampleValue(FieldDefinitionInterface $field_definition) {
+     // @todo Implement this once https://www.drupal.org/node/2238085 lands.
+   }
 
   /**
    * {@inheritdoc}
@@ -120,7 +131,7 @@ abstract class ListItemBase extends FieldItemBase implements AllowedValuesInterf
    * @param $form_state
    *   The current state of the form for the form this element belongs to.
    *
-   * @see form_process_pattern()
+   * @see \Drupal\Core\Render\Element\FormElement::processPattern()
    */
   public static function validateAllowedValues($element, FormStateInterface $form_state) {
     $values = static::extractAllowedValues($element['#value'], $element['#field_has_data']);

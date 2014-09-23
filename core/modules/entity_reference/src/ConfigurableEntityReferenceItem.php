@@ -178,7 +178,7 @@ class ConfigurableEntityReferenceItem extends EntityReferenceItem implements All
    * {@inheritdoc}
    */
   public function instanceSettingsForm(array $form, FormStateInterface $form_state) {
-    $instance = $form_state['instance'];
+    $instance = $form_state->get('instance');
 
     // Get all selection plugins for this entity type.
     $selection_plugins = \Drupal::service('plugin.manager.entity_reference.selection')->getSelectionGroups($this->getSetting('target_type'));
@@ -197,9 +197,6 @@ class ConfigurableEntityReferenceItem extends EntityReferenceItem implements All
 
     $form = array(
       '#type' => 'container',
-      '#attached' => array(
-        'css' => array(drupal_get_path('module', 'entity_reference') . '/css/entity_reference.admin.css'),
-      ),
       '#process' => array(
         '_entity_reference_field_instance_settings_ajax_process',
       ),
@@ -252,9 +249,9 @@ class ConfigurableEntityReferenceItem extends EntityReferenceItem implements All
    *   The form state of the (entire) configuration form.
    */
   public static function instanceSettingsFormValidate(array $form, FormStateInterface $form_state) {
-    if (isset($form_state['values']['instance'])) {
-      unset($form_state['values']['instance']['settings']['handler_submit']);
-      $form_state['instance']->settings = $form_state['values']['instance']['settings'];
+    if ($form_state->hasValue('instance')) {
+      $form_state->unsetValue(array('instance', 'settings', 'handler_submit'));
+      $form_state->get('instance')->settings = $form_state->getValue(['instance', 'settings']);
     }
   }
 

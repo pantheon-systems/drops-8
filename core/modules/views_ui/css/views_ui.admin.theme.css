@@ -51,12 +51,6 @@
 .views-admin a.icon {
   background-image:
     url(../images/sprites.png),
-    -moz-linear-gradient(
-      -90deg,
-      #fff 0,
-      #e8e8e8 100%);
-  background-image:
-    url(../images/sprites.png),
     -webkit-gradient(
       linear,
       left top,
@@ -337,7 +331,8 @@ th.views-ui-operations {
 }
 
 .form-item-page-create label,
-.form-item-block-create label {
+.form-item-block-create label,
+.form-item-rest-export-create label {
   font-weight: bold;
 }
 
@@ -520,6 +515,7 @@ td.group-title {
 }
 
 .views-displays .tabs.secondary .open > a:hover {
+  color: #0074bd;
   background-color: #f1f1f1;
 }
 

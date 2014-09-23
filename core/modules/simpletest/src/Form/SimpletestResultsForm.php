@@ -61,28 +61,28 @@ class SimpletestResultsForm extends FormBase {
     // Initialize image mapping property.
     $image_pass = array(
       '#theme' => 'image',
-      '#uri' => 'core/misc/icons/73b355/check.png',
+      '#uri' => 'core/misc/icons/73b355/check.svg',
       '#width' => 18,
       '#height' => 18,
       '#alt' => $this->t('Pass'),
     );
     $image_fail = array(
       '#theme' => 'image',
-      '#uri' => 'core/misc/icons/ea2800/error.png',
+      '#uri' => 'core/misc/icons/ea2800/error.svg',
       '#width' => 18,
       '#height' => 18,
       '#alt' => $this->t('Fail'),
     );
     $image_exception = array(
       '#theme' => 'image',
-      '#uri' => 'core/misc/icons/e29700/warning.png',
+      '#uri' => 'core/misc/icons/e29700/warning.svg',
       '#width' => 18,
       '#height' => 18,
       '#alt' => $this->t('Exception'),
     );
     $image_debug = array(
       '#theme' => 'image',
-      '#uri' => 'core/misc/icons/e29700/warning.png',
+      '#uri' => 'core/misc/icons/e29700/warning.svg',
       '#width' => 18,
       '#height' => 18,
       '#alt' => $this->t('Debug'),
@@ -252,13 +252,13 @@ class SimpletestResultsForm extends FormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    $pass = $form_state['values']['filter_pass'] ? explode(',', $form_state['values']['filter_pass']) : array();
-    $fail = $form_state['values']['filter_fail'] ? explode(',', $form_state['values']['filter_fail']) : array();
+    $pass = $form_state->getValue('filter_pass') ? explode(',', $form_state->getValue('filter_pass')) : array();
+    $fail = $form_state->getValue('filter_fail') ? explode(',', $form_state->getValue('filter_fail')) : array();
 
-    if ($form_state['values']['filter'] == 'all') {
+    if ($form_state->getValue('filter') == 'all') {
       $classes = array_merge($pass, $fail);
     }
-    elseif ($form_state['values']['filter'] == 'pass') {
+    elseif ($form_state->getValue('filter') == 'pass') {
       $classes = $pass;
     }
     else {
@@ -271,15 +271,15 @@ class SimpletestResultsForm extends FormBase {
     }
 
     $form_execute = array();
-    $form_state_execute = new FormState(array('values' => array()));
+    $form_state_execute = new FormState();
     foreach ($classes as $class) {
-      $form_state_execute['values']['tests'][$class] = $class;
+      $form_state_execute->setValue(['tests', $class], $class);
     }
 
     // Submit the simpletest test form to rerun the tests.
     // Under normal circumstances, a form object's submitForm() should never be
     // called directly, FormBuilder::submitForm() should be called instead.
-    // However, it sets $form_state['programmed'], which disables the Batch API.
+    // However, it calls $form_state->setProgrammed(), which disables the Batch API.
     $simpletest_test_form = new SimpletestTestForm();
     $simpletest_test_form->buildForm($form_execute, $form_state_execute);
     $simpletest_test_form->submitForm($form_execute, $form_state_execute);

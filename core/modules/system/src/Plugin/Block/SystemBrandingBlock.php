@@ -8,13 +8,12 @@
 namespace Drupal\system\Plugin\Block;
 
 use Drupal\Component\Utility\NestedArray;
-use Drupal\block\BlockBase;
+use Drupal\Core\Block\BlockBase;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
-use Drupal\Core\Routing\UrlGeneratorInterface;
-use Drupal\Core\Session\AccountInterface;
 use Drupal\Component\Utility\Xss;
+use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -28,25 +27,11 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 class SystemBrandingBlock extends BlockBase implements ContainerFactoryPluginInterface {
 
   /**
-   * The URL generator.
-   *
-   * @var \Drupal\Core\Routing\UrlGeneratorInterface
-   */
-  protected $urlGenerator;
-
-  /**
    * Stores the configuration factory.
    *
    * @var \Drupal\Core\Config\ConfigFactoryInterface
    */
   protected $configFactory;
-
-  /**
-   * The current user.
-   *
-   * @var \Drupal\Core\Session\AccountInterface
-   */
-  protected $currentUser;
 
   /**
    * Creates a SystemBrandingBlock instance.
@@ -59,16 +44,10 @@ class SystemBrandingBlock extends BlockBase implements ContainerFactoryPluginInt
    *   The plugin implementation definition.
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The factory for configuration objects.
-   * @param \Drupal\Core\Routing\UrlGeneratorInterface $url_generator
-   *   The url generator service.
-   * @param \Drupal\Core\Session\AccountInterface $current_user
-   *   The current user.
    */
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, ConfigFactoryInterface $config_factory, UrlGeneratorInterface $url_generator, AccountInterface $current_user) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, ConfigFactoryInterface $config_factory) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
     $this->configFactory = $config_factory;
-    $this->urlGenerator = $url_generator;
-    $this->currentUser = $current_user;
   }
 
   /**
@@ -79,9 +58,7 @@ class SystemBrandingBlock extends BlockBase implements ContainerFactoryPluginInt
       $configuration,
       $plugin_id,
       $plugin_definition,
-      $container->get('config.factory'),
-      $container->get('url_generator'),
-      $container->get('current_user')
+      $container->get('config.factory')
     );
   }
 
@@ -108,29 +85,29 @@ class SystemBrandingBlock extends BlockBase implements ContainerFactoryPluginInt
    */
   public function blockForm($form, FormStateInterface $form_state) {
     // Get the theme.
-    $theme = $form_state['block_theme'];
+    $theme = $form_state->get('block_theme');
 
     // Get permissions.
-    $administer_themes_access = $this->currentUser->hasPermission('administer themes');
-    $administer_site_configuration_access = $this->currentUser->hasPermission('administer site configuration');
+    $url_system_theme_settings = new Url('system.theme_settings');
+    $url_system_theme_settings_theme = new Url('system.theme_settings_theme', array('theme' => $theme));
 
-    if ($administer_themes_access) {
-      // Get paths to theme settings pages.
-      $appearance_settings_url = $this->urlGenerator->generateFromRoute('system.theme_settings');
-      $theme_settings_url = $this->urlGenerator->generateFromRoute('system.theme_settings_theme', array('theme' => $theme));
-
+    if ($url_system_theme_settings->access() && $url_system_theme_settings_theme->access()) {
       // Provide links to the Appearance Settings and Theme Settings pages
       // if the user has access to administer themes.
-      $site_logo_description = $this->t('Defined on the <a href="@appearance">Appearance Settings</a> or <a href="@theme">Theme Settings</a> page.', array('@appearance' => $appearance_settings_url, '@theme' => $theme_settings_url));
+      $site_logo_description = $this->t('Defined on the <a href="@appearance">Appearance Settings</a> or <a href="@theme">Theme Settings</a> page.', array(
+        '@appearance' => $url_system_theme_settings->toString(),
+        '@theme' => $url_system_theme_settings_theme->toString(),
+      ));
     }
     else {
       // Explain that the user does not have access to the Appearance and Theme
       // Settings pages.
       $site_logo_description = $this->t('Defined on the Appearance or Theme Settings page. You do not have the appropriate permissions to change the site logo.');
     }
-    if ($administer_site_configuration_access) {
+    $url_system_site_information_settings = new Url('system.site_information_settings');
+    if ($url_system_site_information_settings->access()) {
       // Get paths to settings pages.
-      $site_information_url = $this->urlGenerator->generateFromRoute('system.site_information_settings');
+      $site_information_url = $url_system_site_information_settings->toString();
 
       // Provide link to Site Information page if the user has access to
       // administer site configuration.
@@ -175,9 +152,10 @@ class SystemBrandingBlock extends BlockBase implements ContainerFactoryPluginInt
    * {@inheritdoc}
    */
   public function blockSubmit($form, FormStateInterface $form_state) {
-    $this->configuration['use_site_logo'] = $form_state['values']['block_branding']['use_site_logo'];
-    $this->configuration['use_site_name'] = $form_state['values']['block_branding']['use_site_name'];
-    $this->configuration['use_site_slogan'] = $form_state['values']['block_branding']['use_site_slogan'];
+    $block_branding = $form_state->getValue('block_branding');
+    $this->configuration['use_site_logo'] = $block_branding['use_site_logo'];
+    $this->configuration['use_site_name'] = $block_branding['use_site_name'];
+    $this->configuration['use_site_slogan'] = $block_branding['use_site_slogan'];
   }
 
   /**

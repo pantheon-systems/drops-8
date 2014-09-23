@@ -37,7 +37,7 @@ class MenuRouterTest extends WebTestBase {
    */
   protected $default_theme;
 
-  function setUp() {
+  protected function setUp() {
     // Enable dummy module that implements hook_menu.
     parent::setUp();
 
@@ -242,12 +242,12 @@ class MenuRouterTest extends WebTestBase {
     $this->admin_theme = 'seven';
 
     $theme_handler = $this->container->get('theme_handler');
-    $theme_handler->enable(array($this->default_theme, $this->admin_theme));
+    $theme_handler->install(array($this->default_theme, $this->admin_theme));
     $this->container->get('config.factory')->get('system.theme')
       ->set('default', $this->default_theme)
       ->set('admin', $this->admin_theme)
       ->save();
-    $theme_handler->disable(array('stark'));
+    $theme_handler->uninstall(array('stark'));
 
     $this->doTestThemeCallbackMaintenanceMode();
 
@@ -266,7 +266,7 @@ class MenuRouterTest extends WebTestBase {
   protected function doTestThemeCallbackAdministrative() {
     $this->drupalGet('menu-test/theme-callback/use-admin-theme');
     $this->assertText('Active theme: seven. Actual theme: seven.', 'The administrative theme can be correctly set in a theme negotiation.');
-    $this->assertRaw('seven/css/style.css', "The administrative theme's CSS appears on the page.");
+    $this->assertRaw('seven/css/base/elements.css', "The administrative theme's CSS appears on the page.");
   }
 
   /**
@@ -285,7 +285,7 @@ class MenuRouterTest extends WebTestBase {
     $this->drupalLogin($admin_user);
     $this->drupalGet('menu-test/theme-callback/use-admin-theme');
     $this->assertText('Active theme: seven. Actual theme: seven.', 'The theme negotiation system is correctly triggered for an administrator when the site is in maintenance mode.');
-    $this->assertRaw('seven/css/style.css', "The administrative theme's CSS appears on the page.");
+    $this->assertRaw('seven/css/base/elements.css', "The administrative theme's CSS appears on the page.");
 
     $this->container->get('state')->set('system.maintenance_mode', FALSE);
   }
@@ -294,20 +294,20 @@ class MenuRouterTest extends WebTestBase {
    * Test the theme negotiation when it is set to use an optional theme.
    */
   protected function doTestThemeCallbackOptionalTheme() {
-    // Request a theme that is not enabled.
+    // Request a theme that is not installed.
     $this->drupalGet('menu-test/theme-callback/use-stark-theme');
-    $this->assertText('Active theme: bartik. Actual theme: bartik.', 'The theme negotiation system falls back on the default theme when a theme that is not enabled is requested.');
+    $this->assertText('Active theme: bartik. Actual theme: bartik.', 'The theme negotiation system falls back on the default theme when a theme that is not installed is requested.');
     $this->assertRaw('bartik/css/style.css', "The default theme's CSS appears on the page.");
 
-    // Now enable the theme and request it again.
+    // Now install the theme and request it again.
     $theme_handler = $this->container->get('theme_handler');
-    $theme_handler->enable(array('stark'));
+    $theme_handler->install(array('stark'));
 
     $this->drupalGet('menu-test/theme-callback/use-stark-theme');
-    $this->assertText('Active theme: stark. Actual theme: stark.', 'The theme negotiation system uses an optional theme once it has been enabled.');
+    $this->assertText('Active theme: stark. Actual theme: stark.', 'The theme negotiation system uses an optional theme once it has been installed.');
     $this->assertRaw('stark/css/layout.css', "The optional theme's CSS appears on the page.");
 
-    $theme_handler->disable(array('stark'));
+    $theme_handler->uninstall(array('stark'));
   }
 
   /**

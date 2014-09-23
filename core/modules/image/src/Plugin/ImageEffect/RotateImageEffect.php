@@ -7,9 +7,9 @@
 
 namespace Drupal\image\Plugin\ImageEffect;
 
+use Drupal\Component\Utility\Color;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Image\ImageInterface;
-use Drupal\Core\Utility\Color;
 use Drupal\image\ConfigurableImageEffectBase;
 
 /**
@@ -104,7 +104,7 @@ class RotateImageEffect extends ConfigurableImageEffectBase {
       '#default_value' => $this->configuration['degrees'],
       '#title' => t('Rotation angle'),
       '#description' => t('The number of degrees the image should be rotated. Positive numbers are clockwise, negative are counter-clockwise.'),
-      '#field_suffix' => '&deg;',
+      '#field_suffix' => '°',
       '#required' => TRUE,
     );
     $form['bgcolor'] = array(
@@ -128,8 +128,8 @@ class RotateImageEffect extends ConfigurableImageEffectBase {
    * {@inheritdoc}
    */
   public function validateConfigurationForm(array &$form, FormStateInterface $form_state) {
-    if (!Color::validateHex($form_state['values']['bgcolor'])) {
-      form_set_error('bgcolor', $form_state, $this->t('Background color must be a hexadecimal color value.'));
+    if (!$form_state->isValueEmpty('bgcolor') && !Color::validateHex($form_state->getValue('bgcolor'))) {
+      $form_state->setErrorByName('bgcolor', $this->t('Background color must be a hexadecimal color value.'));
     }
   }
 
@@ -139,9 +139,9 @@ class RotateImageEffect extends ConfigurableImageEffectBase {
   public function submitConfigurationForm(array &$form, FormStateInterface $form_state) {
     parent::submitConfigurationForm($form, $form_state);
 
-    $this->configuration['degrees'] = $form_state['values']['degrees'];
-    $this->configuration['bgcolor'] = $form_state['values']['bgcolor'];
-    $this->configuration['random'] = $form_state['values']['random'];
+    $this->configuration['degrees'] = $form_state->getValue('degrees');
+    $this->configuration['bgcolor'] = $form_state->getValue('bgcolor');
+    $this->configuration['random'] = $form_state->getValue('random');
   }
 
 }

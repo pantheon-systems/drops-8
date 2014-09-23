@@ -3,7 +3,6 @@ status: true
 dependencies:
   module:
     - comment
-    - block
 id: comments_recent
 label: 'Recent comments'
 module: views
@@ -229,10 +228,10 @@ display:
           content: 'No comments available.'
           tokenize: false
           plugin_id: text_custom
-      field_langcode: '***CURRENT_LANGUAGE***'
+      field_langcode: '***LANGUAGE_language_content***'
       field_langcode_add_to_query: null
   block_1:
-    provider: block
+    provider: views
     display_plugin: block
     id: block_1
     display_title: Block
@@ -240,7 +239,7 @@ display:
     display_options:
       block_description: 'Recent comments'
       block_category: 'Lists (Views)'
-      field_langcode: '***CURRENT_LANGUAGE***'
+      field_langcode: '***LANGUAGE_language_content***'
       field_langcode_add_to_query: null
       allow:
         items_per_page: true

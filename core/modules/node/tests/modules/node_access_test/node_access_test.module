@@ -19,6 +19,7 @@
  * @see \Drupal\node\Tests\NodeAccessBaseTableTest
  */
 
+use Drupal\Core\Access\AccessResult;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\field\Entity\FieldInstanceConfig;
 use Drupal\node\NodeTypeInterface;
@@ -44,7 +45,7 @@ use Drupal\node\NodeInterface;
  *
  * @see \Drupal\node\Tests\NodeQueryAlterTest::testNodeQueryAlterOverride()
  * @see \Drupal\node\Tests\NodeAccessPagerTest
- * @see node_access_test_permission()
+ * @see node_access_test.permissions.yml
  * @see node_access_test_node_access_records()
  */
 function node_access_test_node_grants($account, $op) {
@@ -72,7 +73,7 @@ function node_access_test_node_grants($account, $op) {
  *
  * @see \Drupal\node\Tests\NodeAccessBaseTableTest::setUp()
  * @see node_access_test_node_grants()
- * @see node_access_test_permission()
+ * @see node_access_test.permissions.yml
  */
 function node_access_test_node_access_records(NodeInterface $node) {
   $grants = array();
@@ -112,22 +113,6 @@ function node_access_test_node_access_records(NodeInterface $node) {
 }
 
 /**
- * Implements hook_permission().
- *
- * Provides a 'node test view' permission. By default, all content is
- * restricted, and users without this permission can only view content they
- * have authored. When the 'node_access_test.private' state variable is
- * TRUE, only 'private' nodes are restricted, and this permission grants access
- * to view private nodes.
- *
- * @see node_access_test_node_access_records()
- * @see node_access_test_node_grants()
- */
-function node_access_test_permission() {
-  return array('node test view' => array('title' => 'View content'));
-}
-
-/**
  * Adds the private field to a node type.
  *
  * @param \Drupal\node\NodeTypeInterface $type
@@ -159,11 +144,12 @@ function node_access_test_add_field(NodeTypeInterface $type) {
 /**
  * Implements hook_node_access().
  */
-function node_access_test_node_access($node, $op, $account, $langcode) {
+function node_access_test_node_access(\Drupal\node\NodeInterface $node, $op, \Drupal\Core\Session\AccountInterface $account, $langcode) {
   $secret_catalan = \Drupal::state()->get('node_access_test_secret_catalan') ?: 0;
   if ($secret_catalan && $langcode == 'ca') {
     // Make all Catalan content secret.
-    return NODE_ACCESS_DENY;
+    return AccessResult::forbidden()->setCacheable(FALSE);
   }
-  return NODE_ACCESS_IGNORE;
+  // No opinion.
+  return AccessResult::create()->setCacheable(FALSE);
 }

@@ -8,7 +8,7 @@
 namespace Drupal\block\Tests;
 
 use Drupal\Component\Utility\Unicode;
-use Drupal\Core\Language\Language;
+use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\simpletest\WebTestBase;
 
 /**
@@ -32,17 +32,17 @@ class BlockLanguageCacheTest extends WebTestBase {
    */
   protected $langcodes = array();
 
-  public function setUp() {
+  protected function setUp() {
     parent::setUp();
 
     // Create test languages.
-    $this->langcodes = array(language_load('en'));
+    $this->langcodes = array(ConfigurableLanguage::load('en'));
     for ($i = 1; $i < 3; ++$i) {
-      $language = new Language(array(
+      $language = ConfigurableLanguage::create(array(
         'id' => 'l' . $i,
-        'name' => $this->randomString(),
+        'label' => $this->randomString(),
       ));
-      language_save($language);
+      $language->save();
       $this->langcodes[$i] = $language;
     }
   }

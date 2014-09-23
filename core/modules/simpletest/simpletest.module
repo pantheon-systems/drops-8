@@ -38,18 +38,6 @@ function simpletest_help($route_name, RouteMatchInterface $route_match) {
 }
 
 /**
- * Implements hook_permission().
- */
-function simpletest_permission() {
-  return array(
-    'administer unit tests' => array(
-      'title' => t('Administer tests'),
-      'restrict access' => TRUE,
-    ),
-  );
-}
-
-/**
  * Implements hook_theme().
  */
 function simpletest_theme() {
@@ -140,7 +128,7 @@ function simpletest_run_tests($test_list) {
     ->execute();
 
   if (!empty($test_list['phpunit'])) {
-    $phpunit_results = simpletest_run_phpunit_tests($test_id, $phpunit_tests);
+    $phpunit_results = simpletest_run_phpunit_tests($test_id, $test_list['phpunit']);
     simpletest_process_phpunit_results($phpunit_results);
   }
 
@@ -205,7 +193,9 @@ function simpletest_process_phpunit_results($phpunit_results) {
   // Insert the results of the PHPUnit test run into the database so the results
   // are displayed along with Simpletest's results.
   if (!empty($phpunit_results)) {
-    $query = db_insert('simpletest')->fields(array_keys($phpunit_results[0]));
+    $query = TestBase::getDatabaseConnection()
+      ->insert('simpletest')
+      ->fields(array_keys($phpunit_results[0]));
     foreach ($phpunit_results as $result) {
       $query->values($result);
     }

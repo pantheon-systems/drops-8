@@ -12,7 +12,6 @@ use Drupal\Component\Serialization\Yaml;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Component\Utility\String;
 use Drupal\Core\Cache\CacheBackendInterface;
-use Drupal\Core\Entity\Schema\EntitySchemaProviderInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -482,30 +481,6 @@ class ModuleHandler implements ModuleHandlerInterface {
           }
         }
       }
-      // Allow the theme to alter variables after the theme system has been
-      // initialized.
-      global $theme, $base_theme_info;
-      if (isset($theme)) {
-        $theme_keys = array();
-        foreach ($base_theme_info as $base) {
-          $theme_keys[] = $base->getName();
-        }
-        $theme_keys[] = $theme;
-        foreach ($theme_keys as $theme_key) {
-          $function = $theme_key . '_' . $hook;
-          if (function_exists($function)) {
-            $this->alterFunctions[$cid][] = $function;
-          }
-          if (isset($extra_types)) {
-            foreach ($extra_types as $extra_type) {
-              $function = $theme_key . '_' . $extra_type . '_alter';
-              if (function_exists($function)) {
-                $this->alterFunctions[$cid][] = $function;
-              }
-            }
-          }
-        }
-      }
     }
 
     foreach ($this->alterFunctions[$cid] as $function) {
@@ -846,6 +821,17 @@ class ModuleHandler implements ModuleHandlerInterface {
           $version = max(max($versions), $version);
         }
 
+        // Notify the entity manager that this module's entity types are new,
+        // so that it can notify all interested handlers. For example, a
+        // SQL-based storage handler can use this as an opportunity to create
+        // the necessary database tables.
+        $entity_manager = \Drupal::entityManager();
+        foreach ($entity_manager->getDefinitions() as $entity_type) {
+          if ($entity_type->getProvider() == $module) {
+            $entity_manager->onEntityTypeCreate($entity_type);
+          }
+        }
+
         // Install default configuration of the module.
         $config_installer = \Drupal::service('config.installer');
         if ($sync_status) {
@@ -869,22 +855,6 @@ class ModuleHandler implements ModuleHandlerInterface {
         }
         drupal_set_installed_schema_version($module, $version);
 
-        // Install any entity schemas belonging to the module.
-        $entity_manager = \Drupal::entityManager();
-        $schema = \Drupal::database()->schema();
-        foreach ($entity_manager->getDefinitions() as $entity_type) {
-          if ($entity_type->getProvider() == $module) {
-            $storage = $entity_manager->getStorage($entity_type->id());
-            if ($storage instanceof EntitySchemaProviderInterface) {
-              foreach ($storage->getSchema() as $table_name => $table_schema) {
-                if (!$schema->tableExists($table_name)) {
-                  $schema->createTable($table_name, $table_schema);
-                }
-              }
-            }
-          }
-        }
-
         // Record the fact that it was installed.
         $modules_installed[] = $module;
 
@@ -901,7 +871,7 @@ class ModuleHandler implements ModuleHandlerInterface {
         $this->invoke($module, 'install');
 
         // Record the fact that it was installed.
-        watchdog('system', '%module module installed.', array('%module' => $module), WATCHDOG_INFO);
+        \Drupal::logger('system')->info('%module module installed.', array('%module' => $module));
       }
     }
 
@@ -966,7 +936,19 @@ class ModuleHandler implements ModuleHandlerInterface {
     // the module already, which means that it might be loaded, but not
     // necessarily installed.
     $schema_store = \Drupal::keyValue('system.schema');
+    $entity_manager = \Drupal::entityManager();
     foreach ($module_list as $module) {
+
+      // Clean up all entity bundles (including field instances) of every entity
+      // type provided by the module that is being uninstalled.
+      foreach ($entity_manager->getDefinitions() as $entity_type_id => $entity_type) {
+        if ($entity_type->getProvider() == $module) {
+          foreach (array_keys($entity_manager->getBundleInfo($entity_type_id)) as $bundle) {
+            $entity_manager->onBundleDelete($entity_type_id, $bundle);
+          }
+        }
+      }
+
       // Allow modules to react prior to the uninstallation of a module.
       $this->invokeAll('module_preuninstall', array($module));
 
@@ -977,19 +959,13 @@ class ModuleHandler implements ModuleHandlerInterface {
       // Remove all configuration belonging to the module.
       \Drupal::service('config.manager')->uninstall('module', $module);
 
-      // Remove any entity schemas belonging to the module.
-      $entity_manager = \Drupal::entityManager();
-      $schema = \Drupal::database()->schema();
+      // Notify the entity manager that this module's entity types are being
+      // deleted, so that it can notify all interested handlers. For example,
+      // a SQL-based storage handler can use this as an opportunity to drop
+      // the corresponding database tables.
       foreach ($entity_manager->getDefinitions() as $entity_type) {
         if ($entity_type->getProvider() == $module) {
-          $storage = $entity_manager->getStorage($entity_type->id());
-          if ($storage instanceof EntitySchemaProviderInterface) {
-            foreach ($storage->getSchema() as $table_name => $table_schema) {
-              if ($schema->tableExists($table_name)) {
-                $schema->dropTable($table_name);
-              }
-            }
-          }
+          $entity_manager->onEntityTypeDelete($entity_type);
         }
       }
 
@@ -1028,7 +1004,7 @@ class ModuleHandler implements ModuleHandlerInterface {
       // @see https://drupal.org/node/2208429
       \Drupal::service('theme_handler')->refreshInfo();
 
-      watchdog('system', '%module module uninstalled.', array('%module' => $module), WATCHDOG_INFO);
+      \Drupal::logger('system')->info('%module module uninstalled.', array('%module' => $module));
 
       $schema_store->delete($module);
     }
@@ -1092,4 +1068,11 @@ class ModuleHandler implements ModuleHandlerInterface {
     return $dirs;
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  public function getName($module) {
+    $module_data = system_rebuild_module_data();
+    return $module_data[$module]->info['name'];
+  }
 }

@@ -148,14 +148,14 @@ class UserMultipleCancelConfirm extends ConfirmFormBase {
     // Allow to send the account cancellation confirmation mail.
     $form['user_cancel_confirm'] = array(
       '#type' => 'checkbox',
-      '#title' => $this->t('Require email confirmation to cancel account.'),
+      '#title' => $this->t('Require email confirmation to cancel account'),
       '#default_value' => FALSE,
       '#description' => $this->t('When enabled, the user must confirm the account cancellation via email.'),
     );
     // Also allow to send account canceled notification mail, if enabled.
     $form['user_cancel_notify'] = array(
       '#type' => 'checkbox',
-      '#title' => $this->t('Notify user when account is canceled.'),
+      '#title' => $this->t('Notify user when account is canceled'),
       '#default_value' => FALSE,
       '#access' => $this->config('user.settings')->get('notify.status_canceled'),
       '#description' => $this->t('When enabled, the user will receive an email notification after the account has been canceled.'),
@@ -174,8 +174,8 @@ class UserMultipleCancelConfirm extends ConfirmFormBase {
 
     // Clear out the accounts from the temp store.
     $this->tempStoreFactory->get('user_user_operations_cancel')->delete($current_user_id);
-    if ($form_state['values']['confirm']) {
-      foreach ($form_state['values']['accounts'] as $uid => $value) {
+    if ($form_state->getValue('confirm')) {
+      foreach ($form_state->getValue('accounts') as $uid => $value) {
         // Prevent programmatic form submissions from cancelling user 1.
         if ($uid <= 1) {
           continue;
@@ -184,7 +184,7 @@ class UserMultipleCancelConfirm extends ConfirmFormBase {
         if ($uid == $current_user_id) {
           $admin_form_mock = array();
           $admin_form_state = $form_state;
-          unset($admin_form_state['values']['user_cancel_confirm']);
+          $admin_form_state->unsetValue('user_cancel_confirm');
           // The $user global is not a complete user entity, so load the full
           // entity.
           $account = $this->userStorage->load($uid);
@@ -192,10 +192,10 @@ class UserMultipleCancelConfirm extends ConfirmFormBase {
           $admin_form->setEntity($account);
           // Calling this directly required to init form object with $account.
           $admin_form->buildForm($admin_form_mock, $admin_form_state);
-          $admin_form->submit($admin_form_mock, $admin_form_state);
+          $admin_form->submitForm($admin_form_mock, $admin_form_state);
         }
         else {
-          user_cancel($form_state['values'], $uid, $form_state['values']['user_cancel_method']);
+          user_cancel($form_state->getValues(), $uid, $form_state->getValue('user_cancel_method'));
         }
       }
     }

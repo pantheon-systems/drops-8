@@ -7,6 +7,7 @@
 
 namespace Drupal\system\Access;
 
+use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Routing\Access\AccessInterface;
 
 /**
@@ -20,18 +21,18 @@ class CronAccessCheck implements AccessInterface {
    * @param string $key
    *   The cron key.
    *
-   * @return string
-   *   A \Drupal\Core\Access\AccessInterface constant value.
+   * @return \Drupal\Core\Access\AccessResultInterface
+   *   The access result.
    */
   public function access($key) {
     if ($key != \Drupal::state()->get('system.cron_key')) {
-      watchdog('cron', 'Cron could not run because an invalid key was used.', array(), WATCHDOG_NOTICE);
-      return static::KILL;
+      \Drupal::logger('cron')->notice('Cron could not run because an invalid key was used.');
+      return AccessResult::forbidden()->setCacheable(FALSE);
     }
     elseif (\Drupal::state()->get('system.maintenance_mode')) {
-      watchdog('cron', 'Cron could not run because the site is in maintenance mode.', array(), WATCHDOG_NOTICE);
-      return static::KILL;
+      \Drupal::logger('cron')->notice('Cron could not run because the site is in maintenance mode.');
+      return AccessResult::forbidden()->setCacheable(FALSE);
     }
-    return static::ALLOW;
+    return AccessResult::allowed()->setCacheable(FALSE);
   }
 }

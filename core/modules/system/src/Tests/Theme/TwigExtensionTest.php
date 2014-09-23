@@ -23,9 +23,9 @@ class TwigExtensionTest extends WebTestBase {
    */
   public static $modules = array('theme_test', 'twig_extension_test');
 
-  function setUp() {
+  protected function setUp() {
     parent::setUp();
-    theme_enable(array('test_theme'));
+    \Drupal::service('theme_handler')->install(array('test_theme'));
   }
 
   /**

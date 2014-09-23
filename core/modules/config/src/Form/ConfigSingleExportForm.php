@@ -95,11 +95,11 @@ class ConfigSingleExportForm extends FormBase {
       '#options' => $config_types,
       '#default_value' => $config_type,
       '#ajax' => array(
-        'callback' => array($this, 'updateConfigurationType'),
+        'callback' => '::updateConfigurationType',
         'wrapper' => 'edit-config-type-wrapper',
       ),
     );
-    $default_type = isset($form_state['values']['config_type']) ? $form_state['values']['config_type'] : $config_type;
+    $default_type = $form_state->getValue('config_type', $config_type);
     $form['config_name'] = array(
       '#title' => $this->t('Configuration name'),
       '#type' => 'select',
@@ -109,7 +109,7 @@ class ConfigSingleExportForm extends FormBase {
       '#prefix' => '<div id="edit-config-type-wrapper">',
       '#suffix' => '</div>',
       '#ajax' => array(
-        'callback' => array($this, 'updateExport'),
+        'callback' => '::updateExport',
         'wrapper' => 'edit-export-wrapper',
       ),
     );
@@ -123,10 +123,10 @@ class ConfigSingleExportForm extends FormBase {
       '#suffix' => '</div>',
     );
     if ($config_type && $config_name) {
-      $fake_form_state = new FormState(array('values' => array(
+      $fake_form_state = (new FormState())->setValues([
         'config_type' => $config_type,
         'config_name' => $config_name,
-      )));
+      ]);
       $form['export'] = $this->updateExport($form, $fake_form_state);
     }
     return $form;
@@ -136,7 +136,7 @@ class ConfigSingleExportForm extends FormBase {
    * Handles switching the configuration type selector.
    */
   public function updateConfigurationType($form, FormStateInterface $form_state) {
-    $form['config_name']['#options'] = $this->findConfiguration($form_state['values']['config_type']);
+    $form['config_name']['#options'] = $this->findConfiguration($form_state->getValue('config_type'));
     return $form['config_name'];
   }
 
@@ -145,13 +145,13 @@ class ConfigSingleExportForm extends FormBase {
    */
   public function updateExport($form, FormStateInterface $form_state) {
     // Determine the full config name for the selected config entity.
-    if ($form_state['values']['config_type'] !== 'system.simple') {
-      $definition = $this->entityManager->getDefinition($form_state['values']['config_type']);
-      $name = $definition->getConfigPrefix() . '.' . $form_state['values']['config_name'];
+    if ($form_state->getValue('config_type') !== 'system.simple') {
+      $definition = $this->entityManager->getDefinition($form_state->getValue('config_type'));
+      $name = $definition->getConfigPrefix() . '.' . $form_state->getValue('config_name');
     }
     // The config name is used directly for simple configuration.
     else {
-      $name = $form_state['values']['config_name'];
+      $name = $form_state->getValue('config_name');
     }
     // Read the raw data for this config name, encode it, and display it.
     $form['export']['#value'] = Yaml::encode($this->configStorage->read($name));

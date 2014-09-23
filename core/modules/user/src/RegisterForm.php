@@ -10,7 +10,7 @@ namespace Drupal\user;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Entity\Query\QueryFactory;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\Language\LanguageManager;
+use Drupal\Core\Language\LanguageManagerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
@@ -21,7 +21,7 @@ class RegisterForm extends AccountForm {
   /**
    * {@inheritdoc}
    */
-  public function __construct(EntityManagerInterface $entity_manager, LanguageManager $language_manager, QueryFactory $entity_query) {
+  public function __construct(EntityManagerInterface $entity_manager, LanguageManagerInterface $language_manager, QueryFactory $entity_query) {
     parent::__construct($entity_manager, $language_manager, $entity_query);
   }
 
@@ -47,7 +47,12 @@ class RegisterForm extends AccountForm {
     }
 
     $form['#attached']['library'][] = 'core/drupal.form';
-    $form['#attributes']['data-user-info-from-browser'] = TRUE;
+
+    // For non-admin users, populate the form fields using data from the
+    // browser.
+    if (!$admin) {
+      $form['#attributes']['data-user-info-from-browser'] = TRUE;
+    }
 
     // Because the user status has security implications, users are blocked by
     // default when created programmatically and need to be actively activated
@@ -59,12 +64,6 @@ class RegisterForm extends AccountForm {
 
     // Start with the default user account fields.
     $form = parent::form($form, $form_state, $account);
-
-    if ($admin) {
-      // Redirect back to page which initiated the create request; usually
-      // admin/people/create.
-      $form_state['redirect'] = current_path();
-    }
 
     return $form;
   }
@@ -79,44 +78,44 @@ class RegisterForm extends AccountForm {
   }
 
   /**
-   * Overrides Drupal\Core\Entity\EntityForm::submit().
+   * {@inheritdoc}
    */
-  public function submit(array $form, FormStateInterface $form_state) {
-    $admin = $form_state['values']['administer_users'];
+  public function submitForm(array &$form, FormStateInterface $form_state) {
+    $admin = $form_state->getValue('administer_users');
 
     if (!\Drupal::config('user.settings')->get('verify_mail') || $admin) {
-      $pass = $form_state['values']['pass'];
+      $pass = $form_state->getValue('pass');
     }
     else {
       $pass = user_password();
     }
 
     // Remove unneeded values.
-    form_state_values_clean($form_state);
+    $form_state->cleanValues();
 
-    $form_state['values']['pass'] = $pass;
-    $form_state['values']['init'] = $form_state['values']['mail'];
+    $form_state->setValue('pass', $pass);
+    $form_state->setValue('init', $form_state->getValue('mail'));
 
-    parent::submit($form, $form_state);
+    parent::submitForm($form, $form_state);
   }
 
   /**
-   * Overrides Drupal\Core\Entity\EntityForm::submit().
+   * {@inheritdoc}
    */
   public function save(array $form, FormStateInterface $form_state) {
     $account = $this->entity;
     $pass = $account->getPassword();
-    $admin = $form_state['values']['administer_users'];
-    $notify = !empty($form_state['values']['notify']);
+    $admin = $form_state->getValue('administer_users');
+    $notify = !$form_state->isValueEmpty('notify');
 
     // Save has no return value so this cannot be tested.
     // Assume save has gone through correctly.
     $account->save();
 
-    $form_state['user'] = $account;
-    $form_state['values']['uid'] = $account->id();
+    $form_state->set('user', $account);
+    $form_state->setValue('uid', $account->id());
 
-    $this->logger('user')->notice('New user: %name %email.', array('%name' => $form_state['values']['name'], '%email' => '<' . $form_state['values']['mail'] . '>', 'type' => l($this->t('Edit'), 'user/' . $account->id() . '/edit')));
+    $this->logger('user')->notice('New user: %name %email.', array('%name' => $form_state->getValue('name'), '%email' => '<' . $form_state->getValue('mail') . '>', 'type' => l($this->t('Edit'), 'user/' . $account->id() . '/edit')));
 
     // Add plain text password into user account to generate mail tokens.
     $account->password = $pass;

@@ -91,13 +91,13 @@ class VocabularyForm extends EntityForm {
    */
   protected function actions(array $form, FormStateInterface $form_state) {
     // If we are displaying the delete confirmation skip the regular actions.
-    if (empty($form_state['confirm_delete'])) {
+    if (!$form_state->get('confirm_delete')) {
       $actions = parent::actions($form, $form_state);
       // Add the language configuration submit handler. This is needed because
       // the submit button has custom submit handlers.
       if ($this->moduleHandler->moduleExists('language')) {
         array_unshift($actions['submit']['#submit'], 'language_configuration_element_submit');
-        array_unshift($actions['submit']['#submit'], array($this, 'languageConfigurationSubmit'));
+        array_unshift($actions['submit']['#submit'], '::languageConfigurationSubmit');
       }
       // We cannot leverage the regular submit handler definition because we
       // have button-specific ones here. Hence we need to explicitly set it for
@@ -119,13 +119,13 @@ class VocabularyForm extends EntityForm {
     $vocabulary = $this->entity;
     // Delete the old language settings for the vocabulary, if the machine name
     // is changed.
-    if ($vocabulary && $vocabulary->id() && $vocabulary->id() != $form_state['values']['vid']) {
+    if ($vocabulary && $vocabulary->id() && $vocabulary->id() != $form_state->getValue('vid')) {
       language_clear_default_configuration('taxonomy_term', $vocabulary->id());
     }
     // Since the machine name is not known yet, and it can be changed anytime,
     // we have to also update the bundle property for the default language
     // configuration in order to have the correct bundle value.
-    $form_state['language']['default_language']['bundle'] = $form_state['values']['vid'];
+    $form_state->set(['language', 'default_language', 'bundle'], $form_state->getValue('vid'));
   }
 
   /**
@@ -153,8 +153,8 @@ class VocabularyForm extends EntityForm {
         break;
     }
 
-    $form_state['values']['vid'] = $vocabulary->id();
-    $form_state['vid'] = $vocabulary->id();
+    $form_state->setValue('vid', $vocabulary->id());
+    $form_state->set('vid', $vocabulary->id());
   }
 
 }

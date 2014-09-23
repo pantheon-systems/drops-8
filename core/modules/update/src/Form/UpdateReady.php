@@ -100,7 +100,7 @@ class UpdateReady extends FormBase {
   public function submitForm(array &$form, FormStateInterface $form_state) {
     // Store maintenance_mode setting so we can restore it when done.
     $_SESSION['maintenance_mode'] = $this->state->get('system.maintenance_mode');
-    if ($form_state['values']['maintenance_mode'] == TRUE) {
+    if ($form_state->getValue('maintenance_mode') == TRUE) {
       $this->state->set('system.maintenance_mode', TRUE);
     }
 
@@ -141,7 +141,7 @@ class UpdateReady extends FormBase {
       // whatever FileTransfer object authorize.php creates for us.
       else {
         system_authorized_init('update_authorize_run_update', drupal_get_path('module', 'update') . '/update.authorize.inc', array($updates), $this->t('Update manager'));
-        $form_state['redirect'] = system_authorized_get_url();
+        $form_state->setRedirectUrl(system_authorized_get_url());
       }
     }
   }

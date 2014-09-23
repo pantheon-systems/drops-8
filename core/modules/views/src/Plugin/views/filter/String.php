@@ -193,7 +193,7 @@ class String extends FilterPluginBase {
     if (!empty($form['operator'])) {
       $source = ':input[name="options[operator]"]';
     }
-    if (!empty($form_state['exposed'])) {
+    if ($exposed = $form_state->get('exposed')) {
       $identifier = $this->options['expose']['identifier'];
 
       if (empty($this->options['expose']['use_operator']) || empty($this->options['expose']['operator_id'])) {
@@ -212,8 +212,10 @@ class String extends FilterPluginBase {
         '#size' => 30,
         '#default_value' => $this->value,
       );
-      if (!empty($form_state['exposed']) && !isset($form_state['input'][$identifier])) {
-        $form_state['input'][$identifier] = $this->value;
+      $user_input = $form_state->getUserInput();
+      if ($exposed && !isset($user_input[$identifier])) {
+        $user_input[$identifier] = $this->value;
+        $form_state->setUserInput($user_input);
       }
 
       if ($which == 'all') {

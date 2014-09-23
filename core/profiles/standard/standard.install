@@ -14,6 +14,12 @@ use Drupal\comment\Plugin\Field\FieldType\CommentItemInterface;
  * @see system_install()
  */
 function standard_install() {
+  // Now that all modules are installed, make sure the entity storage and other
+  // handlers are up to date with the current entity and field definitions. For
+  // example, Path module adds a base field to nodes and taxonomy terms after
+  // those modules are already installed.
+  \Drupal::service('entity.definition_update_manager')->applyUpdates();
+
   // Set front page to "node".
   \Drupal::config('system.site')->set('page.front', 'node')->save();
 
@@ -34,7 +40,7 @@ function standard_install() {
   user_role_grant_permissions(DRUPAL_AUTHENTICATED_RID, array('access comments', 'post comments', 'skip comment approval'));
 
   // Enable all permissions for the administrator role.
-  user_role_grant_permissions('administrator', array_keys(\Drupal::moduleHandler()->invokeAll('permission')));
+  user_role_grant_permissions('administrator', array_keys(\Drupal::service('user.permissions')->getPermissions()));
   // Set this as the administrator role.
   $user_settings->set('admin_role', 'administrator')->save();
 
@@ -46,7 +52,7 @@ function standard_install() {
   // Enable the Contact link in the footer menu.
   /** @var \Drupal\Core\Menu\MenuLinkManagerInterface $menu_link_manager */
   $menu_link_manager = \Drupal::service('plugin.manager.menu.link');
-  $menu_link_manager->updateDefinition('contact.site_page', array('hidden' => 0));
+  $menu_link_manager->updateDefinition('contact.site_page', array('enabled' => 1));
 
   user_role_grant_permissions(DRUPAL_ANONYMOUS_RID, array('access site-wide contact form'));
   user_role_grant_permissions(DRUPAL_AUTHENTICATED_RID, array('access site-wide contact form'));

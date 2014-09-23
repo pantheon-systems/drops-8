@@ -14,6 +14,11 @@ use Drupal\Core\Session\AccountInterface;
 
 /**
  * Provides a base class for DisplayVariant plugins.
+ *
+ * @see \Drupal\Core\Display\Annotation\DisplayVariant
+ * @see \Drupal\Core\Display\VariantInterface
+ * @see \Drupal\Core\Display\VariantManager
+ * @see plugin_api
  */
 abstract class VariantBase extends PluginBase implements VariantInterface {
 
@@ -122,7 +127,7 @@ abstract class VariantBase extends PluginBase implements VariantInterface {
    * {@inheritdoc}
    */
   public function submitConfigurationForm(array &$form, FormStateInterface $form_state) {
-    $this->configuration['label'] = $form_state['values']['label'];
+    $this->configuration['label'] = $form_state->getValue('label');
   }
 
   /**

@@ -7,8 +7,9 @@
 
 use Drupal\block\BlockInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
-use Drupal\language\Entity\Language;
+use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\system\Entity\Menu;
+use Drupal\block\Entity\Block;
 
 /**
  * Implements hook_help().
@@ -26,7 +27,7 @@ function block_help($route_name, RouteMatchInterface $route_match) {
       $output .= '<dt>' . t('Demonstrating block regions for a theme') . '</dt>';
       $output .= '<dd>' . t('You can see which region is where in a theme by clicking an the <em>Demonstrate block regions</em> link on the <a href="!blocks">Block layout page</a>. Regions are specific to each theme, so you need to toggle to a different theme first to demonstrate its block regions.', array('!blocks' => \Drupal::url('block.admin_display'))) . '</dd>';
       $output .= '<dt>' . t('Toggling between different themes') . '</dt>';
-      $output .= '<dd>' . t('Blocks are placed and configured specifically for each theme. The Block layout page opens with the default theme, but you can toggle to other enabled themes.') . '</dd>';
+      $output .= '<dd>' . t('Blocks are placed and configured specifically for each theme. The Block layout page opens with the default theme, but you can toggle to other installed themes.') . '</dd>';
       $output .= '<dt>' . t('Configuring block settings') . '</dt>';
       $output .= '<dd>' . t('To change the settings of an individual block click on the <em>Configure</em> link on the <a href="!blocks">Block layout page</a>. The available options vary depending on the module that provides the block. For all blocks you can change the block title and toggle whether to display it.', array('!blocks' => Drupal::url('block.admin_display'))) . '</dd>';
       $output .= '<dt>' . t('Controlling visibility') . '</dt>';
@@ -62,26 +63,12 @@ function block_theme() {
 }
 
 /**
- * Implements hook_permission().
- */
-function block_permission() {
-  return array(
-    'administer blocks' => array(
-      'title' => t('Administer blocks'),
-    ),
-  );
-}
-
-/**
  * Implements hook_page_build().
  *
  * Renders blocks into their regions.
  */
 function block_page_build(&$page) {
-  global $theme;
-
-  // The theme system might not yet be initialized. We need $theme.
-  drupal_theme_initialize();
+  $theme = \Drupal::theme()->getActiveTheme()->getName();
 
   // Fetch a list of regions for the current theme.
   $all_regions = system_region_list($theme);
@@ -152,12 +139,12 @@ function _block_rehash($theme = NULL) {
 }
 
 /**
- * Initializes blocks for enabled themes.
+ * Initializes blocks for installed themes.
  *
  * @param $theme_list
  *   An array of theme names.
  */
-function block_themes_enabled($theme_list) {
+function block_themes_installed($theme_list) {
   foreach ($theme_list as $theme) {
     block_theme_initialize($theme);
   }
@@ -166,9 +153,9 @@ function block_themes_enabled($theme_list) {
 /**
  * Assigns an initial, default set of blocks for a theme.
  *
- * This function is called the first time a new theme is enabled. The new theme
- * gets a copy of the default theme's blocks, with the difference that if a
- * particular region isn't available in the new theme, the block is assigned
+ * This function is called the first time a new theme is installed. The new
+ * theme gets a copy of the default theme's blocks, with the difference that if
+ * a particular region isn't available in the new theme, the block is assigned
  * to the new theme's default region.
  *
  * @param $theme
@@ -264,8 +251,6 @@ function block_theme_suggestions_block(array $variables) {
  *     Properties used: #block, #configuration, #children, #plugin_id.
  */
 function template_preprocess_block(&$variables) {
-  $block_counter = &drupal_static(__FUNCTION__, array());
-
   $variables['configuration'] = $variables['elements']['#configuration'];
   $variables['plugin_id'] = $variables['elements']['#plugin_id'];
   $variables['base_plugin_id'] = $variables['elements']['#base_plugin_id'];
@@ -277,12 +262,6 @@ function template_preprocess_block(&$variables) {
   if (isset($variables['elements']['content']['#title']) && !empty($variables['configuration']['label_display'])) {
     $variables['label'] = $variables['elements']['content']['#title'];
   }
-
-  $variables['attributes']['class'][] = 'block';
-  $variables['attributes']['class'][] = drupal_html_class('block-' . $variables['configuration']['provider']);
-
-  // Add default class for block content.
-  $variables['content_attributes']['class'][] = 'content';
 
   // Create a valid HTML ID and make sure it is unique.
   if (!empty($variables['elements']['#id'])) {
@@ -303,7 +282,7 @@ function template_preprocess_block(&$variables) {
  * Removes deleted role from blocks that use it.
  */
 function block_user_role_delete($role) {
-  foreach (entity_load_multiple('block') as $block) {
+  foreach (Block::loadMultiple() as $block) {
     /** @var $block \Drupal\block\BlockInterface */
     $visibility = $block->getVisibility();
     if (isset($visibility['user_role']['roles'][$role->id()])) {
@@ -319,7 +298,7 @@ function block_user_role_delete($role) {
  */
 function block_menu_delete(Menu $menu) {
   if (!$menu->isSyncing()) {
-    foreach (entity_load_multiple('block') as $block) {
+    foreach (Block::loadMultiple() as $block) {
       if ($block->get('plugin') == 'system_menu_block:' . $menu->id()) {
         $block->delete();
       }
@@ -328,13 +307,13 @@ function block_menu_delete(Menu $menu) {
 }
 
 /**
- * Implements hook_ENTITY_TYPE_delete() for 'language_entity'.
+ * Implements hook_ENTITY_TYPE_delete() for 'configurable_language'.
  *
  * Delete the potential block visibility settings of the deleted language.
  */
-function block_language_entity_delete(Language $language) {
+function block_configurable_language_delete(ConfigurableLanguage $language) {
   // Remove the block visibility settings for the deleted language.
-  foreach (entity_load_multiple('block') as $block) {
+  foreach (Block::loadMultiple() as $block) {
     /** @var $block \Drupal\block\BlockInterface */
     $visibility = $block->getVisibility();
     if (isset($visibility['language']['langcodes'][$language->id()])) {

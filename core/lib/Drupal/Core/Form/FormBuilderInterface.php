@@ -42,7 +42,7 @@ interface FormBuilderInterface {
    *   function. For example, the node_edit form requires that a node object is
    *   passed in here when it is called. These are available to implementations
    *   of hook_form_alter() and hook_form_FORM_ID_alter() as the array
-   *   $form_state['build_info']['args'].
+   *   $form_state->getBuildInfo()['args'].
    *
    * @return array
    *   The form array.
@@ -79,10 +79,10 @@ interface FormBuilderInterface {
    * This is the key function for making multi-step forms advance from step to
    * step. It is called by self::processForm() when all user input processing,
    * including calling validation and submission handlers, for the request is
-   * finished. If a validate or submit handler set $form_state['rebuild'] to
-   * TRUE, and if other conditions don't preempt a rebuild from happening, then
-   * this function is called to generate a new $form, the next step in the form
-   * workflow, to be returned for rendering.
+   * finished. If a validate or submit handler set $form_state->isRebuilding()
+   * to TRUE, and if other conditions don't preempt a rebuild from happening,
+   * then this function is called to generate a new $form, the next step in the
+   * form workflow, to be returned for rendering.
    *
    * Ajax form submissions are almost always multi-step workflows, so that is
    * one common use-case during which form rebuilding occurs. See
@@ -98,7 +98,7 @@ interface FormBuilderInterface {
    *   (optional) A previously built $form. Used to retain the #build_id and
    *   #action properties in Ajax callbacks and similar partial form rebuilds.
    *   The only properties copied from $old_form are the ones which both exist
-   *   in $old_form and for which $form_state['rebuild_info']['copy'][PROPERTY]
+   *   in $old_form and for which $form_state->getRebuildInfo()['copy'][PROPERTY]
    *   is TRUE. If $old_form is not passed, the entire $form is rebuilt freshly.
    *   'rebuild_info' needs to be a separate top-level property next to
    *   'build_info', since the contained data must not be cached.
@@ -112,16 +112,6 @@ interface FormBuilderInterface {
   public function rebuildForm($form_id, FormStateInterface &$form_state, $old_form = NULL);
 
   /**
-   * Fetches a form from the cache.
-   */
-  public function getCache($form_build_id, FormStateInterface &$form_state);
-
-  /**
-   * Stores a form in the cache.
-   */
-  public function setCache($form_build_id, $form, FormStateInterface $form_state);
-
-  /**
    * Retrieves, populates, and processes a form.
    *
    * This function allows you to supply values for form elements and submit a
@@ -129,7 +119,7 @@ interface FormBuilderInterface {
    * processes a form, but does not allow you to supply values.
    *
    * There is no return value, but you can check to see if there are errors
-   * by calling form_get_errors().
+   * by calling $form_state->getErrors().
    *
    * @param \Drupal\Core\Form\FormInterface|string $form_arg
    *   A form object to use to build the form, or the unique string identifying
@@ -137,9 +127,9 @@ interface FormBuilderInterface {
    *   name exists, it is called to build the form array.
    * @param $form_state
    *   The current state of the form. Most important is the
-   *   $form_state['values'] collection, a tree of data used to simulate the
+   *   $form_state->getValues() collection, a tree of data used to simulate the
    *   incoming \Drupal::request()->request information from a user's form
-   *   submission. If a key is not filled in $form_state['values'], then the
+   *   submission. If a key is not filled in $form_state->getValues(), then the
    *   default value of the respective element is used. To submit an unchecked
    *   checkbox or other control that browsers submit by not having a
    *   \Drupal::request()->request entry, include the key, but set the value to
@@ -158,19 +148,20 @@ interface FormBuilderInterface {
    *   @endcode
    *   would be called via self::submitForm() as follows:
    *   @code
-   *   $form_state['values'] = $my_form_values;
-   *   $form_state['build_info']['args'] = array(&$object);
+   *   $form_state->setValues($my_form_values);
+   *   $form_state->addBuildInfo('args', [&$object]);
    *   drupal_form_submit('mymodule_form', $form_state);
    *   @endcode
    * For example:
    * @code
    * // register a new user
    * $form_state = new FormState();
-   * $form_state['values']['name'] = 'robo-user';
-   * $form_state['values']['mail'] = 'robouser@example.com';
-   * $form_state['values']['pass']['pass1'] = 'password';
-   * $form_state['values']['pass']['pass2'] = 'password';
-   * $form_state['values']['op'] = t('Create new account');
+   * $values['name'] = 'robo-user';
+   * $values['mail'] = 'robouser@example.com';
+   * $values['pass']['pass1'] = 'password';
+   * $values['pass']['pass2'] = 'password';
+   * $values['op'] = t('Create new account');
+   * $form_state->setValues($values);
    * drupal_form_submit('user_register_form', $form_state);
    * @endcode
    */
@@ -302,8 +293,8 @@ interface FormBuilderInterface {
    *   the next submission needs to be processed, a multi-step workflow is
    *   needed. This is most commonly implemented with a submit handler setting
    *   persistent data within $form_state based on *validated* values in
-   *   $form_state['values'] and setting $form_state['rebuild']. The form
-   *   building functions must then be implemented to use the $form_state data
+   *   $form_state->getValues() and checking $form_state->isRebuilding(). The
+   *   form building functions must then be implemented to use the $form_state
    *   to rebuild the form with the structure appropriate for the new state.
    * - Where user input must affect the rendering of the form without affecting
    *   its structure, the necessary conditional rendering logic should reside

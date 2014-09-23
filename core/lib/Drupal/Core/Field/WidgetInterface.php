@@ -83,9 +83,9 @@ interface WidgetInterface extends WidgetBaseInterface {
    *   - #field_parents: The 'parents' space for the field in the form. Most
    *       widgets can simply overlook this property. This identifies the
    *       location where the field values are placed within
-   *       $form_state['values'], and is used to access processing information
-   *       for the field through the getWidgetState() and setWidgetState()
-   *       methods.
+   *       $form_state->getValues(), and is used to access processing
+   *       information for the field through the getWidgetState() and
+   *       setWidgetState() methods.
    *   - #title: The sanitized element label for the field instance, ready for
    *     output.
    *   - #description: The sanitized element description for the field instance,
@@ -152,5 +152,16 @@ interface WidgetInterface extends WidgetBaseInterface {
    *   An array of field values, keyed by delta.
    */
   public function massageFormValues(array $values, array $form, FormStateInterface $form_state);
+
+  /**
+   * Returns if the widget can be used for the provided field.
+   *
+   * @param \Drupal\Core\Field\FieldDefinitionInterface $field_definition
+   *   The field definition that should be checked.
+   *
+   * @return bool
+   *   TRUE if the widget can be used, FALSE otherwise.
+   */
+  public static function isApplicable(FieldDefinitionInterface $field_definition);
 
 }

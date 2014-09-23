@@ -84,11 +84,11 @@ interface FieldItemListInterface extends ListInterface, AccessibleInterface {
   /**
    * Contains the default access logic of this field.
    *
-   * See \Drupal\Core\Entity\EntityAccessControllerInterface::fieldAccess() for
+   * See \Drupal\Core\Entity\EntityAccessControlHandlerInterface::fieldAccess() for
    * the parameter documentation.
    *
-   * @return bool
-   *   TRUE if access to this field is allowed per default, FALSE otherwise.
+   * @return \Drupal\Core\Access\AccessResultInterface
+   *   The access result.
    */
   public function defaultAccess($operation = 'view', AccountInterface $account = NULL);
 
@@ -180,6 +180,14 @@ interface FieldItemListInterface extends ListInterface, AccessibleInterface {
    * @see \Drupal\Core\Field\FieldItemInterface::view()
    */
   public function view($display_options = array());
+
+  /*
+   * Populates a specified number of field items with valid sample data.
+   *
+   * @param int $count
+   *   The number of items to create.
+   */
+  public function generateSampleItems($count = 1);
 
   /**
    * Returns a form for the default value input.

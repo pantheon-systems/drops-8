@@ -13,6 +13,7 @@ use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\Render\Element;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
@@ -37,6 +38,13 @@ class FormValidator implements FormValidatorInterface {
   protected $requestStack;
 
   /**
+   * A logger instance.
+   *
+   * @var \Psr\Log\LoggerInterface
+   */
+  protected $logger;
+
+  /**
    * Constructs a new FormValidator.
    *
    * @param \Symfony\Component\HttpFoundation\RequestStack $request_stack
@@ -45,11 +53,14 @@ class FormValidator implements FormValidatorInterface {
    *   The string translation service.
    * @param \Drupal\Core\Access\CsrfTokenGenerator $csrf_token
    *   The CSRF token generator.
+   * @param \Psr\Log\LoggerInterface $logger
+   *   A logger instance.
    */
-  public function __construct(RequestStack $request_stack, TranslationInterface $string_translation, CsrfTokenGenerator $csrf_token) {
+  public function __construct(RequestStack $request_stack, TranslationInterface $string_translation, CsrfTokenGenerator $csrf_token, LoggerInterface $logger) {
     $this->requestStack = $request_stack;
     $this->stringTranslation = $string_translation;
     $this->csrfToken = $csrf_token;
+    $this->logger = $logger;
   }
 
   /**
@@ -57,19 +68,14 @@ class FormValidator implements FormValidatorInterface {
    */
   public function executeValidateHandlers(&$form, FormStateInterface &$form_state) {
     // If there was a button pressed, use its handlers.
-    if (isset($form_state['validate_handlers'])) {
-      $handlers = $form_state['validate_handlers'];
-    }
+    $handlers = $form_state->getValidateHandlers();
     // Otherwise, check for a form-level handler.
-    elseif (isset($form['#validate'])) {
+    if (!$handlers && isset($form['#validate'])) {
       $handlers = $form['#validate'];
     }
-    else {
-      $handlers = array();
-    }
 
-    foreach ($handlers as $function) {
-      call_user_func_array($function, array(&$form, &$form_state));
+    foreach ($handlers as $callback) {
+      call_user_func_array($form_state->prepareCallback($callback), array(&$form, &$form_state));
     }
   }
 
@@ -79,19 +85,19 @@ class FormValidator implements FormValidatorInterface {
   public function validateForm($form_id, &$form, FormStateInterface &$form_state) {
     // If this form is flagged to always validate, ensure that previous runs of
     // validation are ignored.
-    if (!empty($form_state['must_validate'])) {
-      $form_state['validation_complete'] = FALSE;
+    if ($form_state->isValidationEnforced()) {
+      $form_state->setValidationComplete(FALSE);
     }
 
     // If this form has completed validation, do not validate again.
-    if (!empty($form_state['validation_complete'])) {
+    if ($form_state->isValidationComplete()) {
       return;
     }
 
     // If the session token was set by self::prepareForm(), ensure that it
     // matches the current user's session.
     if (isset($form['#token'])) {
-      if (!$this->csrfToken->validate($form_state['values']['form_token'], $form['#token'])) {
+      if (!$this->csrfToken->validate($form_state->getValue('form_token'), $form['#token'])) {
         $url = $this->requestStack->getCurrentRequest()->getRequestUri();
 
         // Setting this error will cause the form to fail validation.
@@ -127,42 +133,43 @@ class FormValidator implements FormValidatorInterface {
   protected function handleErrorsWithLimitedValidation(&$form, FormStateInterface &$form_state, $form_id) {
     // If validation errors are limited then remove any non validated form values,
     // so that only values that passed validation are left for submit callbacks.
-    if (isset($form_state['triggering_element']['#limit_validation_errors']) && $form_state['triggering_element']['#limit_validation_errors'] !== FALSE) {
+    $triggering_element = $form_state->getTriggeringElement();
+    if (isset($triggering_element['#limit_validation_errors']) && $triggering_element['#limit_validation_errors'] !== FALSE) {
       $values = array();
-      foreach ($form_state['triggering_element']['#limit_validation_errors'] as $section) {
-        // If the section exists within $form_state['values'], even if the value
-        // is NULL, copy it to $values.
+      foreach ($triggering_element['#limit_validation_errors'] as $section) {
+        // If the section exists within $form_state->getValues(), even if the
+        // value is NULL, copy it to $values.
         $section_exists = NULL;
-        $value = NestedArray::getValue($form_state['values'], $section, $section_exists);
+        $value = NestedArray::getValue($form_state->getValues(), $section, $section_exists);
         if ($section_exists) {
           NestedArray::setValue($values, $section, $value);
         }
       }
       // A button's #value does not require validation, so for convenience we
       // allow the value of the clicked button to be retained in its normal
-      // $form_state['values'] locations, even if these locations are not
+      // $form_state->getValues() locations, even if these locations are not
       // included in #limit_validation_errors.
-      if (!empty($form_state['triggering_element']['#is_button'])) {
-        $button_value = $form_state['triggering_element']['#value'];
+      if (!empty($triggering_element['#is_button'])) {
+        $button_value = $triggering_element['#value'];
 
         // Like all input controls, the button value may be in the location
         // dictated by #parents. If it is, copy it to $values, but do not
         // override what may already be in $values.
-        $parents = $form_state['triggering_element']['#parents'];
-        if (!NestedArray::keyExists($values, $parents) && NestedArray::getValue($form_state['values'], $parents) === $button_value) {
+        $parents = $triggering_element['#parents'];
+        if (!NestedArray::keyExists($values, $parents) && NestedArray::getValue($form_state->getValues(), $parents) === $button_value) {
           NestedArray::setValue($values, $parents, $button_value);
         }
 
         // Additionally, self::doBuildForm() places the button value in
-        // $form_state['values'][BUTTON_NAME]. If it's still there, after
+        // $form_state->getValue(BUTTON_NAME). If it's still there, after
         // validation handlers have run, copy it to $values, but do not override
         // what may already be in $values.
-        $name = $form_state['triggering_element']['#name'];
-        if (!isset($values[$name]) && isset($form_state['values'][$name]) && $form_state['values'][$name] === $button_value) {
+        $name = $triggering_element['#name'];
+        if (!isset($values[$name]) && $form_state->getValue($name) === $button_value) {
           $values[$name] = $button_value;
         }
       }
-      $form_state['values'] = $values;
+      $form_state->setValues($values);
     }
   }
 
@@ -180,7 +187,7 @@ class FormValidator implements FormValidatorInterface {
     // After validation, loop through and assign each element its errors.
     $this->setElementErrorsFromFormState($form, $form_state);
     // Mark this form as validated.
-    $form_state['validation_complete'] = TRUE;
+    $form_state->setValidationComplete();
   }
 
   /**
@@ -194,11 +201,11 @@ class FormValidator implements FormValidatorInterface {
    *   An associative array containing the structure of the form.
    * @param \Drupal\Core\Form\FormStateInterface $form_state
    *   The current state of the form. The current user-submitted data is stored
-   *   in $form_state['values'], though form validation functions are passed an
-   *   explicit copy of the values for the sake of simplicity. Validation
+   *   in $form_state->getValues(), though form validation functions are passed
+   *   an explicit copy of the values for the sake of simplicity. Validation
    *   handlers can also $form_state to pass information on to submit handlers.
    *   For example:
-   *     $form_state['data_for_submission'] = $data;
+   *     $form_state->set('data_for_submission', $data);
    *   This technique is useful when validation requires file parsing,
    *   web service requests, or other expensive requests that should
    *   not be repeated in the submission step.
@@ -222,7 +229,7 @@ class FormValidator implements FormValidatorInterface {
       }
 
       // Set up the limited validation for errors.
-      $form_state['limit_validation_errors'] = $this->determineLimitValidationErrors($form_state);
+      $form_state->setLimitValidationErrors($this->determineLimitValidationErrors($form_state));
 
       // Make sure a value is passed when the field is required.
       if (isset($elements['#needs_validation']) && $elements['#required']) {
@@ -251,7 +258,8 @@ class FormValidator implements FormValidatorInterface {
       // #value data.
       elseif (isset($elements['#element_validate'])) {
         foreach ($elements['#element_validate'] as $callback) {
-          call_user_func_array($callback, array(&$elements, &$form_state, &$form_state['complete_form']));
+          $complete_form = &$form_state->getCompleteForm();
+          call_user_func_array($form_state->prepareCallback($callback), array(&$elements, &$form_state, &$complete_form));
         }
       }
 
@@ -281,7 +289,7 @@ class FormValidator implements FormValidatorInterface {
     // Done validating this element, so turn off error suppression.
     // self::doValidateForm() turns it on again when starting on the next
     // element, if it's still appropriate to do so.
-    $form_state['limit_validation_errors'] = NULL;
+    $form_state->setLimitValidationErrors(NULL);
   }
 
   /**
@@ -291,11 +299,11 @@ class FormValidator implements FormValidatorInterface {
    *   An associative array containing the structure of the form.
    * @param \Drupal\Core\Form\FormStateInterface $form_state
    *   The current state of the form. The current user-submitted data is stored
-   *   in $form_state['values'], though form validation functions are passed an
-   *   explicit copy of the values for the sake of simplicity. Validation
+   *   in $form_state->getValues(), though form validation functions are passed
+   *   an explicit copy of the values for the sake of simplicity. Validation
    *   handlers can also $form_state to pass information on to submit handlers.
    *   For example:
-   *     $form_state['data_for_submission'] = $data;
+   *     $form_state->set('data_for_submission', $data);
    *   This technique is useful when validation requires file parsing,
    *   web service requests, or other expensive requests that should
    *   not be repeated in the submission step.
@@ -318,7 +326,7 @@ class FormValidator implements FormValidatorInterface {
         foreach ($value as $v) {
           if (!isset($options[$v])) {
             $form_state->setError($elements, $this->t('An illegal choice has been detected. Please contact the site administrator.'));
-            $this->watchdog('form', 'Illegal choice %choice in !name element.', array('%choice' => $v, '!name' => empty($elements['#title']) ? $elements['#parents'][0] : $elements['#title']), WATCHDOG_ERROR);
+            $this->logger->error('Illegal choice %choice in !name element.', array('%choice' => $v, '!name' => empty($elements['#title']) ? $elements['#parents'][0] : $elements['#title']));
           }
         }
       }
@@ -330,14 +338,14 @@ class FormValidator implements FormValidatorInterface {
       // get an additional, first empty option. In case the submitted value
       // is identical to the empty option's value, we reset the element's
       // value to NULL to trigger the regular #required handling below.
-      // @see form_process_select()
+      // @see \Drupal\Core\Render\Element\Select::processSelect()
       elseif ($elements['#type'] == 'select' && !$elements['#multiple'] && $elements['#required'] && !isset($elements['#default_value']) && $elements['#value'] === $elements['#empty_value']) {
         $elements['#value'] = NULL;
-        NestedArray::setValue($form_state['values'], $elements['#parents'], NULL, TRUE);
+        $form_state->setValueForElement($elements, NULL);
       }
       elseif (!isset($options[$elements['#value']])) {
         $form_state->setError($elements, $this->t('An illegal choice has been detected. Please contact the site administrator.'));
-        $this->watchdog('form', 'Illegal choice %choice in %name element.', array('%choice' => $elements['#value'], '%name' => empty($elements['#title']) ? $elements['#parents'][0] : $elements['#title']), WATCHDOG_ERROR);
+        $this->logger->error('Illegal choice %choice in %name element.', array('%choice' => $elements['#value'], '%name' => empty($elements['#title']) ? $elements['#parents'][0] : $elements['#title']));
       }
     }
   }
@@ -362,8 +370,9 @@ class FormValidator implements FormValidatorInterface {
     // is ignored if submit handlers will run, but the element doesn't have a
     // #submit property, because it's too large a security risk to have any
     // invalid user input when executing form-level submit handlers.
-    if (isset($form_state['triggering_element']['#limit_validation_errors']) && ($form_state['triggering_element']['#limit_validation_errors'] !== FALSE) && !($form_state['submitted'] && !isset($form_state['triggering_element']['#submit']))) {
-      return $form_state['triggering_element']['#limit_validation_errors'];
+    $triggering_element = $form_state->getTriggeringElement();
+    if (isset($triggering_element['#limit_validation_errors']) && ($triggering_element['#limit_validation_errors'] !== FALSE) && !($form_state->isSubmitted() && !isset($triggering_element['#submit']))) {
+      return $triggering_element['#limit_validation_errors'];
     }
     // If submit handlers won't run (due to the submission having been
     // triggered by an element whose #executes_submit_callback property isn't
@@ -371,10 +380,9 @@ class FormValidator implements FormValidatorInterface {
     // by default, which is particularly useful during an Ajax submission
     // triggered by a non-button. An element can override this default by
     // setting the #limit_validation_errors property. For button element
-    // types, #limit_validation_errors defaults to FALSE (via
-    // system_element_info()), so that full validation is their default
-    // behavior.
-    elseif (isset($form_state['triggering_element']) && !isset($form_state['triggering_element']['#limit_validation_errors']) && !$form_state['submitted']) {
+    // types, #limit_validation_errors defaults to FALSE, so that full
+    // validation is their default behavior.
+    elseif ($triggering_element && !isset($triggering_element['#limit_validation_errors']) && !$form_state->isSubmitted()) {
       return array();
     }
     // As an extra security measure, explicitly turn off error suppression if
@@ -406,13 +414,6 @@ class FormValidator implements FormValidatorInterface {
     }
     // Store the errors for this element on the element directly.
     $elements['#errors'] = $form_state->getError($elements);
-  }
-
-  /**
-   * Wraps watchdog().
-   */
-  protected function watchdog($type, $message, array $variables = array(), $severity = WATCHDOG_NOTICE, $link = NULL) {
-    watchdog($type, $message, $variables, $severity, $link);
   }
 
 }

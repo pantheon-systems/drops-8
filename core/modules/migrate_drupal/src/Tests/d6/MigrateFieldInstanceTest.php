@@ -36,7 +36,7 @@ class MigrateFieldInstanceTest extends MigrateDrupalTestBase {
   /**
    * {@inheritdoc}
    */
-  public function setUp() {
+  protected function setUp() {
     parent::setUp();
     // Add some id mappings for the dependant migrations.
     $id_mappings = array(
@@ -60,7 +60,7 @@ class MigrateFieldInstanceTest extends MigrateDrupalTestBase {
         array(array('test_page'), array('test_page')),
       ),
     );
-    $this->prepareIdMappings($id_mappings);
+    $this->prepareMigrations($id_mappings);
     entity_create('node_type', array('type' => 'page'))->save();
     entity_create('node_type', array('type' => 'story'))->save();
     entity_create('node_type', array('type' => 'test_page'))->save();
@@ -85,7 +85,7 @@ class MigrateFieldInstanceTest extends MigrateDrupalTestBase {
     // Test a text field.
     $field = entity_load('field_instance_config', 'node.story.field_test');
     $this->assertEqual($field->label(), 'Text Field');
-    $expected = array('max_length' => 255, 'text_processing' => 1);
+    $expected = array('max_length' => 255);
     $this->assertEqual($field->getSettings(), $expected);
     $this->assertEqual('text for default value', $entity->field_test->value);
 

@@ -74,9 +74,9 @@ class FileWidget extends WidgetBase {
     $field_name = $this->fieldDefinition->getName();
     $parents = $form['#parents'];
 
-    // Load the items for form rebuilds from the field state as they might not be
-    // in $form_state['values'] because of validation limitations. Also, they are
-    // only passed in as $items when editing existing entities.
+    // Load the items for form rebuilds from the field state as they might not
+    // be in $form_state->getValues() because of validation limitations. Also,
+    // they are only passed in as $items when editing existing entities.
     $field_state = static::getWidgetState($parents, $field_name, $form_state);
     if (isset($field_state['items'])) {
       $items->setValue($field_state['items']);
@@ -97,7 +97,7 @@ class FileWidget extends WidgetBase {
     }
 
     $title = String::checkPlain($this->fieldDefinition->getLabel());
-    $description = field_filter_xss($this->fieldDefinition->getDescription());
+    $description = $this->fieldFilterXss($this->fieldDefinition->getDescription());
 
     $elements = array();
 
@@ -132,7 +132,7 @@ class FileWidget extends WidgetBase {
     }
 
     $empty_single_allowed = ($cardinality == 1 && $delta == 0);
-    $empty_multiple_allowed = ($cardinality == FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED || $delta < $cardinality) && empty($form_state['programmed']);
+    $empty_multiple_allowed = ($cardinality == FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED || $delta < $cardinality) && !$form_state->isProgrammed();
 
     // Add one more empty row for new uploads except when this is a programmed
     // multiple form as it is not necessary.
@@ -309,7 +309,7 @@ class FileWidget extends WidgetBase {
    */
   public static function validateMultipleCount($element, FormStateInterface $form_state, $form) {
     $parents = $element['#parents'];
-    $values = NestedArray::getValue($form_state['values'], $parents);
+    $values = NestedArray::getValue($form_state->getValues(), $parents);
 
     array_pop($parents);
     $current = count(Element::children(NestedArray::getValue($form, $parents))) - 1;
@@ -330,7 +330,7 @@ class FileWidget extends WidgetBase {
       $message = t('Field %field can only hold @max values but there were @count uploaded. The following files have been omitted as a result: %list.', $args);
       drupal_set_message($message, 'warning');
       $values['fids'] = array_slice($values['fids'], 0, $keep);
-      NestedArray::setValue($form_state['values'], $element['#parents'], $values);
+      NestedArray::setValue($form_state->getValues(), $element['#parents'], $values);
     }
   }
 
@@ -487,21 +487,20 @@ class FileWidget extends WidgetBase {
    */
   public static function submit($form, FormStateInterface $form_state) {
     // During the form rebuild, formElement() will create field item widget
-    // elements using re-indexed deltas, so clear out $form_state['input'] to
+    // elements using re-indexed deltas, so clear out FormState::$input to
     // avoid a mismatch between old and new deltas. The rebuilt elements will
     // have #default_value set appropriately for the current state of the field,
     // so nothing is lost in doing this.
-    $parents = array_slice($form_state['triggering_element']['#parents'], 0, -2);
-    NestedArray::setValue($form_state['input'], $parents, NULL);
-
-    $button = $form_state['triggering_element'];
+    $button = $form_state->getTriggeringElement();
+    $parents = array_slice($button['#parents'], 0, -2);
+    NestedArray::setValue($form_state->getUserInput(), $parents, NULL);
 
     // Go one level up in the form, to the widgets container.
     $element = NestedArray::getValue($form, array_slice($button['#array_parents'], 0, -1));
     $field_name = $element['#field_name'];
     $parents = $element['#field_parents'];
 
-    $submitted_values = NestedArray::getValue($form_state['values'], array_slice($button['#parents'], 0, -2));
+    $submitted_values = NestedArray::getValue($form_state->getValues(), array_slice($button['#parents'], 0, -2));
     foreach ($submitted_values as $delta => $submitted_value) {
       if (empty($submitted_value['fids'])) {
         unset($submitted_values[$delta]);
@@ -528,7 +527,7 @@ class FileWidget extends WidgetBase {
     $submitted_values = array_values($new_values);
 
     // Update form_state values.
-    NestedArray::setValue($form_state['values'], array_slice($button['#parents'], 0, -2), $submitted_values);
+    NestedArray::setValue($form_state->getValues(), array_slice($button['#parents'], 0, -2), $submitted_values);
 
     // Update items.
     $field_state = static::getWidgetState($parents, $field_name, $form_state);

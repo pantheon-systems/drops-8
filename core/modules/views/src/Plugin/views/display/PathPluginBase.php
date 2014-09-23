@@ -239,6 +239,7 @@ abstract class PathPluginBase extends DisplayPluginBase implements DisplayRouter
         // requirements).
 
         // Replace the existing route with a new one based on views.
+        $original_route = $collection->get($name);
         $collection->remove($name);
 
         $view_id = $this->view->storage->id();
@@ -251,9 +252,13 @@ abstract class PathPluginBase extends DisplayPluginBase implements DisplayRouter
         // We assume that the numeric ids of the parameters match the one from
         // the view argument handlers.
         foreach ($parameters as $position => $parameter_name) {
-          $path = str_replace('arg_' . $position, $parameter_name, $path);
+          $path = str_replace('{arg_' . $position . '}', '{' . $parameter_name . '}', $path);
           $argument_map['arg_' . $position] = $parameter_name;
         }
+        // Copy the original options from the route, so for example we ensure
+        // that parameter conversion options is carried over.
+        $route->setOptions($route->getOptions() + $original_route->getOptions());
+
         // Set the corrected path and the mapping to the route object.
         $route->setOption('_view_argument_map', $argument_map);
         $route->setPath($path);
@@ -308,13 +313,14 @@ abstract class PathPluginBase extends DisplayPluginBase implements DisplayRouter
         );
         $links[$menu_link_id]['title'] = $menu['title'];
         $links[$menu_link_id]['description'] = $menu['description'];
+        $links[$menu_link_id]['parent'] = $menu['parent'];
 
         if (isset($menu['weight'])) {
           $links[$menu_link_id]['weight'] = intval($menu['weight']);
         }
 
         // Insert item into the proper menu.
-        $links[$menu_link_id]['menu_name'] = $menu['name'];
+        $links[$menu_link_id]['menu_name'] = $menu['menu_name'];
         // Keep track of where we came from.
         $links[$menu_link_id]['metadata'] = array(
           'view_id' => $view_id,
@@ -379,7 +385,7 @@ abstract class PathPluginBase extends DisplayPluginBase implements DisplayRouter
   public function buildOptionsForm(&$form, FormStateInterface $form_state) {
     parent::buildOptionsForm($form, $form_state);
 
-    switch ($form_state['section']) {
+    switch ($form_state->get('section')) {
       case 'path':
         $form['#title'] .= t('The menu path or URL of this view');
         $form['path'] = array(
@@ -403,14 +409,14 @@ abstract class PathPluginBase extends DisplayPluginBase implements DisplayRouter
   public function validateOptionsForm(&$form, FormStateInterface $form_state) {
     parent::validateOptionsForm($form, $form_state);
 
-    if ($form_state['section'] == 'path') {
-      $errors = $this->validatePath($form_state['values']['path']);
+    if ($form_state->get('section') == 'path') {
+      $errors = $this->validatePath($form_state->getValue('path'));
       foreach ($errors as $error) {
         $form_state->setError($form['path'], $error);
       }
 
       // Automatically remove '/' and trailing whitespace from path.
-      $form_state['values']['path'] = trim($form_state['values']['path'], '/ ');
+      $form_state->setValue('path', trim($form_state->getValue('path'), '/ '));
     }
   }
 
@@ -420,8 +426,8 @@ abstract class PathPluginBase extends DisplayPluginBase implements DisplayRouter
   public function submitOptionsForm(&$form, FormStateInterface $form_state) {
     parent::submitOptionsForm($form, $form_state);
 
-    if ($form_state['section'] == 'path') {
-      $this->setOption('path', $form_state['values']['path']);
+    if ($form_state->get('section') == 'path') {
+      $this->setOption('path', $form_state->getValue('path'));
     }
   }
 

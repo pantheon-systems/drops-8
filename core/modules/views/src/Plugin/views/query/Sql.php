@@ -14,6 +14,7 @@ use Drupal\views\Plugin\views\display\DisplayPluginBase;
 use Drupal\Core\Database\DatabaseExceptionWrapper;
 use Drupal\views\Plugin\views\join\JoinPluginBase;
 use Drupal\views\Plugin\views\HandlerBase;
+use Drupal\views\ResultRow;
 use Drupal\views\ViewExecutable;
 use Drupal\views\Views;
 
@@ -243,7 +244,7 @@ class Sql extends QueryPluginBase {
    */
   public function submitOptionsForm(&$form, FormStateInterface $form_state) {
     $element = array('#parents' => array('query', 'options', 'query_tags'));
-    $value = explode(',', NestedArray::getValue($form_state['values'], $element['#parents']));
+    $value = explode(',', NestedArray::getValue($form_state->getValues(), $element['#parents']));
     $value = array_filter(array_map('trim', $value));
     form_set_value($element, $value, $form_state);
   }
@@ -1428,7 +1429,12 @@ class Sql extends QueryPluginBase {
 
         $result = $query->execute();
         $result->setFetchMode(\PDO::FETCH_CLASS, 'Drupal\views\ResultRow');
+
+        // Setup the result row objects.
         $view->result = iterator_to_array($result);
+        array_walk($view->result, function(ResultRow $row, $index) {
+          $row->index = $index;
+        });
 
         $view->pager->postExecute($view->result);
         $view->pager->updatePageInfo();

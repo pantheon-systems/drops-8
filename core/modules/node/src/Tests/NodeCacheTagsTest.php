@@ -25,7 +25,7 @@ class NodeCacheTagsTest extends EntityWithUriCacheTagsTestBase {
   /**
    * {@inheritdoc}
    */
-  public function setUp() {
+  protected function setUp() {
     parent::setUp();
 
     // Give anonymous users permission to view nodes, so that we can verify the
@@ -60,7 +60,7 @@ class NodeCacheTagsTest extends EntityWithUriCacheTagsTestBase {
    * Each node must have an author.
    */
   protected function getAdditionalCacheTagsForEntity(EntityInterface $node) {
-    return array('user:' . $node->getOwnerId());
+    return array('user:' . $node->getOwnerId(), 'user_view:1');
   }
 
 }

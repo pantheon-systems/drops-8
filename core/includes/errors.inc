@@ -119,17 +119,18 @@ function error_displayable($error = NULL) {
 function _drupal_log_error($error, $fatal = FALSE) {
   $is_installer = drupal_installation_attempted();
   // Initialize a maintenance theme if the bootstrap was not complete.
-  // Do it early because drupal_set_message() triggers a drupal_theme_initialize().
+  // Do it early because drupal_set_message() triggers a
+  // \Drupal\Core\Theme\ThemeManager::initTheme().
   if ($fatal && drupal_get_bootstrap_phase() < DRUPAL_BOOTSTRAP_CODE) {
     // The installer initializes a maintenance theme at the earliest possible
     // point in time already. Do not unset that.
     if (!$is_installer) {
-      unset($GLOBALS['theme']);
+      \Drupal::theme()->setActiveTheme(NULL);
     }
     if (!defined('MAINTENANCE_MODE')) {
       define('MAINTENANCE_MODE', 'error');
     }
-    // No-op if $GLOBALS['theme'] is set already.
+    // No-op if the active theme is set already.
     drupal_maintenance_theme();
   }
 
@@ -156,7 +157,12 @@ function _drupal_log_error($error, $fatal = FALSE) {
     $number++;
   }
 
-  \Drupal::logger('php')->log($error['severity_level'], '%type: !message in %function (line %line of %file).', $error);
+  // Only call the logger if there is a logger factory available. This can occur
+  // if there is an error while rebuilding the container or during the
+  // installer.
+  if (\Drupal::hasService('logger.factory')) {
+    \Drupal::logger('php')->log($error['severity_level'], '%type: !message in %function (line %line of %file).', $error);
+  }
 
   if (PHP_SAPI === 'cli') {
     if ($fatal) {
@@ -179,7 +185,7 @@ function _drupal_log_error($error, $fatal = FALSE) {
   }
   else {
     // Display the message if the current error reporting level allows this type
-    // of message to be displayed, and unconditionnaly in update.php.
+    // of message to be displayed, and unconditionally in update.php.
     if (error_displayable($error)) {
       $class = 'error';
 

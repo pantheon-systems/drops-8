@@ -22,7 +22,7 @@ class MigrateCommentVariableInstanceTest extends MigrateDrupalTestBase {
   /**
    * {@inheritdoc}
    */
-  public function setUp() {
+  protected function setUp() {
     parent::setUp();
     // Add some id mappings for the dependant migrations.
     $id_mappings = array(
@@ -33,7 +33,7 @@ class MigrateCommentVariableInstanceTest extends MigrateDrupalTestBase {
         array(array('page'), array('page')),
       ),
     );
-    $this->prepareIdMappings($id_mappings);
+    $this->prepareMigrations($id_mappings);
 
     foreach (array('page', 'story') as $type) {
       entity_create('node_type', array('type' => $type))->save();

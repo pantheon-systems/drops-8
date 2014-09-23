@@ -25,22 +25,24 @@
   display: inline;
 }
 .password-strength__meter {
-  background-color: #c4c4c4;
+  background-color: #ebeae4;
   height: 0.5em;
 }
 .password-strength__indicator {
   height: 100%;
   width: 0%;
-  background-color: #47c965;
+  background-color: #77b259;
+  -webkit-transition: width 0.5s ease-out;
+  transition: width 0.5s ease-out;
 }
 input.password-confirm,
 input.password-field,
 .password-strength {
-  width: 40%;
+  width: 55%;
 }
 div.password-confirm {
   visibility: hidden;
-  width: 40%;
+  width: 55%;
 }
 div.form-item div.password-suggestions {
   padding: 0.2em 0.5em;
@@ -62,4 +64,15 @@ div.password-suggestions ul {
 [dir="rtl"] .password-parent {
   clear: right;
 }
-
+.password-strength__indicator.is-weak {
+  background-color: #e62600;
+}
+.password-strength__indicator.is-fair {
+  background-color: #e09600;
+}
+.password-strength__indicator.is-good {
+  background-color: #0074bd;
+}
+.password-strength__indicator.is-strong {
+  background-color: #77b259;
+}

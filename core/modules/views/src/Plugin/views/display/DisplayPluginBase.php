@@ -13,6 +13,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Theme\Registry;
+use Drupal\views\Form\ViewsForm;
 use Drupal\views\Plugin\views\area\AreaPluginBase;
 use Drupal\views\ViewExecutable;
 use Drupal\views\Plugin\views\PluginBase;
@@ -419,8 +420,15 @@ abstract class DisplayPluginBase extends PluginBase {
 
   /**
    * Allow displays to attach to other views.
+   *
+   * @param \Drupal\views\ViewExecutable $view
+   *   The views executable.
+   * @param string $display_id
+   *   The display to attach to.
+   * @param array $build
+   *   The parent view render array.
    */
-  public function attachTo(ViewExecutable $view, $display_id) { }
+  public function attachTo(ViewExecutable $view, $display_id, array &$build) { }
 
   /**
    * Static member function to list which sections are defaultable
@@ -579,7 +587,7 @@ abstract class DisplayPluginBase extends PluginBase {
         'bool' => TRUE,
       ),
       'field_langcode' => array(
-        'default' => '***CURRENT_LANGUAGE***',
+        'default' => '***LANGUAGE_language_content***',
       ),
       'field_langcode_add_to_query' => array(
         'default' => TRUE,
@@ -837,7 +845,7 @@ abstract class DisplayPluginBase extends PluginBase {
    * @param string $type
    *   The type of the plugin.
    *
-   * @return \Drupal\views\Plugin\views\PluginBase
+   * @return \Drupal\views\Plugin\views\ViewsPluginInterface
    */
   public function getPlugin($type) {
     // Look up the plugin name to use for this instance.
@@ -890,7 +898,7 @@ abstract class DisplayPluginBase extends PluginBase {
   /**
    * Get a full array of handlers for $type. This caches them.
    *
-   * @return \Drupal\views\Plugin\views\HandlerBase[]
+   * @return \Drupal\views\Plugin\views\ViewsHandlerInterface[]
    */
   public function getHandlers($type) {
     if (!isset($this->handlers[$type])) {
@@ -1245,19 +1253,13 @@ abstract class DisplayPluginBase extends PluginBase {
       'desc' => t('Allow to set some advanced settings for the query plugin'),
     );
 
-    $languages = array(
-        '***CURRENT_LANGUAGE***' => t("Current user's language"),
-        '***DEFAULT_LANGUAGE***' => t("Default site language"),
-        LanguageInterface::LANGCODE_NOT_SPECIFIED => t('Language neutral'),
-    );
-    if (\Drupal::moduleHandler()->moduleExists('language')) {
-      $languages = array_merge($languages, language_list());
-    }
+    $language_options = $this->listLanguages(LanguageInterface::STATE_ALL | LanguageInterface::STATE_SITE_DEFAULT | PluginBase::INCLUDE_NEGOTIATED);
+
     $options['field_langcode'] = array(
       'category' => 'other',
       'title' => t('Field Language'),
-      'value' => $languages[$this->getOption('field_langcode')],
-      'desc' => t('All fields which support translations will be displayed in the selected language.'),
+      'value' => $language_options[$this->getOption('field_langcode')],
+      'desc' => t('All fields that support translations will be displayed in the selected language.'),
     );
 
     $access_plugin = $this->getPlugin('access');
@@ -1378,8 +1380,9 @@ abstract class DisplayPluginBase extends PluginBase {
    */
   public function buildOptionsForm(&$form, FormStateInterface $form_state) {
     parent::buildOptionsForm($form, $form_state);
-    if ($this->defaultableSections($form_state['section'])) {
-      views_ui_standard_display_dropdown($form, $form_state, $form_state['section']);
+    $section = $form_state->get('section');
+    if ($this->defaultableSections($section)) {
+      views_ui_standard_display_dropdown($form, $form_state, $section);
     }
     $form['#title'] = String::checkPlain($this->display['display_title']) . ': ';
 
@@ -1387,14 +1390,14 @@ abstract class DisplayPluginBase extends PluginBase {
     // If it's the item we're looking at is pulling from the default display,
     // reflect that. Don't use is_defaulted since we want it to show up even
     // on the default display.
-    if (!empty($this->options['defaults'][$form_state['section']])) {
-      $form['#section'] = 'default-' . $form_state['section'];
+    if (!empty($this->options['defaults'][$section])) {
+      $form['#section'] = 'default-' . $section;
     }
     else {
-      $form['#section'] = $this->display['id'] . '-' . $form_state['section'];
+      $form['#section'] = $this->display['id'] . '-' . $section;
     }
 
-    switch ($form_state['section']) {
+    switch ($section) {
       case 'display_id':
         $form['#title'] .= t('The machine name of this display');
         $form['display_id'] = array(
@@ -1619,12 +1622,7 @@ abstract class DisplayPluginBase extends PluginBase {
         // an entity base table. Also, we make sure that there's at least one
         // entity type with a translation handler attached.
         if (in_array($this->view->storage->get('base_table'), $translatable_entity_tables)) {
-          $languages = array(
-            '***CURRENT_LANGUAGE***' => t("Current user's language"),
-            '***DEFAULT_LANGUAGE***' => t("Default site language"),
-            LanguageInterface::LANGCODE_NOT_SPECIFIED => t('Language neutral'),
-          );
-          $languages = array_merge($languages, views_language_list());
+          $languages = $this->listLanguages(LanguageInterface::STATE_ALL | LanguageInterface::STATE_SITE_DEFAULT | PluginBase::INCLUDE_NEGOTIATED);
 
           $form['field_langcode'] = array(
             '#type' => 'select',
@@ -1686,10 +1684,10 @@ abstract class DisplayPluginBase extends PluginBase {
         }
         $plugin = $this->getPlugin(empty($style) ? 'row' : 'style', $name);
         if ($plugin) {
-          $form[$form_state['section']] = array(
+          $form[$section] = [
             '#tree' => TRUE,
-          );
-          $plugin->buildOptionsForm($form[$form_state['section']], $form_state);
+          ];
+          $plugin->buildOptionsForm($form[$section], $form_state);
         }
         break;
       case 'row':
@@ -1869,27 +1867,28 @@ abstract class DisplayPluginBase extends PluginBase {
    * Validate the options form.
    */
   public function validateOptionsForm(&$form, FormStateInterface $form_state) {
-    switch ($form_state['section']) {
+    $section = $form_state->get('section');
+    switch ($section) {
       case 'display_title':
-        if (empty($form_state['values']['display_title'])) {
-          form_error($form['display_title'], $form_state, t('Display title may not be empty.'));
+        if ($form_state->isValueEmpty('display_title')) {
+          $form_state->setError($form['display_title'], t('Display title may not be empty.'));
         }
         break;
       case 'css_class':
-        $css_class = $form_state['values']['css_class'];
+        $css_class = $form_state->getValue('css_class');
         if (preg_match('/[^a-zA-Z0-9-_ ]/', $css_class)) {
-          form_error($form['css_class'], $form_state, t('CSS classes must be alphanumeric or dashes only.'));
+          $form_state->setError($form['css_class'], t('CSS classes must be alphanumeric or dashes only.'));
         }
       break;
       case 'display_id':
-        if ($form_state['values']['display_id']) {
-          if (preg_match('/[^a-z0-9_]/', $form_state['values']['display_id'])) {
-            form_error($form['display_id'], $form_state, t('Display name must be letters, numbers, or underscores only.'));
+        if ($form_state->getValue('display_id')) {
+          if (preg_match('/[^a-z0-9_]/', $form_state->getValue('display_id'))) {
+            $form_state->setError($form['display_id'], t('Display name must be letters, numbers, or underscores only.'));
           }
 
           foreach ($this->view->displayHandlers as $id => $display) {
-            if ($id != $this->view->current_display && ($form_state['values']['display_id'] == $id || (isset($display->new_id) && $form_state['values']['display_id'] == $display->new_id))) {
-              form_error($form['display_id'], $form_state, t('Display id should be unique.'));
+            if ($id != $this->view->current_display && ($form_state->getValue('display_id') == $id || (isset($display->new_id) && $form_state->getValue('display_id') == $display->new_id))) {
+              $form_state->setError($form['display_id'], t('Display id should be unique.'));
             }
           }
         }
@@ -1903,11 +1902,11 @@ abstract class DisplayPluginBase extends PluginBase {
 
     // Validate plugin options. Every section with "_options" in it, belongs to
     // a plugin type, like "style_options".
-    if (strpos($form_state['section'], '_options') !== FALSE) {
-      $plugin_type = str_replace('_options', '', $form_state['section']);
+    if (strpos($section, '_options') !== FALSE) {
+      $plugin_type = str_replace('_options', '', $section);
       // Load the plugin and let it handle the validation.
       if ($plugin = $this->getPlugin($plugin_type)) {
-        $plugin->validateOptionsForm($form[$form_state['section']], $form_state);
+        $plugin->validateOptionsForm($form[$section], $form_state);
       }
     }
 
@@ -1927,48 +1926,48 @@ abstract class DisplayPluginBase extends PluginBase {
       $cache_plugin->cacheFlush();
     }
 
-    $section = $form_state['section'];
+    $section = $form_state->get('section');
     switch ($section) {
       case 'display_id':
-        if (isset($form_state['values']['display_id'])) {
-          $this->display['new_id'] = $form_state['values']['display_id'];
+        if ($form_state->hasValue('display_id')) {
+          $this->display['new_id'] = $form_state->getValue('display_id');
         }
         break;
       case 'display_title':
-        $this->display['display_title'] = $form_state['values']['display_title'];
-        $this->setOption('display_description', $form_state['values']['display_description']);
+        $this->display['display_title'] = $form_state->getValue('display_title');
+        $this->setOption('display_description', $form_state->getValue('display_description'));
         break;
       case 'query':
         $plugin = $this->getPlugin('query');
         if ($plugin) {
           $plugin->submitOptionsForm($form['query']['options'], $form_state);
-          $this->setOption('query', $form_state['values'][$section]);
+          $this->setOption('query', $form_state->getValue($section));
         }
         break;
 
       case 'link_display':
-        $this->setOption('link_url', $form_state['values']['link_url']);
+        $this->setOption('link_url', $form_state->getValue('link_url'));
       case 'title':
       case 'css_class':
       case 'display_comment':
       case 'distinct':
       case 'group_by':
-        $this->setOption($section, $form_state['values'][$section]);
+        $this->setOption($section, $form_state->getValue($section));
         break;
       case 'field_langcode':
-        $this->setOption('field_langcode', $form_state['values']['field_langcode']);
-        $this->setOption('field_langcode_add_to_query', $form_state['values']['field_langcode_add_to_query']);
+        $this->setOption('field_langcode', $form_state->getValue('field_langcode'));
+        $this->setOption('field_langcode_add_to_query', $form_state->getValue('field_langcode_add_to_query'));
         break;
       case 'use_ajax':
       case 'hide_attachment_summary':
       case 'show_admin_links':
       case 'exposed_block':
-        $this->setOption($section, (bool) $form_state['values'][$section]);
+        $this->setOption($section, (bool) $form_state->getValue($section));
         break;
       case 'use_more':
-        $this->setOption($section, intval($form_state['values'][$section]));
-        $this->setOption('use_more_always', intval($form_state['values']['use_more_always']));
-        $this->setOption('use_more_text', $form_state['values']['use_more_text']);
+        $this->setOption($section, intval($form_state->getValue($section)));
+        $this->setOption('use_more_always', intval($form_state->getValue('use_more_always')));
+        $this->setOption('use_more_text', $form_state->getValue('use_more_text'));
         break;
 
       case 'access':
@@ -1979,18 +1978,19 @@ abstract class DisplayPluginBase extends PluginBase {
       case 'style':
         $plugin_type = $section;
         $plugin_options = $this->getOption($plugin_type);
-        if ($plugin_options['type'] != $form_state['values'][$plugin_type]['type']) {
-          $plugin = Views::pluginManager($plugin_type)->createInstance($form_state['values'][$plugin_type]['type']);
+        $type = $form_state->getValue(array($plugin_type, 'type'));
+        if ($plugin_options['type'] != $type) {
+          $plugin = Views::pluginManager($plugin_type)->createInstance($type);
           if ($plugin) {
             $plugin->init($this->view, $this, $plugin_options['options']);
             $plugin_options = array(
-              'type' => $form_state['values'][$plugin_type]['type'],
+              'type' => $type,
               'options' => $plugin->options,
               'provider' => $plugin->definition['provider']
             );
             $this->setOption($plugin_type, $plugin_options);
             if ($plugin->usesOptions()) {
-              $form_state['view']->addFormToStack('display', $this->display['id'], $plugin_type . '_options');
+              $form_state->get('view')->addFormToStack('display', $this->display['id'], $plugin_type . '_options');
             }
           }
         }
@@ -2004,11 +2004,11 @@ abstract class DisplayPluginBase extends PluginBase {
       case 'style_options':
         // Submit plugin options. Every section with "_options" in it, belongs to
         // a plugin type, like "style_options".
-        $plugin_type = str_replace('_options', '', $form_state['section']);
+        $plugin_type = str_replace('_options', '', $section);
         if ($plugin = $this->getPlugin($plugin_type)) {
           $plugin_options = $this->getOption($plugin_type);
           $plugin->submitOptionsForm($form[$plugin_type . '_options'], $form_state);
-          $plugin_options['options'] = $form_state['values'][$section];
+          $plugin_options['options'] = $form_state->getValue($section);
           $this->setOption($plugin_type, $plugin_options);
         }
         break;
@@ -2023,7 +2023,7 @@ abstract class DisplayPluginBase extends PluginBase {
    * If override/revert was clicked, perform the proper toggle.
    */
   public function optionsOverride($form, FormStateInterface $form_state) {
-    $this->setOverride($form_state['section']);
+    $this->setOverride($form_state->get('section'));
   }
 
   /**
@@ -2135,11 +2135,86 @@ abstract class DisplayPluginBase extends PluginBase {
    * Render this display.
    */
   public function render() {
+    $rows = (!empty($this->view->result) || $this->view->style_plugin->evenEmpty()) ? $this->view->style_plugin->render($this->view->result) : array();
+
     $element = array(
       '#theme' => $this->themeFunctions(),
       '#view' => $this->view,
+      // Assigned by reference so anything added in $element['#attached'] will
+      // be available on the view.
+      '#attached' => &$this->view->element['#attached'],
+      '#pre_render' => [[$this, 'elementPreRender']],
+      '#rows' => $rows,
     );
-    $element['#attached'] = &$this->view->element['#attached'];
+
+    return $element;
+  }
+
+  /**
+   * #pre_render callback for view display rendering.
+   *
+   * @see self::render()
+   *
+   * @param array $element
+   *   The element to #pre_render
+   *
+   * @return array
+   *   The processed element.
+   */
+  public function elementPreRender(array $element) {
+    $view = $element['#view'];
+    $empty = empty($view->result);
+
+    // Force a render array so CSS/JS can be attached.
+    if (!is_array($element['#rows'])) {
+      $element['#rows'] = array('#markup' => $element['#rows']);
+    }
+
+    $element['#header'] = $view->display_handler->renderArea('header', $empty);
+    $element['#footer'] = $view->display_handler->renderArea('footer', $empty);
+    $element['#empty'] = $empty ? $view->display_handler->renderArea('empty', $empty) : array();
+    $element['#exposed'] = !empty($view->exposed_widgets) ? $view->exposed_widgets : array();
+    $element['#more'] = $view->display_handler->renderMoreLink();
+    $element['#feed_icon'] = !empty($view->feed_icon) ? $view->feed_icon : array();
+
+    if ($view->display_handler->renderPager()) {
+      $exposed_input = isset($view->exposed_raw_input) ? $view->exposed_raw_input : NULL;
+      $element['#pager'] = $view->renderPager($exposed_input);
+    }
+
+    if (!empty($view->attachment_before)) {
+      $element['#attachment_before'] = $view->attachment_before;
+    }
+    if (!empty($view->attachment_after)) {
+      $element['#attachment_after'] = $view->attachment_after;
+    }
+
+    // If form fields were found in the view, reformat the view output as a form.
+    if ($view->hasFormElements()) {
+      // Only render row output if there are rows. Otherwise, render the empty
+      // region.
+      if (!empty($element['#rows'])) {
+        $output = $element['#rows'];
+      }
+      else {
+        $output = $element['#empty'];
+      }
+
+      $form_object = ViewsForm::create(\Drupal::getContainer(), $view->storage->id(), $view->current_display);
+      $form = \Drupal::formBuilder()->getForm($form_object, $view, $output);
+      // The form is requesting that all non-essential views elements be hidden,
+      // usually because the rendered step is not a view result.
+      if ($form['show_view_elements']['#value'] == FALSE) {
+        $element['#header'] = array();
+        $element['#exposed'] = array();
+        $element['#pager'] = array();
+        $element['#footer'] = array();
+        $element['#more'] = array();
+        $element['#feed_icon'] = array();
+      }
+
+      $element['#rows'] = $form;
+    }
 
     return $element;
   }

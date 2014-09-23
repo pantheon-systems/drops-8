@@ -94,7 +94,7 @@ abstract class GenericCacheBackendUnitTestBase extends DrupalUnitTestBase {
    * @return \Drupal\Core\Cache\CacheBackendInterface
    *   Cache backend to test.
    */
-  final function getCacheBackend($bin = null) {
+  protected function getCacheBackend($bin = null) {
     if (!isset($bin)) {
       $bin = $this->getTestBin();
     }
@@ -106,7 +106,7 @@ abstract class GenericCacheBackendUnitTestBase extends DrupalUnitTestBase {
     return $this->cachebackends[$bin];
   }
 
-  public function setUp() {
+  protected function setUp() {
     $this->cachebackends = array();
     $this->defaultValue = $this->randomMachineName(10);
 
@@ -115,7 +115,7 @@ abstract class GenericCacheBackendUnitTestBase extends DrupalUnitTestBase {
     $this->setUpCacheBackend();
   }
 
-  public function tearDown() {
+  protected function tearDown() {
     // Destruct the registered backend, each test will get a fresh instance,
     // properly emptying it here ensure that on persistent data backends they
     // will come up empty the next test.

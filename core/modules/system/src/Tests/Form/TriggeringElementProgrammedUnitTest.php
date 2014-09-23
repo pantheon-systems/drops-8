@@ -44,11 +44,12 @@ class TriggeringElementProgrammedUnitTest extends DrupalUnitTestBase implements 
       '#required' => TRUE,
     );
     $form['actions'] = array('#type' => 'actions');
+    $user_input = $form_state->getUserInput();
     $form['actions']['submit'] = array(
       '#type' => 'submit',
       '#value' => 'Save',
       '#limit_validation_errors' => array(
-        array($form_state['input']['section']),
+        array($user_input['section']),
       ),
       // Required for #limit_validation_errors.
       '#submit' => array(array($this, 'submitForm')),
@@ -61,7 +62,7 @@ class TriggeringElementProgrammedUnitTest extends DrupalUnitTestBase implements 
    */
   public function validateForm(array &$form, FormStateInterface $form_state) {
     // Verify that the only submit button was recognized as triggering_element.
-    $this->assertEqual($form['actions']['submit']['#array_parents'], $form_state['triggering_element']['#array_parents']);
+    $this->assertEqual($form['actions']['submit']['#array_parents'], $form_state->getTriggeringElement()['#array_parents']);
   }
 
   /**
@@ -76,8 +77,7 @@ class TriggeringElementProgrammedUnitTest extends DrupalUnitTestBase implements 
   function testLimitValidationErrors() {
     // Programmatically submit the form.
     $form_state = new FormState();
-    $form_state['values'] = array();
-    $form_state['values']['section'] = 'one';
+    $form_state->setValue('section', 'one');
     $form_builder = $this->container->get('form_builder');
     $form_builder->submitForm($this, $form_state);
 
@@ -87,8 +87,8 @@ class TriggeringElementProgrammedUnitTest extends DrupalUnitTestBase implements 
     $this->assertFalse(isset($errors['two']), "Section 'two' was not validated.");
 
     // Verify that there are only values for the specified section.
-    $this->assertTrue(isset($form_state['values']['one']), "Values for section 'one' found.");
-    $this->assertFalse(isset($form_state['values']['two']), "Values for section 'two' not found.");
+    $this->assertTrue($form_state->hasValue('one'), "Values for section 'one' found.");
+    $this->assertFalse($form_state->hasValue('two'), "Values for section 'two' not found.");
   }
 
 }

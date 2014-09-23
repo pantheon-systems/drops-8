@@ -31,12 +31,12 @@ class FormTestRebuildPreserveValuesForm extends FormBase {
     $form = array(
       'checkbox_1_default_off' => array(
         '#type' => 'checkbox',
-        '#title' => t('This checkbox defaults to unchecked.'),
+        '#title' => t('This checkbox defaults to unchecked'),
         '#default_value' => FALSE,
       ),
       'checkbox_1_default_on' => array(
         '#type' => 'checkbox',
-        '#title' => t('This checkbox defaults to checked.'),
+        '#title' => t('This checkbox defaults to checked'),
         '#default_value' => TRUE,
       ),
       'text_1' => array(
@@ -49,23 +49,23 @@ class FormTestRebuildPreserveValuesForm extends FormBase {
     // checkboxes and a textfield. The test is to make sure that the rebuild
     // triggered by this button preserves the user input values for the initial
     // elements and initializes the new elements with the correct default values.
-    if (empty($form_state['storage']['add_more'])) {
+    if (!$form_state->has('add_more')) {
       $form['add_more'] = array(
         '#type' => 'submit',
         '#value' => 'Add more',
-        '#submit' => array(array($this, 'addMoreSubmitForm')),
+        '#submit' => array('::addMoreSubmitForm'),
       );
     }
     else {
       $form += array(
         'checkbox_2_default_off' => array(
           '#type' => 'checkbox',
-          '#title' => t('This checkbox defaults to unchecked.'),
+          '#title' => t('This checkbox defaults to unchecked'),
           '#default_value' => FALSE,
         ),
         'checkbox_2_default_on' => array(
           '#type' => 'checkbox',
-          '#title' => t('This checkbox defaults to checked.'),
+          '#title' => t('This checkbox defaults to checked'),
           '#default_value' => TRUE,
         ),
         'text_2' => array(
@@ -88,8 +88,8 @@ class FormTestRebuildPreserveValuesForm extends FormBase {
    */
   public function addMoreSubmitForm(array &$form, FormStateInterface $form_state) {
     // Rebuild, to test preservation of input values.
-    $form_state['storage']['add_more'] = TRUE;
-    $form_state['rebuild'] = TRUE;
+    $form_state->set('add_more', TRUE);
+    $form_state->setRebuild();
   }
 
   /**
@@ -97,7 +97,7 @@ class FormTestRebuildPreserveValuesForm extends FormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     // Finish the workflow. Do not rebuild.
-    drupal_set_message(t('Form values: %values', array('%values' => var_export($form_state['values'], TRUE))));
+    drupal_set_message(t('Form values: %values', array('%values' => var_export($form_state->getValues(), TRUE))));
   }
 
 }

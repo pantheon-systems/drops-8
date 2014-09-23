@@ -31,17 +31,10 @@ class TwigEnvironment extends \Twig_Environment {
   protected $templateClasses;
 
   /**
-   * The string loader implementation used for inline template rendering.
-   *
-   * @var \Twig_Loader_String
-   */
-  protected $stringLoader;
-
-  /**
    * Constructs a TwigEnvironment object and stores cache and storage
    * internally.
    */
-  public function __construct(\Twig_LoaderInterface $loader = NULL, $options = array(), ModuleHandlerInterface $module_handler, ThemeHandlerInterface $theme_handler) {
+  public function __construct(\Twig_LoaderInterface $loader = NULL, ModuleHandlerInterface $module_handler, ThemeHandlerInterface $theme_handler, $options = array()) {
     // @todo Pass as arguments from the DIC.
     $this->cache_object = \Drupal::cache();
 
@@ -66,9 +59,18 @@ class TwigEnvironment extends \Twig_Environment {
     }
 
     $this->templateClasses = array();
-    $this->stringLoader = new \Twig_Loader_String();
 
-    parent::__construct($loader, $options);
+    $options += array(
+      // @todo Ensure garbage collection of expired files.
+      'cache' => TRUE,
+      'debug' => FALSE,
+      'auto_reload' => NULL,
+    );
+    // Ensure autoescaping is always on.
+    $options['autoescape'] = TRUE;
+
+    $this->loader = new \Twig_Loader_Chain([$loader, new \Twig_Loader_String()]);
+    parent::__construct($this->loader, $options);
   }
 
   /**
@@ -83,33 +85,14 @@ class TwigEnvironment extends \Twig_Environment {
 
   /**
    * Compile the source and write the compiled template to disk.
-   *
-   * @param bool $inline
-   *   TRUE, if the $cache_filename is a rendered template.
    */
-  public function updateCompiledTemplate($cache_filename, $name, $inline = FALSE) {
-    $source = $this->getLoader($inline)->getSource($name);
+  public function updateCompiledTemplate($cache_filename, $name) {
+    $source = $this->loader->getSource($name);
     $compiled_source = $this->compileSource($source, $name);
     $this->storage()->save($cache_filename, $compiled_source);
     // Save the last modification time
     $cid = 'twig:' . $cache_filename;
     $this->cache_object->set($cid, REQUEST_TIME);
-  }
-
-  /**
-   * Gets the Loader instance.
-   *
-   * @param bool $inline
-   *   TRUE, if the string loader is requested.
-   *
-   * @return \Twig_LoaderInterface
-   *   A Twig_LoaderInterface instance
-   */
-  public function getLoader($inline = FALSE) {
-    if (!isset($this->loader)) {
-      throw new \LogicException('You must set a loader first.');
-    }
-    return $inline ? $this->stringLoader : $this->loader;
   }
 
   /**
@@ -124,8 +107,6 @@ class TwigEnvironment extends \Twig_Environment {
    *   The template name or the string which should be rendered as template.
    * @param int $index
    *   The index if it is an embedded template.
-   * @param bool $inline
-   *   TRUE, if the $name is a rendered template.
    *
    * @return \Twig_TemplateInterface
    *   A template instance representing the given template name.
@@ -135,8 +116,8 @@ class TwigEnvironment extends \Twig_Environment {
    * @throws \Twig_Error_Syntax
    *   When an error occurred during compilation.
    */
-  public function loadTemplate($name, $index = NULL, $inline = FALSE) {
-    $cls = $this->getTemplateClass($name, $index, $inline);
+  public function loadTemplate($name, $index = NULL) {
+    $cls = $this->getTemplateClass($name, $index);
 
     if (isset($this->loadedTemplates[$cls])) {
       return $this->loadedTemplates[$cls];
@@ -146,7 +127,7 @@ class TwigEnvironment extends \Twig_Environment {
       $cache_filename = $this->getCacheFilename($name);
 
       if ($cache_filename === FALSE) {
-        $compiled_source = $this->compileSource($this->getLoader($inline)->getSource($name), $name);
+        $compiled_source = $this->compileSource($this->loader->getSource($name), $name);
         eval('?' . '>' . $compiled_source);
       }
       else {
@@ -154,11 +135,11 @@ class TwigEnvironment extends \Twig_Environment {
         // If autoreload is on, check that the template has not been
         // modified since the last compilation.
         if ($this->isAutoReload() && !$this->isFresh($cache_filename, $name)) {
-          $this->updateCompiledTemplate($cache_filename, $name, $inline);
+          $this->updateCompiledTemplate($cache_filename, $name);
         }
 
         if (!$this->storage()->load($cache_filename)) {
-          $this->updateCompiledTemplate($cache_filename, $name, $inline);
+          $this->updateCompiledTemplate($cache_filename, $name);
           $this->storage()->load($cache_filename);
         }
       }
@@ -190,20 +171,18 @@ class TwigEnvironment extends \Twig_Environment {
    *   The name for which to calculate the template class name.
    * @param int $index
    *   The index if it is an embedded template.
-   * @param bool $inline
-   *   TRUE, if the $name is a rendered template.
    *
    * @return string
    *   The template class name.
    */
-  public function getTemplateClass($name, $index = NULL, $inline = FALSE) {
+  public function getTemplateClass($name, $index = NULL) {
     // We override this method to add caching because it gets called multiple
     // times when the same template is used more than once. For example, a page
     // rendering 50 nodes without any node template overrides will use the same
     // node.html.twig for the output of each node and the same compiled class.
     $cache_index = $name . (NULL === $index ? '' : '_' . $index);
     if (!isset($this->templateClasses[$cache_index])) {
-      $this->templateClasses[$cache_index] = $this->templateClassPrefix . hash('sha256', $this->getLoader($inline)->getCacheKey($name)) . (NULL === $index ? '' : '_' . $index);
+      $this->templateClasses[$cache_index] = $this->templateClassPrefix . hash('sha256', $this->loader->getCacheKey($name)) . (NULL === $index ? '' : '_' . $index);
     }
     return $this->templateClasses[$cache_index];
   }
@@ -229,7 +208,7 @@ class TwigEnvironment extends \Twig_Environment {
    *   The rendered inline template.
    */
   public function renderInline($template_string, array $context = array()) {
-    return $this->loadTemplate($template_string, NULL, TRUE)->render($context);
+    return $this->loadTemplate($template_string, NULL)->render($context);
   }
 
 }

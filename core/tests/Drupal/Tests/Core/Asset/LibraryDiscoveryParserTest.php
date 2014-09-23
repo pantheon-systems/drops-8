@@ -10,10 +10,6 @@ namespace Drupal\Tests\Core\Asset;
 use Drupal\Core\Asset\LibraryDiscoveryParser;
 use Drupal\Tests\UnitTestCase;
 
-if (!defined('DRUPAL_ROOT')) {
-  define('DRUPAL_ROOT', dirname(dirname(substr(__DIR__, 0, -strlen(__NAMESPACE__)))));
-}
-
 if (!defined('CSS_AGGREGATE_DEFAULT')) {
   define('CSS_AGGREGATE_DEFAULT', 0);
   define('CSS_AGGREGATE_THEME', 100);
@@ -346,6 +342,28 @@ class LibraryDiscoveryParserTest extends UnitTestCase {
     $this->assertEquals('public://test.css', $library['css'][3]['data']);
   }
 
+  /**
+   * Tests a library with JavaScript-specific flags.
+   *
+   * @covers ::buildByExtension()
+   */
+  public function testLibraryWithJavaScript() {
+    $this->moduleHandler->expects($this->atLeastOnce())
+      ->method('moduleExists')
+      ->with('js')
+      ->will($this->returnValue(TRUE));
+
+    $path = __DIR__ . '/library_test_files';
+    $path = substr($path, strlen(DRUPAL_ROOT) + 1);
+    $this->libraryDiscoveryParser->setPaths('module', 'js', $path);
+
+    $libraries = $this->libraryDiscoveryParser->buildByExtension('js');
+    $library = $libraries['example'];
+
+    $this->assertCount(2, $library['js']);
+    $this->assertEquals(FALSE, $library['js'][0]['minified']);
+    $this->assertEquals(TRUE, $library['js'][1]['minified']);
+  }
   /**
    * Tests that an exception is thrown when license is missing when 3rd party.
    *

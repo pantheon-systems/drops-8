@@ -48,7 +48,7 @@ class FormSubmitter implements FormSubmitterInterface {
    * {@inheritdoc}
    */
   public function doSubmitForm(&$form, FormStateInterface &$form_state) {
-    if (!$form_state['submitted']) {
+    if (!$form_state->isSubmitted()) {
       return;
     }
 
@@ -63,7 +63,7 @@ class FormSubmitter implements FormSubmitterInterface {
       // Store $form_state information in the batch definition.
       $batch['form_state'] = $form_state;
 
-      $batch['progressive'] = !$form_state['programmed'];
+      $batch['progressive'] = !$form_state->isProgrammed();
       $response = batch_process();
       if ($batch['progressive']) {
         return $response;
@@ -76,15 +76,15 @@ class FormSubmitter implements FormSubmitterInterface {
     }
 
     // Set a flag to indicate the the form has been processed and executed.
-    $form_state['executed'] = TRUE;
+    $form_state->setExecuted();
 
     // If no response has been set, process the form redirect.
-    if (!$form_state->has('response') && $redirect = $this->redirectForm($form_state)) {
+    if (!$form_state->getResponse() && $redirect = $this->redirectForm($form_state)) {
       $form_state->setResponse($redirect);
     }
 
     // If there is a response was set, return it instead of continuing.
-    if (($response = $form_state->get('response')) && $response instanceof Response) {
+    if (($response = $form_state->getResponse()) && $response instanceof Response) {
       return $response;
     }
   }
@@ -94,18 +94,13 @@ class FormSubmitter implements FormSubmitterInterface {
    */
   public function executeSubmitHandlers(&$form, FormStateInterface &$form_state) {
     // If there was a button pressed, use its handlers.
-    if (!empty($form_state['submit_handlers'])) {
-      $handlers = $form_state['submit_handlers'];
-    }
+    $handlers = $form_state->getSubmitHandlers();
     // Otherwise, check for a form-level handler.
-    elseif (!empty($form['#submit'])) {
+    if (!$handlers && !empty($form['#submit'])) {
       $handlers = $form['#submit'];
     }
-    else {
-      $handlers = array();
-    }
 
-    foreach ($handlers as $function) {
+    foreach ($handlers as $callback) {
       // Check if a previous _submit handler has set a batch, but make sure we
       // do not react to a batch that is already being processed (for instance
       // if a batch operation performs a
@@ -114,11 +109,11 @@ class FormSubmitter implements FormSubmitterInterface {
         // Some previous submit handler has set a batch. To ensure correct
         // execution order, store the call in a special 'control' batch set.
         // See _batch_next_set().
-        $batch['sets'][] = array('form_submit' => $function);
+        $batch['sets'][] = array('form_submit' => $callback);
         $batch['has_form_submits'] = TRUE;
       }
       else {
-        call_user_func_array($function, array(&$form, &$form_state));
+        call_user_func_array($form_state->prepareCallback($callback), array(&$form, &$form_state));
       }
     }
   }
@@ -127,10 +122,6 @@ class FormSubmitter implements FormSubmitterInterface {
    * {@inheritdoc}
    */
   public function redirectForm(FormStateInterface $form_state) {
-    // According to RFC 7231, 303 See Other status code must be used to redirect
-    // user agent (and not default 302 Found).
-    // @see http://tools.ietf.org/html/rfc7231#section-6.4.4
-    $status_code = Response::HTTP_SEE_OTHER;
     $redirect = $form_state->getRedirect();
 
     // Allow using redirect responses directly if needed.
@@ -141,35 +132,7 @@ class FormSubmitter implements FormSubmitterInterface {
     $url = NULL;
     // Check for a route-based redirection.
     if ($redirect instanceof Url) {
-      $url = $redirect->toString();
-    }
-    // An array contains the path to use for the redirect, as well as options to
-    // use for generating the URL.
-    elseif (is_array($redirect)) {
-      if (isset($redirect[1])) {
-        $options = $redirect[1];
-      }
-      else {
-        $options = array();
-      }
-      // Redirections should always use absolute URLs.
-      $options['absolute'] = TRUE;
-      if (isset($redirect[2])) {
-        $status_code = $redirect[2];
-      }
-      $url = $this->urlGenerator->generateFromPath($redirect[0], $options);
-    }
-    // A string represents the path to use for the redirect.
-    elseif (is_string($redirect)) {
-      // This function can be called from the installer, which guarantees
-      // that $redirect will always be a string, so catch that case here
-      // and use the appropriate redirect function.
-      if ($this->drupalInstallationAttempted()) {
-        install_goto($redirect);
-      }
-      else {
-        $url = $this->urlGenerator->generateFromPath($redirect, array('absolute' => TRUE));
-      }
+      $url = $redirect->setAbsolute()->toString();
     }
     // If no redirect was specified, redirect to the current path.
     elseif ($redirect === NULL) {
@@ -183,7 +146,10 @@ class FormSubmitter implements FormSubmitterInterface {
     }
 
     if ($url) {
-      return new RedirectResponse($url, $status_code);
+      // According to RFC 7231, 303 See Other status code must be used to redirect
+      // user agent (and not default 302 Found).
+      // @see http://tools.ietf.org/html/rfc7231#section-6.4.4
+      return new RedirectResponse($url, Response::HTTP_SEE_OTHER);
     }
   }
 

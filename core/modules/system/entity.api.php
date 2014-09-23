@@ -6,8 +6,9 @@
  */
 
 use Drupal\Component\Utility\String;
+use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Entity\ContentEntityInterface;
-use Drupal\Core\Field\FieldDefinition;
+use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Render\Element;
 
 /**
@@ -19,7 +20,7 @@ use Drupal\Core\Render\Element;
  * entity storage classes; see the
  * @link entity_api Entity API topic @endlink for more information. Most
  * entities use or extend the default classes:
- * \Drupal\Core\Entity\ContentEntityDatabaseStorage for content entities, and
+ * \Drupal\Core\Entity\Sql\SqlContentEntityStorage for content entities, and
  * \Drupal\Core\Config\Entity\ConfigEntityStorage for configuration entities.
  * For these entities, there is a set of hooks that is invoked for each
  * CRUD operation, which module developers can implement to affect these
@@ -299,16 +300,19 @@ use Drupal\Core\Render\Element;
  *     the content. Configuration translation is handled automatically by the
  *     Configuration Translation module, without the need of a controller class.
  *   - access: If your configuration entity has complex permissions, you might
- *     need an access controller, implementing
- *     \Drupal\Core\Entity\EntityAccessControllerInterface, but most entities
+ *     need an access control handling, implementing
+ *     \Drupal\Core\Entity\EntityAccessControlHandlerInterface, but most entities
  *     can just use the 'admin_permission' annotation instead. Note that if you
- *     are creating your own access controller, you should override the
+ *     are creating your own access control handler, you should override the
  *     checkAccess() and checkCreateAccess() methods, not access().
  *   - storage: A class implementing
  *     \Drupal\Core\Entity\EntityStorageInterface. If not specified, content
- *     entities will use \Drupal\Core\Entity\ContentEntityDatabaseStorage, and
+ *     entities will use \Drupal\Core\Entity\Sql\SqlContentEntityStorage, and
  *     config entities will use \Drupal\Core\Config\Entity\ConfigEntityStorage.
  *     You can extend one of these classes to provide custom behavior.
+ *   - views_data: A class implementing \Drupal\views\EntityViewsDataInterface
+ *     to provide views data for the entity type. You can autogenerate most of
+ *     the views data by extending \Drupal\views\EntityViewsData.
  * - For content entities, the annotation will refer to a number of database
  *   tables and their fields. These annotation properties, such as 'base_table',
  *   'data_table', 'entity_keys', etc., are documented on
@@ -319,7 +323,7 @@ use Drupal\Core\Render\Element;
  *   entity interface you have defined as its parameter, and returns routing
  *   information for the entity page; see node_uri() for an example. You will
  *   also need to add a corresponding route to your module's routing.yml file;
- *   see the node.view route in node.routing.yml for an example, and see
+ *   see the entity.node.canonical route in node.routing.yml for an example, and see
  *   @ref sec_routes below for some notes.
  * - Define routing and links for the various URLs associated with the entity.
  *   These go into the 'links' annotation, with the link type as the key, and
@@ -330,8 +334,12 @@ use Drupal\Core\Render\Element;
  *     own pages) or edit the entity.
  *   - delete-form: Confirmation form to delete the entity.
  *   - edit-form: Editing form.
- *   - admin-form: Form for editing bundle or entity type settings.
  *   - Other link types specific to your entity type can also be defined.
+ * - If your content entity is fieldable, provide 'field_ui_base_route'
+ *   annotation, giving the name of the route that the Manage Fields, Manage
+ *   Display, and Manage Form Display pages from the Field UI module will be
+ *   attached to. This is usually the bundle settings edit page, or an entity
+ *   type settings page if there are no bundles.
  * - If your content entity has bundles, you will also need to define a second
  *   plugin to handle the bundles. This plugin is itself a configuration entity
  *   type, so follow the steps here to define it. The machine name ('id'
@@ -373,7 +381,7 @@ use Drupal\Core\Render\Element;
  *   block.default refers to the 'default' form controller on the block entity
  *   type, whose annotation contains:
  *   @code
- *   controllers = {
+ *   handlers = {
  *     "form" = {
  *       "default" = "Drupal\block\BlockForm",
  *   @endcode
@@ -478,7 +486,7 @@ use Drupal\Core\Render\Element;
  * The interface related to access checking in entities and fields is
  * \Drupal\Core\Access\AccessibleInterface.
  *
- * The default entity access controller invokes two hooks while checking
+ * The default entity access control handler invokes two hooks while checking
  * access on a single entity: hook_entity_access() is invoked first, and
  * then hook_ENTITY_TYPE_access() (where ENTITY_TYPE is the machine name
  * of the entity type). If no module returns a TRUE or FALSE value from
@@ -513,18 +521,18 @@ use Drupal\Core\Render\Element;
  * @param string $langcode
  *    The code of the language $entity is accessed in.
  *
- * @return bool|null
- *   A boolean to explicitly allow or deny access, or NULL to neither allow nor
- *   deny access.
+ * @return \Drupal\Core\Access\AccessResultInterface
+ *    The access result.
  *
- * @see \Drupal\Core\Entity\EntityAccessController
+ * @see \Drupal\Core\Entity\EntityAccessControlHandler
  * @see hook_entity_create_access()
  * @see hook_ENTITY_TYPE_access()
  *
  * @ingroup entity_api
  */
 function hook_entity_access(\Drupal\Core\Entity\EntityInterface $entity, $operation, \Drupal\Core\Session\AccountInterface $account, $langcode) {
-  return NULL;
+  // No opinion.
+  return AccessResult::create();
 }
 
 /**
@@ -539,18 +547,18 @@ function hook_entity_access(\Drupal\Core\Entity\EntityInterface $entity, $operat
  * @param string $langcode
  *    The code of the language $entity is accessed in.
  *
- * @return bool|null
- *   A boolean to explicitly allow or deny access, or NULL to neither allow nor
- *   deny access.
+ * @return \Drupal\Core\Access\AccessResultInterface
+ *    The access result.
  *
- * @see \Drupal\Core\Entity\EntityAccessController
+ * @see \Drupal\Core\Entity\EntityAccessControlHandler
  * @see hook_ENTITY_TYPE_create_access()
  * @see hook_entity_access()
  *
  * @ingroup entity_api
  */
 function hook_ENTITY_TYPE_access(\Drupal\Core\Entity\EntityInterface $entity, $operation, \Drupal\Core\Session\AccountInterface $account, $langcode) {
-  return NULL;
+  // No opinion.
+  return AccessResult::create();
 }
 
 /**
@@ -558,21 +566,25 @@ function hook_ENTITY_TYPE_access(\Drupal\Core\Entity\EntityInterface $entity, $o
  *
  * @param \Drupal\Core\Session\AccountInterface $account
  *    The account trying to access the entity.
- * @param string $langcode
- *    The code of the language $entity is accessed in.
+ * @param array $context
+ *    An associative array of additional context values. By default it contains
+ *    language:
+ *    - langcode - the current language code.
+ * @param string $entity_bundle
+ *    The entity bundle name.
  *
- * @return bool|null
- *   A boolean to explicitly allow or deny access, or NULL to neither allow nor
- *   deny access.
+ * @return \Drupal\Core\Access\AccessResultInterface
+ *    The access result.
  *
- * @see \Drupal\Core\Entity\EntityAccessController
+ * @see \Drupal\Core\Entity\EntityAccessControlHandler
  * @see hook_entity_access()
  * @see hook_ENTITY_TYPE_create_access()
  *
  * @ingroup entity_api
  */
-function hook_entity_create_access(\Drupal\Core\Session\AccountInterface $account, $langcode) {
-  return NULL;
+function hook_entity_create_access(\Drupal\Core\Session\AccountInterface $account, array $context, $entity_bundle) {
+  // No opinion.
+  return AccessResult::create();
 }
 
 /**
@@ -580,21 +592,25 @@ function hook_entity_create_access(\Drupal\Core\Session\AccountInterface $accoun
  *
  * @param \Drupal\Core\Session\AccountInterface $account
  *    The account trying to access the entity.
- * @param string $langcode
- *    The code of the language $entity is accessed in.
+ * @param array $context
+ *    An associative array of additional context values. By default it contains
+ *    language:
+ *    - langcode - the current language code.
+ * @param string $entity_bundle
+ *    The entity bundle name.
  *
- * @return bool|null
- *   A boolean to explicitly allow or deny access, or NULL to neither allow nor
- *   deny access.
+ * @return \Drupal\Core\Access\AccessResultInterface
+ *    The access result.
  *
- * @see \Drupal\Core\Entity\EntityAccessController
+ * @see \Drupal\Core\Entity\EntityAccessControlHandler
  * @see hook_ENTITY_TYPE_access()
  * @see hook_entity_create_access()
  *
  * @ingroup entity_api
  */
-function hook_ENTITY_TYPE_create_access(\Drupal\Core\Session\AccountInterface $account, $langcode) {
-  return NULL;
+function hook_ENTITY_TYPE_create_access(\Drupal\Core\Session\AccountInterface $account, array $context, $entity_bundle) {
+  // No opinion.
+  return AccessResult::create();
 }
 
 /**
@@ -1550,7 +1566,7 @@ function hook_entity_display_build_alter(&$build, $context) {
 function hook_entity_prepare_form(\Drupal\Core\Entity\EntityInterface $entity, $operation, \Drupal\Core\Form\FormStateInterface $form_state) {
   if ($operation == 'edit') {
     $entity->label->value = 'Altered label';
-    $form_state['mymodule']['label_altered'] = TRUE;
+    $form_state->set('label_altered', TRUE);
   }
 }
 
@@ -1576,7 +1592,7 @@ function hook_entity_prepare_form(\Drupal\Core\Entity\EntityInterface $entity, $
 function hook_ENTITY_TYPE_prepare_form(\Drupal\Core\Entity\EntityInterface $entity, $operation, \Drupal\Core\Form\FormStateInterface $form_state) {
   if ($operation == 'edit') {
     $entity->label->value = 'Altered label';
-    $form_state['mymodule']['label_altered'] = TRUE;
+    $form_state->set('label_altered', TRUE);
   }
 }
 
@@ -1621,7 +1637,7 @@ function hook_entity_form_display_alter(\Drupal\Core\Entity\Display\EntityFormDi
 function hook_entity_base_field_info(\Drupal\Core\Entity\EntityTypeInterface $entity_type) {
   if ($entity_type->id() == 'node') {
     $fields = array();
-    $fields['mymodule_text'] = FieldDefinition::create('string')
+    $fields['mymodule_text'] = BaseFieldDefinition::create('string')
       ->setLabel(t('The text'))
       ->setDescription(t('A text property added by mymodule.'))
       ->setComputed(TRUE)
@@ -1679,7 +1695,7 @@ function hook_entity_bundle_field_info(\Drupal\Core\Entity\EntityTypeInterface $
   // Add a property only to nodes of the 'article' bundle.
   if ($entity_type->id() == 'node' && $bundle == 'article') {
     $fields = array();
-    $fields['mymodule_text_more'] = FieldDefinition::create('string')
+    $fields['mymodule_text_more'] = BaseFieldDefinition::create('string')
         ->setLabel(t('More text'))
         ->setComputed(TRUE)
         ->setClass('\Drupal\mymodule\EntityComputedMoreText');
@@ -1799,7 +1815,7 @@ function hook_entity_operation_alter(array &$operations, \Drupal\Core\Entity\Ent
  * Control access to fields.
  *
  * This hook is invoked from
- * \Drupal\Core\Entity\EntityAccessController::fieldAccess() to let modules
+ * \Drupal\Core\Entity\EntityAccessControlHandler::fieldAccess() to let modules
  * grant or deny operations on fields.
  *
  * @param string $operation
@@ -1813,13 +1829,12 @@ function hook_entity_operation_alter(array &$operations, \Drupal\Core\Entity\Ent
  *   (optional) The entity field object on which the operation is to be
  *   performed.
  *
- * @return bool|null
- *   TRUE if access should be allowed, FALSE if access should be denied and NULL
- *   if the implementation has no opinion.
+ * @return \Drupal\Core\Access\AccessResultInterface
+ *   The access result.
  */
 function hook_entity_field_access($operation, \Drupal\Core\Field\FieldDefinitionInterface $field_definition, \Drupal\Core\Session\AccountInterface $account, \Drupal\Core\Field\FieldItemListInterface $items = NULL) {
   if ($field_definition->getName() == 'field_of_interest' && $operation == 'edit') {
-    return $account->hasPermission('update field of interest');
+    return AccessResult::allowedIfHasPermission($account, 'update field of interest');
   }
 }
 
@@ -1829,10 +1844,10 @@ function hook_entity_field_access($operation, \Drupal\Core\Field\FieldDefinition
  * Use this hook to override access grants from another module. Note that the
  * original default access flag is masked under the ':default' key.
  *
- * @param array $grants
+ * @param \Drupal\Core\Access\AccessResultInterface[] $grants
  *   An array of grants gathered by hook_entity_field_access(). The array is
  *   keyed by the module that defines the field's access control; the values are
- *   grant responses for each module (Boolean or NULL).
+ *   grant responses for each module (\Drupal\Core\Access\AccessResult).
  * @param array $context
  *   Context array on the performed operation with the following keys:
  *   - operation: The operation to be performed (string).
@@ -1846,13 +1861,14 @@ function hook_entity_field_access($operation, \Drupal\Core\Field\FieldDefinition
 function hook_entity_field_access_alter(array &$grants, array $context) {
   /** @var \Drupal\Core\Field\FieldDefinitionInterface $field_definition */
   $field_definition = $context['field_definition'];
-  if ($field_definition->getName() == 'field_of_interest' && $grants['node'] === FALSE) {
-    // Override node module's restriction to no opinion. We don't want to
-    // provide our own access hook, we only want to take out node module's part
-    // in the access handling of this field. We also don't want to switch node
-    // module's grant to TRUE, because the grants of other modules should still
-    // decide on their own if this field is accessible or not.
-    $grants['node'] = NULL;
+  if ($field_definition->getName() == 'field_of_interest' && $grants['node']->isForbidden()) {
+    // Override node module's restriction to no opinion (neither allowed nor
+    // forbidden). We don't want to provide our own access hook, we only want to
+    // take out node module's part in the access handling of this field. We also
+    // don't want to switch node module's grant to
+    // AccessResultInterface::isAllowed() , because the grants of other modules
+    // should still decide on their own if this field is accessible or not
+    $grants['node']->resetAccess();
   }
 }
 

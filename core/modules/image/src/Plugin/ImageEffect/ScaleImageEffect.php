@@ -85,8 +85,8 @@ class ScaleImageEffect extends ResizeImageEffect {
    */
   public function validateConfigurationForm(array &$form, FormStateInterface $form_state) {
     parent::validateConfigurationForm($form, $form_state);
-    if (empty($form_state['values']['width']) && empty($form_state['values']['height'])) {
-      form_set_error('data', $form_state, $this->t('Width and height can not both be blank.'));
+    if ($form_state->isValueEmpty('width') && $form_state->isValueEmpty('height')) {
+      $form_state->setErrorByName('data', $this->t('Width and height can not both be blank.'));
     }
   }
 
@@ -96,7 +96,7 @@ class ScaleImageEffect extends ResizeImageEffect {
   public function submitConfigurationForm(array &$form, FormStateInterface $form_state) {
     parent::submitConfigurationForm($form, $form_state);
 
-    $this->configuration['upscale'] = $form_state['values']['upscale'];
+    $this->configuration['upscale'] = $form_state->getValue('upscale');
   }
 
 }

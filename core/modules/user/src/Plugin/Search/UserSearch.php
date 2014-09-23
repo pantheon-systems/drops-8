@@ -7,6 +7,7 @@
 
 namespace Drupal\user\Plugin\Search;
 
+use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
@@ -97,8 +98,9 @@ class UserSearch extends SearchPluginBase implements AccessibleInterface {
   /**
    * {@inheritdoc}
    */
-  public function access($operation = 'view', AccountInterface $account = NULL) {
-    return !empty($account) && $account->hasPermission('access user profiles');
+  public function access($operation = 'view', AccountInterface $account = NULL, $return_as_object = FALSE) {
+    $result = AccessResult::allowedIf(!empty($account) && $account->hasPermission('access user profiles'))->cachePerRole();
+    return $return_as_object ? $result : $result->isAllowed();
   }
 
   /**
@@ -113,9 +115,10 @@ class UserSearch extends SearchPluginBase implements AccessibleInterface {
     // Replace wildcards with MySQL/PostgreSQL wildcards.
     $keys = preg_replace('!\*+!', '%', $keys);
     $query = $this->database
-      ->select('users')
+      ->select('users_field_data', 'users')
       ->extend('Drupal\Core\Database\Query\PagerSelectExtender');
     $query->fields('users', array('uid'));
+    $query->condition('default_langcode', 1);
     if ($this->currentUser->hasPermission('administer users')) {
       // Administrators can also search in the otherwise private email field, and
       // they don't need to be restricted to only active users.

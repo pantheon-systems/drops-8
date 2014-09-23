@@ -7,6 +7,7 @@
 
 use Drupal\Component\Utility\String;
 use Drupal\Core\Render\Element;
+use Drupal\Core\Template\Attribute;
 
 /**
  * Prepares variables for language negotiation configuration form.
@@ -84,6 +85,7 @@ function template_preprocess_language_negotiation_configure_form(&$variables) {
       'configurable' => $configurable,
       'table' => $table,
       'children' => $form[$type],
+      'attributes' => new Attribute(),
     );
     // Prevent the type from rendering with the remaining form child elements.
     unset($form[$type]);
@@ -202,22 +204,4 @@ function template_preprocess_language_content_settings_table(&$variables) {
  */
 function theme_language_content_settings_table($variables) {
   return '<h4>' . $variables['build']['#title'] . '</h4>' . drupal_render($variables['build']);
-}
-
-/**
- * Helper function to disable the language switcher blocks.
- *
- * @param array $language_types
- *   Array containing all language types whose language switchers need to be
- *   disabled.
- */
-function _language_disable_language_switcher(array $language_types) {
-  $blocks = _block_rehash();
-  foreach ($language_types as $language_type) {
-    foreach ($blocks as $block) {
-      if (strpos($block->id, 'language_switcher_' . substr($language_type, 9)) !== FALSE) {
-        $block->delete();
-      }
-    }
-  }
 }

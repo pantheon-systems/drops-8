@@ -26,21 +26,21 @@ class EntityType implements EntityTypeInterface {
    *
    * @var bool
    */
-  protected $static_cache;
+  protected $static_cache = TRUE;
 
   /**
    * Indicates whether the rendered output of entities should be cached.
    *
    * @var bool
    */
-  protected $render_cache;
+  protected $render_cache = TRUE;
 
   /**
    * Indicates if the persistent cache of field data should be used.
    *
    * @var bool
    */
-  protected $persistent_cache;
+  protected $persistent_cache = TRUE;
 
   /**
    * An array of entity keys.
@@ -71,11 +71,20 @@ class EntityType implements EntityTypeInterface {
   protected $class;
 
   /**
-   * An array of controllers.
+   * The name of the original entity type class.
+   *
+   * This is only set if the class name is changed.
+   *
+   * @var string
+   */
+  protected $originalClass;
+
+  /**
+   * An array of handlers.
    *
    * @var array
    */
-  protected $controllers = array();
+  protected $handlers = array();
 
   /**
    * The name of the default administrative permission.
@@ -87,18 +96,18 @@ class EntityType implements EntityTypeInterface {
   /**
    * The permission granularity level.
    *
-   * The allowed values are respectively "entity_type", "bundle" or FALSE.
+   * The allowed values are respectively "entity_type" or "bundle".
    *
-   * @var string|bool
+   * @var string
    */
-  protected $permission_granularity;
+  protected $permission_granularity = 'entity_type';
 
   /**
    * Indicates whether fields can be attached to entities of this type.
    *
-   * @var bool (optional)
+   * @var bool
    */
-  protected $fieldable;
+  protected $fieldable = FALSE;
 
   /**
    * Link templates using the URI template syntax.
@@ -110,58 +119,58 @@ class EntityType implements EntityTypeInterface {
   /**
    * The name of a callback that returns the label of the entity.
    *
-   * @var string
+   * @var string|null
    */
-  protected $label_callback;
+  protected $label_callback = NULL;
 
   /**
    * The name of the entity type which provides bundles.
    *
    * @var string
    */
-  protected $bundle_entity_type;
+  protected $bundle_entity_type = 'bundle';
 
   /**
    * The name of the entity type for which bundles are provided.
    *
-   * @var string
+   * @var string|null
    */
-  protected $bundle_of;
+  protected $bundle_of = NULL;
 
   /**
    * The human-readable name of the entity bundles, e.g. Vocabulary.
    *
-   * @var string
+   * @var string|null
    */
-  protected $bundle_label;
+  protected $bundle_label = NULL;
 
   /**
    * The name of the entity type's base table.
    *
-   * @var string
+   * @var string|null
    */
-  protected $base_table;
+  protected $base_table = NULL;
 
   /**
    * The name of the entity type's revision data table.
    *
-   * @var string
+   * @var string|null
    */
-  protected $revision_data_table;
+  protected $revision_data_table = NULL;
 
   /**
    * The name of the entity type's revision table.
    *
-   * @var string
+   * @var string|null
    */
-  protected $revision_table;
+  protected $revision_table = NULL;
 
   /**
    * The name of the entity type's data table.
    *
-   * @var string
+   * @var string|null
    */
-  protected $data_table;
+  protected $data_table = NULL;
 
   /**
    * Indicates whether entities of this type have multilingual support.
@@ -175,14 +184,14 @@ class EntityType implements EntityTypeInterface {
    *
    * @var string
    */
-  protected $label;
+  protected $label = '';
 
   /**
    * A callable that can be used to provide the entity URI.
    *
-   * @var callable
+   * @var callable|null
    */
-  protected $uri_callback;
+  protected $uri_callback = NULL;
 
   /**
    * The machine name of the entity type group.
@@ -193,6 +202,13 @@ class EntityType implements EntityTypeInterface {
    * The human-readable name of the entity type group.
    */
   protected $group_label;
+
+  /**
+   * The route name used by field UI to attach its management pages.
+   *
+   * @var string
+   */
+  protected $field_ui_base_route;
 
   /**
    * Constructs a new EntityType.
@@ -223,8 +239,8 @@ class EntityType implements EntityTypeInterface {
       'revision' => '',
       'bundle' => ''
     );
-    $this->controllers += array(
-      'access' => 'Drupal\Core\Entity\EntityAccessController',
+    $this->handlers += array(
+      'access' => 'Drupal\Core\Entity\EntityAccessControlHandler',
     );
   }
 
@@ -247,21 +263,21 @@ class EntityType implements EntityTypeInterface {
    * {@inheritdoc}
    */
   public function isStaticallyCacheable() {
-    return isset($this->static_cache) ? $this->static_cache: TRUE;
+    return $this->static_cache;
   }
 
   /**
    * {@inheritdoc}
    */
   public function isRenderCacheable() {
-    return isset($this->render_cache) ? $this->render_cache: TRUE;
+    return $this->render_cache;
   }
 
   /**
    * {@inheritdoc}
    */
   public function isPersistentlyCacheable() {
-    return isset($this->persistent_cache) ? $this->persistent_cache: TRUE;
+    return $this->persistent_cache;
   }
 
   /**
@@ -311,7 +327,19 @@ class EntityType implements EntityTypeInterface {
   /**
    * {@inheritdoc}
    */
+  public function getOriginalClass() {
+    return $this->originalClass ?: $this->class;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function setClass($class) {
+    if (!$this->originalClass && $this->class) {
+      // If the original class is currently not set, set it to the current
+      // class, assume that is the original class name.
+      $this->originalClass = $this->class;
+    }
     $this->class = $class;
     return $this;
   }
@@ -326,69 +354,69 @@ class EntityType implements EntityTypeInterface {
   /**
    * {@inheritdoc}
    */
-  public function getControllerClasses() {
-    return $this->controllers;
+  public function getHandlerClasses() {
+    return $this->handlers;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function getControllerClass($controller_type, $nested = FALSE) {
-    if ($this->hasControllerClass($controller_type, $nested)) {
-      $controllers = $this->getControllerClasses();
-      return $nested ? $controllers[$controller_type][$nested] : $controllers[$controller_type];
+  public function getHandlerClass($handler_type, $nested = FALSE) {
+    if ($this->hasHandlerClass($handler_type, $nested)) {
+      $handlers = $this->getHandlerClasses();
+      return $nested ? $handlers[$handler_type][$nested] : $handlers[$handler_type];
     }
   }
 
   /**
    * {@inheritdoc}
    */
-  public function setControllerClass($controller_type, $value) {
-    $this->controllers[$controller_type] = $value;
+  public function setHandlerClass($handler_type, $value) {
+    $this->handlers[$handler_type] = $value;
     return $this;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function hasControllerClass($controller_type, $nested = FALSE) {
-    $controllers = $this->getControllerClasses();
-    if (!isset($controllers[$controller_type]) || ($nested && !isset($controllers[$controller_type][$nested]))) {
+  public function hasHandlerClass($handler_type, $nested = FALSE) {
+    $handlers = $this->getHandlerClasses();
+    if (!isset($handlers[$handler_type]) || ($nested && !isset($handlers[$handler_type][$nested]))) {
       return FALSE;
     }
-    $controller = $controllers[$controller_type];
+    $handler = $handlers[$handler_type];
     if ($nested) {
-      $controller = $controller[$nested];
+      $handler = $handler[$nested];
     }
-    return class_exists($controller);
+    return class_exists($handler);
   }
 
   /**
    * {@inheritdoc}
    */
   public function getStorageClass() {
-    return $this->getControllerClass('storage');
+    return $this->getHandlerClass('storage');
   }
 
   /**
    * {@inheritdoc}
    */
   public function setStorageClass($class) {
-    $this->controllers['storage'] = $class;
+    $this->handlers['storage'] = $class;
   }
 
   /**
    * {@inheritdoc}
    */
   public function getFormClass($operation) {
-    return $this->getControllerClass('form', $operation);
+    return $this->getHandlerClass('form', $operation);
   }
 
   /**
    * {@inheritdoc}
    */
   public function setFormClass($operation, $class) {
-    $this->controllers['form'][$operation] = $class;
+    $this->handlers['form'][$operation] = $class;
     return $this;
   }
 
@@ -396,21 +424,21 @@ class EntityType implements EntityTypeInterface {
    * {@inheritdoc}
    */
   public function hasFormClasses() {
-    return !empty($this->controllers['form']);
+    return !empty($this->handlers['form']);
   }
 
   /**
    * {@inheritdoc}
    */
   public function getListBuilderClass() {
-    return $this->getControllerClass('list_builder');
+    return $this->getHandlerClass('list_builder');
   }
 
   /**
    * {@inheritdoc}
    */
   public function setListBuilderClass($class) {
-    $this->controllers['list_builder'] = $class;
+    $this->handlers['list_builder'] = $class;
     return $this;
   }
 
@@ -418,21 +446,21 @@ class EntityType implements EntityTypeInterface {
    * {@inheritdoc}
    */
   public function hasListBuilderClass() {
-    return $this->hasControllerClass('list_builder');
+    return $this->hasHandlerClass('list_builder');
   }
 
   /**
    * {@inheritdoc}
    */
   public function getViewBuilderClass() {
-    return $this->getControllerClass('view_builder');
+    return $this->getHandlerClass('view_builder');
   }
 
   /**
    * {@inheritdoc}
    */
   public function setViewBuilderClass($class) {
-    $this->controllers['view_builder'] = $class;
+    $this->handlers['view_builder'] = $class;
     return $this;
   }
 
@@ -440,21 +468,21 @@ class EntityType implements EntityTypeInterface {
    * {@inheritdoc}
    */
   public function hasViewBuilderClass() {
-    return $this->hasControllerClass('view_builder');
+    return $this->hasHandlerClass('view_builder');
   }
 
   /**
    * {@inheritdoc}
    */
-  public function getAccessClass() {
-    return $this->getControllerClass('access');
+  public function getAccessControlClass() {
+    return $this->getHandlerClass('access');
   }
 
   /**
    * {@inheritdoc}
    */
   public function setAccessClass($class) {
-    $this->controllers['access'] = $class;
+    $this->handlers['access'] = $class;
     return $this;
   }
 
@@ -469,21 +497,21 @@ class EntityType implements EntityTypeInterface {
    * {@inheritdoc}
    */
   public function getPermissionGranularity() {
-    return isset($this->permission_granularity) ? $this->permission_granularity : 'entity_type';
+    return $this->permission_granularity;
   }
 
   /**
    * {@inheritdoc}
    */
   public function isFieldable() {
-    return isset($this->fieldable) ? $this->fieldable : FALSE;
+    return $this->fieldable;
   }
 
   /**
    * {@inheritdoc}
    */
   public function getLinkTemplates() {
-    return isset($this->links) ? $this->links : array();
+    return $this->links;
   }
 
   /**
@@ -514,7 +542,7 @@ class EntityType implements EntityTypeInterface {
    * {@inheritdoc}
    */
   public function getLabelCallback() {
-    return isset($this->label_callback) ? $this->label_callback : FALSE;
+    return $this->label_callback;
   }
 
   /**
@@ -536,28 +564,28 @@ class EntityType implements EntityTypeInterface {
    * {@inheritdoc}
    */
   public function getBundleEntityType() {
-    return isset($this->bundle_entity_type) ? $this->bundle_entity_type : 'bundle';
+    return $this->bundle_entity_type;
   }
 
   /**
    * {@inheritdoc}
    */
   public function getBundleOf() {
-    return isset($this->bundle_of) ? $this->bundle_of : FALSE;
+    return $this->bundle_of;
   }
 
   /**
    * {@inheritdoc}
    */
   public function getBundleLabel() {
-    return isset($this->bundle_label) ? $this->bundle_label : FALSE;
+    return (string) $this->bundle_label;
   }
 
   /**
    * {@inheritdoc}
    */
   public function getBaseTable() {
-    return isset($this->base_table) ? $this->base_table : FALSE;
+    return $this->base_table;
   }
 
   /**
@@ -586,28 +614,28 @@ class EntityType implements EntityTypeInterface {
    * {@inheritdoc}
    */
   public function getRevisionDataTable() {
-    return isset($this->revision_data_table) ? $this->revision_data_table : FALSE;
+    return $this->revision_data_table;
   }
 
   /**
    * {@inheritdoc}
    */
   public function getRevisionTable() {
-    return isset($this->revision_table) ? $this->revision_table : FALSE;
+    return $this->revision_table;
   }
 
   /**
    * {@inheritdoc}
    */
   public function getDataTable() {
-    return isset($this->data_table) ? $this->data_table : FALSE;
+    return $this->data_table;
   }
 
   /**
    * {@inheritdoc}
    */
   public function getLabel() {
-    return isset($this->label) ? $this->label : '';
+    return (string) $this->label;
   }
 
   /**
@@ -621,7 +649,7 @@ class EntityType implements EntityTypeInterface {
    * {@inheritdoc}
    */
   public function getUriCallback() {
-    return isset($this->uri_callback) ? $this->uri_callback : FALSE;
+    return $this->uri_callback;
   }
 
   /**
@@ -644,7 +672,7 @@ class EntityType implements EntityTypeInterface {
    * {@inheritdoc}
    */
   public function getGroupLabel() {
-    return !empty($this->group_label) ? $this->group_label : $this->t('Other', array(), array('context' => 'Entity type group'));
+    return !empty($this->group_label) ? (string) $this->group_label : $this->t('Other', array(), array('context' => 'Entity type group'));
   }
 
 }

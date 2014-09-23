@@ -1,7 +1,7 @@
 <?php
 
 /**
- * @defgroup themeable Default theme implementations
+ * @defgroup themeable Theme system overview
  * @{
  * Functions and templates for the user interface that themes can override.
  *
@@ -17,6 +17,19 @@
  * documentation of drupal_render() and the
  * @link theme_render Theme system and Render API topic @endlink for more
  * information about render arrays and rendering.
+ *
+ * @section sec_twig_theme Twig Templating Engine
+ * Drupal 8 utilizes the templating engine Twig. Twig offers developers a fast,
+ * secure, and flexible method for building templates for Drupal 8 sites. Twig
+ * also offers substantial usability improvements over PHPTemplate, and does
+ * not require front-end developers to know PHP to build and manipulate Drupal
+ * 8 themes.
+ *
+ * For further information on theming in Drupal 8 see
+ * https://www.drupal.org/theme-guide/8
+ *
+ * For further Twig documentation see
+ * http://twig.sensiolabs.org/doc/templates.html
  *
  * @section sec_theme_hooks Theme Hooks
  * The theme system is invoked in drupal_render() by calling the internal
@@ -148,12 +161,13 @@
  *
  * @see hooks
  * @see callbacks
+ * @see theme_render
  *
  * @} End of "defgroup themeable".
  */
 
 /**
- * @defgroup theme_render Theme system and Render API
+ * @defgroup theme_render Render API overview
  * @{
  * Overview of the Theme system and Render API.
  *
@@ -162,11 +176,21 @@
  * requests and the CSS files used to style that markup. In order to ensure that
  * a theme can completely customize the markup, module developers should avoid
  * directly writing HTML markup for pages, blocks, and other user-visible output
- * in their modules, and instead return structured "render arrays" (described
- * below). Doing this also increases usability, by ensuring that the markup used
- * for similar functionality on different areas of the site is the same, which
- * gives users fewer user interface patterns to learn.
+ * in their modules, and instead return structured "render arrays" (see @ref
+ * arrays below). Doing this also increases usability, by ensuring that the
+ * markup used for similar functionality on different areas of the site is the
+ * same, which gives users fewer user interface patterns to learn.
  *
+ * For further information on the Theme and Render APIs, see:
+ * - https://drupal.org/documentation/theme
+ * - https://drupal.org/node/722174
+ * - https://drupal.org/node/933976
+ * - https://drupal.org/node/930760
+ *
+ * @todo Check these links. Some are for Drupal 7, and might need updates for
+ *   Drupal 8.
+ *
+ * @section arrays Render arrays
  * The core structure of the Render API is the render array, which is a
  * hierarchical associative array containing data to be rendered and properties
  * describing how the data should be rendered. A render array that is returned
@@ -193,11 +217,8 @@
  * - #type: Specifies that the array contains data and options for a particular
  *   type of "render element" (examples: 'form', for an HTML form; 'textfield',
  *   'submit', and other HTML form element types; 'table', for a table with
- *   rows, columns, and headers). Modules define render elements by implementing
- *   hook_element_info(), which specifies the properties that are used in render
- *   arrays to provide the data and options, and default values for these
- *   properties. Look through implementations of hook_element_info() to discover
- *   what render elements are available.
+ *   rows, columns, and headers). See @ref elements below for more on render
+ *   element types.
  * - #theme: Specifies that the array contains data to be themed by a particular
  *   theme hook. Modules define theme hooks by implementing hook_theme(), which
  *   specifies the input "variables" used to provide data and options; if a
@@ -213,15 +234,31 @@
  *   normally preferable to use #theme or #type instead, so that the theme can
  *   customize the markup.
  *
- * For further information on the Theme and Render APIs, see:
- * - https://drupal.org/documentation/theme
- * - https://drupal.org/developing/modules/8
- * - https://drupal.org/node/722174
- * - https://drupal.org/node/933976
- * - https://drupal.org/node/930760
+ * @section elements Render elements
+ * Render elements are defined by Drupal core and modules. The primary way to
+ * define a render element is to create a render element plugin. There are
+ * two types of render element plugins:
+ * - Generic elements: Generic render element plugins implement
+ *   \Drupal\Core\Render\Element\ElementInterface, are annotated with
+ *   \Drupal\Core\Render\Annotation\RenderElement annotation, go in plugin
+ *   namespace Element, and generally extend the
+ *   \Drupal\Core\Render\Element\RenderElement base class.
+ * - Form input elements: Render elements representing form input elements
+ *   implement \Drupal\Core\Render\Element\FormElementInterface, are annotated
+ *   with \Drupal\Core\Render\Annotation\FormElement annotation, go in plugin
+ *   namespace Element, and generally extend the
+ *   \Drupal\Core\Render\Element\FormElement base class.
+ * See the @link plugin_api Plugin API topic @endlink for general information
+ * on plugins, and look for classes with the RenderElement or FormElement
+ * annotation to discover what render elements are available.
  *
- * @todo Check these links. Some are for Drupal 7, and might need updates for
- *   Drupal 8.
+ * Modules can also currently define render elements by implementing
+ * hook_element_info(), although defining a plugin is preferred.
+ * properties. Look through implementations of hook_element_info() to discover
+ * elements defined this way.
+ *
+ * @see themeable
+ *
  * @}
  */
 
@@ -431,28 +468,30 @@ function hook_theme_suggestions_HOOK_alter(array &$suggestions, array $variables
 }
 
 /**
- * Respond to themes being enabled.
+ * Respond to themes being installed.
  *
  * @param array $theme_list
- *   Array containing the names of the themes being enabled.
+ *   Array containing the names of the themes being installed.
  *
- * @see theme_enable()
+ * @see \Drupal\Core\Extension\ThemeHandler::install()
  */
-function hook_themes_enabled($theme_list) {
+function hook_themes_installed($theme_list) {
   foreach ($theme_list as $theme) {
     block_theme_initialize($theme);
   }
 }
 
 /**
- * Respond to themes being disabled.
+ * Respond to themes being uninstalled.
  *
  * @param array $theme_list
- *   Array containing the names of the themes being disabled.
+ *   Array containing the names of the themes being uninstalled.
  *
- * @see theme_disable()
+ * @see \Drupal\Core\Extension\ThemeHandler::uninstall()
  */
-function hook_themes_disabled($theme_list) {
- // Clear all update module caches.
-  update_storage_clear();
+function hook_themes_uninstalled(array $themes) {
+  // Remove some state entries depending on the theme.
+  foreach ($themes as $theme) {
+    \Drupal::state()->delete('example.' . $theme);
+  }
 }

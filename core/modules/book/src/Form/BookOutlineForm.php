@@ -98,15 +98,13 @@ class BookOutlineForm extends ContentEntityForm {
 
   /**
    * {@inheritdoc}
-   *
-   * @see book_remove_button_submit()
    */
-  public function submit(array $form, FormStateInterface $form_state) {
+  public function save(array $form, FormStateInterface $form_state) {
     $form_state->setRedirect(
-      'node.view',
+      'entity.node.canonical',
       array('node' => $this->entity->id())
     );
-    $book_link = $form_state['values']['book'];
+    $book_link = $form_state->getValue('book');
     if (!$book_link['bid']) {
       drupal_set_message($this->t('No changes were made'));
       return;

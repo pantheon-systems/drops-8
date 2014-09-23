@@ -19,9 +19,9 @@ abstract class WizardTestBase extends ViewTestBase {
    *
    * @var array
    */
-  public static $modules = array('node', 'views_ui', 'block');
+  public static $modules = array('node', 'views_ui', 'block', 'rest');
 
-  function setUp() {
+  protected function setUp() {
     parent::setUp();
 
     // Create and log in a user with administer views permission.

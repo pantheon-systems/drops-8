@@ -8,6 +8,7 @@
 namespace Drupal\forum\Tests;
 
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Link;
 use Drupal\simpletest\WebTestBase;
 
 /**
@@ -65,7 +66,7 @@ class ForumTest extends WebTestBase {
    */
   protected $nids;
 
-  function setUp() {
+  protected function setUp() {
     parent::setUp();
 
     // Create users.
@@ -175,7 +176,7 @@ class ForumTest extends WebTestBase {
 
     // Test loading multiple forum nodes on the front page.
     $this->drupalLogin($this->drupalCreateUser(array('administer content types', 'create forum content', 'post comments')));
-    $this->drupalPostForm('admin/structure/types/manage/forum', array('settings[node][options][promote]' => 'promote'), t('Save content type'));
+    $this->drupalPostForm('admin/structure/types/manage/forum', array('options[promote]' => 'promote'), t('Save content type'));
     $this->createForumTopic($this->forum, FALSE);
     $this->createForumTopic($this->forum, FALSE);
     $this->drupalGet('node');
@@ -550,14 +551,14 @@ class ForumTest extends WebTestBase {
     $this->assertResponse(200);
     $this->assertTitle($node->label() . ' | Drupal', 'Forum node was displayed');
     $breadcrumb_build = array(
-      l(t('Home'), NULL),
-      l(t('Forums'), 'forum'),
-      l($this->forumContainer['name'], 'forum/' . $this->forumContainer['tid']),
-      l($this->forum['name'], 'forum/' . $this->forum['tid']),
+      Link::createFromRoute(t('Home'), '<front>'),
+      Link::createFromRoute(t('Forums'), 'forum.index'),
+      Link::createFromRoute($this->forumContainer['name'], 'forum.page', array('taxonomy_term' => $this->forumContainer['tid'])),
+      Link::createFromRoute($this->forum['name'], 'forum.page', array('taxonomy_term' => $this->forum['tid'])),
     );
     $breadcrumb = array(
       '#theme' => 'breadcrumb',
-      '#breadcrumb' => $breadcrumb_build,
+      '#links' => $breadcrumb_build,
     );
     $this->assertRaw(drupal_render($breadcrumb), 'Breadcrumbs were displayed');
 
@@ -608,16 +609,16 @@ class ForumTest extends WebTestBase {
     $this->assertTitle($forum['name'] . ' | Drupal');
 
     $breadcrumb_build = array(
-      l(t('Home'), NULL),
-      l(t('Forums'), 'forum'),
+      Link::createFromRoute(t('Home'), '<front>'),
+      Link::createFromRoute(t('Forums'), 'forum.index'),
     );
     if (isset($parent)) {
-      $breadcrumb_build[] = l($parent['name'], 'forum/' . $parent['tid']);
+      $breadcrumb_build[] = Link::createFromRoute($parent['name'], 'forum.page', array('taxonomy_term' => $parent['tid']));
     }
 
     $breadcrumb = array(
       '#theme' => 'breadcrumb',
-      '#breadcrumb' => $breadcrumb_build,
+      '#links' => $breadcrumb_build,
     );
     $this->assertRaw(drupal_render($breadcrumb), 'Breadcrumbs were displayed');
   }

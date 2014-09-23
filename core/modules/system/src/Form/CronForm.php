@@ -92,7 +92,7 @@ class CronForm extends ConfigFormBase {
     $form['run'] = array(
       '#type' => 'submit',
       '#value' => t('Run cron'),
-      '#submit' => array(array($this, 'submitCron')),
+      '#submit' => array('::submitCron'),
     );
 
     $status = '<p>' . t('Last run: %cron-last ago.', array('%cron-last' => $this->dateFormatter->formatInterval(REQUEST_TIME - $this->state->get('system.cron_last')))) . '</p>';
@@ -126,7 +126,7 @@ class CronForm extends ConfigFormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $this->config('system.cron')
-      ->set('threshold.autorun', $form_state['values']['cron_safe_threshold'])
+      ->set('threshold.autorun', $form_state->getValue('cron_safe_threshold'))
       ->save();
 
     parent::submitForm($form, $form_state);

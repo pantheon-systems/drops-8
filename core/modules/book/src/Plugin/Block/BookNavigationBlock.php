@@ -7,7 +7,7 @@
 
 namespace Drupal\book\Plugin\Block;
 
-use Drupal\block\BlockBase;
+use Drupal\Core\Block\BlockBase;
 use Drupal\book\BookManagerInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
@@ -105,7 +105,7 @@ class BookNavigationBlock extends BlockBase implements ContainerFactoryPluginInt
    * {@inheritdoc}
    */
   public function blockSubmit($form, FormStateInterface $form_state) {
-    $this->configuration['block_mode'] = $form_state['values']['book_block_mode'];
+    $this->configuration['block_mode'] = $form_state->getValue('book_block_mode');
   }
 
   /**

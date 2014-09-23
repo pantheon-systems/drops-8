@@ -19,7 +19,7 @@ use Drupal\Core\Language\Language;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\StringTranslation\TranslationWrapper;
 use Drupal\Core\Language\LanguageInterface;
-use Drupal\language\Entity\Language as LanguageEntity;
+use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\Component\Utility\Crypt;
 
 /**
@@ -174,18 +174,6 @@ function locale_help($route_name, RouteMatchInterface $route_match) {
 }
 
 /**
- * Implements hook_permission().
- */
-function locale_permission() {
-  return array(
-    'translate interface' => array(
-      'title' => t('Translate interface texts'),
-      'restrict access' => TRUE,
-    ),
-  );
-}
-
-/**
  * Implements hook_theme().
  */
 function locale_theme() {
@@ -223,9 +211,9 @@ function locale_stream_wrappers() {
 }
 
 /**
- * Implements hook_ENTITY_TYPE_insert() for 'language_entity'.
+ * Implements hook_ENTITY_TYPE_insert() for 'configurable_language'.
  */
-function locale_language_entity_insert(LanguageEntity $language) {
+function locale_configurable_language_insert(ConfigurableLanguage $language) {
   // @todo move these two cache clears out. See http://drupal.org/node/1293252
   // Changing the language settings impacts the interface: clear render cache.
   \Drupal::cache('render')->deleteAll();
@@ -234,9 +222,9 @@ function locale_language_entity_insert(LanguageEntity $language) {
 }
 
 /**
- * Implements hook_ENTITY_TYPE_update() for 'language_entity'.
+ * Implements hook_ENTITY_TYPE_update() for 'configurable_language'.
  */
-function locale_language_entity_update(LanguageEntity $language) {
+function locale_configurable_language_update(ConfigurableLanguage $language) {
   // @todo move these two cache clears out. See http://drupal.org/node/1293252
   // Changing the language settings impacts the interface: clear render cache.
   \Drupal::cache('render')->deleteAll();
@@ -245,9 +233,9 @@ function locale_language_entity_update(LanguageEntity $language) {
 }
 
 /**
- * Implements hook_ENTITY_TYPE_delete() for 'language_entity'.
+ * Implements hook_ENTITY_TYPE_delete() for 'configurable_language'.
  */
-function locale_language_entity_delete(LanguageEntity $language) {
+function locale_configurable_language_delete(ConfigurableLanguage $language) {
   // Remove translations.
   \Drupal::service('locale.storage')->deleteTranslations(array('language' => $language->id()));
 
@@ -355,20 +343,17 @@ function locale_modules_uninstalled($modules) {
 }
 
 /**
- * Implements hook_themes_enabled().
- *
- * @todo This is technically wrong. We must not import upon enabling, but upon
- *   initial installation. The theme system is missing an installation hook.
+ * Implements hook_themes_installed().
  */
-function locale_themes_enabled($themes) {
+function locale_themes_installed($themes) {
   $components['theme'] = $themes;
   locale_system_update($components);
 }
 
 /**
- * Implements hook_themes_disabled().
+ * Implements hook_themes_uninstalled().
  */
-function locale_themes_disabled($themes) {
+function locale_themes_uninstalled($themes) {
   $components['theme'] = $themes;
   locale_system_remove($components);
 }
@@ -530,15 +515,20 @@ function locale_system_remove($components) {
       // Remove translatable projects.
       // Followup issue http://drupal.org/node/1842362 to replace the
       // {locale_project} table. Then change this to a function call.
-      db_delete('locale_project')
-        ->condition('name', $list)
-        ->execute();
+      \Drupal::service('locale.project')->deleteMultiple($list);
 
       // Clear the translation status.
       locale_translation_status_delete_projects($list);
     }
 
   }
+}
+
+/**
+ * Implements hook_cache_flush().
+ */
+function locale_cache_flush() {
+  \Drupal::state()->delete('system.javascript_parsed');
 }
 
 /**
@@ -713,11 +703,11 @@ function locale_form_language_admin_add_form_alter(&$form, FormStateInterface $f
  */
 function locale_form_language_admin_add_form_alter_submit($form, FormStateInterface $form_state) {
   if (\Drupal::config('locale.settings')->get('translation.import_enabled')) {
-    if (empty($form_state['values']['predefined_langcode']) || $form_state['values']['predefined_langcode'] == 'custom') {
-      $langcode = $form_state['values']['langcode'];
+    if ($form_state->isValueEmpty('predefined_langcode') || $form_state->getValue('predefined_langcode') == 'custom') {
+      $langcode = $form_state->getValue('langcode');
     }
     else {
-      $langcode = $form_state['values']['predefined_langcode'];
+      $langcode = $form_state->getValue('predefined_langcode');
     }
 
     // Download and import translations for the newly added language.
@@ -752,7 +742,7 @@ function locale_form_language_admin_edit_form_alter(&$form, FormStateInterface $
  * Form submission handler for language_admin_edit_form().
  */
 function locale_form_language_admin_edit_form_alter_submit($form, FormStateInterface $form_state) {
-  \Drupal::config('locale.settings')->set('translate_english', intval($form_state['values']['locale_translate_english']))->save();
+  \Drupal::config('locale.settings')->set('translate_english', intval($form_state->getValue('locale_translate_english')))->save();
 }
 
 /**
@@ -795,12 +785,12 @@ function locale_form_system_file_system_settings_alter(&$form, FormStateInterfac
  * should be ignored. The old translation status is no longer valid.
  */
 function locale_system_file_system_settings_submit(&$form, FormStateInterface $form_state) {
-  if ($form['translation_path']['#default_value'] != $form_state['values']['translation_path']) {
+  if ($form['translation_path']['#default_value'] != $form_state->getValue('translation_path')) {
     locale_translation_clear_status();
   }
 
   \Drupal::config('locale.settings')
-    ->set('translation.path', $form_state['values']['translation_path'])
+    ->set('translation.path', $form_state->getValue('translation_path'))
     ->save();
 }
 
@@ -1397,4 +1387,3 @@ function locale_translation_language_table($form_element) {
   }
   return $form_element;
 }
-

@@ -7,40 +7,16 @@
 
 namespace Drupal\aggregator;
 
-use Drupal\aggregator\Entity\Item;
 use Drupal\Core\Entity\Query\QueryInterface;
-use Drupal\Core\Entity\ContentEntityDatabaseStorage;
+use Drupal\Core\Entity\Sql\SqlContentEntityStorage;
 
 /**
  * Controller class for aggregators items.
  *
- * This extends the Drupal\Core\Entity\ContentEntityDatabaseStorage class,
- * adding required special handling for feed item entities.
+ * This extends the Drupal\Core\Entity\Sql\SqlContentEntityStorage class, adding
+ * required special handling for feed item entities.
  */
-class ItemStorage extends ContentEntityDatabaseStorage implements ItemStorageInterface {
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getSchema() {
-    $schema = parent::getSchema();
-
-    // Marking the respective fields as NOT NULL makes the indexes more
-    // performant.
-    $schema['aggregator_item']['fields']['timestamp']['not null'] = TRUE;
-
-    $schema['aggregator_item']['indexes'] += array(
-      'aggregator_item__timestamp' => array('timestamp'),
-    );
-    $schema['aggregator_item']['foreign keys'] += array(
-      'aggregator_item__aggregator_feed' => array(
-        'table' => 'aggregator_feed',
-        'columns' => array('fid' => 'fid'),
-      ),
-    );
-
-    return $schema;
-  }
+class ItemStorage extends SqlContentEntityStorage implements ItemStorageInterface {
 
   /**
    * {@inheritdoc}

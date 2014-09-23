@@ -173,7 +173,13 @@ class DbLogController extends ControllerBase {
       if ($message && isset($dblog->wid)) {
         // Truncate link_text to 56 chars of message.
         $log_text = Unicode::truncate(Xss::filter($message, array()), 56, TRUE, TRUE);
-        $message = $this->l($log_text, 'dblog.event',  array('event_id' => $dblog->wid), array('html' => TRUE));
+        $message = $this->l($log_text, 'dblog.event',  array('event_id' => $dblog->wid), array(
+          'attributes' => array(
+            // Provide a title for the link for useful hover hints.
+            'title' => Unicode::truncate(strip_tags($message), 256, TRUE, TRUE),
+          ),
+          'html' => TRUE,
+        ));
       }
       $username = array(
         '#theme' => 'username',
@@ -223,7 +229,7 @@ class DbLogController extends ControllerBase {
    */
   public function eventDetails($event_id) {
     $build = array();
-    if ($dblog = $this->database->query('SELECT w.*, u.name, u.uid FROM {watchdog} w INNER JOIN {users} u ON w.uid = u.uid WHERE w.wid = :id', array(':id' => $event_id))->fetchObject()) {
+    if ($dblog = $this->database->query('SELECT w.*, u.name, u.uid FROM {watchdog} w INNER JOIN {users_field_data} u ON w.uid = u.uid WHERE w.wid = :id AND u.default_langcode = 1', array(':id' => $event_id))->fetchObject()) {
       $severity = watchdog_severity_levels();
       $message = $this->formatMessage($dblog);
       $username = array(

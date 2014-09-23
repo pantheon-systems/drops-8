@@ -37,18 +37,25 @@ class ConfigSync extends FormBase {
   protected $lock;
 
   /**
-   * The source configuration object.
+   * The staging configuration object.
    *
    * @var \Drupal\Core\Config\StorageInterface
    */
-  protected $sourceStorage;
+  protected $stagingStorage;
 
   /**
-   * The target configuration object.
+   * The active configuration object.
    *
    * @var \Drupal\Core\Config\StorageInterface
    */
-  protected $targetStorage;
+  protected $activeStorage;
+
+  /**
+   * The snapshot configuration object.
+   *
+   * @var \Drupal\Core\Config\StorageInterface
+   */
+  protected $snapshotStorage;
 
   /**
    * Event dispatcher.
@@ -95,10 +102,12 @@ class ConfigSync extends FormBase {
   /**
    * Constructs the object.
    *
-   * @param \Drupal\Core\Config\StorageInterface $sourceStorage
-   *   The source storage object.
-   * @param \Drupal\Core\Config\StorageInterface $targetStorage
-   *   The target storage manager.
+   * @param \Drupal\Core\Config\StorageInterface $staging_storage
+   *   The source storage.
+   * @param \Drupal\Core\Config\StorageInterface $active_storage
+   *   The target storage.
+   * @param \Drupal\Core\Config\StorageInterface $snapshot_storage
+   *   The snapshot storage.
    * @param \Drupal\Core\Lock\LockBackendInterface $lock
    *   The lock object.
    * @param \Symfony\Component\EventDispatcher\EventDispatcherInterface $event_dispatcher
@@ -114,9 +123,10 @@ class ConfigSync extends FormBase {
    * @param \Drupal\Core\Extension\ThemeHandlerInterface $theme_handler
    *   The theme handler
    */
-  public function __construct(StorageInterface $sourceStorage, StorageInterface $targetStorage, LockBackendInterface $lock, EventDispatcherInterface $event_dispatcher, ConfigManagerInterface $config_manager, UrlGeneratorInterface $url_generator, TypedConfigManagerInterface $typed_config, ModuleHandlerInterface $module_handler, ThemeHandlerInterface $theme_handler) {
-    $this->sourceStorage = $sourceStorage;
-    $this->targetStorage = $targetStorage;
+  public function __construct(StorageInterface $staging_storage, StorageInterface $active_storage, StorageInterface $snapshot_storage, LockBackendInterface $lock, EventDispatcherInterface $event_dispatcher, ConfigManagerInterface $config_manager, UrlGeneratorInterface $url_generator, TypedConfigManagerInterface $typed_config, ModuleHandlerInterface $module_handler, ThemeHandlerInterface $theme_handler) {
+    $this->stagingStorage = $staging_storage;
+    $this->activeStorage = $active_storage;
+    $this->snapshotStorage = $snapshot_storage;
     $this->lock = $lock;
     $this->eventDispatcher = $event_dispatcher;
     $this->configManager = $config_manager;
@@ -133,6 +143,7 @@ class ConfigSync extends FormBase {
     return new static(
       $container->get('config.storage.staging'),
       $container->get('config.storage'),
+      $container->get('config.storage.snapshot'),
       $container->get('lock'),
       $container->get('event_dispatcher'),
       $container->get('config.manager'),
@@ -154,20 +165,41 @@ class ConfigSync extends FormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
+    $snapshot_comparer = new StorageComparer($this->activeStorage, $this->snapshotStorage, $this->configManager);
+    if (!$form_state->getUserInput() && $snapshot_comparer->createChangelist()->hasChanges()) {
+      $change_list = array();
+      foreach ($snapshot_comparer->getAllCollectionNames() as $collection) {
+        foreach ($snapshot_comparer->getChangelist(NULL, $collection) as $config_names) {
+          if (empty($config_names)) {
+            continue;
+          }
+          foreach ($config_names as $config_name) {
+            $change_list[] = $config_name;
+          }
+        }
+      }
+      sort($change_list);
+      $change_list_render = array(
+        '#theme' => 'item_list',
+        '#items' => $change_list,
+      );
+      $change_list_html = drupal_render($change_list_render);
+      drupal_set_message($this->t('Your current configuration has changed. Changes to these configuration items will be lost on the next synchronization: !changes', array('!changes' => $change_list_html)), 'warning');
+    }
     $form['actions'] = array('#type' => 'actions');
     $form['actions']['submit'] = array(
       '#type' => 'submit',
       '#value' => $this->t('Import all'),
     );
 
-    $source_list = $this->sourceStorage->listAll();
-    $storage_comparer = new StorageComparer($this->sourceStorage, $this->targetStorage, $this->configManager);
+    $source_list = $this->stagingStorage->listAll();
+    $storage_comparer = new StorageComparer($this->stagingStorage, $this->activeStorage, $this->configManager);
     if (empty($source_list) || !$storage_comparer->createChangelist()->hasChanges()) {
       $form['no_changes'] = array(
         '#type' => 'table',
         '#header' => array('Name', 'Operations'),
         '#rows' => array(),
-        '#empty' => $this->t('There are no configuration changes.'),
+        '#empty' => $this->t('There are no configuration changes to import.'),
       );
       $form['actions']['#access'] = FALSE;
       return $form;
@@ -179,7 +211,7 @@ class ConfigSync extends FormBase {
     }
     else {
       // Store the comparer for use in the submit.
-      $form_state['storage_comparer'] = $storage_comparer;
+      $form_state->set('storage_comparer', $storage_comparer);
     }
 
     // Add the AJAX library to the form for dialog support.
@@ -273,7 +305,7 @@ class ConfigSync extends FormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $config_importer = new ConfigImporter(
-      $form_state['storage_comparer'],
+      $form_state->get('storage_comparer'),
       $this->eventDispatcher,
       $this->configManager,
       $this->lock,
@@ -349,7 +381,7 @@ class ConfigSync extends FormBase {
       if (!empty($results['errors'])) {
         foreach ($results['errors'] as $error) {
           drupal_set_message($error, 'error');
-          watchdog('config_sync', $error, array(), WATCHDOG_ERROR);
+          \Drupal::logger('config_sync')->error($error);
         }
         drupal_set_message(\Drupal::translation()->translate('The configuration was imported with errors.'), 'warning');
       }

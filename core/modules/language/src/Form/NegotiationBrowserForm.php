@@ -135,8 +135,8 @@ class NegotiationBrowserForm extends ConfigFormBase {
 
     // Check all mappings.
     $mappings = array();
-    if (isset($form_state['values']['mappings'])) {
-      $mappings = $form_state['values']['mappings'];
+    if ($form_state->hasValue('mappings')) {
+      $mappings = $form_state->getValue('mappings');
       foreach ($mappings as $key => $data) {
         // Make sure browser_langcode is unique.
         if (array_key_exists($data['browser_langcode'], $unique_values)) {
@@ -150,7 +150,7 @@ class NegotiationBrowserForm extends ConfigFormBase {
     }
 
     // Check new mapping.
-    $data = $form_state['values']['new_mapping'];
+    $data = $form_state->getValue('new_mapping');
     if (!empty($data['browser_langcode'])) {
       // Make sure browser_langcode is unique.
       if (array_key_exists($data['browser_langcode'], $unique_values)) {
@@ -162,14 +162,14 @@ class NegotiationBrowserForm extends ConfigFormBase {
       $unique_values[$data['browser_langcode']] = $data['drupal_langcode'];
     }
 
-    $form_state['mappings'] = $unique_values;
+    $form_state->set('mappings', $unique_values);
   }
 
   /**
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    $mappings = $form_state['mappings'];
+    $mappings = $form_state->get('mappings');
     if (!empty($mappings)) {
       $config = $this->config('language.mappings');
       $config->setData($mappings);

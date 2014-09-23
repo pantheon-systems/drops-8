@@ -7,7 +7,9 @@
 
 namespace Drupal\Tests\Core\Form;
 
+use Drupal\Core\Form\FormInterface;
 use Drupal\Core\Form\FormState;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
 use Drupal\Tests\UnitTestCase;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -27,7 +29,7 @@ class FormStateTest extends UnitTestCase {
    * @dataProvider providerTestGetRedirect
    */
   public function testGetRedirect($form_state_additions, $expected) {
-    $form_state = new FormState($form_state_additions);
+    $form_state = (new FormState())->setFormState($form_state_additions);
     $redirect = $form_state->getRedirect();
     $this->assertEquals($expected, $redirect);
   }
@@ -42,20 +44,14 @@ class FormStateTest extends UnitTestCase {
     $data = array();
     $data[] = array(array(), NULL);
 
-    $data[] = array(array('redirect' => 'foo'), 'foo');
-    $data[] = array(array('redirect' => array('foo')), array('foo'));
-    $data[] = array(array('redirect' => array('bar', array('query' => array('foo' => 'baz')))), array('bar', array('query' => array('foo' => 'baz'))));
-    $data[] = array(array('redirect' => array('baz', array(), 301)), array('baz', array(), 301));
-
     $redirect = new RedirectResponse('/example');
     $data[] = array(array('redirect' => $redirect), $redirect);
 
-    $data[] = array(array('redirect_route' => new Url('test_route_b', array('key' => 'value'))), new Url('test_route_b', array('key' => 'value'), array('absolute' => TRUE)));
+    $data[] = array(array('redirect' => new Url('test_route_b', array('key' => 'value'))), new Url('test_route_b', array('key' => 'value')));
 
     $data[] = array(array('programmed' => TRUE), NULL);
     $data[] = array(array('rebuild' => TRUE), NULL);
     $data[] = array(array('no_redirect' => TRUE), NULL);
-    $data[] = array(array('redirect' => FALSE), NULL);
 
     return $data;
   }
@@ -86,9 +82,9 @@ class FormStateTest extends UnitTestCase {
    */
   public function testGetError($errors, $parents, $error = NULL) {
     $element['#parents'] = $parents;
-    $form_state = new FormState(array(
+    $form_state = (new FormState())->setFormState([
       'errors' => $errors,
-    ));
+    ]);
     $this->assertSame($error, $form_state->getError($element));
   }
 
@@ -114,9 +110,9 @@ class FormStateTest extends UnitTestCase {
    */
   public function testSetErrorByName($limit_validation_errors, $expected_errors, $set_message = FALSE) {
     $form_state = $this->getMockBuilder('Drupal\Core\Form\FormState')
-      ->setConstructorArgs(array(array('limit_validation_errors' => $limit_validation_errors)))
       ->setMethods(array('drupalSetMessage'))
       ->getMock();
+    $form_state->setLimitValidationErrors($limit_validation_errors);
     $form_state->clearErrors();
     $form_state->expects($set_message ? $this->once() : $this->never())
       ->method('drupalSetMessage');
@@ -126,7 +122,7 @@ class FormStateTest extends UnitTestCase {
     $form_state->setErrorByName('options');
 
     $this->assertSame(!empty($expected_errors), $form_state::hasAnyErrors());
-    $this->assertSame($expected_errors, $form_state['errors']);
+    $this->assertSame($expected_errors, $form_state->getErrors());
   }
 
   public function providerTestSetErrorByName() {
@@ -151,9 +147,9 @@ class FormStateTest extends UnitTestCase {
    */
   public function testFormErrorsDuringSubmission() {
     $form_state = $this->getMockBuilder('Drupal\Core\Form\FormState')
-      ->setConstructorArgs(array(array('validation_complete' => TRUE)))
       ->setMethods(array('drupalSetMessage'))
       ->getMock();
+    $form_state->setValidationComplete();
     $form_state->setErrorByName('test', 'message');
   }
 
@@ -181,4 +177,354 @@ class FormStateTest extends UnitTestCase {
     $this->assertSame($expected, $form_state->getValues());
   }
 
+  /**
+   * @covers ::getValue
+   *
+   * @dataProvider providerTestGetValue
+   */
+  public function testGetValue($key, $expected, $default = NULL) {
+    $form_state = (new FormState())->setValues([
+      'foo' => 'one',
+      'bar' => array(
+        'baz' => 'two',
+      ),
+    ]);
+    $this->assertSame($expected, $form_state->getValue($key, $default));
+  }
+
+  public function providerTestGetValue() {
+    $data = array();
+    $data[] = array(
+      'foo', 'one',
+    );
+    $data[] = array(
+      array('bar', 'baz'), 'two',
+    );
+    $data[] = array(
+      array('foo', 'bar', 'baz'), NULL,
+    );
+    $data[] = array(
+      'baz', 'baz', 'baz',
+    );
+    return $data;
+  }
+
+  /**
+   * @covers ::setValue
+   *
+   * @dataProvider providerTestSetValue
+   */
+  public function testSetValue($key, $value, $expected) {
+    $form_state = (new FormState())->setValues([
+      'bar' => 'wrong',
+    ]);
+    $form_state->setValue($key, $value);
+    $this->assertSame($expected, $form_state->getValues());
+  }
+
+  /**
+   * @covers ::prepareCallback()
+   */
+  public function testPrepareCallbackValidMethod() {
+    $form_state = new FormState();
+    $form_state->setFormObject(new PrepareCallbackTestForm());
+    $processed_callback = $form_state->prepareCallback('::buildForm');
+    $this->assertEquals([$form_state->getFormObject(), 'buildForm'], $processed_callback);
+  }
+
+  /**
+   * @covers ::prepareCallback()
+   */
+  public function testPrepareCallbackInValidMethod() {
+    $form_state = new FormState();
+    $form_state->setFormObject(new PrepareCallbackTestForm());
+    $processed_callback = $form_state->prepareCallback('not_a_method');
+    // The callback was not changed as no such method exists.
+    $this->assertEquals('not_a_method', $processed_callback);
+  }
+
+  /**
+   * @covers ::prepareCallback()
+   */
+  public function testPrepareCallbackArray() {
+    $form_state = new FormState();
+    $form_state->setFormObject(new PrepareCallbackTestForm());
+    $callback = [$form_state->getFormObject(), 'buildForm'];
+    $processed_callback = $form_state->prepareCallback($callback);
+    $this->assertEquals($callback, $processed_callback);
+  }
+
+  public function providerTestSetValue() {
+    $data = array();
+    $data[] = array(
+      'foo', 'one', array('bar' => 'wrong', 'foo' => 'one'),
+    );
+    $data[] = array(
+      array('bar', 'baz'), 'two', array('bar' => array('baz' => 'two')),
+    );
+    $data[] = array(
+      array('foo', 'bar', 'baz'), NULL, array('bar' => 'wrong', 'foo' => array('bar' => array('baz' => NULL))),
+    );
+    return $data;
+  }
+
+  /**
+   * @covers ::hasValue
+   *
+   * @dataProvider providerTestHasValue
+   */
+  public function testHasValue($key, $expected) {
+    $form_state = (new FormState())->setValues([
+      'foo' => 'one',
+      'bar' => array(
+        'baz' => 'two',
+      ),
+      'true' => TRUE,
+      'false' => FALSE,
+      'null' => NULL,
+    ]);
+    $this->assertSame($expected, $form_state->hasValue($key));
+  }
+
+  public function providerTestHasValue() {
+    $data = array();
+    $data[] = array(
+      'foo', TRUE,
+    );
+    $data[] = array(
+      array('bar', 'baz'), TRUE,
+    );
+    $data[] = array(
+      array('foo', 'bar', 'baz'), FALSE,
+    );
+    $data[] = array(
+      'true', TRUE,
+    );
+    $data[] = array(
+      'false', TRUE,
+    );
+    $data[] = array(
+      'null', FALSE,
+    );
+    return $data;
+  }
+
+  /**
+   * @covers ::isValueEmpty
+   *
+   * @dataProvider providerTestIsValueEmpty
+   */
+  public function testIsValueEmpty($key, $expected) {
+    $form_state = (new FormState())->setValues([
+      'foo' => 'one',
+      'bar' => array(
+        'baz' => 'two',
+      ),
+      'true' => TRUE,
+      'false' => FALSE,
+      'null' => NULL,
+    ]);
+    $this->assertSame($expected, $form_state->isValueEmpty($key));
+  }
+
+  public function providerTestIsValueEmpty() {
+    $data = array();
+    $data[] = array(
+      'foo', FALSE,
+    );
+    $data[] = array(
+      array('bar', 'baz'), FALSE,
+    );
+    $data[] = array(
+      array('foo', 'bar', 'baz'), TRUE,
+    );
+    $data[] = array(
+      'true', FALSE,
+    );
+    $data[] = array(
+      'false', TRUE,
+    );
+    $data[] = array(
+      'null', TRUE,
+    );
+    return $data;
+  }
+
+  /**
+   * @covers ::loadInclude
+   */
+  public function testLoadInclude() {
+    $type = 'some_type';
+    $module = 'some_module';
+    $name = 'some_name';
+    $form_state = $this->getMockBuilder('Drupal\Core\Form\FormState')
+      ->setMethods(array('moduleLoadInclude'))
+      ->getMock();
+    $form_state->expects($this->once())
+      ->method('moduleLoadInclude')
+      ->with($module, $type, $name)
+      ->willReturn(TRUE);
+    $this->assertTrue($form_state->loadInclude($module, $type, $name));
+  }
+
+  /**
+   * @covers ::loadInclude
+   */
+  public function testLoadIncludeNoName() {
+    $type = 'some_type';
+    $module = 'some_module';
+    $form_state = $this->getMockBuilder('Drupal\Core\Form\FormState')
+      ->setMethods(array('moduleLoadInclude'))
+      ->getMock();
+    $form_state->expects($this->once())
+      ->method('moduleLoadInclude')
+      ->with($module, $type, $module)
+      ->willReturn(TRUE);
+    $this->assertTrue($form_state->loadInclude($module, $type));
+  }
+
+  /**
+   * @covers ::loadInclude
+   */
+  public function testLoadIncludeNotFound() {
+    $type = 'some_type';
+    $module = 'some_module';
+    $form_state = $this->getMockBuilder('Drupal\Core\Form\FormState')
+      ->setMethods(array('moduleLoadInclude'))
+      ->getMock();
+    $form_state->expects($this->once())
+      ->method('moduleLoadInclude')
+      ->with($module, $type, $module)
+      ->willReturn(FALSE);
+    $this->assertFalse($form_state->loadInclude($module, $type));
+  }
+
+  /**
+   * @covers ::loadInclude
+   */
+  public function testLoadIncludeAlreadyLoaded() {
+    $type = 'some_type';
+    $module = 'some_module';
+    $name = 'some_name';
+    $form_state = $this->getMockBuilder('Drupal\Core\Form\FormState')
+      ->setMethods(array('moduleLoadInclude'))
+      ->getMock();
+
+    $form_state->addBuildInfo('files', [
+      'some_module:some_name.some_type' => [
+        'type' => $type,
+        'module' => $module,
+        'name' => $name,
+      ],
+    ]);
+    $form_state->expects($this->never())
+      ->method('moduleLoadInclude');
+
+    $this->assertFalse($form_state->loadInclude($module, $type, $name));
+  }
+
+  /**
+   * @covers ::isCached
+   *
+   * @dataProvider providerTestIsCached
+   */
+  public function testIsCached($cache_key, $no_cache_key, $expected) {
+    $form_state = (new FormState())->setFormState([
+      'cache' => $cache_key,
+      'no_cache' => $no_cache_key,
+    ]);
+    $this->assertSame($expected, $form_state->isCached());
+  }
+
+  /**
+   * Provides test data for testIsCached().
+   */
+  public function providerTestIsCached() {
+    $data = [];
+    $data[] = [
+      TRUE,
+      TRUE,
+      FALSE,
+    ];
+    $data[] = [
+      FALSE,
+      TRUE,
+      FALSE,
+    ];
+    $data[] = [
+      FALSE,
+      FALSE,
+      FALSE,
+    ];
+    $data[] = [
+      TRUE,
+      FALSE,
+      TRUE,
+    ];
+    $data[] = [
+      TRUE,
+      NULL,
+      TRUE,
+    ];
+    $data[] = [
+      FALSE,
+      NULL,
+      FALSE,
+    ];
+    return $data;
+  }
+
+  /**
+   * @covers ::isMethodType
+   * @covers ::setMethod
+   *
+   * @dataProvider providerTestIsMethodType
+   */
+  public function testIsMethodType($set_method_type, $input, $expected) {
+    $form_state = (new FormState())
+      ->setMethod($set_method_type);
+    $this->assertSame($expected, $form_state->isMethodType($input));
+  }
+
+  /**
+   * Provides test data for testIsMethodType().
+   */
+  public function providerTestIsMethodType() {
+    $data = [];
+    $data[] = [
+      'get',
+      'get',
+      TRUE,
+    ];
+    $data[] = [
+      'get',
+      'GET',
+      TRUE,
+    ];
+    $data[] = [
+      'GET',
+      'GET',
+      TRUE,
+    ];
+    $data[] = [
+      'post',
+      'get',
+      FALSE,
+    ];
+    return $data;
+  }
+
+}
+
+/**
+ * A test form used for the prepareCallback() tests.
+ */
+class PrepareCallbackTestForm implements FormInterface {
+  public function getFormId() {
+    return 'test_form';
+  }
+
+  public function buildForm(array $form, FormStateInterface $form_state) {}
+  public function validateForm(array &$form, FormStateInterface $form_state) { }
+  public function submitForm(array &$form, FormStateInterface $form_state) { }
 }

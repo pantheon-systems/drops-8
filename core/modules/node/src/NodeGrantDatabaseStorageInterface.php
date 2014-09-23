@@ -10,7 +10,7 @@ namespace Drupal\node;
 use Drupal\Core\Session\AccountInterface;
 
 /**
- * Provides an interface for node access controllers.
+ * Provides an interface for node access grant storage.
  */
 interface NodeGrantDatabaseStorageInterface {
 
@@ -105,10 +105,8 @@ interface NodeGrantDatabaseStorageInterface {
    * @param \Drupal\Core\Session\AccountInterface $account
    *   The user for which to check access.
    *
-   * @return bool|null
-   *   TRUE if access was granted, FALSE if access was denied or NULL if no
-   *   module implements hook_node_grants(), the node does not (yet) have an id
-   *   or none of the implementing modules explicitly granted or denied access.
+   * @return \Drupal\Core\Access\AccessResultInterface
+   *   The access result.
    */
   public function access(NodeInterface $node, $operation, $langcode, AccountInterface $account);
 

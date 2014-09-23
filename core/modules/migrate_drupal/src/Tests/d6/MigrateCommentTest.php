@@ -24,7 +24,7 @@ class MigrateCommentTest extends MigrateDrupalTestBase {
   /**
    * {@inheritdoc}
    */
-  public function setUp() {
+  protected function setUp() {
     parent::setUp();
     entity_create('node_type', array('type' => 'page'))->save();
     entity_create('node_type', array('type' => 'story'))->save();
@@ -53,7 +53,7 @@ class MigrateCommentTest extends MigrateDrupalTestBase {
       'd6_comment_entity_display' => array(array(array('story'), array('node', 'story', 'default', 'comment'))),
       'd6_comment_entity_form_display' => array(array(array('story'), array('node', 'story', 'default', 'comment'))),
     );
-    $this->prepareIdMappings($id_mappings);
+    $this->prepareMigrations($id_mappings);
 
     \Drupal::service('comment.manager')->addDefaultField('node', 'story');
     /** @var \Drupal\migrate\entity\Migration $migration */
@@ -81,7 +81,7 @@ class MigrateCommentTest extends MigrateDrupalTestBase {
     $this->assertEqual(0, $comment->pid->target_id);
     $this->assertEqual(1, $comment->getCommentedEntityId());
     $this->assertEqual('node', $comment->getCommentedEntityTypeId());
-    $this->assertEqual(LanguageInterface::LANGCODE_NOT_SPECIFIED, $comment->language()->id);
+    $this->assertEqual('en', $comment->language()->id);
     $this->assertEqual('comment_no_subject', $comment->getTypeId());
 
     $comment = entity_load('comment', 2);

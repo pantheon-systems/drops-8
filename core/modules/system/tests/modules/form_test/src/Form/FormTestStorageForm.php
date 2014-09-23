@@ -32,21 +32,24 @@ class FormTestStorageForm extends FormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
-    if ($form_state['rebuild']) {
-      $form_state['input'] = array();
+    if ($form_state->isRebuilding()) {
+      $form_state->setUserInput(array());
     }
     // Initialize
-    if (empty($form_state['storage'])) {
-      if (empty($form_state['input'])) {
+    $storage = $form_state->getStorage();
+    if (empty($storage)) {
+      $user_input = $form_state->getUserInput();
+      if (empty($user_input)) {
         $_SESSION['constructions'] = 0;
       }
       // Put the initial thing into the storage
-      $form_state['storage'] = array(
-        'thing' => array(
+      $storage = [
+        'thing' => [
           'title' => 'none',
           'value' => '',
-        ),
-      );
+        ],
+      ];
+      $form_state->setStorage($storage);
     }
     // Count how often the form is constructed.
     $_SESSION['constructions']++;
@@ -55,14 +58,14 @@ class FormTestStorageForm extends FormBase {
     $form['title'] = array(
       '#type' => 'textfield',
       '#title' => 'Title',
-      '#default_value' => $form_state['storage']['thing']['title'],
+      '#default_value' => $storage['thing']['title'],
       '#required' => TRUE,
     );
     $form['value'] = array(
       '#type' => 'textfield',
       '#title' => 'Value',
-      '#default_value' => $form_state['storage']['thing']['value'],
-      '#element_validate' => array(array($this, 'elementValidateValueCached')),
+      '#default_value' => $storage['thing']['value'],
+      '#element_validate' => array('::elementValidateValueCached'),
     );
     $form['continue_button'] = array(
       '#type' => 'button',
@@ -72,7 +75,7 @@ class FormTestStorageForm extends FormBase {
     $form['continue_submit'] = array(
       '#type' => 'submit',
       '#value' => 'Continue submit',
-      '#submit' => array(array($this, 'continueSubmitForm')),
+      '#submit' => array('::continueSubmitForm'),
     );
     $form['submit'] = array(
       '#type' => 'submit',
@@ -82,7 +85,7 @@ class FormTestStorageForm extends FormBase {
     if (\Drupal::request()->get('cache')) {
       // Manually activate caching, so we can test that the storage keeps working
       // when it's enabled.
-      $form_state['cache'] = TRUE;
+      $form_state->setCached();
     }
 
     return $form;
@@ -98,8 +101,8 @@ class FormTestStorageForm extends FormBase {
     // This presumes that another submitted form value triggers a validation error
     // elsewhere in the form. Form API should still update the cached form storage
     // though.
-    if (\Drupal::request()->get('cache') && $form_state['values']['value'] == 'change_title') {
-      $form_state['storage']['thing']['changed'] = TRUE;
+    if (\Drupal::request()->get('cache') && $form_state->getValue('value') == 'change_title') {
+      $form_state->set(['thing', 'changed'], TRUE);
     }
   }
 
@@ -107,18 +110,18 @@ class FormTestStorageForm extends FormBase {
    * {@inheritdoc}
    */
   public function continueSubmitForm(array &$form, FormStateInterface $form_state) {
-    $form_state['storage']['thing']['title'] = $form_state['values']['title'];
-    $form_state['storage']['thing']['value'] = $form_state['values']['value'];
-    $form_state['rebuild'] = TRUE;
+    $form_state->set(['thing', 'title'], $form_state->getValue('title'));
+    $form_state->set(['thing', 'value'], $form_state->getValue('value'));
+    $form_state->setRebuild();
   }
 
   /**
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    drupal_set_message("Title: " . String::checkPlain($form_state['values']['title']));
+    drupal_set_message("Title: " . String::checkPlain($form_state->getValue('title')));
     drupal_set_message("Form constructions: " . $_SESSION['constructions']);
-    if (isset($form_state['storage']['thing']['changed'])) {
+    if ($form_state->has(['thing', 'changed'])) {
       drupal_set_message("The thing has been changed.");
     }
     $form_state->setRedirect('<front>');

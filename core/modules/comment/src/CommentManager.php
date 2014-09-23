@@ -114,25 +114,8 @@ class CommentManager implements CommentManagerInterface {
       return array();
     }
 
-    $map = $this->getAllFields();
+    $map = $this->entityManager->getFieldMapByFieldType('comment');
     return isset($map[$entity_type_id]) ? $map[$entity_type_id] : array();
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getAllFields() {
-    $map = $this->entityManager->getFieldMap();
-    // Build a list of comment fields only.
-    $comment_fields = array();
-    foreach ($map as $entity_type => $data) {
-      foreach ($data as $field_name => $field_info) {
-        if ($field_info['type'] == 'comment') {
-          $comment_fields[$entity_type][$field_name] = $field_info;
-        }
-      }
-    }
-    return $comment_fields;
   }
 
   /**
@@ -251,7 +234,6 @@ class CommentManager implements CommentManagerInterface {
         'label' => 'Comment',
         'entity_type' => 'comment',
         'bundle' => $comment_type_id,
-        'settings' => array('text_processing' => 1),
         'required' => TRUE,
       ));
       $field_instance->save();
@@ -290,7 +272,7 @@ class CommentManager implements CommentManagerInterface {
     if ($this->authenticatedCanPostComments) {
       // We cannot use drupal_get_destination() because these links
       // sometimes appear on /node and taxonomy listing pages.
-      if ($entity->get($field_name)->getFieldDefinition()->getSetting('form_location') == COMMENT_FORM_SEPARATE_PAGE) {
+      if ($entity->get($field_name)->getFieldDefinition()->getSetting('form_location') == CommentItemInterface::FORM_SEPARATE_PAGE) {
         $destination = array('destination' => 'comment/reply/' . $entity->getEntityTypeId() . '/' . $entity->id() . '/' . $field_name . '#comment-form');
       }
       else {

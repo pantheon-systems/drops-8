@@ -7,8 +7,6 @@
 
 namespace Drupal\Core\TypedData;
 
-use Drupal\Core\Language\LanguageManager;
-
 /**
  * Interface for translatable data.
  */
@@ -63,7 +61,7 @@ interface TranslatableInterface {
    * Returns TRUE there is a translation for the given language code.
    *
    * @param string $langcode
-   *   The language code identifiying the translation.
+   *   The language code identifying the translation.
    *
    * @return bool
    *   TRUE if the translation exists, FALSE otherwise.

@@ -7,7 +7,7 @@
 
 namespace Drupal\block;
 
-use Drupal\block\BlockManagerInterface;
+use Drupal\Core\Block\BlockManagerInterface;
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\String;
 use Drupal\Core\Config\Entity\ConfigEntityListBuilder;
@@ -50,7 +50,7 @@ class BlockListBuilder extends ConfigEntityListBuilder implements FormInterface 
   /**
    * The block manager.
    *
-   * @var \Drupal\block\BlockManagerInterface
+   * @var \Drupal\Core\Block\BlockManagerInterface
    */
   protected $blockManager;
 
@@ -61,7 +61,7 @@ class BlockListBuilder extends ConfigEntityListBuilder implements FormInterface 
    *   The entity type definition.
    * @param \Drupal\Core\Entity\EntityStorageInterface $storage
    *   The entity storage class.
-   * @param \Drupal\block\BlockManagerInterface $block_manager
+   * @param \Drupal\Core\Block\BlockManagerInterface $block_manager
    *   The block manager.
    */
   public function __construct(EntityTypeInterface $entity_type, EntityStorageInterface $storage, BlockManagerInterface $block_manager) {
@@ -87,7 +87,7 @@ class BlockListBuilder extends ConfigEntityListBuilder implements FormInterface 
   public function load() {
     // If no theme was specified, use the current theme.
     if (!$this->theme) {
-      $this->theme = $GLOBALS['theme'];
+      $this->theme = \Drupal::theme()->getActiveTheme()->getName();
     }
 
     // Store the region list.
@@ -117,7 +117,7 @@ class BlockListBuilder extends ConfigEntityListBuilder implements FormInterface 
   public function render($theme = NULL, Request $request = NULL) {
     $this->request = $request;
     // If no theme was specified, use the current theme.
-    $this->theme = $theme ?: $GLOBALS['theme_key'];
+    $this->theme = $theme ?: \Drupal::theme()->getActiveTheme()->getName();
 
     return \Drupal::formBuilder()->getForm($this);
   }
@@ -309,7 +309,7 @@ class BlockListBuilder extends ConfigEntityListBuilder implements FormInterface 
 
     $form['place_blocks']['title'] = array(
       '#type' => 'container',
-      '#children' => '<h3>' . t('Place blocks') . '</h3>',
+      '#markup' => '<h3>' . t('Place blocks') . '</h3>',
       '#attributes' => array(
         'class' => array(
           'entity-meta-header',
@@ -399,10 +399,11 @@ class BlockListBuilder extends ConfigEntityListBuilder implements FormInterface 
    * Form submission handler for the main block administration form.
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    $entities = entity_load_multiple('block', array_keys($form_state['values']['blocks']));
+    $entities = $this->storage->loadMultiple(array_keys($form_state->getValue('blocks')));
     foreach ($entities as $entity_id => $entity) {
-      $entity->set('weight', $form_state['values']['blocks'][$entity_id]['weight']);
-      $entity->set('region', $form_state['values']['blocks'][$entity_id]['region']);
+      $entity_values = $form_state->getValue(array('blocks', $entity_id));
+      $entity->set('weight', $entity_values['weight']);
+      $entity->set('region', $entity_values['region']);
       if ($entity->get('region') == BlockInterface::BLOCK_REGION_NONE) {
         $entity->disable();
       }

@@ -7,11 +7,13 @@
 
 namespace Drupal\block\Tests;
 
+use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Cache\UrlCacheContext;
 use Drupal\simpletest\DrupalUnitTestBase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Drupal\block\Entity\Block;
 
 /**
  * Tests the block view builder.
@@ -44,7 +46,7 @@ class BlockViewBuilderTest extends DrupalUnitTestBase {
   /**
    * {@inheritdoc}
    */
-  public function setUp() {
+  protected function setUp() {
     parent::setUp();
 
     $this->controller = $this->container
@@ -78,10 +80,10 @@ class BlockViewBuilderTest extends DrupalUnitTestBase {
     $entity->save();
 
     // Test the rendering of a block.
-    $entity = entity_load('block', 'test_block1');
+    $entity = Block::load('test_block1');
     $output = entity_view($entity, 'block');
     $expected = array();
-    $expected[] = '<div class="block block-block-test" id="block-test-block1">';
+    $expected[] = '<div id="block-test-block1" class="block block-block-test">';
     $expected[] = '  ';
     $expected[] = '    ';
     $expected[] = '';
@@ -94,7 +96,7 @@ class BlockViewBuilderTest extends DrupalUnitTestBase {
     $this->assertEqual(drupal_render($output), $expected_output);
 
     // Reset the HTML IDs so that the next render is not affected.
-    drupal_static_reset('drupal_html_id');
+    Html::resetSeenIds();
 
     // Test the rendering of a block with a given title.
     $entity = $this->controller->create(array(
@@ -108,7 +110,7 @@ class BlockViewBuilderTest extends DrupalUnitTestBase {
     $entity->save();
     $output = entity_view($entity, 'block');
     $expected = array();
-    $expected[] = '<div class="block block-block-test" id="block-test-block2">';
+    $expected[] = '<div id="block-test-block2" class="block block-block-test">';
     $expected[] = '  ';
     $expected[] = '      <h2>Powered by Bananas</h2>';
     $expected[] = '    ';

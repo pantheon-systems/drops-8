@@ -4,7 +4,7 @@
  * Contains Drupal\migrate_drupal\Plugin\migrate\d6\FieldInstanceSettings
  */
 
-namespace Drupal\migrate_drupal\Plugin\migrate\Process\d6;
+namespace Drupal\migrate_drupal\Plugin\migrate\process\d6;
 
 use Drupal\migrate\MigrateExecutable;
 use Drupal\migrate\ProcessPluginBase;
@@ -26,10 +26,6 @@ class FieldInstanceSettings extends ProcessPluginBase {
     list($widget_type, $widget_settings, $field_settings) = $value;
     $settings = array();
     switch ($widget_type) {
-      case 'text_textfield':
-        $settings['text_processing'] = $field_settings['text_processing'];
-        break;
-
       case 'number':
         $settings['min'] = $field_settings['min'];
         $settings['max'] = $field_settings['max'];

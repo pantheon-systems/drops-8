@@ -47,8 +47,7 @@ class FormatterPluginManager extends DefaultPluginManager {
    *   The 'field type' plugin manager.
    */
   public function __construct(\Traversable $namespaces, CacheBackendInterface $cache_backend, ModuleHandlerInterface $module_handler, FieldTypePluginManagerInterface $field_type_manager) {
-
-    parent::__construct('Plugin/Field/FieldFormatter', $namespaces, $module_handler, 'Drupal\Core\Field\Annotation\FieldFormatter');
+    parent::__construct('Plugin/Field/FieldFormatter', $namespaces, $module_handler, 'Drupal\Core\Field\FormatterInterface', 'Drupal\Core\Field\Annotation\FieldFormatter');
 
     $this->setCacheBackend($cache_backend, 'field_formatter_types_plugins');
     $this->alterInfo('field_formatter_info');
@@ -112,10 +111,11 @@ class FormatterPluginManager extends DefaultPluginManager {
     $plugin_id = $configuration['type'];
 
     // Switch back to default formatter if either:
-    // - $type_info doesn't exist (the widget type is unknown),
-    // - the field type is not allowed for the widget.
+    // - the configuration does not specify a formatter class
+    // - the field type is not allowed for the formatter
+    // - the formatter is not applicable to the field definition.
     $definition = $this->getDefinition($configuration['type'], FALSE);
-    if (!isset($definition['class']) || !in_array($field_type, $definition['field_types'])) {
+    if (!isset($definition['class']) || !in_array($field_type, $definition['field_types']) || !$definition['class']::isApplicable($field_definition)) {
       // Grab the default widget for the field type.
       $field_type_definition = $this->fieldTypeManager->getDefinition($field_type);
       if (empty($field_type_definition['default_formatter'])) {

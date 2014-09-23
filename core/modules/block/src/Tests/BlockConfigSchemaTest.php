@@ -32,7 +32,10 @@ class BlockConfigSchemaTest extends KernelTestBase {
     'forum',
     'node',
     'statistics',
+    // BlockManager->getModuleName() calls system_get_info().
+    'system',
     'taxonomy',
+    'user',
   );
 
   /**
@@ -45,7 +48,7 @@ class BlockConfigSchemaTest extends KernelTestBase {
   /**
    * The block manager.
    *
-   * @var \Drupal\block\BlockManagerInterface
+   * @var \Drupal\Core\Block\BlockManagerInterface
    */
   protected $blockManager;
 

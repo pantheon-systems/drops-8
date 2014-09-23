@@ -22,9 +22,9 @@ class FieldImportDeleteUninstallTest extends FieldUnitTestBase {
    *
    * @var array
    */
-  public static $modules = array('telephone', 'menu_link');
+  public static $modules = array('telephone');
 
-  public function setUp() {
+  protected function setUp() {
     parent::setUp();
     // Module uninstall requires the router and users_data tables.
     // @see drupal_flush_all_caches()

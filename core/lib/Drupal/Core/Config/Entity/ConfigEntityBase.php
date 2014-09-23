@@ -250,7 +250,7 @@ abstract class ConfigEntityBase extends Entity implements ConfigEntityInterface 
     $id_key = $this->getEntityType()->getKey('id');
     foreach (array_keys($definition['mapping']) as $name) {
       // Special handling for IDs so that computed compound IDs work.
-      // @see \Drupal\entity\EntityDisplayBase::id()
+      // @see \Drupal\Core\Entity\EntityDisplayBase::id()
       if ($name == $id_key) {
         $properties[$name] = $this->id();
       }
@@ -326,6 +326,13 @@ abstract class ConfigEntityBase extends Entity implements ConfigEntityInterface 
         }
       }
     }
+    if ($this instanceof ThirdPartySettingsInterface) {
+      // Configuration entities need to depend on the providers of any third
+      // parties that they store the configuration for.
+      foreach ($this->getThirdPartyProviders() as $provider) {
+        $this->addDependency('module', $provider);
+      }
+    }
     return $this->dependencies;
   }
 
@@ -368,8 +375,21 @@ abstract class ConfigEntityBase extends Entity implements ConfigEntityInterface 
   /**
    * {@inheritdoc}
    */
+  public function getDependencies() {
+    return $this->dependencies;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function getConfigDependencyName() {
     return $this->getEntityType()->getConfigPrefix() . '.' . $this->id();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function onDependencyRemoval(array $dependencies) {
   }
 
 }

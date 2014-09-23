@@ -35,8 +35,8 @@ class RearrangeFilter extends ViewsFormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
-    $view = $form_state['view'];
-    $display_id = $form_state['display_id'];
+    $view = $form_state->get('view');
+    $display_id = $form_state->get('display_id');
     $type = 'filter';
 
     $types = ViewExecutable::getHandlerTypes();
@@ -50,8 +50,9 @@ class RearrangeFilter extends ViewsFormBase {
     $form['#section'] = $display_id . 'rearrange-item';
 
     if ($display->defaultableSections($types[$type]['plural'])) {
-      $form_state['section'] = $types[$type]['plural'];
-      views_ui_standard_display_dropdown($form, $form_state, $form_state['section']);
+      $section = $types[$type]['plural'];
+      $form_state->set('section', $section);
+      views_ui_standard_display_dropdown($form, $form_state, $section);
     }
 
     if (!empty($view->form_cache)) {
@@ -216,22 +217,23 @@ class RearrangeFilter extends ViewsFormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $types = ViewExecutable::getHandlerTypes();
-    $display = &$form_state['view']->getExecutable()->displayHandlers->get($form_state['display_id']);
+    $view = $form_state->get('view');
+    $display = &$view->getExecutable()->displayHandlers->get($form_state->get('display_id'));
     $remember_groups = array();
 
-    if (!empty($form_state['view']->form_cache)) {
-      $old_fields = $form_state['view']->form_cache['handlers'];
+    if (!empty($view->form_cache)) {
+      $old_fields = $view->form_cache['handlers'];
     }
     else {
       $old_fields = $display->getOption($types['filter']['plural']);
     }
 
-    $groups = $form_state['values']['filter_groups'];
+    $groups = $form_state->getValue('filter_groups');
     // Whatever button was clicked, re-calculate field information.
     $new_fields = $order = array();
 
     // Make an array with the weights
-    foreach ($form_state['values']['filters'] as $field => $info) {
+    foreach ($form_state->getValue('filters') as $field => $info) {
       // add each value that is a field with a weight to our list, but only if
       // it has had its 'removed' checkbox checked.
       if (is_array($info) && empty($info['removed'])) {
@@ -256,15 +258,16 @@ class RearrangeFilter extends ViewsFormBase {
 
     // If the #group property is set on the clicked button, that means we are
     // either adding or removing a group, not actually updating the filters.
-    if (!empty($form_state['clicked_button']['#group'])) {
-      if ($form_state['clicked_button']['#group'] == 'add') {
+    $clicked_button = $form_state->get('clicked_button');
+    if (!empty($clicked_button['#group'])) {
+      if ($clicked_button['#group'] == 'add') {
         // Add a new group
         $groups['groups'][] = 'AND';
       }
       else {
         // Renumber groups above the removed one down.
         foreach (array_keys($groups['groups']) as $group_id) {
-          if ($group_id >= $form_state['clicked_button']['#group']) {
+          if ($group_id >= $clicked_button['#group']) {
             $old_group = $group_id + 1;
             if (isset($groups['groups'][$old_group])) {
               $groups['groups'][$group_id] = $groups['groups'][$old_group];
@@ -283,14 +286,14 @@ class RearrangeFilter extends ViewsFormBase {
       }
       // Update our cache with values so that cancel still works the way
       // people expect.
-      $form_state['view']->form_cache = array(
+      $view->form_cache = [
         'key' => 'rearrange-filter',
         'groups' => $groups,
         'handlers' => $new_fields,
-      );
+      ];
 
       // Return to this form except on actual Update.
-      $form_state['view']->addFormToStack('rearrange-filter', $form_state['display_id'], 'filter');
+      $view->addFormToStack('rearrange-filter', $form_state->get('display_id'), 'filter');
     }
     else {
       // The actual update button was clicked. Remove the empty groups, and
@@ -308,13 +311,13 @@ class RearrangeFilter extends ViewsFormBase {
       // Write the changed handler values.
       $display->setOption($types['filter']['plural'], $new_fields);
       $display->setOption('filter_groups', $groups);
-      if (isset($form_state['view']->form_cache)) {
-        unset($form_state['view']->form_cache);
+      if (isset($view->form_cache)) {
+        unset($view->form_cache);
       }
     }
 
     // Store in cache.
-    $form_state['view']->cacheSet();
+    $view->cacheSet();
   }
 
   /**

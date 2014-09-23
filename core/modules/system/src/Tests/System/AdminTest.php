@@ -38,14 +38,14 @@ class AdminTest extends WebTestBase {
    */
   public static $modules = array('locale');
 
-  function setUp() {
+  protected function setUp() {
     // testAdminPages() requires Locale module.
     parent::setUp();
 
     // Create an administrator with all permissions, as well as a regular user
     // who can only access administration pages and perform some Locale module
     // administrative tasks, but not all of them.
-    $this->admin_user = $this->drupalCreateUser(array_keys(\Drupal::moduleHandler()->invokeAll('permission')));
+    $this->admin_user = $this->drupalCreateUser(array_keys(\Drupal::service('user.permissions')->getPermissions()));
     $this->web_user = $this->drupalCreateUser(array(
       'access administration pages',
       'translate interface',
@@ -128,7 +128,7 @@ class AdminTest extends WebTestBase {
 
     // The system.admin link is normally the parent of all top-level admin links.
     $parameters = new MenuTreeParameters();
-    $parameters->setRoot('system.admin')->excludeRoot()->setTopLevelOnly()->excludeHiddenLinks();
+    $parameters->setRoot('system.admin')->excludeRoot()->setTopLevelOnly()->onlyEnabledLinks();
     $tree = $menu_tree->load(NULL, $parameters);
     $manipulators = array(
       array('callable' => 'menu.default_tree_manipulators:checkAccess'),

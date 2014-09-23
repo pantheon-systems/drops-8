@@ -10,6 +10,7 @@ namespace Drupal\Core\Language;
 use Drupal\Component\Utility\String;
 use Drupal\Core\DependencyInjection\DependencySerializationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
+use Drupal\Core\StringTranslation\TranslationWrapper;
 
 /**
  * Class responsible for providing language support on language-unaware sites.
@@ -81,6 +82,31 @@ class LanguageManager implements LanguageManagerInterface {
   /**
    * {@inheritdoc}
    */
+  public function getDefinedLanguageTypesInfo() {
+    // This needs to have the same return value as
+    // language_language_type_info(), so that even if the Language module is
+    // not defined, users of this information, such as the Views module, can
+    // access names and descriptions of the default language types.
+    return array(
+      LanguageInterface::TYPE_INTERFACE => array(
+        'name' => $this->t('User interface text'),
+        'description' => $this->t('Order of language detection methods for user interface text. If a translation of user interface text is available in the detected language, it will be displayed.'),
+        'locked' => TRUE,
+      ),
+      LanguageInterface::TYPE_CONTENT => array(
+        'name' => $this->t('Content'),
+        'description' => $this->t('Order of language detection methods for content. If a version of content is available in the detected language, it will be displayed.'),
+        'locked' => TRUE,
+      ),
+      LanguageInterface::TYPE_URL => array(
+        'locked' => TRUE,
+      ),
+    );
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function getCurrentLanguage($type = LanguageInterface::TYPE_INTERFACE) {
     return $this->getDefaultLanguage();
   }
@@ -120,7 +146,9 @@ class LanguageManager implements LanguageManagerInterface {
     // Add the site's default language if flagged as allowed value.
     if ($flags & LanguageInterface::STATE_SITE_DEFAULT) {
       $default = isset($default) ? $default : $this->getDefaultLanguage();
-      // Rename the default language.
+      // Rename the default language. But we do not want to do this globally,
+      // if we're acting on a global object, so clone the object first.
+      $default = clone $default;
       $default->name = $this->t("Site's default language (@lang_name)", array('@lang_name' => $default->name));
       $filtered_languages['site_default'] = $default;
     }
@@ -132,6 +160,14 @@ class LanguageManager implements LanguageManagerInterface {
     }
 
     return $filtered_languages;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getNativeLanguages() {
+    // In a language unaware site we don't have translated languages.
+    return $this->getLanguages();
   }
 
   /**
@@ -168,15 +204,17 @@ class LanguageManager implements LanguageManagerInterface {
       'default' => FALSE,
       'locked' => TRUE,
     );
+    // This is called very early while initializing the language system. Prevent
+    // early t() calls by using the TranslationWrapper.
     $languages[LanguageInterface::LANGCODE_NOT_SPECIFIED] = new Language(array(
       'id' => LanguageInterface::LANGCODE_NOT_SPECIFIED,
-      'name' => $this->t('Not specified'),
+      'name' => new TranslationWrapper('Not specified'),
       'weight' => ++$weight,
     ) + $locked_language);
 
     $languages[LanguageInterface::LANGCODE_NOT_APPLICABLE] = new Language(array(
       'id' => LanguageInterface::LANGCODE_NOT_APPLICABLE,
-      'name' => $this->t('Not applicable'),
+      'name' => new TranslationWrapper('Not applicable'),
       'weight' => ++$weight,
     ) + $locked_language);
 
@@ -194,7 +232,7 @@ class LanguageManager implements LanguageManagerInterface {
   /**
    * {@inheritdoc}
    */
-  public function getFallbackCandidates($langcode = NULL, array $context = array()) {
+  public function getFallbackCandidates(array $context = array()) {
     return array(LanguageInterface::LANGCODE_DEFAULT);
   }
 

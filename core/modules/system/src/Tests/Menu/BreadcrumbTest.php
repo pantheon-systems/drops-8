@@ -9,6 +9,7 @@ namespace Drupal\system\Tests\Menu;
 
 use Drupal\Component\Utility\String;
 use Drupal\Component\Utility\Unicode;
+use Drupal\node\Entity\NodeType;
 
 /**
  * Tests breadcrumbs functionality.
@@ -29,10 +30,10 @@ class BreadcrumbTest extends MenuTestBase {
    */
   protected $profile = 'standard';
 
-  function setUp() {
+  protected function setUp() {
     parent::setUp();
 
-    $perms = array_keys(\Drupal::moduleHandler()->invokeAll('permission'));
+    $perms = array_keys(\Drupal::service('user.permissions')->getPermissions());
     $this->admin_user = $this->drupalCreateUser($perms);
     $this->drupalLogin($this->admin_user);
 
@@ -158,10 +159,10 @@ class BreadcrumbTest extends MenuTestBase {
     //   breadcrumbs may differ, possibly due to theme overrides.
     $menus = array('main', 'tools');
     // Alter node type menu settings.
-    \Drupal::config("menu.entity.node.$type")
-      ->set('available_menus', $menus)
-      ->set('parent', 'tools:')
-      ->save();
+    $node_type = NodeType::load($type);
+    $node_type->setThirdPartySetting('menu_ui', 'available_menus', $menus);
+    $node_type->setThirdPartySetting('menu_ui', 'parent', 'tools:');
+    $node_type->save();
 
     foreach ($menus as $menu) {
       // Create a parent node in the current menu.
@@ -170,7 +171,7 @@ class BreadcrumbTest extends MenuTestBase {
         'type' => $type,
         'title' => $title,
         'menu' => array(
-          'hidden' => 0,
+          'enabled' => 1,
           'title' => 'Parent ' . $title,
           'description' => '',
           'menu_name' => $menu,
@@ -243,9 +244,14 @@ class BreadcrumbTest extends MenuTestBase {
         'title[0][value]' => "$name link",
         'url' => "taxonomy/term/{$term->id()}",
         'menu_parent' => "$menu:{$parent_mlid}",
+        'enabled[value]' => 1,
       );
       $this->drupalPostForm("admin/structure/menu/manage/$menu/add", $edit, t('Save'));
-      $menu_links = entity_load_multiple_by_properties('menu_link_content', array('title' => $edit['title[0][value]'], 'route_name' => 'taxonomy.term_page', 'route_parameters' => serialize(array('taxonomy_term' => $term->id()))));
+      $menu_links = entity_load_multiple_by_properties('menu_link_content', array(
+        'title' => $edit['title[0][value]'],
+        'route_name' => 'entity.taxonomy_term.canonical',
+        'route_parameters' => serialize(array('taxonomy_term' => $term->id())),
+      ));
       $tags[$name]['link'] = reset($menu_links);
       $parent_mlid = $tags[$name]['link']->getPluginId();
     }

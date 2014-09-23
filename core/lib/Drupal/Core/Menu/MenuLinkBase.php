@@ -9,6 +9,7 @@ namespace Drupal\Core\Menu;
 
 use Drupal\Component\Plugin\Exception\PluginException;
 use Drupal\Component\Utility\String;
+use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Plugin\PluginBase;
 use Drupal\Core\Url;
 
@@ -61,8 +62,8 @@ abstract class MenuLinkBase extends PluginBase implements MenuLinkInterface {
   /**
    * {@inheritdoc}
    */
-  public function isHidden() {
-    return (bool) $this->pluginDefinition['hidden'];
+  public function isEnabled() {
+    return (bool) $this->pluginDefinition['enabled'];
   }
 
   /**
@@ -76,7 +77,7 @@ abstract class MenuLinkBase extends PluginBase implements MenuLinkInterface {
    * {@inheritdoc}
    */
   public function isResettable() {
-    return FALSE;
+    return AccessResult::forbidden();
   }
 
   /**
@@ -117,10 +118,23 @@ abstract class MenuLinkBase extends PluginBase implements MenuLinkInterface {
   /**
    * {@inheritdoc}
    */
+  public function getRouteName() {
+    return isset($this->pluginDefinition['route_name']) ? $this->pluginDefinition['route_name'] : '';
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getRouteParameters() {
+    return isset($this->pluginDefinition['route_parameters']) ? $this->pluginDefinition['route_parameters'] : array();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function getUrlObject($title_attribute = TRUE) {
     $options = $this->getOptions();
-    $description = $this->getDescription();
-    if ($title_attribute && $description) {
+    if ($title_attribute && $description = $this->getDescription()) {
       $options['attributes']['title'] = $description;
     }
     if (empty($this->pluginDefinition['url'])) {

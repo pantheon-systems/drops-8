@@ -42,7 +42,7 @@ class EntityQueryAggregateTest extends EntityUnitTestBase {
    */
   public $factory;
 
-  public function setUp() {
+  protected function setUp() {
     parent::setUp();
 
     $this->entityStorage = $this->container->get('entity.manager')->getStorage('entity_test');
@@ -160,12 +160,14 @@ class EntityQueryAggregateTest extends EntityUnitTestBase {
     // Apply aggregation and a condition which matches.
     $this->queryResult = $this->factory->getAggregate('entity_test')
       ->aggregate('id', 'COUNT')
+      ->groupBy('id')
       ->conditionAggregate('id', 'COUNT', 8)
       ->execute();
     $this->assertResults(array());
 
     // Don't call aggregate to test the implicit aggregate call.
     $this->queryResult = $this->factory->getAggregate('entity_test')
+      ->groupBy('id')
       ->conditionAggregate('id', 'COUNT', 8)
       ->execute();
     $this->assertResults(array());
@@ -173,6 +175,7 @@ class EntityQueryAggregateTest extends EntityUnitTestBase {
     // Apply aggregation and a condition which matches.
     $this->queryResult = $this->factory->getAggregate('entity_test')
       ->aggregate('id', 'count')
+      ->groupBy('id')
       ->conditionAggregate('id', 'COUNT', 6)
       ->execute();
     $this->assertResults(array(array('id_count' => 6)));

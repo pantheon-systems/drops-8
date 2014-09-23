@@ -214,8 +214,8 @@ abstract class FilterFormatFormBase extends EntityForm {
     parent::validate($form, $form_state);
 
     // @todo Move trimming upstream.
-    $format_format = trim($form_state['values']['format']);
-    $format_name = trim($form_state['values']['name']);
+    $format_format = trim($form_state->getValue('format'));
+    $format_name = trim($form_state->getValue('name'));
 
     // Ensure that the values to be saved later are exactly the ones validated.
     form_set_value($form['format'], $format_format, $form_state);
@@ -234,12 +234,12 @@ abstract class FilterFormatFormBase extends EntityForm {
   /**
    * {@inheritdoc}
    */
-  public function submit(array $form, FormStateInterface $form_state) {
-    parent::submit($form, $form_state);
+  public function submitForm(array &$form, FormStateInterface $form_state) {
+    parent::submitForm($form, $form_state);
 
     // Add the submitted form values to the text format, and save it.
     $format = $this->entity;
-    foreach ($form_state['values'] as $key => $value) {
+    foreach ($form_state->getValues() as $key => $value) {
       if ($key != 'filters') {
         $format->set($key, $value);
       }
@@ -253,7 +253,7 @@ abstract class FilterFormatFormBase extends EntityForm {
 
     // Save user permissions.
     if ($permission = $format->getPermissionName()) {
-      foreach ($form_state['values']['roles'] as $rid => $enabled) {
+      foreach ($form_state->getValue('roles') as $rid => $enabled) {
         user_role_change_permissions($rid, array($permission => $enabled));
       }
     }

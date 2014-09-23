@@ -8,6 +8,7 @@
 namespace Drupal\system\Tests\Theme;
 
 use Drupal\Core\Language\LanguageInterface;
+use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\simpletest\WebTestBase;
 
 /**
@@ -53,7 +54,7 @@ class TwigTransTest extends WebTestBase {
     parent::setUp();
 
     // Setup test_theme.
-    theme_enable(array('test_theme'));
+    \Drupal::service('theme_handler')->install(array('test_theme'));
     \Drupal::config('system.theme')->set('default', 'test_theme')->save();
 
     // Create and log in as admin.
@@ -69,9 +70,9 @@ class TwigTransTest extends WebTestBase {
     $this->installLanguages();
 
     // Assign Lolspeak (xx) to be the default language.
-    $language = \Drupal::languageManager()->getLanguage('xx');
-    $language->default = TRUE;
-    language_save($language);
+    $language = ConfigurableLanguage::load('xx');
+    $language->set('default', TRUE);
+    $language->save();
     $this->rebuildContainer();
 
     // Check that lolspeak is the default language for the site.
@@ -162,13 +163,12 @@ class TwigTransTest extends WebTestBase {
    * Test Twig "trans" debug markup.
    */
   public function testTwigTransDebug() {
-    // Enable twig debug and write to the test settings.php file.
-    $this->settingsSet('twig_debug', TRUE);
-    $settings['settings']['twig_debug'] = (object) array(
-      'value' => TRUE,
-      'required' => TRUE,
-    );
-    $this->writeSettings($settings);
+    // Enable debug, rebuild the service container, and clear all caches.
+    $parameters = $this->container->getParameter('twig.config');
+    $parameters['debug'] = TRUE;
+    $this->setContainerParameter('twig.config', $parameters);
+    $this->rebuildContainer();
+    $this->resetAll();
 
     // Get page for assertion testing.
     $this->drupalGet('twig-theme-test/trans', array('language' => \Drupal::languageManager()->getLanguage('xx')));
@@ -219,7 +219,7 @@ class TwigTransTest extends WebTestBase {
         $edit = array(
           'predefined_langcode' => 'custom',
           'langcode' => $langcode,
-          'name' => $name,
+          'label' => $name,
           'direction' => LanguageInterface::DIRECTION_LTR,
         );
 

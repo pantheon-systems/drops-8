@@ -17,7 +17,14 @@ use Drupal\Core\Field\FieldStorageDefinitionInterface;
  */
 class TermIndexTest extends TaxonomyTestBase {
 
-  function setUp() {
+  /**
+   * Modules to enable.
+   *
+   * @var array
+   */
+  public static $modules = array('views');
+
+  protected function setUp() {
     parent::setUp();
 
     // Create an administrative user.

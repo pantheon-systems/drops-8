@@ -26,7 +26,7 @@ class SessionHttpsTest extends WebTestBase {
    */
   public static $modules = array('session_test');
 
-  public function setUp() {
+  protected function setUp() {
     parent::setUp();
     $this->request = Request::createFromGlobals();
     $this->container->get('request_stack')->push($this->request);
@@ -200,7 +200,7 @@ class SessionHttpsTest extends WebTestBase {
     // Test that session data saved before login is not available using the
     // pre-login anonymous cookie.
     $this->cookies = array();
-    $this->drupalGet('session-test/get', array('Cookie: ' . $anonymous_cookie));
+    $this->drupalGet('session-test/get', array(), array('Cookie: ' . $anonymous_cookie));
     $this->assertNoText($session_data, 'Initial anonymous session is inactive after login.');
 
     // Clear browser cookie jar.

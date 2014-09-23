@@ -6,7 +6,7 @@
  */
 
 namespace Drupal\entity_test\Entity;
-use Drupal\Core\Field\FieldDefinition;
+use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Entity\EntityTypeInterface;
 
 /**
@@ -15,8 +15,8 @@ use Drupal\Core\Entity\EntityTypeInterface;
  * @ContentEntityType(
  *   id = "entity_test_string_id",
  *   label = @Translation("Test entity with string_id"),
- *   controllers = {
- *     "access" = "Drupal\entity_test\EntityTestAccessController",
+ *   handlers = {
+ *     "access" = "Drupal\entity_test\EntityTestAccessControlHandler",
  *     "form" = {
  *       "default" = "Drupal\entity_test\EntityTestForm"
  *     },
@@ -31,10 +31,10 @@ use Drupal\Core\Entity\EntityTypeInterface;
  *     "bundle" = "type"
  *   },
  *   links = {
- *     "canonical" = "entity_test.render",
- *     "edit-form" = "entity_test.edit_entity_test_string_id",
- *     "admin-form" = "entity_test.admin_entity_test_string_id"
- *   }
+ *     "canonical" = "entity.entity_test.canonical",
+ *     "edit-form" = "entity.entity_test_string_id.edit_form",
+ *   },
+ *   field_ui_base_route = "entity.entity_test_string_id.admin_form",
  * )
  */
 class EntityTestStringId extends EntityTest {
@@ -44,7 +44,7 @@ class EntityTestStringId extends EntityTest {
    */
   public static function baseFieldDefinitions(EntityTypeInterface $entity_type) {
     $fields = parent::baseFieldDefinitions($entity_type);
-    $fields['id'] = FieldDefinition::create('string')
+    $fields['id'] = BaseFieldDefinition::create('string')
       ->setLabel(t('ID'))
       ->setDescription(t('The ID of the test entity.'))
       ->setReadOnly(TRUE);

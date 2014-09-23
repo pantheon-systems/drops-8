@@ -28,7 +28,7 @@ class FormTest extends WebTestBase {
    */
   public static $modules = array('filter', 'form_test', 'file', 'datetime');
 
-  function setUp() {
+  protected function setUp() {
     parent::setUp();
 
     $filtered_html_format = entity_create('filter_format', array(
@@ -47,7 +47,7 @@ class FormTest extends WebTestBase {
    * Carriage returns, tabs, spaces, and unchecked checkbox elements are not
    * valid content for a required field.
    *
-   * If the form field is found in form_get_errors() then the test pass.
+   * If the form field is found in $form_state->getErrors() then the test pass.
    */
   function testRequiredFields() {
     // Originates from http://drupal.org/node/117748
@@ -108,16 +108,17 @@ class FormTest extends WebTestBase {
           $element = $data['element']['#title'];
           $form[$element] = $data['element'];
           $form[$element]['#required'] = $required;
-          $form_state['input'][$element] = $empty;
-          $form_state['input']['form_id'] = $form_id;
-          $form_state['build_info']['callback_object'] = new StubForm($form_id, $form);
-          $form_state['method'] = 'post';
+          $user_input[$element] = $empty;
+          $user_input['form_id'] = $form_id;
+          $form_state->setUserInput($user_input);
+          $form_state->setFormObject(new StubForm($form_id, $form));
+          $form_state->setMethod('POST');
           // The form token CSRF protection should not interfere with this test,
           // so we bypass it by setting the token to FALSE.
           $form['#token'] = FALSE;
           \Drupal::formBuilder()->prepareForm($form_id, $form, $form_state);
           drupal_process_form($form_id, $form, $form_state);
-          $errors = form_get_errors($form_state);
+          $errors = $form_state->getErrors();
           // Form elements of type 'radios' throw all sorts of PHP notices
           // when you try to render them like this, so we ignore those for
           // testing the required marker.
@@ -301,21 +302,32 @@ class FormTest extends WebTestBase {
 
     // Posting without any values should throw validation errors.
     $this->drupalPostForm(NULL, array(), 'Submit');
-    $this->assertNoText(t($error, array('!name' => $form['select']['#title'])));
-    $this->assertNoText(t($error, array('!name' => $form['select_required']['#title'])));
-    $this->assertNoText(t($error, array('!name' => $form['select_optional']['#title'])));
-    $this->assertNoText(t($error, array('!name' => $form['empty_value']['#title'])));
-    $this->assertNoText(t($error, array('!name' => $form['empty_value_one']['#title'])));
-    $this->assertText(t($error, array('!name' => $form['no_default']['#title'])));
-    $this->assertNoText(t($error, array('!name' => $form['no_default_optional']['#title'])));
-    $this->assertText(t($error, array('!name' => $form['no_default_empty_option']['#title'])));
-    $this->assertNoText(t($error, array('!name' => $form['no_default_empty_option_optional']['#title'])));
-    $this->assertText(t($error, array('!name' => $form['no_default_empty_value']['#title'])));
-    $this->assertText(t($error, array('!name' => $form['no_default_empty_value_one']['#title'])));
-    $this->assertNoText(t($error, array('!name' => $form['no_default_empty_value_optional']['#title'])));
-    $this->assertNoText(t($error, array('!name' => $form['multiple']['#title'])));
-    $this->assertNoText(t($error, array('!name' => $form['multiple_no_default']['#title'])));
-    $this->assertText(t($error, array('!name' => $form['multiple_no_default_required']['#title'])));
+    $no_errors = array(
+        'select',
+        'select_required',
+        'select_optional',
+        'empty_value',
+        'empty_value_one',
+        'no_default_optional',
+        'no_default_empty_option_optional',
+        'no_default_empty_value_optional',
+        'multiple',
+        'multiple_no_default',
+    );
+    foreach ($no_errors as $key) {
+      $this->assertNoText(t('!name field is required.', array('!name' => $form[$key]['#title'])));
+    }
+
+    $expected_errors = array(
+        'no_default',
+        'no_default_empty_option',
+        'no_default_empty_value',
+        'no_default_empty_value_one',
+        'multiple_no_default_required',
+    );
+    foreach ($expected_errors as $key) {
+      $this->assertText(t('!name field is required.', array('!name' => $form[$key]['#title'])));
+    }
 
     // Post values for required fields.
     $edit = array(
@@ -503,7 +515,7 @@ class FormTest extends WebTestBase {
     }
 
     // Submit the form with no input, as the browser does for disabled elements,
-    // and fetch the $form_state['values'] that is passed to the submit handler.
+    // and fetch the $form_state->getValues() that is passed to the submit handler.
     $this->drupalPostForm('form-test/disabled-elements', array(), t('Submit'));
     $returned_values['normal'] = Json::decode($this->content);
 

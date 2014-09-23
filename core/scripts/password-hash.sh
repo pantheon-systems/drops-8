@@ -11,10 +11,7 @@
 use Drupal\Core\DrupalKernel;
 use Symfony\Component\HttpFoundation\Request;
 
-// Check for $_SERVER['argv'] instead of PHP_SAPI === 'cli' to allow this script
-// to be tested with the Simpletest UI test runner.
-// @see \Drupal\system\Tests\System\ScriptTest
-if (!isset($_SERVER['argv']) || !is_array($_SERVER['argv'])) {
+if (PHP_SAPI !== 'cli') {
   return;
 }
 
@@ -46,8 +43,9 @@ All arguments are long options.
   "<password1>" ["<password2>" ["<password3>" ...]]
 
               One or more plan-text passwords enclosed by double quotes. The
-              output hash may be manually entered into the {users}.pass field to
-              change a password via SQL to a known value.
+              output hash may be manually entered into the
+              {users_field_data}.pass field to change a password via SQL to a
+              known value.
 
 
 EOF;

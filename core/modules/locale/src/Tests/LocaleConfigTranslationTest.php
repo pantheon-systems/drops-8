@@ -8,7 +8,6 @@
 namespace Drupal\locale\Tests;
 
 use Drupal\simpletest\WebTestBase;
-use Drupal\locale\LocaleTypedConfig;
 use Drupal\core\language\languageInterface;
 
 /**
@@ -28,7 +27,7 @@ class LocaleConfigTranslationTest extends WebTestBase {
   /**
    * {@inheritdoc}
    */
-  public function setUp() {
+  protected function setUp() {
     parent::setUp();
     // Add a default locale storage for all these tests.
     $this->storage = $this->container->get('locale.storage');
@@ -52,7 +51,7 @@ class LocaleConfigTranslationTest extends WebTestBase {
     $edit = array(
       'predefined_langcode' => 'custom',
       'langcode' => $langcode,
-      'name' => $name,
+      'label' => $name,
       'direction' => LanguageInterface::DIRECTION_LTR,
     );
     $this->drupalPostForm('admin/config/regional/language/add', $edit, t('Add custom language'));
@@ -92,7 +91,7 @@ class LocaleConfigTranslationTest extends WebTestBase {
     $this->assertText($site_name, 'The translated site name is displayed after translations refreshed.');
 
     // Check default medium date format exists and create a translation for it.
-    $string = $this->storage->findString(array('source' => 'D, m/d/Y - H:i', 'context' => '', 'type' => 'configuration'));
+    $string = $this->storage->findString(array('source' => 'D, m/d/Y - H:i', 'context' => 'PHP date format', 'type' => 'configuration'));
     $this->assertTrue($string, 'Configuration date formats have been created upon installation.');
 
     // Translate using the UI so configuration is refreshed.
@@ -110,7 +109,7 @@ class LocaleConfigTranslationTest extends WebTestBase {
     );
     $this->drupalPostForm('admin/config/regional/translate', $edit, t('Save translations'));
 
-    $wrapper = $this->container->get('locale.config.typed')->get('system.date_format.medium');
+    $wrapper = $this->container->get('locale.config.typed')->get('core.date_format.medium');
 
     // Get translation and check we've only got the site name.
     $translation = $wrapper->getTranslation($langcode);

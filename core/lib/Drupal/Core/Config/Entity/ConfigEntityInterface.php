@@ -59,7 +59,7 @@ interface ConfigEntityInterface extends EntityInterface {
    *   - Status does not affect the loading of entities. I.e. Disabling
    *     configuration entities should only have UI/access implications.
    *   - It should only take effect when a 'status' key is explicitly declared
-   *     in the entity_keys info of a configuration entitys annotation data.
+   *     in the entity_keys info of a configuration entity's annotation data.
    *   - Each entity implementation (entity/controller) is responsible for
    *     checking and managing the status.
    *
@@ -109,9 +109,10 @@ interface ConfigEntityInterface extends EntityInterface {
    * entity change is part of an uninstall process, and skip executing your code
    * if that is the case.
    *
-   * For example, \Drupal\language\Entity\Language::preDelete() prevents the API
-   * from deleting the default language. However during an uninstall of the
-   * language module it is expected that the default language should be deleted.
+   * For example, \Drupal\language\Entity\ConfigurableLanguage::preDelete()
+   * prevents the API from deleting the default language. However during an
+   * uninstall of the language module it is expected that the default language
+   * should be deleted.
    *
    * @return bool
    */
@@ -155,5 +156,38 @@ interface ConfigEntityInterface extends EntityInterface {
    *   The configuration dependency name.
    */
   public function getConfigDependencyName();
+
+  /**
+   * Informs the entity that entities it depends on will be deleted.
+   *
+   * This method allows configuration entities to remove dependencies instead
+   * of being deleted themselves. Configuration entities can use this method to
+   * avoid being unnecessarily deleted during an extension uninstallation.
+   * Implementations should save the entity if dependencies have been
+   * successfully removed. For example, entity displays remove references to
+   * widgets and formatters if the plugin that supplies them depends on a
+   * module that is being uninstalled.
+   *
+   * @todo https://www.drupal.org/node/2336727 this method is only fired during
+   *   extension uninstallation but it could be used during config entity
+   *   deletion too.
+   *
+   * @param array $dependencies
+   *   An array of dependencies that will be deleted keyed by dependency type.
+   *   Dependency types are, for example, entity, module and theme.
+   *
+   * @see \Drupal\Core\Config\ConfigManager::uninstall()
+   * @see \Drupal\Core\Entity\EntityDisplayBase::onDependencyRemoval()
+   */
+  public function onDependencyRemoval(array $dependencies);
+
+  /**
+   * Gets the configuration dependencies.
+   *
+   * @return array
+   *   An array of dependencies. If $type not set all dependencies will be
+   *   returned keyed by $type.
+   */
+  public function getDependencies();
 
 }

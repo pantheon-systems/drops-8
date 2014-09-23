@@ -39,7 +39,7 @@ use Drupal\Core\TypedData\ListDataDefinitionInterface;
  * However, entity base fields, such as $node->title, are not managed by
  * field.module and its "field_storage_config"/"field_instance_config"
  * configuration entities. Therefore, their definitions are provided by
- * different objects based on the class \Drupal\Core\Field\FieldDefinition,
+ * different objects based on the class \Drupal\Core\Field\BaseFieldDefinition,
  * which implements this interface as well.
  *
  * Field definitions may fully define a concrete data object (e.g.,
@@ -170,20 +170,27 @@ interface FieldDefinitionInterface extends ListDataDefinitionInterface {
   public function isTranslatable();
 
   /**
-   * Sets whether the field is translatable.
-   *
-   * @param bool $translatable
-   *   Whether the field is translatable.
-   *
-   * @return $this
-   */
-  public function setTranslatable($translatable);
-
-  /**
    * Returns the field storage definition.
    *
    * @return \Drupal\Core\Field\FieldStorageDefinitionInterface
    *   The field storage definition.
    */
   public function getFieldStorageDefinition();
+
+  /**
+   * Gets an object that can be saved in configuration.
+   *
+   * Base fields are defined in code. In order to configure field definition
+   * properties per bundle use this method to create an override that can be
+   * saved in configuration.
+   *
+   * @see \Drupal\Core\Field\Entity\BaseFieldBundleOverride
+   *
+   * @param string $bundle
+   *   The bundle to get the configurable field for.
+   *
+   * @return \Drupal\Core\Field\FieldConfigInterface
+   */
+  public function getConfig($bundle);
+
 }

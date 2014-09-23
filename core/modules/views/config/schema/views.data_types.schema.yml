@@ -331,15 +331,8 @@ views_handler:
       type: string
       label: 'Provider'
     dependencies:
-      type: mapping
+      type: config_dependencies
       label: 'Dependencies'
-      mapping:
-        module:
-          type: sequence
-          label: 'Modules'
-          sequence:
-            - type: string
-              label: 'Dependency'
 
 views_argument:
   type: views_handler
@@ -532,7 +525,7 @@ views_field:
           label: 'Add "…" at the end of trimmed text'
         more_link:
           type: boolean
-          label: 'Add a read-more link if output is trimmed.'
+          label: 'Add a read-more link if output is trimmed'
         more_link_text:
           type: label
           label: 'More link label'

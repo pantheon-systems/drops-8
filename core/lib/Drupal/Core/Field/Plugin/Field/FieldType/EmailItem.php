@@ -7,8 +7,11 @@
 
 namespace Drupal\Core\Field\Plugin\Field\FieldType;
 
+use Drupal\Component\Utility\Random;
+use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Field\FieldItemBase;
+use Drupal\Core\Render\Element\Email;
 use Drupal\Core\TypedData\DataDefinition;
 
 /**
@@ -42,7 +45,7 @@ class EmailItem extends FieldItemBase {
       'columns' => array(
         'value' => array(
           'type' => 'varchar',
-          'length' => EMAIL_MAX_LENGTH,
+          'length' => Email::EMAIL_MAX_LENGTH,
           'not null' => FALSE,
         ),
       ),
@@ -59,13 +62,22 @@ class EmailItem extends FieldItemBase {
     $constraints[] = $constraint_manager->create('ComplexData', array(
       'value' => array(
         'Length' => array(
-          'max' => EMAIL_MAX_LENGTH,
-          'maxMessage' => t('%name: the email address can not be longer than @max characters.', array('%name' => $this->getFieldDefinition()->getLabel(), '@max' => EMAIL_MAX_LENGTH)),
+          'max' => Email::EMAIL_MAX_LENGTH,
+          'maxMessage' => t('%name: the email address can not be longer than @max characters.', array('%name' => $this->getFieldDefinition()->getLabel(), '@max' => Email::EMAIL_MAX_LENGTH)),
         )
       ),
     ));
 
     return $constraints;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function generateSampleValue(FieldDefinitionInterface $field_definition) {
+    $random = new Random();
+    $values['value'] = $random->name() . '@example.com';
+    return $values;
   }
 
   /**

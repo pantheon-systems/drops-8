@@ -45,7 +45,7 @@ class ParamConversionEnhancer implements RouteEnhancerInterface, EventSubscriber
    */
   public function enhance(array $defaults, Request $request) {
     $defaults['_raw_variables'] = $this->copyRawVariables($defaults);
-    return $this->paramConverterManager->convert($defaults, $request);
+    return $this->paramConverterManager->convert($defaults);
   }
 
   /**
@@ -86,7 +86,7 @@ class ParamConversionEnhancer implements RouteEnhancerInterface, EventSubscriber
    * {@inheritdoc}
    */
   public static function getSubscribedEvents() {
-    $events[KernelEvents::EXCEPTION][] = array('onException', 0);
+    $events[KernelEvents::EXCEPTION][] = array('onException', 75);
     return $events;
   }
 

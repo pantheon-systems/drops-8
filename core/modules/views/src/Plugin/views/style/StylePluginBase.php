@@ -105,6 +105,13 @@ abstract class StylePluginBase extends PluginBase {
   protected $groupingTheme = 'views_view_grouping';
 
   /**
+   * Should field labels be enabled by default.
+   *
+   * @var bool
+   */
+  protected $defaultFieldLabels = FALSE;
+
+  /**
    * Overrides \Drupal\views\Plugin\views\PluginBase::init().
    *
    * The style options might come externally as the style can be sourced from at
@@ -187,6 +194,15 @@ abstract class StylePluginBase extends PluginBase {
         return TRUE;
       }
     }
+  }
+
+  /**
+   * Return TRUE if this style enables field labels by default.
+   *
+   * @return bool
+   */
+  public function defaultFieldLabels() {
+    return $this->defaultFieldLabels;
   }
 
   /**
@@ -338,11 +354,12 @@ abstract class StylePluginBase extends PluginBase {
 
   public function validateOptionsForm(&$form, FormStateInterface $form_state) {
     // Don't run validation on style plugins without the grouping setting.
-    if (isset($form_state['values']['style_options']['grouping'])) {
+    if ($form_state->hasValue(array('style_options', 'grouping'))) {
       // Don't save grouping if no field is specified.
-      foreach ($form_state['values']['style_options']['grouping'] as $index => $grouping) {
+      $groupings = $form_state->getValue(array('style_options', 'grouping'));
+      foreach ($groupings as $index => $grouping) {
         if (empty($grouping['field'])) {
-          unset($form_state['values']['style_options']['grouping'][$index]);
+          $form_state->unsetValue(array('style_options', 'grouping', $index));
         }
       }
     }
@@ -475,9 +492,7 @@ abstract class StylePluginBase extends PluginBase {
         if ($this->usesRowPlugin()) {
           foreach ($set['rows'] as $index => $row) {
             $this->view->row_index = $index;
-            $render = $this->view->rowPlugin->render($row);
-            // Row render arrays cannot be contained by style render arrays.
-            $set['rows'][$index] = drupal_render($render);
+            $set['rows'][$index] = $this->view->rowPlugin->render($row);
           }
         }
 

@@ -7,15 +7,18 @@
 
 namespace Drupal\Tests\Core\Entity;
 
+use Drupal\Core\Access\AccessResult;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
-use Drupal\Core\Field\FieldDefinition;
+use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Field\FieldItemBase;
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\Tests\UnitTestCase;
 use Drupal\Core\Language\Language;
 
 /**
  * @coversDefaultClass \Drupal\Core\Entity\ContentEntityBase
  * @group Entity
+ * @group Access
  */
 class ContentEntityBaseUnitTest extends UnitTestCase {
 
@@ -32,6 +35,13 @@ class ContentEntityBaseUnitTest extends UnitTestCase {
    * @var \Drupal\Core\Entity\ContentEntityBase|\PHPUnit_Framework_MockObject_MockObject
    */
   protected $entity;
+
+  /**
+   * An entity with no defined language to test.
+   *
+   * @var \Drupal\Core\Entity\ContentEntityBase|\PHPUnit_Framework_MockObject_MockObject
+   */
+  protected $entityUnd;
 
   /**
    * The entity type used for testing.
@@ -92,19 +102,19 @@ class ContentEntityBaseUnitTest extends UnitTestCase {
   /**
    * Field definitions.
    *
-   * @var \Drupal\Core\Field\FieldDefinition[]
+   * @var \Drupal\Core\Field\BaseFieldDefinition[]
    */
   protected $fieldDefinitions;
 
   /**
    * {@inheritdoc}
    */
-  public function setUp() {
+  protected function setUp() {
     $this->id = 1;
     $values = array(
       'id' => $this->id,
-      'langcode' => 'en',
       'uuid' => '3bb9ee60-bea5-4622-b89b-a63319d10b3a',
+      'defaultLangcode' => array(LanguageInterface::LANGCODE_DEFAULT => 'en'),
     );
     $this->entityTypeId = $this->randomMachineName();
     $this->bundle = $this->randomMachineName();
@@ -129,15 +139,20 @@ class ContentEntityBaseUnitTest extends UnitTestCase {
       ->disableOriginalConstructor()
       ->getMock();
 
-    $language = new Language(array('id' => 'en'));
+    $english = new Language(array('id' => 'en'));
+    $not_specified = new Language(array('id' => LanguageInterface::LANGCODE_NOT_SPECIFIED, 'locked' => TRUE));
     $this->languageManager = $this->getMock('\Drupal\Core\Language\LanguageManagerInterface');
     $this->languageManager->expects($this->any())
       ->method('getLanguages')
-      ->will($this->returnValue(array('en' => $language)));
+      ->will($this->returnValue(array('en' => $english, LanguageInterface::LANGCODE_NOT_SPECIFIED => $not_specified)));
     $this->languageManager->expects($this->any())
       ->method('getLanguage')
       ->with('en')
-      ->will($this->returnValue($language));
+      ->will($this->returnValue($english));
+    $this->languageManager->expects($this->any())
+      ->method('getLanguage')
+      ->with(LanguageInterface::LANGCODE_NOT_SPECIFIED)
+      ->will($this->returnValue($not_specified));
 
     $this->fieldTypePluginManager = $this->getMockBuilder('\Drupal\Core\Field\FieldTypePluginManager')
       ->disableOriginalConstructor()
@@ -158,8 +173,8 @@ class ContentEntityBaseUnitTest extends UnitTestCase {
     \Drupal::setContainer($container);
 
     $this->fieldDefinitions = array(
-      'id' => FieldDefinition::create('integer'),
-      'revision_id' => FieldDefinition::create('integer'),
+      'id' => BaseFieldDefinition::create('integer'),
+      'revision_id' => BaseFieldDefinition::create('integer'),
     );
 
     $this->entityManager->expects($this->any())
@@ -167,6 +182,9 @@ class ContentEntityBaseUnitTest extends UnitTestCase {
       ->with($this->entityTypeId, $this->bundle)
       ->will($this->returnValue($this->fieldDefinitions));
     $this->entity = $this->getMockForAbstractClass('\Drupal\Core\Entity\ContentEntityBase', array($values, $this->entityTypeId, $this->bundle));
+
+    $values['defaultLangcode'] = array(LanguageInterface::LANGCODE_DEFAULT => LanguageInterface::LANGCODE_NOT_SPECIFIED);
+    $this->entityUnd = $this->getMockForAbstractClass('\Drupal\Core\Entity\ContentEntityBase', array($values, $this->entityTypeId, $this->bundle));
   }
 
   /**
@@ -245,7 +263,7 @@ class ContentEntityBaseUnitTest extends UnitTestCase {
    * @covers ::isTranslatable
    */
   public function testIsTranslatable() {
-    $this->entityManager->expects($this->at(0))
+    $this->entityManager->expects($this->any())
       ->method('getBundleInfo')
       ->with($this->entityTypeId)
       ->will($this->returnValue(array(
@@ -253,7 +271,25 @@ class ContentEntityBaseUnitTest extends UnitTestCase {
           'translatable' => TRUE,
         ),
       )));
+    $this->languageManager->expects($this->any())
+      ->method('isMultilingual')
+      ->will($this->returnValue(TRUE));
+    $this->assertTrue($this->entity->language()->id == 'en');
+    $this->assertFalse($this->entity->language()->locked);
     $this->assertTrue($this->entity->isTranslatable());
+
+    $this->assertTrue($this->entityUnd->language()->id == LanguageInterface::LANGCODE_NOT_SPECIFIED);
+    $this->assertTrue($this->entityUnd->language()->locked);
+    $this->assertFalse($this->entityUnd->isTranslatable());
+  }
+
+  /**
+   * @covers ::isTranslatable
+   */
+  public function testIsTranslatableForMonolingual() {
+    $this->languageManager->expects($this->any())
+      ->method('isMultilingual')
+      ->will($this->returnValue(FALSE));
     $this->assertFalse($this->entity->isTranslatable());
   }
 
@@ -368,20 +404,29 @@ class ContentEntityBaseUnitTest extends UnitTestCase {
    * @covers ::access
    */
   public function testAccess() {
-    $access = $this->getMock('\Drupal\Core\Entity\EntityAccessControllerInterface');
+    $access = $this->getMock('\Drupal\Core\Entity\EntityAccessControlHandlerInterface');
     $operation = $this->randomMachineName();
     $access->expects($this->at(0))
       ->method('access')
       ->with($this->entity, $operation)
       ->will($this->returnValue(TRUE));
     $access->expects($this->at(1))
+      ->method('access')
+      ->with($this->entity, $operation)
+      ->will($this->returnValue(AccessResult::allowed()));
+    $access->expects($this->at(2))
       ->method('createAccess')
       ->will($this->returnValue(TRUE));
-    $this->entityManager->expects($this->exactly(2))
-      ->method('getAccessController')
+    $access->expects($this->at(3))
+      ->method('createAccess')
+      ->will($this->returnValue(AccessResult::allowed()));
+    $this->entityManager->expects($this->exactly(4))
+      ->method('getAccessControlHandler')
       ->will($this->returnValue($access));
     $this->assertTrue($this->entity->access($operation));
+    $this->assertEquals(AccessResult::allowed(), $this->entity->access($operation, NULL, TRUE));
     $this->assertTrue($this->entity->access('create'));
+    $this->assertEquals(AccessResult::allowed(), $this->entity->access('create', NULL, TRUE));
   }
 
   /**

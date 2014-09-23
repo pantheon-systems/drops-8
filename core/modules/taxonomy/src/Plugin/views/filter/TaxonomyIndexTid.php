@@ -161,7 +161,7 @@ class TaxonomyIndexTid extends ManyToOne {
 
       $default_value = (array) $this->value;
 
-      if (!empty($form_state['exposed'])) {
+      if ($exposed = $form_state->get('exposed')) {
         $identifier = $this->options['expose']['identifier'];
 
         if (!empty($this->options['expose']['reduce'])) {
@@ -200,12 +200,14 @@ class TaxonomyIndexTid extends ManyToOne {
         '#default_value' => $default_value,
       );
 
-      if (!empty($form_state['exposed']) && isset($identifier) && !isset($form_state['input'][$identifier])) {
-        $form_state['input'][$identifier] = $default_value;
+      $user_input = $form_state->getUserInput();
+      if ($exposed && isset($identifier) && !isset($user_input[$identifier])) {
+        $user_input[$identifier] = $default_value;
+        $form_state->setUserInput($user_input);
       }
     }
 
-    if (empty($form_state['exposed'])) {
+    if (!$form_state->get('exposed')) {
       // Retain the helper option
       $this->helper->buildOptionsForm($form, $form_state);
     }
@@ -217,11 +219,9 @@ class TaxonomyIndexTid extends ManyToOne {
       return;
     }
 
-    $values = Tags::explode($form_state['values']['options']['value']);
-    $tids = $this->validate_term_strings($form['value'], $values, $form_state);
-
-    if ($tids) {
-      $form_state['values']['options']['value'] = $tids;
+    $values = Tags::explode($form_state->getValue('options', 'value'));
+    if ($tids = $this->validate_term_strings($form['value'], $values, $form_state)) {
+      $form_state->setValue(array('options', 'value'), $tids);
     }
   }
 
@@ -261,8 +261,8 @@ class TaxonomyIndexTid extends ManyToOne {
 
     // We only validate if they've chosen the text field style.
     if ($this->options['type'] != 'textfield') {
-      if ($form_state['values'][$identifier] != 'All')  {
-        $this->validated_exposed_input = (array) $form_state['values'][$identifier];
+      if ($form_state->getValue($identifier) != 'All')  {
+        $this->validated_exposed_input = (array) $form_state->getValue($identifier);
       }
       return;
     }
@@ -271,7 +271,7 @@ class TaxonomyIndexTid extends ManyToOne {
       return;
     }
 
-    $values = Tags::explode($form_state['values'][$identifier]);
+    $values = Tags::explode($form_state->getValue($identifier));
 
     $tids = $this->validate_term_strings($form[$identifier], $values, $form_state);
     if ($tids) {
@@ -322,7 +322,7 @@ class TaxonomyIndexTid extends ManyToOne {
     }
 
     if ($missing && !empty($this->options['error_message'])) {
-      form_error($form, $form_state, format_plural(count($missing), 'Unable to find term: @terms', 'Unable to find terms: @terms', array('@terms' => implode(', ', array_keys($missing)))));
+      $form_state->setError($form, format_plural(count($missing), 'Unable to find term: @terms', 'Unable to find terms: @terms', array('@terms' => implode(', ', array_keys($missing)))));
     }
     elseif ($missing && empty($this->options['error_message'])) {
       $tids = array(0);

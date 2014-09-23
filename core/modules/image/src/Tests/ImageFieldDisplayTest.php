@@ -143,8 +143,8 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
     $image_style = array(
       '#theme' => 'image_style',
       '#uri' => $image_uri,
-      '#width' => 100,
-      '#height' => 50,
+      '#width' => 40,
+      '#height' => 20,
       '#style_name' => 'thumbnail',
     );
     $default_output = drupal_render($image_style);
@@ -184,7 +184,7 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
 
     $this->drupalGet('node/add/article');
     $this->assertText(t('50 KB limit.'), 'Image widget max file size is displayed on article form.');
-    $this->assertText(t('Allowed types: ' . $test_image_extension . '.'), 'Image widget allowed file types displayed on article form.');
+    $this->assertText(t('Allowed types: @extensions.', array('@extensions' => $test_image_extension)), 'Image widget allowed file types displayed on article form.');
     $this->assertText(t('Images must be larger than 10x10 pixels. Images larger than 100x100 pixels will be resized.'), 'Image widget allowed resolution displayed on article form.');
 
     // We have to create the article first and then edit it because the alt
@@ -199,8 +199,8 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
     $image_style = array(
       '#theme' => 'image_style',
       '#uri' => file_load($node->{$field_name}->target_id)->getFileUri(),
-      '#width' => 220,
-      '#height' => 110,
+      '#width' => 40,
+      '#height' => 20,
       '#style_name' => 'medium',
     );
     $default_output = drupal_render($image_style);

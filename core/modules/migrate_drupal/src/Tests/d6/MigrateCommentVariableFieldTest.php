@@ -22,7 +22,7 @@ class MigrateCommentVariableFieldTest extends MigrateDrupalTestBase {
   /**
    * {@inheritdoc}
    */
-  public function setUp() {
+  protected function setUp() {
     parent::setUp();
     foreach (array('page', 'story', 'test') as $type) {
       entity_create('node_type', array('type' => $type))->save();
@@ -40,7 +40,7 @@ class MigrateCommentVariableFieldTest extends MigrateDrupalTestBase {
         array(array('comment'), array('comment_no_subject')),
       ),
     );
-    $this->prepareIdMappings($id_mappings);
+    $this->prepareMigrations($id_mappings);
     /** @var \Drupal\migrate\entity\Migration $migration */
     $migration = entity_load('migration', 'd6_comment_field');
     $dumps = array(

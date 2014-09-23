@@ -75,6 +75,18 @@ interface EntityTypeInterface {
   public function getClass();
 
   /**
+   * Returns the name of the original entity type class.
+   *
+   * In case the class name was changed with setClass(), this will return
+   * the initial value. Useful when trying to identify the entity type ID based
+   * on the class.
+   *
+   * @return string
+   *   The name of the original entity type class.
+   */
+  public function getOriginalClass();
+
+  /**
    * Returns an array of entity keys.
    *
    * @return array
@@ -166,41 +178,41 @@ interface EntityTypeInterface {
   public function setClass($class);
 
   /**
-   * Determines if there is a controller for a given type.
+   * Determines if there is a handler for a given type.
    *
-   * @param string $controller_type
-   *   The type of controller to check.
+   * @param string $handler_type
+   *   The type of handler to check.
    * @param bool $nested
-   *   (optional) If this controller has a nested definition. Defaults to FALSE.
+   *   (optional) If this handler has a nested definition. Defaults to FALSE.
    *
    * @return bool
-   *   TRUE if a controller of this type exists, FALSE otherwise.
+   *   TRUE if a handler of this type exists, FALSE otherwise.
    */
-  public function hasControllerClass($controller_type, $nested = FALSE);
+  public function hasHandlerClass($handler_type, $nested = FALSE);
 
   /**
-   * @param string $controller_type
-   *   The controller type to get.
+   * @param string $handler_type
+   *   The handler type to get.
    *
    * @return array|string|null
-   *   The controllers for a given type, or NULL if none exist.
+   *   The handlers for a given type, or NULL if none exist.
    */
-  public function getControllerClass($controller_type);
+  public function getHandlerClass($handler_type);
 
   /**
-   * Returns an array of controllers.
+   * Returns an array of handlers.
    *
    * @return array
-   *   An associative array where the keys are the names of different controller
+   *   An associative array where the keys are the names of different handler
    *   types (listed below) and the values are the names of the classes that
-   *   implement that controller:
+   *   implement that handler:
    *   - storage: The name of the class used to load the objects. The class must
    *     implement \Drupal\Core\Entity\EntityStorageInterface.
    *   - form: An associative array where the keys are the names of the
    *     different form operations (such as 'create', 'edit', or 'delete') and
-   *     the values are the names of the controller classes for those
+   *     the values are the names of the handler classes for those
    *     operations. The name of the operation is passed also to the form
-   *     controller's constructor, so that one class can be used for multiple
+   *     handler's constructor, so that one class can be used for multiple
    *     entity forms when the forms are similar. The classes must implement
    *     \Drupal\Core\Entity\EntityFormInterface.
    *   - list: The name of the class that provides listings of the entities. The
@@ -208,10 +220,10 @@ interface EntityTypeInterface {
    *   - render: The name of the class that is used to render the entities. The
    *     class must implement \Drupal\Core\Entity\EntityViewBuilderInterface.
    *   - access: The name of the class that is used for access checks. The class
-   *     must implement \Drupal\Core\Entity\EntityAccessControllerInterface.
-   *     Defaults to \Drupal\Core\Entity\EntityAccessController.
+   *     must implement \Drupal\Core\Entity\EntityAccessControlHandlerInterface.
+   *     Defaults to \Drupal\Core\Entity\EntityAccessControlHandler.
    */
-  public function getControllerClasses();
+  public function getHandlerClasses();
 
   /**
    * Returns the storage class.
@@ -320,12 +332,12 @@ interface EntityTypeInterface {
   public function hasViewBuilderClass();
 
   /**
-   * Returns the access class.
+   * Returns the access control class.
    *
    * @return string
-   *   The class for this entity type's access.
+   *   The class for this entity type's access control.
    */
-  public function getAccessClass();
+  public function getAccessControlClass();
 
   /**
    * Returns the access class.
@@ -349,21 +361,21 @@ interface EntityTypeInterface {
   public function isSubclassOf($class);
 
   /**
-   * Sets the controllers for a given type.
+   * Sets the handlers for a given type.
    *
-   * @param string $controller_type
-   *   The type of controller to set.
+   * @param string $handler_type
+   *   The type of handler to set.
    * @param array|string $value
-   *   The value for a controller type.
+   *   The value for a handler type.
    *
    * @return static
    */
-  public function setControllerClass($controller_type, $value);
+  public function setHandlerClass($handler_type, $value);
 
   /**
    * Returns the name of the default administrative permission.
    *
-   * The default \Drupal\Core\Entity\EntityAccessController class checks this
+   * The default \Drupal\Core\Entity\EntityAccessControlHandler class checks this
    * permission for all operations in its checkAccess() method. Entities with
    * more complex permissions can extend this class to do their own access
    * checks.
@@ -375,12 +387,11 @@ interface EntityTypeInterface {
   /**
    * Returns the permission granularity level.
    *
-   * The allowed values are respectively "entity_type", "bundle" or FALSE.
+   * The allowed values are respectively "entity_type" or "bundle".
    *
-   * @return string|bool
+   * @return string
    *   Whether a module exposing permissions for the current entity type
-   *   should use entity-type level granularity, bundle level granularity or
-   *   just skip this entity.
+   *   should use entity-type level granularity or bundle level granularity.
    */
   public function getPermissionGranularity();
 
@@ -471,8 +482,8 @@ interface EntityTypeInterface {
    * \Drupal\Core\Entity\EntityInterface::label() method, which implements this
    * logic.
    *
-   * @return callable|bool
-   *   The callback, or FALSE if none exists.
+   * @return callable|null
+   *   The callback, or NULL if none exists.
    */
   public function getLabelCallback();
 
@@ -507,8 +518,8 @@ interface EntityTypeInterface {
    * the Field UI module uses it to add operation links to manage fields and
    * displays.
    *
-   * @return string|bool
-   *   The entity type for which this entity provides bundles, or FALSE if does
+   * @return string|null
+   *   The entity type for which this entity provides bundles, or NULL if does
    *   not provide bundles for another entity type.
    */
   public function getBundleOf();
@@ -516,18 +527,18 @@ interface EntityTypeInterface {
   /**
    * Returns the label for the bundle.
    *
-   * @return string|bool
-   *   The bundle label, or FALSE if none exists.
+   * @return string|null
+   *   The bundle label, or NULL if none exists.
    */
   public function getBundleLabel();
 
   /**
    * Returns the name of the entity's base table.
    *
-   * @todo Used by ContentEntityDatabaseStorage only.
+   * @todo Used by SqlContentEntityStorage only.
    *
-   * @return string|bool
-   *   The name of the entity's base table, or FALSE if none exists.
+   * @return string|null
+   *   The name of the entity's base table, or NULL if none exists.
    */
   public function getBaseTable();
 
@@ -561,30 +572,31 @@ interface EntityTypeInterface {
   /**
    * Returns the name of the entity's revision data table.
    *
-   * @todo Used by ContentEntityDatabaseStorage only.
+   * @todo Used by SqlContentEntityStorage only.
    *
-   * @return string|bool
-   *   The name of the entity type's revision data table.
+   * @return string|null
+   *   The name of the entity type's revision data table, or NULL if none
+   *   exists.
    */
   public function getRevisionDataTable();
 
   /**
    * Returns the name of the entity's revision table.
    *
-   * @todo Used by ContentEntityDatabaseStorage only.
+   * @todo Used by SqlContentEntityStorage only.
    *
-   * @return string|bool
-   *   The name of the entity type's revision table.
+   * @return string|null
+   *   The name of the entity type's revision table, or NULL if none exists.
    */
   public function getRevisionTable();
 
   /**
    * Returns the name of the entity's data table.
    *
-   * @todo Used by ContentEntityDatabaseStorage only.
+   * @todo Used by SqlContentEntityStorage only.
    *
-   * @return string|bool
-   *   The name of the entity type's data table.
+   * @return string|null
+   *   The name of the entity type's data table, or NULL if none exists.
    */
   public function getDataTable();
 
@@ -610,8 +622,8 @@ interface EntityTypeInterface {
    * This is only called if there is no matching link template for the link
    * relationship type, and there is no bundle-specific callback provided.
    *
-   * @return callable|bool
-   *   A valid callback that is passed the entity or FALSE if none is specified.
+   * @return callable|null
+   *   A valid callback that is passed the entity or NULL if none is specified.
    */
   public function getUriCallback();
 

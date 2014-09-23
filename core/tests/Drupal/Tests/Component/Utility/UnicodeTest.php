@@ -16,7 +16,7 @@ use Drupal\Component\Utility\Unicode;
  */
 class UnicodeTest extends UnitTestCase {
 
-  public function setUp() {
+  protected function setUp() {
     // Initialize unicode component.
     Unicode::check();
   }
@@ -493,7 +493,7 @@ class UnicodeTest extends UnitTestCase {
    * Provides data to self::testConvertToUtf8().
    *
    * @return array
-   *   An array of arrays, each containg the parameters to
+   *   An array of arrays, each containing the parameters to
    *   self::testConvertUtf8().  }
    */
   public function providerTestConvertToUtf8() {

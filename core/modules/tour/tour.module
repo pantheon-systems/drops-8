@@ -29,18 +29,6 @@ function tour_help($route_name, RouteMatchInterface $route_match) {
 }
 
 /**
- * Implements hook_permission().
- */
-function tour_permission() {
-  return array(
-    'access tour' => array(
-      'title' => t('Access tour'),
-      'description' => t('View tour tips.'),
-    ),
-  );
-}
-
-/**
  * Implements hook_toolbar().
  */
 function tour_toolbar() {
@@ -75,9 +63,9 @@ function tour_toolbar() {
 }
 
 /**
- * Implements hook_preprocess_HOOK() for page templates.
+ * Implements hook_page_build().
  */
-function tour_preprocess_page(&$variables) {
+function tour_page_build(&$page) {
   if (!\Drupal::currentUser()->hasPermission('access tour')) {
     return;
   }
@@ -97,7 +85,7 @@ function tour_preprocess_page(&$variables) {
       }
     }
     if (!empty($tours)) {
-      $variables['page']['help']['tour'] = entity_view_multiple($tours, 'full');
+      $page['help']['tour'] = entity_view_multiple($tours, 'full');
     }
   }
 }

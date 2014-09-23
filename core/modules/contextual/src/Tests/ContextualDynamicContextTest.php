@@ -26,7 +26,7 @@ class ContextualDynamicContextTest extends WebTestBase {
    */
   public static $modules = array('contextual', 'node', 'views', 'views_ui');
 
-  function setUp() {
+  protected function setUp() {
     parent::setUp();
 
     $this->drupalCreateContentType(array('type' => 'page', 'name' => 'Basic page'));
@@ -60,7 +60,7 @@ class ContextualDynamicContextTest extends WebTestBase {
       'node:node=' . $node1->id() . ':changed=' . $node1->getChangedTime(),
       'node:node=' . $node2->id() . ':changed=' . $node2->getChangedTime(),
       'node:node=' . $node3->id() . ':changed=' . $node3->getChangedTime(),
-      'views_ui_edit:view=frontpage:location=page&name=frontpage&display_id=page_1',
+      'entity.view.edit_form:view=frontpage:location=page&name=frontpage&display_id=page_1',
     );
 
     // Editor user: can access contextual links and can edit articles.
@@ -74,9 +74,9 @@ class ContextualDynamicContextTest extends WebTestBase {
     $response = $this->renderContextualLinks($ids, 'node');
     $this->assertResponse(200);
     $json = Json::decode($response);
-    $this->assertIdentical($json[$ids[0]], '<ul class="contextual-links"><li class="nodepage-edit"><a href="' . base_path() . 'node/1/edit">Edit</a></li></ul>');
+    $this->assertIdentical($json[$ids[0]], '<ul class="contextual-links"><li class="entitynodeedit-form"><a href="' . base_path() . 'node/1/edit">Edit</a></li></ul>');
     $this->assertIdentical($json[$ids[1]], '');
-    $this->assertIdentical($json[$ids[2]], '<ul class="contextual-links"><li class="nodepage-edit"><a href="' . base_path() . 'node/3/edit">Edit</a></li></ul>');
+    $this->assertIdentical($json[$ids[2]], '<ul class="contextual-links"><li class="entitynodeedit-form"><a href="' . base_path() . 'node/3/edit">Edit</a></li></ul>');
     $this->assertIdentical($json[$ids[3]], '');
 
     // Authenticated user: can access contextual links, cannot edit articles.

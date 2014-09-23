@@ -194,7 +194,7 @@ display:
           provider: node
         name:
           id: name
-          table: users
+          table: users_field_data
           field: name
           relationship: uid
           label: Author
@@ -536,7 +536,7 @@ display:
         operator: AND
         groups:
           1: AND
-      field_langcode: '***CURRENT_LANGUAGE***'
+      field_langcode: '***LANGUAGE_language_content***'
       field_langcode_add_to_query: null
     display_plugin: default
     display_title: Master
@@ -549,16 +549,16 @@ display:
         type: 'default tab'
         title: Content
         description: ''
-        name: admin
+        menu_name: admin
         weight: -10
         context: ''
       tab_options:
         type: normal
         title: Content
         description: 'Find and manage content'
-        name: admin
+        menu_name: admin
         weight: -10
-      field_langcode: '***CURRENT_LANGUAGE***'
+      field_langcode: '***LANGUAGE_language_content***'
       field_langcode_add_to_query: null
     display_plugin: page
     display_title: Page

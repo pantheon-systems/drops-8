@@ -25,7 +25,7 @@ class CommentCacheTagsTest extends EntityWithUriCacheTagsTestBase {
   /**
    * {@inheritdoc}
    */
-  public function setUp() {
+  protected function setUp() {
     parent::setUp();
 
     // Give anonymous users permission to view comments, so that we can verify
@@ -76,7 +76,8 @@ class CommentCacheTagsTest extends EntityWithUriCacheTagsTestBase {
    * Each comment must have a comment body, which always has a text format.
    */
   protected function getAdditionalCacheTagsForEntity(EntityInterface $entity) {
-    return array('filter_format:plain_text');
+    /** @var \Drupal\comment\CommentInterface $entity */
+    return array('filter_format:plain_text', 'user:' . $entity->getOwnerId(), 'user_view:1');
   }
 
 }

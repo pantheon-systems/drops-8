@@ -3,6 +3,7 @@
 use Drupal\node\NodeInterface;
 use Drupal\Component\Utility\String;
 use Drupal\Component\Utility\Xss;
+use Drupal\Core\Access\AccessResult;
 
 /**
  * @file
@@ -82,7 +83,7 @@ function hook_node_grants(\Drupal\Core\Session\AccountInterface $account, $op) {
   if ($account->hasPermission('access private content')) {
     $grants['example'] = array(1);
   }
-  $grants['example_owner'] = array($account->id());
+  $grants['example_author'] = array($account->id());
   return $grants;
 }
 
@@ -294,9 +295,10 @@ function hook_node_grants_alter(&$grants, \Drupal\Core\Session\AccountInterface 
  * interface.
  *
  * Note that not all modules will want to influence access on all node types. If
- * your module does not want to actively grant or block access, return
- * NODE_ACCESS_IGNORE or simply return nothing. Blindly returning FALSE will
- * break other node access modules.
+ * your module does not want to explicitly allow or forbid access, return an
+ * AccessResultInterface object with neither isAllowed() nor isForbidden()
+ * equaling TRUE. Blindly returning an object with isForbidden() equaling TRUE
+ * will break other node access modules.
  *
  * Also note that this function isn't called for node listings (e.g., RSS feeds,
  * the default home page at path 'node', a recent content block, etc.) See
@@ -316,37 +318,38 @@ function hook_node_grants_alter(&$grants, \Drupal\Core\Session\AccountInterface 
  * @param object $langcode
  *   The language code to perform the access check operation on.
  *
- * @return string
- *   - NODE_ACCESS_ALLOW: if the operation is to be allowed.
- *   - NODE_ACCESS_DENY: if the operation is to be denied.
- *   - NODE_ACCESS_IGNORE: to not affect this operation at all.
+ * @return \Drupal\Core\Access\AccessResultInterface
+ *    The access result.
  *
  * @ingroup node_access
  */
 function hook_node_access(\Drupal\node\NodeInterface $node, $op, \Drupal\Core\Session\AccountInterface $account, $langcode) {
-  $type = is_string($node) ? $node : $node->getType();
+  $type = $node->bundle();
 
-  $configured_types = node_permissions_get_configured_types();
-  if (isset($configured_types[$type])) {
-    if ($op == 'create' && $account->hasPermission('create ' . $type . ' content')) {
-      return NODE_ACCESS_ALLOW;
-    }
+  switch ($op) {
+    case 'create':
+      return AccessResult::allowedIfHasPermission($account, 'create ' . $type . ' content');
 
-    if ($op == 'update') {
-      if ($account->hasPermission('edit any ' . $type . ' content', $account) || ($account->hasPermission('edit own ' . $type . ' content') && ($account->id() == $node->getOwnerId()))) {
-        return NODE_ACCESS_ALLOW;
+    case 'update':
+      if ($account->hasPermission('edit any ' . $type . ' content', $account)) {
+        return AccessResult::allowed()->cachePerRole();
       }
-    }
-
-    if ($op == 'delete') {
-      if ($account->hasPermission('delete any ' . $type . ' content', $account) || ($account->hasPermission('delete own ' . $type . ' content') && ($account->id() == $node->getOwnerId()))) {
-        return NODE_ACCESS_ALLOW;
+      else {
+        return AccessResult::allowedIf($account->hasPermission('edit own ' . $type . ' content', $account) && ($account->id() == $node->getOwnerId()))->cachePerRole()->cachePerUser()->cacheUntilEntityChanges($node);
       }
-    }
+
+    case 'delete':
+      if ($account->hasPermission('delete any ' . $type . ' content', $account)) {
+        return AccessResult::allowed()->cachePerRole();
+      }
+      else {
+        return AccessResult::allowedIf($account->hasPermission('delete own ' . $type . ' content', $account) && ($account->id() == $node->getOwnerId()))->cachePerRole()->cachePerUser()->cacheUntilEntityChanges($node);
+      }
+
+    default:
+      // No opinion.
+      return AccessResult::create();
   }
-
-  // Returning nothing from this function would have the same effect.
-  return NODE_ACCESS_IGNORE;
 }
 
 /**
@@ -408,7 +411,7 @@ function hook_node_update_index(\Drupal\node\NodeInterface $node, $langcode) {
  * finished editing the node and is previewing or submitting it. It is invoked
  * at the end of all the standard validation steps.
  *
- * To indicate a validation error, use form_set_error().
+ * To indicate a validation error, use $form_state->setErrorByName().
  *
  * Note: Changes made to the $node object within your hook implementation will
  * have no effect.  The preferred method to change a node's content is to use
@@ -427,7 +430,7 @@ function hook_node_update_index(\Drupal\node\NodeInterface $node, $langcode) {
 function hook_node_validate(\Drupal\node\NodeInterface $node, $form, \Drupal\Core\Form\FormStateInterface $form_state) {
   if (isset($node->end) && isset($node->start)) {
     if ($node->start > $node->end) {
-      form_set_error('time', $form_state, t('An event may not end before it starts.'));
+      $form_state->setErrorByName('time', t('An event may not end before it starts.'));
     }
   }
 }
@@ -439,7 +442,7 @@ function hook_node_validate(\Drupal\node\NodeInterface $node, $form, \Drupal\Cor
  * "Preview" button, after form values have been copied to the form state's node
  * object, but before the node is saved or previewed. It is a chance for modules
  * to adjust the node's properties from what they are simply after a copy from
- * $form_state['values']. This hook is intended for adjusting non-field-related
+ * $form_state->getValues(). This hook is intended for adjusting non-field-related
  * properties.
  *
  * @param \Drupal\node\NodeInterface $node
@@ -454,8 +457,9 @@ function hook_node_validate(\Drupal\node\NodeInterface $node, $form, \Drupal\Cor
 function hook_node_submit(\Drupal\node\NodeInterface $node, $form, \Drupal\Core\Form\FormStateInterface $form_state) {
   // Decompose the selected menu parent option into 'menu_name' and 'parent', if
   // the form used the default parent selection widget.
-  if (!empty($form_state['values']['menu']['parent'])) {
-    list($node->menu['menu_name'], $node->menu['parent']) = explode(':', $form_state['values']['menu']['parent']);
+  $parent = $form_state->getValue(array('menu', 'parent'));
+  if (!empty($parent)) {
+    list($node->menu['menu_name'], $node->menu['parent']) = explode(':', $parent);
   }
 }
 

@@ -22,8 +22,8 @@ use Drupal\search\SearchPageInterface;
  * @ConfigEntityType(
  *   id = "search_page",
  *   label = @Translation("Search page"),
- *   controllers = {
- *     "access" = "Drupal\search\SearchPageAccessController",
+ *   handlers = {
+ *     "access" = "Drupal\search\SearchPageAccessControlHandler",
  *     "storage" = "Drupal\Core\Config\Entity\ConfigEntityStorage",
  *     "list_builder" = "Drupal\search\SearchPageListBuilder",
  *     "form" = {

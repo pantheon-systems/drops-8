@@ -33,7 +33,7 @@ class FileItemTest extends FieldUnitTestBase {
    */
   protected $file;
 
-  public function setUp() {
+  protected function setUp() {
     parent::setUp();
 
     $this->installEntitySchema('file');
@@ -95,6 +95,11 @@ class FileItemTest extends FieldUnitTestBase {
     // a non-existing entity.
     $file2->delete();
     $entity->delete();
+
+    // Test the generateSampleValue() method.
+    $entity = entity_create('entity_test');
+    $entity->file_test->generateSampleItems();
+    $this->entityValidateAndSave($entity);
   }
 
 }

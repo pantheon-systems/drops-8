@@ -18,10 +18,11 @@ class FilterDefaultConfigTest extends DrupalUnitTestBase {
 
   public static $modules = array('system', 'user', 'filter', 'filter_test', 'entity');
 
-  function setUp() {
+  protected function setUp() {
     parent::setUp();
 
-    // filter_permission() calls into url() to output a link in the description.
+    // Drupal\filter\FilterPermissions::permissions() calls into url() to output
+    // a link in the description.
     $this->installSchema('system', 'url_alias');
 
     $this->installEntitySchema('user');

@@ -22,17 +22,17 @@ use Drupal\Core\TypedData\TypedDataInterface;
 abstract class ContentEntityBase extends Entity implements \IteratorAggregate, ContentEntityInterface {
 
   /**
-   * Status code indentifying a removed translation.
+   * Status code identifying a removed translation.
    */
   const TRANSLATION_REMOVED = 0;
 
   /**
-   * Status code indentifying an existing translation.
+   * Status code identifying an existing translation.
    */
   const TRANSLATION_EXISTING = 1;
 
   /**
-   * Status code indentifying a newly created translation.
+   * Status code identifying a newly created translation.
    */
   const TRANSLATION_CREATED = 2;
 
@@ -95,7 +95,7 @@ abstract class ContentEntityBase extends Entity implements \IteratorAggregate, C
    * An array of entity translation metadata.
    *
    * An associative array keyed by translation language code. Every value is an
-   * array containg the translation status and the translation object, if it has
+   * array containing the translation status and the translation object, if it has
    * already been instantiated.
    *
    * @var array
@@ -246,8 +246,10 @@ abstract class ContentEntityBase extends Entity implements \IteratorAggregate, C
    * {@inheritdoc}
    */
   public function isTranslatable() {
+    // Check that the bundle is translatable, the entity has a language defined
+    // and if we have more than one language on the site.
     $bundles = $this->entityManager()->getBundleInfo($this->entityTypeId);
-    return !empty($bundles[$this->bundle()]['translatable']);
+    return !empty($bundles[$this->bundle()]['translatable']) && empty($this->getUntranslated()->language()->locked) && $this->languageManager()->isMultilingual();
   }
 
   /**
@@ -513,7 +515,7 @@ abstract class ContentEntityBase extends Entity implements \IteratorAggregate, C
    */
   public function getFieldDefinitions() {
     if (!isset($this->fieldDefinitions)) {
-      $this->fieldDefinitions = \Drupal::entityManager()->getFieldDefinitions($this->entityTypeId, $this->bundle());
+      $this->fieldDefinitions = $this->entityManager()->getFieldDefinitions($this->entityTypeId, $this->bundle());
     }
     return $this->fieldDefinitions;
   }
@@ -547,15 +549,15 @@ abstract class ContentEntityBase extends Entity implements \IteratorAggregate, C
   /**
    * {@inheritdoc}
    */
-  public function access($operation, AccountInterface $account = NULL) {
+  public function access($operation, AccountInterface $account = NULL, $return_as_object = FALSE) {
     if ($operation == 'create') {
       return $this->entityManager()
-        ->getAccessController($this->entityTypeId)
-        ->createAccess($this->bundle(), $account);
+        ->getAccessControlHandler($this->entityTypeId)
+        ->createAccess($this->bundle(), $account, [], $return_as_object);
     }
     return $this->entityManager()
-      ->getAccessController($this->entityTypeId)
-      ->access($this, $operation, $this->activeLangcode, $account);
+      ->getAccessControlHandler($this->entityTypeId)
+      ->access($this, $operation, $this->activeLangcode, $account, $return_as_object);
   }
 
   /**
@@ -588,9 +590,16 @@ abstract class ContentEntityBase extends Entity implements \IteratorAggregate, C
     if ($this->hasField('langcode') && ($item = $this->get('langcode')) && isset($item->language)) {
       $this->defaultLangcode = $item->language->id;
     }
+
     if (empty($this->defaultLangcode)) {
-      // Make sure we return a proper language object.
-      $this->defaultLangcode = LanguageInterface::LANGCODE_NOT_SPECIFIED;
+      // Make sure we return a proper language object, if the entity has a
+      // langcode field, default to the site's default language.
+      if ($this->hasField('langcode')) {
+        $this->defaultLangcode = $this->languageManager()->getDefaultLanguage()->getId();
+      }
+      else {
+        $this->defaultLangcode = LanguageInterface::LANGCODE_NOT_SPECIFIED;
+      }
     }
     // This needs to be initialized manually as it is skipped when instantiating
     // the language field object to avoid infinite recursion.
@@ -845,8 +854,8 @@ abstract class ContentEntityBase extends Entity implements \IteratorAggregate, C
   /**
    * Implements the magic method for getting object properties.
    *
-   * @todo: A lot of code still uses non-fields (e.g. $entity->content in render
-   *   controllers) by reference. Clean that up.
+   * @todo: A lot of code still uses non-fields (e.g. $entity->content in view
+   *   builders) by reference. Clean that up.
    */
   public function &__get($name) {
     // If this is an entity field, handle it accordingly. We first check whether
@@ -1033,7 +1042,7 @@ abstract class ContentEntityBase extends Entity implements \IteratorAggregate, C
     if (!isset($this->entityKeys[$key]) || !array_key_exists($key, $this->entityKeys)) {
       if ($this->getEntityType()->hasKey($key)) {
         $field_name = $this->getEntityType()->getKey($key);
-        $property = $this->getFieldDefinition($field_name)->getMainPropertyName();
+        $property = $this->getFieldDefinition($field_name)->getFieldStorageDefinition()->getMainPropertyName();
         $this->entityKeys[$key] = $this->get($field_name)->$property;
       }
       else {

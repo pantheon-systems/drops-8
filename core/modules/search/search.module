@@ -110,23 +110,6 @@ function search_theme() {
 }
 
 /**
- * Implements hook_permission().
- */
-function search_permission() {
-  return array(
-    'administer search' => array(
-      'title' => t('Administer search'),
-    ),
-    'search content' => array(
-      'title' => t('Use search'),
-    ),
-    'use advanced search' => array(
-      'title' => t('Use advanced search'),
-    ),
-  );
-}
-
-/**
  * Implements hook_preprocess_HOOK() for block templates.
  */
 function search_preprocess_block(&$variables) {
@@ -812,14 +795,6 @@ function _search_find_match_with_simplify($key, $text, $boundary, $langcode = NU
 
   // If we get here, we couldn't find a match.
   return NULL;
-}
-
-/**
- * Implements hook_module_preinstall().
- */
-function search_module_preinstall() {
-  // @todo Remove in https://drupal.org/node/2155635.
-  \Drupal::service('plugin.manager.search')->clearCachedDefinitions();
 }
 
 /**

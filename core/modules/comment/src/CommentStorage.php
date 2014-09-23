@@ -9,28 +9,21 @@ namespace Drupal\comment;
 
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Database\Connection;
-use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
-use Drupal\Core\Entity\ContentEntityDatabaseStorage;
+use Drupal\Core\Entity\Sql\SqlContentEntityStorage;
 use Drupal\Core\Session\AccountInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Defines the controller class for comments.
  *
- * This extends the Drupal\Core\Entity\ContentEntityDatabaseStorage class,
+ * This extends the Drupal\Core\Entity\Sql\SqlContentEntityStorage class,
  * adding required special handling for comment entities.
  */
-class CommentStorage extends ContentEntityDatabaseStorage implements CommentStorageInterface {
-
-  /**
-   * The comment statistics service.
-   *
-   * @var \Drupal\comment\CommentStatisticsInterface
-   */
-  protected $statistics;
+class CommentStorage extends SqlContentEntityStorage implements CommentStorageInterface {
 
   /**
    * The current user.
@@ -50,14 +43,11 @@ class CommentStorage extends ContentEntityDatabaseStorage implements CommentStor
    *   The entity manager.
    * @param \Drupal\Core\Cache\CacheBackendInterface $cache_backend
    *   Cache backend instance to use.
-   * @param \Drupal\comment\CommentStatisticsInterface $comment_statistics
-   *   The comment statistics service.
    * @param \Drupal\Core\Session\AccountInterface $current_user
    *   The current user.
    */
-  public function __construct(EntityTypeInterface $entity_info, Connection $database, EntityManagerInterface $entity_manager, CommentStatisticsInterface $comment_statistics, AccountInterface $current_user, CacheBackendInterface $cache) {
+  public function __construct(EntityTypeInterface $entity_info, Connection $database, EntityManagerInterface $entity_manager, AccountInterface $current_user, CacheBackendInterface $cache) {
     parent::__construct($entity_info, $database, $entity_manager, $cache);
-    $this->statistics = $comment_statistics;
     $this->currentUser = $current_user;
   }
 
@@ -69,17 +59,9 @@ class CommentStorage extends ContentEntityDatabaseStorage implements CommentStor
       $entity_info,
       $container->get('database'),
       $container->get('entity.manager'),
-      $container->get('comment.statistics'),
       $container->get('current_user'),
       $container->get('cache.entity')
     );
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function updateEntityStatistics(CommentInterface $comment) {
-    $this->statistics->update($comment);
   }
 
   /**
@@ -334,48 +316,6 @@ class CommentStorage extends ContentEntityDatabaseStorage implements CommentStor
     }
 
     return $comments;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getSchema() {
-    $schema = parent::getSchema();
-
-    // Marking the respective fields as NOT NULL makes the indexes more
-    // performant.
-    $schema['comment_field_data']['fields']['created']['not null'] = TRUE;
-    $schema['comment_field_data']['fields']['thread']['not null'] = TRUE;
-
-    unset($schema['comment_field_data']['indexes']['comment_field__pid__target_id']);
-    unset($schema['comment_field_data']['indexes']['comment_field__entity_id__target_id']);
-    $schema['comment_field_data']['indexes'] += array(
-      'comment__status_pid' => array('pid', 'status'),
-      'comment__num_new' => array(
-        'entity_id',
-        'entity_type',
-        'comment_type',
-        'status',
-        'created',
-        'cid',
-        'thread',
-      ),
-      'comment__entity_langcode' => array(
-        'entity_id',
-        'entity_type',
-        'comment_type',
-        'default_langcode',
-      ),
-      'comment__created' => array('created'),
-    );
-    $schema['comment_field_data']['foreign keys'] += array(
-      'comment__author' => array(
-        'table' => 'users',
-        'columns' => array('uid' => 'uid'),
-      ),
-    );
-
-    return $schema;
   }
 
   /**

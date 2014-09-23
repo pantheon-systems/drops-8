@@ -50,7 +50,8 @@ class Page extends PathPluginBase {
         'title' => array('default' => '', 'translatable' => FALSE),
         'description' => array('default' => '', 'translatable' => FALSE),
         'weight' => array('default' => 0),
-        'name' => array('default' => 'navigation'),
+        'menu_name' => array('default' => 'navigation'),
+        'parent' => array('default' => ''),
         'context' => array('default' => ''),
       ),
     );
@@ -61,7 +62,7 @@ class Page extends PathPluginBase {
         'title' => array('default' => '', 'translatable' => FALSE),
         'description' => array('default' => '', 'translatable' => FALSE),
         'weight' => array('default' => 0),
-        'name' => array('default' => 'navigation'),
+        'menu_name' => array('default' => 'navigation'),
       ),
     );
 
@@ -152,7 +153,7 @@ class Page extends PathPluginBase {
   public function buildOptionsForm(&$form, FormStateInterface $form_state) {
     parent::buildOptionsForm($form, $form_state);
 
-    switch ($form_state['section']) {
+    switch ($form_state->get('section')) {
       case 'menu':
         $form['#title'] .= t('Menu item entry');
         $form['menu'] = array(
@@ -217,13 +218,14 @@ class Page extends PathPluginBase {
           ),
         );
 
-        // Only display the menu selector if Menu UI module is enabled.
+        // Only display the parent selector if Menu UI module is enabled.
+        $menu_parent = $menu['menu_name'] . ':' . $menu['parent'];
         if (\Drupal::moduleHandler()->moduleExists('menu_ui')) {
-          $form['menu']['name'] = array(
-            '#title' => t('Menu'),
-            '#type' => 'select',
-            '#options' => menu_ui_get_menus(),
-            '#default_value' => $menu['name'],
+          $form['menu']['parent'] = \Drupal::service('menu.parent_form_selector')->parentSelectElement($menu_parent);
+          $form['menu']['parent'] += array(
+            '#title' => $this->t('Parent'),
+            '#description' => $this->t('The maximum depth for a link and all its children is fixed. Some menu links may not be available as parents if selecting them would exceed this limit.'),
+            '#attributes' => array('class' => array('menu-title-select')),
             '#states' => array(
               'visible' => array(
                 array(
@@ -237,9 +239,9 @@ class Page extends PathPluginBase {
           );
         }
         else {
-          $form['menu']['name'] = array(
+          $form['menu']['parent'] = array(
             '#type' => 'value',
-            '#value' => $menu['name'],
+            '#value' => $menu_parent,
           );
           $form['menu']['markup'] = array(
             '#markup' => t('Menu selection requires the activation of Menu UI module.'),
@@ -350,9 +352,9 @@ class Page extends PathPluginBase {
           );
         }
         else {
-          $form['tab_options']['name'] = array(
+          $form['tab_options']['menu_name'] = array(
             '#type' => 'value',
-            '#value' => $tab_options['name'],
+            '#value' => $tab_options['menu_name'],
           );
           $form['tab_options']['markup'] = array(
             '#markup' => t('Menu selection requires the activation of Menu UI module.'),
@@ -381,22 +383,23 @@ class Page extends PathPluginBase {
   public function validateOptionsForm(&$form, FormStateInterface $form_state) {
     parent::validateOptionsForm($form, $form_state);
 
-    if ($form_state['section'] == 'menu') {
+    if ($form_state->get('section') == 'menu') {
       $path = $this->getOption('path');
-      if ($form_state['values']['menu']['type'] == 'normal' && strpos($path, '%') !== FALSE) {
-        form_error($form['menu']['type'], $form_state, t('Views cannot create normal menu items for paths with a % in them.'));
+      $menu_type = $form_state->getValue(array('menu', 'type'));
+      if ($menu_type == 'normal' && strpos($path, '%') !== FALSE) {
+        $form_state->setError($form['menu']['type'], t('Views cannot create normal menu items for paths with a % in them.'));
       }
 
-      if ($form_state['values']['menu']['type'] == 'default tab' || $form_state['values']['menu']['type'] == 'tab') {
+      if ($menu_type == 'default tab' || $menu_type == 'tab') {
         $bits = explode('/', $path);
         $last = array_pop($bits);
         if ($last == '%') {
-          form_error($form['menu']['type'], $form_state, t('A display whose path ends with a % cannot be a tab.'));
+          $form_state->setError($form['menu']['type'], t('A display whose path ends with a % cannot be a tab.'));
         }
       }
 
-      if ($form_state['values']['menu']['type'] != 'none' && empty($form_state['values']['menu']['title'])) {
-        form_error($form['menu']['title'], $form_state, t('Title is required for this menu type.'));
+      if ($menu_type != 'none' && $form_state->isValueEmpty(array('menu', 'title'))) {
+        $form_state->setError($form['menu']['title'], t('Title is required for this menu type.'));
       }
     }
   }
@@ -407,16 +410,18 @@ class Page extends PathPluginBase {
   public function submitOptionsForm(&$form, FormStateInterface $form_state) {
     parent::submitOptionsForm($form, $form_state);
 
-    switch ($form_state['section']) {
+    switch ($form_state->get('section')) {
       case 'menu':
-        $this->setOption('menu', $form_state['values']['menu']);
+        $menu = $form_state->getValue('menu');
+        list($menu['menu_name'], $menu['parent']) = explode(':', $menu['parent'], 2);
+        $this->setOption('menu', $menu);
         // send ajax form to options page if we use it.
-        if ($form_state['values']['menu']['type'] == 'default tab') {
-          $form_state['view']->addFormToStack('display', $this->display['id'], 'tab_options');
+        if ($form_state->getValue(array('menu', 'type')) == 'default tab') {
+          $form_state->get('view')->addFormToStack('display', $this->display['id'], 'tab_options');
         }
         break;
       case 'tab_options':
-        $this->setOption('tab_options', $form_state['values']['tab_options']);
+        $this->setOption('tab_options', $form_state->getValue('tab_options'));
         break;
     }
   }

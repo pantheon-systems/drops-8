@@ -13,16 +13,14 @@ namespace Drupal\entity_test\Entity;
  * @ContentEntityType(
  *   id = "entity_test_no_id",
  *   label = @Translation("Entity Test without id"),
- *   controllers = {
+ *   handlers = {
  *     "storage" = "Drupal\Core\Entity\ContentEntityNullStorage",
  *   },
  *   fieldable = TRUE,
  *   entity_keys = {
  *     "bundle" = "type",
  *   },
- *   links = {
- *     "admin-form" = "entity_test.admin_entity_test_no_id"
- *   }
+ *   field_ui_base_route = "entity.entity_test_no_id.admin_form",
  * )
  */
 class EntityTestNoId extends EntityTest {

@@ -11,8 +11,8 @@ use Drupal\Component\Utility\String;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
 use Drupal\Core\Entity\EntityStorageInterface;
+use Drupal\Core\Field\FieldException;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
-use Drupal\field\FieldException;
 use Drupal\field\FieldStorageConfigInterface;
 
 /**
@@ -21,7 +21,7 @@ use Drupal\field\FieldStorageConfigInterface;
  * @ConfigEntityType(
  *   id = "field_storage_config",
  *   label = @Translation("Field"),
- *   controllers = {
+ *   handlers = {
  *     "storage" = "Drupal\field\FieldStorageConfigStorage"
  *   },
  *   config_prefix = "storage",
@@ -227,7 +227,7 @@ class FieldStorageConfig extends ConfigEntityBase implements FieldStorageConfigI
   /**
    * Overrides \Drupal\Core\Entity\Entity::preSave().
    *
-   * @throws \Drupal\field\FieldException
+   * @throws \Drupal\Core\Field\FieldException
    *   If the field definition is invalid.
    * @throws \Drupal\Core\Entity\EntityStorageException
    *   In case of failures at the configuration storage level.
@@ -242,10 +242,8 @@ class FieldStorageConfig extends ConfigEntityBase implements FieldStorageConfigI
     else {
       $this->preSaveUpdated($storage);
     }
-    if (!$this->isSyncing()) {
-      // Ensure the correct dependencies are present.
-      $this->calculateDependencies();
-    }
+
+    parent::preSave($storage);
   }
 
   /**
@@ -254,7 +252,7 @@ class FieldStorageConfig extends ConfigEntityBase implements FieldStorageConfigI
    * @param \Drupal\Core\Entity\EntityStorageInterface $storage
    *   The entity storage.
    *
-   * @throws \Drupal\field\FieldException If the field definition is invalid.
+   * @throws \Drupal\Core\Field\FieldException If the field definition is invalid.
    */
    protected function preSaveNew(EntityStorageInterface $storage) {
     $entity_manager = \Drupal::entityManager();
@@ -292,8 +290,8 @@ class FieldStorageConfig extends ConfigEntityBase implements FieldStorageConfigI
     // definition is passed to the various hooks and written to config.
      $this->settings += $field_type_manager->getDefaultSettings($this->type);
 
-    // Notify the entity storage.
-    $entity_manager->getStorage($this->entity_type)->onFieldStorageDefinitionCreate($this);
+    // Notify the entity manager.
+    $entity_manager->onFieldStorageDefinitionCreate($this);
   }
 
   /**
@@ -336,24 +334,21 @@ class FieldStorageConfig extends ConfigEntityBase implements FieldStorageConfigI
     // invokes hook_field_storage_config_update_forbid().
     $module_handler->invokeAll('field_storage_config_update_forbid', array($this, $this->original));
 
-    // Notify the storage. The controller can reject the definition
+    // Notify the entity manager. A listener can reject the definition
     // update as invalid by raising an exception, which stops execution before
     // the definition is written to config.
-    $entity_manager->getStorage($this->entity_type)->onFieldStorageDefinitionUpdate($this, $this->original);
+    $entity_manager->onFieldStorageDefinitionUpdate($this, $this->original);
   }
 
   /**
    * {@inheritdoc}
    */
   public function postSave(EntityStorageInterface $storage, $update = TRUE) {
-    // Clear the cache.
-    \Drupal::entityManager()->clearCachedFieldDefinitions();
-
     if ($update) {
       // Invalidate the render cache for all affected entities.
       $entity_manager = \Drupal::entityManager();
       $entity_type = $this->getTargetEntityTypeId();
-      if ($entity_manager->hasController($entity_type, 'view_builder')) {
+      if ($entity_manager->hasHandler($entity_type, 'view_builder')) {
         $entity_manager->getViewBuilder($entity_type)->resetCache();
       }
     }
@@ -408,13 +403,10 @@ class FieldStorageConfig extends ConfigEntityBase implements FieldStorageConfigI
     // Notify the storage.
     foreach ($fields as $field) {
       if (!$field->deleted) {
-        \Drupal::entityManager()->getStorage($field->entity_type)->onFieldStorageDefinitionDelete($field);
+        \Drupal::entityManager()->onFieldStorageDefinitionDelete($field);
         $field->deleted = TRUE;
       }
     }
-
-    // Clear the cache.
-    \Drupal::entityManager()->clearCachedFieldDefinitions();
   }
 
   /**
@@ -432,11 +424,6 @@ class FieldStorageConfig extends ConfigEntityBase implements FieldStorageConfigI
         'foreign keys' => array(),
       );
 
-      // Check that the schema does not include forbidden column names.
-      if (array_intersect(array_keys($schema['columns']), static::getReservedColumns())) {
-        throw new FieldException(String::format('Illegal field type @field_type on @field_name.', array('@field_type' => $this->type, '@field_name' => $this->name)));
-      }
-
       // Merge custom indexes with those specified by the field type. Custom
       // indexes prevail.
       $schema['indexes'] = $this->indexes + $schema['indexes'];
@@ -451,6 +438,13 @@ class FieldStorageConfig extends ConfigEntityBase implements FieldStorageConfigI
    * {@inheritdoc}
    */
   public function hasCustomStorage() {
+    return FALSE;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function isBaseField() {
     return FALSE;
   }
 
@@ -613,15 +607,6 @@ class FieldStorageConfig extends ConfigEntityBase implements FieldStorageConfigI
    */
   public function isQueryable() {
     return TRUE;
-  }
-
-  /**
-   * A list of columns that can not be used as field type columns.
-   *
-   * @return array
-   */
-  public static function getReservedColumns() {
-    return array('deleted');
   }
 
   /**

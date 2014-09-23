@@ -46,13 +46,13 @@ class EntityReferenceFieldTest extends EntityUnitTestBase {
   protected $fieldName = 'field_test';
 
   /**
-   * Modules to enable.
+   * Modules to install.
    *
    * @var array
    */
   public static $modules = array('entity_reference');
 
-  public function setUp() {
+  protected function setUp() {
     parent::setUp();
 
     $this->installEntitySchema('entity_test_rev');

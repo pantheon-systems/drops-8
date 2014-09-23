@@ -7,6 +7,7 @@
 
 namespace Drupal\language\Tests;
 
+use Drupal\Core\Language\Language;
 use Drupal\language\Plugin\LanguageNegotiation\LanguageNegotiationUrl;
 use Drupal\simpletest\WebTestBase;
 use Symfony\Component\HttpFoundation\Request;
@@ -25,7 +26,7 @@ class LanguageUrlRewritingTest extends WebTestBase {
    */
   public static $modules = array('language', 'language_test');
 
-  function setUp() {
+  protected function setUp() {
     parent::setUp();
 
     // Create and login user.
@@ -51,8 +52,7 @@ class LanguageUrlRewritingTest extends WebTestBase {
    */
   function testUrlRewritingEdgeCases() {
     // Check URL rewriting with a non-installed language.
-    $non_existing = \Drupal::languageManager()->getDefaultLanguage();
-    $non_existing->id = $this->randomMachineName();
+    $non_existing = new Language(array('id' => $this->randomMachineName()));
     $this->checkUrl($non_existing, 'Path language is ignored if language is not installed.', 'URL language negotiation does not work with non-installed languages');
 
     // Check that URL rewriting is not applied to subrequests.
@@ -67,8 +67,8 @@ class LanguageUrlRewritingTest extends WebTestBase {
    * check that language prefixes are not added to it and that the prefixed URL
    * is actually not working.
    *
-   * @param string $language
-   *   The language prefix, e.g. 'es'.
+   * @param \Drupal\Core\Language\LanguageInterface $language
+   *   The language object.
    * @param string $message1
    *   Message to display in assertion that language prefixes are not added.
    * @param string $message2

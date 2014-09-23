@@ -152,7 +152,7 @@ class Numeric extends FilterPluginBase {
       $source = ':input[name="options[operator]"]';
     }
 
-    if (!empty($form_state['exposed'])) {
+    if ($exposed = $form_state->get('exposed')) {
       $identifier = $this->options['expose']['identifier'];
 
       if (empty($this->options['expose']['use_operator']) || empty($this->options['expose']['operator_id'])) {
@@ -164,10 +164,11 @@ class Numeric extends FilterPluginBase {
       }
     }
 
+    $user_input = $form_state->getUserInput();
     if ($which == 'all') {
       $form['value']['value'] = array(
         '#type' => 'textfield',
-        '#title' => empty($form_state['exposed']) ? t('Value') : '',
+        '#title' => !$exposed ? t('Value') : '',
         '#size' => 30,
         '#default_value' => $this->value['value'],
       );
@@ -177,8 +178,9 @@ class Numeric extends FilterPluginBase {
           $source => array('value' => $operator),
         );
       }
-      if (!empty($form_state['exposed']) && !isset($form_state['input'][$identifier]['value'])) {
-        $form_state['input'][$identifier]['value'] = $this->value['value'];
+      if ($exposed && !isset($user_input[$identifier]['value'])) {
+        $user_input[$identifier]['value'] = $this->value['value'];
+        $form_state->setUserInput($user_input);
       }
     }
     elseif ($which == 'value') {
@@ -186,25 +188,26 @@ class Numeric extends FilterPluginBase {
       // the operator is locked.
       $form['value'] = array(
         '#type' => 'textfield',
-        '#title' => empty($form_state['exposed']) ? t('Value') : '',
+        '#title' => !$exposed ? t('Value') : '',
         '#size' => 30,
         '#default_value' => $this->value['value'],
       );
-      if (!empty($form_state['exposed']) && !isset($form_state['input'][$identifier])) {
-        $form_state['input'][$identifier] = $this->value['value'];
+      if ($exposed && !isset($user_input[$identifier])) {
+        $user_input[$identifier] = $this->value['value'];
+        $form_state->setUserInput($user_input);
       }
     }
 
     if ($which == 'all' || $which == 'minmax') {
       $form['value']['min'] = array(
         '#type' => 'textfield',
-        '#title' => empty($form_state['exposed']) ? t('Min') : '',
+        '#title' => !$exposed ? t('Min') : '',
         '#size' => 30,
         '#default_value' => $this->value['min'],
       );
       $form['value']['max'] = array(
         '#type' => 'textfield',
-        '#title' => empty($form_state['exposed']) ? t('And max') : t('And'),
+        '#title' => !$exposed ? t('And max') : t('And'),
         '#size' => 30,
         '#default_value' => $this->value['max'],
       );
@@ -219,11 +222,11 @@ class Numeric extends FilterPluginBase {
         $form['value']['min'] += $states;
         $form['value']['max'] += $states;
       }
-      if (!empty($form_state['exposed']) && !isset($form_state['input'][$identifier]['min'])) {
-        $form_state['input'][$identifier]['min'] = $this->value['min'];
+      if ($exposed && !isset($user_input[$identifier]['min'])) {
+        $user_input[$identifier]['min'] = $this->value['min'];
       }
-      if (!empty($form_state['exposed']) && !isset($form_state['input'][$identifier]['max'])) {
-        $form_state['input'][$identifier]['max'] = $this->value['max'];
+      if ($exposed && !isset($user_input[$identifier]['max'])) {
+        $user_input[$identifier]['max'] = $this->value['max'];
       }
 
       if (!isset($form['value'])) {

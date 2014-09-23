@@ -14,6 +14,7 @@ process:
   status: status
   created: created
   changed: changed
+  revision_timestamp: timestamp
   promote: promote
   sticky: sticky
   'body/format':
@@ -33,8 +34,7 @@ destination:
 migration_dependencies:
   required:
     - d6_node_type
+    - d6_node_settings
     - d6_filter_format
-  optional:
     - d6_field_instance_widget_settings
     - d6_field_formatter_settings
-    - d6_node_settings

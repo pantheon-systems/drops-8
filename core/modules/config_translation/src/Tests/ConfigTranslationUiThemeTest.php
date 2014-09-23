@@ -7,7 +7,7 @@
 
 namespace Drupal\config_translation\Tests;
 
-use Drupal\Core\Language\Language;
+use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\simpletest\WebTestBase;
 
 /**
@@ -38,7 +38,7 @@ class ConfigTranslationUiThemeTest extends WebTestBase {
    */
   protected $admin_user;
 
-  public function setUp() {
+  protected function setUp() {
     parent::setUp();
 
     $admin_permissions = array(
@@ -52,8 +52,7 @@ class ConfigTranslationUiThemeTest extends WebTestBase {
 
     // Add languages.
     foreach ($this->langcodes as $langcode) {
-      $language = new Language(array('id' => $langcode));
-      language_save($language);
+      ConfigurableLanguage::createFromLangcode($langcode)->save();
     }
   }
 
@@ -61,14 +60,14 @@ class ConfigTranslationUiThemeTest extends WebTestBase {
    * Tests that theme provided *.config_translation.yml files are found.
    */
   public function testThemeDiscovery() {
-    // Enable the test theme and rebuild routes.
+    // Install the test theme and rebuild routes.
     $theme = 'config_translation_test_theme';
 
     $this->drupalLogin($this->admin_user);
 
     $this->drupalGet('admin/appearance');
     $elements = $this->xpath('//a[normalize-space()=:label and contains(@href, :theme)]', array(
-      ':label' => 'Enable and set as default',
+      ':label' => 'Install and set as default',
       ':theme' => $theme,
     ));
     $this->drupalGet($GLOBALS['base_root'] . $elements[0]['href'], array('external' => TRUE));

@@ -7,14 +7,15 @@
 
 namespace Drupal\Tests\Core\Entity;
 
-use Drupal\Core\Access\AccessCheckInterface;
+use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Entity\EntityCreateAccessCheck;
 use Drupal\Tests\UnitTestCase;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBag;
-use Symfony\Component\HttpFoundation\Request;
 
 /**
  * @coversDefaultClass \Drupal\Core\Entity\EntityCreateAccessCheck
+ *
+ * @group Access
  * @group Entity
  */
 class EntityCreateAccessCheckTest extends UnitTestCase {
@@ -39,17 +40,21 @@ class EntityCreateAccessCheckTest extends UnitTestCase {
    * @return array
    */
   public function providerTestAccess() {
+    $no_access = AccessResult::create()->cachePerRole();
+    $access = AccessResult::allowed()->cachePerRole();
+    $no_access_due_to_errors = AccessResult::create();
+
     return array(
-      array('', 'entity_test', FALSE, AccessCheckInterface::DENY),
-      array('', 'entity_test',TRUE, AccessCheckInterface::ALLOW),
-      array('test_entity', 'entity_test:test_entity', TRUE, AccessCheckInterface::ALLOW),
-      array('test_entity', 'entity_test:test_entity', FALSE, AccessCheckInterface::DENY),
-      array('test_entity', 'entity_test:{bundle_argument}', TRUE, AccessCheckInterface::ALLOW),
-      array('test_entity', 'entity_test:{bundle_argument}', FALSE, AccessCheckInterface::DENY),
-      array('', 'entity_test:{bundle_argument}', FALSE, AccessCheckInterface::DENY),
+      array('', 'entity_test', $no_access, $no_access),
+      array('', 'entity_test', $access, $access),
+      array('test_entity', 'entity_test:test_entity', $access, $access),
+      array('test_entity', 'entity_test:test_entity', $no_access, $no_access),
+      array('test_entity', 'entity_test:{bundle_argument}', $access, $access),
+      array('test_entity', 'entity_test:{bundle_argument}', $no_access, $no_access),
+      array('', 'entity_test:{bundle_argument}', $no_access, $no_access_due_to_errors),
       // When the bundle is not provided, access should be denied even if the
-      // access controller would allow access.
-      array('', 'entity_test:{bundle_argument}', TRUE, AccessCheckInterface::DENY),
+      // access control handler would allow access.
+      array('', 'entity_test:{bundle_argument}', $access, $no_access_due_to_errors),
     );
   }
 
@@ -61,18 +66,18 @@ class EntityCreateAccessCheckTest extends UnitTestCase {
   public function testAccess($entity_bundle, $requirement, $access, $expected) {
     $entity_manager = $this->getMock('Drupal\Core\Entity\EntityManagerInterface');
 
-    // Don't expect a call to the access controller when we have a bundle
+    // Don't expect a call to the access control handler when we have a bundle
     // argument requirement but no bundle is provided.
     if ($entity_bundle || strpos($requirement, '{') === FALSE) {
-      $access_controller = $this->getMock('Drupal\Core\Entity\EntityAccessControllerInterface');
-      $access_controller->expects($this->once())
+      $access_control_handler = $this->getMock('Drupal\Core\Entity\EntityAccessControlHandlerInterface');
+      $access_control_handler->expects($this->once())
         ->method('createAccess')
         ->with($entity_bundle)
         ->will($this->returnValue($access));
 
       $entity_manager->expects($this->any())
-        ->method('getAccessController')
-        ->will($this->returnValue($access_controller));
+        ->method('getAccessControlHandler')
+        ->will($this->returnValue($access_control_handler));
     }
 
     $applies_check = new EntityCreateAccessCheck($entity_manager);
@@ -85,17 +90,18 @@ class EntityCreateAccessCheckTest extends UnitTestCase {
       ->with('_entity_create_access')
       ->will($this->returnValue($requirement));
 
-    $request = new Request();
     $raw_variables = new ParameterBag();
     if ($entity_bundle) {
-      // Add the bundle as a raw variable and an upcasted attribute.
-      $request->attributes->set('bundle_argument', new \stdClass());
       $raw_variables->set('bundle_argument', $entity_bundle);
     }
-    $request->attributes->set('_raw_variables', $raw_variables);
+
+    $route_match = $this->getMock('Drupal\Core\Routing\RouteMatchInterface');
+    $route_match->expects($this->any())
+      ->method('getRawParameters')
+      ->will($this->returnValue($raw_variables));
 
     $account = $this->getMock('Drupal\Core\Session\AccountInterface');
-    $this->assertEquals($expected, $applies_check->access($route, $request, $account));
+    $this->assertEquals($expected, $applies_check->access($route, $route_match, $account));
   }
 
 }

@@ -10,6 +10,7 @@ namespace Drupal\migrate;
 use Drupal\Core\Utility\Error;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\migrate\Entity\MigrationInterface;
+use Drupal\migrate\Exception\RequirementsException;
 use Drupal\migrate\Plugin\MigrateIdMapInterface;
 
 /**
@@ -21,7 +22,7 @@ class MigrateExecutable {
   /**
    * The configuration of the migration to do.
    *
-   * @var \Drupal\migrate\Entity\MigrationInterface
+   * @var \Drupal\migrate\Entity\Migration
    */
   protected $migration;
 
@@ -233,11 +234,19 @@ class MigrateExecutable {
    */
   public function import() {
     // Knock off migration if the requirements haven't been met.
-    if (!$this->migration->checkRequirements()) {
+    try {
+      $this->migration->checkRequirements();
+    }
+    catch (RequirementsException $e) {
       $this->message->display(
-        $this->t('Migration @id did not meet the requirements', array('@id' => $this->migration->id())), 'error');
+        $this->t('Migration @id did not meet the requirements. @message @requirements', array(
+          '@id' => $this->migration->id(),
+          '@message' => $e->getMessage(),
+          '@requirements' => $e->getRequirementsString(),
+        )), 'error');
       return MigrationInterface::RESULT_FAILED;
     }
+
     $return = MigrationInterface::RESULT_COMPLETED;
     $source = $this->getSource();
     $id_map = $this->migration->getIdMap();
@@ -303,8 +312,8 @@ class MigrateExecutable {
       }
       $this->totalProcessed++;
       $this->processedSinceFeedback++;
-      if ($highwater_property = $this->migration->get('highwaterProperty')) {
-        $this->migration->saveHighwater($row->getSourceProperty($highwater_property['name']));
+      if ($high_water_property = $this->migration->get('highWaterProperty')) {
+        $this->migration->saveHighWater($row->getSourceProperty($high_water_property['name']));
       }
 
       // Reset row properties.
@@ -333,6 +342,7 @@ class MigrateExecutable {
      */
     #$this->progressMessage($return);
 
+    $this->migration->setMigrationResult($return);
     return $return;
   }
 

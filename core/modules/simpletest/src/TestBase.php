@@ -30,7 +30,7 @@ use Symfony\Component\DependencyInjection\Reference;
  * Base class for Drupal tests.
  *
  * Do not extend this class directly; use either
- * \Drupal\simpletest\WebTestBase or \Drupal\simpletest\UnitTestBase.
+ * \Drupal\simpletest\WebTestBase or \Drupal\simpletest\KernelTestBase.
  */
 abstract class TestBase {
   /**
@@ -1058,7 +1058,6 @@ abstract class TestBase {
 
     // Unregister all custom stream wrappers of the parent site.
     // Availability of Drupal stream wrappers varies by test base class:
-    // - UnitTestBase operates in a completely empty environment.
     // - KernelTestBase supports and maintains stream wrappers in a custom
     //   way.
     // - WebTestBase re-initializes Drupal stream wrappers after installation.
@@ -1080,12 +1079,6 @@ abstract class TestBase {
     unset($GLOBALS['config_directories']);
     unset($GLOBALS['config']);
     unset($GLOBALS['conf']);
-    unset($GLOBALS['theme_key']);
-    unset($GLOBALS['theme']);
-    unset($GLOBALS['theme_info']);
-    unset($GLOBALS['base_theme_info']);
-    unset($GLOBALS['theme_engine']);
-    unset($GLOBALS['theme_path']);
 
     // Log fatal errors.
     ini_set('log_errors', 1);
@@ -1185,14 +1178,6 @@ abstract class TestBase {
     // All destructors of statically cached objects have been invoked above;
     // this second reset is guaranteed to reset everything to nothing.
     drupal_static_reset();
-
-    // Reset global theme variables.
-    unset($GLOBALS['theme_key']);
-    unset($GLOBALS['theme']);
-    unset($GLOBALS['theme_info']);
-    unset($GLOBALS['base_theme_info']);
-    unset($GLOBALS['theme_engine']);
-    unset($GLOBALS['theme_path']);
 
     // Restore original in-memory configuration.
     $GLOBALS['config'] = $this->originalConfig;

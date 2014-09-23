@@ -34,8 +34,8 @@ class ReorderDisplays extends ViewsFormBase {
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
     /** @var $view \Drupal\views\ViewStorageInterface */
-    $view = $form_state['view'];
-    $display_id = $form_state['display_id'];
+    $view = $form_state->get('view');
+    $display_id = $form_state->get('display_id');
 
     $form['#title'] = $this->t('Reorder displays');
     $form['#section'] = 'reorder';
@@ -151,10 +151,11 @@ class ReorderDisplays extends ViewsFormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     /** @var $view \Drupal\views_ui\ViewUI */
-    $view = $form_state['view'];
+    $view = $form_state->get('view');
     $order = array();
 
-    foreach ($form_state['input']['displays'] as $display => $info) {
+    $user_input = $form_state->getUserInput();
+    foreach ($user_input['displays'] as $display => $info) {
       // Add each value that is a field with a weight to our list, but only if
       // it has had its 'removed' checkbox checked.
       if (is_array($info) && isset($info['weight']) && empty($info['removed']['checkbox'])) {

@@ -162,27 +162,13 @@ class CommentDefaultFormatter extends FormatterBase implements ContainerFactoryP
           if ($this->getSetting('pager_id')) {
             $build['pager']['#element'] = $this->getSetting('pager_id');
           }
-          // The viewElements() method of entity field formatters is run
-          // during the #pre_render phase of rendering an entity. A formatter
-          // builds the content of the field in preparation for theming.
-          // All entity cache tags must be available after the #pre_render phase.
-          // This field formatter is highly exceptional: it renders *another*
-          // entity and this referenced entity has its own #pre_render
-          // callbacks. In order collect the cache tags associated with the
-          // referenced entity it must be passed to drupal_render() so that its
-          // #pre_render callbacks are invoked and its full build array is
-          // assembled. Rendering the referenced entity in place here will allow
-          // its cache tags to be bubbled up and included with those of the
-          // main entity when cache tags are collected for a renderable array
-          // in drupal_render().
-          drupal_render($build, TRUE);
           $output['comments'] = $build;
         }
       }
 
       // Append comment form if the comments are open and the form is set to
       // display below the entity. Do not show the form for the print view mode.
-      if ($status == CommentItemInterface::OPEN && $comment_settings['form_location'] == COMMENT_FORM_BELOW && $this->viewMode != 'print') {
+      if ($status == CommentItemInterface::OPEN && $comment_settings['form_location'] == CommentItemInterface::FORM_BELOW && $this->viewMode != 'print') {
         // Only show the add comment form if the user has permission.
         if ($this->currentUser->hasPermission('post comments')) {
           // All users in the "anonymous" role can use the same form: it is fine

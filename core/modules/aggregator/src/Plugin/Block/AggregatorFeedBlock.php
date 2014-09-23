@@ -10,7 +10,7 @@ namespace Drupal\aggregator\Plugin\Block;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\aggregator\FeedStorageInterface;
 use Drupal\aggregator\ItemStorageInterface;
-use Drupal\block\BlockBase;
+use Drupal\Core\Block\BlockBase;
 use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
@@ -143,8 +143,8 @@ class AggregatorFeedBlock extends BlockBase implements ContainerFactoryPluginInt
    * {@inheritdoc}
    */
   public function blockSubmit($form, FormStateInterface $form_state) {
-    $this->configuration['block_count'] = $form_state['values']['block_count'];
-    $this->configuration['feed'] = $form_state['values']['feed'];
+    $this->configuration['block_count'] = $form_state->getValue('block_count');
+    $this->configuration['feed'] = $form_state->getValue('feed');
   }
 
   /**
@@ -163,9 +163,9 @@ class AggregatorFeedBlock extends BlockBase implements ContainerFactoryPluginInt
       $items = $this->itemStorage->loadMultiple($result);
 
       $more_link = array(
-        '#theme' => 'more_link',
-        '#url' => 'aggregator/sources/' . $feed->id(),
-        '#title' => t("View this feed's recent news."),
+        '#type' => 'more_link',
+        '#href' => 'aggregator/sources/' . $feed->id(),
+        '#attributes' => array('title' => $this->t("View this feed's recent news.")),
       );
       $read_more = drupal_render($more_link);
       $rendered_items = array();

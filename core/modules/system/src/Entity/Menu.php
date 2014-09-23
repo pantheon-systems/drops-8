@@ -17,8 +17,8 @@ use Drupal\system\MenuInterface;
  * @ConfigEntityType(
  *   id = "menu",
  *   label = @Translation("Menu"),
- *   controllers = {
- *     "access" = "Drupal\system\MenuAccessController"
+ *   handlers = {
+ *     "access" = "Drupal\system\MenuAccessControlHandler"
  *   },
  *   admin_permission = "administer menu",
  *   entity_keys = {

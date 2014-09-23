@@ -7,7 +7,7 @@
 
 namespace Drupal\views\Plugin\Block;
 
-use Drupal\block\BlockBase;
+use Drupal\Core\Block\BlockBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\views\ViewExecutableFactory;
@@ -152,7 +152,7 @@ abstract class ViewsBlockBase extends BlockBase implements ContainerFactoryPlugi
     );
 
     if ($this->view->storage->access('edit') && \Drupal::moduleHandler()->moduleExists('views_ui')) {
-      $form['views_label']['#description'] = $this->t('Changing the title here means it cannot be dynamically altered anymore. (Try changing it directly in <a href="@url">@name</a>.)', array('@url' => \Drupal::url('views_ui.edit_display', array('view' => $this->view->storage->id(), 'display_id' => $this->displayID)), '@name' => $this->view->storage->label()));
+      $form['views_label']['#description'] = $this->t('Changing the title here means it cannot be dynamically altered anymore. (Try changing it directly in <a href="@url">@name</a>.)', array('@url' => \Drupal::url('entity.view.edit_display_form', array('view' => $this->view->storage->id(), 'display_id' => $this->displayID)), '@name' => $this->view->storage->label()));
     }
     else {
       $form['views_label']['#description'] = $this->t('Changing the title here means it cannot be dynamically altered anymore.');
@@ -165,8 +165,8 @@ abstract class ViewsBlockBase extends BlockBase implements ContainerFactoryPlugi
    * {@inheritdoc}
    */
   public function blockSubmit($form, FormStateInterface $form_state) {
-    if (!empty($form_state['values']['views_label_checkbox'])) {
-      $this->configuration['views_label'] = $form_state['values']['views_label'];
+    if (!$form_state->isValueEmpty('views_label_checkbox')) {
+      $this->configuration['views_label'] = $form_state->getValue('views_label');
     }
     else {
       $this->configuration['views_label'] = '';

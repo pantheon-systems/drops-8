@@ -67,6 +67,7 @@ class MenuParentFormSelector implements MenuParentFormSelectorInterface {
       $parameters->setMaxDepth($depth_limit);
       $tree = $this->menuLinkTree->load($menu_name, $parameters);
       $manipulators = array(
+        array('callable' => 'menu.default_tree_manipulators:checkNodeAccess'),
         array('callable' => 'menu.default_tree_manipulators:checkAccess'),
         array('callable' => 'menu.default_tree_manipulators:generateIndexAndSort'),
       );
@@ -143,7 +144,7 @@ class MenuParentFormSelector implements MenuParentFormSelectorInterface {
       $link = $element->link;
       if ($link->getPluginId() != $exclude) {
         $title = $indent . ' ' . Unicode::truncate($link->getTitle(), 30, TRUE, FALSE);
-        if ($link->isHidden()) {
+        if (!$link->isEnabled()) {
           $title .= ' (' . $this->t('disabled') . ')';
         }
         $options[$menu_name . ':' . $link->getPluginId()] = $title;

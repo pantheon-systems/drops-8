@@ -35,18 +35,16 @@ abstract class NumericItemBase extends FieldItemBase {
     $settings = $this->getSettings();
 
     $element['min'] = array(
-      '#type' => 'textfield',
+      '#type' => 'number',
       '#title' => t('Minimum'),
       '#default_value' => $settings['min'],
       '#description' => t('The minimum value that should be allowed in this field. Leave blank for no minimum.'),
-      '#element_validate' => array('form_validate_number'),
     );
     $element['max'] = array(
-      '#type' => 'textfield',
+      '#type' => 'number',
       '#title' => t('Maximum'),
       '#default_value' => $settings['max'],
       '#description' => t('The maximum value that should be allowed in this field. Leave blank for no maximum.'),
-      '#element_validate' => array('form_validate_number'),
     );
     $element['prefix'] = array(
       '#type' => 'textfield',
@@ -111,6 +109,21 @@ abstract class NumericItemBase extends FieldItemBase {
     }
 
     return $constraints;
+  }
+
+  /**
+   * Helper method to truncate a decimal number to a given number of decimals.
+   *
+   * @param float $decimal
+   *   Decimal number to truncate.
+   * @param int $num
+   *   Number of digits the output will have.
+   *
+   * @return float
+   *   Decimal number truncated.
+   */
+  protected static function truncateDecimal($decimal, $num) {
+    return floor($decimal * pow(10, $num)) / pow(10, $num);
   }
 
 }

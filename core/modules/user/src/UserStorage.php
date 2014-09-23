@@ -7,23 +7,23 @@
 
 namespace Drupal\user;
 
-use Drupal\Component\Uuid\UuidInterface;
+use Drupal\Core\Database\Connection;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Entity\Sql\SqlContentEntityStorage;
 use Drupal\Core\Password\PasswordInterface;
-use Drupal\Core\Database\Connection;
+use Drupal\Core\Session\AccountInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Drupal\Core\Entity\ContentEntityDatabaseStorage;
 
 /**
  * Controller class for users.
  *
- * This extends the Drupal\Core\Entity\ContentEntityDatabaseStorage class,
+ * This extends the Drupal\Core\Entity\Sql\SqlContentEntityStorage class,
  * adding required special handling for user objects.
  */
-class UserStorage extends ContentEntityDatabaseStorage implements UserStorageInterface {
+class UserStorage extends SqlContentEntityStorage implements UserStorageInterface {
 
   /**
    * Provides the password hashing service object.
@@ -146,7 +146,7 @@ class UserStorage extends ContentEntityDatabaseStorage implements UserStorageInt
    * {@inheritdoc}
    */
   public function updateLastLoginTimestamp(UserInterface $account) {
-    $this->database->update('users')
+    $this->database->update('users_field_data')
       ->fields(array('login' => $account->getLastLoginTime()))
       ->condition('uid', $account->id())
       ->execute();
@@ -157,56 +157,15 @@ class UserStorage extends ContentEntityDatabaseStorage implements UserStorageInt
   /**
    * {@inheritdoc}
    */
-  public function getSchema() {
-    $schema = parent::getSchema();
-
-    // Marking the respective fields as NOT NULL makes the indexes more
-    // performant.
-    $schema['users']['fields']['access']['not null'] = TRUE;
-    $schema['users']['fields']['created']['not null'] = TRUE;
-    $schema['users']['fields']['name']['not null'] = TRUE;
-
-    // The "users" table does not use serial identifiers.
-    $schema['users']['fields']['uid']['type'] = 'int';
-    $schema['users']['indexes'] += array(
-      'user__access' => array('access'),
-      'user__created' => array('created'),
-      'user__mail' => array('mail'),
-    );
-    $schema['users']['unique keys'] += array(
-      'user__name' => array('name'),
-    );
-
-    $schema['users_roles'] = array(
-      'description' => 'Maps users to roles.',
-      'fields' => array(
-        'uid' => array(
-          'type' => 'int',
-          'unsigned' => TRUE,
-          'not null' => TRUE,
-          'default' => 0,
-          'description' => 'Primary Key: {users}.uid for user.',
-        ),
-        'rid' => array(
-          'type' => 'varchar',
-          'length' => 64,
-          'not null' => TRUE,
-          'description' => 'Primary Key: ID for the role.',
-        ),
-      ),
-      'primary key' => array('uid', 'rid'),
-      'indexes' => array(
-        'rid' => array('rid'),
-      ),
-      'foreign keys' => array(
-        'user' => array(
-          'table' => 'users',
-          'columns' => array('uid' => 'uid'),
-        ),
-      ),
-    );
-
-    return $schema;
+  public function updateLastAccessTimestamp(AccountInterface $account, $timestamp) {
+    $this->database->update('users_field_data')
+      ->fields(array(
+        'access' => $timestamp,
+      ))
+      ->condition('uid', $account->id())
+      ->execute();
+    // Ensure that the entity cache is cleared.
+    $this->resetCache(array($account->id()));
   }
 
 }

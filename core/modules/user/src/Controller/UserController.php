@@ -10,7 +10,6 @@ namespace Drupal\user\Controller;
 use Drupal\Component\Utility\Xss;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\user\UserInterface;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Drupal\Core\Datetime\DateFormatter;
@@ -82,7 +81,7 @@ class UserController extends ControllerBase {
     if ($account->isAuthenticated()) {
       // The current user is already logged in.
       if ($account->id() == $uid) {
-        drupal_set_message($this->t('You are logged in as %user. <a href="!user_edit">Change your password.</a>', array('%user' => $account->getUsername(), '!user_edit' => $this->url('user.edit', array('user' => $account->id())))));
+        drupal_set_message($this->t('You are logged in as %user. <a href="!user_edit">Change your password.</a>', array('%user' => $account->getUsername(), '!user_edit' => $this->url('entity.user.edit_form', array('user' => $account->id())))));
       }
       // A different user is already logged in on the computer.
       else {
@@ -132,17 +131,14 @@ class UserController extends ControllerBase {
    * Displays user profile if user is logged in, or login form for anonymous
    * users.
    *
-   * @param \Symfony\Component\HttpFoundation\Request $request
-   *   The current request.
-   *
    * @return \Symfony\Component\HttpFoundation\RedirectResponse|array
    *   Returns either a redirect to the user page or the render
    *   array of the login form.
    */
-  public function userPage(Request $request) {
+  public function userPage() {
     $user = $this->currentUser();
     if ($user->id()) {
-      $response = $this->redirect('user.view', array('user' => $user->id()));
+      $response = $this->redirect('entity.user.canonical', array('user' => $user->id()));
     }
     else {
       $form_builder = $this->formBuilder();

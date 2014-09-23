@@ -38,7 +38,8 @@ class SimpletestTestForm extends FormBase {
 
     // Do not needlessly re-execute a full test discovery if the user input
     // already contains an explicit list of test classes to run.
-    if (!empty($form_state['input']['tests'])) {
+    $user_input = $form_state->getUserInput();
+    if (!empty($user_input['tests'])) {
       return $form;
     }
 
@@ -197,12 +198,13 @@ class SimpletestTestForm extends FormBase {
     //   entire form more easily, BUT retaining routing access security and
     //   retaining Form API CSRF #token security validation, and without having
     //   to rely on form caching.
-    if (empty($form_state['values']['tests']) && !empty($form_state['input']['tests'])) {
-      $form_state['values']['tests'] = $form_state['input']['tests'];
+    $user_input = $form_state->getUserInput();
+    if ($form_state->isValueEmpty('tests') && !empty($user_input['tests'])) {
+      $form_state->setValue('tests', $user_input['tests']);
     }
 
     $tests_list = array();
-    foreach ($form_state['values']['tests'] as $class_name => $value) {
+    foreach ($form_state->getValue('tests') as $class_name => $value) {
       if ($value === $class_name) {
         if (is_subclass_of($class_name, 'PHPUnit_Framework_TestCase')) {
           $test_type = 'phpunit';

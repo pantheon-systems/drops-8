@@ -28,10 +28,13 @@ class TwigDebugMarkupTest extends WebTestBase {
    */
   function testTwigDebugMarkup() {
     $extension = twig_extension();
-    theme_enable(array('test_theme'));
+    \Drupal::service('theme_handler')->install(array('test_theme'));
     \Drupal::config('system.theme')->set('default', 'test_theme')->save();
+    $this->drupalCreateContentType(array('type' => 'page'));
     // Enable debug, rebuild the service container, and clear all caches.
-    $this->settingsSet('twig_debug', TRUE);
+    $parameters = $this->container->getParameter('twig.config');
+    $parameters['debug'] = TRUE;
+    $this->setContainerParameter('twig.config', $parameters);
     $this->rebuildContainer();
     $this->resetAll();
 
@@ -67,7 +70,9 @@ class TwigDebugMarkupTest extends WebTestBase {
     $this->assertTrue(strpos($output, '* node--foo--bar' . $extension . PHP_EOL . '   * node--foo' . $extension . PHP_EOL . '   * node--3--full' . $extension . PHP_EOL . '   * node--3' . $extension . PHP_EOL . '   * node--page--full' . $extension . PHP_EOL . '   * node--page' . $extension . PHP_EOL . '   * node--full' . $extension . PHP_EOL . '   x node' . $extension) !== FALSE, 'Suggested template files found in order and base template shown as current template.');
 
     // Disable debug, rebuild the service container, and clear all caches.
-    $this->settingsSet('twig_debug', FALSE);
+    $parameters = $this->container->getParameter('twig.config');
+    $parameters['debug'] = FALSE;
+    $this->setContainerParameter('twig.config', $parameters);
     $this->rebuildContainer();
     $this->resetAll();
 

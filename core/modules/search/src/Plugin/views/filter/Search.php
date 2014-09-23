@@ -92,7 +92,7 @@ class Search extends FilterPluginBase {
       '#size' => 15,
       '#default_value' => $this->value,
       '#attributes' => array('title' => $this->t('Search keywords')),
-      '#title' => empty($form_state['exposed']) ? $this->t('Keywords') : '',
+      '#title' => !$form_state->get('exposed') ? $this->t('Keywords') : '',
     );
   }
 
@@ -105,10 +105,10 @@ class Search extends FilterPluginBase {
     }
 
     $key = $this->options['expose']['identifier'];
-    if (!empty($form_state['values'][$key])) {
-      $this->queryParseSearchExpression($form_state['values'][$key]);
+    if (!$form_state->isValueEmpty($key)) {
+      $this->queryParseSearchExpression($form_state->getValue($key));
       if (count($this->searchQuery->words()) == 0) {
-        form_set_error($key, $form_state, format_plural(\Drupal::config('search.settings')->get('index.minimum_word_size'), 'You must include at least one positive keyword with 1 character or more.', 'You must include at least one positive keyword with @count characters or more.'));
+        $form_state->setErrorByName($key, format_plural(\Drupal::config('search.settings')->get('index.minimum_word_size'), 'You must include at least one positive keyword with 1 character or more.', 'You must include at least one positive keyword with @count characters or more.'));
       }
     }
   }

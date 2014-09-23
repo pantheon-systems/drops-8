@@ -25,7 +25,7 @@ class DateTimeItemTest extends FieldUnitTestBase {
    */
   public static $modules = array('datetime');
 
-  public function setUp() {
+  protected function setUp() {
     parent::setUp();
 
     // Create a field with settings to validate.
@@ -74,6 +74,11 @@ class DateTimeItemTest extends FieldUnitTestBase {
     $entity->save();
     $entity = entity_load('entity_test', $id);
     $this->assertEqual($entity->field_datetime->value, $new_value);
+
+    // Test the generateSampleValue() method.
+    $entity = entity_create('entity_test');
+    $entity->field_datetime->generateSampleItems();
+    $this->entityValidateAndSave($entity);
   }
 
   /**

@@ -24,7 +24,7 @@ class RowEntityTest extends ViewUnitTestBase {
    *
    * @var array
    */
-  public static $modules = array('taxonomy', 'text', 'filter', 'field', 'entity', 'system', 'menu_link');
+  public static $modules = array('taxonomy', 'text', 'filter', 'field', 'entity', 'system');
 
   /**
    * Views used by this test.
@@ -54,14 +54,15 @@ class RowEntityTest extends ViewUnitTestBase {
     $term->save();
 
     $view = Views::getView('test_entity_row');
-    $this->render($view->preview());
+    $build = $view->preview();
+    $this->render($build);
 
     $this->assertText($term->getName(), 'The rendered entity appears as row in the view.');
 
     // Tests the available view mode options.
     $form = array();
     $form_state = new FormState();
-    $form_state['view'] = $view->storage;
+    $form_state->set('view', $view->storage);
     $view->rowPlugin->buildOptionsForm($form, $form_state);
 
     $this->assertTrue(isset($form['view_mode']['#options']['default']), 'Ensure that the default view mode is available');

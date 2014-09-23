@@ -93,7 +93,7 @@ class ConfigEntityBaseUnitTest extends UnitTestCase {
   /**
    * {@inheritdoc}
    */
-  public function setUp() {
+  protected function setUp() {
     $this->id = $this->randomMachineName();
     $values = array(
       'id' => $this->id,
@@ -170,12 +170,12 @@ class ConfigEntityBaseUnitTest extends UnitTestCase {
     // synchronization.
     $this->entity->set('dependencies', array('module' => array('node')));
     $this->entity->preSave($storage);
-    $this->assertEmpty($this->entity->get('dependencies'));
+    $this->assertEmpty($this->entity->getDependencies());
 
     $this->entity->setSyncing(TRUE);
     $this->entity->set('dependencies', array('module' => array('node')));
     $this->entity->preSave($storage);
-    $dependencies = $this->entity->get('dependencies');
+    $dependencies = $this->entity->getDependencies();
     $this->assertContains('node', $dependencies['module']);
   }
 
@@ -188,19 +188,19 @@ class ConfigEntityBaseUnitTest extends UnitTestCase {
     $method->invoke($this->entity, 'module', $this->provider);
     $method->invoke($this->entity, 'module', 'core');
     $method->invoke($this->entity, 'module', 'node');
-    $dependencies = $this->entity->get('dependencies');
+    $dependencies = $this->entity->getDependencies();
     $this->assertNotContains($this->provider, $dependencies['module']);
     $this->assertNotContains('core', $dependencies['module']);
     $this->assertContains('node', $dependencies['module']);
 
     // Test sorting of dependencies.
     $method->invoke($this->entity, 'module', 'action');
-    $dependencies = $this->entity->get('dependencies');
+    $dependencies = $this->entity->getDependencies();
     $this->assertEquals(array('action', 'node'), $dependencies['module']);
 
     // Test sorting of dependency types.
     $method->invoke($this->entity, 'entity', 'system.action.id');
-    $dependencies = $this->entity->get('dependencies');
+    $dependencies = $this->entity->getDependencies();
     $this->assertEquals(array('entity', 'module'), array_keys($dependencies));
   }
 
@@ -277,6 +277,18 @@ class ConfigEntityBaseUnitTest extends UnitTestCase {
         )
       )
     );
+  }
+
+  /**
+   * @covers ::calculateDependencies
+   */
+  public function testCalculateDependenciesWithThirdPartySettings() {
+    $this->entity = $this->getMockForAbstractClass('\Drupal\Tests\Core\Config\Entity\Fixtures\ConfigEntityBaseWithThirdPartySettings', array(array(), $this->entityTypeId));
+    $this->entity->setThirdPartySetting('test_provider', 'test', 'test');
+    $this->entity->setThirdPartySetting('test_provider2', 'test', 'test');
+    $this->entity->setThirdPartySetting($this->provider, 'test', 'test');
+
+    $this->assertEquals(array('test_provider', 'test_provider2'), $this->entity->calculateDependencies()['module']);
   }
 
   /**

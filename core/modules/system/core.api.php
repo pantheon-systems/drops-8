@@ -46,7 +46,8 @@
  * - @link cache Caching @endlink
  * - @link utility Utility classes and functions @endlink
  * - @link user_api User accounts, permissions, and roles @endlink
- * - @link theme_render Theme system and render API @endlink
+ * - @link theme_render Render API @endlink
+ * - @link themeable Theme system @endlink
  * - @link migration Migration @endlink
  *
  * @section additional Additional topics
@@ -471,7 +472,7 @@
  * \Drupal::cache()->set($cid, $data, CacheBackendInterface::CACHE_PERMANENT, $tags);
  *
  * // Delete or invalidate all cache items with certain tags.
- * \Drupal\Core\Cache\Cache::deleteTags(array('node' => array(1));
+ * \Drupal\Core\Cache\Cache::deleteTags(array('node' => array(1)));
  * \Drupal\Core\Cache\Cache::invalidateTags(array('user' => array(1)));
  * @endcode
  *
@@ -550,10 +551,11 @@
  * appropriately for their particular sites.
  *
  * @section sec_define Defining permissions
- * Modules define permissions by implementing hook_permission(). The return
- * value defines machine names, human-readable names, and optionally
- * descriptions for each permission type. The machine names are the canonical
- * way to refer to permissions for access checking.
+ * Modules define permissions via a $module.permissions.yml file or by
+ * implementing hook_permission(). The return value defines machine names,
+ * human-readable names, and optionally descriptions for each permission type.
+ * The machine names are the canonical way to refer to permissions for access
+ * checking.
  *
  * @section sec_access Access permission checking
  * Depending on the situation, there are several methods for ensuring that
@@ -564,8 +566,9 @@
  *   to check access. See the @link menu Routing topic @endlink for more
  *   information.
  * - Entities: Access for various entity operations is designated either with
- *   simple permissions or access controller classes in the entity annotation.
- *   See the @link entity_api Entity API topic @endlink for more information.
+ *   simple permissions or access control handler classes in the entity
+ *   annotation. See the @link entity_api Entity API topic @endlink for more
+ *   information.
  * - Other code: There is a 'current_user' service, which can be injected into
  *   classes to provide access to the current user account (see the
  *   @link container Services and Dependency Injection topic @endlink for more
@@ -698,9 +701,9 @@
  *   generic method to access any service. Examples:
  *   @code
  *   // Retrieve the entity.manager service object (special method exists).
- *   $manager = \Drupal->entityManager();
+ *   $manager = \Drupal::entityManager();
  *   // Retrieve the service object for machine name 'foo.bar'.
- *   $foobar = \Drupal->service('foo.bar');
+ *   $foobar = \Drupal::service('foo.bar');
  *   @endcode
  *
  * As a note, you should always use dependency injection (via service arguments
@@ -1489,10 +1492,7 @@
  * passed to most methods, so they can use it to communicate with the form
  * system and each other. $form_state is an object that implements
  * \Drupal\Core\Form\FormStateInterface.
- */
-
-/**
- * @} End of "defgroup form_api".
+ * @}
  */
 
 /**
@@ -1544,10 +1544,58 @@
  * section, regardless of the queue being reliable or not, the processing code
  * should be aware that an item might be handed over for processing more than
  * once (because the processing code might time out before it finishes).
+ * @}
  */
 
 /**
- * @} End of "defgroup queue".
+ * @defgroup annotation Annotations
+ * @{
+ * Annotations for class discovery and metadata description.
+ *
+ * The Drupal plugin system has a set of reusable components that developers
+ * can use, override, and extend in their modules. Most of the plugins use
+ * annotations, which let classes register themselves as plugins and describe
+ * their metadata. (Annotations can also be used for other purposes, though
+ * at the moment, Drupal only uses them for the plugin system.)
+ *
+ * To annotate a class as a plugin, add code similar to the following to the
+ * end of the documentation block immediately preceding the class declaration:
+ * @code
+ * * @ContentEntityType(
+ * *   id = "comment",
+ * *   label = @Translation("Comment"),
+ * *   ...
+ * *   base_table = "comment"
+ * * )
+ * @endcode
+ *
+ * Note that you must use double quotes; single quotes will not work in
+ * annotations.
+ *
+ * Some annotation types, which extend the "@ PluginID" annotation class, have
+ * only a single 'id' key in their annotation. For these, it is possible to use
+ * a shorthand annotation. For example:
+ * @code
+ * * @ViewsArea("entity")
+ * @endcode
+ * in place of
+ * @code
+ * * @ViewsArea(
+ * *   id = "entity"
+ * *)
+ * @endcode
+ *
+ * The available annotation classes are listed in this topic, and can be
+ * identified when you are looking at the Drupal source code by having
+ * "@ Annotation" in their documentation blocks (without the space after @). To
+ * find examples of annotation for a particular annotation class, such as
+ * EntityType, look for class files that have an @ annotation section using the
+ * annotation class.
+ *
+ * @see plugin_translatable
+ * @see plugin_context
+ *
+ * @}
  */
 
 /**

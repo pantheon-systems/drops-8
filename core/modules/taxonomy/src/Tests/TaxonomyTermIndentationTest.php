@@ -21,7 +21,7 @@ class TaxonomyTermIndentationTest extends TaxonomyTestBase {
    */
   public static $modules = array('taxonomy');
 
-  public function setUp() {
+  protected function setUp() {
     parent::setUp();
     $this->admin_user = $this->drupalCreateUser(array('administer taxonomy', 'bypass node access'));
     $this->drupalLogin($this->admin_user);
@@ -66,7 +66,7 @@ class TaxonomyTermIndentationTest extends TaxonomyTestBase {
     $this->assertNoPattern('|<div class="indentation">&nbsp;</div>|');
 
     // Check explicitly that term 2 has no parents.
-    drupal_static_reset();
+    \Drupal::entityManager()->getStorage('taxonomy_term')->resetCache();
     $parents = taxonomy_term_load_parents($term2->id());
     $this->assertTrue(empty($parents), 'Term 2 has no parents now');
   }

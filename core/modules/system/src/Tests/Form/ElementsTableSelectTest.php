@@ -9,6 +9,7 @@ namespace Drupal\system\Tests\Form;
 
 use Drupal\Core\Form\FormState;
 use Drupal\simpletest\WebTestBase;
+use Drupal\Core\Form\FormStateInterface;
 
 /**
  * Tests the tableselect form element for expected behavior.
@@ -215,19 +216,19 @@ class ElementsTableSelectTest extends WebTestBase {
     // bypass it by setting the token to FALSE.
     $form['#token'] = FALSE;
 
-    $form_state['input'] = $edit;
-    $form_state['input']['form_id'] = $form_id;
-    $form_state['build_info']['callback_object'] = new StubForm($form_id, $form);
+    $edit['form_id'] = $form_id;
+    $form_state->setUserInput($edit);
+    $form_state->setFormObject(new StubForm($form_id, $form));
 
     \Drupal::formBuilder()->prepareForm($form_id, $form, $form_state);
 
     drupal_process_form($form_id, $form, $form_state);
 
-    $errors = form_get_errors($form_state);
+    $errors = $form_state->getErrors();
 
     // Clear errors and messages.
     drupal_get_messages();
-    $form_state['errors'] = array();
+    $form_state->clearErrors();
 
     // Return the processed form together with form_state and errors
     // to allow the caller lowlevel access to the form.

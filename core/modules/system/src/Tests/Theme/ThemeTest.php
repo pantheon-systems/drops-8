@@ -7,6 +7,7 @@
 
 namespace Drupal\system\Tests\Theme;
 
+use Drupal\Component\Serialization\Json;
 use Drupal\simpletest\WebTestBase;
 use Drupal\test_theme\ThemeClass;
 
@@ -24,9 +25,9 @@ class ThemeTest extends WebTestBase {
    */
   public static $modules = array('theme_test', 'node');
 
-  function setUp() {
+  protected function setUp() {
     parent::setUp();
-    theme_enable(array('test_theme'));
+    \Drupal::service('theme_handler')->install(array('test_theme'));
   }
 
   /**
@@ -55,18 +56,18 @@ class ThemeTest extends WebTestBase {
    * Test that _theme() returns expected data types.
    */
   function testThemeDataTypes() {
-    // theme_test_false is an implemented theme hook so _theme() should return a
-    // string, even though the theme function itself can return anything.
+    // theme_test_false is an implemented theme hook so \Drupal::theme() service should
+    // return a string, even though the theme function itself can return anything.
     $foos = array('null' => NULL, 'false' => FALSE, 'integer' => 1, 'string' => 'foo');
     foreach ($foos as $type => $example) {
-      $output = _theme('theme_test_foo', array('foo' => $example));
-      $this->assertTrue(is_string($output), format_string('_theme() returns a string for data type !type.', array('!type' => $type)));
+      $output = \Drupal::theme()->render('theme_test_foo', array('foo' => $example));
+      $this->assertTrue(is_string($output), format_string('\Drupal::theme() returns a string for data type !type.', array('!type' => $type)));
     }
 
-    // suggestionnotimplemented is not an implemented theme hook so _theme()
+    // suggestionnotimplemented is not an implemented theme hook so \Drupal::theme() service
     // should return FALSE instead of a string.
-    $output = _theme(array('suggestionnotimplemented'));
-    $this->assertIdentical($output, FALSE, '_theme() returns FALSE when a hook suggestion is not implemented.');
+    $output = \Drupal::theme()->render(array('suggestionnotimplemented'), array());
+    $this->assertIdentical($output, FALSE, '\Drupal::theme() returns FALSE when a hook suggestion is not implemented.');
   }
 
   /**
@@ -124,6 +125,15 @@ class ThemeTest extends WebTestBase {
   }
 
   /**
+   * Ensures that non-HTML requests never initialize themes.
+   */
+  public function testThemeOnNonHtmlRequest() {
+    $this->drupalGet('theme-test/non-html');
+    $json = Json::decode($this->getRawContent());
+    $this->assertFalse($json['theme_initialized']);
+  }
+
+  /**
    * Ensure page-front template suggestion is added when on front page.
    */
   function testFrontPageThemeSuggestion() {
@@ -136,14 +146,6 @@ class ThemeTest extends WebTestBase {
     // Set it back to not annoy the batch runner.
     _current_path($original_path);
     $this->assertTrue(in_array('page__front', $suggestions), 'Front page template was suggested.');
-  }
-
-  /**
-   * Ensures theme hook_*_alter() implementations can run before anything is rendered.
-   */
-  function testAlter() {
-    $this->drupalGet('theme-test/alter');
-    $this->assertText('The altered data is test_theme_theme_test_alter_alter was invoked.', 'The theme was able to implement an alter hook during page building before anything was rendered.');
   }
 
   /**
@@ -197,11 +199,12 @@ class ThemeTest extends WebTestBase {
    */
   function testListThemes() {
     $theme_handler = $this->container->get('theme_handler');
-    $theme_handler->enable(array('test_subtheme'));
+    $theme_handler->install(array('test_subtheme'));
     $themes = $theme_handler->listInfo();
 
-    // Check if drupal_theme_access() retrieves enabled themes properly from list_themes().
-    $this->assertTrue(drupal_theme_access('test_theme'), 'Enabled theme detected');
+    // Check if drupal_theme_access() retrieves installed themes properly from
+    // list_themes().
+    $this->assertTrue(drupal_theme_access('test_theme'), 'Installed theme detected');
 
     // Check for base theme and subtheme lists.
     $base_theme_list = array('test_basetheme' => 'Theme test base theme');
@@ -219,8 +222,8 @@ class ThemeTest extends WebTestBase {
    * Test the theme_get_setting() function.
    */
   function testThemeGetSetting() {
-    $this->container->get('theme_handler')->enable(array('test_subtheme'));
-    $GLOBALS['theme_key'] = 'test_theme';
+    $this->container->get('theme_handler')->install(array('test_subtheme'));
+    \Drupal::theme()->setActiveTheme(\Drupal::service('theme.initialization')->initTheme('test_theme'));
     $this->assertIdentical(theme_get_setting('theme_test_setting'), 'default value', 'theme_get_setting() uses the default theme automatically.');
     $this->assertNotEqual(theme_get_setting('subtheme_override', 'test_basetheme'), theme_get_setting('subtheme_override', 'test_subtheme'), 'Base theme\'s default settings values can be overridden by subtheme.');
     $this->assertIdentical(theme_get_setting('basetheme_only', 'test_subtheme'), 'base theme value', 'Base theme\'s default settings values are inherited by subtheme.');
@@ -274,6 +277,19 @@ class ThemeTest extends WebTestBase {
     $attributes = $this->xpath('/html/body[@theme_test_page_variable="Page variable is an array."]');
     $this->assertTrue(count($attributes) == 1, 'In template_preprocess_html(), the page variable is still an array (not rendered yet).');
     $this->assertText('theme test page bottom markup', 'Modules are able to set the page bottom region.');
+  }
+
+  /**
+   * Tests that region attributes can be manipulated via preprocess functions.
+   */
+  function testRegionClass() {
+    \Drupal::moduleHandler()->install(array('block', 'theme_region_test'));
+
+    // Place a block.
+    $this->drupalPlaceBlock('system_main_block');
+    $this->drupalGet('');
+    $elements = $this->cssSelect(".region-sidebar-first.new_class");
+    $this->assertEqual(count($elements), 1, 'New class found.');
   }
 
 }

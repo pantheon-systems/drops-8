@@ -92,7 +92,7 @@ class MenuDeleteForm extends EntityConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function submit(array $form, FormStateInterface $form_state) {
+  public function submitForm(array &$form, FormStateInterface $form_state) {
     $form_state->setRedirect('menu_ui.overview_page');
 
     // Locked menus may not be deleted.
@@ -106,7 +106,7 @@ class MenuDeleteForm extends EntityConfirmFormBase {
     //   parameter that is being removed. Also, consider moving this to
     //   menu_ui.module as part of a generic response to entity deletion.
     //   https://www.drupal.org/node/2310329
-    $menu_links = $this->menuLinkManager->loadLinksByRoute('menu_ui.menu_edit', array('menu' => $this->entity->id()), TRUE);
+    $menu_links = $this->menuLinkManager->loadLinksByRoute('entity.menu.edit_form', array('menu' => $this->entity->id()), TRUE);
     foreach ($menu_links as $id => $link) {
       $this->menuLinkManager->removeDefinition($id);
     }

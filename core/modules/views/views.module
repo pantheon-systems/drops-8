@@ -13,7 +13,6 @@ use Drupal\Component\Utility\String;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Database\Query\AlterableInterface;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\views\Plugin\Derivative\ViewsLocalTask;
@@ -129,7 +128,21 @@ function views_theme($existing, $type, $theme, $path) {
     // For displays, we pass in a dummy array as the first parameter, since
     // $view is an object but the core contextual_preprocess() function only
     // attaches contextual links when the primary theme argument is an array.
-    'display' => array('view_array' => array(), 'view' => NULL),
+    'display' => array(
+      'view_array' => array(),
+      'view' => NULL,
+      'rows' => array(),
+      'header' => array(),
+      'footer' => array(),
+      'empty' => array(),
+      'exposed' => array(),
+      'more' => array(),
+      'feed_icon' => array(),
+      'pager' => array(),
+      'title' => '',
+      'attachment_before' => array(),
+      'attachment_after' => array(),
+    ),
     'style' => array('view' => NULL, 'options' => NULL, 'rows' => NULL, 'title' => NULL),
     'row' => array('view' => NULL, 'options' => NULL, 'row' => NULL, 'field_alias' => NULL),
     'exposed_form' => array('view' => NULL, 'options' => NULL),
@@ -247,11 +260,6 @@ function views_preprocess_node(&$variables) {
       $variables['page'] = FALSE;
     }
   }
-
-  // Allow to alter comments and links based on the settings in the row plugin.
-  if (!empty($variables['view']->rowPlugin) && $variables['view']->rowPlugin->getPluginId() == 'entity:node') {
-    node_row_node_view_preprocess_node($variables);
-  }
 }
 
 /**
@@ -290,19 +298,6 @@ function views_theme_suggestions_comment_alter(array &$suggestions, array $varia
       $suggestions[] = 'comment__view__' . $comment->view->storage->id() . '__' . $comment->view->current_display;
     }
   }
-}
-
-/**
- * Implements hook_permission().
- */
-function views_permission() {
-  return array(
-    'access all views' => array(
-      'title' => t('Bypass views access control'),
-      'description' => t('Bypass access control when accessing views.'),
-      'restrict access' => TRUE,
-    ),
-  );
 }
 
 /**
@@ -478,34 +473,6 @@ function views_add_contextual_links(&$render_element, $location, ViewExecutable 
       }
     }
   }
-}
-
-/**
- * Prepares a list of language names.
- *
- * This is a wrapper around \Drupal::languageManager()->getLanguages() to return
- * a plain key value array.
- *
- * @param string $field
- *   The field of the language object which should be used as the value of the
- *   array.
- * @param int $flags
- *   (optional) Specifies the state of the languages that have to be returned.
- *   It can be: LanguageInterface::STATE_CONFIGURABLE,
- *   LanguageInterface::STATE_LOCKED, LanguageInterface::STATE_ALL.
- *
- * @return array
- *   An array of language names (or $field) keyed by the langcode.
- *
- * @see locale_language_list()
- */
-function views_language_list($field = 'name', $flags = LanguageInterface::STATE_ALL) {
-  $languages = \Drupal::languageManager()->getLanguages($flags);
-  $list = array();
-  foreach ($languages as $language) {
-    $list[$language->id] = ($field == 'name') ? t($language->name) : $language->$field;
-  }
-  return $list;
 }
 
 /**
@@ -818,11 +785,12 @@ function views_pre_render_views_form_views_form($element) {
   }
 
   // Apply substitutions to the rendered output.
-  $element['output']['#markup'] = str_replace($search, $replace, $element['output']['#markup']);
+  $element['output'] = array('#markup' => str_replace($search, $replace, drupal_render($element['output'])));
 
   // Sort, render and add remaining form fields.
   $children = Element::children($element, TRUE);
   $element['#children'] = drupal_render_children($element, $children);
+
   return $element;
 }
 
@@ -971,7 +939,7 @@ function views_element_validate_tags($element, FormStateInterface $form_state) {
   $values = array_map('trim', explode(',', $element['#value']));
   foreach ($values as $value) {
     if (preg_match("/[^a-z_]/", $value)) {
-      form_error($element, $form_state, t('The query tags may only contain lower-case alphabetical characters and underscores.'));
+      $form_state->setError($element, t('The query tags may only contain lower-case alphabetical characters and underscores.'));
       return;
     }
   }

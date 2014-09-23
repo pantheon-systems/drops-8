@@ -20,7 +20,7 @@ use Drupal\field\Entity\FieldStorageConfig;
  */
 class ManageFieldsTest extends FieldUiTestBase {
 
-  function setUp() {
+  protected function setUp() {
     parent::setUp();
 
     // Create random field name.
@@ -144,6 +144,7 @@ class ManageFieldsTest extends FieldUiTestBase {
     $edit = array(
       'instance[settings][test_instance_setting]' => $string,
     );
+    $this->assertText(t('Default value'), 'Default value heading is shown');
     $this->drupalPostForm(NULL, $edit, t('Save settings'));
 
     // Assert the field settings are correct.

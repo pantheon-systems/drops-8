@@ -18,88 +18,51 @@ use Drupal\Tests\UnitTestCase;
 class LanguageUnitTest extends UnitTestCase {
 
   /**
-   * The language under test.
-   *
-   * @var \Drupal\Core\Language\Language
-   */
-  protected $language;
-
-  /**
-   * {@inheritdoc}
-   */
-  public function setUp() {
-    $this->language = new Language();
-  }
-
-  /**
-   * Tests name getter and setter methods.
-   *
    * @covers ::getName()
-   * @covers ::setName()
    */
   public function testGetName() {
     $name = $this->randomMachineName();
-    $this->assertSame($this->language, $this->language->setName($name));
-    $this->assertSame($name, $this->language->getName());
+    $language_code = $this->randomMachineName(2);
+    $language = new Language(array('id' => $language_code, 'name' => $name));
+    $this->assertSame($name, $language->getName());
   }
 
   /**
-   * Tests langcode ID getter and setter methods.
-   *
    * @covers ::getId()
-   * @covers ::setId()
    */
   public function testGetLangcode() {
     $language_code = $this->randomMachineName(2);
-    $this->assertSame($this->language, $this->language->setId($language_code));
-    $this->assertSame($language_code, $this->language->getId());
+    $language = new Language(array('id' => $language_code));
+    $this->assertSame($language_code, $language->getId());
   }
 
   /**
-   * Tests direction getter and setter methods.
-   *
    * @covers ::getDirection()
-   * @covers ::setDirection()
    */
   public function testGetDirection() {
-    $direction = LanguageInterface::DIRECTION_RTL;
-    $this->assertSame($this->language, $this->language->setDirection($direction));
-    $this->assertSame($direction, $this->language->getDirection());
+    $language_code = $this->randomMachineName(2);
+    $language = new Language(array('id' => $language_code, 'direction' => LanguageInterface::DIRECTION_RTL));
+    $this->assertSame(LanguageInterface::DIRECTION_RTL, $language->getDirection());
   }
 
   /**
-   * Tests isDefault() and default setter.
-   *
    * @covers ::isDefault()
-   * @covers ::setDefault()
    */
   public function testIsDefault() {
-    $default = TRUE;
-    $this->assertSame($this->language, $this->language->setDefault($default));
-    $this->assertSame($default, $this->language->isDefault());
+    $language_code = $this->randomMachineName(2);
+    $language = new Language(array('id' => $language_code, 'default' => TRUE));
+    $this->assertTrue($language->isDefault());
   }
 
   /**
-   * Tests negotiationMethodId getter and setter methods.
-   *
-   * @covers ::getNegotiationMethodId()
-   * @covers ::setNegotiationMethodId()
-   */
-  public function testGetNegotiationMethodId() {
-    $method_id = $this->randomMachineName();
-    $this->assertSame($this->language, $this->language->setNegotiationMethodId($method_id));
-    $this->assertSame($method_id, $this->language->getNegotiationMethodId());
-  }
-
-  /**
-   * Tests sorting an array of Language objects.
+   * Tests sorting an array of language objects.
    *
    * @covers ::sort()
    *
    * @dataProvider providerTestSortArrayOfLanguages
    *
-   * @param \Drupal\Core\Language\Language[] $languages
-   *   An array of \Drupal\Core\Language\Language objects.
+   * @param \Drupal\Core\Language\LanguageInterface[] $languages
+   *   An array of language objects.
    * @param array $expected
    *   The expected array of keys.
    */
@@ -115,20 +78,9 @@ class LanguageUnitTest extends UnitTestCase {
    *   An array of test data.
    */
   public function providerTestSortArrayOfLanguages() {
-    $language9A = new Language();
-    $language9A->setName('A');
-    $language9A->setWeight(9);
-    $language9A->setId('dd');
-
-    $language10A = new Language();
-    $language10A->setName('A');
-    $language10A->setWeight(10);
-    $language10A->setId('ee');
-
-    $language10B = new Language();
-    $language10B->setName('B');
-    $language10B->setWeight(10);
-    $language10B->setId('ff');
+    $language9A = new Language(array('id' => 'dd', 'name' => 'A', 'weight' => 9));
+    $language10A = new Language(array('id' => 'ee', 'name' => 'A', 'weight' => 10));
+    $language10B = new Language(array('id' => 'ff', 'name' => 'B', 'weight' => 10));
 
     return array(
       // Set up data set #0, already ordered by weight.

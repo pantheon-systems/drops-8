@@ -2,19 +2,22 @@
 
 /**
  * @file
- * Contains Drupal\Core\Path\PathValidator
+ * Contains \Drupal\Core\Path\PathValidator
  */
 
 namespace Drupal\Core\Path;
 
 use Drupal\Component\Utility\UrlHelper;
-use Drupal\Core\Access\AccessManagerInterface;
 use Drupal\Core\ParamConverter\ParamNotConvertedException;
-use Drupal\Core\Routing\RequestHelper;
-use Drupal\Core\Routing\RouteProviderInterface;
+use Drupal\Core\PathProcessor\InboundPathProcessorInterface;
+use Drupal\Core\Routing\AccessAwareRouterInterface;
 use Drupal\Core\Session\AccountInterface;
-use Symfony\Component\HttpFoundation\RequestStack;
-use Symfony\Component\Routing\Matcher\RequestMatcherInterface;
+use Drupal\Core\Url;
+use Symfony\Cmf\Component\Routing\RouteObjectInterface;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\Routing\Exception\ResourceNotFoundException;
+use Symfony\Component\Routing\Matcher\UrlMatcherInterface;
 
 /**
  * Provides a default path validator and access checker.
@@ -22,96 +25,130 @@ use Symfony\Component\Routing\Matcher\RequestMatcherInterface;
 class PathValidator implements PathValidatorInterface {
 
   /**
-   * The request matcher.
+   * The access aware router.
    *
-   * @var \Symfony\Component\Routing\Matcher\RequestMatcherInterface
+   * @var \Drupal\Core\Routing\AccessAwareRouterInterface
    */
-  protected $requestMatcher;
+  protected $accessAwareRouter;
 
   /**
-   * The route provider.
+   * A router implementation which does not check access.
    *
-   * @var \Drupal\Core\Routing\RouteProviderInterface
+   * @var \Symfony\Component\Routing\Matcher\UrlMatcherInterface
    */
-  protected $routeProvider;
+  protected $accessUnawareRouter;
 
   /**
-   * The request stack.
-   *
-   * @var \Symfony\Component\HttpFoundation\RequestStack
-   */
-  protected $requestStack;
-
-  /**
-   * The access manager.
-   *
-   * @var \Drupal\Core\Access\AccessManagerInterface
-   */
-  protected $accessManager;
-
-  /**
-   * The user account.
+   * The current user.
    *
    * @var \Drupal\Core\Session\AccountInterface
    */
   protected $account;
 
   /**
+   * The path processor.
+   *
+   * @var \Drupal\Core\PathProcessor\InboundPathProcessorInterface
+   */
+  protected $pathProcessor;
+
+  /**
    * Creates a new PathValidator.
    *
-   * @param \Symfony\Component\Routing\Matcher\RequestMatcherInterface $request_matcher
-   *   The request matcher.
-   * @param \Drupal\Core\Routing\RouteProviderInterface $route_provider
-   *   The route provider.
-   * @param \Symfony\Component\HttpFoundation\RequestStack $request_stack
-   *   The request stack.
-   * @param \Drupal\Core\Access\AccessManagerInterface $access_manager
-   *   The access manager.
+   * @param \Drupal\Core\Routing\AccessAwareRouterInterface $access_aware_router
+   *   The access aware router.
+   * @param \Symfony\Component\Routing\Matcher\UrlMatcherInterface $access_unaware_router
+   *   A router implementation which does not check access.
    * @param \Drupal\Core\Session\AccountInterface $account
-   *   The user account.
+   *   The current user.
+   * @param \Drupal\Core\PathProcessor\InboundPathProcessorInterface $path_processor
+   *   The path processor;
    */
-  public function __construct(RequestMatcherInterface $request_matcher, RouteProviderInterface $route_provider, RequestStack $request_stack, AccessManagerInterface $access_manager, AccountInterface $account) {
-    $this->requestMatcher = $request_matcher;
-    $this->routeProvider = $route_provider;
-    $this->requestStack = $request_stack;
-    $this->accessManager = $access_manager;
+  public function __construct(AccessAwareRouterInterface $access_aware_router, UrlMatcherInterface $access_unaware_router, AccountInterface $account, InboundPathProcessorInterface $path_processor) {
+    $this->accessAwareRouter = $access_aware_router;
+    $this->accessUnawareRouter = $access_unaware_router;
     $this->account = $account;
+    $this->pathProcessor = $path_processor;
   }
 
   /**
    * {@inheritdoc}
    */
   public function isValid($path) {
-    // External URLs and the front page are always valid.
-    if ($path == '<front>' || UrlHelper::isExternal($path)) {
-      return TRUE;
+    return (bool) $this->getUrlIfValid($path);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getUrlIfValid($path) {
+    $parsed_url = UrlHelper::parse($path);
+
+    $options = [];
+    if (!empty($parsed_url['query'])) {
+      $options['query'] = $parsed_url['query'];
+    }
+    if (!empty($parsed_url['fragment'])) {
+      $options['fragment'] = $parsed_url['fragment'];
     }
 
-    // Check the routing system.
-    $collection = $this->routeProvider->getRoutesByPattern('/' . $path);
-    if ($collection->count() == 0) {
+    if ($parsed_url['path'] == '<front>') {
+      return new Url('<front>', [], $options);
+    }
+    elseif (UrlHelper::isExternal($path) && UrlHelper::isValid($path)) {
+      if (empty($parsed_url['path'])) {
+        return FALSE;
+      }
+      return Url::createFromPath($path);
+    }
+
+    $path = ltrim($path, '/');
+    $request = Request::create('/' . $path);
+    $attributes = $this->getPathAttributes($path, $request);
+
+    if (!$attributes) {
       return FALSE;
     }
 
-    $request = RequestHelper::duplicate($this->requestStack->getCurrentRequest(), '/' . $path);
-    $request->attributes->set('_system_path', $path);
+    $route_name = $attributes[RouteObjectInterface::ROUTE_NAME];
+    $route_parameters = $attributes['_raw_variables']->all();
 
-    // We indicate that a menu administrator is running the menu access check.
-    $request->attributes->set('_menu_admin', TRUE);
+    return new Url($route_name, $route_parameters, $options + ['query' => $request->query->all()]);
+  }
 
-    // Attempt to match this path to provide a fully built request to the
-    // access checker.
+  /**
+   * Gets the matched attributes for a given path.
+   *
+   * @param string $path
+   *   The path to check.
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   A request object with the given path.
+   *
+   * @return array|bool
+   *   An array of request attributes of FALSE if an exception was thrown.
+   */
+  protected function getPathAttributes($path, Request $request) {
+    if ($this->account->hasPermission('link to any page')) {
+      $router = $this->accessUnawareRouter;
+    }
+    else {
+      $router = $this->accessAwareRouter;
+    }
+
+    $path = $this->pathProcessor->processInbound($path, $request);
+
     try {
-      $request->attributes->add($this->requestMatcher->matchRequest($request));
+      return $router->match('/' . $path);
+    }
+    catch (ResourceNotFoundException $e) {
+      return FALSE;
     }
     catch (ParamNotConvertedException $e) {
       return FALSE;
     }
-
-    // Consult the access manager.
-    $routes = $collection->all();
-    $route = reset($routes);
-    return $this->accessManager->check($route, $request, $this->account);
+    catch (AccessDeniedHttpException $e) {
+      return FALSE;
+    }
   }
 
 }

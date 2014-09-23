@@ -25,7 +25,7 @@ class TelephoneItemTest extends FieldUnitTestBase {
    */
   public static $modules = array('telephone');
 
-  public function setUp() {
+  protected function setUp() {
     parent::setUp();
 
     // Create a telephone field and instance for validation.
@@ -69,6 +69,11 @@ class TelephoneItemTest extends FieldUnitTestBase {
     $entity->save();
     $entity = entity_load('entity_test', $id);
     $this->assertEqual($entity->field_test->value, $new_value);
+
+    // Test sample item generation.
+    $entity = entity_create('entity_test');
+    $entity->field_test->generateSampleItems();
+    $this->entityValidateAndSave($entity);
   }
 
 }

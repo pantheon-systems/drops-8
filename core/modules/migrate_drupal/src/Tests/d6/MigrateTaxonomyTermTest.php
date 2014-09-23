@@ -25,7 +25,7 @@ class MigrateTaxonomyTermTest extends MigrateDrupalTestBase {
    */
   protected function setUp() {
     parent::setUp();
-    $this->prepareIdMappings(array(
+    $this->prepareMigrations(array(
       'd6_taxonomy_vocabulary' => array(
         array(array(1), array('vocabulary_1_i_0_')),
         array(array(2), array('vocabulary_2_i_1_')),
@@ -93,7 +93,7 @@ class MigrateTaxonomyTermTest extends MigrateDrupalTestBase {
       $this->assertEqual($term->vid->target_id, $values['vid']);
       $this->assertEqual($term->weight->value, $values['weight']);
       if ($values['parent'] === array(0)) {
-        $this->assertEqual($term->parent->value, 0);
+        $this->assertEqual($term->parent->target_id, 0);
       }
       else {
         $parents = array();

@@ -193,14 +193,16 @@ function callback_queue_worker($queue_item_data) {
  * specify their default values. The values returned by this hook will be
  * merged with the elements returned by form constructor implementations and so
  * can return defaults for any Form APIs keys in addition to those explicitly
- * documented by \Drupal\Core\Render\ElementInfoInterface::getInfo().
+ * documented by \Drupal\Core\Render\ElementInfoManagerInterface::getInfo().
  *
  * @return array
  *   An associative array with structure identical to that of the return value
- *   of \Drupal\Core\Render\ElementInfoInterface::getInfo().
+ *   of \Drupal\Core\Render\ElementInfoManagerInterface::getInfo().
+ *
+ * @deprecated Use an annotated class instead, see
+ *   \Drupal\Core\Render\Element\ElementInterface.
  *
  * @see hook_element_info_alter()
- * @see system_element_info()
  */
 function hook_element_info() {
   $types['filter_format'] = array(
@@ -217,7 +219,7 @@ function hook_element_info() {
  *
  * @param array $types
  *   An associative array with structure identical to that of the return value
- *   of \Drupal\Core\Render\ElementInfoInterface::getInfo().
+ *   of \Drupal\Core\Render\ElementInfoManagerInterface::getInfo().
  *
  * @see hook_element_info()
  */
@@ -372,7 +374,7 @@ function hook_ajax_render_alter(array &$data) {
  *   Nested array of renderable elements that make up the page.
  *
  * @see hook_page_alter()
- * @see drupal_render_page()
+ * @see DefaultHtmlFragmentRenderer::render()
  */
 function hook_page_build(&$page) {
   $path = drupal_get_path('module', 'foo');
@@ -411,9 +413,10 @@ function hook_page_build(&$page) {
  *   patten is the route name followed by a dot and a unique suffix. For
  *   example, an additional logout link might have a machine name of
  *   user.logout.navigation, and default links provided to edit the article and
- *   page content types could use machine names node.type_edit.article and
- *   node.type_edit.page. Since the machine name may be arbitrary, you should
- *   never write code that assumes it is identical to the route name.
+ *   page content types could use machine names
+ *   entity.node_type.edit_form.article and entity.node_type.edit_form.page.
+ *   Since the machine name may be arbitrary, you should never write code that
+ *   assumes it is identical to the route name.
  *
  *   The value corresponding to each machine name key is an associative array
  *   that may contain the following key-value pairs:
@@ -656,7 +659,7 @@ function hook_contextual_links_plugins_alter(array &$contextual_links) {
  *   Nested array of renderable elements that make up the page.
  *
  * @see hook_page_build()
- * @see drupal_render_page()
+ * @see DefaultHtmlFragmentRenderer::render()
  */
 function hook_page_alter(&$page) {
   // Add help text to the user login block.
@@ -671,7 +674,7 @@ function hook_page_alter(&$page) {
  *
  * One popular use of this hook is to add form elements to the node form. When
  * altering a node form, the node entity can be retrieved by invoking
- * $form_state['controller']->getEntity().
+ * $form_state->getFormObject()->getEntity().
  *
  * In addition to hook_form_alter(), which is called for all forms, there are
  * two more specific form hooks available. The first,
@@ -694,7 +697,7 @@ function hook_page_alter(&$page) {
  * @param $form_state
  *   The current state of the form. The arguments that
  *   \Drupal::formBuilder()->getForm() was originally called with are available
- *   in the array $form_state['build_info']['args'].
+ *   in the array $form_state->getBuildInfo()['args'].
  * @param $form_id
  *   String representing the name of the form itself. Typically this is the
  *   name of the function that generated the form.
@@ -733,7 +736,7 @@ function hook_form_alter(&$form, \Drupal\Core\Form\FormStateInterface $form_stat
  * @param $form_state
  *   The current state of the form. The arguments that
  *   \Drupal::formBuilder()->getForm() was originally called with are available
- *   in the array $form_state['build_info']['args'].
+ *   in the array $form_state->getBuildInfo()['args'].
  * @param $form_id
  *   String representing the name of the form itself. Typically this is the
  *   name of the function that generated the form.
@@ -770,7 +773,7 @@ function hook_form_FORM_ID_alter(&$form, \Drupal\Core\Form\FormStateInterface $f
  *
  * To identify the base form ID for a particular form (or to determine whether
  * one exists) check the $form_state. The base form ID is stored under
- * $form_state['build_info']['base_form_id'].
+ * $form_state->getBuildInfo()['base_form_id'].
  *
  * Form alter hooks are called in the following order: hook_form_alter(),
  * hook_form_BASE_FORM_ID_alter(), hook_form_FORM_ID_alter(). See
@@ -976,6 +979,8 @@ function hook_system_info_alter(array &$info, \Drupal\Core\Extension\Extension $
  *     is specific to the permission you are defining.
  *
  * @ingroup user_api
+ * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
+ *   Use $module.permissions.yml files.
  */
 function hook_permission() {
   return array(
@@ -1390,6 +1395,29 @@ function hook_modules_installed($modules) {
  */
 function hook_module_preuninstall($module) {
   mymodule_cache_clear();
+}
+
+/**
+ * Perform necessary actions when themes are installed.
+ *
+ * @param array $themes
+ *   An array of theme names which are installed.
+ */
+function hook_themes_installed(array $themes) {
+  // Add some state entries depending on the theme.
+  foreach ($themes as $theme) {
+    \Drupal::state()->set('example.' . $theme, 'some-value');
+  }
+}
+
+/**
+ * Perform necessary actions when themes are uninstalled.
+ */
+function hook_themes_uninstalled(array $themes) {
+  // Remove some state entries depending on the theme.
+  foreach ($themes as $theme) {
+    \Drupal::state()->delete('example.' . $theme);
+  }
 }
 
 /**
@@ -2866,51 +2894,4 @@ function hook_config_schema_info_alter(&$definitions) {
 
 /**
  * @} End of "addtogroup hooks".
- */
-
-/**
- * @defgroup annotation Annotations
- * @{
- * Annotations for class discovery and metadata description.
- *
- * The Drupal plugin system has a set of reusable components that developers
- * can use, override, and extend in their modules. Most of the plugins use
- * annotations, which let classes register themselves as plugins and describe
- * their metadata. (Annotations can also be used for other purposes, though
- * at the moment, Drupal only uses them for the plugin system.)
- *
- * To annotate a class as a plugin, add code similar to the following to the
- * end of the documentation block immediately preceding the class declaration:
- * @code
- * * @ContentEntityType(
- * *   id = "comment",
- * *   label = @Translation("Comment"),
- * *   ...
- * *   base_table = "comment"
- * * )
- * @endcode
- *
- * Note that you must use double quotes; single quotes will not work in
- * annotations.
- *
- * Some annotation types, which extend the "@ PluginID" annotation class, have
- * only a single 'id' key in their annotation. For these, it is possible to use
- * a shorthand annotation. For example:
- * @code
- * * @ViewsArea("entity")
- * @endcode
- * in place of
- * @code
- * * @ViewsArea(
- * *   id = "entity"
- * *)
- * @endcode
- *
- * The available annotation classes are listed in this topic, and can be
- * identified when you are looking at the Drupal source code by having
- * "@ Annotation" in their documentation blocks (without the space after @). To
- * find examples of annotation for a particular annotation class, such as
- * EntityType, look for class files that have an @ annotation section using the
- * annotation class.
- * @}
  */

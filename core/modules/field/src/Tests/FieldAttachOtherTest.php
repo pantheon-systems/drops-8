@@ -160,7 +160,7 @@ class FieldAttachOtherTest extends FieldUnitTestBase {
    * Test entity cache.
    *
    * Complements unit test coverage in
-   * \Drupal\Tests\Core\Entity\ContentEntityDatabaseStorageTest.
+   * \Drupal\Tests\Core\Entity\Sql\SqlContentEntityStorageTest.
    */
   function testEntityCache() {
     // Initialize random values and a test entity.
@@ -331,11 +331,11 @@ class FieldAttachOtherTest extends FieldUnitTestBase {
     $values_2[1]['value'] = 0;
 
     // Pretend the form has been built.
-    $form_state['build_info']['callback_object'] = \Drupal::entityManager()->getFormObject($entity_type, 'default');
+    $form_state->setFormObject(\Drupal::entityManager()->getFormObject($entity_type, 'default'));
     \Drupal::formBuilder()->prepareForm('field_test_entity_form', $form, $form_state);
     drupal_process_form('field_test_entity_form', $form, $form_state);
-    $form_state['values'][$this->fieldTestData->field_name] = $values;
-    $form_state['values'][$this->fieldTestData->field_name_2] = $values_2;
+    $form_state->setValue($this->fieldTestData->field_name, $values);
+    $form_state->setValue($this->fieldTestData->field_name_2, $values_2);
 
     // Extract values for all fields.
     $entity = clone($entity_init);

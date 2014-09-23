@@ -9,7 +9,7 @@ namespace Drupal\system\Tests\DrupalKernel;
 
 use Drupal\Core\DrupalKernel;
 use Drupal\Core\Site\Settings;
-use Drupal\simpletest\DrupalUnitTestBase;
+use Drupal\simpletest\KernelTestBase;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -17,14 +17,9 @@ use Symfony\Component\HttpFoundation\Request;
  *
  * @group DrupalKernel
  */
-class DrupalKernelTest extends DrupalUnitTestBase {
+class DrupalKernelTest extends KernelTestBase {
 
-  /**
-   * @var \Composer\Autoload\ClassLoader
-   */
-  protected $classloader;
-
-  function setUp() {
+  protected function setUp() {
     // DrupalKernel relies on global $config_directories and requires those
     // directories to exist. Therefore, create the directories, but do not
     // invoke KernelTestBase::setUp(), since that would set up further
@@ -38,8 +33,6 @@ class DrupalKernelTest extends DrupalUnitTestBase {
       'directory' => DRUPAL_ROOT . '/' . $this->public_files_directory . '/php',
       'secret' => Settings::getHashSalt(),
     )));
-
-    $this->classloader = drupal_classloader();
   }
 
   /**
@@ -59,7 +52,8 @@ class DrupalKernelTest extends DrupalUnitTestBase {
    */
   protected function getTestKernel(Request $request, array $modules_enabled = NULL, $read_only = FALSE) {
     // Manually create kernel to avoid replacing settings.
-    $kernel = DrupalKernel::createFromRequest($request, drupal_classloader(), 'testing');
+    $class_loader = require DRUPAL_ROOT . '/core/vendor/autoload.php';
+    $kernel = DrupalKernel::createFromRequest($request, $class_loader, 'testing');
     $this->settingsSet('hash_salt', $this->databasePrefix);
     if (isset($modules_enabled)) {
       $kernel->updateModules($modules_enabled);

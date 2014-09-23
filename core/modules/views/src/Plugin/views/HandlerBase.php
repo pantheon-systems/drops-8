@@ -16,7 +16,6 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\views\Plugin\views\display\DisplayPluginBase;
-use Drupal\views\Plugin\views\PluginBase;
 use Drupal\views\ViewExecutable;
 use Drupal\Core\Database\Database;
 use Drupal\views\Views;
@@ -27,7 +26,7 @@ use Drupal\views\ViewsData;
  *
  * @ingroup views_plugins
  */
-abstract class HandlerBase extends PluginBase {
+abstract class HandlerBase extends PluginBase implements ViewsHandlerInterface {
 
   /**
    * Where the $query object will reside:
@@ -109,7 +108,7 @@ abstract class HandlerBase extends PluginBase {
   }
 
   /**
-   * Overrides \Drupal\views\Plugin\views\PluginBase::init().
+   * {@inheritdoc}
    */
   public function init(ViewExecutable $view, DisplayPluginBase $display, array &$options = NULL) {
     parent::init($view, $display, $options);
@@ -172,7 +171,7 @@ abstract class HandlerBase extends PluginBase {
   }
 
   /**
-   * Return a string representing this handler's name in the UI.
+   * {@inheritdoc}
    */
   public function adminLabel($short = FALSE) {
     if (!empty($this->options['admin_label'])) {
@@ -184,11 +183,7 @@ abstract class HandlerBase extends PluginBase {
   }
 
   /**
-   * Shortcut to get a handler's raw field value.
-   *
-   * This should be overridden for handlers with formulae or other
-   * non-standard fields. Because this takes an argument, fields
-   * overriding this can just call return parent::getField($formula)
+   * {@inheritdoc}
    */
   public function getField($field = NULL) {
     if (!isset($field)) {
@@ -218,15 +213,7 @@ abstract class HandlerBase extends PluginBase {
   }
 
   /**
-   * Sanitize the value for output.
-   *
-   * @param $value
-   *   The value being rendered.
-   * @param $type
-   *   The type of sanitization needed. If not provided, String::checkPlain() is used.
-   *
-   * @return string
-   *   Returns the safe value.
+   * {@inheritdoc}
    */
   public function sanitizeValue($value, $type = NULL) {
     switch ($type) {
@@ -277,11 +264,11 @@ abstract class HandlerBase extends PluginBase {
   }
 
   /**
-   * Build the options form.
+   * {@inheritdoc}
    */
   public function buildOptionsForm(&$form, FormStateInterface $form_state) {
     // Some form elements belong in a fieldset for presentation, but can't
-    // be moved into one because of the form_state['values'] hierarchy. Those
+    // be moved into one because of the $form_state->getValues() hierarchy. Those
     // elements can add a #fieldset => 'fieldset_name' property, and they'll
     // be moved to their fieldset during pre_render.
     $form['#pre_render'][] = array(get_class($this), 'preRenderAddFieldsetMarkup');
@@ -351,9 +338,9 @@ abstract class HandlerBase extends PluginBase {
    * Provide a form for aggregation settings.
    */
   public function buildGroupByForm(&$form, FormStateInterface $form_state) {
-    $display_id = $form_state['display_id'];
-    $type = $form_state['type'];
-    $id = $form_state['id'];
+    $display_id = $form_state->get('display_id');
+    $type = $form_state->get('type');
+    $id = $form_state->get('id');
 
     $form['#section'] = $display_id . '-' . $type . '-' . $id;
 
@@ -377,7 +364,7 @@ abstract class HandlerBase extends PluginBase {
    * There is no need for this function to actually store the data.
    */
   public function submitGroupByForm(&$form, FormStateInterface $form_state) {
-    $form_state['handler']->options['group_type'] = $form_state['values']['options']['group_type'];
+    $form_state->get('handler')->options['group_type'] = $form_state->getValue(['options', 'group_type']);
   }
 
   /**
@@ -473,7 +460,7 @@ abstract class HandlerBase extends PluginBase {
     // have no data in POST so their defaults get wiped out. This prevents
     // these defaults from getting wiped out. This setting will only be TRUE
     // during a 2nd pass rerender.
-    if (!empty($form_state['force_expose_options'])) {
+    if ($form_state->get('force_expose_options')) {
       foreach (Element::children($form['expose']) as $id) {
         if (isset($form['expose'][$id]['#default_value']) && !isset($form['expose'][$id]['#value'])) {
           $form['expose'][$id]['#value'] = $form['expose'][$id]['#default_value'];
@@ -483,10 +470,7 @@ abstract class HandlerBase extends PluginBase {
   }
 
   /**
-   * Check whether current user has access to this handler.
-   *
-   * @param AccountInterface $account
-   * @return boolean
+   * {@inheritdoc}
    */
   public function access(AccountInterface $account) {
     if (isset($this->definition['access callback']) && function_exists($this->definition['access callback'])) {
@@ -500,26 +484,19 @@ abstract class HandlerBase extends PluginBase {
   }
 
   /**
-   * Run before the view is built.
-   *
-   * This gives all the handlers some time to set up before any handler has
-   * been fully run.
+   * {@inheritdoc}
    */
   public function preQuery() {
   }
 
   /**
-   * Don't run a query by default.
+   * {@inheritdoc}
    */
   public function query() {
   }
 
   /**
-   * Run after the view is executed, before the result is cached.
-   *
-   * This gives all the handlers some time to modify values. This is primarily
-   * used so that handlers that pull up secondary data can put it in the
-   * $values so that the raw data can be utilized externally.
+   * {@inheritdoc}
    */
   public function postExecute(&$values) { }
 
@@ -534,8 +511,7 @@ abstract class HandlerBase extends PluginBase {
   }
 
   /**
-   * Called just prior to query(), this lets a handler set up any relationship
-   * it needs.
+   * {@inheritdoc}
    */
   public function setRelationship() {
     // Ensure this gets set to something.
@@ -564,8 +540,7 @@ abstract class HandlerBase extends PluginBase {
   }
 
   /**
-   * Ensure the main table for this handler is in the query. This is used
-   * a lot.
+   * {@inheritdoc}
    */
   public function ensureMyTable() {
     if (!isset($this->tableAlias)) {
@@ -575,7 +550,7 @@ abstract class HandlerBase extends PluginBase {
   }
 
   /**
-   * Provide text for the administrative summary.
+   * {@inheritdoc}
    */
   public function adminSummary() { }
 
@@ -612,11 +587,7 @@ abstract class HandlerBase extends PluginBase {
   public function storeExposedInput($input, $status) { return TRUE; }
 
   /**
-   * Get the join object that should be used for this handler.
-   *
-   * This method isn't used a great deal, but it's very handy for easily
-   * getting the join if it is necessary to make some changes to it, such
-   * as adding an 'extra'.
+   * {@inheritdoc}
    */
   public function getJoin() {
     // get the join from this table that links back to the base table.
@@ -635,21 +606,12 @@ abstract class HandlerBase extends PluginBase {
   }
 
   /**
-   * Validates the handler against the complete View.
-   *
-   * This is called when the complete View is being validated. For validating
-   * the handler options form use validateOptionsForm().
-   *
-   * @see views_handler::validateOptionsForm()
-   *
-   * @return
-   *   Empty array if the handler is valid; an array of error strings if it is not.
+   * {@inheritdoc}
    */
   public function validate() { return array(); }
 
   /**
-   * Determines if the handler is considered 'broken', meaning it's a
-   * a placeholder used when a handler can't be found.
+   * {@inheritdoc}
    */
   public function broken() {
     return FALSE;
@@ -692,24 +654,14 @@ abstract class HandlerBase extends PluginBase {
   }
 
   /**
-   * Sets the views data service.
-   *
-   * @param \Drupal\views\ViewsData $views_data
-   *   The views data.
+   * {@inheritdoc}
    */
   public function setViewsData(ViewsData $views_data) {
     $this->viewsData = $views_data;
   }
 
   /**
-   * Fetches a handler to join one table to a primary table from the data cache.
-   *
-   * @param string $table
-   *   The table to join from.
-   * @param string $base_table
-   *   The table to join to.
-   *
-   * @return \Drupal\views\Plugin\views\join\JoinPluginBase
+   * {@inheritdoc}
    */
   public static function getTableJoin($table, $base_table) {
     $data = Views::viewsData()->get($table);
@@ -745,13 +697,7 @@ abstract class HandlerBase extends PluginBase {
   }
 
   /**
-   * Determines the entity type used by this handler.
-   *
-   * If this handler uses a relationship, the base class of the relationship is
-   * taken into account.
-   *
-   * @return string
-   *   The machine name of the entity type.
+   * {@inheritdoc}
    */
   public function getEntityType() {
     // If the user has configured a relationship on the handler take that into
@@ -772,117 +718,34 @@ abstract class HandlerBase extends PluginBase {
   }
 
   /**
-   * Breaks x,y,z and x+y+z into an array. Numeric only.
-   *
-   * @param string $str
-   *   The string to parse.
-   * @param \Drupal\views\Plugin\views\HandlerBase|null $handler
-   *   The handler object to use as a base. If not specified one will
-   *   be created.
-   *
-   * @return \Drupal\views\Plugin\views\HandlerBase|stdClass $handler
-   *   The new handler object.
+   * {@inheritdoc}
    */
-  public static function breakPhrase($str, &$handler = NULL) {
-    if (!$handler) {
-      $handler = new \stdClass();
-    }
+  public static function breakString($str, $force_int = FALSE) {
+    $operator = NULL;
+    $value = array();
 
-    // Set up defaults:
-
-    if (!isset($handler->value)) {
-      $handler->value = array();
-    }
-
-    if (!isset($handler->operator)) {
-      $handler->operator = 'or';
-    }
-
-    if (empty($str)) {
-      return $handler;
-    }
-
-    if (preg_match('/^([0-9]+[+ ])+[0-9]+$/', $str)) {
+    // Determine if the string has 'or' operators (plus signs) or 'and'
+    // operators (commas) and split the string accordingly.
+    if (preg_match('/^([\w0-9-_]+[+ ]+)+[\w0-9-_]+$/u', $str)) {
       // The '+' character in a query string may be parsed as ' '.
-      $handler->operator = 'or';
-      $handler->value = preg_split('/[+ ]/', $str);
+      $operator = 'or';
+      $value = preg_split('/[+ ]/', $str);
     }
-    elseif (preg_match('/^([0-9]+,)*[0-9]+$/', $str)) {
-      $handler->operator = 'and';
-      $handler->value = explode(',', $str);
-    }
-
-    // Keep an 'error' value if invalid strings were given.
-    if (!empty($str) && (empty($handler->value) || !is_array($handler->value))) {
-      $handler->value = array(-1);
-      return $handler;
+    elseif (preg_match('/^([\w0-9-_]+[, ]+)*[\w0-9-_]+$/u', $str)) {
+      $operator = 'and';
+      $value = explode(',', $str);
     }
 
-    // Doubly ensure that all values are numeric only.
-    foreach ($handler->value as $id => $value) {
-      $handler->value[$id] = intval($value);
+    // Filter any empty matches (Like from '++' in a string) and reset the
+    // array keys. 'strlen' is used as the filter callback so we do not lose
+    // 0 values (would otherwise evaluate == FALSE).
+    $value = array_values(array_filter($value, 'strlen'));
+
+    if ($force_int) {
+      $value = array_map('intval', $value);
     }
 
-    return $handler;
-  }
-
-  /**
-   * Breaks x,y,z and x+y+z into an array. Works for strings.
-   *
-   * @param string $str
-   *   The string to parse.
-   * @param \Drupal\views\Plugin\views\HandlerBase|null $handler
-   *   The object to use as a base. If not specified one will
-   *   be created.
-   *
-   * @return \Drupal\views\Plugin\views\HandlerBase|stdClass $handler
-   *   The new handler object.
-   */
-  public static function breakPhraseString($str, &$handler = NULL) {
-    if (!$handler) {
-      $handler = new \stdClass();
-    }
-
-    // Set up defaults:
-    if (!isset($handler->value)) {
-      $handler->value = array();
-    }
-
-    if (!isset($handler->operator)) {
-      $handler->operator = 'or';
-    }
-
-    if ($str == '') {
-      return $handler;
-    }
-
-    // Determine if the string has 'or' operators (plus signs) or 'and' operators
-    // (commas) and split the string accordingly. If we have an 'and' operator,
-    // spaces are treated as part of the word being split, but otherwise they are
-    // treated the same as a plus sign.
-    $or_wildcard = '[^\s+,]';
-    $and_wildcard = '[^+,]';
-    if (preg_match("/^({$or_wildcard}+[+ ])+{$or_wildcard}+$/", $str)) {
-      $handler->operator = 'or';
-      $handler->value = preg_split('/[+ ]/', $str);
-    }
-    elseif (preg_match("/^({$and_wildcard}+,)*{$and_wildcard}+$/", $str)) {
-      $handler->operator = 'and';
-      $handler->value = explode(',', $str);
-    }
-
-    // Keep an 'error' value if invalid strings were given.
-    if (!empty($str) && (empty($handler->value) || !is_array($handler->value))) {
-      $handler->value = array(-1);
-      return $handler;
-    }
-
-    // Doubly ensure that all values are strings only.
-    foreach ($handler->value as $id => $value) {
-      $handler->value[$id] = (string) $value;
-    }
-
-    return $handler;
+    return (object) array('value' => $value, 'operator' => $operator);
   }
 
   /**
@@ -898,14 +761,18 @@ abstract class HandlerBase extends PluginBase {
       $this->defaultExposeOptions();
     }
 
-    $form_state['view']->getExecutable()->setHandler($form_state['display_id'], $form_state['type'], $form_state['id'], $item);
+    $view = $form_state->get('view');
+    $display_id = $form_state->get('display_id');
+    $type = $form_state->get('type');
+    $id = $form_state->get('id');
+    $view->getExecutable()->setHandler($display_id, $type, $id, $item);
 
-    $form_state['view']->addFormToStack($form_state['form_key'], $form_state['display_id'], $form_state['type'], $form_state['id'], TRUE, TRUE);
+    $view->addFormToStack($form_state->get('form_key'), $display_id, $type, $id, TRUE, TRUE);
 
-    $form_state['view']->cacheSet();
-    $form_state['rerender'] = TRUE;
-    $form_state['rebuild'] = TRUE;
-    $form_state['force_expose_options'] = TRUE;
+    $view->cacheSet();
+    $form_state->set('rerender', TRUE);
+    $form_state->setRebuild();
+    $form_state->set('force_expose_options', TRUE);
   }
 
   /**
@@ -920,13 +787,14 @@ abstract class HandlerBase extends PluginBase {
 
     // For footer/header $handler_type is area but $type is footer/header.
     // For all other handle types it's the same.
-    $handler_type = $type = $form_state['type'];
+    $handler_type = $type = $form_state->get('type');
     if (!empty($types[$type]['type'])) {
       $handler_type = $types[$type]['type'];
     }
 
     $override = NULL;
-    $executable = $form_state['view']->getExecutable();
+    $view = $form_state->get('view');
+    $executable = $view->getExecutable();
     if ($executable->display_handler->useGroupBy() && !empty($item['group_type'])) {
       if (empty($executable->query)) {
         $executable->initQuery();
@@ -944,27 +812,26 @@ abstract class HandlerBase extends PluginBase {
 
     // Add the incoming options to existing options because items using
     // the extra form may not have everything in the form here.
-    $options = $form_state['values']['options'] + $this->options;
+    $options = $form_state->getValue('options') + $this->options;
 
     // This unpacks only options that are in the definition, ensuring random
     // extra stuff on the form is not sent through.
     $handler->unpackOptions($handler->options, $options, NULL, FALSE);
 
     // Store the item back on the view.
-    $executable = $form_state['view']->getExecutable();
-    $executable->temporary_options[$type][$form_state['id']] = $handler->options;
+    $executable = $view->getExecutable();
+    $executable->temporary_options[$type][$form_state->get('id')] = $handler->options;
 
     // @todo Decide if \Drupal\views_ui\Form\Ajax\ViewsFormBase::getForm() is
     //   perhaps the better place to fix the issue.
     // \Drupal\views_ui\Form\Ajax\ViewsFormBase::getForm() drops the current
     // form from the stack, even if it's an #ajax. So add the item back to the top
     // of the stack.
-    $form_state['view']->addFormToStack($form_state['form_key'], $form_state['display_id'], $type, $item['id'], TRUE);
+    $view->addFormToStack($form_state->get('form_key'), $form_state->get('display_id'), $type, $item['id'], TRUE);
 
-    $form_state['rerender'] = TRUE;
-    $form_state['rebuild'] = TRUE;
+    $form_state->get('rerender', TRUE);
+    $form_state->setRebuild();
     // Write to cache
-    $form_state['view']->cacheSet();
+    $view->cacheSet();
   }
-
 }

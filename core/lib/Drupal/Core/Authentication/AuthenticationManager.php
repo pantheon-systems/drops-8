@@ -57,18 +57,19 @@ class AuthenticationManager implements AuthenticationProviderInterface, Authenti
   /**
    * Adds a provider to the array of registered providers.
    *
-   * @param string $provider_id
-   *   Identifier of the provider.
    * @param \Drupal\Core\Authentication\AuthenticationProviderInterface $provider
    *   The provider object.
+   * @param string $id
+   *   Identifier of the provider.
    * @param int $priority
    *   The providers priority.
    */
-  public function addProvider($provider_id, AuthenticationProviderInterface $provider, $priority = 0) {
-    $provider_id = substr($provider_id, strlen('authentication.'));
+  public function addProvider(AuthenticationProviderInterface $provider, $id, $priority = 0) {
+    // Remove the 'authentication.' prefix from the provider ID.
+    $id = substr($id, 15);
 
-    $this->providers[$provider_id] = $provider;
-    $this->providerOrders[$priority][$provider_id] = $provider;
+    $this->providers[$id] = $provider;
+    $this->providerOrders[$priority][$id] = $provider;
     // Force the builders to be re-sorted.
     $this->sortedProviders = NULL;
   }
@@ -88,7 +89,7 @@ class AuthenticationManager implements AuthenticationProviderInterface, Authenti
 
     $account = NULL;
 
-    // Iterate the availlable providers.
+    // Iterate the available providers.
     foreach ($this->getSortedProviders() as $provider_id => $provider) {
       if ($provider->applies($request)) {
         // Try to authenticate with this provider, skipping all others.
@@ -182,7 +183,7 @@ class AuthenticationManager implements AuthenticationProviderInterface, Authenti
     $active_providers = ($route && $route->getOption('_auth')) ? $route->getOption('_auth') : array($this->defaultProviderId());
 
     // Get the sorted list of active providers for the given route.
-    $providers = array_intersect($active_providers, array_keys($this->providers));
+    $providers = array_intersect($active_providers, array_keys($this->getSortedProviders()));
 
     foreach ($providers as $provider_id) {
       if ($this->providers[$provider_id]->handleException($event) == TRUE) {

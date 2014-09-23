@@ -11,6 +11,7 @@ use Drupal\Core\Config\FileStorage;
 use Drupal\Core\Config\CachedStorage;
 use Drupal\Core\Database\Database;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Reference;
 
 /**
  * Tests CachedStorage operations.
@@ -33,10 +34,10 @@ class CachedStorageTest extends ConfigStorageTestBase {
    */
   protected $filestorage;
 
-  function setUp() {
+  protected function setUp() {
     parent::setUp();
     $this->filestorage = new FileStorage($this->configDirectories[CONFIG_ACTIVE_DIRECTORY]);
-    $this->storage = new CachedStorage($this->filestorage, \Drupal::service('cache_factory'));
+    $this->storage = new CachedStorage($this->filestorage, \Drupal::service('cache.config'));
     $this->cache = \Drupal::service('cache_factory')->get('config');
     // ::listAll() verifications require other configuration data to exist.
     $this->storage->write('system.performance', array());
@@ -89,7 +90,7 @@ class CachedStorageTest extends ConfigStorageTestBase {
     parent::containerBuild($container);
     // Use the regular database cache backend to aid testing.
     $container->register('cache_factory', 'Drupal\Core\Cache\DatabaseBackendFactory')
-      ->addArgument(Database::getConnection());
+      ->addArgument(new Reference('database'));
   }
 
 }

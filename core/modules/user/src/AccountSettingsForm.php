@@ -106,7 +106,7 @@ class AccountSettingsForm extends ConfigFormBase {
         '#open' => TRUE,
         '#tree' => TRUE,
       );
-      $form_state['content_translation']['key'] = 'language';
+      $form_state->set(['content_translation', 'key'], 'language');
       $form['language'] += content_translation_enable_widget('user', 'user', $form, $form_state);
     }
 
@@ -128,7 +128,7 @@ class AccountSettingsForm extends ConfigFormBase {
     );
     $form['registration_cancellation']['user_email_verification'] = array(
       '#type' => 'checkbox',
-      '#title' => $this->t('Require email verification when a visitor creates an account.'),
+      '#title' => $this->t('Require email verification when a visitor creates an account'),
       '#default_value' => $config->get('verify_mail'),
       '#description' => $this->t('New users will be required to validate their email address prior to logging into the site, and will be assigned a system-generated password. With this setting disabled, users will be logged in immediately upon registering, and may select their own passwords during registration.')
     );
@@ -163,7 +163,7 @@ class AccountSettingsForm extends ConfigFormBase {
     );
     $form['personalization']['user_signatures'] = array(
       '#type' => 'checkbox',
-      '#title' => $this->t('Enable signatures.'),
+      '#title' => $this->t('Enable signatures'),
       '#default_value' => $filter_exists ? $config->get('signatures') : 0,
       '#access' => $filter_exists,
     );
@@ -293,7 +293,7 @@ class AccountSettingsForm extends ConfigFormBase {
     );
     $form['email_activated']['user_mail_status_activated_notify'] = array(
       '#type' => 'checkbox',
-      '#title' => $this->t('Notify user when account is activated.'),
+      '#title' => $this->t('Notify user when account is activated'),
       '#default_value' => $config->get('notify.status_activated'),
     );
     $form['email_activated']['settings'] = array(
@@ -326,7 +326,7 @@ class AccountSettingsForm extends ConfigFormBase {
     );
     $form['email_blocked']['user_mail_status_blocked_notify'] = array(
       '#type' => 'checkbox',
-      '#title' => $this->t('Notify user when account is blocked.'),
+      '#title' => $this->t('Notify user when account is blocked'),
       '#default_value' => $config->get('notify.status_blocked'),
     );
     $form['email_blocked']['settings'] = array(
@@ -378,7 +378,7 @@ class AccountSettingsForm extends ConfigFormBase {
     );
     $form['email_canceled']['user_mail_status_canceled_notify'] = array(
       '#type' => 'checkbox',
-      '#title' => $this->t('Notify user when account is canceled.'),
+      '#title' => $this->t('Notify user when account is canceled'),
       '#default_value' => $config->get('notify.status_canceled'),
     );
     $form['email_canceled']['settings'] = array(
@@ -413,38 +413,41 @@ class AccountSettingsForm extends ConfigFormBase {
     parent::submitForm($form, $form_state);
 
     $this->config('user.settings')
-      ->set('anonymous', $form_state['values']['anonymous'])
-      ->set('admin_role', $form_state['values']['user_admin_role'])
-      ->set('register', $form_state['values']['user_register'])
-      ->set('password_strength', $form_state['values']['user_password_strength'])
-      ->set('verify_mail', $form_state['values']['user_email_verification'])
-      ->set('signatures', $form_state['values']['user_signatures'])
-      ->set('cancel_method', $form_state['values']['user_cancel_method'])
-      ->set('notify.status_activated', $form_state['values']['user_mail_status_activated_notify'])
-      ->set('notify.status_blocked', $form_state['values']['user_mail_status_blocked_notify'])
-      ->set('notify.status_canceled', $form_state['values']['user_mail_status_canceled_notify'])
+      ->set('anonymous', $form_state->getValue('anonymous'))
+      ->set('admin_role', $form_state->getValue('user_admin_role'))
+      ->set('register', $form_state->getValue('user_register'))
+      ->set('password_strength', $form_state->getValue('user_password_strength'))
+      ->set('verify_mail', $form_state->getValue('user_email_verification'))
+      ->set('signatures', $form_state->getValue('user_signatures'))
+      ->set('cancel_method', $form_state->getValue('user_cancel_method'))
+      ->set('notify.status_activated', $form_state->getValue('user_mail_status_activated_notify'))
+      ->set('notify.status_blocked', $form_state->getValue('user_mail_status_blocked_notify'))
+      ->set('notify.status_canceled', $form_state->getValue('user_mail_status_canceled_notify'))
       ->save();
     $this->config('user.mail')
-      ->set('cancel_confirm.body', $form_state['values']['user_mail_cancel_confirm_body'])
-      ->set('cancel_confirm.subject', $form_state['values']['user_mail_cancel_confirm_subject'])
-      ->set('password_reset.body', $form_state['values']['user_mail_password_reset_body'])
-      ->set('password_reset.subject', $form_state['values']['user_mail_password_reset_subject'])
-      ->set('register_admin_created.body', $form_state['values']['user_mail_register_admin_created_body'])
-      ->set('register_admin_created.subject', $form_state['values']['user_mail_register_admin_created_subject'])
-      ->set('register_no_approval_required.body', $form_state['values']['user_mail_register_no_approval_required_body'])
-      ->set('register_no_approval_required.subject', $form_state['values']['user_mail_register_no_approval_required_subject'])
-      ->set('register_pending_approval.body', $form_state['values']['user_mail_register_pending_approval_body'])
-      ->set('register_pending_approval.subject', $form_state['values']['user_mail_register_pending_approval_subject'])
-      ->set('status_activated.body', $form_state['values']['user_mail_status_activated_body'])
-      ->set('status_activated.subject', $form_state['values']['user_mail_status_activated_subject'])
-      ->set('status_blocked.body', $form_state['values']['user_mail_status_blocked_body'])
-      ->set('status_blocked.subject', $form_state['values']['user_mail_status_blocked_subject'])
-      ->set('status_canceled.body', $form_state['values']['user_mail_status_canceled_body'])
-      ->set('status_canceled.subject', $form_state['values']['user_mail_status_canceled_subject'])
+      ->set('cancel_confirm.body', $form_state->getValue('user_mail_cancel_confirm_body'))
+      ->set('cancel_confirm.subject', $form_state->getValue('user_mail_cancel_confirm_subject'))
+      ->set('password_reset.body', $form_state->getValue('user_mail_password_reset_body'))
+      ->set('password_reset.subject', $form_state->getValue('user_mail_password_reset_subject'))
+      ->set('register_admin_created.body', $form_state->getValue('user_mail_register_admin_created_body'))
+      ->set('register_admin_created.subject', $form_state->getValue('user_mail_register_admin_created_subject'))
+      ->set('register_no_approval_required.body', $form_state->getValue('user_mail_register_no_approval_required_body'))
+      ->set('register_no_approval_required.subject', $form_state->getValue('user_mail_register_no_approval_required_subject'))
+      ->set('register_pending_approval.body', $form_state->getValue('user_mail_register_pending_approval_body'))
+      ->set('register_pending_approval.subject', $form_state->getValue('user_mail_register_pending_approval_subject'))
+      ->set('status_activated.body', $form_state->getValue('user_mail_status_activated_body'))
+      ->set('status_activated.subject', $form_state->getValue('user_mail_status_activated_subject'))
+      ->set('status_blocked.body', $form_state->getValue('user_mail_status_blocked_body'))
+      ->set('status_blocked.subject', $form_state->getValue('user_mail_status_blocked_subject'))
+      ->set('status_canceled.body', $form_state->getValue('user_mail_status_canceled_body'))
+      ->set('status_canceled.subject', $form_state->getValue('user_mail_status_canceled_subject'))
       ->save();
     $this->config('system.site')
-      ->set('mail_notification', $form_state['values']['mail_notification_address'])
+      ->set('mail_notification', $form_state->getValue('mail_notification_address'))
       ->save();
+
+    // Clear field definition cache for signatures.
+    \Drupal::entityManager()->clearCachedFieldDefinitions();
   }
 
 }

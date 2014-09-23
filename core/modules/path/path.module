@@ -8,7 +8,7 @@
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
-use Drupal\Core\Field\FieldDefinition;
+use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 
@@ -39,24 +39,10 @@ function path_help($route_name, RouteMatchInterface $route_match) {
 }
 
 /**
- * Implements hook_permission().
- */
-function path_permission() {
-  return array(
-    'administer url aliases' => array(
-      'title' => t('Administer URL aliases'),
-    ),
-    'create url aliases' => array(
-      'title' => t('Create and edit URL aliases'),
-    ),
-  );
-}
-
-/**
  * Implements hook_form_BASE_FORM_ID_alter() for node_form().
  */
 function path_form_node_form_alter(&$form, FormStateInterface $form_state) {
-  $node = $form_state['controller']->getEntity();
+  $node = $form_state->getFormObject()->getEntity();
   if ($node->hasField('path') && $node->get('path')->access('edit')) {
     $form['path_settings'] = array(
       '#type' => 'details',
@@ -80,7 +66,7 @@ function path_form_node_form_alter(&$form, FormStateInterface $form_state) {
  */
 function path_entity_base_field_info(EntityTypeInterface $entity_type) {
   if ($entity_type->id() === 'taxonomy_term' || $entity_type->id() === 'node') {
-    $fields['path'] = FieldDefinition::create('path')
+    $fields['path'] = BaseFieldDefinition::create('path')
       ->setLabel(t('URL alias'))
       ->setTranslatable(TRUE)
       ->setDisplayOptions('form', array(

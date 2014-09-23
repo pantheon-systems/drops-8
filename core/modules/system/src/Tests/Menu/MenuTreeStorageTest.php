@@ -181,21 +181,21 @@ class MenuTreeStorageTest extends KernelTestBase {
   }
 
   /**
-   * Tests with hidden child links.
+   * Tests with disabled child links.
    */
-  public function testMenuHiddenChildLinks() {
+  public function testMenuDisabledChildLinks() {
     // Add some links with parent on the previous one and test some values.
     // <tools>
     // - test1
-    // -- test2 (hidden)
+    // -- test2 (disabled)
 
     $this->addMenuLink('test1', '');
     $this->assertMenuLink('test1', array('has_children' => 0, 'depth' => 1));
 
-    $this->addMenuLink('test2', 'test1', '<front>', array(), 'tools', array('hidden' => 1));
+    $this->addMenuLink('test2', 'test1', '<front>', array(), 'tools', array('enabled' => 0));
     // The 1st link does not have any visible children, so has_children is 0.
     $this->assertMenuLink('test1', array('has_children' => 0, 'depth' => 1));
-    $this->assertMenuLink('test2', array('has_children' => 0, 'depth' => 2, 'hidden' => 1), array('test1'));
+    $this->assertMenuLink('test2', array('has_children' => 0, 'depth' => 2, 'enabled' => 0), array('test1'));
 
     // Add more links with parent on the previous one.
     // <footer>
@@ -203,7 +203,7 @@ class MenuTreeStorageTest extends KernelTestBase {
     // ===============
     // <tools>
     // - test1
-    // -- test2 (hidden)
+    // -- test2 (disabled)
     // --- test3
     // ---- test4
     // ----- test5
@@ -303,23 +303,26 @@ class MenuTreeStorageTest extends KernelTestBase {
    * Tests MenuTreeStorage::loadByProperties().
    */
   public function testLoadByProperties() {
-    $properties = array('foo' => 'bar');
+    $tests = array(
+      array('foo' => 'bar'),
+      array(0 => 'wrong'),
+    );
     $msg = 'An invalid property name throws an exception.';
-    try {
-      $this->treeStorage->loadByProperties($properties);
-      $this->fail($msg);
+    foreach ($tests as $properties) {
+      try {
+        $this->treeStorage->loadByProperties($properties);
+        $this->fail($msg);
+      }
+      catch (\InvalidArgumentException $e) {
+        $this->assertTrue(preg_match('/^An invalid property name, .+ was specified. Allowed property names are:/', $e->getMessage()), 'Found expected exception message.');
+        $this->pass($msg);
+      }
     }
-    catch (\InvalidArgumentException $e) {
-      $this->assertEqual(
-        'An invalid property name, foo was specified. Allowed property names are: menu_name, route_name, route_parameters, url, title, title_arguments, title_context, description, parent, weight, options, expanded, hidden, provider, metadata, class, form_class, id.',
-        $e->getMessage()
-      );
-      $this->pass($msg);
-    }
-    $this->addMenuLink(1);
-    $properties = array(array('menu_name' => 'tools'));
+    $this->addMenuLink('test_link.1', '', 'test', array(), 'menu1');
+    $properties = array('menu_name' => 'menu1');
     $links = $this->treeStorage->loadByProperties($properties);
-    $this->assertEqual('tools', $links[1]['menu_name']);
+    $this->assertEqual('menu1', $links['test_link.1']['menu_name']);
+    $this->assertEqual('test', $links['test_link.1']['route_name']);
   }
 
   /**
@@ -364,7 +367,7 @@ class MenuTreeStorageTest extends KernelTestBase {
    * @param array $parents
    *   An ordered array of the IDs of the menu links that are the parents.
    * @param array $children
-   *   Array of child IDs that are visible (hidden == 0).
+   *   Array of child IDs that are visible (enabled == 1).
    */
   protected function assertMenuLink($id, array $expected_properties, array $parents = array(), array $children = array()) {
     $query = $this->connection->select('menu_tree');

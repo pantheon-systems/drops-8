@@ -14,7 +14,7 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityViewBuilder;
-use Drupal\entity\Entity\EntityViewDisplay;
+use Drupal\Core\Entity\Entity\EntityViewDisplay;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -111,24 +111,28 @@ class CommentViewBuilder extends EntityViewBuilder {
       }
       $build[$id]['#entity'] = $entity;
       $build[$id]['#theme'] = 'comment__' . $entity->getFieldName() . '__' . $commented_entity->bundle();
-      $callback = '\Drupal\comment\CommentViewBuilder::renderLinks';
-      $context = array(
-        'comment_entity_id' => $entity->id(),
-        'view_mode' => $view_mode,
-        'langcode' => $langcode,
-        'commented_entity_type' => $commented_entity->getEntityTypeId(),
-        'commented_entity_id' => $commented_entity->id(),
-        'in_preview' => !empty($entity->in_preview),
-      );
-      $placeholder = drupal_render_cache_generate_placeholder($callback, $context);
-      $build[$id]['links'] = array(
-        '#post_render_cache' => array(
-          $callback => array(
-            $context,
+
+      $display = $displays[$entity->bundle()];
+      if ($display->getComponent('links')) {
+        $callback = '\Drupal\comment\CommentViewBuilder::renderLinks';
+        $context = array(
+          'comment_entity_id' => $entity->id(),
+          'view_mode' => $view_mode,
+          'langcode' => $langcode,
+          'commented_entity_type' => $commented_entity->getEntityTypeId(),
+          'commented_entity_id' => $commented_entity->id(),
+          'in_preview' => !empty($entity->in_preview),
+        );
+        $placeholder = drupal_render_cache_generate_placeholder($callback, $context);
+        $build[$id]['links'] = array(
+          '#post_render_cache' => array(
+            $callback => array(
+              $context,
+            ),
           ),
-        ),
-        '#markup' => $placeholder,
-      );
+          '#markup' => $placeholder,
+        );
+      }
 
       $account = comment_prepare_author($entity);
       if (\Drupal::config('user.settings')->get('signatures') && $account->getSignature()) {
@@ -138,11 +142,6 @@ class CommentViewBuilder extends EntityViewBuilder {
           '#format' => $account->getSignatureFormat(),
           '#langcode' => $entity->language()->getId(),
         );
-        // The signature will only be rendered in the theme layer, which means
-        // its associated cache tags will not bubble up. Work around this for
-        // now by already rendering the signature here.
-        // @todo remove this work-around, see https://drupal.org/node/2273277
-        drupal_render($build[$id]['signature'], TRUE);
       }
 
       if (!isset($build[$id]['#attached'])) {
@@ -263,7 +262,7 @@ class CommentViewBuilder extends EntityViewBuilder {
     }
 
     // Add translations link for translation-enabled comment bundles.
-    if (\Drupal::moduleHandler()->moduleExists('content_translation') && content_translation_translate_access($entity)) {
+    if (\Drupal::moduleHandler()->moduleExists('content_translation') && content_translation_translate_access($entity)->isAllowed()) {
       $links['comment-translations'] = array(
         'title' => t('Translate'),
         'href' => 'comment/' . $entity->id() . '/translations',

@@ -9,6 +9,7 @@ namespace Drupal\shortcut\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\shortcut\ShortcutSetInterface;
+use Drupal\shortcut\ShortcutInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -28,10 +29,31 @@ class ShortcutController extends ControllerBase {
    */
   public function addForm(ShortcutSetInterface $shortcut_set) {
     $shortcut = $this->entityManager()->getStorage('shortcut')->create(array('shortcut_set' => $shortcut_set->id()));
-    if ($this->moduleHandler()->moduleExists('language')) {
-      $shortcut->langcode = language_get_default_langcode('shortcut', $shortcut_set->id());
-    }
     return $this->entityFormBuilder()->getForm($shortcut, 'add');
+  }
+
+  /**
+   * Deletes the selected shortcut.
+   *
+   * @param \Drupal\shortcut\ShortcutInterface $shortcut
+   *   The shortcut to delete.
+   *
+   * @return \Symfony\Component\HttpFoundation\RedirectResponse
+   *   A redirect to the previous location or the front page when destination
+   *   is not set.
+   */
+  public function deleteShortcutLinkInline(ShortcutInterface $shortcut) {
+    $label = $shortcut->label();
+
+    try {
+      $shortcut->delete();
+      drupal_set_message($this->t('The shortcut %title has been deleted.', array('%title' => $label)));
+    }
+    catch (\Exception $e) {
+      drupal_set_message($this->t('Unable to delete the shortcut for %title.', array('%title' => $label)));
+    }
+
+    return $this->redirect('<front>');
   }
 
 }

@@ -11,13 +11,18 @@ use Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException;
 use Drupal\Component\Plugin\Exception\PluginNotFoundException;
 use Drupal\Component\Utility\String;
 use Drupal\Core\DependencyInjection\ClassResolverInterface;
-use Drupal\Core\Field\FieldDefinition;
+use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheBackendInterface;
+use Drupal\Core\Entity\Exception\AmbiguousEntityClassException;
+use Drupal\Core\Entity\Exception\NoCorrespondingEntityClassException;
 use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
+use Drupal\Core\Field\FieldStorageDefinitionListenerInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Plugin\DefaultPluginManager;
+use Drupal\Core\KeyValueStore\KeyValueStoreInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\TypedData\TranslatableInterface;
@@ -52,11 +57,11 @@ class EntityManager extends DefaultPluginManager implements EntityManagerInterfa
   protected $extraFields = array();
 
   /**
-   * Contains instantiated controllers keyed by controller type and entity type.
+   * Contains instantiated handlers keyed by handler type and entity type.
    *
    * @var array
    */
-  protected $controllers = array();
+  protected $handlers = array();
 
   /**
    * Static cache of base field definitions.
@@ -76,7 +81,7 @@ class EntityManager extends DefaultPluginManager implements EntityManagerInterfa
    * Static cache of field storage definitions per entity type.
    *
    * Elements of the array:
-   *  - $entity_type_id: \Drupal\Core\Field\FieldDefinition[]
+   *  - $entity_type_id: \Drupal\Core\Field\BaseFieldDefinition[]
    *
    * @var array
    */
@@ -111,6 +116,13 @@ class EntityManager extends DefaultPluginManager implements EntityManagerInterfa
   protected $languageManager;
 
   /**
+   * The keyvalue collection for tracking installed definitions.
+   *
+   * @var \Drupal\Core\KeyValueStore\KeyValueStoreInterface
+   */
+  protected $installedDefinitions;
+
+  /**
    * Static cache of bundle information.
    *
    * @var array
@@ -135,6 +147,23 @@ class EntityManager extends DefaultPluginManager implements EntityManagerInterfa
   protected $fieldMap = array();
 
   /**
+   * An array keyed by field type. Each value is an array whose key are entity
+   * types including arrays in the same form that $fieldMap.
+   *
+   * It helps access the mapping between types and fields by the field type.
+   *
+   * @var array
+   */
+  protected $fieldMapByFieldType = array();
+
+  /**
+   * Contains cached mappings of class names to entity types.
+   *
+   * @var array
+   */
+  protected $classNameEntityTypeMap = array();
+
+  /**
    * Constructs a new Entity plugin manager.
    *
    * @param \Traversable $namespaces
@@ -150,9 +179,13 @@ class EntityManager extends DefaultPluginManager implements EntityManagerInterfa
    *   The string translationManager.
    * @param \Drupal\Core\DependencyInjection\ClassResolverInterface $class_resolver
    *   The class resolver.
+   * @param \Drupal\Core\TypedData\TypedDataManager $typed_data_manager
+   *   The typed data manager.
+   * @param \Drupal\Core\KeyValueStore\KeyValueStoreInterface $installed_definitions
+   *   The keyvalue collection for tracking installed definitions.
    */
-  public function __construct(\Traversable $namespaces, ModuleHandlerInterface $module_handler, CacheBackendInterface $cache, LanguageManagerInterface $language_manager, TranslationInterface $translation_manager, ClassResolverInterface $class_resolver, TypedDataManager $typed_data_manager) {
-    parent::__construct('Entity', $namespaces, $module_handler, 'Drupal\Core\Entity\Annotation\EntityType');
+  public function __construct(\Traversable $namespaces, ModuleHandlerInterface $module_handler, CacheBackendInterface $cache, LanguageManagerInterface $language_manager, TranslationInterface $translation_manager, ClassResolverInterface $class_resolver, TypedDataManager $typed_data_manager, KeyValueStoreInterface $installed_definitions) {
+    parent::__construct('Entity', $namespaces, $module_handler, 'Drupal\Core\Entity\EntityInterface', 'Drupal\Core\Entity\Annotation\EntityType');
 
     $this->setCacheBackend($cache, 'entity_type', array('entity_types' => TRUE));
     $this->alterInfo('entity_type');
@@ -161,6 +194,7 @@ class EntityManager extends DefaultPluginManager implements EntityManagerInterfa
     $this->translationManager = $translation_manager;
     $this->classResolver = $class_resolver;
     $this->typedDataManager = $typed_data_manager;
+    $this->installedDefinitions = $installed_definitions;
   }
 
   /**
@@ -170,6 +204,8 @@ class EntityManager extends DefaultPluginManager implements EntityManagerInterfa
     parent::clearCachedDefinitions();
     $this->clearCachedBundles();
     $this->clearCachedFieldDefinitions();
+    $this->classNameEntityTypeMap = array();
+    $this->handlers = array();
   }
 
   /**
@@ -210,9 +246,9 @@ class EntityManager extends DefaultPluginManager implements EntityManagerInterfa
   /**
    * {@inheritdoc}
    */
-  public function hasController($entity_type, $controller_type) {
+  public function hasHandler($entity_type, $handler_type) {
     if ($definition = $this->getDefinition($entity_type, FALSE)) {
-      return $definition->hasControllerClass($controller_type);
+      return $definition->hasHandlerClass($handler_type);
     }
     return FALSE;
   }
@@ -221,106 +257,75 @@ class EntityManager extends DefaultPluginManager implements EntityManagerInterfa
    * {@inheritdoc}
    */
   public function getStorage($entity_type) {
-    return $this->getController($entity_type, 'storage', 'getStorageClass');
+    return $this->getHandler($entity_type, 'storage');
   }
 
   /**
    * {@inheritdoc}
    */
   public function getListBuilder($entity_type) {
-    return $this->getController($entity_type, 'list_builder', 'getListBuilderClass');
+    return $this->getHandler($entity_type, 'list_builder');
   }
 
   /**
    * {@inheritdoc}
    */
   public function getFormObject($entity_type, $operation) {
-    if (!isset($this->controllers['form'][$operation][$entity_type])) {
+    if (!isset($this->handlers['form'][$operation][$entity_type])) {
       if (!$class = $this->getDefinition($entity_type, TRUE)->getFormClass($operation)) {
         throw new InvalidPluginDefinitionException($entity_type, sprintf('The "%s" entity type did not specify a "%s" form class.', $entity_type, $operation));
       }
 
-      $controller = $this->classResolver->getInstanceFromDefinition($class);
+      $form_object = $this->classResolver->getInstanceFromDefinition($class);
 
-      $controller
+      $form_object
         ->setStringTranslation($this->translationManager)
         ->setModuleHandler($this->moduleHandler)
         ->setOperation($operation);
-      $this->controllers['form'][$operation][$entity_type] = $controller;
+      $this->handlers['form'][$operation][$entity_type] = $form_object;
     }
-    return $this->controllers['form'][$operation][$entity_type];
+    return $this->handlers['form'][$operation][$entity_type];
   }
 
   /**
    * {@inheritdoc}
    */
   public function getViewBuilder($entity_type) {
-    return $this->getController($entity_type, 'view_builder', 'getViewBuilderClass');
+    return $this->getHandler($entity_type, 'view_builder');
   }
 
   /**
    * {@inheritdoc}
    */
-  public function getAccessController($entity_type) {
-    return $this->getController($entity_type, 'access', 'getAccessClass');
+  public function getAccessControlHandler($entity_type) {
+    return $this->getHandler($entity_type, 'access');
   }
 
   /**
-   * Creates a new controller instance.
-   *
-   * @param string $entity_type
-   *   The entity type for this controller.
-   * @param string $controller_type
-   *   The controller type to create an instance for.
-   * @param string $controller_class_getter
-   *   (optional) The method to call on the entity type object to get the controller class.
-   *
-   * @return mixed
-   *   A controller instance.
-   *
-   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * {@inheritdoc}
    */
-  public function getController($entity_type, $controller_type, $controller_class_getter = NULL) {
-    if (!isset($this->controllers[$controller_type][$entity_type])) {
+  public function getHandler($entity_type, $handler_type) {
+    if (!isset($this->handlers[$handler_type][$entity_type])) {
       $definition = $this->getDefinition($entity_type);
-      if ($controller_class_getter) {
-        $class = $definition->{$controller_class_getter}();
-      }
-      else {
-        $class = $definition->getControllerClass($controller_type);
-      }
+      $class = $definition->getHandlerClass($handler_type);
       if (!$class) {
-        throw new InvalidPluginDefinitionException($entity_type, sprintf('The "%s" entity type did not specify a %s class.', $entity_type, $controller_type));
+        throw new InvalidPluginDefinitionException($entity_type, sprintf('The "%s" entity type did not specify a %s handler.', $entity_type, $handler_type));
       }
-      if (is_subclass_of($class, 'Drupal\Core\Entity\EntityControllerInterface')) {
-        $controller = $class::createInstance($this->container, $definition);
+      if (is_subclass_of($class, 'Drupal\Core\Entity\EntityHandlerInterface')) {
+        $handler = $class::createInstance($this->container, $definition);
       }
       else {
-        $controller = new $class($definition);
+        $handler = new $class($definition);
       }
-      if (method_exists($controller, 'setModuleHandler')) {
-        $controller->setModuleHandler($this->moduleHandler);
+      if (method_exists($handler, 'setModuleHandler')) {
+        $handler->setModuleHandler($this->moduleHandler);
       }
-      if (method_exists($controller, 'setStringTranslation')) {
-        $controller->setStringTranslation($this->translationManager);
+      if (method_exists($handler, 'setStringTranslation')) {
+        $handler->setStringTranslation($this->translationManager);
       }
-      $this->controllers[$controller_type][$entity_type] = $controller;
+      $this->handlers[$handler_type][$entity_type] = $handler;
     }
-    return $this->controllers[$controller_type][$entity_type];
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getAdminRouteInfo($entity_type_id, $bundle) {
-    if (($entity_type = $this->getDefinition($entity_type_id, FALSE)) && $admin_form = $entity_type->getLinkTemplate('admin-form')) {
-      return array(
-        'route_name' => $admin_form,
-        'route_parameters' => array(
-          $entity_type->getBundleEntityType() => $bundle,
-        ),
-      );
-    }
+    return $this->handlers[$handler_type][$entity_type];
   }
 
   /**
@@ -372,7 +377,7 @@ class EntityManager extends DefaultPluginManager implements EntityManagerInterfa
     foreach ($base_field_definitions as $definition) {
       // @todo Remove this check once FieldDefinitionInterface exposes a proper
       //  provider setter. See https://drupal.org/node/2225961.
-      if ($definition instanceof FieldDefinition) {
+      if ($definition instanceof BaseFieldDefinition) {
         $definition->setProvider($provider);
       }
     }
@@ -386,7 +391,7 @@ class EntityManager extends DefaultPluginManager implements EntityManagerInterfa
         foreach ($module_definitions as $field_name => $definition) {
           // @todo Remove this check once FieldDefinitionInterface exposes a
           //  proper provider setter. See https://drupal.org/node/2225961.
-          if ($definition instanceof FieldDefinition && $definition->getProvider() == NULL) {
+          if ($definition instanceof BaseFieldDefinition && $definition->getProvider() == NULL) {
             $definition->setProvider($module);
           }
           $base_field_definitions[$field_name] = $definition;
@@ -397,7 +402,7 @@ class EntityManager extends DefaultPluginManager implements EntityManagerInterfa
     // Automatically set the field name, target entity type and bundle
     // for non-configurable fields.
     foreach ($base_field_definitions as $field_name => $base_field_definition) {
-      if ($base_field_definition instanceof FieldDefinition) {
+      if ($base_field_definition instanceof BaseFieldDefinition) {
         $base_field_definition->setName($field_name);
         $base_field_definition->setTargetEntityTypeId($entity_type_id);
         $base_field_definition->setBundle(NULL);
@@ -465,13 +470,27 @@ class EntityManager extends DefaultPluginManager implements EntityManagerInterfa
     $entity_type = $this->getDefinition($entity_type_id);
     $class = $entity_type->getClass();
 
-    // Allow the entity class to override the base fields.
+    // Allow the entity class to provide bundle fields and bundle-specific
+    // overrides of base fields.
     $bundle_field_definitions = $class::bundleFieldDefinitions($entity_type, $bundle, $base_field_definitions);
+
+    // Load base field overrides from configuration. These take precedence over
+    // base field overrides returned above.
+    $base_field_override_ids = array_map(function($field_name) use ($entity_type_id, $bundle) {
+      return $entity_type_id . '.' . $bundle . '.' . $field_name;
+    }, array_keys($base_field_definitions));
+    $base_field_overrides = $this->getStorage('base_field_override')->loadMultiple($base_field_override_ids);
+    foreach ($base_field_overrides as $base_field_override) {
+      /** @var \Drupal\Core\Field\Entity\BaseFieldOverride $base_field_override */
+      $field_name = $base_field_override->getName();
+      $bundle_field_definitions[$field_name] = $base_field_override;
+    }
+
     $provider = $entity_type->getProvider();
     foreach ($bundle_field_definitions as $definition) {
       // @todo Remove this check once FieldDefinitionInterface exposes a proper
       //  provider setter. See https://drupal.org/node/2225961.
-      if ($definition instanceof FieldDefinition) {
+      if ($definition instanceof BaseFieldDefinition) {
         $definition->setProvider($provider);
       }
     }
@@ -485,7 +504,7 @@ class EntityManager extends DefaultPluginManager implements EntityManagerInterfa
         foreach ($module_definitions as $field_name => $definition) {
           // @todo Remove this check once FieldDefinitionInterface exposes a
           //  proper provider setter. See https://drupal.org/node/2225961.
-          if ($definition instanceof FieldDefinition) {
+          if ($definition instanceof BaseFieldDefinition) {
             $definition->setProvider($module);
           }
           $bundle_field_definitions[$field_name] = $definition;
@@ -496,7 +515,7 @@ class EntityManager extends DefaultPluginManager implements EntityManagerInterfa
     // Automatically set the field name, target entity type and bundle
     // for non-configurable fields.
     foreach ($bundle_field_definitions as $field_name => $field_definition) {
-      if ($field_definition instanceof FieldDefinition) {
+      if ($field_definition instanceof BaseFieldDefinition) {
         $field_definition->setName($field_name);
         $field_definition->setTargetEntityTypeId($entity_type_id);
         $field_definition->setBundle($bundle);
@@ -566,6 +585,25 @@ class EntityManager extends DefaultPluginManager implements EntityManagerInterfa
   }
 
   /**
+   * {@inheritdoc}
+   */
+  public function getFieldMapByFieldType($field_type) {
+    if (!isset($this->fieldMapByFieldType[$field_type])) {
+      $filtered_map = array();
+      $map = $this->getFieldMap();
+      foreach ($map as $entity_type => $fields) {
+        foreach ($fields as $field_name => $field_info) {
+          if ($field_info['type'] == $field_type) {
+            $filtered_map[$entity_type][$field_name] = $field_info;
+          }
+        }
+      }
+      $this->fieldMapByFieldType[$field_type] = $filtered_map;
+    }
+    return $this->fieldMapByFieldType[$field_type];
+  }
+
+  /**
    * Builds field storage definitions for an entity type.
    *
    * @param string $entity_type_id
@@ -588,7 +626,7 @@ class EntityManager extends DefaultPluginManager implements EntityManagerInterfa
         foreach ($module_definitions as $field_name => $definition) {
           // @todo Remove this check once FieldDefinitionInterface exposes a
           //  proper provider setter. See https://drupal.org/node/2225961.
-          if ($definition instanceof FieldDefinition) {
+          if ($definition instanceof BaseFieldDefinition) {
             $definition->setProvider($module);
           }
           $field_definitions[$field_name] = $definition;
@@ -610,6 +648,7 @@ class EntityManager extends DefaultPluginManager implements EntityManagerInterfa
     $this->fieldDefinitions = array();
     $this->fieldStorageDefinitions = array();
     $this->fieldMap = array();
+    $this->fieldMapByFieldType = array();
     $this->displayModeInfo = array();
     $this->extraFields = array();
     Cache::deleteTags(array('entity_field_info' => TRUE));
@@ -750,8 +789,8 @@ class EntityManager extends DefaultPluginManager implements EntityManagerInterfa
       // Retrieve language fallback candidates to perform the entity language
       // negotiation.
       $context['data'] = $entity;
-      $context += array('operation' => 'entity_view');
-      $candidates = $this->languageManager->getFallbackCandidates($langcode, $context);
+      $context += array('operation' => 'entity_view', 'langcode' => $langcode);
+      $candidates = $this->languageManager->getFallbackCandidates($context);
 
       // Ensure the default language has the proper language code.
       $default_language = $entity->getUntranslated()->language();
@@ -809,13 +848,14 @@ class EntityManager extends DefaultPluginManager implements EntityManagerInterfa
   protected function getAllDisplayModesByEntityType($display_type) {
     if (!isset($this->displayModeInfo[$display_type])) {
       $key = 'entity_' . $display_type . '_info';
+      $entity_type_id = 'entity_' . $display_type;
       $langcode = $this->languageManager->getCurrentLanguage(LanguageInterface::TYPE_INTERFACE)->id;
       if ($cache = $this->cacheBackend->get("$key:$langcode")) {
         $this->displayModeInfo[$display_type] = $cache->data;
       }
       else {
         $this->displayModeInfo[$display_type] = array();
-        foreach ($this->getStorage($display_type)->loadMultiple() as $display_mode) {
+        foreach ($this->getStorage($entity_type_id)->loadMultiple() as $display_mode) {
           list($display_mode_entity_type, $display_mode_name) = explode('.', $display_mode->id(), 2);
           $this->displayModeInfo[$display_type][$display_mode_entity_type][$display_mode_name] = $display_mode->toArray();
         }
@@ -901,6 +941,269 @@ class EntityManager extends DefaultPluginManager implements EntityManagerInterfa
     $entities = $this->getStorage($entity_type_id)->loadByProperties(array($uuid_key => $uuid));
 
     return reset($entities);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getEntityTypeFromClass($class_name) {
+
+    // Check the already calculated classes first.
+    if (isset($this->classNameEntityTypeMap[$class_name])) {
+      return $this->classNameEntityTypeMap[$class_name];
+    }
+
+    $same_class = 0;
+    $entity_type_id = NULL;
+    foreach ($this->getDefinitions() as $entity_type) {
+      if ($entity_type->getOriginalClass() == $class_name  || $entity_type->getClass() == $class_name) {
+        $entity_type_id = $entity_type->id();
+        if ($same_class++) {
+          throw new AmbiguousEntityClassException($class_name);
+        }
+      }
+    }
+
+    // Return the matching entity type ID if there is one.
+    if ($entity_type_id) {
+      $this->classNameEntityTypeMap[$class_name] = $entity_type_id;
+      return $entity_type_id;
+    }
+
+    throw new NoCorrespondingEntityClassException($class_name);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function onEntityTypeCreate(EntityTypeInterface $entity_type) {
+    $entity_type_id = $entity_type->id();
+
+    // @todo Forward this to all interested handlers, not only storage, once
+    //   iterating handlers is possible: https://www.drupal.org/node/2332857.
+    $storage = $this->getStorage($entity_type_id);
+    if ($storage instanceof EntityTypeListenerInterface) {
+      $storage->onEntityTypeCreate($entity_type);
+    }
+
+    $this->setLastInstalledDefinition($entity_type);
+    if ($entity_type->isFieldable()) {
+      $this->setLastInstalledFieldStorageDefinitions($entity_type_id, $this->getFieldStorageDefinitions($entity_type_id));
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function onEntityTypeUpdate(EntityTypeInterface $entity_type, EntityTypeInterface $original) {
+    $entity_type_id = $entity_type->id();
+
+    // @todo Forward this to all interested handlers, not only storage, once
+    //   iterating handlers is possible: https://www.drupal.org/node/2332857.
+    $storage = $this->getStorage($entity_type_id);
+    if ($storage instanceof EntityTypeListenerInterface) {
+      $storage->onEntityTypeUpdate($entity_type, $original);
+    }
+
+    $this->setLastInstalledDefinition($entity_type);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function onEntityTypeDelete(EntityTypeInterface $entity_type) {
+    $entity_type_id = $entity_type->id();
+
+    // @todo Forward this to all interested handlers, not only storage, once
+    //   iterating handlers is possible: https://www.drupal.org/node/2332857.
+    $storage = $this->getStorage($entity_type_id);
+    if ($storage instanceof EntityTypeListenerInterface) {
+      $storage->onEntityTypeDelete($entity_type);
+    }
+
+    $this->deleteLastInstalledDefinition($entity_type_id);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function onFieldStorageDefinitionCreate(FieldStorageDefinitionInterface $storage_definition) {
+    $entity_type_id = $storage_definition->getTargetEntityTypeId();
+
+    // @todo Forward this to all interested handlers, not only storage, once
+    //   iterating handlers is possible: https://www.drupal.org/node/2332857.
+    $storage = $this->getStorage($entity_type_id);
+    if ($storage instanceof FieldStorageDefinitionListenerInterface) {
+      $storage->onFieldStorageDefinitionCreate($storage_definition);
+    }
+
+    $this->setLastInstalledFieldStorageDefinition($storage_definition);
+    $this->clearCachedFieldDefinitions();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function onFieldStorageDefinitionUpdate(FieldStorageDefinitionInterface $storage_definition, FieldStorageDefinitionInterface $original) {
+    $entity_type_id = $storage_definition->getTargetEntityTypeId();
+
+    // @todo Forward this to all interested handlers, not only storage, once
+    //   iterating handlers is possible: https://www.drupal.org/node/2332857.
+    $storage = $this->getStorage($entity_type_id);
+    if ($storage instanceof FieldStorageDefinitionListenerInterface) {
+      $storage->onFieldStorageDefinitionUpdate($storage_definition, $original);
+    }
+
+    $this->setLastInstalledFieldStorageDefinition($storage_definition);
+    $this->clearCachedFieldDefinitions();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function onFieldStorageDefinitionDelete(FieldStorageDefinitionInterface $storage_definition) {
+    $entity_type_id = $storage_definition->getTargetEntityTypeId();
+
+    // @todo Forward this to all interested handlers, not only storage, once
+    //   iterating handlers is possible: https://www.drupal.org/node/2332857.
+    $storage = $this->getStorage($entity_type_id);
+    if ($storage instanceof FieldStorageDefinitionListenerInterface) {
+      $storage->onFieldStorageDefinitionDelete($storage_definition);
+    }
+
+    $this->deleteLastInstalledFieldStorageDefinition($storage_definition);
+    $this->clearCachedFieldDefinitions();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function onBundleCreate($entity_type_id, $bundle) {
+    $this->clearCachedBundles();
+    // Notify the entity storage.
+    $storage = $this->getStorage($entity_type_id);
+    if ($storage instanceof FieldableEntityStorageInterface) {
+      $storage->onBundleCreate($bundle);
+    }
+    // Invoke hook_entity_bundle_create() hook.
+    $this->moduleHandler->invokeAll('entity_bundle_create', array($entity_type_id, $bundle));
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function onBundleRename($entity_type_id, $bundle_old, $bundle_new) {
+    $this->clearCachedBundles();
+    // Notify the entity storage.
+    $storage = $this->getStorage($entity_type_id);
+    if ($storage instanceof FieldableEntityStorageInterface) {
+      $storage->onBundleRename($bundle_old, $bundle_new);
+    }
+
+    // Rename existing base field bundle overrides.
+    $overrides = $this->getStorage('base_field_override')->loadByProperties(array('entity_type' => $entity_type_id, 'bundle' => $bundle_old));
+    foreach ($overrides as $override) {
+      $override->set('id', $entity_type_id . '.' . $bundle_new . '.' . $override->field_name);
+      $override->bundle = $bundle_new;
+      $override->allowBundleRename();
+      $override->save();
+    }
+
+    // Invoke hook_entity_bundle_rename() hook.
+    $this->moduleHandler->invokeAll('entity_bundle_rename', array($entity_type_id, $bundle_old, $bundle_new));
+    $this->clearCachedFieldDefinitions();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function onBundleDelete($entity_type_id, $bundle) {
+    $this->clearCachedBundles();
+    // Notify the entity storage.
+    $storage = $this->getStorage($entity_type_id);
+    if ($storage instanceof FieldableEntityStorageInterface) {
+      $storage->onBundleDelete($bundle);
+    }
+    // Invoke hook_entity_bundle_delete() hook.
+    $this->moduleHandler->invokeAll('entity_bundle_delete', array($entity_type_id, $bundle));
+    $this->clearCachedFieldDefinitions();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getLastInstalledDefinition($entity_type_id) {
+    return $this->installedDefinitions->get($entity_type_id . '.entity_type');
+  }
+
+  /**
+   * Stores the entity type definition in the application state.
+   *
+   * @param \Drupal\Core\Entity\EntityTypeInterface $entity_type
+   *   The entity type definition.
+   */
+  protected function setLastInstalledDefinition(EntityTypeInterface $entity_type) {
+    $entity_type_id = $entity_type->id();
+    $this->installedDefinitions->set($entity_type_id . '.entity_type', $entity_type);
+  }
+
+  /**
+   * Deletes the entity type definition from the application state.
+   *
+   * @param string $entity_type_id
+   *   The entity type definition identifier.
+   */
+  protected function deleteLastInstalledDefinition($entity_type_id) {
+    $this->installedDefinitions->delete($entity_type_id . '.entity_type');
+    // Clean up field storage definitions as well. Even if the entity type
+    // isn't currently fieldable, there might be legacy definitions or an
+    // empty array stored from when it was.
+    $this->installedDefinitions->delete($entity_type_id . '.field_storage_definitions');
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getLastInstalledFieldStorageDefinitions($entity_type_id) {
+    return $this->installedDefinitions->get($entity_type_id . '.field_storage_definitions', array());
+  }
+
+  /**
+   * Stores the entity type's field storage definitions in the application state.
+   *
+   * @param string $entity_type_id
+   *   The entity type identifier.
+   * @param \Drupal\Core\Field\FieldStorageDefinitionInterface[] $storage_definitions
+   *   An array of field storage definitions.
+   */
+  protected function setLastInstalledFieldStorageDefinitions($entity_type_id, array $storage_definitions) {
+    $this->installedDefinitions->set($entity_type_id . '.field_storage_definitions', $storage_definitions);
+  }
+
+  /**
+   * Stores the field storage definition in the application state.
+   *
+   * @param \Drupal\Core\Field\FieldStorageDefinitionInterface $storage_definition
+   *   The field storage definition.
+   */
+  protected function setLastInstalledFieldStorageDefinition(FieldStorageDefinitionInterface $storage_definition) {
+    $entity_type_id = $storage_definition->getTargetEntityTypeId();
+    $definitions = $this->getLastInstalledFieldStorageDefinitions($entity_type_id);
+    $definitions[$storage_definition->getName()] = $storage_definition;
+    $this->setLastInstalledFieldStorageDefinitions($entity_type_id, $definitions);
+  }
+
+  /**
+   * Deletes the field storage definition from the application state.
+   *
+   * @param \Drupal\Core\Field\FieldStorageDefinitionInterface $storage_definition
+   *   The field storage definition.
+   */
+  protected function deleteLastInstalledFieldStorageDefinition(FieldStorageDefinitionInterface $storage_definition) {
+    $entity_type_id = $storage_definition->getTargetEntityTypeId();
+    $definitions = $this->getLastInstalledFieldStorageDefinitions($entity_type_id);
+    unset($definitions[$storage_definition->getName()]);
+    $this->setLastInstalledFieldStorageDefinitions($entity_type_id, $definitions);
   }
 
 }

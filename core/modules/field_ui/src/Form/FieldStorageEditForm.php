@@ -76,7 +76,8 @@ class FieldStorageEditForm extends FormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state, FieldInstanceConfigInterface $field_instance_config = NULL) {
-    $this->instance = $form_state['instance'] = $field_instance_config;
+    $this->instance = $field_instance_config;
+    $form_state->set('instance', $field_instance_config);
     $form['#title'] = $this->instance->label();
 
     $field_storage = $this->instance->getFieldStorageDefinition();
@@ -162,8 +163,9 @@ class FieldStorageEditForm extends FormBase {
    */
   public function validateForm(array &$form, FormStateInterface $form_state) {
     // Validate field cardinality.
-    $cardinality = $form_state['values']['field']['cardinality'];
-    $cardinality_number = $form_state['values']['field']['cardinality_number'];
+    $field_values = $form_state->getValue('field');
+    $cardinality = $field_values['cardinality'];
+    $cardinality_number = $field_values['cardinality_number'];
     if ($cardinality === 'number' && empty($cardinality_number)) {
       $form_state->setErrorByName('field][cardinality_number', $this->t('Number of values is required.'));
     }
@@ -173,7 +175,7 @@ class FieldStorageEditForm extends FormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    $form_values = $form_state['values'];
+    $form_values = $form_state->getValues();
     $field_values = $form_values['field'];
 
     // Save field cardinality.
@@ -198,12 +200,7 @@ class FieldStorageEditForm extends FormBase {
       $request = $this->getRequest();
       if (($destinations = $request->query->get('destinations')) && $next_destination = FieldUI::getNextDestination($destinations)) {
         $request->query->remove('destinations');
-        if (isset($next_destination['route_name'])) {
-          $form_state->setRedirect($next_destination['route_name'], $next_destination['route_parameters'], $next_destination['options']);
-        }
-        else {
-          $form_state['redirect'] = $next_destination;
-        }
+        $form_state->setRedirectUrl($next_destination);
       }
       else {
         $form_state->setRedirectUrl(FieldUI::getOverviewRouteInfo($this->instance->entity_type, $this->instance->bundle));

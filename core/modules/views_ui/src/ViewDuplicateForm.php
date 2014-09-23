@@ -58,25 +58,26 @@ class ViewDuplicateForm extends ViewFormBase {
     $actions['submit'] = array(
       '#type' => 'submit',
       '#value' => $this->t('Duplicate'),
-      '#submit' => array(
-        array($this, 'submit'),
-      ),
+      '#submit' => array('::submitForm'),
     );
     return $actions;
   }
 
   /**
-   * {@inheritdoc}
+   * Form submission handler for the 'clone' action.
+   *
+   * @param array $form
+   *   An associative array containing the structure of the form.
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   A reference to a keyed array containing the current state of the form.
    */
-  public function submit(array $form, FormStateInterface $form_state) {
-    $original = parent::submit($form, $form_state);
-    $this->entity = $original->createDuplicate();
-    $this->entity->set('id', $form_state['values']['id']);
+  public function submitForm(array &$form, FormStateInterface $form_state) {
+    $this->entity = $this->entity->createDuplicate();
+    $this->entity->set('id', $form_state->getValue('id'));
     $this->entity->save();
 
     // Redirect the user to the view admin form.
     $form_state->setRedirectUrl($this->entity->urlInfo('edit-form'));
-    return $this->entity;
   }
 
 }

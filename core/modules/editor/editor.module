@@ -7,10 +7,10 @@
 
 use Drupal\Component\Utility\Html;
 use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Routing\RouteMatchInterface;
-use Drupal\editor\Entity\Editor;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\filter\FilterFormatInterface;
@@ -52,7 +52,7 @@ function editor_menu_links_discovered_alter(array &$links) {
 }
 
 /**
- * Implements hook_element_info().
+ * Implements hook_element_info_alter().
  *
  * Extends the functionality of text_format elements (provided by Filter
  * module), so that selecting a text format notifies a client-side text editor
@@ -60,11 +60,8 @@ function editor_menu_links_discovered_alter(array &$links) {
  *
  * @see filter_element_info()
  */
-function editor_element_info() {
-  $type['text_format'] = array(
-    '#pre_render' => array('element.editor:preRenderTextFormat'),
-  );
-  return $type;
+function editor_element_info_alter(&$types) {
+  $types['text_format']['#pre_render'][] = 'element.editor:preRenderTextFormat';
 }
 
 /**
@@ -93,11 +90,11 @@ function editor_form_filter_admin_overview_alter(&$form, FormStateInterface $for
  * Implements hook_form_BASE_FORM_ID_alter() for 'filter_format_form'.
  */
 function editor_form_filter_format_form_alter(&$form, FormStateInterface $form_state) {
-  if (!isset($form_state['editor'])) {
-    $format_id = $form_state['controller']->getEntity()->id();
-    $form_state['editor'] = editor_load($format_id);
+  if (!$editor = $form_state->get('editor')) {
+    $format_id = $form_state->getFormObject()->getEntity()->id();
+    $editor = editor_load($format_id);
+    $form_state->set('editor', $editor);
   }
-  $editor = $form_state['editor'];
 
   // Associate a text editor with this text format.
   $manager = \Drupal::service('plugin.manager.editor');
@@ -170,20 +167,20 @@ function editor_form_filter_format_form_alter(&$form, FormStateInterface $form_s
  * Button submit handler for filter_format_form()'s 'editor_configure' button.
  */
 function editor_form_filter_admin_format_editor_configure($form, FormStateInterface $form_state) {
-  $editor = $form_state['editor'];
-  if (isset($form_state['values']['editor']['editor'])) {
-    if ($form_state['values']['editor']['editor'] === '') {
-      $form_state['editor'] = FALSE;
+  $editor = $form_state->get('editor');
+  if ($editor_value = $form_state->getValue(array('editor', 'editor'))) {
+    if ($editor_value === '') {
+      $form_state->set('editor', FALSE);
     }
-    elseif (empty($editor) || $form_state['values']['editor']['editor'] !== $editor->getEditor()) {
+    elseif (empty($editor) || $editor_value !== $editor->getEditor()) {
       $editor = entity_create('editor', array(
-        'format' => $form_state['controller']->getEntity()->id(),
-        'editor' => $form_state['values']['editor']['editor'],
+        'format' => $form_state->getFormObject()->getEntity()->id(),
+        'editor' => $editor_value,
       ));
-      $form_state['editor'] = $editor;
+      $form_state->set('editor', $editor);
     }
   }
-  $form_state['rebuild'] = TRUE;
+  $form_state->setRebuild();
 }
 
 /**
@@ -198,7 +195,7 @@ function editor_form_filter_admin_form_ajax($form, FormStateInterface $form_stat
  */
 function editor_form_filter_admin_format_validate($form, FormStateInterface $form_state) {
   // This validate handler is not applicable when using the 'Configure' button.
-  if ($form_state['triggering_element']['#name'] === 'editor_configure') {
+  if ($form_state->getTriggeringElement()['#name'] === 'editor_configure') {
     return;
   }
 
@@ -206,8 +203,8 @@ function editor_form_filter_admin_format_validate($form, FormStateInterface $for
   // 'Configure' button won't be clicked automatically. So, when the user has
   // selected a text editor and has then clicked 'Save configuration', we should
   // point out that the user must still configure the text editor.
-  if ($form_state['values']['editor']['editor'] !== '' && empty($form_state['editor'])) {
-    form_set_error('editor][editor', $form_state, t('You must configure the selected text editor.'));
+  if ($form_state->getValue(['editor', 'editor']) !== '' && !$form_state->get('editor')) {
+    $form_state->setErrorByName('editor][editor', t('You must configure the selected text editor.'));
   }
 }
 
@@ -216,19 +213,19 @@ function editor_form_filter_admin_format_validate($form, FormStateInterface $for
  */
 function editor_form_filter_admin_format_submit($form, FormStateInterface $form_state) {
   // Delete the existing editor if disabling or switching between editors.
-  $format_id = $form_state['controller']->getEntity()->id();
+  $format_id = $form_state->getFormObject()->getEntity()->id();
   $original_editor = editor_load($format_id);
-  if ($original_editor && $original_editor->getEditor() != $form_state['values']['editor']) {
+  if ($original_editor && $original_editor->getEditor() != $form_state->getValue('editor')) {
     $original_editor->delete();
   }
 
   // Create a new editor or update the existing editor.
-  if (!empty($form_state['editor'])) {
+  if ($editor = $form_state->get('editor')) {
     // Ensure the text format is set: when creating a new text format, this
     // would equal the empty string.
-    $form_state['editor']->set('format', $format_id);
-    $form_state['editor']->setSettings($form_state['values']['editor']['settings']);
-    $form_state['editor']->save();
+    $editor->set('format', $format_id);
+    $editor->setSettings($form_state->getValue(['editor', 'settings']));
+    $editor->save();
   }
 }
 
@@ -400,7 +397,7 @@ function editor_entity_revision_delete(EntityInterface $entity) {
 }
 
 /**
- * Records file usage of files referenced by processed text fields.
+ * Records file usage of files referenced by formatted text fields.
  *
  * Every referenced file that does not yet have the FILE_STATUS_PERMANENT state,
  * will be given that state.
@@ -412,17 +409,18 @@ function editor_entity_revision_delete(EntityInterface $entity) {
  */
 function _editor_record_file_usage(array $uuids, EntityInterface $entity) {
   foreach ($uuids as $uuid) {
-    $file = entity_load_by_uuid('file', $uuid);
-    if ($file->status !== FILE_STATUS_PERMANENT) {
-      $file->status = FILE_STATUS_PERMANENT;
-      $file->save();
+    if ($file = entity_load_by_uuid('file', $uuid)) {
+      if ($file->status !== FILE_STATUS_PERMANENT) {
+        $file->status = FILE_STATUS_PERMANENT;
+        $file->save();
+      }
+      \Drupal::service('file.usage')->add($file, 'editor', $entity->getEntityTypeId(), $entity->id());
     }
-    \Drupal::service('file.usage')->add($file, 'editor', $entity->getEntityTypeId(), $entity->id());
   }
 }
 
 /**
- * Deletes file usage of files referenced by processed text fields.
+ * Deletes file usage of files referenced by formatted text fields.
  *
  * @param array $uuids
  *   An array of file entity UUIDs.
@@ -436,13 +434,14 @@ function _editor_record_file_usage(array $uuids, EntityInterface $entity) {
  */
 function _editor_delete_file_usage(array $uuids, EntityInterface $entity, $count) {
   foreach ($uuids as $uuid) {
-    $file = entity_load_by_uuid('file', $uuid);
-    \Drupal::service('file.usage')->delete($file, 'editor', $entity->getEntityTypeId(), $entity->id(), $count);
+    if ($file = entity_load_by_uuid('file', $uuid)) {
+      \Drupal::service('file.usage')->delete($file, 'editor', $entity->getEntityTypeId(), $entity->id(), $count);
+    }
   }
 }
 
 /**
- * Finds all files referenced (data-editor-file-uuid) by processed text fields.
+ * Finds all files referenced (data-editor-file-uuid) by formatted text fields.
  *
  * @param EntityInterface $entity
  *   An entity whose fields to analyze.
@@ -453,32 +452,32 @@ function _editor_delete_file_usage(array $uuids, EntityInterface $entity, $count
 function _editor_get_file_uuids_by_field(EntityInterface $entity) {
   $uuids = array();
 
-  $processed_text_fields = _editor_get_processed_text_fields($entity);
-  foreach ($processed_text_fields as $processed_text_field) {
-    $text = $entity->get($processed_text_field)->value;
-    $uuids[$processed_text_field] = _editor_parse_file_uuids($text);
+  $formatted_text_fields = _editor_get_formatted_text_fields($entity);
+  foreach ($formatted_text_fields as $formatted_text_field) {
+    $text = $entity->get($formatted_text_field)->value;
+    $uuids[$formatted_text_field] = _editor_parse_file_uuids($text);
   }
   return $uuids;
 }
 
 /**
- * Determines the text fields on an entity that have text processing enabled.
+ * Determines the formatted text fields on an entity.
  *
- * @param EntityInterface $entity
+ * @param ContentEntityInterface $entity
  *   An entity whose fields to analyze.
  *
  * @return array
- *   The names of the fields on this entity that have text processing enabled.
+ *   The names of the fields on this entity that support formatted text.
  */
-function _editor_get_processed_text_fields(ContentEntityInterface $entity) {
+function _editor_get_formatted_text_fields(ContentEntityInterface $entity) {
   $field_definitions = $entity->getFieldDefinitions();
   if (empty($field_definitions)) {
     return array();
   }
 
-  // Only return fields that have text processing enabled.
-  return array_keys(array_filter($field_definitions, function ($definition) {
-    return $definition->getSetting('text_processing') === TRUE;
+  // Only return formatted text fields.
+  return array_keys(array_filter($field_definitions, function (FieldDefinitionInterface $definition) {
+    return in_array($definition->getType(), array('text', 'text_long', 'text_with_summary'), TRUE);
   }));
 }
 

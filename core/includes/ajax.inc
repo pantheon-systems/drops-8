@@ -6,6 +6,7 @@
  */
 
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Render\Element;
 
 /**
  * @defgroup ajax Ajax API
@@ -99,8 +100,8 @@ use Drupal\Core\Form\FormStateInterface;
  * get the format string entered by the user:
  * @code
  * $format_value = \Drupal\Component\Utility\NestedArray::getValue(
- *   $form_state['values'],
- *   $form_state['triggering_element']['#array_parents']);
+ *   $form_state->getValues(),
+ *   $form_state->getTriggeringElement()['#array_parents']);
  * @endcode
  *
  * Once you have processed the input, you have your choice of returning HTML
@@ -127,7 +128,7 @@ use Drupal\Core\Form\FormStateInterface;
  * \Drupal\Core\Ajax\CommandInterface. Available commands provide the ability
  * to pop up alerts, manipulate text and markup in various ways, redirect
  * to a new URL, and the generic \Drupal\Core\Ajax\InvokeCommand, which
- * invokes an arbitrary jQuery commnd.
+ * invokes an arbitrary jQuery command.
  *
  * As noted above, status messages are prepended automatically if you use the
  * 'wrapper' method and return HTML markup. This is not the case if you return
@@ -162,20 +163,10 @@ use Drupal\Core\Form\FormStateInterface;
 /**
  * Form element processing handler for the #ajax form property.
  *
- * @param $element
- *   An associative array containing the properties of the element.
- *
- * @return
- *   The processed element.
- *
- * @see ajax_pre_render_element()
+ * @deprecated Use \Drupal\Core\Render\Element\RenderElement::processAjaxForm().
  */
-function ajax_process_form($element, FormStateInterface $form_state) {
-  $element = ajax_pre_render_element($element);
-  if (!empty($element['#ajax_processed'])) {
-    $form_state['cache'] = TRUE;
-  }
-  return $element;
+function ajax_process_form(&$element, FormStateInterface $form_state, &$complete_form) {
+  return Element\RenderElement::processAjaxForm($element, $form_state, $complete_form);
 }
 
 /**

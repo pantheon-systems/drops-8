@@ -71,7 +71,6 @@ class DataFieldRow extends RowPluginBase {
     return $options;
   }
 
-
   /**
    * Overrides \Drupal\views\Plugin\views\row\RowPluginBase::buildOptionsForm().
    */
@@ -114,7 +113,7 @@ class DataFieldRow extends RowPluginBase {
    */
   public function validateAliasName($element, FormStateInterface $form_state) {
     if (preg_match('@[^A-Za-z0-9_-]+@', $element['#value'])) {
-      form_error($element, $form_state, t('The machine-readable name must contain only letters, numbers, dashes and underscores.'));
+      $form_state->setError($element, t('The machine-readable name must contain only letters, numbers, dashes and underscores.'));
     }
   }
 
@@ -123,12 +122,12 @@ class DataFieldRow extends RowPluginBase {
    */
   public function validateOptionsForm(&$form, FormStateInterface $form_state) {
     // Collect an array of aliases to validate.
-    $aliases = static::extractFromOptionsArray('alias', $form_state['values']['row_options']['field_options']);
+    $aliases = static::extractFromOptionsArray('alias', $form_state->getValue(array('row_options', 'field_options')));
 
     // If array filter returns empty, no values have been entered. Unique keys
     // should only be validated if we have some.
     if (($filtered = array_filter($aliases)) && (array_unique($filtered) !== $filtered)) {
-      form_set_error('aliases', $form_state, t('All field aliases must be unique'));
+      $form_state->setErrorByName('aliases', t('All field aliases must be unique'));
     }
   }
 

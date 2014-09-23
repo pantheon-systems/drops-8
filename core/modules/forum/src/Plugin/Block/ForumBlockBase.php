@@ -7,7 +7,7 @@
 
 namespace Drupal\forum\Plugin\Block;
 
-use Drupal\block\BlockBase;
+use Drupal\Core\Block\BlockBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Cache\Cache;
@@ -26,9 +26,9 @@ abstract class ForumBlockBase extends BlockBase {
     if ($node_title_list = node_title_list($result)) {
       $elements['forum_list'] = $node_title_list;
       $elements['forum_more'] = array(
-        '#theme' => 'more_link',
-        '#url' => 'forum',
-        '#title' => t('Read the latest forum topics.')
+        '#type' => 'more_link',
+        '#href' => 'forum',
+        '#attributes' => array('title' => $this->t('Read the latest forum topics.')),
       );
     }
     return $elements;
@@ -79,7 +79,7 @@ abstract class ForumBlockBase extends BlockBase {
    * {@inheritdoc}
    */
   public function blockSubmit($form, FormStateInterface $form_state) {
-    $this->configuration['block_count'] = $form_state['values']['block_count'];
+    $this->configuration['block_count'] = $form_state->getValue('block_count');
   }
 
   /**

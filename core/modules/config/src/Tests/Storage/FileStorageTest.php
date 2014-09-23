@@ -16,7 +16,7 @@ use Drupal\Core\Config\FileStorage;
  * @group config
  */
 class FileStorageTest extends ConfigStorageTestBase {
-  function setUp() {
+  protected function setUp() {
     parent::setUp();
     $this->storage = new FileStorage($this->configDirectories[CONFIG_ACTIVE_DIRECTORY]);
     $this->invalidStorage = new FileStorage($this->configDirectories[CONFIG_ACTIVE_DIRECTORY] . '/nonexisting');
@@ -46,7 +46,7 @@ class FileStorageTest extends ConfigStorageTestBase {
   /**
    * Tests the FileStorage::listAll method with a relative and absolute path.
    */
-  protected function testlistAll() {
+  public function testlistAll() {
     $expected_files = array(
       'core.extension',
       'system.performance',

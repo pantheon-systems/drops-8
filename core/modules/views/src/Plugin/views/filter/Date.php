@@ -31,7 +31,7 @@ class Date extends Numeric {
    * Add a type selector to the value form
    */
   protected function valueForm(&$form, FormStateInterface $form_state) {
-    if (empty($form_state['exposed'])) {
+    if (!$form_state->get('exposed')) {
       $form['value']['type'] = array(
         '#type' => 'radios',
         '#title' => t('Value type'),
@@ -48,12 +48,12 @@ class Date extends Numeric {
   public function validateOptionsForm(&$form, FormStateInterface $form_state) {
     parent::validateOptionsForm($form, $form_state);
 
-    if (!empty($this->options['exposed']) && empty($form_state['values']['options']['expose']['required'])) {
+    if (!empty($this->options['exposed']) && $form_state->isValueEmpty(array('options', 'expose', 'required'))) {
       // Who cares what the value is if it's exposed and non-required.
       return;
     }
 
-    $this->validateValidTime($form['value'], $form_state, $form_state['values']['options']['operator'], $form_state['values']['options']['value']);
+    $this->validateValidTime($form['value'], $form_state, $form_state->getValue(array('options', 'operator')), $form_state->getValue(array('options', 'value')));
   }
 
   public function validateExposed(&$form, FormStateInterface $form_state) {
@@ -66,9 +66,9 @@ class Date extends Numeric {
       return;
     }
 
-    $value = &$form_state['values'][$this->options['expose']['identifier']];
+    $value = &$form_state->getValue($this->options['expose']['identifier']);
     if (!empty($this->options['expose']['use_operator']) && !empty($this->options['expose']['operator_id'])) {
-      $operator = $form_state['values'][$this->options['expose']['operator_id']];
+      $operator = &$form_state->getValue($this->options['expose']['operator_id']);
     }
     else {
       $operator = $this->operator;
@@ -87,17 +87,17 @@ class Date extends Numeric {
     if ($operators[$operator]['values'] == 1) {
       $convert = strtotime($value['value']);
       if (!empty($form['value']) && ($convert == -1 || $convert === FALSE)) {
-        form_error($form['value'], $form_state, t('Invalid date format.'));
+        $form_state->setError($form['value'], t('Invalid date format.'));
       }
     }
     elseif ($operators[$operator]['values'] == 2) {
       $min = strtotime($value['min']);
       if ($min == -1 || $min === FALSE) {
-        form_error($form['min'], $form_state, t('Invalid date format.'));
+        $form_state->setError($form['min'], t('Invalid date format.'));
       }
       $max = strtotime($value['max']);
       if ($max == -1 || $max === FALSE) {
-        form_error($form['max'], $form_state, t('Invalid date format.'));
+        $form_state->setError($form['max'], t('Invalid date format.'));
       }
     }
   }
@@ -110,19 +110,19 @@ class Date extends Numeric {
     // $group['value'] array contains the type of filter (date or offset)
     // and therefore the number of items the comparission has to be done
     // against 'one' instead of 'zero'.
-    foreach ($form_state['values']['options']['group_info']['group_items'] as $id => $group) {
+    foreach ($form_state->getValue(array('options', 'group_info', 'group_items')) as $id => $group) {
       if (empty($group['remove'])) {
         // Check if the title is defined but value wasn't defined.
         if (!empty($group['title'])) {
           if ((!is_array($group['value']) && empty($group['value'])) || (is_array($group['value']) && count(array_filter($group['value'])) == 1)) {
-            form_error($form['group_info']['group_items'][$id]['value'], $form_state, t('The value is required if title for this item is defined.'));
+            $form_state->setError($form['group_info']['group_items'][$id]['value'], t('The value is required if title for this item is defined.'));
           }
         }
 
         // Check if the value is defined but title wasn't defined.
         if ((!is_array($group['value']) && !empty($group['value'])) || (is_array($group['value']) && count(array_filter($group['value'])) > 1)) {
           if (empty($group['title'])) {
-            form_error($form['group_info']['group_items'][$id]['title'], $form_state, t('The title is required if value for this item is defined.'));
+            $form_state->setError($form['group_info']['group_items'][$id]['title'], t('The title is required if value for this item is defined.'));
           }
         }
       }

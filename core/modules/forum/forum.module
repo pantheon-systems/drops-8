@@ -114,7 +114,7 @@ function forum_menu_local_tasks(&$data, $route_name) {
     // Loop through all bundles for forum taxonomy vocabulary field.
     $field_map = \Drupal::entityManager()->getFieldMap();
     foreach ($field_map['node']['taxonomy_forums']['bundles'] as $type) {
-      if (\Drupal::entityManager()->getAccessController('node')->createAccess($type)) {
+      if (\Drupal::entityManager()->getAccessControlHandler('node')->createAccess($type)) {
         $links[$type] = array(
           '#theme' => 'menu_local_action',
           '#link' => array(
@@ -213,7 +213,7 @@ function forum_node_validate(EntityInterface $node, $form, FormStateInterface $f
         }
         $term = $item->entity;
         if (!$term) {
-          form_set_error('taxonomy_forums', $form_state, t('Select a forum.'));
+          $form_state->setErrorByName('taxonomy_forums', t('Select a forum.'));
           continue;
         }
         $used = \Drupal::entityQuery('taxonomy_term')
@@ -223,7 +223,7 @@ function forum_node_validate(EntityInterface $node, $form, FormStateInterface $f
           ->count()
           ->execute();
         if ($used && !empty($term->forum_container->value)) {
-          form_set_error('taxonomy_forums', $form_state, t('The item %forum is a forum container, not a forum. Select one of the forums below instead.', array('%forum' => $term->getName())));
+          $form_state->setErrorByName('taxonomy_forums', t('The item %forum is a forum container, not a forum. Select one of the forums below instead.', array('%forum' => $term->getName())));
         }
       }
     }
@@ -344,18 +344,6 @@ function forum_node_storage_load($nodes) {
 }
 
 /**
- * Implements hook_permission().
- */
-function forum_permission() {
-  $perms = array(
-    'administer forums' => array(
-      'title' => t('Administer forums'),
-    ),
-  );
-  return $perms;
-}
-
-/**
  * Implements hook_ENTITY_TYPE_update() for comment entities.
  */
 function forum_comment_update(CommentInterface $comment) {
@@ -387,7 +375,7 @@ function forum_comment_delete(CommentInterface $comment) {
  */
 function forum_form_taxonomy_vocabulary_form_alter(&$form, FormStateInterface $form_state, $form_id) {
   $vid = \Drupal::config('forum.settings')->get('vocabulary');
-  $vocabulary = $form_state['controller']->getEntity();
+  $vocabulary = $form_state->getFormObject()->getEntity();
   if ($vid == $vocabulary->id()) {
     $form['help_forum_vocab'] = array(
       '#markup' => t('This is the designated forum vocabulary. Some of the normal vocabulary options have been removed.'),
@@ -419,7 +407,7 @@ function forum_form_taxonomy_term_form_alter(&$form, FormStateInterface $form_st
  * Implements hook_form_BASE_FORM_ID_alter() for node_form().
  */
 function forum_form_node_form_alter(&$form, FormStateInterface $form_state, $form_id) {
-  $node = $form_state['controller']->getEntity();
+  $node = $form_state->getFormObject()->getEntity();
   if (isset($node->taxonomy_forums) && !$node->isNew()) {
     $forum_terms = $node->taxonomy_forums;
     // If editing, give option to leave shadows.

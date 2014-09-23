@@ -7,6 +7,7 @@
 
 namespace Drupal\language;
 
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -44,20 +45,9 @@ interface ConfigurableLanguageManagerInterface extends LanguageManagerInterface 
    * through the user interface.
    *
    * @return array
-   *   An array of language type names.
+   *   An array of language type machine names.
    */
   public function getDefinedLanguageTypes();
-
-  /**
-   * Returns information about all defined language types.
-   *
-   * @return array
-   *   An associative array of language type information arrays keyed by type
-   *   names. Based on information from hook_language_types_info().
-   *
-   * @see hook_language_types_info()
-   */
-  public function getDefinedLanguageTypesInfo();
 
   /**
    * Stores language types configuration.
@@ -106,5 +96,17 @@ interface ConfigurableLanguageManagerInterface extends LanguageManagerInterface 
    *   A list of standard language names keyed by langcode.
    */
   public function getStandardLanguageListWithoutConfigured();
+
+  /**
+   * Gets the negotiated language method ID.
+   *
+   * @param string $type
+   *   (optional) The language type; e.g., the interface or the content
+   *   language.
+   *
+   * @return string
+   *   The negotiated language method ID.
+   */
+  public function getNegotiatedLanguageMethod($type = LanguageInterface::TYPE_INTERFACE);
 
 }

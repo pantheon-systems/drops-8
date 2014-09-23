@@ -12,6 +12,7 @@ use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Config\FileStorage;
 use Drupal\Core\Language\Language;
 use Drupal\Core\Language\LanguageInterface;
+use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\simpletest\WebTestBase;
 
 /**
@@ -56,7 +57,7 @@ class ConfigTranslationUiTest extends WebTestBase {
    */
   protected $localeStorage;
 
-  public function setUp() {
+  protected function setUp() {
     parent::setUp();
     $translator_permissions = array(
       'translate configuration',
@@ -78,8 +79,7 @@ class ConfigTranslationUiTest extends WebTestBase {
 
     // Add languages.
     foreach ($this->langcodes as $langcode) {
-      $language = new Language(array('id' => $langcode));
-      language_save($language);
+      ConfigurableLanguage::createFromLangcode($langcode)->save();
     }
     $this->localeStorage = $this->container->get('locale.storage');
   }
@@ -228,7 +228,7 @@ class ConfigTranslationUiTest extends WebTestBase {
   }
 
   /**
-   * Tests the contact category translation.
+   * Tests the contact form translation.
    */
   public function testContactConfigEntityTranslation() {
     $this->drupalLogin($this->admin_user);
@@ -268,15 +268,15 @@ class ConfigTranslationUiTest extends WebTestBase {
 
       // Update translatable fields.
       $edit = array(
-        'config_names[contact.category.feedback][label][translation]' => 'Website feedback - ' . $langcode,
-        'config_names[contact.category.feedback][reply][translation]' => 'Thank you for your mail - ' . $langcode,
+        'config_names[contact.form.feedback][label][translation]' => 'Website feedback - ' . $langcode,
+        'config_names[contact.form.feedback][reply][translation]' => 'Thank you for your mail - ' . $langcode,
       );
 
       // Save language specific version of form.
       $this->drupalPostForm($translation_page_url, $edit, t('Save translation'));
 
       // Expect translated values in language specific file.
-      $override = \Drupal::languageManager()->getLanguageConfigOverride($langcode, 'contact.category.feedback');
+      $override = \Drupal::languageManager()->getLanguageConfigOverride($langcode, 'contact.form.feedback');
       $expected = array(
         'label' => 'Website feedback - ' . $langcode,
         'reply' => 'Thank you for your mail - ' . $langcode,
@@ -307,7 +307,7 @@ class ConfigTranslationUiTest extends WebTestBase {
       $langcode_prefixes = array_merge(array(''), $this->langcodes);
       foreach ($langcode_prefixes as $langcode_prefix) {
         $this->drupalGet(ltrim("$langcode_prefix/$translation_base_url/$langcode/edit"));
-        $this->assertFieldByName('config_names[contact.category.feedback][label][translation]', 'Website feedback - ' . $langcode);
+        $this->assertFieldByName('config_names[contact.form.feedback][label][translation]', 'Website feedback - ' . $langcode);
         $this->assertText($label);
       }
     }
@@ -325,7 +325,7 @@ class ConfigTranslationUiTest extends WebTestBase {
 
     // Test that delete links work and operations perform properly.
     foreach ($this->langcodes as $langcode) {
-      $replacements = array('%label' => t('!label !entity_type', array('!label' => $label, '!entity_type' => Unicode::strtolower(t('Contact category')))), '@language' => language_load($langcode)->name);
+      $replacements = array('%label' => t('!label !entity_type', array('!label' => $label, '!entity_type' => Unicode::strtolower(t('Contact form')))), '@language' => language_load($langcode)->name);
 
       $this->drupalGet("$translation_base_url/$langcode/delete");
       $this->assertRaw(t('Are you sure you want to delete the @language translation of %label?', $replacements));
@@ -339,7 +339,7 @@ class ConfigTranslationUiTest extends WebTestBase {
       $this->assertNoLinkByHref("$translation_base_url/$langcode/delete");
 
       // Expect no language specific file present anymore.
-      $override = \Drupal::languageManager()->getLanguageConfigOverride($langcode, 'contact.category.feedback');
+      $override = \Drupal::languageManager()->getLanguageConfigOverride($langcode, 'contact.form.feedback');
       $this->assertTrue($override->isNew());
     }
 
@@ -397,15 +397,15 @@ class ConfigTranslationUiTest extends WebTestBase {
 
       // Update translatable fields.
       $edit = array(
-        'config_names[system.date_format.' . $id . '][label][translation]' => $id . ' - FR',
-        'config_names[system.date_format.' . $id . '][pattern][translation]' => 'D',
+        'config_names[core.date_format.' . $id . '][label][translation]' => $id . ' - FR',
+        'config_names[core.date_format.' . $id . '][pattern][translation]' => 'D',
       );
 
       // Save language specific version of form.
       $this->drupalPostForm($translation_page_url, $edit, t('Save translation'));
 
       // Get translation and check we've got the right value.
-      $override = \Drupal::languageManager()->getLanguageConfigOverride('fr', 'system.date_format.' . $id);
+      $override = \Drupal::languageManager()->getLanguageConfigOverride('fr', 'core.date_format.' . $id);
       $expected = array(
         'label' => $id . ' - FR',
         'pattern' => 'D',
@@ -508,7 +508,7 @@ class ConfigTranslationUiTest extends WebTestBase {
     $this->drupalLogin($this->admin_user);
 
     // Assert contextual link related to views.
-    $ids = array('views_ui_edit:view=frontpage:location=page&name=frontpage&display_id=page_1');
+    $ids = array('entity.view.edit_form:view=frontpage:location=page&name=frontpage&display_id=page_1');
     $response = $this->renderContextualLinks($ids, 'node');
     $this->assertResponse(200);
     $json = Json::decode($response);
@@ -570,7 +570,7 @@ class ConfigTranslationUiTest extends WebTestBase {
     $edit = array(
       'predefined_langcode' => 'custom',
       'langcode' => $langcode,
-      'name' => $name,
+      'label' => $name,
       'direction' => Language::DIRECTION_LTR,
     );
     $this->drupalPostForm('admin/config/regional/language/add', $edit, t('Add custom language'));

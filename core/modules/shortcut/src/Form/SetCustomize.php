@@ -87,12 +87,10 @@ class SetCustomize extends EntityForm {
     // Only includes a Save action for the entity, no direct Delete button.
     return array(
       'submit' => array(
+        '#type' => 'submit',
         '#value' => t('Save changes'),
         '#access' => (bool) Element::getVisibleChildren($form['shortcuts']['links']),
-        '#submit' => array(
-          array($this, 'submit'),
-          array($this, 'save'),
-        ),
+        '#submit' => array('::submitForm', '::save'),
       ),
     );
   }
@@ -102,7 +100,8 @@ class SetCustomize extends EntityForm {
    */
   public function save(array $form, FormStateInterface $form_state) {
     foreach ($this->entity->getShortcuts() as $shortcut) {
-      $shortcut->setWeight($form_state['values']['shortcuts']['links'][$shortcut->id()]['weight']);
+      $weight = $form_state->getValue(array('shortcuts', 'links', $shortcut->id(), 'weight'));
+      $shortcut->setWeight($weight);
       $shortcut->save();
     }
     drupal_set_message(t('The shortcut set has been updated.'));

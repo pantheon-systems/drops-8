@@ -78,15 +78,17 @@ abstract class OverviewBase extends FormBase {
   public function buildForm(array $form, FormStateInterface $form_state, $entity_type_id = NULL, $bundle = NULL) {
     $entity_type = $this->entityManager->getDefinition($entity_type_id);
     $this->bundleEntityType = $entity_type->getBundleEntityType();
-    if (!isset($form_state['bundle'])) {
+    $stored_bundle = $form_state->get('bundle');
+    if (!$stored_bundle) {
       if (!$bundle) {
         $bundle = $this->getRequest()->attributes->get('_raw_variables')->get($this->bundleEntityType);
       }
-      $form_state['bundle'] = $bundle;
+      $stored_bundle = $bundle;
+      $form_state->set('bundle', $bundle);
     }
 
     $this->entity_type = $entity_type_id;
-    $this->bundle = $form_state['bundle'];
+    $this->bundle = $stored_bundle;
   }
 
   /**
@@ -141,7 +143,7 @@ abstract class OverviewBase extends FormBase {
    *     $options array.
    *
    * @see drupal_render()
-   * @see drupal_pre_render_table()
+   * @see \Drupal\Core\Render\Element\Table::preRenderTable()
    */
   public function tablePreRender($elements) {
     $js_settings = array();
@@ -215,7 +217,7 @@ abstract class OverviewBase extends FormBase {
 
     // If the custom #tabledrag is set and there is a HTML ID, add the table's
     // HTML ID to the options and attach the behavior.
-    // @see drupal_pre_render_table()
+    // @see \Drupal\Core\Render\Element\Table::preRenderTable()
     if (!empty($elements['#tabledrag']) && isset($elements['#attributes']['id'])) {
       foreach ($elements['#tabledrag'] as $options) {
         $options['table_id'] = $elements['#attributes']['id'];

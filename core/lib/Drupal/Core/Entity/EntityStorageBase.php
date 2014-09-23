@@ -13,7 +13,7 @@ use Drupal\Core\Entity\Query\QueryInterface;
 /**
  * A base entity storage class.
  */
-abstract class EntityStorageBase extends EntityControllerBase implements EntityStorageInterface, EntityControllerInterface {
+abstract class EntityStorageBase extends EntityHandlerBase implements EntityStorageInterface, EntityHandlerInterface {
 
   /**
    * Static cache of entities, keyed by entity ID.
@@ -23,7 +23,7 @@ abstract class EntityStorageBase extends EntityControllerBase implements EntityS
   protected $entities = array();
 
   /**
-   * Entity type ID for this controller instance.
+   * Entity type ID for this storage.
    *
    * @var string
    */
@@ -339,14 +339,18 @@ abstract class EntityStorageBase extends EntityControllerBase implements EntityS
       return;
     }
 
+    // Allow code to run before deleting.
     $entity_class = $this->entityClass;
     $entity_class::preDelete($this, $entities);
     foreach ($entities as $entity) {
       $this->invokeHook('predelete', $entity);
     }
 
+    // Perform the delete and reset the static cache for the deleted entities.
     $this->doDelete($entities);
+    $this->resetCache(array_keys($entities));
 
+    // Allow code to run after deleting.
     $entity_class::postDelete($this, $entities);
     foreach ($entities as $entity) {
       $this->invokeHook('delete', $entity);
@@ -391,8 +395,9 @@ abstract class EntityStorageBase extends EntityControllerBase implements EntityS
     $entity->preSave($this);
     $this->invokeHook('presave', $entity);
 
-    // Perform the save.
+    // Perform the save and reset the static cache for the changed entity.
     $return = $this->doSave($id, $entity);
+    $this->resetCache(array($id));
 
     // The entity is no longer new.
     $entity->enforceIsNew(FALSE);

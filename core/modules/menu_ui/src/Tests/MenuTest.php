@@ -55,7 +55,7 @@ class MenuTest extends MenuWebTestBase {
    */
   protected $items;
 
-  function setUp() {
+  protected function setUp() {
     parent::setUp();
 
     $this->drupalCreateContentType(array('type' => 'article', 'name' => 'Article'));
@@ -253,6 +253,9 @@ class MenuTest extends MenuWebTestBase {
     $this->drupalGet('admin/structure/menu');
     $this->assertLinkByHref('admin/structure/menu/manage/' . $menu_name . '/add', 0, "The add menu link button url is correct");
 
+    // Verify form defaults.
+    $this->doMenuLinkFormDefaultsTest();
+
     // Add menu links.
     $item1 = $this->addMenuLink('', 'node/' . $node1->id(), $menu_name, TRUE);
     $item2 = $this->addMenuLink($item1->getPluginId(), 'node/' . $node2->id(), $menu_name, FALSE);
@@ -318,7 +321,7 @@ class MenuTest extends MenuWebTestBase {
     $this->assertMenuLink($item6->getPluginId(), array(
       'children' => array(),
       'parents' => array($item6->getPluginId(), $item4->getPluginId()),
-      'route_name' => 'node.view',
+      'route_name' => 'entity.node.canonical',
       'route_parameters' => array('node' => $node5->id()),
       'url' => '',
       // See above.
@@ -400,7 +403,7 @@ class MenuTest extends MenuWebTestBase {
     $item5->save();
 
     // Verify in the database.
-    $this->assertMenuLink($item1->getPluginId(), array('hidden' => 0));
+    $this->assertMenuLink($item1->getPluginId(), array('enabled' => 1));
 
     // Add an external link.
     $item7 = $this->addMenuLink('', 'http://drupal.org', $menu_name);
@@ -421,6 +424,23 @@ class MenuTest extends MenuWebTestBase {
   }
 
   /**
+   * Ensures that the proper default values are set when adding a menu link
+   */
+  protected function doMenuLinkFormDefaultsTest() {
+    $this->drupalGet("admin/structure/menu/manage/tools/add");
+    $this->assertResponse(200);
+
+    $this->assertFieldByName('title[0][value]', '');
+    $this->assertFieldByName('url', '');
+
+    $this->assertNoFieldChecked('edit-expanded-value');
+    $this->assertFieldChecked('edit-enabled-value');
+
+    $this->assertFieldByName('description[0][value]', '');
+    $this->assertFieldByName('weight[0][value]', 0);
+  }
+
+  /**
    * Adds and removes a menu link with a query string and fragment.
    */
   function testMenuQueryAndFragment() {
@@ -438,6 +458,19 @@ class MenuTest extends MenuWebTestBase {
     $this->drupalPostForm('admin/structure/menu/item/' . $item->id() . '/edit', array('url' => $path), t('Save'));
     $this->drupalGet('admin/structure/menu/item/' . $item->id() . '/edit');
     $this->assertFieldByName('url', $path, 'Path no longer has query or fragment.');
+
+    // Use <front>#fragment and ensure that saving it does not loose its
+    // content.
+    $path = '<front>?arg1=value#fragment';
+    $item = $this->addMenuLink('', $path);
+
+    $this->drupalGet('admin/structure/menu/item/' . $item->id() . '/edit');
+    $this->assertFieldByName('url', $path, 'Path is found with both query and fragment.');
+
+    $this->drupalPostForm('admin/structure/menu/item/' . $item->id() . '/edit', array(), t('Save'));
+
+    $this->drupalGet('admin/structure/menu/item/' . $item->id() . '/edit');
+    $this->assertFieldByName('url', $path, 'Path is found with both query and fragment.');
   }
 
   /**
@@ -497,7 +530,7 @@ class MenuTest extends MenuWebTestBase {
     $response =  $this->drupalPost('contextual/render', 'application/json', $post, array('query' => array('destination' => 'test-page')));
     $this->assertResponse(200);
     $json = Json::decode($response);
-    $this->assertIdentical($json[$id], '<ul class="contextual-links"><li class="block-configure"><a href="' . base_path() . 'admin/structure/block/manage/' . $block->id() . '">Configure block</a></li><li class="menu-ui-edit"><a href="' . base_path() . 'admin/structure/menu/manage/tools">Edit menu</a></li></ul>');
+    $this->assertIdentical($json[$id], '<ul class="contextual-links"><li class="block-configure"><a href="' . base_path() . 'admin/structure/block/manage/' . $block->id() . '">Configure block</a></li><li class="entitymenuedit-form"><a href="' . base_path() . 'admin/structure/menu/manage/tools">Edit menu</a></li></ul>');
   }
 
   /**
@@ -529,7 +562,7 @@ class MenuTest extends MenuWebTestBase {
       'url' => $path,
       'title[0][value]' => $title,
       'description[0][value]' => '',
-      'enabled' => 1,
+      'enabled[value]' => 1,
       'expanded[value]' => $expanded,
       'menu_parent' =>  $menu_name . ':' . $parent,
       'weight[0][value]' => $weight,
@@ -711,12 +744,12 @@ class MenuTest extends MenuWebTestBase {
    */
   function disableMenuLink(MenuLinkContent $item) {
     $mlid = $item->id();
-    $edit['enabled'] = FALSE;
+    $edit['enabled[value]'] = FALSE;
     $this->drupalPostForm("admin/structure/menu/item/$mlid/edit", $edit, t('Save'));
 
     // Unlike most other modules, there is no confirmation message displayed.
     // Verify in the database.
-    $this->assertMenuLink($item->getPluginId(), array('hidden' => 1));
+    $this->assertMenuLink($item->getPluginId(), array('enabled' => 0));
   }
 
   /**
@@ -727,11 +760,11 @@ class MenuTest extends MenuWebTestBase {
    */
   function enableMenuLink(MenuLinkContent $item) {
     $mlid = $item->id();
-    $edit['enabled'] = TRUE;
+    $edit['enabled[value]'] = TRUE;
     $this->drupalPostForm("admin/structure/menu/item/$mlid/edit", $edit, t('Save'));
 
     // Verify in the database.
-    $this->assertMenuLink($item->getPluginId(), array('hidden' => 0));
+    $this->assertMenuLink($item->getPluginId(), array('enabled' => 1));
   }
 
   /**

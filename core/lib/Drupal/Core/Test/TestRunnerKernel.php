@@ -22,14 +22,14 @@ class TestRunnerKernel extends DrupalKernel {
   /**
    * {@inheritdoc}
    */
-  public static function createFromRequest(Request $request, ClassLoader $class_loader, $environment = 'test_runner', $allow_dumping = TRUE) {
+  public static function createFromRequest(Request $request, $class_loader, $environment = 'test_runner', $allow_dumping = TRUE) {
     return parent::createFromRequest($request, $class_loader, $environment);
   }
 
   /**
    * {@inheritdoc}
    */
-  public function __construct($environment, ClassLoader $class_loader) {
+  public function __construct($environment, $class_loader) {
     parent::__construct($environment, $class_loader, FALSE);
 
     // Prime the module list and corresponding Extension objects.
@@ -55,6 +55,9 @@ class TestRunnerKernel extends DrupalKernel {
     if (!Settings::getAll()) {
       new Settings(array(
         'hash_salt' => 'run-tests',
+        // If there is no settings.php, then there is no parent site. In turn,
+        // there is no public files directory; use a custom public files path.
+        'file_public_path' => 'sites/default/files',
       ));
     }
 
@@ -71,6 +74,13 @@ class TestRunnerKernel extends DrupalKernel {
     $this->getContainer()->get('module_handler')->loadAll();
 
     simpletest_classloader_register();
+
+    // Register System module stream wrappers and create the build/artifacts
+    // directory if necessary.
+    file_get_stream_wrappers();
+    if (!is_dir('public://simpletest')) {
+      mkdir('public://simpletest', 0777, TRUE);
+    }
   }
 
   /**

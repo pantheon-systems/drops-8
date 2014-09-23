@@ -31,7 +31,7 @@ class FormSubmitterTest extends UnitTestCase {
   /**
    * {@inheritdoc}
    */
-  public function setUp() {
+  protected function setUp() {
     parent::setUp();
     $this->urlGenerator = $this->getMock('Drupal\Core\Routing\UrlGeneratorInterface');
   }
@@ -45,7 +45,7 @@ class FormSubmitterTest extends UnitTestCase {
     $form_state = new FormState();
 
     $return = $form_submitter->doSubmitForm($form, $form_state);
-    $this->assertFalse($form_state['executed']);
+    $this->assertFalse($form_state->isExecuted());
     $this->assertNull($return);
   }
 
@@ -55,13 +55,12 @@ class FormSubmitterTest extends UnitTestCase {
   public function testHandleFormSubmissionNoRedirect() {
     $form_submitter = $this->getFormSubmitter();
     $form = array();
-    $form_state = new FormState(array(
-      'submitted' => TRUE,
-      'no_redirect' => TRUE,
-    ));
+    $form_state = (new FormState())
+      ->setSubmitted()
+      ->disableRedirect();
 
     $return = $form_submitter->doSubmitForm($form, $form_state);
-    $this->assertTrue($form_state['executed']);
+    $this->assertTrue($form_state->isExecuted());
     $this->assertNull($return);
   }
 
@@ -78,10 +77,9 @@ class FormSubmitterTest extends UnitTestCase {
       ->method('prepare')
       ->will($this->returnValue($response));
 
-    $form_state = new FormState(array(
-      'submitted' => TRUE,
-      $form_state_key => $response,
-    ));
+    $form_state = (new FormState())
+      ->setSubmitted()
+      ->setFormState([$form_state_key => $response]);
 
     $form_submitter = $this->getFormSubmitter();
     $form = array();
@@ -98,57 +96,34 @@ class FormSubmitterTest extends UnitTestCase {
   }
 
   /**
-   * Tests the redirectForm() method when a redirect is expected.
+   * Tests the redirectForm() method when the redirect is NULL.
    *
    * @covers ::redirectForm
-   *
-   * @dataProvider providerTestRedirectWithResult
    */
-  public function testRedirectWithResult($redirect_value, $result, $status = 303) {
+  public function testRedirectWithNull() {
     $form_submitter = $this->getFormSubmitter();
     $this->urlGenerator->expects($this->once())
       ->method('generateFromPath')
-      ->will($this->returnValueMap(array(
-          array(NULL, array('query' => array(), 'absolute' => TRUE), '<front>'),
-          array('foo', array('absolute' => TRUE), 'foo'),
-          array('bar', array('query' => array('foo' => 'baz'), 'absolute' => TRUE), 'bar'),
-          array('baz', array('absolute' => TRUE), 'baz'),
-        ))
-      );
+      ->with(NULL, array('query' => array(), 'absolute' => TRUE))
+      ->willReturn('<front>');
 
     $form_state = $this->getMock('Drupal\Core\Form\FormStateInterface');
     $form_state->expects($this->once())
       ->method('getRedirect')
-      ->willReturn($redirect_value);
+      ->willReturn(NULL);
     $redirect = $form_submitter->redirectForm($form_state);
-    $this->assertSame($result, $redirect->getTargetUrl());
-    $this->assertSame($status, $redirect->getStatusCode());
+    $this->assertSame('<front>', $redirect->getTargetUrl());
+    $this->assertSame(303, $redirect->getStatusCode());
   }
 
   /**
-   * Provides test data for testing the redirectForm() method with a redirect.
-   *
-   * @return array
-   *   Returns some test data.
-   */
-  public function providerTestRedirectWithResult() {
-    return array(
-      array(NULL, '<front>'),
-      array('foo', 'foo'),
-      array(array('foo'), 'foo'),
-      array(array('bar', array('query' => array('foo' => 'baz'))), 'bar'),
-      array(array('baz', array(), 301), 'baz', 301),
-    );
-  }
-
-  /**
-   * Tests the redirectForm() with redirect_route when a redirect is expected.
+   * Tests redirectForm() when a redirect is a Url object.
    *
    * @covers ::redirectForm
    *
-   * @dataProvider providerTestRedirectWithRouteWithResult
+   * @dataProvider providerTestRedirectWithUrl
    */
-  public function testRedirectWithRouteWithResult($redirect_value, $result, $status = 303) {
+  public function testRedirectWithUrl(Url $redirect_value, $result, $status = 303) {
     $container = new ContainerBuilder();
     $container->set('url_generator', $this->urlGenerator);
     \Drupal::setContainer($container);
@@ -176,7 +151,7 @@ class FormSubmitterTest extends UnitTestCase {
    * @return array
    *   Returns some test data.
    */
-  public function providerTestRedirectWithRouteWithResult() {
+  public function providerTestRedirectWithUrl() {
     return array(
       array(new Url('test_route_a', array(), array('absolute' => TRUE)), 'test-route'),
       array(new Url('test_route_b', array('key' => 'value'), array('absolute' => TRUE)), 'test-route/value'),
@@ -225,12 +200,15 @@ class FormSubmitterTest extends UnitTestCase {
    */
   public function testExecuteSubmitHandlers() {
     $form_submitter = $this->getFormSubmitter();
-    $mock = $this->getMock('stdClass', array('submit_handler', 'hash_submit'));
+    $mock = $this->getMockForAbstractClass('Drupal\Core\Form\FormBase', [], '', TRUE, TRUE, TRUE, ['submit_handler', 'hash_submit', 'simple_string_submit']);
     $mock->expects($this->once())
       ->method('submit_handler')
       ->with($this->isType('array'), $this->isInstanceOf('Drupal\Core\Form\FormStateInterface'));
     $mock->expects($this->once())
       ->method('hash_submit')
+      ->with($this->isType('array'), $this->isInstanceOf('Drupal\Core\Form\FormStateInterface'));
+    $mock->expects($this->once())
+      ->method('simple_string_submit')
       ->with($this->isType('array'), $this->isInstanceOf('Drupal\Core\Form\FormStateInterface'));
 
     $form = array();
@@ -241,7 +219,13 @@ class FormSubmitterTest extends UnitTestCase {
     $form_submitter->executeSubmitHandlers($form, $form_state);
 
     // $form_state submit handlers will supersede $form handlers.
-    $form_state['submit_handlers'][] = array($mock, 'submit_handler');
+    $form_state->setSubmitHandlers([[$mock, 'submit_handler']]);
+    $form_submitter->executeSubmitHandlers($form, $form_state);
+
+    // Methods directly on the form object can be specified as a string.
+    $form_state = (new FormState())
+      ->setFormObject($mock)
+      ->setSubmitHandlers(['::simple_string_submit']);
     $form_submitter->executeSubmitHandlers($form, $form_state);
   }
 

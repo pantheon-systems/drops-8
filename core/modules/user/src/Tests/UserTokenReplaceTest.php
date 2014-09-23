@@ -8,8 +8,8 @@
 namespace Drupal\user\Tests;
 
 use Drupal\Component\Utility\String;
+use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\simpletest\WebTestBase;
-use Drupal\Core\Language\Language;
 
 /**
  * Generates text using placeholders for dummy content to check user token
@@ -26,12 +26,9 @@ class UserTokenReplaceTest extends WebTestBase {
    */
   public static $modules = array('language');
 
-  public function setUp() {
+  protected function setUp() {
     parent::setUp();
-    $language = new Language(array(
-      'id' => 'de',
-    ));
-    language_save($language);
+    ConfigurableLanguage::createFromLangcode('de')->save();
   }
 
   /**

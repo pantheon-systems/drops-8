@@ -22,7 +22,7 @@ function contact_help($route_name, RouteMatchInterface $route_match) {
       $output .= '<dt>' . t('User contact forms') . '</dt>';
       $output .= '<dd>' . t('Site users can be contacted with a user contact form that keeps their email address private. Users may enable or disable their personal contact forms by editing their <em>My account</em> page. If enabled, a <em>Contact</em> tab leads to a personal contact form displayed on their user profile. Site administrators are still able to use the contact form, even if has been disabled. The <em>Contact</em> tab is not shown when you view your own profile.') . '</dd>';
       $output .= '<dt>' . t('Site-wide contact forms') . '</dt>';
-      $output .= '<dd>' . t('The <a href="@contact">Contact page</a> provides a simple form for users with the <em>Use the site-wide contact form</em> permission to send comments, feedback, or other requests. You can create categories for directing the contact form messages to a set of defined recipients. Common categories for a business site, for example, might include "Website feedback" (messages are forwarded to website administrators) and "Product information" (messages are forwarded to members of the sales department). Email addresses defined within a category are not displayed publicly.', array('@contact' => url('contact'))) . '</p>';
+      $output .= '<dd>' . t('The <a href="@contact">Contact page</a> provides a simple form for users with the <em>Use the site-wide contact form</em> permission to send comments, feedback, or other requests. You can create forms for directing the contact messages to a set of defined recipients. Common forms for a business site, for example, might include "Website feedback" (messages are forwarded to website administrators) and "Product information" (messages are forwarded to members of the sales department). Email addresses defined within a form are not displayed publicly.', array('@contact' => url('contact'))) . '</p>';
       $output .= '<dt>' . t('Navigation') . '</dt>';
       $output .= '<dd>' . t('When the site-wide contact form is enabled, a link in the <em>Footer</em> menu is created, which you can modify on the <a href="@menu">Menus administration page</a>.', array('@menu' => url('admin/structure/menu'))) . '</dd>';
       $output .= '<dt>' . t('Customization') . '</dt>';
@@ -30,8 +30,8 @@ function contact_help($route_name, RouteMatchInterface $route_match) {
       $output .= '</dl>';
       return $output;
 
-    case 'contact.category_list':
-      $output = '<p>' . t('Add one or more categories on this page to set up your site-wide <a href="@form">contact form</a>.', array('@form' => url('contact'))) . '</p>';
+    case 'contact.form_list':
+      $output = '<p>' . t('Add one or more forms on this page to set up your site-wide <a href="@form">contact form</a>.', array('@form' => url('contact'))) . '</p>';
       $output .= '<p>' . t('A <em>Contact</em> menu item is added to the <em>Footer</em> menu, which you can modify on the <a href="@menu-settings">Menus administration page</a>.', array('@menu-settings' => url('admin/structure/menu'))) . '</p>';
       $output .= '<p>' . t('If you would like additional text to appear on the site-wide contact page, use a block. You can create and edit blocks on the <a href="@blocks">Blocks administration page</a>.', array('@blocks' => url('admin/structure/block'))) . '</p>';
       return $output;
@@ -39,28 +39,11 @@ function contact_help($route_name, RouteMatchInterface $route_match) {
 }
 
 /**
- * Implements hook_permission().
- */
-function contact_permission() {
-  return array(
-    'administer contact forms' => array(
-      'title' => t('Administer contact forms and contact form settings'),
-    ),
-    'access site-wide contact form' => array(
-      'title' => t('Use the site-wide contact form'),
-    ),
-    'access user contact forms' => array(
-      'title' => t("Use users' personal contact forms"),
-    ),
-  );
-}
-
-/**
  * Implements hook_entity_type_alter().
  */
 function contact_entity_type_alter(array &$entity_types) {
   /** @var $entity_types \Drupal\Core\Entity\EntityTypeInterface[] */
-  $entity_types['user']->setLinkTemplate('contact-form', 'contact.personal_page');
+  $entity_types['user']->setLinkTemplate('contact-form', 'entity.user.contact_form');
 }
 
 /**
@@ -113,7 +96,7 @@ function contact_mail($key, &$message, $params) {
   $variables = array(
     '!site-name' => \Drupal::config('system.site')->get('name'),
     '!subject' => $contact_message->getSubject(),
-    '!category' => !empty($params['contact_category']) ? $params['contact_category']->label() : NULL,
+    '!form' => !empty($params['contact_form']) ? $params['contact_form']->label() : NULL,
     '!form-url' => url(current_path(), array('absolute' => TRUE, 'language' => $language)),
     '!sender-name' => user_format_name($sender),
   );
@@ -129,15 +112,15 @@ function contact_mail($key, &$message, $params) {
   switch ($key) {
     case 'page_mail':
     case 'page_copy':
-      $message['subject'] .= t('[!category] !subject', $variables, $options);
+      $message['subject'] .= t('[!form] !subject', $variables, $options);
       $message['body'][] = t("!sender-name (!sender-url) sent a message using the contact form at !form-url.", $variables, $options);
       $build = entity_view($contact_message, 'mail', $language->id);
       $message['body'][] = drupal_render($build);
       break;
 
     case 'page_autoreply':
-      $message['subject'] .= t('[!category] !subject', $variables, $options);
-      $message['body'][] = $params['contact_category']->reply;
+      $message['subject'] .= t('[!form] !subject', $variables, $options);
+      $message['body'][] = $params['contact_form']->getReply();
       break;
 
     case 'user_mail':
@@ -170,7 +153,7 @@ function contact_form_user_form_alter(&$form, FormStateInterface $form_state) {
     '#open' => TRUE,
     '#weight' => 5,
   );
-  $account = $form_state['controller']->getEntity();
+  $account = $form_state->getFormObject()->getEntity();
   if (!\Drupal::currentUser()->isAnonymous() && $account->id()) {
     $account_data = \Drupal::service('user.data')->get('contact', $account->id(), 'enabled');
   }
@@ -187,9 +170,9 @@ function contact_form_user_form_alter(&$form, FormStateInterface $form_state) {
  * Submit callback for the user profile form to save the contact page setting.
  */
 function contact_user_profile_form_submit($form, FormStateInterface $form_state) {
-  $account = $form_state['controller']->getEntity();
-  if ($account->id() && isset($form_state['values']['contact'])) {
-    \Drupal::service('user.data')->set('contact', $account->id(), 'enabled', (int) $form_state['values']['contact']);
+  $account = $form_state->getFormObject()->getEntity();
+  if ($account->id() && $form_state->hasValue('contact')) {
+    \Drupal::service('user.data')->set('contact', $account->id(), 'enabled', (int) $form_state->getValue('contact'));
   }
 }
 
@@ -209,7 +192,7 @@ function contact_form_user_admin_settings_alter(&$form, FormStateInterface $form
   );
   $form['contact']['contact_default_status'] = array(
     '#type' => 'checkbox',
-    '#title' => t('Enable the personal contact form by default for new users.'),
+    '#title' => t('Enable the personal contact form by default for new users'),
     '#description' => t('Changing this setting will not affect existing users.'),
     '#default_value' => \Drupal::config('contact.settings')->get('user_default_enabled'),
   );
@@ -224,6 +207,6 @@ function contact_form_user_admin_settings_alter(&$form, FormStateInterface $form
  */
 function contact_form_user_admin_settings_submit($form, FormStateInterface $form_state) {
   \Drupal::config('contact.settings')
-    ->set('user_default_enabled', $form_state['values']['contact_default_status'])
+    ->set('user_default_enabled', $form_state->getValue('contact_default_status'))
     ->save();
 }

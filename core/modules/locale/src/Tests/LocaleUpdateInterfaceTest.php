@@ -7,8 +7,6 @@
 
 namespace Drupal\locale\Tests;
 
-use Drupal\simpletest\WebTestBase;
-
 /**
  * Tests for the user interface of project interface translations.
  *
@@ -21,12 +19,12 @@ class LocaleUpdateInterfaceTest extends LocaleUpdateBase {
    *
    * @var array
    */
-  public static $modules = array('update', 'locale', 'locale_test_translate');
+  public static $modules = array('locale_test_translate');
 
   /**
    * {@inheritdoc}
    */
-  public function setUp() {
+  protected function setUp() {
     parent::setUp();
     $admin_user = $this->drupalCreateUser(array('administer modules', 'administer site configuration', 'administer languages', 'access administration pages', 'translate interface'));
     $this->drupalLogin($admin_user);

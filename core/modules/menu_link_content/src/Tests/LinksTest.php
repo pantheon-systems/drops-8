@@ -35,7 +35,7 @@ class LinksTest extends WebTestBase {
   /**
    * {@inheritdoc}
    */
-  public function setUp() {
+  protected function setUp() {
     parent::setUp();
 
     $this->menuLinkManager = \Drupal::service('plugin.manager.menu.link');
@@ -120,6 +120,28 @@ class LinksTest extends WebTestBase {
 
       $this->assertEqual($menu_link_plugin->getParent(), $expected_parent, String::format('Menu link %id has parent of %parent, expected %expected_parent.', array('%id' => $id, '%parent' => $menu_link_plugin->getParent(), '%expected_parent' => $expected_parent)));
     }
+  }
+
+  /**
+   * Assert that a link entity's created timestamp is set.
+   */
+  public function testCreateLink() {
+    $options = array(
+      'menu_name' => 'menu_test',
+      'bundle' => 'menu_link_content',
+    );
+    $link = entity_create('menu_link_content', $options);
+    $link->save();
+    // Make sure the changed timestamp is set.
+    $this->assertEqual($link->getChangedTime(), REQUEST_TIME, 'Creating a menu link sets the "changed" timestamp.');
+    $options = array(
+      'title' => 'Test Link',
+    );
+    $link->setOptions($options);
+    $link->changed->value = REQUEST_TIME - 5;
+    $link->save();
+    // Make sure the changed timestamp is updated.
+    $this->assertEqual($link->getChangedTime(), REQUEST_TIME, 'Changing a menu link sets "changed" timestamp.');
   }
 
   /**

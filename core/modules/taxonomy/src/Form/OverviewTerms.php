@@ -7,6 +7,7 @@
 
 namespace Drupal\taxonomy\Form;
 
+use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Form\FormStateInterface;
@@ -26,13 +27,23 @@ class OverviewTerms extends FormBase {
   protected $moduleHandler;
 
   /**
+   * The term storage controller.
+   *
+   * @var \Drupal\taxonomy\TermStorageInterface
+   */
+  protected $storageController;
+
+  /**
    * Constructs an OverviewTerms object.
    *
    * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
    *   The module handler service.
+   * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
+   *   The entity manager service.
    */
-  public function __construct(ModuleHandlerInterface $module_handler) {
+  public function __construct(ModuleHandlerInterface $module_handler, EntityManagerInterface $entity_manager) {
     $this->moduleHandler = $module_handler;
+    $this->storageController = $entity_manager->getStorage('taxonomy_term');
   }
 
   /**
@@ -40,7 +51,8 @@ class OverviewTerms extends FormBase {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('module_handler')
+      $container->get('module_handler'),
+      $container->get('entity.manager')
     );
   }
 
@@ -71,7 +83,7 @@ class OverviewTerms extends FormBase {
     // @todo Remove global variables when http://drupal.org/node/2044435 is in.
     global $pager_page_array, $pager_total, $pager_total_items;
 
-    $form_state['taxonomy']['vocabulary'] = $taxonomy_vocabulary;
+    $form_state->set(['taxonomy', 'vocabulary'], $taxonomy_vocabulary);
     $parent_fields = FALSE;
 
     $page = $this->getRequest()->query->get('page') ?: 0;
@@ -97,9 +109,7 @@ class OverviewTerms extends FormBase {
 
     $delta = 0;
     $term_deltas = array();
-    // @todo taxonomy_get_tree needs to be converted to a service and injected.
-    //   Will be fixed in http://drupal.org/node/1976298.
-    $tree = taxonomy_get_tree($taxonomy_vocabulary->id(), 0, NULL, TRUE);
+    $tree = $this->storageController->loadTree($taxonomy_vocabulary->id(), 0, NULL, TRUE);
     $tree_index = 0;
     do {
       // In case this tree is completely empty.
@@ -171,16 +181,17 @@ class OverviewTerms extends FormBase {
     // If this form was already submitted once, it's probably hit a validation
     // error. Ensure the form is rebuilt in the same order as the user
     // submitted.
-    if (!empty($form_state['input'])) {
+    $user_input = $form_state->getUserInput();
+    if (!empty($user_input)) {
       // Get the POST order.
-      $order = array_flip(array_keys($form_state['input']['terms']));
+      $order = array_flip(array_keys($user_input['terms']));
       // Update our form with the new order.
       $current_page = array_merge($order, $current_page);
       foreach ($current_page as $key => $term) {
         // Verify this is a term for the current page and set at the current
         // depth.
-        if (is_array($form_state['input']['terms'][$key]) && is_numeric($form_state['input']['terms'][$key]['term']['tid'])) {
-          $current_page[$key]->depth = $form_state['input']['terms'][$key]['term']['depth'];
+        if (is_array($user_input['terms'][$key]) && is_numeric($user_input['terms'][$key]['term']['tid'])) {
+          $current_page[$key]->depth = $user_input['terms'][$key]['term']['depth'];
         }
         else {
           unset($current_page[$key]);
@@ -188,14 +199,14 @@ class OverviewTerms extends FormBase {
       }
     }
 
-    $errors = form_get_errors($form_state);
+    $errors = $form_state->getErrors();
     $destination = drupal_get_destination();
     $row_position = 0;
     // Build the actual form.
     $form['terms'] = array(
       '#type' => 'table',
       '#header' => array($this->t('Name'), $this->t('Weight'), $this->t('Operations')),
-      '#empty' => $this->t('No terms available. <a href="@link">Add term</a>.', array('@link' => $this->url('taxonomy.term_add', array('taxonomy_vocabulary' => $taxonomy_vocabulary->id())))),
+      '#empty' => $this->t('No terms available. <a href="@link">Add term</a>.', array('@link' => $this->url('entity.taxonomy_term.add_form', array('taxonomy_vocabulary' => $taxonomy_vocabulary->id())))),
       '#attributes' => array(
         'id' => 'taxonomy',
       ),
@@ -263,7 +274,7 @@ class OverviewTerms extends FormBase {
           'query' => $destination,
         ) + $term->urlInfo('delete-form')->toArray(),
       );
-      if ($this->moduleHandler->moduleExists('content_translation') && content_translation_translate_access($term)) {
+      if ($this->moduleHandler->moduleExists('content_translation') && content_translation_translate_access($term)->isAllowed()) {
         $operations['translate'] = array(
           'title' => $this->t('Translate'),
           'query' => $destination,
@@ -338,10 +349,9 @@ class OverviewTerms extends FormBase {
       );
       $form['actions']['reset_alphabetical'] = array(
         '#type' => 'submit',
-        '#submit' => array(array($this, 'submitReset')),
+        '#submit' => array('::submitReset'),
         '#value' => $this->t('Reset to alphabetical'),
       );
-      $form_state['redirect'] = array(current_path(), ($page ? array('query' => array('page' => $page)) : array()));
     }
 
     return $form;
@@ -367,9 +377,9 @@ class OverviewTerms extends FormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     // Sort term order based on weight.
-    uasort($form_state['values']['terms'], array('Drupal\Component\Utility\SortArray', 'sortByWeightElement'));
+    uasort($form_state->getValue('terms'), array('Drupal\Component\Utility\SortArray', 'sortByWeightElement'));
 
-    $vocabulary = $form_state['taxonomy']['vocabulary'];
+    $vocabulary = $form_state->get(['taxonomy', 'vocabulary']);
     // Update the current hierarchy type as we go.
     $hierarchy = TAXONOMY_HIERARCHY_DISABLED;
 
@@ -397,7 +407,7 @@ class OverviewTerms extends FormBase {
 
     // Renumber the current page weights and assign any new parents.
     $level_weights = array();
-    foreach ($form_state['values']['terms'] as $tid => $values) {
+    foreach ($form_state->getValue('terms') as $tid => $values) {
       if (isset($form['terms'][$tid]['#term'])) {
         $term = $form['terms'][$tid]['#term'];
         // Give terms at the root level a weight in sequence with terms on previous pages.
@@ -415,7 +425,7 @@ class OverviewTerms extends FormBase {
         }
         // Update any changed parents.
         if ($values['term']['parent'] != $term->parents[0]) {
-          $term->parent->value = $values['term']['parent'];
+          $term->parent->target_id = $values['term']['parent'];
           $changed_terms[$term->id()] = $term;
         }
         $hierarchy = $term->parents[0] != 0 ? TAXONOMY_HIERARCHY_SINGLE : $hierarchy;
@@ -427,7 +437,7 @@ class OverviewTerms extends FormBase {
     for ($weight; $weight < count($tree); $weight++) {
       $term = $tree[$weight];
       if ($term->parents[0] == 0 && $term->getWeight() != $weight) {
-        $term->parent->value = $term->parents[0];
+        $term->parent->target_id = $term->parents[0];
         $term->setWeight($weight);
         $changed_terms[$term->id()] = $term;
       }
@@ -452,8 +462,8 @@ class OverviewTerms extends FormBase {
    */
   public function submitReset(array &$form, FormStateInterface $form_state) {
     /** @var $vocabulary \Drupal\taxonomy\VocabularyInterface */
-    $vocabulary = $form_state['taxonomy']['vocabulary'];
-    $form_state->setRedirectUrl($vocabulary->urlInfo('reset'));
+    $vocabulary = $form_state->get(['taxonomy', 'vocabulary']);
+    $form_state->setRedirectUrl($vocabulary->urlInfo('reset-form'));
   }
 
 }

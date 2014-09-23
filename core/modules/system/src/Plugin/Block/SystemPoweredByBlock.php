@@ -7,7 +7,7 @@
 
 namespace Drupal\system\Plugin\Block;
 
-use Drupal\block\BlockBase;
+use Drupal\Core\Block\BlockBase;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Form\FormStateInterface;
 
@@ -25,7 +25,7 @@ class SystemPoweredByBlock extends BlockBase {
    * {@inheritdoc}
    */
   public function build() {
-    return array('#markup' => '<span>' . t('Powered by <a href="@poweredby">Drupal</a>', array('@poweredby' => 'https://drupal.org')) . '</span>');
+    return array('#markup' => '<span>' . t('Powered by <a href="@poweredby">Drupal</a>', array('@poweredby' => 'https://www.drupal.org')) . '</span>');
   }
 
   /**

@@ -80,7 +80,7 @@ class Feed extends PathPluginBase {
 
     $response = $this->view->getResponse();
 
-    $response->setContent($output);
+    $response->setContent(drupal_render($output));
 
     return $response;
   }
@@ -94,7 +94,7 @@ class Feed extends PathPluginBase {
     if (!empty($this->view->live_preview)) {
       $output = array(
         '#prefix' => '<pre>',
-        '#markup' => String::checkPlain($output),
+        '#markup' => String::checkPlain(drupal_render($output)),
         '#suffix' => '</pre>',
       );
     }
@@ -198,7 +198,7 @@ class Feed extends PathPluginBase {
     // It is very important to call the parent function here.
     parent::buildOptionsForm($form, $form_state);
 
-    switch ($form_state['section']) {
+    switch ($form_state->get('section')) {
       case 'title':
         $title = $form['title'];
         // A little juggling to move the 'title' field beyond our checkbox.
@@ -242,20 +242,21 @@ class Feed extends PathPluginBase {
    */
   public function submitOptionsForm(&$form, FormStateInterface $form_state) {
     parent::submitOptionsForm($form, $form_state);
-    switch ($form_state['section']) {
+    $section = $form_state->get('section');
+    switch ($section) {
       case 'title':
-        $this->setOption('sitename_title', $form_state['values']['sitename_title']);
+        $this->setOption('sitename_title', $form_state->getValue('sitename_title'));
         break;
       case 'displays':
-        $this->setOption($form_state['section'], $form_state['values'][$form_state['section']]);
+        $this->setOption($section, $form_state->getValue($section));
         break;
     }
   }
 
   /**
-   * Overrides \Drupal\views\Plugin\views\display\DisplayPluginBase::attachTo().
+   * {@inheritdoc}
    */
-  public function attachTo(ViewExecutable $clone, $display_id) {
+  public function attachTo(ViewExecutable $clone, $display_id, array &$build) {
     $displays = $this->getOption('displays');
     if (empty($displays[$display_id])) {
       return;
@@ -266,7 +267,7 @@ class Feed extends PathPluginBase {
     $clone->setDisplay($this->display['id']);
     $clone->buildTitle();
     if ($plugin = $clone->display_handler->getPlugin('style')) {
-      $plugin->attachTo($display_id, $this->getPath(), $clone->getTitle());
+      $plugin->attachTo($build, $display_id, $this->getPath(), $clone->getTitle());
     }
 
     // Clean up.

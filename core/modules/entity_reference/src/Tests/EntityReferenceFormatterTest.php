@@ -45,13 +45,13 @@ class EntityReferenceFormatterTest extends EntityUnitTestBase {
   protected $referencedEntity = NULL;
 
   /**
-   * Modules to enable.
+   * Modules to install.
    *
    * @var array
    */
   public static $modules = array('entity_reference');
 
-  public function setUp() {
+  protected function setUp() {
     parent::setUp();
 
     entity_reference_create_instance($this->entityType, $this->bundle, $this->fieldName, 'Field test', $this->entityType);
@@ -69,9 +69,6 @@ class EntityReferenceFormatterTest extends EntityUnitTestBase {
       'bundle' => $this->bundle,
       'field_name' => 'body',
       'label' => 'Body',
-      'settings' => array(
-        'text_processing' => TRUE,
-      ),
     ))->save();
     entity_get_display($this->entityType, $this->bundle, 'default')
       ->setComponent('body', array(
@@ -181,10 +178,11 @@ class EntityReferenceFormatterTest extends EntityUnitTestBase {
       </div>
 </div>
 ';
+    drupal_render($build[0]);
     $this->assertEqual($build[0]['#markup'], 'default | ' . $this->referencedEntity->label() .  $expected_rendered_name_field . $expected_rendered_body_field, format_string('The markup returned by the @formatter formatter is correct.', array('@formatter' => $formatter)));
     $expected_cache_tags = array(
       $this->entityType . '_view' => TRUE,
-      $this->entityType => array($this->referencedEntity->id() => $this->referencedEntity->id()),
+      $this->entityType => array($this->referencedEntity->id()),
       'filter_format' => array('full_html' => 'full_html'),
     );
     $this->assertEqual($build[0]['#cache']['tags'], $expected_cache_tags, format_string('The @formatter formatter has the expected cache tags.', array('@formatter' => $formatter)));

@@ -30,7 +30,7 @@ class UserBlocksTest extends WebTestBase {
    */
   protected $adminUser;
 
-  function setUp() {
+  protected function setUp() {
     parent::setUp();
 
     $this->adminUser = $this->drupalCreateUser(array('administer blocks'));
@@ -105,7 +105,7 @@ class UserBlocksTest extends WebTestBase {
    * Updates the access column for a user.
    */
   private function updateAccess($uid, $access = REQUEST_TIME) {
-    db_update('users')
+    db_update('users_field_data')
       ->condition('uid', $uid)
       ->fields(array('access' => $access))
       ->execute();

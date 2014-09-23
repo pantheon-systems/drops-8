@@ -7,6 +7,7 @@
 
 namespace Drupal\views_ui\Form\Ajax;
 
+use Drupal\Component\Utility\Html;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormState;
 use Drupal\Core\Form\FormStateInterface;
@@ -65,20 +66,16 @@ abstract class ViewsFormBase extends FormBase implements ViewsFormInterface {
   public function getFormState(ViewStorageInterface $view, $display_id, $js) {
     // $js may already have been converted to a Boolean.
     $ajax = is_string($js) ? $js === 'ajax' : $js;
-    return new FormState(array(
-      'form_id' => $this->getFormId(),
-      'form_key' => $this->getFormKey(),
-      'ajax' => $ajax,
-      'display_id' => $display_id,
-      'view' => $view,
-      'type' => $this->type,
-      'id' => $this->id,
-      'no_redirect' => TRUE,
-      'build_info' => array(
-        'args' => array(),
-        'callback_object' => $this,
-      ),
-    ));
+    return (new FormState())
+      ->set('form_id', $this->getFormId())
+      ->set('form_key', $this->getFormKey())
+      ->set('ajax', $ajax)
+      ->set('display_id', $display_id)
+      ->set('view', $view)
+      ->set('type', $this->type)
+      ->set('id', $this->id)
+      ->disableRedirect()
+      ->addBuildInfo('callback_object', $this);
   }
 
   /**
@@ -86,8 +83,8 @@ abstract class ViewsFormBase extends FormBase implements ViewsFormInterface {
    */
   public function getForm(ViewStorageInterface $view, $display_id, $js) {
     $form_state = $this->getFormState($view, $display_id, $js);
-    $view = $form_state['view'];
-    $key = $form_state['form_key'];
+    $view = $form_state->get('view');
+    $key = $form_state->get('form_key');
 
     // @todo Remove the need for this.
     \Drupal::moduleHandler()->loadInclude('views_ui', 'inc', 'admin');
@@ -96,14 +93,13 @@ abstract class ViewsFormBase extends FormBase implements ViewsFormInterface {
     // Reset the cache of IDs. Drupal rather aggressively prevents ID
     // duplication but this causes it to remember IDs that are no longer even
     // being used.
-    $seen_ids_init = &drupal_static('drupal_html_id:init');
-    $seen_ids_init = array();
+    Html::resetSeenIds();
 
     // check to see if this is the top form of the stack. If it is, pop
     // it off; if it isn't, the user clicked somewhere else and the stack is
     // now irrelevant.
     if (!empty($view->stack)) {
-      $identifier = implode('-', array_filter(array($key, $view->id(), $display_id, $form_state['type'], $form_state['id'])));
+      $identifier = implode('-', array_filter([$key, $view->id(), $display_id, $form_state->get('type'), $form_state->get('id')]));
       // Retrieve the first form from the stack without changing the integer keys,
       // as they're being used for the "2 of 3" progress indicator.
       reset($view->stack);
@@ -130,11 +126,11 @@ abstract class ViewsFormBase extends FormBase implements ViewsFormInterface {
     // before rendering the second time.
     $drupal_add_js_original = _drupal_add_js();
     $drupal_add_js = &drupal_static('_drupal_add_js');
-    $form_class = get_class($form_state['build_info']['callback_object']);
+    $form_class = get_class($form_state->getFormObject());
     $response = views_ajax_form_wrapper($form_class, $form_state);
 
     // If the form has not been submitted, or was not set for rerendering, stop.
-    if (!$form_state['submitted'] || !empty($form_state['rerender'])) {
+    if (!$form_state->isSubmitted() || $form_state->get('rerender')) {
       return $response;
     }
 
@@ -146,28 +142,30 @@ abstract class ViewsFormBase extends FormBase implements ViewsFormInterface {
 
       // Build the new form state for the next form in the stack.
       $reflection = new \ReflectionClass($view::$forms[$top[1]]);
-      $form_state = $reflection->newInstanceArgs(array_slice($top, 3, 2))->getFormState($view, $top[2], $form_state['ajax']);
-      $form_class = get_class($form_state['build_info']['callback_object']);
+      /** @var $form_state \Drupal\Core\Form\FormStateInterface */
+      $form_state = $reflection->newInstanceArgs(array_slice($top, 3, 2))->getFormState($view, $top[2], $form_state->get('ajax'));
+      $form_class = get_class($form_state->getFormObject());
 
-      $form_state['input'] = array();
+      $form_state->setUserInput(array());
       $form_path = views_ui_build_form_path($form_state);
-      if (!$form_state['ajax']) {
+      if (!$form_state->get('ajax')) {
         return new RedirectResponse(url($form_path, array('absolute' => TRUE)));
       }
-      $form_state['path'] = $form_path;
+      $form_state->set('path', $form_path);
       $response = views_ajax_form_wrapper($form_class, $form_state);
     }
-    elseif (!$form_state['ajax']) {
+    elseif (!$form_state->get('ajax')) {
       // if nothing on the stack, non-js forms just go back to the main view editor.
-      return new RedirectResponse(url("admin/structure/views/view/{$view->id()}/edit/$form_state[display_id]", array('absolute' => TRUE)));
+      $display_id = $form_state->get('display_id');
+      return new RedirectResponse(url("admin/structure/views/view/{$view->id()}/edit/$display_id", array('absolute' => TRUE)));
     }
     else {
       $response = new AjaxResponse();
       $response->addCommand(new CloseModalDialogCommand());
       $response->addCommand(new Ajax\ShowButtonsCommand(!empty($view->changed)));
       $response->addCommand(new Ajax\TriggerPreviewCommand());
-      if (!empty($form_state['#page_title'])) {
-        $response->addCommand(new Ajax\ReplaceTitleCommand($form_state['#page_title']));
+      if ($page_title = $form_state->get('#page_title')) {
+        $response->addCommand(new Ajax\ReplaceTitleCommand($page_title));
       }
     }
     // If this form was for view-wide changes, there's no need to regenerate

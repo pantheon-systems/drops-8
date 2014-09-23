@@ -624,6 +624,15 @@ class Drupal {
   }
 
   /**
+   * Gets the theme service.
+   *
+   * @return \Drupal\Core\Theme\ThemeManagerInterface
+   */
+  public static function theme() {
+    return static::$container->get('theme.manager');
+  }
+
+  /**
    * Gets the syncing state.
    *
    * @return bool
@@ -655,6 +664,15 @@ class Drupal {
    */
   public static function menuTree() {
     return static::$container->get('menu.link_tree');
+  }
+
+  /**
+   * Returns the path validator.
+   *
+   * @return \Drupal\Core\Path\PathValidatorInterface
+   */
+  public static function pathValidator() {
+    return static::$container->get('path.validator');
   }
 
 }

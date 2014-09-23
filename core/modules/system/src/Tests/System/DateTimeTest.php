@@ -24,7 +24,7 @@ class DateTimeTest extends WebTestBase {
    */
   public static $modules = array('node', 'language');
 
-  function setUp() {
+  protected function setUp() {
     parent::setUp();
 
     // Create admin user and log in admin user.
@@ -48,6 +48,7 @@ class DateTimeTest extends WebTestBase {
     // Create some nodes with different authored-on dates.
     $date1 = '2007-01-31 21:00:00 -1000';
     $date2 = '2007-07-31 21:00:00 -1000';
+    $this->drupalCreateContentType(array('type' => 'article'));
     $node1 = $this->drupalCreateNode(array('created' => strtotime($date1), 'type' => 'article'));
     $node2 = $this->drupalCreateNode(array('created' => strtotime($date2), 'type' => 'article'));
 
@@ -112,7 +113,7 @@ class DateTimeTest extends WebTestBase {
     $this->clickLink(t('Delete'));
     $this->drupalPostForm('admin/config/regional/date-time/formats/manage/' . $date_format_id . '/delete', array(), t('Remove'));
     $this->assertEqual($this->getUrl(), url('admin/config/regional/date-time', array('absolute' => TRUE)), 'Correct page redirection.');
-    $this->assertText(t('Removed date format ' . $name), 'Custom date format removed.');
+    $this->assertRaw(t('Removed date format %format.', array('%format' => $name)), 'Custom date format removed.');
 
     // Make sure the date does not exist in config.
     $date_format = entity_load('date_format', $date_format_id);

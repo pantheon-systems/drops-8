@@ -27,7 +27,7 @@ class FormTestValidateRequiredForm extends FormBase {
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
     $options = array('foo' => 'foo', 'bar' => 'bar');
-    $validate = array(array($this, 'elementValidateRequired'));
+    $validate = array('::elementValidateRequired');
 
     $form['textfield'] = array(
       '#type' => 'textfield',
@@ -79,7 +79,7 @@ class FormTestValidateRequiredForm extends FormBase {
   public function elementValidateRequired($element, FormStateInterface $form_state) {
     // Set a custom validation error on the #required element.
     if (!empty($element['#required_but_empty']) && isset($element['#form_test_required_error'])) {
-      form_error($element, $form_state, $element['#form_test_required_error']);
+      $form_state->setError($element, $element['#form_test_required_error']);
     }
   }
 

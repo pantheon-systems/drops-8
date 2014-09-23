@@ -7,12 +7,13 @@
 
 namespace Drupal\menu_link_content;
 
+use Drupal\Core\Entity\EntityChangedInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
 
 /**
  * Defines an interface for custom menu links.
  */
-interface MenuLinkContentInterface extends ContentEntityInterface {
+interface MenuLinkContentInterface extends ContentEntityInterface, EntityChangedInterface {
 
   /**
    * Flags this instance as being wrapped in a menu link plugin instance.
@@ -48,8 +49,8 @@ interface MenuLinkContentInterface extends ContentEntityInterface {
    *
    * @param array $route_parameters
    *   The route parameters, usually derived from the path entered by the
-   *   administrator. For example, for a link to a node with route 'node.view'
-   *   the route needs the node ID as a parameter:
+   *   administrator. For example, for a link to a node with route
+   *   'entity.node.canonical' the route needs the node ID as a parameter:
    *   @code
    *     array('node' => 2)
    *   @endcode
@@ -118,12 +119,12 @@ interface MenuLinkContentInterface extends ContentEntityInterface {
   public function getPluginId();
 
   /**
-   * Returns whether the menu link is marked as hidden.
+   * Returns whether the menu link is marked as enabled.
    *
    * @return bool
-   *   TRUE if is not enabled, otherwise FALSE.
+   *   TRUE if is enabled, otherwise FALSE.
    */
-  public function isHidden();
+  public function isEnabled();
 
   /**
    * Returns whether the menu link is marked as always expanded.

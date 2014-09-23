@@ -16,6 +16,11 @@ use Drupal\editor\Entity\Editor;
  *
  * Modules implementing this interface may want to extend the EditorBase class,
  * which provides default implementations of each method where appropriate.
+ *
+ * @see \Drupal\editor\Annotation\Editor
+ * @see \Drupal\editor\Plugin\EditorBase
+ * @see \Drupal\editor\Plugin\EditorManager
+ * @see plugin_api
  */
 interface EditorPluginInterface extends PluginInspectionInterface {
 
@@ -52,8 +57,8 @@ interface EditorPluginInterface extends PluginInspectionInterface {
    * Validates the settings form for an editor.
    *
    * The contents of the editor settings are located in
-   * $form_state['values']['editor']['settings']. Calls to form_error() should
-   * reflect this location in the settings form.
+   * $form_state->getValue(array('editor', 'settings')). Calls to $form_state->setError()
+   * should reflect this location in the settings form.
    *
    * @param array $form
    *   An associative array containing the structure of the form.
@@ -65,8 +70,8 @@ interface EditorPluginInterface extends PluginInspectionInterface {
   /**
    * Modifies any values in the form state to prepare them for saving.
    *
-   * Values in $form_state['values']['editor']['settings'] are saved by Editor
-   * module in editor_form_filter_admin_format_submit().
+   * Values in $form_state->getValue(array('editor', 'settings')) are saved by
+   * Editor module in editor_form_filter_admin_format_submit().
    *
    * @param array $form
    *   An associative array containing the structure of the form.

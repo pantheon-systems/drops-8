@@ -61,7 +61,7 @@ class ViewsMenuLinkForm extends MenuLinkDefaultForm {
     $id = $view->storage->id();
     $label = $view->storage->label();
     if ($this->moduleHandler->moduleExists('views_ui')) {
-      $message = $this->t('This link is provided by the Views module. The path can be changed by editing the view <a href="@url">@label</a>', array('@url' => \Drupal::url('views_ui.edit', array('view' => $id)), '@label' => $label));
+      $message = $this->t('This link is provided by the Views module. The path can be changed by editing the view <a href="@url">@label</a>', array('@url' => \Drupal::url('entity.view.edit_form', array('view' => $id)), '@label' => $label));
     }
     else {
       $message = $this->t('This link is provided by the Views module from view %label.', array('%label' => $label));
@@ -75,8 +75,8 @@ class ViewsMenuLinkForm extends MenuLinkDefaultForm {
    */
   public function extractFormValues(array &$form, FormStateInterface $form_state) {
     $definition = parent::extractFormValues($form, $form_state);
-    $definition['title'] = $form_state['values']['title'];
-    $definition['description'] = $form_state['values']['description'];
+    $definition['title'] = $form_state->getValue('title');
+    $definition['description'] = $form_state->getValue('description');
 
     return $definition;
   }

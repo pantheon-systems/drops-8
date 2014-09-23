@@ -8,6 +8,7 @@
 namespace Drupal\field_ui\Form;
 
 use Drupal\Core\Entity\EntityManagerInterface;
+use Drupal\Core\Field\AllowedTagsXssTrait;
 use Drupal\Core\Form\FormBase;
 use Drupal\Component\Utility\String;
 use Drupal\Core\Form\FormStateInterface;
@@ -19,6 +20,8 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * Provides a form for the field instance settings form.
  */
 class FieldInstanceEditForm extends FormBase {
+
+  use AllowedTagsXssTrait;
 
   /**
    * The field instance being edited.
@@ -64,7 +67,8 @@ class FieldInstanceEditForm extends FormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state, FieldInstanceConfigInterface $field_instance_config = NULL) {
-    $this->instance = $form_state['instance'] = $field_instance_config;
+    $this->instance = $field_instance_config;
+    $form_state->set('instance', $field_instance_config);
 
     $bundle = $this->instance->bundle;
     $entity_type = $this->instance->entity_type;
@@ -123,7 +127,7 @@ class FieldInstanceEditForm extends FormBase {
       '#title' => $this->t('Help text'),
       '#default_value' => $this->instance->getDescription(),
       '#rows' => 5,
-      '#description' => $this->t('Instructions to present to the user below this field on the editing form.<br />Allowed HTML tags: @tags', array('@tags' => _field_filter_xss_display_allowed_tags())) . '<br />' . $this->t('This field supports tokens.'),
+      '#description' => $this->t('Instructions to present to the user below this field on the editing form.<br />Allowed HTML tags: @tags', array('@tags' => $this->displayAllowedTags())) . '<br />' . $this->t('This field supports tokens.'),
       '#weight' => -10,
     );
 
@@ -134,18 +138,21 @@ class FieldInstanceEditForm extends FormBase {
       '#weight' => -5,
     );
 
-    // Add instance settings for the field type.
+    // Add instance settings for the field type and a container for third party
+    // settings that modules can add to via hook_form_FORM_ID_alter().
     $form['instance']['settings'] = $items[0]->instanceSettingsForm($form, $form_state);
     $form['instance']['settings']['#weight'] = 10;
+    $form['instance']['third_party_settings'] = array();
+    $form['instance']['third_party_settings']['#weight'] = 11;
 
     // Add handling for default value.
     if ($element = $items->defaultValuesForm($form, $form_state)) {
-      $element += array(
+      $element = array_merge($element , array(
         '#type' => 'details',
         '#title' => $this->t('Default value'),
         '#open' => TRUE,
         '#description' => $this->t('The default value for this field, used when creating new content.'),
-      );
+      ));
       $form['instance']['default_value'] = $element;
     }
 
@@ -157,7 +164,7 @@ class FieldInstanceEditForm extends FormBase {
     $form['actions']['delete'] = array(
       '#type' => 'submit',
       '#value' => $this->t('Delete field'),
-      '#submit' => array(array($this, 'delete')),
+      '#submit' => array('::delete'),
     );
     return $form;
   }
@@ -185,8 +192,8 @@ class FieldInstanceEditForm extends FormBase {
     $this->instance->default_value = $default_value;
 
     // Merge incoming values into the instance.
-    foreach ($form_state['values']['instance'] as $key => $value) {
-      $this->instance->$key = $value;
+    foreach ($form_state->getValue('instance') as $key => $value) {
+      $this->instance->set($key, $value);
     }
     $this->instance->save();
 
@@ -195,12 +202,7 @@ class FieldInstanceEditForm extends FormBase {
     $request = $this->getRequest();
     if (($destinations = $request->query->get('destinations')) && $next_destination = FieldUI::getNextDestination($destinations)) {
       $request->query->remove('destinations');
-      if (isset($next_destination['route_name'])) {
-        $form_state->setRedirect($next_destination['route_name'], $next_destination['route_parameters'], $next_destination['options']);
-      }
-      else {
-        $form_state['redirect'] = $next_destination;
-      }
+      $form_state->setRedirectUrl($next_destination);
     }
     else {
       $form_state->setRedirectUrl(FieldUI::getOverviewRouteInfo($this->instance->entity_type, $this->instance->bundle));

@@ -8,7 +8,6 @@
 namespace Drupal\views\Form;
 
 use Drupal\Component\Utility\UrlHelper;
-use Drupal\Core\Controller\ControllerResolverInterface;
 use Drupal\Core\DependencyInjection\ClassResolverInterface;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\DependencyInjection\DependencySerializationTrait;
@@ -68,7 +67,7 @@ class ViewsForm implements FormInterface, ContainerInjectionInterface {
   /**
    * Constructs a ViewsForm object.
    *
-   * @param \Drupal\Core\DependencyInjection\ClassResolverInterface $controller_resolver
+   * @param \Drupal\Core\DependencyInjection\ClassResolverInterface $class_resolver
    *   The class resolver to get the subform form objects.
    * @param \Drupal\Core\Routing\UrlGeneratorInterface $url_generator
    *   The url generator to generate the form action.
@@ -79,8 +78,8 @@ class ViewsForm implements FormInterface, ContainerInjectionInterface {
    * @param string $view_display_id
    *   The ID of the active view's display.
    */
-  public function __construct(ClassResolverInterface $controller_resolver, UrlGeneratorInterface $url_generator, RequestStack $requestStack, $view_id, $view_display_id) {
-    $this->classResolver = $controller_resolver;
+  public function __construct(ClassResolverInterface $class_resolver, UrlGeneratorInterface $url_generator, RequestStack $requestStack, $view_id, $view_display_id) {
+    $this->classResolver = $class_resolver;
     $this->urlGenerator = $url_generator;
     $this->requestStack = $requestStack;
     $this->viewId = $view_id;
@@ -92,7 +91,7 @@ class ViewsForm implements FormInterface, ContainerInjectionInterface {
    */
   public static function create(ContainerInterface $container, $view_id = NULL, $view_display_id = NULL) {
     return new static(
-      $container->get('controller_resolver'),
+      $container->get('class_resolver'),
       $container->get('url_generator'),
       $container->get('request_stack'),
       $view_id,
@@ -116,15 +115,18 @@ class ViewsForm implements FormInterface, ContainerInjectionInterface {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, FormStateInterface $form_state, ViewExecutable $view = NULL, $output = NULL) {
-    $form_state['step'] = isset($form_state['step']) ? $form_state['step'] : 'views_form_views_form';
-    $form_state['step_controller']['views_form_views_form'] = 'Drupal\views\Form\ViewsFormMainForm';
+  public function buildForm(array $form, FormStateInterface $form_state, ViewExecutable $view = NULL, $output = []) {
+    if (!$step = $form_state->get('step')) {
+      $step = 'views_form_views_form';
+      $form_state->set('step', $step);
+    }
+    $form_state->set(['step_controller', 'views_form_views_form'], 'Drupal\views\Form\ViewsFormMainForm');
 
     // Cache the built form to prevent it from being rebuilt prior to validation
     // and submission, which could lead to data being processed incorrectly,
     // because the views rows (and thus, the form elements as well) have changed
     // in the meantime.
-    $form_state['cache'] = TRUE;
+    $form_state->setCached();
 
     $form = array();
 
@@ -135,7 +137,7 @@ class ViewsForm implements FormInterface, ContainerInjectionInterface {
     // Tell the preprocessor whether it should hide the header, footer, pager...
     $form['show_view_elements'] = array(
       '#type' => 'value',
-      '#value' => ($form_state['step'] == 'views_form_views_form') ? TRUE : FALSE,
+      '#value' => ($step == 'views_form_views_form') ? TRUE : FALSE,
     );
 
     $form_object = $this->getFormObject($form_state);
@@ -171,7 +173,7 @@ class ViewsForm implements FormInterface, ContainerInjectionInterface {
    */
   protected function getFormObject(FormStateInterface $form_state) {
     // If this is a class, instantiate it.
-    $form_step_class = isset($form_state['step_controller'][$form_state['step']]) ? $form_state['step_controller'][$form_state['step']] : 'Drupal\views\Form\ViewsFormMainForm';
+    $form_step_class = $form_state->get(['step_controller', $form_state->get('step')]) ?: 'Drupal\views\Form\ViewsFormMainForm';
     return $this->classResolver->getInstanceFromDefinition($form_step_class);
   }
 

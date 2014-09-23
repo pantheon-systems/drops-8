@@ -2,15 +2,8 @@ type: default
 name: Default
 description: 'Default description.'
 help: ''
-title_label: Title
-settings:
-  node:
-    preview: 1
-    options:
-      status: true
-      promote: true
-      sticky: false
-      revision: false
-    submitted: true
+new_revision: false
+display_submitted: true
+preview_mode: 1
 status: true
 langcode: en

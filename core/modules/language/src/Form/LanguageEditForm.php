@@ -38,8 +38,8 @@ class LanguageEditForm extends LanguageFormBase {
     $actions['submit'] = array(
       '#type' => 'submit',
       '#value' => $this->t('Save language'),
-      '#validate' => array(array($this, 'validateCommon')),
-      '#submit' => array(array($this, 'submitForm')),
+      '#validate' => array('::validateCommon'),
+      '#submit' => array('::submitForm', '::save'),
     );
     return $actions;
   }
@@ -47,16 +47,10 @@ class LanguageEditForm extends LanguageFormBase {
   /**
    * {@inheritdoc}
    */
-  public function submitForm(array &$form, FormStateInterface $form_state) {
-    // Prepare a language object for saving.
-    $languages = language_list();
-    $langcode = $form_state['values']['langcode'];
-    $language = $languages[$langcode];
-    $language->name = $form_state['values']['name'];
-    $language->direction = $form_state['values']['direction'];
-    language_save($language);
-
+  public function save(array $form, FormStateInterface $form_state) {
+    parent::save($form, $form_state);
     $form_state->setRedirect('language.admin_overview');
+    $this->logger('language')->notice('The %language (%langcode) language has been updated.', array('%language' => $this->entity->label(), '%langcode' => $this->entity->id()));
   }
 
 }

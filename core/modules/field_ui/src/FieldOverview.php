@@ -298,7 +298,7 @@ class FieldOverview extends OverviewBase {
    * @see \Drupal\field_ui\FieldOverview::validateForm()
    */
   protected function validateAddNew(array $form, FormStateInterface $form_state) {
-    $field = $form_state['values']['fields']['_add_new_field'];
+    $field = $form_state->getValue(array('fields', '_add_new_field'));
 
     // Validate if any information was provided in the 'add new field' row.
     if (array_filter(array($field['label'], $field['field_name'], $field['type']))) {
@@ -309,7 +309,7 @@ class FieldOverview extends OverviewBase {
 
       // Missing field name.
       if (!$field['field_name']) {
-        $form_state->setErrorByName('fields][_add_new_field][field_name', $this->t('Add new field: you need to provide a field name.'));
+        $form_state->setErrorByName('fields][_add_new_field][field_name', $this->t('Add new field: you need to provide a machine name for the field.'));
       }
       // Field name validation.
       else {
@@ -340,9 +340,7 @@ class FieldOverview extends OverviewBase {
   protected function validateAddExisting(array $form, FormStateInterface $form_state) {
     // The form element might be absent if no existing fields can be added to
     // this bundle.
-    if (isset($form_state['values']['fields']['_add_existing_field'])) {
-      $field = $form_state['values']['fields']['_add_existing_field'];
-
+    if ($field = $form_state->getValue(array('fields', '_add_existing_field'))) {
       // Validate if any information was provided in the
       // 're-use existing field' row.
       if (array_filter(array($field['label'], $field['field_name']))) {
@@ -364,7 +362,7 @@ class FieldOverview extends OverviewBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $error = FALSE;
-    $form_values = $form_state['values']['fields'];
+    $form_values = $form_state->getValue('fields');
     $destinations = array();
 
     // Create new field.
@@ -416,7 +414,7 @@ class FieldOverview extends OverviewBase {
         $destinations[] = array('route_name' => 'field_ui.instance_edit_' . $this->entity_type, 'route_parameters' => $route_parameters);
 
         // Store new field information for any additional submit handlers.
-        $form_state['fields_added']['_add_new_field'] = $values['field_name'];
+        $form_state->set(['fields_added', '_add_new_field'], $values['field_name']);
       }
       catch (\Exception $e) {
         $error = TRUE;
@@ -466,7 +464,7 @@ class FieldOverview extends OverviewBase {
             ),
           );
           // Store new field information for any additional submit handlers.
-          $form_state['fields_added']['_add_existing_field'] = $instance['field_name'];
+          $form_state->set(['fields_added', '_add_existing_field'], $instance['field_name']);
         }
         catch (\Exception $e) {
           $error = TRUE;
@@ -478,13 +476,7 @@ class FieldOverview extends OverviewBase {
     if ($destinations) {
       $destination = drupal_get_destination();
       $destinations[] = $destination['destination'];
-      $next_destination = FieldUI::getNextDestination($destinations, $form_state);
-      if (isset($next_destination['route_name'])) {
-        $form_state->setRedirect($next_destination['route_name'], $next_destination['route_parameters'], $next_destination['options']);
-      }
-      else {
-        $form_state['redirect'] = $next_destination;
-      }
+      $form_state->setRedirectUrl(FieldUI::getNextDestination($destinations, $form_state));
     }
     elseif (!$error) {
       drupal_set_message($this->t('Your settings have been saved.'));

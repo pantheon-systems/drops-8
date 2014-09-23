@@ -21,7 +21,7 @@ class BooleanItemTest extends FieldUnitTestBase {
   /**
    * {@inheritdoc}
    */
-  public function setUp() {
+  protected function setUp() {
     parent::setUp();
 
     // Create an boolean field and instance for validation.
@@ -72,6 +72,11 @@ class BooleanItemTest extends FieldUnitTestBase {
     $entity->save();
     $entity = entity_load('entity_test', $id);
     $this->assertEqual($entity->field_boolean->value, $new_value);
+
+    // Test sample item generation.
+    $entity = entity_create('entity_test');
+    $entity->field_boolean->generateSampleItems();
+    $this->entityValidateAndSave($entity);
   }
 
 }

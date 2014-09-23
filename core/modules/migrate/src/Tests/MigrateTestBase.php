@@ -104,18 +104,22 @@ abstract class MigrateTestBase extends WebTestBase implements MigrateMessageInte
   }
 
   /**
-   * Prepare the id mappings.
+   * Prepare any dependent migrations.
    *
    * @param array $id_mappings
    *   A list of id mappings keyed by migration ids. Each id mapping is a list
    *   of two arrays, the first are source ids and the second are destination
    *   ids.
    */
-  protected function prepareIdMappings(array $id_mappings) {
+  protected function prepareMigrations(array $id_mappings) {
     /** @var \Drupal\migrate\Entity\MigrationInterface[] $migrations */
     $migrations = entity_load_multiple('migration', array_keys($id_mappings));
     foreach ($id_mappings as $migration_id => $data) {
       $migration = $migrations[$migration_id];
+
+      // Mark the dependent migrations as complete.
+      $migration->setMigrationResult(MigrationInterface::RESULT_COMPLETED);
+
       $id_map = $migration->getIdMap();
       $id_map->setMessage($this);
       $source_ids = $migration->getSourcePlugin()->getIds();

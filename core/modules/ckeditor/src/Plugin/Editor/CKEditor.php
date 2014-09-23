@@ -11,7 +11,7 @@ use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\ckeditor\CKEditorPluginManager;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\Language\LanguageManager;
+use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Render\Element;
 use Drupal\editor\Plugin\EditorBase;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
@@ -41,7 +41,7 @@ class CKEditor extends EditorBase implements ContainerFactoryPluginInterface {
   /**
    * The language manager.
    *
-   * @var \Drupal\Core\Language\LanguageManager
+   * @var \Drupal\Core\Language\LanguageManagerInterface
    */
   protected $languageManager;
 
@@ -65,10 +65,10 @@ class CKEditor extends EditorBase implements ContainerFactoryPluginInterface {
    *   The CKEditor plugin manager.
    * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
    *   The module handler to invoke hooks on.
-   * @param \Drupal\Core\Language\LanguageManager $language_manager
+   * @param \Drupal\Core\Language\LanguageManagerInterface $language_manager
    *   The language manager.
    */
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, CKEditorPluginManager $ckeditor_plugin_manager, ModuleHandlerInterface $module_handler, LanguageManager $language_manager) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, CKEditorPluginManager $ckeditor_plugin_manager, ModuleHandlerInterface $module_handler, LanguageManagerInterface $language_manager) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
     $this->ckeditorPluginManager = $ckeditor_plugin_manager;
     $this->moduleHandler = $module_handler;
@@ -237,9 +237,9 @@ class CKEditor extends EditorBase implements ContainerFactoryPluginInterface {
    */
   public function settingsFormSubmit(array $form, FormStateInterface $form_state) {
     // Modify the toolbar settings by reference. The values in
-    // $form_state['values']['editor']['settings'] will be saved directly by
-    // editor_form_filter_admin_format_submit().
-    $toolbar_settings = &$form_state['values']['editor']['settings']['toolbar'];
+    // $form_state->getValue(array('editor', 'settings')) will be saved directly
+    // by editor_form_filter_admin_format_submit().
+    $toolbar_settings = &$form_state->getValue(array('editor', 'settings', 'toolbar'));
 
     // The rows key is not built into the form structure, so decode the button
     // groups data into this new key and remove the button_groups key.
@@ -247,8 +247,8 @@ class CKEditor extends EditorBase implements ContainerFactoryPluginInterface {
     unset($toolbar_settings['button_groups']);
 
     // Remove the plugin settings' vertical tabs state; no need to save that.
-    if (isset($form_state['values']['editor']['settings']['plugins'])) {
-      unset($form_state['values']['editor']['settings']['plugin_settings']);
+    if ($form_state->hasValue(array('editor', 'settings', 'plugins'))) {
+      $form_state->unsetValue(array('editor', 'settings', 'plugin_settings'));
     }
   }
 

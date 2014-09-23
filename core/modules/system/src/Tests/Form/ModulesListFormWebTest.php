@@ -24,7 +24,7 @@ class ModulesListFormWebTest extends WebTestBase {
   /**
    * {@inheritdoc}
    */
-  public function setUp() {
+  protected function setUp() {
     parent::setUp();
     \Drupal::state()->set('system_test.module_hidden', FALSE);
   }
@@ -38,6 +38,6 @@ class ModulesListFormWebTest extends WebTestBase {
     $this->assertResponse('200');
 
     // Check that system_test's configure link was rendered correctly.
-    $this->assertLinkByHref('configure/bar');
+    $this->assertFieldByXPath("//a[contains(@href, '/system-test/configure/bar') and @title='Bar.bar']");
   }
 }

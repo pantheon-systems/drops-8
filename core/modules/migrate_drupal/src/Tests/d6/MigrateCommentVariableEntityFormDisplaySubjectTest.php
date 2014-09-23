@@ -11,7 +11,7 @@ use Drupal\migrate\MigrateExecutable;
 use Drupal\migrate_drupal\Tests\MigrateDrupalTestBase;
 
 /**
- * Upgrade comment subject variable to entity.form_display.comment.*.default.yml
+ * Upgrade comment subject variable to core.entity_form_display.comment.*.default.yml
  *
  * @group migrate_drupal
  */
@@ -27,7 +27,7 @@ class MigrateCommentVariableEntityFormDisplaySubjectTest extends MigrateDrupalTe
   /**
    * {@inheritdoc}
    */
-  public function setUp() {
+  protected function setUp() {
     parent::setUp();
     foreach (['comment', 'comment_no_subject'] as $comment_type) {
       entity_create('comment_type', array(
@@ -42,7 +42,7 @@ class MigrateCommentVariableEntityFormDisplaySubjectTest extends MigrateDrupalTe
         array(array('comment'), array('comment_no_subject')),
       ),
     );
-    $this->prepareIdMappings($id_mappings);
+    $this->prepareMigrations($id_mappings);
     /** @var \Drupal\migrate\entity\Migration $migration */
     $migration = entity_load('migration', 'd6_comment_entity_form_display_subject');
     $dumps = array(

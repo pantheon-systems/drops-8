@@ -7,6 +7,7 @@
 
 namespace Drupal\system\Form;
 
+use Drupal\Core\Asset\AssetCollectionOptimizerInterface;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Cache\CacheBackendInterface;
@@ -20,7 +21,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 class PerformanceForm extends ConfigFormBase {
 
   /**
-   * The render cache object.
+   * The render cache bin.
    *
    * @var \Drupal\Core\Cache\CacheBackendInterface
    */
@@ -34,6 +35,20 @@ class PerformanceForm extends ConfigFormBase {
   protected $dateFormatter;
 
   /**
+   * The CSS asset collection optimizer service.
+   *
+   * @var \Drupal\Core\Asset\AssetCollectionOptimizerInterface
+   */
+  protected $cssCollectionOptimizer;
+
+  /**
+   * The JavaScript asset collection optimizer service.
+   *
+   * @var \Drupal\Core\Asset\AssetCollectionOptimizerInterface
+   */
+  protected $jsCollectionOptimizer;
+
+  /**
    * Constructs a PerformanceForm object.
    *
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
@@ -41,12 +56,18 @@ class PerformanceForm extends ConfigFormBase {
    * @param \Drupal\Core\Cache\CacheBackendInterface $render_cache
    * @param \Drupal\Core\Datetime\DateFormatter $date_formater
    *   The date formatter service.
+   * @param \Drupal\Core\Asset\AssetCollectionOptimizerInterface $css_collection_optimizer
+   *   The CSS asset collection optimizer service.
+   * @param \Drupal\Core\Asset\AssetCollectionOptimizerInterface $js_collection_optimizer
+   *   The JavaScript asset collection optimizer service.
    */
-  public function __construct(ConfigFactoryInterface $config_factory, CacheBackendInterface $render_cache, DateFormatter $date_formater) {
+  public function __construct(ConfigFactoryInterface $config_factory, CacheBackendInterface $render_cache, DateFormatter $date_formater, AssetCollectionOptimizerInterface $css_collection_optimizer, AssetCollectionOptimizerInterface $js_collection_optimizer) {
     parent::__construct($config_factory);
 
     $this->renderCache = $render_cache;
     $this->dateFormatter = $date_formater;
+    $this->cssCollectionOptimizer = $css_collection_optimizer;
+    $this->jsCollectionOptimizer = $js_collection_optimizer;
   }
 
   /**
@@ -56,7 +77,9 @@ class PerformanceForm extends ConfigFormBase {
     return new static(
       $container->get('config.factory'),
       $container->get('cache.render'),
-      $container->get('date.formatter')
+      $container->get('date.formatter'),
+      $container->get('asset.css.collection_optimizer'),
+      $container->get('asset.js.collection_optimizer')
     );
   }
 
@@ -84,7 +107,7 @@ class PerformanceForm extends ConfigFormBase {
     $form['clear_cache']['clear'] = array(
       '#type' => 'submit',
       '#value' => t('Clear all caches'),
-      '#submit' => array(array($this, 'submitCacheClear')),
+      '#submit' => array('::submitCacheClear'),
     );
 
     $form['caching'] = array(
@@ -93,7 +116,7 @@ class PerformanceForm extends ConfigFormBase {
       '#open' => TRUE,
     );
     // Identical options to the ones for block caching.
-    // @see \Drupal\block\BlockBase::buildConfigurationForm()
+    // @see \Drupal\Core\Block\BlockBase::buildConfigurationForm()
     $period = array(0, 60, 180, 300, 600, 900, 1800, 2700, 3600, 10800, 21600, 32400, 43200, 86400);
     $period = array_map(array($this->dateFormatter, 'formatInterval'), array_combine($period, $period));
     $period[0] = '<' . t('no caching') . '>';
@@ -129,7 +152,7 @@ class PerformanceForm extends ConfigFormBase {
 
     $form['bandwidth_optimization']['page_compression'] = array(
       '#type' => 'checkbox',
-      '#title' => t('Compress cached pages.'),
+      '#title' => t('Compress cached pages'),
       '#default_value' => $config->get('response.gzip'),
       '#states' => array(
         'visible' => array(
@@ -139,13 +162,13 @@ class PerformanceForm extends ConfigFormBase {
     );
     $form['bandwidth_optimization']['preprocess_css'] = array(
       '#type' => 'checkbox',
-      '#title' => t('Aggregate CSS files.'),
+      '#title' => t('Aggregate CSS files'),
       '#default_value' => $config->get('css.preprocess'),
       '#disabled' => $disabled,
     );
     $form['bandwidth_optimization']['preprocess_js'] = array(
       '#type' => 'checkbox',
-      '#title' => t('Aggregate JavaScript files.'),
+      '#title' => t('Aggregate JavaScript files'),
       '#default_value' => $config->get('js.preprocess'),
       '#disabled' => $disabled,
     );
@@ -157,19 +180,19 @@ class PerformanceForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    drupal_clear_css_cache();
-    drupal_clear_js_cache();
+    $this->cssCollectionOptimizer->deleteAll();
+    $this->jsCollectionOptimizer->deleteAll();
     // This form allows page compression settings to be changed, which can
     // invalidate cached pages in the render cache, so it needs to be cleared on
     // form submit.
     $this->renderCache->deleteAll();
 
     $this->config('system.performance')
-      ->set('cache.page.use_internal', $form_state['values']['cache'])
-      ->set('cache.page.max_age', $form_state['values']['page_cache_maximum_age'])
-      ->set('response.gzip', $form_state['values']['page_compression'])
-      ->set('css.preprocess', $form_state['values']['preprocess_css'])
-      ->set('js.preprocess', $form_state['values']['preprocess_js'])
+      ->set('cache.page.use_internal', $form_state->getValue('cache'))
+      ->set('cache.page.max_age', $form_state->getValue('page_cache_maximum_age'))
+      ->set('response.gzip', $form_state->getValue('page_compression'))
+      ->set('css.preprocess', $form_state->getValue('preprocess_css'))
+      ->set('js.preprocess', $form_state->getValue('preprocess_js'))
       ->save();
 
     parent::submitForm($form, $form_state);

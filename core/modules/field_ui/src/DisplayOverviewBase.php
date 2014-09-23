@@ -7,6 +7,7 @@
 
 namespace Drupal\field_ui;
 
+use Drupal\Component\Plugin\Factory\DefaultFactory;
 use Drupal\Component\Plugin\PluginManagerBase;
 use Drupal\Component\Utility\String;
 use Drupal\Core\Config\ConfigFactoryInterface;
@@ -308,7 +309,7 @@ abstract class DisplayOverviewBase extends OverviewBase {
         '#type' => 'select',
         '#title' => $this->t('Plugin for @title', array('@title' => $label)),
         '#title_display' => 'invisible',
-        '#options' => $this->getPluginOptions($field_definition->getType()),
+        '#options' => $this->getPluginOptions($field_definition),
         '#default_value' => $display_options ? $display_options['type'] : 'hidden',
         '#parents' => array('fields', $field_name, 'type'),
         '#attributes' => array('class' => array('field-plugin-type')),
@@ -318,14 +319,15 @@ abstract class DisplayOverviewBase extends OverviewBase {
 
     // Check the currently selected plugin, and merge persisted values for its
     // settings.
-    if (isset($form_state['values']['fields'][$field_name]['type'])) {
-      $display_options['type'] = $form_state['values']['fields'][$field_name]['type'];
+    if ($display_type = $form_state->getValue(array('fields', $field_name, 'type'))) {
+      $display_options['type'] = $display_type;
     }
-    if (isset($form_state['plugin_settings'][$field_name]['settings'])) {
-      $display_options['settings'] = $form_state['plugin_settings'][$field_name]['settings'];
+    $plugin_settings = $form_state->get('plugin_settings');
+    if (isset($plugin_settings[$field_name]['settings'])) {
+      $display_options['settings'] = $plugin_settings[$field_name]['settings'];
     }
-    if (isset($form_state['plugin_settings'][$field_name]['third_party_settings'])) {
-      $display_options['third_party_settings'] = $form_state['plugin_settings'][$field_name]['third_party_settings'];
+    if (isset($plugin_settings[$field_name]['third_party_settings'])) {
+      $display_options['third_party_settings'] = $plugin_settings[$field_name]['third_party_settings'];
     }
 
     // Get the corresponding plugin object.
@@ -342,7 +344,7 @@ abstract class DisplayOverviewBase extends OverviewBase {
       '#field_name' => $field_name,
     );
 
-    if ($form_state['plugin_settings_edit'] == $field_name) {
+    if ($form_state->get('plugin_settings_edit') == $field_name) {
       // We are currently editing this field's plugin settings. Display the
       // settings form and submit buttons.
       $field_row['plugin']['settings_edit_form'] = array();
@@ -502,7 +504,7 @@ abstract class DisplayOverviewBase extends OverviewBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    $form_values = $form_state['values'];
+    $form_values = $form_state->getValues();
     $display = $this->getEntityDisplay($this->mode);
 
     // Collect data for 'regular' fields.
@@ -518,12 +520,13 @@ abstract class DisplayOverviewBase extends OverviewBase {
         // Get plugin settings. They lie either directly in submitted form
         // values (if the whole form was submitted while some plugin settings
         // were being edited), or have been persisted in $form_state.
+        $plugin_settings = $form_state->get('plugin_settings');
         $settings = array();
         if (isset($values['settings_edit_form']['settings'])) {
           $settings = $values['settings_edit_form']['settings'];
         }
-        elseif (isset($form_state['plugin_settings'][$field_name]['settings'])) {
-          $settings = $form_state['plugin_settings'][$field_name]['settings'];
+        elseif (isset($plugin_settings[$field_name]['settings'])) {
+          $settings = $plugin_settings[$field_name]['settings'];
         }
         elseif ($current_options = $display->getComponent($field_name)) {
           $settings = $current_options['settings'];
@@ -532,8 +535,8 @@ abstract class DisplayOverviewBase extends OverviewBase {
         if (isset($values['settings_edit_form']['third_party_settings'])) {
           $third_party_settings = $values['settings_edit_form']['third_party_settings'];
         }
-        elseif (isset($form_state['plugin_settings'][$field_name]['third_party_settings'])) {
-          $third_party_settings = $form_state['plugin_settings'][$field_name]['third_party_settings'];
+        elseif (isset($plugin_settings[$field_name]['third_party_settings'])) {
+          $third_party_settings = $plugin_settings[$field_name]['third_party_settings'];
         }
         elseif (($current_options = $display->getComponent($field_name)) && isset($current_options['third_party_settings'])) {
           $third_party_settings = $current_options['third_party_settings'];
@@ -608,51 +611,53 @@ abstract class DisplayOverviewBase extends OverviewBase {
    * Form submission handler for multistep buttons.
    */
   public function multistepSubmit($form, FormStateInterface $form_state) {
-    $trigger = $form_state['triggering_element'];
+    $trigger = $form_state->getTriggeringElement();
     $op = $trigger['#op'];
 
     switch ($op) {
       case 'edit':
         // Store the field whose settings are currently being edited.
         $field_name = $trigger['#field_name'];
-        $form_state['plugin_settings_edit'] = $field_name;
+        $form_state->set('plugin_settings_edit', $field_name);
         break;
 
       case 'update':
         // Store the saved settings, and set the field back to 'non edit' mode.
         $field_name = $trigger['#field_name'];
-        if (isset($form_state['values']['fields'][$field_name]['settings_edit_form']['settings'])) {
-          $form_state['plugin_settings'][$field_name]['settings'] = $form_state['values']['fields'][$field_name]['settings_edit_form']['settings'];
+        if ($plugin_settings = $form_state->getValue(array('fields', $field_name, 'settings_edit_form', 'settings'))) {
+          $form_state->set(['plugin_settings', $field_name, 'settings'], $plugin_settings);
         }
-        if (isset($form_state['values']['fields'][$field_name]['settings_edit_form']['third_party_settings'])) {
-          $form_state['plugin_settings'][$field_name]['third_party_settings'] = $form_state['values']['fields'][$field_name]['settings_edit_form']['third_party_settings'];
+        if ($plugin_third_party_settings = $form_state->getValue(array('fields', $field_name, 'settings_edit_form', 'third_party_settings'))) {
+          $form_state->set(['plugin_settings', $field_name, 'third_party_settings'], $plugin_third_party_settings);
         }
-        unset($form_state['plugin_settings_edit']);
+        $form_state->set('plugin_settings_edit', NULL);
         break;
 
       case 'cancel':
         // Set the field back to 'non edit' mode.
-        unset($form_state['plugin_settings_edit']);
+        $form_state->set('plugin_settings_edit', NULL);
         break;
 
       case 'refresh_table':
         // If the currently edited field is one of the rows to be refreshed, set
         // it back to 'non edit' mode.
-        $updated_rows = explode(' ', $form_state['values']['refresh_rows']);
-        if (isset($form_state['plugin_settings_edit']) && in_array($form_state['plugin_settings_edit'], $updated_rows)) {
-          unset($form_state['plugin_settings_edit']);
+        $updated_rows = explode(' ', $form_state->getValue('refresh_rows'));
+        $plugin_settings_edit = $form_state->get('plugin_settings_edit');
+        if ($plugin_settings_edit && in_array($plugin_settings_edit, $updated_rows)) {
+
+          $form_state->set('plugin_settings_edit', NULL);
         }
         break;
     }
 
-    $form_state['rebuild'] = TRUE;
+    $form_state->setRebuild();
   }
 
   /**
    * Ajax handler for multistep buttons.
    */
   public function multistepAjax($form, FormStateInterface $form_state) {
-    $trigger = $form_state['triggering_element'];
+    $trigger = $form_state->getTriggeringElement();
     $op = $trigger['#op'];
 
     // Pick the elements that need to receive the ajax-new-content effect.
@@ -669,7 +674,7 @@ abstract class DisplayOverviewBase extends OverviewBase {
         break;
 
       case 'refresh_table':
-        $updated_rows = array_values(explode(' ', $form_state['values']['refresh_rows']));
+        $updated_rows = array_values(explode(' ', $form_state->getValue('refresh_rows')));
         $updated_columns = array('settings_summary', 'settings_edit');
         break;
     }
@@ -725,16 +730,24 @@ abstract class DisplayOverviewBase extends OverviewBase {
   abstract protected function getPlugin(FieldDefinitionInterface $field_definition, $configuration);
 
   /**
-   * Returns an array of widget or formatter options for a field type.
+   * Returns an array of widget or formatter options for a field.
    *
-   * @param string $field_type
-   *   The name of the field type.
+   * @param \Drupal\Core\Field\FieldDefinitionInterface $field_definition
+   *   The field definition.
    *
    * @return array
    *   An array of widget or formatter options.
    */
-  protected function getPluginOptions($field_type) {
-    return $this->pluginManager->getOptions($field_type);
+  protected function getPluginOptions(FieldDefinitionInterface $field_definition) {
+    $options = $this->pluginManager->getOptions($field_definition->getType());
+    $applicable_options = array();
+    foreach ($options as $option => $label) {
+      $plugin_class = DefaultFactory::getPluginClass($option, $this->pluginManager->getDefinition($option));
+      if ($plugin_class::isApplicable($field_definition)) {
+        $applicable_options[$option] = $label;
+      }
+    }
+    return $applicable_options;
   }
 
   /**

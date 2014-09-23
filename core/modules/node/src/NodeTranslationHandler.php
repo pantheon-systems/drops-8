@@ -40,8 +40,8 @@ class NodeTranslationHandler extends ContentTranslationHandler {
       $form['content_translation']['created']['#access'] = FALSE;
     }
 
-    $form_controller = content_translation_form_controller($form_state);
-    $form_langcode = $form_controller->getFormLangcode($form_state);
+    $form_object = $form_state->getFormObject();
+    $form_langcode = $form_object->getFormLangcode($form_state);
     $translations = $entity->getTranslationLanguages();
     $status_translatable = NULL;
     // Change the submit button labels if there was a status field they affect
@@ -75,14 +75,15 @@ class NodeTranslationHandler extends ContentTranslationHandler {
    * {@inheritdoc}
    */
   public function entityFormEntityBuild($entity_type, EntityInterface $entity, array $form, FormStateInterface $form_state) {
-    if (isset($form_state['values']['content_translation'])) {
-      $form_controller = content_translation_form_controller($form_state);
-      $translation = &$form_state['values']['content_translation'];
-      $translation['status'] = $form_controller->getEntity()->isPublished();
+    if ($form_state->hasValue('content_translation')) {
+      $form_object = $form_state->getFormObject();
+      $translation = &$form_state->getValue('content_translation');
+      $translation['status'] = $form_object->getEntity()->isPublished();
       // $form['content_translation']['name'] is the equivalent field
       // for translation author uid.
-      $translation['name'] = $form_state['values']['uid'];
-      $translation['created'] = $form_state['values']['created'];
+      $account = $entity->uid->entity;
+      $translation['name'] = $account ? $account->getUsername() : '';
+      $translation['created'] = format_date($entity->created->value, 'custom', 'Y-m-d H:i:s O');
     }
     parent::entityFormEntityBuild($entity_type, $entity, $form, $form_state);
   }

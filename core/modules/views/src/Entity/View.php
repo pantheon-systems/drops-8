@@ -19,8 +19,8 @@ use Drupal\views\ViewStorageInterface;
  * @ConfigEntityType(
  *   id = "view",
  *   label = @Translation("View"),
- *   controllers = {
- *     "access" = "Drupal\views\ViewAccessController"
+ *   handlers = {
+ *     "access" = "Drupal\views\ViewAccessControlHandler"
  *   },
  *   admin_permission = "administer views",
  *   entity_keys = {

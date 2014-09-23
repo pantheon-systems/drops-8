@@ -9,6 +9,7 @@ namespace Drupal\migrate_drupal\Tests\d6;
 
 use Drupal\migrate\MigrateExecutable;
 use Drupal\migrate_drupal\Tests\MigrateDrupalTestBase;
+use Drupal\block\Entity\Block;
 
 /**
  * Upgrade block settings to block.block.*.yml.
@@ -34,7 +35,7 @@ class MigrateBlockTest extends MigrateDrupalTestBase {
   /**
    * {@inheritdoc}
    */
-  public function setUp() {
+  protected function setUp() {
     parent::setUp();
     $entities = array(
       entity_create('menu', array('id' => 'primary-links')),
@@ -46,13 +47,16 @@ class MigrateBlockTest extends MigrateDrupalTestBase {
       $entity->enforceIsNew(TRUE);
       $entity->save();
     }
-    $this->prepareIdMappings(array(
+    $this->prepareMigrations(array(
       'd6_custom_block'  => array(
         array(array(10), array(1)),
         array(array(11), array(2)),
         array(array(12), array(1)),
         array(array(13), array(2)),
-      )
+      ),
+      'd6_menu' => array(
+        array(array('menu1'), array('menu')),
+      ),
     ));
 
     // Set Bartik and Seven as the default public and admin theme.
@@ -61,8 +65,8 @@ class MigrateBlockTest extends MigrateDrupalTestBase {
     $config->set('admin', 'seven');
     $config->save();
 
-    // Enable one of D8's test themes.
-    \Drupal::service('theme_handler')->enable(array('test_theme'));
+    // Install one of D8's test themes.
+    \Drupal::service('theme_handler')->install(array('test_theme'));
 
     /** @var \Drupal\migrate\entity\Migration $migration */
     $migration = entity_load('migration', 'd6_block');
@@ -78,8 +82,7 @@ class MigrateBlockTest extends MigrateDrupalTestBase {
    * Test the block settings migration.
    */
   public function testBlockMigration() {
-    /** @var $blocks \Drupal\block\BlockInterface[] */
-    $blocks = entity_load_multiple('block');
+    $blocks = Block::loadMultiple();
     $this->assertEqual(count($blocks), 8);
 
     // User blocks

@@ -16,9 +16,11 @@
 
 use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Component\Utility\Timer;
+use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Batch\Percentage;
 use Drupal\Core\Form\FormState;
 use Drupal\Core\Page\DefaultHtmlPageRenderer;
+use Drupal\Core\Url;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -386,7 +388,8 @@ function _batch_next_set() {
     if (isset($current_set['form_submit']) && ($callback = $current_set['form_submit']) && is_callable($callback)) {
       // We use our stored copies of $form and $form_state to account for
       // possible alterations by previous form submit handlers.
-      call_user_func_array($callback, array(&$batch['form_state']['complete_form'], &$batch['form_state']));
+      $complete_form = &$batch['form_state']->getCompleteForm();
+      call_user_func_array($callback, array(&$complete_form, &$batch['form_state']));
     }
     return TRUE;
   }
@@ -446,13 +449,15 @@ function _batch_finished() {
     if (!isset($_batch['form_state'])) {
       $_batch['form_state'] = new FormState();
     }
-    if (!isset($_batch['form_state']['redirect'])) {
-      if (isset($_batch['redirect'])) {
-        $_batch['form_state']['redirect'] = $_batch['redirect'];
+    if ($_batch['form_state']->getRedirect() === NULL) {
+      $redirect = $_batch['batch_redirect'] ?: $_batch['source_url'];
+      $options = UrlHelper::parse($redirect);
+      if (!UrlHelper::isExternal($options['path'])) {
+        $options['path'] = $GLOBALS['base_url'] . '/' . $options['path'];
       }
-      else {
-        $_batch['form_state']['redirect'] = $_batch['source_url'];
-      }
+      $redirect = Url::createFromPath($options['path']);
+      $redirect->setOptions($options);
+      $_batch['form_state']->setRedirectUrl($redirect);
     }
 
     // Use \Drupal\Core\Form\FormSubmitterInterface::redirectForm() to handle
@@ -465,7 +470,7 @@ function _batch_finished() {
     // If no redirection happened, redirect to the originating page. In case the
     // form needs to be rebuilt, save the final $form_state for
     // \Drupal\Core\Form\FormBuilderInterface::buildForm().
-    if (!empty($_batch['form_state']['rebuild'])) {
+    if ($_batch['form_state']->isRebuilding()) {
       $_SESSION['batch_form_state'] = $_batch['form_state'];
     }
     $callback = $_batch['redirect_callback'];

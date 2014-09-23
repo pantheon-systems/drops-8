@@ -83,27 +83,6 @@ function book_theme() {
 }
 
 /**
- * Implements hook_permission().
- */
-function book_permission() {
-  return array(
-    'administer book outlines' => array(
-      'title' => t('Administer book outlines'),
-    ),
-    'create new books' => array(
-      'title' => t('Create new books'),
-    ),
-    'add content to books' => array(
-      'title' => t('Add content and child pages to books'),
-    ),
-    'access printer-friendly version' => array(
-      'title' => t('View printer-friendly books'),
-      'description' => t('View a book page and all of its sub-pages as a single document for ease of printing. Can be performance heavy.'),
-    ),
-  );
-}
-
-/**
  * Implements hook_entity_type_build().
  */
 function book_entity_type_build(array &$entity_types) {
@@ -124,8 +103,8 @@ function book_node_links_alter(array &$node_links, NodeInterface $node, array &$
     if (isset($node->book['depth'])) {
       if ($context['view_mode'] == 'full' && node_is_page($node)) {
         $child_type = \Drupal::config('book.settings')->get('child_type');
-        $access_controller = \Drupal::entityManager()->getAccessController('node');
-        if (($account->hasPermission('add content to books') || $account->hasPermission('administer book outlines')) && $access_controller->createAccess($child_type) && $node->isPublished() && $node->book['depth'] < BookManager::BOOK_MAX_DEPTH) {
+        $access_control_handler = \Drupal::entityManager()->getAccessControlHandler('node');
+        if (($account->hasPermission('add content to books') || $account->hasPermission('administer book outlines')) && $access_control_handler->createAccess($child_type) && $node->isPublished() && $node->book['depth'] < BookManager::BOOK_MAX_DEPTH) {
           $links['book_add_child'] = array(
             'title' => t('Add child page'),
             'href' => 'node/add/' . $child_type,
@@ -161,7 +140,7 @@ function book_node_links_alter(array &$node_links, NodeInterface $node, array &$
  * @see book_pick_book_nojs_submit()
  */
 function book_form_node_form_alter(&$form, FormStateInterface $form_state, $form_id) {
-  $node = $form_state['controller']->getEntity();
+  $node = $form_state->getFormObject()->getEntity();
   $account = \Drupal::currentUser();
   $access = $account->hasPermission('administer book outlines');
   if (!$access) {
@@ -196,7 +175,7 @@ function book_form_node_form_alter(&$form, FormStateInterface $form_state, $form
  * @todo: Remove this in favor of an entity field.
  */
 function book_node_builder($entity_type, NodeInterface $entity, &$form, FormStateInterface $form_state) {
-  $entity->book = $form_state['values']['book'];
+  $entity->book = $form_state->getValue('book');
 
   // Always save a revision for non-administrators.
   if (!empty($entity->book['bid']) && !\Drupal::currentUser()->hasPermission('administer nodes')) {
@@ -217,9 +196,9 @@ function book_node_builder($entity_type, NodeInterface $entity, &$form, FormStat
  * @see book_form_node_form_alter()
  */
 function book_pick_book_nojs_submit($form, FormStateInterface $form_state) {
-  $node = $form_state['controller']->getEntity();
-  $node->book = $form_state['values']['book'];
-  $form_state['rebuild'] = TRUE;
+  $node = $form_state->getFormObject()->getEntity();
+  $node->book = $form_state->getValue('book');
+  $form_state->setRebuild();
 }
 
 /**
@@ -406,7 +385,7 @@ function template_preprocess_book_navigation(&$variables) {
   // Provide extra variables for themers. Not needed by default.
   $variables['book_id'] = $book_link['bid'];
   $variables['book_title'] = String::checkPlain($book_link['link_title']);
-  $variables['book_url'] = \Drupal::url('node.view', array('node' => $book_link['bid']));
+  $variables['book_url'] = \Drupal::url('entity.node.canonical', array('node' => $book_link['bid']));
   $variables['current_depth'] = $book_link['depth'];
   $variables['tree'] = '';
 
@@ -419,7 +398,7 @@ function template_preprocess_book_navigation(&$variables) {
     $build = array();
 
     if ($prev = $book_outline->prevLink($book_link)) {
-      $prev_href = \Drupal::url('node.view', array('node' => $prev['nid']));
+      $prev_href = \Drupal::url('entity.node.canonical', array('node' => $prev['nid']));
       $build['#attached']['drupal_add_html_head_link'][][] = array(
         'rel' => 'prev',
         'href' => $prev_href,
@@ -431,7 +410,7 @@ function template_preprocess_book_navigation(&$variables) {
     /** @var \Drupal\book\BookManagerInterface $book_manager */
     $book_manager = \Drupal::service('book.manager');
     if ($book_link['pid'] && $parent = $book_manager->loadBookLink($book_link['pid'])) {
-      $parent_href = \Drupal::url('node.view', array('node' => $book_link['pid']));
+      $parent_href = \Drupal::url('entity.node.canonical', array('node' => $book_link['pid']));
       $build['#attached']['drupal_add_html_head_link'][][] = array(
         'rel' => 'up',
         'href' => $parent_href,
@@ -441,7 +420,7 @@ function template_preprocess_book_navigation(&$variables) {
     }
 
     if ($next = $book_outline->nextLink($book_link)) {
-      $next_href = \Drupal::url('node.view', array('node' => $next['nid']));
+      $next_href = \Drupal::url('entity.node.canonical', array('node' => $next['nid']));
       $build['#attached']['drupal_add_html_head_link'][][] = array(
         'rel' => 'next',
         'href' => $next_href,

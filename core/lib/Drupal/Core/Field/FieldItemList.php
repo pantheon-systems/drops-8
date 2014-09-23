@@ -7,6 +7,7 @@
 
 namespace Drupal\Core\Field;
 
+use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
@@ -187,9 +188,9 @@ class FieldItemList extends ItemList implements FieldItemListInterface {
   /**
    * {@inheritdoc}
    */
-  public function access($operation = 'view', AccountInterface $account = NULL) {
-    $access_controller = \Drupal::entityManager()->getAccessController($this->getEntity()->getEntityTypeId());
-    return $access_controller->fieldAccess($operation, $this->getFieldDefinition(), $account, $this);
+  public function access($operation = 'view', AccountInterface $account = NULL, $return_as_object = FALSE) {
+    $access_control_handler = \Drupal::entityManager()->getAccessControlHandler($this->getEntity()->getEntityTypeId());
+    return $access_control_handler->fieldAccess($operation, $this->getFieldDefinition(), $account, $this, $return_as_object);
   }
 
   /**
@@ -197,7 +198,7 @@ class FieldItemList extends ItemList implements FieldItemListInterface {
    */
   public function defaultAccess($operation = 'view', AccountInterface $account = NULL) {
     // Grant access per default.
-    return TRUE;
+    return AccessResult::allowed();
   }
 
   /**
@@ -281,6 +282,18 @@ class FieldItemList extends ItemList implements FieldItemListInterface {
   /**
    * {@inheritdoc}
    */
+   public function generateSampleItems($count = 1) {
+    $field_definition = $this->getFieldDefinition();
+    $field_type_class = \Drupal::service('plugin.manager.field.field_type')->getPluginClass($field_definition->getType());
+    for ($delta = 0; $delta < $count; $delta++) {
+      $values[$delta] = $field_type_class::generateSampleValue($field_definition);
+    }
+    $this->setValue($values);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function getConstraints() {
     $constraints = parent::getConstraints();
     // Check that the number of values doesn't exceed the field cardinality. For
@@ -356,7 +369,7 @@ class FieldItemList extends ItemList implements FieldItemListInterface {
    *   A Widget object.
    */
   protected function defaultValueWidget(FormStateInterface $form_state) {
-    if (!isset($form_state['default_value_widget'])) {
+    if (!$form_state->has('default_value_widget')) {
       $entity = $this->getEntity();
 
       // Force a non-required widget.
@@ -371,10 +384,10 @@ class FieldItemList extends ItemList implements FieldItemListInterface {
         $widget = \Drupal::service('plugin.manager.field.widget')->getInstance(array('field_definition' => $this->getFieldDefinition()));
       }
 
-      $form_state['default_value_widget'] = $widget;
+      $form_state->set('default_value_widget', $widget);
     }
 
-    return $form_state['default_value_widget'];
+    return $form_state->get('default_value_widget');
   }
 
 }

@@ -92,7 +92,7 @@ class UserCancelForm extends ContentEntityConfirmFormBase {
     $override_access = $admin_access && ($this->entity->id() != $user->id());
     $form['user_cancel_confirm'] = array(
       '#type' => 'checkbox',
-      '#title' => $this->t('Require email confirmation to cancel account.'),
+      '#title' => $this->t('Require email confirmation to cancel account'),
       '#default_value' => !$override_access,
       '#access' => $override_access,
       '#description' => $this->t('When enabled, the user must confirm the account cancellation via email.'),
@@ -101,7 +101,7 @@ class UserCancelForm extends ContentEntityConfirmFormBase {
     $default_notify = $this->config('user.settings')->get('notify.status_canceled');
     $form['user_cancel_notify'] = array(
       '#type' => 'checkbox',
-      '#title' => $this->t('Notify user when account is canceled.'),
+      '#title' => $this->t('Notify user when account is canceled'),
       '#default_value' => ($override_access ? FALSE : $default_notify),
       '#access' => $override_access && $default_notify,
       '#description' => $this->t('When enabled, the user will receive an email notification after the account has been canceled.'),
@@ -118,27 +118,27 @@ class UserCancelForm extends ContentEntityConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function submit(array $form, FormStateInterface $form_state) {
+  public function submitForm(array &$form, FormStateInterface $form_state) {
     // Cancel account immediately, if the current user has administrative
     // privileges, no confirmation mail shall be sent, and the user does not
     // attempt to cancel the own account.
-    if ($this->currentUser()->hasPermission('administer users') && empty($form_state['values']['user_cancel_confirm']) && $this->entity->id() != $this->currentUser()->id()) {
-      user_cancel($form_state['values'], $this->entity->id(), $form_state['values']['user_cancel_method']);
+    if ($this->currentUser()->hasPermission('administer users') && $form_state->isValueEmpty('user_cancel_confirm') && $this->entity->id() != $this->currentUser()->id()) {
+      user_cancel($form_state->getValues(), $this->entity->id(), $form_state->getValue('user_cancel_method'));
 
       $form_state->setRedirect('user.admin_account');
     }
     else {
       // Store cancelling method and whether to notify the user in
       // $this->entity for user_cancel_confirm().
-      $this->entity->user_cancel_method = $form_state['values']['user_cancel_method'];
-      $this->entity->user_cancel_notify = $form_state['values']['user_cancel_notify'];
+      $this->entity->user_cancel_method = $form_state->getValue('user_cancel_method');
+      $this->entity->user_cancel_notify = $form_state->getValue('user_cancel_notify');
       $this->entity->save();
       _user_mail_notify('cancel_confirm', $this->entity);
       drupal_set_message($this->t('A confirmation request to cancel your account has been sent to your email address.'));
       $this->logger('user')->notice('Sent account cancellation request to %name %email.', array('%name' => $this->entity->label(), '%email' => '<' . $this->entity->getEmail() . '>'));
 
       $form_state->setRedirect(
-        'user.view',
+        'entity.user.canonical',
         array('user' => $this->entity->id())
       );
     }

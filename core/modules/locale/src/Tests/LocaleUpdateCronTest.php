@@ -17,16 +17,9 @@ class LocaleUpdateCronTest extends LocaleUpdateBase {
   protected $batchOutput = array();
 
   /**
-   * Modules to enable.
-   *
-   * @var array
-   */
-  public static $modules = array('update', 'locale', 'locale_test');
-
-  /**
    * {@inheritdoc}
    */
-  public function setUp() {
+  protected function setUp() {
     parent::setUp();
     $admin_user = $this->drupalCreateUser(array('administer modules', 'administer site configuration', 'administer languages', 'access administration pages', 'translate interface'));
     $this->drupalLogin($admin_user);

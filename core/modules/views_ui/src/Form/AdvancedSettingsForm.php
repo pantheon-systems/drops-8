@@ -46,7 +46,7 @@ class AdvancedSettingsForm extends ConfigFormBase {
     $form['cache']['clear_cache'] = array(
       '#type' => 'submit',
       '#value' => $this->t("Clear Views' cache"),
-      '#submit' => array(array($this, 'cacheSubmit')),
+      '#submit' => array('::cacheSubmit'),
     );
 
     $form['debug'] = array(
@@ -93,10 +93,10 @@ class AdvancedSettingsForm extends ConfigFormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $this->config('views.settings')
-      ->set('skip_cache', $form_state['values']['skip_cache'])
-      ->set('sql_signature', $form_state['values']['sql_signature'])
-      ->set('no_javascript', $form_state['values']['no_javascript'])
-      ->set('display_extenders', isset($form_state['values']['display_extenders']) ? $form_state['values']['display_extenders'] : array())
+      ->set('skip_cache', $form_state->getValue('skip_cache'))
+      ->set('sql_signature', $form_state->getValue('sql_signature'))
+      ->set('no_javascript', $form_state->getValue('no_javascript'))
+      ->set('display_extenders', $form_state->getValue('display_extenders', array()))
       ->save();
 
     parent::submitForm($form, $form_state);

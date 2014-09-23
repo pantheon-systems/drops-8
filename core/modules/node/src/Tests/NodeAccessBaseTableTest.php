@@ -19,7 +19,7 @@ class NodeAccessBaseTableTest extends NodeTestBase {
    *
    * @var array
    */
-  public static $modules = array('node_access_test');
+  public static $modules = array('node_access_test', 'views');
 
   /**
    * The installation profile to use with this test.
@@ -30,7 +30,7 @@ class NodeAccessBaseTableTest extends NodeTestBase {
    */
   protected $profile = 'standard';
 
-  public function setUp() {
+  protected function setUp() {
     parent::setUp();
 
     node_access_test_add_field(entity_load('node_type', 'article'));

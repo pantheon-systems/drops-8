@@ -9,7 +9,7 @@ namespace Drupal\system\Tests\Entity;
 
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
-use Drupal\Core\Field\FieldDefinition;
+use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\TypedData\ComplexDataDefinitionInterface;
 use Drupal\Core\TypedData\DataReferenceDefinition;
@@ -36,9 +36,9 @@ class EntityTypedDataDefinitionTest extends DrupalUnitTestBase {
    *
    * @var array
    */
-  public static $modules = array('filter', 'text', 'node');
+  public static $modules = array('filter', 'text', 'node', 'user');
 
-  public function setUp() {
+  protected function setUp() {
     parent::setup();
     $this->typedDataManager = $this->container->get('typed_data_manager');
   }
@@ -47,7 +47,7 @@ class EntityTypedDataDefinitionTest extends DrupalUnitTestBase {
    * Tests deriving metadata about fields.
    */
   public function testFields() {
-    $field_definition = FieldDefinition::create('integer');
+    $field_definition = BaseFieldDefinition::create('integer');
     // Fields are lists of complex data.
     $this->assertTrue($field_definition instanceof ListDataDefinitionInterface);
     $this->assertFalse($field_definition instanceof ComplexDataDefinitionInterface);

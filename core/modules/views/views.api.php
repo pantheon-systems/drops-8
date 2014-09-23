@@ -22,8 +22,14 @@ use Drupal\Core\Language\LanguageInterface;
  *   field). See the @link views_plugins Views plugins topic @endlink for
  *   more information.
  * - Provide data: Data types can be provided to Views by implementing
- *   hook_views_data(), and data types provided by other modules can be
- *   altered by implementing hook_views_data_alter().
+ *   hook_views_data(), and data types provided by other modules can be altered
+ *   by implementing hook_views_data_alter(). To provide views data for an
+ *   entity, create a class implementing
+ *   \Drupal\views\EntityViewsDataInterface and reference this in the
+ *   "views_data" annotation in the entity class. You can autogenerate big parts
+ *   of the ingration if you extend the \Drupal\views\EntityViewsData base
+ *   class. See the @link entity_api Entity API topic @endlink for more
+ *   information about entities.
  * - Implement hooks: A few operations in Views can be influenced by hooks.
  *   See the @link Views hooks topic @endlink for a list.
  * - Theming: See the @link views_templates Views templates topic @endlink
@@ -35,6 +41,7 @@ use Drupal\Core\Language\LanguageInterface;
 
 /**
  * @defgroup views_plugins Views plugins
+ * Overview of views plugins
  *
  * Views plugins are objects that are used to build and render the view.
  * See individual views plugin topics for more information about the
@@ -86,6 +93,13 @@ function hook_views_analyze(Drupal\views\ViewExecutable $view) {
  *
  * The table and fields are processed in Views using various plugins. See
  * the @link views_plugins Views plugins topic @endlink for more information.
+ *
+ * To provide views data for an entity, instead of implementing this hook,
+ * create a class implementing \Drupal\views\EntityViewsDataInterface and
+ * reference this in the "views" annotation in the entity class. The return
+ * value of the getViewsData() method on the interface is the same as this hook.
+ * See the @link entity_api Entity API topic @endlink for more information about
+ * entities.
  *
  * The data described with this hook is fetched and retrieved by
  * \Drupal\views\Views::viewsData()->get().
@@ -461,6 +475,7 @@ function hook_field_views_data_alter(array &$data, \Drupal\field\FieldStorageCon
   $field_name = $field_storage->getName();
   $entity_type = \Drupal::entityManager()->getDefinition($entity_type_id);
   $pseudo_field_name = 'reverse_' . $field_name . '_' . $entity_type_id;
+  $table_mapping = \Drupal::entityManager()->getStorage($entity_type_id)->getTableMapping();
 
   list($label) = field_views_field_label($entity_type_id, $field_name);
 
@@ -470,7 +485,7 @@ function hook_field_views_data_alter(array &$data, \Drupal\field\FieldStorageCon
     'id' => 'entity_reverse',
     'field_name' => $field_name,
     'entity_type' => $entity_type_id,
-    'field table' => ContentEntityDatabaseStorage::_fieldTableName($field_storage),
+    'field table' => $table_mapping->getDedicatedDataTableName($field_storage),
     'field field' => $field_name . '_target_id',
     'base' => $entity_type->getBaseTable(),
     'base field' => $entity_type->getKey('id'),
@@ -518,6 +533,7 @@ function hook_field_views_data_views_data_alter(array &$data, \Drupal\field\Fiel
   $entity_type = \Drupal::entityManager()->getDefinition($entity_type_id);
   $pseudo_field_name = 'reverse_' . $field_name . '_' . $entity_type_id;
   list($label) = field_views_field_label($entity_type_id, $field_name);
+  $table_mapping = \Drupal::entityManager()->getStorage($entity_type_id)->getTableMapping();
 
   // Views data for this field is in $data[$data_key].
   $data[$data_key][$pseudo_field_name]['relationship'] = array(
@@ -526,7 +542,7 @@ function hook_field_views_data_views_data_alter(array &$data, \Drupal\field\Fiel
     'id' => 'entity_reverse',
     'field_name' => $field_name,
     'entity_type' => $entity_type_id,
-    'field table' => ContentEntityDatabaseStorage::_fieldTableName($field),
+    'field table' => $table_mapping->getDedicatedDataTableName($field),
     'field field' => $field_name . '_target_id',
     'base' => $entity_type->getBaseTable(),
     'base field' => $entity_type->getKey('id'),
@@ -544,20 +560,26 @@ function hook_field_views_data_views_data_alter(array &$data, \Drupal\field\Fiel
 /**
  * Replace special strings in the query before it is executed.
  *
+ * The idea is that certain dynamic values can be placed in a query when it is
+ * built, and substituted at run-time, allowing the query to be cached and
+ * still work correctly when executed.
+ *
  * @param \Drupal\views\ViewExecutable $view
  *   The View being executed.
+ *
  * @return array
  *   An associative array where each key is a string to be replaced, and the
  *   corresponding value is its replacement. The strings to replace are often
- *   surrounded with '***', as illustrated in the example implementation.
+ *   surrounded with '***', as illustrated in the example implementation, to
+ *   avoid collisions with other values in the query.
  */
 function hook_views_query_substitutions(ViewExecutable $view) {
   // Example from views_views_query_substitutions().
   return array(
     '***CURRENT_VERSION***' => \Drupal::VERSION,
     '***CURRENT_TIME***' => REQUEST_TIME,
-    '***CURRENT_LANGUAGE***' => \Drupal::languageManager()->getCurrentLanguage(LanguageInterface::TYPE_CONTENT)->id,
-    '***DEFAULT_LANGUAGE***' => \Drupal::languageManager()->getDefaultLanguage()->id,
+    '***LANGUAGE_language_content***' => \Drupal::languageManager()->getCurrentLanguage(LanguageInterface::TYPE_CONTENT)->id,
+    '***LANGUAGE_site_default***' => \Drupal::languageManager()->getDefaultLanguage()->id,
   );
 }
 

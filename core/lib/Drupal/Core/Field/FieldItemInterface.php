@@ -32,7 +32,7 @@ interface FieldItemInterface extends ComplexDataInterface {
    *   An array of property definitions of contained properties, keyed by
    *   property name.
    *
-   * @see \Drupal\Core\Field\FieldDefinition
+   * @see \Drupal\Core\Field\BaseFieldDefinition
    */
   public static function propertyDefinitions(FieldStorageDefinitionInterface $field_definition);
 
@@ -46,7 +46,7 @@ interface FieldItemInterface extends ComplexDataInterface {
    * @return string|null
    *   The name of the value property, or NULL if there is none.
    *
-   * @see \Drupal\Core\Field\FieldDefinition
+   * @see \Drupal\Core\Field\BaseFieldDefinition
    */
   public static function mainPropertyName();
 
@@ -215,6 +215,20 @@ interface FieldItemInterface extends ComplexDataInterface {
    * called for entity types that support revisioning.
    */
   public function deleteRevision();
+
+  /**
+   * Generates placeholder field values.
+   *
+   * Useful when populating site with placeholder content during site building
+   * or profiling.
+   *
+   * @param \Drupal\Core\Field\FieldDefinitionInterface $field_definition
+   *   The field definition.
+   *
+   * @return array
+   *   An associative array of values.
+   */
+  public static function generateSampleValue(FieldDefinitionInterface $field_definition);
 
   /**
    * Defines the field-level settings for this plugin.

@@ -170,7 +170,8 @@ class InOperator extends FilterPluginBase {
     $form['value'] = array();
     $options = array();
 
-    if (empty($form_state['exposed'])) {
+    $exposed = $form_state->get('exposed');
+    if (!$exposed) {
       // Add a select all option to the value form.
       $options = array('all' => t('Select all'));
     }
@@ -183,7 +184,7 @@ class InOperator extends FilterPluginBase {
     if (!empty($form['operator'])) {
       $source = ':input[name="options[operator]"]';
     }
-    if (!empty($form_state['exposed'])) {
+    if ($exposed) {
       $identifier = $this->options['expose']['identifier'];
 
       if (empty($this->options['expose']['use_operator']) || empty($this->options['expose']['operator_id'])) {
@@ -227,12 +228,14 @@ class InOperator extends FilterPluginBase {
         '#multiple' => TRUE,
         '#size' => count($options) > 8 ? 8 : count($options),
       );
-      if (!empty($form_state['exposed']) && !isset($form_state['input'][$identifier])) {
-        $form_state['input'][$identifier] = $default_value;
+      $user_input = $form_state->getUserInput();
+      if ($exposed && !isset($user_input[$identifier])) {
+        $user_input[$identifier] = $default_value;
+        $form_state->setUserInput($user_input);
       }
 
       if ($which == 'all') {
-        if (empty($form_state['exposed']) && (in_array($this->valueFormType, array('checkbox', 'checkboxes', 'radios', 'select')))) {
+        if (!$exposed && (in_array($this->valueFormType, ['checkbox', 'checkboxes', 'radios', 'select']))) {
           $form['value']['#prefix'] = '<div id="edit-options-value-wrapper">';
           $form['value']['#suffix'] = '</div>';
         }
@@ -306,7 +309,7 @@ class InOperator extends FilterPluginBase {
     // *only* a list of checkboxes that were set, and we can use that
     // instead.
 
-    $form_state['values']['options']['value'] = $form['value']['#value'];
+    $form_state->setValue(array('options', 'value'), $form['value']['#value']);
   }
 
   public function adminSummary() {

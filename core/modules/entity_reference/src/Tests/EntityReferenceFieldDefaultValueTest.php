@@ -17,13 +17,13 @@ use Drupal\simpletest\WebTestBase;
 class EntityReferenceFieldDefaultValueTest extends WebTestBase {
 
   /**
-   * Modules to enable.
+   * Modules to install.
    *
    * @var array
    */
   public static $modules = array('entity_reference', 'field_ui', 'node', 'options');
 
-  function setUp() {
+  protected function setUp() {
     parent::setUp();
 
     // Create default content type.

@@ -9,8 +9,8 @@ namespace Drupal\system\Tests\Entity;
 
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\simpletest\WebTestBase;
-use Drupal\Core\Language\Language;
 
 /**
  * Tests entity translation form.
@@ -28,7 +28,7 @@ class EntityTranslationFormTest extends WebTestBase {
 
   protected $langcodes;
 
-  function setUp() {
+  protected function setUp() {
     parent::setUp();
     // Enable translations for the test entity type.
     \Drupal::state()->set('entity_test.translation', TRUE);
@@ -36,12 +36,12 @@ class EntityTranslationFormTest extends WebTestBase {
     // Create test languages.
     $this->langcodes = array();
     for ($i = 0; $i < 2; ++$i) {
-      $language = new Language(array(
+      $language = ConfigurableLanguage::create(array(
         'id' => 'l' . $i,
-        'name' => $this->randomString(),
+        'label' => $this->randomString(),
       ));
-      $this->langcodes[$i] = $language->id;
-      language_save($language);
+      $this->langcodes[$i] = $language->id();
+      $language->save();
     }
   }
 
@@ -58,24 +58,24 @@ class EntityTranslationFormTest extends WebTestBase {
     $edit = array();
     $edit['title[0][value]'] = $this->randomMachineName(8);
     $edit['body[0][value]'] = $this->randomMachineName(16);
-
     $this->drupalGet('node/add/page');
-    $form_langcode = \Drupal::state()->get('entity_test.form_langcode') ?: FALSE;
+    $form_langcode = \Drupal::state()->get('entity_test.form_langcode');
     $this->drupalPostForm(NULL, $edit, t('Save'));
 
     $node = $this->drupalGetNodeByTitle($edit['title[0][value]']);
+
     $this->assertTrue($node->language()->id == $form_langcode, 'Form language is the same as the entity language.');
 
     // Edit the node and test the form language.
     $this->drupalGet($this->langcodes[0] . '/node/' . $node->id() . '/edit');
-    $form_langcode = \Drupal::state()->get('entity_test.form_langcode') ?: FALSE;
+    $form_langcode = \Drupal::state()->get('entity_test.form_langcode');
     $this->assertTrue($node->language()->id == $form_langcode, 'Form language is the same as the entity language.');
 
     // Explicitly set form langcode.
     $langcode = $this->langcodes[0];
-    $form_state['langcode'] = $langcode;
-    \Drupal::service('entity.form_builder')->getForm($node, 'default', $form_state);
-    $form_langcode = \Drupal::state()->get('entity_test.form_langcode') ?: FALSE;
+    $form_state_additions['langcode'] = $langcode;
+    \Drupal::service('entity.form_builder')->getForm($node, 'default', $form_state_additions);
+    $form_langcode = \Drupal::state()->get('entity_test.form_langcode');
     $this->assertTrue($langcode == $form_langcode, 'Form language is the same as the language parameter.');
 
     // Enable language selector.
@@ -109,7 +109,7 @@ class EntityTranslationFormTest extends WebTestBase {
     $node->getTranslation($langcode2)->body->value = $this->randomMachineName(16);
     $node->save();
     $this->drupalGet($langcode2 . '/node/' . $node->id() . '/edit');
-    $form_langcode = \Drupal::state()->get('entity_test.form_langcode') ?: FALSE;
+    $form_langcode = \Drupal::state()->get('entity_test.form_langcode');
     $this->assertTrue($langcode2 == $form_langcode, "Node edit form language is $langcode2.");
   }
 }

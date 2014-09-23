@@ -7,8 +7,8 @@
 
 namespace Drupal\node\Tests\Views;
 
-use Drupal\Core\Language\Language;
 use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\language\Entity\ConfigurableLanguage;
 
 /**
  * Tests node language fields, filters, and sorting.
@@ -39,7 +39,7 @@ class NodeLanguageTest extends NodeTestBase {
   /**
    * {@inheritdoc}
    */
-  function setUp() {
+  protected function setUp() {
     parent::setUp();
 
     // Create Page content type.
@@ -48,17 +48,8 @@ class NodeLanguageTest extends NodeTestBase {
     }
 
     // Add two new languages.
-    $language = new Language(array(
-      'id' => 'fr',
-      'name' => 'French',
-    ));
-    language_save($language);
-
-    $language = new Language(array(
-      'id' => 'es',
-      'name' => 'Spanish',
-    ));
-    language_save($language);
+    ConfigurableLanguage::createFromLangcode('fr')->save();
+    ConfigurableLanguage::createFromLangcode('es')->save();
 
     // Make the body field translatable. The title is already translatable by
     // definition.
@@ -181,6 +172,53 @@ class NodeLanguageTest extends NodeTestBase {
           foreach ($control_titles as $title) {
             $this->assertNoText($title);
           }
+        }
+      }
+    }
+
+    // Override the config for the front page view, so that the language
+    // filter is set to the site default language instead. This should just
+    // show the English nodes, no matter what the content language is.
+    $config = \Drupal::config('views.view.frontpage');
+    $config->set('display.default.display_options.filters.langcode.value', array('***LANGUAGE_site_default***' => '***LANGUAGE_site_default***'));
+    $config->save();
+    foreach ($this->node_titles as $langcode => $titles) {
+      $this->drupalGet(($langcode == 'en' ? '' : "$langcode/") . 'node');
+      foreach ($this->node_titles as $control_langcode => $control_titles) {
+        foreach ($control_titles as $title) {
+          if ($control_langcode == 'en') {
+            $this->assertText($title, 'English title is shown when filtering is site default');
+          }
+          else {
+            $this->assertNoText($title, 'Non-English title is not shown when filtering is site default');
+          }
+        }
+      }
+    }
+
+    // Override the config so that the language filter is set to the UI
+    // language, and make that have a fixed value of 'es'.
+    //
+    // IMPORTANT: Make sure this part of the test is last -- it is changing
+    // language configuration!
+    $config->set('display.default.display_options.filters.langcode.value', array('***LANGUAGE_language_interface***' => '***LANGUAGE_language_interface***'));
+    $config->save();
+    $language_config = \Drupal::config('language.types');
+    $language_config->set('negotiation.language_interface.enabled', array('language-selected' => 1));
+    $language_config->save();
+    $language_config = \Drupal::config('language.negotiation');
+    $language_config->set('selected_langcode', 'es');
+    $language_config->save();
+
+    // With a fixed language selected, there is no language-based URL.
+    $this->drupalGet('node');
+    foreach ($this->node_titles as $control_langcode => $control_titles) {
+      foreach ($control_titles as $title) {
+        if ($control_langcode == 'es') {
+          $this->assertText($title, 'Spanish title is shown when filtering is fixed UI language');
+        }
+        else {
+          $this->assertNoText($title, 'Non-Spanish title is not shown when filtering is fixed UI language');
         }
       }
     }

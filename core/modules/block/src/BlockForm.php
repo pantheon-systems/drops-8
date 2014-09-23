@@ -61,7 +61,7 @@ class BlockForm extends EntityForm {
     if (!$theme = $entity->get('theme')) {
       $theme = $this->config('system.theme')->get('default');
     }
-    $form_state['block_theme'] = $theme;
+    $form_state->set('block_theme', $theme);
 
     $form['#tree'] = TRUE;
     $form['settings'] = $entity->getPlugin()->buildConfigurationForm(array(), $form_state);
@@ -101,7 +101,7 @@ class BlockForm extends EntityForm {
         '#title' => t('Theme'),
         '#default_value' => $theme,
         '#ajax' => array(
-          'callback' => array($this, 'themeSwitch'),
+          'callback' => '::themeSwitch',
           'wrapper' => 'edit-block-region-wrapper',
         ),
       );
@@ -128,7 +128,7 @@ class BlockForm extends EntityForm {
    * Handles switching the available regions based on the selected theme.
    */
   public function themeSwitch($form, FormStateInterface $form_state) {
-    $form['region']['#options'] = system_region_list($form_state['values']['theme'], REGIONS_VISIBLE);
+    $form['region']['#options'] = system_region_list($form_state->getValue('theme'), REGIONS_VISIBLE);
     return $form['region'];
   }
 
@@ -149,33 +149,29 @@ class BlockForm extends EntityForm {
 
     // The Block Entity form puts all block plugin form elements in the
     // settings form element, so just pass that to the block for validation.
-    $settings = new FormState(array(
-      'values' => $form_state['values']['settings']
-    ));
+    $settings = (new FormState())->setValues($form_state->getValue('settings'));
     // Call the plugin validate handler.
     $this->entity->getPlugin()->validateConfigurationForm($form, $settings);
     // Update the original form values.
-    $form_state['values']['settings'] = $settings['values'];
+    $form_state->setValue('settings', $settings->getValues());
   }
 
   /**
    * {@inheritdoc}
    */
-  public function submit(array $form, FormStateInterface $form_state) {
-    parent::submit($form, $form_state);
+  public function submitForm(array &$form, FormStateInterface $form_state) {
+    parent::submitForm($form, $form_state);
 
     $entity = $this->entity;
     // The Block Entity form puts all block plugin form elements in the
     // settings form element, so just pass that to the block for submission.
     // @todo Find a way to avoid this manipulation.
-    $settings = new FormState(array(
-      'values' => $form_state['values']['settings'],
-    ));
+    $settings = (new FormState())->setValues($form_state->getValue('settings'));
 
     // Call the plugin submit handler.
     $entity->getPlugin()->submitConfigurationForm($form, $settings);
     // Update the original form values.
-    $form_state['values']['settings'] = $settings['values'];
+    $form_state->setValue('settings', $settings->getValues());
 
     // Save the settings of the plugin.
     $entity->save();
@@ -184,7 +180,7 @@ class BlockForm extends EntityForm {
     $form_state->setRedirect(
       'block.admin_display_theme',
       array(
-        'theme' => $form_state['values']['theme'],
+        'theme' => $form_state->getValue('theme'),
       ),
       array('query' => array('block-placement' => drupal_html_class($this->entity->id())))
     );

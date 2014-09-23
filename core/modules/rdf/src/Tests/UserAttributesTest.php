@@ -23,7 +23,7 @@ class UserAttributesTest extends WebTestBase {
    */
   public static $modules = array('rdf', 'node');
 
-  public function setUp() {
+  protected function setUp() {
     parent::setUp();
     rdf_get_mapping('user', 'user')
       ->setBundleMapping(array(
@@ -54,6 +54,8 @@ class UserAttributesTest extends WebTestBase {
     );
 
     $this->drupalLogin($user1);
+
+    $this->drupalCreateContentType(array('type' => 'article'));
 
     foreach($authors as $author) {
       $account_uri = url('user/' . $author->id(), array('absolute' => TRUE));

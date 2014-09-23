@@ -7,7 +7,8 @@
 
 namespace Drupal\node\Tests;
 
-use Drupal\Core\Language\Language;
+use Drupal\Core\Language\LanguageInterface;
+use Drupal\language\Entity\ConfigurableLanguage;
 
 /**
  * Tests node access functionality with multiple languages and two node access
@@ -45,7 +46,7 @@ class NodeAccessLanguageAwareCombinationTest extends NodeTestBase {
    */
   protected $admin_user;
 
-  public function setUp() {
+  protected function setUp() {
     parent::setUp();
 
     node_access_test_add_field(entity_load('node_type', 'page'));
@@ -77,14 +78,8 @@ class NodeAccessLanguageAwareCombinationTest extends NodeTestBase {
     node_access_rebuild();
 
     // Add Hungarian and Catalan.
-    $language = new Language(array(
-      'id' => 'hu',
-    ));
-    language_save($language);
-    $language = new Language(array(
-      'id' => 'ca',
-    ));
-    language_save($language);
+    ConfigurableLanguage::createFromLangcode('hu')->save();
+    ConfigurableLanguage::createFromLangcode('ca')->save();
 
     // Create a normal authenticated user.
     $this->web_user = $this->drupalCreateUser(array('access content'));
@@ -171,18 +166,22 @@ class NodeAccessLanguageAwareCombinationTest extends NodeTestBase {
     $this->nodes['public_no_language_private'] = $this->drupalCreateNode(array(
       'field_private' => array(array('value' => 1)),
       'private' => FALSE,
+        'langcode' => LanguageInterface::LANGCODE_NOT_SPECIFIED,
     ));
     $this->nodes['public_no_language_public'] = $this->drupalCreateNode(array(
       'field_private' => array(array('value' => 0)),
       'private' => FALSE,
+      'langcode' => LanguageInterface::LANGCODE_NOT_SPECIFIED,
     ));
     $this->nodes['private_no_language_private'] = $this->drupalCreateNode(array(
       'field_private' => array(array('value' => 1)),
       'private' => TRUE,
+      'langcode' => LanguageInterface::LANGCODE_NOT_SPECIFIED,
     ));
     $this->nodes['private_no_language_public'] = $this->drupalCreateNode(array(
       'field_private' => array(array('value' => 1)),
       'private' => TRUE,
+      'langcode' => LanguageInterface::LANGCODE_NOT_SPECIFIED,
     ));
   }
 

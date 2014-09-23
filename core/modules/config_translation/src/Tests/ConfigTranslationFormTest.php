@@ -7,7 +7,7 @@
 
 namespace Drupal\config_translation\Tests;
 
-use Drupal\Core\Language\Language;
+use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\simpletest\WebTestBase;
 
 /**
@@ -38,15 +38,14 @@ class ConfigTranslationFormTest extends WebTestBase {
    */
   protected $langcode;
 
-  public function setUp() {
+  protected function setUp() {
     parent::setUp();
 
     $definitions = \Drupal::service('plugin.manager.config_translation.mapper')->getDefinitions();
     $this->pluginId = key($definitions);
 
     $this->langcode = 'xx';
-    $language = new Language(array('id' => $this->langcode, 'name' => 'XX'));
-    language_save($language);
+    ConfigurableLanguage::create(array('id' => $this->langcode, 'label' => 'XX'))->save();
 
     \Drupal::state()->set('config_translation_test_alter_form_alter', TRUE);
   }

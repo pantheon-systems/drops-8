@@ -44,7 +44,7 @@ class EditForm extends PathFormBase {
     $form['actions']['delete'] = array(
       '#type' => 'submit',
       '#value' => $this->t('Delete'),
-      '#submit' => array(array($this, 'deleteSubmit')),
+      '#submit' => array('::deleteSubmit'),
     );
     return $form;
   }
@@ -54,7 +54,7 @@ class EditForm extends PathFormBase {
    */
   public function deleteSubmit(array &$form, FormStateInterface $form_state) {
     $url = new Url('path.delete', array(
-      'pid' => $form_state['values']['pid'],
+      'pid' => $form_state->getValue('pid'),
     ));
 
     if ($this->getRequest()->query->has('destination')) {

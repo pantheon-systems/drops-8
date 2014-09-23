@@ -7,6 +7,7 @@
 
 namespace Drupal\Tests\Core\Form {
 
+use Drupal\Component\Utility\Html;
 use Drupal\Core\Form\FormBuilder;
 use Drupal\Core\Form\FormInterface;
 use Drupal\Core\Form\FormStateInterface;
@@ -55,18 +56,11 @@ abstract class FormTestBase extends UnitTestCase {
   protected $moduleHandler;
 
   /**
-   * The expirable key value store used by form cache.
+   * The form cache.
    *
-   * @var \Drupal\Core\KeyValueStore\KeyValueStoreExpirableInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Form\FormCacheInterface|\PHPUnit_Framework_MockObject_MockObject
    */
   protected $formCache;
-
-  /**
-   * The expirable key value store used by form state cache.
-   *
-   * @var \Drupal\Core\KeyValueStore\KeyValueStoreExpirableInterface|\PHPUnit_Framework_MockObject_MockObject
-   */
-  protected $formStateCache;
 
   /**
    * The current user.
@@ -118,13 +112,6 @@ abstract class FormTestBase extends UnitTestCase {
   protected $eventDispatcher;
 
   /**
-   * The expirable key value factory.
-   *
-   * @var \Drupal\Core\KeyValueStore\KeyValueExpirableFactory|\PHPUnit_Framework_MockObject_MockObject
-   */
-  protected $keyValueExpirableFactory;
-
-  /**
    * @var \Drupal\Core\StringTranslation\TranslationInterface|\PHPUnit_Framework_MockObject_MockObject
    */
   protected $translationManager;
@@ -134,21 +121,22 @@ abstract class FormTestBase extends UnitTestCase {
    */
   protected $httpKernel;
 
-  public function setUp() {
+  /**
+   * @var \PHPUnit_Framework_MockObject_MockObject|\Psr\Log\LoggerInterface
+   */
+  protected $logger;
+
+  /**
+   * The mocked theme manager.
+   *
+   * @var \Drupal\Core\Theme\ThemeManagerInterface|\PHPUnit_Framework_MockObject_MockObject
+   */
+  protected $themeManager;
+
+  protected function setUp() {
     $this->moduleHandler = $this->getMock('Drupal\Core\Extension\ModuleHandlerInterface');
 
-    $this->formCache = $this->getMock('Drupal\Core\KeyValueStore\KeyValueStoreExpirableInterface');
-    $this->formStateCache = $this->getMock('Drupal\Core\KeyValueStore\KeyValueStoreExpirableInterface');
-    $this->keyValueExpirableFactory = $this->getMockBuilder('Drupal\Core\KeyValueStore\KeyValueExpirableFactory')
-      ->disableOriginalConstructor()
-      ->getMock();
-    $this->keyValueExpirableFactory->expects($this->any())
-      ->method('get')
-      ->will($this->returnValueMap(array(
-        array('form', $this->formCache),
-        array('form_state', $this->formStateCache),
-      )));
-
+    $this->formCache = $this->getMock('Drupal\Core\Form\FormCacheInterface');
     $this->urlGenerator = $this->getMock('Drupal\Core\Routing\UrlGeneratorInterface');
     $this->classResolver = $this->getClassResolverStub();
     $this->csrfToken = $this->getMockBuilder('Drupal\Core\Access\CsrfTokenGenerator')
@@ -158,12 +146,14 @@ abstract class FormTestBase extends UnitTestCase {
       ->disableOriginalConstructor()
       ->getMock();
     $this->account = $this->getMock('Drupal\Core\Session\AccountInterface');
+    $this->themeManager = $this->getMock('Drupal\Core\Theme\ThemeManagerInterface');
     $this->request = new Request();
     $this->eventDispatcher = $this->getMock('Symfony\Component\EventDispatcher\EventDispatcherInterface');
     $this->requestStack = new RequestStack();
     $this->requestStack->push($this->request);
+    $this->logger = $this->getMock('Drupal\Core\Logger\LoggerChannelInterface');
     $this->formValidator = $this->getMockBuilder('Drupal\Core\Form\FormValidator')
-      ->setConstructorArgs(array($this->requestStack, $this->getStringTranslationStub(), $this->csrfToken))
+      ->setConstructorArgs(array($this->requestStack, $this->getStringTranslationStub(), $this->csrfToken, $this->logger))
       ->setMethods(array('drupalSetMessage'))
       ->getMock();
     $this->formSubmitter = $this->getMockBuilder('Drupal\Core\Form\FormSubmitter')
@@ -171,7 +161,7 @@ abstract class FormTestBase extends UnitTestCase {
       ->setMethods(array('batchGet', 'drupalInstallationAttempted'))
       ->getMock();
 
-    $this->formBuilder = new TestFormBuilder($this->formValidator, $this->formSubmitter, $this->moduleHandler, $this->keyValueExpirableFactory, $this->eventDispatcher, $this->requestStack, $this->classResolver, $this->csrfToken, $this->httpKernel);
+    $this->formBuilder = new TestFormBuilder($this->formValidator, $this->formSubmitter, $this->formCache, $this->moduleHandler, $this->eventDispatcher, $this->requestStack, $this->classResolver, $this->themeManager, $this->csrfToken, $this->httpKernel);
     $this->formBuilder->setCurrentUser($this->account);
   }
 
@@ -179,7 +169,7 @@ abstract class FormTestBase extends UnitTestCase {
    * {@inheritdoc}
    */
   protected function tearDown() {
-    $this->formBuilder->drupalStaticReset();
+    Html::resetSeenIds();
   }
 
   /**
@@ -225,19 +215,20 @@ abstract class FormTestBase extends UnitTestCase {
    * @param \Drupal\Core\Form\FormStateInterface $form_state
    *   The current state of the form.
    * @param bool $programmed
-   *   Whether $form_state['programmed'] should be set to TRUE or not. If it is
-   *   not set to TRUE, you must provide additional data in $form_state for the
-   *   submission to take place.
+   *   Whether $form_state->setProgrammed() should be passed TRUE or not. If it
+   *   is not set to TRUE, you must provide additional data in $form_state for
+   *   the submission to take place.
    *
    * @return array
    *   The built form.
    */
   protected function simulateFormSubmission($form_id, FormInterface $form_arg, FormStateInterface $form_state, $programmed = TRUE) {
-    $form_state['build_info']['callback_object'] = $form_arg;
-    $form_state['build_info']['args'] = array();
-    $form_state['input']['op'] = 'Submit';
-    $form_state['programmed'] = $programmed;
-    $form_state['submitted'] = TRUE;
+    $input = $form_state->getUserInput();
+    $input['op'] = 'Submit';
+    $form_state
+      ->setUserInput($input)
+      ->setProgrammed($programmed)
+      ->setSubmitted();
     return $this->formBuilder->buildForm($form_arg, $form_state);
   }
 

@@ -58,7 +58,7 @@ class ViewPreviewForm extends ViewFormBase {
     $seen_ids_init = &drupal_static('drupal_html_id:init');
     $seen_ids_init = array();
 
-    $form_state['no_cache'] = TRUE;
+    $form_state->disableCache();
 
     $form['controls']['#attributes'] = array('class' => array('clearfix'));
 
@@ -79,11 +79,12 @@ class ViewPreviewForm extends ViewFormBase {
     );
 
     $args = array();
-    if (!empty($form_state['values']['view_args'])) {
-      $args = explode('/', $form_state['values']['view_args']);
+    if (!$form_state->isValueEmpty('view_args')) {
+      $args = explode('/', $form_state->getValue('view_args'));
     }
 
-    if (!empty($form_state['show_preview']) || !empty($form_state['input']['js'])) {
+    $user_input = $form_state->getUserInput();
+    if ($form_state->get('show_preview') || !empty($user_input['js'])) {
       $form['preview'] = array(
         '#weight' => 110,
         '#theme_wrappers' => array('container'),
@@ -111,7 +112,7 @@ class ViewPreviewForm extends ViewFormBase {
         '#type' => 'submit',
         '#value' => $this->t('Update preview'),
         '#attributes' => array('class' => array('arguments-preview')),
-        '#submit' => array(array($this, 'submitPreview')),
+        '#submit' => array('::submitPreview'),
         '#id' => 'preview-submit',
         '#ajax' => array(
           'path' => 'admin/structure/views/view/' . $view->id() . '/preview/' . $this->displayID,
@@ -134,9 +135,11 @@ class ViewPreviewForm extends ViewFormBase {
     if (!$new_view = $this->tempStore->get($view->id())) {
       $new_view = new ViewUI($view);
     }
-    $form_state['build_info']['args'][0] = $new_view;
-    $form_state['show_preview'] = TRUE;
-    $form_state['rebuild'] = TRUE;
+    $build_info = $form_state->getBuildInfo();
+    $build_info['args'][0] = $new_view;
+    $form_state->setBuildInfo($build_info);
+    $form_state->set('show_preview', TRUE);
+    $form_state->setRebuild();
   }
 
 }

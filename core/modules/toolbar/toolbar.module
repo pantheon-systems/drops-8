@@ -34,17 +34,6 @@ function toolbar_help($route_name, RouteMatchInterface $route_match) {
 }
 
 /**
- * Implements hook_permission().
- */
-function toolbar_permission() {
-  return array(
-    'access toolbar' => array(
-      'title' => t('Use the administration toolbar'),
-    ),
-  );
-}
-
-/**
  * Implements hook_theme().
  */
 function toolbar_theme($existing, $type, $theme, $path) {
@@ -78,7 +67,6 @@ function toolbar_element_info() {
       // The id cannot be simply "toolbar" or it will clash with the simpletest
       // tests listing which produces a checkbox with attribute id="toolbar"
       'id' => 'toolbar-administration',
-      'class' => array('toolbar'),
       'role' => 'group',
       'aria-label' => t('Site administration toolbar'),
     ),
@@ -87,7 +75,6 @@ function toolbar_element_info() {
       '#heading' => t('Toolbar items'),
       '#attributes' => array(
         'id' => 'toolbar-bar',
-        'class' => array('toolbar-bar', 'clearfix',),
         'role' => 'navigation',
         'aria-label' => t('Toolbar items'),
       ),
@@ -175,18 +162,19 @@ function toolbar_pre_render($element) {
 
   // Get the configured breakpoints to switch from vertical to horizontal
   // toolbar presentation.
-  $breakpoints = entity_load('breakpoint_group', 'module.toolbar.toolbar');
+  $breakpoints = \Drupal::service('breakpoint.manager')->getBreakpointsByGroup('toolbar');
   if (!empty($breakpoints)) {
-    $media_queries = array();
-    $media_queries['toolbar']['breakpoints'] = array_map(
-      function ($object) {
-        return $object->mediaQuery;
-      },
-      $breakpoints->getBreakpoints()
-    );
+    $media_queries =  array();
+    foreach ($breakpoints as $id => $breakpoint) {
+      $media_queries[$id] = $breakpoint->getMediaQuery();
+    }
 
     $element['#attached']['js'][] = array(
-      'data' => $media_queries,
+      'data' => array(
+        'toolbar' => array(
+          'breakpoints' => $media_queries,
+        )
+      ),
       'type' => 'setting',
     );
   }
@@ -242,13 +230,10 @@ function template_preprocess_toolbar(&$variables) {
       }
     }
 
+    $attributes = array();
     // Pass the wrapper attributes along.
     if (array_key_exists('#wrapper_attributes', $element[$key])) {
-      $element[$key]['#wrapper_attributes']['class'][] = 'toolbar-tab';
       $attributes = $element[$key]['#wrapper_attributes'];
-    }
-    else {
-      $attributes = array('class' => array('toolbar-tab'));
     }
 
     // Add the tab.
@@ -417,7 +402,7 @@ function toolbar_prerender_toolbar_administration_tray(array $element) {
   $menu_tree = \Drupal::menuTree();
   // Render the top-level administration menu links.
   $parameters = new MenuTreeParameters();
-  $parameters->setRoot('system.admin')->excludeRoot()->setTopLevelOnly()->excludeHiddenLinks();
+  $parameters->setRoot('system.admin')->excludeRoot()->setTopLevelOnly()->onlyEnabledLinks();
   $tree = $menu_tree->load(NULL, $parameters);
   $manipulators = array(
     array('callable' => 'menu.default_tree_manipulators:checkAccess'),
@@ -461,9 +446,7 @@ function toolbar_menu_navigation_links(array $tree) {
 
     $element->options['attributes']['id'] = 'toolbar-link-' . $id;
     $element->options['attributes']['class'][] = 'toolbar-icon';
-    // @todo Change to use the plugin ID as class since titles might change.
-    //   https://www.drupal.org/node/2310365
-    $element->options['attributes']['class'][] = 'toolbar-icon-' . strtolower(str_replace(' ', '-', $definition['title']));
+    $element->options['attributes']['class'][] = 'toolbar-icon-' . strtolower(str_replace(array('.', ' ', '_'), array('-', '-', '-'), $definition['id']));
     $element->options['attributes']['title'] = String::checkPlain($link->getDescription());
   }
   return $tree;
@@ -475,7 +458,7 @@ function toolbar_menu_navigation_links(array $tree) {
 function toolbar_get_rendered_subtrees() {
   $menu_tree = \Drupal::menuTree();
   $parameters = new MenuTreeParameters();
-  $parameters->setRoot('system.admin')->excludeRoot()->setMaxDepth(3)->excludeHiddenLinks();
+  $parameters->setRoot('system.admin')->excludeRoot()->setMaxDepth(3)->onlyEnabledLinks();
   $tree = $menu_tree->load(NULL, $parameters);
   $manipulators = array(
     array('callable' => 'menu.default_tree_manipulators:checkAccess'),

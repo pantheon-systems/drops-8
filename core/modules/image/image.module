@@ -111,10 +111,6 @@ function image_theme() {
     ),
 
     // Theme functions in image.admin.inc.
-    'image_style_effects' => array(
-      'render element' => 'form',
-      'file' => 'image.admin.inc',
-    ),
     'image_style_preview' => array(
       'variables' => array('style' => NULL),
       'file' => 'image.admin.inc',
@@ -152,18 +148,6 @@ function image_theme() {
       'variables' => array('item' => NULL, 'item_attributes' => NULL, 'path' => NULL, 'image_style' => NULL),
       'file' => 'image.field.inc',
       'template' => 'image-formatter',
-    ),
-  );
-}
-
-/**
- * Implements hook_permission().
- */
-function image_permission() {
-  return array(
-    'administer image styles' => array(
-      'title' => t('Administer image styles'),
-      'description' => t('Create and modify styles for generating image modifications such as thumbnails.'),
     ),
   );
 }

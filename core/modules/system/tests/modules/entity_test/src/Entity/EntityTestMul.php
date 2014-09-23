@@ -8,7 +8,7 @@
 namespace Drupal\entity_test\Entity;
 
 use Drupal\Core\Entity\EntityTypeInterface;
-use Drupal\Core\Field\FieldDefinition;
+use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\entity_test\Entity\EntityTest;
 
 /**
@@ -17,14 +17,15 @@ use Drupal\entity_test\Entity\EntityTest;
  * @ContentEntityType(
  *   id = "entity_test_mul",
  *   label = @Translation("Test entity - data table"),
- *   controllers = {
+ *   handlers = {
  *     "view_builder" = "Drupal\entity_test\EntityTestViewBuilder",
- *     "access" = "Drupal\entity_test\EntityTestAccessController",
+ *     "access" = "Drupal\entity_test\EntityTestAccessControlHandler",
  *     "form" = {
  *       "default" = "Drupal\entity_test\EntityTestForm",
  *       "delete" = "Drupal\entity_test\EntityTestDeleteForm"
  *     },
- *     "translation" = "Drupal\content_translation\ContentTranslationHandler"
+ *     "translation" = "Drupal\content_translation\ContentTranslationHandler",
+ *     "views_data" = "Drupal\views\EntityViewsData"
  *   },
  *   base_table = "entity_test_mul",
  *   data_table = "entity_test_mul_property_data",
@@ -37,11 +38,11 @@ use Drupal\entity_test\Entity\EntityTest;
  *     "label" = "name"
  *   },
  *   links = {
- *     "canonical" = "entity_test.edit_entity_test_mul",
- *     "edit-form" = "entity_test.edit_entity_test_mul",
- *     "delete-form" = "entity_test.delete_entity_test_mul",
- *     "admin-form" = "entity_test.admin_entity_test_mul"
- *   }
+ *     "canonical" = "entity.entity_test_mul.edit_form",
+ *     "edit-form" = "entity.entity_test_mul.edit_form",
+ *     "delete-form" = "entity.entity_test_mul.delete_form",
+ *   },
+ *   field_ui_base_route = "entity.entity_test_mul.admin_form",
  * )
  */
 class EntityTestMul extends EntityTest {

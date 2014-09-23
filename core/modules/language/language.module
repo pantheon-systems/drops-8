@@ -6,12 +6,9 @@
  */
 
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\PhpStorage\PhpStorageFactory;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
-use Drupal\language\ConfigurableLanguageManager;
-use Drupal\language\ConfigurableLanguageManagerInterface;
-use Drupal\language\Entity\Language as LanguageEntity;
+use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\language\Plugin\LanguageNegotiation\LanguageNegotiationUI;
 use Drupal\language\Plugin\LanguageNegotiation\LanguageNegotiationUrl;
 use Drupal\language\Plugin\LanguageNegotiation\LanguageNegotiationUrlFallback;
@@ -91,17 +88,6 @@ function language_help($route_name, RouteMatchInterface $route_match) {
 }
 
 /**
- * Implements hook_permission().
- */
-function language_permission() {
-  return array(
-    'administer languages' => array(
-      'title' => t('Administer languages'),
-    ),
-  );
-}
-
-/**
  * Implements hook_theme().
  */
 function language_theme() {
@@ -135,7 +121,11 @@ function language_element_info_alter(&$type) {
     if (!isset($type['language_select']['#theme_wrappers'])) {
       $type['language_select']['#theme_wrappers'] = array();
     }
-    $type['language_select']['#process'] = array_merge($type['language_select']['#process'], array('language_process_language_select', 'form_process_select', 'ajax_process_form'));
+    $type['language_select']['#process'] = array_merge($type['language_select']['#process'], array(
+      'language_process_language_select',
+      array('Drupal\Core\Render\Element\Select', 'processSelect'),
+      array('Drupal\Core\Render\Element\RenderElement', 'processAjaxForm'),
+    ));
     $type['language_select']['#theme'] = 'select';
     $type['language_select']['#theme_wrappers'] = array_merge($type['language_select']['#theme_wrappers'], array('form_element'));
     $type['language_select']['#languages'] = LanguageInterface::STATE_CONFIGURABLE;
@@ -238,15 +228,14 @@ function language_configuration_element_process($element, FormStateInterface $fo
   // They will be used, in the submit handler, to generate the names of the
   // variables that will store the settings and are a way to uniquely identify
   // the entity.
-  if (!isset($form_state['language'])) {
-    $form_state['language'] = array();
-  }
-  $form_state['language'] += array(
-    $element['#name'] => array(
+  $language = $form_state->get('language') ?: [];
+  $language += [
+    $element['#name'] => [
       'entity_type' => $element['#entity_information']['entity_type'],
       'bundle' => $element['#entity_information']['bundle'],
-    ),
-  );
+    ],
+  ];
+  $form_state->set('language', $language);
 
   // Do not add the submit callback for the language content settings page,
   // which is handled separately.
@@ -269,9 +258,9 @@ function language_configuration_element_process($element, FormStateInterface $fo
 function language_configuration_element_submit(&$form, FormStateInterface $form_state) {
   // Iterate through all the language_configuration elements and save their
   // values.
-  if (isset($form_state['language'])) {
-    foreach ($form_state['language'] as $element_name => $values) {
-      language_save_default_configuration($values['entity_type'], $values['bundle'],  $form_state['values'][$element_name]);
+  if ($language = $form_state->get('language')) {
+    foreach ($language as $element_name => $values) {
+      language_save_default_configuration($values['entity_type'], $values['bundle'],  $form_state->getValue($element_name));
     }
   }
 }
@@ -407,78 +396,6 @@ function language_get_default_langcode($entity_type, $bundle) {
 }
 
 /**
- * API function to add or update a language.
- *
- * @param $language
- *   Language object with properties corresponding to the 'language'
- *   configuration properties.
- */
-function language_save($language) {
-  $language_entity = entity_load('language_entity', $language->id);
-  if (!$language_entity) {
-    $language_entity = entity_create('language_entity', array(
-      'id' => $language->id,
-    ));
-  }
-  $language->is_new = $language_entity->isNew();
-
-  // Assign language properties to language entity.
-  $language_entity->label = isset($language->name) ? $language->name : '';
-  $language_entity->direction = isset($language->direction) ? $language->direction : '0';
-  $language_entity->locked = !empty($language->locked);
-  $language_entity->weight = isset($language->weight) ? $language->weight : 0;
-  $language_entity->setDefault(!empty($language->default));
-  $language_entity->save();
-  $t_args = array('%language' => $language->name, '%langcode' => $language->id);
-  if ($language->is_new) {
-    // Install any available language configuration overrides for the language.
-    \Drupal::service('language.config_factory_override')->installLanguageOverrides($language->getId());
-    \Drupal::logger('language')->notice('The %language (%langcode) language has been created.', $t_args);
-  }
-  else {
-    \Drupal::logger('language')->notice('The %language (%langcode) language has been updated.', $t_args);
-  }
-
-  return $language;
-}
-
-/**
- * Delete a language.
- *
- * @param $langcode
- *   Language code of the language to be deleted.
- *
- * @return
- *   TRUE if language is successfully deleted. Otherwise FALSE.
- */
-function language_delete($langcode) {
-  $languages = \Drupal::languageManager()->getLanguages(LanguageInterface::STATE_ALL);
-  if (isset($languages[$langcode]) && !$languages[$langcode]->locked) {
-    $language = $languages[$langcode];
-
-    // Remove the language.
-    entity_delete_multiple('language_entity', array($language->id));
-
-    $language_manager = \Drupal::languageManager();
-    $language_manager->reset();
-    if ($language_manager instanceof ConfigurableLanguageManagerInterface) {
-      $language_manager->updateLockedLanguageWeights();
-    }
-
-    // If after deleting this language the site will become monolingual, we need
-    // to rebuild language services.
-    if (!\Drupal::languageManager()->isMultilingual()) {
-      ConfigurableLanguageManager::rebuildServices();
-    }
-
-    $t_args = array('%language' => $language->name, '%langcode' => $language->id);
-    \Drupal::logger('language')->notice('The %language (%langcode) language has been removed.', $t_args);
-    return TRUE;
-  }
-  return FALSE;
-}
-
-/**
  * Implements hook_language_types_info().
  *
  * Defines the three core language types:
@@ -581,9 +498,9 @@ function language_modules_uninstalled($modules) {
 }
 
 /**
- * Implements hook_ENTITY_TYPE_insert() for 'language_entity'.
+ * Implements hook_ENTITY_TYPE_insert() for 'configurable_language'.
  */
-function language_language_entity_insert(LanguageEntity $language) {
+function language_configurable_language_insert(ConfigurableLanguage $language) {
   if (!empty($language->locked)) {
     return;
   }
@@ -595,9 +512,9 @@ function language_language_entity_insert(LanguageEntity $language) {
 }
 
 /**
- * Implements hook_ENTITY_TYPE_delete() for 'language_entity'.
+ * Implements hook_ENTITY_TYPE_delete() for 'configurable_language'.
  */
-function language_language_entity_delete(LanguageEntity $language) {
+function language_configurable_language_delete(ConfigurableLanguage $language) {
   // Remove language from language prefix list.
   $prefixes = language_negotiation_url_prefixes();
   unset($prefixes[$language->id()]);
@@ -675,8 +592,15 @@ function language_form_system_regional_settings_alter(&$form, FormStateInterface
  * @see language_form_system_regional_settings_alter()
  */
 function language_system_regional_settings_form_submit($form, FormStateInterface $form_state) {
-  $languages = \Drupal::languageManager()->getLanguages();
-  $language = $languages[$form_state['values']['site_default_language']];
-  $language->default = TRUE;
-  language_save($language);
+  $default_language = ConfigurableLanguage::load($form_state->getValue('site_default_language'));
+  $default_language->set('default', TRUE);
+  $default_language->save();
+}
+
+/**
+ * Implements hook_field_info_alter().
+ */
+function language_field_info_alter(&$info) {
+  // Change the default behavior of language field.
+  $info['language']['class'] = '\Drupal\language\DefaultLanguageItem';
 }

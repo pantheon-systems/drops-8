@@ -7,8 +7,8 @@
 
 namespace Drupal\node\Entity;
 
-use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Config\Entity\ConfigEntityBundleBase;
+use Drupal\Core\Config\Entity\ThirdPartySettingsTrait;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\node\NodeTypeInterface;
 
@@ -18,8 +18,8 @@ use Drupal\node\NodeTypeInterface;
  * @ConfigEntityType(
  *   id = "node_type",
  *   label = @Translation("Content type"),
- *   controllers = {
- *     "access" = "Drupal\node\NodeTypeAccessController",
+ *   handlers = {
+ *     "access" = "Drupal\node\NodeTypeAccessControlHandler",
  *     "form" = {
  *       "add" = "Drupal\node\NodeTypeForm",
  *       "edit" = "Drupal\node\NodeTypeForm",
@@ -35,13 +35,13 @@ use Drupal\node\NodeTypeInterface;
  *     "label" = "name"
  *   },
  *   links = {
- *     "add-form" = "node.add",
- *     "edit-form" = "node.type_edit",
- *     "delete-form" = "node.type_delete_confirm"
+ *     "edit-form" = "entity.node_type.edit_form",
+ *     "delete-form" = "entity.node_type.delete_form"
  *   }
  * )
  */
 class NodeType extends ConfigEntityBundleBase implements NodeTypeInterface {
+  use ThirdPartySettingsTrait;
 
   /**
    * The machine name of this node type.
@@ -76,13 +76,25 @@ class NodeType extends ConfigEntityBundleBase implements NodeTypeInterface {
   public $help;
 
   /**
-   * The label to use for the title of a Node of this type in the user interface.
+   * Default value of the 'Create new revision' checkbox of this node type.
    *
-   * @var string
-   *
-   * @todo Rename to $node_title_label.
+   * @var bool
    */
-  public $title_label = 'Title';
+  protected $new_revision = FALSE;
+
+  /**
+   * The preview mode.
+   *
+   * @var int
+   */
+  protected $preview_mode = DRUPAL_OPTIONAL;
+
+  /**
+   * Display setting for author and date Submitted by post information.
+   *
+   * @var bool
+   */
+  protected $display_submitted = TRUE;
 
   /**
    * Indicates whether a Body field should be created for this node type.
@@ -107,15 +119,6 @@ class NodeType extends ConfigEntityBundleBase implements NodeTypeInterface {
   protected $create_body_label = 'Body';
 
   /**
-   * Module-specific settings for this node type, keyed by module name.
-   *
-   * @var array
-   *
-   * @todo Pluginify.
-   */
-  public $settings = array();
-
-  /**
    * {@inheritdoc}
    */
   public function id() {
@@ -125,19 +128,51 @@ class NodeType extends ConfigEntityBundleBase implements NodeTypeInterface {
   /**
    * {@inheritdoc}
    */
-  public function getModuleSettings($module) {
-    if (isset($this->settings[$module]) && is_array($this->settings[$module])) {
-      return $this->settings[$module];
-    }
-    return array();
+  public function isLocked() {
+    $locked = \Drupal::state()->get('node.type.locked');
+    return isset($locked[$this->id()]) ? $locked[$this->id()] : FALSE;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function isLocked() {
-    $locked = \Drupal::state()->get('node.type.locked');
-    return isset($locked[$this->id()]) ? $locked[$this->id()] : FALSE;
+  public function isNewRevision() {
+    return $this->new_revision;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setNewRevision($new_revision) {
+    $this->new_revision = $new_revision;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function displaySubmitted() {
+    return $this->display_submitted;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setDisplaySubmitted($display_submtited) {
+    $this->display_submitted = $display_submtited;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getPreviewMode() {
+    return $this->preview_mode;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setPreviewMode($preview_mode) {
+    $this->preview_mode = $preview_mode;
   }
 
   /**
@@ -181,28 +216,6 @@ class NodeType extends ConfigEntityBundleBase implements NodeTypeInterface {
 
     // Clear the node type cache to reflect the removal.
     $storage->resetCache(array_keys($entities));
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function preCreate(EntityStorageInterface $storage, array &$values) {
-    parent::preCreate($storage, $values);
-
-    // Ensure default values are set.
-    if (!isset($values['settings']['node'])) {
-      $values['settings']['node'] = array();
-    }
-    $values['settings']['node'] = NestedArray::mergeDeep(array(
-      'options' => array(
-        'status' => TRUE,
-        'promote' => TRUE,
-        'sticky' => FALSE,
-        'revision' => FALSE,
-      ),
-      'preview' => DRUPAL_OPTIONAL,
-      'submitted' => TRUE,
-    ), $values['settings']['node']);
   }
 
 }

@@ -37,8 +37,8 @@ class FormDefaultHandlersTest extends KernelTestBase implements FormInterface {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
-    $form['#validate'][] = array($this, 'customValidateForm');
-    $form['#submit'][] = array($this, 'customSubmitForm');
+    $form['#validate'][] = '::customValidateForm';
+    $form['#submit'][] = '::customSubmitForm';
     $form['submit'] = array('#type' => 'submit', '#value' => 'Save');
     return $form;
   }
@@ -47,39 +47,47 @@ class FormDefaultHandlersTest extends KernelTestBase implements FormInterface {
    * {@inheritdoc}
    */
   public function customValidateForm(array &$form, FormStateInterface $form_state) {
-    $form_state['test_handlers']['validate'][] = __FUNCTION__;
+    $test_handlers = $form_state->get('test_handlers');
+    $test_handlers['validate'][] = __FUNCTION__;
+    $form_state->set('test_handlers', $test_handlers);
   }
 
   /**
    * {@inheritdoc}
    */
   public function validateForm(array &$form, FormStateInterface $form_state) {
-    $form_state['test_handlers']['validate'][] = __FUNCTION__;
+    $test_handlers = $form_state->get('test_handlers');
+    $test_handlers['validate'][] = __FUNCTION__;
+    $form_state->set('test_handlers', $test_handlers);
   }
 
   /**
    * {@inheritdoc}
    */
   public function customSubmitForm(array &$form, FormStateInterface $form_state) {
-    $form_state['test_handlers']['submit'][] = __FUNCTION__;
+    $test_handlers = $form_state->get('test_handlers');
+    $test_handlers['submit'][] = __FUNCTION__;
+    $form_state->set('test_handlers', $test_handlers);
   }
 
   /**
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    $form_state['test_handlers']['submit'][] = __FUNCTION__;
+    $test_handlers = $form_state->get('test_handlers');
+    $test_handlers['submit'][] = __FUNCTION__;
+    $form_state->set('test_handlers', $test_handlers);
   }
 
   /**
    * Tests that default handlers are added even if custom are specified.
    */
   function testDefaultAndCustomHandlers() {
-    $form_state = new FormState(array('values' => array()));
+    $form_state = new FormState();
     $form_builder = $this->container->get('form_builder');
     $form_builder->submitForm($this, $form_state);
 
-    $handlers = $form_state['test_handlers'];
+    $handlers = $form_state->get('test_handlers');
 
     $this->assertIdentical(count($handlers['validate']), 2);
     $this->assertIdentical($handlers['validate'][0], 'customValidateForm');

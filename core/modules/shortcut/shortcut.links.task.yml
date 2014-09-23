@@ -1,6 +1,6 @@
 shortcut.set_switch:
   route_name: shortcut.set_switch
-  base_route: user.view
+  base_route: entity.user.canonical
   title: 'Shortcuts'
 
 entity.shortcut_set.customize_form:
@@ -12,3 +12,8 @@ entity.shortcut_set.edit_form:
   route_name: entity.shortcut_set.edit_form
   base_route: entity.shortcut_set.customize_form
   weight: 10
+
+entity.shortcut.canonical:
+  route_name: entity.shortcut.canonical
+  base_route: entity.shortcut.canonical
+  title: Edit

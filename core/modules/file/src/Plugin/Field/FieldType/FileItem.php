@@ -8,6 +8,8 @@
 namespace Drupal\file\Plugin\Field\FieldType;
 
 use Drupal\Component\Utility\Bytes;
+use Drupal\Component\Utility\Random;
+use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItem;
 use Drupal\Core\Form\FormStateInterface;
@@ -231,7 +233,7 @@ class FileItem extends EntityReferenceItem {
       $extensions = array_filter(explode(' ', $extensions));
       $extensions = implode(' ', array_unique($extensions));
       if (!preg_match('/^([a-z0-9]+([.][a-z0-9])* ?)+$/', $extensions)) {
-        form_error($element, $form_state, t('The list of allowed extensions is not valid, be sure to exclude leading dots and to separate extensions with a comma or space.'));
+        $form_state->setError($element, t('The list of allowed extensions is not valid, be sure to exclude leading dots and to separate extensions with a comma or space.'));
       }
       else {
         form_set_value($element, $extensions, $form_state);
@@ -250,7 +252,7 @@ class FileItem extends EntityReferenceItem {
    */
   public static function validateMaxFilesize($element, FormStateInterface $form_state) {
     if (!empty($element['#value']) && !is_numeric(Bytes::toInt($element['#value']))) {
-      form_error($element, $form_state, t('The "!name" option must contain a valid value. You may either leave the text field empty or enter a string like "512" (bytes), "80 KB" (kilobytes) or "50 MB" (megabytes).', array('!name' => t($element['title']))));
+      $form_state->setError($element, t('The "!name" option must contain a valid value. You may either leave the text field empty or enter a string like "512" (bytes), "80 KB" (kilobytes) or "50 MB" (megabytes).', array('!name' => t($element['title']))));
     }
   }
 
@@ -301,6 +303,25 @@ class FileItem extends EntityReferenceItem {
     }
 
     return $validators;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function generateSampleValue(FieldDefinitionInterface $field_definition) {
+    $random = new Random();
+    $settings = $field_definition->getSettings();
+
+    // Generate a file entity.
+    $destination = $settings['uri_scheme'] . '://' . $settings['file_directory'] . $random->name(10, TRUE) . '.txt';
+    $data = $random->paragraphs(3);
+    $file = file_save_data($data, $destination, FILE_EXISTS_ERROR);
+    $values = array(
+      'target_id' => $file->id(),
+      'display' => (int)$settings['display_default'],
+      'description' => $random->sentences(10),
+    );
+    return $values;
   }
 
   /**

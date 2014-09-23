@@ -80,7 +80,7 @@ function filter_theme() {
         'node' => NULL,
         'tag' => NULL,
         'caption' => NULL,
-        'align' => NULL,
+        'classes' => NULL,
       ),
       'template' => 'filter-caption',
     )
@@ -222,32 +222,6 @@ function filter_pre_render_text(array $element) {
   $element['#post_render_cache'] = NestedArray::mergeDeepArray($all_post_render_cache_callbacks);
 
   return $element;
-}
-
-/**
- * Implements hook_permission().
- */
-function filter_permission() {
-  $perms['administer filters'] = array(
-    'title' => t('Administer text formats and filters'),
-    'description' => t('Define how text is handled by combining filters into <a href="@url">text formats</a>.', array(
-      '@url' => url('admin/config/content/formats'),
-    )),
-    'restrict access' => TRUE,
-  );
-
-  // Generate permissions for each text format. Warn the administrator that any
-  // of them are potentially unsafe.
-  foreach (filter_formats() as $format) {
-    if ($permission = $format->getPermissionName()) {
-      $format_name_replacement = l($format->label(), 'admin/config/content/formats/manage/' . $format->id());
-      $perms[$permission] = array(
-        'title' => t("Use the !text_format text format", array('!text_format' => $format_name_replacement,)),
-        'description' => String::placeholder(t('Warning: This permission may have security implications depending on how the text format is configured.')),
-      );
-    }
-  }
-  return $perms;
 }
 
 /**
@@ -489,8 +463,9 @@ function check_markup($text, $format_id = NULL, $langcode = '', $filter_types_to
  * The resulting value for the element will be an array holding the value and
  * the format. For example, the value for the body element will be:
  * @code
- *   $form_state['values']['body']['value'] = 'foo';
- *   $form_state['values']['body']['format'] = 'foo';
+ *   $values = $form_state->getValue('body');
+ *   $values['value'] = 'foo';
+ *   $values['format'] = 'foo';
  * @endcode
  *
  * @param $element
@@ -732,9 +707,6 @@ function _filter_tips($format_id, $long = FALSE) {
  */
 function template_preprocess_filter_guidelines(&$variables) {
   $format = $variables['format'];
-  $variables['attributes']['class'][] = 'filter-guidelines-item';
-  $variables['attributes']['class'][] = 'filter-guidelines-' . $format->format;
-
   $variables['tips'] = array(
     '#theme' => 'filter_tips',
     '#tips' => _filter_tips($format->format, FALSE),
@@ -751,9 +723,10 @@ function template_preprocess_filter_guidelines(&$variables) {
  *   - attributes: An associative array containing properties of the element.
  */
 function template_preprocess_text_format_wrapper(&$variables) {
+  $variables['aria_description'] = FALSE;
   // Add element class and id for screen readers.
   if (isset($variables['attributes']['aria-describedby'])) {
-    $variables['attributes']['class'][] = 'description';
+    $variables['aria_description'] = TRUE;
     $variables['attributes']['id'] = $variables['attributes']['aria-describedby'];
     // Remove aria-describedby attribute as it shouldn't be visible here.
     unset($variables['attributes']['aria-describedby']);
@@ -787,25 +760,14 @@ function template_preprocess_text_format_wrapper(&$variables) {
  */
 function template_preprocess_filter_tips(&$variables) {
   $tips = $variables['tips'];
-  $long = $variables['long'];
 
   foreach ($variables['tips'] as $name => $tiplist) {
     foreach ($tiplist as $tip_key => $tip) {
-      $tiplist[$tip_key]['attributes'] = new Attribute(array());
-      if ($long) {
-        $tiplist[$tip_key]['attributes']['class'] = array('filter-' . str_replace("/", "-", $tip['id']));
-      }
+      $tiplist[$tip_key]['attributes'] = new Attribute();
     }
 
-    $attributes = array(
-      'class' => array(
-        'filter-type',
-        'filter-' . drupal_html_class($name),
-      ),
-    );
-
     $variables['tips'][$name] = array(
-      'attributes' => new Attribute($attributes),
+      'attributes' => new Attribute(),
       'name' => String::checkPlain($name),
       'list' => $tiplist,
     );

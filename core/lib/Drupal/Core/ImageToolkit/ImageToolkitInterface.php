@@ -7,9 +7,10 @@
 
 namespace Drupal\Core\ImageToolkit;
 
-use Drupal\Component\Plugin\PluginInspectionInterface;
-use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
+use Drupal\Core\Plugin\PluginFormInterface;
 use Drupal\Core\Image\ImageInterface;
+use Drupal\Component\Plugin\PluginInspectionInterface;
 
 /**
  * @defgroup image Image toolkits
@@ -43,22 +44,13 @@ use Drupal\Core\Image\ImageInterface;
  *
  * An image toolkit provides common image file manipulations like scaling,
  * cropping, and rotating.
+ *
+ * @see \Drupal\Core\ImageToolkit\Annotation\ImageToolkit
+ * @see \Drupal\Core\ImageToolkit\ImageToolkitBase
+ * @see \Drupal\Core\ImageToolkit\ImageToolkitManager
+ * @see plugin_api
  */
-interface ImageToolkitInterface extends PluginInspectionInterface {
-
-  /**
-   * Retrieves the toolkit's settings form.
-   *
-   * @see system_image_toolkit_settings()
-   */
-  public function settingsForm();
-
-  /**
-   * Handles submissions for toolkit's settings form.
-   *
-   * @see system_image_toolkit_settings_submit()
-   */
-  public function settingsFormSubmit($form, FormStateInterface $form_state);
+interface ImageToolkitInterface extends ContainerFactoryPluginInterface, PluginInspectionInterface, PluginFormInterface {
 
   /**
    * Sets the image object that this toolkit instance is tied to.
@@ -80,6 +72,15 @@ interface ImageToolkitInterface extends PluginInspectionInterface {
   public function getImage();
 
   /**
+   * Checks if the image is valid.
+   *
+   * @return bool
+   *   TRUE if the image toolkit is currently handling a valid image, FALSE
+   *   otherwise.
+   */
+  public function isValid();
+
+  /**
    * Writes an image resource to a destination file.
    *
    * @param string $destination
@@ -92,6 +93,10 @@ interface ImageToolkitInterface extends PluginInspectionInterface {
 
   /**
    * Determines if a file contains a valid image.
+   *
+   * Drupal supports GIF, JPG and PNG file formats when used with the GD
+   * toolkit, and may support others, depending on which toolkits are
+   * installed.
    *
    * @return bool
    *   TRUE if the file could be found and is an image, FALSE otherwise.

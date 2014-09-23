@@ -7,11 +7,10 @@
 
 namespace Drupal\system\Tests\Theme;
 
+use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\String;
 use Drupal\Core\Session\UserSession;
 use Drupal\simpletest\WebTestBase;
-use Symfony\Cmf\Component\Routing\RouteObjectInterface;
-use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Tests for common theme functions.
@@ -54,6 +53,22 @@ class FunctionsTest extends WebTestBase {
     $variables['empty'] = 'No items found.';
     $expected = '<div class="item-list"><h3>Some title</h3>No items found.</div>';
     $this->assertThemeOutput('item_list', $variables, $expected, 'Empty %callback generates empty string with title.');
+
+    // Verify that title set to 0 is output.
+    $variables = array();
+    $variables['title'] = 0;
+    $variables['empty'] = 'No items found.';
+    $expected = '<div class="item-list"><h3>0</h3>No items found.</div>';
+    $this->assertThemeOutput('item_list', $variables, $expected, '%callback with title set to 0 generates a title.');
+
+    // Verify that title set to a render array is output.
+    $variables = array();
+    $variables['title'] = array(
+      '#markup' => '<span>Render array</span>',
+    );
+    $variables['empty'] = 'No items found.';
+    $expected = '<div class="item-list"><h3><span>Render array</span></h3>No items found.</div>';
+    $this->assertThemeOutput('item_list', $variables, $expected, '%callback with title set to a render array generates a title.');
 
     // Verify that empty text is not displayed when there are list items.
     $variables = array();
@@ -189,6 +204,14 @@ class FunctionsTest extends WebTestBase {
         'route_name' => 'router_test.1',
         'route_parameters' => array(),
       ),
+      'query-test' => array(
+        'title' => 'Query test route',
+        'route_name' => 'router_test.1',
+        'route_parameters' => array(),
+        'query' => array(
+          'key' => 'value',
+        )
+      ),
     );
 
     $expected_links = '';
@@ -197,6 +220,8 @@ class FunctionsTest extends WebTestBase {
     $expected_links .= '<li class="plain-text">' . String::checkPlain('Plain "text"') . '</li>';
     $expected_links .= '<li class="front-page"><a href="' . url('<front>') . '">' . String::checkPlain('Front page') . '</a></li>';
     $expected_links .= '<li class="router-test"><a href="' . \Drupal::urlGenerator()->generate('router_test.1') . '">' . String::checkPlain('Test route') . '</a></li>';
+    $query = array('key' => 'value');
+    $expected_links .= '<li class="query-test"><a href="' . \Drupal::urlGenerator()->generate('router_test.1', $query) . '">' . String::checkPlain('Query test route') . '</a></li>';
     $expected_links .= '</ul>';
 
     // Verify that passing a string as heading works.
@@ -209,7 +234,11 @@ class FunctionsTest extends WebTestBase {
     \Drupal::request()->query->replace($original_query);
 
     // Verify that passing an array as heading works (core support).
-    $variables['heading'] = array('text' => 'Links heading', 'level' => 'h3', 'class' => 'heading');
+    $variables['heading'] = array(
+      'text' => 'Links heading',
+      'level' => 'h3',
+      'attributes' => array('class' => array('heading')),
+    );
     $expected_heading = '<h3 class="heading">Links heading</h3>';
     $expected = $expected_heading . $expected_links;
     $this->assertThemeOutput('links', $variables, $expected);
@@ -233,6 +262,8 @@ class FunctionsTest extends WebTestBase {
     $expected_links .= '<li class="plain-text"><span class="a/class">' . String::checkPlain('Plain "text"') . '</span></li>';
     $expected_links .= '<li class="front-page"><a href="' . url('<front>') . '">' . String::checkPlain('Front page') . '</a></li>';
     $expected_links .= '<li class="router-test"><a href="' . \Drupal::urlGenerator()->generate('router_test.1') . '">' . String::checkPlain('Test route') . '</a></li>';
+    $query = array('key' => 'value');
+    $expected_links .= '<li class="query-test"><a href="' . \Drupal::urlGenerator()->generate('router_test.1', $query) . '">' . String::checkPlain('Query test route') . '</a></li>';
     $expected_links .= '</ul>';
     $expected = $expected_heading . $expected_links;
     $this->assertThemeOutput('links', $variables, $expected);
@@ -246,6 +277,9 @@ class FunctionsTest extends WebTestBase {
     $expected_links .= '<li class="plain-text"><span class="a/class">' . String::checkPlain('Plain "text"') . '</span></li>';
     $expected_links .= '<li class="front-page" data-drupal-link-system-path="&lt;front&gt;"><a href="' . url('<front>') . '" data-drupal-link-system-path="&lt;front&gt;">' . String::checkPlain('Front page') . '</a></li>';
     $expected_links .= '<li class="router-test" data-drupal-link-system-path="router_test/test1"><a href="' . \Drupal::urlGenerator()->generate('router_test.1') . '" data-drupal-link-system-path="router_test/test1">' . String::checkPlain('Test route') . '</a></li>';
+    $query = array('key' => 'value');
+    $encoded_query = String::checkPlain(Json::encode($query));
+    $expected_links .= '<li class="query-test" data-drupal-link-query="'.$encoded_query.'" data-drupal-link-system-path="router_test/test1"><a href="' . \Drupal::urlGenerator()->generate('router_test.1', $query) . '" data-drupal-link-query="'.$encoded_query.'" data-drupal-link-system-path="router_test/test1">' . String::checkPlain('Query test route') . '</a></li>';
     $expected_links .= '</ul>';
     $expected = $expected_heading . $expected_links;
     $this->assertThemeOutput('links', $variables, $expected);

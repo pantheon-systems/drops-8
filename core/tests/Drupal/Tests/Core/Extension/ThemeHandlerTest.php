@@ -64,11 +64,25 @@ class ThemeHandlerTest extends UnitTestCase {
   protected $configInstaller;
 
   /**
+   * The mocked config manager.
+   *
+   * @var \Drupal\Core\Config\ConfigManagerInterface|\PHPUnit_Framework_MockObject_MockObject
+   */
+  protected $configManager;
+
+  /**
    * The extension discovery.
    *
    * @var \Drupal\Core\Extension\ExtensionDiscovery|\PHPUnit_Framework_MockObject_MockObject
    */
   protected $extensionDiscovery;
+
+  /**
+   * The CSS asset collection optimizer service.
+   *
+   * @var \Drupal\Core\Asset\AssetCollectionOptimizerInterface|\PHPUnit_Framework_MockObject_MockObject
+   */
+  protected $cssCollectionOptimizer;
 
   /**
    * The tested theme handler.
@@ -94,13 +108,18 @@ class ThemeHandlerTest extends UnitTestCase {
     $this->state = new State(new KeyValueMemoryFactory());
     $this->infoParser = $this->getMock('Drupal\Core\Extension\InfoParserInterface');
     $this->configInstaller = $this->getMock('Drupal\Core\Config\ConfigInstallerInterface');
+    $this->configManager = $this->getMock('Drupal\Core\Config\ConfigManagerInterface');
     $this->routeBuilder = $this->getMockBuilder('Drupal\Core\Routing\RouteBuilder')
       ->disableOriginalConstructor()
       ->getMock();
     $this->extensionDiscovery = $this->getMockBuilder('Drupal\Core\Extension\ExtensionDiscovery')
       ->disableOriginalConstructor()
       ->getMock();
-    $this->themeHandler = new TestThemeHandler($this->configFactory, $this->moduleHandler, $this->state, $this->infoParser, $this->configInstaller, $this->routeBuilder, $this->extensionDiscovery);
+    $this->cssCollectionOptimizer = $this->getMockBuilder('\Drupal\Core\Asset\CssCollectionOptimizer') //\Drupal\Core\Asset\AssetCollectionOptimizerInterface');
+      ->disableOriginalConstructor()
+      ->getMock();
+    $logger = $this->getMock('Psr\Log\LoggerInterface');
+    $this->themeHandler = new TestThemeHandler($this->configFactory, $this->moduleHandler, $this->state, $this->infoParser, $logger, $this->cssCollectionOptimizer, $this->configInstaller, $this->configManager, $this->routeBuilder, $this->extensionDiscovery);
 
     $cache_backend = $this->getMock('Drupal\Core\Cache\CacheBackendInterface');
     $this->getContainerWithCacheBins($cache_backend);
@@ -156,13 +175,36 @@ class ThemeHandlerTest extends UnitTestCase {
     // Ensure that the css paths are set with the proper prefix.
     $this->assertEquals(array(
       'screen' => array(
-        'css/seven.base.css' => DRUPAL_ROOT . '/core/themes/seven/css/seven.base.css',
-        'css/style.css' => DRUPAL_ROOT . '/core/themes/seven/css/style.css',
-        'css/layout.css' => DRUPAL_ROOT . '/core/themes/seven/css/layout.css',
+        'css/base/elements.css' => DRUPAL_ROOT . '/core/themes/seven/css/base/elements.css',
+        'css/components/admin-list.css' => DRUPAL_ROOT . '/core/themes/seven/css/components/admin-list.css',
+        'css/components/admin-options.css' => DRUPAL_ROOT . '/core/themes/seven/css/components/admin-options.css',
+        'css/components/admin-panel.css' => DRUPAL_ROOT . '/core/themes/seven/css/components/admin-panel.css',
+        'css/components/block-recent-content.css' => DRUPAL_ROOT . '/core/themes/seven/css/components/block-recent-content.css',
+        'css/components/branding.css' => DRUPAL_ROOT . '/core/themes/seven/css/components/branding.css',
+        'css/components/breadcrumb.css' => DRUPAL_ROOT . '/core/themes/seven/css/components/breadcrumb.css',
         'css/components/buttons.css' => DRUPAL_ROOT . '/core/themes/seven/css/components/buttons.css',
         'css/components/buttons.theme.css' => DRUPAL_ROOT . '/core/themes/seven/css/components/buttons.theme.css',
+        'css/components/comments.css' => DRUPAL_ROOT . '/core/themes/seven/css/components/comments.css',
+        'css/components/messages.css' => DRUPAL_ROOT . '/core/themes/seven/css/components/messages.css',
         'css/components/dropbutton.component.css' => DRUPAL_ROOT . '/core/themes/seven/css/components/dropbutton.component.css',
+        'css/components/entity-meta.css' => DRUPAL_ROOT . '/core/themes/seven/css/components/entity-meta.css',
+        'css/components/field-ui.css' => DRUPAL_ROOT . '/core/themes/seven/css/components/field-ui.css',
+        'css/components/form.css' => DRUPAL_ROOT . '/core/themes/seven/css/components/form.css',
+        'css/components/help.css' => DRUPAL_ROOT . '/core/themes/seven/css/components/help.css',
+        'css/components/menus-and-lists.css' => DRUPAL_ROOT . '/core/themes/seven/css/components/menus-and-lists.css',
+        'css/components/modules-page.css' => DRUPAL_ROOT . '/core/themes/seven/css/components/modules-page.css',
+        'css/components/node.css' => DRUPAL_ROOT . '/core/themes/seven/css/components/node.css',
+        'css/components/page-title.css' => DRUPAL_ROOT . '/core/themes/seven/css/components/page-title.css',
+        'css/components/pager.css' => DRUPAL_ROOT . '/core/themes/seven/css/components/pager.css',
+        'css/components/skip-link.css' => DRUPAL_ROOT . '/core/themes/seven/css/components/skip-link.css',
+        'css/components/tables.css' => DRUPAL_ROOT . '/core/themes/seven/css/components/tables.css',
+        'css/components/tabs.css' => DRUPAL_ROOT . '/core/themes/seven/css/components/tabs.css',
         'css/components/tour.theme.css' => DRUPAL_ROOT . '/core/themes/seven/css/components/tour.theme.css',
+        'css/components/update-status.css' => DRUPAL_ROOT . '/core/themes/seven/css/components/update-status.css',
+        'css/components/views-ui.css' => DRUPAL_ROOT . '/core/themes/seven/css/components/views-ui.css',
+        'css/layout/layout.css' => DRUPAL_ROOT . '/core/themes/seven/css/layout/layout.css',
+        'css/layout/node-add.css' => DRUPAL_ROOT . '/core/themes/seven/css/layout/node-add.css',
+        'css/theme/appearance-page.css' => DRUPAL_ROOT . '/core/themes/seven/css/theme/appearance-page.css',
       ),
     ), $info->info['stylesheets']);
     $this->assertEquals(DRUPAL_ROOT . '/core/themes/seven/screenshot.png', $info->info['screenshot']);
@@ -361,9 +403,6 @@ if (!defined('DRUPAL_EXTENSION_NAME_MAX_LENGTH')) {
 }
 if (!defined('DRUPAL_PHP_FUNCTION_PATTERN')) {
   define('DRUPAL_PHP_FUNCTION_PATTERN', '[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*');
-}
-if (!defined('DRUPAL_ROOT')) {
-  define('DRUPAL_ROOT', dirname(dirname(substr(__DIR__, 0, -strlen(__NAMESPACE__)))));
 }
 if (!defined('DRUPAL_MINIMUM_PHP')) {
   define('DRUPAL_MINIMUM_PHP', '5.3.10');

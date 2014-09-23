@@ -13,6 +13,7 @@ use Drupal\views_ui\ViewUI;
 use Drupal\views\Analyzer;
 use Drupal\Core\Ajax\AjaxResponse;
 use Drupal\Core\Ajax\ReplaceCommand;
+use Drupal\Component\Utility\Xss;
 
 /**
  * Implements hook_help().
@@ -51,14 +52,14 @@ function views_ui_entity_type_build(array &$entity_types) {
     ->setFormClass('delete', 'Drupal\views_ui\ViewDeleteForm')
     ->setFormClass('break_lock', 'Drupal\views_ui\Form\BreakLockForm')
     ->setListBuilderClass('Drupal\views_ui\ViewListBuilder')
-    ->setLinkTemplate('edit-form', 'views_ui.edit')
-    ->setLinkTemplate('edit-display-form', 'views_ui.edit_display')
-    ->setLinkTemplate('preview-form', 'views_ui.preview')
-    ->setLinkTemplate('duplicate', 'views_ui.duplicate')
-    ->setLinkTemplate('delete-form', 'views_ui.delete')
-    ->setLinkTemplate('enable', 'views_ui.enable')
-    ->setLinkTemplate('disable', 'views_ui.disable')
-    ->setLinkTemplate('break-lock', 'views_ui.break_lock');
+    ->setLinkTemplate('edit-form', 'entity.view.edit_form')
+    ->setLinkTemplate('edit-display-form', 'entity.view.edit_display_form')
+    ->setLinkTemplate('preview-form', 'entity.view.preview_form')
+    ->setLinkTemplate('duplicate-form', 'entity.view.duplicate_form')
+    ->setLinkTemplate('delete-form', 'entity.view.delete_form')
+    ->setLinkTemplate('enable', 'entity.view.enable')
+    ->setLinkTemplate('disable', 'entity.view.disable')
+    ->setLinkTemplate('break-lock-form', 'entity.view.break_lock_form');
 }
 
 /**
@@ -80,10 +81,12 @@ function views_ui_theme() {
     'views_ui_rearrange_filter_form' => array(
       'render element' => 'form',
       'file' => 'views_ui.theme.inc',
+      'template' => 'views-ui-rearrange-filter-form',
     ),
     'views_ui_expose_filter_form' => array(
       'render element' => 'form',
       'file' => 'views_ui.theme.inc',
+      'template' => 'views-ui-expose-filter-form',
     ),
 
     // list views
@@ -124,23 +127,16 @@ function views_ui_theme() {
 }
 
 /**
- * Implements hook_permission().
- */
-function views_ui_permission() {
-  return array(
-    'administer views' => array(
-      'title' => t('Administer views'),
-      'description' => t('Access the views administration pages.'),
-      'restrict access' => TRUE,
-    ),
-  );
-}
-
-/**
  * Implements hook_preprocess_HOOK() for views templates.
  */
 function views_ui_preprocess_views_view(&$variables) {
   $view = $variables['view'];
+
+  // Render title for the admin preview.
+  if (!empty($view->live_preview)) {
+    $variables['title'] = Xss::filterAdmin($view->getTitle());
+  }
+
   if (!empty($view->live_preview) && \Drupal::moduleHandler()->moduleExists('contextual')) {
     $view->setShowAdminLinks(FALSE);
     foreach (array('title', 'header', 'exposed', 'rows', 'pager', 'more', 'footer', 'empty', 'attachment_after', 'attachment_before') as $section) {
@@ -235,8 +231,8 @@ function views_ui_views_plugins_display_alter(&$plugins) {
   // paths underneath "admin/structure/views/view/{$view->id()}" (i.e., paths
   // for editing and performing other contextual actions on the view).
   foreach ($plugins as &$display) {
-    $display['contextual links']['views_ui_edit'] = array(
-      'route_name' => 'views_ui.edit',
+    $display['contextual links']['entity.view.edit_form'] = array(
+      'route_name' => 'entity.view.edit_form',
       'route_parameters_names' => array('view' => 'id'),
     );
   }
@@ -254,10 +250,10 @@ function views_ui_contextual_links_view_alter(&$element, $items) {
   // Append the display ID to the Views UI edit links, so that clicking on the
   // contextual link takes you directly to the correct display tab on the edit
   // screen.
-  elseif (!empty($element['#links']['views-uiedit'])) {
-    $display_id = $items['views_ui.edit']['metadata']['display_id'];
-    $element['#links']['views-uiedit']['route_parameters']['display_id'] = $display_id;
-    $element['#links']['views-uiedit']['route_name'] = 'views_ui.edit_display';
+  elseif (!empty($element['#links']['entityviewedit-form'])) {
+    $display_id = $items['entity.view.edit_form']['metadata']['display_id'];
+    $element['#links']['entityviewedit-form']['route_parameters']['display_id'] = $display_id;
+    $element['#links']['entityviewedit-form']['route_name'] = 'entity.view.edit_display_form';
   }
 }
 

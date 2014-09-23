@@ -61,7 +61,7 @@ class AccountProxy implements AccountProxyInterface {
    * {@inheritdoc}
    */
   public function setAccount(AccountInterface $account) {
-    // If the passed account is already proxyed, use the actual account instead
+    // If the passed account is already proxied, use the actual account instead
     // to prevent loops.
     if ($account instanceof static) {
       $account = $account->getAccount();
@@ -147,15 +147,15 @@ class AccountProxy implements AccountProxyInterface {
   /**
    * {@inheritdoc}
    */
-  public function getPreferredLangcode($default = NULL) {
-    return $this->getAccount()->getPreferredLangcode($default);
+  public function getPreferredLangcode($fallback_to_default = TRUE) {
+    return $this->getAccount()->getPreferredLangcode($fallback_to_default);
   }
 
   /**
    * {@inheritdoc}
    */
-  public function getPreferredAdminLangcode($default = NULL) {
-    return $this->getAccount()->getPreferredAdminLangcode($default);
+  public function getPreferredAdminLangcode($fallback_to_default = TRUE) {
+    return $this->getAccount()->getPreferredAdminLangcode($fallback_to_default);
   }
 
   /**

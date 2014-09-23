@@ -7,7 +7,7 @@
 
 namespace Drupal\field\Tests;
 
-use Drupal\Core\Entity\ContentEntityDatabaseStorage;
+use Drupal\Core\Entity\Sql\SqlContentEntityStorage;
 
 /**
  * Tests counting field data records and the hasData() method on
@@ -27,7 +27,7 @@ class FieldDataCountTest extends FieldUnitTestBase {
   /**
    * {@inheritdoc}
    */
-  public function setUp() {
+  protected function setUp() {
     parent::setUp();
     $this->storage = \Drupal::entityManager()->getStorage('entity_test');
   }
@@ -74,9 +74,10 @@ class FieldDataCountTest extends FieldUnitTestBase {
     }
 
     $storage = \Drupal::entityManager()->getStorage('entity_test');
-    if ($storage instanceof ContentEntityDatabaseStorage) {
+    if ($storage instanceof SqlContentEntityStorage) {
       // Count the actual number of rows in the field table.
-      $field_table_name = $storage->_fieldTableName($field_storage);
+      $table_mapping = $storage->getTableMapping();
+      $field_table_name = $table_mapping->getDedicatedDataTableName($field_storage);
       $result = db_select($field_table_name, 't')
         ->fields('t')
         ->countQuery()

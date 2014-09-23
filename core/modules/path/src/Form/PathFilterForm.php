@@ -50,7 +50,7 @@ class PathFilterForm extends FormBase {
       $form['basic']['reset'] = array(
         '#type' => 'submit',
         '#value' => $this->t('Reset'),
-        '#submit' => array(array($this, 'resetForm')),
+        '#submit' => array('::resetForm'),
       );
     }
     return $form;
@@ -61,7 +61,7 @@ class PathFilterForm extends FormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $form_state->setRedirect('path.admin_overview_filter', array(
-      'keys' => trim($form_state['values']['filter']),
+      'keys' => trim($form_state->getValue('filter')),
     ));
   }
 

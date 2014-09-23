@@ -56,7 +56,7 @@ class BlockContentTypeForm extends EntityForm {
       '#description' => t('Create a new revision by default for this block type.')
     );
 
-    if ($this->moduleHandler->moduleExists('content_translation')) {
+    if ($this->moduleHandler->moduleExists('language')) {
       $form['language'] = array(
         '#type' => 'details',
         '#title' => t('Language settings'),
@@ -86,7 +86,7 @@ class BlockContentTypeForm extends EntityForm {
   }
 
   /**
-   * Overrides \Drupal\Core\Entity\EntityForm::save().
+   * {@inheritdoc}
    */
   public function save(array $form, FormStateInterface $form_state) {
     $block_type = $this->entity;

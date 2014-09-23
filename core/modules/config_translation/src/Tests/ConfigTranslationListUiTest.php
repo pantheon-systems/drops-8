@@ -8,7 +8,7 @@
 namespace Drupal\config_translation\Tests;
 
 use Drupal\Component\Utility\Unicode;
-use Drupal\Core\Language\Language;
+use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\simpletest\WebTestBase;
 
 /**
@@ -47,7 +47,7 @@ class ConfigTranslationListUiTest extends WebTestBase {
    */
   protected $adminUser;
 
-  public function setUp() {
+  protected function setUp() {
     parent::setUp();
 
     $permissions = array(
@@ -208,7 +208,7 @@ class ConfigTranslationListUiTest extends WebTestBase {
   public function doContactFormsListTest() {
     // Create a test contact form to decouple looking for translate operations
     // link so this does not test more than necessary.
-    $contact_form = entity_create('contact_category', array(
+    $contact_form = entity_create('contact_form', array(
       'id' => Unicode::strtolower($this->randomMachineName(16)),
       'label' => $this->randomMachineName(),
     ));
@@ -325,8 +325,7 @@ class ConfigTranslationListUiTest extends WebTestBase {
   public function doLanguageListTest() {
     // Create a test language to decouple looking for translate operations
     // link so this does not test more than necessary.
-    $language = new Language(array('id' => 'ga', 'name' => 'Irish'));
-    language_save($language);
+    ConfigurableLanguage::createFromLangcode('ga')->save();
 
     // Get the language listing.
     $this->drupalGet('admin/config/regional/language');

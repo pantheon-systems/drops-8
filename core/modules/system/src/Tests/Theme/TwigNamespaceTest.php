@@ -28,9 +28,9 @@ class TwigNamespaceTest extends WebTestBase {
    */
   protected $twig;
 
-  function setUp() {
+  protected function setUp() {
     parent::setUp();
-    theme_enable(array('test_theme', 'bartik'));
+    \Drupal::service('theme_handler')->install(array('test_theme', 'bartik'));
     $this->twig = \Drupal::service('twig');
   }
 

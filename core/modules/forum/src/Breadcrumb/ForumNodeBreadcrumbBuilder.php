@@ -7,6 +7,7 @@
 
 namespace Drupal\forum\Breadcrumb;
 
+use Drupal\Core\Link;
 use Drupal\Core\Routing\RouteMatchInterface;
 
 /**
@@ -18,7 +19,7 @@ class ForumNodeBreadcrumbBuilder extends ForumBreadcrumbBuilderBase {
    * {@inheritdoc}
    */
   public function applies(RouteMatchInterface $route_match) {
-    return $route_match->getRouteName() == 'node.view'
+    return $route_match->getRouteName() == 'entity.node.canonical'
       && $route_match->getParameter('node')
       && $this->forumManager->checkNodeType($route_match->getParameter('node'));
   }
@@ -33,7 +34,7 @@ class ForumNodeBreadcrumbBuilder extends ForumBreadcrumbBuilderBase {
     if ($parents) {
       $parents = array_reverse($parents);
       foreach ($parents as $parent) {
-        $breadcrumb[] = $this->l($parent->label(), 'forum.page',
+        $breadcrumb[] = Link::createFromRoute($parent->label(), 'forum.page',
           array(
             'taxonomy_term' => $parent->id(),
           )

@@ -64,12 +64,12 @@ interface MenuLinkInterface extends PluginInspectionInterface, DerivativeInspect
   public function getParent();
 
   /**
-   * Returns whether the menu link is hidden.
+   * Returns whether the menu link is enabled (not hidden).
    *
    * @return bool
-   *   TRUE for hidden, FALSE otherwise.
+   *   TRUE for enabled, FALSE otherwise.
    */
-  public function isHidden();
+  public function isEnabled();
 
   /**
    * Returns whether the child menu links should always been shown.
@@ -105,6 +105,20 @@ interface MenuLinkInterface extends PluginInspectionInterface, DerivativeInspect
    *   TRUE if the link can be deleted, FALSE otherwise.
    */
   public function isDeletable();
+
+  /**
+   * Returns the route name, if available.
+   *
+   * @return string
+   */
+  public function getRouteName();
+
+  /**
+   * Returns the route parameters, if available.
+   *
+   * @return array
+   */
+  public function getRouteParameters();
 
   /**
    * Returns a URL object containing either the external path or route.

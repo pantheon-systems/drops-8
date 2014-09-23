@@ -126,6 +126,24 @@ abstract class FieldUnitTestBase extends DrupalUnitTestBase {
   }
 
   /**
+   * Validate and save entity. Fail if violations are found.
+   *
+   * @param \Drupal\Core\Entity\EntityInterface $entity
+   *   The entity to save.
+   *
+   * @return void
+   */
+  protected function entityValidateAndSave(EntityInterface $entity) {
+    $violations = $entity->validate();
+    if ($violations->count()) {
+      $this->fail($violations);
+    }
+    else {
+      $entity->save();
+    }
+  }
+
+  /**
    * Generate random values for a field_test field.
    *
    * @param $cardinality
@@ -161,7 +179,7 @@ abstract class FieldUnitTestBase extends DrupalUnitTestBase {
    */
   protected function assertFieldValues(EntityInterface $entity, $field_name, $expected_values, $langcode = LanguageInterface::LANGCODE_NOT_SPECIFIED, $column = 'value') {
     // Re-load the entity to make sure we have the latest changes.
-    entity_get_controller($entity->getEntityTypeId())->resetCache(array($entity->id()));
+    \Drupal::entityManager()->getStorage($entity->getEntityTypeId())->resetCache(array($entity->id()));
     $e = entity_load($entity->getEntityTypeId(), $entity->id());
     $field = $values = $e->getTranslation($langcode)->$field_name;
     // Filter out empty values so that they don't mess with the assertions.

@@ -66,6 +66,8 @@ class AttributeArray extends AttributeValueBase implements \ArrayAccess, \Iterat
    * Implements the magic __toString() method.
    */
   public function __toString() {
+    // Filter out any empty values before printing.
+    $this->value = array_filter($this->value);
     return String::checkPlain(implode(' ', $this->value));
   }
 
@@ -81,6 +83,23 @@ class AttributeArray extends AttributeValueBase implements \ArrayAccess, \Iterat
    */
   public function value() {
     return $this->value;
+  }
+
+  /**
+   * Exchange the array for another one.
+   *
+   * @see ArrayObject::exchangeArray
+   *
+   * @param array $input
+   *   The array input to replace the internal value.
+   *
+   * @return array
+   *   The old array value.
+   */
+  public function exchangeArray($input) {
+    $old = $this->value;
+    $this->value = $input;
+    return $old;
   }
 
 }

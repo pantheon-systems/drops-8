@@ -9,7 +9,7 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Routing\RouteMatchInterface;
-use Drupal\entity\EntityViewModeInterface;
+use Drupal\Core\Entity\EntityViewModeInterface;
 use Drupal\field_ui\FieldUI;
 use Drupal\field_ui\Plugin\Derivative\FieldUiLocalTask;
 
@@ -48,37 +48,15 @@ function field_ui_help($route_name, RouteMatchInterface $route_match) {
       $output .= '<dt>' . t('Fields on comments') . '</dt>';
       $output .= '<dd>' . t('Fields on comments are defined at the content-type level, on the <em>Comment fields</em> tab of the content type edit page (which you can reach from the <a href="@types">Content types page</a>). When you add a field for comments, each comment on a content item of that type will have that field added to it. For example, you could add a website field to the comments on forum posts, to allow forum commenters to add a link to their website.', array('@types' => url('admin/structure/types'))) . '</dd>';
       $output .= '</dl>';
+      $output .= '<dt>' . t('Managing view modes') . '</dt>';
+      $output .= '<dd>' . t('Each content entity can have various "modes" for viewing. For instance, a content item could be viewed in full content mode on its own page, teaser mode in a list, or RSS mode in a feed. You can create, edit the names of, and delete view modes on the <a href="!view-modes">View modes page</a>. Once a view mode has been set up, you can choose and format fields for the view mode within each entity sub-type on the Manage display page. See the <a href="!field_ui">Field UI module help page</a> for more information.', array('!view-modes' => \Drupal::url('field_ui.entity_view_mode_list'), '!field_ui' => \Drupal::url('help.page', array('name' => 'field_ui')))) . '</dd>';
+      $output .= '<dt>' . t('Managing form modes') . '</dt>';
+      $output .= '<dd>' . t('Each content entity can have various editing forms appropriate for different situations, which are known as "form modes". For instance, you might want to define a quick editing mode that allows users to edit the most important fields, and a full editing mode that gives access to all the fields. You can create, edit the names of, and delete form modes on the <a href="!form-modes">Manage custom form modes page</a>. Once a form mode has been set up, you can choose which fields are available on that form within each entity sub-type on the Manage form display page. See the <a href="!field_ui">Field UI module help page</a> for more information.', array('!form-modes' => \Drupal::url('field_ui.entity_form_mode_list'), '!field_ui' => \Drupal::url('help.page', array('name' => 'field_ui')))) . '</dd>';
       return $output;
 
     case 'field_ui.list':
       return '<p>' . t('This list shows all fields currently in use for easy reference.') . '</p>';
   }
-}
-
-/**
- * Implements hook_permission().
- */
-function field_ui_permission() {
-  $permissions = array();
-
-  foreach (\Drupal::entityManager()->getDefinitions() as $entity_type_id => $entity_type) {
-    if ($entity_type->isFieldable()) {
-      // Create a permission for each fieldable entity to manage
-      // the fields and the display.
-      $permissions['administer ' . $entity_type_id . ' fields'] = array(
-        'title' => t('%entity_label: Administer fields', array('%entity_label' => $entity_type->getLabel())),
-        'restrict access' => TRUE,
-      );
-      $permissions['administer ' . $entity_type_id . ' form display'] = array(
-        'title' => t('%entity_label: Administer form display', array('%entity_label' => $entity_type->getLabel()))
-      );
-      $permissions['administer ' . $entity_type_id . ' display'] = array(
-        'title' => t('%entity_label: Administer display', array('%entity_label' => $entity_type->getLabel()))
-      );
-    }
-  }
-
-  return $permissions;
 }
 
 /**
@@ -151,7 +129,7 @@ function field_ui_entity_bundle_rename($entity_type, $bundle_old, $bundle_new) {
  */
 function field_ui_form_node_type_form_alter(&$form, FormStateInterface $form_state) {
   // We want to display the button only on add page.
-  if ($form_state['controller']->getEntity()->isNew()) {
+  if ($form_state->getFormObject()->getEntity()->isNew()) {
     $form['actions']['save_continue'] = $form['actions']['submit'];
     $form['actions']['save_continue']['#value'] = t('Save and manage fields');
     $form['actions']['save_continue']['#weight'] = $form['actions']['save_continue']['#weight'] + 5;
@@ -200,7 +178,7 @@ function field_ui_entity_operation(EntityInterface $entity) {
  * @see field_ui_form_node_type_form_alter()
  */
 function field_ui_form_node_type_form_submit($form, FormStateInterface $form_state) {
-  if ($form_state['triggering_element']['#parents'][0] === 'save_continue' && $route_info = FieldUI::getOverviewRouteInfo('node', $form_state['values']['type'])) {
+  if ($form_state->getTriggeringElement()['#parents'][0] === 'save_continue' && $route_info = FieldUI::getOverviewRouteInfo('node', $form_state->getValue('type'))) {
     $form_state->setRedirectUrl($route_info);
   }
 }
@@ -307,4 +285,28 @@ function field_ui_local_tasks_alter(&$local_tasks) {
   $container = \Drupal::getContainer();
   $local_task = FieldUiLocalTask::create($container, 'field_ui.fields');
   $local_task->alterLocalTasks($local_tasks);
+}
+
+/**
+ * Implements hook_entity_type_alter().
+ */
+function field_ui_entity_type_alter(array &$entity_types) {
+  /** @var $entity_types \Drupal\Core\Entity\EntityTypeInterface[] */
+  $form_mode = $entity_types['entity_form_mode'];
+  $form_mode->setListBuilderClass('Drupal\field_ui\EntityFormModeListBuilder');
+  $form_mode->setFormClass('add', 'Drupal\field_ui\Form\EntityFormModeAddForm');
+  $form_mode->setFormClass('edit', 'Drupal\field_ui\Form\EntityDisplayModeEditForm');
+  $form_mode->setFormClass('delete', 'Drupal\field_ui\Form\EntityDisplayModeDeleteForm');
+  $form_mode->set('admin_permission', 'administer display modes');
+  $form_mode->setLinkTemplate('delete-form', 'field_ui.entity_form_mode.delete_form');
+  $form_mode->setLinkTemplate('edit-form', 'field_ui.entity_form_mode.edit_form');
+
+  $view_mode = $entity_types['entity_view_mode'];
+  $view_mode->setListBuilderClass('Drupal\field_ui\EntityDisplayModeListBuilder');
+  $view_mode->setFormClass('add', 'Drupal\field_ui\Form\EntityDisplayModeAddForm');
+  $view_mode->setFormClass('edit', 'Drupal\field_ui\Form\EntityDisplayModeEditForm');
+  $view_mode->setFormClass('delete', 'Drupal\field_ui\Form\EntityDisplayModeDeleteForm');
+  $view_mode->set('admin_permission', 'administer display modes');
+  $view_mode->setLinkTemplate('delete-form', 'field_ui.entity_view_mode.delete_form');
+  $view_mode->setLinkTemplate('edit-form', 'field_ui.entity_view_mode.edit_form');
 }

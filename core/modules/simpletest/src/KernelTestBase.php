@@ -11,10 +11,11 @@ use Drupal\Component\Utility\String;
 use Drupal\Core\Database\Database;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\DrupalKernel;
+use Drupal\Core\Entity\Sql\SqlEntityStorageInterface;
 use Drupal\Core\KeyValueStore\KeyValueMemoryFactory;
 use Drupal\Core\Language\Language;
 use Drupal\Core\Site\Settings;
-use Drupal\Core\Entity\Schema\EntitySchemaProviderInterface;
+use Symfony\Component\DependencyInjection\Parameter;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -34,7 +35,7 @@ use Symfony\Component\HttpFoundation\Request;
  *
  * @ingroup testing
  */
-abstract class KernelTestBase extends UnitTestBase {
+abstract class KernelTestBase extends TestBase {
 
   use AssertContentTrait;
 
@@ -46,8 +47,8 @@ abstract class KernelTestBase extends UnitTestBase {
    * this property. The values of all properties in all classes in the hierarchy
    * are merged.
    *
-   * Unlike UnitTestBase::setUp(), any modules specified in the $modules
-   * property are automatically loaded and set as the fixed module list.
+   * Any modules specified in the $modules property are automatically loaded and
+   * set as the fixed module list.
    *
    * Unlike WebTestBase::setUp(), the specified modules are loaded only, but not
    * automatically installed. Modules need to be installed manually, if needed.
@@ -142,8 +143,6 @@ abstract class KernelTestBase extends UnitTestBase {
       copy($settings_services_file, DRUPAL_ROOT . '/' . $this->siteDirectory . '/services.yml');
     }
 
-    parent::setUp();
-
     // Create and set new configuration directories.
     $this->prepareConfigDirectories();
 
@@ -154,7 +153,8 @@ abstract class KernelTestBase extends UnitTestBase {
     // Back up settings from TestBase::prepareEnvironment().
     $settings = Settings::getAll();
     // Bootstrap a new kernel. Don't use createFromRequest so we don't mess with settings.
-    $this->kernel = new DrupalKernel('testing', drupal_classloader(), FALSE);
+    $class_loader = require DRUPAL_ROOT . '/core/vendor/autoload.php';
+    $this->kernel = new DrupalKernel('testing', $class_loader, FALSE);
     $request = Request::create('/');
     $this->kernel->setSitePath(DrupalKernel::findSitePath($request));
     $this->kernel->boot();
@@ -168,8 +168,12 @@ abstract class KernelTestBase extends UnitTestBase {
     $this->container = $this->kernel->getContainer();
     $this->container->get('request_stack')->push($request);
 
-    $this->container->get('state')->set('system.module.files', $this->moduleFiles);
-    $this->container->get('state')->set('system.theme.files', $this->themeFiles);
+    // Re-inject extension file listings into state, unless the key/value
+    // service was overridden (in which case its storage does not exist yet).
+    if ($this->container->get('keyvalue') instanceof KeyValueMemoryFactory) {
+      $this->container->get('state')->set('system.module.files', $this->moduleFiles);
+      $this->container->get('state')->set('system.theme.files', $this->themeFiles);
+    }
 
     // Create a minimal core.extension configuration object so that the list of
     // enabled modules can be maintained allowing
@@ -206,9 +210,9 @@ abstract class KernelTestBase extends UnitTestBase {
     // StreamWrapper APIs.
     // @todo Move StreamWrapper management into DrupalKernel.
     // @see https://drupal.org/node/2028109
+    file_prepare_directory($this->public_files_directory, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS);
+    $this->settingsSet('file_public_path', $this->public_files_directory);
     $this->streamWrappers = array();
-    // The public stream wrapper only depends on the file_public_path setting,
-    // which is provided by UnitTestBase::setUp().
     $this->registerStreamWrapper('public', 'Drupal\Core\StreamWrapper\PublicStream');
     // The temporary stream wrapper is able to operate both with and without
     // configuration.
@@ -256,11 +260,13 @@ abstract class KernelTestBase extends UnitTestBase {
     $container->register('cache_factory', 'Drupal\Core\Cache\MemoryBackendFactory');
 
     $container
-      ->register('config.storage.active', 'Drupal\Core\Config\DatabaseStorage')
+      ->register('config.storage', 'Drupal\Core\Config\DatabaseStorage')
       ->addArgument(Database::getConnection())
       ->addArgument('config');
 
-    $this->settingsSet('keyvalue_default', 'keyvalue.memory');
+    $keyvalue_options = $container->getParameter('factory.keyvalue') ?: array();
+    $keyvalue_options['default'] = 'keyvalue.memory';
+    $container->setParameter('factory.keyvalue', $keyvalue_options);
     $container->set('keyvalue.memory', $this->keyValueFactory);
     if (!$container->has('keyvalue')) {
       // TestBase::setUp puts a completely empty container in
@@ -280,7 +286,7 @@ abstract class KernelTestBase extends UnitTestBase {
       $container
         ->register('keyvalue', 'Drupal\Core\KeyValueStore\KeyValueFactory')
         ->addArgument(new Reference('service_container'))
-        ->addArgument(new Reference('settings'));
+        ->addArgument(new Parameter('factory.keyvalue'));
 
       $container->register('state', 'Drupal\Core\State\State')
         ->addArgument(new Reference('keyvalue'));
@@ -373,36 +379,39 @@ abstract class KernelTestBase extends UnitTestBase {
 
 
   /**
-   * Installs the tables for a specific entity type.
+   * Installs the storage schema for a specific entity type.
    *
    * @param string $entity_type_id
    *   The ID of the entity type.
-   *
-   * @throws \RuntimeException
-   *   Thrown when the entity type does not support automatic schema installation.
    */
   protected function installEntitySchema($entity_type_id) {
     /** @var \Drupal\Core\Entity\EntityManagerInterface $entity_manager */
     $entity_manager = $this->container->get('entity.manager');
-    /** @var \Drupal\Core\Database\Schema $schema_handler */
-    $schema_handler = $this->container->get('database')->schema();
+    $entity_type = $entity_manager->getDefinition($entity_type_id);
+    $entity_manager->onEntityTypeCreate($entity_type);
 
+    // For test runs, the most common storage backend is a SQL database. For
+    // this case, ensure the tables got created.
     $storage = $entity_manager->getStorage($entity_type_id);
-    if ($storage instanceof EntitySchemaProviderInterface) {
-      $schema = $storage->getSchema();
-      foreach ($schema as $table_name => $table_schema) {
-        $schema_handler->createTable($table_name, $table_schema);
+    if ($storage instanceof SqlEntityStorageInterface) {
+      $tables = $storage->getTableMapping()->getTableNames();
+      $db_schema = $this->container->get('database')->schema();
+      $all_tables_exist = TRUE;
+      foreach ($tables as $table) {
+        if (!$db_schema->tableExists($table)) {
+          $this->fail(String::format('Installed entity type table for the %entity_type entity type: %table', array(
+            '%entity_type' => $entity_type_id,
+            '%table' => $table,
+          )));
+          $all_tables_exist = FALSE;
+        }
       }
-
-      $this->pass(String::format('Installed entity type tables for the %entity_type entity type: %tables', array(
-        '%entity_type' => $entity_type_id,
-        '%tables' => '{' . implode('}, {', array_keys($schema)) . '}',
-      )));
-    }
-    else {
-      throw new \RuntimeException(String::format('Entity type %entity_type does not support automatic schema installation.', array(
-        '%entity-type' => $entity_type_id,
-      )));
+      if ($all_tables_exist) {
+        $this->pass(String::format('Installed entity type tables for the %entity_type entity type: %tables', array(
+          '%entity_type' => $entity_type_id,
+          '%tables' => '{' . implode('}, {', $tables) . '}',
+        )));
+      }
     }
   }
 
@@ -544,8 +553,9 @@ abstract class KernelTestBase extends UnitTestBase {
    * @return string
    *   The rendered string output (typically HTML).
    */
-  protected function render(array $elements) {
+  protected function render(array &$elements) {
     $content = drupal_render($elements);
+    drupal_process_attached($elements);
     $this->setRawContent($content);
     $this->verbose('<pre style="white-space: pre-wrap">' . String::checkPlain($content));
     return $content;

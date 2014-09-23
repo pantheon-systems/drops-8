@@ -8,7 +8,6 @@
 namespace Drupal\shortcut\Form;
 
 use Drupal\Component\Utility\String;
-use Drupal\Core\Access\AccessInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
@@ -171,14 +170,14 @@ class SwitchShortcutSet extends FormBase {
    * {@inheritdoc}
    */
   public function validateForm(array &$form, FormStateInterface $form_state) {
-    if ($form_state['values']['set'] == 'new') {
+    if ($form_state->getValue('set') == 'new') {
       // Check to prevent creating a shortcut set with an empty title.
-      if (trim($form_state['values']['label']) == '') {
+      if (trim($form_state->getValue('label')) == '') {
         $form_state->setErrorByName('new', $this->t('The new set label is required.'));
       }
       // Check to prevent a duplicate title.
-      if (shortcut_set_title_exists($form_state['values']['label'])) {
-        $form_state->setErrorByName('label', $this->t('The shortcut set %name already exists. Choose another name.', array('%name' => $form_state['values']['label'])));
+      if (shortcut_set_title_exists($form_state->getValue('label'))) {
+        $form_state->setErrorByName('label', $this->t('The shortcut set %name already exists. Choose another name.', array('%name' => $form_state->getValue('label'))));
       }
     }
   }
@@ -190,12 +189,12 @@ class SwitchShortcutSet extends FormBase {
     $account = $this->currentUser();
 
     $account_is_user = $this->user->id() == $account->id();
-    if ($form_state['values']['set'] == 'new') {
+    if ($form_state->getValue('set') == 'new') {
       // Save a new shortcut set with links copied from the user's default set.
       /* @var \Drupal\shortcut\Entity\ShortcutSet $set */
       $set = $this->shortcutSetStorage->create(array(
-        'id' => $form_state['values']['id'],
-        'label' => $form_state['values']['label'],
+        'id' => $form_state->getValue('id'),
+        'label' => $form_state->getValue('label'),
       ));
       $set->save();
       $replacements = array(
@@ -219,7 +218,7 @@ class SwitchShortcutSet extends FormBase {
     else {
       // Switch to a different shortcut set.
       /* @var \Drupal\shortcut\Entity\ShortcutSet $set */
-      $set = $this->shortcutSetStorage->load($form_state['values']['set']);
+      $set = $this->shortcutSetStorage->load($form_state->getValue('set'));
       $replacements = array(
         '%user' => $this->user->label(),
         '%set_name' => $set->label(),
@@ -237,34 +236,11 @@ class SwitchShortcutSet extends FormBase {
    * @param \Drupal\user\UserInterface $user
    *   (optional) The owner of the shortcut set.
    *
-   * @return mixed
-   *   AccessInterface::ALLOW, AccessInterface::DENY, or AccessInterface::KILL.
+   * @return \Drupal\Core\Access\AccessResultInterface
+   *   The access result.
    */
   public function checkAccess(UserInterface $user = NULL) {
-    $account = $this->currentUser();
-    $this->user = $user;
-
-    if ($account->hasPermission('administer shortcuts')) {
-      // Administrators can switch anyone's shortcut set.
-      return AccessInterface::ALLOW;
-    }
-
-    if (!$account->hasPermission('access shortcuts')) {
-      // The user has no permission to use shortcuts.
-      return AccessInterface::DENY;
-    }
-
-    if (!$account->hasPermission('switch shortcut sets')) {
-      // The user has no permission to switch anyone's shortcut set.
-      return AccessInterface::DENY;
-    }
-
-    if ($this->user->id() == $account->id()) {
-      // Users with the 'switch shortcut sets' permission can switch their own
-      // shortcuts sets.
-      return AccessInterface::ALLOW;
-    }
-    return AccessInterface::DENY;
+    return shortcut_set_switch_access($user);
   }
 
 }

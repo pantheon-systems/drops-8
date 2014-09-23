@@ -118,14 +118,11 @@ class Tasks extends InstallTasks {
         $this->pass(t('Database is encoded in UTF-8'));
       }
       else {
-        $replacements = array(
+        $this->fail(t('The %driver database must use %encoding encoding to work with Drupal. Recreate the database with %encoding encoding. See !link for more details.', array(
           '%encoding' => 'UTF8',
           '%driver' => $this->name(),
           '!link' => '<a href="INSTALL.pgsql.txt">INSTALL.pgsql.txt</a>'
-        );
-        $text  = 'The %driver database must use %encoding encoding to work with Drupal.';
-        $text .= 'Recreate the database with %encoding encoding. See !link for more details.';
-        $this->fail(t($text, $replacements));
+        )));
       }
     }
     catch (\Exception $e) {
@@ -219,7 +216,7 @@ class Tasks extends InstallTasks {
         LANGUAGE \'sql\''
       );
 
-      // Using || to concatenate in Drupal is not recommeneded because there are
+      // Using || to concatenate in Drupal is not recommended because there are
       // database drivers for Drupal that do not support the syntax, however
       // they do support CONCAT(item1, item2) which we can replicate in
       // PostgreSQL. PostgreSQL requires the function to be defined for each

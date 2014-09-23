@@ -46,12 +46,13 @@ class LinkFieldTest extends WebTestBase {
    */
   protected $web_user;
 
-  function setUp() {
+  protected function setUp() {
     parent::setUp();
 
     $this->web_user = $this->drupalCreateUser(array(
       'view test entity',
       'administer entity_test content',
+      'link to any page',
     ));
     $this->drupalLogin($this->web_user);
   }
@@ -554,7 +555,7 @@ class LinkFieldTest extends WebTestBase {
    * @param string $view_mode
    *   (optional) The view mode to use for rendering.
    * @param bool $reset
-   *   (optional) Whether to reset the test_entity controller cache. Defaults to
+   *   (optional) Whether to reset the entity_test storage cache. Defaults to
    *   TRUE to simplify testing.
    */
   protected function renderTestEntity($id, $view_mode = 'full', $reset = TRUE) {

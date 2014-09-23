@@ -104,7 +104,7 @@ class UpdateManagerInstall extends FormBase {
    */
   public function validateForm(array &$form, FormStateInterface $form_state) {
     $uploaded_file = $this->getRequest()->files->get('files[project_upload]', NULL, TRUE);
-    if (!($form_state['values']['project_url'] XOR !empty($uploaded_file))) {
+    if (!($form_state->getValue('project_url') XOR !empty($uploaded_file))) {
       $form_state->setErrorByName('project_url', $this->t('You must either provide a URL or upload an archive file to install.'));
     }
   }
@@ -114,10 +114,10 @@ class UpdateManagerInstall extends FormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $local_cache = NULL;
-    if ($form_state['values']['project_url']) {
-      $local_cache = update_manager_file_get($form_state['values']['project_url']);
+    if ($form_state->getValue('project_url')) {
+      $local_cache = update_manager_file_get($form_state->getValue('project_url'));
       if (!$local_cache) {
-        drupal_set_message($this->t('Unable to retrieve Drupal project from %url.', array('%url' => $form_state['values']['project_url'])), 'error');
+        drupal_set_message($this->t('Unable to retrieve Drupal project from %url.', array('%url' => $form_state->getValue('project_url'))), 'error');
         return;
       }
     }
@@ -216,7 +216,7 @@ class UpdateManagerInstall extends FormBase {
     // whatever FileTransfer object authorize.php creates for us.
     else {
       system_authorized_init('update_authorize_run_install', drupal_get_path('module', 'update') . '/update.authorize.inc', $arguments, $this->t('Update manager'));
-      $form_state['redirect'] = system_authorized_get_url();
+      $form_state->setRedirectUrl(system_authorized_get_url());
     }
   }
 

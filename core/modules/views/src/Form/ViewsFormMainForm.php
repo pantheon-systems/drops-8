@@ -22,7 +22,7 @@ class ViewsFormMainForm implements FormInterface {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, FormStateInterface $form_state, ViewExecutable $view = NULL, $output = NULL) {
+  public function buildForm(array $form, FormStateInterface $form_state, ViewExecutable $view = NULL, $output = []) {
     $form['#prefix'] = '<div class="views-form">';
     $form['#suffix'] = '</div>';
     $form['#theme'] = 'form';
@@ -30,12 +30,10 @@ class ViewsFormMainForm implements FormInterface {
 
     // Add the output markup to the form array so that it's included when the form
     // array is passed to the theme function.
-    $form['output'] = array(
-      '#markup' => $output,
-      // This way any additional form elements will go before the view
-      // (below the exposed widgets).
-      '#weight' => 50,
-    );
+    $form['output'] = $output;
+    // This way any additional form elements will go before the view
+    // (below the exposed widgets).
+    $form['output']['#weight'] = 50;
 
     $form['actions'] = array(
       '#type' => 'actions',
@@ -108,7 +106,7 @@ class ViewsFormMainForm implements FormInterface {
    * {@inheritdoc}
    */
   public function validateForm(array &$form, FormStateInterface $form_state) {
-    $view = $form_state['build_info']['args'][0];
+    $view = $form_state->getBuildInfo()['args'][0];
 
     // Call the validation method on every field handler that has it.
     foreach ($view->field as $field) {
@@ -131,7 +129,7 @@ class ViewsFormMainForm implements FormInterface {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    $view = $form_state['build_info']['args'][0];
+    $view = $form_state->getBuildInfo()['args'][0];
 
     // Call the submit method on every field handler that has it.
     foreach ($view->field as $field) {

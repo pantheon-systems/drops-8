@@ -103,7 +103,7 @@ class RegionalForm extends ConfigFormBase {
     $configurable_timezones = $system_date->get('timezone.user.configurable');
     $form['timezone']['configurable_timezones'] = array(
       '#type' => 'checkbox',
-      '#title' => t('Users may set their own time zone.'),
+      '#title' => t('Users may set their own time zone'),
       '#default_value' => $configurable_timezones,
     );
 
@@ -119,7 +119,7 @@ class RegionalForm extends ConfigFormBase {
     );
     $form['timezone']['configurable_timezones_wrapper']['empty_timezone_message'] = array(
       '#type' => 'checkbox',
-      '#title' => t('Remind users at login if their time zone is not set.'),
+      '#title' => t('Remind users at login if their time zone is not set'),
       '#default_value' => $system_date->get('timezone.user.warn'),
       '#description' => t('Only applied if users may set their own time zone.')
     );
@@ -129,9 +129,9 @@ class RegionalForm extends ConfigFormBase {
       '#title' => t('Time zone for new users'),
       '#default_value' => $system_date->get('timezone.user.default'),
       '#options' => array(
-        DRUPAL_USER_TIMEZONE_DEFAULT => t('Default time zone.'),
-        DRUPAL_USER_TIMEZONE_EMPTY   => t('Empty time zone.'),
-        DRUPAL_USER_TIMEZONE_SELECT  => t('Users may set their own time zone at registration.'),
+        DRUPAL_USER_TIMEZONE_DEFAULT => t('Default time zone'),
+        DRUPAL_USER_TIMEZONE_EMPTY   => t('Empty time zone'),
+        DRUPAL_USER_TIMEZONE_SELECT  => t('Users may set their own time zone at registration'),
       ),
       '#description' => t('Only applied if users may set their own time zone.')
     );
@@ -144,12 +144,12 @@ class RegionalForm extends ConfigFormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $this->config('system.date')
-      ->set('country.default', $form_state['values']['site_default_country'])
-      ->set('first_day', $form_state['values']['date_first_day'])
-      ->set('timezone.default', $form_state['values']['date_default_timezone'])
-      ->set('timezone.user.configurable', $form_state['values']['configurable_timezones'])
-      ->set('timezone.user.warn', $form_state['values']['empty_timezone_message'])
-      ->set('timezone.user.default', $form_state['values']['user_default_timezone'])
+      ->set('country.default', $form_state->getValue('site_default_country'))
+      ->set('first_day', $form_state->getValue('date_first_day'))
+      ->set('timezone.default', $form_state->getValue('date_default_timezone'))
+      ->set('timezone.user.configurable', $form_state->getValue('configurable_timezones'))
+      ->set('timezone.user.warn', $form_state->getValue('empty_timezone_message'))
+      ->set('timezone.user.default', $form_state->getValue('user_default_timezone'))
       ->save();
 
     parent::submitForm($form, $form_state);

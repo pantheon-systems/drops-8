@@ -52,7 +52,7 @@ display:
           expose:
             items_per_page: false
             items_per_page_label: 'Items per page'
-            items_per_page_options: '5, 10, 20, 40, 60'
+            items_per_page_options: '5, 10, 25, 50'
             items_per_page_options_all: false
             items_per_page_options_all_label: '- All -'
             offset: false
@@ -669,7 +669,7 @@ display:
         type: tab
         title: Files
         description: ''
-        name: admin
+        menu_name: admin
         weight: 0
         context: ''
       display_description: ''
@@ -721,7 +721,7 @@ display:
           expose:
             items_per_page: false
             items_per_page_label: 'Items per page'
-            items_per_page_options: '5, 10, 20, 40, 60'
+            items_per_page_options: '5, 10, 25, 50'
             items_per_page_options_all: false
             items_per_page_options_all_label: '- All -'
             offset: false

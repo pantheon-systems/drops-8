@@ -54,6 +54,7 @@ class ImageStyleEditForm extends ImageStyleFormBase {
    * {@inheritdoc}
    */
   public function form(array $form, FormStateInterface $form_state) {
+    $user_input = $form_state->getUserInput();
     $form['#title'] = $this->t('Edit style %name', array('%name' => $this->entity->label()));
     $form['#tree'] = TRUE;
     $form['#attached']['css'][drupal_get_path('module', 'image') . '/css/image.admin.css'] = array();
@@ -70,22 +71,54 @@ class ImageStyleEditForm extends ImageStyleFormBase {
 
     // Build the list of existing image effects for this image style.
     $form['effects'] = array(
-      '#theme' => 'image_style_effects',
+      '#type' => 'table',
+      '#header' => array(
+        $this->t('Effect'),
+        $this->t('Weight'),
+        $this->t('Operations'),
+      ),
+      '#tabledrag' => array(
+        array(
+          'action' => 'order',
+          'relationship' => 'sibling',
+          'group' => 'image-effect-order-weight',
+        ),
+      ),
+      '#attributes' => array(
+        'id' => 'image-style-effects',
+      ),
+      '#empty' => t('There are currently no effects in this style. Add one by selecting an option below.'),
       // Render effects below parent elements.
       '#weight' => 5,
     );
     foreach ($this->entity->getEffects() as $effect) {
       $key = $effect->getUuid();
-      $form['effects'][$key]['#weight'] = isset($form_state['input']['effects']) ? $form_state['input']['effects'][$key]['weight'] : NULL;
-      $form['effects'][$key]['label'] = array(
-        '#markup' => String::checkPlain($effect->label()),
+      $form['effects'][$key]['#attributes']['class'][] = 'draggable';
+      $form['effects'][$key]['#weight'] = isset($user_input['effects']) ? $user_input['effects'][$key]['weight'] : NULL;
+      $form['effects'][$key]['effect'] = array(
+        '#tree' => FALSE,
+        'data' => array(
+          'label' => array(
+            '#markup' => String::checkPlain($effect->label()),
+          ),
+        ),
       );
-      $form['effects'][$key]['summary'] = $effect->getSummary();
+
+      $summary = $effect->getSummary();
+
+      if (!empty($summary)) {
+        $summary['#prefix'] = ' ';
+        $form['effects'][$key]['effect']['data']['summary'] = $summary;
+      }
+
       $form['effects'][$key]['weight'] = array(
         '#type' => 'weight',
         '#title' => $this->t('Weight for @title', array('@title' => $effect->label())),
         '#title_display' => 'invisible',
         '#default_value' => $effect->getWeight(),
+        '#attributes' => array(
+          'class' => array('image-effect-order-weight'),
+        ),
       );
 
       $links = array();
@@ -104,17 +137,6 @@ class ImageStyleEditForm extends ImageStyleFormBase {
         '#type' => 'operations',
         '#links' => $links,
       );
-      $form['effects'][$key]['configure'] = array(
-        '#type' => 'link',
-        '#title' => $this->t('Edit'),
-        '#href' => 'admin/config/media/image-styles/manage/' . $this->entity->id() . '/effects/' . $key,
-        '#access' => $is_configurable,
-      );
-      $form['effects'][$key]['remove'] = array(
-        '#type' => 'link',
-        '#title' => $this->t('Delete'),
-        '#href' => 'admin/config/media/image-styles/manage/' . $this->entity->id() . '/effects/' . $key . '/delete',
-      );
     }
 
     // Build the new image effect addition form and add it to the effect list.
@@ -128,26 +150,40 @@ class ImageStyleEditForm extends ImageStyleFormBase {
     }
     $form['effects']['new'] = array(
       '#tree' => FALSE,
-      '#weight' => isset($form_state['input']['weight']) ? $form_state['input']['weight'] : NULL,
+      '#weight' => isset($user_input['weight']) ? $user_input['weight'] : NULL,
+      '#attributes' => array('class' => array('draggable')),
     );
-    $form['effects']['new']['new'] = array(
-      '#type' => 'select',
-      '#title' => $this->t('Effect'),
-      '#title_display' => 'invisible',
-      '#options' => $new_effect_options,
-      '#empty_option' => $this->t('Select a new effect'),
+    $form['effects']['new']['effect'] = array(
+      'data' => array(
+        'new' => array(
+          '#type' => 'select',
+          '#title' => $this->t('Effect'),
+          '#title_display' => 'invisible',
+          '#options' => $new_effect_options,
+          '#empty_option' => $this->t('Select a new effect'),
+        ),
+        array(
+          'add' => array(
+            '#type' => 'submit',
+            '#value' => $this->t('Add'),
+            '#validate' => array('::effectValidate'),
+            '#submit' => array('::submitForm', '::effectSave'),
+          ),
+        ),
+      ),
+      '#prefix' => '<div class="image-style-new">',
+      '#suffix' => '</div>',
     );
+
     $form['effects']['new']['weight'] = array(
       '#type' => 'weight',
       '#title' => $this->t('Weight for new effect'),
       '#title_display' => 'invisible',
-      '#default_value' => count($form['effects']) - 1,
+      '#default_value' => count($this->entity->getEffects()) + 1,
+      '#attributes' => array('class' => array('image-effect-order-weight')),
     );
-    $form['effects']['new']['add'] = array(
-      '#type' => 'submit',
-      '#value' => $this->t('Add'),
-      '#validate' => array(array($this, 'effectValidate')),
-      '#submit' => array(array($this, 'effectSave')),
+    $form['effects']['new']['operations'] = array(
+      'data' => array(),
     );
 
     return parent::form($form, $form_state);
@@ -157,7 +193,7 @@ class ImageStyleEditForm extends ImageStyleFormBase {
    * Validate handler for image effect.
    */
   public function effectValidate($form, FormStateInterface $form_state) {
-    if (!$form_state['values']['new']) {
+    if (!$form_state->getValue('new')) {
       $form_state->setErrorByName('new', $this->t('Select an effect to add.'));
     }
   }
@@ -166,23 +202,10 @@ class ImageStyleEditForm extends ImageStyleFormBase {
    * Submit handler for image effect.
    */
   public function effectSave($form, FormStateInterface $form_state) {
-
-    // Update image effect weights.
-    if (!empty($form_state['values']['effects'])) {
-      $this->updateEffectWeights($form_state['values']['effects']);
-    }
-
-    $this->entity->set('name', $form_state['values']['name']);
-    $this->entity->set('label', $form_state['values']['label']);
-
-    $status = parent::save($form, $form_state);
-
-    if ($status == SAVED_UPDATED) {
-      drupal_set_message($this->t('Changes to the style have been saved.'));
-    }
+    $this->save($form, $form_state);
 
     // Check if this field has any configuration options.
-    $effect = $this->imageEffectManager->getDefinition($form_state['values']['new']);
+    $effect = $this->imageEffectManager->getDefinition($form_state->getValue('new'));
 
     // Load the configuration form for this option.
     if (is_subclass_of($effect['class'], '\Drupal\image\ConfigurableImageEffectInterface')) {
@@ -190,9 +213,9 @@ class ImageStyleEditForm extends ImageStyleFormBase {
         'image.effect_add_form',
         array(
           'image_style' => $this->entity->id(),
-          'image_effect' => $form_state['values']['new'],
+          'image_effect' => $form_state->getValue('new'),
         ),
-        array('query' => array('weight' => $form_state['values']['weight']))
+        array('query' => array('weight' => $form_state->getValue('weight')))
       );
     }
     // If there's no form, immediately add the image effect.
@@ -200,7 +223,7 @@ class ImageStyleEditForm extends ImageStyleFormBase {
       $effect = array(
         'id' => $effect['id'],
         'data' => array(),
-        'weight' => $form_state['values']['weight'],
+        'weight' => $form_state->getValue('weight'),
       );
       $effect_id = $this->entity->addImageEffect($effect);
       $this->entity->save();
@@ -213,13 +236,20 @@ class ImageStyleEditForm extends ImageStyleFormBase {
   /**
    * {@inheritdoc}
    */
-  public function save(array $form, FormStateInterface $form_state) {
+  public function submitForm(array &$form, FormStateInterface $form_state) {
 
     // Update image effect weights.
-    if (!empty($form_state['values']['effects'])) {
-      $this->updateEffectWeights($form_state['values']['effects']);
+    if (!$form_state->isValueEmpty('effects')) {
+      $this->updateEffectWeights($form_state->getValue('effects'));
     }
 
+    parent::submitForm($form, $form_state);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function save(array $form, FormStateInterface $form_state) {
     parent::save($form, $form_state);
     drupal_set_message($this->t('Changes to the style have been saved.'));
   }
@@ -253,7 +283,7 @@ class ImageStyleEditForm extends ImageStyleFormBase {
    * {@inheritdoc}
    */
   protected function copyFormValuesToEntity(EntityInterface $entity, array $form, FormStateInterface $form_state) {
-    foreach ($form_state['values'] as $key => $value) {
+    foreach ($form_state->getValues() as $key => $value) {
       // Do not copy effects here, see self::updateEffectWeights().
       if ($key != 'effects') {
         $entity->set($key, $value);

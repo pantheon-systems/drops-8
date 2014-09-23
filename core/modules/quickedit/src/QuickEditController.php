@@ -178,16 +178,13 @@ class QuickEditController extends ControllerBase {
       $this->tempStoreFactory->get('quickedit')->set($entity->uuid(), $entity);
     }
 
-    $form_state = new FormState(array(
-      'langcode' => $langcode,
-      'no_redirect' => TRUE,
-      'build_info' => array(
-        'args' => array($entity, $field_name),
-      ),
-    ));
+    $form_state = (new FormState())
+      ->set('langcode', $langcode)
+      ->disableRedirect()
+      ->addBuildInfo('args', [$entity, $field_name]);
     $form = $this->formBuilder()->buildForm('Drupal\quickedit\Form\QuickEditFieldForm', $form_state);
 
-    if (!empty($form_state['executed'])) {
+    if ($form_state->isExecuted()) {
       // The form submission saved the entity in TempStore. Return the
       // updated view of the field from the TempStore copy.
       $entity = $this->tempStoreFactory->get('quickedit')->get($entity->uuid());

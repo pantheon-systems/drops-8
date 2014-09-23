@@ -101,15 +101,15 @@ class UserPasswordResetForm extends FormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     /** @var $user \Drupal\user\UserInterface */
-    $user = $form_state['values']['user'];
+    $user = $form_state->getValue('user');
     user_login_finalize($user);
-    $this->logger->notice('User %name used one-time login link at time %timestamp.', array('%name' => $user->getUsername(), '%timestamp' => $form_state['values']['timestamp']));
+    $this->logger->notice('User %name used one-time login link at time %timestamp.', array('%name' => $user->getUsername(), '%timestamp' => $form_state->getValue('timestamp')));
     drupal_set_message($this->t('You have just used your one-time login link. It is no longer necessary to use this link to log in. Please change your password.'));
     // Let the user's password be changed without the current password check.
     $token = Crypt::randomBytesBase64(55);
     $_SESSION['pass_reset_' . $user->id()] = $token;
     $form_state->setRedirect(
-      'user.edit',
+      'entity.user.edit_form',
       array('user' => $user->id()),
       array(
         'query' => array('pass-reset-token' => $token),

@@ -20,7 +20,7 @@ use Drupal\field\Tests\FieldUnitTestBase;
 class EntityReferenceItemTest extends FieldUnitTestBase {
 
   /**
-   * Modules to enable.
+   * Modules to install.
    *
    * @var array
    */
@@ -43,7 +43,7 @@ class EntityReferenceItemTest extends FieldUnitTestBase {
   /**
    * Sets up the test.
    */
-  public function setUp() {
+  protected function setUp() {
     parent::setUp();
 
     $this->installEntitySchema('taxonomy_term');
@@ -112,6 +112,12 @@ class EntityReferenceItemTest extends FieldUnitTestBase {
     $term2->delete();
     $entity = entity_create('entity_test', array('name' => $this->randomMachineName()));
     $entity->save();
+
+    // Test the generateSampleValue() method.
+    $entity = entity_create('entity_test');
+    $entity->field_test_taxonomy_term->generateSampleItems();
+    $entity->field_test_taxonomy_vocabulary->generateSampleItems();
+    $this->entityValidateAndSave($entity);
   }
 
   /**

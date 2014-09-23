@@ -34,20 +34,6 @@ function statistics_help($route_name, RouteMatchInterface $route_match) {
 }
 
 /**
- * Implements hook_permission().
- */
-function statistics_permission() {
-  return array(
-    'administer statistics' => array(
-      'title' => t('Administer statistics'),
-    ),
-    'view post access counter' => array(
-      'title' => t('View content hits'),
-    ),
-  );
-}
-
-/**
  * Implements hook_ENTITY_TYPE_view() for node entities.
  */
 function statistics_node_view(array &$build, EntityInterface $node, EntityViewDisplayInterface $display, $view_mode) {
@@ -119,7 +105,7 @@ function statistics_title_list($dbfield, $dbrows) {
     $query = db_select('node_field_data', 'n');
     $query->addTag('node_access');
     $query->join('node_counter', 's', 'n.nid = s.nid');
-    $query->join('users', 'u', 'n.uid = u.uid');
+    $query->join('users_field_data', 'u', 'n.uid = u.uid');
 
     return $query
       ->fields('n', array('nid', 'title'))
@@ -129,6 +115,7 @@ function statistics_title_list($dbfield, $dbrows) {
       // @todo This should be actually filtering on the desired node status
       //   field language and just fall back to the default language.
       ->condition('n.default_langcode', 1)
+      ->condition('u.default_langcode', 1)
       ->orderBy($dbfield, 'DESC')
       ->range(0, $dbrows)
       ->execute();
