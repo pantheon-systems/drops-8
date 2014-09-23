@@ -8,17 +8,11 @@
 namespace Drupal\file\Tests;
 
 /**
- *  This will run tests against the $file_managed->spaceUsed() function.
+ * Tests the spaceUsed() function.
+ *
+ * @group file
  */
 class SpaceUsedTest extends FileManagedUnitTestBase {
-  public static function getInfo() {
-    return array(
-      'name' => 'File space used tests',
-      'description' => 'Tests the spaceUsed() function.',
-      'group' => 'File Managed API',
-    );
-  }
-
   function setUp() {
     parent::setUp();
 
@@ -49,7 +43,7 @@ class SpaceUsedTest extends FileManagedUnitTestBase {
    *   The file entity.
    */
   protected function createFileWithSize($uri, $size, $uid, $status = FILE_STATUS_PERMANENT) {
-    file_put_contents($uri, $this->randomName($size));
+    file_put_contents($uri, $this->randomMachineName($size));
     $file = entity_create('file', array(
       'uri' => $uri,
       'uid' => $uid,

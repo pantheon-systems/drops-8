@@ -11,7 +11,10 @@ use Drupal\Component\Utility\Crypt;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Actions configuration.
+ * Tests complex actions configuration by adding, editing, and deleting a
+ * complex action.
+ *
+ * @group action
  */
 class ConfigurationTest extends WebTestBase {
 
@@ -21,14 +24,6 @@ class ConfigurationTest extends WebTestBase {
    * @var array
    */
   public static $modules = array('action');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Actions configuration',
-      'description' => 'Tests complex actions configuration by adding, editing, and deleting a complex action.',
-      'group' => 'Action',
-    );
-  }
 
   /**
    * Tests configuration of advanced actions through administration interface.
@@ -46,7 +41,7 @@ class ConfigurationTest extends WebTestBase {
 
     // Make a POST request to the individual action configuration page.
     $edit = array();
-    $action_label = $this->randomName();
+    $action_label = $this->randomMachineName();
     $edit['label'] = $action_label;
     $edit['id'] = strtolower($action_label);
     $edit['url'] = 'admin';
@@ -62,7 +57,7 @@ class ConfigurationTest extends WebTestBase {
     preg_match('|admin/config/system/actions/configure/(.+)|', $this->getUrl(), $matches);
     $aid = $matches[1];
     $edit = array();
-    $new_action_label = $this->randomName();
+    $new_action_label = $this->randomMachineName();
     $edit['label'] = $new_action_label;
     $edit['url'] = 'admin';
     $this->drupalPostForm(NULL, $edit, t('Save'));

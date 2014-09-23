@@ -9,6 +9,7 @@
  */
 
 use Drupal\Component\Utility\Xss;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Routing\RouteMatchInterface;
@@ -16,7 +17,7 @@ use Drupal\Core\Url;
 use Symfony\Component\HttpFoundation\Response;
 use Drupal\Core\Database\Query\AlterableInterface;
 use Drupal\Core\Database\Query\SelectInterface;
-use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\field\Entity\FieldInstanceConfig;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
@@ -93,7 +94,7 @@ function node_help($route_name, RouteMatchInterface $route_match) {
   // for rebuild. We don't need to issue the message on the confirm form, or
   // while the rebuild is being processed.
   if ($route_name != 'node.configure_rebuild_confirm' && $route_name != 'system.batch_page.normal' && $route_name != 'help.page.node' && $route_name != 'help.main'
-    && user_access('access administration pages') && node_access_needs_rebuild()) {
+    && \Drupal::currentUser()->hasPermission('access administration pages') && node_access_needs_rebuild()) {
     if ($route_name == 'system.status') {
       $message = t('The content access permissions need to be rebuilt.');
     }
@@ -208,21 +209,6 @@ function node_entity_form_display_alter(EntityFormDisplayInterface $form_display
   if ($context['entity_type'] == 'node') {
     $node_type = node_type_load($context['bundle']);
   }
-}
-
-/**
- * Entity URI callback.
- *
- * @param \Drupal\node\NodeInterface $node
- *   A node entity.
- *
- * @return \Drupal\core\Url
- *   A Url object that provides a URL to the view page for $node.
- */
-function node_uri(NodeInterface $node) {
-  return new Url('node.view', array(
-    'node' => $node->id(),
-  ));
 }
 
 /**
@@ -372,19 +358,19 @@ function node_type_load($name) {
  */
 function node_add_body_field(NodeTypeInterface $type, $label = 'Body') {
    // Add or remove the body field, as needed.
-  $field = FieldConfig::loadByName('node', 'body');
+  $field_storage = FieldStorageConfig::loadByName('node', 'body');
   $instance = FieldInstanceConfig::loadByName('node', $type->id(), 'body');
-  if (empty($field)) {
-    $field = entity_create('field_config', array(
+  if (empty($field_storage)) {
+    $field_storage = entity_create('field_storage_config', array(
       'name' => 'body',
       'entity_type' => 'node',
       'type' => 'text_with_summary',
     ));
-    $field->save();
+    $field_storage->save();
   }
   if (empty($instance)) {
     $instance = entity_create('field_instance_config', array(
-      'field' => $field,
+      'field_storage' => $field_storage,
       'bundle' => $type->id(),
       'label' => $label,
       'settings' => array('display_summary' => TRUE),
@@ -709,9 +695,7 @@ function node_permission() {
     ),
     'access content overview' => array(
       'title' => t('Access the Content overview page'),
-      'description' => user_access('access content overview')
-        ? t('Get an overview of <a href="@url">all content</a>.', array('@url' => url('admin/content')))
-        : t('Get an overview of all content.'),
+      'description' => t('Get an overview of <a href="!url">all content</a>.', array('!url' => \Drupal::url('system.admin_content'))),
     ),
     'access content' => array(
       'title' => t('View published content'),
@@ -802,7 +786,7 @@ function node_user_cancel($edit, $account, $method) {
 }
 
 /**
- * Implements hook_user_predelete().
+ * Implements hook_ENTITY_TYPE_predelete() for user entities.
  */
 function node_user_predelete($account) {
   // Delete nodes (current revisions).
@@ -970,7 +954,7 @@ function node_feed($nids = FALSE, $channel = array()) {
       ->execute();
   }
 
-  $item_length = $rss_config->get('items.view_mode');
+  $view_mode = $rss_config->get('items.view_mode');
   $namespaces = array('xmlns:dc' => 'http://purl.org/dc/elements/1.1/');
 
   // Load all nodes to be rendered.
@@ -997,7 +981,7 @@ function node_feed($nids = FALSE, $channel = array()) {
       $namespaces = array_merge($namespaces, $node->rss_namespaces);
     }
 
-    if ($item_length != 'title') {
+    if ($view_mode != 'title') {
       // We render node contents and force links to be last.
       $build['links']['#weight'] = 1000;
       $item_text .= drupal_render($build);
@@ -1070,7 +1054,7 @@ function node_view_multiple($nodes, $view_mode = 'teaser', $langcode = NULL) {
  * @see taxonomy_term_page()
  * @see node_form_system_site_information_settings_form_submit()
  */
-function node_form_system_site_information_settings_form_alter(&$form, &$form_state, $form_id) {
+function node_form_system_site_information_settings_form_alter(&$form, FormStateInterface $form_state, $form_id) {
   $options = array(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30);
   $form['front_page']['default_nodes_main'] = array(
     '#type' => 'select',
@@ -1088,7 +1072,7 @@ function node_form_system_site_information_settings_form_alter(&$form, &$form_st
  *
  * @see node_form_system_site_information_settings_form_alter()
  */
-function node_form_system_site_information_settings_form_submit($form, &$form_state) {
+function node_form_system_site_information_settings_form_submit($form, FormStateInterface $form_state) {
   \Drupal::config('node.settings')
     ->set('items_per_page', $form_state['values']['default_nodes_main'])
     ->save();
@@ -1101,7 +1085,7 @@ function node_form_system_site_information_settings_form_submit($form, &$form_st
  *
  * @see node_form_system_themes_admin_form_submit()
  */
-function node_form_system_themes_admin_form_alter(&$form, &$form_state, $form_id) {
+function node_form_system_themes_admin_form_alter(&$form, FormStateInterface $form_state, $form_id) {
   $form['admin_theme']['use_admin_theme'] = array(
     '#type' => 'checkbox',
     '#title' => t('Use the administration theme when editing or creating content'),
@@ -1115,7 +1099,7 @@ function node_form_system_themes_admin_form_alter(&$form, &$form_state, $form_id
  *
  * @see node_form_system_themes_admin_form_alter()
  */
-function node_form_system_themes_admin_form_submit($form, &$form_state) {
+function node_form_system_themes_admin_form_submit($form, FormStateInterface $form_state) {
   \Drupal::config('node.settings')
     ->set('use_admin_theme', $form_state['values']['use_admin_theme'])
     ->save();
@@ -1151,10 +1135,12 @@ function node_form_system_themes_admin_form_submit($form, &$form_state) {
  * default home page at path 'node', an RSS feed, a recent content block, etc.),
  * the process above is followed except that hook_node_access() is not called on
  * each node for performance reasons and for proper functioning of the pager
- * system. When adding a node listing to your module, be sure to use a dynamic
- * entity query and add a tag of "node_access". This will allow modules dealing
+ * system. When adding a node listing to your module, be sure to use an entity
+ * query, which will add a tag of "node_access". This will allow modules dealing
  * with node access to ensure only nodes to which the user has access are
- * retrieved, through the use of hook_query_TAG_alter().
+ * retrieved, through the use of hook_query_TAG_alter(). See the
+ * @link entity_api Entity API topic @endlink for more information on entity
+ * queries.
  *
  * Note: Even a single module returning NODE_ACCESS_DENY from hook_node_access()
  * will block access to the node. Therefore, implementers should take care to
@@ -1174,18 +1160,18 @@ function node_node_access(NodeInterface $node, $op, $account) {
 
   $configured_types = node_permissions_get_configured_types();
   if (isset($configured_types[$type])) {
-    if ($op == 'create' && user_access('create ' . $type . ' content', $account)) {
+    if ($op == 'create' && $account->hasPermission('create ' . $type . ' content', $account)) {
       return NODE_ACCESS_ALLOW;
     }
 
     if ($op == 'update') {
-      if (user_access('edit any ' . $type . ' content', $account) || (user_access('edit own ' . $type . ' content', $account) && ($account->id() == $node->getOwnerId()))) {
+      if ($account->hasPermission('edit any ' . $type . ' content', $account) || ($account->hasPermission('edit own ' . $type . ' content', $account) && ($account->id() == $node->getOwnerId()))) {
         return NODE_ACCESS_ALLOW;
       }
     }
 
     if ($op == 'delete') {
-      if (user_access('delete any ' . $type . ' content', $account) || (user_access('delete own ' . $type . ' content', $account) && ($account->id() == $node->getOwnerId()))) {
+      if ($account->hasPermission('delete any ' . $type . ' content', $account) || ($account->hasPermission('delete own ' . $type . ' content', $account) && ($account->id() == $node->getOwnerId()))) {
         return NODE_ACCESS_ALLOW;
       }
     }
@@ -1364,7 +1350,7 @@ function node_query_node_access_alter(AlterableInterface $query) {
   // If $account can bypass node access, or there are no node access modules,
   // or the operation is 'view' and the $account has a global view grant
   // (such as a view grant for node ID 0), we don't need to alter the query.
-  if (user_access('bypass node access', $account)) {
+  if ($account->hasPermission('bypass node access')) {
     return;
   }
   if (!count(\Drupal::moduleHandler()->getImplementations('node_grants'))) {
@@ -1615,15 +1601,6 @@ function node_modules_uninstalled($modules) {
 }
 
 /**
- * Implements hook_file_download_access().
- */
-function node_file_download_access($field, EntityInterface $entity, File $file) {
-  if ($entity->getEntityTypeId() == 'node') {
-    return $entity->access('view');
-  }
-}
-
-/**
  * Implements hook_ENTITY_TYPE_delete() for 'language_entity'.
  */
 function node_language_entity_delete(LanguageEntity $language) {
@@ -1645,7 +1622,7 @@ function node_reindex_node_search($nid) {
 }
 
 /**
- * Implements hook_comment_insert().
+ * Implements hook_ENTITY_TYPE_insert() for comment entities.
  */
 function node_comment_insert($comment) {
   // Reindex the node when comments are added.
@@ -1655,7 +1632,7 @@ function node_comment_insert($comment) {
 }
 
 /**
- * Implements hook_comment_update().
+ * Implements hook_ENTITY_TYPE_update() for comment entities.
  */
 function node_comment_update($comment) {
   // Reindex the node when comments are changed.
@@ -1665,30 +1642,10 @@ function node_comment_update($comment) {
 }
 
 /**
- * Implements hook_comment_delete().
+ * Implements hook_ENTITY_TYPE_delete() for comment entities.
  */
 function node_comment_delete($comment) {
   // Reindex the node when comments are deleted.
-  if ($comment->getCommentedEntityTypeId() == 'node') {
-    node_reindex_node_search($comment->getCommentedEntityId());
-  }
-}
-
-/**
- * Implements hook_comment_publish().
- */
-function node_comment_publish($comment) {
-  // Reindex the node when comments are published.
-  if ($comment->getCommentedEntityTypeId() == 'node') {
-    node_reindex_node_search($comment->getCommentedEntityId());
-  }
-}
-
-/**
- * Implements hook_comment_unpublish().
- */
-function node_comment_unpublish($comment) {
-  // Reindex the node when comments are unpublished.
   if ($comment->getCommentedEntityTypeId() == 'node') {
     node_reindex_node_search($comment->getCommentedEntityId());
   }

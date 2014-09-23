@@ -10,20 +10,12 @@ namespace Drupal\simpletest\Tests;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Tests Simpletest email capturing (TestMailCollector) and assertion methods.
+ * Tests the SimpleTest email capturing logic, the assertMail assertion and the
+ * drupalGetMails function.
+ *
+ * @group simpletest
  */
 class MailCaptureTest extends WebTestBase {
-  /**
-   * Implement getInfo().
-   */
-  public static function getInfo() {
-    return array(
-      'name' => 'SimpleTest email capturing',
-      'description' => 'Test the SimpleTest email capturing logic, the assertMail assertion and the drupalGetMails function.',
-      'group' => 'SimpleTest',
-    );
-  }
-
   /**
    * Test to see if the wrapper function is executed correctly.
    */
@@ -62,7 +54,7 @@ class MailCaptureTest extends WebTestBase {
         'id' => 'drupal_mail_test_' . $index,
         'headers' => array('Content-type'=> 'text/html'),
         'subject' => $this->randomString(64),
-        'to' => $this->randomName(32) . '@example.com',
+        'to' => $this->randomMachineName(32) . '@example.com',
         'body' => $this->randomString(512),
       );
       drupal_mail_system('drupal_mail_test', $index)->mail($message);

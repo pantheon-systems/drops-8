@@ -10,7 +10,8 @@ namespace Drupal\system\Form;
 use Drupal\Core\Ajax\AjaxResponse;
 use Drupal\Core\Ajax\ReplaceCommand;
 use Drupal\Core\Config\Entity\ConfigEntityStorageInterface;
-use Drupal\Core\Datetime\Date;
+use Drupal\Core\Datetime\DateFormatter;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Language\LanguageInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\Core\Datetime\DrupalDateTime;
@@ -22,11 +23,11 @@ use Drupal\Core\Entity\EntityForm;
 abstract class DateFormatFormBase extends EntityForm {
 
   /**
-   * The date service.
+   * The date formatter service.
    *
-   * @var \Drupal\Core\Datetime\Date
+   * @var \Drupal\Core\Datetime\DateFormatter
    */
-  protected $dateService;
+  protected $dateFormatter;
 
   /**
    * The date format storage.
@@ -38,15 +39,15 @@ abstract class DateFormatFormBase extends EntityForm {
   /**
    * Constructs a new date format form.
    *
-   * @param \Drupal\Core\Datetime\Date $date_service
+   * @param \Drupal\Core\Datetime\DateFormatter $date_formatter
    *   The date service.
    * @param \Drupal\Core\Config\Entity\ConfigEntityStorageInterface $date_format_storage
    *   The date format storage.
    */
-  public function __construct(Date $date_service, ConfigEntityStorageInterface $date_format_storage) {
+  public function __construct(DateFormatter $date_formatter, ConfigEntityStorageInterface $date_format_storage) {
     $date = new DrupalDateTime();
 
-    $this->dateService = $date_service;
+    $this->dateFormatter = $date_formatter;
     $this->dateFormatStorage = $date_format_storage;
   }
 
@@ -55,7 +56,7 @@ abstract class DateFormatFormBase extends EntityForm {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('date'),
+      $container->get('date.formatter'),
       $container->get('entity.manager')->getStorage('date_format')
     );
   }
@@ -67,13 +68,11 @@ abstract class DateFormatFormBase extends EntityForm {
    *   The entity ID.
    * @param array $element
    *   The form element.
-   * @param array $form_state
-   *   The form state.
    *
    * @return bool
    *   TRUE if this format already exists, FALSE otherwise.
    */
-  public function exists($entity_id, array $element,  array $form_state) {
+  public function exists($entity_id, array $element) {
     return (bool) $this->dateFormatStorage
       ->getQuery()
       ->condition('id', $element['#field_prefix'] . $entity_id)
@@ -85,16 +84,16 @@ abstract class DateFormatFormBase extends EntityForm {
    *
    * @param array $form
    *   An associative array containing the structure of the form.
-   * @param array $form_state
-   *   An associative array containing the current state of the form.
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   The current state of the form.
    *
    * @return \Drupal\Core\Ajax\AjaxResponse
    *   An AJAX Response to update the date-time value of the date format.
    */
-  public static function dateTimeLookup(array $form, array $form_state) {
+  public static function dateTimeLookup(array $form, FormStateInterface $form_state) {
     $format = '';
     if (!empty($form_state['values']['date_format_pattern'])) {
-      $format = t('Displayed as %date_format', array('%date_format' => \Drupal::service('date')->format(REQUEST_TIME, 'custom', $form_state['values']['date_format_pattern'])));
+      $format = t('Displayed as %date_format', array('%date_format' => \Drupal::service('date.formatter')->format(REQUEST_TIME, 'custom', $form_state['values']['date_format_pattern'])));
     }
     // Return a command instead of a string, since the Ajax framework
     // automatically prepends an additional empty DIV element for a string, which
@@ -107,7 +106,7 @@ abstract class DateFormatFormBase extends EntityForm {
   /**
    * {@inheritdoc}
    */
-  public function form(array $form, array &$form_state) {
+  public function form(array $form, FormStateInterface $form_state) {
     $form['label'] = array(
       '#type' => 'textfield',
       '#title' => 'Name',
@@ -124,7 +123,7 @@ abstract class DateFormatFormBase extends EntityForm {
       '#machine_name' => array(
         'exists' => array($this, 'exists'),
         'replace_pattern' =>'([^a-z0-9_]+)|(^custom$)',
-        'error' => 'The machine-readable name must be unique, and can only contain lowercase letters, numbers, and underscores. Additionally, it can not be the reserved word "custom".',
+        'error' => $this->t('The machine-readable name must be unique, and can only contain lowercase letters, numbers, and underscores. Additionally, it can not be the reserved word "custom".'),
       ),
     );
 
@@ -156,7 +155,7 @@ abstract class DateFormatFormBase extends EntityForm {
   /**
    * {@inheritdoc}
    */
-  public function validate(array $form, array &$form_state) {
+  public function validate(array $form, FormStateInterface $form_state) {
     parent::validate($form, $form_state);
 
     // The machine name field should already check to see if the requested
@@ -165,7 +164,7 @@ abstract class DateFormatFormBase extends EntityForm {
     $pattern = trim($form_state['values']['date_format_pattern']);
     foreach ($this->dateFormatStorage->loadMultiple() as $format) {
       if ($format->getPattern() == $pattern && ($this->entity->isNew() || $format->id() != $this->entity->id())) {
-        $this->setFormError('date_format_pattern', $form_state, $this->t('This format already exists. Enter a unique format string.'));
+        $form_state->setErrorByName('date_format_pattern', $this->t('This format already exists. Enter a unique format string.'));
         continue;
       }
     }
@@ -174,8 +173,8 @@ abstract class DateFormatFormBase extends EntityForm {
   /**
    * {@inheritdoc}
    */
-  public function submit(array $form, array &$form_state) {
-    $form_state['redirect_route']['route_name'] = 'system.date_format_list';
+  public function submit(array $form, FormStateInterface $form_state) {
+    $form_state->setRedirect('system.date_format_list');
     $form_state['values']['pattern'] = trim($form_state['values']['date_format_pattern']);
 
     parent::submit($form, $form_state);

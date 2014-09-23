@@ -13,6 +13,8 @@ use Drupal\views\Tests\ViewTestData;
 
 /**
  * Tests the forum integration into views.
+ *
+ * @group forum
  */
 class ForumIntegrationTest extends ViewTestBase {
 
@@ -30,14 +32,6 @@ class ForumIntegrationTest extends ViewTestBase {
    */
   public static $testViews = array('test_forum_index');
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Forum: Views data',
-      'description' => 'Tests the forum integration into views.',
-      'group' => 'Views module integration',
-    );
-  }
-
   protected function setUp() {
     parent::setUp();
 
@@ -51,7 +45,7 @@ class ForumIntegrationTest extends ViewTestBase {
   public function testForumIntegration() {
     // Create a forum.
     $entity_manager = $this->container->get('entity.manager');
-    $term = $entity_manager->getStorage('taxonomy_term')->create(array('vid' => 'forums', 'name' => $this->randomName()));
+    $term = $entity_manager->getStorage('taxonomy_term')->create(array('vid' => 'forums', 'name' => $this->randomMachineName()));
     $term->save();
 
     $comment_storage = $entity_manager->getStorage('comment');

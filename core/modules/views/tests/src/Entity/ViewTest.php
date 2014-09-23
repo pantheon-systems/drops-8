@@ -13,22 +13,10 @@ use Drupal\Tests\UnitTestCase;
 use Drupal\views\Entity\View;
 
 /**
- * Tests the view entity.
- *
  * @coversDefaultClass \Drupal\views\Entity\View
+ * @group views
  */
 class ViewTest extends UnitTestCase {
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'name' => 'View entity test',
-      'description' => 'Tests the \Drupal\views\Entity\View class.',
-      'group' => 'Views',
-    );
-  }
 
   /**
    * {@inheritdoc}
@@ -62,6 +50,7 @@ class ViewTest extends UnitTestCase {
   }
 
   public function calculateDependenciesProvider(){
+    $handler['display']['default']['provider'] = 'block';
     $handler['display']['default']['display_options']['fields']['example']['dependencies'] = array();
     $handler['display']['default']['display_options']['fields']['example2']['dependencies']['module'] = array('views', 'field');
     $handler['display']['default']['display_options']['fields']['example3']['dependencies']['module'] = array('views', 'image');
@@ -72,7 +61,7 @@ class ViewTest extends UnitTestCase {
 
     return array(
       array(array(), array('node', 'views')),
-      array($handler, array('field', 'image', 'node', 'views')),
+      array($handler, array('block', 'field', 'image', 'node', 'views')),
       array($plugin, array('field', 'image', 'node', 'views')),
     );
   }

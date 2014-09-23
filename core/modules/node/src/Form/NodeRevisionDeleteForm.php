@@ -10,6 +10,8 @@ namespace Drupal\node\Form;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Form\ConfirmFormBase;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Url;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -91,7 +93,8 @@ class NodeRevisionDeleteForm extends ConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function getCancelRoute() {
+  public function getCancelUrl() {
+    return new Url('node.revision_overview', array('node' => $this->revision->id()));
   }
 
   /**
@@ -104,32 +107,31 @@ class NodeRevisionDeleteForm extends ConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, array &$form_state, $node_revision = NULL) {
+  public function buildForm(array $form, FormStateInterface $form_state, $node_revision = NULL) {
     $this->revision = $this->nodeStorage->loadRevision($node_revision);
     $form = parent::buildForm($form, $form_state);
 
-    // @todo Convert to getCancelRoute() after http://drupal.org/node/1863906.
-    $form['actions']['cancel']['#href'] = 'node/' . $this->revision->id() . '/revisions';
     return $form;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function submitForm(array &$form, array &$form_state) {
+  public function submitForm(array &$form, FormStateInterface $form_state) {
     $this->nodeStorage->deleteRevision($this->revision->getRevisionId());
 
-    watchdog('content', '@type: deleted %title revision %revision.', array('@type' => $this->revision->bundle(), '%title' => $this->revision->label(), '%revision' => $this->revision->getRevisionId()));
+    $this->logger('content')->notice('@type: deleted %title revision %revision.', array('@type' => $this->revision->bundle(), '%title' => $this->revision->label(), '%revision' => $this->revision->getRevisionId()));
     $node_type = $this->nodeTypeStorage->load($this->revision->bundle())->label();
     drupal_set_message(t('Revision from %revision-date of @type %title has been deleted.', array('%revision-date' => format_date($this->revision->getRevisionCreationTime()), '@type' => $node_type, '%title' => $this->revision->label())));
-    $form_state['redirect_route'] = array(
-      'route_name' => 'node.view',
-      'route_parameters' => array(
-        'node' => $this->revision->id(),
-      ),
+    $form_state->setRedirect(
+      'node.view',
+      array('node' => $this->revision->id())
     );
     if ($this->connection->query('SELECT COUNT(DISTINCT vid) FROM {node_field_revision} WHERE nid = :nid', array(':nid' => $this->revision->id()))->fetchField() > 1) {
-      $form_state['redirect_route']['route_name'] = 'node.revision_overview';
+      $form_state->setRedirect(
+        'node.revision_overview',
+        array('node' => $this->revision->id())
+      );
     }
   }
 

@@ -13,7 +13,7 @@ use Drupal\comment\CommentInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\FieldDefinition;
-use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\user\UserInterface;
 
 /**
@@ -34,6 +34,7 @@ use Drupal\user\UserInterface;
  *     "translation" = "Drupal\comment\CommentTranslationHandler"
  *   },
  *   base_table = "comment",
+ *   data_table = "comment_field_data",
  *   uri_callback = "comment_uri",
  *   fieldable = TRUE,
  *   translatable = TRUE,
@@ -44,10 +45,10 @@ use Drupal\user\UserInterface;
  *     "uuid" = "uuid"
  *   },
  *   links = {
- *     "canonical" = "comment.permalink",
- *     "delete-form" = "comment.confirm_delete",
- *     "edit-form" = "comment.edit_page",
- *     "admin-form" = "comment.type_edit"
+ *     "canonical" = "entity.comment.canonical",
+ *     "delete-form" = "entity.comment.delete_form",
+ *     "edit-form" = "entity.comment.edit_form",
+ *     "admin-form" = "entity.comment_type.edit_form"
  *   },
  *   bundle_entity_type = "comment_type"
  * )
@@ -146,9 +147,6 @@ class Comment extends ContentEntityBase implements CommentInterface {
     $this->releaseThreadLock();
     // Update the {comment_entity_statistics} table prior to executing the hook.
     $storage->updateEntityStatistics($this);
-    if ($this->isPublished()) {
-      \Drupal::moduleHandler()->invokeAll('comment_publish', array($this));
-    }
   }
 
   /**
@@ -227,29 +225,39 @@ class Comment extends ContentEntityBase implements CommentInterface {
 
     $fields['subject'] = FieldDefinition::create('string')
       ->setLabel(t('Subject'))
-      ->setDescription(t('The comment title or subject.'))
-      ->setSetting('max_length', 64);
+      ->setTranslatable(TRUE)
+      ->setSetting('max_length', 64)
+      ->setDisplayOptions('form', array(
+        'type' => 'string',
+        // Default comment body field has weight 20.
+        'weight' => 10,
+      ))
+      ->setDisplayConfigurable('form', TRUE);
 
     $fields['uid'] = FieldDefinition::create('entity_reference')
       ->setLabel(t('User ID'))
       ->setDescription(t('The user ID of the comment author.'))
+      ->setTranslatable(TRUE)
       ->setSetting('target_type', 'user')
       ->setDefaultValue(0);
 
     $fields['name'] = FieldDefinition::create('string')
       ->setLabel(t('Name'))
       ->setDescription(t("The comment author's name."))
+      ->setTranslatable(TRUE)
       ->setSetting('max_length', 60)
       ->setDefaultValue('')
       ->addConstraint('CommentName', array());
 
     $fields['mail'] = FieldDefinition::create('email')
       ->setLabel(t('Email'))
-      ->setDescription(t("The comment author's email address."));
+      ->setDescription(t("The comment author's email address."))
+      ->setTranslatable(TRUE);
 
     $fields['homepage'] = FieldDefinition::create('uri')
       ->setLabel(t('Homepage'))
       ->setDescription(t("The comment author's home page address."))
+      ->setTranslatable(TRUE)
       // URIs are not length limited by RFC 2616, but we can only store 255
       // characters in our comment DB schema.
       ->setSetting('max_length', 255);
@@ -257,19 +265,23 @@ class Comment extends ContentEntityBase implements CommentInterface {
     $fields['hostname'] = FieldDefinition::create('string')
       ->setLabel(t('Hostname'))
       ->setDescription(t("The comment author's hostname."))
+      ->setTranslatable(TRUE)
       ->setSetting('max_length', 128);
 
     $fields['created'] = FieldDefinition::create('created')
       ->setLabel(t('Created'))
-      ->setDescription(t('The time that the comment was created.'));
+      ->setDescription(t('The time that the comment was created.'))
+      ->setTranslatable(TRUE);
 
     $fields['changed'] = FieldDefinition::create('changed')
       ->setLabel(t('Changed'))
-      ->setDescription(t('The time that the comment was last edited.'));
+      ->setDescription(t('The time that the comment was last edited.'))
+      ->setTranslatable(TRUE);
 
     $fields['status'] = FieldDefinition::create('boolean')
       ->setLabel(t('Publishing status'))
       ->setDescription(t('A boolean indicating whether the comment is published.'))
+      ->setTranslatable(TRUE)
       ->setDefaultValue(TRUE);
 
     $fields['thread'] = FieldDefinition::create('string')
@@ -279,7 +291,8 @@ class Comment extends ContentEntityBase implements CommentInterface {
 
     $fields['entity_type'] = FieldDefinition::create('string')
       ->setLabel(t('Entity type'))
-      ->setDescription(t('The entity type to which this comment is attached.'));
+      ->setDescription(t('The entity type to which this comment is attached.'))
+      ->setSetting('max_length', EntityTypeInterface::ID_MAX_LENGTH);
 
     $fields['comment_type'] = FieldDefinition::create('entity_reference')
       ->setLabel(t('Comment Type'))
@@ -289,7 +302,7 @@ class Comment extends ContentEntityBase implements CommentInterface {
     $fields['field_name'] = FieldDefinition::create('string')
       ->setLabel(t('Comment field name'))
       ->setDescription(t('The field name through which this comment was added.'))
-      ->setSetting('max_length', 32);
+      ->setSetting('max_length', FieldStorageConfig::NAME_MAX_LENGTH);
 
     return $fields;
   }
@@ -496,8 +509,8 @@ class Comment extends ContentEntityBase implements CommentInterface {
    */
   public static function preCreate(EntityStorageInterface $storage, array &$values) {
     if (empty($values['comment_type']) && !empty($values['field_name']) && !empty($values['entity_type'])) {
-      $field = FieldConfig::loadByName($values['entity_type'], $values['field_name']);
-      $values['comment_type'] = $field->getSetting('comment_type');
+      $field_storage = FieldStorageConfig::loadByName($values['entity_type'], $values['field_name']);
+      $values['comment_type'] = $field_storage->getSetting('comment_type');
     }
   }
 

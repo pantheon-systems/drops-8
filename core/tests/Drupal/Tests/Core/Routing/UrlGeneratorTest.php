@@ -13,12 +13,13 @@ use Drupal\Core\Routing\UrlGenerator;
 use Drupal\Core\Site\Settings;
 use Drupal\Tests\UnitTestCase;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
 use Symfony\Component\Routing\RequestContext;
 
 /**
- * Basic tests for the Route.
+ * Confirm that the UrlGenerator is functioning properly.
  *
  * @group Routing
  */
@@ -51,14 +52,6 @@ class UrlGeneratorTest extends UnitTestCase {
    * @var \Drupal\Core\RouteProcessor\RouteProcessorManager|\PHPUnit_Framework_MockObject_MockObject
    */
   protected $routeProcessorManager;
-
-  public static function getInfo() {
-    return array(
-      'name' => 'UrlGenerator',
-      'description' => 'Confirm that the UrlGenerator is functioning properly.',
-      'group' => 'Routing',
-    );
-  }
 
   function setUp() {
 
@@ -121,7 +114,7 @@ class UrlGeneratorTest extends UnitTestCase {
     $this->aliasManager = $alias_manager;
 
     $context = new RequestContext();
-    $context->fromRequest(Request::create('/some/path'));
+    $context->fromRequest($request = Request::create('/some/path'));
 
     $processor = new PathProcessorAlias($this->aliasManager);
     $processor_manager = new PathProcessorManager();
@@ -133,12 +126,15 @@ class UrlGeneratorTest extends UnitTestCase {
 
     $config_factory_stub = $this->getConfigFactoryStub(array('system.filter' => array('protocols' => array('http', 'https'))));
 
-    $generator = new UrlGenerator($provider, $processor_manager, $this->routeProcessorManager, $config_factory_stub, new Settings(array()));
+    $requestStack = new RequestStack();
+    $requestStack->push($request);
+
+    $generator = new UrlGenerator($provider, $processor_manager, $this->routeProcessorManager, $config_factory_stub, new Settings(array()), NULL, $requestStack);
     $generator->setContext($context);
     $this->generator = $generator;
 
     // Second generator for mixed-mode sessions.
-    $generator = new UrlGenerator($provider, $processor_manager, $this->routeProcessorManager, $config_factory_stub, new Settings(array('mixed_mode_sessions' => TRUE)));
+    $generator = new UrlGenerator($provider, $processor_manager, $this->routeProcessorManager, $config_factory_stub, new Settings(array('mixed_mode_sessions' => TRUE)), NULL, $requestStack);
     $generator->setContext($context);
     $this->generatorMixedMode = $generator;
   }

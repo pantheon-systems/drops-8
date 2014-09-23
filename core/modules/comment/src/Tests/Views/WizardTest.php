@@ -13,6 +13,7 @@ use Drupal\views\Tests\Wizard\WizardTestBase;
 /**
  * Tests the comment module integration into the wizard.
  *
+ * @group comment
  * @see \Drupal\comment\Plugin\views\wizard\Comment
  */
 class WizardTest extends WizardTestBase {
@@ -24,14 +25,6 @@ class WizardTest extends WizardTestBase {
    */
   public static $modules = array('node', 'comment');
 
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Comment: Wizard',
-      'description' => 'Tests the comment module integration into the wizard.',
-      'group' => 'Views Wizard',
-    );
-  }
 
   /**
    * {@inheritdoc}
@@ -48,11 +41,11 @@ class WizardTest extends WizardTestBase {
    */
   public function testCommentWizard() {
     $view = array();
-    $view['label'] = $this->randomName(16);
-    $view['id'] = strtolower($this->randomName(16));
+    $view['label'] = $this->randomMachineName(16);
+    $view['id'] = strtolower($this->randomMachineName(16));
     $view['show[wizard_key]'] = 'comment';
     $view['page[create]'] = TRUE;
-    $view['page[path]'] = $this->randomName(16);
+    $view['page[path]'] = $this->randomMachineName(16);
 
     // Just triggering the saving should automatically choose a proper row
     // plugin.
@@ -78,7 +71,7 @@ class WizardTest extends WizardTestBase {
     $expected_options = array('comment', 'fields');
     $this->assertEqual($options, $expected_options);
 
-    $view['id'] = strtolower($this->randomName(16));
+    $view['id'] = strtolower($this->randomMachineName(16));
     $this->drupalPostForm(NULL, $view, t('Save and edit'));
     $this->assertUrl('admin/structure/views/view/' . $view['id'], array(), 'Make sure the view saving was successful and the browser got redirected to the edit page.');
 
@@ -88,7 +81,7 @@ class WizardTest extends WizardTestBase {
     $this->assertEqual($row['type'], 'entity:comment');
 
     // Check for the default filters.
-    $this->assertEqual($view->filter['status']->table, 'comment');
+    $this->assertEqual($view->filter['status']->table, 'comment_field_data');
     $this->assertEqual($view->filter['status']->field, 'status');
     $this->assertTrue($view->filter['status']->value);
     $this->assertEqual($view->filter['status_node']->table, 'node_field_data');
@@ -96,7 +89,7 @@ class WizardTest extends WizardTestBase {
     $this->assertTrue($view->filter['status_node']->value);
 
     // Check for the default fields.
-    $this->assertEqual($view->field['subject']->table, 'comment');
+    $this->assertEqual($view->field['subject']->table, 'comment_field_data');
     $this->assertEqual($view->field['subject']->field, 'subject');
   }
 

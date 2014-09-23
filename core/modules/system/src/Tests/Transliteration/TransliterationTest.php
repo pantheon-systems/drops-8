@@ -12,6 +12,8 @@ use Drupal\simpletest\DrupalUnitTestBase;
 
 /**
  * Tests Transliteration component functionality.
+ *
+ * @group Transliteration
  */
 class TransliterationTest extends DrupalUnitTestBase {
   /**
@@ -21,19 +23,11 @@ class TransliterationTest extends DrupalUnitTestBase {
    */
   public static $modules = array('transliterate_test');
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Transliteration functionality',
-      'description' => 'Tests Transliteration component functionality.',
-      'group' => 'Transliteration',
-    );
-  }
-
   /**
    * Tests the PHPTransliteration class.
    */
   public function testPHPTransliteration() {
-    $random = $this->randomName(10);
+    $random = $this->randomMachineName(10);
     // Make some strings with two, three, and four-byte characters for testing.
     // Note that the 3-byte character is overridden by the 'kg' language.
     $two_byte = 'Ä Ö Ü Å Ø äöüåøhello';

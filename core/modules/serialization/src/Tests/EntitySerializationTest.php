@@ -11,7 +11,9 @@ use Drupal\Core\Language\LanguageInterface;
 use Drupal\Component\Utility\String;
 
 /**
- * Tests entity normalization and serialization of supported core formats.
+ * Tests that entities can be serialized to supported core formats.
+ *
+ * @group serialization
  */
 class EntitySerializationTest extends NormalizerTestBase {
 
@@ -43,23 +45,15 @@ class EntitySerializationTest extends NormalizerTestBase {
    */
   protected $entityClass = 'Drupal\entity_test\Entity\EntityTest';
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Entity serialization tests',
-      'description' => 'Tests that entities can be serialized to supported core formats.',
-      'group' => 'Serialization',
-    );
-  }
-
   protected function setUp() {
     parent::setUp();
 
     // Create a test entity to serialize.
     $this->values = array(
-      'name' => $this->randomName(),
+      'name' => $this->randomMachineName(),
       'user_id' => \Drupal::currentUser()->id(),
       'field_test_text' => array(
-        'value' => $this->randomName(),
+        'value' => $this->randomMachineName(),
         'format' => 'full_html',
       ),
     );

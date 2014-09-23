@@ -37,6 +37,7 @@ if (window.jQuery) {
     }
     this.message = messageList.join(' ; ');
   }
+
   DrupalBehaviorError.prototype = new Error();
 
   /**
@@ -325,7 +326,7 @@ if (window.jQuery) {
    * Returns the URL to a Drupal page.
    */
   Drupal.url = function (path) {
-    return drupalSettings.path.basePath + drupalSettings.path.scriptPath + path;
+    return drupalSettings.path.basePath + drupalSettings.path.scriptPath + drupalSettings.path.pathPrefix + path;
   };
 
   /**

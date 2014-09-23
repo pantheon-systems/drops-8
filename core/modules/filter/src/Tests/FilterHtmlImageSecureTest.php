@@ -12,6 +12,8 @@ use Drupal\simpletest\WebTestBase;
 
 /**
  * Tests restriction of IMG tags in HTML input.
+ *
+ * @group filter
  */
 class FilterHtmlImageSecureTest extends WebTestBase {
 
@@ -21,14 +23,6 @@ class FilterHtmlImageSecureTest extends WebTestBase {
    * @var array
    */
   public static $modules = array('filter', 'node', 'comment');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Local image input filter',
-      'description' => 'Tests restriction of IMG tags in HTML input.',
-      'group' => 'Filter',
-    );
-  }
 
   function setUp() {
     parent::setUp();
@@ -102,7 +96,7 @@ class FilterHtmlImageSecureTest extends WebTestBase {
     // Create a list of test image sources.
     // The keys become the value of the IMG 'src' attribute, the values are the
     // expected filter conversions.
-    $host = $this->container->get('request')->getHost();
+    $host = \Drupal::request()->getHost();
     $host_pattern = '|^http\://' . $host . '(\:[0-9]{0,5})|';
     $images = array(
       $http_base_url . '/' . $druplicon => base_path() . $druplicon,
@@ -144,6 +138,8 @@ class FilterHtmlImageSecureTest extends WebTestBase {
           $this->assertEqual((string) $element['src'], $red_x_image);
           $this->assertEqual((string) $element['alt'], $alt_text);
           $this->assertEqual((string) $element['title'], $title_text);
+          $this->assertEqual((string) $element['height'], '16');
+          $this->assertEqual((string) $element['width'], '16');
         }
         else {
           $this->assertEqual((string) $element['src'], $converted);

@@ -107,7 +107,8 @@
     // xmlhttp.responseText is going to throw an exception. So we'll catch it.
     try {
       responseText = "\n" + Drupal.t("ResponseText: !responseText", {'!responseText': $.trim(xmlhttp.responseText) });
-    } catch (e) {}
+    }
+    catch (e) {}
 
     // Make the responseText more readable by stripping HTML tags and newlines.
     responseText = responseText.replace(/<("[^"]*"|'[^']*'|[^'">])*>/gi, "");
@@ -465,6 +466,10 @@
         this.progress.element.find('.throbber').after('<div class="message">' + this.progress.message + '</div>');
       }
       $(this.element).after(this.progress.element);
+    }
+    else if (this.progress.type === 'fullscreen') {
+      this.progress.element = $('<div class="ajax-progress ajax-progress-fullscreen">&nbsp;</div>');
+      $('body').after(this.progress.element);
     }
   };
 

@@ -10,9 +10,9 @@ namespace Drupal\migrate_drupal\Tests\source\d6;
 use Drupal\migrate\Tests\MigrateSqlSourceTestCase;
 
 /**
- * Base class for the comment source tests.
+ * Base class for comment source unit tests.
  */
-class CommentTestBase extends MigrateSqlSourceTestCase {
+abstract class CommentTestBase extends MigrateSqlSourceTestCase {
 
   // The plugin system is not working during unit testing so the source plugin
   // class needs to be manually specified.
@@ -49,6 +49,7 @@ class CommentTestBase extends MigrateSqlSourceTestCase {
       'mail' => '',
       'homepage' => '',
       'format' => 'testformat1',
+      'type' => 'story',
     ),
     array(
       'cid' => 2,
@@ -65,19 +66,9 @@ class CommentTestBase extends MigrateSqlSourceTestCase {
       'mail' => '',
       'homepage' => '',
       'format' => 'testformat2',
+      'type' => 'page',
     ),
   );
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'name' => 'D6 comment source functionality',
-      'description' => 'Tests D6 comment source plugin.',
-      'group' => 'Migrate Drupal',
-    );
-  }
 
   /**
    * {@inheritdoc}
@@ -87,6 +78,9 @@ class CommentTestBase extends MigrateSqlSourceTestCase {
       $this->databaseContents['comments'][$k] = $row;
       $this->databaseContents['comments'][$k]['status'] = 1 - $this->databaseContents['comments'][$k]['status'];
     }
+    // Add node table data.
+    $this->databaseContents['node'][] = array('nid' => 2, 'type' => 'story');
+    $this->databaseContents['node'][] = array('nid' => 3, 'type' => 'page');
     parent::setUp();
   }
 

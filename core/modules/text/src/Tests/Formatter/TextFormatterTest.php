@@ -10,7 +10,9 @@ namespace Drupal\text\Tests\Formatter;
 use Drupal\system\Tests\Entity\EntityUnitTestBase;
 
 /**
- * Tests Text formatters.
+ * Tests the text formatters functionality.
+ *
+ * @group text
  */
 class TextFormatterTest extends EntityUnitTestBase {
 
@@ -38,17 +40,6 @@ class TextFormatterTest extends EntityUnitTestBase {
   /**
    * {@inheritdoc}
    */
-  public static function getInfo() {
-    return array(
-      'name' => 'Text formatters',
-      'description' => 'Tests the text formatters functionality.',
-      'group' => 'Text ',
-    );
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function setUp() {
     parent::setUp();
 
@@ -64,7 +55,7 @@ class TextFormatterTest extends EntityUnitTestBase {
     ))->save();
 
     // Set up two fields: one with text processing enabled, the other disabled.
-    entity_create('field_config', array(
+    entity_create('field_storage_config', array(
       'name' => 'processed_text',
       'entity_type' => $this->entityType,
       'type' => 'text',
@@ -79,7 +70,7 @@ class TextFormatterTest extends EntityUnitTestBase {
         'text_processing' => TRUE,
       ),
     ))->save();
-    entity_create('field_config', array(
+    entity_create('field_storage_config', array(
       'name' => 'unprocessed_text',
       'entity_type' => $this->entityType,
       'type' => 'text',
@@ -107,7 +98,7 @@ class TextFormatterTest extends EntityUnitTestBase {
     );
 
     // Create the entity to be referenced.
-    $entity = entity_create($this->entityType, array('name' => $this->randomName()));
+    $entity = entity_create($this->entityType, array('name' => $this->randomMachineName()));
     $entity->processed_text = array(
       'value' => 'Hello, world!',
       'format' => 'my_text_format',

@@ -16,8 +16,6 @@ use Drupal\Tests\UnitTestCase;
 
 /**
  * @coversDefaultClass \Drupal\Core\Config\Entity\ConfigEntityBase
- *
- * @group Drupal
  * @group Config
  */
 class ConfigEntityBaseUnitTest extends UnitTestCase {
@@ -95,26 +93,15 @@ class ConfigEntityBaseUnitTest extends UnitTestCase {
   /**
    * {@inheritdoc}
    */
-  public static function getInfo() {
-    return array(
-      'description' => '',
-      'name' => '\Drupal\Core\Config\Entity\ConfigEntityBase unit test',
-      'group' => 'Entity',
-    );
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function setUp() {
-    $this->id = $this->randomName();
+    $this->id = $this->randomMachineName();
     $values = array(
       'id' => $this->id,
       'langcode' => 'en',
       'uuid' => '3bb9ee60-bea5-4622-b89b-a63319d10b3a',
     );
-    $this->entityTypeId = $this->randomName();
-    $this->provider = $this->randomName();
+    $this->entityTypeId = $this->randomMachineName();
+    $this->provider = $this->randomMachineName();
     $this->entityType = $this->getMock('\Drupal\Core\Entity\EntityTypeInterface');
     $this->entityType->expects($this->any())
       ->method('getProvider')
@@ -199,11 +186,11 @@ class ConfigEntityBaseUnitTest extends UnitTestCase {
     $method = new \ReflectionMethod('\Drupal\Core\Config\Entity\ConfigEntityBase', 'addDependency');
     $method->setAccessible(TRUE);
     $method->invoke($this->entity, 'module', $this->provider);
-    $method->invoke($this->entity, 'module', 'Core');
+    $method->invoke($this->entity, 'module', 'core');
     $method->invoke($this->entity, 'module', 'node');
     $dependencies = $this->entity->get('dependencies');
     $this->assertNotContains($this->provider, $dependencies['module']);
-    $this->assertNotContains('Core', $dependencies['module']);
+    $this->assertNotContains('core', $dependencies['module']);
     $this->assertContains('node', $dependencies['module']);
 
     // Test sorting of dependencies.
@@ -230,7 +217,7 @@ class ConfigEntityBaseUnitTest extends UnitTestCase {
       ->getMock();
 
     // Create a configurable plugin that would add a dependency.
-    $instance_id = $this->randomName();
+    $instance_id = $this->randomMachineName();
     $instance = new TestConfigurablePlugin(array(), $instance_id, $definition);
 
     // Create a plugin bag to contain the instance.
@@ -259,8 +246,8 @@ class ConfigEntityBaseUnitTest extends UnitTestCase {
    */
   public function providerCalculateDependenciesWithPluginBags() {
     // Start with 'a' so that order of the dependency array is fixed.
-    $instance_dependency_1 = 'a' . $this->randomName(10);
-    $instance_dependency_2 = 'a' . $this->randomName(11);
+    $instance_dependency_1 = 'a' . $this->randomMachineName(10);
+    $instance_dependency_2 = 'a' . $this->randomMachineName(11);
 
     return array(
       // Tests that the plugin provider is a module dependency.
@@ -297,7 +284,7 @@ class ConfigEntityBaseUnitTest extends UnitTestCase {
    * @covers ::getOriginalId
    */
   public function testGetOriginalId() {
-    $new_id = $this->randomName();
+    $new_id = $this->randomMachineName();
     $this->entity->set('id', $new_id);
     $this->assertSame($this->id, $this->entity->getOriginalId());
     $this->assertSame($this->entity, $this->entity->setOriginalId($new_id));
@@ -321,7 +308,7 @@ class ConfigEntityBaseUnitTest extends UnitTestCase {
    */
   public function testGet() {
     $name = 'id';
-    $value = $this->randomName();
+    $value = $this->randomMachineName();
     $this->assertSame($this->id, $this->entity->get($name));
     $this->assertSame($this->entity, $this->entity->set($name, $value));
     $this->assertSame($value, $this->entity->get($name));

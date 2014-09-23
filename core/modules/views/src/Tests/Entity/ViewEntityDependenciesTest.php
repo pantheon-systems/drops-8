@@ -11,7 +11,9 @@ use Drupal\views\Tests\ViewTestBase;
 use Drupal\views\Views;
 
 /**
- * Tests \Drupal\views\Entity\View::calculateDependencies().
+ * Tests the calculation of dependencies for views.
+ *
+ * @group views
  */
 class ViewEntityDependenciesTest extends ViewTestBase {
 
@@ -29,21 +31,13 @@ class ViewEntityDependenciesTest extends ViewTestBase {
    */
   public static $modules = array('node', 'comment');
 
-  public static function getInfo() {
-    return array(
-      'name' => 'View dependencies test',
-      'description' => 'Tests the calculation of dependencies for views.',
-      'group' => 'Views module integration',
-    );
-  }
-
   /**
    * Tests the calculateDependencies method.
    */
   public function testCalculateDependencies() {
     // The view is a view of comments, their nodes and their authors, so there
     // are three layers of entities.
-    $account = entity_create('user', array('name' => $this->randomName(), 'bundle' => 'user'));
+    $account = entity_create('user', array('name' => $this->randomMachineName(), 'bundle' => 'user'));
     $account->save();
     $this->drupalCreateContentType(array('type' => 'page'));
     $this->container->get('comment.manager')->addDefaultField('node', 'page');

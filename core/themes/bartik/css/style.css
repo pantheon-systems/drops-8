@@ -307,7 +307,7 @@ ul.menu li {
 }
 [dir="rtl"] .region-content ul,
 [dir="rtl"] .region-content ol {
-  padding: 2.5em 0 0.25em 0;
+  padding: 0 15px 0.25em 0;
 }
 .item-list ul li {
   margin: 0;
@@ -618,7 +618,7 @@ body:not(:target) .main-menu-reveal {
 }
 body:not(:target) .main-menu-reveal:after {
   content:"";
-  background: url('../../../misc/icons/ffffff/hamburger.svg') no-repeat;
+  background: url(../../../misc/icons/ffffff/hamburger.svg) no-repeat;
   background-size: contain;
   width: 22px;
   height: 22px;
@@ -1287,7 +1287,8 @@ div.tabs {
   background: #f0f0f0;
   background: rgba(30, 50, 10, 0.08);
 }
-div.messages {
+div.messages,
+[dir="rtl"] div.messages {
   margin: 8px 15px;
 }
 
@@ -1303,39 +1304,10 @@ div.messages {
   float: none;
 }
 
-/* -------------- Password Meter  ------------- */
+/* -------------- Password Field  ------------- */
 
-[dir="rtl"] #password-strength {
-  left: auto;
-  margin-top: 2em;
-  right: 16em;
-}
-[dir="rtl"] .form-item-pass-pass2 label {
-  clear: right;
-}
-.confirm-parent,
-.password-parent {
-  width: 34em;
-}
-.password-parent,
-div.form-item div.password-suggestions {
-  position: relative;
-}
-.password-strength-text,
-.password-strength-title,
-div.password-confirm {
-  font-size: 0.82em;
-}
-.password-strength-text {
-  margin-top: 0.2em;
-}
-[dir="rtl"] #password-strength-text {
-  margin-top: 0;
-  float: left;
-}
-div.password-confirm {
-  margin-top: 2.2em;
-  width: 20.73em;
+.password-field {
+  margin: 0;
 }
 
 /* ---------------- Buttons    ---------------- */
@@ -1403,8 +1375,11 @@ details .details-description {
   font-style: italic;
 }
 label {
-  display: block;
+  display: table;
   font-weight: bold;
+}
+label[for] {
+  cursor: pointer;
 }
 input {
   margin: 2px 0;
@@ -1677,25 +1652,14 @@ div.password-suggestions {
   cursor: pointer;
   text-indent: -9999px;
   border-color: #e4e4e4 #d2d2d2 #b4b4b4;
-  background: #f0f0f0 url("../../../misc/icons/505050/loupe.svg") no-repeat center;
+  background: #f0f0f0 url(../../../misc/icons/505050/loupe.svg) no-repeat center;
   overflow: hidden;
 }
 #search-block-form input.form-submit:hover,
 #search-block-form input.form-submit:focus,
 #search-form input.form-submit:hover,
 #search-form input.form-submit:focus {
-  background: #dedede url("../../../misc/icons/424242/loupe.svg") no-repeat center;
-}
-.no-svg #search-block-form input.form-submit,
-.no-svg #search-form input.form-submit {
-  background: #f0f0f0 url("../../../misc/icons/505050/loupe.png") no-repeat center;
-}
-.no-svg #search-block-form input.form-submit:hover,
-.no-svg #search-block-form input.form-submit:focus,
-.no-svg #search-form input.form-submit:hover,
-.no-svg #search-form input.form-submit:focus {
-  background: #dedede url("../../../misc/icons/424242/loupe.png") no-repeat center;
-
+  background: #dedede url(../../../misc/icons/424242/loupe.svg) no-repeat center;
 }
 #search-form .form-item-keys label {
   display: block;

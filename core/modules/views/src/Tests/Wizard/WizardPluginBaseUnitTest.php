@@ -7,13 +7,15 @@
 
 namespace Drupal\views\Tests\Wizard;
 
+use Drupal\Core\Form\FormState;
 use Drupal\Core\Language\Language;
 use Drupal\views\Tests\ViewUnitTestBase;
 use Drupal\views_ui\ViewUI;
 
 /**
- * Tests the wizard code.
+ * Tests the wizard base plugin class.
  *
+ * @group views
  * @see \Drupal\views\Plugin\views\wizard\WizardPluginBase
  */
 class WizardPluginBaseUnitTest extends ViewUnitTestBase {
@@ -32,14 +34,6 @@ class WizardPluginBaseUnitTest extends ViewUnitTestBase {
    */
   protected $wizard;
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Wizard Plugin Base',
-      'description' => 'Test the wizard base plugin class',
-      'group' => 'Views Wizard',
-    );
-  }
-
   protected function setUp() {
     parent::setUp();
 
@@ -57,11 +51,11 @@ class WizardPluginBaseUnitTest extends ViewUnitTestBase {
    */
   public function testCreateView() {
     $form = array();
-    $form_state = array();
+    $form_state = new FormState();
     $form = $this->wizard->buildForm($form, $form_state);
-    $random_id = strtolower($this->randomName());
-    $random_label = $this->randomName();
-    $random_description = $this->randomName();
+    $random_id = strtolower($this->randomMachineName());
+    $random_label = $this->randomMachineName();
+    $random_description = $this->randomMachineName();
 
     // Add a new language and mark it as default.
     $language = new Language(array(

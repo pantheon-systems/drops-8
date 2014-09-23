@@ -7,6 +7,7 @@
 
 namespace Drupal\taxonomy\Plugin\views\relationship;
 
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\views\ViewExecutable;
 use Drupal\views\Plugin\views\display\DisplayPluginBase;
 use Drupal\views\Plugin\views\relationship\RelationshipPluginBase;
@@ -44,7 +45,7 @@ class NodeTermData extends RelationshipPluginBase  {
     return $options;
   }
 
-  public function buildOptionsForm(&$form, &$form_state) {
+  public function buildOptionsForm(&$form, FormStateInterface $form_state) {
     $vocabularies = entity_load_multiple('taxonomy_vocabulary');
     $options = array();
     foreach ($vocabularies as $voc) {
@@ -55,7 +56,7 @@ class NodeTermData extends RelationshipPluginBase  {
       '#type' => 'checkboxes',
       '#title' => t('Vocabularies'),
       '#options' => $options,
-      '#default_value' => $this->options['vocabularies'],
+      '#default_value' => $this->options['vids'],
       '#description' => t('Choose which vocabularies you wish to relate. Remember that every term found will create a new record, so this relationship is best used on just one vocabulary that has only one term per node.'),
     );
     parent::buildOptionsForm($form, $form_state);

@@ -12,17 +12,11 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\PostResponseEvent;
 
 /**
- * Tests the service destruction functionality.
+ * Tests that services are correctly destructed.
+ *
+ * @group DrupalKernel
  */
 class ServiceDestructionTest extends DrupalUnitTestBase {
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Service destruction',
-      'description' => 'Tests that services are correctly destructed.',
-      'group' => 'DrupalKernel',
-    );
-  }
 
   /**
    * Verifies that services are destructed when used.
@@ -37,7 +31,7 @@ class ServiceDestructionTest extends DrupalUnitTestBase {
     // Call the class and then terminate the kernel
     $this->container->get('service_provider_test_class');
     $response = new Response();
-    $this->container->get('kernel')->terminate($this->container->get('request'), $response);
+    $this->container->get('kernel')->terminate($this->container->get('request_stack')->getCurrentRequest(), $response);
     $this->assertTrue(\Drupal::state()->get('service_provider_test.destructed'));
   }
 
@@ -54,7 +48,7 @@ class ServiceDestructionTest extends DrupalUnitTestBase {
     // Terminate the kernel. The test class has not been called, so it should not
     // be destructed.
     $response = new Response();
-    $this->container->get('kernel')->terminate($this->container->get('request'), $response);
+    $this->container->get('kernel')->terminate($this->container->get('request_stack')->getCurrentRequest(), $response);
     $this->assertNull(\Drupal::state()->get('service_provider_test.destructed'));
   }
 }

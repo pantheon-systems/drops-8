@@ -8,6 +8,7 @@
 namespace Drupal\shortcut;
 
 use Drupal\Core\Entity\EntityForm;
+use Drupal\Core\Form\FormStateInterface;
 
 /**
  * Form controller for the shortcut set entity edit forms.
@@ -17,7 +18,7 @@ class ShortcutSetForm extends EntityForm {
   /**
    * {@inheritdoc}
    */
-  public function form(array $form, array &$form_state) {
+  public function form(array $form, FormStateInterface $form_state) {
     $form = parent::form($form, $form_state);
 
     $entity = $this->entity;
@@ -50,19 +51,19 @@ class ShortcutSetForm extends EntityForm {
   /**
    * {@inheritdoc}
    */
-  public function validate(array $form, array &$form_state) {
+  public function validate(array $form, FormStateInterface $form_state) {
     parent::validate($form, $form_state);
     $entity = $this->entity;
     // Check to prevent a duplicate title.
     if ($form_state['values']['label'] != $entity->label() && shortcut_set_title_exists($form_state['values']['label'])) {
-      $this->setFormError('label', $form_state, $this->t('The shortcut set %name already exists. Choose another name.', array('%name' => $form_state['values']['label'])));
+      $form_state->setErrorByName('label', $this->t('The shortcut set %name already exists. Choose another name.', array('%name' => $form_state['values']['label'])));
     }
   }
 
   /**
    * {@inheritdoc}
    */
-  public function save(array $form, array &$form_state) {
+  public function save(array $form, FormStateInterface $form_state) {
     $entity = $this->entity;
     $is_new = !$entity->getOriginalId();
     $entity->save();
@@ -73,7 +74,7 @@ class ShortcutSetForm extends EntityForm {
     else {
       drupal_set_message(t('Updated set name to %set-name.', array('%set-name' => $entity->label())));
     }
-    $form_state['redirect_route'] = $this->entity->urlInfo('customize-form');
+    $form_state->setRedirectUrl($this->entity->urlInfo('customize-form'));
   }
 
 }

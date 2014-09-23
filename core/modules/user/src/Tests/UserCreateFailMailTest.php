@@ -11,6 +11,8 @@ use Drupal\simpletest\WebTestBase;
 
 /**
  * Tests the create user administration page.
+ *
+ * @group user
  */
 class UserCreateFailMailTest extends WebTestBase {
 
@@ -20,14 +22,6 @@ class UserCreateFailMailTest extends WebTestBase {
    * @var array
    */
   public static $modules = array('system_mail_failure_test');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'User create with failed mail function',
-      'description' => 'Test the create user administration page.',
-      'group' => 'User',
-    );
-  }
 
   /**
    * Tests the create user administration page.
@@ -39,10 +33,10 @@ class UserCreateFailMailTest extends WebTestBase {
     // Replace the mail functionality with a fake, malfunctioning service.
     \Drupal::config('system.mail')->set('interface.default', 'test_php_mail_failure')->save();
     // Create a user, but fail to send an email.
-    $name = $this->randomName();
+    $name = $this->randomMachineName();
     $edit = array(
       'name' => $name,
-      'mail' => $this->randomName() . '@example.com',
+      'mail' => $this->randomMachineName() . '@example.com',
       'pass[pass1]' => $pass = $this->randomString(),
       'pass[pass2]' => $pass,
       'notify' => TRUE,

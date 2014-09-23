@@ -23,7 +23,9 @@ use Drupal\Tests\Core\Routing\RoutingFixtures;
 use Drupal\Tests\Core\Routing\NullRouteBuilder;
 
 /**
- * Basic tests for the RouteProvider.
+ * Confirm that the default route provider is working correctly.
+ *
+ * @group Routing
  */
 class RouteProviderTest extends UnitTestBase {
 
@@ -47,14 +49,6 @@ class RouteProviderTest extends UnitTestBase {
    * @var \Drupal\Core\State\StateInterface
    */
   protected $state;
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Route Provider tests',
-      'description' => 'Confirm that the default route provider is working correctly.',
-      'group' => 'Routing',
-    );
-  }
 
   public function setUp() {
     $this->fixtures = new RoutingFixtures();
@@ -404,7 +398,7 @@ class RouteProviderTest extends UnitTestBase {
     }
     $this->assertTrue($exception_thrown, 'Random route was not found.');
 
-    $routes = $provider->getRoutesByNames(array('route_c', 'route_d', $this->randomName()));
+    $routes = $provider->getRoutesByNames(array('route_c', 'route_d', $this->randomMachineName()));
     $this->assertEqual(count($routes), 2, 'Only two valid routes found.');
     $this->assertEqual($routes['route_c']->getPath(), '/path/two');
     $this->assertEqual($routes['route_d']->getPath(), '/path/three');

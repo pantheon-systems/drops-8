@@ -7,13 +7,15 @@
 
 namespace Drupal\comment\Tests;
 
-use Drupal\simpletest\WebTestBase;
+use Drupal\comment\CommentManagerInterface;
 
 /**
  * Tests comments with node access.
  *
  * Verifies there is no PostgreSQL error when viewing a node with threaded
  * comments (a comment and a reply), if a node access module is in use.
+ *
+ * @group comment
  */
 class CommentNodeAccessTest extends CommentTestBase {
 
@@ -23,14 +25,6 @@ class CommentNodeAccessTest extends CommentTestBase {
    * @var array
    */
   public static $modules = array('node_access_test');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Comment node access',
-      'description' => 'Test comment viewing with node access.',
-      'group' => 'Comment',
-    );
-  }
 
   function setUp() {
     parent::setUp();
@@ -60,13 +54,13 @@ class CommentNodeAccessTest extends CommentTestBase {
     $this->setCommentPreview(DRUPAL_DISABLED);
     $this->setCommentForm(TRUE);
     $this->setCommentSubject(TRUE);
-    $this->setCommentSettings('default_mode', COMMENT_MODE_THREADED, 'Comment paging changed.');
+    $this->setCommentSettings('default_mode', CommentManagerInterface::COMMENT_MODE_THREADED, 'Comment paging changed.');
     $this->drupalLogout();
 
     // Post comment.
     $this->drupalLogin($this->web_user);
-    $comment_text = $this->randomName();
-    $comment_subject = $this->randomName();
+    $comment_text = $this->randomMachineName();
+    $comment_subject = $this->randomMachineName();
     $comment = $this->postComment($this->node, $comment_text, $comment_subject);
     $this->assertTrue($this->commentExists($comment), 'Comment found.');
 
@@ -77,8 +71,8 @@ class CommentNodeAccessTest extends CommentTestBase {
 
     // Reply to comment, creating second comment.
     $this->drupalGet('comment/reply/node/' . $this->node->id() . '/comment/' . $comment->id());
-    $reply_text = $this->randomName();
-    $reply_subject = $this->randomName();
+    $reply_text = $this->randomMachineName();
+    $reply_subject = $this->randomMachineName();
     $reply = $this->postComment(NULL, $reply_text, $reply_subject, TRUE);
     $this->assertTrue($this->commentExists($reply, TRUE), 'Reply found.');
 

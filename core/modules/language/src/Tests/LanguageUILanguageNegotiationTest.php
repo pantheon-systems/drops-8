@@ -19,7 +19,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Drupal\language\LanguageNegotiatorInterface;
 
 /**
- * Test UI language negotiation
+ * Tests UI language switching.
  *
  * 1. URL (PATH) > DEFAULT
  *    UI Language base on URL prefix, browser language preference has no
@@ -43,6 +43,8 @@ use Drupal\language\LanguageNegotiatorInterface;
  *          UI language in site default
  *        http://example.cn/admin/config
  *          UI language in Chinese
+ *
+ * @group language
  */
 class LanguageUILanguageNegotiationTest extends WebTestBase {
 
@@ -57,19 +59,8 @@ class LanguageUILanguageNegotiationTest extends WebTestBase {
    */
   public static $modules = array('locale', 'language_test', 'block', 'user');
 
-  public static function getInfo() {
-    return array(
-      'name' => 'UI language negotiation',
-      'description' => 'Test UI language switching.',
-      'group' => 'Language',
-    );
-  }
-
   function setUp() {
     parent::setUp();
-
-    $this->request = Request::createFromGlobals();
-    $this->container->set('request', $this->request);
 
     $admin_user = $this->drupalCreateUser(array('administer languages', 'translate interface', 'access administration pages', 'administer blocks'));
     $this->drupalLogin($admin_user);
@@ -438,7 +429,7 @@ class LanguageUILanguageNegotiationTest extends WebTestBase {
     // Base path gives problems on the testbot, so $correct_link is hard-coded.
     // @see UrlAlterFunctionalTest::assertUrlOutboundAlter (path.test).
     $italian_url = url('admin', array('language' => $languages['it'], 'script' => ''));
-    $url_scheme = $this->request->isSecure() ? 'https://' : 'http://';
+    $url_scheme = \Drupal::request()->isSecure() ? 'https://' : 'http://';
     $correct_link = $url_scheme . $link;
     $this->assertEqual($italian_url, $correct_link, format_string('The url() function returns the right URL (@url) in accordance with the chosen language', array('@url' => $italian_url)));
 
@@ -452,9 +443,9 @@ class LanguageUILanguageNegotiationTest extends WebTestBase {
     $this->settingsSet('mixed_mode_sessions', FALSE);
 
     // Test HTTPS via current URL scheme.
-    $generator = $this->container->get('url_generator');
     $request = Request::create('', 'GET', array(), array(), array(), array('HTTPS' => 'on'));
-    $generator->setRequest($request);
+    $this->container->get('request_stack')->push($request);
+    $generator = $this->container->get('url_generator');
     $italian_url = url('admin', array('language' => $languages['it'], 'script' => ''));
     $correct_link = 'https://' . $link;
     $this->assertTrue($italian_url == $correct_link, format_string('The url() function returns the right URL (via current URL scheme) (@url) in accordance with the chosen language', array('@url' => $italian_url)));

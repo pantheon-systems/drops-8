@@ -39,7 +39,7 @@
 .views-admin .icon,
 .views-admin .icon-text {
   background-attachment: scroll;
-  background-image: url("../images/sprites.png");
+  background-image: url(../images/sprites.png);
   background-position: left top; /* LTR */
   background-repeat: no-repeat;
 }
@@ -50,13 +50,13 @@
 
 .views-admin a.icon {
   background-image:
-    url("../images/sprites.png"),
+    url(../images/sprites.png),
     -moz-linear-gradient(
       -90deg,
       #fff 0,
       #e8e8e8 100%);
   background-image:
-    url("../images/sprites.png"),
+    url(../images/sprites.png),
     -webkit-gradient(
       linear,
       left top,
@@ -65,7 +65,7 @@
       color-stop(1.0, rgba(232, 232, 232, 1.0))
     );
   background-image:
-    url("../images/sprites.png"),
+    url(../images/sprites.png),
     -webkit-linear-gradient(
       -90deg,
       #fff 0,
@@ -1087,27 +1087,6 @@ td.group-title {
 
 /* @end */
 
-/* @group AJAX */
-
-/* Hide the drupal system throbber image */
-.ajax-progress .throbber {
-  display: none;
-}
-
-.ajax-progress-throbber {
-  background-color: #232323;
-  background-image: url("../images/loading-small.gif");
-  background-position: center center;
-  background-repeat: no-repeat;
-  border-radius: 7px;
-  height: 24px;
-  opacity: 0.9;
-  padding: 4px;
-  width: 24px;
-}
-
-/* @end */
-
 /* @group Drupal
  *
  * Overrides to Drupal system CSS
@@ -1131,12 +1110,17 @@ div.messages {
   font-size: 11px;
 }
 .js .dropbutton-wrapper.dropbutton-multiple.open .dropbutton-action:first-child a {
-  border-radius: 1.1em 0 0 0;
+  border-radius: 1.1em 0 0 0; /* LTR */
+}
+[dir="rtl"].js .dropbutton-wrapper.dropbutton-multiple.open .dropbutton-action:first-child a {
+  border-radius: 0 1.1em 0 0;
 }
 .js .dropbutton-wrapper.dropbutton-multiple.open .dropbutton-action:last-child a {
-  border-radius: 0 0 0 1.1em;
+  border-radius: 0 0 0 1.1em; /* LTR */
 }
-
+[dir="rtl"].js .dropbutton-wrapper.dropbutton-multiple.open .dropbutton-action:last-child a {
+  border-radius: 0 0 1.1em 0;
+}
 .views-display-top .dropbutton-wrapper {
   position: absolute;
   right: 12px;
@@ -1148,9 +1132,14 @@ div.messages {
 
 .views-ui-display-tab-bucket .dropbutton-wrapper {
   position: absolute;
-  right: 5px;
+  right: 5px; /* LTR */
   top: 4px;
 }
+[dir="rtl"] .views-ui-display-tab-bucket .dropbutton-wrapper {
+  left: 5px;
+  right: auto;
+}
+
 .views-ui-display-tab-bucket .dropbutton-wrapper .dropbutton-widget .dropbutton-action a {
   width: auto;
 }

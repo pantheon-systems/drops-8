@@ -13,9 +13,7 @@ use Drupal\Tests\UnitTestCase;
 
 /**
  * @coversDefaultClass \Drupal\editor\Entity\Editor
- *
- * @group Drupal
- * @group Config
+ * @group editor
  */
 class EditorConfigEntityUnitTest extends UnitTestCase {
 
@@ -71,20 +69,9 @@ class EditorConfigEntityUnitTest extends UnitTestCase {
   /**
    * {@inheritdoc}
    */
-  public static function getInfo() {
-    return array(
-      'description' => '',
-      'name' => '\Drupal\editor\Entity\Editor unit test',
-      'group' => 'Entity',
-    );
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function setUp() {
-    $this->editorId = $this->randomName();
-    $this->entityTypeId = $this->randomName();
+    $this->editorId = $this->randomMachineName();
+    $this->entityTypeId = $this->randomMachineName();
 
     $this->entityType = $this->getMock('\Drupal\Core\Entity\EntityTypeInterface');
     $this->entityType->expects($this->any())

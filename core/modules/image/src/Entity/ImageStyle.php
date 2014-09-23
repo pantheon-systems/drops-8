@@ -12,6 +12,7 @@ use Drupal\Core\Config\Entity\ConfigEntityBase;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityWithPluginBagsInterface;
 use Drupal\Core\Routing\RequestHelper;
+use Drupal\Core\Site\Settings;
 use Drupal\image\ImageEffectBag;
 use Drupal\image\ImageEffectInterface;
 use Drupal\image\ImageStyleInterface;
@@ -41,9 +42,9 @@ use Symfony\Component\DependencyInjection\Exception\ServiceNotFoundException;
  *     "label" = "label"
  *   },
  *   links = {
- *     "flush-form" = "image.style_flush",
- *     "edit-form" = "image.style_edit",
- *     "delete-form" = "image.style_delete"
+ *     "flush-form" = "entity.image_style.flush_form",
+ *     "edit-form" = "entity.image_style.edit_form",
+ *     "delete-form" = "entity.image_style.delete_form"
  *   }
  * )
  */
@@ -271,7 +272,7 @@ class ImageStyle extends ConfigEntityBase implements ImageStyleInterface, Entity
 
     // Build the destination folder tree if it doesn't already exist.
     if (!file_prepare_directory($directory, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS)) {
-      watchdog('image', 'Failed to create style directory: %directory', array('%directory' => $directory), WATCHDOG_ERROR);
+      \Drupal::logger('image')->error('Failed to create style directory: %directory', array('%directory' => $directory));
       return FALSE;
     }
 
@@ -286,7 +287,7 @@ class ImageStyle extends ConfigEntityBase implements ImageStyleInterface, Entity
 
     if (!$image->save($derivative_uri)) {
       if (file_exists($derivative_uri)) {
-        watchdog('image', 'Cached image file %destination already exists. There may be an issue with your rewrite configuration.', array('%destination' => $derivative_uri), WATCHDOG_ERROR);
+        \Drupal::logger('image')->error('Cached image file %destination already exists. There may be an issue with your rewrite configuration.', array('%destination' => $derivative_uri));
       }
       return FALSE;
     }
@@ -308,7 +309,7 @@ class ImageStyle extends ConfigEntityBase implements ImageStyleInterface, Entity
    */
   public function getPathToken($uri) {
     // Return the first 8 characters.
-    return substr(Crypt::hmacBase64($this->id() . ':' . $uri, \Drupal::service('private_key')->get() . drupal_get_hash_salt()), 0, 8);
+    return substr(Crypt::hmacBase64($this->id() . ':' . $uri, \Drupal::service('private_key')->get() . Settings::getHashSalt()), 0, 8);
   }
 
   /**

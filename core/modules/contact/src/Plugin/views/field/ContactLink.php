@@ -7,8 +7,9 @@
 
 namespace Drupal\contact\Plugin\views\field;
 
-use Drupal\Core\Access\AccessManager;
+use Drupal\Core\Access\AccessManagerInterface;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\user\Plugin\views\field\Link;
 use Drupal\views\ResultRow;
@@ -26,7 +27,7 @@ class ContactLink extends Link {
   /**
    * The access manager.
    *
-   * @var \Drupal\Core\Access\AccessManager
+   * @var \Drupal\Core\Access\AccessManagerInterface
    */
   protected $accessManager;
 
@@ -61,10 +62,10 @@ class ContactLink extends Link {
    *   The plugin_id for the plugin instance.
    * @param mixed $plugin_definition
    *   The plugin implementation definition.
-   * @param \Drupal\Core\Access\AccessManager $access_manager
+   * @param \Drupal\Core\Access\AccessManagerInterface $access_manager
    *   The access manager.
    */
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, AccessManager $access_manager) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, AccessManagerInterface $access_manager) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
     $this->accessManager = $access_manager;
   }
@@ -84,7 +85,7 @@ class ContactLink extends Link {
   /**
    * {@inheritdoc}
    */
-  public function buildOptionsForm(&$form, &$form_state) {
+  public function buildOptionsForm(&$form, FormStateInterface $form_state) {
     parent::buildOptionsForm($form, $form_state);
     $form['text']['#title'] = t('Link label');
     $form['text']['#required'] = TRUE;

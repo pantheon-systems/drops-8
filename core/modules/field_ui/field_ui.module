@@ -6,6 +6,7 @@
  */
 
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\entity\EntityViewModeInterface;
@@ -110,7 +111,7 @@ function field_ui_entity_type_build(array &$entity_types) {
   /** @var $entity_types \Drupal\Core\Entity\EntityTypeInterface[] */
   $entity_types['field_instance_config']->setFormClass('delete', 'Drupal\field_ui\Form\FieldInstanceConfigDeleteForm');
   $entity_types['field_instance_config']->setListBuilderClass('Drupal\field_ui\FieldInstanceConfigListBuilder');
-  $entity_types['field_config']->setListBuilderClass('Drupal\field_ui\FieldConfigListBuilder');
+  $entity_types['field_storage_config']->setListBuilderClass('Drupal\field_ui\FieldStorageConfigListBuilder');
 
   foreach ($entity_types as $entity_type) {
     if ($bundle = $entity_type->getBundleOf()) {
@@ -148,7 +149,7 @@ function field_ui_entity_bundle_rename($entity_type, $bundle_old, $bundle_new) {
  * @see node_type_form()
  * @see field_ui_form_node_type_form_submit()
  */
-function field_ui_form_node_type_form_alter(&$form, $form_state) {
+function field_ui_form_node_type_form_alter(&$form, FormStateInterface $form_state) {
   // We want to display the button only on add page.
   if ($form_state['controller']->getEntity()->isNew()) {
     $form['actions']['save_continue'] = $form['actions']['submit'];
@@ -169,19 +170,20 @@ function field_ui_entity_operation(EntityInterface $entity) {
   // Add manage fields and display links if this entity type is the bundle
   // of another.
   if ($bundle_of = $info->getBundleOf()) {
-    if (user_access('administer '. $bundle_of . ' fields')) {
+    $account = \Drupal::currentUser();
+    if ($account->hasPermission('administer '. $bundle_of . ' fields')) {
       $operations['manage-fields'] = array(
         'title' => t('Manage fields'),
         'weight' => 15,
       ) + $entity->urlInfo('field_ui-fields')->toArray();
     }
-    if (user_access('administer '. $bundle_of . ' form display')) {
+    if ($account->hasPermission('administer '. $bundle_of . ' form display')) {
       $operations['manage-form-display'] = array(
         'title' => t('Manage form display'),
         'weight' => 20,
       ) + $entity->urlInfo('field_ui-form-display')->toArray();
     }
-    if (user_access('administer '. $bundle_of . ' display')) {
+    if ($account->hasPermission('administer '. $bundle_of . ' display')) {
       $operations['manage-display'] = array(
         'title' => t('Manage display'),
         'weight' => 25,
@@ -197,9 +199,9 @@ function field_ui_entity_operation(EntityInterface $entity) {
  *
  * @see field_ui_form_node_type_form_alter()
  */
-function field_ui_form_node_type_form_submit($form, &$form_state) {
+function field_ui_form_node_type_form_submit($form, FormStateInterface $form_state) {
   if ($form_state['triggering_element']['#parents'][0] === 'save_continue' && $route_info = FieldUI::getOverviewRouteInfo('node', $form_state['values']['type'])) {
-    $form_state['redirect_route'] = $route_info;
+    $form_state->setRedirectUrl($route_info);
   }
 }
 

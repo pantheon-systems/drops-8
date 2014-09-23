@@ -7,10 +7,14 @@
 
 namespace Drupal\user\Tests;
 
+use Drupal\Core\Form\FormState;
 use Drupal\simpletest\DrupalUnitTestBase;
 
 /**
- * Tests field order and element attributes in user account forms.
+ * Verifies that the field order in user account forms is compatible with
+ * password managers of web browsers.
+ *
+ * @group user
  */
 class UserAccountFormFieldsTest extends DrupalUnitTestBase {
 
@@ -21,21 +25,13 @@ class UserAccountFormFieldsTest extends DrupalUnitTestBase {
    */
   public static $modules = array('system', 'user', 'entity', 'field');
 
-  public static function getInfo() {
-    return array(
-      'name' => 'User account form fields',
-      'description' => 'Verifies that the field order in user account forms is compatible with password managers of web browsers.',
-      'group' => 'User',
-    );
-  }
-
   /**
    * Tests the root user account form section in the "Configure site" form.
    */
   function testInstallConfigureForm() {
     require_once DRUPAL_ROOT . '/core/includes/install.core.inc';
     $install_state = install_state_defaults();
-    $form_state = array();
+    $form_state = new FormState();
     $form_state['build_info']['args'][] = &$install_state;
     $form = $this->container->get('form_builder')
       ->buildForm('Drupal\Core\Installer\Form\SiteConfigureForm', $form_state);

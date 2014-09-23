@@ -29,9 +29,8 @@ if (!defined('CSS_AGGREGATE_DEFAULT')) {
 }
 
 /**
- * Tests the library discovery parser.
- *
  * @coversDefaultClass \Drupal\Core\Asset\LibraryDiscoveryParser
+ * @group Asset
  */
 class LibraryDiscoveryParserTest extends UnitTestCase {
 
@@ -66,17 +65,6 @@ class LibraryDiscoveryParserTest extends UnitTestCase {
   /**
    * {@inheritdoc}
    */
-  public static function getInfo() {
-    return array(
-      'name' => 'Tests \Drupal\Core\Asset\LibraryDiscoveryParser',
-      'description' => '',
-      'group' => 'Asset handling',
-    );
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   protected function setUp() {
     $this->moduleHandler = $this->getMock('Drupal\Core\Extension\ModuleHandlerInterface');
     $this->libraryDiscoveryParser = new TestLibraryDiscoveryParser($this->moduleHandler);
@@ -87,7 +75,7 @@ class LibraryDiscoveryParserTest extends UnitTestCase {
    *
    * @covers ::buildByExtension()
    */
-  public function testBuildLibrariesByExtensionSimple() {
+  public function testBuildByExtensionSimple() {
     $this->moduleHandler->expects($this->atLeastOnce())
       ->method('moduleExists')
       ->with('example_module')
@@ -114,7 +102,7 @@ class LibraryDiscoveryParserTest extends UnitTestCase {
    *
    * @covers ::buildByExtension()
    */
-  public function testBuildLibrariesByExtensionWithTheme() {
+  public function testBuildByExtensionWithTheme() {
     $this->moduleHandler->expects($this->atLeastOnce())
       ->method('moduleExists')
       ->with('example_theme')
@@ -138,7 +126,7 @@ class LibraryDiscoveryParserTest extends UnitTestCase {
    *
    * @covers ::buildByExtension()
    */
-  public function testBuildLibrariesByExtensionWithMissingLibraryFile() {
+  public function testBuildByExtensionWithMissingLibraryFile() {
     $this->moduleHandler->expects($this->atLeastOnce())
       ->method('moduleExists')
       ->with('example_module')
@@ -179,7 +167,7 @@ class LibraryDiscoveryParserTest extends UnitTestCase {
    *
    * @covers ::buildByExtension()
    */
-  public function testBuildLibrariesByExtensionWithMissingInformation() {
+  public function testBuildByExtensionWithMissingInformation() {
     $this->moduleHandler->expects($this->atLeastOnce())
       ->method('moduleExists')
       ->with('example_module_missing_information')
@@ -356,6 +344,112 @@ class LibraryDiscoveryParserTest extends UnitTestCase {
     $this->assertEquals('//cdn.com/test.css', $library['css'][2]['data']);
     $this->assertEquals('file', $library['css'][3]['type']);
     $this->assertEquals('public://test.css', $library['css'][3]['data']);
+  }
+
+  /**
+   * Tests that an exception is thrown when license is missing when 3rd party.
+   *
+   * @expectedException \Drupal\Core\Asset\Exception\LibraryDefinitionMissingLicenseException
+   * @expectedExceptionMessage Missing license information in library definition for 'no-license-info-but-remote' in core/tests/Drupal/Tests/Core/Asset/library_test_files/licenses_missing_information.libraries.yml: it has a remote, but no license.
+   *
+   * @covers ::buildByExtension()
+   */
+  public function testLibraryThirdPartyWithMissingLicense() {
+    $this->moduleHandler->expects($this->atLeastOnce())
+      ->method('moduleExists')
+      ->with('licenses_missing_information')
+      ->will($this->returnValue(TRUE));
+
+    $path = __DIR__ . '/library_test_files';
+    $path = substr($path, strlen(DRUPAL_ROOT) + 1);
+    $this->libraryDiscoveryParser->setPaths('module', 'licenses_missing_information', $path);
+
+    $this->libraryDiscoveryParser->buildByExtension('licenses_missing_information');
+  }
+
+  /**
+   * Tests a library with various licenses, some GPL-compatible, some not.
+   *
+   * @covers ::buildByExtension()
+   */
+  public function testLibraryWithLicenses() {
+    $this->moduleHandler->expects($this->atLeastOnce())
+      ->method('moduleExists')
+      ->with('licenses')
+      ->will($this->returnValue(TRUE));
+
+    $path = __DIR__ . '/library_test_files';
+    $path = substr($path, strlen(DRUPAL_ROOT) + 1);
+    $this->libraryDiscoveryParser->setPaths('module', 'licenses', $path);
+
+    $libraries = $this->libraryDiscoveryParser->buildByExtension('licenses');
+
+
+    // For libraries without license info, the default license is applied.
+    $library = $libraries['no-license-info'];
+    $this->assertCount(1, $library['css']);
+    $this->assertCount(1, $library['js']);
+    $this->assertTrue(isset($library['license']));
+    $default_license = array(
+      'name' => 'GNU-GPL-2.0-or-later',
+      'url' => 'https://drupal.org/licensing/faq',
+      'gpl-compatible' => TRUE,
+    );
+    $this->assertEquals($library['license'], $default_license);
+
+    // GPL2-licensed libraries.
+    $library = $libraries['gpl2'];
+    $this->assertCount(1, $library['css']);
+    $this->assertCount(1, $library['js']);
+    $expected_license = array(
+      'name' => 'gpl2',
+      'url' => 'https://url-to-gpl2-license',
+      'gpl-compatible' => TRUE,
+    );
+    $this->assertEquals($library['license'], $expected_license);
+
+    // MIT-licensed libraries.
+    $library = $libraries['mit'];
+    $this->assertCount(1, $library['css']);
+    $this->assertCount(1, $library['js']);
+    $expected_license = array(
+      'name' => 'MIT',
+      'url' => 'https://url-to-mit-license',
+      'gpl-compatible' => TRUE,
+    );
+    $this->assertEquals($library['license'], $expected_license);
+
+    // Libraries in the Public Domain.
+    $library = $libraries['public-domain'];
+    $this->assertCount(1, $library['css']);
+    $this->assertCount(1, $library['js']);
+    $expected_license = array(
+      'name' => 'Public Domain',
+      'url' => 'https://url-to-public-domain-license',
+      'gpl-compatible' => TRUE,
+    );
+    $this->assertEquals($library['license'], $expected_license);
+
+    // Apache-licensed libraries.
+    $library = $libraries['apache'];
+    $this->assertCount(1, $library['css']);
+    $this->assertCount(1, $library['js']);
+    $expected_license = array(
+      'name' => 'apache',
+      'url' => 'https://url-to-apache-license',
+      'gpl-compatible' => FALSE,
+    );
+    $this->assertEquals($library['license'], $expected_license);
+
+    // Copyrighted libraries.
+    $library = $libraries['copyright'];
+    $this->assertCount(1, $library['css']);
+    $this->assertCount(1, $library['js']);
+    $expected_license = array(
+      'name' => '© Some company',
+      'gpl-compatible' => FALSE,
+    );
+    $this->assertEquals($library['license'], $expected_license);
   }
 
 }

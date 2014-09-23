@@ -15,24 +15,18 @@ use Drupal\breakpoint\InvalidBreakpointSourceTypeException;
 use Drupal\Component\Utility\Unicode;
 
 /**
- * Tests for general breakpoint group API functions.
+ * Tests general API functions of the breakpoint module.
+ *
+ * @group breakpoint
  */
 class BreakpointGroupAPITest extends BreakpointGroupTestBase {
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Breakpoint group general API functions',
-      'description' => 'Test general API functions of the breakpoint module.',
-      'group' => 'Breakpoint',
-    );
-  }
 
   /**
    * Test Breakpoint::buildConfigName().
    */
   public function testConfigName() {
     // Try an invalid sourceType.
-    $label = $this->randomName();
+    $label = $this->randomMachineName();
     $breakpoint_group = entity_create('breakpoint_group', array(
       'label' => $label,
       'name' => drupal_strtolower($label),

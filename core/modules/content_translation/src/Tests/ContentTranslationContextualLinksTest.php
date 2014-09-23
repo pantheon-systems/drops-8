@@ -13,6 +13,8 @@ use Drupal\simpletest\WebTestBase;
 
 /**
  * Tests that contextual links are available for content translation.
+ *
+ * @group content_translation
  */
 class ContentTranslationContextualLinksTest extends WebTestBase {
 
@@ -51,19 +53,11 @@ class ContentTranslationContextualLinksTest extends WebTestBase {
    */
   protected $profile = 'testing';
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Content translation contextual links',
-      'description' => 'Tests contextual links for content translation.',
-      'group' => 'Content Translation UI',
-    );
-  }
-
   function setUp() {
     parent::setUp();
 
     // Create a content type.
-    $this->bundle = $this->randomName();
+    $this->bundle = $this->randomMachineName();
     $this->contentType = $this->drupalCreateContentType(array('type' => $this->bundle));
 
     // Create a translator user.

@@ -49,7 +49,7 @@ abstract class MigrateCommentVariableDisplayBase extends MigrateDrupalTestBase {
    */
   protected function setUp() {
     parent::setUp();
-    entity_create('field_config', array(
+    entity_create('field_storage_config', array(
       'entity_type' => 'node',
       'name' => 'comment',
       'type' => 'comment',
@@ -58,7 +58,7 @@ abstract class MigrateCommentVariableDisplayBase extends MigrateDrupalTestBase {
     foreach ($this->types as $type) {
       entity_create('node_type', array('type' => $type))->save();
       entity_create('field_instance_config', array(
-        'label' => 'Comment settings',
+        'label' => 'Comments',
         'description' => '',
         'field_name' => 'comment',
         'entity_type' => 'node',

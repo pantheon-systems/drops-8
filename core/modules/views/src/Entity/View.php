@@ -263,12 +263,17 @@ class View extends ConfigEntityBase implements ViewStorageInterface {
       $handler_types[] = $type['plural'];
     }
     foreach ($this->get('display') as $display) {
+      // Add dependency for the display itself.
+      if (isset($display['provider'])) {
+        $this->addDependency('module', $display['provider']);
+      }
+
       // Collect all dependencies of all handlers.
       foreach ($handler_types as $handler_type) {
         if (!empty($display['display_options'][$handler_type])) {
           foreach ($display['display_options'][$handler_type] as $handler) {
             // Add the provider as dependency.
-            if (isset($handler['provider']) && empty($handler['optional'])) {
+            if (isset($handler['provider'])) {
               $this->addDependency('module', $handler['provider']);
             }
             // Add the additional dependencies from the handler configuration.

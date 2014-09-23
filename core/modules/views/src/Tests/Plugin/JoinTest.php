@@ -13,8 +13,9 @@ use Drupal\views\Views;
 
 
 /**
- * Tests a generic join plugin and the join plugin base.
+ * Tests the join plugin.
  *
+ * @group views
  * @see \Drupal\views_test_data\Plugin\views\join\JoinTest
  * @see \Drupal\views\Plugin\views\join\JoinPluginBase
  */
@@ -33,14 +34,6 @@ class JoinTest extends RelationshipJoinTestBase {
    * @var \Drupal\views\Plugin\ViewsPluginManager
    */
   protected $manager;
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Join',
-      'description' => 'Tests the join plugin.',
-      'group' => 'Views Plugins',
-    );
-  }
 
   protected function setUp() {
     parent::setUp();
@@ -137,8 +130,8 @@ class JoinTest extends RelationshipJoinTestBase {
     $this->assertEqual($join_info['join type'], 'INNER');
 
     // Setup addition conditions and make sure it is used.
-    $random_name_1 = $this->randomName();
-    $random_name_2 = $this->randomName();
+    $random_name_1 = $this->randomMachineName();
+    $random_name_2 = $this->randomMachineName();
     $configuration['extra'] = array(
       array(
         'field' => 'name',

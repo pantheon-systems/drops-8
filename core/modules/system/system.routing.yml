@@ -220,7 +220,7 @@ system.date_format_add:
   requirements:
     _permission: 'administer site configuration'
 
-system.date_format_edit:
+entity.date_format.edit_form:
   path: '/admin/config/regional/date-time/formats/manage/{date_format}'
   defaults:
     _entity_form: 'date_format.edit'
@@ -228,7 +228,7 @@ system.date_format_edit:
   requirements:
     _entity_access: 'date_format.update'
 
-system.date_format_delete:
+entity.date_format.delete_form:
   path: '/admin/config/regional/date-time/formats/manage/{date_format}/delete'
   defaults:
     _entity_form: 'date_format.delete'
@@ -382,7 +382,7 @@ system.admin_config:
   path: '/admin/config'
   defaults:
     _content: '\Drupal\system\Controller\SystemController::overview'
-    path: 'admin/config'
+    link_id: 'system.admin_config'
     _title: 'Configuration'
   requirements:
     _permission: 'access administration pages'
@@ -414,7 +414,7 @@ system.admin_content:
   path: '/admin/content'
   defaults:
     _content: '\Drupal\system\Controller\SystemController::overview'
-    path: 'admin/content'
+    link_id: 'system.admin_content'
     _title: 'Content'
   requirements:
     _permission: 'access administration pages'

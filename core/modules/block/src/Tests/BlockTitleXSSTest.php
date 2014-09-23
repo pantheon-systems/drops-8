@@ -11,6 +11,8 @@ use Drupal\simpletest\WebTestBase;
 
 /**
  * Tests block XSS in title.
+ *
+ * @group block
  */
 class BlockTitleXSSTest extends WebTestBase {
 
@@ -20,14 +22,6 @@ class BlockTitleXSSTest extends WebTestBase {
    * @var array
    */
   public static $modules = array('block', 'block_test');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Block XSS Title',
-      'description' => 'Test block XSS in title.',
-      'group' => 'Block',
-    );
-  }
 
   protected function setUp() {
     parent::setUp();
@@ -39,7 +33,7 @@ class BlockTitleXSSTest extends WebTestBase {
    * Test XSS in title.
    */
   function testXSSInTitle() {
-    \Drupal::state()->set('block_test.content', $this->randomName());
+    \Drupal::state()->set('block_test.content', $this->randomMachineName());
     $this->drupalGet('');
     $this->assertNoRaw('<script>alert("XSS label");</script>', 'The block title was properly sanitized when rendered.');
 

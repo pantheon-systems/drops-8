@@ -12,6 +12,8 @@ use Drupal\simpletest\WebTestBase;
 
 /**
  * Tests configuration entity status UI functionality.
+ *
+ * @group config
  */
 class ConfigEntityStatusUITest extends WebTestBase {
 
@@ -22,22 +24,14 @@ class ConfigEntityStatusUITest extends WebTestBase {
    */
   public static $modules = array('config_test');
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Configuration entity status UI',
-      'description' => 'Tests configuration entity status UI functionality.',
-      'group' => 'Configuration',
-    );
-  }
-
   /**
    * Tests status operations.
    */
   function testCRUD() {
-    $id = strtolower($this->randomName());
+    $id = strtolower($this->randomMachineName());
     $edit = array(
       'id' => $id,
-      'label' => $this->randomName(),
+      'label' => $this->randomMachineName(),
     );
     $this->drupalPostForm('admin/structure/config_test/add', $edit, 'Save');
 

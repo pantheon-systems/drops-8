@@ -10,6 +10,7 @@ namespace Drupal\aggregator\Form;
 use Drupal\aggregator\FeedStorageInterface;
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Form\FormBase;
+use Drupal\Core\Form\FormStateInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\ClientInterface;
@@ -66,9 +67,9 @@ class OpmlFeedAdd extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, array &$form_state) {
+  public function buildForm(array $form, FormStateInterface $form_state) {
     $intervals = array(900, 1800, 3600, 7200, 10800, 21600, 32400, 43200, 64800, 86400, 172800, 259200, 604800, 1209600, 2419200);
-    $period = array_map('format_interval', array_combine($intervals, $intervals));
+    $period = array_map(array(\Drupal::service('date.formatter'), 'formatInterval'), array_combine($intervals, $intervals));
 
     $form['upload'] = array(
       '#type' => 'file',
@@ -86,7 +87,7 @@ class OpmlFeedAdd extends FormBase {
       '#title' => $this->t('Update interval'),
       '#default_value' => 3600,
       '#options' => $period,
-      '#description' => $this->t('The length of time between feed updates. Requires a correctly configured <a href="@cron">cron maintenance task</a>.', array('@cron' => url('admin/reports/status'))),
+      '#description' => $this->t('The length of time between feed updates. Requires a correctly configured <a href="@cron">cron maintenance task</a>.', array('@cron' => $this->url('system.status'))),
     );
 
     $form['actions'] = array('#type' => 'actions');
@@ -101,18 +102,18 @@ class OpmlFeedAdd extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function validateForm(array &$form, array &$form_state) {
+  public function validateForm(array &$form, FormStateInterface $form_state) {
     // If both fields are empty or filled, cancel.
     $file_upload = $this->getRequest()->files->get('files[upload]', NULL, TRUE);
     if (empty($form_state['values']['remote']) == empty($file_upload)) {
-      $this->setFormError('remote', $form_state, $this->t('<em>Either</em> upload a file or enter a URL.'));
+      $form_state->setErrorByName('remote', $this->t('<em>Either</em> upload a file or enter a URL.'));
     }
   }
 
   /**
    * {@inheritdoc}
    */
-  public function submitForm(array &$form, array &$form_state) {
+  public function submitForm(array &$form, FormStateInterface $form_state) {
     $validators = array('file_validate_extensions' => array('opml xml'));
     if ($file = file_save_upload('upload', $validators, FALSE, 0)) {
       $data = file_get_contents($file->getFileUri());
@@ -124,7 +125,7 @@ class OpmlFeedAdd extends FormBase {
         $data = $response->getBody(TRUE);
       }
       catch (RequestException $e) {
-        watchdog('aggregator', 'Failed to download OPML file due to "%error".', array('%error' => $e->getMessage()), WATCHDOG_WARNING);
+        $this->logger('aggregator')->warning('Failed to download OPML file due to "%error".', array('%error' => $e->getMessage()));
         drupal_set_message($this->t('Failed to download OPML file due to "%error".', array('%error' => $e->getMessage())));
         return;
       }
@@ -172,7 +173,7 @@ class OpmlFeedAdd extends FormBase {
       $new_feed->save();
     }
 
-    $form_state['redirect_route']['route_name'] = 'aggregator.admin_overview';
+    $form_state->setRedirect('aggregator.admin_overview');
   }
 
   /**

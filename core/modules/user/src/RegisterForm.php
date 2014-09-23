@@ -9,6 +9,7 @@ namespace Drupal\user;
 
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Entity\Query\QueryFactory;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Language\LanguageManager;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
@@ -25,9 +26,9 @@ class RegisterForm extends AccountForm {
   }
 
   /**
-   * Overrides Drupal\Core\Entity\EntityForm::form().
+   * {@inheritdoc}
    */
-  public function form(array $form, array &$form_state) {
+  public function form(array $form, FormStateInterface $form_state) {
     $user = $this->currentUser();
     /** @var \Drupal\user\UserInterface $account */
     $account = $this->entity;
@@ -45,8 +46,8 @@ class RegisterForm extends AccountForm {
       return new RedirectResponse(url('user/' . \Drupal::currentUser()->id(), array('absolute' => TRUE)));
     }
 
-    $form['#attached']['library'][] = 'core/jquery.cookie';
-    $form['#attributes']['class'][] = 'user-info-from-cookie';
+    $form['#attached']['library'][] = 'core/drupal.form';
+    $form['#attributes']['data-user-info-from-browser'] = TRUE;
 
     // Because the user status has security implications, users are blocked by
     // default when created programmatically and need to be actively activated
@@ -71,7 +72,7 @@ class RegisterForm extends AccountForm {
   /**
    * Overrides Drupal\Core\Entity\EntityForm::actions().
    */
-  protected function actions(array $form, array &$form_state) {
+  protected function actions(array $form, FormStateInterface $form_state) {
     $element = parent::actions($form, $form_state);
     $element['submit']['#value'] = $this->t('Create new account');
     return $element;
@@ -80,7 +81,7 @@ class RegisterForm extends AccountForm {
   /**
    * Overrides Drupal\Core\Entity\EntityForm::submit().
    */
-  public function submit(array $form, array &$form_state) {
+  public function submit(array $form, FormStateInterface $form_state) {
     $admin = $form_state['values']['administer_users'];
 
     if (!\Drupal::config('user.settings')->get('verify_mail') || $admin) {
@@ -102,7 +103,7 @@ class RegisterForm extends AccountForm {
   /**
    * Overrides Drupal\Core\Entity\EntityForm::submit().
    */
-  public function save(array $form, array &$form_state) {
+  public function save(array $form, FormStateInterface $form_state) {
     $account = $this->entity;
     $pass = $account->getPassword();
     $admin = $form_state['values']['administer_users'];
@@ -115,7 +116,7 @@ class RegisterForm extends AccountForm {
     $form_state['user'] = $account;
     $form_state['values']['uid'] = $account->id();
 
-    watchdog('user', 'New user: %name %email.', array('%name' => $form_state['values']['name'], '%email' => '<' . $form_state['values']['mail'] . '>'), WATCHDOG_NOTICE, l($this->t('Edit'), 'user/' . $account->id() . '/edit'));
+    $this->logger('user')->notice('New user: %name %email.', array('%name' => $form_state['values']['name'], '%email' => '<' . $form_state['values']['mail'] . '>', 'type' => l($this->t('Edit'), 'user/' . $account->id() . '/edit')));
 
     // Add plain text password into user account to generate mail tokens.
     $account->password = $pass;
@@ -129,7 +130,7 @@ class RegisterForm extends AccountForm {
       _user_mail_notify('register_no_approval_required', $account);
       user_login_finalize($account);
       drupal_set_message($this->t('Registration successful. You are now logged in.'));
-      $form_state['redirect_route']['route_name'] = '<front>';
+      $form_state->setRedirect('<front>');
     }
     // No administrator approval required.
     elseif ($account->isActive() || $notify) {
@@ -144,7 +145,7 @@ class RegisterForm extends AccountForm {
           }
           else {
             drupal_set_message($this->t('A welcome message with further instructions has been sent to your email address.'));
-            $form_state['redirect_route']['route_name'] = '<front>';
+            $form_state->setRedirect('<front>');
           }
         }
       }
@@ -153,7 +154,7 @@ class RegisterForm extends AccountForm {
     else {
       _user_mail_notify('register_pending_approval', $account);
       drupal_set_message($this->t('Thank you for applying for an account. Your account is currently pending approval by the site administrator.<br />In the meantime, a welcome message with further instructions has been sent to your email address.'));
-      $form_state['redirect_route']['route_name'] = '<front>';
+      $form_state->setRedirect('<front>');
     }
   }
 }

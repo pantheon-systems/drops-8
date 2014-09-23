@@ -13,6 +13,8 @@ use Drupal\field\Tests\FieldUnitTestBase;
 
 /**
  * Tests the new entity API for the email field type.
+ *
+ * @group field
  */
 class EmailItemTest extends FieldUnitTestBase {
 
@@ -23,19 +25,11 @@ class EmailItemTest extends FieldUnitTestBase {
    */
   public static $modules = array('email');
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Email field item',
-      'description' => 'Tests the new entity API for the email field type.',
-      'group' => 'Field types',
-    );
-  }
-
   public function setUp() {
     parent::setUp();
 
     // Create an email field and instance for validation.
-    entity_create('field_config', array(
+    entity_create('field_storage_config', array(
       'name' => 'field_email',
       'entity_type' => 'entity_test',
       'type' => 'email',
@@ -62,7 +56,7 @@ class EmailItemTest extends FieldUnitTestBase {
     $entity = entity_create('entity_test');
     $value = 'test@example.com';
     $entity->field_email = $value;
-    $entity->name->value = $this->randomName();
+    $entity->name->value = $this->randomMachineName();
     $entity->save();
 
     // Verify entity has been created properly.
@@ -74,7 +68,7 @@ class EmailItemTest extends FieldUnitTestBase {
     $this->assertEqual($entity->field_email[0]->value, $value);
 
     // Verify changing the email value.
-    $new_value = $this->randomName();
+    $new_value = $this->randomMachineName();
     $entity->field_email->value = $new_value;
     $this->assertEqual($entity->field_email->value, $new_value);
 

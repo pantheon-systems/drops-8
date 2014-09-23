@@ -10,7 +10,9 @@ namespace Drupal\system\Tests\Entity;
 use Drupal\simpletest\DrupalUnitTestBase;
 
 /**
- * Tests the functionality of field access.
+ * Tests Field level access hooks.
+ *
+ * @group Entity
  */
 class FieldAccessTest extends DrupalUnitTestBase {
 
@@ -31,14 +33,6 @@ class FieldAccessTest extends DrupalUnitTestBase {
    */
   protected $activeUid;
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Field access tests',
-      'description' => 'Test Field level access hooks.',
-      'group' => 'Entity API',
-    );
-  }
-
   protected function setUp() {
     parent::setUp();
     // Install field configuration.
@@ -58,7 +52,7 @@ class FieldAccessTest extends DrupalUnitTestBase {
    */
   function testFieldAccess() {
     $values = array(
-      'name' => $this->randomName(),
+      'name' => $this->randomMachineName(),
       'user_id' => 1,
       'field_test_text' => array(
         'value' => 'no access value',

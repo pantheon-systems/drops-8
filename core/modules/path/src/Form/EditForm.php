@@ -8,6 +8,7 @@
 namespace Drupal\path\Form;
 
 use Drupal\Component\Utility\String;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
 
 /**
@@ -32,7 +33,7 @@ class EditForm extends PathFormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, array &$form_state, $pid = NULL) {
+  public function buildForm(array $form, FormStateInterface $form_state, $pid = NULL) {
     $form = parent::buildForm($form, $form_state, $pid);
 
     $form['#title'] = String::checkPlain($this->path['alias']);
@@ -51,15 +52,17 @@ class EditForm extends PathFormBase {
   /**
    * Submits the delete form.
    */
-  public function deleteSubmit(array &$form, array &$form_state) {
-    $form_state['redirect_route'] = new Url('path.delete', array(
+  public function deleteSubmit(array &$form, FormStateInterface $form_state) {
+    $url = new Url('path.delete', array(
       'pid' => $form_state['values']['pid'],
     ));
 
     if ($this->getRequest()->query->has('destination')) {
-      $form_state['redirect_route']->setOption('query', drupal_get_destination());
+      $url->setOption('query', drupal_get_destination());
       $this->getRequest()->query->remove('destination');
     }
+
+    $form_state->setRedirectUrl($url);
   }
 
 }

@@ -8,6 +8,7 @@
 namespace Drupal\quickedit;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Form\FormState;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -177,13 +178,13 @@ class QuickEditController extends ControllerBase {
       $this->tempStoreFactory->get('quickedit')->set($entity->uuid(), $entity);
     }
 
-    $form_state = array(
+    $form_state = new FormState(array(
       'langcode' => $langcode,
       'no_redirect' => TRUE,
       'build_info' => array(
         'args' => array($entity, $field_name),
       ),
-    );
+    ));
     $form = $this->formBuilder()->buildForm('Drupal\quickedit\Form\QuickEditFieldForm', $form_state);
 
     if (!empty($form_state['executed'])) {
@@ -209,7 +210,7 @@ class QuickEditController extends ControllerBase {
     else {
       $response->addCommand(new FieldFormCommand(drupal_render($form)));
 
-      $errors = $this->formBuilder()->getErrors($form_state);
+      $errors = $form_state->getErrors();
       if (count($errors)) {
         $status_messages = array(
           '#theme' => 'status_messages'

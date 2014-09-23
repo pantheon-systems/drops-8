@@ -10,6 +10,7 @@ namespace Drupal\Core\Field;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Component\Utility\SortArray;
 use Drupal\Component\Utility\String;
+use Drupal\Core\Form\FormStateInterface;
 use Symfony\Component\Validator\ConstraintViolationInterface;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
 
@@ -58,17 +59,17 @@ abstract class WidgetBase extends PluginSettingsBase implements WidgetInterface 
   /**
    * {@inheritdoc}
    */
-  public function form(FieldItemListInterface $items, array &$form, array &$form_state, $get_delta = NULL) {
+  public function form(FieldItemListInterface $items, array &$form, FormStateInterface $form_state, $get_delta = NULL) {
     $field_name = $this->fieldDefinition->getName();
     $parents = $form['#parents'];
 
     // Store field information in $form_state.
-    if (!field_form_get_state($parents, $field_name, $form_state)) {
+    if (!static::getWidgetState($parents, $field_name, $form_state)) {
       $field_state = array(
         'items_count' => count($items),
         'array_parents' => array(),
       );
-      field_form_set_state($parents, $field_name, $form_state, $field_state);
+      static::setWidgetState($parents, $field_name, $form_state, $field_state);
     }
 
     // Collect widget elements.
@@ -106,9 +107,9 @@ abstract class WidgetBase extends PluginSettingsBase implements WidgetInterface 
     }
 
     // Populate the 'array_parents' information in $form_state['field'] after
-    // the form is built, so that we catch changes in the form structure performed
-    // in alter() hooks.
-    $elements['#after_build'][] = 'field_form_element_after_build';
+    // the form is built, so that we catch changes in the form structure
+    // performed in alter() hooks.
+    $elements['#after_build'][] = array(get_class($this), 'afterBuild');
     $elements['#field_name'] = $field_name;
     $elements['#field_parents'] = $parents;
     // Enforce the structure of submitted values.
@@ -140,7 +141,7 @@ abstract class WidgetBase extends PluginSettingsBase implements WidgetInterface 
    * - AHAH-'add more' button
    * - table display and drag-n-drop value reordering
    */
-  protected function formMultipleElements(FieldItemListInterface $items, array &$form, array &$form_state) {
+  protected function formMultipleElements(FieldItemListInterface $items, array &$form, FormStateInterface $form_state) {
     $field_name = $this->fieldDefinition->getName();
     $cardinality = $this->fieldDefinition->getFieldStorageDefinition()->getCardinality();
     $parents = $form['#parents'];
@@ -148,7 +149,7 @@ abstract class WidgetBase extends PluginSettingsBase implements WidgetInterface 
     // Determine the number of widgets to display.
     switch ($cardinality) {
       case FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED:
-        $field_state = field_form_get_state($parents, $field_name, $form_state);
+        $field_state = static::getWidgetState($parents, $field_name, $form_state);
         $max = $field_state['items_count'];
         $is_multiple = TRUE;
         break;
@@ -233,9 +234,26 @@ abstract class WidgetBase extends PluginSettingsBase implements WidgetInterface 
   }
 
   /**
+   * After-build handler for field elements in a form.
+   *
+   * This stores the final location of the field within the form structure so
+   * that flagErrors() can assign validation errors to the right form element.
+   */
+  public static function afterBuild(array $element, FormStateInterface $form_state) {
+    $parents = $element['#field_parents'];
+    $field_name = $element['#field_name'];
+
+    $field_state = static::getWidgetState($parents, $field_name, $form_state);
+    $field_state['array_parents'] = $element['#array_parents'];
+    static::setWidgetState($parents, $field_name, $form_state, $field_state);
+
+    return $element;
+  }
+
+  /**
    * Submission handler for the "Add another item" button.
    */
-  public static function addMoreSubmit(array $form, array &$form_state) {
+  public static function addMoreSubmit(array $form, FormStateInterface $form_state) {
     $button = $form_state['triggering_element'];
 
     // Go one level up in the form, to the widgets container.
@@ -244,9 +262,9 @@ abstract class WidgetBase extends PluginSettingsBase implements WidgetInterface 
     $parents = $element['#field_parents'];
 
     // Increment the items count.
-    $field_state = field_form_get_state($parents, $field_name, $form_state);
+    $field_state = static::getWidgetState($parents, $field_name, $form_state);
     $field_state['items_count']++;
-    field_form_set_state($parents, $field_name, $form_state, $field_state);
+    static::setWidgetState($parents, $field_name, $form_state, $field_state);
 
     $form_state['rebuild'] = TRUE;
   }
@@ -257,7 +275,7 @@ abstract class WidgetBase extends PluginSettingsBase implements WidgetInterface 
    * This returns the new page content to replace the page content made obsolete
    * by the form submission.
    */
-  public static function addMoreAjax(array $form, array $form_state) {
+  public static function addMoreAjax(array $form, FormStateInterface $form_state) {
     $button = $form_state['triggering_element'];
 
     // Go one level up in the form, to the widgets container.
@@ -279,7 +297,7 @@ abstract class WidgetBase extends PluginSettingsBase implements WidgetInterface 
   /**
    * Generates the form element for a single copy of the widget.
    */
-  protected function formSingleElement(FieldItemListInterface $items, $delta, array $element, array &$form, array &$form_state) {
+  protected function formSingleElement(FieldItemListInterface $items, $delta, array $element, array &$form, FormStateInterface $form_state) {
     $entity = $items->getEntity();
 
     $element += array(
@@ -310,7 +328,7 @@ abstract class WidgetBase extends PluginSettingsBase implements WidgetInterface 
   /**
    * {@inheritdoc}
    */
-  public function extractFormValues(FieldItemListInterface $items, array $form, array &$form_state) {
+  public function extractFormValues(FieldItemListInterface $items, array $form, FormStateInterface $form_state) {
     $field_name = $this->fieldDefinition->getName();
 
     // Extract the values from $form_state['values'].
@@ -343,22 +361,22 @@ abstract class WidgetBase extends PluginSettingsBase implements WidgetInterface 
       $items->filterEmptyItems();
 
       // Put delta mapping in $form_state, so that flagErrors() can use it.
-      $field_state = field_form_get_state($form['#parents'], $field_name, $form_state);
+      $field_state = static::getWidgetState($form['#parents'], $field_name, $form_state);
       foreach ($items as $delta => $item) {
         $field_state['original_deltas'][$delta] = isset($item->_original_delta) ? $item->_original_delta : $delta;
         unset($item->_original_delta, $item->_weight);
       }
-      field_form_set_state($form['#parents'], $field_name, $form_state, $field_state);
+      static::setWidgetState($form['#parents'], $field_name, $form_state, $field_state);
     }
   }
 
   /**
    * {@inheritdoc}
    */
-  public function flagErrors(FieldItemListInterface $items, ConstraintViolationListInterface $violations, array $form, array &$form_state) {
+  public function flagErrors(FieldItemListInterface $items, ConstraintViolationListInterface $violations, array $form, FormStateInterface $form_state) {
     $field_name = $this->fieldDefinition->getName();
 
-    $field_state = field_form_get_state($form['#parents'], $field_name, $form_state);
+    $field_state = static::getWidgetState($form['#parents'], $field_name, $form_state);
 
     if ($violations->count()) {
       $form_builder = \Drupal::formBuilder();
@@ -371,7 +389,7 @@ abstract class WidgetBase extends PluginSettingsBase implements WidgetInterface 
       // @todo Field validation should not be run on fields with FAPI errors to
       //   begin with. See https://drupal.org/node/2070429.
       $element_path = implode('][', $element['#parents']);
-      if ($reported_errors = $form_builder->getErrors($form_state)) {
+      if ($reported_errors = $form_state->getErrors()) {
         foreach (array_keys($reported_errors) as $error_path) {
           if (strpos($error_path, $element_path) === 0) {
             return;
@@ -413,7 +431,7 @@ abstract class WidgetBase extends PluginSettingsBase implements WidgetInterface 
             // @todo: Pass $violation->arrayPropertyPath as property path.
             $error_element = $this->errorElement($delta_element, $violation, $form, $form_state);
             if ($error_element !== FALSE) {
-              $form_builder->setError($error_element, $form_state, $violation->getMessage());
+              $form_state->setError($error_element, $violation->getMessage());
             }
           }
         }
@@ -424,7 +442,39 @@ abstract class WidgetBase extends PluginSettingsBase implements WidgetInterface 
   /**
    * {@inheritdoc}
    */
-  public function settingsForm(array $form, array &$form_state) {
+  public static function getWidgetState(array $parents, $field_name, FormStateInterface $form_state) {
+    return NestedArray::getValue($form_state['storage'], static::getWidgetStateParents($parents, $field_name));
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function setWidgetState(array $parents, $field_name, FormStateInterface $form_state, array $field_state) {
+    NestedArray::setValue($form_state['storage'], static::getWidgetStateParents($parents, $field_name), $field_state);
+  }
+
+  /**
+   * Returns the location of processing information within $form_state.
+   *
+   * @param array $parents
+   *   The array of #parents where the widget lives in the form.
+   * @param string $field_name
+   *   The field name.
+   *
+   * @return array
+   *   The location of processing information within $form_state.
+   */
+  protected static function getWidgetStateParents(array $parents, $field_name) {
+    // Field processing data is placed at
+    // $form_state['field']['#parents'][...$parents...]['#fields'][$field_name],
+    // to avoid clashes between field names and $parents parts.
+    return array_merge(array('field', '#parents'), $parents, array('#fields', $field_name));
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function settingsForm(array $form, FormStateInterface $form_state) {
     return array();
   }
 
@@ -438,14 +488,14 @@ abstract class WidgetBase extends PluginSettingsBase implements WidgetInterface 
   /**
    * {@inheritdoc}
    */
-  public function errorElement(array $element, ConstraintViolationInterface $error, array $form, array &$form_state) {
+  public function errorElement(array $element, ConstraintViolationInterface $error, array $form, FormStateInterface $form_state) {
     return $element;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function massageFormValues(array $values, array $form, array &$form_state) {
+  public function massageFormValues(array $values, array $form, FormStateInterface $form_state) {
     return $values;
   }
 

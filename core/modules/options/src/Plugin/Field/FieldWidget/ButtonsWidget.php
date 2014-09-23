@@ -8,7 +8,7 @@
 namespace Drupal\options\Plugin\Field\FieldWidget;
 
 use Drupal\Core\Field\FieldItemListInterface;
-use Drupal\options\Plugin\Field\FieldWidget\OptionsWidgetBase;
+use Drupal\Core\Form\FormStateInterface;
 
 /**
  * Plugin implementation of the 'options_buttons' widget.
@@ -17,10 +17,10 @@ use Drupal\options\Plugin\Field\FieldWidget\OptionsWidgetBase;
  *   id = "options_buttons",
  *   label = @Translation("Check boxes/radio buttons"),
  *   field_types = {
+ *     "boolean",
  *     "list_integer",
  *     "list_float",
  *     "list_text",
- *     "list_boolean"
  *   },
  *   multiple_values = TRUE
  * )
@@ -30,7 +30,7 @@ class ButtonsWidget extends OptionsWidgetBase {
   /**
    * {@inheritdoc}
    */
-  public function formElement(FieldItemListInterface $items, $delta, array $element, array &$form, array &$form_state) {
+  public function formElement(FieldItemListInterface $items, $delta, array $element, array &$form, FormStateInterface $form_state) {
     $element = parent::formElement($items, $delta, $element, $form, $form_state);
 
     $options = $this->getOptions($items[$delta]);

@@ -11,12 +11,8 @@ use Drupal\Tests\UnitTestCase;
 use Drupal\user\TempStore;
 
 /**
- * Tests the TempStore namespace.
- *
- * @group Drupal
- * @group User
- *
  * @coversDefaultClass \Drupal\user\TempStore
+ * @group user
  */
 class TempStoreTest extends UnitTestCase {
 
@@ -65,24 +61,13 @@ class TempStoreTest extends UnitTestCase {
   /**
    * {@inheritdoc}
    */
-  public static function getInfo() {
-    return array(
-      'name' => 'TempStore',
-      'description' => 'Unit tests the Drupal\user\TempStore class.',
-      'group' => 'User',
-    );
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   protected function setUp() {
     parent::setUp();
 
     $this->keyValue = $this->getMock('Drupal\Core\KeyValueStore\KeyValueStoreExpirableInterface');
     $this->lock = $this->getMock('Drupal\Core\Lock\LockBackendInterface');
 
-    $this->tempStore = new TempStore($this->keyValue, $this->lock, $this->owner);
+    $this->tempStore = new TempStore($this->keyValue, $this->lock, $this->owner, 604800);
 
     $this->ownObject = (object) array(
       'data' => 'test_data',

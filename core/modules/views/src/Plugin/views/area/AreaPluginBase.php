@@ -7,6 +7,7 @@
 
 namespace Drupal\views\Plugin\views\area;
 
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\views\ViewExecutable;
 use Drupal\views\Plugin\views\display\DisplayPluginBase;
 use Drupal\views\Plugin\views\HandlerBase;
@@ -16,7 +17,7 @@ use Drupal\views\Plugin\views\HandlerBase;
  * @{
  * Plugins governing areas of views, such as header, footer, and empty text.
  *
- * Area handler plugins extend \Drupal\views\Plugin\views\area\AreaHandlerBase.
+ * Area handler plugins extend \Drupal\views\Plugin\views\area\AreaPluginBase.
  * They must be annotated with \Drupal\views\Annotation\ViewsArea annotation,
  * and they must be in namespace directory Plugin\views\area.
  *
@@ -81,7 +82,7 @@ abstract class AreaPluginBase extends HandlerBase {
   /**
    * {@inheritdoc}
    */
-  public function buildOptionsForm(&$form, &$form_state) {
+  public function buildOptionsForm(&$form, FormStateInterface $form_state) {
     parent::buildOptionsForm($form, $form_state);
 
     if ($form_state['type'] != 'empty') {

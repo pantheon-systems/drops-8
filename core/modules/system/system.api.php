@@ -397,13 +397,13 @@ function hook_page_build(&$page) {
 }
 
 /**
- * Alter links for menus.
+ * Alters all the menu links discovered by the menu link plugin manager.
  *
  * @param array $links
  *   The link definitions to be altered.
  *
  * @return array
- *   An array of default menu links. Each link has a key that is the machine
+ *   An array of discovered menu links. Each link has a key that is the machine
  *   name, which must be unique. By default, use the route name as the
  *   machine name. In cases where multiple links use the same route name, such
  *   as two links to the same page in different menus, or two links using the
@@ -437,8 +437,10 @@ function hook_page_build(&$page) {
  *     in the UI.
  *   - options: (optional) An array of options to be passed to l() when
  *     generating a link from this menu item.
+ *
+ * @ingroup menu
  */
-function hook_menu_link_defaults_alter(&$links) {
+function hook_menu_links_discovered_alter(&$links) {
   // Change the weight and title of the user.logout link.
   $links['user.logout']['weight'] = -10;
   $links['user.logout']['title'] = 'Logout';
@@ -511,6 +513,8 @@ function hook_menu_local_tasks(&$data, $route_name) {
  *   The route name of the page.
  *
  * @see hook_menu_local_tasks()
+ *
+ * @ingroup menu
  */
 function hook_menu_local_tasks_alter(&$data, $route_name) {
 }
@@ -523,6 +527,8 @@ function hook_menu_local_tasks_alter(&$data, $route_name) {
  *
  * @see \Drupal\Core\Menu\LocalActionInterface
  * @see \Drupal\Core\Menu\LocalActionManager
+ *
+ * @ingroup menu
  */
 function hook_menu_local_actions_alter(&$local_actions) {
 }
@@ -572,6 +578,8 @@ function hook_local_tasks_alter(&$local_tasks) {
  *   @endcode
  *
  * @see \Drupal\Core\Menu\ContextualLinkManager
+ *
+ * @ingroup menu
  */
 function hook_contextual_links_alter(array &$links, $group, array $route_parameters) {
   if ($group == 'menu') {
@@ -684,9 +692,9 @@ function hook_page_alter(&$page) {
  * @param $form
  *   Nested array of form elements that comprise the form.
  * @param $form_state
- *   A keyed array containing the current state of the form. The arguments
- *   that \Drupal::formBuilder()->getForm() was originally called with are
- *   available in the array $form_state['build_info']['args'].
+ *   The current state of the form. The arguments that
+ *   \Drupal::formBuilder()->getForm() was originally called with are available
+ *   in the array $form_state['build_info']['args'].
  * @param $form_id
  *   String representing the name of the form itself. Typically this is the
  *   name of the function that generated the form.
@@ -695,7 +703,7 @@ function hook_page_alter(&$page) {
  * @see hook_form_FORM_ID_alter()
  * @see forms_api_reference.html
  */
-function hook_form_alter(&$form, &$form_state, $form_id) {
+function hook_form_alter(&$form, \Drupal\Core\Form\FormStateInterface $form_state, $form_id) {
   if (isset($form['type']) && $form['type']['#value'] . '_node_settings' == $form_id) {
     $upload_enabled_types = \Drupal::config('mymodule.settings')->get('upload_enabled_types');
     $form['workflow']['upload_' . $form['type']['#value']] = array(
@@ -723,19 +731,19 @@ function hook_form_alter(&$form, &$form_state, $form_id) {
  * @param $form
  *   Nested array of form elements that comprise the form.
  * @param $form_state
- *   A keyed array containing the current state of the form. The arguments
- *   that \Drupal::formBuilder()->getForm() was originally called with are
- *   available in the array $form_state['build_info']['args'].
+ *   The current state of the form. The arguments that
+ *   \Drupal::formBuilder()->getForm() was originally called with are available
+ *   in the array $form_state['build_info']['args'].
  * @param $form_id
  *   String representing the name of the form itself. Typically this is the
  *   name of the function that generated the form.
  *
  * @see hook_form_alter()
  * @see hook_form_BASE_FORM_ID_alter()
- * @see drupal_prepare_form()
+ * @see \Drupal\Core\Form\FormBuilderInterface::prepareForm()
  * @see forms_api_reference.html
  */
-function hook_form_FORM_ID_alter(&$form, &$form_state, $form_id) {
+function hook_form_FORM_ID_alter(&$form, \Drupal\Core\Form\FormStateInterface $form_state, $form_id) {
   // Modification for the form with the given form ID goes here. For example, if
   // FORM_ID is "user_register_form" this code would run only on the user
   // registration form.
@@ -771,16 +779,16 @@ function hook_form_FORM_ID_alter(&$form, &$form_state, $form_id) {
  * @param $form
  *   Nested array of form elements that comprise the form.
  * @param $form_state
- *   A keyed array containing the current state of the form.
+ *   The current state of the form.
  * @param $form_id
  *   String representing the name of the form itself. Typically this is the
  *   name of the function that generated the form.
  *
  * @see hook_form_alter()
  * @see hook_form_FORM_ID_alter()
- * @see drupal_prepare_form()
+ * @see \Drupal\Core\Form\FormBuilderInterface::prepareForm()
  */
-function hook_form_BASE_FORM_ID_alter(&$form, &$form_state, $form_id) {
+function hook_form_BASE_FORM_ID_alter(&$form, \Drupal\Core\Form\FormStateInterface $form_state, $form_id) {
   // Modification for the form with the given BASE_FORM_ID goes here. For
   // example, if BASE_FORM_ID is "node_form", this code would run on every
   // node form, regardless of node type.
@@ -938,7 +946,7 @@ function hook_system_info_alter(array &$info, \Drupal\Core\Extension\Extension $
  * can be selected on the user permissions page and used to grant or restrict
  * access to actions the module performs.
  *
- * Permissions are checked using user_access().
+ * Permissions are checked using \Drupal::currentUser()->hasPermission().
  *
  * For a detailed usage example, see page_example.module.
  *
@@ -956,10 +964,9 @@ function hook_system_info_alter(array &$info, \Drupal\Core\Extension\Extension $
  *     have inherent security risks across a variety of potential use cases
  *     (for example, the "administer filters" and "bypass node access"
  *     permissions provided by Drupal core). When set to TRUE, a standard
- *     warning message defined in user_admin_permissions() and output via
- *     theme_user_permission_description() will be associated with the
- *     permission and displayed with it on the permission administration page.
- *     Defaults to FALSE.
+ *     warning message defined in user_admin_permissions() will be displayed
+ *     with the permission on the permission administration page. Defaults
+ *     to FALSE.
  *   - warning: (optional) A translated warning message to display for this
  *     permission on the permission administration page. This warning overrides
  *     the automatic warning generated by 'restrict access' being set to TRUE.
@@ -967,8 +974,6 @@ function hook_system_info_alter(array &$info, \Drupal\Core\Extension\Extension $
  *     have a clear, consistent security warning that is the same across the
  *     site. Use the 'description' key instead to provide any information that
  *     is specific to the permission you are defining.
- *
- * @see theme_user_permission_description()
  *
  * @ingroup user_api
  */
@@ -1227,7 +1232,7 @@ function hook_theme_registry_alter(&$theme_registry) {
  * @see _template_preprocess_default_variables()
  */
 function hook_template_preprocess_default_variables_alter(&$variables) {
-  $variables['is_admin'] = user_access('access administration pages');
+  $variables['is_admin'] = \Drupal::currentUser()->hasPermission('access administration pages');
 }
 
 /**
@@ -1494,9 +1499,10 @@ function hook_stream_wrappers_alter(&$wrappers) {
 /**
  * Control access to private file downloads and specify HTTP headers.
  *
- * This hook allows modules enforce permissions on file downloads when the
- * private file download method is selected. Modules can also provide headers
- * to specify information like the file's name or MIME type.
+ * This hook allows modules to enforce permissions on file downloads whenever
+ * Drupal is handling file download, as opposed to the web server bypassing
+ * Drupal and returning the file from a public directory. Modules can also
+ * provide headers to specify information like the file's name or MIME type.
  *
  * @param $uri
  *   The URI of the file.
@@ -1660,7 +1666,7 @@ function hook_requirements($phase) {
     $cron_last = \Drupal::state()->get('system.cron_last');
 
     if (is_numeric($cron_last)) {
-      $requirements['cron']['value'] = t('Last run !time ago', array('!time' => format_interval(REQUEST_TIME - $cron_last)));
+      $requirements['cron']['value'] = t('Last run !time ago', array('!time' => \Drupal::service('date.formatter')->formatInterval(REQUEST_TIME - $cron_last)));
     }
     else {
       $requirements['cron'] = array(
@@ -1829,7 +1835,7 @@ function hook_query_TAG_alter(Drupal\Core\Database\Query\AlterableInterface $que
       $op = 'view';
     }
     // Skip the extra joins and conditions for node admins.
-    if (!user_access('bypass node access')) {
+    if (!\Drupal::currentUser()->hasPermission('bypass node access')) {
       // The node_access table has the access grants for any given node.
       $access_alias = $query->join('node_access', 'na', '%alias.nid = n.nid');
       $or = db_or();
@@ -1937,8 +1943,7 @@ function hook_install() {
  * this reason, caution is needed when using any API function within an update
  * function - particularly CRUD functions, functions that depend on the schema
  * (for example by using drupal_write_record()), and any functions that invoke
- * hooks. See @link update_api Update versions of API functions @endlink for
- * details.
+ * hooks.
  *
  * The $sandbox parameter should be used when a multipass update is needed, in
  * circumstances where running the whole update at once could cause PHP to
@@ -1972,7 +1977,6 @@ function hook_install() {
  *
  * @see batch
  * @see schemaapi
- * @see update_api
  * @see hook_update_last_removed()
  * @see update_get_update_list()
  */
@@ -2300,16 +2304,17 @@ function hook_install_tasks_alter(&$tasks, $install_state) {
 /**
  * Alter MIME type mappings used to determine MIME type from a file extension.
  *
- * This hook is run when file_mimetype_mapping() is called. It is used to
- * allow modules to add to or modify the default mapping from
- * file_default_mimetype_mapping().
+ * Invoked by \Drupal\Core\File\MimeType\ExtensionMimeTypeGuesser::guess(). It
+ * is used to allow modules to add to or modify the default mapping from
+ * \Drupal\Core\File\MimeType\ExtensionMimeTypeGuesser::$defaultMapping.
  *
  * @param $mapping
  *   An array of mimetypes correlated to the extensions that relate to them.
  *   The array has 'mimetypes' and 'extensions' elements, each of which is an
  *   array.
  *
- * @see file_default_mimetype_mapping()
+ * @see \Drupal\Core\File\MimeType\ExtensionMimeTypeGuesser::guess()
+ * @see \Drupal\Core\File\MimeType\ExtensionMimeTypeGuesser::$defaultMapping
  */
 function hook_file_mimetype_mapping_alter(&$mapping) {
   // Add new MIME type 'drupal/info'.
@@ -2827,124 +2832,40 @@ function hook_link_alter(&$variables) {
  */
 function hook_config_import_steps_alter(&$sync_steps, \Drupal\Core\Config\ConfigImporter $config_importer) {
   $deletes = $config_importer->getUnprocessedConfiguration('delete');
-  if (isset($deletes['field.field.node.body'])) {
+  if (isset($deletes['field.storage.node.body'])) {
     $sync_steps[] = '_additional_configuration_step';
   }
 }
 
 /**
+ * Alter config typed data definitions.
+ *
+ * For example you can alter the typed data types representing each
+ * configuration schema type to change default labels or form element renderers
+ * used for configuration translation.
+ *
+ * It is strongly advised not to use this hook to add new data types or to
+ * change the structure of existing ones. Keep in mind that there are tools
+ * that may use the configuration schema for static analysis of configuration
+ * files, like the string extractor for the localization system. Such systems
+ * won't work with dynamically defined configuration schemas.
+ *
+ * For adding new data types use configuration schema YAML files instead.
+ *
+ * @param $definitions
+ *   Associative array of configuration type definitions keyed by schema type
+ *   names. The elements are themselves array with information about the type.
+ */
+function hook_config_schema_info_alter(&$definitions) {
+  // Enhance the text and date type definitions with classes to generate proper
+  // form elements in ConfigTranslationFormBase. Other translatable types will
+  // appear as a one line textfield.
+  $definitions['text']['form_element_class'] = '\Drupal\config_translation\FormElement\Textarea';
+  $definitions['date_format']['form_element_class'] = '\Drupal\config_translation\FormElement\DateFormat';
+}
+
+/**
  * @} End of "addtogroup hooks".
- */
-
-/**
- * @defgroup update_api Update versions of API functions
- * @{
- * Functions that are similar to normal API functions, but do not invoke hooks.
- *
- * These simplified versions of core API functions are provided for use by
- * update functions (hook_update_N() implementations).
- *
- * During database updates the schema of any module could be out of date. For
- * this reason, caution is needed when using any API function within an update
- * function - particularly CRUD functions, functions that depend on the schema
- * (for example by using drupal_write_record()), and any functions that invoke
- * hooks.
- *
- * Instead, a simplified utility function should be used. If a utility version
- * of the API function you require does not already exist, then you should
- * create a new function. The new utility function should be named
- * _update_N_mymodule_my_function(). N is the schema version the function acts
- * on (the schema version is the number N from the hook_update_N()
- * implementation where this schema was introduced, or a number following the
- * same numbering scheme), and mymodule_my_function is the name of the original
- * API function including the module's name.
- *
- * Examples:
- * - _update_8001_mymodule_save(): This function performs a save operation
- *   without invoking any hooks using the original 8.x schema.
- * - _update_8002_mymodule_save(): This function performs the same save
- *   operation using an updated 8.x schema.
- *
- * The utility function should not invoke any hooks, and should perform database
- * operations using functions from the
- * @link database Database abstraction layer, @endlink
- * like db_insert(), db_update(), db_delete(), db_query(), and so on.
- *
- * If a change to the schema necessitates a change to the utility function, a
- * new function should be created with a name based on the version of the schema
- * it acts on. See _update_8002_bar_get_types() and _update_8003_bar_get_types()
- * in the code examples that follow.
- *
- * For example, foo.install could contain:
- * @code
- * function foo_update_dependencies() {
- *   // foo_update_8010() needs to run after bar_update_8002().
- *   $dependencies['foo'][8010] = array(
- *     'bar' => 8002,
- *   );
- *
- *   // foo_update_8036() needs to run after bar_update_8003().
- *   $dependencies['foo'][8036] = array(
- *     'bar' => 8003,
- *   );
- *
- *   return $dependencies;
- * }
- *
- * function foo_update_8002() {
- *   // No updates have been run on the {bar_types} table yet, so this needs
- *   // to work with the original 8.x schema.
- *   foreach (_update_8001_bar_get_types() as $type) {
- *     // Rename a variable.
- *   }
- * }
- *
- * function foo_update_8010() {
- *    // Since foo_update_8010() is going to run after bar_update_8002(), it
- *    // needs to operate on the new schema, not the old one.
- *    foreach (_update_8002_bar_get_types() as $type) {
- *      // Rename a different variable.
- *    }
- * }
- *
- * function foo_update_8036() {
- *   // This update will run after bar_update_8003().
- *   foreach (_update_8003_bar_get_types() as $type) {
- *   }
- * }
- * @endcode
- *
- * And bar.install could contain:
- * @code
- * function bar_update_8002() {
- *   // Type and bundle are confusing, so we renamed the table.
- *   db_rename_table('bar_types', 'bar_bundles');
- * }
- *
- * function bar_update_8003() {
- *   // Database table names should be singular when possible.
- *   db_rename_table('bar_bundles', 'bar_bundle');
- * }
- *
- * function _update_8001_bar_get_types() {
- *   db_query('SELECT * FROM {bar_types}')->fetchAll();
- * }
- *
- * function _update_8002_bar_get_types() {
- *   db_query('SELECT * FROM {bar_bundles'})->fetchAll();
- * }
- *
- * function _update_8003_bar_get_types() {
- *   db_query('SELECT * FROM {bar_bundle}')->fetchAll();
- * }
- * @endcode
- *
- * @see hook_update_N()
- * @see hook_update_dependencies()
- */
-
-/**
- * @} End of "defgroup update_api".
  */
 
 /**
@@ -2971,6 +2892,19 @@ function hook_config_import_steps_alter(&$sync_steps, \Drupal\Core\Config\Config
  *
  * Note that you must use double quotes; single quotes will not work in
  * annotations.
+ *
+ * Some annotation types, which extend the "@ PluginID" annotation class, have
+ * only a single 'id' key in their annotation. For these, it is possible to use
+ * a shorthand annotation. For example:
+ * @code
+ * * @ViewsArea("entity")
+ * @endcode
+ * in place of
+ * @code
+ * * @ViewsArea(
+ * *   id = "entity"
+ * *)
+ * @endcode
  *
  * The available annotation classes are listed in this topic, and can be
  * identified when you are looking at the Drupal source code by having

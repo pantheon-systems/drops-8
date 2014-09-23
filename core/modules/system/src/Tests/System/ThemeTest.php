@@ -11,7 +11,10 @@ use Drupal\Core\StreamWrapper\PublicStream;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Tests the theme interface functionality.
+ * Tests the theme interface functionality by enabling and switching themes, and
+ * using an administration theme.
+ *
+ * @group system
  */
 class ThemeTest extends WebTestBase {
 
@@ -21,14 +24,6 @@ class ThemeTest extends WebTestBase {
    * @var array
    */
   public static $modules = array('node', 'block', 'file');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Theme interface functionality',
-      'description' => 'Tests the theme interface functionality by enabling and switching themes, and using an administration theme.',
-      'group' => 'System',
-    );
-  }
 
   function setUp() {
     parent::setUp();
@@ -47,7 +42,7 @@ class ThemeTest extends WebTestBase {
     // Ensure invalid theme settings form URLs return a proper 404.
     $this->drupalGet('admin/appearance/settings/bartik');
     $this->assertResponse(404, 'The theme settings form URL for a disabled theme could not be found.');
-    $this->drupalGet('admin/appearance/settings/' . $this->randomName());
+    $this->drupalGet('admin/appearance/settings/' . $this->randomMachineName());
     $this->assertResponse(404, 'The theme settings form URL for a non-existent theme could not be found.');
 
     // Specify a filesystem path to be used for the logo.

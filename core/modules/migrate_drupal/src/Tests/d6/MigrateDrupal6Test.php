@@ -10,7 +10,9 @@ namespace Drupal\migrate_drupal\Tests\d6;
 use Drupal\migrate_drupal\Tests\MigrateFullDrupalTestBase;
 
 /**
- * Test the complete Drupal 6 migration.
+ * Tests the complete Drupal 6 migration.
+ *
+ * @group migrate_drupal
  */
 class MigrateDrupal6Test extends MigrateFullDrupalTestBase {
 
@@ -39,6 +41,7 @@ class MigrateDrupal6Test extends MigrateFullDrupalTestBase {
     'options',
     'search',
     'simpletest',
+    'statistics',
     'syslog',
     'taxonomy',
     'telephone',
@@ -65,6 +68,7 @@ class MigrateDrupal6Test extends MigrateFullDrupalTestBase {
     'd6_comment',
     'd6_comment_entity_display',
     'd6_comment_entity_form_display',
+    'd6_comment_entity_form_display_subject',
     'd6_comment_field',
     'd6_comment_field_instance',
     'd6_contact_category',
@@ -75,7 +79,6 @@ class MigrateDrupal6Test extends MigrateFullDrupalTestBase {
     'd6_field',
     'd6_field_instance',
     'd6_field_instance_widget_settings',
-    'd6_field_settings',
     'd6_field_formatter_settings',
     'd6_file_settings',
     'd6_file',
@@ -103,7 +106,6 @@ class MigrateDrupal6Test extends MigrateFullDrupalTestBase {
     'd6_system_performance',
     'd6_system_rss',
     'd6_system_site',
-    'd6_system_theme',
     'd6_taxonomy_settings',
     'd6_taxonomy_term',
     'd6_taxonomy_vocabulary',
@@ -139,12 +141,12 @@ class MigrateDrupal6Test extends MigrateFullDrupalTestBase {
   /**
    * {@inheritdoc}
    */
-  public static function getInfo() {
-    return array(
-      'name'  => 'Migrate Drupal 6',
-      'description'  => 'Test every Drupal 6 migration',
-      'group' => 'Migrate Drupal',
-    );
+  public function setUp() {
+    parent::setUp();
+    $config = \Drupal::config('system.theme');
+    $config->set('default', 'bartik');
+    $config->set('admin', 'seven');
+    $config->save();
   }
 
   /**
@@ -167,7 +169,6 @@ class MigrateDrupal6Test extends MigrateFullDrupalTestBase {
       $tests_path . '/Drupal6DateFormat.php',
       $tests_path . '/Drupal6DblogSettings.php',
       $tests_path . '/Drupal6FieldInstance.php',
-      $tests_path . '/Drupal6FieldSettings.php',
       $tests_path . '/Drupal6File.php',
       $tests_path . '/Drupal6FileSettings.php',
       $tests_path . '/Drupal6FilterFormat.php',
@@ -196,7 +197,6 @@ class MigrateDrupal6Test extends MigrateFullDrupalTestBase {
       $tests_path . '/Drupal6SystemPerformance.php',
       $tests_path . '/Drupal6SystemRss.php',
       $tests_path . '/Drupal6SystemSite.php',
-      $tests_path . '/Drupal6SystemTheme.php',
       $tests_path . '/Drupal6TaxonomySettings.php',
       $tests_path . '/Drupal6TaxonomyTerm.php',
       $tests_path . '/Drupal6TaxonomyVocabulary.php',
@@ -231,16 +231,16 @@ class MigrateDrupal6Test extends MigrateFullDrupalTestBase {
       __NAMESPACE__ . '\MigrateCckFieldRevisionTest',
       __NAMESPACE__ . '\MigrateCommentTypeTest',
       __NAMESPACE__ . '\MigrateCommentTest',
-      __NAMESPACE__ . '\MigrateCommentVariableEntityDisplay',
-      __NAMESPACE__ . '\MigrateCommentVariableEntityFormDisplay',
-      __NAMESPACE__ . '\MigrateCommentVariableField',
-      __NAMESPACE__ . '\MigrateCommentVariableInstance',
+      __NAMESPACE__ . '\MigrateCommentVariableEntityDisplayTest',
+      __NAMESPACE__ . '\MigrateCommentVariableEntityFormDisplayTest',
+      __NAMESPACE__ . '\MigrateCommentVariableEntityFormDisplaySubjectTest',
+      __NAMESPACE__ . '\MigrateCommentVariableFieldTest',
+      __NAMESPACE__ . '\MigrateCommentVariableInstanceTest',
       __NAMESPACE__ . '\MigrateContactCategoryTest',
       __NAMESPACE__ . '\MigrateContactConfigsTest',
       __NAMESPACE__ . '\MigrateBlockContentTest',
       __NAMESPACE__ . '\MigrateDateFormatTest',
       __NAMESPACE__ . '\MigrateDblogConfigsTest',
-      __NAMESPACE__ . '\MigrateFieldConfigsTest',
       __NAMESPACE__ . '\MigrateFieldTest',
       __NAMESPACE__ . '\MigrateFieldInstanceTest',
       __NAMESPACE__ . '\MigrateFieldFormatterSettingsTest',
@@ -271,7 +271,6 @@ class MigrateDrupal6Test extends MigrateFullDrupalTestBase {
       __NAMESPACE__ . '\MigrateSystemPerformanceTest',
       __NAMESPACE__ . '\MigrateSystemRssTest',
       __NAMESPACE__ . '\MigrateSystemSiteTest',
-      __NAMESPACE__ . '\MigrateSystemThemeTest',
       __NAMESPACE__ . '\MigrateTaxonomyConfigsTest',
       __NAMESPACE__ . '\MigrateTaxonomyTermTest',
       __NAMESPACE__ . '\MigrateTaxonomyVocabularyTest',

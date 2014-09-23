@@ -11,8 +11,9 @@ use Drupal\views\Tests\ViewUnitTestBase;
 use Drupal\views\Views;
 
 /**
- * Tests the text area handler.
+ * Tests the core views_handler_area_text handler.
  *
+ * @group views
  * @see \Drupal\views\Plugin\views\area\Text
  */
 class AreaTextTest extends ViewUnitTestBase {
@@ -26,14 +27,6 @@ class AreaTextTest extends ViewUnitTestBase {
    */
   public static $testViews = array('test_view');
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Area: Text',
-      'description' => 'Test the core views_handler_area_text handler.',
-      'group' => 'Views Handlers',
-    );
-  }
-
   protected function setUp() {
     parent::setUp();
 
@@ -46,7 +39,7 @@ class AreaTextTest extends ViewUnitTestBase {
     $view->setDisplay();
 
     // add a text header
-    $string = $this->randomName();
+    $string = $this->randomMachineName();
     $view->displayHandlers->get('default')->overrideOption('header', array(
       'area' => array(
         'id' => 'area',

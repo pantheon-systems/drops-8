@@ -11,7 +11,10 @@ use Drupal\Core\Language\Language;
 use Drupal\Core\Language\LanguageInterface;
 
 /**
- * Verifies node access functionality for multiple languages.
+ * Tests node_access and db_select() with node_access tag functionality with
+ * multiple languages with a test node access module that is not language-aware.
+ *
+ * @group node
  */
 class NodeAccessLanguageTest extends NodeTestBase {
 
@@ -22,16 +25,10 @@ class NodeAccessLanguageTest extends NodeTestBase {
    */
   public static $modules = array('language', 'node_access_test');
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Node access language',
-      'description' => 'Test node_access and db_select() with node_access tag functionality with multiple languages with a test node access module that is not language-aware.',
-      'group' => 'Node',
-    );
-  }
-
   function setUp() {
     parent::setUp();
+
+    node_access_test_add_field(entity_load('node_type', 'page'));
 
     // After enabling a node access module, the access table has to be rebuild.
     node_access_rebuild();

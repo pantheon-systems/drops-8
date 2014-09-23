@@ -10,27 +10,17 @@ namespace Drupal\migrate_drupal\Tests\d6;
 use Drupal\Core\Language\Language;
 use Drupal\block_content\Entity\BlockContent;
 use Drupal\Core\Language\LanguageInterface;
-use Drupal\custom_block\Entity\CustomBlock;
 use Drupal\migrate\MigrateExecutable;
 use Drupal\migrate_drupal\Tests\MigrateDrupalTestBase;
 
 /**
- * Tests the Drupal 6 custom block to Drupal 8 migration.
+ * Upgrade custom blocks.
+ *
+ * @group migrate_drupal
  */
 class MigrateBlockContentTest extends MigrateDrupalTestBase {
 
   static $modules = array('block', 'block_content');
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'name'  => 'Migrate custom blocks.',
-      'description'  => 'Upgrade custom blocks.',
-      'group' => 'Migrate Drupal',
-    );
-  }
 
   /**
    * {@inheritdoc}

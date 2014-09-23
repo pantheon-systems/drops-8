@@ -9,16 +9,10 @@ namespace Drupal\taxonomy\Tests;
 
 /**
  * Tests the taxonomy vocabulary permissions.
+ *
+ * @group taxonomy
  */
 class VocabularyPermissionsTest extends TaxonomyTestBase {
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Taxonomy vocabulary permissions',
-      'description' => 'Test the taxonomy vocabulary permissions.',
-      'group' => 'Taxonomy',
-    );
-  }
 
   /**
    * Create, edit and delete a taxonomy term via the user interface.
@@ -38,7 +32,7 @@ class VocabularyPermissionsTest extends TaxonomyTestBase {
 
     // Submit the term.
     $edit = array();
-    $edit['name[0][value]'] = $this->randomName();
+    $edit['name[0][value]'] = $this->randomMachineName();
 
     $this->drupalPostForm(NULL, $edit, t('Save'));
     $this->assertRaw(t('Created new term %name.', array('%name' => $edit['name[0][value]'])), 'Term created successfully.');
@@ -51,7 +45,7 @@ class VocabularyPermissionsTest extends TaxonomyTestBase {
     $this->assertResponse(200);
     $this->assertText($edit['name[0][value]'], 'Edit taxonomy term form opened successfully.');
 
-    $edit['name[0][value]'] = $this->randomName();
+    $edit['name[0][value]'] = $this->randomMachineName();
     $this->drupalPostForm(NULL, $edit, t('Save'));
     $this->assertRaw(t('Updated term %name.', array('%name' => $edit['name[0][value]'])), 'Term updated successfully.');
 
@@ -79,7 +73,7 @@ class VocabularyPermissionsTest extends TaxonomyTestBase {
     $this->assertResponse(200);
     $this->assertText($term->getName(), 'Edit taxonomy term form opened successfully.');
 
-    $edit['name[0][value]'] = $this->randomName();
+    $edit['name[0][value]'] = $this->randomMachineName();
     $this->drupalPostForm(NULL, $edit, t('Save'));
     $this->assertRaw(t('Updated term %name.', array('%name' => $edit['name[0][value]'])), 'Term updated successfully.');
 

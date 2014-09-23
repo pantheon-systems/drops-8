@@ -11,6 +11,8 @@ use Drupal\node\Tests\NodeTestBase;
 
 /**
  * Tests the RDFa markup of Nodes.
+ *
+ * @group rdf
  */
 class NodeAttributesTest extends NodeTestBase {
 
@@ -20,14 +22,6 @@ class NodeAttributesTest extends NodeTestBase {
    * @var array
    */
   public static $modules = array('rdf');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'RDFa markup for nodes',
-      'description' => 'Tests the RDFa markup of nodes.',
-      'group' => 'RDF',
-    );
-  }
 
   public function setUp() {
     parent::setUp();
@@ -55,7 +49,7 @@ class NodeAttributesTest extends NodeTestBase {
     // escaped more than once.
     $node = $this->drupalCreateNode(array(
       'type' => 'article',
-      'title' => $this->randomName(8) . "'",
+      'title' => $this->randomMachineName(8) . "'",
     ));
 
     $node_uri = url('node/' . $node->id(), array('absolute' => TRUE));

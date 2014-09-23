@@ -13,22 +13,9 @@ use Drupal\Component\Utility\String;
 
 /**
  * @coversDefaultClass \Drupal\Core\Config\Entity\ConfigEntityType
- *
- * @group Drupal
  * @group Config
  */
 class ConfigEntityTypeTest extends UnitTestCase {
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'description' => '',
-      'name' => '\Drupal\Core\Config\Entity\ConfigEntityType unit test',
-      'group' => 'Entity',
-    );
-  }
 
   /**
    * Sets up a ConfigEntityType object for a given set of values.
@@ -59,8 +46,8 @@ class ConfigEntityTypeTest extends UnitTestCase {
     // A provider length of 24 and config_prefix length of 59 (+1 for the .)
     // results in a config length of 84, which is too long.
     $definition = array(
-      'provider' => $this->randomName(24),
-      'config_prefix' => $this->randomName(59),
+      'provider' => $this->randomMachineName(24),
+      'config_prefix' => $this->randomMachineName(59),
     );
     $config_entity = $this->setUpConfigEntityType($definition);
     $this->setExpectedException('\Drupal\Core\Config\ConfigPrefixLengthException', String::format($message_text, array(
@@ -80,8 +67,8 @@ class ConfigEntityTypeTest extends UnitTestCase {
     // A provider length of 24 and config_prefix length of 58 (+1 for the .)
     // results in a config length of 83, which is right at the limit.
     $definition = array(
-      'provider' => $this->randomName(24),
-      'config_prefix' => $this->randomName(58),
+      'provider' => $this->randomMachineName(24),
+      'config_prefix' => $this->randomMachineName(58),
     );
     $config_entity = $this->setUpConfigEntityType($definition);
     $expected_prefix = $definition['provider'] . '.' . $definition['config_prefix'];

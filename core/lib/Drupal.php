@@ -79,7 +79,7 @@ class Drupal {
   /**
    * The current system version.
    */
-  const VERSION = '8.0-dev';
+  const VERSION = '8.0.0-dev';
 
   /**
    * Core API compatibility.
@@ -158,7 +158,7 @@ class Drupal {
    *   TRUE if there is a currently active request object, FALSE otherwise.
    */
   public static function hasRequest() {
-    return static::$container && static::$container->has('request') && static::$container->initialized('request') && static::$container->isScopeActive('request');
+    return static::$container && static::$container->has('request_stack') && static::$container->get('request_stack')->getCurrentRequest() !== NULL;
   }
 
   /**
@@ -184,7 +184,7 @@ class Drupal {
    *   The currently active request object.
    */
   public static function request() {
-    return static::$container->get('request');
+    return static::$container->get('request_stack')->getCurrentRequest();
   }
 
   /**
@@ -640,11 +640,21 @@ class Drupal {
    *   The name of the channel. Can be any string, but the general practice is
    *   to use the name of the subsystem calling this.
    *
-   * @return \Drupal\Core\Logger\LoggerChannelInterface
+   * @return \Psr\Log\LoggerInterface
    *   The logger for this channel.
    */
   public static function logger($channel) {
     return static::$container->get('logger.factory')->get($channel);
+  }
+
+  /**
+   * Returns the menu tree.
+   *
+   * @return \Drupal\Core\Menu\MenuLinkTreeInterface
+   *   The menu tree.
+   */
+  public static function menuTree() {
+    return static::$container->get('menu.link_tree');
   }
 
 }

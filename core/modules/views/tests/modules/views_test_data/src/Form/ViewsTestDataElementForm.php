@@ -6,12 +6,13 @@
 
 namespace Drupal\views_test_data\Form;
 
-use Drupal\Core\Form\FormInterface;
+use Drupal\Core\Form\FormBase;
+use Drupal\Core\Form\FormStateInterface;
 
 /**
  * Simple form page callback to test the view element.
  */
-class ViewsTestDataElementForm implements FormInterface {
+class ViewsTestDataElementForm extends FormBase {
 
   /**
    * {@inheritdoc}
@@ -23,7 +24,7 @@ class ViewsTestDataElementForm implements FormInterface {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, array &$form_state) {
+  public function buildForm(array $form, FormStateInterface $form_state) {
     $form['view'] = array(
       '#type' => 'view',
       '#name' => 'test_view',
@@ -37,13 +38,7 @@ class ViewsTestDataElementForm implements FormInterface {
   /**
    * {@inheritdoc}
    */
-  public function validateForm(array &$form, array &$form_state) {
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function submitForm(array &$form, array &$form_state) {
+  public function submitForm(array &$form, FormStateInterface $form_state) {
   }
 
 }

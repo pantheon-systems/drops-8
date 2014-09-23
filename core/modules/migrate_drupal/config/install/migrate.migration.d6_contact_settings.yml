@@ -1,5 +1,7 @@
 id: d6_contact_settings
 label: Drupal 6 contact configuration
+migration_groups:
+  - Drupal 6
 source:
   plugin: d6_contact_settings
   variables:
@@ -7,7 +9,7 @@ source:
     - contact_hourly_threshold
 process:
   user_default_enabled: contact_default_status
-  'flood.limit': contact_hourly_threshold
+  'flood/limit': contact_hourly_threshold
   default_category:
     plugin: migration
     migration: d6_contact_category

@@ -32,7 +32,7 @@ abstract class OptionsDynamicValuesTestBase extends FieldTestBase {
     parent::setUp();
 
     $this->field_name = 'test_options';
-    entity_create('field_config', array(
+    entity_create('field_storage_config', array(
       'name' => $this->field_name,
       'entity_type' => 'entity_test_rev',
       'type' => 'list_text',
@@ -57,7 +57,7 @@ abstract class OptionsDynamicValuesTestBase extends FieldTestBase {
     // options_test_dynamic_values_callback().
     $values = array(
       'user_id' => mt_rand(1, 10),
-      'name' => $this->randomName(),
+      'name' => $this->randomMachineName(),
     );
     $this->entity = entity_create('entity_test_rev', $values);
     $this->entity->save();

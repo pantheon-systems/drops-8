@@ -8,7 +8,9 @@
 namespace Drupal\field\Tests;
 
 /**
- * Tests the functionality of field access.
+ * Tests Field access.
+ *
+ * @group field
  */
 class FieldAccessTest extends FieldTestBase {
 
@@ -33,14 +35,6 @@ class FieldAccessTest extends FieldTestBase {
    */
   protected $test_view_field_value;
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Field access tests',
-      'description' => 'Test Field access.',
-      'group' => 'Field API',
-    );
-  }
-
   function setUp() {
     parent::setUp();
 
@@ -51,14 +45,14 @@ class FieldAccessTest extends FieldTestBase {
     $content_type_info = $this->drupalCreateContentType();
     $content_type = $content_type_info->type;
 
-    $field = array(
+    $field_storage = array(
       'name' => 'test_view_field',
       'entity_type' => 'node',
       'type' => 'text',
     );
-    entity_create('field_config', $field)->save();
+    entity_create('field_storage_config', $field_storage)->save();
     $instance = array(
-      'field_name' => $field['name'],
+      'field_name' => $field_storage['name'],
       'entity_type' => 'node',
       'bundle' => $content_type,
     );
@@ -67,7 +61,7 @@ class FieldAccessTest extends FieldTestBase {
     // Assign display properties for the 'default' and 'teaser' view modes.
     foreach (array('default', 'teaser') as $view_mode) {
       entity_get_display('node', $content_type, $view_mode)
-        ->setComponent($field['name'])
+        ->setComponent($field_storage['name'])
         ->save();
     }
 

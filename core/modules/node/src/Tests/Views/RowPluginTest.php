@@ -12,6 +12,7 @@ use Drupal\views\Views;
 /**
  * Tests the node row plugin.
  *
+ * @group node
  * @see \Drupal\node\Plugin\views\row\NodeRow
  */
 class RowPluginTest extends NodeTestBase {
@@ -44,14 +45,6 @@ class RowPluginTest extends NodeTestBase {
    */
   protected $nodes;
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Node: Row plugin',
-      'description' => 'Tests the node row plugin.',
-      'group' => 'Views module integration',
-    );
-  }
-
   protected function setUp() {
     parent::setUp();
 
@@ -66,9 +59,9 @@ class RowPluginTest extends NodeTestBase {
           'type' => 'article',
           'body' => array(
             array(
-              'value' => $this->randomName(42),
+              'value' => $this->randomMachineName(42),
               'format' => filter_default_format(),
-              'summary' => $this->randomName(),
+              'summary' => $this->randomMachineName(),
             ),
           ),
         )
@@ -94,11 +87,11 @@ class RowPluginTest extends NodeTestBase {
    */
   public function drupalCreateComment(array $settings = array()) {
     $settings += array(
-      'subject' => $this->randomName(),
+      'subject' => $this->randomMachineName(),
       'entity_id' => $settings['entity_id'],
       'field_name' => 'comment',
       'entity_type' => 'node',
-      'comment_body' => $this->randomName(40),
+      'comment_body' => $this->randomMachineName(40),
     );
 
     $comment = entity_create('comment', $settings);

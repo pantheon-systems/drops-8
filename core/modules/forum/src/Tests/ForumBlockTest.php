@@ -11,7 +11,9 @@ use Drupal\simpletest\WebTestBase;
 use Drupal\Core\Datetime\DrupalDateTime;
 
 /**
- * Provides automated tests for the Forum blocks.
+ * Tests the forum blocks.
+ *
+ * @group forum
  */
 class ForumBlockTest extends WebTestBase {
 
@@ -26,14 +28,6 @@ class ForumBlockTest extends WebTestBase {
    * A user with various administrative privileges.
    */
   protected $adminUser;
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Forum blocks',
-      'description' => 'Tests the forum blocks.',
-      'group' => 'Forum',
-    );
-  }
 
   function setUp() {
     parent::setUp();
@@ -164,8 +158,8 @@ class ForumBlockTest extends WebTestBase {
 
     for ($index = 0; $index < $count; $index++) {
       // Generate a random subject/body.
-      $title = $this->randomName(20);
-      $body = $this->randomName(200);
+      $title = $this->randomMachineName(20);
+      $body = $this->randomMachineName(200);
       // Forum posts are ordered by timestamp, so force a unique timestamp by
       // changing the date.
       $date->modify('+1 minute');

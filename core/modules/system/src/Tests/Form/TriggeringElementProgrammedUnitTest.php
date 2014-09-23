@@ -9,22 +9,18 @@ namespace Drupal\system\Tests\Form;
 
 use Drupal\Component\Utility\String;
 use Drupal\Core\Form\FormInterface;
+use Drupal\Core\Form\FormState;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\simpletest\DrupalUnitTestBase;
 
 /**
  * Tests detection of triggering_element for programmed form submissions.
+ *
+ * @group Form
  */
 class TriggeringElementProgrammedUnitTest extends DrupalUnitTestBase implements FormInterface {
 
   public static $modules = array('system');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Form triggering element programmed determination',
-      'description' => 'Tests detection of triggering_element for programmed form submissions.',
-      'group' => 'Form API',
-    );
-  }
 
   /**
    * {@inheritdoc}
@@ -36,7 +32,7 @@ class TriggeringElementProgrammedUnitTest extends DrupalUnitTestBase implements 
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, array &$form_state) {
+  public function buildForm(array $form, FormStateInterface $form_state) {
     $form['one'] = array(
       '#type' => 'textfield',
       '#title' => 'One',
@@ -63,7 +59,7 @@ class TriggeringElementProgrammedUnitTest extends DrupalUnitTestBase implements 
   /**
    * {@inheritdoc}
    */
-  public function validateForm(array &$form, array &$form_state) {
+  public function validateForm(array &$form, FormStateInterface $form_state) {
     // Verify that the only submit button was recognized as triggering_element.
     $this->assertEqual($form['actions']['submit']['#array_parents'], $form_state['triggering_element']['#array_parents']);
   }
@@ -71,7 +67,7 @@ class TriggeringElementProgrammedUnitTest extends DrupalUnitTestBase implements 
   /**
    * {@inheritdoc}
    */
-  public function submitForm(array &$form, array &$form_state) {
+  public function submitForm(array &$form, FormStateInterface $form_state) {
   }
 
   /**
@@ -79,13 +75,14 @@ class TriggeringElementProgrammedUnitTest extends DrupalUnitTestBase implements 
    */
   function testLimitValidationErrors() {
     // Programmatically submit the form.
+    $form_state = new FormState();
     $form_state['values'] = array();
     $form_state['values']['section'] = 'one';
     $form_builder = $this->container->get('form_builder');
     $form_builder->submitForm($this, $form_state);
 
     // Verify that only the specified section was validated.
-    $errors = $form_builder->getErrors($form_state);
+    $errors = $form_state->getErrors();
     $this->assertTrue(isset($errors['one']), "Section 'one' was validated.");
     $this->assertFalse(isset($errors['two']), "Section 'two' was not validated.");
 

@@ -9,6 +9,7 @@ namespace Drupal\comment\Plugin\views\field;
 
 use Drupal\Core\Database\Connection;
 use Drupal\comment\CommentInterface;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\views\Plugin\views\field\Numeric;
 use Drupal\views\Plugin\views\display\DisplayPluginBase;
 use Drupal\views\ResultRow;
@@ -82,7 +83,7 @@ class NodeNewComments extends Numeric {
     return $options;
   }
 
-  public function buildOptionsForm(&$form, &$form_state) {
+  public function buildOptionsForm(&$form, FormStateInterface $form_state) {
     $form['link_to_comment'] = array(
       '#title' => t('Link this field to new comments'),
       '#description' => t("Enable to override this field's links."),
@@ -118,7 +119,7 @@ class NodeNewComments extends Numeric {
     }
 
     if ($nids) {
-      $result = $this->database->query("SELECT n.nid, COUNT(c.cid) as num_comments FROM {node} n INNER JOIN {comment} c ON n.nid = c.entity_id AND c.entity_type = 'node'
+      $result = $this->database->query("SELECT n.nid, COUNT(c.cid) as num_comments FROM {node} n INNER JOIN {comment_field_data} c ON n.nid = c.entity_id AND c.entity_type = 'node' AND c.default_langcode = 1
         LEFT JOIN {history} h ON h.nid = n.nid AND h.uid = :h_uid WHERE n.nid IN (:nids)
         AND c.changed > GREATEST(COALESCE(h.timestamp, :timestamp), :timestamp) AND c.status = :status GROUP BY n.nid", array(
         ':status' => CommentInterface::PUBLISHED,
@@ -151,9 +152,11 @@ class NodeNewComments extends Numeric {
         'nid' => $this->getValue($values, 'nid'),
         'type' => $this->getValue($values, 'type'),
       ));
+      $page_number = \Drupal::entityManager()->getStorage('comment')
+        ->getNewCommentPageNumber($this->getValue($values, 'comment_count'), $this->getValue($values), $node);
       $this->options['alter']['make_link'] = TRUE;
       $this->options['alter']['path'] = 'node/' . $node->id();
-      $this->options['alter']['query'] = comment_new_page_count($this->getValue($values, 'comment_count'), $this->getValue($values), $node);
+      $this->options['alter']['query'] = $page_number ? array('page' => $page_number) : NULL;
       $this->options['alter']['fragment'] = 'new';
     }
 

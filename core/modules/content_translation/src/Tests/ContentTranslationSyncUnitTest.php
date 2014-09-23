@@ -11,7 +11,9 @@ use Drupal\simpletest\DrupalUnitTestBase;
 use Drupal\content_translation\FieldTranslationSynchronizer;
 
 /**
- * Tests the Content Translation field synchronization algorithm.
+ * Tests the field synchronization logic.
+ *
+ * @group content_translation
  */
 class ContentTranslationSyncUnitTest extends DrupalUnitTestBase {
 
@@ -59,14 +61,6 @@ class ContentTranslationSyncUnitTest extends DrupalUnitTestBase {
 
   public static $modules = array('language', 'content_translation');
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Field synchronization',
-      'description' => 'Tests the field synchronization logic.',
-      'group' => 'Content Translation UI',
-    );
-  }
-
   protected function setUp() {
     parent::setUp();
 
@@ -101,7 +95,7 @@ class ContentTranslationSyncUnitTest extends DrupalUnitTestBase {
     $field_values = $this->unchangedFieldValues;
     $item = array();
     foreach ($this->columns as $column) {
-      $item[$column] = $this->randomName();
+      $item[$column] = $this->randomMachineName();
     }
     $field_values[$sync_langcode][] = $item;
     $this->synchronizer->synchronizeItems($field_values, $unchanged_items, $sync_langcode, $this->langcodes, $this->synchronized);

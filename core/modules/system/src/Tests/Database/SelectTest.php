@@ -9,31 +9,20 @@ namespace Drupal\system\Tests\Database;
 use Drupal\Core\Database\InvalidQueryException;
 
 /**
- * Tests the SELECT builder.
+ * Tests the Select query builder.
+ *
+ * @group Database
  */
 class SelectTest extends DatabaseTestBase {
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Select tests',
-      'description' => 'Test the Select query builder.',
-      'group' => 'Database',
-    );
-  }
 
   /**
    * Tests rudimentary SELECT statements.
    */
   function testSimpleSelect() {
     $query = db_select('test');
-    $name_field = $query->addField('test', 'name');
-    $age_field = $query->addField('test', 'age', 'age');
-    $result = $query->execute();
-
-    $num_records = 0;
-    foreach ($result as $record) {
-      $num_records++;
-    }
+    $query->addField('test', 'name');
+    $query->addField('test', 'age', 'age');
+    $num_records = $query->countQuery()->execute()->fetchField();
 
     $this->assertEqual($num_records, 4, 'Returned the correct number of rows.');
   }
@@ -43,19 +32,16 @@ class SelectTest extends DatabaseTestBase {
    */
   function testSimpleComment() {
     $query = db_select('test')->comment('Testing query comments');
-    $name_field = $query->addField('test', 'name');
-    $age_field = $query->addField('test', 'age', 'age');
+    $query->addField('test', 'name');
+    $query->addField('test', 'age', 'age');
     $result = $query->execute();
 
-    $num_records = 0;
-    foreach ($result as $record) {
-      $num_records++;
-    }
+    $records = $result->fetchAll();
 
-    $query = (string)$query;
+    $query = (string) $query;
     $expected = "/* Testing query comments */ SELECT test.name AS name, test.age AS age\nFROM \n{test} test";
 
-    $this->assertEqual($num_records, 4, 'Returned the correct number of rows.');
+    $this->assertEqual(count($records), 4, 'Returned the correct number of rows.');
     $this->assertEqual($query, $expected, 'The flattened query contains the comment string.');
   }
 
@@ -64,19 +50,16 @@ class SelectTest extends DatabaseTestBase {
    */
   function testVulnerableComment() {
     $query = db_select('test')->comment('Testing query comments */ SELECT nid FROM {node}; --');
-    $name_field = $query->addField('test', 'name');
-    $age_field = $query->addField('test', 'age', 'age');
+    $query->addField('test', 'name');
+    $query->addField('test', 'age', 'age');
     $result = $query->execute();
 
-    $num_records = 0;
-    foreach ($result as $record) {
-      $num_records++;
-    }
+    $records = $result->fetchAll();
 
-    $query = (string)$query;
+    $query = (string) $query;
     $expected = "/* Testing query comments SELECT nid FROM {node}; -- */ SELECT test.name AS name, test.age AS age\nFROM \n{test} test";
 
-    $this->assertEqual($num_records, 4, 'Returned the correct number of rows.');
+    $this->assertEqual(count($records), 4, 'Returned the correct number of rows.');
     $this->assertEqual($query, $expected, 'The flattened query contains the sanitised comment string.');
   }
 
@@ -327,7 +310,7 @@ class SelectTest extends DatabaseTestBase {
     // after shuffling it (in other words, nearly impossible).
     $number_of_items = 52;
     while (db_query("SELECT MAX(id) FROM {test}")->fetchField() < $number_of_items) {
-      db_insert('test')->fields(array('name' => $this->randomName()))->execute();
+      db_insert('test')->fields(array('name' => $this->randomMachineName()))->execute();
     }
 
     // First select the items in order and make sure we get an ordered list.

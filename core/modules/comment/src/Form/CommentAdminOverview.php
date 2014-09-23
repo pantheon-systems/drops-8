@@ -10,10 +10,11 @@ namespace Drupal\comment\Form;
 use Drupal\comment\CommentInterface;
 use Drupal\comment\CommentStorageInterface;
 use Drupal\Component\Utility\Unicode;
-use Drupal\Core\Datetime\Date;
+use Drupal\Core\Datetime\DateFormatter;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Form\FormBase;
+use Drupal\Core\Form\FormStateInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -36,11 +37,11 @@ class CommentAdminOverview extends FormBase {
   protected $commentStorage;
 
   /**
-   * Date service object.
+   * The date formatter service.
    *
-   * @var \Drupal\Core\Datetime\Date
+   * @var \Drupal\Core\Datetime\DateFormatter
    */
-  protected $date;
+  protected $dateFormatter;
 
   /**
    * The module handler.
@@ -56,15 +57,15 @@ class CommentAdminOverview extends FormBase {
    *   The entity manager service.
    * @param \Drupal\comment\CommentStorageInterface $comment_storage
    *   The comment storage.
-   * @param \Drupal\Core\Datetime\Date $date
-   *   The date service.
+   * @param \Drupal\Core\Datetime\DateFormatter $date_formatter
+   *   The date formatter service.
    * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
    *   The module handler.
    */
-  public function __construct(EntityManagerInterface $entity_manager, CommentStorageInterface $comment_storage, Date $date, ModuleHandlerInterface $module_handler) {
+  public function __construct(EntityManagerInterface $entity_manager, CommentStorageInterface $comment_storage, DateFormatter $date_formatter, ModuleHandlerInterface $module_handler) {
     $this->entityManager = $entity_manager;
     $this->commentStorage = $comment_storage;
-    $this->date = $date;
+    $this->dateFormatter = $date_formatter;
     $this->moduleHandler = $module_handler;
   }
 
@@ -75,7 +76,7 @@ class CommentAdminOverview extends FormBase {
     return new static(
       $container->get('entity.manager'),
       $container->get('entity.manager')->getStorage('comment'),
-      $container->get('date'),
+      $container->get('date.formatter'),
       $container->get('module_handler')
     );
   }
@@ -92,15 +93,15 @@ class CommentAdminOverview extends FormBase {
    *
    * @param array $form
    *   An associative array containing the structure of the form.
-   * @param array $form_state
-   *   An associative array containing the current state of the form.
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   The current state of the form.
    * @param string $type
    *   The type of the overview form ('approval' or 'new').
    *
    * @return array
    *   The form structure.
    */
-  public function buildForm(array $form, array &$form_state, $type = 'new') {
+  public function buildForm(array $form, FormStateInterface $form_state, $type = 'new') {
 
     // Build an 'Update options' form.
     $form['options'] = array(
@@ -209,13 +210,13 @@ class CommentAdminOverview extends FormBase {
             '#access' => $commented_entity->access('view'),
           ) + $commented_entity->urlInfo()->toRenderArray(),
         ),
-        'changed' => $this->date->format($comment->getChangedTime(), 'short'),
+        'changed' => $this->dateFormatter->format($comment->getChangedTime(), 'short'),
       );
       $comment_uri_options = $comment->urlInfo()->getOptions();
       $links = array();
       $links['edit'] = array(
         'title' => $this->t('Edit'),
-        'route_name' => 'comment.edit_page',
+        'route_name' => 'entity.comment.edit_form',
         'route_parameters' => array('comment' => $comment->id()),
         'options' => $comment_uri_options,
         'query' => $destination,
@@ -250,18 +251,18 @@ class CommentAdminOverview extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function validateForm(array &$form, array &$form_state) {
+  public function validateForm(array &$form, FormStateInterface $form_state) {
     $form_state['values']['comments'] = array_diff($form_state['values']['comments'], array(0));
     // We can't execute any 'Update options' if no comments were selected.
     if (count($form_state['values']['comments']) == 0) {
-      $this->setFormError('', $form_state, $this->t('Select one or more comments to perform the update on.'));
+      $form_state->setErrorByName('', $this->t('Select one or more comments to perform the update on.'));
     }
   }
 
   /**
    * {@inheritdoc}
    */
-  public function submitForm(array &$form, array &$form_state) {
+  public function submitForm(array &$form, FormStateInterface $form_state) {
     $operation = $form_state['values']['operation'];
     $cids = $form_state['values']['comments'];
 
@@ -280,9 +281,7 @@ class CommentAdminOverview extends FormBase {
       }
     }
     drupal_set_message($this->t('The update has been performed.'));
-    $form_state['redirect_route'] = array(
-      'route_name' => 'comment.admin',
-    );
+    $form_state->setRedirect('comment.admin');
   }
 
 }

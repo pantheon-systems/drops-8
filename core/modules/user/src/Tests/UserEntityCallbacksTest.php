@@ -10,7 +10,10 @@ namespace Drupal\user\Tests;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Test user entity callbacks.
+ * Tests specific parts of the user entity like the URI callback and the label
+ * callback.
+ *
+ * @group user
  */
 class UserEntityCallbacksTest extends WebTestBase {
 
@@ -26,14 +29,6 @@ class UserEntityCallbacksTest extends WebTestBase {
    */
   protected $account;
 
-  public static function getInfo() {
-    return array(
-      'name' => 'User entity callback tests',
-      'description' => 'Tests specific parts of the user entity like the URI callback and the label callback.',
-      'group' => 'User'
-    );
-  }
-
   function setUp() {
     parent::setUp();
 
@@ -48,7 +43,7 @@ class UserEntityCallbacksTest extends WebTestBase {
     $this->assertEqual($this->account->label(), $this->account->getUsername(), 'The username should be used as label');
 
     // Setup a random anonymous name to be sure the name is used.
-    $name = $this->randomName();
+    $name = $this->randomMachineName();
     \Drupal::config('user.settings')->set('anonymous', $name)->save();
     $this->assertEqual($this->anonymous->label(), $name, 'The variable anonymous should be used for name of uid 0');
   }

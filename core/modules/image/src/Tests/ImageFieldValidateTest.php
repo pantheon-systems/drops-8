@@ -8,22 +8,16 @@
 namespace Drupal\image\Tests;
 
 /**
- * Test class to check for various validations.
+ * Tests validation functions such as min/max resolution.
+ *
+ * @group image
  */
 class ImageFieldValidateTest extends ImageFieldTestBase {
-  public static function getInfo() {
-    return array(
-      'name' => 'Image field validation tests',
-      'description' => 'Tests validation functions such as min/max resolution.',
-      'group' => 'Image',
-    );
-  }
-
   /**
    * Test min/max resolution settings.
    */
   function testResolution() {
-    $field_name = strtolower($this->randomName());
+    $field_name = strtolower($this->randomMachineName());
     $min_resolution = 50;
     $max_resolution = 100;
     $instance_settings = array(
@@ -59,7 +53,7 @@ class ImageFieldValidateTest extends ImageFieldTestBase {
    * Test that required alt/title fields gets validated right.
    */
   function testRequiredAttributes() {
-    $field_name = strtolower($this->randomName());
+    $field_name = strtolower($this->randomMachineName());
     $instance_settings = array(
       'alt_field' => 1,
       'alt_field_required' => 1,

@@ -10,17 +10,11 @@ namespace Drupal\system\Tests\Entity;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Tests Entity API base functionality.
+ * Makes sure entity info is accurately cached.
+ *
+ * @group Entity
  */
 class EntityApiInfoTest extends WebTestBase  {
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Entity info',
-      'description' => 'Makes sure entity info is accurately cached.',
-      'group' => 'Entity API',
-    );
-  }
 
   /**
    * Ensures entity info cache is updated after changes.
@@ -40,7 +34,7 @@ class EntityApiInfoTest extends WebTestBase  {
     $this->assertEqual($entity_type->getLabel(), 'New label.', 'New label appears in entity info.');
 
     // Uninstall the providing module and make sure the entity type is gone.
-    module_uninstall(array('entity_cache_test', 'entity_cache_test_dependency'));
+    $this->container->get('module_handler')->uninstall(array('entity_cache_test', 'entity_cache_test_dependency'));
     $entity_types = \Drupal::entityManager()->getDefinitions();
     $this->assertFalse(isset($entity_types['entity_cache_test']), 'Entity type of the providing module is gone.');
   }

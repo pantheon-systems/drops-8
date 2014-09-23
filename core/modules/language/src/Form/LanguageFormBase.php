@@ -9,6 +9,7 @@ namespace Drupal\language\Form;
 
 use Drupal\Component\Utility\String;
 use Drupal\Core\Entity\EntityForm;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\language\ConfigurableLanguageManagerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -96,13 +97,13 @@ abstract class LanguageFormBase extends EntityForm {
   /**
    * Validates the language editing element.
    */
-  public function validateCommon(array $form, array &$form_state) {
+  public function validateCommon(array $form, FormStateInterface $form_state) {
     // Ensure sane field values for langcode and name.
     if (!isset($form['langcode_view']) && preg_match('@[^a-zA-Z_-]@', $form_state['values']['langcode'])) {
-      $this->setFormError('langcode', $form_state, $this->t('%field may only contain characters a-z, underscores, or hyphens.', array('%field' => $form['langcode']['#title'])));
+      $form_state->setErrorByName('langcode', $this->t('%field may only contain characters a-z, underscores, or hyphens.', array('%field' => $form['langcode']['#title'])));
     }
     if ($form_state['values']['name'] != String::checkPlain($form_state['values']['name'])) {
-      $this->setFormError('name', $form_state, $this->t('%field cannot contain any markup.', array('%field' => $form['name']['#title'])));
+      $form_state->setErrorByName('name', $this->t('%field cannot contain any markup.', array('%field' => $form['name']['#title'])));
     }
   }
 

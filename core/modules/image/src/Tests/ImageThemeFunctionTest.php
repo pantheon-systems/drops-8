@@ -12,6 +12,8 @@ use Drupal\simpletest\WebTestBase;
 
 /**
  * Tests image theme functions.
+ *
+ * @group image
  */
 class ImageThemeFunctionTest extends WebTestBase {
 
@@ -34,18 +36,10 @@ class ImageThemeFunctionTest extends WebTestBase {
    */
   protected $imageFactory;
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Image theme functions',
-      'description' => 'Tests the image theme functions.',
-      'group' => 'Image',
-    );
-  }
-
   public function setUp() {
     parent::setUp();
 
-    entity_create('field_config', array(
+    entity_create('field_storage_config', array(
       'name' => 'image_test',
       'entity_type' => 'entity_test',
       'type' => 'image',
@@ -87,7 +81,7 @@ class ImageThemeFunctionTest extends WebTestBase {
     $entity->save();
 
     // Create the base element that we'll use in the tests below.
-    $path = $this->randomName();
+    $path = $this->randomMachineName();
     $base_element = array(
       '#theme' => 'image_formatter',
       '#image_style' => 'test',
@@ -112,7 +106,7 @@ class ImageThemeFunctionTest extends WebTestBase {
     $this->assertEqual(count($elements), 1, 'theme_image_formatter() correctly renders without title, alt, or path options.');
 
     // Link the image to a fragment on the page, and not a full URL.
-    $fragment = $this->randomName();
+    $fragment = $this->randomMachineName();
     $element = $base_element;
     $element['#path']['path'] = '';
     $element['#path']['options'] = array(

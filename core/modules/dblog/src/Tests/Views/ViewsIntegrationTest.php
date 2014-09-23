@@ -15,6 +15,8 @@ use Drupal\views\Tests\ViewUnitTestBase;
 
 /**
  * Tests the views integration of dblog module.
+ *
+ * @group dblog
  */
 class ViewsIntegrationTest extends ViewUnitTestBase {
 
@@ -31,14 +33,6 @@ class ViewsIntegrationTest extends ViewUnitTestBase {
    * @var array
    */
   public static $modules = array('dblog_test_views');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Dblog Integration',
-      'description' => 'Tests the views integration of dblog module.',
-      'group' => 'Views module integration'
-    );
-  }
 
   /**
    * {@inheritdoc}
@@ -63,20 +57,20 @@ class ViewsIntegrationTest extends ViewUnitTestBase {
     $entries = array();
     // Setup a watchdog entry without tokens.
     $entries[] = array(
-      'message' => $this->randomName(),
+      'message' => $this->randomMachineName(),
       'variables' => array(),
       'link' => l('Link', 'node/1'),
     );
     // Setup a watchdog entry with one token.
     $entries[] = array(
       'message' => '@token1',
-      'variables' => array('@token1' => $this->randomName()),
+      'variables' => array('@token1' => $this->randomMachineName()),
       'link' => l('Link', 'node/2'),
     );
     // Setup a watchdog entry with two tokens.
     $entries[] = array(
       'message' => '@token1 !token2',
-      'variables' => array('@token1' => $this->randomName(), '!token2' => $this->randomName()),
+      'variables' => array('@token1' => $this->randomMachineName(), '!token2' => $this->randomMachineName()),
       // Setup a link with a tag which is filtered by
       // \Drupal\Component\Utility\Xss::filterAdmin().
       'link' => l('<object>Link</object>', 'node/2', array('html' => TRUE)),

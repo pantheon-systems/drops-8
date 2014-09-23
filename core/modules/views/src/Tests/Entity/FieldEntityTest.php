@@ -12,6 +12,8 @@ use Drupal\views\Views;
 
 /**
  * Tests the field plugin base integration with the entity system.
+ *
+ * @group views
  */
 class FieldEntityTest extends ViewTestBase {
 
@@ -29,14 +31,6 @@ class FieldEntityTest extends ViewTestBase {
    */
   public static $modules = array('node', 'comment');
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Field: Entity Api Integration',
-      'description' => 'Tests the field plugin base integration with the entity system.',
-      'group' => 'Views module integration',
-    );
-  }
-
   /**
    * Tests the getEntity method.
    */
@@ -44,7 +38,7 @@ class FieldEntityTest extends ViewTestBase {
     // The view is a view of comments, their nodes and their authors, so there
     // are three layers of entities.
 
-    $account = entity_create('user', array('name' => $this->randomName(), 'bundle' => 'user'));
+    $account = entity_create('user', array('name' => $this->randomMachineName(), 'bundle' => 'user'));
     $account->save();
     $this->drupalCreateContentType(array('type' => 'page'));
     $this->container->get('comment.manager')->addDefaultField('node', 'page');

@@ -5,6 +5,7 @@
  * Enables semantically enriched output for Drupal sites in the form of RDFa.
  */
 
+use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Component\Utility\String;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Template\Attribute;
@@ -224,9 +225,9 @@ function rdf_entity_prepare_view($entity_type, array $entities, array $displays)
 }
 
 /**
- * Implements hook_comment_load().
+ * Implements hook_ENTITY_TYPE_storage_load() for comment entities.
  */
-function rdf_comment_load($comments) {
+function rdf_comment_storage_load($comments) {
   foreach ($comments as $comment) {
     // Pages with many comments can show poor performance. This information
     // isn't needed until rdf_preprocess_comment() is called, but set it here
@@ -375,14 +376,13 @@ function rdf_preprocess_user(&$variables) {
  * Implements hook_preprocess_HOOK() for theme_username().
  */
 function rdf_preprocess_username(&$variables) {
-  $attributes = array();
   // Because lang is set on the HTML element that wraps the page, the
   // username inherits this language attribute. However, since the username
   // might not be transliterated to the same language that the content is in,
   // we do not want it to inherit the language attribute, so we set the
   // attribute to an empty string.
   if (empty($variables['attributes']['lang'])) {
-    $attributes['lang'] = '';
+    $variables['attributes']['lang'] = '';
   }
 
   // The profile URI is used to identify the user account. The about attribute
@@ -393,44 +393,32 @@ function rdf_preprocess_username(&$variables) {
   // a user profile URI for it (only a homepage which cannot be used as user
   // profile in RDF.)
   if ($variables['uid'] > 0) {
-    $attributes['about'] = url('user/' . $variables['uid']);
+    $variables['attributes']['about'] = url('user/' . $variables['uid']);
   }
 
   // Add RDF type of user.
   $mapping = rdf_get_mapping('user', 'user');
   $bundle_mapping = $mapping->getPreparedBundleMapping();
   if (!empty($bundle_mapping['types'])) {
-    $attributes['typeof'] = $bundle_mapping['types'];
+    $variables['attributes']['typeof'] = $bundle_mapping['types'];
   }
   // Annotate the username in RDFa. A property attribute is used with an empty
   // datatype attribute to ensure the username is parsed as a plain literal
   // in RDFa 1.0 and 1.1.
   $name_mapping = $mapping->getPreparedFieldMapping('name');
   if (!empty($name_mapping)) {
-    $attributes['property'] = $name_mapping['properties'];
-    $attributes['datatype'] = '';
+    $variables['attributes']['property'] = $name_mapping['properties'];
+    $variables['attributes']['datatype'] = '';
   }
   // Add the homepage RDFa markup if present.
   $homepage_mapping = $mapping->getPreparedFieldMapping('homepage');
   if (!empty($variables['homepage']) && !empty($homepage_mapping)) {
-    $attributes['rel'] = $homepage_mapping['properties'];
+    $variables['attributes']['rel'] = $homepage_mapping['properties'];
   }
   // Long usernames are truncated by template_preprocess_username(). Store the
   // full name in the content attribute so it can be extracted in RDFa.
   if ($variables['truncated']) {
-    $attributes['content'] = String::checkPlain($variables['name_raw']);
-  }
-  // The remaining attributes can have multiple values listed, with whitespace
-  // separating the values in the RDFa attributes
-  // (see http://www.w3.org/TR/rdfa-syntax/#rdfa-attributes).
-  // Therefore, merge rather than override so as not to clobber values set by
-  // earlier preprocess functions. These attributes will be placed in the a
-  // element if a link is rendered, or on a span element otherwise.
-  if (isset($variables['link_path'])) {
-    $variables['link_options']['attributes'] = array_merge_recursive($variables['link_options']['attributes'], $attributes);
-  }
-  else {
-    $variables['attributes'] = array_merge_recursive($variables['attributes'], $attributes);
+    $variables['attributes']['content'] = String::checkPlain($variables['name_raw']);
   }
 }
 
@@ -457,8 +445,8 @@ function rdf_preprocess_comment(&$variables) {
     $author_attributes = array('rel' => $author_mapping['properties']);
     // Wraps the author variable and the submitted variable which are both
     // available in comment.html.twig.
-    $variables['author'] = '<span ' . new Attribute($author_attributes) . '>' . $variables['author'] . '</span>';
-    $variables['submitted'] = '<span ' . new Attribute($author_attributes) . '>' . $variables['submitted'] . '</span>';
+    $variables['author'] = SafeMarkup::set('<span ' . new Attribute($author_attributes) . '>' . $variables['author'] . '</span>');
+    $variables['submitted'] = SafeMarkup::set('<span ' . new Attribute($author_attributes) . '>' . $variables['submitted'] . '</span>');
   }
   // Adds RDFa markup for the date of the comment.
   $created_mapping = $mapping->getPreparedFieldMapping('created');
@@ -474,8 +462,8 @@ function rdf_preprocess_comment(&$variables) {
     $created_metadata_markup = drupal_render($rdf_metadata);
     // Appends the markup to the created variable and the submitted variable
     // which are both available in comment.html.twig.
-    $variables['created'] .= $created_metadata_markup;
-    $variables['submitted'] .= $created_metadata_markup;
+    $variables['created'] = SafeMarkup::set(SafeMarkup::escape($variables['created']) . $created_metadata_markup);
+    $variables['submitted'] = SafeMarkup::set($variables['submitted'] . $created_metadata_markup);
   }
   $title_mapping = $mapping->getPreparedFieldMapping('subject');
   if (!empty($title_mapping)) {
@@ -526,22 +514,27 @@ function rdf_preprocess_comment(&$variables) {
  * Implements hook_preprocess_HOOK() for taxonomy term templates.
  */
 function rdf_preprocess_taxonomy_term(&$variables) {
+  // Adds RDFa markup to the taxonomy term container.
+  // The @about attribute specifies the URI of the resource described within
+  // the HTML element, while the @typeof attribute indicates its RDF type
+  // (e.g., schema:Thing, skos:Concept, and so on).
   $term = $variables['term'];
   $mapping = rdf_get_mapping('taxonomy_term', $term->bundle());
   $bundle_mapping = $mapping->getPreparedBundleMapping();
+  $variables['attributes']['about'] = $term->url();
+  $variables['attributes']['typeof'] = empty($bundle_mapping['types']) ? NULL : $bundle_mapping['types'];
+
+  // Add RDFa markup for the taxonomy term name as metadata, if present.
   $name_field_mapping = $mapping->getPreparedFieldMapping('name');
-  // Adds the RDF type of the term and the term name in a <meta> tag.
-  if (!empty($name_field_mapping)) {
-    $term_label_meta = array(
-      '#tag' => 'meta',
-      '#attributes' => array(
-        'about' => url('taxonomy/term/' . $term->id()),
-        'typeof' => $bundle_mapping['types'],
-        'property' => $name_field_mapping['properties'],
-        'content' => $term->getName(),
-      ),
+  if (!empty($name_field_mapping) && !empty($name_field_mapping['properties'])) {
+    $name_attributes = array(
+      'property' => $name_field_mapping['properties'],
+      'content' => $term->getName(),
     );
-    drupal_add_html_head($term_label_meta, 'rdf_term_label');
+    $variables['title_suffix']['taxonomy_term_rdfa'] = array(
+      '#theme' => 'rdf_metadata',
+      '#metadata' => array($name_attributes),
+    );
   }
 }
 
@@ -575,9 +568,9 @@ function rdf_preprocess_image(&$variables) {
 function template_preprocess_rdf_metadata(&$variables) {
   foreach ($variables['metadata'] as $key => $attributes) {
     // Add a class so that developers viewing the HTML source can see why there
-    // are empty <span> tags in the document. The class can also be used to set
-    // a CSS display:none rule in a theme where empty spans affect display.
+    // are empty <span> tags in the document.
     $attributes['class'][] = 'rdf-meta';
+    $attributes['class'][] = 'hidden';
     // The XHTML+RDFa doctype allows either <span></span> or <span /> syntax to
     // be used, but for maximum browser compatibility, W3C recommends the
     // former when serving pages using the text/html media type, see

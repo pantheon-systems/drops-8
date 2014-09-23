@@ -13,7 +13,9 @@
 
   Drupal.AjaxCommands.prototype.viewsShowButtons = function (ajax, response, status) {
     $('div.views-edit-view div.form-actions').removeClass('js-hide');
-    $('div.views-edit-view div.view-changed.messages').removeClass('js-hide');
+    if (response.changed) {
+      $('div.views-edit-view div.view-changed.messages').removeClass('js-hide');
+    }
   };
 
   Drupal.AjaxCommands.prototype.viewsTriggerPreview = function (ajax, response, status) {
@@ -77,7 +79,7 @@
     attach: function (context, settings) {
       var base_element_settings = {
         'event': 'click',
-        'progress': { 'type': 'throbber' }
+        'progress': { 'type': 'fullscreen' }
       };
       // Bind AJAX behaviors to all items showing the class.
       $('a.views-ajax-link', context).once('views-ajax').each(function () {

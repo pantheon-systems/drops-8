@@ -10,7 +10,9 @@ namespace Drupal\views\Tests\Plugin;
 use Drupal\views\Tests\ViewUnitTestBase;
 
 /**
- * Tests exposed views derived blocks have the correct config dependencies.
+ * Tests views block config dependencies functionality.
+ *
+ * @group views
  */
 class BlockDependenciesTest extends ViewUnitTestBase {
 
@@ -27,17 +29,6 @@ class BlockDependenciesTest extends ViewUnitTestBase {
    * @var array
    */
   public static $modules = array('node', 'block', 'user');
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'name' => 'Views block config dependencies',
-      'description' => 'Test views block config dependencies functionality.',
-      'group' => 'Views Plugins',
-    );
-  }
 
   /**
    * Tests that exposed filter blocks have the correct dependencies.
@@ -100,9 +91,9 @@ class BlockDependenciesTest extends ViewUnitTestBase {
     $settings += array(
       'plugin' => $plugin_id,
       'region' => 'sidebar_first',
-      'id' => strtolower($this->randomName(8)),
+      'id' => strtolower($this->randomMachineName(8)),
       'theme' => \Drupal::config('system.theme')->get('default'),
-      'label' => $this->randomName(8),
+      'label' => $this->randomMachineName(8),
       'visibility' => array(),
       'weight' => 0,
       'cache' => array(

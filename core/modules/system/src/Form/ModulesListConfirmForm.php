@@ -9,6 +9,7 @@ namespace Drupal\system\Form;
 
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Form\ConfirmFormBase;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\KeyValueStore\KeyValueStoreExpirableInterface;
 use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -73,7 +74,7 @@ class ModulesListConfirmForm extends ConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function getCancelRoute() {
+  public function getCancelUrl() {
     return new Url('system.modules_list');
   }
 
@@ -101,13 +102,13 @@ class ModulesListConfirmForm extends ConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, array &$form_state) {
+  public function buildForm(array $form, FormStateInterface $form_state) {
     $account = $this->currentUser()->id();
     $this->modules = $this->keyValueExpirable->get($account);
 
     // Redirect to the modules list page if the key value store is empty.
     if (!$this->modules) {
-      return new RedirectResponse($this->urlGenerator()->generate('system.modules_list', array(), TRUE));
+      return new RedirectResponse($this->url('system.modules_list', [], ['absolute' => TRUE]));
     }
 
     $items = array();
@@ -131,7 +132,7 @@ class ModulesListConfirmForm extends ConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function submitForm(array &$form, array &$form_state) {
+  public function submitForm(array &$form, FormStateInterface $form_state) {
     // Remove the key value store entry.
     $account = $this->currentUser()->id();
     $this->keyValueExpirable->delete($account);
@@ -151,7 +152,7 @@ class ModulesListConfirmForm extends ConfirmFormBase {
       drupal_set_message($this->t('The configuration options have been saved.'));
     }
 
-    $form_state['redirect_route'] = $this->getCancelRoute();
+    $form_state->setRedirectUrl($this->getCancelUrl());
   }
 
 }

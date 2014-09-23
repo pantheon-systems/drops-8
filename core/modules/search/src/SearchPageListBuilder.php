@@ -13,6 +13,7 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Form\FormInterface;
+use Drupal\Core\Form\FormStateInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -97,7 +98,10 @@ class SearchPageListBuilder extends DraggableListBuilder implements FormInterfac
     );
     $header['status'] = array(
       'data' => $this->t('Status'),
-      'class' => array(RESPONSIVE_PRIORITY_LOW),
+    );
+    $header['progress'] = array(
+      'data' => $this->t('Indexing progress'),
+      'class' => array(RESPONSIVE_PRIORITY_MEDIUM),
     );
     return $header + parent::buildHeader();
   }
@@ -131,13 +135,25 @@ class SearchPageListBuilder extends DraggableListBuilder implements FormInterfac
       $status = $this->t('Disabled');
     }
     $row['status']['#markup'] = $status;
+
+    if ($entity->isIndexable()) {
+      $status = $entity->getPlugin()->indexStatus();
+      $row['progress']['#markup'] = $this->t('%num_indexed of %num_total indexed', array(
+        '%num_indexed' => $status['total'] - $status['remaining'],
+        '%num_total' => $status['total']
+      ));
+    }
+    else {
+      $row['progress']['#markup'] = $this->t('Does not use index');
+    }
+
     return $row + parent::buildRow($entity);
   }
 
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, array &$form_state) {
+  public function buildForm(array $form, FormStateInterface $form_state) {
     $form = parent::buildForm($form, $form_state);
     $old_state = $this->configFactory->getOverrideState();
     $search_settings = $this->configFactory->setOverrideState(FALSE)->get('search.settings');
@@ -154,11 +170,15 @@ class SearchPageListBuilder extends DraggableListBuilder implements FormInterfac
 
     $this->moduleHandler->loadAllIncludes('admin.inc');
     $count = format_plural($remaining, 'There is 1 item left to index.', 'There are @count items left to index.');
-    $percentage = ((int) min(100, 100 * ($total - $remaining) / max(1, $total))) . '%';
+    $done = $total - $remaining;
+    // Use floor() to calculate the percentage, so if it is not quite 100%, it
+    // will show as 99%, to indicate "almost done".
+    $percentage = $total > 0 ? floor(100 * $done / $total) : 100;
+    $percentage .= '%';
     $status = '<p><strong>' . $this->t('%percentage of the site has been indexed.', array('%percentage' => $percentage)) . ' ' . $count . '</strong></p>';
     $form['status'] = array(
       '#type' => 'details',
-      '#title' => $this->t('Indexing status'),
+      '#title' => $this->t('Indexing progress'),
       '#open' => TRUE,
     );
     $form['status']['status'] = array('#markup' => $status);
@@ -206,6 +226,20 @@ class SearchPageListBuilder extends DraggableListBuilder implements FormInterfac
       '#title' => $this->t('Simple CJK handling'),
       '#default_value' => $search_settings->get('index.overlap_cjk'),
       '#description' => $this->t('Whether to apply a simple Chinese/Japanese/Korean tokenizer based on overlapping sequences. Turn this off if you want to use an external preprocessor for this instead. Does not affect other languages.')
+    );
+
+    // Indexing settings:
+    $form['logging'] = array(
+      '#type' => 'details',
+      '#title' => $this->t('Logging'),
+      '#open' => TRUE,
+    );
+
+    $form['logging']['logging'] = array(
+      '#type' => 'checkbox',
+      '#title' => $this->t('Log searches'),
+      '#default_value' => $search_settings->get('logging'),
+      '#description' => $this->t('If checked, all searches will be logged. Uncheck to skip logging. Logging may affect performance.'),
     );
 
     $form['search_pages'] = array(
@@ -271,7 +305,7 @@ class SearchPageListBuilder extends DraggableListBuilder implements FormInterfac
     else {
       $operations['default'] = array(
         'title' => $this->t('Set as default'),
-        'route_name' => 'search.set_default',
+        'route_name' => 'entity.search_page.set_default',
         'route_parameters' => array(
           'search_page' => $entity->id(),
         ),
@@ -285,13 +319,13 @@ class SearchPageListBuilder extends DraggableListBuilder implements FormInterfac
   /**
    * {@inheritdoc}
    */
-  public function validateForm(array &$form, array &$form_state) {
+  public function validateForm(array &$form, FormStateInterface $form_state) {
   }
 
   /**
    * {@inheritdoc}
    */
-  public function submitForm(array &$form, array &$form_state) {
+  public function submitForm(array &$form, FormStateInterface $form_state) {
     parent::submitForm($form, $form_state);
 
     $search_settings = $this->configFactory->get('search.settings');
@@ -305,6 +339,7 @@ class SearchPageListBuilder extends DraggableListBuilder implements FormInterfac
 
     $search_settings
       ->set('index.cron_limit', $form_state['values']['cron_limit'])
+      ->set('logging', $form_state['values']['logging'])
       ->save();
 
     drupal_set_message($this->t('The configuration options have been saved.'));
@@ -314,29 +349,27 @@ class SearchPageListBuilder extends DraggableListBuilder implements FormInterfac
    * Form submission handler for the reindex button on the search admin settings
    * form.
    */
-  public function searchAdminReindexSubmit(array &$form, array &$form_state) {
+  public function searchAdminReindexSubmit(array &$form, FormStateInterface $form_state) {
     // Send the user to the confirmation page.
-    $form_state['redirect_route']['route_name'] = 'search.reindex_confirm';
+    $form_state->setRedirect('search.reindex_confirm');
   }
 
   /**
    * Form validation handler for adding a new search page.
    */
-  public function validateAddSearchPage(array &$form, array &$form_state) {
+  public function validateAddSearchPage(array &$form, FormStateInterface $form_state) {
     if (empty($form_state['values']['search_type'])) {
-      $this->formBuilder()->setErrorByName('search_type', $form_state, $this->t('You must select the new search page type.'));
+      $form_state->setErrorByName('search_type', $this->t('You must select the new search page type.'));
     }
   }
 
   /**
    * Form submission handler for adding a new search page.
    */
-  public function submitAddSearchPage(array &$form, array &$form_state) {
-    $form_state['redirect_route'] = array(
-      'route_name' => 'search.add_type',
-      'route_parameters' => array(
-        'search_plugin_id' => $form_state['values']['search_type'],
-      ),
+  public function submitAddSearchPage(array &$form, FormStateInterface $form_state) {
+    $form_state->setRedirect(
+      'search.add_type',
+      array('search_plugin_id' => $form_state['values']['search_type'])
     );
   }
 

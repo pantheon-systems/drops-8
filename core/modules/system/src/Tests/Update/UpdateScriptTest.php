@@ -10,7 +10,9 @@ namespace Drupal\system\Tests\Update;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Tests the update system functionality.
+ * Tests the update script access and functionality.
+ *
+ * @group Update
  */
 class UpdateScriptTest extends WebTestBase {
 
@@ -25,14 +27,6 @@ class UpdateScriptTest extends WebTestBase {
 
   private $update_url;
   private $update_user;
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Update functionality',
-      'description' => 'Tests the update script access and functionality.',
-      'group' => 'Update',
-    );
-  }
 
   function setUp() {
     parent::setUp();
@@ -83,11 +77,7 @@ class UpdateScriptTest extends WebTestBase {
     $this->assertResponse(200);
 
     // Access the update page as user 1.
-    $user1 = user_load(1);
-    $user1->pass_raw = user_password();
-    $user1->pass = $this->container->get('password')->hash(trim($user1->pass_raw));
-    db_query("UPDATE {users} SET pass = :pass WHERE uid = :uid", array(':pass' => $user1->getPassword(), ':uid' => $user1->id()));
-    $this->drupalLogin($user1);
+    $this->drupalLogin($this->root_user);
     $this->drupalGet($this->update_url, array('external' => TRUE));
     $this->assertResponse(200);
   }

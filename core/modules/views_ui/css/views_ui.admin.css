@@ -113,7 +113,7 @@
   z-index: 51;
 }
 
-.views-displays .views-display-deleted-link {
+.views-displays .secondary .views-display-deleted-link {
   text-decoration: line-through;
 }
 
@@ -289,36 +289,6 @@ html.js .js-only {
 
 html.js span.js-only {
   display: inline;
-}
-
-/* @end */
-
-/* @group AJAX throbber */
-
-/* Base Page */
-#views-ui-list-page .ajax-progress-throbber,
-.views-admin .ajax-progress-throbber {
-  /* Can't do center:50% middle: 50%, so approximate it for a typical window size. */
-  left: 49%;
-  position: fixed;
-  top: 48.5%;
-  z-index: 1000;
-}
-#views-ui-list-page .ajax-progress-throbber .message,
-.views-admin .ajax-progress-throbber .message {
-  display: none;
-}
-
-/* Modal */
-#views-ajax-popup .ajax-progress-throbber {
-  /* Can't do center:50% middle: 50%, so approximate it for a typical window size. */
-  left: 49%;
-  position: fixed;
-  top: 48.5%;
-  z-index: 1000;
-}
-#views-ajax-popup .ajax-progress-throbber .message {
-  display: none;
 }
 
 /* @end */

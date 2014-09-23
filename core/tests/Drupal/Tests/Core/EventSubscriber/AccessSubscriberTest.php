@@ -7,7 +7,6 @@
 
 namespace Drupal\Tests\Core\EventSubscriber;
 
-use Drupal\Core\Access\AccessManager;
 use Drupal\Core\EventSubscriber\AccessSubscriber;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Tests\UnitTestCase;
@@ -20,12 +19,8 @@ use Symfony\Component\Routing\Route;
 
 
 /**
- * Tests the AccessSubscriber class.
- *
- * @see \Drupal\Core\EventSubscriber\AccessSubscriber
- *
- * @group System
- * @group Drupal
+ * @coversDefaultClass \Drupal\Core\EventSubscriber\AccessSubscriber
+ * @group EventSubscriber
  */
 class AccessSubscriberTest extends UnitTestCase {
 
@@ -50,7 +45,7 @@ class AccessSubscriberTest extends UnitTestCase {
   protected $route;
 
   /**
-   * @var Drupal\Core\Access\AccessManager|PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Access\AccessManagerInterface|\PHPUnit_Framework_MockObject_MockObject
    */
   protected $accessManager;
 
@@ -58,17 +53,6 @@ class AccessSubscriberTest extends UnitTestCase {
    * @var Drupal\Core\Session\AccountInterface|PHPUnit_Framework_MockObject_MockObject
    */
   protected $currentUser;
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'name' => 'Access subscriber',
-      'description' => 'Tests the access subscriber',
-      'group' => 'System',
-    );
-  }
 
   /**
    * {@inheritdoc}
@@ -96,9 +80,7 @@ class AccessSubscriberTest extends UnitTestCase {
       ->method('getRequest')
       ->will($this->returnValue($this->request));
 
-    $this->accessManager = $this->getMockBuilder('Drupal\Core\Access\AccessManager')
-      ->disableOriginalConstructor()
-      ->getMock();
+    $this->accessManager = $this->getMock('Drupal\Core\Access\AccessManagerInterface');
 
     $this->currentUser = $this->getMockBuilder('Drupal\Core\Session\AccountInterface')
       ->disableOriginalConstructor()
@@ -106,9 +88,9 @@ class AccessSubscriberTest extends UnitTestCase {
   }
 
   /**
-   * Tests access denied throws a Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException exception.
+   * Tests access denied throws an exception.
    *
-   * @expectedException Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException
+   * @expectedException \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException
    */
   public function testAccessSubscriberThrowsAccessDeniedException() {
 
@@ -147,25 +129,27 @@ class AccessSubscriberTest extends UnitTestCase {
   }
 
   /**
-   * Tests that if access is granted, AccessSubscriber will not throw a Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException exception.
+   * Tests that if access is granted, AccessSubscriber will not throw an exception.
    */
   public function testAccessSubscriberDoesNotAlterRequestIfAccessManagerGrantsAccess() {
-    $this->parameterBag->expects($this->any())
+    $this->parameterBag->expects($this->once())
       ->method('has')
       ->with(RouteObjectInterface::ROUTE_OBJECT)
       ->will($this->returnValue(TRUE));
 
-    $this->parameterBag->expects($this->any())
+    $this->parameterBag->expects($this->once())
       ->method('get')
       ->with(RouteObjectInterface::ROUTE_OBJECT)
       ->will($this->returnValue($this->route));
 
-    $this->accessManager->expects($this->any())
+    $this->accessManager->expects($this->once())
       ->method('check')
-      ->with($this->anything())
+      ->with($this->equalTo($this->route))
       ->will($this->returnValue(TRUE));
 
     $subscriber = new AccessSubscriber($this->accessManager, $this->currentUser);
+    // We're testing that no exception is thrown in this case. There is no
+    // return.
     $subscriber->onKernelRequestAccessCheck($this->event);
   }
 

@@ -1,0 +1,18 @@
+id: taxonomy_term.forum_container
+status: true
+langcode: en
+name: forum_container
+type: boolean
+settings:
+  on_label: Yes
+  off_label: No
+module: options
+entity_type: taxonomy_term
+locked: true
+cardinality: 1
+translatable: false
+indexes: {  }
+dependencies:
+  module:
+    - options
+    - taxonomy

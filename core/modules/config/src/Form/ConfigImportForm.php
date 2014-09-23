@@ -10,6 +10,7 @@ namespace Drupal\config\Form;
 use Drupal\Core\Archiver\ArchiveTar;
 use Drupal\Core\Config\StorageInterface;
 use Drupal\Core\Form\FormBase;
+use Drupal\Core\Form\FormStateInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -53,7 +54,7 @@ class ConfigImportForm extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, array &$form_state) {
+  public function buildForm(array $form, FormStateInterface $form_state) {
     $form['description'] = array(
       '#markup' => '<p>' . $this->t('Use the upload button below.') . '</p>',
     );
@@ -73,20 +74,20 @@ class ConfigImportForm extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function validateForm(array &$form, array &$form_state) {
+  public function validateForm(array &$form, FormStateInterface $form_state) {
     $file_upload = $this->getRequest()->files->get('files[import_tarball]', NULL, TRUE);
     if ($file_upload && $file_upload->isValid()) {
       $form_state['values']['import_tarball'] = $file_upload->getRealPath();
     }
     else {
-      $this->setFormError('import_tarball', $form_state, $this->t('The import tarball could not be uploaded.'));
+      $form_state->setErrorByName('import_tarball', $this->t('The import tarball could not be uploaded.'));
     }
   }
 
   /**
    * {@inheritdoc}
    */
-  public function submitForm(array &$form, array &$form_state) {
+  public function submitForm(array &$form, FormStateInterface $form_state) {
     if ($path = $form_state['values']['import_tarball']) {
       $this->configStorage->deleteAll();
       try {
@@ -97,7 +98,7 @@ class ConfigImportForm extends FormBase {
         }
         $archiver->extractList($files, config_get_config_directory(CONFIG_STAGING_DIRECTORY));
         drupal_set_message($this->t('Your configuration files were successfully uploaded, ready for import.'));
-        $form_state['redirect_route']['route_name'] = 'config.sync';
+        $form_state->setRedirect('config.sync');
       }
       catch (\Exception $e) {
         drupal_set_message($this->t('Could not extract the contents of the tar file. The error message is <em>@message</em>', array('@message' => $e->getMessage())), 'error');

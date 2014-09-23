@@ -11,6 +11,8 @@ use Drupal\simpletest\WebTestBase;
 
 /**
  * Tests the file move function for images and image styles.
+ *
+ * @group image
  */
 class FileMoveTest extends WebTestBase {
 
@@ -20,14 +22,6 @@ class FileMoveTest extends WebTestBase {
    * @var array
    */
   public static $modules = array('image');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Image moving',
-      'description' => 'Tests the file move function for managed files.',
-      'group' => 'Image',
-    );
-  }
 
   /**
    * Tests moving a randomly generated image.
@@ -48,7 +42,7 @@ class FileMoveTest extends WebTestBase {
 
     // Clone the object so we don't have to worry about the function changing
     // our reference copy.
-    $desired_filepath = 'public://' . $this->randomName();
+    $desired_filepath = 'public://' . $this->randomMachineName();
     $result = file_move(clone $file, $desired_filepath, FILE_EXISTS_ERROR);
 
     // Check if image has been moved.

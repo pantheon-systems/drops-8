@@ -76,7 +76,7 @@ function tracker_page($account = NULL) {
       if ($node->comment_count) {
         $comments = $node->comment_count;
 
-        if ($new = comment_num_new($node->id(), 'node')) {
+        if ($new = \Drupal::service('comment.manager')->getCountNewComments($node)) {
           $comments .= '<br />';
           $comments .= l(format_plural($new, '1 new', '@count new'), 'node/' . $node->id(), array('fragment' => 'new'));
         }
@@ -92,7 +92,7 @@ function tracker_page($account = NULL) {
         'title' => array('data' => l($node->getTitle(), 'node/' . $node->id()) . ' ' . drupal_render($mark_build)),
         'author' => array('data' => array('#theme' => 'username', '#account' => $node->getOwner())),
         'replies' => array('class' => array('replies'), 'data' => $comments),
-        'last updated' => array('data' => t('!time ago', array('!time' => format_interval(REQUEST_TIME - $node->last_activity)))),
+        'last updated' => array('data' => t('!time ago', array('!time' => \Drupal::service('date.formatter')->formatInterval(REQUEST_TIME - $node->last_activity)))),
       );
 
       $rows[] = $row;

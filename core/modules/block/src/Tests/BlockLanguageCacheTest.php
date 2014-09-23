@@ -12,7 +12,9 @@ use Drupal\Core\Language\Language;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Tests multilingual block definition caching.
+ * Tests display of menu blocks with multiple languages.
+ *
+ * @group block
  */
 class BlockLanguageCacheTest extends WebTestBase {
 
@@ -29,14 +31,6 @@ class BlockLanguageCacheTest extends WebTestBase {
    * @var array
    */
   protected $langcodes = array();
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Multilingual blocks',
-      'description' => 'Checks display of menu blocks with multiple languages.',
-      'group' => 'Block',
-    );
-  }
 
   public function setUp() {
     parent::setUp();
@@ -71,7 +65,7 @@ class BlockLanguageCacheTest extends WebTestBase {
     }
 
     // Create a menu in the default language.
-    $edit['label'] = $this->randomName();
+    $edit['label'] = $this->randomMachineName();
     $edit['id'] = Unicode::strtolower($edit['label']);
     $this->drupalPostForm('admin/structure/menu/add', $edit, t('Save'));
     $this->assertText(t('Menu @label has been added.', array('@label' => $edit['label'])));

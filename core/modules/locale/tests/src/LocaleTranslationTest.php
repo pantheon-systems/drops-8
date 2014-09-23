@@ -11,9 +11,7 @@ use Drupal\locale\LocaleTranslation;
 use Drupal\Tests\UnitTestCase;
 
 /**
- * Tests for locale translation class.
- *
- * @see \Drupal\locale\LocaleTranslation
+ * @coversDefaultClass \Drupal\locale\LocaleTranslation
  * @group locale
  */
 class LocaleTranslationTest extends UnitTestCase {
@@ -32,14 +30,6 @@ class LocaleTranslationTest extends UnitTestCase {
    */
   protected $languageManager;
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Locale translation tests',
-      'description' => 'Test locale module translation implementation.',
-      'group' => 'locale',
-    );
-  }
-
   /**
    * {@inheritdoc}
    */
@@ -51,7 +41,7 @@ class LocaleTranslationTest extends UnitTestCase {
   }
 
   /**
-   * Tests for \Drupal\locale\LocaleTranslation::destruct()
+   * Tests for \Drupal\locale\LocaleTranslation::destruct().
    */
   public function testDestruct() {
     $translation = new LocaleTranslation($this->storage, $this->cache, $this->lock, $this->getConfigFactoryStub(), $this->languageManager);

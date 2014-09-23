@@ -12,20 +12,12 @@ use Drupal\Core\Language\Language;
 use Drupal\language\Exception\DeleteDefaultLanguageException;
 
 /**
- * Test for dependency injected language object.
+ * Compares the default language from $GLOBALS against the dependency injected
+ * language object.
+ *
+ * @group language
  */
 class LanguageDependencyInjectionTest extends LanguageTestBase {
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'name' => 'Language dependency injection',
-      'description' => 'Compares the default language from $GLOBALS against the dependency injected language object.',
-      'group' => 'Language',
-    );
-  }
 
   /**
    * Test dependency injected languages against a new Language object.
@@ -52,7 +44,7 @@ class LanguageDependencyInjectionTest extends LanguageTestBase {
     $new_language_default = new Language(array(
       'id' => 'fr',
       'name' => 'French',
-      'direction' => 0,
+      'direction' => Language::DIRECTION_LTR,
       'weight' => 0,
       'method_id' => 'language-default',
       'default' => TRUE,

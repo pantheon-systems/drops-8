@@ -10,17 +10,11 @@ namespace Drupal\aggregator\Tests;
 use Zend\Feed\Reader\Reader;
 
 /**
- * Tests feed parsing in the Aggregator module.
+ * Tests the built-in feed parser with valid feed samples.
+ *
+ * @group aggregator
  */
 class FeedParserTest extends AggregatorTestBase {
-  public static function getInfo() {
-    return array(
-      'name' => 'Feed parser functionality',
-      'description' => 'Test the built-in feed parser with valid feed samples.',
-      'group' => 'Aggregator',
-    );
-  }
-
   function setUp() {
     parent::setUp();
     // Do not delete old aggregator items during these tests, since our sample
@@ -87,7 +81,7 @@ class FeedParserTest extends AggregatorTestBase {
   function testRedirectFeed() {
     // Simulate a typo in the URL to force a curl exception.
     $invalid_url = url('aggregator/redirect', array('absolute' => TRUE));
-    $feed = entity_create('aggregator_feed', array('url' => $invalid_url, 'title' => $this->randomName()));
+    $feed = entity_create('aggregator_feed', array('url' => $invalid_url, 'title' => $this->randomMachineName()));
     $feed->save();
     $feed->refreshItems();
 
@@ -101,7 +95,7 @@ class FeedParserTest extends AggregatorTestBase {
   function testInvalidFeed() {
     // Simulate a typo in the URL to force a curl exception.
     $invalid_url = 'http:/www.drupal.org';
-    $feed = entity_create('aggregator_feed', array('url' => $invalid_url, 'title' => $this->randomName()));
+    $feed = entity_create('aggregator_feed', array('url' => $invalid_url, 'title' => $this->randomMachineName()));
     $feed->save();
 
     // Update the feed. Use the UI to be able to check the message easily.

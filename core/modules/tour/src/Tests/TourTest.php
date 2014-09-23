@@ -10,7 +10,9 @@ namespace Drupal\tour\Tests;
 use Drupal\Core\Language\Language;
 
 /**
- * Tests tour functionality.
+ * Tests the functionality of tour tips.
+ *
+ * @group tour
  */
 class TourTest extends TourTestBasic {
 
@@ -38,14 +40,6 @@ class TourTest extends TourTestBasic {
   protected $tips = array(
     'tour-test-1' => array(),
   );
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Tour tests',
-      'description' => 'Test the functionality of tour tips.',
-      'group' => 'Tour',
-    );
-  }
 
   /**
    * Test tour functionality.
@@ -182,6 +176,6 @@ class TourTest extends TourTestBasic {
       ':data_id' => 'tour-test-1',
       ':text' => 'The first tip',
     ));
-    $this->assertEqual(count($elements), 0, 'Found English variant of tip 1.');
+    $this->assertEqual(count($elements), 0, 'Did not find English variant of tip 1.');
   }
 }

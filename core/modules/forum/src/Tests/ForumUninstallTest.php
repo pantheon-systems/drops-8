@@ -9,11 +9,13 @@ namespace Drupal\forum\Tests;
 
 use Drupal\comment\CommentInterface;
 use Drupal\comment\Plugin\Field\FieldType\CommentItemInterface;
-use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\simpletest\WebTestBase;
 
 /**
  * Tests forum module uninstallation.
+ *
+ * @group forum
  */
 class ForumUninstallTest extends WebTestBase {
 
@@ -24,21 +26,13 @@ class ForumUninstallTest extends WebTestBase {
    */
   public static $modules = array('forum');
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Forum uninstallation',
-      'description' => 'Tests forum module uninstallation.',
-      'group' => 'Forum',
-    );
-  }
-
   /**
    * Tests if forum module uninstallation properly deletes the field.
    */
   function testForumUninstallWithField() {
     // Ensure that the field exists before uninstallation.
-    $field = FieldConfig::loadByName('node', 'taxonomy_forums');
-    $this->assertNotNull($field, 'The taxonomy_forums field exists.');
+    $field_storage = FieldStorageConfig::loadByName('node', 'taxonomy_forums');
+    $this->assertNotNull($field_storage, 'The taxonomy_forums field storage exists.');
 
     // Create a taxonomy term.
     $term = entity_create('taxonomy_term', array(
@@ -66,7 +60,7 @@ class ForumUninstallTest extends WebTestBase {
       'pid' => 0,
       'uid' => 0,
       'status' => CommentInterface::PUBLISHED,
-      'subject' => $this->randomName(),
+      'subject' => $this->randomMachineName(),
       'hostname' => '127.0.0.1',
     ));
     $comment->save();
@@ -83,23 +77,23 @@ class ForumUninstallTest extends WebTestBase {
     $this->assertResponse(200);
 
     // Check that the field is now deleted.
-    $field = FieldConfig::loadByName('node', 'taxonomy_forums');
-    $this->assertNull($field, 'The taxonomy_forums field has been deleted.');
+    $field_storage = FieldStorageConfig::loadByName('node', 'taxonomy_forums');
+    $this->assertNull($field_storage, 'The taxonomy_forums field storage has been deleted.');
   }
 
 
   /**
-   * Tests if uninstallation succeeds if the field has been deleted beforehand.
+   * Tests uninstallation if the field storage has been deleted beforehand.
    */
-  function testForumUninstallWithoutField() {
+  function testForumUninstallWithoutFieldStorage() {
     // Manually delete the taxonomy_forums field before module uninstallation.
-    $field = FieldConfig::loadByName('node', 'taxonomy_forums');
-    $this->assertNotNull($field, 'The taxonomy_forums field exists.');
-    $field->delete();
+    $field_storage = FieldStorageConfig::loadByName('node', 'taxonomy_forums');
+    $this->assertNotNull($field_storage, 'The taxonomy_forums field storage exists.');
+    $field_storage->delete();
 
     // Check that the field is now deleted.
-    $field = FieldConfig::loadByName('node', 'taxonomy_forums');
-    $this->assertNull($field, 'The taxonomy_forums field has been deleted.');
+    $field_storage = FieldStorageConfig::loadByName('node', 'taxonomy_forums');
+    $this->assertNull($field_storage, 'The taxonomy_forums field storage has been deleted.');
 
     // Ensure that uninstallation succeeds even if the field has already been
     // deleted manually beforehand.

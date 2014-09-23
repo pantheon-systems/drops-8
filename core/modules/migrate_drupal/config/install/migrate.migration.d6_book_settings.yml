@@ -1,5 +1,7 @@
 id: d6_book_settings
 label: Drupal 6 book configuration
+migration_groups:
+  - Drupal 6
 source:
   plugin: variable
   variables:
@@ -8,7 +10,7 @@ source:
     - book_allowed_types
 process:
   child_type: book_child_type
-  'block.navigation.mode': book_block_mode
+  'block/navigation/mode': book_block_mode
   allowed_types: book_allowed_types
 destination:
   plugin: config

@@ -9,21 +9,15 @@ namespace Drupal\system\Tests\File;
 
 /**
  * Tests the file_unmanaged_save_data() function.
+ *
+ * @group File
  */
 class UnmanagedSaveDataTest extends FileTestBase {
-  public static function getInfo() {
-    return array(
-      'name' => 'Unmanaged file save data',
-      'description' => 'Tests the unmanaged file save data function.',
-      'group' => 'File API',
-    );
-  }
-
   /**
    * Test the file_unmanaged_save_data() function.
    */
   function testFileSaveData() {
-    $contents = $this->randomName(8);
+    $contents = $this->randomMachineName(8);
     $this->settingsSet('file_chmod_file', 0777);
 
     // No filename.

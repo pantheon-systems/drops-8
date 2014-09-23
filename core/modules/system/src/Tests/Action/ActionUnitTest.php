@@ -12,6 +12,8 @@ use Drupal\Core\Action\ActionInterface;
 
 /**
  * Tests action plugins.
+ *
+ * @group Action
  */
 class ActionUnitTest extends DrupalUnitTestBase {
 
@@ -26,17 +28,6 @@ class ActionUnitTest extends DrupalUnitTestBase {
    * @var \Drupal\Core\Action\ActionManager
    */
   protected $actionManager;
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'name' => 'Action Plugins',
-      'description' => 'Tests Action plugins.',
-      'group' => 'Action',
-    );
-  }
 
   /**
    * {@inheritdoc}
@@ -69,7 +60,7 @@ class ActionUnitTest extends DrupalUnitTestBase {
     $this->assertTrue($action instanceof ActionInterface, 'The action implements the correct interface.');
 
     // Create a new unsaved user.
-    $name = $this->randomName();
+    $name = $this->randomMachineName();
     $user_storage = $this->container->get('entity.manager')->getStorage('user');
     $account = $user_storage->create(array('name' => $name, 'bundle' => 'user'));
     $loaded_accounts = $user_storage->loadMultiple();

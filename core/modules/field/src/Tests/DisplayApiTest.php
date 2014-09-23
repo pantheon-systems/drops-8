@@ -11,6 +11,8 @@ use Drupal\Core\Language\LanguageInterface;
 
 /**
  * Tests the field display API.
+ *
+ * @group field
  */
 class DisplayApiTest extends FieldUnitTestBase {
 
@@ -56,23 +58,15 @@ class DisplayApiTest extends FieldUnitTestBase {
    */
   protected $values;
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Field Display API tests',
-      'description' => 'Test the display API.',
-      'group' => 'Field API',
-    );
-  }
-
   function setUp() {
     parent::setUp();
 
     // Create a field and instance.
     $this->field_name = 'test_field';
-    $this->label = $this->randomName();
+    $this->label = $this->randomMachineName();
     $this->cardinality = 4;
 
-    $field = array(
+    $field_storage = array(
       'name' => $this->field_name,
       'entity_type' => 'entity_test',
       'type' => 'test_field',
@@ -89,18 +83,18 @@ class DisplayApiTest extends FieldUnitTestBase {
       'default' => array(
         'type' => 'field_test_default',
         'settings' => array(
-          'test_formatter_setting' => $this->randomName(),
+          'test_formatter_setting' => $this->randomMachineName(),
         ),
       ),
       'teaser' => array(
         'type' => 'field_test_default',
         'settings' => array(
-          'test_formatter_setting' => $this->randomName(),
+          'test_formatter_setting' => $this->randomMachineName(),
         ),
       ),
     );
 
-    entity_create('field_config', $field)->save();
+    entity_create('field_storage_config', $field_storage)->save();
     entity_create('field_instance_config', $instance)->save();
     // Create a display for the default view mode.
     entity_get_display($instance['entity_type'], $instance['bundle'], 'default')
@@ -126,8 +120,7 @@ class DisplayApiTest extends FieldUnitTestBase {
     $items = $this->entity->get($this->field_name);
 
     // No display settings: check that default display settings are used.
-    $output = $items->view();
-    $this->content = drupal_render($output);
+    $this->render($items->view());
     $settings = \Drupal::service('plugin.manager.field.formatter')->getDefaultSettings('field_test_default');
     $setting = $settings['test_formatter_setting'];
     $this->assertText($this->label, 'Label was displayed.');
@@ -135,19 +128,38 @@ class DisplayApiTest extends FieldUnitTestBase {
       $this->assertText($setting . '|' . $value['value'], format_string('Value @delta was displayed with expected setting.', array('@delta' => $delta)));
     }
 
-    // Check that explicit display settings are used.
+    // Display settings: Check hidden field.
     $display = array(
       'label' => 'hidden',
       'type' => 'field_test_multiple',
       'settings' => array(
-        'test_formatter_setting_multiple' => $this->randomName(),
+        'test_formatter_setting_multiple' => $this->randomMachineName(),
         'alter' => TRUE,
       ),
     );
-    $output = $items->view($display);
-    $this->content = drupal_render($output);
+    $this->render($items->view($display));
     $setting = $display['settings']['test_formatter_setting_multiple'];
     $this->assertNoText($this->label, 'Label was not displayed.');
+    $this->assertText('field_test_entity_display_build_alter', 'Alter fired, display passed.');
+    $this->assertText('entity language is ' . LanguageInterface::LANGCODE_NOT_SPECIFIED, 'Language is placed onto the context.');
+    $array = array();
+    foreach ($this->values as $delta => $value) {
+      $array[] = $delta . ':' . $value['value'];
+    }
+    $this->assertText($setting . '|' . implode('|', $array), 'Values were displayed with expected setting.');
+
+    // Display settings: Check visually_hidden field.
+    $display = array(
+      'label' => 'visually_hidden',
+      'type' => 'field_test_multiple',
+      'settings' => array(
+        'test_formatter_setting_multiple' => $this->randomMachineName(),
+        'alter' => TRUE,
+      ),
+    );
+    $this->render($items->view($display));
+    $setting = $display['settings']['test_formatter_setting_multiple'];
+    $this->assertRaw('visually-hidden', 'Label was visually hidden.');
     $this->assertText('field_test_entity_display_build_alter', 'Alter fired, display passed.');
     $this->assertText('entity language is ' . LanguageInterface::LANGCODE_NOT_SPECIFIED, 'Language is placed onto the context.');
     $array = array();
@@ -161,12 +173,10 @@ class DisplayApiTest extends FieldUnitTestBase {
       'label' => 'hidden',
       'type' => 'field_test_with_prepare_view',
       'settings' => array(
-        'test_formatter_setting_additional' => $this->randomName(),
+        'test_formatter_setting_additional' => $this->randomMachineName(),
       ),
     );
-    $output = $items->view($display);
-    $view = drupal_render($output);
-    $this->content = $view;
+    $this->render($items->view($display));
     $setting = $display['settings']['test_formatter_setting_additional'];
     $this->assertNoText($this->label, 'Label was not displayed.');
     $this->assertNoText('field_test_entity_display_build_alter', 'Alter not fired.');
@@ -176,8 +186,7 @@ class DisplayApiTest extends FieldUnitTestBase {
 
     // View mode: check that display settings specified in the display object
     // are used.
-    $output = $items->view('teaser');
-    $this->content = drupal_render($output);
+    $this->render($items->view('teaser'));
     $setting = $this->display_options['teaser']['settings']['test_formatter_setting'];
     $this->assertText($this->label, 'Label was displayed.');
     foreach ($this->values as $delta => $value) {
@@ -186,8 +195,7 @@ class DisplayApiTest extends FieldUnitTestBase {
 
     // Unknown view mode: check that display settings for 'default' view mode
     // are used.
-    $output = $items->view('unknown_view_mode');
-    $this->content = drupal_render($output);
+    $this->render($items->view('unknown_view_mode'));
     $setting = $this->display_options['default']['settings']['test_formatter_setting'];
     $this->assertText($this->label, 'Label was displayed.');
     foreach ($this->values as $delta => $value) {
@@ -204,8 +212,7 @@ class DisplayApiTest extends FieldUnitTestBase {
     $setting = $settings['test_formatter_setting'];
     foreach ($this->values as $delta => $value) {
       $item = $this->entity->{$this->field_name}[$delta];
-      $output = $item->view();
-      $this->content = drupal_render($output);
+      $this->render($item->view());
       $this->assertText($setting . '|' . $value['value'], format_string('Value @delta was displayed with expected setting.', array('@delta' => $delta)));
     }
 
@@ -213,14 +220,13 @@ class DisplayApiTest extends FieldUnitTestBase {
     $display = array(
       'type' => 'field_test_multiple',
       'settings' => array(
-        'test_formatter_setting_multiple' => $this->randomName(),
+        'test_formatter_setting_multiple' => $this->randomMachineName(),
       ),
     );
     $setting = $display['settings']['test_formatter_setting_multiple'];
     foreach ($this->values as $delta => $value) {
       $item = $this->entity->{$this->field_name}[$delta];
-      $output = $item->view($display);
-      $this->content = drupal_render($output);
+      $this->render($item->view($display));
       $this->assertText($setting . '|0:' . $value['value'], format_string('Value @delta was displayed with expected setting.', array('@delta' => $delta)));
     }
 
@@ -228,14 +234,13 @@ class DisplayApiTest extends FieldUnitTestBase {
     $display = array(
       'type' => 'field_test_with_prepare_view',
       'settings' => array(
-        'test_formatter_setting_additional' => $this->randomName(),
+        'test_formatter_setting_additional' => $this->randomMachineName(),
       ),
     );
     $setting = $display['settings']['test_formatter_setting_additional'];
     foreach ($this->values as $delta => $value) {
       $item = $this->entity->{$this->field_name}[$delta];
-      $output = $item->view($display);
-      $this->content = drupal_render($output);
+      $this->render($item->view($display));
       $this->assertText($setting . '|' . $value['value'] . '|' . ($value['value'] + 1), format_string('Value @delta was displayed with expected setting.', array('@delta' => $delta)));
     }
 
@@ -244,8 +249,7 @@ class DisplayApiTest extends FieldUnitTestBase {
     $setting = $this->display_options['teaser']['settings']['test_formatter_setting'];
     foreach ($this->values as $delta => $value) {
       $item = $this->entity->{$this->field_name}[$delta];
-      $output = $item->view('teaser');
-      $this->content = drupal_render($output);
+      $this->render($item->view('teaser'));
       $this->assertText($setting . '|' . $value['value'], format_string('Value @delta was displayed with expected setting.', array('@delta' => $delta)));
     }
 
@@ -254,8 +258,7 @@ class DisplayApiTest extends FieldUnitTestBase {
     $setting = $this->display_options['default']['settings']['test_formatter_setting'];
     foreach ($this->values as $delta => $value) {
       $item = $this->entity->{$this->field_name}[$delta];
-      $output = $item->view('unknown_view_mode');
-      $this->content = drupal_render($output);
+      $this->render($item->view('unknown_view_mode'));
       $this->assertText($setting . '|' . $value['value'], format_string('Value @delta was displayed with expected setting.', array('@delta' => $delta)));
     }
   }
@@ -269,14 +272,12 @@ class DisplayApiTest extends FieldUnitTestBase {
       'label' => 'hidden',
       'type' => 'field_empty_test',
       'settings' => array(
-        'test_empty_string' => '**EMPTY FIELD**' . $this->randomName(),
+        'test_empty_string' => '**EMPTY FIELD**' . $this->randomMachineName(),
       ),
     );
     // $this->entity is set by the setUp() method and by default contains 4
     // numeric values.  We only want to test the display of this one field.
-    $output = $this->entity->get($this->field_name)->view($display);
-    $view = drupal_render($output);
-    $this->content = $view;
+    $this->render($this->entity->get($this->field_name)->view($display));
     // The test field by default contains values, so should not display the
     // default "empty" text.
     $this->assertNoText($display['settings']['test_empty_string']);
@@ -284,9 +285,7 @@ class DisplayApiTest extends FieldUnitTestBase {
     // Now remove the values from the test field and retest.
     $this->entity->{$this->field_name} = array();
     $this->entity->save();
-    $output = $this->entity->get($this->field_name)->view($display);
-    $view = drupal_render($output);
-    $this->content = $view;
+    $this->render($this->entity->get($this->field_name)->view($display));
     // This time, as the field values have been removed, we *should* show the
     // default "empty" text.
     $this->assertText($display['settings']['test_empty_string']);

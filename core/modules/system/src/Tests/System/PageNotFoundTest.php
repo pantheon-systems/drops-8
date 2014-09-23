@@ -10,18 +10,12 @@ namespace Drupal\system\Tests\System;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Tests "404 Not found" pages and custom 404 pages.
+ * Tests page not found functionality, including custom 404 pages.
+ *
+ * @group system
  */
 class PageNotFoundTest extends WebTestBase {
   protected $admin_user;
-
-  public static function getInfo() {
-    return array(
-      'name' => '404 functionality',
-      'description' => "Tests page not found functionality, including custom 404 pages.",
-      'group' => 'System'
-    );
-  }
 
   function setUp() {
     parent::setUp();
@@ -35,7 +29,7 @@ class PageNotFoundTest extends WebTestBase {
 
   function testPageNotFound() {
     $this->drupalLogin($this->admin_user);
-    $this->drupalGet($this->randomName(10));
+    $this->drupalGet($this->randomMachineName(10));
     $this->assertText(t('Page not found'), 'Found the default 404 page');
 
     // Use a custom 404 page.
@@ -44,7 +38,7 @@ class PageNotFoundTest extends WebTestBase {
     );
     $this->drupalPostForm('admin/config/system/site-information', $edit, t('Save configuration'));
 
-    $this->drupalGet($this->randomName(10));
+    $this->drupalGet($this->randomMachineName(10));
     $this->assertText($this->admin_user->getUsername(), 'Found the custom 404 page');
   }
 }

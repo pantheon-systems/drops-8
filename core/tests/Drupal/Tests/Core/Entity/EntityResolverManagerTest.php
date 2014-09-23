@@ -12,16 +12,13 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityResolverManager;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormInterface;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Tests\UnitTestCase;
 use Symfony\Component\Routing\Route;
 
 /**
- * Provides a test for the entity resolver.
- *
- * @group Drupal
- * @group Entity
- *
  * @coversDefaultClass \Drupal\Core\Entity\EntityResolverManager
+ * @group Entity
  */
 class EntityResolverManagerTest extends UnitTestCase {
 
@@ -62,20 +59,8 @@ class EntityResolverManagerTest extends UnitTestCase {
 
   /**
    * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'name' => '\Drupal\Core\Entity\EntityResolverManager unit test',
-      'description' => '',
-      'group' => 'Entity',
-    );
-  }
-
-  /**
-   * {@inheritdoc}
    *
    * @covers ::__construct()
-   * @covers ::setContainer()
    */
   protected function setUp() {
     $this->entityManager = $this->getMock('Drupal\Core\Entity\EntityManagerInterface');
@@ -327,7 +312,7 @@ class EntityResolverManagerTest extends UnitTestCase {
     $this->entityResolverManager->setRouteOptions($route);
     $this->assertEquals($defaults, $route->getDefaults());
     $parameters = $route->getOption('parameters');
-    $this->assertEquals(array('entity_test' => array('type' => 'entity:entity_test')), $parameters);
+    $this->assertNull($parameters);
   }
 
   /**
@@ -434,13 +419,13 @@ class BasicForm extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, array &$form_state, EntityInterface $entity_test = NULL) {
+  public function buildForm(array $form, FormStateInterface $form_state, EntityInterface $entity_test = NULL) {
   }
 
   /**
    * {@inheritdoc}
    */
-  public function submitForm(array &$form, array &$form_state) {
+  public function submitForm(array &$form, FormStateInterface $form_state) {
   }
 
 }
@@ -459,13 +444,13 @@ class BasicFormNoUpcasting extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, array &$form_state, $entity_test = NULL) {
+  public function buildForm(array $form, FormStateInterface $form_state, $entity_test = NULL) {
   }
 
   /**
    * {@inheritdoc}
    */
-  public function submitForm(array &$form, array &$form_state) {
+  public function submitForm(array &$form, FormStateInterface $form_state) {
   }
 
 }
@@ -481,19 +466,19 @@ class BasicFormNoContainerInjectionInterface implements FormInterface {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, array &$form_state, EntityInterface $entity_test = NULL) {
+  public function buildForm(array $form, FormStateInterface $form_state, EntityInterface $entity_test = NULL) {
   }
 
   /**
    * {@inheritdoc}
    */
-  public function validateForm(array &$form, array &$form_state) {
+  public function validateForm(array &$form, FormStateInterface $form_state) {
   }
 
   /**
    * {@inheritdoc}
    */
-  public function submitForm(array &$form, array &$form_state) {
+  public function submitForm(array &$form, FormStateInterface $form_state) {
   }
 
 }

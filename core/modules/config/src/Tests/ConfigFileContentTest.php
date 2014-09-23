@@ -11,17 +11,11 @@ use Drupal\Core\Config\FileStorage;
 use Drupal\simpletest\DrupalUnitTestBase;
 
 /**
- * Tests reading and writing file contents.
+ * Tests reading and writing of configuration files.
+ *
+ * @group config
  */
 class ConfigFileContentTest extends DrupalUnitTestBase {
-  public static function getInfo() {
-    return array(
-      'name' => 'File content',
-      'description' => 'Tests reading and writing of configuration files.',
-      'group' => 'Configuration',
-    );
-  }
-
   /**
    * Tests setting, writing, and reading of a configuration setting.
    */
@@ -189,7 +183,7 @@ class ConfigFileContentTest extends DrupalUnitTestBase {
    * Tests serialization of configuration to file.
    */
   function testSerialization() {
-    $name = $this->randomName(10) . '.' . $this->randomName(10);
+    $name = $this->randomMachineName(10) . '.' . $this->randomMachineName(10);
     $config_data = array(
       // Indexed arrays; the order of elements is essential.
       'numeric keys' => array('i', 'n', 'd', 'e', 'x', 'e', 'd'),

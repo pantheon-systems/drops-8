@@ -9,9 +9,11 @@ namespace Drupal\aggregator\Plugin\aggregator\fetcher;
 
 use Drupal\aggregator\Plugin\FetcherInterface;
 use Drupal\aggregator\FeedInterface;
+use Drupal\Component\Datetime\DateTimePlus;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\RequestException;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -35,13 +37,23 @@ class DefaultFetcher implements FetcherInterface, ContainerFactoryPluginInterfac
   protected $httpClient;
 
   /**
+   * A logger instance.
+   *
+   * @var \Psr\Log\LoggerInterface
+   */
+  protected $logger;
+
+  /**
    * Constructs a DefaultFetcher object.
    *
    * @param \GuzzleHttp\ClientInterface $http_client
    *   A Guzzle client object.
+   * @param \Psr\Log\LoggerInterface $logger
+   *   A logger instance.
    */
-  public function __construct(ClientInterface $http_client) {
+  public function __construct(ClientInterface $http_client, LoggerInterface $logger) {
     $this->httpClient = $http_client;
+    $this->logger = $logger;
   }
 
   /**
@@ -49,7 +61,8 @@ class DefaultFetcher implements FetcherInterface, ContainerFactoryPluginInterfac
    */
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
     return new static(
-      $container->get('http_client')
+      $container->get('http_client'),
+      $container->get('logger.factory')->get('aggregator')
     );
   }
 
@@ -65,7 +78,7 @@ class DefaultFetcher implements FetcherInterface, ContainerFactoryPluginInterfac
       $request->addHeader('If-None-Match', $feed->getEtag());
     }
     if ($feed->getLastModified()) {
-      $request->addHeader('If-Modified-Since', gmdate(DATE_RFC1123, $feed->getLastModified()));
+      $request->addHeader('If-Modified-Since', gmdate(DateTimePlus::RFC7231, $feed->getLastModified()));
     }
 
     try {
@@ -90,8 +103,8 @@ class DefaultFetcher implements FetcherInterface, ContainerFactoryPluginInterfac
       return TRUE;
     }
     catch (RequestException $e) {
-      watchdog('aggregator', 'The feed from %site seems to be broken because of error "%error".', array('%site' => $feed->label(), '%error' => $e->getMessage()), WATCHDOG_WARNING);
-      drupal_set_message(t('The feed from %site seems to be broken because of error "%error".', array('%site' => $feed->label(), '%error' => $e->getMessage())));
+      $this->logger->warning('The feed from %site seems to be broken because of error "%error".', array('%site' => $feed->label(), '%error' => $e->getMessage()));
+      drupal_set_message(t('The feed from %site seems to be broken because of error "%error".', array('%site' => $feed->label(), '%error' => $e->getMessage())) , 'warning');
       return FALSE;
     }
   }

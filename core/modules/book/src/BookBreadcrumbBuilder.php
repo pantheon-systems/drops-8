@@ -7,17 +7,21 @@
 
 namespace Drupal\book;
 
-use Drupal\Core\Access\AccessManager;
-use Drupal\Core\Breadcrumb\BreadcrumbBuilderBase;
+use Drupal\Core\Access\AccessManagerInterface;
+use Drupal\Core\Breadcrumb\BreadcrumbBuilderInterface;
 use Drupal\Core\Entity\EntityManagerInterface;
+use Drupal\Core\Routing\LinkGeneratorTrait;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\node\NodeInterface;
 
 /**
  * Provides a breadcrumb builder for nodes in a book.
  */
-class BookBreadcrumbBuilder extends BreadcrumbBuilderBase {
+class BookBreadcrumbBuilder implements BreadcrumbBuilderInterface {
+  use StringTranslationTrait;
+  use LinkGeneratorTrait;
 
   /**
    * The node storage.
@@ -29,7 +33,7 @@ class BookBreadcrumbBuilder extends BreadcrumbBuilderBase {
   /**
    * The access manager.
    *
-   * @var \Drupal\Core\Access\AccessManager
+   * @var \Drupal\Core\Access\AccessManagerInterface
    */
   protected $accessManager;
 
@@ -45,12 +49,12 @@ class BookBreadcrumbBuilder extends BreadcrumbBuilderBase {
    *
    * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
    *   The entity manager service.
-   * @param \Drupal\Core\Access\AccessManager $access_manager
+   * @param \Drupal\Core\Access\AccessManagerInterface $access_manager
    *   The access manager.
    * @param \Drupal\Core\Session\AccountInterface $account
    *   The current user account.
    */
-  public function __construct(EntityManagerInterface $entity_manager, AccessManager $access_manager, AccountInterface $account) {
+  public function __construct(EntityManagerInterface $entity_manager, AccessManagerInterface $access_manager, AccountInterface $account) {
     $this->nodeStorage = $entity_manager->getStorage('node');
     $this->accessManager = $access_manager;
     $this->account = $account;

@@ -11,6 +11,8 @@ use Drupal\simpletest\WebTestBase;
 
 /**
  * Tests various Entity reference UI components.
+ *
+ * @group entity_reference
  */
 class EntityReferenceIntegrationTest extends WebTestBase {
 
@@ -42,14 +44,6 @@ class EntityReferenceIntegrationTest extends WebTestBase {
    */
   public static $modules = array('config_test', 'entity_test', 'entity_reference', 'options');
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Entity reference components (widgets, formatters, etc.)',
-      'description' => 'Tests for various Entity reference components.',
-      'group' => 'Entity Reference',
-    );
-  }
-
   /**
    * {@inheritdoc}
    */
@@ -74,7 +68,7 @@ class EntityReferenceIntegrationTest extends WebTestBase {
       // Test the default 'entity_reference_autocomplete' widget.
       entity_get_form_display($this->entityType, $this->bundle, 'default')->setComponent($this->fieldName)->save();
 
-      $entity_name = $this->randomName();
+      $entity_name = $this->randomMachineName();
       $edit = array(
         'name' => $entity_name,
         'user_id' => mt_rand(0, 128),
@@ -96,7 +90,7 @@ class EntityReferenceIntegrationTest extends WebTestBase {
         'type' => 'entity_reference_autocomplete_tags',
       ))->save();
 
-      $entity_name = $this->randomName();
+      $entity_name = $this->randomMachineName();
       $target_id = $referenced_entities[0]->label() . ' (' . $referenced_entities[0]->id() . ')';
       // Test an input of the entity label without a ' (entity_id)' suffix.
       $target_id .= ', ' . $referenced_entities[1]->label();
@@ -161,14 +155,14 @@ class EntityReferenceIntegrationTest extends WebTestBase {
    *   An array of entity objects.
    */
   protected function getTestEntities() {
-    $config_entity_1 = entity_create('config_test', array('id' => $this->randomName(), 'label' => $this->randomName()));
+    $config_entity_1 = entity_create('config_test', array('id' => $this->randomMachineName(), 'label' => $this->randomMachineName()));
     $config_entity_1->save();
-    $config_entity_2 = entity_create('config_test', array('id' => $this->randomName(), 'label' => $this->randomName()));
+    $config_entity_2 = entity_create('config_test', array('id' => $this->randomMachineName(), 'label' => $this->randomMachineName()));
     $config_entity_2->save();
 
-    $content_entity_1 = entity_create('entity_test', array('name' => $this->randomName()));
+    $content_entity_1 = entity_create('entity_test', array('name' => $this->randomMachineName()));
     $content_entity_1->save();
-    $content_entity_2 = entity_create('entity_test', array('name' => $this->randomName()));
+    $content_entity_2 = entity_create('entity_test', array('name' => $this->randomMachineName()));
     $content_entity_2->save();
 
     return array(

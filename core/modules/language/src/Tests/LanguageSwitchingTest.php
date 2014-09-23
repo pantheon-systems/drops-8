@@ -12,6 +12,8 @@ use Drupal\simpletest\WebTestBase;
 
 /**
  * Functional tests for the language switching feature.
+ *
+ * @group language
  */
 class LanguageSwitchingTest extends WebTestBase {
 
@@ -21,14 +23,6 @@ class LanguageSwitchingTest extends WebTestBase {
    * @var array
    */
   public static $modules = array('language', 'block', 'language_test');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Language switching',
-      'description' => 'Tests for the language switching feature.',
-      'group' => 'Language',
-    );
-  }
 
   function setUp() {
     parent::setUp();
@@ -46,7 +40,7 @@ class LanguageSwitchingTest extends WebTestBase {
     $block = $this->drupalPlaceBlock('language_block:' . LanguageInterface::TYPE_INTERFACE, array(
       'id' => 'test_language_block',
       // Ensure a 2-byte UTF-8 sequence is in the tested output.
-      'label' => $this->randomName(8) . '×',
+      'label' => $this->randomMachineName(8) . '×',
     ));
 
     // Add language.

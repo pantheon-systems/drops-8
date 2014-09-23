@@ -12,17 +12,12 @@ use Drupal\simpletest\WebTestBase;
 use Drupal\Core\Config\FileStorage;
 
 /**
- * Tests installation of configuration objects in installation functionality.
+ * Tests installation and removal of configuration objects in install, disable
+ * and uninstall functionality.
+ *
+ * @group config
  */
 class ConfigInstallWebTest extends WebTestBase {
-  public static function getInfo() {
-    return array(
-      'name' => 'Install, disable and uninstall functionality',
-      'description' => 'Tests installation and removal of configuration objects in install, disable and uninstall functionality.',
-      'group' => 'Configuration',
-    );
-  }
-
   function setUp() {
     parent::setUp();
 
@@ -71,7 +66,7 @@ class ConfigInstallWebTest extends WebTestBase {
     $this->container->get('config.factory')->reset();
 
     // Disable and uninstall the integration module.
-    module_uninstall(array('config_integration_test'));
+    $this->container->get('module_handler')->uninstall(array('config_integration_test'));
 
     // Verify the integration module's config was uninstalled.
     $config_static = \Drupal::config($default_config);
@@ -137,14 +132,14 @@ class ConfigInstallWebTest extends WebTestBase {
     // Turn on the test module, which will attempt to replace the
     // configuration data. This attempt to replace the active configuration
     // should be ignored.
-    \Drupal::moduleHandler()->install(array('config_override_test'));
+    \Drupal::moduleHandler()->install(array('config_existing_default_config_test'));
 
     // Verify that the test module has not been able to change the data.
     $config = \Drupal::config($config_name);
     $this->assertIdentical($config->get(), $expected_profile_data);
 
     // Disable and uninstall the test module.
-    \Drupal::moduleHandler()->uninstall(array('config_override_test'));
+    \Drupal::moduleHandler()->uninstall(array('config_existing_default_config_test'));
 
     // Verify that the data hasn't been altered by removing the test module.
     $config = \Drupal::config($config_name);

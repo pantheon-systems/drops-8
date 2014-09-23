@@ -9,18 +9,21 @@ namespace Drupal\system\Form;
 
 use Drupal\Component\Utility\String;
 use Drupal\Component\Utility\Unicode;
+use Drupal\Core\Controller\TitleResolverInterface;
+use Drupal\Core\Access\AccessManagerInterface;
 use Drupal\Core\Entity\EntityManagerInterface;
-use Drupal\Core\Entity\Query\QueryFactory;
-use Drupal\Core\Entity\Query\QueryFactoryInterface;
 use Drupal\Core\Extension\Extension;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Form\FormBase;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\KeyValueStore\KeyValueStoreExpirableInterface;
+use Drupal\Core\Menu\MenuLinkManagerInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Routing\RouteProviderInterface;
 use Drupal\Core\Session\AccountInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Drupal\Core\Access\AccessManager;
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Provides module installation interface.
@@ -61,11 +64,18 @@ class ModulesListForm extends FormBase {
   protected $entityManager;
 
   /**
-   * The query factory.
+   * The title resolver.
    *
-   * @var \Drupal\Core\Entity\Query\QueryFactory
+   * @var \Drupal\Core\Controller\TitleResolverInterface
    */
-  protected $queryFactory;
+  protected $titleResolver;
+
+  /**
+   * The route provider.
+   *
+   * @var \Drupal\Core\Routing\RouteProviderInterface
+   */
+  protected $routeProvider;
 
   /**
    * The current route match.
@@ -73,6 +83,13 @@ class ModulesListForm extends FormBase {
    * @var \Drupal\Core\Routing\RouteMatchInterface
    */
   protected $routeMatch;
+
+  /**
+   * The menu link manager.
+   *
+   * @var \Drupal\Core\Menu\MenuLinkManagerInterface
+   */
+  protected $menuLinkManager;
 
   /**
    * {@inheritdoc}
@@ -83,9 +100,11 @@ class ModulesListForm extends FormBase {
       $container->get('keyvalue.expirable')->get('module_list'),
       $container->get('access_manager'),
       $container->get('entity.manager'),
-      $container->get('entity.query'),
       $container->get('current_user'),
-      $container->get('current_route_match')
+      $container->get('current_route_match'),
+      $container->get('title_resolver'),
+      $container->get('router.route_provider'),
+      $container->get('plugin.manager.menu.link')
     );
   }
 
@@ -96,25 +115,31 @@ class ModulesListForm extends FormBase {
    *   The module handler.
    * @param \Drupal\Core\KeyValueStore\KeyValueStoreExpirableInterface $key_value_expirable
    *   The key value expirable factory.
-   * @param \Drupal\Core\Access\AccessManager $access_manager
+   * @param \Drupal\Core\Access\AccessManagerInterface $access_manager
    *   Access manager.
    * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
    *   The entity manager.
-   * @param \Drupal\Core\Entity\Query\QueryFactory $query_factory
-   *   The entity query factory.
    * @param \Drupal\Core\Session\AccountInterface $current_user
    *   The current user.
    * @param \Drupal\Core\Routing\RouteMatchInterface $route_match
    *   The current route match.
+   * @param \Drupal\Core\Controller\TitleResolverInterface $title_resolver
+   *   The title resolver.
+   * @param \Drupal\Core\Routing\RouteProviderInterface $route_provider
+   *   The route provider.
+   * @param \Drupal\Core\Menu\MenuLinkManagerInterface $menu_link_manager
+   *   The menu link manager.
    */
-  public function __construct(ModuleHandlerInterface $module_handler, KeyValueStoreExpirableInterface $key_value_expirable, AccessManager $access_manager, EntityManagerInterface $entity_manager, QueryFactory $query_factory, AccountInterface $current_user, RouteMatchInterface $route_match) {
+  public function __construct(ModuleHandlerInterface $module_handler, KeyValueStoreExpirableInterface $key_value_expirable, AccessManagerInterface $access_manager, EntityManagerInterface $entity_manager, AccountInterface $current_user,  RouteMatchInterface $route_match, TitleResolverInterface $title_resolver, RouteProviderInterface $route_provider, MenuLinkManagerInterface $menu_link_manager) {
     $this->moduleHandler = $module_handler;
     $this->keyValueExpirable = $key_value_expirable;
     $this->accessManager = $access_manager;
     $this->entityManager = $entity_manager;
-    $this->queryFactory = $query_factory;
     $this->currentUser = $current_user;
     $this->routeMatch = $route_match;
+    $this->titleResolver = $title_resolver;
+    $this->routeProvider = $route_provider;
+    $this->menuLinkManager = $menu_link_manager;
   }
 
   /**
@@ -127,7 +152,7 @@ class ModulesListForm extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, array &$form_state) {
+  public function buildForm(array $form, FormStateInterface $form_state) {
     require_once DRUPAL_ROOT . '/core/includes/install.inc';
     $distribution = String::checkPlain(drupal_install_profile_distribution_name());
 
@@ -175,9 +200,9 @@ class ModulesListForm extends FormBase {
         '#open' => TRUE,
         '#theme' => 'system_modules_details',
         '#header' => array(
-          array('data' => '<span class="visually-hidden">' . $this->t('Installed') . '</span>', 'class' => array('checkbox')),
-          array('data' => $this->t('Name'), 'class' => array('name')),
-          array('data' => $this->t('Description'), 'class' => array('description', RESPONSIVE_PRIORITY_LOW)),
+          array('data' => $this->t('Installed'), 'class' => array('checkbox', 'visually-hidden')),
+          array('data' => $this->t('Name'), 'class' => array('name', 'visually-hidden')),
+          array('data' => $this->t('Description'), 'class' => array('description', 'visually-hidden', RESPONSIVE_PRIORITY_LOW)),
         ),
         '#attributes' => array('class' => array('package-listing')),
         // Ensure that the "Core" package comes first.
@@ -235,7 +260,7 @@ class ModulesListForm extends FormBase {
 
     // Generate link for module's permission, if the user has access to it.
     $row['links']['permissions'] = array();
-    if ($module->status && user_access('administer permissions') && in_array($module->getName(), $this->moduleHandler->getImplementations('permission'))) {
+    if ($module->status && \Drupal::currentUser()->hasPermission('administer permissions') && in_array($module->getName(), $this->moduleHandler->getImplementations('permission'))) {
       $row['links']['permissions'] = array(
         '#type' => 'link',
         '#title' => $this->t('Permissions'),
@@ -249,11 +274,23 @@ class ModulesListForm extends FormBase {
     if ($module->status && isset($module->info['configure'])) {
       $route_parameters = isset($module->info['configure_parameters']) ? $module->info['configure_parameters'] : array();
       if ($this->accessManager->checkNamedRoute($module->info['configure'], $route_parameters, $this->currentUser)) {
-        $result = $this->queryFactory->get('menu_link')
-          ->condition('route_name', $module->info['configure'])
-          ->execute();
-        $menu_items = $this->entityManager->getStorage('menu_link')->loadMultiple($result);
-        $item = reset($menu_items);
+
+        $links = $this->menuLinkManager->loadLinksByRoute($module->info['configure']);
+        /** @var \Drupal\Core\Menu\MenuLinkInterface $link */
+        $link = reset($links);
+        // Most configure links have a corresponding menu link, though some just
+        // have a route.
+        if ($link) {
+          $description = $link->getDescription();
+        }
+        else {
+          $request = new Request();
+          $request->attributes->set('_route_name', $module->info['configure']);
+          $route_object = $this->routeProvider->getRouteByName($module->info['configure']);
+          $request->attributes->set('_route', $route_object);
+          $description = $this->titleResolver->getTitle($request, $route_object);
+        }
+
         $row['links']['configure'] = array(
           '#type' => 'link',
           '#title' => $this->t('Configure'),
@@ -262,7 +299,7 @@ class ModulesListForm extends FormBase {
           '#options' => array(
             'attributes' => array(
               'class' => array('module-link', 'module-link-configure'),
-              'title' => $item['description'],
+              'title' => $description,
             ),
           ),
         );
@@ -372,13 +409,13 @@ class ModulesListForm extends FormBase {
   /**
    * Helper function for building a list of modules to install.
    *
-   * @param array $form_state
-   *   The form state array.
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   The current state of the form.
    *
    * @return array
    *   An array of modules to install and their dependencies.
    */
-  protected function buildModuleList(array $form_state) {
+  protected function buildModuleList(FormStateInterface $form_state) {
     $packages = $form_state['values']['modules'];
 
     // Build a list of modules to install.
@@ -436,7 +473,7 @@ class ModulesListForm extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function submitForm(array &$form, array &$form_state) {
+  public function submitForm(array &$form, FormStateInterface $form_state) {
     // Retrieve a list of modules to install and their dependencies.
     $modules = $this->buildModuleList($form_state);
 
@@ -449,7 +486,7 @@ class ModulesListForm extends FormBase {
       $this->keyValueExpirable->setWithExpire($account, $modules, 60);
 
       // Redirect to the confirmation form.
-      $form_state['redirect_route']['route_name'] = 'system.modules_list_confirm';
+      $form_state->setRedirect('system.modules_list_confirm');
 
       // We can exit here because at least one modules has dependencies
       // which we have to prompt the user for in a confirmation form.

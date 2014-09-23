@@ -8,6 +8,7 @@
 namespace Drupal\forum\Form;
 
 use Drupal\Core\Form\ConfirmFormBase;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
 use Drupal\taxonomy\TermInterface;
 
@@ -40,7 +41,7 @@ class DeleteForm extends ConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function getCancelRoute() {
+  public function getCancelUrl() {
     return new Url('forum.overview');
   }
 
@@ -54,7 +55,7 @@ class DeleteForm extends ConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, array &$form_state, TermInterface $taxonomy_term = NULL) {
+  public function buildForm(array $form, FormStateInterface $form_state, TermInterface $taxonomy_term = NULL) {
     $this->taxonomyTerm = $taxonomy_term;
 
     return parent::buildForm($form, $form_state);
@@ -63,11 +64,11 @@ class DeleteForm extends ConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function submitForm(array &$form, array &$form_state) {
+  public function submitForm(array &$form, FormStateInterface $form_state) {
     $this->taxonomyTerm->delete();
     drupal_set_message($this->t('The forum %label and all sub-forums have been deleted.', array('%label' => $this->taxonomyTerm->label())));
-    watchdog('forum', 'forum: deleted %label and all its sub-forums.', array('%label' => $this->taxonomyTerm->label()), WATCHDOG_NOTICE);
-    $form_state['redirect_route'] = $this->getCancelRoute();
+    $this->logger('forum')->notice('forum: deleted %label and all its sub-forums.', array('%label' => $this->taxonomyTerm->label()));
+    $form_state->setRedirectUrl($this->getCancelUrl());
   }
 
 }

@@ -8,23 +8,17 @@
 namespace Drupal\system\Tests\File;
 
 /**
- * Deletion related tests.
+ * Tests the unmanaged file delete recursive function.
+ *
+ * @group File
  */
 class UnmanagedDeleteRecursiveTest extends FileTestBase {
-  public static function getInfo() {
-    return array(
-      'name' => 'Unmanaged recursive file delete',
-      'description' => 'Tests the unmanaged file delete recursive function.',
-      'group' => 'File API',
-    );
-  }
-
   /**
    * Delete a normal file.
    */
   function testSingleFile() {
     // Create a file for testing
-    $filepath = file_default_scheme() . '://' . $this->randomName();
+    $filepath = file_default_scheme() . '://' . $this->randomMachineName();
     file_put_contents($filepath, '');
 
     // Delete the file.

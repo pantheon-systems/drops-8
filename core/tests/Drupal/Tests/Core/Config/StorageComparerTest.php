@@ -13,8 +13,6 @@ use Drupal\Tests\UnitTestCase;
 
 /**
  * @coversDefaultClass \Drupal\Core\Config\StorageComparer
- *
- * @group Drupal
  * @group Config
  */
 class StorageComparerTest extends UnitTestCase {
@@ -48,14 +46,6 @@ class StorageComparerTest extends UnitTestCase {
    */
   protected $configData;
 
-  public static function getInfo() {
-    return array(
-      'description' => '',
-      'name' => '\Drupal\Core\Config\StorageComparer unit test',
-      'group' => 'Configuration',
-    );
-  }
-
   public function setUp() {
     $this->sourceStorage = $this->getMock('Drupal\Core\Config\StorageInterface');
     $this->targetStorage = $this->getMock('Drupal\Core\Config\StorageInterface');
@@ -78,12 +68,12 @@ class StorageComparerTest extends UnitTestCase {
         'uuid' => $uuid->generate(),
         'dependencies' => array(
           'entity' => array(
-            'field.field.node.body'
+            'field.storage.node.body'
           ),
         ),
       ),
       // Config entity which is required by another config entity.
-      'field.field.node.body' => array(
+      'field.storage.node.body' => array(
         'id' => 'node.body',
         'uuid' => $uuid->generate(),
         'dependencies' => array(
@@ -150,7 +140,7 @@ class StorageComparerTest extends UnitTestCase {
    */
   public function testCreateChangelistCreate() {
     $target_data = $source_data = $this->getConfigData();
-    unset($target_data['field.field.node.body']);
+    unset($target_data['field.storage.node.body']);
     unset($target_data['field.instance.node.article.body']);
     unset($target_data['views.view.test_view']);
 
@@ -178,7 +168,7 @@ class StorageComparerTest extends UnitTestCase {
 
     $this->storageComparer->createChangelist();
     $expected = array(
-      'field.field.node.body',
+      'field.storage.node.body',
       'views.view.test_view',
       'field.instance.node.article.body',
     );
@@ -192,7 +182,7 @@ class StorageComparerTest extends UnitTestCase {
    */
   public function testCreateChangelistDelete() {
     $target_data = $source_data = $this->getConfigData();
-    unset($source_data['field.field.node.body']);
+    unset($source_data['field.storage.node.body']);
     unset($source_data['field.instance.node.article.body']);
     unset($source_data['views.view.test_view']);
 
@@ -222,7 +212,7 @@ class StorageComparerTest extends UnitTestCase {
     $expected = array(
       'field.instance.node.article.body',
       'views.view.test_view',
-      'field.field.node.body',
+      'field.storage.node.body',
     );
     $this->assertEquals($expected, $this->storageComparer->getChangelist('delete'));
     $this->assertEmpty($this->storageComparer->getChangelist('create'));
@@ -236,7 +226,7 @@ class StorageComparerTest extends UnitTestCase {
     $target_data = $source_data = $this->getConfigData();
     $source_data['system.site']['title'] = 'Drupal New!';
     $source_data['field.instance.node.article.body']['new_config_key'] = 'new data';
-    $source_data['field.field.node.body']['new_config_key'] = 'new data';
+    $source_data['field.storage.node.body']['new_config_key'] = 'new data';
 
     $this->sourceStorage->expects($this->once())
       ->method('listAll')
@@ -262,7 +252,7 @@ class StorageComparerTest extends UnitTestCase {
 
     $this->storageComparer->createChangelist();
     $expected = array(
-      'field.field.node.body',
+      'field.storage.node.body',
       'system.site',
       'field.instance.node.article.body',
     );

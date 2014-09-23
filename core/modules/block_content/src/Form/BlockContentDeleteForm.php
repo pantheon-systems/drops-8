@@ -8,6 +8,7 @@
 namespace Drupal\block_content\Form;
 
 use Drupal\Core\Entity\ContentEntityConfirmFormBase;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
 
 /**
@@ -25,7 +26,7 @@ class BlockContentDeleteForm extends ContentEntityConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function getCancelRoute() {
+  public function getCancelUrl() {
     return new Url('block.admin_display');
   }
 
@@ -39,7 +40,7 @@ class BlockContentDeleteForm extends ContentEntityConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, array &$form_state) {
+  public function buildForm(array $form, FormStateInterface $form_state) {
     $instances = $this->entity->getInstances();
 
     $form['message'] = array(
@@ -53,11 +54,11 @@ class BlockContentDeleteForm extends ContentEntityConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function submit(array $form, array &$form_state) {
+  public function submit(array $form, FormStateInterface $form_state) {
     $this->entity->delete();
     drupal_set_message($this->t('Custom block %label has been deleted.', array('%label' => $this->entity->label())));
-    watchdog('block_content', 'Custom block %label has been deleted.', array('%label' => $this->entity->label()), WATCHDOG_NOTICE);
-    $form_state['redirect_route'] = new Url('block_content.list');
+    $this->logger('block_content')->notice('Custom block %label has been deleted.', array('%label' => $this->entity->label()));
+    $form_state->setRedirect('block_content.list');
   }
 
 }

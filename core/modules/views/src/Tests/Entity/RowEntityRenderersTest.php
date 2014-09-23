@@ -14,6 +14,7 @@ use Drupal\views\Views;
 /**
  * Tests the entity row renderers.
  *
+ * @group views
  * @see \Drupal\views\Entity\Render\RendererBase
  */
 class RowEntityRenderersTest extends ViewUnitTestBase {
@@ -38,17 +39,6 @@ class RowEntityRenderersTest extends ViewUnitTestBase {
    * @var array
    */
   protected $langcodes;
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'name' => 'Entity: renderers',
-      'description' => 'Tests the entity row renderers.',
-      'group' => 'Views module integration',
-    );
-  }
 
   /**
    * {@inheritdoc}
@@ -95,7 +85,7 @@ class RowEntityRenderersTest extends ViewUnitTestBase {
 
       foreach ($langcodes as $langcode) {
         // Ensure we have a predictable result order.
-        $values[$i][$langcode] = $i . '-' . $langcode . '-' . $this->randomName();
+        $values[$i][$langcode] = $i . '-' . $langcode . '-' . $this->randomMachineName();
 
         if ($langcode != $default_langcode) {
           $node->addTranslation($langcode, array('title' => $values[$i][$langcode]));

@@ -11,7 +11,9 @@ use Drupal\node\NodeInterface;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Tests that the standard profile mappings are set and exposed as expected.
+ * Tests the RDF mappings and RDFa markup of the standard profile.
+ *
+ * @group rdf
  */
 class StandardProfileTest extends WebTestBase {
 
@@ -99,14 +101,6 @@ class StandardProfileTest extends WebTestBase {
    */
   protected $commenterUri;
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Standard profile RDF',
-      'description' => 'Tests the RDF mappings and RDFa markup of the standard profile.',
-      'group' => 'RDF',
-    );
-  }
-
   public function setUp() {
     parent::setUp();
 
@@ -130,8 +124,8 @@ class StandardProfileTest extends WebTestBase {
 
     // Create term.
     $this->term = entity_create('taxonomy_term', array(
-      'name' => $this->randomName(),
-      'description' => $this->randomName(),
+      'name' => $this->randomMachineName(),
+      'description' => $this->randomMachineName(),
       'vid' => 'tags',
     ));
     $this->term->save();
@@ -507,8 +501,8 @@ class StandardProfileTest extends WebTestBase {
       'field_name' => 'comment',
       'uid' => $uid,
       'pid' => $pid,
-      'subject' => $this->randomName(),
-      'comment_body' => $this->randomName(),
+      'subject' => $this->randomMachineName(),
+      'comment_body' => $this->randomMachineName(),
       'status' => 1,
     );
     if ($contact) {

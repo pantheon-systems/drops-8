@@ -10,17 +10,11 @@ namespace Drupal\hal\Tests;
 use Symfony\Component\Serializer\Exception\UnexpectedValueException;
 
 /**
- * Test the HAL normalizer's denormalize function.
+ * Tests that entities can be denormalized from HAL.
+ *
+ * @group hal
  */
 class DenormalizeTest extends NormalizerTestBase {
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Denormalize Test',
-      'description' => 'Test that entities can be denormalized from HAL.',
-      'group' => 'HAL',
-    );
-  }
 
   /**
    * Tests that the type link relation in incoming data is handled correctly.
@@ -128,26 +122,26 @@ class DenormalizeTest extends NormalizerTestBase {
       ),
       'field_test_text' => array(
         array(
-          'value' => $this->randomName(),
+          'value' => $this->randomMachineName(),
           'format' => 'full_html',
         ),
       ),
       'field_test_translatable_text' => array(
         array(
-          'value' => $this->randomName(),
+          'value' => $this->randomMachineName(),
           'format' => 'full_html',
         ),
         array(
-          'value' => $this->randomName(),
+          'value' => $this->randomMachineName(),
           'format' => 'filtered_html',
         ),
         array(
-          'value' => $this->randomName(),
+          'value' => $this->randomMachineName(),
           'format' => 'filtered_html',
           'lang' => 'de',
         ),
         array(
-          'value' => $this->randomName(),
+          'value' => $this->randomMachineName(),
           'format' => 'full_html',
           'lang' => 'de',
         ),
@@ -193,7 +187,7 @@ class DenormalizeTest extends NormalizerTestBase {
       ),
       'field_test_text' => array(
         array(
-          'value' => $this->randomName(),
+          'value' => $this->randomMachineName(),
           'format' => 'full_html',
         ),
       ),

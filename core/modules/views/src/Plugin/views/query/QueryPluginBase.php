@@ -7,6 +7,7 @@
 
 namespace Drupal\views\Plugin\views\query;
 
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\views\Plugin\views\PluginBase;
 use Drupal\views\Plugin\views\display\DisplayPluginBase;
 use Drupal\views\ViewExecutable;
@@ -24,7 +25,7 @@ use Drupal\views\Views;
  * implicitly assume that the query is using SQL.
  *
  * Query plugins extend \Drupal\views\Plugin\views\query\QueryPluginBase.
- * They must be annotated with \Drupal\views\Plugin\Annotation\ViewsQuery
+ * They must be annotated with \Drupal\views\Annotation\ViewsQuery
  * annotation, and they must be in namespace directory Plugin\views\query.
  *
  * @ingroup views_plugins
@@ -108,9 +109,9 @@ abstract class QueryPluginBase extends PluginBase {
    */
   public function getAggregationInfo() { }
 
-  public function validateOptionsForm(&$form, &$form_state) { }
+  public function validateOptionsForm(&$form, FormStateInterface $form_state) { }
 
-  public function submitOptionsForm(&$form, &$form_state) { }
+  public function submitOptionsForm(&$form, FormStateInterface $form_state) { }
 
   public function summaryTitle() {
     return t('Settings');

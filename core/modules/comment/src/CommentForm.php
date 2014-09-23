@@ -13,6 +13,7 @@ use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Entity\ContentEntityForm;
 use Drupal\Core\Entity\EntityManagerInterface;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Language\Language;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Session\AccountInterface;
@@ -56,7 +57,7 @@ class CommentForm extends ContentEntityForm {
   /**
    * {@inheritdoc}
    */
-  protected function init(array &$form_state) {
+  protected function init(FormStateInterface $form_state) {
     $comment = $this->entity;
 
     // Make the comment inherit the current content language unless specifically
@@ -72,7 +73,7 @@ class CommentForm extends ContentEntityForm {
   /**
    * Overrides Drupal\Core\Entity\EntityForm::form().
    */
-  public function form(array $form, array &$form_state) {
+  public function form(array $form, FormStateInterface $form_state) {
     /** @var \Drupal\comment\CommentInterface $comment */
     $comment = $this->entity;
     $entity = $this->entityManager->getStorage($comment->getCommentedEntityTypeId())->load($comment->getCommentedEntityId());
@@ -87,8 +88,8 @@ class CommentForm extends ContentEntityForm {
     $is_admin = $comment->id() && $this->currentUser->hasPermission('administer comments');
 
     if (!$this->currentUser->isAuthenticated() && $anonymous_contact != COMMENT_ANONYMOUS_MAYNOT_CONTACT) {
-      $form['#attached']['library'][] = 'core/jquery.cookie';
-      $form['#attributes']['class'][] = 'user-info-from-cookie';
+      $form['#attached']['library'][] = 'core/drupal.form';
+      $form['#attributes']['data-user-info-from-browser'] = TRUE;
     }
 
     // If not replying to a comment, use our dedicated page callback for new
@@ -155,6 +156,9 @@ class CommentForm extends ContentEntityForm {
       $form['author']['name']['#theme'] = 'username';
       $form['author']['name']['#account'] = $this->currentUser;
     }
+    elseif($this->currentUser->isAnonymous()) {
+      $form['author']['name']['#attributes']['data-drupal-default-value'] = $this->config('user.settings')->get('anonymous');
+    }
 
     $language_configuration = \Drupal::moduleHandler()->invoke('language', 'get_default_configuration', array('comment', $comment->getTypeId()));
     $form['langcode'] = array(
@@ -206,14 +210,6 @@ class CommentForm extends ContentEntityForm {
       '#access' => $is_admin,
     );
 
-    $form['subject'] = array(
-      '#type' => 'textfield',
-      '#title' => $this->t('Subject'),
-      '#maxlength' => 64,
-      '#default_value' => $comment->getSubject(),
-      '#access' => $field_definition->getSetting('subject'),
-    );
-
     // Used for conditional validation of author fields.
     $form['is_anonymous'] = array(
       '#type' => 'value',
@@ -226,7 +222,7 @@ class CommentForm extends ContentEntityForm {
   /**
    * Overrides Drupal\Core\Entity\EntityForm::actions().
    */
-  protected function actions(array $form, array &$form_state) {
+  protected function actions(array $form, FormStateInterface $form_state) {
     $element = parent::actions($form, $form_state);
     /* @var \Drupal\comment\CommentInterface $comment */
     $comment = $this->entity;
@@ -263,7 +259,7 @@ class CommentForm extends ContentEntityForm {
   /**
    * Overrides Drupal\Core\Entity\EntityForm::validate().
    */
-  public function validate(array $form, array &$form_state) {
+  public function validate(array $form, FormStateInterface $form_state) {
     parent::validate($form, $form_state);
     $entity = $this->entity;
 
@@ -275,10 +271,10 @@ class CommentForm extends ContentEntityForm {
 
       $date = $form_state['values']['date'];
       if ($date instanceOf DrupalDateTime && $date->hasErrors()) {
-        $this->setFormError('date', $form_state, $this->t('You have to specify a valid date.'));
+        $form_state->setErrorByName('date', $this->t('You have to specify a valid date.'));
       }
       if ($form_state['values']['name'] && !$form_state['values']['is_anonymous'] && !$account) {
-        $this->setFormError('name', $form_state, $this->t('You have to specify a valid author.'));
+        $form_state->setErrorByName('name', $this->t('You have to specify a valid author.'));
       }
     }
     elseif ($form_state['values']['is_anonymous']) {
@@ -288,7 +284,7 @@ class CommentForm extends ContentEntityForm {
       if ($form_state['values']['name']) {
         $accounts = $this->entityManager->getStorage('user')->loadByProperties(array('name' => $form_state['values']['name']));
         if (!empty($accounts)) {
-          $this->setFormError('name', $form_state, $this->t('The name you used belongs to a registered user.'));
+          $form_state->setErrorByName('name', $this->t('The name you used belongs to a registered user.'));
         }
       }
     }
@@ -297,7 +293,7 @@ class CommentForm extends ContentEntityForm {
   /**
    * Overrides EntityForm::buildEntity().
    */
-  public function buildEntity(array $form, array &$form_state) {
+  public function buildEntity(array $form, FormStateInterface $form_state) {
     $comment = parent::buildEntity($form, $form_state);
     if (!empty($form_state['values']['date']) && $form_state['values']['date'] instanceOf DrupalDateTime) {
       $comment->setCreatedTime($form_state['values']['date']->getTimestamp());
@@ -312,7 +308,7 @@ class CommentForm extends ContentEntityForm {
   /**
    * Overrides Drupal\Core\Entity\EntityForm::submit().
    */
-  public function submit(array $form, array &$form_state) {
+  public function submit(array $form, FormStateInterface $form_state) {
     /** @var \Drupal\comment\CommentInterface $comment */
     $comment = parent::submit($form, $form_state);
 
@@ -354,9 +350,9 @@ class CommentForm extends ContentEntityForm {
    * @param $form
    *   An associative array containing the structure of the form.
    * @param $form_state
-   *   A reference to a keyed array containing the current state of the form.
+   *   The current state of the form.
    */
-  public function preview(array &$form, array &$form_state) {
+  public function preview(array &$form, FormStateInterface $form_state) {
     $comment = $this->entity;
     $form_state['comment_preview'] = comment_preview($comment, $form_state);
     $form_state['comment_preview']['#title'] = $this->t('Preview comment');
@@ -366,23 +362,19 @@ class CommentForm extends ContentEntityForm {
   /**
    * Overrides Drupal\Core\Entity\EntityForm::save().
    */
-  public function save(array $form, array &$form_state) {
+  public function save(array $form, FormStateInterface $form_state) {
     $comment = $this->entity;
     $entity = $comment->getCommentedEntity();
     $field_name = $comment->getFieldName();
     $uri = $entity->urlInfo();
+    $logger = $this->logger('content');
 
     if ($this->currentUser->hasPermission('post comments') && ($this->currentUser->hasPermission('administer comments') || $entity->{$field_name}->status == CommentItemInterface::OPEN)) {
-      // Save the anonymous user information to a cookie for reuse.
-      if ($this->currentUser->isAnonymous()) {
-        user_cookie_save(array_intersect_key($form_state['values'], array_flip(array('name', 'mail', 'homepage'))));
-      }
-
       $comment->save();
       $form_state['values']['cid'] = $comment->id();
 
-      // Add an entry to the watchdog log.
-      watchdog('content', 'Comment posted: %subject.', array('%subject' => $comment->getSubject()), WATCHDOG_NOTICE, l(t('View'), 'comment/' . $comment->id(), array('fragment' => 'comment-' . $comment->id())));
+      // Add a log entry.
+      $logger->notice('Comment posted: %subject.', array('%subject' => $comment->getSubject(), 'link' => l(t('View'), 'comment/' . $comment->id(), array('fragment' => 'comment-' . $comment->id()))));
 
       // Explain the approval queue if necessary.
       if (!$comment->isPublished()) {
@@ -396,7 +388,7 @@ class CommentForm extends ContentEntityForm {
       $query = array();
       // Find the current display page for this comment.
       $field_definition = $this->entityManager->getFieldDefinitions($entity->getEntityTypeId(), $entity->bundle())[$field_name];
-      $page = comment_get_display_page($comment->id(), $field_definition);
+      $page = $this->entityManager->getStorage('comment')->getDisplayOrdinal($comment, $field_definition->getSetting('default_mode'), $field_definition->getSetting('per_page'));
       if ($page > 0) {
         $query['page'] = $page;
       }
@@ -405,10 +397,10 @@ class CommentForm extends ContentEntityForm {
       $uri->setOption('fragment', 'comment-' . $comment->id());
     }
     else {
-      watchdog('content', 'Comment: unauthorized comment submitted or comment submitted to a closed post %subject.', array('%subject' => $comment->getSubject()), WATCHDOG_WARNING);
+      $logger->warning('Comment: unauthorized comment submitted or comment submitted to a closed post %subject.', array('%subject' => $comment->getSubject()));
       drupal_set_message($this->t('Comment: unauthorized comment submitted or comment submitted to a closed post %subject.', array('%subject' => $comment->getSubject())), 'error');
       // Redirect the user to the entity they are commenting on.
     }
-    $form_state['redirect_route'] = $uri;
+    $form_state->setRedirectUrl($uri);
   }
 }

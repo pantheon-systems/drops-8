@@ -15,7 +15,9 @@ use Drupal\simpletest\WebTestBase;
 use Drupal\Core\Entity\EntityInterface;
 
 /**
- * Tests basic comment functionality against the entity_test entity type.
+ * Tests commenting on a test entity.
+ *
+ * @group comment
  */
 class CommentNonNodeTest extends WebTestBase {
 
@@ -27,14 +29,6 @@ class CommentNonNodeTest extends WebTestBase {
    * @var \Drupal\user\UserInterface
    */
   protected $admin_user;
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Comment non-node tests',
-      'description' => 'Test commenting on a test entity.',
-      'group' => 'Comment',
-    );
-  }
 
   function setUp() {
     parent::setUp();
@@ -77,7 +71,7 @@ class CommentNonNodeTest extends WebTestBase {
     ));
 
     // Create a test entity.
-    $random_label = $this->randomName();
+    $random_label = $this->randomMachineName();
     $data = array('type' => 'entity_test', 'name' => $random_label);
     $this->entity = entity_create('entity_test', $data);
     $this->entity->save();
@@ -102,18 +96,19 @@ class CommentNonNodeTest extends WebTestBase {
 
     $instance = FieldInstanceConfig::loadByName('entity_test', 'entity_test', 'comment');
     $preview_mode = $instance->getSetting('preview');
-    $subject_mode = $instance->getSetting('subject');
 
     // Must get the page before we test for fields.
     if ($entity !== NULL) {
       $this->drupalGet('comment/reply/entity_test/' . $entity->id() . '/comment');
     }
 
-    if ($subject_mode == TRUE) {
-      $edit['subject'] = $subject;
+    // Determine the visibility of subject form field.
+    if (entity_get_form_display('comment', 'comment', 'default')->getComponent('subject')) {
+      // Subject input allowed.
+      $edit['subject[0][value]'] = $subject;
     }
     else {
-      $this->assertNoFieldByName('subject', '', 'Subject field not found.');
+      $this->assertNoFieldByName('subject[0][value]', '', 'Subject field not found.');
     }
 
     if ($contact !== NULL && is_array($contact)) {
@@ -243,7 +238,7 @@ class CommentNonNodeTest extends WebTestBase {
     $this->drupalLogin($limited_user);
     // Test that default field exists.
     $this->drupalGet('entity_test/structure/entity_test/fields');
-    $this->assertText(t('Comment settings'));
+    $this->assertText(t('Comments'));
     $this->assertLinkByHref('entity_test/structure/entity_test/fields/entity_test.entity_test.comment');
     // Test widget hidden option is not visible when there's no comments.
     $this->drupalGet('entity_test/structure/entity_test/entity-test/fields/entity_test.entity_test.comment');
@@ -252,7 +247,7 @@ class CommentNonNodeTest extends WebTestBase {
     $this->drupalLogin($this->admin_user);
 
     // Post a comment.
-    $comment1 = $this->postComment($this->entity, $this->randomName(), $this->randomName());
+    $comment1 = $this->postComment($this->entity, $this->randomMachineName(), $this->randomMachineName());
     $this->assertTrue($this->commentExists($comment1), 'Comment on test entity exists.');
 
     // Assert the breadcrumb is valid.
@@ -275,7 +270,7 @@ class CommentNonNodeTest extends WebTestBase {
     $this->assertNoRaw('comments[' . $comment1->id() . ']', 'Comment was deleted.');
 
     // Post another comment.
-    $comment1 = $this->postComment($this->entity, $this->randomName(), $this->randomName());
+    $comment1 = $this->postComment($this->entity, $this->randomMachineName(), $this->randomMachineName());
     $this->assertTrue($this->commentExists($comment1), 'Comment on test entity exists.');
 
     // Check that the comment was found.
@@ -309,7 +304,7 @@ class CommentNonNodeTest extends WebTestBase {
     // Attempt to view test entity comment form while disallowed.
     $this->drupalGet('comment/reply/entity_test/' . $this->entity->id() . '/comment');
     $this->assertText('You are not authorized to post comments', 'Error attempting to post comment.');
-    $this->assertNoFieldByName('subject', '', 'Subject field not found.');
+    $this->assertNoFieldByName('subject[0][value]', '', 'Subject field not found.');
     $this->assertNoFieldByName('comment_body[0][value]', '', 'Comment field not found.');
 
     user_role_change_permissions(DRUPAL_ANONYMOUS_RID, array(
@@ -322,7 +317,7 @@ class CommentNonNodeTest extends WebTestBase {
     $this->assertPattern('@<h2[^>]*>Comments</h2>@', 'Comments were displayed.');
     $this->assertLink('Log in', 0, 'Link to log in was found.');
     $this->assertLink('register', 0, 'Link to register was found.');
-    $this->assertNoFieldByName('subject', '', 'Subject field not found.');
+    $this->assertNoFieldByName('subject[0][value]', '', 'Subject field not found.');
     $this->assertNoFieldByName('comment_body[0][value]', '', 'Comment field not found.');
 
     // Test the combination of anonymous users being able to post, but not view
@@ -336,7 +331,7 @@ class CommentNonNodeTest extends WebTestBase {
     ));
     $this->drupalGet('entity_test/' . $this->entity->id());
     $this->assertNoPattern('@<h2[^>]*>Comments</h2>@', 'Comments were not displayed.');
-    $this->assertFieldByName('subject', '', 'Subject field found.');
+    $this->assertFieldByName('subject[0][value]', '', 'Subject field found.');
     $this->assertFieldByName('comment_body[0][value]', '', 'Comment field found.');
 
     $this->drupalGet('comment/reply/entity_test/' . $this->entity->id() . '/comment/' . $comment1->id());
@@ -402,12 +397,12 @@ class CommentNonNodeTest extends WebTestBase {
     $this->assertRaw(t('Saved %name configuration', array('%name' => 'Barfoo')));
 
     // Check the field contains the correct comment type.
-    $field = entity_load('field_config', 'entity_test.field_barfoo');
-    $this->assertTrue($field);
-    $this->assertEqual($field->getSetting('comment_type'), 'foobar');
+    $field_storage = entity_load('field_storage_config', 'entity_test.field_barfoo');
+    $this->assertTrue($field_storage);
+    $this->assertEqual($field_storage->getSetting('comment_type'), 'foobar');
 
     // Test the new entity commenting inherits default.
-    $random_label = $this->randomName();
+    $random_label = $this->randomMachineName();
     $data = array('bundle' => 'entity_test', 'name' => $random_label);
     $new_entity = entity_create('entity_test', $data);
     $new_entity->save();
@@ -417,7 +412,7 @@ class CommentNonNodeTest extends WebTestBase {
     $this->assertNoField('edit-field-foobar-0-status-0');
 
     $this->drupalGet('comment/reply/entity_test/comment/' . $new_entity->id());
-    $this->assertNoFieldByName('subject', '', 'Subject field found.');
+    $this->assertNoFieldByName('subject[0][value]', '', 'Subject field found.');
     $this->assertNoFieldByName('comment_body[0][value]', '', 'Comment field found.');
   }
 

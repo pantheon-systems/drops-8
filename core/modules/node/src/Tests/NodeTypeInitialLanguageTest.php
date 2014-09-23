@@ -8,7 +8,9 @@
 namespace Drupal\node\Tests;
 
 /**
- * Tests related to node type initial language.
+ * Tests node type initial language settings.
+ *
+ * @group node
  */
 class NodeTypeInitialLanguageTest extends NodeTestBase {
 
@@ -18,14 +20,6 @@ class NodeTypeInitialLanguageTest extends NodeTestBase {
    * @var array
    */
   public static $modules = array('language', 'field_ui');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Node type initial language',
-      'description' => 'Tests node type initial language settings.',
-      'group' => 'Node',
-    );
-  }
 
   function setUp() {
     parent::setUp();
@@ -101,8 +95,8 @@ class NodeTypeInitialLanguageTest extends NodeTestBase {
   function testLanguageFieldVisibility() {
     // Creates a node to test Language field visibility feature.
     $edit = array(
-      'title[0][value]' => $this->randomName(8),
-      'body[0][value]' => $this->randomName(16),
+      'title[0][value]' => $this->randomMachineName(8),
+      'body[0][value]' => $this->randomMachineName(16),
     );
     $this->drupalPostForm('node/add/article', $edit, t('Save'));
     $node = $this->drupalGetNodeByTitle($edit['title[0][value]']);

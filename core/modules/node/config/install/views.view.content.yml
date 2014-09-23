@@ -1,8 +1,18 @@
-base_field: nid
-base_table: node
-core: 8.x
-description: 'Find and manage content.'
+langcode: en
 status: true
+dependencies:
+  module:
+    - history
+    - node
+    - user
+id: content
+label: Content
+module: node
+description: 'Find and manage content.'
+tag: default
+base_table: node
+base_field: nid
+core: 8.x
 display:
   default:
     display_options:
@@ -53,7 +63,6 @@ display:
             changed: changed
             edit_node: edit_node
             delete_node: delete_node
-            translation_link: translation_link
             dropbutton: dropbutton
             timestamp: title
           info:
@@ -105,13 +114,6 @@ display:
               empty_column: false
               responsive: ''
             delete_node:
-              sortable: false
-              default_sort_order: asc
-              align: ''
-              separator: ''
-              empty_column: false
-              responsive: ''
-            translation_link:
               sortable: false
               default_sort_order: asc
               align: ''
@@ -268,24 +270,6 @@ display:
           text: Delete
           plugin_id: node_link_delete
           provider: node
-        translation_link:
-          id: translation_link
-          table: node
-          field: translation_link
-          label: ''
-          exclude: true
-          alter:
-            alter_text: false
-          element_class: ''
-          element_default_classes: true
-          hide_alter_empty: true
-          hide_empty: false
-          empty_zero: false
-          empty: ''
-          text: Translate
-          optional: true
-          plugin_id: content_translation_link
-          provider: content_translation
         dropbutton:
           id: dropbutton
           table: views
@@ -294,7 +278,6 @@ display:
           fields:
             edit_node: edit_node
             delete_node: delete_node
-            translation_link: translation_link
           destination: true
           plugin_id: dropbutton
           provider: views
@@ -348,7 +331,6 @@ display:
           hide_alter_empty: true
           link_to_node: false
           comments: false
-          optional: true
           plugin_id: history_user_timestamp
           provider: history
       filters:
@@ -487,8 +469,14 @@ display:
           provider: views
         langcode:
           id: langcode
-          table: node_revision
+          table: node_field_data
           field: langcode
+          relationship: none
+          group_type: group
+          admin_label: ''
+          dependencies:
+            module:
+              - views
           operator: in
           value: {  }
           group: 1
@@ -496,13 +484,32 @@ display:
           expose:
             operator_id: langcode_op
             label: Language
+            description: ''
+            use_operator: false
             operator: langcode_op
             identifier: langcode
+            required: false
+            remember: false
+            multiple: false
             remember_roles:
               authenticated: authenticated
-          optional: true
+              anonymous: '0'
+              administrator: '0'
+            reduce: false
+          is_grouped: false
+          group_info:
+            label: ''
+            description: ''
+            identifier: ''
+            optional: true
+            widget: select
+            multiple: false
+            remember: false
+            default_group: All
+            default_group_multiple: {  }
+            group_items: {  }
           plugin_id: language
-          provider: language
+          provider: views
       sorts: {  }
       title: Content
       empty:
@@ -529,6 +536,8 @@ display:
         operator: AND
         groups:
           1: AND
+      field_langcode: '***CURRENT_LANGUAGE***'
+      field_langcode_add_to_query: null
     display_plugin: default
     display_title: Master
     id: default
@@ -549,16 +558,9 @@ display:
         description: 'Find and manage content'
         name: admin
         weight: -10
+      field_langcode: '***CURRENT_LANGUAGE***'
+      field_langcode_add_to_query: null
     display_plugin: page
     display_title: Page
     id: page_1
     position: 1
-label: Content
-module: node
-id: content
-tag: default
-langcode: en
-dependencies:
-  module:
-    - node
-    - user

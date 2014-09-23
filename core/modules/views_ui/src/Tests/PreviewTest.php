@@ -10,7 +10,9 @@ namespace Drupal\views_ui\Tests;
 use Drupal\Component\Serialization\Json;
 
 /**
- * Tests the preview form in the UI.
+ * Tests the UI preview functionality.
+ *
+ * @group views_ui
  */
 class PreviewTest extends UITestBase {
 
@@ -20,14 +22,6 @@ class PreviewTest extends UITestBase {
    * @var array
    */
   public static $testViews = array('test_preview', 'test_pager_full', 'test_mini_pager');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Preview functionality',
-      'description' => 'Tests the UI preview functionality.',
-      'group' => 'Views UI',
-    );
-  }
 
   /**
    * Tests contextual links in the preview form.
@@ -84,13 +78,13 @@ class PreviewTest extends UITestBase {
 
     // Test feed preview.
     $view = array();
-    $view['label'] = $this->randomName(16);
-    $view['id'] = strtolower($this->randomName(16));
+    $view['label'] = $this->randomMachineName(16);
+    $view['id'] = strtolower($this->randomMachineName(16));
     $view['page[create]'] = 1;
-    $view['page[title]'] = $this->randomName(16);
-    $view['page[path]'] = $this->randomName(16);
+    $view['page[title]'] = $this->randomMachineName(16);
+    $view['page[path]'] = $this->randomMachineName(16);
     $view['page[feed]'] = 1;
-    $view['page[feed_properties][path]'] = $this->randomName(16);
+    $view['page[feed_properties][path]'] = $this->randomMachineName(16);
     $this->drupalPostForm('admin/structure/views/add', $view, t('Save and edit'));
     $this->clickLink(t('Feed'));
     $this->drupalPostForm(NULL, array(), t('Update preview'));

@@ -11,7 +11,9 @@ use Drupal\Component\Utility\String;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Tests the administrative functionality of the Filter module.
+ * Thoroughly test the administrative interface of the filter module.
+ *
+ * @group filter
  */
 class FilterAdminTest extends WebTestBase {
 
@@ -19,17 +21,6 @@ class FilterAdminTest extends WebTestBase {
    * {@inheritdoc}
    */
   public static $modules = array('filter', 'node');
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'name' => 'Filter administration functionality',
-      'description' => 'Thoroughly test the administrative interface of the filter module.',
-      'group' => 'Filter',
-    );
-  }
 
   /**
    * {@inheritdoc}
@@ -107,8 +98,8 @@ class FilterAdminTest extends WebTestBase {
     // Add text format.
     $this->drupalGet('admin/config/content/formats');
     $this->clickLink('Add text format');
-    $format_id = drupal_strtolower($this->randomName());
-    $name = $this->randomName();
+    $format_id = drupal_strtolower($this->randomMachineName());
+    $name = $this->randomMachineName();
     $edit = array(
       'format' => $format_id,
       'name' => $name,
@@ -240,8 +231,8 @@ class FilterAdminTest extends WebTestBase {
 
     // Add format.
     $edit = array();
-    $edit['format'] = drupal_strtolower($this->randomName());
-    $edit['name'] = $this->randomName();
+    $edit['format'] = drupal_strtolower($this->randomMachineName());
+    $edit['name'] = $this->randomMachineName();
     $edit['roles[' . DRUPAL_AUTHENTICATED_RID . ']'] = 1;
     $edit['filters[' . $second_filter . '][status]'] = TRUE;
     $edit['filters[' . $first_filter . '][status]'] = TRUE;
@@ -278,12 +269,12 @@ class FilterAdminTest extends WebTestBase {
     $this->assertRaw('<option value="' . $full . '">Full HTML</option>', 'Full HTML filter accessible.');
 
     // Use basic HTML and see if it removes tags that are not allowed.
-    $body = '<em>' . $this->randomName() . '</em>';
+    $body = '<em>' . $this->randomMachineName() . '</em>';
     $extra_text = 'text';
     $text = $body . '<random>' . $extra_text . '</random>';
 
     $edit = array();
-    $edit['title[0][value]'] = $this->randomName();
+    $edit['title[0][value]'] = $this->randomMachineName();
     $edit['body[0][value]'] = $text;
     $edit['body[0][format]'] = $basic;
     $this->drupalPostForm('node/add/page', $edit, t('Save'));
@@ -348,7 +339,7 @@ class FilterAdminTest extends WebTestBase {
   function testUrlFilterAdmin() {
     // The form does not save with an invalid filter URL length.
     $edit = array(
-      'filters[filter_url][settings][filter_url_length]' => $this->randomName(4),
+      'filters[filter_url][settings][filter_url_length]' => $this->randomMachineName(4),
     );
     $this->drupalPostForm('admin/config/content/formats/manage/basic_html', $edit, t('Save configuration'));
     $this->assertNoRaw(t('The text format %format has been updated.', array('%format' => 'Basic HTML')));

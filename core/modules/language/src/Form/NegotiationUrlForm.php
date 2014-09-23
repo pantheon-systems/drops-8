@@ -8,6 +8,7 @@
 namespace Drupal\language\Form;
 
 use Drupal\Core\Form\ConfigFormBase;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\language\Plugin\LanguageNegotiation\LanguageNegotiationUrl;
 
 /**
@@ -23,9 +24,9 @@ class NegotiationUrlForm extends ConfigFormBase {
   }
 
   /**
-   * Implements \Drupal\Core\Form\FormInterface::buildForm().
+   * {@inheritdoc}
    */
-  public function buildForm(array $form, array &$form_state) {
+  public function buildForm(array $form, FormStateInterface $form_state) {
     global $base_url;
     $config = $this->config('language.negotiation');
 
@@ -88,7 +89,7 @@ class NegotiationUrlForm extends ConfigFormBase {
       );
     }
 
-    $form_state['redirect_route']['route_name'] = 'language.negotiation';
+    $form_state->setRedirect('language.negotiation');
 
     return parent::buildForm($form, $form_state);
   }
@@ -96,7 +97,7 @@ class NegotiationUrlForm extends ConfigFormBase {
   /**
    * Implements \Drupal\Core\Form\FormInterface::validateForm().
    */
-  public function validateForm(array &$form, array &$form_state) {
+  public function validateForm(array &$form, FormStateInterface $form_state) {
     $languages = language_list();
 
     // Count repeated values for uniqueness check.
@@ -108,18 +109,18 @@ class NegotiationUrlForm extends ConfigFormBase {
         if (!$language->default && $form_state['values']['language_negotiation_url_part'] == LanguageNegotiationUrl::CONFIG_PATH_PREFIX) {
           // Throw a form error if the prefix is blank for a non-default language,
           // although it is required for selected negotiation type.
-          $this->setFormError("prefix][$langcode", $form_state, t('The prefix may only be left blank for the default language.'));
+          $form_state->setErrorByName("prefix][$langcode", t('The prefix may only be left blank for the default language.'));
         }
       }
       elseif (strpos($value, '/') !== FALSE) {
         // Throw a form error if the string contains a slash,
         // which would not work.
-        $this->setFormError("prefix][$langcode", $form_state, t('The prefix may not contain a slash.'));
+        $form_state->setErrorByName("prefix][$langcode", t('The prefix may not contain a slash.'));
       }
       elseif (isset($count[$value]) && $count[$value] > 1) {
         // Throw a form error if there are two languages with the same
         // domain/prefix.
-        $this->setFormError("prefix][$langcode", $form_state, t('The prefix for %language, %value, is not unique.', array('%language' => $language->name, '%value' => $value)));
+        $form_state->setErrorByName("prefix][$langcode", t('The prefix for %language, %value, is not unique.', array('%language' => $language->name, '%value' => $value)));
       }
     }
 
@@ -132,13 +133,13 @@ class NegotiationUrlForm extends ConfigFormBase {
         if (!$language->default && $form_state['values']['language_negotiation_url_part'] == LanguageNegotiationUrl::CONFIG_DOMAIN) {
           // Throw a form error if the domain is blank for a non-default language,
           // although it is required for selected negotiation type.
-          $this->setFormError("domain][$langcode", $form_state, t('The domain may only be left blank for the default language.'));
+          $form_state->setErrorByName("domain][$langcode", t('The domain may only be left blank for the default language.'));
         }
       }
       elseif (isset($count[$value]) && $count[$value] > 1) {
         // Throw a form error if there are two languages with the same
         // domain/domain.
-        $this->setFormError("domain][$langcode", $form_state, t('The domain for %language, %value, is not unique.', array('%language' => $language->name, '%value' => $value)));
+        $form_state->setErrorByName("domain][$langcode", t('The domain for %language, %value, is not unique.', array('%language' => $language->name, '%value' => $value)));
       }
     }
 
@@ -149,7 +150,7 @@ class NegotiationUrlForm extends ConfigFormBase {
         // Ensure we have exactly one protocol when checking the hostname.
         $host = 'http://' . str_replace(array('http://', 'https://'), '', $value);
         if (parse_url($host, PHP_URL_HOST) != $value) {
-          $this->setFormError("domain][$langcode", $form_state, t('The domain for %language may only contain the domain name, not a protocol and/or port.', array('%language' => $name)));
+          $form_state->setErrorByName("domain][$langcode", t('The domain for %language may only contain the domain name, not a protocol and/or port.', array('%language' => $name)));
         }
       }
     }
@@ -158,9 +159,9 @@ class NegotiationUrlForm extends ConfigFormBase {
   }
 
   /**
-   * Implements \Drupal\Core\Form\FormInterface::submitForm().
+   * {@inheritdoc}
    */
-  public function submitForm(array &$form, array &$form_state) {
+  public function submitForm(array &$form, FormStateInterface $form_state) {
     // Save selected format (prefix or domain).
     $this->config('language.negotiation')
       ->set('url.source', $form_state['values']['language_negotiation_url_part'])

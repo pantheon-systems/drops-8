@@ -9,40 +9,31 @@ namespace Drupal\Tests\Core\Form {
 
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Form\FormInterface;
+use Drupal\Core\Form\FormState;
+use Drupal\Core\Form\FormStateInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Tests the form builder.
- *
  * @coversDefaultClass \Drupal\Core\Form\FormBuilder
- *
- * @group Drupal
  * @group Form
  */
 class FormBuilderTest extends FormTestBase {
 
   /**
-   * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'name' => 'Form builder test',
-      'description' => 'Tests the form builder.',
-      'group' => 'Form API',
-    );
-  }
-
-  /**
    * Tests the getFormId() method with a string based form ID.
+   *
+   * @expectedException \InvalidArgumentException
+   * @expectedExceptionMessage The form argument foo is not a valid form.
    */
   public function testGetFormIdWithString() {
     $form_arg = 'foo';
 
-    $form_state = array();
+    $clean_form_state = new FormState();
+    $form_state = new FormState();
     $form_id = $this->formBuilder->getFormId($form_arg, $form_state);
 
     $this->assertSame($form_arg, $form_id);
-    $this->assertEmpty($form_state);
+    $this->assertSame($clean_form_state, $form_state);
   }
 
   /**
@@ -51,7 +42,7 @@ class FormBuilderTest extends FormTestBase {
   public function testGetFormIdWithClassName() {
     $form_arg = 'Drupal\Tests\Core\Form\TestForm';
 
-    $form_state = array();
+    $form_state = new FormState();
     $form_id = $this->formBuilder->getFormId($form_arg, $form_state);
 
     $this->assertSame('test_form', $form_id);
@@ -67,7 +58,7 @@ class FormBuilderTest extends FormTestBase {
 
     $form_arg = 'Drupal\Tests\Core\Form\TestFormInjected';
 
-    $form_state = array();
+    $form_state = new FormState();
     $form_id = $this->formBuilder->getFormId($form_arg, $form_state);
 
     $this->assertSame('test_form', $form_id);
@@ -82,7 +73,7 @@ class FormBuilderTest extends FormTestBase {
 
     $form_arg = $this->getMockForm($expected_form_id);
 
-    $form_state = array();
+    $form_state = new FormState();
     $form_id = $this->formBuilder->getFormId($form_arg, $form_state);
 
     $this->assertSame($expected_form_id, $form_id);
@@ -104,7 +95,7 @@ class FormBuilderTest extends FormTestBase {
       ->method('getBaseFormId')
       ->will($this->returnValue($base_form_id));
 
-    $form_state = array();
+    $form_state = new FormState();
     $form_id = $this->formBuilder->getFormId($form_arg, $form_state);
 
     $this->assertSame($expected_form_id, $form_id);
@@ -113,7 +104,7 @@ class FormBuilderTest extends FormTestBase {
   }
 
   /**
-   * Tests the handling of $form_state['response'].
+   * Tests the handling of FormStateInterface::$response.
    *
    * @dataProvider formStateResponseProvider
    */
@@ -131,13 +122,11 @@ class FormBuilderTest extends FormTestBase {
     $form_arg = $this->getMockForm($form_id, $expected_form);
     $form_arg->expects($this->any())
       ->method('submitForm')
-      ->will($this->returnCallback(function ($form, &$form_state) use ($response, $form_state_key) {
+      ->will($this->returnCallback(function ($form, FormStateInterface $form_state) use ($response, $form_state_key) {
         $form_state[$form_state_key] = $response;
       }));
 
-    $form_state = array();
-    $this->formBuilder->getFormId($form_arg, $form_state);
-
+    $form_state = new FormState();
     try {
       $form_state['values'] = array();
       $form_state['input']['form_id'] = $form_id;
@@ -147,7 +136,7 @@ class FormBuilderTest extends FormTestBase {
     catch (\Exception $e) {
       $this->assertSame('exit', $e->getMessage());
     }
-    $this->assertInstanceOf('Symfony\Component\HttpFoundation\Response', $form_state['response']);
+    $this->assertInstanceOf('Symfony\Component\HttpFoundation\Response', $form_state->get('response'));
   }
 
   /**
@@ -161,7 +150,7 @@ class FormBuilderTest extends FormTestBase {
   }
 
   /**
-   * Tests the handling of a redirect when $form_state['response'] exists.
+   * Tests the handling of a redirect when FormStateInterface::$response exists.
    */
   public function testHandleRedirectWithResponse() {
     $form_id = 'test_form_id';
@@ -185,15 +174,13 @@ class FormBuilderTest extends FormTestBase {
     $form_arg = $this->getMockForm($form_id, $expected_form);
     $form_arg->expects($this->any())
       ->method('submitForm')
-      ->will($this->returnCallback(function ($form, &$form_state) use ($response, $redirect) {
+      ->will($this->returnCallback(function ($form, FormStateInterface $form_state) use ($response, $redirect) {
         // Set both the response and the redirect.
-        $form_state['response'] = $response;
+        $form_state->setResponse($response);
         $form_state['redirect'] = $redirect;
       }));
 
-    $form_state = array();
-    $this->formBuilder->getFormId($form_arg, $form_state);
-
+    $form_state = new FormState();
     try {
       $form_state['values'] = array();
       $form_state['input']['form_id'] = $form_id;
@@ -203,10 +190,14 @@ class FormBuilderTest extends FormTestBase {
     catch (\Exception $e) {
       $this->assertSame('exit', $e->getMessage());
     }
-    $this->assertSame($response, $form_state['response']);
+    $this->assertSame($response, $form_state->get('response'));
   }
+
   /**
    * Tests the getForm() method with a string based form ID.
+   *
+   * @expectedException \InvalidArgumentException
+   * @expectedExceptionMessage The form argument test_form_id is not a valid form.
    */
   public function testGetFormWithString() {
     $form_id = 'test_form_id';
@@ -238,7 +229,7 @@ class FormBuilderTest extends FormTestBase {
     $form_id = '\Drupal\Tests\Core\Form\TestForm';
     $object = new TestForm();
     $form = array();
-    $form_state = array();
+    $form_state = new FormState();
     $expected_form = $object->buildForm($form, $form_state);
 
     $form = $this->formBuilder->getForm($form_id);
@@ -248,6 +239,9 @@ class FormBuilderTest extends FormTestBase {
 
   /**
    * Tests the buildForm() method with a string based form ID.
+   *
+   * @expectedException \InvalidArgumentException
+   * @expectedExceptionMessage The form argument test_form_id is not a valid form.
    */
   public function testBuildFormWithString() {
     $form_id = 'test_form_id';
@@ -265,7 +259,7 @@ class FormBuilderTest extends FormTestBase {
     $form_id = '\Drupal\Tests\Core\Form\TestForm';
     $object = new TestForm();
     $form = array();
-    $form_state = array();
+    $form_state = new FormState();
     $expected_form = $object->buildForm($form, $form_state);
 
     $form = $this->formBuilder->buildForm($form_id, $form_state);
@@ -282,7 +276,7 @@ class FormBuilderTest extends FormTestBase {
 
     $form_arg = $this->getMockForm($form_id, $expected_form);
 
-    $form_state = array();
+    $form_state = new FormState();
     $form = $this->formBuilder->buildForm($form_arg, $form_state);
     $this->assertFormElement($expected_form, $form, 'test');
     $this->assertSame($form_id, $form_state['build_info']['form_id']);
@@ -306,7 +300,7 @@ class FormBuilderTest extends FormTestBase {
       ->will($this->returnValue($expected_form));
 
     // Do an initial build of the form and track the build ID.
-    $form_state = array();
+    $form_state = new FormState();
     $form = $this->formBuilder->buildForm($form_arg, $form_state);
     $original_build_id = $form['#build_id'];
 
@@ -333,7 +327,13 @@ class FormBuilderTest extends FormTestBase {
 
     // FormBuilder::buildForm() will be called twice, but the form object will
     // only be called once due to caching.
-    $form_arg = $this->getMockForm($form_id, $expected_form, 1);
+    $form_arg = $this->getMock('Drupal\Core\Form\FormInterface');
+    $form_arg->expects($this->exactly(2))
+      ->method('getFormId')
+      ->will($this->returnValue($form_id));
+    $form_arg->expects($this->once())
+      ->method('buildForm')
+      ->will($this->returnValue($expected_form));
 
     // The CSRF token is checked each time.
     $this->csrfToken->expects($this->exactly(2))
@@ -351,7 +351,7 @@ class FormBuilderTest extends FormTestBase {
       ->will($this->returnValue(TRUE));
 
     // Do an initial build of the form and track the build ID.
-    $form_state = array();
+    $form_state = new FormState();
     $form_state['build_info']['args'] = array();
     $form_state['build_info']['files'] = array(array('module' => 'node', 'type' => 'pages.inc'));
     $form_state['cache'] = TRUE;
@@ -368,13 +368,14 @@ class FormBuilderTest extends FormTestBase {
       ->will($this->returnValue($cached_form));
     $this->formStateCache->expects($this->once())
       ->method('get')
-      ->will($this->returnValue($form_state));
+      ->will($this->returnValue($form_state->getCacheableArray()));
 
     // The final form build will not trigger any actual form building, but will
     // use the form cache.
+    $form_state['executed'] = TRUE;
     $form_state['input']['form_id'] = $form_id;
     $form_state['input']['form_build_id'] = $form['#build_id'];
-    $this->formBuilder->buildForm($form_id, $form_state);
+    $this->formBuilder->buildForm($form_arg, $form_state);
     $this->assertEmpty($form_state['errors']);
   }
 
@@ -395,7 +396,7 @@ class FormBuilderTest extends FormTestBase {
     $form_arg = $this->getMockForm($form_id, $expected_form);
 
     // Do an initial build of the form and track the build ID.
-    $form_state = array();
+    $form_state = new FormState();
     $this->formBuilder->buildForm($form_arg, $form_state);
   }
 
@@ -410,14 +411,21 @@ class FormBuilderTest extends FormTestBase {
     // Mock a form object that will be built two times.
     $form_arg = $this->getMock('Drupal\Core\Form\FormInterface');
     $form_arg->expects($this->exactly(2))
+      ->method('getFormId')
+      ->will($this->returnValue($form_id));
+    $form_arg->expects($this->exactly(2))
       ->method('buildForm')
       ->will($this->returnValue($expected_form));
 
-    $form_state = array();
+    $form_state = $this->getMockBuilder('Drupal\Core\Form\FormState')
+      ->setMethods(array('drupalSetMessage'))
+      ->getMock();
     $form = $this->simulateFormSubmission($form_id, $form_arg, $form_state);
     $this->assertSame($form_id, $form['#id']);
 
-    $form_state = array();
+    $form_state = $this->getMockBuilder('Drupal\Core\Form\FormState')
+      ->setMethods(array('drupalSetMessage'))
+      ->getMock();
     $form = $this->simulateFormSubmission($form_id, $form_arg, $form_state);
     $this->assertSame("$form_id--2", $form['#id']);
   }
@@ -429,11 +437,11 @@ class TestForm implements FormInterface {
     return 'test_form';
   }
 
-  public function buildForm(array $form, array &$form_state) {
+  public function buildForm(array $form, FormStateInterface $form_state) {
     return test_form_id();
   }
-  public function validateForm(array &$form, array &$form_state) { }
-  public function submitForm(array &$form, array &$form_state) { }
+  public function validateForm(array &$form, FormStateInterface $form_state) { }
+  public function submitForm(array &$form, FormStateInterface $form_state) { }
 }
 class TestFormInjected extends TestForm implements ContainerInjectionInterface {
   public static function create(ContainerInterface $container) {
@@ -444,7 +452,9 @@ class TestFormInjected extends TestForm implements ContainerInjectionInterface {
 }
 
 namespace {
-  function test_form_id_custom_submit(array &$form, array &$form_state) {
+  use Drupal\Core\Form\FormStateInterface;
+
+  function test_form_id_custom_submit(array &$form, FormStateInterface $form_state) {
   }
   // @todo Remove once watchdog() is removed.
   if (!defined('WATCHDOG_ERROR')) {

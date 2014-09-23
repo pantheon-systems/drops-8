@@ -262,6 +262,12 @@ views_display:
     hide_attachment_summary:
       type: boolean
       label: 'Hide attachments in summary'
+    field_langcode:
+      type: string
+      label: 'Field langcode'
+    field_langcode_add_to_query:
+      type: string
+      label: 'Add the field language to the query'
 
 views_sort:
   type: views_handler
@@ -324,9 +330,16 @@ views_handler:
     provider:
       type: string
       label: 'Provider'
-    optional:
-      type: boolean
-      label: 'Optional'
+    dependencies:
+      type: mapping
+      label: 'Dependencies'
+      mapping:
+        module:
+          type: sequence
+          label: 'Modules'
+          sequence:
+            - type: string
+              label: 'Dependency'
 
 views_argument:
   type: views_handler
@@ -516,7 +529,7 @@ views_field:
           label: 'Trim only on a word boundary'
         ellipsis:
           type: boolean
-          label: 'Add "..." at the end of trimmed text'
+          label: 'Add "…" at the end of trimmed text'
         more_link:
           type: boolean
           label: 'Add a read-more link if output is trimmed.'

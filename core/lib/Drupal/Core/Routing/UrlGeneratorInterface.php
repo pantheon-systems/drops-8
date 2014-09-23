@@ -7,7 +7,6 @@
 
 namespace Drupal\Core\Routing;
 
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Cmf\Component\Routing\VersatileGeneratorInterface;
 
 /**
@@ -128,6 +127,8 @@ interface UrlGeneratorInterface extends VersatileGeneratorInterface {
    *     defined, the current scheme is used, so the user stays on HTTP or HTTPS
    *     respectively. if mixed mode sessions are permitted, TRUE enforces HTTPS
    *     and FALSE enforces HTTP.
+   *   - 'prefix': Only used internally, to modify the path when a language
+   *     dependent URL requires so.
    *
    * @return string
    *   The generated URL for the given route.
@@ -141,14 +142,6 @@ interface UrlGeneratorInterface extends VersatileGeneratorInterface {
    *   does not match the requirement.
    */
   public function generateFromRoute($name, $parameters = array(), $options = array());
-
-  /**
-   * Sets the $request property.
-   *
-   * @param \Symfony\Component\HttpFoundation\Request $request
-   *   The HttpRequest object representing the current request.
-   */
-  public function setRequest(Request $request);
 
   /**
    * Sets the baseUrl property.

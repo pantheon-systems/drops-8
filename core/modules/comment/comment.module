@@ -12,33 +12,25 @@
 
 use Drupal\comment\CommentInterface;
 use Drupal\comment\Entity\Comment;
+use Drupal\comment\CommentManagerInterface;
 use Drupal\comment\Entity\CommentType;
 use Drupal\comment\Plugin\Field\FieldType\CommentItemInterface;
 use Drupal\Component\Utility\String;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\entity\Entity\EntityViewDisplay;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Url;
-use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\field\FieldInstanceConfigInterface;
-use Drupal\field\FieldConfigInterface;
+use Drupal\field\FieldStorageConfigInterface;
 use Drupal\file\FileInterface;
 use Drupal\user\EntityOwnerInterface;
 use Drupal\node\NodeInterface;
-
-/**
- * Comments are displayed in a flat list - expanded.
- */
-const COMMENT_MODE_FLAT = 0;
-
-/**
- * Comments are displayed as a threaded list - expanded.
- */
-const COMMENT_MODE_THREADED = 1;
 
 /**
  * Anonymous posters cannot enter their contact information.
@@ -106,7 +98,7 @@ function comment_help($route_name, RouteMatchInterface $route_match) {
  */
 function comment_uri(CommentInterface $comment) {
   return new Url(
-    'comment.permalink',
+    'entity.comment.canonical',
     array(
       'comment' => $comment->id(),
     ),
@@ -127,11 +119,6 @@ function comment_entity_extra_field_info() {
           'description' => t('Author textfield'),
           'weight' => -2,
         ),
-        'subject' => array(
-          'label' => t('Subject'),
-          'description' => t('Subject textfield'),
-          'weight' => -1,
-        ),
       ),
     );
   }
@@ -148,9 +135,9 @@ function comment_theme() {
       'render element' => 'elements',
       'template' => 'comment',
     ),
-    'comment_wrapper' => array(
-      'render element' => 'content',
-      'template' => 'comment-wrapper',
+    'field__comment' => array(
+      'base hook' => 'field',
+      'template' => 'field--comment',
     ),
   );
 }
@@ -188,12 +175,12 @@ function comment_field_instance_config_update(FieldInstanceConfigInterface $inst
 }
 
 /**
- * Implements hook_ENTITY_TYPE_insert() for 'field_config'.
+ * Implements hook_ENTITY_TYPE_insert() for 'field_storage_config'.
  */
-function comment_field_config_insert(FieldConfigInterface $field) {
-  if ($field->getType() == 'comment') {
+function comment_field_storage_config_insert(FieldStorageConfigInterface $field_storage) {
+  if ($field_storage->getType() == 'comment') {
     // Check that the target entity type uses an integer ID.
-    $entity_type_id = $field->getTargetEntityTypeId();
+    $entity_type_id = $field_storage->getTargetEntityTypeId();
     if (!_comment_entity_uses_integer_id($entity_type_id)) {
       throw new \UnexpectedValueException('You cannot attach a comment field to an entity with a non-integer ID field');
     }
@@ -206,11 +193,11 @@ function comment_field_config_insert(FieldConfigInterface $field) {
 function comment_field_instance_config_delete(FieldInstanceConfigInterface $instance) {
   if ($instance->getType() == 'comment') {
     // Delete all comments that used by the entity bundle.
-    $comments = db_query("SELECT cid FROM {comment} WHERE entity_type = :entity_type AND field_name = :field_name", array(
-      ':entity_type' => $instance->getEntityTypeId(),
-      ':field_name' => $instance->getName(),
-    ))->fetchCol();
-    entity_delete_multiple('comment', $comments);
+    $entity_query = \Drupal::entityQuery('comment');
+    $entity_query->condition('entity_type', $instance->getEntityTypeId());
+    $entity_query->condition('field_name', $instance->getName());
+    $cids = $entity_query->execute();
+    entity_delete_multiple('comment', $cids);
   }
 }
 
@@ -239,86 +226,6 @@ function comment_permission() {
       'title' => t('Edit own comments'),
     ),
   );
-}
-
-/**
- * Calculates the page number for the first new comment.
- *
- * @param int $num_comments
- *   Number of comments.
- * @param int $new_replies
- *   Number of new replies.
- * @param \Drupal\Core\Entity\ContentEntityInterface $entity
- *   The first new comment entity.
- * @param string $field_name
- *   The field name on the entity to which comments are attached to.
- *
- * @return array|null
- *   An array "page=X" if the page number is greater than zero; NULL otherwise.
- */
-function comment_new_page_count($num_comments, $new_replies, ContentEntityInterface $entity, $field_name = 'comment') {
-  $field_definition = $entity->getFieldDefinition($field_name);
-  $mode = $field_definition->getSetting('default_mode');
-  $comments_per_page = $field_definition->getSetting('per_page');
-  $pagenum = NULL;
-  $flat = $mode == COMMENT_MODE_FLAT ? TRUE : FALSE;
-  if ($num_comments <= $comments_per_page) {
-    // Only one page of comments.
-    $pageno = 0;
-  }
-  elseif ($flat) {
-    // Flat comments.
-    $count = $num_comments - $new_replies;
-    $pageno = $count / $comments_per_page;
-  }
-  else {
-    // Threaded comments: we build a query with a subquery to find the first
-    // thread with a new comment.
-
-    // 1. Find all the threads with a new comment.
-    $unread_threads_query = db_select('comment')
-      ->fields('comment', array('thread'))
-      ->condition('entity_id', $entity->id())
-      ->condition('entity_type', $entity->getEntityTypeId())
-      ->condition('field_name', $field_name)
-      ->condition('status', CommentInterface::PUBLISHED)
-      ->orderBy('created', 'DESC')
-      ->orderBy('cid', 'DESC')
-      ->range(0, $new_replies);
-
-    // 2. Find the first thread.
-    $first_thread_query = db_select($unread_threads_query, 'thread');
-    $first_thread_query->addExpression('SUBSTRING(thread, 1, (LENGTH(thread) - 1))', 'torder');
-    $first_thread = $first_thread_query
-      ->fields('thread', array('thread'))
-      ->orderBy('torder')
-      ->range(0, 1)
-      ->execute()
-      ->fetchField();
-
-    // Remove the final '/'.
-    $first_thread = substr($first_thread, 0, -1);
-
-    // Find the number of the first comment of the first unread thread.
-    $count = db_query('SELECT COUNT(*) FROM {comment} WHERE entity_id = :entity_id
-                      AND entity_type = :entity_type
-                      AND field_name = :field_name
-                      AND status = :status AND SUBSTRING(thread, 1, (LENGTH(thread) - 1)) < :thread', array(
-      ':status' => CommentInterface::PUBLISHED,
-      ':entity_id' => $entity->id(),
-      ':field_name' => $field_name,
-      ':entity_type' => $entity->getEntityTypeId(),
-      ':thread' => $first_thread,
-    ))->fetchField();
-
-    $pageno = $count / $comments_per_page;
-  }
-
-  if ($pageno >= 1) {
-    $pagenum = array('page' => intval($pageno));
-  }
-
-  return $pagenum;
 }
 
 /**
@@ -360,6 +267,7 @@ function comment_node_links_alter(array &$node_links, NodeInterface $node, array
   }
 
   $fields = \Drupal::service('comment.manager')->getFields('node');
+  $current_user = \Drupal::currentUser();
   foreach ($fields as $field_name => $detail) {
     // Skip fields that the node does not have.
     if (!$node->hasField($field_name)) {
@@ -385,7 +293,7 @@ function comment_node_links_alter(array &$node_links, NodeInterface $node, array
         // Teaser view: display the number of comments that have been posted,
         // or a link to add new comments if the user has permission, the node
         // is open to new comments, and there currently are none.
-        if (user_access('access comments')) {
+        if ($current_user->hasPermission('access comments')) {
           if (!empty($node->get($field_name)->comment_count)) {
             $links['comment-comments'] = array(
               'title' => format_plural($node->get($field_name)->comment_count, '1 comment', '@count comments'),
@@ -411,7 +319,7 @@ function comment_node_links_alter(array &$node_links, NodeInterface $node, array
         // Provide a link to new comment form.
         if ($commenting_status == CommentItemInterface::OPEN) {
           $comment_form_location = $field_definition->getSetting('form_location');
-          if (user_access('post comments')) {
+          if ($current_user->hasPermission('post comments')) {
             $links['comment-add'] = array(
               'title' => t('Add new comment'),
               'language' => $node->language(),
@@ -443,10 +351,10 @@ function comment_node_links_alter(array &$node_links, NodeInterface $node, array
         // allowed to post comments and if this node is allowing new comments.
         if ($commenting_status == CommentItemInterface::OPEN) {
           $comment_form_location = $field_definition->getSetting('form_location');
-          if (user_access('post comments')) {
+          if ($current_user->hasPermission('post comments')) {
             // Show the "post comment" link if the form is on another page, or
             // if there are existing comments that the link will skip past.
-            if ($comment_form_location == COMMENT_FORM_SEPARATE_PAGE || (!empty($node->get($field_name)->comment_count) && user_access('access comments'))) {
+            if ($comment_form_location == COMMENT_FORM_SEPARATE_PAGE || (!empty($node->get($field_name)->comment_count) && $current_user->hasPermission('access comments'))) {
               $links['comment-add'] = array(
                 'title' => t('Add new comment'),
                 'attributes' => array('title' => t('Share your thoughts and opinions related to this posting.')),
@@ -497,160 +405,12 @@ function comment_node_links_alter(array &$node_links, NodeInterface $node, array
 }
 
 /**
- * Implements hook_node_view_alter().
+ * Implements hook_ENTITY_TYPE_view_alter() for node entities.
  */
 function comment_node_view_alter(array &$build, EntityInterface $node, EntityViewDisplayInterface $display) {
   if (\Drupal::moduleHandler()->moduleExists('history')) {
     $build['#attributes']['data-history-node-id'] = $node->id();
   }
-}
-
-/**
- * Returns a rendered form to comment the given entity.
- *
- * @param \Drupal\Core\Entity\EntityInterface $entity
- *   The entity to which the comments are in reply to.
- * @param string $field_name
- *   The field name where the comments were entered.
- * @param int $pid
- *   (optional) Some comments are replies to other comments. In those cases,
- *   $pid is the parent comment's comment ID. Defaults to NULL.
- *
- * @return array
- *   The renderable array for the comment addition form.
- */
-function comment_add(EntityInterface $entity, $field_name = 'comment', $pid = NULL) {
-  $field = Fieldconfig::loadByName($entity->getEntityTypeId(), $field_name);
-  $values = array(
-    'entity_type' => $entity->getEntityTypeId(),
-    'entity_id' => $entity->id(),
-    'field_name' => $field_name,
-    'comment_type' => $field->getSetting('bundle'),
-    'pid' => $pid,
-  );
-  $comment = entity_create('comment', $values);
-  return \Drupal::service('entity.form_builder')->getForm($comment);
-}
-
-/**
- * Retrieves comments for a thread.
- *
- * @param \Drupal\Core\Entity\EntityInterface $entity
- *   The entity whose comment(s) needs rendering.
- * @param string $field_name
- *   The field_name whose comment(s) needs rendering.
- * @param int $mode
- *   The comment display mode; COMMENT_MODE_FLAT or COMMENT_MODE_THREADED.
- * @param int $comments_per_page
- *   The amount of comments to display per page.
- * @param int $pager_id
- *   (optional) Pager id to use in case of multiple pagers on the one page.
- *   Defaults to 0.
- *
- * @return int[]
- *   An array of the IDs of the comment to be displayed.
- *
- * To display threaded comments in the correct order we keep a 'thread' field
- * and order by that value. This field keeps this data in
- * a way which is easy to update and convenient to use.
- *
- * A "thread" value starts at "1". If we add a child (A) to this comment,
- * we assign it a "thread" = "1.1". A child of (A) will have "1.1.1". Next
- * brother of (A) will get "1.2". Next brother of the parent of (A) will get
- * "2" and so on.
- *
- * First of all note that the thread field stores the depth of the comment:
- * depth 0 will be "X", depth 1 "X.X", depth 2 "X.X.X", etc.
- *
- * Now to get the ordering right, consider this example:
- *
- * 1
- * 1.1
- * 1.1.1
- * 1.2
- * 2
- *
- * If we "ORDER BY thread ASC" we get the above result, and this is the
- * natural order sorted by time. However, if we "ORDER BY thread DESC"
- * we get:
- *
- * 2
- * 1.2
- * 1.1.1
- * 1.1
- * 1
- *
- * Clearly, this is not a natural way to see a thread, and users will get
- * confused. The natural order to show a thread by time desc would be:
- *
- * 2
- * 1
- * 1.2
- * 1.1
- * 1.1.1
- *
- * which is what we already did before the standard pager patch. To achieve
- * this we simply add a "/" at the end of each "thread" value. This way, the
- * thread fields will look like this:
- *
- * 1/
- * 1.1/
- * 1.1.1/
- * 1.2/
- * 2/
- *
- * we add "/" since this char is, in ASCII, higher than every number, so if
- * now we "ORDER BY thread DESC" we get the correct order. However this would
- * spoil the reverse ordering, "ORDER BY thread ASC" -- here, we do not need
- * to consider the trailing "/" so we use a substring only.
- */
-function comment_get_thread(EntityInterface $entity, $field_name, $mode, $comments_per_page, $pager_id = 0) {
-  $query = db_select('comment', 'c')
-    ->extend('Drupal\Core\Database\Query\PagerSelectExtender');
-  if ($pager_id) {
-    $query->element($pager_id);
-  }
-  $query->addField('c', 'cid');
-  $query
-    ->condition('c.entity_id', $entity->id())
-    ->condition('c.entity_type', $entity->getEntityTypeId())
-    ->condition('c.field_name', $field_name)
-    ->addTag('entity_access')
-    ->addTag('comment_filter')
-    ->addMetaData('base_table', 'comment')
-    ->addMetaData('entity', $entity)
-    ->addMetaData('field_name', $field_name)
-    ->limit($comments_per_page);
-
-  $count_query = db_select('comment', 'c');
-  $count_query->addExpression('COUNT(*)');
-  $count_query
-    ->condition('c.entity_id', $entity->id())
-    ->condition('c.entity_type', $entity->getEntityTypeId())
-    ->condition('c.field_name', $field_name)
-    ->addTag('entity_access')
-    ->addTag('comment_filter')
-    ->addMetaData('base_table', 'comment')
-    ->addMetaData('entity', $entity)
-    ->addMetaData('field_name', $field_name);
-
-  if (!user_access('administer comments')) {
-    $query->condition('c.status', CommentInterface::PUBLISHED);
-    $count_query->condition('c.status', CommentInterface::PUBLISHED);
-  }
-  if ($mode == COMMENT_MODE_FLAT) {
-    $query->orderBy('c.cid', 'ASC');
-  }
-  else {
-    // See comment above. Analysis reveals that this doesn't cost too
-    // much. It scales much much better than having the whole comment
-    // structure.
-    $query->addExpression('SUBSTRING(c.thread, 1, (LENGTH(c.thread) - 1))', 'torder');
-    $query->orderBy('torder', 'ASC');
-  }
-
-  $query->setCountQuery($count_query);
-  return $query->execute()->fetchCol();
 }
 
 /**
@@ -727,9 +487,9 @@ function comment_view_multiple($comments, $view_mode = 'full', $langcode = NULL)
 }
 
 /**
- * Implements hook_form_FORM_ID_alter().
+ * Implements hook_form_FORM_ID_alter() for field_ui_field_overview_form.
  */
-function comment_form_field_ui_field_overview_form_alter(&$form, $form_state) {
+function comment_form_field_ui_field_overview_form_alter(&$form, FormStateInterface $form_state) {
   $request = \Drupal::request();
   if ($form['#entity_type'] == 'comment' && $request->attributes->has('commented_entity_type')) {
     $form['#title'] = \Drupal::service('comment.manager')->getFieldUIPageTitle($request->attributes->get('commented_entity_type'), $request->attributes->get('field_name'));
@@ -744,7 +504,7 @@ function comment_form_field_ui_field_overview_form_alter(&$form, $form_state) {
 /**
  * Implements hook_form_FORM_ID_alter().
  */
-function comment_form_field_ui_form_display_overview_form_alter(&$form, $form_state) {
+function comment_form_field_ui_form_display_overview_form_alter(&$form, FormStateInterface $form_state) {
   $request = \Drupal::request();
   if ($form['#entity_type'] == 'comment' && $request->attributes->has('commented_entity_type')) {
     $form['#title'] = \Drupal::service('comment.manager')->getFieldUIPageTitle($request->attributes->get('commented_entity_type'), $request->attributes->get('field_name'));
@@ -754,7 +514,7 @@ function comment_form_field_ui_form_display_overview_form_alter(&$form, $form_st
 /**
  * Implements hook_form_FORM_ID_alter().
  */
-function comment_form_field_ui_display_overview_form_alter(&$form, $form_state) {
+function comment_form_field_ui_display_overview_form_alter(&$form, FormStateInterface $form_state) {
   $request = \Drupal::request();
   if ($form['#entity_type'] == 'comment' && $request->attributes->has('commented_entity_type')) {
     $form['#title'] = \Drupal::service('comment.manager')->getFieldUIPageTitle($request->attributes->get('commented_entity_type'), $request->attributes->get('field_name'));
@@ -764,7 +524,7 @@ function comment_form_field_ui_display_overview_form_alter(&$form, $form_state) 
 /**
  * Implements hook_form_FORM_ID_alter().
  */
-function comment_form_field_ui_field_edit_form_alter(&$form, $form_state) {
+function comment_form_field_ui_field_storage_edit_form_alter(&$form, FormStateInterface $form_state) {
   if ($form['#field']->getType() == 'comment') {
     // We only support posting one comment at the time so it doesn't make sense
     // to let the site builder choose anything else.
@@ -774,11 +534,11 @@ function comment_form_field_ui_field_edit_form_alter(&$form, $form_state) {
 }
 
 /**
- * Implements hook_entity_load().
+ * Implements hook_entity_storage_load().
  *
  * @see \Drupal\comment\Plugin\Field\FieldType\CommentItem::propertyDefinitions()
  */
-function comment_entity_load($entities, $entity_type) {
+function comment_entity_storage_load($entities, $entity_type) {
   // Comments can only be attached to content entities, so skip others.
   if (!\Drupal::entityManager()->getDefinition($entity_type)->isSubclassOf('Drupal\Core\Entity\ContentEntityInterface')) {
     return;
@@ -886,7 +646,7 @@ function comment_node_update_index(EntityInterface $node, $langcode) {
     }
   }
 
-  $return = '';
+  $build = array();
 
   if ($index_comments) {
     foreach (\Drupal::service('comment.manager')->getFields('node') as $field_name => $info) {
@@ -897,15 +657,17 @@ function comment_node_update_index(EntityInterface $node, $langcode) {
       $field_definition = $node->getFieldDefinition($field_name);
       $mode = $field_definition->getSetting('default_mode');
       $comments_per_page = $field_definition->getSetting('per_page');
-      if ($node->get($field_name)->status && $cids = comment_get_thread($node, $field_name, $mode, $comments_per_page)) {
-        $comments = entity_load_multiple('comment', $cids);
-        comment_prepare_thread($comments);
-        $build = comment_view_multiple($comments);
-        $return .= drupal_render($build);
+      if ($node->get($field_name)->status) {
+        $comments = \Drupal::entityManager()->getStorage('comment')
+          ->loadThread($node, $field_name, $mode, $comments_per_page);
+        if ($comments) {
+          comment_prepare_thread($comments);
+          $build[] = \Drupal::entityManager()->getViewBuilder('comment')->viewMultiple($comments);
+        }
       }
     }
   }
-  return $return;
+  return drupal_render($build);
 }
 
 /**
@@ -974,7 +736,7 @@ function comment_user_cancel($edit, $account, $method) {
 }
 
 /**
- * Implements hook_user_predelete().
+ * Implements hook_ENTITY_TYPE_predelete() for user entities.
  */
 function comment_user_predelete($account) {
   $entity_query = \Drupal::entityQuery('comment');
@@ -984,180 +746,17 @@ function comment_user_predelete($account) {
 }
 
 /**
- * Loads comment entities from the database.
- *
- * @deprecated in Drupal 8.x, will be removed before Drupal 9.0.
- *   Use \Drupal\comment\Entity\Comment::loadMultiple().
- *
- * @param array $cids
- *   (optional) An array of entity IDs. If omitted, all entities are loaded.
- * @param bool $reset
- *   (optional) Whether to reset the internal static entity cache.
- *
- * @return array
- *   An array of comment objects, indexed by comment ID.
- *
- * @see entity_load()
- * @see \Drupal\Core\Entity\Query\QueryInterface
- */
-function comment_load_multiple(array $cids = NULL, $reset = FALSE) {
-  if ($reset) {
-    \Drupal::entityManager()->getStorage('comment')->resetCache($cids);
-  }
-  return Comment::loadMultiple($cids);
-}
-
-/**
- * Loads the entire comment by comment ID.
- *
- * @param int $cid
- *   The ID of the comment to be loaded.
- * @param bool $reset
- *   (optional) Whether to reset the internal static entity cache.
- *
- * @return \Drupal\comment\CommentInterface
- *   The comment object.
- *
- * @deprecated in Drupal 8.x, will be removed before Drupal 9.0.
- *   Use \Drupal\comment\Entity\Comment::load().
- */
-function comment_load($cid, $reset = FALSE) {
-  if ($reset) {
-    \Drupal::entityManager()->getStorage('comment')->resetCache(array($cid));
-  }
-  return Comment::load($cid);
-}
-
-/**
- * Gets the number of new comments for the current user and the specified node.
- *
- * @param int $entity_id
- *   Entity ID of the entity to which the comments are attached.
- * @param string $entity_type
- *   Entity type of the entity to which the comments are attached.
- * @param string $field_name
- *   (optional) The field_name to count comments for. Defaults to NULL.
- * @param $timestamp
- *   Time to count from (defaults to time of last user access to node).
- *
- * @return int|false
- *   The number of new comments or FALSE if the user is not logged in.
- */
-function comment_num_new($entity_id, $entity_type, $field_name = NULL, $timestamp = 0) {
-  if (\Drupal::currentUser()->isAuthenticated() && \Drupal::moduleHandler()->moduleExists('history')) {
-    // Retrieve the timestamp at which the current user last viewed this entity.
-    if (!$timestamp) {
-      if ($entity_type == 'node') {
-        $timestamp = history_read($entity_id);
-      }
-      else {
-        $function = $entity_type . '_last_viewed';
-        if (function_exists($function)) {
-          $timestamp = $function($entity_id);
-        }
-        else {
-          // Default to 30 days ago.
-          // @todo Remove once http://drupal.org/node/1029708 lands.
-          $timestamp = COMMENT_NEW_LIMIT;
-        }
-      }
-    }
-    $timestamp = ($timestamp > HISTORY_READ_LIMIT ? $timestamp : HISTORY_READ_LIMIT);
-
-    // Use the timestamp to retrieve the number of new comments.
-    $query = db_select('comment', 'c');
-    $query->addExpression('COUNT(cid)');
-    $query->condition('c.entity_type', $entity_type)
-      ->condition('c.entity_id', $entity_id)
-      ->condition('c.status', CommentInterface::PUBLISHED)
-      ->condition('c.created', $timestamp, '>');
-    if ($field_name) {
-      // Limit to a particular field.
-      $query->condition('c.field_name', $field_name);
-    }
-
-    return $query->execute()
-      ->fetchField();
-  }
-  else {
-    return FALSE;
-  }
-
-}
-
-/**
- * Gets the display ordinal for a comment, starting from 0.
- *
- * Count the number of comments which appear before the comment we want to
- * display, taking into account display settings and threading.
- *
- * @param int $cid
- *   The comment ID.
- * @param \Drupal\Core\Field\FieldDefinitionInterface $field_definition
- *   Field definition of the comments.
- *
- * @return int
- *   The display ordinal for the comment.
- *
- * @see comment_get_display_page()
- */
-function comment_get_display_ordinal($cid, FieldDefinitionInterface $field_definition) {
-  // Count how many comments (c1) are before $cid (c2) in display order. This is
-  // the 0-based display ordinal.
-  $query = db_select('comment', 'c1');
-  $query->innerJoin('comment', 'c2', 'c2.entity_id = c1.entity_id AND c2.entity_type = c1.entity_type AND c2.field_name = c1.field_name');
-  $query->addExpression('COUNT(*)', 'count');
-  $query->condition('c2.cid', $cid);
-  if (!user_access('administer comments')) {
-    $query->condition('c1.status', CommentInterface::PUBLISHED);
-  }
-
-  if ($field_definition->getSetting('default_mode') == COMMENT_MODE_FLAT) {
-    // For flat comments, cid is used for ordering comments due to
-    // unpredictable behavior with timestamp, so we make the same assumption
-    // here.
-    $query->condition('c1.cid', $cid, '<');
-  }
-  else {
-    // For threaded comments, the c.thread column is used for ordering. We can
-    // use the sorting code for comparison, but must remove the trailing slash.
-    // See CommentViewBuilder.
-    $query->where('SUBSTRING(c1.thread, 1, (LENGTH(c1.thread) -1)) < SUBSTRING(c2.thread, 1, (LENGTH(c2.thread) -1))');
-  }
-
-  return $query->execute()->fetchField();
-}
-
-/**
- * Returns the page number for a comment.
- *
- * Finds the correct page number for a comment taking into account display
- * and paging settings.
- *
- * @param int $cid
- *   The comment ID.
- * @param \Drupal\Core\Field\FieldDefinitionInterface $field_definition
- *   Field definition of the comments.
- *
- * @return int
- *   The page number.
- */
-function comment_get_display_page($cid, FieldDefinitionInterface $field_definition) {
-  $ordinal = comment_get_display_ordinal($cid, $field_definition);
-  $comments_per_page = $field_definition->getSetting('per_page');
-  return floor($ordinal / $comments_per_page);
-}
-
-/**
  * Generates a comment preview.
  *
  * @param \Drupal\comment\CommentInterface $comment
  *   The comment entity to preview.
+ * @param Drupal\Core\Form\FormStateInterface $form_state
+ *   The current state of the form.
  *
  * @return array
  *   An array as expected by drupal_render().
  */
-function comment_preview(CommentInterface $comment, array &$form_state) {
+function comment_preview(CommentInterface $comment, FormStateInterface $form_state) {
   $preview_build = array();
   $entity = $comment->getCommentedEntity();
 
@@ -1392,31 +991,37 @@ function template_preprocess_comment(&$variables) {
 }
 
 /**
- * Prepares variables for comment wrapper templates.
+ * Prepares variables for comment field templates.
  *
- * Default template: comment-wrapper.html.twig.
+ * Default template: field--comment.html.twig.
  *
  * @param array $variables
  *   An associative array containing:
- *   - content: An associative array containing render arrays for the list of
+ *   - element: An associative array containing render arrays for the list of
  *     comments, and the comment form. Array keys: comments, comment_form.
+ *
+ * @todo Rename to template_preprocess_field__comment() once
+ *   https://www.drupal.org/node/939462 is resolved.
  */
-function template_preprocess_comment_wrapper(&$variables) {
-  // Provide contextual information.
-  $variables['entity'] = $variables['content']['#entity'];
-  $variables['display_mode'] = $variables['content']['#display_mode'];
+function comment_preprocess_field(&$variables) {
+  $element = $variables['element'];
+  if ($element['#field_type'] == 'comment') {
+    // Provide contextual information.
+    $variables['comment_display_mode'] = $element[0]['#comment_display_mode'];
+    $variables['comment_type'] = $element[0]['#comment_type'];
 
-  // The comment form is optional and may not exist.
-  $variables['content'] += array('comment_form' => array());
+    // Adjust a comment field's attributes.
+    $variables['attributes']['class'][] = 'comment-wrapper';
+    $variables['title_attributes']['class'][] = 'title';
 
-  $variables['attributes']['id'] = 'comments';
+    // Append additional attributes (eg. RDFa) from the first field item.
+    $variables['attributes'] += $variables['item_attributes'][0]->storage();
 
-  // Add a comment wrapper class.
-  $variables['attributes']['class'][] = 'comment-wrapper';
-
-  // Create separate variables for the comments and comment form.
-  $variables['comments'] = $variables['content']['comments'];
-  $variables['form'] = $variables['content']['comment_form'];
+    // Create separate variables for the comments and comment form.
+    $variables['comments'] = $element[0]['comments'];
+    $variables['comment_form'] = $element[0]['comment_form'];
+    $variables['content_attributes']['class'] = array('title', 'comment-form__title');
+  }
 }
 
 /**
@@ -1424,18 +1029,4 @@ function template_preprocess_comment_wrapper(&$variables) {
  */
 function comment_ranking() {
   return \Drupal::service('comment.statistics')->getRankingInfo();
-}
-
-/**
- * Implements hook_file_download_access().
- */
-function comment_file_download_access($field, EntityInterface $entity, FileInterface $file) {
-  if ($entity instanceof CommentInterface) {
-    if (user_access('access comments') && $entity->isPublished() || user_access('administer comments')) {
-      $commented_entity = $entity->getCommentedEntity();
-      // Check access to parent entity.
-      return $commented_entity->access('view');
-    }
-    return FALSE;
-  }
 }

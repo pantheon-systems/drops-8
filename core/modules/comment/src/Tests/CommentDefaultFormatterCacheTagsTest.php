@@ -12,7 +12,10 @@ use Drupal\comment\CommentInterface;
 use Drupal\system\Tests\Entity\EntityUnitTestBase;
 
 /**
- * Tests CommentDefaultFormatter's cache tag bubbling.
+ * Tests the bubbling up of comment cache tags when using the Comment list
+ * formatter on an entity.
+ *
+ * @group comment
  */
 class CommentDefaultFormatterCacheTagsTest extends EntityUnitTestBase {
 
@@ -22,17 +25,6 @@ class CommentDefaultFormatterCacheTagsTest extends EntityUnitTestBase {
    * @var array
    */
   public static $modules = array('entity_test', 'comment', 'menu_link');
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'name' => 'Comment list cache tags',
-      'description' => 'Tests the bubbling up of comment cache tags when using the Comment list formatter on an entity.',
-      'group' => 'Comment',
-    );
-  }
 
   /**
    * {@inheritdoc}
@@ -65,7 +57,7 @@ class CommentDefaultFormatterCacheTagsTest extends EntityUnitTestBase {
    */
   public function testCacheTags() {
     // Create the entity that will be commented upon.
-    $commented_entity = entity_create('entity_test', array('name' => $this->randomName()));
+    $commented_entity = entity_create('entity_test', array('name' => $this->randomMachineName()));
     $commented_entity->save();
 
     // Verify cache tags on the rendered entity before it has comments.

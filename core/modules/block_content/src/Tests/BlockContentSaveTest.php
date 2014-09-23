@@ -8,10 +8,11 @@
 namespace Drupal\block_content\Tests;
 
 use Drupal\block_content\Entity\BlockContent;
-use Drupal\custom_block\Entity\CustomBlock;
 
 /**
- * Tests block save related functionality.
+ * Tests $block_content->save() for saving content.
+ *
+ * @group block_content
  */
 class BlockContentSaveTest extends BlockContentTestBase {
 
@@ -21,17 +22,6 @@ class BlockContentSaveTest extends BlockContentTestBase {
    * @var array
    */
   public static $modules = array('block_content_test');
-
-  /**
-   * Declares test information.
-   */
-  public static function getInfo() {
-    return array(
-      'name' => 'Custom Block save',
-      'description' => 'Test $block_content->save() for saving content.',
-      'group' => 'Custom Block',
-    );
-  }
 
   /**
    * Sets the test up.
@@ -49,10 +39,10 @@ class BlockContentSaveTest extends BlockContentTestBase {
     // Custom block ID must be a number that is not in the database.
     $max_id = db_query('SELECT MAX(id) FROM {block_content}')->fetchField();
     $test_id = $max_id + mt_rand(1000, 1000000);
-    $info = $this->randomName(8);
+    $info = $this->randomMachineName(8);
     $block_array = array(
       'info' => $info,
-      'body' => array('value' => $this->randomName(32)),
+      'body' => array('value' => $this->randomMachineName(32)),
       'type' => 'basic',
       'id' => $test_id
     );

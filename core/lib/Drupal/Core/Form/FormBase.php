@@ -10,31 +10,29 @@ namespace Drupal\Core\Form;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\DependencyInjection\DependencySerializationTrait;
-use Drupal\Core\Routing\UrlGeneratorInterface;
+use Drupal\Core\Routing\LinkGeneratorTrait;
+use Drupal\Core\Routing\UrlGeneratorTrait;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Provides a base class for forms.
+ *
+ * @ingroup form_api
  */
 abstract class FormBase implements FormInterface, ContainerInjectionInterface {
   use StringTranslationTrait;
   use DependencySerializationTrait;
+  use LinkGeneratorTrait;
+  use UrlGeneratorTrait;
 
   /**
-   * The current request.
+   * The request stack.
    *
-   * @var \Symfony\Component\HttpFoundation\Request
+   * @var \Symfony\Component\HttpFoundation\RequestStack
    */
-  protected $request;
-
-  /**
-   * The URL generator.
-   *
-   * @var \Drupal\Core\Routing\UrlGeneratorInterface
-   */
-  protected $urlGenerator;
+  protected $requestStack;
 
   /**
    * The config factory.
@@ -49,11 +47,11 @@ abstract class FormBase implements FormInterface, ContainerInjectionInterface {
   protected $configFactory;
 
   /**
-   * The form error handler.
+   * The logger factory.
    *
-   * @var \Drupal\Core\Form\FormErrorInterface
+   * @var \Drupal\Core\Logger\LoggerChannelFactoryInterface
    */
-  protected $errorHandler;
+  protected $loggerFactory;
 
   /**
    * {@inheritdoc}
@@ -65,21 +63,8 @@ abstract class FormBase implements FormInterface, ContainerInjectionInterface {
   /**
    * {@inheritdoc}
    */
-  public function validateForm(array &$form, array &$form_state) {
+  public function validateForm(array &$form, FormStateInterface $form_state) {
     // Validation is optional.
-  }
-
-  /**
-   * Generates a URL or path for a specific route based on the given parameters.
-   *
-   * @see \Drupal\Core\Routing\UrlGeneratorInterface::generateFromRoute() for
-   *   details on the arguments, usage, and possible exceptions.
-   *
-   * @return string
-   *   The generated URL for the given route.
-   */
-  public function url($route_name, $route_parameters = array(), $options = array()) {
-    return $this->urlGenerator()->generateFromRoute($route_name, $route_parameters, $options);
   }
 
   /**
@@ -144,22 +129,22 @@ abstract class FormBase implements FormInterface, ContainerInjectionInterface {
    *   The request object.
    */
   protected function getRequest() {
-    if (!$this->request) {
-      $this->request = $this->container()->get('request');
+    if (!$this->requestStack) {
+      $this->requestStack = \Drupal::service('request_stack');
     }
-    return $this->request;
+    return $this->requestStack->getCurrentRequest();
   }
 
   /**
-   * Sets the request object to use.
+   * Sets the request stack object to use.
    *
-   * @param \Symfony\Component\HttpFoundation\Request $request
-   *   The request object.
+   * @param \Symfony\Component\HttpFoundation\RequestStack $request_stack
+   *   The request stack object.
    *
    * @return $this
    */
-  public function setRequest(Request $request) {
-    $this->request = $request;
+  public function setRequestStack(RequestStack $request_stack) {
+    $this->requestStack = $request_stack;
     return $this;
   }
 
@@ -171,32 +156,6 @@ abstract class FormBase implements FormInterface, ContainerInjectionInterface {
    */
   protected function currentUser() {
     return \Drupal::currentUser();
-  }
-
-  /**
-   * Gets the URL generator.
-   *
-   * @return \Drupal\Core\Routing\UrlGeneratorInterface
-   *   The URL generator.
-   */
-  protected function urlGenerator() {
-    if (!$this->urlGenerator) {
-      $this->urlGenerator = \Drupal::urlGenerator();
-    }
-    return $this->urlGenerator;
-  }
-
-  /**
-   * Sets the URL generator.
-   *
-   * @param \Drupal\Core\Routing\UrlGeneratorInterface
-   *   The URL generator.
-   *
-   * @return $this
-   */
-  public function setUrlGenerator(UrlGeneratorInterface $url_generator) {
-    $this->urlGenerator = $url_generator;
-    return $this;
   }
 
   /**
@@ -215,35 +174,19 @@ abstract class FormBase implements FormInterface, ContainerInjectionInterface {
   }
 
   /**
-   * Returns the form error handler.
+   * Gets the logger for a specific channel.
    *
-   * @return \Drupal\Core\Form\FormErrorInterface
-   *   The form error handler.
+   * @param string $channel
+   *   The name of the channel.
+   *
+   * @return \Psr\Log\LoggerInterface
+   *   The logger for this channel.
    */
-  protected function errorHandler() {
-    if (!$this->errorHandler) {
-      $this->errorHandler = \Drupal::service('form_builder');
+  protected function logger($channel) {
+    if (!$this->loggerFactory) {
+      $this->loggerFactory = $this->container()->get('logger.factory');
     }
-    return $this->errorHandler;
-  }
-
-  /**
-   * Files an error against a form element.
-   *
-   * @param string $name
-   *   The name of the form element.
-   * @param array $form_state
-   *   An associative array containing the current state of the form.
-   * @param string $message
-   *   (optional) The error message to present to the user.
-   *
-   * @see \Drupal\Core\Form\FormErrorInterface::setErrorByName()
-   *
-   * @return $this
-   */
-  protected function setFormError($name, array &$form_state, $message = '') {
-    $this->errorHandler()->setErrorByName($name, $form_state, $message);
-    return $this;
+    return $this->loggerFactory->get($channel);
   }
 
 }

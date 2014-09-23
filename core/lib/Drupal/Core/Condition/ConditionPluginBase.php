@@ -8,6 +8,7 @@
 namespace Drupal\Core\Condition;
 
 use Drupal\Core\Executable\ExecutablePluginBase;
+use Drupal\Core\Form\FormStateInterface;
 
 /**
  * Provides a basis for fulfilling contexts for condition plugins.
@@ -19,13 +20,6 @@ use Drupal\Core\Executable\ExecutablePluginBase;
  * @ingroup plugin_api
  */
 abstract class ConditionPluginBase extends ExecutablePluginBase implements ConditionInterface {
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function contextDefinitions() {
-    return [];
-  }
 
   /**
    * {@inheritdoc}
@@ -46,7 +40,7 @@ abstract class ConditionPluginBase extends ExecutablePluginBase implements Condi
   /**
    * {@inheritdoc}
    */
-  public function buildConfigurationForm(array $form, array &$form_state) {
+  public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
     $form['negate'] = array(
       '#type' => 'checkbox',
       '#title' => $this->t('Negate the condition.'),
@@ -58,13 +52,13 @@ abstract class ConditionPluginBase extends ExecutablePluginBase implements Condi
   /**
    * {@inheritdoc}
    */
-  public function validateConfigurationForm(array &$form, array &$form_state) {
+  public function validateConfigurationForm(array &$form, FormStateInterface $form_state) {
   }
 
   /**
    * {@inheritdoc}
    */
-  public function submitConfigurationForm(array &$form, array &$form_state) {
+  public function submitConfigurationForm(array &$form, FormStateInterface $form_state) {
     $this->configuration['negate'] = $form_state['values']['negate'];
   }
 

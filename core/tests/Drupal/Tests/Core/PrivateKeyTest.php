@@ -12,7 +12,9 @@ use Drupal\Tests\UnitTestCase;
 use Drupal\Component\Utility\Crypt;
 
 /**
- * Tests the private key service.
+ * Tests the PrivateKey class.
+ *
+ * @group PrivateKeyTest
  */
 class PrivateKeyTest extends UnitTestCase {
 
@@ -36,14 +38,6 @@ class PrivateKeyTest extends UnitTestCase {
    * @var string
    */
   protected $key;
-
-  public static function getInfo() {
-    return array(
-      'name' => 'PrivateKey test',
-      'description' => 'Tests the PrivateKey class.',
-      'group' => 'System'
-    );
-  }
 
   /**
    * {@inheritdoc}
@@ -80,7 +74,7 @@ class PrivateKeyTest extends UnitTestCase {
    * Tests PrivateKey::setPrivateKey().
    */
   public function testSet() {
-    $random_name = $this->randomName();
+    $random_name = $this->randomMachineName();
 
     $this->state->expects($this->once())
       ->method('set')

@@ -405,7 +405,7 @@
     // @see https://drupal.org/node/2029999.
     var id = 'quickedit-load-editors';
     // Create a temporary element to be able to use Drupal.ajax.
-    var $el = $('<div id="' + id + '" class="element-hidden"></div>').appendTo('body');
+    var $el = $('<div id="' + id + '" class="hidden"></div>').appendTo('body');
     // Create a Drupal.ajax instance to load the form.
     var loadEditorsAjax = new Drupal.ajax(id, $el, {
       url: Drupal.url('quickedit/attachments'),
@@ -563,6 +563,7 @@
       function hasOtherRegion(contextualLink) {
         return contextualLink.region !== entityElement;
       }
+
       contextualLinksQueue = _.filter(contextualLinksQueue, hasOtherRegion);
     });
 
@@ -576,6 +577,7 @@
       function hasOtherFieldElement(field) {
         return field.el !== fieldElement;
       }
+
       fieldsMetadataQueue = _.filter(fieldsMetadataQueue, hasOtherFieldElement);
       fieldsAvailableQueue = _.filter(fieldsAvailableQueue, hasOtherFieldElement);
     });

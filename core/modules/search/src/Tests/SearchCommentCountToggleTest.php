@@ -10,7 +10,7 @@ namespace Drupal\search\Tests;
 use Drupal\comment\Plugin\Field\FieldType\CommentItemInterface;
 
 /**
- * Tests that comment count display toggles properly on comment status of node
+ * Tests that comment count display toggles properly on comment status of node.
  *
  * Issue 537278
  *
@@ -18,6 +18,8 @@ use Drupal\comment\Plugin\Field\FieldType\CommentItemInterface;
  * - Nodes with comment status set to Closed should show comment counts
  *     only when there are comments
  * - Nodes with comment status set to Hidden should never show comment counts
+ *
+ * @group search
  */
 class SearchCommentCountToggleTest extends SearchTestBase {
 
@@ -30,14 +32,6 @@ class SearchCommentCountToggleTest extends SearchTestBase {
 
   protected $searching_user;
   protected $searchable_nodes;
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Comment count toggle',
-      'description' => 'Verify that comment count display toggles properly on comment status of node.',
-      'group' => 'Search',
-    );
-  }
 
   function setUp() {
     parent::setUp();
@@ -58,8 +52,8 @@ class SearchCommentCountToggleTest extends SearchTestBase {
 
     // Create a comment array
     $edit_comment = array();
-    $edit_comment['subject'] = $this->randomName();
-    $edit_comment['comment_body[0][value]'] = $this->randomName();
+    $edit_comment['subject[0][value]'] = $this->randomMachineName();
+    $edit_comment['comment_body[0][value]'] = $this->randomMachineName();
 
     // Post comment to the test node with comment
     $this->drupalPostForm('comment/reply/node/' . $this->searchable_nodes['1 comment']->id() . '/comment', $edit_comment, t('Save'));

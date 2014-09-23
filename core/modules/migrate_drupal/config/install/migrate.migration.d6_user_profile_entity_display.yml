@@ -1,5 +1,7 @@
 id: d6_user_profile_entity_display
 label: Drupal 6 user profile display configuration
+migration_groups:
+  - Drupal 6
 source:
   plugin: d6_profile_field
   constants:
@@ -10,9 +12,9 @@ source:
       label: hidden
       settings: {}
 process:
-  entity_type: constants.entity_type
-  bundle: constants.bundle
-  view_mode: constants.view_mode
+  entity_type: 'constants/entity_type'
+  bundle: 'constants/bundle'
+  view_mode: 'constants/view_mode'
   field_name: name
   type:
     plugin: static_map
@@ -25,8 +27,8 @@ process:
       textfield: text_default
       textarea: text_default
       url: link_default
-  options: constants.options
-  'options.type': @type
+  options: 'constants/options'
+  'options/type': @type
   hidden:
     plugin: static_map
     source: visibility

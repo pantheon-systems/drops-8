@@ -8,17 +8,11 @@
 namespace Drupal\aggregator\Tests;
 
 /**
- * Tests functionality of the configuration settings in the Aggregator module.
+ * Tests aggregator settings page.
+ *
+ * @group aggregator
  */
 class AggregatorConfigurationTest extends AggregatorTestBase {
-  public static function getInfo() {
-    return array(
-      'name' => 'Aggregator configuration',
-      'description' => 'Test aggregator settings page.',
-      'group' => 'Aggregator',
-    );
-  }
-
   /**
    * Tests the settings form to ensure the correct default values are used.
    */
@@ -60,7 +54,7 @@ class AggregatorConfigurationTest extends AggregatorTestBase {
 
     // Make sure settings form is still accessible even after disabling a module
     // that provides the selected plugins.
-    module_uninstall(array('aggregator_test'));
+    $this->container->get('module_handler')->uninstall(array('aggregator_test'));
     $this->resetAll();
     $this->drupalGet('admin/config/services/aggregator/settings');
     $this->assertResponse(200);

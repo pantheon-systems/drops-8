@@ -9,21 +9,15 @@ namespace Drupal\file\Tests;
 
 /**
  * Tests the file_save_data() function.
+ *
+ * @group file
  */
 class SaveDataTest extends FileManagedUnitTestBase {
-  public static function getInfo() {
-    return array(
-      'name' => 'File save data',
-      'description' => 'Tests the file save data function.',
-      'group' => 'File Managed API',
-    );
-  }
-
   /**
    * Test the file_save_data() function when no filename is provided.
    */
   function testWithoutFilename() {
-    $contents = $this->randomName(8);
+    $contents = $this->randomMachineName(8);
 
     $result = file_save_data($contents);
     $this->assertTrue($result, 'Unnamed file saved correctly.');
@@ -45,7 +39,7 @@ class SaveDataTest extends FileManagedUnitTestBase {
    * Test the file_save_data() function when a filename is provided.
    */
   function testWithFilename() {
-    $contents = $this->randomName(8);
+    $contents = $this->randomMachineName(8);
 
     // Using filename with non-latin characters.
     $filename = 'Текстовый файл.txt';
@@ -72,7 +66,7 @@ class SaveDataTest extends FileManagedUnitTestBase {
   function testExistingRename() {
     // Setup a file to overwrite.
     $existing = $this->createFile();
-    $contents = $this->randomName(8);
+    $contents = $this->randomMachineName(8);
 
     $result = file_save_data($contents, $existing->getFileUri(), FILE_EXISTS_RENAME);
     $this->assertTrue($result, 'File saved successfully.');
@@ -100,7 +94,7 @@ class SaveDataTest extends FileManagedUnitTestBase {
   function testExistingReplace() {
     // Setup a file to overwrite.
     $existing = $this->createFile();
-    $contents = $this->randomName(8);
+    $contents = $this->randomMachineName(8);
 
     $result = file_save_data($contents, $existing->getFileUri(), FILE_EXISTS_REPLACE);
     $this->assertTrue($result, 'File saved successfully.');
@@ -125,7 +119,7 @@ class SaveDataTest extends FileManagedUnitTestBase {
    * Test that file_save_data() fails overwriting an existing file.
    */
   function testExistingError() {
-    $contents = $this->randomName(8);
+    $contents = $this->randomMachineName(8);
     $existing = $this->createFile(NULL, $contents);
 
     // Check the overwrite error.

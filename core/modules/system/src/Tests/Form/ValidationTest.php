@@ -11,7 +11,9 @@ use Drupal\Core\Render\Element;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Test form validation handlers.
+ * Tests form processing and alteration via form validation handlers.
+ *
+ * @group Form
  */
 class ValidationTest extends WebTestBase {
 
@@ -21,14 +23,6 @@ class ValidationTest extends WebTestBase {
    * @var array
    */
   public static $modules = array('form_test');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Form validation handlers',
-      'description' => 'Tests form processing and alteration via form validation handlers.',
-      'group' => 'Form API',
-    );
-  }
 
   /**
    * Tests form alterations by #element_validate, #validate, and form_set_value().
@@ -182,7 +176,7 @@ class ValidationTest extends WebTestBase {
 
     // Invalid password.
     $edit = array(
-      'password' => $this->randomName(),
+      'password' => $this->randomMachineName(),
     );
     $this->drupalPostForm('form-test/pattern', $edit, 'Submit');
     $this->assertNoRaw($textfield_error);
@@ -203,11 +197,10 @@ class ValidationTest extends WebTestBase {
   /**
    * Tests #required with custom validation errors.
    *
-   * @see form_test_validate_required_form()
+   * @see \Drupal\form_test\Form\FormTestValidateRequiredForm
    */
   function testCustomRequiredError() {
-    $form = $form_state = array();
-    $form = form_test_validate_required_form($form, $form_state);
+    $form = \Drupal::formBuilder()->getForm('\Drupal\form_test\Form\FormTestValidateRequiredForm');
 
     // Verify that a custom #required error can be set.
     $edit = array();

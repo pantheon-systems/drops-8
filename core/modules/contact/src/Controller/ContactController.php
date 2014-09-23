@@ -8,6 +8,7 @@
 namespace Drupal\contact\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Datetime\DateFormatter;
 use Drupal\Core\Flood\FloodInterface;
 use Drupal\contact\CategoryInterface;
 use Drupal\user\UserInterface;
@@ -29,13 +30,23 @@ class ContactController extends ControllerBase {
   protected $flood;
 
   /**
+   * The date formatter service.
+   *
+   * @var \Drupal\Core\Datetime\DateFormatter
+   */
+  protected $dateFormatter;
+
+  /**
    * Constructs a ContactController object.
    *
    * @param \Drupal\Core\Flood\FloodInterface $flood
    *   The flood service.
+   * @param \Drupal\Core\Datetime\DateFormatter $date_formatter
+   *   The date service.
    */
-  public function __construct(FloodInterface $flood) {
+  public function __construct(FloodInterface $flood, DateFormatter $date_formatter) {
     $this->flood = $flood;
+    $this->dateFormatter = $date_formatter;
   }
 
   /**
@@ -43,7 +54,8 @@ class ContactController extends ControllerBase {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('flood')
+      $container->get('flood'),
+      $container->get('date.formatter')
     );
   }
 
@@ -75,7 +87,7 @@ class ContactController extends ControllerBase {
       if (empty($contact_category)) {
         if ($this->currentUser()->hasPermission('administer contact forms')) {
           drupal_set_message($this->t('The contact form has not been configured. <a href="@add">Add one or more categories</a> to the form.', array(
-            '@add' => $this->urlGenerator()->generateFromRoute('contact.category_add'))), 'error');
+            '@add' => $this->url('contact.category_add'))), 'error');
           return array();
         }
         else {
@@ -131,7 +143,7 @@ class ContactController extends ControllerBase {
     if (!$this->flood->isAllowed('contact', $limit, $interval)) {
       drupal_set_message($this->t('You cannot send more than %limit messages in @interval. Try again later.', array(
         '%limit' => $limit,
-        '@interval' => format_interval($interval),
+        '@interval' => $this->dateFormatter->formatInterval($interval),
       )), 'error');
       throw new AccessDeniedHttpException();
     }

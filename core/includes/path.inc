@@ -5,9 +5,7 @@
  * Functions to handle paths in Drupal.
  */
 
-use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\ParamConverter\ParamNotConvertedException;
-use Drupal\Core\Routing\RequestHelper;
 use Symfony\Cmf\Component\Routing\RouteObjectInterface;
 
 /**
@@ -15,20 +13,12 @@ use Symfony\Cmf\Component\Routing\RouteObjectInterface;
  *
  * @return
  *   Boolean value: TRUE if the current page is the front page; FALSE if otherwise.
+ *
+ * @deprecated as of Drupal 8.0. Use
+ *   \Drupal\Core\Path\PathMatcherInterface::isFrontPage() instead.
  */
 function drupal_is_front_page() {
-  // Use the advanced drupal_static() pattern, since this is called very often.
-  static $drupal_static_fast;
-  if (!isset($drupal_static_fast)) {
-    $drupal_static_fast['is_front_page'] = &drupal_static(__FUNCTION__);
-  }
-  $is_front_page = &$drupal_static_fast['is_front_page'];
-
-  if (!isset($is_front_page)) {
-    $is_front_page = (current_path() == \Drupal::config('system.site')->get('page.front'));
-  }
-
-  return $is_front_page;
+  return \Drupal::service('path.matcher')->isFrontPage();
 }
 
 /**
@@ -68,8 +58,8 @@ function current_path() {
   // @todo Remove the check for whether the request service exists and the
   // fallback code below, once the path alias logic has been figured out in
   // http://drupal.org/node/1269742.
-  if (\Drupal::getContainer()->isScopeActive('request')) {
-    $path = \Drupal::request()->attributes->get('_system_path');
+  if ($request = \Drupal::request()) {
+    $path = $request->attributes->get('_system_path');
     if ($path !== NULL) {
       return $path;
     }
@@ -116,36 +106,10 @@ function path_is_admin($path) {
  * @return bool
  *   TRUE if it is a valid path AND the current user has access permission,
  *   FALSE otherwise.
+ *
+ * @deprecated Use \Drupal::service('path.validator')->isValid($path) service
+ *   instead.
  */
 function drupal_valid_path($path) {
-  // External URLs and the front page are always valid.
-  if ($path == '<front>' || UrlHelper::isExternal($path)) {
-    return TRUE;
-  }
-
-  // Check the routing system.
-  $collection = \Drupal::service('router.route_provider')->getRoutesByPattern('/' . $path);
-  if ($collection->count() == 0) {
-    return FALSE;
-  }
-
-  $request = RequestHelper::duplicate(\Drupal::request(), '/' . $path);
-  $request->attributes->set('_system_path', $path);
-
-  // We indicate that a menu administrator is running the menu access check.
-  $request->attributes->set('_menu_admin', TRUE);
-
-  // Attempt to match this path to provide a fully built request to the
-  // access checker.
-  try {
-    $request->attributes->add(\Drupal::service('router')->matchRequest($request));
-  }
-  catch (ParamNotConvertedException $e) {
-    return FALSE;
-  }
-
-  // Consult the accsss manager.
-  $routes = $collection->all();
-  $route = reset($routes);
-  return \Drupal::service('access_manager')->check($route, $request, \Drupal::currentUser());
+  return \Drupal::service('path.validator')->isValid($path);
 }

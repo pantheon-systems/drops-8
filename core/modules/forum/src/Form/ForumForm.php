@@ -7,6 +7,7 @@
 
 namespace Drupal\forum\Form;
 
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\taxonomy\TermForm;
 
 /**
@@ -31,7 +32,7 @@ class ForumForm extends TermForm {
   /**
    * {@inheritdoc}
    */
-  public function form(array $form, array &$form_state) {
+  public function form(array $form, FormStateInterface $form_state) {
     $taxonomy_term = $this->entity;
     // Build the bulk of the form from the parent taxonomy term form.
     $form = parent::form($form, $form_state, $taxonomy_term);
@@ -53,7 +54,7 @@ class ForumForm extends TermForm {
     $form['parent']['#tree'] = TRUE;
     $form['parent'][0] = $this->forumParentSelect($taxonomy_term->id(), $this->t('Parent'));
 
-    $form['#theme'] = 'forum_form';
+    $form['#theme_wrappers'] = array('form__forum');
     $this->forumFormType = $this->t('forum');
     return $form;
   }
@@ -61,7 +62,7 @@ class ForumForm extends TermForm {
   /**
    * {@inheritdoc}
    */
-  public function buildEntity(array $form, array &$form_state) {
+  public function buildEntity(array $form, FormStateInterface $form_state) {
     $term = parent::buildEntity($form, $form_state);
 
     // Assign parents from forum parent select field.
@@ -73,7 +74,7 @@ class ForumForm extends TermForm {
   /**
    * {@inheritdoc}
    */
-  public function save(array $form, array &$form_state) {
+  public function save(array $form, FormStateInterface $form_state) {
     $term = $this->entity;
     $term_storage = $this->entityManager->getStorage('taxonomy_term');
     $status = $term_storage->save($term);
@@ -81,24 +82,24 @@ class ForumForm extends TermForm {
     switch ($status) {
       case SAVED_NEW:
         drupal_set_message($this->t('Created new @type %term.', array('%term' => $term->getName(), '@type' => $this->forumFormType)));
-        watchdog('forum', 'Created new @type %term.', array('%term' => $term->getName(), '@type' => $this->forumFormType), WATCHDOG_NOTICE, l($this->t('Edit'), 'admin/structure/forum/edit/' . $this->urlStub . '/' . $term->id()));
+        $this->logger('forum')->notice('Created new @type %term.', array('%term' => $term->getName(), '@type' => $this->forumFormType, 'link' => l($this->t('Edit'), 'admin/structure/forum/edit/' . $this->urlStub . '/' . $term->id())));
         $form_state['values']['tid'] = $term->id();
         break;
 
       case SAVED_UPDATED:
         drupal_set_message($this->t('The @type %term has been updated.', array('%term' => $term->getName(), '@type' => $this->forumFormType)));
-        watchdog('taxonomy', 'Updated @type %term.', array('%term' => $term->getName(), '@type' => $this->forumFormType), WATCHDOG_NOTICE, l($this->t('Edit'), 'admin/structure/forum/edit/' . $this->urlStub . '/' . $term->id()));
+        $this->logger('forum')->notice('Updated @type %term.', array('%term' => $term->getName(), '@type' => $this->forumFormType, 'link' => l($this->t('Edit'), 'admin/structure/forum/edit/' . $this->urlStub . '/' . $term->id())));
         break;
     }
 
-    $form_state['redirect_route']['route_name'] = 'forum.overview';
+    $form_state->setRedirect('forum.overview');
     return $term;
   }
 
   /**
    * {@inheritdoc}
    */
-  protected function actions(array $form, array &$form_state) {
+  protected function actions(array $form, FormStateInterface $form_state) {
     $actions = parent::actions($form, $form_state);
 
     if (!$this->entity->isNew() && $this->entity->hasLinkTemplate('forum-delete-form')) {

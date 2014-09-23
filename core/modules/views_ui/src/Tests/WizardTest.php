@@ -12,6 +12,7 @@ use Drupal\views\Tests\Wizard\WizardTestBase;
 /**
  * Tests the wizard.
  *
+ * @group views_ui
  * @see \Drupal\views\Plugin\views\display\DisplayPluginBase
  * @see \Drupal\views\Plugin\views\display\PathPluginBase
  * @see \Drupal\views\Plugin\views\wizard\WizardPluginBase
@@ -19,30 +20,19 @@ use Drupal\views\Tests\Wizard\WizardTestBase;
 class WizardTest extends WizardTestBase {
 
   /**
-   * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'name' => 'Views UI: Wizard',
-      'description' => 'Tests the wizard.',
-      'group' => 'Views Wizard',
-    );
-  }
-
-  /**
    * Tests filling in the wizard with really long strings.
    */
   public function testWizardFieldLength() {
     $view = array();
-    $view['label'] = $this->randomName(256);
-    $view['id'] = strtolower($this->randomName(129));
+    $view['label'] = $this->randomMachineName(256);
+    $view['id'] = strtolower($this->randomMachineName(129));
     $view['page[create]'] = TRUE;
-    $view['page[path]'] = $this->randomName(255);
-    $view['page[title]'] = $this->randomName(256);
+    $view['page[path]'] = $this->randomMachineName(255);
+    $view['page[title]'] = $this->randomMachineName(256);
     $view['page[feed]'] = TRUE;
-    $view['page[feed_properties][path]'] = $this->randomName(255);
+    $view['page[feed_properties][path]'] = $this->randomMachineName(255);
     $view['block[create]'] = TRUE;
-    $view['block[title]'] = $this->randomName(256);
+    $view['block[title]'] = $this->randomMachineName(256);
 
     $this->drupalPostForm('admin/structure/views/add', $view, t('Save and edit'));
 
@@ -53,15 +43,15 @@ class WizardTest extends WizardTestBase {
     $this->assertText('Feed path cannot be longer than 254 characters but is currently 255 characters long.');
     $this->assertText('Block title cannot be longer than 255 characters but is currently 256 characters long.');
 
-    $view['label'] = $this->randomName(255);
-    $view['id'] = strtolower($this->randomName(128));
+    $view['label'] = $this->randomMachineName(255);
+    $view['id'] = strtolower($this->randomMachineName(128));
     $view['page[create]'] = TRUE;
-    $view['page[path]'] = $this->randomName(254);
-    $view['page[title]'] = $this->randomName(255);
+    $view['page[path]'] = $this->randomMachineName(254);
+    $view['page[title]'] = $this->randomMachineName(255);
     $view['page[feed]'] = TRUE;
-    $view['page[feed_properties][path]'] = $this->randomName(254);
+    $view['page[feed_properties][path]'] = $this->randomMachineName(254);
     $view['block[create]'] = TRUE;
-    $view['block[title]'] = $this->randomName(255);
+    $view['block[title]'] = $this->randomMachineName(255);
 
     $this->drupalPostForm('admin/structure/views/add', $view, t('Save and edit'));
     $this->assertUrl('admin/structure/views/view/' . $view['id'], array(), 'Make sure the view saving was successful and the browser got redirected to the edit page.');

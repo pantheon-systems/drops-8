@@ -15,7 +15,9 @@ use Drupal\Core\Language\LanguageInterface;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Functional tests for the Language list configuration forms.
+ * Translate settings and entities to various languages.
+ *
+ * @group config_translation
  */
 class ConfigTranslationUiTest extends WebTestBase {
 
@@ -53,14 +55,6 @@ class ConfigTranslationUiTest extends WebTestBase {
    * @var \Drupal\locale\StringStorageInterface
    */
   protected $localeStorage;
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Configuration Translation',
-      'description' => 'Translate settings and entities to various languages',
-      'group' => 'Configuration Translation',
-    );
-  }
 
   public function setUp() {
     parent::setUp();
@@ -300,8 +294,8 @@ class ConfigTranslationUiTest extends WebTestBase {
 
       // Submit feedback.
       $edit = array(
-        'subject' => 'Test subject',
-        'message' => 'Test message',
+        'subject[0][value]' => 'Test subject',
+        'message[0][value]' => 'Test message',
       );
       $this->drupalPostForm(NULL, $edit, t('Send message'));
     }
@@ -572,12 +566,12 @@ class ConfigTranslationUiTest extends WebTestBase {
     $this->drupalLogin($this->admin_user);
 
     $langcode = 'xx';
-    $name = $this->randomName(16);
+    $name = $this->randomMachineName(16);
     $edit = array(
       'predefined_langcode' => 'custom',
       'langcode' => $langcode,
       'name' => $name,
-      'direction' => '0',
+      'direction' => Language::DIRECTION_LTR,
     );
     $this->drupalPostForm('admin/config/regional/language/add', $edit, t('Add custom language'));
 

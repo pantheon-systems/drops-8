@@ -7,6 +7,7 @@
 
 namespace Drupal\system\Form;
 
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\StreamWrapper\PublicStream;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -65,7 +66,7 @@ class ThemeSettingsForm extends ConfigFormBase {
    * @param string $theme
    *   The theme name.
    */
-  public function buildForm(array $form, array &$form_state, $theme = '') {
+  public function buildForm(array $form, FormStateInterface $form_state, $theme = '') {
     $form = parent::buildForm($form, $form_state);
 
     $themes = list_themes();
@@ -316,7 +317,7 @@ class ThemeSettingsForm extends ConfigFormBase {
   /**
    * {@inheritdoc}
    */
-  public function validateForm(array &$form, array &$form_state) {
+  public function validateForm(array &$form, FormStateInterface $form_state) {
     parent::validateForm($form, $form_state);
 
     if ($this->moduleHandler->moduleExists('file')) {
@@ -333,7 +334,7 @@ class ThemeSettingsForm extends ConfigFormBase {
         }
         else {
           // File upload failed.
-          $this->setFormError('logo_upload', $form_state, $this->t('The logo could not be uploaded.'));
+          $form_state->setErrorByName('logo_upload', $this->t('The logo could not be uploaded.'));
         }
       }
 
@@ -349,7 +350,7 @@ class ThemeSettingsForm extends ConfigFormBase {
         }
         else {
           // File upload failed.
-          $this->setFormError('favicon_upload', $form_state, $this->t('The favicon could not be uploaded.'));
+          $form_state->setErrorByName('favicon_upload', $this->t('The favicon could not be uploaded.'));
         }
       }
 
@@ -358,13 +359,13 @@ class ThemeSettingsForm extends ConfigFormBase {
       if ($form_state['values']['logo_path']) {
         $path = $this->validatePath($form_state['values']['logo_path']);
         if (!$path) {
-          $this->setFormError('logo_path', $form_state, $this->t('The custom logo path is invalid.'));
+          $form_state->setErrorByName('logo_path', $this->t('The custom logo path is invalid.'));
         }
       }
       if ($form_state['values']['favicon_path']) {
         $path = $this->validatePath($form_state['values']['favicon_path']);
         if (!$path) {
-          $this->setFormError('favicon_path', $form_state, $this->t('The custom favicon path is invalid.'));
+          $form_state->setErrorByName('favicon_path', $this->t('The custom favicon path is invalid.'));
         }
       }
     }
@@ -373,7 +374,7 @@ class ThemeSettingsForm extends ConfigFormBase {
   /**
    * {@inheritdoc}
    */
-  public function submitForm(array &$form, array &$form_state) {
+  public function submitForm(array &$form, FormStateInterface $form_state) {
     parent::submitForm($form, $form_state);
 
     $config = $this->config($form_state['values']['config_key']);

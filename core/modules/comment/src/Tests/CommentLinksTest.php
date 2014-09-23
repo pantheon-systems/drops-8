@@ -13,6 +13,8 @@ use Drupal\comment\CommentInterface;
 
 /**
  * Tests comment links based on environment configurations.
+ *
+ * @group comment
  */
 class CommentLinksTest extends CommentTestBase {
 
@@ -24,14 +26,6 @@ class CommentLinksTest extends CommentTestBase {
    * @todo Remove this dependency.
    */
   public static $modules = array('views');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Comment links',
-      'description' => 'Tests comment links based on environment configurations.',
-      'group' => 'Comment',
-    );
-  }
 
   /**
    * Tests comment links.
@@ -150,10 +144,10 @@ class CommentLinksTest extends CommentTestBase {
           'pid' => 0,
           'uid' => 0,
           'status' => CommentInterface::PUBLISHED,
-          'subject' => $this->randomName(),
+          'subject' => $this->randomMachineName(),
           'hostname' => '127.0.0.1',
           'langcode' => LanguageInterface::LANGCODE_NOT_SPECIFIED,
-          'comment_body' => array(LanguageInterface::LANGCODE_NOT_SPECIFIED => array($this->randomName())),
+          'comment_body' => array(LanguageInterface::LANGCODE_NOT_SPECIFIED => array($this->randomMachineName())),
         ));
         $comment->save();
         $this->comment = $comment;
@@ -237,7 +231,8 @@ class CommentLinksTest extends CommentTestBase {
 
             // For logged in users, a link containing the amount of new/unread
             // comments is expected.
-            // See important note about comment_num_new() below.
+            // See important note about
+            // \Drupal::service('comment.manager')->getCountNewComments() below.
             if ($this->loggedInUser && isset($this->comment) && !isset($this->comment->seen)) {
               $this->assertLink(t('1 new comment'));
               $this->comment->seen = TRUE;
@@ -249,9 +244,9 @@ class CommentLinksTest extends CommentTestBase {
         $this->assertNoLink(t('1 comment'));
         $this->assertNoLink(t('1 new comment'));
       }
-      // comment_num_new() is based on node views, so comments are marked as
-      // read when a node is viewed, regardless of whether we have access to
-      // comments.
+      // \Drupal::service('comment.manager')->getCountNewComments() is based on
+      // node views, so comments are marked as read when a node is viewed,
+      // regardless of whether we have access to comments.
       if ($path == "node/$nid" && $this->loggedInUser && isset($this->comment)) {
         $this->comment->seen = TRUE;
       }
@@ -264,7 +259,7 @@ class CommentLinksTest extends CommentTestBase {
         // authenticated users are allowed to post comments.
         // @see \Drupal\comment\CommentManagerInterface::forbiddenMessage()
         if (!$this->loggedInUser) {
-          if (user_access('post comments', $this->web_user)) {
+          if ($this->web_user->hasPermission('post comments')) {
             // The note depends on whether users are actually able to register.
             if ($info['user_register'] != USER_REGISTER_ADMINISTRATORS_ONLY) {
               $this->assertText('Log in or register to post comments');

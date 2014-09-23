@@ -8,6 +8,7 @@
 namespace Drupal\entity_reference\Plugin\Field\FieldFormatter;
 
 use Drupal\Core\Field\FieldItemListInterface;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\entity_reference\RecursiveRenderingException;
 
 /**
@@ -37,7 +38,7 @@ class EntityReferenceEntityFormatter extends EntityReferenceFormatterBase {
   /**
    * {@inheritdoc}
    */
-  public function settingsForm(array $form, array &$form_state) {
+  public function settingsForm(array $form, FormStateInterface $form_state) {
     $elements['view_mode'] = array(
       '#type' => 'select',
       '#options' => \Drupal::entityManager()->getViewModeOptions($this->getFieldSetting('target_type')),
@@ -114,6 +115,12 @@ class EntityReferenceEntityFormatter extends EntityReferenceFormatterBase {
         if (empty($links) && isset($result[$delta][$target_type][$item->target_id]['links'])) {
           // Hide the element links.
           $elements[$delta][$target_type][$item->target_id]['links']['#access'] = FALSE;
+        }
+        // Add a resource attribute to set the mapping property's value to the
+        // entity's url. Since we don't know what the markup of the entity will
+        // be, we shouldn't rely on it for structured data such as RDFa.
+        if (!empty($item->_attributes)) {
+          $item->_attributes += array('resource' => $item->entity->url());
         }
       }
       else {

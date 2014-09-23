@@ -11,6 +11,8 @@ use Drupal\simpletest\WebTestBase;
 
 /**
  * Tests email field functionality.
+ *
+ * @group field
  */
 class EmailFieldTest extends WebTestBase {
 
@@ -22,11 +24,11 @@ class EmailFieldTest extends WebTestBase {
   public static $modules = array('node', 'entity_test', 'field_ui');
 
   /**
-   * A field to use in this test class.
+   * A field storage to use in this test class.
    *
-   * @var \Drupal\field\Entity\FieldConfig
+   * @var \Drupal\field\Entity\FieldStorageConfig
    */
-  protected $field;
+  protected $fieldStorage;
 
   /**
    * The instance used in this test class.
@@ -34,14 +36,6 @@ class EmailFieldTest extends WebTestBase {
    * @var \Drupal\field\Entity\FieldInstanceConfig
    */
   protected $instance;
-
-  public static function getInfo() {
-    return array(
-      'name'  => 'Email field',
-      'description'  => 'Tests email field functionality.',
-      'group' => 'Field types',
-    );
-  }
 
   function setUp() {
     parent::setUp();
@@ -59,15 +53,15 @@ class EmailFieldTest extends WebTestBase {
    */
   function testEmailField() {
     // Create a field with settings to validate.
-    $field_name = drupal_strtolower($this->randomName());
-    $this->field = entity_create('field_config', array(
+    $field_name = drupal_strtolower($this->randomMachineName());
+    $this->fieldStorage = entity_create('field_storage_config', array(
       'name' => $field_name,
       'entity_type' => 'entity_test',
       'type' => 'email',
     ));
-    $this->field->save();
+    $this->fieldStorage->save();
     $this->instance = entity_create('field_instance_config', array(
-      'field' => $this->field,
+      'field_storage' => $this->fieldStorage,
       'bundle' => 'entity_test',
     ));
     $this->instance->save();
@@ -97,7 +91,7 @@ class EmailFieldTest extends WebTestBase {
     $value = 'test@example.com';
     $edit = array(
       'user_id' => 1,
-      'name' => $this->randomName(),
+      'name' => $this->randomMachineName(),
       "{$field_name}[0][value]" => $value,
     );
     $this->drupalPostForm(NULL, $edit, t('Save'));

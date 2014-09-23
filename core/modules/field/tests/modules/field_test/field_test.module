@@ -1,7 +1,8 @@
 <?php
 
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\field\FieldConfigInterface;
+use Drupal\field\FieldStorageConfigInterface;
+use Drupal\Core\Form\FormStateInterface;
 
 /**
  * @file
@@ -59,14 +60,14 @@ function field_test_permission() {
  *   field_test_memorize();
  *
  *   // call some Field API functions that invoke field_test hooks
- *   entity_create('field_config', $field_definition)->save();
+ *   entity_create('field_storage_config', $field_definition)->save();
  *
  *   // retrieve and reset the memorized hook call data
  *   $mem = field_test_memorize();
  *
- *   // make sure hook_field_config_create() is invoked correctly
- *   assertEqual(count($mem['field_test_field_config_create']), 1);
- *   assertEqual($mem['field_test_field_config_create'][0], array($field));
+ *   // make sure hook_field_storage_config_create() is invoked correctly
+ *   assertEqual(count($mem['field_test_field_storage_config_create']), 1);
+ *   assertEqual($mem['field_test_field_storage_config_create'][0], array($field));
  * @endcode
  *
  * @param $key
@@ -91,9 +92,9 @@ function field_test_memorize($key = NULL, $value = NULL) {
 }
 
 /**
- * Memorize calls to field_test_field_config_create() for field creation.
+ * Memorize calls to field_test_field_storage_config_create().
  */
-function field_test_field_config_create(FieldConfigInterface $field) {
+function field_test_field_storage_config_create(FieldStorageConfigInterface $field_storage) {
   $args = func_get_args();
   field_test_memorize(__FUNCTION__, $args);
 }
@@ -115,7 +116,7 @@ function field_test_entity_display_build_alter(&$output, $context) {
 /**
  * Implements hook_field_widget_form_alter().
  */
-function field_test_field_widget_form_alter(&$element, &$form_state, $context) {
+function field_test_field_widget_form_alter(&$element, FormStateInterface $form_state, $context) {
   $field_definition = $context['items']->getFieldDefinition();
   switch ($field_definition->getName()) {
     case 'alter_test_text':

@@ -10,6 +10,7 @@ namespace Drupal\config_translation\FormElement;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Ajax\AjaxResponse;
 use Drupal\Core\Ajax\ReplaceCommand;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\TypedData\DataDefinitionInterface;
@@ -25,10 +26,10 @@ class DateFormat implements ElementInterface {
    */
   public function getFormElement(DataDefinitionInterface $definition, LanguageInterface $language, $value) {
     $description = $this->t('A user-defined date format. See the <a href="@url">PHP manual</a> for available options.', array('@url' => 'http://php.net/manual/function.date.php'));
-    $format = $this->t('Displayed as %date_format', array('%date_format' => \Drupal::service('date')->format(REQUEST_TIME, 'custom', $value)));
+    $format = $this->t('Displayed as %date_format', array('%date_format' => \Drupal::service('date.formatter')->format(REQUEST_TIME, 'custom', $value)));
     return array(
       '#type' => 'textfield',
-      '#title' => $this->t($definition['label']) . '<span class="visually-hidden"> (' . $language->name . ')</span>',
+      '#title' => $this->t($definition->getLabel()) . '<span class="visually-hidden"> (' . $language->name . ')</span>',
       '#description' => $description,
       '#default_value' => $value,
       '#attributes' => array('lang' => $language->id),
@@ -46,7 +47,7 @@ class DateFormat implements ElementInterface {
    *
    * @param array $form
    *   Form API array structure.
-   * @param array $form_state
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
    *   Form state information.
    *
    * @return AjaxResponse
@@ -54,7 +55,7 @@ class DateFormat implements ElementInterface {
    *   the given format cannot be identified or was empty, the response will
    *   be empty as well.
    */
-  public static function ajaxSample(array $form, array $form_state) {
+  public static function ajaxSample(array $form, FormStateInterface $form_state) {
     $response = new AjaxResponse();
 
     $format_value = NestedArray::getValue($form_state['values'], $form_state['triggering_element']['#array_parents']);
@@ -62,7 +63,7 @@ class DateFormat implements ElementInterface {
       // Format the date with a custom date format with the given pattern.
       // The object is not instantiated in an Ajax context, so $this->t()
       // cannot be used here.
-      $format = t('Displayed as %date_format', array('%date_format' => \Drupal::service('date')->format(REQUEST_TIME, 'custom', $format_value)));
+      $format = t('Displayed as %date_format', array('%date_format' => \Drupal::service('date.formatter')->format(REQUEST_TIME, 'custom', $format_value)));
 
       // Return a command instead of a string, since the Ajax framework
       // automatically prepends an additional empty DIV element for a string,

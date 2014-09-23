@@ -9,6 +9,8 @@ namespace Drupal\node\Tests;
 
 /**
  * Tests the interaction of the node access system with fields.
+ *
+ * @group node
  */
 class NodeAccessFieldTest extends NodeTestBase {
 
@@ -40,14 +42,6 @@ class NodeAccessFieldTest extends NodeTestBase {
    */
   protected $field_name;
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Node access and fields',
-      'description' => 'Tests the interaction of the node access system with fields.',
-      'group' => 'Node',
-    );
-  }
-
   public function setUp() {
     parent::setUp();
 
@@ -58,8 +52,8 @@ class NodeAccessFieldTest extends NodeTestBase {
     $this->content_admin_user = $this->drupalCreateUser(array('access content', 'administer content types', 'administer node fields'));
 
     // Add a custom field to the page content type.
-    $this->field_name = drupal_strtolower($this->randomName() . '_field_name');
-    entity_create('field_config', array(
+    $this->field_name = drupal_strtolower($this->randomMachineName() . '_field_name');
+    entity_create('field_storage_config', array(
       'name' => $this->field_name,
       'entity_type' => 'node',
       'type' => 'text'
@@ -83,7 +77,7 @@ class NodeAccessFieldTest extends NodeTestBase {
   function testNodeAccessAdministerField() {
     // Create a page node.
     $field_data = array();
-    $value = $field_data[0]['value'] = $this->randomName();
+    $value = $field_data[0]['value'] = $this->randomMachineName();
     $node = $this->drupalCreateNode(array($this->field_name => $field_data));
 
     // Log in as the administrator and confirm that the field value is present.

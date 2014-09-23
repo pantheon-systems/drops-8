@@ -7,21 +7,25 @@
 
 namespace Drupal\system\Tests\Entity;
 
+use Drupal\comment\Entity\Comment;
 use Drupal\comment\Plugin\Field\FieldType\CommentItemInterface;
 use Drupal\Core\Database\Database;
 use Drupal\Core\Language\LanguageInterface;
 
 /**
- * Tests invocation of hooks when performing an action.
+ * Tests the invocation of hooks when creating, inserting, loading, updating or
+ * deleting an entity.
  *
  * Tested hooks are:
- * - hook_entity_insert()
- * - hook_entity_load()
- * - hook_entity_update()
- * - hook_entity_predelete()
- * - hook_entity_delete()
- * As well as all type-specific hooks, like hook_node_insert(),
- * hook_comment_update(), etc.
+ * - hook_entity_insert() and hook_ENTITY_TYPE_insert()
+ * - hook_entity_load() and hook_ENTITY_TYPE_load()
+ * - hook_entity_update() and hook_ENTITY_TYPE_update()
+ * - hook_entity_predelete() and hook_ENTITY_TYPE_predelete()
+ * - hook_entity_delete() and hook_ENTITY_TYPE_delete()
+ *
+ * These hooks are each tested for several entity types.
+ *
+ * @group Entity
  */
 class EntityCrudHookTest extends EntityUnitTestBase {
 
@@ -33,14 +37,6 @@ class EntityCrudHookTest extends EntityUnitTestBase {
   public static $modules = array('block', 'block_test', 'entity_crud_hook_test', 'file', 'taxonomy', 'node', 'comment');
 
   protected $ids = array();
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Entity CRUD hooks',
-      'description' => 'Tests the invocation of hooks when creating, inserting, loading, updating or deleting an entity.',
-      'group' => 'Entity API',
-    );
-  }
 
   public function setUp() {
     parent::setUp();
@@ -191,7 +187,7 @@ class EntityCrudHookTest extends EntityUnitTestBase {
     ));
 
     $_SESSION['entity_crud_hook_test'] = array();
-    $comment = comment_load($comment->id());
+    $comment = Comment::load($comment->id());
 
     $this->assertHookMessageOrder(array(
       'entity_crud_hook_test_entity_load called for type comment',

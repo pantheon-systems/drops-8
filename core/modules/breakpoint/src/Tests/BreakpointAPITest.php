@@ -14,24 +14,18 @@ use Drupal\breakpoint\InvalidBreakpointSourceTypeException;
 use Drupal\Component\Utility\Unicode;
 
 /**
- * Tests for general breakpoint API functions.
+ * Tests general API functions of the breakpoint module.
+ *
+ * @group breakpoint
  */
 class BreakpointAPITest extends BreakpointTestBase {
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Breakpoint general API functions',
-      'description' => 'Test general API functions of the breakpoint module.',
-      'group' => 'Breakpoint',
-    );
-  }
 
   /**
    * Test Breakpoint::buildConfigName().
    */
   public function testConfigName() {
     // Try an invalid sourceType.
-    $label = $this->randomName();
+    $label = $this->randomMachineName();
     $breakpoint = entity_create('breakpoint', array(
       'label' => $label,
       'name' => Unicode::strtolower($label),
@@ -65,7 +59,7 @@ class BreakpointAPITest extends BreakpointTestBase {
     // Try an invalid name (make sure there is at least once capital letter).
     $breakpoint = $breakpoint->createDuplicate();
     $breakpoint->source = 'custom_module';
-    $breakpoint->name = drupal_ucfirst($this->randomName());
+    $breakpoint->name = drupal_ucfirst($this->randomMachineName());
 
     $exception = FALSE;
     try {
@@ -78,7 +72,7 @@ class BreakpointAPITest extends BreakpointTestBase {
 
     // Try a valid breakpoint.
     $breakpoint = $breakpoint->createDuplicate();
-    $breakpoint->name = drupal_strtolower($this->randomName());
+    $breakpoint->name = drupal_strtolower($this->randomMachineName());
     $breakpoint->mediaQuery = 'all';
 
     $exception = FALSE;

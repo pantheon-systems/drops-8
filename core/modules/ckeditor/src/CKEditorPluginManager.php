@@ -8,13 +8,22 @@
 namespace Drupal\ckeditor;
 
 use Drupal\Component\Utility\NestedArray;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\DefaultPluginManager;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\editor\Entity\Editor;
 
 /**
- * CKEditor Plugin manager.
+ * Provides a CKEditor Plugin plugin manager.
+ *
+ * @see \Drupal\ckeditor\CKEditorPluginInterface
+ * @see \Drupal\ckeditor\CKEditorPluginButtonsInterface
+ * @see \Drupal\ckeditor\CKEditorPluginContextualInterface
+ * @see \Drupal\ckeditor\CKEditorPluginConfigurableInterface
+ * @see \Drupal\ckeditor\CKEditorPluginBase
+ * @see \Drupal\ckeditor\Annotation\CKEditorPlugin
+ * @see plugin_api
  */
 class CKEditorPluginManager extends DefaultPluginManager {
 
@@ -139,12 +148,12 @@ class CKEditorPluginManager extends DefaultPluginManager {
    *
    * @param array &$form
    *   A reference to an associative array containing the structure of the form.
-   * @param array &$form_state
-   *   A reference to a keyed array containing the current state of the form.
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   The current state of the form.
    * @param \Drupal\editor\Entity\Editor $editor
    *   A configured text editor object.
    */
-  public function injectPluginSettingsForm(array &$form, array &$form_state, Editor $editor) {
+  public function injectPluginSettingsForm(array &$form, FormStateInterface $form_state, Editor $editor) {
     $definitions = $this->getDefinitions();
 
     foreach (array_keys($definitions) as $plugin_id) {

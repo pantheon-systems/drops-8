@@ -11,6 +11,8 @@ use Drupal\views\Views;
 
 /**
  * Tests the display extender UI.
+ *
+ * @group views_ui
  */
 class DisplayExtenderUITest extends UITestBase {
 
@@ -20,14 +22,6 @@ class DisplayExtenderUITest extends UITestBase {
    * @var array
    */
   public static $testViews = array('test_view');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Display extender: UI',
-      'description' => 'Tests the display extender UI.',
-      'group' => 'Views UI',
-    );
-  }
 
   /**
    * Tests the display extender UI.
@@ -42,7 +36,7 @@ class DisplayExtenderUITest extends UITestBase {
     $this->drupalGet($view_edit_url);
     $this->assertLinkByHref($display_option_url, 0, 'Make sure the option defined by the test display extender appears in the UI.');
 
-    $random_text = $this->randomName();
+    $random_text = $this->randomMachineName();
     $this->drupalPostForm($display_option_url, array('test_extender_test_option' => $random_text), t('Apply'));
     $this->assertLink($random_text);
     $this->drupalPostForm(NULL, array(), t('Save'));

@@ -8,6 +8,7 @@
 namespace Drupal\content_translation\Form;
 
 use Drupal\Core\Form\ConfirmFormBase;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
 
 /**
@@ -39,7 +40,7 @@ class ContentTranslationDeleteForm extends ConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, array &$form_state, $_entity_type_id = NULL, $language = NULL) {
+  public function buildForm(array $form, FormStateInterface $form_state, $_entity_type_id = NULL, $language = NULL) {
     $this->entity = $this->getRequest()->attributes->get($_entity_type_id);
     $this->language = language_load($language);
     return parent::buildForm($form, $form_state);
@@ -62,14 +63,14 @@ class ContentTranslationDeleteForm extends ConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function getCancelRoute() {
+  public function getCancelUrl() {
     return $this->entity->urlInfo('drupal:content-translation-overview');
   }
 
   /**
    * {@inheritdoc}
    */
-  public function submitForm(array &$form, array &$form_state) {
+  public function submitForm(array &$form, FormStateInterface $form_state) {
     // Remove the translated values.
     $this->entity->removeTranslation($this->language->id);
     $this->entity->save();
@@ -82,7 +83,7 @@ class ContentTranslationDeleteForm extends ConfirmFormBase {
       \Drupal::service('path.alias_storage')->delete($conditions);
     }
 
-    $form_state['redirect_route'] = $this->getCancelRoute();
+    $form_state->setRedirectUrl($this->getCancelUrl());
   }
 
 }

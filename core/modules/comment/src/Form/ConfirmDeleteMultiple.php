@@ -10,6 +10,7 @@ namespace Drupal\comment\Form;
 use Drupal\comment\CommentStorageInterface;
 use Drupal\Component\Utility\String;
 use Drupal\Core\Form\ConfirmFormBase;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -68,7 +69,7 @@ class ConfirmDeleteMultiple extends ConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function getCancelRoute() {
+  public function getCancelUrl() {
     return new Url('comment.admin');
   }
 
@@ -82,7 +83,7 @@ class ConfirmDeleteMultiple extends ConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, array &$form_state) {
+  public function buildForm(array $form, FormStateInterface $form_state) {
     $edit = $form_state['input'];
 
     $form['comments'] = array(
@@ -107,7 +108,7 @@ class ConfirmDeleteMultiple extends ConfirmFormBase {
 
     if (!$comment_counter) {
       drupal_set_message($this->t('There do not appear to be any comments to delete, or your selected comment was deleted by another administrator.'));
-      $form_state['redirect_route']['route_name'] = 'comment.admin';
+      $form_state->setRedirect('comment.admin');
     }
 
     return parent::buildForm($form, $form_state);
@@ -116,14 +117,14 @@ class ConfirmDeleteMultiple extends ConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function submitForm(array &$form, array &$form_state) {
+  public function submitForm(array &$form, FormStateInterface $form_state) {
     if ($form_state['values']['confirm']) {
       $this->commentStorage->delete($this->comments);
       $count = count($form_state['values']['comments']);
-      watchdog('content', 'Deleted @count comments.', array('@count' => $count));
+      $this->logger('content')->notice('Deleted @count comments.', array('@count' => $count));
       drupal_set_message(format_plural($count, 'Deleted 1 comment.', 'Deleted @count comments.'));
     }
-    $form_state['redirect_route'] = $this->getCancelRoute();
+    $form_state->setRedirectUrl($this->getCancelUrl());
   }
 
 }

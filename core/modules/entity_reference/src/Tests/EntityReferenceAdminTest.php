@@ -10,7 +10,9 @@ namespace Drupal\entity_reference\Tests;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Tests the Entity Reference Admin UI.
+ * Tests for the administrative UI.
+ *
+ * @group entity_reference
  */
 class EntityReferenceAdminTest extends WebTestBase {
 
@@ -24,17 +26,6 @@ class EntityReferenceAdminTest extends WebTestBase {
    */
   public static $modules = array('node', 'field_ui', 'entity_reference', 'path');
 
-  /**
-   * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'name' => 'Entity Reference admin UI',
-      'description' => 'Tests for the administrative UI.',
-      'group' => 'Entity Reference',
-    );
-  }
-
   public function setUp() {
     parent::setUp();
 
@@ -43,7 +34,7 @@ class EntityReferenceAdminTest extends WebTestBase {
     $this->drupalLogin($admin_user);
 
     // Create a content type, with underscores.
-    $type_name = strtolower($this->randomName(8)) . '_test';
+    $type_name = strtolower($this->randomMachineName(8)) . '_test';
     $type = $this->drupalCreateContentType(array('name' => $type_name, 'type' => $type_name));
     $this->type = $type->type;
   }

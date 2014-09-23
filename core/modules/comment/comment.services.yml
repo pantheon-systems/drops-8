@@ -7,11 +7,13 @@ services:
 
   comment.manager:
     class: Drupal\comment\CommentManager
-    arguments: ['@entity.manager', '@config.factory', '@string_translation', '@url_generator']
+    arguments: ['@entity.manager', '@entity.query', '@config.factory', '@string_translation', '@url_generator', '@module_handler', '@current_user']
 
   comment.statistics:
     class: Drupal\comment\CommentStatistics
     arguments: ['@database', '@current_user', '@entity.manager', '@state']
+    tags:
+      - { name: backend_overridable }
 
   comment.post_render_cache:
     class: Drupal\comment\CommentPostRenderCache

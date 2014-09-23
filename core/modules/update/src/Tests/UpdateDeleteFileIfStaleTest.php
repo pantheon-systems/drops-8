@@ -8,7 +8,9 @@
 namespace Drupal\update\Tests;
 
 /**
- * Provides tests for update_delete_file_if_stale().
+ * Tests the update_delete_file_if_stale() function.
+ *
+ * @group update
  */
 class UpdateDeleteFileIfStaleTest extends UpdateTestBase {
 
@@ -22,17 +24,6 @@ class UpdateDeleteFileIfStaleTest extends UpdateTestBase {
   /**
    * {@inheritdoc}
    */
-  public static function getInfo() {
-    return array(
-      'name' => 'Deleting obsolete files tests.',
-      'description' => 'Tests the update_delete_file_if_stale() function.',
-      'group' => 'Update',
-    );
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function setUp() {
     parent::setUp();
   }
@@ -41,7 +32,7 @@ class UpdateDeleteFileIfStaleTest extends UpdateTestBase {
    * Tests the deletion of stale files.
    */
   function testUpdateDeleteFileIfStale() {
-    $file_name = file_unmanaged_save_data($this->randomName());
+    $file_name = file_unmanaged_save_data($this->randomMachineName());
     $this->assertNotNull($file_name);
 
     // During testing the file change and the stale checking occurs in the same

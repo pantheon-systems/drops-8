@@ -11,7 +11,9 @@ use Drupal\simpletest\KernelTestBase;
 use Drupal\filter\FilterBag;
 
 /**
- * Tests for the EditorFileReference filter.
+ * Tests Editor module's file reference filter.
+ *
+ * @group editor
  */
 class EditorFileReferenceFilterTest extends KernelTestBase {
 
@@ -26,17 +28,6 @@ class EditorFileReferenceFilterTest extends KernelTestBase {
    * @var \Drupal\filter\Plugin\FilterInterface[]
    */
   protected $filters;
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'name' => 'Editor File Reference filter',
-      'description' => "Tests Editor module's file reference filter.",
-      'group' => 'Text Editor',
-    );
-  }
 
   /**
    * {@inheritdoc}
@@ -62,13 +53,13 @@ class EditorFileReferenceFilterTest extends KernelTestBase {
       return $filter->process($input, 'und');
     };
 
-    file_put_contents('public://llama.jpg', $this->randomName());
+    file_put_contents('public://llama.jpg', $this->randomMachineName());
     $image = entity_create('file', array('uri' => 'public://llama.jpg'));
     $image->save();
     $id = $image->id();
     $uuid = $image->uuid();
 
-    file_put_contents('public://alpaca.jpg', $this->randomName());
+    file_put_contents('public://alpaca.jpg', $this->randomMachineName());
     $image_2 = entity_create('file', array('uri' => 'public://alpaca.jpg'));
     $image_2->save();
     $id_2 = $image_2->id();

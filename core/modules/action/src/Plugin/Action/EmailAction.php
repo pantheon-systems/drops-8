@@ -9,8 +9,10 @@ namespace Drupal\action\Plugin\Action;
 
 use Drupal\Core\Action\ConfigurableActionBase;
 use Drupal\Core\Entity\EntityManagerInterface;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Utility\Token;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -39,6 +41,13 @@ class EmailAction extends ConfigurableActionBase implements ContainerFactoryPlug
   protected $storage;
 
   /**
+   * A logger instance.
+   *
+   * @var \Psr\Log\LoggerInterface
+   */
+  protected $logger;
+
+  /**
    * Constructs a EmailAction object.
    *
    * @param array $configuration
@@ -51,12 +60,15 @@ class EmailAction extends ConfigurableActionBase implements ContainerFactoryPlug
    *   The token service.
    * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
    *   The entity manager.
+   * @param \Psr\Log\LoggerInterface $logger
+   *   A logger instance.
    */
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, Token $token, EntityManagerInterface $entity_manager) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, Token $token, EntityManagerInterface $entity_manager, LoggerInterface $logger) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
 
     $this->token = $token;
     $this->storage = $entity_manager->getStorage('user');
+    $this->logger = $logger;
   }
 
   /**
@@ -65,7 +77,8 @@ class EmailAction extends ConfigurableActionBase implements ContainerFactoryPlug
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
     return new static($configuration, $plugin_id, $plugin_definition,
       $container->get('token'),
-      $container->get('entity.manager')
+      $container->get('entity.manager'),
+      $container->get('logger.factory')->get('action')
     );
   }
 
@@ -93,10 +106,10 @@ class EmailAction extends ConfigurableActionBase implements ContainerFactoryPlug
     $params = array('context' => $this->configuration);
 
     if (drupal_mail('system', 'action_send_email', $recipient, $langcode, $params)) {
-      watchdog('action', 'Sent email to %recipient', array('%recipient' => $recipient));
+      $this->logger->notice('Sent email to %recipient', array('%recipient' => $recipient));
     }
     else {
-      watchdog('error', 'Unable to send email to %recipient', array('%recipient' => $recipient));
+      $this->logger->error('Unable to send email to %recipient', array('%recipient' => $recipient));
     }
   }
 
@@ -114,7 +127,7 @@ class EmailAction extends ConfigurableActionBase implements ContainerFactoryPlug
   /**
    * {@inheritdoc}
    */
-  public function buildConfigurationForm(array $form, array &$form_state) {
+  public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
     $form['recipient'] = array(
       '#type' => 'textfield',
       '#title' => t('Recipient'),
@@ -143,7 +156,7 @@ class EmailAction extends ConfigurableActionBase implements ContainerFactoryPlug
   /**
    * {@inheritdoc}
    */
-  public function validateConfigurationForm(array &$form, array &$form_state) {
+  public function validateConfigurationForm(array &$form, FormStateInterface $form_state) {
     if (!valid_email_address($form_state['values']['recipient']) && strpos($form_state['values']['recipient'], ':mail') === FALSE) {
       // We want the literal %author placeholder to be emphasized in the error message.
       form_set_error('recipient', $form_state, t('Enter a valid email address or use a token email address such as %author.', array('%author' => '[node:author:mail]')));
@@ -153,7 +166,7 @@ class EmailAction extends ConfigurableActionBase implements ContainerFactoryPlug
   /**
    * {@inheritdoc}
    */
-  public function submitConfigurationForm(array &$form, array &$form_state) {
+  public function submitConfigurationForm(array &$form, FormStateInterface $form_state) {
     $this->configuration['recipient'] = $form_state['values']['recipient'];
     $this->configuration['subject'] = $form_state['values']['subject'];
     $this->configuration['message'] = $form_state['values']['message'];

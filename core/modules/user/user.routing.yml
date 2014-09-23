@@ -67,7 +67,7 @@ user.admin_permissions:
   requirements:
     _permission: 'administer permissions'
 
-user.admin_permission:
+entity.user_role.edit_permissions_form:
   path: '/admin/people/permissions/{user_role}'
   defaults:
     _form: '\Drupal\user\Form\UserPermissionsRoleSpecificForm'
@@ -99,7 +99,7 @@ user.role_add:
   requirements:
     _permission: 'administer permissions'
 
-user.role_edit:
+entity.user_role.edit_form:
   path: '/admin/people/roles/manage/{user_role}'
   defaults:
     _entity_form: user_role.default
@@ -107,7 +107,7 @@ user.role_edit:
   requirements:
     _entity_access: user_role.update
 
-user.role_delete:
+entity.user_role.delete_form:
   path: '/admin/people/roles/manage/{user_role}/delete'
   defaults:
     _entity_form: user_role.delete
@@ -122,6 +122,8 @@ user.pass:
     _title: 'Request new password'
   requirements:
     _access: 'TRUE'
+  options:
+    _maintenance_access: TRUE
 
 user.page:
   path: '/user'
@@ -146,6 +148,8 @@ user.login:
     _title: 'Log in'
   requirements:
     _access: 'TRUE'
+  options:
+    _maintenance_access: TRUE
 
 user.edit:
   path: '/user/{user}/edit'
@@ -178,10 +182,11 @@ user.cancel_confirm:
     _entity_access: 'user.delete'
 
 user.reset:
-  path: '/user/reset/{uid}/{timestamp}/{hash}/{operation}'
+  path: '/user/reset/{uid}/{timestamp}/{hash}'
   defaults:
-    _content: '\Drupal\user\Form\UserForm::resetPass'
+    _content: '\Drupal\user\Controller\UserController::resetPass'
     _title: 'Reset password'
-    operation: NULL
   requirements:
     _access: 'TRUE'
+  options:
+    _maintenance_access: TRUE

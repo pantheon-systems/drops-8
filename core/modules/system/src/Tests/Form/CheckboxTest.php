@@ -10,7 +10,10 @@ namespace Drupal\system\Tests\Form;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Tests checkbox element.
+ * Tests form API checkbox handling of various combinations of #default_value
+ * and #return_value.
+ *
+ * @group Form
  */
 class CheckboxTest extends WebTestBase {
 
@@ -21,14 +24,6 @@ class CheckboxTest extends WebTestBase {
    */
   public static $modules = array('form_test');
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Form API checkbox',
-      'description' => 'Tests form API checkbox handling of various combinations of #default_value and #return_value.',
-      'group' => 'Form API',
-    );
-  }
-
   function testFormCheckbox() {
     // Ensure that the checked state is determined and rendered correctly for
     // tricky combinations of default and return values.
@@ -37,7 +32,7 @@ class CheckboxTest extends WebTestBase {
       // #return_value, with the exception of integer 0, which is not supported.
       // @see form_process_checkbox().
       foreach (array('0', '', 1, '1', 'foobar', '1foobar') as $return_value) {
-        $form_array = \Drupal::formBuilder()->getForm('form_test_checkbox_type_juggling', $default_value, $return_value);
+        $form_array = \Drupal::formBuilder()->getForm('\Drupal\form_test\Form\FormTestCheckboxTypeJugglingForm', $default_value, $return_value);
         $form = drupal_render($form_array);
         if ($default_value === TRUE) {
           $checked = TRUE;

@@ -290,7 +290,7 @@ class CommentViewBuilder extends EntityViewBuilder {
       $commented_entity = $comment->getCommentedEntity();
       $field_definition = $this->entityManager->getFieldDefinitions($commented_entity->getEntityTypeId(), $commented_entity->bundle())[$comment->getFieldName()];
       $is_threaded = isset($comment->divs)
-        && $field_definition->getSetting('default_mode') == COMMENT_MODE_THREADED;
+        && $field_definition->getSetting('default_mode') == CommentManagerInterface::COMMENT_MODE_THREADED;
 
       // Add indentation div or close open divs as needed.
       if ($is_threaded) {
@@ -327,7 +327,8 @@ class CommentViewBuilder extends EntityViewBuilder {
    */
   public static function attachNewCommentsLinkMetadata(array $element, array $context) {
     // Build "X new comments" link metadata.
-    $new = (int)comment_num_new($context['entity_id'], $context['entity_type']);
+    $new = \Drupal::service('comment.manager')
+      ->getCountNewComments(entity_load($context['entity_type'], $context['entity_id']));
     // Early-return if there are zero new comments for the current user.
     if ($new === 0) {
       return $element;
@@ -336,7 +337,10 @@ class CommentViewBuilder extends EntityViewBuilder {
       ->getStorage($context['entity_type'])
       ->load($context['entity_id']);
     $field_name = $context['field_name'];
-    $query = comment_new_page_count($entity->{$field_name}->comment_count, $new, $entity);
+    $page_number = \Drupal::entityManager()
+      ->getStorage('comment')
+      ->getNewCommentPageNumber($entity->{$field_name}->comment_count, $new, $entity);
+    $query = $page_number ? array('page' => $page_number) : NULL;
 
     // Attach metadata.
     $element['#attached']['js'][] = array(

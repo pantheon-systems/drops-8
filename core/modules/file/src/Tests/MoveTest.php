@@ -8,24 +8,18 @@
 namespace Drupal\file\Tests;
 
 /**
- * Move related tests
+ * Tests the file move function.
+ *
+ * @group file
  */
 class MoveTest extends FileManagedUnitTestBase {
-  public static function getInfo() {
-    return array(
-      'name' => 'File moving',
-      'description' => 'Tests the file move function.',
-      'group' => 'File Managed API',
-    );
-  }
-
   /**
    * Move a normal file.
    */
   function testNormal() {
-    $contents = $this->randomName(10);
+    $contents = $this->randomMachineName(10);
     $source = $this->createFile(NULL, $contents);
-    $desired_filepath = 'public://' . $this->randomName();
+    $desired_filepath = 'public://' . $this->randomMachineName();
 
     // Clone the object so we don't have to worry about the function changing
     // our reference copy.
@@ -54,7 +48,7 @@ class MoveTest extends FileManagedUnitTestBase {
    */
   function testExistingRename() {
     // Setup a file to overwrite.
-    $contents = $this->randomName(10);
+    $contents = $this->randomMachineName(10);
     $source = $this->createFile(NULL, $contents);
     $target = $this->createFile();
     $this->assertDifferentFile($source, $target);
@@ -89,7 +83,7 @@ class MoveTest extends FileManagedUnitTestBase {
    */
   function testExistingReplace() {
     // Setup a file to overwrite.
-    $contents = $this->randomName(10);
+    $contents = $this->randomMachineName(10);
     $source = $this->createFile(NULL, $contents);
     $target = $this->createFile();
     $this->assertDifferentFile($source, $target);
@@ -121,7 +115,7 @@ class MoveTest extends FileManagedUnitTestBase {
    */
   function testExistingReplaceSelf() {
     // Setup a file to overwrite.
-    $contents = $this->randomName(10);
+    $contents = $this->randomMachineName(10);
     $source = $this->createFile(NULL, $contents);
 
     // Copy the file over itself. Clone the object so we don't have to worry
@@ -143,7 +137,7 @@ class MoveTest extends FileManagedUnitTestBase {
    * specified.
    */
   function testExistingError() {
-    $contents = $this->randomName(10);
+    $contents = $this->randomMachineName(10);
     $source = $this->createFile();
     $target = $this->createFile(NULL, $contents);
     $this->assertDifferentFile($source, $target);

@@ -5,6 +5,7 @@
  * Add language handling functionality to Drupal.
  */
 
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\PhpStorage\PhpStorageFactory;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
@@ -72,7 +73,7 @@ function language_help($route_name, RouteMatchInterface $route_match) {
       $output = '<p>' . t('Changing the selected language here (and leaving this option as the last among the detection and selection options) is the easiest way to change the fallback language for the website, if you need to change how your site works by default (e.g., when using an empty path prefix or using the default domain). <a href="!admin-change-language">Changing the site\'s default language</a> itself might have other undesired side effects.', array('!admin-change-language' => \Drupal::url('language.admin_overview'))) . '</p>';
       return $output;
 
-    case 'block.admin_edit':
+    case 'entity.block.edit_form':
       if (($block = $route_match->getParameter('block')) && $block->get('plugin') == 'language_block:language_interface') {
         return '<p>' . t('With multiple languages added, registered users can select their preferred language and authors can assign a specific language to content.') . '</p>';
       }
@@ -87,16 +88,6 @@ function language_help($route_name, RouteMatchInterface $route_match) {
     case 'language.content_settings_page':
       return t('Change language settings for <em>content types</em>, <em>taxonomy vocabularies</em>, <em>user profiles</em>, or any other supported element on your site. By default, language settings hide the language selector and the language is the site\'s default language.');
   }
-}
-
-/**
- * Editing or deleting locked languages should not be possible.
- *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- *   Use \Drupal\language\LanguageAccessController.
- */
-function language_access_language_edit_or_delete($language) {
-  return !$language->locked && \Drupal::currentUser()->hasPermission('administer languages');
 }
 
 /**
@@ -224,7 +215,7 @@ function language_configuration_element_default_options() {
 /**
  * Process handler for the language_configuration form element.
  */
-function language_configuration_element_process($element, &$form_state, &$form) {
+function language_configuration_element_process($element, FormStateInterface $form_state, &$form) {
   $options = isset($element['#options']) ? $element['#options'] : array();
   // Avoid validation failure since we are moving the '#options' key in the
   // nested 'language' select element.
@@ -275,7 +266,7 @@ function language_configuration_element_process($element, &$form_state, &$form) 
 /**
  * Submit handler for the forms that have a language_configuration element.
  */
-function language_configuration_element_submit(&$form, &$form_state) {
+function language_configuration_element_submit(&$form, FormStateInterface $form_state) {
   // Iterate through all the language_configuration elements and save their
   // values.
   if (isset($form_state['language'])) {
@@ -357,7 +348,7 @@ function language_get_default_configuration_settings_key($entity_type, $bundle) 
 }
 
 /**
- * Implements hook_node_type_update().
+ * Implements hook_ENTITY_TYPE_update() for node_type entities.
  */
 function language_node_type_update(NodeTypeInterface $type) {
   if ($type->original->id() != $type->id()) {
@@ -660,7 +651,7 @@ function language_set_browser_drupal_langcode_mappings($mappings) {
  *
  * @see language_system_regional_settings_form_submit()
  */
-function language_form_system_regional_settings_alter(&$form, &$form_state) {
+function language_form_system_regional_settings_alter(&$form, FormStateInterface $form_state) {
   $languages = \Drupal::languageManager()->getLanguages();
   $default = \Drupal::languageManager()->getDefaultLanguage();
   foreach ($languages as $key => $language) {
@@ -683,7 +674,7 @@ function language_form_system_regional_settings_alter(&$form, &$form_state) {
  *
  * @see language_form_system_regional_settings_alter()
  */
-function language_system_regional_settings_form_submit($form, &$form_state) {
+function language_system_regional_settings_form_submit($form, FormStateInterface $form_state) {
   $languages = \Drupal::languageManager()->getLanguages();
   $language = $languages[$form_state['values']['site_default_language']];
   $language->default = TRUE;

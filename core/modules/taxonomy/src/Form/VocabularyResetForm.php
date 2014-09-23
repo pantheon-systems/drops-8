@@ -8,6 +8,7 @@
 namespace Drupal\taxonomy\Form;
 
 use Drupal\Core\Entity\EntityConfirmFormBase;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\taxonomy\TermStorageInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -59,7 +60,7 @@ class VocabularyResetForm extends EntityConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function getCancelRoute() {
+  public function getCancelUrl() {
     return $this->entity->urlInfo('overview-form');
   }
 
@@ -80,11 +81,11 @@ class VocabularyResetForm extends EntityConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function save(array $form, array &$form_state) {
+  public function save(array $form, FormStateInterface $form_state) {
     $this->termStorage->resetWeights($this->entity->id());
     drupal_set_message($this->t('Reset vocabulary %name to alphabetical order.', array('%name' => $this->entity->label())));
-    watchdog('taxonomy', 'Reset vocabulary %name to alphabetical order.', array('%name' => $this->entity->label()), WATCHDOG_NOTICE);
-    $form_state['redirect_route'] = $this->entity->urlInfo('edit-form');
+    $this->logger('taxonomy')->notice('Reset vocabulary %name to alphabetical order.', array('%name' => $this->entity->label()));
+    $form_state->setRedirectUrl($this->entity->urlInfo('edit-form'));
   }
 
 }

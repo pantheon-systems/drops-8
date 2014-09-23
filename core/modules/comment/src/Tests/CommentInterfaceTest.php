@@ -7,21 +7,16 @@
 
 namespace Drupal\comment\Tests;
 
-use Drupal\comment\CommentInterface;
+use Drupal\comment\CommentManagerInterface;
 use Drupal\comment\Plugin\Field\FieldType\CommentItemInterface;
+use Drupal\comment\Entity\Comment;
 
 /**
- * Tests the comment module administrative and end-user-facing interfaces.
+ * Tests comment user interfaces.
+ *
+ * @group comment
  */
 class CommentInterfaceTest extends CommentTestBase {
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Comment interface',
-      'description' => 'Test comment user interfaces.',
-      'group' => 'Comment',
-    );
-  }
 
   /**
    * Tests the comment interface.
@@ -32,12 +27,12 @@ class CommentInterfaceTest extends CommentTestBase {
     $this->setCommentPreview(DRUPAL_DISABLED);
     $this->setCommentForm(TRUE);
     $this->setCommentSubject(FALSE);
-    $this->setCommentSettings('default_mode', COMMENT_MODE_THREADED, 'Comment paging changed.');
+    $this->setCommentSettings('default_mode', CommentManagerInterface::COMMENT_MODE_THREADED, 'Comment paging changed.');
     $this->drupalLogout();
 
     // Post comment #1 without subject or preview.
     $this->drupalLogin($this->web_user);
-    $comment_text = $this->randomName();
+    $comment_text = $this->randomMachineName();
     $comment = $this->postComment($this->node, $comment_text);
     $this->assertTrue($this->commentExists($comment), 'Comment found.');
 
@@ -50,15 +45,15 @@ class CommentInterfaceTest extends CommentTestBase {
 
     // Create comment #2 that allows subject and requires preview.
     $this->drupalLogin($this->web_user);
-    $subject_text = $this->randomName();
-    $comment_text = $this->randomName();
+    $subject_text = $this->randomMachineName();
+    $comment_text = $this->randomMachineName();
     $comment = $this->postComment($this->node, $comment_text, $subject_text, TRUE);
     $this->assertTrue($this->commentExists($comment), 'Comment found.');
 
     // Comment as anonymous with preview required.
     $this->drupalLogout();
     user_role_grant_permissions(DRUPAL_ANONYMOUS_RID, array('access content', 'access comments', 'post comments', 'skip comment approval'));
-    $anonymous_comment = $this->postComment($this->node, $this->randomName(), $this->randomName(), TRUE);
+    $anonymous_comment = $this->postComment($this->node, $this->randomMachineName(), $this->randomMachineName(), TRUE);
     $this->assertTrue($this->commentExists($anonymous_comment), 'Comment found.');
     $anonymous_comment->delete();
 
@@ -84,7 +79,7 @@ class CommentInterfaceTest extends CommentTestBase {
     $this->assertTrue($comment->getAuthorName() == t('Anonymous') && $comment->getOwnerId() == 0, 'Comment author successfully changed to anonymous.');
 
     // Test changing the comment author to an unverified user.
-    $random_name = $this->randomName();
+    $random_name = $this->randomMachineName();
     $this->drupalGet('comment/' . $comment->id() . '/edit');
     $comment = $this->postComment(NULL, $comment->comment_body->value, $comment->getSubject(), array('name' => $random_name));
     $this->drupalGet('node/' . $this->node->id());
@@ -108,8 +103,8 @@ class CommentInterfaceTest extends CommentTestBase {
     $this->drupalGet('comment/reply/node/' . $this->node->id() . '/comment/' . $comment->id());
     $this->assertText($subject_text, 'Individual comment-reply subject found.');
     $this->assertText($comment_text, 'Individual comment-reply body found.');
-    $reply = $this->postComment(NULL, $this->randomName(), '', TRUE);
-    $reply_loaded = comment_load($reply->id());
+    $reply = $this->postComment(NULL, $this->randomMachineName(), '', TRUE);
+    $reply_loaded = Comment::load($reply->id());
     $this->assertTrue($this->commentExists($reply, TRUE), 'Reply found.');
     $this->assertEqual($comment->id(), $reply_loaded->getParentComment()->id(), 'Pid of a reply to a comment is set correctly.');
     // Check the thread of reply grows correctly.
@@ -119,8 +114,8 @@ class CommentInterfaceTest extends CommentTestBase {
     $this->drupalGet('comment/reply/node/' . $this->node->id() . '/comment/' . $comment->id());
     $this->assertText($comment->getSubject(), 'Individual comment-reply subject found.');
     $this->assertText($comment->comment_body->value, 'Individual comment-reply body found.');
-    $reply = $this->postComment(NULL, $this->randomName(), $this->randomName(), TRUE);
-    $reply_loaded = comment_load($reply->id());
+    $reply = $this->postComment(NULL, $this->randomMachineName(), $this->randomMachineName(), TRUE);
+    $reply_loaded = Comment::load($reply->id());
     $this->assertTrue($this->commentExists($reply, TRUE), 'Second reply found.');
     // Check the thread of second reply grows correctly.
     $this->assertEqual(rtrim($comment->getThread(), '/') . '.01/', $reply_loaded->getThread());
@@ -129,20 +124,20 @@ class CommentInterfaceTest extends CommentTestBase {
     $this->drupalGet('comment/reply/node/' . $this->node->id() . '/comment/' . $reply_loaded->id());
     $this->assertText($reply_loaded->getSubject(), 'Individual comment-reply subject found.');
     $this->assertText($reply_loaded->comment_body->value, 'Individual comment-reply body found.');
-    $reply = $this->postComment(NULL, $this->randomName(), $this->randomName(), TRUE);
-    $reply_loaded = comment_load($reply->id());
+    $reply = $this->postComment(NULL, $this->randomMachineName(), $this->randomMachineName(), TRUE);
+    $reply_loaded = Comment::load($reply->id());
     $this->assertTrue($this->commentExists($reply, TRUE), 'Second reply found.');
     // Check the thread of reply to second reply grows correctly.
     $this->assertEqual(rtrim($comment->getThread(), '/') . '.01.00/', $reply_loaded->getThread());
 
     // Edit reply.
     $this->drupalGet('comment/' . $reply->id() . '/edit');
-    $reply = $this->postComment(NULL, $this->randomName(), $this->randomName(), TRUE);
+    $reply = $this->postComment(NULL, $this->randomMachineName(), $this->randomMachineName(), TRUE);
     $this->assertTrue($this->commentExists($reply, TRUE), 'Modified reply found.');
 
     // Confirm a new comment is posted to the correct page.
     $this->setCommentsPerPage(2);
-    $comment_new_page = $this->postComment($this->node, $this->randomName(), $this->randomName(), TRUE);
+    $comment_new_page = $this->postComment($this->node, $this->randomMachineName(), $this->randomMachineName(), TRUE);
     $this->assertTrue($this->commentExists($comment_new_page), 'Page one exists. %s');
     $this->drupalGet('node/' . $this->node->id(), array('query' => array('page' => 2)));
     $this->assertTrue($this->commentExists($reply, TRUE), 'Page two exists. %s');
@@ -193,7 +188,7 @@ class CommentInterfaceTest extends CommentTestBase {
     // Submit comment through node form.
     $this->drupalLogin($this->web_user);
     $this->drupalGet('node/' . $this->node->id());
-    $form_comment = $this->postComment(NULL, $this->randomName(), $this->randomName(), TRUE);
+    $form_comment = $this->postComment(NULL, $this->randomMachineName(), $this->randomMachineName(), TRUE);
     $this->assertTrue($this->commentExists($form_comment), 'Form comment found.');
 
     // Disable comment form on node page.

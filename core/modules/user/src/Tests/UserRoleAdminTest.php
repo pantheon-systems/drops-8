@@ -10,17 +10,11 @@ namespace Drupal\user\Tests;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Test case to test adding, editing and deleting roles.
+ * Tests adding, editing and deleting user roles and changing role weights.
+ *
+ * @group user
  */
 class UserRoleAdminTest extends WebTestBase {
-
-  public static function getInfo() {
-    return array(
-      'name' => 'User role administration',
-      'description' => 'Test adding, editing and deleting user roles and changing role weights.',
-      'group' => 'User',
-    );
-  }
 
   function setUp() {
     parent::setUp();
@@ -98,9 +92,9 @@ class UserRoleAdminTest extends WebTestBase {
     // Change the role weights to make the roles in reverse order.
     $edit = array();
     foreach ($roles as $role) {
-      $edit['entities['. $role->id() .'][weight]'] =  $weight;
+      $edit['entities[' . $role->id() . '][weight]'] = $weight;
       $new_role_weights[$role->id()] = $weight;
-      $saved_rids[] = $role->id;
+      $saved_rids[] = $role->id();
       $weight--;
     }
     $this->drupalPostForm('admin/people/roles', $edit, t('Save order'));
@@ -112,8 +106,8 @@ class UserRoleAdminTest extends WebTestBase {
     $rids = array();
     // Test that the role weights have been correctly saved.
     foreach ($roles as $role) {
-      $this->assertEqual($role->weight, $new_role_weights[$role->id()]);
-      $rids[] = $role->id;
+      $this->assertEqual($role->getWeight(), $new_role_weights[$role->id()]);
+      $rids[] = $role->id();
     }
     // The order of the roles should be reversed.
     $this->assertIdentical($rids, array_reverse($saved_rids));

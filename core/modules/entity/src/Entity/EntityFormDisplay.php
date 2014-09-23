@@ -9,6 +9,7 @@ namespace Drupal\entity\Entity;
 
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\Display\EntityFormDisplayInterface;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\entity\EntityDisplayBase;
 
 /**
@@ -148,7 +149,7 @@ class EntityFormDisplay extends EntityDisplayBase implements EntityFormDisplayIn
   /**
    * {@inheritdoc}
    */
-  public function buildForm(ContentEntityInterface $entity, array &$form, array &$form_state) {
+  public function buildForm(ContentEntityInterface $entity, array &$form, FormStateInterface $form_state) {
     // Set #parents to 'top-level' by default.
     $form += array('#parents' => array());
 
@@ -175,7 +176,7 @@ class EntityFormDisplay extends EntityDisplayBase implements EntityFormDisplayIn
    *
    * @see \Drupal\entity\Entity\EntityFormDisplay::buildForm()
    */
-  public function processForm($element, $form_state, $form) {
+  public function processForm($element, FormStateInterface $form_state, $form) {
     // Assign the weights configured in the form display.
     foreach ($this->getComponents() as $name => $options) {
       if (isset($element[$name])) {
@@ -197,7 +198,7 @@ class EntityFormDisplay extends EntityDisplayBase implements EntityFormDisplayIn
   /**
    * {@inheritdoc}
    */
-  public function extractFormValues(ContentEntityInterface $entity, array &$form, array &$form_state) {
+  public function extractFormValues(ContentEntityInterface $entity, array &$form, FormStateInterface $form_state) {
     $extracted = array();
     foreach ($entity as $name => $items) {
       if ($widget = $this->getRenderer($name)) {
@@ -211,7 +212,7 @@ class EntityFormDisplay extends EntityDisplayBase implements EntityFormDisplayIn
   /**
    * {@inheritdoc}
    */
-  public function validateFormValues(ContentEntityInterface $entity, array &$form, array &$form_state) {
+  public function validateFormValues(ContentEntityInterface $entity, array &$form, FormStateInterface $form_state) {
     foreach ($entity as $field_name => $items) {
       // Only validate the fields that actually appear in the form, and let the
       // widget assign the violations to the right form elements.

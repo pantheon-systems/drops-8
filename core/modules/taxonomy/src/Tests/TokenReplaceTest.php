@@ -12,17 +12,12 @@ use Drupal\Component\Utility\Xss;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 
 /**
- * Test taxonomy token replacement in strings.
+ * Generates text using placeholders for dummy content to check taxonomy token
+ * replacement.
+ *
+ * @group taxonomy
  */
 class TokenReplaceTest extends TaxonomyTestBase {
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Taxonomy token replacement',
-      'description' => 'Generates text using placeholders for dummy content to check taxonomy token replacement.',
-      'group' => 'Taxonomy',
-    );
-  }
 
   function setUp() {
     parent::setUp();
@@ -30,7 +25,7 @@ class TokenReplaceTest extends TaxonomyTestBase {
     $this->drupalLogin($this->admin_user);
     $this->vocabulary = $this->createVocabulary();
     $this->field_name = 'taxonomy_' . $this->vocabulary->id();
-    entity_create('field_config', array(
+    entity_create('field_storage_config', array(
       'name' => $this->field_name,
       'entity_type' => 'node',
       'type' => 'taxonomy_term_reference',

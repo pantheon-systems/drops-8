@@ -13,6 +13,7 @@ use Drupal\views\Views;
 /**
  * Tests fields from within a UI.
  *
+ * @group views
  * @see \Drupal\views\Plugin\views\field\FieldPluginBase
  */
 class FieldWebTest extends HandlerTestBase {
@@ -27,14 +28,6 @@ class FieldWebTest extends HandlerTestBase {
   protected $column_map = array(
     'views_test_data_name' => 'name',
   );
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Field: Web Test',
-      'description' => 'Tests fields from within a UI.',
-      'group' => 'Views Handlers',
-    );
-  }
 
   protected function setUp() {
     parent::setUp();
@@ -187,11 +180,11 @@ class FieldWebTest extends HandlerTestBase {
 
     // Setup the general settings required to build a link.
     $id_field->options['alter']['make_link'] = TRUE;
-    $id_field->options['alter']['path'] = $path = $this->randomName();
+    $id_field->options['alter']['path'] = $path = $this->randomMachineName();
 
     // Tests that the suffix/prefix appears on the output.
-    $id_field->options['alter']['prefix'] = $prefix = $this->randomName();
-    $id_field->options['alter']['suffix'] = $suffix = $this->randomName();
+    $id_field->options['alter']['prefix'] = $prefix = $this->randomMachineName();
+    $id_field->options['alter']['suffix'] = $suffix = $this->randomMachineName();
     $output = $id_field->theme($row);
     $this->assertSubString($output, $prefix);
     $this->assertSubString($output, $suffix);
@@ -246,7 +239,7 @@ class FieldWebTest extends HandlerTestBase {
 
     // Tests the replace spaces with dashes feature.
     $id_field->options['alter']['replace_spaces'] = TRUE;
-    $id_field->options['alter']['path'] = $path = $this->randomName() . ' ' . $this->randomName();
+    $id_field->options['alter']['path'] = $path = $this->randomMachineName() . ' ' . $this->randomMachineName();
     $output = $id_field->theme($row);
     $this->assertSubString($output, str_replace(' ', '-', $path));
     $id_field->options['alter']['replace_spaces'] = FALSE;
@@ -268,7 +261,7 @@ class FieldWebTest extends HandlerTestBase {
     $this->assertNotSubString($output, 'http://drupal.org');
 
     // Tests the transforming of the case setting.
-    $id_field->options['alter']['path'] = $path = $this->randomName();
+    $id_field->options['alter']['path'] = $path = $this->randomMachineName();
     $id_field->options['alter']['path_case'] = 'none';
     $output = $id_field->theme($row);
     $this->assertSubString($output, $path);
@@ -293,7 +286,7 @@ class FieldWebTest extends HandlerTestBase {
     unset($id_field->options['alter']['path_case']);
 
     // Tests the linkclass setting and see whether it actuall exists in the output.
-    $id_field->options['alter']['link_class'] = $class = $this->randomName();
+    $id_field->options['alter']['link_class'] = $class = $this->randomMachineName();
     $output = $id_field->theme($row);
     $elements = $this->xpathContent($output, '//a[contains(@class, :class)]', array(':class' => $class));
     $this->assertTrue($elements);
@@ -301,21 +294,21 @@ class FieldWebTest extends HandlerTestBase {
     $id_field->options['alter']['link_class'] = '';
 
     // Tests the alt setting.
-    $id_field->options['alter']['alt'] = $rel = $this->randomName();
+    $id_field->options['alter']['alt'] = $rel = $this->randomMachineName();
     $output = $id_field->theme($row);
     $elements = $this->xpathContent($output, '//a[contains(@title, :alt)]', array(':alt' => $rel));
     $this->assertTrue($elements);
     $id_field->options['alter']['alt'] = '';
 
     // Tests the rel setting.
-    $id_field->options['alter']['rel'] = $rel = $this->randomName();
+    $id_field->options['alter']['rel'] = $rel = $this->randomMachineName();
     $output = $id_field->theme($row);
     $elements = $this->xpathContent($output, '//a[contains(@rel, :rel)]', array(':rel' => $rel));
     $this->assertTrue($elements);
     $id_field->options['alter']['rel'] = '';
 
     // Tests the target setting.
-    $id_field->options['alter']['target'] = $target = $this->randomName();
+    $id_field->options['alter']['target'] = $target = $this->randomMachineName();
     $output = $id_field->theme($row);
     $elements = $this->xpathContent($output, '//a[contains(@target, :target)]', array(':target' => $target));
     $this->assertTrue($elements);
@@ -347,7 +340,7 @@ class FieldWebTest extends HandlerTestBase {
     $this->assertTrue($this->xpathContent($output, '//div[contains(@class, :class)]', array(':class' => 'views-field')));
 
     // Tests the element wrapper classes/element.
-    $random_class = $this->randomName();
+    $random_class = $this->randomMachineName();
 
     // Set some common wrapper element types and see whether they appear with and without a custom class set.
     foreach (array('h1', 'span', 'p', 'div') as $element_type) {
@@ -439,7 +432,7 @@ class FieldWebTest extends HandlerTestBase {
 
     // Tests stripping of html elements.
     $this->executeView($view);
-    $random_text = $this->randomName();
+    $random_text = $this->randomMachineName();
     $name_field->options['alter']['alter_text'] = TRUE;
     $name_field->options['alter']['text'] = $html_text = '<div class="views-test">' . $random_text . '</div>';
     $row = $view->result[0];
@@ -480,7 +473,7 @@ class FieldWebTest extends HandlerTestBase {
     $name_field->options['alter']['word_boundary'] = FALSE;
 
     // Tests for simple trimming by string length.
-    $row->views_test_data_name = $this->randomName(8);
+    $row->views_test_data_name = $this->randomMachineName(8);
     $name_field->options['alter']['max_length'] = 5;
     $trimmed_name = drupal_substr($row->views_test_data_name, 0, 5);
 
@@ -495,9 +488,9 @@ class FieldWebTest extends HandlerTestBase {
     // Take word_boundary into account for the tests.
     $name_field->options['alter']['max_length'] = 5;
     $name_field->options['alter']['word_boundary'] = TRUE;
-    $random_text_2 = $this->randomName(2);
-    $random_text_4 = $this->randomName(4);
-    $random_text_8 = $this->randomName(8);
+    $random_text_2 = $this->randomMachineName(2);
+    $random_text_4 = $this->randomMachineName(4);
+    $random_text_8 = $this->randomMachineName(8);
     $touples = array(
       // Create one string which doesn't fit at all into the limit.
       array(
@@ -540,11 +533,11 @@ class FieldWebTest extends HandlerTestBase {
     }
 
     // Tests for displaying a readmore link when the output got trimmed.
-    $row->views_test_data_name = $this->randomName(8);
+    $row->views_test_data_name = $this->randomMachineName(8);
     $name_field->options['alter']['max_length'] = 5;
     $name_field->options['alter']['more_link'] = TRUE;
-    $name_field->options['alter']['more_link_text'] = $more_text = $this->randomName();
-    $name_field->options['alter']['more_link_path'] = $more_path = $this->randomName();
+    $name_field->options['alter']['more_link_text'] = $more_text = $this->randomMachineName();
+    $name_field->options['alter']['more_link_path'] = $more_path = $this->randomMachineName();
 
     $output = $name_field->advancedRender($row);
     $this->assertSubString($output, $more_text, 'Make sure a read more text is displayed if the output got trimmed');
@@ -556,13 +549,13 @@ class FieldWebTest extends HandlerTestBase {
     $this->assertFalse($this->xpathContent($output, '//a[contains(@href, :path)]', array(':path' => $more_path)), 'Make sure no read more link appears.');
 
     // Check for the ellipses.
-    $row->views_test_data_name = $this->randomName(8);
+    $row->views_test_data_name = $this->randomMachineName(8);
     $name_field->options['alter']['max_length'] = 5;
     $output = $name_field->advancedRender($row);
-    $this->assertSubString($output, '...', 'An ellipsis should appear if the output is trimmed');
+    $this->assertSubString($output, '…', 'An ellipsis should appear if the output is trimmed');
     $name_field->options['alter']['max_length'] = 10;
     $output = $name_field->advancedRender($row);
-    $this->assertNotSubString($output, '...', 'No ellipsis should appear if the output is not trimmed');
+    $this->assertNotSubString($output, '…', 'No ellipsis should appear if the output is not trimmed');
   }
 
 }

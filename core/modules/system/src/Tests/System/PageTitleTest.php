@@ -14,6 +14,8 @@ use Drupal\simpletest\WebTestBase;
 
 /**
  * Tests HTML output escaping of page title, site name, and slogan.
+ *
+ * @group system
  */
 class PageTitleTest extends WebTestBase {
 
@@ -26,17 +28,6 @@ class PageTitleTest extends WebTestBase {
 
   protected $content_user;
   protected $saved_title;
-
-  /**
-   * Implement getInfo().
-   */
-  public static function getInfo() {
-    return array(
-      'name' => 'Page titles',
-      'description' => 'Tests correct escaping of page title, site name and slogan.',
-      'group' => 'System'
-    );
-  }
 
   /**
    * Implement setUp().
@@ -57,8 +48,8 @@ class PageTitleTest extends WebTestBase {
     $title = "string with <em>HTML</em>";
     // Generate node content.
     $edit = array(
-      'title[0][value]' => '!SimpleTest! ' . $title . $this->randomName(20),
-      'body[0][value]' => '!SimpleTest! test body' . $this->randomName(200),
+      'title[0][value]' => '!SimpleTest! ' . $title . $this->randomMachineName(20),
+      'body[0][value]' => '!SimpleTest! test body' . $this->randomMachineName(200),
     );
     // Create the node with HTML in the title.
     $this->drupalPostForm('node/add/page', $edit, t('Save'));

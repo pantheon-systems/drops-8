@@ -9,6 +9,7 @@ namespace Drupal\locale\Form;
 
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Language\Language;
 use Drupal\language\ConfigurableLanguageManagerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -71,7 +72,7 @@ class ImportForm extends FormBase {
   /**
    * Form constructor for the translation import screen.
    */
-  public function buildForm(array $form, array &$form_state) {
+  public function buildForm(array $form, FormStateInterface $form_state) {
     $languages = $this->languageManager->getLanguages();
 
     // Initialize a language list to the ones available, including English if we
@@ -109,7 +110,7 @@ class ImportForm extends FormBase {
         '#theme' => 'file_upload_help',
         '#description' => $this->t('A Gettext Portable Object file.'),
         '#upload_validators' => $validators,
-       ),
+      ),
       '#size' => 50,
       '#upload_validators' => $validators,
       '#attributes' => array('class' => array('file-import-input')),
@@ -145,11 +146,11 @@ class ImportForm extends FormBase {
     );
 
     $form['actions'] = array(
-      '#type' => 'actions'
+      '#type' => 'actions',
     );
     $form['actions']['submit'] = array(
       '#type' => 'submit',
-      '#value' => $this->t('Import')
+      '#value' => $this->t('Import'),
     );
     return $form;
   }
@@ -157,24 +158,24 @@ class ImportForm extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function validateForm(array &$form, array &$form_state) {
+  public function validateForm(array &$form, FormStateInterface $form_state) {
     $this->file = file_save_upload('file', $form['file']['#upload_validators'], 'translations://', 0);
 
     // Ensure we have the file uploaded.
     if (!$this->file) {
-      $this->setFormError('file', $form_state, $this->t('File to import not found.'));
+      $form_state->setErrorByName('file', $this->t('File to import not found.'));
     }
   }
 
   /**
    * {@inheritdoc}
    */
-  public function submitForm(array &$form, array &$form_state) {
+  public function submitForm(array &$form, FormStateInterface $form_state) {
     // Add language, if not yet supported.
     $language = $this->languageManager->getLanguage($form_state['values']['langcode']);
     if (empty($language)) {
       $language = new Language(array(
-        'id' => $form_state['values']['langcode']
+        'id' => $form_state['values']['langcode'],
       ));
       $language = language_save($language);
       drupal_set_message($this->t('The language %language has been created.', array('%language' => $this->t($language->name))));
@@ -189,6 +190,6 @@ class ImportForm extends FormBase {
     $batch = locale_translate_batch_build(array($file->uri => $file), $options);
     batch_set($batch);
 
-    $form_state['redirect_route']['route_name'] = 'locale.translate_page';
+    $form_state->setRedirect('locale.translate_page');
   }
 }

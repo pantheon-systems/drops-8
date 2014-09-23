@@ -9,6 +9,7 @@ namespace Drupal\field_ui\Form;
 
 use Drupal\Core\Entity\EntityConfirmFormBase;
 use Drupal\Core\Entity\EntityManagerInterface;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\field_ui\FieldUI;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -60,19 +61,19 @@ class FieldInstanceConfigDeleteForm extends EntityConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function getCancelRoute() {
+  public function getCancelUrl() {
     return FieldUI::getOverviewRouteInfo($this->entity->entity_type, $this->entity->bundle);
   }
 
   /**
    * {@inheritdoc}
    */
-  public function submit(array $form, array &$form_state) {
-    $field = $this->entity->getFieldStorageDefinition();
+  public function submit(array $form, FormStateInterface $form_state) {
+    $field_storage = $this->entity->getFieldStorageDefinition();
     $bundles = entity_get_bundles();
     $bundle_label = $bundles[$this->entity->entity_type][$this->entity->bundle]['label'];
 
-    if ($field && !$field->locked) {
+    if ($field_storage && !$field_storage->locked) {
       $this->entity->delete();
       drupal_set_message($this->t('The field %field has been deleted from the %type content type.', array('%field' => $this->entity->label(), '%type' => $bundle_label)));
     }
@@ -80,7 +81,7 @@ class FieldInstanceConfigDeleteForm extends EntityConfirmFormBase {
       drupal_set_message($this->t('There was a problem removing the %field from the %type content type.', array('%field' => $this->entity->label(), '%type' => $bundle_label)), 'error');
     }
 
-    $form_state['redirect_route'] = $this->getCancelRoute();
+    $form_state->setRedirectUrl($this->getCancelUrl());
 
     // Fields are purged on cron. However field module prevents disabling modules
     // when field types they provided are used in a field until it is fully

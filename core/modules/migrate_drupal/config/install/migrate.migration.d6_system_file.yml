@@ -1,13 +1,15 @@
 id: d6_system_file
 label: Drupal 6 file system configuration
+migration_groups:
+  - Drupal 6
 source:
   plugin: variable
   variables:
     - file_directory_path
     - file_directory_temp
 process:
-  'path.private': file_directory_path
-  'path.temporary': file_directory_temp
+  'path/private': file_directory_path
+  'path/temporary': file_directory_temp
 destination:
   plugin: config
   config_name: system.file

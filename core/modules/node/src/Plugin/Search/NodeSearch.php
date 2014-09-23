@@ -7,12 +7,14 @@
 
 namespace Drupal\node\Plugin\Search;
 
+use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Component\Utility\String;
 use Drupal\Core\Config\Config;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Database\Query\SelectExtender;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\State\StateInterface;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Session\AccountInterface;
@@ -266,10 +268,12 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
       $node = $node_storage->load($item->sid)->getTranslation($item->langcode);
       $build = $node_render->view($node, 'search_result', $item->langcode);
       unset($build['#theme']);
-      $node->rendered = drupal_render($build);
 
       // Fetch comment count for snippet.
-      $node->rendered .= ' ' . $this->moduleHandler->invoke('comment', 'node_update_index', array($node, $item->langcode));
+      $node->rendered = SafeMarkup::set(
+        drupal_render($build) . ' ' .
+        SafeMarkup::escape($this->moduleHandler->invoke('comment', 'node_update_index', array($node, $item->langcode)))
+      );
 
       $extra = $this->moduleHandler->invokeAll('node_search_result', array($node, $item->langcode));
 
@@ -395,7 +399,7 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
   /**
    * {@inheritdoc}
    */
-  public function searchFormAlter(array &$form, array &$form_state) {
+  public function searchFormAlter(array &$form, FormStateInterface $form_state) {
     // Add advanced search keyword-related boxes.
     $form['advanced'] = array(
       '#type' => 'details',
@@ -476,7 +480,7 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
   /*
    * {@inheritdoc}
    */
-  public function buildSearchUrlQuery($form_state) {
+  public function buildSearchUrlQuery(FormStateInterface $form_state) {
     // Read keyword and advanced search information from the form values,
     // and put these into the GET parameters.
     $keys = trim($form_state['values']['keys']);
@@ -557,7 +561,7 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
   /**
    * {@inheritdoc}
    */
-  public function buildConfigurationForm(array $form, array &$form_state) {
+  public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
     // Output form for defining rank factor weights.
     $form['content_ranking'] = array(
       '#type' => 'details',
@@ -586,7 +590,7 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
   /**
    * {@inheritdoc}
    */
-  public function submitConfigurationForm(array &$form, array &$form_state) {
+  public function submitConfigurationForm(array &$form, FormStateInterface $form_state) {
     foreach ($this->getRankings() as $var => $values) {
       if (!empty($form_state['values']["rankings_$var"])) {
         $this->configuration['rankings'][$var] = $form_state['values']["rankings_$var"];

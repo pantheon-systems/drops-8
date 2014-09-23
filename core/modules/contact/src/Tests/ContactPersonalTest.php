@@ -2,16 +2,19 @@
 
 /**
  * @file
- * Definition of Drupal\contact\Tests\ContactPersonalTest.
+ * Contains \Drupal\contact\Tests\ContactPersonalTest.
  */
 
 namespace Drupal\contact\Tests;
 
 use Drupal\Component\Utility\String;
+use Drupal\Core\Session\AccountInterface;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Tests the personal contact form.
+ * Tests personal contact form functionality.
+ *
+ * @group contact
  */
 class ContactPersonalTest extends WebTestBase {
 
@@ -43,14 +46,6 @@ class ContactPersonalTest extends WebTestBase {
    */
   private $contact_user;
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Personal contact form',
-      'description' => 'Tests personal contact form functionality.',
-      'group' => 'Contact',
-    );
-  }
-
   function setUp() {
     parent::setUp();
 
@@ -58,7 +53,7 @@ class ContactPersonalTest extends WebTestBase {
     $this->admin_user = $this->drupalCreateUser(array('administer contact forms', 'administer users', 'administer account settings', 'access site reports'));
 
     // Create some normal users with their contact forms enabled by default.
-    \Drupal::config('contact.settings')->set('user_default_enabled', 1)->save();
+    \Drupal::config('contact.settings')->set('user_default_enabled', TRUE)->save();
     $this->web_user = $this->drupalCreateUser(array('access user contact forms'));
     $this->contact_user = $this->drupalCreateUser();
   }
@@ -79,13 +74,13 @@ class ContactPersonalTest extends WebTestBase {
     $this->assertEqual($mail['key'], 'user_mail');
     $variables = array(
       '!site-name' => \Drupal::config('system.site')->get('name'),
-      '!subject' => $message['subject'],
+      '!subject' => $message['subject[0][value]'],
       '!recipient-name' => $this->contact_user->getUsername(),
     );
     $this->assertEqual($mail['subject'], t('[!site-name] !subject', $variables), 'Subject is in sent message.');
     $this->assertTrue(strpos($mail['body'], t('Hello !recipient-name,', $variables)) !== FALSE, 'Recipient name is in sent message.');
     $this->assertTrue(strpos($mail['body'], $this->web_user->getUsername()) !== FALSE, 'Sender name is in sent message.');
-    $this->assertTrue(strpos($mail['body'], $message['message']) !== FALSE, 'Message body is in sent message.');
+    $this->assertTrue(strpos($mail['body'], $message['message[0][value]']) !== FALSE, 'Message body is in sent message.');
 
     // Check there was no problems raised during sending.
     $this->drupalLogout();
@@ -214,7 +209,7 @@ class ContactPersonalTest extends WebTestBase {
 
     // Submit contact form one over limit.
     $this->drupalGet('user/' . $this->contact_user->id(). '/contact');
-    $this->assertRaw(t('You cannot send more than %number messages in @interval. Try again later.', array('%number' => $flood_limit, '@interval' => format_interval(\Drupal::config('contact.settings')->get('flood.interval')))), 'Normal user denied access to flooded contact form.');
+    $this->assertRaw(t('You cannot send more than %number messages in @interval. Try again later.', array('%number' => $flood_limit, '@interval' => \Drupal::service('date.formatter')->formatInterval(\Drupal::config('contact.settings')->get('flood.interval')))), 'Normal user denied access to flooded contact form.');
 
     // Test that the admin user can still access the contact form even though
     // the flood limit was reached.
@@ -223,20 +218,73 @@ class ContactPersonalTest extends WebTestBase {
   }
 
   /**
+   * Tests the personal contact form based access when an admin adds users.
+   */
+  function testAdminContact() {
+    user_role_grant_permissions(DRUPAL_ANONYMOUS_RID, array('access user contact forms'));
+    $this->checkContactAccess(200);
+    $this->checkContactAccess(403, FALSE);
+    $config = \Drupal::config('contact.settings');
+    $config->set('user_default_enabled', FALSE);
+    $config->save();
+    $this->checkContactAccess(403);
+  }
+
+  /**
+   * Creates a user and then checks contact form access.
+   *
+   * @param integer $response
+   *   The expected response code.
+   * @param boolean $contact_value
+   *   (optional) The value the contact field should be set too.
+   */
+  protected function checkContactAccess($response, $contact_value = NULL) {
+    $this->drupalLogin($this->admin_user);
+    $this->drupalGet('admin/people/create');
+    if (\Drupal::config('contact.settings')->get('user_default_enabled', TRUE)) {
+      $this->assertFieldChecked('edit-contact--2');
+    }
+    else {
+      $this->assertNoFieldChecked('edit-contact--2');
+    }
+    $name = $this->randomMachineName();
+    $edit = array(
+      'name' => $name,
+      'mail' => $this->randomMachineName() . '@example.com',
+      'pass[pass1]' => $pass = $this->randomString(),
+      'pass[pass2]' => $pass,
+      'notify' => FALSE,
+    );
+    if (isset($contact_value)) {
+      $edit['contact'] = $contact_value;
+    }
+    $this->drupalPostForm('admin/people/create', $edit, t('Create new account'));
+    $user = user_load_by_name($name);
+    $this->drupalLogout();
+
+    $this->drupalGet('user/' . $user->id() . '/contact');
+    $this->assertResponse($response);
+  }
+
+  /**
    * Fills out a user's personal contact form and submits it.
    *
-   * @param $account
+   * @param \Drupal\Core\Session\AccountInterface $account
    *   A user object of the user being contacted.
-   * @param $message
+   * @param array $message
    *   (optional) An array with the form fields being used. Defaults to an empty
    *   array.
+   *
+   * @return array
+   *   An array with the form fields being used.
    */
-  protected function submitPersonalContact($account, array $message = array()) {
+  protected function submitPersonalContact(AccountInterface $account, array $message = array()) {
     $message += array(
-      'subject' => $this->randomName(16),
-      'message' => $this->randomName(64),
+      'subject[0][value]' => $this->randomMachineName(16),
+      'message[0][value]' => $this->randomMachineName(64),
     );
     $this->drupalPostForm('user/' . $account->id() . '/contact', $message, t('Send message'));
     return $message;
   }
+
 }

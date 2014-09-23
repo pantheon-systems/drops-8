@@ -6,6 +6,7 @@
  */
 
 use Drupal\Component\Utility\Html;
+use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Component\Utility\String;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Render\Element;
@@ -65,7 +66,7 @@ function template_preprocess_file_widget_multiple(&$variables) {
   foreach (Element::children($element) as $key) {
     $widgets[] = &$element[$key];
   }
-  usort($widgets, '_field_sort_items_value_helper');
+  usort($widgets, '_field_multiple_value_form_sort_helper');
 
   $rows = array();
   foreach ($widgets as $key => &$widget) {
@@ -121,7 +122,7 @@ function template_preprocess_file_widget_multiple(&$variables) {
       $row[] = $display;
     }
     $row[] = $weight;
-    $row[] = $operations;
+    $row[] = SafeMarkup::set($operations);
     $rows[] = array(
       'data' => $row,
       'class' => isset($widget['#attributes']['class']) ? array_merge($widget['#attributes']['class'], array('draggable')) : array('draggable'),

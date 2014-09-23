@@ -24,7 +24,7 @@ function tracker_help($route_name, RouteMatchInterface $route_match) {
       $output .= '<dt>' . t('Tracking new and updated site content') . '</dt>';
       $output .= '<dd>' . t('The <a href="!recent">Recent content</a> page shows new and updated content in reverse chronological order, listing the content type, title, author\'s name, number of comments, and time of last update. Content is considered updated when changes occur in the text, or when new comments are added. The <em>My recent content</em> tab limits the list to the currently logged-in user.', array('!recent' => \Drupal::url('tracker.page'))) . '</dd>';
       $output .= '<dt>' . t('Tracking user-specific content') . '</dt>';
-      $output .= '<dd>' . t("To follow a specific user's new and updated content, select the <em>Track</em> tab from the user's profile page.") . '</dd>';
+      $output .= '<dd>' . t("To follow a specific user's new and updated content, select the <em>Activity</em> tab from the user's profile page.") . '</dd>';
       $output .= '</dl>';
       return $output;
   }
@@ -81,7 +81,7 @@ function tracker_cron() {
         ))
         ->execute();
 
-      $query = db_select('comment', 'c', array('target' => 'replica'));
+      $query = db_select('comment_field_data', 'c', array('target' => 'replica'));
       // Force PostgreSQL to do an implicit cast by adding 0.
       $query->addExpression('0 + :changed', 'changed', array(':changed' => $changed));
       $query->addField('c', 'status', 'published');
@@ -92,7 +92,8 @@ function tracker_cron() {
         ->condition('c.entity_id', $row->nid)
         ->condition('c.entity_type', 'node')
         ->condition('c.uid', $row->uid, '<>')
-        ->condition('c.status', CommentInterface::PUBLISHED);
+        ->condition('c.status', CommentInterface::PUBLISHED)
+        ->condition('c.default_langcode', 1);
 
       // Insert the user-level data for the commenters (except if a commenter
       // is the node's author).
@@ -153,7 +154,7 @@ function _tracker_user_access($account) {
 }
 
 /**
- * Implements hook_node_insert().
+ * Implements hook_ENTITY_TYPE_insert() for node entities.
  *
  * Adds new tracking information for this node since it's new.
  */
@@ -162,7 +163,7 @@ function tracker_node_insert(NodeInterface $node, $arg = 0) {
 }
 
 /**
- * Implements hook_node_update().
+ * Implements hook_ENTITY_TYPE_update() for node entities.
  *
  * Adds tracking information for this node since it's been updated.
  */
@@ -171,7 +172,7 @@ function tracker_node_update(NodeInterface $node, $arg = 0) {
 }
 
 /**
- * Implements hook_node_predelete().
+ * Implements hook_ENTITY_TYPE_predelete() for node entities.
  *
  * Deletes tracking information for a node.
  */
@@ -185,42 +186,30 @@ function tracker_node_predelete(EntityInterface $node, $arg = 0) {
 }
 
 /**
- * Implements hook_comment_update().
- *
- * Comment module doesn't call hook_comment_unpublish() when saving individual
- * comments so we need to check for those here.
+ * Implements hook_ENTITY_TYPE_update() for comment entities.
  */
 function tracker_comment_update(CommentInterface $comment) {
-  // $comment->save() calls hook_comment_publish() for all published comments
-  // so we need to handle all other values here.
-  if (!$comment->isPublished() && $comment->getCommentedEntityTypeId() == 'node') {
-    _tracker_remove($comment->getCommentedEntityId(), $comment->getOwnerId(), $comment->getChangedTime());
+  if ($comment->getCommentedEntityTypeId() == 'node') {
+    if ($comment->isPublished()) {
+      _tracker_add($comment->getCommentedEntityId(), $comment->getOwnerId(), $comment->getChangedTime());
+    }
+    else {
+      _tracker_remove($comment->getCommentedEntityId(), $comment->getOwnerId(), $comment->getChangedTime());
+    }
   }
 }
 
 /**
- * Implements hook_comment_publish().
- *
- * This actually handles the insert and update of published nodes since
- * $comment->save() calls hook_comment_publish() for all published comments.
+ * Implements hook_ENTITY_TYPE_insert() for comment entities.
  */
-function tracker_comment_publish(CommentInterface $comment) {
-  if ($comment->getCommentedEntityTypeId() == 'node') {
+function tracker_comment_insert(CommentInterface $comment) {
+  if ($comment->getCommentedEntityTypeId() == 'node' && $comment->isPublished()) {
     _tracker_add($comment->getCommentedEntityId(), $comment->getOwnerId(), $comment->getChangedTime());
   }
 }
 
 /**
- * Implements hook_comment_unpublish().
- */
-function tracker_comment_unpublish(CommentInterface $comment) {
-  if ($comment->getCommentedEntityTypeId() == 'node') {
-    _tracker_remove($comment->getCommentedEntityId(), $comment->getOwnerId(), $comment->getChangedTime());
-  }
-}
-
-/**
- * Implements hook_comment_delete().
+ * Implements hook_ENTITY_TYPE_delete() for comment entities.
  */
 function tracker_comment_delete(CommentInterface $comment) {
   if ($comment->getCommentedEntityTypeId() == 'node') {
@@ -291,7 +280,7 @@ function _tracker_calculate_changed($nid) {
   // @todo This should be actually filtering on the desired language and just
   //   fall back to the default language.
   $changed = db_query('SELECT changed FROM {node_field_data} WHERE nid = :nid AND default_langcode = 1 ORDER BY changed DESC', array(':nid' => $nid), array('target' => 'replica'))->fetchField();
-  $latest_comment = db_query_range("SELECT cid, changed FROM {comment} WHERE entity_type = 'node' AND entity_id = :nid AND status = :status ORDER BY changed DESC", 0, 1, array(
+  $latest_comment = db_query_range("SELECT cid, changed FROM {comment_field_data} WHERE entity_type = 'node' AND entity_id = :nid AND status = :status AND default_langcode = 1 ORDER BY changed DESC", 0, 1, array(
     ':nid' => $nid,
     ':status' => CommentInterface::PUBLISHED,
   ), array('target' => 'replica'))->fetchObject();
@@ -324,7 +313,7 @@ function _tracker_remove($nid, $uid = NULL, $changed = NULL) {
     // Or if they have commented on the node.
     if (!$keep_subscription) {
       // Check if the user has commented at least once on the given nid.
-      $keep_subscription = db_query_range("SELECT COUNT(*) FROM {comment} WHERE entity_type = 'node' AND entity_id = :nid AND uid = :uid AND status = :status", 0, 1, array(
+      $keep_subscription = db_query_range("SELECT COUNT(*) FROM {comment_field_data} WHERE entity_type = 'node' AND entity_id = :nid AND uid = :uid AND status = :status AND default_langcode = 1", 0, 1, array(
         ':nid' => $nid,
         ':uid' => $uid,
         ':status' => CommentInterface::PUBLISHED,

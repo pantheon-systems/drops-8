@@ -7,28 +7,14 @@
 
 namespace Drupal\Tests\Core\Display;
 
+use Drupal\Core\Form\FormState;
 use Drupal\Tests\UnitTestCase;
 
 /**
- * Tests the base variant plugin.
- *
  * @coversDefaultClass \Drupal\Core\Display\VariantBase
- *
- * @group Drupal
  * @group Display
  */
 class DisplayVariantTest extends UnitTestCase {
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'name' => 'Display variant',
-      'description' => '',
-      'group' => 'Display variant',
-    );
-  }
 
   /**
    * Sets up a display variant plugin for testing.
@@ -156,7 +142,8 @@ class DisplayVariantTest extends UnitTestCase {
     $this->assertSame('', $display_variant->label());
 
     $form = array();
-    $label = $this->randomName();
+    $label = $this->randomMachineName();
+    $form_state = new FormState();
     $form_state['values']['label'] = $label;
     $display_variant->submitConfigurationForm($form, $form_state);
     $this->assertSame($label, $display_variant->label());

@@ -10,7 +10,9 @@ use Drupal\field\Entity\FieldInstanceConfig;
 use Drupal\system\Tests\Entity\EntityUnitTestBase;
 
 /**
- * User entity reference test cases.
+ * Tests the user reference field functionality.
+ *
+ * @group user
  */
 class UserEntityReferenceTest extends EntityUnitTestBase {
 
@@ -34,29 +36,18 @@ class UserEntityReferenceTest extends EntityUnitTestBase {
   /**
    * {@inheritdoc}
    */
-  public static function getInfo() {
-    return array(
-      'name' => 'User entity reference',
-      'description' => 'Tests the user reference field functionality.',
-      'group' => 'User',
-    );
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   function setUp() {
     parent::setUp();
 
     $this->role1 = entity_create('user_role', array(
-      'id' => strtolower($this->randomName(8)),
-      'label' => $this->randomName(8),
+      'id' => strtolower($this->randomMachineName(8)),
+      'label' => $this->randomMachineName(8),
     ));
     $this->role1->save();
 
     $this->role2 = entity_create('user_role', array(
-      'id' => strtolower($this->randomName(8)),
-      'label' => $this->randomName(8),
+      'id' => strtolower($this->randomMachineName(8)),
+      'label' => $this->randomMachineName(8),
     ));
     $this->role2->save();
 

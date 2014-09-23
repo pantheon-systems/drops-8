@@ -12,7 +12,9 @@ use Drupal\migrate\MigrateExecutable;
 use Drupal\migrate_drupal\Tests\MigrateDrupalTestBase;
 
 /**
- * Tests Drupal 6 node type to Drupal 8 migration.
+ * Upgrade node types to node.type.*.yml.
+ *
+ * @group migrate_drupal
  */
 class MigrateNodeTypeTest extends MigrateDrupalTestBase {
 
@@ -22,17 +24,6 @@ class MigrateNodeTypeTest extends MigrateDrupalTestBase {
    * @var array
    */
   public static $modules = array('node');
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'name' => 'Migrate node type to node.type.*.yml',
-      'description' => 'Upgrade node types to node.type.*.yml',
-      'group' => 'Migrate Drupal',
-    );
-  }
 
   /**
    * {@inheritdoc}
@@ -60,7 +51,7 @@ class MigrateNodeTypeTest extends MigrateDrupalTestBase {
       'options' => array(
         'status' => TRUE,
         'promote' => TRUE,
-        'sticky' => FALSE,
+        'sticky' => TRUE,
         'revision' => FALSE,
       ),
       'preview' => 1,
@@ -72,7 +63,7 @@ class MigrateNodeTypeTest extends MigrateDrupalTestBase {
 
     // Test we have a body field.
     $instance = FieldInstanceConfig::loadByName('node', 'test_page', 'body');
-    $this->assertEqual($instance->getLabel(), 'Body', 'Body field was found.');
+    $this->assertEqual($instance->getLabel(), 'This is the body field label', 'Body field was found.');
 
     // Test the test_story content type.
     $node_type_story = entity_load('node_type', 'test_story');
@@ -87,11 +78,32 @@ class MigrateNodeTypeTest extends MigrateDrupalTestBase {
       'preview' => 1,
       'submitted' => TRUE,
     );
-    $this->assertEqual($node_type_page->settings['node'], $expected, 'Node type test_page settings correct.');
+    $this->assertEqual($node_type_story->settings['node'], $expected, 'Node type test_story settings correct.');
     $this->assertEqual(array('test_story'), $migration->getIdMap()->lookupDestinationID(array('test_story')));
 
     // Test we don't have a body field.
     $instance = FieldInstanceConfig::loadByName('node', 'test_story', 'body');
     $this->assertEqual($instance, NULL, 'No body field found');
+
+    // Test the test_event content type.
+    $node_type_event = entity_load('node_type', 'test_event');
+    $this->assertEqual($node_type_event->id(), 'test_event', 'Node type test_event loaded');
+    $expected = array(
+      'options' => array(
+        'status' => FALSE,
+        'promote' => FALSE,
+        'sticky' => TRUE,
+        'revision' => TRUE,
+      ),
+      'preview' => 1,
+      'submitted' => TRUE,
+    );
+
+    $this->assertEqual($node_type_event->settings['node'], $expected, 'Node type test_event settings correct.');
+    $this->assertEqual(array('test_event'), $migration->getIdMap()->lookupDestinationID(array('test_event')));
+
+    // Test we have a body field.
+    $instance = FieldInstanceConfig::loadByName('node', 'test_event', 'body');
+    $this->assertEqual($instance->getLabel(), 'Body', 'Body field was found.');
   }
 }

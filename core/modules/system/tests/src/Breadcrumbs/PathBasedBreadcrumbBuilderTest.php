@@ -19,12 +19,8 @@ use Symfony\Component\Routing\RequestContext;
 use Symfony\Component\Routing\Route;
 
 /**
- * Tests the path based breadcrumb builder.
- *
- * @group Drupal
- * @group System
- *
  * @coversDefaultClass \Drupal\system\PathBasedBreadcrumbBuilder
+ * @group system
  */
 class PathBasedBreadcrumbBuilderTest extends UnitTestCase {
 
@@ -45,7 +41,7 @@ class PathBasedBreadcrumbBuilderTest extends UnitTestCase {
   /**
    * The mocked access manager.
    *
-   * @var \Drupal\Core\Access\AccessManager|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Access\AccessManagerInterface|\PHPUnit_Framework_MockObject_MockObject
    */
   protected $accessManager;
 
@@ -86,17 +82,6 @@ class PathBasedBreadcrumbBuilderTest extends UnitTestCase {
 
   /**
    * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'name' => 'Path based breadcrumbs',
-      'description' => 'Tests that path based breadcrumbs work as expected.',
-      'group' => 'Breadcrumbs',
-    );
-  }
-
-  /**
-   * {@inheritdoc}
    *
    * @covers ::__construct()
    */
@@ -110,8 +95,7 @@ class PathBasedBreadcrumbBuilderTest extends UnitTestCase {
     $this->pathProcessor = $this->getMock('\Drupal\Core\PathProcessor\InboundPathProcessorInterface');
     $this->context = $this->getMock('\Symfony\Component\Routing\RequestContext');
 
-    $this->accessManager = $this->getMockBuilder('\Drupal\Core\Access\AccessManager')
-      ->disableOriginalConstructor()->getMock();
+    $this->accessManager = $this->getMock('\Drupal\Core\Access\AccessManagerInterface');
     $this->titleResolver = $this->getMock('\Drupal\Core\Controller\TitleResolverInterface');
     $this->currentUser = $this->getMock('Drupal\Core\Session\AccountInterface');
     $this->builder = new TestPathBasedBreadcrumbBuilder(

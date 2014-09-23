@@ -9,6 +9,8 @@ namespace Drupal\path\Tests;
 
 /**
  * Tests URL aliases for taxonomy terms.
+ *
+ * @group path
  */
 class PathTaxonomyTermTest extends PathTestBase {
 
@@ -18,14 +20,6 @@ class PathTaxonomyTermTest extends PathTestBase {
    * @var array
    */
   public static $modules = array('taxonomy');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Taxonomy term URL aliases',
-      'description' => 'Tests URL aliases for taxonomy terms.',
-      'group' => 'Path',
-    );
-  }
 
   function setUp() {
     parent::setUp();
@@ -48,14 +42,14 @@ class PathTaxonomyTermTest extends PathTestBase {
   function testTermAlias() {
     // Create a term in the default 'Tags' vocabulary with URL alias.
     $vocabulary = entity_load('taxonomy_vocabulary', 'tags');
-    $description = $this->randomName();
+    $description = $this->randomMachineName();
     $edit = array(
-      'name[0][value]' => $this->randomName(),
+      'name[0][value]' => $this->randomMachineName(),
       'description[0][value]' => $description,
-      'path[0][alias]' => $this->randomName(),
+      'path[0][alias]' => $this->randomMachineName(),
     );
     $this->drupalPostForm('admin/structure/taxonomy/manage/' . $vocabulary->id() . '/add', $edit, t('Save'));
-    $tid = db_query("SELECT tid FROM {taxonomy_term_data} WHERE name = :name", array(':name' => $edit['name[0][value]']))->fetchField();
+    $tid = db_query("SELECT tid FROM {taxonomy_term_field_data} WHERE name = :name AND default_langcode = 1", array(':name' => $edit['name[0][value]']))->fetchField();
 
     // Confirm that the alias works.
     $this->drupalGet($edit['path[0][alias]']);
@@ -69,7 +63,7 @@ class PathTaxonomyTermTest extends PathTestBase {
 
     // Change the term's URL alias.
     $edit2 = array();
-    $edit2['path[0][alias]'] = $this->randomName();
+    $edit2['path[0][alias]'] = $this->randomMachineName();
     $this->drupalPostForm('taxonomy/term/' . $tid . '/edit', $edit2, t('Save'));
 
     // Confirm that the changed alias works.

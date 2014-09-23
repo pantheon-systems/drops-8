@@ -6,6 +6,7 @@
 
 namespace Drupal\batch_test\Controller;
 
+use Drupal\Core\Form\FormState;
 
 /**
  * Controller routines for batch tests.
@@ -84,10 +85,10 @@ class BatchTestController {
    *   Render array containing markup.
    */
   function testProgrammatic($value = 1) {
-    $form_state = array(
+    $form_state = new FormState(array(
       'values' => array('value' => $value)
-    );
-    drupal_form_submit('batch_test_chained_form', $form_state);
+    ));
+    \Drupal::formBuilder()->submitForm('Drupal\batch_test\Form\BatchTestChainedForm', $form_state);
     return array(
       'success' => array(
         '#markup' => 'Got out of a programmatic batched form.',

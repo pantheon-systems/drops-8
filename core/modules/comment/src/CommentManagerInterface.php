@@ -6,14 +6,25 @@
  */
 
 namespace Drupal\comment;
-use Drupal\Core\Entity\EntityInterface;
 
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Session\AccountInterface;
 use Drupal\comment\Plugin\Field\FieldType\CommentItemInterface;
 
 /**
  * Comment manager contains common functions to manage comment fields.
  */
 interface CommentManagerInterface {
+
+  /**
+   * Comments are displayed in a flat list - expanded.
+   */
+  const COMMENT_MODE_FLAT = 0;
+
+  /**
+   * Comments are displayed as a threaded list - expanded.
+   */
+  const COMMENT_MODE_THREADED = 1;
 
   /**
    * Utility function to return an array of comment fields.
@@ -83,5 +94,21 @@ interface CommentManagerInterface {
    *   HTML for a "you can't post comments" notice.
    */
   public function forbiddenMessage(EntityInterface $entity, $field_name);
+
+  /**
+   * Returns the number of new comments available on a given entity for a user.
+   *
+   * @param \Drupal\Core\Entity\EntityInterface $entity
+   *   The entity to which the comments are attached to.
+   * @param string $field_name
+   *   (optional) The field_name to count comments for. Defaults to any field.
+   * @param int $timestamp
+   *   (optional) Time to count from. Defaults to time of last user access the
+   *   entity.
+   *
+   * @return int|false
+   *   The number of new comments or FALSE if the user is not authenticated.
+   */
+  public function getCountNewComments(EntityInterface $entity, $field_name = NULL, $timestamp = 0);
 
 }

@@ -10,7 +10,9 @@ namespace Drupal\block\Tests;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Tests the block configuration UI.
+ * Tests that the block configuration UI exists and stores data correctly.
+ *
+ * @group block
  */
 class BlockUiTest extends WebTestBase {
 
@@ -41,14 +43,6 @@ class BlockUiTest extends WebTestBase {
    * An administrative user to configure the test environment.
    */
   protected $adminUser;
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Block UI',
-      'description' => 'Checks that the block configuration UI exists and stores data correctly.',
-      'group' => 'Block',
-    );
-  }
 
   function setUp() {
     parent::setUp();
@@ -200,7 +194,7 @@ class BlockUiTest extends WebTestBase {
   public function testBlockPlacementIndicator() {
     // Select the 'Powered by Drupal' block to be placed.
     $block = array();
-    $block['id'] = strtolower($this->randomName());
+    $block['id'] = strtolower($this->randomMachineName());
     $block['theme'] = 'stark';
     $block['region'] = 'content';
 

@@ -7,6 +7,7 @@
 
 namespace Drupal\taxonomy\Form;
 
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\Core\Entity\EntityManagerInterface;
@@ -34,7 +35,7 @@ class TermDeleteForm extends ContentEntityConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function getCancelRoute() {
+  public function getCancelUrl() {
     return new Url('taxonomy.vocabulary_list');
   }
 
@@ -55,7 +56,7 @@ class TermDeleteForm extends ContentEntityConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function submit(array $form, array &$form_state) {
+  public function submit(array $form, FormStateInterface $form_state) {
     $this->entity->delete();
     $storage = $this->entityManager->getStorage('taxonomy_vocabulary');
     $vocabulary = $storage->load($this->entity->bundle());
@@ -64,8 +65,8 @@ class TermDeleteForm extends ContentEntityConfirmFormBase {
     taxonomy_check_vocabulary_hierarchy($vocabulary, array('tid' => $this->entity->id()));
 
     drupal_set_message($this->t('Deleted term %name.', array('%name' => $this->entity->getName())));
-    watchdog('taxonomy', 'Deleted term %name.', array('%name' => $this->entity->getName()), WATCHDOG_NOTICE);
-    $form_state['redirect_route'] = $this->getCancelRoute();
+    $this->logger('taxonomy')->notice('Deleted term %name.', array('%name' => $this->entity->getName()));
+    $form_state->setRedirectUrl($this->getCancelUrl());
   }
 
 }

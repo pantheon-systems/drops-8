@@ -8,7 +8,9 @@
 namespace Drupal\views_ui\Tests;
 
 /**
- * Tests exposed form UI.
+ * Tests exposed forms UI functionality.
+ *
+ * @group views_ui
  */
 class ExposedFormUITest extends UITestBase {
 
@@ -18,14 +20,6 @@ class ExposedFormUITest extends UITestBase {
    * @var array
    */
   public static $testViews = array('test_exposed_admin_ui');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Exposed forms',
-      'description' => 'Test exposed forms UI functionality.',
-      'group' => 'Views UI',
-    );
-  }
 
   protected function setUp() {
     parent::setUp();
@@ -118,7 +112,7 @@ class ExposedFormUITest extends UITestBase {
     // error.
     $this->drupalGet('admin/structure/views/nojs/handler/test_exposed_admin_ui/default/filter/body_value');
     $edit = array();
-    $edit["options[group_info][group_items][1][title]"] = $this->randomName();
+    $edit["options[group_info][group_items][1][title]"] = $this->randomMachineName();
     $edit["options[group_info][group_items][1][operator]"] = 'empty';
     $this->drupalPostForm(NULL, $edit, t('Apply'));
     $this->assertUrl('admin/structure/views/view/test_exposed_admin_ui/edit/default', array(), 'Validation did not run for the empty operator.');

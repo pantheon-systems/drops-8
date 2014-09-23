@@ -12,6 +12,8 @@ use Drupal\views_ui\Controller\ViewsUIController;
 
 /**
  * Tests the views ui tagging functionality.
+ *
+ * @group views_ui
  */
 class TagTest extends ViewUnitTestBase {
 
@@ -21,14 +23,6 @@ class TagTest extends ViewUnitTestBase {
    * @var array
    */
   public static $modules = array('views', 'views_ui', 'user');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Tag',
-      'description' => 'Tests the views ui tagging functionality.',
-      'group' => 'Views UI',
-    );
-  }
 
   /**
    * Tests the views_ui_autocomplete_tag function.
@@ -40,14 +34,14 @@ class TagTest extends ViewUnitTestBase {
     $tags = array();
     for ($i = 0; $i < 16; $i++) {
       $suffix = $i % 2 ? 'odd' : 'even';
-      $tag = 'autocomplete_tag_test_' . $suffix . $this->randomName();
+      $tag = 'autocomplete_tag_test_' . $suffix . $this->randomMachineName();
       $tags[] = $tag;
-      entity_create('view', array('tag' => $tag, 'id' => $this->randomName()))->save();
+      entity_create('view', array('tag' => $tag, 'id' => $this->randomMachineName()))->save();
     }
 
     // Make sure just ten results are returns.
     $controller = ViewsUIController::create($this->container);
-    $request = $this->container->get('request');
+    $request = $this->container->get('request_stack')->getCurrentRequest();
     $request->query->set('q', 'autocomplete_tag_test');
     $result = $controller->autocompleteTag($request);
     $matches = (array) json_decode($result->getContent());
@@ -63,7 +57,7 @@ class TagTest extends ViewUnitTestBase {
     }
 
     // Make sure an invalid result doesn't return anything.
-    $request->query->set('q', $this->randomName());
+    $request->query->set('q', $this->randomMachineName());
     $result = $controller->autocompleteTag($request);
     $matches = (array) json_decode($result->getContent());
     $this->assertEqual(count($matches), 0, "Make sure an invalid tag doesn't return anything.");

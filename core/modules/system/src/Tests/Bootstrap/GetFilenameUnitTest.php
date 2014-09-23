@@ -10,17 +10,11 @@ namespace Drupal\system\Tests\Bootstrap;
 use Drupal\simpletest\UnitTestBase;
 
 /**
- * Tests drupal_get_filename()'s availability.
+ * Tests that drupal_get_filename() works correctly.
+ *
+ * @group Bootstrap
  */
 class GetFilenameUnitTest extends UnitTestBase {
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Get filename test',
-      'description' => 'Test that drupal_get_filename() works correctly.',
-      'group' => 'Bootstrap',
-    );
-  }
 
   /**
    * Tests that drupal_get_filename() works when the file is not in database.
@@ -35,7 +29,7 @@ class GetFilenameUnitTest extends UnitTestBase {
     // does not exist.
     $this->assertFalse(\Drupal::hasService('keyvalue'), 'The container has no keyvalue service.');
     // Retrieving the location of a module.
-    $this->assertIdentical(drupal_get_filename('module', 'xmlrpc'), 'core/modules/xmlrpc/xmlrpc.info.yml');
+    $this->assertIdentical(drupal_get_filename('module', 'system'), 'core/modules/system/system.info.yml');
 
     // Retrieving the location of a theme.
     $this->assertIdentical(drupal_get_filename('theme', 'stark'), 'core/themes/stark/stark.info.yml');

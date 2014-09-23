@@ -34,9 +34,9 @@ use Drupal\user\RoleInterface;
  *     "label" = "label"
  *   },
  *   links = {
- *     "delete-form" = "user.role_delete",
- *     "edit-form" = "user.role_edit",
- *     "edit-permissions-form" = "user.admin_permission"
+ *     "delete-form" = "entity.user_role.delete_form",
+ *     "edit-form" = "entity.user_role.edit_form",
+ *     "edit-permissions-form" = "entity.user_role.edit_permissions_form"
  *   }
  * )
  */
@@ -47,34 +47,49 @@ class Role extends ConfigEntityBase implements RoleInterface {
    *
    * @var string
    */
-  public $id;
+  protected $id;
 
   /**
    * The human-readable label of this role.
    *
    * @var string
    */
-  public $label;
+  protected $label;
 
   /**
    * The weight of this role in administrative listings.
    *
    * @var int
    */
-  public $weight;
+  protected $weight;
 
   /**
    * The permissions belonging to this role.
    *
    * @var array
    */
-  public $permissions = array();
+  protected $permissions = array();
 
   /**
    * {@inheritdoc}
    */
   public function getPermissions() {
     return $this->permissions;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getWeight() {
+    return $this->get('weight');
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setWeight($weight) {
+    $this->set('weight', $weight);
+    return $this;
   }
 
   /**

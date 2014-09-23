@@ -10,8 +10,9 @@ namespace Drupal\user\Tests\Views;
 use Drupal\views\Views;
 
 /**
- * Tests the role field handler.
+ * Tests the handler of the user: role field.
  *
+ * @group user
  * @see views_handler_field_user_name
  */
 class HandlerFieldRoleTest extends UserTestBase {
@@ -23,23 +24,15 @@ class HandlerFieldRoleTest extends UserTestBase {
    */
   public static $testViews = array('test_views_handler_field_role');
 
-  public static function getInfo() {
-    return array(
-      'name' => 'User: Role Field',
-      'description' => 'Tests the handler of the user: role field.',
-      'group' => 'Views module integration',
-    );
-  }
-
   public function testRole() {
     // Create a couple of roles for the view.
-    $rolename_a = 'a' . $this->randomName(8);
+    $rolename_a = 'a' . $this->randomMachineName(8);
     $this->drupalCreateRole(array('access content'), $rolename_a, $rolename_a, 9);
 
-    $rolename_b = 'b' . $this->randomName(8);
+    $rolename_b = 'b' . $this->randomMachineName(8);
     $this->drupalCreateRole(array('access content'), $rolename_b, $rolename_b, 8);
 
-    $rolename_not_assigned = $this->randomName(8);
+    $rolename_not_assigned = $this->randomMachineName(8);
     $this->drupalCreateRole(array('access content'), $rolename_not_assigned, $rolename_not_assigned);
 
     // Add roles to user 1.

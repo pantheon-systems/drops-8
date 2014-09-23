@@ -8,17 +8,11 @@
 namespace Drupal\system\Tests\File;
 
 /**
- * Deletion related tests.
+ * Tests the unmanaged file delete function.
+ *
+ * @group File
  */
 class UnmanagedDeleteTest extends FileTestBase {
-  public static function getInfo() {
-    return array(
-      'name' => 'Unmanaged file delete',
-      'description' => 'Tests the unmanaged file delete function.',
-      'group' => 'File API',
-    );
-  }
-
   /**
    * Delete a normal file.
    */
@@ -36,7 +30,7 @@ class UnmanagedDeleteTest extends FileTestBase {
    */
   function testMissing() {
     // Try to delete a non-existing file
-    $this->assertTrue(file_unmanaged_delete(file_default_scheme() . '/' . $this->randomName()), 'Returns true when deleting a non-existent file.');
+    $this->assertTrue(file_unmanaged_delete(file_default_scheme() . '/' . $this->randomMachineName()), 'Returns true when deleting a non-existent file.');
   }
 
   /**

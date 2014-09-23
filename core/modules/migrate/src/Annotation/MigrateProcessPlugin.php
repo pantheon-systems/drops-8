@@ -12,6 +12,20 @@ use Drupal\Component\Annotation\Plugin;
 /**
  * Defines a migration process plugin annotation object.
  *
+ * Plugin Namespace: Plugin\migrate\process
+ *
+ * For a working example, see
+ * \Drupal\migrate\Plugin\migrate\process\DefaultValue
+ *
+ * @see \Drupal\migrate\Plugin\MigratePluginManager
+ * @see \Drupal\migrate\Plugin\MigrateProcessInterface
+ * @see \Drupal\migrate\ProcessPluginBase
+ * @see \Drupal\migrate\Annotation\MigrateSource
+ * @see \Drupal\migrate\Annotation\MigrateDestination
+ * @see plugin_api
+ *
+ * @ingroup migration
+ *
  * @Annotation
  */
 class MigrateProcessPlugin extends Plugin {

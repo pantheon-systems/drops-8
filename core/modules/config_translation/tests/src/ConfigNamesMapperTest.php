@@ -15,10 +15,9 @@ use Symfony\Component\Routing\Route;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
- * Tests ConfigNamesMapper.
+ * Tests the functionality provided by the configuration names mapper.
  *
- * @group Drupal
- * @group Config_translation
+ * @group config_translation
  */
 class ConfigNamesMapperTest extends UnitTestCase {
 
@@ -46,6 +45,13 @@ class ConfigNamesMapperTest extends UnitTestCase {
   protected $localeConfigManager;
 
   /**
+   * The locale configuration manager.
+   *
+   * @var \Drupal\locale\LocaleConfigManager|\PHPUnit_Framework_MockObject_MockObject
+   */
+  protected $typedConfigManager;
+
+  /**
    * The configuration mapper manager.
    *
    * @var \Drupal\config_translation\ConfigMapperManagerInterface|\PHPUnit_Framework_MockObject_MockObject
@@ -66,17 +72,6 @@ class ConfigNamesMapperTest extends UnitTestCase {
    */
   protected $routeProvider;
 
-  /**
-   * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'name' => 'Configuration names mapper',
-      'description' => 'Tests the functionality provided by the configuration names mapper.',
-      'group' => 'Configuration Translation',
-    );
-  }
-
   public function setUp() {
     $this->routeProvider = $this->getMock('Drupal\Core\Routing\RouteProviderInterface');
 
@@ -87,6 +82,8 @@ class ConfigNamesMapperTest extends UnitTestCase {
       'names' => array('system.site'),
       'weight' => 42,
     );
+
+    $this->typedConfigManager = $this->getMock('Drupal\Core\Config\TypedConfigManagerInterface');
 
     $this->localeConfigManager = $this->getMockBuilder('Drupal\locale\LocaleConfigManager')
       ->disableOriginalConstructor()
@@ -106,6 +103,7 @@ class ConfigNamesMapperTest extends UnitTestCase {
       'system.site_information_settings',
       $this->pluginDefinition,
       $this->getConfigFactoryStub(),
+      $this->typedConfigManager,
       $this->localeConfigManager,
       $this->configMapperManager,
       $this->routeProvider,
@@ -468,7 +466,7 @@ class ConfigNamesMapperTest extends UnitTestCase {
     foreach ($config_names as $i => $config_name) {
       $map[] = array($config_name, $mock_return_values[$i]);
     }
-    $this->localeConfigManager
+    $this->typedConfigManager
       ->expects($this->any())
       ->method('hasConfigSchema')
       ->will($this->returnValueMap($map));

@@ -103,6 +103,7 @@ Form system
 - Alex Bronstein 'effulgentsia' http://drupal.org/user/78040
 - Wolfgang Ziegler 'fago' http://drupal.org/user/16747
 - Daniel F. Kudwien 'sun' http://drupal.org/user/54136
+- Tim Plunkett 'tim.plunkett' http://drupal.org/user/241634
 - Franz Heinzmann 'Frando' http://drupal.org/user/21850
 
 Image system
@@ -158,6 +159,7 @@ Request processing system
 
 Routing system
 - Larry Garfield 'Crell' http://drupal.org/user/26398
+- Tim Plunkett 'tim.plunkett' http://drupal.org/user/241634
 
 Theme system
 - Alex Bronstein 'effulgentsia' http://drupal.org/user/78040
@@ -235,6 +237,9 @@ Block module
 - Tim Plunkett 'tim.plunkett' http://drupal.org/user/241634
 - Ben Dougherty 'benjy' http://drupal.org/user/1852732
 
+Block Content module
+- Lee Rowlands 'larowlan' http://drupal.org/user/395439
+
 Book module
 - Peter Wolanin 'pwolanin' http://drupal.org/user/49851
 
@@ -253,7 +258,7 @@ Comment module
 - Andrey Postnikov 'andypost' https://drupal.org/user/118908
 
 Configuration module
-- ?
+- Tim Plunkett 'tim.plunkett' http://drupal.org/user/241634
 
 Configuration Translation module
 - Gábor Hojtsy 'Gábor Hojtsy' http://drupal.org/user/4166
@@ -261,16 +266,14 @@ Configuration Translation module
 - Vijayachandran Mani 'vijaycs85' https://drupal.org/user/93488
 
 Contact module
-- ?
+- Lee Rowlands 'larowlan' http://drupal.org/user/395439
+- Tim Eisenhuth 'tim-e' https://www.drupal.org/user/1439114
 
 Content Translation module
 - Francesco Placella 'plach' http://drupal.org/user/183211
 
 Contextual module
 - Daniel F. Kudwien 'sun' http://drupal.org/user/54136
-
-Custom block module
-- Lee Rowlands 'larowlan' http://drupal.org/user/395439
 
 Database Logging module
 - Khalid Baheyeldin 'kbahey' http://drupal.org/user/4063
@@ -429,9 +432,6 @@ Views UI module
 - Daniel Wehner 'dawehner' http://drupal.org/user/99340
 - Tim Plunkett 'tim.plunkett' http://drupal.org/user/241634
 - Damian Lee 'damiankloip' http://drupal.org/user/1037976
-
-XML-RPC module
-- Frederic G. Marand 'fgm' http://drupal.org/user/27985
 
 
 Theme maintainers

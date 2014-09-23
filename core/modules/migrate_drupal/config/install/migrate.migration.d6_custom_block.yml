@@ -1,18 +1,20 @@
 id: d6_custom_block
 label: Drupal 6 custom blocks
+migration_groups:
+  - Drupal 6
 source:
   plugin: d6_box
   constants:
     type: basic
 process:
   id: bid
-  type: constants.type
+  type: 'constants/type'
   info: info
-  'body.format':
+  'body/format':
     plugin: migration
     migration: d6_filter_format
     source: format
-  'body.value': body
+  'body/value': body
 destination:
   plugin: entity:block_content
 migration_dependencies:

@@ -7,13 +7,18 @@
 
 namespace Drupal\migrate_drupal\Tests\d6;
 
+use Drupal\config\Tests\SchemaCheckTestTrait;
 use Drupal\migrate\MigrateExecutable;
 use Drupal\migrate_drupal\Tests\MigrateDrupalTestBase;
 
 /**
- * Tests migration of variables from the Locale module.
+ * Upgrade variables to locale.settings.yml.
+ *
+ * @group migrate_drupal
  */
 class MigrateLocaleConfigsTest extends MigrateDrupalTestBase {
+
+  use SchemaCheckTestTrait;
 
   /**
    * Modules to enable.
@@ -21,17 +26,6 @@ class MigrateLocaleConfigsTest extends MigrateDrupalTestBase {
    * @var array
    */
   public static $modules = array('locale');
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'name'  => 'Migrate variables to locale.settings.yml',
-      'description'  => 'Upgrade variables to locale.settings.yml',
-      'group' => 'Migrate Drupal',
-    );
-  }
 
   /**
    * {@inheritdoc}
@@ -52,8 +46,9 @@ class MigrateLocaleConfigsTest extends MigrateDrupalTestBase {
    */
   public function testLocaleSettings() {
     $config = \Drupal::config('locale.settings');
-    $this->assertIdentical($config->get('cache_string'), 1);
+    $this->assertIdentical($config->get('cache_strings'), TRUE);
     $this->assertIdentical($config->get('javascript.directory'), 'languages');
+    $this->assertConfigSchema(\Drupal::service('config.typed'), 'locale.settings', $config->get());
   }
 
 }

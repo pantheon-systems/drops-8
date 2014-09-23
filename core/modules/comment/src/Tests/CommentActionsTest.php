@@ -7,10 +7,12 @@
 
 namespace Drupal\comment\Tests;
 
-use Drupal\comment\CommentInterface;
+use Drupal\comment\Entity\Comment;
 
 /**
  * Tests actions provided by the Comment module.
+ *
+ * @group comment
  */
 class CommentActionsTest extends CommentTestBase {
 
@@ -21,21 +23,13 @@ class CommentActionsTest extends CommentTestBase {
    */
   public static $modules = array('dblog', 'action');
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Comment actions',
-      'description' => 'Test actions provided by the comment module.',
-      'group' => 'Comment',
-    );
-  }
-
   /**
    * Tests comment publish and unpublish actions.
    */
   function testCommentPublishUnpublishActions() {
     $this->drupalLogin($this->web_user);
-    $comment_text = $this->randomName();
-    $subject = $this->randomName();
+    $comment_text = $this->randomMachineName();
+    $subject = $this->randomMachineName();
     $comment = $this->postComment($this->node, $comment_text, $subject);
 
     // Unpublish a comment.
@@ -54,11 +48,11 @@ class CommentActionsTest extends CommentTestBase {
    */
   function testCommentUnpublishByKeyword() {
     $this->drupalLogin($this->admin_user);
-    $keyword_1 = $this->randomName();
-    $keyword_2 = $this->randomName();
+    $keyword_1 = $this->randomMachineName();
+    $keyword_2 = $this->randomMachineName();
     $action = entity_create('action', array(
       'id' => 'comment_unpublish_by_keyword_action',
-      'label' => $this->randomName(),
+      'label' => $this->randomMachineName(),
       'type' => 'comment',
       'configuration' => array(
         'keywords' => array($keyword_1, $keyword_2),
@@ -67,10 +61,10 @@ class CommentActionsTest extends CommentTestBase {
     ));
     $action->save();
 
-    $comment = $this->postComment($this->node, $keyword_2, $this->randomName());
+    $comment = $this->postComment($this->node, $keyword_2, $this->randomMachineName());
 
     // Load the full comment so that status is available.
-    $comment = comment_load($comment->id());
+    $comment = Comment::load($comment->id());
 
     $this->assertTrue($comment->isPublished() === TRUE, 'The comment status was set to published.');
 

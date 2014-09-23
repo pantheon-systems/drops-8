@@ -9,16 +9,10 @@ namespace Drupal\image\Tests;
 
 /**
  * Tests flushing of image styles.
+ *
+ * @group image
  */
 class ImageStyleFlushTest extends ImageFieldTestBase {
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Image style flushing',
-      'description' => 'Tests flushing of image styles.',
-      'group' => 'Image',
-    );
-  }
 
   /**
    * Given an image style and a wrapper, generate an image.
@@ -53,7 +47,7 @@ class ImageStyleFlushTest extends ImageFieldTestBase {
   function testFlush() {
 
     // Setup a style to be created and effects to add to it.
-    $style_name = strtolower($this->randomName(10));
+    $style_name = strtolower($this->randomMachineName(10));
     $style_label = $this->randomString();
     $style_path = 'admin/config/media/image-styles/manage/' . $style_name;
     $effect_edits = array(

@@ -11,20 +11,11 @@ use Drupal\Tests\Core\Menu\LocalTaskIntegrationTest;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 
 /**
- * Tests existence of block local tasks.
+ * Tests block local tasks.
  *
- * @group Drupal
- * @group Block
+ * @group block
  */
 class BlockLocalTasksTest extends LocalTaskIntegrationTest {
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Block local tasks test',
-      'description' => 'Test block local tasks.',
-      'group' => 'Block',
-    );
-  }
 
   public function setUp() {
     $this->directoryList = array('block' => 'core/modules/block');
@@ -65,7 +56,7 @@ class BlockLocalTasksTest extends LocalTaskIntegrationTest {
    * Tests the admin edit local task.
    */
   public function testBlockAdminLocalTasks() {
-    $this->assertLocalTasks('block.admin_edit', array(array('block.admin_edit')));
+    $this->assertLocalTasks('entity.block.edit_form', array(array('entity.block.edit_form')));
   }
 
   /**

@@ -11,26 +11,21 @@ use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\field\Entity\FieldInstanceConfig;
 
 /**
- * Tests various validations.
+ * Tests validation functions such as file type, max file size, max size per
+ * node, and required.
+ *
+ * @group file
  */
 class FileFieldValidateTest extends FileFieldTestBase {
   protected $field;
   protected $node_type;
-
-  public static function getInfo() {
-    return array(
-      'name' => 'File field validation tests',
-      'description' => 'Tests validation functions such as file type, max file size, max size per node, and required.',
-      'group' => 'File',
-    );
-  }
 
   /**
    * Tests the required property on file fields.
    */
   function testRequired() {
     $type_name = 'article';
-    $field_name = strtolower($this->randomName());
+    $field_name = strtolower($this->randomMachineName());
     $field = $this->createFileField($field_name, 'node', $type_name, array(), array('required' => '1'));
     $instance = FieldInstanceConfig::loadByName('node', $type_name, $field_name);
 
@@ -38,7 +33,7 @@ class FileFieldValidateTest extends FileFieldTestBase {
 
     // Try to post a new node without uploading a file.
     $edit = array();
-    $edit['title[0][value]'] = $this->randomName();
+    $edit['title[0][value]'] = $this->randomMachineName();
     $this->drupalPostForm('node/add/' . $type_name, $edit, t('Save and publish'));
     $this->assertRaw(t('!title field is required.', array('!title' => $instance->getLabel())), 'Node save failed when required file field was empty.');
 
@@ -58,7 +53,7 @@ class FileFieldValidateTest extends FileFieldTestBase {
 
     // Try to post a new node without uploading a file in the multivalue field.
     $edit = array();
-    $edit['title[0][value]'] = $this->randomName();
+    $edit['title[0][value]'] = $this->randomMachineName();
     $this->drupalPostForm('node/add/' . $type_name, $edit, t('Save and publish'));
     $this->assertRaw(t('!title field is required.', array('!title' => $instance->getLabel())), 'Node save failed when required multiple value file field was empty.');
 
@@ -75,7 +70,7 @@ class FileFieldValidateTest extends FileFieldTestBase {
    */
   function testFileMaxSize() {
     $type_name = 'article';
-    $field_name = strtolower($this->randomName());
+    $field_name = strtolower($this->randomMachineName());
     $this->createFileField($field_name, 'node', $type_name, array(), array('required' => '1'));
 
     $small_file = $this->getTestFile('text', 131072); // 128KB.
@@ -121,7 +116,7 @@ class FileFieldValidateTest extends FileFieldTestBase {
    */
   function testFileExtension() {
     $type_name = 'article';
-    $field_name = strtolower($this->randomName());
+    $field_name = strtolower($this->randomMachineName());
     $this->createFileField($field_name, 'node', $type_name);
 
     $test_file = $this->getTestFile('image');

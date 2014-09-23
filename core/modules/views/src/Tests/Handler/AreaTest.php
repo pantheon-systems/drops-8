@@ -10,8 +10,9 @@ namespace Drupal\views\Tests\Handler;
 use Drupal\views\Views;
 
 /**
- * Tests the abstract area handler.
+ * Tests the plugin base of the area handler.
  *
+ * @group views
  * @see \Drupal\views\Plugin\views\area\AreaPluginBase
  * @see \Drupal\views_test\Plugin\views\area\TestExample
  */
@@ -30,14 +31,6 @@ class AreaTest extends HandlerTestBase {
    * @var array
    */
   public static $modules = array('node', 'views_ui');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Area: Base',
-      'description' => 'Test the plugin base of the area handler.',
-      'group' => 'Views Handlers',
-    );
-  }
 
   protected function setUp() {
     parent::setUp();
@@ -76,7 +69,7 @@ class AreaTest extends HandlerTestBase {
       $this->assertText('Test Example area');
 
       // Then setup a no empty label.
-      $labels[$type] = $this->randomName();
+      $labels[$type] = $this->randomMachineName();
       $this->drupalPostForm($edit_path, array('options[admin_label]' => $labels[$type]), t('Apply'));
       // Make sure that the new label appears on the site.
       $this->assertText($labels[$type]);

@@ -1,5 +1,7 @@
 id: d6_user_picture_field_instance
 label: Drupal 6 user picture field instance configuration
+migration_groups:
+  - Drupal 6
 source:
   plugin: d6_user_picture_instance
   constants:
@@ -14,13 +16,13 @@ source:
       alt_field_required: false
       title_field_required: false
 process:
-  entity_type: constants.entity_type
-  bundle: constants.bundle
-  field_name: constants.name
-  settings: constants.settings
-  'settings.file_directory': file_directory
-  'settings.max_filesize': max_filesize
-  'settings.max_resolution': max_resolution
+  entity_type: 'constants/entity_type'
+  bundle: 'constants/bundle'
+  field_name: 'constants/name'
+  settings: 'constants/settings'
+  'settings/file_directory': file_directory
+  'settings/max_filesize': max_filesize
+  'settings/max_resolution': max_resolution
 destination:
   plugin: entity:field_instance_config
 migration_dependencies:

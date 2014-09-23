@@ -16,7 +16,7 @@ use Drupal\Core\Entity\Query\QueryInterface;
 abstract class EntityStorageBase extends EntityControllerBase implements EntityStorageInterface, EntityControllerInterface {
 
   /**
-   * Static cache of entities.
+   * Static cache of entities, keyed by entity ID.
    *
    * @var array
    */
@@ -159,7 +159,7 @@ abstract class EntityStorageBase extends EntityControllerBase implements EntityS
     // Invoke the hook.
     $this->moduleHandler()->invokeAll($this->entityTypeId . '_' . $hook, array($entity));
     // Invoke the respective entity-level hook.
-    $this->moduleHandler()->invokeAll('entity_' . $hook, array($entity, $this->entityTypeId));
+    $this->moduleHandler()->invokeAll('entity_' . $hook, array($entity));
   }
 
   /**

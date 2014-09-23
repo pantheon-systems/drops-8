@@ -9,9 +9,12 @@ namespace Drupal\field\Tests;
 
 use Drupal\Component\Utility\String;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
+use Drupal\Core\Form\FormState;
 
 /**
  * Tests field form handling.
+ *
+ * @group field
  */
 class FormTest extends FieldTestBase {
 
@@ -27,21 +30,21 @@ class FormTest extends FieldTestBase {
    *
    * @var array
    */
-  protected $field_single;
+  protected $fieldStorageSingle;
 
   /**
    * An array of values defining a field multiple.
    *
    * @var array
    */
-  protected $field_multiple;
+  protected $fieldStorageMultiple;
 
   /**
    * An array of values defining a field with unlimited cardinality.
    *
    * @var array
    */
-  protected $field_unlimited;
+  protected $fieldStorageUnlimited;
 
   /**
    * An array of values defining a field instance.
@@ -50,32 +53,24 @@ class FormTest extends FieldTestBase {
    */
   protected $instance;
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Field form tests',
-      'description' => 'Test Field form handling.',
-      'group' => 'Field API',
-    );
-  }
-
   function setUp() {
     parent::setUp();
 
     $web_user = $this->drupalCreateUser(array('view test entity', 'administer entity_test content'));
     $this->drupalLogin($web_user);
 
-    $this->field_single = array(
+    $this->fieldStorageSingle = array(
       'name' => 'field_single',
       'entity_type' => 'entity_test',
       'type' => 'test_field',
     );
-    $this->field_multiple = array(
+    $this->fieldStorageMultiple = array(
       'name' => 'field_multiple',
       'entity_type' => 'entity_test',
       'type' => 'test_field',
       'cardinality' => 4,
     );
-    $this->field_unlimited = array(
+    $this->fieldStorageUnlimited = array(
       'name' => 'field_unlimited',
       'entity_type' => 'entity_test',
       'type' => 'test_field',
@@ -85,20 +80,20 @@ class FormTest extends FieldTestBase {
     $this->instance = array(
       'entity_type' => 'entity_test',
       'bundle' => 'entity_test',
-      'label' => $this->randomName() . '_label',
+      'label' => $this->randomMachineName() . '_label',
       'description' => '[site:name]_description',
       'weight' => mt_rand(0, 127),
       'settings' => array(
-        'test_instance_setting' => $this->randomName(),
+        'test_instance_setting' => $this->randomMachineName(),
       ),
     );
   }
 
   function testFieldFormSingle() {
-    $field = $this->field_single;
-    $field_name = $field['name'];
+    $field_storage = $this->fieldStorageSingle;
+    $field_name = $field_storage['name'];
     $this->instance['field_name'] = $field_name;
-    entity_create('field_config', $field)->save();
+    entity_create('field_storage_config', $field_storage)->save();
     entity_create('field_instance_config', $this->instance)->save();
     entity_get_form_display($this->instance['entity_type'], $this->instance['bundle'], 'default')
       ->setComponent($field_name)
@@ -120,7 +115,7 @@ class FormTest extends FieldTestBase {
     // Submit with invalid value (field-level validation).
     $edit = array(
       'user_id' => 1,
-      'name' => $this->randomName(),
+      'name' => $this->randomMachineName(),
       "{$field_name}[0][value]" => -1
     );
     $this->drupalPostForm(NULL, $edit, t('Save'));
@@ -131,7 +126,7 @@ class FormTest extends FieldTestBase {
     $value = mt_rand(1, 127);
     $edit = array(
       'user_id' => 1,
-      'name' => $this->randomName(),
+      'name' => $this->randomMachineName(),
       "{$field_name}[0][value]" => $value,
     );
     $this->drupalPostForm(NULL, $edit, t('Save'));
@@ -150,7 +145,7 @@ class FormTest extends FieldTestBase {
     $value = mt_rand(1, 127);
     $edit = array(
       'user_id' => 1,
-      'name' => $this->randomName(),
+      'name' => $this->randomMachineName(),
       "{$field_name}[0][value]" => $value,
     );
     $this->drupalPostForm(NULL, $edit, t('Save'));
@@ -163,7 +158,7 @@ class FormTest extends FieldTestBase {
     $value = '';
     $edit = array(
       'user_id' => 1,
-      'name' => $this->randomName(),
+      'name' => $this->randomMachineName(),
       "{$field_name}[0][value]" => $value
     );
     $this->drupalPostForm('entity_test/manage/' . $id, $edit, t('Save'));
@@ -177,12 +172,12 @@ class FormTest extends FieldTestBase {
    * Tests field widget default values on entity forms.
    */
   function testFieldFormDefaultValue() {
-    $field = $this->field_single;
-    $field_name = $field['name'];
+    $field_storage = $this->fieldStorageSingle;
+    $field_name = $field_storage['name'];
     $this->instance['field_name'] = $field_name;
     $default = rand(1, 127);
     $this->instance['default_value'] = array(array('value' => $default));
-    entity_create('field_config', $field)->save();
+    entity_create('field_storage_config', $field_storage)->save();
     entity_create('field_instance_config', $this->instance)->save();
     entity_get_form_display($this->instance['entity_type'], $this->instance['bundle'], 'default')
       ->setComponent($field_name)
@@ -196,7 +191,7 @@ class FormTest extends FieldTestBase {
     // Try to submit an empty value.
     $edit = array(
       'user_id' => 1,
-      'name' => $this->randomName(),
+      'name' => $this->randomMachineName(),
       "{$field_name}[0][value]" => '',
     );
     $this->drupalPostForm(NULL, $edit, t('Save'));
@@ -208,11 +203,11 @@ class FormTest extends FieldTestBase {
   }
 
   function testFieldFormSingleRequired() {
-    $field = $this->field_single;
-    $field_name = $field['name'];
+    $field_storage = $this->fieldStorageSingle;
+    $field_name = $field_storage['name'];
     $this->instance['field_name'] = $field_name;
     $this->instance['required'] = TRUE;
-    entity_create('field_config', $field)->save();
+    entity_create('field_storage_config', $field_storage)->save();
     entity_create('field_instance_config', $this->instance)->save();
     entity_get_form_display($this->instance['entity_type'], $this->instance['bundle'], 'default')
       ->setComponent($field_name)
@@ -227,7 +222,7 @@ class FormTest extends FieldTestBase {
     $value = mt_rand(1, 127);
     $edit = array(
       'user_id' => 1,
-      'name' => $this->randomName(),
+      'name' => $this->randomMachineName(),
       "{$field_name}[0][value]" => $value,
     );
     $this->drupalPostForm(NULL, $edit, t('Save'));
@@ -241,7 +236,7 @@ class FormTest extends FieldTestBase {
     $value = '';
     $edit = array(
       'user_id' => 1,
-      'name' => $this->randomName(),
+      'name' => $this->randomMachineName(),
       "{$field_name}[0][value]" => $value,
     );
     $this->drupalPostForm('entity_test/manage/' . $id, $edit, t('Save'));
@@ -252,15 +247,15 @@ class FormTest extends FieldTestBase {
 //    $this->field = $this->field_multiple;
 //    $field_name = $this->field['field_name'];
 //    $this->instance['field_name'] = $field_name;
-//    entity_create('field_config', $this->field)->save();
+//    entity_create('field_storage_config', $this->field)->save();
 //    entity_create('field_instance_config', $this->instance)->save();
 //  }
 
   function testFieldFormUnlimited() {
-    $field = $this->field_unlimited;
-    $field_name = $field['name'];
+    $field_storage = $this->fieldStorageUnlimited;
+    $field_name = $field_storage['name'];
     $this->instance['field_name'] = $field_name;
-    entity_create('field_config', $field)->save();
+    entity_create('field_storage_config', $field_storage)->save();
     entity_create('field_instance_config', $this->instance)->save();
     entity_get_form_display($this->instance['entity_type'], $this->instance['bundle'], 'default')
       ->setComponent($field_name)
@@ -287,7 +282,7 @@ class FormTest extends FieldTestBase {
     $values = $weights = $pattern = $expected_values = array();
     $edit = array(
       'user_id' => 1,
-      'name' => $this->randomName(),
+      'name' => $this->randomMachineName(),
     );
     for ($delta = 0; $delta <= $delta_range; $delta++) {
       // Assign unique random values and weights.
@@ -343,17 +338,17 @@ class FormTest extends FieldTestBase {
    */
   function testFieldFormMultivalueWithRequiredRadio() {
     // Create a multivalue test field.
-    $field = $this->field_unlimited;
-    $field_name = $field['name'];
+    $field_storage = $this->fieldStorageUnlimited;
+    $field_name = $field_storage['name'];
     $this->instance['field_name'] = $field_name;
-    entity_create('field_config', $field)->save();
+    entity_create('field_storage_config', $field_storage)->save();
     entity_create('field_instance_config', $this->instance)->save();
     entity_get_form_display($this->instance['entity_type'], $this->instance['bundle'], 'default')
       ->setComponent($field_name)
       ->save();
 
     // Add a required radio field.
-    entity_create('field_config', array(
+    entity_create('field_storage_config', array(
       'name' => 'required_radio_test',
       'entity_type' => 'entity_test',
       'type' => 'list_text',
@@ -390,10 +385,10 @@ class FormTest extends FieldTestBase {
   }
 
   function testFieldFormJSAddMore() {
-    $field = $this->field_unlimited;
-    $field_name = $field['name'];
+    $field_storage = $this->fieldStorageUnlimited;
+    $field_name = $field_storage['name'];
     $this->instance['field_name'] = $field_name;
-    entity_create('field_config', $field)->save();
+    entity_create('field_storage_config', $field_storage)->save();
     entity_create('field_instance_config', $this->instance)->save();
     entity_get_form_display($this->instance['entity_type'], $this->instance['bundle'], 'default')
       ->setComponent($field_name)
@@ -431,7 +426,7 @@ class FormTest extends FieldTestBase {
     // Press 'add more' button through Ajax, and place the expected HTML result
     // as the tested content.
     $commands = $this->drupalPostAjaxForm(NULL, $edit, $field_name . '_add_more');
-    $this->content = $commands[1]['data'];
+    $this->setRawContent($commands[1]['data']);
 
     for ($delta = 0; $delta <= $delta_range; $delta++) {
       $this->assertFieldByName("{$field_name}[$delta][value]", $values[$delta], "Widget $delta is displayed and has the right value");
@@ -451,10 +446,10 @@ class FormTest extends FieldTestBase {
   function testFieldFormMultipleWidget() {
     // Create a field with fixed cardinality and an instance using a multiple
     // widget.
-    $field = $this->field_multiple;
-    $field_name = $field['name'];
+    $field_storage = $this->fieldStorageMultiple;
+    $field_name = $field_storage['name'];
     $this->instance['field_name'] = $field_name;
-    entity_create('field_config', $field)->save();
+    entity_create('field_storage_config', $field_storage)->save();
     entity_create('field_instance_config', $this->instance)->save();
     entity_get_form_display($this->instance['entity_type'], $this->instance['bundle'], 'default')
       ->setComponent($field_name, array(
@@ -469,7 +464,7 @@ class FormTest extends FieldTestBase {
     // Create entity with three values.
     $edit = array(
       'user_id' => 1,
-      'name' => $this->randomName(),
+      'name' => $this->randomMachineName(),
       $field_name => '1, 2, 3',
     );
     $this->drupalPostForm(NULL, $edit, t('Save'));
@@ -498,14 +493,14 @@ class FormTest extends FieldTestBase {
   function testFieldFormAccess() {
     $entity_type = 'entity_test_rev';
     // Create a "regular" field.
-    $field = $this->field_single;
-    $field['entity_type'] = $entity_type;
-    $field_name = $field['name'];
+    $field_storage = $this->fieldStorageSingle;
+    $field_storage['entity_type'] = $entity_type;
+    $field_name = $field_storage['name'];
     $instance = $this->instance;
     $instance['field_name'] = $field_name;
     $instance['entity_type'] = $entity_type;
     $instance['bundle'] = $entity_type;
-    entity_create('field_config', $field)->save();
+    entity_create('field_storage_config', $field_storage)->save();
     entity_create('field_instance_config', $instance)->save();
     entity_get_form_display($entity_type, $entity_type, 'default')
       ->setComponent($field_name)
@@ -513,19 +508,19 @@ class FormTest extends FieldTestBase {
 
     // Create a field with no edit access. See
     // field_test_entity_field_access().
-    $field_no_access = array(
+    $field_storage_no_access = array(
       'name' => 'field_no_edit_access',
       'entity_type' => $entity_type,
       'type' => 'test_field',
     );
-    $field_name_no_access = $field_no_access['name'];
+    $field_name_no_access = $field_storage_no_access['name'];
     $instance_no_access = array(
       'field_name' => $field_name_no_access,
       'entity_type' => $entity_type,
       'bundle' => $entity_type,
       'default_value' => array(0 => array('value' => 99)),
     );
-    entity_create('field_config', $field_no_access)->save();
+    entity_create('field_storage_config', $field_storage_no_access)->save();
     entity_create('field_instance_config', $instance_no_access)->save();
     entity_get_form_display($instance_no_access['entity_type'], $instance_no_access['bundle'], 'default')
       ->setComponent($field_name_no_access)
@@ -537,7 +532,7 @@ class FormTest extends FieldTestBase {
 
     $display = entity_get_form_display($entity_type, $entity_type, 'default');
     $form = array();
-    $form_state = form_state_defaults();
+    $form_state = new FormState();
     $display->buildForm($entity, $form, $form_state);
 
     $this->assertFalse($form[$field_name_no_access]['#access'], 'Field #access is FALSE for the field without edit access.');
@@ -549,7 +544,7 @@ class FormTest extends FieldTestBase {
     // Create entity.
     $edit = array(
       'user_id' => 1,
-      'name' => $this->randomName(),
+      'name' => $this->randomMachineName(),
       "{$field_name}[0][value]" => 1,
     );
     $this->drupalPostForm(NULL, $edit, t('Save'));
@@ -564,7 +559,7 @@ class FormTest extends FieldTestBase {
     // Create a new revision.
     $edit = array(
       'user_id' => 1,
-      'name' => $this->randomName(),
+      'name' => $this->randomMachineName(),
       "{$field_name}[0][value]" => 2,
       'revision' => TRUE,
     );
@@ -587,14 +582,14 @@ class FormTest extends FieldTestBase {
    */
   function testHiddenField() {
     $entity_type = 'entity_test_rev';
-    $field = $this->field_single;
-    $field['entity_type'] = $entity_type;
-    $field_name = $field['name'];
+    $field_storage = $this->fieldStorageSingle;
+    $field_storage['entity_type'] = $entity_type;
+    $field_name = $field_storage['name'];
     $this->instance['field_name'] = $field_name;
     $this->instance['default_value'] = array(0 => array('value' => 99));
     $this->instance['entity_type'] = $entity_type;
     $this->instance['bundle'] = $entity_type;
-    entity_create('field_config', $field)->save();
+    entity_create('field_storage_config', $field_storage)->save();
     $this->instance = entity_create('field_instance_config', $this->instance);
     $this->instance->save();
     // We explicitly do not assign a widget in a form display, so the field
@@ -606,7 +601,7 @@ class FormTest extends FieldTestBase {
     // Create an entity and test that the default value is assigned correctly to
     // the field that uses the hidden widget.
     $this->assertNoField("{$field_name}[0][value]", 'The field does not appear in the form');
-    $this->drupalPostForm(NULL, array('user_id' => 1, 'name' => $this->randomName()), t('Save'));
+    $this->drupalPostForm(NULL, array('user_id' => 1, 'name' => $this->randomMachineName()), t('Save'));
     preg_match('|' . $entity_type . '/manage/(\d+)|', $this->url, $match);
     $id = $match[1];
     $this->assertText(t('entity_test_rev @id has been created.', array('@id' => $id)), 'Entity was created');

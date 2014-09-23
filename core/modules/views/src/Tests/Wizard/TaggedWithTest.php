@@ -11,6 +11,8 @@ use Drupal\Core\Field\FieldStorageDefinitionInterface;
 
 /**
  * Tests the ability of the views wizard to create views filtered by taxonomy.
+ *
+ * @group views
  */
 class TaggedWithTest extends WizardTestBase {
 
@@ -31,14 +33,6 @@ class TaggedWithTest extends WizardTestBase {
 
   protected $tag_instance;
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Taxonomy functionality',
-      'description' => 'Test the ability of the views wizard to create views filtered by taxonomy.',
-      'group' => 'Views Wizard',
-    );
-  }
-
   function setUp() {
     parent::setUp();
 
@@ -55,8 +49,9 @@ class TaggedWithTest extends WizardTestBase {
     $this->tag_vocabulary->save();
 
     // Create the tag field itself.
-    $this->tag_field = entity_create('field_config', array(
-      'name' => 'field_views_testing_tags',
+    $this->tag_field_name = 'field_views_testing_tags';
+    $this->tag_field_storage = entity_create('field_storage_config', array(
+      'name' => $this->tag_field_name,
       'entity_type' => 'node',
       'type' => 'taxonomy_term_reference',
       'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
@@ -69,12 +64,12 @@ class TaggedWithTest extends WizardTestBase {
         ),
       ),
     ));
-    $this->tag_field->save();
+    $this->tag_field_storage->save();
 
     // Create an instance of the tag field on one of the content types, and
     // configure it to display an autocomplete widget.
     $this->tag_instance = array(
-      'field' => $this->tag_field,
+      'field_storage' => $this->tag_field_storage,
       'bundle' => $this->node_type_with_tags->type,
     );
     entity_create('field_instance_config', $this->tag_instance)->save();
@@ -109,15 +104,15 @@ class TaggedWithTest extends WizardTestBase {
 
     // Create three nodes, with different tags.
     $edit = array();
-    $edit['title[0][value]'] = $node_tag1_title = $this->randomName();
-    $edit[$this->tag_field->name] = 'tag1';
+    $edit['title[0][value]'] = $node_tag1_title = $this->randomMachineName();
+    $edit[$this->tag_field_name] = 'tag1';
     $this->drupalPostForm($node_add_path, $edit, t('Save'));
     $edit = array();
-    $edit['title[0][value]'] = $node_tag1_tag2_title = $this->randomName();
-    $edit[$this->tag_field->name] = 'tag1, tag2';
+    $edit['title[0][value]'] = $node_tag1_tag2_title = $this->randomMachineName();
+    $edit[$this->tag_field_name] = 'tag1, tag2';
     $this->drupalPostForm($node_add_path, $edit, t('Save'));
     $edit = array();
-    $edit['title[0][value]'] = $node_no_tags_title = $this->randomName();
+    $edit['title[0][value]'] = $node_no_tags_title = $this->randomMachineName();
     $this->drupalPostForm($node_add_path, $edit, t('Save'));
 
     // Create a view that filters by taxonomy term "tag1". It should show only
@@ -128,13 +123,13 @@ class TaggedWithTest extends WizardTestBase {
     $view1['show[type]'] = $this->node_type_with_tags->type;
     $this->drupalPostForm('admin/structure/views/add', $view1, t('Update "of type" choice'));
     // Now resubmit the entire form to the same URL.
-    $view1['label'] = $this->randomName(16);
-    $view1['id'] = strtolower($this->randomName(16));
-    $view1['description'] = $this->randomName(16);
+    $view1['label'] = $this->randomMachineName(16);
+    $view1['id'] = strtolower($this->randomMachineName(16));
+    $view1['description'] = $this->randomMachineName(16);
     $view1['show[tagged_with]'] = 'tag1';
     $view1['page[create]'] = 1;
-    $view1['page[title]'] = $this->randomName(16);
-    $view1['page[path]'] = $this->randomName(16);
+    $view1['page[title]'] = $this->randomMachineName(16);
+    $view1['page[path]'] = $this->randomMachineName(16);
     $this->drupalPostForm(NULL, $view1, t('Save and edit'));
     // Visit the page and check that the nodes we expect are present and the
     // ones we don't expect are absent.
@@ -150,13 +145,13 @@ class TaggedWithTest extends WizardTestBase {
     $view2['show[type]'] = $this->node_type_with_tags->type;
     $this->drupalPostForm('admin/structure/views/add', $view2, t('Update "of type" choice'));
     $this->assertResponse(200);
-    $view2['label'] = $this->randomName(16);
-    $view2['id'] = strtolower($this->randomName(16));
-    $view2['description'] = $this->randomName(16);
+    $view2['label'] = $this->randomMachineName(16);
+    $view2['id'] = strtolower($this->randomMachineName(16));
+    $view2['description'] = $this->randomMachineName(16);
     $view2['show[tagged_with]'] = 'tag2';
     $view2['page[create]'] = 1;
-    $view2['page[title]'] = $this->randomName(16);
-    $view2['page[path]'] = $this->randomName(16);
+    $view2['page[title]'] = $this->randomMachineName(16);
+    $view2['page[path]'] = $this->randomMachineName(16);
     $this->drupalPostForm(NULL, $view2, t('Save and edit'));
     $this->assertResponse(200);
     $this->drupalGet($view2['page[path]']);

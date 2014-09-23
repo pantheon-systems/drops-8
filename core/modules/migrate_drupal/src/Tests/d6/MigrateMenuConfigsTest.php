@@ -7,13 +7,18 @@
 
 namespace Drupal\migrate_drupal\Tests\d6;
 
+use Drupal\config\Tests\SchemaCheckTestTrait;
 use Drupal\migrate\MigrateExecutable;
 use Drupal\migrate_drupal\Tests\MigrateDrupalTestBase;
 
 /**
- * Tests migration of variables for the Menu UI module.
+ * Upgrade variables to menu_ui.settings.yml.
+ *
+ * @group migrate_drupal
  */
 class MigrateMenuConfigsTest extends MigrateDrupalTestBase {
+
+  use SchemaCheckTestTrait;
 
   /**
    * Modules to enable.
@@ -21,17 +26,6 @@ class MigrateMenuConfigsTest extends MigrateDrupalTestBase {
    * @var array
    */
   public static $modules = array('menu_ui');
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'name'  => 'Migrate variables to menu_ui.settings.yml',
-      'description'  => 'Upgrade variables to menu_ui.settings.yml',
-      'group' => 'Migrate Drupal',
-    );
-  }
 
   /**
    * {@inheritdoc}
@@ -55,5 +49,7 @@ class MigrateMenuConfigsTest extends MigrateDrupalTestBase {
     $this->assertIdentical($config->get('main_links'), 'primary-links');
     $this->assertIdentical($config->get('secondary_links'), 'secondary-links');
     $this->assertIdentical($config->get('override_parent_selector'), FALSE);
+    $this->assertConfigSchema(\Drupal::service('config.typed'), 'menu_ui.settings', $config->get());
   }
+
 }

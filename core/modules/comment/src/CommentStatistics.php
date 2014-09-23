@@ -69,12 +69,17 @@ class CommentStatistics implements CommentStatisticsInterface {
    * {@inheritdoc}
    */
   public function read($entities, $entity_type) {
-    return $this->database->select('comment_entity_statistics', 'ces')
+    $stats = $this->database->select('comment_entity_statistics', 'ces')
       ->fields('ces')
       ->condition('ces.entity_id', array_keys($entities))
       ->condition('ces.entity_type', $entity_type)
-      ->execute()
-      ->fetchAllAssoc('entity_id');
+      ->execute();
+
+    $statistics_records = array();
+    while ($entry = $stats->fetchObject()) {
+      $statistics_records[] = $entry;
+    }
+    return $statistics_records;
   }
 
   /**
@@ -179,23 +184,25 @@ class CommentStatistics implements CommentStatisticsInterface {
       return;
     }
 
-    $query = $this->database->select('comment', 'c');
+    $query = $this->database->select('comment_field_data', 'c');
     $query->addExpression('COUNT(cid)');
     $count = $query->condition('c.entity_id', $comment->getCommentedEntityId())
       ->condition('c.entity_type', $comment->getCommentedEntityTypeId())
       ->condition('c.field_name', $comment->getFieldName())
       ->condition('c.status', CommentInterface::PUBLISHED)
+      ->condition('default_langcode', 1)
       ->execute()
       ->fetchField();
 
     if ($count > 0) {
       // Comments exist.
-      $last_reply = $this->database->select('comment', 'c')
+      $last_reply = $this->database->select('comment_field_data', 'c')
         ->fields('c', array('cid', 'name', 'changed', 'uid'))
         ->condition('c.entity_id', $comment->getCommentedEntityId())
         ->condition('c.entity_type', $comment->getCommentedEntityTypeId())
         ->condition('c.field_name', $comment->getFieldName())
         ->condition('c.status', CommentInterface::PUBLISHED)
+        ->condition('default_langcode', 1)
         ->orderBy('c.created', 'DESC')
         ->range(0, 1)
         ->execute()
@@ -244,6 +251,10 @@ class CommentStatistics implements CommentStatisticsInterface {
         ->condition('field_name', $comment->getFieldName())
         ->execute();
     }
+
+    // Reset the cache of the commented entity so that when the entity is loaded
+    // the next time, the statistics will be loaded again.
+    $this->entityManager->getStorage($comment->getCommentedEntityTypeId())->resetCache(array($comment->getCommentedEntityId()));
   }
 
 }

@@ -13,6 +13,8 @@ use Drupal\field\Tests\FieldUnitTestBase;
 
 /**
  * Tests the new entity API for the telephone field type.
+ *
+ * @group telephone
  */
 class TelephoneItemTest extends FieldUnitTestBase {
 
@@ -23,19 +25,11 @@ class TelephoneItemTest extends FieldUnitTestBase {
    */
   public static $modules = array('telephone');
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Telephone field item',
-      'description' => 'Tests the new entity API for the telephone field type.',
-      'group' => 'Field types',
-    );
-  }
-
   public function setUp() {
     parent::setUp();
 
     // Create a telephone field and instance for validation.
-    entity_create('field_config', array(
+    entity_create('field_storage_config', array(
       'name' => 'field_test',
       'entity_type' => 'entity_test',
       'type' => 'telephone',
@@ -55,7 +49,7 @@ class TelephoneItemTest extends FieldUnitTestBase {
     $entity = entity_create('entity_test');
     $value = '+0123456789';
     $entity->field_test = $value;
-    $entity->name->value = $this->randomName();
+    $entity->name->value = $this->randomMachineName();
     $entity->save();
 
     // Verify entity has been created properly.

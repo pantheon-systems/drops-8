@@ -8,7 +8,9 @@
 namespace Drupal\block_content\Tests;
 
 /**
- * Tests related to custom block types.
+ * Ensures that custom block type functions work correctly.
+ *
+ * @group block_content
  */
 class BlockContentTypeTest extends BlockContentTestBase {
 
@@ -28,17 +30,6 @@ class BlockContentTypeTest extends BlockContentTestBase {
     'administer blocks',
     'administer block_content fields'
   );
-
-  /**
-   * Declares test information.
-   */
-  public static function getInfo() {
-    return array(
-      'name' => 'Custom Block types',
-      'description' => 'Ensures that custom block type functions work correctly.',
-      'group' => 'Custom Block',
-    );
-  }
 
   /**
    * Tests creating a block type programmatically and via a form.
@@ -178,7 +169,7 @@ class BlockContentTypeTest extends BlockContentTestBase {
           $this->clickLink('foo');
         }
         // Create a new block.
-        $edit = array('info[0][value]' => $this->randomName(8));
+        $edit = array('info[0][value]' => $this->randomMachineName(8));
         $this->drupalPostForm(NULL, $edit, t('Save'));
         $blocks = $storage->loadByProperties(array('info' => $edit['info[0][value]']));
         if (!empty($blocks)) {
@@ -199,7 +190,7 @@ class BlockContentTypeTest extends BlockContentTestBase {
     $this->drupalGet('admin/structure/block/block-content');
     $this->clickLink(t('Add custom block'));
     $this->clickLink('foo');
-    $edit = array('info[0][value]' => $this->randomName(8));
+    $edit = array('info[0][value]' => $this->randomMachineName(8));
     $this->drupalPostForm(NULL, $edit, t('Save'));
     $blocks = $storage->loadByProperties(array('info' => $edit['info[0][value]']));
     if (!empty($blocks)) {

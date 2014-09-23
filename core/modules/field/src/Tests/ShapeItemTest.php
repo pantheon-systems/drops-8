@@ -12,6 +12,8 @@ use Drupal\Core\Field\FieldItemListInterface;
 
 /**
  * Tests the new entity API for the shape field type.
+ *
+ * @group field
  */
 class ShapeItemTest extends FieldUnitTestBase {
 
@@ -29,30 +31,20 @@ class ShapeItemTest extends FieldUnitTestBase {
    */
   protected $field_name = 'field_shape';
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Shape field item',
-      'description' => 'Tests the new entity API for the shape field type.',
-      'group' => 'Field types',
-    );
-  }
-
   public function setUp() {
     parent::setUp();
 
     // Create an field field and instance for validation.
-    $field = array(
+    entity_create('field_storage_config', array(
       'name' => $this->field_name,
       'entity_type' => 'entity_test',
       'type' => 'shape',
-    );
-    entity_create('field_config', $field)->save();
-    $instance = array(
+    ))->save();
+    entity_create('field_instance_config', array(
       'entity_type' => 'entity_test',
       'field_name' => $this->field_name,
       'bundle' => 'entity_test',
-    );
-    entity_create('field_instance_config', $instance)->save();
+    ))->save();
   }
 
   /**
@@ -65,7 +57,7 @@ class ShapeItemTest extends FieldUnitTestBase {
     $color = 'blue';
     $entity->{$this->field_name}->shape = $shape;
     $entity->{$this->field_name}->color = $color;
-    $entity->name->value = $this->randomName();
+    $entity->name->value = $this->randomMachineName();
     $entity->save();
 
     // Verify entity has been created properly.

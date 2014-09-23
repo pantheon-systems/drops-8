@@ -10,7 +10,9 @@ namespace Drupal\basic_auth\Tests\Authentication;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Test for http basic authentication.
+ * Tests for BasicAuth authentication provider.
+ *
+ * @group basic_auth
  */
 class BasicAuthTest extends WebTestBase {
 
@@ -20,14 +22,6 @@ class BasicAuthTest extends WebTestBase {
    * @var array
    */
   public static $modules = array('basic_auth', 'router_test');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'BasicAuth authentication',
-      'description' => 'Tests for BasicAuth authentication provider.',
-      'group' => 'Authentication',
-    );
-  }
 
   /**
    * Test http basic authentication.
@@ -40,7 +34,7 @@ class BasicAuthTest extends WebTestBase {
     $this->assertResponse('200', 'HTTP response is OK');
     $this->curlClose();
 
-    $this->basicAuthGet('router_test/test11', $account->getUsername(), $this->randomName());
+    $this->basicAuthGet('router_test/test11', $account->getUsername(), $this->randomMachineName());
     $this->assertNoText($account->getUsername(), 'Bad basic auth credentials do not authenticate the user.');
     $this->assertResponse('403', 'Access is not granted.');
     $this->curlClose();

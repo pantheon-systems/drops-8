@@ -11,7 +11,9 @@ use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Tests user registration.
+ * Tests registration of user under different configurations.
+ *
+ * @group user
  */
 class UserRegistrationTest extends WebTestBase {
 
@@ -21,14 +23,6 @@ class UserRegistrationTest extends WebTestBase {
    * @var array
    */
   public static $modules = array('field_test');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'User registration',
-      'description' => 'Test registration of user under different configurations.',
-      'group' => 'User'
-    );
-  }
 
   function testRegistrationWithEmailVerification() {
     $config = \Drupal::config('user.settings');
@@ -43,7 +37,7 @@ class UserRegistrationTest extends WebTestBase {
     // Allow registration by site visitors without administrator approval.
     $config->set('register', USER_REGISTER_VISITORS)->save();
     $edit = array();
-    $edit['name'] = $name = $this->randomName();
+    $edit['name'] = $name = $this->randomMachineName();
     $edit['mail'] = $mail = $edit['name'] . '@example.com';
     $this->drupalPostForm('user/register', $edit, t('Create new account'));
     $this->assertText(t('A welcome message with further instructions has been sent to your email address.'), 'User registered successfully.');
@@ -54,7 +48,7 @@ class UserRegistrationTest extends WebTestBase {
     // Allow registration by site visitors, but require administrator approval.
     $config->set('register', USER_REGISTER_VISITORS_ADMINISTRATIVE_APPROVAL)->save();
     $edit = array();
-    $edit['name'] = $name = $this->randomName();
+    $edit['name'] = $name = $this->randomMachineName();
     $edit['mail'] = $mail = $edit['name'] . '@example.com';
     $this->drupalPostForm('user/register', $edit, t('Create new account'));
     $this->container->get('entity.manager')->getStorage('user')->resetCache();
@@ -73,7 +67,7 @@ class UserRegistrationTest extends WebTestBase {
       ->save();
 
     $edit = array();
-    $edit['name'] = $name = $this->randomName();
+    $edit['name'] = $name = $this->randomMachineName();
     $edit['mail'] = $mail = $edit['name'] . '@example.com';
 
     // Try entering a mismatching password.
@@ -83,7 +77,7 @@ class UserRegistrationTest extends WebTestBase {
     $this->assertText(t('The specified passwords do not match.'), 'Typing mismatched passwords displays an error message.');
 
     // Enter a correct password.
-    $edit['pass[pass1]'] = $new_pass = $this->randomName();
+    $edit['pass[pass1]'] = $new_pass = $this->randomMachineName();
     $edit['pass[pass2]'] = $new_pass;
     $this->drupalPostForm('user/register', $edit, t('Create new account'));
     $this->container->get('entity.manager')->getStorage('user')->resetCache();
@@ -96,9 +90,9 @@ class UserRegistrationTest extends WebTestBase {
     // Allow registration by site visitors, but require administrator approval.
     $config->set('register', USER_REGISTER_VISITORS_ADMINISTRATIVE_APPROVAL)->save();
     $edit = array();
-    $edit['name'] = $name = $this->randomName();
+    $edit['name'] = $name = $this->randomMachineName();
     $edit['mail'] = $mail = $edit['name'] . '@example.com';
-    $edit['pass[pass1]'] = $pass = $this->randomName();
+    $edit['pass[pass1]'] = $pass = $this->randomMachineName();
     $edit['pass[pass2]'] = $pass;
     $this->drupalPostForm('user/register', $edit, t('Create new account'));
     $this->assertText(t('Thank you for applying for an account. Your account is currently pending approval by the site administrator.'), 'Users are notified of pending approval');
@@ -139,7 +133,7 @@ class UserRegistrationTest extends WebTestBase {
     $duplicate_user = $this->drupalCreateUser();
 
     $edit = array();
-    $edit['name'] = $this->randomName();
+    $edit['name'] = $this->randomMachineName();
     $edit['mail'] = $duplicate_user->getEmail();
 
     // Attempt to create a new account using an existing email address.
@@ -173,9 +167,9 @@ class UserRegistrationTest extends WebTestBase {
     $this->assertNoRaw('<details id="edit-account"><summary>Account information</summary>');
 
     $edit = array();
-    $edit['name'] = $name = $this->randomName();
+    $edit['name'] = $name = $this->randomMachineName();
     $edit['mail'] = $mail = $edit['name'] . '@example.com';
-    $edit['pass[pass1]'] = $new_pass = $this->randomName();
+    $edit['pass[pass1]'] = $new_pass = $this->randomMachineName();
     $edit['pass[pass2]'] = $new_pass;
     $this->drupalPostForm(NULL, $edit, t('Create new account'));
 
@@ -198,15 +192,15 @@ class UserRegistrationTest extends WebTestBase {
    */
   function testRegistrationWithUserFields() {
     // Create a field, and an instance on 'user' entity type.
-    $field = entity_create('field_config', array(
+    $field_storage = entity_create('field_storage_config', array(
       'name' => 'test_user_field',
       'entity_type' => 'user',
       'type' => 'test_field',
       'cardinality' => 1,
     ));
-    $field->save();
+    $field_storage->save();
     $instance = entity_create('field_instance_config', array(
-      'field' => $field,
+      'field_storage' => $field_storage,
       'label' => 'Some user field',
       'bundle' => 'user',
       'required' => TRUE,
@@ -232,7 +226,7 @@ class UserRegistrationTest extends WebTestBase {
 
     // Check that validation errors are correctly reported.
     $edit = array();
-    $edit['name'] = $name = $this->randomName();
+    $edit['name'] = $name = $this->randomMachineName();
     $edit['mail'] = $mail = $edit['name'] . '@example.com';
     // Missing input in required field.
     $edit['test_user_field[0][value]'] = '';
@@ -253,8 +247,8 @@ class UserRegistrationTest extends WebTestBase {
     $this->assertEqual($new_user->test_user_field->value, $value, 'The field value was correclty saved.');
 
     // Check that the 'add more' button works.
-    $field->cardinality = FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED;
-    $field->save();
+    $field_storage->cardinality = FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED;
+    $field_storage->save();
     foreach (array('js', 'nojs') as $js) {
       $this->drupalGet('user/register');
       // Add two inputs.
@@ -272,7 +266,7 @@ class UserRegistrationTest extends WebTestBase {
       // Submit with three values.
       $edit['test_user_field[1][value]'] = $value + 1;
       $edit['test_user_field[2][value]'] = $value + 2;
-      $edit['name'] = $name = $this->randomName();
+      $edit['name'] = $name = $this->randomMachineName();
       $edit['mail'] = $mail = $edit['name'] . '@example.com';
       $this->drupalPostForm(NULL, $edit, t('Create new account'));
       // Check user fields.
@@ -283,4 +277,5 @@ class UserRegistrationTest extends WebTestBase {
       $this->assertEqual($new_user->test_user_field[2]->value, $value + 2, format_string('@js : The field value was correclty saved.', array('@js' => $js)));
     }
   }
+
 }

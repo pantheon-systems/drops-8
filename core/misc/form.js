@@ -41,25 +41,6 @@
   };
 
   /**
-   * Sends a 'formUpdated' event each time a form element is modified.
-   */
-  Drupal.behaviors.formUpdated = {
-    attach: function (context) {
-      // These events are namespaced so that we can remove them later.
-      var events = 'change.formUpdated click.formUpdated blur.formUpdated keyup.formUpdated';
-      $(context)
-        // Since context could be an input element itself, it's added back to
-        // the jQuery object and filtered again.
-        .find(':input').addBack().filter(':input')
-        // To prevent duplicate events, the handlers are first removed and then
-        // (re-)added.
-        .off(events).on(events, function () {
-          $(this).trigger('formUpdated');
-        });
-    }
-  };
-
-  /**
    * Prevents consecutive form submissions of identical form values.
    *
    * Repetitive form submissions that would submit the identical form values are
@@ -116,7 +97,6 @@
     }
   };
 
-
   /**
    * Sends a 'formUpdated' event each time a form element is modified.
    */
@@ -148,7 +128,6 @@
       var $context = $(context);
       var contextIsForm = $context.is('form');
       var $forms = (contextIsForm ? $context : $context.find('form')).once('form-updated');
-
 
       if ($forms.length) {
         // Initialize form behaviors, use $.makeArray to be able to use native
@@ -191,21 +170,29 @@
   };
 
   /**
-   * Prepopulate form fields with information from the visitor cookie.
+   * Prepopulate form fields with information from the visitor browser.
    */
-  Drupal.behaviors.fillUserInfoFromCookie = {
+  Drupal.behaviors.fillUserInfoFromBrowser = {
     attach: function (context, settings) {
       var userInfo = ['name', 'mail', 'homepage'];
-      $('form.user-info-from-cookie').once('user-info-from-cookie', function () {
-        var $formContext = $(this);
-        var i, il, $element, cookie;
-        for (i = 0, il = userInfo.length; i < il; i += 1) {
-          $element = $formContext.find('[name=' + userInfo[i] + ']');
-          cookie = $.cookie('Drupal.visitor.' + userInfo[i]);
-          if ($element.length && cookie) {
-            $element.val(cookie);
+      var $forms = $('[data-user-info-from-browser]').once('user-info-from-browser');
+      if ($forms.length) {
+        userInfo.map(function (info) {
+          var $element = $forms.find('[name=' + info + ']');
+          var browserData = localStorage.getItem('Drupal.visitor.' + info);
+          var emptyOrDefault = ($element.val() === '' || ($element.attr('data-drupal-default-value') === $element.val()));
+          if ($element.length && emptyOrDefault && browserData) {
+            $element.val(browserData);
           }
-        }
+        });
+      }
+      $forms.on('submit', function () {
+        userInfo.map(function (info) {
+          var $element = $forms.find('[name=' + info + ']');
+          if ($element.length) {
+            localStorage.setItem('Drupal.visitor.' + info, $element.val());
+          }
+        });
       });
     }
   };

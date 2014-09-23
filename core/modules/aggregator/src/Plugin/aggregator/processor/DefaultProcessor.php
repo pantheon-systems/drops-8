@@ -13,7 +13,9 @@ use Drupal\aggregator\Plugin\ProcessorInterface;
 use Drupal\aggregator\FeedInterface;
 use Drupal\Core\Database\Database;
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Datetime\DateFormatter;
 use Drupal\Core\Entity\Query\QueryInterface;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -52,6 +54,13 @@ class DefaultProcessor extends AggregatorPluginSettingsBase implements Processor
   protected $itemStorage;
 
   /**
+   * The date formatter service.
+   *
+   * @var \Drupal\Core\Datetime\DateFormatter
+   */
+  protected $dateFormatter;
+
+  /**
    * Constructs a DefaultProcessor object.
    *
    * @param array $configuration
@@ -66,11 +75,14 @@ class DefaultProcessor extends AggregatorPluginSettingsBase implements Processor
    *   The entity query object for feed items.
    * @param \Drupal\aggregator\ItemStorageInterface $item_storage
    *   The entity storage for feed items.
+   * @param \Drupal\Core\Datetime\DateFormatter $date_formatter
+   *   The date formatter service.
    */
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, ConfigFactoryInterface $config, QueryInterface $item_query, ItemStorageInterface $item_storage) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, ConfigFactoryInterface $config, QueryInterface $item_query, ItemStorageInterface $item_storage, DateFormatter $date_formatter) {
     $this->configFactory = $config;
     $this->itemStorage = $item_storage;
     $this->itemQuery = $item_query;
+    $this->dateFormatter = $date_formatter;
     // @todo Refactor aggregator plugins to ConfigEntity so merging
     //   the configuration here is not needed.
     parent::__construct($configuration + $this->getConfiguration(), $plugin_id, $plugin_definition);
@@ -86,22 +98,23 @@ class DefaultProcessor extends AggregatorPluginSettingsBase implements Processor
       $plugin_definition,
       $container->get('config.factory'),
       $container->get('entity.query')->get('aggregator_item'),
-      $container->get('entity.manager')->getStorage('aggregator_item')
+      $container->get('entity.manager')->getStorage('aggregator_item'),
+      $container->get('date.formatter')
     );
   }
 
   /**
    * {@inheritdoc}
    */
-  public function buildConfigurationForm(array $form, array &$form_state) {
+  public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
     $processors = $this->configuration['processors'];
     $info = $this->getPluginDefinition();
     $counts = array(3, 5, 10, 15, 20, 25);
     $items = array_map(function ($count) {
-      return format_plural($count, '1 item', '@count items');
+      return $this->dateFormatter->formatInterval($count, '1 item', '@count items');
     }, array_combine($counts, $counts));
     $intervals = array(3600, 10800, 21600, 32400, 43200, 86400, 172800, 259200, 604800, 1209600, 2419200, 4838400, 9676800);
-    $period = array_map('format_interval', array_combine($intervals, $intervals));
+    $period = array_map(array($this->dateFormatter, 'formatInterval'), array_combine($intervals, $intervals));
     $period[AGGREGATOR_CLEAR_NEVER] = t('Never');
 
     $form['processors'][$info['id']] = array();
@@ -149,7 +162,7 @@ class DefaultProcessor extends AggregatorPluginSettingsBase implements Processor
   /**
    * {@inheritdoc}
    */
-  public function submitConfigurationForm(array &$form, array &$form_state) {
+  public function submitConfigurationForm(array &$form, FormStateInterface $form_state) {
     $this->configuration['items']['expire'] = $form_state['values']['aggregator_clear'];
     $this->configuration['items']['teaser_length'] = $form_state['values']['aggregator_teaser_length'];
     $this->configuration['source']['list_max'] = $form_state['values']['aggregator_summary_items'];

@@ -7,10 +7,12 @@
 
 namespace Drupal\aggregator\Plugin\Block;
 
+use Drupal\Component\Utility\NestedArray;
 use Drupal\aggregator\FeedStorageInterface;
 use Drupal\aggregator\ItemStorageInterface;
 use Drupal\block\BlockBase;
 use Drupal\Core\Entity\Query\QueryInterface;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Session\AccountInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -94,6 +96,13 @@ class AggregatorFeedBlock extends BlockBase implements ContainerFactoryPluginInt
     return array(
       'block_count' => 10,
       'feed' => NULL,
+      // Modify the default max age for the 'Aggregator Feed' blocks:
+      // modifications made to feeds or feed items will automatically invalidate
+      // corresponding cache tags, therefore allowing us to cache these blocks
+      // forever.
+      'cache' => array(
+        'max_age' => \Drupal\Core\Cache\Cache::PERMANENT,
+      ),
     );
   }
 
@@ -106,9 +115,9 @@ class AggregatorFeedBlock extends BlockBase implements ContainerFactoryPluginInt
   }
 
   /**
-   * Overrides \Drupal\block\BlockBase::blockForm().
+   * {@inheritdoc}
    */
-  public function blockForm($form, &$form_state) {
+  public function blockForm($form, FormStateInterface $form_state) {
     $feeds = $this->feedStorage->loadMultiple();
     $options = array();
     foreach ($feeds as $feed) {
@@ -131,9 +140,9 @@ class AggregatorFeedBlock extends BlockBase implements ContainerFactoryPluginInt
   }
 
   /**
-   * Overrides \Drupal\block\BlockBase::blockSubmit().
+   * {@inheritdoc}
    */
-  public function blockSubmit($form, &$form_state) {
+  public function blockSubmit($form, FormStateInterface $form_state) {
     $this->configuration['block_count'] = $form_state['values']['block_count'];
     $this->configuration['feed'] = $form_state['values']['feed'];
   }
@@ -178,6 +187,16 @@ class AggregatorFeedBlock extends BlockBase implements ContainerFactoryPluginInt
         );
       }
     }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getCacheTags() {
+    $cache_tags = parent::getCacheTags();
+    $feed = $this->feedStorage->load($this->configuration['feed']);
+    $cache_tags = NestedArray::mergeDeep($cache_tags, $feed->getCacheTag());
+    return $cache_tags;
   }
 
 }

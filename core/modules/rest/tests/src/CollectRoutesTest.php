@@ -14,7 +14,9 @@ use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
 
 /**
- * Defines tests for the collectRoutes() method.
+ * Tests the REST export view plugin.
+ *
+ * @group rest
  */
 class CollectRoutesTest extends UnitTestCase {
 
@@ -29,14 +31,6 @@ class CollectRoutesTest extends UnitTestCase {
    * The RouteCollection.
    */
   protected $routes;
-
-  public static function getInfo() {
-    return array(
-      'name' => 'routes: REST export plugin',
-      'description' => 'Tests the REST export view plugin.',
-      'group' => 'Views Plugins',
-    );
-  }
 
   /**
    * {@inheritdoc}
@@ -55,7 +49,6 @@ class CollectRoutesTest extends UnitTestCase {
       ->getMock();
 
     $container->set('content_negotiation', $content_negotiation);
-    $container->set('request', $request);
 
     $this->view = $this->getMock('\Drupal\views\Entity\View', array('initHandlers'), array(
       array('id' => 'test_view'),
@@ -89,9 +82,6 @@ class CollectRoutesTest extends UnitTestCase {
       ->disableOriginalConstructor()
       ->getMock();
     $container->set('plugin.manager.views.style', $style_manager);
-
-    $form_error = $this->getMock('Drupal\Core\Form\FormErrorInterface');
-    $container->set('form_validator', $form_error);
 
     \Drupal::setContainer($container);
 

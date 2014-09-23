@@ -13,11 +13,7 @@ use Drupal\Core\Entity\Sql\DefaultTableMapping;
 use Drupal\Tests\UnitTestCase;
 
 /**
- * Tests the content entity schema handler.
- *
  * @coversDefaultClass \Drupal\Core\Entity\Schema\ContentEntitySchemaHandler
- *
- * @group Drupal
  * @group Entity
  */
 class ContentEntitySchemaHandlerTest extends UnitTestCase {
@@ -56,17 +52,6 @@ class ContentEntitySchemaHandlerTest extends UnitTestCase {
    * @var \Drupal\Core\Entity\Schema\ContentEntitySchemaHandler.
    */
   protected $schemaHandler;
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'name' => 'Content entity schema handler',
-      'description' => 'Tests the schema generation for content entities.',
-      'group' => 'Entity',
-    );
-  }
 
   /**
    * {@inheritdoc}
@@ -249,6 +234,17 @@ class ContentEntitySchemaHandlerTest extends UnitTestCase {
         ),
       ),
     ));
+    // Add a field with a really long index.
+    $this->setUpStorageDefinition('long_index_name', array(
+      'columns' => array(
+        'long_index_name' => array(
+          'type' => 'int',
+        ),
+      ),
+      'indexes' => array(
+        'long_index_name_really_long_long_name' => array(array('long_index_name', 10)),
+      ),
+    ));
 
     $this->setUpSchemaHandler();
 
@@ -336,6 +332,10 @@ class ContentEntitySchemaHandlerTest extends UnitTestCase {
             'description' => 'The editor_revision field.',
             'type' => 'int',
           ),
+          'long_index_name' => array(
+            'description' => 'The long_index_name field.',
+            'type' => 'int',
+          ),
           'default_langcode' => array(
             'description' => 'Boolean indicating whether field values are in the default entity language.',
             'type' => 'int',
@@ -364,6 +364,10 @@ class ContentEntitySchemaHandlerTest extends UnitTestCase {
             'location__state',
             array('location__city', 10),
           ),
+          'entity_test__b588603cb9' => array(
+            array('long_index_name', 10),
+          ),
+
         ),
         'foreign keys' => array(
           'entity_test_field__editor__user_id' => array(

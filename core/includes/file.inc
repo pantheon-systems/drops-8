@@ -880,7 +880,7 @@ function file_munge_filename($filename, $extensions, $alerts = TRUE) {
     // Remove any null bytes. See http://php.net/manual/en/security.filesystem.nullbytes.php
     $filename = str_replace(chr(0), '', $filename);
 
-    $whitelist = array_unique(explode(' ', trim($extensions)));
+    $whitelist = array_unique(explode(' ', strtolower(trim($extensions))));
 
     // Split the filename up by periods. The first part becomes the basename
     // the last part the final extension.
@@ -893,7 +893,7 @@ function file_munge_filename($filename, $extensions, $alerts = TRUE) {
     // of allowed extensions.
     foreach ($filename_parts as $filename_part) {
       $new_filename .= '.' . $filename_part;
-      if (!in_array($filename_part, $whitelist) && preg_match("/^[a-zA-Z]{2,5}\d?$/", $filename_part)) {
+      if (!in_array(strtolower($filename_part), $whitelist) && preg_match("/^[a-zA-Z]{2,5}\d?$/", $filename_part)) {
         $new_filename .= '_';
       }
     }
@@ -1297,16 +1297,19 @@ function file_upload_max_size() {
  * @param $mapping
  *   An optional map of extensions to their mimetypes, in the form:
  *    - 'mimetypes': a list of mimetypes, keyed by an identifier,
- *    - 'extensions': the mapping itself, an associative array in which
- *      the key is the extension (lowercase) and the value is the mimetype
- *      identifier. If $mapping is NULL file_mimetype_mapping() is called.
+ *    - 'extensions': the mapping itself, an associative array in which the key
+ *      is the extension (lowercase) and the value is the mimetype identifier.
  *
  * @return
  *   The internet media type registered for the extension or
  *   application/octet-stream for unknown extensions.
  *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- *   Use \Drupal::service('file.mime_type.guesser')->guess($uri).
+ * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0. Calls are
+ *   passed on to a new file.mime_type.guesser service, and the $mapping
+ *   parameter is ignored. Use
+ *   \Drupal::service('file.mime_type.guesser')->guess($uri).
+ *
+ * @see \Drupal\Core\File\MimeType\ExtensionMimeTypeGuesser::guess()
  */
 function file_get_mimetype($uri, $mapping = NULL) {
   return \Drupal::service('file.mime_type.guesser')->guess($uri);

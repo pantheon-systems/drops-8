@@ -18,6 +18,12 @@ use Drupal\migrate\Plugin\MigrateProcessInterface;
  * in a previous migration and so on.
  *
  * @see https://drupal.org/node/2129651
+ * @see \Drupal\migrate\Plugin\MigratePluginManager
+ * @see \Drupal\migrate\Plugin\MigrateProcessInterface
+ * @see \Drupal\migrate\Annotation\MigrateProcessPlugin
+ * @see plugin_api
+ *
+ * @ingroup migration
  */
 abstract class ProcessPluginBase extends PluginBase implements MigrateProcessInterface {
 

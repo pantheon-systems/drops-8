@@ -14,22 +14,10 @@ use Symfony\Component\DependencyInjection\Reference;
 require_once __DIR__ . '../../../../../../vendor/symfony/dependency-injection/Symfony/Component/DependencyInjection/Tests/Fixtures/includes/classes.php';
 
 /**
- * Tests the dependency injection container builder overrides of Drupal.
- *
- * @see \Drupal\Core\DependencyInjection\ContainerBuilder
+ * @coversDefaultClass \Drupal\Core\DependencyInjection\ContainerBuilder
+ * @group DependencyInjection
  */
 class ContainerBuilderTest extends UnitTestCase {
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'name' => 'Dependency injection container builder',
-      'description' => 'Tests the dependency injection container builder overrides of Drupal.',
-      'group' => 'System'
-    );
-  }
 
   /**
    * Tests set with a synchronized service.
@@ -40,6 +28,9 @@ class ContainerBuilderTest extends UnitTestCase {
       ->setSynchronized(TRUE);
     $container->register('bar', 'BarClass')
       ->addMethodCall('setBaz', array(new Reference('baz')));
+
+    // Ensure that we can set services on a compiled container.
+    $container->compile();
 
     $container->set('baz', $baz = new \BazClass());
     $this->assertSame($baz, $container->get('bar')->getBaz());

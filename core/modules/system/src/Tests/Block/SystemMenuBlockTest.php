@@ -8,8 +8,9 @@ namespace Drupal\system\Tests\Block;
 use Drupal\simpletest\DrupalUnitTestBase;
 
 /**
- * Tests \Drupal\system\Plugin\Block\SystemMenuBlock
+ * Tests \Drupal\system\Plugin\Block\SystemMenuBlock.
  *
+ * @group Block
  * @todo Expand test coverage to all SystemMenuBlock functionality, including
  *   block_menu_delete().
  *
@@ -25,21 +26,13 @@ class SystemMenuBlockTest extends DrupalUnitTestBase {
    */
   public static $modules = array('system', 'menu_link', 'block');
 
-  public static function getInfo() {
-    return array(
-      'name' => 'System menu block test',
-      'description' => 'Tests \Drupal\system\Plugin\Block\SystemMenuBlock.',
-      'group' => 'System blocks',
-    );
-  }
-
   /**
    * Tests calculation of a system menu block's configuration dependencies.
    */
   public function testSystemMenuBlockConfigDependencies() {
     // Add a new custom menu.
-    $menu_name = $this->randomName(16);
-    $label = $this->randomName(16);
+    $menu_name = $this->randomMachineName(16);
+    $label = $this->randomMachineName(16);
 
     $menu = entity_create('menu', array(
       'id' => $menu_name,

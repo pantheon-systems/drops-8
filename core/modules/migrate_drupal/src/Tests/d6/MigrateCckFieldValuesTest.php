@@ -8,9 +8,12 @@
 namespace Drupal\migrate_drupal\Tests\d6;
 
 use Drupal\migrate\MigrateExecutable;
+use Drupal\node\Entity\Node;
 
 /**
- * Test cck field migration from Drupal 6 to 8.
+ * CCK field content migration.
+ *
+ * @group migrate_drupal
  */
 class MigrateCckFieldValuesTest extends MigrateNodeTestBase {
 
@@ -24,20 +27,9 @@ class MigrateCckFieldValuesTest extends MigrateNodeTestBase {
   /**
    * {@inheritdoc}
    */
-  public static function getInfo() {
-    return array(
-      'name'  => 'Migrate CCK fields',
-      'description'  => 'CCK field content migration',
-      'group' => 'Migrate Drupal',
-    );
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   protected function setUp() {
     parent::setUp();
-    entity_create('field_config', array(
+    entity_create('field_storage_config', array(
       'entity_type' => 'node',
       'name' => 'field_test',
       'type' => 'text',
@@ -47,7 +39,7 @@ class MigrateCckFieldValuesTest extends MigrateNodeTestBase {
       'field_name' => 'field_test',
       'bundle' => 'story',
     ))->save();
-    entity_create('field_config', array(
+    entity_create('field_storage_config', array(
       'entity_type' => 'node',
       'name' => 'field_test_two',
       'type' => 'integer',
@@ -58,7 +50,7 @@ class MigrateCckFieldValuesTest extends MigrateNodeTestBase {
       'field_name' => 'field_test_two',
       'bundle' => 'story',
     ))->save();
-    entity_create('field_config', array(
+    entity_create('field_storage_config', array(
       'entity_type' => 'node',
       'name' => 'field_test_three',
       'type' => 'decimal',
@@ -66,6 +58,16 @@ class MigrateCckFieldValuesTest extends MigrateNodeTestBase {
     entity_create('field_instance_config', array(
       'entity_type' => 'node',
       'field_name' => 'field_test_three',
+      'bundle' => 'story',
+    ))->save();
+    entity_create('field_storage_config', array(
+      'entity_type' => 'node',
+      'name' => 'field_test_integer_selectlist',
+      'type' => 'integer',
+    ))->save();
+    entity_create('field_instance_config', array(
+      'entity_type' => 'node',
+      'field_name' => 'field_test_integer_selectlist',
       'bundle' => 'story',
     ))->save();
 
@@ -96,12 +98,13 @@ class MigrateCckFieldValuesTest extends MigrateNodeTestBase {
    * Test CCK migration from Drupal 6 to 8.
    */
   public function testCckFields() {
-    $node = node_load(1);
+    $node = Node::load(1);
     $this->assertEqual($node->field_test->value, 'This is a shared text field', "Shared field storage field is correct.");
     $this->assertEqual($node->field_test->format, 1, "Shared field storage field with multiple columns is correct.");
     $this->assertEqual($node->field_test_two->value, 10, 'Multi field storage field is correct');
     $this->assertEqual($node->field_test_two[1]->value, 20, 'Multi field second value is correct.');
     $this->assertEqual($node->field_test_three->value, '42.42', 'Single field second value is correct.');
+    $this->assertEqual($node->field_test_integer_selectlist[0]->value, '3412', 'Integer select list value is correct');
   }
 
 }

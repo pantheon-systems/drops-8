@@ -15,8 +15,7 @@ use Drupal\Core\Language\Language;
 
 /**
  * @coversDefaultClass \Drupal\Core\Entity\ContentEntityBase
- *
- * @group Drupal
+ * @group Entity
  */
 class ContentEntityBaseUnitTest extends UnitTestCase {
 
@@ -100,17 +99,6 @@ class ContentEntityBaseUnitTest extends UnitTestCase {
   /**
    * {@inheritdoc}
    */
-  public static function getInfo() {
-    return array(
-      'description' => '',
-      'name' => '\Drupal\Core\Entity\ContentEntityBase unit test',
-      'group' => 'Entity',
-    );
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function setUp() {
     $this->id = 1;
     $values = array(
@@ -118,8 +106,8 @@ class ContentEntityBaseUnitTest extends UnitTestCase {
       'langcode' => 'en',
       'uuid' => '3bb9ee60-bea5-4622-b89b-a63319d10b3a',
     );
-    $this->entityTypeId = $this->randomName();
-    $this->bundle = $this->randomName();
+    $this->entityTypeId = $this->randomMachineName();
+    $this->bundle = $this->randomMachineName();
 
     $this->entityType = $this->getMock('\Drupal\Core\Entity\EntityTypeInterface');
     $this->entityType->expects($this->any())
@@ -276,14 +264,15 @@ class ContentEntityBaseUnitTest extends UnitTestCase {
     // This method is internal, so check for errors on calling it only.
     $storage = $this->getMock('\Drupal\Core\Entity\EntityStorageInterface');
     $record = new \stdClass();
-    $this->entity->preSaveRevision($storage, $record);
+    // Our mocked entity->preSaveRevision() returns NULL, so assert that.
+    $this->assertNull($this->entity->preSaveRevision($storage, $record));
   }
 
   /**
    * @covers ::getString
    */
   public function testGetString() {
-    $label = $this->randomName();
+    $label = $this->randomMachineName();
     /** @var \Drupal\Core\Entity\ContentEntityBase|\PHPUnit_Framework_MockObject_MockObject $entity */
     $entity = $this->getMockBuilder('\Drupal\Core\Entity\ContentEntityBase')
       ->setMethods(array('label'))
@@ -362,9 +351,10 @@ class ContentEntityBaseUnitTest extends UnitTestCase {
    * @covers ::setContext
    */
   public function testSetContext() {
-    $name = $this->randomName();
+    $name = $this->randomMachineName();
     $parent = $this->getMock('\Drupal\Core\TypedData\TypedDataInterface');
-    $this->entity->setContext($name, $parent);
+    // Our mocked entity->setContext() returns NULL, so assert that.
+    $this->assertNull($this->entity->setContext($name, $parent));
   }
 
   /**
@@ -379,7 +369,7 @@ class ContentEntityBaseUnitTest extends UnitTestCase {
    */
   public function testAccess() {
     $access = $this->getMock('\Drupal\Core\Entity\EntityAccessControllerInterface');
-    $operation = $this->randomName();
+    $operation = $this->randomMachineName();
     $access->expects($this->at(0))
       ->method('access')
       ->with($this->entity, $operation)
@@ -401,7 +391,7 @@ class ContentEntityBaseUnitTest extends UnitTestCase {
     // Make a mock with one method that we use as the entity's label callback.
     // We check that it is called, and that the entity's label is the callback's
     // return value.
-    $callback_label = $this->randomName();
+    $callback_label = $this->randomMachineName();
     $callback_container = $this->getMock(get_class());
     $callback_container->expects($this->once())
       ->method(__FUNCTION__)

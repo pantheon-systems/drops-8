@@ -11,7 +11,9 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\simpletest\DrupalUnitTestBase;
 
 /**
- * Unit tests for configuration controllers and objects.
+ * Unit tests for configuration entity base methods.
+ *
+ * @group config
  */
 class ConfigEntityUnitTest extends DrupalUnitTestBase {
 
@@ -29,14 +31,6 @@ class ConfigEntityUnitTest extends DrupalUnitTestBase {
    */
   protected $storage;
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Configuration entity methods',
-      'description' => 'Unit tests for configuration entity base methods.',
-      'group' => 'Configuration',
-    );
-  }
-
   /**
    * {@inheritdoc}
    */
@@ -51,9 +45,6 @@ class ConfigEntityUnitTest extends DrupalUnitTestBase {
   public function testStorageMethods() {
     $entity_type = \Drupal::entityManager()->getDefinition('config_test');
 
-    $expected = $entity_type->getConfigPrefix() . '.';
-    $this->assertIdentical($this->storage->getConfigPrefix(), $expected);
-
     // Test the static extractID() method.
     $expected_id = 'test_id';
     $config_name = $entity_type->getConfigPrefix() . '.' . $expected_id;
@@ -61,20 +52,20 @@ class ConfigEntityUnitTest extends DrupalUnitTestBase {
     $this->assertIdentical($storage::getIDFromConfigName($config_name, $entity_type->getConfigPrefix()), $expected_id);
 
     // Create three entities, two with the same style.
-    $style = $this->randomName(8);
+    $style = $this->randomMachineName(8);
     for ($i = 0; $i < 2; $i++) {
       $entity = $this->storage->create(array(
-        'id' => $this->randomName(),
+        'id' => $this->randomMachineName(),
         'label' => $this->randomString(),
         'style' => $style,
       ));
       $entity->save();
     }
     $entity = $this->storage->create(array(
-      'id' => $this->randomName(),
+      'id' => $this->randomMachineName(),
       'label' => $this->randomString(),
       // Use a different length for the entity to ensure uniqueness.
-      'style' => $this->randomName(9),
+      'style' => $this->randomMachineName(9),
     ));
     $entity->save();
 

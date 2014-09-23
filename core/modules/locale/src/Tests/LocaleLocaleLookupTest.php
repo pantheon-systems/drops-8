@@ -12,6 +12,8 @@ use Drupal\simpletest\WebTestBase;
 
 /**
  * Tests that LocaleLookup does not cause circular references.
+ *
+ * @group locale
  */
 class LocaleLocaleLookupTest extends WebTestBase {
 
@@ -20,18 +22,7 @@ class LocaleLocaleLookupTest extends WebTestBase {
    *
    * @var array
    */
-  public static $modules = array('locale', 'menu_link');
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'name' => 'Test LocaleLookup',
-      'description' => 'Tests LocaleLookup does not cause circular references.',
-      'group' => 'Locale',
-    );
-  }
+  public static $modules = array('locale');
 
   /**
    * Tests hasTranslation().
@@ -41,7 +32,7 @@ class LocaleLocaleLookupTest extends WebTestBase {
     $new_language_default = new Language(array(
       'id' => 'fr',
       'name' => 'French',
-      'direction' => 0,
+      'direction' => LANGUAGE::DIRECTION_LTR,
       'weight' => 0,
       'method_id' => 'language-default',
       'default' => TRUE,

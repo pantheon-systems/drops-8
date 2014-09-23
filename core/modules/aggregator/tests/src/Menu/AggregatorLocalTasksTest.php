@@ -12,18 +12,9 @@ use Drupal\Tests\Core\Menu\LocalTaskIntegrationTest;
 /**
  * Tests existence of aggregator local tasks.
  *
- * @group Drupal
- * @group Aggregator
+ * @group aggregator
  */
 class AggregatorLocalTasksTest extends LocalTaskIntegrationTest {
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Aggregator local tasks test',
-      'description' => 'Test existence of aggregator local tasks.',
-      'group' => 'Aggregator',
-    );
-  }
 
   public function setUp() {
     $this->directoryList = array('aggregator' => 'core/modules/aggregator');
@@ -58,7 +49,7 @@ class AggregatorLocalTasksTest extends LocalTaskIntegrationTest {
    */
   public function testAggregatorSourceLocalTasks($route) {
     $this->assertLocalTasks($route, array(
-      0 => array('aggregator.feed_view', 'aggregator.feed_configure'),
+      0 => array('entity.aggregator_feed.canonical', 'entity.aggregator_feed.edit_form'),
     ));
     ;
   }
@@ -68,8 +59,8 @@ class AggregatorLocalTasksTest extends LocalTaskIntegrationTest {
    */
   public function getAggregatorSourceRoutes() {
     return array(
-      array('aggregator.feed_view'),
-      array('aggregator.feed_configure'),
+      array('entity.aggregator_feed.canonical'),
+      array('entity.aggregator_feed.edit_form'),
     );
   }
 

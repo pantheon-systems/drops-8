@@ -10,7 +10,9 @@ namespace Drupal\block\Tests;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Test blocks correctly initialized when picking a new default theme.
+ * Tests that the new default theme gets blocks.
+ *
+ * @group block
  */
 class NewDefaultThemeBlocksTest extends WebTestBase {
 
@@ -21,14 +23,6 @@ class NewDefaultThemeBlocksTest extends WebTestBase {
    */
   public static $modules = array('block');
 
-  public static function getInfo() {
-    return array(
-      'name' => 'New default theme blocks',
-      'description' => 'Checks that the new default theme gets blocks.',
-      'group' => 'Block',
-    );
-  }
-
   /**
    * Check the enabled Bartik blocks are correctly copied over.
    */
@@ -37,15 +31,15 @@ class NewDefaultThemeBlocksTest extends WebTestBase {
 
     // Add two instances of the user login block.
     $this->drupalPlaceBlock('user_login_block', array(
-      'id' => $default_theme . '_' . strtolower($this->randomName(8)),
+      'id' => $default_theme . '_' . strtolower($this->randomMachineName(8)),
     ));
     $this->drupalPlaceBlock('user_login_block', array(
-      'id' => $default_theme . '_' . strtolower($this->randomName(8)),
+      'id' => $default_theme . '_' . strtolower($this->randomMachineName(8)),
     ));
 
     // Add an instance of a different block.
     $this->drupalPlaceBlock('system_powered_by_block', array(
-      'id' => $default_theme . '_' . strtolower($this->randomName(8)),
+      'id' => $default_theme . '_' . strtolower($this->randomMachineName(8)),
     ));
 
     // Enable a different theme.

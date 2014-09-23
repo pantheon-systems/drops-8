@@ -10,7 +10,9 @@ namespace Drupal\system\Tests\Form;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Tests rebuilding of arbitrary forms by altering them.
+ * Tests altering forms to be rebuilt so there are multiple steps.
+ *
+ * @group Form
  */
 class ArbitraryRebuildTest extends WebTestBase {
 
@@ -21,19 +23,11 @@ class ArbitraryRebuildTest extends WebTestBase {
    */
   public static $modules = array('text', 'form_test');
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Rebuild arbitrary forms',
-      'description' => 'Tests altering forms to be rebuilt so there are multiple steps.',
-      'group' => 'Form API',
-    );
-  }
-
   function setUp() {
     parent::setUp();
 
     // Auto-create a field for testing.
-    entity_create('field_config', array(
+    entity_create('field_storage_config', array(
       'name' => 'test_multiple',
       'entity_type' => 'user',
       'type' => 'text',

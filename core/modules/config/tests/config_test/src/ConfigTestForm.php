@@ -8,6 +8,7 @@
 namespace Drupal\config_test;
 
 use Drupal\Core\Entity\EntityForm;
+use Drupal\Core\Form\FormStateInterface;
 
 /**
  * Form controller for the test config edit forms.
@@ -15,9 +16,9 @@ use Drupal\Core\Entity\EntityForm;
 class ConfigTestForm extends EntityForm {
 
   /**
-   * Overrides Drupal\Core\Entity\EntityForm::form().
+   * {@inheritdoc}
    */
-  public function form(array $form, array &$form_state) {
+  public function form(array $form, FormStateInterface $form_state) {
     $form = parent::form($form, $form_state);
 
     $entity = $this->entity;
@@ -67,9 +68,9 @@ class ConfigTestForm extends EntityForm {
   }
 
   /**
-   * Overrides Drupal\Core\Entity\EntityForm::save().
+   * {@inheritdoc}
    */
-  public function save(array $form, array &$form_state) {
+  public function save(array $form, FormStateInterface $form_state) {
     $entity = $this->entity;
     $status = $entity->save();
 
@@ -80,7 +81,7 @@ class ConfigTestForm extends EntityForm {
       drupal_set_message(format_string('%label configuration has been created.', array('%label' => $entity->label())));
     }
 
-    $form_state['redirect_route']['route_name'] = 'config_test.list_page';
+    $form_state->setRedirect('config_test.list_page');
   }
 
 }

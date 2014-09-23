@@ -7,6 +7,7 @@
 
 namespace Drupal\views\Tests\Plugin;
 
+use Drupal\Core\Session\AnonymousUserSession;
 use Drupal\views\Views;
 use Drupal\views\Tests\ViewUnitTestBase;
 use Symfony\Component\HttpFoundation\Request;
@@ -15,6 +16,7 @@ use Symfony\Component\HttpKernel\HttpKernelInterface;
 /**
  * Tests the page display plugin.
  *
+ * @group views
  * @see \Drupal\views\Plugin\display\Page
  */
 class DisplayPageTest extends ViewUnitTestBase {
@@ -31,7 +33,7 @@ class DisplayPageTest extends ViewUnitTestBase {
    *
    * @var array
    */
-  public static $modules = array('system', 'user', 'menu_link', 'field', 'entity');
+  public static $modules = array('system', 'user', 'field', 'entity');
 
   /**
    * The router dumper to get all routes.
@@ -39,14 +41,6 @@ class DisplayPageTest extends ViewUnitTestBase {
    * @var \Drupal\Core\Routing\MatcherDumper
    */
   protected $routerDumper;
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Display: Page plugin',
-      'description' => 'Tests the page display plugin.',
-      'group' => 'Views Plugins',
-    );
-  }
 
   /**
    * {@inheritdoc}
@@ -56,13 +50,13 @@ class DisplayPageTest extends ViewUnitTestBase {
 
     // Setup the needed tables in order to make the drupal router working.
     $this->installSchema('system', array('url_alias'));
-    $this->installSchema('menu_link', 'menu_links');
   }
 
   /**
    * Checks the behavior of the page for access denied/not found behaviors.
    */
   public function testPageResponses() {
+    \Drupal::currentUser()->setAccount(new AnonymousUserSession());
     $subrequest = Request::create('/test_page_display_403', 'GET');
     $response = $this->container->get('http_kernel')->handle($subrequest, HttpKernelInterface::SUB_REQUEST);
     $this->assertEqual($response->getStatusCode(), 403);
@@ -76,7 +70,7 @@ class DisplayPageTest extends ViewUnitTestBase {
     $this->assertEqual($response->getStatusCode(), 200);
 
     $subrequest = Request::create('/test_page_display_200', 'GET');
-    \Drupal::getContainer()->set('request', $subrequest);
+    \Drupal::getContainer()->get('request_stack')->push($subrequest);
 
     // Test accessing a disabled page for a view.
     $view = Views::getView('test_page_display');

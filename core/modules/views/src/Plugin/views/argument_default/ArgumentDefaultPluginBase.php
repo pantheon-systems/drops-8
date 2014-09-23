@@ -7,6 +7,7 @@
 
 namespace Drupal\views\Plugin\views\argument_default;
 
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\views\ViewExecutable;
 use Drupal\views\Plugin\views\argument\ArgumentPluginBase;
 use Drupal\views\Plugin\views\PluginBase;
@@ -16,13 +17,13 @@ use Drupal\views\Plugin\views\PluginBase;
  * @{
  * Plugins for argument defaults in Views.
  *
- * Argument default plugins provide default values for contextual filters.
- * This is useful for blocks and other display types lacking a natural argument
+ * Argument default plugins provide default values for contextual filters. This
+ * can be useful for blocks and other display types lacking a natural argument
  * input. Examples are plugins to extract node and user IDs from the URL.
  *
  * Argument default plugins extend
  * \Drupal\views\Plugin\views\argument_default\ArgumentDefaultPluginBase. They
- * must be annotated with \Drupal\Views\Annotation\ViewsArgumentDefault
+ * must be annotated with \Drupal\views\Annotation\ViewsArgumentDefault
  * annotation, and they must be in namespace directory
  * Plugin\views\argument_default.
  *
@@ -68,17 +69,17 @@ abstract class ArgumentDefaultPluginBase extends PluginBase {
   /**
    * Provide the default form for setting options.
    */
-  public function buildOptionsForm(&$form, &$form_state) { }
+  public function buildOptionsForm(&$form, FormStateInterface $form_state) { }
 
   /**
    * Provide the default form form for validating options
    */
-  public function validateOptionsForm(&$form, &$form_state) { }
+  public function validateOptionsForm(&$form, FormStateInterface $form_state) { }
 
   /**
    * Provide the default form form for submitting options
    */
-  public function submitOptionsForm(&$form, &$form_state, &$options = array()) { }
+  public function submitOptionsForm(&$form, FormStateInterface $form_state, &$options = array()) { }
 
   /**
    * Determine if the administrator has the privileges to use this

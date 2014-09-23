@@ -13,8 +13,6 @@ use Drupal\Tests\UnitTestCase;
 
 /**
  * @coversDefaultClass \Drupal\Core\Language\Language
- *
- * @group Drupal
  * @group Language
  */
 class LanguageUnitTest extends UnitTestCase {
@@ -25,17 +23,6 @@ class LanguageUnitTest extends UnitTestCase {
    * @var \Drupal\Core\Language\Language
    */
   protected $language;
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'description' => '',
-      'name' => '\Drupal\Core\Language\Language unit test',
-      'group' => 'System',
-    );
-  }
 
   /**
    * {@inheritdoc}
@@ -51,7 +38,7 @@ class LanguageUnitTest extends UnitTestCase {
    * @covers ::setName()
    */
   public function testGetName() {
-    $name = $this->randomName();
+    $name = $this->randomMachineName();
     $this->assertSame($this->language, $this->language->setName($name));
     $this->assertSame($name, $this->language->getName());
   }
@@ -63,7 +50,7 @@ class LanguageUnitTest extends UnitTestCase {
    * @covers ::setId()
    */
   public function testGetLangcode() {
-    $language_code = $this->randomName(2);
+    $language_code = $this->randomMachineName(2);
     $this->assertSame($this->language, $this->language->setId($language_code));
     $this->assertSame($language_code, $this->language->getId());
   }
@@ -99,9 +86,98 @@ class LanguageUnitTest extends UnitTestCase {
    * @covers ::setNegotiationMethodId()
    */
   public function testGetNegotiationMethodId() {
-    $method_id = $this->randomName();
+    $method_id = $this->randomMachineName();
     $this->assertSame($this->language, $this->language->setNegotiationMethodId($method_id));
     $this->assertSame($method_id, $this->language->getNegotiationMethodId());
+  }
+
+  /**
+   * Tests sorting an array of Language objects.
+   *
+   * @covers ::sort()
+   *
+   * @dataProvider providerTestSortArrayOfLanguages
+   *
+   * @param \Drupal\Core\Language\Language[] $languages
+   *   An array of \Drupal\Core\Language\Language objects.
+   * @param array $expected
+   *   The expected array of keys.
+   */
+  public function testSortArrayOfLanguages(array $languages, array $expected) {
+    Language::sort($languages);
+    $this->assertSame($expected, array_keys($languages));
+  }
+
+  /**
+   * Provides data for testSortArrayOfLanguages.
+   *
+   * @return array
+   *   An array of test data.
+   */
+  public function providerTestSortArrayOfLanguages() {
+    $language9A = new Language();
+    $language9A->setName('A');
+    $language9A->setWeight(9);
+    $language9A->setId('dd');
+
+    $language10A = new Language();
+    $language10A->setName('A');
+    $language10A->setWeight(10);
+    $language10A->setId('ee');
+
+    $language10B = new Language();
+    $language10B->setName('B');
+    $language10B->setWeight(10);
+    $language10B->setId('ff');
+
+    return array(
+      // Set up data set #0, already ordered by weight.
+      array(
+        // Set the data.
+        array(
+          $language9A->getId() => $language9A,
+          $language10B->getId() => $language10B,
+        ),
+        // Set the expected key order.
+        array(
+          $language9A->getId(),
+          $language10B->getId(),
+        ),
+      ),
+      // Set up data set #1, out of order by weight.
+      array(
+        array(
+          $language10B->getId() => $language10B,
+          $language9A->getId() => $language9A,
+        ),
+        array(
+          $language9A->getId(),
+          $language10B->getId(),
+        ),
+      ),
+      // Set up data set #2, tied by weight, already ordered by name.
+      array(
+        array(
+          $language10A->getId() => $language10A,
+          $language10B->getId() => $language10B,
+        ),
+        array(
+          $language10A->getId(),
+          $language10B->getId(),
+        ),
+      ),
+      // Set up data set #3, tied by weight, out of order by name.
+      array(
+        array(
+          $language10B->getId() => $language10B,
+          $language10A->getId() => $language10A,
+        ),
+        array(
+          $language10A->getId(),
+          $language10B->getId(),
+        ),
+      ),
+    );
   }
 
 }

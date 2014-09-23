@@ -7,6 +7,7 @@
 
 namespace Drupal\comment\Plugin\views\row;
 
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\views\Plugin\views\row\RowPluginBase;
 
 /**
@@ -30,20 +31,20 @@ class Rss extends RowPluginBase {
   protected function defineOptions() {
     $options = parent::defineOptions();
 
-    $options['item_length'] = array('default' => 'default');
+    $options['view_mode'] = array('default' => 'default');
     $options['links'] = array('default' => FALSE, 'bool' => TRUE);
 
     return $options;
   }
 
-  public function buildOptionsForm(&$form, &$form_state) {
+  public function buildOptionsForm(&$form, FormStateInterface $form_state) {
     parent::buildOptionsForm($form, $form_state);
 
-    $form['item_length'] = array(
+    $form['view_mode'] = array(
       '#type' => 'select',
       '#title' => t('Display type'),
       '#options' => $this->options_form_summary_options(),
-      '#default_value' => $this->options['item_length'],
+      '#default_value' => $this->options['view_mode'],
     );
     $form['links'] = array(
       '#type' => 'checkbox',
@@ -92,9 +93,9 @@ class Rss extends RowPluginBase {
       return;
     }
 
-    $item_length = $this->options['item_length'];
-    if ($item_length == 'default') {
-      $item_length = \Drupal::config('system.rss')->get('items.view_mode');
+    $view_mode = $this->options['view_mode'];
+    if ($view_mode == 'default') {
+      $view_mode = \Drupal::config('system.rss')->get('items.view_mode');
     }
 
     // Load the specified comment and its associated node:
@@ -138,7 +139,7 @@ class Rss extends RowPluginBase {
       hide($build['links']);
     }
 
-    if ($item_length != 'title') {
+    if ($view_mode != 'title') {
       // We render comment contents and force links to be last.
       $build['links']['#weight'] = 1000;
       $item_text .= drupal_render($build);

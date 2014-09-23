@@ -12,11 +12,8 @@ use Drupal\Tests\UnitTestCase;
 use Drupal\views\ViewsData;
 
 /**
- * Tests the fetching of views data.
- *
- * @see hook_views_data
- *
  * @coversDefaultClass \Drupal\views\ViewsData
+ * @group views
  */
 class ViewsDataTest extends UnitTestCase {
 
@@ -54,17 +51,6 @@ class ViewsDataTest extends UnitTestCase {
    * @var \Drupal\views\ViewsData
    */
   protected $viewsData;
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'name' => 'Views data',
-      'description' => 'Tests the fetching of views data.',
-      'group' => 'Views',
-    );
-  }
 
   /**
    * {@inheritdoc}
@@ -193,7 +179,7 @@ class ViewsDataTest extends UnitTestCase {
     $expected_views_data = $this->viewsData();
     $table_name = 'views_test_data';
     $table_name_2 = 'views_test_data_2';
-    $random_table_name = $this->randomName();
+    $random_table_name = $this->randomMachineName();
 
     // Views data should be invoked twice due to the clear call.
     $this->moduleHandler->expects($this->exactly(2))
@@ -332,7 +318,7 @@ class ViewsDataTest extends UnitTestCase {
    * Tests building the views data with a non existing table.
    */
   public function testNonExistingTableGetCache() {
-    $random_table_name = $this->randomName();
+    $random_table_name = $this->randomMachineName();
     $expected_views_data = $this->viewsData();
 
     // Views data should be invoked once.
@@ -471,7 +457,7 @@ class ViewsDataTest extends UnitTestCase {
    */
   public function testCacheCallsWithWarmCacheAndInvalidTable() {
     $expected_views_data = $this->viewsData();
-    $non_existing_table = $this->randomName();
+    $non_existing_table = $this->randomMachineName();
     $this->moduleHandler->expects($this->never())
       ->method('invokeAll');
 
@@ -507,7 +493,7 @@ class ViewsDataTest extends UnitTestCase {
    *   - $non_existing_table
    */
   public function testCacheCallsWithWarmCacheForInvalidTable() {
-    $non_existing_table = $this->randomName();
+    $non_existing_table = $this->randomMachineName();
     $this->moduleHandler->expects($this->never())
       ->method('invokeAll');
 

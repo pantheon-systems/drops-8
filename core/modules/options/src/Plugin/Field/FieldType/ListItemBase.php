@@ -8,6 +8,7 @@
 namespace Drupal\options\Plugin\Field\FieldType;
 
 use Drupal\Core\Field\FieldItemBase;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Form\OptGroup;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\TypedData\AllowedValuesInterface;
@@ -72,7 +73,7 @@ abstract class ListItemBase extends FieldItemBase implements AllowedValuesInterf
   /**
    * {@inheritdoc}
    */
-  public function settingsForm(array &$form, array &$form_state, $has_data) {
+  public function settingsForm(array &$form, FormStateInterface $form_state, $has_data) {
     $allowed_values = $this->getSetting('allowed_values');
     $allowed_values_function = $this->getSetting('allowed_values_function');
 
@@ -117,21 +118,21 @@ abstract class ListItemBase extends FieldItemBase implements AllowedValuesInterf
    *   An associative array containing the properties and children of the
    *   generic form element.
    * @param $form_state
-   *   The $form_state array for the form this element belongs to.
+   *   The current state of the form for the form this element belongs to.
    *
    * @see form_process_pattern()
    */
-  public static function validateAllowedValues($element, &$form_state) {
+  public static function validateAllowedValues($element, FormStateInterface $form_state) {
     $values = static::extractAllowedValues($element['#value'], $element['#field_has_data']);
 
     if (!is_array($values)) {
-      \Drupal::formBuilder()->setError($element, $form_state, t('Allowed values list: invalid input.'));
+      $form_state->setError($element, t('Allowed values list: invalid input.'));
     }
     else {
       // Check that keys are valid for the field type.
       foreach ($values as $key => $value) {
         if ($error = static::validateAllowedValue($key)) {
-          \Drupal::formBuilder()->setError($element, $form_state, $error);
+          $form_state->setError($element, $error);
           break;
         }
       }
@@ -140,11 +141,11 @@ abstract class ListItemBase extends FieldItemBase implements AllowedValuesInterf
       if ($element['#field_has_data']) {
         $lost_keys = array_diff(array_keys($element['#allowed_values']), array_keys($values));
         if (_options_values_in_use($element['#entity_type'], $element['#field_name'], $lost_keys)) {
-          \Drupal::formBuilder()->setError($element, $form_state, t('Allowed values list: some values are being removed while currently in use.'));
+          $form_state->setError($element, t('Allowed values list: some values are being removed while currently in use.'));
         }
       }
 
-      \Drupal::formBuilder()->setValue($element, $values, $form_state);
+      $form_state->setValueForElement($element, $values);
     }
   }
 
@@ -235,6 +236,78 @@ abstract class ListItemBase extends FieldItemBase implements AllowedValuesInterf
       $lines[] = "$key|$value";
     }
     return implode("\n", $lines);
+  }
+
+  /**
+   * @inheritdoc.
+   */
+  public static function settingsToConfigData(array $settings) {
+    if (isset($settings['allowed_values'])) {
+      $settings['allowed_values'] = static::structureAllowedValues($settings['allowed_values']);
+    }
+    return $settings;
+  }
+
+  /**
+   * @inheritdoc.
+   */
+  public static function settingsFromConfigData(array $settings) {
+    if (isset($settings['allowed_values'])) {
+      $settings['allowed_values'] = static::simplifyAllowedValues($settings['allowed_values']);
+    }
+    return $settings;
+  }
+
+  /**
+   * Simplifies allowed values to a key-value array from the structured array.
+   *
+   * @param array $structured_values
+   *   Array of items with a 'value' and 'label' key each for the allowed
+   *   values.
+   *
+   * @return array
+   *   Allowed values were the array key is the 'value' value, the value is
+   *   the 'label' value.
+   *
+   * @see Drupal\options\Plugin\Field\FieldType\ListItemBase::structureAllowedValues()
+   */
+  protected static function simplifyAllowedValues(array $structured_values) {
+    $values = array();
+    foreach ($structured_values as $item) {
+      if (is_array($item['label'])) {
+        // Nested elements are embedded in the label.
+        $item['label'] = static::simplifyAllowedValues($item['label']);
+      }
+      $values[$item['value']] = $item['label'];
+    }
+    return $values;
+  }
+
+  /**
+   * Creates a structured array of allowed values from a key-value array.
+   *
+   * @param array $values
+   *   Allowed values were the array key is the 'value' value, the value is
+   *   the 'label' value.
+   *
+   * @return array
+   *   Array of items with a 'value' and 'label' key each for the allowed
+   *   values.
+   *
+   * @see Drupal\options\Plugin\Field\FieldType\ListItemBase::simplifyAllowedValues()
+   */
+  protected static function structureAllowedValues(array $values) {
+    $structured_values = array();
+    foreach ($values as $value => $label) {
+      if (is_array($label)) {
+        $label = static::structureAllowedValues($label);
+      }
+      $structured_values[] = array(
+        'value' => $value,
+        'label' => $label,
+      );
+    }
+    return $structured_values;
   }
 
 }

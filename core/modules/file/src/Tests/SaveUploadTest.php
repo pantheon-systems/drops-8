@@ -8,7 +8,9 @@
 namespace Drupal\file\Tests;
 
 /**
- * Test the file_save_upload() function.
+ * Tests the file_save_upload() function.
+ *
+ * @group file
  */
 class SaveUploadTest extends FileManagedTestBase {
   /**
@@ -25,14 +27,6 @@ class SaveUploadTest extends FileManagedTestBase {
    * The largest file id when the test starts.
    */
   protected $maxFidBefore;
-
-  public static function getInfo() {
-    return array(
-      'name' => 'File uploading',
-      'description' => 'Tests the file uploading functions.',
-      'group' => 'File Managed API',
-    );
-  }
 
   function setUp() {
     parent::setUp();
@@ -103,7 +97,7 @@ class SaveUploadTest extends FileManagedTestBase {
     // Upload a third file to a subdirectory.
     $image3 = current($this->drupalGetTestFiles('image'));
     $image3_realpath = drupal_realpath($image3->uri);
-    $dir = $this->randomName();
+    $dir = $this->randomMachineName();
     $edit = array(
       'files[file_test_upload]' => $image3_realpath,
       'file_subdir' => $dir,

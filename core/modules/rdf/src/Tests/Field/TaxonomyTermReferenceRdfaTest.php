@@ -13,6 +13,8 @@ use Drupal\Core\Language\LanguageInterface;
 
 /**
  * Tests the RDFa output of the taxonomy term reference field formatter.
+ *
+ * @group rdf
  */
 class TaxonomyTermReferenceRdfaTest extends FieldRdfaTestBase {
 
@@ -40,27 +42,19 @@ class TaxonomyTermReferenceRdfaTest extends FieldRdfaTestBase {
    */
   public static $modules = array('taxonomy', 'options', 'text', 'filter');
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Field formatter: taxonomy term reference',
-      'description' => 'Tests RDFa output by taxonomy term reference field formatters.',
-      'group' => 'RDF',
-    );
-  }
-
   public function setUp() {
     parent::setUp();
 
     $this->installEntitySchema('taxonomy_term');
 
     $vocabulary = entity_create('taxonomy_vocabulary', array(
-      'name' => $this->randomName(),
-      'vid' => drupal_strtolower($this->randomName()),
+      'name' => $this->randomMachineName(),
+      'vid' => drupal_strtolower($this->randomMachineName()),
       'langcode' => LanguageInterface::LANGCODE_NOT_SPECIFIED,
     ));
     $vocabulary->save();
 
-    entity_create('field_config', array(
+    entity_create('field_storage_config', array(
       'name' => $this->fieldName,
       'entity_type' => 'entity_test',
       'type' => 'taxonomy_term_reference',
@@ -81,7 +75,7 @@ class TaxonomyTermReferenceRdfaTest extends FieldRdfaTestBase {
     ))->save();
 
     $this->term = entity_create('taxonomy_term', array(
-      'name' => $this->randomName(),
+      'name' => $this->randomMachineName(),
       'vid' => $vocabulary->id(),
       'langcode' => LanguageInterface::LANGCODE_NOT_SPECIFIED,
     ));

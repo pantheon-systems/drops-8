@@ -7,12 +7,15 @@
 
 namespace Drupal\Core\EventSubscriber;
 
+use Drupal\Component\Datetime\DateTimePlus;
 use Drupal\Core\Config\Config;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Language\LanguageManager;
 use Drupal\Core\Site\Settings;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\HttpKernel\Event\FilterResponseEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
@@ -93,8 +96,12 @@ class FinishResponseSubscriber implements EventSubscriberInterface {
       $this->setResponseNotCacheable($response, $request);
     }
 
-    // Store the response in the internal page cache.
-    if ($is_cacheable && $this->config->get('cache.page.use_internal')) {
+    // Currently it is not possible to cache some types of responses. Therefore
+    // exclude binary file responses (generated files, e.g. images with image
+    // styles) and streamed responses (files directly read from the disk).
+    // see: https://github.com/symfony/symfony/issues/9128#issuecomment-25088678
+    if ($is_cacheable && $this->config->get('cache.page.use_internal') && !($response instanceof BinaryFileResponse) && !($response instanceof StreamedResponse)) {
+      // Store the response in the internal page cache.
       drupal_page_set_cache($response, $request);
       $response->headers->set('X-Drupal-Cache', 'MISS');
       drupal_serve_page_from_cache($response, $request);
@@ -173,7 +180,7 @@ class FinishResponseSubscriber implements EventSubscriberInterface {
     // Last-Modified and an ETag header on the response.
     if (!$response->headers->has('Last-Modified')) {
       $timestamp = REQUEST_TIME;
-      $response->setLastModified(new \DateTime(gmdate(DATE_RFC1123, REQUEST_TIME)));
+      $response->setLastModified(new \DateTime(gmdate(DateTimePlus::RFC7231, REQUEST_TIME)));
     }
     else {
       $timestamp = $response->getLastModified()->getTimestamp();

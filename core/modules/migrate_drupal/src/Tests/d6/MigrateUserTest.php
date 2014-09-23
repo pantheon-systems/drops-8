@@ -12,7 +12,9 @@ use Drupal\migrate\MigrateExecutable;
 use Drupal\migrate_drupal\Tests\MigrateDrupalTestBase;
 
 /**
- * Tests the Drupal6 user to Drupal 8 migration.
+ * Users migration.
+ *
+ * @group migrate_drupal
  */
 class MigrateUserTest extends MigrateDrupalTestBase {
 
@@ -33,21 +35,10 @@ class MigrateUserTest extends MigrateDrupalTestBase {
   /**
    * {@inheritdoc}
    */
-  public static function getInfo() {
-    return array(
-      'name'  => 'Migrate users',
-      'description'  => 'Users migration',
-      'group' => 'Migrate Drupal',
-    );
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   protected function setUp() {
     parent::setUp();
     // Create the user profile field and instance.
-    entity_create('field_config', array(
+    entity_create('field_storage_config', array(
       'entity_type' => 'user',
       'name' => 'user_picture',
       'type' => 'image',

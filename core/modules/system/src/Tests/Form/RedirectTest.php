@@ -10,7 +10,9 @@ namespace Drupal\system\Tests\Form;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Tests form redirection.
+ * Tests form redirection functionality.
+ *
+ * @group Form
  */
 class RedirectTest extends WebTestBase {
 
@@ -20,14 +22,6 @@ class RedirectTest extends WebTestBase {
    * @var array
    */
   public static $modules = array('form_test', 'block');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Form redirecting',
-      'description' => 'Tests form redirection functionality.',
-      'group' => 'Form API',
-    );
-  }
 
   /**
    * Tests form redirection.
@@ -40,7 +34,7 @@ class RedirectTest extends WebTestBase {
     // Test basic redirection.
     $edit = array(
       'redirection' => TRUE,
-      'destination' => $this->randomName(),
+      'destination' => $this->randomMachineName(),
     );
     $this->drupalPostForm($path, $edit, t('Submit'));
     $this->assertUrl($edit['destination'], array(), 'Basic redirection works.');
@@ -56,7 +50,7 @@ class RedirectTest extends WebTestBase {
     // Test redirection with query parameters.
     $edit = array(
       'redirection' => TRUE,
-      'destination' => $this->randomName(),
+      'destination' => $this->randomMachineName(),
     );
     $this->drupalPostForm($path, $edit, t('Submit'), $options);
     $this->assertUrl($edit['destination'], array(), 'Redirection with query parameters works.');

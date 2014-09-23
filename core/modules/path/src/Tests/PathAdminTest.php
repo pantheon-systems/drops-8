@@ -9,6 +9,8 @@ namespace Drupal\path\Tests;
 
 /**
  * Tests the Path admin UI.
+ *
+ * @group path
  */
 class PathAdminTest extends PathTestBase {
 
@@ -18,14 +20,6 @@ class PathAdminTest extends PathTestBase {
    * @var array
    */
   public static $modules = array('path');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Path admin UI',
-      'description' => 'Tests the Path admin UI.',
-      'group' => 'Path',
-    );
-  }
 
   function setUp() {
     parent::setUp();
@@ -44,14 +38,14 @@ class PathAdminTest extends PathTestBase {
     $node2 = $this->drupalCreateNode();
 
     // Create aliases.
-    $alias1 = $this->randomName(8);
+    $alias1 = $this->randomMachineName(8);
     $edit = array(
       'source' => 'node/' . $node1->id(),
       'alias' => $alias1,
     );
     $this->drupalPostForm('admin/config/search/path/add', $edit, t('Save'));
 
-    $alias2 = $this->randomName(8);
+    $alias2 = $this->randomMachineName(8);
     $edit = array(
       'source' => 'node/' . $node2->id(),
       'alias' => $alias2,
@@ -76,7 +70,7 @@ class PathAdminTest extends PathTestBase {
 
     // Filter by a random string with a different length.
     $edit = array(
-      'filter' => $this->randomName(10),
+      'filter' => $this->randomMachineName(10),
     );
     $this->drupalPostForm(NULL, $edit, t('Filter'));
     $this->assertNoLinkByHref($alias1);

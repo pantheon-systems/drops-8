@@ -9,12 +9,14 @@ namespace Drupal\comment\Tests;
 use Drupal\comment\Entity\Comment;
 use Drupal\comment\Entity\CommentType;
 use Drupal\comment\Plugin\Field\FieldType\CommentItemInterface;
-use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\field\Entity\FieldInstanceConfig;
 use Drupal\node\Entity\Node;
 
 /**
- * Tests related to custom comment types.
+ * Ensures that comment type functions work correctly.
+ *
+ * @group comment
  */
 class CommentTypeTest extends CommentTestBase {
 
@@ -42,17 +44,6 @@ class CommentTypeTest extends CommentTestBase {
   public function setUp() {
     parent::setUp();
     $this->adminUser = $this->drupalCreateUser($this->permissions);
-  }
-
-  /**
-   * Declares test information.
-   */
-  public static function getInfo() {
-    return array(
-      'name' => 'Comment types',
-      'description' => 'Ensures that comment type functions work correctly.',
-      'group' => 'Comment',
-    );
   }
 
   /**
@@ -125,7 +116,7 @@ class CommentTypeTest extends CommentTestBase {
     $type = $this->createCommentType('foo');
     $this->drupalCreateContentType(array('type' => 'page'));
     \Drupal::service('comment.manager')->addDefaultField('node', 'page', 'foo', CommentItemInterface::OPEN, 'foo');
-    $field = FieldConfig::loadByName('node', 'foo');
+    $field_storage = FieldStorageConfig::loadByName('node', 'foo');
 
     $this->drupalLogin($this->adminUser);
 
@@ -162,7 +153,7 @@ class CommentTypeTest extends CommentTestBase {
 
     // Delete the comment and the field.
     $comment->delete();
-    $field->delete();
+    $field_storage->delete();
     // Attempt to delete the comment type, which should now be allowed.
     $this->drupalGet('admin/structure/comment/manage/' . $type->id() . '/delete');
     $this->assertRaw(

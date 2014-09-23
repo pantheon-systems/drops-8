@@ -14,10 +14,7 @@ use Drupal\Tests\UnitTestCase;
 
 /**
  * @coversDefaultClass \Drupal\breakpoint\Entity\BreakpointGroup
- *
- * @group Drupal
- * @group Config
- * @group Breakpoint
+ * @group breakpoint
  */
 class BreakpointGroupConfigEntityUnitTest extends UnitTestCase {
 
@@ -59,19 +56,8 @@ class BreakpointGroupConfigEntityUnitTest extends UnitTestCase {
   /**
    * {@inheritdoc}
    */
-  public static function getInfo() {
-    return array(
-      'description' => '',
-      'name' => '\Drupal\breakpoint\Entity\BreakpointGroup unit test',
-      'group' => 'Entity',
-    );
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function setUp() {
-    $this->entityTypeId = $this->randomName();
+    $this->entityTypeId = $this->randomMachineName();
 
     $this->entityType = $this->getMock('\Drupal\Core\Entity\EntityTypeInterface');
     $this->entityType->expects($this->any())
@@ -163,7 +149,7 @@ class BreakpointGroupConfigEntityUnitTest extends UnitTestCase {
    */
   public function testNameException () {
     new BreakpointGroup(array(
-      'label' => $this->randomName(),
+      'label' => $this->randomMachineName(),
       'source' => 'custom_module',
       'sourceType' => 'oops',
     ));

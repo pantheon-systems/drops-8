@@ -10,7 +10,9 @@ namespace Drupal\system\Tests\System;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Tests the handling of exceptions thrown by queue workers.
+ * Tests the Cron Queue runner.
+ *
+ * @group system
  */
 class CronQueueTest extends WebTestBase {
 
@@ -21,14 +23,6 @@ class CronQueueTest extends WebTestBase {
    */
   public static $modules = array('cron_queue_test');
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Cron Queue functionality',
-      'description' => 'Tests the Cron Queue runner.',
-      'group' => 'Queue',
-    );
-  }
-
   /**
    * Tests that exceptions thrown by workers are handled properly.
    */
@@ -37,7 +31,7 @@ class CronQueueTest extends WebTestBase {
     $queue = $this->container->get('queue')->get('cron_queue_test_exception');
 
     // Enqueue an item for processing.
-    $queue->createItem(array($this->randomName() => $this->randomName()));
+    $queue->createItem(array($this->randomMachineName() => $this->randomMachineName()));
 
     // Run cron; the worker for this queue should throw an exception and handle
     // it.

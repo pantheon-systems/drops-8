@@ -7,13 +7,13 @@
 
 namespace Drupal\entity_reference\Tests;
 
-use Drupal\Core\Field\FieldStorageDefinitionInterface;
-use Drupal\field\Entity\FieldConfig;
-use Drupal\field\Entity\FieldInstanceConfig;
 use Drupal\system\Tests\Entity\EntityUnitTestBase;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
 
 /**
  * Tests for the entity reference field.
+ *
+ * @group entity_reference
  */
 class EntityReferenceFieldTest extends EntityUnitTestBase {
 
@@ -46,33 +46,11 @@ class EntityReferenceFieldTest extends EntityUnitTestBase {
   protected $fieldName = 'field_test';
 
   /**
-   * A field array.
-   *
-   * @var array
-   */
-  protected $field;
-
-  /**
-   * An associative array of field instance data.
-   *
-   * @var array
-   */
-  protected $instance;
-
-  /**
    * Modules to enable.
    *
    * @var array
    */
   public static $modules = array('entity_reference');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Entity Reference field',
-      'description' => 'Tests the entity reference field.',
-      'group' => 'Entity Reference',
-    );
-  }
 
   public function setUp() {
     parent::setUp();
@@ -91,8 +69,6 @@ class EntityReferenceFieldTest extends EntityUnitTestBase {
       FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED
     );
 
-    $this->field = FieldConfig::loadByName($this->entityType, $this->fieldName);
-    $this->instance = FieldInstanceConfig::loadByName($this->entityType, $this->bundle, $this->fieldName);
   }
 
   /**

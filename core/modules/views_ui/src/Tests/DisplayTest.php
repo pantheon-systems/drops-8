@@ -14,7 +14,9 @@ use Drupal\views\Views;
 use Drupal\Core\Template\Attribute;
 
 /**
- * Tests the handling of displays in the UI, adding removing etc.
+ * Tests the display UI.
+ *
+ * @group views_ui
  */
 class DisplayTest extends UITestBase {
 
@@ -31,14 +33,6 @@ class DisplayTest extends UITestBase {
    * @var array
    */
   public static $modules = array('contextual');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Display element tests',
-      'description' => 'Tests the display UI.',
-      'group' => 'Views UI',
-    );
-  }
 
   /**
    * Tests reordering of displays.
@@ -167,6 +161,7 @@ class DisplayTest extends UITestBase {
 
     // Test the default link_url value for new display
     $this->drupalPostForm(NULL, array(), t('Add Block'));
+    $this->assertUrl('admin/structure/views/view/test_display/edit/block_2');
     $this->clickLink(t('Custom URL'));
     $this->assertFieldByName('link_url', 'a-custom-url');
   }

@@ -16,8 +16,9 @@ use Drupal\views\Plugin\views\display\Feed;
 use Drupal\views\Views;
 
 /**
- * Tests the functionality of View and ConfigEntityStorage.
+ * Tests the CRUD functionality for a view.
  *
+ * @group views
  * @see \Drupal\views\Entity\View
  * @see \Drupal\Core\Config\Entity\ConfigEntityStorage
  */
@@ -60,14 +61,6 @@ class ViewStorageTest extends ViewUnitTestBase {
    * @var array
    */
   public static $testViews = array('test_view_storage');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'View storage tests',
-      'description' => 'Tests the CRUD functionality for a view.',
-      'group' => 'Views',
-    );
-  }
 
   /**
    * Tests CRUD operations.
@@ -223,14 +216,14 @@ class ViewStorageTest extends ViewUnitTestBase {
 
     // Tests Drupal\views\Entity\View::addDisplay()
     $view = $this->controller->create(array());
-    $random_title = $this->randomName();
+    $random_title = $this->randomMachineName();
 
     $id = $view->addDisplay('page', $random_title);
     $this->assertEqual($id, 'page_1', format_string('Make sure the first display (%id_new) has the expected ID (%id)', array('%id_new' => $id, '%id' => 'page_1')));
     $display = $view->get('display');
     $this->assertEqual($display[$id]['display_title'], $random_title);
 
-    $random_title = $this->randomName();
+    $random_title = $this->randomMachineName();
     $id = $view->addDisplay('page', $random_title);
     $display = $view->get('display');
     $this->assertEqual($id, 'page_2', format_string('Make sure the second display (%id_new) has the expected ID (%id)', array('%id_new' => $id, '%id' => 'page_2')));
@@ -245,7 +238,7 @@ class ViewStorageTest extends ViewUnitTestBase {
     $displays = $view->get('display');
     $displays['default']['deleted'] = TRUE;
     $view->set('display', $displays);
-    $view->set('id', $this->randomName());
+    $view->set('id', $this->randomMachineName());
     $view->save();
     $view->addDisplay('default', $random_title);
     $displays = $view->get('display');
@@ -282,7 +275,7 @@ class ViewStorageTest extends ViewUnitTestBase {
 
     $options = array(
       'alter' => array(
-        'text' => $this->randomName()
+        'text' => $this->randomMachineName()
       )
     );
     $id2 = $view->addHandler($display_id, 'field', 'views_test_data', 'name', $options);
@@ -303,7 +296,7 @@ class ViewStorageTest extends ViewUnitTestBase {
     // and getItems.
     $item = array(
       'alter' => array(
-        'text' => $this->randomName(),
+        'text' => $this->randomMachineName(),
       )
     ) + $item1;
     $expected_items[$id1] = $item;

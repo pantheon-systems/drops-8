@@ -13,20 +13,10 @@ use Drupal\views\Views;
 /**
  * Tests the wizard with node_revision as base table.
  *
+ * @group node
  * @see \Drupal\node\Plugin\views\wizard\NodeRevision
  */
 class NodeRevisionWizardTest extends WizardTestBase {
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'name' => 'Node revision wizard',
-      'description' => 'Tests the wizard with node_revision as base table.',
-      'group' => 'Views Wizard',
-    );
-  }
 
   /**
    * Tests creating a node revision view.
@@ -53,9 +43,9 @@ class NodeRevisionWizardTest extends WizardTestBase {
     $node->save();
 
     $view = array();
-    $view['label'] = $this->randomName(16);
-    $view['id'] = strtolower($this->randomName(16));
-    $view['description'] = $this->randomName(16);
+    $view['label'] = $this->randomMachineName(16);
+    $view['id'] = strtolower($this->randomMachineName(16));
+    $view['description'] = $this->randomMachineName(16);
     $view['page[create]'] = FALSE;
     $view['show[wizard_key]'] = 'node_revision';
     $this->drupalPostForm('admin/structure/views/add', $view, t('Save and edit'));

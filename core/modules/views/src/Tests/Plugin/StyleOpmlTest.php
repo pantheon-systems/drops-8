@@ -10,6 +10,7 @@ namespace Drupal\views\Tests\Plugin;
 /**
  * Tests the OPML feed style plugin.
  *
+ * @group views
  * @see \Drupal\views\Plugin\views\style\Opml
  */
 class StyleOpmlTest extends PluginTestBase {
@@ -31,17 +32,6 @@ class StyleOpmlTest extends PluginTestBase {
   /**
    * {@inheritdoc}
    */
-  public static function getInfo() {
-    return array(
-      'name' => 'Style: OPML',
-      'description' => 'Tests the OPML feed style plugin.',
-      'group' => 'Views Plugins',
-    );
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   protected function setUp() {
     parent::setUp();
 
@@ -57,7 +47,7 @@ class StyleOpmlTest extends PluginTestBase {
   public function testOpmlOutput() {
     // Create a test feed.
     $values = array(
-      'title' => $this->randomName(10),
+      'title' => $this->randomMachineName(10),
       'url' => 'http://example.com/rss.xml',
       'refresh' => '900',
     );

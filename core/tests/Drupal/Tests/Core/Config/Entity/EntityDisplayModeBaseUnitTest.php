@@ -12,8 +12,6 @@ use Drupal\Tests\UnitTestCase;
 
 /**
  * @coversDefaultClass \Drupal\entity\EntityDisplayModeBase
- *
- * @group Drupal
  * @group Config
  */
 class EntityDisplayModeBaseUnitTest extends UnitTestCase {
@@ -56,19 +54,8 @@ class EntityDisplayModeBaseUnitTest extends UnitTestCase {
   /**
    * {@inheritdoc}
    */
-  public static function getInfo() {
-    return array(
-      'description' => '',
-      'name' => '\Drupal\entity\EntityDisplayModeBase unit test',
-      'group' => 'Entity',
-    );
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function setUp() {
-    $this->entityType = $this->randomName();
+    $this->entityType = $this->randomMachineName();
 
     $this->entityInfo = $this->getMock('\Drupal\Core\Entity\EntityTypeInterface');
     $this->entityInfo->expects($this->any())
@@ -90,7 +77,7 @@ class EntityDisplayModeBaseUnitTest extends UnitTestCase {
    * @covers ::calculateDependencies
    */
   public function testCalculateDependencies() {
-    $target_entity_type_id = $this->randomName(16);
+    $target_entity_type_id = $this->randomMachineName(16);
 
     $target_entity_type = $this->getMock('\Drupal\Core\Entity\EntityTypeInterface');
     $target_entity_type->expects($this->any())

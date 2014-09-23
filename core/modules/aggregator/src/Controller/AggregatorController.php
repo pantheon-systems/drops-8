@@ -9,14 +9,42 @@ namespace Drupal\aggregator\Controller;
 
 use Drupal\Component\Utility\Xss;
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Datetime\DateFormatter;
 use Drupal\aggregator\FeedInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Returns responses for aggregator module routes.
  */
 class AggregatorController extends ControllerBase {
+
+  /**
+   * The date formatter service.
+   *
+   * @var \Drupal\Core\Datetime\DateFormatter
+   */
+  protected $dateFormatter;
+
+  /**
+   * Constructs a \Drupal\aggregator\Controller\AggregatorController object.
+   *
+   * @param \Drupal\Core\Datetime\DateFormatter $date_formatter
+   *    The date formatter service.
+   */
+  public function __construct(DateFormatter $date_formatter) {
+    $this->dateFormatter = $date_formatter;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container) {
+    return new static(
+      $container->get('date.formatter')
+    );
+  }
 
   /**
    * Presents the aggregator feed creation form.
@@ -114,19 +142,19 @@ class AggregatorController extends ControllerBase {
     foreach ($feeds as $feed) {
       $row = array();
       $row[] = l($feed->label(), "aggregator/sources/" . $feed->id());
-      $row[] = format_plural($entity_manager->getStorage('aggregator_item')->getItemCount($feed), '1 item', '@count items');
+      $row[] = $this->dateFormatter->formatInterval($entity_manager->getStorage('aggregator_item')->getItemCount($feed), '1 item', '@count items');
       $last_checked = $feed->getLastCheckedTime();
       $refresh_rate = $feed->getRefreshRate();
-      $row[] = ($last_checked ? $this->t('@time ago', array('@time' => format_interval(REQUEST_TIME - $last_checked))) : $this->t('never'));
-      $row[] = ($last_checked && $refresh_rate ? $this->t('%time left', array('%time' => format_interval($last_checked + $refresh_rate - REQUEST_TIME))) : $this->t('never'));
+      $row[] = ($last_checked ? $this->t('@time ago', array('@time' => $this->dateFormatter->formatInterval(REQUEST_TIME - $last_checked))) : $this->t('never'));
+      $row[] = ($last_checked && $refresh_rate ? $this->t('%time left', array('%time' => $this->dateFormatter->formatInterval($last_checked + $refresh_rate - REQUEST_TIME))) : $this->t('never'));
       $links['edit'] = array(
         'title' => $this->t('Edit'),
-        'route_name' => 'aggregator.feed_configure',
+        'route_name' => 'entity.aggregator_feed.edit_form',
         'route_parameters' => array('aggregator_feed' => $feed->id()),
       );
       $links['delete'] = array(
         'title' => $this->t('Delete'),
-        'route_name' => 'aggregator.feed_delete',
+        'route_name' => 'entity.aggregator_feed.delete_form',
         'route_parameters' => array('aggregator_feed' => $feed->id()),
       );
       $links['delete_items'] = array(
@@ -152,7 +180,7 @@ class AggregatorController extends ControllerBase {
       '#type' => 'table',
       '#header' => $header,
       '#rows' => $rows,
-      '#empty' => $this->t('No feeds available. <a href="@link">Add feed</a>.', array('@link' => $this->urlGenerator()->generate('aggregator.feed_add'))),
+      '#empty' => $this->t('No feeds available. <a href="@link">Add feed</a>.', array('@link' => $this->url('aggregator.feed_add'))),
     );
 
     return $build;
@@ -201,11 +229,14 @@ class AggregatorController extends ControllerBase {
             ->viewMultiple($items, 'summary');
         }
       }
-      $feed->url = $this->url('aggregator.feed_view', array('aggregator_feed' => $feed->id()));
+      $feed->url = $this->url('entity.aggregator_feed.canonical', array('aggregator_feed' => $feed->id()));
       $build[$feed->id()] = array(
         '#theme' => 'aggregator_summary_items',
         '#summary_items' => $summary_items,
         '#source' => $feed,
+        '#cache' => array(
+          'tags' => $feed->getCacheTag(),
+        ),
       );
     }
     $build['feed_icon'] = array(

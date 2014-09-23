@@ -48,7 +48,7 @@ function filter_help($route_name, RouteMatchInterface $route_match) {
       $output .= '<p>' . t('Text formats are presented on content editing pages in the order defined on this page. The first format available to a user will be selected by default.') . '</p>';
       return $output;
 
-    case 'filter.format_edit':
+    case 'entity.filter_format.edit_form':
       $output = '<p>' . t('A text format contains filters that change the user input, for example stripping out malicious HTML or making URLs clickable. Filters are executed from top to bottom and the order is important, since one filter may prevent another filter from doing its job. For example, when URLs are converted into links before disallowed HTML tags are removed, all links may be removed. When this happens, the order of filters may need to be re-arranged.') . '</p>';
       return $output;
   }
@@ -622,7 +622,7 @@ function filter_process_format($element) {
   $format_exists = isset($all_formats[$element['#format']]);
   $format_allowed = !isset($element['#allowed_formats']) || in_array($element['#format'], $element['#allowed_formats']);
   $user_has_access = isset($formats[$element['#format']]);
-  $user_is_admin = user_access('administer filters');
+  $user_is_admin = \Drupal::currentUser()->hasPermission('administer filters');
 
   // If the stored format does not exist or if it is not among the allowed
   // formats for this textarea, administrators have to assign a new format.
@@ -1206,6 +1206,10 @@ function filter_filter_secure_image_alter(&$image) {
   $image->setAttribute('src', base_path() . 'core/misc/message-16-error.png');
   $image->setAttribute('alt', t('Image removed.'));
   $image->setAttribute('title', t('This image has been removed. For security reasons, only images from the local domain are allowed.'));
+  $image_factory = \Drupal::service('image.factory');
+  $error_image = $image_factory->get('core/misc/message-16-error.png');
+  $image->setAttribute('height', $error_image->getHeight());
+  $image->setAttribute('width',  $error_image->getWidth());
 
   // Add a CSS class to aid in styling.
   $class = ($image->getAttribute('class') ? trim($image->getAttribute('class')) . ' ' : '');

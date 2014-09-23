@@ -9,11 +9,15 @@ namespace Drupal\system\Tests\Form;
 
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\String;
+use Drupal\Core\Form\FormState;
 use Drupal\Core\Render\Element;
+use Drupal\form_test\Form\FormTestDisabledElementsForm;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Tests form element validation.
+ * Tests various form element validation mechanisms.
+ *
+ * @group Form
  */
 class FormTest extends WebTestBase {
 
@@ -23,14 +27,6 @@ class FormTest extends WebTestBase {
    * @var array
    */
   public static $modules = array('filter', 'form_test', 'file', 'datetime');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Form element validation',
-      'description' => 'Tests various form element validation mechanisms.',
-      'group' => 'Form API',
-    );
-  }
 
   function setUp() {
     parent::setUp();
@@ -60,43 +56,43 @@ class FormTest extends WebTestBase {
     $empty_arrays = array('array()' => array());
     $empty_checkbox = array(NULL);
 
-    $elements['textfield']['element'] = array('#title' => $this->randomName(), '#type' => 'textfield');
+    $elements['textfield']['element'] = array('#title' => $this->randomMachineName(), '#type' => 'textfield');
     $elements['textfield']['empty_values'] = $empty_strings;
 
-    $elements['telephone']['element'] = array('#title' => $this->randomName(), '#type' => 'tel');
+    $elements['telephone']['element'] = array('#title' => $this->randomMachineName(), '#type' => 'tel');
     $elements['telephone']['empty_values'] = $empty_strings;
 
-    $elements['url']['element'] = array('#title' => $this->randomName(), '#type' => 'url');
+    $elements['url']['element'] = array('#title' => $this->randomMachineName(), '#type' => 'url');
     $elements['url']['empty_values'] = $empty_strings;
 
-    $elements['search']['element'] = array('#title' => $this->randomName(), '#type' => 'search');
+    $elements['search']['element'] = array('#title' => $this->randomMachineName(), '#type' => 'search');
     $elements['search']['empty_values'] = $empty_strings;
 
-    $elements['password']['element'] = array('#title' => $this->randomName(), '#type' => 'password');
+    $elements['password']['element'] = array('#title' => $this->randomMachineName(), '#type' => 'password');
     $elements['password']['empty_values'] = $empty_strings;
 
-    $elements['password_confirm']['element'] = array('#title' => $this->randomName(), '#type' => 'password_confirm');
+    $elements['password_confirm']['element'] = array('#title' => $this->randomMachineName(), '#type' => 'password_confirm');
     // Provide empty values for both password fields.
     foreach ($empty_strings as $key => $value) {
       $elements['password_confirm']['empty_values'][$key] = array('pass1' => $value, 'pass2' => $value);
     }
 
-    $elements['textarea']['element'] = array('#title' => $this->randomName(), '#type' => 'textarea');
+    $elements['textarea']['element'] = array('#title' => $this->randomMachineName(), '#type' => 'textarea');
     $elements['textarea']['empty_values'] = $empty_strings;
 
-    $elements['radios']['element'] = array('#title' => $this->randomName(), '#type' => 'radios', '#options' => array('' => t('None'), $this->randomName(), $this->randomName(), $this->randomName()));
+    $elements['radios']['element'] = array('#title' => $this->randomMachineName(), '#type' => 'radios', '#options' => array('' => t('None'), $this->randomMachineName(), $this->randomMachineName(), $this->randomMachineName()));
     $elements['radios']['empty_values'] = $empty_arrays;
 
-    $elements['checkbox']['element'] = array('#title' => $this->randomName(), '#type' => 'checkbox', '#required' => TRUE);
+    $elements['checkbox']['element'] = array('#title' => $this->randomMachineName(), '#type' => 'checkbox', '#required' => TRUE);
     $elements['checkbox']['empty_values'] = $empty_checkbox;
 
-    $elements['checkboxes']['element'] = array('#title' => $this->randomName(), '#type' => 'checkboxes', '#options' => array($this->randomName(), $this->randomName(), $this->randomName()));
+    $elements['checkboxes']['element'] = array('#title' => $this->randomMachineName(), '#type' => 'checkboxes', '#options' => array($this->randomMachineName(), $this->randomMachineName(), $this->randomMachineName()));
     $elements['checkboxes']['empty_values'] = $empty_arrays;
 
-    $elements['select']['element'] = array('#title' => $this->randomName(), '#type' => 'select', '#options' => array('' => t('None'), $this->randomName(), $this->randomName(), $this->randomName()));
+    $elements['select']['element'] = array('#title' => $this->randomMachineName(), '#type' => 'select', '#options' => array('' => t('None'), $this->randomMachineName(), $this->randomMachineName(), $this->randomMachineName()));
     $elements['select']['empty_values'] = $empty_strings;
 
-    $elements['file']['element'] = array('#title' => $this->randomName(), '#type' => 'file');
+    $elements['file']['element'] = array('#title' => $this->randomMachineName(), '#type' => 'file');
     $elements['file']['empty_values'] = $empty_strings;
 
     // Regular expression to find the expected marker on required elements.
@@ -105,20 +101,21 @@ class FormTest extends WebTestBase {
     foreach ($elements as $type => $data) {
       foreach ($data['empty_values'] as $key => $empty) {
         foreach (array(TRUE, FALSE) as $required) {
-          $form_id = $this->randomName();
+          $form_id = $this->randomMachineName();
           $form = array();
-          $form_state = form_state_defaults();
+          $form_state = new FormState();
           $form['op'] = array('#type' => 'submit', '#value' => t('Submit'));
           $element = $data['element']['#title'];
           $form[$element] = $data['element'];
           $form[$element]['#required'] = $required;
           $form_state['input'][$element] = $empty;
           $form_state['input']['form_id'] = $form_id;
+          $form_state['build_info']['callback_object'] = new StubForm($form_id, $form);
           $form_state['method'] = 'post';
           // The form token CSRF protection should not interfere with this test,
           // so we bypass it by setting the token to FALSE.
           $form['#token'] = FALSE;
-          drupal_prepare_form($form_id, $form, $form_state);
+          \Drupal::formBuilder()->prepareForm($form_id, $form, $form_state);
           drupal_process_form($form_id, $form, $form_state);
           $errors = form_get_errors($form_state);
           // Form elements of type 'radios' throw all sorts of PHP notices
@@ -164,11 +161,10 @@ class FormTest extends WebTestBase {
    * is submitted twice, first without values for required fields and then
    * with values. Each submission is checked for relevant error messages.
    *
-   * @see form_test_validate_required_form()
+   * @see \Drupal\form_test\Form\FormTestValidateRequiredForm
    */
   function testRequiredCheckboxesRadio() {
-    $form = $form_state = array();
-    $form = form_test_validate_required_form($form, $form_state);
+    $form = \Drupal::formBuilder()->getForm('\Drupal\form_test\Form\FormTestValidateRequiredForm');
 
     // Attempt to submit the form with no required fields set.
     $edit = array();
@@ -241,7 +237,7 @@ class FormTest extends WebTestBase {
    * and then with value. Each submission is checked for relevant error
    * messages.
    *
-   * @see form_test_validate_required_form_no_title()
+   * @see \Drupal\form_test\Form\FormTestValidateRequiredNoTitleForm
    */
   function testRequiredTextfieldNoTitle() {
     // Attempt to submit the form with no required field set.
@@ -299,8 +295,7 @@ class FormTest extends WebTestBase {
    * Tests validation of #type 'select' elements.
    */
   function testSelect() {
-    $form = $form_state = array();
-    $form = form_test_select($form, $form_state);
+    $form = \Drupal::formBuilder()->getForm('Drupal\form_test\Form\FormTestSelectForm');
     $error = '!name field is required.';
     $this->drupalGet('form-test/select');
 
@@ -372,8 +367,7 @@ class FormTest extends WebTestBase {
    * Tests validation of #type 'number' and 'range' elements.
    */
   function testNumber() {
-    $form = $form_state = array();
-    $form = form_test_number($form, $form_state);
+    $form = \Drupal::formBuilder()->getForm('\Drupal\form_test\Form\FormTestNumberForm');
 
     // Array with all the error messages to be checked.
     $error_messages = array(
@@ -489,8 +483,8 @@ class FormTest extends WebTestBase {
    */
   function testDisabledElements() {
     // Get the raw form in its original state.
-    $form_state = array();
-    $form = _form_test_disabled_elements(array(), $form_state);
+    $form_state = new FormState();
+    $form = (new FormTestDisabledElementsForm())->buildForm(array(), $form_state);
 
     // Build a submission that tries to hijack the form by submitting input for
     // elements that are disabled.
@@ -574,8 +568,7 @@ class FormTest extends WebTestBase {
    */
   function testDisabledMarkup() {
     $this->drupalGet('form-test/disabled-elements');
-    $form_state = array();
-    $form = _form_test_disabled_elements(array(), $form_state);
+    $form = \Drupal::formBuilder()->getForm('\Drupal\form_test\Form\FormTestDisabledElementsForm');
     $type_map = array(
       'textarea' => 'textarea',
       'select' => 'select',

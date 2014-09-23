@@ -114,7 +114,7 @@ class CommentController extends ControllerBase {
       $field_definition = $this->entityManager()->getFieldDefinitions($entity->getEntityTypeId(), $entity->bundle())[$comment->getFieldName()];
 
       // Find the current display page for this comment.
-      $page = comment_get_display_page($comment->id(), $field_definition);
+      $page = $this->entityManager()->getStorage('comment')->getDisplayOrdinal($comment, $field_definition->getSetting('default_mode'), $field_definition->getSetting('per_page'));
       // @todo: Cleaner sub request handling.
       $redirect_request = Request::create($entity->getSystemPath(), 'GET', $request->query->all(), $request->cookies->all(), array(), $request->server->all());
       $redirect_request->query->set('page', $page);
@@ -289,11 +289,13 @@ class CommentController extends ControllerBase {
     $links = array();
     foreach ($nids as $nid) {
       $node = node_load($nid);
-      $new = comment_num_new($node->id(), 'node');
-      $query = comment_new_page_count($node->{$field_name}->comment_count, $new, $node);
+      $new = $this->commentManager->getCountNewComments($node);
+      $page_number = $this->entityManager()->getStorage('comment')
+        ->getNewCommentPageNumber($node->{$field_name}->comment_count, $new, $node);
+      $query = $page_number ? array('page' => $page_number) : NULL;
       $links[$nid] = array(
         'new_comment_count' => (int) $new,
-        'first_new_comment_link' => $this->urlGenerator()->generateFromPath('node/' . $node->id(), array('query' => $query, 'fragment' => 'new')),
+        'first_new_comment_link' => $this->getUrlGenerator()->generateFromPath('node/' . $node->id(), array('query' => $query, 'fragment' => 'new')),
       );
     }
 

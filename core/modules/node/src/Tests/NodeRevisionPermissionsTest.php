@@ -9,6 +9,8 @@ namespace Drupal\node\Tests;
 
 /**
  * Tests user permissions for node revisions.
+ *
+ * @group node
  */
 class NodeRevisionPermissionsTest extends NodeTestBase {
   protected $node_revisions = array();
@@ -28,14 +30,6 @@ class NodeRevisionPermissionsTest extends NodeTestBase {
     'delete' => 'delete page revisions',
   );
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Node revision permissions',
-      'description' => 'Tests user permissions for node revision operations.',
-      'group' => 'Node',
-    );
-  }
-
   function setUp() {
     parent::setUp();
 
@@ -50,7 +44,7 @@ class NodeRevisionPermissionsTest extends NodeTestBase {
         // Create a revision for the same nid and settings with a random log.
         $revision = clone $nodes[$type];
         $revision->setNewRevision();
-        $revision->revision_log = $this->randomName(32);
+        $revision->revision_log = $this->randomMachineName(32);
         $revision->save();
         $this->node_revisions[$type][] = $revision;
       }
@@ -100,7 +94,7 @@ class NodeRevisionPermissionsTest extends NodeTestBase {
     foreach ($permutations as $case) {
       // Skip this test if there are no revisions for the node.
       if (!($revision->isDefaultRevision() && (db_query('SELECT COUNT(vid) FROM {node_field_revision} WHERE nid = :nid', array(':nid' => $revision->id()))->fetchField() == 1 || $case['op'] == 'update' || $case['op'] == 'delete'))) {
-        if (!empty($case['account']->is_admin) || user_access($this->map[$case['op']], $case['account'])) {
+        if (!empty($case['account']->is_admin) || $case['account']->hasPermission($this->map[$case['op']])) {
           $this->assertTrue($node_revision_access->checkAccess($revision, $case['account'], $case['op']), "{$this->map[$case['op']]} granted.");
         }
         else {
@@ -147,7 +141,7 @@ class NodeRevisionPermissionsTest extends NodeTestBase {
     foreach ($permutations as $case) {
       // Skip this test if there are no revisions for the node.
       if (!($revision->isDefaultRevision() && (db_query('SELECT COUNT(vid) FROM {node_field_revision} WHERE nid = :nid', array(':nid' => $revision->id()))->fetchField() == 1 || $case['op'] == 'update' || $case['op'] == 'delete'))) {
-        if (!empty($case['account']->is_admin) || user_access($this->type_map[$case['op']], $case['account'])) {
+        if (!empty($case['account']->is_admin) || $case['account']->hasPermission($this->type_map[$case['op']], $case['account'])) {
           $this->assertTrue($node_revision_access->checkAccess($revision, $case['account'], $case['op']), "{$this->type_map[$case['op']]} granted.");
         }
         else {

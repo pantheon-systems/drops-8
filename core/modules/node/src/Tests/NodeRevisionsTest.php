@@ -8,19 +8,14 @@
 namespace Drupal\node\Tests;
 
 /**
- * Tests the node revision functionality.
+ * Create a node with revisions and test viewing, saving, reverting, and
+ * deleting revisions for users with access for this content type.
+ *
+ * @group node
  */
 class NodeRevisionsTest extends NodeTestBase {
   protected $nodes;
   protected $revisionLogs;
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Node revisions by type',
-      'description' => 'Create a node with revisions and test viewing, saving, reverting, and deleting revisions for users with access for this content type.',
-      'group' => 'Node',
-    );
-  }
 
   function setUp() {
     parent::setUp();
@@ -53,12 +48,12 @@ class NodeRevisionsTest extends NodeTestBase {
     // Create three revisions.
     $revision_count = 3;
     for ($i = 0; $i < $revision_count; $i++) {
-      $logs[] = $node->revision_log = $this->randomName(32);
+      $logs[] = $node->revision_log = $this->randomMachineName(32);
 
       // Create revision with a random title and body and update variables.
-      $node->title = $this->randomName();
+      $node->title = $this->randomMachineName();
       $node->body = array(
-        'value' => $this->randomName(32),
+        'value' => $this->randomMachineName(32),
         'format' => filter_default_format(),
       );
       $node->setNewRevision();
@@ -133,7 +128,7 @@ class NodeRevisionsTest extends NodeTestBase {
     // Make a new revision and set it to not be default.
     // This will create a new revision that is not "front facing".
     $new_node_revision = clone $node;
-    $new_body = $this->randomName();
+    $new_body = $this->randomMachineName();
     $new_node_revision->body->value = $new_body;
     // Save this as a non-default revision.
     $new_node_revision->setNewRevision();
@@ -163,14 +158,14 @@ class NodeRevisionsTest extends NodeTestBase {
    */
   function testNodeRevisionWithoutLogMessage() {
     // Create a node with an initial log message.
-    $revision_log = $this->randomName(10);
+    $revision_log = $this->randomMachineName(10);
     $node = $this->drupalCreateNode(array('revision_log' => $revision_log));
 
     // Save over the same revision and explicitly provide an empty log message
     // (for example, to mimic the case of a node form submitted with no text in
     // the "log message" field), and check that the original log message is
     // preserved.
-    $new_title = $this->randomName(10) . 'testNodeRevisionWithoutLogMessage1';
+    $new_title = $this->randomMachineName(10) . 'testNodeRevisionWithoutLogMessage1';
 
     $node = clone $node;
     $node->title = $new_title;
@@ -188,7 +183,7 @@ class NodeRevisionsTest extends NodeTestBase {
 
     // Save a new node revision without providing a log message, and check that
     // this revision has an empty log message.
-    $new_title = $this->randomName(10) . 'testNodeRevisionWithoutLogMessage2';
+    $new_title = $this->randomMachineName(10) . 'testNodeRevisionWithoutLogMessage2';
 
     $node = clone $node;
     $node->title = $new_title;

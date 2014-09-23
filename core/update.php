@@ -69,7 +69,7 @@ function update_helpful_links() {
     'title' => t('Front page'),
     'href' => '<front>',
   );
-  if (user_access('access administration pages')) {
+  if (\Drupal::currentUser()->hasPermission('access administration pages')) {
     $links['admin-pages'] = array(
       'title' => t('Administration pages'),
       'href' => 'admin',
@@ -97,7 +97,7 @@ function update_flush_all_caches() {
  */
 function update_results_page() {
   // Report end result.
-  if (\Drupal::moduleHandler()->moduleExists('dblog') && user_access('access site reports')) {
+  if (\Drupal::moduleHandler()->moduleExists('dblog') && \Drupal::currentUser()->hasPermission('access site reports')) {
     $log_message = ' All errors have been <a href="' . base_path() . '?q=admin/reports/dblog">logged</a>.';
   }
   else {
@@ -197,7 +197,7 @@ function update_info_page() {
   $keyvalue->get('update')->deleteAll();
   $keyvalue->get('update_available_release')->deleteAll();
 
-  $token = drupal_get_token('update');
+  $token = \Drupal::csrfToken()->get('update');
   $output = '<p>Use this utility to update your database whenever a new release of Drupal or a module is installed.</p><p>For more detailed information, see the <a href="http://drupal.org/upgrade">upgrading handbook</a>. If you are unsure what these terms mean you should probably contact your hosting provider.</p>';
   $output .= "<ol>\n";
   $output .= "<li><strong>Back up your code</strong>. Hint: when backing up module code, do not leave that backup in the 'modules' or 'sites/*/modules' directories as this may confuse Drupal's auto-discovery mechanism.</li>\n";
@@ -249,25 +249,7 @@ function update_access_denied_page() {
  *   TRUE if the current user should be granted access, or FALSE otherwise.
  */
 function update_access_allowed() {
-  $user = \Drupal::currentUser();
-
-  // Allow the global variable in settings.php to override the access check.
-  if (Settings::get('update_free_access')) {
-    return TRUE;
-  }
-  // Calls to user_access() might fail during the Drupal 6 to 7 update process,
-  // so we fall back on requiring that the user be logged in as user #1.
-  try {
-    $module_handler = \Drupal::moduleHandler();
-    $module_handler->addModule('user', 'core/modules/user');
-    $module_handler->reload();
-    $module_filenames = $module_handler->getModuleList();
-    \Drupal::service('kernel')->updateModules($module_filenames, $module_filenames);
-    return user_access('administer software updates');
-  }
-  catch (\Exception $e) {
-    return ($user->id() == 1);
-  }
+  return Settings::get('update_free_access') || \Drupal::currentUser()->hasPermission('administer software updates');
 }
 
 /**
@@ -323,7 +305,7 @@ if (db_table_exists('system')) {
 $kernel->prepareLegacyRequest($request);
 
 // Determine if the current user has access to run update.php.
-\Drupal::service('session_manager')->initialize();
+\Drupal::service('session_manager')->startLazy();
 
 // Ensure that URLs generated for the home and admin pages don't have 'update.php'
 // in them.
@@ -389,7 +371,7 @@ if (update_access_allowed()) {
 
     case 'selection':
       $token = $request->query->get('token');
-      if (isset($token) && drupal_valid_token($token, 'update')) {
+      if (isset($token) && \Drupal::csrfToken()->validate($token, 'update')) {
         $regions['sidebar_first'] = update_task_list('select');
         $output = update_selection_page();
         break;
@@ -397,7 +379,7 @@ if (update_access_allowed()) {
 
     case 'Apply pending updates':
       $token = $request->query->get('token');
-      if (isset($token) && drupal_valid_token($token, 'update')) {
+      if (isset($token) && \Drupal::csrfToken()->validate($token, 'update')) {
         $regions['sidebar_first'] = update_task_list('run');
         // Generate absolute URLs for the batch processing (using $base_root),
         // since the batch API will pass them to url() which does not handle

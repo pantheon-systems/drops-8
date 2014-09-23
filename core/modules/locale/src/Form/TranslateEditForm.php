@@ -8,6 +8,7 @@
 namespace Drupal\locale\Form;
 
 use Drupal\Component\Utility\String;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element;
 use Drupal\locale\SourceString;
 
@@ -26,7 +27,7 @@ class TranslateEditForm extends TranslateFormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, array &$form_state) {
+  public function buildForm(array $form, FormStateInterface $form_state) {
     $filter_values = $this->translateFilterValues();
     $langcode = $filter_values['langcode'];
 
@@ -83,7 +84,7 @@ class TranslateEditForm extends TranslateFormBase {
             '#type' => 'item',
             '#title' => $this->t('Singular form'),
             '#markup' => '<span lang="en">' . String::checkPlain($source_array[0]) . '</span>',
-            '#prefix' => '<span class="visually-hidden">' . $this->t('Source string (@language)', array('@language' => $this->t('Built-in English'))) . '</span>'
+            '#prefix' => '<span class="visually-hidden">' . $this->t('Source string (@language)', array('@language' => $this->t('Built-in English'))) . '</span>',
           );
           $form['strings'][$string->lid]['original_plural'] = array(
             '#type' => 'item',
@@ -120,7 +121,7 @@ class TranslateEditForm extends TranslateFormBase {
                 '#rows' => $rows,
                 '#default_value' => isset($translation_array[$i]) ? $translation_array[$i] : '',
                 '#attributes' => array('lang' => $langcode),
-                '#prefix' => $i == 0 ? ('<span class="visually-hidden">' . $this->t('Translated string (@language)',  array('@language' => $langname)) . '</span>') : '',
+                '#prefix' => $i == 0 ? ('<span class="visually-hidden">' . $this->t('Translated string (@language)', array('@language' => $langname)) . '</span>') : '',
               );
             }
           }
@@ -132,7 +133,7 @@ class TranslateEditForm extends TranslateFormBase {
               '#rows' => $rows,
               '#default_value' => $translation_array[0],
               '#attributes' => array('lang' => $langcode),
-              '#prefix' => '<span class="visually-hidden">' . $this->t('Translated string (@language)',  array('@language' => $langname)) . '</span>',
+              '#prefix' => '<span class="visually-hidden">' . $this->t('Translated string (@language)', array('@language' => $langname)) . '</span>',
             );
             $form['strings'][$string->lid]['translations'][1] = array(
               '#type' => 'textarea',
@@ -158,14 +159,14 @@ class TranslateEditForm extends TranslateFormBase {
   /**
    * {@inheritdoc}
    */
-  public function validateForm(array &$form, array &$form_state) {
+  public function validateForm(array &$form, FormStateInterface $form_state) {
     $langcode = $form_state['values']['langcode'];
     foreach ($form_state['values']['strings'] as $lid => $translations) {
       foreach ($translations['translations'] as $key => $value) {
         if (!locale_string_is_safe($value)) {
-          $this->setFormError("strings][$lid][translations][$key", $form_state, $this->t('The submitted string contains disallowed HTML: %string', array('%string' => $value)));
-          $this->setFormError("translations][$langcode][$key", $form_state, $this->t('The submitted string contains disallowed HTML: %string', array('%string' => $value)));
-          watchdog('locale', 'Attempted submission of a translation string with disallowed HTML: %string', array('%string' => $value), WATCHDOG_WARNING);
+          $form_state->setErrorByName("strings][$lid][translations][$key", $this->t('The submitted string contains disallowed HTML: %string', array('%string' => $value)));
+          $form_state->setErrorByName("translations][$langcode][$key", $this->t('The submitted string contains disallowed HTML: %string', array('%string' => $value)));
+          $this->logger('locale')->warning('Attempted submission of a translation string with disallowed HTML: %string', array('%string' => $value));
         }
       }
     }
@@ -174,7 +175,7 @@ class TranslateEditForm extends TranslateFormBase {
   /**
    * {@inheritdoc}
    */
-  public function submitForm(array &$form, array &$form_state) {
+  public function submitForm(array &$form, FormStateInterface $form_state) {
     $langcode = $form_state['values']['langcode'];
     $updated = array();
 
@@ -189,7 +190,8 @@ class TranslateEditForm extends TranslateFormBase {
       $existing_translation = isset($existing_translation_objects[$lid]);
 
       // Plural translations are saved in a delimited string. To be able to
-      // compare the new strings with the existing strings a string in the same format is created.
+      // compare the new strings with the existing strings a string in the same
+      // format is created.
       $new_translation_string_delimited = implode(LOCALE_PLURAL_DELIMITER, $new_translation['translations']);
 
       // Generate an imploded string without delimiter, to be able to run
@@ -228,11 +230,10 @@ class TranslateEditForm extends TranslateFormBase {
     // Keep the user on the current pager page.
     $page = $this->getRequest()->query->get('page');
     if (isset($page)) {
-      $form_state['redirect_route'] = array(
-        'route_name' => 'locale.translate_page',
-        'options' => array(
-          'page' => $page,
-        ),
+      $form_state->setRedirect(
+        'locale.translate_page',
+        array(),
+        array('page' => $page)
       );
     }
 

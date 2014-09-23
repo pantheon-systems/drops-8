@@ -13,25 +13,16 @@ use Drupal\Component\Utility\Xss;
 use Drupal\Tests\UnitTestCase;
 
 /**
- * Tests the Xss utility.
+ * @coversDefaultClass \Drupal\Component\Utility\Xss
+ * @group Utility
  *
  * Script injection vectors mostly adopted from http://ha.ckers.org/xss.html.
  *
  * Relevant CVEs:
  * - CVE-2002-1806, ~CVE-2005-0682, ~CVE-2005-2106, CVE-2005-3973,
  *   CVE-2006-1226 (= rev. 1.112?), CVE-2008-0273, CVE-2008-3740.
- *
- * @see \Drupal\Component\Utility\Xss
  */
 class XssTest extends UnitTestCase {
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Xss filter tests',
-      'description' => 'Confirm that Xss::filter() works as expected.',
-      'group' => 'Common',
-    );
-  }
 
   /**
    * {@inheritdoc}
@@ -68,11 +59,19 @@ class XssTest extends UnitTestCase {
    *   The expected result.
    * @param string $message
    *   The assertion message to display upon failure.
+   * @param array $allowed_tags
+   *   (optional) The allowed HTML tags to be passed to \Drupal\Component\Utility\Xss::filter().
    *
    * @dataProvider providerTestFilterXssNormalized
    */
-  public function testFilterXssNormalized($value, $expected, $message) {
-    $this->assertNormalized(Xss::filter($value), $expected, $message);
+  public function testFilterXssNormalized($value, $expected, $message, array $allowed_tags = NULL) {
+    if ($allowed_tags === NULL) {
+      $value = Xss::filter($value);
+    }
+    else {
+      $value = Xss::filter($value, $allowed_tags);
+    }
+    $this->assertNormalized($value, $expected, $message);
   }
 
   /**
@@ -85,6 +84,8 @@ class XssTest extends UnitTestCase {
    *     - The value to filter.
    *     - The value to expect after filtering.
    *     - The assertion message.
+   *     - (optional) The allowed HTML HTML tags array that should be passed to
+   *       \Drupal\Component\Utility\Xss::filter().
    */
   public function providerTestFilterXssNormalized() {
     return array(
@@ -102,6 +103,13 @@ class XssTest extends UnitTestCase {
         "Who&amp;amp;#039; Online",
         "who&amp;#039; online",
         'HTML filter -- double encoded html entity number',
+      ),
+      // Custom elements with dashes in the tag name.
+      array(
+        "<test-element></test-element>",
+        "<test-element></test-element>",
+        'Custom element with dashes in tag name.',
+        array('test-element'),
       ),
     );
   }

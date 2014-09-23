@@ -14,6 +14,8 @@ use Drupal\user\Entity\User;
 
 /**
  * Tests the user role condition.
+ *
+ * @group user
  */
 class UserRoleConditionTest extends KernelTestBase {
 
@@ -55,17 +57,6 @@ class UserRoleConditionTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static function getInfo() {
-    return array(
-      'name' => 'User role condition plugin',
-      'description' => 'Tests the user role condition',
-      'group' => 'Condition API',
-    );
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   protected function setUp() {
     parent::setUp();
 
@@ -85,7 +76,7 @@ class UserRoleConditionTest extends KernelTestBase {
     ))->save();
 
     // Create new role.
-    $rid = strtolower($this->randomName(8));
+    $rid = strtolower($this->randomMachineName(8));
     $label = $this->randomString(8);
     $role = Role::create(array(
       'id' => $rid,
@@ -104,7 +95,7 @@ class UserRoleConditionTest extends KernelTestBase {
 
     // Setup an authenticated user for our tests.
     $this->authenticated = User::create(array(
-      'name' => $this->randomName(),
+      'name' => $this->randomMachineName(),
     ));
     $this->authenticated->save();
     // Add the custom role.

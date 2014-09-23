@@ -9,6 +9,7 @@ namespace Drupal\user\Form;
 
 use Drupal\Core\Field\Plugin\Field\FieldType\EmailItem;
 use Drupal\Core\Form\FormBase;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Language\LanguageManager;
 use Drupal\user\UserStorageInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -69,7 +70,7 @@ class UserPasswordForm extends FormBase {
    * @param \Symfony\Component\HttpFoundation\Request $request
    *   The request object.
    */
-  public function buildForm(array $form, array &$form_state) {
+  public function buildForm(array $form, FormStateInterface $form_state) {
     $form['name'] = array(
       '#type' => 'textfield',
       '#title' => $this->t('Username or email address'),
@@ -106,7 +107,7 @@ class UserPasswordForm extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function validateForm(array &$form, array &$form_state) {
+  public function validateForm(array &$form, FormStateInterface $form_state) {
     $name = trim($form_state['values']['name']);
     // Try to load by email.
     $users = $this->userStorage->loadByProperties(array('mail' => $name, 'status' => '1'));
@@ -119,25 +120,25 @@ class UserPasswordForm extends FormBase {
       form_set_value(array('#parents' => array('account')), $account, $form_state);
     }
     else {
-      $this->setFormError('name', $form_state, $this->t('Sorry, %name is not recognized as a username or an email address.', array('%name' => $name)));
+      $form_state->setErrorByName('name', $this->t('Sorry, %name is not recognized as a username or an email address.', array('%name' => $name)));
     }
   }
 
   /**
    * {@inheritdoc}
    */
-  public function submitForm(array &$form, array &$form_state) {
+  public function submitForm(array &$form, FormStateInterface $form_state) {
     $langcode = $this->languageManager->getCurrentLanguage()->id;
 
     $account = $form_state['values']['account'];
     // Mail one time login URL and instructions using current language.
     $mail = _user_mail_notify('password_reset', $account, $langcode);
     if (!empty($mail)) {
-      watchdog('user', 'Password reset instructions mailed to %name at %email.', array('%name' => $account->getUsername(), '%email' => $account->getEmail()));
+      $this->logger('user')->notice('Password reset instructions mailed to %name at %email.', array('%name' => $account->getUsername(), '%email' => $account->getEmail()));
       drupal_set_message($this->t('Further instructions have been sent to your email address.'));
     }
 
-    $form_state['redirect_route']['route_name'] = 'user.page';
+    $form_state->setRedirect('user.page');
   }
 
 }

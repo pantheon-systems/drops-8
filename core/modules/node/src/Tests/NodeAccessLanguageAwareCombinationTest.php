@@ -10,7 +10,10 @@ namespace Drupal\node\Tests;
 use Drupal\Core\Language\Language;
 
 /**
- * Tests node access with multiple languages and access control modules.
+ * Tests node access functionality with multiple languages and two node access
+ * modules.
+ *
+ * @group node
  */
 class NodeAccessLanguageAwareCombinationTest extends NodeTestBase {
 
@@ -42,33 +45,28 @@ class NodeAccessLanguageAwareCombinationTest extends NodeTestBase {
    */
   protected $admin_user;
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Node access language-aware combination',
-      'description' => 'Tests node access functionality with multiple languages and two node access modules.',
-      'group' => 'Node',
-    );
-  }
-
   public function setUp() {
     parent::setUp();
 
+    node_access_test_add_field(entity_load('node_type', 'page'));
+
     // Create the 'private' field, which allows the node to be marked as private
     // (restricted access) in a given translation.
-    $field_private = entity_create('field_config', array(
+    $field_storage = entity_create('field_storage_config', array(
       'name' => 'field_private',
       'entity_type' => 'node',
-      'type' => 'list_boolean',
+      'type' => 'boolean',
       'cardinality' => 1,
       'translatable'  => TRUE,
       'settings' => array(
-        'allowed_values' => array(0 => 'Not private', 1 => 'Private'),
+        'on_label' => 'Private',
+        'off_label' => 'Not private',
       ),
     ));
-    $field_private->save();
+    $field_storage->save();
 
     entity_create('field_instance_config', array(
-      'field' => $field_private,
+      'field_storage' => $field_storage,
       'bundle' => 'page',
       'widget' => array(
         'type' => 'options_buttons',

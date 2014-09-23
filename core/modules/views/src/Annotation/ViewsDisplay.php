@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Contains \Drupal\views\Plugin\Annotation\ViewsDisplay.
+ * Contains \Drupal\views\Annotation\ViewsDisplay.
  */
 
 namespace Drupal\views\Annotation;
@@ -71,7 +71,7 @@ class ViewsDisplay extends ViewsPluginAnnotationBase {
    *
    * @var bool
    */
-  public $uses_hook_menu;
+  public $uses_menu_links;
 
   /**
    * Does the display plugin registers routes to the route.

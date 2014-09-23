@@ -9,12 +9,13 @@ namespace Drupal\node\Tests;
 
 use Drupal\Component\Utility\String;
 use Drupal\Component\Utility\Unicode;
-use Drupal\Component\Utility\Xss;
 use Drupal\Core\Config\Entity\ConfigEntityStorage;
 use Drupal\simpletest\WebTestBase;
 
 /**
  * Tests importing renamed node type via configuration synchronisation.
+ *
+ * @group node
  */
 class NodeTypeRenameConfigImportTest extends WebTestBase {
 
@@ -24,17 +25,6 @@ class NodeTypeRenameConfigImportTest extends WebTestBase {
    * @var array
    */
   public static $modules = array('node', 'text', 'config');
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'name' => 'Import renamed node type',
-      'description' => 'Tests importing renamed node type via configuration synchronisation.',
-      'group' => 'Configuration',
-    );
-  }
 
   /**
    * {@inheritdoc}
@@ -50,8 +40,8 @@ class NodeTypeRenameConfigImportTest extends WebTestBase {
    */
   public function testConfigurationRename() {
     $content_type = entity_create('node_type', array(
-      'type' => Unicode::strtolower($this->randomName(16)),
-      'name' => $this->randomName(),
+      'type' => Unicode::strtolower($this->randomMachineName(16)),
+      'name' => $this->randomMachineName(),
     ));
     $content_type->save();
     $staged_type = $content_type->type;
@@ -63,7 +53,7 @@ class NodeTypeRenameConfigImportTest extends WebTestBase {
     $this->copyConfig($active, $staging);
 
     // Change the machine name of the content type.
-    $content_type->type = Unicode::strtolower($this->randomName(8));
+    $content_type->type = Unicode::strtolower($this->randomMachineName(8));
     $content_type->save();
     $active_type = $content_type->type;
     $renamed_config_name = $content_type->getEntityType()->getConfigPrefix() . '.' . $content_type->id();
@@ -124,29 +114,6 @@ class NodeTypeRenameConfigImportTest extends WebTestBase {
     $this->assertFalse(entity_load('node_type', $active_type), 'The content no longer exists with the old name.');
     $content_type = entity_load('node_type', $staged_type);
     $this->assertIdentical($staged_type, $content_type->type);
-  }
-
-  /**
-   * Asserts that a Perl regex pattern is found in the text content.
-   *
-   * @param string $pattern
-   *   Perl regex to look for including the regex delimiters.
-   * @param string $message
-   *   (optional) A message to display with the assertion.
-   *
-   * @return bool
-   *   TRUE on pass, FALSE on failure.
-   */
-  protected function assertTextPattern($pattern, $message = NULL) {
-    // @see WebTestBase::assertTextHelper()
-    if ($this->plainTextContent === FALSE) {
-      $this->plainTextContent = Xss::filter($this->drupalGetContent(), array());
-    }
-    // @see WebTestBase::assertPattern()
-    if (!$message) {
-      $message = String::format('Pattern "@pattern" found', array('@pattern' => $pattern));
-    }
-    return $this->assert((bool) preg_match($pattern, $this->plainTextContent), $message);
   }
 
 }

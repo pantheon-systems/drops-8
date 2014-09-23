@@ -8,10 +8,12 @@
 namespace Drupal\search\Tests;
 
 use Drupal\Core\Language\Language;
-use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
 
 /**
- * Test node search with multiple languages.
+ * Tests advanced search with different languages added.
+ *
+ * @group search
  */
 class SearchLanguageTest extends SearchTestBase {
 
@@ -21,14 +23,6 @@ class SearchLanguageTest extends SearchTestBase {
    * @var array
    */
   public static $modules = array('language');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Search language selection',
-      'description' => 'Tests advanced search with different languages added.',
-      'group' => 'Search',
-    );
-  }
 
   function setUp() {
     parent::setUp();
@@ -47,9 +41,9 @@ class SearchLanguageTest extends SearchTestBase {
     // Make the body field translatable. The title is already translatable by
     // definition. The parent class has already created the article and page
     // content types.
-    $field = FieldConfig::loadByName('node', 'body');
-    $field->translatable = TRUE;
-    $field->save();
+    $field_storage = FieldStorageConfig::loadByName('node', 'body');
+    $field_storage->translatable = TRUE;
+    $field_storage->save();
 
     // Create a few page nodes with multilingual body values.
     $default_format = filter_default_format();
@@ -57,19 +51,19 @@ class SearchLanguageTest extends SearchTestBase {
       array(
         'title' => 'First node en',
         'type' => 'page',
-        'body' => array(array('value' => $this->randomName(32), 'format' => $default_format)),
+        'body' => array(array('value' => $this->randomMachineName(32), 'format' => $default_format)),
         'langcode' => 'en',
       ),
       array(
         'title' => 'Second node this is the Spanish title',
         'type' => 'page',
-        'body' => array(array('value' => $this->randomName(32), 'format' => $default_format)),
+        'body' => array(array('value' => $this->randomMachineName(32), 'format' => $default_format)),
         'langcode' => 'es',
       ),
       array(
         'title' => 'Third node en',
         'type' => 'page',
-        'body' => array(array('value' => $this->randomName(32), 'format' => $default_format)),
+        'body' => array(array('value' => $this->randomMachineName(32), 'format' => $default_format)),
         'langcode' => 'en',
       ),
     );
@@ -80,12 +74,12 @@ class SearchLanguageTest extends SearchTestBase {
 
     // Add English translation to the second node.
     $translation = $this->searchable_nodes[1]->addTranslation('en', array('title' => 'Second node en'));
-    $translation->body->value = $this->randomName(32);
+    $translation->body->value = $this->randomMachineName(32);
     $this->searchable_nodes[1]->save();
 
     // Add Spanish translation to the third node.
     $translation = $this->searchable_nodes[2]->addTranslation('es', array('title' => 'Third node es'));
-    $translation->body->value = $this->randomName(32);
+    $translation->body->value = $this->randomMachineName(32);
     $this->searchable_nodes[2]->save();
 
     // Update the index and then run the shutdown method.

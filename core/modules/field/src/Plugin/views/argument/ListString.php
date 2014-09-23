@@ -8,6 +8,7 @@
 namespace Drupal\field\Plugin\views\argument;
 
 use Drupal\Component\Utility\String as UtilityString;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\views\ViewExecutable;
 use Drupal\views\Plugin\views\display\DisplayPluginBase;
 use Drupal\views\Plugin\views\argument\String;
@@ -36,8 +37,8 @@ class ListString extends String {
     parent::init($view, $display, $options);
 
     $field_storage_definitions = \Drupal::entityManager()->getFieldStorageDefinitions($this->definition['entity_type']);
-    $field = $field_storage_definitions[$this->definition['field_name']];
-    $this->allowed_values = options_allowed_values($field);
+    $field_storage = $field_storage_definitions[$this->definition['field_name']];
+    $this->allowed_values = options_allowed_values($field_storage);
   }
 
   protected function defineOptions() {
@@ -48,7 +49,7 @@ class ListString extends String {
     return $options;
   }
 
-  public function buildOptionsForm(&$form, &$form_state) {
+  public function buildOptionsForm(&$form, FormStateInterface $form_state) {
     parent::buildOptionsForm($form, $form_state);
 
     $form['summary']['human'] = array(

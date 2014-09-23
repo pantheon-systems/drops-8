@@ -11,7 +11,9 @@ use Drupal\config\Tests\SchemaCheckTestTrait;
 use Drupal\Core\Entity\EntityInterface;
 
 /**
- * Tests the functionality of the 'Manage display' screens.
+ * Tests the Field UI "Manage display" and "Manage form display" screens.
+ *
+ * @group field_ui
  */
 class ManageDisplayTest extends FieldUiTestBase {
 
@@ -23,14 +25,6 @@ class ManageDisplayTest extends FieldUiTestBase {
    * @var array
    */
   public static $modules = array('search', 'field_test', 'field_third_party_test');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Manage display',
-      'description' => 'Test the Field UI "Manage display" and "Manage form display" screens.',
-      'group' => 'Field UI',
-    );
-  }
 
   /**
    * Tests formatter settings.
@@ -303,6 +297,17 @@ class ManageDisplayTest extends FieldUiTestBase {
     $this->drupalPostForm('admin/structure/types/manage/' . $this->type . '/display', $edit, t('Save'));
     // Check that the previous settings for the view mode have been kept.
     $this->assertNodeViewNoText($node, 'rss', $value, "The previous settings are kept when 'rss' mode is specialized again.");
+  }
+
+  /**
+   * Tests the local tasks are displayed correctly for view modes.
+   */
+  public function testViewModeLocalTasks() {
+    $manage_display = 'admin/structure/types/manage/' . $this->type . '/display';
+    $this->drupalGet($manage_display);
+    $this->assertNoLink('Full content');
+    $this->drupalGet($manage_display . '/teaser');
+    $this->assertNoLink('Full content');
   }
 
   /**

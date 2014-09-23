@@ -10,10 +10,9 @@ namespace Drupal\migrate_drupal\Tests\source\d6;
 use Drupal\migrate\Tests\MigrateSqlSourceTestCase;
 
 /**
- * Tests the Drupal 6 profile source.
+ * Tests D6 profile field source plugin.
  *
  * @group migrate_drupal
- * @group Drupal
  */
 class ProfileFieldTest extends MigrateSqlSourceTestCase {
 
@@ -49,7 +48,7 @@ class ProfileFieldTest extends MigrateSqlSourceTestCase {
       'register' => 0,
       'visibility' => 2,
       'autocomplete' => 0,
-      'options' => '',
+      'options' => array(),
     ),
     array(
       'fid' => 2,
@@ -64,7 +63,7 @@ class ProfileFieldTest extends MigrateSqlSourceTestCase {
       'register' => 0,
       'visibility' => 2,
       'autocomplete' => 0,
-      'options' => '',
+      'options' => array(),
     ),
     array(
       'fid' => 3,
@@ -79,7 +78,7 @@ class ProfileFieldTest extends MigrateSqlSourceTestCase {
       'register' => 1,
       'visibility' => 2,
       'autocomplete' => 0,
-      'options' => '',
+      'options' => array(),
     ),
   );
 
@@ -89,17 +88,6 @@ class ProfileFieldTest extends MigrateSqlSourceTestCase {
   protected function setUp() {
     $this->databaseContents['profile_fields'] = $this->expectedResults;
     parent::setUp();
-  }
-
-  /**
-   * Provide meta information about this battery of tests.
-   */
-  public static function getInfo() {
-    return array(
-      'name' => 'D6 profile field source functionality',
-      'description' => 'Tests D6 profile field source plugin.',
-      'group' => 'Migrate Drupal',
-    );
   }
 
 }

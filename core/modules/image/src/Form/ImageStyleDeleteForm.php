@@ -8,6 +8,7 @@
 namespace Drupal\image\Form;
 
 use Drupal\Core\Entity\EntityConfirmFormBase;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
 
 /**
@@ -32,7 +33,7 @@ class ImageStyleDeleteForm extends EntityConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function getCancelRoute() {
+  public function getCancelUrl() {
     return new Url('image.style_list');
   }
 
@@ -46,7 +47,7 @@ class ImageStyleDeleteForm extends EntityConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function form(array $form, array &$form_state) {
+  public function form(array $form, FormStateInterface $form_state) {
     $replacement_styles = array_diff_key(image_style_options(), array($this->entity->id() => ''));
     $form['replacement'] = array(
       '#title' => $this->t('Replacement style'),
@@ -61,11 +62,11 @@ class ImageStyleDeleteForm extends EntityConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function submit(array $form, array &$form_state) {
+  public function submit(array $form, FormStateInterface $form_state) {
     $this->entity->set('replacementID', $form_state['values']['replacement']);
     $this->entity->delete();
     drupal_set_message($this->t('Style %name was deleted.', array('%name' => $this->entity->label())));
-    $form_state['redirect_route'] = $this->getCancelRoute();
+    $form_state->setRedirectUrl($this->getCancelUrl());
   }
 
 }

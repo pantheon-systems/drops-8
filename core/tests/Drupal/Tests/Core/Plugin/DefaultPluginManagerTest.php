@@ -33,17 +33,6 @@ class DefaultPluginManagerTest extends UnitTestCase {
   /**
    * {@inheritdoc}
    */
-  public static function getInfo() {
-    return array(
-      'name' => 'Default Plugin Manager',
-      'description' => 'Tests the DefaultPluginManager class.',
-      'group' => 'Plugin',
-    );
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   protected function setUp() {
     $this->expectedDefinitions = array(
       'apple' => array(
@@ -135,7 +124,7 @@ class DefaultPluginManagerTest extends UnitTestCase {
       ->getMock();
 
     // Configure the stub.
-    $alter_hook_name = $this->randomName();
+    $alter_hook_name = $this->randomMachineName();
     $module_handler->expects($this->once())
       ->method('alter')
       ->with($this->equalTo($alter_hook_name), $this->equalTo($this->expectedDefinitions));
@@ -150,7 +139,7 @@ class DefaultPluginManagerTest extends UnitTestCase {
    * Tests the plugin manager with caching and altering.
    */
   public function testDefaultPluginManagerWithEmptyCache() {
-    $cid = $this->randomName();
+    $cid = $this->randomMachineName();
     $cache_backend = $this->getMockBuilder('Drupal\Core\Cache\MemoryBackend')
       ->disableOriginalConstructor()
       ->getMock();
@@ -175,7 +164,7 @@ class DefaultPluginManagerTest extends UnitTestCase {
    * Tests the plugin manager with caching and altering.
    */
   public function testDefaultPluginManagerWithFilledCache() {
-    $cid = $this->randomName();
+    $cid = $this->randomMachineName();
     $cache_backend = $this->getMockBuilder('Drupal\Core\Cache\MemoryBackend')
       ->disableOriginalConstructor()
       ->getMock();
@@ -198,7 +187,7 @@ class DefaultPluginManagerTest extends UnitTestCase {
    * Tests the plugin manager cache clear with tags.
    */
   public function testCacheClearWithTags() {
-    $cid = $this->randomName();
+    $cid = $this->randomMachineName();
     $cache_backend = $this->getMockBuilder('Drupal\Core\Cache\MemoryBackend')
       ->disableOriginalConstructor()
       ->getMock();

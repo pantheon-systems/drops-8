@@ -12,7 +12,10 @@ use Drupal\Core\Condition\ConditionManager;
 use Drupal\Core\Language\Language;
 
 /**
- * Tests the language condition.
+ * Tests that the language condition, provided by the language module, is
+ * working properly.
+ *
+ * @group language
  */
 class LanguageConditionTest extends DrupalUnitTestBase {
 
@@ -37,14 +40,6 @@ class LanguageConditionTest extends DrupalUnitTestBase {
    */
   public static $modules = array('system', 'language');
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Language Condition Plugin',
-      'description' => 'Tests that the language condition, provided by the language module, is working properly.',
-      'group' => 'Condition API',
-    );
-  }
-
   protected function setUp() {
     parent::setUp();
 
@@ -57,7 +52,7 @@ class LanguageConditionTest extends DrupalUnitTestBase {
     $language = new Language(array(
       'id' => 'it',
       'name' => 'Italian',
-      'direction' => '0',
+      'direction' => Language::DIRECTION_LTR,
     ));
     language_save($language);
 

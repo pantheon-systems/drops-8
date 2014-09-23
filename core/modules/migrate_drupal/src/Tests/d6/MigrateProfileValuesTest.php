@@ -11,9 +11,12 @@ use Drupal\migrate\MigrateExecutable;
 use Drupal\migrate_drupal\Tests\Dump\Drupal6User;
 use Drupal\migrate_drupal\Tests\Dump\Drupal6UserProfileFields;
 use Drupal\migrate_drupal\Tests\MigrateDrupalTestBase;
+use Drupal\user\Entity\User;
 
 /**
- * Tests Drupal 6 profile values to Drupal 8 migration.
+ * User profile values migration.
+ *
+ * @group migrate_drupal
  */
 class MigrateProfileValuesTest extends MigrateDrupalTestBase {
 
@@ -34,60 +37,55 @@ class MigrateProfileValuesTest extends MigrateDrupalTestBase {
   /**
    * {@inheritdoc}
    */
-  public static function getInfo() {
-    return array(
-      'name'  => 'Migrate user profile values',
-      'description'  => 'User profile values migration',
-      'group' => 'Migrate Drupal',
-    );
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   protected function setUp() {
     parent::setUp();
     // Create some fields so the data gets stored.
-    entity_create('field_config', array(
+    entity_create('field_storage_config', array(
       'entity_type' => 'user',
       'name' => 'profile_color',
       'type' => 'text',
     ))->save();
-    entity_create('field_config', array(
+    entity_create('field_storage_config', array(
       'entity_type' => 'user',
       'name' => 'profile_biography',
       'type' => 'text_long',
     ))->save();
-    entity_create('field_config', array(
+    entity_create('field_storage_config', array(
       'entity_type' => 'user',
       'name' => 'profile_sell_address',
-      'type' => 'list_boolean',
+      'type' => 'boolean',
     ))->save();
-    entity_create('field_config', array(
+    entity_create('field_storage_config', array(
       'entity_type' => 'user',
       'name' => 'profile_sold_to',
       'type' => 'list_text',
+      'settings' => array(
+        'allowed_values' => array(
+          'Pill spammers' => 'Pill spammers',
+          'Fitness spammers' => 'Fitness spammers',
+        )
+      )
     ))->save();
-    entity_create('field_config', array(
+    entity_create('field_storage_config', array(
       'entity_type' => 'user',
       'name' => 'profile_bands',
       'type' => 'text',
       'cardinality' => -1,
     ))->save();
-    entity_create('field_config', array(
+    entity_create('field_storage_config', array(
       'entity_type' => 'user',
       'name' => 'profile_blog',
       'type' => 'link',
     ))->save();
-    entity_create('field_config', array(
+    entity_create('field_storage_config', array(
       'entity_type' => 'user',
       'name' => 'profile_birthdate',
       'type' => 'datetime',
     ))->save();
-    entity_create('field_config', array(
+    entity_create('field_storage_config', array(
       'entity_type' => 'user',
       'name' => 'profile_love_migrations',
-      'type' => 'list_boolean',
+      'type' => 'boolean',
     ))->save();
 
     // Create the field instances.
@@ -144,7 +142,7 @@ class MigrateProfileValuesTest extends MigrateDrupalTestBase {
    * Tests Drupal 6 profile values to Drupal 8 migration.
    */
   public function testUserProfileValues() {
-    $user = user_load(2);
+    $user = User::load(2);
     $this->assertFalse(is_null($user));
     $this->assertEqual($user->profile_color->value, 'red');
     $this->assertEqual($user->profile_biography->value, 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam nulla sapien, congue nec risus ut, adipiscing aliquet felis. Maecenas quis justo vel nulla varius euismod. Quisque metus metus, cursus sit amet sem non, bibendum vehicula elit. Cras dui nisl, eleifend at iaculis vitae, lacinia ut felis. Nullam aliquam ligula volutpat nulla consectetur accumsan. Maecenas tincidunt molestie diam, a accumsan enim fringilla sit amet. Morbi a tincidunt tellus. Donec imperdiet scelerisque porta. Sed quis sem bibendum eros congue sodales. Vivamus vel fermentum est, at rutrum orci. Nunc consectetur purus ut dolor pulvinar, ut volutpat felis congue. Cras tincidunt odio sed neque sollicitudin, vehicula tempor metus scelerisque.');
@@ -152,7 +150,11 @@ class MigrateProfileValuesTest extends MigrateDrupalTestBase {
     $this->assertEqual($user->profile_sold_to->value, 'Fitness spammers');
     $this->assertEqual($user->profile_bands[0]->value, 'AC/DC');
     $this->assertEqual($user->profile_bands[1]->value, 'Eagles');
-    #$this->assertEqual($user->profile_blog->url, 'http://example.com/blog');
+    $this->assertEqual($user->profile_bands[2]->value, 'Elton John');
+    $this->assertEqual($user->profile_bands[3]->value, 'Lemonheads');
+    $this->assertEqual($user->profile_bands[4]->value, 'Rolling Stones');
+    $this->assertEqual($user->profile_bands[5]->value, 'Queen');
+    $this->assertEqual($user->profile_bands[6]->value, 'The White Stripes');
     $this->assertEqual($user->profile_birthdate->value, '1974-06-02');
   }
 

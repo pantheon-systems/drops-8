@@ -7,10 +7,13 @@
 
 namespace Drupal\user\Tests;
 
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\simpletest\WebTestBase;
 
 /**
  * Functional tests for a user's ability to change their default language.
+ *
+ * @group user
  */
 class UserLanguageTest extends WebTestBase {
 
@@ -20,14 +23,6 @@ class UserLanguageTest extends WebTestBase {
    * @var array
    */
   public static $modules = array('user', 'language');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'User language settings',
-      'description' => "Tests user's ability to change their default language.",
-      'group' => 'User',
-    );
-  }
 
   /**
    * Test if user can change their default language.
@@ -43,12 +38,12 @@ class UserLanguageTest extends WebTestBase {
     // Code for the language.
     $langcode = 'xx';
     // The English name for the language.
-    $name = $this->randomName(16);
+    $name = $this->randomMachineName(16);
     $edit = array(
       'predefined_langcode' => 'custom',
       'langcode' => $langcode,
       'name' => $name,
-      'direction' => '0',
+      'direction' => LanguageInterface::DIRECTION_LTR,
     );
     $this->drupalPostForm('admin/config/regional/language/add', $edit, t('Add custom language'));
     $this->drupalLogout();

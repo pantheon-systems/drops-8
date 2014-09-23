@@ -1,5 +1,7 @@
 id: d6_comment_entity_form_display
-label: Drupal 6 comment form display configuration
+label: Drupal 6 comment field form display configuration
+migration_groups:
+  - Drupal 6
 source:
   plugin: d6_comment_variable
   constants:
@@ -10,10 +12,10 @@ source:
       type: comment_default
       weight: 20
 process:
-  entity_type: constants.entity_type
-  field_name: constants.field_name
-  form_mode: constants.form_mode
-  options: constants.options
+  entity_type: 'constants/entity_type'
+  field_name: 'constants/field_name'
+  form_mode: 'constants/form_mode'
+  options: 'constants/options'
 
   bundle: node_type
 destination:

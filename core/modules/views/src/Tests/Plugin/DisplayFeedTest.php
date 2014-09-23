@@ -10,6 +10,7 @@ namespace Drupal\views\Tests\Plugin;
 /**
  * Tests the feed display plugin.
  *
+ * @group views
  * @see \Drupal\views\Plugin\views\display\Feed
  */
 class DisplayFeedTest extends PluginTestBase {
@@ -28,14 +29,6 @@ class DisplayFeedTest extends PluginTestBase {
    */
   public static $modules = array('block', 'node', 'views');
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Display: Feed plugin',
-      'description' => 'Tests the feed display plugin.',
-      'group' => 'Views Plugins',
-    );
-  }
-
   protected function setUp() {
     parent::setUp();
 
@@ -52,7 +45,7 @@ class DisplayFeedTest extends PluginTestBase {
     $this->drupalCreateNode();
 
     // Test the site name setting.
-    $site_name = $this->randomName();
+    $site_name = $this->randomMachineName();
     $this->container->get('config.factory')->get('system.site')->set('name', $site_name)->save();
 
     $this->drupalGet('test-feed-display.xml');

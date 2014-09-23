@@ -11,9 +11,14 @@ use Drupal\Core\Config\StorageComparer;
 use Drupal\system\Tests\Module\ModuleTestBase;
 
 /**
- * Tests importing all configuration from Standard profile and all core modules.
+ * Tests the largest configuration import possible with the modules and profiles
+ * provided by core.
+ *
+ * @group config
  */
 class ConfigImportAllTest extends ModuleTestBase {
+
+  use SchemaCheckTestTrait;
 
   /**
    * The profile to install as a basis for testing.
@@ -24,12 +29,11 @@ class ConfigImportAllTest extends ModuleTestBase {
    */
   protected $profile = 'standard';
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Import configuration from all modules and the standard profile',
-      'description' => 'Tests the largest configuration import possible with the modules and profiles provided by core.',
-      'group' => 'Configuration',
-    );
+  public function setUp() {
+    parent::setUp();
+
+    $this->web_user = $this->drupalCreateUser(array('synchronize configuration'));
+    $this->drupalLogin($this->web_user);
   }
 
   /**
@@ -67,8 +71,8 @@ class ConfigImportAllTest extends ModuleTestBase {
     // example, if a comment field exists then module becomes required and can
     // not be uninstalled.
 
-    $fields = \Drupal::entityManager()->getStorage('field_config')->loadMultiple();
-    \Drupal::entityManager()->getStorage('field_config')->delete($fields);
+    $field_storages = \Drupal::entityManager()->getStorage('field_storage_config')->loadMultiple();
+    \Drupal::entityManager()->getStorage('field_storage_config')->delete($field_storages);
     // Purge the data.
     field_purge_batch(1000);
 
@@ -82,6 +86,9 @@ class ConfigImportAllTest extends ModuleTestBase {
       return TRUE;
     });
 
+    // Can not uninstall config and use admin/config/development/configuration!
+    unset($modules_to_uninstall['config']);
+
     $this->assertTrue(isset($modules_to_uninstall['comment']), 'The comment module will be disabled');
 
     // Uninstall all modules that can be uninstalled.
@@ -94,7 +101,7 @@ class ConfigImportAllTest extends ModuleTestBase {
     }
 
     // Import the configuration thereby re-installing all the modules.
-    $this->configImporter()->import();
+    $this->drupalPostForm('admin/config/development/configuration', array(), t('Import all'));
 
     // Check that there are no errors.
     $this->assertIdentical($this->configImporter()->getErrors(), array());
@@ -113,5 +120,17 @@ class ConfigImportAllTest extends ModuleTestBase {
       $this->container->get('config.manager')
     );
     $this->assertIdentical($storage_comparer->createChangelist()->getChangelist(), $storage_comparer->getEmptyChangelist());
+
+    // Now we have all configuration imported, test all of them for schema
+    // conformance. Ensures all imported default configuration is valid when
+    // all modules are enabled.
+    $names = $this->container->get('config.storage')->listAll();
+    $factory = $this->container->get('config.factory');
+    /** @var \Drupal\Core\Config\TypedConfigManagerInterface $typed_config */
+    $typed_config = $this->container->get('config.typed');
+    foreach ($names as $name) {
+      $config = $factory->get($name);
+      $this->assertConfigSchema($typed_config, $name, $config->get());
+    }
   }
 }

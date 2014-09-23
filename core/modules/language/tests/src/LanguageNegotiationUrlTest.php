@@ -13,24 +13,13 @@ use Drupal\language\Plugin\LanguageNegotiation\LanguageNegotiationUrl;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
- * Tests the URL and domain language negotiation.
- *
- * @group Language
- *
- * @see \Drupal\language\Plugin\LanguageNegotiation\LanguageNegotiationUrl
+ * @coversDefaultClass \Drupal\language\Plugin\LanguageNegotiation\LanguageNegotiationUrl
+ * @group language
  */
 class LanguageNegotiationUrlTest extends UnitTestCase {
 
   protected $languageManager;
   protected $user;
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Language negotiation URL',
-      'description' => 'Tests the URL/domain Language negotiation plugin',
-      'group' => 'Language',
-    );
-  }
 
   /**
    * {@inheritdoc}
@@ -109,13 +98,13 @@ class LanguageNegotiationUrlTest extends UnitTestCase {
       'domains' => array(
         'de' => 'http://example.de',
       ),
-      'expected_langocde' => 'de',
+      'expected_langcode' => 'de',
     );
     // No configuration.
     $domain_configuration[] = array(
       'http_host' => 'example.de',
       'domains' => array(),
-      'expected_langocde' => FALSE,
+      'expected_langcode' => FALSE,
     );
     // HTTP host with a port.
     $domain_configuration[] = array(
@@ -123,7 +112,7 @@ class LanguageNegotiationUrlTest extends UnitTestCase {
       'domains' => array(
         'de' => 'http://example.de',
       ),
-      'expected_langocde' => 'de',
+      'expected_langcode' => 'de',
     );
     // Domain configuration with https://.
     $domain_configuration[] = array(
@@ -131,7 +120,7 @@ class LanguageNegotiationUrlTest extends UnitTestCase {
       'domains' => array(
         'de' => 'https://example.de',
       ),
-      'expected_langocde' => 'de',
+      'expected_langcode' => 'de',
     );
     // Non-matching HTTP host.
     $domain_configuration[] = array(
@@ -139,7 +128,7 @@ class LanguageNegotiationUrlTest extends UnitTestCase {
       'domains' => array(
         'de' => 'http://example.com',
       ),
-      'expected_langocde' => 'de',
+      'expected_langcode' => 'de',
     );
     // Testing a non-existing language.
     $domain_configuration[] = array(
@@ -147,7 +136,7 @@ class LanguageNegotiationUrlTest extends UnitTestCase {
       'domains' => array(
         'it' => 'http://example.it',
       ),
-      'expected_langocde' => FALSE,
+      'expected_langcode' => FALSE,
     );
     // Multiple domain configurations.
     $domain_configuration[] = array(
@@ -156,7 +145,7 @@ class LanguageNegotiationUrlTest extends UnitTestCase {
         'de' => 'http://example.de',
         'en' => 'http://example.com',
       ),
-      'expected_langocde' => 'en',
+      'expected_langcode' => 'en',
     );
     return $domain_configuration;
   }

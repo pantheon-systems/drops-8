@@ -11,6 +11,8 @@ use Drupal\simpletest\DrupalUnitTestBase;
 
 /**
  * Tests writing of data records with drupal_write_record().
+ *
+ * @group Common
  */
 class WriteRecordTest extends DrupalUnitTestBase {
 
@@ -20,14 +22,6 @@ class WriteRecordTest extends DrupalUnitTestBase {
    * @var array
    */
   public static $modules = array('database_test');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Data record write functionality',
-      'description' => 'Tests writing of data records with drupal_write_record().',
-      'group' => 'Common',
-    );
-  }
 
   /**
    * Tests the drupal_write_record() API function.
@@ -138,7 +132,7 @@ class WriteRecordTest extends DrupalUnitTestBase {
 
     // Insert an object record for a table with a multi-field primary key.
     $composite_primary = new \stdClass();
-    $composite_primary->name = $this->randomName();
+    $composite_primary->name = $this->randomMachineName();
     $composite_primary->age = mt_rand();
     $insert_result = drupal_write_record('test_composite_primary', $composite_primary);
     $this->assertTrue($insert_result == SAVED_NEW, 'Correct value returned when a record is inserted with drupal_write_record() for a table with a multi-field primary key.');

@@ -9,6 +9,7 @@ namespace Drupal\Tests\Core\Form {
 
 use Drupal\Core\Form\FormBuilder;
 use Drupal\Core\Form\FormInterface;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Tests\UnitTestCase;
 use Symfony\Component\HttpFoundation\Request;
@@ -129,7 +130,7 @@ abstract class FormTestBase extends UnitTestCase {
   protected $translationManager;
 
   /**
-   * @var \Drupal\Core\HttpKernel|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Symfony\Component\HttpKernel\HttpKernel|\PHPUnit_Framework_MockObject_MockObject
    */
   protected $httpKernel;
 
@@ -153,7 +154,7 @@ abstract class FormTestBase extends UnitTestCase {
     $this->csrfToken = $this->getMockBuilder('Drupal\Core\Access\CsrfTokenGenerator')
       ->disableOriginalConstructor()
       ->getMock();
-    $this->httpKernel = $this->getMockBuilder('Drupal\Core\HttpKernel')
+    $this->httpKernel = $this->getMockBuilder('Symfony\Component\HttpKernel\HttpKernel')
       ->disableOriginalConstructor()
       ->getMock();
     $this->account = $this->getMock('Drupal\Core\Session\AccountInterface');
@@ -221,8 +222,8 @@ abstract class FormTestBase extends UnitTestCase {
    *   The unique string identifying the form.
    * @param \Drupal\Core\Form\FormInterface $form_arg
    *   The form object.
-   * @param array $form_state
-   *   An associative array containing the current state of the form.
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   The current state of the form.
    * @param bool $programmed
    *   Whether $form_state['programmed'] should be set to TRUE or not. If it is
    *   not set to TRUE, you must provide additional data in $form_state for the
@@ -231,13 +232,13 @@ abstract class FormTestBase extends UnitTestCase {
    * @return array
    *   The built form.
    */
-  protected function simulateFormSubmission($form_id, FormInterface $form_arg, array &$form_state, $programmed = TRUE) {
+  protected function simulateFormSubmission($form_id, FormInterface $form_arg, FormStateInterface $form_state, $programmed = TRUE) {
     $form_state['build_info']['callback_object'] = $form_arg;
     $form_state['build_info']['args'] = array();
     $form_state['input']['op'] = 'Submit';
     $form_state['programmed'] = $programmed;
     $form_state['submitted'] = TRUE;
-    return $this->formBuilder->buildForm($form_id, $form_state);
+    return $this->formBuilder->buildForm($form_arg, $form_state);
   }
 
   /**

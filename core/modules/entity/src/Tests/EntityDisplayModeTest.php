@@ -10,7 +10,9 @@ namespace Drupal\entity\Tests;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Tests the entity display mode configuration entities.
+ * Tests the entity display modes UI.
+ *
+ * @group entity
  */
 class EntityDisplayModeTest extends WebTestBase {
 
@@ -20,14 +22,6 @@ class EntityDisplayModeTest extends WebTestBase {
    * @var array
    */
   public static $modules = array('entity_test');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Entity display modes UI',
-      'description' => 'Tests the entity display modes UI.',
-      'group' => 'Entity',
-    );
-  }
 
   /**
    * Tests the EntityViewMode user interface.
@@ -51,7 +45,7 @@ class EntityDisplayModeTest extends WebTestBase {
     // Test adding a view mode including dots in machine_name.
     $this->clickLink(t('Test entity'));
     $edit = array(
-      'id' => strtolower($this->randomName()) . '.' . strtolower($this->randomName()),
+      'id' => strtolower($this->randomMachineName()) . '.' . strtolower($this->randomMachineName()),
       'label' => $this->randomString(),
     );
     $this->drupalPostForm(NULL, $edit, t('Save'));
@@ -59,7 +53,7 @@ class EntityDisplayModeTest extends WebTestBase {
 
     // Test adding a view mode.
     $edit = array(
-      'id' => strtolower($this->randomName()),
+      'id' => strtolower($this->randomMachineName()),
       'label' => $this->randomString(),
     );
     $this->drupalPostForm(NULL, $edit, t('Save'));
@@ -97,7 +91,7 @@ class EntityDisplayModeTest extends WebTestBase {
     // Test adding a view mode including dots in machine_name.
     $this->clickLink(t('Test entity'));
     $edit = array(
-      'id' => strtolower($this->randomName()) . '.' . strtolower($this->randomName()),
+      'id' => strtolower($this->randomMachineName()) . '.' . strtolower($this->randomMachineName()),
       'label' => $this->randomString(),
     );
     $this->drupalPostForm(NULL, $edit, t('Save'));
@@ -105,7 +99,7 @@ class EntityDisplayModeTest extends WebTestBase {
 
     // Test adding a form mode.
     $edit = array(
-      'id' => strtolower($this->randomName()),
+      'id' => strtolower($this->randomMachineName()),
       'label' => $this->randomString(),
     );
     $this->drupalPostForm(NULL, $edit, t('Save'));

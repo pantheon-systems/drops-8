@@ -13,7 +13,9 @@ use Drupal\simpletest\DrupalUnitTestBase;
 use Drupal\filter\FilterBag;
 
 /**
- * Unit tests for core filters.
+ * Tests Filter module filters individually.
+ *
+ * @group filter
  */
 class FilterUnitTest extends DrupalUnitTestBase {
 
@@ -28,14 +30,6 @@ class FilterUnitTest extends DrupalUnitTestBase {
    * @var \Drupal\filter\Plugin\FilterInterface[]
    */
   protected $filters;
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Filter module filters',
-      'description' => 'Tests Filter module filters individually.',
-      'group' => 'Filter',
-    );
-  }
 
   protected function setUp() {
     parent::setUp();
@@ -258,7 +252,7 @@ class FilterUnitTest extends DrupalUnitTestBase {
 
     // Very long string hitting PCRE limits.
     $limit = max(ini_get('pcre.backtrack_limit'), ini_get('pcre.recursion_limit'));
-    $source = $this->randomName($limit);
+    $source = $this->randomMachineName($limit);
     $result = _filter_autop($source);
     $success = $this->assertEqual($result, '<p>' . $source . "</p>\n", 'Line break filter can process very long strings.');
     if (!$success) {

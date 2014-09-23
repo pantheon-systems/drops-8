@@ -8,17 +8,12 @@
 namespace Drupal\node\Tests;
 
 /**
- * Checks that the post information displays when enabled for a content type.
+ * Tests that the post information (submitted by Username on date) text displays
+ * appropriately.
+ *
+ * @group node
  */
 class NodePostSettingsTest extends NodeTestBase {
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Node post information display',
-      'description' => 'Check that the post information (submitted by Username on date) text displays appropriately.',
-      'group' => 'Node',
-    );
-  }
 
   function setUp() {
     parent::setUp();
@@ -39,8 +34,8 @@ class NodePostSettingsTest extends NodeTestBase {
 
     // Create a node.
     $edit = array();
-    $edit['title[0][value]'] = $this->randomName(8);
-    $edit['body[0][value]'] = $this->randomName(16);
+    $edit['title[0][value]'] = $this->randomMachineName(8);
+    $edit['body[0][value]'] = $this->randomMachineName(16);
     $this->drupalPostForm('node/add/page', $edit, t('Save'));
 
     // Check that the post information is displayed.
@@ -56,8 +51,8 @@ class NodePostSettingsTest extends NodeTestBase {
 
     // Create a node.
     $edit = array();
-    $edit['title[0][value]'] = $this->randomName(8);
-    $edit['body[0][value]'] = $this->randomName(16);
+    $edit['title[0][value]'] = $this->randomMachineName(8);
+    $edit['body[0][value]'] = $this->randomMachineName(16);
     $this->drupalPostForm('node/add/page', $edit, t('Save'));
 
     // Check that the post information is displayed.

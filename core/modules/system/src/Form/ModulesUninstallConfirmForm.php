@@ -10,6 +10,7 @@ namespace Drupal\system\Form;
 use Drupal\Core\Config\ConfigManagerInterface;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Form\ConfirmFormBase;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -104,7 +105,7 @@ class ModulesUninstallConfirmForm extends ConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function getCancelRoute() {
+  public function getCancelUrl() {
     return new Url('system.modules_uninstall');
   }
 
@@ -125,7 +126,7 @@ class ModulesUninstallConfirmForm extends ConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, array &$form_state) {
+  public function buildForm(array $form, FormStateInterface $form_state) {
     // Retrieve the list of modules from the key value store.
     $account = $this->currentUser()->id();
     $this->modules = $this->keyValueExpirable->get($account);
@@ -191,7 +192,7 @@ class ModulesUninstallConfirmForm extends ConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function submitForm(array &$form, array &$form_state) {
+  public function submitForm(array &$form, FormStateInterface $form_state) {
     // Clear the key value store entry.
     $account = $this->currentUser()->id();
     $this->keyValueExpirable->delete($account);
@@ -200,7 +201,7 @@ class ModulesUninstallConfirmForm extends ConfirmFormBase {
     $this->moduleHandler->uninstall($this->modules);
 
     drupal_set_message($this->t('The selected modules have been uninstalled.'));
-    $form_state['redirect_route'] = $this->getCancelRoute();
+    $form_state->setRedirectUrl($this->getCancelUrl());
   }
 
 }

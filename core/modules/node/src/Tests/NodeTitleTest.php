@@ -8,7 +8,9 @@
 namespace Drupal\node\Tests;
 
 /**
- * Tests node title functionality.
+ * Tests node title.
+ *
+ * @group node
  */
 class NodeTitleTest extends NodeTestBase {
 
@@ -20,14 +22,6 @@ class NodeTitleTest extends NodeTestBase {
   public static $modules = array('comment', 'views');
 
   protected $admin_user;
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Node title',
-      'description' => 'Test node title.',
-      'group' => 'Node'
-    );
-  }
 
   function setUp() {
     parent::setUp();
@@ -45,7 +39,7 @@ class NodeTitleTest extends NodeTestBase {
     // Add the node to the frontpage so we can test if teaser links are
     // clickable.
     $settings = array(
-      'title' => $this->randomName(8),
+      'title' => $this->randomMachineName(8),
       'promote' => 1,
     );
     $node = $this->drupalCreateNode($settings);

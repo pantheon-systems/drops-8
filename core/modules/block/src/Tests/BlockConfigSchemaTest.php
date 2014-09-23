@@ -13,6 +13,8 @@ use Drupal\simpletest\KernelTestBase;
 
 /**
  * Tests the block config schema.
+ *
+ * @group block
  */
 class BlockConfigSchemaTest extends KernelTestBase {
 
@@ -21,7 +23,17 @@ class BlockConfigSchemaTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = array('block', 'aggregator', 'book', 'block_content', 'forum', 'node', 'statistics', 'taxonomy');
+  public static $modules = array(
+    'block',
+    'aggregator',
+    'book',
+    'block_content',
+    'comment',
+    'forum',
+    'node',
+    'statistics',
+    'taxonomy',
+  );
 
   /**
    * The typed config manager.
@@ -40,17 +52,6 @@ class BlockConfigSchemaTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static function getInfo() {
-    return array(
-      'name' => 'Block config schema',
-      'description' => '',
-      'group' => 'Block',
-    );
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   protected function setUp() {
     parent::setUp();
 
@@ -64,7 +65,7 @@ class BlockConfigSchemaTest extends KernelTestBase {
    */
   public function testBlockConfigSchema() {
     foreach ($this->blockManager->getDefinitions() as $block_id => $definition) {
-      $id = strtolower($this->randomName());
+      $id = strtolower($this->randomMachineName());
       $block = Block::create(array(
         'id' => $id,
         'theme' => 'stark',
@@ -73,7 +74,7 @@ class BlockConfigSchemaTest extends KernelTestBase {
         'region' => 'content',
         'plugin' => $block_id,
         'settings' => array(
-          'label' => $this->randomName(),
+          'label' => $this->randomMachineName(),
           'provider' => 'system',
           'label_display' => FALSE,
         ),

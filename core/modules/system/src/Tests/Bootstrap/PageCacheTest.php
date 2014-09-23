@@ -7,12 +7,15 @@
 
 namespace Drupal\system\Tests\Bootstrap;
 
+use Drupal\Component\Datetime\DateTimePlus;
 use Symfony\Component\Routing\RequestContext;
 use Drupal\simpletest\WebTestBase;
 use Drupal\Core\Cache\Cache;
 
 /**
  * Enables the page cache and tests it with various HTTP requests.
+ *
+ * @group Bootstrap
  */
 class PageCacheTest extends WebTestBase {
 
@@ -24,14 +27,6 @@ class PageCacheTest extends WebTestBase {
    * @var array
    */
   public static $modules = array('test_page_test', 'system_test');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Page cache test',
-      'description' => 'Enable the page cache and test it with various HTTP requests.',
-      'group' => 'Bootstrap'
-    );
-  }
 
   function setUp() {
     parent::setUp();
@@ -141,7 +136,7 @@ class PageCacheTest extends WebTestBase {
     $this->assertResponse(200, 'Conditional request without If-None-Match returned 200 OK.');
     $this->assertEqual($this->drupalGetHeader('X-Drupal-Cache'), 'HIT', 'Page was cached.');
 
-    $this->drupalGet('', array(), array('If-Modified-Since: ' . gmdate(DATE_RFC1123, strtotime($last_modified) + 1), 'If-None-Match: ' . $etag));
+    $this->drupalGet('', array(), array('If-Modified-Since: ' . gmdate(DateTimePlus::RFC7231, strtotime($last_modified) + 1), 'If-None-Match: ' . $etag));
     $this->assertResponse(200, 'Conditional request with new a If-Modified-Since date newer than Last-Modified returned 200 OK.');
     $this->assertEqual($this->drupalGetHeader('X-Drupal-Cache'), 'HIT', 'Page was cached.');
 

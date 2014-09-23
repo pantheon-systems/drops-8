@@ -14,7 +14,9 @@ use Drupal\quickedit\Plugin\InPlaceEditorManager;
 use Drupal\quickedit_test\MockEditEntityFieldAccessCheck;
 
 /**
- * Test in-place field editing metadata.
+ * Tests in-place field editing metadata.
+ *
+ * @group quickedit
  */
 class MetadataGeneratorTest extends QuickEditTestBase {
 
@@ -45,14 +47,6 @@ class MetadataGeneratorTest extends QuickEditTestBase {
    * @var \Drupal\quickedit\Access\EditEntityFieldAccessCheckInterface
    */
   protected $accessChecker;
-
-  public static function getInfo() {
-    return array(
-      'name' => 'In-place field editing metadata',
-      'description' => 'Tests in-place field editing metadata generation.',
-      'group' => 'Quick Edit',
-    );
-  }
 
   protected function setUp() {
     parent::setUp();
@@ -95,11 +89,11 @@ class MetadataGeneratorTest extends QuickEditTestBase {
     );
 
     // Create an entity with values for this text field.
-    $this->entity = entity_create('entity_test');
-    $this->entity->{$field_1_name}->value = 'Test';
-    $this->entity->{$field_2_name}->value = 42;
-    $this->entity->save();
-    $entity = entity_load('entity_test', $this->entity->id());
+    $entity = entity_create('entity_test');
+    $entity->{$field_1_name}->value = 'Test';
+    $entity->{$field_2_name}->value = 42;
+    $entity->save();
+    $entity = entity_load('entity_test', $entity->id());
 
     // Verify metadata for field 1.
     $items_1 = $entity->getTranslation(LanguageInterface::LANGCODE_NOT_SPECIFIED)->get($field_1_name);
@@ -129,7 +123,6 @@ class MetadataGeneratorTest extends QuickEditTestBase {
    */
   public function testEditorWithCustomMetadata() {
     $this->installSchema('system', 'url_alias');
-    $this->enableModules(array('user', 'filter'));
 
     // Enable edit_test module so that the WYSIWYG editor becomes available.
     $this->enableModules(array('quickedit_test'));
@@ -168,11 +161,11 @@ class MetadataGeneratorTest extends QuickEditTestBase {
     $full_html_format->save();
 
     // Create an entity with values for this rich text field.
-    $this->entity = entity_create('entity_test');
-    $this->entity->{$field_name}->value = 'Test';
-    $this->entity->{$field_name}->format = 'full_html';
-    $this->entity->save();
-    $entity = entity_load('entity_test', $this->entity->id());
+    $entity = entity_create('entity_test');
+    $entity->{$field_name}->value = 'Test';
+    $entity->{$field_name}->format = 'full_html';
+    $entity->save();
+    $entity = entity_load('entity_test', $entity->id());
 
     // Verify metadata.
     $items = $entity->getTranslation(LanguageInterface::LANGCODE_NOT_SPECIFIED)->get($field_name);

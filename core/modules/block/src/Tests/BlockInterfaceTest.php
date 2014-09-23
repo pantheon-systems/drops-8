@@ -7,22 +7,17 @@
 
 namespace Drupal\block\Tests;
 
+use Drupal\Core\Form\FormState;
 use Drupal\simpletest\DrupalUnitTestBase;
 use Drupal\block\BlockInterface;
 
 /**
- * Test BlockInterface methods to ensure no external dependencies exist.
+ * Tests that the block plugin can work properly without a supporting entity.
+ *
+ * @group block
  */
 class BlockInterfaceTest extends DrupalUnitTestBase {
   public static $modules = array('system', 'block', 'block_test', 'user');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Block Plugins Tests',
-      'description' => 'Tests that the block plugin can work properly without a supporting entity.',
-      'group' => 'Block',
-    );
-  }
 
   /**
    * Test configuration and subsequent form() and build() method calls.
@@ -67,7 +62,7 @@ class BlockInterfaceTest extends DrupalUnitTestBase {
     $definition = $display_block->getPluginDefinition();
 
     $period = array(0, 60, 180, 300, 600, 900, 1800, 2700, 3600, 10800, 21600, 32400, 43200, 86400);
-    $period = array_map('format_interval', array_combine($period, $period));
+    $period = array_map(array(\Drupal::service('date.formatter'), 'formatInterval'), array_combine($period, $period));
     $period[0] = '<' . t('no caching') . '>';
     $period[\Drupal\Core\Cache\Cache::PERMANENT] = t('Forever');
     $contexts = \Drupal::service("cache_contexts")->getLabels();
@@ -124,7 +119,7 @@ class BlockInterfaceTest extends DrupalUnitTestBase {
         '#default_value' => 'My custom display message.',
       ),
     );
-    $form_state = array();
+    $form_state = new FormState();
     // Ensure there are no form elements that do not belong to the plugin.
     $actual_form = $display_block->buildConfigurationForm(array(), $form_state);
     // Remove the visibility sections, as that just tests condition plugins.

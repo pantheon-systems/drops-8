@@ -12,10 +12,20 @@ use Drupal\Core\Database\Query\AlterableInterface;
 use Drupal\Core\Database\Query\SelectInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\entity_reference\Plugin\Type\Selection\SelectionInterface;
 
 /**
- * Plugin implementation of the 'selection' entity_reference.
+ * Default plugin implementation of the Entity Reference Selection plugin.
+ *
+ * Also serves as a base class for specific types of Entity Reference
+ * Selection plugins.
+ *
+ * @see \Drupal\entity_reference\Plugin\Type\SelectionPluginManager
+ * @see \Drupal\entity_reference\Annotation\EntityReferenceSelection
+ * @see \Drupal\entity_reference\Plugin\Type\Selection\SelectionInterface
+ * @see \Drupal\entity_reference\Plugin\Derivative\SelectionBase
+ * @see plugin_api
  *
  * @EntityReferenceSelection(
  *   id = "default",
@@ -220,7 +230,7 @@ class SelectionBase implements SelectionInterface {
   /**
    * {@inheritdoc}
    */
-  public function validateAutocompleteInput($input, &$element, &$form_state, $form, $strict = TRUE) {
+  public function validateAutocompleteInput($input, &$element, FormStateInterface $form_state, $form, $strict = TRUE) {
     $bundled_entities = $this->getReferenceableEntities($input, '=', 6);
     $entities = array();
     foreach ($bundled_entities as $entities_list) {

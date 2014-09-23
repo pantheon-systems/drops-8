@@ -11,6 +11,8 @@ use Drupal\simpletest\DrupalUnitTestBase;
 
 /**
  * Tests configuration entity status functionality.
+ *
+ * @group config
  */
 class ConfigEntityStatusTest extends DrupalUnitTestBase {
 
@@ -21,20 +23,12 @@ class ConfigEntityStatusTest extends DrupalUnitTestBase {
    */
   public static $modules = array('config_test');
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Configuration entity status',
-      'description' => 'Tests configuration entity status functionality.',
-      'group' => 'Configuration',
-    );
-  }
-
   /**
    * Tests the enabling/disabling of entities.
    */
   function testCRUD() {
     $entity = entity_create('config_test', array(
-      'id' => strtolower($this->randomName()),
+      'id' => strtolower($this->randomMachineName()),
     ));
     $this->assertTrue($entity->status(), 'Default status is enabled.');
     $entity->save();

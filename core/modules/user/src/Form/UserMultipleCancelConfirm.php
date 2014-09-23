@@ -10,7 +10,9 @@ namespace Drupal\user\Form;
 use Drupal\Component\Utility\String;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Form\ConfirmFormBase;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Routing\UrlGeneratorInterface;
+use Drupal\Core\Url;
 use Drupal\user\TempStoreFactory;
 use Drupal\user\UserStorageInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -86,7 +88,8 @@ class UserMultipleCancelConfirm extends ConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function getCancelRoute() {
+  public function getCancelUrl() {
+    return new Url('user.admin_account');
   }
 
   /**
@@ -99,13 +102,13 @@ class UserMultipleCancelConfirm extends ConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, array &$form_state) {
+  public function buildForm(array $form, FormStateInterface $form_state) {
     // Retrieve the accounts to be canceled from the temp store.
     $accounts = $this->tempStoreFactory
       ->get('user_user_operations_cancel')
       ->get($this->currentUser()->id());
     if (!$accounts) {
-      return new RedirectResponse($this->urlGenerator()->generateFromPath('admin/people', array('absolute' => TRUE)));
+      return new RedirectResponse($this->url('user.admin_account', [], ['absolute' => TRUE]));
     }
 
     $form['accounts'] = array('#prefix' => '<ul>', '#suffix' => '</ul>', '#tree' => TRUE);
@@ -129,7 +132,7 @@ class UserMultipleCancelConfirm extends ConfirmFormBase {
       drupal_set_message($message, $redirect ? 'error' : 'warning');
       // If only user 1 was selected, redirect to the overview.
       if ($redirect) {
-        return new RedirectResponse($this->urlGenerator()->generateFromPath('admin/people', array('absolute' => TRUE)));
+        return new RedirectResponse($this->url('user.admin_account', [], ['absolute' => TRUE]));
       }
     }
 
@@ -160,15 +163,13 @@ class UserMultipleCancelConfirm extends ConfirmFormBase {
 
     $form = parent::buildForm($form, $form_state);
 
-    // @todo Convert to getCancelRoute() after https://drupal.org/node/1938884.
-    $form['actions']['cancel']['#href'] = 'admin/people';
     return $form;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function submitForm(array &$form, array &$form_state) {
+  public function submitForm(array &$form, FormStateInterface $form_state) {
     $current_user_id = $this->currentUser()->id();
 
     // Clear out the accounts from the temp store.
@@ -190,7 +191,7 @@ class UserMultipleCancelConfirm extends ConfirmFormBase {
           $admin_form = $this->entityManager->getFormObject('user', 'cancel');
           $admin_form->setEntity($account);
           // Calling this directly required to init form object with $account.
-          $admin_form->buildForm($admin_form_mock, $admin_form_state, $this->request);
+          $admin_form->buildForm($admin_form_mock, $admin_form_state);
           $admin_form->submit($admin_form_mock, $admin_form_state);
         }
         else {
@@ -198,7 +199,7 @@ class UserMultipleCancelConfirm extends ConfirmFormBase {
         }
       }
     }
-    $form_state['redirect_route']['route_name'] = 'user.admin_account';
+    $form_state->setRedirect('user.admin_account');
   }
 
 }

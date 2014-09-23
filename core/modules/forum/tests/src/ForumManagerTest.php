@@ -10,22 +10,10 @@ namespace Drupal\forum\Tests;
 use Drupal\Tests\UnitTestCase;
 
 /**
- * Tests the ForumManager.
- *
- * @group Forum
- * @group Drupal
- *
- * @see \Drupal\forum\ForumManager
+ * @coversDefaultClass \Drupal\forum\ForumManager
+ * @group forum
  */
 class ForumManagerTest extends UnitTestCase {
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Forum Manager',
-      'description' => 'Tests the forum manager functionality.',
-      'group' => 'Forum',
-    );
-  }
 
   /**
    * Tests ForumManager::getIndex().
@@ -70,11 +58,16 @@ class ForumManagerTest extends UnitTestCase {
       ->disableOriginalConstructor()
       ->getMock();
 
+    $comment_manager = $this->getMockBuilder('\Drupal\comment\CommentManagerInterface')
+      ->disableOriginalConstructor()
+      ->getMock();
+
     $manager = $this->getMock('\Drupal\forum\ForumManager', array('getChildren'), array(
       $config_factory,
       $entity_manager,
       $connection,
       $translation_manager,
+      $comment_manager,
     ));
 
     $manager->expects($this->once())

@@ -7,9 +7,11 @@
 
 namespace Drupal\search\Controller;
 
+use Drupal\Core\Config\ConfigFactory;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\search\SearchPageInterface;
 use Drupal\search\SearchPageRepositoryInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -26,13 +28,23 @@ class SearchController extends ControllerBase {
   protected $searchPageRepository;
 
   /**
+   * A logger instance.
+   *
+   * @var \Psr\Log\LoggerInterface
+   */
+  protected $logger;
+
+  /**
    * Constructs a new search controller.
    *
    * @param \Drupal\search\SearchPageRepositoryInterface $search_page_repository
    *   The search page repository.
+   * @param \Psr\Log\LoggerInterface $logger
+   *   A logger instance.
    */
-  public function __construct(SearchPageRepositoryInterface $search_page_repository) {
+  public function __construct(SearchPageRepositoryInterface $search_page_repository, LoggerInterface $logger) {
     $this->searchPageRepository = $search_page_repository;
+    $this->logger = $logger;
   }
 
   /**
@@ -40,7 +52,8 @@ class SearchController extends ControllerBase {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('search.search_page_repository')
+      $container->get('search.search_page_repository'),
+      $container->get('logger.factory')->get('search')
     );
   }
 
@@ -75,7 +88,9 @@ class SearchController extends ControllerBase {
     if ($request->query->has('keys')) {
       if ($plugin->isSearchExecutable()) {
         // Log the search.
-        watchdog('search', 'Searched %type for %keys.', array('%keys' => $keys, '%type' => $entity->label()), WATCHDOG_NOTICE);
+        if ($this->config('search.settings')->get('logging')) {
+          $this->logger->notice('Searched %type for %keys.', array('%keys' => $keys, '%type' => $entity->label()));
+        }
 
         // Collect the search results.
         $results = $plugin->buildResults();

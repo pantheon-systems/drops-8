@@ -10,19 +10,12 @@ namespace Drupal\user\Tests;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Defines a test for the fallback user admin listing.
+ * Tests the user admin listing if views is not enabled.
  *
+ * @group user
  * @see user_admin_account()
  */
 class UserAdminListingTest extends WebTestBase {
-
-  public static function getInfo() {
-    return array(
-      'name' => 'User people listing',
-      'description' => 'Test the user admin listing if views is not enabled.',
-      'group' => 'User'
-    );
-  }
 
   /**
    * Tests the listing.
@@ -97,7 +90,7 @@ class UserAdminListingTest extends WebTestBase {
     $expected_roles = array('custom_role_1', 'custom_role_2');
     $this->assertEqual($result_accounts[$role_account_name]['roles'], $expected_roles, 'Ensure roles are listed properly.');
 
-    $this->assertEqual($result_accounts[$timestamp_user]['member_for'], format_interval(REQUEST_TIME - $accounts[$timestamp_user]->created->value), 'Ensure the right member time is displayed.');
+    $this->assertEqual($result_accounts[$timestamp_user]['member_for'], \Drupal::service('date.formatter')->formatInterval(REQUEST_TIME - $accounts[$timestamp_user]->created->value), 'Ensure the right member time is displayed.');
   }
 
 }

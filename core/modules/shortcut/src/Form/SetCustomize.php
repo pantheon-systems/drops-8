@@ -9,6 +9,7 @@ namespace Drupal\shortcut\Form;
 
 use Drupal\Core\Entity\EntityForm;
 use Drupal\Core\Entity\EntityManagerInterface;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -27,7 +28,7 @@ class SetCustomize extends EntityForm {
   /**
    * {@inheritdoc}
    */
-  public function form(array $form, array &$form_state) {
+  public function form(array $form, FormStateInterface $form_state) {
     $form = parent::form($form, $form_state);
     $form['shortcuts'] = array(
       '#tree' => TRUE,
@@ -37,7 +38,7 @@ class SetCustomize extends EntityForm {
     $form['shortcuts']['links'] = array(
       '#type' => 'table',
       '#header' => array(t('Name'), t('Weight'), t('Operations')),
-      '#empty' => $this->t('No shortcuts available. <a href="@link">Add a shortcut</a>', array('@link' => $this->urlGenerator()->generateFromRoute('shortcut.link_add', array('shortcut_set' => $this->entity->id())))),
+      '#empty' => $this->t('No shortcuts available. <a href="@link">Add a shortcut</a>', array('@link' => $this->url('shortcut.link_add', array('shortcut_set' => $this->entity->id())))),
       '#attributes' => array('id' => 'shortcuts'),
       '#tabledrag' => array(
         array(
@@ -82,7 +83,7 @@ class SetCustomize extends EntityForm {
   /**
    * {@inheritdoc}
    */
-  protected function actions(array $form, array &$form_state) {
+  protected function actions(array $form, FormStateInterface $form_state) {
     // Only includes a Save action for the entity, no direct Delete button.
     return array(
       'submit' => array(
@@ -99,7 +100,7 @@ class SetCustomize extends EntityForm {
   /**
    * {@inheritdoc}
    */
-  public function save(array $form, array &$form_state) {
+  public function save(array $form, FormStateInterface $form_state) {
     foreach ($this->entity->getShortcuts() as $shortcut) {
       $shortcut->setWeight($form_state['values']['shortcuts']['links'][$shortcut->id()]['weight']);
       $shortcut->save();

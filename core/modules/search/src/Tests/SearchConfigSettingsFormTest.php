@@ -8,7 +8,9 @@
 namespace Drupal\search\Tests;
 
 /**
- * Test config page.
+ * Verify the search config settings form.
+ *
+ * @group search
  */
 class SearchConfigSettingsFormTest extends SearchTestBase {
 
@@ -33,19 +35,11 @@ class SearchConfigSettingsFormTest extends SearchTestBase {
    */
   public $search_node;
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Config settings form',
-      'description' => 'Verify the search config settings form.',
-      'group' => 'Search',
-    );
-  }
-
   function setUp() {
     parent::setUp();
 
     // Login as a user that can create and search content.
-    $this->search_user = $this->drupalCreateUser(array('search content', 'administer search', 'administer nodes', 'bypass node access', 'access user profiles', 'administer users', 'administer blocks'));
+    $this->search_user = $this->drupalCreateUser(array('search content', 'administer search', 'administer nodes', 'bypass node access', 'access user profiles', 'administer users', 'administer blocks', 'access site reports'));
     $this->drupalLogin($this->search_user);
 
     // Add a single piece of content and index it.
@@ -87,10 +81,25 @@ class SearchConfigSettingsFormTest extends SearchTestBase {
 
     // Test that the form does not save with an invalid word length.
     $edit = array(
-      'minimum_word_size' => $this->randomName(3),
+      'minimum_word_size' => $this->randomMachineName(3),
     );
     $this->drupalPostForm('admin/config/search/pages', $edit, t('Save configuration'));
     $this->assertNoText(t('The configuration options have been saved.'), 'Form does not save with an invalid word length.');
+
+    // Test logging setting. It should be off by default.
+    $text = $this->randomMachineName(5);
+    $this->drupalPostForm('search/node', array('keys' => $text), t('Search'));
+    $this->drupalGet('admin/reports/dblog');
+    $this->assertNoLink('Searched Content for ' . $text . '.', 'Search was not logged');
+
+    // Turn on logging.
+    $edit = array('logging' => TRUE);
+    $this->drupalPostForm('admin/config/search/pages', $edit, t('Save configuration'));
+    $text = $this->randomMachineName(5);
+    $this->drupalPostForm('search/node', array('keys' => $text), t('Search'));
+    $this->drupalGet('admin/reports/dblog');
+    $this->assertLink('Searched Content for ' . $text . '.', 0, 'Search was logged');
+
   }
 
   /**
@@ -232,8 +241,8 @@ class SearchConfigSettingsFormTest extends SearchTestBase {
 
     $first = array();
     $first['label'] = $this->randomString();
-    $first_id = $first['id'] = strtolower($this->randomName(8));
-    $first['path'] = strtolower($this->randomName(8));
+    $first_id = $first['id'] = strtolower($this->randomMachineName(8));
+    $first['path'] = strtolower($this->randomMachineName(8));
     $this->drupalPostForm(NULL, $first, t('Add search page'));
     $this->assertDefaultSearch($first_id, 'The default page matches the only search page.');
     $this->assertRaw(t('The %label search page has been added.', array('%label' => $first['label'])));
@@ -244,7 +253,7 @@ class SearchConfigSettingsFormTest extends SearchTestBase {
     $this->drupalPostForm(NULL, $edit, t('Add new page'));
     $edit = array();
     $edit['label'] = $this->randomString();
-    $edit['id'] = strtolower($this->randomName(8));
+    $edit['id'] = strtolower($this->randomMachineName(8));
     $edit['path'] = $first['path'];
     $this->drupalPostForm(NULL, $edit, t('Add search page'));
     $this->assertText(t('The search page path must be unique.'));
@@ -252,8 +261,8 @@ class SearchConfigSettingsFormTest extends SearchTestBase {
     // Add a second search page.
     $second = array();
     $second['label'] = $this->randomString();
-    $second_id = $second['id'] = strtolower($this->randomName(8));
-    $second['path'] = strtolower($this->randomName(8));
+    $second_id = $second['id'] = strtolower($this->randomMachineName(8));
+    $second['path'] = strtolower($this->randomMachineName(8));
     $this->drupalPostForm(NULL, $second, t('Add search page'));
     $this->assertDefaultSearch($first_id, 'The default page matches the only search page.');
 

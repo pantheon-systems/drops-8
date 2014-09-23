@@ -8,17 +8,11 @@
 namespace Drupal\hal\Tests;
 
 /**
- * Test the HAL normalizer.
+ * Tests that entities can be normalized in HAL.
+ *
+ * @group hal
  */
 class NormalizeTest extends NormalizerTestBase {
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Normalize Test',
-      'description' => 'Test that entities can be normalized in HAL.',
-      'group' => 'HAL',
-    );
-  }
 
   /**
    * {@inheritdoc}
@@ -41,10 +35,10 @@ class NormalizeTest extends NormalizerTestBase {
     // Create a German entity.
     $values = array(
       'langcode' => 'de',
-      'name' => $this->randomName(),
+      'name' => $this->randomMachineName(),
       'user_id' => 1,
       'field_test_text' => array(
-        'value' => $this->randomName(),
+        'value' => $this->randomMachineName(),
         'format' => 'full_html',
       ),
       'field_test_entity_reference' => array(
@@ -53,7 +47,7 @@ class NormalizeTest extends NormalizerTestBase {
     );
     // Array of translated values.
     $translation_values = array(
-      'name' => $this->randomName(),
+      'name' => $this->randomMachineName(),
       'field_test_entity_reference' => array(
         'target_id' => $target_entity_en->id(),
       )

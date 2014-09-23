@@ -10,6 +10,8 @@ namespace Drupal\system\Form;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Cache\CacheBackendInterface;
+use Drupal\Core\Datetime\DateFormatter;
+use Drupal\Core\Form\FormStateInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -25,16 +27,26 @@ class PerformanceForm extends ConfigFormBase {
   protected $renderCache;
 
   /**
+   * The date formatter service.
+   *
+   * @var \Drupal\Core\Datetime\DateFormatter
+   */
+  protected $dateFormatter;
+
+  /**
    * Constructs a PerformanceForm object.
    *
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The factory for configuration objects.
    * @param \Drupal\Core\Cache\CacheBackendInterface $render_cache
+   * @param \Drupal\Core\Datetime\DateFormatter $date_formater
+   *   The date formatter service.
    */
-  public function __construct(ConfigFactoryInterface $config_factory, CacheBackendInterface $render_cache) {
+  public function __construct(ConfigFactoryInterface $config_factory, CacheBackendInterface $render_cache, DateFormatter $date_formater) {
     parent::__construct($config_factory);
 
     $this->renderCache = $render_cache;
+    $this->dateFormatter = $date_formater;
   }
 
   /**
@@ -43,7 +55,8 @@ class PerformanceForm extends ConfigFormBase {
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('config.factory'),
-      $container->get('cache.render')
+      $container->get('cache.render'),
+      $container->get('date.formatter')
     );
   }
 
@@ -57,7 +70,7 @@ class PerformanceForm extends ConfigFormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, array &$form_state) {
+  public function buildForm(array $form, FormStateInterface $form_state) {
     $form['#attached']['library'][] = 'system/drupal.system';
 
     $config = $this->config('system.performance');
@@ -82,7 +95,7 @@ class PerformanceForm extends ConfigFormBase {
     // Identical options to the ones for block caching.
     // @see \Drupal\block\BlockBase::buildConfigurationForm()
     $period = array(0, 60, 180, 300, 600, 900, 1800, 2700, 3600, 10800, 21600, 32400, 43200, 86400);
-    $period = array_map('format_interval', array_combine($period, $period));
+    $period = array_map(array($this->dateFormatter, 'formatInterval'), array_combine($period, $period));
     $period[0] = '<' . t('no caching') . '>';
     $form['caching']['page_cache_maximum_age'] = array(
       '#type' => 'select',
@@ -143,7 +156,7 @@ class PerformanceForm extends ConfigFormBase {
   /**
    * {@inheritdoc}
    */
-  public function submitForm(array &$form, array &$form_state) {
+  public function submitForm(array &$form, FormStateInterface $form_state) {
     drupal_clear_css_cache();
     drupal_clear_js_cache();
     // This form allows page compression settings to be changed, which can
@@ -165,7 +178,7 @@ class PerformanceForm extends ConfigFormBase {
   /**
    * Clears the caches.
    */
-  public function submitCacheClear(array &$form, array &$form_state) {
+  public function submitCacheClear(array &$form, FormStateInterface $form_state) {
     drupal_flush_all_caches();
     drupal_set_message(t('Caches cleared.'));
   }

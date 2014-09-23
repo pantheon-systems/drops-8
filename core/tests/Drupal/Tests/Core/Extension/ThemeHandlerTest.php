@@ -16,12 +16,8 @@ use Drupal\Core\State\State;
 use Drupal\Tests\UnitTestCase;
 
 /**
- * Tests the theme handler.
- *
- * @group Drupal
- * @group Theme
- *
- * @see \Drupal\Core\Extension\ThemeHandler
+ * @coversDefaultClass \Drupal\Core\Extension\ThemeHandler
+ * @group Extension
  */
 class ThemeHandlerTest extends UnitTestCase {
 
@@ -80,17 +76,6 @@ class ThemeHandlerTest extends UnitTestCase {
    * @var \Drupal\Core\Extension\ThemeHandler|\Drupal\Tests\Core\Extension\TestThemeHandler
    */
   protected $themeHandler;
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'name' => 'Theme handler',
-      'description' => 'Tests the theme handler.',
-      'group' => 'Theme',
-    );
-  }
 
   /**
    * {@inheritdoc}
@@ -171,8 +156,9 @@ class ThemeHandlerTest extends UnitTestCase {
     // Ensure that the css paths are set with the proper prefix.
     $this->assertEquals(array(
       'screen' => array(
-        'seven.base.css' => DRUPAL_ROOT . '/core/themes/seven/seven.base.css',
-        'style.css' => DRUPAL_ROOT . '/core/themes/seven/style.css',
+        'css/seven.base.css' => DRUPAL_ROOT . '/core/themes/seven/css/seven.base.css',
+        'css/style.css' => DRUPAL_ROOT . '/core/themes/seven/css/style.css',
+        'css/layout.css' => DRUPAL_ROOT . '/core/themes/seven/css/layout.css',
         'css/components/buttons.css' => DRUPAL_ROOT . '/core/themes/seven/css/components/buttons.css',
         'css/components/buttons.theme.css' => DRUPAL_ROOT . '/core/themes/seven/css/components/buttons.theme.css',
         'css/components/dropbutton.component.css' => DRUPAL_ROOT . '/core/themes/seven/css/components/dropbutton.component.css',

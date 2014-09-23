@@ -8,7 +8,9 @@
 namespace Drupal\node\Tests;
 
 /**
- * Tests node save related functionality, including import-save.
+ * Tests $node->save() for saving content.
+ *
+ * @group node
  */
 class NodeSaveTest extends NodeTestBase {
 
@@ -18,14 +20,6 @@ class NodeSaveTest extends NodeTestBase {
    * @var array
    */
   public static $modules = array('node_test');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Node save',
-      'description' => 'Test $node->save() for saving content.',
-      'group' => 'Node',
-    );
-  }
 
   function setUp() {
     parent::setUp();
@@ -48,10 +42,10 @@ class NodeSaveTest extends NodeTestBase {
     // Node ID must be a number that is not in the database.
     $max_nid = db_query('SELECT MAX(nid) FROM {node}')->fetchField();
     $test_nid = $max_nid + mt_rand(1000, 1000000);
-    $title = $this->randomName(8);
+    $title = $this->randomMachineName(8);
     $node = array(
       'title' => $title,
-      'body' => array(array('value' => $this->randomName(32))),
+      'body' => array(array('value' => $this->randomMachineName(32))),
       'uid' => $this->web_user->id(),
       'type' => 'article',
       'nid' => $test_nid,
@@ -80,7 +74,7 @@ class NodeSaveTest extends NodeTestBase {
     $edit = array(
       'uid' => $this->web_user->id(),
       'type' => 'article',
-      'title' => $this->randomName(8),
+      'title' => $this->randomMachineName(8),
     );
 
     entity_create('node', $edit)->save();
@@ -95,7 +89,7 @@ class NodeSaveTest extends NodeTestBase {
     $node = $this->drupalGetNodeByTitle($edit['title'], TRUE);
     $this->assertEqual($node->getCreatedTime(), $created, 'Updating a node preserves "created" timestamp.');
 
-    // Programmatically set the timestamps using hook_node_presave.
+    // Programmatically set the timestamps using hook_ENTITY_TYPE_presave().
     $node->title = 'testing_node_presave';
 
     $node->save();
@@ -107,7 +101,7 @@ class NodeSaveTest extends NodeTestBase {
     $edit = array(
       'uid' => $this->web_user->id(),
       'type' => 'article',
-      'title' => $this->randomName(8),
+      'title' => $this->randomMachineName(8),
       'created' => 280299600, // Sun, 19 Nov 1978 05:00:00 GMT
       'changed' => 979534800, // Drupal 1.0 release.
     );
@@ -130,8 +124,8 @@ class NodeSaveTest extends NodeTestBase {
   /**
    * Tests node presave and static node load cache.
    *
-   * This test determines changes in hook_node_presave() and verifies that the
-   * static node load cache is cleared upon save.
+   * This test determines changes in hook_ENTITY_TYPE_presave() and verifies
+   * that the static node load cache is cleared upon save.
    */
   function testDeterminingChanges() {
     // Initial creation.
@@ -162,9 +156,9 @@ class NodeSaveTest extends NodeTestBase {
   /**
    * Tests saving a node on node insert.
    *
-   * This test ensures that a node has been fully saved when hook_node_insert()
-   * is invoked, so that the node can be saved again in a hook implementation
-   * without errors.
+   * This test ensures that a node has been fully saved when
+   * hook_ENTITY_TYPE_insert() is invoked, so that the node can be saved again
+   * in a hook implementation without errors.
    *
    * @see node_test_node_insert()
    */

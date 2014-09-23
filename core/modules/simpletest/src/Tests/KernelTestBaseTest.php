@@ -11,6 +11,8 @@ use Drupal\simpletest\KernelTestBase;
 
 /**
  * Tests KernelTestBase functionality.
+ *
+ * @group simpletest
  */
 class KernelTestBaseTest extends KernelTestBase {
 
@@ -20,14 +22,6 @@ class KernelTestBaseTest extends KernelTestBase {
    * @var array
    */
   public static $modules = array('entity', 'entity_test');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'KernelTestBase',
-      'description' => 'Tests KernelTestBase functionality.',
-      'group' => 'SimpleTest',
-    );
-  }
 
   /**
    * {@inheritdoc}
@@ -220,7 +214,7 @@ class KernelTestBaseTest extends KernelTestBase {
    */
   function testEnableModulesFixedList() {
     // Install system module.
-    $this->container->get('module_handler')->install(array('system', 'menu_link'));
+    $this->container->get('module_handler')->install(array('system', 'menu_link_content'));
     $entity_manager = \Drupal::entityManager();
 
     // entity_test is loaded via $modules; its entity type should exist.
@@ -250,20 +244,20 @@ class KernelTestBaseTest extends KernelTestBase {
     // Reactivate the previously uninstalled module.
     $this->enableModules(array('field_test'));
 
-    // Create a field and an instance.
+    // Create a field storage and an instance.
     entity_create('entity_view_display', array(
       'targetEntityType' => 'entity_test',
       'bundle' => 'entity_test',
       'mode' => 'default',
     ));
-    $field = entity_create('field_config', array(
+    $field_storage = entity_create('field_storage_config', array(
       'name' => 'test_field',
       'entity_type' => 'entity_test',
       'type' => 'test_field'
     ));
-    $field->save();
+    $field_storage->save();
     entity_create('field_instance_config', array(
-      'field' => $field,
+      'field_storage' => $field_storage,
       'bundle' => 'entity_test',
     ))->save();
   }

@@ -12,12 +12,8 @@ use Drupal\Tests\UnitTestCase;
 use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
- * Tests the contextual links manager.
- *
- * @group Drupal
+ * @coversDefaultClass \Drupal\Core\Menu\ContextualLinkManager
  * @group Menu
- *
- * @see \Drupal\Core\Menu\ContextualLinkManager
  */
 class ContextualLinkManagerTest extends UnitTestCase {
 
@@ -66,17 +62,9 @@ class ContextualLinkManagerTest extends UnitTestCase {
   /**
    * The mocked access manager.
    *
-   * @var \Drupal\Core\Access\AccessManager|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Access\AccessManagerInterface|\PHPUnit_Framework_MockObject_MockObject
    */
   protected $accessManager;
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Contextual links manager.',
-      'description' => 'Tests the contextual links manager.',
-      'group' => 'Menu',
-    );
-  }
 
   protected function setUp() {
     $this->contextualLinkManager = $this
@@ -90,9 +78,7 @@ class ContextualLinkManagerTest extends UnitTestCase {
     $this->factory = $this->getMock('Drupal\Component\Plugin\Factory\FactoryInterface');
     $this->cacheBackend = $this->getMock('Drupal\Core\Cache\CacheBackendInterface');
     $this->moduleHandler = $this->getMock('\Drupal\Core\Extension\ModuleHandlerInterface');
-    $this->accessManager = $this->getMockBuilder('Drupal\Core\Access\AccessManager')
-      ->disableOriginalConstructor()
-      ->getMock();
+    $this->accessManager = $this->getMock('Drupal\Core\Access\AccessManagerInterface');
     $this->account = $this->getMock('Drupal\Core\Session\AccountInterface');
 
     $property = new \ReflectionProperty('Drupal\Core\Menu\ContextualLinkManager', 'controllerResolver');

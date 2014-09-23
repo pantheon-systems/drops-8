@@ -10,19 +10,13 @@ namespace Drupal\node\Tests\Condition;
 use Drupal\system\Tests\Entity\EntityUnitTestBase;
 
 /**
- * Tests the node conditions.
+ * Tests that conditions, provided by the node module, are working properly.
+ *
+ * @group node
  */
 class NodeConditionTest extends EntityUnitTestBase {
 
   public static $modules = array('node');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Node Condition Plugins',
-      'description' => 'Tests that conditions, provided by the node module, are working properly.',
-      'group' => 'Condition API',
-    );
-  }
 
   public function setUp() {
     parent::setUp();
@@ -45,11 +39,11 @@ class NodeConditionTest extends EntityUnitTestBase {
     $this->createUser();
 
     // Get some nodes of various types to check against.
-    $page = entity_create('node', array('type' => 'page', 'title' => $this->randomName(), 'uid' => 1));
+    $page = entity_create('node', array('type' => 'page', 'title' => $this->randomMachineName(), 'uid' => 1));
     $page->save();
-    $article = entity_create('node', array('type' => 'article', 'title' => $this->randomName(), 'uid' => 1));
+    $article = entity_create('node', array('type' => 'article', 'title' => $this->randomMachineName(), 'uid' => 1));
     $article->save();
-    $test = entity_create('node', array('type' => 'test', 'title' => $this->randomName(), 'uid' => 1));
+    $test = entity_create('node', array('type' => 'test', 'title' => $this->randomMachineName(), 'uid' => 1));
     $test->save();
 
     // Grab the node type condition and configure it to check against node type

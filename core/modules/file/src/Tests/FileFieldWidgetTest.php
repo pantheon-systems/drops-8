@@ -6,10 +6,15 @@
  */
 
 namespace Drupal\file\Tests;
+
+use Drupal\comment\Entity\Comment;
 use Drupal\field\Entity\FieldInstanceConfig;
 
 /**
- * Tests file field widget.
+ * Tests the file field widget, single and multi-valued, with and without AJAX,
+ * with public and private files.
+ *
+ * @group file
  */
 class FileFieldWidgetTest extends FileFieldTestBase {
 
@@ -20,20 +25,12 @@ class FileFieldWidgetTest extends FileFieldTestBase {
    */
   public static $modules = array('comment');
 
-  public static function getInfo() {
-    return array(
-      'name' => 'File field widget test',
-      'description' => 'Tests the file field widget, single and multi-valued, with and without AJAX, with public and private files.',
-      'group' => 'File',
-    );
-  }
-
   /**
    * Tests upload and remove buttons for a single-valued File field.
    */
   function testSingleValuedWidget() {
     $type_name = 'article';
-    $field_name = strtolower($this->randomName());
+    $field_name = strtolower($this->randomMachineName());
     $this->createFileField($field_name, 'node', $type_name);
 
     $test_file = $this->getTestFile('text');
@@ -190,7 +187,7 @@ class FileFieldWidgetTest extends FileFieldTestBase {
       $this->assertNoFieldByXPath('//input[@type="submit"]', t('Remove'), format_string('After removing all files, there is no "Remove" button displayed (JSMode=%type).', array('%type' => $type)));
 
       // Save the node and ensure it does not have any files.
-      $this->drupalPostForm(NULL, array('title[0][value]' => $this->randomName()), t('Save and publish'));
+      $this->drupalPostForm(NULL, array('title[0][value]' => $this->randomMachineName()), t('Save and publish'));
       $matches = array();
       preg_match('/node\/([0-9]+)/', $this->getUrl(), $matches);
       $nid = $matches[1];
@@ -207,7 +204,7 @@ class FileFieldWidgetTest extends FileFieldTestBase {
     user_role_grant_permissions($this->admin_user->roles[0]->value, array('administer node fields'));
 
     $type_name = 'article';
-    $field_name = strtolower($this->randomName());
+    $field_name = strtolower($this->randomMachineName());
     $this->createFileField($field_name, 'node', $type_name);
     $instance = FieldInstanceConfig::loadByName('node', $type_name, $field_name);
 
@@ -215,7 +212,7 @@ class FileFieldWidgetTest extends FileFieldTestBase {
 
     // Change the field setting to make its files private, and upload a file.
     $edit = array('field[settings][uri_scheme]' => 'private');
-    $this->drupalPostForm("admin/structure/types/manage/$type_name/fields/$instance->id/field", $edit, t('Save field settings'));
+    $this->drupalPostForm("admin/structure/types/manage/$type_name/fields/$instance->id/storage", $edit, t('Save field settings'));
     $nid = $this->uploadNodeFile($test_file, $field_name, $type_name);
     $node = node_load($nid, TRUE);
     $node_file = file_load($node->{$field_name}->target_id);
@@ -227,12 +224,12 @@ class FileFieldWidgetTest extends FileFieldTestBase {
 
     // Ensure we can't change 'uri_scheme' field settings while there are some
     // entities with uploaded files.
-    $this->drupalGet("admin/structure/types/manage/$type_name/fields/$instance->id/field");
+    $this->drupalGet("admin/structure/types/manage/$type_name/fields/$instance->id/storage");
     $this->assertFieldByXpath('//input[@id="edit-field-settings-uri-scheme-public" and @disabled="disabled"]', 'public', 'Upload destination setting disabled.');
 
     // Delete node and confirm that setting could be changed.
     $node->delete();
-    $this->drupalGet("admin/structure/types/manage/$type_name/fields/$instance->id/field");
+    $this->drupalGet("admin/structure/types/manage/$type_name/fields/$instance->id/storage");
     $this->assertFieldByXpath('//input[@id="edit-field-settings-uri-scheme-public" and not(@disabled)]', 'public', 'Upload destination setting enabled.');
   }
 
@@ -254,8 +251,8 @@ class FileFieldWidgetTest extends FileFieldTestBase {
     // Create a new field.
     $this->container->get('comment.manager')->addDefaultField('node', 'article');
     $edit = array(
-      'fields[_add_new_field][label]' => $label = $this->randomName(),
-      'fields[_add_new_field][field_name]' => $name = strtolower($this->randomName()),
+      'fields[_add_new_field][label]' => $label = $this->randomMachineName(),
+      'fields[_add_new_field][field_name]' => $name = strtolower($this->randomMachineName()),
       'fields[_add_new_field][type]' => 'file',
     );
     $this->drupalPostForm('admin/structure/comment/manage/comment/fields', $edit, t('Save'));
@@ -268,7 +265,7 @@ class FileFieldWidgetTest extends FileFieldTestBase {
 
     // Create node.
     $edit = array(
-      'title[0][value]' => $this->randomName(),
+      'title[0][value]' => $this->randomMachineName(),
     );
     $this->drupalPostForm('node/add/article', $edit, t('Save and publish'));
     $node = $this->drupalGetNodeByTitle($edit['title[0][value]']);
@@ -277,7 +274,7 @@ class FileFieldWidgetTest extends FileFieldTestBase {
     $text_file = $this->getTestFile('text');
     $edit = array(
       'files[field_' . $name . '_' . 0 . ']' => drupal_realpath($text_file->getFileUri()),
-      'comment_body[0][value]' => $comment_body = $this->randomName(),
+      'comment_body[0][value]' => $comment_body = $this->randomMachineName(),
     );
     $this->drupalPostForm('node/' . $node->id(), $edit, t('Save'));
 
@@ -288,7 +285,7 @@ class FileFieldWidgetTest extends FileFieldTestBase {
     // Log in as normal user.
     $this->drupalLogin($user);
 
-    $comment = comment_load($cid);
+    $comment = Comment::load($cid);
     $comment_file = $comment->{'field_' . $name}->entity;
     $this->assertFileExists($comment_file, 'New file saved to disk on node creation.');
     // Test authenticated file download.
@@ -317,7 +314,7 @@ class FileFieldWidgetTest extends FileFieldTestBase {
    */
   function testWidgetValidation() {
     $type_name = 'article';
-    $field_name = strtolower($this->randomName());
+    $field_name = strtolower($this->randomMachineName());
     $this->createFileField($field_name, 'node', $type_name);
     $this->updateFileField($field_name, $type_name, array('file_extensions' => 'txt'));
 

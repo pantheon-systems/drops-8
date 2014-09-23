@@ -8,6 +8,7 @@
 namespace Drupal\responsive_image\Form;
 
 use Drupal\Core\Entity\EntityConfirmFormBase;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
 
 class ResponsiveImageMappingDeleteForm extends EntityConfirmFormBase {
@@ -22,7 +23,7 @@ class ResponsiveImageMappingDeleteForm extends EntityConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function getCancelRoute() {
+  public function getCancelUrl() {
     return new Url('responsive_image.mapping_page');
   }
 
@@ -36,11 +37,11 @@ class ResponsiveImageMappingDeleteForm extends EntityConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function submit(array $form, array &$form_state) {
+  public function submit(array $form, FormStateInterface $form_state) {
     $this->entity->delete();
     drupal_set_message($this->t('Responsive image mapping %label has been deleted.', array('%label' => $this->entity->label())));
-    watchdog('responsive_image', 'Responsive image mapping %label has been deleted.', array('%label' => $this->entity->label()), WATCHDOG_NOTICE);
-    $form_state['redirect_route'] = $this->getCancelRoute();
+    $this->logger('responsive_image')->notice('Responsive image mapping %label has been deleted.', array('%label' => $this->entity->label()));
+    $form_state->setRedirectUrl($this->getCancelUrl());
   }
 
 }

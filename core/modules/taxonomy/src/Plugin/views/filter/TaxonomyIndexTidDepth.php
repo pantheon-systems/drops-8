@@ -7,6 +7,8 @@
 
 namespace Drupal\taxonomy\Plugin\views\filter;
 
+use Drupal\Core\Form\FormStateInterface;
+
 /**
  * Filter handler for taxonomy terms with depth.
  *
@@ -33,7 +35,7 @@ class TaxonomyIndexTidDepth extends TaxonomyIndexTid {
     return $options;
   }
 
-  public function buildExtraOptionsForm(&$form, &$form_state) {
+  public function buildExtraOptionsForm(&$form, FormStateInterface $form_state) {
     parent::buildExtraOptionsForm($form, $form_state);
 
     $form['depth'] = array(
@@ -50,7 +52,7 @@ class TaxonomyIndexTidDepth extends TaxonomyIndexTid {
       return;
     }
     elseif (count($this->value) == 1) {
-      // Somethis $this->value is an array with a single element so convert it.
+      // Sometimes $this->value is an array with a single element so convert it.
       if (is_array($this->value)) {
         $this->value = current($this->value);
       }

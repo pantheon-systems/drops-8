@@ -12,30 +12,27 @@ use Drupal\Core\Language\Language;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Tests for URL generation functions.
+ * Confirm that url(),
+ * \Drupal\Component\Utility\UrlHelper::filterQueryParameters(),
+ * \Drupal\Component\Utility\UrlHelper::buildQuery(), and l() work correctly
+ * with various input.
  *
  * url() calls \Drupal::moduleHandler()->getImplementations(),
  * which may issue a db query, which requires
  * inheriting from a web test case rather than a unit test case.
+ *
+ * @group Common
  */
 class UrlTest extends WebTestBase {
 
   public static $modules = array('common_test');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'URL generation tests',
-      'description' => 'Confirm that url(), \Drupal\Component\Utility\UrlHelper::filterQueryParameters(), \Drupal\Component\Utility\UrlHelper::buildQuery(), and l() work correctly with various input.',
-      'group' => 'Common',
-    );
-  }
 
   /**
    * Confirms that invalid URLs are filtered in link generating functions.
    */
   function testLinkXSS() {
     // Test l().
-    $text = $this->randomName();
+    $text = $this->randomMachineName();
     $path = "<SCRIPT>alert('XSS')</SCRIPT>";
     $link = l($text, $path);
     $sanitized_path = check_url(url($path));
@@ -44,7 +41,7 @@ class UrlTest extends WebTestBase {
     // Test #type 'link'.
     $link_array =  array(
       '#type' => 'link',
-      '#title' => $this->randomName(),
+      '#title' => $this->randomMachineName(),
       '#href' => $path,
     );
     $type_link = drupal_render($link_array);
@@ -116,15 +113,15 @@ class UrlTest extends WebTestBase {
 
     // Test adding a custom class in links produced by l() and #type 'link'.
     // Test l().
-    $class_l = $this->randomName();
-    $link_l = l($this->randomName(), current_path(), array('attributes' => array('class' => array($class_l))));
+    $class_l = $this->randomMachineName();
+    $link_l = l($this->randomMachineName(), current_path(), array('attributes' => array('class' => array($class_l))));
     $this->assertTrue($this->hasAttribute('class', $link_l, $class_l), format_string('Custom class @class is present on link when requested by l()', array('@class' => $class_l)));
 
     // Test #type.
-    $class_theme = $this->randomName();
+    $class_theme = $this->randomMachineName();
     $type_link = array(
       '#type' => 'link',
-      '#title' => $this->randomName(),
+      '#title' => $this->randomMachineName(),
       '#href' => current_path(),
       '#options' => array(
         'attributes' => array(
@@ -269,7 +266,7 @@ class UrlTest extends WebTestBase {
 
     // Verify fragment can be overidden in an external URL.
     $url = $test_url . '#drupal';
-    $fragment = $this->randomName(10);
+    $fragment = $this->randomMachineName(10);
     $result = url($url, array('fragment' => $fragment));
     $this->assertEqual($test_url . '#' . $fragment, $result, 'External URL fragment is overidden with a custom fragment in $options.');
 
@@ -280,13 +277,13 @@ class UrlTest extends WebTestBase {
 
     // Verify external URL can be extended with a query string.
     $url = $test_url;
-    $query = array($this->randomName(5) => $this->randomName(5));
+    $query = array($this->randomMachineName(5) => $this->randomMachineName(5));
     $result = url($url, array('query' => $query));
     $this->assertEqual($url . '?' . http_build_query($query, '', '&'), $result, 'External URL can be extended with a query string in $options.');
 
     // Verify query string can be extended in an external URL.
     $url = $test_url . '?drupal=awesome';
-    $query = array($this->randomName(5) => $this->randomName(5));
+    $query = array($this->randomMachineName(5) => $this->randomMachineName(5));
     $result = url($url, array('query' => $query));
     $this->assertEqual($url . '&' . http_build_query($query, '', '&'), $result, 'External URL query string can be extended with a custom query string in $options.');
   }

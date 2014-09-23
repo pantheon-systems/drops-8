@@ -12,10 +12,9 @@ use Drupal\Tests\UnitTestCase;
 use Symfony\Component\Routing\Route;
 
 /**
- * Tests ConfigEntityMapper.
+ * Tests the functionality provided by the configuration entity mapper.
  *
- * @group Drupal
- * @group Config_translation
+ * @group config_translation
  */
 class ConfigEntityMapperTest extends UnitTestCase {
 
@@ -47,17 +46,6 @@ class ConfigEntityMapperTest extends UnitTestCase {
    */
   protected $routeProvider;
 
-  /**
-   * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'name' => 'Configuration entity mapper',
-      'description' => 'Tests the functionality provided by the configuration entity mapper.',
-      'group' => 'Configuration Translation',
-    );
-  }
-
   public function setUp() {
     $this->entityManager = $this->getMock('Drupal\Core\Entity\EntityManagerInterface');
 
@@ -68,17 +56,20 @@ class ConfigEntityMapperTest extends UnitTestCase {
     $this->routeProvider
       ->expects($this->any())
       ->method('getRouteByName')
-      ->with('language.edit')
+      ->with('entity.language_entity.edit_form')
       ->will($this->returnValue(new Route('/admin/config/regional/language/edit/{language_entity}')));
 
     $definition = array(
       'class' => '\Drupal\config_translation\ConfigEntityMapper',
-      'base_route_name' => 'language.edit',
+      'base_route_name' => 'entity.language_entity.edit_form',
       'title' => '!label language',
       'names' => array(),
       'entity_type' => 'language_entity',
-      'route_name' => 'config_translation.item.overview.language.edit',
+      'route_name' => 'config_translation.item.overview.entity.language_entity.edit_form',
     );
+
+    $typed_config_manager = $this->getMock('Drupal\Core\Config\TypedConfigManagerInterface');
+
     $locale_config_manager = $this->getMockBuilder('Drupal\locale\LocaleConfigManager')
       ->disableOriginalConstructor()
       ->getMock();
@@ -87,6 +78,7 @@ class ConfigEntityMapperTest extends UnitTestCase {
       'language_entity',
       $definition,
       $this->getConfigFactoryStub(),
+      $typed_config_manager,
       $locale_config_manager,
       $this->getMock('Drupal\config_translation\ConfigMapperManagerInterface'),
       $this->routeProvider,

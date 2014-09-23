@@ -11,11 +11,8 @@ use Drupal\Core\Cache\Cache;
 use Drupal\Tests\UnitTestCase;
 
 /**
- * Tests the cache CacheCollector.
- *
+ * @coversDefaultClass \Drupal\Core\Cache\CacheCollector
  * @group Cache
- *
- * @see \Drupal\Core\Cache\CacheCollector
  */
 class CacheCollectorTest extends UnitTestCase {
 
@@ -47,21 +44,13 @@ class CacheCollectorTest extends UnitTestCase {
    */
   protected $collector;
 
-  public static function getInfo() {
-    return array(
-      'name' => 'CacheCollector test',
-      'description' => 'Tests the cache collector base implementaion',
-      'group' => 'Cache',
-    );
-  }
-
   /**
    * {@inheritdoc}
    */
   protected function setUp() {
     $this->cache = $this->getMock('Drupal\Core\Cache\CacheBackendInterface');
     $this->lock = $this->getMock('Drupal\Core\Lock\LockBackendInterface');
-    $this->cid = $this->randomName();
+    $this->cid = $this->randomMachineName();
     $this->collector = new CacheCollectorHelper($this->cid, $this->cache, $this->lock);
 
     $this->getContainerWithCacheBins($this->cache);
@@ -72,8 +61,8 @@ class CacheCollectorTest extends UnitTestCase {
    * Tests the resolve cache miss function.
    */
   public function testResolveCacheMiss() {
-    $key = $this->randomName();
-    $value = $this->randomName();
+    $key = $this->randomMachineName();
+    $value = $this->randomMachineName();
     $this->collector->setCacheMissData($key, $value);
 
     $this->assertEquals($value, $this->collector->get($key));
@@ -83,8 +72,8 @@ class CacheCollectorTest extends UnitTestCase {
    * Tests setting and getting values when the cache is empty.
    */
   public function testSetAndGet() {
-    $key = $this->randomName();
-    $value = $this->randomName();
+    $key = $this->randomMachineName();
+    $value = $this->randomMachineName();
 
     $this->assertNull($this->collector->get($key));
 
@@ -98,7 +87,7 @@ class CacheCollectorTest extends UnitTestCase {
    * Makes sure that NULL is a valid value and is collected.
    */
   public function testSetAndGetNull() {
-    $key = $this->randomName();
+    $key = $this->randomMachineName();
     $value = NULL;
 
     $this->cache->expects($this->once())
@@ -110,7 +99,7 @@ class CacheCollectorTest extends UnitTestCase {
 
     // Ensure that getting a value that isn't set does not mark it as
     // existent.
-    $non_existing_key = $this->randomName(7);
+    $non_existing_key = $this->randomMachineName(7);
     $this->collector->get($non_existing_key);
     $this->assertFalse($this->collector->has($non_existing_key));
   }
@@ -119,8 +108,8 @@ class CacheCollectorTest extends UnitTestCase {
    * Tests returning value from the collected cache.
    */
   public function testGetFromCache() {
-    $key = $this->randomName();
-    $value = $this->randomName();
+    $key = $this->randomMachineName();
+    $value = $this->randomMachineName();
 
     $cache = (object) array(
       'data' => array($key => $value),
@@ -139,8 +128,8 @@ class CacheCollectorTest extends UnitTestCase {
    * Tests setting and deleting values.
    */
   public function testDelete() {
-    $key = $this->randomName();
-    $value = $this->randomName();
+    $key = $this->randomMachineName();
+    $value = $this->randomMachineName();
 
     $this->assertNull($this->collector->get($key));
 
@@ -173,8 +162,8 @@ class CacheCollectorTest extends UnitTestCase {
    * Tests updating the cache after a set.
    */
   public function testUpdateCache() {
-    $key = $this->randomName();
-    $value = $this->randomName();
+    $key = $this->randomMachineName();
+    $value = $this->randomMachineName();
 
     $this->collector->setCacheMissData($key, $value);
     $this->collector->get($key);
@@ -205,8 +194,8 @@ class CacheCollectorTest extends UnitTestCase {
    * Tests updating the cache when the lock acquire fails.
    */
   public function testUpdateCacheLockFail() {
-    $key = $this->randomName();
-    $value = $this->randomName();
+    $key = $this->randomMachineName();
+    $value = $this->randomMachineName();
 
     $this->collector->setCacheMissData($key, $value);
     $this->collector->get($key);
@@ -227,8 +216,8 @@ class CacheCollectorTest extends UnitTestCase {
    * Tests updating the cache when there is a conflict after cache invalidation.
    */
   public function testUpdateCacheInvalidatedConflict() {
-    $key = $this->randomName();
-    $value = $this->randomName();
+    $key = $this->randomMachineName();
+    $value = $this->randomMachineName();
 
     $cache = (object) array(
       'data' => array($key => $value),
@@ -274,8 +263,8 @@ class CacheCollectorTest extends UnitTestCase {
    * Tests updating the cache when a different request
    */
   public function testUpdateCacheMerge() {
-    $key = $this->randomName();
-    $value = $this->randomName();
+    $key = $this->randomMachineName();
+    $value = $this->randomMachineName();
 
     $this->collector->setCacheMissData($key, $value);
     $this->collector->get($key);
@@ -310,8 +299,8 @@ class CacheCollectorTest extends UnitTestCase {
    * Tests updating the cache after a delete.
    */
   public function testUpdateCacheDelete() {
-    $key = $this->randomName();
-    $value = $this->randomName();
+    $key = $this->randomMachineName();
+    $value = $this->randomMachineName();
 
     $cache = (object) array(
       'data' => array($key => $value),
@@ -351,8 +340,8 @@ class CacheCollectorTest extends UnitTestCase {
    * Tests a reset of the cache collector.
    */
   public function testUpdateCacheReset() {
-    $key = $this->randomName();
-    $value = $this->randomName();
+    $key = $this->randomMachineName();
+    $value = $this->randomMachineName();
 
     // Set the data and request it.
     $this->collector->setCacheMissData($key, $value);
@@ -372,8 +361,8 @@ class CacheCollectorTest extends UnitTestCase {
    * Tests a clear of the cache collector.
    */
   public function testUpdateCacheClear() {
-    $key = $this->randomName();
-    $value = $this->randomName();
+    $key = $this->randomMachineName();
+    $value = $this->randomMachineName();
 
     // Set the data and request it.
     $this->collector->setCacheMissData($key, $value);
@@ -398,9 +387,9 @@ class CacheCollectorTest extends UnitTestCase {
    * Tests a clear of the cache collector using tags.
    */
   public function testUpdateCacheClearTags() {
-    $key = $this->randomName();
-    $value = $this->randomName();
-    $tags = array($this->randomName() => TRUE);
+    $key = $this->randomMachineName();
+    $value = $this->randomMachineName();
+    $tags = array($this->randomMachineName() => TRUE);
     $this->collector = new CacheCollectorHelper($this->cid, $this->cache, $this->lock, $tags);
 
     // Set the data and request it.

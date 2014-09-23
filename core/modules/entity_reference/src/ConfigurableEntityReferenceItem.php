@@ -10,12 +10,13 @@ namespace Drupal\entity_reference;
 use Drupal\Component\Utility\String;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItem;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Form\OptGroup;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\TypedData\AllowedValuesInterface;
 use Drupal\Core\TypedData\DataDefinition;
 use Drupal\Core\Validation\Plugin\Validation\Constraint\AllowedValuesConstraint;
-use Drupal\field\FieldConfigInterface;
+use Drupal\field\FieldStorageConfigInterface;
 
 /**
  * Alternative plugin implementation of the 'entity_reference' field type.
@@ -144,7 +145,7 @@ class ConfigurableEntityReferenceItem extends EntityReferenceItem implements All
     $target_type = $field_definition->getSetting('target_type');
     $target_type_info = \Drupal::entityManager()->getDefinition($target_type);
 
-    if ($target_type_info->isSubclassOf('\Drupal\Core\Entity\ContentEntityInterface') && $field_definition instanceof FieldConfigInterface) {
+    if ($target_type_info->isSubclassOf('\Drupal\Core\Entity\ContentEntityInterface') && $field_definition instanceof FieldStorageConfigInterface) {
       $schema['columns']['revision_id'] = array(
         'description' => 'The revision ID of the target entity.',
         'type' => 'int',
@@ -159,7 +160,7 @@ class ConfigurableEntityReferenceItem extends EntityReferenceItem implements All
   /**
    * {@inheritdoc}
    */
-  public function settingsForm(array &$form, array &$form_state, $has_data) {
+  public function settingsForm(array &$form, FormStateInterface $form_state, $has_data) {
     $element['target_type'] = array(
       '#type' => 'select',
       '#title' => t('Type of item to reference'),
@@ -176,7 +177,7 @@ class ConfigurableEntityReferenceItem extends EntityReferenceItem implements All
   /**
    * {@inheritdoc}
    */
-  public function instanceSettingsForm(array $form, array &$form_state) {
+  public function instanceSettingsForm(array $form, FormStateInterface $form_state) {
     $instance = $form_state['instance'];
 
     // Get all selection plugins for this entity type.
@@ -247,10 +248,10 @@ class ConfigurableEntityReferenceItem extends EntityReferenceItem implements All
    *
    * @param array $form
    *   The form where the settings form is being included in.
-   * @param array $form_state
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
    *   The form state of the (entire) configuration form.
    */
-  public static function instanceSettingsFormValidate(array $form, array &$form_state) {
+  public static function instanceSettingsFormValidate(array $form, FormStateInterface $form_state) {
     if (isset($form_state['values']['instance'])) {
       unset($form_state['values']['instance']['settings']['handler_submit']);
       $form_state['instance']->settings = $form_state['values']['instance']['settings'];

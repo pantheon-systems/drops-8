@@ -78,7 +78,7 @@ abstract class TaxonomyTestBase extends ViewTestBase {
     ));
     $this->vocabulary->save();
     $this->field_name = 'field_' . $this->vocabulary->id();
-    entity_create('field_config', array(
+    entity_create('field_storage_config', array(
       'name' => $this->field_name,
       'entity_type' => 'node',
       'type' => 'taxonomy_term_reference',
@@ -131,8 +131,8 @@ abstract class TaxonomyTestBase extends ViewTestBase {
     $filter_formats = filter_formats();
     $format = array_pop($filter_formats);
     $term = entity_create('taxonomy_term', array(
-      'name' => $this->randomName(),
-      'description' => $this->randomName(),
+      'name' => $this->randomMachineName(),
+      'description' => $this->randomMachineName(),
       // Use the first available text format.
       'format' => $format->format,
       'vid' => $this->vocabulary->id(),

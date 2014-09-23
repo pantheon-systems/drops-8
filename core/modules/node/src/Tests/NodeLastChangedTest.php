@@ -11,6 +11,8 @@ use Drupal\simpletest\DrupalUnitTestBase;
 
 /**
  * Tests the node_last_changed() function.
+ *
+ * @group node
  */
 class NodeLastChangedTest extends DrupalUnitTestBase {
 
@@ -20,14 +22,6 @@ class NodeLastChangedTest extends DrupalUnitTestBase {
    * @var array
    */
   public static $modules = array('entity', 'user', 'node', 'field', 'text', 'filter');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Node Last Changed',
-      'description' => 'Tests the node_last_changed() function.',
-      'group' => 'Node',
-    );
-  }
 
   public function setUp() {
     parent::setUp();
@@ -39,7 +33,7 @@ class NodeLastChangedTest extends DrupalUnitTestBase {
    * Runs basic tests for node_last_changed function.
    */
   function testNodeLastChanged() {
-    $node = entity_create('node', array('type' => 'article', 'title' => $this->randomName()));
+    $node = entity_create('node', array('type' => 'article', 'title' => $this->randomMachineName()));
     $node->save();
 
     // Test node last changed timestamp.

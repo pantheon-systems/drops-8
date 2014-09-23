@@ -9,6 +9,8 @@ namespace Drupal\system\Form;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\CronInterface;
+use Drupal\Core\Datetime\DateFormatter;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\State\StateInterface;
 use Drupal\Core\Form\ConfigFormBase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -34,6 +36,13 @@ class CronForm extends ConfigFormBase {
   protected $cron;
 
   /**
+   * The date formatter service.
+   *
+   * @var \Drupal\Core\Datetime\DateFormatter
+   */
+  protected $dateFormatter;
+
+  /**
    * Constructs a CronForm object.
    *
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
@@ -42,11 +51,14 @@ class CronForm extends ConfigFormBase {
    *   The state key value store.
    * @param \Drupal\Core\CronInterface $cron
    *   The cron service.
+   * @param \Drupal\Core\Datetime\DateFormatter $date_formatter
+   *   The date formatter service.
    */
-  public function __construct(ConfigFactoryInterface $config_factory, StateInterface $state, CronInterface $cron) {
+  public function __construct(ConfigFactoryInterface $config_factory, StateInterface $state, CronInterface $cron, DateFormatter $date_formatter) {
     parent::__construct($config_factory);
     $this->state = $state;
     $this->cron = $cron;
+    $this->dateFormatter = $date_formatter;
   }
 
   /**
@@ -56,7 +68,8 @@ class CronForm extends ConfigFormBase {
     return new static(
       $container->get('config.factory'),
       $container->get('state'),
-      $container->get('cron')
+      $container->get('cron'),
+      $container->get('date.formatter')
     );
   }
 
@@ -70,7 +83,7 @@ class CronForm extends ConfigFormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, array &$form_state) {
+  public function buildForm(array $form, FormStateInterface $form_state) {
     $config = $this->config('system.cron');
 
     $form['description'] = array(
@@ -82,7 +95,7 @@ class CronForm extends ConfigFormBase {
       '#submit' => array(array($this, 'submitCron')),
     );
 
-    $status = '<p>' . t('Last run: %cron-last ago.', array('%cron-last' => format_interval(REQUEST_TIME - $this->state->get('system.cron_last')))) . '</p>';
+    $status = '<p>' . t('Last run: %cron-last ago.', array('%cron-last' => $this->dateFormatter->formatInterval(REQUEST_TIME - $this->state->get('system.cron_last')))) . '</p>';
     $form['status'] = array(
       '#markup' => $status,
     );
@@ -102,7 +115,7 @@ class CronForm extends ConfigFormBase {
       '#title' => t('Run cron every'),
       '#description' => t('More information about setting up scheduled tasks can be found by <a href="@url">reading the cron tutorial on drupal.org</a>.', array('@url' => url('http://drupal.org/cron'))),
       '#default_value' => $config->get('threshold.autorun'),
-      '#options' => array(0 => t('Never')) + array_map('format_interval', array_combine($options, $options)),
+      '#options' => array(0 => t('Never')) + array_map(array($this->dateFormatter, 'formatInterval'), array_combine($options, $options)),
     );
 
     return parent::buildForm($form, $form_state);
@@ -111,7 +124,7 @@ class CronForm extends ConfigFormBase {
   /**
    * {@inheritdoc}
    */
-  public function submitForm(array &$form, array &$form_state) {
+  public function submitForm(array &$form, FormStateInterface $form_state) {
     $this->config('system.cron')
       ->set('threshold.autorun', $form_state['values']['cron_safe_threshold'])
       ->save();
@@ -122,7 +135,7 @@ class CronForm extends ConfigFormBase {
   /**
    * Runs cron and reloads the page.
    */
-  public function submitCron(array &$form, array &$form_state) {
+  public function submitCron(array &$form, FormStateInterface $form_state) {
     // Run cron manually from Cron form.
     if ($this->cron->run()) {
       drupal_set_message(t('Cron run successfully.'));

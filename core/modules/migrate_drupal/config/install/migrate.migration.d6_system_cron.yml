@@ -1,5 +1,7 @@
 id: d6_system_cron
 label: Drupal 6 cron settings
+migration_groups:
+  - Drupal 6
 source:
   plugin: variable
   variables:
@@ -7,8 +9,8 @@ source:
     - cron_threshold_error
     - cron_last
 process:
-  'threshold.warning': cron_threshold_warning
-  'threshold.error': cron_threshold_error
+  'threshold/warning': cron_threshold_warning
+  'threshold/error': cron_threshold_error
 destination:
   plugin: config
   config_name: system.cron

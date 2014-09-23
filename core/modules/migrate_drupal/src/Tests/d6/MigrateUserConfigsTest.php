@@ -7,24 +7,18 @@
 
 namespace Drupal\migrate_drupal\Tests\d6;
 
+use Drupal\config\Tests\SchemaCheckTestTrait;
 use Drupal\migrate\MigrateExecutable;
 use Drupal\migrate_drupal\Tests\MigrateDrupalTestBase;
 
 /**
- * Tests migration of variables from the User module.
+ * Upgrade variables to user.*.yml.
+ *
+ * @group migrate_drupal
  */
 class MigrateUserConfigsTest extends MigrateDrupalTestBase {
 
-  /**
-   * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'name'  => 'Migrate variables to user.*.yml',
-      'description'  => 'Upgrade variables to user.*.yml',
-      'group' => 'Migrate Drupal',
-    );
-  }
+  use SchemaCheckTestTrait;
 
   /**
    * {@inheritdoc}
@@ -59,5 +53,7 @@ class MigrateUserConfigsTest extends MigrateDrupalTestBase {
     $this->assertIdentical($config->get('register_pending_approval.body'), "!username,\n\nThank you for registering at !site. Your application for an account is currently pending approval. Once it has been approved, you will receive another email containing information about how to log in, set your password, and other details.\n\n\n--  !site team");
     $this->assertIdentical($config->get('status_blocked.subject'), 'Account details for !username at !site (blocked)');
     $this->assertIdentical($config->get('status_blocked.body'), "!username,\n\nYour account on !site has been blocked.");
+    $this->assertConfigSchema(\Drupal::service('config.typed'), 'user.mail', $config->get());
   }
+
 }

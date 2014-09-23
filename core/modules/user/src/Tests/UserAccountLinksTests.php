@@ -7,10 +7,13 @@
 
 namespace Drupal\user\Tests;
 
+use Drupal\Core\Menu\MenuTreeParameters;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Tests user links in the secondary menu.
+ * Tests user-account links.
+ *
+ * @group user
  */
 class UserAccountLinksTests extends WebTestBase {
 
@@ -20,14 +23,6 @@ class UserAccountLinksTests extends WebTestBase {
    * @var array
    */
   public static $modules = array('menu_ui', 'block', 'test_page_test');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'User account links',
-      'description' => 'Test user-account links.',
-      'group' => 'User'
-    );
-  }
 
   public function setUp() {
     parent::setUp();
@@ -49,14 +44,14 @@ class UserAccountLinksTests extends WebTestBase {
     // For a logged-in user, expect the secondary menu to have links for "My
     // account" and "Log out".
     $link = $this->xpath('//ul[@class=:menu_class]/li/a[contains(@href, :href) and text()=:text]', array(
-      ':menu_class' => 'links',
+      ':menu_class' => 'menu',
       ':href' => 'user',
       ':text' => 'My account',
     ));
     $this->assertEqual(count($link), 1, 'My account link is in secondary menu.');
 
     $link = $this->xpath('//ul[@class=:menu_class]/li/a[contains(@href, :href) and text()=:text]', array(
-      ':menu_class' => 'links',
+      ':menu_class' => 'menu',
       ':href' => 'user/logout',
       ':text' => 'Log out',
     ));
@@ -67,13 +62,15 @@ class UserAccountLinksTests extends WebTestBase {
     $this->drupalGet('<front>');
 
     // For a logged-out user, expect no secondary links.
-    /** @var \Drupal\menu_link\MenuTreeInterface $menu_tree */
-    $menu_tree = \Drupal::service('menu_link.tree');
-    $tree = $menu_tree->buildTree('account');
+    $menu_tree = \Drupal::menuTree();
+    $tree = $menu_tree->load('account', new MenuTreeParameters());
+    $manipulators = array(
+      array('callable' => 'menu.default_tree_manipulators:checkAccess'),
+    );
+    $tree = $menu_tree->transform($tree, $manipulators);
     $this->assertEqual(count($tree), 1, 'The secondary links menu contains only one menu link.');
-    $link = reset($tree);
-    $link = $link['link'];
-    $this->assertTrue((bool) $link->hidden, 'The menu link is hidden.');
+    $element = reset($tree);
+    $this->assertTrue($element->link->isHidden(), 'The menu link is hidden.');
   }
 
   /**
@@ -83,6 +80,15 @@ class UserAccountLinksTests extends WebTestBase {
     // Create an admin user and log in.
     $this->drupalLogin($this->drupalCreateUser(array('access administration pages', 'administer menu')));
 
+    // Verify that the 'My account' link exists before we check for its
+    // disappearance.
+    $link = $this->xpath('//ul[@class=:menu_class]/li/a[contains(@href, :href) and text()=:text]', array(
+      ':menu_class' => 'menu',
+      ':href' => 'user',
+      ':text' => 'My account',
+    ));
+    $this->assertEqual(count($link), 1, 'My account link is in the secondary menu.');
+
     // Verify that the 'My account' link is enabled. Do not assume the value of
     // auto-increment is 1. Use XPath to obtain input element id and name using
     // the consistent label text.
@@ -91,18 +97,15 @@ class UserAccountLinksTests extends WebTestBase {
     $this->assertFieldChecked((string) $label[0], "The 'My account' link is enabled by default.");
 
     // Disable the 'My account' link.
-    $input = $this->xpath('//input[@id=:field_id]/@name', array(':field_id' => (string)$label[0]));
-    $edit = array(
-      (string) $input[0] => FALSE,
-    );
+    $edit['links[menu_plugin_id:user.page][enabled]'] = FALSE;
     $this->drupalPostForm('admin/structure/menu/manage/account', $edit, t('Save'));
 
     // Get the homepage.
     $this->drupalGet('<front>');
 
     // Verify that the 'My account' link does not appear when disabled.
-    $link = $this->xpath('//ul[@id=:menu_id]/li/a[contains(@href, :href) and text()=:text]', array(
-      ':menu_id' => 'secondary-menu',
+    $link = $this->xpath('//ul[@class=:menu_class]/li/a[contains(@href, :href) and text()=:text]', array(
+      ':menu_class' => 'menu',
       ':href' => 'user',
       ':text' => 'My account',
     ));

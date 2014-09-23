@@ -10,7 +10,9 @@ namespace Drupal\locale\Tests;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Tests for the locale translation update status user interfaces.
+ * Tests for the user interface of project interface translations.
+ *
+ * @group locale
  */
 class LocaleUpdateInterfaceTest extends LocaleUpdateBase {
 
@@ -21,15 +23,10 @@ class LocaleUpdateInterfaceTest extends LocaleUpdateBase {
    */
   public static $modules = array('update', 'locale', 'locale_test_translate');
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Update translations user interface',
-      'description' => 'Tests for the user interface of project interface translations.',
-      'group' => 'Locale',
-    );
-  }
-
-  function setUp() {
+  /**
+   * {@inheritdoc}
+   */
+  public function setUp() {
     parent::setUp();
     $admin_user = $this->drupalCreateUser(array('administer modules', 'administer site configuration', 'administer languages', 'access administration pages', 'translate interface'));
     $this->drupalLogin($admin_user);
@@ -41,7 +38,7 @@ class LocaleUpdateInterfaceTest extends LocaleUpdateBase {
    * Testing the Available updates summary on the side wide status page and the
    * Avaiable translation updates page.
    */
-  function testInterface() {
+  public function testInterface() {
     // No language added.
     // Check status page and Available translation updates page.
     $this->drupalGet('admin/reports/status');

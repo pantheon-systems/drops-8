@@ -7,6 +7,7 @@
 
 namespace Drupal\language\Form;
 
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\language\Form\LanguageFormBase;
 use Drupal\Core\Language\Language;
 
@@ -26,7 +27,7 @@ class LanguageAddForm extends LanguageFormBase {
   /**
    * {@inheritdoc}
    */
-  public function form(array $form, array &$form_state) {
+  public function form(array $form, FormStateInterface $form_state) {
     $form['#title'] = $this->t('Add language');
 
     $predefined_languages = $this->languageManager->getStandardLanguageListWithoutConfigured();
@@ -81,7 +82,7 @@ class LanguageAddForm extends LanguageFormBase {
   /**
    * {@inheritdoc}
    */
-  public function submitForm(array &$form, array &$form_state) {
+  public function submitForm(array &$form, FormStateInterface $form_state) {
     $langcode = $form_state['values']['predefined_langcode'];
     if ($langcode == 'custom') {
       $langcode = $form_state['values']['langcode'];
@@ -103,13 +104,13 @@ class LanguageAddForm extends LanguageFormBase {
     // Tell the user they have the option to add a language switcher block
     // to their theme so they can switch between the languages.
     drupal_set_message($this->t('Use one of the language switcher blocks to allow site visitors to switch between languages. You can enable these blocks on the <a href="@block-admin">block administration page</a>.', array('@block-admin' => url('admin/structure/block'))));
-    $form_state['redirect_route']['route_name'] = 'language.admin_overview';
+    $form_state->setRedirect('language.admin_overview');
   }
 
   /**
    * {@inheritdoc}
    */
-  public function actions(array $form, array &$form_state) {
+  public function actions(array $form, FormStateInterface $form_state) {
     // No actions needed.
     return array();
   }
@@ -117,32 +118,32 @@ class LanguageAddForm extends LanguageFormBase {
   /**
    * Validates the language addition form on custom language button.
    */
-  public function validateCustom(array $form, array &$form_state) {
+  public function validateCustom(array $form, FormStateInterface $form_state) {
     if ($form_state['values']['predefined_langcode'] == 'custom') {
       $langcode = $form_state['values']['langcode'];
       // Reuse the editing form validation routine if we add a custom language.
       $this->validateCommon($form['custom_language'], $form_state);
 
       if ($language = language_load($langcode)) {
-        $this->setFormError('langcode', $form_state, $this->t('The language %language (%langcode) already exists.', array('%language' => $language->name, '%langcode' => $langcode)));
+        $form_state->setErrorByName('langcode', $this->t('The language %language (%langcode) already exists.', array('%language' => $language->name, '%langcode' => $langcode)));
       }
     }
     else {
-      $this->setFormError('predefined_langcode', $form_state, $this->t('Use the <em>Add language</em> button to save a predefined language.'));
+      $form_state->setErrorByName('predefined_langcode', $this->t('Use the <em>Add language</em> button to save a predefined language.'));
     }
   }
 
   /**
    * Element specific validator for the Add language button.
    */
-  public function validatePredefined($form, &$form_state) {
+  public function validatePredefined($form, FormStateInterface $form_state) {
     $langcode = $form_state['values']['predefined_langcode'];
     if ($langcode == 'custom') {
-      $this->setFormError('predefined_langcode', $form_state, $this->t('Fill in the language details and save the language with <em>Add custom language</em>.'));
+      $form_state->setErrorByName('predefined_langcode', $this->t('Fill in the language details and save the language with <em>Add custom language</em>.'));
     }
     else {
       if ($language = language_load($langcode)) {
-        $this->setFormError('predefined_langcode', $form_state, $this->t('The language %language (%langcode) already exists.', array('%language' => $language->name, '%langcode' => $langcode)));
+        $form_state->setErrorByName('predefined_langcode', $this->t('The language %language (%langcode) already exists.', array('%language' => $language->name, '%langcode' => $langcode)));
       }
     }
   }

@@ -10,7 +10,9 @@ namespace Drupal\rest\Tests;
 use Drupal\Component\Serialization\Json;
 
 /**
- * Tests resource creation on user, node and test entities.
+ * Tests the creation of resources.
+ *
+ * @group rest
  */
 class CreateTest extends RESTTestBase {
 
@@ -20,14 +22,6 @@ class CreateTest extends RESTTestBase {
    * @var array
    */
   public static $modules = array('hal', 'rest', 'entity_test');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Create resource',
-      'description' => 'Tests the creation of resources.',
-      'group' => 'REST',
-    );
-  }
 
   /**
    * Tests several valid and invalid create requests on all entity types.
@@ -103,7 +97,7 @@ class CreateTest extends RESTTestBase {
 
       // Try to send invalid data to trigger the entity validation constraints.
       // Send a UUID that is too long.
-      $entity->set('uuid', $this->randomName(129));
+      $entity->set('uuid', $this->randomMachineName(129));
       $invalid_serialized = $serializer->serialize($entity, $this->defaultFormat);
       $response = $this->httpRequest('entity/' . $entity_type, 'POST', $invalid_serialized, $this->defaultMimeType);
       $this->assertResponse(422);

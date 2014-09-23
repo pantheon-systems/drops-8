@@ -11,22 +11,13 @@ use Drupal\migrate\MigrateExecutable;
 use Drupal\migrate_drupal\Tests\MigrateDrupalTestBase;
 
 /**
- * Tests migration of user profile fields.
+ * Tests the user profile field instance migration.
+ *
+ * @group migrate_drupal
  */
 class MigrateUserProfileFieldInstanceTest extends MigrateDrupalTestBase {
 
   static $modules = array('field', 'link', 'options', 'datetime', 'text');
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'name'  => 'Migrate user profile field instance',
-      'description'  => 'Test the user profile field instance migration.',
-      'group' => 'Migrate Drupal',
-    );
-  }
 
   /**
    * {@inheritdoc}
@@ -45,6 +36,7 @@ class MigrateUserProfileFieldInstanceTest extends MigrateDrupalTestBase {
     $migration = entity_load('migration', 'd6_user_profile_field_instance');
     $dumps = array(
       $this->getDumpDirectory() . '/Drupal6UserProfileFields.php',
+      $this->getDumpDirectory() . '/Drupal6User.php',
     );
     $this->prepare($migration, $dumps);
     $executable = new MigrateExecutable($migration, $this);
@@ -106,15 +98,15 @@ class MigrateUserProfileFieldInstanceTest extends MigrateDrupalTestBase {
     $fields = array(
       'profile_color' => 'text',
       'profile_biography' => 'text_long',
-      'profile_sell_address' => 'list_boolean',
+      'profile_sell_address' => 'boolean',
       'profile_sold_to' => 'list_text',
       'profile_bands' => 'text',
       'profile_blog' => 'link',
       'profile_birthdate' => 'datetime',
-      'profile_love_migrations' => 'list_boolean',
+      'profile_love_migrations' => 'boolean',
     );
     foreach ($fields as $name => $type) {
-      entity_create('field_config', array(
+      entity_create('field_storage_config', array(
         'name' => $name,
         'entity_type' => 'user',
         'type' => $type,

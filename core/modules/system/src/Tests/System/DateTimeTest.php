@@ -10,7 +10,10 @@ namespace Drupal\system\Tests\System;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Tests generic date and time handling capabilities of Drupal.
+ * Configure date and time settings. Test date formatting and time zone
+ * handling, including daylight saving time.
+ *
+ * @group system
  */
 class DateTimeTest extends WebTestBase {
 
@@ -20,14 +23,6 @@ class DateTimeTest extends WebTestBase {
    * @var array
    */
   public static $modules = array('node', 'language');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Date and time',
-      'description' => 'Configure date and time settings. Test date formatting and time zone handling, including daylight saving time.',
-      'group' => 'System',
-    );
-  }
 
   function setUp() {
     parent::setUp();
@@ -82,7 +77,7 @@ class DateTimeTest extends WebTestBase {
 
     // Add custom date format.
     $this->clickLink(t('Add format'));
-    $date_format_id = strtolower($this->randomName(8));
+    $date_format_id = strtolower($this->randomMachineName(8));
     $name = ucwords($date_format_id);
     $date_format = 'd.m.Y - H:i';
     $edit = array(

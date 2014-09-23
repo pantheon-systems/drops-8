@@ -11,6 +11,8 @@
  * ability to install contributed modules and themes via an user interface.
  */
 
+use Drupal\Component\Utility\SafeMarkup;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Site\Settings;
 use Symfony\Cmf\Component\Routing\RouteObjectInterface;
@@ -164,7 +166,7 @@ function update_page_build() {
  * @see update_menu()
  */
 function update_manager_access() {
-  return Settings::get('allow_authorize_operations', TRUE) && user_access('administer software updates');
+  return Settings::get('allow_authorize_operations', TRUE) && \Drupal::currentUser()->hasPermission('administer software updates');
 }
 
 /**
@@ -172,10 +174,6 @@ function update_manager_access() {
  */
 function update_theme() {
   return array(
-    'update_manager_update_form' => array(
-      'render element' => 'form',
-      'file' => 'update.manager.inc',
-    ),
     'update_last_check' => array(
       'variables' => array('last' => 0),
       'template' => 'update-last-check',
@@ -183,14 +181,19 @@ function update_theme() {
     'update_report' => array(
       'variables' => array('data' => NULL),
       'file' => 'update.report.inc',
+      'template' => 'update-report',
+    ),
+    'update_project_status' => array(
+      'variables' => array('project' => array(), 'includes_status' => array()),
+      'file' => 'update.report.inc',
+      'template' => 'update-project-status',
     ),
     'update_version' => array(
-      'variables' => array('version' => NULL, 'tag' => NULL, 'class' => array()),
+      'variables' => array('version' => NULL, 'title' => NULL, 'attributes' => array()),
       'file' => 'update.report.inc',
-    ),
-    'update_status_label' => array(
-      'variables' => array('status' => NULL),
-      'file' => 'update.report.inc',
+      // We are using template instead of '#type' => 'table' here to keep markup
+      // out of preprocess and allow for easier changes to markup.
+      'template' => 'update-version',
     ),
   );
 }
@@ -255,7 +258,7 @@ function update_themes_disabled($themes) {
  *
  * @see _update_cache_clear()
  */
-function update_form_system_modules_alter(&$form, $form_state) {
+function update_form_system_modules_alter(&$form, FormStateInterface $form_state) {
   $form['#submit'][] = 'update_storage_clear_submit';
 }
 
@@ -264,7 +267,7 @@ function update_form_system_modules_alter(&$form, $form_state) {
  *
  * @see update_form_system_modules_alter()
  */
-function update_storage_clear_submit($form, &$form_state) {
+function update_storage_clear_submit($form, FormStateInterface $form_state) {
   // Clear all update module data.
   update_storage_clear();
 }
@@ -537,7 +540,8 @@ function _update_message_text($msg_type, $msg_reason, $report_link = FALSE, $lan
     }
   }
 
-  return $text;
+  // All strings are t() and empty space concatenated so return SafeMarkup.
+  return SafeMarkup::set($text);
 }
 
 /**
@@ -571,7 +575,7 @@ function _update_project_status_sort($a, $b) {
  * @see theme_update_report()
  */
 function template_preprocess_update_last_check(&$variables) {
-  $variables['time'] = \Drupal::service('date')->formatInterval(REQUEST_TIME - $variables['last']);
+  $variables['time'] = \Drupal::service('date.formatter')->formatInterval(REQUEST_TIME - $variables['last']);
   $variables['link'] = \Drupal::l(t('Check manually'), 'update.manual_status', array(), array('query' => drupal_get_destination()));
 }
 
@@ -658,7 +662,7 @@ function update_storage_clear() {
 function _update_manager_unique_identifier() {
   $id = &drupal_static(__FUNCTION__, '');
   if (empty($id)) {
-    $id = substr(hash('sha256', drupal_get_hash_salt()), 0, 8);
+    $id = substr(hash('sha256', Settings::getHashSalt()), 0, 8);
   }
   return $id;
 }

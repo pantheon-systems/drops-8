@@ -6,9 +6,13 @@
  */
 
 namespace Drupal\file\Tests;
+use Drupal\file\Entity\File;
+use Drupal\node\Entity\Node;
 
 /**
- * Tests file access on private nodes.
+ * Uploads a test to a private node and checks access.
+ *
+ * @group file
  */
 class FilePrivateTest extends FileFieldTestBase {
 
@@ -19,16 +23,9 @@ class FilePrivateTest extends FileFieldTestBase {
    */
   public static $modules = array('node_access_test', 'field_test');
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Private file test',
-      'description' => 'Uploads a test to a private node and checks access.',
-      'group' => 'File',
-    );
-  }
-
   public function setUp() {
     parent::setUp();
+    node_access_test_add_field(entity_load('node_type', 'article'));
     node_access_rebuild();
     \Drupal::state()->set('node_access_test.private', TRUE);
   }
@@ -38,7 +35,7 @@ class FilePrivateTest extends FileFieldTestBase {
    */
   function testPrivateFile() {
     $type_name = 'article';
-    $field_name = strtolower($this->randomName());
+    $field_name = strtolower($this->randomMachineName());
     $this->createFileField($field_name, 'node', $type_name, array('uri_scheme' => 'private'));
 
     // Create a field with no view access. See
@@ -60,9 +57,13 @@ class FilePrivateTest extends FileFieldTestBase {
     // Test with the field that should deny access through field access.
     $this->drupalLogin($this->admin_user);
     $nid = $this->uploadNodeFile($test_file, $no_access_field_name, $type_name, TRUE, array('private' => TRUE));
-    $node = node_load($nid, TRUE);
-    $node_file = file_load($node->{$no_access_field_name}->target_id);
+    \Drupal::entityManager()->getStorage('node')->resetCache(array($nid));
+    $node = Node::load($nid);
+    $node_file = File::load($node->{$no_access_field_name}->target_id);
+
     // Ensure the file cannot be downloaded.
+    $user = $this->drupalCreateUser(array('access content'));
+    $this->drupalLogin($user);
     $this->drupalGet(file_create_url($node_file->getFileUri()));
     $this->assertResponse(403, 'Confirmed that access is denied for the file without view field access permission.');
   }

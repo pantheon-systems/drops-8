@@ -11,6 +11,8 @@ use Drupal\views\Views;
 
 /**
  * Tests the core Drupal\views\Plugin\views\argument\String handler.
+ *
+ * @group views
  */
 class ArgumentStringTest extends HandlerTestBase {
 
@@ -28,14 +30,6 @@ class ArgumentStringTest extends HandlerTestBase {
    */
   public static $modules = array('node');
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Argument: String',
-      'description' => 'Test the core Drupal\views\Plugin\views\argument\String handler.',
-      'group' => 'Views Handlers',
-    );
-  }
-
   /**
    * Tests the glossary feature.
    */
@@ -45,7 +39,7 @@ class ArgumentStringTest extends HandlerTestBase {
     foreach (array('a', 'b', 'c') as $char) {
       for ($i = 0; $i < $counter; $i++) {
         $edit = array(
-          'title' => $char . $this->randomName(),
+          'title' => $char . $this->randomMachineName(),
         );
         $this->drupalCreateNode($edit);
       }

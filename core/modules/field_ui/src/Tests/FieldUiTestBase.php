@@ -30,15 +30,15 @@ abstract class FieldUiTestBase extends WebTestBase {
     $this->drupalLogin($admin_user);
 
     // Create content type, with underscores.
-    $type_name = strtolower($this->randomName(8)) . '_test';
+    $type_name = strtolower($this->randomMachineName(8)) . '_test';
     $type = $this->drupalCreateContentType(array('name' => $type_name, 'type' => $type_name));
     $this->type = $type->type;
 
     // Create a default vocabulary.
     $vocabulary = entity_create('taxonomy_vocabulary', array(
-      'name' => $this->randomName(),
-      'description' => $this->randomName(),
-      'vid' => drupal_strtolower($this->randomName()),
+      'name' => $this->randomMachineName(),
+      'description' => $this->randomMachineName(),
+      'vid' => drupal_strtolower($this->randomMachineName()),
       'langcode' => LanguageInterface::LANGCODE_NOT_SPECIFIED,
       'help' => '',
       'nodes' => array('article' => 'article'),
@@ -72,9 +72,9 @@ abstract class FieldUiTestBase extends WebTestBase {
 
     // First step : 'Add new field' on the 'Manage fields' page.
     $this->drupalPostForm("$bundle_path/fields",  $initial_edit, t('Save'));
-    $this->assertRaw(t('These settings apply to the %label field everywhere it is used.', array('%label' => $label)), 'Field settings page was displayed.');
+    $this->assertRaw(t('These settings apply to the %label field everywhere it is used.', array('%label' => $label)), 'Storage settings page was displayed.');
     // Test Breadcrumbs.
-    $this->assertLink($label, 0, 'Field label is correct in the breadcrumb of the field settings page.');
+    $this->assertLink($label, 0, 'Field label is correct in the breadcrumb of the storage settings page.');
 
     // Second step : 'Field settings' form.
     $this->drupalPostForm(NULL, $field_edit, t('Save field settings'));

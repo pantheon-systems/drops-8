@@ -79,9 +79,8 @@ abstract class LocalTaskIntegrationTest extends UnitTestCase {
     $property->setAccessible(TRUE);
     $property->setValue($manager, $request_stack);
 
-    $accessManager = $this->getMockBuilder('Drupal\Core\Access\AccessManager')
-      ->disableOriginalConstructor()
-      ->getMock();    $property = new \ReflectionProperty('Drupal\Core\Menu\LocalTaskManager', 'accessManager');
+    $accessManager = $this->getMock('Drupal\Core\Access\AccessManagerInterface');
+    $property = new \ReflectionProperty('Drupal\Core\Menu\LocalTaskManager', 'accessManager');
     $property->setAccessible(TRUE);
     $property->setValue($manager, $accessManager);
 
@@ -108,7 +107,7 @@ abstract class LocalTaskIntegrationTest extends UnitTestCase {
         return isset($module_dirs[$module]);
       }));
 
-    $pluginDiscovery = new YamlDiscovery('local_tasks', $module_dirs);
+    $pluginDiscovery = new YamlDiscovery('links.task', $module_dirs);
     $pluginDiscovery = new ContainerDerivativeDiscoveryDecorator($pluginDiscovery);
     $property = new \ReflectionProperty('Drupal\Core\Menu\LocalTaskManager', 'discovery');
     $property->setAccessible(TRUE);

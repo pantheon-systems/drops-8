@@ -5,7 +5,7 @@
  * Contains \Drupal\Tests\Core\EventSubscriber\SpecialAttributesRouteSubscriberTest.
  */
 
-namespace Drupal\Tests\Core\EventSubscriber {
+namespace Drupal\Tests\Core\EventSubscriber;
 
 use Drupal\Core\EventSubscriber\SpecialAttributesRouteSubscriber;
 use Drupal\Core\Routing\RouteBuildEvent;
@@ -15,9 +15,8 @@ use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
 
 /**
- * Tests the special attributes route subscriber.
- *
- * @see \Drupal\Core\EventSubscriber\SpecialAttributesRouteSubscriber
+ * @coversDefaultClass \Drupal\Core\EventSubscriber\SpecialAttributesRouteSubscriber
+ * @group EventSubscriber
  */
 class SpecialAttributesRouteSubscriberTest extends UnitTestCase {
 
@@ -27,14 +26,6 @@ class SpecialAttributesRouteSubscriberTest extends UnitTestCase {
    * @var \Drupal\Core\EventSubscriber\SpecialAttributesRouteSubscriber
    */
   protected  $specialAttributesRouteSubscriber;
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Special attributes route subscriber',
-      'description' => 'Tests the special attributes route subscriber.',
-      'group' => 'System'
-    );
-  }
 
   /**
    * {@inheritdoc}
@@ -94,7 +85,7 @@ class SpecialAttributesRouteSubscriberTest extends UnitTestCase {
     $route_collection = new RouteCollection();
     $route_collection->add('test', $route);
     $event = new RouteBuildEvent($route_collection, 'test');
-    $this->assertTrue($this->specialAttributesRouteSubscriber->onAlterRoutes($event));
+    $this->specialAttributesRouteSubscriber->onAlterRoutes($event);
   }
 
   /**
@@ -104,25 +95,14 @@ class SpecialAttributesRouteSubscriberTest extends UnitTestCase {
    *   The route to check.
    *
    * @dataProvider providerTestOnRouteBuildingInvalidVariables
+   * @expectedException \PHPUnit_Framework_Error_Warning
+   * @expectedExceptionMessage uses reserved variable names
    */
   public function testOnRouteBuildingInvalidVariables(Route $route) {
     $route_collection = new RouteCollection();
     $route_collection->add('test', $route);
     $event = new RouteBuildEvent($route_collection, 'test');
-    $this->assertFalse($this->specialAttributesRouteSubscriber->onAlterRoutes($event));
+    $this->specialAttributesRouteSubscriber->onAlterRoutes($event);
   }
 
-}
-
-}
-
-namespace {
-  if (!function_exists('watchdog')) {
-    function watchdog($type, $message, array $args = array()) {
-    }
-  }
-  if (!function_exists('drupal_set_message')) {
-    function drupal_set_message($type = NULL, $message = '') {
-    }
-  }
 }

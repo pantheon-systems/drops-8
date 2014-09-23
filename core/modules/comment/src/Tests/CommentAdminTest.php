@@ -9,16 +9,10 @@ namespace Drupal\comment\Tests;
 
 /**
  * Tests comment approval functionality.
+ *
+ * @group comment
  */
 class CommentAdminTest extends CommentTestBase {
-  public static function getInfo() {
-    return array(
-      'name' => 'Comment admin',
-      'description' => 'Test comment admin functionality.',
-      'group' => 'Comment',
-    );
-  }
-
   /**
    * Test comment approval functionality through admin/content/comment.
    */
@@ -39,8 +33,8 @@ class CommentAdminTest extends CommentTestBase {
     $this->drupalLogout();
 
     // Post anonymous comment without contact info.
-    $subject = $this->randomName();
-    $body = $this->randomName();
+    $subject = $this->randomMachineName();
+    $body = $this->randomMachineName();
     $this->postComment($this->node, $body, $subject, TRUE); // Set $contact to true so that it won't check for id and message.
     $this->assertText(t('Your comment has been queued for review by site administrators and will be published after approval.'), 'Comment requires approval.');
 
@@ -68,8 +62,8 @@ class CommentAdminTest extends CommentTestBase {
     $this->assertTrue($this->commentExists($anonymous_comment4), 'Anonymous comment visible.');
 
     // Post 2 anonymous comments without contact info.
-    $comments[] = $this->postComment($this->node, $this->randomName(), $this->randomName(), TRUE);
-    $comments[] = $this->postComment($this->node, $this->randomName(), $this->randomName(), TRUE);
+    $comments[] = $this->postComment($this->node, $this->randomMachineName(), $this->randomMachineName(), TRUE);
+    $comments[] = $this->postComment($this->node, $this->randomMachineName(), $this->randomMachineName(), TRUE);
 
     // Publish multiple comments in one operation.
     $this->drupalLogin($this->admin_user);
@@ -116,8 +110,8 @@ class CommentAdminTest extends CommentTestBase {
     $this->drupalLogout();
 
     // Post anonymous comment without contact info.
-    $subject = $this->randomName();
-    $body = $this->randomName();
+    $subject = $this->randomMachineName();
+    $body = $this->randomMachineName();
     $this->postComment($this->node, $body, $subject, TRUE); // Set $contact to true so that it won't check for id and message.
     $this->assertText(t('Your comment has been queued for review by site administrators and will be published after approval.'), 'Comment requires approval.');
 

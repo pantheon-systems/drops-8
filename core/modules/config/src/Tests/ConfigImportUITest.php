@@ -12,21 +12,15 @@ use Drupal\Core\Config\InstallStorage;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Tests importing configuration from files into active store.
+ * Tests the user interface for importing/exporting configuration.
+ *
+ * @group config
  */
 class ConfigImportUITest extends WebTestBase {
 
   // Enable the Options and Text modules to ensure dependencies are handled
   // correctly.
   public static $modules = array('config', 'config_test', 'config_import_test', 'text', 'options');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Import UI',
-      'description' => 'Tests the user interface for importing/exporting configuration.',
-      'group' => 'Configuration',
-    );
-  }
 
   function setUp() {
     parent::setUp();
@@ -329,6 +323,21 @@ class ConfigImportUITest extends WebTestBase {
 
     // Verify site name has not changed.
     $this->assertNotEqual($new_site_name, \Drupal::config('system.site')->get('name'));
+  }
+
+  public function testConfigUninstallConfigException() {
+    $staging = $this->container->get('config.storage.staging');
+
+    $core_extension = \Drupal::config('core.extension')->get();
+    unset($core_extension['module']['config']);
+    $staging->write('core.extension', $core_extension);
+
+    $this->drupalGet('admin/config/development/configuration');
+    $this->assertText('core.extension');
+
+    // Import and verify that both do not appear anymore.
+    $this->drupalPostForm(NULL, array(), t('Import all'));
+    $this->assertText('Can not uninstall the Configuration module as part of a configuration synchronization through the user interface.');
   }
 
   function prepareSiteNameUpdate($new_site_name) {

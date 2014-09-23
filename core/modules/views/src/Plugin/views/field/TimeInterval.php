@@ -7,7 +7,10 @@
 
 namespace Drupal\views\Plugin\views\field;
 
+use Drupal\Core\Datetime\DateFormatter;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\views\ResultRow;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * A handler to provide proper displays for time intervals.
@@ -18,6 +21,42 @@ use Drupal\views\ResultRow;
  */
 class TimeInterval extends FieldPluginBase {
 
+  /**
+   * The date formatter service.
+   *
+   * @var \Drupal\Core\Datetime\DateFormatter
+   */
+  protected $dateFormatter;
+
+  /**
+   * Constructs a TimeInterval plugin object.
+   *
+   * @param array $configuration
+   *   A configuration array containing information about the plugin instance.
+   * @param string $plugin_id
+   *   The plugin_id for the plugin instance.
+   * @param mixed $plugin_definition
+   *   The plugin implementation definition.
+   * @param \Drupal\Core\Datetime\DateFormatter $date_formatter
+   *   The date formatter service.
+   */
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, DateFormatter $date_formatter) {
+    $this->dateFormatter = $date_formatter;
+    parent::__construct($configuration, $plugin_id, $plugin_definition);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
+    return new static(
+      $configuration,
+      $plugin_id,
+      $plugin_definition,
+      $container->get('date.formatter')
+    );
+  }
+
   protected function defineOptions() {
     $options = parent::defineOptions();
 
@@ -26,7 +65,7 @@ class TimeInterval extends FieldPluginBase {
     return $options;
   }
 
-  public function buildOptionsForm(&$form, &$form_state) {
+  public function buildOptionsForm(&$form, FormStateInterface $form_state) {
     parent::buildOptionsForm($form, $form_state);
 
     $form['granularity'] = array(
@@ -42,7 +81,7 @@ class TimeInterval extends FieldPluginBase {
    */
   public function render(ResultRow $values) {
     $value = $values->{$this->field_alias};
-    return format_interval($value, isset($this->options['granularity']) ? $this->options['granularity'] : 2);
+    return $this->dateFormatter->formatInterval($value, isset($this->options['granularity']) ? $this->options['granularity'] : 2);
   }
 
 }

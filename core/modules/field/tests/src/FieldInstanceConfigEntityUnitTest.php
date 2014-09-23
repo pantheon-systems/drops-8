@@ -14,9 +14,7 @@ use Drupal\Tests\UnitTestCase;
 
 /**
  * @coversDefaultClass \Drupal\field\Entity\FieldInstanceConfig
- *
- * @group Drupal
- * @group Config
+ * @group field
  */
 class FieldInstanceConfigEntityUnitTest extends UnitTestCase {
 
@@ -49,21 +47,17 @@ class FieldInstanceConfigEntityUnitTest extends UnitTestCase {
   protected $uuid;
 
   /**
-   * {@inheritdoc}
+   * The mock field storage.
+   *
+   * @var \Drupal\field\FieldStorageConfigInterface|\PHPUnit_Framework_MockObject_MockObject
    */
-  public static function getInfo() {
-    return array(
-      'description' => '',
-      'name' => '\Drupal\field\Entity\FieldInstanceConfig unit test',
-      'group' => 'Entity',
-    );
-  }
+  protected $fieldStorage;
 
   /**
    * {@inheritdoc}
    */
   public function setUp() {
-    $this->entityTypeId = $this->randomName();
+    $this->entityTypeId = $this->randomMachineName();
     $this->entityType = $this->getMock('\Drupal\Core\Entity\EntityTypeInterface');
 
     $this->entityManager = $this->getMock('\Drupal\Core\Entity\EntityManagerInterface');
@@ -78,12 +72,12 @@ class FieldInstanceConfigEntityUnitTest extends UnitTestCase {
     $container->set('config.typed', $this->typedConfigManager);
     \Drupal::setContainer($container);
 
-    // Create a mock FieldConfig object.
-    $this->field = $this->getMock('\Drupal\field\FieldConfigInterface');
-    $this->field->expects($this->any())
+    // Create a mock FieldStorageConfig object.
+    $this->fieldStorage = $this->getMock('\Drupal\field\FieldStorageConfigInterface');
+    $this->fieldStorage->expects($this->any())
       ->method('getType')
       ->will($this->returnValue('test_field'));
-    $this->field->expects($this->any())
+    $this->fieldStorage->expects($this->any())
       ->method('getName')
       ->will($this->returnValue('field_test'));
 
@@ -92,7 +86,7 @@ class FieldInstanceConfigEntityUnitTest extends UnitTestCase {
       ->method('getFieldStorageDefinitions')
       ->with('test_entity_type')
       ->will($this->returnValue(array(
-        $this->field->getName() => $this->field,
+        $this->fieldStorage->getName() => $this->fieldStorage,
       )));
   }
 
@@ -127,14 +121,14 @@ class FieldInstanceConfigEntityUnitTest extends UnitTestCase {
       ->with('test_entity_type')
       ->will($this->returnValue($target_entity_type));
 
-    $this->field->expects($this->once())
+    $this->fieldStorage->expects($this->once())
       ->method('getConfigDependencyName')
-      ->will($this->returnValue('field.field.test_entity_type.test_field'));
+      ->will($this->returnValue('field.storage.test_entity_type.test_field'));
 
-    $values = array('field_name' => $this->field->getName(), 'entity_type' => 'test_entity_type', 'bundle' => 'test_bundle');
+    $values = array('field_name' => $this->fieldStorage->getName(), 'entity_type' => 'test_entity_type', 'bundle' => 'test_bundle');
     $entity = new FieldInstanceConfig($values, $this->entityTypeId);
     $dependencies = $entity->calculateDependencies();
-    $this->assertContains('field.field.test_entity_type.test_field', $dependencies['entity']);
+    $this->assertContains('field.storage.test_entity_type.test_field', $dependencies['entity']);
     $this->assertContains('test.test_entity_type.id', $dependencies['entity']);
   }
 
@@ -142,7 +136,7 @@ class FieldInstanceConfigEntityUnitTest extends UnitTestCase {
    * @covers ::toArray()
    */
   public function testToArray() {
-    $values = array('field_name' => $this->field->getName(), 'entity_type' => 'test_entity_type', 'bundle' => 'test_bundle');
+    $values = array('field_name' => $this->fieldStorage->getName(), 'entity_type' => 'test_entity_type', 'bundle' => 'test_bundle');
     $instance = new FieldInstanceConfig($values, $this->entityTypeId);
 
     $expected = array(
@@ -150,7 +144,6 @@ class FieldInstanceConfigEntityUnitTest extends UnitTestCase {
       'uuid' => NULL,
       'status' => TRUE,
       'langcode' => LanguageInterface::LANGCODE_NOT_SPECIFIED,
-      'field_uuid' => NULL,
       'field_name' => 'field_test',
       'entity_type' => 'test_entity_type',
       'bundle' => 'test_bundle',

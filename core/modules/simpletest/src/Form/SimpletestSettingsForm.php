@@ -8,6 +8,7 @@
 namespace Drupal\simpletest\Form;
 
 use Drupal\Core\Form\ConfigFormBase;
+use Drupal\Core\Form\FormStateInterface;
 
 /**
  * Configure simpletest settings for this site.
@@ -24,7 +25,7 @@ class SimpletestSettingsForm extends ConfigFormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, array &$form_state) {
+  public function buildForm(array $form, FormStateInterface $form_state) {
     $config = $this->config('simpletest.settings');
     $form['general'] = array(
       '#type' => 'details',
@@ -86,7 +87,7 @@ class SimpletestSettingsForm extends ConfigFormBase {
   /**
    * {@inheritdoc}
    */
-  public function validateForm(array &$form, array &$form_state) {
+  public function validateForm(array &$form, FormStateInterface $form_state) {
     $config = $this->config('simpletest.settings');
     // If a username was provided but a password wasn't, preserve the existing
     // password.
@@ -97,7 +98,7 @@ class SimpletestSettingsForm extends ConfigFormBase {
     // If a password was provided but a username wasn't, the credentials are
     // incorrect, so throw an error.
     if (empty($form_state['values']['simpletest_httpauth_username']) && !empty($form_state['values']['simpletest_httpauth_password'])) {
-      $this->setFormError('simpletest_httpauth_username', $form_state, $this->t('HTTP authentication credentials must include a username in addition to a password.'));
+      $form_state->setErrorByName('simpletest_httpauth_username', $this->t('HTTP authentication credentials must include a username in addition to a password.'));
     }
 
     parent::validateForm($form, $form_state);
@@ -106,7 +107,7 @@ class SimpletestSettingsForm extends ConfigFormBase {
   /**
    * {@inheritdoc}
    */
-  public function submitForm(array &$form, array &$form_state) {
+  public function submitForm(array &$form, FormStateInterface $form_state) {
     $this->config('simpletest.settings')
       ->set('clear_results', $form_state['values']['simpletest_clear_results'])
       ->set('verbose', $form_state['values']['simpletest_verbose'])

@@ -11,6 +11,8 @@ use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Tests for file URL rewriting.
+ *
+ * @group File
  */
 class UrlRewritingTest extends FileTestBase {
 
@@ -20,14 +22,6 @@ class UrlRewritingTest extends FileTestBase {
    * @var array
    */
   public static $modules = array('file_test');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'File URL rewriting',
-      'description' => 'Tests for file URL rewriting.',
-      'group' => 'File API',
-    );
-  }
 
   /**
    * Tests the rewriting of shipped file URLs by hook_file_url_alter().
@@ -99,7 +93,7 @@ class UrlRewritingTest extends FileTestBase {
 
     // Create a mock Request for file_url_transform_relative().
     $request = Request::create($GLOBALS['base_url']);
-    $this->container->set('request', $request);
+    $this->container->get('request_stack')->push($request);
     \Drupal::setContainer($this->container);
 
     // Shipped file.

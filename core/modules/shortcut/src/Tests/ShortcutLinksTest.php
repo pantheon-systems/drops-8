@@ -10,7 +10,9 @@ use Drupal\shortcut\Entity\Shortcut;
 use Drupal\shortcut\Entity\ShortcutSet;
 
 /**
- * Defines shortcut links test cases.
+ * Create, view, edit, delete, and change shortcut links.
+ *
+ * @group shortcut
  */
 class ShortcutLinksTest extends ShortcutTestBase {
 
@@ -21,14 +23,6 @@ class ShortcutLinksTest extends ShortcutTestBase {
    */
   public static $modules = array('router_test', 'views');
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Shortcut link functionality',
-      'description' => 'Create, view, edit, delete, and change shortcut links.',
-      'group' => 'Shortcut',
-    );
-  }
-
   /**
    * Tests that creating a shortcut works properly.
    */
@@ -38,7 +32,7 @@ class ShortcutLinksTest extends ShortcutTestBase {
     // Create an alias for the node so we can test aliases.
     $path = array(
       'source' => 'node/' . $this->node->id(),
-      'alias' => $this->randomName(8),
+      'alias' => $this->randomMachineName(8),
     );
     $this->container->get('path.alias_storage')->save($path['source'], $path['alias']);
 
@@ -55,7 +49,7 @@ class ShortcutLinksTest extends ShortcutTestBase {
 
     // Check that each new shortcut links where it should.
     foreach ($test_cases as $test) {
-      $title = $this->randomName();
+      $title = $this->randomMachineName();
       $form_data = array(
         'title[0][value]' => $title,
         'path' => $test['path'],
@@ -119,7 +113,7 @@ class ShortcutLinksTest extends ShortcutTestBase {
     $set = $this->set;
 
     // Attempt to rename shortcut link.
-    $new_link_name = $this->randomName();
+    $new_link_name = $this->randomMachineName();
 
     $shortcuts = $set->getShortcuts();
     $shortcut = reset($shortcuts);

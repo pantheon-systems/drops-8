@@ -8,47 +8,16 @@
 namespace Drupal\Tests\Core\Form {
 
 use Drupal\Component\Utility\String;
+use Drupal\Core\Form\FormState;
 use Drupal\Tests\UnitTestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
- * Tests the form validator.
- *
  * @coversDefaultClass \Drupal\Core\Form\FormValidator
- *
- * @group Drupal
  * @group Form
  */
 class FormValidatorTest extends UnitTestCase {
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'name' => 'Form validator test',
-      'description' => 'Tests the form validator.',
-      'group' => 'Form API',
-    );
-  }
-
-  /**
-   * Tests that form errors during submission throw an exception.
-   *
-   * @covers ::setErrorByName
-   *
-   * @expectedException \LogicException
-   * @expectedExceptionMessage Form errors cannot be set after form validation has finished.
-   */
-  public function testFormErrorsDuringSubmission() {
-    $form_validator = $this->getMockBuilder('Drupal\Core\Form\FormValidator')
-      ->disableOriginalConstructor()
-      ->setMethods(NULL)
-      ->getMock();
-    $form_state['validation_complete'] = TRUE;
-    $form_validator->setErrorByName('test', $form_state, 'message');
-  }
 
   /**
    * Tests the 'validation_complete' $form_state flag.
@@ -63,7 +32,7 @@ class FormValidatorTest extends UnitTestCase {
       ->getMock();
 
     $form = array();
-    $form_state = $this->getFormStateDefaults();
+    $form_state = new FormState();
     $this->assertFalse($form_state['validation_complete']);
     $form_validator->validateForm('test_form_id', $form, $form_state);
     $this->assertTrue($form_state['validation_complete']);
@@ -83,7 +52,7 @@ class FormValidatorTest extends UnitTestCase {
       ->method('doValidateForm');
 
     $form = array();
-    $form_state = $this->getFormStateDefaults();
+    $form_state = new FormState();
     $form_state['validation_complete'] = TRUE;
     $form_validator->validateForm('test_form_id', $form, $form_state);
     $this->assertArrayNotHasKey('#errors', $form);
@@ -103,7 +72,7 @@ class FormValidatorTest extends UnitTestCase {
       ->method('doValidateForm');
 
     $form = array();
-    $form_state = $this->getFormStateDefaults();
+    $form_state = new FormState();
     $form_state['validation_complete'] = TRUE;
     $form_state['must_validate'] = TRUE;
     $form_validator->validateForm('test_form_id', $form, $form_state);
@@ -126,16 +95,18 @@ class FormValidatorTest extends UnitTestCase {
 
     $form_validator = $this->getMockBuilder('Drupal\Core\Form\FormValidator')
       ->setConstructorArgs(array($request_stack, $this->getStringTranslationStub(), $csrf_token))
-      ->setMethods(array('setErrorByName', 'doValidateForm'))
+      ->setMethods(array('doValidateForm'))
       ->getMock();
-    $form_validator->expects($this->once())
-      ->method('setErrorByName')
-      ->with('form_token', $this->isType('array'), 'The form has become outdated. Copy any unsaved work in the form below and then <a href="/test/example?foo=bar">reload this page</a>.');
     $form_validator->expects($this->never())
       ->method('doValidateForm');
 
     $form['#token'] = 'test_form_id';
-    $form_state = $this->getFormStateDefaults();
+    $form_state = $this->getMockBuilder('Drupal\Core\Form\FormState')
+      ->setMethods(array('setErrorByName'))
+      ->getMock();
+    $form_state->expects($this->once())
+      ->method('setErrorByName')
+      ->with('form_token', 'The form has become outdated. Copy any unsaved work in the form below and then <a href="/test/example?foo=bar">reload this page</a>.');
     $form_state['values']['form_token'] = 'some_random_token';
     $form_validator->validateForm('test_form_id', $form, $form_state);
     $this->assertTrue($form_state['validation_complete']);
@@ -155,128 +126,29 @@ class FormValidatorTest extends UnitTestCase {
 
     $form_validator = $this->getMockBuilder('Drupal\Core\Form\FormValidator')
       ->setConstructorArgs(array($request_stack, $this->getStringTranslationStub(), $csrf_token))
-      ->setMethods(array('setErrorByName', 'doValidateForm'))
+      ->setMethods(array('doValidateForm'))
       ->getMock();
-    $form_validator->expects($this->never())
-      ->method('setErrorByName');
     $form_validator->expects($this->once())
       ->method('doValidateForm');
 
     $form['#token'] = 'test_form_id';
-    $form_state = $this->getFormStateDefaults();
+    $form_state = $this->getMockBuilder('Drupal\Core\Form\FormState')
+      ->setMethods(array('setErrorByName'))
+      ->getMock();
+    $form_state->expects($this->never())
+      ->method('setErrorByName');
     $form_state['values']['form_token'] = 'some_random_token';
     $form_validator->validateForm('test_form_id', $form, $form_state);
     $this->assertTrue($form_state['validation_complete']);
   }
 
   /**
-   * Tests the setError() method.
-   *
-   * @covers ::setError
-   */
-  public function testSetError() {
-    $form_state = $this->getFormStateDefaults();
-
-    $form_validator = $this->getMockBuilder('Drupal\Core\Form\FormValidator')
-      ->disableOriginalConstructor()
-      ->setMethods(array('setErrorByName'))
-      ->getMock();
-    $form_validator->expects($this->once())
-      ->method('setErrorByName')
-      ->with('foo][bar', $form_state, 'Fail');
-
-    $element['#parents'] = array('foo', 'bar');
-    $form_validator->setError($element, $form_state, 'Fail');
-  }
-
-  /**
-   * Tests the getError() method.
-   *
-   * @covers ::getError
-   *
-   * @dataProvider providerTestGetError
-   */
-  public function testGetError($errors, $parents, $error = NULL) {
-    $form_validator = $this->getMockBuilder('Drupal\Core\Form\FormValidator')
-      ->disableOriginalConstructor()
-      ->setMethods(NULL)
-      ->getMock();
-
-    $element['#parents'] = $parents;
-    $form_state = $this->getFormStateDefaults();
-    $form_state['errors'] = $errors;
-    $this->assertSame($error, $form_validator->getError($element, $form_state));
-  }
-
-  public function providerTestGetError() {
-    return array(
-      array(array(), array('foo')),
-      array(array('foo][bar' => 'Fail'), array()),
-      array(array('foo][bar' => 'Fail'), array('foo')),
-      array(array('foo][bar' => 'Fail'), array('bar')),
-      array(array('foo][bar' => 'Fail'), array('baz')),
-      array(array('foo][bar' => 'Fail'), array('foo', 'bar'), 'Fail'),
-      array(array('foo][bar' => 'Fail'), array('foo', 'bar', 'baz'), 'Fail'),
-      array(array('foo][bar' => 'Fail 2'), array('foo')),
-      array(array('foo' => 'Fail 1', 'foo][bar' => 'Fail 2'), array('foo'), 'Fail 1'),
-      array(array('foo' => 'Fail 1', 'foo][bar' => 'Fail 2'), array('foo', 'bar'), 'Fail 1'),
-    );
-  }
-
-  /**
-   * @covers ::setErrorByName
-   *
-   * @dataProvider providerTestSetErrorByName
-   */
-  public function testSetErrorByName($limit_validation_errors, $expected_errors, $set_message = FALSE) {
-    $request_stack = new RequestStack();
-    $request = new Request();
-    $request_stack->push($request);
-    $csrf_token = $this->getMockBuilder('Drupal\Core\Access\CsrfTokenGenerator')
-      ->disableOriginalConstructor()
-      ->getMock();
-    $form_validator = $this->getMockBuilder('Drupal\Core\Form\FormValidator')
-      ->setConstructorArgs(array($request_stack, $this->getStringTranslationStub(), $csrf_token))
-      ->setMethods(array('drupalSetMessage'))
-      ->getMock();
-    $form_validator->expects($set_message ? $this->once() : $this->never())
-      ->method('drupalSetMessage');
-
-    $form_state = $this->getFormStateDefaults();
-    $form_state['limit_validation_errors'] = $limit_validation_errors;
-    $form_validator->setErrorByName('test', $form_state, 'Fail 1');
-    $form_validator->setErrorByName('test', $form_state, 'Fail 2');
-    $form_validator->setErrorByName('options', $form_state);
-
-    $this->assertSame(!empty($expected_errors), $request->attributes->get('_form_errors', FALSE));
-    $this->assertSame($expected_errors, $form_state['errors']);
-  }
-
-  public function providerTestSetErrorByName() {
-    return array(
-      // Only validate the 'options' element.
-      array(array(array('options')), array('options' => '')),
-      // Do not limit an validation, and, ensuring the first error is returned
-      // for the 'test' element.
-      array(NULL, array('test' => 'Fail 1', 'options' => ''), TRUE),
-      // Limit all validation.
-      array(array(), array()),
-    );
-  }
-
-  /**
    * @covers ::setElementErrorsFromFormState
    */
   public function testSetElementErrorsFromFormState() {
-    $request_stack = new RequestStack();
-    $request = new Request();
-    $request_stack->push($request);
-    $csrf_token = $this->getMockBuilder('Drupal\Core\Access\CsrfTokenGenerator')
-      ->disableOriginalConstructor()
-      ->getMock();
     $form_validator = $this->getMockBuilder('Drupal\Core\Form\FormValidator')
-      ->setConstructorArgs(array($request_stack, $this->getStringTranslationStub(), $csrf_token))
-      ->setMethods(array('drupalSetMessage'))
+      ->disableOriginalConstructor()
+      ->setMethods(NULL)
       ->getMock();
 
     $form = array(
@@ -287,8 +159,10 @@ class FormValidatorTest extends UnitTestCase {
       '#title' => 'Test',
       '#parents' => array('test'),
     );
-    $form_state = $this->getFormStateDefaults();
-    $form_validator->setErrorByName('test', $form_state, 'invalid');
+    $form_state = $this->getMockBuilder('Drupal\Core\Form\FormState')
+      ->setMethods(array('drupalSetMessage'))
+      ->getMock();
+    $form_state->setErrorByName('test', 'invalid');
     $form_validator->validateForm('test_form_id', $form, $form_state);
     $this->assertSame('invalid', $form['test']['#errors']);
   }
@@ -305,7 +179,7 @@ class FormValidatorTest extends UnitTestCase {
       ->getMock();
 
     $form = array();
-    $form_state = $this->getFormStateDefaults();
+    $form_state = new FormState();
     $form_state['triggering_element'] = $triggering_element;
     $form_state['triggering_element']['#limit_validation_errors'] = $sections;
 
@@ -402,13 +276,13 @@ class FormValidatorTest extends UnitTestCase {
     $mock = $this->getMock('stdClass', array('validate_handler', 'hash_validate'));
     $mock->expects($this->once())
       ->method('validate_handler')
-      ->with($this->isType('array'), $this->isType('array'));
+      ->with($this->isType('array'), $this->isInstanceOf('Drupal\Core\Form\FormStateInterface'));
     $mock->expects($this->once())
       ->method('hash_validate')
-      ->with($this->isType('array'), $this->isType('array'));
+      ->with($this->isType('array'), $this->isInstanceOf('Drupal\Core\Form\FormStateInterface'));
 
     $form = array();
-    $form_state = $this->getFormStateDefaults();
+    $form_state = new FormState();
     $form_validator->executeValidateHandlers($form, $form_state);
 
     $form['#validate'][] = array($mock, 'hash_validate');
@@ -430,13 +304,10 @@ class FormValidatorTest extends UnitTestCase {
       ->getMock();
     $form_validator = $this->getMockBuilder('Drupal\Core\Form\FormValidator')
       ->setConstructorArgs(array(new RequestStack(), $this->getStringTranslationStub(), $csrf_token))
-      ->setMethods(array('executeValidateHandlers', 'setErrorByName'))
+      ->setMethods(array('executeValidateHandlers'))
       ->getMock();
     $form_validator->expects($this->once())
       ->method('executeValidateHandlers');
-    $form_validator->expects($this->once())
-      ->method('setErrorByName')
-      ->with('test', $this->isType('array'), $expected_message);
 
     $form = array();
     $form['test'] = $element + array(
@@ -446,7 +317,12 @@ class FormValidatorTest extends UnitTestCase {
       '#required' => TRUE,
       '#parents' => array('test'),
     );
-    $form_state = $this->getFormStateDefaults();
+    $form_state = $this->getMockBuilder('Drupal\Core\Form\FormState')
+      ->setMethods(array('setError'))
+      ->getMock();
+    $form_state->expects($this->once())
+      ->method('setError')
+      ->with($this->isType('array'), $expected_message);
     $form_validator->validateForm('test_form_id', $form, $form_state);
   }
 
@@ -476,14 +352,14 @@ class FormValidatorTest extends UnitTestCase {
   public function testElementValidate() {
     $form_validator = $this->getMockBuilder('Drupal\Core\Form\FormValidator')
       ->disableOriginalConstructor()
-      ->setMethods(array('executeValidateHandlers', 'setErrorByName'))
+      ->setMethods(array('executeValidateHandlers'))
       ->getMock();
     $form_validator->expects($this->once())
       ->method('executeValidateHandlers');
     $mock = $this->getMock('stdClass', array('element_validate'));
     $mock->expects($this->once())
       ->method('element_validate')
-      ->with($this->isType('array'), $this->isType('array'), NULL);
+      ->with($this->isType('array'), $this->isInstanceOf('Drupal\Core\Form\FormStateInterface'), NULL);
 
     $form = array();
     $form['test'] = array(
@@ -492,7 +368,7 @@ class FormValidatorTest extends UnitTestCase {
       '#parents' => array('test'),
       '#element_validate' => array(array($mock, 'element_validate')),
     );
-    $form_state = $this->getFormStateDefaults();
+    $form_state = new FormState();
     $form_validator->validateForm('test_form_id', $form, $form_state);
   }
 
@@ -507,11 +383,8 @@ class FormValidatorTest extends UnitTestCase {
       ->getMock();
     $form_validator = $this->getMockBuilder('Drupal\Core\Form\FormValidator')
       ->setConstructorArgs(array(new RequestStack(), $this->getStringTranslationStub(), $csrf_token))
-      ->setMethods(array('setErrorByName', 'watchdog'))
+      ->setMethods(array('watchdog'))
       ->getMock();
-    $form_validator->expects($this->once())
-      ->method('setErrorByName')
-      ->with('test', $this->isType('array'), $expected_message);
 
     if ($call_watchdog) {
       $form_validator->expects($this->once())
@@ -526,7 +399,12 @@ class FormValidatorTest extends UnitTestCase {
       '#required' => FALSE,
       '#parents' => array('test'),
     );
-    $form_state = $this->getFormStateDefaults();
+    $form_state = $this->getMockBuilder('Drupal\Core\Form\FormState')
+      ->setMethods(array('setError'))
+      ->getMock();
+    $form_state->expects($this->once())
+      ->method('setError')
+      ->with($this->isType('array'), $expected_message);
     $form_state['values'] = array();
     $form_validator->validateForm('test_form_id', $form, $form_state);
   }
@@ -591,23 +469,12 @@ class FormValidatorTest extends UnitTestCase {
         array(
           '#type' => 'textfield',
           '#maxlength' => 7,
-          '#value' => $this->randomName(8),
+          '#value' => $this->randomMachineName(8),
         ),
         String::format('!name cannot be longer than %max characters but is currently %length characters long.', array('!name' => 'Test', '%max' => '7', '%length' => 8)),
         FALSE,
       ),
     );
-  }
-
-  /**
-   * @return array()
-   */
-  protected function getFormStateDefaults() {
-    $form_builder = $this->getMockBuilder('Drupal\Core\Form\FormBuilder')
-      ->disableOriginalConstructor()
-      ->setMethods(NULL)
-      ->getMock();
-    return $form_builder->getFormStateDefaults();
   }
 
 }

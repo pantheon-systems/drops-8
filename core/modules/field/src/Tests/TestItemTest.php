@@ -13,6 +13,8 @@ use Drupal\Core\Field\FieldItemListInterface;
 
 /**
  * Tests the new entity API for the test field type.
+ *
+ * @group field
  */
 class TestItemTest extends FieldUnitTestBase {
 
@@ -30,30 +32,20 @@ class TestItemTest extends FieldUnitTestBase {
    */
   protected $field_name = 'field_test';
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Test field item',
-      'description' => 'Tests the new entity API for the test field type.',
-      'group' => 'Field types',
-    );
-  }
-
   public function setUp() {
     parent::setUp();
 
     // Create an field field and instance for validation.
-    $field = array(
+    entity_create('field_storage_config', array(
       'name' => $this->field_name,
       'entity_type' => 'entity_test',
       'type' => 'test_field',
-    );
-    entity_create('field_config', $field)->save();
-    $instance = array(
+    ))->save();
+    entity_create('field_instance_config', array(
       'entity_type' => 'entity_test',
       'field_name' => $this->field_name,
       'bundle' => 'entity_test',
-    );
-    entity_create('field_instance_config', $instance)->save();
+    ))->save();
   }
 
   /**
@@ -64,7 +56,7 @@ class TestItemTest extends FieldUnitTestBase {
     $entity = entity_create('entity_test');
     $value = rand(1, 10);
     $entity->field_test = $value;
-    $entity->name->value = $this->randomName();
+    $entity->name->value = $this->randomMachineName();
     $entity->save();
 
     // Verify entity has been created properly.

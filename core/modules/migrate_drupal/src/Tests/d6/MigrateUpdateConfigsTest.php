@@ -7,13 +7,18 @@
 
 namespace Drupal\migrate_drupal\Tests\d6;
 
+use Drupal\config\Tests\SchemaCheckTestTrait;
 use Drupal\migrate\MigrateExecutable;
 use Drupal\migrate_drupal\Tests\MigrateDrupalTestBase;
 
 /**
- * Tests migration of variables from the Update module.
+ * Upgrade variables to update.settings.yml.
+ *
+ * @group migrate_drupal
  */
 class MigrateUpdateConfigsTest extends MigrateDrupalTestBase {
+
+  use SchemaCheckTestTrait;
 
   /**
    * Modules to enable.
@@ -21,17 +26,6 @@ class MigrateUpdateConfigsTest extends MigrateDrupalTestBase {
    * @var array
    */
   public static $modules = array('update');
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'name'  => 'Migrate variables to update.settings.yml',
-      'description'  => 'Upgrade variables to update.settings.yml',
-      'group' => 'Migrate Drupal',
-    );
-  }
 
   /**
    * {@inheritdoc}
@@ -55,6 +49,8 @@ class MigrateUpdateConfigsTest extends MigrateDrupalTestBase {
     $this->assertIdentical($config->get('fetch.max_attempts'), 2);
     $this->assertIdentical($config->get('fetch.url'), 'http://updates.drupal.org/release-history');
     $this->assertIdentical($config->get('notification.threshold'), 'all');
-    $this->assertIdentical($config->get('notification.mails'), array());
+    $this->assertIdentical($config->get('notification.emails'), array());
+    $this->assertConfigSchema(\Drupal::service('config.typed'), 'update.settings', $config->get());
   }
+
 }

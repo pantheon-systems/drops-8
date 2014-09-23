@@ -7,8 +7,10 @@
 
 namespace Drupal\comment\Plugin\Field\FieldType;
 
+use Drupal\comment\CommentManagerInterface;
 use Drupal\comment\Entity\CommentType;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\TypedData\DataDefinition;
 use Drupal\Core\Field\FieldItemBase;
 use Drupal\Core\Session\AnonymousUserSession;
@@ -40,11 +42,10 @@ class CommentItem extends FieldItemBase implements CommentItemInterface {
    */
   public static function defaultInstanceSettings() {
     return array(
-      'default_mode' => COMMENT_MODE_THREADED,
+      'default_mode' => CommentManagerInterface::COMMENT_MODE_THREADED,
       'per_page' => 50,
       'form_location' => COMMENT_FORM_BELOW,
       'anonymous' => COMMENT_ANONYMOUS_MAYNOT_CONTACT,
-      'subject' => 1,
       'preview' => DRUPAL_OPTIONAL,
     ) + parent::defaultInstanceSettings();
   }
@@ -98,7 +99,7 @@ class CommentItem extends FieldItemBase implements CommentItemInterface {
   /**
    * {@inheritdoc}
    */
-  public function instanceSettingsForm(array $form, array &$form_state) {
+  public function instanceSettingsForm(array $form, FormStateInterface $form_state) {
     $element = array();
 
     $settings = $this->getSettings();
@@ -141,11 +142,6 @@ class CommentItem extends FieldItemBase implements CommentItemInterface {
         COMMENT_ANONYMOUS_MUST_CONTACT => t('Anonymous posters must leave their contact information'),
       ),
       '#access' => $anonymous_user->hasPermission('post comments'),
-    );
-    $element['comment']['subject'] = array(
-      '#type' => 'checkbox',
-      '#title' => t('Allow comment title'),
-      '#default_value' => $settings['subject'],
     );
     $element['comment']['form_location'] = array(
       '#type' => 'checkbox',
@@ -193,7 +189,7 @@ class CommentItem extends FieldItemBase implements CommentItemInterface {
   /**
    * {@inheritdoc}
    */
-  public function settingsForm(array &$form, array &$form_state, $has_data) {
+  public function settingsForm(array &$form, FormStateInterface $form_state, $has_data) {
     $element = array();
 
     // @todo Inject entity storage once typed-data supports container injection.

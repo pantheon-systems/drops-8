@@ -12,7 +12,9 @@ use Drupal\migrate_drupal\Tests\MigrateDrupalTestBase;
 use Drupal\migrate_drupal\Tests\Dump\Drupal6UserProfileFields;
 
 /**
- * Tests migration of user profile fields.
+ * Tests the user profile entity display migration.
+ *
+ * @group migrate_drupal
  */
 class MigrateUserProfileEntityDisplayTest extends MigrateDrupalTestBase {
 
@@ -26,61 +28,50 @@ class MigrateUserProfileEntityDisplayTest extends MigrateDrupalTestBase {
   /**
    * {@inheritdoc}
    */
-  public static function getInfo() {
-    return array(
-      'name'  => 'Migrate user profile entity display',
-      'description'  => 'Test the user profile entity display migration.',
-      'group' => 'Migrate Drupal',
-    );
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   protected function setUp() {
     parent::setUp();
 
     // Create some fields so the data gets stored.
-    entity_create('field_config', array(
+    entity_create('field_storage_config', array(
       'entity_type' => 'user',
       'name' => 'profile_color',
       'type' => 'text',
     ))->save();
-    entity_create('field_config', array(
+    entity_create('field_storage_config', array(
       'entity_type' => 'user',
       'name' => 'profile_biography',
       'type' => 'text_long',
     ))->save();
-    entity_create('field_config', array(
+    entity_create('field_storage_config', array(
       'entity_type' => 'user',
       'name' => 'profile_sell_address',
-      'type' => 'list_boolean',
+      'type' => 'boolean',
     ))->save();
-    entity_create('field_config', array(
+    entity_create('field_storage_config', array(
       'entity_type' => 'user',
       'name' => 'profile_sold_to',
       'type' => 'list_text',
     ))->save();
-    entity_create('field_config', array(
+    entity_create('field_storage_config', array(
       'entity_type' => 'user',
       'name' => 'profile_bands',
       'type' => 'text',
       'cardinality' => -1,
     ))->save();
-    entity_create('field_config', array(
+    entity_create('field_storage_config', array(
       'entity_type' => 'user',
       'name' => 'profile_blog',
       'type' => 'link',
     ))->save();
-    entity_create('field_config', array(
+    entity_create('field_storage_config', array(
       'entity_type' => 'user',
       'name' => 'profile_birthdate',
       'type' => 'datetime',
     ))->save();
-    entity_create('field_config', array(
+    entity_create('field_storage_config', array(
       'entity_type' => 'user',
       'name' => 'profile_love_migrations',
-      'type' => 'list_boolean',
+      'type' => 'boolean',
     ))->save();
     $field_data = Drupal6UserProfileFields::getData('profile_fields');
     foreach ($field_data as $field) {
@@ -97,6 +88,7 @@ class MigrateUserProfileEntityDisplayTest extends MigrateDrupalTestBase {
     $migration = entity_load('migration', 'd6_user_profile_entity_display');
     $dumps = array(
       $this->getDumpDirectory() . '/Drupal6UserProfileFields.php',
+      $this->getDumpDirectory() . '/Drupal6User.php',
     );
     $this->prepare($migration, $dumps);
     $executable = new MigrateExecutable($migration, $this);

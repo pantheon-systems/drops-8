@@ -8,7 +8,9 @@
 namespace Drupal\search\Tests;
 
 /**
- * Tests the rendering of the search block.
+ * Tests if the search form block is available.
+ *
+ * @group search
  */
 class SearchBlockTest extends SearchTestBase {
 
@@ -18,14 +20,6 @@ class SearchBlockTest extends SearchTestBase {
    * @var array
    */
   public static $modules = array('block');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Block availability',
-      'description' => 'Check if the search form block is available.',
-      'group' => 'Search',
-    );
-  }
 
   function setUp() {
     parent::setUp();
@@ -97,16 +91,16 @@ class SearchBlockTest extends SearchTestBase {
 
     // Test that after entering a too-short keyword in the form, you can then
     // search again with a longer keyword. First test using the block form.
-    $this->submitGetForm('node', array('keys' => $this->randomName(1)), t('Search'));
+    $this->submitGetForm('node', array('keys' => $this->randomMachineName(1)), t('Search'));
     $this->assertText('You must include at least one positive keyword', 'Keyword message is displayed when searching for short word');
     $this->assertNoText(t('Please enter some keywords'), 'With short word entered, no keywords message is not displayed');
-    $this->submitGetForm(NULL, array('keys' => $this->randomName()), t('Search'), 'search-block-form');
+    $this->submitGetForm(NULL, array('keys' => $this->randomMachineName()), t('Search'), 'search-block-form');
     $this->assertNoText('You must include at least one positive keyword', 'Keyword message is not displayed when searching for long word after short word search');
 
     // Same test again, using the search page form for the second search this
     // time.
-    $this->submitGetForm('node', array('keys' => $this->randomName(1)), t('Search'));
-    $this->drupalPostForm(NULL, array('keys' => $this->randomName()), t('Search'), array(), array(), 'search-form');
+    $this->submitGetForm('node', array('keys' => $this->randomMachineName(1)), t('Search'));
+    $this->drupalPostForm(NULL, array('keys' => $this->randomMachineName()), t('Search'), array(), array(), 'search-form');
     $this->assertNoText('You must include at least one positive keyword', 'Keyword message is not displayed when searching for long word after short word search');
 
   }

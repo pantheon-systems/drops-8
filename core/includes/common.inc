@@ -14,6 +14,7 @@ use Drupal\Component\Serialization\Exception\InvalidDataTypeException;
 use Drupal\Component\Utility\Bytes;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Component\Utility\Number;
+use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Component\Utility\SortArray;
 use Drupal\Component\Utility\String;
 use Drupal\Component\Utility\Tags;
@@ -296,12 +297,6 @@ function drupal_get_feeds() {
 }
 
 /**
- * @defgroup http_handling HTTP handling
- * @{
- * Functions to properly handle HTTP responses.
- */
-
-/**
  * Prepares a 'destination' URL query parameter for use with url().
  *
  * Used to direct the user back to the referring page after completing a form.
@@ -315,6 +310,7 @@ function drupal_get_feeds() {
  *     not available, the current path.
  *
  * @see current_path()
+ * @ingroup form_api
  */
 function drupal_get_destination() {
   $destination = &drupal_static(__FUNCTION__);
@@ -337,10 +333,6 @@ function drupal_get_destination() {
   }
   return $destination;
 }
-
-/**
- * @} End of "defgroup http_handling".
- */
 
 /**
  * @defgroup validation Input validation
@@ -452,11 +444,15 @@ function format_rss_item($title, $link, $description, $args = array()) {
 /**
  * Formats XML elements.
  *
+ * Note: It is the caller's responsibility to sanitize any input parameters.
+ * This function does not perform sanitization.
+ *
  * @param $array
  *   An array where each item represents an element and is either a:
  *   - (key => value) pair (<key>value</key>)
  *   - Associative array with fields:
- *     - 'key': element name
+ *     - 'key': The element name. Element names are not sanitized, so do not
+ *       pass user input.
  *     - 'value': element contents
  *     - 'attributes': associative array of element attributes
  *
@@ -485,7 +481,11 @@ function format_xml_elements($array) {
       $output .= ' <' . $key . '>' . (is_array($value) ? format_xml_elements($value) : String::checkPlain($value)) . "</$key>\n";
     }
   }
-  return $output;
+  // @todo This is marking the output string as safe HTML, but we have only
+  //   sanitized the attributes and tag values, not the tag names, and we
+  //   cannot guarantee the assembled markup is safe. Consider a fix in:
+  //   https://www.drupal.org/node/2296885
+  return SafeMarkup::set($output);
 }
 
 /**
@@ -542,23 +542,6 @@ function format_plural($count, $singular, $plural, array $args = array(), array 
 }
 
 /**
- * Parses a given byte count.
- *
- * @param $size
- *   A size expressed as a number of bytes with optional SI or IEC binary unit
- *   prefix (e.g. 2, 3K, 5MB, 10G, 6GiB, 8 bytes, 9mbytes).
- *
- * @return
- *   An integer representation of the size in bytes.
- *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- *   Use \Drupal\Component\Utility\Bytes::toInt().
- */
-function parse_size($size) {
-  return Bytes::toInt($size);
-}
-
-/**
  * Generates a string representation for the given byte count.
  *
  * @param $size
@@ -599,29 +582,6 @@ function format_size($size, $langcode = NULL) {
 }
 
 /**
- * Formats a time interval with the requested granularity.
- *
- * @param $interval
- *   The length of the interval in seconds.
- * @param $granularity
- *   How many different units to display in the string.
- * @param $langcode
- *   Optional language code to translate to a language other than
- *   what is used to display the page.
- *
- * @return
- *   A translated string representation of the interval.
- *
- * @see \Drupal\Core\Datetime\Date::formatInterval()
- *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- *   Use \Drupal::service('date')->formatInterval().
- */
-function format_interval($interval, $granularity = 2, $langcode = NULL) {
-  return \Drupal::service('date')->formatInterval($interval, $granularity, $langcode);
-}
-
-/**
  * Formats a date, using a date type or a custom date format string.
  *
  * @param $timestamp
@@ -651,10 +611,10 @@ function format_interval($interval, $granularity = 2, $langcode = NULL) {
  * @return
  *   A translated date string in the requested format.
  *
- * @see \Drupal\Component\Datetime\Date::format()
+ * @see \Drupal\Component\Datetime\DateFormatter::format()
  */
 function format_date($timestamp, $type = 'medium', $format = '', $timezone = NULL, $langcode = NULL) {
-  return \Drupal::service('date')->format($timestamp, $type, $format, $timezone, $langcode);
+  return \Drupal::service('date.formatter')->format($timestamp, $type, $format, $timezone, $langcode);
 }
 
 /**
@@ -886,8 +846,7 @@ function l($text, $path, array $options = array()) {
 
   // Sanitize the link text if necessary.
   $text = $variables['options']['html'] ? $variables['text'] : String::checkPlain($variables['text']);
-
-  return '<a href="' . $url . '"' . $attributes . '>' . $text . '</a>';
+  return SafeMarkup::set('<a href="' . $url . '"' . $attributes . '>' . $text . '</a>');
 }
 
 /**
@@ -1758,7 +1717,7 @@ function _drupal_add_js($data = NULL, $options = NULL) {
           // @todo Make this less hacky: http://drupal.org/node/1547376.
           $scriptPath = $GLOBALS['script_path'];
           $pathPrefix = '';
-          $current_query = \Drupal::service('request')->query->all();
+          $current_query = \Drupal::service('request_stack')->getCurrentRequest()->query->all();
           url('', array('script' => &$scriptPath, 'prefix' => &$pathPrefix));
           $current_path = current_path();
           $current_path_is_admin = FALSE;
@@ -1899,7 +1858,7 @@ function drupal_get_js($scope = 'header', $javascript = NULL, $skip_alter = FALS
       $setting['ajaxPageState']['theme'] = $theme_key;
       // Checks that the DB is available before filling theme_token.
       if (!defined('MAINTENANCE_MODE')) {
-        $setting['ajaxPageState']['theme_token'] = drupal_get_token($theme_key);
+        $setting['ajaxPageState']['theme_token'] = \Drupal::csrfToken()->get($theme_key);
       }
 
       // Provide the page with information about the individual JavaScript files
@@ -2512,98 +2471,6 @@ function drupal_clear_js_cache() {
 }
 
 /**
- * Converts a PHP variable into its JavaScript equivalent.
- *
- * We use HTML-safe strings, with several characters escaped.
- *
- * @see drupal_json_decode()
- *
- * @ingroup php_wrappers
- *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- *   Use \Drupal\Component\Serialization\Json::encode().
- */
-function drupal_json_encode($var) {
-  return Json::encode($var);
-}
-
-/**
- * Converts an HTML-safe JSON string into its PHP equivalent.
- *
- * @see drupal_json_encode()
- *
- * @ingroup php_wrappers
- *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- *   Use \Drupal\Component\Serialization\Json::decode().
- */
-function drupal_json_decode($var) {
-  return Json::decode($var);
-}
-
-/**
- * Ensures the private key variable used to generate tokens is set.
- *
- * @return string
- *   The private key.
- *
- * @see \Drupal\Core\Access\CsrfTokenGenerator
- *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- *   Use \Drupal::service('private_key')->get().
- */
-function drupal_get_private_key() {
-  return \Drupal::service('private_key')->get();
-}
-
-/**
- * Generates a token based on $value, the user session, and the private key.
- *
- * @param string $value
- *   An additional value to base the token on.
- *
- * The generated token is based on the session ID of the current user. Normally,
- * anonymous users do not have a session, so the generated token will be
- * different on every page request. To generate a token for users without a
- * session, manually start a session prior to calling this function.
- *
- * @return string
- *   A 43-character URL-safe token for validation, based on the user session ID,
- *   the hash salt provided from drupal_get_hash_salt(), and the
- *   'drupal_private_key' configuration variable.
- *
- * @see drupal_get_hash_salt()
- * @see \Drupal\Core\Access\CsrfTokenGenerator
- * @see \Drupal\Core\Session\SessionManager::start()
- *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- *   Use \Drupal::csrfToken()->get().
- */
-function drupal_get_token($value = '') {
-  return \Drupal::csrfToken()->get($value);
-}
-
-/**
- * Validates a token based on $value, the user session, and the private key.
- *
- * @param string $token
- *   The token to be validated.
- * @param string $value
- *   An additional value to base the token on.
- *
- * @return bool
- *   True for a valid token, false for an invalid token.
- *
- * @see \Drupal\Core\Access\CsrfTokenGenerator
- *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- *   Use return \Drupal::csrfToken()->validate().
- */
-function drupal_valid_token($token, $value = '') {
-  return \Drupal::csrfToken()->validate($token, $value);
-}
-
-/**
  * Stores the current page in the cache.
  *
  * If page_compression is enabled, a gzipped version of the page is stored in
@@ -2759,12 +2626,17 @@ function drupal_pre_render_conditional_comments($elements) {
 /**
  * Pre-render callback: Renders a generic HTML tag with attributes into #markup.
  *
+ * Note: It is the caller's responsibility to sanitize any input parameters.
+ * This callback does not perform sanitization.
+ *
  * @param array $element
  *   An associative array containing:
  *   - #tag: The tag name to output. Typical tags added to the HTML HEAD:
  *     - meta: To provide meta information, such as a page refresh.
  *     - link: To refer to stylesheets and other contextual information.
  *     - script: To load JavaScript.
+ *     The value of #tag is not escaped or sanitized, so do not pass in user
+ *     input.
  *   - #attributes: (optional) An array of HTML attributes to apply to the
  *     tag.
  *   - #value: (optional) A string containing tag content, such as inline
@@ -2777,7 +2649,11 @@ function drupal_pre_render_conditional_comments($elements) {
 function drupal_pre_render_html_tag($element) {
   $attributes = isset($element['#attributes']) ? new Attribute($element['#attributes']) : '';
   if (!isset($element['#value'])) {
-    $markup = '<' . $element['#tag'] . $attributes . " />\n";
+    // This function is intended for internal use, so we assume that no unsafe
+    // values are passed in #tag. The attributes are already safe because
+    // Attribute output is already automatically sanitized.
+    // @todo Escape this properly instead? https://www.drupal.org/node/2296101
+    $markup = SafeMarkup::set('<' . $element['#tag'] . $attributes . " />\n");
   }
   else {
     $markup = '<' . $element['#tag'] . $attributes . '>';
@@ -2789,6 +2665,9 @@ function drupal_pre_render_html_tag($element) {
       $markup .= $element['#value_suffix'];
     }
     $markup .= '</' . $element['#tag'] . ">\n";
+    // @todo We cannot actually guarantee this markup is safe. Consider a fix
+    //   in: https://www.drupal.org/node/2296101
+    $markup = SafeMarkup::set($markup);
   }
   if (!empty($element['#noscript'])) {
     $element['#markup'] = '<noscript>' . $markup . '</noscript>';
@@ -3150,7 +3029,7 @@ function drupal_render_page($page) {
  *     @code
  *     array(
  *       '#theme' => 'image',
- *       '#attributes' => array('class' => 'foo'),
+ *       '#attributes' => array('class' => array('foo')),
  *       '#theme_wrappers' => array('container'),
  *     );
  *     @endcode
@@ -3159,10 +3038,10 @@ function drupal_render_page($page) {
  *     @code
  *     array(
  *       '#theme' => 'image',
- *       '#attributes' => array('class' => 'foo'),
+ *       '#attributes' => array('class' => array('foo')),
  *       '#theme_wrappers' => array(
  *         'container' => array(
- *           '#attributes' => array('class' => 'bar'),
+ *           '#attributes' => array('class' => array('bar')),
  *         ),
  *       ),
  *     );
@@ -3228,6 +3107,7 @@ function drupal_render(&$elements, $is_recursive_call = FALSE) {
       if (!$is_recursive_call) {
         _drupal_render_process_post_render_cache($elements);
       }
+      $elements['#markup'] = SafeMarkup::set($elements['#markup']);
       return $elements['#markup'];
     }
   }
@@ -3280,6 +3160,11 @@ function drupal_render(&$elements, $is_recursive_call = FALSE) {
     $elements['#children'] = '';
   }
 
+  // @todo Simplify after https://drupal.org/node/2273925
+  if (isset($elements['#markup'])) {
+    $elements['#markup'] = SafeMarkup::set($elements['#markup']);
+  }
+
   // Assume that if #theme is set it represents an implemented hook.
   $theme_is_implemented = isset($elements['#theme']);
 
@@ -3303,6 +3188,7 @@ function drupal_render(&$elements, $is_recursive_call = FALSE) {
     foreach ($children as $key) {
       $elements['#children'] .= drupal_render($elements[$key], TRUE);
     }
+    $elements['#children'] = SafeMarkup::set($elements['#children']);
   }
 
   // If #theme is not implemented and the element has raw #markup as a
@@ -3313,7 +3199,7 @@ function drupal_render(&$elements, $is_recursive_call = FALSE) {
   // required. Eventually #theme_wrappers will expect both #markup and
   // #children to be a single string as #children.
   if (!$theme_is_implemented && isset($elements['#markup'])) {
-    $elements['#children'] = $elements['#markup'] . $elements['#children'];
+    $elements['#children'] = SafeMarkup::set($elements['#markup'] . $elements['#children']);
   }
 
   // Let the theme functions in #theme_wrappers add markup around the rendered
@@ -3403,6 +3289,7 @@ function drupal_render(&$elements, $is_recursive_call = FALSE) {
   }
 
   $elements['#printed'] = TRUE;
+  $elements['#markup'] = SafeMarkup::set($elements['#markup']);
   return $elements['#markup'];
 }
 
@@ -3430,7 +3317,7 @@ function drupal_render_children(&$element, $children_keys = NULL) {
       $output .= drupal_render($element[$key]);
     }
   }
-  return $output;
+  return SafeMarkup::set($output);
 }
 
 /**
@@ -4274,58 +4161,3 @@ function drupal_get_filetransfer_info() {
   }
   return $info;
 }
-
-/**
- * @defgroup queue Queue operations
- * @{
- * Queue items to allow later processing.
- *
- * The queue system allows placing items in a queue and processing them later.
- * The system tries to ensure that only one consumer can process an item.
- *
- * Before a queue can be used it needs to be created by
- * Drupal\Core\Queue\QueueInterface::createQueue().
- *
- * Items can be added to the queue by passing an arbitrary data object to
- * Drupal\Core\Queue\QueueInterface::createItem().
- *
- * To process an item, call Drupal\Core\Queue\QueueInterface::claimItem() and
- * specify how long you want to have a lease for working on that item.
- * When finished processing, the item needs to be deleted by calling
- * Drupal\Core\Queue\QueueInterface::deleteItem(). If the consumer dies, the
- * item will be made available again by the Drupal\Core\Queue\QueueInterface
- * implementation once the lease expires. Another consumer will then be able to
- * receive it when calling Drupal\Core\Queue\QueueInterface::claimItem().
- * Due to this, the processing code should be aware that an item might be handed
- * over for processing more than once.
- *
- * The $item object used by the Drupal\Core\Queue\QueueInterface can contain
- * arbitrary metadata depending on the implementation. Systems using the
- * interface should only rely on the data property which will contain the
- * information passed to Drupal\Core\Queue\QueueInterface::createItem().
- * The full queue item returned by Drupal\Core\Queue\QueueInterface::claimItem()
- * needs to be passed to Drupal\Core\Queue\QueueInterface::deleteItem() once
- * processing is completed.
- *
- * There are two kinds of queue backends available: reliable, which preserves
- * the order of messages and guarantees that every item will be executed at
- * least once. The non-reliable kind only does a best effort to preserve order
- * in messages and to execute them at least once but there is a small chance
- * that some items get lost. For example, some distributed back-ends like
- * Amazon SQS will be managing jobs for a large set of producers and consumers
- * where a strict FIFO ordering will likely not be preserved. Another example
- * would be an in-memory queue backend which might lose items if it crashes.
- * However, such a backend would be able to deal with significantly more writes
- * than a reliable queue and for many tasks this is more important. See
- * aggregator_cron() for an example of how to effectively utilize a
- * non-reliable queue. Another example is doing Twitter statistics -- the small
- * possibility of losing a few items is insignificant next to power of the
- * queue being able to keep up with writes. As described in the processing
- * section, regardless of the queue being reliable or not, the processing code
- * should be aware that an item might be handed over for processing more than
- * once (because the processing code might time out before it finishes).
- */
-
-/**
- * @} End of "defgroup queue".
- */

@@ -8,6 +8,8 @@
 namespace Drupal\views\Plugin\views\filter;
 
 use Drupal\Component\Utility\String as UtilityString;
+use Drupal\Component\Utility\Unicode;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\views\Plugin\views\display\DisplayPluginBase;
 use Drupal\views\ViewExecutable;
 
@@ -78,7 +80,7 @@ class InOperator extends FilterPluginBase {
     $this->options['expose']['reduce'] = FALSE;
   }
 
-  public function buildExposeForm(&$form, &$form_state) {
+  public function buildExposeForm(&$form, FormStateInterface $form_state) {
     parent::buildExposeForm($form, $form_state);
     $form['expose']['reduce'] = array(
       '#type' => 'checkbox',
@@ -164,7 +166,7 @@ class InOperator extends FilterPluginBase {
     return $options;
   }
 
-  protected function valueForm(&$form, &$form_state) {
+  protected function valueForm(&$form, FormStateInterface $form_state) {
     $form['value'] = array();
     $options = array();
 
@@ -294,7 +296,7 @@ class InOperator extends FilterPluginBase {
     return parent::acceptExposedInput($input);
   }
 
-  protected function valueSubmit($form, &$form_state) {
+  protected function valueSubmit($form, FormStateInterface $form_state) {
     // Drupal's FAPI system automatically puts '0' in for any checkbox that
     // was not set, and the key to the checkbox if it is set.
     // Unfortunately, this means that if the key to that checkbox is 0,
@@ -356,7 +358,7 @@ class InOperator extends FilterPluginBase {
             $values .= ', ';
           }
           if (drupal_strlen($values) > 8) {
-            $values .= '...';
+            $values = Unicode::truncate($values, 8, FALSE, TRUE);
             break;
           }
           if (isset($this->value_options[$value])) {

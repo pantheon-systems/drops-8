@@ -11,7 +11,9 @@ use Drupal\migrate\MigrateExecutable;
 use Drupal\migrate_drupal\Tests\MigrateDrupalTestBase;
 
 /**
- * Tests the Drupal 6 vocabulary-node type association to Drupal 8 migration.
+ * Vocabulary entity form display migration.
+ *
+ * @group migrate_drupal
  */
 class MigrateVocabularyEntityFormDisplayTest extends MigrateDrupalTestBase {
 
@@ -25,21 +27,10 @@ class MigrateVocabularyEntityFormDisplayTest extends MigrateDrupalTestBase {
   /**
    * {@inheritdoc}
    */
-  public static function getInfo() {
-    return array(
-      'name'  => 'Vocabulary entity form display migration',
-      'description'  => 'Vocabulary entity form display migration',
-      'group' => 'Migrate Drupal',
-    );
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   protected function setUp() {
     parent::setUp();
 
-    entity_create('field_config', array(
+    entity_create('field_storage_config', array(
       'entity_type' => 'node',
       'name' => 'tags',
       'type' => 'taxonomy_term_reference',

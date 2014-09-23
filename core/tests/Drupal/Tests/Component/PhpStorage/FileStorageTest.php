@@ -10,12 +10,8 @@ namespace Drupal\Tests\Component\PhpStorage;
 use Drupal\Component\PhpStorage\FileStorage;
 
 /**
- * Tests the simple file storage.
- *
- * @group Drupal
- * @group PhpStorage
- *
  * @coversDefaultClass \Drupal\Component\PhpStorage\FileStorage
+ * @group PhpStorage
  */
 class FileStorageTest extends PhpStorageTestBase {
 
@@ -25,17 +21,6 @@ class FileStorageTest extends PhpStorageTestBase {
    * @var array
    */
   protected $standardSettings;
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'name' => 'Simple file storage',
-      'description' => 'Tests the FileStorage implementation.',
-      'group' => 'PHP Storage',
-    );
-  }
 
   /**
    * {@inheritdoc}
@@ -86,7 +71,7 @@ class FileStorageTest extends PhpStorageTestBase {
 
     // Write out some files.
     $php = new FileStorage($this->standardSettings);
-    $name = $this->randomName() . '/' . $this->randomName() . '.php';
+    $name = $this->randomMachineName() . '/' . $this->randomMachineName() . '.php';
 
     // Find a global that doesn't exist.
     do {

@@ -7,14 +7,16 @@
 
 namespace Drupal\system;
 
-use Drupal\Core\Breadcrumb\BreadcrumbBuilderBase;
+use Drupal\Core\Access\AccessManagerInterface;
+use Drupal\Core\Breadcrumb\BreadcrumbBuilderInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Controller\TitleResolverInterface;
-use Drupal\Core\Access\AccessManager;
 use Drupal\Core\ParamConverter\ParamNotConvertedException;
 use Drupal\Core\PathProcessor\InboundPathProcessorInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Routing\LinkGeneratorTrait;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Component\Utility\Unicode;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Cmf\Component\Routing\RouteObjectInterface;
@@ -26,7 +28,9 @@ use Symfony\Component\Routing\Exception\ResourceNotFoundException;
 /**
  * Class to define the menu_link breadcrumb builder.
  */
-class PathBasedBreadcrumbBuilder extends BreadcrumbBuilderBase {
+class PathBasedBreadcrumbBuilder implements BreadcrumbBuilderInterface {
+  use StringTranslationTrait;
+  use LinkGeneratorTrait;
 
   /**
    * The router request context.
@@ -38,7 +42,7 @@ class PathBasedBreadcrumbBuilder extends BreadcrumbBuilderBase {
   /**
    * The menu link access service.
    *
-   * @var \Drupal\Core\Access\AccessManager
+   * @var \Drupal\Core\Access\AccessManagerInterface
    */
   protected $accessManager;
 
@@ -82,7 +86,7 @@ class PathBasedBreadcrumbBuilder extends BreadcrumbBuilderBase {
    *
    * @param \Symfony\Component\Routing\RequestContext $context
    *   The router request context.
-   * @param \Drupal\Core\Access\AccessManager $access_manager
+   * @param \Drupal\Core\Access\AccessManagerInterface $access_manager
    *   The menu link access service.
    * @param \Symfony\Component\Routing\Matcher\RequestMatcherInterface $router
    *   The dynamic router service.
@@ -95,7 +99,7 @@ class PathBasedBreadcrumbBuilder extends BreadcrumbBuilderBase {
    * @param \Drupal\Core\Session\AccountInterface $current_user
    *   The current user object.
    */
-  public function __construct(RequestContext $context, AccessManager $access_manager, RequestMatcherInterface $router, InboundPathProcessorInterface $path_processor, ConfigFactoryInterface $config_factory, TitleResolverInterface $title_resolver, AccountInterface $current_user) {
+  public function __construct(RequestContext $context, AccessManagerInterface $access_manager, RequestMatcherInterface $router, InboundPathProcessorInterface $path_processor, ConfigFactoryInterface $config_factory, TitleResolverInterface $title_resolver, AccountInterface $current_user) {
     $this->context = $context;
     $this->accessManager = $access_manager;
     $this->router = $router;

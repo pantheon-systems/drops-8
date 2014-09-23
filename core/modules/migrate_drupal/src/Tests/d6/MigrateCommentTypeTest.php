@@ -11,23 +11,13 @@ use Drupal\migrate\MigrateExecutable;
 use Drupal\migrate_drupal\Tests\MigrateDrupalTestBase;
 
 /**
- * Tests the Drupal 6 to Drupal 8 comment type migration.
+ * Upgrade comment type.
+ *
+ * @group migrate_drupal
  */
 class MigrateCommentTypeTest extends MigrateDrupalTestBase {
 
   static $modules = array('node', 'comment');
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'name'  => 'Migrate comment type.',
-      'description'  => 'Upgrade comment type.',
-      'group' => 'Migrate Drupal',
-    );
-  }
-
 
   /**
    * {@inheritdoc}
@@ -39,7 +29,7 @@ class MigrateCommentTypeTest extends MigrateDrupalTestBase {
     $migration = entity_load('migration', 'd6_comment_type');
 
     $dumps = array(
-      $this->getDumpDirectory() . '/Drupal6SystemSite.php',
+      $this->getDumpDirectory() . '/Drupal6CommentVariable.php',
     );
     $this->prepare($migration, $dumps);
     $executable = new MigrateExecutable($migration, $this);
@@ -52,5 +42,8 @@ class MigrateCommentTypeTest extends MigrateDrupalTestBase {
   public function testCommentType() {
     $comment_type = entity_load('comment_type', 'comment');
     $this->assertEqual('node', $comment_type->getTargetEntityTypeId());
+    $comment_type = entity_load('comment_type', 'comment_no_subject');
+    $this->assertEqual('node', $comment_type->getTargetEntityTypeId());
   }
+
 }

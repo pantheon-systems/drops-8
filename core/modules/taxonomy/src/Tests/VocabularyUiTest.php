@@ -9,16 +9,10 @@ namespace Drupal\taxonomy\Tests;
 
 /**
  * Tests the taxonomy vocabulary interface.
+ *
+ * @group taxonomy
  */
 class VocabularyUiTest extends TaxonomyTestBase {
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Taxonomy vocabulary interface',
-      'description' => 'Test the taxonomy vocabulary interface.',
-      'group' => 'Taxonomy',
-    );
-  }
 
   function setUp() {
     parent::setUp();
@@ -37,9 +31,9 @@ class VocabularyUiTest extends TaxonomyTestBase {
     // Create a new vocabulary.
     $this->clickLink(t('Add vocabulary'));
     $edit = array();
-    $vid = drupal_strtolower($this->randomName());
-    $edit['name'] = $this->randomName();
-    $edit['description'] = $this->randomName();
+    $vid = drupal_strtolower($this->randomMachineName());
+    $edit['name'] = $this->randomMachineName();
+    $edit['description'] = $this->randomMachineName();
     $edit['vid'] = $vid;
     $this->drupalPostForm(NULL, $edit, t('Save'));
     $this->assertRaw(t('Created new vocabulary %name.', array('%name' => $edit['name'])), 'Vocabulary created successfully.');
@@ -49,7 +43,7 @@ class VocabularyUiTest extends TaxonomyTestBase {
     $this->assertText($edit['name'], 'Vocabulary found in the vocabulary overview listing.');
     $this->clickLink(t('Edit vocabulary'));
     $edit = array();
-    $edit['name'] = $this->randomName();
+    $edit['name'] = $this->randomMachineName();
     $this->drupalPostForm(NULL, $edit, t('Save'));
     $this->drupalGet('admin/structure/taxonomy');
     $this->assertText($edit['name'], 'Vocabulary found in the vocabulary overview listing.');
@@ -67,7 +61,7 @@ class VocabularyUiTest extends TaxonomyTestBase {
     // Ensure that vocabulary titles are escaped properly.
     $edit = array();
     $edit['name'] = 'Don\'t Panic';
-    $edit['description'] = $this->randomName();
+    $edit['description'] = $this->randomMachineName();
     $edit['vid'] = 'don_t_panic';
     $this->drupalPostForm('admin/structure/taxonomy/add', $edit, t('Save'));
 
@@ -126,9 +120,9 @@ class VocabularyUiTest extends TaxonomyTestBase {
    */
   function testTaxonomyAdminDeletingVocabulary() {
     // Create a vocabulary.
-    $vid = drupal_strtolower($this->randomName());
+    $vid = drupal_strtolower($this->randomMachineName());
     $edit = array(
-      'name' => $this->randomName(),
+      'name' => $this->randomMachineName(),
       'vid' => $vid,
     );
     $this->drupalPostForm('admin/structure/taxonomy/add', $edit, t('Save'));

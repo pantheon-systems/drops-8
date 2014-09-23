@@ -275,7 +275,7 @@ class EntityViewBuilder extends EntityControllerBase implements EntityController
         //   taken care of in EntityViewDisplay::buildMultiple().
         foreach ($display->getComponents() as $name => $options) {
           if (isset($build_list[$key][$name])) {
-            $build_list[$key]['#weight'] = $options['weight'];
+            $build_list[$key][$name]['#weight'] = $options['weight'];
           }
         }
 
@@ -394,7 +394,8 @@ class EntityViewBuilder extends EntityControllerBase implements EntityController
     if (is_string($display_options)) {
       $view_mode = $display_options;
       $display = EntityViewDisplay::collectRenderDisplay($entity, $view_mode);
-      foreach ($entity as $name => $items) {
+      // Hide all fields except the current one.
+      foreach (array_keys($entity->getFieldDefinitions()) as $name) {
         if ($name != $field_name) {
           $display->removeComponent($name);
         }

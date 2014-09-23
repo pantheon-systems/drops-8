@@ -7,6 +7,7 @@ use Drupal\Tests\UnitTestCase;
 
 /**
  * @coversDefaultClass \Drupal\Core\Entity\EntityFormBuilder
+ * @group Entity
  */
 class EntityFormBuilderTest extends UnitTestCase {
 
@@ -34,17 +35,6 @@ class EntityFormBuilderTest extends UnitTestCase {
   /**
    * {@inheritdoc}
    */
-  public static function getInfo() {
-    return array(
-      'name' => 'Entity Form Builder test',
-      'description' => 'Unit test the entity form builder.',
-      'group' => 'Entity',
-    );
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   protected function setUp() {
     parent::setUp();
 
@@ -59,11 +49,6 @@ class EntityFormBuilderTest extends UnitTestCase {
    * @covers ::getForm()
    */
   public function testGetForm() {
-    $this->formBuilder->expects($this->once())
-      ->method('buildForm')
-      ->with('the_form_id', $this->isType('array'))
-      ->will($this->returnValue('the form contents'));
-
     $form_controller = $this->getMock('Drupal\Core\Entity\EntityFormInterface');
     $form_controller->expects($this->any())
       ->method('getFormId')
@@ -72,6 +57,11 @@ class EntityFormBuilderTest extends UnitTestCase {
       ->method('getFormObject')
       ->with('the_entity_type', 'default')
       ->will($this->returnValue($form_controller));
+
+    $this->formBuilder->expects($this->once())
+      ->method('buildForm')
+      ->with($form_controller, $this->isInstanceOf('Drupal\Core\Form\FormStateInterface'))
+      ->will($this->returnValue('the form contents'));
 
     $entity = $this->getMock('Drupal\Core\Entity\EntityInterface');
     $entity->expects($this->once())

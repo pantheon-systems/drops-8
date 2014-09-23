@@ -10,7 +10,9 @@ namespace Drupal\filter\Tests;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Tests the default filter functionality in the Filter module.
+ * Tests the default text formats for different users.
+ *
+ * @group filter
  */
 class FilterDefaultFormatTest extends WebTestBase {
 
@@ -20,14 +22,6 @@ class FilterDefaultFormatTest extends WebTestBase {
    * @var array
    */
   public static $modules = array('filter');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Default text format functionality',
-      'description' => 'Test the default text formats for different users.',
-      'group' => 'Filter',
-    );
-  }
 
   /**
    * Tests if the default text format is accessible to users.
@@ -40,8 +34,8 @@ class FilterDefaultFormatTest extends WebTestBase {
     $formats = array();
     for ($i = 0; $i < 2; $i++) {
       $edit = array(
-        'format' => drupal_strtolower($this->randomName()),
-        'name' => $this->randomName(),
+        'format' => drupal_strtolower($this->randomMachineName()),
+        'name' => $this->randomMachineName(),
       );
       $this->drupalPostForm('admin/config/content/formats/add', $edit, t('Save configuration'));
       $this->resetFilterCaches();

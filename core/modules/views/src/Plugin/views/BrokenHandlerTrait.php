@@ -7,6 +7,8 @@
 
 namespace Drupal\views\Plugin\views;
 
+use Drupal\Core\Form\FormStateInterface;
+
 /**
  * A Trait for Views broken handlers.
  */
@@ -21,7 +23,7 @@ trait BrokenHandlerTrait {
     $args = array(
       '@module' => $this->definition['original_configuration']['provider'],
     );
-    return $this->isOptional() ? t('Optional handler is missing (Module: @module) …', $args) : t('Broken/missing handler (Module: @module) …', $args);
+    return t('Broken/missing handler (Module: @module) …', $args);
   }
 
   /**
@@ -55,13 +57,8 @@ trait BrokenHandlerTrait {
    *
    * @see \Drupal\views\Plugin\views\PluginBase::defineOptions().
    */
-  public function buildOptionsForm(&$form, &$form_state) {
-    if ($this->isOptional()) {
-      $description_top = t('The handler for this item is optional. The following details are available:');
-    }
-    else {
-      $description_top = t('The handler for this item is broken or missing. The following details are available:');
-    }
+  public function buildOptionsForm(&$form, FormStateInterface $form_state) {
+    $description_top = t('The handler for this item is broken or missing. The following details are available:');
 
     $items = array(
       t('Module: @module', array('@module' => $this->definition['original_configuration']['provider'])),

@@ -8,6 +8,8 @@
 namespace Drupal\language\Form;
 
 use Drupal\Core\Form\ConfirmFormBase;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Url;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -32,7 +34,8 @@ class NegotiationBrowserDeleteForm extends ConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function getCancelRoute() {
+  public function getCancelUrl() {
+    return new Url('language.negotiation_browser');
   }
 
   /**
@@ -45,20 +48,18 @@ class NegotiationBrowserDeleteForm extends ConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, array &$form_state, $browser_langcode = NULL) {
+  public function buildForm(array $form, FormStateInterface $form_state, $browser_langcode = NULL) {
     $this->browserLangcode = $browser_langcode;
 
     $form = parent::buildForm($form, $form_state);
 
-    // @todo Convert to getCancelRoute() after http://drupal.org/node/2082071.
-    $form['actions']['cancel']['#href'] = 'admin/config/regional/language/detection/browser';
     return $form;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function submitForm(array &$form, array &$form_state) {
+  public function submitForm(array &$form, FormStateInterface $form_state) {
     $mappings = language_get_browser_drupal_langcode_mappings();
 
     if (array_key_exists($this->browserLangcode, $mappings)) {
@@ -66,7 +67,7 @@ class NegotiationBrowserDeleteForm extends ConfirmFormBase {
       language_set_browser_drupal_langcode_mappings($mappings);
     }
 
-    $form_state['redirect_route']['route_name'] = 'language.negotiation_browser';
+    $form_state->setRedirect('language.negotiation_browser');
   }
 
 }

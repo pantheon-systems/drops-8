@@ -10,20 +10,11 @@ namespace Drupal\system\Tests\ParamConverter;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Web tests for the upcasting.
+ * Tests upcasting of url arguments to entities.
+ *
+ * @group ParamConverter
  */
 class UpcastingTest extends WebTestBase {
-
-  /**
-   * Implement getInfo().
-   */
-  public static function getInfo() {
-    return array(
-      'name' => 'Upcasting tests',
-      'description' => 'Tests upcasting of url arguments to entities.',
-      'group' => 'ParamConverter',
-    );
-  }
 
   public static $modules = array('paramconverter_test', 'node');
 
@@ -38,7 +29,7 @@ class UpcastingTest extends WebTestBase {
    * happening.
    */
   public function testUpcasting() {
-    $node = $this->drupalCreateNode(array('title' => $this->randomName(8)));
+    $node = $this->drupalCreateNode(array('title' => $this->randomMachineName(8)));
     $user = $this->drupalCreateUser(array('access content'));
     $foo = 'bar';
 
@@ -61,8 +52,8 @@ class UpcastingTest extends WebTestBase {
    * Confirms we can upcast to controller arguments of the same type.
    */
   public function testSameTypes() {
-    $node = $this->drupalCreateNode(array('title' => $this->randomName(8)));
-    $parent = $this->drupalCreateNode(array('title' => $this->randomName(8)));
+    $node = $this->drupalCreateNode(array('title' => $this->randomMachineName(8)));
+    $parent = $this->drupalCreateNode(array('title' => $this->randomMachineName(8)));
     // paramconverter_test/node/{node}/set/parent/{parent}
     // options.parameters.parent.type = entity:node
     $this->drupalGet("paramconverter_test/node/" . $node->id() . "/set/parent/" . $parent->id());

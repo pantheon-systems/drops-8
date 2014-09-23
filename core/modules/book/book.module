@@ -5,9 +5,11 @@
  * Allows users to create and organize related content in an outline.
  */
 
+use Drupal\book\BookManager;
 use Drupal\book\BookManagerInterface;
 use Drupal\Component\Utility\String;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\node\NodeInterface;
@@ -123,7 +125,7 @@ function book_node_links_alter(array &$node_links, NodeInterface $node, array &$
       if ($context['view_mode'] == 'full' && node_is_page($node)) {
         $child_type = \Drupal::config('book.settings')->get('child_type');
         $access_controller = \Drupal::entityManager()->getAccessController('node');
-        if (($account->hasPermission('add content to books') || $account->hasPermission('administer book outlines')) && $access_controller->createAccess($child_type) && $node->isPublished() && $node->book['depth'] < MENU_MAX_DEPTH) {
+        if (($account->hasPermission('add content to books') || $account->hasPermission('administer book outlines')) && $access_controller->createAccess($child_type) && $node->isPublished() && $node->book['depth'] < BookManager::BOOK_MAX_DEPTH) {
           $links['book_add_child'] = array(
             'title' => t('Add child page'),
             'href' => 'node/add/' . $child_type,
@@ -158,7 +160,7 @@ function book_node_links_alter(array &$node_links, NodeInterface $node, array &$
  *
  * @see book_pick_book_nojs_submit()
  */
-function book_form_node_form_alter(&$form, &$form_state, $form_id) {
+function book_form_node_form_alter(&$form, FormStateInterface $form_state, $form_id) {
   $node = $form_state['controller']->getEntity();
   $account = \Drupal::currentUser();
   $access = $account->hasPermission('administer book outlines');
@@ -193,7 +195,7 @@ function book_form_node_form_alter(&$form, &$form_state, $form_id) {
  *
  * @todo: Remove this in favor of an entity field.
  */
-function book_node_builder($entity_type, NodeInterface $entity, &$form, &$form_state) {
+function book_node_builder($entity_type, NodeInterface $entity, &$form, FormStateInterface $form_state) {
   $entity->book = $form_state['values']['book'];
 
   // Always save a revision for non-administrators.
@@ -214,7 +216,7 @@ function book_node_builder($entity_type, NodeInterface $entity, &$form, &$form_s
  * @see book_form_update()
  * @see book_form_node_form_alter()
  */
-function book_pick_book_nojs_submit($form, &$form_state) {
+function book_pick_book_nojs_submit($form, FormStateInterface $form_state) {
   $node = $form_state['controller']->getEntity();
   $node->book = $form_state['values']['book'];
   $form_state['rebuild'] = TRUE;
@@ -229,12 +231,12 @@ function book_pick_book_nojs_submit($form, &$form_state) {
  * @return
  *   The rendered parent page select element.
  */
-function book_form_update($form, $form_state) {
+function book_form_update($form, FormStateInterface $form_state) {
   return $form['book']['pid'];
 }
 
 /**
- * Implements hook_node_load().
+ * Implements hook_ENTITY_TYPE_load() for node entities.
  */
 function book_node_load($nodes) {
   /** @var \Drupal\book\BookManagerInterface $book_manager */
@@ -248,7 +250,7 @@ function book_node_load($nodes) {
 }
 
 /**
- * Implements hook_node_view().
+ * Implements hook_ENTITY_TYPE_view() for node entities.
  */
 function book_node_view(array &$build, EntityInterface $node, EntityViewDisplayInterface $display, $view_mode) {
   if ($view_mode == 'full') {
@@ -268,7 +270,7 @@ function book_node_view(array &$build, EntityInterface $node, EntityViewDisplayI
 }
 
 /**
- * Implements hook_node_presave().
+ * Implements hook_ENTITY_TYPE_presave() for node entities.
  */
 function book_node_presave(EntityInterface $node) {
   // Make sure a new node gets a new menu link.
@@ -278,7 +280,7 @@ function book_node_presave(EntityInterface $node) {
 }
 
 /**
- * Implements hook_node_insert().
+ * Implements hook_ENTITY_TYPE_insert() for node entities.
  */
 function book_node_insert(EntityInterface $node) {
   /** @var \Drupal\book\BookManagerInterface $book_manager */
@@ -287,7 +289,7 @@ function book_node_insert(EntityInterface $node) {
 }
 
 /**
- * Implements hook_node_update().
+ * Implements hook_ENTITY_TYPE_update() for node entities.
  */
 function book_node_update(EntityInterface $node) {
   /** @var \Drupal\book\BookManagerInterface $book_manager */
@@ -296,7 +298,7 @@ function book_node_update(EntityInterface $node) {
 }
 
 /**
- * Implements hook_node_predelete().
+ * Implements hook_ENTITY_TYPE_predelete() for node entities.
  */
 function book_node_predelete(EntityInterface $node) {
   if (!empty($node->book['bid'])) {
@@ -309,7 +311,7 @@ function book_node_predelete(EntityInterface $node) {
 /**
  * Implements hook_node_prepare_form().
  */
-function book_node_prepare_form(NodeInterface $node, $operation, array &$form_state) {
+function book_node_prepare_form(NodeInterface $node, $operation, FormStateInterface $form_state) {
   /** @var \Drupal\book\BookManagerInterface $book_manager */
   $book_manager = \Drupal::service('book.manager');
 
@@ -350,7 +352,7 @@ function book_node_prepare_form(NodeInterface $node, $operation, array &$form_st
  *
  * @see node_delete_confirm()
  */
-function book_form_node_delete_confirm_alter(&$form, $form_state) {
+function book_form_node_delete_confirm_alter(&$form, FormStateInterface $form_state) {
   $node = node_load($form['nid']['#value']);
 
   if (isset($node->book) && $node->book['has_children']) {
@@ -555,7 +557,7 @@ function book_type_is_allowed($type) {
 }
 
 /**
- * Implements hook_node_type_update().
+ * Implements hook_ENTITY_TYPE_update() for node_type entities.
  *
  * Updates book.settings configuration object if the machine-readable name of a
  * node type is changed.

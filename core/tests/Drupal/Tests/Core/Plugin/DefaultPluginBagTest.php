@@ -8,25 +8,10 @@
 namespace Drupal\Tests\Core\Plugin;
 
 /**
- * Tests the default plugin bag.
- *
- * @see \Drupal\Core\Plugin\DefaultPluginBag
- *
- * @group Drupal
- * @group Drupal_Plugin
+ * @coversDefaultClass \Drupal\Core\Plugin\DefaultPluginBag
+ * @group Plugin
  */
 class DefaultPluginBagTest extends PluginBagTestBase {
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'name' => 'Default plugin bag',
-      'description' => 'Tests the default plugin bag.',
-      'group' => 'Plugin API',
-    );
-  }
 
   /**
    * Tests the has method.
@@ -37,7 +22,7 @@ class DefaultPluginBagTest extends PluginBagTestBase {
     $this->setupPluginBag();
     $definitions = $this->getPluginDefinitions();
 
-    $this->assertFalse($this->defaultPluginBag->has($this->randomName()), 'Nonexistent plugin found.');
+    $this->assertFalse($this->defaultPluginBag->has($this->randomMachineName()), 'Nonexistent plugin found.');
 
     foreach (array_keys($definitions) as $plugin_id) {
       $this->assertTrue($this->defaultPluginBag->has($plugin_id));

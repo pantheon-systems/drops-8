@@ -11,8 +11,9 @@ use Drupal\Component\Utility\String;
 use Drupal\views\ViewExecutable;
 
 /**
- * Tests some generic handler UI functionality.
+ * Tests handler UI for views.
  *
+ * @group views_ui
  * @see \Drupal\views\Plugin\views\HandlerBase
  */
 class HandlerTest extends UITestBase {
@@ -22,15 +23,7 @@ class HandlerTest extends UITestBase {
    *
    * @var array
    */
-  public static $testViews = array('test_view_empty', 'test_view_broken', 'test_view_optional');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Handler test',
-      'description' => 'Tests handler UI for views.',
-      'group' => 'Views UI'
-    );
-  }
+  public static $testViews = array('test_view_empty', 'test_view_broken');
 
   /**
    * Overrides \Drupal\views\Tests\ViewTestBase::schemaDefinition().
@@ -98,7 +91,7 @@ class HandlerTest extends UITestBase {
       }
 
       $this->assertUrl($edit_handler_url, array(), 'The user got redirected to the handler edit form.');
-      $random_label = $this->randomName();
+      $random_label = $this->randomMachineName();
       $this->drupalPostForm(NULL, array('options[admin_label]' => $random_label), t('Apply'));
 
       $this->assertUrl('admin/structure/views/view/test_view_empty/edit/default', array(), 'The user got redirected to the views edit form.');
@@ -169,40 +162,6 @@ class HandlerTest extends UITestBase {
         '@module' => 'views',
         '@table' => 'views_test_data',
         '@field' => 'id_broken',
-      );
-
-      foreach ($description_args as $token => $value) {
-        $this->assertNoText($token, String::format('Raw @token token placeholder not found.', array('@token' => $token)));
-        $this->assertText($value, String::format('Replaced @token value found.', array('@token' => $token)));
-      }
-    }
-  }
-
-  /**
-   * Tests optional handlers.
-   */
-  public function testOptionalHandlers() {
-    $handler_types = ViewExecutable::getHandlerTypes();
-    foreach ($handler_types as $type => $type_info) {
-      $this->drupalGet('admin/structure/views/view/test_view_optional/edit');
-
-      $href = "admin/structure/views/nojs/handler/test_view_optional/default/$type/id_optional";
-
-      $result = $this->xpath('//a[contains(@href, :href)]', array(':href' => $href));
-      $this->assertEqual(count($result), 1, String::format('Handler (%type) edit link found.', array('%type' => $type)));
-
-      $text = t('Optional handler is missing (Module: @module) …', array('@module' => 'views'));
-
-      $this->assertIdentical((string) $result[0], $text, 'Ensure the optional handler link text was found.');
-
-      $this->drupalGet($href);
-      $result = $this->xpath('//h1');
-      $this->assertTrue(strpos((string) $result[0], $text) !== FALSE, 'Ensure the optional handler title was found.');
-
-      $description_args = array(
-        '@module' => 'views',
-        '@table' => 'views_test_data',
-        '@field' => 'id_optional',
       );
 
       foreach ($description_args as $token => $value) {

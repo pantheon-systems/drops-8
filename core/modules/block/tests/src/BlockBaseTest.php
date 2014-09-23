@@ -12,19 +12,10 @@ use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Tests\UnitTestCase;
 
 /**
- * Tests the base block plugin.
- *
- * @see \Drupal\block\BlockBase
+ * @coversDefaultClass \Drupal\block\BlockBase
+ * @group block
  */
 class BlockBaseTest extends UnitTestCase {
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Base plugin',
-      'description' => 'Tests the base block plugin.',
-      'group' => 'Block',
-    );
-  }
 
   /**
    * Tests the machine name suggestion.
@@ -98,7 +89,7 @@ class BlockBaseTest extends UnitTestCase {
 
     $this->assertEquals(4, $conditions_bag->count(), "There are 4 condition plugins");
 
-    $instance_id = $this->randomName();
+    $instance_id = $this->randomMachineName();
     $pages = 'node/1';
     $condition_config = array('id' => 'request_path', 'pages' => $pages);
     $block_base->setVisibilityConfig($instance_id, $condition_config);

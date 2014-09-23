@@ -10,17 +10,11 @@ namespace Drupal\system\Tests\File;
 use Drupal\Core\Site\Settings;
 
 /**
- * Unmanaged move related tests.
+ * Tests the unmanaged file move function.
+ *
+ * @group File
  */
 class UnmanagedMoveTest extends FileTestBase {
-  public static function getInfo() {
-    return array(
-      'name' => 'Unmanaged file moving',
-      'description' => 'Tests the unmanaged file move function.',
-      'group' => 'File API',
-    );
-  }
-
   /**
    * Move a normal file.
    */
@@ -29,7 +23,7 @@ class UnmanagedMoveTest extends FileTestBase {
     $uri = $this->createUri();
 
     // Moving to a new name.
-    $desired_filepath = 'public://' . $this->randomName();
+    $desired_filepath = 'public://' . $this->randomMachineName();
     $new_filepath = file_unmanaged_move($uri, $desired_filepath, FILE_EXISTS_ERROR);
     $this->assertTrue($new_filepath, 'Move was successful.');
     $this->assertEqual($new_filepath, $desired_filepath, 'Returned expected filepath.');
@@ -38,7 +32,7 @@ class UnmanagedMoveTest extends FileTestBase {
     $this->assertFilePermissions($new_filepath, Settings::get('file_chmod_file', FILE_CHMOD_FILE));
 
     // Moving with rename.
-    $desired_filepath = 'public://' . $this->randomName();
+    $desired_filepath = 'public://' . $this->randomMachineName();
     $this->assertTrue(file_exists($new_filepath), 'File exists before moving.');
     $this->assertTrue(file_put_contents($desired_filepath, ' '), 'Created a file so a rename will have to happen.');
     $newer_filepath = file_unmanaged_move($new_filepath, $desired_filepath, FILE_EXISTS_RENAME);
@@ -57,7 +51,7 @@ class UnmanagedMoveTest extends FileTestBase {
    */
   function testMissing() {
     // Move non-existent file.
-    $new_filepath = file_unmanaged_move($this->randomName(), $this->randomName());
+    $new_filepath = file_unmanaged_move($this->randomMachineName(), $this->randomMachineName());
     $this->assertFalse($new_filepath, 'Moving a missing file fails.');
   }
 

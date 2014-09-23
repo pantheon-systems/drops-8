@@ -11,7 +11,9 @@ use Drupal\migrate\MigrateExecutable;
 use Drupal\migrate_drupal\Tests\MigrateDrupalTestBase;
 
 /**
- * Tests the Drupal 6 user picture to Drupal 8 picture field instance migration.
+ * User picture field instance migration.
+ *
+ * @group migrate_drupal
  */
 class MigrateUserPictureInstanceTest extends MigrateDrupalTestBase {
 
@@ -25,17 +27,6 @@ class MigrateUserPictureInstanceTest extends MigrateDrupalTestBase {
   /**
    * {@inheritdoc}
    */
-  public static function getInfo() {
-    return array(
-      'name'  => 'Migrate user picture field instance.',
-      'description'  => 'User picture field instance migration',
-      'group' => 'Migrate Drupal',
-    );
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function setUp() {
     parent::setUp();
     // Add some node mappings to get past checkRequirements().
@@ -45,7 +36,7 @@ class MigrateUserPictureInstanceTest extends MigrateDrupalTestBase {
       ),
     );
     $this->prepareIdMappings($id_mappings);
-    entity_create('field_config', array(
+    entity_create('field_storage_config', array(
       'entity_type' => 'user',
       'name' => 'user_picture',
       'type' => 'image',

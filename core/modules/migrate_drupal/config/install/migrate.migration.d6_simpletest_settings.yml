@@ -1,5 +1,7 @@
 id: d6_simpletest_settings
 label: Drupal 6 simpletest configuration
+migration_groups:
+  - Drupal 6
 source:
   plugin: variable
   variables:
@@ -10,9 +12,9 @@ source:
     - simpletest_verbose
 process:
   clear_results: simpletest_clear_results
-  'httpauth.method': simpletest_httpauth_method
-  'httpauth.password': simpletest_httpauth_password
-  'httpauth.username': simpletest_httpauth_username
+  'httpauth/method': simpletest_httpauth_method
+  'httpauth/password': simpletest_httpauth_password
+  'httpauth/username': simpletest_httpauth_username
   verbose: simpletest_verbose
 destination:
   plugin: config

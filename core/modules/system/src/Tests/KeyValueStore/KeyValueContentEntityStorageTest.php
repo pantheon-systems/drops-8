@@ -12,7 +12,9 @@ use Drupal\Core\Entity\EntityStorageException;
 use Drupal\simpletest\DrupalUnitTestBase;
 
 /**
- * Tests content entity CRUD with key value entity storage.
+ * Tests KeyValueEntityStorage for content entities.
+ *
+ * @group KeyValueStore
  */
 class KeyValueContentEntityStorageTest extends DrupalUnitTestBase {
 
@@ -22,17 +24,6 @@ class KeyValueContentEntityStorageTest extends DrupalUnitTestBase {
    * @var array
    */
   public static $modules = array('entity', 'user', 'entity_test', 'keyvalue_test');
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'name' => 'KeyValueEntityStorage content entity test',
-      'description' => 'Tests KeyValueEntityStorage for content entities.',
-      'group' => 'Entity API',
-    );
-  }
 
   /**
    * Tests CRUD operations.
@@ -88,7 +79,7 @@ class KeyValueContentEntityStorageTest extends DrupalUnitTestBase {
 
     // Verify properties on a newly created entity.
     $entity_test = entity_create('entity_test_label', $expected = array(
-      'id' => $this->randomName(),
+      'id' => $this->randomMachineName(),
       'name' => $this->randomString(),
     ));
     $this->assertIdentical($entity_test->id->value, $expected['id']);
@@ -142,7 +133,7 @@ class KeyValueContentEntityStorageTest extends DrupalUnitTestBase {
     }
 
     // Verify that renaming the ID returns correct status and properties.
-    $ids = array($expected['id'], 'second_' . $this->randomName(4), 'third_' . $this->randomName(4));
+    $ids = array($expected['id'], 'second_' . $this->randomMachineName(4), 'third_' . $this->randomMachineName(4));
     for ($i = 1; $i < 3; $i++) {
       $old_id = $ids[$i - 1];
       $new_id = $ids[$i];

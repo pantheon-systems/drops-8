@@ -10,10 +10,9 @@ namespace Drupal\migrate_drupal\Tests\source\d6;
 use Drupal\migrate\Tests\MigrateSqlSourceTestCase;
 
 /**
- * Tests the Drupal 6 node revision source.
+ * Tests D6 node revision source plugin.
  *
  * @group migrate_drupal
- * @group Drupal
  */
 class NodeRevisionTest extends MigrateSqlSourceTestCase {
 
@@ -278,17 +277,6 @@ class NodeRevisionTest extends MigrateSqlSourceTestCase {
   /**
    * {@inheritdoc}
    */
-  public static function getInfo() {
-    return array(
-      'name' => 'D6 node revision source functionality',
-      'description' => 'Tests D6 node revision source plugin.',
-      'group' => 'Migrate Drupal',
-    );
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   protected function setUp() {
     foreach ($this->expectedResults as $k => $row) {
       $this->databaseContents['node_revisions'][$k]['nid'] = $row['nid'];
@@ -341,7 +329,8 @@ class NodeRevisionTest extends MigrateSqlSourceTestCase {
    * {@inheritdoc}
    */
   public function testRetrieval() {
-    // FakeSelect does not support multiple source identifiers, can not test.
+    // @todo: Fix this as per https://www.drupal.org/node/2299795
+    $this->markTestIncomplete('FakeSelect does not support multiple source identifiers, can not test.');
   }
 
 }

@@ -8,6 +8,7 @@
 namespace Drupal\system\Form;
 
 use Drupal\Core\Form\ConfigFormBase;
+use Drupal\Core\Form\FormStateInterface;
 
 /**
  * Configure RSS settings for this site.
@@ -24,7 +25,7 @@ class RssFeedsForm extends ConfigFormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, array &$form_state) {
+  public function buildForm(array $form, FormStateInterface $form_state) {
     $rss_config = $this->config('system.rss');
     $form['feed_description'] = array(
       '#type' => 'textarea',
@@ -40,7 +41,7 @@ class RssFeedsForm extends ConfigFormBase {
       '#options' => array_combine($options, $options),
       '#description' => t('Default number of items to include in each feed.')
     );
-    $form['feed_item_length'] = array(
+    $form['feed_view_mode'] = array(
       '#type' => 'select',
       '#title' => t('Feed content'),
       '#default_value' => $rss_config->get('items.view_mode'),
@@ -58,11 +59,11 @@ class RssFeedsForm extends ConfigFormBase {
   /**
    * {@inheritdoc}
    */
-  public function submitForm(array &$form, array &$form_state) {
+  public function submitForm(array &$form, FormStateInterface $form_state) {
     $this->config('system.rss')
       ->set('channel.description', $form_state['values']['feed_description'])
       ->set('items.limit', $form_state['values']['feed_default_items'])
-      ->set('items.view_mode', $form_state['values']['feed_item_length'])
+      ->set('items.view_mode', $form_state['values']['feed_view_mode'])
       ->save();
 
     parent::submitForm($form, $form_state);

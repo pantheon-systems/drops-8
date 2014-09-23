@@ -10,16 +10,10 @@ use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Tests the pager query select extender.
+ *
+ * @group Database
  */
 class SelectPagerDefaultTest extends DatabaseWebTestBase {
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Pager query tests',
-      'description' => 'Test the pager query extender.',
-      'group' => 'Database',
-    );
-  }
 
   /**
    * Confirms that a pager query returns the correct results.
@@ -141,7 +135,7 @@ class SelectPagerDefaultTest extends DatabaseWebTestBase {
     $request->query->replace(array(
       'page' => '3, 2, 1, 0',
     ));
-    \Drupal::getContainer()->set('request', $request);
+    \Drupal::getContainer()->get('request_stack')->push($request);
 
     $name = db_select('test', 't')
       ->extend('Drupal\Core\Database\Query\PagerSelectExtender')

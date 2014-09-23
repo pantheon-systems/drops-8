@@ -8,6 +8,7 @@
 namespace Drupal\user\Form;
 
 use Drupal\Core\Entity\ContentEntityConfirmFormBase;
+use Drupal\Core\Form\FormStateInterface;
 
 /**
  * Provides a confirmation form for cancelling user account.
@@ -41,7 +42,8 @@ class UserCancelForm extends ContentEntityConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function getCancelRoute() {
+  public function getCancelUrl() {
+    return $this->entity->urlInfo();
   }
 
   /**
@@ -71,7 +73,7 @@ class UserCancelForm extends ContentEntityConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, array &$form_state) {
+  public function buildForm(array $form, FormStateInterface $form_state) {
     $user = $this->currentUser();
     $this->cancelMethods = user_cancel_methods();
 
@@ -110,22 +112,20 @@ class UserCancelForm extends ContentEntityConfirmFormBase {
 
     $form = parent::buildForm($form, $form_state);
 
-    // @todo Convert to getCancelRoute() after https://drupal.org/node/1987896.
-    $form['actions']['cancel'] += $this->entity->urlInfo()->toRenderArray();
     return $form;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function submit(array $form, array &$form_state) {
+  public function submit(array $form, FormStateInterface $form_state) {
     // Cancel account immediately, if the current user has administrative
     // privileges, no confirmation mail shall be sent, and the user does not
     // attempt to cancel the own account.
     if ($this->currentUser()->hasPermission('administer users') && empty($form_state['values']['user_cancel_confirm']) && $this->entity->id() != $this->currentUser()->id()) {
       user_cancel($form_state['values'], $this->entity->id(), $form_state['values']['user_cancel_method']);
 
-      $form_state['redirect_route']['route_name'] = 'user.admin_account';
+      $form_state->setRedirect('user.admin_account');
     }
     else {
       // Store cancelling method and whether to notify the user in
@@ -135,11 +135,11 @@ class UserCancelForm extends ContentEntityConfirmFormBase {
       $this->entity->save();
       _user_mail_notify('cancel_confirm', $this->entity);
       drupal_set_message($this->t('A confirmation request to cancel your account has been sent to your email address.'));
-      watchdog('user', 'Sent account cancellation request to %name %email.', array('%name' => $this->entity->label(), '%email' => '<' . $this->entity->getEmail() . '>'), WATCHDOG_NOTICE);
+      $this->logger('user')->notice('Sent account cancellation request to %name %email.', array('%name' => $this->entity->label(), '%email' => '<' . $this->entity->getEmail() . '>'));
 
-      $form_state['redirect_route'] = array(
-        'route_name' => 'user.view',
-        'route_parameters' => array('user' => $this->entity->id()),
+      $form_state->setRedirect(
+        'user.view',
+        array('user' => $this->entity->id())
       );
     }
   }

@@ -8,13 +8,13 @@
 namespace Drupal\aggregator\Tests\Plugin {
 
 use Drupal\aggregator\Form\SettingsForm;
+use Drupal\Core\Form\FormState;
 use Drupal\Tests\UnitTestCase;
 
 /**
- * Tests plugins settings on aggregator plugins.
+ * Tests settings configuration of individual aggregator plugins.
  *
- * @group Drupal
- * @group Aggregator
+ * @group aggregator
  */
 class AggregatorPluginSettingsBaseTest extends UnitTestCase {
 
@@ -38,14 +38,6 @@ class AggregatorPluginSettingsBaseTest extends UnitTestCase {
    * @var array
    */
   protected $managers;
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Aggregator plugin settings tests',
-      'description' => 'Test settings configuration of individual aggregator plugins.',
-      'group' => 'Aggregator',
-    );
-  }
 
   public function setUp() {
     $this->configFactory = $this->getConfigFactoryStub(
@@ -82,7 +74,7 @@ class AggregatorPluginSettingsBaseTest extends UnitTestCase {
    */
   public function testSettingsForm() {
     // Emulate a form state of a sumbitted form.
-    $form_state = array('values' => array('dummy_length' => '', 'aggregator_allowed_html_tags' => ''));
+    $form_state = new FormState(array('values' => array('dummy_length' => '', 'aggregator_allowed_html_tags' => '')));
 
     $test_processor = $this->getMock(
       'Drupal\aggregator_test\Plugin\aggregator\processor\TestProcessor',

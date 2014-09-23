@@ -10,6 +10,7 @@ namespace Drupal\user;
 use Drupal\Core\Entity\ContentEntityForm;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Entity\Query\QueryFactory;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\language\ConfigurableLanguageManagerInterface;
@@ -66,7 +67,7 @@ abstract class AccountForm extends ContentEntityForm {
   /**
    * {@inheritdoc}
    */
-  public function form(array $form, array &$form_state) {
+  public function form(array $form, FormStateInterface $form_state) {
     /** @var \Drupal\user\UserInterface $account */
     $account = $this->entity;
     $user = $this->currentUser();
@@ -308,7 +309,7 @@ abstract class AccountForm extends ContentEntityForm {
   /**
    * {@inheritdoc}
    */
-  public function buildEntity(array $form, array &$form_state) {
+  public function buildEntity(array $form, FormStateInterface $form_state) {
     // Change the roles array to a list of enabled roles.
     // @todo: Alter the form state as the form values are directly extracted and
     //   set on the field, which throws an exception as the list requires
@@ -324,14 +325,14 @@ abstract class AccountForm extends ContentEntityForm {
   /**
    * {@inheritdoc}
    */
-  public function validate(array $form, array &$form_state) {
+  public function validate(array $form, FormStateInterface $form_state) {
     parent::validate($form, $form_state);
 
     $account = $this->entity;
     // Validate new or changing username.
     if (isset($form_state['values']['name'])) {
       if ($error = user_validate_name($form_state['values']['name'])) {
-        $this->setFormError('name', $form_state, $error);
+        $form_state->setErrorByName('name', $error);
       }
       // Cast the user ID as an integer. It might have been set to NULL, which
       // could lead to unexpected results.
@@ -344,7 +345,7 @@ abstract class AccountForm extends ContentEntityForm {
           ->execute();
 
         if ($name_taken) {
-          $this->setFormError('name', $form_state, $this->t('The name %name is already taken.', array('%name' => $form_state['values']['name'])));
+          $form_state->setErrorByName('name', $this->t('The name %name is already taken.', array('%name' => $form_state['values']['name'])));
         }
       }
     }
@@ -362,10 +363,10 @@ abstract class AccountForm extends ContentEntityForm {
       if ($mail_taken) {
         // Format error message dependent on whether the user is logged in or not.
         if (\Drupal::currentUser()->isAuthenticated()) {
-          $this->setFormError('mail', $form_state, $this->t('The email address %email is already taken.', array('%email' => $mail)));
+          $form_state->setErrorByName('mail', $this->t('The email address %email is already taken.', array('%email' => $mail)));
         }
         else {
-          $this->setFormError('mail', $form_state, $this->t('The email address %email is already registered. <a href="@password">Have you forgotten your password?</a>', array('%email' => $mail, '@password' => url('user/password'))));
+          $form_state->setErrorByName('mail', $this->t('The email address %email is already registered. <a href="@password">Have you forgotten your password?</a>', array('%email' => $mail, '@password' => url('user/password'))));
         }
       }
     }
@@ -383,7 +384,7 @@ abstract class AccountForm extends ContentEntityForm {
       $field_definitions = $this->entityManager->getFieldDefinitions('user', $this->getEntity()->bundle());
       $max_length = $field_definitions['signature']->getSetting('max_length');
       if (drupal_strlen($form_state['values']['signature']) > $max_length) {
-        $this->setFormError('signature', $form_state, $this->t('The signature is too long: it must be %max characters or less.', array('%max' => $max_length)));
+        $form_state->setErrorByName('signature', $this->t('The signature is too long: it must be %max characters or less.', array('%max' => $max_length)));
       }
     }
   }
@@ -391,7 +392,7 @@ abstract class AccountForm extends ContentEntityForm {
   /**
    * {@inheritdoc}
    */
-  public function submit(array $form, array &$form_state) {
+  public function submit(array $form, FormStateInterface $form_state) {
     parent::submit($form, $form_state);
 
     $user = $this->getEntity($form_state);

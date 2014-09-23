@@ -8,9 +8,13 @@
 namespace Drupal\simpletest;
 
 use Drupal\Core\DrupalKernel;
+use Drupal\Core\Language\Language;
 use Drupal\Core\Session\UserSession;
 use Drupal\Core\Site\Settings;
+use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Base class for testing the interactive installer.
@@ -78,7 +82,7 @@ abstract class InstallerTestBase extends WebTestBase {
       'uid' => 1,
       'name' => 'admin',
       'mail' => 'admin@example.com',
-      'pass_raw' => $this->randomName(),
+      'pass_raw' => $this->randomMachineName(),
     ));
 
     // If any $settings are defined for this test, copy and prepare an actual
@@ -93,6 +97,27 @@ abstract class InstallerTestBase extends WebTestBase {
     // suitable for a programmed drupal_form_submit().
     // @see WebTestBase::translatePostValues()
     $this->parameters = $this->installParameters();
+
+    // Set up a minimal container (required by WebTestBase).
+    // @see install_begin_request()
+    $request = Request::create($GLOBALS['base_url'] . '/core/install.php');
+    $this->container = new ContainerBuilder();
+    $request_stack = new RequestStack();
+    $request_stack->push($request);
+    $this->container
+      ->set('request_stack', $request_stack);
+    $this->container
+      ->setParameter('language.default_values', Language::$defaultValues);
+    $this->container
+      ->register('language.default', 'Drupal\Core\Language\LanguageDefault')
+      ->addArgument('%language.default_values%');
+    $this->container
+      ->register('language_manager', 'Drupal\Core\Language\LanguageManager')
+      ->addArgument(new Reference('language.default'));
+    $this->container
+      ->register('string_translation', 'Drupal\Core\StringTranslation\TranslationManager')
+      ->addArgument(new Reference('language_manager'));
+    \Drupal::setContainer($this->container);
 
     $this->drupalGet($GLOBALS['base_url'] . '/core/install.php');
 

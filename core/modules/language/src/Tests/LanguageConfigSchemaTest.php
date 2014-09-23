@@ -11,7 +11,9 @@ use Drupal\config\Tests\SchemaCheckTestTrait;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Tests the language config schema.
+ * Ensures the language config schema is correct.
+ *
+ * @group language
  */
 class LanguageConfigSchemaTest extends WebTestBase {
 
@@ -22,7 +24,7 @@ class LanguageConfigSchemaTest extends WebTestBase {
    *
    * @var array
    */
-  public static $modules = array('language');
+  public static $modules = array('language', 'menu_link_content');
 
   /**
    * A user with administrative permissions.
@@ -30,14 +32,6 @@ class LanguageConfigSchemaTest extends WebTestBase {
    * @var \Drupal\user\UserInterface
    */
   protected $adminUser;
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Language config schema',
-      'description' => 'Ensures the language config schema is correct.',
-      'group' => 'Language',
-    );
-  }
 
   /**
    * {@inheritdoc}
@@ -61,8 +55,8 @@ class LanguageConfigSchemaTest extends WebTestBase {
     $settings_path = 'admin/config/regional/content-language';
 
     // Enable translation for menu link.
-    $edit['entity_types[menu_link]'] = TRUE;
-    $edit['settings[menu_link][menu_link][settings][language][language_show]'] = TRUE;
+    $edit['entity_types[menu_link_content]'] = TRUE;
+    $edit['settings[menu_link_content][menu_link_content][settings][language][language_show]'] = TRUE;
 
     // Enable translation for user.
     $edit['entity_types[user]'] = TRUE;
@@ -73,7 +67,7 @@ class LanguageConfigSchemaTest extends WebTestBase {
 
     $config_data = \Drupal::config('language.settings')->get();
     // Make sure configuration saved correctly.
-    $this->assertTrue($config_data['entities']['menu_link']['menu_link']['language']['default_configuration']['language_show']);
+    $this->assertTrue($config_data['entities']['menu_link_content']['menu_link_content']['language']['default_configuration']['language_show']);
 
     $this->assertConfigSchema(\Drupal::service('config.typed'), 'language.settings', $config_data);
   }

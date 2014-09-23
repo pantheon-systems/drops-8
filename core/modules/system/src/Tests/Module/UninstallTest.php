@@ -11,7 +11,9 @@ use Drupal\Component\Utility\String;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Unit tests for module uninstallation and related hooks.
+ * Tests the uninstallation of modules.
+ *
+ * @group Module
  */
 class UninstallTest extends WebTestBase {
 
@@ -22,21 +24,13 @@ class UninstallTest extends WebTestBase {
    */
   public static $modules = array('module_test', 'user', 'views', 'node');
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Module uninstallation',
-      'description' => 'Tests the uninstallation of modules.',
-      'group' => 'Module',
-    );
-  }
-
   /**
    * Tests the hook_modules_uninstalled() of the user module.
    */
   function testUserPermsUninstalled() {
     // Uninstalls the module_test module, so hook_modules_uninstalled()
     // is executed.
-    module_uninstall(array('module_test'));
+    $this->container->get('module_handler')->uninstall(array('module_test'));
 
     // Are the perms defined by module_test removed?
     $this->assertFalse(user_roles(FALSE, 'module_test perm'), 'Permissions were all removed.');

@@ -8,6 +8,7 @@
 namespace Drupal\toolbar\Tests;
 
 use Drupal\Core\Cache\Cache;
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\simpletest\WebTestBase;
 
 /**
@@ -24,6 +25,8 @@ use Drupal\simpletest\WebTestBase;
  *
  * Each hook invocation is simulated and then the previous hash of the admin
  * menu subtrees is compared to the new hash.
+ *
+ * @group toolbar
  */
 class ToolbarAdminMenuTest extends WebTestBase {
 
@@ -54,14 +57,6 @@ class ToolbarAdminMenuTest extends WebTestBase {
    * @var array
    */
   public static $modules = array('node', 'block', 'menu_ui', 'user', 'taxonomy', 'toolbar', 'language', 'test_page_test', 'locale');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Toolbar admin menu',
-      'description' => 'Tests the caching of secondary admin menu items.',
-      'group' => 'Toolbar',
-    );
-  }
 
   function setUp() {
     parent::setUp();
@@ -130,30 +125,16 @@ class ToolbarAdminMenuTest extends WebTestBase {
   }
 
   /**
-   * Tests toolbar_menu_link_update() hook implementation.
+   * Tests toolbar cache tags implementation.
    */
   function testMenuLinkUpdateSubtreesHashCacheClear() {
-    // Get subtree items for the admin menu.
-    $query = \Drupal::entityQuery('menu_link');
-    for ($i = 1; $i <= 3; $i++) {
-      $query->sort('p' . $i, 'ASC');
-    }
-    $query->condition('menu_name', 'admin');
-    $query->condition('depth', '2', '>=');
-
-    // Build an ordered array of links using the query result object.
-    $links = array();
-    if ($result = $query->execute()) {
-      $links = menu_link_load_multiple($result);
-    }
-    // Get the first link in the set.
-    $links = array_values($links);
-    $link = array_shift($links);
+    // The ID of a (any) admin menu link.
+    $admin_menu_link_id = 'system.admin_config_development';
 
     // Disable the link.
     $edit = array();
     $edit['enabled'] = FALSE;
-    $this->drupalPostForm("admin/structure/menu/item/" . $link['mlid'] . "/edit", $edit, t('Save'));
+    $this->drupalPostForm("admin/structure/menu/link/" . $admin_menu_link_id . "/edit", $edit, t('Save'));
     $this->assertResponse(200);
     $this->assertText('The menu link has been saved.');
 
@@ -363,13 +344,13 @@ class ToolbarAdminMenuTest extends WebTestBase {
     // Create a new language with the langcode 'xx'.
     $langcode = 'xx';
     // The English name for the language. This will be translated.
-    $name = $this->randomName(16);
+    $name = $this->randomMachineName(16);
     // This is the language indicator on the translation search screen for
     // untranslated strings.
     $language_indicator = "<em class=\"locale-untranslated\">$langcode</em> ";
     // This will be the translation of $name.
-    $translation = $this->randomName(16);
-    $translation_to_en = $this->randomName(16);
+    $translation = $this->randomMachineName(16);
+    $translation_to_en = $this->randomMachineName(16);
 
     // Add custom language.
     $this->drupalLogin($admin_user);
@@ -377,7 +358,7 @@ class ToolbarAdminMenuTest extends WebTestBase {
       'predefined_langcode' => 'custom',
       'langcode' => $langcode,
       'name' => $name,
-      'direction' => '0',
+      'direction' => LanguageInterface::DIRECTION_LTR,
     );
     $this->drupalPostForm('admin/config/regional/language/add', $edit, t('Add custom language'));
     t($name, array(), array('langcode' => $langcode));
@@ -458,12 +439,12 @@ class ToolbarAdminMenuTest extends WebTestBase {
     // Create a new language with the langcode 'xx'.
     $langcode = 'xx';
     // The English name for the language. This will be translated.
-    $name = $this->randomName(16);
+    $name = $this->randomMachineName(16);
     $edit = array(
       'predefined_langcode' => 'custom',
       'langcode' => $langcode,
       'name' => $name,
-      'direction' => '0',
+      'direction' => LanguageInterface::DIRECTION_LTR,
     );
     $this->drupalPostForm('admin/config/regional/language/add', $edit, t('Add custom language'));
 
@@ -483,12 +464,12 @@ class ToolbarAdminMenuTest extends WebTestBase {
     // Create a new language with the langcode 'xx'.
     $langcode = 'xx';
     // The English name for the language. This will be translated.
-    $name = $this->randomName(16);
+    $name = $this->randomMachineName(16);
     $edit = array(
       'predefined_langcode' => 'custom',
       'langcode' => $langcode,
       'name' => $name,
-      'direction' => '0',
+      'direction' => LanguageInterface::DIRECTION_LTR,
     );
     $this->drupalPostForm('admin/config/regional/language/add', $edit, t('Add custom language'));
 

@@ -1,5 +1,7 @@
 id: d6_user_picture_entity_display
 label: Drupal 6 user picture display configuration
+migration_groups:
+  - Drupal 6
 source:
   plugin: d6_user_picture_instance
   constants:
@@ -14,13 +16,13 @@ source:
         image_style: ''
         image_link: content
 process:
-  entity_type: constants.entity_type
-  bundle: constants.bundle
-  view_mode: constants.view_mode
-  field_name: constants.name
-  type: constants.type
-  options: constants.options
-  options.type: @type
+  entity_type: 'constants/entity_type'
+  bundle: 'constants/bundle'
+  view_mode: 'constants/view_mode'
+  field_name: 'constants/name'
+  type: 'constants/type'
+  options: 'constants/options'
+  'options/type': @type
 destination:
   plugin: component_entity_display
 migration_dependencies:

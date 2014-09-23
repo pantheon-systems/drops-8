@@ -1,5 +1,7 @@
 id: d6_user_picture_file
 label: Drupal 6 user pictures
+migration_groups:
+  - Drupal 6
 source:
   plugin: d6_user_picture_file
   constants:
@@ -11,7 +13,7 @@ process:
     source:
       - picture
       - file_directory_path
-      - constants.is_public
+      - 'constants/is_public'
 destination:
   plugin: entity:file
   source_path_property: picture

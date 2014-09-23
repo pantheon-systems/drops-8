@@ -12,6 +12,8 @@ use Drupal\views\Views;
 
 /**
  * Tests the core Drupal\views\Plugin\views\field\Custom handler.
+ *
+ * @group views
  */
 class FieldCustomTest extends ViewUnitTestBase {
 
@@ -21,14 +23,6 @@ class FieldCustomTest extends ViewUnitTestBase {
    * @var array
    */
   public static $testViews = array('test_view');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Field: Custom',
-      'description' => 'Test the core Drupal\views\Plugin\views\field\Custom handler.',
-      'group' => 'Views Handlers',
-    );
-  }
 
   function viewsData() {
     $data = parent::viewsData();
@@ -41,7 +35,7 @@ class FieldCustomTest extends ViewUnitTestBase {
     $view->setDisplay();
 
     // Alter the text of the field to a random string.
-    $random = $this->randomName();
+    $random = $this->randomMachineName();
     $view->displayHandlers->get('default')->overrideOption('fields', array(
       'name' => array(
         'id' => 'name',

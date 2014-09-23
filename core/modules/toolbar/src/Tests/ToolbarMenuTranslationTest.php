@@ -10,7 +10,9 @@ namespace Drupal\toolbar\Tests;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Tests maintaining inclusion of icons for translated menu items.
+ * Tests that the toolbar icon class remains for translated menu items.
+ *
+ * @group toolbar
  */
 class ToolbarMenuTranslationTest extends WebTestBase {
 
@@ -20,14 +22,6 @@ class ToolbarMenuTranslationTest extends WebTestBase {
    * @var array
    */
   public static $modules = array('toolbar', 'toolbar_test', 'locale');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Toolbar menu translation',
-      'description' => 'Tests that the toolbar icon class remains for translated menu items.',
-      'group' => 'Toolbar',
-    );
-  }
 
   function setUp() {
     parent::setUp();
@@ -68,7 +62,7 @@ class ToolbarMenuTranslationTest extends WebTestBase {
     $this->assertEqual(count($xpath), 1, 'The menu item class ok before translation.');
 
     // Translate the menu item.
-    $menu_item_translated = $this->randomName();
+    $menu_item_translated = $this->randomMachineName();
     $textarea = current($this->xpath('//textarea'));
     $lid = (string) $textarea[0]['name'];
     $edit = array(

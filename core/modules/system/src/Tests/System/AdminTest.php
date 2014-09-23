@@ -7,10 +7,13 @@
 
 namespace Drupal\system\Tests\System;
 
+use Drupal\Core\Menu\MenuTreeParameters;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Tests administrative overview pages.
+ * Tests output on administrative pages and compact mode functionality.
+ *
+ * @group system
  */
 class AdminTest extends WebTestBase {
 
@@ -34,14 +37,6 @@ class AdminTest extends WebTestBase {
    * @var array
    */
   public static $modules = array('locale');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Administrative pages',
-      'description' => 'Tests output on administrative pages and compact mode functionality.',
-      'group' => 'System',
-    );
-  }
 
   function setUp() {
     // testAdminPages() requires Locale module.
@@ -68,9 +63,10 @@ class AdminTest extends WebTestBase {
     // Verify that all visible, top-level administration links are listed on
     // the main administration page.
     foreach ($this->getTopLevelMenuLinks() as $item) {
-      $this->assertLink($item['title']);
-      $this->assertLinkByHref($item['link_path']);
-      $this->assertText($item['localized_options']['attributes']['title']);
+      $this->assertLink($item->getTitle());
+      $this->assertLinkByHref($item->getUrlObject()->toString());
+      // The description should appear below the link.
+      $this->assertText($item->getDescription());
     }
 
     // For each administrative listing page on which the Locale module appears,
@@ -125,26 +121,28 @@ class AdminTest extends WebTestBase {
   /**
    * Returns all top level menu links.
    *
-   * @return \Drupal\menu_link\MenuLinkInterface[]
+   * @return \Drupal\Core\Menu\MenuLinkInterface[]
    */
   protected function getTopLevelMenuLinks() {
-    $route_provider = \Drupal::service('router.route_provider');
-    $routes = array();
-    foreach ($route_provider->getAllRoutes() as $key => $value) {
-      $path = $value->getPath();
-      if (strpos($path, '/admin/') === 0 && count(explode('/', $path)) == 3) {
-        $routes[$key] = $key;
-      }
-    }
-    $menu_link_ids = \Drupal::entityQuery('menu_link')
-      ->condition('route_name', $routes)
-      ->execute();
+    $menu_tree = \Drupal::menuTree();
 
-    $menu_items = \Drupal::entityManager()->getStorage('menu_link')->loadMultiple($menu_link_ids);
-    foreach ($menu_items as &$menu_item) {
-      _menu_link_translate($menu_item);
+    // The system.admin link is normally the parent of all top-level admin links.
+    $parameters = new MenuTreeParameters();
+    $parameters->setRoot('system.admin')->excludeRoot()->setTopLevelOnly()->excludeHiddenLinks();
+    $tree = $menu_tree->load(NULL, $parameters);
+    $manipulators = array(
+      array('callable' => 'menu.default_tree_manipulators:checkAccess'),
+      array('callable' => 'menu.default_tree_manipulators:flatten'),
+    );
+    $tree = $menu_tree->transform($tree, $manipulators);
+
+    // Transform the tree to a list of menu links.
+    $menu_links = array();
+    foreach ($tree as $element) {
+      $menu_links[] = $element->link;
     }
-    return $menu_items;
+
+    return $menu_links;
   }
 
   /**

@@ -13,19 +13,10 @@ use Drupal\Core\Template\AttributeString;
 use Drupal\Tests\UnitTestCase;
 
 /**
- * Tests the template attribute class.
- *
- * @see \Drupal\Core\Template\Attribute
+ * @coversDefaultClass \Drupal\Core\Template\Attribute
+ * @group Template
  */
 class AttributeTest extends UnitTestCase {
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Attribute class',
-      'description' => 'Tests the template attribute class.',
-      'group' => 'Template',
-    );
-  }
 
   /**
    * Tests the constructor of the attribute class.
@@ -92,7 +83,7 @@ class AttributeTest extends UnitTestCase {
   public function testPrint() {
     $attribute = new Attribute(array('class' => array('example-class'), 'id' => 'example-id', 'enabled' => TRUE));
 
-    $content = $this->randomName();
+    $content = $this->randomMachineName();
     $html = '<div' . (string) $attribute . '>' . $content . '</div>';
     $this->assertSelectEquals('div.example-class', $content, 1, $html);
     $this->assertSelectEquals('div.example-class2', $content, 0, $html);

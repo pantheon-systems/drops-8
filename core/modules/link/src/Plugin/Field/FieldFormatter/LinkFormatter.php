@@ -10,6 +10,7 @@ namespace Drupal\link\Plugin\Field\FieldFormatter;
 use Drupal\Component\Utility\String;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Field\FormatterBase;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
 use Drupal\link\LinkItemInterface;
 
@@ -42,7 +43,7 @@ class LinkFormatter extends FormatterBase {
   /**
    * {@inheritdoc}
    */
-  public function settingsForm(array $form, array &$form_state) {
+  public function settingsForm(array $form, FormStateInterface $form_state) {
     $elements = parent::settingsForm($form, $form_state);
 
     $elements['trim_length'] = array(
@@ -147,6 +148,13 @@ class LinkFormatter extends FormatterBase {
         $element[$delta] = array(
           '#markup' => String::checkPlain($link_title),
         );
+
+        if (!empty($item->_attributes)) {
+          // Piggyback on the metadata attributes, which will be placed in the
+          // field template wrapper, and set the URL value in a content
+          // attribute.
+          $item->_attributes += array('content' => $item->url);
+        }
       }
       else {
         $element[$delta] = array(
@@ -160,6 +168,14 @@ class LinkFormatter extends FormatterBase {
         else {
           $element[$delta]['#route_name'] = $url->getRouteName();
           $element[$delta]['#route_parameters'] = $url->getRouteParameters();
+        }
+
+        if (!empty($item->_attributes)) {
+          $element[$delta]['#options'] += array ('attributes' => array());
+          $element[$delta]['#options']['attributes'] += $item->_attributes;
+          // Unset field item attributes since they have been included in the
+          // formatter output and should not be rendered in the field template.
+          unset($item->_attributes);
         }
       }
     }

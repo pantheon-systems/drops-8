@@ -10,23 +10,17 @@ namespace Drupal\system\Tests\Condition;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Tests condition forms, configuration and execution.
+ * Tests that condtion plugins basic form handling is working.
  *
  * Checks condition forms and submission and gives a very cursory check to make
  * sure the configuration that was submitted actually causes the condition to
  * validate correctly.
+ *
+ * @group Condition
  */
 class ConditionFormTest extends WebTestBase {
 
   public static $modules = array('node', 'condition_test');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Condition Form Tests',
-      'description' => 'Tests that condtion plugins basic form handling is working.',
-      'group' => 'Condition API',
-    );
-  }
 
   /**
    * Submit the condition_node_type_test_form to test condition forms.
@@ -34,7 +28,7 @@ class ConditionFormTest extends WebTestBase {
   function testConfigForm() {
     $this->drupalCreateContentType(array('type' => 'page', 'name' => 'Page'));
     $this->drupalCreateContentType(array('type' => 'article', 'name' => 'Article'));
-    $article = entity_create('node', array('type' => 'article', 'title' => $this->randomName()));
+    $article = entity_create('node', array('type' => 'article', 'title' => $this->randomMachineName()));
     $article->save();
     $this->drupalGet('condition_test');
     $this->assertField('bundles[article]', 'There is an article bundle selector.');

@@ -9,6 +9,7 @@ namespace Drupal\content_translation;
 
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Render\Element;
 
@@ -65,23 +66,24 @@ class ContentTranslationHandler implements ContentTranslationHandlerInterface {
     $translate_permission = TRUE;
     // If no permission granularity is defined this entity type does not need an
     // explicit translate permission.
-    if (!user_access('translate any entity') && $permission_granularity = $entity_type->getPermissionGranularity()) {
-      $translate_permission = user_access($permission_granularity == 'bundle' ? "translate {$entity->bundle()} {$entity->getEntityTypeId()}" : "translate {$entity->getEntityTypeId()}");
+    $current_user = \Drupal::currentUser();
+    if (!$current_user->hasPermission('translate any entity') && $permission_granularity = $entity_type->getPermissionGranularity()) {
+      $translate_permission = $current_user->hasPermission($permission_granularity == 'bundle' ? "translate {$entity->bundle()} {$entity->getEntityTypeId()}" : "translate {$entity->getEntityTypeId()}");
     }
-    return $translate_permission && user_access("$op content translations");
+    return $translate_permission && $current_user->hasPermission("$op content translations");
   }
 
   /**
    * {@inheritdoc}
    */
-  public function getSourceLangcode(array $form_state) {
+  public function getSourceLangcode(FormStateInterface $form_state) {
     return isset($form_state['content_translation']['source']) ? $form_state['content_translation']['source']->id : FALSE;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function entityFormAlter(array &$form, array &$form_state, EntityInterface $entity) {
+  public function entityFormAlter(array &$form, FormStateInterface $form_state, EntityInterface $entity) {
     $form_controller = content_translation_form_controller($form_state);
     $form_langcode = $form_controller->getFormLangcode($form_state);
     $entity_langcode = $entity->getUntranslated()->language()->id;
@@ -286,7 +288,7 @@ class ContentTranslationHandler implements ContentTranslationHandlerInterface {
    *
    * @see \Drupal\content_translation\ContentTranslationHandler::entityFormAlter()
    */
-  public function entityFormSharedElements($element, $form_state, $form) {
+  public function entityFormSharedElements($element, FormStateInterface $form_state, $form) {
     static $ignored_types;
 
     // @todo Find a more reliable way to determine if a form element concerns a
@@ -370,7 +372,7 @@ class ContentTranslationHandler implements ContentTranslationHandlerInterface {
    *
    * @see \Drupal\content_translation\ContentTranslationHandler::entityFormAlter()
    */
-  public function entityFormEntityBuild($entity_type, EntityInterface $entity, array $form, array &$form_state) {
+  public function entityFormEntityBuild($entity_type, EntityInterface $entity, array $form, FormStateInterface $form_state) {
     $form_controller = content_translation_form_controller($form_state);
     $form_langcode = $form_controller->getFormLangcode($form_state);
 
@@ -409,7 +411,7 @@ class ContentTranslationHandler implements ContentTranslationHandlerInterface {
    *
    * Validates the submitted content translation metadata.
    */
-  function entityFormValidate($form, &$form_state) {
+  function entityFormValidate($form, FormStateInterface $form_state) {
     if (!empty($form_state['values']['content_translation'])) {
       $translation = $form_state['values']['content_translation'];
       // Validate the "authored by" field.
@@ -428,7 +430,7 @@ class ContentTranslationHandler implements ContentTranslationHandlerInterface {
    *
    * Takes care of the source language change.
    */
-  public function entityFormSourceChange($form, &$form_state) {
+  public function entityFormSourceChange($form, FormStateInterface $form_state) {
     $form_controller = content_translation_form_controller($form_state);
     $entity = $form_controller->getEntity();
     $source = $form_state['values']['source_langcode']['source'];
@@ -444,7 +446,7 @@ class ContentTranslationHandler implements ContentTranslationHandlerInterface {
    *
    * Takes care of entity deletion.
    */
-  function entityFormDelete($form, &$form_state) {
+  function entityFormDelete($form, FormStateInterface $form_state) {
     $form_controller = content_translation_form_controller($form_state);
     $entity = $form_controller->getEntity();
     if (count($entity->getTranslationLanguages()) > 1) {
@@ -457,7 +459,7 @@ class ContentTranslationHandler implements ContentTranslationHandlerInterface {
    *
    * Takes care of content translation deletion.
    */
-  function entityFormDeleteTranslation($form, &$form_state) {
+  function entityFormDeleteTranslation($form, FormStateInterface $form_state) {
     $form_controller = content_translation_form_controller($form_state);
     $entity = $form_controller->getEntity();
     $path = $entity->getSystemPath('drupal:content-translation-overview');

@@ -10,7 +10,9 @@ namespace Drupal\system\Tests\Session;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Tests session handling.
+ * Drupal session handling tests.
+ *
+ * @group Session
  */
 class SessionTest extends WebTestBase {
 
@@ -23,20 +25,12 @@ class SessionTest extends WebTestBase {
 
   protected $dumpHeaders = TRUE;
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Session tests',
-      'description' => 'Drupal session handling tests.',
-      'group' => 'Session'
-    );
-  }
-
   /**
    * Tests for \Drupal\Core\Session\SessionManager::isEnabled() and ::regenerate().
    */
   function testSessionSaveRegenerate() {
     $session_manager = $this->container->get('session_manager');
-    $this->assertFalse($session_manager->isEnabled(), 'SessionManager->isEnabled() initially returns FALSE (in testing framework).');
+    $this->assertTrue($session_manager->isEnabled(), 'SessionManager->isEnabled() initially returns TRUE.');
     $this->assertFalse($session_manager->disable()->isEnabled(), 'SessionManager->isEnabled() returns FALSE after disabling.');
     $this->assertTrue($session_manager->enable()->isEnabled(), 'SessionManager->isEnabled() returns TRUE after enabling.');
 
@@ -89,7 +83,7 @@ class SessionTest extends WebTestBase {
 
     $this->drupalLogin($user);
 
-    $value_1 = $this->randomName();
+    $value_1 = $this->randomMachineName();
     $this->drupalGet('session-test/set/' . $value_1);
     $this->assertText($value_1, 'The session value was stored.', 'Session');
     $this->drupalGet('session-test/get');
@@ -97,7 +91,7 @@ class SessionTest extends WebTestBase {
 
     // Attempt to write over val_1. If drupal_save_session(FALSE) is working.
     // properly, val_1 will still be set.
-    $value_2 = $this->randomName();
+    $value_2 = $this->randomMachineName();
     $this->drupalGet('session-test/no-set/' . $value_2);
     $this->assertText($value_2, 'The session value was correctly passed to session-test/no-set.', 'Session');
     $this->drupalGet('session-test/get');
@@ -115,14 +109,14 @@ class SessionTest extends WebTestBase {
     $this->assertNoText($value_1, "After logout, previous user's session data is not available.", 'Session');
 
     // Now try to store some data as an anonymous user.
-    $value_3 = $this->randomName();
+    $value_3 = $this->randomMachineName();
     $this->drupalGet('session-test/set/' . $value_3);
     $this->assertText($value_3, 'Session data stored for anonymous user.', 'Session');
     $this->drupalGet('session-test/get');
     $this->assertText($value_3, 'Session correctly returned the stored data for an anonymous user.', 'Session');
 
     // Try to store data when drupal_save_session(FALSE).
-    $value_4 = $this->randomName();
+    $value_4 = $this->randomMachineName();
     $this->drupalGet('session-test/no-set/' . $value_4);
     $this->assertText($value_4, 'The session value was correctly passed to session-test/no-set.', 'Session');
     $this->drupalGet('session-test/get');
@@ -260,7 +254,7 @@ class SessionTest extends WebTestBase {
     // be valid. Closing the curl handler will stop the previous session ID
     // from persisting.
     $this->curlClose();
-    $this->additionalCurlOptions[CURLOPT_COOKIE] = rawurlencode($this->session_name) . '=;';
+    $this->additionalCurlOptions[CURLOPT_COOKIE] = rawurlencode($this->getSessionName()) . '=;';
     $this->drupalGet('session-test/id-from-cookie');
     $this->assertRaw("session_id:\n", 'Session ID is blank as sent from cookie header.');
     // Assert that we have an anonymous session now.

@@ -11,6 +11,8 @@ use Drupal\simpletest\WebTestBase;
 
 /**
  * Tests cron runs.
+ *
+ * @group system
  */
 class CronRunTest extends WebTestBase {
 
@@ -21,14 +23,6 @@ class CronRunTest extends WebTestBase {
    */
   public static $modules = array('common_test', 'common_test_cron_helper');
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Cron run',
-      'description' => 'Test cron run.',
-      'group' => 'System',
-    );
-  }
-
   /**
    * Test cron runs.
    */
@@ -38,7 +32,7 @@ class CronRunTest extends WebTestBase {
     $this->assertResponse(404);
 
     // Run cron anonymously with a random cron key.
-    $key = $this->randomName(16);
+    $key = $this->randomMachineName(16);
     $this->drupalGet('cron/' . $key);
     $this->assertResponse(403);
 

@@ -1,5 +1,7 @@
 id: d6_date_formats
 label: Drupal 6 date format configuration
+migration_groups:
+  - Drupal 6
 source:
   plugin: variable_multirow
   variables:
@@ -14,6 +16,6 @@ process:
       date_format_long: long
       date_format_short: short
       date_format_medium: medium
-  'pattern.php': value
+  pattern: value
 destination:
   plugin: entity:date_format

@@ -7,18 +7,14 @@
 
 namespace Drupal\views\Tests\Wizard;
 
+use Drupal\Component\Utility\String;
+
 /**
  * Tests the ability of the views wizard to put views in a menu.
+ *
+ * @group views
  */
 class MenuTest extends WizardTestBase {
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Menu functionality',
-      'description' => 'Test the ability of the views wizard to put views in a menu.',
-      'group' => 'Views Wizard',
-    );
-  }
 
   /**
    * Tests the menu functionality.
@@ -26,15 +22,15 @@ class MenuTest extends WizardTestBase {
   function testMenus() {
     // Create a view with a page display and a menu link in the Main Menu.
     $view = array();
-    $view['label'] = $this->randomName(16);
-    $view['id'] = strtolower($this->randomName(16));
-    $view['description'] = $this->randomName(16);
+    $view['label'] = $this->randomMachineName(16);
+    $view['id'] = strtolower($this->randomMachineName(16));
+    $view['description'] = $this->randomMachineName(16);
     $view['page[create]'] = 1;
-    $view['page[title]'] = $this->randomName(16);
-    $view['page[path]'] = $this->randomName(16);
+    $view['page[title]'] = $this->randomMachineName(16);
+    $view['page[path]'] = $this->randomMachineName(16);
     $view['page[link]'] = 1;
     $view['page[link_properties][menu_name]'] = 'main';
-    $view['page[link_properties][title]'] = $this->randomName(16);
+    $view['page[link_properties][title]'] = $this->randomMachineName(16);
     $this->drupalPostForm('admin/structure/views/add', $view, t('Save and edit'));
 
     // Make sure there is a link to the view from the front page (where we
@@ -45,15 +41,14 @@ class MenuTest extends WizardTestBase {
     $this->assertLinkByHref(url($view['page[path]']));
 
     // Make sure the link is associated with the main menu.
-    $links = menu_load_links('main');
-    $found = FALSE;
-    foreach ($links as $link) {
-      if ($link['link_path'] == $view['page[path]']) {
-        $found = TRUE;
-        break;
-      }
-    }
-    $this->assertTrue($found, t('Found a link to %path in the main menu', array('%path' => $view['page[path]'])));
+    /** @var \Drupal\Core\Menu\MenuLinkManagerInterface $menu_link_manager */
+    $menu_link_manager = \Drupal::service('plugin.manager.menu.link');
+    /** @var \Drupal\Core\Menu\MenuLinkInterface $link */
+    $link = $menu_link_manager->createInstance('views_view:views.' . $view['id'] . '.page_1');
+    $url = $link->getUrlObject();
+    $this->assertEqual($url->getRouteName(), 'view.' . $view['id'] . '.page_1', String::format('Found a link to %path in the main menu', array('%path' => $view['page[path]'])));
+    $metadata = $link->getMetaData();
+    $this->assertEqual(array('view_id' => $view['id'], 'display_id' => 'page_1'), $metadata);
   }
 
 }

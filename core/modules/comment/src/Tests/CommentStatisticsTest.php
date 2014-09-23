@@ -7,18 +7,15 @@
 
 namespace Drupal\comment\Tests;
 
+use Drupal\comment\CommentManagerInterface;
+use Drupal\comment\Entity\Comment;
+
 /**
- * Tests the comment module administrative and end-user-facing interfaces.
+ * Tests comment statistics on nodes.
+ *
+ * @group comment
  */
 class CommentStatisticsTest extends CommentTestBase {
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Comment statistics',
-      'description' => 'Test comment statistics on nodes.',
-      'group' => 'Comment',
-    );
-  }
 
   function setUp() {
     parent::setUp();
@@ -44,7 +41,7 @@ class CommentStatisticsTest extends CommentTestBase {
     $this->setCommentPreview(DRUPAL_DISABLED);
     $this->setCommentForm(TRUE);
     $this->setCommentSubject(FALSE);
-    $this->setCommentSettings('default_mode', COMMENT_MODE_THREADED, 'Comment paging changed.');
+    $this->setCommentSettings('default_mode', CommentManagerInterface::COMMENT_MODE_THREADED, 'Comment paging changed.');
     $this->drupalLogout();
 
     // Checks the initial values of node comment statistics with no comment.
@@ -56,7 +53,7 @@ class CommentStatisticsTest extends CommentTestBase {
 
     // Post comment #1 as web_user2.
     $this->drupalLogin($this->web_user2);
-    $comment_text = $this->randomName();
+    $comment_text = $this->randomMachineName();
     $this->postComment($this->node, $comment_text);
 
     // Checks the new values of node comment statistics with comment #1.
@@ -79,7 +76,7 @@ class CommentStatisticsTest extends CommentTestBase {
 
     // Post comment #2 as anonymous (comment approval enabled).
     $this->drupalGet('comment/reply/node/' . $this->node->id() . '/comment');
-    $anonymous_comment = $this->postComment($this->node, $this->randomName(), '', TRUE);
+    $anonymous_comment = $this->postComment($this->node, $this->randomMachineName(), '', TRUE);
 
     // Checks the new values of node comment statistics with comment #2 and
     // ensure they haven't changed since the comment has not been moderated.
@@ -100,8 +97,8 @@ class CommentStatisticsTest extends CommentTestBase {
 
     // Post comment #3 as anonymous.
     $this->drupalGet('comment/reply/node/' . $this->node->id() . '/comment');
-    $anonymous_comment = $this->postComment($this->node, $this->randomName(), '', array('name' => $this->randomName()));
-    $comment_loaded = comment_load($anonymous_comment->id());
+    $anonymous_comment = $this->postComment($this->node, $this->randomMachineName(), '', array('name' => $this->randomMachineName()));
+    $comment_loaded = Comment::load($anonymous_comment->id());
 
     // Checks the new values of node comment statistics with comment #3.
     // The node needs to be reloaded with a node_load_multiple cache reset.

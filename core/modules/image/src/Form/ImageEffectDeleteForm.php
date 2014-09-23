@@ -8,6 +8,7 @@
 namespace Drupal\image\Form;
 
 use Drupal\Core\Form\ConfirmFormBase;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\image\ImageStyleInterface;
 
 /**
@@ -46,7 +47,7 @@ class ImageEffectDeleteForm extends ConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function getCancelRoute() {
+  public function getCancelUrl() {
     return $this->imageStyle->urlInfo('edit-form');
   }
 
@@ -60,7 +61,7 @@ class ImageEffectDeleteForm extends ConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, array &$form_state, ImageStyleInterface $image_style = NULL, $image_effect = NULL) {
+  public function buildForm(array $form, FormStateInterface $form_state, ImageStyleInterface $image_style = NULL, $image_effect = NULL) {
     $this->imageStyle = $image_style;
     $this->imageEffect = $this->imageStyle->getEffect($image_effect);
 
@@ -70,10 +71,10 @@ class ImageEffectDeleteForm extends ConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function submitForm(array &$form, array &$form_state) {
+  public function submitForm(array &$form, FormStateInterface $form_state) {
     $this->imageStyle->deleteImageEffect($this->imageEffect);
     drupal_set_message($this->t('The image effect %name has been deleted.', array('%name' => $this->imageEffect->label())));
-    $form_state['redirect_route'] = $this->imageStyle->urlInfo('edit-form');
+    $form_state->setRedirectUrl($this->imageStyle->urlInfo('edit-form'));
   }
 
 }

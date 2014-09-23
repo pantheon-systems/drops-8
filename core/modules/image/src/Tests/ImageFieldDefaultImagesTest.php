@@ -8,7 +8,9 @@
 namespace Drupal\image\Tests;
 
 /**
- * Tests default image settings.
+ * Tests setting up default images both to the field and field instance.
+ *
+ * @group image
  */
 class ImageFieldDefaultImagesTest extends ImageFieldTestBase {
 
@@ -19,14 +21,6 @@ class ImageFieldDefaultImagesTest extends ImageFieldTestBase {
    */
   public static $modules = array('field_ui');
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Image field default images tests',
-      'description' => 'Tests setting up default images both to the field and field instance.',
-      'group' => 'Image',
-    );
-  }
-
   /**
    * Tests CRUD for fields and fields instances with default images.
    */
@@ -35,7 +29,7 @@ class ImageFieldDefaultImagesTest extends ImageFieldTestBase {
     $files = $this->drupalGetTestFiles('image');
     // Create 10 files so the default image fids are not a single value.
     for ($i = 1; $i <= 10; $i++) {
-      $filename = $this->randomName() . "$i";
+      $filename = $this->randomMachineName() . "$i";
       $desired_filepath = 'public://' . $filename;
       file_unmanaged_copy($files[0]->uri, $desired_filepath, FILE_EXISTS_ERROR);
       $file = entity_create('file', array('uri' => $desired_filepath, 'filename' => $filename, 'name' => $filename));
@@ -49,8 +43,8 @@ class ImageFieldDefaultImagesTest extends ImageFieldTestBase {
     }
 
     // Create an image field and add an instance to the article content type.
-    $field_name = strtolower($this->randomName());
-    $field_settings['default_image'] = array(
+    $field_name = strtolower($this->randomMachineName());
+    $storage_settings['default_image'] = array(
       'fid' => $default_images['field']->id(),
       'alt' => '',
       'title' => '',
@@ -67,30 +61,25 @@ class ImageFieldDefaultImagesTest extends ImageFieldTestBase {
     $widget_settings = array(
       'preview_image_style' => 'medium',
     );
-    $instance = $this->createImageField($field_name, 'article', $field_settings, $instance_settings, $widget_settings);
+    $instance = $this->createImageField($field_name, 'article', $storage_settings, $instance_settings, $widget_settings);
 
     // The instance default image id should be 2.
-    $default_image = $instance->getSetting('default_image');
-    $this->assertEqual($default_image['fid'], $default_images['instance']->id());
+    $this->assertEqual($instance->getSetting('default_image')['fid'], $default_images['instance']->id());
 
     // Also test \Drupal\field\Entity\FieldInstanceConfig::getSetting().
-    $instance_field_settings = $instance->getSettings();
-    $this->assertEqual($instance_field_settings['default_image']['fid'], $default_images['instance']->id());
+    $this->assertEqual($instance->getSettings()['default_image']['fid'], $default_images['instance']->id());
 
-    $field = $instance->getFieldStorageDefinition();
+    $field_storage = $instance->getFieldStorageDefinition();
 
     // The field default image id should be 1.
-    $default_image = $field->getSetting('default_image');
-    $this->assertEqual($default_image['fid'], $default_images['field']->id());
+    $this->assertEqual($field_storage->getSetting('default_image')['fid'], $default_images['field']->id());
 
-    // Also test \Drupal\field\Entity\FieldConfig::getSettings().
-    $field_field_settings = $field->getSettings();
-    $this->assertEqual($field_field_settings['default_image']['fid'], $default_images['field']->id());
+    // Also test \Drupal\field\Entity\FieldStorageConfig::getSettings().
+    $this->assertEqual($field_storage->getSettings()['default_image']['fid'], $default_images['field']->id());
 
     // Add another instance with another default image to the page content type.
     $instance2 = entity_create('field_instance_config', array(
-      'field_name' => $field->name,
-      'entity_type' => 'node',
+      'field_storage' => $field_storage,
       'bundle' => 'page',
       'label' => $instance->label(),
       'required' => $instance->required,
@@ -116,7 +105,7 @@ class ImageFieldDefaultImagesTest extends ImageFieldTestBase {
 
     // Confirm the defaults are present on the article field settings form.
     $instance_id = $instance->id();
-    $this->drupalGet("admin/structure/types/manage/article/fields/$instance_id/field");
+    $this->drupalGet("admin/structure/types/manage/article/fields/$instance_id/storage");
     $this->assertFieldByXpath(
       '//input[@name="field[settings][default_image][fid][fids]"]',
       $default_images['field']->id(),
@@ -137,7 +126,7 @@ class ImageFieldDefaultImagesTest extends ImageFieldTestBase {
     );
 
     // Confirm the defaults are present on the page field settings form.
-    $this->drupalGet("admin/structure/types/manage/page/fields/$instance_id/field");
+    $this->drupalGet("admin/structure/types/manage/page/fields/$instance_id/storage");
     $this->assertFieldByXpath(
       '//input[@name="field[settings][default_image][fid][fids]"]',
       $default_images['field']->id(),
@@ -182,12 +171,12 @@ class ImageFieldDefaultImagesTest extends ImageFieldTestBase {
       )
     );
 
-    // Upload a new default for the field.
-    $field->settings['default_image']['fid'] = $default_images['field_new']->id();
-    $field->save();
+    // Upload a new default for the field storage.
+    $field_storage->settings['default_image']['fid'] = $default_images['field_new']->id();
+    $field_storage->save();
 
     // Confirm that the new default is used on the article field settings form.
-    $this->drupalGet("admin/structure/types/manage/article/fields/$instance_id/field");
+    $this->drupalGet("admin/structure/types/manage/article/fields/$instance_id/storage");
     $this->assertFieldByXpath(
       '//input[@name="field[settings][default_image][fid][fids]"]',
       $default_images['field_new']->id(),
@@ -294,9 +283,9 @@ class ImageFieldDefaultImagesTest extends ImageFieldTestBase {
   /**
    * Tests image field and instance having an invalid default image.
    */
-  public  function testInvalidDefaultImage() {
-    $field = array(
-      'name' => drupal_strtolower($this->randomName()),
+  public function testInvalidDefaultImage() {
+    $field_storage = entity_create('field_storage_config', array(
+      'name' => drupal_strtolower($this->randomMachineName()),
       'entity_type' => 'node',
       'type' => 'image',
       'settings' => array(
@@ -304,30 +293,26 @@ class ImageFieldDefaultImagesTest extends ImageFieldTestBase {
           'fid' => 100000,
         )
       ),
-    );
-    $instance = array(
-      'field_name' => $field['name'],
-      'label' => $this->randomName(),
-      'entity_type' => 'node',
+    ));
+    $field_storage->save();
+    $settings = $field_storage->getSettings();
+    // The non-existent default image should not be saved.
+    $this->assertNull($settings['default_image']['fid']);
+
+    $field_instance = entity_create('field_instance_config',  array(
+      'field_storage' => $field_storage,
       'bundle' => 'page',
+      'label' => $this->randomMachineName(),
       'settings' => array(
         'default_image' => array(
           'fid' => 100000,
         )
       ),
-    );
-    $field_config = entity_create('field_config', $field);
-    $field_config->save();
-    $settings = $field_config->getSettings();
+    ));
+    $field_instance->save();
+    $settings = $field_instance->getSettings();
     // The non-existent default image should not be saved.
     $this->assertNull($settings['default_image']['fid']);
-
-    $field_instance_config = entity_create('field_instance_config', $instance);
-    $field_instance_config->save();
-    $settings = $field_instance_config->getSettings();
-    // The non-existent default image should not be saved.
-    $this->assertNull($settings['default_image']['fid']);
-
   }
 
 }

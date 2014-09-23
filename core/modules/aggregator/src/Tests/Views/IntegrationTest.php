@@ -12,7 +12,9 @@ use Drupal\views\Tests\ViewTestData;
 use Drupal\views\Tests\ViewUnitTestBase;
 
 /**
- * Tests basic views integration of aggregator module.
+ * Tests basic integration of views data from the aggregator module.
+ *
+ * @group aggregator
  */
 class IntegrationTest extends ViewUnitTestBase {
 
@@ -44,14 +46,6 @@ class IntegrationTest extends ViewUnitTestBase {
    */
   protected $feedStorage;
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Aggregator: Integration tests',
-      'description' => 'Tests basic integration of views data from the aggregator module.',
-      'group' => 'Views module integration',
-    );
-  }
-
   protected function setUp() {
     parent::setUp();
 
@@ -68,15 +62,25 @@ class IntegrationTest extends ViewUnitTestBase {
    * Tests basic aggregator_item view.
    */
   public function testAggregatorItemView() {
+    $feed = $this->feedStorage->create(array(
+      'title' => $this->randomMachineName(),
+      'url' => 'http://drupal.org/',
+      'refresh' => 900,
+      'checked' => 123543535,
+      'description' => $this->randomMachineName(),
+    ));
+    $feed->save();
+
     $items = array();
     $expected = array();
     for ($i = 0; $i < 10; $i++) {
       $values = array();
+      $values['fid'] = $feed->id();
       $values['timestamp'] = mt_rand(REQUEST_TIME - 10, REQUEST_TIME + 10);
-      $values['title'] = $this->randomName();
-      $values['description'] = $this->randomName();
+      $values['title'] = $this->randomMachineName();
+      $values['description'] = $this->randomMachineName();
       // Add a image to ensure that the sanitizing can be tested below.
-      $values['author'] = $this->randomName() . '<img src="http://example.com/example.png" \>"';
+      $values['author'] = $this->randomMachineName() . '<img src="http://example.com/example.png" \>"';
       $values['link'] = 'http://drupal.org/node/' . mt_rand(1000, 10000);
       $values['guid'] = $this->randomString();
 

@@ -7,7 +7,10 @@
 
 namespace Drupal\views\Plugin\views\cache;
 
+use Drupal\Core\Datetime\DateFormatter;
 use Drupal\Core\Cache\Cache;
+use Symfony\Component\DependencyInjection\ContainerInterface;
+use Drupal\Core\Form\FormStateInterface;
 
 /**
  * Simple caching of query results for Views displays.
@@ -27,6 +30,42 @@ class Time extends CachePluginBase {
    */
   protected $usesOptions = TRUE;
 
+  /**
+   * The date formatter service.
+   *
+   * @var \Drupal\Core\Datetime\DateFormatter
+   */
+  protected $dateFormatter;
+
+  /**
+   * Constructs a Time cache plugin object.
+   *
+   * @param array $configuration
+   *   A configuration array containing information about the plugin instance.
+   * @param string $plugin_id
+   *   The plugin_id for the plugin instance.
+   * @param mixed $plugin_definition
+   *   The plugin implementation definition.
+   * @param \Drupal\Core\Datetime\DateFormatter $date_formatter
+   *   The date formatter service.
+   */
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, DateFormatter $date_formatter) {
+    $this->dateFormatter = $date_formatter;
+    parent::__construct($configuration, $plugin_id, $plugin_definition);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
+    return new static(
+      $configuration,
+      $plugin_id,
+      $plugin_definition,
+      $container->get('date.formatter')
+    );
+  }
+
   protected function defineOptions() {
     $options = parent::defineOptions();
     $options['results_lifespan'] = array('default' => 3600);
@@ -37,10 +76,10 @@ class Time extends CachePluginBase {
     return $options;
   }
 
-  public function buildOptionsForm(&$form, &$form_state) {
+  public function buildOptionsForm(&$form, FormStateInterface $form_state) {
     parent::buildOptionsForm($form, $form_state);
     $options = array(60, 300, 1800, 3600, 21600, 518400);
-    $options = array_map('format_interval', array_combine($options, $options));
+    $options = array_map(array($this->dateFormatter, 'formatInterval'), array_combine($options, $options));
     $options = array(-1 => t('Never cache')) + $options + array('custom' => t('Custom'));
 
     $form['results_lifespan'] = array(
@@ -85,7 +124,7 @@ class Time extends CachePluginBase {
     );
   }
 
-  public function validateOptionsForm(&$form, &$form_state) {
+  public function validateOptionsForm(&$form, FormStateInterface $form_state) {
     $custom_fields = array('output_lifespan', 'results_lifespan');
     foreach ($custom_fields as $field) {
       if ($form_state['values']['cache_options'][$field] == 'custom' && !is_numeric($form_state['values']['cache_options'][$field . '_custom'])) {
@@ -97,7 +136,7 @@ class Time extends CachePluginBase {
   public function summaryTitle() {
     $results_lifespan = $this->getLifespan('results');
     $output_lifespan = $this->getLifespan('output');
-    return format_interval($results_lifespan, 1) . '/' . format_interval($output_lifespan, 1);
+    return $this->dateFormatter->formatInterval($results_lifespan, 1) . '/' . $this->dateFormatter->formatInterval($output_lifespan, 1);
   }
 
   protected function getLifespan($type) {

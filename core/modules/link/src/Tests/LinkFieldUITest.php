@@ -11,6 +11,8 @@ use Drupal\simpletest\WebTestBase;
 
 /**
  * Tests link field UI functionality.
+ *
+ * @group link
  */
 class LinkFieldUITest extends WebTestBase {
 
@@ -20,14 +22,6 @@ class LinkFieldUITest extends WebTestBase {
    * @var array
    */
   public static $modules = array('node', 'link', 'field_ui');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Link field UI',
-      'description' => 'Tests link field UI functionality.',
-      'group' => 'Field types',
-    );
-  }
 
   function setUp() {
     parent::setUp();
@@ -45,7 +39,7 @@ class LinkFieldUITest extends WebTestBase {
     $type_path = 'admin/structure/types/manage/' . $type->type;
 
     // Add a link field to the newly-created type.
-    $label = $this->randomName();
+    $label = $this->randomMachineName();
     $field_name = drupal_strtolower($label);
     $edit = array(
       'fields[_add_new_field][label]' => $label,

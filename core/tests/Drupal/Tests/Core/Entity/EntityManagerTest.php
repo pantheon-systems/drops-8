@@ -24,11 +24,7 @@ use Drupal\Tests\UnitTestCase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Tests the \Drupal\Core\Entity\EntityManager class.
- *
  * @coversDefaultClass \Drupal\Core\Entity\EntityManager
- *
- * @group Drupal
  * @group Entity
  */
 class EntityManagerTest extends UnitTestCase {
@@ -95,17 +91,6 @@ class EntityManagerTest extends UnitTestCase {
    * @var \Drupal\Core\TypedData\TypedDataManager|\PHPUnit_Framework_MockObject_MockObject
    */
   protected $typedDataManager;
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'name' => 'Entity Manager test',
-      'description' => 'Unit test the entity manager.',
-      'group' => 'Entity',
-    );
-  }
 
   /**
    * {@inheritdoc}
@@ -1000,8 +985,8 @@ class EntityManagerTest extends UnitTestCase {
   function testgetExtraFields() {
     $this->setUpEntityManager();
 
-    $entity_type_id = $this->randomName();
-    $bundle = $this->randomName();
+    $entity_type_id = $this->randomMachineName();
+    $bundle = $this->randomMachineName();
     $language_code = 'en';
     $hook_bundle_extra_fields = array(
       $entity_type_id => array(

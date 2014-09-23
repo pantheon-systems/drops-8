@@ -10,6 +10,7 @@ namespace Drupal\block_content;
 use Drupal\Core\Entity\ContentEntityForm;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Language\LanguageManager;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -83,7 +84,7 @@ class BlockContentForm extends ContentEntityForm {
   /**
    * {@inheritdoc}
    */
-  public function form(array $form, array &$form_state) {
+  public function form(array $form, FormStateInterface $form_state) {
     $block = $this->entity;
     $account = $this->currentUser();
 
@@ -159,7 +160,7 @@ class BlockContentForm extends ContentEntityForm {
       '#title' => $this->t('Revision log message'),
       '#rows' => 4,
       '#default_value' => $block->getRevisionLog(),
-      '#description' => $this->t('Briefly desribe the changes you have made.'),
+      '#description' => $this->t('Briefly describe the changes you have made.'),
     );
 
     return parent::form($form, $form_state, $block);
@@ -174,7 +175,7 @@ class BlockContentForm extends ContentEntityForm {
    * form state's entity with the current step's values before proceeding to the
    * next step.
    */
-  public function submit(array $form, array &$form_state) {
+  public function submit(array $form, FormStateInterface $form_state) {
     // Build the block object from the submitted values.
     $block = parent::submit($form, $form_state);
 
@@ -189,20 +190,21 @@ class BlockContentForm extends ContentEntityForm {
   /**
    * {@inheritdoc}
    */
-  public function save(array $form, array &$form_state) {
+  public function save(array $form, FormStateInterface $form_state) {
     $block = $this->entity;
     $insert = $block->isNew();
     $block->save();
-    $watchdog_args = array('@type' => $block->bundle(), '%info' => $block->label());
+    $context = array('@type' => $block->bundle(), '%info' => $block->label());
+    $logger = $this->logger('block_content');
     $block_type = entity_load('block_content_type', $block->bundle());
     $t_args = array('@type' => $block_type->label(), '%info' => $block->label());
 
     if ($insert) {
-      watchdog('content', '@type: added %info.', $watchdog_args, WATCHDOG_NOTICE);
+      $logger->notice('@type: added %info.', $context);
       drupal_set_message($this->t('@type %info has been created.', $t_args));
     }
     else {
-      watchdog('content', '@type: updated %info.', $watchdog_args, WATCHDOG_NOTICE);
+      $logger->notice('@type: updated %info.', $context);
       drupal_set_message($this->t('@type %info has been updated.', $t_args));
     }
 
@@ -213,16 +215,16 @@ class BlockContentForm extends ContentEntityForm {
         if (!$theme = $block->getTheme()) {
           $theme = $this->config('system.theme')->get('default');
         }
-        $form_state['redirect_route'] = array(
-          'route_name' => 'block.admin_add',
-          'route_parameters' => array(
+        $form_state->setRedirect(
+          'block.admin_add',
+          array(
             'plugin_id' => 'block_content:' . $block->uuid(),
             'theme' => $theme,
-          ),
+          )
         );
       }
       else {
-        $form_state['redirect_route']['route_name'] = 'block_content.list';
+        $form_state->setRedirect('block_content.list');
       }
     }
     else {
@@ -236,11 +238,11 @@ class BlockContentForm extends ContentEntityForm {
   /**
    * {@inheritdoc}
    */
-  public function validateForm(array &$form, array &$form_state) {
+  public function validateForm(array &$form, FormStateInterface $form_state) {
     if ($this->entity->isNew()) {
       $exists = $this->blockContentStorage->loadByProperties(array('info' => $form_state['values']['info']));
       if (!empty($exists)) {
-        $this->setFormError('info', $form_state, $this->t('A block with description %name already exists.', array(
+        $form_state->setErrorByName('info', $this->t('A block with description %name already exists.', array(
           '%name' => $form_state['values']['info'][0]['value'],
         )));
       }

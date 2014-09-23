@@ -7,13 +7,18 @@
 
 namespace Drupal\migrate_drupal\Tests\d6;
 
+use Drupal\config\Tests\SchemaCheckTestTrait;
 use Drupal\migrate\MigrateExecutable;
 use Drupal\migrate_drupal\Tests\MigrateDrupalTestBase;
 
 /**
- * Tests migration of variables for the Forum module.
+ * Upgrade variables to forum.settings.yml.
+ *
+ * @group migrate_drupal
  */
 class MigrateForumConfigsTest extends MigrateDrupalTestBase {
+
+  use SchemaCheckTestTrait;
 
   /**
    * Modules to enable.
@@ -21,17 +26,6 @@ class MigrateForumConfigsTest extends MigrateDrupalTestBase {
    * @var array
    */
   public static $modules = array('forum');
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'name'  => 'Migrate variables to forum.settings.yml',
-      'description'  => 'Upgrade variables to forum.settings.yml',
-      'group' => 'Migrate Drupal',
-    );
-  }
 
   /**
    * {@inheritdoc}
@@ -61,5 +55,7 @@ class MigrateForumConfigsTest extends MigrateDrupalTestBase {
     $this->assertIdentical($config->get('block.active.limit'), 5);
     // This is 'forum_block_num_1' in D6, but 'block:new:limit' in D8.
     $this->assertIdentical($config->get('block.new.limit'), 5);
+    $this->assertConfigSchema(\Drupal::service('config.typed'), 'forum.settings', $config->get());
   }
+
 }

@@ -7,10 +7,13 @@
 
 namespace Drupal\system\Tests\Form;
 
+use Drupal\Core\Form\FormState;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Test the tableselect form element for expected behavior.
+ * Tests the tableselect form element for expected behavior.
+ *
+ * @group Form
  */
 class ElementsTableSelectTest extends WebTestBase {
 
@@ -20,14 +23,6 @@ class ElementsTableSelectTest extends WebTestBase {
    * @var array
    */
   public static $modules = array('form_test');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Tableselect form element type test',
-      'description' => 'Test the tableselect element for expected behavior',
-      'group' => 'Form API',
-    );
-  }
 
   /**
    * Test the display of checkboxes when #multiple is TRUE.
@@ -212,8 +207,8 @@ class ElementsTableSelectTest extends WebTestBase {
    *   An array containing the processed form, the form_state and any errors.
    */
   private function formSubmitHelper($form, $edit) {
-    $form_id = $this->randomName();
-    $form_state = form_state_defaults();
+    $form_id = $this->randomMachineName();
+    $form_state = new FormState();
 
     $form['op'] = array('#type' => 'submit', '#value' => t('Submit'));
     // The form token CSRF protection should not interfere with this test, so we
@@ -222,8 +217,9 @@ class ElementsTableSelectTest extends WebTestBase {
 
     $form_state['input'] = $edit;
     $form_state['input']['form_id'] = $form_id;
+    $form_state['build_info']['callback_object'] = new StubForm($form_id, $form);
 
-    drupal_prepare_form($form_id, $form, $form_state);
+    \Drupal::formBuilder()->prepareForm($form_id, $form, $form_state);
 
     drupal_process_form($form_id, $form, $form_state);
 

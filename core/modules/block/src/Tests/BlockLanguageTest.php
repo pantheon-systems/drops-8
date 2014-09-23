@@ -10,7 +10,10 @@ namespace Drupal\block\Tests;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Functional tests for the language list configuration forms.
+ * Tests if a block can be configure to be only visibile on a particular
+ * language.
+ *
+ * @group block
  */
 class BlockLanguageTest extends WebTestBase {
 
@@ -25,14 +28,6 @@ class BlockLanguageTest extends WebTestBase {
    * @var array
    */
   public static $modules = array('language', 'block');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Language block visibility',
-      'description' => 'Tests if a block can be configure to be only visibile on a particular language.',
-      'group' => 'Block',
-    );
-  }
 
   function setUp() {
     parent::setUp();
@@ -62,7 +57,7 @@ class BlockLanguageTest extends WebTestBase {
     // Enable a standard block and set the visibility setting for one language.
     $edit = array(
       'settings[visibility][language][langcodes][en]' => TRUE,
-      'id' => strtolower($this->randomName(8)),
+      'id' => strtolower($this->randomMachineName(8)),
       'region' => 'sidebar_first',
     );
     $this->drupalPostForm('admin/structure/block/add/system_powered_by_block' . '/' . $default_theme, $edit, t('Save block'));

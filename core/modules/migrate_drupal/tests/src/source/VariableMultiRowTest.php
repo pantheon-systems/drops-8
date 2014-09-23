@@ -8,10 +8,9 @@
 namespace Drupal\migrate_drupal\Tests\source;
 
 /**
- * Tests the Drupal 6 variable multirow source.
+ * Tests D6 variable multirow source plugin.
  *
  * @group migrate_drupal
- * @group Drupal
  */
 class VariableMultiRowTest extends VariableMultiRowTestBase {
 

@@ -9,15 +9,15 @@ namespace Drupal\field;
 
 use Drupal\Core\Config\Config;
 use Drupal\Core\Config\Entity\ConfigEntityStorage;
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
-use Drupal\Core\Entity\Query\QueryFactory;
+use Drupal\Core\Field\FieldTypePluginManagerInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Component\Uuid\UuidInterface;
 use Drupal\Core\Config\StorageInterface;
-use Drupal\Core\Extension\ModuleHandler;
 use Drupal\Core\State\StateInterface;
 
 /**
@@ -45,14 +45,19 @@ class FieldInstanceConfigStorage extends ConfigEntityStorage {
   protected $state;
 
   /**
+   * The field type plugin manager.
+   *
+   * @var \Drupal\Core\Field\FieldTypePluginManagerInterface
+   */
+  protected $fieldTypeManager;
+
+  /**
    * Constructs a FieldInstanceConfigStorage object.
    *
    * @param \Drupal\Core\Entity\EntityTypeInterface $entity_type
    *   The entity type definition.
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The config factory service.
-   * @param \Drupal\Core\Config\StorageInterface $config_storage
-   *   The config storage service.
    * @param \Drupal\Component\Uuid\UuidInterface $uuid_service
    *   The UUID service.
    * @param \Drupal\Core\Language\LanguageManagerInterface $language_manager
@@ -61,11 +66,14 @@ class FieldInstanceConfigStorage extends ConfigEntityStorage {
    *   The entity manager.
    * @param \Drupal\Core\State\StateInterface $state
    *   The state key value store.
+   * @param \Drupal\Component\Plugin\PluginManagerInterface\FieldTypePluginManagerInterface
+   *   The field type plugin manager.
    */
-  public function __construct(EntityTypeInterface $entity_type, ConfigFactoryInterface $config_factory, StorageInterface $config_storage, UuidInterface $uuid_service, LanguageManagerInterface $language_manager, EntityManagerInterface $entity_manager, StateInterface $state) {
-    parent::__construct($entity_type, $config_factory, $config_storage, $uuid_service, $language_manager);
+  public function __construct(EntityTypeInterface $entity_type, ConfigFactoryInterface $config_factory, UuidInterface $uuid_service, LanguageManagerInterface $language_manager, EntityManagerInterface $entity_manager, StateInterface $state, FieldTypePluginManagerInterface $field_type_manager) {
+    parent::__construct($entity_type, $config_factory, $uuid_service, $language_manager);
     $this->entityManager = $entity_manager;
     $this->state = $state;
+    $this->fieldTypeManager = $field_type_manager;
   }
 
   /**
@@ -75,11 +83,11 @@ class FieldInstanceConfigStorage extends ConfigEntityStorage {
     return new static(
       $entity_type,
       $container->get('config.factory'),
-      $container->get('config.storage'),
       $container->get('uuid'),
       $container->get('language_manager'),
       $container->get('entity.manager'),
-      $container->get('state')
+      $container->get('state'),
+      $container->get('plugin.manager.field.field_type')
     );
   }
 
@@ -104,25 +112,31 @@ class FieldInstanceConfigStorage extends ConfigEntityStorage {
     $include_deleted = isset($conditions['include_deleted']) ? $conditions['include_deleted'] : FALSE;
     unset($conditions['include_deleted']);
 
-    // Get instances stored in configuration.
-    if (isset($conditions['entity_type']) && isset($conditions['bundle']) && isset($conditions['field_name'])) {
-      // Optimize for the most frequent case where we do have a specific ID.
-      $id = $conditions['entity_type'] . '.' . $conditions['bundle'] . '.' . $conditions['field_name'];
-      $instances = $this->loadMultiple(array($id));
-    }
-    else {
-      // No specific ID, we need to examine all existing instances.
-      $instances = $this->loadMultiple();
+    $instances = array();
+
+    // Get instances stored in configuration. If we are explicitly looking for
+    // deleted instances only, this can be skipped, because they will be
+    // retrieved from state below.
+    if (empty($conditions['deleted'])) {
+      if (isset($conditions['entity_type']) && isset($conditions['bundle']) && isset($conditions['field_name'])) {
+        // Optimize for the most frequent case where we do have a specific ID.
+        $id = $conditions['entity_type'] . '.' . $conditions['bundle'] . '.' . $conditions['field_name'];
+        $instances = $this->loadMultiple(array($id));
+      }
+      else {
+        // No specific ID, we need to examine all existing instances.
+        $instances = $this->loadMultiple();
+      }
     }
 
     // Merge deleted instances (stored in state) if needed.
-    if ($include_deleted) {
+    if ($include_deleted || !empty($conditions['deleted'])) {
       $deleted_instances = $this->state->get('field.instance.deleted') ?: array();
-      $deleted_fields = $this->state->get('field.field.deleted') ?: array();
+      $deleted_storages = $this->state->get('field.storage.deleted') ?: array();
       foreach ($deleted_instances as $id => $config) {
         // If the field itself is deleted, inject it directly in the instance.
-        if (isset($deleted_fields[$config['field_uuid']])) {
-          $config['field'] = $this->entityManager->getStorage('field_config')->create($deleted_fields[$config['field_uuid']]);
+        if (isset($deleted_storages[$config['field_storage_uuid']])) {
+          $config['field_storage'] = $this->entityManager->getStorage('field_storage_config')->create($deleted_storages[$config['field_storage_uuid']]);
         }
         $instances[$id] = $this->create($config);
       }
@@ -132,18 +146,19 @@ class FieldInstanceConfigStorage extends ConfigEntityStorage {
     $matching_instances = array();
     foreach ($instances as $instance) {
       // Some conditions are checked against the field.
-      $field = $instance->getFieldStorageDefinition();
+      $field_storage = $instance->getFieldStorageDefinition();
 
       // Only keep the instance if it matches all conditions.
       foreach ($conditions as $key => $value) {
         // Extract the actual value against which the condition is checked.
         switch ($key) {
           case 'field_name':
-            $checked_value = $field->name;
+            $checked_value = $field_storage->name;
             break;
 
           case 'field_id':
-            $checked_value = $instance->field_uuid;
+          case 'field_storage_uuid':
+            $checked_value = $field_storage->uuid();
             break;
 
           case 'uuid';
@@ -170,4 +185,24 @@ class FieldInstanceConfigStorage extends ConfigEntityStorage {
     return $matching_instances;
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  protected function mapFromStorageRecords(array $records) {
+    foreach ($records as &$record) {
+      $class = $this->fieldTypeManager->getPluginClass($record['field_type']);
+      $record['settings'] = $class::instanceSettingsFromConfigData($record['settings']);
+    }
+    return parent::mapFromStorageRecords($records);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function mapToStorageRecord(EntityInterface $entity) {
+    $record = parent::mapToStorageRecord($entity);
+    $class = $this->fieldTypeManager->getPluginClass($record['field_type']);
+    $record['settings'] = $class::instanceSettingsToConfigData($record['settings']);
+    return $record;
+  }
 }

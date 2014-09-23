@@ -11,6 +11,7 @@ use Drupal\Core\TypedData\ContextAwareInterface;
 use Drupal\Core\TypedData\DataDefinitionInterface;
 use Drupal\Core\Config\Schema\Element;
 use Drupal\Core\Config\Schema\ArrayElement;
+use Drupal\Core\Config\TypedConfigManagerInterface;
 
 /**
  * Defines the locale configuration wrapper object.
@@ -39,6 +40,13 @@ class LocaleTypedConfig extends Element {
   protected $localeConfig;
 
   /**
+   * The typed config manager.
+   *
+   * @var \Drupal\Core\Config\TypedConfigManagerInterface
+   */
+  protected $typedConfigManager;
+
+  /**
    * Constructs a configuration wrapper object.
    *
    * @param \Drupal\Core\TypedData\DataDefinitionInterface $definition
@@ -47,20 +55,23 @@ class LocaleTypedConfig extends Element {
    *   The configuration object name.
    * @param string $langcode
    *   Language code for the source configuration data.
-   * @param \Drupal\locale\LocaleConfigManager $localeConfig;
+   * @param \Drupal\locale\LocaleConfigManager $locale_config
    *   The locale configuration manager object.
+   * @param \Drupal\locale\TypedConfigManagerInterface $typed_config;
+   *   The typed configuration manager interface.
    */
-  public function __construct(DataDefinitionInterface $definition, $name, $langcode, LocaleConfigManager $localeConfig) {
+  public function __construct(DataDefinitionInterface $definition, $name, $langcode, LocaleConfigManager $locale_config, TypedConfigManagerInterface $typed_config) {
     parent::__construct($definition, $name);
     $this->langcode = $langcode;
-    $this->localeConfig = $localeConfig;
+    $this->localeConfig = $locale_config;
+    $this->typedConfigManager = $typed_config;
   }
 
   /**
    * Gets wrapped typed config object.
    */
   public function getTypedConfig() {
-    return $this->localeConfig->create($this->definition, $this->value);
+    return $this->typedConfigManager->create($this->definition, $this->value);
   }
 
   /**
@@ -72,7 +83,7 @@ class LocaleTypedConfig extends Element {
       'target' => $langcode,
     );
     $data = $this->getElementTranslation($this->getTypedConfig(), $options);
-    return $this->localeConfig->create($this->definition, $data);
+    return $this->typedConfigManager->create($this->definition, $data);
   }
 
   /**
@@ -108,7 +119,7 @@ class LocaleTypedConfig extends Element {
    *   \Drupal\Core\Config\Schema\ArrayElement.
    * @param array $options
    *   Array with translation options that must contain the keys defined in
-   *   \Drupal\locale\LocaleTypedConfig::translateElement()
+   *   \Drupal\locale\LocaleTypedConfig::translateElement().
    *
    * @return array
    *   Configuration data translated to the requested language if available,
@@ -132,7 +143,7 @@ class LocaleTypedConfig extends Element {
    *   Typed configuration array element.
    * @param array $options
    *   Array with translation options that must contain the keys defined in
-   *   \Drupal\locale\LocaleTypedConfig::translateElement()
+   *   \Drupal\locale\LocaleTypedConfig::translateElement().
    *
    * @return array
    *   Configuration data translated to the requested language.

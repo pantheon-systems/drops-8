@@ -7,6 +7,7 @@
 
 namespace Drupal\comment\Plugin\views\wizard;
 
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\views\Plugin\views\wizard\WizardPluginBase;
 
 /**
@@ -50,7 +51,7 @@ class Comment extends WizardPluginBase {
   protected $filters = array(
     'status' => array(
       'value' => TRUE,
-      'table' => 'comment',
+      'table' => 'comment_field_data',
       'field' => 'status',
       'provider' => 'comment'
     ),
@@ -73,7 +74,7 @@ class Comment extends WizardPluginBase {
     return $options;
   }
 
-  protected function buildFormStyle(array &$form, array &$form_state, $type) {
+  protected function buildFormStyle(array &$form, FormStateInterface $form_state, $type) {
     parent::buildFormStyle($form, $form_state, $type);
     $style_form =& $form['displays'][$type]['options']['style'];
     // Some style plugins don't support row plugins so stop here if that's the
@@ -101,7 +102,7 @@ class Comment extends WizardPluginBase {
   /**
    * {@inheritdoc}
    */
-  protected function pageDisplayOptions(array $form, array &$form_state) {
+  protected function pageDisplayOptions(array $form, FormStateInterface $form_state) {
     $display_options = parent::pageDisplayOptions($form, $form_state);
     $row_plugin = isset($form_state['values']['page']['style']['row_plugin']) ? $form_state['values']['page']['style']['row_plugin'] : NULL;
     $row_options = isset($form_state['values']['page']['style']['row_options']) ? $form_state['values']['page']['style']['row_options'] : array();
@@ -112,7 +113,7 @@ class Comment extends WizardPluginBase {
   /**
    * Overrides Drupal\views\Plugin\views\wizard\WizardPluginBase::blockDisplayOptions().
    */
-  protected function blockDisplayOptions(array $form, array &$form_state) {
+  protected function blockDisplayOptions(array $form, FormStateInterface $form_state) {
     $display_options = parent::blockDisplayOptions($form, $form_state);
     $row_plugin = isset($form_state['values']['block']['style']['row_plugin']) ? $form_state['values']['block']['style']['row_plugin'] : NULL;
     $row_options = isset($form_state['values']['block']['style']['row_options']) ? $form_state['values']['block']['style']['row_options'] : array();
@@ -144,7 +145,7 @@ class Comment extends WizardPluginBase {
 
     // Add a relationship to nodes.
     $display_options['relationships']['node']['id'] = 'node';
-    $display_options['relationships']['node']['table'] = 'comment';
+    $display_options['relationships']['node']['table'] = 'comment_field_data';
     $display_options['relationships']['node']['field'] = 'node';
     $display_options['relationships']['node']['required'] = 1;
     $display_options['relationships']['node']['plugin_id'] = 'standard';
@@ -155,7 +156,7 @@ class Comment extends WizardPluginBase {
 
     /* Field: Comment: Title */
     $display_options['fields']['subject']['id'] = 'subject';
-    $display_options['fields']['subject']['table'] = 'comment';
+    $display_options['fields']['subject']['table'] = 'comment_field_data';
     $display_options['fields']['subject']['field'] = 'subject';
     $display_options['fields']['subject']['provider'] = 'comment';
     $display_options['fields']['subject']['label'] = '';

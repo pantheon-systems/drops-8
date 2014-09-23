@@ -14,6 +14,7 @@ use Symfony\Component\HttpFoundation\Request;
 /**
  * Tests the grid style plugin.
  *
+ * @group views
  * @see \Drupal\views\Plugin\views\style\Grid
  */
 class StyleGridTest extends PluginTestBase {
@@ -29,17 +30,6 @@ class StyleGridTest extends PluginTestBase {
    * Keeps track of which alignments have been tested.
    */
   protected $alignmentsTested = array();
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'name' => 'Style: Grid',
-      'description' => 'Tests the grid style plugin.',
-      'group' => 'Views Plugins',
-    );
-  }
 
   /**
    * {@inheritdoc}
@@ -83,7 +73,7 @@ class StyleGridTest extends PluginTestBase {
     $this->executeView($view);
     $output = $view->preview();
     $output = drupal_render($output);
-    $this->drupalSetContent($output, 'internal://test-grid');
+    $this->drupalSetContent($output);
     if (!in_array($alignment, $this->alignmentsTested)) {
       $result = $this->xpath('//div[contains(@class, "views-view-grid") and contains(@class, :alignment) and contains(@class, :columns)]', array(':alignment' => $alignment, ':columns' => 'cols-' . $columns));
       $this->assertTrue(count($result), ucfirst($alignment) . " grid markup detected.");

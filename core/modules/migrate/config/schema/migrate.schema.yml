@@ -6,7 +6,13 @@ migrate.migration.*:
   mapping:
     id:
       type: string
-      lable: 'ID'
+      label: 'ID'
+    migration_groups:
+      type: sequence
+      label: 'Migration Groups'
+      sequence:
+        - type: string
+          label: 'Group'
     label:
       type: label
       label: 'Label'

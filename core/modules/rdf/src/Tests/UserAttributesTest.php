@@ -11,6 +11,8 @@ use Drupal\simpletest\WebTestBase;
 
 /**
  * Tests the RDFa markup of Users.
+ *
+ * @group rdf
  */
 class UserAttributesTest extends WebTestBase {
 
@@ -20,14 +22,6 @@ class UserAttributesTest extends WebTestBase {
    * @var array
    */
   public static $modules = array('rdf', 'node');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'RDFa markup for users',
-      'description' => 'Tests the RDFa markup of users.',
-      'group' => 'RDF',
-    );
-  }
 
   public function setUp() {
     parent::setUp();
@@ -54,9 +48,9 @@ class UserAttributesTest extends WebTestBase {
     $user1 = $this->drupalCreateUser(array('access user profiles'));
 
     $authors = array(
-      $this->drupalCreateUser(array(), $this->randomName(30)),
-      $this->drupalCreateUser(array(), $this->randomName(20)),
-      $this->drupalCreateUser(array(), $this->randomName(5))
+      $this->drupalCreateUser(array(), $this->randomMachineName(30)),
+      $this->drupalCreateUser(array(), $this->randomMachineName(20)),
+      $this->drupalCreateUser(array(), $this->randomMachineName(5))
     );
 
     $this->drupalLogin($user1);

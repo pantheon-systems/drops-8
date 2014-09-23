@@ -9,6 +9,8 @@ namespace Drupal\node\Tests;
 
 /**
  * Tests node administration page functionality.
+ *
+ * @group node
  */
 class NodeAdminTest extends NodeTestBase {
 
@@ -18,14 +20,6 @@ class NodeAdminTest extends NodeTestBase {
    * @var array
    */
   public static $modules = array('views');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Node administration',
-      'description' => 'Test node administration page functionality.',
-      'group' => 'Node',
-    );
-  }
 
   function setUp() {
     parent::setUp();
@@ -50,7 +44,7 @@ class NodeAdminTest extends NodeTestBase {
     $changed = REQUEST_TIME;
     foreach (array('dd', 'aa', 'DD', 'bb', 'cc', 'CC', 'AA', 'BB') as $prefix) {
       $changed += 1000;
-      $node = $this->drupalCreateNode(array('title' => $prefix . $this->randomName(6)));
+      $node = $this->drupalCreateNode(array('title' => $prefix . $this->randomMachineName(6)));
       db_update('node_field_data')
         ->fields(array('changed' => $changed))
         ->condition('nid', $node->id())

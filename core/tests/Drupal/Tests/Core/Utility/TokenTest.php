@@ -13,6 +13,7 @@ use Drupal\Tests\UnitTestCase;
 
 /**
  * @coversDefaultClass \Drupal\Core\Utility\Token
+ * @group Utility
  */
 class TokenTest extends UnitTestCase {
 
@@ -47,17 +48,6 @@ class TokenTest extends UnitTestCase {
   /**
    * {@inheritdoc}
    */
-  public static function getInfo() {
-    return array(
-      'description' => '',
-      'name' => '\Drupal\Tests\Core\Utility\Token unit test',
-      'group' => 'System',
-    );
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function setUp() {
     $this->cache = $this->getMock('\Drupal\Core\Cache\CacheBackendInterface');
 
@@ -77,13 +67,13 @@ class TokenTest extends UnitTestCase {
     $token_info = array(
       'types' => array(
         'foo' => array(
-          'name' => $this->randomName(),
+          'name' => $this->randomMachineName(),
         ),
       ),
     );
 
     $language = $this->getMock('\Drupal\Core\Language\Language');
-    $language->id = $this->randomName();
+    $language->id = $this->randomMachineName();
 
     $this->languageManager->expects($this->once())
       ->method('getCurrentLanguage')

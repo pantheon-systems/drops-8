@@ -12,7 +12,9 @@ use Drupal\Core\Field\FieldItemInterface;
 use Drupal\field\Tests\FieldUnitTestBase;
 
 /**
- * Tests for \Drupal\text\Plugin\Field\FieldType\TextWithSummaryItem.
+ * Tests using entity fields of the text summary field type.
+ *
+ * @group text
  */
 class TextWithSummaryItemTest extends FieldUnitTestBase {
 
@@ -24,11 +26,11 @@ class TextWithSummaryItemTest extends FieldUnitTestBase {
   public static $modules = array('filter');
 
   /**
-   * Field entity.
+   * Field storage entity.
    *
-   * @var \Drupal\field\Entity\FieldConfig.
+   * @var \Drupal\field\Entity\FieldStorageConfig.
    */
-  protected $field;
+  protected $fieldStorage;
 
   /**
    * Field instance.
@@ -37,14 +39,6 @@ class TextWithSummaryItemTest extends FieldUnitTestBase {
    */
   protected $instance;
 
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Text summary field item',
-      'description' => 'Tests using entity fields of the text summary field type.',
-      'group' => 'Field types',
-    );
-  }
 
   public function setUp() {
     parent::setUp();
@@ -68,10 +62,10 @@ class TextWithSummaryItemTest extends FieldUnitTestBase {
 
     // Create an entity with a summary and no text format.
     $entity = entity_create($entity_type);
-    $entity->summary_field->value = $value = $this->randomName();
-    $entity->summary_field->summary = $summary = $this->randomName();
+    $entity->summary_field->value = $value = $this->randomMachineName();
+    $entity->summary_field->summary = $summary = $this->randomMachineName();
     $entity->summary_field->format = NULL;
-    $entity->name->value = $this->randomName();
+    $entity->name->value = $this->randomMachineName();
     $entity->save();
 
     $entity = entity_load($entity_type, $entity->id());
@@ -109,7 +103,7 @@ class TextWithSummaryItemTest extends FieldUnitTestBase {
    */
   protected function createField($entity_type) {
     // Create a field .
-    $this->field = entity_create('field_config', array(
+    $this->fieldStorage = entity_create('field_storage_config', array(
       'name' => 'summary_field',
       'entity_type' => $entity_type,
       'type' => 'text_with_summary',
@@ -117,9 +111,9 @@ class TextWithSummaryItemTest extends FieldUnitTestBase {
         'max_length' => 10,
       )
     ));
-    $this->field->save();
+    $this->fieldStorage->save();
     $this->instance = entity_create('field_instance_config', array(
-      'field' => $this->field,
+      'field_storage' => $this->fieldStorage,
       'bundle' => $entity_type,
       'settings' => array(
         'text_processing' => 0,

@@ -12,6 +12,8 @@ use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Tests the functions for generating paths and URLs for image styles.
+ *
+ * @group image
  */
 class ImageStylesPathAndUrlTest extends WebTestBase {
 
@@ -26,14 +28,6 @@ class ImageStylesPathAndUrlTest extends WebTestBase {
    * @var \Drupal\image\ImageStyleInterface
    */
   protected $style;
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Image styles path and URL functions',
-      'description' => 'Tests functions for generating paths and URLs to image styles.',
-      'group' => 'Image',
-    );
-  }
 
   function setUp() {
     parent::setUp();
@@ -82,6 +76,22 @@ class ImageStylesPathAndUrlTest extends WebTestBase {
    */
   function testImageStyleUrlAndPathPrivateUnclean() {
     $this->doImageStyleUrlAndPathTests('private', FALSE);
+  }
+
+  /**
+   * Tests an image style URL using the "public://" scheme and page cache.
+   */
+  public function testImageStyleUrlAndPathPublicWithPageCache() {
+    $this->enablePageCache();
+    $this->doImageStyleUrlAndPathTests('public');
+  }
+
+  /**
+   * Tests an image style URL using the "private://" scheme and page cache.
+   */
+  public function testImageStyleUrlAndPathPrivateWithPageCache() {
+    $this->enablePageCache();
+    $this->doImageStyleUrlAndPathTests('private');
   }
 
   /**
@@ -230,6 +240,17 @@ class ImageStylesPathAndUrlTest extends WebTestBase {
     $this->assertIdentical(strpos($generate_url, IMAGE_DERIVATIVE_TOKEN . '='), FALSE, 'The security token does not appear in the image style URL.');
     $this->drupalGet($generate_url);
     $this->assertResponse(200, 'Image was accessible at the URL with a missing token.');
+  }
+
+  /**
+   * Turn on page caching.
+   */
+  protected function enablePageCache() {
+    // Turn on page caching and rerun the test.
+    $config = \Drupal::config('system.performance');
+    $config->set('cache.page.use_internal', 1);
+    $config->set('cache.page.max_age', 300);
+    $config->save();
   }
 
 }

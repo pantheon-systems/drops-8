@@ -7,11 +7,13 @@
 
 namespace Drupal\options\Tests;
 
-use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\field\Tests\FieldTestBase;
 
 /**
- * Options module UI tests.
+ * Tests the Options field UI functionality.
+ *
+ * @group options
  */
 class OptionsFieldUITest extends FieldTestBase {
 
@@ -29,14 +31,6 @@ class OptionsFieldUITest extends FieldTestBase {
    */
   protected $type_name;
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Options field UI',
-      'description' => 'Test the Options field UI functionality.',
-      'group' => 'Field types',
-    );
-  }
-
   function setUp() {
     parent::setUp();
 
@@ -45,7 +39,7 @@ class OptionsFieldUITest extends FieldTestBase {
     $this->drupalLogin($admin_user);
 
     // Create content type, with underscores.
-    $type_name = 'test_' . strtolower($this->randomName());
+    $type_name = 'test_' . strtolower($this->randomMachineName());
     $this->type_name = $type_name;
     $type = $this->drupalCreateContentType(array('name' => $type_name, 'type' => $type_name));
     $this->type = $type->type;
@@ -100,6 +94,11 @@ class OptionsFieldUITest extends FieldTestBase {
     $string = "0|Zero";
     $array = array('0' => 'Zero');
     $this->assertAllowedValuesInput($string, $array, 'Values not in use can be removed.');
+
+    // Check that the same key can only be used once.
+    $string = "0|Zero\n0|One";
+    $array = array('0' => 'One');
+    $this->assertAllowedValuesInput($string, $array, 'Same value cannot be used multiple times.');
   }
 
   /**
@@ -150,6 +149,16 @@ class OptionsFieldUITest extends FieldTestBase {
     $string = "0|Zero";
     $array = array('0' => 'Zero');
     $this->assertAllowedValuesInput($string, $array, 'Values not in use can be removed.');
+
+    // Check that the same key can only be used once.
+    $string = "0.5|Point five\n0.5|Half";
+    $array = array('0.5' => 'Half');
+    $this->assertAllowedValuesInput($string, $array, 'Same value cannot be used multiple times.');
+
+    // Check that different forms of the same float value cannot be used.
+    $string = "0|Zero\n.5|Point five\n0.5|Half";
+    $array = array('0' => 'Zero', '0.5' => 'Half');
+    $this->assertAllowedValuesInput($string, $array, 'Different forms of the same value cannot be used.');
   }
 
   /**
@@ -176,7 +185,7 @@ class OptionsFieldUITest extends FieldTestBase {
     $array = array('zero' => 'Zero', 'One' => 'One');
     $this->assertAllowedValuesInput($string, $array, 'Mixed lists are accepted.');
     // Overly long keys.
-    $this->assertAllowedValuesInput("zero|Zero\n" . $this->randomName(256) . "|One", 'each key must be a string at most 255 characters long', 'Overly long keys are rejected.');
+    $this->assertAllowedValuesInput("zero|Zero\n" . $this->randomMachineName(256) . "|One", 'each key must be a string at most 255 characters long', 'Overly long keys are rejected.');
 
     // Create a node with actual data for the field.
     $settings = array(
@@ -205,34 +214,16 @@ class OptionsFieldUITest extends FieldTestBase {
     $string = "Zero";
     $array = array('Zero' => 'Zero');
     $this->assertAllowedValuesInput($string, $array, 'Values not in use can be removed.');
-  }
 
-  /**
-   * Options (boolean) : test 'On/Off' values input.
-   */
-  function testOptionsAllowedValuesBoolean() {
-    $this->field_name = 'field_options_boolean';
-    $this->createOptionsField('list_boolean');
+    // Check that string values with dots can be used.
+    $string = "Zero\nexample.com|Example";
+    $array = array('Zero' => 'Zero', 'example.com' => 'Example');
+    $this->assertAllowedValuesInput($string, $array, 'String value with dot is supported.');
 
-    // Check that the separate 'On' and 'Off' form fields work.
-    $on = $this->randomName();
-    $off = $this->randomName();
-    $allowed_values = array(1 => $on, 0 => $off);
-    $edit = array(
-      'on' => $on,
-      'off' => $off,
-    );
-    $this->drupalPostForm($this->admin_path, $edit, t('Save field settings'));
-    $this->assertRaw(t('Updated field %label field settings.', array('%label' => $this->field_name)));
-
-    // Test the allowed_values on the field settings form.
-    $this->drupalGet($this->admin_path);
-    $this->assertFieldByName('on', $on, t("The 'On' value is stored correctly."));
-    $this->assertFieldByName('off', $off, t("The 'Off' value is stored correctly."));
-    $field = FieldConfig::loadByName('node', $this->field_name);
-    $this->assertEqual($field->getSetting('allowed_values'), $allowed_values, 'The allowed value is correct');
-    $this->assertNull($field->getSetting('on'), 'The on value is not saved into settings');
-    $this->assertNull($field->getSetting('off'), 'The off value is not saved into settings');
+    // Check that the same key can only be used once.
+    $string = "zero|Zero\nzero|One";
+    $array = array('zero' => 'One');
+    $this->assertAllowedValuesInput($string, $array, 'Same value cannot be used multiple times.');
   }
 
   /**
@@ -252,11 +243,11 @@ class OptionsFieldUITest extends FieldTestBase {
    * Helper function to create list field of a given type.
    *
    * @param string $type
-   *   'list_integer', 'list_float', 'list_text' or 'list_boolean'
+   *   'list_integer', 'list_float' or 'list_text'
    */
   protected function createOptionsField($type) {
     // Create a test field and instance.
-    entity_create('field_config', array(
+    entity_create('field_storage_config', array(
       'name' => $this->field_name,
       'entity_type' => 'node',
       'type' => $type,
@@ -269,7 +260,7 @@ class OptionsFieldUITest extends FieldTestBase {
 
     entity_get_form_display('node', $this->type, 'default')->setComponent($this->field_name)->save();
 
-    $this->admin_path = 'admin/structure/types/manage/' . $this->type . '/fields/node.' . $this->type . '.' . $this->field_name . '/field';
+    $this->admin_path = 'admin/structure/types/manage/' . $this->type . '/fields/node.' . $this->type . '.' . $this->field_name . '/storage';
   }
 
   /**
@@ -292,8 +283,8 @@ class OptionsFieldUITest extends FieldTestBase {
       $this->assertText($result, $message);
     }
     else {
-      $field = FieldConfig::loadByName('node', $this->field_name);
-      $this->assertIdentical($field->getSetting('allowed_values'), $result, $message);
+      $field_storage = FieldStorageConfig::loadByName('node', $this->field_name);
+      $this->assertIdentical($field_storage->getSetting('allowed_values'), $result, $message);
     }
   }
 
@@ -301,15 +292,16 @@ class OptionsFieldUITest extends FieldTestBase {
    * Tests normal and key formatter display on node display.
    */
   function testNodeDisplay() {
-    $this->field_name = strtolower($this->randomName());
-    $this->createOptionsField('list_boolean');
+    $this->field_name = strtolower($this->randomMachineName());
+    $this->createOptionsField('list_integer');
     $node = $this->drupalCreateNode(array('type' => $this->type));
 
-    $on = $this->randomName();
-    $off = $this->randomName();
+    $on = $this->randomMachineName();
+    $off = $this->randomMachineName();
     $edit = array(
-      'on' => $on,
-      'off' => $off,
+      'field[settings][allowed_values]' =>
+        "1|$on
+        0|$off",
     );
 
     $this->drupalPostForm($this->admin_path, $edit, t('Save field settings'));

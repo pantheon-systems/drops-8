@@ -12,7 +12,9 @@ use Drupal\migrate\MigrateExecutable;
 use Drupal\migrate_drupal\Tests\MigrateDrupalTestBase;
 
 /**
- * Tests the Drupal 6 vocabulary-node type association to Drupal 8 migration.
+ * Vocabulary field instance migration.
+ *
+ * @group migrate_drupal
  */
 class MigrateVocabularyFieldInstanceTest extends MigrateDrupalTestBase {
 
@@ -22,17 +24,6 @@ class MigrateVocabularyFieldInstanceTest extends MigrateDrupalTestBase {
    * @var array
    */
   static $modules = array('node', 'field', 'taxonomy');
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'name'  => 'Vocabulary field instance migration',
-      'description'  => 'Vocabulary field instance migration',
-      'group' => 'Migrate Drupal',
-    );
-  }
 
   /**
    * {@inheritdoc}
@@ -62,7 +53,7 @@ class MigrateVocabularyFieldInstanceTest extends MigrateDrupalTestBase {
       'vid' => 'tags',
     ))->save();
     // Create the field itself.
-    entity_create('field_config', array(
+    entity_create('field_storage_config', array(
       'entity_type' => 'node',
       'name' => 'tags',
       'type' => 'taxonomy_term_reference',

@@ -11,22 +11,13 @@ use Drupal\migrate\MigrateExecutable;
 use Drupal\migrate_drupal\Tests\MigrateDrupalTestBase;
 
 /**
- * Test the user_picture field migration.
+ * User picture field migration.
+ *
+ * @group migrate_drupal
  */
 class MigrateUserPictureFieldTest extends MigrateDrupalTestBase {
 
   static $modules = array('image');
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'name'  => 'Migrate user picture field',
-      'description'  => 'User picture field migration',
-      'group' => 'Migrate Drupal',
-    );
-  }
 
   /**
    * {@inheritdoc}
@@ -42,8 +33,8 @@ class MigrateUserPictureFieldTest extends MigrateDrupalTestBase {
    * Test the user picture field migration.
    */
   public function testUserPictureField() {
-    $field = entity_load('field_config', 'user.user_picture');
-    $this->assertEqual($field->id(), 'user.user_picture');
+    $field_storage = entity_load('field_storage_config', 'user.user_picture');
+    $this->assertEqual($field_storage->id(), 'user.user_picture');
     $this->assertEqual(array('user', 'user_picture'), entity_load('migration', 'd6_user_picture_field')->getIdMap()->lookupDestinationID(array('')));
   }
 

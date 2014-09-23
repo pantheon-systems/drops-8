@@ -9,6 +9,7 @@ namespace Drupal\views\Plugin\views\display;
 
 use Drupal\Component\Utility\String;
 use Drupal\Core\Cache\Cache;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Theme\Registry;
@@ -31,7 +32,7 @@ use Symfony\Component\DependencyInjection\Exception\RuntimeException as Dependen
  * displays (see \Drupal\views\Plugin\views\display\DefaultDisplay).
  *
  * Display plugins extend \Drupal\views\Plugin\views\display\DisplayPluginBase.
- * They must be annotated with \Drupal\views\Plugin\Annotation\ViewsDisplay
+ * They must be annotated with \Drupal\views\Annotation\ViewsDisplay
  * annotation, and they must be in namespace directory Plugin\views\display.
  *
  * @ingroup views_plugins
@@ -901,14 +902,8 @@ abstract class DisplayPluginBase extends PluginBase {
         // If this is during form submission and there are temporary options
         // which can only appear if the view is in the edit cache, use those
         // options instead. This is used for AJAX multi-step stuff.
-        // @todo Remove dependency on Request object
-        //   https://drupal.org/node/2059003.
-        try {
-          if ($this->view->getRequest()->request->get('form_id') && isset($this->view->temporary_options[$type][$id])) {
-            $info = $this->view->temporary_options[$type][$id];
-          }
-        }
-        catch (DependencyInjectionRuntimeException $e) {
+        if ($this->view->getRequest()->request->get('form_id') && isset($this->view->temporary_options[$type][$id])) {
+          $info = $this->view->temporary_options[$type][$id];
         }
 
         if ($info['id'] != $id) {
@@ -1381,7 +1376,7 @@ abstract class DisplayPluginBase extends PluginBase {
   /**
    * Provide the default form for setting options.
    */
-  public function buildOptionsForm(&$form, &$form_state) {
+  public function buildOptionsForm(&$form, FormStateInterface $form_state) {
     parent::buildOptionsForm($form, $form_state);
     if ($this->defaultableSections($form_state['section'])) {
       views_ui_standard_display_dropdown($form, $form_state, $form_state['section']);
@@ -1873,7 +1868,7 @@ abstract class DisplayPluginBase extends PluginBase {
   /**
    * Validate the options form.
    */
-  public function validateOptionsForm(&$form, &$form_state) {
+  public function validateOptionsForm(&$form, FormStateInterface $form_state) {
     switch ($form_state['section']) {
       case 'display_title':
         if (empty($form_state['values']['display_title'])) {
@@ -1925,7 +1920,7 @@ abstract class DisplayPluginBase extends PluginBase {
    * Perform any necessary changes to the form values prior to storage.
    * There is no need for this function to actually store the data.
    */
-  public function submitOptionsForm(&$form, &$form_state) {
+  public function submitOptionsForm(&$form, FormStateInterface $form_state) {
     // Not sure I like this being here, but it seems (?) like a logical place.
     $cache_plugin = $this->getPlugin('cache');
     if ($cache_plugin) {
@@ -2027,7 +2022,7 @@ abstract class DisplayPluginBase extends PluginBase {
   /**
    * If override/revert was clicked, perform the proper toggle.
    */
-  public function optionsOverride($form, &$form_state) {
+  public function optionsOverride($form, FormStateInterface $form_state) {
     $this->setOverride($form_state['section']);
   }
 
@@ -2125,17 +2120,14 @@ abstract class DisplayPluginBase extends PluginBase {
   }
 
   /**
-   * Creates menu links, if this display provides some.
-   *
-   * @param array $existing_links
-   *   An array of already existing menu items provided by drupal.
+   * Gets menu links, if this display provides some.
    *
    * @return array
    *   The menu links registers for this display.
    *
-   * @see hook_menu_link_defaults()
+   * @see \Drupal\views\Plugin\Derivative\ViewsMenuLink
    */
-  public function executeHookMenuLinkDefaults(array &$existing_links) {
+  public function getMenuLinks() {
     return array();
   }
 

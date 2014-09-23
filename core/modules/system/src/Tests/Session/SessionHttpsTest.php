@@ -14,6 +14,8 @@ use Drupal\Component\Utility\String;
 
 /**
  * Ensure that when running under HTTPS two session cookies are generated.
+ *
+ * @group Session
  */
 class SessionHttpsTest extends WebTestBase {
 
@@ -24,28 +26,20 @@ class SessionHttpsTest extends WebTestBase {
    */
   public static $modules = array('session_test');
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Session HTTPS handling',
-      'description' => 'Ensure that when running under HTTPS two session cookies are generated.',
-      'group' => 'Session'
-    );
-  }
-
   public function setUp() {
     parent::setUp();
     $this->request = Request::createFromGlobals();
-    $this->container->set('request', $this->request);
+    $this->container->get('request_stack')->push($this->request);
   }
 
   protected function testHttpsSession() {
     if ($this->request->isSecure()) {
-      $secure_session_name = session_name();
-      $insecure_session_name = substr(session_name(), 1);
+      $secure_session_name = $this->getSessionName();
+      $insecure_session_name = substr($this->getSessionName(), 1);
     }
     else {
-      $secure_session_name = 'S' . session_name();
-      $insecure_session_name = session_name();
+      $secure_session_name = 'S' . $this->getSessionName();
+      $insecure_session_name = $this->getSessionName();
     }
 
     $user = $this->drupalCreateUser(array('access administration pages'));
@@ -124,8 +118,8 @@ class SessionHttpsTest extends WebTestBase {
       return;
     }
     else {
-      $secure_session_name = 'S' . session_name();
-      $insecure_session_name = session_name();
+      $secure_session_name = 'S' . $this->getSessionName();
+      $insecure_session_name = $this->getSessionName();
     }
 
     // Enable secure pages.
@@ -141,7 +135,7 @@ class SessionHttpsTest extends WebTestBase {
 
     $this->curlClose();
     // Start an anonymous session on the insecure site.
-    $session_data = $this->randomName();
+    $session_data = $this->randomMachineName();
     $this->drupalGet('session-test/set/' . $session_data);
     // Check secure cookie on insecure page.
     $this->assertFalse(isset($this->cookies[$secure_session_name]), 'The secure cookie is not sent on insecure pages.');
@@ -231,12 +225,12 @@ class SessionHttpsTest extends WebTestBase {
    */
   protected function testCsrfTokenWithMixedModeSsl() {
     if ($this->request->isSecure()) {
-      $secure_session_name = session_name();
-      $insecure_session_name = substr(session_name(), 1);
+      $secure_session_name = $this->getSessionName();
+      $insecure_session_name = substr($this->getSessionName(), 1);
     }
     else {
-      $secure_session_name = 'S' . session_name();
-      $insecure_session_name = session_name();
+      $secure_session_name = 'S' . $this->getSessionName();
+      $insecure_session_name = $this->getSessionName();
     }
 
     // Enable mixed mode SSL.
@@ -271,7 +265,7 @@ class SessionHttpsTest extends WebTestBase {
     // retrieved over HTTP works.
     $form = $this->xpath('//form[@id="session-test-form"]');
     $form[0]['action'] = $this->httpsUrl('session-test/form');
-    $edit = array('input' => $this->randomName(32));
+    $edit = array('input' => $this->randomMachineName(32));
     $this->curlClose();
     $this->drupalPostForm(NULL, $edit, 'Save', array('Cookie: ' . $secure_session_name . '=' . $ssid));
     $this->assertText(String::format('Ok: @input', array('@input' => $edit['input'])));

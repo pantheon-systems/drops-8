@@ -13,19 +13,13 @@ use Drupal\simpletest\WebTestBase;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
- * Test browser language detection.
+ * Tests browser language detection.
+ *
+ * @group language
  */
 class LanguageBrowserDetectionUnitTest extends WebTestBase {
 
   public static $modules = array('language');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Browser language detection',
-      'description' => 'Tests for the browser language detection.',
-      'group' => 'Language',
-    );
-  }
 
   /**
    * Unit tests for the language_from_browser() function.
@@ -137,7 +131,7 @@ class LanguageBrowserDetectionUnitTest extends WebTestBase {
       '' => FALSE,
       'de,pl' => FALSE,
       'iecRswK4eh' => FALSE,
-      $this->randomName(10) => FALSE,
+      $this->randomMachineName(10) => FALSE,
 
       // Chinese langcodes.
       'zh-cn, en-us;q=0.90, en;q=0.80, zh;q=0.70' => 'zh-hans',

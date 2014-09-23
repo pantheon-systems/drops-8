@@ -1,12 +1,14 @@
 id: d6_book
 label: Drupal 6 books
+migration_groups:
+  - Drupal 6
 source:
   plugin: d6_book
 process:
   nid: nid
-  book.bid: bid
-  book.weight: weight
-  book.pid:
+  'book/bid': bid
+  'book/weight': weight
+  'book/pid':
     -
       plugin: skip_process_on_empty
       source: plid

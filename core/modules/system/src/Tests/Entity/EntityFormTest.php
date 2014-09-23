@@ -10,7 +10,9 @@ namespace Drupal\system\Tests\Entity;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Tests the Entity Form Controller.
+ * Tests the entity form.
+ *
+ * @group Entity
  */
 class EntityFormTest extends WebTestBase {
 
@@ -20,14 +22,6 @@ class EntityFormTest extends WebTestBase {
    * @var array
    */
   public static $modules = array('entity_test', 'language');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Entity form',
-      'description' => 'Tests the entity form.',
-      'group' => 'Entity API',
-    );
-  }
 
   function setUp() {
     parent::setUp();
@@ -63,13 +57,13 @@ class EntityFormTest extends WebTestBase {
    *   The entity type to run the tests with.
    */
   protected function assertFormCRUD($entity_type) {
-    $name1 = $this->randomName(8);
-    $name2 = $this->randomName(10);
+    $name1 = $this->randomMachineName(8);
+    $name2 = $this->randomMachineName(10);
 
     $edit = array(
       'name' => $name1,
       'user_id' => mt_rand(0, 128),
-      'field_test_text[0][value]' => $this->randomName(16),
+      'field_test_text[0][value]' => $this->randomMachineName(16),
     );
 
     $this->drupalPostForm($entity_type . '/add', $edit, t('Save'));

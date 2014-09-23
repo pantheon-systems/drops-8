@@ -16,8 +16,7 @@ use Drupal\Tests\UnitTestCase;
 
 /**
  * @coversDefaultClass \Drupal\Core\Entity\Entity
- *
- * @group Drupal
+ * @group Entity
  */
 class EntityUnitTest extends UnitTestCase {
 
@@ -87,24 +86,13 @@ class EntityUnitTest extends UnitTestCase {
   /**
    * {@inheritdoc}
    */
-  public static function getInfo() {
-    return array(
-      'description' => '',
-      'name' => '\Drupal\Core\Entity\Entity unit test',
-      'group' => 'Entity',
-    );
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function setUp() {
     $this->values = array(
       'id' => 1,
       'langcode' => 'en',
       'uuid' => '3bb9ee60-bea5-4622-b89b-a63319d10b3a',
     );
-    $this->entityTypeId = $this->randomName();
+    $this->entityTypeId = $this->randomMachineName();
 
     $this->entityType = $this->getMock('\Drupal\Core\Entity\EntityTypeInterface');
 
@@ -182,8 +170,8 @@ class EntityUnitTest extends UnitTestCase {
     // Make a mock with one method that we use as the entity's uri_callback. We
     // check that it is called, and that the entity's label is the callback's
     // return value.
-    $callback_label = $this->randomName();
-    $property_label = $this->randomName();
+    $callback_label = $this->randomMachineName();
+    $property_label = $this->randomMachineName();
     $callback_container = $this->getMock(get_class());
     $callback_container->expects($this->once())
       ->method(__FUNCTION__)
@@ -220,7 +208,7 @@ class EntityUnitTest extends UnitTestCase {
    */
   public function testAccess() {
     $access = $this->getMock('\Drupal\Core\Entity\EntityAccessControllerInterface');
-    $operation = $this->randomName();
+    $operation = $this->randomMachineName();
     $access->expects($this->at(0))
       ->method('access')
       ->with($this->entity, $operation)
@@ -326,7 +314,7 @@ class EntityUnitTest extends UnitTestCase {
     $second_entity_type = $this->getMockBuilder('\Drupal\Core\Entity\EntityType')
       ->disableOriginalConstructor()
       ->setMethods($methods)
-      ->setMockClassName($this->randomName())
+      ->setMockClassName($this->randomMachineName())
       ->getMock();
     $second_entity_type->setClass('Drupal\entity_test\Entity\EntityTestMulRev');
 
@@ -366,7 +354,7 @@ class EntityUnitTest extends UnitTestCase {
     $second_entity_type = $this->getMockBuilder('\Drupal\Core\Entity\EntityType')
       ->disableOriginalConstructor()
       ->setMethods($methods)
-      ->setMockClassName($this->randomName())
+      ->setMockClassName($this->randomMachineName())
       ->getMock();
     $second_entity_type->setClass('Drupal\entity_test\Entity\EntityTest');
 
@@ -517,7 +505,7 @@ class EntityUnitTest extends UnitTestCase {
    * @covers ::delete
    */
   public function testDelete() {
-    $this->entity->id = $this->randomName();
+    $this->entity->id = $this->randomMachineName();
     $storage = $this->getMock('\Drupal\Core\Entity\EntityStorageInterface');
     // Testing the argument of the delete() method consumes too much memory.
     $storage->expects($this->once())
@@ -542,7 +530,8 @@ class EntityUnitTest extends UnitTestCase {
   public function testPreSave() {
     // This method is internal, so check for errors on calling it only.
     $storage = $this->getMock('\Drupal\Core\Entity\EntityStorageInterface');
-    $this->entity->preSave($storage);
+    // Our mocked entity->preSave() returns NULL, so assert that.
+    $this->assertNull($this->entity->preSave($storage));
   }
 
   /**
@@ -578,7 +567,8 @@ class EntityUnitTest extends UnitTestCase {
     // This method is internal, so check for errors on calling it only.
     $storage = $this->getMock('\Drupal\Core\Entity\EntityStorageInterface');
     $values = array();
-    $this->entity->preCreate($storage, $values);
+    // Our mocked entity->preCreate() returns NULL, so assert that.
+    $this->assertNull($this->entity->preCreate($storage, $values));
   }
 
   /**
@@ -587,7 +577,8 @@ class EntityUnitTest extends UnitTestCase {
   public function testPostCreate() {
     // This method is internal, so check for errors on calling it only.
     $storage = $this->getMock('\Drupal\Core\Entity\EntityStorageInterface');
-    $this->entity->postCreate($storage);
+    // Our mocked entity->postCreate() returns NULL, so assert that.
+    $this->assertNull($this->entity->postCreate($storage));
   }
 
   /**
@@ -596,7 +587,8 @@ class EntityUnitTest extends UnitTestCase {
   public function testPreDelete() {
     // This method is internal, so check for errors on calling it only.
     $storage = $this->getMock('\Drupal\Core\Entity\EntityStorageInterface');
-    $this->entity->preDelete($storage, array($this->entity));
+    // Our mocked entity->preDelete() returns NULL, so assert that.
+    $this->assertNull($this->entity->preDelete($storage, array($this->entity)));
   }
 
   /**
@@ -629,7 +621,8 @@ class EntityUnitTest extends UnitTestCase {
     // This method is internal, so check for errors on calling it only.
     $storage = $this->getMock('\Drupal\Core\Entity\EntityStorageInterface');
     $entities = array($this->entity);
-    $this->entity->postLoad($storage, $entities);
+    // Our mocked entity->postLoad() returns NULL, so assert that.
+    $this->assertNull($this->entity->postLoad($storage, $entities));
   }
 
   /**

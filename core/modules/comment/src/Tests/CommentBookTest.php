@@ -11,7 +11,9 @@ use Drupal\comment\CommentInterface;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Tests the comment module integration for book module.
+ * Tests visibility of comments on book pages.
+ *
+ * @group comment
  */
 class CommentBookTest extends WebTestBase {
 
@@ -21,14 +23,6 @@ class CommentBookTest extends WebTestBase {
    * @var array
    */
   public static $modules = array('book', 'comment');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Book commenting',
-      'description' => 'Test visibility of comments on book pages.',
-      'group' => 'Book',
-    );
-  }
 
   function setUp() {
     parent::setUp();
@@ -49,8 +43,8 @@ class CommentBookTest extends WebTestBase {
     $book_node->book['bid'] = 'new';
     $book_node->save();
 
-    $comment_subject = $this->randomName(8);
-    $comment_body = $this->randomName(8);
+    $comment_subject = $this->randomMachineName(8);
+    $comment_body = $this->randomMachineName(8);
     $comment = entity_create('comment', array(
       'subject' => $comment_subject,
       'comment_body' => $comment_body,
@@ -69,7 +63,7 @@ class CommentBookTest extends WebTestBase {
     $this->assertText($comment_subject, 'Comment subject found');
     $this->assertText($comment_body, 'Comment body found');
     $this->assertText(t('Add new comment'), 'Comment form found');
-    $this->assertField('subject', 'Comment form subject found');
+    $this->assertField('subject[0][value]', 'Comment form subject found');
 
     $this->drupalGet('book/export/html/' . $book_node->id());
 
@@ -78,7 +72,7 @@ class CommentBookTest extends WebTestBase {
     $this->assertText($comment_body, 'Comment body found');
 
     $this->assertNoText(t('Add new comment'), 'Comment form not found');
-    $this->assertNoField('subject', 'Comment form subject not found');
+    $this->assertNoField('subject[0][value]', 'Comment form subject not found');
   }
 
 }

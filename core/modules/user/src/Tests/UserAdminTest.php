@@ -10,7 +10,9 @@ namespace Drupal\user\Tests;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Tests the user administration UI.
+ * Tests user administration page functionality.
+ *
+ * @group user
  */
 class UserAdminTest extends WebTestBase {
 
@@ -21,21 +23,13 @@ class UserAdminTest extends WebTestBase {
    */
   public static $modules = array('taxonomy', 'views');
 
-  public static function getInfo() {
-    return array(
-      'name' => 'User administration',
-      'description' => 'Test user administration page functionality.',
-      'group' => 'User'
-    );
-  }
-
   /**
    * Registers a user and deletes it.
    */
   function testUserAdmin() {
     $user_a = $this->drupalCreateUser();
     $user_a->name = 'User A';
-    $user_a->mail = $this->randomName() . '@example.com';
+    $user_a->mail = $this->randomMachineName() . '@example.com';
     $user_a->save();
     $user_b = $this->drupalCreateUser(array('administer taxonomy'));
     $user_b->name = 'User B';
@@ -155,15 +149,15 @@ class UserAdminTest extends WebTestBase {
       ->save();
     // Set the site and notification email addresses.
     $system = \Drupal::config('system.site');
-    $server_address = $this->randomName() . '@example.com';
-    $notify_address = $this->randomName() . '@example.com';
+    $server_address = $this->randomMachineName() . '@example.com';
+    $notify_address = $this->randomMachineName() . '@example.com';
     $system
       ->set('mail', $server_address)
       ->set('mail_notification', $notify_address)
       ->save();
     // Register a new user account.
     $edit = array();
-    $edit['name'] = $name = $this->randomName();
+    $edit['name'] = $name = $this->randomMachineName();
     $edit['mail'] = $mail = $edit['name'] . '@example.com';
     $this->drupalPostForm('user/register', $edit, t('Create new account'));
     $subject = 'Account details for ' . $edit['name'] . ' at ' . $system->get('name') . ' (pending admin approval)';

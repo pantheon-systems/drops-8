@@ -14,12 +14,8 @@ use Symfony\Component\HttpFoundation\Request;
 
 
 /**
- * Tests the views ajax controller.
- *
- * @group Drupal
- * @group Views
- *
- * @see \Drupal\views\Controller\ViewAjaxController
+ * @coversDefaultClass \Drupal\views\Controller\ViewAjaxController
+ * @group views
  */
 class ViewAjaxControllerTest extends UnitTestCase {
 
@@ -43,14 +39,6 @@ class ViewAjaxControllerTest extends UnitTestCase {
    * @var \Drupal\views\Controller\ViewAjaxController
    */
   protected $viewAjaxController;
-
-  public static function getInfo() {
-    return array(
-      'name' => 'View: Ajax controller',
-      'description' => 'Tests the views ajax controller.',
-      'group' => 'Views'
-    );
-  }
 
   protected function setUp() {
     $this->viewStorage = $this->getMock('Drupal\Core\Entity\EntityStorageInterface');
@@ -185,7 +173,7 @@ class ViewAjaxControllerTest extends UnitTestCase {
     $request = new Request();
     $request->request->set('view_name', 'test_view');
     $request->request->set('view_display_id', 'page_1');
-    $dom_id = $this->randomName(20);
+    $dom_id = $this->randomMachineName(20);
     $request->request->set('view_dom_id', $dom_id);
     $request->request->set('pager_element', '0');
 

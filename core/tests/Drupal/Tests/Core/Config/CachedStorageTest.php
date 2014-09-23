@@ -19,14 +19,6 @@ class CachedStorageTest extends UnitTestCase {
    */
   protected $cacheFactory;
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Config cached storage test',
-      'description' => 'Tests the interaction of cache and file storage in CachedStorage.',
-      'group' => 'Configuration'
-    );
-  }
-
   public function setUp() {
     $this->cacheFactory = $this->getMock('Drupal\Core\Cache\CacheFactoryInterface');
   }
@@ -38,7 +30,7 @@ class CachedStorageTest extends UnitTestCase {
     $prefix = __FUNCTION__;
     $storage = $this->getMock('Drupal\Core\Config\StorageInterface');
 
-    $response = array("$prefix." . $this->randomName(), "$prefix." . $this->randomName());
+    $response = array("$prefix." . $this->randomMachineName(), "$prefix." . $this->randomMachineName());
     $storage->expects($this->once())
       ->method('listAll')
       ->with($prefix)
@@ -62,7 +54,7 @@ class CachedStorageTest extends UnitTestCase {
     $storage = $this->getMock('Drupal\Core\Config\StorageInterface');
     $storage->expects($this->never())->method('listAll');
 
-    $response = array("$prefix." . $this->randomName(), "$prefix." . $this->randomName());
+    $response = array("$prefix." . $this->randomMachineName(), "$prefix." . $this->randomMachineName());
     $cache = new MemoryBackend(__FUNCTION__);
     $cache->set('find:' . $prefix, $response);
     $this->cacheFactory->expects($this->once())

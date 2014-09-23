@@ -8,6 +8,7 @@
 use Drupal\Component\Utility\Tags;
 use Drupal\Core\Entity\ContentEntityDatabaseStorage;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Url;
@@ -455,9 +456,9 @@ function taxonomy_term_load_children($tid) {
  *   The number of levels of the tree to return. Leave NULL to return all levels.
  * @param $load_entities
  *   If TRUE, a full entity load will occur on the term objects. Otherwise they
- *   are partial objects queried directly from the {taxonomy_term_data} table to
- *   save execution time and memory consumption when listing large numbers of
- *   terms. Defaults to FALSE.
+ *   are partial objects queried directly from the {taxonomy_term_field_data}
+ *   table to save execution time and memory consumption when listing large
+ *   numbers of terms. Defaults to FALSE.
  *
  * @return
  *   An array of all term objects in the tree. Each term object is extended
@@ -665,15 +666,6 @@ function taxonomy_term_load($tid) {
 }
 
 /**
- * Implements hook_file_download_access().
- */
-function taxonomy_file_download_access($field, EntityInterface $entity, FileInterface $file) {
-  if ($entity->getEntityTypeId() == 'taxonomy_term') {
-    return $entity->access('view');
-  }
-}
-
-/**
  * Implodes a list of tags of a certain vocabulary into a string.
  *
  * @see \Drupal\Component\Utility\Tags::explode()
@@ -717,7 +709,7 @@ function taxonomy_term_title(Term $term) {
 /**
  * Form element validate handler for taxonomy term autocomplete element.
  */
-function taxonomy_autocomplete_validate($element, &$form_state) {
+function taxonomy_autocomplete_validate($element, FormStateInterface $form_state) {
   // Split the values into an array.
   // @see \Drupal\taxonomy\Plugin\Field\FieldWidget\TaxonomyAutocompleteWidget:massageFormValues()
   $typed_terms = array();
@@ -746,7 +738,7 @@ function taxonomy_autocomplete_validate($element, &$form_state) {
  */
 
 /**
- * Implements hook_node_insert().
+ * Implements hook_ENTITY_TYPE_insert() for node entities.
  */
 function taxonomy_node_insert(EntityInterface $node) {
   // Add taxonomy index entries for the node.
@@ -800,7 +792,7 @@ function taxonomy_build_node_index($node) {
 }
 
 /**
- * Implements hook_node_update().
+ * Implements hook_ENTITY_TYPE_update() for node entities.
  */
 function taxonomy_node_update(EntityInterface $node) {
   // Always rebuild the node's taxonomy index entries on node save.
@@ -809,7 +801,7 @@ function taxonomy_node_update(EntityInterface $node) {
 }
 
 /**
- * Implements hook_node_predelete().
+ * Implements hook_ENTITY_TYPE_predelete() for node entities.
  */
 function taxonomy_node_predelete(EntityInterface $node) {
   // Clean up the {taxonomy_index} table when nodes are deleted.
@@ -829,7 +821,7 @@ function taxonomy_delete_node_index(EntityInterface $node) {
 }
 
 /**
- * Implements hook_taxonomy_term_delete().
+ * Implements hook_ENTITY_TYPE_delete() for taxonomy_term entities.
  */
 function taxonomy_taxonomy_term_delete(Term $term) {
   if (\Drupal::config('taxonomy.settings')->get('maintain_index_table')) {

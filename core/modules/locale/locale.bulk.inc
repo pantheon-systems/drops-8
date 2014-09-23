@@ -24,7 +24,6 @@ use Drupal\file\FileInterface;
  *     LOCALE_NOT_CUSTOMIZED.
  *   - 'finish_feedback': Whether or not to give feedback to the user when the
  *     batch is finished. Optional, defaults to TRUE.
- *
  * @param $force
  *   (optional) Import all available files, even if they were imported before.
  *
@@ -75,8 +74,8 @@ function locale_translate_batch_import_files($options, $force = FALSE) {
  *   Project names from which to get the translation files and history.
  *   Defaults to all projects.
  * @param array $langcodes
- *   Language codes from which to  get the translation files and history.
- *   Defaults to all languagues
+ *   Language codes from which to get the translation files and history.
+ *   Defaults to all languages.
  *
  * @return array
  *   An array of interface translation files keyed by their URI.
@@ -112,7 +111,6 @@ function locale_translate_get_interface_translation_files($projects = array(), $
  *
  * @param $files
  *   Array of file objects to import.
- *
  * @param array $options
  *   An array with options that can have the following elements:
  *   - 'langcode': The language code. Optional, defaults to NULL, which means
@@ -142,7 +140,7 @@ function locale_translate_batch_build($files, $options) {
       $operations[] = array('locale_translate_batch_import', array($file, $options));
     }
     // Save the translation status of all files.
-    $operations[] =  array('locale_translate_batch_import_save', array());
+    $operations[] = array('locale_translate_batch_import_save', array());
 
     // Add a final step to refresh JavaScript and configuration strings.
     $operations[] = array('locale_translate_batch_refresh', array());
@@ -167,10 +165,9 @@ function locale_translate_batch_build($files, $options) {
  *
  * @param object $file
  *   A file object of the gettext file to be imported. The file object must
- *   contain a language parameter
- *   (other than LanguageInterface::LANGCODE_NOT_SPECIFIED). This is used as
- *   the language of the import.
- *
+ *   contain a language parameter (other than
+ *   LanguageInterface::LANGCODE_NOT_SPECIFIED). This is used as the language of
+ *   the import.
  * @param array $options
  *   An array with options that can have the following elements:
  *   - 'langcode': The language code.
@@ -182,7 +179,6 @@ function locale_translate_batch_build($files, $options) {
  *     LOCALE_NOT_CUSTOMIZED.
  *   - 'message': Alternative message to display during import. Note, this must
  *     be sanitized text.
- *
  * @param $context
  *   Contains a list of files imported.
  */
@@ -302,7 +298,7 @@ function locale_translate_batch_refresh(array &$context) {
     }
     if ($strings) {
       // Initialize multi-step string refresh.
-      $context['message'] = t('Updating translations for JavaScript and configuration strings.');
+      $context['message'] = t('Updating translations for JavaScript and default configuration.');
       $context['sandbox']['refresh']['strings'] = array_unique($strings);
       $context['sandbox']['refresh']['languages'] = $langcodes;
       $context['sandbox']['refresh']['names'] = array();
@@ -310,7 +306,7 @@ function locale_translate_batch_refresh(array &$context) {
       $context['sandbox']['refresh']['count'] = count($strings);
 
       // We will update strings on later steps.
-      $context['finished'] = 1 - 1 / $context['sandbox']['refresh']['count'];
+      $context['finished'] = 0;
     }
     else {
       $context['finished'] = 1;
@@ -320,6 +316,10 @@ function locale_translate_batch_refresh(array &$context) {
     // Refresh all languages for one object at a time.
     $count = locale_config_update_multiple(array($name), $context['sandbox']['refresh']['languages']);
     $context['results']['stats']['config'] += $count;
+    // Inherit finished information from the "parent" string lookup step so
+    // visual display of status will make sense.
+    $context['finished'] = $context['sandbox']['refresh']['names_finished'];
+    $context['message'] = t('Updating default configuration (@percent%).', array('@percent' => (int) ($context['finished'] * 100)));
   }
   elseif (!empty($context['sandbox']['refresh']['strings'])) {
     // Not perfect but will give some indication of progress.
@@ -331,10 +331,12 @@ function locale_translate_batch_refresh(array &$context) {
     _locale_refresh_translations($context['sandbox']['refresh']['languages'], $next);
     // Check whether we need to refresh configuration objects.
     if ($names = \Drupal\locale\Locale::config()->getStringNames($next)) {
+      $context['sandbox']['refresh']['names_finished'] = $context['finished'];
       $context['sandbox']['refresh']['names'] = $names;
     }
   }
   else {
+    $context['message'] = t('Updated default configuration.');
     $context['finished'] = 1;
   }
 }
@@ -474,9 +476,9 @@ function locale_translate_file_attach_properties($file, $options = array()) {
  *   Defaults to all projects.
  * @param array $langcodes
  *   Language codes from which to delete the translation files and history.
- *   Defaults to all languagues
+ *   Defaults to all languages.
  *
- * @return boolean
+ * @return bool
  *   TRUE if files are removed successfully. FALSE if one or more files could
  *   not be deleted.
  */
@@ -543,10 +545,10 @@ function locale_config_batch_build(array $names, array $langcodes, $options = ar
   foreach ($names as $name) {
     $batch_names[] = $name;
     $i++;
-    // During installation the caching of configuration objects is disabled
-    // so it is very expensive to initialize the \Drupal::config() object on each request.
-    // We batch a small number of configuration object upgrades together to
-    // improve the overall performance of the process.
+    // During installation the caching of configuration objects is disabled so
+    // it is very expensive to initialize the \Drupal::config() object on each
+    // request. We batch a small number of configuration object upgrades
+    // together to improve the overall performance of the process.
     if ($i % 20 == 0) {
       $operations[] = array('locale_config_batch_refresh_name', array($batch_names, $langcodes));
       $batch_names = array();
@@ -571,7 +573,7 @@ function locale_config_batch_build(array $names, array $langcodes, $options = ar
 /**
  * Performs configuration translation refresh as a batch step.
  *
- * @param string $name
+ * @param string $names
  *   Name of configuration object to update.
  * @param array $langcodes
  *   (optional) Array of language codes to update. Defaults to all languages.
@@ -595,12 +597,12 @@ function locale_config_batch_refresh_name(array $names, array $langcodes, array 
 /**
  * Finishes callback of system page locale import batch.
  *
- * @see locale_config_batch_build()
- *
  * @param bool $success
  *   Information about the success of the batch import.
  * @param array $results
  *   Information about the results of the batch import.
+ *
+ * @see locale_config_batch_build()
  */
 function locale_config_batch_finished($success, array $results) {
   if ($success) {

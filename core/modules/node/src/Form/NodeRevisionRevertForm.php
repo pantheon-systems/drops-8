@@ -9,6 +9,8 @@ namespace Drupal\node\Form;
 
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Form\ConfirmFormBase;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Url;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -67,7 +69,8 @@ class NodeRevisionRevertForm extends ConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function getCancelRoute() {
+  public function getCancelUrl() {
+    return new Url('node.revision_overview', array('node' => $this->revision->id()));
   }
 
   /**
@@ -87,19 +90,17 @@ class NodeRevisionRevertForm extends ConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, array &$form_state, $node_revision = NULL) {
+  public function buildForm(array $form, FormStateInterface $form_state, $node_revision = NULL) {
     $this->revision = $this->nodeStorage->loadRevision($node_revision);
     $form = parent::buildForm($form, $form_state);
 
-    // @todo Convert to getCancelRoute() after http://drupal.org/node/1863906.
-    $form['actions']['cancel']['#href'] = 'node/' . $this->revision->id() . '/revisions';
     return $form;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function submitForm(array &$form, array &$form_state) {
+  public function submitForm(array &$form, FormStateInterface $form_state) {
     $this->revision->setNewRevision();
     // Make this the new default revision for the node.
     $this->revision->isDefaultRevision(TRUE);
@@ -112,13 +113,11 @@ class NodeRevisionRevertForm extends ConfirmFormBase {
 
     $this->revision->save();
 
-    watchdog('content', '@type: reverted %title revision %revision.', array('@type' => $this->revision->bundle(), '%title' => $this->revision->label(), '%revision' => $this->revision->getRevisionId()));
+    $this->logger('content')->notice('@type: reverted %title revision %revision.', array('@type' => $this->revision->bundle(), '%title' => $this->revision->label(), '%revision' => $this->revision->getRevisionId()));
     drupal_set_message(t('@type %title has been reverted back to the revision from %revision-date.', array('@type' => node_get_type_label($this->revision), '%title' => $this->revision->label(), '%revision-date' => format_date($original_revision_timestamp))));
-    $form_state['redirect_route'] = array(
-      'route_name' => 'node.revision_overview',
-      'route_parameters' => array(
-        'node' => $this->revision->id(),
-      ),
+    $form_state->setRedirect(
+      'node.revision_overview',
+      array('node' => $this->revision->id())
     );
   }
 

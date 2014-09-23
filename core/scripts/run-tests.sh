@@ -57,11 +57,11 @@ if ($args['list']) {
   // Display all available tests.
   echo "\nAvailable test groups & classes\n";
   echo   "-------------------------------\n\n";
-  $groups = simpletest_script_get_all_tests();
+  $groups = simpletest_test_get_all($args['module']);
   foreach ($groups as $group => $tests) {
     echo $group . "\n";
     foreach ($tests as $class => $info) {
-      echo " - " . $info['name'] . ' (' . $class . ')' . "\n";
+      echo " - $class\n";
     }
   }
   exit;
@@ -190,7 +190,7 @@ All arguments are long options.
               as the names of test groups as shown at
               admin/config/development/testing.
               These group names typically correspond to module names like "User"
-              or "Profile" or "System", but there is also a group "XML-RPC".
+              or "Profile" or "System", but there is also a group "Database".
               If --class is specified then these are interpreted as the names of
               specific test classes whose test methods will be run. Tests must
               be separated by commas. Ignored if --all is specified.
@@ -497,34 +497,6 @@ function simpletest_script_setup_database($new = FALSE) {
 }
 
 /**
- * Get all available tests from simpletest and PHPUnit.
- *
- * @param string $module
- *   Name of a module. If set then only tests belonging to this module are
- *   returned.
- *
- * @return
- *   An array of tests keyed with the groups specified in each of the tests
- *   getInfo() method and then keyed by the test class. An example of the array
- *   structure is provided below.
- *
- *   @code
- *     $groups['Block'] => array(
- *       'BlockTestCase' => array(
- *         'name' => 'Block functionality',
- *         'description' => 'Add, edit and delete custom block...',
- *         'group' => 'Block',
- *       ),
- *     );
- *   @endcode
- */
-function simpletest_script_get_all_tests($module = NULL) {
-  $tests = simpletest_test_get_all($module);
-  $tests['PHPUnit'] = simpletest_phpunit_get_available_tests($module);
-  return $tests;
-}
-
-/**
  * Execute a batch of tests.
  */
 function simpletest_script_execute_batch($test_classes) {
@@ -786,7 +758,7 @@ function simpletest_script_get_test_list() {
 
   $test_list = array();
   if ($args['all'] || $args['module']) {
-    $groups = simpletest_script_get_all_tests($args['module']);
+    $groups = simpletest_test_get_all($args['module']);
     $all_tests = array();
     foreach ($groups as $group => $tests) {
       $all_tests = array_merge($all_tests, array_keys($tests));
@@ -829,7 +801,7 @@ function simpletest_script_get_test_list() {
       }
     }
     else {
-      $groups = simpletest_script_get_all_tests();
+      $groups = simpletest_test_get_all();
       foreach ($args['test_names'] as $group_name) {
         $test_list = array_merge($test_list, array_keys($groups[$group_name]));
       }
@@ -985,7 +957,7 @@ function simpletest_script_reporter_write_xml_results() {
 function simpletest_script_reporter_timer_stop() {
   echo "\n";
   $end = Timer::stop('run-tests');
-  echo "Test run duration: " . format_interval($end['time'] / 1000);
+  echo "Test run duration: " . \Drupal::service('date.formatter')->formatInterval($end['time'] / 1000);
   echo "\n\n";
 }
 

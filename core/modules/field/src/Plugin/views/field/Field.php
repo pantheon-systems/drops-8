@@ -7,6 +7,7 @@
 
 namespace Drupal\field\Plugin\views\field;
 
+use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Component\Utility\Xss;
 use Drupal\Core\Entity\ContentEntityDatabaseStorage;
 use Drupal\Core\Entity\EntityInterface;
@@ -15,6 +16,7 @@ use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Field\FieldDefinition;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Field\FormatterPluginManager;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Language\LanguageManager;
 use Drupal\Core\Render\Element;
@@ -54,8 +56,10 @@ class Field extends FieldPluginBase {
 
   /**
    * The field config.
+   *
+   * @var \Drupal\field\FieldStorageConfigInterface
    */
-  protected $fieldConfig;
+  protected $fieldStorageConfig;
 
   /**
    * Does the field supports multiple field values.
@@ -152,8 +156,8 @@ class Field extends FieldPluginBase {
    */
   protected function getFieldDefinition() {
     if (!$this->fieldDefinition) {
-      $field_config = $this->getFieldConfig();
-      $this->fieldDefinition = FieldDefinition::createFromFieldStorageDefinition($field_config);
+      $field_storage_config = $this->getFieldStorageConfig();
+      $this->fieldDefinition = FieldDefinition::createFromFieldStorageDefinition($field_storage_config);
     }
     return $this->fieldDefinition;
   }
@@ -161,14 +165,14 @@ class Field extends FieldPluginBase {
   /**
    * Gets the field configuration.
    *
-   * @return \Drupal\field\FieldConfigInterface
+   * @return \Drupal\field\FieldStorageConfigInterface
    */
-  protected function getFieldConfig() {
-    if (!$this->fieldConfig) {
+  protected function getFieldStorageConfig() {
+    if (!$this->fieldStorageConfig) {
       $field_storage_definitions = \Drupal::entityManager()->getFieldStorageDefinitions($this->definition['entity_type']);
-      $this->fieldConfig = $field_storage_definitions[$this->definition['field_name']];
+      $this->fieldStorageConfig = $field_storage_definitions[$this->definition['field_name']];
     }
-    return $this->fieldConfig;
+    return $this->fieldStorageConfig;
   }
 
   /**
@@ -350,8 +354,8 @@ class Field extends FieldPluginBase {
 
     $this->ensureMyTable();
     $field_storage_definitions = $this->entityManager->getFieldStorageDefinitions($this->definition['entity_type']);
-    $field = $field_storage_definitions[$this->definition['field_name']];
-    $column = ContentEntityDatabaseStorage::_fieldColumnName($field, $this->options['click_sort_column']);
+    $field_storage = $field_storage_definitions[$this->definition['field_name']];
+    $column = ContentEntityDatabaseStorage::_fieldColumnName($field_storage, $this->options['click_sort_column']);
     if (!isset($this->aliases[$column])) {
       // Column is not in query; add a sort on it (without adding the column).
       $this->aliases[$column] = $this->tableAlias . '.' . $column;
@@ -363,9 +367,9 @@ class Field extends FieldPluginBase {
     $options = parent::defineOptions();
 
     $field_storage_definitions = $this->entityManager->getFieldStorageDefinitions($this->definition['entity_type']);
-    $field = $field_storage_definitions[$this->definition['field_name']];
-    $field_type = \Drupal::service('plugin.manager.field.field_type')->getDefinition($field->getType());
-    $column_names = array_keys($field->getColumns());
+    $field_storage = $field_storage_definitions[$this->definition['field_name']];
+    $field_type = \Drupal::service('plugin.manager.field.field_type')->getDefinition($field_storage->getType());
+    $column_names = array_keys($field_storage->getColumns());
     $default_column = '';
     // Try to determine a sensible default.
     if (count($column_names) == 1) {
@@ -400,7 +404,7 @@ class Field extends FieldPluginBase {
     // If we know the exact number of allowed values, then that can be
     // the default. Otherwise, default to 'all'.
     $options['delta_limit'] = array(
-      'default' => ($field->getCardinality() > 1) ? $field->getCardinality() : 'all',
+      'default' => ($field_storage->getCardinality() > 1) ? $field_storage->getCardinality() : 'all',
     );
     $options['delta_offset'] = array(
       'default' => 0,
@@ -432,7 +436,7 @@ class Field extends FieldPluginBase {
   /**
    * {@inheritdoc}
    */
-  public function buildOptionsForm(&$form, &$form_state) {
+  public function buildOptionsForm(&$form, FormStateInterface $form_state) {
     parent::buildOptionsForm($form, $form_state);
 
     $field = $this->getFieldDefinition();
@@ -513,7 +517,7 @@ class Field extends FieldPluginBase {
   /**
    * Provide options for multiple value fields.
    */
-  function multiple_options_form(&$form, &$form_state) {
+  function multiple_options_form(&$form, FormStateInterface $form_state) {
     $field = $this->getFieldDefinition();
 
     $form['multiple_field_settings'] = array(
@@ -636,7 +640,7 @@ class Field extends FieldPluginBase {
   /**
    * Extend the groupby form with group columns.
    */
-  public function buildGroupByForm(&$form, &$form_state) {
+  public function buildGroupByForm(&$form, FormStateInterface $form_state) {
     parent::buildGroupByForm($form, $form_state);
     // With "field API" fields, the column target of the grouping function
     // and any additional grouping columns must be specified.
@@ -669,7 +673,7 @@ class Field extends FieldPluginBase {
     );
   }
 
-  public function submitGroupByForm(&$form, &$form_state) {
+  public function submitGroupByForm(&$form, FormStateInterface $form_state) {
     parent::submitGroupByForm($form, $form_state);
     $item = &$form_state['handler']->options;
 
@@ -686,12 +690,22 @@ class Field extends FieldPluginBase {
    */
   protected function renderItems($items) {
     if (!empty($items)) {
+      $output = '';
       if (!$this->options['group_rows']) {
-        return implode('', $items);
+        foreach ($items as $item) {
+          $output .= SafeMarkup::escape($item);
+        }
+        return SafeMarkup::set($output);
       }
-
       if ($this->options['multi_type'] == 'separator') {
-        return implode(Xss::filterAdmin($this->options['separator']), $items);
+        $output = '';
+        $separator = '';
+        $escaped_separator = Xss::filterAdmin($this->options['separator']);
+        foreach ($items as $item) {
+          $output .= $separator . SafeMarkup::escape($item);
+          $separator = $escaped_separator;
+        }
+        return SafeMarkup::set($output);
       }
       else {
         $item_list = array(
@@ -926,8 +940,8 @@ class Field extends FieldPluginBase {
    * {@inheritdoc}
    */
   public function getDependencies() {
-    // Add the module providing the configured field as a dependency.
-    return array('entity' => array($this->getFieldConfig()->getConfigDependencyName()));
+    // Add the module providing the configured field storage as a dependency.
+    return array('entity' => array($this->getFieldStorageConfig()->getConfigDependencyName()));
   }
 
 

@@ -130,31 +130,25 @@ function history_cron() {
 }
 
 /**
- * Implements hook_node_view_alter().
+ * Implements hook_ENTITY_TYPE_view_alter() for node entities.
  */
 function history_node_view_alter(array &$build, EntityInterface $node, EntityViewDisplayInterface $display) {
   // Update the history table, stating that this user viewed this node.
   if (($display->originalMode === 'full') && \Drupal::currentUser()->isAuthenticated()) {
-    $build['#attached'] = array(
-      'js' => array(
-        // When the window's "load" event is triggered, mark the node as read.
-        // This still allows for Drupal behaviors (which are triggered on the
-        // "DOMContentReady" event) to add "new" and "updated" indicators.
-        array(
-          'data' => 'window.addEventListener("load",function(){Drupal.history.markAsRead(' . $node->id() . ');},false);',
-          'type' => 'inline',
-        ),
-      ),
-      'library' => array(
-        'history/drupal.history',
-      ),
+    // When the window's "load" event is triggered, mark the node as read.
+    // This still allows for Drupal behaviors (which are triggered on the
+    // "DOMContentReady" event) to add "new" and "updated" indicators.
+    $build['#attached']['js'][] = array(
+      'data' => 'window.addEventListener("load",function(){Drupal.history.markAsRead(' . $node->id() . ');},false);',
+      'type' => 'inline',
     );
+    $build['#attached']['library'][] = 'history/drupal.history';
   }
 
 }
 
 /**
- * Implements hook_node_delete().
+ * Implements hook_ENTITY_TYPE_delete() for node entities.
  */
 function history_node_delete(EntityInterface $node) {
   db_delete('history')
@@ -176,7 +170,7 @@ function history_user_cancel($edit, $account, $method) {
 }
 
 /**
- * Implements hook_user_delete().
+ * Implements hook_ENTITY_TYPE_delete() for user entities.
  */
 function history_user_delete($account) {
   db_delete('history')

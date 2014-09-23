@@ -11,7 +11,9 @@ use Drupal\Component\Serialization\Json;
 use Drupal\rest\Tests\RESTTestBase;
 
 /**
- * Tests resource updates on test entities.
+ * Tests the update of resources.
+ *
+ * @group rest
  */
 class UpdateTest extends RESTTestBase {
 
@@ -21,14 +23,6 @@ class UpdateTest extends RESTTestBase {
    * @var array
    */
   public static $modules = array('hal', 'rest', 'entity_test');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Update resource',
-      'description' => 'Tests the update of resources.',
-      'group' => 'REST',
-    );
-  }
 
   /**
    * Tests several valid and invalid partial update requests on test entities.
@@ -144,7 +138,7 @@ class UpdateTest extends RESTTestBase {
 
     // Try to send invalid data to trigger the entity validation constraints.
     // Send a UUID that is too long.
-    $entity->set('uuid', $this->randomName(129));
+    $entity->set('uuid', $this->randomMachineName(129));
     $invalid_serialized = $serializer->serialize($entity, $this->defaultFormat);
     $response = $this->httpRequest($entity->getSystemPath(), 'PATCH', $invalid_serialized, $this->defaultMimeType);
     $this->assertResponse(422);

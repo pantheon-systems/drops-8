@@ -35,6 +35,8 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *   'article'. Entity IDs may contain dots/periods. The entire remaining string
  *   after the config_prefix in a config name forms the entity ID. Additional or
  *   custom suffixes are not possible.
+ *
+ * @ingroup entity_api
  */
 class ConfigEntityStorage extends EntityStorageBase implements ConfigEntityStorageInterface, ImportableEntityStorageInterface {
 
@@ -86,18 +88,15 @@ class ConfigEntityStorage extends EntityStorageBase implements ConfigEntityStora
    *   The entity type definition.
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The config factory service.
-   * @param \Drupal\Core\Config\StorageInterface $config_storage
-   *   The config storage service.
    * @param \Drupal\Component\Uuid\UuidInterface $uuid_service
    *   The UUID service.
    * @param \Drupal\Core\Language\LanguageManagerInterface $language_manager
    *   The language manager.
    */
-  public function __construct(EntityTypeInterface $entity_type, ConfigFactoryInterface $config_factory, StorageInterface $config_storage, UuidInterface $uuid_service, LanguageManagerInterface $language_manager) {
+  public function __construct(EntityTypeInterface $entity_type, ConfigFactoryInterface $config_factory, UuidInterface $uuid_service, LanguageManagerInterface $language_manager) {
     parent::__construct($entity_type);
 
     $this->configFactory = $config_factory;
-    $this->configStorage = $config_storage;
     $this->uuidService = $uuid_service;
     $this->languageManager = $language_manager;
   }
@@ -109,7 +108,6 @@ class ConfigEntityStorage extends EntityStorageBase implements ConfigEntityStora
     return new static(
       $entity_type,
       $container->get('config.factory'),
-      $container->get('config.storage'),
       $container->get('uuid'),
       $container->get('language_manager')
     );
@@ -130,9 +128,15 @@ class ConfigEntityStorage extends EntityStorageBase implements ConfigEntityStora
   }
 
   /**
-   * {@inheritdoc}
+   * Returns the prefix used to create the configuration name.
+   *
+   * The prefix consists of the config prefix from the entity type plus a dot
+   * for separating from the ID.
+   *
+   * @return string
+   *   The full configuration prefix, for example 'views.view.'.
    */
-  public function getConfigPrefix() {
+  protected function getPrefix() {
     return $this->entityType->getConfigPrefix() . '.';
   }
 
@@ -147,11 +151,11 @@ class ConfigEntityStorage extends EntityStorageBase implements ConfigEntityStora
    * {@inheritdoc}
    */
   protected function doLoadMultiple(array $ids = NULL) {
-    $prefix = $this->getConfigPrefix();
+    $prefix = $this->getPrefix();
 
     // Get the names of the configuration entities we are going to load.
     if ($ids === NULL) {
-      $names = $this->configStorage->listAll($prefix);
+      $names = $this->configFactory->listAll($prefix);
     }
     else {
       $names = array();
@@ -185,7 +189,7 @@ class ConfigEntityStorage extends EntityStorageBase implements ConfigEntityStora
    */
   protected function doDelete($entities) {
     foreach ($entities as $entity) {
-      $config = $this->configFactory->get($this->getConfigPrefix() . $entity->id());
+      $config = $this->configFactory->get($this->getPrefix() . $entity->id());
       $config->delete();
     }
   }
@@ -222,7 +226,7 @@ class ConfigEntityStorage extends EntityStorageBase implements ConfigEntityStora
    */
   protected function doSave($id, EntityInterface $entity) {
     $is_new = $entity->isNew();
-    $prefix = $this->getConfigPrefix();
+    $prefix = $this->getPrefix();
     if ($id !== $entity->id()) {
       // Renaming a config object needs to cater for:
       // - Storage needs to access the original object.
@@ -235,7 +239,8 @@ class ConfigEntityStorage extends EntityStorageBase implements ConfigEntityStora
     }
 
     // Retrieve the desired properties and set them in config.
-    foreach ($entity->toArray() as $key => $value) {
+    $record = $this->mapToStorageRecord($entity);
+    foreach ($record as $key => $value) {
       $config->set($key, $value);
     }
     $config->save();
@@ -244,10 +249,23 @@ class ConfigEntityStorage extends EntityStorageBase implements ConfigEntityStora
   }
 
   /**
+   * Maps from an entity object to the storage record.
+   *
+   * @param \Drupal\Core\Entity\EntityInterface $entity
+   *   The entity object.
+   *
+   * @return array
+   *   The record to store.
+   */
+  protected function mapToStorageRecord(EntityInterface $entity) {
+    return $entity->toArray();
+  }
+
+  /**
    * {@inheritdoc}
    */
   protected function has($id, EntityInterface $entity) {
-    $prefix = $this->getConfigPrefix();
+    $prefix = $this->getPrefix();
     $config = $this->configFactory->get($prefix . $id);
     return !$config->isNew();
   }

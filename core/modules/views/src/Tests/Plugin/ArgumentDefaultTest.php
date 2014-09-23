@@ -12,7 +12,9 @@ use Drupal\views_test_data\Plugin\views\argument_default\ArgumentDefaultTest as 
 
 
 /**
- * Basic test for pluggable argument default.
+ * Tests pluggable argument_default for views.
+ *
+ * @group views
  */
 class ArgumentDefaultTest extends PluginTestBase {
 
@@ -29,14 +31,6 @@ class ArgumentDefaultTest extends PluginTestBase {
    * @var array
    */
   public static $modules = array('node', 'views_ui');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Argument default',
-      'description' => 'Tests pluggable argument_default for views.',
-      'group' => 'Views Plugins'
-    );
-  }
 
   protected function setUp() {
     parent::setUp();
@@ -111,7 +105,7 @@ class ArgumentDefaultTest extends PluginTestBase {
    * Tests fixed default argument.
    */
   function testArgumentDefaultFixed() {
-    $random = $this->randomName();
+    $random = $this->randomMachineName();
     $view = Views::getView('test_argument_default_fixed');
     $view->setDisplay();
     $options = $view->display_handler->getOption('arguments');
@@ -122,7 +116,7 @@ class ArgumentDefaultTest extends PluginTestBase {
     $this->assertEqual($view->argument['null']->getDefaultArgument(), $random, 'Fixed argument should be used by default.');
 
     // Make sure that a normal argument provided is used
-    $random_string = $this->randomName();
+    $random_string = $this->randomMachineName();
     $view->executeDisplay('default', array($random_string));
 
     $this->assertEqual($view->args[0], $random_string, 'Provided argument should be used.');

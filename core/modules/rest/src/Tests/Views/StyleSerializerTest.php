@@ -15,6 +15,7 @@ use Drupal\views\Tests\ViewTestData;
 /**
  * Tests the serializer style plugin.
  *
+ * @group rest
  * @see \Drupal\rest\Plugin\views\display\RestExport
  * @see \Drupal\rest\Plugin\views\style\Serializer
  * @see \Drupal\rest\Plugin\views\row\DataEntityRow
@@ -40,14 +41,6 @@ class StyleSerializerTest extends PluginTestBase {
    * A user with administrative privileges to look at test entity and configure views.
    */
   protected $adminUser;
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Style: Serializer plugin',
-      'description' => 'Tests the serializer style plugin.',
-      'group' => 'Views Plugins',
-    );
-  }
 
   protected function setUp() {
     parent::setUp();
@@ -205,9 +198,9 @@ class StyleSerializerTest extends PluginTestBase {
 
     // Test a random aliases for fields, they should be replaced.
     $alias_map = array(
-      'name' => $this->randomName(),
+      'name' => $this->randomMachineName(),
       // Use # to produce an invalid character for the validation.
-      'nothing' => '#' . $this->randomName(),
+      'nothing' => '#' . $this->randomMachineName(),
       'created' => 'created',
     );
 
@@ -216,7 +209,7 @@ class StyleSerializerTest extends PluginTestBase {
     $this->assertText(t('The machine-readable name must contain only letters, numbers, dashes and underscores.'));
 
     // Change the map alias value to a valid one.
-    $alias_map['nothing'] = $this->randomName();
+    $alias_map['nothing'] = $this->randomMachineName();
 
     $edit = array('row_options[field_options][name][alias]' => $alias_map['name'], 'row_options[field_options][nothing][alias]' => $alias_map['nothing']);
     $this->drupalPostForm($row_options, $edit, t('Apply'));

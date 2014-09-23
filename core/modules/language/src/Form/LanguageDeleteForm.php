@@ -8,6 +8,7 @@
 namespace Drupal\language\Form;
 
 use Drupal\Core\Entity\EntityConfirmFormBase;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Routing\UrlGeneratorInterface;
 use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -56,7 +57,7 @@ class LanguageDeleteForm extends EntityConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function getCancelRoute() {
+  public function getCancelUrl() {
     return new Url('language.admin_overview');
   }
 
@@ -84,7 +85,7 @@ class LanguageDeleteForm extends EntityConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, array &$form_state) {
+  public function buildForm(array $form, FormStateInterface $form_state) {
     $langcode = $this->entity->id();
 
     // Warn and redirect user when attempting to delete the default language.
@@ -105,7 +106,7 @@ class LanguageDeleteForm extends EntityConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function submit(array $form, array &$form_state) {
+  public function submit(array $form, FormStateInterface $form_state) {
     // @todo This should be replaced with $this->entity->delete() when the
     //   additional logic in language_delete() is ported.
     $success = language_delete($this->entity->id());
@@ -114,7 +115,7 @@ class LanguageDeleteForm extends EntityConfirmFormBase {
       drupal_set_message($this->t('The %language (%langcode) language has been removed.', array('%language' => $this->entity->label(), '%langcode' => $this->entity->id())));
     }
 
-    $form_state['redirect_route'] = $this->getCancelRoute();
+    $form_state->setRedirectUrl($this->getCancelUrl());
   }
 
 }

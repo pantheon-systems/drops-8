@@ -9,22 +9,11 @@ namespace Drupal\field\Tests\Views;
 use Drupal\Core\Entity\ContentEntityDatabaseStorage;
 
 /**
- * Test the produced views_data.
+ * Tests the Field Views data.
+ *
+ * @group field
  */
 class ApiDataTest extends FieldTestBase {
-
-  /**
-   * Stores the fields for this test case.
-   */
-  var $fields;
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Field: Views Data',
-      'description' => 'Tests the Field Views data.',
-      'group' => 'Views module integration',
-    );
-  }
 
   function setUp() {
     parent::setUp();
@@ -42,7 +31,7 @@ class ApiDataTest extends FieldTestBase {
     // Now create some example nodes/users for the view result.
     for ($i = 0; $i < 5; $i++) {
       $edit = array(
-        $field_names[0] => array((array('value' => $this->randomName()))),
+        $field_names[0] => array((array('value' => $this->randomMachineName()))),
       );
       $nodes[] = $this->drupalCreateNode($edit);
     }
@@ -61,9 +50,9 @@ class ApiDataTest extends FieldTestBase {
 
     // Check the table and the joins of the first field.
     // Attached to node only.
-    $field = $this->fields[0];
-    $current_table = ContentEntityDatabaseStorage::_fieldTableName($field);
-    $revision_table = ContentEntityDatabaseStorage::_fieldRevisionTableName($field);
+    $field_storage = $this->fieldStorages[0];
+    $current_table = ContentEntityDatabaseStorage::_fieldTableName($field_storage);
+    $revision_table = ContentEntityDatabaseStorage::_fieldRevisionTableName($field_storage);
     $data[$current_table] = $views_data->get($current_table);
     $data[$revision_table] = $views_data->get($revision_table);
 

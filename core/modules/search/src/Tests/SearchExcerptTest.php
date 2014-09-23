@@ -11,6 +11,8 @@ use Drupal\simpletest\WebTestBase;
 
 /**
  * Tests the search_excerpt() function.
+ *
+ * @group search
  */
 class SearchExcerptTest extends WebTestBase {
 
@@ -20,14 +22,6 @@ class SearchExcerptTest extends WebTestBase {
    * @var array
    */
   public static $modules = array('search', 'search_langcode_test');
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Search excerpt extraction',
-      'description' => 'Tests that the search_excerpt() function works.',
-      'group' => 'Search',
-    );
-  }
 
   /**
    * Tests search_excerpt() with several simulated search keywords.
@@ -57,6 +51,11 @@ class SearchExcerptTest extends WebTestBase {
     $expected = 'The quick brown fox &amp; jumps over the lazy <strong>dog</strong>';
     $result = preg_replace('| +|', ' ', search_excerpt('dog', $text));
     $this->assertEqual(preg_replace('| +|', ' ', $result), $expected, 'Keyword is highlighted at end of short string');
+
+    $longtext = str_repeat(str_replace('brown', 'silver', $text) . ' ', 10) . $text . str_repeat(' ' . str_replace('brown', 'pink', $text), 10);
+    $result = preg_replace('| +|', ' ', search_excerpt('brown', $longtext));
+    $expected = '… silver fox &amp; jumps over the lazy dog The quick <strong>brown</strong> fox &amp; jumps over the lazy dog The quick …';
+    $this->assertEqual($result, $expected, 'Snippet around keyword in long text is correctly capped');
 
     $longtext = str_repeat($text . ' ', 10);
     $result = preg_replace('| +|', ' ', search_excerpt('nothing', $longtext));
