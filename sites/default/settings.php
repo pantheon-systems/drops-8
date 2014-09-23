@@ -21,8 +21,9 @@ if (isset($_SERVER['PANTHEON_ENVIRONMENT'])) {
  * Issue: https://github.com/pantheon-systems/drops-8/issues/9
  *
  */
-
-$GLOBALS['install_state']['settings_verified'] = TRUE;
+if (isset($_SERVER['PRESSFLOW_SETTINGS'])) {
+  $GLOBALS['install_state']['settings_verified'] = TRUE;
+}
 
 /**
  * Allow Drupal 8 to Cleanly Redirect to Install.php For New Sites.
