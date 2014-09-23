@@ -22,7 +22,7 @@ if (isset($_SERVER['PANTHEON_ENVIRONMENT'])) {
  *
  */
 
-// This change is made in core/includes/install.core.inc 
+$GLOBALS['install_state']['settings_verified'] = TRUE;
 
 /**
  * Allow Drupal 8 to Cleanly Redirect to Install.php For New Sites.
