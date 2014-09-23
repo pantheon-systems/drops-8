@@ -32,7 +32,7 @@ if (isset($_SERVER['PRESSFLOW_SETTINGS'])) {
  *
  */
 
-// This change has been made in _drupal_bootstrap_code()
+// This change has been made in index.php
 
 /**
  * Override the $databases variable to pass the correct Database credentials

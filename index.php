@@ -31,6 +31,17 @@ catch (Exception $e) {
     $message .= " or run the <a href=\"$rebuild_path\">rebuild script</a>";
   }
 
+  /**
+   * Allow Drupal 8 to Cleanly Redirect to Install.php For New Sites.
+   *
+   * Issue: https://github.com/pantheon-systems/drops-8/issues/3
+   *
+   */
+  if (isset($_SERVER['PRESSFLOW_SETTINGS']) && function_exists('db_table_exists') && !db_table_exists('sessions') && $_SERVER['SCRIPT_NAME'] != '/core/install.php') {
+    include_once __DIR__ . '/core/includes/install.inc';
+    install_goto('core/install.php');
+  }
+
   // Set the response code manually. Otherwise, this response will default to a
   // 200.
   http_response_code(500);
