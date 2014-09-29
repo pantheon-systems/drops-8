@@ -80,5 +80,5 @@ if (isset($_SERVER['PRESSFLOW_SETTINGS'])) {
  *
  */
 if (isset($_SERVER['PANTHEON_ENVIRONMENT'])) {
-  $settings['hash_salt'] = drupal_get_hash_salt();
+  $settings['hash_salt'] = hash('sha256', serialize($databases));
 }
