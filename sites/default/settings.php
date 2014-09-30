@@ -7,7 +7,7 @@
  * Issue: https://github.com/pantheon-systems/drops-8/issues/2
  *
  */
-if (isset($_SERVER['PANTHEON_ENVIRONMENT'])) {
+if (isset($_SERVER['PRESSFLOW_SETTINGS'])) {
   if ($_SERVER['SCRIPT_NAME'] == '/core/install.php') { 
     $config_directories = array(
       CONFIG_ACTIVE_DIRECTORY => 'sites/default/files',
@@ -79,6 +79,6 @@ if (isset($_SERVER['PRESSFLOW_SETTINGS'])) {
  * Issue: https://github.com/pantheon-systems/drops-8/issues/10
  *
  */
-if (isset($_SERVER['PANTHEON_ENVIRONMENT'])) {
+if (isset($_SERVER['PRESSFLOW_SETTINGS'])) {
   $settings['hash_salt'] = hash('sha256', serialize($databases));
 }
