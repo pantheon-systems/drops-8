@@ -2,13 +2,13 @@
 
 /**
  * Add the Drupal 8 CMI Directory Information directly in settings.php to make sure
- * Drupal knows all about that. 
+ * Drupal knows all about that.
  *
  * Issue: https://github.com/pantheon-systems/drops-8/issues/2
  *
  */
 if (isset($_SERVER['PRESSFLOW_SETTINGS'])) {
-  if ($_SERVER['SCRIPT_NAME'] == '/core/install.php') { 
+  if ($_SERVER['SCRIPT_NAME'] == '/core/install.php') {
     $config_directories = array(
       CONFIG_ACTIVE_DIRECTORY => 'sites/default/files',
       CONFIG_STAGING_DIRECTORY => 'sites/default/files',
