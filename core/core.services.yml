@@ -100,6 +100,18 @@ services:
     factory_method: get
     factory_service: cache_factory
     arguments: [discovery]
+  page_cache_request_policy:
+    class: Drupal\Core\PageCache\DefaultRequestPolicy
+    tags:
+      - { name: service_collector, tag: page_cache_request_policy, call: addPolicy}
+  page_cache_response_policy:
+    class: Drupal\Core\PageCache\ChainResponsePolicy
+    tags:
+      - { name: service_collector, tag: page_cache_response_policy, call: addPolicy}
+  page_cache_kill_switch:
+    class: Drupal\Core\PageCache\ResponsePolicy\KillSwitch
+    tags:
+      - { name: page_cache_response_policy }
   config.manager:
     class: Drupal\Core\Config\ConfigManager
     arguments: ['@entity.manager', '@config.factory', '@config.typed', '@string_translation', '@config.storage', '@event_dispatcher']
@@ -150,7 +162,7 @@ services:
     arguments: ['@typed_data_manager']
   cron:
     class: Drupal\Core\Cron
-    arguments: ['@module_handler', '@lock', '@queue', '@state', '@current_user', '@session_manager', '@logger.channel.cron']
+    arguments: ['@module_handler', '@lock', '@queue', '@state', '@current_user', '@session_manager', '@logger.channel.cron', '@plugin.manager.queue_worker']
   diff.formatter:
     class: Drupal\Core\Diff\DiffFormatter
     arguments: ['@config.factory']
@@ -191,30 +203,25 @@ services:
     parent: container.trait
     tags:
       - { name: service_collector, tag: logger, call: addLogger }
-  logger.channel.default:
+  logger.channel_base:
+    abstract: true
     class: Drupal\Core\Logger\LoggerChannel
     factory_method: get
     factory_service: logger.factory
+  logger.channel.default:
+    parent: logger.channel_base
     arguments: ['system']
   logger.channel.php:
-    class: Drupal\Core\Logger\LoggerChannel
-    factory_method: get
-    factory_service: logger.factory
+    parent: logger.channel_base
     arguments: ['php']
   logger.channel.image:
-    class: Drupal\Core\Logger\LoggerChannel
-    factory_method: get
-    factory_service: logger.factory
+    parent: logger.channel_base
     arguments: ['image']
   logger.channel.cron:
-    class: Drupal\Core\Logger\LoggerChannel
-    factory_method: get
-    factory_service: logger.factory
+    parent: logger.channel_base
     arguments: ['cron']
   logger.channel.form:
-    class: Drupal\Core\Logger\LoggerChannel
-    factory_method: get
-    factory_service: logger.factory
+    parent: logger.channel_base
     arguments: ['form']
   logger.log_message_parser:
     class: Drupal\Core\Logger\LogMessageParser
@@ -346,6 +353,9 @@ services:
   plugin.manager.display_variant:
     class: Drupal\Core\Display\VariantManager
     parent: default_plugin_manager
+  plugin.manager.queue_worker:
+    class: Drupal\Core\Queue\QueueWorkerManager
+    parent: default_plugin_manager
   plugin.cache_clearer:
     class: Drupal\Core\Plugin\CachedDiscoveryClearer
   paramconverter.menu_link:
@@ -446,9 +456,11 @@ services:
     tags:
       - { name: backend_overridable }
   router.request_context:
-    class: Symfony\Component\Routing\RequestContext
+    class: Drupal\Core\Routing\RequestContext
     tags:
       - { name: persist }
+    calls:
+      - [fromRequestStack, ['@request_stack']]
   router.admin_context:
     class: Drupal\Core\Routing\AdminContext
     arguments: ['@request_stack']
@@ -477,6 +489,9 @@ services:
     arguments: ['@router.route_provider', '@path_processor_manager', '@route_processor_manager', '@config.factory', '@settings', '@logger.channel.default', '@request_stack']
     calls:
       - [setContext, ['@?router.request_context']]
+  unrouted_url_assembler:
+    class: Drupal\Core\Utility\UnroutedUrlAssembler
+    arguments: ['@request_stack', '@config.factory' ]
   link_generator:
     class: Drupal\Core\Utility\LinkGenerator
     arguments: ['@url_generator', '@module_handler']
@@ -636,7 +651,7 @@ services:
       - { name: event_subscriber }
   controller.page:
     class: Drupal\Core\Controller\HtmlPageController
-    arguments: ['@controller_resolver', '@title_resolver', '@url_generator']
+    arguments: ['@controller_resolver', '@title_resolver', '@render_html_renderer']
   controller.ajax:
     class: Drupal\Core\Controller\AjaxController
     arguments: ['@controller_resolver', '@ajax_response_renderer']
@@ -662,6 +677,9 @@ services:
     tags:
       - { name: event_subscriber }
     arguments: ['@html_fragment_renderer', '@html_page_renderer']
+  render_html_renderer:
+    class: Drupal\Core\Page\RenderHtmlRenderer
+    arguments: ['@url_generator']
   html_fragment_renderer:
     class: Drupal\Core\Page\DefaultHtmlFragmentRenderer
     arguments: ['@language_manager']
@@ -729,7 +747,7 @@ services:
     class: Drupal\Core\EventSubscriber\FinishResponseSubscriber
     tags:
       - { name: event_subscriber }
-    arguments: ['@language_manager', '@config.factory']
+    arguments: ['@language_manager', '@config.factory', '@page_cache_request_policy', '@page_cache_response_policy']
   redirect_response_subscriber:
     class: Drupal\Core\EventSubscriber\RedirectResponseSubscriber
     arguments: ['@url_generator']
@@ -806,6 +824,14 @@ services:
       - { name: path_processor_inbound, priority: 200 }
       - { name: path_processor_outbound, priority: 200 }
     arguments: ['@config.factory']
+  path_processor_none:
+    class: Drupal\Core\PathProcessor\PathProcessorNone
+    tags:
+      - { name: path_processor_outbound, priority: 200 }
+  path_processor_current:
+    class: Drupal\Core\PathProcessor\PathProcessorCurrent
+    tags:
+      - { name: path_processor_outbound, priority: 200 }
   path_processor_alias:
     class: Drupal\Core\PathProcessor\PathProcessorAlias
     tags:
@@ -1010,6 +1036,7 @@ services:
       - { name: twig.extension, priority: 100 }
     calls:
       - [setGenerators, ['@url_generator']]
+      - [setLinkGenerator, ['@link_generator']]
   # @todo Figure out what to do about debugging functions.
   # @see http://drupal.org/node/1804998
   twig.extension.debug:

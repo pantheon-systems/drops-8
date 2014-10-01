@@ -28,16 +28,16 @@ use Drupal\Core\TypedData\ListDataDefinitionInterface;
  * information comes from. For example, field.module provides an implementation
  * based on two levels of configuration. It allows the site administrator to add
  * custom fields to any entity type and bundle via the "field_storage_config"
- * and "field_instance_config" configuration entities. The former for storing
+ * and "field_config" configuration entities. The former for storing
  * configuration that is independent of which entity type and bundle the field
  * is added to, and the latter for storing configuration that is specific to the
- * entity type and bundle. The class that implements "field_instance_config"
+ * entity type and bundle. The class that implements "field_config"
  * configuration entities also implements this interface, returning information
  * from either itself, or from the corresponding "field_storage_config"
  * configuration, as appropriate.
  *
  * However, entity base fields, such as $node->title, are not managed by
- * field.module and its "field_storage_config"/"field_instance_config"
+ * field.module and its "field_storage_config"/"field_config"
  * configuration entities. Therefore, their definitions are provided by
  * different objects based on the class \Drupal\Core\Field\BaseFieldDefinition,
  * which implements this interface as well.
@@ -76,13 +76,29 @@ interface FieldDefinitionInterface extends ListDataDefinitionInterface {
   public function getType();
 
   /**
+   * Returns the ID of the entity type the field is attached to.
+   *
+   * This method should not be confused with EntityInterface::entityType()
+   * (configurable fields are config entities, and thus implement both
+   * interfaces):
+   *   - FieldDefinitionInterface::getTargetEntityTypeId() answers "as a field,
+   *     which entity type are you attached to?".
+   *   - EntityInterface::getEntityTypeId() answers "as a (config) entity, what
+   *     is your own entity type?".
+   *
+   * @return string
+   *   The entity type ID.
+   */
+  public function getTargetEntityTypeId();
+
+  /**
    * Gets the bundle the field is defined for.
    *
    * @return string|null
    *   The bundle the field is defined for, or NULL if it is a base field; i.e.,
    *   it is not bundle-specific.
    */
-  public function getBundle();
+  public function getTargetBundle();
 
   /**
    * Returns whether the display for the field can be configured.

@@ -32,7 +32,6 @@
  *
  * @ingroup themeable
  */
- @todo Remove the div around content as per http://drupal.org/node/1972122.
 #}
 {%
   set classes = [
@@ -46,10 +45,7 @@
     <h2{{ title_attributes }}>{{ label }}</h2>
   {% endif %}
   {{ title_suffix }}
-
-  <div{{ content_attributes.addClass('content') }}>
-    {% block content %}
-      {{ content }}
-    {% endblock %}
-  </div>
+  {% block content %}
+    {{ content }}
+  {% endblock %}
 </div>

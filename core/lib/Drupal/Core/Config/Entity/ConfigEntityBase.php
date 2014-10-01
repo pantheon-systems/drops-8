@@ -163,7 +163,7 @@ abstract class ConfigEntityBase extends Entity implements ConfigEntityInterface 
    */
   public function disable() {
     // An entity was disabled, invalidate its own cache tag.
-    Cache::invalidateTags(array($this->entityTypeId => array($this->id())));
+    Cache::invalidateTags($this->getCacheTag());
     return $this->setStatus(FALSE);
   }
 
@@ -339,8 +339,8 @@ abstract class ConfigEntityBase extends Entity implements ConfigEntityInterface 
   /**
    * {@inheritdoc}
    */
-  public function urlInfo($rel = 'edit-form') {
-    return parent::urlInfo($rel);
+  public function urlInfo($rel = 'edit-form', array $options = []) {
+    return parent::urlInfo($rel, $options);
   }
 
   /**
@@ -355,6 +355,13 @@ abstract class ConfigEntityBase extends Entity implements ConfigEntityInterface 
    */
   public function url($rel = 'edit-form', $options = array()) {
     return parent::url($rel, $options);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function link($text = NULL, $rel = 'edit-form', array $options = []) {
+    return parent::link($text, $rel, $options);
   }
 
   /**

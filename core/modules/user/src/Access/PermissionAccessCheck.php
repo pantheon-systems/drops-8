@@ -13,7 +13,8 @@ use Drupal\Core\Session\AccountInterface;
 use Symfony\Component\Routing\Route;
 
 /**
- * Determines access to routes based on permissions defined via permissions.yml.
+ * Determines access to routes based on permissions defined via
+ * $module.permissions.yml files.
  */
 class PermissionAccessCheck implements AccessInterface {
 
@@ -30,6 +31,15 @@ class PermissionAccessCheck implements AccessInterface {
    */
   public function access(Route $route, AccountInterface $account) {
     $permission = $route->getRequirement('_permission');
-    return AccessResult::allowedIfHasPermission($account, $permission);
+    // Allow to conjunct the permissions with OR ('+') or AND (',').
+    $split = explode(',', $permission);
+    if (count($split) > 1) {
+      return AccessResult::allowedIfHasPermissions($account, $split, 'AND');
+    }
+    else {
+      $split = explode('+', $permission);
+      return AccessResult::allowedIfHasPermissions($account, $split, 'OR');
+    }
   }
+
 }

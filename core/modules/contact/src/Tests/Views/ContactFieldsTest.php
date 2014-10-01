@@ -34,7 +34,7 @@ class ContactFieldsTest extends ViewTestBase {
     parent::setUp();
 
     $this->field_storage = entity_create('field_storage_config', array(
-      'name' => strtolower($this->randomMachineName()),
+      'field_name' => strtolower($this->randomMachineName()),
       'entity_type' => 'contact_message',
       'type' => 'text'
     ));
@@ -45,7 +45,7 @@ class ContactFieldsTest extends ViewTestBase {
       'label' => 'Test contact form',
     ))->save();
 
-    entity_create('field_instance_config', array(
+    entity_create('field_config', array(
       'field_storage' => $this->field_storage,
       'bundle' => 'contact_message',
     ))->save();

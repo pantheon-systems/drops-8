@@ -53,8 +53,8 @@ class AggregatorRenderingTest extends AggregatorTestBase {
     $this->assertText($block->label(), 'Feed block is displayed on the page.');
 
     // Find the expected read_more link.
-    $href = 'aggregator/sources/' . $feed->id();
-    $links = $this->xpath('//a[@href = :href]', array(':href' => url($href)));
+    $href = $feed->url();
+    $links = $this->xpath('//a[@href = :href]', array(':href' => $href));
     $this->assert(isset($links[0]), format_string('Link to href %href found.', array('%href' => $href)));
     $cache_tags_header = $this->drupalGetHeader('X-Drupal-Cache-Tags');
     $cache_tags = explode(' ', $cache_tags_header);
@@ -62,13 +62,13 @@ class AggregatorRenderingTest extends AggregatorTestBase {
     $this->assertTrue(in_array('aggregator_feed:' . $feed->id(), $cache_tags));
 
     // Visit that page.
-    $this->drupalGet($href);
+    $this->drupalGet($feed->urlInfo()->getInternalPath());
     $correct_titles = $this->xpath('//h1[normalize-space(text())=:title]', array(':title' => $feed->label()));
     $this->assertFalse(empty($correct_titles), 'Aggregator feed page is available and has the correct title.');
     $cache_tags = explode(' ', $this->drupalGetHeader('X-Drupal-Cache-Tags'));
     $this->assertTrue(in_array('aggregator_feed:' . $feed->id(), $cache_tags));
-    $this->assertTrue(in_array('aggregator_feed_view:1', $cache_tags));
-    $this->assertTrue(in_array('aggregator_item_view:1', $cache_tags));
+    $this->assertTrue(in_array('aggregator_feed_view', $cache_tags));
+    $this->assertTrue(in_array('aggregator_item_view', $cache_tags));
 
     // Set the number of news items to 0 to test that the block does not show
     // up.
@@ -97,7 +97,7 @@ class AggregatorRenderingTest extends AggregatorTestBase {
 
     // Check for presence of an aggregator pager.
     $this->drupalGet('aggregator');
-    $elements = $this->xpath("//ul[@class=:class]", array(':class' => 'pager'));
+    $elements = $this->xpath("//ul[@class=:class]", array(':class' => 'pager__items'));
     $this->assertTrue(!empty($elements), 'Individual source page contains a pager.');
 
     // Check for sources page title.
@@ -106,21 +106,33 @@ class AggregatorRenderingTest extends AggregatorTestBase {
     $this->assertTrue(!empty($titles), 'Source page contains correct title.');
 
     // Find the expected read_more link on the sources page.
-    $href = 'aggregator/sources/' . $feed->id();
-    $links = $this->xpath('//a[@href = :href]', array(':href' => url($href)));
+    $href = $feed->url();
+    $links = $this->xpath('//a[@href = :href]', array(':href' => $href));
     $this->assertTrue(isset($links[0]), String::format('Link to href %href found.', array('%href' => $href)));
     $cache_tags_header = $this->drupalGetHeader('X-Drupal-Cache-Tags');
     $cache_tags = explode(' ', $cache_tags_header);
     $this->assertTrue(in_array('aggregator_feed:' . $feed->id(), $cache_tags));
 
+    // Check the rss aggregator page.
+    $this->drupalGet('aggregator/rss');
+    $this->assertResponse(200);
+    $this->assertEqual($this->drupalGetHeader('Content-type'), 'application/rss+xml; charset=utf-8');
+
+    // Check the opml aggregator page.
+    $this->drupalGet('aggregator/opml');
+    $outline = $this->xpath('//outline[1]');
+    $this->assertEqual($outline[0]['type'], 'rss', 'The correct type attribute is used for rss OPML.');
+    $this->assertEqual($outline[0]['text'], $feed->label(), 'The correct text attribute is used for rss OPML.');
+    $this->assertEqual($outline[0]['xmlurl'], $feed->getUrl(), 'The correct xmlUrl attribute is used for rss OPML.');
+
     // Check for the presence of a pager.
     $this->drupalGet('aggregator/sources/' . $feed->id());
-    $elements = $this->xpath("//ul[@class=:class]", array(':class' => 'pager'));
+    $elements = $this->xpath("//ul[@class=:class]", array(':class' => 'pager__items'));
     $this->assertTrue(!empty($elements), 'Individual source page contains a pager.');
     $cache_tags = explode(' ', $this->drupalGetHeader('X-Drupal-Cache-Tags'));
     $this->assertTrue(in_array('aggregator_feed:' . $feed->id(), $cache_tags));
-    $this->assertTrue(in_array('aggregator_feed_view:1', $cache_tags));
-    $this->assertTrue(in_array('aggregator_item_view:1', $cache_tags));
+    $this->assertTrue(in_array('aggregator_feed_view', $cache_tags));
+    $this->assertTrue(in_array('aggregator_item_view', $cache_tags));
   }
 
 }

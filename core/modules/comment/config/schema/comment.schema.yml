@@ -60,7 +60,7 @@ comment.type.*:
       type: text
       label: 'Description'
 
-field.comment.settings:
+field.comment.storage_settings:
   type: sequence
   label: 'Settings'
   sequence:
@@ -93,12 +93,12 @@ field.comment.value:
           type: integer
           label: 'Count'
 
-field.comment.instance_settings:
+field.comment.field_settings:
   type: mapping
   label: 'Comment settings'
   mapping:
     default_mode:
-      type: boolean
+      type: integer
       label: 'Threading'
     per_page:
       type: integer

@@ -30,7 +30,6 @@ class TermFieldTest extends TaxonomyTestBase {
    */
   public static $modules = array('entity_test', 'field_ui');
 
-  protected $instance;
   protected $vocabulary;
 
   protected function setUp() {
@@ -48,7 +47,7 @@ class TermFieldTest extends TaxonomyTestBase {
     // Setup a field.
     $this->field_name = drupal_strtolower($this->randomMachineName());
     $this->field_storage = entity_create('field_storage_config', array(
-      'name' => $this->field_name,
+      'field_name' => $this->field_name,
       'entity_type' => 'entity_test',
       'type' => 'taxonomy_term_reference',
       'settings' => array(
@@ -61,7 +60,7 @@ class TermFieldTest extends TaxonomyTestBase {
       )
     ));
     $this->field_storage->save();
-    entity_create('field_instance_config', array(
+    entity_create('field_config', array(
       'field_storage' => $this->field_storage,
       'bundle' => 'entity_test',
     ))->save();
@@ -109,8 +108,6 @@ class TermFieldTest extends TaxonomyTestBase {
 
     // Submit with some value.
     $edit = array(
-      'user_id' => 1,
-      'name' => $this->randomMachineName(),
       $this->field_name => array($term->id()),
     );
     $this->drupalPostForm(NULL, $edit, t('Save'));
@@ -134,7 +131,7 @@ class TermFieldTest extends TaxonomyTestBase {
   /**
    * No php error message on the field setting page for autocomplete widget.
    */
-  function testTaxonomyTermFieldInstanceSettingsAutocompleteWidget() {
+  function testTaxonomyTermFieldSettingsAutocompleteWidget() {
     entity_get_form_display('entity_test', 'entity_test', 'default')
       ->setComponent($this->field_name, array(
         'type' => 'taxonomy_autocomplete',
@@ -171,7 +168,7 @@ class TermFieldTest extends TaxonomyTestBase {
     $this->vocabulary->vid = $new_name;
     $this->vocabulary->save();
 
-    // Check that the field instance is still attached to the vocabulary.
+    // Check that the field is still attached to the vocabulary.
     $field_storage = FieldStorageConfig::loadByName('entity_test', $this->field_name);
     $allowed_values = $field_storage->getSetting('allowed_values');
     $this->assertEqual($allowed_values[0]['vocabulary'], $new_name, 'Index 0: Machine name was updated correctly.');

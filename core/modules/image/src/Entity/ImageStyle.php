@@ -105,7 +105,7 @@ class ImageStyle extends ConfigEntityBase implements ImageStyleInterface, Entity
       if (!empty($this->original) && $this->id() !== $this->original->id()) {
         // The old image style name needs flushing after a rename.
         $this->original->flush();
-        // Update field instance settings if necessary.
+        // Update field settings if necessary.
         if (!$this->isSyncing()) {
           static::replaceImageStyle($this);
         }
@@ -126,7 +126,7 @@ class ImageStyle extends ConfigEntityBase implements ImageStyleInterface, Entity
     foreach ($entities as $style) {
       // Flush cached media for the deleted style.
       $style->flush();
-      // Check whether field instance settings need to be updated.
+      // Check whether field settings need to be updated.
       // In case no replacement style was specified, all image fields that are
       // using the deleted style are left in a broken state.
       if (!$style->isSyncing() && $new_id = $style->getReplacementID()) {
@@ -138,7 +138,7 @@ class ImageStyle extends ConfigEntityBase implements ImageStyleInterface, Entity
   }
 
   /**
-   * Update field instance settings if the image style name is changed.
+   * Update field settings if the image style name is changed.
    *
    * @param \Drupal\image\ImageStyleInterface $style
    *   The image style.
@@ -216,12 +216,12 @@ class ImageStyle extends ConfigEntityBase implements ImageStyleInterface, Entity
     }
 
     // If not using clean URLs, the image derivative callback is only available
-    // with the script path. If the file does not exist, use url() to ensure
+    // with the script path. If the file does not exist, use _url() to ensure
     // that it is included. Once the file exists it's fine to fall back to the
     // actual file path, this avoids bootstrapping PHP once the files are built.
     if ($clean_urls === FALSE && file_uri_scheme($uri) == 'public' && !file_exists($uri)) {
       $directory_path = file_stream_wrapper_get_instance_by_uri($uri)->getDirectoryPath();
-      return url($directory_path . '/' . file_uri_target($uri), array('absolute' => TRUE, 'query' => $token_query));
+      return _url($directory_path . '/' . file_uri_target($uri), array('absolute' => TRUE, 'query' => $token_query));
     }
 
     $file_url = file_create_url($uri);

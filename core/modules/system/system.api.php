@@ -6,6 +6,7 @@
  */
 
 use Drupal\Component\Utility\String;
+use Drupal\Core\Url;
 use Drupal\Core\Utility\UpdateException;
 
 /**
@@ -62,8 +63,8 @@ function hook_hook_info() {
  * Long-running tasks and tasks that could time out, such as retrieving remote
  * data, sending email, and intensive file tasks, should use the queue API
  * instead of executing the tasks directly. To do this, first define one or
- * more queues via hook_queue_info(). Then, add items that need to be
- * processed to the defined queues.
+ * more queues via a \Drupal\Core\Annotation\QueueWorker plugin. Then, add items
+ * that need to be processed to the defined queues.
  */
 function hook_cron() {
   // Short-running operation example, not using a queue:
@@ -99,46 +100,6 @@ function hook_data_type_info_alter(&$data_types) {
 }
 
 /**
- * Declare queues holding items that need to be run periodically.
- *
- * While there can be only one hook_cron() process running at the same time,
- * there can be any number of processes defined here running. Because of
- * this, long running tasks are much better suited for this API. Items queued
- * in hook_cron() might be processed in the same cron run if there are not many
- * items in the queue, otherwise it might take several requests, which can be
- * run in parallel.
- *
- * You can create queues, add items to them, claim them, etc without declaring
- * the queue in this hook if you want, however, you need to take care of
- * processing the items in the queue in that case.
- *
- * @return
- *   An associative array where the key is the queue name and the value is
- *   again an associative array. Possible keys are:
- *   - 'worker callback': A PHP callable to call that is an implementation of
- *     callback_queue_worker().
- *   - 'cron': (optional) An associative array containing the optional key:
- *     - 'time': (optional) How much time Drupal cron should spend on calling
- *       this worker in seconds. Defaults to 15.
- *     If the cron key is not defined, the queue will not be processed by cron,
- *     and must be processed by other means.
- *
- * @see hook_cron()
- * @see hook_queue_info_alter()
- */
-function hook_queue_info() {
-  $queues['aggregator_feeds'] = array(
-    'title' => t('Aggregator refresh'),
-    'worker callback' => array('Drupal\my_module\MyClass', 'aggregatorRefresh'),
-    // Only needed if this queue should be processed by cron.
-    'cron' => array(
-      'time' => 60,
-    ),
-  );
-  return $queues;
-}
-
-/**
  * Alter cron queue information before cron runs.
  *
  * Called by \Drupal\Core\Cron to allow modules to alter cron queue settings
@@ -147,42 +108,14 @@ function hook_queue_info() {
  * @param array $queues
  *   An array of cron queue information.
  *
- * @see hook_queue_info()
+ * @see \Drupal\Core\QueueWorker\QueueWorkerInterface
+ * @see \Drupal\Core\Annotation\QueueWorker
  * @see \Drupal\Core\Cron
  */
 function hook_queue_info_alter(&$queues) {
   // This site has many feeds so let's spend 90 seconds on each cron run
   // updating feeds instead of the default 60.
   $queues['aggregator_feeds']['cron']['time'] = 90;
-}
-
-/**
- * Work on a single queue item.
- *
- * Callback for hook_queue_info().
- *
- * @param $queue_item_data
- *   The data that was passed to \Drupal\Core\Queue\QueueInterface::createItem()
- *   when the item was queued.
- *
- * @throws \Exception
- *   The worker callback may throw an exception to indicate there was a problem.
- *   The cron process will log the exception, and leave the item in the queue to
- *   be processed again later.
- * @throws \Drupal\Core\Queue\SuspendQueueException
- *   More specifically, a SuspendQueueException should be thrown when the
- *   callback is aware that the problem will affect all subsequent workers of
- *   its queue. For example, a callback that makes HTTP requests may find that
- *   the remote server is not responding. The cron process will behave as with a
- *   normal Exception, and in addition will not attempt to process further items
- *   from the current item's queue during the current cron run.
- *
- * @see \Drupal\Core\Cron::run()
- */
-function callback_queue_worker($queue_item_data) {
-  $node = node_load($queue_item_data);
-  $node->title = 'Updated title';
-  $node->save();
 }
 
 /**
@@ -438,7 +371,7 @@ function hook_page_build(&$page) {
  *     this menu item (as a result of other properties), then the menu link is
  *     always expanded, equivalent to its 'always expanded' checkbox being set
  *     in the UI.
- *   - options: (optional) An array of options to be passed to l() when
+ *   - options: (optional) An array of options to be passed to _l() when
  *     generating a link from this menu item.
  *
  * @ingroup menu
@@ -460,7 +393,7 @@ function hook_menu_links_discovered_alter(&$links) {
  * - #link: An associative array containing:
  *   - title: The localized title of the link.
  *   - href: The system path to link to.
- *   - localized_options: An array of options to pass to l().
+ *   - localized_options: An array of options to pass to _l().
  * - #weight: The link's weight compared to other links.
  * - #active: Whether the link should be marked as 'active'.
  *
@@ -562,7 +495,7 @@ function hook_local_tasks_alter(&$local_tasks) {
  * - title: The localized title of the link.
  * - route_name: The route name of the link.
  * - route_parameters: The route parameters of the link.
- * - localized_options: An array of options to pass to url().
+ * - localized_options: An array of options to pass to _url().
  * - (optional) weight: The weight of the link, which is used to sort the links.
  *
  *
@@ -943,55 +876,6 @@ function hook_system_info_alter(array &$info, \Drupal\Core\Extension\Extension $
 }
 
 /**
- * Define user permissions.
- *
- * This hook can supply permissions that the module defines, so that they
- * can be selected on the user permissions page and used to grant or restrict
- * access to actions the module performs.
- *
- * Permissions are checked using \Drupal::currentUser()->hasPermission().
- *
- * For a detailed usage example, see page_example.module.
- *
- * @return
- *   An array whose keys are permission names and whose corresponding values
- *   are arrays containing the following key-value pairs:
- *   - title: The human-readable name of the permission, to be shown on the
- *     permission administration page. This should be wrapped in the t()
- *     function so it can be translated.
- *   - description: (optional) A description of what the permission does. This
- *     should be wrapped in the t() function so it can be translated.
- *   - restrict access: (optional) A boolean which can be set to TRUE to
- *     indicate that site administrators should restrict access to this
- *     permission to trusted users. This should be used for permissions that
- *     have inherent security risks across a variety of potential use cases
- *     (for example, the "administer filters" and "bypass node access"
- *     permissions provided by Drupal core). When set to TRUE, a standard
- *     warning message defined in user_admin_permissions() will be displayed
- *     with the permission on the permission administration page. Defaults
- *     to FALSE.
- *   - warning: (optional) A translated warning message to display for this
- *     permission on the permission administration page. This warning overrides
- *     the automatic warning generated by 'restrict access' being set to TRUE.
- *     This should rarely be used, since it is important for all permissions to
- *     have a clear, consistent security warning that is the same across the
- *     site. Use the 'description' key instead to provide any information that
- *     is specific to the permission you are defining.
- *
- * @ingroup user_api
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- *   Use $module.permissions.yml files.
- */
-function hook_permission() {
-  return array(
-    'administer my module' =>  array(
-      'title' => t('Administer my module'),
-      'description' => t('Perform administration tasks for my module.'),
-    ),
-  );
-}
-
-/**
  * Provide online user help.
  *
  * By implementing hook_help(), a module can make documentation available to
@@ -1295,7 +1179,7 @@ function hook_mail($key, &$message, $params) {
     $node = $params['node'];
     $variables += array(
       '%uid' => $node->getOwnerId(),
-      '%url' => url('node/' . $node->id(), array('absolute' => TRUE)),
+      '%url' => $node->url('canonical', array('absolute' => TRUE)),
       '%node_type' => node_get_type_label($node),
       '%title' => $node->getTitle(),
       '%teaser' => $node->teaser,
@@ -1682,7 +1566,7 @@ function hook_requirements($phase) {
   // Test PHP version
   $requirements['php'] = array(
     'title' => t('PHP'),
-    'value' => ($phase == 'runtime') ? l(phpversion(), 'admin/reports/status/php') : phpversion(),
+    'value' => ($phase == 'runtime') ? \Drupal::l(phpversion(), new Url('system.php')) : phpversion(),
   );
   if (version_compare(phpversion(), DRUPAL_MINIMUM_PHP) < 0) {
     $requirements['php']['description'] = t('Your PHP installation is too old. Drupal requires at least PHP %version.', array('%version' => DRUPAL_MINIMUM_PHP));
@@ -1704,7 +1588,7 @@ function hook_requirements($phase) {
       );
     }
 
-    $requirements['cron']['description'] .= ' ' . t('You can <a href="@cron">run cron manually</a>.', array('@cron' => url('admin/reports/status/run-cron')));
+    $requirements['cron']['description'] .= ' ' . t('You can <a href="@cron">run cron manually</a>.', array('@cron' => \Drupal::url('system.run_cron')));
 
     $requirements['cron']['title'] = t('Cron maintenance tasks');
   }
@@ -2467,7 +2351,7 @@ function hook_tokens($type, $tokens, array $data = array(), array $options = arr
           break;
 
         case 'edit-url':
-          $replacements[$original] = url('node/' . $node->id() . '/edit', $url_options);
+          $replacements[$original] = $node->url('edit-form', $url_options);
           break;
 
         // Default values for the chained tokens handled below.
@@ -2799,7 +2683,7 @@ function hook_filetransfer_info_alter(&$filetransfer_info) {
  * @param array $variables
  *   An associative array of variables defining a link. The link may be either a
  *   "route link" using \Drupal\Core\Utility\LinkGenerator::link(), which is
- *   exposed as the 'link_generator' service or a link generated by l(). If the
+ *   exposed as the 'link_generator' service or a link generated by _l(). If the
  *   link is a "route link", 'route_name' will be set, otherwise 'path' will be
  *   set. The following keys can be altered:
  *   - text: The link text for the anchor tag as a translated string.

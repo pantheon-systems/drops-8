@@ -20,7 +20,7 @@ use Drupal\options\Plugin\Field\FieldWidget\OptionsWidgetBase;
  *   field_types = {
  *     "list_integer",
  *     "list_float",
- *     "list_text"
+ *     "list_string"
  *   },
  *   multiple_values = TRUE
  * )
@@ -35,7 +35,7 @@ class SelectWidget extends OptionsWidgetBase {
 
     $element += array(
       '#type' => 'select',
-      '#options' => $this->getOptions($items[$delta]),
+      '#options' => $this->getOptions($items->getEntity()),
       '#default_value' => $this->getSelectedOptions($items, $delta),
       // Do not display a 'multiple' select box if there is only one option.
       '#multiple' => $this->multiple && count($this->options) > 1,

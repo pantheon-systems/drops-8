@@ -66,12 +66,12 @@ class RebuildTest extends WebTestBase {
     // Create a multi-valued field for 'page' nodes to use for Ajax testing.
     $field_name = 'field_ajax_test';
     entity_create('field_storage_config', array(
-      'name' => $field_name,
+      'field_name' => $field_name,
       'entity_type' => 'node',
       'type' => 'text',
       'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
     ))->save();
-    entity_create('field_instance_config', array(
+    entity_create('field_config', array(
       'field_name' => $field_name,
       'entity_type' => 'node',
       'bundle' => 'page',
@@ -105,6 +105,6 @@ class RebuildTest extends WebTestBase {
 
     // Ensure that the form's action is correct.
     $forms = $this->xpath('//form[contains(@class, "node-page-form")]');
-    $this->assert(count($forms) == 1 && $forms[0]['action'] == url('node/add/page'), 'Re-rendered form contains the correct action value.');
+    $this->assert(count($forms) == 1 && $forms[0]['action'] == _url('node/add/page'), 'Re-rendered form contains the correct action value.');
   }
 }

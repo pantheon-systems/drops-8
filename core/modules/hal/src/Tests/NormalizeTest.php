@@ -36,7 +36,6 @@ class NormalizeTest extends NormalizerTestBase {
     $values = array(
       'langcode' => 'de',
       'name' => $this->randomMachineName(),
-      'user_id' => 1,
       'field_test_text' => array(
         'value' => $this->randomMachineName(),
         'format' => 'full_html',
@@ -60,8 +59,8 @@ class NormalizeTest extends NormalizerTestBase {
     $entity->getTranslation('en')->set('field_test_entity_reference', array(0 => $translation_values['field_test_entity_reference']));
     $entity->save();
 
-    $type_uri = url('rest/type/entity_test/entity_test', array('absolute' => TRUE));
-    $relation_uri = url('rest/relation/entity_test/entity_test/field_test_entity_reference', array('absolute' => TRUE));
+    $type_uri = _url('rest/type/entity_test/entity_test', array('absolute' => TRUE));
+    $relation_uri = _url('rest/relation/entity_test/entity_test/field_test_entity_reference', array('absolute' => TRUE));
 
     $expected_array = array(
       '_links' => array(

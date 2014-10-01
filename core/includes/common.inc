@@ -29,7 +29,6 @@ use Symfony\Component\HttpFoundation\Request;
 use Drupal\Core\PhpStorage\PhpStorageFactory;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Datetime\DrupalDateTime;
-use Drupal\Core\EventSubscriber\HtmlViewSubscriber;
 use Drupal\Core\Routing\GeneratorNotInitializedException;
 use Drupal\Core\Template\Attribute;
 use Drupal\Core\Render\Element;
@@ -639,24 +638,25 @@ function _format_date_callback(array $matches = NULL, $new_langcode = NULL) {
  * When creating links in modules, consider whether l() could be a better
  * alternative than url().
  *
- * @see \Drupal\Core\Routing\UrlGeneratorInterface::generateFromPath().
+ * @see \Drupal\Core\Url::fromUri()
+ * @see \Drupal\Core\Url::fromRoute()
+ * @see \Drupal\Core\Url::toString()
+ *
+ * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.0.
+ *   Use \Drupal\Core\Url::fromRoute() for internal paths served by Drupal
+ *   controllers or \Drupal\Core\Url::fromUri() for external paths or
+ *   non-controller or sub-domain URIs such as core/install.php. Note that
+ *   \Drupal\Core\Url::fromUri() expects a valid URI including the scheme. URIs
+ *   from the same sub-domain that are not handled by Drupal controllers should
+ *   be prepended with base://. For example:
+ * @code
+ * $installer_url = \Drupal\Core\Url::fromUri('base://core/install.php')->toString();
+ * $external_url = \Drupal\Core\Url::fromUri('http://example.com', ['query' => ['foo' => 'bar']])->toString();
+ * $internal_url = \Drupal\Core\Url::fromRoute('system.admin')->toString();
+ * @endcode
  */
-function url($path = NULL, array $options = array()) {
-  $generator = \Drupal::urlGenerator();
-  try {
-    $url = $generator->generateFromPath($path, $options);
-  }
-  catch (GeneratorNotInitializedException $e) {
-    // Fallback to using globals.
-    // @todo Remove this once there is no code that calls url() when there is
-    //   no request.
-    global $base_url, $base_path, $script_path;
-    $generator->setBasePath($base_path);
-    $generator->setBaseUrl($base_url . '/');
-    $generator->setScriptPath($script_path);
-    $url = $generator->generateFromPath($path, $options);
-  }
-  return $url;
+function _url($path = NULL, array $options = array()) {
+  return \Drupal::urlGenerator()->generateFromPath($path, $options);
 }
 
 /**
@@ -692,7 +692,7 @@ function drupal_http_header_attributes(array $attributes = array()) {
  * However, for links enclosed in translatable text you should use t() and
  * embed the HTML anchor tag directly in the translated string. For example:
  * @code
- * t('Visit the <a href="@url">settings</a> page', array('@url' => url('admin')));
+ * t('Visit the <a href="@url">settings</a> page', array('@url' => \Drupal::url('system.admin')));
  * @endcode
  * This keeps the context of the link title ('settings' in the example) for
  * translators.
@@ -745,10 +745,27 @@ function drupal_http_header_attributes(array $attributes = array()) {
  * @return string
  *   An HTML string containing a link to the given path.
  *
- * @see url()
+ * @see _url()
  * @see system_page_build()
+ * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.0.
+ *   Use \Drupal::l($text, $url) where $url is an instance of
+ *   \Drupal\Core\Url. To build a \Drupal\Core\Url object for internal paths
+ *   served by Drupal controllers use \Drupal\Core\Url::fromRoute(). For
+ *   external paths or non-controller or sub-domain URIs such as
+ *   core/install.php use \Drupal\Core\Url::fromUri(). Note that
+ *   \Drupal\Core\Url::fromUri() expects a valid URI including the scheme. URIs
+ *   from the same sub-domain that are not handled by Drupal controllers should
+ *   be prepended with base://. For example:
+ * @code
+ * $installer_url = \Drupal\Core\Url::fromUri('base://core/install.php')->toString();
+ * $installer_link = \Drupal::l($text, $installer_url);
+ * $external_url = \Drupal\Core\Url::fromUri('http://example.com', ['query' => ['foo' => 'bar']])->toString();
+ * $external_link = \Drupal::l($text, $external_url);
+ * $internal_url = \Drupal\Core\Url::fromRoute('system.admin')->toString();
+ * $internal_link = \Drupal::l($text, $internal_url);
+ * @endcode
  */
-function l($text, $path, array $options = array()) {
+function _l($text, $path, array $options = array()) {
   // Start building a structured representation of our link to be altered later.
   $variables = array(
     'text' => is_array($text) ? drupal_render($text) : $text,
@@ -803,7 +820,7 @@ function l($text, $path, array $options = array()) {
 
   // The result of url() is a plain-text URL. Because we are using it here
   // in an HTML argument context, we need to encode it properly.
-  $url = String::checkPlain(url($variables['path'], $variables['options']));
+  $url = String::checkPlain(_url($variables['path'], $variables['options']));
 
   // Sanitize the link text if necessary.
   $text = $variables['options']['html'] ? $variables['text'] : String::checkPlain($variables['text']);
@@ -1524,7 +1541,7 @@ function _drupal_add_js($data = NULL, $options = NULL) {
           $scriptPath = $GLOBALS['script_path'];
           $pathPrefix = '';
           $current_query = \Drupal::service('request_stack')->getCurrentRequest()->query->all();
-          url('', array('script' => &$scriptPath, 'prefix' => &$pathPrefix));
+          _url('', array('script' => &$scriptPath, 'prefix' => &$pathPrefix));
           $current_path = current_path();
           $current_path_is_admin = FALSE;
           // The function path_is_admin() is not available on update.php pages.
@@ -1780,41 +1797,6 @@ function drupal_merge_js_settings($settings_items) {
  */
 function drupal_merge_attached(array $a, array $b) {
   return NestedArray::mergeDeep($a, $b);
-}
-
-/**
- * Merges sets of cache tags.
- *
- * The cache tags array is returned in a format that is valid for
- * \Drupal\Core\Cache\CacheBackendInterface::set().
- *
- * When caching elements, it is necessary to collect all cache tags into a
- * single array, from both the element itself and all child elements. This
- * allows items to be invalidated based on all tags attached to the content
- * they're constituted from.
- *
- * @param array $tags
- *   The first set of cache tags.
- * @param array $other
- *   The other set of cache tags.
- *
- * @return array
- *   The merged set of cache tags.
- */
-function drupal_merge_cache_tags(array $tags, array $other) {
-  foreach ($other as $namespace => $values) {
-    if (is_array($values)) {
-      foreach ($values as $value) {
-        $tags[$namespace][$value] = $value;
-      }
-    }
-    else {
-      if (!isset($tags[$namespace])) {
-        $tags[$namespace] = $values;
-      }
-    }
-  }
-  return $tags;
 }
 
 /**
@@ -2317,7 +2299,7 @@ function drupal_page_set_cache(Response $response, Request $request) {
   $expire = ($date > (new DateTime())) ? $date->getTimestamp() : Cache::PERMANENT;
 
   $cid = drupal_page_cache_get_cid($request);
-  $tags = HtmlViewSubscriber::convertHeaderToCacheTags($response->headers->get('X-Drupal-Cache-Tags'));
+  $tags = explode(' ', $response->headers->get('X-Drupal-Cache-Tags'));
   \Drupal::cache('render')->set($cid, $response, $expire, $tags);
 }
 
@@ -2500,20 +2482,6 @@ function drupal_prepare_page($page) {
   // 'sidebar_first', 'footer', etc.
   \Drupal::moduleHandler()->alter('page', $page);
   \Drupal::theme()->alter('page', $page);
-
-  // The "main" and "secondary" menus are never part of the page-level render
-  // array and therefore their cache tags will never bubble up into the page
-  // cache, even though they should be. This happens because they're rendered
-  // directly by the theme system.
-  // @todo Remove this once https://drupal.org/node/1869476 lands.
-  if (theme_get_setting('features.main_menu') && count(menu_main_menu())) {
-    $main_links_source = _menu_get_links_source('main_links', 'main');
-    $page['page_top']['#cache']['tags']['menu'][$main_links_source] = $main_links_source;
-  }
-  if (theme_get_setting('features.secondary_menu') && count(menu_secondary_menu())) {
-    $secondary_links_source = _menu_get_links_source('secondary_links', 'account');
-    $page['page_top']['#cache']['tags']['menu'][$secondary_links_source] = $secondary_links_source;
-  }
 
   // If no module has taken care of the main content, add it to the page now.
   // This allows the site to still be usable even if no modules that
@@ -2724,7 +2692,7 @@ function drupal_render(&$elements, $is_recursive_call = FALSE) {
     $frame = $stack->top();
     // Update the frame, but also update the current element, to ensure it
     // contains up-to-date information in case it gets render cached.
-    $frame->tags = $element['#cache']['tags'] = drupal_merge_cache_tags($element['#cache']['tags'], $frame->tags);
+    $frame->tags = $element['#cache']['tags'] = Cache::mergeTags($element['#cache']['tags'], $frame->tags);
     $frame->attached = $element['#attached'] = drupal_merge_attached($element['#attached'], $frame->attached);
     $frame->postRenderCache = $element['#post_render_cache'] = NestedArray::mergeDeep($element['#post_render_cache'], $frame->postRenderCache);
   };
@@ -2740,7 +2708,7 @@ function drupal_render(&$elements, $is_recursive_call = FALSE) {
     // Merge the current and the parent stack frame.
     $current = $stack->pop();
     $parent = $stack->pop();
-    $current->tags = drupal_merge_cache_tags($current->tags, $parent->tags);
+    $current->tags = Cache::mergeTags($current->tags, $parent->tags);
     $current->attached = drupal_merge_attached($current->attached, $parent->attached);
     $current->postRenderCache = NestedArray::mergeDeep($current->postRenderCache, $parent->postRenderCache);
     $stack->push($current);
@@ -2957,7 +2925,7 @@ function drupal_render(&$elements, $is_recursive_call = FALSE) {
     $stack->push(new RenderStackFrame());
     _drupal_render_process_post_render_cache($elements);
     $post_render_additions = $stack->pop();
-    $elements['#cache']['tags'] = drupal_merge_cache_tags($elements['#cache']['tags'], $post_render_additions->tags);
+    $elements['#cache']['tags'] = Cache::mergeTags($elements['#cache']['tags'], $post_render_additions->tags);
     $elements['#attached'] = drupal_merge_attached($elements['#attached'], $post_render_additions->attached);
     $elements['#post_render_cache'] = NestedArray::mergeDeep($elements['#post_render_cache'], $post_render_additions->postRenderCache);
   }
@@ -3150,17 +3118,15 @@ function drupal_render_cache_set(&$markup, array $elements) {
     $data['#post_render_cache'] = $elements['#post_render_cache'];
   }
 
-  // Tag every render cache item with the "rendered" cache tag. This allows us
-  // to invalidate the entire render cache, regardless of the cache bin.
-  $cache_tags = $elements['#cache']['tags'] ?: array();
-  $cache_tags['rendered'] = TRUE;
-
-  // Persist cache tags associated with this element.
-  $data['#cache']['tags'] = $cache_tags;
+  // Persist cache tags associated with this element. Also associate the
+  // "rendered" cache tag. This allows us to invalidate the entire render cache,
+  // regardless of the cache bin.
+  $data['#cache']['tags'] = $elements['#cache']['tags'];
+  $data['#cache']['tags'][] = 'rendered';
 
   $bin = isset($elements['#cache']['bin']) ? $elements['#cache']['bin'] : 'render';
   $expire = isset($elements['#cache']['expire']) ? $elements['#cache']['expire'] : Cache::PERMANENT;
-  \Drupal::cache($bin)->set($cid, $data, $expire, $cache_tags);
+  \Drupal::cache($bin)->set($cid, $data, $expire, $data['#cache']['tags']);
 }
 
 /**

@@ -31,11 +31,11 @@ class EmailFieldTest extends WebTestBase {
   protected $fieldStorage;
 
   /**
-   * The instance used in this test class.
+   * The field used in this test class.
    *
-   * @var \Drupal\field\Entity\FieldInstanceConfig
+   * @var \Drupal\field\Entity\FieldConfig
    */
-  protected $instance;
+  protected $field;
 
   protected function setUp() {
     parent::setUp();
@@ -55,16 +55,16 @@ class EmailFieldTest extends WebTestBase {
     // Create a field with settings to validate.
     $field_name = drupal_strtolower($this->randomMachineName());
     $this->fieldStorage = entity_create('field_storage_config', array(
-      'name' => $field_name,
+      'field_name' => $field_name,
       'entity_type' => 'entity_test',
       'type' => 'email',
     ));
     $this->fieldStorage->save();
-    $this->instance = entity_create('field_instance_config', array(
+    $this->field = entity_create('field_config', array(
       'field_storage' => $this->fieldStorage,
       'bundle' => 'entity_test',
     ));
-    $this->instance->save();
+    $this->field->save();
 
     // Create a form display for the default form mode.
     entity_get_form_display('entity_test', 'entity_test', 'default')
@@ -90,8 +90,6 @@ class EmailFieldTest extends WebTestBase {
     // Submit a valid email address and ensure it is accepted.
     $value = 'test@example.com';
     $edit = array(
-      'user_id' => 1,
-      'name' => $this->randomMachineName(),
       "{$field_name}[0][value]" => $value,
     );
     $this->drupalPostForm(NULL, $edit, t('Save'));

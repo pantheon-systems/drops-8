@@ -12,7 +12,7 @@ use Drupal\Core\Field\FieldItemBase;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountInterface;
-use Drupal\Core\TypedData\AllowedValuesInterface;
+use Drupal\Core\TypedData\OptionsProviderInterface;
 use Drupal\Core\TypedData\DataDefinition;
 
 /**
@@ -26,16 +26,16 @@ use Drupal\Core\TypedData\DataDefinition;
  *   default_formatter = "boolean",
  * )
  */
-class BooleanItem extends FieldItemBase implements AllowedValuesInterface {
+class BooleanItem extends FieldItemBase implements OptionsProviderInterface {
 
   /**
    * {@inheritdoc}
    */
-  public static function defaultSettings() {
+  public static function defaultStorageSettings() {
     return array(
       'on_label' => t('On'),
       'off_label' => t('Off'),
-    ) + parent::defaultSettings();
+    ) + parent::defaultStorageSettings();
   }
 
   /**
@@ -66,7 +66,7 @@ class BooleanItem extends FieldItemBase implements AllowedValuesInterface {
   /**
    * {@inheritdoc}
    */
-  public function settingsForm(array &$form, FormStateInterface $form_state, $has_data) {
+  public function storageSettingsForm(array &$form, FormStateInterface $form_state, $has_data) {
     $element['on_label'] = array(
       '#type' => 'textfield',
       '#title' => $this->t('"On" label'),

@@ -30,21 +30,21 @@ class MigrateCckFieldRevisionTest extends MigrateNodeTestBase {
     parent::setUp();
     entity_create('field_storage_config', array(
       'entity_type' => 'node',
-      'name' => 'field_test',
+      'field_name' => 'field_test',
       'type' => 'text',
     ))->save();
-    entity_create('field_instance_config', array(
+    entity_create('field_config', array(
       'entity_type' => 'node',
       'field_name' => 'field_test',
       'bundle' => 'story',
     ))->save();
     entity_create('field_storage_config', array(
       'entity_type' => 'node',
-      'name' => 'field_test_two',
+      'field_name' => 'field_test_two',
       'type' => 'integer',
       'cardinality' => -1,
     ))->save();
-    entity_create('field_instance_config', array(
+    entity_create('field_config', array(
       'entity_type' => 'node',
       'field_name' => 'field_test_two',
       'bundle' => 'story',

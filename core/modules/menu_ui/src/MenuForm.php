@@ -182,7 +182,7 @@ class MenuForm extends EntityForm {
 
     $status = $menu->save();
 
-    $edit_link = $this->linkGenerator->generateFromUrl($this->t('Edit'), $this->entity->urlInfo());
+    $edit_link = $this->entity->link($this->t('Edit'));
     if ($status == SAVED_UPDATED) {
       drupal_set_message($this->t('Menu %label has been updated.', array('%label' => $menu->label())));
       $this->logger('menu')->notice('Menu %label has been updated.', array('%label' => $menu->label(), 'link' => $edit_link));
@@ -269,7 +269,7 @@ class MenuForm extends EntityForm {
         $id = 'menu_plugin_id:' . $link->getPluginId();
         $form[$id]['#item'] = $element;
         $form[$id]['#attributes'] = $link->isEnabled() ? array('class' => array('menu-enabled')) : array('class' => array('menu-disabled'));
-        $form[$id]['title']['#markup'] = $this->linkGenerator->generateFromUrl($link->getTitle(), $link->getUrlObject(), $link->getOptions());
+        $form[$id]['title']['#markup'] = $this->linkGenerator->generate($link->getTitle(), $link->getUrlObject(), $link->getOptions());
         if (!$link->isEnabled()) {
           $form[$id]['title']['#markup'] .= ' (' . $this->t('disabled') . ')';
         }

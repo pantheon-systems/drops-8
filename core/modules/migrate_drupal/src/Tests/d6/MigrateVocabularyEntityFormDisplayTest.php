@@ -32,13 +32,13 @@ class MigrateVocabularyEntityFormDisplayTest extends MigrateDrupalTestBase {
 
     entity_create('field_storage_config', array(
       'entity_type' => 'node',
-      'name' => 'tags',
+      'field_name' => 'tags',
       'type' => 'taxonomy_term_reference',
     ))->save();
 
     foreach (array('page', 'article', 'story') as $type) {
       entity_create('node_type', array('type' => $type))->save();
-      entity_create('field_instance_config', array(
+      entity_create('field_config', array(
         'label' => 'Tags',
         'description' => '',
         'field_name' => 'tags',

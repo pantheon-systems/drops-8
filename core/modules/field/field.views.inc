@@ -9,7 +9,7 @@ use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\Sql\SqlContentEntityStorage;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\field\FieldStorageConfigInterface;
-use Drupal\field\FieldInstanceConfigInterface;
+use Drupal\field\FieldConfigInterface;
 
 /**
  * Implements hook_views_data().
@@ -21,13 +21,13 @@ function field_views_data() {
   $data = array();
   $module_handler = \Drupal::moduleHandler();
 
-  foreach (\Drupal::entityManager()->getStorage('field_storage_config')->loadMultiple() as $field) {
-    if (_field_views_get_entity_type_storage($field)) {
-      $result = (array) $module_handler->invoke($field->module, 'field_views_data', array($field));
+  foreach (\Drupal::entityManager()->getStorage('field_storage_config')->loadMultiple() as $field_storage) {
+    if (_field_views_get_entity_type_storage($field_storage)) {
+      $result = (array) $module_handler->invoke($field_storage->module, 'field_views_data', array($field_storage));
       if (empty($result)) {
-        $result = field_views_field_default_views_data($field);
+        $result = field_views_field_default_views_data($field_storage);
       }
-      $module_handler->alter('field_views_data', $result, $field);
+      $module_handler->alter('field_views_data', $result, $field_storage);
 
       if (is_array($result)) {
         $data = NestedArray::mergeDeep($result, $data);
@@ -47,11 +47,11 @@ function field_views_data() {
  * in field_views_data.
  */
 function field_views_data_alter(&$data) {
-  foreach (\Drupal::entityManager()->getStorage('field_storage_config')->loadMultiple() as $field) {
-    if (_field_views_get_entity_type_storage($field)) {
-      $function = $field->module . '_field_views_data_views_data_alter';
+  foreach (\Drupal::entityManager()->getStorage('field_storage_config')->loadMultiple() as $field_storage) {
+    if (_field_views_get_entity_type_storage($field_storage)) {
+      $function = $field_storage->module . '_field_views_data_views_data_alter';
       if (function_exists($function)) {
-        $function($data, $field);
+        $function($data, $field_storage);
       }
     }
   }
@@ -79,19 +79,19 @@ function _field_views_get_entity_type_storage(FieldStorageConfigInterface $field
 /**
  * Returns the label of a certain field.
  *
- * Therefore it looks up in all bundles to find the most used instance.
+ * Therefore it looks up in all bundles to find the most used field.
  */
 function field_views_field_label($entity_type, $field_name) {
   $label_counter = array();
   $all_labels = array();
-  // Count the amount of instances per label per field.
+  // Count the amount of fields per label per field storage.
   foreach (array_keys(\Drupal::entityManager()->getBundleInfo($entity_type)) as $bundle) {
-    $bundle_instances = array_filter(\Drupal::entityManager()->getFieldDefinitions($entity_type, $bundle), function ($field_definition) {
-      return $field_definition instanceof FieldInstanceConfigInterface;
+    $bundle_fields = array_filter(\Drupal::entityManager()->getFieldDefinitions($entity_type, $bundle), function ($field_definition) {
+      return $field_definition instanceof FieldConfigInterface;
     });
-    if (isset($bundle_instances[$field_name])) {
-      $instance = $bundle_instances[$field_name];
-      $label = $instance->getLabel();
+    if (isset($bundle_fields[$field_name])) {
+      $field = $bundle_fields[$field_name];
+      $label = $field->getLabel();
       $label_counter[$label] = isset($label_counter[$label]) ? ++$label_counter[$label] : 1;
       $all_labels[$label] = TRUE;
     }
@@ -121,7 +121,7 @@ function field_views_field_default_views_data(FieldStorageConfigInterface $field
   if (!\Drupal::service('plugin.manager.field.field_type')->hasDefinition($field_storage->getType())) {
     return $data;
   }
-  // Check the field has instances.
+  // Check the field storage has fields.
   if (!$field_storage->getBundles()) {
     return $data;
   }
@@ -236,7 +236,7 @@ function field_views_field_default_views_data(FieldStorageConfigInterface $field
     $add_fields[] = $table_mapping->getFieldColumnName($field_storage, $column);
   }
   // Determine the label to use for the field. We don't have a label available
-  // at the field level, so we just go through all instances and take the one
+  // at the field level, so we just go through all fields and take the one
   // which is used the most frequently.
   list($label, $all_labels) = field_views_field_label($entity_type_id, $field_name);
 
@@ -481,7 +481,7 @@ function list_field_views_data(FieldStorageConfigInterface $field_storage) {
         $data[$table_name][$field_name]['filter']['id'] = 'field_list';
       }
       if (isset($field_data['argument']) && $field_name != 'delta') {
-        if ($field_storage->getType() == 'list_text') {
+        if ($field_storage->getType() == 'list_string') {
           $data[$table_name][$field_name]['argument']['id'] = 'field_list_string';
         }
         else {

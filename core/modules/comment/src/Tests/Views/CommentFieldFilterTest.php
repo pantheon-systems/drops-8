@@ -38,6 +38,7 @@ class CommentFieldFilterTest extends CommentTestBase {
 
   function setUp() {
     parent::setUp();
+    $this->drupalLogin($this->drupalCreateUser(['access comments']));
 
     // Add two new languages.
     ConfigurableLanguage::createFromLangcode('fr')->save();
@@ -45,9 +46,9 @@ class CommentFieldFilterTest extends CommentTestBase {
 
     // Make the comment body field translatable. The title is already
     // translatable by definition.
-    $field = FieldStorageConfig::loadByName('comment', 'comment_body');
-    $field->translatable = TRUE;
-    $field->save();
+    $field_storage = FieldStorageConfig::loadByName('comment', 'comment_body');
+    $field_storage->translatable = TRUE;
+    $field_storage->save();
 
     // Set up comment titles.
     $this->comment_titles = array(

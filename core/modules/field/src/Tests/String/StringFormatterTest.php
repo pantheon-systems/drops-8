@@ -12,7 +12,7 @@ use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\entity_test\Entity\EntityTest;
-use Drupal\field\Entity\FieldInstanceConfig;
+use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\simpletest\KernelTestBase;
 
@@ -65,13 +65,13 @@ class StringFormatterTest extends KernelTestBase {
     $this->fieldName = Unicode::strtolower($this->randomMachineName());
 
     $field_storage = FieldStorageConfig::create(array(
-      'name' => $this->fieldName,
+      'field_name' => $this->fieldName,
       'entity_type' => $this->entityType,
       'type' => 'string',
     ));
     $field_storage->save();
 
-    $instance = FieldInstanceConfig::create(array(
+    $instance = FieldConfig::create(array(
       'field_storage' => $field_storage,
       'bundle' => $this->bundle,
       'label' => $this->randomMachineName(),

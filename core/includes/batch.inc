@@ -45,7 +45,7 @@ function _batch_page(Request $request) {
     $batch = \Drupal::service('batch.storage')->load($request_id);
     if (!$batch) {
       drupal_set_message(t('No active batch.'), 'error');
-      return new RedirectResponse(url('<front>', array('absolute' => TRUE)));
+      return new RedirectResponse(\Drupal::url('<front>', [], ['absolute' => TRUE]));
     }
   }
   // Restore safe strings from previous batches.
@@ -157,7 +157,7 @@ function _batch_progress_page() {
   $batch['url_options']['query']['id'] = $batch['id'];
   $batch['url_options']['query']['op'] = $new_op;
 
-  $url = url($batch['url'], $batch['url_options']);
+  $url = _url($batch['url'], $batch['url_options']);
 
   $build = array(
     '#theme' => 'progress_bar',
@@ -452,11 +452,18 @@ function _batch_finished() {
     if ($_batch['form_state']->getRedirect() === NULL) {
       $redirect = $_batch['batch_redirect'] ?: $_batch['source_url'];
       $options = UrlHelper::parse($redirect);
-      if (!UrlHelper::isExternal($options['path'])) {
-        $options['path'] = $GLOBALS['base_url'] . '/' . $options['path'];
+      // Any path with a scheme does not correspond to a route.
+      if (parse_url($options['path'], PHP_URL_SCHEME)) {
+        $redirect = Url::fromUri($options['path'], $options);
       }
-      $redirect = Url::createFromPath($options['path']);
-      $redirect->setOptions($options);
+      else {
+        $redirect = \Drupal::pathValidator()->getUrlIfValid($options['path']);
+        if (!$redirect) {
+          // Stay on the same page if the redirect was invalid.
+          $redirect = Url::fromRoute('<current>');
+        }
+        $redirect->setOptions($options);
+      }
       $_batch['form_state']->setRedirectUrl($redirect);
     }
 
@@ -479,7 +486,7 @@ function _batch_finished() {
     }
     elseif ($callback === NULL) {
       // Default to RedirectResponse objects when nothing specified.
-      $url = url($_batch['source_url'], array(
+      $url = _url($_batch['source_url'], array(
         'absolute' => TRUE,
         'query' => array('op' => 'finish', 'id' => $_batch['id']),
       ));

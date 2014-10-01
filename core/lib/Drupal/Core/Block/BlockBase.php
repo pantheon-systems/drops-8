@@ -170,18 +170,13 @@ abstract class BlockBase extends ContextAwarePluginBase implements BlockPluginIn
     // in order to fix that, we need condition plugins to return cache contexts,
     // otherwise it will be impossible to determine by which cache contexts the
     // result should be varied.
-    $access = AccessResult::create()->setCacheable(FALSE);
-    if ($this->resolveConditions($conditions, 'and', $contexts, $mappings) === FALSE) {
-      $access->forbid();
-      return $access;
-    }
-    if ($this->blockAccess($account)) {
-      $access->allow();
+    if ($this->resolveConditions($conditions, 'and', $contexts, $mappings) !== FALSE && $this->blockAccess($account)) {
+      $access = AccessResult::allowed();
     }
     else {
-      $access->forbid();
+      $access = AccessResult::forbidden();
     }
-    return $access;
+    return $access->setCacheable(FALSE);
   }
 
   /**
@@ -487,15 +482,7 @@ abstract class BlockBase extends ContextAwarePluginBase implements BlockPluginIn
     // If a block plugin's output changes, then it must be able to invalidate a
     // cache tag that affects all instances of this block: across themes and
     // across regions.
-    $block_plugin_cache_tag = str_replace(':', '__', $this->getPluginID());
-    return array('block_plugin' => array($block_plugin_cache_tag));
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getCacheBin() {
-    return 'render';
+    return array('block_plugin:' . str_replace(':', '__', $this->getPluginID()));
   }
 
   /**

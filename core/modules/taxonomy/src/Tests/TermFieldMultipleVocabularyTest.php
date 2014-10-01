@@ -35,10 +35,10 @@ class TermFieldMultipleVocabularyTest extends TaxonomyTestBase {
     $this->vocabulary1 = $this->createVocabulary();
     $this->vocabulary2 = $this->createVocabulary();
 
-    // Set up a field and instance.
+    // Set up a field storage and a field.
     $this->field_name = drupal_strtolower($this->randomMachineName());
     entity_create('field_storage_config', array(
-      'name' => $this->field_name,
+      'field_name' => $this->field_name,
       'entity_type' => 'entity_test',
       'type' => 'taxonomy_term_reference',
       'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
@@ -55,7 +55,7 @@ class TermFieldMultipleVocabularyTest extends TaxonomyTestBase {
         ),
       )
     ))->save();
-    entity_create('field_instance_config', array(
+    entity_create('field_config', array(
       'field_name' => $this->field_name,
       'entity_type' => 'entity_test',
       'bundle' => 'entity_test',
@@ -86,8 +86,6 @@ class TermFieldMultipleVocabularyTest extends TaxonomyTestBase {
     // used to ignore the value check.
     $this->assertFieldByName("{$this->field_name}[]", NULL, 'Widget is displayed.');
     $edit = array(
-      'user_id' => mt_rand(0, 10),
-      'name' => $this->randomMachineName(),
       "{$this->field_name}[]" => array($term1->id(), $term2->id()),
     );
     $this->drupalPostForm(NULL, $edit, t('Save'));
@@ -116,7 +114,7 @@ class TermFieldMultipleVocabularyTest extends TaxonomyTestBase {
     $this->assertText($term1->getName(), 'Term 1 name is displayed.');
     $this->assertNoText($term2->getName(), 'Term 2 name is not displayed.');
 
-    // Verify that field storage and instance settings are correct.
+    // Verify that field storage settings and field settings are correct.
     $field_storage = FieldStorageConfig::loadByName('entity_test', $this->field_name);
     $this->assertEqual(count($field_storage->getSetting('allowed_values')), 1, 'Only one vocabulary is allowed for the field.');
 
@@ -128,8 +126,6 @@ class TermFieldMultipleVocabularyTest extends TaxonomyTestBase {
 
     // Term 1 should still pass validation.
     $edit = array(
-      'user_id' => mt_rand(0, 10),
-      'name' => $this->randomMachineName(),
       "{$this->field_name}[]" => array($term1->id()),
     );
     $this->drupalPostForm(NULL, $edit, t('Save'));

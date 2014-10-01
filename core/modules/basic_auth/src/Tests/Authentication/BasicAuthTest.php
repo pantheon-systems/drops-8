@@ -119,7 +119,8 @@ class BasicAuthTest extends WebTestBase {
    * Tests compatibility with locale/UI translation.
    */
   function testLocale() {
-    ConfigurableLanguage::create(array('id' => 'de', 'label' => 'German', 'default' => TRUE))->save();
+    ConfigurableLanguage::createFromLangcode('de')->save();
+    \Drupal::config('system.site')->set('langcode', 'de')->save();
 
     $account = $this->drupalCreateUser();
 
@@ -149,7 +150,7 @@ class BasicAuthTest extends WebTestBase {
     $out = $this->curlExec(
       array(
         CURLOPT_HTTPGET => TRUE,
-        CURLOPT_URL => url($path, array('absolute' => TRUE)),
+        CURLOPT_URL => _url($path, array('absolute' => TRUE)),
         CURLOPT_NOBODY => FALSE,
         CURLOPT_HTTPAUTH => CURLAUTH_BASIC,
         CURLOPT_USERPWD => $username . ':' . $password,

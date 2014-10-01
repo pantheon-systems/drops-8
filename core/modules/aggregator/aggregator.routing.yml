@@ -52,7 +52,7 @@ aggregator.feed_add:
 entity.aggregator_feed.canonical:
   path: '/aggregator/sources/{aggregator_feed}'
   defaults:
-    _content: '\Drupal\aggregator\Controller\AggregatorController::viewFeed'
+    _entity_view: 'aggregator_feed'
     _title_callback: '\Drupal\aggregator\Controller\AggregatorController::feedTitle'
   requirements:
     _permission: 'access news feeds'
@@ -82,21 +82,5 @@ aggregator.page_last:
   defaults:
     _content: '\Drupal\aggregator\Controller\AggregatorController::pageLast'
     _title: 'Feed aggregator'
-  requirements:
-    _permission: 'access news feeds'
-
-aggregator.sources:
-  path: '/aggregator/sources'
-  defaults:
-    _content: '\Drupal\aggregator\Controller\AggregatorController::sources'
-    _title: 'Sources'
-  requirements:
-    _permission: 'access news feeds'
-
-aggregator.opml_page:
-  path: '/aggregator/opml'
-  defaults:
-    _title: 'OPML feed'
-    _controller: '\Drupal\aggregator\Controller\AggregatorController::opmlPage'
   requirements:
     _permission: 'access news feeds'

@@ -41,7 +41,7 @@ class Rss extends StylePluginBase {
     }
     $url_options['absolute'] = TRUE;
 
-    $url = url($this->view->getUrl(NULL, $path), $url_options);
+    $url = _url($this->view->getUrl(NULL, $path), $url_options);
     if ($display->hasPath()) {
       if (empty($this->preview)) {
         // Add a call for drupal_add_feed to the view attached data.
@@ -79,9 +79,9 @@ class Rss extends StylePluginBase {
 
     $form['description'] = array(
       '#type' => 'textfield',
-      '#title' => t('RSS description'),
+      '#title' => $this->t('RSS description'),
       '#default_value' => $this->options['description'],
-      '#description' => t('This will appear in the RSS feed itself.'),
+      '#description' => $this->t('This will appear in the RSS feed itself.'),
       '#maxlength' => 1024,
     );
   }

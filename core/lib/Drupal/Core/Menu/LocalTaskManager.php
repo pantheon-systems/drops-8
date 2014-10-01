@@ -135,7 +135,7 @@ class LocalTaskManager extends DefaultPluginManager implements LocalTaskManagerI
     $this->account = $account;
     $this->moduleHandler = $module_handler;
     $this->alterInfo('local_tasks');
-    $this->setCacheBackend($cache, 'local_task_plugins:' . $language_manager->getCurrentLanguage()->getId(), array('local_task' => TRUE));
+    $this->setCacheBackend($cache, 'local_task_plugins:' . $language_manager->getCurrentLanguage()->getId(), array('local_task'));
   }
 
   /**
@@ -250,7 +250,7 @@ class LocalTaskManager extends DefaultPluginManager implements LocalTaskManagerI
           foreach ($children[$parent] as $plugin_id => $task_info) {
             $plugin = $this->createInstance($plugin_id);
             $this->instances[$route_name][$level][$plugin_id] = $plugin;
-            // Normally, l() compares the href of every link with the current
+            // Normally, _l() compares the href of every link with the current
             // path and sets the active class accordingly. But the parents of
             // the current local task may be on a different route in which
             // case we have to set the class manually by flagging it active.

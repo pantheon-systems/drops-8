@@ -80,13 +80,13 @@ class FeedParserTest extends AggregatorTestBase {
    */
   function testRedirectFeed() {
     // Simulate a typo in the URL to force a curl exception.
-    $invalid_url = url('aggregator/redirect', array('absolute' => TRUE));
+    $invalid_url = _url('aggregator/redirect', array('absolute' => TRUE));
     $feed = entity_create('aggregator_feed', array('url' => $invalid_url, 'title' => $this->randomMachineName()));
     $feed->save();
     $feed->refreshItems();
 
     // Make sure that the feed URL was updated correctly.
-    $this->assertEqual($feed->getUrl(), url('aggregator/test-feed', array('absolute' => TRUE)));
+    $this->assertEqual($feed->getUrl(), \Drupal::url('aggregator_test.feed', array(), array('absolute' => TRUE)));
   }
 
   /**

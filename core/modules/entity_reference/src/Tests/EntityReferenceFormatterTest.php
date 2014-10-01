@@ -7,6 +7,8 @@
 
 namespace Drupal\entity_reference\Tests;
 
+use Drupal\Core\Cache\Cache;
+use Drupal\filter\Entity\FilterFormat;
 use Drupal\system\Tests\Entity\EntityUnitTestBase;
 
 /**
@@ -54,17 +56,17 @@ class EntityReferenceFormatterTest extends EntityUnitTestBase {
   protected function setUp() {
     parent::setUp();
 
-    entity_reference_create_instance($this->entityType, $this->bundle, $this->fieldName, 'Field test', $this->entityType);
+    entity_reference_create_field($this->entityType, $this->bundle, $this->fieldName, 'Field test', $this->entityType);
 
     // Set up a field, so that the entity that'll be referenced bubbles up a
     // cache tag when rendering it entirely.
     entity_create('field_storage_config', array(
-      'name' => 'body',
+      'field_name' => 'body',
       'entity_type' => $this->entityType,
       'type' => 'text',
       'settings' => array(),
     ))->save();
-    entity_create('field_instance_config', array(
+    entity_create('field_config', array(
       'entity_type' => $this->entityType,
       'bundle' => $this->bundle,
       'field_name' => 'body',
@@ -141,10 +143,7 @@ class EntityReferenceFormatterTest extends EntityUnitTestBase {
     $build = $items->view(array('type' => $formatter));
 
     $this->assertEqual($build[0]['#markup'], $this->referencedEntity->id(), format_string('The markup returned by the @formatter formatter is correct.', array('@formatter' => $formatter)));
-    $expected_cache_tags = array(
-      $this->entityType => array($this->referencedEntity->id()),
-    );
-    $this->assertEqual($build[0]['#cache']['tags'], $expected_cache_tags, format_string('The @formatter formatter has the expected cache tags.', array('@formatter' => $formatter)));
+    $this->assertEqual($build[0]['#cache']['tags'], $this->referencedEntity->getCacheTag(), format_string('The @formatter formatter has the expected cache tags.', array('@formatter' => $formatter)));
 
   }
 
@@ -180,10 +179,10 @@ class EntityReferenceFormatterTest extends EntityUnitTestBase {
 ';
     drupal_render($build[0]);
     $this->assertEqual($build[0]['#markup'], 'default | ' . $this->referencedEntity->label() .  $expected_rendered_name_field . $expected_rendered_body_field, format_string('The markup returned by the @formatter formatter is correct.', array('@formatter' => $formatter)));
-    $expected_cache_tags = array(
-      $this->entityType . '_view' => TRUE,
-      $this->entityType => array($this->referencedEntity->id()),
-      'filter_format' => array('full_html' => 'full_html'),
+    $expected_cache_tags = Cache::mergeTags(
+      \Drupal::entityManager()->getViewBuilder($this->entityType)->getCacheTag(),
+      $this->referencedEntity->getCacheTag(),
+      FilterFormat::load('full_html')->getCacheTag()
     );
     $this->assertEqual($build[0]['#cache']['tags'], $expected_cache_tags, format_string('The @formatter formatter has the expected cache tags.', array('@formatter' => $formatter)));
   }

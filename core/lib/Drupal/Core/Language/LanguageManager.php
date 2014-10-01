@@ -28,7 +28,7 @@ class LanguageManager implements LanguageManagerInterface {
   /**
    * An array of all the available languages keyed by language code.
    *
-   * @var array
+   * @var \Drupal\Core\Language\LanguageInterface[]
    */
   protected $languages;
 
@@ -154,7 +154,7 @@ class LanguageManager implements LanguageManagerInterface {
     }
 
     foreach ($this->languages as $id => $language) {
-      if (($language->locked && ($flags & LanguageInterface::STATE_LOCKED)) || (!$language->locked && ($flags & LanguageInterface::STATE_CONFIGURABLE))) {
+      if (($language->isLocked() && ($flags & LanguageInterface::STATE_LOCKED)) || (!$language->isLocked() && ($flags & LanguageInterface::STATE_CONFIGURABLE))) {
         $filtered_languages[$id] = $language;
       }
     }
@@ -226,7 +226,7 @@ class LanguageManager implements LanguageManagerInterface {
    */
   public function isLanguageLocked($langcode) {
     $language = $this->getLanguage($langcode);
-    return ($language ? $language->locked : FALSE);
+    return ($language ? $language->isLocked() : FALSE);
   }
 
   /**

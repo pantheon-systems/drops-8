@@ -13,7 +13,7 @@ use Symfony\Component\HttpFoundation\Request;
 /**
  * Tests the stacked kernel functionality.
  *
- * @group Routing.
+ * @group Routing
  */
 class StackKernelIntegrationTest extends KernelTestBase {
 
@@ -31,6 +31,7 @@ class StackKernelIntegrationTest extends KernelTestBase {
     parent::setUp();
 
     $this->installSchema('system', 'router');
+    \Drupal::service('router.builder')->rebuild();
   }
 
   /**

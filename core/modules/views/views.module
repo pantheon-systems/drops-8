@@ -21,7 +21,7 @@ use Drupal\views\ViewExecutable;
 use Drupal\Component\Plugin\Exception\PluginException;
 use Drupal\views\Entity\View;
 use Drupal\views\Views;
-use Drupal\field\FieldInstanceConfigInterface;
+use Drupal\field\FieldConfigInterface;
 
 /**
  * Implements hook_help().
@@ -40,6 +40,8 @@ function views_help($route_name, RouteMatchInterface $route_match) {
       $output .= '<dd>' . t('The Views module adds functionality to some core administration pages. For example, <em>admin/content</em> uses Views to filter and sort content. With Views uninstalled, <em>admin/content</em> is more limited.') . '</dd>';
       $output .= '<dt>' . t('Expanding Views functionality') . '</dt>';
       $output .= '<dd>' . t('Contributed projects that support the Views module can be found in the <a href="!node">online documentation for Views-related contributed modules</a>.', array('!node' => 'https://drupal.org/documentation/modules/views/add-ons')) . '</dd>';
+      $output .= '<dt>' . t('Improving table accessibility') . '</dt>';
+      $output .= '<dd>' . t('Views tables include semantic markup to improve accessibility. Data cells are automatically associated with header cells through id and header attributes. To improve the accessibility of your tables you can add descriptive elements within the Views table settings. The <em>caption</em> element can introduce context for a table, making it easier to understand. The <em>summary</em> element can provide an overview of how the data has been organized and how to navigate the table. Both the caption and summary are visible by default and also implemented according to HTML5 guidelines.') . '</dd>';
       $output .= '</dl>';
       return $output;
   }
@@ -47,11 +49,13 @@ function views_help($route_name, RouteMatchInterface $route_match) {
 
 /**
  * Implements hook_element_info().
+ *
+ * @todo Remove once https://www.drupal.org/node/2326409 is in.
  */
 function views_element_info() {
   $types['view'] = array(
     '#theme_wrappers' => array('container'),
-    '#pre_render' => array('views_pre_render_view_element'),
+    '#pre_render' => array('\Drupal\views\Element\View::preRenderViewElement'),
     '#name' => NULL,
     '#display_id' => 'default',
     '#arguments' => array(),
@@ -67,7 +71,7 @@ function views_views_pre_render($view) {
   if ($view->ajaxEnabled() && empty($view->is_attachment) && empty($view->live_preview)) {
     $settings = array(
       'views' => array(
-        'ajax_path' => url('views/ajax'),
+        'ajax_path' => \Drupal::url('views.ajax'),
         'ajaxViews' => array(
           'views_dom_id:' . $view->dom_id => array(
             'view_name' => $view->storage->id(),
@@ -88,20 +92,6 @@ function views_views_pre_render($view) {
   }
 
   return $view;
-}
-
-/**
- * View element pre render callback.
- */
-function views_pre_render_view_element($element) {
-  $element['#attributes']['class'][] = 'views-element-container';
-
-  $view = Views::getView($element['#name']);
-  if ($view && $view->access($element['#display_id'])) {
-    $element['view'] = $view->preview($element['#display_id'], $element['#arguments']);
-  }
-
-  return $element;
 }
 
 /**
@@ -476,25 +466,25 @@ function views_add_contextual_links(&$render_element, $location, ViewExecutable 
 }
 
 /**
- * Implements hook_ENTITY_TYPE_create() for 'field_instance_config'.
+ * Implements hook_ENTITY_TYPE_create() for 'field_config'.
  */
-function views_field_instance_config_create(FieldInstanceConfigInterface $field_instance) {
+function views_field_config_create(FieldConfigInterface $field) {
   // @todo: Is this necessary? Use cache tags to only delete Views' cache data?
   \Drupal::cache('discovery')->deleteAll();
 }
 
 /**
- * Implements hook_ENTITY_TYPE_update() for 'field_instance_config'.
+ * Implements hook_ENTITY_TYPE_update() for 'field_config'.
  */
-function views_field_instance_config_update(FieldInstanceConfigInterface $field_instance) {
+function views_field_config_update(FieldConfigInterface $field) {
   Cache::deleteTags(array('extension' => 'views'));
   \Drupal::cache('render')->deleteAll();
 }
 
 /**
- * Implements hook_ENTITY_TYPE_delete() for 'field_instance_config'.
+ * Implements hook_ENTITY_TYPE_delete() for 'field_config'.
  */
-function views_field_instance_config_delete(FieldInstanceConfigInterface $field_instance) {
+function views_field_config_delete(FieldConfigInterface $field) {
   Cache::deleteTags(array('extension' => 'views'));
   \Drupal::cache('render')->deleteAll();
 }

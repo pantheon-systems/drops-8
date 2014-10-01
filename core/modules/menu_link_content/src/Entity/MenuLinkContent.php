@@ -31,7 +31,6 @@ use Drupal\menu_link_content\MenuLinkContentInterface;
  *   admin_permission = "administer menu",
  *   base_table = "menu_link_content",
  *   data_table = "menu_link_content_data",
- *   fieldable = TRUE,
  *   translatable = TRUE,
  *   entity_keys = {
  *     "id" = "id",
@@ -108,7 +107,7 @@ class MenuLinkContent extends ContentEntityBase implements MenuLinkContentInterf
     else {
       $path = $this->getUrl();
       if (isset($path)) {
-        $url = Url::createFromPath($path);
+        $url = Url::fromUri($path);
       }
       else {
         $url = new Url('<front>');
@@ -335,7 +334,7 @@ class MenuLinkContent extends ContentEntityBase implements MenuLinkContentInterf
 
     $fields['options'] = BaseFieldDefinition::create('map')
       ->setLabel(t('Options'))
-      ->setDescription(t('A serialized array of options to be passed to the url() or l() function, such as a query string or HTML attributes.'))
+      ->setDescription(t('A serialized array of options to be passed to the _url() or _l() function, such as a query string or HTML attributes.'))
       ->setSetting('default_value', array());
 
     $fields['external'] = BaseFieldDefinition::create('boolean')

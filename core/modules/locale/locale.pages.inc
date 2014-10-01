@@ -6,6 +6,7 @@
  */
 
 use Drupal\Component\Utility\SafeMarkup;
+use Drupal\Core\Url;
 use Drupal\Core\Render\Element;
 use Drupal\locale\SourceString;
 use Drupal\locale\TranslationString;
@@ -33,7 +34,7 @@ function locale_translation_manual_status() {
   if (batch_get()) {
     return batch_process('admin/reports/translations');
   }
-  return new RedirectResponse(url('admin/reports/translations', array('absolute' => TRUE)));
+  return new RedirectResponse(\Drupal::url('locale.translate_status', array(), array('absolute' => TRUE)));
 }
 
 /**
@@ -157,5 +158,5 @@ function template_preprocess_locale_translation_last_check(&$variables) {
   $last = $variables['last'];
   $variables['last_checked'] = ($last != NULL);
   $variables['time'] = \Drupal::service('date.formatter')->formatInterval(REQUEST_TIME - $last);
-  $variables['link'] = l(t('Check manually'), 'admin/reports/translations/check', array('query' => drupal_get_destination()));
+  $variables['link'] = \Drupal::l(t('Check manually'), new Url('locale.check_translation', array(), array('query' => drupal_get_destination())));
 }

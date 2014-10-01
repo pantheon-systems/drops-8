@@ -40,7 +40,7 @@ class TaxonomyTermViewTest extends TaxonomyTestBase {
 
     $this->field_name_1 = drupal_strtolower($this->randomMachineName());
     entity_create('field_storage_config', array(
-      'name' => $this->field_name_1,
+      'field_name' => $this->field_name_1,
       'entity_type' => 'node',
       'type' => 'taxonomy_term_reference',
       'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
@@ -53,7 +53,7 @@ class TaxonomyTermViewTest extends TaxonomyTestBase {
         ),
       ),
     ))->save();
-    entity_create('field_instance_config', array(
+    entity_create('field_config', array(
       'field_name' => $this->field_name_1,
       'bundle' => 'article',
       'entity_type' => 'node',

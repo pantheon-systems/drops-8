@@ -13,6 +13,7 @@ use Drupal\Core\Field\FormatterBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
 use Drupal\link\LinkItemInterface;
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Plugin implementation of the 'link' formatter.
@@ -135,7 +136,7 @@ class LinkFormatter extends FormatterBase {
       // If the title field value is available, use it for the link text.
       if (empty($settings['url_only']) && !empty($item->title)) {
         // Unsanitized token replacement here because $options['html'] is FALSE
-        // by default in l().
+        // by default in _l().
         $link_title = \Drupal::token()->replace($item->title, array($entity->getEntityTypeId() => $entity), array('sanitize' => FALSE, 'clear' => TRUE));
       }
 
@@ -163,7 +164,7 @@ class LinkFormatter extends FormatterBase {
           '#options' => $url->getOptions(),
         );
         if ($url->isExternal()) {
-          $element[$delta]['#href'] = $url->getPath();
+          $element[$delta]['#href'] = $url->getUri();
         }
         else {
           $element[$delta]['#route_name'] = $url->getRouteName();
@@ -206,11 +207,10 @@ class LinkFormatter extends FormatterBase {
     }
 
     if ($item->isExternal()) {
-      $url = Url::createFromPath($item->url);
-      $url->setOptions($options);
+      $url = Url::fromUri($item->url, $options);
     }
     else {
-      $url = new Url($item->route_name, (array) $item->route_parameters, (array) $options);
+      $url = Url::fromRoute($item->route_name, (array) $item->route_parameters, (array) $options);
     }
 
     return $url;

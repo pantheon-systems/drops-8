@@ -26,7 +26,7 @@ use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Url;
 use Drupal\field\Entity\FieldStorageConfig;
-use Drupal\field\FieldInstanceConfigInterface;
+use Drupal\field\FieldConfigInterface;
 use Drupal\field\FieldStorageConfigInterface;
 use Drupal\file\FileInterface;
 use Drupal\user\EntityOwnerInterface;
@@ -139,16 +139,16 @@ function comment_theme() {
 }
 
 /**
- * Implements hook_ENTITY_TYPE_create() for 'field_instance_config'.
+ * Implements hook_ENTITY_TYPE_create() for 'field_config'.
  */
-function comment_field_instance_config_create(FieldInstanceConfigInterface $instance) {
-  if ($instance->getType() == 'comment' && !$instance->isSyncing()) {
-    // Assign default values for the field instance.
-    if (!isset($instance->default_value)) {
-      $instance->default_value = array();
+function comment_field_config_create(FieldConfigInterface $field) {
+  if ($field->getType() == 'comment' && !$field->isSyncing()) {
+    // Assign default values for the field.
+    if (!isset($field->default_value)) {
+      $field->default_value = array();
     }
-    $instance->default_value += array(array());
-    $instance->default_value[0] += array(
+    $field->default_value += array(array());
+    $field->default_value[0] += array(
       'status' => CommentItemInterface::OPEN,
       'cid' => 0,
       'last_comment_timestamp' => 0,
@@ -160,10 +160,10 @@ function comment_field_instance_config_create(FieldInstanceConfigInterface $inst
 }
 
 /**
- * Implements hook_ENTITY_TYPE_update() for 'field_instance_config'.
+ * Implements hook_ENTITY_TYPE_update() for 'field_config'.
  */
-function comment_field_instance_config_update(FieldInstanceConfigInterface $instance) {
-  if ($instance->getType() == 'comment') {
+function comment_field_config_update(FieldConfigInterface $field) {
+  if ($field->getType() == 'comment') {
     // Comment field settings also affects the rendering of *comment* entities,
     // not only the *commented* entities.
     \Drupal::entityManager()->getViewBuilder('comment')->resetCache();
@@ -184,14 +184,14 @@ function comment_field_storage_config_insert(FieldStorageConfigInterface $field_
 }
 
 /**
- * Implements hook_ENTITY_TYPE_delete() for 'field_instance_config'.
+ * Implements hook_ENTITY_TYPE_delete() for 'field_config'.
  */
-function comment_field_instance_config_delete(FieldInstanceConfigInterface $instance) {
-  if ($instance->getType() == 'comment') {
+function comment_field_config_delete(FieldConfigInterface $field) {
+  if ($field->getType() == 'comment') {
     // Delete all comments that used by the entity bundle.
     $entity_query = \Drupal::entityQuery('comment');
-    $entity_query->condition('entity_type', $instance->getEntityTypeId());
-    $entity_query->condition('field_name', $instance->getName());
+    $entity_query->condition('entity_type', $field->getEntityTypeId());
+    $entity_query->condition('field_name', $field->getName());
     $cids = $entity_query->execute();
     entity_delete_multiple('comment', $cids);
   }
@@ -412,7 +412,7 @@ function comment_entity_predelete(EntityInterface $entity) {
   // mismatched types. So, we need to verify that the ID is numeric (even for an
   // entity type that has an integer ID, $entity->id() might be a string
   // containing a number), and then cast it to an integer when querying.
-  if ($entity->getEntityType()->isFieldable() && is_numeric($entity->id())) {
+  if ($entity instanceof ContentEntityInterface && is_numeric($entity->id())) {
     $entity_query = \Drupal::entityQuery('comment');
     $entity_query->condition('entity_id', (int) $entity->id());
     $entity_query->condition('entity_type', $entity->getEntityTypeId());
@@ -727,17 +727,17 @@ function template_preprocess_comment(&$variables) {
     $variables['signature'] = '';
   }
   if (isset($comment->in_preview)) {
-    $variables['title'] = l($comment->getSubject(), '');
-    $variables['permalink'] = l(t('Permalink'), '');
+    $variables['title'] = \Drupal::l($comment->getSubject(), new Url('<front>'));
+    $variables['permalink'] = \Drupal::l(t('Permalink'), new Url('<front>'));
   }
   else {
     $uri = $comment->urlInfo();
     $attributes = $uri->getOption('attributes') ?: array();
     $attributes += array('class' => array('permalink'), 'rel' => 'bookmark');
     $uri->setOption('attributes', $attributes);
-    $variables['title'] = \Drupal::linkGenerator()->generateFromUrl($comment->getSubject(), $uri);
+    $variables['title'] = \Drupal::l($comment->getSubject(), $uri);
 
-    $variables['permalink'] = \Drupal::linkGenerator()->generateFromUrl(t('Permalink'), $comment->permalink());
+    $variables['permalink'] = \Drupal::l(t('Permalink'), $comment->permalink());
   }
 
   $variables['submitted'] = t('Submitted by !username on !datetime', array('!username' => $variables['author'], '!datetime' => $variables['created']));
@@ -764,8 +764,8 @@ function template_preprocess_comment(&$variables) {
     $attributes = $permalink_uri_parent->getOption('attributes') ?: array();
     $attributes += array('class' => array('permalink'), 'rel' => 'bookmark');
     $permalink_uri_parent->setOption('attributes', $attributes);
-    $variables['parent_title'] = \Drupal::linkGenerator()->generateFromUrl($comment_parent->getSubject(), $permalink_uri_parent);
-    $variables['parent_permalink'] = \Drupal::linkGenerator()->generateFromUrl(t('Parent permalink'), $permalink_uri_parent);
+    $variables['parent_title'] = \Drupal::l($comment_parent->getSubject(), $permalink_uri_parent);
+    $variables['parent_permalink'] = \Drupal::l(t('Parent permalink'), $permalink_uri_parent);
     $variables['parent'] = t('In reply to !parent_title by !parent_username',
         array('!parent_username' => $variables['parent_author'], '!parent_title' => $variables['parent_title']));
   }

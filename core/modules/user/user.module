@@ -576,6 +576,7 @@ function template_preprocess_username(&$variables) {
   $variables['name'] = String::checkPlain($name);
   $variables['profile_access'] = \Drupal::currentUser()->hasPermission('access user profiles');
 
+  $external = FALSE;
   // Populate link path and attributes if appropriate.
   if ($variables['uid'] && $variables['profile_access']) {
     // We are linking to a local user.
@@ -589,10 +590,19 @@ function template_preprocess_username(&$variables) {
     $variables['attributes']['rel'] = 'nofollow';
     $variables['link_path'] = $account->homepage;
     $variables['homepage'] = $account->homepage;
+    $external = TRUE;
   }
-  // We have a link path, so we should generate a link using url().
+  // We have a link path, so we should generate a URL.
   if (isset($variables['link_path'])) {
-    $variables['attributes']['href'] = url($variables['link_path'], $variables['link_options']);
+    if ($external) {
+      $variables['attributes']['href'] = Url::fromUri($variables['link_path'], $variables['link_options'])
+        ->toString();
+    }
+    else {
+      $variables['attributes']['href'] = Url::fromRoute('entity.user.canonical', array(
+        'user' => $variables['uid'],
+      ))->toString();
+    }
   }
 }
 
@@ -679,8 +689,17 @@ function user_user_logout($account) {
 function user_pass_reset_url($account, $options = array()) {
   $timestamp = REQUEST_TIME;
   $langcode = isset($options['langcode']) ? $options['langcode'] : $account->getPreferredLangcode();
-  $url_options = array('absolute' => TRUE, 'language' => \Drupal::languageManager()->getLanguage($langcode));
-  return url("user/reset/" . $account->id() . "/$timestamp/" . user_pass_rehash($account->getPassword(), $timestamp, $account->getLastLoginTime()), $url_options);
+  return \Drupal::url('user.reset',
+    array(
+      'uid' => $account->id(),
+      'timestamp' => $timestamp,
+      'hash' => user_pass_rehash($account->getPassword(), $timestamp, $account->getLastLoginTime()),
+    ),
+    array(
+      'absolute' => TRUE,
+      'language' => \Drupal::languageManager()->getLanguage($langcode)
+    )
+  );
 }
 
 /**
@@ -708,7 +727,11 @@ function user_cancel_url($account, $options = array()) {
   $timestamp = REQUEST_TIME;
   $langcode = isset($options['langcode']) ? $options['langcode'] : $account->getPreferredLangcode();
   $url_options = array('absolute' => TRUE, 'language' => \Drupal::languageManager()->getLanguage($langcode));
-  return url("user/" . $account->id() . "/cancel/confirm/$timestamp/" . user_pass_rehash($account->getPassword(), $timestamp, $account->getLastLoginTime()), $url_options);
+  return \Drupal::url('user.cancel_confirm', [
+    'user' => $account->id(),
+    'timestamp' => $timestamp,
+    'hashed_pass' => user_pass_rehash($account->getPassword(), $timestamp, $account->getLastLoginTime())
+  ], $url_options);
 }
 
 /**

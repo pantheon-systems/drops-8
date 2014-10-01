@@ -1095,12 +1095,6 @@ abstract class WebTestBase extends TestBase {
     // Rebuild the kernel and bring it back to a fully bootstrapped state.
     $this->container = $this->kernel->rebuildContainer();
 
-    // The request context is normally set by the router_listener from within
-    // its KernelEvents::REQUEST listener. In the simpletest parent site this
-    // event is not fired, therefore it is necessary to updated the request
-    // context manually here.
-    $this->container->get('router.request_context')->fromRequest($request);
-
     // Make sure the url generator has a request object, otherwise calls to
     // $this->drupalGet() will fail.
     $this->prepareRequestForGenerator();
@@ -1482,7 +1476,7 @@ abstract class WebTestBase extends TestBase {
    * @param string $path
    *   Path to request AJAX from.
    * @param array $options
-   *   Array of options to pass to url().
+   *   Array of options to pass to _url().
    * @param array $headers
    *   Array of headers. Eg array('Accept: application/vnd.drupal-ajax').
    *
@@ -1931,11 +1925,11 @@ abstract class WebTestBase extends TestBase {
    *
    * @see WebTestBase::getAjaxPageStatePostData()
    * @see WebTestBase::curlExec()
-   * @see url()
+   * @see _url()
    */
   protected function drupalPost($path, $accept, array $post, $options = array()) {
     return $this->curlExec(array(
-      CURLOPT_URL => url($path, $options + array('absolute' => TRUE)),
+      CURLOPT_URL => _url($path, $options + array('absolute' => TRUE)),
       CURLOPT_POST => TRUE,
       CURLOPT_POSTFIELDS => $this->serializePostValues($post),
       CURLOPT_HTTPHEADER => array(
@@ -2478,8 +2472,9 @@ abstract class WebTestBase extends TestBase {
    */
   protected function assertUrl($path, array $options = array(), $message = '', $group = 'Other') {
     if (!$message) {
-      $message = String::format('Current URL is @url.', array(
+      $message = String::format('Expected @url matches current URL (@current_url).', array(
         '@url' => var_export($this->container->get('url_generator')->generateFromPath($path, $options), TRUE),
+        '@current_url' => $this->getUrl(),
       ));
     }
     $options['absolute'] = TRUE;
@@ -2673,7 +2668,6 @@ abstract class WebTestBase extends TestBase {
    *   The mocked request object.
    */
   protected function prepareRequestForGenerator($clean_urls = TRUE, $override_server_vars = array()) {
-    $generator = $this->container->get('url_generator');
     $request = Request::createFromGlobals();
     $server = $request->server->all();
     if (basename($server['SCRIPT_FILENAME']) != basename($server['SCRIPT_NAME'])) {
@@ -2697,7 +2691,13 @@ abstract class WebTestBase extends TestBase {
 
     $request = Request::create($request_path, 'GET', array(), array(), array(), $server);
     $this->container->get('request_stack')->push($request);
-    $generator->updateFromRequest();
+
+    // The request context is normally set by the router_listener from within
+    // its KernelEvents::REQUEST listener. In the simpletest parent site this
+    // event is not fired, therefore it is necessary to updated the request
+    // context manually here.
+    $this->container->get('router.request_context')->fromRequest($request);
+
     return $request;
   }
 }

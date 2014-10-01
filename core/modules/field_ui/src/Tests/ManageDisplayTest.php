@@ -40,7 +40,8 @@ class ManageDisplayTest extends FieldUiTestBase {
     );
     $this->fieldUIAddNewField($manage_fields, $edit);
 
-    // Clear the test-side cache and get the saved field instance.
+    // Get the display options (formatter and settings) that were automatically
+    // assigned for the 'default' display.
     $display = entity_get_display('node', $this->type, 'default');
     $display_options = $display->getComponent('field_test');
     $format = $display_options['type'];
@@ -157,7 +158,8 @@ class ManageDisplayTest extends FieldUiTestBase {
     );
     $this->fieldUIAddNewField($manage_fields, $edit);
 
-    // Clear the test-side cache and get the saved field instance.
+    // Get the display options (formatter and settings) that were automatically
+    // assigned for the 'default' display.
     $display = entity_get_form_display('node', $this->type, 'default');
     $display_options = $display->getComponent('field_test');
     $widget_type = $display_options['type'];
@@ -330,7 +332,7 @@ class ManageDisplayTest extends FieldUiTestBase {
   }
 
   /**
-   * Tests that field instances with no explicit display settings do not break.
+   * Tests that fields with no explicit display settings do not break.
    */
   function testNonInitializedFields() {
     // Create a test field.
@@ -369,7 +371,7 @@ class ManageDisplayTest extends FieldUiTestBase {
     ));
 
     $this->drupalGet('admin/structure/types/manage/no_fields/display');
-    $this->assertRaw(t('There are no fields yet added. You can add new fields on the <a href="@link">Manage fields</a> page.', array('@link' => url('admin/structure/types/manage/no_fields/fields'))));
+    $this->assertRaw(t('There are no fields yet added. You can add new fields on the <a href="@link">Manage fields</a> page.', array('@link' => \Drupal::url('field_ui.overview_node', array('node_type' => 'no_fields')))));
   }
 
   /**

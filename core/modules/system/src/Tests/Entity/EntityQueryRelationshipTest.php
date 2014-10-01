@@ -67,23 +67,26 @@ class EntityQueryRelationshipTest extends EntityUnitTestBase  {
     $this->installEntitySchema('taxonomy_term');
 
     // We want a taxonomy term reference field. It needs a vocabulary, terms,
-    // a field and an instance. First, create the vocabulary.
+    // a field storage and a field. First, create the vocabulary.
     $vocabulary = entity_create('taxonomy_vocabulary', array(
       'vid' => drupal_strtolower($this->randomMachineName()),
     ));
     $vocabulary->save();
     // Second, create the field.
     $this->fieldName = strtolower($this->randomMachineName());
-    $field = array(
-      'name' => $this->fieldName,
+    entity_create('field_storage_config', array(
+      'field_name' => $this->fieldName,
       'entity_type' => 'entity_test',
       'type' => 'taxonomy_term_reference',
-    );
-    $field['settings']['allowed_values']['vocabulary'] = $vocabulary->id();
-    entity_create('field_storage_config', $field)->save();
+      'settings' => array(
+        'allowed_values' => array(
+          'vocabulary' => $vocabulary->id(),
+        ),
+      ),
+    ))->save();
     entity_test_create_bundle('test_bundle');
     // Third, create the instance.
-    entity_create('field_instance_config', array(
+    entity_create('field_config', array(
       'entity_type' => 'entity_test',
       'field_name' => $this->fieldName,
       'bundle' => 'test_bundle',

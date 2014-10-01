@@ -31,11 +31,11 @@ class BlockContentFieldTest extends BlockContentTestBase {
   protected $fieldStorage;
 
   /**
-   * The created instance.
+   * The created field.
    *
-   * @var \Drupal\field\Entity\FieldInstanceConfig
+   * @var \Drupal\field\Entity\FieldConfig
    */
-  protected $instance;
+  protected $field;
 
   /**
    * The block type.
@@ -55,20 +55,20 @@ class BlockContentFieldTest extends BlockContentTestBase {
 
     // Create a field with settings to validate.
     $this->fieldStorage = entity_create('field_storage_config', array(
-      'name' => drupal_strtolower($this->randomMachineName()),
+      'field_name' => drupal_strtolower($this->randomMachineName()),
       'entity_type' => 'block_content',
       'type' => 'link',
       'cardinality' => 2,
     ));
     $this->fieldStorage->save();
-    $this->instance = entity_create('field_instance_config', array(
+    $this->field = entity_create('field_config', array(
       'field_storage' => $this->fieldStorage,
       'bundle' => 'link',
       'settings' => array(
         'title' => DRUPAL_OPTIONAL,
       ),
     ));
-    $this->instance->save();
+    $this->field->save();
     entity_get_form_display('block_content', 'link', 'default')
       ->setComponent($this->fieldStorage->getName(), array(
         'type' => 'link_default',

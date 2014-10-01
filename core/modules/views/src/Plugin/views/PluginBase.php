@@ -92,7 +92,14 @@ abstract class PluginBase extends ComponentPluginBase implements ContainerFactor
 
 
   /**
-   * Constructs a Plugin object.
+   * Constructs a PluginBase object.
+   *
+   * @param array $configuration
+   *   A configuration array containing information about the plugin instance.
+   * @param string $plugin_id
+   *   The plugin_id for the plugin instance.
+   * @param mixed $plugin_definition
+   *   The plugin implementation definition.
    */
   public function __construct(array $configuration, $plugin_id, $plugin_definition) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
@@ -123,7 +130,7 @@ abstract class PluginBase extends ComponentPluginBase implements ContainerFactor
    * @code
    * 'option_name' => array(
    *  - 'default' => default value,
-   *  - 'translatable' => (optional) TRUE/FALSE (wrap in t() on export if true),
+   *  - 'translatable' => (optional) TRUE/FALSE (wrap in $this->t() on export if true),
    *  - 'contains' => (optional) array of items this contains, with its own
    *      defaults, etc. If contains is set, the default will be ignored and
    *      assumed to be array().
@@ -251,7 +258,7 @@ abstract class PluginBase extends ComponentPluginBase implements ContainerFactor
    * {@inheritdoc}
    */
   public function summaryTitle() {
-    return t('Settings');
+    return $this->t('Settings');
   }
 
   /**
@@ -323,7 +330,7 @@ abstract class PluginBase extends ComponentPluginBase implements ContainerFactor
 
     $form['global_tokens'] = array(
       '#type' => 'details',
-      '#title' => t('Available global token replacements'),
+      '#title' => $this->t('Available global token replacements'),
     );
     $form['global_tokens']['list'] = array(
       '#theme' => 'item_list',
@@ -410,7 +417,7 @@ abstract class PluginBase extends ComponentPluginBase implements ContainerFactor
       if ($id == 'site_default') {
         $id = '***LANGUAGE_' . $id . '***';
       }
-      $list[$id] = t($language->name);
+      $list[$id] = $this->t($language->name);
     }
 
     // Add in negotiated languages, if requested.
@@ -422,7 +429,7 @@ abstract class PluginBase extends ComponentPluginBase implements ContainerFactor
         // IDs by '***LANGUAGE_...***', to avoid query collisions.
         if (isset($type['name'])) {
           $id = '***LANGUAGE_' . $id . '***';
-          $list[$id] = t('Language selected for !type', array('!type' => $type['name']));
+          $list[$id] = $this->t('Language selected for !type', array('!type' => $type['name']));
         }
       }
     }

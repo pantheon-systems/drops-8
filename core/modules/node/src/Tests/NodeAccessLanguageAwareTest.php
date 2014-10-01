@@ -45,7 +45,7 @@ class NodeAccessLanguageAwareTest extends NodeTestBase {
     // Create the 'private' field, which allows the node to be marked as private
     // (restricted access) in a given translation.
     $field_storage = entity_create('field_storage_config', array(
-      'name' => 'field_private',
+      'field_name' => 'field_private',
       'entity_type' => 'node',
       'type' => 'boolean',
       'cardinality' => 1,
@@ -57,7 +57,7 @@ class NodeAccessLanguageAwareTest extends NodeTestBase {
     ));
     $field_storage->save();
 
-    entity_create('field_instance_config', array(
+    entity_create('field_config', array(
       'field_storage' => $field_storage,
       'bundle' => 'page',
       'widget' => array(

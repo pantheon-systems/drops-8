@@ -48,7 +48,7 @@ class SearchConfigSettingsFormTest extends SearchTestBase {
     // Link the node to itself to test that it's only indexed once. The content
     // also needs the word "pizza" so we can use it as the search keyword.
     $body_key = 'body[0][value]';
-    $edit[$body_key] = l($node->label(), 'node/' . $node->id()) . ' pizza sandwich';
+    $edit[$body_key] = \Drupal::l($node->label(), $node->urlInfo()) . ' pizza sandwich';
     $this->drupalPostForm('node/' . $node->id() . '/edit', $edit, t('Save and keep published'));
 
     $this->container->get('plugin.manager.search')->createInstance('node_search')->updateIndex();
@@ -215,8 +215,8 @@ class SearchConfigSettingsFormTest extends SearchTestBase {
   public function testDefaultSearchPageOrdering() {
     $this->drupalGet('search');
     $elements = $this->xpath('//*[contains(@class, :class)]//a', array(':class' => 'tabs primary'));
-    $this->assertIdentical((string) $elements[0]['href'], url('search/node'));
-    $this->assertIdentical((string) $elements[1]['href'], url('search/user'));
+    $this->assertIdentical((string) $elements[0]['href'], \Drupal::url('search.view_node_search'));
+    $this->assertIdentical((string) $elements[1]['href'], \Drupal::url('search.view_user_search'));
   }
 
   /**
@@ -269,8 +269,8 @@ class SearchConfigSettingsFormTest extends SearchTestBase {
     // Ensure both search pages have their tabs displayed.
     $this->drupalGet('search');
     $elements = $this->xpath('//*[contains(@class, :class)]//a', array(':class' => 'tabs primary'));
-    $this->assertIdentical((string) $elements[0]['href'], url('search/' . $first['path']));
-    $this->assertIdentical((string) $elements[1]['href'], url('search/' . $second['path']));
+    $this->assertIdentical((string) $elements[0]['href'], _url('search/' . $first['path']));
+    $this->assertIdentical((string) $elements[1]['href'], _url('search/' . $second['path']));
 
     // Switch the weight of the search pages and check the order of the tabs.
     $edit = array(
@@ -280,8 +280,8 @@ class SearchConfigSettingsFormTest extends SearchTestBase {
     $this->drupalPostForm('admin/config/search/pages', $edit, t('Save configuration'));
     $this->drupalGet('search');
     $elements = $this->xpath('//*[contains(@class, :class)]//a', array(':class' => 'tabs primary'));
-    $this->assertIdentical((string) $elements[0]['href'], url('search/' . $second['path']));
-    $this->assertIdentical((string) $elements[1]['href'], url('search/' . $first['path']));
+    $this->assertIdentical((string) $elements[0]['href'], _url('search/' . $second['path']));
+    $this->assertIdentical((string) $elements[1]['href'], _url('search/' . $first['path']));
 
     // Check the initial state of the search pages.
     $this->drupalGet('admin/config/search/pages');

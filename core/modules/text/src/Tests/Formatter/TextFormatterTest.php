@@ -7,6 +7,7 @@
 
 namespace Drupal\text\Tests\Formatter;
 
+use Drupal\filter\Entity\FilterFormat;
 use Drupal\system\Tests\Entity\EntityUnitTestBase;
 
 /**
@@ -55,12 +56,12 @@ class TextFormatterTest extends EntityUnitTestBase {
     ))->save();
 
     entity_create('field_storage_config', array(
-      'name' => 'formatted_text',
+      'field_name' => 'formatted_text',
       'entity_type' => $this->entityType,
       'type' => 'text',
       'settings' => array(),
     ))->save();
-    entity_create('field_instance_config', array(
+    entity_create('field_config', array(
       'entity_type' => $this->entityType,
       'bundle' => $this->bundle,
       'field_name' => 'formatted_text',
@@ -91,10 +92,7 @@ class TextFormatterTest extends EntityUnitTestBase {
       $build = $entity->get('formatted_text')->view(array('type' => $formatter));
       drupal_render($build[0]);
       $this->assertEqual($build[0]['#markup'], "<p>Hello, world!</p>\n");
-      $expected_cache_tags = array(
-        'filter_format' => array('my_text_format'),
-      );
-      $this->assertEqual($build[0]['#cache']['tags'], $expected_cache_tags, format_string('The @formatter formatter has the expected cache tags when formatting a formatted text field.', array('@formatter' => $formatter)));
+      $this->assertEqual($build[0]['#cache']['tags'], FilterFormat::load('my_text_format')->getCacheTag(), format_string('The @formatter formatter has the expected cache tags when formatting a formatted text field.', array('@formatter' => $formatter)));
     }
   }
 

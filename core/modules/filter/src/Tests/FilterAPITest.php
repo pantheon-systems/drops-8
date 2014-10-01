@@ -8,7 +8,7 @@
 namespace Drupal\filter\Tests;
 
 use Drupal\Core\Session\AnonymousUserSession;
-use Drupal\Core\TypedData\AllowedValuesInterface;
+use Drupal\Core\TypedData\OptionsProviderInterface;
 use Drupal\Core\TypedData\DataDefinition;
 use Drupal\filter\Plugin\DataType\FilterFormat;
 use Drupal\filter\Plugin\FilterInterface;
@@ -246,14 +246,10 @@ class FilterAPITest extends EntityUnitTestBase {
     $this->assertEqual($expected_assets, $build['#attached'], 'Expected assets present');
     $expected_cache_tags = array(
       // The cache tag set by the processed_text element itself.
-      'filter_format' => array(
-        'element_test',
-      ),
+      'filter_format:element_test',
       // The cache tags set by the filter_test_cache_tags filter.
-      'foo' => array(
-        'bar',
-        'baz',
-      ),
+      'foo:bar',
+      'foo:baz',
     );
     $this->assertEqual($expected_cache_tags, $build['#cache']['tags'], 'Expected cache tags present.');
     $expected_markup = '<p>Hello, world!</p><p>This is a dynamic llama.</p>';
@@ -267,7 +263,7 @@ class FilterAPITest extends EntityUnitTestBase {
     $definition = DataDefinition::create('filter_format');
     $data = \Drupal::typedDataManager()->create($definition);
 
-    $this->assertTrue($data instanceof AllowedValuesInterface, 'Typed data object implements \Drupal\Core\TypedData\AllowedValuesInterface');
+    $this->assertTrue($data instanceof OptionsProviderInterface, 'Typed data object implements \Drupal\Core\TypedData\OptionsProviderInterface');
 
     $filtered_html_user = $this->createUser(array('uid' => 2), array(
       entity_load('filter_format', 'filtered_html')->getPermissionName(),

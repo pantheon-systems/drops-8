@@ -60,7 +60,7 @@ class EntityQueryTest extends EntityUnitTestBase {
     $greetings = drupal_strtolower($this->randomMachineName());
     foreach (array($figures => 'shape', $greetings => 'text') as $field_name => $field_type) {
       $field_storage = entity_create('field_storage_config', array(
-        'name' => $field_name,
+        'field_name' => $field_name,
         'entity_type' => 'entity_test_mulrev',
         'type' => $field_type,
         'cardinality' => 2,
@@ -78,7 +78,7 @@ class EntityQueryTest extends EntityUnitTestBase {
       } while ($bundles && strtolower($bundles[0]) >= strtolower($bundle));
       entity_test_create_bundle($bundle);
       foreach ($field_storages as $field_storage) {
-        entity_create('field_instance_config', array(
+        entity_create('field_config', array(
           'field_storage' => $field_storage,
           'bundle' => $bundle,
         ))->save();
@@ -413,7 +413,7 @@ class EntityQueryTest extends EntityUnitTestBase {
     // Create a field with the same name in a different entity type.
     $field_name = $this->figures;
     $field_storage = entity_create('field_storage_config', array(
-      'name' => $field_name,
+      'field_name' => $field_name,
       'entity_type' => 'entity_test',
       'type' => 'shape',
       'cardinality' => 2,
@@ -421,7 +421,7 @@ class EntityQueryTest extends EntityUnitTestBase {
     ));
     $field_storage->save();
     $bundle = $this->randomMachineName();
-    entity_create('field_instance_config', array(
+    entity_create('field_config', array(
       'field_storage' => $field_storage,
       'bundle' => $bundle,
     ))->save();

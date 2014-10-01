@@ -9,6 +9,7 @@ namespace Drupal\rest\LinkManager;
 
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheBackendInterface;
+use Drupal\Core\Entity\ContentEntityTypeInterface;
 use Drupal\Core\Entity\EntityManagerInterface;
 
 class RelationLinkManager implements RelationLinkManagerInterface{
@@ -43,7 +44,7 @@ class RelationLinkManager implements RelationLinkManagerInterface{
    */
   public function getRelationUri($entity_type, $bundle, $field_name) {
     // @todo Make the base path configurable.
-    return url("rest/relation/$entity_type/$bundle/$field_name", array('absolute' => TRUE));
+    return _url("rest/relation/$entity_type/$bundle/$field_name", array('absolute' => TRUE));
   }
 
   /**
@@ -87,7 +88,7 @@ class RelationLinkManager implements RelationLinkManagerInterface{
     $data = array();
 
     foreach ($this->entityManager->getDefinitions() as $entity_type) {
-      if ($entity_type->isFieldable()) {
+      if ($entity_type instanceof ContentEntityTypeInterface) {
         foreach ($this->entityManager->getBundleInfo($entity_type->id()) as $bundle => $bundle_info) {
           foreach ($this->entityManager->getFieldDefinitions($entity_type->id(), $bundle) as $field_definition) {
             $relation_uri = $this->getRelationUri($entity_type->id(), $bundle, $field_definition->getName());
@@ -102,6 +103,6 @@ class RelationLinkManager implements RelationLinkManagerInterface{
     }
     // These URIs only change when field info changes, so cache it permanently
     // and only clear it when the fields cache is cleared.
-    $this->cache->set('rest:links:relations', $data, Cache::PERMANENT, array('entity_field_info' => TRUE));
+    $this->cache->set('rest:links:relations', $data, Cache::PERMANENT, array('entity_field_info'));
   }
 }

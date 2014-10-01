@@ -21,7 +21,7 @@ abstract class FieldConfigBase extends ConfigEntityBase implements FieldConfigIn
   use ThirdPartySettingsTrait;
 
   /**
-   * The instance ID.
+   * The field ID.
    *
    * The ID consists of 3 parts: the entity type, bundle and the field name.
    *
@@ -32,7 +32,7 @@ abstract class FieldConfigBase extends ConfigEntityBase implements FieldConfigIn
   public $id;
 
   /**
-   * The name of the field attached to the bundle by this instance.
+   * The name of the field attached to the bundle by this field.
    *
    * @var string
    */
@@ -52,38 +52,38 @@ abstract class FieldConfigBase extends ConfigEntityBase implements FieldConfigIn
   public $field_type;
 
   /**
-   * The name of the entity type the instance is attached to.
+   * The name of the entity type the field is attached to.
    *
    * @var string
    */
   public $entity_type;
 
   /**
-   * The name of the bundle the instance is attached to.
+   * The name of the bundle the field is attached to.
    *
    * @var string
    */
   public $bundle;
 
   /**
-   * The human-readable label for the instance.
+   * The human-readable label for the field.
    *
    * This will be used as the title of Form API elements for the field in entity
    * edit forms, or as the label for the field values in displayed entities.
    *
-   * If not specified, this defaults to the field_name (mostly useful for field
-   * instances created in tests).
+   * If not specified, this defaults to the field_name (mostly useful for fields
+   * created in tests).
    *
    * @var string
    */
   public $label;
 
   /**
-   * The instance description.
+   * The field description.
    *
    * A human-readable description for the field when used with this bundle.
    * For example, the description will be the help text of Form API elements for
-   * this instance in entity edit forms.
+   * this field in entity edit forms.
    *
    * @var string
    */
@@ -135,7 +135,7 @@ abstract class FieldConfigBase extends ConfigEntityBase implements FieldConfigIn
    * hook_field_schema(). If the number of items exceeds the cardinality of the
    * field, extraneous items will be ignored.
    *
-   * This property is overlooked if the $default_value_function is non-empty.
+   * This property is overlooked if the $default_value_callback is non-empty.
    *
    * Example for a integer field:
    * @code
@@ -165,7 +165,7 @@ abstract class FieldConfigBase extends ConfigEntityBase implements FieldConfigIn
    *
    * @var string
    */
-  public $default_value_function = '';
+  public $default_value_callback = '';
 
   /**
    * The field storage object.
@@ -219,7 +219,7 @@ abstract class FieldConfigBase extends ConfigEntityBase implements FieldConfigIn
   /**
    * {@inheritdoc}
    */
-  public function targetBundle() {
+  public function getTargetBundle() {
     return $this->bundle;
   }
 
@@ -334,8 +334,8 @@ abstract class FieldConfigBase extends ConfigEntityBase implements FieldConfigIn
    */
   public function getDefaultValue(ContentEntityInterface $entity) {
     // Allow custom default values function.
-    if ($function = $this->default_value_function) {
-      $value = call_user_func($function, $entity, $this);
+    if ($callback = $this->default_value_callback) {
+      $value = call_user_func($callback, $entity, $this);
     }
     else {
       $value = $this->default_value;
@@ -423,13 +423,6 @@ abstract class FieldConfigBase extends ConfigEntityBase implements FieldConfigIn
         ->setSettings($this->getSettings());
     }
     return $this->itemDefinition;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getBundle() {
-    return $this->bundle;
   }
 
   /**

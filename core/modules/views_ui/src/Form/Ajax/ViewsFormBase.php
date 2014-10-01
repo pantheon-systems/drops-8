@@ -149,7 +149,7 @@ abstract class ViewsFormBase extends FormBase implements ViewsFormInterface {
       $form_state->setUserInput(array());
       $form_path = views_ui_build_form_path($form_state);
       if (!$form_state->get('ajax')) {
-        return new RedirectResponse(url($form_path, array('absolute' => TRUE)));
+        return new RedirectResponse(_url($form_path, array('absolute' => TRUE)));
       }
       $form_state->set('path', $form_path);
       $response = views_ajax_form_wrapper($form_class, $form_state);
@@ -157,14 +157,14 @@ abstract class ViewsFormBase extends FormBase implements ViewsFormInterface {
     elseif (!$form_state->get('ajax')) {
       // if nothing on the stack, non-js forms just go back to the main view editor.
       $display_id = $form_state->get('display_id');
-      return new RedirectResponse(url("admin/structure/views/view/{$view->id()}/edit/$display_id", array('absolute' => TRUE)));
+      return new RedirectResponse($this->url('entity.view.edit_display_form', ['view' => $view->id(), 'display_id' => $display_id], ['absolute' => TRUE]));
     }
     else {
       $response = new AjaxResponse();
       $response->addCommand(new CloseModalDialogCommand());
       $response->addCommand(new Ajax\ShowButtonsCommand(!empty($view->changed)));
       $response->addCommand(new Ajax\TriggerPreviewCommand());
-      if ($page_title = $form_state->get('#page_title')) {
+      if ($page_title = $form_state->get('page_title')) {
         $response->addCommand(new Ajax\ReplaceTitleCommand($page_title));
       }
     }

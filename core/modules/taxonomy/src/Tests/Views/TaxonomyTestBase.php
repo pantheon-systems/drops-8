@@ -79,7 +79,7 @@ abstract class TaxonomyTestBase extends ViewTestBase {
     $this->vocabulary->save();
     $this->field_name = 'field_' . $this->vocabulary->id();
     entity_create('field_storage_config', array(
-      'name' => $this->field_name,
+      'field_name' => $this->field_name,
       'entity_type' => 'node',
       'type' => 'taxonomy_term_reference',
       // Set cardinality to unlimited for tagging.
@@ -93,7 +93,7 @@ abstract class TaxonomyTestBase extends ViewTestBase {
         ),
       ),
     ))->save();
-    entity_create('field_instance_config', array(
+    entity_create('field_config', array(
       'field_name' => $this->field_name,
       'entity_type' => 'node',
       'label' => 'Tags',

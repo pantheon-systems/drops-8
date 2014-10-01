@@ -20,7 +20,7 @@ use Drupal\Core\Form\FormStateInterface;
  *     "boolean",
  *     "list_integer",
  *     "list_float",
- *     "list_text",
+ *     "list_string",
  *   },
  *   multiple_values = TRUE
  * )
@@ -33,7 +33,7 @@ class ButtonsWidget extends OptionsWidgetBase {
   public function formElement(FieldItemListInterface $items, $delta, array $element, array &$form, FormStateInterface $form_state) {
     $element = parent::formElement($items, $delta, $element, $form, $form_state);
 
-    $options = $this->getOptions($items[$delta]);
+    $options = $this->getOptions($items->getEntity());
     $selected = $this->getSelectedOptions($items);
 
     // If required and there is one single option, preselect it.

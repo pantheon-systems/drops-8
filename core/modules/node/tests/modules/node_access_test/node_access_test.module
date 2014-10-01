@@ -21,7 +21,7 @@
 
 use Drupal\Core\Access\AccessResult;
 use Drupal\field\Entity\FieldStorageConfig;
-use Drupal\field\Entity\FieldInstanceConfig;
+use Drupal\field\Entity\FieldConfig;
 use Drupal\node\NodeTypeInterface;
 use Drupal\node\NodeInterface;
 
@@ -120,18 +120,18 @@ function node_access_test_node_access_records(NodeInterface $node) {
  */
 function node_access_test_add_field(NodeTypeInterface $type) {
   $field_storage = FieldStorageConfig::create(array(
-    'name' => 'private',
+    'field_name' => 'private',
     'entity_type' => 'node',
     'type' => 'integer',
   ));
   $field_storage->save();
-  $instance = FieldInstanceConfig::create(array(
+  $field = FieldConfig::create(array(
     'field_name' => 'private',
     'entity_type' => 'node',
     'bundle' => $type->id(),
     'label' => 'Private',
   ));
-  $instance->save();
+  $field->save();
 
   // Assign widget settings for the 'default' form mode.
   entity_get_form_display('node', $type->id(), 'default')
@@ -151,5 +151,5 @@ function node_access_test_node_access(\Drupal\node\NodeInterface $node, $op, \Dr
     return AccessResult::forbidden()->setCacheable(FALSE);
   }
   // No opinion.
-  return AccessResult::create()->setCacheable(FALSE);
+  return AccessResult::neutral()->setCacheable(FALSE);
 }

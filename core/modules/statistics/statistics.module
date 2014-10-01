@@ -39,7 +39,7 @@ function statistics_help($route_name, RouteMatchInterface $route_match) {
 function statistics_node_view(array &$build, EntityInterface $node, EntityViewDisplayInterface $display, $view_mode) {
   if (!$node->isNew() && $view_mode == 'full' && node_is_page($node) && empty($node->in_preview)) {
     $build['statistics_content_counter']['#attached']['library'][] = 'statistics/drupal.statistics';
-    $settings = array('data' => array('nid' => $node->id()), 'url' => url(drupal_get_path('module', 'statistics') . '/statistics.php'));
+    $settings = array('data' => array('nid' => $node->id()), 'url' => _url(drupal_get_path('module', 'statistics') . '/statistics.php'));
     $build['statistics_content_counter']['#attached']['js'][] = array(
       'data' => array('statistics' => $settings),
       'type' => 'setting',
@@ -144,41 +144,6 @@ function statistics_get($nid) {
     // Retrieve an array with both totalcount and daycount.
     return db_query('SELECT totalcount, daycount, timestamp FROM {node_counter} WHERE nid = :nid', array(':nid' => $nid), array('target' => 'replica'))->fetchAssoc();
   }
-}
-
-/**
- * Generates a link to a path, truncating the displayed text to a given width.
- *
- * @param string $path
- *   The path to generate the link for.
- * @param int $width
- *   The width to set the displayed text of the path.
- *
- * @return string
- *   A string as a link, truncated to the width, linked to the given $path.
- */
-function _statistics_link($path, $width = 35) {
-  $title = \Drupal::service('path.alias_manager')->getAliasByPath($path);
-  $title = truncate_utf8($title, $width, FALSE, TRUE);
-  return l($title, $path);
-}
-
-/**
- * Formats an item for display, including both the item title and the link.
- *
- * @param string $title
- *   The text to link to a path; will be truncated to a maximum width of 35.
- * @param string $path
- *   The path to link to; will default to '/'.
- *
- * @return string
- *   An HTML string with $title linked to the $path.
- */
-function _statistics_format_item($title, $path) {
-  $path = ($path ? $path : '/');
-  $output  = ($title ? "$title<br />" : '');
-  $output .= _statistics_link($path);
-  return $output;
 }
 
 /**

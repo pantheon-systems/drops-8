@@ -46,7 +46,7 @@ class TaxonomyTermReferenceItemTest extends FieldUnitTestBase {
     $vocabulary->save();
 
     entity_create('field_storage_config', array(
-      'name' => 'field_test_taxonomy',
+      'field_name' => 'field_test_taxonomy',
       'entity_type' => 'entity_test',
       'type' => 'taxonomy_term_reference',
       'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
@@ -59,7 +59,7 @@ class TaxonomyTermReferenceItemTest extends FieldUnitTestBase {
         ),
       ),
     ))->save();
-    entity_create('field_instance_config', array(
+    entity_create('field_config', array(
       'entity_type' => 'entity_test',
       'field_name' => 'field_test_taxonomy',
       'bundle' => 'entity_test',

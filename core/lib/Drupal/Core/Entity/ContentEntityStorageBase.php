@@ -10,11 +10,9 @@ namespace Drupal\Core\Entity;
 use Drupal\Component\Utility\String;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
-use Drupal\Core\Cache\Cache;
-use Drupal\field\FieldInstanceConfigInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
-abstract class ContentEntityStorageBase extends EntityStorageBase implements FieldableEntityStorageInterface {
+abstract class ContentEntityStorageBase extends EntityStorageBase implements DynamicallyFieldableEntityStorageInterface {
 
   /**
    * The entity bundle key.
@@ -108,21 +106,6 @@ abstract class ContentEntityStorageBase extends EntityStorageBase implements Fie
   /**
    * {@inheritdoc}
    */
-  public function onBundleCreate($bundle) { }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function onBundleRename($bundle, $bundle_new) { }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function onBundleDelete($bundle) { }
-
-  /**
-   * {@inheritdoc}
-   */
   public function purgeFieldData(FieldDefinitionInterface $field_definition, $batch_size) {
     $items_by_entity = $this->readFieldItemsToPurge($field_definition, $batch_size);
 
@@ -137,7 +120,7 @@ abstract class ContentEntityStorageBase extends EntityStorageBase implements Fie
    * Reads values to be purged for a single field.
    *
    * This method is called during field data purge, on fields for which
-   * onFieldDelete() or onFieldInstanceDelete() has previously run.
+   * onFieldDelete() or onFieldDelete() has previously run.
    *
    * @param \Drupal\Core\Field\FieldDefinitionInterface $field_definition
    *   The field definition.
@@ -197,7 +180,7 @@ abstract class ContentEntityStorageBase extends EntityStorageBase implements Fie
   protected function invokeFieldMethod($method, ContentEntityInterface $entity) {
     foreach (array_keys($entity->getTranslationLanguages()) as $langcode) {
       $translation = $entity->getTranslation($langcode);
-      foreach ($translation->getProperties(TRUE) as $field) {
+      foreach ($translation->getFields() as $field) {
         $field->$method();
       }
     }

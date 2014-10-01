@@ -7,6 +7,8 @@
 
 namespace Drupal\Core\Field;
 
+use Drupal\Core\Entity\ContentEntityInterface;
+
 /**
  * Defines an interface for entity field storage definitions.
  *
@@ -131,6 +133,19 @@ interface FieldStorageDefinitionInterface {
   public function getDescription();
 
   /**
+   * Gets an options provider for the given field item property.
+   *
+   * @param string $property_name
+   *   The name of the property to get options for; e.g., 'value'.
+   * @param \Drupal\Core\Entity\ContentEntityInterface $entity
+   *   The entity for which the options should be provided.
+   *
+   * @return \Drupal\Core\TypedData\OptionsProviderInterface|null
+   *   An options provider, or NULL if no options are defined.
+   */
+  public function getOptionsProvider($property_name, ContentEntityInterface $entity);
+
+  /**
    * Returns whether the field can contain multiple items.
    *
    * @return bool
@@ -198,18 +213,18 @@ interface FieldStorageDefinitionInterface {
   public function getMainPropertyName();
 
   /**
-   * Returns the ID of the type of the entity this field is attached to.
+   * Returns the ID of the entity type the field is attached to.
    *
    * This method should not be confused with EntityInterface::entityType()
    * (configurable fields are config entities, and thus implement both
    * interfaces):
    *   - FieldStorageDefinitionInterface::getTargetEntityTypeId() answers "as a
-   *     field, which entity type are you attached to?".
+   *     field storage, which entity type are you attached to?".
    *   - EntityInterface::getEntityTypeId() answers "as a (config) entity, what
-   *     is your own entity type".
+   *     is your own entity type?".
    *
    * @return string
-   *   The name of the entity type.
+   *   The entity type ID.
    */
   public function getTargetEntityTypeId();
 

@@ -35,18 +35,18 @@ class TaxonomyImageTest extends TaxonomyTestBase {
     user_role_revoke_permissions(DRUPAL_AUTHENTICATED_RID, array('access content'));
 
     $this->vocabulary = $this->createVocabulary();
-    // Add a field instance to the vocabulary.
+    // Add a field to the vocabulary.
     $entity_type = 'taxonomy_term';
     $name = 'field_test';
     entity_create('field_storage_config', array(
-      'name' => $name,
+      'field_name' => $name,
       'entity_type' => $entity_type,
       'type' => 'image',
       'settings' => array(
         'uri_scheme' => 'private',
       ),
     ))->save();
-    entity_create('field_instance_config', array(
+    entity_create('field_config', array(
       'field_name' => $name,
       'entity_type' => $entity_type,
       'bundle' => $this->vocabulary->id(),

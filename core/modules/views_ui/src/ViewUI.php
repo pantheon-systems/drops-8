@@ -693,7 +693,7 @@ class ViewUI implements ViewStorageInterface {
               Xss::filterAdmin($this->executable->getTitle()),
             );
             if (isset($path)) {
-              $path = l($path, $path);
+              $path = _l($path, $path);
             }
             else {
               $path = t('This display has no path.');
@@ -926,8 +926,15 @@ class ViewUI implements ViewStorageInterface {
   /**
    * Implements \Drupal\Core\Entity\EntityInterface::uri().
    */
-  public function urlInfo($rel = 'edit-form') {
-    return $this->storage->urlInfo($rel);
+  public function urlInfo($rel = 'edit-form', array $options = []) {
+    return $this->storage->urlInfo($rel, $options);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function link($text = NULL, $rel = 'edit-form', array $options = []) {
+    return $this->storage->link($text, $rel, $options);
   }
 
   /**
@@ -1125,6 +1132,13 @@ class ViewUI implements ViewStorageInterface {
    */
   public function getListCacheTags() {
     $this->storage->getListCacheTags();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getTypedData() {
+    $this->storage->getTypedData();
   }
 
 }

@@ -76,21 +76,13 @@ function hook_field_info_alter(&$info) {
  * @see entity_crud
  */
 function hook_field_storage_config_update_forbid(\Drupal\field\FieldStorageConfigInterface $field_storage, \Drupal\field\FieldStorageConfigInterface $prior_field_storage) {
-  // A 'list' field stores integer keys mapped to display values. If
-  // the new field will have fewer values, and any data exists for the
-  // abandoned keys, the field will have no way to display them. So,
-  // forbid such an update.
-  if ($field_storage->hasData() && count($field_storage['settings']['allowed_values']) < count($prior_field_storage['settings']['allowed_values'])) {
-    // Identify the keys that will be lost.
-    $lost_keys = array_diff(array_keys($field_storage['settings']['allowed_values']), array_keys($prior_field_storage['settings']['allowed_values']));
-    // If any data exist for those keys, forbid the update.
-    $query = new EntityFieldQuery();
-    $found = $query
-      ->fieldCondition($prior_field_storage['field_name'], 'value', $lost_keys)
-      ->range(0, 1)
-      ->execute();
-    if ($found) {
-      throw new \Drupal\Core\Entity\Exception\FieldStorageDefinitionUpdateForbiddenException("Cannot update a list field storage not to include keys with existing data");
+  if ($field_storage->module == 'options' && $field_storage->hasData()) {
+    // Forbid any update that removes allowed values with actual data.
+    $allowed_values = $field_storage->getSetting('allowed_values');
+    $prior_allowed_values = $prior_field_storage->getSetting('allowed_values');
+    $lost_keys = array_diff(array_keys($prior_allowed_values), array_keys($allowed_values));
+    if (_options_values_in_use($field_storage->entity_type, $field_storage->getName(), $lost_keys)) {
+      throw new \Drupal\Core\Entity\Exception\FieldStorageDefinitionUpdateForbiddenException(t('A list field (@field_name) with existing data cannot have its keys changed.', array('@field_name' => $field_storage->getName())));
     }
   }
 }
@@ -294,19 +286,19 @@ function hook_field_purge_field_storage(\Drupal\field\Entity\FieldStorageConfig 
 }
 
 /**
- * Acts when a field instance is being purged.
+ * Acts when a field is being purged.
  *
- * In field_purge_instance(), after the instance definition has been removed
+ * In field_purge_field(), after the field definition has been removed
  * from the the system, the entity storage has purged stored field data, and the
  * field info cache has been cleared, this hook is invoked on all modules to
- * allow them to respond to the field instance being purged.
+ * allow them to respond to the field being purged.
  *
- * @param $instance
- *   The instance being purged.
+ * @param $field
+ *   The field being purged.
  */
-function hook_field_purge_instance($instance) {
-  db_delete('my_module_field_instance_info')
-    ->condition('id', $instance['id'])
+function hook_field_purge_field(\Drupal\field\Entity\FieldConfig $field) {
+  db_delete('my_module_field_info')
+    ->condition('id', $field->id())
     ->execute();
 }
 

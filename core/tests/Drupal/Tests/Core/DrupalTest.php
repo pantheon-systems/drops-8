@@ -8,6 +8,8 @@
 namespace Drupal\Tests\Core;
 
 use Drupal\Tests\UnitTestCase;
+use Drupal\Core\Url;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Tests the Drupal class.
@@ -132,6 +134,18 @@ class DrupalTest extends UnitTestCase {
   }
 
   /**
+   * Tests the testRequestStack() method.
+   *
+   * @covers ::requestStack
+   */
+  public function testRequestStack() {
+    $request_stack = new RequestStack();
+    $this->setMockContainerService('request_stack', $request_stack);
+
+    $this->assertSame($request_stack, \Drupal::requestStack());
+  }
+
+  /**
    * Tests the keyValue() method.
    */
   public function testKeyValue() {
@@ -236,7 +250,7 @@ class DrupalTest extends UnitTestCase {
   }
 
   /**
-   * Tests the url() method.
+   * Tests the _url() method.
    *
    * @see \Drupal\Core\Routing\UrlGeneratorInterface::generateFromRoute()
    */
@@ -262,7 +276,7 @@ class DrupalTest extends UnitTestCase {
   }
 
   /**
-   * Tests the l() method.
+   * Tests the _l() method.
    *
    * @see \Drupal\Core\Utility\LinkGeneratorInterface::generate()
    */
@@ -270,13 +284,14 @@ class DrupalTest extends UnitTestCase {
     $route_parameters = array('test_parameter' => 'test');
     $options = array('test_option' => 'test');
     $generator = $this->getMock('Drupal\Core\Utility\LinkGeneratorInterface');
+    $url = new Url('test_route', $route_parameters, $options);
     $generator->expects($this->once())
       ->method('generate')
-      ->with('Test title', 'test_route', $route_parameters, $options)
+      ->with('Test title', $url)
       ->will($this->returnValue('link_html_string'));
     $this->setMockContainerService('link_generator', $generator);
 
-    $this->assertInternalType('string', \Drupal::l('Test title', 'test_route', $route_parameters, $options));
+    $this->assertInternalType('string', \Drupal::l('Test title', $url));
   }
 
   /**
@@ -333,6 +348,14 @@ class DrupalTest extends UnitTestCase {
   public function testPathValidator() {
     $this->setMockContainerService('path.validator');
     $this->assertNotNull(\Drupal::pathValidator());
+  }
+
+  /**
+   * Tests the accessManager() method.
+   */
+  public function testAccessManager() {
+    $this->setMockContainerService('access_manager');
+    $this->assertNotNull(\Drupal::accessManager());
   }
 
   /**

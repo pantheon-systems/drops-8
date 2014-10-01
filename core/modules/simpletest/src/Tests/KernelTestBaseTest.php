@@ -245,19 +245,19 @@ class KernelTestBaseTest extends KernelTestBase {
     // Reactivate the previously uninstalled module.
     $this->enableModules(array('field_test'));
 
-    // Create a field storage and an instance.
+    // Create a field.
     entity_create('entity_view_display', array(
       'targetEntityType' => 'entity_test',
       'bundle' => 'entity_test',
       'mode' => 'default',
     ));
     $field_storage = entity_create('field_storage_config', array(
-      'name' => 'test_field',
+      'field_name' => 'test_field',
       'entity_type' => 'entity_test',
       'type' => 'test_field'
     ));
     $field_storage->save();
-    entity_create('field_instance_config', array(
+    entity_create('field_config', array(
       'field_storage' => $field_storage,
       'bundle' => 'entity_test',
     ))->save();

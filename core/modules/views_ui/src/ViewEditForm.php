@@ -20,6 +20,7 @@ use Drupal\Core\Render\Element;
 use Drupal\Core\Url;
 use Drupal\user\TempStoreFactory;
 use Drupal\views\Views;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -322,13 +323,11 @@ class ViewEditForm extends ViewFormBase {
           $query->remove('destination');
         }
       }
-      if (!UrlHelper::isExternal($destination)) {
-        $destination = $GLOBALS['base_url'] . '/' . $destination;
-      }
-      $form_state->setRedirectUrl(Url::createFromPath($destination));
+      $form_state->setRedirectUrl(Url::fromUri("base://$destination"));
     }
 
     $view->save();
+
     drupal_set_message($this->t('The view %name has been saved.', array('%name' => $view->label())));
 
     // Remove this view from cache so we can edit it properly.
@@ -1062,7 +1061,13 @@ class ViewEditForm extends ViewFormBase {
       if ($handler->broken()) {
         $build['fields'][$id]['#class'][] = 'broken';
         $field_name = $handler->adminLabel();
-        $build['fields'][$id]['#link'] = l($field_name, "admin/structure/views/nojs/handler/{$view->id()}/{$display['id']}/$type/$id", array('attributes' => array('class' => array('views-ajax-link')), 'html' => TRUE));
+        $build['fields'][$id]['#link'] = $this->l($field_name, new Url('views_ui.form_handler', array(
+          'js' => 'nojs',
+          'view' => $view->id(),
+          'display_id' => $display['id'],
+          'type' => $type,
+          'id' => $id,
+        ), array('attributes' => array('class' => array('views-ajax-link')), 'html' => TRUE)));
         continue;
       }
 
@@ -1079,15 +1084,33 @@ class ViewEditForm extends ViewFormBase {
         // Add a [hidden] marker, if the field is excluded.
         $link_text .= ' [' . $this->t('hidden') . ']';
       }
-      $build['fields'][$id]['#link'] = l($link_text, "admin/structure/views/nojs/handler/{$view->id()}/{$display['id']}/$type/$id", array('attributes' => $link_attributes, 'html' => TRUE));
+      $build['fields'][$id]['#link'] = $this->l($link_text, new Url('views_ui.form_handler', array(
+        'js' => 'nojs',
+        'view' => $view->id(),
+        'display_id' => $display['id'],
+        'type' => $type,
+        'id' => $id,
+      ), array('attributes' => $link_attributes, 'html' => TRUE)));
       $build['fields'][$id]['#class'][] = drupal_clean_css_identifier($display['id']. '-' . $type . '-' . $id);
 
       if ($executable->display_handler->useGroupBy() && $handler->usesGroupBy()) {
-        $build['fields'][$id]['#settings_links'][] = l('<span class="label">' . $this->t('Aggregation settings') . '</span>', "admin/structure/views/nojs/handler-group/{$view->id()}/{$display['id']}/$type/$id", array('attributes' => array('class' => array('views-button-configure', 'views-ajax-link'), 'title' => $this->t('Aggregation settings')), 'html' => TRUE));
+        $build['fields'][$id]['#settings_links'][] = $this->l('<span class="label">' . $this->t('Aggregation settings') . '</span>', new Url('views_ui.form_handler_group', array(
+          'js' => 'nojs',
+          'view' => $view->id(),
+          'display_id' => $display['id'],
+          'type' => $type,
+          'id' => $id,
+        ), array('attributes' => array('class' => array('views-button-configure', 'views-ajax-link'), 'title' => $this->t('Aggregation settings')), 'html' => TRUE)));
       }
 
       if ($handler->hasExtraOptions()) {
-        $build['fields'][$id]['#settings_links'][] = l('<span class="label">' . $this->t('Settings') . '</span>', "admin/structure/views/nojs/handler-extra/{$view->id()}/{$display['id']}/$type/$id", array('attributes' => array('class' => array('views-button-configure', 'views-ajax-link'), 'title' => $this->t('Settings')), 'html' => TRUE));
+        $build['fields'][$id]['#settings_links'][] = $this->l('<span class="label">' . $this->t('Settings') . '</span>', new Url('views_ui.form_handler_extra', array(
+          'js' => 'nojs',
+          'view' => $view->id(),
+          'display_id' => $display['id'],
+          'type' => $type,
+          'id' => $id,
+        ), array('attributes' => array('class' => array('views-button-configure', 'views-ajax-link'), 'title' => $this->t('Settings')), 'html' => TRUE)));
       }
 
       if ($grouping) {

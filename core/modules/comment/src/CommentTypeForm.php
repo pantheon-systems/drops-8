@@ -7,6 +7,7 @@
 
 namespace Drupal\comment;
 
+use Drupal\Core\Entity\ContentEntityTypeInterface;
 use Drupal\Core\Entity\EntityForm;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
@@ -91,7 +92,9 @@ class CommentTypeForm extends EntityForm {
     if ($comment_type->isNew()) {
       $options = array();
       foreach ($this->entityManager->getDefinitions() as $entity_type) {
-        if ($entity_type->isFieldable()) {
+        // Only expose entities that have field UI enabled, only those can
+        // get comment fields added in the UI.
+        if ($entity_type->get('field_ui_base_route')) {
           $options[$entity_type->id()] = $entity_type->getLabel();
         }
       }
@@ -147,7 +150,7 @@ class CommentTypeForm extends EntityForm {
     $comment_type = $this->entity;
     $status = $comment_type->save();
 
-    $edit_link = \Drupal::linkGenerator()->generateFromUrl($this->t('Edit'), $this->entity->urlInfo());
+    $edit_link = $this->entity->link($this->t('Edit'));
     if ($status == SAVED_UPDATED) {
       drupal_set_message(t('Comment type %label has been updated.', array('%label' => $comment_type->label())));
       $this->logger->notice('Comment type %label has been updated.', array('%label' => $comment_type->label(), 'link' => $edit_link));

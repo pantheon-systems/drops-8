@@ -94,8 +94,8 @@ class Serializer extends StylePluginBase {
 
     $form['formats'] = array(
       '#type' => 'checkboxes',
-      '#title' => t('Accepted request formats'),
-      '#description' => t('Request formats that will be allowed in responses. If none are selected all formats will be allowed.'),
+      '#title' => $this->t('Accepted request formats'),
+      '#description' => $this->t('Request formats that will be allowed in responses. If none are selected all formats will be allowed.'),
       '#options' => array_combine($this->formats, $this->formats),
       '#default_value' => $this->options['formats'],
     );
@@ -125,7 +125,12 @@ class Serializer extends StylePluginBase {
       $rows[] = $this->view->rowPlugin->render($row);
     }
 
-    return $this->serializer->serialize($rows, $this->displayHandler->getContentType());
+    $content_type = $this->displayHandler->getContentType();
+    if (!empty($this->view->live_preview)) {
+      $content_type = $this->options['formats'] ? reset($this->options['formats']) : 'json';
+    }
+
+    return $this->serializer->serialize($rows, $content_type);
   }
 
   /**

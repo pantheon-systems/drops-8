@@ -31,7 +31,6 @@ use Drupal\Core\Entity\EntityStorageInterface;
  *     }
  *   },
  *   admin_permission = "administer blocks",
- *   fieldable = FALSE,
  *   entity_keys = {
  *     "id" = "id"
  *   },
@@ -164,7 +163,7 @@ class Block extends ConfigEntityBase implements BlockInterface, EntityWithPlugin
    * this block is placed in instead.
    */
   public function getListCacheTags() {
-    return array('theme' => $this->theme);
+    return array('theme:' . $this->theme);
   }
 
   /**

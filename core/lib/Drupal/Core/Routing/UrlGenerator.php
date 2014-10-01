@@ -49,32 +49,23 @@ class UrlGenerator extends ProviderBasedGenerator implements UrlGeneratorInterfa
   protected $routeProcessor;
 
   /**
-   * The base path to use for urls.
-   *
-   * @var string
-   */
-  protected $basePath;
-
-  /**
-   * The base url to use for urls.
-   *
-   * @var string
-   */
-  protected $baseUrl;
-
-  /**
-   * The script path to use for urls.
-   *
-   * @var string
-   */
-  protected $scriptPath;
-
-  /**
    * Whether both secure and insecure session cookies can be used simultaneously.
    *
    * @var bool
    */
   protected $mixedModeSessions;
+
+  /**
+   * Overrides characters that will not be percent-encoded in the path segment.
+   *
+   * @see \Symfony\Component\Routing\Generator\UrlGenerator
+   */
+  protected $decodedChars = array(
+    // the slash can be used to designate a hierarchical structure and we want allow using it with this meaning
+    // some webservers don't allow the slash in encoded form in the path for security reasons anyway
+    // see http://stackoverflow.com/questions/4069002/http-400-if-2f-part-of-get-url-in-jboss
+    '%2F' => '/',
+  );
 
   /**
    *  Constructs a new generator object.
@@ -103,28 +94,6 @@ class UrlGenerator extends ProviderBasedGenerator implements UrlGeneratorInterfa
     $allowed_protocols = $config->get('system.filter')->get('protocols') ?: array('http', 'https');
     UrlHelper::setAllowedProtocols($allowed_protocols);
     $this->requestStack = $request_stack;
-    $this->updateFromRequest();
-  }
-
-  /**
-   * Updates instance properties using the current request from the stack.
-   *
-   * @todo This should probably be inline in the constructor as this is only
-   *   useful to get some current tests pass.
-   */
-  public function updateFromRequest() {
-    $request = $this->requestStack->getCurrentRequest();
-    // Set some properties, based on the request, that are used during path-based
-    // url generation.
-    $this->basePath = $request->getBasePath() . '/';
-    $this->baseUrl = $request->getSchemeAndHttpHost() . $this->basePath;
-    $this->scriptPath = '';
-    $base_path_with_script = $request->getBaseUrl();
-    $script_name = $request->getScriptName();
-    if (!empty($base_path_with_script) && strpos($base_path_with_script, $script_name) !== FALSE) {
-      $length = strlen($this->basePath);
-      $this->scriptPath = ltrim(substr($script_name, $length), '/') . '/';
-    }
   }
 
   /**
@@ -243,9 +212,16 @@ class UrlGenerator extends ProviderBasedGenerator implements UrlGeneratorInterfa
    * {@inheritdoc}
    */
   public function generateFromPath($path = NULL, $options = array()) {
-
-    if (!$this->initialized()) {
-      throw new GeneratorNotInitializedException();
+    $request = $this->requestStack->getCurrentRequest();
+    $current_base_path = $request->getBasePath() . '/';
+    $current_base_url = $request->getSchemeAndHttpHost() . $current_base_path;
+    $current_script_path = '';
+    $base_path_with_script = $request->getBaseUrl();
+    if (!empty($base_path_with_script)) {
+      $script_name = $request->getScriptName();
+      if (strpos($base_path_with_script, $script_name) !== FALSE) {
+        $current_script_path = ltrim(substr($script_name, strlen($current_base_path)), '/') . '/';
+      }
     }
 
     // Merge in defaults.
@@ -262,7 +238,7 @@ class UrlGenerator extends ProviderBasedGenerator implements UrlGeneratorInterfa
       // \Drupal\Component\Utility\UrlHelper::stripDangerousProtocols() if $path
       // contains a ':' before any / ? or #. Note: we could use
       // \Drupal\Component\Utility\UrlHelper::isExternal($path) here, but that
-      // would require another function call, and performance inside url() is
+      // would require another function call, and performance inside _url() is
       // critical.
       $colonpos = strpos($path, ':');
       $options['external'] = ($colonpos !== FALSE && !preg_match('![/?#]!', substr($path, 0, $colonpos)) && UrlHelper::stripDangerousProtocols($path) == $path);
@@ -301,54 +277,33 @@ class UrlGenerator extends ProviderBasedGenerator implements UrlGeneratorInterfa
     }
 
     if (!isset($options['script'])) {
-      $options['script'] = $this->scriptPath;
+      $options['script'] = $current_script_path;
     }
     // The base_url might be rewritten from the language rewrite in domain mode.
     if (!isset($options['base_url'])) {
       if (isset($options['https']) && $this->mixedModeSessions) {
         if ($options['https'] === TRUE) {
-          $options['base_url'] = str_replace('http://', 'https://', $this->baseUrl);
+          $options['base_url'] = str_replace('http://', 'https://', $current_base_url);
           $options['absolute'] = TRUE;
         }
         elseif ($options['https'] === FALSE) {
-          $options['base_url'] = str_replace('https://', 'http://', $this->baseUrl);
+          $options['base_url'] = str_replace('https://', 'http://', $current_base_url);
           $options['absolute'] = TRUE;
         }
       }
       else {
-        $options['base_url'] = $this->baseUrl;
+        $options['base_url'] = $current_base_url;
       }
     }
     elseif (rtrim($options['base_url'], '/') == $options['base_url']) {
       $options['base_url'] .= '/';
     }
-    $base = $options['absolute'] ? $options['base_url'] : $this->basePath;
+    $base = $options['absolute'] ? $options['base_url'] : $current_base_path;
     $prefix = empty($path) ? rtrim($options['prefix'], '/') : $options['prefix'];
 
     $path = str_replace('%2F', '/', rawurlencode($prefix . $path));
     $query = $options['query'] ? ('?' . UrlHelper::buildQuery($options['query'])) : '';
     return $base . $options['script'] . $path . $query . $options['fragment'];
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function setBaseUrl($url) {
-    $this->baseUrl = $url;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function setBasePath($path) {
-    $this->basePath = $path;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function setScriptPath($path) {
-    $this->scriptPath = $path;
   }
 
   /**
@@ -382,17 +337,6 @@ class UrlGenerator extends ProviderBasedGenerator implements UrlGeneratorInterfa
    */
   protected function processRoute(SymfonyRoute $route, array &$parameters) {
     $this->routeProcessor->processOutbound($route, $parameters);
-  }
-
-  /**
-   * Returns whether or not the url generator has been initialized.
-   *
-   * @return bool
-   *   Returns TRUE if the basePath, baseUrl and scriptPath properties have been
-   *   set, FALSE otherwise.
-   */
-  protected function initialized() {
-    return isset($this->basePath) && isset($this->baseUrl) && isset($this->scriptPath);
   }
 
   /**

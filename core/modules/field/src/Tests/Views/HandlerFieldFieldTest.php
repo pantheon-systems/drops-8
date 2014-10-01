@@ -39,11 +39,11 @@ class HandlerFieldFieldTest extends FieldTestBase {
     parent::setUp();
 
     // Setup basic fields.
-    $this->setUpFields(3);
+    $this->setUpFieldStorages(3);
 
     // Setup a field with cardinality > 1.
     $this->fieldStorages[3] = entity_create('field_storage_config', array(
-      'name' => 'field_name_3',
+      'field_name' => 'field_name_3',
       'entity_type' => 'node',
       'type' => 'string',
       'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
@@ -51,7 +51,7 @@ class HandlerFieldFieldTest extends FieldTestBase {
     $this->fieldStorages[3]->save();
     // Setup a field that will have no value.
     $this->fieldStorages[4] = entity_create('field_storage_config', array(
-      'name' => 'field_name_4',
+      'field_name' => 'field_name_4',
       'entity_type' => 'node',
       'type' => 'string',
       'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
@@ -60,13 +60,13 @@ class HandlerFieldFieldTest extends FieldTestBase {
 
     // Setup a text field.
     $this->fieldStorages[5] = entity_create('field_storage_config', array(
-      'name' => 'field_name_5',
+      'field_name' => 'field_name_5',
       'entity_type' => 'node',
       'type' => 'text',
     ));
     $this->fieldStorages[5]->save();
 
-    $this->setUpInstances();
+    $this->setUpFields();
 
     // Create some nodes.
     $this->nodes = array();

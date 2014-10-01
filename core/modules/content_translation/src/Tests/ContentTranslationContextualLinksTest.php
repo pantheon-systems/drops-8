@@ -80,13 +80,13 @@ class ContentTranslationContextualLinksTest extends WebTestBase {
 
     // Add a translatable field to the content type.
     entity_create('field_storage_config', array(
-      'name' => 'field_test_text',
+      'field_name' => 'field_test_text',
       'entity_type' => 'node',
       'type' => 'text',
       'cardinality' => 1,
       'translatable' => TRUE,
     ))->save();
-    entity_create('field_instance_config', array(
+    entity_create('field_config', array(
       'entity_type' => 'node',
       'field_name' => 'field_test_text',
       'bundle' => $this->bundle,
@@ -170,7 +170,7 @@ class ContentTranslationContextualLinksTest extends WebTestBase {
 
     // Perform HTTP request.
     return $this->curlExec(array(
-      CURLOPT_URL => url('contextual/render', array('absolute' => TRUE, 'query' => array('destination' => $current_path))),
+      CURLOPT_URL => \Drupal::url('contextual.render', array(), array('absolute' => TRUE, 'query' => array('destination' => $current_path))),
       CURLOPT_POST => TRUE,
       CURLOPT_POSTFIELDS => $post,
       CURLOPT_HTTPHEADER => array(

@@ -9,7 +9,7 @@ namespace Drupal\entity_reference\Tests\Views;
 
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\field\Entity\FieldStorageConfig;
-use Drupal\field\Entity\FieldInstanceConfig;
+use Drupal\field\Entity\FieldConfig;
 use Drupal\views\Tests\ViewTestData;
 use Drupal\views\Tests\ViewUnitTestBase;
 use Drupal\views\Views;
@@ -49,22 +49,23 @@ class EntityReferenceRelationshipTest extends ViewUnitTestBase {
   protected function setUp() {
     parent::setUp();
 
+    $this->installEntitySchema('user');
     $this->installEntitySchema('entity_test');
 
     ViewTestData::createTestViews(get_class($this), array('entity_reference_test_views'));
 
     $field_storage = FieldStorageConfig::create(array(
+      'entity_type' => 'entity_test',
+      'field_name' => 'field_test',
+      'type' => 'entity_reference',
       'settings' => array(
         'target_type' => 'entity_test',
       ),
-      'entity_type' => 'entity_test',
-      'name' => 'field_test',
-      'type' => 'entity_reference',
       'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
     ));
     $field_storage->save();
 
-    $instance = FieldInstanceConfig::create(array(
+    $field = FieldConfig::create(array(
       'entity_type' => 'entity_test',
       'field_name' => 'field_test',
       'bundle' => 'entity_test',
@@ -73,7 +74,7 @@ class EntityReferenceRelationshipTest extends ViewUnitTestBase {
         'handler_settings' => array(),
       ),
     ));
-    $instance->save();
+    $field->save();
 
     // Create some test entities which link each other.
     $entity_storage= \Drupal::entityManager()->getStorage('entity_test');

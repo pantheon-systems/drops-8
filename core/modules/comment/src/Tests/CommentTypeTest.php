@@ -10,7 +10,7 @@ use Drupal\comment\Entity\Comment;
 use Drupal\comment\Entity\CommentType;
 use Drupal\comment\Plugin\Field\FieldType\CommentItemInterface;
 use Drupal\field\Entity\FieldStorageConfig;
-use Drupal\field\Entity\FieldInstanceConfig;
+use Drupal\field\Entity\FieldConfig;
 use Drupal\node\Entity\Node;
 
 /**
@@ -95,8 +95,8 @@ class CommentTypeTest extends CommentTestBase {
   public function testCommentTypeEditing() {
     $this->drupalLogin($this->adminUser);
 
-    $instance = FieldInstanceConfig::loadByName('comment', 'comment', 'comment_body');
-    $this->assertEqual($instance->getLabel(), 'Comment', 'Comment body field was found.');
+    $field = FieldConfig::loadByName('comment', 'comment', 'comment_body');
+    $this->assertEqual($field->getLabel(), 'Comment', 'Comment body field was found.');
 
     // Change the comment type name.
     $this->drupalGet('admin/structure/comment');
@@ -108,7 +108,7 @@ class CommentTypeTest extends CommentTestBase {
     $this->drupalGet('admin/structure/comment');
     $this->assertRaw('Bar', 'New name was displayed.');
     $this->clickLink('Manage fields');
-    $this->assertEqual(url('admin/structure/comment/manage/comment/fields', array('absolute' => TRUE)), $this->getUrl(), 'Original machine name was used in URL.');
+    $this->assertUrl(\Drupal::url('field_ui.overview_comment', array('comment_type' => 'comment'), array('absolute' => TRUE)), [], 'Original machine name was used in URL.');
 
     // Remove the body field.
     $this->drupalPostForm('admin/structure/comment/manage/comment/fields/comment.comment.comment_body/delete', array(), t('Delete'));

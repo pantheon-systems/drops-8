@@ -7,6 +7,8 @@
 
 namespace Drupal\Core\Database\Install;
 
+use Drupal\Component\Utility\SafeMarkup;
+use Drupal\Component\Utility\String;
 use Drupal\Core\Database\Database;
 
 /**
@@ -150,11 +152,11 @@ abstract class Tasks {
     $message = '';
     foreach ($this->results as $result => $success) {
       if (!$success) {
-        $message .= '<p class="error">' . $result  . '</p>';
+        $message = SafeMarkup::isSafe($result) ? $result : String::checkPlain($result);
       }
     }
     if (!empty($message)) {
-      $message = '<p>In order for Drupal to work, and to continue with the installation process, you must resolve all issues reported below. For more help with configuring your database server, see the <a href="http://drupal.org/getting-started/install">installation handbook</a>. If you are unsure what any of this means you should probably contact your hosting provider.</p>' . $message;
+      $message = SafeMarkup::set('Resolve all issues below to continue the installation. For help configuring your database server, see the <a href="http://drupal.org/getting-started/install">installation handbook</a>, or contact your hosting provider.' . $message);
       throw new TaskException($message);
     }
   }

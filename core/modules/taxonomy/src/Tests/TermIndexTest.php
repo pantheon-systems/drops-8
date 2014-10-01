@@ -36,7 +36,7 @@ class TermIndexTest extends TaxonomyTestBase {
 
     $this->field_name_1 = drupal_strtolower($this->randomMachineName());
     entity_create('field_storage_config', array(
-      'name' => $this->field_name_1,
+      'field_name' => $this->field_name_1,
       'entity_type' => 'node',
       'type' => 'taxonomy_term_reference',
       'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
@@ -49,7 +49,7 @@ class TermIndexTest extends TaxonomyTestBase {
         ),
       ),
     ))->save();
-    entity_create('field_instance_config', array(
+    entity_create('field_config', array(
       'field_name' => $this->field_name_1,
       'bundle' => 'article',
       'entity_type' => 'node',
@@ -67,7 +67,7 @@ class TermIndexTest extends TaxonomyTestBase {
 
     $this->field_name_2 = drupal_strtolower($this->randomMachineName());
     entity_create('field_storage_config', array(
-      'name' => $this->field_name_2,
+      'field_name' => $this->field_name_2,
       'entity_type' => 'node',
       'type' => 'taxonomy_term_reference',
       'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
@@ -80,7 +80,7 @@ class TermIndexTest extends TaxonomyTestBase {
         ),
       ),
     ))->save();
-    entity_create('field_instance_config', array(
+    entity_create('field_config', array(
       'field_name' => $this->field_name_2,
       'bundle' => 'article',
       'entity_type' => 'node',
@@ -217,6 +217,6 @@ class TermIndexTest extends TaxonomyTestBase {
 
     // Verify that the page breadcrumbs include a link to the parent term.
     $this->drupalGet('taxonomy/term/' . $term1->id());
-    $this->assertRaw(l($term2->getName(), 'taxonomy/term/' . $term2->id()), 'Parent term link is displayed when viewing the node.');
+    $this->assertRaw(\Drupal::l($term2->getName(), $term2->urlInfo()), 'Parent term link is displayed when viewing the node.');
   }
 }

@@ -33,7 +33,7 @@ class RssTest extends TaxonomyTestBase {
     $this->field_name = 'taxonomy_' . $this->vocabulary->id();
 
     $this->fieldStorage = entity_create('field_storage_config', array(
-      'name' => $this->field_name,
+      'field_name' => $this->field_name,
       'entity_type' => 'node',
       'type' => 'taxonomy_term_reference',
       'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
@@ -47,7 +47,7 @@ class RssTest extends TaxonomyTestBase {
       ),
     ));
     $this->fieldStorage->save();
-    entity_create('field_instance_config', array(
+    entity_create('field_config', array(
       'field_storage' => $this->fieldStorage,
       'bundle' => 'article',
     ))->save();
@@ -98,7 +98,7 @@ class RssTest extends TaxonomyTestBase {
       'key' => 'category',
       'value' => $term1->getName(),
       'attributes' => array(
-        'domain' => url('taxonomy/term/' . $term1->id(), array('absolute' => TRUE)),
+        'domain' => $term1->url('canonical', array('absolute' => TRUE)),
       ),
     );
     $this->assertRaw(format_xml_elements(array($test_element)), 'Term is displayed when viewing the rss feed.');

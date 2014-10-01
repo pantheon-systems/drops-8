@@ -36,7 +36,7 @@ class LegacyTest extends TaxonomyTestBase {
     $field_name = 'field_' . $vocabulary->id();
 
     entity_create('field_storage_config', array(
-      'name' => $field_name,
+      'field_name' => $field_name,
       'entity_type' => 'node',
       'type' => 'taxonomy_term_reference',
       'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
@@ -49,7 +49,7 @@ class LegacyTest extends TaxonomyTestBase {
         ),
       ),
     ))->save();
-    entity_create('field_instance_config', array(
+    entity_create('field_config', array(
       'entity_type' => 'node',
       'field_name' => $field_name,
       'bundle' => 'article',

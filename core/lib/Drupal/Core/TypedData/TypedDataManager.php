@@ -95,7 +95,7 @@ class TypedDataManager extends DefaultPluginManager {
     if (!isset($class)) {
       throw new PluginException(sprintf('The plugin (%s) did not specify an instance class.', $data_type));
     }
-    return new $class($data_definition, $configuration['name'], $configuration['parent']);
+    return $class::createInstance($data_definition, $configuration['name'], $configuration['parent']);
   }
 
   /**
@@ -377,7 +377,7 @@ class TypedDataManager extends DefaultPluginManager {
       $constraints['NotNull'] = array();
     }
     // Check if the class provides allowed values.
-    if (is_subclass_of($definition->getClass(),'Drupal\Core\TypedData\AllowedValuesInterface')) {
+    if (is_subclass_of($definition->getClass(),'Drupal\Core\TypedData\OptionsProviderInterface')) {
       $constraints['AllowedValues'] = array();
     }
     // Add any constraints about referenced data.

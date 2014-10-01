@@ -439,7 +439,7 @@ function _theme($hook, $variables = array()) {
     $variables['theme_hook_suggestions'] = $suggestions;
     // For backwards compatibility, pass 'theme_hook_suggestion' on to the
     // template engine. This is only set when calling a direct suggestion like
-    // '#theme' => 'menu_tree__shortcut_default' when the template exists in the
+    // '#theme' => 'menu__shortcut_default' when the template exists in the
     // current theme.
     if (isset($theme_hook_suggestion)) {
       $variables['theme_hook_suggestion'] = $theme_hook_suggestion;
@@ -948,7 +948,7 @@ function template_preprocess_status_messages(&$variables) {
  * class. I.e. we cannot yet convert this jQuery selector to a CSS selector:
  *   jQuery('li:has("a.active")')
  *
- * @see l()
+ * @see \Drupal\Core\Utility\LinkGenerator
  * @see \Drupal\Core\Utility\LinkGenerator::generate()
  * @see system_page_build()
  */
@@ -1073,11 +1073,33 @@ function template_preprocess_links(&$variables) {
  *   - title: The title text is displayed when the image is hovered in some
  *     popular browsers.
  *   - attributes: Associative array of attributes to be placed in the img tag.
+ *   - srcset: Array of multiple URIs and sizes/multipliers.
+ *   - sizes: The sizes attribute for viewport-based selection of images.
+ *     - http://www.whatwg.org/specs/web-apps/current-work/multipage/embedded-content.html#introduction-3:viewport-based-selection-2
  */
 function template_preprocess_image(&$variables) {
-  $variables['attributes']['src'] = file_create_url($variables['uri']);
+  if (!empty($variables['uri'])) {
+    $variables['attributes']['src'] = file_create_url($variables['uri']);
+  }
+  // Generate a srcset attribute conforming to the spec at
+  // http://www.w3.org/html/wg/drafts/html/master/embedded-content.html#attr-img-srcset
+  if (!empty($variables['srcset'])) {
+    $srcset = array();
+    foreach ($variables['srcset'] as $src) {
+      // URI is mandatory.
+      $source = file_create_url($src['uri']);
+      if (isset($src['width']) && !empty($src['width'])) {
+        $source .= ' ' . $src['width'];
+      }
+      elseif (isset($src['multiplier']) && !empty($src['multiplier'])) {
+        $source .= ' ' . $src['multiplier'];
+      }
+      $srcset[] = $source;
+    }
+    $variables['attributes']['srcset'] = implode(', ', $srcset);
+  }
 
-  foreach (array('width', 'height', 'alt', 'title') as $key) {
+  foreach (array('width', 'height', 'alt', 'title', 'sizes') as $key) {
     if (isset($variables[$key])) {
       // If the property has already been defined in the attributes,
       // do not override, including NULL.
@@ -1471,7 +1493,6 @@ function template_preprocess_feed_icon(&$variables) {
     '#height' => 16,
     '#alt' => $text,
   );
-  $variables['attributes']['class'] = array('feed-icon');
   // Stripping tags because that's what l() used to do.
   $variables['attributes']['title'] = strip_tags($text);
 }
@@ -1502,6 +1523,7 @@ function theme_indentation($variables) {
  *     Properties used: #id, #attributes, #children.
  */
 function template_preprocess_container(&$variables) {
+  $variables['has_parent'] = FALSE;
   $element = $variables['element'];
   // Ensure #attributes is set.
   $element += array('#attributes' => array());
@@ -1512,8 +1534,7 @@ function template_preprocess_container(&$variables) {
     if (!isset($element['#attributes']['id'])) {
       $element['#attributes']['id'] = $element['#id'];
     }
-    // Add the 'form-wrapper' class.
-    $element['#attributes']['class'][] = 'form-wrapper';
+    $variables['has_parent'] = TRUE;
   }
 
   $variables['children'] = $element['#children'];
@@ -1776,7 +1797,7 @@ function template_preprocess_page(&$variables) {
   }
 
   $variables['base_path']         = base_path();
-  $variables['front_page']        = url();
+  $variables['front_page']        = \Drupal::url('<front>');
   $variables['language']          = $language_interface;
   $variables['language']->dir     = $language_interface->direction ? 'rtl' : 'ltr';
   $variables['logo']              = theme_get_setting('logo.url');
@@ -1784,8 +1805,6 @@ function template_preprocess_page(&$variables) {
   $variables['site_slogan']       = (theme_get_setting('features.slogan') ? Xss::filterAdmin($site_config->get('slogan')) : '');
 
   if (!defined('MAINTENANCE_MODE')) {
-    $variables['main_menu']      = theme_get_setting('features.main_menu') ? menu_main_menu() : array();
-    $variables['secondary_menu'] = theme_get_setting('features.secondary_menu') ? menu_secondary_menu() : array();
     $variables['action_links']   = menu_get_local_actions();
     $variables['tabs']           = menu_local_tabs();
 
@@ -1803,31 +1822,9 @@ function template_preprocess_page(&$variables) {
     }
   }
   else {
-    $variables['main_menu']      = array();
-    $variables['secondary_menu'] = array();
     $variables['action_links']   = array();
     $variables['tabs']           = array();
     $variables['feed_icons']     = '';
-  }
-
-  // Pass the main menu and secondary menu to the template as render arrays.
-  if (!empty($variables['main_menu'])) {
-    $variables['main_menu']['#heading'] = array(
-      'text' => t('Main menu'),
-      'attributes' => array(
-        'id' => 'links__system_main_menu',
-        'class' => array('visually-hidden'),
-       ),
-    );
-  }
-  if (!empty($variables['secondary_menu'])) {
-    $variables['secondary_menu']['#heading'] = array(
-      'text' => t('Secondary menu'),
-      'attributes' => array(
-        'id' => 'links__system_secondary_menu',
-        'class' => array('visually-hidden'),
-      ),
-    );
   }
 
   if ($node = \Drupal::routeMatch()->getParameter('node')) {
@@ -2266,7 +2263,7 @@ function drupal_common_theme() {
       // - http://dev.w3.org/html5/spec/Overview.html#alt
       // The title attribute is optional in all cases, so it is omitted by
       // default.
-      'variables' => array('uri' => NULL, 'width' => NULL, 'height' => NULL, 'alt' => '', 'title' => NULL, 'attributes' => array()),
+      'variables' => array('uri' => NULL, 'width' => NULL, 'height' => NULL, 'alt' => '', 'title' => NULL, 'attributes' => array(), 'sizes' => NULL, 'srcset' => array()),
       'template' => 'image',
     ),
     'breadcrumb' => array(
@@ -2325,12 +2322,9 @@ function drupal_common_theme() {
       'template' => 'pager',
     ),
     // From menu.inc.
-    'menu_link' => array(
-      'render element' => 'element',
-    ),
-    'menu_tree' => array(
-      'render element' => 'tree',
-      'template' => 'menu-tree',
+    'menu' => array(
+      'variables' => array('items' => array(), 'attributes' => array()),
+      'template' => 'menu',
     ),
     'menu_local_task' => array(
       'render element' => 'element',

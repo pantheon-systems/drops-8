@@ -30,7 +30,6 @@ use Drupal\Core\Url;
  *   },
  *   uri_callback = "Drupal\aggregator\Entity\Item::buildUri",
  *   base_table = "aggregator_item",
- *   fieldable = TRUE,
  *   render_cache = FALSE,
  *   entity_keys = {
  *     "id" = "iid",
@@ -58,9 +57,15 @@ class Item extends ContentEntityBase implements ItemInterface {
       ->setSetting('unsigned', TRUE);
 
     $fields['fid'] = BaseFieldDefinition::create('entity_reference')
-      ->setLabel(t('Aggregator feed ID'))
-      ->setDescription(t('The ID of the aggregator feed.'))
-      ->setSetting('target_type', 'aggregator_feed');
+      ->setLabel(t('Source feed'))
+      ->setDescription(t('The aggregator feed entity associated with this item.'))
+      ->setSetting('target_type', 'aggregator_feed')
+      ->setDisplayOptions('view', array(
+        'label' => 'hidden',
+        'type' => 'entity_reference_label',
+        'weight' => 0,
+      ))
+      ->setDisplayConfigurable('form', TRUE);
 
     $fields['title'] = BaseFieldDefinition::create('string')
       ->setLabel(t('Title'))
@@ -72,19 +77,34 @@ class Item extends ContentEntityBase implements ItemInterface {
 
     $fields['link'] = BaseFieldDefinition::create('uri')
       ->setLabel(t('Link'))
-      ->setDescription(t('The link of the feed item.'));
+      ->setDescription(t('The link of the feed item.'))
+      ->setDisplayOptions('view', array(
+        'type' => 'hidden',
+      ))
+      ->setDisplayConfigurable('view', TRUE);
 
     $fields['author'] = BaseFieldDefinition::create('string')
       ->setLabel(t('Author'))
-      ->setDescription(t('The author of the feed item.'));
+      ->setDescription(t('The author of the feed item.'))
+      ->setDisplayOptions('view', array(
+        'label' => 'hidden',
+        'weight' => 3,
+      ))
+      ->setDisplayConfigurable('view', TRUE);
 
     $fields['description'] = BaseFieldDefinition::create('string_long')
       ->setLabel(t('Description'))
       ->setDescription(t('The body of the feed item.'));
 
     $fields['timestamp'] = BaseFieldDefinition::create('created')
-      ->setLabel(t('Posted timestamp'))
-      ->setDescription(t('Posted date of the feed item, as a Unix timestamp.'));
+      ->setLabel(t('Posted on'))
+      ->setDescription(t('Posted date of the feed item, as a Unix timestamp.'))
+      ->setDisplayOptions('view', array(
+        'label' => 'hidden',
+        'type' => 'timestamp_ago',
+        'weight' => 1,
+      ))
+      ->setDisplayConfigurable('view', TRUE);
 
     // @todo Convert to a real UUID field in https://drupal.org/node/2149851.
     $fields['guid'] = BaseFieldDefinition::create('string_long')
@@ -224,7 +244,7 @@ class Item extends ContentEntityBase implements ItemInterface {
    * Entity URI callback.
    */
   public static function buildUri(ItemInterface $item) {
-    return Url::createFromPath($item->getLink());
+    return Url::fromUri($item->getLink());
   }
 
 }

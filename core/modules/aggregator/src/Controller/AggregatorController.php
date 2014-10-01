@@ -61,26 +61,6 @@ class AggregatorController extends ControllerBase {
   }
 
   /**
-   * Displays all the items captured from the particular feed.
-   *
-   * @param \Drupal\aggregator\FeedInterface $aggregator_feed
-   *   The feed for which to display all items.
-   *
-   * @return array
-   *   The rendered list of items for the feed.
-   */
-  public function viewFeed(FeedInterface $aggregator_feed) {
-    $entity_manager = $this->entityManager();
-    $feed_source = $entity_manager->getViewBuilder('aggregator_feed')
-      ->view($aggregator_feed, 'default');
-    // Load aggregator feed item for the particular feed id.
-    $items = $entity_manager->getStorage('aggregator_item')->loadByFeed($aggregator_feed->id(), 20);
-    // Print the feed items.
-    $build = $this->buildPageList($items, $feed_source);
-    return $build;
-  }
-
-  /**
    * Builds a listing of aggregator feed items.
    *
    * @param \Drupal\aggregator\ItemInterface[] $items
@@ -139,9 +119,10 @@ class AggregatorController extends ControllerBase {
 
     $header = array($this->t('Title'), $this->t('Items'), $this->t('Last update'), $this->t('Next update'), $this->t('Operations'));
     $rows = array();
+    /** @var \Drupal\aggregator\FeedInterface[] $feeds */
     foreach ($feeds as $feed) {
       $row = array();
-      $row[] = l($feed->label(), "aggregator/sources/" . $feed->id());
+      $row[] = $feed->link();
       $row[] = $this->dateFormatter->formatInterval($entity_manager->getStorage('aggregator_item')->getItemCount($feed), '1 item', '@count items');
       $last_checked = $feed->getLastCheckedTime();
       $refresh_rate = $feed->getRefreshRate();
@@ -197,79 +178,6 @@ class AggregatorController extends ControllerBase {
     $build = $this->buildPageList($items);
     $build['#attached']['drupal_add_feed'][] = array('aggregator/rss', $this->config('system.site')->get('name') . ' ' . $this->t('aggregator'));
     return $build;
-  }
-
-  /**
-   * Displays all the feeds used by the Aggregator module.
-   *
-   * @return array
-   *   A render array as expected by drupal_render().
-   */
-  public function sources() {
-    $entity_manager = $this->entityManager();
-
-    $feeds = $entity_manager->getStorage('aggregator_feed')->loadMultiple();
-
-    $build = array(
-      '#type' => 'container',
-      '#attributes' => array('class' => array('aggregator-wrapper')),
-      '#sorted' => TRUE,
-    );
-
-    foreach ($feeds as $feed) {
-      // Most recent items:
-      $summary_items = array();
-      $aggregator_summary_items = $this->config('aggregator.settings')
-        ->get('source.list_max');
-      if ($aggregator_summary_items) {
-        $items = $entity_manager->getStorage('aggregator_item')
-          ->loadByFeed($feed->id(), 20);
-        if ($items) {
-          $summary_items = $entity_manager->getViewBuilder('aggregator_item')
-            ->viewMultiple($items, 'summary');
-        }
-      }
-      $feed->url = $this->url('entity.aggregator_feed.canonical', array('aggregator_feed' => $feed->id()));
-      $build[$feed->id()] = array(
-        '#theme' => 'aggregator_summary_items',
-        '#summary_items' => $summary_items,
-        '#source' => $feed,
-        '#cache' => array(
-          'tags' => $feed->getCacheTag(),
-        ),
-      );
-    }
-    $build['feed_icon'] = array(
-      '#theme' => 'feed_icon',
-      '#url' => 'aggregator/opml',
-      '#title' => $this->t('OPML feed'),
-    );
-    return $build;
-  }
-
-  /**
-   * Generates an OPML representation of all feeds.
-   *
-   * @return \Symfony\Component\HttpFoundation\Response
-   *   The response containing the OPML.
-   */
-  public function opmlPage() {
-     $feeds = $this->entityManager()
-      ->getStorage('aggregator_feed')
-      ->loadMultiple();
-
-    $feeds = $result->fetchAll();
-    $aggregator_page_opml = array(
-      '#theme' => 'aggregator_page_opml',
-      '#feeds' => $feeds,
-    );
-    $output = drupal_render($aggregator_page_opml);
-
-    $response = new Response();
-    $response->headers->set('Content-Type', 'text/xml; charset=utf-8');
-    $response->setContent($output);
-
-    return $response;
   }
 
   /**

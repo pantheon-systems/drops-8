@@ -13,12 +13,13 @@ use Drupal\Core\Database\Connection;
 use Drupal\Core\Database\Database;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\ContentEntityStorageBase;
+use Drupal\Core\Entity\EntityBundleListenerInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Entity\EntityStorageException;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\Query\QueryInterface;
-use Drupal\Core\Entity\Schema\FieldableEntityStorageSchemaInterface;
+use Drupal\Core\Entity\Schema\DynamicallyFieldableEntityStorageSchemaInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Language\LanguageInterface;
@@ -38,7 +39,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *
  * @ingroup entity_api
  */
-class SqlContentEntityStorage extends ContentEntityStorageBase implements SqlEntityStorageInterface, FieldableEntityStorageSchemaInterface {
+class SqlContentEntityStorage extends ContentEntityStorageBase implements SqlEntityStorageInterface, DynamicallyFieldableEntityStorageSchemaInterface, EntityBundleListenerInterface  {
 
   /**
    * The mapping of field columns to SQL tables.
@@ -497,8 +498,8 @@ class SqlContentEntityStorage extends ContentEntityStorageBase implements SqlEnt
     }
 
     $cache_tags = array(
-      $this->entityTypeId . '_values' => TRUE,
-      'entity_field_info' => TRUE,
+      $this->entityTypeId . '_values',
+      'entity_field_info',
     );
     foreach ($entities as $id => $entity) {
       $this->cacheBackend->set($this->buildCacheId($id), $entity, CacheBackendInterface::CACHE_PERMANENT, $cache_tags);
@@ -543,7 +544,7 @@ class SqlContentEntityStorage extends ContentEntityStorageBase implements SqlEnt
     else {
       $this->entities = array();
       if ($this->entityType->isPersistentlyCacheable()) {
-        $this->cacheBackend->deleteTags(array($this->entityTypeId . '_values' => TRUE));
+        $this->cacheBackend->deleteTags(array($this->entityTypeId . '_values'));
       }
     }
   }
@@ -605,9 +606,7 @@ class SqlContentEntityStorage extends ContentEntityStorageBase implements SqlEnt
     $this->attachPropertyData($entities);
 
     // Attach field values.
-    if ($this->entityType->isFieldable()) {
-      $this->loadFieldItems($entities);
-    }
+    $this->loadFieldItems($entities);
 
     return $entities;
   }
@@ -1180,7 +1179,7 @@ class SqlContentEntityStorage extends ContentEntityStorageBase implements SqlEnt
    *   An array of entities keyed by entity ID.
    */
   protected function loadFieldItems(array $entities) {
-    if (empty($entities) || !$this->entityType->isFieldable()) {
+    if (empty($entities)) {
       return;
     }
 
@@ -1532,12 +1531,12 @@ class SqlContentEntityStorage extends ContentEntityStorageBase implements SqlEnt
       $revision_name = $table_mapping->getDedicatedRevisionTableName($storage_definition);
       $this->database->update($table_name)
         ->fields(array('deleted' => 1))
-        ->condition('bundle', $field_definition->getBundle())
+        ->condition('bundle', $field_definition->getTargetBundle())
         ->execute();
       if ($this->entityType->isRevisionable()) {
         $this->database->update($revision_name)
           ->fields(array('deleted' => 1))
-          ->condition('bundle', $field_definition->getBundle())
+          ->condition('bundle', $field_definition->getTargetBundle())
           ->execute();
       }
     }
@@ -1546,7 +1545,17 @@ class SqlContentEntityStorage extends ContentEntityStorageBase implements SqlEnt
   /**
    * {@inheritdoc}
    */
-  public function onBundleRename($bundle, $bundle_new) {
+  public function onBundleCreate($bundle, $entity_type_id) { }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function onBundleDelete($bundle, $entity_type_id) { }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function onBundleRename($bundle, $bundle_new, $entity_type_id) {
     // The method runs before the field definitions are updated, so we use the
     // old bundle name.
     $field_definitions = $this->entityManager->getFieldDefinitions($this->entityTypeId, $bundle);
@@ -1554,7 +1563,7 @@ class SqlContentEntityStorage extends ContentEntityStorageBase implements SqlEnt
     // configurable fields, so we use the specific API.
     // @todo Use the unified store of deleted field definitions instead in
     //   https://www.drupal.org/node/2282119
-    $field_definitions += entity_load_multiple_by_properties('field_instance_config', array('entity_type' => $this->entityTypeId, 'bundle' => $bundle, 'deleted' => TRUE, 'include_deleted' => TRUE));
+    $field_definitions += entity_load_multiple_by_properties('field_config', array('entity_type' => $this->entityTypeId, 'bundle' => $bundle, 'deleted' => TRUE, 'include_deleted' => TRUE));
     $table_mapping = $this->getTableMapping();
 
     foreach ($field_definitions as $field_definition) {
@@ -1597,7 +1606,7 @@ class SqlContentEntityStorage extends ContentEntityStorageBase implements SqlEnt
     $entity_query
       ->distinct(TRUE)
       ->fields('t', array('entity_id'))
-      ->condition('bundle', $field_definition->getBundle())
+      ->condition('bundle', $field_definition->getTargetBundle())
       ->range(0, $batch_size);
 
     // Create a map of field data table column names to field column names.
@@ -1632,7 +1641,8 @@ class SqlContentEntityStorage extends ContentEntityStorageBase implements SqlEnt
 
     // Create field item objects and return.
     foreach ($items_by_entity as $revision_id => $values) {
-      $items_by_entity[$revision_id] = \Drupal::typedDataManager()->create($field_definition, $values, $field_definition->getName(), $entities[$revision_id]);
+      $entity_adapter = $entities[$revision_id]->getTypedData();
+      $items_by_entity[$revision_id] = \Drupal::typedDataManager()->create($field_definition, $values, $field_definition->getName(), $entity_adapter);
     }
     return $items_by_entity;
   }

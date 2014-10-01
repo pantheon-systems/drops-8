@@ -68,24 +68,29 @@ class PageCacheTagsIntegrationTest extends WebTestBase {
 
     // Full node page 1.
     $this->verifyPageCacheTags('node/' . $node_1->id(), array(
-      'rendered:1',
+      'rendered',
       'theme:bartik',
-      'theme_global_settings:1',
-      'block_view:1',
+      'theme_global_settings',
+      'block_view',
       'block:bartik_content',
       'block:bartik_tools',
       'block:bartik_login',
       'block:bartik_footer',
       'block:bartik_powered',
+      'block:bartik_main_menu',
+      'block:bartik_account_menu',
       'block_plugin:system_main_block',
+      'block_plugin:system_menu_block__account',
+      'block_plugin:system_menu_block__main',
       'block_plugin:system_menu_block__tools',
       'block_plugin:user_login_block',
       'block_plugin:system_menu_block__footer',
       'block_plugin:system_powered_by_block',
-      'node_view:1',
+      'node_view',
       'node:' . $node_1->id(),
       'user:' . $author_1->id(),
       'filter_format:basic_html',
+      'menu:account',
       'menu:tools',
       'menu:footer',
       'menu:main',
@@ -93,26 +98,31 @@ class PageCacheTagsIntegrationTest extends WebTestBase {
 
     // Full node page 2.
     $this->verifyPageCacheTags('node/' . $node_2->id(), array(
-      'rendered:1',
+      'rendered',
       'theme:bartik',
-      'theme_global_settings:1',
-      'block_view:1',
+      'theme_global_settings',
+      'block_view',
       'block:bartik_content',
       'block:bartik_tools',
       'block:bartik_login',
       'block:' . $block->id(),
       'block:bartik_footer',
       'block:bartik_powered',
+      'block:bartik_main_menu',
+      'block:bartik_account_menu',
       'block_plugin:system_main_block',
+      'block_plugin:system_menu_block__account',
+      'block_plugin:system_menu_block__main',
       'block_plugin:system_menu_block__tools',
       'block_plugin:user_login_block',
       'block_plugin:views_block__comments_recent-block_1',
       'block_plugin:system_menu_block__footer',
       'block_plugin:system_powered_by_block',
-      'node_view:1',
+      'node_view',
       'node:' . $node_2->id(),
       'user:' . $author_2->id(),
       'filter_format:full_html',
+      'menu:account',
       'menu:tools',
       'menu:footer',
       'menu:main',
@@ -139,7 +149,7 @@ class PageCacheTagsIntegrationTest extends WebTestBase {
     sort($actual_tags);
     $this->assertEqual($this->drupalGetHeader('X-Drupal-Cache'), 'HIT');
     $this->assertIdentical($actual_tags, $expected_tags);
-    $cid_parts = array(url($path, array('absolute' => TRUE)), 'html');
+    $cid_parts = array(_url($path, array('absolute' => TRUE)), 'html');
     $cid = sha1(implode(':', $cid_parts));
     $cache_entry = \Drupal::cache('render')->get($cid);
     sort($cache_entry->tags);
