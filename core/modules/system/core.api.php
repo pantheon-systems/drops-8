@@ -96,9 +96,9 @@
  * data and other methods.
  *
  * REST requests can be authenticated. The Drupal Core Basic Auth module
- * provides authentication using the HTTP Basic protocol; contributed module
+ * provides authentication using the HTTP Basic protocol; the contributed module
  * OAuth (https://www.drupal.org/project/oauth) implements the OAuth
- * authenticaion protocol. You can also use cookie-based authentication, which
+ * authentication protocol. You can also use cookie-based authentication, which
  * would require users to be logged into the Drupal site while using the
  * application on the third-party site that is using the REST service.
  *
@@ -356,7 +356,7 @@
  *
  * Example:
  * @code
- * $cid = 'mymodule_example:' . \Drupal::languageManager()->getCurrentLanguage()->id();
+ * $cid = 'mymodule_example:' . \Drupal::languageManager()->getCurrentLanguage()->getId();
  *
  * $data = NULL;
  * if ($cache = \Drupal::cache()->get($cid)) {
@@ -484,7 +484,7 @@
  * exact same cache tag invalidation as any of the built-in entity types, with
  * the ability to override any of the default behavior if needed.
  * See \Drupal\Core\Entity\EntityInterface::getCacheTag(),
- * \Drupal\Core\Entity\EntityInterface::getListCacheTags(),
+ * \Drupal\Core\Entity\EntityTypeInterface::getListCacheTags(),
  * \Drupal\Core\Entity\Entity::invalidateTagsOnSave() and
  * \Drupal\Core\Entity\Entity::invalidateTagsOnDelete().
  *
@@ -519,7 +519,7 @@
  * @{
  * API for user accounts, access checking, roles, and permissions.
  *
- * @sec sec_overview Overview and terminology
+ * @section sec_overview Overview and terminology
  * Drupal's permission system is based on the concepts of accounts, roles,
  * and permissions.
  *
@@ -550,8 +550,8 @@
  * appropriately for their particular sites.
  *
  * @section sec_define Defining permissions
- * Modules define permissions via a $module.permissions.yml file. The return
- * value defines machine names, human-readable names, and optionally
+ * Modules define permissions via a $module.permissions.yml file. This file
+ * defines machine names, human-readable names, and optionally
  * descriptions for each permission type. The machine names are the canonical
  * way to refer to permissions for access checking.
  *

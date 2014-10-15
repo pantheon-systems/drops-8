@@ -15,8 +15,7 @@ use Drupal\Core\Url;
 /**
  * Provides a text format render element.
  *
- * @todo Annotate once https://www.drupal.org/node/2326409 is in.
- *   RenderElement("text_format")
+ * @RenderElement("text_format")
  */
 class TextFormat extends RenderElement {
 
@@ -77,12 +76,12 @@ class TextFormat extends RenderElement {
     // Ensure that children appear as subkeys of this element.
     $element['#tree'] = TRUE;
     $blacklist = array(
-      // Make form_builder() regenerate child properties.
+      // Make \Drupal::formBuilder()->doBuildForm() regenerate child properties.
       '#parents',
       '#id',
       '#name',
-      // Do not copy this #process function to prevent form_builder() from
-      // recursing infinitely.
+      // Do not copy this #process function to prevent
+      // \Drupal::formBuilder()->doBuildForm() from recursing infinitely.
       '#process',
       // Description is handled by theme_text_format_wrapper().
       '#description',

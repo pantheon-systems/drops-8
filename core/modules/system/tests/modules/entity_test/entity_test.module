@@ -7,13 +7,14 @@
 
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Entity\Entity\EntityFormDisplay;
+use Drupal\Core\Url;
 
 /**
  * Filter that limits test entity list to revisable ones.
@@ -384,45 +385,53 @@ function entity_test_entity_predelete(EntityInterface $entity) {
  * Implements hook_entity_operation_alter().
  */
 function entity_test_entity_operation_alter(array &$operations, EntityInterface $entity) {
-  $operations['test_operation'] = array(
-    'title' => format_string('Test Operation: @label', array('@label' => $entity->label())),
-    'href' => $entity->url() . '/test_operation',
-    'weight' => 50,
-  );
+  $valid_entity_type_ids = [
+    'user_role',
+    'block',
+  ];
+  if (in_array($entity->getEntityTypeId(), $valid_entity_type_ids)) {
+    if (\Drupal::service('router.route_provider')->getRouteByName("entity.{$entity->getEntityTypeId()}.test_operation")) {
+      $operations['test_operation'] = [
+        'title' => format_string('Test Operation: @label', ['@label' => $entity->label()]),
+        'url' => Url::fromRoute("entity.{$entity->getEntityTypeId()}.test_operation", [$entity->getEntityTypeId() => $entity->id()]),
+        'weight' => 50,
+      ];
+    }
+  }
 }
 
 /**
  * Implements hook_entity_translation_insert().
  */
 function entity_test_entity_translation_insert(EntityInterface $translation) {
-  _entity_test_record_hooks('entity_translation_insert', $translation->language()->id);
+  _entity_test_record_hooks('entity_translation_insert', $translation->language()->getId());
 }
 
 /**
  * Implements hook_entity_translation_delete().
  */
 function entity_test_entity_translation_delete(EntityInterface $translation) {
-  _entity_test_record_hooks('entity_translation_delete', $translation->language()->id);
+  _entity_test_record_hooks('entity_translation_delete', $translation->language()->getId());
 }
 
 /**
  * Implements hook_ENTITY_TYPE_translation_insert().
  */
 function entity_test_entity_test_mul_translation_insert(EntityInterface $translation) {
-  _entity_test_record_hooks('entity_test_mul_translation_insert', $translation->language()->id);
+  _entity_test_record_hooks('entity_test_mul_translation_insert', $translation->language()->getId());
 }
 
 /**
  * Implements hook_ENTITY_TYPE_translation_delete().
  */
 function entity_test_entity_test_mul_translation_delete(EntityInterface $translation) {
-  _entity_test_record_hooks('entity_test_mul_translation_delete', $translation->language()->id);
+  _entity_test_record_hooks('entity_test_mul_translation_delete', $translation->language()->getId());
 }
 
 /**
  * Field default value callback.
  *
- * @param \Drupal\Core\Entity\ContentEntityInterface $entity
+ * @param \Drupal\Core\Entity\FieldableEntityInterface $entity
  *   The entity being created.
  * @param \Drupal\Core\Field\FieldDefinitionInterface $definition
  *   The field definition.
@@ -433,8 +442,8 @@ function entity_test_entity_test_mul_translation_delete(EntityInterface $transla
  *
  * @see \Drupal\field\Entity\FieldConfig::$default_value
  */
-function entity_test_field_default_value(ContentEntityInterface $entity, FieldDefinitionInterface $definition) {
-  return array(array('value' => $definition->getName() . '_' . $entity->language()->id));
+function entity_test_field_default_value(FieldableEntityInterface $entity, FieldDefinitionInterface $definition) {
+  return array(array('value' => $definition->getName() . '_' . $entity->language()->getId()));
 }
 
 /**

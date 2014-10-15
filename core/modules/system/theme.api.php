@@ -49,7 +49,6 @@
  *       'plugin_id' => NULL,
  *     ),
  *    'file' => 'search.pages.inc',
- *    'template' => 'search-result',
  *   ),
  * );
  * @endcode
@@ -158,6 +157,21 @@
  * hook_theme_suggestions_alter(). These hooks get the current list of
  * suggestions as input, and can change this array (adding suggestions and
  * removing them).
+ *
+ * @section Assets
+ *
+ * We can distinguish between two types of assets:
+ * 1. global assets (loaded on all pages where the theme is in use): these are
+ *    defined in the theme's *.info.yml file.
+ * 2. template-specific assets (loaded on all pages where a specific template is
+ *    in use): these can be added by in preprocessing functions, using @code
+ *    $variables['#attached'] @endcode, e.g.:
+ *    @code
+ *    function seven_preprocess_menu_local_action(array &$variables) {
+ *      // We require Modernizr's touch test for button styling.
+ *      $variables['#attached']['library'][] = 'core/modernizr';
+ *    }
+ *    @endcode
  *
  * @see hooks
  * @see callbacks
@@ -434,7 +448,7 @@ function hook_theme_suggestions_HOOK(array $variables) {
  */
 function hook_theme_suggestions_alter(array &$suggestions, array $variables, $hook) {
   // Add an interface-language specific suggestion to all theme hooks.
-  $suggestions[] = $hook . '__' . \Drupal::languageManager()->getCurrentLanguage()->id;
+  $suggestions[] = $hook . '__' . \Drupal::languageManager()->getCurrentLanguage()->getId();
 }
 
 /**
@@ -494,4 +508,40 @@ function hook_themes_uninstalled(array $themes) {
   foreach ($themes as $theme) {
     \Drupal::state()->delete('example.' . $theme);
   }
+}
+
+/**
+ * Declare a template file extension to be used with a theme engine.
+ *
+ * This hook is used in a theme engine implementation in the format of
+ * ENGINE_extension().
+ *
+ * @return string
+ *   The file extension the theme engine will recognize.
+ */
+function hook_extension() {
+  // Extension for template base names in Twig.
+  return '.html.twig';
+}
+
+/**
+ * Render a template using the theme engine.
+ *
+ * @param string $template_file
+ *   The path (relative to the Drupal root directory) to the template to be
+ *   rendered including its extension in the format 'path/to/TEMPLATE_NAME.EXT'.
+ * @param array $variables
+ *   A keyed array of variables that are available for composing the output. The
+ *   theme engine is responsible for passing all the variables to the template.
+ *   Depending on the code in the template, all or just a subset of the
+ *   variables might be used in the template.
+ *
+ * @return string
+ *   The output generated from the template. In most cases this will be a string
+ *   containing HTML markup.
+ */
+function hook_render_template($template_file, $variables) {
+  $twig_service = \Drupal::service('twig');
+
+  return $twig_service->loadTemplate($template_file)->render($variables);
 }

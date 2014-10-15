@@ -46,6 +46,7 @@ use Symfony\Component\HttpFoundation\Request;
  *     "delete-form" = "entity.shortcut.delete_form",
  *     "edit-form" = "entity.shortcut.canonical",
  *   },
+ *   list_cache_tags = { "shortcut_set_list" },
  *   bundle_entity_type = "shortcut_set"
  * )
  */
@@ -85,7 +86,7 @@ class Shortcut extends ContentEntityBase implements ShortcutInterface {
    * {@inheritdoc}
    */
   public function getUrl() {
-    return new Url($this->getRouteName(), $this->getRouteParams());
+    return new Url($this->getRouteName(), $this->getRouteParameters());
   }
 
   /**
@@ -106,15 +107,15 @@ class Shortcut extends ContentEntityBase implements ShortcutInterface {
   /**
    * {@inheritdoc}
    */
-  public function getRouteParams() {
+  public function getRouteParameters() {
     return $this->get('route_parameters')->first()->getValue();
   }
 
   /**
    * {@inheritdoc}
    */
-  public function setRouteParams($route_parameters) {
-    $this->set('route_parameters', array($route_parameters));
+  public function setRouteParameters($route_parameters) {
+    $this->set('route_parameters', $route_parameters);
     return $this;
   }
 
@@ -145,7 +146,7 @@ class Shortcut extends ContentEntityBase implements ShortcutInterface {
       $url = Url::createFromRequest(Request::create("/{$this->path->value}"));
     }
     $this->setRouteName($url->getRouteName());
-    $this->setRouteParams($url->getRouteParameters());
+    $this->setRouteParameters($url->getRouteParameters());
   }
 
   /**
@@ -233,13 +234,6 @@ class Shortcut extends ContentEntityBase implements ShortcutInterface {
    */
   public function getCacheTag() {
     return $this->shortcut_set->entity->getCacheTag();
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getListCacheTags() {
-    return $this->shortcut_set->entity->getListCacheTags();
   }
 
 }

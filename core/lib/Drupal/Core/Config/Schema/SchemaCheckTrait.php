@@ -9,6 +9,7 @@ namespace Drupal\Core\Config\Schema;
 
 use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\TypedData\PrimitiveInterface;
+use Drupal\Core\TypedData\TraversableTypedDataInterface;
 use Drupal\Core\TypedData\Type\BooleanInterface;
 use Drupal\Core\TypedData\Type\StringInterface;
 use Drupal\Core\TypedData\Type\FloatInterface;
@@ -94,7 +95,8 @@ trait SchemaCheckTrait {
       if ($element instanceof PrimitiveInterface) {
         $success =
           ($type == 'integer' && $element instanceof IntegerInterface) ||
-          ($type == 'double' && $element instanceof FloatInterface) ||
+          // Allow integer values in a float field.
+          (($type == 'double' || $type == 'integer') && $element instanceof FloatInterface) ||
           ($type == 'boolean' && $element instanceof BooleanInterface) ||
           ($type == 'string' && $element instanceof StringInterface) ||
           // Null values are allowed for all types.
@@ -107,7 +109,7 @@ trait SchemaCheckTrait {
     }
     else {
       $errors = array();
-      if (!$element instanceof ArrayElement) {
+      if (!$element instanceof TraversableTypedDataInterface) {
         $errors[$error_key] = 'Non-scalar value but not defined as an array (such as mapping or sequence).';
       }
 

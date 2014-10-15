@@ -16,6 +16,7 @@ use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldTypePluginManager;
 use Drupal\Core\Field\PluginSettingsInterface;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -77,12 +78,8 @@ class FormDisplayOverview extends DisplayOverviewBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, FormStateInterface $form_state, $entity_type_id = NULL, $bundle = NULL) {
-    if ($this->getRequest()->attributes->has('form_mode_name')) {
-      $this->mode = $this->getRequest()->attributes->get('form_mode_name');
-    }
-
-    return parent::buildForm($form, $form_state, $entity_type_id, $bundle);
+  public function buildForm(array $form, FormStateInterface $form_state, $entity_type_id = NULL, $bundle = NULL, $form_mode_name = 'default') {
+    return parent::buildForm($form, $form_state, $entity_type_id, $bundle, $form_mode_name);
   }
 
   /**
@@ -171,14 +168,10 @@ class FormDisplayOverview extends DisplayOverviewBase {
    * {@inheritdoc}
    */
   protected function getOverviewRoute($mode) {
-    return array(
-      'route_name' => 'field_ui.form_display_overview_form_mode_' . $this->entity_type,
-      'route_parameters' => array(
-        $this->bundleEntityType => $this->bundle,
-        'form_mode_name' => $mode,
-      ),
-      'options' => array(),
-    );
+    return Url::fromRoute('field_ui.form_display_overview_form_mode_' . $this->entity_type, [
+      $this->bundleEntityType => $this->bundle,
+      'form_mode_name' => $mode,
+    ]);
   }
 
   /**

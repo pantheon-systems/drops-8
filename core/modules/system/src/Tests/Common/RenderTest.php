@@ -10,6 +10,7 @@ namespace Drupal\system\Tests\Common;
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\Html;
 use Drupal\Core\Render\Element;
+use Drupal\Core\Url;
 use Drupal\simpletest\DrupalUnitTestBase;
 
 /**
@@ -120,7 +121,7 @@ class RenderTest extends DrupalUnitTestBase {
             ),
           ),
           '#attributes' => array('id' => 'foo'),
-          '#href' => 'http://drupal.org',
+          '#url' => Url::fromUri('http://drupal.org'),
           '#title' => 'bar',
         ),
         'expected' => '<div class="baz"><a href="http://drupal.org" id="foo">bar</a></div>' . "\n",
@@ -131,7 +132,7 @@ class RenderTest extends DrupalUnitTestBase {
         'name' => '#theme_wrappers attribute disambiguation with undefined #theme attribute',
         'value' => array(
           '#type' => 'link',
-          '#href' => 'http://drupal.org',
+          '#url' => Url::fromUri('http://drupal.org'),
           '#title' => 'foo',
           '#theme_wrappers' => array(
             'container' => array(
@@ -408,6 +409,31 @@ class RenderTest extends DrupalUnitTestBase {
     );
     // Tests that passing arguments to the theme function works.
     $this->assertEqual(drupal_render($element), $element['#foo'] . $element['#bar'], 'Passing arguments to theme functions works');
+  }
+
+  /**
+   * Tests theme preprocess functions being able to attach assets.
+   */
+  function testDrupalRenderThemePreprocessAttached() {
+    \Drupal::state()->set('theme_preprocess_attached_test', TRUE);
+
+    $test_element = [
+      '#theme' => 'common_test_render_element',
+      'foo' => [
+        '#markup' => 'Kittens!',
+      ],
+    ];
+    drupal_render($test_element);
+
+    $expected_attached = [
+      'library' => [
+        'test/generic_preprocess',
+        'test/specific_preprocess',
+      ]
+    ];
+    $this->assertEqual($expected_attached, $test_element['#attached'], 'All expected assets from theme preprocess hooks attached.');
+
+    \Drupal::state()->set('theme_preprocess_attached_test', FALSE);
   }
 
   /**
@@ -1153,6 +1179,22 @@ class RenderTest extends DrupalUnitTestBase {
   protected function randomContextValue() {
     $tokens = array('llama', 'alpaca', 'camel', 'moose', 'elk');
     return $tokens[mt_rand(0, 4)];
+  }
+
+  /**
+   * Tests drupal_process_attached().
+   */
+  public function testDrupalProcessAttached() {
+    // Specify invalid attachments in a render array.
+    $build['#attached']['library'][] = 'core/drupal.states';
+    $build['#attached']['drupal_process_states'][] = [];
+    try {
+      drupal_process_attached($build);
+      $this->fail("Invalid #attachment 'drupal_process_states' allowed");
+    }
+    catch (\Exception $e) {
+      $this->pass("Invalid #attachment 'drupal_process_states' not allowed");
+    }
   }
 
 }

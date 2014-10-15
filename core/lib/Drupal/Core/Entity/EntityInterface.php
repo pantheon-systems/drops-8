@@ -11,6 +11,8 @@ use Drupal\Core\Access\AccessibleInterface;
 
 /**
  * Defines a common interface for all entity objects.
+ *
+ * @ingroup entity_api
  */
 interface EntityInterface extends AccessibleInterface {
 
@@ -169,6 +171,9 @@ interface EntityInterface extends AccessibleInterface {
    *
    * @return string
    *   The internal path for this entity.
+   *
+   * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.0. Use
+   *    static::urlInfo() instead.
    */
   public function getSystemPath($rel = 'canonical');
 
@@ -398,16 +403,5 @@ interface EntityInterface extends AccessibleInterface {
    *   An array of cache tags.
    */
   public function getCacheTag();
-
-  /**
-   * The list cache tags associated with this entity.
-   *
-   * Enables code listing entities of this type to ensure that newly created
-   * entities show up immediately.
-   *
-   * @return array
-   *   An array of cache tags.
-   */
-  public function getListCacheTags();
 
 }

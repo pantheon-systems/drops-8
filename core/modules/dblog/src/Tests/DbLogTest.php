@@ -8,6 +8,7 @@
 namespace Drupal\dblog\Tests;
 
 use Drupal\Component\Utility\Xss;
+use Drupal\Core\Logger\RfcLogLevel;
 use Drupal\dblog\Controller\DbLogController;
 use Drupal\simpletest\WebTestBase;
 
@@ -65,6 +66,14 @@ class DbLogTest extends WebTestBase {
     $this->verifyEvents();
     $this->verifyReports();
     $this->verifyBreadcrumbs();
+    // Verify the overview table sorting.
+    $orders = array('Date', 'Type', 'User');
+    $sorts = array('asc', 'desc');
+    foreach ($orders as $order) {
+      foreach ($sorts as $sort) {
+        $this->verifySort($sort, $order);
+      }
+    }
 
     // Login the regular user.
     $this->drupalLogin($this->any_user);
@@ -118,9 +127,10 @@ class DbLogTest extends WebTestBase {
    * @param string $type
    *   (optional) The type of watchdog entry. Defaults to 'custom'.
    * @param int $severity
-   *   (optional) The severity of the watchdog entry. Defaults to WATCHDOG_NOTICE.
+   *   (optional) The severity of the watchdog entry. Defaults to
+   *   \Drupal\Core\Logger\RfcLogLevel::NOTICE.
    */
-  private function generateLogEntries($count, $type = 'custom', $severity = WATCHDOG_NOTICE) {
+  private function generateLogEntries($count, $type = 'custom', $severity = RfcLogLevel::NOTICE) {
     global $base_root;
 
     // Prepare the fields to be logged
@@ -215,6 +225,20 @@ class DbLogTest extends WebTestBase {
     // When a user account is canceled, any content they created remains but the
     // uid = 0. Records in the watchdog table related to that user have the uid
     // set to zero.
+  }
+
+  /**
+   * Verifies the sorting functionality of the database logging reports table.
+   *
+   * @param string $sort
+   *   The sort direction.
+   * @param string $order
+   *   The order by which the table should be sorted.
+   */
+  public function verifySort($sort = 'asc', $order = 'Date') {
+    $this->drupalGet('admin/reports/dblog', array('query' => array('sort' => $sort, 'order' => $order)));
+    $this->assertResponse(200);
+    $this->assertText(t('Recent log messages'), 'DBLog report was displayed correctly and sorting went fine.');
   }
 
   /**
@@ -423,7 +447,7 @@ class DbLogTest extends WebTestBase {
       'channel'     => 'system',
       'message'     => 'Log entry added to test the doClearTest clear down.',
       'variables'   => array(),
-      'severity'    => WATCHDOG_NOTICE,
+      'severity'    => RfcLogLevel::NOTICE,
       'link'        => NULL,
       'user'        => $this->big_user,
       'uid'         => $this->big_user->id(),
@@ -435,7 +459,7 @@ class DbLogTest extends WebTestBase {
     // Add a watchdog entry.
     $this->container->get('logger.dblog')->log($log['severity'], $log['message'], $log);
     // Make sure the table count has actually been incremented.
-    $this->assertEqual($count + 1, db_query('SELECT COUNT(*) FROM {watchdog}')->fetchField(), format_string('dblog_watchdog() added an entry to the dblog :count', array(':count' => $count)));
+    $this->assertEqual($count + 1, db_query('SELECT COUNT(*) FROM {watchdog}')->fetchField(), format_string('\Drupal\dblog\Logger\DbLog->log() added an entry to the dblog :count', array(':count' => $count)));
     // Login the admin user.
     $this->drupalLogin($this->big_user);
     // Post in order to clear the database table.
@@ -461,7 +485,7 @@ class DbLogTest extends WebTestBase {
     $types = array();
     for ($i = 0; $i < 3; $i++) {
       $type_names[] = $type_name = $this->randomMachineName();
-      $severity = WATCHDOG_EMERGENCY;
+      $severity = RfcLogLevel::EMERGENCY;
       for ($j = 0; $j < 3; $j++) {
         $types[] = $type = array(
           'count' => $j + 1,

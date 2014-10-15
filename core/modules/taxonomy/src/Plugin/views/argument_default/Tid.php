@@ -9,6 +9,7 @@ namespace Drupal\taxonomy\Plugin\views\argument_default;
 
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\taxonomy\TermInterface;
+use Drupal\views\Plugin\CacheablePluginInterface;
 use Drupal\views\ViewExecutable;
 use Drupal\views\Plugin\views\display\DisplayPluginBase;
 use Drupal\views\Plugin\views\argument_default\ArgumentDefaultPluginBase;
@@ -24,7 +25,7 @@ use Symfony\Component\HttpFoundation\Request;
  *   title = @Translation("Taxonomy term ID from URL")
  * )
  */
-class Tid extends ArgumentDefaultPluginBase {
+class Tid extends ArgumentDefaultPluginBase implements CacheablePluginInterface {
 
   /**
    * Overrides \Drupal\views\Plugin\views\Plugin\views\PluginBase::init().
@@ -47,10 +48,10 @@ class Tid extends ArgumentDefaultPluginBase {
   protected function defineOptions() {
     $options = parent::defineOptions();
 
-    $options['term_page'] = array('default' => TRUE, 'bool' => TRUE);
-    $options['node'] = array('default' => FALSE, 'bool' => TRUE);
+    $options['term_page'] = array('default' => TRUE);
+    $options['node'] = array('default' => FALSE);
     $options['anyall'] = array('default' => ',');
-    $options['limit'] = array('default' => FALSE, 'bool' => TRUE);
+    $options['limit'] = array('default' => FALSE);
     $options['vids'] = array('default' => array());
 
     return $options;
@@ -125,14 +126,14 @@ class Tid extends ArgumentDefaultPluginBase {
   public function getArgument() {
     // Load default argument from taxonomy page.
     if (!empty($this->options['term_page'])) {
-      if (($taxonomy_term = $this->request->attributes->get('taxonomy_term')) && $taxonomy_term instanceof TermInterface) {
+      if (($taxonomy_term = $this->view->getRequest()->attributes->get('taxonomy_term')) && $taxonomy_term instanceof TermInterface) {
         return $taxonomy_term->id();
       }
     }
     // Load default argument from node.
     if (!empty($this->options['node'])) {
       // Just check, if a node could be detected.
-      if (($node = $this->view->getRequest()->attributes->has('node')) && $node instanceof NodeInterface) {
+      if (($node = $this->view->getRequest()->attributes->get('node')) && $node instanceof NodeInterface) {
         $taxonomy = array();
         foreach ($node->getFieldDefinitions() as $field) {
           if ($field->getType() == 'taxonomy_term_reference') {
@@ -165,6 +166,20 @@ class Tid extends ArgumentDefaultPluginBase {
     if ($views_page && isset($views_page->argument['tid'])) {
       return $views_page->argument['tid']->argument;
     }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function isCacheable() {
+    return TRUE;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getCacheContexts() {
+    return ['cache.context.url'];
   }
 
 }

@@ -80,7 +80,7 @@ class ForumForm extends TermForm {
     $term_storage = $this->entityManager->getStorage('taxonomy_term');
     $status = $term_storage->save($term);
 
-    $route_name = $this->urlStub == 'container' ? 'forum.edit_container' : 'forum.edit_forum';
+    $route_name = $this->urlStub == 'container' ? 'entity.taxonomy_term.forum_edit_container_form' : 'entity.taxonomy_term.forum_edit_form';
     $route_parameters  = ['taxonomy_term' => $term->id()];
     $link = $this->l($this->t('Edit'), new Url($route_name, $route_parameters));
     switch ($status) {
@@ -107,10 +107,7 @@ class ForumForm extends TermForm {
     $actions = parent::actions($form, $form_state);
 
     if (!$this->entity->isNew() && $this->entity->hasLinkTemplate('forum-delete-form')) {
-      $route_info = $this->entity->urlInfo('forum-delete-form');
-      $actions['delete']['#options'] = $route_info->getOptions();
-      $actions['delete']['#route_name'] = $route_info->getRouteName();
-      $actions['delete']['#route_parameters'] = $route_info->getRouteParameters();
+      $actions['delete']['#url'] = $this->entity->urlInfo('forum-delete-form');
     }
     else {
       unset($actions['delete']);

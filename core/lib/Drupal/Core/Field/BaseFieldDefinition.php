@@ -7,7 +7,7 @@
 
 namespace Drupal\Core\Field;
 
-use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\Entity\BaseFieldOverride;
 use Drupal\Core\Field\TypedData\FieldItemDataDefinition;
 use Drupal\Core\TypedData\ListDataDefinition;
@@ -379,13 +379,21 @@ class BaseFieldDefinition extends ListDataDefinition implements FieldDefinitionI
   /**
    * {@inheritdoc}
    */
-  public function getDefaultValue(ContentEntityInterface $entity) {
+  public function getDefaultValue(FieldableEntityInterface $entity) {
     // Allow custom default values function.
     if (!empty($this->definition['default_value_callback'])) {
       $value = call_user_func($this->definition['default_value_callback'], $entity, $this);
     }
     else {
       $value = isset($this->definition['default_value']) ? $this->definition['default_value'] : NULL;
+    }
+    // Normalize into the "array keyed by delta" format.
+    if (isset($value) && !is_array($value)) {
+      $properties = $this->getPropertyNames();
+      $property = reset($properties);
+      $value = array(
+        array($property => $value),
+      );
     }
     // Allow the field type to process default values.
     $field_item_list_class = $this->getClass();
@@ -401,12 +409,12 @@ class BaseFieldDefinition extends ListDataDefinition implements FieldDefinitionI
    *   The callback to invoke for getting the default value (pass NULL to unset
    *   a previously set callback). The callback will be invoked with the
    *   following arguments:
-   *   - \Drupal\Core\Entity\ContentEntityInterface $entity
+   *   - \Drupal\Core\Entity\FieldableEntityInterface $entity
    *     The entity being created.
    *   - \Drupal\Core\Field\FieldDefinitionInterface $definition
    *     The field definition.
-   *   It should return the default value as documented by
-   *   \Drupal\Core\Field\FieldDefinitionInterface::getDefaultValue().
+   *   It should return the default value in the format accepted by the
+   *   setDefaultValue() method.
    *
    * @return $this
    */
@@ -425,8 +433,12 @@ class BaseFieldDefinition extends ListDataDefinition implements FieldDefinitionI
    * any value set here.
    *
    * @param mixed $value
-   *   The default value in the format as returned by
-   *   \Drupal\Core\Field\FieldDefinitionInterface::getDefaultValue().
+   *   The default value for the field. This can be either:
+   *   - a literal, in which case it will be assigned to the first property of
+   *     the first item.
+   *   - a numerically indexed array of items, each item being a property/value
+   *     array.
+   *   - NULL or array() for no default value.
    *
    * @return $this
    */
@@ -438,7 +450,7 @@ class BaseFieldDefinition extends ListDataDefinition implements FieldDefinitionI
   /**
    * {@inheritdoc}
    */
-  public function getOptionsProvider($property_name, ContentEntityInterface $entity) {
+  public function getOptionsProvider($property_name, FieldableEntityInterface $entity) {
     // If the field item class implements the interface, proxy it through.
     $item = $entity->get($this->getName())->first();
     if ($item instanceof OptionsProviderInterface) {

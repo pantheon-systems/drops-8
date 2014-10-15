@@ -25,9 +25,7 @@ class NodeRevisionTest extends MigrateSqlSourceTestCase {
     'idlist' => array(),
     // The fake configuration for the source.
     'source' => array(
-      'node_type' => 'page',
       'plugin' => 'd6_node_revision',
-      'bundle' => 'page',
     ),
     'sourceIds' => array(
       'vid' => array(
@@ -143,7 +141,7 @@ class NodeRevisionTest extends MigrateSqlSourceTestCase {
     array(
       // Node fields.
       'nid' => 2,
-      'type' => 'page',
+      'type' => 'article',
       'language' => 'en',
       'status' => 1,
       'created' => 1279290908,
@@ -333,19 +331,4 @@ class NodeRevisionTest extends MigrateSqlSourceTestCase {
     $this->markTestIncomplete('FakeSelect does not support multiple source identifiers, can not test.');
   }
 
-}
-
-namespace Drupal\Tests\migrate_drupal\Unit\source\d6;
-
-use Drupal\Core\Database\Connection;
-use Drupal\Core\Extension\ModuleHandlerInterface;
-use Drupal\migrate_drupal\Plugin\migrate\source\d6\NodeRevision;
-
-class TestNodeRevision extends NodeRevision {
-  public function setDatabase(Connection $database) {
-    $this->database = $database;
-  }
-  public function setModuleHandler(ModuleHandlerInterface $module_handler) {
-    $this->moduleHandler = $module_handler;
-  }
 }

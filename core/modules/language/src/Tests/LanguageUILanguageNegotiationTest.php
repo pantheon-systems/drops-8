@@ -391,6 +391,11 @@ class LanguageUILanguageNegotiationTest extends WebTestBase {
    * Tests _url() when separate domains are used for multiple languages.
    */
   function testLanguageDomain() {
+    global $base_url;
+
+    // Get the current host URI we're running on.
+    $base_url_host = parse_url($base_url, PHP_URL_HOST);
+
     // Add the Italian language.
     ConfigurableLanguage::createFromLangcode('it')->save();
 
@@ -403,12 +408,23 @@ class LanguageUILanguageNegotiationTest extends WebTestBase {
     );
     $this->drupalPostForm('admin/config/regional/language/detection', $edit, t('Save settings'));
 
+    // Do not allow blank domain.
+    $edit = array(
+      'language_negotiation_url_part' => LanguageNegotiationUrl::CONFIG_DOMAIN,
+      'domain[en]' => '',
+    );
+    $this->drupalPostForm('admin/config/regional/language/detection/url', $edit, t('Save configuration'));
+    $this->assertText('The domain may not be left blank for English', 'The form does not allow blank domains.');
+    $this->rebuildContainer();
+
     // Change the domain for the Italian language.
     $edit = array(
       'language_negotiation_url_part' => LanguageNegotiationUrl::CONFIG_DOMAIN,
+      'domain[en]' => $base_url_host,
       'domain[it]' => 'it.example.com',
     );
     $this->drupalPostForm('admin/config/regional/language/detection/url', $edit, t('Save configuration'));
+    $this->assertText('The configuration options have been saved', 'Domain configuration is saved.');
     $this->rebuildContainer();
 
     // Build the link we're going to test.

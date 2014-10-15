@@ -13,6 +13,7 @@ use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItem;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\StreamWrapper\StreamWrapperInterface;
 use Drupal\Core\TypedData\DataDefinition;
 
 /**
@@ -24,7 +25,8 @@ use Drupal\Core\TypedData\DataDefinition;
  *   description = @Translation("This field stores the ID of a file as an integer value."),
  *   default_widget = "file_generic",
  *   default_formatter = "file_default",
- *   list_class = "\Drupal\file\Plugin\Field\FieldType\FileFieldItemList"
+ *   list_class = "\Drupal\file\Plugin\Field\FieldType\FileFieldItemList",
+ *   constraints = {"ValidReference" = {}, "ReferenceAccess" = {}}
  * )
  */
 class FileItem extends EntityReferenceItem {
@@ -98,10 +100,11 @@ class FileItem extends EntityReferenceItem {
     $properties = parent::propertyDefinitions($field_definition);
 
     $properties['display'] = DataDefinition::create('boolean')
-      ->setLabel(t('Flag to control whether this file should be displayed when viewing content'));
+      ->setLabel(t('Display'))
+      ->setDescription(t('Flag to control whether this file should be displayed when viewing content'));
 
     $properties['description'] = DataDefinition::create('string')
-      ->setLabel(t('A description of the file'));
+      ->setLabel(t('Description'));
 
     return $properties;
   }
@@ -132,10 +135,7 @@ class FileItem extends EntityReferenceItem {
       ),
     );
 
-    $scheme_options = array();
-    foreach (file_get_stream_wrappers(STREAM_WRAPPERS_WRITE_VISIBLE) as $scheme => $stream_wrapper) {
-      $scheme_options[$scheme] = $stream_wrapper['name'];
-    }
+    $scheme_options = \Drupal::service('stream_wrapper_manager')->getNames(StreamWrapperInterface::WRITE_VISIBLE);
     $element['uri_scheme'] = array(
       '#type' => 'radios',
       '#title' => t('Upload destination'),

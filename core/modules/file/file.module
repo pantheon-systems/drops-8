@@ -577,27 +577,22 @@ function file_theme() {
     // From file.module.
     'file_link' => array(
       'variables' => array('file' => NULL, 'icon_directory' => NULL, 'description' => NULL, 'attributes' => array()),
-      'template' => 'file-link',
     ),
     'file_managed_file' => array(
       'render element' => 'element',
-      'template' => 'file-managed-file',
     ),
 
     // From file.field.inc.
     'file_widget' => array(
       'render element' => 'element',
-      'template' => 'file-widget',
       'file' => 'file.field.inc',
     ),
     'file_widget_multiple' => array(
       'render element' => 'element',
-      'template' => 'file-widget-multiple',
       'file' => 'file.field.inc',
     ),
     'file_upload_help' => array(
       'variables' => array('description' => NULL, 'upload_validators' => NULL, 'cardinality' => NULL),
-      'template' => 'file-upload-help',
       'file' => 'file.field.inc',
     ),
   );
@@ -1498,9 +1493,9 @@ function template_preprocess_file_managed_file(&$variables) {
  * Upload controls are hidden when a file is already uploaded. Remove controls
  * are hidden when there is no file attached. Controls are hidden here instead
  * of in file_managed_file_process(), because #access for these buttons depends
- * on the managed_file element's #value. See the documentation of form_builder()
- * for more detailed information about the relationship between #process,
- * #value, and #access.
+ * on the managed_file element's #value. See the documentation of
+ * \Drupal::formBuilder()->doBuildForm() for more detailed information about the
+ * relationship between #process, #value, and #access.
  *
  * Because #access is set here, it affects display only and does not prevent
  * JavaScript or other untrusted code from submitting the form as though access
@@ -1827,11 +1822,6 @@ function file_get_file_references(FileInterface $file, FieldDefinitionInterface 
     $usage_list = \Drupal::service('file.usage')->listUsage($file);
     $file_usage_list = isset($usage_list['file']) ? $usage_list['file'] : array();
     foreach ($file_usage_list as $entity_type_id => $entity_ids) {
-      $entity_type = \Drupal::entityManager()->getDefinition($entity_type_id);
-      // The usage table contains usage of every revision. If we are looking
-      // for every revision or the entity does not support revisions then
-      // every usage is already a match.
-      $match_entity_type = $age == EntityStorageInterface::FIELD_LOAD_REVISION || !$entity_type->hasKey('revision');
       $entities = entity_load_multiple($entity_type_id, array_keys($entity_ids));
       foreach ($entities as $entity) {
         $bundle = $entity->bundle();
@@ -1852,21 +1842,17 @@ function file_get_file_references(FileInterface $file, FieldDefinitionInterface 
           }
         }
         foreach ($file_fields[$entity_type_id][$bundle] as $field_name => $field_column) {
-          $match = $match_entity_type;
-          // If we didn't match yet then iterate over the field items to find
-          // the referenced file. This will fail if the usage checked is in a
-          // non-current revision because field items are from the current
+          // Iterate over the field items to find the referenced file and field
+          // name. This will fail if the usage checked is in a non-current
+          // revision because field items are from the current
           // revision.
-          if (!$match && ($items = $entity->get($field_name))) {
+          if (($items = $entity->get($field_name))) {
             foreach ($items as $item) {
               if ($file->id() == $item->{$field_column}) {
-                $match = TRUE;
+                $references[$file->id()][$age][$field_name][$entity_type_id][$entity->id()] = $entity;
                 break;
               }
             }
-          }
-          if ($match) {
-            $references[$file->id()][$age][$field_name][$entity_type_id][$entity->id()] = $entity;
           }
         }
       }

@@ -10,6 +10,8 @@ namespace Drupal\book\Controller;
 use Drupal\book\BookExport;
 use Drupal\book\BookManagerInterface;
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Url;
+use Drupal\node\Entity\Node;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -72,7 +74,7 @@ class BookController extends ControllerBase {
     // Add any recognized books to the table list.
     foreach ($this->bookManager->getAllBooks() as $book) {
       /** @var \Drupal\Core\Url $url */
-      $url = $book->urlInfo();
+      $url = $book['url'];
       if (isset($book['options'])) {
         $url->setOptions($book['options']);
       }
@@ -82,8 +84,7 @@ class BookController extends ControllerBase {
       $links = array();
       $links['edit'] = array(
         'title' => t('Edit order and titles'),
-        'route_name' => 'book.admin_edit',
-        'route_parameters' => array('node' => $book['nid']),
+        'url' => Url::fromRoute('book.admin_edit', ['node' => $book['nid']]),
       );
       $row[] = array(
         'data' => array(
@@ -115,6 +116,9 @@ class BookController extends ControllerBase {
     return array(
       '#theme' => 'item_list',
       '#items' => $book_list,
+      '#cache' => [
+        'tags' => \Drupal::entityManager()->getDefinition('node')->getListCacheTags(),
+      ],
     );
   }
 

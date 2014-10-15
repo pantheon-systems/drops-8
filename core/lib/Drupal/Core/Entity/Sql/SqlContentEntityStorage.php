@@ -427,6 +427,12 @@ class SqlContentEntityStorage extends ContentEntityStorageBase implements SqlEnt
   protected function getFromStorage(array $ids = NULL) {
     $entities = array();
 
+    if (!empty($ids)) {
+      // Sanitize IDs. Before feeding ID array into buildQuery, check whether
+      // it is empty as this would load all entities.
+      $ids = $this->cleanIds($ids);
+    }
+
     if ($ids === NULL || $ids) {
       // Build and execute the query.
       $query_result = $this->buildQuery($ids)->execute();
@@ -450,6 +456,30 @@ class SqlContentEntityStorage extends ContentEntityStorageBase implements SqlEnt
     }
 
     return $entities;
+  }
+
+  /**
+   * Ensures integer entity IDs are valid.
+   *
+   * The identifier sanitization provided by this method has been introduced
+   * as Drupal used to rely on the database to facilitate this, which worked
+   * correctly with MySQL but led to errors with other DBMS such as PostgreSQL.
+   *
+   * @param array $ids
+   *   The entity IDs to verify.
+   * @return array
+   *   The sanitized list of entity IDs.
+   */
+  protected function cleanIds(array $ids) {
+    $definitions = $this->entityManager->getBaseFieldDefinitions($this->entityTypeId);
+    $id_definition = $definitions[$this->entityType->getKey('id')];
+    if ($id_definition->getType() == 'integer') {
+      $ids = array_filter($ids, function ($id) {
+        return is_numeric($id) && $id == (int) $id;
+      });
+      $ids = array_map('intval', $ids);
+    }
+    return $ids;
   }
 
   /**
@@ -679,7 +709,7 @@ class SqlContentEntityStorage extends ContentEntityStorageBase implements SqlEnt
   }
 
   /**
-   * Implements \Drupal\Core\Entity\EntityStorageInterface::loadRevision().
+   * {@inheritdoc}
    */
   public function loadRevision($revision_id) {
     // Build and execute the query.
@@ -690,7 +720,10 @@ class SqlContentEntityStorage extends ContentEntityStorageBase implements SqlEnt
       // Convert the raw records to entity objects.
       $entities = $this->mapFromStorageRecords($records);
       $this->postLoad($entities);
-      return reset($entities);
+      $entity = reset($entities);
+      if ($entity) {
+        return $entity;
+      }
     }
   }
 
@@ -1112,8 +1145,8 @@ class SqlContentEntityStorage extends ContentEntityStorageBase implements SqlEnt
       $table_name = $this->dataTable;
     }
     $record = $this->mapToStorageRecord($entity, $table_name);
-    $record->langcode = $entity->language()->id;
-    $record->default_langcode = intval($record->langcode == $entity->getUntranslated()->language()->id);
+    $record->langcode = $entity->language()->getId();
+    $record->default_langcode = intval($record->langcode == $entity->getUntranslated()->language()->getId());
     return $record;
   }
 
@@ -1199,7 +1232,7 @@ class SqlContentEntityStorage extends ContentEntityStorageBase implements SqlEnt
     foreach ($entities as $key => $entity) {
       $bundles[$entity->bundle()] = TRUE;
       $ids[] = $load_current ? $key : $entity->getRevisionId();
-      $default_langcodes[$key] = $entity->getUntranslated()->language()->id;
+      $default_langcodes[$key] = $entity->getUntranslated()->language()->getId();
     }
 
     // Collect impacted fields.
@@ -1275,7 +1308,7 @@ class SqlContentEntityStorage extends ContentEntityStorageBase implements SqlEnt
     $id = $entity->id();
     $bundle = $entity->bundle();
     $entity_type = $entity->getEntityTypeId();
-    $default_langcode = $entity->getUntranslated()->language()->id;
+    $default_langcode = $entity->getUntranslated()->language()->getId();
     $translation_langcodes = array_keys($entity->getTranslationLanguages());
     $table_mapping = $this->getTableMapping();
 

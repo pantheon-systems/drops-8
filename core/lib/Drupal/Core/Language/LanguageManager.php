@@ -11,6 +11,7 @@ use Drupal\Component\Utility\String;
 use Drupal\Core\DependencyInjection\DependencySerializationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\StringTranslation\TranslationWrapper;
+use Drupal\Core\Url;
 
 /**
  * Class responsible for providing language support on language-unaware sites.
@@ -133,9 +134,9 @@ class LanguageManager implements LanguageManagerInterface {
     if (!isset($this->languages)) {
       // No language module, so use the default language only.
       $default = $this->getDefaultLanguage();
-      $this->languages = array($default->id => $default);
+      $this->languages = array($default->getId() => $default);
       // Add the special languages, they will be filtered later if needed.
-      $this->languages += $this->getDefaultLockedLanguages($default->weight);
+      $this->languages += $this->getDefaultLockedLanguages($default->getWeight());
     }
 
     // Filter the full list of languages based on the value of the $all flag. By
@@ -150,7 +151,7 @@ class LanguageManager implements LanguageManagerInterface {
       // if we're acting on a global object, so clone the object first.
       $default = clone $default;
       $default->name = $this->t("Site's default language (@lang_name)", array('@lang_name' => $default->name));
-      $filtered_languages['site_default'] = $default;
+      $filtered_languages[LanguageInterface::LANGCODE_SITE_DEFAULT] = $default;
     }
 
     foreach ($this->languages as $id => $language) {
@@ -239,7 +240,7 @@ class LanguageManager implements LanguageManagerInterface {
   /**
    * {@inheritdoc}
    */
-  public function getLanguageSwitchLinks($type, $path) {
+  public function getLanguageSwitchLinks($type, Url $url) {
     return array();
   }
 

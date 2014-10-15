@@ -117,12 +117,10 @@ abstract class DisplayOverviewBase extends OverviewBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, FormStateInterface $form_state, $entity_type_id = NULL, $bundle = NULL) {
+  public function buildForm(array $form, FormStateInterface $form_state, $entity_type_id = NULL, $bundle = NULL, $mode = 'default') {
     parent::buildForm($form, $form_state, $entity_type_id, $bundle);
 
-    if (empty($this->mode)) {
-      $this->mode = 'default';
-    }
+    $this->mode = $mode;
 
     $field_definitions = $this->getFieldDefinitions();
     $extra_fields = $this->getExtraFields();
@@ -595,8 +593,8 @@ abstract class DisplayOverviewBase extends OverviewBase {
           }
 
           $display_mode_label = $display_modes[$mode]['label'];
-          $route = $this->getOverviewRoute($mode);
-          drupal_set_message($this->t('The %display_mode mode now uses custom display settings. You might want to <a href="@url">configure them</a>.', array('%display_mode' => $display_mode_label, '@url' => $this->url($route['route_name'], $route['route_parameters'], $route['options']))));
+          $url = $this->getOverviewRoute($mode);
+          drupal_set_message($this->t('The %display_mode mode now uses custom display settings. You might want to <a href="@url">configure them</a>.', ['%display_mode' => $display_mode_label, '@url' => $url->toString()]));
         }
         $statuses[$mode] = !empty($value);
       }
@@ -872,14 +870,8 @@ abstract class DisplayOverviewBase extends OverviewBase {
    * @param string $mode
    *   The form or view mode.
    *
-   * @return array
-   *   An associative array with the following keys:
-   *   - route_name: The name of the route.
-   *   - route_parameters: (optional) An associative array of parameter names
-   *     and values.
-   *   - options: (optional) An associative array of additional options. See
-   *     \Drupal\Core\Routing\UrlGeneratorInterface::generateFromRoute() for
-   *     comprehensive documentation.
+   * @return \Drupal\Core\Url
+   *   A Url object for the overview route.
    */
   abstract protected function getOverviewRoute($mode);
 

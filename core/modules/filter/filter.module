@@ -14,6 +14,7 @@ use Drupal\Core\Render\Element;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Template\Attribute;
+use Drupal\filter\Entity\FilterFormat;
 use Drupal\filter\FilterFormatInterface;
 
 /**
@@ -59,7 +60,6 @@ function filter_theme() {
   return array(
     'filter_tips' => array(
       'variables' => array('tips' => NULL, 'long' => FALSE),
-      'template' => 'filter-tips',
     ),
     'text_format_wrapper' => array(
       'variables' => array(
@@ -67,11 +67,9 @@ function filter_theme() {
         'description' => NULL,
         'attributes' => array(),
       ),
-      'template' => 'text-format-wrapper',
     ),
     'filter_guidelines' => array(
       'variables' => array('format' => NULL),
-      'template' => 'filter-guidelines',
     ),
     'filter_caption' => array(
       'variables' => array(
@@ -80,37 +78,8 @@ function filter_theme() {
         'caption' => NULL,
         'classes' => NULL,
       ),
-      'template' => 'filter-caption',
     )
   );
-}
-
-/**
- * Implements hook_element_info().
- *
- * @see filter_process_format()
- * @see text_format_wrapper()
- *
- * @todo Remove once https://www.drupal.org/node/2326409 is in.
- */
-function filter_element_info() {
-  $type['text_format'] = array(
-    '#process' => array(
-      '\Drupal\filter\Element\TextFormat::processFormat',
-    ),
-    '#base_type' => 'textarea',
-    '#theme_wrappers' => array('text_format_wrapper'),
-  );
-  $type['processed_text'] = array(
-    '#text' => '',
-    '#format' => NULL,
-    '#filter_types_to_skip' => array(),
-    '#langcode' => '',
-    '#pre_render' => array(
-      '\Drupal\filter\Element\ProcessedText::preRenderText',
-    ),
-  );
-  return $type;
 }
 
 /**
@@ -133,13 +102,13 @@ function filter_formats(AccountInterface $account = NULL) {
   // All available formats are cached for performance.
   if (!isset($formats['all'])) {
     $language_interface = \Drupal::languageManager()->getCurrentLanguage();
-    if ($cache = \Drupal::cache()->get("filter_formats:{$language_interface->id}")) {
+    if ($cache = \Drupal::cache()->get("filter_formats:{$language_interface->getId()}")) {
       $formats['all'] = $cache->data;
     }
     else {
       $formats['all'] = \Drupal::entityManager()->getStorage('filter_format')->loadByProperties(array('status' => TRUE));
       uasort($formats['all'], 'Drupal\Core\Config\Entity\ConfigEntityBase::sort');
-      \Drupal::cache()->set("filter_formats:{$language_interface->id}", $formats['all'], Cache::PERMANENT, array('filter_formats'));
+      \Drupal::cache()->set("filter_formats:{$language_interface->getId()}", $formats['all'], Cache::PERMANENT, \Drupal::entityManager()->getDefinition('filter_format')->getListCacheTags());
     }
   }
 

@@ -34,7 +34,7 @@ class EntityReferenceRelationshipTest extends ViewUnitTestBase {
    *
    * @var array
    */
-  public static $modules = array('user', 'field', 'entity_test', 'options', 'entity_reference', 'views', 'entity_reference_test_views');
+  public static $modules = array('user', 'field', 'entity_test', 'entity_reference', 'views', 'entity_reference_test_views');
 
   /**
    * The entity_test entities used by the test.
@@ -93,6 +93,8 @@ class EntityReferenceRelationshipTest extends ViewUnitTestBase {
     $entity->save();
     $this->assertEqual($entity->field_test[0]->entity->id(), $referenced_entity->id());
     $this->entities[$entity->id()] = $entity;
+
+    Views::viewsData()->clear();
   }
 
   /**

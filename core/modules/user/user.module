@@ -60,7 +60,7 @@ function user_help($route_name, RouteMatchInterface $route_match) {
       $output .= '<h3>' . t('Uses') . '</h3>';
       $output .= '<dl>';
       $output .= '<dt>' . t('Creating and managing users') . '</dt>';
-      $output .= '<dd>' . t('Through the <a href="!people">People administration page</a> you can add and cancel user accounts and assign users to roles. By editing one particular user you can change their user name, email address, password, and information in other fields.', array('!people' => \Drupal::url('user.admin_account'))) . '</dd>';
+      $output .= '<dd>' . t('Through the <a href="!people">People administration page</a> you can add and cancel user accounts and assign users to roles. By editing one particular user you can change their username, email address, password, and information in other fields.', array('!people' => \Drupal::url('user.admin_account'))) . '</dd>';
       $output .= '<dt>' . t('Configuring user roles') . '</dt>';
       $output .= '<dd>' . t('<em>Roles</em> are used to group and classify users; each user can be assigned one or more roles. Typically there are two pre-defined roles: <em>Anonymous user</em> (users that are not logged in), and <em>Authenticated user</em> (users that are registered and logged in). Depending on how your site was set up, an <em>Administrator</em> role may also be available: users with this role will automatically be assigned any new permissions whenever a module is enabled. You can create additional roles on the <a href="!roles">Roles administration page</a>.', array('!roles' => \Drupal::url('user.role_list'))) . '</dd>';
       $output .= '<dt>' . t('Setting permissions') . '</dt>';
@@ -100,11 +100,9 @@ function user_theme() {
     'user' => array(
       'render element' => 'elements',
       'file' => 'user.pages.inc',
-      'template' => 'user',
     ),
     'username' => array(
       'variables' => array('account' => NULL, 'attributes' => array(), 'link_options' => array()),
-      'template' => 'username',
     ),
   );
 }
@@ -387,7 +385,7 @@ function user_role_permissions(array $roles) {
   if (defined('MAINTENANCE_MODE') && MAINTENANCE_MODE == 'update') {
     return _user_role_permissions_update($roles);
   }
-  $entities = entity_load_multiple('user_role', $roles);
+  $entities = Role::loadMultiple($roles);
   $role_permissions = array();
   foreach ($roles as $rid) {
     $role_permissions[$rid] = isset($entities[$rid]) ? $entities[$rid]->getPermissions() : array();
@@ -896,7 +894,7 @@ function user_cancel_methods() {
   $methods = array(
     'user_cancel_block' => array(
       'title' => t('Disable the account and keep its content.'),
-      'description' => t('Your account will be blocked and you will no longer be able to log in. All of your content will remain attributed to your user name.'),
+      'description' => t('Your account will be blocked and you will no longer be able to log in. All of your content will remain attributed to your username.'),
     ),
     'user_cancel_block_unpublish' => array(
       'title' => t('Disable the account and unpublish its content.'),
@@ -1155,7 +1153,7 @@ function user_roles($membersonly = FALSE, $permission = NULL) {
     }
   }
 
-  $roles = entity_load_multiple('user_role');
+  $roles = Role::loadMultiple();
   if ($membersonly) {
     unset($roles[DRUPAL_ANONYMOUS_RID]);
   }
@@ -1245,7 +1243,7 @@ function user_role_change_permissions($rid, array $permissions = array()) {
  */
 function user_role_grant_permissions($rid, array $permissions = array()) {
   // Grant new permissions for the role.
-  $role = entity_load('user_role', $rid);
+  $role = Role::load($rid);
   foreach ($permissions as $permission) {
     $role->grantPermission($permission);
   }
@@ -1265,7 +1263,7 @@ function user_role_grant_permissions($rid, array $permissions = array()) {
  */
 function user_role_revoke_permissions($rid, array $permissions = array()) {
   // Revoke permissions for the role.
-  $role = entity_load('user_role', $rid);
+  $role = Role::load($rid);
   foreach ($permissions as $permission) {
     $role->revokePermission($permission);
   }
@@ -1324,7 +1322,7 @@ function _user_mail_notify($op, $account, $langcode = NULL) {
     if ($op == 'register_pending_approval') {
       // If a user registered requiring admin approval, notify the admin, too.
       // We use the site default language for this.
-      drupal_mail('user', 'register_pending_approval_admin', $site_mail, \Drupal::languageManager()->getDefaultLanguage()->id, $params);
+      drupal_mail('user', 'register_pending_approval_admin', $site_mail, \Drupal::languageManager()->getDefaultLanguage()->getId(), $params);
     }
   }
   return empty($mail) ? NULL : $mail['result'];
@@ -1395,6 +1393,9 @@ function user_modules_installed($modules) {
   // Assign all available permissions to the administrator role.
   $rid = \Drupal::config('user.settings')->get('admin_role');
   if ($rid) {
+    // Some permissions call the url generator, so ensure that the routes are
+    // up to date.
+    \Drupal::service('router.builder_indicator')->setRebuildNeeded();
     /** @var \Drupal\user\PermissionHandlerInterface $permission_handler */
     $permission_handler = \Drupal::service('user.permissions');
     $permissions = $permission_handler->getPermissions();
@@ -1450,7 +1451,7 @@ function user_toolbar() {
     $links = array(
       'account' => array(
         'title' => t('View profile'),
-        'href' => 'user',
+        'url' => Url::fromRoute('user.page'),
         'html' => TRUE,
         'attributes' => array(
           'title' => t('User account'),
@@ -1458,7 +1459,7 @@ function user_toolbar() {
       ),
       'account_edit' => array(
         'title' => t('Edit profile'),
-        'href' => 'user/' . $user->id() . '/edit',
+        'url' => Url::fromRoute('entity.user.edit_form', ['user' => $user->id()]),
         'html' => TRUE,
         'attributes' => array(
           'title' => t('Edit user account'),
@@ -1466,7 +1467,7 @@ function user_toolbar() {
       ),
       'logout' => array(
         'title' => t('Log out'),
-        'href' => 'user/logout',
+        'url' => Url::fromRoute('user.logout'),
       ),
     );
   }
@@ -1474,7 +1475,7 @@ function user_toolbar() {
      $links = array(
       'login' => array(
         'title' => t('Log in'),
-        'href' => 'user',
+        'url' => Url::fromRoute('user.page'),
       ),
     );
   }
@@ -1484,7 +1485,7 @@ function user_toolbar() {
     'tab' => array(
       '#type' => 'link',
       '#title' => $user->getUsername(),
-      '#href' => 'user',
+      '#url' => Url::fromRoute('user.page'),
       '#attributes' => array(
         'title' => t('My account'),
         'class' => array('toolbar-icon', 'toolbar-icon-user'),

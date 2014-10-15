@@ -14,6 +14,7 @@ use Drupal\Component\Utility\String;
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\DependencyInjection\ClassResolverInterface;
+use Drupal\Core\DrupalKernelInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Site\Settings;
@@ -61,11 +62,15 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
   protected $csrfToken;
 
   /**
-   * The HTTP kernel to handle forms returning response objects.
+   * The kernel to handle forms returning response objects.
    *
-   * @var \Symfony\Component\HttpKernel\HttpKernel
+   * Explicitly use the DrupalKernel as that is consistent with index.php for
+   * terminating the request and in case someone rebuilds the container,
+   * this kernel is synthetic and always points to the new container.
+   *
+   * @var \Drupal\Core\DrupalKernelInterface
    */
-  protected $httpKernel;
+  protected $kernel;
 
   /**
    * The class resolver.
@@ -126,10 +131,10 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
    *   The theme manager.
    * @param \Drupal\Core\Access\CsrfTokenGenerator $csrf_token
    *   The CSRF token generator.
-   * @param \Symfony\Component\HttpKernel\HttpKernelInterface $http_kernel
-   *   The HTTP kernel.
+   * @param \Drupal\Core\DrupalKernelInterface $kernel
+   *   The kernel.
    */
-  public function __construct(FormValidatorInterface $form_validator, FormSubmitterInterface $form_submitter, FormCacheInterface $form_cache, ModuleHandlerInterface $module_handler, EventDispatcherInterface $event_dispatcher, RequestStack $request_stack, ClassResolverInterface $class_resolver, ThemeManagerInterface $theme_manager, CsrfTokenGenerator $csrf_token = NULL, HttpKernelInterface $http_kernel = NULL) {
+  public function __construct(FormValidatorInterface $form_validator, FormSubmitterInterface $form_submitter, FormCacheInterface $form_cache, ModuleHandlerInterface $module_handler, EventDispatcherInterface $event_dispatcher, RequestStack $request_stack, ClassResolverInterface $class_resolver, ThemeManagerInterface $theme_manager, CsrfTokenGenerator $csrf_token = NULL, DrupalKernelInterface $kernel = NULL) {
     $this->formValidator = $form_validator;
     $this->formSubmitter = $form_submitter;
     $this->formCache = $form_cache;
@@ -138,7 +143,7 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
     $this->requestStack = $request_stack;
     $this->classResolver = $class_resolver;
     $this->csrfToken = $csrf_token;
-    $this->httpKernel = $http_kernel;
+    $this->kernel = $kernel;
     $this->themeManager = $theme_manager;
   }
 
@@ -266,8 +271,8 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
       exit;
     }
 
-    // If this was a successful submission of a single-step form or the last step
-    // of a multi-step form, then self::processForm() issued a redirect to
+    // If this was a successful submission of a single-step form or the last
+    // step of a multi-step form, then self::processForm() issued a redirect to
     // another page, or back to this page, but as a new request. Therefore, if
     // we're here, it means that this is either a form being viewed initially
     // before any user input, or there was a validation error requiring the form
@@ -286,17 +291,25 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
     $form_state->setCached();
 
     // If only parts of the form will be returned to the browser (e.g., Ajax or
-    // RIA clients), re-use the old #build_id to not require client-side code to
-    // manually update the hidden 'build_id' input element.
+    // RIA clients), or if the form already had a new build ID regenerated when
+    // it was retrieved from the form cache, reuse the existing #build_id.
     // Otherwise, a new #build_id is generated, to not clobber the previous
     // build's data in the form cache; also allowing the user to go back to an
     // earlier build, make changes, and re-submit.
     // @see self::prepareForm()
     $rebuild_info = $form_state->getRebuildInfo();
-    if (isset($old_form['#build_id']) && !empty($rebuild_info['copy']['#build_id'])) {
+    $enforce_old_build_id = isset($old_form['#build_id']) && !empty($rebuild_info['copy']['#build_id']);
+    $old_form_is_mutable_copy = isset($old_form['#build_id_old']);
+    if ($enforce_old_build_id || $old_form_is_mutable_copy) {
       $form['#build_id'] = $old_form['#build_id'];
+      if ($old_form_is_mutable_copy) {
+        $form['#build_id_old'] = $old_form['#build_id_old'];
+      }
     }
     else {
+      if (isset($old_form['#build_id'])) {
+        $form['#build_id_old'] = $old_form['#build_id'];
+      }
       $form['#build_id'] = 'form-' . Crypt::randomBytesBase64();
     }
 
@@ -481,17 +494,17 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
         return;
       }
 
-      // If $form_state->isRebuilding() has been set and input has been processed
-      // without validation errors, we are in a multi-step workflow that is not
-      // yet complete. A new $form needs to be constructed based on the changes
-      // made to $form_state during this request. Normally, a submit handler
-      // sets $form_state->isRebuilding() if a fully executed form requires
-      // another step. However, for forms that have not been fully executed
-      // (e.g., Ajax submissions triggered by non-buttons), there is no submit
-      // handler to set $form_state->isRebuilding(). It would not make sense to
-      // redisplay the identical form without an error for the user to correct,
-      // so we also rebuild error-free non-executed forms, regardless of
-      // $form_state->isRebuilding().
+      // If $form_state->isRebuilding() has been set and input has been
+      // processed without validation errors, we are in a multi-step workflow
+      // that is not yet complete. A new $form needs to be constructed based on
+      // the changes made to $form_state during this request. Normally, a submit
+      // handler sets $form_state->isRebuilding() if a fully executed form
+      // requires another step. However, for forms that have not been fully
+      // executed (e.g., Ajax submissions triggered by non-buttons), there is no
+      // submit handler to set $form_state->isRebuilding(). It would not make
+      // sense to redisplay the identical form without an error for the user to
+      // correct, so we also rebuild error-free non-executed forms, regardless
+      // of $form_state->isRebuilding().
       // @todo Simplify this logic; considering Ajax and non-HTML front-ends,
       //   along with element-level #submit properties, it makes no sense to
       //   have divergent form execution based on whether the triggering element
@@ -1075,14 +1088,14 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
    */
   protected function sendResponse(Response $response) {
     $request = $this->requestStack->getCurrentRequest();
-    $event = new FilterResponseEvent($this->httpKernel, $request, HttpKernelInterface::MASTER_REQUEST, $response);
+    $event = new FilterResponseEvent($this->kernel, $request, HttpKernelInterface::MASTER_REQUEST, $response);
 
     $this->eventDispatcher->dispatch(KernelEvents::RESPONSE, $event);
     // Prepare and send the response.
     $event->getResponse()
       ->prepare($request)
       ->send();
-    $this->httpKernel->terminate($request, $response);
+    $this->kernel->terminate($request, $response);
   }
 
   /**

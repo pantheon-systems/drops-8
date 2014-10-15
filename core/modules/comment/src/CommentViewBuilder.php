@@ -17,6 +17,7 @@ use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityViewBuilder;
 use Drupal\Core\Entity\Entity\EntityViewDisplay;
 use Drupal\Core\Language\LanguageManagerInterface;
+use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -132,7 +133,7 @@ class CommentViewBuilder extends EntityViewBuilder {
 
       $display = $displays[$entity->bundle()];
       if ($display->getComponent('links')) {
-        $callback = '\Drupal\comment\CommentViewBuilder::renderLinks';
+        $callback = get_called_class() . '::renderLinks';
         $context = array(
           'comment_entity_id' => $entity->id(),
           'view_mode' => $view_mode,
@@ -197,7 +198,7 @@ class CommentViewBuilder extends EntityViewBuilder {
    *   A renderable array representing the comment links.
    */
   public static function renderLinks(array $element, array $context) {
-    $callback = '\Drupal\comment\CommentViewBuilder::renderLinks';
+    $callback = get_called_class() . '::renderLinks';
     $placeholder = drupal_render_cache_generate_placeholder($callback, $context);
     $links = array(
       '#theme' => 'links__comment',
@@ -209,8 +210,7 @@ class CommentViewBuilder extends EntityViewBuilder {
       $entity = entity_load('comment', $context['comment_entity_id']);
       $commented_entity = entity_load($context['commented_entity_type'], $context['commented_entity_id']);
 
-      $links['comment'] = self::buildLinks($entity, $commented_entity);
-
+      $links['comment'] = static::buildLinks($entity, $commented_entity);
       // Allow other modules to alter the comment links.
       $hook_context = array(
         'view_mode' => $context['view_mode'],
@@ -246,7 +246,7 @@ class CommentViewBuilder extends EntityViewBuilder {
       if ($entity->access('delete')) {
         $links['comment-delete'] = array(
           'title' => t('Delete'),
-          'href' => "comment/{$entity->id()}/delete",
+          'url' => $entity->urlInfo('delete-form'),
           'html' => TRUE,
         );
       }
@@ -254,22 +254,26 @@ class CommentViewBuilder extends EntityViewBuilder {
       if ($entity->access('update')) {
         $links['comment-edit'] = array(
           'title' => t('Edit'),
-          'href' => "comment/{$entity->id()}/edit",
+          'url' => $entity->urlInfo('edit-form'),
           'html' => TRUE,
         );
       }
       if ($entity->access('create')) {
         $links['comment-reply'] = array(
           'title' => t('Reply'),
-          'href' => "comment/reply/{$entity->getCommentedEntityTypeId()}/{$entity->getCommentedEntityId()}/{$entity->getFieldName()}/{$entity->id()}",
+          'url' => Url::fromRoute('comment.reply', [
+            'entity_type' => $entity->getCommentedEntityTypeId(),
+            'entity' => $entity->getCommentedEntityId(),
+            'field_name' => $entity->getFieldName(),
+            'pid' => $entity->id(),
+          ]),
           'html' => TRUE,
         );
       }
       if (!$entity->isPublished() && $entity->access('approve')) {
         $links['comment-approve'] = array(
           'title' => t('Approve'),
-          'route_name' => 'comment.approve',
-          'route_parameters' => array('comment' => $entity->id()),
+          'url' => Url::fromRoute('comment.approve', ['comment' => $entity->id()]),
           'html' => TRUE,
         );
       }
@@ -283,7 +287,7 @@ class CommentViewBuilder extends EntityViewBuilder {
     if (\Drupal::moduleHandler()->moduleExists('content_translation') && content_translation_translate_access($entity)->isAllowed()) {
       $links['comment-translations'] = array(
         'title' => t('Translate'),
-        'href' => 'comment/' . $entity->id() . '/translations',
+        'url' => $entity->urlInfo('drupal:content-translation-overview'),
         'html' => TRUE,
       );
     }

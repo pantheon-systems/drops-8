@@ -7,7 +7,7 @@
 
 namespace Drupal\ckeditor\Tests;
 
-use Drupal\simpletest\DrupalUnitTestBase;
+use Drupal\simpletest\KernelTestBase;
 use Drupal\editor\Plugin\EditorManager;
 use Drupal\ckeditor\Plugin\Editor\CKEditor;
 
@@ -16,7 +16,7 @@ use Drupal\ckeditor\Plugin\Editor\CKEditor;
  *
  * @group ckeditor
  */
-class CKEditorTest extends DrupalUnitTestBase {
+class CKEditorTest extends KernelTestBase {
 
   /**
    * Modules to enable.
@@ -368,7 +368,7 @@ class CKEditorTest extends DrupalUnitTestBase {
     $editor = entity_load('editor', 'filtered_html');
     $this->ckeditor->getJSSettings($editor);
     $localeStorage = $this->container->get('locale.storage');
-    $string = $localeStorage->findString(array('source' => 'Image Properties', 'context' => ''));
+    $string = $localeStorage->findString(array('source' => 'Edit Link', 'context' => ''));
     $this->assertTrue(!empty($string), 'String from JavaScript file saved.');
   }
 

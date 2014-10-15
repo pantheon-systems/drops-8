@@ -59,6 +59,13 @@ class RouteBuilder implements RouteBuilderInterface {
   protected $moduleHandler;
 
   /**
+   * The route builder indicator.
+   *
+   * @var \Drupal\Core\Routing\RouteBuilderIndicatorInterface
+   */
+  protected $routeBuilderIndicator;
+
+  /**
    * The controller resolver.
    *
    * @var \Drupal\Core\Controller\ControllerResolverInterface
@@ -73,6 +80,13 @@ class RouteBuilder implements RouteBuilderInterface {
   protected $routeCollection;
 
   /**
+   * Flag that indiciates if we are currently rebuilding the routes.
+   *
+   * @var bool
+   */
+  protected $building = FALSE;
+
+  /**
    * Constructs the RouteBuilder using the passed MatcherDumperInterface.
    *
    * @param \Drupal\Core\Routing\MatcherDumperInterface $dumper
@@ -85,22 +99,26 @@ class RouteBuilder implements RouteBuilderInterface {
    *   The module handler.
    * @param \Drupal\Core\Controller\ControllerResolverInterface $controller_resolver
    *   The controller resolver.
-   * @param \Drupal\Core\KeyValueStore\StateInterface $state
-   *   The state.
+   * @param \Drupal\Core\Routing\RouteBuilderIndicatorInterface $route_build_indicator
+   *   The route build indicator.
    */
-  public function __construct(MatcherDumperInterface $dumper, LockBackendInterface $lock, EventDispatcherInterface $dispatcher, ModuleHandlerInterface $module_handler, ControllerResolverInterface $controller_resolver, StateInterface $state = NULL) {
+  public function __construct(MatcherDumperInterface $dumper, LockBackendInterface $lock, EventDispatcherInterface $dispatcher, ModuleHandlerInterface $module_handler, ControllerResolverInterface $controller_resolver, RouteBuilderIndicatorInterface $route_build_indicator = NULL) {
     $this->dumper = $dumper;
     $this->lock = $lock;
     $this->dispatcher = $dispatcher;
     $this->moduleHandler = $module_handler;
     $this->controllerResolver = $controller_resolver;
-    $this->state = $state;
+    $this->routeBuilderIndicator = $route_build_indicator;
   }
 
   /**
    * {@inheritdoc}
    */
   public function rebuild() {
+    if ($this->building) {
+      throw new \RuntimeException('Recursive router rebuild detected.');
+    }
+
     if (!$this->lock->acquire('router_rebuild')) {
       // Wait for another request that is already doing this work.
       // We choose to block here since otherwise the routes might not be
@@ -108,6 +126,8 @@ class RouteBuilder implements RouteBuilderInterface {
       $this->lock->wait('router_rebuild');
       return FALSE;
     }
+
+    $this->building = TRUE;
 
     $collection = new RouteCollection();
     $this->routeCollection = $collection;
@@ -162,9 +182,10 @@ class RouteBuilder implements RouteBuilderInterface {
     $this->dumper->addRoutes($collection);
     $this->dumper->dump();
 
-    $this->state->delete(static::REBUILD_NEEDED);
+    $this->routeBuilderIndicator->setRebuildDone();
     $this->lock->release('router_rebuild');
     $this->dispatcher->dispatch(RoutingEvents::FINISHED, new Event());
+    $this->building = FALSE;
 
     $this->routeCollection = NULL;
 
@@ -182,7 +203,7 @@ class RouteBuilder implements RouteBuilderInterface {
    * {@inheritdoc}
    */
   public function rebuildIfNeeded() {
-    if ($this->state->get(static::REBUILD_NEEDED, FALSE)) {
+    if ($this->routeBuilderIndicator->isRebuildNeeded()) {
       return $this->rebuild();
     }
     return FALSE;
@@ -192,7 +213,7 @@ class RouteBuilder implements RouteBuilderInterface {
    * {@inheritdoc}
    */
   public function setRebuildNeeded() {
-    $this->state->set(static::REBUILD_NEEDED, TRUE);
+    $this->routeBuilderIndicator->setRebuildNeeded();
   }
 
   /**

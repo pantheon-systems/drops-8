@@ -54,11 +54,9 @@ function block_theme() {
   return array(
     'block' => array(
       'render element' => 'elements',
-      'template' => 'block',
     ),
     'block_list' => array(
       'render element' => 'form',
-      'template' => 'block-list',
     ),
   );
 }
@@ -84,7 +82,7 @@ function block_page_build(&$page) {
     // Append region description if we are rendering the regions demo page.
     $visible_regions = array_keys(system_region_list($theme, REGIONS_VISIBLE));
     foreach ($visible_regions as $region) {
-      $description = '<div class="block-region">' . $all_regions[$region] . '</div>';
+      $description = '<div class="block-region demo-block">' . $all_regions[$region] . '</div>';
       $page[$region]['block_description'] = array(
         '#markup' => $description,
         '#weight' => 15,
@@ -93,10 +91,15 @@ function block_page_build(&$page) {
     $page['page_top']['backlink'] = array(
       '#type' => 'link',
       '#title' => t('Exit block region demonstration'),
-      '#href' => 'admin/structure/block' . (\Drupal::config('system.theme')->get('default') == $theme ? '' : '/list/' . $theme),
       '#options' => array('attributes' => array('class' => array('block-demo-backlink'))),
       '#weight' => -10,
     );
+    if (\Drupal::config('system.theme')->get('default') == $theme) {
+      $page['page_top']['backlink']['#url'] = Url::fromRoute('block.admin_display');
+    }
+    else {
+      $page['page_top']['backlink']['#url'] = Url::fromRoute('block.admin_display_theme', ['theme' => $theme]);
+    }
   }
 }
 

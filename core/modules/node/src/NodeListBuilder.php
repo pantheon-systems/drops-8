@@ -96,7 +96,7 @@ class NodeListBuilder extends EntityListBuilder {
       '#theme' => 'mark',
       '#mark_type' => node_mark($entity->id(), $entity->getChangedTime()),
     );
-    $langcode = $entity->language()->id;
+    $langcode = $entity->language()->getId();
     $uri = $entity->urlInfo();
     $options = $uri->getOptions();
     $options += ($langcode != LanguageInterface::LANGCODE_NOT_SPECIFIED && isset($languages[$langcode]) ? array('language' => $languages[$langcode]) : array());
@@ -105,7 +105,8 @@ class NodeListBuilder extends EntityListBuilder {
       '#type' => 'link',
       '#title' => $entity->label(),
       '#suffix' => ' ' . drupal_render($mark),
-    ) + $uri->toRenderArray();
+      '#url' => $uri,
+    );
     $row['type'] = String::checkPlain(node_get_type_label($entity));
     $row['author']['data'] = array(
       '#theme' => 'username',

@@ -240,9 +240,9 @@ abstract class AccountForm extends ContentEntityForm {
       );
     }
 
-    $user_preferred_langcode = $register ? $language_interface->id : $account->getPreferredLangcode();
+    $user_preferred_langcode = $register ? $language_interface->getId() : $account->getPreferredLangcode();
 
-    $user_preferred_admin_langcode = $register ? $language_interface->id : $account->getPreferredAdminLangcode(FALSE);
+    $user_preferred_admin_langcode = $register ? $language_interface->getId() : $account->getPreferredAdminLangcode(FALSE);
 
     // Is the user preferred language added?
     $user_language_added = FALSE;
@@ -341,7 +341,7 @@ abstract class AccountForm extends ContentEntityForm {
           ->execute();
 
         if ($name_taken) {
-          $form_state->setErrorByName('name', $this->t('The name %name is already taken.', array('%name' => $form_state->getValue('name'))));
+          $form_state->setErrorByName('name', $this->t('The username %name is already taken.', array('%name' => $form_state->getValue('name'))));
         }
       }
     }

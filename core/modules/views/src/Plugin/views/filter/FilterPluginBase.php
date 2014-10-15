@@ -9,6 +9,7 @@ namespace Drupal\views\Plugin\views\filter;
 
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element;
+use Drupal\views\Plugin\CacheablePluginInterface;
 use Drupal\views\Plugin\views\HandlerBase;
 use Drupal\Component\Utility\String as UtilityString;
 use Drupal\views\Plugin\views\display\DisplayPluginBase;
@@ -43,7 +44,7 @@ use Drupal\views\ViewExecutable;
 /**
  * Base class for Views filters handler plugins.
  */
-abstract class FilterPluginBase extends HandlerBase {
+abstract class FilterPluginBase extends HandlerBase implements CacheablePluginInterface {
 
   /**
    * Contains the actual value of the field,either configured in the views ui
@@ -119,18 +120,18 @@ abstract class FilterPluginBase extends HandlerBase {
     $options['operator'] = array('default' => '=');
     $options['value'] = array('default' => '');
     $options['group'] = array('default' => '1');
-    $options['exposed'] = array('default' => FALSE, 'bool' => TRUE);
+    $options['exposed'] = array('default' => FALSE);
     $options['expose'] = array(
       'contains' => array(
         'operator_id' => array('default' => FALSE),
-        'label' => array('default' => '', 'translatable' => TRUE),
-        'description' => array('default' => '', 'translatable' => TRUE),
-        'use_operator' => array('default' => FALSE, 'bool' => TRUE),
+        'label' => array('default' => ''),
+        'description' => array('default' => ''),
+        'use_operator' => array('default' => FALSE),
         'operator' => array('default' => ''),
         'identifier' => array('default' => ''),
-        'required' => array('default' => FALSE, 'bool' => TRUE),
-        'remember' => array('default' => FALSE, 'bool' => TRUE),
-        'multiple' => array('default' => FALSE, 'bool' => TRUE),
+        'required' => array('default' => FALSE),
+        'remember' => array('default' => FALSE),
+        'multiple' => array('default' => FALSE),
         'remember_roles' => array('default' => array(
           DRUPAL_AUTHENTICATED_RID => DRUPAL_AUTHENTICATED_RID,
         )),
@@ -145,15 +146,15 @@ abstract class FilterPluginBase extends HandlerBase {
     // an identifier and other settings like the widget and the label.
     // This settings are saved in another array to allow users to switch
     // between a normal filter and a group of filters with a single click.
-    $options['is_grouped'] = array('default' => FALSE, 'bool' => TRUE);
+    $options['is_grouped'] = array('default' => FALSE);
     $options['group_info'] = array(
       'contains' => array(
-        'label' => array('default' => '', 'translatable' => TRUE),
-        'description' => array('default' => '', 'translatable' => TRUE),
+        'label' => array('default' => ''),
+        'description' => array('default' => ''),
         'identifier' => array('default' => ''),
-        'optional' => array('default' => TRUE, 'bool' => TRUE),
+        'optional' => array('default' => TRUE),
         'widget' => array('default' => 'select'),
-        'multiple' => array('default' => FALSE, 'bool' => TRUE),
+        'multiple' => array('default' => FALSE),
         'remember' => array('default' => 0),
         'default_group' => array('default' => 'All'),
         'default_group_multiple' => array('default' => array()),
@@ -1465,6 +1466,27 @@ abstract class FilterPluginBase extends HandlerBase {
    */
   protected static function arrayFilterZero($var) {
     return trim($var) != '';
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function isCacheable() {
+    return TRUE;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getCacheContexts() {
+    $cache_contexts = [];
+    // An exposed filter allows the user to change a view's filters. They accept
+    // input from GET parameters, which are part of the URL. Hence a view with
+    // an exposed filter is cacheable per URL.
+    if ($this->isExposed()) {
+      $cache_contexts[] = 'cache.context.url';
+    }
+    return $cache_contexts;
   }
 
 }

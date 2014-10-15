@@ -50,13 +50,19 @@ class FormState implements FormStateInterface {
    *     for building the form. Each array entry may be the path to a file or
    *     another array containing values for the parameters 'type', 'module' and
    *     'name' as needed by module_load_include(). The files listed here are
-   *     automatically loaded by form_get_cache(). By default the current menu
-   *     router item's 'file' definition is added, if any. Use
+   *     automatically loaded by \Drupal::formBuilder()->getCache(). By default
+   *     the current menu router item's 'file' definition is added, if any. Use
    *     self::loadInclude() to add include files from a form constructor.
    *   - form_id: Identification of the primary form being constructed and
    *     processed.
    *   - base_form_id: Identification for a base form, as declared in the form
    *     class's \Drupal\Core\Form\BaseFormIdInterface::getBaseFormId() method.
+   *   - immutable: If this flag is set to TRUE, a new form build id is
+   *     generated when the form is loaded from the cache. If it is subsequently
+   *     saved to the cache again, it will have another cache id and therefore
+   *     the original form and form-state will remain unaltered. This is
+   *     important when page caching is enabled in order to prevent form state
+   *     from leaking between anonymous users.
    *
    * @var array
    */
@@ -1141,8 +1147,8 @@ class FormState implements FormStateInterface {
       ->unsetValue('op');
 
     // Remove button values.
-    // form_builder() collects all button elements in a form. We remove the button
-    // value separately for each button element.
+    // \Drupal::formBuilder()->doBuildForm() collects all button elements in a
+    // form. We remove the button value separately for each button element.
     foreach ($this->getButtons() as $button) {
       // Remove this button's value from the submitted form values by finding
       // the value corresponding to this button.

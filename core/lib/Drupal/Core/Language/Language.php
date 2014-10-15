@@ -41,7 +41,7 @@ class Language implements LanguageInterface {
    *
    * @var string
    */
-  public $id = '';
+  protected $id = '';
 
   /**
    * The direction, left-to-right, or right-to-left.
@@ -50,14 +50,14 @@ class Language implements LanguageInterface {
    *
    * @var int
    */
-  public $direction = self::DIRECTION_LTR;
+  protected $direction = self::DIRECTION_LTR;
 
   /**
    * The weight, used for ordering languages in lists, like selects or tables.
    *
    * @var int
    */
-  public $weight = 0;
+  protected $weight = 0;
 
   /**
    * Locked indicates a language used by the system, not an actual language.

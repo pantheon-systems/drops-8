@@ -7,7 +7,7 @@
 
 namespace Drupal\Core\Field;
 
-use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\TypedData\ListDataDefinitionInterface;
 
 /**
@@ -78,7 +78,7 @@ interface FieldDefinitionInterface extends ListDataDefinitionInterface {
   /**
    * Returns the ID of the entity type the field is attached to.
    *
-   * This method should not be confused with EntityInterface::entityType()
+   * This method should not be confused with EntityInterface::getEntityTypeId()
    * (configurable fields are config entities, and thus implement both
    * interfaces):
    *   - FieldDefinitionInterface::getTargetEntityTypeId() answers "as a field,
@@ -92,7 +92,17 @@ interface FieldDefinitionInterface extends ListDataDefinitionInterface {
   public function getTargetEntityTypeId();
 
   /**
-   * Gets the bundle the field is defined for.
+   * Gets the bundle the field is attached to.
+   *
+   * This method should not be confused with EntityInterface::bundle()
+   * (configurable fields are config entities, and thus implement both
+   * interfaces):
+   *   - FieldDefinitionInterface::getTargetBundle() answers "as a field,
+   *     which bundle are you attached to?".
+   *   - EntityInterface::bundle() answers "as a (config) entity, what
+   *     is your own bundle?" (not relevant in our case, the config entity types
+   *     used to store the definitions of configurable fields do not have
+   *     bundles).
    *
    * @return string|null
    *   The bundle the field is defined for, or NULL if it is a base field; i.e.,
@@ -162,20 +172,14 @@ interface FieldDefinitionInterface extends ListDataDefinitionInterface {
   /**
    * Returns the default value for the field in a newly created entity.
    *
-   * @param \Drupal\Core\Entity\ContentEntityInterface $entity
+   * @param \Drupal\Core\Entity\FieldableEntityInterface $entity
    *   The entity for which the default value is generated.
    *
-   * @return mixed
-   *   The default value for the field, as accepted by
-   *   \Drupal\field\Plugin\Core\Entity\FieldItemListInterface::setValue(). This
-   *   can be either:
-   *   - a literal, in which case it will be assigned to the first property of
-   *     the first item.
-   *   - a numerically indexed array of items, each item being a property/value
-   *     array.
-   *   - NULL or array() for no default value.
+   * @return array
+   *   The default value for the field, as a numerically indexed array of items,
+   *   each item being a property/value array (array() for no default value).
    */
-  public function getDefaultValue(ContentEntityInterface $entity);
+  public function getDefaultValue(FieldableEntityInterface $entity);
 
   /**
    * Returns whether the field is translatable.

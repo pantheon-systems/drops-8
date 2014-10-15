@@ -11,6 +11,7 @@ use Drupal\Component\Utility\Random;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\StreamWrapper\StreamWrapperInterface;
 use Drupal\Core\TypedData\DataDefinition;
 use Drupal\file\Entity\File;
 use Drupal\file\Plugin\Field\FieldType\FileItem;
@@ -40,7 +41,8 @@ use Drupal\file\Plugin\Field\FieldType\FileItem;
  *       "translatable" = TRUE
  *     },
  *   },
- *   list_class = "\Drupal\file\Plugin\Field\FieldType\FileFieldItemList"
+ *   list_class = "\Drupal\file\Plugin\Field\FieldType\FileFieldItemList",
+ *   constraints = {"ValidReference" = {}, "ReferenceAccess" = {}}
  * )
  */
 class ImageItem extends FileItem {
@@ -139,16 +141,20 @@ class ImageItem extends FileItem {
     $properties = parent::propertyDefinitions($field_definition);
 
     $properties['alt'] = DataDefinition::create('string')
-      ->setLabel(t("Alternative image text, for the image's 'alt' attribute."));
+      ->setLabel(t('Alternative text'))
+      ->setDescription(t("Alternative image text, for the image's 'alt' attribute."));
 
     $properties['title'] = DataDefinition::create('string')
-      ->setLabel(t("Image title text, for the image's 'title' attribute."));
+      ->setLabel(t('Title'))
+      ->setDescription(t("Image title text, for the image's 'title' attribute."));
 
     $properties['width'] = DataDefinition::create('integer')
-      ->setLabel(t('The width of the image in pixels.'));
+      ->setLabel(t('Width'))
+      ->setDescription(t('The width of the image in pixels.'));
 
     $properties['height'] = DataDefinition::create('integer')
-      ->setLabel(t('The height of the image in pixels.'));
+      ->setLabel(t('Height'))
+      ->setDescription(t('The height of the image in pixels.'));
 
     return $properties;
   }
@@ -164,10 +170,7 @@ class ImageItem extends FileItem {
     // the field.
     $settings = $this->getFieldDefinition()->getFieldStorageDefinition()->getSettings();
 
-    $scheme_options = array();
-    foreach (file_get_stream_wrappers(STREAM_WRAPPERS_WRITE_VISIBLE) as $scheme => $stream_wrapper) {
-      $scheme_options[$scheme] = $stream_wrapper['name'];
-    }
+    $scheme_options = \Drupal::service('stream_wrapper_manager')->getNames(StreamWrapperInterface::WRITE_VISIBLE);
     $element['uri_scheme'] = array(
       '#type' => 'radios',
       '#title' => t('Upload destination'),
@@ -255,13 +258,14 @@ class ImageItem extends FileItem {
       '#type' => 'checkbox',
       '#title' => t('Enable <em>Alt</em> field'),
       '#default_value' => $settings['alt_field'],
-      '#description' => t('The alt attribute may be used by search engines, screen readers, and when the image cannot be loaded.'),
+      '#description' => t('The alt attribute may be used by search engines, screen readers, and when the image cannot be loaded. Enabling this field is recommended'),
       '#weight' => 9,
     );
     $element['alt_field_required'] = array(
       '#type' => 'checkbox',
       '#title' => t('<em>Alt</em> field required'),
       '#default_value' => $settings['alt_field_required'],
+      '#description' => t('Making this field required is recommended.'),
       '#weight' => 10,
       '#states' => array(
         'visible' => array(
@@ -273,7 +277,7 @@ class ImageItem extends FileItem {
       '#type' => 'checkbox',
       '#title' => t('Enable <em>Title</em> field'),
       '#default_value' => $settings['title_field'],
-      '#description' => t('The title attribute is used as a tooltip when the mouse hovers over the image.'),
+      '#description' => t('The title attribute is used as a tooltip when the mouse hovers over the image. Enabling this field is not recommended as it can cause problems with screen readers.'),
       '#weight' => 11,
     );
     $element['title_field_required'] = array(
@@ -407,7 +411,7 @@ class ImageItem extends FileItem {
     );
     $element['default_image']['alt'] = array(
       '#type' => 'textfield',
-      '#title' => t('Alternate text'),
+      '#title' => t('Alternative text'),
       '#description' => t('This text will be used by screen readers, search engines, and when the image cannot be loaded.'),
       '#default_value' => $settings['default_image']['alt'],
       '#maxlength' => 512,

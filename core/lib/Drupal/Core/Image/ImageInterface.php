@@ -110,6 +110,29 @@ interface ImageInterface {
   public function save($destination = NULL);
 
   /**
+   * Prepares a new image, without loading it from a file.
+   *
+   * For a working example, see
+   * \Drupal\system\Plugin\ImageToolkit\Operation\gd\CreateNew.
+   *
+   * @param int $width
+   *   The width of the new image, in pixels.
+   * @param int $height
+   *   The height of the new image, in pixels.
+   * @param string $extension
+   *   (Optional) The extension of the image file (e.g. 'png', 'gif', etc.).
+   *   Allowed values depend on the implementation of the image toolkit.
+   *   Defaults to 'png'.
+   * @param string $transparent_color
+   *   (Optional) The hexadecimal string representing the color to be used
+   *   for transparency, needed for GIF images. Defaults to '#ffffff' (white).
+   *
+   * @return bool
+   *   TRUE on success, FALSE on failure.
+   */
+  public function createNew($width, $height, $extension = 'png', $transparent_color = '#ffffff');
+
+  /**
    * Scales an image while maintaining aspect ratio.
    *
    * The resulting image can be smaller for one or both target dimensions.
@@ -147,6 +170,21 @@ interface ImageInterface {
    *   TRUE on success, FALSE on failure.
    */
   public function scaleAndCrop($width, $height);
+
+  /**
+   * Instructs the toolkit to save the image in the format specified by the
+   * extension.
+   *
+   * @param string $extension
+   *   The extension to convert to (e.g. 'jpeg' or 'png'). Allowed values depend
+   *   on the current image toolkit.
+   *
+   * @return bool
+   *   TRUE on success, FALSE on failure.
+   *
+   * @see \Drupal\Core\ImageToolkit\ImageToolkitInterface::getSupportedExtensions()
+   */
+  public function convert($extension);
 
   /**
    * Crops an image to a rectangle specified by the given dimensions.

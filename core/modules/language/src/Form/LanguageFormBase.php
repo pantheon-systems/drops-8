@@ -49,9 +49,9 @@ abstract class LanguageFormBase extends EntityForm {
    * Common elements of the language addition and editing form.
    */
   public function commonForm(array &$form) {
-    /** @var $language \Drupal\language\Entity\ConfigurableLanguage */
+    /* @var $language \Drupal\language\ConfigurableLanguageInterface */
     $language = $this->entity;
-    if ($language->id()) {
+    if ($language->getId()) {
       $form['langcode_view'] = array(
         '#type' => 'item',
         '#title' => $this->t('Language code'),

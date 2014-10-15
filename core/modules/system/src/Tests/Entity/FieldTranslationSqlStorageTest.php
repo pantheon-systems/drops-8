@@ -7,7 +7,7 @@
 
 namespace Drupal\system\Tests\Entity;
 
-use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\field\Entity\FieldStorageConfig;
 
@@ -71,16 +71,16 @@ class FieldTranslationSqlStorageTest extends EntityLanguageTestBase {
   /**
    * Checks whether field languages are correctly stored for the given entity.
    *
-   * @param \Drupal\Core\Entity\ContentEntityInterface $entity
+   * @param \Drupal\Core\Entity\FieldableEntityInterface $entity
    *   The entity fields are attached to.
    * @param string $message
    *   (optional) A message to display with the assertion.
    */
-  protected function assertFieldStorageLangcode(ContentEntityInterface $entity, $message = '') {
+  protected function assertFieldStorageLangcode(FieldableEntityInterface $entity, $message = '') {
     $status = TRUE;
     $entity_type = $entity->getEntityTypeId();
     $id = $entity->id();
-    $langcode = $entity->getUntranslated()->language()->id;
+    $langcode = $entity->getUntranslated()->language()->getId();
     $fields = array($this->field_name, $this->untranslatable_field_name);
     /** @var \Drupal\Core\Entity\Sql\DefaultTableMapping $table_mapping */
     $table_mapping = \Drupal::entityManager()->getStorage($entity_type)->getTableMapping();

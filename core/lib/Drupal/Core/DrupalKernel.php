@@ -389,6 +389,7 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     $seed = unpack("L", Crypt::randomBytes(4));
     mt_srand($seed[1]);
 
+    $this->container->get('stream_wrapper_manager')->register();
     $this->booted = TRUE;
 
     return $this;
@@ -401,6 +402,7 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     if (FALSE === $this->booted) {
       return;
     }
+    $this->container->get('stream_wrapper_manager')->unregister();
     $this->booted = FALSE;
     $this->container = NULL;
     $this->moduleList = NULL;
@@ -411,9 +413,6 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
    * {@inheritdoc}
    */
   public function getContainer() {
-    if ($this->containerNeedsDumping && !$this->dumpDrupalContainer($this->container, static::CONTAINER_BASE_CLASS)) {
-      $this->container->get('logger.factory')->get('DrupalKernel')->notice('Container cannot be written to disk');
-    }
     return $this->container;
   }
 
@@ -432,9 +431,6 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
 
     // Put the request on the stack.
     $this->container->get('request_stack')->push($request);
-
-    // Make sure all stream wrappers are registered.
-    file_get_stream_wrappers();
 
     // Set the allowed protocols once we have the config available.
     $allowed_protocols = $this->container->get('config.factory')->get('system.filter')->get('protocols');
@@ -712,6 +708,12 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
       $this->container->get('session_manager')->start();
     }
     \Drupal::setContainer($this->container);
+
+    // If needs dumping flag was set, dump the container.
+    if ($this->containerNeedsDumping && !$this->dumpDrupalContainer($this->container, static::CONTAINER_BASE_CLASS)) {
+      $this->container->get('logger.factory')->get('DrupalKernel')->notice('Container cannot be written to disk');
+    }
+
     return $this->container;
   }
 
@@ -815,8 +817,8 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
       // For a request URI of '/index.php/foo', $_SERVER['SCRIPT_NAME'] is
       // '/index.php', whereas $_SERVER['PHP_SELF'] is '/index.php/foo'.
       if ($dir = rtrim(dirname($request->server->get('SCRIPT_NAME')), '\/')) {
-        // Remove "core" directory if present, allowing install.php, update.php,
-        // and others to auto-detect a base path.
+        // Remove "core" directory if present, allowing install.php,
+        // authorize.php, and others to auto-detect a base path.
         $core_position = strrpos($dir, '/core');
         if ($core_position !== FALSE && strlen($dir) - 5 == $core_position) {
           $base_path = substr($dir, 0, $core_position);
@@ -852,7 +854,7 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
         if (strpos(request_uri(TRUE) . '/', $base_path . $script_path) !== 0) {
           $script_path = '';
         }
-        // @todo Temporary BC for install.php, update.php, and other scripts.
+        // @todo Temporary BC for install.php, authorize.php, and other scripts.
         //   - http://drupal.org/node/1547184
         //   - http://drupal.org/node/1546082
         if ($script_path !== 'index.php/') {
@@ -888,7 +890,7 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
       // to use the same session identifiers across HTTP and HTTPS.
       $session_name = $request->getHost() . $request->getBasePath();
       // Replace "core" out of session_name so core scripts redirect properly,
-      // specifically install.php and update.php.
+      // specifically install.php.
       $session_name = preg_replace('/\/core$/', '', $session_name);
       // HTTP_HOST can be modified by a visitor, but has been sanitized already
       // in DrupalKernel::bootEnvironment().

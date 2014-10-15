@@ -231,10 +231,10 @@ abstract class CachePluginBase extends PluginBase {
    * duplicate it. Later on, when gatherHeaders() is run, this information
    * will be removed so that we don't hold onto it.
    *
-   * @see drupal_add_html_head()
+   * @see _drupal_add_html_head()
    */
   public function cacheStart() {
-    $this->storage['head'] = drupal_add_html_head();
+    $this->storage['head'] = _drupal_add_html_head();
   }
 
   /**
@@ -246,7 +246,7 @@ abstract class CachePluginBase extends PluginBase {
   protected function gatherHeaders(array $render_array = []) {
     // Simple replacement for head
     if (isset($this->storage['head'])) {
-      $this->storage['head'] = str_replace($this->storage['head'], '', drupal_add_html_head());
+      $this->storage['head'] = str_replace($this->storage['head'], '', _drupal_add_html_head());
     }
     else {
       $this->storage['head'] = '';
@@ -261,7 +261,7 @@ abstract class CachePluginBase extends PluginBase {
    */
   public function restoreHeaders() {
     if (!empty($this->storage['head'])) {
-      drupal_add_html_head($this->storage['head']);
+      _drupal_add_html_head($this->storage['head']);
     }
     if (!empty($this->storage['css'])) {
       foreach ($this->storage['css'] as $args) {
@@ -306,7 +306,7 @@ abstract class CachePluginBase extends PluginBase {
         'build_info' => $build_info,
         'roles' => $user->getRoles(),
         'super-user' => $user->id() == 1, // special caching for super user.
-        'langcode' => \Drupal::languageManager()->getCurrentLanguage()->id,
+        'langcode' => \Drupal::languageManager()->getCurrentLanguage()->getId(),
         'base_url' => $GLOBALS['base_url'],
       );
       foreach (array('exposed_info', 'page', 'sort', 'order', 'items_per_page', 'offset') as $key) {
@@ -335,7 +335,7 @@ abstract class CachePluginBase extends PluginBase {
         'roles' => $user->getRoles(),
         'super-user' => $user->id() == 1, // special caching for super user.
         'theme' => \Drupal::theme()->getActiveTheme()->getName(),
-        'langcode' => \Drupal::languageManager()->getCurrentLanguage()->id,
+        'langcode' => \Drupal::languageManager()->getCurrentLanguage()->getId(),
         'base_url' => $GLOBALS['base_url'],
       );
 
@@ -358,13 +358,24 @@ abstract class CachePluginBase extends PluginBase {
     $entity_information = $this->view->query->getEntityTableInfo();
 
     if (!empty($entity_information)) {
-      // Add an ENTITY_TYPE_list tag for each entity type used by this view.
+      // Add the list cache tags for each entity type used by this view.
       foreach (array_keys($entity_information) as $entity_type) {
-        $tags[] = $entity_type . '_list';
+        $tags = Cache::mergeTags($tags, \Drupal::entityManager()->getDefinition($entity_type)->getListCacheTags());
       }
     }
 
     return $tags;
+  }
+
+  /**
+   * Alters the cache metadata of a display upon saving a view.
+   *
+   * @param bool $is_cacheable
+   *   Whether the display is cacheable.
+   * @param string[] $cache_contexts
+   *   The cache contexts the display varies by.
+   */
+  public function alterCacheMetadata(&$is_cacheable, array &$cache_contexts) {
   }
 
 }

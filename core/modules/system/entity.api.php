@@ -5,7 +5,7 @@
  * Hooks provided the Entity module.
  */
 
-use Drupal\Component\Utility\String;
+use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\DynamicallyFieldableEntityStorageInterface;
@@ -186,7 +186,7 @@ use Drupal\Core\Render\Element;
  * To make a render array for a loaded entity:
  * @code
  * // You can omit the language ID if the default language is being used.
- * $build = $view_builder->view($entity, 'view_mode_name', $language->id);
+ * $build = $view_builder->view($entity, 'view_mode_name', $language->getId());
  * @endcode
  * You can also use the viewMultiple() method to view multiple entities.
  *
@@ -469,7 +469,7 @@ use Drupal\Core\Render\Element;
  * Then, to build and render the entity:
  * @code
  * // You can omit the language ID if the default language is being used.
- * $build = $view_builder->view($entity, 'view_mode_name', $language->id);
+ * $build = $view_builder->view($entity, 'view_mode_name', $language->getId());
  * // $build is a render array.
  * $rendered = drupal_render($build);
  * @endcode
@@ -723,7 +723,7 @@ function hook_entity_bundle_info_alter(&$bundles) {
 function hook_entity_bundle_create($entity_type_id, $bundle) {
   // When a new bundle is created, the menu needs to be rebuilt to add the
   // Field UI menu item tabs.
-  \Drupal::service('router.builder')->setRebuildNeeded();
+  \Drupal::service('router.builder_indicator')->setRebuildNeeded();
 }
 
 /**
@@ -786,7 +786,7 @@ function hook_entity_bundle_delete($entity_type_id, $bundle) {
  * @see hook_ENTITY_TYPE_create()
  */
 function hook_entity_create(\Drupal\Core\Entity\EntityInterface $entity) {
-  if ($entity instanceof ContentEntityInterface && !$entity->foo->value) {
+  if ($entity instanceof FieldableEntityInterface && !$entity->foo->value) {
     $entity->foo->value = 'some_initial_value';
   }
 }
@@ -893,7 +893,7 @@ function hook_ENTITY_TYPE_storage_load(array $entities) {
 function hook_entity_presave(Drupal\Core\Entity\EntityInterface $entity) {
  if ($entity instanceof ContentEntityInterface && $entity->isTranslatable()) {
    $attributes = \Drupal::request()->attributes;
-   \Drupal::service('content_translation.synchronizer')->synchronizeFields($entity, $entity->language()->id, $attributes->get('source_langcode'));
+   \Drupal::service('content_translation.synchronizer')->synchronizeFields($entity, $entity->language()->getId(), $attributes->get('source_langcode'));
   }
 }
 
@@ -909,7 +909,7 @@ function hook_entity_presave(Drupal\Core\Entity\EntityInterface $entity) {
 function hook_ENTITY_TYPE_presave(Drupal\Core\Entity\EntityInterface $entity) {
   if ($entity->isTranslatable()) {
     $attributes = \Drupal::request()->attributes;
-    \Drupal::service('content_translation.synchronizer')->synchronizeFields($entity, $entity->language()->id, $attributes->get('source_langcode'));
+    \Drupal::service('content_translation.synchronizer')->synchronizeFields($entity, $entity->language()->getId(), $attributes->get('source_langcode'));
   }
 }
 

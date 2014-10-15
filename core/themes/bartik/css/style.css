@@ -7,7 +7,6 @@ body {
   margin: 0;
   padding: 0;
   border: 0;
-  outline: 0;
 }
 a {
   text-decoration: none;
@@ -47,14 +46,27 @@ h1 {
 h2 {
   font-size: 1.143em;
 }
+h3 {
+  font-size: 1.092em;
+}
+h4 {
+  font-size: 1.05em;
+}
+h5 {
+  font-size: 0.889em;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+h6 {
+  font-size: 0.67em;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
 p {
   margin: 0 0 1.2em;
 }
 del {
   text-decoration: line-through;
-}
-img {
-  outline: 0;
 }
 
 /**
@@ -657,13 +669,13 @@ body:not(:target) .region-primary-menu .menu-toggle-target-show:target ~ .menu l
 /* --------------- Secondary Menu ------------ */
 
 .region-secondary-menu .menu {
-  float: right; /* LTR */
+  text-align: right; /* LTR */
   font-size: 0.929em;
   margin: 0 10px;
   padding: 0;
 }
 [dir="rtl"] .region-secondary-menu .menu {
-  float: left;
+  text-align: left;
 }
 .region-secondary-menu .menu li {
   margin: 0;
@@ -833,7 +845,6 @@ ul.links {
 }
 .node--unpublished,
 .unpublished {
-  margin: -20px -15px 0;
   padding: 20px 15px 0;
 }
 .node--unpublished .comment-text .comment-arrow,
@@ -1245,31 +1256,6 @@ div.tabs {
   font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
   margin-bottom: 20px;
 }
-.tabs ul.primary {
-  border-collapse: collapse;
-  height: auto;
-  line-height: normal;
-  padding: 0 3px;
-  margin: 0;
-  overflow: hidden;
-  border: none;
-  background: transparent url(../images/tabs-border.png) repeat-x left bottom;
-  white-space: nowrap;
-}
-.tabs ul.primary li {
-  display: block;
-  float: left; /* LTR */
-  vertical-align: bottom;
-  margin: 0 5px 0 0; /* LTR */
-}
-[dir="rtl"] .tabs ul.primary li {
-  margin: 0 0 0 5px;
-  float: right;
-  zoom: 1;
-}
-.tabs ul.primary li.active a {
-  border-bottom: 1px solid #ffffff;
-}
 .tabs ul.primary li a {
   color: #000;
   background-color: #ededed;
@@ -1280,17 +1266,60 @@ div.tabs {
   line-height: 1.9;
   display: block;
   font-size: 0.929em;
-  float: left; /* not LTR */
   padding: 0 10px 3px;
   margin: 0;
   text-shadow: 0 1px 0 #fff;
-  border-top-left-radius: 6px;
-  border-top-right-radius: 6px;
 }
 .tabs ul.primary li.active a {
   background-color: #ffffff;
   border: 1px solid #bbb;
-  border-bottom: 1px solid #fff;
+}
+@media screen and (max-width: 37.5em) { /* 600px */
+  .tabs ul.primary {
+    border-bottom: 1px solid #bbb;
+  }
+  .tabs ul.primary li {
+    display: block;
+    margin: 0;
+  }
+  .tabs ul.primary li a {
+    padding: 5px 10px;
+  }
+  .tabs ul.primary li.active a {
+    border-bottom: none;
+  }
+}
+@media screen and (min-width: 37.5em) { /* 600px */
+  .tabs ul.primary {
+    border-collapse: collapse;
+    height: auto;
+    line-height: normal;
+    padding: 0 3px;
+    margin: 0;
+    overflow: hidden;
+    border: none;
+    background: transparent url(../images/tabs-border.png) repeat-x left bottom;
+    white-space: nowrap;
+  }
+  .tabs ul.primary li {
+    display: block;
+    float: left; /* LTR */
+    vertical-align: bottom;
+    margin: 0 5px 0 0; /* LTR */
+  }
+  [dir="rtl"] .tabs ul.primary li {
+    margin: 0 0 0 5px;
+    float: right;
+    zoom: 1;
+  }
+  .tabs ul.primary li a {
+    float: left; /* not LTR */
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+  }
+  .tabs ul.primary li.active a {
+    border-bottom: 1px solid #fff;
+  }
 }
 .tabs ul.secondary {
   border-bottom: none;
@@ -1464,6 +1493,7 @@ input.form-color,
 textarea.form-textarea,
 select.form-select {
   border: 1px solid #ccc;
+  color: #3b3b3b;
 }
 input.form-submit:hover,
 input.form-submit:focus {
@@ -1650,6 +1680,10 @@ div.password-suggestions {
 #forum .description {
   font-size: 1em;
 }
+#header .contextual .trigger,
+#footer-wrapper .contextual .trigger {
+  border: none;
+}
 
 /* ---------- Color Form ----------- */
 
@@ -1786,14 +1820,18 @@ div.add-or-remove-shortcuts {
 }
 
 /* ---------- Admin-specific Theming ---------- */
-
-.page-admin #content img {
+.path-admin #content img {
   margin-right: 15px; /* LTR */
 }
-.page-admin #content .simpletest-image img {
+.path-admin #content .simpletest-image img {
   margin: 0;
 }
-.page-admin-structure-block-demo .block-region {
+.path-admin #admin-dblog img {
+  margin: 0 5px;
+}
+
+/* Block demo mode */
+.demo-block {
   background: #ffff66;
   border: 1px dotted #9f9e00;
   color: #000;
@@ -1803,14 +1841,11 @@ div.add-or-remove-shortcuts {
   text-align: center;
   text-shadow: none;
 }
-.page-admin-structure-block-demo #featured .block-region {
+#featured .demo-block {
   font-size: 0.55em;
 }
-.page-admin-structure-block-demo #header .block-region {
+#header .demo-block {
   width: 500px;
-}
-.page-admin #admin-dblog img {
-  margin: 0 5px;
 }
 
 /* Configuration. */
@@ -2025,6 +2060,14 @@ div.admin-panel .description {
   th.priority-low,
   td.priority-low {
     display: none;
+  }
+}
+
+/* ---------- Input fields ---------- */
+@media screen and (max-width: 60em) { /* 920px */
+  input,
+  textarea {
+    font-size: 1.142857143em;
   }
 }
 

@@ -13,7 +13,6 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\KeyValueStore\KeyValueStoreExpirableInterface;
 use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
  * Builds a confirmation form for enabling modules with dependencies.
@@ -108,7 +107,7 @@ class ModulesListConfirmForm extends ConfirmFormBase {
 
     // Redirect to the modules list page if the key value store is empty.
     if (!$this->modules) {
-      return new RedirectResponse($this->url('system.modules_list', [], ['absolute' => TRUE]));
+      return $this->redirect('system.modules_list');
     }
 
     $items = array();
@@ -148,7 +147,6 @@ class ModulesListConfirmForm extends ConfirmFormBase {
     // Gets module list after install process, flushes caches and displays a
     // message if there are changes.
     if ($before != $this->moduleHandler->getModuleList()) {
-      drupal_flush_all_caches();
       drupal_set_message($this->t('The configuration options have been saved.'));
     }
 

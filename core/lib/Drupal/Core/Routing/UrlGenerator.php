@@ -101,6 +101,7 @@ class UrlGenerator extends ProviderBasedGenerator implements UrlGeneratorInterfa
    */
   public function getPathFromRoute($name, $parameters = array()) {
     $route = $this->getRoute($name);
+    $this->processRoute($name, $route, $parameters);
     $path = $this->getInternalPathFromRoute($route, $parameters);
     // Router-based paths may have a querystring on them but Drupal paths may
     // not have one, so remove any ? and anything after it. For generate() this
@@ -160,7 +161,7 @@ class UrlGenerator extends ProviderBasedGenerator implements UrlGeneratorInterfa
     $options += array('prefix' => '');
     $absolute = !empty($options['absolute']);
     $route = $this->getRoute($name);
-    $this->processRoute($route, $parameters);
+    $this->processRoute($name, $route, $parameters);
 
     // Symfony adds any parameters that are not path slugs as query strings.
     if (isset($options['query']) && is_array($options['query'])) {
@@ -331,12 +332,13 @@ class UrlGenerator extends ProviderBasedGenerator implements UrlGeneratorInterfa
    *
    * @param \Symfony\Component\Routing\Route $route
    *   The route object to process.
-   *
    * @param array $parameters
    *   An array of parameters to be passed to the route compiler.
+   * @param string $name
+   *   The route name.
    */
-  protected function processRoute(SymfonyRoute $route, array &$parameters) {
-    $this->routeProcessor->processOutbound($route, $parameters);
+  protected function processRoute($name, SymfonyRoute $route, array &$parameters) {
+    $this->routeProcessor->processOutbound($name, $route, $parameters);
   }
 
   /**
@@ -357,7 +359,7 @@ class UrlGenerator extends ProviderBasedGenerator implements UrlGeneratorInterfa
     if ($name instanceof SymfonyRoute) {
       $route = $name;
     }
-    elseif (NULL === $route = $this->provider->getRouteByName($name)) {
+    elseif (NULL === $route = clone $this->provider->getRouteByName($name)) {
       throw new RouteNotFoundException(sprintf('Route "%s" does not exist.', $name));
     }
     return $route;

@@ -45,7 +45,7 @@ function aggregator_help($route_name, RouteMatchInterface $route_match) {
 
     case 'aggregator.admin_overview':
       // Don't use placeholders for possibility to change URLs for translators.
-      $output = '<p>' . t('Many sites publish their headlines and posts in feeds, using a number of standardized XML-based formats. The aggregator supports <a href="http://en.wikipedia.org/wiki/Rss">RSS</a>, <a href="http://en.wikipedia.org/Resource_Description_Framework">RDF</a>, and <a href="http://en.wikipedia.org/wiki/Atom_%28standard%29">Atom</a>.') . '</p>';
+      $output = '<p>' . t('Many sites publish their headlines and posts in feeds, using a number of standardized XML-based formats. The aggregator supports <a href="http://en.wikipedia.org/wiki/Rss">RSS</a>, <a href="http://en.wikipedia.org/wiki/Resource_Description_Framework">RDF</a>, and <a href="http://en.wikipedia.org/wiki/Atom_%28standard%29">Atom</a>.') . '</p>';
       $output .= '<p>' . t('Current feeds are listed below, and <a href="!addfeed">new feeds may be added</a>. For each feed, the <em>latest items</em> block may be enabled at the <a href="!block">blocks administration page</a>.', array('!addfeed' =>  \Drupal::url('aggregator.feed_add'), '!block' => \Drupal::url('block.admin_display'))) . '</p>';
       return $output;
 
@@ -65,17 +65,14 @@ function aggregator_theme() {
     'aggregator_feed' => array(
       'render element' => 'elements',
       'file' => 'aggregator.theme.inc',
-      'template' => 'aggregator-feed',
     ),
     'aggregator_block_item' => array(
       'variables' => array('item' => NULL, 'feed' => 0),
       'file' => 'aggregator.theme.inc',
-      'template' => 'aggregator-block-item',
     ),
     'aggregator_item' => array(
       'render element' => 'elements',
       'file' => 'aggregator.theme.inc',
-      'template' => 'aggregator-item',
     ),
   );
 }

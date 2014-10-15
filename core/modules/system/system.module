@@ -113,14 +113,14 @@ function system_help($route_name, RouteMatchInterface $route_match) {
       $output = '<p>' . t('Download additional <a href="@modules">contributed modules</a> to extend Drupal\'s functionality.', array('@modules' => 'http://drupal.org/project/modules')) . '</p>';
       if (\Drupal::moduleHandler()->moduleExists('update')) {
         if (update_manager_access()) {
-          $output .= '<p>' . t('Regularly review and install <a href="@updates">available updates</a> to maintain a secure and current site. Always run the <a href="@update-php">update script</a> each time a module is updated.', array('@update-php' => $base_url . '/core/update.php', '@updates' => \Drupal::url('update.status'))) . '</p>';
+          $output .= '<p>' . t('Regularly review and install <a href="@updates">available updates</a> to maintain a secure and current site. Always run the <a href="@update-php">update script</a> each time a module is updated.', array('@update-php' => \Drupal::url('system.db_update'), '@updates' => \Drupal::url('update.status'))) . '</p>';
         }
         else {
-          $output .= '<p>' . t('Regularly review <a href="@updates">available updates</a> to maintain a secure and current site. Always run the <a href="@update-php">update script</a> each time a module is updated.', array('@update-php' => $base_url . '/core/update.php', '@updates' => \Drupal::url('update.status'))) . '</p>';
+          $output .= '<p>' . t('Regularly review <a href="@updates">available updates</a> to maintain a secure and current site. Always run the <a href="@update-php">update script</a> each time a module is updated.', array('@update-php' => \Drupal::url('system.db_update'), '@updates' => \Drupal::url('update.status'))) . '</p>';
         }
       }
       else {
-        $output .= '<p>' . t('Regularly review available updates to maintain a secure and current site. Always run the <a href="@update-php">update script</a> each time a module is updated. Enable the Update Manager module to update and install modules and themes.', array('@update-php' => $base_url . '/core/update.php')) . '</p>';
+        $output .= '<p>' . t('Regularly review available updates to maintain a secure and current site. Always run the <a href="@update-php">update script</a> each time a module is updated. Enable the Update Manager module to update and install modules and themes.', array('@update-php' => \Drupal::url('system.db_update'))) . '</p>';
       }
       return $output;
 
@@ -161,12 +161,10 @@ function system_theme() {
     'block__system_branding_block' => array(
       'render element' => 'elements',
       'base hook' => 'block',
-      'template' => 'block--system-branding-block',
     ),
     'block__system_menu_block' => array(
       'render element' => 'elements',
       'base hook' => 'block',
-      'template' => 'block--system-menu-block',
     ),
     'system_themes_page' => array(
       'variables' => array(
@@ -174,51 +172,46 @@ function system_theme() {
         'theme_group_titles' => array(),
       ),
       'file' => 'system.admin.inc',
-      'template' => 'system-themes-page',
     ),
     'system_config_form' => array(
       'render element' => 'form',
-      'template' => 'system-config-form',
     ),
     'confirm_form' => array(
       'render element' => 'form',
-      'template' => 'confirm-form',
     ),
     'system_modules_details' => array(
       'render element' => 'form',
       'file' => 'system.admin.inc',
+      'function' => 'theme_system_modules_details',
     ),
     'system_modules_uninstall' => array(
       'render element' => 'form',
       'file' => 'system.admin.inc',
+      'function' => 'theme_system_modules_uninstall',
     ),
     'status_report' => array(
       'variables' => array('requirements' => NULL),
       'file' => 'system.admin.inc',
-      'template' => 'status-report',
     ),
     'admin_page' => array(
       'variables' => array('blocks' => NULL),
       'file' => 'system.admin.inc',
-      'template' => 'admin-page',
     ),
     'admin_block' => array(
       'variables' => array('block' => NULL),
       'file' => 'system.admin.inc',
-      'template' => 'admin-block',
     ),
     'admin_block_content' => array(
       'variables' => array('content' => NULL),
       'file' => 'system.admin.inc',
-      'template' => 'admin-block-content',
     ),
     'system_admin_index' => array(
       'variables' => array('menu_items' => NULL),
       'file' => 'system.admin.inc',
-      'template' => 'system-admin-index',
     ),
     'system_compact_link' => array(
       'variables' => array(),
+      'function' => 'theme_system_compact_link',
     ),
   ));
 }
@@ -310,35 +303,13 @@ function system_theme_suggestions_field(array $variables) {
 }
 
 /**
- * Implements hook_stream_wrappers().
+ * Implements hook_stream_wrappers_alter().
  */
-function system_stream_wrappers() {
-  $wrappers = array(
-    'public' => array(
-      'name' => new TranslationWrapper('Public files'),
-      'class' => 'Drupal\Core\StreamWrapper\PublicStream',
-      'description' => new TranslationWrapper('Public local files served by the webserver.'),
-      'type' => STREAM_WRAPPERS_LOCAL_NORMAL,
-    ),
-    'temporary' => array(
-      'name' => new TranslationWrapper('Temporary files'),
-      'class' => 'Drupal\Core\StreamWrapper\TemporaryStream',
-      'description' => new TranslationWrapper('Temporary local files for upload and previews.'),
-      'type' => STREAM_WRAPPERS_LOCAL_HIDDEN,
-    ),
-  );
-
+function system_stream_wrappers_alter(&$wrappers) {
   // Only register the private file stream wrapper if a file path has been set.
-  if (\Drupal::config('system.file')->get('path.private')) {
-    $wrappers['private'] = array(
-      'name' => new TranslationWrapper('Private files'),
-      'class' => 'Drupal\Core\StreamWrapper\PrivateStream',
-      'description' => new TranslationWrapper('Private local files served by Drupal.'),
-      'type' => STREAM_WRAPPERS_LOCAL_NORMAL,
-    );
+  if (!\Drupal::config('system.file')->get('path.private')) {
+    unset($wrappers['private']);
   }
-
-  return $wrappers;
 }
 
 /**
@@ -576,7 +547,7 @@ function system_page_build(&$page) {
       array(
         'path' => current_path(),
         'front' => drupal_is_front_page(),
-        'language' => \Drupal::languageManager()->getCurrentLanguage(LanguageInterface::TYPE_URL)->id,
+        'language' => \Drupal::languageManager()->getCurrentLanguage(LanguageInterface::TYPE_URL)->getId(),
         'query' => \Drupal::request()->query->all(),
       )
     );

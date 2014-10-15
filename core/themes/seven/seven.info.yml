@@ -1,5 +1,6 @@
 name: Seven
 type: theme
+base theme: classy
 description: 'The default administration theme for Drupal 8 was designed with clean lines, simple blocks, and sans-serif font to emphasize the tools and tasks at hand.'
 alt text: 'Default administration theme for Drupal 8 with simple blocks and clean lines.'
 tags: 'multi-column, fluid, responsive, sans-serif, accessible'
@@ -9,11 +10,12 @@ core: 8.x
 stylesheets:
   screen:
     - css/base/elements.css
+    - css/base/typography.css
     - css/components/admin-list.css
     - css/components/admin-options.css
     - css/components/admin-panel.css
     - css/components/block-recent-content.css
-    - css/components/branding.css
+    - css/components/content-header.css
     - css/components/breadcrumb.css
     - css/components/buttons.css
     - css/components/buttons.theme.css

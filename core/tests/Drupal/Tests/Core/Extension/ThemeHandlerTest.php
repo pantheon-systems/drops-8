@@ -22,11 +22,11 @@ use Drupal\Tests\UnitTestCase;
 class ThemeHandlerTest extends UnitTestCase {
 
   /**
-   * The mocked route builder.
+   * The mocked route builder indicator.
    *
-   * @var \Drupal\Core\Routing\RouteBuilder|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Routing\RouteBuilderIndicatorInterface|\PHPUnit_Framework_MockObject_MockObject
    */
-  protected $routeBuilder;
+  protected $routeBuilderIndicator;
 
   /**
    * The mocked info parser.
@@ -109,9 +109,7 @@ class ThemeHandlerTest extends UnitTestCase {
     $this->infoParser = $this->getMock('Drupal\Core\Extension\InfoParserInterface');
     $this->configInstaller = $this->getMock('Drupal\Core\Config\ConfigInstallerInterface');
     $this->configManager = $this->getMock('Drupal\Core\Config\ConfigManagerInterface');
-    $this->routeBuilder = $this->getMockBuilder('Drupal\Core\Routing\RouteBuilder')
-      ->disableOriginalConstructor()
-      ->getMock();
+    $this->routeBuilderIndicator = $this->getMock('Drupal\Core\Routing\RouteBuilderIndicatorInterface');
     $this->extensionDiscovery = $this->getMockBuilder('Drupal\Core\Extension\ExtensionDiscovery')
       ->disableOriginalConstructor()
       ->getMock();
@@ -119,7 +117,7 @@ class ThemeHandlerTest extends UnitTestCase {
       ->disableOriginalConstructor()
       ->getMock();
     $logger = $this->getMock('Psr\Log\LoggerInterface');
-    $this->themeHandler = new TestThemeHandler($this->configFactory, $this->moduleHandler, $this->state, $this->infoParser, $logger, $this->cssCollectionOptimizer, $this->configInstaller, $this->configManager, $this->routeBuilder, $this->extensionDiscovery);
+    $this->themeHandler = new TestThemeHandler($this->configFactory, $this->moduleHandler, $this->state, $this->infoParser, $logger, $this->cssCollectionOptimizer, $this->configInstaller, $this->configManager, $this->routeBuilderIndicator, $this->extensionDiscovery);
 
     $cache_backend = $this->getMock('Drupal\Core\Cache\CacheBackendInterface');
     $this->getContainerWithCacheBins($cache_backend);
@@ -176,11 +174,12 @@ class ThemeHandlerTest extends UnitTestCase {
     $this->assertEquals(array(
       'screen' => array(
         'css/base/elements.css' => DRUPAL_ROOT . '/core/themes/seven/css/base/elements.css',
+        'css/base/typography.css' => DRUPAL_ROOT . '/core/themes/seven/css/base/typography.css',
         'css/components/admin-list.css' => DRUPAL_ROOT . '/core/themes/seven/css/components/admin-list.css',
         'css/components/admin-options.css' => DRUPAL_ROOT . '/core/themes/seven/css/components/admin-options.css',
         'css/components/admin-panel.css' => DRUPAL_ROOT . '/core/themes/seven/css/components/admin-panel.css',
         'css/components/block-recent-content.css' => DRUPAL_ROOT . '/core/themes/seven/css/components/block-recent-content.css',
-        'css/components/branding.css' => DRUPAL_ROOT . '/core/themes/seven/css/components/branding.css',
+        'css/components/content-header.css' => DRUPAL_ROOT . '/core/themes/seven/css/components/content-header.css',
         'css/components/breadcrumb.css' => DRUPAL_ROOT . '/core/themes/seven/css/components/breadcrumb.css',
         'css/components/buttons.css' => DRUPAL_ROOT . '/core/themes/seven/css/components/buttons.css',
         'css/components/buttons.theme.css' => DRUPAL_ROOT . '/core/themes/seven/css/components/buttons.theme.css',

@@ -25,7 +25,6 @@ class NodeTest extends MigrateSqlSourceTestCase {
     'idlist' => array(),
     // The fake configuration for the source.
     'source' => array(
-      'bundle' => 'page',
       'plugin' => 'd6_node',
     ),
   );
@@ -123,20 +122,4 @@ class NodeTest extends MigrateSqlSourceTestCase {
     parent::setUp();
   }
 
-}
-
-namespace Drupal\Tests\migrate_drupal\Unit\source\d6;
-
-use Drupal\Core\Database\Connection;
-use Drupal\Core\Extension\ModuleHandlerInterface;
-use Drupal\migrate_drupal\Plugin\migrate\source\d6\Node;
-
-class TestNode extends Node {
-  protected $cckSchemaCorrect = true;
-  public function setDatabase(Connection $database) {
-    $this->database = $database;
-  }
-  public function setModuleHandler(ModuleHandlerInterface $module_handler) {
-    $this->moduleHandler = $module_handler;
-  }
 }

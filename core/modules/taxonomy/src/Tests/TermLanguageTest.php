@@ -7,6 +7,7 @@
 
 namespace Drupal\taxonomy\Tests;
 
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\language\Entity\ConfigurableLanguage;
 
 /**
@@ -56,7 +57,7 @@ class TermLanguageTest extends TaxonomyTestBase {
     $this->drupalPostForm(NULL, $edit, t('Save'));
     $terms = taxonomy_term_load_multiple_by_name($edit['name[0][value]']);
     $term = reset($terms);
-    $this->assertEqual($term->language()->id, $edit['langcode'], 'The term contains the correct langcode.');
+    $this->assertEqual($term->language()->getId(), $edit['langcode'], 'The term contains the correct langcode.');
 
     // Check if on the edit page the language is correct.
     $this->drupalGet('taxonomy/term/' . $term->id() . '/edit');
@@ -97,7 +98,7 @@ class TermLanguageTest extends TaxonomyTestBase {
     // language is still correctly selected.
     \Drupal::config('system.site')->set('langcode', 'cc')->save();
     $edit = array(
-      'default_language[langcode]' => 'site_default',
+      'default_language[langcode]' => LanguageInterface::LANGCODE_SITE_DEFAULT,
       'default_language[language_show]' => TRUE,
     );
     $this->drupalPostForm('admin/structure/taxonomy/manage/' . $this->vocabulary->id(), $edit, t('Save'));

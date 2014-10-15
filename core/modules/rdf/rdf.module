@@ -250,7 +250,6 @@ function rdf_theme() {
   return array(
     'rdf_metadata' => array(
       'variables' => array('metadata' => array()),
-      'template' => 'rdf-metadata',
     ),
   );
 }
@@ -367,7 +366,7 @@ function rdf_preprocess_user(&$variables) {
           'lang' => '',
         ),
       );
-      drupal_add_html_head($username_meta, 'rdf_user_username');
+      $variables['#attached']['html_head'][] = [$username_meta, 'rdf_user_username'];
     }
   }
 }

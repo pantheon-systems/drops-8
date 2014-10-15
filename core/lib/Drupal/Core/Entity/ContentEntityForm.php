@@ -91,7 +91,7 @@ class ContentEntityForm extends EntityForm implements ContentEntityFormInterface
       // Imply a 'view' operation to ensure users edit entities in the same
       // language they are displayed. This allows to keep contextual editing
       // working also for multilingual entities.
-      $form_state->set('langcode', $this->entityManager->getTranslationFromContext($this->entity)->language()->id);
+      $form_state->set('langcode', $this->entityManager->getTranslationFromContext($this->entity)->language()->getId());
     }
     return $form_state->get('langcode');
   }
@@ -100,7 +100,7 @@ class ContentEntityForm extends EntityForm implements ContentEntityFormInterface
    * {@inheritdoc}
    */
   public function isDefaultFormLangcode(FormStateInterface $form_state) {
-    return $this->getFormLangcode($form_state) == $this->entity->getUntranslated()->language()->id;
+    return $this->getFormLangcode($form_state) == $this->entity->getUntranslated()->language()->getId();
   }
 
   /**
@@ -133,6 +133,19 @@ class ContentEntityForm extends EntityForm implements ContentEntityFormInterface
   public function setFormDisplay(EntityFormDisplayInterface $form_display, FormStateInterface $form_state) {
     $form_state->set('form_display', $form_display);
     return $this;
+  }
+
+  /**
+   * Updates the form language to reflect any change to the entity language.
+   *
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   The current state of the form.
+   */
+  protected function updateFormLangcode(FormStateInterface $form_state) {
+    // Update the form language as it might have changed.
+    if ($form_state->hasValue('langcode') && $this->isDefaultFormLangcode($form_state)) {
+      $form_state->set('langcode', $form_state->getValue('langcode'));
+    }
   }
 
 }

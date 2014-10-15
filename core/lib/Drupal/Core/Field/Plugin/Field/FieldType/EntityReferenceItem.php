@@ -7,6 +7,7 @@
 
 namespace Drupal\Core\Field\Plugin\Field\FieldType;
 
+use Drupal\Core\Entity\Entity;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\Field\FieldDefinitionInterface;
@@ -61,20 +62,20 @@ class EntityReferenceItem extends FieldItemBase {
     $settings = $field_definition->getSettings();
     $target_type_info = \Drupal::entityManager()->getDefinition($settings['target_type']);
 
-    if ($target_type_info->isSubclassOf('\Drupal\Core\Entity\ContentEntityInterface')) {
+    if ($target_type_info->isSubclassOf('\Drupal\Core\Entity\FieldableEntityInterface')) {
       // @todo: Lookup the entity type's ID data type and use it here.
       // https://drupal.org/node/2107249
       $target_id_definition = DataDefinition::create('integer')
-        ->setLabel(t('Entity ID'))
+        ->setLabel(t('@label ID', array($target_type_info->getLabel())))
         ->setSetting('unsigned', TRUE);
     }
     else {
       $target_id_definition = DataDefinition::create('string')
-        ->setLabel(t('Entity ID'));
+        ->setLabel(t('@label ID', array($target_type_info->getLabel())));
     }
     $properties['target_id'] = $target_id_definition;
     $properties['entity'] = DataReferenceDefinition::create('entity')
-      ->setLabel(t('Entity'))
+      ->setLabel($target_type_info->getLabel())
       ->setDescription(t('The referenced entity'))
       // The entity object is computed out of the entity ID.
       ->setComputed(TRUE)
@@ -102,7 +103,7 @@ class EntityReferenceItem extends FieldItemBase {
     $target_type = $field_definition->getSetting('target_type');
     $target_type_info = \Drupal::entityManager()->getDefinition($target_type);
 
-    if ($target_type_info->isSubclassOf('\Drupal\Core\Entity\ContentEntityInterface')) {
+    if ($target_type_info->isSubclassOf('\Drupal\Core\Entity\FieldableEntityInterface')) {
       $columns = array(
         'target_id' => array(
           'description' => 'The ID of the target entity.',
@@ -193,8 +194,7 @@ class EntityReferenceItem extends FieldItemBase {
     if ($target_id !== NULL) {
       return FALSE;
     }
-    // Allow auto-create entities.
-    if ($this->hasUnsavedEntity()) {
+    if ($this->entity && $this->entity instanceof Entity) {
       return FALSE;
     }
     return TRUE;
@@ -206,6 +206,12 @@ class EntityReferenceItem extends FieldItemBase {
   public function preSave() {
     if ($this->hasUnsavedEntity()) {
       $this->entity->save();
+    }
+    // Handle the case where an unsaved entity was directly set using the public
+    // 'entity' property and then saved before this entity. In this case
+    // ::hasUnsavedEntity() will return FALSE but $this->target_id will still be
+    // empty.
+    if (empty($this->target_id) && $this->entity) {
       $this->target_id = $this->entity->id();
     }
   }

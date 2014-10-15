@@ -115,14 +115,13 @@ function common_test_theme() {
   return array(
     'common_test_foo' => array(
       'variables' => array('foo' => 'foo', 'bar' => 'bar'),
-      'template' => 'common-test-foo',
     ),
     'common_test_render_element' => array(
       'render element' => 'foo',
-      'template' => 'common-test-render-element',
     ),
     'common_test_empty' => array(
       'variables' => array('foo' => 'foo'),
+      'function' => 'theme_common_test_empty',
     ),
   );
 }
@@ -139,6 +138,30 @@ function theme_common_test_foo($variables) {
  */
 function theme_common_test_empty($variables) {
   return '';
+}
+
+/**
+ * Implements MODULE_preprocess().
+ *
+ * @see RenderTest::testDrupalRenderThemePreprocessAttached()
+ */
+function common_test_preprocess(&$variables, $hook) {
+  if (!\Drupal::state()->get('theme_preprocess_attached_test', FALSE)) {
+    return;
+  }
+  $variables['#attached']['library'][] = 'test/generic_preprocess';
+}
+
+/**
+ * Implements MODULE_preprocess_HOOK().
+ *
+ * @see RenderTest::testDrupalRenderThemePreprocessAttached()
+ */
+function common_test_preprocess_common_test_render_element(&$variables) {
+  if (!\Drupal::state()->get('theme_preprocess_attached_test', FALSE)) {
+    return;
+  }
+  $variables['#attached']['library'][] = 'test/specific_preprocess';
 }
 
 /**

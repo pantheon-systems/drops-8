@@ -248,7 +248,7 @@ function hook_library_alter(array &$library, $name) {
 
     $language_interface = \Drupal::languageManager()->getCurrentLanguage();
     $settings['jquery']['ui']['datepicker'] = array(
-      'isRTL' => $language_interface->direction == LanguageInterface::DIRECTION_RTL,
+      'isRTL' => $language_interface->getDirection() == LanguageInterface::DIRECTION_RTL,
       'firstDay' => \Drupal::config('system.date')->get('first_day'),
     );
     $library['js'][] = array(
@@ -412,7 +412,7 @@ function hook_menu_local_tasks(&$data, $route_name) {
     '#theme' => 'menu_local_action',
     '#link' => array(
       'title' => t('Add content'),
-      'href' => 'node/add',
+      'url' => Url::fromRoute('node.add_page'),
       'localized_options' => array(
         'attributes' => array(
           'title' => t('Add content'),
@@ -426,7 +426,7 @@ function hook_menu_local_tasks(&$data, $route_name) {
     '#theme' => 'menu_local_task',
     '#link' => array(
       'title' => t('Example tab'),
-      'href' => 'node/add',
+      'url' => Url::fromRoute('node.add_page'),
       'localized_options' => array(
         'attributes' => array(
           'title' => t('Add content'),
@@ -981,17 +981,17 @@ function hook_help($route_name, \Drupal\Core\Routing\RouteMatchInterface $route_
  *     theme path will be used, but if the file will not be in the default
  *     path, include it here. This path should be relative to the Drupal root
  *     directory.
- *   - template: If specified, this theme implementation is a template, and
- *     this is the template file without an extension. Do not put .html.twig on
- *     this file; that extension will be added automatically by the default
- *     rendering engine (which is Twig). If 'path' above is specified, the
- *     template should also be in this path.
+ *   - template: If specified, the theme implementation is a template file, and
+ *     this is the template name. Do not add 'html.twig' on the end of the
+ *     template name. The extension will be added automatically by the default
+ *     rendering engine (which is Twig.) If 'path' is specified, 'template'
+ *     should also be specified. If neither 'template' nor 'function' are
+ *     specified, a default template name will be assumed. For example, if a
+ *     module registers the 'search_result' theme hook, 'search-result' will be
+ *     assigned as its template name.
  *   - function: If specified, this will be the function name to invoke for
- *     this implementation. If neither 'template' nor 'function' is specified,
- *     a default function name will be assumed. For example, if a module
- *     registers the 'node' theme hook, 'theme_node' will be assigned to its
- *     function. If the chameleon theme registers the node hook, it will be
- *     assigned 'chameleon_node' as its function.
+ *     this implementation. If neither 'template' nor 'function' are specified,
+ *     a default template name will be assumed. See above for more details.
  *   - base hook: Used for _theme() suggestions only: the base theme hook name.
  *     Instead of this suggestion's implementation being used directly, the base
  *     hook will be invoked with this implementation as its first suggestion.
@@ -1328,80 +1328,10 @@ function hook_modules_uninstalled($modules) {
 }
 
 /**
- * Registers PHP stream wrapper implementations associated with a module.
- *
- * Provide a facility for managing and querying user-defined stream wrappers
- * in PHP. PHP's internal stream_get_wrappers() doesn't return the class
- * registered to handle a stream, which we need to be able to find the handler
- * for class instantiation.
- *
- * If a module registers a scheme that is already registered with PHP, it will
- * be unregistered and replaced with the specified class.
- *
- * @return
- *   A nested array, keyed first by scheme name ("public" for "public://"),
- *   then keyed by the following values:
- *   - 'name' A short string to name the wrapper.
- *   - 'class' A string specifying the PHP class that implements the
- *     Drupal\Core\StreamWrapper\StreamWrapperInterface interface.
- *   - 'description' A string with a short description of what the wrapper does.
- *   - 'type' (Optional) A bitmask of flags indicating what type of streams this
- *     wrapper will access - local or remote, readable and/or writeable, etc.
- *     Many shortcut constants are defined in file.inc. Defaults to
- *     STREAM_WRAPPERS_NORMAL which includes all of these bit flags:
- *     - STREAM_WRAPPERS_READ
- *     - STREAM_WRAPPERS_WRITE
- *     - STREAM_WRAPPERS_VISIBLE
- *
- * @see file_get_stream_wrappers()
- * @see hook_stream_wrappers_alter()
- * @see system_stream_wrappers()
- */
-function hook_stream_wrappers() {
-  return array(
-    'public' => array(
-      'name' => t('Public files'),
-      'class' => 'Drupal\Core\StreamWrapper\PublicStream',
-      'description' => t('Public local files served by the webserver.'),
-      'type' => STREAM_WRAPPERS_LOCAL_NORMAL,
-    ),
-    'private' => array(
-      'name' => t('Private files'),
-      'class' => 'Drupal\Core\StreamWrapper\PrivateStream',
-      'description' => t('Private local files served by Drupal.'),
-      'type' => STREAM_WRAPPERS_LOCAL_NORMAL,
-    ),
-    'temp' => array(
-      'name' => t('Temporary files'),
-      'class' => 'Drupal\Core\StreamWrapper\TemporaryStream',
-      'description' => t('Temporary local files for upload and previews.'),
-      'type' => STREAM_WRAPPERS_LOCAL_HIDDEN,
-    ),
-    'cdn' => array(
-      'name' => t('Content delivery network files'),
-      // @todo: Fix the name of this class when we decide on module PSR-0 usage.
-      'class' => 'MyModuleCDNStream',
-      'description' => t('Files served by a content delivery network.'),
-      // 'type' can be omitted to use the default of STREAM_WRAPPERS_NORMAL
-    ),
-    'youtube' => array(
-      'name' => t('YouTube video'),
-      // @todo: Fix the name of this class when we decide on module PSR-0 usage.
-      'class' => 'MyModuleYouTubeStream',
-      'description' => t('Video streamed from YouTube.'),
-      // A module implementing YouTube integration may decide to support using
-      // the YouTube API for uploading video, but here, we assume that this
-      // particular module only supports playing YouTube video.
-      'type' => STREAM_WRAPPERS_READ_VISIBLE,
-    ),
-  );
-}
-
-/**
  * Alters the list of PHP stream wrapper implementations.
  *
  * @see file_get_stream_wrappers()
- * @see hook_stream_wrappers()
+ * @see \Drupal\Core\StreamWrapper\StreamWrapperManager
  */
 function hook_stream_wrappers_alter(&$wrappers) {
   // Change the name of private files to reflect the performance.
@@ -2277,7 +2207,7 @@ function hook_system_themes_page_alter(&$theme_groups) {
       // Add a foo link to each list of theme operations.
       $theme->operations[] = array(
         'title' => t('Foo'),
-        'href' => 'admin/appearance/foo',
+        'url' => Url::fromRoute('system.themes_page'),
         'query' => array('theme' => $theme->getName())
       );
     }

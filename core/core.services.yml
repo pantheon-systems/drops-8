@@ -173,7 +173,7 @@ services:
     arguments: [default]
   form_builder:
     class: Drupal\Core\Form\FormBuilder
-    arguments: ['@form_validator', '@form_submitter', '@form_cache', '@module_handler', '@event_dispatcher', '@request_stack', '@class_resolver', '@theme.manager', '@?csrf_token', '@?http_kernel']
+    arguments: ['@form_validator', '@form_submitter', '@form_cache', '@module_handler', '@event_dispatcher', '@request_stack', '@class_resolver', '@theme.manager', '@?csrf_token', '@?kernel']
   form_validator:
     class: Drupal\Core\Form\FormValidator
     arguments: ['@request_stack', '@string_translation', '@csrf_token', '@logger.channel.form']
@@ -182,7 +182,7 @@ services:
     arguments: ['@request_stack', '@url_generator']
   form_cache:
     class: Drupal\Core\Form\FormCache
-    arguments: ['@keyvalue.expirable', '@module_handler', '@current_user', '@csrf_token']
+    arguments: ['@keyvalue.expirable', '@module_handler', '@current_user', '@csrf_token', '@logger.channel.form', '@config.factory', '@request_stack', '@page_cache_request_policy']
     public: false  # Private to form_builder
   keyvalue:
     class: Drupal\Core\KeyValueStore\KeyValueFactory
@@ -290,7 +290,7 @@ services:
     arguments: ['%container.modules%', '@cache.bootstrap']
   theme_handler:
     class: Drupal\Core\Extension\ThemeHandler
-    arguments: ['@config.factory', '@module_handler', '@state', '@info_parser', '@logger.channel.default', '@asset.css.collection_optimizer', '@config.installer', '@config.manager', '@router.builder']
+    arguments: ['@config.factory', '@module_handler', '@state', '@info_parser', '@logger.channel.default', '@asset.css.collection_optimizer', '@config.installer', '@config.manager', '@router.builder_indicator']
   entity.manager:
     class: Drupal\Core\Entity\EntityManager
     arguments: ['@container.namespaces', '@module_handler', '@cache.discovery', '@language_manager', '@string_translation', '@class_resolver', '@typed_data_manager', '@entity.definitions.installed']
@@ -380,7 +380,7 @@ services:
      class: Drupal\Core\Routing\CurrentRouteMatch
      arguments: ['@request_stack']
   event_dispatcher:
-    class: Symfony\Component\EventDispatcher\ContainerAwareEventDispatcher
+    class: Drupal\Component\EventDispatcher\ContainerAwareEventDispatcher
     arguments: ['@service_container']
   controller_resolver:
     class: Drupal\Core\Controller\ControllerResolver
@@ -393,12 +393,7 @@ services:
     class: Drupal\Core\Controller\TitleResolver
     arguments: ['@controller_resolver', '@string_translation']
   http_kernel:
-    class: Symfony\Component\HttpKernel\HttpKernel
-    factory_method: resolve
-    factory_service: http_kernel_factory
-    arguments: ['@http_kernel.basic']
-  http_kernel_factory:
-    class: Stack\Builder
+    class: Stack\StackedHttpKernel
   http_kernel.basic:
     class: Symfony\Component\HttpKernel\HttpKernel
     arguments: ['@event_dispatcher', '@controller_resolver', '@request_stack']
@@ -455,6 +450,9 @@ services:
     arguments: ['@database']
     tags:
       - { name: backend_overridable }
+  lock.persistent:
+    class: Drupal\Core\Lock\PersistentDatabaseLockBackend
+    arguments: ['@database']
   router.request_context:
     class: Drupal\Core\Routing\RequestContext
     tags:
@@ -534,9 +532,12 @@ services:
     arguments: ['@database', '@state']
     tags:
       - { name: backend_overridable }
+  router.builder_indicator:
+    class: Drupal\Core\Routing\RouteBuilderIndicator
+    arguments: ['@state']
   router.builder:
     class: Drupal\Core\Routing\RouteBuilder
-    arguments: ['@router.dumper', '@lock', '@event_dispatcher', '@module_handler', '@controller_resolver', '@state']
+    arguments: ['@router.dumper', '@lock', '@event_dispatcher', '@module_handler', '@controller_resolver', '@router.builder_indicator']
   router.rebuild_subscriber:
     class: Drupal\Core\EventSubscriber\RouterRebuildSubscriber
     arguments: ['@router.builder']
@@ -604,7 +605,7 @@ services:
     arguments: ['@module_handler']
   resolver_manager.entity:
     class: Drupal\Core\Entity\EntityResolverManager
-    arguments: ['@entity.manager', '@controller_resolver', '@class_resolver']
+    arguments: ['@entity.manager', '@class_resolver']
   route_subscriber.entity:
     class: Drupal\Core\EventSubscriber\EntityRouteAlterSubscriber
     tags:
@@ -695,14 +696,17 @@ services:
     class: Drupal\Core\Access\AccessArgumentsResolverFactory
   access_manager:
     class: Drupal\Core\Access\AccessManager
-    arguments: ['@router.route_provider', '@paramconverter_manager', '@access_arguments_resolver_factory', '@current_user']
+    arguments: ['@router.route_provider', '@paramconverter_manager', '@access_arguments_resolver_factory', '@current_user', '@access_manager.check_provider']
+  access_manager.check_provider:
+    class: Drupal\Core\Access\CheckProvider
     calls:
       - [setContainer, ['@service_container']]
+    public: false
   access_route_subscriber:
     class: Drupal\Core\EventSubscriber\AccessRouteSubscriber
     tags:
       - { name: event_subscriber }
-    arguments: ['@access_manager']
+    arguments: ['@access_manager.check_provider']
   access_check.default:
     class: Drupal\Core\Access\DefaultAccessCheck
     tags:
@@ -824,14 +828,15 @@ services:
       - { name: path_processor_inbound, priority: 200 }
       - { name: path_processor_outbound, priority: 200 }
     arguments: ['@config.factory']
-  path_processor_none:
-    class: Drupal\Core\PathProcessor\PathProcessorNone
+  route_processor_none:
+    class: Drupal\Core\RouteProcessor\RouteProcessorNone
     tags:
-      - { name: path_processor_outbound, priority: 200 }
-  path_processor_current:
-    class: Drupal\Core\PathProcessor\PathProcessorCurrent
+      - { name: route_processor_outbound, priority: 200 }
+  route_processor_current:
+    class: Drupal\Core\RouteProcessor\RouteProcessorCurrent
+    arguments: ['@current_route_match']
     tags:
-      - { name: path_processor_outbound, priority: 200 }
+      - { name: route_processor_outbound, priority: 200 }
   path_processor_alias:
     class: Drupal\Core\PathProcessor\PathProcessorAlias
     tags:
@@ -859,6 +864,23 @@ services:
   plugin.manager.element_info:
     class: Drupal\Core\Render\ElementInfoManager
     parent: default_plugin_manager
+  stream_wrapper_manager:
+    class: Drupal\Core\StreamWrapper\StreamWrapperManager
+    arguments: ['@module_handler']
+    calls:
+      - [setContainer, ['@service_container']]
+  stream_wrapper.public:
+    class: Drupal\Core\StreamWrapper\PublicStream
+    tags:
+      - { name: stream_wrapper, scheme: public }
+  stream_wrapper.private:
+    class: Drupal\Core\StreamWrapper\PrivateStream
+    tags:
+      - { name: stream_wrapper, scheme: private }
+  stream_wrapper.temporary:
+    class: Drupal\Core\StreamWrapper\TemporaryStream
+    tags:
+      - { name: stream_wrapper, scheme: temporary }
   kernel_destruct_subscriber:
     class: Drupal\Core\EventSubscriber\KernelDestructionSubscriber
     tags:

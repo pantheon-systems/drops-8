@@ -17,6 +17,8 @@
  * - status_headings: List of all status types.
  * - display: (optional) May have a value of 'status' or 'error' when only
  *   displaying messages of that specific type.
+ * - attributes: HTML attributes for the element, including:
+ *   - class: HTML classes.
  *
  * @see template_preprocess_status_messages()
  *
@@ -44,10 +46,12 @@
           {% endfor %}
         </ul>
       {% else %}
-        {{ messages.0 }}
+        {{ messages|first }}
       {% endif %}
     {% if type == 'error' %}
       </div>
     {% endif %}
   </div>
+  {# Remove type specific classes. #}
+  {{ attributes.removeClass(classes) }}
 {% endfor %}

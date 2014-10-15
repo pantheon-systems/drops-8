@@ -114,11 +114,15 @@ class EntityManagerTest extends UnitTestCase {
 
     $this->cache = $this->getMock('Drupal\Core\Cache\CacheBackendInterface');
 
+    $language = $this->getMock('Drupal\Core\Language\LanguageInterface');
+    $language->expects($this->any())
+      ->method('getId')
+      ->will($this->returnValue('en'));
     $this->languageManager = $this->getMock('Drupal\Core\Language\LanguageManagerInterface');
 
     $this->languageManager->expects($this->any())
       ->method('getCurrentLanguage')
-      ->will($this->returnValue((object) array('id' => 'en')));
+      ->will($this->returnValue($language));
     $this->languageManager->expects($this->any())
       ->method('getLanguages')
       ->will($this->returnValue(array('en' => (object) array('id' => 'en'))));
@@ -716,7 +720,7 @@ class EntityManagerTest extends UnitTestCase {
       ->will($this->returnValue(array()));
     $entity_type->expects($this->any())
       ->method('isSubclassOf')
-      ->with($this->equalTo('\Drupal\Core\Entity\ContentEntityInterface'))
+      ->with($this->equalTo('\Drupal\Core\Entity\FieldableEntityInterface'))
       ->will($this->returnValue(TRUE));
     $field_definition = $this->getMockBuilder('Drupal\Core\Field\BaseFieldDefinition')
       ->disableOriginalConstructor()
@@ -946,9 +950,13 @@ class EntityManagerTest extends UnitTestCase {
     $entity->expects($this->exactly(2))
       ->method('getUntranslated')
       ->will($this->returnValue($entity));
+    $language = $this->getMock('\Drupal\Core\Language\LanguageInterface');
+    $language->expects($this->any())
+      ->method('getId')
+      ->will($this->returnValue('en'));
     $entity->expects($this->exactly(2))
       ->method('language')
-      ->will($this->returnValue((object) array('id' => 'en')));
+      ->will($this->returnValue($language));
     $entity->expects($this->exactly(2))
       ->method('hasTranslation')
       ->will($this->returnValueMap(array(
@@ -992,8 +1000,7 @@ class EntityManagerTest extends UnitTestCase {
     );
     $cache_id = 'entity_bundle_extra_fields:' . $entity_type_id . ':' . $bundle . ':' . $language_code;
 
-    $language = new Language();
-    $language->id = $language_code;
+    $language = new Language(array('id' => $language_code));
 
     $this->languageManager->expects($this->once())
       ->method('getCurrentLanguage')
@@ -1039,7 +1046,7 @@ class EntityManagerTest extends UnitTestCase {
       ->will($this->returnValue('test_entity_type'));
     $entity_type->expects($this->any())
       ->method('isSubclassOf')
-      ->with('\Drupal\Core\Entity\ContentEntityInterface')
+      ->with('\Drupal\Core\Entity\FieldableEntityInterface')
       ->will($this->returnValue(TRUE));
 
     // Set up the module handler to return two bundles for the fieldable entity
@@ -1098,7 +1105,7 @@ class EntityManagerTest extends UnitTestCase {
     $non_content_entity_type = $this->getMock('Drupal\Core\Entity\EntityTypeInterface');
     $entity_type->expects($this->any())
       ->method('isSubclassOf')
-      ->with('\Drupal\Core\Entity\ContentEntityInterface')
+      ->with('\Drupal\Core\Entity\FieldableEntityInterface')
       ->will($this->returnValue(FALSE));
 
     // Mock the base field definition override.
@@ -1182,7 +1189,7 @@ class EntityManagerTest extends UnitTestCase {
       ->will($this->returnValue('test_entity_type'));
     $entity_type->expects($this->any())
       ->method('isSubclassOf')
-      ->with('\Drupal\Core\Entity\ContentEntityInterface')
+      ->with('\Drupal\Core\Entity\FieldableEntityInterface')
       ->will($this->returnValue(TRUE));
 
     // Set up the module handler to return two bundles for the fieldable entity

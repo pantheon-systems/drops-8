@@ -137,31 +137,26 @@ function node_theme() {
   return array(
     'node' => array(
       'render element' => 'elements',
-      'template' => 'node',
     ),
     'node_search_admin' => array(
       'render element' => 'form',
+      'function' => 'theme_node_search_admin',
     ),
     'node_add_list' => array(
       'variables' => array('content' => NULL),
       'file' => 'node.pages.inc',
-      'template' => 'node-add-list',
     ),
     'node_edit_form' => array(
       'render element' => 'form',
-      'template' => 'node-edit-form',
     ),
     'field__node__title' => array(
       'base hook' => 'field',
-      'template' => 'field--node--title',
     ),
     'field__node__uid' => array(
       'base hook' => 'field',
-      'template' => 'field--node--uid',
     ),
     'field__node__created' => array(
       'base hook' => 'field',
-      'template' => 'field--node--created',
     ),
   );
 }
@@ -966,7 +961,7 @@ function node_form_system_themes_admin_form_submit($form, FormStateInterface $fo
   \Drupal::config('node.settings')
     ->set('use_admin_theme', $form_state->getValue('use_admin_theme'))
     ->save();
-  \Drupal::service('router.builder')->setRebuildNeeded();
+  \Drupal::service('router.builder_indicator')->setRebuildNeeded();
 }
 
 /**
@@ -1307,7 +1302,7 @@ function _node_access_rebuild_batch_operation(&$context) {
   $limit = 20;
   $nids = \Drupal::entityQuery('node')
     ->condition('nid', $context['sandbox']['current_node'], '>')
-    ->sort('nid', 'DESC')
+    ->sort('nid', 'ASC')
     ->range(0, $limit)
     ->execute();
   $nodes = node_load_multiple($nids, TRUE);

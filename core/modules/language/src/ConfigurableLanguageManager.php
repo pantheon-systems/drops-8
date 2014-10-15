@@ -14,6 +14,7 @@ use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Language\Language;
 use Drupal\Core\Language\LanguageDefault;
 use Drupal\Core\Language\LanguageManager;
+use Drupal\Core\Url;
 use Drupal\language\Config\LanguageConfigFactoryOverrideInterface;
 use Drupal\language\Entity\ConfigurableLanguage;
 use Symfony\Component\HttpFoundation\Request;
@@ -282,7 +283,7 @@ class ConfigurableLanguageManager extends LanguageManager implements Configurabl
       // Prepopulate the language list with the default language to keep things
       // working even if we have no configuration.
       $default = $this->getDefaultLanguage();
-      $this->languages = array($default->id => $default);
+      $this->languages = array($default->getId() => $default);
 
       // Retrieve the list of languages defined in configuration.
       $prefix = 'language.entity.';
@@ -295,10 +296,10 @@ class ConfigurableLanguageManager extends LanguageManager implements Configurabl
         $langcode = $data['id'];
         // Initialize default property so callers have an easy reference and can
         // save the same object without data loss.
-        $data['default'] = ($langcode == $default->id);
+        $data['default'] = ($langcode == $default->getId());
         $data['name'] = $data['label'];
         $this->languages[$langcode] = new Language($data);
-        $weight = max(array($weight, $this->languages[$langcode]->weight));
+        $weight = max(array($weight, $this->languages[$langcode]->getWeight()));
       }
 
       // Add locked languages, they will be filtered later if needed.
@@ -337,14 +338,14 @@ class ConfigurableLanguageManager extends LanguageManager implements Configurabl
 
     // Get maximum weight to update the system languages to keep them on bottom.
     foreach ($this->getLanguages(LanguageInterface::STATE_CONFIGURABLE) as $language) {
-      if (!$language->isLocked() && $language->weight > $max_weight) {
-        $max_weight = $language->weight;
+      if (!$language->isLocked()) {
+        $max_weight = max($max_weight, $language->getWeight());
       }
     }
 
     // Loop locked languages to maintain the existing order.
     $locked_languages = $this->getLanguages(LanguageInterface::STATE_LOCKED);
-    $config_ids = array_map(function($language) { return 'language.entity.' . $language->id; }, $locked_languages);
+    $config_ids = array_map(function($language) { return 'language.entity.' . $language->getId(); }, $locked_languages);
     foreach ($this->configFactory->loadMultiple($config_ids) as $config) {
       // Update system languages weight.
       $max_weight++;
@@ -395,7 +396,7 @@ class ConfigurableLanguageManager extends LanguageManager implements Configurabl
   /**
    * {@inheritdoc}
    */
-  public function getLanguageSwitchLinks($type, $path) {
+  public function getLanguageSwitchLinks($type, Url $url) {
     $links = FALSE;
 
     if ($this->negotiator) {
@@ -403,7 +404,7 @@ class ConfigurableLanguageManager extends LanguageManager implements Configurabl
         $reflector = new \ReflectionClass($method['class']);
 
         if ($reflector->implementsInterface('\Drupal\language\LanguageSwitcherInterface')) {
-          $result = $this->negotiator->getNegotiationMethodInstance($method_id)->getLanguageSwitchLinks($this->requestStack->getCurrentRequest(), $type, $path);
+          $result = $this->negotiator->getNegotiationMethodInstance($method_id)->getLanguageSwitchLinks($this->requestStack->getCurrentRequest(), $type, $url);
 
           if (!empty($result)) {
             // Allow modules to provide translations for specific links.

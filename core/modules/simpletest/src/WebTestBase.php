@@ -28,6 +28,7 @@ use Drupal\Core\StreamWrapper\PublicStream;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\block\Entity\Block;
 use Symfony\Component\HttpFoundation\Request;
+use Drupal\user\Entity\Role;
 
 /**
  * Test case for typical Drupal tests.
@@ -599,7 +600,7 @@ abstract class WebTestBase extends TestBase {
       // Grant the specified permissions to the role, if any.
       if (!empty($permissions)) {
         user_role_grant_permissions($role->id(), $permissions);
-        $assigned_permissions = entity_load('user_role', $role->id())->getPermissions();
+        $assigned_permissions = Role::load($role->id())->getPermissions();
         $missing_permissions = array_diff($permissions, $assigned_permissions);
         if (!$missing_permissions) {
           $this->pass(String::format('Created permissions: @perms', array('@perms' => implode(', ', $permissions))), 'Role');
@@ -737,7 +738,7 @@ abstract class WebTestBase extends TestBase {
    *
    * Installs Drupal with the installation profile specified in
    * \Drupal\simpletest\WebTestBase::$profile into the prefixed database.
-
+   *
    * Afterwards, installs any additional modules specified in the static
    * \Drupal\simpletest\WebTestBase::$modules property of each class in the
    * class hierarchy.
@@ -908,13 +909,17 @@ abstract class WebTestBase extends TestBase {
     // Reset/rebuild all data structures after enabling the modules, primarily
     // to synchronize all data structures and caches between the test runner and
     // the child site.
-    // Affects e.g. file_get_stream_wrappers().
     // @see \Drupal\Core\DrupalKernel::bootCode()
     // @todo Test-specific setUp() methods may set up further fixtures; find a
     //   way to execute this after setUp() is done, or to eliminate it entirely.
     $this->resetAll();
     $this->kernel->prepareLegacyRequest($request);
 
+    // Explicitly call register() again on the container registered in \Drupal.
+    // @todo This should already be called through
+    //   DrupalKernel::prepareLegacyRequest() -> DrupalKernel::boot() but that
+    //   appears to be calling a different container.
+    $this->container->get('stream_wrapper_manager')->register();
     // Temporary fix so that when running from run-tests.sh we don't get an
     // empty current path which would indicate we're on the home page.
     $path = current_path();
@@ -969,6 +974,12 @@ abstract class WebTestBase extends TestBase {
         ),
       ),
     );
+
+    // If we only have one db driver available, we cannot set the driver.
+    include_once DRUPAL_ROOT . '/core/includes/install.inc';
+    if (count(drupal_get_database_types()) == 1) {
+      unset($parameters['forms']['install_settings_form']['driver']);
+    }
     return $parameters;
   }
 
@@ -1895,6 +1906,12 @@ abstract class WebTestBase extends TestBase {
         case 'restripe':
           break;
         case 'add_css':
+          break;
+        case 'update_build_id':
+          $buildId = $xpath->query('//input[@name="form_build_id" and @value="' . $command['old'] . '"]')->item(0);
+          if ($buildId) {
+            $buildId->setAttribute('value', $command['new']);
+          }
           break;
       }
     }

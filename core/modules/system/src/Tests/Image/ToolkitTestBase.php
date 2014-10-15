@@ -88,9 +88,11 @@ abstract class ToolkitTestBase extends WebTestBase {
       'rotate',
       'crop',
       'desaturate',
+      'create_new',
       'scale',
       'scale_and_crop',
       'my_operation',
+      'convert',
     );
     if (count(array_intersect($expected, $operations)) > 0 && !in_array('apply', $expected)) {
       $expected[] = 'apply';
@@ -134,8 +136,10 @@ abstract class ToolkitTestBase extends WebTestBase {
       'rotate' => array(),
       'crop' => array(),
       'desaturate' => array(),
+      'create_new' => array(),
       'scale' => array(),
       'scale_and_crop' => array(),
+      'convert' => array(),
     );
     \Drupal::state()->set('image_test.results', $results);
   }

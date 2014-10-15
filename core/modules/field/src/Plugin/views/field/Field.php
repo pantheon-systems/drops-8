@@ -20,6 +20,7 @@ use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\views\Plugin\CacheablePluginInterface;
 use Drupal\views\Plugin\views\display\DisplayPluginBase;
 use Drupal\views\Plugin\views\field\FieldPluginBase;
 use Drupal\views\ResultRow;
@@ -34,7 +35,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *
  * @ViewsField("field")
  */
-class Field extends FieldPluginBase {
+class Field extends FieldPluginBase implements CacheablePluginInterface {
 
   /**
    * An array to store field renderable arrays for use by renderItems().
@@ -400,7 +401,6 @@ class Field extends FieldPluginBase {
     // Options used for multiple value fields.
     $options['group_rows'] = array(
       'default' => TRUE,
-      'bool' => TRUE,
     );
     // If we know the exact number of allowed values, then that can be
     // the default. Otherwise, default to 'all'.
@@ -412,11 +412,9 @@ class Field extends FieldPluginBase {
     );
     $options['delta_reversed'] = array(
       'default' => FALSE,
-      'bool' => TRUE,
     );
     $options['delta_first_last'] = array(
       'default' => FALSE,
-      'bool' => TRUE,
     );
 
     $options['multi_type'] = array(
@@ -428,7 +426,6 @@ class Field extends FieldPluginBase {
 
     $options['field_api_classes'] = array(
       'default' => FALSE,
-      'bool' => TRUE,
     );
 
     return $options;
@@ -933,7 +930,7 @@ class Field extends FieldPluginBase {
       // no data for the selected language. FieldItemListInterface::view() does
       // this as well, but since the returned language code is used before
       // calling it, the fallback needs to happen explicitly.
-      $langcode = $this->entityManager->getTranslationFromContext($entity, $langcode)->language()->id;
+      $langcode = $this->entityManager->getTranslationFromContext($entity, $langcode)->language()->getId();
 
       return $langcode;
     }
@@ -950,5 +947,23 @@ class Field extends FieldPluginBase {
     return array('entity' => array($this->getFieldStorageConfig()->getConfigDependencyName()));
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  public function isCacheable() {
+    return FALSE;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getCacheContexts() {
+    // @todo what to do about field access?
+    $contexts = [];
+
+    $contexts[] = 'cache.context.user';
+
+    return $contexts;
+  }
 
 }

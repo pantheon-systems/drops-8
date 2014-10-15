@@ -6,6 +6,7 @@
  */
 
 use Drupal\Core\Language\LanguageInterface;
+use Drupal\views\Plugin\views\PluginBase;
 
 /**
  * @defgroup views_overview Views overview
@@ -578,8 +579,8 @@ function hook_views_query_substitutions(ViewExecutable $view) {
   return array(
     '***CURRENT_VERSION***' => \Drupal::VERSION,
     '***CURRENT_TIME***' => REQUEST_TIME,
-    '***LANGUAGE_language_content***' => \Drupal::languageManager()->getCurrentLanguage(LanguageInterface::TYPE_CONTENT)->id,
-    '***LANGUAGE_site_default***' => \Drupal::languageManager()->getDefaultLanguage()->id,
+    '***LANGUAGE_language_content***' => \Drupal::languageManager()->getCurrentLanguage(LanguageInterface::TYPE_CONTENT)->getId(),
+    PluginBase::VIEWS_QUERY_LANGUAGE_SITE_DEFAULT => \Drupal::languageManager()->getDefaultLanguage()->getId(),
   );
 }
 
@@ -1078,6 +1079,102 @@ function hook_views_plugins_style_alter(array &$plugins) {
 function hook_views_plugins_wizard_alter(array &$plugins) {
   // Change the title of a plugin.
   $plugins['node_revision']['title'] = t('Node revision wizard');
+}
+
+/**
+ * Modify the list of available views area handler plugins.
+ *
+ * This hook may be used to modify handler properties after they have been
+ * specified by other modules.
+ *
+ * @param array $plugins
+ *   An array of all the existing handler definitions, passed by reference.
+ *
+ * @see \Drupal\views\Plugin\ViewsHandlerManager
+ */
+function hook_views_plugins_area_alter(array &$plugins) {
+  // Change the 'title' handler class.
+  $plugins['title']['class'] = 'Drupal\\example\\ExampleClass';
+}
+
+/**
+ * Modify the list of available views argument handler plugins.
+ *
+ * This hook may be used to modify handler properties after they have been
+ * specified by other modules.
+ *
+ * @param array $plugins
+ *   An array of all the existing handler definitions, passed by reference.
+ *
+ * @see \Drupal\views\Plugin\ViewsHandlerManager
+ */
+function hook_views_plugins_argument_alter(array &$plugins) {
+  // Change the 'title' handler class.
+  $plugins['title']['class'] = 'Drupal\\example\\ExampleClass';
+}
+
+/**
+ * Modify the list of available views field handler plugins.
+ *
+ * This hook may be used to modify handler properties after they have been
+ * specified by other modules.
+ *
+ * @param array $plugins
+ *   An array of all the existing handler definitions, passed by reference.
+ *
+ * @see \Drupal\views\Plugin\ViewsHandlerManager
+ */
+function hook_views_plugins_field_alter(array &$plugins) {
+  // Change the 'title' handler class.
+  $plugins['title']['class'] = 'Drupal\\example\\ExampleClass';
+}
+
+/**
+ * Modify the list of available views filter handler plugins.
+ *
+ * This hook may be used to modify handler properties after they have been
+ * specified by other modules.
+ *
+ * @param array $plugins
+ *   An array of all the existing handler definitions, passed by reference.
+ *
+ * @see \Drupal\views\Plugin\ViewsHandlerManager
+ */
+function hook_views_plugins_filter_alter(array &$plugins) {
+  // Change the 'title' handler class.
+  $plugins['title']['class'] = 'Drupal\\example\\ExampleClass';
+}
+
+/**
+ * Modify the list of available views relationship handler plugins.
+ *
+ * This hook may be used to modify handler properties after they have been
+ * specified by other modules.
+ *
+ * @param array $plugins
+ *   An array of all the existing handler definitions, passed by reference.
+ *
+ * @see \Drupal\views\Plugin\ViewsHandlerManager
+ */
+function hook_views_plugins_relationship_alter(array &$plugins) {
+  // Change the 'title' handler class.
+  $plugins['title']['class'] = 'Drupal\\example\\ExampleClass';
+}
+
+/**
+ * Modify the list of available views sort handler plugins.
+ *
+ * This hook may be used to modify handler properties after they have been
+ * specified by other modules.
+ *
+ * @param array $plugins
+ *   An array of all the existing handler definitions, passed by reference.
+ *
+ * @see \Drupal\views\Plugin\ViewsHandlerManager
+ */
+function hook_views_plugins_sort_alter(array &$plugins) {
+  // Change the 'title' handler class.
+  $plugins['title']['class'] = 'Drupal\\example\\ExampleClass';
 }
 
 /**

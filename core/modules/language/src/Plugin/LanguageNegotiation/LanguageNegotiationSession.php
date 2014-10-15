@@ -9,6 +9,7 @@ namespace Drupal\language\Plugin\LanguageNegotiation;
 
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\PathProcessor\OutboundPathProcessorInterface;
+use Drupal\Core\Url;
 use Drupal\language\LanguageNegotiationMethodBase;
 use Drupal\language\LanguageSwitcherInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -21,7 +22,7 @@ use Symfony\Component\HttpFoundation\Request;
  *   weight = -6,
  *   name = @Translation("Session"),
  *   description = @Translation("Language from a request/session parameter."),
- *   config_path = "admin/config/regional/language/detection/session"
+ *   config_route_name = "language.negotiation_session"
  * )
  */
 class LanguageNegotiationSession extends LanguageNegotiationMethodBase implements OutboundPathProcessorInterface, LanguageSwitcherInterface {
@@ -71,7 +72,7 @@ class LanguageNegotiationSession extends LanguageNegotiationMethodBase implement
   public function persist(LanguageInterface $language) {
     // We need to update the session parameter with the request value only if we
     // have an authenticated user.
-    $langcode = $language->id;
+    $langcode = $language->getId();
     if ($langcode && $this->languageManager) {
       $languages = $this->languageManager->getLanguages();
       if ($this->currentUser->isAuthenticated() && isset($languages[$langcode])) {
@@ -121,18 +122,18 @@ class LanguageNegotiationSession extends LanguageNegotiationMethodBase implement
   /**
    * {@inheritdoc}
    */
-  function getLanguageSwitchLinks(Request $request, $type, $path) {
+  public function getLanguageSwitchLinks(Request $request, $type, Url $url) {
     $links = array();
     $config = $this->config->get('language.negotiation')->get('session');
     $param = $config['parameter'];
-    $language_query = isset($_SESSION[$param]) ? $_SESSION[$param] : $this->languageManager->getCurrentLanguage($type)->id;
+    $language_query = isset($_SESSION[$param]) ? $_SESSION[$param] : $this->languageManager->getCurrentLanguage($type)->getId();
     $query = array();
     parse_str($request->getQueryString(), $query);
 
     foreach ($this->languageManager->getNativeLanguages() as $language) {
-      $langcode = $language->id;
+      $langcode = $language->getId();
       $links[$langcode] = array(
-        'href' => $path,
+        'url' => $url,
         'title' => $language->getName(),
         'attributes' => array('class' => array('language-link')),
         'query' => $query,

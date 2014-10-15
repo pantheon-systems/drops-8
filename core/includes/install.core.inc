@@ -325,6 +325,12 @@ function install_begin_request(&$install_state) {
     ->register('path.matcher', 'Drupal\Core\Path\PathMatcher')
     ->addArgument(new Reference('config.factory'));
 
+  // Register the stream wrapper manager.
+  $container
+    ->register('stream_wrapper_manager', 'Drupal\Core\StreamWrapper\StreamWrapperManager')
+    ->addArgument(new Reference('module_handler'))
+    ->addMethodCall('setContainer', array(new Reference('service_container')));
+
   \Drupal::setContainer($container);
 
   // Determine whether base system services are ready to operate.
@@ -769,7 +775,7 @@ function install_tasks($install_state) {
  * Returns a list of tasks that should be displayed to the end user.
  *
  * The output of this function is a list suitable for sending to
- * theme_task_list().
+ * maintenance-task-list.html.twig.
  *
  * @param $install_state
  *   An array of information about the current installation state.
@@ -778,7 +784,7 @@ function install_tasks($install_state) {
  *   A list of tasks, with keys equal to the machine-readable task name and
  *   values equal to the name that should be displayed.
  *
- * @see theme_task_list()
+ * @see maintenance-task-list.html.twig
  */
 function install_tasks_to_display($install_state) {
   $displayed_tasks = array();
@@ -890,8 +896,6 @@ function install_display_output($output, $install_state) {
   // reached in case of an early installer error.
   drupal_maintenance_theme();
 
-  drupal_page_header();
-
   // Prevent install.php from being indexed when installed in a sub folder.
   // robots.txt rules are not read if the site is within domain.com/subfolder
   // resulting in /subfolder/install.php being found through search engines.
@@ -904,7 +908,7 @@ function install_display_output($output, $install_state) {
       'content' => 'noindex, nofollow',
     ),
   );
-  drupal_add_html_head($noindex_meta_tag, 'install_meta_robots');
+  $output['#attached']['html_head'][] = [$noindex_meta_tag, 'install_meta_robots'];
 
   // Only show the task list if there is an active task; otherwise, the page
   // request has ended before tasks have even been started, so there is nothing
@@ -915,14 +919,23 @@ function install_display_output($output, $install_state) {
     // been completed.
     $active_task = $install_state['installation_finished'] ? NULL : $install_state['active_task'];
     $task_list = array(
-      '#theme' => 'task_list',
+      '#theme' => 'maintenance_task_list',
       '#items' => install_tasks_to_display($install_state),
       '#active' => $active_task,
     );
     $regions['sidebar_first'] = $task_list;
   }
 
-  print DefaultHtmlPageRenderer::renderPage($output, $output['#title'], 'install', $regions);
+  $response = new Response();
+  $default_headers = array(
+    'Expires' => 'Sun, 19 Nov 1978 05:00:00 GMT',
+    'Last-Modified' => gmdate(DATE_RFC1123, REQUEST_TIME),
+    'Cache-Control' => 'no-cache, must-revalidate, post-check=0, pre-check=0',
+    'ETag' => '"' . REQUEST_TIME . '"',
+  );
+  $response->headers->add($default_headers);
+  $response->setContent(DefaultHtmlPageRenderer::renderPage($output, $output['#title'], 'install', $regions));
+  $response->send();
   exit;
 }
 
@@ -1296,11 +1309,10 @@ function install_check_localization_server($uri) {
 /**
  * Gets the core release version and release alternatives for localization.
  *
- * In case core is a development version or the translation file for the release
- * is not available, fall back to the latest stable release. For example,
- * 8.2-dev might fall back to 8.1 and 8.0-dev might fall back to 7.0. Fallback
- * is required because the localization server only provides translation files
- * for stable releases.
+ * In case core is a development version or the translation file for the
+ * release is not available, fall back to an earlier release.
+ * For example, 8.2.0-dev might fall back to 8.1.0 and 8.0.0-dev
+ * might fall back to 7.0.
  *
  * @param string $version
  *   (optional) Version of core trying to find translation files for.
@@ -1308,95 +1320,109 @@ function install_check_localization_server($uri) {
  * @return array
  *   Array of release data. Each array element is an associative array with:
  *   - core: Core compatibility version (e.g., 8.x).
- *   - version: Release version (e.g., 8.1).
+ *   - version: Release version (e.g., 8.1.0).
  */
 function install_get_localization_release($version = \Drupal::VERSION) {
   $releases = array();
   $alternatives = array();
 
-  // The version string is broken up into:
-  // - major: Major version (e.g., "8").
-  // - minor: Minor version (e.g., "0").
-  // - extra: Extra version info (e.g., "alpha2").
-  // - extra_text: The text part of "extra" (e.g., "alpha").
-  // - extra_number: The number part of "extra" (e.g., "2").
   $info = _install_get_version_info($version);
+
+  // This code assumes there is a first alpha available as "alpha1". For
+  // Drupal 8.0.0 that isn't the case. In addition the semantic versioning
+  // wasn't introduced before "alpha14". However, we have already gotten to
+  // "beta1" so we are ignoring this for now.
+
+  // The fallback detection is relaxed - removing version duplicates at the end.
 
   // Check if the version is a regular stable release (no 'rc', 'beta', 'alpha',
   // 'dev', etc.)
   if (!isset($info['extra_text'])) {
     // First version alternative: the current version.
     $alternatives[] = $version;
-    // Point-releases: previous minor release (e.g., 8.2 falls back to 8.1).
-    if ($info['minor'] > 0) {
-      $alternatives[]= $info['major'] . '.' . ($info['minor'] - 1);
+
+    // Patch-level: Previous and zero patch level (e.g., 8.2.4 falls back to
+    // 8.2.3 and 8.2.0).
+    if ($info['patch'] > 0) {
+      $alternatives[] = $info['major'] . '.' . $info['minor'] . '.' . ($info['patch'] - 1);
+      $alternatives[] = $info['major'] . '.' . $info['minor'] . '.0';
     }
-    // Zero release: first release candidate (e.g., 8.0 falls back to 8.0-rc1).
+    // Zero patch: First release candidate (e.g., 8.0.0 falls back to
+    // 8.0.0-rc1).
     else {
-      $alternatives[] = $info['major'] . '.0-rc1';
+      $alternatives[] = $info['major'] . '.' . $info['minor'] . '.0-rc1';
+    }
+    // Point-releases: Previous and zero minor release (e.g., 8.2.x falls back
+    // to 8.1.0 and 8.0.0).
+    if ($info['minor'] > 0) {
+      $alternatives[] = $info['major'] . '.' . ($info['minor'] - 1) . '.0';
+      $alternatives[] = $info['major'] . '.0.0';
     }
   }
   else {
-    switch ($info['extra_text']) {
-      // Alpha release: current alpha or previous alpha release (e.g. 8.0-alpha2
-      // falls back to 8.0-alpha1).
-      case 'alpha':
-        $alternatives[] = $version;
-        if ($info['extra_number'] > 1) {
-          $alternatives[] = $info['major'] . '.0-alpha' . ($info['extra_number'] - 1);
-        }
-        break;
+    // Below we assume that for all dev, alpha, beta or rc releases the patch
+    // level is 0.
 
-      // Beta release: current beta or previous beta release (e.g. 8.0-beta2
-      // falls back to 8.0-beta1) or first alpha release.
-      case 'beta':
-        $alternatives[] = $version;
-        if ($info['extra_number'] > 1) {
-          $alternatives[] = $info['major'] . '.0-beta' . ($info['extra_number'] - 1);
-        }
-        else {
-          $alternatives[] = $info['major'] . '.0-alpha2';
-        }
-        break;
+    $release_levels = array('rc', 'beta', 'alpha');
 
-      // Dev release: the previous point release (e.g., 8.2-dev falls back to
-      // 8.1) or any unstable release (e.g., 8.0-dev falls back to 8.0-rc1,
-      // 8.0-beta1 or 8.0-alpha12)
-      case 'dev':
-        if ($info['minor'] >= 1) {
-          $alternatives[] = $info['major'] . '.' . ($info['minor'] - 1);
-        }
-        else {
-          $alternatives[] = $info['major'] . '.0-rc1';
-          $alternatives[] = $info['major'] . '.0-beta1';
-          $alternatives[] = $info['major'] . '.0-alpha12';
-        }
-        break;
-
-      // Release candidate: the current or previous release candidate (e.g.,
-      // 8.0-rc2 falls back to 8.0-rc1) or the first beta release.
-      case 'rc':
-        $alternatives[] =  $version;
-        if ($info['extra_number'] >= 2) {
-          $alternatives[] = $info['major'] . '.0-rc' . ($info['extra_number'] - 1);
-        }
-        else {
-          $alternatives[] = $info['major'] . '.0-beta1';
-        }
-        break;
+    if ($info['extra_text'] == 'dev') {
+      // Dev release: Any unstable release (e.g., 8.2.0-dev falls back to
+      // 8.2.0-rc1, 8.2.0-beta1 and 8.2.0-alpha1).
+      $alternatives[] = $info['major'] . '.' . $info['minor'] . '.0-rc1';
+      $alternatives[] = $info['major'] . '.' . $info['minor'] . '.0-beta1';
+      $alternatives[] = $info['major'] . '.' . $info['minor'] . '.0-alpha1';
+    }
+    elseif (in_array($info['extra_text'], $release_levels)) {
+      // All other unstable release always includes the current version.
+      $alternatives[] = $version;
+      // Alpha release: Previous alpha release (e.g. 8.0.0-alpha2 falls back to
+      // 8.0.0-alpha1).
+      // Beta release: Previous beta release and first alpha release (e.g.
+      // 8.0.0-beta2 falls back to 8.0.0-beta1 and 8.0.0-alpha1).
+      // Release candidate: Previous release candidate and the first beta
+      // release (e.g. 8.0.0-rc2 falls back to 8.0.0-rc1 and 8.0.0-beta1).
+      $release_level_key = array_search($info['extra_text'], $release_levels);
+      if ($info['extra_number'] > 1) {
+        $alternatives[] = $info['major'] . '.' . $info['minor'] . '.0-' . $info['extra_text'] . ($info['extra_number'] - 1);
+      }
+      if ($info['extra_text'] != 'alpha') {
+        $alternatives[] = $info['major'] . '.' . $info['minor'] . '.0-' . $release_levels[$release_level_key + 1] . '1';
+      }
+    }
+    else {
+      $alternatives[] = $info['major'] . '.' . $info['minor'] . '.0';
+    }
+    // All unstable releases except the zero release: The previous minor release
+    // and the zero release.
+    if ($info['minor'] > 0) {
+      $alternatives[] = $info['major'] . '.' . ($info['minor'] - 1) . '.0';
+      $alternatives[] = $info['major'] . '.0.0';
     }
   }
 
-  // All releases may fall back to the previous major release (e.g., 8.1 falls
-  // back to 7.0, 8.x-dev falls back to 7.0). This will probably only be used
-  // for early dev releases or languages with an inactive translation team.
-  $alternatives[] = $info['major'] - 1 . '.0';
-
+  $alternatives = array_unique($alternatives);
   foreach ($alternatives as $alternative) {
     list($core) = explode('.', $alternative);
     $releases[] = array(
       'core' => $core . '.x',
       'version' => $alternative,
+    );
+  }
+
+  // All releases may fall back to the previous major release (e.g., 8.1.0
+  // may fall back to 7.0). This will probably only be used for early dev
+  // releases or languages with an inactive translation team.
+  if ($info['major'] == 8) {
+    $releases[] = array(
+      'core' => '7.x',
+      'version' => '7.0',
+    );
+  }
+  else {
+    $prev_major = $info['major'] - 1;
+    $releases[] = array(
+      'core' => $prev_major . '.x',
+      'version' => $prev_major . '.0.0',
     );
   }
 
@@ -1407,14 +1433,14 @@ function install_get_localization_release($version = \Drupal::VERSION) {
  * Extracts version information from a drupal core version string.
  *
  * @param string $version
- *   Version info string (e.g., 8.0, 8.1, 8.0-dev, 8.0-unstable1, 8.0-alpha2,
- *   8.0-beta3, and 8.0-rc4).
- *
+ *   Version info string (e.g., 8.0.0, 8.1.0, 8.0.0-dev, 8.0.0-unstable1,
+ *   8.0.0-alpha2, 8.0.0-beta3, and 8.0.0-rc4).
  *
  * @return array
  *   Associative array of version info:
  *   - major: Major version (e.g., "8").
  *   - minor: Minor version (e.g., "0").
+ *   - patch: Patch version (e.g., "0").
  *   - extra: Extra version info (e.g., "alpha2").
  *   - extra_text: The text part of "extra" (e.g., "alpha").
  *   - extra_number: The number part of "extra" (e.g., "2").
@@ -1425,6 +1451,8 @@ function _install_get_version_info($version) {
       (?P<major>[0-9]+)    # Major release number.
       \.          # .
       (?P<minor>[0-9]+)    # Minor release number.
+      \.          # .
+      (?P<patch>[0-9]+)    # Patch release number.
     )             #
     (             #
       -           # - separator for "extra" version information.
@@ -1566,7 +1594,9 @@ function install_download_additional_translations_operations(&$install_state) {
   if ($langcode != 'en') {
     \Drupal::config('system.site')->set('langcode', $langcode)->save();
     \Drupal::service('language.default')->set($language);
-    entity_delete_multiple('configurable_language', array('en'));
+    if (empty($install_state['profile_info']['keep_english'])) {
+      entity_delete_multiple('configurable_language', array('en'));
+    }
   }
 
   // If there is more than one language or the single one is not English, we
@@ -2013,8 +2043,9 @@ function install_check_requirements($install_state) {
         // common configuration on shared hosting, and there is nothing Drupal
         // can do to prevent it. In this situation, having $file also owned by
         // the webserver does not introduce any additional security risk, so we
-        // keep the file in place.
-        if (fileowner($default_file) === fileowner($file)) {
+        // keep the file in place. Additionally, this situation also occurs when
+        // the test runner is being run be different user than the webserver.
+        if (fileowner($default_file) === fileowner($file) || DRUPAL_TEST_IN_CHILD_SITE) {
           $readable = drupal_verify_install_file($file, FILE_READABLE);
           $writable = drupal_verify_install_file($file, FILE_WRITABLE);
           $exists = TRUE;

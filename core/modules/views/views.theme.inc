@@ -10,6 +10,7 @@ use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Component\Utility\String;
 use Drupal\Component\Utility\Xss;
 use Drupal\Core\Template\Attribute;
+use Drupal\Core\Url;
 
 /**
  * Prepares variables for view templates.
@@ -40,14 +41,6 @@ function template_preprocess_views_view(&$variables) {
     $variables['css_class'] = preg_replace('/[^a-zA-Z0-9- ]/', '-', $css_class);
     $variables['attributes']['class'][] = $variables['css_class'];
   }
-
-  // Add contextual links to the view. We need to attach them to the dummy
-  // $view_array variable, since contextual_preprocess() requires that they be
-  // attached to an array (not an object) in order to process them. For our
-  // purposes, it doesn't matter what we attach them to, since once they are
-  // processed by contextual_preprocess() they will appear in the $title_suffix
-  // variable (which we will then render in views-view.html.twig).
-  views_add_contextual_links($variables['view_array'], 'view', $view, $view->current_display);
 
   // Attachments are always updated with the outer view, never by themselves,
   // so they do not have dom ids.
@@ -306,7 +299,11 @@ function template_preprocess_views_view_summary(&$variables) {
   }
 
   $active_urls = array(
+    // Force system path.
+    \Drupal::url('<current>', [], ['alias' => TRUE]),
     _url(current_path(), array('alias' => TRUE)), // force system path
+    // Could be an alias.
+    \Drupal::url('<current>'),
     _url(current_path()), // could be an alias
   );
   $active_urls = array_combine($active_urls, $active_urls);
@@ -366,9 +363,9 @@ function template_preprocess_views_view_summary_unformatted(&$variables) {
   $count = 0;
   $active_urls = array(
     // Force system path.
-    _url(current_path(), array('alias' => TRUE)),
+    \Drupal::url('<current>', [], ['alias' => TRUE]),
     // Could be an alias.
-    _url(current_path()),
+    \Drupal::url('<current>'),
   );
   $active_urls = array_combine($active_urls, $active_urls);
 
@@ -484,7 +481,7 @@ function template_preprocess_views_view_table(&$variables) {
           'attributes' => array('title' => $title),
           'query' => $query,
         );
-        $variables['header'][$field]['content'] = _l($label, current_path(), $link_options);
+        $variables['header'][$field]['content'] = \Drupal::l($label, new Url('<current>', [], $link_options));
       }
 
       // Set up the header label class.
@@ -904,7 +901,7 @@ function template_preprocess_views_view_rss(&$variables) {
     $variables['link'] = check_url(_url($path, $url_options));
   }
 
-  $variables['langcode'] = String::checkPlain(\Drupal::languageManager()->getCurrentLanguage()->id);
+  $variables['langcode'] = String::checkPlain(\Drupal::languageManager()->getCurrentLanguage()->getId());
   $variables['namespaces'] = new Attribute($style->namespaces);
   $variables['items'] = $items;
   $variables['channel_elements'] = format_xml_elements($style->channel_elements);
@@ -1038,14 +1035,13 @@ function template_preprocess_views_mini_pager(&$variables) {
 
   // Current is the page we are currently paged to.
   $pager_current = $pager_page_array[$element] + 1;
-  $current_path = current_path();
 
   $li_previous = array();
   if ($pager_total[$element] > 1 && $pager_page_array[$element] > 0) {
     $li_previous = array(
       '#type' => 'link',
       '#title' => $tags[1],
-      '#href' => $current_path,
+      '#url' => Url::fromRoute('<current>'),
       '#options' => array(
         'query' => pager_query_add_page($parameters, $element, $pager_page_array[$element] - 1),
         'attributes' => array(
@@ -1068,7 +1064,7 @@ function template_preprocess_views_mini_pager(&$variables) {
     $li_next = array(
       '#type' => 'link',
       '#title' => $tags[3],
-      '#href' => $current_path,
+      '#url' => Url::fromRoute('<current>'),
       '#options' => array(
         'query' => pager_query_add_page($parameters, $element, $pager_page_array[$element] + 1),
         'attributes' => array(

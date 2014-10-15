@@ -48,6 +48,10 @@ class DisplayPathTest extends UITestBase {
 
     // Save a path and make sure the summary appears as expected.
     $random_path = $this->randomMachineName();
+    // @todo Once https://www.drupal.org/node/2351379 is resolved, Views will no
+    //   longer use Url::fromUri(), and this path will be able to contain ':'.
+    $random_path = str_replace(':', '', $random_path);
+
     $this->drupalPostForm('admin/structure/views/nojs/display/test_view/page_1/path', array('path' => $random_path), t('Apply'));
     $this->assertText('/' . $random_path, 'The custom path appears in the summary.');
     $this->assertLink(t('View @display', array('@display' => 'Page')), 0, 'view page link found on the page.');
@@ -88,8 +92,28 @@ class DisplayPathTest extends UITestBase {
 
     // Add a new page display.
     $this->drupalPostForm(NULL, array(), 'Add Page');
+
+    // Add an invalid path (only fragment).
+    $this->drupalPostForm('admin/structure/views/nojs/display/test_view/page_1/path', array('path' => '#foo'), t('Apply'));
+    $this->assertText('Path is empty');
+
+    // Add an invalid path with a query.
+    $this->drupalPostForm('admin/structure/views/nojs/display/test_view/page_1/path', array('path' => 'foo?bar'), t('Apply'));
+    $this->assertText('No query allowed.');
+
+    // Add an invalid path with just a query.
+    $this->drupalPostForm('admin/structure/views/nojs/display/test_view/page_1/path', array('path' => '?bar'), t('Apply'));
+    $this->assertText('Path is empty');
+
+    // Add an invalid path from a random test failure.
+    $this->drupalPostForm('admin/structure/views/nojs/display/test_view/page_1/path', array('path' => 'AKI@&hO@'), t('Apply'));
+    $this->assertText('Invalid path');
+
+    // Provide a random, valid path string.
+    $random_string = $this->randomMachineName();
+
     // Save a path.
-    $this->drupalPostForm('admin/structure/views/nojs/display/test_view/page_1/path', array('path' => $this->randomString()), t('Apply'));
+    $this->drupalPostForm('admin/structure/views/nojs/display/test_view/page_1/path', array('path' => $random_string), t('Apply'));
     $this->drupalGet('admin/structure/views/view/test_view');
 
     $this->drupalPostForm('admin/structure/views/nojs/display/test_view/page_1/menu', array('menu[type]' => 'default tab', 'menu[title]' => 'Test tab title'), t('Apply'));

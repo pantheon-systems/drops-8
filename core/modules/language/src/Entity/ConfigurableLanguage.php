@@ -50,7 +50,7 @@ class ConfigurableLanguage extends ConfigEntityBase implements ConfigurableLangu
    *
    * @var string
    */
-  public $id;
+  protected $id;
 
   /**
    * The human-readable label for the language.
@@ -64,14 +64,14 @@ class ConfigurableLanguage extends ConfigEntityBase implements ConfigurableLangu
    *
    * @var integer
    */
-  public $direction = '';
+  protected $direction = self::DIRECTION_LTR;
 
   /**
    * The weight of the language, used in lists of languages.
    *
    * @var integer
    */
-  public $weight = 0;
+  protected $weight = 0;
 
   /**
    * Locked languages cannot be edited.

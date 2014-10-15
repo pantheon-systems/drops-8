@@ -11,6 +11,7 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Language\LanguageInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -76,7 +77,7 @@ class ContentLanguageSettingsForm extends ConfigFormBase {
       // Check whether we have any custom setting.
       foreach ($bundles[$entity_type_id] as $bundle => $bundle_info) {
         $conf = language_get_default_configuration($entity_type_id, $bundle);
-        if (!empty($conf['language_show']) || $conf['langcode'] != 'site_default') {
+        if (!empty($conf['language_show']) || $conf['langcode'] != LanguageInterface::LANGCODE_SITE_DEFAULT) {
           $default[$entity_type_id] = $entity_type_id;
         }
         $language_configuration[$entity_type_id][$bundle] = $conf;
@@ -136,10 +137,6 @@ class ContentLanguageSettingsForm extends ConfigFormBase {
     }
 
     $form = parent::buildForm($form, $form_state);
-    // @todo Remove this override. There are tests that check for explicitly for
-    //   the button label which need to be adapted for that.
-    //   https://drupal.org/node/2241727
-    $form['actions']['submit']['#value'] = $this->t('Save');
 
     return $form;
   }

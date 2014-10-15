@@ -7,6 +7,8 @@
 
 namespace Drupal\taxonomy\Tests;
 
+use Drupal\taxonomy\Entity\Term;
+
 /**
  * Unit tests for taxonomy term functions.
  *
@@ -39,11 +41,14 @@ class TermUnitTest extends TaxonomyTestBase {
     $child_term_id = $child_term->id();
 
     $parent_term1->delete();
-    $child_term = entity_load('taxonomy_term', $child_term_id, TRUE);
+    $term_storage = $this->container->get('entity.manager')->getStorage('taxonomy_term');
+    $term_storage->resetCache(array($child_term_id));
+    $child_term = Term::load($child_term_id);
     $this->assertTrue(!empty($child_term), 'Child term is not deleted if only one of its parents is removed.');
 
     $parent_term2->delete();
-    $child_term = entity_load('taxonomy_term', $child_term_id, TRUE);
+    $term_storage->resetCache(array($child_term_id));
+    $child_term = Term::load($child_term_id);
     $this->assertTrue(empty($child_term), 'Child term is deleted if all of its parents are removed.');
   }
 
@@ -57,6 +62,12 @@ class TermUnitTest extends TaxonomyTestBase {
     for ($i = 0; $i < 6; $i++) {
       $term[$i] = $this->createTerm($vocabulary);
     }
+
+    // Set the weight on $term[1] so it appears before $term[5] when fetching
+    // the parents for $term[2], in order to test for a regression on
+    // \Drupal\taxonomy\TermStorageInterface::loadAllParents().
+    $term[1]->weight = -1;
+    $term[1]->save();
 
     // $term[2] is a child of 1 and 5.
     $term[2]->parent = array($term[1]->id(), $term[5]->id());
@@ -98,5 +109,23 @@ class TermUnitTest extends TaxonomyTestBase {
     $this->assertEqual(2, $depth_count[1], 'Two elements in taxonomy tree depth 1.');
     $this->assertEqual(2, $depth_count[2], 'Two elements in taxonomy tree depth 2.');
     $this->assertEqual(1, $depth_count[3], 'One element in taxonomy tree depth 3.');
+
+    /** @var \Drupal\taxonomy\TermStorageInterface $storage */
+    $storage = \Drupal::entityManager()->getStorage('taxonomy_term');
+    // Count parents of $term[2].
+    $parents = $storage->loadParents($term[2]->id());
+    $this->assertEqual(2, count($parents), 'The term has two parents.');
+
+    // Count parents of $term[3].
+    $parents = $storage->loadParents($term[3]->id());
+    $this->assertEqual(1, count($parents), 'The term has one parent.');
+
+    // Identify all ancestors of $term[2].
+    $ancestors = $storage->loadAllParents($term[2]->id());
+    $this->assertEqual(4, count($ancestors), 'The term has four ancestors including the term itself.');
+
+    // Identify all ancestors of $term[3].
+    $ancestors = $storage->loadAllParents($term[3]->id());
+    $this->assertEqual(5, count($ancestors), 'The term has five ancestors including the term itself.');
   }
 }

@@ -51,7 +51,7 @@ class ConfigImportUITest extends WebTestBase {
     // Create new config entity.
     $original_dynamic_data = array(
       'uuid' => '30df59bd-7b03-4cf7-bb35-d42fc49f0651',
-      'langcode' => \Drupal::languageManager()->getDefaultLanguage()->id,
+      'langcode' => \Drupal::languageManager()->getDefaultLanguage()->getId(),
       'status' => TRUE,
       'dependencies' => array(),
       'id' => 'new',
@@ -72,6 +72,8 @@ class ConfigImportUITest extends WebTestBase {
     $core_extension['module']['action'] = 0;
     $core_extension['module']['ban'] = 0;
     $core_extension['module'] = module_config_sort($core_extension['module']);
+    // Bartik is a subtheme of classy so classy must be enabled.
+    $core_extension['theme']['classy'] = 0;
     $core_extension['theme']['bartik'] = 0;
     $staging->write('core.extension', $core_extension);
 
@@ -226,14 +228,14 @@ class ConfigImportUITest extends WebTestBase {
 
     // Acquire a fake-lock on the import mechanism.
     $config_importer = $this->configImporter();
-    $this->container->get('lock')->acquire($config_importer::LOCK_ID);
+    $this->container->get('lock.persistent')->acquire($config_importer::LOCK_NAME);
 
     // Attempt to import configuration and verify that an error message appears.
     $this->drupalPostForm(NULL, array(), t('Import all'));
     $this->assertText(t('Another request may be synchronizing configuration already.'));
 
     // Release the lock, just to keep testing sane.
-    $this->container->get('lock')->release($config_importer::LOCK_ID);
+    $this->container->get('lock.persistent')->release($config_importer::LOCK_NAME);
 
     // Verify site name has not changed.
     $this->assertNotEqual($new_site_name, \Drupal::config('system.site')->get('name'));

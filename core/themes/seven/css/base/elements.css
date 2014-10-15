@@ -12,8 +12,11 @@ a,
   text-decoration: none;
 }
 a:hover,
-.link:hover {
+.link:hover,
+a:focus,
+.link:focus {
   text-decoration: underline;
+  outline: 0;
 }
 hr {
   margin: 0;
@@ -32,24 +35,38 @@ h2,
 h3,
 h4,
 h5,
-h6 {
+h6,
+.header-a,
+.header-b,
+.header-c,
+.header-d,
+.header-e,
+.header-f {
   font-weight: bold;
   margin: 10px 0;
 }
-h1 {
+h1,
+.header-a {
   font-size: 1.538em;
 }
-h2 {
+h2,
+.header-b {
   font-size: 1.385em;
 }
-h3 {
+h3,
+.header-c {
   font-size: 1.231em;
 }
-h4 {
+h4,
+.header-d {
   font-size: 1.154em;
 }
 h5,
-h6 {
+.header-e {
+  font-size: 1.077em;
+}
+h6,
+.header-f {
   font-size: 1.077em;
 }
 p {
@@ -111,7 +128,8 @@ ul {
   margin: 0.25em 0 0.25em 1.5em; /* LTR */
 }
 [dir="rtl"] ul {
-  margin: 0.25em 1.5em 0.25em 0;
+  margin-left: 0;
+  margin-right: 1.5em;
 }
 ol {
   list-style-type: decimal;
@@ -119,7 +137,8 @@ ol {
   padding: 0;
 }
 [dir="rtl"] ol {
-  margin: 0.25em 2em 0.25em 0;
+  margin-left: 0;
+  margin-right: 2em;
 }
 quote,
 code {

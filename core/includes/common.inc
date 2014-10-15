@@ -145,49 +145,6 @@ const JS_THEME = 100;
 const LOCALE_PLURAL_DELIMITER = "\03";
 
 /**
- * Adds content to a specified region.
- *
- * @param $region
- *   Page region the content is added to.
- * @param $data
- *   Content to be added.
- */
-function drupal_add_region_content($region = NULL, $data = NULL) {
-  static $content = array();
-
-  if (isset($region) && isset($data)) {
-    $content[$region][] = $data;
-  }
-  return $content;
-}
-
-/**
- * Gets assigned content for a given region.
- *
- * @param $region
- *   A specified region to fetch content for. If NULL, all regions will be
- *   returned.
- * @param $delimiter
- *   Content to be inserted between imploded array elements.
- */
-function drupal_get_region_content($region = NULL, $delimiter = ' ') {
-  $content = drupal_add_region_content();
-  if (isset($region)) {
-    if (isset($content[$region]) && is_array($content[$region])) {
-      return implode($delimiter, $content[$region]);
-    }
-  }
-  else {
-    foreach (array_keys($content) as $region) {
-      if (is_array($content[$region])) {
-        $content[$region] = implode($delimiter, $content[$region]);
-      }
-    }
-    return $content;
-  }
-}
-
-/**
  * Gets the name of the currently active installation profile.
  *
  * When this function is called during Drupal's initial installation process,
@@ -237,8 +194,11 @@ function drupal_get_profile() {
  *   An array of all stored HEAD elements.
  *
  * @see \Drupal\Core\Render\Element\HtmlTag::preRenderHtmlTag()
+ *
+ * @deprecated in Drupal 8.0.x, will be removed before Drupal 8.0.0
+ *   Use #attached on render arrays.
  */
-function drupal_add_html_head($data = NULL, $key = NULL) {
+function _drupal_add_html_head($data = NULL, $key = NULL) {
   $stored_head = &drupal_static(__FUNCTION__, array());
 
   if (isset($data) && isset($key)) {
@@ -258,9 +218,12 @@ function drupal_add_html_head($data = NULL, $key = NULL) {
  *
  * @return string|array
  *   Return the rendered HTML head or the elements itself.
+ *
+ * @deprecated in Drupal 8.0.x, will be removed before Drupal 8.0.0
+ *   Use #attached on render arrays.
  */
 function drupal_get_html_head($render = TRUE) {
-  $elements = drupal_add_html_head();
+  $elements = _drupal_add_html_head();
   \Drupal::moduleHandler()->alter('html_head', $elements);
   if ($render) {
     return drupal_render($elements);
@@ -279,8 +242,11 @@ function drupal_get_html_head($render = TRUE) {
  *   An internal system path or a fully qualified external URL of the feed.
  * @param $title
  *   The title of the feed.
+ *
+ * @deprecated in Drupal 8.0.x, will be removed before Drupal 8.0.0
+ *   Use #attached on render arrays.
  */
-function drupal_add_feed($url = NULL, $title = '') {
+function _drupal_add_feed($url = NULL, $title = '') {
   $stored_feed_links = &drupal_static(__FUNCTION__, array());
 
   if (isset($url)) {
@@ -291,9 +257,12 @@ function drupal_add_feed($url = NULL, $title = '') {
 
 /**
  * Gets the feed URLs for the current page.
+ *
+ * @deprecated in Drupal 8.0.x, will be removed before Drupal 8.0.0
+ *   Use #attached on render arrays.
  */
 function drupal_get_feeds() {
-  $feeds = drupal_add_feed();
+  $feeds = _drupal_add_feed();
   return $feeds;
 }
 
@@ -668,8 +637,6 @@ function _url($path = NULL, array $options = array()) {
  * @return
  *   A ; separated string ready for insertion in a HTTP header. No escaping is
  *   performed for HTML entities, so this string is not safe to be printed.
- *
- * @see drupal_add_http_header()
  */
 function drupal_http_header_attributes(array $attributes = array()) {
   foreach ($attributes as $attribute => &$data) {
@@ -785,7 +752,7 @@ function _l($text, $path, array $options = array()) {
   // Add a hreflang attribute if we know the language of this link's url and
   // hreflang has not already been set.
   if (!empty($variables['options']['language']) && !isset($variables['options']['attributes']['hreflang'])) {
-    $variables['options']['attributes']['hreflang'] = $variables['options']['language']->id;
+    $variables['options']['attributes']['hreflang'] = $variables['options']['language']->getId();
   }
 
   // Set the "active" class if the 'set_active_class' option is not empty.
@@ -908,8 +875,11 @@ function base_path() {
  *   Associative array of element attributes including 'href' and 'rel'.
  * @param $header
  *   Optional flag to determine if a HTTP 'Link:' header should be sent.
+ *
+ * @deprecated in Drupal 8.0.x, will be removed before Drupal 8.0.0
+ *   Use #attached on render arrays.
  */
-function drupal_add_html_head_link($attributes, $header = FALSE) {
+function _drupal_add_html_head_link($attributes, $header = FALSE) {
   $element = array(
     '#tag' => 'link',
     '#attributes' => $attributes,
@@ -920,10 +890,10 @@ function drupal_add_html_head_link($attributes, $header = FALSE) {
     // Also add a HTTP header "Link:".
     $href = '<' . String::checkPlain($attributes['href']) . '>;';
     unset($attributes['href']);
-    $element['#attached']['drupal_add_http_header'][] = array('Link',  $href . drupal_http_header_attributes($attributes), TRUE);
+    $element['#attached']['http_header'][] = array('Link',  $href . drupal_http_header_attributes($attributes), TRUE);
   }
 
-  drupal_add_html_head($element, 'drupal_add_html_head_link:' . $attributes['rel'] . ':' . $href);
+  _drupal_add_html_head($element, 'html_head_link:' . $attributes['rel'] . ':' . $href);
 }
 
 /**
@@ -1555,7 +1525,7 @@ function _drupal_add_js($data = NULL, $options = NULL) {
             'currentPath' => $current_path,
             'currentPathIsAdmin' => $current_path_is_admin,
             'isFront' => drupal_is_front_page(),
-            'currentLanguage' => \Drupal::languageManager()->getCurrentLanguage(LanguageInterface::TYPE_URL)->id,
+            'currentLanguage' => \Drupal::languageManager()->getCurrentLanguage(LanguageInterface::TYPE_URL)->getId(),
           );
           if (!empty($current_query)) {
             ksort($current_query);
@@ -1818,7 +1788,7 @@ function drupal_merge_attached(array $a, array $b) {
  * other kind of attached data, the array key must be the full name of the
  * callback function and each value an array of arguments. For example:
  * @code
- * $build['#attached']['drupal_add_http_header'] = array(
+ * $build['#attached']['http_header'] = array(
  *   array('Content-Type', 'application/rss+xml; charset=utf-8'),
  * );
  * @endcode
@@ -1896,7 +1866,23 @@ function drupal_process_attached($elements, $dependency_check = FALSE) {
   // special handling.
   foreach ($elements['#attached'] as $callback => $options) {
     foreach ($elements['#attached'][$callback] as $args) {
-      call_user_func_array($callback, $args);
+      // Limit the amount allowed entries.
+      switch ($callback) {
+        case 'html_head':
+          call_user_func_array('_drupal_add_html_head', $args);
+          break;
+        case 'feed':
+          call_user_func_array('_drupal_add_feed', $args);
+          break;
+        case 'html_head_link':
+          call_user_func_array('_drupal_add_html_head_link', $args);
+          break;
+        case 'http_header':
+          call_user_func_array('_drupal_add_http_header', $args);
+          break;
+        default:
+          throw new \LogicException(sprintf('You are not allowed to use %s in #attached', $callback));
+      }
     }
   }
 
@@ -2057,6 +2043,9 @@ function drupal_process_states(&$elements) {
  *
  * @see \Drupal\Core\Asset\LibraryDiscovery
  * @see hook_library_info_alter()
+ *
+ * @deprecated in Drupal 8.0.x, will be removed before Drupal 8.0.0
+ *   Use #attached on render arrays.
  */
 function _drupal_add_library($library_name, $every_page = NULL) {
   $added = &drupal_static(__FUNCTION__, array());
@@ -2552,7 +2541,8 @@ function drupal_prepare_page($page) {
  *     the defaults for this type of element, defined in hook_element_info(),
  *     are merged into the array. #defaults_loaded is set by functions that
  *     process render arrays and call element_info() before passing the array to
- *     drupal_render(), such as form_builder() in the Form API.
+ *     drupal_render(), such as \Drupal::formBuilder()->doBuildForm() in the
+ *     Form API.
  *   - If this element has an array of #pre_render functions defined, they are
  *     called sequentially to modify the element before rendering. After all the
  *     #pre_render functions have been called, #printed is checked a second time
@@ -3352,29 +3342,6 @@ function element_set_attributes(array &$element, array $map) {
 }
 
 /**
- * Returns a list of severity levels, as defined in RFC 3164.
- *
- * @return
- *   Array of the possible severity levels for log messages.
- *
- * @see http://www.ietf.org/rfc/rfc3164.txt
- * @see watchdog()
- * @ingroup logging_severity_levels
- */
-function watchdog_severity_levels() {
-  return array(
-    WATCHDOG_EMERGENCY   => t('Emergency'),
-    WATCHDOG_ALERT   => t('Alert'),
-    WATCHDOG_CRITICAL    => t('Critical'),
-    WATCHDOG_ERROR     => t('Error'),
-    WATCHDOG_WARNING => t('Warning'),
-    WATCHDOG_NOTICE  => t('Notice'),
-    WATCHDOG_INFO    => t('Info'),
-    WATCHDOG_DEBUG   => t('Debug'),
-  );
-}
-
-/**
  * Flushes all persistent caches, resets all variables, and rebuilds all data structures.
  *
  * At times, it is necessary to re-initialize the entire system to account for
@@ -3446,9 +3413,6 @@ function drupal_flush_all_caches() {
   // Reset all static caches.
   drupal_static_reset();
 
-  // Clear all non-drupal_static() static caches.
-  \Drupal::entityManager()->clearCachedDefinitions();
-
   // Wipe the PHP Storage caches.
   PhpStorageFactory::get('service_container')->deleteAll();
   PhpStorageFactory::get('twig')->deleteAll();
@@ -3497,6 +3461,9 @@ function drupal_flush_all_caches() {
 
   // Rebuild all information based on new module data.
   $module_handler->invokeAll('rebuild');
+
+  // Clear all plugin caches.
+  \Drupal::service('plugin.cache_clearer')->clearCachedDefinitions();
 
   // Rebuild the menu router based on all rebuilt data.
   // Important: This rebuild must happen last, so the menu router is guaranteed
