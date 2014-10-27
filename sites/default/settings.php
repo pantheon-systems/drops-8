@@ -80,5 +80,5 @@ if (isset($_SERVER['PRESSFLOW_SETTINGS'])) {
  *
  */
 if (isset($_SERVER['PRESSFLOW_SETTINGS'])) {
-  $settings['hash_salt'] = hash('sha256', serialize($databases));
+  $settings['hash_salt'] = $drupal_hash_salt;
 }
