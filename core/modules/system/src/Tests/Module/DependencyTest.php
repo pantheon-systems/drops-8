@@ -6,6 +6,7 @@
  */
 
 namespace Drupal\system\Tests\Module;
+use Drupal\Component\Utility\Unicode;
 
 /**
  * Enable module without dependency enabled.
@@ -45,7 +46,7 @@ class DependencyTest extends ModuleTestBase {
     // Test that the system_dependencies_test module is marked
     // as missing a dependency.
     $this->drupalGet('admin/modules');
-    $this->assertRaw(t('@module (<span class="admin-missing">missing</span>)', array('@module' => drupal_ucfirst('_missing_dependency'))), 'A module with missing dependencies is marked as such.');
+    $this->assertRaw(t('@module (<span class="admin-missing">missing</span>)', array('@module' => Unicode::ucfirst('_missing_dependency'))), 'A module with missing dependencies is marked as such.');
     $checkbox = $this->xpath('//input[@type="checkbox" and @disabled="disabled" and @name="modules[Testing][system_dependencies_test][enable]"]');
     $this->assert(count($checkbox) == 1, 'Checkbox for the module is disabled.');
   }
@@ -154,6 +155,15 @@ class DependencyTest extends ModuleTestBase {
     $checkbox = $this->xpath('//input[@type="checkbox" and @name="uninstall[comment]"]');
     $this->assert(count($checkbox) == 0, 'Checkbox for uninstalling the comment module not found.');
 
+    // Delete any forum terms.
+    $vid = \Drupal::config('forum.settings')->get('vocabulary');
+    // Ensure taxonomy has been loaded into the test-runner after forum was
+    // enabled.
+    \Drupal::moduleHandler()->load('taxonomy');
+    $terms = entity_load_multiple_by_properties('taxonomy_term', ['vid' => $vid]);
+    foreach ($terms as $term) {
+      $term->delete();
+    }
     // Uninstall the forum module, and check that taxonomy now can also be
     // uninstalled.
     $edit = array('uninstall[forum]' => 'forum');

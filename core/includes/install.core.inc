@@ -372,8 +372,8 @@ function install_begin_request(&$install_state) {
   $container->get('request_stack')->push($request);
 
   // Register the file translation service.
-  if (isset($GLOBALS['config']['locale.settings']['translation.path'])) {
-    $directory = $GLOBALS['config']['locale.settings']['translation.path'];
+  if (isset($GLOBALS['config']['locale.settings']['translation']['path'])) {
+    $directory = $GLOBALS['config']['locale.settings']['translation']['path'];
   }
   else {
     $directory = $site_path . '/files/translations';
@@ -1784,13 +1784,10 @@ function install_finished(&$install_state) {
     user_login_finalize($account);
   }
 
-  // @todo Temporary hack to satisfy PIFR.
-  // @see https://drupal.org/node/1317548
-  $pifr_assertion = '<span style="display: none;">Drupal installation complete</span>';
   $success_message = t('Congratulations, you installed @drupal!', array(
     '@drupal' => drupal_install_profile_distribution_name(),
   ));
-  drupal_set_message(SafeMarkup::set($success_message . $pifr_assertion));
+  drupal_set_message($success_message);
 }
 
 /**

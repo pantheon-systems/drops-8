@@ -303,7 +303,7 @@ function check_markup($text, $format_id = NULL, $langcode = '', $filter_types_to
     '#filter_types_to_skip' => $filter_types_to_skip,
     '#langcode' => $langcode,
   );
-  return drupal_render($build);
+  return drupal_render_root($build);
 }
 
 /**
@@ -612,7 +612,7 @@ function _filter_url_parse_full_links($match) {
   // The $i:th parenthesis in the regexp contains the URL.
   $i = 1;
 
-  $match[$i] = decode_entities($match[$i]);
+  $match[$i] = String::decodeEntities($match[$i]);
   $caption = String::checkPlain(_filter_url_trim($match[$i]));
   $match[$i] = String::checkPlain($match[$i]);
   return '<a href="' . $match[$i] . '">' . $caption . '</a>';
@@ -627,7 +627,7 @@ function _filter_url_parse_email_links($match) {
   // The $i:th parenthesis in the regexp contains the URL.
   $i = 0;
 
-  $match[$i] = decode_entities($match[$i]);
+  $match[$i] = String::decodeEntities($match[$i]);
   $caption = String::checkPlain(_filter_url_trim($match[$i]));
   $match[$i] = String::checkPlain($match[$i]);
   return '<a href="mailto:' . $match[$i] . '">' . $caption . '</a>';
@@ -642,7 +642,7 @@ function _filter_url_parse_partial_links($match) {
   // The $i:th parenthesis in the regexp contains the URL.
   $i = 1;
 
-  $match[$i] = decode_entities($match[$i]);
+  $match[$i] = String::decodeEntities($match[$i]);
   $caption = String::checkPlain(_filter_url_trim($match[$i]));
   $match[$i] = String::checkPlain($match[$i]);
   return '<a href="http://' . $match[$i] . '">' . $caption . '</a>';
@@ -784,7 +784,7 @@ function _filter_html_escape($text) {
 function _filter_html_image_secure_process($text) {
   // Find the path (e.g. '/') to Drupal root.
   $base_path = base_path();
-  $base_path_length = drupal_strlen($base_path);
+  $base_path_length = Unicode::strlen($base_path);
 
   // Find the directory on the server where index.php resides.
   $local_dir = DRUPAL_ROOT . '/';
@@ -800,11 +800,11 @@ function _filter_html_image_secure_process($text) {
     // Verify that $src starts with $base_path.
     // This also ensures that external images cannot be referenced.
     $src = $image->getAttribute('src');
-    if (drupal_substr($src, 0, $base_path_length) === $base_path) {
+    if (Unicode::substr($src, 0, $base_path_length) === $base_path) {
       // Remove the $base_path to get the path relative to the Drupal root.
       // Ensure the path refers to an actual image by prefixing the image source
       // with the Drupal root and running getimagesize() on it.
-      $local_image_path = $local_dir . drupal_substr($src, $base_path_length);
+      $local_image_path = $local_dir . Unicode::substr($src, $base_path_length);
       $local_image_path = rawurldecode($local_image_path);
       if (@getimagesize($local_image_path)) {
         // The image has the right path. Erroneous images are dealt with below.

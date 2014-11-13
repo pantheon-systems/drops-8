@@ -7,6 +7,7 @@
 
 namespace Drupal\update\Tests;
 
+use Drupal\Core\Url;
 use Drupal\Core\Utility\ProjectInfo;
 
 /**
@@ -36,7 +37,7 @@ class UpdateContribTest extends UpdateTestBase {
   function testNoReleasesAvailable() {
     $system_info = array(
       '#all' => array(
-        'version' => '7.0',
+        'version' => '8.0.0',
       ),
       'aaa_update_test' => array(
         'project' => 'aaa_update_test',
@@ -45,17 +46,17 @@ class UpdateContribTest extends UpdateTestBase {
       ),
     );
     \Drupal::config('update_test.settings')->set('system_info', $system_info)->save();
-    $this->refreshUpdateStatus(array('drupal' => '0', 'aaa_update_test' => 'no-releases'));
+    $this->refreshUpdateStatus(array('drupal' => '0.0', 'aaa_update_test' => 'no-releases'));
     $this->drupalGet('admin/reports/updates');
     // Cannot use $this->standardTests() because we need to check for the
     // 'No available releases found' string.
     $this->assertRaw('<h3>' . t('Drupal core') . '</h3>');
-    $this->assertRaw(_l(t('Drupal'), 'http://example.com/project/drupal'));
+    $this->assertRaw(\Drupal::l(t('Drupal'), Url::fromUri('http://example.com/project/drupal')));
     $this->assertText(t('Up to date'));
     $this->assertRaw('<h3>' . t('Modules') . '</h3>');
     $this->assertNoText(t('Update available'));
     $this->assertText(t('No available releases found'));
-    $this->assertNoRaw(_l(t('AAA Update test'), 'http://example.com/project/aaa_update_test'));
+    $this->assertNoRaw(\Drupal::l(t('AAA Update test'), Url::fromUri('http://example.com/project/aaa_update_test')));
 
     $available = update_get_available();
     $this->assertFalse(isset($available['aaa_update_test']['fetch_status']), 'Results are cached even if no releases are available.');
@@ -67,7 +68,7 @@ class UpdateContribTest extends UpdateTestBase {
   function testUpdateContribBasic() {
     $system_info = array(
       '#all' => array(
-        'version' => '7.0',
+        'version' => '8.0.0',
       ),
       'aaa_update_test' => array(
         'project' => 'aaa_update_test',
@@ -78,7 +79,7 @@ class UpdateContribTest extends UpdateTestBase {
     \Drupal::config('update_test.settings')->set('system_info', $system_info)->save();
     $this->refreshUpdateStatus(
       array(
-        'drupal' => '0',
+        'drupal' => '0.0',
         'aaa_update_test' => '1_0',
       )
     );
@@ -86,7 +87,7 @@ class UpdateContribTest extends UpdateTestBase {
     $this->assertText(t('Up to date'));
     $this->assertRaw('<h3>' . t('Modules') . '</h3>');
     $this->assertNoText(t('Update available'));
-    $this->assertRaw(_l(t('AAA Update test'), 'http://example.com/project/aaa_update_test'), 'Link to aaa_update_test project appears.');
+    $this->assertRaw(\Drupal::l(t('AAA Update test'), Url::fromUri('http://example.com/project/aaa_update_test')), 'Link to aaa_update_test project appears.');
   }
 
   /**
@@ -103,10 +104,10 @@ class UpdateContribTest extends UpdateTestBase {
    * inside system_rebuild_module_data() for example).
    */
   function testUpdateContribOrder() {
-    // We want core to be version 7.0.
+    // We want core to be version 8.0.0.
     $system_info = array(
       '#all' => array(
-        'version' => '7.0',
+        'version' => '8.0.0',
       ),
       // All the rest should be visible as contrib modules at version 8.x-1.0.
 
@@ -135,7 +136,7 @@ class UpdateContribTest extends UpdateTestBase {
       ),
     );
     \Drupal::config('update_test.settings')->set('system_info', $system_info)->save();
-    $this->refreshUpdateStatus(array('drupal' => '0', '#all' => '1_0'));
+    $this->refreshUpdateStatus(array('drupal' => '0.0', '#all' => '1_0'));
     $this->standardTests();
     // We're expecting the report to say all projects are up to date.
     $this->assertText(t('Up to date'));
@@ -147,10 +148,10 @@ class UpdateContribTest extends UpdateTestBase {
     $this->assertText(t('CCC Update test'));
     // We want aaa_update_test included in the ccc_update_test project, not as
     // its own project on the report.
-    $this->assertNoRaw(_l(t('AAA Update test'), 'http://example.com/project/aaa_update_test'), 'Link to aaa_update_test project does not appear.');
+    $this->assertNoRaw(\Drupal::l(t('AAA Update test'), Url::fromUri('http://example.com/project/aaa_update_test')), 'Link to aaa_update_test project does not appear.');
     // The other two should be listed as projects.
-    $this->assertRaw(_l(t('BBB Update test'), 'http://example.com/project/bbb_update_test'), 'Link to bbb_update_test project appears.');
-    $this->assertRaw(_l(t('CCC Update test'), 'http://example.com/project/ccc_update_test'), 'Link to bbb_update_test project appears.');
+    $this->assertRaw(\Drupal::l(t('BBB Update test'), Url::fromUri('http://example.com/project/bbb_update_test')), 'Link to bbb_update_test project appears.');
+    $this->assertRaw(\Drupal::l(t('CCC Update test'), Url::fromUri('http://example.com/project/ccc_update_test')), 'Link to bbb_update_test project appears.');
 
     // We want to make sure we see the BBB project before the CCC project.
     // Instead of just searching for 'BBB Update test' or something, we want
@@ -172,9 +173,9 @@ class UpdateContribTest extends UpdateTestBase {
 
     // Define the initial state for core and the subtheme.
     $system_info = array(
-      // We want core to be version 7.0.
+      // We want core to be version 8.0.0.
       '#all' => array(
-        'version' => '7.0',
+        'version' => '8.0.0',
       ),
       // Show the update_test_basetheme
       'update_test_basetheme' => array(
@@ -191,13 +192,13 @@ class UpdateContribTest extends UpdateTestBase {
     );
     \Drupal::config('update_test.settings')->set('system_info', $system_info)->save();
     $xml_mapping = array(
-      'drupal' => '0',
+      'drupal' => '0.0',
       'update_test_subtheme' => '1_0',
       'update_test_basetheme' => '1_1-sec',
     );
     $this->refreshUpdateStatus($xml_mapping);
     $this->assertText(t('Security update required!'));
-    $this->assertRaw(_l(t('Update test base theme'), 'http://example.com/project/update_test_basetheme'), 'Link to the Update test base theme project appears.');
+    $this->assertRaw(\Drupal::l(t('Update test base theme'), Url::fromUri('http://example.com/project/update_test_basetheme')), 'Link to the Update test base theme project appears.');
   }
 
   /**
@@ -219,9 +220,9 @@ class UpdateContribTest extends UpdateTestBase {
 
     // Define the initial state for core and the test contrib themes.
     $system_info = array(
-      // We want core to be version 7.0.
+      // We want core to be version 8.0.0.
       '#all' => array(
-        'version' => '7.0',
+        'version' => '8.0.0',
       ),
       // The update_test_basetheme should be visible and up to date.
       'update_test_basetheme' => array(
@@ -243,12 +244,12 @@ class UpdateContribTest extends UpdateTestBase {
     $update_settings->set('fetch.max_attempts', 99999)->save();
     \Drupal::config('update_test.settings')->set('system_info', $system_info)->save();
     $xml_mapping = array(
-      'drupal' => '0',
+      'drupal' => '0.0',
       'update_test_subtheme' => '1_0',
       'update_test_basetheme' => '1_1-sec',
     );
-    $base_theme_project_link = _l(t('Update test base theme'), 'http://example.com/project/update_test_basetheme');
-    $sub_theme_project_link = _l(t('Update test subtheme'), 'http://example.com/project/update_test_subtheme');
+    $base_theme_project_link = \Drupal::l(t('Update test base theme'), Url::fromUri('http://example.com/project/update_test_basetheme'));
+    $sub_theme_project_link = \Drupal::l(t('Update test subtheme'), Url::fromUri('http://example.com/project/update_test_subtheme'));
     foreach (array(TRUE, FALSE) as $check_disabled) {
       $update_settings->set('check.disabled_extensions', $check_disabled)->save();
       $this->refreshUpdateStatus($xml_mapping);
@@ -305,7 +306,7 @@ class UpdateContribTest extends UpdateTestBase {
   function testUpdateBrokenFetchURL() {
     $system_info = array(
       '#all' => array(
-        'version' => '7.0',
+        'version' => '8.0.0',
       ),
       'aaa_update_test' => array(
         'project' => 'aaa_update_test',
@@ -326,7 +327,7 @@ class UpdateContribTest extends UpdateTestBase {
     \Drupal::config('update_test.settings')->set('system_info', $system_info)->save();
 
     $xml_mapping = array(
-      'drupal' => '0',
+      'drupal' => '0.0',
       'aaa_update_test' => '1_0',
       'bbb_update_test' => 'does-not-exist',
       'ccc_update_test' => '1_0',
@@ -350,9 +351,9 @@ class UpdateContribTest extends UpdateTestBase {
     $this->assertUniqueText(t('Failed to get available update data for one project.'));
 
     // The other two should be listed as projects.
-    $this->assertRaw(_l(t('AAA Update test'), 'http://example.com/project/aaa_update_test'), 'Link to aaa_update_test project appears.');
-    $this->assertNoRaw(_l(t('BBB Update test'), 'http://example.com/project/bbb_update_test'), 'Link to bbb_update_test project does not appear.');
-    $this->assertRaw(_l(t('CCC Update test'), 'http://example.com/project/ccc_update_test'), 'Link to bbb_update_test project appears.');
+    $this->assertRaw(\Drupal::l(t('AAA Update test'), Url::fromUri('http://example.com/project/aaa_update_test')), 'Link to aaa_update_test project appears.');
+    $this->assertNoRaw(\Drupal::l(t('BBB Update test'), Url::fromUri('http://example.com/project/bbb_update_test')), 'Link to bbb_update_test project does not appear.');
+    $this->assertRaw(\Drupal::l(t('CCC Update test'), Url::fromUri('http://example.com/project/ccc_update_test')), 'Link to bbb_update_test project appears.');
   }
 
   /**
@@ -370,7 +371,7 @@ class UpdateContribTest extends UpdateTestBase {
 
     $system_info = array(
       '#all' => array(
-        'version' => '7.0',
+        'version' => '8.0.0',
       ),
       'aaa_update_test' => array(
         'project' => 'aaa_update_test',
@@ -387,14 +388,14 @@ class UpdateContribTest extends UpdateTestBase {
     $update_test_config->set('update_status', $update_status)->save();
     $this->refreshUpdateStatus(
       array(
-        'drupal' => '0',
+        'drupal' => '0.0',
         'aaa_update_test' => '1_0',
       )
     );
     $this->drupalGet('admin/reports/updates');
     $this->assertRaw('<h3>' . t('Modules') . '</h3>');
     $this->assertText(t('Security update required!'));
-    $this->assertRaw(_l(t('AAA Update test'), 'http://example.com/project/aaa_update_test'), 'Link to aaa_update_test project appears.');
+    $this->assertRaw(\Drupal::l(t('AAA Update test'), Url::fromUri('http://example.com/project/aaa_update_test')), 'Link to aaa_update_test project appears.');
 
     // Visit the reports page again without the altering and make sure the
     // status is back to normal.
@@ -402,7 +403,7 @@ class UpdateContribTest extends UpdateTestBase {
     $this->drupalGet('admin/reports/updates');
     $this->assertRaw('<h3>' . t('Modules') . '</h3>');
     $this->assertNoText(t('Security update required!'));
-    $this->assertRaw(_l(t('AAA Update test'), 'http://example.com/project/aaa_update_test'), 'Link to aaa_update_test project appears.');
+    $this->assertRaw(\Drupal::l(t('AAA Update test'), Url::fromUri('http://example.com/project/aaa_update_test')), 'Link to aaa_update_test project appears.');
 
     // Turn the altering back on and visit the Update manager UI.
     $update_test_config->set('update_status', $update_status)->save();

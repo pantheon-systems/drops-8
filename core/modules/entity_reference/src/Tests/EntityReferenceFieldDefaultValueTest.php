@@ -7,6 +7,8 @@
 
 namespace Drupal\entity_reference\Tests;
 
+use Drupal\Component\Utility\Unicode;
+use Drupal\config\Tests\SchemaCheckTestTrait;
 use Drupal\simpletest\WebTestBase;
 
 /**
@@ -15,6 +17,7 @@ use Drupal\simpletest\WebTestBase;
  * @group entity_reference
  */
 class EntityReferenceFieldDefaultValueTest extends WebTestBase {
+  use SchemaCheckTestTrait;
 
   /**
    * Modules to install.
@@ -42,7 +45,7 @@ class EntityReferenceFieldDefaultValueTest extends WebTestBase {
     // Create a node to be referenced.
     $referenced_node = $this->drupalCreateNode(array('type' => 'referenced_content'));
 
-    $field_name = drupal_strtolower($this->randomMachineName());
+    $field_name = Unicode::strtolower($this->randomMachineName());
     $field_storage = entity_create('field_storage_config', array(
       'field_name' => $field_name,
       'entity_type' => 'node',
@@ -77,6 +80,9 @@ class EntityReferenceFieldDefaultValueTest extends WebTestBase {
     $config_entity = $this->container->get('config.factory')->get('field.field.node.reference_content.' . $field_name)->get();
     $this->assertTrue(isset($config_entity['default_value'][0]['target_uuid']), 'Default value contains target_uuid property');
     $this->assertEqual($config_entity['default_value'][0]['target_uuid'], $referenced_node->uuid(), 'Content uuid and config entity uuid are the same');
+    // Ensure the configuration has the expected dependency on the entity that
+    // is being used a default value.
+    $this->assertEqual(array($referenced_node->getConfigDependencyName()), $config_entity['dependencies']['content']);
 
     // Clear field definitions cache in order to avoid stale cache values.
     \Drupal::entityManager()->clearCachedFieldDefinitions();
@@ -84,6 +90,12 @@ class EntityReferenceFieldDefaultValueTest extends WebTestBase {
     // Create a new node to check that UUID has been converted to numeric ID.
     $new_node = entity_create('node', array('type' => 'reference_content'));
     $this->assertEqual($new_node->get($field_name)->offsetGet(0)->target_id, $referenced_node->id());
+
+    // Ensure that the entity reference config schemas are correct.
+    $field_config = \Drupal::config('field.field.node.reference_content.' . $field_name);
+    $this->assertConfigSchema(\Drupal::service('config.typed'), $field_config->getName(), $field_config->get());
+    $field_storage_config = \Drupal::config('field.storage.node.' . $field_name);
+    $this->assertConfigSchema(\Drupal::service('config.typed'), $field_storage_config->getName(), $field_storage_config->get());
   }
 
 }

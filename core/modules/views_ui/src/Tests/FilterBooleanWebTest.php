@@ -52,6 +52,18 @@ class FilterBooleanWebTest extends UITestBase {
     $this->assertEqual((int) $result[2]->attributes()->checked, 'checked');
     $result = $this->xpath('//input[@name="options[group_info][group_items][3][value]"]');
     $this->assertEqual((int) $result[1]->attributes()->checked, 'checked');
+
+    // Test that there is a remove link for each group.
+    $this->assertEqual(count($this->cssSelect('a.views-remove-link')), 3);
+
+    // Test selecting a default and removing an item.
+    $edit = array();
+    $edit['options[group_info][default_group]'] = 2;
+    $edit['options[group_info][group_items][3][remove]'] = 1;
+    $this->drupalPostForm(NULL, $edit, t('Apply'));
+    $this->drupalGet('admin/structure/views/nojs/handler/test_view/default/filter/status');
+    $this->assertFieldByName('options[group_info][default_group]', 2, 'Second item was set as the default.');
+    $this->assertNoField('options[group_info][group_items][3][remove]', 'Third item was removed.');
   }
 
 }

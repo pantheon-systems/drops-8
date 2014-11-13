@@ -34,7 +34,7 @@ class Language implements LanguageInterface {
    *
    * @var string
    */
-  public $name = '';
+  protected $name = '';
 
   /**
    * The ID, langcode.
@@ -80,7 +80,9 @@ class Language implements LanguageInterface {
   public function __construct(array $values = array()) {
     // Set all the provided properties for the language.
     foreach ($values as $key => $value) {
-      $this->{$key} = $value;
+      if (property_exists($this, $key)) {
+        $this->{$key} = $value;
+      }
     }
     // If some values were not set, set sane defaults of a predefined language.
     if (!isset($values['name']) || !isset($values['direction'])) {
@@ -101,6 +103,15 @@ class Language implements LanguageInterface {
    */
   public function getName() {
     return $this->name;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setName($name) {
+    $this->name = $name;
+
+    return $this;
   }
 
   /**

@@ -7,30 +7,30 @@
 
 namespace Drupal\block\Plugin\DisplayVariant;
 
-use Drupal\Core\Entity\EntityStorageInterface;
+use Drupal\block\BlockRepositoryInterface;
+use Drupal\Core\Block\MainContentBlockPluginInterface;
+use Drupal\Core\Display\PageVariantInterface;
 use Drupal\Core\Entity\EntityViewBuilderInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Display\VariantBase;
-use Drupal\Core\Routing\RouteMatchInterface;
-use Drupal\Core\Theme\ThemeNegotiatorInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Provides a display variant that represents the full page.
  *
- * @DisplayVariant(
+ * @PageDisplayVariant(
  *   id = "full_page",
  *   admin_label = @Translation("Full page")
  * )
  */
-class FullPageVariant extends VariantBase implements ContainerFactoryPluginInterface {
+class FullPageVariant extends VariantBase implements PageVariantInterface, ContainerFactoryPluginInterface {
 
   /**
-   * The block storage.
+   * The block repository.
    *
-   * @var \Drupal\Core\Entity\EntityStorageInterface
+   * @var \Drupal\block\BlockRepositoryInterface
    */
-  protected $blockStorage;
+  protected $blockRepository;
 
   /**
    * The block view builder.
@@ -47,18 +47,11 @@ class FullPageVariant extends VariantBase implements ContainerFactoryPluginInter
   protected $theme;
 
   /**
-   * The current route match.
+   * The render array representing the main page content.
    *
-   * @var \Drupal\Core\Routing\RouteMatchInterface
+   * @var array
    */
-  protected $routeMatch;
-
-  /**
-   * The theme negotiator.
-   *
-   * @var \Drupal\Core\Theme\ThemeNegotiatorInterface
-   */
-  protected $themeNegotiator;
+  protected $mainContent = [];
 
   /**
    * Constructs a new FullPageVariant.
@@ -69,21 +62,15 @@ class FullPageVariant extends VariantBase implements ContainerFactoryPluginInter
    *   The plugin ID for the plugin instance.
    * @param mixed $plugin_definition
    *   The plugin implementation definition.
-   * @param \Drupal\Core\Entity\EntityStorageInterface $block_storage
-   *   The block entity storage.
+   * @param \Drupal\block\BlockRepositoryInterface $block_repository
+   *   The block repository.
    * @param \Drupal\Core\Entity\EntityViewBuilderInterface $block_view_builder
    *   The block view builder.
-   * @param \Drupal\Core\Routing\RouteMatchInterface $route_match
-   *   The current route match.
-   * @param \Drupal\Core\Theme\ThemeNegotiatorInterface $theme_negotiator
-   *   The theme negotiator.
    */
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, EntityStorageInterface $block_storage, EntityViewBuilderInterface $block_view_builder, RouteMatchInterface $route_match, ThemeNegotiatorInterface $theme_negotiator) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, BlockRepositoryInterface $block_repository, EntityViewBuilderInterface $block_view_builder) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
-    $this->blockStorage = $block_storage;
+    $this->blockRepository = $block_repository;
     $this->blockViewBuilder = $block_view_builder;
-    $this->routeMatch = $route_match;
-    $this->themeNegotiator = $theme_negotiator;
   }
 
   /**
@@ -94,78 +81,53 @@ class FullPageVariant extends VariantBase implements ContainerFactoryPluginInter
       $configuration,
       $plugin_id,
       $plugin_definition,
-      $container->get('entity.manager')->getStorage('block'),
-      $container->get('entity.manager')->getViewBuilder('block'),
-      $container->get('current_route_match'),
-      $container->get('theme.negotiator')
+      $container->get('block.repository'),
+      $container->get('entity.manager')->getViewBuilder('block')
     );
   }
 
   /**
-   * Gets the current theme for this page.
-   *
-   * @return string
-   *   The current theme.
+   * {@inheritdoc}
    */
-  protected function getTheme() {
-    return $this->themeNegotiator->determineActiveTheme($this->routeMatch);
+  public function setMainContent(array $main_content) {
+    $this->mainContent = $main_content;
+    return $this;
   }
 
   /**
    * {@inheritdoc}
    */
   public function build() {
+    // Track whether a block that shows the main content is displayed or not.
+    $main_content_block_displayed = FALSE;
+
     $build = array();
     // Load all region content assigned via blocks.
-    foreach ($this->getRegionAssignments() as $region => $blocks) {
+    foreach ($this->blockRepository->getVisibleBlocksPerRegion() as $region => $blocks) {
       /** @var $blocks \Drupal\block\BlockInterface[] */
       foreach ($blocks as $key => $block) {
-        if ($block->access('view')) {
-          $build[$region][$key] = $this->blockViewBuilder->view($block);
+        $block_plugin = $block->getPlugin();
+        if ($block_plugin instanceof MainContentBlockPluginInterface) {
+          $block_plugin->setMainContent($this->mainContent);
+          $main_content_block_displayed = TRUE;
         }
+        $build[$region][$key] = $this->blockViewBuilder->view($block);
       }
       if (!empty($build[$region])) {
-        // self::getRegionAssignments() returns the blocks in sorted order.
+        // \Drupal\block\BlockRepositoryInterface::getVisibleBlocksPerRegion()
+        // returns the blocks in sorted order.
         $build[$region]['#sorted'] = TRUE;
       }
     }
+
+    // If no block that shows the main content is displayed, still show the main
+    // content. Otherwise the end user will see all displayed blocks, but not
+    // the main content they came for.
+    if (!$main_content_block_displayed) {
+      $build['content']['system_main'] = $this->mainContent;
+    }
+
     return $build;
-  }
-
-  /**
-   * Returns the human-readable list of regions keyed by machine name.
-   *
-   * @return array
-   *   An array of human-readable region names keyed by machine name.
-   */
-  protected function getRegionNames() {
-    return system_region_list($this->getTheme());
-  }
-
-  /**
-   * Returns an array of regions and their block entities.
-   *
-   * @return array
-   *   The array is first keyed by region machine name, with the values
-   *   containing an array keyed by block ID, with block entities as the values.
-   */
-  protected function getRegionAssignments() {
-    // Build an array of the region names in the right order.
-    $empty = array_fill_keys(array_keys($this->getRegionNames()), array());
-
-    $full = array();
-    foreach ($this->blockStorage->loadByProperties(array('theme' => $this->getTheme())) as $block_id => $block) {
-      $full[$block->get('region')][$block_id] = $block;
-    }
-
-    // Merge it with the actual values to maintain the region ordering.
-    $assignments = array_intersect_key(array_merge($empty, $full), $empty);
-    foreach ($assignments as &$assignment) {
-      // Suppress errors because PHPUnit will indirectly modify the contents,
-      // triggering https://bugs.php.net/bug.php?id=50688.
-      @uasort($assignment, 'Drupal\block\Entity\Block::sort');
-    }
-    return $assignments;
   }
 
 }

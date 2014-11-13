@@ -47,9 +47,6 @@ class BlockTest extends BlockTestBase {
     $this->drupalGet('user');
     $this->assertNoText($title, 'Block was not displayed according to block visibility rules.');
 
-    $this->drupalGet('USER/' . $this->adminUser->id());
-    $this->assertNoText($title, 'Block was not displayed according to block visibility rules regardless of path case.');
-
     // Confirm that the block is not displayed to anonymous users.
     $this->drupalLogout();
     $this->drupalGet('');
@@ -188,9 +185,9 @@ class BlockTest extends BlockTestBase {
     \Drupal::service('theme_handler')->install(array($theme));
     \Drupal::service('router.builder')->rebuild();
     $this->drupalGet('admin/structure/block');
-    $this->assertRaw(String::checkPlain('<"Cat" & \'Mouse\'>'));
+    $this->assertEscaped('<"Cat" & \'Mouse\'>');
     $this->drupalGet('admin/structure/block/list/block_test_specialchars_theme');
-    $this->assertRaw(String::checkPlain('Demonstrate block regions (<"Cat" & \'Mouse\'>)'));
+    $this->assertEscaped('Demonstrate block regions (<"Cat" & \'Mouse\'>)');
   }
 
   /**

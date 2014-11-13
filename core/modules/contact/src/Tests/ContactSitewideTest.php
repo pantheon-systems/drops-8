@@ -8,6 +8,8 @@
 namespace Drupal\contact\Tests;
 
 use Drupal\Component\Utility\Unicode;
+use Drupal\contact\Entity\ContactForm;
+use Drupal\Core\Mail\MailFormatHelper;
 use Drupal\simpletest\WebTestBase;
 use Drupal\Core\Entity\EntityTypeInterface;
 
@@ -23,7 +25,7 @@ class ContactSitewideTest extends WebTestBase {
    *
    * @var array
    */
-  public static $modules = array('text', 'contact', 'field_ui');
+  public static $modules = array('text', 'contact', 'field_ui', 'contact_test');
 
   /**
    * Tests configuration options and the site-wide contact form.
@@ -107,13 +109,13 @@ class ContactSitewideTest extends WebTestBase {
     $recipients = array('simpletest@example.com', 'simpletest2@example.com', 'simpletest3@example.com');
     $max_length = EntityTypeInterface::BUNDLE_MAX_LENGTH;
     $max_length_exceeded = $max_length + 1;
-    $this->addContactForm($id = drupal_strtolower($this->randomMachineName($max_length_exceeded)), $label = $this->randomMachineName($max_length_exceeded), implode(',', array($recipients[0])), '', TRUE);
+    $this->addContactForm($id = Unicode::strtolower($this->randomMachineName($max_length_exceeded)), $label = $this->randomMachineName($max_length_exceeded), implode(',', array($recipients[0])), '', TRUE);
     $this->assertText(format_string('Machine-readable name cannot be longer than !max characters but is currently !exceeded characters long.', array('!max' => $max_length, '!exceeded' => $max_length_exceeded)));
-    $this->addContactForm($id = drupal_strtolower($this->randomMachineName($max_length)), $label = $this->randomMachineName($max_length), implode(',', array($recipients[0])), '', TRUE);
+    $this->addContactForm($id = Unicode::strtolower($this->randomMachineName($max_length)), $label = $this->randomMachineName($max_length), implode(',', array($recipients[0])), '', TRUE);
     $this->assertRaw(t('Contact form %label has been added.', array('%label' => $label)));
 
     // Create first valid form.
-    $this->addContactForm($id = drupal_strtolower($this->randomMachineName(16)), $label = $this->randomMachineName(16), implode(',', array($recipients[0])), '', TRUE);
+    $this->addContactForm($id = Unicode::strtolower($this->randomMachineName(16)), $label = $this->randomMachineName(16), implode(',', array($recipients[0])), '', TRUE);
     $this->assertRaw(t('Contact form %label has been added.', array('%label' => $label)));
 
     // Check that the form was created in site default language.
@@ -148,10 +150,10 @@ class ContactSitewideTest extends WebTestBase {
     $this->drupalLogin($admin_user);
 
     // Add more forms.
-    $this->addContactForm(drupal_strtolower($this->randomMachineName(16)), $label = $this->randomMachineName(16), implode(',', array($recipients[0], $recipients[1])), '', FALSE);
+    $this->addContactForm(Unicode::strtolower($this->randomMachineName(16)), $label = $this->randomMachineName(16), implode(',', array($recipients[0], $recipients[1])), '', FALSE);
     $this->assertRaw(t('Contact form %label has been added.', array('%label' => $label)));
 
-    $this->addContactForm($name = drupal_strtolower($this->randomMachineName(16)), $label = $this->randomMachineName(16), implode(',', array($recipients[0], $recipients[1], $recipients[2])), '', FALSE);
+    $this->addContactForm($name = Unicode::strtolower($this->randomMachineName(16)), $label = $this->randomMachineName(16), implode(',', array($recipients[0], $recipients[1], $recipients[2])), '', FALSE);
     $this->assertRaw(t('Contact form %label has been added.', array('%label' => $label)));
 
     // Try adding a form that already exists.
@@ -221,7 +223,7 @@ class ContactSitewideTest extends WebTestBase {
 
     $label = $this->randomMachineName(16);
     $recipients = implode(',', array($recipients[0], $recipients[1], $recipients[2]));
-    $contact_form = drupal_strtolower($this->randomMachineName(16));
+    $contact_form = Unicode::strtolower($this->randomMachineName(16));
     $this->addContactForm($contact_form, $label, $recipients, '', FALSE);
     $this->drupalGet('admin/structure/contact');
     $this->clickLink(t('Edit'));
@@ -299,7 +301,7 @@ class ContactSitewideTest extends WebTestBase {
     // We are testing the auto-reply, so there should be one email going to the sender.
     $captured_emails = $this->drupalGetMails(array('id' => 'contact_page_autoreply', 'to' => $email));
     $this->assertEqual(count($captured_emails), 1);
-    $this->assertEqual(trim($captured_emails[0]['body']), trim(drupal_html_to_text($foo_autoreply)));
+    $this->assertEqual(trim($captured_emails[0]['body']), trim(MailFormatHelper::htmlToText($foo_autoreply)));
 
     // Test the auto-reply for form 'bar'.
     $email = $this->randomMachineName(32) . '@example.com';
@@ -308,7 +310,7 @@ class ContactSitewideTest extends WebTestBase {
     // Auto-reply for form 'bar' should result in one auto-reply email to the sender.
     $captured_emails = $this->drupalGetMails(array('id' => 'contact_page_autoreply', 'to' => $email));
     $this->assertEqual(count($captured_emails), 1);
-    $this->assertEqual(trim($captured_emails[0]['body']), trim(drupal_html_to_text($bar_autoreply)));
+    $this->assertEqual(trim($captured_emails[0]['body']), trim(MailFormatHelper::htmlToText($bar_autoreply)));
 
     // Verify that no auto-reply is sent when the auto-reply field is left blank.
     $email = $this->randomMachineName(32) . '@example.com';
@@ -401,7 +403,7 @@ class ContactSitewideTest extends WebTestBase {
    * Deletes all forms.
    */
   function deleteContactForms() {
-    $contact_forms = entity_load_multiple('contact_form');
+    $contact_forms = ContactForm::loadMultiple();;
     foreach ($contact_forms as $id => $contact_form) {
       if ($id == 'personal') {
         // Personal form could not be deleted.
@@ -411,7 +413,7 @@ class ContactSitewideTest extends WebTestBase {
       else {
         $this->drupalPostForm("admin/structure/contact/manage/$id/delete", array(), t('Delete'));
         $this->assertRaw(t('Contact form %label has been deleted.', array('%label' => $contact_form->label())));
-        $this->assertFalse(entity_load('contact_form', $id), format_string('Form %contact_form not found', array('%contact_form' => $contact_form->label())));
+        $this->assertFalse(ContactForm::load($id), format_string('Form %contact_form not found', array('%contact_form' => $contact_form->label())));
       }
     }
   }

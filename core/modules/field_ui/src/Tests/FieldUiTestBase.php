@@ -7,6 +7,7 @@
 
 namespace Drupal\field_ui\Tests;
 
+use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\simpletest\WebTestBase;
 
@@ -38,7 +39,7 @@ abstract class FieldUiTestBase extends WebTestBase {
     $vocabulary = entity_create('taxonomy_vocabulary', array(
       'name' => $this->randomMachineName(),
       'description' => $this->randomMachineName(),
-      'vid' => drupal_strtolower($this->randomMachineName()),
+      'vid' => Unicode::strtolower($this->randomMachineName()),
       'langcode' => LanguageInterface::LANGCODE_NOT_SPECIFIED,
       'help' => '',
       'nodes' => array('article' => 'article'),
@@ -105,6 +106,7 @@ abstract class FieldUiTestBase extends WebTestBase {
 
     // First step : 'Re-use existing field' on the 'Manage fields' page.
     $this->drupalPostForm("$bundle_path/fields", $initial_edit, t('Save'));
+    $this->assertNoRaw('&amp;lt;', 'The page does not have double escaped HTML tags.');
 
     // Second step : 'Field settings' form.
     $this->drupalPostForm(NULL, $field_edit, t('Save settings'));

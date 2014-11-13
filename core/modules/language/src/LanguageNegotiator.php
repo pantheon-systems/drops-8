@@ -71,7 +71,7 @@ class LanguageNegotiator implements LanguageNegotiatorInterface {
   /**
    * An array of language objects keyed by method id.
    *
-   * @var array
+   * @var \Drupal\Core\Language\LanguageInterface[]
    */
   protected $negotiatedLanguages = array();
 
@@ -264,6 +264,8 @@ class LanguageNegotiator implements LanguageNegotiatorInterface {
    * {@inheritdoc}
    */
   function saveConfiguration($type, $enabled_methods) {
+    // As configurable language types might have changed, we reset the cache.
+    $this->languageManager->reset();
     $definitions = $this->getNegotiationMethods();
     $default_types = $this->languageManager->getLanguageTypes();
 

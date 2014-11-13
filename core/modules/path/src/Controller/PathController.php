@@ -7,11 +7,13 @@
 
 namespace Drupal\path\Controller;
 
+use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Path\AliasStorageInterface;
 use Drupal\Core\Path\AliasManagerInterface;
 use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Controller routines for path routes.
@@ -55,7 +57,17 @@ class PathController extends ControllerBase {
     );
   }
 
-  public function adminOverview($keys) {
+  /**
+   * Displays the path administration overview page.
+   *
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The request object.
+   *
+   * @return array
+   *   A render array as expected by drupal_render().
+   */
+  public function adminOverview(Request $request) {
+    $keys = $request->query->get('search');
     // Add the filter form above the overview table.
     $build['path_admin_filter_form'] = $this->formBuilder()->getForm('Drupal\path\Form\PathFilterForm', $keys);
     // Enable language column if language.module is enabled or if we have any
@@ -74,13 +86,13 @@ class PathController extends ControllerBase {
     $destination = drupal_get_destination();
     foreach ($this->aliasStorage->getAliasesForAdminListing($header, $keys) as $data) {
       $row = array();
-      $row['data']['alias'] = _l(truncate_utf8($data->alias, 50, FALSE, TRUE), $data->source, array(
+      $row['data']['alias'] = _l(Unicode::truncate($data->alias, 50, FALSE, TRUE), $data->source, array(
         'attributes' => array('title' => $data->alias),
       ));
-      $row['data']['source'] = _l(truncate_utf8($data->source, 50, FALSE, TRUE), $data->source, array(
+      $row['data']['source'] = $this->l(Unicode::truncate($data->source, 50, FALSE, TRUE), Url::fromUri('base://' . $data->source, array(
         'alias' => TRUE,
         'attributes' => array('title' => $data->source),
-      ));
+      )));
       if ($multilanguage) {
         $row['data']['language_name'] = $this->languageManager()->getLanguageName($data->langcode);
       }

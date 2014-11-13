@@ -173,7 +173,7 @@ services:
     arguments: [default]
   form_builder:
     class: Drupal\Core\Form\FormBuilder
-    arguments: ['@form_validator', '@form_submitter', '@form_cache', '@module_handler', '@event_dispatcher', '@request_stack', '@class_resolver', '@theme.manager', '@?csrf_token', '@?kernel']
+    arguments: ['@form_validator', '@form_submitter', '@form_cache', '@module_handler', '@event_dispatcher', '@request_stack', '@class_resolver', '@theme.manager', '@?csrf_token']
   form_validator:
     class: Drupal\Core\Form\FormValidator
     arguments: ['@request_stack', '@string_translation', '@csrf_token', '@logger.channel.form']
@@ -287,13 +287,13 @@ services:
     arguments: ['@container.namespaces', '@cache.discovery', '@module_handler']
   module_handler:
     class: Drupal\Core\Extension\ModuleHandler
-    arguments: ['%container.modules%', '@cache.bootstrap']
+    arguments: ['%container.modules%', '@kernel', '@cache.bootstrap']
   theme_handler:
     class: Drupal\Core\Extension\ThemeHandler
     arguments: ['@config.factory', '@module_handler', '@state', '@info_parser', '@logger.channel.default', '@asset.css.collection_optimizer', '@config.installer', '@config.manager', '@router.builder_indicator']
   entity.manager:
     class: Drupal\Core\Entity\EntityManager
-    arguments: ['@container.namespaces', '@module_handler', '@cache.discovery', '@language_manager', '@string_translation', '@class_resolver', '@typed_data_manager', '@entity.definitions.installed']
+    arguments: ['@container.namespaces', '@module_handler', '@cache.discovery', '@language_manager', '@string_translation', '@class_resolver', '@typed_data_manager', '@entity.definitions.installed', '@event_dispatcher']
     parent: container.trait
     tags:
       - { name: plugin_manager_cache_clear }
@@ -537,7 +537,7 @@ services:
     arguments: ['@state']
   router.builder:
     class: Drupal\Core\Routing\RouteBuilder
-    arguments: ['@router.dumper', '@lock', '@event_dispatcher', '@module_handler', '@controller_resolver', '@router.builder_indicator']
+    arguments: ['@router.dumper', '@lock', '@event_dispatcher', '@module_handler', '@controller_resolver', '@access_manager.check_provider', '@router.builder_indicator']
   router.rebuild_subscriber:
     class: Drupal\Core\EventSubscriber\RouterRebuildSubscriber
     arguments: ['@router.builder']
@@ -655,12 +655,10 @@ services:
     arguments: ['@controller_resolver', '@title_resolver', '@render_html_renderer']
   controller.ajax:
     class: Drupal\Core\Controller\AjaxController
-    arguments: ['@controller_resolver', '@ajax_response_renderer']
+    arguments: ['@controller_resolver', '@element_info']
   controller.dialog:
     class: Drupal\Core\Controller\DialogController
     arguments: ['@controller_resolver', '@title_resolver']
-  ajax_response_renderer:
-    class: Drupal\Core\Ajax\AjaxResponseRenderer
   router_listener:
     class: Symfony\Component\HttpKernel\EventListener\RouterListener
     tags:
@@ -672,7 +670,7 @@ services:
     class: Drupal\Core\EventSubscriber\ViewSubscriber
     tags:
       - { name: event_subscriber }
-    arguments: ['@content_negotiation', '@title_resolver', '@ajax_response_renderer']
+    arguments: ['@content_negotiation', '@title_resolver']
   html_view_subscriber:
     class: Drupal\Core\EventSubscriber\HtmlViewSubscriber
     tags:
@@ -702,11 +700,6 @@ services:
     calls:
       - [setContainer, ['@service_container']]
     public: false
-  access_route_subscriber:
-    class: Drupal\Core\EventSubscriber\AccessRouteSubscriber
-    tags:
-      - { name: event_subscriber }
-    arguments: ['@access_manager.check_provider']
   access_check.default:
     class: Drupal\Core\Access\DefaultAccessCheck
     tags:
@@ -779,7 +772,7 @@ services:
     class: Drupal\Core\EventSubscriber\DefaultExceptionHtmlSubscriber
     tags:
       - { name: event_subscriber }
-    arguments: ['@html_fragment_renderer', '@html_page_renderer']
+    arguments: ['@http_kernel', '@logger.channel.php']
   exception.default:
     class: Drupal\Core\EventSubscriber\DefaultExceptionSubscriber
     tags:
@@ -807,6 +800,10 @@ services:
     arguments: ['@config.factory', '@http_kernel']
   exception.test_site:
     class: Drupal\Core\EventSubscriber\ExceptionTestSiteSubscriber
+    tags:
+      - { name: event_subscriber }
+  exception.enforced_form_response:
+    class: Drupal\Core\EventSubscriber\EnforcedFormResponseSubscriber
     tags:
       - { name: event_subscriber }
   route_processor_manager:

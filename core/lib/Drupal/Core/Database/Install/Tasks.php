@@ -184,7 +184,7 @@ abstract class Tasks {
    */
   protected function runTestQuery($query, $pass, $fail, $fatal = FALSE) {
     try {
-      db_query($query);
+      Database::getConnection()->query($query);
       $this->pass(t($pass));
     }
     catch (\Exception $e) {
@@ -259,7 +259,7 @@ abstract class Tasks {
       '#title' => t('Table name prefix'),
       '#default_value' => empty($database['prefix']) ? '' : $database['prefix'],
       '#size' => 45,
-      '#description' => t('If more than one application will be sharing this database, a unique table name prefix–such as %prefix–will prevent collisions.', array('%prefix' => $db_prefix)),
+      '#description' => t('If more than one application will be sharing this database, a unique table name prefix – such as %prefix – will prevent collisions.', array('%prefix' => $db_prefix)),
       '#weight' => 10,
     );
 

@@ -7,6 +7,7 @@
 
 namespace Drupal\responsive_image\Tests;
 
+use Drupal\Component\Utility\Unicode;
 use Drupal\image\Tests\ImageFieldTestBase;
 
 /**
@@ -79,12 +80,14 @@ class ResponsiveImageFieldDisplayTest extends ImageFieldTestBase {
    * Test responsive image formatters on node display.
    */
   public function _testResponsiveImageFieldFormatters($scheme) {
-    $field_name = drupal_strtolower($this->randomMachineName());
+    $node_storage = $this->container->get('entity.manager')->getStorage('node');
+    $field_name = Unicode::strtolower($this->randomMachineName());
     $this->createImageField($field_name, 'article', array('uri_scheme' => $scheme));
     // Create a new node with an image attached.
     $test_image = current($this->drupalGetTestFiles('image'));
     $nid = $this->uploadNodeImage($test_image, $field_name, 'article');
-    $node = node_load($nid, TRUE);
+    $node_storage->resetCache(array($nid));
+    $node = $node_storage->load($nid);
 
     // Test that the default formatter is being used.
     $image_uri = file_load($node->{$field_name}->target_id)->getFileUri();

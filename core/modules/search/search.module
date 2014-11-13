@@ -241,10 +241,10 @@ function search_update_totals() {
  */
 function search_simplify($text, $langcode = NULL) {
   // Decode entities to UTF-8
-  $text = decode_entities($text);
+  $text = String::decodeEntities($text);
 
   // Lowercase
-  $text = drupal_strtolower($text);
+  $text = Unicode::strtolower($text);
 
   // Call an external processor for word handling.
   search_invoke_preprocess($text, $langcode);
@@ -306,7 +306,7 @@ function search_simplify($text, $langcode = NULL) {
 function search_expand_cjk($matches) {
   $min = \Drupal::config('search.settings')->get('index.minimum_word_size');
   $str = $matches[0];
-  $length = drupal_strlen($str);
+  $length = Unicode::strlen($str);
   // If the text is shorter than the minimum word size, don't tokenize it.
   if ($length <= $min) {
     return ' ' . $str . ' ';
@@ -316,7 +316,7 @@ function search_expand_cjk($matches) {
   $chars = array();
   for ($i = 0; $i < $length; $i++) {
     // Add the next character off the beginning of the string to the queue.
-    $current = drupal_substr($str, 0, 1);
+    $current = Unicode::substr($str, 0, 1);
     $str = substr($str, strlen($current));
     $chars[] = $current;
     if ($i >= $min - 1) {
@@ -357,7 +357,7 @@ function _search_index_truncate(&$text) {
   if (is_numeric($text)) {
     $text = ltrim($text, '0');
   }
-  $text = truncate_utf8($text, 50);
+  $text = Unicode::truncate($text, 50);
 }
 
 /**
@@ -415,7 +415,7 @@ function search_index($sid, $type, $text, $langcode) {
     if ($tag) {
       // Increase or decrease score per word based on tag
       list($tagname) = explode(' ', $value, 2);
-      $tagname = drupal_strtolower($tagname);
+      $tagname = Unicode::strtolower($tagname);
       // Closing or opening tag?
       if ($tagname[0] == '/') {
         $tagname = substr($tagname, 1);
@@ -453,7 +453,7 @@ function search_index($sid, $type, $text, $langcode) {
           // Add word to accumulator
           $accum .= $word . ' ';
           // Check wordlength
-          if (is_numeric($word) || drupal_strlen($word) >= $minimum_word_size) {
+          if (is_numeric($word) || Unicode::strlen($word) >= $minimum_word_size) {
             if (!isset($scored_words[$word])) {
               $scored_words[$word] = 0;
             }
@@ -582,7 +582,7 @@ function search_excerpt($keys, $text, $langcode = NULL) {
 
   // Prepare text by stripping HTML tags and decoding HTML entities.
   $text = strip_tags(str_replace(array('<', '>'), array(' <', '> '), $text));
-  $text = decode_entities($text);
+  $text = String::decodeEntities($text);
   $text_length = strlen($text);
 
   // Make a list of unique keywords that are actually found in the text,
@@ -663,7 +663,7 @@ function search_excerpt($keys, $text, $langcode = NULL) {
     // We didn't find any keyword matches, so just return the first part of the
     // text. We also need to re-encode any HTML special characters that we
     // entity-decoded above.
-    return String::checkPlain(truncate_utf8($text, 256, TRUE, TRUE));
+    return String::checkPlain(Unicode::truncate($text, 256, TRUE, TRUE));
   }
 
   // Sort the text ranges by starting position.

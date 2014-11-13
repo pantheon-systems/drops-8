@@ -11,13 +11,13 @@
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Component\Utility\String;
+use Drupal\Component\Utility\Unicode;
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Component\Utility\Xss;
 use Drupal\Core\Config\Config;
 use Drupal\Core\Config\StorageException;
 use Drupal\Core\Extension\Extension;
 use Drupal\Core\Extension\ExtensionNameLengthException;
-use Drupal\Core\Page\FeedLinkElement;
 use Drupal\Core\Page\LinkElement;
 use Drupal\Core\Page\MetaElement;
 use Drupal\Core\Template\Attribute;
@@ -379,7 +379,7 @@ function _theme($hook, $variables = array()) {
     // that we're preprocessing variables for.
     if (isset($variables['#attached'])) {
       $preprocess_attached = ['#attached' => $variables['#attached']];
-      drupal_render($preprocess_attached, TRUE);
+      drupal_render($preprocess_attached);
     }
   }
 
@@ -765,7 +765,7 @@ function theme_settings_convert_to_config(array $theme_settings, Config $config)
       $config->set('favicon.mimetype', $value);
     }
     else if (substr($key, 0, 7) == 'toggle_') {
-      $config->set('features.' . drupal_substr($key, 7), $value);
+      $config->set('features.' . Unicode::substr($key, 7), $value);
     }
     else if (!in_array($key, array('theme', 'logo_upload'))) {
       $config->set($key, $value);
@@ -925,7 +925,7 @@ function template_preprocess_status_messages(&$variables) {
  *     For authenticated users, the "active" class will be calculated on the
  *     client (through JavaScript), only data- attributes are added to list
  *     items and contained links, to prevent breaking the render cache. The
- *     JavaScript is added in system_page_build().
+ *     JavaScript is added in system_page_attachments().
  *   - heading: (optional) A heading to precede the links. May be an
  *     associative array or a string. If it's an array, it can have the
  *     following elements:
@@ -953,7 +953,7 @@ function template_preprocess_status_messages(&$variables) {
  *
  * @see \Drupal\Core\Utility\LinkGenerator
  * @see \Drupal\Core\Utility\LinkGenerator::generate()
- * @see system_page_build()
+ * @see system_page_attachments()
  */
 function template_preprocess_links(&$variables) {
   $links = $variables['links'];
@@ -984,10 +984,7 @@ function template_preprocess_links(&$variables) {
         'url' => NULL,
       );
 
-      $li_attributes = array('class' => array());
-      // Use the array key as class name.
-      $li_attributes['class'][] = drupal_html_class($key);
-
+      $li_attributes = array();
       $keys = ['title', 'url'];
       $link_element = array(
         '#type' => 'link',
@@ -1043,7 +1040,7 @@ function template_preprocess_links(&$variables) {
       $item['attributes'] = new Attribute($li_attributes);
 
       // Add the item to the list of links.
-      $variables['links'][] = $item;
+      $variables['links'][$key] = $item;
     }
   }
 }
@@ -1229,29 +1226,12 @@ function template_preprocess_table(&$variables) {
     }
   }
 
-  // Add the 'empty' row message if available.
-  if (empty($variables['rows']) && isset($variables['empty'])) {
-    $header_count = 0;
-    foreach ($variables['header'] as $header_cell) {
-      if (is_array($header_cell) && isset($header_cell['colspan'])) {
-        $header_count += $header_cell['colspan'];
-      }
-      else {
-        $header_count++;
-      }
-    }
-    $variables['rows'][] = array(array(
-      'data' => $variables['empty'],
-      'colspan' => $header_count,
-      'class' => array('empty', 'message'),
-    ));
-  }
-
   // Build an associative array of responsive classes keyed by column.
   $responsive_classes = array();
 
   // Format the table header:
   $ts = array();
+  $header_columns = 0;
   if (!empty($variables['header'])) {
     $ts = tablesort_init($variables['header']);
 
@@ -1263,11 +1243,18 @@ function template_preprocess_table(&$variables) {
       $responsive_index++;
 
       if (!is_array($cell)) {
+        $header_columns++;
         $cell_content = $cell;
         $cell_attributes = new Attribute();
         $is_header = TRUE;
       }
       else {
+        if (isset($cell['colspan'])) {
+          $header_columns += $cell['colspan'];
+        }
+        else {
+          $header_columns++;
+        }
         $cell_content = '';
         if (isset($cell['data'])) {
           $cell_content = $cell['data'];
@@ -1305,35 +1292,26 @@ function template_preprocess_table(&$variables) {
       $variables['header'][$col_key]['content'] = $cell_content;
     }
   }
+  $variables['header_columns'] = $header_columns;
 
   // Rows and footer have the same structure.
   $sections = array('rows' , 'footer');
   foreach ($sections as $section) {
     if (!empty($variables[$section])) {
-      $flip = array('even' => 'odd', 'odd' => 'even');
-      $class = 'even';
       foreach ($variables[$section] as $row_key => $row) {
         $cells = $row;
         $row_attributes = array();
-        $no_striping = $section === 'footer';
 
         // Check if we're dealing with a simple or complex row
         if (isset($row['data'])) {
           $cells = $row['data'];
-          $no_striping = isset($row['no_striping']) ? $row['no_striping'] : $no_striping;
+          $variables['no_striping'] = isset($row['no_striping']) ? $row['no_striping'] : FALSE;
 
           // Set the attributes array and exclude 'data' and 'no_striping'.
           $row_attributes = $row;
           unset($row_attributes['data']);
           unset($row_attributes['no_striping']);
         }
-
-        // Add odd/even class.
-        if (!$no_striping) {
-          $class = $flip[$class];
-          $row_attributes['class'][] = $class;
-        }
-
 
         // Build row.
         $variables[$section][$row_key] = array();
@@ -1368,9 +1346,9 @@ function template_preprocess_table(&$variables) {
                 $cell_content = drupal_render($cell_content);
               }
             }
-            // Add active class if needed for sortable tables.
+            // Active table sort information.
             if (isset($variables['header'][$col_key]['data']) && $variables['header'][$col_key]['data'] == $ts['name'] && !empty($variables['header'][$col_key]['field'])) {
-              $cell_attributes['class'][] = 'active';
+              $variables[$section][$row_key]['cells'][$col_key]['active_table_sort'] = TRUE;
             }
             // Copy RESPONSIVE_PRIORITY_LOW/RESPONSIVE_PRIORITY_MEDIUM
             // class from header to cell as needed.
@@ -1768,7 +1746,7 @@ function template_preprocess_html(&$variables) {
  *
  * Default template: page.html.twig.
  *
- * Most themes utilize their own copy of page.html.twig. The default is located
+ * Most themes use their own copy of page.html.twig. The default is located
  * inside "modules/system/page.html.twig". Look in there for the full list of
  * variables.
  *
@@ -1798,24 +1776,10 @@ function template_preprocess_page(&$variables) {
   if (!defined('MAINTENANCE_MODE')) {
     $variables['action_links']   = menu_get_local_actions();
     $variables['tabs']           = menu_local_tabs();
-
-    // Convert drupal_get_feeds to feed links on the page object.
-    /** @var \Drupal\Core\Page\HtmlPage $page */
-    $page = $variables['page']['#page'];
-    // Render the feed icons.
-    $variables['feed_icons'] = array();
-    foreach ($page->getFeedLinkElements() as $link) {
-      $variables['feed_icons'][] = array(
-        '#theme' => 'feed_icon',
-        '#url' => $link->getAttributes()['href'],
-        '#title' => $link->getAttributes()['title'],
-      );
-    }
   }
   else {
     $variables['action_links']   = array();
     $variables['tabs']           = array();
-    $variables['feed_icons']     = '';
   }
 
   if ($node = \Drupal::routeMatch()->getParameter('node')) {
@@ -1920,7 +1884,7 @@ function theme_get_suggestions($args, $base, $delimiter = '__') {
  *   An associative array containing:
  *   - content - An array of page content.
  *
- * @see system_page_build()
+ * @see system_page_attachments()
  */
 function template_preprocess_maintenance_page(&$variables) {
   // @todo Rename the templates to page--maintenance + page--install.
@@ -1935,7 +1899,7 @@ function template_preprocess_maintenance_page(&$variables) {
   }
   $attributes['class'] = $classes;
 
-  // @see system_page_build()
+  // @see system_page_attachments()
   $variables['#attached']['library'][] = 'core/normalize';
   $variables['#attached']['library'][] = 'system/maintenance';
 }

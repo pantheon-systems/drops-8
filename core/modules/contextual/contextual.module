@@ -44,15 +44,14 @@ function contextual_toolbar() {
 }
 
 /**
- * Implements hook_page_build().
+ * Implements hook_page_attachments().
  *
  * Adds the drupal.contextual-links library to the page for any user who has the
  * 'access contextual links' permission.
  *
  * @see contextual_preprocess()
  */
-function contextual_page_build(&$page) {
-
+function contextual_page_attachments(array &$page) {
   if (!\Drupal::currentUser()->hasPermission('access contextual links')) {
     return;
   }
@@ -75,7 +74,8 @@ function contextual_help($route_name, RouteMatchInterface $route_match) {
       $output .= '<dd>';
       $output .= t('Contextual links for an area on a page are displayed using a contextual links button. There are two ways to make the contextual links button visible:');
       $output .= '<ol>';
-      $output .= '<li>' . t('Hovering over the area of interest will temporarily make the contextual links button visible (which looks like a pencil in most themes, and is normally displayed in the upper right corner of the area). The icon typically looks like this: <img src="!pencil" alt="contextual links button" />', array('!pencil' => file_create_url('core/misc/icons/bebebe/pencil.svg'))) . '</li>';
+      $sample_picture = '<img src="' . file_create_url('core/misc/icons/bebebe/pencil.svg') . '" alt="' . t('contextual links button') . '" />';
+      $output .= '<li>' . t('Hovering over the area of interest will temporarily make the contextual links button visible (which looks like a pencil in most themes, and is normally displayed in the upper right corner of the area). The icon typically looks like this: !picture', array('!picture' => $sample_picture)) . '</li>';
       $output .= '<li>' . t('If you have the <a href="!toolbar">Toolbar module</a> enabled, clicking the contextual links button in the toolbar (which looks like a pencil) will make all contextual links buttons on the page visible. Clicking this button again will toggle them to invisible.', array('!toolbar' => \Drupal::url('help.page', array('name' => 'toolbar')))) . '</li>';
       $output .= '</ol>';
       $output .= t('Once the contextual links button for the area of interest is visible, click the button to display the links.');
@@ -89,7 +89,7 @@ function contextual_help($route_name, RouteMatchInterface $route_match) {
  * Implements hook_preprocess().
  *
  * @see contextual_pre_render_placeholder()
- * @see contextual_page_build()
+ * @see contextual_page_attachments()
  * @see \Drupal\contextual\ContextualController::render()
  */
 function contextual_preprocess(&$variables, $hook, $info) {
@@ -111,9 +111,9 @@ function contextual_preprocess(&$variables, $hook, $info) {
 
     // Renders a contextual links placeholder unconditionally, thus not breaking
     // the render cache. Although the empty placeholder is rendered for all
-    // users, contextual_page_build() only adds the drupal.contextual-links
-    // library for users with the 'access contextual links' permission, thus
-    // preventing unnecessary HTTP requests for users without that permission.
+    // users, contextual_page_attachments() only adds the asset library for
+    // users with the 'access contextual links' permission, thus preventing
+    // unnecessary HTTP requests for users without that permission.
     $variables['title_suffix']['contextual_links'] = array(
       '#type' => 'contextual_links_placeholder',
       '#id' => _contextual_links_to_id($element['#contextual_links']),

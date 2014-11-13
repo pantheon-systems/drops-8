@@ -172,7 +172,6 @@ class ConfigImporterTest extends DrupalUnitTestBase {
       'label' => 'New',
       'weight' => 0,
       'style' => '',
-      'test_dependencies' => array(),
       'protected_property' => '',
     );
     $staging->write($dynamic_name, $original_dynamic_data);
@@ -227,7 +226,7 @@ class ConfigImporterTest extends DrupalUnitTestBase {
       'uuid' => $uuid->generate(),
       // Add a dependency on primary, to ensure that is synced first.
       'dependencies' => array(
-        'entity' => array($name_primary),
+        'config' => array($name_primary),
       )
     );
     $staging->write($name_secondary, $values_secondary);
@@ -266,7 +265,7 @@ class ConfigImporterTest extends DrupalUnitTestBase {
       'uuid' => $uuid->generate(),
       // Add a dependency on secondary, so that is synced first.
       'dependencies' => array(
-        'entity' => array($name_secondary),
+        'config' => array($name_secondary),
       )
     );
     $staging->write($name_primary, $values_primary);
@@ -324,7 +323,7 @@ class ConfigImporterTest extends DrupalUnitTestBase {
       'uuid' => $uuid->generate(),
       // Add a dependency on deleter, to make sure that is synced first.
       'dependencies' => array(
-        'entity' => array($name_deleter),
+        'config' => array($name_deleter),
       )
     );
     $storage->write($name_deletee, $values_deletee);
@@ -340,7 +339,7 @@ class ConfigImporterTest extends DrupalUnitTestBase {
       // Add a dependency on deleter, to make sure that is synced first. This
       // will also be synced after the deletee due to alphabetical ordering.
       'dependencies' => array(
-        'entity' => array($name_deleter),
+        'config' => array($name_deleter),
       )
     );
     $storage->write($name_other, $values_other);
@@ -396,7 +395,7 @@ class ConfigImporterTest extends DrupalUnitTestBase {
       'uuid' => $uuid->generate(),
       // Add a dependency on deletee, to make sure that is synced first.
       'dependencies' => array(
-        'entity' => array($name_deletee),
+        'config' => array($name_deletee),
       ),
     );
     $storage->write($name_deleter, $values_deleter);
@@ -445,7 +444,7 @@ class ConfigImporterTest extends DrupalUnitTestBase {
       'uuid' => $uuid->generate(),
       // Add a dependency on deletee, to make sure this delete is synced first.
       'dependencies' => array(
-        'entity' => array($name_deletee),
+        'config' => array($name_deletee),
       ),
     );
     $storage->write($name_deleter, $values_deleter);

@@ -8,6 +8,7 @@
 namespace Drupal\views\Plugin\views\display;
 
 use Drupal\Component\Utility\String;
+use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Language\LanguageInterface;
@@ -56,12 +57,17 @@ abstract class DisplayPluginBase extends PluginBase {
    */
   var $view = NULL;
 
-  var $handlers = array();
+  /**
+   * An array of instantiated handlers used in this display.
+   *
+   * @var \Drupal\views\Plugin\views\ViewsHandlerInterface[]
+   */
+   public $handlers = [];
 
   /**
    * An array of instantiated plugins used in this display.
    *
-   * @var array
+   * @var \Drupal\views\Plugin\views\ViewsPluginInterface[]
    */
   protected $plugins = array();
 
@@ -902,7 +908,9 @@ abstract class DisplayPluginBase extends PluginBase {
       $types = ViewExecutable::getHandlerTypes();
       $plural = $types[$type]['plural'];
 
-      foreach ($this->getOption($plural) as $id => $info) {
+      // Cast to an array so that if the display does not have any handlers of
+      // this type there is no PHP error.
+      foreach ((array) $this->getOption($plural) as $id => $info) {
         // If this is during form submission and there are temporary options
         // which can only appear if the view is in the edit cache, use those
         // options instead. This is used for AJAX multi-step stuff.
@@ -1054,7 +1062,7 @@ abstract class DisplayPluginBase extends PluginBase {
        // Use strip tags as there should never be HTML in the path.
        // However, we need to preserve special characters like " that
        // were removed by String::checkPlain().
-      $tokens["!$count"] = isset($this->view->args[$count - 1]) ? strip_tags(decode_entities($this->view->args[$count - 1])) : '';
+      $tokens["!$count"] = isset($this->view->args[$count - 1]) ? strip_tags(String::decodeEntities($this->view->args[$count - 1])) : '';
     }
 
     return $tokens;
@@ -1119,7 +1127,7 @@ abstract class DisplayPluginBase extends PluginBase {
       );
     }
 
-    $display_comment = String::checkPlain(drupal_substr($this->getOption('display_comment'), 0, 10));
+    $display_comment = String::checkPlain(Unicode::substr($this->getOption('display_comment'), 0, 10));
     $options['display_comment'] = array(
       'category' => 'other',
       'title' => $this->t('Administrative comment'),
@@ -1982,7 +1990,6 @@ abstract class DisplayPluginBase extends PluginBase {
             $plugin_options = array(
               'type' => $type,
               'options' => $plugin->options,
-              'provider' => $plugin->definition['provider']
             );
             $this->setOption($plugin_type, $plugin_options);
             if ($plugin->usesOptions()) {
@@ -2171,7 +2178,7 @@ abstract class DisplayPluginBase extends PluginBase {
     $element['#empty'] = $empty ? $view->display_handler->renderArea('empty', $empty) : array();
     $element['#exposed'] = !empty($view->exposed_widgets) ? $view->exposed_widgets : array();
     $element['#more'] = $view->display_handler->renderMoreLink();
-    $element['#feed_icon'] = !empty($view->feed_icon) ? $view->feed_icon : array();
+    $element['#feed_icons'] = !empty($view->feedIcons) ? $view->feedIcons : array();
 
     if ($view->display_handler->renderPager()) {
       $exposed_input = isset($view->exposed_raw_input) ? $view->exposed_raw_input : NULL;
@@ -2206,7 +2213,7 @@ abstract class DisplayPluginBase extends PluginBase {
         $element['#pager'] = array();
         $element['#footer'] = array();
         $element['#more'] = array();
-        $element['#feed_icon'] = array();
+        $element['#feed_icons'] = array();
       }
 
       $element['#rows'] = $form;

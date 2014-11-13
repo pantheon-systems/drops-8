@@ -11,6 +11,7 @@ use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Url;
 use Drupal\file\Entity\File;
 use Drupal\file\FileInterface;
 use Drupal\Component\Utility\NestedArray;
@@ -46,34 +47,6 @@ function file_help($route_name, RouteMatchInterface $route_match) {
       $output .= '</dl>';
       return $output;
   }
-}
-
-/**
- * Implements hook_element_info().
- *
- * The managed file element may be used anywhere in Drupal.
- */
-function file_element_info() {
-  $types['managed_file'] = array(
-    '#input' => TRUE,
-    '#process' => array('file_managed_file_process'),
-    '#value_callback' => 'file_managed_file_value',
-    '#element_validate' => array('file_managed_file_validate'),
-    '#pre_render' => array('file_managed_file_pre_render'),
-    '#theme' => 'file_managed_file',
-    '#theme_wrappers' => array('form_element'),
-    '#progress_indicator' => 'throbber',
-    '#progress_message' => NULL,
-    '#upload_validators' => array(),
-    '#upload_location' => NULL,
-    '#size' => 22,
-    '#multiple' => FALSE,
-    '#extended' => FALSE,
-    '#attached' => array(
-      'library' => array('file/drupal.file'),
-    ),
-  );
-  return $types;
 }
 
 /**
@@ -560,7 +533,7 @@ function file_save_data($data, $destination = NULL, $replace = FILE_EXISTS_RENAM
  *   \Symfony\Component\HttpFoundation\StreamedResponse.
  */
 function file_get_content_headers(FileInterface $file) {
-  $type = mime_header_encode($file->getMimeType());
+  $type = Unicode::mimeHeaderEncode($file->getMimeType());
 
   return array(
     'Content-Type' => $type,
@@ -576,7 +549,7 @@ function file_theme() {
   return array(
     // From file.module.
     'file_link' => array(
-      'variables' => array('file' => NULL, 'icon_directory' => NULL, 'description' => NULL, 'attributes' => array()),
+      'variables' => array('file' => NULL, 'description' => NULL, 'attributes' => array()),
     ),
     'file_managed_file' => array(
       'render element' => 'element',
@@ -1092,273 +1065,9 @@ function file_token_info() {
 }
 
 /**
- * Render API callback: Expands the managed_file element type.
- *
- * Expands the file type to include Upload and Remove buttons, as well as
- * support for a default value.
- *
- * This function is assigned as a #process callback in file_element_info().
- */
-function file_managed_file_process($element, FormStateInterface $form_state, $form) {
-  // Append the '-upload' to the #id so the field label's 'for' attribute
-  // corresponds with the file element.
-  $element['#id'] .= '-upload';
-
-  // This is used sometimes so let's implode it just once.
-  $parents_prefix = implode('_', $element['#parents']);
-
-  $fids = isset($element['#value']['fids']) ? $element['#value']['fids'] : array();
-
-  // Set some default element properties.
-  $element['#progress_indicator'] = empty($element['#progress_indicator']) ? 'none' : $element['#progress_indicator'];
-  $element['#files'] = !empty($fids) ? file_load_multiple($fids) : FALSE;
-  $element['#tree'] = TRUE;
-
-  $ajax_settings = array(
-    'path' => 'file/ajax',
-    'options' => array(
-      'query' => array(
-        'element_parents' => implode('/', $element['#array_parents']),
-        'form_build_id' => $form['form_build_id']['#value'],
-      ),
-    ),
-    'wrapper' => $element['#id'] . '-ajax-wrapper',
-    'effect' => 'fade',
-    'progress' => array(
-      'type' => $element['#progress_indicator'],
-      'message' => $element['#progress_message'],
-    ),
-  );
-
-  // Set up the buttons first since we need to check if they were clicked.
-  $element['upload_button'] = array(
-    '#name' => $parents_prefix . '_upload_button',
-    '#type' => 'submit',
-    '#value' => t('Upload'),
-    '#attributes' => array('class' => array('js-hide')),
-    '#validate' => array(),
-    '#submit' => array('file_managed_file_submit'),
-    '#limit_validation_errors' => array($element['#parents']),
-    '#ajax' => $ajax_settings,
-    '#weight' => -5,
-  );
-
-  // Force the progress indicator for the remove button to be either 'none' or
-  // 'throbber', even if the upload button is using something else.
-  $ajax_settings['progress']['type'] = ($element['#progress_indicator'] == 'none') ? 'none' : 'throbber';
-  $ajax_settings['progress']['message'] = NULL;
-  $ajax_settings['effect'] = 'none';
-  $element['remove_button'] = array(
-    '#name' => $parents_prefix . '_remove_button',
-    '#type' => 'submit',
-    '#value' => $element['#multiple'] ? t('Remove selected') : t('Remove'),
-    '#validate' => array(),
-    '#submit' => array('file_managed_file_submit'),
-    '#limit_validation_errors' => array($element['#parents']),
-    '#ajax' => $ajax_settings,
-    '#weight' => 1,
-  );
-
-  $element['fids'] = array(
-    '#type' => 'hidden',
-    '#value' => $fids,
-  );
-
-  // Add progress bar support to the upload if possible.
-  if ($element['#progress_indicator'] == 'bar' && $implementation = file_progress_implementation()) {
-    $upload_progress_key = mt_rand();
-
-    if ($implementation == 'uploadprogress') {
-      $element['UPLOAD_IDENTIFIER'] = array(
-        '#type' => 'hidden',
-        '#value' => $upload_progress_key,
-        '#attributes' => array('class' => array('file-progress')),
-        // Uploadprogress extension requires this field to be at the top of the
-        // form.
-        '#weight' => -20,
-      );
-    }
-    elseif ($implementation == 'apc') {
-      $element['APC_UPLOAD_PROGRESS'] = array(
-        '#type' => 'hidden',
-        '#value' => $upload_progress_key,
-        '#attributes' => array('class' => array('file-progress')),
-        // Uploadprogress extension requires this field to be at the top of the
-        // form.
-        '#weight' => -20,
-      );
-    }
-
-    // Add the upload progress callback.
-    $element['upload_button']['#ajax']['progress']['path'] = 'file/progress/' . $upload_progress_key;
-  }
-
-  // The file upload field itself.
-  $element['upload'] = array(
-    '#name' => 'files[' . $parents_prefix . ']',
-    '#type' => 'file',
-    '#title' => t('Choose a file'),
-    '#title_display' => 'invisible',
-    '#size' => $element['#size'],
-    '#multiple' => $element['#multiple'],
-    '#theme_wrappers' => array(),
-    '#weight' => -10,
-  );
-
-  if (!empty($fids) && $element['#files']) {
-    foreach ($element['#files'] as $delta => $file) {
-      $file_link = array(
-        '#theme' => 'file_link',
-        '#file' => $file,
-      );
-      if ($element['#multiple']) {
-        $element['file_' . $delta]['selected'] = array(
-          '#type' => 'checkbox',
-          '#title' => drupal_render($file_link),
-        );
-      }
-      else {
-        $element['file_' . $delta]['filename'] = $file_link += array('#weight' => -10);
-      }
-    }
-  }
-
-  // Add the extension list to the page as JavaScript settings.
-  if (isset($element['#upload_validators']['file_validate_extensions'][0])) {
-    $extension_list = implode(',', array_filter(explode(' ', $element['#upload_validators']['file_validate_extensions'][0])));
-    $element['upload']['#attached']['js'] = array(
-      array(
-        'type' => 'setting',
-        'data' => array('file' => array('elements' => array('#' . $element['#id'] => $extension_list)))
-      )
-    );
-  }
-
-  // Prefix and suffix used for Ajax replacement.
-  $element['#prefix'] = '<div id="' . $element['#id'] . '-ajax-wrapper">';
-  $element['#suffix'] = '</div>';
-
-  return $element;
-}
-
-/**
- * Render API callback: Determines the value for a managed_file type element.
- *
- * This function is assigned as a #value_callback in file_element_info().
- */
-function file_managed_file_value(&$element, $input, FormStateInterface $form_state) {
-  // Find the current value of this field.
-  $fids = !empty($input['fids']) ? explode(' ', $input['fids']) : array();
-  foreach ($fids as $key => $fid) {
-    $fids[$key] = (int) $fid;
-  }
-
-  // Process any input and save new uploads.
-  if ($input !== FALSE) {
-    $input['fids'] = $fids;
-    $return = $input;
-
-    // Uploads take priority over all other values.
-    if ($files = file_managed_file_save_upload($element, $form_state)) {
-      if ($element['#multiple']) {
-        $fids = array_merge($fids, array_keys($files));
-      }
-      else {
-        $fids = array_keys($files);
-      }
-    }
-    else {
-      // Check for #filefield_value_callback values.
-      // Because FAPI does not allow multiple #value_callback values like it
-      // does for #element_validate and #process, this fills the missing
-      // functionality to allow File fields to be extended through FAPI.
-      if (isset($element['#file_value_callbacks'])) {
-        foreach ($element['#file_value_callbacks'] as $callback) {
-          $callback($element, $input, $form_state);
-        }
-      }
-
-      // Load files if the FIDs have changed to confirm they exist.
-      if (!empty($input['fids'])) {
-        $fids = array();
-        foreach ($input['fids'] as $fid) {
-          if ($file = file_load($fid)) {
-            $fids[] = $file->id();
-          }
-        }
-      }
-    }
-  }
-
-  // If there is no input, set the default value.
-  else {
-    if ($element['#extended']) {
-      $default_fids = isset($element['#default_value']['fids']) ? $element['#default_value']['fids'] : array();
-      $return = isset($element['#default_value']) ? $element['#default_value'] : array('fids' => array());
-    }
-    else {
-      $default_fids = isset($element['#default_value']) ? $element['#default_value'] : array();
-      $return = array('fids' => array());
-    }
-
-    // Confirm that the file exists when used as a default value.
-    if (!empty($default_fids)) {
-      $fids = array();
-      foreach ($default_fids as $fid) {
-        if ($file = file_load($fid)) {
-          $fids[] = $file->id();
-        }
-      }
-    }
-  }
-
-  $return['fids'] = $fids;
-  return $return;
-}
-
-/**
- * Render API callback: Validates the managed_file element.
- *
- * This function is assigned as a #element_validate callback in
- * file_element_info().
- */
-function file_managed_file_validate(&$element, FormStateInterface $form_state) {
-  // If referencing an existing file, only allow if there are existing
-  // references. This prevents unmanaged files from being deleted if this
-  // item were to be deleted.
-  $clicked_button = end($form_state->getTriggeringElement()['#parents']);
-  if ($clicked_button != 'remove_button' && !empty($element['fids']['#value'])) {
-    $fids = $element['fids']['#value'];
-    foreach ($fids as $fid) {
-      if ($file = file_load($fid)) {
-        if ($file->isPermanent()) {
-          $references = \Drupal::service('file.usage')->listUsage($file);
-          if (empty($references)) {
-            $form_state->setError($element, t('The file used in the !name field may not be referenced.', array('!name' => $element['#title'])));
-          }
-        }
-      }
-      else {
-        $form_state->setError($element, t('The file referenced by the !name field does not exist.', array('!name' => $element['#title'])));
-      }
-    }
-  }
-
-  // Check required property based on the FID.
-  if ($element['#required'] && empty($element['fids']['#value']) && !in_array($clicked_button, array('upload_button', 'remove_button'))) {
-    $form_state->setError($element['upload'], t('!name field is required.', array('!name' => $element['#title'])));
-  }
-
-  // Consolidate the array value of this field to array of FIDs.
-  if (!$element['#extended']) {
-    form_set_value($element, $element['fids']['#value'], $form_state);
-  }
-}
-
-/**
  * Form submission handler for upload / remove buttons of managed_file elements.
  *
- * @see file_managed_file_process()
+ * @see \Drupal\file\Element\ManagedFile::processManagedFile()
  */
 function file_managed_file_submit($form, FormStateInterface $form_state) {
   // Determine whether it was the upload or the remove button that was clicked,
@@ -1368,9 +1077,10 @@ function file_managed_file_submit($form, FormStateInterface $form_state) {
   $element = NestedArray::getValue($form, $parents);
 
   // No action is needed here for the upload button, because all file uploads on
-  // the form are processed by file_managed_file_value() regardless of which
-  // button was clicked. Action is needed here for the remove button, because we
-  // only remove a file in response to its remove button being clicked.
+  // the form are processed by \Drupal\file\Element\ManagedFile::valueCallback()
+  // regardless of which button was clicked. Action is needed here for the
+  // remove button, because we only remove a file in response to its remove
+  // button being clicked.
   if ($button_key == 'remove_button') {
     $fids = array_keys($element['#files']);
     // Get files that will be removed.
@@ -1404,9 +1114,10 @@ function file_managed_file_submit($form, FormStateInterface $form_state) {
     // $form_state->getValues() must be updated in case additional submit
     // handlers run, and for form building functions that run during the
     // rebuild, such as when the managed_file element is part of a field widget.
-    // FormState::$input must be updated so that file_managed_file_value()
-    // has correct information during the rebuild.
-    form_set_value($element['fids'], implode(' ', $fids), $form_state);
+    // FormState::$input must be updated so that
+    // \Drupal\file\Element\ManagedFile::valueCallback() has correct information
+    // during the rebuild.
+    $form_state->setValueForElement($element['fids'], implode(' ', $fids));
     NestedArray::setValue($form_state->getUserInput(), $element['fids']['#parents'], implode(' ', $fids));
   }
 
@@ -1488,41 +1199,6 @@ function template_preprocess_file_managed_file(&$variables) {
 }
 
 /**
- * Render API callback: Hides display of the upload or remove controls.
- *
- * Upload controls are hidden when a file is already uploaded. Remove controls
- * are hidden when there is no file attached. Controls are hidden here instead
- * of in file_managed_file_process(), because #access for these buttons depends
- * on the managed_file element's #value. See the documentation of
- * \Drupal::formBuilder()->doBuildForm() for more detailed information about the
- * relationship between #process, #value, and #access.
- *
- * Because #access is set here, it affects display only and does not prevent
- * JavaScript or other untrusted code from submitting the form as though access
- * were enabled. The form processing functions for these elements should not
- * assume that the buttons can't be "clicked" just because they are not
- * displayed.
- *
- * This function is assigned as a #pre_render callback in file_element_info().
- *
- * @see file_managed_file_process()
- */
-function file_managed_file_pre_render($element) {
-  // If we already have a file, we don't want to show the upload controls.
-  if (!empty($element['#value']['fids'])) {
-    if (!$element['#multiple']) {
-      $element['upload']['#access'] = FALSE;
-      $element['upload_button']['#access'] = FALSE;
-    }
-  }
-  // If we don't already have a file, there is nothing to remove.
-  else {
-    $element['remove_button']['#access'] = FALSE;
-  }
-  return $element;
-}
-
-/**
  * Prepares variables for file link templates.
  *
  * Default template: file-link.html.twig.
@@ -1537,43 +1213,15 @@ function file_managed_file_pre_render($element) {
  */
 function template_preprocess_file_link(&$variables) {
   $file = $variables['file'];
-  $options = array(
-    'attributes' => $variables['attributes'],
-  );
-  $icon_directory = $variables['icon_directory'];
+  $options = array();
 
-  $url = file_create_url($file->getFileUri());
   $file_entity = ($file instanceof File) ? $file : file_load($file->fid);
+  $url = file_create_url($file_entity->getFileUri());
 
-  // Human-readable names, for use as text-alternatives to icons.
-  $mime_name = array(
-    'application/msword' => t('Microsoft Office document icon'),
-    'application/vnd.ms-excel' => t('Office spreadsheet icon'),
-    'application/vnd.ms-powerpoint' => t('Office presentation icon'),
-    'application/pdf' => t('PDF icon'),
-    'video/quicktime' => t('Movie icon'),
-    'audio/mpeg' => t('Audio icon'),
-    'audio/wav' => t('Audio icon'),
-    'image/jpeg' => t('Image icon'),
-    'image/png' => t('Image icon'),
-    'image/gif' => t('Image icon'),
-    'application/zip' => t('Package icon'),
-    'text/html' => t('HTML icon'),
-    'text/plain' => t('Plain text icon'),
-    'application/octet-stream' => t('Binary Data'),
-  );
-
-  $variables['icon'] = array(
-    '#theme' => 'image__file_icon',
-    '#uri' => file_icon_url($file_entity, $icon_directory),
-    '#alt' => (!empty($mime_name[$file->getMimeType()])) ? $mime_name[$file->getMimeType()] : t('File'),
-    '#title' => String::checkPlain($file_entity->getFilename()),
-    '#attributes' => array('class' => array('file-icon')),
-  );
-
+  $mime_type = $file->getMimeType();
   // Set options as per anchor format described at
   // http://microformats.org/wiki/file-format-examples
-  $options['attributes']['type'] = $file->getMimeType() . '; length=' . $file->getSize();
+  $options['attributes']['type'] = $mime_type . '; length=' . $file->getSize();
 
   // Use the description as the link text if available.
   if (empty($variables['description'])) {
@@ -1584,93 +1232,60 @@ function template_preprocess_file_link(&$variables) {
     $options['attributes']['title'] = String::checkPlain($file_entity->getFilename());
   }
 
+  // Classes to add to the file field for icons.
+  $classes = array(
+    'file',
+    // Add a specific class for each and every mime type.
+    'file--mime-' . strtr($mime_type, array('/' => '-', '.' => '-')),
+    // Add a more general class for groups of well known mime types.
+    'file--' . file_icon_class($mime_type),
+  );
+
+  // Set file classes to the options array.
+  $variables['attributes'] = new Attribute($variables['attributes']);
+  $variables['attributes']->addClass($classes);
+
   $variables['link'] = _l($link_text, $url, $options);
-  $variables['attributes'] = array('class' => array('file'));
 }
 
 /**
- * Creates a URL to the icon for a file entity.
+ * Gets a class for the icon for a MIME type.
  *
- * @param \Drupal\file\FileInterface $file
- *   A file entity.
- * @param $icon_directory
- *   (optional) A path to a directory of icons to be used for files. Defaults to
- *   the value of the "icon.directory" variable.
+ * @param string $mime_type
+ *   A MIME type.
  *
- * @return
- *   A URL string to the icon, or FALSE if an appropriate icon cannot be found.
+ * @return string
+ *   A class associated to the file.
  */
-function file_icon_url(FileInterface $file, $icon_directory = NULL) {
-  if ($icon_path = file_icon_path($file, $icon_directory)) {
-    return base_path() . $icon_path;
-  }
-  return FALSE;
-}
-
-/**
- * Creates a path to the icon for a file entity.
- *
- * @param \Drupal\file\FileInterface $file
- *   A file entity.
- * @param $icon_directory
- *   (optional) A path to a directory of icons to be used for files. Defaults to
- *   the value of the "icon.directory" variable.
- *
- * @return
- *   A string to the icon as a local path, or FALSE if an appropriate icon could
- *   not be found.
- */
-function file_icon_path(FileInterface $file, $icon_directory = NULL) {
-  // Use the default set of icons if none specified.
-  if (!isset($icon_directory)) {
-    $icon_directory = \Drupal::config('file.settings')->get('icon.directory');
-  }
-
-  // If there's an icon matching the exact mimetype, go for it.
-  $dashed_mime = strtr($file->getMimeType(), array('/' => '-'));
-  $icon_path = $icon_directory . '/' . $dashed_mime . '.png';
-  if (file_exists($icon_path)) {
-    return $icon_path;
-  }
-
-  // For a few mimetypes, we can "manually" map to a generic icon.
-  $generic_mime = (string) file_icon_map($file);
-  $icon_path = $icon_directory . '/' . $generic_mime . '.png';
-  if ($generic_mime && file_exists($icon_path)) {
-    return $icon_path;
+function file_icon_class($mime_type) {
+  // Search for a group with the files MIME type.
+  $generic_mime = (string) file_icon_map($mime_type);
+  if (!empty($generic_mime)) {
+    return $generic_mime;
   }
 
   // Use generic icons for each category that provides such icons.
   foreach (array('audio', 'image', 'text', 'video') as $category) {
-    if (strpos($file->getMimeType(), $category . '/') === 0) {
-      $icon_path = $icon_directory . '/' . $category . '-x-generic.png';
-      if (file_exists($icon_path)) {
-        return $icon_path;
-      }
+    if (strpos($mime_type, $category) === 0) {
+      return $category;
     }
   }
 
-  // Try application-octet-stream as last fallback.
-  $icon_path = $icon_directory . '/application-octet-stream.png';
-  if (file_exists($icon_path)) {
-    return $icon_path;
-  }
-
-  // No icon can be found.
-  return FALSE;
+  // If there's no generic icon for the type the general class.
+  return 'general';
 }
 
 /**
  * Determines the generic icon MIME package based on a file's MIME type.
  *
- * @param \Drupal\file\FileInterface $file
- *   A file entity.
+ * @param string $mime_type
+ *   A MIME type.
  *
  * @return
  *   The generic icon MIME package expected for this file.
  */
-function file_icon_map(FileInterface $file) {
-  switch ($file->getMimeType()) {
+function file_icon_map($mime_type) {
+  switch ($mime_type) {
     // Word document types.
     case 'application/msword':
     case 'application/vnd.ms-word.document.macroEnabled.12':
@@ -1781,6 +1396,14 @@ function file_icon_map(FileInterface $file) {
     case 'application/x-pef-executable':
       return 'application-x-executable';
 
+    // Acrobat types
+    case 'application/pdf':
+    case 'application/x-pdf':
+    case 'applications/vnd.pdf':
+    case 'text/pdf':
+    case 'text/x-pdf':
+      return 'application-pdf';
+
     default:
       return FALSE;
   }
@@ -1846,8 +1469,10 @@ function file_get_file_references(FileInterface $file, FieldDefinitionInterface 
           // name. This will fail if the usage checked is in a non-current
           // revision because field items are from the current
           // revision.
-          if (($items = $entity->get($field_name))) {
-            foreach ($items as $item) {
+          // We also iterate over all translations because a file can be linked
+          // to a language other than the default.
+          foreach ($entity->getTranslationLanguages() as $langcode => $language) {
+            foreach ($entity->getTranslation($langcode)->get($field_name) as $item) {
               if ($file->id() == $item->{$field_column}) {
                 $references[$file->id()][$age][$field_name][$entity_type_id][$entity->id()] = $entity;
                 break;

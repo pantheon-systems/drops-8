@@ -49,7 +49,7 @@ const USER_REGISTER_VISITORS = 'visitors';
 const USER_REGISTER_VISITORS_ADMINISTRATIVE_APPROVAL = 'visitors_admin_approval';
 
 /**
- * Implement hook_help().
+ * Implements hook_help().
  */
 function user_help($route_name, RouteMatchInterface $route_match) {
   switch ($route_name) {
@@ -105,14 +105,6 @@ function user_theme() {
       'variables' => array('account' => NULL, 'attributes' => array(), 'link_options' => array()),
     ),
   );
-}
-
-/**
- * Implements hook_page_build().
- */
-function user_page_build(&$page) {
-  $path = drupal_get_path('module', 'user');
-  $page['#attached']['css'][$path . '/css/user.module.css'] = array('every_page' => TRUE);
 }
 
 /**
@@ -564,7 +556,7 @@ function template_preprocess_username(&$variables) {
   // their own shortening logic or add markup. If they do so, they must ensure
   // that $variables['name'] is safe for printing.
   $name = $variables['name_raw'] = $account->getUsername();
-  if (drupal_strlen($name) > 20) {
+  if (Unicode::strlen($name) > 20) {
     $name = Unicode::truncate($name, 15, FALSE, TRUE);
     $variables['truncated'] = TRUE;
   }

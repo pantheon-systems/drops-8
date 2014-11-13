@@ -740,10 +740,6 @@ class Field extends FieldPluginBase implements CacheablePluginInterface {
       'type' => $this->options['type'],
       'settings' => $this->options['settings'],
       'label' => 'hidden',
-      // Pass the View object in the display so that fields can act on it.
-      'views_view' => $this->view,
-      'views_field' => $this,
-      'views_row_id' => $values->index,
     );
     $render_array = $entity->get($this->definition['field_name'])->view($display);
 
@@ -942,9 +938,9 @@ class Field extends FieldPluginBase implements CacheablePluginInterface {
   /**
    * {@inheritdoc}
    */
-  public function getDependencies() {
+  public function calculateDependencies() {
     // Add the module providing the configured field storage as a dependency.
-    return array('entity' => array($this->getFieldStorageConfig()->getConfigDependencyName()));
+    return array('config' => array($this->getFieldStorageConfig()->getConfigDependencyName()));
   }
 
   /**

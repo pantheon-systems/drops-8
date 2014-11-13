@@ -161,6 +161,47 @@ class Attribute implements \ArrayAccess, \IteratorAggregate {
   }
 
   /**
+   * Sets values for an attribute key.
+   *
+   * @param string $attribute
+   *   Name of the attribute.
+   * @param string|array $value
+   *   Value(s) to set for the given attribute key.
+   *
+   * @return $this
+   */
+  public function setAttribute($attribute, $value) {
+    $this->offsetSet($attribute, $value);
+
+    return $this;
+  }
+
+  /**
+   * Removes an attribute from an Attribute object.
+   *
+   * @param string|array ...
+   *   Attributes to remove from the attribute array.
+   *
+   * @return $this
+   */
+  public function removeAttribute() {
+    $args = func_get_args();
+    foreach ($args as $arg) {
+      // Support arrays or multiple arguments.
+      if (is_array($arg)) {
+        foreach ($arg as $value) {
+          unset($this->storage[$value]);
+        }
+      }
+      else {
+        unset($this->storage[$arg]);
+      }
+    }
+
+    return $this;
+  }
+
+  /**
    * Removes argument values from array of existing CSS classes.
    *
    * @param string|array ...
@@ -186,6 +227,24 @@ class Attribute implements \ArrayAccess, \IteratorAggregate {
       $this->storage['class']->exchangeArray($classes);
     }
     return $this;
+  }
+
+  /**
+   * Checks if the class array has the given CSS class.
+   *
+   * @param string $class
+   *   The CSS class to check for.
+   *
+   * @return bool
+   *   Returns TRUE if the class exists, or FALSE otherwise.
+   */
+  public function hasClass($class) {
+    if (isset($this->storage['class']) && $this->storage['class'] instanceOf AttributeArray) {
+      return in_array($class, $this->storage['class']->value());
+    }
+    else {
+      return FALSE;
+    }
   }
 
   /**

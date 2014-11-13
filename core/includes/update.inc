@@ -693,7 +693,7 @@ function update_replace_permissions($replace) {
  *   It can be: LanguageInterface::STATE_CONFIGURABLE,
  *   LanguageInterface::STATE_LOCKED, or LanguageInterface::STATE_ALL.
  *
- * @return array
+ * @return \Drupal\Core\Language\LanguageInterface[]
  *   An associative array of languages, keyed by the language code, ordered by
  *   weight ascending and name ascending.
  */
@@ -744,9 +744,9 @@ function update_language_list($flags = LanguageInterface::STATE_CONFIGURABLE) {
 
   // Add the site's default language if flagged as allowed value.
   if ($flags & LanguageInterface::STATE_SITE_DEFAULT) {
-    $default = isset($default) ? $default : \Drupal::languageManager()->getDefaultLanguage();
+    $default = \Drupal::languageManager()->getDefaultLanguage();
     // Rename the default language.
-    $default->name = t("Site's default language (@lang_name)", array('@lang_name' => $default->name));
+    $default->setName(t("Site's default language (@lang_name)", array('@lang_name' => $default->getName())));
     $filtered_languages[LanguageInterface::LANGCODE_SITE_DEFAULT] = $default;
   }
 

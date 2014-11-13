@@ -39,7 +39,7 @@ class MenuListBuilder extends ConfigEntityListBuilder {
       'data' => $this->getLabel($entity),
       'class' => array('menu-label'),
     );
-    $row['description'] = Xss::filterAdmin($entity->description);
+    $row['description'] = Xss::filterAdmin($entity->getDescription());
     return $row + parent::buildRow($entity);
   }
 
@@ -68,7 +68,7 @@ class MenuListBuilder extends ConfigEntityListBuilder {
    */
   public function render() {
     $build = parent::render();
-    $build['#attached']['css'][] = drupal_get_path('module', 'menu') . '/css/menu.admin.css';
+    $build['#attached']['library'][] = "menu_ui/drupal.menu_ui.adminforms";
     return $build;
   }
 
