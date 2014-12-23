@@ -19,7 +19,7 @@ use Drupal\field\Entity\FieldConfig;
 class CommentFieldsTest extends CommentTestBase {
 
   /**
-   * Enable the field UI.
+   * Install the field UI.
    *
    * @var array
    */
@@ -40,9 +40,10 @@ class CommentFieldsTest extends CommentTestBase {
 
     $field->delete();
 
-    // Check that the 'comment_body' field is deleted.
+    // Check that the 'comment_body' field is not deleted since it is persisted
+    // even if it has no fields.
     $field_storage = FieldStorageConfig::loadByName('comment', 'comment_body');
-    $this->assertTrue(empty($field_storage), 'The comment_body field was deleted');
+    $this->assertTrue($field_storage, 'The comment_body field storage was not deleted');
 
     // Create a new content type.
     $type_name = 'test_node_type_2';
@@ -58,7 +59,7 @@ class CommentFieldsTest extends CommentTestBase {
 
     // Test adding a field that defaults to CommentItemInterface::CLOSED.
     $this->container->get('comment.manager')->addDefaultField('node', 'test_node_type', 'who_likes_ponies', CommentItemInterface::CLOSED, 'who_likes_ponies');
-    $field = entity_load('field_config', 'node.test_node_type.who_likes_ponies');
+    $field = FieldConfig::load('node.test_node_type.who_likes_ponies');
     $this->assertEqual($field->default_value[0]['status'], CommentItemInterface::CLOSED);
   }
 
@@ -110,7 +111,7 @@ class CommentFieldsTest extends CommentTestBase {
     // field has been deleted.
     field_purge_batch(10);
 
-    // Disable the comment module.
+    // Uninstall the comment module.
     $edit = array();
     $edit['uninstall[comment]'] = TRUE;
     $this->drupalPostForm('admin/modules/uninstall', $edit, t('Uninstall'));
@@ -118,7 +119,7 @@ class CommentFieldsTest extends CommentTestBase {
     $this->rebuildContainer();
     $this->assertFalse($this->container->get('module_handler')->moduleExists('comment'), 'Comment module uninstalled.');
 
-    // Enable core content type module (book).
+    // Install core content type module (book).
     $edit = array();
     $edit['modules[Core][book][enable]'] = 'book';
     $this->drupalPostForm('admin/modules', $edit, t('Save configuration'));

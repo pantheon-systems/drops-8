@@ -4,9 +4,8 @@ description: 'Test theme which uses test_basetheme as the base theme.'
 version: VERSION
 core: 8.x
 base theme: test_basetheme
-stylesheets:
-  all:
-    - css/sub-add.css
+libraries:
+  - test_subtheme/global-styling
 stylesheets-override:
   - css/sub-override.css
   - css/base-add.sub-override.css
@@ -15,5 +14,3 @@ stylesheets-remove:
   - sub-remove.css
   - base-add.sub-remove.css
   - base-override.sub-remove.css
-settings:
-  subtheme_override: 'subtheme value'

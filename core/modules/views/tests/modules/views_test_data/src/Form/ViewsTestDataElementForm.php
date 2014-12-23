@@ -27,9 +27,10 @@ class ViewsTestDataElementForm extends FormBase {
   public function buildForm(array $form, FormStateInterface $form_state) {
     $form['view'] = array(
       '#type' => 'view',
-      '#name' => 'test_view',
+      '#name' => 'test_view_embed',
       '#display_id' => 'default',
       '#arguments' => array(25),
+      '#embed' => FALSE,
     );
 
     return $form;

@@ -10,11 +10,36 @@ namespace Drupal\Core\FileTransfer\Form;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Provides the file transfer authorization form.
  */
 class FileTransferAuthorizeForm extends FormBase {
+
+  /**
+   * The app root.
+   *
+   * @var string
+   */
+  protected  $root;
+
+  /**
+   * Constructs a new FileTransferAuthorizeForm object.
+   *
+   * @param string $root
+   *   The app root.
+   */
+  public function __construct($root) {
+    $this->root = $root;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container) {
+    return new static ($container->get('app.root'));
+  }
 
   /**
    * {@inheritdoc}
@@ -27,9 +52,6 @@ class FileTransferAuthorizeForm extends FormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
-    // If possible, we want to post this form securely via HTTPS.
-    $form['#https'] = TRUE;
-
     // Get all the available ways to transfer files.
     if (empty($_SESSION['authorize_filetransfer_info'])) {
       drupal_set_message($this->t('Unable to continue, no available methods of file transfer'), 'error');
@@ -241,7 +263,7 @@ class FileTransferAuthorizeForm extends FormBase {
     if (!empty($_SESSION['authorize_filetransfer_info'][$backend])) {
       $backend_info = $_SESSION['authorize_filetransfer_info'][$backend];
       if (class_exists($backend_info['class'])) {
-        $filetransfer = $backend_info['class']::factory(DRUPAL_ROOT, $settings);
+        $filetransfer = $backend_info['class']::factory($this->root, $settings);
       }
     }
     return $filetransfer;
@@ -316,7 +338,7 @@ class FileTransferAuthorizeForm extends FormBase {
     $operation = $_SESSION['authorize_operation'];
     unset($_SESSION['authorize_operation']);
 
-    require_once DRUPAL_ROOT . '/' . $operation['file'];
+    require_once $this->root . '/' . $operation['file'];
     call_user_func_array($operation['callback'], array_merge(array($filetransfer), $operation['arguments']));
   }
 

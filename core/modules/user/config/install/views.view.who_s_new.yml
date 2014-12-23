@@ -1,8 +1,16 @@
-base_field: uid
-base_table: users
-core: 8.x
-description: 'Shows a list of the newest user accounts on the site.'
+langcode: en
 status: true
+dependencies:
+  module:
+    - user
+id: who_s_new
+label: 'Who''s new'
+module: user
+description: 'Shows a list of the newest user accounts on the site.'
+tag: default
+base_table: users
+base_field: uid
+core: 8.x
 display:
   default:
     display_plugin: default
@@ -80,6 +88,8 @@ display:
           hide_alter_empty: true
           anonymous_text: ''
           format_username: true
+          entity_type: user
+          entity_field: name
       filters:
         status:
           value: true
@@ -90,6 +100,8 @@ display:
             operator: '0'
           group: 1
           plugin_id: boolean
+          entity_type: user
+          entity_field: status
         access:
           id: access
           table: users_field_data
@@ -130,6 +142,8 @@ display:
             default_group_multiple: {  }
             group_items: {  }
           plugin_id: date
+          entity_type: user
+          entity_field: access
       sorts:
         created:
           id: created
@@ -144,12 +158,16 @@ display:
             label: ''
           granularity: second
           plugin_id: date
+          entity_type: user
+          entity_field: created
       title: 'Who''s new'
       header: {  }
       footer: {  }
       empty: {  }
       relationships: {  }
       arguments: {  }
+      field_langcode: '***LANGUAGE_language_content***'
+      field_langcode_add_to_query: null
   block_1:
     display_plugin: block
     id: block_1
@@ -159,11 +177,5 @@ display:
       display_description: 'A list of new users'
       block_description: 'Who''s new'
       block_category: User
-label: 'Who''s new'
-module: user
-id: who_s_new
-tag: default
-langcode: en
-dependencies:
-  module:
-    - user
+      field_langcode: '***LANGUAGE_language_content***'
+      field_langcode_add_to_query: null

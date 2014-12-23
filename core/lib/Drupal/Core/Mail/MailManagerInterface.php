@@ -22,8 +22,9 @@ interface MailManagerInterface extends PluginManagerInterface {
    * appropriate places in the template. Processed email templates are requested
    * from hook_mail() from the module sending the email. Any module can modify
    * the composed email message array using hook_mail_alter(). Finally
-   * drupal_mail_system()->mail() sends the email, which can be reused if the
-   * exact same composed email is to be sent to multiple recipients.
+   * \Drupal::service('plugin.manager.mail')->mail() sends the email, which can
+   * be reused if the exact same composed email is to be sent to multiple
+   * recipients.
    *
    * Finding out what language to send the email with needs some consideration.
    * If you send email to a user, her preferred language should be fine, so use
@@ -47,7 +48,8 @@ interface MailManagerInterface extends PluginManagerInterface {
    *   function example_notify($accounts) {
    *     foreach ($accounts as $account) {
    *       $params['account'] = $account;
-   *       // example_mail() will be called based on the first \Drupal::service('plugin.manager.mail')->mail() parameter.
+   *       // example_mail() will be called based on the first
+   *       // MailManagerInterface->mail() parameter.
    *       \Drupal::service('plugin.manager.mail')->mail('example', 'notice', $account->mail, user_preferred_langcode($account), $params);
    *     }
    *   }
@@ -71,8 +73,8 @@ interface MailManagerInterface extends PluginManagerInterface {
    *   }
    * @endcode
    *
-   * Another example, which uses \Drupal::service('plugin.manager.mail')->mail()
-   * to format a message for sending later:
+   * Another example, which uses MailManagerInterface->mail() to format a
+   * message for sending later:
    *
    * @code
    *   $params = array('current_conditions' => $data);
@@ -107,10 +109,11 @@ interface MailManagerInterface extends PluginManagerInterface {
    * @param string|null $reply
    *   Optional email address to be used to answer.
    * @param bool $send
-   *   If TRUE, \Drupal::service('plugin.manager.mail')->mail() will call
-   *   drupal_mail_system()->mail() to deliver the message, and store the result
-   *   in $message['result']. Modules implementing hook_mail_alter() may cancel
-   *   sending by setting $message['send'] to FALSE.
+   *   If TRUE, call an implementation of
+   *   \Drupal\Core\Mail\MailInterface->mail() to deliver the message, and
+   *   store the result in $message['result']. Modules implementing
+   *   hook_mail_alter() may cancel sending by setting $message['send'] to
+   *   FALSE.
    *
    * @return string
    *   The $message array structure containing all details of the message. If

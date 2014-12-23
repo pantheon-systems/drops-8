@@ -9,7 +9,7 @@ namespace Drupal\system\Tests\Cache;
 
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheBackendInterface;
-use Drupal\simpletest\DrupalUnitTestBase;
+use Drupal\simpletest\KernelTestBase;
 
 /**
  * Tests any cache backend.
@@ -21,7 +21,7 @@ use Drupal\simpletest\DrupalUnitTestBase;
  * @see DatabaseBackendUnitTestCase
  *   For a full working implementation.
  */
-abstract class GenericCacheBackendUnitTestBase extends DrupalUnitTestBase {
+abstract class GenericCacheBackendUnitTestBase extends KernelTestBase {
 
   /**
    * Array of objects implementing Drupal\Core\Cache\CacheBackendInterface.
@@ -212,6 +212,11 @@ abstract class GenericCacheBackendUnitTestBase extends DrupalUnitTestBase {
     $cid = str_repeat('a', 300);
     $backend->set($cid, 'test');
     $this->assertEqual('test', $backend->get($cid)->data);
+
+    // Check that the cache key is case sensitive.
+    $backend->set('TEST8', 'value');
+    $this->assertEqual('value', $backend->get('TEST8')->data);
+    $this->assertFalse($backend->get('test8'));
 
     // Calling ::set() with invalid cache tags.
     try {
@@ -406,7 +411,6 @@ abstract class GenericCacheBackendUnitTestBase extends DrupalUnitTestBase {
     $this->assertEqual($cached['cid_4']->expire, $future_expiration, 'Cache expiration has been correctly set.');
 
     $this->assertEqual($cached['cid_5']->data, $items['cid_5']['data'], 'New cache item set correctly.');
-    $this->assertEqual($cached['cid_5']->tags, array('test:a', 'test:b'));
 
     // Calling ::setMultiple() with invalid cache tags.
     try {

@@ -97,7 +97,7 @@ class ViewStorageTest extends ViewUnitTestBase {
     }
 
     // Check the displays have been loaded correctly from config display data.
-    $expected_displays = array('default', 'page_1', 'block_1');
+    $expected_displays = array('default', 'block_1', 'page_1');
     $this->assertEqual(array_keys($view->get('display')), $expected_displays, 'The correct display names are present.');
 
     // Check each ViewDisplay object and confirm that it has the correct key and
@@ -233,14 +233,12 @@ class ViewStorageTest extends ViewUnitTestBase {
     $this->assertEqual($display[$id]['display_title'], 'Page 3');
 
     // Ensure the 'default' display always has position zero, regardless of when
-    // it was created relative to other displays.
-    $displays = $view->get('display');
-    $displays['default']['deleted'] = TRUE;
-    $view->set('display', $displays);
-    $view->set('id', $this->randomMachineName());
-    $view->save();
+    // it was set relative to other displays. Even if the 'default' display
+    // exists, adding it again will overwrite it, which is asserted with the new
+    // title.
     $view->addDisplay('default', $random_title);
     $displays = $view->get('display');
+    $this->assertEqual($displays['default']['display_title'], $random_title, 'Default display is defined with the new title');
     $this->assertEqual($displays['default']['position'], 0, 'Default displays are always in position zero');
 
     // Tests Drupal\views\Entity\View::generateDisplayId().

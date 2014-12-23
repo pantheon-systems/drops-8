@@ -30,7 +30,7 @@ class FrontPageTest extends ViewTestBase {
    *
    * @var array
    */
-  public static $modules = array('node');
+  public static $modules = array('node', 'contextual');
 
   protected function setUp() {
     parent::setUp();
@@ -49,6 +49,20 @@ class FrontPageTest extends ViewTestBase {
       ->save();
 
     $view = Views::getView('frontpage');
+
+    // Tests \Drupal\node\Plugin\views\row\RssPluginBase::calculateDependencies().
+    $expected = [
+      'config' => [
+        'core.entity_view_mode.node.rss',
+        'core.entity_view_mode.node.teaser',
+      ],
+      'module' => [
+        'node',
+        'user',
+      ],
+    ];
+    $this->assertIdentical($expected, $view->calculateDependencies());
+
     $view->setDisplay('page_1');
     $this->executeView($view);
     $view->preview();
@@ -150,7 +164,7 @@ class FrontPageTest extends ViewTestBase {
   public function testAdminFrontPage() {
     // When a user with sufficient permissions is logged in, views_ui adds
     // contextual links to the homepage view. This verifies there are no errors.
-    \Drupal::moduleHandler()->install(array('views_ui'));
+    \Drupal::service('module_installer')->install(array('views_ui'));
     // Login root user with sufficient permissions.
     $this->drupalLogin($this->root_user);
     // Test frontpage view.

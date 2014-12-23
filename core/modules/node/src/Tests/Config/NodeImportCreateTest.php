@@ -8,21 +8,21 @@
 namespace Drupal\node\Tests\Config;
 
 use Drupal\field\Entity\FieldConfig;
-use Drupal\simpletest\DrupalUnitTestBase;
+use Drupal\simpletest\KernelTestBase;
 
 /**
  * Create content types during config create method invocation.
  *
  * @group node
  */
-class NodeImportCreateTest extends DrupalUnitTestBase {
+class NodeImportCreateTest extends KernelTestBase {
 
   /**
    * Modules to enable.
    *
    * @var array
    */
-  public static $modules = array('node', 'entity', 'field', 'text', 'system', 'user', 'entity_reference');
+  public static $modules = array('node', 'field', 'text', 'system', 'user', 'entity_reference');
 
   /**
    * Set the default field storage backend for fields created during tests.
@@ -46,7 +46,7 @@ class NodeImportCreateTest extends DrupalUnitTestBase {
 
     // Enable node_test_config module and check that the content type
     // shipped in the module's default config is created.
-    $this->container->get('module_handler')->install(array('node_test_config'));
+    $this->container->get('module_installer')->install(array('node_test_config'));
     $node_type = entity_load('node_type', $node_type_id);
     $this->assertTrue($node_type, 'The default content type was created.');
   }

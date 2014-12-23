@@ -138,11 +138,8 @@ function history_node_view_alter(array &$build, EntityInterface $node, EntityVie
     // When the window's "load" event is triggered, mark the node as read.
     // This still allows for Drupal behaviors (which are triggered on the
     // "DOMContentReady" event) to add "new" and "updated" indicators.
-    $build['#attached']['js'][] = array(
-      'data' => 'window.addEventListener("load",function(){Drupal.history.markAsRead(' . $node->id() . ');},false);',
-      'type' => 'inline',
-    );
-    $build['#attached']['library'][] = 'history/drupal.history';
+    $build['#attached']['library'][] = 'history/mark-as-read';
+    $build['#attached']['drupalSettings']['history']['nodesToMarkAsRead'][$node->id()] = TRUE;
   }
 
 }
@@ -193,16 +190,7 @@ function history_user_delete($account) {
  *   The updated $element.
  */
 function history_attach_timestamp(array $element, array $context) {
-  $element['#attached']['js'][] = array(
-    'type' => 'setting',
-    'data' => array(
-      'history' => array(
-        'lastReadTimestamps' => array(
-          $context['node_id'] => (int) history_read($context['node_id']),
-        )
-      ),
-    ),
-  );
-
+  $node_id = $context['node_id'];
+  $element['#attached']['drupalSettings']['history']['lastReadTimestamps'][$node_id] = (int) history_read($node_id);
   return $element;
 }

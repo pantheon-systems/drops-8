@@ -8,10 +8,13 @@
 namespace Drupal\language\Tests;
 
 use Drupal\Core\Language\LanguageInterface;
+use Drupal\language\Entity\ContentLanguageSettings;
 use Drupal\simpletest\KernelTestBase;
 
 /**
  * Tests default language code is properly generated for entities.
+ *
+ * @group language
  */
 class EntityDefaultLanguageTest extends KernelTestBase {
 
@@ -21,17 +24,6 @@ class EntityDefaultLanguageTest extends KernelTestBase {
    * @var array
    */
   public static $modules = array('language', 'node', 'field', 'text', 'user');
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'name' => 'Entity default language',
-      'description' => 'Test that entities are created with correct language code.',
-      'group' => 'Entity API',
-    );
-  }
 
   /**
    * {@inheritdoc}
@@ -119,10 +111,11 @@ class EntityDefaultLanguageTest extends KernelTestBase {
       'create_body' => FALSE,
     ));
     $content_type->save();
-    language_save_default_configuration('node', $name, array(
-      'langcode' => $langcode,
-      'language_show' => FALSE,
-    ));
+    ContentLanguageSettings::loadByEntityTypeBundle('node', $name)
+      ->setLanguageAlterable(FALSE)
+      ->setDefaultLangcode($langcode)
+      ->save();
+
   }
 
   /**

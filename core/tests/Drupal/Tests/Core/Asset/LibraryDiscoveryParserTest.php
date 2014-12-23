@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Contains \Drupal\Tests\Core\Asset\LibraryDiscoveryTest.
+ * Contains \Drupal\Tests\Core\Asset\LibraryDiscoveryParserTest.
  */
 
 namespace Drupal\Tests\Core\Asset;
@@ -31,7 +31,7 @@ if (!defined('CSS_AGGREGATE_DEFAULT')) {
 class LibraryDiscoveryParserTest extends UnitTestCase {
 
   /**
-   * The tested library provider.
+   * The tested library discovery parser service.
    *
    * @var \Drupal\Core\Asset\LibraryDiscoveryParser|\Drupal\Tests\Core\Asset\TestLibraryDiscoveryParser
    */
@@ -52,7 +52,7 @@ class LibraryDiscoveryParserTest extends UnitTestCase {
   protected $moduleHandler;
 
   /**
-   * The mocked lock backend..
+   * The mocked lock backend.
    *
    * @var \Drupal\Core\Lock\LockBackendInterface|\PHPUnit_Framework_MockObject_MockObject
    */
@@ -62,14 +62,16 @@ class LibraryDiscoveryParserTest extends UnitTestCase {
    * {@inheritdoc}
    */
   protected function setUp() {
+    parent::setUp();
+
     $this->moduleHandler = $this->getMock('Drupal\Core\Extension\ModuleHandlerInterface');
-    $this->libraryDiscoveryParser = new TestLibraryDiscoveryParser($this->moduleHandler);
+    $this->libraryDiscoveryParser = new TestLibraryDiscoveryParser($this->root, $this->moduleHandler);
   }
 
   /**
    * Tests that basic functionality works for getLibraryByName.
    *
-   * @covers ::buildByExtension()
+   * @covers ::buildByExtension
    */
   public function testBuildByExtensionSimple() {
     $this->moduleHandler->expects($this->atLeastOnce())
@@ -78,7 +80,7 @@ class LibraryDiscoveryParserTest extends UnitTestCase {
       ->will($this->returnValue(TRUE));
 
     $path = __DIR__ . '/library_test_files';
-    $path = substr($path, strlen(DRUPAL_ROOT) + 1);
+    $path = substr($path, strlen($this->root) + 1);
     $this->libraryDiscoveryParser->setPaths('module', 'example_module', $path);
 
     $libraries = $this->libraryDiscoveryParser->buildByExtension('example_module', 'example');
@@ -96,7 +98,7 @@ class LibraryDiscoveryParserTest extends UnitTestCase {
   /**
    * Tests that a theme can be used instead of a module.
    *
-   * @covers ::buildByExtension()
+   * @covers ::buildByExtension
    */
   public function testBuildByExtensionWithTheme() {
     $this->moduleHandler->expects($this->atLeastOnce())
@@ -105,7 +107,7 @@ class LibraryDiscoveryParserTest extends UnitTestCase {
       ->will($this->returnValue(FALSE));
 
     $path = __DIR__ . '/library_test_files';
-    $path = substr($path, strlen(DRUPAL_ROOT) + 1);
+    $path = substr($path, strlen($this->root) + 1);
     $this->libraryDiscoveryParser->setPaths('theme', 'example_theme', $path);
 
     $libraries = $this->libraryDiscoveryParser->buildByExtension('example_theme');
@@ -120,7 +122,7 @@ class LibraryDiscoveryParserTest extends UnitTestCase {
   /**
    * Tests that a module with a missing library file results in FALSE.
    *
-   * @covers ::buildByExtension()
+   * @covers ::buildByExtension
    */
   public function testBuildByExtensionWithMissingLibraryFile() {
     $this->moduleHandler->expects($this->atLeastOnce())
@@ -129,7 +131,7 @@ class LibraryDiscoveryParserTest extends UnitTestCase {
       ->will($this->returnValue(TRUE));
 
     $path = __DIR__ . '/library_test_files_not_existing';
-    $path = substr($path, strlen(DRUPAL_ROOT) + 1);
+    $path = substr($path, strlen($this->root) + 1);
     $this->libraryDiscoveryParser->setPaths('module', 'example_module', $path);
 
     $this->assertSame($this->libraryDiscoveryParser->buildByExtension('example_module'), array());
@@ -140,7 +142,7 @@ class LibraryDiscoveryParserTest extends UnitTestCase {
    *
    * @expectedException \Drupal\Core\Asset\Exception\InvalidLibraryFileException
    *
-   * @covers ::buildByExtension()
+   * @covers ::buildByExtension
    */
   public function testInvalidLibrariesFile() {
     $this->moduleHandler->expects($this->atLeastOnce())
@@ -149,7 +151,7 @@ class LibraryDiscoveryParserTest extends UnitTestCase {
       ->will($this->returnValue(TRUE));
 
     $path = __DIR__ . '/library_test_files';
-    $path = substr($path, strlen(DRUPAL_ROOT) + 1);
+    $path = substr($path, strlen($this->root) + 1);
     $this->libraryDiscoveryParser->setPaths('module', 'invalid_file', $path);
 
     $this->libraryDiscoveryParser->buildByExtension('invalid_file');
@@ -161,7 +163,7 @@ class LibraryDiscoveryParserTest extends UnitTestCase {
    * @expectedException \Drupal\Core\Asset\Exception\IncompleteLibraryDefinitionException
    * @expectedExceptionMessage Incomplete library definition for 'example' in core/tests/Drupal/Tests/Core/Asset/library_test_files/example_module_missing_information.libraries.yml
    *
-   * @covers ::buildByExtension()
+   * @covers ::buildByExtension
    */
   public function testBuildByExtensionWithMissingInformation() {
     $this->moduleHandler->expects($this->atLeastOnce())
@@ -170,16 +172,46 @@ class LibraryDiscoveryParserTest extends UnitTestCase {
       ->will($this->returnValue(TRUE));
 
     $path = __DIR__ . '/library_test_files';
-    $path = substr($path, strlen(DRUPAL_ROOT) + 1);
+    $path = substr($path, strlen($this->root) + 1);
     $this->libraryDiscoveryParser->setPaths('module', 'example_module_missing_information', $path);
 
     $this->libraryDiscoveryParser->buildByExtension('example_module_missing_information');
   }
 
   /**
+   * Tests the version property, and how it propagates to the contained assets.
+   *
+   * @covers ::buildByExtension
+   */
+  public function testVersion() {
+    $this->moduleHandler->expects($this->atLeastOnce())
+      ->method('moduleExists')
+      ->with('versions')
+      ->will($this->returnValue(TRUE));
+
+    $path = __DIR__ . '/library_test_files';
+    $path = substr($path, strlen($this->root) + 1);
+    $this->libraryDiscoveryParser->setPaths('module', 'versions', $path);
+
+    $libraries = $this->libraryDiscoveryParser->buildByExtension('versions');
+
+    $this->assertFalse(array_key_exists('version', $libraries['versionless']));
+    $this->assertEquals(-1, $libraries['versionless']['css'][0]['version']);
+    $this->assertEquals(-1, $libraries['versionless']['js'][0]['version']);
+
+    $this->assertEquals('9.8.7.6', $libraries['versioned']['version']);
+    $this->assertEquals('9.8.7.6', $libraries['versioned']['css'][0]['version']);
+    $this->assertEquals('9.8.7.6', $libraries['versioned']['js'][0]['version']);
+
+    $this->assertEquals(\Drupal::VERSION, $libraries['core-versioned']['version']);
+    $this->assertEquals(\Drupal::VERSION, $libraries['core-versioned']['css'][0]['version']);
+    $this->assertEquals(\Drupal::VERSION, $libraries['core-versioned']['js'][0]['version']);
+  }
+
+  /**
    * Tests that the version property of external libraries is handled.
    *
-   * @covers ::buildByExtension()
+   * @covers ::buildByExtension
    */
   public function testExternalLibraries() {
     $this->moduleHandler->expects($this->atLeastOnce())
@@ -188,20 +220,21 @@ class LibraryDiscoveryParserTest extends UnitTestCase {
       ->will($this->returnValue(TRUE));
 
     $path = __DIR__ . '/library_test_files';
-    $path = substr($path, strlen(DRUPAL_ROOT) + 1);
+    $path = substr($path, strlen($this->root) + 1);
     $this->libraryDiscoveryParser->setPaths('module', 'external', $path);
 
-    $libraries = $this->libraryDiscoveryParser->buildByExtension('external', 'example_external');
+    $libraries = $this->libraryDiscoveryParser->buildByExtension('external');
     $library = $libraries['example_external'];
 
-    $this->assertEquals($path . '/css/example_external.css', $library['css'][0]['data']);
+    $this->assertEquals('http://example.com/css/example_external.css', $library['css'][0]['data']);
+    $this->assertEquals('http://example.com/example_external.js', $library['js'][0]['data']);
     $this->assertEquals('3.14', $library['version']);
   }
 
   /**
    * Ensures that CSS weights are taken into account properly.
    *
-   * @covers ::buildByExtension()
+   * @covers ::buildByExtension
    */
   public function testDefaultCssWeights() {
     $this->moduleHandler->expects($this->atLeastOnce())
@@ -210,7 +243,7 @@ class LibraryDiscoveryParserTest extends UnitTestCase {
       ->will($this->returnValue(TRUE));
 
     $path = __DIR__ . '/library_test_files';
-    $path = substr($path, strlen(DRUPAL_ROOT) + 1);
+    $path = substr($path, strlen($this->root) + 1);
     $this->libraryDiscoveryParser->setPaths('module', 'css_weights', $path);
 
     $libraries = $this->libraryDiscoveryParser->buildByExtension('css_weights');
@@ -241,7 +274,7 @@ class LibraryDiscoveryParserTest extends UnitTestCase {
    *
    * @expectedException \UnexpectedValueException
    *
-   * @covers ::buildByExtension()
+   * @covers ::buildByExtension
    */
   public function testJsWithPositiveWeight() {
     $this->moduleHandler->expects($this->atLeastOnce())
@@ -250,7 +283,7 @@ class LibraryDiscoveryParserTest extends UnitTestCase {
       ->will($this->returnValue(TRUE));
 
     $path = __DIR__ . '/library_test_files';
-    $path = substr($path, strlen(DRUPAL_ROOT) + 1);
+    $path = substr($path, strlen($this->root) + 1);
     $this->libraryDiscoveryParser->setPaths('module', 'js_positive_weight', $path);
 
     $this->libraryDiscoveryParser->buildByExtension('js_positive_weight');
@@ -259,7 +292,7 @@ class LibraryDiscoveryParserTest extends UnitTestCase {
   /**
    * Tests a library with CSS/JavaScript and a setting.
    *
-   * @covers ::buildByExtension()
+   * @covers ::buildByExtension
    */
   public function testLibraryWithCssJsSetting() {
     $this->moduleHandler->expects($this->atLeastOnce())
@@ -268,7 +301,7 @@ class LibraryDiscoveryParserTest extends UnitTestCase {
       ->will($this->returnValue(TRUE));
 
     $path = __DIR__ . '/library_test_files';
-    $path = substr($path, strlen(DRUPAL_ROOT) + 1);
+    $path = substr($path, strlen($this->root) + 1);
     $this->libraryDiscoveryParser->setPaths('module', 'css_js_settings', $path);
 
     $libraries = $this->libraryDiscoveryParser->buildByExtension('css_js_settings');
@@ -283,14 +316,13 @@ class LibraryDiscoveryParserTest extends UnitTestCase {
     $this->assertEquals('file', $library['css'][0]['type']);
     $this->assertEquals($path . '/css/base.css', $library['css'][0]['data']);
 
-    $this->assertEquals('setting', $library['js'][1]['type']);
-    $this->assertEquals(array('key' => 'value'), $library['js'][1]['data']);
+    $this->assertEquals(array('key' => 'value'), $library['drupalSettings']);
   }
 
   /**
    * Tests a library with dependencies.
    *
-   * @covers ::buildByExtension()
+   * @covers ::buildByExtension
    */
   public function testLibraryWithDependencies() {
      $this->moduleHandler->expects($this->atLeastOnce())
@@ -299,7 +331,7 @@ class LibraryDiscoveryParserTest extends UnitTestCase {
       ->will($this->returnValue(TRUE));
 
     $path = __DIR__ . '/library_test_files';
-    $path = substr($path, strlen(DRUPAL_ROOT) + 1);
+    $path = substr($path, strlen($this->root) + 1);
     $this->libraryDiscoveryParser->setPaths('module', 'dependencies', $path);
 
     $libraries = $this->libraryDiscoveryParser->buildByExtension('dependencies');
@@ -313,7 +345,7 @@ class LibraryDiscoveryParserTest extends UnitTestCase {
   /**
    * Tests a library with a couple of data formats like full URL.
    *
-   * @covers ::buildByExtension()
+   * @covers ::buildByExtension
    */
   public function testLibraryWithDataTypes() {
     $this->moduleHandler->expects($this->atLeastOnce())
@@ -322,7 +354,7 @@ class LibraryDiscoveryParserTest extends UnitTestCase {
       ->will($this->returnValue(TRUE));
 
     $path = __DIR__ . '/library_test_files';
-    $path = substr($path, strlen(DRUPAL_ROOT) + 1);
+    $path = substr($path, strlen($this->root) + 1);
     $this->libraryDiscoveryParser->setPaths('module', 'data_types', $path);
 
     $this->libraryDiscoveryParser->setFileValidUri('public://test.css', TRUE);
@@ -345,7 +377,7 @@ class LibraryDiscoveryParserTest extends UnitTestCase {
   /**
    * Tests a library with JavaScript-specific flags.
    *
-   * @covers ::buildByExtension()
+   * @covers ::buildByExtension
    */
   public function testLibraryWithJavaScript() {
     $this->moduleHandler->expects($this->atLeastOnce())
@@ -354,7 +386,7 @@ class LibraryDiscoveryParserTest extends UnitTestCase {
       ->will($this->returnValue(TRUE));
 
     $path = __DIR__ . '/library_test_files';
-    $path = substr($path, strlen(DRUPAL_ROOT) + 1);
+    $path = substr($path, strlen($this->root) + 1);
     $this->libraryDiscoveryParser->setPaths('module', 'js', $path);
 
     $libraries = $this->libraryDiscoveryParser->buildByExtension('js');
@@ -370,7 +402,7 @@ class LibraryDiscoveryParserTest extends UnitTestCase {
    * @expectedException \Drupal\Core\Asset\Exception\LibraryDefinitionMissingLicenseException
    * @expectedExceptionMessage Missing license information in library definition for 'no-license-info-but-remote' in core/tests/Drupal/Tests/Core/Asset/library_test_files/licenses_missing_information.libraries.yml: it has a remote, but no license.
    *
-   * @covers ::buildByExtension()
+   * @covers ::buildByExtension
    */
   public function testLibraryThirdPartyWithMissingLicense() {
     $this->moduleHandler->expects($this->atLeastOnce())
@@ -379,7 +411,7 @@ class LibraryDiscoveryParserTest extends UnitTestCase {
       ->will($this->returnValue(TRUE));
 
     $path = __DIR__ . '/library_test_files';
-    $path = substr($path, strlen(DRUPAL_ROOT) + 1);
+    $path = substr($path, strlen($this->root) + 1);
     $this->libraryDiscoveryParser->setPaths('module', 'licenses_missing_information', $path);
 
     $this->libraryDiscoveryParser->buildByExtension('licenses_missing_information');
@@ -388,7 +420,7 @@ class LibraryDiscoveryParserTest extends UnitTestCase {
   /**
    * Tests a library with various licenses, some GPL-compatible, some not.
    *
-   * @covers ::buildByExtension()
+   * @covers ::buildByExtension
    */
   public function testLibraryWithLicenses() {
     $this->moduleHandler->expects($this->atLeastOnce())
@@ -397,7 +429,7 @@ class LibraryDiscoveryParserTest extends UnitTestCase {
       ->will($this->returnValue(TRUE));
 
     $path = __DIR__ . '/library_test_files';
-    $path = substr($path, strlen(DRUPAL_ROOT) + 1);
+    $path = substr($path, strlen($this->root) + 1);
     $this->libraryDiscoveryParser->setPaths('module', 'licenses', $path);
 
     $libraries = $this->libraryDiscoveryParser->buildByExtension('licenses');

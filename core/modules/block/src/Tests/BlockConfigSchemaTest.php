@@ -64,6 +64,7 @@ class BlockConfigSchemaTest extends KernelTestBase {
     $this->installEntitySchema('block_content');
     $this->installEntitySchema('taxonomy_term');
     $this->installEntitySchema('node');
+    $this->installSchema('book', array('book'));
   }
 
   /**
@@ -74,7 +75,7 @@ class BlockConfigSchemaTest extends KernelTestBase {
       $id = strtolower($this->randomMachineName());
       $block = Block::create(array(
         'id' => $id,
-        'theme' => 'stark',
+        'theme' => 'classy',
         'weight' => 00,
         'status' => TRUE,
         'region' => 'content',

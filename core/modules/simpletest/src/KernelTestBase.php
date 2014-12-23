@@ -203,7 +203,7 @@ abstract class KernelTestBase extends TestBase {
       $this->enableModules($modules);
     }
     // In order to use theme functions default theme config needs to exist.
-    \Drupal::config('system.theme')->set('default', 'stark');
+    \Drupal::config('system.theme')->set('default', 'classy');
 
     // Tests based on this class are entitled to use Drupal's File and
     // StreamWrapper APIs.
@@ -262,6 +262,13 @@ abstract class KernelTestBase extends TestBase {
       ->register('config.storage', 'Drupal\Core\Config\DatabaseStorage')
       ->addArgument(Database::getConnection())
       ->addArgument('config');
+
+    if ($this->strictConfigSchema) {
+      $container
+        ->register('simpletest.config_schema_checker', 'Drupal\Core\Config\Testing\ConfigSchemaChecker')
+        ->addArgument(new Reference('config.typed'))
+        ->addTag('event_subscriber');
+    }
 
     $keyvalue_options = $container->getParameter('factory.keyvalue') ?: array();
     $keyvalue_options['default'] = 'keyvalue.memory';

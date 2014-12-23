@@ -7,7 +7,6 @@
 
 namespace Drupal\color\Tests;
 
-use Drupal\config\Tests\SchemaCheckTestTrait;
 use Drupal\simpletest\WebTestBase;
 
 /**
@@ -17,10 +16,8 @@ use Drupal\simpletest\WebTestBase;
  */
 class ColorConfigSchemaTest extends WebTestBase {
 
-  use SchemaCheckTestTrait;
-
   /**
-   * Modules to enable.
+   * Modules to install.
    *
    * @var array
    */
@@ -53,7 +50,6 @@ class ColorConfigSchemaTest extends WebTestBase {
     $edit['scheme'] = '';
     $edit['palette[bg]'] = '#123456';
     $this->drupalPostForm($settings_path, $edit, t('Save configuration'));
-    $this->assertConfigSchema(\Drupal::service('config.typed'), 'color.theme.bartik', \Drupal::config('color.theme.bartik')->get());
   }
 
 }

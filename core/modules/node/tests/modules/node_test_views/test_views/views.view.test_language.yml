@@ -1,9 +1,9 @@
-uuid: 28125171-5b31-4943-9e00-ec0a9ceb0c1a
 langcode: en
 status: true
 dependencies:
   module:
     - node
+    - user
 id: test_language
 label: 'Test language'
 module: views
@@ -107,7 +107,10 @@ display:
           hide_empty: false
           empty_zero: false
           hide_alter_empty: true
-          link_to_node: 0
+          link_to_node: false
+          plugin_id: node
+          entity_type: node
+          entity_field: title
         langcode:
           id: langcode
           table: node_field_data
@@ -157,8 +160,10 @@ display:
           empty_zero: false
           hide_alter_empty: true
           link_to_node: false
-          native_language: 0
+          native_language: false
           plugin_id: node_language
+          entity_type: node
+          entity_field: langcode
       filters:
         status:
           value: true
@@ -168,12 +173,18 @@ display:
           expose:
             operator: ''
           group: 1
+          plugin_id: boolean
+          entity_type: node
+          entity_field: status
         type:
           id: type
           table: node_field_data
           field: type
           value:
             page: page
+          plugin_id: bundle
+          entity_type: node
+          entity_field: type
         langcode:
           id: langcode
           table: node_field_data
@@ -213,6 +224,8 @@ display:
             default_group_multiple: {  }
             group_items: {  }
           plugin_id: language
+          entity_type: node
+          entity_field: langcode
       sorts:
         langcode:
           id: langcode
@@ -226,6 +239,8 @@ display:
           expose:
             label: ''
           plugin_id: standard
+          entity_type: node
+          entity_field: langcode
       title: 'Language filter test'
       header: {  }
       footer: {  }
@@ -265,6 +280,8 @@ display:
             fail: 'not found'
           validate_options: {  }
           plugin_id: language
+          entity_type: node
+          entity_field: langcode
       field_langcode: '***LANGUAGE_language_content***'
       field_langcode_add_to_query: null
   page_1:

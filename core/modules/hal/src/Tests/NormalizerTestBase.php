@@ -20,20 +20,20 @@ use Drupal\rest\LinkManager\TypeLinkManager;
 use Drupal\serialization\EntityResolver\ChainEntityResolver;
 use Drupal\serialization\EntityResolver\TargetIdResolver;
 use Drupal\serialization\EntityResolver\UuidResolver;
-use Drupal\simpletest\DrupalUnitTestBase;
+use Drupal\simpletest\KernelTestBase;
 use Symfony\Component\Serializer\Serializer;
 
 /**
  * Test the HAL normalizer.
  */
-abstract class NormalizerTestBase extends DrupalUnitTestBase {
+abstract class NormalizerTestBase extends KernelTestBase {
 
   /**
    * Modules to enable.
    *
    * @var array
    */
-  public static $modules = array('entity', 'entity_test', 'entity_reference', 'field', 'hal', 'language', 'rest', 'serialization', 'system', 'text', 'user', 'filter');
+  public static $modules = array('entity_test', 'entity_reference', 'field', 'hal', 'language', 'rest', 'serialization', 'system', 'text', 'user', 'filter');
 
   /**
    * The mock serializer.
@@ -64,6 +64,24 @@ abstract class NormalizerTestBase extends DrupalUnitTestBase {
     $this->installSchema('system', array('url_alias', 'router'));
     $this->installEntitySchema('user');
     $this->installEntitySchema('entity_test');
+    // If the concrete test sub-class installs the Node or Comment modules,
+    // ensure that the node and comment entity schema are created before the
+    // field configurations are installed. This is because the entity tables
+    // need to be created before the body field storage tables. This prevents
+    // trying to create the body field tables twice.
+    $class = get_class($this);
+    while ($class) {
+      if (property_exists($class, 'modules')) {
+        // Only check the modules, if the $modules property was not inherited.
+        $rp = new \ReflectionProperty($class, 'modules');
+        if ($rp->class == $class) {
+          foreach (array_intersect(array('node', 'comment'), $class::$modules) as $module) {
+            $this->installEntitySchema($module);
+          }
+        }
+      }
+      $class = get_parent_class($class);
+    }
     $this->installConfig(array('field', 'language'));
 
     // Add German as a language.

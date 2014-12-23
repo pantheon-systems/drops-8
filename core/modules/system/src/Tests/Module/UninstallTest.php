@@ -7,6 +7,7 @@
 
 namespace Drupal\system\Tests\Module;
 
+use Drupal\Core\Cache\Cache;
 use Drupal\Component\Utility\String;
 use Drupal\simpletest\WebTestBase;
 
@@ -30,7 +31,7 @@ class UninstallTest extends WebTestBase {
   function testUserPermsUninstalled() {
     // Uninstalls the module_test module, so hook_modules_uninstalled()
     // is executed.
-    $this->container->get('module_handler')->uninstall(array('module_test'));
+    $this->container->get('module_installer')->uninstall(array('module_test'));
 
     // Are the perms defined by module_test removed?
     $this->assertFalse(user_roles(FALSE, 'module_test perm'), 'Permissions were all removed.');
@@ -42,8 +43,21 @@ class UninstallTest extends WebTestBase {
   function testUninstallPage() {
     $account = $this->drupalCreateUser(array('administer modules'));
     $this->drupalLogin($account);
+
+    // Create a node type.
+    $node_type = entity_create('node_type', array('type' => 'uninstall_blocker'));
+    $node_type->save();
+    // Add a node to prevent node from being uninstalled.
+    $node = entity_create('node', array('type' => 'uninstall_blocker'));
+    $node->save();
+
     $this->drupalGet('admin/modules/uninstall');
     $this->assertTitle(t('Uninstall') . ' | Drupal');
+
+    $this->assertText(\Drupal::translation()->translate('The following reasons prevents Node from being uninstalled: There is content for the entity type: Content'), 'Content prevents uninstalling node module.');
+    // Delete the node to allow node to be uninstalled.
+    $node->delete();
+    $node_type->delete();
 
     // Uninstall module_test.
     $edit = array();
@@ -74,8 +88,19 @@ class UninstallTest extends WebTestBase {
       // labels.
       $this->assertRaw('<h3>' . $entity_type->getLabel() . '</h3>');
     }
+
+    // Set a unique cache entry to be able to test whether all caches are
+    // cleared during the uninstall.
+    \Drupal::cache()->set('uninstall_test', 'test_uninstall_page', Cache::PERMANENT);
+    $cached = \Drupal::cache()->get('uninstall_test');
+    $this->assertEqual($cached->data, 'test_uninstall_page', String::format('Cache entry found: @bin', array('@bin' => $cached->data)));
+
     $this->drupalPostForm(NULL, NULL, t('Uninstall'));
     $this->assertText(t('The selected modules have been uninstalled.'), 'Modules status has been updated.');
     $this->assertNoRaw('&lt;label', 'The page does not have double escaped HTML tags.');
+
+    // Make sure our unique cache entry is gone.
+    $cached = \Drupal::cache()->get('uninstall_test');
+    $this->assertFalse($cached, 'Cache entry not found');
   }
 }

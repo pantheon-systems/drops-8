@@ -1,7 +1,6 @@
 <?php
 
 use Drupal\Core\Database\Database;
-use Drupal\Core\Page\HtmlPage;
 use Drupal\Core\Extension\ExtensionDiscovery;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Routing\RouteMatchInterface;
@@ -153,7 +152,7 @@ function simpletest_run_tests($test_list) {
     ),
     'finished' => '_simpletest_batch_finished',
     'progress_message' => '',
-    'css' => array(drupal_get_path('module', 'simpletest') . '/css/simpletest.module.css'),
+    'library' => array('simpletest/drupal.simpletest'),
     'init_message' => t('Processing test @num of @max - %test.', array('%test' => $info['name'], '@num' => '1', '@max' => count($test_list))),
   );
   batch_set($batch);
@@ -222,7 +221,7 @@ function simpletest_phpunit_xml_filepath($test_id) {
  *   The path to core's phpunit.xml.dist configuration file.
  */
 function simpletest_phpunit_configuration_filepath() {
-  return DRUPAL_ROOT . '/core/phpunit.xml.dist';
+  return \Drupal::root() . '/core/phpunit.xml.dist';
 }
 
 /**
@@ -267,7 +266,7 @@ function simpletest_phpunit_run_command(array $unescaped_test_classnames, $phpun
   // Need to change directories before running the command so that we can use
   // relative paths in the configuration file's exclusions.
   $old_cwd = getcwd();
-  chdir(DRUPAL_ROOT . "/core");
+  chdir(\Drupal::root() . "/core");
 
   // exec in a subshell so that the environment is isolated when running tests
   // via the simpletest UI.
@@ -288,10 +287,10 @@ function simpletest_phpunit_command() {
   if (substr(PHP_OS, 0, 3) == 'WIN') {
     $php_executable_finder = new PhpExecutableFinder();
     $php = $php_executable_finder->find();
-    $phpunit_bin = escapeshellarg($php) . " -f " . escapeshellarg(DRUPAL_ROOT . "/core/vendor/phpunit/phpunit/composer/bin/phpunit") . " --";
+    $phpunit_bin = escapeshellarg($php) . " -f " . escapeshellarg(\Drupal::root() . "/core/vendor/phpunit/phpunit/composer/bin/phpunit") . " --";
   }
   else {
-    $phpunit_bin = DRUPAL_ROOT . "/core/vendor/bin/phpunit";
+    $phpunit_bin = \Drupal::root() . "/core/vendor/bin/phpunit";
   }
   return $phpunit_bin;
 }

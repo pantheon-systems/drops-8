@@ -120,25 +120,25 @@ function update_page_top() {
   /** @var \Drupal\Core\Routing\AdminContext $admin_context */
   $admin_context = \Drupal::service('router.admin_context');
   if ($admin_context->isAdminRoute(\Drupal::request()->attributes->get(RouteObjectInterface::ROUTE_OBJECT)) && \Drupal::currentUser()->hasPermission('administer site configuration')) {
-    $current_path = current_path();
-    switch ($current_path) {
+    $route_name = \Drupal::routeMatch()->getRouteName();
+    switch ($route_name) {
       // These pages don't need additional nagging.
-      case 'admin/appearance/update':
-      case 'admin/appearance/install':
-      case 'admin/modules/update':
-      case 'admin/modules/install':
-      case 'admin/reports/updates':
-      case 'admin/reports/updates/update':
-      case 'admin/reports/updates/install':
-      case 'admin/reports/updates/settings':
-      case 'admin/reports/status':
-      case 'admin/update/ready':
+      case 'update.theme_update':
+      case 'system.theme_install':
+      case 'update.module_update':
+      case 'update.module_install':
+      case 'update.status':
+      case 'update.report_update':
+      case 'update.report_install':
+      case 'update.settings':
+      case 'system.status':
+      case 'update.confirmation_page':
         return;
 
       // If we are on the appearance or modules list, display a detailed report
       // of the update status.
-      case 'admin/appearance':
-      case 'admin/modules':
+      case 'system.themes_page':
+      case 'system.modules_list':
         $verbose = TRUE;
         break;
 
@@ -368,17 +368,21 @@ function update_get_available($refresh = FALSE) {
 }
 
 /**
- * Creates a new fetch task after loading the necessary include file.
+ * Adds a task to the queue for fetching release history data for a project.
+ *
+ * We only create a new fetch task if there's no task already in the queue for
+ * this particular project (based on 'update_fetch_task' key-value collection).
  *
  * @param $project
- *   Associative array of information about a project. See update_get_projects()
- *   for the keys used.
+ *   Associative array of information about a project as created by
+ *   update_get_projects(), including keys such as 'name' (short name), and the
+ *   'info' array with data from a .info.yml file for the project.
  *
- * @see _update_create_fetch_task()
+ * @see \Drupal\update\UpdateFetcher::createFetchTask()
+ *
  */
 function update_create_fetch_task($project) {
-  module_load_include('inc', 'update', 'update.fetch');
-  _update_create_fetch_task($project);
+  \Drupal::service('update.processor')->createFetchTask($project);
 }
 
 /**
@@ -442,7 +446,7 @@ function update_fetch_data_finished($success, $results) {
  *   keys, and the status reason constant (UPDATE_NOT_SECURE, etc) for the
  *   values.
  *
- * @see drupal_mail()
+ * @see \Drupal\Core\Mail\MailManagerInterface::mail()
  * @see _update_cron_notify()
  * @see _update_message_text()
  */

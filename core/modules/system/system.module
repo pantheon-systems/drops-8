@@ -5,13 +5,13 @@
  * Configuration system that lets administrators modify the workings of the site.
  */
 
+use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Extension\Extension;
 use Drupal\Core\Extension\ExtensionDiscovery;
-use Drupal\Core\Form\FormState;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\KeyValueStore\KeyValueDatabaseExpirableFactory;
 use Drupal\Core\Routing\RouteMatchInterface;
-use Drupal\Core\StringTranslation\TranslationWrapper;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Menu\MenuTreeParameters;
 use Drupal\Core\Url;
@@ -87,11 +87,9 @@ function system_help($route_name, RouteMatchInterface $route_match) {
       $output .= '<dd>' . t('In order for the site and its modules to continue to operate well, a set of routine administrative operations must run on a regular basis. The System module manages this task by making use of a system cron job. You can verify the status of cron tasks by visiting the <a href="@status">Status report page</a>. For more information, see the online handbook entry for <a href="@handbook">configuring cron jobs</a>. You can set up cron job by visiting <a href="@cron">Cron configuration</a> page', array('@status' => \Drupal::url('system.status'), '@handbook' => 'http://drupal.org/cron', '@cron' => \Drupal::url('system.cron_settings'))) . '</dd>';
       $output .= '<dt>' . t('Configuring basic site settings') . '</dt>';
       $output .= '<dd>' . t('The System module also handles basic configuration options for your site, including <a href="@date-time-settings">Date and time settings</a>, <a href="@file-system">File system settings</a>, <a href="@site-info">Site name and other information</a>, and a <a href="@maintenance-mode">Maintenance mode</a> for taking your site temporarily offline.', array('@date-time-settings' => \Drupal::url('system.date_format_list'), '@file-system' => \Drupal::url('system.file_system_settings'), '@site-info' => \Drupal::url('system.site_information_settings'), '@maintenance-mode' => \Drupal::url('system.site_maintenance_mode'))) . '</dd>';
-      $output .= '<dt>' . t('Providing administrative help') . '</dt>';
-      $output .= '<dd>' . t('Page-specific administrative help text that is provided by the System module and other modules is displayed in the System Help block. This block can be placed and configured on the <a href="!blocks">Block layout page</a>.', array('!blocks' => (\Drupal::moduleHandler()->moduleExists('block')) ? \Drupal::url('block.admin_display') : '#')) . '</dd>';
-      $output .= '</dl>';
       $output .= '<dt>' . t('Disabling drag-and-drop functionality') . '</dt>';
       $output .= '<dd>' . t('The default drag-and-drop user interface for ordering tables in Drupal presents a challenge for some users, including users of screen readers and other assistive technology. The drag-and-drop interface can be disabled in a table by clicking a link labeled "Show row weights" above the table. The replacement interface allows users to order the table by choosing numerical weights instead of dragging table rows.') . '</dd>';
+      $output .= '</dl>';
       return $output;
 
     case 'system.admin_index':
@@ -209,10 +207,6 @@ function system_theme() {
       'variables' => array('menu_items' => NULL),
       'file' => 'system.admin.inc',
     ),
-    'system_compact_link' => array(
-      'variables' => array(),
-      'function' => 'theme_system_compact_link',
-    ),
   ));
 }
 
@@ -240,7 +234,12 @@ function system_hook_info() {
  * Implements hook_theme_suggestions_HOOK().
  */
 function system_theme_suggestions_html(array $variables) {
-  $path_args = explode('/', current_path());
+  if (\Drupal::service('path.matcher')->isFrontPage()) {
+    $path_args = [''];
+  }
+  else {
+    $path_args = explode('/', Url::fromRoute('<current>')->getInternalPath());
+  }
   return theme_get_suggestions($path_args, 'html');
 }
 
@@ -248,7 +247,12 @@ function system_theme_suggestions_html(array $variables) {
  * Implements hook_theme_suggestions_HOOK().
  */
 function system_theme_suggestions_page(array $variables) {
-  $path_args = explode('/', current_path());
+  if (\Drupal::service('path.matcher')->isFrontPage()) {
+    $path_args = [''];
+  }
+  else {
+    $path_args = explode('/', Url::fromRoute('<current>')->getInternalPath());
+  }
   return theme_get_suggestions($path_args, 'page');
 }
 
@@ -300,16 +304,6 @@ function system_theme_suggestions_field(array $variables) {
   $suggestions[] = 'field__' . $element['#entity_type'] . '__' . $element['#field_name'] . '__' . $element['#bundle'];
 
   return $suggestions;
-}
-
-/**
- * Implements hook_stream_wrappers_alter().
- */
-function system_stream_wrappers_alter(&$wrappers) {
-  // Only register the private file stream wrapper if a file path has been set.
-  if (!\Drupal::config('system.file')->get('path.private')) {
-    unset($wrappers['private']);
-  }
 }
 
 /**
@@ -425,8 +419,6 @@ function system_authorized_init($callback, $file, $arguments = array(), $page_ti
  */
 function system_authorized_get_url(array $options = array()) {
   global $base_url;
-  // Force HTTPS if available, regardless of what the caller specifies.
-  $options['https'] = TRUE;
   // Prefix with $base_url so url() treats it as an external link.
   $url = Url::fromUri('base://core/authorize.php');
   $url_options = $url->getOptions();
@@ -531,6 +523,76 @@ function system_page_attachments(array &$page) {
     $page['#attached']['library'][] = 'system/admin';
   }
 
+  // Attach libraries used by this theme.
+  $active_theme = \Drupal::theme()->getActiveTheme();
+  foreach ($active_theme->getLibraries() as $library) {
+    $page['#attached']['library'][] = $library;
+  }
+
+  // Attach favicon.
+  if (theme_get_setting('features.favicon')) {
+    $favicon = theme_get_setting('favicon.url');
+    $type = theme_get_setting('favicon.mimetype');
+    $page['#attached']['html_head_link'][][] = array(
+      'rel' => 'shortcut icon',
+      'href' => UrlHelper::stripDangerousProtocols($favicon),
+      'type' => $type,
+    );
+  }
+
+  // Get the major Drupal version.
+  list($version, ) = explode('.', \Drupal::VERSION);
+
+  // Attach default meta tags.
+  $meta_default = array(
+    // Make sure the Content-Type comes first because the IE browser may be
+    // vulnerable to XSS via encoding attacks from any content that comes
+    // before this META tag, such as a TITLE tag.
+    'system_meta_content_type' => array(
+      '#tag' => 'meta',
+      '#attributes' => array(
+        'name' => 'charset',
+        'charset' => 'utf-8',
+      ),
+      // Security: This always has to be output first.
+      '#weight' => -1000,
+    ),
+    // Show Drupal and the major version number in the META GENERATOR tag.
+    'system_meta_generator' => array(
+      '#type' => 'html_tag',
+      '#tag' => 'meta',
+      '#attributes' => array(
+        'name' => 'Generator',
+        'content' => 'Drupal ' . $version . ' (http://drupal.org)',
+      ),
+    ),
+    // Attach default mobile meta tags for responsive design.
+    'MobileOptimized' => array(
+      '#tag' => 'meta',
+      '#attributes' => array(
+        'name' => 'MobileOptimized',
+        'content' => 'width',
+      ),
+    ),
+    'HandheldFriendly' => array(
+      '#tag' => 'meta',
+      '#attributes' => array(
+        'name' => 'HandheldFriendly',
+        'content' => 'true',
+      ),
+    ),
+    'viewport' => array(
+      '#tag' => 'meta',
+      '#attributes' => array(
+        'name' => 'viewport',
+        'content' => 'width=device-width, initial-scale=1.0',
+      ),
+    ),
+  );
+  foreach ($meta_default as $key => $value) {
+    $page['#attached']['html_head'][] = [$value, $key];
+  }
+
   // Handle setting the "active" class on links by:
   // - loading the active-link library if the current user is authenticated;
   // - applying a post-render cache callback if the current user is anonymous.
@@ -545,34 +607,55 @@ function system_page_attachments(array &$page) {
     $page['#post_render_cache']['\Drupal\system\Controller\SystemController::setLinkActiveClass'] = array(
       // Collect the current state that determines whether a link is active.
       array(
-        'path' => current_path(),
+        'path' => \Drupal::routeMatch()->getRouteName() ? Url::fromRouteMatch(\Drupal::routeMatch())->getInternalPath() : '',
         'front' => drupal_is_front_page(),
         'language' => \Drupal::languageManager()->getCurrentLanguage(LanguageInterface::TYPE_URL)->getId(),
         'query' => \Drupal::request()->query->all(),
       )
     );
   }
+}
 
-  // Invoke hook_page_build() for modules and hook_page_alter() for both modules
-  // and themes, for backwards compatibility.
-  $attachments = [];
-  foreach (\Drupal::moduleHandler()->getImplementations('page_build') as $module) {
-    $function = $module . '_page_build';
-    $function($attachments);
+/**
+ * Implements hook_js_settings_alter().
+ *
+ * Generates the values for the core/drupalSettings library.
+ */
+function system_js_settings_alter(&$settings) {
+  // url() generates the script and prefix using hook_url_outbound_alter().
+  // Instead of running the hook_url_outbound_alter() again here, extract
+  // them from url().
+  // @todo Make this less hacky: http://drupal.org/node/1547376.
+  $request = \Drupal::request();
+  $scriptPath = $request->getScriptName();
+
+  $pathPrefix = '';
+  $current_query = $request->query->all();
+  _url('', array('script' => &$scriptPath, 'prefix' => &$pathPrefix));
+  $current_path = \Drupal::routeMatch()->getRouteName() ? Url::fromRouteMatch(\Drupal::routeMatch())->getInternalPath() : '';
+  $current_path_is_admin = \Drupal::service('router.admin_context')->isAdminRoute();
+  $path_settings = [
+    'baseUrl' => $request->getBaseUrl() . '/',
+    'scriptPath' => $scriptPath,
+    'pathPrefix' => $pathPrefix,
+    'currentPath' => $current_path,
+    'currentPathIsAdmin' => $current_path_is_admin,
+    'isFront' => drupal_is_front_page(),
+    'currentLanguage' => \Drupal::languageManager()->getCurrentLanguage(LanguageInterface::TYPE_URL)->getId(),
+  ];
+  if (!empty($current_query)) {
+    ksort($current_query);
+    $path_settings['currentQuery'] = (object) $current_query;
   }
-  if (array_diff(array_keys($attachments), ['#attached', '#post_render_cache']) !== []) {
-    throw new \LogicException('Only #attached and #post_render_cache may be set in hook_page_build().');
+
+  // Only set core/drupalSettings values that haven't been set already.
+  foreach ($path_settings as $key => $value) {
+    if (!isset($settings['path'][$key])) {
+      $settings['path'][$key] = $value;
+    }
   }
-  \Drupal::moduleHandler()->alter('page', $attachments);
-  \Drupal::theme()->alter('page', $attachments);
-  if (array_diff(array_keys($attachments), ['#attached', '#post_render_cache']) !== []) {
-    throw new \LogicException('Only #attached and #post_render_cache may be set in hook_page_alter().');
-  }
-  if (isset($attachments['#attached'])) {
-    $page['#attached'] = $attachments['#attached'];
-  }
-  if (isset($attachments['#post_render_cache'])) {
-    $page['#post_render_cache'] = $attachments['#post_render_cache'];
+  if (!isset($settings['locale']['pluralDelimiter'])) {
+    $settings['locale']['pluralDelimiter'] = LOCALE_PLURAL_DELIMITER;
   }
 }
 
@@ -638,7 +721,6 @@ function system_user_timezone(&$form, FormStateInterface $form_state) {
   );
   $user_input = $form_state->getUserInput();
   if (!$account->getTimezone() && $account->id() == $user->id() && empty($user_input['timezone'])) {
-    $form['timezone']['#description'] = t('Your time zone setting will be automatically detected if possible. Confirm the selection and click save.');
     $form['timezone']['#attached']['library'][] = 'core/drupal.timezone';
     $form['timezone']['timezone']['#attributes'] = array('class' => array('timezone-detect'));
   }
@@ -665,10 +747,6 @@ function system_preprocess_block(&$variables) {
       break;
 
     case 'system_powered_by_block':
-      $variables['attributes']['role'] = 'complementary';
-      break;
-
-    case 'system_help_block':
       $variables['attributes']['role'] = 'complementary';
       break;
   }
@@ -770,7 +848,7 @@ function system_get_info($type, $name = NULL) {
  *   An associative array of module information.
  */
 function _system_rebuild_module_data() {
-  $listing = new ExtensionDiscovery();
+  $listing = new ExtensionDiscovery(\Drupal::root());
   // Find modules
   $modules = $listing->scan('module');
 
@@ -1091,17 +1169,22 @@ function system_get_module_admin_tasks($module, array $info) {
 /**
  * Implements hook_cron().
  *
- * Remove older rows from flood and batch table. Remove old temporary files.
+ * Remove older rows from flood, batch cache and expirable keyvalue tables.
  */
 function system_cron() {
-  // Cleanup the flood.
+  // Clean up the flood.
   \Drupal::flood()->garbageCollection();
 
   foreach (Cache::getBins() as $cache_backend) {
     $cache_backend->garbageCollection();
   }
 
-  // Cleanup the queue for failed batches.
+  // Clean up the expirable key value database store.
+  if (\Drupal::service('keyvalue.expirable.database') instanceof KeyValueDatabaseExpirableFactory) {
+    \Drupal::service('keyvalue.expirable.database')->garbageCollection();
+  }
+
+  // Clean up the queue for failed batches.
   db_delete('queue')
     ->condition('created', REQUEST_TIME - 864000, '<')
     ->condition('name', 'drupal_batch:%', 'LIKE')
@@ -1153,24 +1236,6 @@ function system_time_zones($blank = NULL) {
   // Sort the translated time zones alphabetically.
   asort($zones);
   return $zones;
-}
-
-/**
- * Returns HTML for a link to show or hide inline help descriptions.
- *
- * @ingroup themeable
- */
-function theme_system_compact_link() {
-  $output = '<div class="compact-link">';
-  if (system_admin_compact_mode()) {
-    $output .= \Drupal::l(t('Show descriptions'), new Url('system.admin_compact_page', array('mode' => 'off'), array('attributes' => array('title' => t('Expand layout to include descriptions.')), 'query' => drupal_get_destination())));
-  }
-  else {
-    $output .= \Drupal::l(t('Hide descriptions'), new Url('system.admin_compact_page', array('mode' => 'on'), array('attributes' => array('title' => t('Compress layout by hiding descriptions.')), 'query' => drupal_get_destination())));
-  }
-  $output .= '</div>';
-
-  return $output;
 }
 
 /**
@@ -1254,15 +1319,6 @@ function system_entity_type_build(array &$entity_types) {
 function system_block_view_system_main_block_alter(array &$build, BlockPluginInterface $block) {
   // Contextual links on the system_main block would basically duplicate the
   // tabs/local tasks, so reduce the clutter.
-  unset($build['#contextual_links']);
-}
-
-/**
- * Implements hook_block_view_BASE_BLOCK_ID_alter().
- */
-function system_block_view_system_help_block_alter(array &$build, BlockPluginInterface $block) {
-  // Assume that most users do not need or want to perform contextual actions on
-  // the help block, so don't needlessly draw attention to it.
   unset($build['#contextual_links']);
 }
 

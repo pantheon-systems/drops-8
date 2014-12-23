@@ -7,16 +7,16 @@
 
 namespace Drupal\serialization\Tests;
 
-use Drupal\simpletest\DrupalUnitTestBase;
+use Drupal\simpletest\KernelTestBase;
 
-abstract class NormalizerTestBase extends DrupalUnitTestBase {
+abstract class NormalizerTestBase extends KernelTestBase {
 
   /**
    * Modules to enable.
    *
    * @var array
    */
-  public static $modules = array('serialization', 'system', 'entity', 'field', 'entity_test', 'text', 'filter', 'user');
+  public static $modules = array('serialization', 'system', 'field', 'entity_test', 'text', 'filter', 'user');
 
   protected function setUp() {
     parent::setUp();

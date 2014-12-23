@@ -297,23 +297,23 @@ function hook_contextual_links_plugins_alter(array &$contextual_links) {
 }
 
 /**
- * Alter an email message created with the drupal_mail() function.
+ * Alter an email message created with MailManagerInterface->mail().
  *
  * hook_mail_alter() allows modification of email messages created and sent
- * with drupal_mail(). Usage examples include adding and/or changing message
- * text, message fields, and message headers.
+ * with MailManagerInterface->mail(). Usage examples include adding and/or
+ * changing message text, message fields, and message headers.
  *
- * Email messages sent using functions other than drupal_mail() will not
- * invoke hook_mail_alter(). For example, a contributed module directly
- * calling the drupal_mail_system()->mail() or PHP mail() function
- * will not invoke this hook. All core modules use drupal_mail() for
- * messaging, it is best practice but not mandatory in contributed modules.
+ * Email messages sent using functions other than MailManagerInterface->mail()
+ * will not invoke hook_mail_alter(). For example, a contributed module directly
+ * calling the MailInterface->mail() or PHP mail() function will not invoke
+ * this hook. All core modules use MailManagerInterface->mail() for messaging,
+ * it is best practice but not mandatory in contributed modules.
  *
  * @param $message
  *   An array containing the message data. Keys in this array include:
  *  - 'id':
- *     The drupal_mail() id of the message. Look at module source code or
- *     drupal_mail() for possible id values.
+ *     The MailManagerInterface->mail() id of the message. Look at module source
+ *     code or MailManagerInterface->mail() for possible id values.
  *  - 'to':
  *     The address or addresses the message will be sent to. The
  *     formatting of this string must comply with RFC 2822.
@@ -331,15 +331,16 @@ function hook_contextual_links_plugins_alter(array &$contextual_links) {
  *     Associative array containing mail headers, such as From, Sender,
  *     MIME-Version, Content-Type, etc.
  *  - 'params':
- *     An array of optional parameters supplied by the caller of drupal_mail()
- *     that is used to build the message before hook_mail_alter() is invoked.
+ *     An array of optional parameters supplied by the caller of
+ *     MailManagerInterface->mail() that is used to build the message before
+ *     hook_mail_alter() is invoked.
  *  - 'language':
  *     The language object used to build the message before hook_mail_alter()
  *     is invoked.
  *  - 'send':
  *     Set to FALSE to abort sending this email message.
  *
- * @see drupal_mail()
+ * @see \Drupal\Core\Mail\MailManagerInterface::mail()
  */
 function hook_mail_alter(&$message) {
   if ($message['id'] == 'modulename_messagekey') {
@@ -376,76 +377,38 @@ function hook_system_breadcrumb_alter(array &$breadcrumb, \Drupal\Core\Routing\R
 }
 
 /**
- * Provide online user help.
+ * Prepares a message based on parameters;
  *
- * By implementing hook_help(), a module can make documentation available to
- * the user for the module as a whole, or for specific pages. Help for
- * developers should usually be provided via function header comments in the
- * code, or in special API example files.
- *
- * The page-specific help information provided by this hook appears as a system
- * help block on that page. The module overview help information is displayed
- * by the Help module. It can be accessed from the page at admin/help or from
- * the Extend page.
- *
- * For detailed usage examples of:
- * - Module overview help, see content_translation_help(). Module overview
- *   help should follow
- *   @link https://drupal.org/node/632280 the standard help template. @endlink
- * - Page-specific help using only routes, see book_help().
- * - Page-specific help using routes and $request, see block_help().
- *
- * @param string $route_name
- *   For page-specific help, use the route name as identified in the
- *   module's routing.yml file. For module overview help, the route name
- *   will be in the form of "help.page.$modulename".
- * @param Drupal\Core\Routing\RouteMatchInterface $route_match
- *   The current route match. This can be used to generate different help
- *   output for different pages that share the same route.
- *
- * @return string
- *   A localized string containing the help text.
- */
-function hook_help($route_name, \Drupal\Core\Routing\RouteMatchInterface $route_match) {
-  switch ($route_name) {
-    // Main module help for the block module.
-    case 'help.page.block':
-      return '<p>' . t('Blocks are boxes of content rendered into an area, or region, of a web page. The default theme Bartik, for example, implements the regions "Sidebar first", "Sidebar second", "Featured", "Content", "Header", "Footer", etc., and a block may appear in any one of these areas. The <a href="!blocks">blocks administration page</a> provides a drag-and-drop interface for assigning a block to a region, and for controlling the order of blocks within regions.', array('!blocks' => \Drupal::url('block.admin_display'))) . '</p>';
-
-    // Help for another path in the block module.
-    case 'block.admin_display':
-      return '<p>' . t('This page provides a drag-and-drop interface for assigning a block to a region, and for controlling the order of blocks within regions. Since not all themes implement the same regions, or display regions in the same way, blocks are positioned on a per-theme basis. Remember that your changes will not be saved until you click the <em>Save blocks</em> button at the bottom of the page.') . '</p>';
-  }
-}
-
-/**
- * Prepare a message based on parameters; called from drupal_mail().
- *
- * Note that hook_mail(), unlike hook_mail_alter(), is only called on the
- * $module argument to drupal_mail(), not all modules.
+ * This hook is called from MailManagerInterface->mail(). Note that hook_mail(),
+ * unlike hook_mail_alter(), is only called on the $module argument to
+ * MailManagerInterface->mail(), not all modules.
  *
  * @param $key
  *   An identifier of the mail.
  * @param $message
  *   An array to be filled in. Elements in this array include:
- *   - id: An ID to identify the mail sent. Look at module source code
- *     or drupal_mail() for possible id values.
+ *   - id: An ID to identify the mail sent. Look at module source code or
+ *     MailManagerInterface->mail() for possible id values.
  *   - to: The address or addresses the message will be sent to. The
  *     formatting of this string must comply with RFC 2822.
  *   - subject: Subject of the email to be sent. This must not contain any
- *     newline characters, or the mail may not be sent properly. drupal_mail()
- *     sets this to an empty string when the hook is invoked.
+ *     newline characters, or the mail may not be sent properly.
+ *     MailManagerInterface->mail() sets this to an empty
+ *     string when the hook is invoked.
  *   - body: An array of lines containing the message to be sent. Drupal will
- *     format the correct line endings for you. drupal_mail() sets this to an
- *     empty array when the hook is invoked.
+ *     format the correct line endings for you. MailManagerInterface->mail()
+ *     sets this to an empty array when the hook is invoked.
  *   - from: The address the message will be marked as being from, which is
- *     set by drupal_mail() to either a custom address or the site-wide
- *     default email address when the hook is invoked.
+ *     set by MailManagerInterface->mail() to either a custom address or the
+ *     site-wide default email address when the hook is invoked.
  *   - headers: Associative array containing mail headers, such as From,
- *     Sender, MIME-Version, Content-Type, etc. drupal_mail() pre-fills
- *     several headers in this array.
+ *     Sender, MIME-Version, Content-Type, etc.
+ *     MailManagerInterface->mail() pre-fills several headers in this array.
  * @param $params
- *   An array of parameters supplied by the caller of drupal_mail().
+ *   An array of parameters supplied by the caller of
+ *   MailManagerInterface->mail().
+ *
+ * @see \Drupal\Core\Mail\MailManagerInterface->mail()
  */
 function hook_mail($key, &$message, $params) {
   $account = $params['account'];

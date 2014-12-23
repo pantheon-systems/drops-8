@@ -10,7 +10,7 @@ body,
   min-height: 100%;
 }
 #header div.section,
-#featured div.section,
+#featured aside.section,
 #messages div.section,
 #main,
 #triptych,
@@ -100,14 +100,14 @@ body,
   [dir="rtl"] #sidebar-second {
     margin-right: 50%;
   }
-  .one-sidebar #sidebar-first,
-  .one-sidebar #sidebar-second {
+  .layout-one-sidebar #sidebar-first,
+  .layout-one-sidebar #sidebar-second {
     width: 100%;
   }
-  .one-sidebar #sidebar-second {
+  .layout-one-sidebar #sidebar-second {
     margin-left: 0; /* LTR */
   }
-  [dir="rtl"] .one-sidebar #sidebar-second {
+  [dir="rtl"] .layout-one-sidebar #sidebar-second {
     margin-right: 0;
   }
   .region-triptych-first,
@@ -140,7 +140,7 @@ body,
 @media all and (min-width: 851px) {
 
   #header div.section,
-  #featured div.section,
+  #featured aside.section,
   #messages div.section,
   #main,
   #triptych,

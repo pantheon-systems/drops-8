@@ -45,8 +45,20 @@ trait SchemaCheckTestTrait {
       foreach ($errors as $key => $error) {
         // @todo Since the use of this trait is under TestBase, it works.
         //  Can be fixed as part of https://drupal.org/node/2260053.
-        $this->fail($key . ': ' . $error);
+        $this->fail(String::format('Schema key @key failed with: @error', array('@key' => $key, '@error' => $error)));
       }
     }
   }
+
+  /**
+   * Asserts configuration, specified by name, has a valid schema.
+   *
+   * @param string $config_name
+   *   The configuration name.
+   */
+  public function assertConfigSchemaByName($config_name) {
+    $config = \Drupal::config($config_name);
+    $this->assertConfigSchema(\Drupal::service('config.typed'), $config->getName(), $config->get());
+  }
+
 }

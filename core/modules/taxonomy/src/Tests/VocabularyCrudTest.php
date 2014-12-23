@@ -193,9 +193,14 @@ class VocabularyCrudTest extends TaxonomyTestBase {
     );
     entity_create('field_config', $field_definition)->save();
 
-    require_once DRUPAL_ROOT . '/core/includes/install.inc';
-    $this->container->get('module_handler')->uninstall(array('taxonomy'));
-    \Drupal::moduleHandler()->install(array('taxonomy'));
+    // Remove the third party setting from the memory copy of the vocabulary.
+    // We keep this invalid copy around while the taxonomy module is not even
+    // installed for testing below.
+    $this->vocabulary->unsetThirdPartySetting('taxonomy_crud', 'foo');
+
+    require_once \Drupal::root() . '/core/includes/install.inc';
+    $this->container->get('module_installer')->uninstall(array('taxonomy'));
+    $this->container->get('module_installer')->install(array('taxonomy'));
 
     // Now create a vocabulary with the same name. All fields
     // connected to this vocabulary name should have been removed when the

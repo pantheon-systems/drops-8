@@ -28,7 +28,7 @@ class StringFormatterTest extends KernelTestBase {
    *
    * @var array
    */
-  public static $modules = array('entity', 'field', 'text', 'entity_test', 'system', 'filter', 'user');
+  public static $modules = array('field', 'text', 'entity_test', 'system', 'filter', 'user');
 
   /**
    * @var string
@@ -58,6 +58,8 @@ class StringFormatterTest extends KernelTestBase {
 
     // Configure the theme system.
     $this->installConfig(array('system', 'field'));
+    $this->installSchema('system', 'router');
+    \Drupal::service('router.builder')->rebuild();
     $this->installEntitySchema('entity_test');
 
     $this->entityType = 'entity_test';
@@ -122,6 +124,23 @@ class StringFormatterTest extends KernelTestBase {
     // Verify the cache tags.
     $build = $entity->{$this->fieldName}->view();
     $this->assertTrue(!isset($build[0]['#cache']), format_string('The string formatter has no cache tags.'));
+
+    // Set the formatter to link to the entity.
+    $this->display->setComponent($this->fieldName, [
+      'type' => 'string',
+      'settings' => [
+        'link_to_entity' => TRUE,
+      ],
+    ]);
+    $this->display->save();
+
+    $value = $this->randomMachineName();
+    $entity->{$this->fieldName}->value = $value;
+    $entity->save();
+
+    $this->renderEntityFields($entity, $this->display);
+    $this->assertLink($value, 0);
+    $this->assertLinkByHref($entity->url());
   }
 
 }

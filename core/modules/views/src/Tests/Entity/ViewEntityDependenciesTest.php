@@ -33,6 +33,16 @@ class ViewEntityDependenciesTest extends ViewUnitTestBase {
   public static $modules = ['node', 'comment', 'user', 'field', 'text', 'entity_reference'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected function setUp() {
+    parent::setUp();
+    // Install the necessary dependencies for node type creation to work.
+    $this->installEntitySchema('node');
+    $this->installConfig(array('field'));
+  }
+
+  /**
    * Tests the calculateDependencies method.
    */
   public function testCalculateDependencies() {
@@ -89,10 +99,10 @@ class ViewEntityDependenciesTest extends ViewUnitTestBase {
         // The argument handler has an explicit dependency on views_test_data.
         'views_test_data',
       ],
-      'test_dependency' => [
-        'access',
-        'row',
-        'style',
+      'content' => [
+        'RowTest',
+        'StaticTest',
+        'StyleTest',
       ]
     ];
     foreach ($this::$testViews as $view_id) {

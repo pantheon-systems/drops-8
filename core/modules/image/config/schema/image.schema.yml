@@ -28,12 +28,17 @@ image.style.*:
       sequence:
         - type: image_style.third_party.[%key]
 
+image.effect.*:
+  type: mapping
+  label: 'Effect settings'
+
 image.effect.image_crop:
   type: image_size
   label: 'Image crop'
   mapping:
     anchor:
       label: 'Anchor'
+      type: string
 
 image.effect.image_resize:
   type: image_size
@@ -48,6 +53,7 @@ image.effect.image_rotate:
       label: 'Rotation angle'
     bgcolor:
       label: 'Background color'
+      type: color_hex
     random:
       type: boolean
       label: 'Randomize'
@@ -59,6 +65,10 @@ image.effect.image_scale:
     upscale:
       type: boolean
       label: 'Upscale'
+
+# The image desaturate effect has no settings.
+image.effect.image_desaturate:
+  type: sequence
 
 image.effect.image_scale_and_crop:
   type: image_size
@@ -77,15 +87,15 @@ image.settings:
       type: boolean
       label: 'Suppress the itok query string for image derivatives'
 
-field.image.storage_settings:
-  type: field.file.storage_settings
+field.storage_settings.image:
+  type: field.storage_settings.file
   label: 'Image settings'
   mapping:
     default_image:
       type: field_default_image
       label: 'Default value'
 
-field.image.field_settings:
+field.field_settings.image:
   type: base_file_field_field_settings
   label: 'Image settings'
   mapping:
@@ -111,50 +121,28 @@ field.image.field_settings:
       type: field_default_image
       label: 'Default value'
 
-field.image.value:
-  type: sequence
+field.value.image:
+  type: field_default_image
   label: 'Default value'
-  sequence:
-    - type: mapping
-      label: 'Default image'
-      mapping:
-        fid:
-          type: integer
-          label: 'File ID'
-        alt:
-          type: string
-          label: 'Alternative text'
-        title:
-          type: string
-          label: 'Title text'
-        width:
-          type: integer
-          label: 'Width'
-        height:
-          type: integer
-          label: 'Height'
 
-entity_view_display.field.image:
-  type: entity_field_view_display_base
+field.formatter.settings.image:
+  type: mapping
   label: 'Image field display format settings'
   mapping:
-    settings:
-      type: sequence
-      label: 'Format settings'
-      sequence:
-        - type: string
+    image_link:
+      type: string
+      label: 'Link image to'
+    image_style:
+      type: string
+      label: 'Image style'
 
-entity_form_display.field.image_image:
-  type: entity_field_form_display_base
+field.widget.settings.image_image:
+  type: mapping
   label: 'Image field display format settings'
   mapping:
-    settings:
-      type: mapping
-      label: 'Format settings'
-      mapping:
-        progress_indicator:
-          type: string
-          label: 'Progress indicator'
-        preview_image_style:
-          type: string
-          label: 'Preview image style'
+    progress_indicator:
+      type: string
+      label: 'Progress indicator'
+    preview_image_style:
+      type: string
+      label: 'Preview image style'

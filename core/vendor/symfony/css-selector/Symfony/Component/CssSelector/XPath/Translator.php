@@ -123,17 +123,15 @@ class Translator implements TranslatorInterface
         $selectors = $this->parseSelectors($cssExpr);
 
         /** @var SelectorNode $selector */
-        foreach ($selectors as $selector) {
+        foreach ($selectors as $index => $selector) {
             if (null !== $selector->getPseudoElement()) {
                 throw new ExpressionErrorException('Pseudo-elements are not supported.');
             }
+
+            $selectors[$index] = $this->selectorToXPath($selector, $prefix);
         }
 
-        $translator = $this;
-
-        return implode(' | ', array_map(function (SelectorNode $selector) use ($translator, $prefix) {
-            return $translator->selectorToXPath($selector, $prefix);
-        }, $selectors));
+        return implode(' | ', $selectors);
     }
 
     /**
@@ -229,7 +227,7 @@ class Translator implements TranslatorInterface
     }
 
     /**
-     * @param XPathExpr $xpath
+     * @param XPathExpr    $xpath
      * @param FunctionNode $function
      *
      * @return XPathExpr

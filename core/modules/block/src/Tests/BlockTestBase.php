@@ -15,11 +15,11 @@ use Drupal\simpletest\WebTestBase;
 abstract class BlockTestBase extends WebTestBase {
 
   /**
-   * Modules to enable.
+   * Modules to install.
    *
    * @var array
    */
-  public static $modules = array('block', 'filter', 'test_page_test');
+  public static $modules = array('block', 'filter', 'test_page_test', 'help');
 
   /**
    * A list of theme regions to test.

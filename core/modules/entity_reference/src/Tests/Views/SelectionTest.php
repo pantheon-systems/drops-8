@@ -51,7 +51,6 @@ class SelectionTest extends WebTestBase {
       'settings' => array(
         'handler' => 'views',
         'handler_settings' => array(
-          'target_bundles' => array(),
           'view' => array(
             'view_name' => 'test_entity_reference',
             'display_name' => 'entity_reference_1',

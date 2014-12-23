@@ -11,11 +11,7 @@ use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Component\Utility\String;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\ContentNegotiation;
-use Drupal\Core\Form\EnforcedResponse;
-use Drupal\Core\Page\DefaultHtmlPageRenderer;
-use Drupal\Core\Page\HtmlFragment;
-use Drupal\Core\Page\HtmlFragmentRendererInterface;
-use Drupal\Core\Page\HtmlPageRendererInterface;
+use Drupal\Core\Render\BareHtmlPageRendererInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Utility\Error;
 use Symfony\Component\Debug\Exception\FlattenException;
@@ -37,20 +33,6 @@ class DefaultExceptionSubscriber implements EventSubscriberInterface {
   use StringTranslationTrait;
 
   /**
-   * The fragment renderer.
-   *
-   * @var \Drupal\Core\Page\HtmlFragmentRendererInterface
-   */
-  protected $fragmentRenderer;
-
-  /**
-   * The page renderer.
-   *
-   * @var \Drupal\Core\Page\HtmlPageRendererInterface
-   */
-  protected $htmlPageRenderer;
-
-  /**
    * @var string
    *
    * One of the error level constants defined in bootstrap.inc.
@@ -65,19 +47,23 @@ class DefaultExceptionSubscriber implements EventSubscriberInterface {
   protected $configFactory;
 
   /**
+   * The bare HTML page renderer.
+   *
+   * @var \Drupal\Core\Render\BareHtmlPageRendererInterface
+   */
+  protected $bareHtmlPageRenderer;
+
+  /**
    * Constructs a new DefaultExceptionHtmlSubscriber.
    *
-   * @param \Drupal\Core\Page\HtmlFragmentRendererInterface $fragment_renderer
-   *   The fragment renderer.
-   * @param \Drupal\Core\Page\HtmlPageRendererInterface $page_renderer
-   *   The page renderer.
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The configuration factory.
+   * @param \Drupal\Core\Render\BareHtmlPageRendererInterface $bare_html_page_renderer
+   *   The bare HTML page renderer.
    */
-  public function __construct(HtmlFragmentRendererInterface $fragment_renderer, HtmlPageRendererInterface $page_renderer, ConfigFactoryInterface $config_factory) {
-    $this->fragmentRenderer = $fragment_renderer;
-    $this->htmlPageRenderer = $page_renderer;
+  public function __construct(ConfigFactoryInterface $config_factory, BareHtmlPageRendererInterface $bare_html_page_renderer) {
     $this->configFactory = $config_factory;
+    $this->bareHtmlPageRenderer = $bare_html_page_renderer;
   }
 
   /**
@@ -139,14 +125,15 @@ class DefaultExceptionSubscriber implements EventSubscriberInterface {
         // once more in the backtrace.
         array_shift($backtrace);
 
-        // Generate a backtrace containing only scalar argument values.
-        $message .= '<pre class="backtrace">' . Error::formatFlattenedBacktrace($backtrace) . '</pre>';
+        // Generate a backtrace containing only scalar argument values. Make
+        // sure the backtrace is escaped as it can contain user submitted data.
+        $message .= '<pre class="backtrace">' . SafeMarkup::escape(Error::formatFlattenedBacktrace($backtrace)) . '</pre>';
       }
       drupal_set_message(SafeMarkup::set($message), $class, TRUE);
     }
 
     $content = $this->t('The website has encountered an error. Please try again later.');
-    $output = DefaultHtmlPageRenderer::renderPage($content, $this->t('Error'));
+    $output = $this->bareHtmlPageRenderer->renderBarePage(['#markup' => $content], $this->t('Error'), 'maintenance_page');
     $response = new Response($output);
 
     if ($exception instanceof HttpExceptionInterface) {
@@ -184,39 +171,6 @@ class DefaultExceptionSubscriber implements EventSubscriberInterface {
     }
 
     $event->setResponse($response);
-  }
-
-  /**
-   * Creates an Html response for the provided criteria.
-   *
-   * @param $title
-   *   The page title of the response.
-   * @param $body
-   *   The body of the error page.
-   * @param $response_code
-   *   The HTTP response code of the response.
-   * @return \Symfony\Component\HttpFoundation\Response
-   *   An error Response object ready to return to the browser.
-   */
-  protected function createHtmlResponse($title, $body, $response_code) {
-    $fragment = new HtmlFragment($body);
-    $fragment->setTitle($title);
-
-    // Normally the EnforcedFormResponseSubscriber takes care of the
-    // EnforcedResponseException. But outside of HttpKernel::handleRaw(), it is
-    // necessary to catch and handle it manually.
-    try {
-      $page = $this->fragmentRenderer->render($fragment, $response_code);
-      return new Response($this->htmlPageRenderer->render($page), $page->getStatusCode());
-    }
-    catch (\Exception $e) {
-      if ($response = EnforcedResponse::createFromException($e)) {
-        return $response;
-      }
-      else {
-        throw $e;
-      }
-    }
   }
 
   /**

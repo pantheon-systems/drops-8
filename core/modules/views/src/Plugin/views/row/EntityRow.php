@@ -183,7 +183,7 @@ class EntityRow extends RowPluginBase {
   protected function getRenderer() {
     if (!isset($this->renderer)) {
       $class = '\Drupal\views\Entity\Render\\' . Container::camelize($this->options['rendering_language']);
-      $this->renderer = new $class($this->view, $this->entityType);
+      $this->renderer = new $class($this->view, $this->languageManager, $this->entityType);
     }
     return $this->renderer;
   }
@@ -211,6 +211,22 @@ class EntityRow extends RowPluginBase {
    */
   public function render($row) {
     return $this->getRenderer()->render($row);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function calculateDependencies() {
+    $dependencies = parent::calculateDependencies();
+
+    $view_mode = $this->entityManager
+      ->getStorage('entity_view_mode')
+      ->load($this->entityTypeId . '.' . $this->options['view_mode']);
+    if ($view_mode) {
+      $dependencies[$view_mode->getConfigDependencyKey()][] = $view_mode->getConfigDependencyName();
+    }
+
+    return $dependencies;
   }
 
 }

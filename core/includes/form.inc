@@ -15,6 +15,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Form\OptGroup;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Template\Attribute;
+use Drupal\Core\Url;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
@@ -27,79 +28,6 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
  */
 function drupal_form_submit($form_arg, FormStateInterface $form_state) {
   \Drupal::formBuilder()->submitForm($form_arg, $form_state);
-}
-
-/**
- * Processes a form submission.
- *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- *   Use \Drupal::formBuilder()->processForm().
- *
- * @see \Drupal\Core\Form\FormBuilderInterface::processForm().
- */
-function drupal_process_form($form_id, &$form, FormStateInterface $form_state) {
-  \Drupal::formBuilder()->processForm($form_id, $form, $form_state);
-}
-
-/**
- * Executes custom validation and submission handlers for a given form.
- *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- *   Use either \Drupal::service('form_submitter')->executeSubmitHandlers() or
- *   \Drupal::service('form_validator')->executeValidateHandlers().
- *
- * @see \Drupal\Core\Form\FormSubmitterInterface::executeSubmitHandlers()
- * @see \Drupal\Core\Form\FormValidatorInterface::executeValidateHandlers()
- */
-function form_execute_handlers($type, &$form, FormStateInterface $form_state) {
-  if ($type == 'submit') {
-    \Drupal::service('form_submitter')->executeSubmitHandlers($form, $form_state);
-  }
-  elseif ($type == 'validate') {
-    \Drupal::service('form_validator')->executeValidateHandlers($form, $form_state);
-  }
-}
-
-/**
- * Removes internal Form API elements and buttons from submitted form values.
- *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.0.
- *   Use $form_state->cleanValues().
- */
-function form_state_values_clean(FormStateInterface $form_state) {
-  $form_state->cleanValues();
-}
-
-/**
- * Changes submitted form values during form validation.
- *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- *   Use $form_state->setValueForElement().
- *
- * @see \Drupal\Core\Form\FormStateInterface::setValueForElement().
- */
-function form_set_value($element, $value, FormStateInterface $form_state) {
-  $form_state->setValueForElement($element, $value);
-}
-
-/**
- * Allows PHP array processing of multiple select options with the same value.
- *
- * Used for form select elements which need to validate HTML option groups
- * and multiple options which may return the same value. Associative PHP arrays
- * cannot handle these structures, since they share a common key.
- *
- * @param $array
- *   The form options array to process.
- *
- * @return
- *   An array with all hierarchical elements flattened to a single array.
- *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- *   Use \Drupal\Core\Form\OptGroup::flattenOptions().
- */
-function form_options_flatten($array) {
-  return OptGroup::flattenOptions($array);
 }
 
 /**
@@ -548,7 +476,7 @@ function template_preprocess_form_element(&$variables) {
  *
  * Form element labels include the #title and a #required marker. The label is
  * associated with the element itself by the element #id. Labels may appear
- * before or after elements, depending on theme_form_element() and
+ * before or after elements, depending on form-element.html.twig and
  * #title_display.
  *
  * This function will not be called for elements with no labels, depending on
@@ -839,7 +767,7 @@ function batch_process($redirect = NULL, $url = 'batch', $redirect_callback = NU
       'progressive' => TRUE,
       'url' => $url,
       'url_options' => array(),
-      'source_url' => current_path(),
+      'source_url' => Url::fromRouteMatch(\Drupal::routeMatch()),
       'batch_redirect' => $redirect,
       'theme' => \Drupal::theme()->getActiveTheme()->getName(),
       'redirect_callback' => $redirect_callback,

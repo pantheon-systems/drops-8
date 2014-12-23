@@ -443,7 +443,20 @@ function entity_test_entity_test_mul_translation_delete(EntityInterface $transla
  * @see \Drupal\field\Entity\FieldConfig::$default_value
  */
 function entity_test_field_default_value(FieldableEntityInterface $entity, FieldDefinitionInterface $definition) {
-  return array(array('value' => $definition->getName() . '_' . $entity->language()->getId()));
+  // Include the field name and entity language in the generated values to check
+  // that they are correctly passed.
+  $string = $definition->getName() . '_' . $entity->language()->getId();
+  // Return a "default value" with multiple items.
+  return array(
+    array(
+      'shape' => "shape:0:$string",
+      'color' => "color:0:$string",
+    ),
+    array(
+      'shape' => "shape:1:$string",
+      'color' => "color:1:$string",
+    ),
+  );
 }
 
 /**
@@ -483,6 +496,13 @@ function entity_test_entity_prepare_view($entity_type, array $entities, array $d
  */
 function entity_test_entity_access(EntityInterface $entity, $operation, AccountInterface $account, $langcode) {
   \Drupal::state()->set('entity_test_entity_access', TRUE);
+
+  // Attempt to allow access to entities with the title forbid_access,
+  // this will be overridden by
+  // \Drupal\entity_test\EntityTestAccessControlHandler::checkAccess().
+  if ($entity->label() == 'forbid_access') {
+    return AccessResult::allowed();
+  }
 
   // Uncacheable because the access result depends on a State key-value pair and
   // might therefore change at any time.

@@ -22,7 +22,7 @@ file.settings:
           type: path
           label: 'Directory'
 
-field.file.storage_settings:
+field.storage_settings.file:
   type: base_entity_reference_field_settings
   label: 'File settings'
   mapping:
@@ -36,12 +36,9 @@ field.file.storage_settings:
       type: string
       label: 'Upload destination'
 
-field.file.value:
-  type: sequence
+field.value.file:
+  type: mapping
   label: 'Default value'
-  sequence:
-    - type: string
-      label: 'Value'
 
 base_file_field_field_settings:
   type: mapping
@@ -59,7 +56,7 @@ base_file_field_field_settings:
       type: string
       label: 'Maximum upload size'
 
-field.file.field_settings:
+field.field_settings.file:
   type: base_file_field_field_settings
   label: 'File settings'
   mapping:
@@ -67,55 +64,26 @@ field.file.field_settings:
       type: boolean
       label: 'Enable Description field'
 
-entity_view_display.field.file_default:
-  type: entity_field_view_display_base
+field.formatter.settings.file_default:
+  type: mapping
   label: 'Generic file format settings'
-  mapping:
-    settings:
-      type: sequence
-      label: 'Settings'
-      sequence:
-        - type: string
 
-entity_view_display.field.file_rss_enclosure:
-  type: entity_field_view_display_base
+field.formatter.settings.file_rss_enclosure:
+  type: mapping
   label: 'RSS enclosure format settings'
-  mapping:
-    settings:
-      type: sequence
-      label: 'Settings'
-      sequence:
-        - type: string
 
-entity_view_display.field.file_table:
-  type: entity_field_view_display_base
+field.formatter.settings.file_table:
+  type: mapping
   label: 'Table of files format settings'
-  mapping:
-    settings:
-      type: sequence
-      label: 'Settings'
-      sequence:
-        - type: string
 
-entity_view_display.field.file_url_plain:
-  type: entity_field_view_display_base
+field.formatter.settings.file_url_plain:
+  type: mapping
   label: 'URL to file format settings'
-  mapping:
-    settings:
-      type: sequence
-      label: 'Settings'
-      sequence:
-        - type: string
 
-
-entity_form_display.field.file_generic:
-  type: entity_field_form_display_base
+field.widget.settings.file_generic:
+  type: mapping
   label: 'File format settings'
   mapping:
-    settings:
-      type: mapping
-      label: 'Settings'
-      mapping:
-        progress_indicator:
-          type: string
-          label: 'Progress indicator'
+    progress_indicator:
+      type: string
+      label: 'Progress indicator'

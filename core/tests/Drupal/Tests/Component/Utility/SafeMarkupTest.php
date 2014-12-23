@@ -13,17 +13,10 @@ use Drupal\Tests\UnitTestCase;
 /**
  * Tests marking strings as safe.
  *
+ * @group Utility
  * @coversDefaultClass \Drupal\Component\Utility\SafeMarkup
  */
 class SafeMarkupTest extends UnitTestCase {
-
-  public static function getInfo() {
-    return array(
-      'name' => 'SafeMarkup tests',
-      'description' => 'Confirm that SafeMarkup methods work correctly.',
-      'group' => 'Common',
-    );
-  }
 
   /**
    * Tests SafeMarkup::set() and SafeMarkup::isSafe().
@@ -35,7 +28,7 @@ class SafeMarkupTest extends UnitTestCase {
    * @param string $message
    *   The message to provide as output for the test.
    *
-   * @covers ::set()
+   * @covers ::set
    */
   public function testSet($text, $message) {
     $returned = SafeMarkup::set($text);
@@ -63,7 +56,7 @@ class SafeMarkupTest extends UnitTestCase {
   /**
    * Tests SafeMarkup::set() and SafeMarkup::isSafe() with different providers.
    *
-   * @covers ::isSafe()
+   * @covers ::isSafe
    */
   public function testStrategy() {
     $returned = SafeMarkup::set('string0', 'html');
@@ -79,7 +72,7 @@ class SafeMarkupTest extends UnitTestCase {
   /**
    * Tests SafeMarkup::setMultiple().
    *
-   * @covers ::setMultiple()
+   * @covers ::setMultiple
    */
   public function testSetMultiple() {
     $texts = array(
@@ -97,7 +90,7 @@ class SafeMarkupTest extends UnitTestCase {
    *
    * Only TRUE may be passed in as the value.
    *
-   * @covers ::setMultiple()
+   * @covers ::setMultiple
    *
    * @expectedException \UnexpectedValueException
    */

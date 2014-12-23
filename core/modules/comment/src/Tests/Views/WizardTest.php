@@ -19,7 +19,7 @@ use Drupal\views\Tests\Wizard\WizardTestBase;
 class WizardTest extends WizardTestBase {
 
   /**
-   * Modules to enable.
+   * Modules to install.
    *
    * @var array
    */
@@ -68,7 +68,7 @@ class WizardTest extends WizardTestBase {
         $options[] = $item->attributes()->value;
       }
     }
-    $expected_options = array('comment', 'fields');
+    $expected_options = array('entity:comment', 'fields');
     $this->assertEqual($options, $expected_options);
 
     $view['id'] = strtolower($this->randomMachineName(16));

@@ -10,6 +10,7 @@ use Drupal\Component\Utility\Bytes;
 use Drupal\Component\Utility\Environment;
 use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Component\Utility\String;
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Render\Element\Textfield;
@@ -60,63 +61,43 @@ function color_form_system_theme_settings_alter(&$form, FormStateInterface $form
     );
     $form['color'] += color_scheme_form($form, $form_state, $theme);
     $form['#validate'][] = 'color_scheme_form_validate';
-    $form['#submit'][] = 'color_scheme_form_submit';
+    // Ensure color submission happens first so we can unset extra values.
+    array_unshift($form['#submit'], 'color_scheme_form_submit');
   }
 }
 
 /**
- * Implements hook_css_alter().
- *
- * Replaces style sheets with color-altered style sheets.
- */
-function color_css_alter(&$css) {
-  $theme_key = \Drupal::theme()->getActiveTheme()->getName();
-  $themes = list_themes();
-
-  // Override stylesheets.
-  $color_paths = \Drupal::config('color.theme.' . $theme_key)->get('stylesheets');
-
-  if (!empty($color_paths) && !empty($themes[$theme_key]->stylesheets['all'])) {
-
-    foreach ($themes[$theme_key]->stylesheets['all'] as $old_path) {
-      // Loop over the path array with recolored CSS files to find matching
-      // paths which could replace the non-recolored paths.
-      foreach ($color_paths as $color_path) {
-        // Color module currently requires unique file names to be used,
-        // which allows us to compare different file paths.
-        if (drupal_basename($old_path) == drupal_basename($color_path)) {
-          // Replace the path to the new css file.
-          // This keeps the order of the stylesheets intact.
-          $css[drupal_basename($old_path)]['data'] = $color_path;
-        }
-      }
-    }
-  }
-}
-
-/**
- * Implements hook_library_alter().
+ * Implements hook_library_info_alter().
  *
  * Replaces style sheets declared in libraries with color-altered style sheets.
  */
-function color_library_alter(&$library, $name) {
-  $active_theme = \Drupal::theme()->getActiveTheme();
-  $theme_key = $active_theme->getName();
-  $theme_libraries = $active_theme->getLibraries();
-  if (in_array($name, $theme_libraries)) {
-    // Override stylesheets.
-    $color_paths = \Drupal::config('color.theme.' . $theme_key)->get('stylesheets');
+function color_library_info_alter(&$libraries, $extension) {
+  $themes =  array_keys(\Drupal::service('theme_handler')->listInfo());
+  if (in_array($extension, $themes)) {
+    $color_paths = \Drupal::config('color.theme.' . $extension)->get('stylesheets');
     if (!empty($color_paths)) {
-      foreach ($library['css'] as &$css) {
-        // Loop over the path array with recolored CSS files to find matching
-        // paths which could replace the non-recolored paths.
-        foreach ($color_paths as $color_path) {
-          // Color module currently requires unique file names to be used,
-          // which allows us to compare different file paths.
-          if (drupal_basename($css['data']) == drupal_basename($color_path)) {
-            // Replace the path to the new css file.
-            // This keeps the order of the stylesheets intact.
-            $css['data'] = $color_path;
+      foreach (array_keys($libraries) as $name) {
+        // Override stylesheets.
+        foreach ($libraries[$name]['css'] as $category => $css_assets) {
+          foreach ($css_assets as $path  => $metadata) {
+            // Loop over the path array with recolored CSS files to find matching
+            // paths which could replace the non-recolored paths.
+            foreach ($color_paths as $color_path) {
+              // Color module currently requires unique file names to be used,
+              // which allows us to compare different file paths.
+              if (drupal_basename($path) == drupal_basename($color_path)) {
+                // Replace the path to the new css file.
+                // This keeps the order of the stylesheets intact.
+                $index = array_search($path, array_keys($libraries[$name]['css'][$category]));
+                $preceding_css_assets = array_slice($libraries[$name]['css'][$category], 0, $index);
+                $succeeding_css_assets = array_slice($libraries[$name]['css'][$category], $index + 1);
+                $libraries[$name]['css'][$category] = array_merge(
+                  $preceding_css_assets,
+                  [$color_path => $metadata],
+                  $succeeding_css_assets
+                );
+              }
+            }
           }
         }
       }
@@ -150,7 +131,7 @@ function color_get_info($theme) {
   }
 
   $path = drupal_get_path('theme', $theme);
-  $file = DRUPAL_ROOT . '/' . $path . '/color/color.inc';
+  $file = \Drupal::root() . '/' . $path . '/color/color.inc';
   if ($path && file_exists($file)) {
     include $file;
     // Add in default values.
@@ -240,24 +221,16 @@ function color_scheme_form($complete_form, FormStateInterface $form_state, $them
     '#attached' => array(
       'library' => array(
         'color/drupal.color',
-      ),
-      // Add custom CSS.
-      'css' => array(
-        $base . '/css/color.admin.css' => array(),
+        'color/admin',
       ),
       // Add custom JavaScript.
-      'js' => array(
-        array(
-          'data' => array(
-            'color' => array(
-              'reference' => color_get_palette($theme, TRUE),
-              'schemes' => $schemes,
-            ),
-            'gradients' => $info['gradients'],
-          ),
-          'type' => 'setting',
-        ),
-      ),
+      'drupalSettings' => [
+        'color' => [
+          'reference' => color_get_palette($theme, TRUE),
+          'schemes' => $schemes,
+        ],
+        'gradients' => $info['gradients'],
+      ],
     ),
   );
 
@@ -297,18 +270,13 @@ function template_preprocess_color_scheme_form(&$variables) {
 
   $theme = $form['theme']['#value'];
   $info = $form['info']['#value'];
-  $path = drupal_get_path('theme', $theme) . '/';
 
-  if (isset($info['preview_css'])) {
-    $preview_css_path = $path . $info['preview_css'];
-    $form['scheme']['#attached']['css'][$preview_css_path] = array();
+  if (isset($info['preview_library'])) {
+    $form['scheme']['#attached']['library'][] = $info['preview_library'];
   }
-  $preview_js_path = isset($info['preview_js']) ? $path . $info['preview_js'] : drupal_get_path('module', 'color') . '/' . 'preview.js';
-  // Add the JS at a weight below color.js.
-  $form['scheme']['#attached']['js'][$preview_js_path] = array('weight' => -1);
 
   // Attempt to load preview HTML if the theme provides it.
-  $preview_html_path = DRUPAL_ROOT . '/' . (isset($info['preview_html']) ? drupal_get_path('theme', $theme) . '/' . $info['preview_html'] : drupal_get_path('module', 'color') . '/preview.html');
+  $preview_html_path = \Drupal::root() . '/' . (isset($info['preview_html']) ? drupal_get_path('theme', $theme) . '/' . $info['preview_html'] : drupal_get_path('module', 'color') . '/preview.html');
   $variables['html_preview'] = SafeMarkup::set(file_get_contents($preview_html_path));
 }
 
@@ -380,21 +348,26 @@ function color_scheme_form_validate($form, FormStateInterface $form_state) {
  */
 function color_scheme_form_submit($form, FormStateInterface $form_state) {
 
-  // Get theme coloring info.
-  if (!$form_state->hasValue('info')) {
+  // Avoid color settings spilling over to theme settings.
+  $color_settings = array('theme', 'palette', 'scheme');
+  if ($form_state->hasValue('info')) {
+    $color_settings[] = 'info';
+  }
+  foreach ($color_settings as $setting_name) {
+    ${$setting_name} = $form_state->getValue($setting_name);
+    $form_state->unsetValue($setting_name);
+  }
+  if (!isset($info)) {
     return;
   }
-  $theme = $form_state->getValue('theme');
-  $info = $form_state->getValue('info');
 
   $config = \Drupal::config('color.theme.' . $theme);
 
   // Resolve palette.
-  $palette = $form_state->getValue('palette');
-  if ($form_state->getValue('scheme') != '') {
+  if ($scheme != '') {
     foreach ($palette as $key => $color) {
-      if (isset($info['schemes'][$form_state->getValue('scheme')]['colors'][$key])) {
-        $palette[$key] = $info['schemes'][$form_state->getValue('scheme')]['colors'][$key];
+      if (isset($info['schemes'][$scheme]['colors'][$key])) {
+        $palette[$key] = $info['schemes'][$scheme]['colors'][$key];
       }
     }
     $palette += $info['schemes']['default']['colors'];
@@ -507,6 +480,9 @@ function color_scheme_form_submit($form, FormStateInterface $form_state) {
     ->set('stylesheets', $css)
     ->set('files', $paths['files'])
     ->save();
+
+  // Clear the library cache.
+  Cache::invalidateTags(['library_info']);
 }
 
 /**

@@ -8,9 +8,9 @@
 namespace Drupal\Tests\Core\Plugin;
 
 use Drupal\Component\Plugin\ConfigurablePluginInterface;
-use Drupal\Component\Plugin\ContextAwarePluginInterface;
 use Drupal\Core\Plugin\Context\ContextDefinition;
 use Drupal\Core\Plugin\Context\ContextHandler;
+use Drupal\Core\Plugin\ContextAwarePluginInterface;
 use Drupal\Tests\UnitTestCase;
 
 /**
@@ -242,7 +242,10 @@ class ContextHandlerTest extends UnitTestCase {
       'miss' => $context_miss,
     );
 
-    $plugin = $this->getMock('Drupal\Component\Plugin\ContextAwarePluginInterface');
+    $plugin = $this->getMock('Drupal\Core\Plugin\ContextAwarePluginInterface');
+    $plugin->expects($this->once())
+      ->method('getContextMapping')
+      ->willReturn([]);
     $plugin->expects($this->once())
       ->method('getContextDefinitions')
       ->will($this->returnValue(array('hit' => 'hit')));
@@ -267,6 +270,9 @@ class ContextHandlerTest extends UnitTestCase {
 
     $plugin = $this->getMock('Drupal\Tests\Core\Plugin\TestConfigurableContextAwarePluginInterface');
     $plugin->expects($this->once())
+      ->method('getContextMapping')
+      ->willReturn([]);
+    $plugin->expects($this->once())
       ->method('getContextDefinitions')
       ->will($this->returnValue(array('hit' => 'hit')));
     $plugin->expects($this->never())
@@ -290,13 +296,16 @@ class ContextHandlerTest extends UnitTestCase {
 
     $plugin = $this->getMock('Drupal\Tests\Core\Plugin\TestConfigurableContextAwarePluginInterface');
     $plugin->expects($this->once())
+      ->method('getContextMapping')
+      ->willReturn([]);
+    $plugin->expects($this->once())
       ->method('getContextDefinitions')
       ->will($this->returnValue(array('hit' => 'hit')));
     $plugin->expects($this->once())
       ->method('setContextValue')
       ->with('hit', array('foo'));
 
-    $this->contextHandler->applyContextMapping($plugin, $contexts, array('name' => 'hit'));
+    $this->contextHandler->applyContextMapping($plugin, $contexts, ['hit' => 'name']);
   }
 
   /**
@@ -316,12 +325,15 @@ class ContextHandlerTest extends UnitTestCase {
 
     $plugin = $this->getMock('Drupal\Tests\Core\Plugin\TestConfigurableContextAwarePluginInterface');
     $plugin->expects($this->once())
+      ->method('getContextMapping')
+      ->willReturn([]);
+    $plugin->expects($this->once())
       ->method('getContextDefinitions')
       ->will($this->returnValue(array('hit' => 'hit')));
     $plugin->expects($this->never())
       ->method('setContextValue');
 
-    $this->contextHandler->applyContextMapping($plugin, $contexts, array('name' => 'miss'));
+    $this->contextHandler->applyContextMapping($plugin, $contexts, ['miss' => 'name']);
   }
 
 }

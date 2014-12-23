@@ -7,21 +7,21 @@
 
 namespace Drupal\node\Tests\Config;
 
-use Drupal\simpletest\DrupalUnitTestBase;
+use Drupal\simpletest\KernelTestBase;
 
 /**
  * Change content types during config create method invocation.
  *
  * @group node
  */
-class NodeImportChangeTest extends DrupalUnitTestBase {
+class NodeImportChangeTest extends KernelTestBase {
 
   /**
    * Modules to enable.
    *
    * @var array
    */
-  public static $modules = array('node', 'entity', 'field', 'text', 'system', 'node_test_config', 'user', 'entity_reference');
+  public static $modules = array('node', 'field', 'text', 'system', 'node_test_config', 'user', 'entity_reference');
 
   /**
    * Set the default field storage backend for fields created during tests.

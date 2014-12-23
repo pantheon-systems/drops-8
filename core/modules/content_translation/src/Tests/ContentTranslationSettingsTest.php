@@ -8,10 +8,10 @@
 namespace Drupal\content_translation\Tests;
 
 use Drupal\comment\Plugin\Field\FieldType\CommentItemInterface;
-use Drupal\config\Tests\SchemaCheckTestTrait;
 use Drupal\Core\Field\Entity\BaseFieldOverride;
 use Drupal\Core\Language\Language;
 use Drupal\field\Entity\FieldConfig;
+use Drupal\language\Entity\ContentLanguageSettings;
 use Drupal\simpletest\WebTestBase;
 
 /**
@@ -20,8 +20,6 @@ use Drupal\simpletest\WebTestBase;
  * @group content_translation
  */
 class ContentTranslationSettingsTest extends WebTestBase {
-
-  use SchemaCheckTestTrait;
 
   /**
    * Modules to enable.
@@ -87,7 +85,7 @@ class ContentTranslationSettingsTest extends WebTestBase {
     $edit = array(
       'entity_types[comment]' => TRUE,
       'settings[comment][comment_article][settings][language][langcode]' => Language::LANGCODE_NOT_SPECIFIED,
-      'settings[comment][comment_article][settings][language][language_show]' => FALSE,
+      'settings[comment][comment_article][settings][language][language_alterable]' => FALSE,
       'settings[comment][comment_article][translatable]' => TRUE,
       'settings[comment][comment_article][fields][comment_body]' => TRUE,
     );
@@ -99,7 +97,7 @@ class ContentTranslationSettingsTest extends WebTestBase {
     $edit = array(
       'entity_types[comment]' => TRUE,
       'settings[comment][comment_article][settings][language][langcode]' => 'current_interface',
-      'settings[comment][comment_article][settings][language][language_show]' => TRUE,
+      'settings[comment][comment_article][settings][language][language_alterable]' => TRUE,
       'settings[comment][comment_article][translatable]' => TRUE,
       'settings[comment][comment_article][fields][comment_body]' => TRUE,
       // Override both comment subject fields to untranslatable.
@@ -131,9 +129,9 @@ class ContentTranslationSettingsTest extends WebTestBase {
     $this->assertTrue($definitions['name']->isTranslatable() && !$definitions['user_id']->isTranslatable(), 'Base field bundle overrides were correctly altered.');
 
     // Test that language settings are correctly stored.
-    $language_configuration = language_get_default_configuration('comment', 'comment_article');
-    $this->assertEqual($language_configuration['langcode'], 'current_interface', 'The default language for article comments is set to the current interface language.');
-    $this->assertTrue($language_configuration['language_show'], 'The language selector for article comments is shown.');
+    $language_configuration = ContentLanguageSettings::loadByEntityTypeBundle('comment', 'comment_article');
+    $this->assertEqual($language_configuration->getDefaultLangcode(), 'current_interface', 'The default language for article comments is set to the current interface language.');
+    $this->assertTrue($language_configuration->isLanguageAlterable(), 'The language selector for article comments is shown.');
 
     // Verify language widget appears on comment type form.
     $this->drupalGet('admin/structure/comment/manage/comment_article');
@@ -156,7 +154,7 @@ class ContentTranslationSettingsTest extends WebTestBase {
     $edit = array(
       'entity_types[node]' => TRUE,
       'settings[node][article][settings][language][langcode]' => 'current_interface',
-      'settings[node][article][settings][language][language_show]' => TRUE,
+      'settings[node][article][settings][language][language_alterable]' => TRUE,
       'settings[node][article][translatable]' => TRUE,
       'settings[node][article][fields][title]' => TRUE
     );
@@ -181,8 +179,6 @@ class ContentTranslationSettingsTest extends WebTestBase {
       $this->assertEqual($definitions['body']->isTranslatable(), $translatable, 'Field translatability correctly switched.');
       $this->assertEqual($field->isTranslatable(), $definitions['body']->isTranslatable(), 'Configurable field translatability correctly switched.');
     }
-
-    $this->assertConfigSchemas();
   }
 
   /**
@@ -222,7 +218,7 @@ class ContentTranslationSettingsTest extends WebTestBase {
     $args = array('@entity_type' => $entity_type, '@bundle' => $bundle, '@enabled' => $enabled ? 'enabled' : 'disabled');
     $message = format_string('Translation for entity @entity_type (@bundle) is @enabled.', $args);
     \Drupal::entityManager()->clearCachedDefinitions();
-    return $this->assertEqual(content_translation_enabled($entity_type, $bundle), $enabled, $message);
+    return $this->assertEqual(\Drupal::service('content_translation.manager')->isEnabled($entity_type, $bundle), $enabled, $message);
   }
 
   /**
@@ -255,7 +251,7 @@ class ContentTranslationSettingsTest extends WebTestBase {
     // Note: this field is not translatable when enable bundle translatability.
     $edit = array(
       'entity_types[node]' => TRUE,
-      'settings[node][article][settings][language][language_show]' => TRUE,
+      'settings[node][article][settings][language][language_alterable]' => TRUE,
       'settings[node][article][translatable]' => TRUE,
       'settings[node][article][fields][article_text]' => TRUE,
     );
@@ -272,24 +268,6 @@ class ContentTranslationSettingsTest extends WebTestBase {
    */
   protected function entityManager() {
     return $this->container->get('entity.manager');
-  }
-
-  /**
-   * Asserts all active configuration matches schemas.
-   */
-  protected function assertConfigSchemas() {
-    $names = $this->container->get('config.storage')->listAll();
-    $factory = $this->container->get('config.factory');
-    /** @var \Drupal\Core\Config\TypedConfigManagerInterface $typed_config */
-    $typed_config = $this->container->get('config.typed');
-    foreach ($names as $name) {
-      // It is not possible to provide schema due to https://www.drupal.org/node/2248709
-      // @todo Refactor settings in https://www.drupal.org/node/2363155
-      if ($name != 'content_translation.settings') {
-        $config = $factory->get($name);
-        $this->assertConfigSchema($typed_config, $name, $config->get());
-      }
-    }
   }
 
 }

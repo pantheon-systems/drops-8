@@ -83,6 +83,8 @@ class TextFormat extends RenderElement {
       // Do not copy this #process function to prevent
       // \Drupal::formBuilder()->doBuildForm() from recursing infinitely.
       '#process',
+      // Ensure #pre_render functions will be run.
+      '#pre_render',
       // Description is handled by theme_text_format_wrapper().
       '#description',
       // Ensure proper ordering of children.
@@ -131,7 +133,7 @@ class TextFormat extends RenderElement {
     if (!isset($element['#format']) && !empty($formats)) {
       // If no text format was selected, use the allowed format with the highest
       // weight. This is equivalent to calling filter_default_format().
-      $element['#format'] = reset($formats)->format;
+      $element['#format'] = reset($formats)->id();
     }
 
     // If #allowed_formats is set, the list of formats must not be modified in

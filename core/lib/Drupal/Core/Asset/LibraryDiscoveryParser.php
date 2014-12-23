@@ -27,10 +27,22 @@ class LibraryDiscoveryParser {
   protected $moduleHandler;
 
   /**
+   * The app root.
+   *
+   * @var string
+   */
+  protected $root;
+
+  /**
+   * Constructs a new LibraryDiscoveryParser instance.
+   *
+   * @param string $root
+   *   The app root.
    * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
    *   The module handler.
    */
-  public function __construct(ModuleHandlerInterface $module_handler) {
+  public function __construct($root, ModuleHandlerInterface $module_handler) {
+    $this->root = $root;
     $this->moduleHandler = $module_handler;
   }
 
@@ -67,12 +79,12 @@ class LibraryDiscoveryParser {
 
     $library_file = $path . '/' . $extension . '.libraries.yml';
 
-    if ($library_file && file_exists(DRUPAL_ROOT . '/' . $library_file)) {
+    if ($library_file && file_exists($this->root . '/' . $library_file)) {
       $libraries = $this->parseLibraryInfo($extension, $library_file);
     }
 
     foreach ($libraries as $id => &$library) {
-      if (!isset($library['js']) && !isset($library['css']) && !isset($library['settings'])) {
+      if (!isset($library['js']) && !isset($library['css']) && !isset($library['drupalSettings'])) {
         throw new IncompleteLibraryDefinitionException(sprintf("Incomplete library definition for '%s' in %s", $id, $library_file));
       }
       $library += array('dependencies' => array(), 'js' => array(), 'css' => array());
@@ -185,20 +197,6 @@ class LibraryDiscoveryParser {
           $library[$type][] = $options;
         }
       }
-
-      // @todo Introduce drupal_add_settings().
-      if (isset($library['settings'])) {
-        $library['js'][] = array(
-          'type' => 'setting',
-          'data' => $library['settings'],
-        );
-        unset($library['settings']);
-      }
-      // @todo Convert all uses of #attached[library][]=array('provider','name')
-      //   into #attached[library][]='provider/name' and remove this.
-      foreach ($library['dependencies'] as $i => $dependency) {
-        $library['dependencies'][$i] = $dependency;
-      }
     }
 
     return $libraries;
@@ -222,7 +220,7 @@ class LibraryDiscoveryParser {
    */
   protected function parseLibraryInfo($extension, $library_file) {
     try {
-      $libraries = Yaml::decode(file_get_contents(DRUPAL_ROOT . '/' . $library_file));
+      $libraries = Yaml::decode(file_get_contents($this->root . '/' . $library_file));
     }
     catch (InvalidDataTypeException $e) {
       // Rethrow a more helpful exception to provide context.

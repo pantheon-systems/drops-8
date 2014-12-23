@@ -7,7 +7,7 @@
 
 namespace Drupal\system\Tests\Installer;
 
-use Drupal\simpletest\DrupalUnitTestBase;
+use Drupal\simpletest\KernelTestBase;
 
 /**
  * Tests the translation version fallback used during site installation to
@@ -15,11 +15,11 @@ use Drupal\simpletest\DrupalUnitTestBase;
  *
  * @group Installer
  */
-class InstallerTranslationVersionUnitTest extends DrupalUnitTestBase {
+class InstallerTranslationVersionUnitTest extends KernelTestBase {
 
   protected function setUp() {
     parent::setUp();
-    require_once DRUPAL_ROOT . '/core/includes/install.core.inc';
+    require_once \Drupal::root() . '/core/includes/install.core.inc';
   }
 
   /**

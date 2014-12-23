@@ -52,27 +52,51 @@ class BlockController extends ControllerBase {
    *   The name of the theme.
    *
    * @return array
-   *   A render array containing the CSS and title for the block region demo.
+   *   A #type 'page' render array containing the block region demo.
    */
   public function demo($theme) {
-    return array(
-      '#title' => String::checkPlain($this->themeHandler->getName($theme)),
+    $page = [
+      '#title' => $this->themeHandler->getName($theme),
+      '#type' => 'page',
       '#attached' => array(
-        'js' => array(
-          array(
-            // The block demonstration page is not marked as an administrative
-            // page by path_is_admin() function in order to use the frontend
-            // theme. Since JavaScript relies on a proper separation of admin
-            // pages, it needs to know this is an actual administrative page.
-            'data' => array('path' => array('currentPathIsAdmin' => TRUE)),
-            'type' => 'setting',
-          )
-        ),
+        'drupalSettings' => [
+          // The block demonstration page is not marked as an administrative
+          // page by \Drupal::service('router.admin_context')->isAdminRoute()
+          // function in order to use the frontend theme. Since JavaScript
+          // relies on a proper separation of admin pages, it needs to know this
+          // is an actual administrative page.
+          'path' => ['currentPathIsAdmin' => TRUE],
+        ],
         'library' => array(
           'block/drupal.block.admin',
         ),
       ),
-    );
+    ];
+
+    // Show descriptions in each visible page region, nothing else.
+    $visible_regions = $this->getVisibleRegionNames($theme);
+    foreach (array_keys($visible_regions) as $region) {
+      $page[$region]['block_description'] = array(
+        '#type' => 'inline_template',
+        '#template' => '<div class="block-region demo-block">{{ region_name }}</div>',
+        '#context' => array('region_name' => $visible_regions[$region]),
+      );
+    }
+
+    return $page;
+  }
+
+  /**
+   * Returns the human-readable list of regions keyed by machine name.
+   *
+   * @param string $theme
+   *   The name of the theme.
+   *
+   * @return array
+   *   An array of human-readable region names keyed by machine name.
+   */
+  protected function getVisibleRegionNames($theme) {
+    return system_region_list($theme, REGIONS_VISIBLE);
   }
 
 }

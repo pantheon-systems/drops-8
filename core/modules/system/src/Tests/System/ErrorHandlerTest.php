@@ -105,6 +105,13 @@ class ErrorHandlerTest extends WebTestBase {
       '%line' => 64,
       '%file' => drupal_get_path('module', 'error_test') . '/error_test.module',
     );
+    $error_renderer_exception = array(
+      '%type' => 'Exception',
+      '!message' => 'This is an exception that occurs during rendering',
+      '%function' => 'Drupal\error_test\Controller\ErrorTestController->Drupal\error_test\Controller\{closure}()',
+      '%line' => 82,
+      '%file' => drupal_get_path('module', 'error_test') . '/error_test.module',
+    );
 
     $this->drupalGet('error-test/trigger-exception');
     $this->assertTrue(strpos($this->drupalGetHeader(':status'), '500 Service unavailable (with message)'), 'Received expected HTTP status line.');
@@ -119,9 +126,13 @@ class ErrorHandlerTest extends WebTestBase {
     $error_details = format_string('in %function (line ', $error_pdo_exception);
     $this->assertRaw($error_details, format_string("Found '!message' in error page.", array('!message' => $error_details)));
 
+    $this->drupalGet('error-test/trigger-renderer-exception');
+    $this->assertTrue(strpos($this->drupalGetHeader(':status'), '500 Service unavailable (with message)'), 'Received expected HTTP status line.');
+    $this->assertErrorMessage($error_renderer_exception);
+
     // The exceptions are expected. Do not interpret them as a test failure.
     // Not using File API; a potential error must trigger a PHP warning.
-    unlink(DRUPAL_ROOT . '/' . $this->siteDirectory . '/error.log');
+    unlink(\Drupal::root() . '/' . $this->siteDirectory . '/error.log');
   }
 
   /**

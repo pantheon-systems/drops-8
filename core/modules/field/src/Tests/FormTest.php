@@ -587,7 +587,7 @@ class FormTest extends FieldTestBase {
 
     // Update the field to remove the default value, and switch to the default
     // widget.
-    $this->field->default_value = NULL;
+    $this->field->default_value = array();
     $this->field->save();
     entity_get_form_display($entity_type, $this->field->bundle, 'default')
       ->setComponent($this->field->getName(), array(

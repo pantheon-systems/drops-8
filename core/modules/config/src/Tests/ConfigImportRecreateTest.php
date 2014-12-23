@@ -10,14 +10,14 @@ namespace Drupal\config\Tests;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Config\ConfigImporter;
 use Drupal\Core\Config\StorageComparer;
-use Drupal\simpletest\DrupalUnitTestBase;
+use Drupal\simpletest\KernelTestBase;
 
 /**
  * Tests importing recreated configuration entities.
  *
  * @group config
  */
-class ConfigImportRecreateTest extends DrupalUnitTestBase {
+class ConfigImportRecreateTest extends KernelTestBase {
 
   /**
    * Config Importer object used for testing.
@@ -31,12 +31,13 @@ class ConfigImportRecreateTest extends DrupalUnitTestBase {
    *
    * @var array
    */
-  public static $modules = array('system', 'entity', 'field', 'text', 'user', 'node', 'entity_reference');
+  public static $modules = array('system', 'field', 'text', 'user', 'node', 'entity_reference');
 
   protected function setUp() {
     parent::setUp();
 
     $this->installEntitySchema('node');
+    $this->installConfig(array('field'));
 
     $this->copyConfig($this->container->get('config.storage'), $this->container->get('config.storage.staging'));
 
@@ -53,6 +54,7 @@ class ConfigImportRecreateTest extends DrupalUnitTestBase {
       $this->container->get('lock'),
       $this->container->get('config.typed'),
       $this->container->get('module_handler'),
+      $this->container->get('module_installer'),
       $this->container->get('theme_handler'),
       $this->container->get('string_translation')
     );
@@ -65,6 +67,7 @@ class ConfigImportRecreateTest extends DrupalUnitTestBase {
       'name' => 'Node type one',
     ));
     $content_type->save();
+    node_add_body_field($content_type);
     /** @var \Drupal\Core\Config\StorageInterface $active */
     $active = $this->container->get('config.storage');
     /** @var \Drupal\Core\Config\StorageInterface $staging */
@@ -83,14 +86,15 @@ class ConfigImportRecreateTest extends DrupalUnitTestBase {
       'name' => 'Node type two',
     ));
     $content_type->save();
+    node_add_body_field($content_type);
 
     $this->configImporter->reset();
-    // A node type, a field storage, a field, an entity view display and an
-    // entity form display will be recreated.
+    // A node type, a field, an entity view display and an entity form display
+    // will be recreated.
     $creates = $this->configImporter->getUnprocessedConfiguration('create');
     $deletes = $this->configImporter->getUnprocessedConfiguration('delete');
-    $this->assertEqual(5, count($creates), 'There are 5 configuration items to create.');
-    $this->assertEqual(5, count($deletes), 'There are 5 configuration items to delete.');
+    $this->assertEqual(4, count($creates), 'There are 4 configuration items to create.');
+    $this->assertEqual(4, count($deletes), 'There are 4 configuration items to delete.');
     $this->assertEqual(0, count($this->configImporter->getUnprocessedConfiguration('update')), 'There are no configuration items to update.');
     $this->assertIdentical($creates, array_reverse($deletes), 'Deletes and creates contain the same configuration names in opposite orders due to dependencies.');
 

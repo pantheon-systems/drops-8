@@ -17,7 +17,7 @@ namespace Drupal\Core\Mail;
 interface MailInterface {
 
   /**
-   * Formats a message composed by drupal_mail() prior sending.
+   * Formats a message prior to sending.
    *
    * Allows to preprocess, format, and postprocess a mail message before it is
    * passed to the sending system. By default, all messages may contain HTML and
@@ -32,11 +32,13 @@ interface MailInterface {
    *
    * @return array
    *   The formatted $message.
+   *
+   * @see \Drupal\Core\Mail\MailManagerInterface
    */
    public function format(array $message);
 
   /**
-   * Sends a message composed by drupal_mail().
+   * Sends a message composed by \Drupal\Core\Mail\MailManagerInterface->mail().
    *
    * @param array $message
    *   Message array with at least the following elements:
@@ -53,8 +55,8 @@ interface MailInterface {
    *   - subject: Subject of the email to be sent. This must not contain any
    *     newline characters, or the mail may not be sent properly.
    *   - body: Message to be sent. Accepts both CRLF and LF line-endings.
-   *     Email bodies must be wrapped. You can use drupal_wrap_mail() for
-   *     smart plain text wrapping.
+   *     Email bodies must be wrapped. For smart plain text wrapping you can use
+   *     \Drupal\Core\Mail\MailFormatHelper::wrapMail() .
    *   - headers: Associative array containing all additional mail headers not
    *     defined by one of the other parameters.  PHP's mail() looks for Cc and
    *     Bcc headers and sends the mail to addresses in these headers too.

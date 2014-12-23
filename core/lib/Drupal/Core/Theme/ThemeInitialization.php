@@ -32,14 +32,24 @@ class ThemeInitialization implements ThemeInitializationInterface {
   protected $state;
 
   /**
+   * The app root.
+   *
+   * @var string
+   */
+  protected $root;
+
+  /**
    * Constructs a new ThemeInitialization object.
    *
+   * @param string $root
+   *   The app root.
    * @param \Drupal\Core\Extension\ThemeHandlerInterface $theme_handler
    *   The theme handler.
    * @param \Drupal\Core\State\StateInterface $state
    *   The state.
    */
-  public function __construct(ThemeHandlerInterface $theme_handler, StateInterface $state) {
+  public function __construct($root, ThemeHandlerInterface $theme_handler, StateInterface $state) {
+    $this->root = $root;
     $this->themeHandler = $theme_handler;
     $this->state = $state;
   }
@@ -77,7 +87,7 @@ class ThemeInitialization implements ThemeInitializationInterface {
       $theme_name = 'core';
       // /core/core.info.yml does not actually exist, but is required because
       // Extension expects a pathname.
-      $active_theme = $this->getActiveTheme(new Extension('theme', 'core/core.info.yml'));
+      $active_theme = $this->getActiveTheme(new Extension($this->root, 'theme', 'core/core.info.yml'));
 
       // Early-return and do not set state, because the initialized $theme_name
       // differs from the original $theme_name.
@@ -105,7 +115,7 @@ class ThemeInitialization implements ThemeInitializationInterface {
     // Initialize the theme.
     if ($theme_engine = $active_theme->getEngine()) {
       // Include the engine.
-      include_once DRUPAL_ROOT . '/' . $active_theme->getOwner();
+      include_once $this->root . '/' . $active_theme->getOwner();
 
       if (function_exists($theme_engine . '_init')) {
         foreach ($active_theme->getBaseThemes() as $base) {
@@ -119,17 +129,17 @@ class ThemeInitialization implements ThemeInitializationInterface {
       foreach ($active_theme->getBaseThemes() as $base) {
         // Include the theme file or the engine.
         if ($base->getOwner()) {
-          include_once DRUPAL_ROOT . '/' . $base->getOwner();
+          include_once $this->root . '/' . $base->getOwner();
         }
       }
       // and our theme gets one too.
       if ($active_theme->getOwner()) {
-        include_once DRUPAL_ROOT . '/' . $active_theme->getOwner();
+        include_once $this->root . '/' . $active_theme->getOwner();
       }
     }
 
     // Always include Twig as the default theme engine.
-    include_once DRUPAL_ROOT . '/core/themes/engines/twig/twig.engine';
+    include_once $this->root . '/core/themes/engines/twig/twig.engine';
   }
 
   /**
@@ -144,22 +154,13 @@ class ThemeInitialization implements ThemeInitializationInterface {
     // Prepare stylesheets from this theme as well as all ancestor themes.
     // We work it this way so that we can have child themes override parent
     // theme stylesheets easily.
-    $values['stylesheets'] = array();
     // CSS file basenames to override, pointing to the final, overridden filepath.
     $values['stylesheets_override'] = array();
     // CSS file basenames to remove.
     $values['stylesheets_remove'] = array();
 
     // Grab stylesheets from base theme.
-    $final_stylesheets = array();
     foreach ($base_themes as $base) {
-      if (!empty($base->stylesheets)) {
-        foreach ($base->stylesheets as $media => $stylesheets) {
-          foreach ($stylesheets as $name => $stylesheet) {
-            $final_stylesheets[$media][$name] = $stylesheet;
-          }
-        }
-      }
       $base_theme_path = $base->getPath();
       if (!empty($base->info['stylesheets-remove'])) {
         foreach ($base->info['stylesheets-remove'] as $basename) {
@@ -175,13 +176,6 @@ class ThemeInitialization implements ThemeInitializationInterface {
     }
 
     // Add stylesheets used by this theme.
-    if (!empty($theme->stylesheets)) {
-      foreach ($theme->stylesheets as $media => $stylesheets) {
-        foreach ($stylesheets as $name => $stylesheet) {
-          $final_stylesheets[$media][$name] = $stylesheet;
-        }
-      }
-    }
     if (!empty($theme->info['stylesheets-remove'])) {
       foreach ($theme->info['stylesheets-remove'] as $basename) {
         $values['stylesheets_remove'][$basename] = $theme_path . '/' . $basename;
@@ -201,9 +195,6 @@ class ThemeInitialization implements ThemeInitializationInterface {
         }
       }
     }
-
-    // And now add the stylesheets properly.
-    $values['stylesheets'] = $final_stylesheets;
 
     // Do basically the same as the above for libraries
     $values['libraries'] = array();

@@ -9,7 +9,7 @@ namespace Drupal\system\Tests\Extension;
 
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\simpletest\KernelTestBase;
-use Symfony\Component\HttpFoundation\Response;
+use \Drupal\Core\Extension\ModuleUninstallValidatorException;
 
 /**
  * Tests ModuleHandler functionality.
@@ -52,7 +52,7 @@ class ModuleHandlerTest extends KernelTestBase {
     $this->assertModuleList($module_list, 'Testing profile');
 
     // Try to install a new module.
-    $this->moduleHandler()->install(array('ban'));
+    $this->moduleInstaller()->install(array('ban'));
     $module_list[] = 'ban';
     sort($module_list);
     $this->assertModuleList($module_list, 'After adding a module');
@@ -116,7 +116,7 @@ class ModuleHandlerTest extends KernelTestBase {
     \Drupal::state()->set('module_test.dependency', 'missing dependency');
     drupal_static_reset('system_rebuild_module_data');
 
-    $result = $this->moduleHandler()->install(array('color'));
+    $result = $this->moduleInstaller()->install(array('color'));
     $this->assertFalse($result, 'ModuleHandler::install() returns FALSE if dependencies are missing.');
     $this->assertFalse($this->moduleHandler()->moduleExists('color'), 'ModuleHandler::install() aborts if dependencies are missing.');
 
@@ -125,7 +125,7 @@ class ModuleHandlerTest extends KernelTestBase {
     \Drupal::state()->set('module_test.dependency', 'dependency');
     drupal_static_reset('system_rebuild_module_data');
 
-    $result = $this->moduleHandler()->install(array('color'));
+    $result = $this->moduleInstaller()->install(array('color'));
     $this->assertTrue($result, 'ModuleHandler::install() returns the correct value.');
 
     // Verify that the fake dependency chain was installed.
@@ -141,7 +141,7 @@ class ModuleHandlerTest extends KernelTestBase {
     // Uninstall all three modules explicitly, but in the incorrect order,
     // and make sure that ModuleHandler::uninstall() uninstalled them in the
     // correct sequence.
-    $result = $this->moduleHandler()->uninstall(array('config', 'help', 'color'));
+    $result = $this->moduleInstaller()->uninstall(array('config', 'help', 'color'));
     $this->assertTrue($result, 'ModuleHandler::uninstall() returned TRUE.');
 
     foreach (array('color', 'config', 'help') as $module) {
@@ -157,7 +157,7 @@ class ModuleHandlerTest extends KernelTestBase {
     \Drupal::state()->set('module_test.dependency', 'version dependency');
     drupal_static_reset('system_rebuild_module_data');
 
-    $result = $this->moduleHandler()->install(array('color'));
+    $result = $this->moduleInstaller()->install(array('color'));
     $this->assertTrue($result, 'ModuleHandler::install() returns the correct value.');
 
     // Verify that the fake dependency chain was installed.
@@ -184,11 +184,11 @@ class ModuleHandlerTest extends KernelTestBase {
     $data = system_rebuild_module_data();
     $this->assertTrue(isset($data[$profile]->requires[$dependency]));
 
-    $this->moduleHandler()->install(array($dependency));
+    $this->moduleInstaller()->install(array($dependency));
     $this->assertTrue($this->moduleHandler()->moduleExists($dependency));
 
     // Uninstall the profile module "dependency".
-    $result = $this->moduleHandler()->uninstall(array($dependency));
+    $result = $this->moduleInstaller()->uninstall(array($dependency));
     $this->assertTrue($result, 'ModuleHandler::uninstall() returns TRUE.');
     $this->assertFalse($this->moduleHandler()->moduleExists($dependency));
     $this->assertEqual(drupal_get_installed_schema_version($dependency), SCHEMA_UNINSTALLED, "$dependency module was uninstalled.");
@@ -197,6 +197,60 @@ class ModuleHandlerTest extends KernelTestBase {
     $uninstalled_modules = \Drupal::state()->get('module_test.uninstall_order') ?: array();
     $this->assertTrue(in_array($dependency, $uninstalled_modules), "$dependency module is in the list of uninstalled modules.");
     $this->assertFalse(in_array($profile, $uninstalled_modules), 'The installation profile is not in the list of uninstalled modules.');
+  }
+
+  /**
+   * Tests uninstalling a module that has content.
+   */
+  function testUninstallContentDependency() {
+    $this->enableModules(array('module_test', 'entity_test', 'text', 'user', 'help'));
+    $this->assertTrue($this->moduleHandler()->moduleExists('entity_test'), 'Test module is enabled.');
+    $this->assertTrue($this->moduleHandler()->moduleExists('module_test'), 'Test module is enabled.');
+
+    $this->installSchema('user', 'users_data');
+    $entity_types = \Drupal::entityManager()->getDefinitions();
+    foreach ($entity_types as $entity_type) {
+      if ('entity_test' == $entity_type->getProvider()) {
+        $this->installEntitySchema($entity_type->id());
+      }
+    }
+
+    // Create a fake dependency.
+    // entity_test will depend on help. This way help can not be uninstalled
+    // when there is test content preventing entity_test from being uninstalled.
+    \Drupal::state()->set('module_test.dependency', 'dependency');
+    drupal_static_reset('system_rebuild_module_data');
+
+    // Create an entity so that the modules can not be disabled.
+    $entity = entity_create('entity_test', array('name' => $this->randomString()));
+    $entity->save();
+
+    // Uninstalling entity_test is not possible when there is content.
+    try {
+      $message = 'ModuleHandler::uninstall() throws ModuleUninstallValidatorException upon uninstalling a module which does not pass validation.';
+      $this->moduleInstaller()->uninstall(array('entity_test'));
+      $this->fail($message);
+    }
+    catch (ModuleUninstallValidatorException $e) {
+      $this->pass(get_class($e) . ': ' . $e->getMessage());
+    }
+
+    // Uninstalling help needs entity_test to be un-installable.
+    try {
+      $message = 'ModuleHandler::uninstall() throws ModuleUninstallValidatorException upon uninstalling a module which does not pass validation.';
+      $this->moduleInstaller()->uninstall(array('help'));
+      $this->fail($message);
+    }
+    catch (ModuleUninstallValidatorException $e) {
+      $this->pass(get_class($e) . ': ' . $e->getMessage());
+    }
+
+    // Deleting the entity.
+    $entity->delete();
+
+    $result = $this->moduleInstaller()->uninstall(array('help'));
+    $this->assertTrue($result, 'ModuleHandler::uninstall() returns TRUE.');
+    $this->assertEqual(drupal_get_installed_schema_version('entity_test'), SCHEMA_UNINSTALLED, "entity_test module was uninstalled.");
   }
 
   /**
@@ -221,7 +275,7 @@ class ModuleHandlerTest extends KernelTestBase {
     // Verify that it is not registered yet to prevent false positives.
     $stream_wrappers = file_get_stream_wrappers();
     $this->assertFalse(isset($stream_wrappers['dummy']));
-    $this->moduleHandler()->install(['file_test']);
+    $this->moduleInstaller()->install(['file_test']);
     // Verify that the stream wrapper is available even without calling
     // file_get_stream_wrappers() again. If the stream wrapper is not available
     // file_exists() will raise a notice.
@@ -251,6 +305,15 @@ class ModuleHandlerTest extends KernelTestBase {
    */
   protected function moduleHandler() {
     return $this->container->get('module_handler');
+  }
+
+  /**
+   * Returns the ModuleInstaller.
+   *
+   * @return \Drupal\Core\Extension\ModuleInstallerInterface
+   */
+  protected function moduleInstaller() {
+    return $this->container->get('module_installer');
   }
 
 }

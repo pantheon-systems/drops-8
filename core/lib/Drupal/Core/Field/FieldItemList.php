@@ -101,11 +101,9 @@ class FieldItemList extends ItemList implements FieldItemListInterface {
    * {@inheritdoc}
    */
   public function filterEmptyItems() {
-    if (isset($this->list)) {
-      $this->list = array_values(array_filter($this->list, function($item) {
-        return !$item->isEmpty();
-      }));
-    }
+    $this->filter(function ($item) {
+      return !$item->isEmpty();
+    });
   }
 
   /**
@@ -336,6 +334,9 @@ class FieldItemList extends ItemList implements FieldItemListInterface {
     // Extract the submitted value, and validate it.
     $widget = $this->defaultValueWidget($form_state);
     $widget->extractFormValues($this, $element, $form_state);
+    // Force a non-required field definition.
+    // @see self::defaultValueWidget().
+    $this->definition->required = FALSE;
     $violations = $this->validate();
 
     // Assign reported errors to the correct form element.

@@ -7,6 +7,7 @@
 
 namespace Drupal\block\Tests;
 
+use Drupal\Component\Utility\Html;
 use Drupal\simpletest\WebTestBase;
 
 /**
@@ -17,11 +18,11 @@ use Drupal\simpletest\WebTestBase;
 class BlockUiTest extends WebTestBase {
 
   /**
-   * Modules to enable.
+   * Modules to install.
    *
    * @var array
    */
-  public static $modules = array('block', 'block_test');
+  public static $modules = array('block', 'block_test', 'help');
 
   protected $regions;
 
@@ -80,9 +81,9 @@ class BlockUiTest extends WebTestBase {
    * Test block demo page exists and functions correctly.
    */
   public function testBlockDemoUiPage() {
-    $this->drupalPlaceBlock('system_help_block', array('region' => 'help'));
+    $this->drupalPlaceBlock('help_block', array('region' => 'help'));
     $this->drupalGet('admin/structure/block');
-    $this->clickLink(t('Demonstrate block regions (@theme)', array('@theme' => 'Stark')));
+    $this->clickLink(t('Demonstrate block regions (@theme)', array('@theme' => 'Classy')));
     $elements = $this->xpath('//div[contains(@class, "region-highlighted")]/div[contains(@class, "block-region") and contains(text(), :title)]', array(':title' => 'Highlighted'));
     $this->assertTrue(!empty($elements), 'Block demo regions are shown.');
   }
@@ -134,7 +135,7 @@ class BlockUiTest extends WebTestBase {
     $arguments = array(
       ':ul_class' => 'block-list',
       ':li_class' => 'test-block-instantiation',
-      ':href' => 'admin/structure/block/add/test_block_instantiation/stark',
+      ':href' => 'admin/structure/block/add/test_block_instantiation/classy',
       ':text' => 'Display message',
     );
 
@@ -158,7 +159,7 @@ class BlockUiTest extends WebTestBase {
     $arguments = array(
       ':ul_class' => 'block-list',
       ':li_class' => 'test-context-aware',
-      ':href' => 'admin/structure/block/add/test_context_aware/stark',
+      ':href' => 'admin/structure/block/add/test_context_aware/classy',
       ':text' => 'Test context-aware block',
     );
 
@@ -173,7 +174,7 @@ class BlockUiTest extends WebTestBase {
    * Tests that the BlockForm populates machine name correctly.
    */
   public function testMachineNameSuggestion() {
-    $url = 'admin/structure/block/add/test_block_instantiation/stark';
+    $url = 'admin/structure/block/add/test_block_instantiation/classy';
     $this->drupalGet($url);
     $this->assertFieldByName('id', 'displaymessage', 'Block form uses raw machine name suggestion when no instance already exists.');
     $this->drupalPostForm($url, array(), 'Save block');
@@ -195,16 +196,16 @@ class BlockUiTest extends WebTestBase {
     // Select the 'Powered by Drupal' block to be placed.
     $block = array();
     $block['id'] = strtolower($this->randomMachineName());
-    $block['theme'] = 'stark';
+    $block['theme'] = 'classy';
     $block['region'] = 'content';
 
     // After adding a block, it will indicate which block was just added.
     $this->drupalPostForm('admin/structure/block/add/system_powered_by_block', $block, t('Save block'));
-    $this->assertUrl('admin/structure/block/list/stark?block-placement=' . drupal_html_class($block['id']));
+    $this->assertUrl('admin/structure/block/list/classy?block-placement=' . Html::getClass($block['id']));
 
     // Resaving the block page will remove the block indicator.
     $this->drupalPostForm(NULL, array(), t('Save blocks'));
-    $this->assertUrl('admin/structure/block/list/stark');
+    $this->assertUrl('admin/structure/block/list/classy');
   }
 
 }

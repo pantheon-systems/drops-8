@@ -1,8 +1,17 @@
-base_field: tid
-base_table: taxonomy_term_data
-core: 8.x
-description: ''
+langcode: en
 status: true
+dependencies:
+  module:
+    - taxonomy
+    - user
+id: test_taxonomy_parent
+label: test_taxonomy_parent
+module: views
+description: ''
+tag: ''
+base_table: taxonomy_term_data
+base_field: tid
+core: 8.x
 display:
   default:
     display_plugin: default
@@ -87,7 +96,7 @@ display:
             html: false
           hide_empty: false
           empty_zero: false
-          link_to_taxonomy: 1
+          link_to_taxonomy: true
           relationship: none
           group_type: group
           admin_label: ''
@@ -103,6 +112,9 @@ display:
           empty: ''
           hide_alter_empty: true
           convert_spaces: false
+          plugin_id: taxonomy
+          entity_type: taxonomy_term
+          entity_field: name
       filters: {  }
       sorts: {  }
       header: {  }
@@ -119,11 +131,5 @@ display:
           required: true
           plugin_id: standard
       arguments: {  }
-label: test_taxonomy_parent
-module: views
-id: test_taxonomy_parent
-tag: ''
-langcode: en
-dependencies:
-  module:
-    - taxonomy
+      field_langcode: '***LANGUAGE_language_content***'
+      field_langcode_add_to_query: null

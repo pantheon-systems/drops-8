@@ -1,20 +1,17 @@
-base_field: iid
-base_table: aggregator_item
-core: 8.x
-description: ''
+langcode: en
 status: true
+dependencies:
+  module:
+    - aggregator
+id: test_aggregator_items
+label: test_aggregator_items
+module: views
+description: ''
+tag: ''
+base_table: aggregator_item
+base_field: iid
+core: 8.x
 display:
-  feed_1:
-    display_plugin: feed
-    id: feed_1
-    display_title: Feed
-    position: null
-    display_options:
-      path: test-aggregator-items-feed
-      row:
-        type: aggregator_rss
-        options:
-          view_mode: default
   default:
     display_plugin: default
     id: default
@@ -41,6 +38,8 @@ display:
           field: iid
           id: iid
           plugin_id: numeric
+          entity_type: aggregator_item
+          entity_field: iid
         title:
           table: aggregator_item
           field: title
@@ -73,11 +72,15 @@ display:
             trim: false
             preserve_tags: ''
             html: false
+          entity_type: aggregator_item
+          entity_field: title
         timestamp:
           table: aggregator_item
           field: timestamp
           id: timestamp
           plugin_id: date
+          entity_type: aggregator_item
+          entity_field: timestamp
         author:
           table: aggregator_item
           field: author
@@ -110,6 +113,8 @@ display:
             trim: false
             preserve_tags: ''
             html: false
+          entity_type: aggregator_item
+          entity_field: author
         description:
           id: description
           table: aggregator_item
@@ -159,10 +164,22 @@ display:
           empty_zero: false
           hide_alter_empty: true
           plugin_id: aggregator_xss
+          entity_type: aggregator_item
+          entity_field: description
       filters: {  }
       sorts: {  }
-label: test_aggregator_items
-module: views
-id: test_aggregator_items
-tag: ''
-langcode: en
+      field_langcode: '***LANGUAGE_language_content***'
+      field_langcode_add_to_query: null
+  feed_1:
+    display_plugin: feed
+    id: feed_1
+    display_title: Feed
+    position: null
+    display_options:
+      path: test-aggregator-items-feed
+      row:
+        type: aggregator_rss
+        options:
+          view_mode: default
+      field_langcode: '***LANGUAGE_language_content***'
+      field_langcode_add_to_query: null

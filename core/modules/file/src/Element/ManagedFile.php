@@ -9,6 +9,7 @@ namespace Drupal\file\Element;
 
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element\FormElement;
+use Drupal\Core\Url;
 use Drupal\file\Entity\File;
 
 /**
@@ -144,7 +145,7 @@ class ManagedFile extends FormElement {
     $element['#tree'] = TRUE;
 
     $ajax_settings = [
-      'path' => 'file/ajax',
+      'url' => Url::fromRoute('file.ajax_upload'),
       'options' => [
         'query' => [
           'element_parents' => implode('/', $element['#array_parents']),
@@ -219,7 +220,7 @@ class ManagedFile extends FormElement {
       }
 
       // Add the upload progress callback.
-      $element['upload_button']['#ajax']['progress']['path'] = 'file/progress/' . $upload_progress_key;
+      $element['upload_button']['#ajax']['progress']['url'] = Url::fromRoute('file.ajax_progress');
     }
 
     // The file upload field itself.
@@ -255,10 +256,7 @@ class ManagedFile extends FormElement {
     // Add the extension list to the page as JavaScript settings.
     if (isset($element['#upload_validators']['file_validate_extensions'][0])) {
       $extension_list = implode(',', array_filter(explode(' ', $element['#upload_validators']['file_validate_extensions'][0])));
-      $element['upload']['#attached']['js'] = [[
-        'type' => 'setting',
-        'data' => ['file' => ['elements' => ['#' . $element['#id'] => $extension_list]]],
-      ]];
+      $element['upload']['#attached']['drupalSettings']['file']['elements']['#' . $element['#id']] = $extension_list;
     }
 
     // Prefix and suffix used for Ajax replacement.

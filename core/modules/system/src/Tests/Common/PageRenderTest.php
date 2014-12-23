@@ -7,6 +7,7 @@
 
 namespace Drupal\system\Tests\Common;
 
+use Drupal\Core\Render\MainContent\HtmlRenderer;
 use Drupal\simpletest\KernelTestBase;
 
 /**
@@ -20,7 +21,10 @@ class PageRenderTest extends KernelTestBase {
    * Tests hook_page_attachments() exceptions.
    */
   function testHookPageAttachmentsExceptions() {
-    $this->enableModules(['common_test']);
+    $this->enableModules(['common_test', 'system']);
+    $this->installSchema('system', 'router');
+    \Drupal::service('router.builder')->rebuild();
+
     $this->assertPageRenderHookExceptions('common_test', 'hook_page_attachments');
   }
 
@@ -28,26 +32,11 @@ class PageRenderTest extends KernelTestBase {
    * Tests hook_page_attachments_alter() exceptions.
    */
   function testHookPageAlter() {
-    $this->enableModules(['common_test']);
+    $this->enableModules(['common_test', 'system']);
+    $this->installSchema('system', 'router');
+    \Drupal::service('router.builder')->rebuild();
+
     $this->assertPageRenderHookExceptions('common_test', 'hook_page_attachments_alter');
-  }
-
-  /**
-   * Tests hook_page_build() exceptions, a deprecated hook kept around for BC.
-   */
-  function testHookPageBuildExceptions() {
-    // Also enable the system module, because that module invokes the BC hooks.
-    $this->enableModules(['bc_test', 'system']);
-    $this->assertPageRenderHookExceptions('bc_test', 'hook_page_build');
-  }
-
-  /**
-   * Tests hook_page_alter(), a deprecated hook kept around for BC.
-   */
-  function testHookPageAttachmentsAlter() {
-    // Also enable the system module, because that module invokes the BC hooks.
-    $this->enableModules(['bc_test', 'system']);
-    $this->assertPageRenderHookExceptions('bc_test', 'hook_page_alter');
   }
 
   /**
@@ -59,16 +48,18 @@ class PageRenderTest extends KernelTestBase {
    *   The page render hook to assert expected exceptions for.
    */
   function assertPageRenderHookExceptions($module, $hook) {
+    $html_renderer = \Drupal::getContainer()->get('main_content_renderer.html');
+
     // Assert a valid hook implementation doesn't trigger an exception.
     $page = [];
-    drupal_prepare_page($page);
+    $html_renderer->invokePageAttachmentHooks($page);
 
     // Assert an invalid hook implementation doesn't trigger an exception.
     \Drupal::state()->set($module . '.' . $hook . '.descendant_attached', TRUE);
     $assertion = $hook . '() implementation that sets #attached on a descendant triggers an exception';
     $page = [];
     try {
-      drupal_prepare_page($page);
+      $html_renderer->invokePageAttachmentHooks($page);
       $this->error($assertion);
     }
     catch (\LogicException $e) {
@@ -82,7 +73,7 @@ class PageRenderTest extends KernelTestBase {
     $assertion = $hook . '() implementation that sets a child render array triggers an exception';
     $page = [];
     try {
-      drupal_prepare_page($page);
+      $html_renderer->invokePageAttachmentHooks($page);
       $this->error($assertion);
     }
     catch (\LogicException $e) {

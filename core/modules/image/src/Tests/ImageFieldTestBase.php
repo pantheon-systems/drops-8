@@ -45,22 +45,22 @@ abstract class ImageFieldTestBase extends WebTestBase {
       $this->drupalCreateContentType(array('type' => 'article', 'name' => 'Article'));
     }
 
-    $this->admin_user = $this->drupalCreateUser(array('access content', 'access administration pages', 'administer site configuration', 'administer content types', 'administer node fields', 'administer nodes', 'create article content', 'edit any article content', 'delete any article content', 'administer image styles'));
+    $this->admin_user = $this->drupalCreateUser(array('access content', 'access administration pages', 'administer site configuration', 'administer content types', 'administer node fields', 'administer nodes', 'create article content', 'edit any article content', 'delete any article content', 'administer image styles', 'administer node display'));
     $this->drupalLogin($this->admin_user);
   }
 
   /**
    * Create a new image field.
    *
-   * @param $name
+   * @param string $name
    *   The name of the new field (all lowercase), exclude the "field_" prefix.
-   * @param $type_name
+   * @param string $type_name
    *   The node type that this field will be added to.
-   * @param $storage_settings
+   * @param array $storage_settings
    *   A list of field storage settings that will be added to the defaults.
-   * @param $field_settings
+   * @param array $field_settings
    *   A list of instance settings that will be added to the instance defaults.
-   * @param $widget_settings
+   * @param array $widget_settings
    *   A list of widget settings that will be added to the widget defaults.
    */
   function createImageField($name, $type_name, $storage_settings = array(), $field_settings = array(), $widget_settings = array()) {
@@ -78,7 +78,6 @@ abstract class ImageFieldTestBase extends WebTestBase {
       'entity_type' => 'node',
       'bundle' => $type_name,
       'required' => !empty($field_settings['required']),
-      'description' => !empty($field_settings['description']) ? $field_settings['description'] : '',
       'settings' => $field_settings,
     ));
     $field_config->save();

@@ -80,20 +80,6 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
   protected $createdColumn;
 
   /**
-   * A views item configuration array used for a jump-menu field.
-   *
-   * @var array
-   */
-  protected $pathField = array();
-
-  /**
-   * Additional fields required to generate the pathField.
-   *
-   * @var array
-   */
-  protected $pathFieldsSupplemental = array();
-
-  /**
    * Views items configuration arrays for filters added by the wizard.
    *
    * @var array
@@ -153,30 +139,6 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
    */
   public function getCreatedColumn() {
     return $this->createdColumn;
-  }
-
-  /**
-   * Gets the pathField property.
-   *
-   * @return array
-   *   The pathField array.
-   *
-   * @todo Rename this to be something about jump menus, and/or resolve this
-   *   dependency.
-   */
-  public function getPathField() {
-    return $this->pathField;
-  }
-
-  /**
-   * Gets the pathFieldsSupplemental property.
-   *
-   * @return array()
-   *
-   * @todo Rename this to be something about jump menus, and/or remove this.
-   */
-  public function getPathFieldsSupplemental() {
-    return $this->pathFieldsSupplemental;
   }
 
   /**
@@ -848,9 +810,16 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
     // Add a least one field so the view validates and the user has a preview.
     // The base field can provide a default in its base settings; otherwise,
     // choose the first field with a field handler.
-    $data = Views::viewsData()->get($this->base_table);
+    $default_table = $this->base_table;
+    $data = Views::viewsData()->get($default_table);
     if (isset($data['table']['base']['defaults']['field'])) {
       $default_field = $data['table']['base']['defaults']['field'];
+      // If the table for the default field is different to the base table,
+      // load the view table data for this table.
+      if (isset($data['table']['base']['defaults']['table']) && $data['table']['base']['defaults']['table'] != $default_table) {
+        $default_table = $data['table']['base']['defaults']['table'];
+        $data = Views::viewsData()->get($default_table);
+      }
     }
     else {
       foreach ($data as $default_field => $field_data) {
@@ -859,15 +828,16 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
         }
       }
     }
+    // @todo refactor the code to use ViewExecutable::addHandler, see
+    //   https://drupal.org/node/2383157
     $display_options['fields'][$default_field] = array(
-      'table' => $this->base_table,
+      'table' => $default_table,
       'field' => $default_field,
       'id' => $default_field,
+      'entity_type' => isset($data[$default_field]['entity type']) ? $data[$default_field]['entity type'] : NULL,
+      'entity_field' => isset($data[$default_field]['entity field']) ? $data[$default_field]['entity field'] : NULL,
+      'plugin_id' => $data[$default_field]['field']['id'],
     );
-
-    // Load the plugin ID and module.
-    $base_field = $data['table']['base']['field'];
-    $display_options['fields'][$base_field]['plugin_id'] = $data[$base_field]['field']['id'];
 
     return $display_options;
   }
@@ -951,6 +921,9 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
         'table' => $table,
         'field' => $bundle_key,
         'value' => $value,
+        'entity_type' => isset($table_data['table']['entity type']) ? $table_data['table']['entity type'] : NULL,
+        'entity_field' => isset($table_data[$bundle_key]['entity field']) ? $table_data[$bundle_key]['entity field'] : NULL,
+        'plugin_id' => $handler,
       );
     }
 
@@ -1027,6 +1000,9 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
           'table' => $table,
           'field' => $column,
           'order' => $sort,
+          'entity_type' => isset($data['table']['entity type']) ? $data['table']['entity type'] : NULL,
+          'entity_field' => isset($data[$column]['entity field']) ? $data[$column]['entity field'] : NULL,
+          'plugin_id' => $data[$column]['sort']['id'],
        );
       }
     }
@@ -1158,11 +1134,11 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
    * @param array $options
    *   An array whose keys are the name of each option and whose values are the
    *   desired values to set.
-   * @param \Drupal\views\View\plugin\display\DisplayPluginBase $display
+   * @param \Drupal\views\Plugin\views\display\DisplayPluginBase $display
    *   The display handler which the options will be applied to. The default
    *   display will actually be assigned the options (and this display will
    *   inherit them) when possible.
-   * @param \Drupal\views\View\plugin\display\DisplayPluginBase $default_display
+   * @param \Drupal\views\Plugin\views\display\DisplayPluginBase $default_display
    *   The default display handler, which will store the options when possible.
    */
   protected function setDefaultOptions($options, DisplayPluginBase $display, DisplayPluginBase $default_display) {
@@ -1194,11 +1170,11 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
    * @param array $options
    *   An array whose keys are the name of each option and whose values are the
    *   desired values to set.
-   * @param \Drupal\views\View\plugin\display\DisplayPluginBase $display
+   * @param \Drupal\views\Plugin\views\display\DisplayPluginBase $display
    *   The display handler which the options will be applied to. The default
    *   display will actually be assigned the options (and this display will
    *   inherit them) when possible.
-   * @param \Drupal\views\View\plugin\display\DisplayPluginBase $default_display
+   * @param \Drupal\views\Plugin\views\display\DisplayPluginBase $default_display
    *   The default display handler, which will store the options when possible.
    */
   protected function setOverrideOptions(array $options, DisplayPluginBase $display, DisplayPluginBase $default_display) {

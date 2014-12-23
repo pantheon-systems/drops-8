@@ -7,7 +7,7 @@
 
 namespace Drupal\Core\Installer\Form;
 
-use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Locale\CountryManagerInterface;
@@ -35,11 +35,11 @@ class SiteConfigureForm extends FormBase {
   protected $state;
 
   /**
-   * The module handler.
+   * The module installer.
    *
-   * @var \Drupal\Core\Extension\ModuleHandlerInterface
+   * @var \Drupal\Core\Extension\ModuleInstallerInterface
    */
-  protected $moduleHandler;
+  protected $moduleInstaller;
 
   /**
    * The country manager.
@@ -49,21 +49,31 @@ class SiteConfigureForm extends FormBase {
   protected $countryManager;
 
   /**
+   * The app root.
+   *
+   * @var string
+   */
+  protected $root;
+
+  /**
    * Constructs a new SiteConfigureForm.
    *
+   * @param string $root
+   *   The app root.
    * @param \Drupal\user\UserStorageInterface $user_storage
    *   The user storage.
    * @param \Drupal\Core\State\StateInterface $state
    *   The state service.
-   * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
-   *   The module handler.
+   * @param \Drupal\Core\Extension\ModuleInstallerInterface $module_installer
+   *   The module installer.
    * @param \Drupal\Core\Locale\CountryManagerInterface $country_manager
    *   The country manager.
    */
-  public function __construct(UserStorageInterface $user_storage, StateInterface $state, ModuleHandlerInterface $module_handler, CountryManagerInterface $country_manager) {
+  public function __construct($root, UserStorageInterface $user_storage, StateInterface $state, ModuleInstallerInterface $module_installer, CountryManagerInterface $country_manager) {
+    $this->root = $root;
     $this->userStorage = $user_storage;
     $this->state = $state;
-    $this->moduleHandler = $module_handler;
+    $this->moduleInstaller = $module_installer;
     $this->countryManager = $country_manager;
   }
 
@@ -72,9 +82,10 @@ class SiteConfigureForm extends FormBase {
    */
   public static function create(ContainerInterface $container) {
     return new static(
+      $container->get('app.root'),
       $container->get('entity.manager')->getStorage('user'),
       $container->get('state'),
-      $container->get('module_handler'),
+      $container->get('module_installer'),
       $container->get('country_manager')
     );
   }
@@ -103,7 +114,7 @@ class SiteConfigureForm extends FormBase {
     // distract from the message that the Drupal installation has completed
     // successfully.)
     $post_params = $this->getRequest()->request->all();
-    if (empty($post_params) && (!drupal_verify_install_file(DRUPAL_ROOT . '/' . $settings_file, FILE_EXIST|FILE_READABLE|FILE_NOT_WRITABLE) || !drupal_verify_install_file(DRUPAL_ROOT . '/' . $settings_dir, FILE_NOT_WRITABLE, 'dir'))) {
+    if (empty($post_params) && (!drupal_verify_install_file($this->root . '/' . $settings_file, FILE_EXIST|FILE_READABLE|FILE_NOT_WRITABLE) || !drupal_verify_install_file($this->root . '/' . $settings_dir, FILE_NOT_WRITABLE, 'dir'))) {
       drupal_set_message(t('All necessary changes to %dir and %file have been made, so you should remove write permissions to them now in order to avoid security risks. If you are unsure how to do so, consult the <a href="@handbook_url">online handbook</a>.', array('%dir' => $settings_dir, '%file' => $settings_file, '@handbook_url' => 'http://drupal.org/server-permissions')), 'warning');
     }
 
@@ -112,8 +123,7 @@ class SiteConfigureForm extends FormBase {
     $form['#attached']['library'][] = 'core/drupal.timezone';
     // We add these strings as settings because JavaScript translation does not
     // work during installation.
-    $js = array('copyFieldValue' => array('edit-site-mail' => array('edit-account-mail')));
-    $form['#attached']['js'][] = array('data' => $js, 'type' => 'setting');
+    $form['#attached']['drupalSettings']['copyFieldValue']['edit-site-mail'] = ['edit-account-mail'];
 
     // Cache a fully-built schema. This is necessary for any invocation of
     // index.php because: (1) setting cache table entries requires schema
@@ -253,7 +263,7 @@ class SiteConfigureForm extends FormBase {
     // Enable update.module if this option was selected.
     $update_status_module = $form_state->getValue('update_status_module');
     if ($update_status_module[1]) {
-      $this->moduleHandler->install(array('file', 'update'), FALSE);
+      $this->moduleInstaller->install(array('file', 'update'), FALSE);
 
       // Add the site maintenance account's email address to the list of
       // addresses to be notified when updates are available, if selected.

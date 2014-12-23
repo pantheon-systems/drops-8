@@ -134,6 +134,21 @@ class FieldStorageConfig extends ConfigEntityBase implements FieldStorageConfigI
   public $locked = FALSE;
 
   /**
+   * Flag indicating whether the field storage should be deleted when orphaned.
+   *
+   * By default field storages for configurable fields are removed when there
+   * are no remaining fields using them. If multiple modules provide bundles
+   * which need to use the same field storage then setting this to TRUE will
+   * preserve the field storage regardless of what happens to the bundles. The
+   * classic use case for this is node body field storage since Book, Forum, the
+   * Standard profile and bundle (node type) creation through the UI all use
+   * same field storage.
+   *
+   * @var bool
+   */
+  protected $persist_with_no_fields = FALSE;
+
+  /**
    * The custom storage indexes for the field data storage.
    *
    * This set of indexes is merged with the "default" indexes specified by the
@@ -238,6 +253,13 @@ class FieldStorageConfig extends ConfigEntityBase implements FieldStorageConfigI
     // Clear the derived data about the field.
     unset($this->schema);
 
+    // Filter out unknown settings and make sure all settings are present, so
+    // that a complete field definition is passed to the various hooks and
+    // written to config.
+    $field_type_manager = \Drupal::service('plugin.manager.field.field_type');
+    $default_settings = $field_type_manager->getDefaultStorageSettings($this->type);
+    $this->settings = array_intersect_key($this->settings, $default_settings) + $default_settings;
+
     if ($this->isNew()) {
       $this->preSaveNew($storage);
     }
@@ -288,10 +310,6 @@ class FieldStorageConfig extends ConfigEntityBase implements FieldStorageConfigI
     }
     $this->module = $field_type['provider'];
 
-    // Make sure all settings are present, so that a complete field
-    // definition is passed to the various hooks and written to config.
-    $this->settings += $field_type_manager->getDefaultStorageSettings($this->type);
-
     // Notify the entity manager.
     $entity_manager->onFieldStorageDefinitionCreate($this);
   }
@@ -318,7 +336,6 @@ class FieldStorageConfig extends ConfigEntityBase implements FieldStorageConfigI
   protected function preSaveUpdated(EntityStorageInterface $storage) {
     $module_handler = \Drupal::moduleHandler();
     $entity_manager = \Drupal::entityManager();
-    $field_type_manager = \Drupal::service('plugin.manager.field.field_type');
 
     // Some updates are always disallowed.
     if ($this->type != $this->original->type) {
@@ -327,10 +344,6 @@ class FieldStorageConfig extends ConfigEntityBase implements FieldStorageConfigI
     if ($this->entity_type != $this->original->entity_type) {
       throw new FieldException("Cannot change the entity type for an existing field storage.");
     }
-
-    // Make sure all settings are present, so that a complete field
-    // definition is passed to the various hooks and written to config.
-    $this->settings += $field_type_manager->getDefaultStorageSettings($this->type);
 
     // See if any module forbids the update by throwing an exception. This
     // invokes hook_field_storage_config_update_forbid().
@@ -731,6 +744,15 @@ class FieldStorageConfig extends ConfigEntityBase implements FieldStorageConfigI
    */
   public static function loadByName($entity_type_id, $field_name) {
     return \Drupal::entityManager()->getStorage('field_storage_config')->load($entity_type_id . '.' . $field_name);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function isDeletable() {
+    // The field storage is not deleted, is configured to be removed when there
+    // are no fields and the field storage has no bundles.
+    return !$this->deleted && !$this->persist_with_no_fields && count($this->getBundles()) == 0;
   }
 
 }

@@ -414,14 +414,6 @@ if ($settings['hash_salt']) {
 # $settings['allow_authorize_operations'] = FALSE;
 
 /**
- * Mixed-mode sessions:
- *
- * Set to TRUE to create both secure and insecure sessions when using HTTPS.
- * Defaults to FALSE.
- */
-# $settings['mixed_mode_sessions'] = TRUE;
-
-/**
  * Default mode for for directories and files written by Drupal.
  *
  * Value should be in PHP Octal Notation, with leading zero.
@@ -437,6 +429,21 @@ if ($settings['hash_salt']) {
  * the Drupal installation directory and be accessible over the web.
  */
 # $settings['file_public_path'] = 'sites/default/files';
+
+/**
+ * Private file path:
+ *
+ * A local file system path where private files will be stored. This directory
+ * must be absolute, outside of the the Drupal installation directory and not
+ * accessible over the web.
+ *
+ * Note: Caches need to be cleared when this value is changed to make the
+ * private:// stream wrapper available to the system.
+ *
+ * See http://drupal.org/documentation/modules/file for more information about
+ * securing private files.
+ */
+# $settings['file_private_path'] = '';
 
 /**
  * Session write interval:

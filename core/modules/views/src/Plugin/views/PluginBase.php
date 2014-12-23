@@ -29,9 +29,8 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *   template engine extension).
  *   If a template file should be used, the file has to be placed in the
  *   module's templates folder.
- *   Example: theme = "mymodule_row" of module "mymodule" will implement either
- *   theme_mymodule_row() or mymodule-row.html.twig in the
- *   [..]/modules/mymodule/templates folder.
+ *   Example: theme = "mymodule_row" of module "mymodule" will implement
+ *   mymodule-row.html.twig in the [..]/modules/mymodule/templates folder.
  * - register_theme: (optional) When set to TRUE (default) the theme is
  *   registered automatically. When set to FALSE the plugin reuses an existing
  *   theme implementation, defined by another module or views plugin.
@@ -172,6 +171,34 @@ abstract class PluginBase extends ComponentPluginBase implements ContainerFactor
       }
       else {
         $storage[$option] = $definition['default'];
+      }
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function filterByDefinedOptions(array &$storage) {
+    $this->doFilterByDefinedOptions($storage, $this->defineOptions());
+  }
+
+  /**
+   * Do the work to filter out stored options depending on the defined options.
+   *
+   * @param array $storage
+   *   The stored options.
+   *
+   * @param array $options
+   *   The defined options.
+   */
+  protected function doFilterByDefinedOptions(array &$storage, array $options) {
+    foreach ($storage as $key => $sub_storage) {
+      if (!isset($options[$key])) {
+        unset($storage[$key]);
+      }
+
+      if (isset($options[$key]['contains'])) {
+        $this->doFilterByDefinedOptions($storage[$key], $options[$key]['contains']);
       }
     }
   }

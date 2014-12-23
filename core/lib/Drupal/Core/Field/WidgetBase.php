@@ -7,6 +7,7 @@
 
 namespace Drupal\Core\Field;
 
+use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Component\Utility\SortArray;
 use Drupal\Component\Utility\String;
@@ -126,9 +127,9 @@ abstract class WidgetBase extends PluginSettingsBase implements WidgetInterface 
       '#parents' => array_merge($parents, array($field_name . '_wrapper')),
       '#attributes' => array(
         'class' => array(
-          'field-type-' . drupal_html_class($this->fieldDefinition->getType()),
-          'field-name-' . drupal_html_class($field_name),
-          'field-widget-' . drupal_html_class($this->getPluginId()),
+          'field-type-' . Html::getClass($this->fieldDefinition->getType()),
+          'field-name-' . Html::getClass($field_name),
+          'field-widget-' . Html::getClass($this->getPluginId()),
         ),
       ),
       'widget' => $elements,
@@ -318,7 +319,7 @@ abstract class WidgetBase extends PluginSettingsBase implements WidgetInterface 
         'widget' => $this,
         'items' => $items,
         'delta' => $delta,
-        'default' => !empty($entity->field_ui_default_value),
+        'default' => $this->isDefaultValueWidget($form_state),
       );
       \Drupal::moduleHandler()->alter(array('field_widget_form', 'field_widget_' . $this->getPluginId() . '_form'), $element, $form_state, $context);
     }
@@ -537,6 +538,19 @@ abstract class WidgetBase extends PluginSettingsBase implements WidgetInterface 
   public static function isApplicable(FieldDefinitionInterface $field_definition) {
     // By default, widgets are available for all fields.
     return TRUE;
+  }
+
+  /**
+   * Returns whether the widget used for default value form.
+   *
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   The current state of the form.
+   *
+   * @return bool
+   *   TRUE if a widget used to input default value, FALSE otherwise.
+   */
+  protected function isDefaultValueWidget(FormStateInterface $form_state) {
+    return (bool) $form_state->get('default_value_widget');
   }
 
 }

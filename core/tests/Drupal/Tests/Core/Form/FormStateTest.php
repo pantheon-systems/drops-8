@@ -223,7 +223,7 @@ class FormStateTest extends UnitTestCase {
   }
 
   /**
-   * @covers ::prepareCallback()
+   * @covers ::prepareCallback
    */
   public function testPrepareCallbackValidMethod() {
     $form_state = new FormState();
@@ -233,7 +233,7 @@ class FormStateTest extends UnitTestCase {
   }
 
   /**
-   * @covers ::prepareCallback()
+   * @covers ::prepareCallback
    */
   public function testPrepareCallbackInValidMethod() {
     $form_state = new FormState();
@@ -244,7 +244,7 @@ class FormStateTest extends UnitTestCase {
   }
 
   /**
-   * @covers ::prepareCallback()
+   * @covers ::prepareCallback
    */
   public function testPrepareCallbackArray() {
     $form_state = new FormState();
@@ -512,6 +512,22 @@ class FormStateTest extends UnitTestCase {
       FALSE,
     ];
     return $data;
+  }
+
+  /**
+   * @covers ::getTemporaryValue
+   * @covers ::hasTemporaryValue
+   * @covers ::setTemporaryValue
+   */
+  public function testTemporaryValue() {
+    $form_state = New FormState();
+    $this->assertFalse($form_state->hasTemporaryValue('rainbow_sparkles'));
+    $form_state->setTemporaryValue('rainbow_sparkles', 'yes please');
+    $this->assertSame($form_state->getTemporaryValue('rainbow_sparkles'), 'yes please');
+    $this->assertTrue($form_state->hasTemporaryValue('rainbow_sparkles'), TRUE);
+    $form_state->setTemporaryValue(array('rainbow_sparkles', 'magic_ponies'), 'yes please');
+    $this->assertSame($form_state->getTemporaryValue(array('rainbow_sparkles', 'magic_ponies')), 'yes please');
+    $this->assertTrue($form_state->hasTemporaryValue(array('rainbow_sparkles', 'magic_ponies')), TRUE);
   }
 
 }

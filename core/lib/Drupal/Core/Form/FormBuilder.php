@@ -16,7 +16,6 @@ use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\DependencyInjection\ClassResolverInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Render\Element;
-use Drupal\Core\Site\Settings;
 use Drupal\Core\Theme\ThemeManagerInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -614,9 +613,9 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
 
     $build_info = $form_state->getBuildInfo();
     // If no #theme has been set, automatically apply theme suggestions.
-    // theme_form() itself is in #theme_wrappers and not #theme. Therefore, the
-    // #theme function only has to care for rendering the inner form elements,
-    // not the form itself.
+    // The form theme hook itself, which is rendered by form.html.twig,
+    // is in #theme_wrappers. Therefore, the #theme function only has to care
+    // for rendering the inner form elements, not the form itself.
     if (!isset($form['#theme'])) {
       $form['#theme'] = array($form_id);
       if (isset($build_info['base_form_id'])) {
@@ -694,8 +693,7 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
 
     // Special handling if we're on the top level form element.
     if (isset($element['#type']) && $element['#type'] == 'form') {
-      if (!empty($element['#https']) && Settings::get('mixed_mode_sessions', FALSE) &&
-        !UrlHelper::isExternal($element['#action'])) {
+      if (!empty($element['#https']) && !UrlHelper::isExternal($element['#action'])) {
         global $base_root;
 
         // Not an external URL so ensure that it is secure.

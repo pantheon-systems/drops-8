@@ -116,8 +116,6 @@ class MigrateFieldFormatterSettingsTest extends MigrateDrupalTestBase {
     $expected['weight'] = 2;
     $expected['type'] = 'number_integer';
     $expected['settings'] = array(
-      'scale' => 0,
-      'decimal_separator' => '.',
       'thousand_separator' => ',',
       'prefix_suffix' => TRUE,
     );
@@ -126,6 +124,7 @@ class MigrateFieldFormatterSettingsTest extends MigrateDrupalTestBase {
     $expected['weight'] = 3;
     $expected['type'] = 'number_decimal';
     $expected['settings']['scale'] = 2;
+    $expected['settings']['decimal_separator'] = '.';
     $component = $display->getComponent('field_test_three');
     $this->assertEqual($component, $expected);
 
@@ -178,7 +177,7 @@ class MigrateFieldFormatterSettingsTest extends MigrateDrupalTestBase {
 
     // Test phone field.
     $expected['weight'] = 9;
-    $expected['type'] = 'string';
+    $expected['type'] = 'basic_string';
     $expected['settings'] = array();
     $component = $display->getComponent('field_test_phone');
     $this->assertEqual($component, $expected, "node.story.teaser field_test_phone is of type telephone.");

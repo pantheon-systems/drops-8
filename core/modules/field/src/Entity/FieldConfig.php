@@ -138,9 +138,13 @@ class FieldConfig extends FieldConfigBase implements FieldConfigInterface {
 
     $storage_definition = $this->getFieldStorageDefinition();
 
+    // Filter out unknown settings and make sure all settings are present, so
+    // that a complete field definition is passed to the various hooks and
+    // written to config.
+    $default_settings = $field_type_manager->getDefaultFieldSettings($storage_definition->type);
+    $this->settings = array_intersect_key($this->settings, $default_settings) + $default_settings;
+
     if ($this->isNew()) {
-      // Set the default field settings.
-      $this->settings += $field_type_manager->getDefaultFieldSettings($storage_definition->type);
       // Notify the entity storage.
       $entity_manager->getStorage($this->entity_type)->onFieldDefinitionCreate($this);
     }
@@ -155,8 +159,6 @@ class FieldConfig extends FieldConfigBase implements FieldConfigInterface {
       if ($storage_definition->uuid() != $this->original->getFieldStorageDefinition()->uuid()) {
         throw new FieldException("Cannot change an existing field's storage.");
       }
-      // Set the default field settings.
-      $this->settings += $field_type_manager->getDefaultFieldSettings($storage_definition->type);
       // Notify the entity storage.
       $entity_manager->getStorage($this->entity_type)->onFieldDefinitionUpdate($this, $this->original);
     }
@@ -215,11 +217,12 @@ class FieldConfig extends FieldConfigBase implements FieldConfigInterface {
       return;
     }
 
-    // Delete field storages that have no more fields.
+    // Delete the associated field storages if they are not used anymore and are
+    // not persistent.
     $storages_to_delete = array();
     foreach ($fields as $field) {
       $storage_definition = $field->getFieldStorageDefinition();
-      if (!$field->deleted && empty($field->noFieldDelete) && !$field->isUninstalling() && count($storage_definition->getBundles()) == 0) {
+      if (!$field->deleted && empty($field->noFieldDelete) && !$field->isUninstalling() && $storage_definition->isDeletable()) {
         // Key by field UUID to avoid deleting the same storage twice.
         $storages_to_delete[$storage_definition->uuid()] = $storage_definition;
       }

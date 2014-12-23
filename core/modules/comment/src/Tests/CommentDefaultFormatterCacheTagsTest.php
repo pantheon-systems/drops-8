@@ -20,7 +20,7 @@ use Drupal\system\Tests\Entity\EntityUnitTestBase;
 class CommentDefaultFormatterCacheTagsTest extends EntityUnitTestBase {
 
   /**
-   * Modules to enable.
+   * Modules to install.
    *
    * @var array
    */
@@ -40,7 +40,6 @@ class CommentDefaultFormatterCacheTagsTest extends EntityUnitTestBase {
 
     // Install tables and config needed to render comments.
     $this->installSchema('comment', array('comment_entity_statistics'));
-    $this->installEntitySchema('comment');
     $this->installConfig(array('system', 'filter'));
 
     // Comment rendering generates links, so build the router.

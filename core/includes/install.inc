@@ -466,18 +466,22 @@ function drupal_install_config_directories() {
 
   // Add a randomized config directory name to settings.php, unless it was
   // manually defined in the existing already.
-  if (empty($config_directories)) {
-    $config_directories_hash = Crypt::randomBytesBase64(55);
-    $settings['config_directories'] = array(
-      CONFIG_ACTIVE_DIRECTORY => (object) array(
-        'value' => conf_path() . '/files/config_' . $config_directories_hash . '/active',
-        'required' => TRUE,
-      ),
-      CONFIG_STAGING_DIRECTORY => (object) array(
-        'value' => conf_path() . '/files/config_' . $config_directories_hash . '/staging',
-        'required' => TRUE,
-      ),
-    );
+  $settings = [];
+  $config_directories_hash = Crypt::randomBytesBase64(55);
+  if (empty($config_directories[CONFIG_ACTIVE_DIRECTORY])) {
+    $settings['config_directories'][CONFIG_ACTIVE_DIRECTORY] = (object) [
+      'value' => conf_path() . '/files/config_' . $config_directories_hash . '/active',
+      'required' => TRUE,
+    ];
+  }
+  if (empty($config_directories[CONFIG_STAGING_DIRECTORY])) {
+    $settings['config_directories'][CONFIG_STAGING_DIRECTORY] = (object) [
+      'value' => conf_path() . '/files/config_' . $config_directories_hash . '/staging',
+      'required' => TRUE,
+    ];
+  }
+
+  if (!empty($settings)) {
     // Rewrite settings.php, which also sets the value as global variable.
     drupal_rewrite_settings($settings);
   }
@@ -512,41 +516,6 @@ function drupal_install_config_directories() {
     $text .=  ' For information about deploying configuration between servers, see http://drupal.org/documentation/administer/config';
     file_put_contents(config_get_config_directory($config_type) . '/README.txt', $text);
   }
-}
-
-/**
- * Checks whether a config directory exists and is writable.
- *
- * This partially duplicates install_ensure_config_directory(), but is required
- * since the installer would create the config directory too early in the
- * installation process otherwise (e.g., when only visiting install.php when
- * there is a settings.php already, but not actually executing the
- * installation).
- *
- * @param string $type
- *   Type of config directory to return. Drupal core provides 'active' and
- *   'staging'.
- *
- * @return bool
- *   TRUE if the config directory exists and is writable.
- */
-function install_verify_config_directory($type) {
-  global $config_directories;
-  if (!isset($config_directories[$type])) {
-    return FALSE;
-  }
-  // config_get_config_directory() throws an exception when the passed $type
-  // does not exist in $config_directories. This can happen if there is a
-  // prepared settings.php that defines $config_directories already.
-  try {
-    $config_directory = config_get_config_directory($type);
-    if (is_dir($config_directory) && is_writable($config_directory)) {
-      return TRUE;
-    }
-  }
-  catch (\Exception $e) {
-  }
-  return FALSE;
 }
 
 /**
@@ -593,7 +562,7 @@ function drupal_verify_profile($install_state) {
   $info = $install_state['profile_info'];
 
   // Get the list of available modules for the selected installation profile.
-  $listing = new ExtensionDiscovery();
+  $listing = new ExtensionDiscovery(DRUPAL_ROOT);
   $present_modules = array();
   foreach ($listing->scan('module') as $present_module) {
     $present_modules[] = $present_module->getName();
@@ -650,7 +619,7 @@ function drupal_install_system($install_state) {
   \Drupal::service('config.installer')->installDefaultConfig('core', 'core');
 
   // Install System module and rebuild the newly available routes.
-  $kernel->getContainer()->get('module_handler')->install(array('system'), FALSE);
+  $kernel->getContainer()->get('module_installer')->install(array('system'), FALSE);
   \Drupal::service('router.builder')->rebuild();
 
   // Ensure default language is saved.

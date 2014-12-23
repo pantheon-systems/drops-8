@@ -12,6 +12,7 @@ use Drupal\Core\Entity\ContentEntityForm;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Entity\EntityManagerInterface;
+use Drupal\language\Entity\ContentLanguageSettings;
 use Drupal\user\TempStoreFactory;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\user\Entity\User;
@@ -27,6 +28,11 @@ class NodeForm extends ContentEntityForm {
    * @var \Drupal\user\TempStoreFactory
    */
   protected $tempStoreFactory;
+
+  /**
+   * Whether this node has been previewed or not.
+   */
+  protected $hasBeenPreviewed = FALSE;
 
   /**
    * Constructs a ContentEntityForm object.
@@ -86,6 +92,8 @@ class NodeForm extends ContentEntityForm {
       $form_state->setRebuild();
       $this->entity = $preview->getFormObject()->getEntity();
       unset($this->entity->in_preview);
+
+      $this->hasBeenPreviewed = TRUE;
     }
 
     /** @var \Drupal\node\NodeInterface $node */
@@ -108,13 +116,13 @@ class NodeForm extends ContentEntityForm {
       '#default_value' => $node->getChangedTime(),
     );
 
-    $language_configuration = \Drupal::moduleHandler()->invoke('language', 'get_default_configuration', array('node', $node->getType()));
     $form['langcode'] = array(
       '#title' => t('Language'),
       '#type' => 'language_select',
       '#default_value' => $node->getUntranslated()->language()->getId(),
       '#languages' => LanguageInterface::STATE_ALL,
-      '#access' => isset($language_configuration['language_show']) && $language_configuration['language_show'],
+      // Language module may expose or hide this element, see language_form_alter().
+      '#access' => FALSE,
     );
 
     $form['advanced'] = array(
@@ -205,6 +213,8 @@ class NodeForm extends ContentEntityForm {
       $form['sticky']['#group'] = 'options';
     }
 
+    $form['#attached']['library'][] = 'node/form';
+
     return $form;
   }
 
@@ -216,7 +226,7 @@ class NodeForm extends ContentEntityForm {
     $node = $this->entity;
     $preview_mode = $node->type->entity->getPreviewMode();
 
-    $element['submit']['#access'] = $preview_mode != DRUPAL_REQUIRED || (!$form_state->getErrors() && $form_state->get('node_preview'));
+    $element['submit']['#access'] = $preview_mode != DRUPAL_REQUIRED || $this->hasBeenPreviewed;
 
     // If saving is an option, privileged users get dedicated form submit
     // buttons to adjust the publishing status while saving in one go.

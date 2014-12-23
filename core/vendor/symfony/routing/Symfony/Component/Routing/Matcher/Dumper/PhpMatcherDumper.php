@@ -14,6 +14,7 @@ namespace Symfony\Component\Routing\Matcher\Dumper;
 use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
 use Symfony\Component\ExpressionLanguage\ExpressionLanguage;
+use Symfony\Component\ExpressionLanguage\ExpressionFunctionProviderInterface;
 
 /**
  * PhpMatcherDumper creates a PHP class able to match URLs for a given set of routes.
@@ -25,6 +26,11 @@ use Symfony\Component\ExpressionLanguage\ExpressionLanguage;
 class PhpMatcherDumper extends MatcherDumper
 {
     private $expressionLanguage;
+
+    /**
+     * @var ExpressionFunctionProviderInterface[]
+     */
+    private $expressionLanguageProviders = array();
 
     /**
      * Dumps a set of routes to a PHP class.
@@ -41,7 +47,7 @@ class PhpMatcherDumper extends MatcherDumper
     public function dump(array $options = array())
     {
         $options = array_replace(array(
-            'class'      => 'ProjectUrlMatcher',
+            'class' => 'ProjectUrlMatcher',
             'base_class' => 'Symfony\\Component\\Routing\\Matcher\\UrlMatcher',
         ), $options);
 
@@ -78,10 +84,15 @@ class {$options['class']} extends {$options['base_class']}
 EOF;
     }
 
+    public function addExpressionLanguageProvider(ExpressionFunctionProviderInterface $provider)
+    {
+        $this->expressionLanguageProviders[] = $provider;
+    }
+
     /**
      * Generates the code for the match method implementing UrlMatcherInterface.
      *
-     * @param bool    $supportsRedirections Whether redirections are supported by the base class
+     * @param bool $supportsRedirections Whether redirections are supported by the base class
      *
      * @return string Match method as PHP code
      */
@@ -393,7 +404,7 @@ EOF;
             if (!class_exists('Symfony\Component\ExpressionLanguage\ExpressionLanguage')) {
                 throw new \RuntimeException('Unable to use expressions as the Symfony ExpressionLanguage component is not installed.');
             }
-            $this->expressionLanguage = new ExpressionLanguage();
+            $this->expressionLanguage = new ExpressionLanguage(null, $this->expressionLanguageProviders);
         }
 
         return $this->expressionLanguage;

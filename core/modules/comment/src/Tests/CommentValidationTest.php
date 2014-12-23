@@ -18,7 +18,7 @@ use Drupal\system\Tests\Entity\EntityUnitTestBase;
 class CommentValidationTest extends EntityUnitTestBase {
 
   /**
-   * Modules to enable.
+   * Modules to install.
    *
    * @var array
    */
@@ -29,8 +29,6 @@ class CommentValidationTest extends EntityUnitTestBase {
    */
   protected function setUp() {
     parent::setUp();
-    $this->installEntitySchema('node');
-    $this->installEntitySchema('comment');
     $this->installSchema('comment', array('comment_entity_statistics'));
   }
 

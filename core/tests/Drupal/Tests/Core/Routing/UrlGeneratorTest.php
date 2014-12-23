@@ -11,7 +11,6 @@ use Drupal\Core\PathProcessor\PathProcessorAlias;
 use Drupal\Core\PathProcessor\PathProcessorManager;
 use Drupal\Core\Routing\RequestContext;
 use Drupal\Core\Routing\UrlGenerator;
-use Drupal\Core\Site\Settings;
 use Drupal\Tests\UnitTestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -31,13 +30,6 @@ class UrlGeneratorTest extends UnitTestCase {
    * @var \Drupal\Core\Routing\UrlGenerator
    */
   protected $generator;
-
-  /**
-   * A second url generator to test, set to assume mixed-mode sessions.
-   *
-   * @var \Drupal\Core\Routing\UrlGenerator
-   */
-  protected $generatorMixedMode;
 
   /**
    * The alias manager.
@@ -137,14 +129,9 @@ class UrlGeneratorTest extends UnitTestCase {
 
     $config_factory_stub = $this->getConfigFactoryStub(array('system.filter' => array('protocols' => array('http', 'https'))));
 
-    $generator = new UrlGenerator($provider, $processor_manager, $this->routeProcessorManager, $config_factory_stub, new Settings(array()), NULL, $this->requestStack);
+    $generator = new UrlGenerator($provider, $processor_manager, $this->routeProcessorManager, $config_factory_stub, NULL, $this->requestStack);
     $generator->setContext($context);
     $this->generator = $generator;
-
-    // Second generator for mixed-mode sessions.
-    $generator = new UrlGenerator($provider, $processor_manager, $this->routeProcessorManager, $config_factory_stub, new Settings(array('mixed_mode_sessions' => TRUE)), NULL, $this->requestStack);
-    $generator->setContext($context);
-    $this->generatorMixedMode = $generator;
   }
 
   /**
@@ -231,6 +218,51 @@ class UrlGeneratorTest extends UnitTestCase {
   }
 
   /**
+   * Confirms that generated routes will have aliased paths with options.
+   *
+   * @dataProvider providerTestAliasGenerationWithOptions
+   */
+  public function testAliasGenerationWithOptions($route_name, $route_parameters, $options, $expected) {
+    $url = $this->generator->generateFromRoute($route_name, $route_parameters, $options);
+    $this->assertSame($expected, $url);
+  }
+
+  /**
+   * Provides test data for testAliasGenerationWithOptions.
+   */
+  public function providerTestAliasGenerationWithOptions() {
+    $data = [];
+    // Extra parameters should appear in the query string.
+    $data[] = [
+      'test_1',
+      ['zoo' => '5'],
+      ['fragment' => 'top'],
+      '/hello/world?zoo=5#top',
+    ];
+    $data[] = [
+      'test_2',
+      ['narf' => '5'],
+      ['query' => ['page' => '1'], 'fragment' => 'bottom'],
+      '/goodbye/cruel/world?page=1#bottom',
+    ];
+    // Changing the parameters, the route still matches but there is no alias.
+    $data[] = [
+      'test_2',
+      ['narf' => '7'],
+      ['query' => ['page' => '1'], 'fragment' => 'bottom'],
+      '/test/two/7?page=1#bottom',
+    ];
+    // Query string values containing '/' should be decoded.
+    $data[] = [
+      'test_2',
+      ['narf' => '7'],
+      ['query' => ['page' => '1/2'], 'fragment' => 'bottom'],
+      '/test/two/7?page=1/2#bottom',
+    ];
+    return $data;
+  }
+
+  /**
    * Tests URL generation from route with trailing start and end slashes.
    */
   public function testGetPathFromRouteTrailing() {
@@ -259,23 +291,44 @@ class UrlGeneratorTest extends UnitTestCase {
   }
 
   /**
+   * Confirms that explicitly setting the base_url works with generated routes
+   */
+  public function testBaseURLGeneration() {
+    $options = array('base_url' => 'http://www.example.com:8888');
+    $url = $this->generator->generateFromRoute('test_1', array(), $options);
+    $this->assertEquals('http://www.example.com:8888/hello/world', $url);
+
+    $options = array('base_url' => 'http://www.example.com:8888', 'https' => TRUE);
+    $url = $this->generator->generateFromRoute('test_1', array(), $options);
+    $this->assertEquals('https://www.example.com:8888/hello/world', $url);
+
+    $options = array('base_url' => 'https://www.example.com:8888', 'https' => FALSE);
+    $url = $this->generator->generateFromRoute('test_1', array(), $options);
+    $this->assertEquals('http://www.example.com:8888/hello/world', $url);
+
+    $this->routeProcessorManager->expects($this->once())
+      ->method('processOutbound')
+      ->with($this->anything());
+
+    $options = array('base_url' => 'http://www.example.com:8888', 'fragment' => 'top');
+    // Extra parameters should appear in the query string.
+    $url = $this->generator->generateFromRoute('test_1', array('zoo' => '5'), $options);
+    $this->assertEquals('http://www.example.com:8888/hello/world?zoo=5#top', $url);
+  }
+
+  /**
    * Test that the 'scheme' route requirement is respected during url generation.
    */
   public function testUrlGenerationWithHttpsRequirement() {
     $url = $this->generator->generate('test_4', array(), TRUE);
     $this->assertEquals('https://localhost/test/four', $url);
 
-    $this->routeProcessorManager->expects($this->exactly(2))
+    $this->routeProcessorManager->expects($this->exactly(1))
       ->method('processOutbound')
       ->with($this->anything());
 
     $options = array('absolute' => TRUE, 'https' => TRUE);
-    // Mixed-mode sessions are not enabled, so the https option is ignored.
     $url = $this->generator->generateFromRoute('test_1', array(), $options);
-    $this->assertEquals('http://localhost/hello/world', $url);
-
-    // Mixed-mode sessions are enabled, so the https option is obeyed.
-    $url = $this->generatorMixedMode->generateFromRoute('test_1', array(), $options);
     $this->assertEquals('https://localhost/hello/world', $url);
   }
 
@@ -293,7 +346,7 @@ class UrlGeneratorTest extends UnitTestCase {
         // To reproduce the values install Drupal like that and use a debugger.
         $server = [
           'SCRIPT_NAME' => '/subdir/index.php',
-          'SCRIPT_FILENAME' => DRUPAL_ROOT . '/index.php',
+          'SCRIPT_FILENAME' => $this->root . '/index.php',
           'SERVER_NAME' => 'http://www.example.com',
         ];
         $request = Request::create('/subdir/' . $script_path, 'GET', [], [], [], $server);

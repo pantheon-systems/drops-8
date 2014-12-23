@@ -10,6 +10,7 @@ namespace Drupal\system\Tests\Entity;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
+use Drupal\field\Entity\FieldConfig;
 use Drupal\system\Tests\Cache\PageCacheTagsTestBase;
 use Drupal\user\Entity\Role;
 
@@ -282,7 +283,7 @@ abstract class EntityCacheTagsTestBase extends PageCacheTagsTestBase {
     $nonempty_entity_listing_path = 'entity_test/list_labels_alphabetically/' . $entity_type;
 
     $render_cache_tags = array('rendered');
-    $theme_cache_tags = array('theme:stark', 'theme_global_settings');
+    $theme_cache_tags = array('theme:classy', 'theme_global_settings');
 
     $view_cache_tag = array();
     if ($this->entity->getEntityType()->hasHandlerClass('view_builder')) {
@@ -326,7 +327,7 @@ abstract class EntityCacheTagsTestBase extends PageCacheTagsTestBase {
     $tags = Cache::mergeTags($render_cache_tags, $theme_cache_tags, $referencing_entity_cache_tags);
     $this->verifyPageCache($referencing_entity_path, 'HIT', $tags);
     // Also verify the existence of an entity render cache entry.
-    $cid = 'entity_view:entity_test:' . $this->referencing_entity->id() . ':full:stark:r.anonymous:' . date_default_timezone_get();
+    $cid = 'entity_view:entity_test:' . $this->referencing_entity->id() . ':full:classy:r.anonymous:' . date_default_timezone_get();
     $tags = Cache::mergeTags($render_cache_tags, $referencing_entity_cache_tags);
     $this->verifyRenderCache($cid, $tags);
 
@@ -336,7 +337,7 @@ abstract class EntityCacheTagsTestBase extends PageCacheTagsTestBase {
     $tags = Cache::mergeTags($render_cache_tags, $theme_cache_tags, $non_referencing_entity_cache_tags);
     $this->verifyPageCache($non_referencing_entity_path, 'HIT', $tags);
     // Also verify the existence of an entity render cache entry.
-    $cid = 'entity_view:entity_test:' . $this->non_referencing_entity->id() . ':full:stark:r.anonymous:' . date_default_timezone_get();
+    $cid = 'entity_view:entity_test:' . $this->non_referencing_entity->id() . ':full:classy:r.anonymous:' . date_default_timezone_get();
     $tags = Cache::mergeTags($render_cache_tags, $non_referencing_entity_cache_tags);
     $this->verifyRenderCache($cid, $tags);
 
@@ -486,7 +487,7 @@ abstract class EntityCacheTagsTestBase extends PageCacheTagsTestBase {
       // is a cache miss.
       $this->pass("Test modification of referenced entity's configurable field.", 'Debug');
       $field_name = $this->entity->getEntityTypeId() . '.' . $this->entity->bundle() . '.configurable_field';
-      $field = entity_load('field_config', $field_name);
+      $field = FieldConfig::load($field_name);
       $field->save();
       $this->verifyPageCache($referencing_entity_path, 'MISS');
       $this->verifyPageCache($listing_path, 'MISS');

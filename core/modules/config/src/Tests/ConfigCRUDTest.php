@@ -11,7 +11,7 @@ use Drupal\Component\Utility\String;
 use Drupal\Core\Config\ConfigNameException;
 use Drupal\Core\Config\ConfigValueException;
 use Drupal\Core\Config\InstallStorage;
-use Drupal\simpletest\DrupalUnitTestBase;
+use Drupal\simpletest\KernelTestBase;
 use Drupal\Core\Config\FileStorage;
 use Drupal\Core\Config\DatabaseStorage;
 use Drupal\Core\Config\UnsupportedDataTypeConfigException;
@@ -21,7 +21,16 @@ use Drupal\Core\Config\UnsupportedDataTypeConfigException;
  *
  * @group config
  */
-class ConfigCRUDTest extends DrupalUnitTestBase {
+class ConfigCRUDTest extends KernelTestBase {
+
+  /**
+   * Exempt from strict schema checking.
+   *
+   * @see \Drupal\Core\Config\Testing\ConfigSchemaChecker
+   *
+   * @var bool
+   */
+  protected $strictConfigSchema = FALSE;
 
   /**
    * Modules to enable.
@@ -178,7 +187,7 @@ class ConfigCRUDTest extends DrupalUnitTestBase {
       $config->save();
       $this->pass($message);
     }
-    catch (\Exception $e) {
+    catch (ConfigNameException $e) {
       $this->fail($message);
     }
 
@@ -213,7 +222,7 @@ class ConfigCRUDTest extends DrupalUnitTestBase {
    * Tests data type handling.
    */
   public function testDataTypes() {
-    \Drupal::moduleHandler()->install(array('config_test'));
+    \Drupal::service('module_installer')->install(array('config_test'));
     $storage = new DatabaseStorage($this->container->get('database'), 'config');
     $name = 'config_test.types';
     $config = $this->container->get('config.factory')->get($name);

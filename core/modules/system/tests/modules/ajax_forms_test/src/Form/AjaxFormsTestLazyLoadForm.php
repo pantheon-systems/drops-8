@@ -30,10 +30,7 @@ class AjaxFormsTestLazyLoadForm extends FormBase {
     // commands will be a settings command. We can then check the settings
     // command to ensure that the 'currentPath' setting is not part
     // of the Ajax response.
-    $form['#attached']['js'][] = array(
-      'type' => 'setting',
-      'data' => array('test' => 'currentPathUpdate'),
-    );
+    $form['#attached']['drupalSettings']['test'] = 'currentPathUpdate';
     $form['add_files'] = array(
       '#title' => $this->t('Add files'),
       '#type' => 'checkbox',
@@ -57,21 +54,17 @@ class AjaxFormsTestLazyLoadForm extends FormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     if ($form_state->getValue('add_files')) {
-      $path = drupal_get_path('module', 'system');
-      $attached = array(
-        '#attached' => array(
-          'css' => array(
-            $path . '/css/system.admin.css' => array(),
-          ),
-          'js' => array(
-            0 => array(
-              'type' => 'setting',
-              'data' => array('ajax_forms_test_lazy_load_form_submit' => 'executed'),
-            ),
-            $path . '/system.js' => array(),
-          ),
-        ),
-      );
+      $attached = [
+        '#attached' => [
+          'library' => [
+            'system/admin',
+            'system/drupal.system',
+          ],
+          'drupalSettings' => [
+            'ajax_forms_test_lazy_load_form_submit' => 'executed',
+          ],
+        ],
+      ];
       drupal_render($attached);
       drupal_process_attached($attached);
     }

@@ -8,6 +8,7 @@
 namespace Drupal\config_translation\Tests;
 
 use Drupal\Component\Utility\Unicode;
+use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\simpletest\WebTestBase;
 
@@ -232,11 +233,10 @@ class ConfigTranslationListUiTest extends WebTestBase {
   public function doContentTypeListTest() {
     // Create a test content type to decouple looking for translate operations
     // link so this does not test more than necessary.
-    $content_type = entity_create('node_type', array(
+    $content_type = $this->drupalCreateContentType(array(
       'type' => Unicode::strtolower($this->randomMachineName(16)),
       'name' => $this->randomMachineName(),
     ));
-    $content_type->save();
 
     // Get the content type listing.
     $this->drupalGet('admin/structure/types');
@@ -383,11 +383,27 @@ class ConfigTranslationListUiTest extends WebTestBase {
    */
   public function doFieldListTest() {
     // Create a base content type.
-    $content_type = entity_create('node_type', array(
+    $content_type = $this->drupalCreateContentType(array(
       'type' => Unicode::strtolower($this->randomMachineName(16)),
       'name' => $this->randomMachineName(),
     ));
-    $content_type->save();
+
+    // Create a block content type.
+    $block_content_type = entity_create('block_content_type', array(
+      'id' => 'basic',
+      'label' => 'Basic',
+      'revision' => FALSE
+    ));
+    $block_content_type->save();
+    $field = entity_create('field_config', array(
+      // The field storage is guaranteed to exist because it is supplied by the
+      // block_content module.
+      'field_storage' => FieldStorageConfig::loadByName('block_content', 'body'),
+      'bundle' => $block_content_type->id(),
+      'label' => 'Body',
+      'settings' => array('display_summary' => FALSE),
+    ));
+    $field->save();
 
     // Look at a few fields on a few entity types.
     $pages = array(

@@ -25,7 +25,7 @@ field.storage.*.*:
       type: string
       label: 'Type'
     settings:
-      type: field.[%parent.type].storage_settings
+      type: field.storage_settings.[%parent.type]
     module:
       type: string
       label: 'Module'
@@ -47,6 +47,9 @@ field.storage.*.*:
           sequence:
             - type: ignore
               label: 'Index'
+    persist_with_no_fields:
+      type: boolean
+      label: 'Persist field storage with no fields'
 
 field.field.*.*.*:
   type: field_config_base

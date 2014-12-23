@@ -196,7 +196,7 @@ class ImageItem extends FileItem {
     $settings = $this->getSettings();
 
     // Add maximum and minimum resolution settings.
-    $max_resolution = explode('×', $settings['max_resolution']) + array('', '');
+    $max_resolution = explode('x', $settings['max_resolution']) + array('', '');
     $element['max_resolution'] = array(
       '#type' => 'item',
       '#title' => t('Maximum image resolution'),
@@ -223,7 +223,7 @@ class ImageItem extends FileItem {
       '#field_suffix' => ' ' . t('pixels'),
     );
 
-    $min_resolution = explode('×', $settings['min_resolution']) + array('', '');
+    $min_resolution = explode('x', $settings['min_resolution']) + array('', '');
     $element['min_resolution'] = array(
       '#type' => 'item',
       '#title' => t('Minimum image resolution'),
@@ -269,7 +269,7 @@ class ImageItem extends FileItem {
       '#weight' => 10,
       '#states' => array(
         'visible' => array(
-          ':input[name="instance[settings][alt_field]"]' => array('checked' => TRUE),
+          ':input[name="field[settings][alt_field]"]' => array('checked' => TRUE),
         ),
       ),
     );
@@ -287,7 +287,7 @@ class ImageItem extends FileItem {
       '#weight' => 12,
       '#states' => array(
         'visible' => array(
-          ':input[name="instance[settings][title_field]"]' => array('checked' => TRUE),
+          ':input[name="field[settings][title_field]"]' => array('checked' => TRUE),
         ),
       ),
     );

@@ -7,7 +7,7 @@
 
 namespace Drupal\Core\Plugin\Context;
 
-use Drupal\Component\Plugin\ContextAwarePluginInterface;
+use Drupal\Core\Plugin\ContextAwarePluginInterface;
 
 /**
  * Provides an interface for handling sets of contexts.
@@ -63,16 +63,16 @@ interface ContextHandlerInterface {
   /**
    * Prepares a plugin for evaluation.
    *
-   * @param \Drupal\Component\Plugin\ContextAwarePluginInterface $plugin
+   * @param \Drupal\Core\Plugin\ContextAwarePluginInterface $plugin
    *   A plugin about to be evaluated.
    * @param \Drupal\Component\Plugin\Context\ContextInterface[] $contexts
    *   An array of contexts to set on the plugin. They will only be set if they
    *   match the plugin's context definitions.
    * @param array $mappings
    *   (optional) A mapping of the expected assignment names to their context
-   *   names. For example, if one of the $contexts is named 'entity', but the
-   *   plugin expects a context named 'node', then this map would contain
-   *   'entity' => 'node'.
+   *   names. For example, if one of the $contexts is named 'current_user', but the
+   *   plugin expects a context named 'user', then this map would contain
+   *   'user' => 'current_user'.
    *
    * @throws \Drupal\Component\Plugin\Exception\ContextException
    *   Thrown when a context assignment was not satisfied.

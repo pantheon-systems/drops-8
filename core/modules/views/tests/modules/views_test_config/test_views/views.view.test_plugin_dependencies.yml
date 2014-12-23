@@ -1,7 +1,21 @@
-base_table: comment
-core: 8.0-dev
+langcode: und
+status: true
+dependencies:
+  module:
+    - comment
+    - views_test_data
+  content:
+    - StaticTest
+    - RowTest
+    - StyleTest
+id: test_plugin_dependencies
+label: test_plugin_dependencies
+module: views
 description: ''
-status: '1'
+tag: default
+base_table: comment
+base_field: nid
+core: 8.0-dev
 display:
   default:
     display_options:
@@ -12,8 +26,7 @@ display:
           default_action: default
           default_argument_type: fixed
           id: 'null'
-          must_not_be: '0'
-          style_plugin: default_summary
+          must_not_be: false
           table: views
           field: null
           plugin_id: 'null'
@@ -27,6 +40,8 @@ display:
           id: cid
           table: comment
           plugin_id: comment
+          entity_type: comment
+          entity_field: cid
       filter_groups:
         groups: {  }
         operator: AND
@@ -35,16 +50,15 @@ display:
         type: full
       query:
         type: views_query
-      relationships:
+      relationships: {  }
       sorts: {  }
       style:
         type: test_style
       row:
         type: test_row
+      field_langcode: '***LANGUAGE_language_content***'
+      field_langcode_add_to_query: null
     display_plugin: default
     display_title: Master
     id: default
     position: 0
-label: test_plugin_dependencies
-id: test_plugin_dependencies
-tag: default

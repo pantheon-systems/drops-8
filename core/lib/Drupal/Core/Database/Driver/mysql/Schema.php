@@ -258,16 +258,16 @@ class Schema extends DatabaseSchema {
     $keys = array();
 
     if (!empty($spec['primary key'])) {
-      $keys[] = 'PRIMARY KEY (' . $this->createKeysSqlHelper($spec['primary key']) . ')';
+      $keys[] = 'PRIMARY KEY (' . $this->createKeySql($spec['primary key']) . ')';
     }
     if (!empty($spec['unique keys'])) {
       foreach ($spec['unique keys'] as $key => $fields) {
-        $keys[] = 'UNIQUE KEY `' . $key . '` (' . $this->createKeysSqlHelper($fields) . ')';
+        $keys[] = 'UNIQUE KEY `' . $key . '` (' . $this->createKeySql($fields) . ')';
       }
     }
     if (!empty($spec['indexes'])) {
       foreach ($spec['indexes'] as $index => $fields) {
-        $keys[] = 'INDEX `' . $index . '` (' . $this->createKeysSqlHelper($fields) . ')';
+        $keys[] = 'INDEX `' . $index . '` (' . $this->createKeySql($fields) . ')';
       }
     }
 
@@ -275,19 +275,6 @@ class Schema extends DatabaseSchema {
   }
 
   protected function createKeySql($fields) {
-    $return = array();
-    foreach ($fields as $field) {
-      if (is_array($field)) {
-        $return[] = '`' . $field[0] . '`(' . $field[1] . ')';
-      }
-      else {
-        $return[] = '`' . $field . '`';
-      }
-    }
-    return implode(', ', $return);
-  }
-
-  protected function createKeysSqlHelper($fields) {
     $return = array();
     foreach ($fields as $field) {
       if (is_array($field)) {
@@ -474,9 +461,6 @@ class Schema extends DatabaseSchema {
   }
 
   public function prepareComment($comment, $length = NULL) {
-    // Work around a bug in some versions of PDO, see http://bugs.php.net/bug.php?id=41125
-    $comment = str_replace("'", '’', $comment);
-
     // Truncate comment to maximum comment length.
     if (isset($length)) {
       // Add table prefixes before truncating.

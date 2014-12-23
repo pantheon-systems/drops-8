@@ -39,7 +39,7 @@ taxonomy.vocabulary.*:
       sequence:
         - type: taxonomy.vocabulary.third_party.[%key]
 
-field.taxonomy_term_reference.storage_settings:
+field.storage_settings.taxonomy_term_reference:
   type: base_entity_reference_field_settings
   label: 'Taxonomy term reference settings'
   mapping:
@@ -60,7 +60,7 @@ field.taxonomy_term_reference.storage_settings:
               type: integer
               value: 'Parent'
 
-field.taxonomy_term_reference.field_settings:
+field.field_settings.taxonomy_term_reference:
   type: mapping
   label: 'Taxonomy term reference settings'
   mapping:
@@ -68,53 +68,40 @@ field.taxonomy_term_reference.field_settings:
       type: string
       label: 'Reference method'
 
-field.taxonomy_term_reference.value:
-  type: sequence
-  label: 'Default values'
-  sequence:
-    - type: mapping
-      label: 'Default value'
-      mapping:
-        target_id:
-          type: integer
-          label: 'Term ID'
-
-entity_view_display.field.entity_reference_rss_category:
-  type: entity_field_view_display_base
-  label: 'Taxonomy format settings'
-
-entity_view_display.field.taxonomy_term_reference_plain:
-  type: entity_field_view_display_base
-  label: 'Taxonomy format settings'
-
-entity_view_display.field.taxonomy_term_reference_rss_category:
-  type: entity_field_view_display_base
-  label: 'Taxonomy format settings'
-
-entity_view_display.field.taxonomy_term_reference_link:
-  type: entity_field_view_display_base
-  label: 'Taxonomy format settings'
+field.value.taxonomy_term_reference:
+  type: mapping
+  label: 'Default value'
   mapping:
-    settings:
-      type: sequence
-      label: 'Settings'
-      sequence:
-        - type: string
+    target_id:
+      type: integer
+      label: 'Term ID'
 
-entity_form_display.field.taxonomy_autocomplete:
-  type: entity_field_form_display_base
+field.formatter.settings.entity_reference_rss_category:
+  type: mapping
+  label: 'Taxonomy format settings'
+
+field.formatter.settings.taxonomy_term_reference_plain:
+  type: mapping
+  label: 'Taxonomy format settings'
+
+field.formatter.settings.taxonomy_term_reference_rss_category:
+  type: mapping
+  label: 'Taxonomy format settings'
+
+field.formatter.settings.taxonomy_term_reference_link:
+  type: mapping
+  label: 'Taxonomy format settings'
+
+field.widget.settings.taxonomy_autocomplete:
+  type: mapping
   label: 'Autocomplete term widget (tagging) format settings'
   mapping:
-    settings:
-      type: mapping
-      label: 'Settings'
-      mapping:
-        size:
-          type: integer
-          label: 'Size'
-        autocomplete_route_name:
-          type: string
-          label: 'Autocomplete route name'
-        placeholder:
-          type: label
-          label: 'Placeholder'
+    size:
+      type: integer
+      label: 'Size'
+    autocomplete_route_name:
+      type: string
+      label: 'Autocomplete route name'
+    placeholder:
+      type: label
+      label: 'Placeholder'

@@ -25,7 +25,7 @@ use Drupal\user\Entity\Role;
 class CommentFieldAccessTest extends EntityUnitTestBase {
 
   /**
-   * Modules to enable.
+   * Modules to install.
    *
    * @var array
    */
@@ -78,7 +78,6 @@ class CommentFieldAccessTest extends EntityUnitTestBase {
   protected function setUp() {
     parent::setUp();
     $this->installConfig(array('user'));
-    $this->installEntitySchema('comment');
     $this->installSchema('comment', array('comment_entity_statistics'));
   }
 

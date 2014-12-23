@@ -7,14 +7,14 @@
 
 namespace Drupal\system\Tests\Theme;
 
-use Drupal\simpletest\DrupalUnitTestBase;
+use Drupal\simpletest\KernelTestBase;
 
 /**
  * Tests built-in table theme functions.
  *
  * @group Theme
  */
-class TableTest extends DrupalUnitTestBase {
+class TableTest extends KernelTestBase {
 
   /**
    * Modules to enable.
@@ -22,6 +22,16 @@ class TableTest extends DrupalUnitTestBase {
    * @var array
    */
   public static $modules = array('system');
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function setUp() {
+    parent::setUp();
+
+    $this->installSchema('system', 'router');
+    \Drupal::service('router.builder')->rebuild();
+  }
 
   /**
    * Tableheader.js provides 'sticky' table headers, and is included by default.

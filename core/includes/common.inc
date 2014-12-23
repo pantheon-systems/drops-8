@@ -22,8 +22,8 @@ use Drupal\Component\Utility\Tags;
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Language\LanguageInterface;
-use Drupal\Core\Render\RenderStackFrame;
 use Drupal\Core\Site\Settings;
+use Drupal\Core\Url;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Request;
 use Drupal\Core\PhpStorage\PhpStorageFactory;
@@ -246,7 +246,6 @@ function drupal_get_html_head($render = TRUE) {
  *   - destination: The path provided via the destination query string or, if
  *     not available, the current path.
  *
- * @see current_path()
  * @ingroup form_api
  */
 function drupal_get_destination() {
@@ -261,7 +260,7 @@ function drupal_get_destination() {
     $destination = array('destination' => $query->get('destination'));
   }
   else {
-    $path = current_path();
+    $path = \Drupal::routeMatch()->getRouteName() ? Url::fromRouteMatch(\Drupal::routeMatch())->getInternalPath() : '';
     $query = UrlHelper::buildQuery(UrlHelper::filterQueryParameters($query->all()));
     if ($query != '') {
       $path .= '?' . $query;
@@ -872,9 +871,7 @@ function _drupal_add_html_head_link($attributes, $header = FALSE) {
  * If CSS aggregation/compression is enabled, all cascading style sheets added
  * with $options['preprocess'] set to TRUE will be merged into one aggregate
  * file and compressed by removing all extraneous white space.
- * Preprocessed inline stylesheets will not be aggregated into this single file;
- * instead, they are just compressed upon output on the page. Externally hosted
- * stylesheets are never aggregated or compressed.
+ * Externally hosted stylesheets are never aggregated or compressed.
  *
  * The reason for aggregating the files is outlined quite thoroughly here:
  * http://www.die.net/musings/page_load_time/ "Load fewer external objects. Due
@@ -900,18 +897,15 @@ function _drupal_add_html_head_link($attributes, $header = FALSE) {
  *     override module-supplied CSS files based on their filenames, and this
  *     prefixing helps prevent confusing name collisions for theme developers.
  *     See drupal_get_css() where the overrides are performed.
- *   - 'inline': A string of CSS that should be placed in the given scope. Note
- *     that it is better practice to use 'file' stylesheets, rather than
- *     'inline', as the CSS would then be aggregated and cached.
  *   - 'external': The absolute path to an external CSS file that is not hosted
  *     on the local server. These files will not be aggregated if CSS
  *     aggregation is enabled.
  * @param $options
  *   (optional) A string defining the 'type' of CSS that is being added in the
- *   $data parameter ('file', 'inline', or 'external'), or an array which can
- *   have any or all of the following keys:
- *   - 'type': The type of stylesheet being added. Available options are 'file',
- *     'inline' or 'external'. Defaults to 'file'.
+ *   $data parameter ('file' or 'external'), or an array which can have any or
+ *   all of the following keys:
+ *   - 'type': The type of stylesheet being added. Available options are 'file'
+ *     or 'external'. Defaults to 'file'.
  *   - 'basename': Force a basename for the file being added. Modules are
  *     expected to use stylesheets with unique filenames, but integration of
  *     external libraries may make this impossible. The basename of
@@ -1028,12 +1022,6 @@ function _drupal_add_css($data = NULL, $options = NULL) {
 
     // Add the data to the CSS array depending on the type.
     switch ($options['type']) {
-      case 'inline':
-        // For inline stylesheets, we don't want to use the $data as the array
-        // key as $data could be a very long string of CSS.
-        $css[] = $options;
-        break;
-
       case 'file':
         // Local CSS files are keyed by basename; if a file with the same
         // basename is added more than once, it gets overridden.
@@ -1117,9 +1105,6 @@ function drupal_get_css($css = NULL, $skip_alter = FALSE, $theme_add_css = TRUE)
     '#type' => 'styles',
     '#items' => $css,
   );
-  if (!empty($setting)) {
-    $styles['#attached']['js'][] = array('type' => 'setting', 'data' => $setting);
-  }
 
   return drupal_render($styles);
 }
@@ -1282,21 +1267,12 @@ function drupal_clean_id_identifier($id) {
 }
 
 /**
- * Adds a JavaScript file, setting, or inline code to the page.
+ * Adds a JavaScript file or setting to the page.
  *
  * The behavior of this function depends on the parameters it is called with.
- * Generally, it handles the addition of JavaScript to the page, either as
- * reference to an existing file or as inline code. The following actions can be
- * performed using this function:
+ * Generally, it handles the addition of JavaScript to the page. The following
+ * actions can be performed using this function:
  * - Add a file ('file'): Adds a reference to a JavaScript file to the page.
- * - Add inline JavaScript code ('inline'): Executes a piece of JavaScript code
- *   on the current page by placing the code directly in the page (for example,
- *   to tell the user that a new message arrived, by opening a pop up, alert
- *   box, etc.). This should only be used for JavaScript that cannot be executed
- *   from a file. When adding inline code, make sure that you are not relying on
- *   $() being the jQuery function. Wrap your code in
- *   @code (function ($) {... })(jQuery); @endcode
- *   or use jQuery() instead of $().
  * - Add external JavaScript ('external'): Allows the inclusion of external
  *   JavaScript files that are not hosted on the local server. Note that these
  *   external JavaScript references do not get aggregated when preprocessing is
@@ -1309,10 +1285,6 @@ function drupal_clean_id_identifier($id) {
  * @code
  *   _drupal_add_js('core/misc/collapse.js');
  *   _drupal_add_js('core/misc/collapse.js', 'file');
- *   _drupal_add_js('jQuery(document).ready(function () { alert("Hello!"); });', 'inline');
- *   _drupal_add_js('jQuery(document).ready(function () { alert("Hello!"); });',
- *     array('type' => 'inline', 'scope' => 'footer', 'weight' => 5)
- *   );
  *   _drupal_add_js('http://example.com/example.js', 'external');
  *   _drupal_add_js(array('myModule' => array('key' => 'value')), 'setting');
  * @endcode
@@ -1322,7 +1294,6 @@ function drupal_clean_id_identifier($id) {
  *
  * If JavaScript aggregation is enabled, all JavaScript files added with
  * $options['preprocess'] set to TRUE will be merged into one aggregate file.
- * Preprocessed inline JavaScript will not be aggregated into this single file.
  * Externally hosted JavaScripts are never aggregated.
  *
  * The reason for aggregating the files is outlined quite thoroughly here:
@@ -1342,7 +1313,6 @@ function drupal_clean_id_identifier($id) {
  *   (optional) If given, the value depends on the $options parameter, or
  *   $options['type'] if $options is passed as an associative array:
  *   - 'file': Path to the file relative to base_path().
- *   - 'inline': The JavaScript code that should be placed in the given scope.
  *   - 'external': The absolute path to an external JavaScript file that is not
  *     hosted on the local server. These files will not be aggregated if
  *     JavaScript aggregation is enabled.
@@ -1354,11 +1324,11 @@ function drupal_clean_id_identifier($id) {
  *     added to the existing settings array.
  * @param $options
  *   (optional) A string defining the type of JavaScript that is being added in
- *   the $data parameter ('file'/'setting'/'inline'/'external'), or an
- *   associative array. JavaScript settings should always pass the string
- *   'setting' only. Other types can have the following elements in the array:
+ *   the $data parameter ('file'/'setting'/'external'), or an associative array.
+ *   JavaScript settings should always pass the string 'setting' only. Other
+ *   types can have the following elements in the array:
  *   - type: The type of JavaScript that is to be added to the page. Allowed
- *     values are 'file', 'inline', 'external' or 'setting'. Defaults
+ *     values are 'file', 'external' or 'setting'. Defaults
  *     to 'file'.
  *   - scope: The location in which you want to place the script. Possible
  *     values are 'header' or 'footer'. If your theme implements different
@@ -1460,56 +1430,18 @@ function _drupal_add_js($data = NULL, $options = NULL) {
     switch ($options['type']) {
       case 'setting':
         // If the setting array doesn't exist, add defaults values.
-        if (!isset($javascript['settings'])) {
-          $javascript['settings'] = array(
+        if (!isset($javascript['drupalSettings'])) {
+          $javascript['drupalSettings'] = array(
             'type' => 'setting',
             'scope' => 'header',
             'group' => JS_SETTING,
             'every_page' => TRUE,
             'weight' => 0,
             'browsers' => array(),
-          );
-          // url() generates the script and prefix using hook_url_outbound_alter().
-          // Instead of running the hook_url_outbound_alter() again here, extract
-          // them from url().
-          // @todo Make this less hacky: http://drupal.org/node/1547376.
-          $scriptPath = $GLOBALS['script_path'];
-          $pathPrefix = '';
-          $current_query = \Drupal::service('request_stack')->getCurrentRequest()->query->all();
-          _url('', array('script' => &$scriptPath, 'prefix' => &$pathPrefix));
-          $current_path = current_path();
-          $current_path_is_admin = FALSE;
-          // The function path_is_admin() is not available on update.php pages.
-          if (!(defined('MAINTENANCE_MODE'))) {
-            $current_path_is_admin = \Drupal::service('router.admin_context')->isAdminRoute();
-          }
-          $path = array(
-            'basePath' => base_path(),
-            'scriptPath' => $scriptPath,
-            'pathPrefix' => $pathPrefix,
-            'currentPath' => $current_path,
-            'currentPathIsAdmin' => $current_path_is_admin,
-            'isFront' => drupal_is_front_page(),
-            'currentLanguage' => \Drupal::languageManager()->getCurrentLanguage(LanguageInterface::TYPE_URL)->getId(),
-          );
-          if (!empty($current_query)) {
-            ksort($current_query);
-            $path['currentQuery'] = (object) $current_query;
-          }
-          $javascript['settings']['data'][] = array(
-            'path' => $path,
-            'locale' => array(
-              'pluralDelimiter' => LOCALE_PLURAL_DELIMITER,
-            ),
+            'data' => array(),
           );
         }
-        // All JavaScript settings are placed in the header of the page with
-        // the library weight so that inline scripts appear afterwards.
-        $javascript['settings']['data'][] = $data;
-        break;
-
-      case 'inline':
-        $javascript[] = $options;
+        $javascript['drupalSettings']['data'] = NestedArray::mergeDeepArray([$javascript['drupalSettings']['data'], $data], TRUE);
         break;
 
       default: // 'file' and 'external'
@@ -1551,8 +1483,8 @@ function drupal_js_defaults($data = NULL) {
  *
  * References to JavaScript files are placed in a certain order: first, all
  * 'core' files, then all 'module' and finally all 'theme' JavaScript files
- * are added to the page. Then, all settings are output, followed by 'inline'
- * JavaScript code. If running update.php, all preprocessing is disabled.
+ * are added to the page. Then, all settings are output. If running update.php,
+ * all preprocessing is disabled.
  *
  * Note that hook_js_alter(&$javascript) is called during this function call
  * to allow alterations of the JavaScript during its presentation. Calls to
@@ -1609,21 +1541,21 @@ function drupal_get_js($scope = 'header', $javascript = NULL, $skip_alter = FALS
     uasort($items, 'drupal_sort_css_js');
     // Don't add settings if there is no other JavaScript on the page, unless
     // this is an AJAX request.
-    if (!empty($items['settings']) || $is_ajax) {
+    if (!empty($items['drupalSettings']) || $is_ajax) {
       $theme_key = \Drupal::theme()->getActiveTheme()->getName();
       // Provide the page with information about the theme that's used, so that
       // a later AJAX request can be rendered using the same theme.
       // @see \Drupal\Core\Theme\AjaxBasePageNegotiator
-      $setting['ajaxPageState']['theme'] = $theme_key;
+      $ajaxPageState['theme'] = $theme_key;
       // Checks that the DB is available before filling theme_token.
       if (!defined('MAINTENANCE_MODE')) {
-        $setting['ajaxPageState']['theme_token'] = \Drupal::csrfToken()->get($theme_key);
+        $ajaxPageState['theme_token'] = \Drupal::csrfToken()->get($theme_key);
       }
 
       // Provide the page with information about the individual JavaScript files
       // used, information not otherwise available when aggregation is enabled.
-      $setting['ajaxPageState']['js'] = array_fill_keys(array_keys($javascript), 1);
-      unset($setting['ajaxPageState']['js']['settings']);
+      $ajaxPageState['js'] = array_fill_keys(array_keys($javascript), 1);
+      unset($ajaxPageState['js']['drupalSettings']);
 
       // Provide the page with information about the individual CSS files used,
       // information not otherwise available when CSS aggregation is enabled.
@@ -1637,21 +1569,33 @@ function drupal_get_js($scope = 'header', $javascript = NULL, $skip_alter = FALS
       $css = _drupal_add_css();
       if (!empty($css)) {
         // Cast the array to an object to be on the safe side even if not empty.
-        $setting['ajaxPageState']['css'] = (object) array_fill_keys(array_keys($css), 1);
+        $ajaxPageState['css'] = (object) array_fill_keys(array_keys($css), 1);
       }
 
-      _drupal_add_js($setting, 'setting');
+      _drupal_add_js(['ajaxPageState' => $ajaxPageState], 'setting');
 
       // If we're outputting the header scope, then this might be the final time
       // that drupal_get_js() is running, so add the settings to this output as well
-      // as to the _drupal_add_js() cache. If $items['settings'] doesn't exist, it's
-      // because drupal_get_js() was intentionally passed a $javascript argument
-      // stripped of settings, potentially in order to override how settings get
-      // output, so in this case, do not add the setting to this output.
-      if ($scope == 'header' && isset($items['settings'])) {
-        $items['settings']['data'][] = $setting;
+      // as to the _drupal_add_js() cache. If $items['drupalSettings'] doesn't
+      // exist, it's because drupal_get_js() was intentionally passed a
+      // $javascript argument stripped of settings, potentially in order to
+      // override how settings get output, so in this case, do not add the
+      // setting to this output.
+      if ($scope == 'header' && isset($items['drupalSettings'])) {
+        $items['drupalSettings']['data']['ajaxPageState'] = $ajaxPageState;
       }
     }
+  }
+
+  // Process the 'drupalSettings' JavaScript asset, if any.
+  if (!empty($items['drupalSettings'])) {
+    $settings = $items['drupalSettings']['data'];
+
+    // Allow modules and themes to alter the JavaScript settings.
+    \Drupal::moduleHandler()->alter('js_settings', $settings);
+    \Drupal::theme()->alter('js_settings', $settings);
+
+    $items['drupalSettings']['data'] = $settings;
   }
 
   // Render the HTML needed to load the JavaScript.
@@ -1664,30 +1608,25 @@ function drupal_get_js($scope = 'header', $javascript = NULL, $skip_alter = FALS
 }
 
 /**
- * Merges an array of settings arrays into a single settings array.
+ * Merges two #attached arrays.
  *
- * This function merges the items in the same way that
+ * The values under the 'drupalSettings' key are merged in a special way, to
+ * match the behavior of
  *
  * @code
  *   jQuery.extend(true, {}, $settings_items[0], $settings_items[1], ...)
  * @endcode
  *
- * would. This means integer indices are preserved just like string indices are,
+ * This means integer indices are preserved just like string indices are,
  * rather than re-indexed as is common in PHP array merging.
  *
  * Example:
  * @code
  * function module1_page_attachments(&$page) {
- *   $page['#attached']['js'][] = array(
- *     'type' => 'setting',
- *     'data' => array('foo' => array('a', 'b', 'c')),
- *   );
+ *   $page['a']['#attached']['drupalSettings']['foo'] = ['a', 'b', 'c'];
  * }
  * function module2_page_attachments(&$page) {
- *   $page['#attached']['js'][] = array(
- *     'type' => 'setting',
- *     'data' => array('foo' => array('d')),
- *   );
+ *   $page['#attached']['drupalSettings']['foo'] = ['d'];
  * }
  * // When the page is rendered after the above code, and the browser runs the
  * // resulting <SCRIPT> tags, the value of drupalSettings.foo is
@@ -1696,31 +1635,11 @@ function drupal_get_js($scope = 'header', $javascript = NULL, $skip_alter = FALS
  *
  * By following jQuery.extend() merge logic rather than common PHP array merge
  * logic, the following are ensured:
- * - _drupal_add_js() is idempotent: calling it twice with the same parameters
- *   does not change the output sent to the browser.
+ * - Attaching JavaScript settings is idempotent: attaching the same settings
+ *   twice does not change the output sent to the browser.
  * - If pieces of the page are rendered in separate PHP requests and the
  *   returned settings are merged by JavaScript, the resulting settings are the
  *   same as if rendered in one PHP request and merged by PHP.
- *
- * @param $settings_items
- *   An array of settings arrays, as returned by:
- *   @code
- *     $js = _drupal_add_js();
- *     $settings_items = $js['settings']['data'];
- *   @endcode
- *
- * @return
- *   A merged $settings array, suitable for JSON encoding and returning to the
- *   browser.
- *
- * @see _drupal_add_js()
- */
-function drupal_merge_js_settings($settings_items) {
-  return NestedArray::mergeDeepArray($settings_items, TRUE);
-}
-
-/**
- * Merges two #attached arrays.
  *
  * @param array $a
  *   An #attached array.
@@ -1731,50 +1650,52 @@ function drupal_merge_js_settings($settings_items) {
  *   The merged #attached array.
  */
 function drupal_merge_attached(array $a, array $b) {
+  // If both #attached arrays contain drupalSettings, then merge them correctly;
+  // adding the same settings multiple times needs to behave idempotently.
+  if (!empty($a['drupalSettings']) && !empty($b['drupalSettings'])) {
+    $a['drupalSettings'] = NestedArray::mergeDeepArray([$a['drupalSettings'], $b['drupalSettings']], TRUE);
+    unset($b['drupalSettings']);
+  }
   return NestedArray::mergeDeep($a, $b);
 }
 
 /**
  * Adds attachments to a render() structure.
  *
- * Libraries, JavaScript, CSS and other types of custom structures are attached
- * to elements using the #attached property. The #attached property is an
- * associative array, where the keys are the the attachment types and the values
- * are the attached data. For example:
+ * Libraries, JavaScript settings, feeds, HTML <head> tags and HTML <head> links
+ * are attached to elements using the #attached property. The #attached property
+ * is an associative array, where the keys are the attachment types and the
+ * values are the attached data. For example:
  *
  * @code
- * $build['#attached'] = array(
- *   'library' => array(array('taxonomy', 'taxonomy')),
- *   'css' => array(drupal_get_path('module', 'taxonomy') . '/css/taxonomy.module.css'),
- * );
+ * $build['#attached'] = [
+ *   'library' => ['core/jquery']
+ * ];
  * @endcode
  *
- * 'js', 'css', and 'library' are types that get special handling. For any
- * other kind of attached data, the array key must be the full name of the
- * callback function and each value an array of arguments. For example:
+ * The available keys are:
+ * - 'library' (asset libraries)
+ * - 'drupalSettings' (JavaScript settings)
+ * - 'feed' (RSS feeds)
+ * - 'html_head' (tags in HTML <head>)
+ * - 'html_head_link' (<link> tags in HTML <head>)
+ * - 'http_header' (HTTP headers)
+ *
+ * For example:
  * @code
  * $build['#attached']['http_header'] = array(
  *   array('Content-Type', 'application/rss+xml; charset=utf-8'),
  * );
  * @endcode
  *
- * External 'js' and 'css' files can also be loaded. For example:
- * @code
- * $build['#attached']['js'] = array(
- *   'http://code.jquery.com/jquery-1.4.2.min.js' => array(
- *     'type' => 'external',
- *   ),
- * );
- * @endcode
- *
- * @param $elements
+ * @param array $elements
  *   The structured array describing the data being rendered.
- * @param $dependency_check
+ * @param bool $dependency_check
  *   When TRUE, will exit if a given library's dependencies are missing. When
  *   set to FALSE, will continue to add the libraries, even though one or more
  *   dependencies are missing. Defaults to FALSE.
  *
- * @return
+ * @return bool
  *   FALSE if there were any missing library dependencies; TRUE if all library
  *   dependencies were met.
  *
@@ -1783,12 +1704,10 @@ function drupal_merge_attached(array $a, array $b) {
  * @see _drupal_add_css()
  * @see drupal_render()
  */
-function drupal_process_attached($elements, $dependency_check = FALSE) {
+function drupal_process_attached(array $elements, $dependency_check = FALSE) {
   // Add defaults to the special attached structures that should be processed differently.
   $elements['#attached'] += array(
     'library' => array(),
-    'js' => array(),
-    'css' => array(),
   );
 
   // Add the libraries first.
@@ -1804,26 +1723,11 @@ function drupal_process_attached($elements, $dependency_check = FALSE) {
   }
   unset($elements['#attached']['library']);
 
-  // Add both the JavaScript and the CSS.
-  // The parameters for _drupal_add_js() and _drupal_add_css() require special
-  // handling.
-  foreach (array('js', 'css') as $type) {
-    foreach ($elements['#attached'][$type] as $data => $options) {
-      // If the value is not an array, it's a filename and passed as first
-      // (and only) argument.
-      if (!is_array($options)) {
-        $data = $options;
-        $options = NULL;
-      }
-      // In some cases, the first parameter ($data) is an array. Arrays can't be
-      // passed as keys in PHP, so we have to get $data from the value array.
-      if (is_numeric($data)) {
-        $data = $options['data'];
-        unset($options['data']);
-      }
-      call_user_func('_drupal_add_' . $type, $data, $options);
-    }
-    unset($elements['#attached'][$type]);
+  // Convert every JavaScript settings asset into a regular JavaScript asset.
+  // @todo Clean this up in https://www.drupal.org/node/2368797
+  if (!empty($elements['#attached']['drupalSettings'])) {
+    _drupal_add_js($elements['#attached']['drupalSettings'], ['type' => 'setting']);
+    unset($elements['#attached']['drupalSettings']);
   }
 
   // Add additional types of attachments specified in the render() structure.
@@ -2027,26 +1931,24 @@ function _drupal_add_library($library_name, $every_page = NULL) {
   // Only process the library if it exists and it was not added already.
   if (!isset($added[$extension][$name])) {
     if ($library = $library_discovery->getLibraryByName($extension, $name)) {
-      // Allow modules and themes to dynamically attach request and context
-      // specific data for this library; e.g., localization.
-      \Drupal::moduleHandler()->alter('library', $library, $library_name);
-
       // Add all components within the library.
       $elements['#attached'] = array(
         'library' => $library['dependencies'],
-        'js' => $library['js'],
-        'css' => $library['css'],
       );
-      foreach (array('js', 'css') as $type) {
-        foreach ($elements['#attached'][$type] as $data => $options) {
-          // Set the every_page flag if one was passed.
-          if (isset($every_page)) {
-            $elements['#attached'][$type][$data]['every_page'] = $every_page;
-          }
-        }
+      if (isset($library['drupalSettings'])) {
+        $elements['#attached']['drupalSettings'] = $library['drupalSettings'];
       }
-
       $added[$extension][$name] = drupal_process_attached($elements, TRUE);
+
+      // Add both the JavaScript and the CSS.
+      // The parameters for _drupal_add_js() and _drupal_add_css() require special
+      // handling.
+      foreach (array('js', 'css') as $type) {
+        foreach ($library[$type] as $options) {
+          call_user_func('_drupal_add_' . $type, $options['data'], $options);
+        }
+        unset($elements['#attached'][$type]);
+      }
     }
     else {
       // Requested library does not exist.
@@ -2066,8 +1968,8 @@ function _drupal_add_library($library_name, $every_page = NULL) {
  *
  * To set up a table to use drag and drop in place of weight select-lists or in
  * place of a form that contains parent relationships, the form must be themed
- * into a table. The table must have an ID attribute set. If using
- * theme_table(), the ID may be set as follows:
+ * into a table. The table must have an ID attribute set and it
+ * may be set as follows:
  * @code
  * $table = array(
  *   '#type' => 'table',
@@ -2196,7 +2098,7 @@ function drupal_attach_tabledrag(&$element, array $options) {
   // If a subgroup or source isn't set, assume it is the same as the group.
   $target = isset($options['subgroup']) ? $options['subgroup'] : $group;
   $source = isset($options['source']) ? $options['source'] : $target;
-  $settings['tableDrag'][$options['table_id']][$group][$tabledrag_id] = array(
+  $element['#attached']['drupalSettings']['tableDrag'][$options['table_id']][$group][$tabledrag_id] = array(
     'target' => $target,
     'source' => $source,
     'relationship' => $options['relationship'],
@@ -2206,7 +2108,6 @@ function drupal_attach_tabledrag(&$element, array $options) {
   );
 
   $element['#attached']['library'][] = 'core/drupal.tabledrag';
-  $element['#attached']['js'][] = array('data' => $settings, 'type' => 'setting');
 }
 
 /**
@@ -2259,39 +2160,6 @@ function drupal_page_set_cache(Response $response, Request $request) {
   $cid = drupal_page_cache_get_cid($request);
   $tags = explode(' ', $response->headers->get('X-Drupal-Cache-Tags'));
   \Drupal::cache('render')->set($cid, $response, $expire, $tags);
-}
-
-/**
- * Sets the main page content value for later use.
- *
- * Given the nature of the Drupal page handling, this will be called once with
- * a string or array. We store that and return it later as the block is being
- * displayed.
- *
- * @param $content
- *   A string or renderable array representing the body of the page.
- *
- * @return
- *   If called without $content, a renderable array representing the body of
- *   the page.
- */
-function drupal_set_page_content($content = NULL) {
-  $content_block = &drupal_static(__FUNCTION__, NULL);
-  $main_content_display = &drupal_static('system_main_content_added', FALSE);
-
-  // Filter out each empty value, though allow '0' and 0, which would be
-  // filtered out by empty().
-  if ($content !== NULL && $content !== '') {
-    $content_block = (is_array($content) ? $content : array('main' => array('#markup' => $content)));
-  }
-  else {
-    // Indicate that the main content has been requested. We assume that
-    // the module requesting the content will be adding it to the page.
-    // A module can indicate that it does not handle the content by setting
-    // the static variable back to FALSE after calling this function.
-    $main_content_display = TRUE;
-    return $content_block;
-  }
 }
 
 /**
@@ -2399,616 +2267,27 @@ function drupal_pre_render_links($element) {
 }
 
 /**
- * Processes the page render array, enhancing it as necessary.
- *
- * @param $page
- *   A string or array representing the content of a page. The array consists of
- *   the following keys:
- *   - #type: Value is always 'page'. This pushes the theming through
- *     the page template (required).
- *   - #show_messages: Suppress drupal_get_message() items. Used by Batch
- *     API (optional).
- *
- * @return array
- *   The processed render array for the page.
- *
- * @see hook_page_attachments()
- * @see hook_page_attachments_alter()
- * @see hook_page_top()
- * @see hook_page_bottom()
- * @see element_info()
- */
-function drupal_prepare_page($page) {
-  $main_content_display = &drupal_static('system_main_content_added', FALSE);
-
-  // Pull out the page title to set it back later.
-  if (is_array($page) && isset($page['#title'])) {
-    $title = $page['#title'];
-  }
-
-  // Allow menu callbacks to return strings or arbitrary arrays to render.
-  // If the array returned is not of #type page directly, we need to fill
-  // in the page with defaults.
-  if (is_string($page) || (is_array($page) && (!isset($page['#type']) || ($page['#type'] != 'page')))) {
-    drupal_set_page_content($page);
-    $page = element_info('page');
-  }
-
-  // Modules can add attachments.
-  $attachments = [];
-  foreach (\Drupal::moduleHandler()->getImplementations('page_attachments') as $module) {
-    $function = $module . '_page_attachments';
-    $function($attachments);
-  }
-  if (array_diff(array_keys($attachments), ['#attached', '#post_render_cache']) !== []) {
-    throw new \LogicException('Only #attached and #post_render_cache may be set in hook_page_attachments().');
-  }
-  // Modules and themes can alter page attachments.
-  \Drupal::moduleHandler()->alter('page_attachments', $attachments);
-  \Drupal::theme()->alter('page_attachments', $attachments);
-  if (array_diff(array_keys($attachments), ['#attached', '#post_render_cache']) !== []) {
-    throw new \LogicException('Only #attached and #post_render_cache may be set in hook_page_attachments_alter().');
-  }
-  if (isset($attachments['#attached'])) {
-    $page['#attached'] = $attachments['#attached'];
-  }
-  if (isset($attachments['#post_render_cache'])) {
-    $page['#post_render_cache'] = $attachments['#post_render_cache'];
-  }
-
-  // Modules can add renderable arrays to the top and bottom of the page.
-  $pseudo_page_top = [];
-  $pseudo_page_bottom = [];
-  foreach (\Drupal::moduleHandler()->getImplementations('page_top') as $module) {
-    $function = $module . '_page_top';
-    $function($pseudo_page_top);
-  }
-  foreach (\Drupal::moduleHandler()->getImplementations('page_bottom') as $module) {
-    $function = $module . '_page_bottom';
-    $function($pseudo_page_bottom);
-  }
-  if (!empty($pseudo_page_top)) {
-    $page['page_top'] = $pseudo_page_top;
-  }
-  if (!empty($pseudo_page_bottom)) {
-    $page['page_bottom'] = $pseudo_page_bottom;
-  }
-
-  // @todo Clean this up as part of https://www.drupal.org/node/2352155.
-  if (\Drupal::moduleHandler()->moduleExists('block')) {
-    _block_page_build($page);
-    // Find all non-empty page regions, and add a theme wrapper function that
-    // allows them to be consistently themed.
-    $regions = system_region_list(\Drupal::theme()->getActiveTheme()->getName());
-    foreach (array_keys($regions) as $region) {
-      if (!empty($page[$region])) {
-        $page[$region]['#theme_wrappers'][] = 'region';
-        $page[$region]['#region'] = $region;
-      }
-    }
-  }
-
-  // If no module has taken care of the main content, add it to the page now.
-  // This allows the site to still be usable even if no modules that
-  // control page regions (for example, the Block module) are enabled.
-  if (!$main_content_display) {
-    $page['content']['system_main'] = drupal_set_page_content();
-  }
-
-  // Set back the previously stored title.
-  if (isset($title)) {
-    $page['#title'] = $title;
-  }
-
-  return $page;
-}
-
-/**
  * Renders final HTML given a structured array tree.
  *
- * Calls drupal_render() in such a way that #post_render_cache callbacks are
- * applied.
+ * @deprecated as of Drupal 8.0.x, will be removed before Drupal 9.0.0. Use the
+ *   'renderer' service instead.
  *
- * Should therefore only be used in occasions where the final rendering is
- * happening, just before sending a Response:
- * - system internals that are responsible for rendering the final HTML
- * - render arrays for non-HTML responses, such as feeds
- *
- * @param array $elements
- *   The structured array describing the data to be rendered.
- *
- * @return string
- *   The rendered HTML.
- *
- * @see drupal_render()
+ * @see \Drupal\Core\Render\RendererInterface::renderRoot()
  */
 function drupal_render_root(&$elements) {
-  return drupal_render($elements, TRUE);
+  return \Drupal::service('renderer')->renderRoot($elements);
 }
 
 /**
  * Renders HTML given a structured array tree.
  *
- * Renderable arrays have two kinds of key/value pairs: properties and children.
- * Properties have keys starting with '#' and their values influence how the
- * array will be rendered. Children are all elements whose keys do not start
- * with a '#'. Their values should be renderable arrays themselves, which will
- * be rendered during the rendering of the parent array. The markup provided by
- * the children is typically inserted into the markup generated by the parent
- * array.
+ * @deprecated as of Drupal 8.0.x, will be removed before Drupal 9.0.0. Use the
+ *   'renderer' service instead.
  *
- * An important aspect of rendering is the bubbling of rendering metadata: cache
- * tags, attached assets and #post_render_cache metadata all need to be bubbled
- * up. That information is needed once the rendering to a HTML string is
- * completed: the resulting HTML for the page must know by which cache tags it
- * should be invalidated, which (CSS and JavaScript) assets must be loaded, and
- * which #post_render_cache callbacks should be executed. A stack data structure
- * is used to perform this bubbling.
- *
- * The process of rendering an element is recursive unless the element defines
- * an implemented theme hook in #theme. During each call to drupal_render(), the
- * outermost renderable array (also known as an "element") is processed using
- * the following steps:
- *   - If this element has already been printed (#printed = TRUE) or the user
- *     does not have access to it (#access = FALSE), then an empty string is
- *     returned.
- *   - If no stack data structure has been created yet, it is done now. Next,
- *     an empty \Drupal\Core\Render\RenderStackFrame is pushed onto the stack.
- *   - If this element has #cache defined then the cached markup for this
- *     element will be returned if it exists in drupal_render()'s cache. To use
- *     drupal_render() caching, set the element's #cache property to an
- *     associative array with one or several of the following keys:
- *     - 'keys': An array of one or more keys that identify the element. If
- *       'keys' is set, the cache ID is created automatically from these keys.
- *       Cache keys may either be static (just strings) or tokens (placeholders
- *       that are converted to static keys by the @cache_contexts service,
- *       depending on the request). See drupal_render_cid_create().
- *     - 'cid': Specify the cache ID directly. Either 'keys' or 'cid' is
- *       required. If 'cid' is set, 'keys' is ignored. Use only if you have
- *       special requirements.
- *     - 'expire': Set to one of the cache lifetime constants.
- *     - 'bin': Specify a cache bin to cache the element in. Default is
- *       'default'.
- *     When there is a render cache hit, there is no rendering work left to be
- *     done, so the stack must be updated. The empty (and topmost) frame that
- *     was just pushed onto the stack is updated with all bubbleable rendering
- *     metadata from the element retrieved from render cache. Then, this stack
- *     frame is bubbled: the two topmost frames are popped from the stack, they
- *     are merged, and the result is pushed back onto the stack.
- *   - If this element has #type defined and the default attributes for this
- *     element have not already been merged in (#defaults_loaded = TRUE) then
- *     the defaults for this type of element, defined in hook_element_info(),
- *     are merged into the array. #defaults_loaded is set by functions that
- *     process render arrays and call element_info() before passing the array to
- *     drupal_render(), such as \Drupal::formBuilder()->doBuildForm() in the
- *     Form API.
- *   - If this element has an array of #pre_render functions defined, they are
- *     called sequentially to modify the element before rendering. After all the
- *     #pre_render functions have been called, #printed is checked a second time
- *     in case a #pre_render function flags the element as printed.
- *     If #printed is set, we return early and hence no rendering work is left
- *     to be done, similarly to a render cache hit. Once again, the empty (and
- *     topmost) frame that was just pushed onto the stack is updated with all
- *     bubbleable rendering metadata from the element whose #printed = TRUE.
- *     Then, this stack frame is bubbled: the two topmost frames are popped from
- *     the stack, they are merged, and the result is pushed back onto the stack.
- *   - The child elements of this element are sorted by weight using uasort() in
- *     \Drupal\Core\Render\Element::children(). Since this is expensive, when
- *     passing already sorted elements to drupal_render(), for example from a
- *     database query, set $elements['#sorted'] = TRUE to avoid sorting them a
- *     second time.
- *   - The main render phase to produce #children for this element takes place:
- *     - If this element has #theme defined and #theme is an implemented theme
- *       hook/suggestion then _theme() is called and must render both the element
- *       and its children. If #render_children is set, _theme() will not be
- *       called. #render_children is usually only set internally by _theme() so
- *       that we can avoid the situation where drupal_render() called from
- *       within a theme preprocess function creates an infinite loop.
- *     - If this element does not have a defined #theme, or the defined #theme
- *       hook is not implemented, or #render_children is set, then
- *       drupal_render() is called recursively on each of the child elements of
- *       this element, and the result of each is concatenated onto #children.
- *       This is skipped if #children is not empty at this point.
- *     - Once #children has been rendered for this element, if #theme is not
- *       implemented and #markup is set for this element, #markup will be
- *       prepended to #children.
- *   - If this element has #states defined then JavaScript state information is
- *     added to this element's #attached attribute by drupal_process_states().
- *   - If this element has #attached defined then any required libraries,
- *     JavaScript, CSS, or other custom data are added to the current page by
- *     drupal_process_attached().
- *   - If this element has an array of #theme_wrappers defined and
- *     #render_children is not set, #children is then re-rendered by passing the
- *     element in its current state to _theme() successively for each item in
- *     #theme_wrappers. Since #theme and #theme_wrappers hooks often define
- *     variables with the same names it is possible to explicitly override each
- *     attribute passed to each #theme_wrappers hook by setting the hook name as
- *     the key and an array of overrides as the value in #theme_wrappers array.
- *     For example, if we have a render element as follows:
- *     @code
- *     array(
- *       '#theme' => 'image',
- *       '#attributes' => array('class' => array('foo')),
- *       '#theme_wrappers' => array('container'),
- *     );
- *     @endcode
- *     and we need to pass the class 'bar' as an attribute for 'container', we
- *     can rewrite our element thus:
- *     @code
- *     array(
- *       '#theme' => 'image',
- *       '#attributes' => array('class' => array('foo')),
- *       '#theme_wrappers' => array(
- *         'container' => array(
- *           '#attributes' => array('class' => array('bar')),
- *         ),
- *       ),
- *     );
- *     @endcode
- *   - If this element has an array of #post_render functions defined, they are
- *     called sequentially to modify the rendered #children. Unlike #pre_render
- *     functions, #post_render functions are passed both the rendered #children
- *     attribute as a string and the element itself.
- *   - If this element has #prefix and/or #suffix defined, they are concatenated
- *     to #children.
- *   - The rendering of this element is now complete. The next step will be
- *     render caching. So this is the perfect time to update the the stack. At
- *     this point, children of this element (if any), have been rendered also,
- *     and if there were any, their bubbleable rendering metadata will have been
- *     bubbled up into the stack frame for the element that is currently being
- *     rendered. The render cache item for this element must contain the
- *     bubbleable rendering metadata for this element and all of its children.
- *     However, right now, the topmost stack frame (the one for this element)
- *     currently only contains the metadata for the children. Therefore, the
- *     topmost stack frame is updated with this element's metadata, and then the
- *     element's metadata is replaced with the metadata in the topmost stack
- *     frame. This element now contains all bubbleable rendering metadata for
- *     this element and all its children, so it's now ready for render caching.
- *   - If this element has #cache defined, the rendered output of this element
- *     is saved to drupal_render()'s internal cache. This includes the changes
- *     made by #post_render.
- *   - If this element has an array of #post_render_cache functions defined, or
- *     any of its children has (which we would know thanks to the stack having
- *     been updated just before the render caching step), they are called
- *     sequentially to replace placeholders in the final #markup and extend
- *     #attached. Placeholders must contain a unique token, to guarantee that
- *     e.g. samples of placeholders are not replaced also.
- *     But, since #post_render_cache callbacks add attach additional assets, the
- *     correct bubbling of those must once again be taken into account. This
- *     final stage of rendering should be considered as if it were the parent of
- *     the current element, because it takes that as its input, and then alters
- *     its #markup. Hence, just before calling the #post_render_cache callbacks,
- *     a new empty frame is pushed onto the stack, where all assets #attached
- *     during the execution of those callbacks will end up in. Then, after the
- *     execution of those callbacks, we merge that back into the element.
- *     Note that these callbacks run always: when hitting the render cache, when
- *     missing, or when render caching is not used at all. This is done to allow
- *     any Drupal module to customize other render arrays without breaking the
- *     render cache if it is enabled, and to not require it to use other logic
- *     when render caching is disabled.
- *   - Just before finishing the rendering of this element, this element's stack
- *     frame (the topmost one) is bubbled: the two topmost frames are popped
- *     from the stack, they are merged and the result is pushed back onto the
- *     stack.
- *     So if this element e.g. was a child element, then a new frame was pushed
- *     onto the stack element at the beginning of rendering this element, it was
- *     updated when the rendering was completed, and now we merge it with the
- *     frame for the parent, so that the parent now has the bubbleable rendering
- *     metadata for its child.
- *   - #printed is set to TRUE for this element to ensure that it is only
- *     rendered once.
- *   - The final value of #children for this element is returned as the rendered
- *     output.
- *
- * @param array $elements
- *   The structured array describing the data to be rendered.
- * @param bool $is_root_call
- *   (Internal use only.) Whether this is a recursive call or not. See
- *   drupal_render_root().
- *
- * @return string
- *   The rendered HTML.
- *
- * @throws \LogicException
- *   If a root call to drupal_render() does not result in an empty stack, this
- *   indicates an erroneous drupal_render() root call (a root call within a root
- *   call, which makes no sense). Therefore, a logic exception is thrown.
- * @throws \Exception
- *   If a #pre_render callback throws an exception, it is caught to reset the
- *   stack used for bubbling rendering metadata, and then the exception is re-
- *   thrown.
- *
- * @see element_info()
- * @see _theme()
- * @see drupal_process_states()
- * @see drupal_process_attached()
- * @see drupal_render_root()
+ * @see \Drupal\Core\Render\RendererInterface::render()
  */
-function drupal_render(&$elements, $is_root_call = FALSE) {
-  static $stack;
-
-  $update_stack = function(&$element) use (&$stack) {
-    // The latest frame represents the bubbleable data for the subtree.
-    $frame = $stack->top();
-    // Update the frame, but also update the current element, to ensure it
-    // contains up-to-date information in case it gets render cached.
-    $frame->tags = $element['#cache']['tags'] = Cache::mergeTags($element['#cache']['tags'], $frame->tags);
-    $frame->attached = $element['#attached'] = drupal_merge_attached($element['#attached'], $frame->attached);
-    $frame->postRenderCache = $element['#post_render_cache'] = NestedArray::mergeDeep($element['#post_render_cache'], $frame->postRenderCache);
-  };
-
-  $bubble_stack = function() use (&$stack) {
-    // If there's only one frame on the stack, then this is the root call, and
-    // we can't bubble up further. Reset the stack for the next root call.
-    if ($stack->count() === 1) {
-      $stack = NULL;
-      return;
-    }
-
-    // Merge the current and the parent stack frame.
-    $current = $stack->pop();
-    $parent = $stack->pop();
-    $current->tags = Cache::mergeTags($current->tags, $parent->tags);
-    $current->attached = drupal_merge_attached($current->attached, $parent->attached);
-    $current->postRenderCache = NestedArray::mergeDeep($current->postRenderCache, $parent->postRenderCache);
-    $stack->push($current);
-  };
-  /** @var \Drupal\Core\Controller\ControllerResolverInterface $controller_resolver */
-  $controller_resolver = \Drupal::service('controller_resolver');
-  if (!isset($elements['#access']) && isset($elements['#access_callback'])) {
-    if (is_string($elements['#access_callback']) && strpos($elements['#access_callback'], '::') === FALSE) {
-      $elements['#access_callback'] = $controller_resolver->getControllerFromDefinition($elements['#access_callback']);
-    }
-    $elements['#access'] = call_user_func($elements['#access_callback'], $elements);
-  }
-
-  // Early-return nothing if user does not have access.
-  if (empty($elements) || (isset($elements['#access']) && !$elements['#access'])) {
-    return '';
-  }
-
-  // Do not print elements twice.
-  if (!empty($elements['#printed'])) {
-    return '';
-  }
-
-  if (!isset($stack)) {
-    $stack = new \SplStack();
-  }
-  $stack->push(new RenderStackFrame());
-
-  // Try to fetch the prerendered element from cache, run any #post_render_cache
-  // callbacks and return the final markup.
-  if (isset($elements['#cache'])) {
-    $cached_element = drupal_render_cache_get($elements);
-    if ($cached_element !== FALSE) {
-      $elements = $cached_element;
-      // Only when we're not in a root (non-recursive) drupal_render() call,
-      // #post_render_cache callbacks must be executed, to prevent breaking the
-      // render cache in case of nested elements with #cache set.
-      if ($is_root_call) {
-        _drupal_render_process_post_render_cache($elements);
-      }
-      $elements['#markup'] = SafeMarkup::set($elements['#markup']);
-      // The render cache item contains all the bubbleable rendering metadata for
-      // the subtree.
-      $update_stack($elements);
-      // Render cache hit, so rendering is finished, all necessary info collected!
-      $bubble_stack();
-      return $elements['#markup'];
-    }
-  }
-
-  // If the default values for this element have not been loaded yet, populate
-  // them.
-  if (isset($elements['#type']) && empty($elements['#defaults_loaded'])) {
-    $elements += element_info($elements['#type']);
-  }
-
-  // Make any final changes to the element before it is rendered. This means
-  // that the $element or the children can be altered or corrected before the
-  // element is rendered into the final text.
-  if (isset($elements['#pre_render'])) {
-    foreach ($elements['#pre_render'] as $callable) {
-      if (is_string($callable) && strpos($callable, '::') === FALSE) {
-        $callable = $controller_resolver->getControllerFromDefinition($callable);
-      }
-      // Since #pre_render callbacks may be used for generating a render array's
-      // content, and we might be rendering the main content for the page, it is
-      // possible that a #pre_render callback throws an exception that will
-      // cause a different page to be rendered (e.g. throwing
-      // \Symfony\Component\HttpKernel\Exception\NotFoundHttpException will
-      // cause the 404 page to be rendered). That page might also use
-      // drupal_render(), but if exceptions aren't caught here, the stack will
-      // be left in an inconsistent state.
-      // Hence, catch all exceptions and reset the stack and re-throw them.
-      try {
-        $elements = call_user_func($callable, $elements);
-      }
-      catch (\Exception $e) {
-        // Reset stack and re-throw exception.
-        $stack = NULL;
-        throw $e;
-      }
-    }
-  }
-
-  // Defaults for bubbleable rendering metadata.
-  $elements['#cache']['tags'] = isset($elements['#cache']['tags']) ? $elements['#cache']['tags'] : array();
-  $elements['#attached'] = isset($elements['#attached']) ? $elements['#attached'] : array();
-  $elements['#post_render_cache'] = isset($elements['#post_render_cache']) ? $elements['#post_render_cache'] : array();
-
-  // Allow #pre_render to abort rendering.
-  if (!empty($elements['#printed'])) {
-    // The #printed element contains all the bubbleable rendering metadata for
-    // the subtree.
-    $update_stack($elements);
-    // #printed, so rendering is finished, all necessary info collected!
-    $bubble_stack();
-    return '';
-  }
-
-  // Add any JavaScript state information associated with the element.
-  if (!empty($elements['#states'])) {
-    drupal_process_states($elements);
-  }
-
-  // Get the children of the element, sorted by weight.
-  $children = Element::children($elements, TRUE);
-
-  // Initialize this element's #children, unless a #pre_render callback already
-  // preset #children.
-  if (!isset($elements['#children'])) {
-    $elements['#children'] = '';
-  }
-
-  // @todo Simplify after https://drupal.org/node/2273925
-  if (isset($elements['#markup'])) {
-    $elements['#markup'] = SafeMarkup::set($elements['#markup']);
-  }
-
-  // Assume that if #theme is set it represents an implemented hook.
-  $theme_is_implemented = isset($elements['#theme']);
-  // Check the elements for insecure HTML and pass through sanitization.
-  if (isset($elements)) {
-    $markup_keys = array(
-      '#description',
-      '#field_prefix',
-      '#field_suffix',
-    );
-    foreach ($markup_keys as $key) {
-      if (!empty($elements[$key]) && is_scalar($elements[$key])) {
-        $elements[$key] = SafeMarkup::checkAdminXss($elements[$key]);
-      }
-    }
-  }
-
-  // Call the element's #theme function if it is set. Then any children of the
-  // element have to be rendered there. If the internal #render_children
-  // property is set, do not call the #theme function to prevent infinite
-  // recursion.
-  if ($theme_is_implemented && !isset($elements['#render_children'])) {
-    $elements['#children'] = \Drupal::theme()->render($elements['#theme'], $elements);
-
-    // If _theme() returns FALSE this means that the hook in #theme was not
-    // found in the registry and so we need to update our flag accordingly. This
-    // is common for theme suggestions.
-    $theme_is_implemented = ($elements['#children'] !== FALSE);
-  }
-
-  // If #theme is not implemented or #render_children is set and the element has
-  // an empty #children attribute, render the children now. This is the same
-  // process as drupal_render_children() but is inlined for speed.
-  if ((!$theme_is_implemented || isset($elements['#render_children'])) && empty($elements['#children'])) {
-    foreach ($children as $key) {
-      $elements['#children'] .= drupal_render($elements[$key]);
-    }
-    $elements['#children'] = SafeMarkup::set($elements['#children']);
-  }
-
-  // If #theme is not implemented and the element has raw #markup as a
-  // fallback, prepend the content in #markup to #children. In this case
-  // #children will contain whatever is provided by #pre_render prepended to
-  // what is rendered recursively above. If #theme is implemented then it is
-  // the responsibility of that theme implementation to render #markup if
-  // required. Eventually #theme_wrappers will expect both #markup and
-  // #children to be a single string as #children.
-  if (!$theme_is_implemented && isset($elements['#markup'])) {
-    $elements['#children'] = SafeMarkup::set($elements['#markup'] . $elements['#children']);
-  }
-
-  // Let the theme functions in #theme_wrappers add markup around the rendered
-  // children.
-  // #states and #attached have to be processed before #theme_wrappers, because
-  // the #type 'page' render array from drupal_prepare_page() would render the
-  // $page and wrap it into the html.html.twig template without the attached
-  // assets otherwise.
-  // If the internal #render_children property is set, do not call the
-  // #theme_wrappers function(s) to prevent infinite recursion.
-  if (isset($elements['#theme_wrappers']) && !isset($elements['#render_children'])) {
-    foreach ($elements['#theme_wrappers'] as $key => $value) {
-      // If the value of a #theme_wrappers item is an array then the theme hook
-      // is found in the key of the item and the value contains attribute
-      // overrides. Attribute overrides replace key/value pairs in $elements for
-      // only this _theme() call. This allows #theme hooks and #theme_wrappers
-      // hooks to share variable names without conflict or ambiguity.
-      $wrapper_elements = $elements;
-      if (is_string($key)) {
-        $wrapper_hook = $key;
-        foreach ($value as $attribute => $override) {
-          $wrapper_elements[$attribute] = $override;
-        }
-      }
-      else {
-        $wrapper_hook = $value;
-      }
-
-      $elements['#children'] = \Drupal::theme()->render($wrapper_hook, $wrapper_elements);
-    }
-  }
-
-  // Filter the outputted content and make any last changes before the
-  // content is sent to the browser. The changes are made on $content
-  // which allows the outputted text to be filtered.
-  if (isset($elements['#post_render'])) {
-    foreach ($elements['#post_render'] as $callable) {
-      if (is_string($callable) && strpos($callable, '::') === FALSE) {
-        $callable = $controller_resolver->getControllerFromDefinition($callable);
-      }
-      $elements['#children'] = call_user_func($callable, $elements['#children'], $elements);
-    }
-  }
-
-  // We store the resulting output in $elements['#markup'], to be consistent
-  // with how render cached output gets stored. This ensures that
-  // #post_render_cache callbacks get the same data to work with, no matter if
-  // #cache is disabled, #cache is enabled, there is a cache hit or miss.
-  $prefix = isset($elements['#prefix']) ? SafeMarkup::checkAdminXss($elements['#prefix']) : '';
-  $suffix = isset($elements['#suffix']) ? SafeMarkup::checkAdminXss($elements['#suffix']) : '';
-
-  $elements['#markup'] = $prefix . $elements['#children'] . $suffix;
-
-  // We've rendered this element (and its subtree!), now update the stack.
-  $update_stack($elements);
-
-  // Cache the processed element if #cache is set.
-  if (isset($elements['#cache'])) {
-    drupal_render_cache_set($elements['#markup'], $elements);
-  }
-
-  // Only when we're in a root (non-recursive) drupal_render() call,
-  // #post_render_cache callbacks must be executed, to prevent breaking the
-  // render cache in case of nested elements with #cache set.
-  //
-  // By running them here, we ensure that:
-  // - they run when #cache is disabled,
-  // - they run when #cache is enabled and there is a cache miss.
-  // Only the case of a cache hit when #cache is enabled, is not handled here,
-  // that is handled earlier in drupal_render().
-  if ($is_root_call) {
-    // We've already called $update_stack() earlier, which updated both the
-    // element and current stack frame. However,
-    // _drupal_render_process_post_render_cache() can both change the element
-    // further and create and render new child elements, so provide a fresh
-    // stack frame to collect those additions, merge them back to the element,
-    // and then update the current frame to match the modified element state.
-    $stack->push(new RenderStackFrame());
-    _drupal_render_process_post_render_cache($elements);
-    $post_render_additions = $stack->pop();
-    $elements['#cache']['tags'] = Cache::mergeTags($elements['#cache']['tags'], $post_render_additions->tags);
-    $elements['#attached'] = drupal_merge_attached($elements['#attached'], $post_render_additions->attached);
-    $elements['#post_render_cache'] = NestedArray::mergeDeep($elements['#post_render_cache'], $post_render_additions->postRenderCache);
-    if ($stack->count() !== 1) {
-      throw new \LogicException('A stray drupal_render() invocation with $is_root_call = TRUE is causing bubbling of attached assets to break.');
-    }
-  }
-
-  // Rendering is finished, all necessary info collected!
-  $bubble_stack();
-
-  $elements['#printed'] = TRUE;
-  $elements['#markup'] = SafeMarkup::set($elements['#markup']);
-  return $elements['#markup'];
+function drupal_render(&$elements, $is_recursive_call = FALSE) {
+  return \Drupal::service('renderer')->render($elements, $is_recursive_call);
 }
 
 /**
@@ -3244,43 +2523,6 @@ function drupal_render_cache_generate_placeholder($callback, array &$context) {
   );
 
   return '<drupal-render-cache-placeholder callback="' . $callback . '" token="' . $context['token'] . '"></drupal-render-cache-placeholder>';
-}
-
-/**
- * Processes #post_render_cache callbacks.
- *
- * #post_render_cache callbacks may modify:
- * - #markup: to replace placeholders
- * - #attached: to add libraries or JavaScript settings
- *
- * Note that in either of these cases, #post_render_cache callbacks are
- * implicitly idempotent: a placeholder that has been replaced can't be replaced
- * again, and duplicate attachments are ignored.
- *
- * @param array &$elements
- *   The structured array describing the data being rendered.
- *
- * @see drupal_render()
- * @see drupal_render_collect_post_render_cache
- */
-function _drupal_render_process_post_render_cache(array &$elements) {
-  if (isset($elements['#post_render_cache'])) {
-    /** @var \Drupal\Core\Controller\ControllerResolverInterface $controller_resolver */
-    $controller_resolver = \Drupal::service('controller_resolver');
-
-    // Call all #post_render_cache callbacks, passing the provided context.
-    foreach (array_keys($elements['#post_render_cache']) as $callback) {
-      if (strpos($callback, '::') === FALSE) {
-        $callable = $controller_resolver->getControllerFromDefinition($callback);
-      }
-      else {
-        $callable = $callback;
-      }
-      foreach ($elements['#post_render_cache'][$callback] as $context) {
-        $elements = call_user_func_array($callable, array($elements, $context));
-      }
-    }
-  }
 }
 
 /**

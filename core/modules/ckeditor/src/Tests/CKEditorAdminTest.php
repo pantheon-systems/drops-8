@@ -25,6 +25,13 @@ class CKEditorAdminTest extends WebTestBase {
    */
   public static $modules = array('filter', 'editor', 'ckeditor');
 
+  /**
+   * A user with the 'administer filters' permission.
+   *
+   * @var \Drupal\user\UserInterface
+   */
+  protected $adminUser;
+
   protected function setUp() {
     parent::setUp();
 
@@ -38,7 +45,7 @@ class CKEditorAdminTest extends WebTestBase {
     $filtered_html_format->save();
 
     // Create admin user.
-    $this->admin_user = $this->drupalCreateUser(array('administer filters'));
+    $this->adminUser = $this->drupalCreateUser(array('administer filters'));
   }
 
   /**
@@ -47,7 +54,7 @@ class CKEditorAdminTest extends WebTestBase {
   function testExistingFormat() {
     $ckeditor = $this->container->get('plugin.manager.editor')->createInstance('ckeditor');
 
-    $this->drupalLogin($this->admin_user);
+    $this->drupalLogin($this->adminUser);
     $this->drupalGet('admin/config/content/formats/manage/filtered_html');
 
     // Ensure no Editor config entity exists yet.
@@ -147,8 +154,7 @@ class CKEditorAdminTest extends WebTestBase {
     $this->drupalGet('admin/config/content/formats/manage/filtered_html');
     $expected_settings['toolbar']['rows'][0][] = array(
       'name' => 'Action history',
-      'items' => array('Undo', '|', 'Redo'),
-      array('JustifyCenter')
+      'items' => array('Undo', '|', 'Redo', 'JustifyCenter'),
     );
     $edit = array(
       'editor[settings][toolbar][button_groups]' => json_encode($expected_settings['toolbar']['rows']),
@@ -160,7 +166,7 @@ class CKEditorAdminTest extends WebTestBase {
 
     // Now enable the ckeditor_test module, which provides one configurable
     // CKEditor plugin — this should not affect the Editor config entity.
-    \Drupal::moduleHandler()->install(array('ckeditor_test'));
+    \Drupal::service('module_installer')->install(array('ckeditor_test'));
     $this->resetAll();
     $this->container->get('plugin.manager.ckeditor.plugin')->clearCachedDefinitions();
     $this->drupalGet('admin/config/content/formats/manage/filtered_html');
@@ -179,7 +185,7 @@ class CKEditorAdminTest extends WebTestBase {
     $this->drupalGet('admin/config/content/formats/manage/filtered_html');
     $ultra_llama_mode_checkbox = $this->xpath('//input[@type="checkbox" and @name="editor[settings][plugins][llama_contextual_and_button][ultra_llama_mode]" and @checked="checked"]');
     $this->assertTrue(count($ultra_llama_mode_checkbox) === 1, 'The "Ultra llama mode" checkbox exists and is checked.');
-    $expected_settings['plugins']['llama_contextual_and_button']['ultra_llama_mode'] = 1;
+    $expected_settings['plugins']['llama_contextual_and_button']['ultra_llama_mode'] = TRUE;
     $editor = entity_load('editor', 'filtered_html');
     $this->assertTrue($editor instanceof Editor, 'An Editor config entity exists.');
     $this->assertIdentical($expected_settings, $editor->getSettings());
@@ -192,7 +198,7 @@ class CKEditorAdminTest extends WebTestBase {
    * configuration form work; details are tested in testExistingFormat().
    */
   function testNewFormat() {
-    $this->drupalLogin($this->admin_user);
+    $this->drupalLogin($this->adminUser);
     $this->drupalGet('admin/config/content/formats/add');
 
     // Verify the "Text Editor" <select> when a text editor is available.

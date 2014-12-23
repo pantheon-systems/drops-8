@@ -277,7 +277,7 @@ function drupal_get_filename($type, $name, $filename = NULL) {
     }
     // If still unknown, perform a filesystem scan.
     if (!isset($files[$type][$name])) {
-      $listing = new ExtensionDiscovery();
+      $listing = new ExtensionDiscovery(DRUPAL_ROOT);
       // Prevent an infinite recursion by this legacy function.
       if ($original_type == 'profile') {
         $listing->setProfileDirectories(array());
@@ -307,7 +307,7 @@ function drupal_page_cache_get_cid(Request $request) {
     $request->getUri(),
     \Drupal::service('content_negotiation')->getContentType($request),
   );
-  return sha1(implode(':', $cid_parts));
+  return implode(':', $cid_parts);
 }
 
 /**
@@ -695,7 +695,7 @@ function watchdog_exception($type, Exception $exception, $message = NULL, $varia
  *   If there are no messages set, the function returns NULL.
  *
  * @see drupal_get_messages()
- * @see theme_status_messages()
+ * @see status-messages.html.twig
  */
 function drupal_set_message($message = NULL, $type = 'status', $repeat = FALSE) {
   if (isset($message)) {
@@ -703,11 +703,12 @@ function drupal_set_message($message = NULL, $type = 'status', $repeat = FALSE) 
       $_SESSION['messages'][$type] = array();
     }
 
-    if ($repeat || !in_array($message, $_SESSION['messages'][$type])) {
-      $_SESSION['messages'][$type][] = array(
-        'safe' => SafeMarkup::isSafe($message),
-        'message' => $message,
-      );
+    $new = array(
+      'safe' => SafeMarkup::isSafe($message),
+      'message' => $message,
+    );
+    if ($repeat || !in_array($new, $_SESSION['messages'][$type])) {
+      $_SESSION['messages'][$type][] = $new;
     }
 
     // Mark this page as being uncacheable.
@@ -741,7 +742,7 @@ function drupal_set_message($message = NULL, $type = 'status', $repeat = FALSE) 
  *   drupal_set_message() for the array structure of individual messages.
  *
  * @see drupal_set_message()
- * @see theme_status_messages()
+ * @see status-messages.html.twig
  */
 function drupal_get_messages($type = NULL, $clear_queue = TRUE) {
   if ($messages = drupal_set_message()) {
@@ -1131,8 +1132,6 @@ function language_default() {
  *
  * @return
  *   The requested Drupal URL path.
- *
- * @see current_path()
  */
 function request_path() {
   static $path;
@@ -1168,18 +1167,6 @@ function request_path() {
 }
 
 /**
- * @todo This is a temporary function pending refactoring Drupal to use
- *   Symfony's Request object exclusively.
- */
-function _current_path($path = NULL) {
-  static $current_path = '';
-  if (isset($path)) {
-    $current_path = $path;
-  }
-  return $current_path;
-}
-
-/**
  * Registers an additional namespace.
  *
  * @param string $name
@@ -1189,7 +1176,7 @@ function _current_path($path = NULL) {
  */
 function drupal_classloader_register($name, $path) {
   $loader = \Drupal::service('class_loader');
-  $loader->addPsr4('Drupal\\' . $name . '\\', DRUPAL_ROOT . '/' . $path . '/src');
+  $loader->addPsr4('Drupal\\' . $name . '\\', \Drupal::root() . '/' . $path . '/src');
 }
 
 /**

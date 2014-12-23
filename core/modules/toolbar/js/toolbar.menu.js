@@ -38,6 +38,26 @@
     }
 
     /**
+     * Handle clicks from a menu item link.
+     *
+     * @param {Object} event
+     *   A jQuery Event object.
+     */
+    function linkClickHandler(event) {
+      // If the toolbar is positioned fixed (and therefore hiding content
+      // underneath), then users expect clicks in the administration menu tray
+      // to take them to that destination but for the menu tray to be closed
+      // after clicking: otherwise the toolbar itself is obstructing the view
+      // of the destination they chose.
+      if (!Drupal.toolbar.models.toolbarModel.get('isFixed')) {
+        Drupal.toolbar.models.toolbarModel.set('activeTab', null);
+      }
+      // Stopping propagation to make sure that once a toolbar-box is clicked
+      // (the whitespace part), the page is not redirected anymore.
+      event.stopPropagation();
+    }
+
+    /**
      * Toggle the open/close state of a list is a menu.
      *
      * @param {jQuery} $item
@@ -136,7 +156,9 @@
 
     // Bind event handlers.
     $(document)
-      .on('click.toolbar', '.toolbar-handle', toggleClickHandler);
+      .on('click.toolbar', '.toolbar-box', toggleClickHandler)
+      .on('click.toolbar', '.toolbar-box a', linkClickHandler);
+
     // Return the jQuery object.
     return this.each(function (selector) {
       var $menu = $(this).once('toolbar-menu');

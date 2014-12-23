@@ -13,6 +13,7 @@ use Drupal\Component\Utility\String;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
+use Drupal\language\Entity\ContentLanguageSettings;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -166,7 +167,7 @@ class NodeTypeForm extends EntityForm {
         '#group' => 'additional_settings',
       );
 
-      $language_configuration = language_get_default_configuration('node', $type->id());
+      $language_configuration = ContentLanguageSettings::loadByEntityTypeBundle('node', $type->id());
       $form['language']['language_configuration'] = array(
         '#type' => 'language_configuration',
         '#entity_information' => array(
@@ -230,6 +231,7 @@ class NodeTypeForm extends EntityForm {
       drupal_set_message(t('The content type %name has been updated.', $t_args));
     }
     elseif ($status == SAVED_NEW) {
+      node_add_body_field($type);
       drupal_set_message(t('The content type %name has been added.', $t_args));
       $context = array_merge($t_args, array('link' => $this->l(t('View'), new Url('node.overview_types'))));
       $this->logger('node')->notice('Added content type %name.', $context);

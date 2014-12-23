@@ -8,7 +8,7 @@
 namespace Drupal\block\Tests;
 
 use Drupal\Core\Config\Entity\ConfigEntityStorage;
-use Drupal\simpletest\DrupalUnitTestBase;
+use Drupal\simpletest\KernelTestBase;
 use Drupal\block_test\Plugin\Block\TestHtmlBlock;
 use Drupal\Component\Plugin\Exception\PluginException;
 use Drupal\block\Entity\Block;
@@ -19,14 +19,14 @@ use Drupal\block\BlockInterface;
  *
  * @group block
  */
-class BlockStorageUnitTest extends DrupalUnitTestBase {
+class BlockStorageUnitTest extends KernelTestBase {
 
   /**
-   * Modules to enable.
+   * Modules to install.
    *
    * @var array
    */
-  public static $modules = array('block', 'block_test', 'system');
+  public static $modules = array('block', 'block_test');
 
   /**
    * The block storage.
@@ -94,7 +94,6 @@ class BlockStorageUnitTest extends DrupalUnitTestBase {
       'provider' => NULL,
       'plugin' => 'test_html',
       'settings' => array(
-        'visibility' => array(),
         'id' => 'test_html',
         'label' => '',
         'provider' => 'block_test',
@@ -104,6 +103,7 @@ class BlockStorageUnitTest extends DrupalUnitTestBase {
           'contexts' => array(),
         ),
       ),
+      'visibility' => array(),
     );
 
     $this->assertIdentical($actual_properties, $expected_properties);

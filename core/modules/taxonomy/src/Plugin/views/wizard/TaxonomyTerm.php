@@ -21,20 +21,6 @@ use Drupal\views\Plugin\views\wizard\WizardPluginBase;
 class TaxonomyTerm extends WizardPluginBase {
 
   /**
-   * Set default values for the path field options.
-   */
-  protected $pathField = array(
-    'id' => 'tid',
-    'table' => 'taxonomy_term_data',
-    'field' => 'tid',
-    'exclude' => TRUE,
-    'alter' => array(
-      'alter_text' => TRUE,
-      'text' => 'taxonomy/term/[tid]'
-    )
-  );
-
-  /**
    * Overrides Drupal\views\Plugin\views\wizard\WizardPluginBase::defaultDisplayOptions().
    */
   protected function defaultDisplayOptions() {
@@ -50,6 +36,8 @@ class TaxonomyTerm extends WizardPluginBase {
     $display_options['fields']['name']['id'] = 'name';
     $display_options['fields']['name']['table'] = 'taxonomy_term_field_data';
     $display_options['fields']['name']['field'] = 'name';
+    $display_options['fields']['name']['entity_type'] = 'taxonomy_term';
+    $display_options['fields']['name']['entity_field'] = 'name';
     $display_options['fields']['name']['label'] = '';
     $display_options['fields']['name']['alter']['alter_text'] = 0;
     $display_options['fields']['name']['alter']['make_link'] = 0;
@@ -62,6 +50,7 @@ class TaxonomyTerm extends WizardPluginBase {
     $display_options['fields']['name']['hide_empty'] = 0;
     $display_options['fields']['name']['empty_zero'] = 0;
     $display_options['fields']['name']['link_to_taxonomy'] = 1;
+    $display_options['fields']['name']['plugin_id'] = 'taxonomy';
 
     return $display_options;
   }

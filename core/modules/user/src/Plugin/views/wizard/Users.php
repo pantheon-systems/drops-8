@@ -30,21 +30,6 @@ class Users extends WizardPluginBase {
   protected $createdColumn = 'created';
 
   /**
-   * Set default values for the path field options.
-   */
-  protected $pathField = array(
-    'id' => 'uid',
-    'table' => 'users',
-    'field' => 'uid',
-    'exclude' => TRUE,
-    'link_to_user' => FALSE,
-    'alter' => array(
-      'alter_text' => TRUE,
-      'text' => 'user/[uid]'
-    )
-  );
-
-  /**
    * Set default values for the filters.
    */
   protected $filters = array(
@@ -52,7 +37,9 @@ class Users extends WizardPluginBase {
       'value' => TRUE,
       'table' => 'users_field_data',
       'field' => 'status',
-      'provider' => 'user'
+      'plugin_id' => 'boolean',
+      'entity_type' => 'user',
+      'entity_field' => 'status',
     )
   );
 
@@ -64,7 +51,7 @@ class Users extends WizardPluginBase {
 
     // Add permission-based access control.
     $display_options['access']['type'] = 'perm';
-    $display_options['access']['perm'] = 'access user profiles';
+    $display_options['access']['options']['perm'] = 'access user profiles';
 
     // Remove the default fields, since we are customizing them here.
     unset($display_options['fields']);
@@ -73,6 +60,8 @@ class Users extends WizardPluginBase {
     $display_options['fields']['name']['id'] = 'name';
     $display_options['fields']['name']['table'] = 'users_field_data';
     $display_options['fields']['name']['field'] = 'name';
+    $display_options['fields']['name']['entity_type'] = 'user';
+    $display_options['fields']['name']['entity_field'] = 'name';
     $display_options['fields']['name']['label'] = '';
     $display_options['fields']['name']['alter']['alter_text'] = 0;
     $display_options['fields']['name']['alter']['make_link'] = 0;
@@ -86,6 +75,7 @@ class Users extends WizardPluginBase {
     $display_options['fields']['name']['empty_zero'] = 0;
     $display_options['fields']['name']['link_to_user'] = 1;
     $display_options['fields']['name']['overwrite_anonymous'] = 0;
+    $display_options['fields']['name']['plugin_id'] = 'user_name';
 
     return $display_options;
   }

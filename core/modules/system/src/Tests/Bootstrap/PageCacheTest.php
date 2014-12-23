@@ -58,14 +58,14 @@ class PageCacheTest extends WebTestBase {
     $this->drupalGet($path);
     $this->assertEqual($this->drupalGetHeader('X-Drupal-Cache'), 'HIT');
     $cid_parts = array(\Drupal::url('system_test.cache_tags_page', array(), array('absolute' => TRUE)), 'html');
-    $cid = sha1(implode(':', $cid_parts));
+    $cid = implode(':', $cid_parts);
     $cache_entry = \Drupal::cache('render')->get($cid);
     sort($cache_entry->tags);
     $expected_tags = array(
       'pre_render',
       'rendered',
       'system_test_cache_tags_page',
-      'theme:stark',
+      'theme:classy',
       'theme_global_settings',
     );
     $this->assertIdentical($cache_entry->tags, $expected_tags);

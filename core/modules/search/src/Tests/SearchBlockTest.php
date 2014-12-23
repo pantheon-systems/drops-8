@@ -36,7 +36,7 @@ class SearchBlockTest extends SearchTestBase {
 
     // Test availability of the search block in the admin "Place blocks" list.
     $this->drupalGet('admin/structure/block');
-    $this->assertLinkByHref('/admin/structure/block/add/search_form_block/stark', 0,
+    $this->assertLinkByHref('/admin/structure/block/add/search_form_block/classy', 0,
       'Did not find the search block in block candidate list.');
 
     $block = $this->drupalPlaceBlock('search_form_block');
@@ -59,7 +59,7 @@ class SearchBlockTest extends SearchTestBase {
 
     $visibility = $block->getVisibility();
     $visibility['request_path']['pages'] = 'search';
-    $block->getPlugin()->setVisibilityConfig('request_path', $visibility['request_path']);
+    $block->setVisibilityConfig('request_path', $visibility['request_path']);
 
     $this->submitGetForm('', $terms, t('Search'));
     $this->assertResponse(200);

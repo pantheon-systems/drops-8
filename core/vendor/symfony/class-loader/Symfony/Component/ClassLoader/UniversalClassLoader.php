@@ -32,8 +32,8 @@ namespace Symfony\Component\ClassLoader;
  *     // register classes with namespaces
  *     $loader->registerNamespaces(array(
  *         'Symfony\Component' => __DIR__.'/component',
- *         'Symfony'           => __DIR__.'/framework',
- *         'Sensio'            => array(__DIR__.'/src', __DIR__.'/vendor'),
+ *         'Symfony' => __DIR__.'/framework',
+ *         'Sensio' => array(__DIR__.'/src', __DIR__.'/vendor'),
  *     ));
  *
  *     // register a library using the PEAR naming convention
@@ -70,11 +70,11 @@ class UniversalClassLoader
      * Turns on searching the include for class files. Allows easy loading
      * of installed PEAR packages
      *
-     * @param bool    $useIncludePath
+     * @param bool $useIncludePath
      */
     public function useIncludePath($useIncludePath)
     {
-        $this->useIncludePath = $useIncludePath;
+        $this->useIncludePath = (bool) $useIncludePath;
     }
 
     /**
@@ -229,7 +229,7 @@ class UniversalClassLoader
     /**
      * Registers this instance as an autoloader.
      *
-     * @param bool    $prepend Whether to prepend the autoloader or not
+     * @param bool $prepend Whether to prepend the autoloader or not
      *
      * @api
      */
@@ -243,7 +243,7 @@ class UniversalClassLoader
      *
      * @param string $class The name of the class
      *
-     * @return bool|null    True, if loaded
+     * @return bool|null True, if loaded
      */
     public function loadClass($class)
     {

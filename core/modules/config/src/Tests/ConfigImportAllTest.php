@@ -9,6 +9,7 @@ namespace Drupal\config\Tests;
 
 use Drupal\Core\Config\StorageComparer;
 use Drupal\system\Tests\Module\ModuleTestBase;
+use Drupal\shortcut\Entity\Shortcut;
 
 /**
  * Tests the largest configuration import possible with the modules and profiles
@@ -53,7 +54,7 @@ class ConfigImportAllTest extends ModuleTestBase {
     });
 
     // Install every module possible.
-    \Drupal::moduleHandler()->install(array_keys($all_modules));
+    \Drupal::service('module_installer')->install(array_keys($all_modules));
 
     $this->assertModules(array_keys($all_modules), TRUE);
     foreach($all_modules as $module => $info) {
@@ -83,6 +84,10 @@ class ConfigImportAllTest extends ModuleTestBase {
       $term->delete();
     }
 
+    // Delete any shortcuts so the shortcut module can be uninstalled.
+    $shortcuts = Shortcut::loadMultiple();
+    entity_delete_multiple('shortcut', array_keys($shortcuts));
+
     system_list_reset();
     $all_modules = system_rebuild_module_data();
 
@@ -100,7 +105,7 @@ class ConfigImportAllTest extends ModuleTestBase {
     $this->assertTrue(isset($modules_to_uninstall['comment']), 'The comment module will be disabled');
 
     // Uninstall all modules that can be uninstalled.
-    \Drupal::moduleHandler()->uninstall(array_keys($modules_to_uninstall));
+    \Drupal::service('module_installer')->uninstall(array_keys($modules_to_uninstall));
 
     $this->assertModules(array_keys($modules_to_uninstall), FALSE);
     foreach($modules_to_uninstall as $module => $info) {
@@ -110,6 +115,8 @@ class ConfigImportAllTest extends ModuleTestBase {
 
     // Import the configuration thereby re-installing all the modules.
     $this->drupalPostForm('admin/config/development/configuration', array(), t('Import all'));
+    // Modules have been installed that have services.
+    $this->rebuildContainer();
 
     // Check that there are no errors.
     $this->assertIdentical($this->configImporter()->getErrors(), array());

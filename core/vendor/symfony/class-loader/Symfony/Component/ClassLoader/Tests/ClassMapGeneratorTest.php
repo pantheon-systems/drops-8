@@ -72,9 +72,9 @@ class ClassMapGeneratorTest extends \PHPUnit_Framework_TestCase
     {
         $data = array(
             array(__DIR__.'/Fixtures/Namespaced', array(
-                'Namespaced\\Bar'          => realpath(__DIR__).'/Fixtures/Namespaced/Bar.php',
-                'Namespaced\\Foo'          => realpath(__DIR__).'/Fixtures/Namespaced/Foo.php',
-                'Namespaced\\Baz'          => realpath(__DIR__).'/Fixtures/Namespaced/Baz.php',
+                'Namespaced\\Bar' => realpath(__DIR__).'/Fixtures/Namespaced/Bar.php',
+                'Namespaced\\Foo' => realpath(__DIR__).'/Fixtures/Namespaced/Foo.php',
+                'Namespaced\\Baz' => realpath(__DIR__).'/Fixtures/Namespaced/Baz.php',
                 'Namespaced\\WithComments' => realpath(__DIR__).'/Fixtures/Namespaced/WithComments.php',
                 ),
             ),
@@ -85,26 +85,26 @@ class ClassMapGeneratorTest extends \PHPUnit_Framework_TestCase
                 'NamespaceCollision\\C\\B\\Foo' => realpath(__DIR__).'/Fixtures/beta/NamespaceCollision/C/B/Foo.php',
             )),
             array(__DIR__.'/Fixtures/Pearlike', array(
-                'Pearlike_Foo'          => realpath(__DIR__).'/Fixtures/Pearlike/Foo.php',
-                'Pearlike_Bar'          => realpath(__DIR__).'/Fixtures/Pearlike/Bar.php',
-                'Pearlike_Baz'          => realpath(__DIR__).'/Fixtures/Pearlike/Baz.php',
+                'Pearlike_Foo' => realpath(__DIR__).'/Fixtures/Pearlike/Foo.php',
+                'Pearlike_Bar' => realpath(__DIR__).'/Fixtures/Pearlike/Bar.php',
+                'Pearlike_Baz' => realpath(__DIR__).'/Fixtures/Pearlike/Baz.php',
                 'Pearlike_WithComments' => realpath(__DIR__).'/Fixtures/Pearlike/WithComments.php',
             )),
             array(__DIR__.'/Fixtures/classmap', array(
-                'Foo\\Bar\\A'             => realpath(__DIR__).'/Fixtures/classmap/sameNsMultipleClasses.php',
-                'Foo\\Bar\\B'             => realpath(__DIR__).'/Fixtures/classmap/sameNsMultipleClasses.php',
-                'A'                       => realpath(__DIR__).'/Fixtures/classmap/multipleNs.php',
-                'Alpha\\A'                => realpath(__DIR__).'/Fixtures/classmap/multipleNs.php',
-                'Alpha\\B'                => realpath(__DIR__).'/Fixtures/classmap/multipleNs.php',
-                'Beta\\A'                 => realpath(__DIR__).'/Fixtures/classmap/multipleNs.php',
-                'Beta\\B'                 => realpath(__DIR__).'/Fixtures/classmap/multipleNs.php',
+                'Foo\\Bar\\A' => realpath(__DIR__).'/Fixtures/classmap/sameNsMultipleClasses.php',
+                'Foo\\Bar\\B' => realpath(__DIR__).'/Fixtures/classmap/sameNsMultipleClasses.php',
+                'A' => realpath(__DIR__).'/Fixtures/classmap/multipleNs.php',
+                'Alpha\\A' => realpath(__DIR__).'/Fixtures/classmap/multipleNs.php',
+                'Alpha\\B' => realpath(__DIR__).'/Fixtures/classmap/multipleNs.php',
+                'Beta\\A' => realpath(__DIR__).'/Fixtures/classmap/multipleNs.php',
+                'Beta\\B' => realpath(__DIR__).'/Fixtures/classmap/multipleNs.php',
                 'ClassMap\\SomeInterface' => realpath(__DIR__).'/Fixtures/classmap/SomeInterface.php',
-                'ClassMap\\SomeParent'    => realpath(__DIR__).'/Fixtures/classmap/SomeParent.php',
-                'ClassMap\\SomeClass'     => realpath(__DIR__).'/Fixtures/classmap/SomeClass.php',
+                'ClassMap\\SomeParent' => realpath(__DIR__).'/Fixtures/classmap/SomeParent.php',
+                'ClassMap\\SomeClass' => realpath(__DIR__).'/Fixtures/classmap/SomeClass.php',
             )),
         );
 
-        if (version_compare(PHP_VERSION, '5.4', '>=')) {
+        if (PHP_VERSION_ID >= 50400) {
             $data[] = array(__DIR__.'/Fixtures/php5.4', array(
                 'TFoo' => __DIR__.'/Fixtures/php5.4/traits.php',
                 'CFoo' => __DIR__.'/Fixtures/php5.4/traits.php',

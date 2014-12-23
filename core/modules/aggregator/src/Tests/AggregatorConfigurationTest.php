@@ -52,9 +52,9 @@ class AggregatorConfigurationTest extends AggregatorTestBase {
     $this->assertText(t('The configuration options have been saved.'));
     $this->assertFieldByName('dummy_length', 100, '"dummy_length" has correct default value.');
 
-    // Make sure settings form is still accessible even after disabling a module
+    // Make sure settings form is still accessible even after uninstalling a module
     // that provides the selected plugins.
-    $this->container->get('module_handler')->uninstall(array('aggregator_test'));
+    $this->container->get('module_installer')->uninstall(array('aggregator_test'));
     $this->resetAll();
     $this->drupalGet('admin/config/services/aggregator/settings');
     $this->assertResponse(200);

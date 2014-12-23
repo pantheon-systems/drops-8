@@ -284,6 +284,8 @@ table ul.links li {
 [dir="rtl"] .block ol,
 [dir="rtl"] .block ul {
   padding: 0 1em 0.25em 0;
+  /* This is required to win over specifity of [dir="rtl"] ul.menu */
+  margin-right: 0;
 }
 .contextual-region .contextual .contextual-links a {
   font-size: 0.923em;
@@ -1243,7 +1245,6 @@ ul.links {
 }
 [dir="rtl"] #footer .menu li:last-child a {
   padding-left: 0;
-  padding-right: 12px;
   border-left: none;
 }
 #footer-wrapper tr.odd {
@@ -1499,6 +1500,7 @@ input.form-url,
 input.form-search,
 input.form-number,
 input.form-color,
+input.form-file,
 textarea.form-textarea,
 select.form-select {
   border: 1px solid #ccc;
@@ -1858,11 +1860,6 @@ div.add-or-remove-shortcuts {
 }
 
 /* Configuration. */
-div.admin .right,
-div.admin .left {
-  width: 49%;
-  margin: 0;
-}
 div.admin-panel {
   background: #fbfbfb;
   border: 1px solid #ccc;
@@ -2040,7 +2037,8 @@ div.admin-panel .description {
     height: auto;
     overflow: visible;
   }
-  [dir="rtl"] .region-primary-menu .menu li {
+  [dir="rtl"] .region-primary-menu .menu li,
+  [dir="rtl"] body:not(:target) .region-primary-menu .menu li {
     float: right;
     margin-left: 5px;
     margin-right: 0;

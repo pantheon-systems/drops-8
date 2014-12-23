@@ -8,21 +8,21 @@
 namespace Drupal\system\Tests\Entity;
 
 use Drupal\Core\Access\AccessResult;
-use Drupal\simpletest\DrupalUnitTestBase;
+use Drupal\simpletest\KernelTestBase;
 
 /**
  * Tests Field level access hooks.
  *
  * @group Entity
  */
-class FieldAccessTest extends DrupalUnitTestBase {
+class FieldAccessTest extends KernelTestBase {
 
   /**
    * Modules to load code from.
    *
    * @var array
    */
-  public static $modules = array('entity', 'entity_test', 'field', 'system', 'text', 'filter', 'user', 'entity_reference');
+  public static $modules = array('entity_test', 'field', 'system', 'text', 'filter', 'user', 'entity_reference');
 
   /**
    * Holds the currently active global user ID that initiated the test run.

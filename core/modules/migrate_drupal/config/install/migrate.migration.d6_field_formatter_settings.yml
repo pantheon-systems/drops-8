@@ -54,12 +54,12 @@ process:
           text:
             default: text_default
             trimmed: text_trimmed
-            plain: string
+            plain: basic_string
           number_integer:
             default: number_integer
-            us_0: number_integer
-            be_0: number_integer
-            fr_0: number_integer
+            us_3: number_integer
+            be_3: number_integer
+            fr_3: number_integer
             unformatted: number_unformatted
           number_float:
             default: number_decimal
@@ -89,7 +89,7 @@ process:
             default: email_mailto
             spamspan: email_mailto
             contact: email_mailto
-            plain: string
+            plain: basic_string
           link:
             default: link
             plain: link
@@ -107,69 +107,69 @@ process:
             image_nodelink: image
             image_imagelink: image
           fr_phone:
-            default: string
+            default: basic_string
           be_phone:
-            default: string
+            default: basic_string
           it_phone:
-            default: string
+            default: basic_string
           el_phone:
-            default: string
+            default: basic_string
           ch_phone:
-            default: string
+            default: basic_string
           ca_phone:
-            default: string
+            default: basic_string
           cr_phone:
-            default: string
+            default: basic_string
           pa_phone:
-            default: string
+            default: basic_string
           gb_phone:
-            default: string
+            default: basic_string
           ru_phone:
-            default: string
+            default: basic_string
           ua_phone:
-            default: string
+            default: basic_string
           es_phone:
-            default: string
+            default: basic_string
           au_phone:
-            default: string
+            default: basic_string
           cs_phone:
-            default: string
+            default: basic_string
           hu_phone:
-            default: string
+            default: basic_string
           pl_phone:
-            default: string
+            default: basic_string
           nl_phone:
-            default: string
+            default: basic_string
           se_phone:
-            default: string
+            default: basic_string
           za_phone:
-            default: string
+            default: basic_string
           il_phone:
-            default: string
+            default: basic_string
           nz_phone:
-            default: string
+            default: basic_string
           br_phone:
-            default: string
+            default: basic_string
           cl_phone:
-            default: string
+            default: basic_string
           cn_phone:
-            default: string
+            default: basic_string
           hk_phone:
-            default: string
+            default: basic_string
           mo_phone:
-            default: string
+            default: basic_string
           ph_phone:
-            default: string
+            default: basic_string
           sg_phone:
-            default: string
+            default: basic_string
           jo_phone:
-            default: string
+            default: basic_string
           eg_phone:
-            default: string
+            default: basic_string
           pk_phone:
-            default: string
+            default: basic_string
           int_phone:
-            default: string
+            default: basic_string
       -
         plugin: field_type_defaults
   "options/settings":
@@ -196,6 +196,9 @@ process:
             decimal_separator: .
             thousand_separator: ','
             prefix_suffix: true
+          us_3:
+            thousand_separator: ','
+            prefix_suffix: true
           be_0:
             scale: 0
             decimal_separator: ','
@@ -211,6 +214,9 @@ process:
             decimal_separator: ','
             thousand_separator: .
             prefix_suffix: true
+          be_3:
+            thousand_separator: .
+            prefix_suffix: true
           fr_0:
             scale: 0
             decimal_separator: ','
@@ -224,6 +230,9 @@ process:
           fr_2:
             scale: 2
             decimal_separator: ','
+            thousand_separator: ' '
+            prefix_suffix: true
+          fr_3:
             thousand_separator: ' '
             prefix_suffix: true
         link:
@@ -297,6 +306,9 @@ process:
         text:
           trimmed:
             trim_length: 600
+        string:
+          default:
+            link_to_entity: false
     -
       plugin: field_formatter_settings_defaults
   "options/third_party_settings": 'constants/third_party_settings'

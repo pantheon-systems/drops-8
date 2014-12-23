@@ -7,6 +7,7 @@
 
 namespace Drupal\Tests\Core\Entity\Sql;
 use Drupal\Core\Entity\Sql\DefaultTableMapping;
+use Drupal\Core\Entity\Sql\SqlContentEntityStorageException;
 use Drupal\Tests\UnitTestCase;
 
 /**
@@ -18,7 +19,7 @@ class DefaultTableMappingTest extends UnitTestCase {
   /**
    * Tests DefaultTableMapping::getTableNames().
    *
-   * @covers ::getTableNames()
+   * @covers ::getTableNames
    */
   public function testGetTableNames() {
     // The storage definitions are only used in getColumnNames() so we do not
@@ -43,13 +44,13 @@ class DefaultTableMappingTest extends UnitTestCase {
   /**
    * Tests DefaultTableMapping::getAllColumns().
    *
-   * @covers ::__construct()
-   * @covers ::getAllColumns()
-   * @covers ::getFieldNames()
-   * @covers ::getColumnNames()
-   * @covers ::setFieldNames()
-   * @covers ::getExtraColumns()
-   * @covers ::setExtraColumns()
+   * @covers ::__construct
+   * @covers ::getAllColumns
+   * @covers ::getFieldNames
+   * @covers ::getColumnNames
+   * @covers ::setFieldNames
+   * @covers ::getExtraColumns
+   * @covers ::setExtraColumns
    */
   public function testGetAllColumns() {
     // Set up single-column and multi-column definitions.
@@ -154,8 +155,8 @@ class DefaultTableMappingTest extends UnitTestCase {
   /**
    * Tests DefaultTableMapping::getFieldNames().
    *
-   * @covers ::getFieldNames()
-   * @covers ::setFieldNames()
+   * @covers ::getFieldNames
+   * @covers ::setFieldNames
    */
   public function testGetFieldNames() {
     // The storage definitions are only used in getColumnNames() so we do not
@@ -184,8 +185,8 @@ class DefaultTableMappingTest extends UnitTestCase {
   /**
    * Tests DefaultTableMapping::getColumnNames().
    *
-   * @covers ::__construct()
-   * @covers ::getColumnNames()
+   * @covers ::__construct
+   * @covers ::getColumnNames
    */
   public function testGetColumnNames() {
     $definitions['test'] = $this->setUpDefinition('test', []);
@@ -207,8 +208,8 @@ class DefaultTableMappingTest extends UnitTestCase {
   /**
    * Tests DefaultTableMapping::getExtraColumns().
    *
-   * @covers ::getExtraColumns()
-   * @covers ::setExtraColumns()
+   * @covers ::getExtraColumns
+   * @covers ::setExtraColumns
    */
   public function testGetExtraColumns() {
     // The storage definitions are only used in getColumnNames() so we do not
@@ -235,6 +236,87 @@ class DefaultTableMappingTest extends UnitTestCase {
   }
 
   /**
+   * Tests DefaultTableMapping::getFieldColumnName() with valid parameters.
+   *
+   * @param bool $base_field
+   *   Flag indicating whether the field should be treated as a base or bundle
+   *   field.
+   * @param string[] $columns
+   *   An array of available field column names.
+   * @param string $column
+   *   The name of the column to be processed.
+   * @param string $expected
+   *   The expected result.
+   *
+   * @covers ::getFieldColumnName
+   *
+   * @dataProvider providerTestGetFieldColumnName
+   */
+  public function testGetFieldColumnName($base_field, $columns, $column, $expected) {
+    $definitions['test'] = $this->setUpDefinition('test', $columns, $base_field);
+    $table_mapping = new DefaultTableMapping($definitions);
+    $result = $table_mapping->getFieldColumnName($definitions['test'], $column);
+    $this->assertEquals($expected, $result);
+  }
+
+  /**
+   * Tests DefaultTableMapping::getFieldColumnName() with invalid parameters.
+   *
+   * @param bool $base_field
+   *   Flag indicating whether the field should be treated as a base or bundle
+   *   field.
+   * @param string[] $columns
+   *   An array of available field column names.
+   * @param string $column
+   *   The name of the column to be processed.
+   *
+   * @expectedException \Drupal\Core\Entity\Sql\SqlContentEntityStorageException
+   * @expectedExceptionMessage Column information not available for the "test" field.
+   *
+   * @covers ::getFieldColumnName
+   *
+   * @dataProvider providerTestGetFieldColumnName
+   */
+  public function testGetFieldColumnNameInvalid($base_field, $columns, $column) {
+    $definitions['test'] = $this->setUpDefinition('test', $columns, $base_field);
+
+    // Mark field storage definition as custom storage.
+    $definitions['test']->expects($this->any())
+      ->method('hasCustomStorage')
+      ->willReturn(TRUE);
+
+    $table_mapping = new DefaultTableMapping($definitions);
+    $table_mapping->getFieldColumnName($definitions['test'], $column);
+  }
+
+  /**
+   * Provides test data for testGetFieldColumnName().
+   *
+   * @return array[]
+   *   An nested array where each inner array has the following values: test
+   *   field name, base field status, list of field columns, name of the column
+   *   to be retrieved, expected result, whether an exception is expected.
+   */
+  public function providerTestGetFieldColumnName() {
+    $data = [];
+    // Base field with single column.
+    $data[] = [TRUE, ['foo'], 'foo', 'test'];
+
+    // Base field with multiple columns.
+    $data[] = [TRUE, ['foo', 'bar'], 'foo', 'test__foo'];
+    $data[] = [TRUE, ['foo', 'bar'], 'bar', 'test__bar'];
+    // Bundle field with single column.
+    $data[] = [FALSE, ['foo'], 'foo', 'test_foo'];
+    // Bundle field with multiple columns.
+    $data[] = [FALSE, ['foo', 'bar'], 'foo', 'test_foo'];
+    $data[] = [FALSE, ['foo', 'bar'], 'bar', 'test_bar'];
+    // Bundle field with reserved column.
+    $data[] = [FALSE, ['foo', 'bar'], 'deleted', 'deleted'];
+
+    return $data;
+  }
+
+  /**
    * Sets up a field storage definition for the test.
    *
    * @param string $name
@@ -244,11 +326,11 @@ class DefaultTableMappingTest extends UnitTestCase {
    *
    * @return \Drupal\Core\Field\FieldStorageDefinitionInterface|\PHPUnit_Framework_MockObject_MockObject
    */
-  protected function setUpDefinition($name, array $column_names) {
+  protected function setUpDefinition($name, array $column_names, $base_field = TRUE) {
     $definition = $this->getMock('Drupal\Tests\Core\Field\TestBaseFieldDefinitionInterface');
     $definition->expects($this->any())
       ->method('isBaseField')
-      ->will($this->returnValue(TRUE));
+      ->willReturn($base_field);
     $definition->expects($this->any())
       ->method('getName')
       ->will($this->returnValue($name));

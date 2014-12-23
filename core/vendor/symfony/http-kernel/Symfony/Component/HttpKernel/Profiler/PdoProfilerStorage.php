@@ -28,10 +28,10 @@ abstract class PdoProfilerStorage implements ProfilerStorageInterface
     /**
      * Constructor.
      *
-     * @param string  $dsn      A data source name
-     * @param string  $username The username for the database
-     * @param string  $password The password for the database
-     * @param int     $lifetime The lifetime to use for the purge
+     * @param string $dsn      A data source name
+     * @param string $username The username for the database
+     * @param string $password The password for the database
+     * @param int    $lifetime The lifetime to use for the purge
      */
     public function __construct($dsn, $username = '', $password = '', $lifetime = 86400)
     {
@@ -86,13 +86,13 @@ abstract class PdoProfilerStorage implements ProfilerStorageInterface
     {
         $db = $this->initDb();
         $args = array(
-            ':token'      => $profile->getToken(),
-            ':parent'     => $profile->getParentToken(),
-            ':data'       => base64_encode(serialize($profile->getCollectors())),
-            ':ip'         => $profile->getIp(),
-            ':method'     => $profile->getMethod(),
-            ':url'        => $profile->getUrl(),
-            ':time'       => $profile->getTime(),
+            ':token' => $profile->getToken(),
+            ':parent' => $profile->getParentToken(),
+            ':data' => base64_encode(serialize($profile->getCollectors())),
+            ':ip' => $profile->getIp(),
+            ':method' => $profile->getMethod(),
+            ':url' => $profile->getUrl(),
+            ':time' => $profile->getTime(),
             ':created_at' => time(),
         );
 

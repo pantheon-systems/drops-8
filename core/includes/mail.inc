@@ -14,10 +14,10 @@ use Drupal\Core\Mail\MailFormatHelper;
  * and possibly email headers) and the replacement values to use in the
  * appropriate places in the template. Processed email templates are
  * requested from hook_mail() from the module sending the email. Any module
- * can modify the composed email message array using hook_mail_alter().
- * Finally drupal_mail_system()->mail() sends the email, which can
- * be reused if the exact same composed email is to be sent to multiple
- * recipients.
+ * can modify the composed email message array using hook_mail_alter(). Finally
+ * \Drupal::service('plugin.manager.mail')->getInstance()->mail() sends the
+ * email, which can be reused if the exact same composed email is to be sent to
+ * multiple recipients.
  *
  * Finding out what language to send the email with needs some consideration.
  * If you send email to a user, her preferred language should be fine, so
@@ -101,7 +101,8 @@ use Drupal\Core\Mail\MailFormatHelper;
  * @param string|null $reply
  *   Optional email address to be used to answer.
  * @param bool $send
- *   If TRUE, drupal_mail() will call drupal_mail_system()->mail() to deliver
+ *   If TRUE, drupal_mail() will call
+ *   \Drupal::service('plugin.manager.mail')->getInstance()->mail() to deliver
  *   the message, and store the result in $message['result']. Modules
  *   implementing hook_mail_alter() may cancel sending by setting
  *   $message['send'] to FALSE.
@@ -120,53 +121,4 @@ use Drupal\Core\Mail\MailFormatHelper;
  */
 function drupal_mail($module, $key, $to, $langcode, $params = array(), $reply = NULL, $send = TRUE) {
   return \Drupal::service('plugin.manager.mail')->mail($module, $key, $to, $langcode, $params, $reply, $send);
-}
-
-/**
- * Returns an instance of the mail plugin to use for a given message ID.
- *
- * @param string $module
- *   The module name which was used by drupal_mail() to invoke hook_mail().
- * @param string $key
- *   A key to identify the email sent. The final message ID for the email
- *   alter hook in drupal_mail() would have been {$module}_{$key}.
- *
- * @return \Drupal\Core\Mail\MailInterface
- *   A mail plugin instance.
- *
- * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
- *
- * @see \Drupal\Core\Mail\MailManager::getInstance()
- *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- *   Use \Drupal::service('plugin.manager.mail')->getInstance() in procedural
- *   code. In Object-Oriented code inject the 'plugin.manager.mail' service and
- *   use the ::getInstance() method.
- */
-function drupal_mail_system($module, $key) {
-  return \Drupal::service('plugin.manager.mail')->getInstance(array('module' => $module, 'key' => $key));
-}
-
-/**
- * Performs format=flowed soft wrapping for mail (RFC 3676).
- *
- * We use delsp=yes wrapping, but only break non-spaced languages when
- * absolutely necessary to avoid compatibility issues.
- *
- * We deliberately use LF rather than CRLF, see drupal_mail().
- *
- * @param $text
- *   The plain text to process.
- * @param $indent (optional)
- *   A string to indent the text with. Only '>' characters are repeated on
- *   subsequent wrapped lines. Others are replaced by spaces.
- *
- * @return
- *   The content of the email as a string with formatting applied.
- *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- *   Use \Drupal\Core\Utility\Mail::wrapMail().
- */
-function drupal_wrap_mail($text, $indent = '') {
-  return MailFormatHelper::wrapMail($text, $indent);
 }

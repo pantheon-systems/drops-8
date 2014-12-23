@@ -7,12 +7,14 @@
 
 namespace Drupal\block_content;
 
+use Drupal\Component\Utility\Html;
 use Drupal\Core\Entity\ContentEntityForm;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
+use Drupal\language\Entity\ContentLanguageSettings;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -101,24 +103,15 @@ class BlockContentForm extends ContentEntityForm {
     // Override the default CSS class name, since the user-defined custom block
     // type name in 'TYPE-block-form' potentially clashes with third-party class
     // names.
-    $form['#attributes']['class'][0] = drupal_html_class('block-' . $block->bundle() . '-form');
-
-    if ($this->moduleHandler->moduleExists('language')) {
-      $language_configuration = language_get_default_configuration('block_content', $block->bundle());
-
-      // Set the correct default language.
-      if ($block->isNew()) {
-        $language_default = $this->languageManager->getCurrentLanguage($language_configuration['langcode']);
-        $block->langcode->value = $language_default->getId();
-      }
-    }
+    $form['#attributes']['class'][0] = 'block-' . Html::getClass($block->bundle()) . '-form';
 
     $form['langcode'] = array(
       '#title' => $this->t('Language'),
       '#type' => 'language_select',
       '#default_value' => $block->getUntranslated()->language()->getId(),
       '#languages' => LanguageInterface::STATE_ALL,
-      '#access' => isset($language_configuration['language_show']) && $language_configuration['language_show'],
+      // Language module may expose or hide this element, see language_form_alter().
+      '#access' => FALSE,
     );
 
     $form['advanced'] = array(

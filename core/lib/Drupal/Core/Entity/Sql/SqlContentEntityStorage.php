@@ -823,7 +823,7 @@ class SqlContentEntityStorage extends ContentEntityStorageBase implements SqlEnt
 
       // Compare revision ID of the base and revision table, if equal then this
       // is the default revision.
-      $query->addExpression('base.' . $this->revisionKey . ' = revision.' . $this->revisionKey, 'isDefaultRevision');
+      $query->addExpression('CASE base.' . $this->revisionKey . ' WHEN revision.' . $this->revisionKey . ' THEN 1 ELSE 0 END', 'isDefaultRevision');
     }
 
     $query->fields('base', $entity_fields);
@@ -1198,7 +1198,7 @@ class SqlContentEntityStorage extends ContentEntityStorageBase implements SqlEnt
   /**
    * {@inheritdoc}
    */
-  public function getQueryServiceName() {
+  protected function getQueryServiceName() {
     return 'entity.query.sql';
   }
 
@@ -1759,7 +1759,11 @@ class SqlContentEntityStorage extends ContentEntityStorageBase implements SqlEnt
       if ($as_bool) {
         $query->range(0, 1);
       }
-      $count = $query->countQuery()->execute()->fetchField();
+      else {
+        // Otherwise count the number of rows.
+        $query = $query->countQuery();
+      }
+      $count = $query->execute()->fetchField();
     }
     return $as_bool ? (bool) $count : (int) $count;
   }

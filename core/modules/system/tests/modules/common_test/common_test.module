@@ -208,12 +208,10 @@ function common_test_post_render_cache(array $element, array $context) {
   $element['#markup'] = '<p>overridden</p>';
 
   // Extend #attached.
-  $element['#attached']['js'][] = array(
-    'type' => 'setting',
-    'data' => array(
-      'common_test' => $context
-    ),
-  );
+  if (!isset($element['#attached']['drupalSettings']['common_test'])) {
+    $element['#attached']['drupalSettings']['common_test'] = [];
+  }
+  $element['#attached']['drupalSettings']['common_test'] += $context;
 
   // Set new property.
   $element['#context_test'] = $context;
@@ -238,14 +236,9 @@ function common_test_post_render_cache_placeholder(array $element, array $contex
   $replace_element = array(
     '#markup' => '<bar>' . $context['bar'] . '</bar>',
     '#attached' => array(
-      'js' => array(
-        array(
-          'type' => 'setting',
-          'data' => array(
-            'common_test' => $context,
-          ),
-        ),
-      ),
+      'drupalSettings' => [
+        'common_test' => $context,
+      ],
     ),
   );
   $markup = drupal_render($replace_element);
@@ -255,12 +248,41 @@ function common_test_post_render_cache_placeholder(array $element, array $contex
 }
 
 /**
+ * #post_render_cache callback; bubbles another #post_render_cache callback.
+ *
+ * @param array $element
+ *  A render array with the following keys:
+ *    - #markup
+ *    - #attached
+ * @param array $context
+ *  An array with the following keys:
+ *    - foo: contains a random string.
+ *
+ * @return array $element
+ *   The updated $element.
+ */
+function common_test_post_render_cache_recursion(array $element, array $context) {
+  // Render a child which itself also has a #post_render_cache callback that
+  // must be bubbled.
+  $child = [];
+  $child['#markup'] = 'foo';
+  $child['#post_render_cache']['common_test_post_render_cache'][] = $context;
+
+  // Render the child.
+  $element['#markup'] = drupal_render($child);
+
+  return $element;
+}
+
+
+/**
  * Implements hook_page_attachments().
  *
  * @see \Drupal\system\Tests\Common\PageRenderTest::assertPageRenderHookExceptions()
  */
 function common_test_page_attachments(array &$page) {
-  $page['#attached']['library'][] = 'core/jquery';
+  $page['#attached']['library'][] = 'core/foo';
+  $page['#attached']['library'][] = 'core/bar';
 
   if (\Drupal::state()->get('common_test.hook_page_attachments.descendant_attached', FALSE)) {
     $page['content']['#attached']['library'][] = 'core/jquery';
@@ -279,7 +301,12 @@ function common_test_page_attachments(array &$page) {
  * @see \Drupal\system\Tests\Common\PageRenderTest::assertPageRenderHookExceptions()
  */
 function common_test_page_attachments_alter(array &$page) {
-  $page['#attached']['library'][] = 'core/jquery';
+  // Remove a library that was added in common_test_page_attachments(), to test
+  // that this hook can do what it claims to do.
+  if (isset($page['#attached']['library']) && ($index = array_search('core/bar', $page['#attached']['library'])) && $index !== FALSE) {
+    unset($page['#attached']['library'][$index]);
+  }
+  $page['#attached']['library'][] = 'core/baz';
 
   if (\Drupal::state()->get('common_test.hook_page_attachments_alter.descendant_attached', FALSE)) {
     $page['content']['#attached']['library'][] = 'core/jquery';
@@ -290,4 +317,19 @@ function common_test_page_attachments_alter(array &$page) {
       '#markup' => 'test',
     ];
   }
+}
+
+/**
+ * Implements hook_js_settings_alter().
+ *
+ * @see \Drupal\system\Tests\Common\JavaScriptTest::testHeaderSetting()
+ */
+function common_test_js_settings_alter(&$settings) {
+  // Modify an existing setting.
+  if (array_key_exists('pluralDelimiter', $settings['locale'])) {
+    $settings['locale']['pluralDelimiter'] = '☃';
+  }
+
+  // Add a setting.
+  $settings['foo'] = 'bar';
 }

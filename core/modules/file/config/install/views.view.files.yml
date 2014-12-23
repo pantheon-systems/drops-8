@@ -1,8 +1,17 @@
-base_field: fid
-base_table: file_managed
-core: 8.x
-description: 'Find and manage files.'
+langcode: en
 status: true
+dependencies:
+  module:
+    - file
+    - user
+id: files
+label: Files
+module: file
+description: 'Find and manage files.'
+tag: default
+base_table: file_managed
+base_field: fid
+core: 8.x
 display:
   default:
     display_plugin: default
@@ -130,7 +139,7 @@ display:
               separator: ''
               empty_column: false
               responsive: priority-medium
-          default: 'changed'
+          default: changed
           empty_table: true
       row:
         type: fields
@@ -167,6 +176,8 @@ display:
           empty: ''
           hide_alter_empty: true
           plugin_id: file
+          entity_type: file
+          entity_field: fid
         filename:
           id: filename
           table: file_managed
@@ -199,6 +210,8 @@ display:
           empty: ''
           hide_alter_empty: true
           plugin_id: file
+          entity_type: file
+          entity_field: filename
         filemime:
           id: filemime
           table: file_managed
@@ -250,6 +263,8 @@ display:
           link_to_file: false
           filemime_image: false
           plugin_id: file_filemime
+          entity_type: file
+          entity_field: filemime
         filesize:
           id: filesize
           table: file_managed
@@ -300,6 +315,8 @@ display:
           hide_alter_empty: true
           file_size_display: formatted
           plugin_id: file_size
+          entity_type: file
+          entity_field: filesize
         status:
           id: status
           table: file_managed
@@ -349,6 +366,8 @@ display:
           empty_zero: false
           hide_alter_empty: true
           plugin_id: file_status
+          entity_type: file
+          entity_field: status
         created:
           id: created
           table: file_managed
@@ -401,6 +420,8 @@ display:
           custom_date_format: ''
           timezone: ''
           plugin_id: date
+          entity_type: file
+          entity_field: created
         changed:
           id: changed
           table: file_managed
@@ -453,6 +474,8 @@ display:
           custom_date_format: ''
           timezone: ''
           plugin_id: date
+          entity_type: file
+          entity_field: changed
         count:
           id: count
           table: file_usage
@@ -550,6 +573,8 @@ display:
             default_group_multiple: {  }
             group_items: {  }
           plugin_id: string
+          entity_type: file
+          entity_field: filename
         filemime:
           id: filemime
           table: file_managed
@@ -588,6 +613,8 @@ display:
             default_group_multiple: {  }
             group_items: {  }
           plugin_id: string
+          entity_type: file
+          entity_field: filemime
         status:
           id: status
           table: file_managed
@@ -627,6 +654,8 @@ display:
             default_group_multiple: {  }
             group_items: {  }
           plugin_id: file_status
+          entity_type: file
+          entity_field: status
       sorts: {  }
       title: Files
       header: {  }
@@ -651,6 +680,8 @@ display:
       arguments: {  }
       group_by: true
       show_admin_links: true
+      field_langcode: '***LANGUAGE_language_content***'
+      field_langcode_add_to_query: null
   page_1:
     display_plugin: page
     id: page_1
@@ -668,7 +699,6 @@ display:
       display_description: ''
       defaults:
         pager: true
-        pager_options: true
         relationships: false
       relationships:
         fid:
@@ -679,6 +709,8 @@ display:
           group_type: group
           admin_label: 'File usage'
           required: false
+      field_langcode: '***LANGUAGE_language_content***'
+      field_langcode_add_to_query: null
   page_2:
     display_plugin: page
     id: page_2
@@ -691,7 +723,6 @@ display:
       defaults:
         empty: false
         pager: false
-        pager_options: false
         filters: false
         filter_groups: false
         fields: false
@@ -719,7 +750,6 @@ display:
             items_per_page_options_all_label: '- All -'
             offset: false
             offset_label: Offset
-      pager_options: false
       filters: {  }
       filter_groups:
         operator: AND
@@ -969,6 +999,8 @@ display:
           break_phrase: false
           not: false
           plugin_id: file_fid
+          entity_type: file
+          entity_field: fid
       style:
         type: table
         options:
@@ -1028,11 +1060,5 @@ display:
           group_type: group
           admin_label: 'File usage'
           required: true
-label: Files
-module: file
-id: files
-tag: default
-langcode: en
-dependencies:
-  module:
-    - file
+      field_langcode: '***LANGUAGE_language_content***'
+      field_langcode_add_to_query: null

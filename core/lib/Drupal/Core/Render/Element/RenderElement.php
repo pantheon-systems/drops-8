@@ -10,6 +10,7 @@ namespace Drupal\Core\Render\Element;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\PluginBase;
 use Drupal\Core\Render\Element;
+use Drupal\Core\Url;
 
 /**
  * Provides a base class for render element plugins.
@@ -136,16 +137,16 @@ abstract class RenderElement extends PluginBase implements ElementInterface {
   /**
    * Adds Ajax information about an element to communicate with JavaScript.
    *
-   * If #ajax['path'] is set on an element, this additional JavaScript is added
-   * to the page header to attach the Ajax behaviors. See ajax.js for more
-   * information.
+   * If #ajax is set on an element, this additional JavaScript is added to the
+   * page header to attach the Ajax behaviors. See ajax.js for more information.
    *
    * @param array $element
    *   An associative array containing the properties of the element.
    *   Properties used:
    *   - #ajax['event']
    *   - #ajax['prevent']
-   *   - #ajax['path']
+   *   - #ajax['url']
+   *   - #ajax['callback']
    *   - #ajax['options']
    *   - #ajax['wrapper']
    *   - #ajax['parameters']
@@ -226,18 +227,18 @@ abstract class RenderElement extends PluginBase implements ElementInterface {
 
       $settings = $element['#ajax'];
 
-      // Assign default settings. When 'path' is set to NULL, ajax.js submits the
+      // Assign default settings. When 'url' is set to NULL, ajax.js submits the
       // Ajax request to the same URL as the form or link destination is for
       // someone with JavaScript disabled. This is generally preferred as a way to
       // ensure consistent server processing for js and no-js users, and Drupal's
       // content negotiation takes care of formatting the response appropriately.
-      // However, 'path' and 'options' may be set when wanting server processing
+      // However, 'url' and 'options' may be set when wanting server processing
       // to be substantially different for a JavaScript triggered submission.
       // One such substantial difference is form elements that use
       // #ajax['callback'] for determining which part of the form needs
       // re-rendering. For that, we have a special 'system/ajax' route.
       $settings += array(
-        'path' => isset($settings['callback']) ? 'system/ajax' : NULL,
+        'url' => isset($settings['callback']) ? Url::fromRoute('system.ajax') : NULL,
         'options' => array(),
         'accepts' => 'application/vnd.drupal-ajax'
       );
@@ -247,9 +248,14 @@ abstract class RenderElement extends PluginBase implements ElementInterface {
         $settings['method'] = 'replaceWith';
       }
 
-      // Change path to URL.
-      $settings['url'] = isset($settings['path']) ? _url($settings['path'], $settings['options']) : NULL;
-      unset($settings['path'], $settings['options']);
+      // Convert \Drupal\Core\Url object to string.
+      if (isset($settings['url']) && $settings['url'] instanceof Url) {
+        $settings['url'] = $settings['url']->setOptions($settings['options'])->toString();
+      }
+      else {
+        $settings['url'] = NULL;
+      }
+      unset($settings['options']);
 
       // Add special data to $settings['submit'] so that when this element
       // triggers an Ajax submission, Drupal's form processing can determine which
@@ -290,10 +296,7 @@ abstract class RenderElement extends PluginBase implements ElementInterface {
         unset($settings['progress']['path']);
       }
 
-      $element['#attached']['js'][] = array(
-        'type' => 'setting',
-        'data' => array('ajax' => array($element['#id'] => $settings)),
-      );
+      $element['#attached']['drupalSettings']['ajax'][$element['#id']] = $settings;
 
       // Indicate that Ajax processing was successful.
       $element['#ajax_processed'] = TRUE;

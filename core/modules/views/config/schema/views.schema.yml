@@ -114,3 +114,20 @@ views.view.*:
               label: 'Position'
             display_options:
               type: views.display.[%parent.display_plugin]
+
+views_block:
+  type: block_settings
+  label: 'View block'
+  mapping:
+    views_label:
+      type: label
+      lable: 'Title'
+    items_per_page:
+      type: string
+      label: 'Items per block'
+
+block.settings.views_block:*:
+  type: views_block
+
+block.settings.views_exposed_filter_block:*:
+  type: views_block

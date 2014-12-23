@@ -8,11 +8,9 @@
 namespace Drupal\Core\Entity\Query\Sql;
 
 use Drupal\Core\Database\Query\SelectInterface;
-use Drupal\Core\Entity\ContentEntityTypeInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\Query\QueryException;
 use Drupal\Core\Entity\Sql\SqlEntityStorageInterface;
-use Drupal\field\FieldStorageConfigInterface;
 
 /**
  * Adds tables and fields to the SQL entity query.
@@ -51,6 +49,13 @@ class Tables implements TablesInterface {
   protected $entityManager;
 
   /**
+   * List of case sensitive fields.
+   *
+   * @var array
+   */
+  protected $caseSensitiveFields = array();
+
+  /**
    * @param \Drupal\Core\Database\Query\SelectInterface $sql_query
    */
   public function __construct(SelectInterface $sql_query) {
@@ -80,12 +85,7 @@ class Tables implements TablesInterface {
     $propertyDefinitions = array();
     $entity_type = $this->entityManager->getDefinition($entity_type_id);
 
-    $field_storage_definitions = array();
-    // @todo Needed for menu links, make this implementation content entity
-    //   specific after https://drupal.org/node/2256521.
-    if ($entity_type instanceof ContentEntityTypeInterface) {
-      $field_storage_definitions = $this->entityManager->getFieldStorageDefinitions($entity_type_id);
-    }
+    $field_storage_definitions = $this->entityManager->getFieldStorageDefinitions($entity_type_id);
     for ($key = 0; $key <= $count; $key ++) {
       // If there is revision support and only the current revision is being
       // queried then use the revision id. Otherwise, the entity id will do.
@@ -110,12 +110,14 @@ class Tables implements TablesInterface {
       else {
         $field_storage = FALSE;
       }
-      // If we managed to retrieve a configurable field, process it.
-      if ($field_storage instanceof FieldStorageConfigInterface) {
+
+      /** @var \Drupal\Core\Entity\Sql\DefaultTableMapping $table_mapping */
+      $table_mapping = $this->entityManager->getStorage($entity_type_id)->getTableMapping();
+
+      // Check whether this field is stored in a dedicated table.
+      if ($field_storage && $table_mapping->requiresDedicatedTableStorage($field_storage)) {
         // Find the field column.
         $column = $field_storage->getMainPropertyName();
-        /** @var \Drupal\Core\Entity\Sql\DefaultTableMapping $table_mapping */
-        $table_mapping = $this->entityManager->getStorage($entity_type_id)->getTableMapping();
 
         if ($key < $count) {
           $next = $specifiers[$key + 1];
@@ -144,8 +146,12 @@ class Tables implements TablesInterface {
         }
         $table = $this->ensureFieldTable($index_prefix, $field_storage, $type, $langcode, $base_table, $entity_id_field, $field_id_field);
         $sql_column = $table_mapping->getFieldColumnName($field_storage, $column);
+        $property_definitions = $field_storage->getPropertyDefinitions();
+        if (isset($property_definitions[$column])) {
+          $this->caseSensitiveFields[$field] = $property_definitions[$column]->getSetting('case_sensitive');
+        }
       }
-      // This is an entity base field (non-configurable field).
+      // The field is stored in a shared table.
       else {
         // ensureEntityTable() decides whether an entity property will be
         // queried from the data table or the base table based on where it
@@ -160,6 +166,17 @@ class Tables implements TablesInterface {
         $entity_tables[$entity_base_table] = $this->getTableMapping($entity_base_table, $entity_type_id);
         $sql_column = $specifier;
         $table = $this->ensureEntityTable($index_prefix, $specifier, $type, $langcode, $base_table, $entity_id_field, $entity_tables);
+
+        // If there is a field storage (some specifiers are not, like
+        // default_langcode), check for case sensitivity.
+        if ($field_storage) {
+          $column = $field_storage->getMainPropertyName();
+          $base_field_property_definitions = $field_storage->getPropertyDefinitions();
+          if (isset($base_field_property_definitions[$column])) {
+            $this->caseSensitiveFields[$field] = $base_field_property_definitions[$column]->getSetting('case_sensitive');
+          }
+        }
+
       }
       // If there are more specifiers to come, it's a relationship.
       if ($field_storage && $key < $count) {
@@ -189,6 +206,15 @@ class Tables implements TablesInterface {
       }
     }
     return "$table.$sql_column";
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function isFieldCaseSensitive($field_name) {
+    if (isset($this->caseSensitiveFields[$field_name])) {
+      return $this->caseSensitiveFields[$field_name];
+    }
   }
 
   /**

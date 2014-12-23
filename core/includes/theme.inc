@@ -9,6 +9,7 @@
  */
 
 use Drupal\Component\Serialization\Json;
+use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Component\Utility\String;
 use Drupal\Component\Utility\Unicode;
@@ -18,8 +19,6 @@ use Drupal\Core\Config\Config;
 use Drupal\Core\Config\StorageException;
 use Drupal\Core\Extension\Extension;
 use Drupal\Core\Extension\ExtensionNameLengthException;
-use Drupal\Core\Page\LinkElement;
-use Drupal\Core\Page\MetaElement;
 use Drupal\Core\Template\Attribute;
 use Drupal\Core\Theme\ThemeSettings;
 use Drupal\Component\Utility\NestedArray;
@@ -156,307 +155,6 @@ function list_themes($refresh = FALSE) {
   }
 
   return $theme_handler->listInfo();
-}
-
-/**
- * Generates themed output (internal use only).
- *
- * _theme() is an internal function. Do not call this function directly as it
- * will prevent the following items from working correctly:
- * - Render caching.
- * - JavaScript and CSS asset attachment.
- * - Pre / post render hooks.
- * - Defaults provided by hook_element_info(), including attached assets.
- * Instead, build a render array with a #theme key, and either return the
- * array (where possible) or call drupal_render() to convert it to HTML.
- *
- * All requests for themed output must go through this function, which is
- * invoked as part of the @link theme_render drupal_render() process @endlink.
- * The appropriate theme function is indicated by the #theme property
- * of a renderable array. _theme() examines the request and routes it to the
- * appropriate @link themeable theme function or template @endlink, by checking
- * the theme registry.
- *
- * @param $hook
- *   The name of the theme hook to call. If the name contains a
- *   double-underscore ('__') and there isn't an implementation for the full
- *   name, the part before the '__' is checked. This allows a fallback to a
- *   more generic implementation. For example, if _theme('links__node', ...) is
- *   called, but there is no implementation of that theme hook, then the
- *   'links' implementation is used. This process is iterative, so if
- *   _theme('links__contextual__node', ...) is called, _theme() checks for the
- *   following implementations, and uses the first one that exists:
- *   - links__contextual__node
- *   - links__contextual
- *   - links
- *   This allows themes to create specific theme implementations for named
- *   objects and contexts of otherwise generic theme hooks. The $hook parameter
- *   may also be an array, in which case the first theme hook that has an
- *   implementation is used. This allows for the code that calls _theme() to
- *   explicitly specify the fallback order in a situation where using the '__'
- *   convention is not desired or is insufficient.
- * @param $variables
- *   An associative array of variables to merge with defaults from the theme
- *   registry, pass to preprocess functions for modification, and finally, pass
- *   to the function or template implementing the theme hook. Alternatively,
- *   this can be a renderable array, in which case, its properties are mapped to
- *   variables expected by the theme hook implementations.
- *
- * @return string|false
- *   An HTML string representing the themed output or FALSE if the passed $hook
- *   is not implemented.
- *
- * @see drupal_render()
- * @see themeable
- * @see hook_theme()
- * @see template_preprocess()
- */
-function _theme($hook, $variables = array()) {
-  static $default_attributes;
-
-  $module_handler = \Drupal::moduleHandler();
-  $active_theme = \Drupal::theme()->getActiveTheme();
-
-  // If called before all modules are loaded, we do not necessarily have a full
-  // theme registry to work with, and therefore cannot process the theme
-  // request properly. See also \Drupal\Core\Theme\Registry::get().
-  if (!$module_handler->isLoaded() && !defined('MAINTENANCE_MODE')) {
-    throw new Exception(t('_theme() may not be called until all modules are loaded.'));
-  }
-
-  /** @var \Drupal\Core\Utility\ThemeRegistry $theme_registry */
-  $theme_registry = \Drupal::service('theme.registry')->getRuntime();
-
-  // If an array of hook candidates were passed, use the first one that has an
-  // implementation.
-  if (is_array($hook)) {
-    foreach ($hook as $candidate) {
-      if ($theme_registry->has($candidate)) {
-        break;
-      }
-    }
-    $hook = $candidate;
-  }
-  // Save the original theme hook, so it can be supplied to theme variable
-  // preprocess callbacks.
-  $original_hook = $hook;
-
-  // If there's no implementation, check for more generic fallbacks. If there's
-  // still no implementation, log an error and return an empty string.
-  if (!$theme_registry->has($hook)) {
-    // Iteratively strip everything after the last '__' delimiter, until an
-    // implementation is found.
-    while ($pos = strrpos($hook, '__')) {
-      $hook = substr($hook, 0, $pos);
-      if ($theme_registry->has($hook)) {
-        break;
-      }
-    }
-    if (!$theme_registry->has($hook)) {
-      // Only log a message when not trying theme suggestions ($hook being an
-      // array).
-      if (!isset($candidate)) {
-        \Drupal::logger('theme')->warning('Theme hook %hook not found.', array('%hook' => $hook));
-      }
-      // There is no theme implementation for the hook passed. Return FALSE so
-      // the function calling _theme() can differentiate between a hook that
-      // exists and renders an empty string and a hook that is not implemented.
-      return FALSE;
-    }
-  }
-
-  $info = $theme_registry->get($hook);
-
-  // If a renderable array is passed as $variables, then set $variables to
-  // the arguments expected by the theme function.
-  if (isset($variables['#theme']) || isset($variables['#theme_wrappers'])) {
-    $element = $variables;
-    $variables = array();
-    if (isset($info['variables'])) {
-      foreach (array_keys($info['variables']) as $name) {
-        if (isset($element["#$name"]) || array_key_exists("#$name", $element)) {
-          $variables[$name] = $element["#$name"];
-        }
-      }
-    }
-    else {
-      $variables[$info['render element']] = $element;
-      // Give a hint to render engines to prevent infinite recursion.
-      $variables[$info['render element']]['#render_children'] = TRUE;
-    }
-  }
-
-  // Merge in argument defaults.
-  if (!empty($info['variables'])) {
-    $variables += $info['variables'];
-  }
-  elseif (!empty($info['render element'])) {
-    $variables += array($info['render element'] => array());
-  }
-  // Supply original caller info.
-  $variables += array(
-    'theme_hook_original' => $original_hook,
-  );
-
-  // Set base hook for later use. For example if '#theme' => 'node__article'
-  // is called, we run hook_theme_suggestions_node_alter() rather than
-  // hook_theme_suggestions_node__article_alter(), and also pass in the base
-  // hook as the last parameter to the suggestions alter hooks.
-  if (isset($info['base hook'])) {
-    $base_theme_hook = $info['base hook'];
-  }
-  else {
-    $base_theme_hook = $hook;
-  }
-
-  // Invoke hook_theme_suggestions_HOOK().
-  $suggestions = $module_handler->invokeAll('theme_suggestions_' . $base_theme_hook, array($variables));
-  // If _theme() was invoked with a direct theme suggestion like
-  // '#theme' => 'node__article', add it to the suggestions array before
-  // invoking suggestion alter hooks.
-  if (isset($info['base hook'])) {
-    $suggestions[] = $hook;
-  }
-
-  // Invoke hook_theme_suggestions_alter() and
-  // hook_theme_suggestions_HOOK_alter().
-  $hooks = array(
-    'theme_suggestions',
-    'theme_suggestions_' . $base_theme_hook,
-  );
-  $module_handler->alter($hooks, $suggestions, $variables, $base_theme_hook);
-  \Drupal::theme()->alter($hooks, $suggestions, $variables, $base_theme_hook);
-
-  // Check if each suggestion exists in the theme registry, and if so,
-  // use it instead of the hook that _theme() was called with. For example, a
-  // function may call _theme('node', ...), but a module can add
-  // 'node__article' as a suggestion via hook_theme_suggestions_HOOK_alter(),
-  // enabling a theme to have an alternate template file for article nodes.
-  foreach (array_reverse($suggestions) as $suggestion) {
-    if ($theme_registry->has($suggestion)) {
-      $info = $theme_registry->get($suggestion);
-      break;
-    }
-  }
-
-  // Include a file if the theme function or variable preprocessor is held
-  // elsewhere.
-  if (!empty($info['includes'])) {
-    foreach ($info['includes'] as $include_file) {
-      include_once DRUPAL_ROOT . '/' . $include_file;
-    }
-  }
-
-  // Invoke the variable preprocessors, if any.
-  if (isset($info['base hook'])) {
-    $base_hook = $info['base hook'];
-    $base_hook_info = $theme_registry->get($base_hook);
-    // Include files required by the base hook, since its variable preprocessors
-    // might reside there.
-    if (!empty($base_hook_info['includes'])) {
-      foreach ($base_hook_info['includes'] as $include_file) {
-        include_once DRUPAL_ROOT . '/' . $include_file;
-      }
-    }
-    // Replace the preprocess functions with those from the base hook.
-    if (isset($base_hook_info['preprocess functions'])) {
-      // Set a variable for the 'theme_hook_suggestion'. This is used to
-      // maintain backwards compatibility with template engines.
-      $theme_hook_suggestion = $hook;
-      $info['preprocess functions'] = $base_hook_info['preprocess functions'];
-    }
-  }
-  if (isset($info['preprocess functions'])) {
-    foreach ($info['preprocess functions'] as $preprocessor_function) {
-      if (function_exists($preprocessor_function)) {
-        $preprocessor_function($variables, $hook, $info);
-      }
-    }
-    // Allow theme preprocess functions to set $variables['#attached'] and use
-    // it like the #attached property on render arrays. In Drupal 8, this is the
-    // (only) officially supported method of attaching assets from preprocess
-    // functions. Assets attached here should be associated with the template
-    // that we're preprocessing variables for.
-    if (isset($variables['#attached'])) {
-      $preprocess_attached = ['#attached' => $variables['#attached']];
-      drupal_render($preprocess_attached);
-    }
-  }
-
-  // Generate the output using either a function or a template.
-  $output = '';
-  if (isset($info['function'])) {
-    if (function_exists($info['function'])) {
-      $output = SafeMarkup::set($info['function']($variables));
-    }
-  }
-  else {
-    $render_function = 'twig_render_template';
-    $extension = '.html.twig';
-
-    // The theme engine may use a different extension and a different renderer.
-    $theme_engine = $active_theme->getEngine();
-    if (isset($theme_engine)) {
-      if ($info['type'] != 'module') {
-        if (function_exists($theme_engine . '_render_template')) {
-          $render_function = $theme_engine . '_render_template';
-        }
-        $extension_function = $theme_engine . '_extension';
-        if (function_exists($extension_function)) {
-          $extension = $extension_function();
-        }
-      }
-    }
-
-    // In some cases, a template implementation may not have had
-    // template_preprocess() run (for example, if the default implementation is
-    // a function, but a template overrides that default implementation). In
-    // these cases, a template should still be able to expect to have access to
-    // the variables provided by template_preprocess(), so we add them here if
-    // they don't already exist. We don't want the overhead of running
-    // template_preprocess() twice, so we use the 'directory' variable to
-    // determine if it has already run, which while not completely intuitive,
-    // is reasonably safe, and allows us to save on the overhead of adding some
-    // new variable to track that.
-    if (!isset($variables['directory'])) {
-      $default_template_variables = array();
-      template_preprocess($default_template_variables, $hook, $info);
-      $variables += $default_template_variables;
-    }
-    if (!isset($default_attributes)) {
-      $default_attributes = new Attribute();
-    }
-    foreach (array('attributes', 'title_attributes', 'content_attributes') as $key) {
-      if (isset($variables[$key]) && !($variables[$key] instanceof Attribute)) {
-        if ($variables[$key]) {
-          $variables[$key] = new Attribute($variables[$key]);
-        }
-        else {
-          // Create empty attributes.
-          $variables[$key] = clone $default_attributes;
-        }
-      }
-    }
-
-    // Render the output using the template file.
-    $template_file = $info['template'] . $extension;
-    if (isset($info['path'])) {
-      $template_file = $info['path'] . '/' . $template_file;
-    }
-    // Add the theme suggestions to the variables array just before rendering
-    // the template for backwards compatibility with template engines.
-    $variables['theme_hook_suggestions'] = $suggestions;
-    // For backwards compatibility, pass 'theme_hook_suggestion' on to the
-    // template engine. This is only set when calling a direct suggestion like
-    // '#theme' => 'menu__shortcut_default' when the template exists in the
-    // current theme.
-    if (isset($theme_hook_suggestion)) {
-      $variables['theme_hook_suggestion'] = $theme_hook_suggestion;
-    }
-    $output = $render_function($template_file, $variables);
-  }
-
-  return (string) $output;
 }
 
 /**
@@ -626,9 +324,6 @@ function drupal_find_theme_templates($cache, $extension, $path) {
  *
  * The final setting is obtained from the last value found in the following
  * sources:
- * - the default theme-specific settings defined in any base theme's .info.yml
- *   file
- * - the default theme-specific settings defined in the theme's .info.yml file
  * - the saved values from the global theme settings form
  * - the saved values from the theme's settings form
  * To only retrieve the default global theme setting, an empty string should be
@@ -643,6 +338,7 @@ function drupal_find_theme_templates($cache, $extension, $path) {
  *   The value of the requested setting, NULL if the setting does not exist.
  */
 function theme_get_setting($setting_name, $theme = NULL) {
+  /** @var \Drupal\Core\Theme\ThemeSettings[] $cache */
   $cache = &drupal_static(__FUNCTION__, array());
 
   // If no key is given, use the current theme if we can determine it.
@@ -653,33 +349,13 @@ function theme_get_setting($setting_name, $theme = NULL) {
   if (empty($cache[$theme])) {
     // Create a theme settings object.
     $cache[$theme] = new ThemeSettings($theme);
+    // Get the global settings from configuration.
+    $cache[$theme]->setData(\Drupal::config('system.theme.global')->get());
 
-    // Get the values for the theme-specific settings from the .info.yml files
-    // of the theme and all its base themes.
-    $themes = list_themes();
-    if ($theme && isset($themes[$theme])) {
+    $themes = \Drupal::service('theme_handler')->listInfo();
+    if (isset($themes[$theme])) {
       $theme_object = $themes[$theme];
 
-      // Create a list which includes the current theme and all its base themes.
-      if (isset($theme_object->base_themes)) {
-        $theme_keys = array_keys($theme_object->base_themes);
-        $theme_keys[] = $theme;
-      }
-      else {
-        $theme_keys = array($theme);
-      }
-      // Read hard-coded default settings from the theme info files.
-      foreach ($theme_keys as $theme_key) {
-        if (!empty($themes[$theme_key]->info['settings'])) {
-          $cache[$theme]->merge($themes[$theme_key]->info['settings']);
-        }
-      }
-    }
-
-    // Get the global settings from configuration.
-    $cache[$theme]->merge(\Drupal::config('system.theme.global')->get());
-
-    if ($theme && isset($themes[$theme])) {
       // Retrieve configured theme-specific settings, if any.
       try {
         if ($theme_settings = \Drupal::config($theme . '.settings')->get()) {
@@ -1420,9 +1096,9 @@ function template_preprocess_item_list(&$variables) {
         // If this child element does not specify how it can be rendered, then
         // we need to inherit the render properties of the current list.
         if (!isset($child['#type']) && !isset($child['#theme']) && !isset($child['#markup'])) {
-          // Since theme_item_list() supports both strings and render arrays as
-          // items, the items of the nested list may have been specified as the
-          // child elements of the nested list, instead of #items. For
+          // Since item-list.html.twig supports both strings and render arrays
+          // as items, the items of the nested list may have been specified as
+          // the child elements of the nested list, instead of #items. For
           // convenience, we automatically move them into #items.
           if (!isset($child['#items'])) {
             // This is the same condition as in
@@ -1610,17 +1286,6 @@ function _template_preprocess_default_variables() {
     'logged_in' => FALSE,
   );
 
-  // drupal_is_front_page() might throw an exception.
-  try {
-    $variables['is_front'] = drupal_is_front_page();
-  }
-  catch (Exception $e) {
-    // If the database is not yet available, set default values for these
-    // variables.
-    $variables['is_front'] = FALSE;
-    $variables['db_is_active'] = FALSE;
-  }
-
   // Give modules a chance to alter the default template variables.
   \Drupal::moduleHandler()->alter('template_preprocess_default_variables', $variables);
 
@@ -1646,22 +1311,37 @@ function drupal_pre_render_html(array $element) {
  *   - page: A render element representing the page.
  */
 function template_preprocess_html(&$variables) {
-  /** @var $page \Drupal\Core\Page\HtmlPage */
-  $page = $variables['page_object'];
+  $variables['page'] = $variables['html']['page'];
+  unset($variables['html']['page']);
+  $variables['page_top'] = NULL;
+  if (isset($variables['html']['page_top'])) {
+    $variables['page_top'] = $variables['html']['page_top'];
+    unset($variables['html']['page_top']);
+  }
+  $variables['page_bottom'] = NULL;
+  if (isset($variables['html']['page_bottom'])) {
+    $variables['page_bottom'] = $variables['html']['page_bottom'];
+    unset($variables['html']['page_bottom']);
+  }
 
-  $variables['html_attributes'] = $page->getHtmlAttributes();
-  $variables['attributes'] = $page->getBodyAttributes();
-  $variables['page'] = $page;
+  $variables['html_attributes'] = new Attribute();
+
+  // HTML element attributes.
+  $language_interface = \Drupal::languageManager()->getCurrentLanguage();
+  $variables['html_attributes']['lang'] = $language_interface->getId();
+  $variables['html_attributes']['dir'] = $language_interface->getDirection();
 
   // Compile a list of classes that are going to be applied to the body element.
   // This allows advanced theming based on context (home page, node of certain
   // type, etc.).
-  $body_classes = $variables['attributes']['class'];
+  if (isset($variables['db_is_active']) && !$variables['db_is_active']) {
+    $variables['attributes']['class'][] = 'db-offline';
+  }
 
   // Add a class that tells us whether the page is viewed by an authenticated
   // user.
   if ($variables['logged_in']) {
-    $body_classes[] = 'user-logged-in';
+    $variables['attributes']['class'][] = 'user-logged-in';
   }
   // Add a class that tells us what path the page is located make it possible
   // to theme the page depending on the current path (e.g. node, admin, user,
@@ -1669,20 +1349,18 @@ function template_preprocess_html(&$variables) {
   $path = \Drupal::request()->getPathInfo();
 
   if (drupal_is_front_page()) {
-    $body_classes[] = 'path-frontpage';
+    $variables['attributes']['class'][] = 'path-frontpage';
   }
   else {
     $segment = explode('/', $path);
-    $body_classes[] = 'path-' . drupal_html_class($segment[1]);
+    $variables['attributes']['class'][] = 'path-' . Html::getClass($segment[1]);
   }
-
-  $variables['attributes']['class'] = $body_classes;
 
   $site_config = \Drupal::config('system.site');
   // Construct page title.
-  if ($page->hasTitle()) {
+  if (!empty($variables['page']['#title'])) {
     $head_title = array(
-      'title' => SafeMarkup::set(trim(strip_tags($page->getTitle()))),
+      'title' => SafeMarkup::set(trim(strip_tags($variables['page']['#title']))),
       'name' => String::checkPlain($site_config->get('name')),
     );
   }
@@ -1710,35 +1388,27 @@ function template_preprocess_html(&$variables) {
   }
   $variables['head_title'] = SafeMarkup::set($output);
 
-  // @todo Remove drupal_*_html_head() and refactor accordingly.
-  $html_heads = drupal_get_html_head(FALSE);
-  uasort($html_heads, 'Drupal\Component\Utility\SortArray::sortByWeightElement');
-  foreach ($html_heads as $name => $tag) {
-    if ($tag['#tag'] == 'link') {
-      $link = new LinkElement($name, isset($tag['#attributes']['content']) ? $tag['#attributes']['content'] : NULL, $tag['#attributes']);
-      if (!empty($tag['#noscript'])) {
-        $link->setNoScript();
-      }
-      $page->addLinkElement($link);
-    }
-    elseif ($tag['#tag'] == 'meta') {
-      $metatag = new MetaElement(NULL, $tag['#attributes']);
-      if (!empty($tag['#noscript'])) {
-        $metatag->setNoScript();
-      }
-      $page->addMetaElement($metatag);
-    }
+  // Collect all attachments. This must happen in the preprocess function for
+  // #type => html, to ensure that attachments added in #pre_render callbacks
+  // for #type => html are included.
+  $attached = $variables['html']['#attached'];
+  $attached = drupal_merge_attached($attached, $variables['page']['#attached']);
+  if (isset($variables['page_top'])) {
+    $attached = drupal_merge_attached($attached, $variables['page_top']['#attached']);
+  }
+  if (isset($variables['page_bottom'])) {
+    $attached = drupal_merge_attached($attached, $variables['page_bottom']['#attached']);
   }
 
-  // Add favicon.
-  if (theme_get_setting('features.favicon')) {
-    $url = UrlHelper::stripDangerousProtocols(theme_get_setting('favicon.url'));
-    $link = new LinkElement($url, 'shortcut icon', ['type' => theme_get_setting('favicon.mimetype')]);
-    $page->addLinkElement($link);
-  }
+  // Render the attachments into HTML markup to be used directly in the template
+  // for #type => html: html.html.twig.
+  $all_attached = ['#attached' => $attached];
+  drupal_process_attached($all_attached);
 
-  $variables['page_top'][] = array('#markup' => $page->getBodyTop());
-  $variables['page_bottom'][] = array('#markup' => $page->getBodyBottom());
+  $variables['styles'] = drupal_get_css();
+  $variables['scripts'] = drupal_get_js();
+  $variables['scripts_bottom'] = drupal_get_js('footer');
+  $variables['head'] = drupal_get_html_head(FALSE);
 }
 
 /**
@@ -1749,8 +1419,6 @@ function template_preprocess_html(&$variables) {
  * Most themes use their own copy of page.html.twig. The default is located
  * inside "modules/system/page.html.twig". Look in there for the full list of
  * variables.
- *
- * @see DefaultHtmlFragmentRenderer::render()
  */
 function template_preprocess_page(&$variables) {
   $language_interface = \Drupal::languageManager()->getCurrentLanguage();
@@ -1773,6 +1441,16 @@ function template_preprocess_page(&$variables) {
   $variables['site_name']         = (theme_get_setting('features.name') ? String::checkPlain($site_config->get('name')) : '');
   $variables['site_slogan']       = (theme_get_setting('features.slogan') ? Xss::filterAdmin($site_config->get('slogan')) : '');
 
+  // An exception might be thrown.
+  try {
+    $variables['is_front'] = \Drupal::service('path.matcher')->isFrontPage();
+  }
+  catch (Exception $e) {
+    // If the database is not yet available, set default values for these
+    // variables.
+    $variables['is_front'] = FALSE;
+    $variables['db_is_active'] = FALSE;
+  }
   if (!defined('MAINTENANCE_MODE')) {
     $variables['action_links']   = menu_get_local_actions();
     $variables['tabs']           = menu_local_tabs();
@@ -1876,7 +1554,7 @@ function theme_get_suggestions($args, $base, $delimiter = '__') {
 }
 
 /**
- * Prepare variables for maintenance page templates.
+ * Prepares variables for maintenance page templates.
  *
  * Default template: maintenance-page.html.twig.
  *
@@ -1889,15 +1567,6 @@ function theme_get_suggestions($args, $base, $delimiter = '__') {
 function template_preprocess_maintenance_page(&$variables) {
   // @todo Rename the templates to page--maintenance + page--install.
   template_preprocess_page($variables);
-
-  $page_object = $variables['page']['#page'];
-  $attributes = $page_object->getBodyAttributes();
-  $classes = $attributes['class'];
-  $classes[] = 'maintenance-page';
-  if (isset($variables['db_is_active']) && !$variables['db_is_active']) {
-    $classes[] = 'db-offline';
-  }
-  $attributes['class'] = $classes;
 
   // @see system_page_attachments()
   $variables['#attached']['library'][] = 'core/normalize';
@@ -1917,12 +1586,6 @@ function template_preprocess_maintenance_page(&$variables) {
  */
 function template_preprocess_install_page(&$variables) {
   template_preprocess_maintenance_page($variables);
-
-  $page_object = $variables['page']['#page'];
-  $attributes = $page_object->getBodyAttributes();
-  $classes = $attributes['class'];
-  $classes[] = 'install-page';
-  $attributes['class'] = $classes;
 
   // Override the site name that is displayed on the page, since Drupal is
   // still in the process of being installed.
@@ -1976,7 +1639,7 @@ function template_preprocess_field(&$variables, $hook) {
 
   // Add default CSS classes. Since there can be many fields rendered on a page,
   // save some overhead by calling strtr() directly instead of
-  // drupal_html_class().
+  // \Drupal\Component\Utility\Html::getClass().
   $variables['entity_type_css'] = strtr($element['#entity_type'], '_', '-');
   $variables['field_name_css'] = strtr($element['#field_name'], '_', '-');
   $variables['field_type_css'] = strtr($element['#field_type'], '_', '-');
@@ -2161,7 +1824,7 @@ function drupal_common_theme() {
   return array(
     // From theme.inc.
     'html' => array(
-      'variables' => array('page_object' => NULL),
+      'render element' => 'html',
     ),
     'page' => array(
       'render element' => 'page',

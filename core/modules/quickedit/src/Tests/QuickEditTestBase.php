@@ -7,19 +7,19 @@
 
 namespace Drupal\quickedit\Tests;
 
-use Drupal\simpletest\DrupalUnitTestBase;
+use Drupal\simpletest\KernelTestBase;
 
 /**
  * Base class for testing Quick Edit functionality.
  */
-abstract class QuickEditTestBase extends DrupalUnitTestBase {
+abstract class QuickEditTestBase extends KernelTestBase {
 
   /**
    * Modules to enable.
    *
    * @var array
    */
-  public static $modules = array('system', 'entity', 'entity_test', 'field', 'field_test', 'filter', 'user', 'text', 'quickedit', 'entity_reference');
+  public static $modules = array('system', 'entity_test', 'field', 'field_test', 'filter', 'user', 'text', 'quickedit', 'entity_reference');
 
   /**
    * Bag of created fields.
@@ -92,7 +92,6 @@ abstract class QuickEditTestBase extends DrupalUnitTestBase {
     entity_get_form_display('entity_test', 'entity_test', 'default')
       ->setComponent($field_name, array(
         'type' => $widget_type,
-        'label' => $label,
         'settings' => $widget_settings,
       ))
       ->save();

@@ -30,7 +30,7 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class ViewExecutableTest extends ViewUnitTestBase {
 
-  public static $modules = array('system', 'node', 'comment', 'user', 'filter', 'entity', 'field', 'text', 'entity_reference');
+  public static $modules = array('system', 'node', 'comment', 'user', 'filter', 'field', 'text', 'entity_reference');
 
   /**
    * Views used by this test.
@@ -308,11 +308,6 @@ class ViewExecutableTest extends ViewUnitTestBase {
     $new_response = new Response();
     $view->setResponse($new_response);
     $this->assertIdentical(spl_object_hash($view->getResponse()), spl_object_hash($new_response), 'New response object correctly set.');
-
-    // Test the generateHandlerId() method.
-    $test_ids = array('test' => 'test', 'test_1' => 'test_1');
-    $this->assertEqual($view->generateHandlerId('new', $test_ids), 'new');
-    $this->assertEqual($view->generateHandlerId('test', $test_ids), 'test_2');
 
     // Test the getPath() method.
     $path = $this->randomMachineName();

@@ -8,7 +8,9 @@
 namespace Drupal\file\Tests;
 
 use Drupal\comment\Entity\Comment;
+use Drupal\Component\Utility\Html;
 use Drupal\field\Entity\FieldConfig;
+use Drupal\field_ui\Tests\FieldUiTestTrait;
 
 /**
  * Tests the file field widget, single and multi-valued, with and without AJAX,
@@ -17,6 +19,8 @@ use Drupal\field\Entity\FieldConfig;
  * @group file
  */
 class FileFieldWidgetTest extends FileFieldTestBase {
+
+  use FieldUiTestTrait;
 
   /**
    * Modules to enable.
@@ -71,7 +75,7 @@ class FileFieldWidgetTest extends FileFieldTestBase {
       $this->assertNoFieldByXPath('//input[@type="submit"]', t('Remove'), 'After clicking the "Remove" button, it is no longer displayed.');
       $this->assertFieldByXpath('//input[@type="submit"]', t('Upload'), 'After clicking the "Remove" button, the "Upload" button is displayed.');
       // Test label has correct 'for' attribute.
-      $label = $this->xpath("//label[@for='edit-" . drupal_clean_css_identifier($field_name) . "-0-upload']");
+      $label = $this->xpath("//label[@for='edit-" . Html::cleanCssIdentifier($field_name) . "-0-upload']");
       $this->assertTrue(isset($label[0]), 'Label for upload found.');
 
       // Save the node and ensure it does not have the file.
@@ -257,15 +261,11 @@ class FileFieldWidgetTest extends FileFieldTestBase {
 
     // Create a new field.
     $this->container->get('comment.manager')->addDefaultField('node', 'article');
-    $edit = array(
-      'fields[_add_new_field][label]' => $label = $this->randomMachineName(),
-      'fields[_add_new_field][field_name]' => $name = strtolower($this->randomMachineName()),
-      'fields[_add_new_field][type]' => 'file',
-    );
-    $this->drupalPostForm('admin/structure/comment/manage/comment/fields', $edit, t('Save'));
-    $edit = array('field_storage[settings][uri_scheme]' => 'private');
-    $this->drupalPostForm(NULL, $edit, t('Save field settings'));
-    $this->drupalPostForm(NULL, array(), t('Save settings'));
+
+    $name = strtolower($this->randomMachineName());
+    $label = $this->randomMachineName();
+    $storage_edit = array('field_storage[settings][uri_scheme]' => 'private');
+    $this->fieldUIAddNewField('admin/structure/comment/manage/comment', $name, $label, 'file', $storage_edit);
 
     // Manually clear cache on the tester side.
     \Drupal::entityManager()->clearCachedFieldDefinitions();

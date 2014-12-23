@@ -22,7 +22,7 @@ class ClassCollectionLoaderTest extends \PHPUnit_Framework_TestCase
 {
     public function testTraitDependencies()
     {
-        if (version_compare(phpversion(), '5.4', '<')) {
+        if (PHP_VERSION_ID < 50400) {
             $this->markTestSkipped('Requires PHP > 5.4');
 
             return;
@@ -100,7 +100,7 @@ class ClassCollectionLoaderTest extends \PHPUnit_Framework_TestCase
      */
     public function testClassWithTraitsReordering(array $classes)
     {
-        if (version_compare(phpversion(), '5.4', '<')) {
+        if (PHP_VERSION_ID < 50400) {
             $this->markTestSkipped('Requires PHP > 5.4');
 
             return;
@@ -227,7 +227,7 @@ class WithComments
 {
 public static \$loaded = true;
 }
-\$string ='string shoult not be   modified {\$string}';
+\$string ='string should not be   modified {\$string}';
 \$heredoc = (<<<HD
 
 

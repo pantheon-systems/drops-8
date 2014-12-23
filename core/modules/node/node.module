@@ -8,6 +8,7 @@
  * API pattern.
  */
 
+use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\Xss;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Form\FormStateInterface;
@@ -15,6 +16,7 @@ use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Url;
+use Drupal\language\Entity\ContentLanguageSettings;
 use Symfony\Component\HttpFoundation\Response;
 use Drupal\Core\Database\StatementInterface;
 use Drupal\Core\Database\Query\AlterableInterface;
@@ -121,7 +123,7 @@ function node_help($route_name, RouteMatchInterface $route_match) {
 
     case 'entity.node.edit_form':
       $node = $route_match->getParameter('node');
-      $type = $node->getType();
+      $type = NodeType::load($node->getType());
       return (!empty($type->help) ? Xss::filterAdmin($type->help) : '');
 
     case 'node.add':
@@ -137,10 +139,6 @@ function node_theme() {
   return array(
     'node' => array(
       'render element' => 'elements',
-    ),
-    'node_search_admin' => array(
-      'render element' => 'form',
-      'function' => 'theme_node_search_admin',
     ),
     'node_add_list' => array(
       'variables' => array('content' => NULL),
@@ -328,14 +326,6 @@ function node_add_body_field(NodeTypeInterface $type, $label = 'Body') {
    // Add or remove the body field, as needed.
   $field_storage = FieldStorageConfig::loadByName('node', 'body');
   $field = FieldConfig::loadByName('node', $type->id(), 'body');
-  if (empty($field_storage)) {
-    $field_storage = entity_create('field_storage_config', array(
-      'field_name' => 'body',
-      'entity_type' => 'node',
-      'type' => 'text_with_summary',
-    ));
-    $field_storage->save();
-  }
   if (empty($field)) {
     $field = entity_create('field_config', array(
       'field_storage' => $field_storage,
@@ -390,8 +380,8 @@ function node_entity_extra_field_info() {
     // Visibility of the ordering of the language selector is the same as on the
     // node/add form.
     if ($module_language_enabled) {
-      $configuration = language_get_default_configuration('node', $bundle->type);
-      if ($configuration['language_show']) {
+      $configuration = ContentLanguageSettings::loadByEntityTypeBundle('node', $bundle->type);
+      if ($configuration->isLanguageAlterable()) {
         $extra['node'][$bundle->type]['form']['langcode'] = array(
           'label' => t('Language'),
           'description' => $description,
@@ -531,7 +521,7 @@ function node_is_page(NodeInterface $node) {
 function node_preprocess_html(&$variables) {
   // If on an individual node page, add the node type to body classes.
   if (($node = \Drupal::routeMatch()->getParameter('node')) && $node instanceof NodeInterface) {
-    $variables['attributes']['class'][] = drupal_html_class('node--type-' . $node->getType());
+    $variables['attributes']['class'][] = Html::getClass('node--type-' . $node->getType());
   }
 }
 
@@ -735,40 +725,6 @@ function node_user_predelete($account) {
   foreach ($revisions as $revision) {
     node_revision_delete($revision);
   }
-}
-
-/**
- * Returns HTML for the content ranking part of the search settings admin page.
- *
- * @param $variables
- *   An associative array containing:
- *   - form: A render element representing the form.
- *
- * @see node_search_admin()
- * @ingroup themeable
- */
-function theme_node_search_admin($variables) {
-  $form = $variables['form'];
-
-  $output = drupal_render($form['info']);
-
-  $header = array(t('Factor'), t('Influence'));
-  foreach (Element::children($form['factors']) as $key) {
-    $row = array();
-    $row[] = $form['factors'][$key]['#title'];
-    $form['factors'][$key]['#title_display'] = 'invisible';
-    $row[] = drupal_render($form['factors'][$key]);
-    $rows[] = $row;
-  }
-  $table = array(
-    '#type' => 'table',
-    '#header' => $header,
-    '#rows' => $rows,
-  );
-  $output .= drupal_render($table);
-
-  $output .= drupal_render_children($form);
-  return $output;
 }
 
 /**

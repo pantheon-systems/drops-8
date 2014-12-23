@@ -315,7 +315,7 @@ class CommentViewBuilder extends EntityViewBuilder {
 
       // Add indentation div or close open divs as needed.
       if ($is_threaded) {
-        $build['#attached']['css'][] = drupal_get_path('module', 'comment') . '/css/comment.theme.css';
+        $build['#attached']['library'][] = 'comment/drupal.comment.threaded';
         $prefix .= $comment->divs <= 0 ? str_repeat('</div>', abs($comment->divs)) : "\n" . '<div class="indented">';
       }
 
@@ -364,23 +364,16 @@ class CommentViewBuilder extends EntityViewBuilder {
     $query = $page_number ? array('page' => $page_number) : NULL;
 
     // Attach metadata.
-    $element['#attached']['js'][] = array(
-      'type' => 'setting',
-      'data' => array(
-        'comment' => array(
-          'newCommentsLinks' => array(
-            $context['entity_type'] => array(
-              $context['field_name'] => array(
-                $context['entity_id'] => array(
-                  'new_comment_count' => (int)$new,
-                  'first_new_comment_link' => \Drupal::urlGenerator()->generateFromPath('node/' . $entity->id(), array('query' => $query, 'fragment' => 'new')),
-                )
-              )
-            ),
-          )
-        ),
-      ),
-    );
+    $element['#attached']['drupalSettings']['comment']['newCommentsLinks'] = [
+      $context['entity_type'] => [
+        $context['field_name'] => [
+          $context['entity_id'] => [
+            'new_comment_count' => (int)$new,
+            'first_new_comment_link' => \Drupal::urlGenerator()->generateFromPath('node/' . $entity->id(), ['query' => $query, 'fragment' => 'new']),
+          ],
+        ],
+      ],
+    ];
 
     return $element;
   }

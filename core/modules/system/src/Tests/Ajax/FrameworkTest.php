@@ -35,44 +35,18 @@ class FrameworkTest extends AjaxTestBase {
    * Tests AjaxResponse::prepare() AJAX commands ordering.
    */
   public function testOrder() {
-    $path = drupal_get_path('module', 'system');
     $expected_commands = array();
 
     // Expected commands, in a very specific order.
     $expected_commands[0] = new SettingsCommand(array('ajax' => 'test'), TRUE);
     drupal_static_reset('_drupal_add_css');
-    $attached = array(
-      '#attached' => array(
-        'css' => array(
-          $path . '/css/system.admin.css' => array(),
-          $path . '/css/system.maintenance.css' => array()
-        ),
-      ),
-    );
-    drupal_render($attached);
-    drupal_process_attached($attached);
+    $build['#attached']['library'][] = 'ajax_test/order-css-command';
+    drupal_process_attached($build);
     $expected_commands[1] = new AddCssCommand(drupal_get_css(_drupal_add_css(), TRUE));
     drupal_static_reset('_drupal_add_js');
-    $attached = array(
-      '#attached' => array(
-        'js' => array(
-          $path . '/system.js' => array(),
-        ),
-      ),
-    );
-    drupal_render($attached);
-    drupal_process_attached($attached);
+    $build['#attached']['library'][] = 'ajax_test/order-js-command';
+    drupal_process_attached($build);
     $expected_commands[2] = new PrependCommand('head', drupal_get_js('header', _drupal_add_js(), TRUE));
-    drupal_static_reset('_drupal_add_js');
-    $attached = array(
-      '#attached' => array(
-        'js' => array(
-          $path . '/system.modules.js' => array('scope' => 'footer'),
-        ),
-      ),
-    );
-    drupal_render($attached);
-    drupal_process_attached($attached);
     $expected_commands[3] = new AppendCommand('body', drupal_get_js('footer', _drupal_add_js(), TRUE));
     $expected_commands[4] = new HtmlCommand('body', 'Hello, world!');
 
@@ -134,7 +108,7 @@ class FrameworkTest extends AjaxTestBase {
       'data' => $expected['css'],
       'browsers' => array('IE' => TRUE, '!IE' => TRUE),
     )), TRUE);
-    $expected_js_html = drupal_get_js('header', array($expected['js'] => drupal_js_defaults($expected['js'])), TRUE);
+    $expected_js_html = drupal_get_js('header', array($expected['js'] => ['version' => \Drupal::VERSION] + drupal_js_defaults($expected['js'])), TRUE);
 
     // Get the base page.
     $this->drupalGet('ajax_forms_test_lazy_load_form');

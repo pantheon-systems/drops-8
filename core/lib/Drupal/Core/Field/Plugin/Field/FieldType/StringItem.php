@@ -10,10 +10,7 @@ namespace Drupal\Core\Field\Plugin\Field\FieldType;
 use Drupal\Component\Utility\Random;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
-use Drupal\Core\Field\FieldItemBase;
-use Drupal\Core\StringTranslation\TranslationWrapper;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\TypedData\DataDefinition;
 
 /**
  * Defines the 'string' entity field type.
@@ -26,7 +23,7 @@ use Drupal\Core\TypedData\DataDefinition;
  *   default_formatter = "string"
  * )
  */
-class StringItem extends FieldItemBase {
+class StringItem extends StringItemBase {
 
   /**
    * {@inheritdoc}
@@ -40,18 +37,6 @@ class StringItem extends FieldItemBase {
   /**
    * {@inheritdoc}
    */
-  public static function propertyDefinitions(FieldStorageDefinitionInterface $field_definition) {
-    // This is called very early by the user entity roles field. Prevent
-    // early t() calls by using the TranslationWrapper.
-    $properties['value'] = DataDefinition::create('string')
-      ->setLabel(new TranslationWrapper('Text value'));
-
-    return $properties;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public static function schema(FieldStorageDefinitionInterface $field_definition) {
     return array(
       'columns' => array(
@@ -59,6 +44,7 @@ class StringItem extends FieldItemBase {
           'type' => 'varchar',
           'length' => (int) $field_definition->getSetting('max_length'),
           'not null' => FALSE,
+          'binary' => $field_definition->getSetting('case_sensitive'),
         ),
       ),
     );
@@ -90,15 +76,14 @@ class StringItem extends FieldItemBase {
    */
   public static function generateSampleValue(FieldDefinitionInterface $field_definition) {
     $random = new Random();
-    $max = $field_definition->getSetting('max_length');
-    $values['value'] = $random->word(mt_rand(1, $max));
+    $values['value'] = $random->word(mt_rand(1, $field_definition->getSetting('max_length')));
     return $values;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function settingsForm(array &$form, FormStateInterface $form_state, $has_data) {
+  public function storageSettingsForm(array &$form, FormStateInterface $form_state, $has_data) {
     $element = array();
 
     $element['max_length'] = array(

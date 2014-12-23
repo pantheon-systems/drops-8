@@ -25,20 +25,20 @@ classList:
 
 ckeditor:
   remote: https://github.com/ckeditor/ckeditor-dev
-  version: 4.4.5
+  version: 4.4.6
   license:
     name: GNU-GPL-2.0-or-later
-    url: https://github.com/ckeditor/ckeditor-dev/blob/4.4.5/LICENSE.md
+    url: https://github.com/ckeditor/ckeditor-dev/blob/4.4.6/LICENSE.md
     gpl-compatible: true
   js:
     assets/vendor/ckeditor/ckeditor.js: { preprocess: false, minified: true }
 
 domready:
   remote: https://github.com/ded/domready
-  version: 1.0.6
+  version: 1.0.7
   license:
     name: MIT
-    url: https://github.com/ded/domready/blob/v1.0.6/LICENSE
+    url: https://github.com/ded/domready/blob/v1.0.7/LICENSE
     gpl-compatible: true
   js:
     assets/vendor/domready/ready.min.js: { weight: -21, minified: true }
@@ -52,7 +52,18 @@ drupal:
 
 drupalSettings:
   version: VERSION
-  settings: {}
+  drupalSettings:
+    # These placeholder values will be set by system_js_settings_alter().
+    path:
+      baseUrl: null
+      scriptPath: null
+      pathPrefix: null
+      currentPath: null
+      currentPathIsAdmin: null
+      isFront: null
+      currentLanguage: null
+    locale:
+      pluralDelimiter: null
 
 drupal.active-link:
   version: VERSION

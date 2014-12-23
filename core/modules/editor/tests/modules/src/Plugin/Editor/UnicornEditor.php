@@ -28,17 +28,17 @@ class UnicornEditor extends EditorBase {
    * {@inheritdoc}
    */
   function getDefaultSettings() {
-    return array('ponies too' => TRUE);
+    return array('ponies_too' => TRUE);
   }
 
   /**
    * {@inheritdoc}
    */
   function settingsForm(array $form, FormStateInterface $form_state, EditorEntity $editor) {
-    $form['foo'] = array(
-      '#title' => t('Foo'),
-      '#type' => 'textfield',
-      '#default_value' => 'bar',
+    $form['ponies_too'] = array(
+      '#title' => t('Pony mode'),
+      '#type' => 'checkbox',
+      '#default_value' => TRUE,
     );
     return $form;
   }
@@ -49,7 +49,7 @@ class UnicornEditor extends EditorBase {
   function getJSSettings(EditorEntity $editor) {
     $js_settings = array();
     $settings = $editor->getSettings();
-    if ($settings['ponies too']) {
+    if ($settings['ponies_too']) {
       $js_settings['ponyModeEnabled'] = TRUE;
     }
     return $js_settings;
@@ -60,7 +60,7 @@ class UnicornEditor extends EditorBase {
    */
   public function getLibraries(EditorEntity $editor) {
     return array(
-      'edit_test/unicorn',
+      'editor_test/unicorn',
     );
   }
 

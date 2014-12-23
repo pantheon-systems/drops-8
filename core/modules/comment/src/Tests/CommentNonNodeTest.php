@@ -11,6 +11,7 @@ use Drupal\comment\CommentInterface;
 use Drupal\comment\Entity\CommentType;
 use Drupal\comment\Plugin\Field\FieldType\CommentItemInterface;
 use Drupal\field\Entity\FieldConfig;
+use Drupal\field_ui\Tests\FieldUiTestTrait;
 use Drupal\simpletest\WebTestBase;
 use Drupal\Core\Entity\EntityInterface;
 
@@ -20,6 +21,8 @@ use Drupal\Core\Entity\EntityInterface;
  * @group comment
  */
 class CommentNonNodeTest extends WebTestBase {
+
+  use FieldUiTestTrait;
 
   public static $modules = array('comment', 'user', 'field_ui', 'entity_test');
 
@@ -367,34 +370,13 @@ class CommentNonNodeTest extends WebTestBase {
     $bundle->save();
 
     // Add a new comment field.
-    $this->drupalGet('entity_test/structure/entity_test/fields');
-    $edit = array(
-      'fields[_add_new_field][label]' => 'Foobar',
-      'fields[_add_new_field][field_name]' => 'foobar',
-      'fields[_add_new_field][type]' => 'comment',
-    );
-    $this->drupalPostForm(NULL, $edit, t('Save'));
-    $this->drupalPostForm(NULL, array(
+    $storage_edit = array(
       'field_storage[settings][comment_type]' => 'foobar',
-    ), t('Save field settings'));
-
-    $this->drupalPostForm(NULL, array(), t('Save settings'));
-    $this->assertRaw(t('Saved %name configuration', array('%name' => 'Foobar')));
+    );
+    $this->fieldUIAddNewField('entity_test/structure/entity_test', 'foobar', 'Foobar', 'comment', $storage_edit);
 
     // Add a third comment field.
-    $this->drupalGet('entity_test/structure/entity_test/fields');
-    $edit = array(
-      'fields[_add_new_field][label]' => 'Barfoo',
-      'fields[_add_new_field][field_name]' => 'barfoo',
-      'fields[_add_new_field][type]' => 'comment',
-    );
-    $this->drupalPostForm(NULL, $edit, t('Save'));
-    // Re-use another comment type.
-    $this->drupalPostForm(NULL, array(
-      'field_storage[settings][comment_type]' => 'foobar',
-    ), t('Save field settings'));
-    $this->drupalPostForm(NULL, array(), t('Save settings'));
-    $this->assertRaw(t('Saved %name configuration', array('%name' => 'Barfoo')));
+    $this->fieldUIAddNewField('entity_test/structure/entity_test', 'barfoo', 'BarFoo', 'comment', $storage_edit);
 
     // Check the field contains the correct comment type.
     $field_storage = entity_load('field_storage_config', 'entity_test.field_barfoo');
@@ -426,24 +408,24 @@ class CommentNonNodeTest extends WebTestBase {
       'administer entity_test_string_id fields',
     ));
     $this->drupalLogin($limited_user);
-    // Visit the Field UI overview.
-    $this->drupalGet('entity_test_string_id/structure/entity_test/fields');
+    // Visit the Field UI field add page.
+    $this->drupalGet('entity_test_string_id/structure/entity_test/fields/add-field');
     // Ensure field isn't shown for string IDs.
-    $this->assertNoOption('edit-fields-add-new-field-type', 'comment');
+    $this->assertNoOption('edit-new-storage-type', 'comment');
     // Ensure a core field type shown.
-    $this->assertOption('edit-fields-add-new-field-type', 'boolean');
+    $this->assertOption('edit-new-storage-type', 'boolean');
 
     // Create a bundle for entity_test_no_id.
     entity_test_create_bundle('entity_test', 'Entity Test', 'entity_test_no_id');
     $this->drupalLogin($this->drupalCreateUser(array(
       'administer entity_test_no_id fields',
     )));
-    // Visit the Field UI overview.
-    $this->drupalGet('entity_test_no_id/structure/entity_test/fields');
+    // Visit the Field UI field add page.
+    $this->drupalGet('entity_test_no_id/structure/entity_test/fields/add-field');
     // Ensure field isn't shown for empty IDs.
-    $this->assertNoOption('edit-fields-add-new-field-type', 'comment');
+    $this->assertNoOption('edit-new-storage-type', 'comment');
     // Ensure a core field type shown.
-    $this->assertOption('edit-fields-add-new-field-type', 'boolean');
+    $this->assertOption('edit-new-storage-type', 'boolean');
   }
 
 }

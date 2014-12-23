@@ -11,6 +11,7 @@ use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\DynamicallyFieldableEntityStorageInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Render\Element;
+use Drupal\language\Entity\ContentLanguageSettings;
 
 /**
  * @defgroup entity_crud Entity CRUD, editing, and view hooks
@@ -376,7 +377,7 @@ use Drupal\Core\Render\Element;
  *   the entity system will load the corresponding entity item and pass it in as
  *   an object to the controller for the route.
  * - defaults: For entity form routes, use _entity_form rather than the generic
- *   _content or _form. The value is composed of the entity type machine name
+ *   _controller or _form. The value is composed of the entity type machine name
  *   and a form controller type from the entity annotation (see @ref define
  *   above more more on controllers and annotation). So, in this example,
  *   block.default refers to the 'default' form controller on the block entity
@@ -1911,8 +1912,8 @@ function hook_entity_extra_field_info() {
     // Visibility of the ordering of the language selector is the same as on the
     // node/add form.
     if ($module_language_enabled) {
-      $configuration = language_get_default_configuration('node', $bundle->type);
-      if ($configuration['language_show']) {
+      $configuration = ContentLanguageSettings::loadByEntityTypeBundle('node', $bundle->type);
+      if ($configuration->isLanguageAlterable()) {
         $extra['node'][$bundle->type]['form']['language'] = array(
           'label' => t('Language'),
           'description' => $description,

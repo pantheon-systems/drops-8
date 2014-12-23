@@ -3,6 +3,10 @@ services:
     class: Drupal\block\Theme\AdminDemoNegotiator
     tags:
       - { name: theme_negotiator, priority: 1000 }
+  block.page_display_variant_subscriber:
+    class: Drupal\block\EventSubscriber\BlockPageDisplayVariantSubscriber
+    tags:
+      - { name: event_subscriber }
   block.current_user_context:
     class: Drupal\block\EventSubscriber\CurrentUserContext
     arguments: ['@current_user', '@entity.manager']
@@ -20,4 +24,4 @@ services:
       - { name: 'event_subscriber' }
   block.repository:
     class: Drupal\block\BlockRepository
-    arguments: ['@entity.manager', '@theme.manager']
+    arguments: ['@entity.manager', '@theme.manager', '@context.handler']

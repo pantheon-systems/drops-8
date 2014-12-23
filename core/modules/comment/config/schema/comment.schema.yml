@@ -1,24 +1,16 @@
 # Schema for the configuration files of the Comment module.
 
-entity_view_display.field.comment_default:
-  type: entity_field_view_display_base
+field.formatter.settings.comment_default:
+  type: mapping
   label: 'Comment display format settings'
   mapping:
-    settings:
-      type: sequence
-      label: 'Settings'
-      sequence:
-        - type: string
+    pager_id:
+      type: integer
+      label: 'Pager ID'
 
-entity_form_display.field.comment_default:
-  type: entity_field_form_display_base
+field.widget.settings.comment_default:
+  type: mapping
   label: 'Comment display format settings'
-  mapping:
-    settings:
-      type: sequence
-      label: 'Settings'
-      sequence:
-        - type: string
 
 action.configuration.comment_publish_action:
   type: action_configuration_default
@@ -32,7 +24,7 @@ action.configuration.comment_unpublish_by_keyword_action:
   type: mapping
   label: 'Unpublish comment containing keyword(s) configuration'
   mapping:
-    keyword:
+    keywords:
       type: sequence
       label: 'Keywords'
       sequence:
@@ -60,40 +52,38 @@ comment.type.*:
       type: text
       label: 'Description'
 
-field.comment.storage_settings:
-  type: sequence
-  label: 'Settings'
-  sequence:
-    - type: string
-      label: 'Setting'
+field.storage_settings.comment:
+  type: mapping
+  label: 'Comment settings'
+  mapping:
+    comment_type:
+      label: 'Comment type'
+      type: string
 
-field.comment.value:
-  type: sequence
-  label: 'Settings'
-  sequence:
-    - type: mapping
-      label: 'Settings'
-      mapping:
-        status:
-          type: integer
-          label: 'Status'
-        cid:
-          type: integer
-          label: 'Status'
-        last_comment_timestamp:
-          type: integer
-          label: 'Last comment timestamp'
-        last_comment_name:
-          type: integer
-          label: 'Name'
-        last_comment_uid:
-          type: integer
-          label: 'UID'
-        comment_count:
-          type: integer
-          label: 'Count'
+field.value.comment:
+  type: mapping
+  label: 'Default value'
+  mapping:
+    status:
+      type: integer
+      label: 'Comment status'
+    cid:
+      type: integer
+      label: 'Last comment ID'
+    last_comment_timestamp:
+      type: integer
+      label: 'Last comment timestamp'
+    last_comment_name:
+      type: integer
+      label: 'Last comment name'
+    last_comment_uid:
+      type: integer
+      label: 'Last comment user ID'
+    comment_count:
+      type: integer
+      label: 'Number of comments'
 
-field.comment.field_settings:
+field.field_settings.comment:
   type: mapping
   label: 'Comment settings'
   mapping:

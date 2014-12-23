@@ -42,8 +42,8 @@ class TestRunnerKernel extends DrupalKernel {
       'simpletest' => 0,
     );
     $this->moduleData = array(
-      'system' => new Extension('module', 'core/modules/system/system.info.yml', 'system.module'),
-      'simpletest' => new Extension('module', 'core/modules/simpletest/simpletest.info.yml', 'simpletest.module'),
+      'system' => new Extension(DRUPAL_ROOT, 'module', 'core/modules/system/system.info.yml', 'system.module'),
+      'simpletest' => new Extension(DRUPAL_ROOT, 'module', 'core/modules/simpletest/simpletest.info.yml', 'simpletest.module'),
     );
   }
 
@@ -74,6 +74,9 @@ class TestRunnerKernel extends DrupalKernel {
     $this->getContainer()->get('module_handler')->loadAll();
 
     simpletest_classloader_register();
+
+    // Register stream wrappers.
+    $this->getContainer()->get('stream_wrapper_manager')->register();
 
     // Create the build/artifacts directory if necessary.
     if (!is_dir('public://simpletest')) {

@@ -6,6 +6,7 @@
  */
 
 namespace Drupal\block_content\Tests;
+use Drupal\Component\Utility\Html;
 
 /**
  * Ensures that custom block type functions work correctly.
@@ -56,6 +57,9 @@ class BlockContentTypeTest extends BlockContentTestBase {
     $block_type = entity_load('block_content_type', 'foo');
     $this->assertTrue($block_type, 'The new block type has been created.');
 
+    $field_definitions = \Drupal::entityManager()->getFieldDefinitions('block_content', 'foo');
+    $this->assertTrue(isset($field_definitions['body']), 'Body field was created when using the UI to create block content types.');
+
     // Check that the block type was created in site default language.
     $default_langcode = \Drupal::languageManager()->getDefaultLanguage()->getId();
     $this->assertEqual($block_type->language()->getId(), $default_langcode);
@@ -69,8 +73,8 @@ class BlockContentTypeTest extends BlockContentTestBase {
     // We need two block types to prevent /block/add redirecting.
     $this->createBlockContentType('other');
 
-    $field_definition = \Drupal::entityManager()->getFieldDefinitions('block_content', 'other')['body'];
-    $this->assertEqual($field_definition->getLabel(), 'Body', 'Body field was found.');
+    $field_definitions = \Drupal::entityManager()->getFieldDefinitions('block_content', 'other');
+    $this->assertFalse(isset($field_definitions['body']), 'Body field was not created when using the API to create block content types.');
 
     // Verify that title and body fields are displayed.
     $this->drupalGet('block/add/basic');
@@ -144,7 +148,7 @@ class BlockContentTypeTest extends BlockContentTestBase {
 
     // Install all themes.
     \Drupal::service('theme_handler')->install(array('bartik', 'seven'));
-    $themes = array('bartik', 'seven', 'stark');
+    $themes = array('bartik', 'seven', 'classy');
     $theme_settings = $this->container->get('config.factory')->get('system.theme');
     foreach ($themes as $default_theme) {
       // Change the default theme.
@@ -152,7 +156,7 @@ class BlockContentTypeTest extends BlockContentTestBase {
       \Drupal::service('router.builder')->rebuild();
 
       // For each installed theme, go to its block page and test the redirects.
-      $themes = array('bartik', 'stark', 'seven');
+      $themes = array('bartik', 'classy', 'seven');
       foreach ($themes as $theme) {
         // Test that adding a block from the 'place blocks' form sends you to the
         // block configure form.
@@ -176,7 +180,7 @@ class BlockContentTypeTest extends BlockContentTestBase {
           $block = reset($blocks);
           $this->assertUrl(\Drupal::url('block.admin_add', array('plugin_id' => 'block_content:' . $block->uuid(), 'theme' => $theme), array('absolute' => TRUE)));
           $this->drupalPostForm(NULL, array(), t('Save block'));
-          $this->assertUrl(\Drupal::url('block.admin_display_theme', array('theme' => $theme), array('absolute' => TRUE, 'query' => array('block-placement' => drupal_html_class($edit['info[0][value]'])))));
+          $this->assertUrl(\Drupal::url('block.admin_display_theme', array('theme' => $theme), array('absolute' => TRUE, 'query' => array('block-placement' => Html::getClass($edit['info[0][value]'])))));
         }
         else {
           $this->fail('Could not load created block.');

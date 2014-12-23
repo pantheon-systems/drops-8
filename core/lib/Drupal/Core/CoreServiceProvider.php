@@ -20,6 +20,8 @@ use Drupal\Core\DependencyInjection\Compiler\RegisterKernelListenersPass;
 use Drupal\Core\DependencyInjection\Compiler\RegisterAccessChecksPass;
 use Drupal\Core\DependencyInjection\Compiler\RegisterServicesForDestructionPass;
 use Drupal\Core\Plugin\PluginManagerPass;
+use Drupal\Core\Render\MainContent\MainContentRenderersPass;
+use Drupal\Core\Site\Settings;
 use Symfony\Component\DependencyInjection\Compiler\PassConfig;
 
 /**
@@ -40,10 +42,14 @@ class CoreServiceProvider implements ServiceProviderInterface  {
    * {@inheritdoc}
    */
   public function register(ContainerBuilder $container) {
-    $container->setParameter('app.root', DRUPAL_ROOT);
-
     $this->registerUuid($container);
     $this->registerTest($container);
+
+    // Only register the private file stream wrapper if a file path has been set.
+    if (Settings::get('file_private_path')) {
+      $container->register('stream_wrapper.private', 'Drupal\Core\StreamWrapper\PrivateStream')
+        ->addTag('stream_wrapper', ['scheme' => 'private']);
+    }
 
     // Add the compiler pass that lets service providers modify existing
     // service definitions. This pass must come first so that later
@@ -53,6 +59,8 @@ class CoreServiceProvider implements ServiceProviderInterface  {
     $container->addCompilerPass(new BackendCompilerPass());
 
     $container->addCompilerPass(new StackedKernelPass());
+
+    $container->addCompilerPass(new MainContentRenderersPass());
 
     // Collect tagged handler services as method calls on consumer services.
     $container->addCompilerPass(new TaggedHandlersPass());

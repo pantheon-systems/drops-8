@@ -18,10 +18,12 @@ use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\DependencyInjection\ServiceProviderInterface;
 use Drupal\Core\DependencyInjection\YamlFileLoader;
 use Drupal\Core\Extension\ExtensionDiscovery;
+use Drupal\Core\File\MimeType\MimeTypeGuesser;
 use Drupal\Core\Language\Language;
 use Drupal\Core\PageCache\RequestPolicyInterface;
 use Drupal\Core\PhpStorage\PhpStorageFactory;
 use Drupal\Core\Site\Settings;
+use Symfony\Cmf\Component\Routing\RouteObjectInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBag;
 use Symfony\Component\DependencyInjection\Dumper\PhpDumper;
@@ -29,8 +31,10 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\TerminableInterface;
 use Composer\Autoload\ClassLoader;
+use Symfony\Component\Routing\Route;
 
 /**
  * The DrupalKernel class is the core of Drupal itself.
@@ -180,6 +184,13 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
   protected $sitePath;
 
   /**
+   * The app root.
+   *
+   * @var string
+   */
+  protected $root;
+
+  /**
    * Create a DrupalKernel object from a request.
    *
    * @param \Symfony\Component\HttpFoundation\Request $request
@@ -198,7 +209,8 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
    */
   public static function createFromRequest(Request $request, $class_loader, $environment, $allow_dumping = TRUE) {
     // Include our bootstrap file.
-    require_once dirname(dirname(dirname(__DIR__))) . '/includes/bootstrap.inc';
+    $core_root = dirname(dirname(dirname(__DIR__)));
+    require_once $core_root . '/includes/bootstrap.inc';
 
     $kernel = new static($environment, $class_loader, $allow_dumping);
 
@@ -206,7 +218,9 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     static::bootEnvironment();
 
     // Get our most basic settings setup.
-    $kernel->initializeSettings($request);
+    $site_path = static::findSitePath($request);
+    $kernel->setSitePath($site_path);
+    Settings::initialize(dirname($core_root), $site_path, $class_loader);
 
     // Redirect the user to the installation script if Drupal has not been
     // installed yet (i.e., if no $databases array has been defined in the
@@ -217,18 +231,6 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     }
 
     return $kernel;
-  }
-
-  /**
-   * Initializes the kernel's site path and the Settings singleton.
-   *
-   * @param \Symfony\Component\HttpFoundation\Request $request
-   *   The request that will be used to determine the site path.
-   */
-  protected function initializeSettings(Request $request) {
-    $site_path = static::findSitePath($request);
-    $this->setSitePath($site_path);
-    Settings::initialize($site_path, $this->classLoader);
   }
 
   /**
@@ -248,6 +250,7 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     $this->environment = $environment;
     $this->classLoader = $class_loader;
     $this->allowDumping = $allow_dumping;
+    $this->root = dirname(dirname(substr(__DIR__, 0, -strlen(__NAMESPACE__))));
   }
 
   /**
@@ -293,12 +296,19 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
    * @return string
    *   The path of the matching directory.
    *
+   * @throws \Symfony\Component\HttpKernel\Exception\BadRequestHttpException
+   *   In case the host name in the request is invalid.
+   *
    * @see \Drupal\Core\DrupalKernelInterface::getSitePath()
    * @see \Drupal\Core\DrupalKernelInterface::setSitePath()
    * @see default.settings.php
    * @see example.sites.php
    */
   public static function findSitePath(Request $request, $require_settings = TRUE) {
+    if (static::validateHostname($request) === FALSE) {
+      throw new BadRequestHttpException();
+    }
+
     // Check for a simpletest override.
     if ($test_prefix = drupal_valid_test_ua()) {
       return 'sites/simpletest/' . substr($test_prefix, 10);
@@ -314,7 +324,7 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     if (!$script_name) {
       $script_name = $request->server->get('SCRIPT_FILENAME');
     }
-    $http_host = $request->server->get('HTTP_HOST');
+    $http_host = $request->getHost();
 
     $sites = array();
     include DRUPAL_ROOT . '/sites/sites.php';
@@ -352,6 +362,13 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
   /**
    * {@inheritdoc}
    */
+  public function getAppRoot() {
+    return $this->root;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function boot() {
     if ($this->booted) {
       return $this;
@@ -361,21 +378,21 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     Timer::start('page');
 
     // Load legacy and other functional code.
-    require_once DRUPAL_ROOT . '/core/includes/common.inc';
-    require_once DRUPAL_ROOT . '/core/includes/database.inc';
-    require_once DRUPAL_ROOT . '/core/includes/path.inc';
-    require_once DRUPAL_ROOT . '/core/includes/module.inc';
-    require_once DRUPAL_ROOT . '/core/includes/theme.inc';
-    require_once DRUPAL_ROOT . '/core/includes/pager.inc';
-    require_once DRUPAL_ROOT . '/core/includes/menu.inc';
-    require_once DRUPAL_ROOT . '/core/includes/tablesort.inc';
-    require_once DRUPAL_ROOT . '/core/includes/file.inc';
-    require_once DRUPAL_ROOT . '/core/includes/unicode.inc';
-    require_once DRUPAL_ROOT . '/core/includes/form.inc';
-    require_once DRUPAL_ROOT . '/core/includes/mail.inc';
-    require_once DRUPAL_ROOT . '/core/includes/errors.inc';
-    require_once DRUPAL_ROOT . '/core/includes/schema.inc';
-    require_once DRUPAL_ROOT . '/core/includes/entity.inc';
+    require_once $this->root . '/core/includes/common.inc';
+    require_once $this->root . '/core/includes/database.inc';
+    require_once $this->root . '/core/includes/path.inc';
+    require_once $this->root . '/core/includes/module.inc';
+    require_once $this->root . '/core/includes/theme.inc';
+    require_once $this->root . '/core/includes/pager.inc';
+    require_once $this->root . '/core/includes/menu.inc';
+    require_once $this->root . '/core/includes/tablesort.inc';
+    require_once $this->root . '/core/includes/file.inc';
+    require_once $this->root . '/core/includes/unicode.inc';
+    require_once $this->root . '/core/includes/form.inc';
+    require_once $this->root . '/core/includes/mail.inc';
+    require_once $this->root . '/core/includes/errors.inc';
+    require_once $this->root . '/core/includes/schema.inc';
+    require_once $this->root . '/core/includes/entity.inc';
 
     // Ensure that findSitePath is set.
     if (!$this->sitePath) {
@@ -389,7 +406,6 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     $seed = unpack("L", Crypt::randomBytes(4));
     mt_srand($seed[1]);
 
-    $this->container->get('stream_wrapper_manager')->register();
     $this->booted = TRUE;
 
     return $this;
@@ -423,6 +439,9 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     // Load all enabled modules.
     $this->container->get('module_handler')->loadAll();
 
+    // Register stream wrappers.
+    $this->container->get('stream_wrapper_manager')->register();
+
     // Initialize legacy request globals.
     $this->initializeRequestGlobals($request);
 
@@ -442,6 +461,9 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
       $allowed_protocols = array('http', 'https');
     }
     UrlHelper::setAllowedProtocols($allowed_protocols);
+
+    // Override of Symfony's mime type guesser singleton.
+    MimeTypeGuesser::registerWithSymfonyGuesser($this->container);
   }
 
   /**
@@ -571,6 +593,8 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     $this->preHandle($request);
     // Enter the request scope so that current_user service is available for
     // locale/translation sake.
+    $request->attributes->set(RouteObjectInterface::ROUTE_OBJECT, new Route('<none>'));
+    $request->attributes->set(RouteObjectInterface::ROUTE_NAME, '<none>');
     $this->container->get('request_stack')->push($request);
     $this->container->get('router.request_context')->fromRequest($request);
     return $this;
@@ -588,7 +612,7 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
   protected function moduleData($module) {
     if (!$this->moduleData) {
       // First, find profiles.
-      $listing = new ExtensionDiscovery();
+      $listing = new ExtensionDiscovery($this->root);
       $listing->setProfileDirectories(array());
       $all_profiles = $listing->scan('profile');
       $profiles = array_intersect_key($all_profiles, $this->moduleList);
@@ -795,8 +819,6 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     global $base_secure_url, $base_insecure_url;
 
     // @todo Refactor with the Symfony Request object.
-    _current_path(request_path());
-
     if (isset($base_url)) {
       // Parse fixed base URL from settings.php.
       $parts = parse_url($base_url);
@@ -809,8 +831,7 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     }
     else {
       // Create base URL.
-      $http_protocol = $request->isSecure() ? 'https' : 'http';
-      $base_root = $http_protocol . '://' . $request->server->get('HTTP_HOST');
+      $base_root = $request->getSchemeAndHttpHost();
 
       $base_url = $base_root;
 
@@ -892,16 +913,13 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
       // Replace "core" out of session_name so core scripts redirect properly,
       // specifically install.php.
       $session_name = preg_replace('/\/core$/', '', $session_name);
-      // HTTP_HOST can be modified by a visitor, but has been sanitized already
-      // in DrupalKernel::bootEnvironment().
-      if ($cookie_domain = $request->server->get('HTTP_HOST')) {
-        // Strip leading periods, www., and port numbers from cookie domain.
+      if ($cookie_domain = $request->getHost()) {
+        // Strip leading periods and www. from cookie domain.
         $cookie_domain = ltrim($cookie_domain, '.');
         if (strpos($cookie_domain, 'www.') === 0) {
           $cookie_domain = substr($cookie_domain, 4);
         }
-        $cookie_domain = explode(':', $cookie_domain);
-        $cookie_domain = '.' . $cookie_domain[0];
+        $cookie_domain = '.' . $cookie_domain;
       }
     }
     // Per RFC 2109, cookie domains must contain at least one dot other than the
@@ -1017,7 +1035,7 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     // - Entity
     // - Plugin
     foreach (array('Core', 'Component') as $parent_directory) {
-      $path = DRUPAL_ROOT . '/core/lib/Drupal/' . $parent_directory;
+      $path = $this->root . '/core/lib/Drupal/' . $parent_directory;
       $parent_namespace = 'Drupal\\' . $parent_directory;
       foreach (new \DirectoryIterator($path) as $component) {
         /** @var $component \DirectoryIterator */
@@ -1230,7 +1248,7 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
   protected function getModuleNamespacesPsr4($module_file_names) {
     $namespaces = array();
     foreach ($module_file_names as $module => $filename) {
-      $namespaces["Drupal\\$module"] = DRUPAL_ROOT . '/' . dirname($filename) . '/src';
+      $namespaces["Drupal\\$module"] = $this->root . '/' . dirname($filename) . '/src';
     }
     return $namespaces;
   }
@@ -1247,6 +1265,53 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     foreach ($namespaces as $prefix => $paths) {
       $this->classLoader->addPsr4($prefix . '\\', $paths);
     }
+  }
+
+  /**
+   * Validates a hostname length.
+   *
+   * @param string $host
+   *   A hostname.
+   *
+   * @return bool
+   *   TRUE if the length is appropriate, or FALSE otherwise.
+   */
+  protected static function validateHostnameLength($host) {
+    // Limit the length of the host name to 1000 bytes to prevent DoS attacks
+    // with long host names.
+    return strlen($host) <= 1000
+    // Limit the number of subdomains and port separators to prevent DoS attacks
+    // in findSitePath().
+    && substr_count($host, '.') <= 100
+    && substr_count($host, ':') <= 100;
+  }
+
+  /**
+   * Validates the hostname supplied from the HTTP request.
+   *
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The request object
+   *
+   * @return bool
+   *   TRUE if the hostmame is valid, or FALSE otherwise.
+   *
+   * @todo Adjust per resolution to https://github.com/symfony/symfony/issues/12349
+   */
+  public static function validateHostname(Request $request) {
+    // $request->getHost() can throw an UnexpectedValueException if it
+    // detects a bad hostname, but it does not validate the length.
+    try {
+      $http_host = $request->getHost();
+    }
+    catch (\UnexpectedValueException $e) {
+      return FALSE;
+    }
+
+    if (static::validateHostnameLength($http_host) === FALSE) {
+      return FALSE;
+    }
+
+    return TRUE;
   }
 
 }

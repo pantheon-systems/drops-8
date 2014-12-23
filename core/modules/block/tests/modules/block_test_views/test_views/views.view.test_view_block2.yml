@@ -1,8 +1,16 @@
-base_field: id
-base_table: views_test_data
-core: 8.x
-description: ''
+langcode: und
 status: true
+dependencies:
+  module:
+    - user
+id: test_view_block2
+label: test_view_block2
+module: views
+description: ''
+tag: ''
+base_table: views_test_data
+base_field: id
+core: 8.x
 display:
   default:
     display_plugin: default
@@ -32,35 +40,29 @@ display:
           table: views_test_data
           field: name
       title: test_view_block2
+      field_langcode: '***LANGUAGE_language_content***'
+      field_langcode_add_to_query: null
   block_1:
     display_plugin: block
     id: block_1
     display_title: Block
     position: null
     display_options:
-      field:
-        title:
-          link_to_node: true
+      field_langcode: '***LANGUAGE_language_content***'
+      field_langcode_add_to_query: null
   block_2:
     display_plugin: block
     id: block_2
     display_title: Block
     position: null
     display_options:
-      field:
-        title:
-          link_to_node: true
+      field_langcode: '***LANGUAGE_language_content***'
+      field_langcode_add_to_query: null
   block_3:
     display_plugin: block
     id: block_3
     display_title: Block
     position: null
     display_options:
-      block_caching: 2
-      field:
-        title:
-          link_to_node: true
-label: test_view_block2
-module: views
-id: test_view_block2
-tag: ''
+      field_langcode: '***LANGUAGE_language_content***'
+      field_langcode_add_to_query: null

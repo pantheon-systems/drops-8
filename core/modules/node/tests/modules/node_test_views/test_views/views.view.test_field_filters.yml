@@ -1,9 +1,9 @@
-uuid: bd845a9c-6c2e-4d53-965c-92b170bb79e4
 langcode: en
 status: true
 dependencies:
   module:
     - node
+    - user
 id: test_field_filters
 label: 'Test field filters'
 module: views
@@ -54,8 +54,6 @@ display:
       row:
         type: 'entity:node'
         options:
-          build_mode: teaser
-          links: false
           view_mode: teaser
           rendering_language: translation_language_renderer
       fields:
@@ -75,7 +73,7 @@ display:
             html: false
           hide_empty: false
           empty_zero: false
-          link_to_node: 1
+          link_to_node: true
           relationship: none
           group_type: group
           admin_label: ''
@@ -90,6 +88,9 @@ display:
           element_default_classes: true
           empty: ''
           hide_alter_empty: true
+          entity_type: node
+          entity_field: title
+          plugin_id: node
       filters:
         status:
           value: true
@@ -99,6 +100,9 @@ display:
           expose:
             operator: ''
           group: 1
+          plugin_id: boolean
+          entity_type: node
+          entity_field: status
         title:
           id: title
           table: node_field_data
@@ -135,6 +139,8 @@ display:
             default_group_multiple: {  }
             group_items: {  }
           plugin_id: string
+          entity_type: node
+          entity_field: title
       sorts:
         created:
           id: created
@@ -148,6 +154,9 @@ display:
           expose:
             label: ''
           granularity: second
+          plugin_id: date
+          entity_type: node
+          entity_field: created
       title: 'Test field filters'
       header: {  }
       footer: {  }
@@ -156,70 +165,6 @@ display:
       arguments: {  }
       field_langcode: '***LANGUAGE_language_content***'
       field_langcode_add_to_query: null
-  page_tf:
-    display_plugin: page
-    id: page_tf
-    display_title: 'Title filter page'
-    position: 1
-    display_options:
-      field_langcode: '***LANGUAGE_language_content***'
-      field_langcode_add_to_query: null
-      path: test-title-filter
-      display_description: ''
-      title: 'Test title filter'
-      defaults:
-        title: false
-        filters: false
-        filter_groups: false
-      filters:
-        status:
-          value: true
-          table: node_field_data
-          field: status
-          id: status
-          expose:
-            operator: ''
-          group: 1
-        title:
-          id: title
-          table: node_field_data
-          field: title
-          relationship: none
-          group_type: group
-          admin_label: ''
-          operator: contains
-          value: Comida
-          group: 1
-          exposed: false
-          expose:
-            operator_id: ''
-            label: ''
-            description: ''
-            use_operator: false
-            operator: ''
-            identifier: ''
-            required: false
-            remember: false
-            multiple: false
-            remember_roles:
-              authenticated: authenticated
-          is_grouped: false
-          group_info:
-            label: ''
-            description: ''
-            identifier: ''
-            optional: true
-            widget: select
-            multiple: false
-            remember: false
-            default_group: All
-            default_group_multiple: {  }
-            group_items: {  }
-          plugin_id: string
-      filter_groups:
-        operator: AND
-        groups:
-          1: AND
   page_bf:
     display_plugin: page
     id: page_bf
@@ -244,6 +189,9 @@ display:
           expose:
             operator: ''
           group: 1
+          plugin_id: boolean
+          entity_type: node
+          entity_field: status
         body_value:
           id: body_value
           table: node__body
@@ -280,6 +228,8 @@ display:
             default_group_multiple: {  }
             group_items: {  }
           plugin_id: string
+          entity_type: node
+          entity_field: body
       filter_groups:
         operator: AND
         groups:
@@ -308,6 +258,9 @@ display:
           expose:
             operator: ''
           group: 1
+          entity_type: node
+          entity_field: status
+          plugin_id: boolean
         body_value:
           id: body_value
           table: node__body
@@ -344,6 +297,77 @@ display:
             default_group_multiple: {  }
             group_items: {  }
           plugin_id: string
+          entity_type: node
+          entity_field: body
+      filter_groups:
+        operator: AND
+        groups:
+          1: AND
+  page_tf:
+    display_plugin: page
+    id: page_tf
+    display_title: 'Title filter page'
+    position: 1
+    display_options:
+      field_langcode: '***LANGUAGE_language_content***'
+      field_langcode_add_to_query: null
+      path: test-title-filter
+      display_description: ''
+      title: 'Test title filter'
+      defaults:
+        title: false
+        filters: false
+        filter_groups: false
+      filters:
+        status:
+          value: true
+          table: node_field_data
+          field: status
+          id: status
+          expose:
+            operator: ''
+          group: 1
+          entity_type: node
+          entity_field: status
+          plugin_id: boolean
+        title:
+          id: title
+          table: node_field_data
+          field: title
+          relationship: none
+          group_type: group
+          admin_label: ''
+          operator: contains
+          value: Comida
+          group: 1
+          exposed: false
+          expose:
+            operator_id: ''
+            label: ''
+            description: ''
+            use_operator: false
+            operator: ''
+            identifier: ''
+            required: false
+            remember: false
+            multiple: false
+            remember_roles:
+              authenticated: authenticated
+          is_grouped: false
+          group_info:
+            label: ''
+            description: ''
+            identifier: ''
+            optional: true
+            widget: select
+            multiple: false
+            remember: false
+            default_group: All
+            default_group_multiple: {  }
+            group_items: {  }
+          plugin_id: string
+          entity_type: node
+          entity_field: title
       filter_groups:
         operator: AND
         groups:

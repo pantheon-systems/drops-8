@@ -81,7 +81,9 @@ class EntityQueryRelationshipTest extends EntityUnitTestBase  {
       'type' => 'taxonomy_term_reference',
       'settings' => array(
         'allowed_values' => array(
-          'vocabulary' => $vocabulary->id(),
+          array(
+            'vocabulary' => $vocabulary->id(),
+          ),
         ),
       ),
     ))->save();

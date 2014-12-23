@@ -7,10 +7,6 @@
 
 namespace Drupal\Core\Entity\Enhancer;
 
-use Drupal\Core\Controller\ControllerResolverInterface;
-use Drupal\Core\Entity\EntityManagerInterface;
-use Drupal\Core\Entity\HtmlEntityFormController;
-use Drupal\Core\Form\FormBuilderInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Cmf\Component\Routing\Enhancer\RouteEnhancerInterface;
 use Symfony\Cmf\Component\Routing\RouteObjectInterface;
@@ -21,58 +17,20 @@ use Symfony\Cmf\Component\Routing\RouteObjectInterface;
 class EntityRouteEnhancer implements RouteEnhancerInterface {
 
   /**
-   * The controller resolver.
-   *
-   * @var \Drupal\Core\Controller\ControllerResolverInterface
-   */
-  protected $resolver;
-
-  /**
-   * The entity manager service.
-   *
-   * @var \Drupal\Core\Entity\EntityManagerInterface
-   */
-  protected $manager;
-
-  /**
-   * The form builder.
-   *
-   * @var \Drupal\Core\Form\FormBuilderInterface
-   */
-  protected $formBuilder;
-
-  /**
-   * Constructs a new EntityRouteEnhancer object.
-   *
-   * @param \Drupal\Core\Controller\ControllerResolverInterface $resolver
-   *   The controller resolver.
-   * @param \Drupal\Core\Entity\EntityManagerInterface $manager
-   *   The entity manager.
-   * @param \Drupal\Core\Form\FormBuilderInterface $form_builder
-   *   The form builder.
-   */
-  public function __construct(ControllerResolverInterface $resolver, EntityManagerInterface $manager, FormBuilderInterface $form_builder) {
-    $this->resolver = $resolver;
-    $this->manager = $manager;
-    $this->formBuilder = $form_builder;
-  }
-
-  /**
    * {@inheritdoc}
    */
   public function enhance(array $defaults, Request $request) {
-    if (empty($defaults['_content'])) {
+    if (empty($defaults['_controller'])) {
       if (!empty($defaults['_entity_form'])) {
-        $wrapper = new HtmlEntityFormController($this->resolver, $this->manager, $this->formBuilder, $defaults['_entity_form']);
-        $defaults['_content'] = array($wrapper, 'getContentResult');
+        $defaults['_controller'] = 'controller.entity_form:getContentResult';
       }
       elseif (!empty($defaults['_entity_list'])) {
-        $defaults['_content'] = '\Drupal\Core\Entity\Controller\EntityListController::listing';
+        $defaults['_controller'] = '\Drupal\Core\Entity\Controller\EntityListController::listing';
         $defaults['entity_type'] = $defaults['_entity_list'];
         unset($defaults['_entity_list']);
       }
       elseif (!empty($defaults['_entity_view'])) {
-        $defaults['_content'] = '\Drupal\Core\Entity\Controller\EntityViewController::view';
+        $defaults['_controller'] = '\Drupal\Core\Entity\Controller\EntityViewController::view';
         if (strpos($defaults['_entity_view'], '.') !== FALSE) {
           // The _entity_view entry is of the form entity_type.view_mode.
           list($entity_type, $view_mode) = explode('.', $defaults['_entity_view']);
