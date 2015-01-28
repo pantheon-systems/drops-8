@@ -35,8 +35,9 @@ use Drupal\node\NodeTypeInterface;
  *     "label" = "name"
  *   },
  *   links = {
- *     "edit-form" = "entity.node_type.edit_form",
- *     "delete-form" = "entity.node_type.delete_form"
+ *     "edit-form" = "/admin/structure/types/manage/{node_type}",
+ *     "delete-form" = "/admin/structure/types/manage/{node_type}/delete",
+ *     "collection" = "/admin/structure/types",
  *   }
  * )
  */
@@ -50,7 +51,7 @@ class NodeType extends ConfigEntityBundleBase implements NodeTypeInterface {
    *
    * @todo Rename to $id.
    */
-  public $type;
+  protected $type;
 
   /**
    * The human-readable name of the node type.
@@ -59,21 +60,21 @@ class NodeType extends ConfigEntityBundleBase implements NodeTypeInterface {
    *
    * @todo Rename to $label.
    */
-  public $name;
+  protected $name;
 
   /**
    * A brief description of this node type.
    *
    * @var string
    */
-  public $description;
+  protected $description;
 
   /**
    * Help information shown to the user when creating a Node of this type.
    *
    * @var string
    */
-  public $help;
+  protected $help;
 
   /**
    * Default value of the 'Create new revision' checkbox of this node type.
@@ -156,13 +157,27 @@ class NodeType extends ConfigEntityBundleBase implements NodeTypeInterface {
   /**
    * {@inheritdoc}
    */
+  public function getHelp() {
+    return $this->help;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getDescription() {
+    return $this->description;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function postSave(EntityStorageInterface $storage, $update = TRUE) {
     parent::postSave($storage, $update);
 
     if ($update && $this->getOriginalId() != $this->id()) {
       $update_count = node_type_update_nodes($this->getOriginalId(), $this->id());
       if ($update_count) {
-        drupal_set_message(format_plural($update_count,
+        drupal_set_message(\Drupal::translation()->formatPlural($update_count,
           'Changed the content type of 1 post from %old-type to %type.',
           'Changed the content type of @count posts from %old-type to %type.',
           array(

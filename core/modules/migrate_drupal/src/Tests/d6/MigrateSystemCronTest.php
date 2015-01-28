@@ -25,7 +25,7 @@ class MigrateSystemCronTest extends MigrateDrupalTestBase {
     parent::setUp();
     $migration = entity_load('migration', 'd6_system_cron');
     $dumps = array(
-      $this->getDumpDirectory() . '/Drupal6SystemCron.php',
+      $this->getDumpDirectory() . '/Variable.php',
     );
     $this->prepare($migration, $dumps);
     $executable = new MigrateExecutable($migration, new MigrateMessage());
@@ -36,7 +36,7 @@ class MigrateSystemCronTest extends MigrateDrupalTestBase {
    * Tests migration of system (cron) variables to system.cron.yml.
    */
   public function testSystemCron() {
-    $config = \Drupal::config('system.cron');
+    $config = $this->config('system.cron');
     $this->assertIdentical($config->get('threshold.requirements_warning'), 172800);
     $this->assertIdentical($config->get('threshold.requirements_error'), 1209600);
   }

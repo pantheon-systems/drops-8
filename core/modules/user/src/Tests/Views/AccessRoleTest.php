@@ -9,7 +9,6 @@ namespace Drupal\user\Tests\Views;
 
 use Drupal\user\Plugin\views\access\Role;
 use Drupal\views\Views;
-use Drupal\views\ViewStorageInterface;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -31,7 +30,7 @@ class AccessRoleTest extends AccessTestBase {
    * Tests role access plugin.
    */
   function testAccessRole() {
-    /** @var \Drupal\views\ViewStorageInterface $view */
+    /** @var \Drupal\views\ViewentityInterface $view */
     $view = \Drupal::entityManager()->getStorage('view')->load('test_access_role');
     $display = &$view->getDisplay('default');
     $display['display_options']['access']['options']['role'] = array(
@@ -70,11 +69,13 @@ class AccessRoleTest extends AccessTestBase {
       'anonymous' => 'anonymous',
     );
     $view->save();
+
+    // Ensure that the list of roles is sorted correctly, if the generated role
+    // ID comes before 'anonymous', see https://www.drupal.org/node/2398259.
+    $roles = ['user.role.anonymous', 'user.role.' . $this->normalRole];
+    sort($roles);
     $expected = [
-      'config' => [
-        'user.role.anonymous',
-        'user.role.' . $this->normalRole,
-      ],
+      'config' => $roles,
       'module' => ['user'],
     ];
     $this->assertIdentical($expected, $view->calculateDependencies());

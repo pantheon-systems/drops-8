@@ -21,7 +21,7 @@ use Drupal\Core\TypedData\TypedDataInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\views\Plugin\views\query\Sql;
 use Drupal\views\Entity\View;
-use Drupal\views\ViewStorageInterface;
+use Drupal\views\ViewEntityInterface;
 use Symfony\Cmf\Component\Routing\RouteObjectInterface;
 use Symfony\Component\HttpFoundation\ParameterBag;
 use Symfony\Component\HttpFoundation\Request;
@@ -29,7 +29,7 @@ use Symfony\Component\HttpFoundation\Request;
 /**
  * Stores UI related temporary settings.
  */
-class ViewUI implements ViewStorageInterface {
+class ViewUI implements ViewEntityInterface {
 
   /**
    * Indicates if a view is currently being edited.
@@ -109,7 +109,7 @@ class ViewUI implements ViewStorageInterface {
   /**
    * The View storage object.
    *
-   * @var \Drupal\views\ViewStorageInterface
+   * @var \Drupal\views\ViewEntityInterface
    */
   protected $storage;
 
@@ -165,10 +165,10 @@ class ViewUI implements ViewStorageInterface {
   /**
    * Constructs a View UI object.
    *
-   * @param \Drupal\views\ViewStorageInterface $storage
+   * @param \Drupal\views\ViewEntityInterface $storage
    *   The View storage object to wrap.
    */
-  public function __construct(ViewStorageInterface $storage, ViewExecutable $executable = NULL) {
+  public function __construct(ViewEntityInterface $storage, ViewExecutable $executable = NULL) {
     $this->entityType = 'view';
     $this->storage = $storage;
     if (!isset($executable)) {
@@ -611,8 +611,9 @@ class ViewUI implements ViewStorageInterface {
 
       // Make view links come back to preview.
 
-      // Also override the current path so we get the pager.
-      $request = new Request();
+      // Also override the current path so we get the pager, and make sure the
+      // Request object gets all of the proper values from $_SERVER.
+      $request = Request::createFromGlobals();
       $request->attributes->set(RouteObjectInterface::ROUTE_NAME, 'entity.view.preview_form');
       $request->attributes->set(RouteObjectInterface::ROUTE_OBJECT, \Drupal::service('router.route_provider')->getRouteByName('entity.view.preview_form'));
       $request->attributes->set('view', $this->storage);
@@ -710,10 +711,20 @@ class ViewUI implements ViewStorageInterface {
           }
 
           if ($show_stats) {
-            $rows['statistics'][] = array('<strong>' . t('Query build time') . '</strong>', t('@time ms', array('@time' => intval($this->executable->build_time * 100000) / 100)));
-            $rows['statistics'][] = array('<strong>' . t('Query execute time') . '</strong>', t('@time ms', array('@time' => intval($this->executable->execute_time * 100000) / 100)));
-            $rows['statistics'][] = array('<strong>' . t('View render time') . '</strong>', t('@time ms', array('@time' => intval($this->executable->render_time * 100000) / 100)));
+            $rows['statistics'][] = array(
+              array('data' => array('#type' => 'inline_template', '#template' => "<strong>{% trans 'Query build time' %}</strong>")),
+              t('@time ms', array('@time' => intval($this->executable->build_time * 100000) / 100)),
+            );
 
+            $rows['statistics'][] = array(
+              array('data' => array('#type' => 'inline_template', '#template' => "<strong>{% trans 'Query execute time' %}</strong>")),
+              t('@time ms', array('@time' => intval($this->executable->execute_time * 100000) / 100)),
+            );
+
+            $rows['statistics'][] = array(
+              array('data' => array('#type' => 'inline_template', '#template' => "<strong>{% trans 'View render time' %}</strong>")),
+              t('@time ms', array('@time' => intval($this->executable->render_time * 100000) / 100)),
+            );
           }
           \Drupal::moduleHandler()->alter('views_preview_info', $rows, $this->executable);
         }
@@ -1158,7 +1169,7 @@ class ViewUI implements ViewStorageInterface {
    * {@inheritdoc}
    */
   public function getCacheTags() {
-    $this->storage->getCacheTags();
+    return $this->storage->getCacheTags();
   }
 
   /**
@@ -1168,4 +1179,17 @@ class ViewUI implements ViewStorageInterface {
     $this->storage->getTypedData();
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  public function addDisplay($plugin_id = 'page', $title = NULL, $id = NULL) {
+    return $this->storage->addDisplay($plugin_id, $title, $id);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getViewExecutable() {
+    return $this->storage->getViewExecutable();
+  }
 }

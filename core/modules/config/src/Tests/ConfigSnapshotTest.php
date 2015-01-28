@@ -24,6 +24,9 @@ class ConfigSnapshotTest extends KernelTestBase {
    */
   public static $modules = array('config_test', 'system');
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp() {
     parent::setUp();
     // Update the config snapshot. This allows the parent::setUp() to write
@@ -64,7 +67,7 @@ class ConfigSnapshotTest extends KernelTestBase {
     $this->assertFalse($active_snapshot_comparer->reset()->hasChanges());
 
     // Change a configuration value in staging.
-    $staging_data = \Drupal::config($config_name)->get();
+    $staging_data = $this->config($config_name)->get();
     $staging_data[$config_key] = $new_data;
     $staging->write($config_name, $staging_data);
 
@@ -78,7 +81,7 @@ class ConfigSnapshotTest extends KernelTestBase {
 
     // Verify changed config was properly imported.
     \Drupal::configFactory()->reset($config_name);
-    $this->assertIdentical(\Drupal::config($config_name)->get($config_key), $new_data);
+    $this->assertIdentical($this->config($config_name)->get($config_key), $new_data);
 
     // Verify that a new snapshot was created which and that it matches
     // the active config.

@@ -17,6 +17,8 @@ use Drupal\Core\Entity\EntityTypeInterface;
 /**
  * Tests site-wide contact form functionality.
  *
+ * @see \Drupal\contact\Tests\ContactStorageTest
+ *
  * @group contact
  */
 class ContactSitewideTest extends WebTestBase {
@@ -45,7 +47,7 @@ class ContactSitewideTest extends WebTestBase {
     $this->drupalLogin($admin_user);
 
     $flood_limit = 3;
-    \Drupal::config('contact.settings')
+    $this->config('contact.settings')
       ->set('flood.limit', $flood_limit)
       ->set('flood.interval', 600)
       ->save();
@@ -122,7 +124,7 @@ class ContactSitewideTest extends WebTestBase {
     $this->assertRaw(t('Contact form %label has been added.', array('%label' => $label)));
 
     // Check that the form was created in site default language.
-    $langcode = \Drupal::config('contact.form.' . $id)->get('langcode');
+    $langcode = $this->config('contact.form.' . $id)->get('langcode');
     $default_langcode = \Drupal::languageManager()->getDefaultLanguage()->getId();
     $this->assertEqual($langcode, $default_langcode);
 
@@ -131,18 +133,18 @@ class ContactSitewideTest extends WebTestBase {
 
     // Test update contact form.
     $this->updateContactForm($id, $label = $this->randomMachineName(16), $recipients_str = implode(',', array($recipients[0], $recipients[1])), $reply = $this->randomMachineName(30), FALSE);
-    $config = \Drupal::config('contact.form.' . $id)->get();
+    $config = $this->config('contact.form.' . $id)->get();
     $this->assertEqual($config['label'], $label);
     $this->assertEqual($config['recipients'], array($recipients[0], $recipients[1]));
     $this->assertEqual($config['reply'], $reply);
-    $this->assertNotEqual($id, \Drupal::config('contact.settings')->get('default_form'));
+    $this->assertNotEqual($id, $this->config('contact.settings')->get('default_form'));
     $this->assertRaw(t('Contact form %label has been updated.', array('%label' => $label)));
     // Ensure the label is displayed on the contact page for this form.
     $this->drupalGet('contact/' . $id);
     $this->assertText($label);
 
     // Reset the form back to be the default form.
-    \Drupal::config('contact.settings')->set('default_form', $id)->save();
+    $this->config('contact.settings')->set('default_form', $id)->save();
 
     // Ensure that the contact form is shown without a form selection input.
     user_role_grant_permissions(DRUPAL_ANONYMOUS_RID, array('access site-wide contact form'));
@@ -197,7 +199,7 @@ class ContactSitewideTest extends WebTestBase {
     $this->assertText(t('Message field is required.'));
 
     // Test contact form with no default form selected.
-    \Drupal::config('contact.settings')
+    $this->config('contact.settings')
       ->set('default_form', '')
       ->save();
     $this->drupalGet('contact');
@@ -217,7 +219,7 @@ class ContactSitewideTest extends WebTestBase {
     // Submit contact form one over limit.
     $this->drupalGet('contact');
     $this->assertResponse(403);
-    $this->assertRaw(t('You cannot send more than %number messages in @interval. Try again later.', array('%number' => \Drupal::config('contact.settings')->get('flood.limit'), '@interval' => \Drupal::service('date.formatter')->formatInterval(600))));
+    $this->assertRaw(t('You cannot send more than %number messages in @interval. Try again later.', array('%number' => $this->config('contact.settings')->get('flood.limit'), '@interval' => \Drupal::service('date.formatter')->formatInterval(600))));
 
     // Test listing controller.
     $this->drupalLogin($admin_user);
@@ -331,7 +333,7 @@ class ContactSitewideTest extends WebTestBase {
    * @param string $reply
    *   The auto-reply text that is sent to a user upon completing the contact
    *   form.
-   * @param boolean $selected
+   * @param bool $selected
    *   A Boolean indicating whether the form should be selected by default.
    * @param array $third_party_settings
    *   Array of third party settings to be added to the posted form data.
@@ -359,7 +361,7 @@ class ContactSitewideTest extends WebTestBase {
    * @param string $reply
    *   The auto-reply text that is sent to a user upon completing the contact
    *   form.
-   * @param boolean $selected
+   * @param bool $selected
    *   A Boolean indicating whether the form should be selected by default.
    */
   function updateContactForm($id, $label, $recipients, $reply, $selected) {
@@ -391,7 +393,7 @@ class ContactSitewideTest extends WebTestBase {
     $edit['mail'] = $mail;
     $edit['subject[0][value]'] = $subject;
     $edit['message[0][value]'] = $message;
-    if ($id == \Drupal::config('contact.settings')->get('default_form')) {
+    if ($id == $this->config('contact.settings')->get('default_form')) {
       $this->drupalPostForm('contact', $edit, t('Send message'));
     }
     else {

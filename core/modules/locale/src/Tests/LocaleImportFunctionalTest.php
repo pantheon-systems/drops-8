@@ -55,7 +55,7 @@ class LocaleImportFunctionalTest extends WebTestBase {
 
     // Enable import of translations. By default this is disabled for automated
     // tests.
-    \Drupal::config('locale.settings')
+    $this->config('locale.settings')
       ->set('translation.import_enabled', TRUE)
       ->save();
   }
@@ -68,7 +68,7 @@ class LocaleImportFunctionalTest extends WebTestBase {
     $this->importPoFile($this->getPoFile(), array(
       'langcode' => 'fr',
     ));
-    \Drupal::config('locale.settings');
+    $this->config('locale.settings');
     // The import should automatically create the corresponding language.
     $this->assertRaw(t('The language %language has been created.', array('%language' => 'French')), 'The language has been automatically created.');
 
@@ -336,6 +336,22 @@ class LocaleImportFunctionalTest extends WebTestBase {
   }
 
   /**
+   * Tests .po file import with user.settings configuration.
+   */
+  public function testConfigtranslationImportingPoFile() {
+    // Set the language code.
+    $langcode = 'de';
+
+    // Import a .po file to translate.
+    $this->importPoFile($this->getPoFileWithConfigDe(), array(
+      'langcode' => $langcode));
+
+    // Check that the 'Anonymous' string is translated.
+    $config = \Drupal::languageManager()->getLanguageConfigOverride($langcode, 'user.settings');
+    $this->assertEqual($config->get('anonymous'), 'Anonymous German');
+  }
+
+  /**
    * Helper function: import a standalone .po file in a given language.
    *
    * @param string $contents
@@ -592,4 +608,22 @@ msgstr "Névtelen felhasználó"
 EOF;
   }
 
+  /**
+   * Helper function that returns a .po file with configuration translations.
+   */
+  public function getPoFileWithConfigDe() {
+    return <<< EOF
+msgid ""
+msgstr ""
+"Project-Id-Version: Drupal 8\\n"
+"MIME-Version: 1.0\\n"
+"Content-Type: text/plain; charset=UTF-8\\n"
+"Content-Transfer-Encoding: 8bit\\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\\n"
+
+msgid "Anonymous"
+msgstr "Anonymous German"
+
+EOF;
+  }
 }

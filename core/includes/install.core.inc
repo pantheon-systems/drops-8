@@ -168,7 +168,8 @@ function install_drupal($class_loader, $settings = array()) {
  * be used to programmatically submit forms during the installation; the keys
  * of each element indicate the name of the installation task that the form
  * submission is for, and the values are used as the $form_state->getValues()
- * array that is passed on to the form submission via drupal_form_submit()).
+ * array that is passed on to the form submission via
+ * \Drupal::formBuilder()->submitForm()).
  *
  * @see \Drupal\Core\Form\FormBuilderInterface::submitForm()
  */
@@ -197,7 +198,7 @@ function install_state_defaults() {
     // installation. The keys of each element indicate the name of the
     // installation task that the form submission is for, and the values are
     // used as the $form_state->getValues() array that is passed on to the form
-    // submission via drupal_form_submit().
+    // submission via \Drupal::formBuilder()->submitForm().
     'forms' => array(),
     // This becomes TRUE only at the end of the installation process, after
     // all available tasks have been completed and Drupal is fully installed.
@@ -555,22 +556,28 @@ function install_run_task($task, &$install_state) {
     // already.
     $current_batch = \Drupal::state()->get('install_current_batch');
     if (!$install_state['interactive'] || !$current_batch) {
-      $batch = $function($install_state);
-      if (empty($batch)) {
+      $batches = $function($install_state);
+      if (empty($batches)) {
         // If the task did some processing and decided no batch was necessary,
         // there is nothing more to do here.
         return;
       }
-      batch_set($batch);
-      // For interactive batches, we need to store the fact that this batch
-      // task is currently running. Otherwise, we need to make sure the batch
-      // will complete in one page request.
-      if ($install_state['interactive']) {
-        \Drupal::state()->set('install_current_batch', $function);
+      // Create a one item list of batches if only one batch was provided.
+      if (isset($batches['operations'])) {
+        $batches = array($batches);
       }
-      else {
-        $batch =& batch_get();
-        $batch['progressive'] = FALSE;
+      foreach ($batches as $batch) {
+        batch_set($batch);
+        // For interactive batches, we need to store the fact that this batch
+        // task is currently running. Otherwise, we need to make sure the batch
+        // will complete in one page request.
+        if ($install_state['interactive']) {
+          \Drupal::state()->set('install_current_batch', $function);
+        }
+        else {
+          $batch =& batch_get();
+          $batch['progressive'] = FALSE;
+        }
       }
       // Process the batch. For progressive batches, this will redirect.
       // Otherwise, the batch will complete.
@@ -759,14 +766,8 @@ function install_tasks($install_state) {
 
   // Finish by adding the remaining core tasks.
   $tasks += array(
-    'install_import_translations_remaining' => array(
+    'install_finish_translations' => array(
       'display_name' => t('Finish translations'),
-      'display' => $needs_translations,
-      'type' => 'batch',
-      'run' => $needs_translations ? INSTALL_TASK_RUN_IF_NOT_COMPLETED : INSTALL_TASK_SKIP,
-    ),
-    'install_update_configuration_translations' => array(
-      'display_name' => t('Translate configuration'),
       'display' => $needs_translations,
       'type' => 'batch',
       'run' => $needs_translations ? INSTALL_TASK_RUN_IF_NOT_COMPLETED : INSTALL_TASK_SKIP,
@@ -1646,7 +1647,7 @@ function install_download_additional_translations_operations(&$install_state) {
   // If a non-English language was selected, change the default language and
   // remove English.
   if ($langcode != 'en') {
-    \Drupal::config('system.site')->set('langcode', $langcode)->save();
+    \Drupal::configFactory()->getEditable('system.site')->set('langcode', $langcode)->save();
     \Drupal::service('language.default')->set($language);
     if (empty($install_state['profile_info']['keep_english'])) {
       entity_delete_multiple('configurable_language', array('en'));
@@ -1763,41 +1764,30 @@ function _install_prepare_import($langcodes, $server_pattern) {
  * @param $install_state
  *   An array of information about the current installation state.
  *
- * @return
- *   The batch definition, if there are language files to import.
+ * @return array
+ *   An array of batch definitions.
  */
-function install_import_translations_remaining(&$install_state) {
+function install_finish_translations(&$install_state) {
   \Drupal::moduleHandler()->loadInclude('locale', 'fetch.inc');
   \Drupal::moduleHandler()->loadInclude('locale', 'compare.inc');
+  \Drupal::moduleHandler()->loadInclude('locale', 'bulk.inc');
 
   // Build a fresh list of installed projects. When more projects than core are
   // installed, their translations will be downloaded (if required) and imported
   // using a batch.
   $projects = locale_translation_build_projects();
+  $languages = \Drupal::languageManager()->getLanguages();
+  $batches = array();
   if (count($projects) > 1) {
     $options = _locale_translation_default_update_options();
-    $languages = \Drupal::languageManager()->getLanguages();
     if ($batch = locale_translation_batch_update_build(array(), array_keys($languages), $options)) {
-      return $batch;
+      $batches[] = $batch;
     }
   }
-}
 
-/**
- * Creates configuration translations.
- *
- * @param array $install_state
- *   An array of information about the current installation state.
- *
- * @return array
- *   The batch definition, if there are configuration objects to update.
- *
- * @see install_tasks()
- */
-function install_update_configuration_translations(&$install_state) {
-  \Drupal::moduleHandler()->loadInclude('locale', 'bulk.inc');
-  $languages = \Drupal::languageManager()->getLanguages();
-  return locale_config_batch_update_components(array(), array_keys($languages));
+  // Creates configuration translations.
+  $batches[] = locale_config_batch_update_components(array(), array_keys($languages));
+  return $batches;
 }
 
 /**

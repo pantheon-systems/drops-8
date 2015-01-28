@@ -56,7 +56,7 @@ function taxonomy_help($route_name, RouteMatchInterface $route_match) {
       $output .= '<h3>' . t('Uses') . '</h3>';
       $output .= '<dl>';
       $output .= '<dt>' . t('Creating vocabularies') . '</dt>';
-      $output .= '<dd>' . t('Users with sufficient <a href="@perm">permissions</a> can create <em>vocabularies</em> and <em>terms</em> through the <a href="@taxo">Taxonomy page</a>. The page listing the terms provides a drag-and-drop interface for controlling the order of the terms and sub-terms within a vocabulary, in a hierarchical fashion. A <em>controlled vocabulary</em> classifying music by genre with terms and sub-terms could look as follows:', array('@taxo' => \Drupal::url('taxonomy.vocabulary_list'), '@perm' => \Drupal::url('user.admin_permissions', [], array('fragment'=>'module-taxonomy'))));
+      $output .= '<dd>' . t('Users with sufficient <a href="@perm">permissions</a> can create <em>vocabularies</em> and <em>terms</em> through the <a href="@taxo">Taxonomy page</a>. The page listing the terms provides a drag-and-drop interface for controlling the order of the terms and sub-terms within a vocabulary, in a hierarchical fashion. A <em>controlled vocabulary</em> classifying music by genre with terms and sub-terms could look as follows:', array('@taxo' => \Drupal::url('entity.taxonomy_vocabulary.collection'), '@perm' => \Drupal::url('user.admin_permissions', [], array('fragment'=>'module-taxonomy'))));
       $output .= '<ul><li>' . t('<em>vocabulary</em>: Music') . '</li>';
       $output .= '<ul><li>' . t('<em>term</em>: Jazz') . '</li>';
       $output .= '<ul><li>' . t('<em>sub-term</em>: Swing') . '</li>';
@@ -67,7 +67,7 @@ function taxonomy_help($route_name, RouteMatchInterface $route_match) {
       $output .= t('You can assign a sub-term to multiple parent terms. For example, <em>fusion</em> can be assigned to both <em>rock</em> and <em>jazz</em>.') . '</dd>';
       $output .= '<dd>' . t('Terms in a <em>free-tagging vocabulary</em> can be built gradually as you create or edit content. This is often done used for blogs or photo management applications.') . '</dd>';
       $output .= '<dt>' . t('Assigning vocabularies to content types') . '</dt>';
-      $output .= '<dd>' . t('Before you can use a new vocabulary to classify your content, a new Taxonomy term field must be added to a <a href="@ctedit">content type</a> on its <em>manage fields</em> page. When adding a taxonomy field, you choose a <em>widget</em> to use to enter the taxonomy information on the content editing page: a select list, checkboxes, radio buttons, or an auto-complete field (to build a free-tagging vocabulary). After choosing the field type and widget, on the subsequent <em>field settings</em> page you can choose the desired vocabulary, whether one or multiple terms can be chosen from the vocabulary, and other settings. The same vocabulary can be added to multiple content types, by using the "Re-use existing field" section on the manage fields page.', array('@ctedit' => \Drupal::url('node.overview_types'))) . '</dd>';
+      $output .= '<dd>' . t('Before you can use a new vocabulary to classify your content, a new Taxonomy term field must be added to a <a href="@ctedit">content type</a> on its <em>manage fields</em> page. When adding a taxonomy field, you choose a <em>widget</em> to use to enter the taxonomy information on the content editing page: a select list, checkboxes, radio buttons, or an auto-complete field (to build a free-tagging vocabulary). After choosing the field type and widget, on the subsequent <em>field settings</em> page you can choose the desired vocabulary, whether one or multiple terms can be chosen from the vocabulary, and other settings. The same vocabulary can be added to multiple content types, by using the "Re-use existing field" section on the manage fields page.', array('@ctedit' => \Drupal::url('entity.node_type.collection'))) . '</dd>';
       $output .= '<dt>' . t('Classifying content') . '</dt>';
       $output .= '<dd>' . t('After the vocabulary is assigned to the content type, you can start classifying content. The field with terms will appear on the content editing screen when you edit or <a href="@addnode">add new content</a>.', array('@addnode' => \Drupal::url('node.add_page'))) . '</dd>';
       $output .= '<dt>' . t('Viewing listings') . '</dt>';
@@ -77,19 +77,19 @@ function taxonomy_help($route_name, RouteMatchInterface $route_match) {
       $output .= '</dl>';
       return $output;
 
-    case 'taxonomy.vocabulary_list':
+    case 'entity.taxonomy_vocabulary.collection':
       $output = '<p>' . t('Taxonomy is for categorizing content. Terms are grouped into vocabularies. For example, a vocabulary called "Fruit" would contain the terms "Apple" and "Banana".') . '</p>';
       return $output;
 
     case 'entity.taxonomy_vocabulary.overview_form':
       $vocabulary = $route_match->getParameter('taxonomy_vocabulary');
-      switch ($vocabulary->hierarchy) {
+      switch ($vocabulary->getHierarchy()) {
         case TAXONOMY_HIERARCHY_DISABLED:
-          return '<p>' . t('You can reorganize the terms in %capital_name using their drag-and-drop handles, and group terms under a parent term by sliding them under and to the right of the parent.', array('%capital_name' => Unicode::ucfirst($vocabulary->name), '%name' => $vocabulary->name)) . '</p>';
+          return '<p>' . t('You can reorganize the terms in %capital_name using their drag-and-drop handles, and group terms under a parent term by sliding them under and to the right of the parent.', array('%capital_name' => Unicode::ucfirst($vocabulary->label()), '%name' => $vocabulary->label())) . '</p>';
         case TAXONOMY_HIERARCHY_SINGLE:
-          return '<p>' . t('%capital_name contains terms grouped under parent terms. You can reorganize the terms in %capital_name using their drag-and-drop handles.', array('%capital_name' => Unicode::ucfirst($vocabulary->name), '%name' => $vocabulary->name)) . '</p>';
+          return '<p>' . t('%capital_name contains terms grouped under parent terms. You can reorganize the terms in %capital_name using their drag-and-drop handles.', array('%capital_name' => Unicode::ucfirst($vocabulary->label()), '%name' => $vocabulary->label())) . '</p>';
         case TAXONOMY_HIERARCHY_MULTIPLE:
-          return '<p>' . t('%capital_name contains terms with multiple parents. Drag and drop of terms with multiple parents is not supported, but you can re-enable drag-and-drop support by editing each term to include only a single parent.', array('%capital_name' => Unicode::ucfirst($vocabulary->name))) . '</p>';
+          return '<p>' . t('%capital_name contains terms with multiple parents. Drag and drop of terms with multiple parents is not supported, but you can re-enable drag-and-drop support by editing each term to include only a single parent.', array('%capital_name' => Unicode::ucfirst($vocabulary->label()))) . '</p>';
       }
   }
 }
@@ -132,62 +132,6 @@ function taxonomy_page_attachments_alter(array &$page) {
       }
     }
   }
-}
-
-/**
- * Return nodes attached to a term across all fields.
- *
- * This function requires taxonomy module to be maintaining its own tables,
- * and will return an empty array if it is not. If using other field storage
- * methods alternatives methods for listing terms will need to be used.
- *
- * @param $tid
- *   The term ID.
- * @param $pager
- *   Boolean to indicate whether a pager should be used.
- * @param $limit
- *   Integer. The maximum number of nodes to find.
- *   Set to FALSE for no limit.
- * @param $order
- *   An array of fields and directions.
- *
- * @return
- *   An array of nids matching the query.
- */
-function taxonomy_select_nodes($tid, $pager = TRUE, $limit = FALSE, $order = array('t.sticky' => 'DESC', 't.created' => 'DESC')) {
-  if (!\Drupal::config('taxonomy.settings')->get('maintain_index_table')) {
-    return array();
-  }
-  $query = db_select('taxonomy_index', 't');
-  $query->addTag('node_access');
-  $query->addMetaData('base_table', 'taxonomy_index');
-  $query->condition('tid', $tid);
-  $query->condition('status', NODE_PUBLISHED);
-  if ($pager) {
-    $count_query = clone $query;
-    $count_query->addExpression('COUNT(t.nid)');
-
-    $query = $query->extend('Drupal\Core\Database\Query\PagerSelectExtender');
-    if ($limit !== FALSE) {
-      $query = $query->limit($limit);
-    }
-    $query->setCountQuery($count_query);
-  }
-  else {
-    if ($limit !== FALSE) {
-      $query->range(0, $limit);
-    }
-  }
-  $query->addField('t', 'nid');
-  $query->addField('t', 'tid');
-  foreach ($order as $field => $direction) {
-    $query->orderBy($field, $direction);
-    // ORDER BY fields need to be loaded too, assume they are in the form
-    // table_alias.name
-    list($table_alias, $name) = explode('.', $field);
-    $query->addField($table_alias, $name);
-  }
-  return $query->execute()->fetchCol();
 }
 
 /**
@@ -238,8 +182,8 @@ function taxonomy_check_vocabulary_hierarchy(VocabularyInterface $vocabulary, $c
       $hierarchy = TAXONOMY_HIERARCHY_SINGLE;
     }
   }
-  if ($hierarchy != $vocabulary->hierarchy) {
-    $vocabulary->hierarchy = $hierarchy;
+  if ($hierarchy != $vocabulary->getHierarchy()) {
+    $vocabulary->setHierarchy($hierarchy);
     $vocabulary->save();
   }
 
@@ -634,11 +578,11 @@ function taxonomy_autocomplete_validate($element, FormStateInterface $form_state
  * sorted by creation date. To avoid slow queries due to joining across
  * multiple node and field tables with various conditions and order by criteria,
  * we maintain a denormalized table with all relationships between terms,
- * published nodes and common sort criteria such as sticky and created.
- * This is used as a lookup table by taxonomy_select_nodes(). When using other
- * field storage engines or alternative methods of denormalizing this data
- * you should set the taxonomy.settings:maintain_index_table to '0' to avoid
- * unnecessary writes in SQL.
+ * published nodes and common sort criteria such as status, sticky and created.
+ * When using other field storage engines or alternative methods of
+ * denormalizing this data you should set the
+ * taxonomy.settings:maintain_index_table to '0' to avoid unnecessary writes in
+ * SQL.
  */
 
 /**

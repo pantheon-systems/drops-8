@@ -8,7 +8,7 @@
 namespace Drupal\Core\Installer\Form;
 
 use Drupal\Core\Extension\ModuleInstallerInterface;
-use Drupal\Core\Form\FormBase;
+use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Locale\CountryManagerInterface;
 use Drupal\Core\State\StateInterface;
@@ -18,7 +18,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 /**
  * Provides the site configuration form.
  */
-class SiteConfigureForm extends FormBase {
+class SiteConfigureForm extends ConfigFormBase {
 
   /**
    * The user storage.
@@ -95,6 +95,17 @@ class SiteConfigureForm extends FormBase {
    */
   public function getFormId() {
     return 'install_configure_form';
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function getEditableConfigNames() {
+    return [
+      'system.date',
+      'system.site',
+      'update.settings',
+    ];
   }
 
   /**

@@ -22,7 +22,7 @@ class MigrateCckFieldValuesTest extends MigrateNodeTestBase {
    *
    * @var array
    */
-  public static $modules = array('node', 'text');
+  public static $modules = array('node', 'text', 'link', 'file');
 
   /**
    * {@inheritdoc}
@@ -70,6 +70,16 @@ class MigrateCckFieldValuesTest extends MigrateNodeTestBase {
       'field_name' => 'field_test_integer_selectlist',
       'bundle' => 'story',
     ))->save();
+    entity_create('field_storage_config', array(
+      'entity_type' => 'node',
+      'field_name' => 'field_test_exclude_unset',
+      'type' => 'text',
+    ))->save();
+    entity_create('field_config', array(
+      'entity_type' => 'node',
+      'field_name' => 'field_test_exclude_unset',
+      'bundle' => 'story',
+    ))->save();
 
     entity_create('field_storage_config', array(
       'entity_type' => 'node',
@@ -105,6 +115,28 @@ class MigrateCckFieldValuesTest extends MigrateNodeTestBase {
       'bundle' => 'story',
     ))->save();
 
+    entity_create('field_storage_config', array(
+      'entity_type' => 'node',
+      'field_name' => 'field_test_link',
+      'type' => 'link',
+    ))->save();
+    entity_create('field_config', array(
+      'entity_type' => 'node',
+      'field_name' => 'field_test_link',
+      'bundle' => 'story',
+    ))->save();
+
+    entity_create('field_storage_config', array(
+      'entity_type' => 'node',
+      'field_name' => 'field_test_filefield',
+      'type' => 'file',
+    ))->save();
+    entity_create('field_config', array(
+      'entity_type' => 'node',
+      'field_name' => 'field_test_filefield',
+      'bundle' => 'story',
+    ))->save();
+
     // Add some id mappings for the dependant migrations.
     $id_mappings = array(
       'd6_field_formatter_settings' => array(
@@ -134,19 +166,30 @@ class MigrateCckFieldValuesTest extends MigrateNodeTestBase {
    */
   public function testCckFields() {
     $node = Node::load(1);
-    $this->assertEqual($node->field_test->value, 'This is a shared text field', "Shared field storage field is correct.");
-    $this->assertEqual($node->field_test->format, 1, "Shared field storage field with multiple columns is correct.");
-    $this->assertEqual($node->field_test_two->value, 10, 'Multi field storage field is correct');
-    $this->assertEqual($node->field_test_two[1]->value, 20, 'Multi field second value is correct.');
+
+    $this->assertEqual($node->field_test->value, 'This is a shared text field');
+    $this->assertEqual($node->field_test->format, 'filtered_html');
+    $this->assertEqual($node->field_test_two->value, 10);
+    $this->assertEqual($node->field_test_two[1]->value, 20);
+
     $this->assertEqual($node->field_test_three->value, '42.42', 'Single field second value is correct.');
-    $this->assertEqual($node->field_test_integer_selectlist[0]->value, '3412', 'Integer select list value is correct');
+    $this->assertEqual($node->field_test_integer_selectlist[0]->value, '3412');
     $this->assertEqual($node->field_test_identical1->value, '1', 'Integer value is correct');
     $this->assertEqual($node->field_test_identical2->value, '1', 'Integer value is correct');
+    $this->assertEqual($node->field_test_exclude_unset->value, 'This is a field with exclude unset.', 'Field with exclude unset is correct.');
+
+    // Test that link fields are migrated.
+    $this->assertIdentical($node->field_test_link->uri, 'http://drupal.org/project/drupal');
+    $this->assertIdentical($node->field_test_link->title, 'Drupal project page');
+    $this->assertIdentical($node->field_test_link->options['attributes'], ['target' => '_blank']);
+
+    // Test the file field meta.
+    $this->assertIdentical($node->field_test_filefield->description, 'desc');
+    $this->assertIdentical($node->field_test_filefield->target_id, '5');
 
     $planet_node = Node::load(3);
     $this->assertEqual($planet_node->field_multivalue->value, 33);
     $this->assertEqual($planet_node->field_multivalue[1]->value, 44);
-
   }
 
 }

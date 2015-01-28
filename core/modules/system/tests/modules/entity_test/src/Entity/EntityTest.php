@@ -29,7 +29,7 @@ use Drupal\user\UserInterface;
  *       "delete" = "Drupal\entity_test\EntityTestDeleteForm"
  *     },
  *     "translation" = "Drupal\content_translation\ContentTranslationHandler",
- *     "views_data" = "Drupal\views\EntityViewsData"
+ *     "views_data" = "Drupal\entity_test\EntityTestViewsData"
  *   },
  *   base_table = "entity_test",
  *   persistent_cache = FALSE,
@@ -37,12 +37,13 @@ use Drupal\user\UserInterface;
  *     "id" = "id",
  *     "uuid" = "uuid",
  *     "bundle" = "type",
- *     "label" = "name"
+ *     "label" = "name",
+ *     "langcode" = "langcode",
  *   },
  *   links = {
- *     "canonical" = "entity.entity_test.canonical",
- *     "edit-form" = "entity.entity_test.edit_form",
- *     "delete-form" = "entity.entity_test.delete_form",
+ *     "canonical" = "/entity_test/{entity_test}",
+ *     "edit-form" = "/entity_test/manage/{entity_test}",
+ *     "delete-form" = "/entity_test/delete/entity_test/{entity_test}",
  *   },
  *   field_ui_base_route = "entity.entity_test.admin_form",
  * )

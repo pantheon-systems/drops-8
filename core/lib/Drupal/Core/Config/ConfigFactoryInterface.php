@@ -15,25 +15,21 @@ namespace Drupal\Core\Config;
 interface ConfigFactoryInterface {
 
   /**
-   * Sets the override state.
+   * Returns an immutable configuration object for a given name.
    *
-   * @param bool $state
-   *   TRUE if overrides should be applied, FALSE otherwise.
+   * @param string $name
+   *   The name of the configuration object to construct.
    *
-   * @return $this
+   * @return \Drupal\Core\Config\ImmutableConfig
+   *   A configuration object.
    */
-  public function setOverrideState($state);
+  public function get($name);
 
   /**
-   * Gets the override state.
+   * Returns an mutable configuration object for a given name.
    *
-   * @return bool
-   *   Get the override state.
-   */
-  public function getOverrideState();
-
-  /**
-   * Returns a configuration object for a given name.
+   * Should not be used for config that will have runtime effects. Therefore it
+   * is always loaded override free.
    *
    * @param string $name
    *   The name of the configuration object to construct.
@@ -41,18 +37,20 @@ interface ConfigFactoryInterface {
    * @return \Drupal\Core\Config\Config
    *   A configuration object.
    */
-  public function get($name);
+  public function getEditable($name);
 
   /**
    * Returns a list of configuration objects for the given names.
    *
    * This will pre-load all requested configuration objects does not create
-   * new configuration objects.
+   * new configuration objects. This method always return immutable objects.
+   * ConfigFactoryInterface::getEditable() should be used to retrieve mutable
+   * configuration objects, one by one.
    *
    * @param array $names
    *   List of names of configuration objects.
    *
-   * @return \Drupal\Core\Config\Config[]
+   * @return \Drupal\Core\Config\ImmutableConfig[]
    *   List of successfully loaded configuration objects, keyed by name.
    */
   public function loadMultiple(array $names);
@@ -76,8 +74,7 @@ interface ConfigFactoryInterface {
    * @param string $new_name
    *   The new name of the configuration object.
    *
-   * @return \Drupal\Core\Config\Config
-   *   The renamed config object.
+   * @return $this
    */
   public function rename($old_name, $new_name);
 

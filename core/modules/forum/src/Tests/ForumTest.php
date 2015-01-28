@@ -7,10 +7,13 @@
 
 namespace Drupal\forum\Tests;
 
+use Drupal\Core\Entity\Entity\EntityFormDisplay;
+use Drupal\Core\Entity\Entity\EntityViewDisplay;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Link;
 use Drupal\simpletest\WebTestBase;
 use Drupal\Core\Url;
+use Drupal\taxonomy\Entity\Vocabulary;
 
 /**
  * Create, view, edit, delete, and change forum entries and verify its
@@ -115,6 +118,25 @@ class ForumTest extends WebTestBase {
     // Do the admin tests.
     $this->doAdminTests($this->admin_user);
 
+    // Check display order.
+    $display = EntityViewDisplay::load('node.forum.default');
+    $body = $display->getComponent('body');
+    $comment = $display->getComponent('comment_forum');
+    $taxonomy = $display->getComponent('taxonomy_forums');
+
+    // Assert field order is body » taxonomy » comments.
+    $this->assertTrue($taxonomy['weight'] < $body['weight']);
+    $this->assertTrue($body['weight'] < $comment['weight']);
+
+    // Check form order.
+    $display = EntityFormDisplay::load('node.forum.default');
+    $body = $display->getComponent('body');
+    $comment = $display->getComponent('comment_forum');
+    $taxonomy = $display->getComponent('taxonomy_forums');
+
+    // Assert category comes before body in order.
+    $this->assertTrue($taxonomy['weight'] < $body['weight']);
+
     $this->generateForumTopics();
 
     // Login an unprivileged user to view the forum topics and generate an
@@ -163,7 +185,7 @@ class ForumTest extends WebTestBase {
 
     // Verify the number of unread topics.
     $unread_topics = $this->container->get('forum_manager')->unreadTopics($this->forum['tid'], $this->edit_any_topics_user->id());
-    $unread_topics = format_plural($unread_topics, '1 new post', '@count new posts');
+    $unread_topics = \Drupal::translation()->formatPlural($unread_topics, '1 new post', '@count new posts');
     $xpath = $this->buildXPathQuery('//tr[@id=:forum]//td[@class="topics"]//a', $forum_arg);
     $this->assertFieldByXPath($xpath, $unread_topics, 'Number of unread topics found.');
     // Verify that the forum name is in the unread topics text.
@@ -197,7 +219,7 @@ class ForumTest extends WebTestBase {
     // Test the root forum page title change.
     $this->drupalGet('forum');
     $this->assertTitle(t('Forums | Drupal'));
-    $vocabulary = entity_load('taxonomy_vocabulary', $this->forum['vid']);
+    $vocabulary = Vocabulary::load($this->forum['vid']);
     $vocabulary->set('name', 'Discussions');
     $vocabulary->save();
     $this->drupalGet('forum');
@@ -217,7 +239,7 @@ class ForumTest extends WebTestBase {
    */
   function testAddOrphanTopic() {
     // Must remove forum topics to test creating orphan topics.
-    $vid = \Drupal::config('forum.settings')->get('vocabulary');
+    $vid = $this->config('forum.settings')->get('vocabulary');
     $tids = \Drupal::entityQuery('taxonomy_term')
       ->condition('vid', $vid)
       ->execute();
@@ -322,8 +344,8 @@ class ForumTest extends WebTestBase {
    */
   function editForumVocabulary() {
     // Backup forum taxonomy.
-    $vid = \Drupal::config('forum.settings')->get('vocabulary');
-    $original_vocabulary = entity_load('taxonomy_vocabulary', $vid);
+    $vid = $this->config('forum.settings')->get('vocabulary');
+    $original_vocabulary = Vocabulary::load($vid);
 
     // Generate a random name and description.
     $edit = array(
@@ -337,19 +359,19 @@ class ForumTest extends WebTestBase {
     $this->assertRaw(t('Updated vocabulary %name.', array('%name' => $edit['name'])), 'Vocabulary was edited');
 
     // Grab the newly edited vocabulary.
-    $current_vocabulary = entity_load('taxonomy_vocabulary', $vid);
+    $current_vocabulary = Vocabulary::load($vid);
 
     // Make sure we actually edited the vocabulary properly.
-    $this->assertEqual($current_vocabulary->name, $edit['name'], 'The name was updated');
-    $this->assertEqual($current_vocabulary->description, $edit['description'], 'The description was updated');
+    $this->assertEqual($current_vocabulary->label(), $edit['name'], 'The name was updated');
+    $this->assertEqual($current_vocabulary->getDescription(), $edit['description'], 'The description was updated');
 
     // Restore the original vocabulary's name and description.
-    $current_vocabulary->set('name', $original_vocabulary->name);
-    $current_vocabulary->set('description', $original_vocabulary->description);
+    $current_vocabulary->set('name', $original_vocabulary->label());
+    $current_vocabulary->set('description', $original_vocabulary->getDescription());
     $current_vocabulary->save();
     // Reload vocabulary to make sure changes are saved.
-    $current_vocabulary = entity_load('taxonomy_vocabulary', $vid);
-    $this->assertEqual($current_vocabulary->name, $original_vocabulary->name, 'The original vocabulary settings were restored');
+    $current_vocabulary = Vocabulary::load($vid);
+    $this->assertEqual($current_vocabulary->label(), $original_vocabulary->label(), 'The original vocabulary settings were restored');
   }
 
   /**
@@ -388,7 +410,7 @@ class ForumTest extends WebTestBase {
     );
 
     // Verify forum.
-    $term = db_query("SELECT * FROM {taxonomy_term_field_data} t WHERE t.vid = :vid AND t.name = :name AND t.description__value = :desc AND t.default_langcode = 1", array(':vid' => \Drupal::config('forum.settings')->get('vocabulary'), ':name' => $name, ':desc' => $description))->fetchAssoc();
+    $term = db_query("SELECT * FROM {taxonomy_term_field_data} t WHERE t.vid = :vid AND t.name = :name AND t.description__value = :desc AND t.default_langcode = 1", array(':vid' => $this->config('forum.settings')->get('vocabulary'), ':name' => $name, ':desc' => $description))->fetchAssoc();
     $this->assertTrue(!empty($term), 'The ' . $type . ' exists in the database');
 
     // Verify forum hierarchy.

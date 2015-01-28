@@ -79,9 +79,9 @@ class ConfigEntityBaseUnitTest extends UnitTestCase {
   /**
    * The mocked cache backend.
    *
-   * @var \Drupal\Core\Cache\CacheBackendInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Cache\CacheTagsInvalidatorInterface|\PHPUnit_Framework_MockObject_MockObject
    */
-  protected $cacheBackend;
+  protected $cacheTagsInvalidator;
 
   /**
    * The mocked typed config manager.
@@ -106,6 +106,9 @@ class ConfigEntityBaseUnitTest extends UnitTestCase {
     $this->entityType->expects($this->any())
       ->method('getProvider')
       ->will($this->returnValue($this->provider));
+    $this->entityType->expects($this->any())
+      ->method('getConfigPrefix')
+      ->willReturn('test_provider.' . $this->entityTypeId);
 
     $this->entityManager = $this->getMock('\Drupal\Core\Entity\EntityManagerInterface');
     $this->entityManager->expects($this->any())
@@ -121,7 +124,7 @@ class ConfigEntityBaseUnitTest extends UnitTestCase {
       ->with('en')
       ->will($this->returnValue(new Language(array('id' => 'en'))));
 
-    $this->cacheBackend = $this->getMock('Drupal\Core\Cache\CacheBackendInterface');
+    $this->cacheTagsInvalidator = $this->getMock('Drupal\Core\Cache\CacheTagsInvalidatorInterface');
 
     $this->typedConfigManager = $this->getMock('Drupal\Core\Config\TypedConfigManagerInterface');
 
@@ -129,9 +132,8 @@ class ConfigEntityBaseUnitTest extends UnitTestCase {
     $container->set('entity.manager', $this->entityManager);
     $container->set('uuid', $this->uuid);
     $container->set('language_manager', $this->languageManager);
-    $container->set('cache.test', $this->cacheBackend);
+    $container->set('cache_tags.invalidator', $this->cacheTagsInvalidator);
     $container->set('config.typed', $this->typedConfigManager);
-    $container->setParameter('cache_bins', array('cache.test' => 'test'));
     \Drupal::setContainer($container);
 
     $this->entity = $this->getMockForAbstractClass('\Drupal\Core\Config\Entity\ConfigEntityBase', array($values, $this->entityTypeId));
@@ -361,9 +363,9 @@ class ConfigEntityBaseUnitTest extends UnitTestCase {
    * @depends testSetStatus
    */
   public function testDisable() {
-    $this->cacheBackend->expects($this->once())
+    $this->cacheTagsInvalidator->expects($this->once())
       ->method('invalidateTags')
-      ->with(array($this->entityTypeId . ':' . $this->id));
+      ->with(array('config:test_provider.'  . $this->entityTypeId . '.' . $this->id));
 
     $this->entity->setStatus(TRUE);
     $this->assertSame($this->entity, $this->entity->disable());

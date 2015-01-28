@@ -81,56 +81,28 @@ class Cache {
    *   A prefix string.
    * @param array $suffixes
    *   An array of suffixes. Will be cast to strings.
+   * @param string $glue
+   *   A string to be used as glue for concatenation. Defaults to a colon.
    *
    * @return string[]
    *   An array of cache tags.
    */
-  public static function buildTags($prefix, array $suffixes) {
+  public static function buildTags($prefix, array $suffixes, $glue = ':') {
     $tags = [];
     foreach ($suffixes as $suffix) {
-      $tags[] = $prefix . ':' . $suffix;
+      $tags[] = $prefix . $glue . $suffix;
     }
     return $tags;
   }
 
   /**
-   * Deletes items from all bins with any of the specified tags.
-   *
-   * Many sites have more than one active cache backend, and each backend may
-   * use a different strategy for storing tags against cache items, and
-   * deleting cache items associated with a given tag.
-   *
-   * When deleting a given list of tags, we iterate over each cache backend, and
-   * and call deleteTags() on each.
-   *
-   * @param string[] $tags
-   *   The list of tags to delete cache items for.
-   */
-  public static function deleteTags(array $tags) {
-    static::validateTags($tags);
-    foreach (static::getBins() as $cache_backend) {
-      $cache_backend->deleteTags($tags);
-    }
-  }
-
-  /**
    * Marks cache items from all bins with any of the specified tags as invalid.
-   *
-   * Many sites have more than one active cache backend, and each backend my use
-   * a different strategy for storing tags against cache items, and invalidating
-   * cache items associated with a given tag.
-   *
-   * When invalidating a given list of tags, we iterate over each cache backend,
-   * and call invalidateTags() on each.
    *
    * @param string[] $tags
    *   The list of tags to invalidate cache items for.
    */
   public static function invalidateTags(array $tags) {
-    static::validateTags($tags);
-    foreach (static::getBins() as $cache_backend) {
-      $cache_backend->invalidateTags($tags);
-    }
+    \Drupal::service('cache_tags.invalidator')->invalidateTags($tags);
   }
 
   /**

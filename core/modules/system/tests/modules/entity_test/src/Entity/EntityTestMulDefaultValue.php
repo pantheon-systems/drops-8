@@ -33,12 +33,13 @@ use Drupal\Core\Field\BaseFieldDefinition;
  *     "id" = "id",
  *     "uuid" = "uuid",
  *     "bundle" = "type",
- *     "label" = "name"
+ *     "label" = "name",
+ *     "langcode" = "langcode"
  *   },
  *   links = {
- *     "canonical" = "entity.entity_test_mul.edit_form",
- *     "edit-form" = "entity.entity_test_mul.edit_form",
- *     "delete-form" = "entity.entity_test_mul.delete_form",
+ *     "canonical" = "/entity_test_mul_default_value/manage/{entity_test_mul_default_value}",
+ *     "edit-form" = "/entity_test_mul_default_value/manage/{entity_test_mul_default_value}",
+ *     "delete-form" = "/entity_test/delete/entity_test_mul_default_value/{entity_test_mul_default_value}",
  *   },
  *   field_ui_base_route = "entity.entity_test_mul.admin_form",
  * )

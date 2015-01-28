@@ -24,6 +24,13 @@ class FilterHtmlImageSecureTest extends WebTestBase {
    */
   public static $modules = array('filter', 'node', 'comment');
 
+  /**
+   * An authenticated user.
+   *
+   * @var \Drupal\user\UserInterface
+   */
+  protected $webUser;
+
   protected function setUp() {
     parent::setUp();
 
@@ -49,14 +56,14 @@ class FilterHtmlImageSecureTest extends WebTestBase {
     $filtered_html_format->save();
 
     // Setup users.
-    $this->web_user = $this->drupalCreateUser(array(
+    $this->webUser = $this->drupalCreateUser(array(
       'access content',
       'access comments',
       'post comments',
       'skip comment approval',
       $filtered_html_format->getPermissionName(),
     ));
-    $this->drupalLogin($this->web_user);
+    $this->drupalLogin($this->webUser);
 
     // Setup a node to comment and test on.
     $this->drupalCreateContentType(array('type' => 'page', 'name' => 'Basic page'));
@@ -79,7 +86,7 @@ class FilterHtmlImageSecureTest extends WebTestBase {
     $csrf_path = $public_files_path . '/' . implode('/', array_fill(0, substr_count($public_files_path, '/') + 1, '..'));
 
     $druplicon = 'core/misc/druplicon.png';
-    $red_x_image = base_path() . 'core/misc/message-16-error.png';
+    $red_x_image = base_path() . 'core/misc/icons/ea2800/error.svg';
     $alt_text = t('Image removed.');
     $title_text = t('This image has been removed. For security reasons, only images from the local domain are allowed.');
 

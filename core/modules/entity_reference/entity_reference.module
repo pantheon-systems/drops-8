@@ -22,7 +22,7 @@ function entity_reference_help($route_name, RouteMatchInterface $route_match) {
     case 'help.page.entity_reference':
       $output = '';
       $output .= '<h3>' . t('About') . '</h3>';
-      $output .= '<p>' . t('The Entity Reference module allows you to create fields that contain links to other entities (such as content items, taxonomy terms, etc.) within the site. This allows you, for example, to include a link to a user within a content item. For more information, see <a href="!er_do">the online documentation for the Entity Reference module</a>, the <a href="!entity_help">Entity module help page</a>, and the <a href="!field_help">Field module help page</a>.', array('!field_help' => \Drupal::url('help.page', array('name' => 'field')),'!entity_help' => \Drupal::url('help.page', array('name' => 'entity')), '!er_do' => 'https://drupal.org/documentation/modules/entityreference')) . '</p>';
+      $output .= '<p>' . t('The Entity Reference module allows you to create fields that contain links to other entities (such as content items, taxonomy terms, etc.) within the site. This allows you, for example, to include a link to a user within a content item. For more information, see <a href="!er_do">the online documentation for the Entity Reference module</a> and the <a href="!field_help">Field module help page</a>.', array('!field_help' => \Drupal::url('help.page', array('name' => 'field')), '!er_do' => 'https://drupal.org/documentation/modules/entityreference')) . '</p>';
       $output .= '<h3>' . t('Uses') . '</h3>';
       $output .= '<dl>';
       $output .= '<dt>' . t('Managing and displaying entity reference fields') . '</dt>';
@@ -201,7 +201,7 @@ function entity_reference_query_entity_reference_alter(AlterableInterface $query
  * @param int $cardinality
  *   The cardinality of the field.
  *
- * @see \Drupal\entity_reference\Plugin\entity_reference\selection\SelectionBase::settingsForm()
+ * @see \Drupal\Core\Entity\Plugin\EntityReferenceSelection\SelectionBase::buildConfigurationForm()
  */
 function entity_reference_create_field($entity_type, $bundle, $field_name, $field_label, $target_entity_type, $selection_handler = 'default', $selection_handler_settings = array(), $cardinality = 1) {
   // Look for or add the specified field to the requested entity bundle.

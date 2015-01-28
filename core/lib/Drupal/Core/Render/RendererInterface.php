@@ -88,7 +88,8 @@ interface RendererInterface {
    *     does not have access to it (#access = FALSE), then an empty string is
    *     returned.
    *   - If no stack data structure has been created yet, it is done now. Next,
-   *     an empty \Drupal\Core\Render\RenderStackFrame is pushed onto the stack.
+   *     an empty \Drupal\Core\Render\BubbleableMetadata is pushed onto the
+   *     stack.
    *   - If this element has #cache defined then the cached markup for this
    *     element will be returned if it exists in Renderer::render()'s cache. To
    *     use Renderer::render() caching, set the element's #cache property to an
@@ -97,8 +98,7 @@ interface RendererInterface {
    *       'keys' is set, the cache ID is created automatically from these keys.
    *       Cache keys may either be static (just strings) or tokens
    *       (placeholders that are converted to static keys by the
-   *       @cache_contexts service, depending on the request). See
-   *       drupal_render_cid_create().
+   *       'cache_contexts' service, depending on the request).
    *     - 'cid': Specify the cache ID directly. Either 'keys' or 'cid' is
    *       required. If 'cid' is set, 'keys' is ignored. Use only if you have
    *       special requirements.
@@ -268,5 +268,84 @@ interface RendererInterface {
    * @see ::renderRoot()
    */
   public function render(&$elements, $is_root_call = FALSE);
+
+  /**
+   * Gets a cacheable render array for a render array and its rendered output.
+   *
+   * Given a render array and its rendered output (HTML string), return an array
+   * data structure that allows the render array and its associated metadata to
+   * be cached reliably (and is serialization-safe).
+   *
+   * If Drupal needs additional rendering metadata to be cached at some point,
+   * consumers of this method will continue to work. Those who only cache
+   * certain parts of a render array will cease to work.
+   *
+   * @param array $elements
+   *   A renderable array, on which ::render() has already been invoked.
+   *
+   * @return array
+   *   An array representing the cacheable data for this render array.
+   */
+  public function getCacheableRenderArray(array $elements);
+
+  /**
+   * Merges the bubbleable rendering metadata o/t 2nd render array with the 1st.
+   *
+   * @param array $a
+   *   A render array.
+   * @param array $b
+   *   A render array.
+   *
+   * @return array
+   *   The first render array, modified to also contain the bubbleable rendering
+   *   metadata of the second render array.
+   *
+   * @see \Drupal\Core\Render\BubbleableMetadata
+   */
+  public static function mergeBubbleableMetadata(array $a, array $b);
+
+  /**
+   * Merges two attachments arrays (which live under the '#attached' key).
+   *
+   * The values under the 'drupalSettings' key are merged in a special way, to
+   * match the behavior of:
+   *
+   * @code
+   *   jQuery.extend(true, {}, $settings_items[0], $settings_items[1], ...)
+   * @endcode
+   *
+   * This means integer indices are preserved just like string indices are,
+   * rather than re-indexed as is common in PHP array merging.
+   *
+   * Example:
+   * @code
+   * function module1_page_attachments(&$page) {
+   *   $page['a']['#attached']['drupalSettings']['foo'] = ['a', 'b', 'c'];
+   * }
+   * function module2_page_attachments(&$page) {
+   *   $page['#attached']['drupalSettings']['foo'] = ['d'];
+   * }
+   * // When the page is rendered after the above code, and the browser runs the
+   * // resulting <SCRIPT> tags, the value of drupalSettings.foo is
+   * // ['d', 'b', 'c'], not ['a', 'b', 'c', 'd'].
+   * @endcode
+   *
+   * By following jQuery.extend() merge logic rather than common PHP array merge
+   * logic, the following are ensured:
+   * - Attaching JavaScript settings is idempotent: attaching the same settings
+   *   twice does not change the output sent to the browser.
+   * - If pieces of the page are rendered in separate PHP requests and the
+   *   returned settings are merged by JavaScript, the resulting settings are
+   *   the same as if rendered in one PHP request and merged by PHP.
+   *
+   * @param array $a
+   *   An attachments array.
+   * @param array $b
+   *   Another attachments array.
+   *
+   * @return array
+   *   The merged attachments array.
+   */
+  public static function mergeAttachments(array $a, array $b);
 
 }

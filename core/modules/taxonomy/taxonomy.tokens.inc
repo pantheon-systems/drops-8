@@ -7,6 +7,7 @@
 
 use Drupal\Component\Utility\String;
 use Drupal\Component\Utility\Xss;
+use Drupal\taxonomy\Entity\Vocabulary;
 
 /**
  * Implements hook_token_info().
@@ -127,8 +128,8 @@ function taxonomy_tokens($type, $tokens, array $data = array(), array $options =
           break;
 
         case 'vocabulary':
-          $vocabulary = entity_load('taxonomy_vocabulary', $term->bundle());
-          $replacements[$original] = String::checkPlain($vocabulary->name);
+          $vocabulary = Vocabulary::load($term->bundle());
+          $replacements[$original] = String::checkPlain($vocabulary->label());
           break;
 
         case 'parent':
@@ -141,7 +142,7 @@ function taxonomy_tokens($type, $tokens, array $data = array(), array $options =
     }
 
     if ($vocabulary_tokens = $token_service->findWithPrefix($tokens, 'vocabulary')) {
-      $vocabulary = entity_load('taxonomy_vocabulary', $term->bundle());
+      $vocabulary = Vocabulary::load($term->bundle());
       $replacements += $token_service->generate('vocabulary', $vocabulary_tokens, array('vocabulary' => $vocabulary), $options);
     }
 
@@ -161,11 +162,11 @@ function taxonomy_tokens($type, $tokens, array $data = array(), array $options =
           break;
 
         case 'name':
-          $replacements[$original] = $sanitize ? String::checkPlain($vocabulary->name) : $vocabulary->name;
+          $replacements[$original] = $sanitize ? String::checkPlain($vocabulary->label()) : $vocabulary->label();
           break;
 
         case 'description':
-          $replacements[$original] = $sanitize ? Xss::filter($vocabulary->description) : $vocabulary->description;
+          $replacements[$original] = $sanitize ? Xss::filter($vocabulary->getDescription()) : $vocabulary->getDescription();
           break;
 
         case 'term-count':

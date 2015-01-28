@@ -164,8 +164,9 @@ abstract class Entity implements EntityInterface {
     $link_templates = $this->linkTemplates();
 
     if (isset($link_templates[$rel])) {
-      // If there is a template for the given relationship type, generate the path.
-      $uri = new Url($link_templates[$rel], $this->urlRouteParameters($rel));
+      $route_parameters = $this->urlRouteParameters($rel);
+      $route_name = "entity.{$this->entityTypeId}." . str_replace(array('-', 'drupal:'), array('_', ''), $rel);
+      $uri = new Url($route_name, $route_parameters);
     }
     else {
       $bundle = $this->bundle();
@@ -224,7 +225,7 @@ abstract class Entity implements EntityInterface {
    * Returns an array link templates.
    *
    * @return array
-   *   An array of link templates containing route names.
+   *   An array of link templates containing paths.
    */
   protected function linkTemplates() {
     return $this->getEntityType()->getLinkTemplates();
@@ -273,9 +274,12 @@ abstract class Entity implements EntityInterface {
    *   An array of URI placeholders.
    */
   protected function urlRouteParameters($rel) {
-    // The entity ID is needed as a route parameter.
-    $uri_route_parameters[$this->getEntityTypeId()] = $this->id();
+    $uri_route_parameters = [];
 
+    if ($rel != 'collection') {
+      // The entity ID is needed as a route parameter.
+      $uri_route_parameters[$this->getEntityTypeId()] = $this->id();
+    }
     return $uri_route_parameters;
   }
 
@@ -309,7 +313,8 @@ abstract class Entity implements EntityInterface {
    * {@inheritdoc}
    */
   public function language() {
-    $language = $this->languageManager()->getLanguage($this->langcode);
+    $langcode = $this->{$this->getEntityType()->getKey('langcode')};
+    $language = $this->languageManager()->getLanguage($langcode);
     if (!$language) {
       // Make sure we return a proper language object.
       $langcode = $this->langcode ?: LanguageInterface::LANGCODE_NOT_SPECIFIED;
@@ -405,7 +410,7 @@ abstract class Entity implements EntityInterface {
    * {@inheritdoc}
    */
   public static function postDelete(EntityStorageInterface $storage, array $entities) {
-    self::invalidateTagsOnDelete($storage->getEntityType(), $entities);
+    static::invalidateTagsOnDelete($storage->getEntityType(), $entities);
   }
 
   /**

@@ -65,7 +65,7 @@ class UserPictureTest extends WebTestBase {
     // configuration value.
     db_update('file_managed')
       ->fields(array(
-        'changed' => REQUEST_TIME - ($this->container->get('config.factory')->get('system.file')->get('temporary_maximum_age') + 1),
+        'changed' => REQUEST_TIME - ($this->config('system.file')->get('temporary_maximum_age') + 1),
       ))
       ->condition('fid', $file->id())
       ->execute();
@@ -91,20 +91,17 @@ class UserPictureTest extends WebTestBase {
     $node = $this->drupalCreateNode(array('type' => 'article'));
 
     // Enable user pictures on nodes.
-    $this->container->get('config.factory')->get('system.theme.global')->set('features.node_user_picture', TRUE)->save();
+    $this->config('system.theme.global')->set('features.node_user_picture', TRUE)->save();
 
     // Verify that the image is displayed on the user account page.
     $this->drupalGet('node/' . $node->id());
     $this->assertRaw(file_uri_target($file->getFileUri()), 'User picture found on node page.');
 
     // Enable user pictures on comments, instead of nodes.
-    $this->container->get('config.factory')->get('system.theme.global')
+    $this->config('system.theme.global')
       ->set('features.node_user_picture', FALSE)
       ->set('features.comment_user_picture', TRUE)
       ->save();
-
-    // @todo Remove when https://www.drupal.org/node/2040135 lands.
-    Cache::invalidateTags(['rendered']);
 
     $edit = array(
       'comment_body[0][value]' => $this->randomString(),
@@ -113,13 +110,10 @@ class UserPictureTest extends WebTestBase {
     $this->assertRaw(file_uri_target($file->getFileUri()), 'User picture found on comment.');
 
     // Disable user pictures on comments and nodes.
-    $this->container->get('config.factory')->get('system.theme.global')
+    $this->config('system.theme.global')
       ->set('features.node_user_picture', FALSE)
       ->set('features.comment_user_picture', FALSE)
       ->save();
-
-    // @todo Remove when https://www.drupal.org/node/2040135 lands.
-    Cache::invalidateTags(['rendered']);
 
     $this->drupalGet('node/' . $node->id());
     $this->assertNoRaw(file_uri_target($file->getFileUri()), 'User picture not found on node and comment.');

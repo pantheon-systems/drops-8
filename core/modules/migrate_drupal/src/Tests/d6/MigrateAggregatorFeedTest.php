@@ -27,7 +27,7 @@ class MigrateAggregatorFeedTest extends MigrateDrupalTestBase {
     parent::setUp();
     $migration = entity_load('migration', 'd6_aggregator_feed');
     $dumps = array(
-      $this->getDumpDirectory() . '/Drupal6AggregatorFeed.php',
+      $this->getDumpDirectory() . '/AggregatorFeed.php',
     );
     $this->prepare($migration, $dumps);
     $executable = new MigrateExecutable($migration, $this);
@@ -50,7 +50,6 @@ class MigrateAggregatorFeedTest extends MigrateDrupalTestBase {
     $this->assertEqual($feed->link->value, 'http://knowyourmeme.com');
     $this->assertEqual($feed->description->value, 'New items added to the News Feed');
     $this->assertEqual($feed->image->value, 'http://b.thumbs.redditmedia.com/harEHsUUZVajabtC.png');
-    $this->assertEqual($feed->hash->value, '');
     $this->assertEqual($feed->etag->value, '"213cc1365b96c310e92053c5551f0504"');
     $this->assertEqual($feed->modified->value, 0);
   }

@@ -20,7 +20,7 @@ use Drupal\Core\Extension\ExtensionDiscovery;
  *   For $type 'theme', the array values are objects representing the
  *   respective database row, with the 'info' property already unserialized.
  *
- * @see list_themes()
+ * @see \Drupal\Core\Extension\ThemeHandler::listInfo()
  */
 function system_list($type) {
   $lists = &drupal_static(__FUNCTION__);
@@ -69,7 +69,7 @@ function system_list_reset() {
   // @todo Trigger an event upon module install/uninstall and theme
   //   enable/disable, and move this into an event subscriber.
   // @see https://drupal.org/node/2206347
-  Cache::invalidateTags(array('extension'));
+  Cache::invalidateTags(['config:core.extension']);
 }
 
 /**
@@ -211,8 +211,7 @@ function drupal_required_modules() {
  *   An integer representing the weight of the module.
  */
 function module_set_weight($module, $weight) {
-  // Update the module weight in the config file that contains it.
-  $extension_config = \Drupal::config('core.extension');
+  $extension_config = \Drupal::configFactory()->getEditable('core.extension');
   if ($extension_config->get("module.$module") !== NULL) {
     $extension_config
       ->set("module.$module", $weight)

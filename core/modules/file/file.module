@@ -655,8 +655,6 @@ function file_cron() {
  * @param $form_field_name
  *   A string that is the associative array key of the upload form element in
  *   the form array.
- * @param \Drupal\Core\Form\FormStateInterface $form_state
- *   The current state of the form.
  * @param $validators
  *   An optional, associative array of callback functions used to validate the
  *   file. See file_validate() for a full discussion of the array format.
@@ -858,10 +856,10 @@ function file_save_upload($form_field_name, $validators = array(), $destination 
     // Move uploaded files from PHP's upload_tmp_dir to Drupal's temporary
     // directory. This overcomes open_basedir restrictions for future file
     // operations.
-    $file->uri = $file->destination;
+    $file->setFileUri($file->destination);
     if (!drupal_move_uploaded_file($file_info->getRealPath(), $file->getFileUri())) {
       drupal_set_message(t('File upload error. Could not move uploaded file.'), 'error');
-      \Drupal::logger('file')->notice('Upload error. Could not move uploaded file %file to destination %destination.', array('%file' => $file->filename, '%destination' => $file->uri));
+      \Drupal::logger('file')->notice('Upload error. Could not move uploaded file %file to destination %destination.', array('%file' => $file->getFilename(), '%destination' => $file->getFileUri()));
       $files[$i] = FALSE;
       continue;
     }
@@ -931,7 +929,7 @@ function file_tokens($type, $tokens, array $data = array(), array $options = arr
 
   $url_options = array('absolute' => TRUE);
   if (isset($options['langcode'])) {
-    $url_options['language'] = language_load($options['langcode']);
+    $url_options['language'] = \Drupal::languageManager()->getLanguage($options['langcode']);
     $langcode = $options['langcode'];
   }
   else {
@@ -1245,7 +1243,7 @@ function template_preprocess_file_link(&$variables) {
   $variables['attributes'] = new Attribute($variables['attributes']);
   $variables['attributes']->addClass($classes);
 
-  $variables['link'] = _l($link_text, $url, $options);
+  $variables['link'] = \Drupal::l($link_text, Url::fromUri($url, $options));
 }
 
 /**

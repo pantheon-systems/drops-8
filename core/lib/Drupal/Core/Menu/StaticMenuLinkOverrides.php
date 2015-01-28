@@ -17,9 +17,13 @@ class StaticMenuLinkOverrides implements StaticMenuLinkOverridesInterface {
   /**
    * The config name used to store the overrides.
    *
+   * This configuration can not be overridden by configuration overrides because
+   * menu links and these overrides are cached in a way that is not override
+   * aware.
+   *
    * @var string
    */
-  protected $configName = 'menu_link.static.overrides';
+  protected $configName = 'core.menu.static_menu_link_overrides';
 
   /**
    * The menu link overrides config object.
@@ -54,7 +58,8 @@ class StaticMenuLinkOverrides implements StaticMenuLinkOverridesInterface {
    */
   protected function getConfig() {
     if (empty($this->config)) {
-      $this->config = $this->configFactory->get($this->configName);
+      // Get an override free and editable configuration object.
+      $this->config = $this->configFactory->getEditable($this->configName);
     }
     return $this->config;
   }
@@ -141,6 +146,13 @@ class StaticMenuLinkOverrides implements StaticMenuLinkOverridesInterface {
       $this->getConfig()->set('definitions', $all_overrides)->save();
     }
     return array_keys($definition);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getCacheTags() {
+    return $this->getConfig()->getCacheTags();
   }
 
   /**

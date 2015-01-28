@@ -6,6 +6,7 @@
  */
 
 use Drupal\Component\Utility\UrlHelper;
+use Drupal\Core\Asset\AttachedAssetsInterface;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Extension\Extension;
 use Drupal\Core\Extension\ExtensionDiscovery;
@@ -86,7 +87,7 @@ function system_help($route_name, RouteMatchInterface $route_match) {
       $output .= '<dt>' . t('Performing system maintenance') . '</dt>';
       $output .= '<dd>' . t('In order for the site and its modules to continue to operate well, a set of routine administrative operations must run on a regular basis. The System module manages this task by making use of a system cron job. You can verify the status of cron tasks by visiting the <a href="@status">Status report page</a>. For more information, see the online handbook entry for <a href="@handbook">configuring cron jobs</a>. You can set up cron job by visiting <a href="@cron">Cron configuration</a> page', array('@status' => \Drupal::url('system.status'), '@handbook' => 'http://drupal.org/cron', '@cron' => \Drupal::url('system.cron_settings'))) . '</dd>';
       $output .= '<dt>' . t('Configuring basic site settings') . '</dt>';
-      $output .= '<dd>' . t('The System module also handles basic configuration options for your site, including <a href="@date-time-settings">Date and time settings</a>, <a href="@file-system">File system settings</a>, <a href="@site-info">Site name and other information</a>, and a <a href="@maintenance-mode">Maintenance mode</a> for taking your site temporarily offline.', array('@date-time-settings' => \Drupal::url('system.date_format_list'), '@file-system' => \Drupal::url('system.file_system_settings'), '@site-info' => \Drupal::url('system.site_information_settings'), '@maintenance-mode' => \Drupal::url('system.site_maintenance_mode'))) . '</dd>';
+      $output .= '<dd>' . t('The System module also handles basic configuration options for your site, including <a href="@date-time-settings">Date and time settings</a>, <a href="@file-system">File system settings</a>, <a href="@site-info">Site name and other information</a>, and a <a href="@maintenance-mode">Maintenance mode</a> for taking your site temporarily offline.', array('@date-time-settings' => \Drupal::url('entity.date_format.collection'), '@file-system' => \Drupal::url('system.file_system_settings'), '@site-info' => \Drupal::url('system.site_information_settings'), '@maintenance-mode' => \Drupal::url('system.site_maintenance_mode'))) . '</dd>';
       $output .= '<dt>' . t('Disabling drag-and-drop functionality') . '</dt>';
       $output .= '<dd>' . t('The default drag-and-drop user interface for ordering tables in Drupal presents a challenge for some users, including users of screen readers and other assistive technology. The drag-and-drop interface can be disabled in a table by clicking a link labeled "Show row weights" above the table. The replacement interface allows users to order the table by choosing numerical weights instead of dragging table rows.') . '</dd>';
       $output .= '</dl>';
@@ -100,7 +101,7 @@ function system_help($route_name, RouteMatchInterface $route_match) {
       return $output;
 
     case 'system.theme_settings_theme':
-      $theme_list = list_themes();
+      $theme_list = \Drupal::service('theme_handler')->listInfo();
       $theme = $theme_list[$route_match->getParameter('theme')];
       return '<p>' . t('These options control the display settings for the %name theme. When your site is displayed using this theme, these settings will be used.', array('%name' => $theme->info['name'])) . '</p>';
 
@@ -126,7 +127,7 @@ function system_help($route_name, RouteMatchInterface $route_match) {
       return '<p>' . t('The uninstall process removes all data related to a module.') . '</p>';
 
     case 'entity.block.edit_form':
-      if (($block = $route_match->getParameter('block')) && $block->get('plugin') == 'system_powered_by_block') {
+      if (($block = $route_match->getParameter('block')) && $block->getPluginId() == 'system_powered_by_block') {
         return '<p>' . t('The <em>Powered by Drupal</em> block is an optional link to the home page of the Drupal project. While there is absolutely no requirement that sites feature this link, it may be used to show support for Drupal.') . '</p>';
       }
       break;
@@ -551,7 +552,6 @@ function system_page_attachments(array &$page) {
     'system_meta_content_type' => array(
       '#tag' => 'meta',
       '#attributes' => array(
-        'name' => 'charset',
         'charset' => 'utf-8',
       ),
       // Security: This always has to be output first.
@@ -619,9 +619,9 @@ function system_page_attachments(array &$page) {
 /**
  * Implements hook_js_settings_alter().
  *
- * Generates the values for the core/drupalSettings library.
+ * Sets values for the core/drupalSettings and core/drupal.ajax libraries.
  */
-function system_js_settings_alter(&$settings) {
+function system_js_settings_alter(&$settings, AttachedAssetsInterface $assets) {
   // url() generates the script and prefix using hook_url_outbound_alter().
   // Instead of running the hook_url_outbound_alter() again here, extract
   // them from url().
@@ -656,6 +656,37 @@ function system_js_settings_alter(&$settings) {
   }
   if (!isset($settings['locale']['pluralDelimiter'])) {
     $settings['locale']['pluralDelimiter'] = LOCALE_PLURAL_DELIMITER;
+  }
+
+  // Now generate the values for the core/drupal.ajax library.
+  // We need to send ajaxPageState settings for core/drupal.ajax if:
+  // - ajaxPageState is being loaded in this Response, in which case it will
+  //   already exist at $settings['ajaxPageState'] (because the core/drupal.ajax
+  //   library definition specifies a placeholder 'ajaxPageState' setting).
+  // - core/drupal.ajax already has been loaded and hence this is an AJAX
+  //   Response in which we must send the list of extra asset libraries that are
+  //   being added in this AJAX Response.
+  /** @var \Drupal\Core\Asset\LibraryDependencyResolver $library_dependency_resolver */
+  $library_dependency_resolver = \Drupal::service('library.dependency_resolver');
+  if (isset($settings['ajaxPageState']) || in_array('core/drupal.ajax', $library_dependency_resolver->getLibrariesWithDependencies($assets->getAlreadyLoadedLibraries()))) {
+    // Provide the page with information about the theme that's used, so that
+    // a later AJAX request can be rendered using the same theme.
+    // @see \Drupal\Core\Theme\AjaxBasePageNegotiator
+    $theme_key = \Drupal::theme()->getActiveTheme()->getName();
+    $settings['ajaxPageState']['theme'] = $theme_key;
+    // Checks that the DB is available before filling theme_token.
+    if (!defined('MAINTENANCE_MODE')) {
+      $settings['ajaxPageState']['theme_token'] = \Drupal::csrfToken()->get($theme_key);
+    }
+
+    // Provide the page with information about the individual asset libraries
+    // used, information not otherwise available when aggregation is enabled.
+    $minimal_libraries = $library_dependency_resolver->getMinimalRepresentativeSubset(array_merge(
+      $assets->getLibraries(),
+      $assets->getAlreadyLoadedLibraries()
+    ));
+    sort($minimal_libraries);
+    $settings['ajaxPageState']['libraries'] = implode(',', $minimal_libraries);
   }
 }
 
@@ -1309,8 +1340,9 @@ function system_entity_type_build(array &$entity_types) {
     ->setFormClass('edit', 'Drupal\system\Form\DateFormatEditForm')
     ->setFormClass('delete', 'Drupal\system\Form\DateFormatDeleteForm')
     ->setListBuilderClass('Drupal\system\DateFormatListBuilder')
-    ->setLinkTemplate('edit-form', 'entity.date_format.edit_form')
-    ->setLinkTemplate('delete-form', 'entity.date_format.delete_form');
+    ->setLinkTemplate('edit-form', '/admin/config/regional/date-time/formats/manage/{date_format}')
+    ->setLinkTemplate('delete-form', '/admin/config/regional/date-time/formats/manage/{date_format}/delete')
+    ->setLinkTemplate('collection', '/admin/config/regional/date-time/formats');
 }
 
 /**

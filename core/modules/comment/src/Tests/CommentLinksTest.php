@@ -10,7 +10,6 @@ namespace Drupal\comment\Tests;
 use Drupal\comment\Plugin\Field\FieldType\CommentItemInterface;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\comment\CommentInterface;
-use Drupal\entity\Entity\EntityViewDisplay;
 
 /**
  * Basic comment links tests to ensure markup present.
@@ -48,13 +47,13 @@ class CommentLinksTest extends CommentTestBase {
   public function testCommentLinks() {
     // Bartik theme alters comment links, so use a different theme.
     \Drupal::service('theme_handler')->install(array('stark'));
-    \Drupal::config('system.theme')
+    $this->config('system.theme')
       ->set('default', 'stark')
       ->save();
 
-    // Remove additional user permissions from $this->web_user added by setUp(),
+    // Remove additional user permissions from $this->webUser added by setUp(),
     // since this test is limited to anonymous and authenticated roles only.
-    $roles = $this->web_user->getRoles();
+    $roles = $this->webUser->getRoles();
     entity_delete_multiple('user_role', array(reset($roles)));
 
     // Create a comment via CRUD API functionality, since
@@ -109,7 +108,7 @@ class CommentLinksTest extends CommentTestBase {
     entity_get_display('node', $this->node->bundle(), 'default')
       ->removeComponent('links')
       ->save();
-    $this->drupalGet($this->node->url());
+    $this->drupalGet($this->node->urlInfo());
     $this->assertNoLink('1 comment');
     $this->assertNoLink('Add new comment');
 

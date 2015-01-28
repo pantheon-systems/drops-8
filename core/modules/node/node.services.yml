@@ -5,15 +5,14 @@ services:
       - { name: event_subscriber }
   node.grant_storage:
     class: Drupal\node\NodeGrantDatabaseStorage
-    arguments: ['@database', '@module_handler']
+    arguments: ['@database', '@module_handler', '@language_manager']
     tags:
       - { name: backend_overridable }
   access_check.node.revision:
     class: Drupal\node\Access\NodeRevisionAccessCheck
-    arguments: ['@entity.manager', '@database']
+    arguments: ['@entity.manager']
     tags:
       - { name: access_check, applies_to: _access_node_revision }
-      - { name: backend_overridable }
   access_check.node.add:
     class: Drupal\node\Access\NodeAddAccessCheck
     arguments: ['@entity.manager']
@@ -39,3 +38,8 @@ services:
     arguments: ['@current_route_match']
     tags:
       - { name: page_cache_response_policy }
+  cache_context.node_view_grants:
+    class: Drupal\node\Cache\NodeAccessViewGrantsCacheContext
+    arguments: ['@current_user']
+    tags:
+      - { name: cache.context }

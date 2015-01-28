@@ -40,7 +40,7 @@ class EntityFormDisplayTest extends KernelTestBase {
     $form_display = entity_get_form_display('entity_test', 'entity_test', 'default');
     $this->assertFalse($form_display->isNew());
     $this->assertEqual($form_display->id, 'entity_test.entity_test.default');
-    $this->assertEqual($form_display->getComponent('component_1'), array('weight' => 10));
+    $this->assertEqual($form_display->getComponent('component_1'), array('weight' => 10, 'settings' => array(), 'third_party_settings' => array()));
   }
 
   /**
@@ -146,7 +146,7 @@ class EntityFormDisplayTest extends KernelTestBase {
     // Check that saving the display only writes data for fields whose display
     // is configurable.
     $display->save();
-    $config = \Drupal::config('core.entity_form_display.' . $display->id());
+    $config = $this->config('core.entity_form_display.' . $display->id());
     $data = $config->get();
     $this->assertFalse(isset($data['content']['test_no_display']));
     $this->assertFalse(isset($data['hidden']['test_no_display']));

@@ -55,10 +55,10 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
 
     // Test for existence of link to image styles configuration.
     $this->drupalPostAjaxForm(NULL, array(), "{$field_name}_settings_edit");
-    $this->assertLinkByHref(\Drupal::url('image.style_list'), 0, 'Link to image styles configuration is found');
+    $this->assertLinkByHref(\Drupal::url('entity.image_style.collection'), 0, 'Link to image styles configuration is found');
 
     // Remove 'administer image styles' permission from testing admin user.
-    $admin_user_roles = $this->admin_user->getRoles(TRUE);
+    $admin_user_roles = $this->adminUser->getRoles(TRUE);
     user_role_change_permissions(reset($admin_user_roles), array('administer image styles' => FALSE));
 
     // Go to manage display page again.
@@ -66,7 +66,7 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
 
     // Test for absence of link to image styles configuration.
     $this->drupalPostAjaxForm(NULL, array(), "{$field_name}_settings_edit");
-    $this->assertNoLinkByHref(\Drupal::url('image.style_list'), 'Link to image styles configuration is absent when permissions are insufficient');
+    $this->assertNoLinkByHref(\Drupal::url('entity.image_style.collection'), 'Link to image styles configuration is absent when permissions are insufficient');
 
     // Restore 'administer image styles' permission to testing admin user
     user_role_change_permissions(reset($admin_user_roles), array('administer image styles' => TRUE));
@@ -127,7 +127,7 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
       $this->assertResponse('403', 'Access denied to original image as anonymous user.');
 
       // Log in again.
-      $this->drupalLogin($this->admin_user);
+      $this->drupalLogin($this->adminUser);
     }
 
     // Test the image linked to content formatter.
@@ -173,7 +173,7 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
     $default_output = drupal_render($image_style);
     $this->drupalGet('node/' . $nid);
     $cache_tags = explode(' ', $this->drupalGetHeader('X-Drupal-Cache-Tags'));
-    $this->assertTrue(in_array('image_style:thumbnail', $cache_tags));
+    $this->assertTrue(in_array('config:image.style.thumbnail', $cache_tags));
     $this->assertRaw($default_output, 'Image style thumbnail formatter displaying correctly on full node view.');
 
     if ($scheme == 'private') {
@@ -318,7 +318,7 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
     $alt = $this->randomString(512);
     $title = $this->randomString(1024);
     $edit = array(
-      'files[field_storage_settings_default_image_fid]' => drupal_realpath($images[0]->uri),
+      'files[field_storage_settings_default_image_uuid]' => drupal_realpath($images[0]->uri),
       'field_storage[settings][default_image][alt]' => $alt,
       'field_storage[settings][default_image][title]' => $title,
     );
@@ -327,7 +327,7 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
     \Drupal::entityManager()->clearCachedFieldDefinitions();
     $field_storage = FieldStorageConfig::loadByName('node', $field_name);
     $default_image = $field_storage->getSetting('default_image');
-    $file = file_load($default_image['fid']);
+    $file = \Drupal::entityManager()->loadEntityByUuid('file', $default_image['uuid']);
     $this->assertTrue($file->isPermanent(), 'The default image status is permanent.');
     $image = array(
       '#theme' => 'image',
@@ -363,21 +363,21 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
 
     // Remove default image from the field and make sure it is no longer used.
     $edit = array(
-      'field_storage[settings][default_image][fid][fids]' => 0,
+      'field_storage[settings][default_image][uuid][fids]' => 0,
     );
     $this->drupalPostForm("admin/structure/types/manage/article/fields/node.article.$field_name/storage", $edit, t('Save field settings'));
     // Clear field definition cache so the new default image is detected.
     \Drupal::entityManager()->clearCachedFieldDefinitions();
     $field_storage = FieldStorageConfig::loadByName('node', $field_name);
     $default_image = $field_storage->getSetting('default_image');
-    $this->assertFalse($default_image['fid'], 'Default image removed from field.');
+    $this->assertFalse($default_image['uuid'], 'Default image removed from field.');
     // Create an image field that uses the private:// scheme and test that the
     // default image works as expected.
     $private_field_name = strtolower($this->randomMachineName());
     $this->createImageField($private_field_name, 'article', array('uri_scheme' => 'private'));
     // Add a default image to the new field.
     $edit = array(
-      'files[field_storage_settings_default_image_fid]' => drupal_realpath($images[1]->uri),
+      'files[field_storage_settings_default_image_uuid]' => drupal_realpath($images[1]->uri),
       'field_storage[settings][default_image][alt]' => $alt,
       'field_storage[settings][default_image][title]' => $title,
     );
@@ -387,7 +387,7 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
 
     $private_field_storage = FieldStorageConfig::loadByName('node', $private_field_name);
     $default_image = $private_field_storage->getSetting('default_image');
-    $file = file_load($default_image['fid']);
+    $file = \Drupal::entityManager()->loadEntityByUuid('file', $default_image['uuid']);
     $this->assertEqual('private', file_uri_scheme($file->getFileUri()), 'Default image uses private:// scheme.');
     $this->assertTrue($file->isPermanent(), 'The default image status is permanent.');
     // Create a new node with no image attached and ensure that default private

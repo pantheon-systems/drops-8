@@ -55,6 +55,7 @@ class TestRunnerKernel extends DrupalKernel {
     if (!Settings::getAll()) {
       new Settings(array(
         'hash_salt' => 'run-tests',
+        'container_yamls' => [],
         // If there is no settings.php, then there is no parent site. In turn,
         // there is no public files directory; use a custom public files path.
         'file_public_path' => 'sites/default/files',
@@ -79,6 +80,7 @@ class TestRunnerKernel extends DrupalKernel {
     $this->getContainer()->get('stream_wrapper_manager')->register();
 
     // Create the build/artifacts directory if necessary.
+    include_once DRUPAL_ROOT . '/core/includes/file.inc';
     if (!is_dir('public://simpletest')) {
       mkdir('public://simpletest', 0777, TRUE);
     }

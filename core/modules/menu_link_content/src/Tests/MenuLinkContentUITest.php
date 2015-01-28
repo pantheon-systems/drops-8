@@ -8,6 +8,7 @@
 namespace Drupal\menu_link_content\Tests;
 
 use Drupal\content_translation\Tests\ContentTranslationUITest;
+use Drupal\menu_link_content\Entity\MenuLinkContent;
 
 /**
  * Tests the menu link content UI.
@@ -56,10 +57,23 @@ class MenuLinkContentUITest extends ContentTranslationUITest {
    */
   protected function createEntity($values, $langcode, $bundle_name = NULL) {
     $values['menu_name'] = 'tools';
-    $values['route_name'] = 'menu_ui.overview_page';
+    $values['route_name'] = 'entity.menu.collection';
     $values['title'] = 'Test title';
 
     return parent::createEntity($values, $langcode, $bundle_name);
+  }
+
+  /**
+   * Ensure that a translate link can be found on the menu edit form.
+   */
+  public function testTranslationLinkOnMenuEditForm() {
+    $this->drupalGet('admin/structure/menu/manage/tools');
+    $this->assertNoLink(t('Translate'));
+
+    $menu_link_content = MenuLinkContent::create(['menu_name' => 'tools', 'route_name' => 'entity.menu.collection']);
+    $menu_link_content->save();
+    $this->drupalGet('admin/structure/menu/manage/tools');
+    $this->assertLink(t('Translate'));
   }
 
   /**
@@ -75,9 +89,9 @@ class MenuLinkContentUITest extends ContentTranslationUITest {
     $edit['admin_theme'] = 'seven';
     $this->drupalPostForm('admin/appearance', $edit, t('Save configuration'));
     $this->drupalGet('admin/structure/menu/item/' . $entityId . '/edit');
-    $this->assertRaw('"theme":"seven"', 'Edit uses admin theme.');
+    $this->assertRaw('core/themes/seven/css/base/elements.css', 'Edit uses admin theme.');
     $this->drupalGet('admin/structure/menu/item/' . $entityId . '/edit/translations');
-    $this->assertRaw('"theme":"seven"', 'Translation uses admin theme as well.');
+    $this->assertRaw('core/themes/seven/css/base/elements.css', 'Translation uses admin theme as well.');
   }
 
 }

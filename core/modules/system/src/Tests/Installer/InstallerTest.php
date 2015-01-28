@@ -23,7 +23,7 @@ class InstallerTest extends InstallerTestBase {
     $this->assertUrl('user/1');
     $this->assertResponse(200);
     // Confirm that we are logged-in after installation.
-    $this->assertText($this->root_user->getUsername());
+    $this->assertText($this->rootUser->getUsername());
 
     // Verify that the confirmation message appears.
     require_once \Drupal::root() . '/core/includes/install.inc';
@@ -39,7 +39,7 @@ class InstallerTest extends InstallerTestBase {
     // Test that \Drupal\Core\Render\BareHtmlPageRenderer adds assets and
     // metatags as expected to the first page of the installer.
     $this->assertRaw('core/themes/seven/css/components/buttons.css');
-    $this->assertRaw('<meta name="charset" charset="utf-8" />');
+    $this->assertRaw('<meta charset="utf-8" />');
     parent::setUpLanguage();
   }
 }

@@ -14,6 +14,13 @@ namespace Drupal\file\Tests;
  */
 class SaveUploadTest extends FileManagedTestBase {
   /**
+   * Modules to enable.
+   *
+   * @var array
+   */
+  public static $modules = array('dblog');
+
+  /**
    * An image file path for uploading.
    */
   protected $image;
@@ -30,7 +37,7 @@ class SaveUploadTest extends FileManagedTestBase {
 
   protected function setUp() {
     parent::setUp();
-    $account = $this->drupalCreateUser();
+    $account = $this->drupalCreateUser(array('access site reports'));
     $this->drupalLogin($account);
 
     $image_files = $this->drupalGetTestFiles('image');
@@ -173,7 +180,7 @@ class SaveUploadTest extends FileManagedTestBase {
    * Test dangerous file handling.
    */
   function testHandleDangerousFile() {
-    $config = \Drupal::config('system.file');
+    $config = $this->config('system.file');
     // Allow the .php extension and make sure it gets renamed to .txt for
     // safety. Also check to make sure its MIME type was changed.
     $edit = array(
@@ -217,7 +224,7 @@ class SaveUploadTest extends FileManagedTestBase {
    */
   function testHandleFileMunge() {
     // Ensure insecure uploads are disabled for this test.
-    \Drupal::config('system.file')->set('allow_insecure_uploads', 0)->save();
+    $this->config('system.file')->set('allow_insecure_uploads', 0)->save();
     $this->image = file_move($this->image, $this->image->getFileUri() . '.foo.' . $this->image_extension);
 
     // Reset the hook counters to get rid of the 'move' we just called.
@@ -315,5 +322,34 @@ class SaveUploadTest extends FileManagedTestBase {
   function testNoUpload() {
     $this->drupalPostForm('file-test/upload', array(), t('Submit'));
     $this->assertNoRaw(t('Epic upload FAIL!'), 'Failure message not found.');
+  }
+
+  /**
+   * Tests for log entry on failing destination.
+   */
+  function testDrupalMovingUploadedFileError() {
+    // Create a directory and make it not writable.
+    $test_directory = 'test_drupal_move_uploaded_file_fail';
+    drupal_mkdir('temporary://' . $test_directory, 0000);
+    $this->assertTrue(is_dir('temporary://' . $test_directory));
+
+    $edit = array(
+      'file_subdir' => $test_directory,
+      'files[file_test_upload]' => drupal_realpath($this->image->getFileUri())
+    );
+
+    \Drupal::state()->set('file_test.disable_error_collection', TRUE);
+    $this->drupalPostForm('file-test/upload', $edit, t('Submit'));
+    $this->assertResponse(200, 'Received a 200 response for posted test file.');
+    $this->assertRaw(t('File upload error. Could not move uploaded file.'), 'Found the failure message.');
+    $this->assertRaw(t('Epic upload FAIL!'), 'Found the failure message.');
+
+    // Uploading failed. Now check the log.
+    $this->drupalGet('admin/reports/dblog');
+    $this->assertResponse(200);
+    $this->assertRaw(t('Upload error. Could not move uploaded file @file to destination @destination.', array(
+      '@file' => $this->image->getFilename(),
+      '@destination' => 'temporary://' . $test_directory . '/' . $this->image->getFilename()
+    )), 'Found upload error log entry.');
   }
 }

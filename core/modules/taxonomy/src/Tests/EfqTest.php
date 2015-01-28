@@ -15,10 +15,17 @@ use Drupal\Core\Entity\Query\QueryFactory;
  * @group taxonomy
  */
 class EfqTest extends TaxonomyTestBase {
+
+  /**
+   * Vocabulary for testing.
+   *
+   * @var \Drupal\taxonomy\VocabularyInterface
+   */
+  protected $vocabulary;
+
   protected function setUp() {
     parent::setUp();
-    $this->admin_user = $this->drupalCreateUser(array('administer taxonomy'));
-    $this->drupalLogin($this->admin_user);
+    $this->drupalLogin($this->drupalCreateUser(['administer taxonomy']));
     $this->vocabulary = $this->createVocabulary();
   }
 
@@ -55,7 +62,7 @@ class EfqTest extends TaxonomyTestBase {
       ->condition('vid', $vocabulary2->id())
       ->execute();
     sort($result);
-    $this->assertEqual(array_keys($terms2), $result, format_string('Taxonomy terms from the %name vocabulary were retrieved by entity query.', array('%name' => $vocabulary2->name)));
+    $this->assertEqual(array_keys($terms2), $result, format_string('Taxonomy terms from the %name vocabulary were retrieved by entity query.', array('%name' => $vocabulary2->label())));
     $tid = reset($result);
     $ids = (object) array(
       'entity_type' => 'taxonomy_term',

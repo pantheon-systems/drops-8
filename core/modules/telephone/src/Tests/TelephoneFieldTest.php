@@ -27,15 +27,19 @@ class TelephoneFieldTest extends WebTestBase {
     'telephone'
   );
 
-  protected $field;
-  protected $web_user;
+  /**
+   * A user with permission to create articles.
+   *
+   * @var \Drupal\user\UserInterface
+   */
+  protected $webUser;
 
   protected function setUp() {
     parent::setUp();
 
     $this->drupalCreateContentType(array('type' => 'article'));
-    $this->article_creator = $this->drupalCreateUser(array('create article content', 'edit own article content'));
-    $this->drupalLogin($this->article_creator);
+    $this->webUser = $this->drupalCreateUser(array('create article content', 'edit own article content'));
+    $this->drupalLogin($this->webUser);
   }
 
   // Test fields.
@@ -45,7 +49,7 @@ class TelephoneFieldTest extends WebTestBase {
    */
   function testTelephoneField() {
 
-    // Add the telepone field to the article content type.
+    // Add the telephone field to the article content type.
     entity_create('field_storage_config', array(
       'field_name' => 'field_telephone',
       'entity_type' => 'node',

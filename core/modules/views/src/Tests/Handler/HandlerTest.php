@@ -7,6 +7,7 @@
 
 namespace Drupal\views\Tests\Handler;
 
+use Drupal\views\Entity\View;
 use Drupal\views\ViewExecutable;
 use Drupal\views\Tests\ViewTestBase;
 use Drupal\views\Plugin\views\HandlerBase;
@@ -265,7 +266,20 @@ class HandlerTest extends ViewTestBase {
     // Remove the relationship and make sure no relationship option appears.
     $this->drupalPostForm('admin/structure/views/nojs/handler/test_handler_relationships/default/relationship/nid', array(), t('Remove'));
     $this->drupalGet($handler_options_path);
-    $this->assertNoFieldByName($relationship_name, 'Make sure that no relationship option is available');
+    $this->assertNoFieldByName($relationship_name, NULL, 'Make sure that no relationship option is available');
+
+    // Create a view of comments with node relationship.
+    View::create(['base_table' => 'comment', 'id' => 'test_get_entity_type'])->save();
+    $this->drupalPostForm('admin/structure/views/nojs/add-handler/test_get_entity_type/default/relationship', ['name[comment_field_data.node]' => 'comment_field_data.node'], t('Add and configure relationships'));
+    $this->drupalPostForm(NULL, [], t('Apply'));
+    // Add a content type filter.
+    $this->drupalPostForm('admin/structure/views/nojs/add-handler/test_get_entity_type/default/filter', ['name[node_field_data.type]' => 'node_field_data.type'], t('Add and configure filter criteria'));
+    $this->assertOptionSelected('edit-options-relationship', 'node');
+    $this->drupalPostForm(NULL, ['options[value][page]' => 'page'], t('Apply'));
+    // Check content type filter options.
+    $this->drupalGet('admin/structure/views/nojs/handler/test_get_entity_type/default/filter/type');
+    $this->assertOptionSelected('edit-options-relationship', 'node');
+    $this->assertFieldChecked('edit-options-value-page');
   }
 
   /**
@@ -348,8 +362,8 @@ class HandlerTest extends ViewTestBase {
     $views_data = $views_data['views_test_data'];
 
     // Enable access to callback only field and deny for callback + arguments.
-    \Drupal::config('views_test_data.tests')->set('handler_access_callback', TRUE)->save();
-    \Drupal::config('views_test_data.tests')->set('handler_access_callback_argument', FALSE)->save();
+    $this->config('views_test_data.tests')->set('handler_access_callback', TRUE)->save();
+    $this->config('views_test_data.tests')->set('handler_access_callback_argument', FALSE)->save();
     $view->initDisplay();
     $view->initHandlers();
 
@@ -361,8 +375,8 @@ class HandlerTest extends ViewTestBase {
     }
 
     // Enable access to the callback + argument handlers and deny for callback.
-    \Drupal::config('views_test_data.tests')->set('handler_access_callback', FALSE)->save();
-    \Drupal::config('views_test_data.tests')->set('handler_access_callback_argument', TRUE)->save();
+    $this->config('views_test_data.tests')->set('handler_access_callback', FALSE)->save();
+    $this->config('views_test_data.tests')->set('handler_access_callback_argument', TRUE)->save();
     $view->destroy();
     $view->initDisplay();
     $view->initHandlers();

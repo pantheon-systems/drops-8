@@ -7,7 +7,7 @@
 
 // Put the logo path into JavaScript for the live preview.
 $js_attached['#attached']['drupalSettings']['color']['logo'] = theme_get_setting('logo.url', 'bartik');
-drupal_render($js_attached);
+drupal_process_attached($js_attached);
 
 $info = array(
   // Available colors and color labels used in theme.
@@ -103,7 +103,7 @@ $info = array(
 
   // Files to copy.
   'copy' => array(
-    'logo.png',
+    'logo.svg',
   ),
 
   // Gradient definitions.

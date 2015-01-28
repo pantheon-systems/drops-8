@@ -12,9 +12,7 @@ use Drupal\Core\Entity\ContentEntityForm;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
-use Drupal\language\Entity\ContentLanguageSettings;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -76,8 +74,8 @@ class BlockContentForm extends ContentEntityForm {
    *
    * Prepares the custom block object.
    *
-   * Fills in a few default values, and then invokes hook_block_content_prepare()
-   * on all modules.
+   * Fills in a few default values, and then invokes
+   * hook_block_content_prepare() on all modules.
    */
   protected function prepareEntity() {
     $block = $this->entity;
@@ -87,7 +85,7 @@ class BlockContentForm extends ContentEntityForm {
       $block->setRevisionLog(NULL);
     }
     // Always use the default revision setting.
-    $block->setNewRevision($block_type->revision);
+    $block->setNewRevision($block_type->shouldCreateNewRevision());
   }
 
   /**
@@ -104,15 +102,6 @@ class BlockContentForm extends ContentEntityForm {
     // type name in 'TYPE-block-form' potentially clashes with third-party class
     // names.
     $form['#attributes']['class'][0] = 'block-' . Html::getClass($block->bundle()) . '-form';
-
-    $form['langcode'] = array(
-      '#title' => $this->t('Language'),
-      '#type' => 'language_select',
-      '#default_value' => $block->getUntranslated()->language()->getId(),
-      '#languages' => LanguageInterface::STATE_ALL,
-      // Language module may expose or hide this element, see language_form_alter().
-      '#access' => FALSE,
-    );
 
     $form['advanced'] = array(
       '#type' => 'vertical_tabs',
@@ -209,7 +198,7 @@ class BlockContentForm extends ContentEntityForm {
         );
       }
       else {
-        $form_state->setRedirect('block_content.list');
+        $form_state->setRedirectUrl($block->urlInfo('collection'));
       }
     }
     else {

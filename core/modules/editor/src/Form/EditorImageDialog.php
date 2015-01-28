@@ -111,7 +111,7 @@ class EditorImageDialog extends FormBase {
       '#placeholder' => $this->t('Short description for the visually impaired'),
       '#type' => 'textfield',
       '#required' => TRUE,
-      '#required_error' => $this->t('Alternative text is required.<br><em>(Only in rare cases should this be left empty. To create empty alternative text, enter <code>""</code> — two double quotes without any content).'),
+      '#required_error' => $this->t('Alternative text is required.<br />(Only in rare cases should this be left empty. To create empty alternative text, enter <code>""</code> — two double quotes without any content).'),
       '#default_value' => $alt,
       '#maxlength' => 2048,
     );
@@ -226,10 +226,11 @@ class EditorImageDialog extends FormBase {
 
     if ($form_state->getErrors()) {
       unset($form['#prefix'], $form['#suffix']);
-      $status_messages = array('#theme' => 'status_messages');
-      $output = drupal_render($form);
-      $output = '<div>' . drupal_render($status_messages) . $output . '</div>';
-      $response->addCommand(new HtmlCommand('#editor-image-dialog-form', $output));
+      $form['status_messages'] = [
+        '#theme' => 'status_messages',
+        '#weight' => -10,
+      ];
+      $response->addCommand(new HtmlCommand('#editor-image-dialog-form', $form));
     }
     else {
       $response->addCommand(new EditorDialogSave($form_state->getValues()));

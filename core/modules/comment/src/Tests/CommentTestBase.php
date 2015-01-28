@@ -31,14 +31,14 @@ abstract class CommentTestBase extends WebTestBase {
    *
    * @var \Drupal\user\UserInterface
    */
-  protected $admin_user;
+  protected $adminUser;
 
   /**
    * A normal user with permission to post comments.
    *
    * @var \Drupal\user\UserInterface
    */
-  protected $web_user;
+  protected $webUser;
 
   /**
    * A test node to which comments will be posted.
@@ -58,7 +58,7 @@ abstract class CommentTestBase extends WebTestBase {
     }
 
     // Create two test users.
-    $this->admin_user = $this->drupalCreateUser(array(
+    $this->adminUser = $this->drupalCreateUser(array(
       'administer content types',
       'administer comments',
       'administer comment types',
@@ -69,7 +69,7 @@ abstract class CommentTestBase extends WebTestBase {
       'access comments',
       'access content',
      ));
-    $this->web_user = $this->drupalCreateUser(array(
+    $this->webUser = $this->drupalCreateUser(array(
       'access comments',
       'post comments',
       'create article content',
@@ -82,7 +82,7 @@ abstract class CommentTestBase extends WebTestBase {
     $this->container->get('comment.manager')->addDefaultField('node', 'article');
 
     // Create a test node authored by the web user.
-    $this->node = $this->drupalCreateNode(array('type' => 'article', 'promote' => 1, 'uid' => $this->web_user->id()));
+    $this->node = $this->drupalCreateNode(array('type' => 'article', 'promote' => 1, 'uid' => $this->webUser->id()));
   }
 
   /**
@@ -345,7 +345,7 @@ abstract class CommentTestBase extends WebTestBase {
 
     if ($operation == 'delete') {
       $this->drupalPostForm(NULL, array(), t('Delete comments'));
-      $this->assertRaw(format_plural(1, 'Deleted 1 comment.', 'Deleted @count comments.'), format_string('Operation "@operation" was performed on comment.', array('@operation' => $operation)));
+      $this->assertRaw(\Drupal::translation()->formatPlural(1, 'Deleted 1 comment.', 'Deleted @count comments.'), format_string('Operation "@operation" was performed on comment.', array('@operation' => $operation)));
     }
     else {
       $this->assertText(t('The update has been performed.'), format_string('Operation "@operation" was performed on comment.', array('@operation' => $operation)));

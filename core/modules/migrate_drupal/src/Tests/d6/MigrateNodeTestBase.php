@@ -37,6 +37,10 @@ abstract class MigrateNodeTestBase extends MigrateDrupalTestBase {
         array(array(1), array('filtered_html')),
         array(array(2), array('full_html')),
       ),
+      'd6_user' => array(
+        array(array(1), array(1)),
+        array(array(2), array(2)),
+      ),
       'd6_field_instance_widget_settings' => array(
         array(
           array('page', 'field_test'),
@@ -74,9 +78,17 @@ abstract class MigrateNodeTestBase extends MigrateDrupalTestBase {
 
     // Load dumps.
     $dumps = array(
-      $this->getDumpDirectory() . '/Drupal6Node.php',
-      $this->getDumpDirectory() . '/Drupal6NodeType.php',
-      $this->getDumpDirectory() . '/Drupal6FieldInstance.php',
+      $this->getDumpDirectory() . '/Node.php',
+      $this->getDumpDirectory() . '/NodeRevisions.php',
+      $this->getDumpDirectory() . '/ContentTypeStory.php',
+      $this->getDumpDirectory() . '/ContentTypeTestPlanet.php',
+      $this->getDumpDirectory() . '/NodeType.php',
+      $this->getDumpDirectory() . '/Variable.php',
+      $this->getDumpDirectory() . '/ContentNodeFieldInstance.php',
+      $this->getDumpDirectory() . '/ContentNodeField.php',
+      $this->getDumpDirectory() . '/ContentFieldTest.php',
+      $this->getDumpDirectory() . '/ContentFieldTestTwo.php',
+      $this->getDumpDirectory() . '/ContentFieldMultivalue.php',
     );
     $this->loadDumps($dumps);
   }

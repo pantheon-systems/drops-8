@@ -36,11 +36,12 @@ use Drupal\taxonomy\VocabularyInterface;
  *     "weight" = "weight"
  *   },
  *   links = {
- *     "add-form" = "entity.taxonomy_term.add_form",
- *     "delete-form" = "entity.taxonomy_vocabulary.delete_form",
- *     "reset-form" = "entity.taxonomy_vocabulary.reset_form",
- *     "overview-form" = "entity.taxonomy_vocabulary.overview_form",
- *     "edit-form" = "entity.taxonomy_vocabulary.edit_form"
+ *     "add-form" = "/admin/structure/taxonomy/manage/{taxonomy_vocabulary}/add",
+ *     "delete-form" = "/admin/structure/taxonomy/manage/{taxonomy_vocabulary}/delete",
+ *     "reset-form" = "/admin/structure/taxonomy/manage/{taxonomy_vocabulary}/reset",
+ *     "overview-form" = "/admin/structure/taxonomy/manage/{taxonomy_vocabulary}/overview",
+ *     "edit-form" = "/admin/structure/taxonomy/manage/{taxonomy_vocabulary}",
+ *     "collection" = "/admin/structure/taxonomy",
  *   }
  * )
  */
@@ -52,21 +53,21 @@ class Vocabulary extends ConfigEntityBundleBase implements VocabularyInterface {
    *
    * @var string
    */
-  public $vid;
+  protected $vid;
 
   /**
    * Name of the vocabulary.
    *
    * @var string
    */
-  public $name;
+  protected $name;
 
   /**
    * Description of the vocabulary.
    *
    * @var string
    */
-  public $description;
+  protected $description;
 
   /**
    * The type of hierarchy allowed within the vocabulary.
@@ -78,20 +79,42 @@ class Vocabulary extends ConfigEntityBundleBase implements VocabularyInterface {
    *
    * @var integer
    */
-  public $hierarchy = TAXONOMY_HIERARCHY_DISABLED;
+  protected $hierarchy = TAXONOMY_HIERARCHY_DISABLED;
 
   /**
    * The weight of this vocabulary in relation to other vocabularies.
    *
    * @var integer
    */
-  public $weight = 0;
+  protected $weight = 0;
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getHierarchy() {
+    return $this->hierarchy;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setHierarchy($hierarchy) {
+    $this->hierarchy = $hierarchy;
+    return $this;
+  }
 
   /**
    * {@inheritdoc}
    */
   public function id() {
     return $this->vid;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getDescription() {
+    return $this->description;
   }
 
   /**

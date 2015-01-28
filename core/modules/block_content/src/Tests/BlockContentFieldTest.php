@@ -86,12 +86,12 @@ class BlockContentFieldTest extends BlockContentTestBase {
     $this->drupalGet('block/add/link');
     $edit = array(
       'info[0][value]' => $this->randomMachineName(8),
-      $this->fieldStorage->getName() . '[0][url]' => 'http://example.com',
+      $this->fieldStorage->getName() . '[0][uri]' => 'http://example.com',
       $this->fieldStorage->getName() . '[0][title]' => 'Example.com'
     );
     $this->drupalPostForm(NULL, $edit, t('Save'));
     $block = entity_load('block_content', 1);
-    $url = 'admin/structure/block/add/block_content:' . $block->uuid() . '/' . \Drupal::config('system.theme')->get('default');
+    $url = 'admin/structure/block/add/block_content:' . $block->uuid() . '/' . $this->config('system.theme')->get('default');
     // Place the block.
     $instance = array(
       'id' => Unicode::strtolower($edit['info[0][value]']),

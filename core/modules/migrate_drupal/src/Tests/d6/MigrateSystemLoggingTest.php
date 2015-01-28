@@ -27,7 +27,7 @@ class MigrateSystemLoggingTest extends MigrateDrupalTestBase {
     parent::setUp();
     $migration = entity_load('migration', 'd6_system_logging');
     $dumps = array(
-      $this->getDumpDirectory() . '/Drupal6SystemLogging.php',
+      $this->getDumpDirectory() . '/Variable.php',
     );
     $this->prepare($migration, $dumps);
     $executable = new MigrateExecutable($migration, $this);
@@ -38,7 +38,7 @@ class MigrateSystemLoggingTest extends MigrateDrupalTestBase {
    * Tests migration of system error_level variables to system.logging.yml.
    */
   public function testSystemLogging() {
-    $config = \Drupal::config('system.logging');
+    $config = $this->config('system.logging');
     $this->assertIdentical($config->get('error_level'), 'some');
     $this->assertConfigSchema(\Drupal::service('config.typed'), 'system.logging', $config->get());
   }

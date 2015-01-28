@@ -48,7 +48,7 @@ class MenuTreeStorageTest extends KernelTestBase {
   protected function setUp() {
     parent::setUp();
 
-    $this->treeStorage = new MenuTreeStorage($this->container->get('database'), $this->container->get('cache.menu'), 'menu_tree');
+    $this->treeStorage = new MenuTreeStorage($this->container->get('database'), $this->container->get('cache.menu'), $this->container->get('cache_tags.invalidator'), 'menu_tree');
     $this->connection = $this->container->get('database');
     $this->installEntitySchema('menu_link_content');
   }
@@ -74,7 +74,7 @@ class MenuTreeStorageTest extends KernelTestBase {
   protected function doTestTable() {
     // Test that we can create a tree storage with an arbitrary table name and
     // that selecting from the storage creates the table.
-    $tree_storage = new MenuTreeStorage($this->container->get('database'), $this->container->get('cache.menu'), 'test_menu_tree');
+    $tree_storage = new MenuTreeStorage($this->container->get('database'), $this->container->get('cache.menu'), $this->container->get('cache_tags.invalidator'), 'test_menu_tree');
     $this->assertFalse($this->connection->schema()->tableExists('test_menu_tree'), 'Test table is not yet created');
     $tree_storage->countMenuLinks();
     $this->assertTrue($this->connection->schema()->tableExists('test_menu_tree'), 'Test table was created');
@@ -267,6 +267,35 @@ class MenuTreeStorageTest extends KernelTestBase {
     $this->assertTrue($tree['test4']['in_active_trail']);
     $this->assertEqual(count($tree['test4']['subtree']['test5']['subtree']), 0);
     $this->assertTrue($tree['test4']['subtree']['test5']['in_active_trail']);
+
+    // Add some conditions to ensure that conditions work as expected.
+    $parameters = new MenuTreeParameters();
+    $parameters->addCondition('parent', 'test1');
+    $data = $this->treeStorage->loadTreeData('tools', $parameters);
+    $this->assertEqual(count($data['tree']), 1);
+    $this->assertEqual($data['tree']['test2']['definition']['id'], 'test2');
+    $this->assertEqual($data['tree']['test2']['subtree'], []);
+
+    // Test for only enabled links.
+    $link = $this->treeStorage->load('test3');
+    $link['enabled'] = FALSE;
+    $this->treeStorage->save($link);
+    $link = $this->treeStorage->load('test4');
+    $link['enabled'] = FALSE;
+    $this->treeStorage->save($link);
+    $link = $this->treeStorage->load('test5');
+    $link['enabled'] = FALSE;
+    $this->treeStorage->save($link);
+
+    $parameters = new MenuTreeParameters();
+    $parameters->onlyEnabledLinks();
+    $data = $this->treeStorage->loadTreeData('tools', $parameters);
+    $this->assertEqual(count($data['tree']), 1);
+    $this->assertEqual($data['tree']['test1']['definition']['id'], 'test1');
+    $this->assertEqual(count($data['tree']['test1']['subtree']), 1);
+    $this->assertEqual($data['tree']['test1']['subtree']['test2']['definition']['id'], 'test2');
+    $this->assertEqual($data['tree']['test1']['subtree']['test2']['subtree'], []);
+
   }
 
   /**

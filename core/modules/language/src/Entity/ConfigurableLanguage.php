@@ -38,8 +38,9 @@ use Drupal\language\ConfigurableLanguageInterface;
  *     "weight" = "weight"
  *   },
  *   links = {
- *     "delete-form" = "entity.configurable_language.delete_form",
- *     "edit-form" = "entity.configurable_language.edit_form"
+ *     "delete-form" = "/admin/config/regional/language/delete/{configurable_language}",
+ *     "edit-form" = "/admin/config/regional/language/edit/{configurable_language}",
+ *     "collection" = "/admin/config/regional/language",
  *   }
  * )
  */
@@ -130,7 +131,7 @@ class ConfigurableLanguage extends ConfigEntityBase implements ConfigurableLangu
 
     $language_manager = \Drupal::languageManager();
     $language_manager->reset();
-    if ($language_manager instanceof ConfigurableLanguageManagerInterface) {
+    if (!$this->isLocked() && $language_manager instanceof ConfigurableLanguageManagerInterface) {
       $language_manager->updateLockedLanguageWeights();
     }
 
@@ -228,6 +229,14 @@ class ConfigurableLanguage extends ConfigEntityBase implements ConfigurableLangu
    */
   public function getWeight() {
     return $this->weight;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setWeight($weight) {
+    $this->weight = $weight;
+    return $this;
   }
 
   /**

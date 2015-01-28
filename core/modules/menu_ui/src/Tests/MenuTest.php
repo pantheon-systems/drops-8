@@ -7,10 +7,12 @@
 
 namespace Drupal\menu_ui\Tests;
 
+use Drupal\block\Entity\Block;
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Menu\MenuLinkInterface;
+use Drupal\Core\Url;
 use Drupal\menu_link_content\Entity\MenuLinkContent;
 use Drupal\system\Entity\Menu;
 use Drupal\node\Entity\Node;
@@ -43,6 +45,13 @@ class MenuTest extends MenuWebTestBase {
    * @var \Drupal\user\Entity\User
    */
   protected $authenticated_user;
+
+  /**
+   * Array of placed menu blocks keyed by block ID.
+   *
+   * @var array
+   */
+  protected $blockPlacements;
 
   /**
    * A test menu.
@@ -78,6 +87,7 @@ class MenuTest extends MenuWebTestBase {
 
     $this->menu = $this->addCustomMenu();
     $this->doMenuTests();
+    $this->doTestMenuBlock();
     $this->addInvalidMenuLink();
     $this->addCustomMenuCRUD();
 
@@ -102,6 +112,16 @@ class MenuTest extends MenuWebTestBase {
 
     // Login the administrator.
     $this->drupalLogin($this->admin_user);
+
+    // Verify delete link exists and reset link does not exist.
+    $this->drupalGet('admin/structure/menu/manage/' . $this->menu->id());
+    $this->assertLinkByHref('admin/structure/menu/item/' . $this->items[0]->id() . '/delete');
+    $this->assertNoLinkByHref(Url::fromUri('base://admin/structure/menu/link/' . $this->items[0]->getPluginId() . '/reset')->toString());
+    // Check delete and reset access.
+    $this->drupalGet('admin/structure/menu/item/' . $this->items[0]->id() . '/delete');
+    $this->assertResponse(200);
+    $this->drupalGet('admin/structure/menu/link/' . $this->items[0]->getPluginId() . '/reset');
+    $this->assertResponse(403);
 
     // Delete menu links.
     foreach ($this->items as $item) {
@@ -198,11 +218,12 @@ class MenuTest extends MenuWebTestBase {
     $this->assertText($label, 'Menu created');
 
     // Confirm that the custom menu block is available.
-    $this->drupalGet('admin/structure/block/list/' . \Drupal::config('system.theme')->get('default'));
+    $this->drupalGet('admin/structure/block/list/' . $this->config('system.theme')->get('default'));
     $this->assertText($label);
 
     // Enable the block.
-    $this->drupalPlaceBlock('system_menu_block:' . $menu_name);
+    $block = $this->drupalPlaceBlock('system_menu_block:' . $menu_name);
+    $this->blockPlacements[$menu_name] = $block->id();
     return Menu::load($menu_name);
   }
 
@@ -487,7 +508,7 @@ class MenuTest extends MenuWebTestBase {
     $this->drupalPostForm('admin/structure/menu/manage/main', $edit, t('Save'));
 
     // Make sure menu shows up with new name in block addition.
-    $default_theme = \Drupal::config('system.theme')->get('default');
+    $default_theme = $this->config('system.theme')->get('default');
     $this->drupalget('admin/structure/block/list/' . $default_theme);
     $this->assertText($edit['label']);
   }
@@ -519,11 +540,12 @@ class MenuTest extends MenuWebTestBase {
    */
   public function testBlockContextualLinks() {
     $this->drupalLogin($this->drupalCreateUser(array('administer menu', 'access contextual links', 'administer blocks')));
-    $this->addMenuLink();
-    $block = $this->drupalPlaceBlock('system_menu_block:tools', array('label' => 'Tools', 'provider' => 'system'));
+    $custom_menu = $this->addCustomMenu();
+    $this->addMenuLink('', '<front>', $custom_menu->id());
+    $block = $this->drupalPlaceBlock('system_menu_block:' . $custom_menu->id(), array('label' => 'Custom menu', 'provider' => 'system'));
     $this->drupalGet('test-page');
 
-    $id = 'block:block=' . $block->id() . ':|menu:menu=tools:';
+    $id = 'block:block=' . $block->id() . ':|menu:menu=' . $custom_menu->id() . ':';
     // @see \Drupal\contextual\Tests\ContextualDynamicContextTest:assertContextualLinkPlaceHolder()
     $this->assertRaw('<div data-contextual-id="'. $id . '"></div>', format_string('Contextual link placeholder with id @id exists.', array('@id' => $id)));
 
@@ -533,12 +555,12 @@ class MenuTest extends MenuWebTestBase {
     $response =  $this->drupalPost('contextual/render', 'application/json', $post, array('query' => array('destination' => 'test-page')));
     $this->assertResponse(200);
     $json = Json::decode($response);
-    $this->assertIdentical($json[$id], '<ul class="contextual-links"><li class="block-configure"><a href="' . base_path() . 'admin/structure/block/manage/' . $block->id() . '">Configure block</a></li><li class="entitymenuedit-form"><a href="' . base_path() . 'admin/structure/menu/manage/tools">Edit menu</a></li></ul>');
+    $this->assertIdentical($json[$id], '<ul class="contextual-links"><li class="block-configure"><a href="' . base_path() . 'admin/structure/block/manage/' . $block->id() . '">Configure block</a></li><li class="entitymenuedit-form"><a href="' . base_path() . 'admin/structure/menu/manage/' . $custom_menu->id() . '">Edit menu</a></li></ul>');
 
     // Test the contextual links are available when block caching is enabled.
     $this->drupalPostForm('admin/structure/block/manage/' . $block->id(), ['settings[cache][max_age]' => Cache::PERMANENT], t('Save block'));
     $this->drupalGet('test-page');
-    $id = 'block:block=' . $block->id() . ':|menu:menu=tools:';
+    $id = 'block:block=' . $block->id() . ':|menu:menu=' . $custom_menu->id() . ':';
     $this->assertRaw('<div data-contextual-id="'. $id . '"></div>', format_string('Contextual link placeholder with id @id exists.', array('@id' => $id)));
   }
 
@@ -854,6 +876,27 @@ class MenuTest extends MenuWebTestBase {
     if ($response == 200) {
       $this->assertText(t('Menus'), 'Add menu page was displayed');
     }
+  }
+
+  /**
+   * Tests menu block settings.
+   */
+  protected function doTestMenuBlock() {
+    $menu_id = $this->menu->id();
+    $block_id = $this->blockPlacements[$menu_id];
+    $this->drupalGet('admin/structure/block/manage/' . $block_id);
+    $this->drupalPostForm(NULL, [
+      'settings[depth]' => 3,
+      'settings[level]' => 2,
+    ], t('Save block'));
+    $block = Block::load($block_id);
+    $settings = $block->getPlugin()->getConfiguration();
+    $this->assertEqual($settings['depth'], 3);
+    $this->assertEqual($settings['level'], 2);
+    // Reset settings.
+    $block->getPlugin()->setConfigurationValue('depth', 0);
+    $block->getPlugin()->setConfigurationValue('level', 1);
+    $block->save();
   }
 
 }

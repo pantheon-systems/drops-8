@@ -14,7 +14,9 @@ use Drupal\Core\Ajax\CommandInterface;
  *
  * @ingroup ajax
  */
-class OpenDialogCommand implements CommandInterface {
+class OpenDialogCommand implements CommandInterface, CommandWithAttachedAssetsInterface {
+
+  use CommandWithAttachedAssetsTrait;
 
   /**
    * The selector of the dialog.
@@ -31,11 +33,13 @@ class OpenDialogCommand implements CommandInterface {
   protected $title;
 
   /**
-   * HTML content that will placed in the dialog.
+   * The content for the dialog.
    *
-   * @var string
+   * Either a render array or an HTML string.
+   *
+   * @var string|array
    */
-  protected $html;
+  protected $content;
 
   /**
    * Stores dialog-specific options passed directly to jQuery UI dialogs. Any
@@ -60,8 +64,9 @@ class OpenDialogCommand implements CommandInterface {
    *   The selector of the dialog.
    * @param string $title
    *   The title of the dialog.
-   * @param string $html
-   *   HTML that will be placed in the dialog.
+   * @param string|array $content
+   *   The content that will be placed in the dialog, either a render array
+   *   or an HTML string.
    * @param array $dialog_options
    *   (optional) Options to be passed to the dialog implementation. Any
    *   jQuery UI option can be used. See http://api.jqueryui.com/dialog.
@@ -70,10 +75,10 @@ class OpenDialogCommand implements CommandInterface {
    *   on the content of the dialog. If left empty, the settings will be
    *   populated automatically from the current request.
    */
-  public function __construct($selector, $title, $html, array $dialog_options = array(), $settings = NULL) {
+  public function __construct($selector, $title, $content, array $dialog_options = array(), $settings = NULL) {
     $dialog_options += array('title' => $title);
     $this->selector = $selector;
-    $this->html = $html;
+    $this->content = $content;
     $this->dialogOptions = $dialog_options;
     $this->settings = $settings;
   }
@@ -125,32 +130,15 @@ class OpenDialogCommand implements CommandInterface {
    * Implements \Drupal\Core\Ajax\CommandInterface:render().
    */
   public function render() {
-    // Add the library for handling the dialog in the response.
-    $this->drupalAttachLibrary('core/drupal.dialog.ajax');
-
     // For consistency ensure the modal option is set to TRUE or FALSE.
     $this->dialogOptions['modal'] = isset($this->dialogOptions['modal']) && $this->dialogOptions['modal'];
     return array(
       'command' => 'openDialog',
       'selector' => $this->selector,
       'settings' => $this->settings,
-      'data' => $this->html,
+      'data' => $this->getRenderedContent(),
       'dialogOptions' => $this->dialogOptions,
     );
-  }
-
-  /**
-   * Wraps drupal_render.
-   *
-   * @param string $name
-   *   The name of the library.
-   *
-   * @todo Remove once drupal_render is converted to autoloadable code.
-   * @see https://drupal.org/node/2171071
-   */
-  protected function drupalAttachLibrary($name) {
-    $attached['#attached']['library'][] = $name;
-    drupal_process_attached($attached);
   }
 
 }

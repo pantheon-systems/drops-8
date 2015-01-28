@@ -8,7 +8,7 @@
 use Drupal\Core\Form\FormState;
 
 /**
- * Batch operation: Submits form_test_mock_form() using drupal_form_submit().
+ * Batch operation: Submits form_test_mock_form().
  */
 function _batch_test_nested_drupal_form_submit_callback($value) {
   $form_state = (new FormState())
@@ -164,6 +164,21 @@ function _batch_test_theme_callback() {
   // that it can be loaded and inspected in the thread running the test.
   $theme = \Drupal::theme()->getActiveTheme()->getName();
   batch_test_stack($theme);
+}
+
+/**
+ * Tests the title on the progress page by performing a batch callback.
+ */
+function _batch_test_title_callback() {
+  // Because drupalGet() steps through the full progressive batch before
+  // returning control to the test function, we cannot test that the correct
+  // title is being used on the batch processing page by viewing that page
+  // directly. Instead, we save the title being used in a variable here, so
+  // that it can be loaded and inspected in the thread running the test.
+  $request = \Drupal::request();
+  $route_match = \Drupal::routeMatch();
+  $title = \Drupal::service('title_resolver')->getTitle($request, $route_match->getRouteObject());
+  batch_test_stack($title);
 }
 
 /**

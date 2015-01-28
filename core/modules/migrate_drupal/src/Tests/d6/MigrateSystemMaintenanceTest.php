@@ -25,7 +25,7 @@ class MigrateSystemMaintenanceTest extends MigrateDrupalTestBase {
     parent::setUp();
     $migration = entity_load('migration', 'd6_system_maintenance');
     $dumps = array(
-      $this->getDumpDirectory() . '/Drupal6SystemMaintenance.php',
+      $this->getDumpDirectory() . '/Variable.php',
     );
     $this->prepare($migration, $dumps);
     $executable = new MigrateExecutable($migration, new MigrateMessage());
@@ -36,7 +36,7 @@ class MigrateSystemMaintenanceTest extends MigrateDrupalTestBase {
    * Tests migration of system (maintenance) variables to system.maintenance.yml.
    */
   public function testSystemMaintenance() {
-    $config = \Drupal::config('system.maintenance');
+    $config = $this->config('system.maintenance');
     $this->assertIdentical($config->get('message'), 'Drupal is currently under maintenance. We should be back shortly. Thank you for your patience.');
   }
 

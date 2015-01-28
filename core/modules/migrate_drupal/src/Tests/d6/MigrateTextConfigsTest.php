@@ -34,7 +34,7 @@ class MigrateTextConfigsTest extends MigrateDrupalTestBase {
     parent::setUp();
     $migration = entity_load('migration', 'd6_text_settings');
     $dumps = array(
-      $this->getDumpDirectory() . '/Drupal6TextSettings.php',
+      $this->getDumpDirectory() . '/Variable.php',
     );
     $this->prepare($migration, $dumps);
     $executable = new MigrateExecutable($migration, $this);
@@ -45,7 +45,7 @@ class MigrateTextConfigsTest extends MigrateDrupalTestBase {
    * Tests migration of text variables to text.settings.yml.
    */
   public function testTextSettings() {
-    $config = \Drupal::config('text.settings');
+    $config = $this->config('text.settings');
     $this->assertIdentical($config->get('default_summary_length'), 456);
     $this->assertConfigSchema(\Drupal::service('config.typed'), 'text.settings', $config->get());
   }

@@ -7,6 +7,7 @@
 
 namespace Drupal\migrate_drupal\Tests\d6;
 
+use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\migrate\MigrateExecutable;
 use Drupal\migrate_drupal\Tests\MigrateDrupalTestBase;
 
@@ -44,7 +45,8 @@ class MigrateCommentVariableFieldTest extends MigrateDrupalTestBase {
     /** @var \Drupal\migrate\entity\Migration $migration */
     $migration = entity_load('migration', 'd6_comment_field');
     $dumps = array(
-      $this->getDumpDirectory() . '/Drupal6CommentVariable.php',
+      $this->getDumpDirectory() . '/Variable.php',
+      $this->getDumpDirectory() . '/NodeType.php',
     );
     $this->prepare($migration, $dumps);
     $executable = new MigrateExecutable($migration, $this);
@@ -55,7 +57,7 @@ class MigrateCommentVariableFieldTest extends MigrateDrupalTestBase {
    * Tests comment variables migrated into a field entity.
    */
   public function testCommentField() {
-    $this->assertTrue(is_object(entity_load('field_storage_config', 'node.comment')));
+    $this->assertTrue(is_object(FieldStorageConfig::load('node.comment')));
   }
 
 }

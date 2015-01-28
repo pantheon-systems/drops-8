@@ -44,14 +44,8 @@ class UserEntityCallbacksTest extends WebTestBase {
 
     // Setup a random anonymous name to be sure the name is used.
     $name = $this->randomMachineName();
-    \Drupal::config('user.settings')->set('anonymous', $name)->save();
+    $this->config('user.settings')->set('anonymous', $name)->save();
     $this->assertEqual($this->anonymous->label(), $name, 'The variable anonymous should be used for name of uid 0');
   }
 
-  /**
-   * Test URI callback.
-   */
-  function testUriCallback() {
-    $this->assertEqual('user/' . $this->account->id(), $this->account->getSystemPath(), 'Correct user URI.');
-  }
 }

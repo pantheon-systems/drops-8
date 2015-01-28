@@ -41,7 +41,7 @@ class ManageDisplayTest extends WebTestBase {
     // Create content type, with underscores.
     $type_name = strtolower($this->randomMachineName(8)) . '_test';
     $type = $this->drupalCreateContentType(array('name' => $type_name, 'type' => $type_name));
-    $this->type = $type->type;
+    $this->type = $type->id();
 
     // Create a default vocabulary.
     $vocabulary = entity_create('taxonomy_vocabulary', array(
@@ -164,6 +164,7 @@ class ManageDisplayTest extends WebTestBase {
     // is no longer there.
     \Drupal::service('module_installer')->uninstall(array('field_third_party_test'));
     $this->drupalGet($manage_display);
+    $this->assertResponse(200);
     $this->assertNoFieldByName('field_test_settings_edit');
   }
 
@@ -379,7 +380,7 @@ class ManageDisplayTest extends WebTestBase {
     ))->save();
 
     $this->drupalGet('admin/structure/types/manage/no_fields/display');
-    $this->assertRaw(t('There are no fields yet added. You can add new fields on the <a href="@link">Manage fields</a> page.', array('@link' => \Drupal::url('field_ui.overview_node', array('node_type' => 'no_fields')))));
+    $this->assertRaw(t('There are no fields yet added. You can add new fields on the <a href="@link">Manage fields</a> page.', array('@link' => \Drupal::url('entity.node_type.field_ui_fields', array('node_type' => 'no_fields')))));
   }
 
   /**

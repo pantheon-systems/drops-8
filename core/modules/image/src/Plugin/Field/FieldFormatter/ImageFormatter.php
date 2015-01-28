@@ -45,13 +45,6 @@ class ImageFormatter extends ImageFormatterBase implements ContainerFactoryPlugi
   protected $linkGenerator;
 
   /**
-   * The url generator service.
-   *
-   * @var \Drupal\Core\Routing\UrlGeneratorInterface
-   */
-  protected $urlGenerator;
-
-  /**
    * Constructs an ImageFormatter object.
    *
    * @param string $plugin_id
@@ -72,14 +65,11 @@ class ImageFormatter extends ImageFormatterBase implements ContainerFactoryPlugi
    *   The current user.
    * @param \Drupal\Core\Utility\LinkGeneratorInterface $link_generator
    *   The link generator service.
-   * @param \Drupal\Core\Routing\UrlGeneratorInterface $url_generator
-   *   The url generator service.
    */
-  public function __construct($plugin_id, $plugin_definition, FieldDefinitionInterface $field_definition, array $settings, $label, $view_mode, array $third_party_settings, AccountInterface $current_user, LinkGeneratorInterface $link_generator, UrlGeneratorInterface $url_generator) {
+  public function __construct($plugin_id, $plugin_definition, FieldDefinitionInterface $field_definition, array $settings, $label, $view_mode, array $third_party_settings, AccountInterface $current_user, LinkGeneratorInterface $link_generator) {
     parent::__construct($plugin_id, $plugin_definition, $field_definition, $settings, $label, $view_mode, $third_party_settings);
     $this->currentUser = $current_user;
     $this->linkGenerator = $link_generator;
-    $this->urlGenerator = $url_generator;
   }
 
   /**
@@ -95,8 +85,7 @@ class ImageFormatter extends ImageFormatterBase implements ContainerFactoryPlugi
       $configuration['view_mode'],
       $configuration['third_party_settings'],
       $container->get('current_user'),
-      $container->get('link_generator'),
-      $container->get('url_generator')
+      $container->get('link_generator')
     );
   }
 
@@ -122,7 +111,7 @@ class ImageFormatter extends ImageFormatterBase implements ContainerFactoryPlugi
       '#empty_option' => t('None (original image)'),
       '#options' => $image_styles,
       '#description' => array(
-        '#markup' => $this->linkGenerator->generate($this->t('Configure Image Styles', array('@url' => $this->urlGenerator->generateFromRoute('image.style_list'))), new Url('image.style_list')),
+        '#markup' => $this->linkGenerator->generate($this->t('Configure Image Styles'), new Url('entity.image_style.collection')),
         '#access' => $this->currentUser->hasPermission('administer image styles'),
       ),
     );
@@ -178,15 +167,14 @@ class ImageFormatter extends ImageFormatterBase implements ContainerFactoryPlugi
    */
   public function viewElements(FieldItemListInterface $items) {
     $elements = array();
+    $url = NULL;
 
     $image_link_setting = $this->getSetting('image_link');
     // Check if the formatter involves a link.
     if ($image_link_setting == 'content') {
       $entity = $items->getEntity();
       if (!$entity->isNew()) {
-        // @todo Remove when theme_image_formatter() has support for route name.
-        $uri['path'] = $entity->getSystemPath();
-        $uri['options'] = $entity->urlInfo()->getOptions();
+        $url = $entity->urlInfo();
       }
     }
     elseif ($image_link_setting == 'file') {
@@ -206,10 +194,7 @@ class ImageFormatter extends ImageFormatterBase implements ContainerFactoryPlugi
       if ($item->entity) {
         if (isset($link_file)) {
           $image_uri = $item->entity->getFileUri();
-          $uri = array(
-            'path' => file_create_url($image_uri),
-            'options' => array(),
-          );
+          $url = Url::fromUri(file_create_url($image_uri));
         }
 
         // Extract field item attributes for the theme function, and unset them
@@ -222,7 +207,7 @@ class ImageFormatter extends ImageFormatterBase implements ContainerFactoryPlugi
           '#item' => $item,
           '#item_attributes' => $item_attributes,
           '#image_style' => $image_style_setting,
-          '#path' => isset($uri) ? $uri : '',
+          '#url' => $url,
           '#cache' => array(
             'tags' => $cache_tags,
           ),

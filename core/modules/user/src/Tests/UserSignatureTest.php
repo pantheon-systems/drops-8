@@ -27,7 +27,7 @@ class UserSignatureTest extends WebTestBase {
     parent::setUp();
 
     // Enable user signatures.
-    \Drupal::config('user.settings')->set('signatures', 1)->save();
+    $this->config('user.settings')->set('signatures', 1)->save();
 
     // Create Basic page node type.
     $this->drupalCreateContentType(array('type' => 'page', 'name' => 'Basic page'));
@@ -128,10 +128,10 @@ class UserSignatureTest extends WebTestBase {
     $this->assertRaw(check_markup($signature_text, $this->filtered_html_format->id()), 'Filtered signature text found.');
     // Verify that the user signature's text format's cache tag is present.
     $this->drupalGet('node/' . $node->id());
-    $this->assertTrue(in_array('filter_format:filtered_html_format', explode(' ', $this->drupalGetHeader('X-Drupal-Cache-Tags'))));
+    $this->assertTrue(in_array('config:filter.format.filtered_html_format', explode(' ', $this->drupalGetHeader('X-Drupal-Cache-Tags'))));
 
     // Verify the signature field is available on Manage form display page.
-    \Drupal::config('user.settings')->set('signatures', 0)->save();
+    $this->config('user.settings')->set('signatures', 0)->save();
     \Drupal::entityManager()->clearCachedFieldDefinitions();
     $this->drupalGet('admin/config/people/accounts/form-display');
     $this->assertNoText('Signature settings');

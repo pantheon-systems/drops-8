@@ -7,6 +7,8 @@
 
 namespace Drupal\config\Tests;
 
+use Drupal\Core\Config\PreExistingConfigException;
+use Drupal\Core\Config\StorageInterface;
 use Drupal\simpletest\WebTestBase;
 
 /**
@@ -25,7 +27,7 @@ class ConfigOtherModuleTest extends WebTestBase {
     // Check that the config entity doesn't exist before the config_test module
     // is enabled. We cannot use the entity system because the config_test
     // entity type does not exist.
-    $config = $this->container->get('config.factory')->get('config_test.dynamic.other_module_test');
+    $config = $this->config('config_test.dynamic.other_module_test');
     $this->assertTrue($config->isNew(), 'Default configuration for other modules is not installed if that module is not enabled.');
 
     // Install the module that provides the entity type. This installs the
@@ -36,7 +38,7 @@ class ConfigOtherModuleTest extends WebTestBase {
     // Uninstall the module that provides the entity type. This will remove the
     // default configuration.
     $this->uninstallModule('config_test');
-    $config = $this->container->get('config.factory')->get('config_test.dynamic.other_module_test');
+    $config = $this->config('config_test.dynamic.other_module_test');
     $this->assertTrue($config->isNew(), 'Default configuration for other modules is removed when the config entity provider is disabled.');
 
     // Install the module that provides the entity type again. This installs the
@@ -57,10 +59,18 @@ class ConfigOtherModuleTest extends WebTestBase {
     // Default configuration provided by config_test should still exist.
     $this->assertTrue(entity_load('config_test', 'dotted.default', TRUE), 'The configuration is not deleted.');
 
-    // Re-enable module to test that default config is unchanged.
-    $this->installModule('config_other_module_config_test');
-    $config_entity = entity_load('config_test', 'other_module_test', TRUE);
-    $this->assertEqual($config_entity->get('style'), "The piano ain't got no wrong notes.", 'Re-enabling the module does not install default config over the existing config entity.');
+    // Re-enable module to test that pre-existing default configuration throws
+    // an error.
+    $msg = "The expected PreExistingConfigException is thrown by reinstalling config_other_module_config_test.";
+    try {
+      $this->installModule('config_other_module_config_test');
+      $this->fail($msg);
+    }
+    catch (PreExistingConfigException $e) {
+      $this->pass($msg);
+      $this->assertEqual($e->getExtension(), 'config_other_module_config_test');
+      $this->assertEqual($e->getConfigObjects(), [StorageInterface::DEFAULT_COLLECTION => ['config_test.dynamic.other_module_test']]);
+    }
   }
 
   /**

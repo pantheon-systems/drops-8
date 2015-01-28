@@ -14,6 +14,7 @@ use Drupal\Core\Controller\TitleResolverInterface;
 use Drupal\Core\Display\PageVariantInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Render\PageDisplayVariantSelectionEvent;
+use Drupal\Core\Render\Renderer;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Render\RenderEvents;
 use Drupal\Core\Routing\RouteMatchInterface;
@@ -185,16 +186,12 @@ class HtmlRenderer implements MainContentRendererInterface {
       // title. We set its $is_root_call parameter to FALSE, to ensure
       // #post_render_cache callbacks are not yet applied. This is essentially
       // "pre-rendering" the main content, the "full rendering" will happen in
-      // ::renderContentIntoResponse().
+      // ::renderResponse().
       // @todo Remove this once https://www.drupal.org/node/2359901 lands.
       if (!empty($main_content)) {
         $this->renderer->render($main_content, FALSE);
-        $main_content = [
-          '#markup' => $main_content['#markup'],
-          '#attached' => $main_content['#attached'],
-          '#cache' => ['tags' => $main_content['#cache']['tags']],
-          '#post_render_cache' => $main_content['#post_render_cache'],
-          '#title' => isset($main_content['#title']) ? $main_content['#title'] : NULL,
+        $main_content = $this->renderer->getCacheableRenderArray($main_content) + [
+          '#title' => isset($main_content['#title']) ? $main_content['#title'] : NULL
         ];
       }
 
@@ -266,14 +263,7 @@ class HtmlRenderer implements MainContentRendererInterface {
     }
 
     // Merge the attachments onto the $page render array.
-    $page['#attached'] = isset($page['#attached']) ? $page['#attached'] : [];
-    $page['#post_render_cache'] = isset($page['#post_render_cache']) ? $page['#post_render_cache'] : [];
-    if (isset($attachments['#attached'])) {
-      $page['#attached'] = drupal_merge_attached($page['#attached'], $attachments['#attached']);
-    }
-    if (isset($attachments['#post_render_cache'])) {
-      $page['#post_render_cache'] = NestedArray::mergeDeep($page['#post_render_cache'], $attachments['#post_render_cache']);
-    }
+    $page = Renderer::mergeBubbleableMetadata($page, $attachments);
   }
 
   /**

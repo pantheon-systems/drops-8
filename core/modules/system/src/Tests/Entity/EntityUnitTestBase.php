@@ -30,6 +30,13 @@ abstract class EntityUnitTestBase extends KernelTestBase {
   protected $entityManager;
 
   /**
+   * A list of generated identifiers.
+   *
+   * @var array
+   */
+  protected $generatedIds = array();
+
+  /**
    * The state service.
    *
    * @var \Drupal\Core\State\StateInterface
@@ -60,6 +67,15 @@ abstract class EntityUnitTestBase extends KernelTestBase {
         if ($rp->class == $class) {
           foreach (array_intersect(array('node', 'comment'), $class::$modules) as $module) {
             $this->installEntitySchema($module);
+          }
+          if (in_array('forum', $class::$modules, TRUE)) {
+            // Forum module is particular about the order that dependencies are
+            // enabled in. The comment, node and taxonomy config and the
+            // taxonomy_term schema need to be installed before the forum config
+            // which in turn needs to be installed before field config.
+            $this->installConfig(['comment', 'node', 'taxonomy']);
+            $this->installEntitySchema('taxonomy_term');
+            $this->installConfig(['forum']);
           }
         }
       }
@@ -158,6 +174,25 @@ abstract class EntityUnitTestBase extends KernelTestBase {
     $this->container = \Drupal::getContainer();
     $this->entityManager = $this->container->get('entity.manager');
     $this->state = $this->container->get('state');
+  }
+
+  /**
+   * Generates a random ID avoiding collisions.
+   *
+   * @param bool $string
+   *   (optional) Whether the id should have string type. Defaults to FALSE.
+   *
+   * @return int|string
+   *   The entity identifier.
+   */
+  protected function generateRandomEntityId($string = FALSE) {
+    srand(time());
+    do {
+      $id = $string ? $this->randomMachineName() : mt_rand(1, 0xFFFFFFFF);
+    }
+    while (isset($this->generatedIds[$id]));
+    $this->generatedIds[$id] = $id;
+    return $id;
   }
 
 }

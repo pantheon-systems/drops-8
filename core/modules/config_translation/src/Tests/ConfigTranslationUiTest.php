@@ -42,14 +42,14 @@ class ConfigTranslationUiTest extends WebTestBase {
    *
    * @var \Drupal\user\UserInterface
    */
-  protected $admin_user;
+  protected $adminUser;
 
   /**
    * Translator user for tests.
    *
    * @var \Drupal\user\UserInterface
    */
-  protected $translator_user;
+  protected $translatorUser;
 
   /**
    * String translation storage object.
@@ -60,9 +60,9 @@ class ConfigTranslationUiTest extends WebTestBase {
 
   protected function setUp() {
     parent::setUp();
-    $translator_permissions = array(
+    $translator_permissions = [
       'translate configuration',
-    );
+    ];
 
     /** @var \Drupal\filter\FilterFormatInterface $filter_test_format */
     $filter_test_format = entity_load('filter_format', 'filter_test');
@@ -73,7 +73,7 @@ class ConfigTranslationUiTest extends WebTestBase {
 
     $admin_permissions = array_merge(
       $translator_permissions,
-      array(
+      [
         'administer languages',
         'administer site configuration',
         'link to any page',
@@ -86,11 +86,14 @@ class ConfigTranslationUiTest extends WebTestBase {
         'access contextual links',
         'administer views',
         'administer account settings',
-      )
+        'administer themes',
+        'bypass node access',
+        'administer content types',
+      ]
     );
     // Create and login user.
-    $this->translator_user = $this->drupalCreateUser($translator_permissions);
-    $this->admin_user = $this->drupalCreateUser($admin_permissions);
+    $this->translatorUser = $this->drupalCreateUser($translator_permissions);
+    $this->adminUser = $this->drupalCreateUser($admin_permissions);
 
     // Add languages.
     foreach ($this->langcodes as $langcode) {
@@ -103,7 +106,7 @@ class ConfigTranslationUiTest extends WebTestBase {
    * Tests the site information translation interface.
    */
   public function testSiteInformationTranslationUi() {
-    $this->drupalLogin($this->admin_user);
+    $this->drupalLogin($this->adminUser);
 
     $site_name = 'Site name for testing configuration translation';
     $site_slogan = 'Site slogan for testing configuration translation';
@@ -124,7 +127,7 @@ class ConfigTranslationUiTest extends WebTestBase {
     // original form.
     $this->clickLink(t('Edit'));
     // Also check that saving the form leads back to the translation overview.
-    $this->drupalPostForm(NULL, array(), t('Save configuration'));
+    $this->drupalPostForm(NULL, [], t('Save configuration'));
     $this->assertUrl($translation_base_url);
 
     // Check 'Add' link of French to visit add page.
@@ -169,7 +172,7 @@ class ConfigTranslationUiTest extends WebTestBase {
    * Tests the site information translation interface.
    */
   public function testSourceValueDuplicateSave() {
-    $this->drupalLogin($this->admin_user);
+    $this->drupalLogin($this->adminUser);
 
     $site_name = 'Site name for testing configuration translation';
     $site_slogan = 'Site slogan for testing configuration translation';
@@ -229,7 +232,7 @@ class ConfigTranslationUiTest extends WebTestBase {
 
     // Check configuration page with translator user. Should have no access.
     $this->drupalLogout();
-    $this->drupalLogin($this->translator_user);
+    $this->drupalLogin($this->translatorUser);
     $this->drupalGet('admin/config/system/site-information');
     $this->assertResponse(403);
 
@@ -246,7 +249,7 @@ class ConfigTranslationUiTest extends WebTestBase {
    * Tests the contact form translation.
    */
   public function testContactConfigEntityTranslation() {
-    $this->drupalLogin($this->admin_user);
+    $this->drupalLogin($this->adminUser);
 
     $this->drupalGet('admin/structure/contact');
 
@@ -326,7 +329,7 @@ class ConfigTranslationUiTest extends WebTestBase {
     foreach ($this->langcodes as $langcode) {
       $langcode_prefixes = array_merge(array(''), $this->langcodes);
       foreach ($langcode_prefixes as $langcode_prefix) {
-        $this->drupalGet(ltrim("$langcode_prefix/$translation_base_url/$langcode/edit"));
+        $this->drupalGet(ltrim("$langcode_prefix/$translation_base_url/$langcode/edit", '/'));
         $this->assertFieldByName('translation[config_names][contact.form.feedback][label]', 'Website feedback - ' . $langcode);
         $this->assertText($label);
       }
@@ -345,7 +348,7 @@ class ConfigTranslationUiTest extends WebTestBase {
 
     // Test that delete links work and operations perform properly.
     foreach ($this->langcodes as $langcode) {
-      $replacements = array('%label' => t('!label !entity_type', array('!label' => $label, '!entity_type' => Unicode::strtolower(t('Contact form')))), '@language' => language_load($langcode)->getName());
+      $replacements = array('%label' => t('!label !entity_type', array('!label' => $label, '!entity_type' => Unicode::strtolower(t('Contact form')))), '@language' => \Drupal::languageManager()->getLanguage($langcode)->getName());
 
       $this->drupalGet("$translation_base_url/$langcode/delete");
       $this->assertRaw(t('Are you sure you want to delete the @language translation of %label?', $replacements));
@@ -365,7 +368,7 @@ class ConfigTranslationUiTest extends WebTestBase {
 
     // Check configuration page with translator user. Should have no access.
     $this->drupalLogout();
-    $this->drupalLogin($this->translator_user);
+    $this->drupalLogin($this->translatorUser);
     $this->drupalGet('admin/structure/contact/manage/feedback');
     $this->assertResponse(403);
 
@@ -379,10 +382,38 @@ class ConfigTranslationUiTest extends WebTestBase {
   }
 
   /**
+   * Tests the node type translation.
+   */
+  public function testNodeTypeTranslation() {
+    $type = Unicode::strtolower($this->randomMachineName(16));
+    $name = $this->randomString();
+    $this->drupalLogin($this->adminUser);
+    $this->drupalCreateContentType(array('type' => $type, 'name' => $name));
+
+    // Translate the node type name.
+    $langcode = $this->langcodes[0];
+    $translated_name = $langcode . '-' . $name;
+    $edit = array(
+      "translation[config_names][node.type.$type][name]" => $translated_name,
+    );
+    $this->drupalPostForm("admin/structure/types/manage/$type/translate/$langcode/add", $edit, t('Save translation'));
+
+    // Check the name is translated without admin theme for editing.
+    $this->drupalPostForm('admin/appearance', array('use_admin_theme' => '0'), t('Save configuration'));
+    $this->drupalGet("$langcode/node/add/$type");
+    $this->assertRaw(t('Create @name', array('@name' => $translated_name)));
+
+    // Check the name is translated with admin theme for editing.
+    $this->drupalPostForm('admin/appearance', array('use_admin_theme' => '1'), t('Save configuration'));
+    $this->drupalGet("$langcode/node/add/$type");
+    $this->assertRaw(t('Create @name', array('@name' => $translated_name)));
+  }
+
+  /**
    * Tests date format translation.
    */
   public function testDateFormatTranslation() {
-    $this->drupalLogin($this->admin_user);
+    $this->drupalLogin($this->adminUser);
 
     $this->drupalGet('admin/config/regional/date-time');
 
@@ -447,7 +478,7 @@ class ConfigTranslationUiTest extends WebTestBase {
    * the translations are saved for all configuration names properly.
    */
   public function testAccountSettingsConfigurationTranslation() {
-    $this->drupalLogin($this->admin_user);
+    $this->drupalLogin($this->adminUser);
 
     $this->drupalGet('admin/config/people/accounts');
     $this->assertLink(t('Translate @type', array('@type' => 'account settings')));
@@ -481,7 +512,7 @@ class ConfigTranslationUiTest extends WebTestBase {
    * Tests source and target language edge cases.
    */
   public function testSourceAndTargetLanguage() {
-    $this->drupalLogin($this->admin_user);
+    $this->drupalLogin($this->adminUser);
 
     // Loading translation page for not-specified language (und)
     // should return 403.
@@ -510,9 +541,7 @@ class ConfigTranslationUiTest extends WebTestBase {
     $this->assertResponse(403);
 
     // Set default language of site information to not-specified language (und).
-    $this->container
-      ->get('config.factory')
-      ->get('system.site')
+    $this->config('system.site')
       ->set('langcode', LanguageInterface::LANGCODE_NOT_SPECIFIED)
       ->save();
 
@@ -529,7 +558,7 @@ class ConfigTranslationUiTest extends WebTestBase {
    * Tests the views translation interface.
    */
   public function testViewsTranslationUI() {
-    $this->drupalLogin($this->admin_user);
+    $this->drupalLogin($this->adminUser);
 
     // Assert contextual link related to views.
     $ids = array('entity.view.edit_form:view=frontpage:location=page&name=frontpage&display_id=page_1');
@@ -583,11 +612,11 @@ class ConfigTranslationUiTest extends WebTestBase {
   public function testLocaleDBStorage() {
     // Enable import of translations. By default this is disabled for automated
     // tests.
-    \Drupal::config('locale.settings')
+    $this->config('locale.settings')
       ->set('translation.import_enabled', TRUE)
       ->save();
 
-    $this->drupalLogin($this->admin_user);
+    $this->drupalLogin($this->adminUser);
 
     $langcode = 'xx';
     $name = $this->randomMachineName(16);
@@ -629,7 +658,7 @@ class ConfigTranslationUiTest extends WebTestBase {
    * Tests the single language existing.
    */
   public function testSingleLanguageUI() {
-    $this->drupalLogin($this->admin_user);
+    $this->drupalLogin($this->adminUser);
 
     // Delete French language
     $this->drupalPostForm('admin/config/regional/language/delete/fr', array(), t('Delete'));
@@ -656,7 +685,7 @@ class ConfigTranslationUiTest extends WebTestBase {
    * Tests the config_translation_info_alter() hook.
    */
   public function testAlterInfo() {
-    $this->drupalLogin($this->admin_user);
+    $this->drupalLogin($this->adminUser);
 
     $this->container->get('state')->set('config_translation_test_config_translation_info_alter', TRUE);
     $this->container->get('plugin.manager.config_translation.mapper')->clearCachedDefinitions();
@@ -677,7 +706,7 @@ class ConfigTranslationUiTest extends WebTestBase {
    * Test text_format translation.
    */
   public function testTextFormatTranslation() {
-    $this->drupalLogin($this->admin_user);
+    $this->drupalLogin($this->adminUser);
     /** @var \Drupal\Core\Config\ConfigFactoryInterface $config_factory */
     $config_factory = $this->container->get('config.factory');
 
@@ -686,9 +715,8 @@ class ConfigTranslationUiTest extends WebTestBase {
       'format' => 'plain_text',
     );
     $actual = $config_factory
-      ->setOverrideState(FALSE)
       ->get('config_translation_test.content')
-      ->get('content');
+      ->getOriginal('content', FALSE);
     $this->assertEqual($expected, $actual);
 
     $translation_base_url = 'admin/config/media/file-system/translate';
@@ -720,7 +748,6 @@ class ConfigTranslationUiTest extends WebTestBase {
     $this->container->get('language.config_factory_override')
       ->setLanguage(new Language(array('id' => 'fr')));
     $actual = $config_factory
-      ->setOverrideState(TRUE)
       ->get('config_translation_test.content')
       ->get('content');
     $this->assertEqual($expected, $actual);
@@ -729,13 +756,11 @@ class ConfigTranslationUiTest extends WebTestBase {
     // text format of the translation does not change because that could lead to
     // security vulnerabilities.
     $config_factory
-      ->setOverrideState(FALSE)
-      ->get('config_translation_test.content')
+      ->getEditable('config_translation_test.content')
       ->set('content.format', 'full_html')
       ->save();
 
     $actual = $config_factory
-      ->setOverrideState(TRUE)
       ->get('config_translation_test.content')
       ->get('content');
     // The translation should not have changed, so re-use $expected.
@@ -744,7 +769,7 @@ class ConfigTranslationUiTest extends WebTestBase {
     // Because the text is now in a text format that the translator does not
     // have access to, the translator should not be able to translate it.
     $translation_page_url = "$translation_base_url/fr/edit";
-    $this->drupalLogin($this->translator_user);
+    $this->drupalLogin($this->translatorUser);
     $this->drupalGet($translation_page_url);
     $this->assertDisabledTextarea('edit-translation-config-names-config-translation-testcontent-content-value');
     $this->drupalPostForm(NULL, array(), t('Save translation'));
@@ -756,7 +781,7 @@ class ConfigTranslationUiTest extends WebTestBase {
     $this->assertEqual($expected, $actual);
 
     // The administrator must explicitly change the text format.
-    $this->drupalLogin($this->admin_user);
+    $this->drupalLogin($this->adminUser);
     $edit = array(
       'translation[config_names][config_translation_test.content][content][format]' => 'full_html',
     );

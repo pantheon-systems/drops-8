@@ -24,6 +24,20 @@ class FilterAdminTest extends WebTestBase {
   public static $modules = array('filter', 'node');
 
   /**
+   * An user with administration permissions.
+   *
+   * @var \Drupal\user\UserInterface
+   */
+  protected $adminUser;
+
+  /**
+   * An user with permissions to create pages.
+   *
+   * @var \Drupal\user\UserInterface
+   */
+  protected $webUser;
+
+  /**
    * {@inheritdoc}
    */
   protected function setUp() {
@@ -79,17 +93,17 @@ class FilterAdminTest extends WebTestBase {
     ));
     $full_html_format->save();
 
-    $this->admin_user = $this->drupalCreateUser(array(
+    $this->adminUser = $this->drupalCreateUser(array(
       'administer filters',
       $basic_html_format->getPermissionName(),
       $restricted_html_format->getPermissionName(),
       $full_html_format->getPermissionName(),
     ));
 
-    $this->web_user = $this->drupalCreateUser(array('create page content', 'edit own page content'));
+    $this->webUser = $this->drupalCreateUser(array('create page content', 'edit own page content'));
     user_role_grant_permissions('authenticated', array($basic_html_format->getPermissionName()));
     user_role_grant_permissions('anonymous', array($restricted_html_format->getPermissionName()));
-    $this->drupalLogin($this->admin_user);
+    $this->drupalLogin($this->adminUser);
   }
 
   /**
@@ -188,8 +202,8 @@ class FilterAdminTest extends WebTestBase {
 
     // Verify access permissions to Full HTML format.
     $full_format = entity_load('filter_format', $full);
-    $this->assertTrue($full_format->access('use', $this->admin_user), 'Admin user may use Full HTML.');
-    $this->assertFalse($full_format->access('use', $this->web_user), 'Web user may not use Full HTML.');
+    $this->assertTrue($full_format->access('use', $this->adminUser), 'Admin user may use Full HTML.');
+    $this->assertFalse($full_format->access('use', $this->webUser), 'Web user may not use Full HTML.');
 
     // Add an additional tag.
     $edit = array();
@@ -264,7 +278,7 @@ class FilterAdminTest extends WebTestBase {
     $this->assertRaw(t('The text format %format has been updated.', array('%format' => $format->label())), 'Full HTML format successfully updated.');
 
     // Switch user.
-    $this->drupalLogin($this->web_user);
+    $this->drupalLogin($this->webUser);
 
     $this->drupalGet('node/add/page');
     $this->assertRaw('<option value="' . $full . '">Full HTML</option>', 'Full HTML filter accessible.');
@@ -290,7 +304,7 @@ class FilterAdminTest extends WebTestBase {
     // Use plain text and see if it escapes all tags, whether allowed or not.
     // In order to test plain text, we have to enable the hidden variable for
     // "show_fallback_format", which displays plain text in the format list.
-    \Drupal::config('filter.settings')
+    $this->config('filter.settings')
       ->set('always_show_fallback_choice', TRUE)
       ->save();
     $edit = array();
@@ -298,12 +312,12 @@ class FilterAdminTest extends WebTestBase {
     $this->drupalPostForm('node/' . $node->id() . '/edit', $edit, t('Save'));
     $this->drupalGet('node/' . $node->id());
     $this->assertText(String::checkPlain($text), 'The "Plain text" text format escapes all HTML tags.');
-    \Drupal::config('filter.settings')
+    $this->config('filter.settings')
       ->set('always_show_fallback_choice', FALSE)
       ->save();
 
     // Switch user.
-    $this->drupalLogin($this->admin_user);
+    $this->drupalLogin($this->adminUser);
 
     // Clean up.
     // Allowed tags.

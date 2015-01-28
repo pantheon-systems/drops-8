@@ -7,6 +7,7 @@
 
 namespace Drupal\Core\Utility;
 
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Language\LanguageInterface;
@@ -185,9 +186,9 @@ class Token {
     // $type may not contain : or whitespace characters, but $name may.
     preg_match_all('/
       \[             # [ - pattern start
-      ([^\s\[\]:]*)  # match $type not containing whitespace : [ or ]
+      ([^\s\[\]:]+)  # match $type not containing whitespace : [ or ]
       :              # : - separator
-      ([^\[\]]*)     # match $name not containing [ or ]
+      ([^\[\]]+)     # match $name not containing [ or ]
       \]             # ] - pattern end
       /x', $text, $matches);
 
@@ -346,7 +347,7 @@ class Token {
    */
   public function resetInfo() {
     $this->tokenInfo = NULL;
-    $this->cache->deleteTags(array(
+    Cache::invalidateTags(array(
       static::TOKEN_INFO_CACHE_TAG => TRUE,
     ));
   }

@@ -18,7 +18,7 @@
     // Keep track of the table, which checkbox is checked and alias the settings.
     var table = this, checkboxes, lastChecked;
     var $table = $(table);
-    var strings = { 'selectAll': Drupal.t('Select all rows in this table'), 'selectNone': Drupal.t('Deselect all rows in this table') };
+    var strings = {'selectAll': Drupal.t('Select all rows in this table'), 'selectNone': Drupal.t('Deselect all rows in this table')};
     var updateSelectAll = function (state) {
       // Update table's select-all checkbox (and sticky header's if available).
       $table.prev('table.sticky-header').addBack().find('th.select-all input[type="checkbox"]').each(function () {
@@ -60,6 +60,10 @@
       // Keep track of the last checked checkbox.
       lastChecked = e.target;
     });
+
+    // If all checkboxes are checked on page load, make sure the select-all one
+    // is checked too, otherwise keep unchecked.
+    updateSelectAll((checkboxes.length === checkboxes.filter(':checked').length));
   };
 
   Drupal.tableSelectRange = function (from, to, state) {

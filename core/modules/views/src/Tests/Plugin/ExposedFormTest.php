@@ -101,6 +101,11 @@ class ExposedFormTest extends ViewTestBase {
     // Test the button is hidden after reset.
     $this->assertNoField('edit-reset');
 
+    // Test the reset works with type set.
+    $this->drupalGet('test_exposed_form_buttons', array('query' => array('type' => 'article', 'op' => 'Reset')));
+    $this->assertResponse(200);
+    $this->assertFieldById('edit-type', 'All', 'Article type filter has been reset.');
+
     // Rename the label of the reset button.
     $view = Views::getView('test_exposed_form_buttons');
     $view->setDisplay();
@@ -132,6 +137,9 @@ class ExposedFormTest extends ViewTestBase {
 
     $expected_action = _url($view->display_handler->getUrl());
     $this->assertFieldByXPath('//form/@action', $expected_action, 'The expected value for the action attribute was found.');
+    // Make sure the description is shown.
+    $result = $this->xpath('//form//div[contains(@id, :id) and normalize-space(text())=:description]', array(':id' => 'edit-type--description', ':description' => t('Exposed description')));
+    $this->assertEqual(count($result), 1, 'Filter description was found.');
   }
 
   /**

@@ -108,9 +108,9 @@ function forum_entity_type_build(array &$entity_types) {
   $entity_types['taxonomy_term']
     ->setFormClass('forum', 'Drupal\forum\Form\ForumForm')
     ->setFormClass('container', 'Drupal\forum\Form\ContainerForm')
-    ->setLinkTemplate('forum-delete-form', 'entity.taxonomy_term.forum_delete_form')
-    ->setLinkTemplate('forum-edit-container-form', 'entity.taxonomy_term.forum_edit_container_form')
-    ->setLinkTemplate('forum-edit-form', 'entity.taxonomy_term.forum_edit_form');
+    ->setLinkTemplate('forum-edit-container-form', '/admin/structure/forum/edit/container/{taxonomy_term}')
+    ->setLinkTemplate('forum-delete-form', '/admin/structure/forum/delete/forum/{taxonomy_term}')
+    ->setLinkTemplate('forum-edit-form', '/admin/structure/forum/edit/forum/{taxonomy_term}');
 }
 
 /**
@@ -133,39 +133,11 @@ function forum_uri($forum) {
 }
 
 /**
- * Implements hook_node_validate().
- *
- * Checks in particular that the node is assigned only a "leaf" term in the
- * forum taxonomy.
+ * Implements hook_entity_bundle_field_info_alter().
  */
-function forum_node_validate(EntityInterface $node, $form, FormStateInterface $form_state) {
-  if (\Drupal::service('forum_manager')->checkNodeType($node)) {
-    // vocabulary is selected, not a "container" term.
-    if (!$node->taxonomy_forums->isEmpty()) {
-      // Extract the node's proper topic ID.
-      foreach ($node->taxonomy_forums as $delta => $item) {
-        // If no term was selected (e.g. when no terms exist yet), remove the
-        // item.
-        if (empty($item->target_id)) {
-          unset($node->taxonomy_forums[$delta]);
-          continue;
-        }
-        $term = $item->entity;
-        if (!$term) {
-          $form_state->setErrorByName('taxonomy_forums', t('Select a forum.'));
-          continue;
-        }
-        $used = \Drupal::entityQuery('taxonomy_term')
-          ->condition('tid', $term->id())
-          ->condition('vid', $term->bundle())
-          ->range(0, 1)
-          ->count()
-          ->execute();
-        if ($used && !empty($term->forum_container->value)) {
-          $form_state->setErrorByName('taxonomy_forums', t('The item %forum is a forum container, not a forum. Select one of the forums below instead.', array('%forum' => $term->getName())));
-        }
-      }
-    }
+function forum_entity_bundle_field_info_alter(&$fields, \Drupal\Core\Entity\EntityTypeInterface $entity_type, $bundle) {
+  if ($entity_type->id() == 'node'  && !empty($fields['taxonomy_forums'])) {
+    $fields['taxonomy_forums']->addConstraint('ForumLeaf', []);
   }
 }
 
@@ -501,7 +473,7 @@ function template_preprocess_forums(&$variables) {
           $page_number = \Drupal::entityManager()->getStorage('comment')
             ->getNewCommentPageNumber($topic->comment_count, $topic->new_replies, $topic, 'comment_forum');
           $query = $page_number ? array('page' => $page_number) : NULL;
-          $variables['topics'][$id]->new_text = format_plural($topic->new_replies, '1 new post<span class="visually-hidden"> in topic %title</span>', '@count new posts<span class="visually-hidden"> in topic %title</span>', array('%title' => $variables['topics'][$id]->label()));
+          $variables['topics'][$id]->new_text = \Drupal::translation()->formatPlural($topic->new_replies, '1 new post<span class="visually-hidden"> in topic %title</span>', '@count new posts<span class="visually-hidden"> in topic %title</span>', array('%title' => $variables['topics'][$id]->label()));
           $variables['topics'][$id]->new_url = \Drupal::url('entity.node.canonical', ['node' => $topic->id()], ['query' => $query, 'fragment' => 'new']);
         }
 
@@ -583,7 +555,7 @@ function template_preprocess_forum_list(&$variables) {
     if ($user->isAuthenticated()) {
       $variables['forums'][$id]->new_topics = \Drupal::service('forum_manager')->unreadTopics($forum->id(), $user->id());
       if ($variables['forums'][$id]->new_topics) {
-        $variables['forums'][$id]->new_text = format_plural($variables['forums'][$id]->new_topics, '1 new post<span class="visually-hidden"> in forum %title</span>', '@count new posts<span class="visually-hidden"> in forum %title</span>', array('%title' => $variables['forums'][$id]->label()));
+        $variables['forums'][$id]->new_text = \Drupal::translation()->formatPlural($variables['forums'][$id]->new_topics, '1 new post<span class="visually-hidden"> in forum %title</span>', '@count new posts<span class="visually-hidden"> in forum %title</span>', array('%title' => $variables['forums'][$id]->label()));
         $variables['forums'][$id]->new_url = \Drupal::url('forum.page', ['taxonomy_term' => $forum->id()], ['fragment' => 'new']);
         $variables['forums'][$id]->icon_class = 'new';
         $variables['forums'][$id]->icon_title = t('New posts');

@@ -64,9 +64,16 @@ class ConfigEntityType extends EntityType {
    * {@inheritdoc}
    */
   public function __construct($definition) {
+    // Ensure a default list cache tag is set; do this before calling the parent
+    // constructor, because we want "Configuration System style" cache tags.
+    if (empty($this->list_cache_tags)) {
+      $this->list_cache_tags = ['config:' . $definition['id'] . '_list'];
+    }
+
     parent::__construct($definition);
     // Always add a default 'uuid' key.
     $this->entity_keys['uuid'] = 'uuid';
+    $this->entity_keys['langcode'] = 'langcode';
     $this->handlers += array(
       'storage' => 'Drupal\Core\Config\Entity\ConfigEntityStorage',
     );

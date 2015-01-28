@@ -83,7 +83,9 @@ function hook_node_grants(\Drupal\Core\Session\AccountInterface $account, $op) {
   if ($account->hasPermission('access private content')) {
     $grants['example'] = array(1);
   }
-  $grants['example_author'] = array($account->id());
+  if ($account->id()) {
+    $grants['example_author'] = array($account->id());
+  }
   return $grants;
 }
 
@@ -175,14 +177,16 @@ function hook_node_access_records(\Drupal\node\NodeInterface $node) {
     // means there are many groups of just 1 user.
     // Note that an author can always view his or her nodes, even if they
     // have status unpublished.
-    $grants[] = array(
-      'realm' => 'example_author',
-      'gid' => $node->getOwnerId(),
-      'grant_view' => 1,
-      'grant_update' => 1,
-      'grant_delete' => 1,
-      'langcode' => 'ca'
-    );
+    if ($node->getOwnerId()) {
+      $grants[] = array(
+        'realm' => 'example_author',
+        'gid' => $node->getOwnerId(),
+        'grant_view' => 1,
+        'grant_update' => 1,
+        'grant_delete' => 1,
+        'langcode' => 'ca'
+      );
+    }
 
     return $grants;
   }
@@ -376,7 +380,7 @@ function hook_node_access(\Drupal\node\NodeInterface $node, $op, \Drupal\Core\Se
  */
 function hook_node_search_result(\Drupal\node\NodeInterface $node, $langcode) {
   $rating = db_query('SELECT SUM(points) FROM {my_rating} WHERE nid = :nid', array('nid' => $node->id()))->fetchField();
-  return array('rating' => format_plural($rating, '1 point', '@count points'));
+  return array('rating' => \Drupal::translation()->formatPlural($rating, '1 point', '@count points'));
 }
 
 /**

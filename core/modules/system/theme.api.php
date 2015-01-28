@@ -711,14 +711,79 @@ function hook_element_info_alter(array &$types) {
  *
  * @param $javascript
  *   An array of all JavaScript being presented on the page.
+ * @param \Drupal\Core\Asset\AttachedAssetsInterface $assets
+ *   The assets attached to the current response.
  *
- * @see _drupal_add_js()
- * @see drupal_get_js()
  * @see drupal_js_defaults()
+ * @see \Drupal\Core\Asset\AssetResolver
  */
-function hook_js_alter(&$javascript) {
+function hook_js_alter(&$javascript, \Drupal\Core\Asset\AttachedAssetsInterface $assets) {
   // Swap out jQuery to use an updated version of the library.
-  $javascript['core/assets/vendor/jquery/jquery.js']['data'] = drupal_get_path('module', 'jquery_update') . '/jquery.js';
+  $javascript['core/assets/vendor/jquery/jquery.min.js']['data'] = drupal_get_path('module', 'jquery_update') . '/jquery.js';
+}
+
+/**
+ * Add dynamic library definitions.
+ *
+ * Modules may implement this hook to add dynamic library definitions. Static
+ * libraries, which do not depend on any runtime information, should be declared
+ * in a modulename.libraries.yml file instead.
+ *
+ * @return array[]
+ *   An array of library definitions to register, keyed by library ID. The
+ *   library ID will be prefixed with the module name automatically.
+ *
+ * @see core.libraries.yml
+ * @see hook_library_info_alter()
+ */
+function hook_library_info_build() {
+  $libraries = [];
+  // Add a library whose information changes depending on certain conditions.
+  $libraries['mymodule.zombie'] = [
+    'dependencies' => [
+      'core/backbone',
+    ],
+  ];
+  if (Drupal::moduleHandler()->moduleExists('minifyzombies')) {
+    $libraries['mymodule.zombie'] += [
+      'js' => [
+        'mymodule.zombie.min.js' => [],
+      ],
+      'css' => [
+        'mymodule.zombie.min.css' => [],
+      ],
+    ];
+  }
+  else {
+    $libraries['mymodule.zombie'] += [
+      'js' => [
+        'mymodule.zombie.js' => [],
+      ],
+      'css' => [
+        'mymodule.zombie.css' => [],
+      ],
+    ];
+  }
+
+  // Add a library only if a certain condition is met. If code wants to
+  // integrate with this library it is safe to (try to) load it unconditionally
+  // without reproducing this check. If the library definition does not exist
+  // the library (of course) not be loaded but no notices or errors will be
+  // triggered.
+  if (Drupal::moduleHandler()->moduleExists('vampirize')) {
+    $libraries['mymodule.vampire'] = [
+      'js' => [
+        'js/vampire.js' => [],
+      ],
+      'css' => [
+        'css/vampire.css',
+      ],
+      'dependencies' => [
+        'core/jquery',
+      ],
+    ];
+  }
+  return $libraries;
 }
 
 /**
@@ -727,12 +792,12 @@ function hook_js_alter(&$javascript) {
  * @param array &$settings
  *   An array of all JavaScript settings (drupalSettings) being presented on the
  *   page.
+ * @param \Drupal\Core\Asset\AttachedAssetsInterface $assets
+ *   The assets attached to the current response.
  *
- * @see _drupal_add_js()
- * @see drupal_get_js()
- * @see drupal_js_defaults()
+ * @see \Drupal\Core\Asset\AssetResolver
  */
-function hook_js_settings_alter(array &$settings) {
+function hook_js_settings_alter(array &$settings, \Drupal\Core\Asset\AttachedAssetsInterface $assets) {
   // Add settings.
   $settings['user']['uid'] = \Drupal::currentUser();
 
@@ -788,48 +853,16 @@ function hook_library_info_alter(&$libraries, $module) {
 }
 
 /**
- * Alters a JavaScript/CSS library before it is attached.
- *
- * Allows modules and themes to dynamically attach further assets to a library
- * when it is added to the page; e.g., to add JavaScript settings.
- *
- * This hook is only invoked once per library and page.
- *
- * @param array $library
- *   The JavaScript/CSS library that is being added.
- * @param string $name
- *   The name of the library.
- *
- * @see _drupal_add_library()
- *
- * @deprecated in Drupal 8.0.x, will be removed before Drupal 8.0.0
- *   Use hook_library_info_alter() and hook_js_settings_alter().
- */
-function hook_library_alter(array &$library, $name) {
-  if ($name == 'core/jquery.ui.datepicker') {
-    // Note: If the added assets do not depend on additional request-specific
-    // data supplied here, consider to statically register it directly via
-    // hook_library_info_alter() already.
-    $library['dependencies'][] = 'locale/drupal.locale.datepicker';
-
-    $language_interface = \Drupal::languageManager()->getCurrentLanguage();
-    $library['drupalSettings']['jquery']['ui']['datepicker'] = array(
-      'isRTL' => $language_interface->getDirection() == LanguageInterface::DIRECTION_RTL,
-      'firstDay' => \Drupal::config('system.date')->get('first_day'),
-    );
-  }
-}
-
-/**
  * Alter CSS files before they are output on the page.
  *
  * @param $css
  *   An array of all CSS items (files and inline CSS) being requested on the page.
+ * @param \Drupal\Core\Asset\AttachedAssetsInterface $assets
+ *   The assets attached to the current response.
  *
- * @see _drupal_add_css()
- * @see drupal_get_css()
+ * @see Drupal\Core\Asset\LibraryResolverInterface::getCssAssets()
  */
-function hook_css_alter(&$css) {
+function hook_css_alter(&$css, \Drupal\Core\Asset\AttachedAssetsInterface $assets) {
   // Remove defaults.css file.
   unset($css[drupal_get_path('module', 'system') . '/defaults.css']);
 }
@@ -843,18 +876,21 @@ function hook_css_alter(&$css) {
  * depends on the elements of other modules, use hook_page_attachments_alter()
  * instead, which runs after this hook.
  *
- * @param array &$page
- *   An empty renderable array representing the page.
+ * If you try to add anything but #attached and #post_render_cache to the array
+ * an exception is thrown.
+ *
+ * @param array &$attachments
+ *   An array that you can add attachments to.
  *
  * @see hook_page_attachments_alter()
  */
-function hook_page_attachments(array &$page) {
+function hook_page_attachments(array &$attachments) {
   // Unconditionally attach an asset to the page.
-  $page['#attached']['library'][] = 'core/domready';
+  $attachments['#attached']['library'][] = 'core/domready';
 
   // Conditionally attach an asset to the page.
   if (!\Drupal::currentUser()->hasPermission('may pet kittens')) {
-    $page['#attached']['library'][] = 'core/jquery';
+    $attachments['#attached']['library'][] = 'core/jquery';
   }
 }
 
@@ -865,20 +901,19 @@ function hook_page_attachments(array &$page) {
  * add attachments to the page that depend on another module's attachments (this
  * hook runs after hook_page_attachments().
  *
- * If you want to alter the attachments added by other modules or if your module
- * depends on the elements of other modules, use hook_page_attachments_alter()
- * instead, which runs after this hook.
+ * If you try to add anything but #attached and #post_render_cache to the array
+ * an exception is thrown.
  *
- * @param array &$page
- *   An empty renderable array representing the page.
+ * @param array &$attachments
+ *   Array of all attachments provided by hook_page_attachments() implementations.
  *
  * @see hook_page_attachments_alter()
  */
-function hook_page_attachments_alter(array &$page) {
+function hook_page_attachments_alter(array &$attachments) {
   // Conditionally remove an asset.
-  if (in_array('core/jquery', $page['#attached']['library'])) {
-    $index = array_search('core/jquery', $page['#attached']['library']);
-    unset($page['#attached']['library'][$index]);
+  if (in_array('core/jquery', $attachments['#attached']['library'])) {
+    $index = array_search('core/jquery', $attachments['#attached']['library']);
+    unset($attachments['#attached']['library'][$index]);
   }
 }
 

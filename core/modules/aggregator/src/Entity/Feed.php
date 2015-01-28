@@ -33,9 +33,9 @@ use Drupal\aggregator\FeedInterface;
  *     }
  *   },
  *   links = {
- *     "canonical" = "entity.aggregator_feed.canonical",
- *     "edit-form" = "entity.aggregator_feed.edit_form",
- *     "delete-form" = "entity.aggregator_feed.delete_form",
+ *     "canonical" = "/aggregator/sources/{aggregator_feed}",
+ *     "edit-form" = "/aggregator/sources/{aggregator_feed}/configure",
+ *     "delete-form" = "/aggregator/sources/{aggregator_feed}/delete",
  *   },
  *   field_ui_base_route = "aggregator.admin_overview",
  *   base_table = "aggregator_feed",
@@ -43,6 +43,7 @@ use Drupal\aggregator\FeedInterface;
  *   entity_keys = {
  *     "id" = "fid",
  *     "label" = "title",
+ *     "langcode" = "langcode",
  *     "uuid" = "uuid",
  *   }
  * )
@@ -149,11 +150,19 @@ class Feed extends ContentEntityBase implements FeedInterface {
         'type' => 'string_textfield',
         'weight' => -5,
       ))
-      ->setDisplayConfigurable('form', TRUE);
+      ->setDisplayConfigurable('form', TRUE)
+      ->addConstraint('FeedTitle', []);
 
     $fields['langcode'] = BaseFieldDefinition::create('language')
       ->setLabel(t('Language code'))
-      ->setDescription(t('The feed language code.'));
+      ->setDescription(t('The feed language code.'))
+      ->setDisplayOptions('view', array(
+        'type' => 'hidden',
+      ))
+      ->setDisplayOptions('form', array(
+        'type' => 'language_select',
+        'weight' => 2,
+      ));
 
     $fields['url'] = BaseFieldDefinition::create('uri')
       ->setLabel(t('URL'))
@@ -163,7 +172,8 @@ class Feed extends ContentEntityBase implements FeedInterface {
         'type' => 'uri',
         'weight' => -3,
       ))
-      ->setDisplayConfigurable('form', TRUE);
+      ->setDisplayConfigurable('form', TRUE)
+      ->addConstraint('FeedUrl', []);
 
     $intervals = array(900, 1800, 3600, 7200, 10800, 21600, 32400, 43200, 64800, 86400, 172800, 259200, 604800, 1209600, 2419200);
     $period = array_map(array(\Drupal::service('date.formatter'), 'formatInterval'), array_combine($intervals, $intervals));

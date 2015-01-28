@@ -11,6 +11,11 @@ use Drupal\simpletest\KernelTestBase;
  */
 class ConfigEntityNormalizeTest extends KernelTestBase {
 
+  /**
+   * Modules to install.
+   *
+   * @var array
+   */
   public static $modules = array('config_test');
 
   protected function setUp() {
@@ -23,7 +28,7 @@ class ConfigEntityNormalizeTest extends KernelTestBase {
     $config_entity->save();
 
     // Modify stored config entity, this is comparable with a schema change.
-    $config = \Drupal::config('config_test.dynamic.system');
+    $config = $this->config('config_test.dynamic.system');
     $data = array(
       'label' => 'foobar',
       'additional_key' => TRUE
@@ -34,7 +39,7 @@ class ConfigEntityNormalizeTest extends KernelTestBase {
     $config_entity = entity_load('config_test', 'system', TRUE);
     $config_entity->save();
 
-    $config = \Drupal::config('config_test.dynamic.system');
+    $config = $this->config('config_test.dynamic.system');
     $this->assertIdentical($config_entity->toArray(), $config->getRawData(), 'Stored config entity is equivalent to config schema.');
   }
 

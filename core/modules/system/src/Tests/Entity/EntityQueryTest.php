@@ -68,7 +68,6 @@ class EntityQueryTest extends EntityUnitTestBase {
         'entity_type' => 'entity_test_mulrev',
         'type' => $field_type,
         'cardinality' => 2,
-        'translatable' => TRUE,
       ));
       $field_storage->save();
       $field_storages[] = $field_storage;
@@ -547,7 +546,11 @@ class EntityQueryTest extends EntityUnitTestBase {
     $fixtures = array();
 
     for ($i = 0; $i < 2; $i++) {
-      $string = $this->randomMachineName();
+      // If the last 4 of the string are all numbers, then there is no
+      // difference between upper and lowercase and the case sensitive CONTAINS
+      // test will fail. Ensure that can not happen by appending a non-numeric
+      // character. See https://www.drupal.org/node/2397297.
+      $string = $this->randomMachineName(7) . 'a';
       $fixtures[] = array(
         'original' => $string,
         'uppercase' => Unicode::strtoupper($string),

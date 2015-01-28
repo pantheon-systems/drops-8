@@ -8,6 +8,7 @@
 namespace Drupal\Core\Entity\Sql;
 
 use Drupal\Component\Utility\String;
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Database\Database;
@@ -24,6 +25,7 @@ use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\field\FieldStorageConfigInterface;
+use Drupal\Core\Language\LanguageManagerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -121,6 +123,13 @@ class SqlContentEntityStorage extends ContentEntityStorageBase implements SqlEnt
   protected $cacheBackend;
 
   /**
+   * The language manager.
+   *
+   * @var \Drupal\Core\Language\LanguageManagerInterface
+   */
+  protected $languageManager;
+
+  /**
    * {@inheritdoc}
    */
   public static function createInstance(ContainerInterface $container, EntityTypeInterface $entity_type) {
@@ -128,7 +137,8 @@ class SqlContentEntityStorage extends ContentEntityStorageBase implements SqlEnt
       $entity_type,
       $container->get('database'),
       $container->get('entity.manager'),
-      $container->get('cache.entity')
+      $container->get('cache.entity'),
+      $container->get('language_manager')
     );
   }
 
@@ -154,12 +164,15 @@ class SqlContentEntityStorage extends ContentEntityStorageBase implements SqlEnt
    *   The entity manager.
    * @param \Drupal\Core\Cache\CacheBackendInterface $cache_backend
    *   The cache backend to be used.
+   * @param \Drupal\Core\Language\LanguageManagerInterface $language_manager
+   *   The language manager.
    */
-  public function __construct(EntityTypeInterface $entity_type, Connection $database, EntityManagerInterface $entity_manager, CacheBackendInterface $cache) {
+  public function __construct(EntityTypeInterface $entity_type, Connection $database, EntityManagerInterface $entity_manager, CacheBackendInterface $cache, LanguageManagerInterface $language_manager) {
     parent::__construct($entity_type);
     $this->database = $database;
     $this->entityManager = $entity_manager;
     $this->cacheBackend = $cache;
+    $this->languageManager = $language_manager;
     $this->initTableLayout();
   }
 
@@ -186,7 +199,7 @@ class SqlContentEntityStorage extends ContentEntityStorageBase implements SqlEnt
     $translatable = $this->entityType->isTranslatable();
     if ($translatable) {
       $this->dataTable = $this->entityType->getDataTable() ?: $this->entityTypeId . '_field_data';
-      $this->langcodeKey = $this->entityType->getKey('langcode') ?: 'langcode';
+      $this->langcodeKey = $this->entityType->getKey('langcode');
       $this->defaultLangcodeKey = $this->entityType->getKey('default_langcode') ?: 'default_langcode';
     }
     if ($revisionable && $translatable) {
@@ -281,7 +294,7 @@ class SqlContentEntityStorage extends ContentEntityStorageBase implements SqlEnt
     //   easily instantiate a new table mapping whenever needed.
     if (!isset($this->tableMapping) || $storage_definitions) {
       $definitions = $storage_definitions ?: $this->entityManager->getFieldStorageDefinitions($this->entityTypeId);
-      $table_mapping = new DefaultTableMapping($definitions);
+      $table_mapping = new DefaultTableMapping($this->entityType, $definitions);
 
       $definitions = array_filter($definitions, function (FieldStorageDefinitionInterface $definition) use ($table_mapping) {
         return $table_mapping->allowsSharedTableStorage($definition);
@@ -574,7 +587,7 @@ class SqlContentEntityStorage extends ContentEntityStorageBase implements SqlEnt
     else {
       $this->entities = array();
       if ($this->entityType->isPersistentlyCacheable()) {
-        $this->cacheBackend->deleteTags(array($this->entityTypeId . '_values'));
+        Cache::invalidateTags(array($this->entityTypeId . '_values'));
       }
     }
   }
@@ -682,7 +695,7 @@ class SqlContentEntityStorage extends ContentEntityStorageBase implements SqlEnt
 
         // Field values in default language are stored with
         // LanguageInterface::LANGCODE_DEFAULT as key.
-        $langcode = empty($values['default_langcode']) ? $values['langcode'] : LanguageInterface::LANGCODE_DEFAULT;
+        $langcode = empty($values['default_langcode']) ? $values[$this->langcodeKey] : LanguageInterface::LANGCODE_DEFAULT;
         $translations[$id][$langcode] = TRUE;
 
 
@@ -1145,8 +1158,8 @@ class SqlContentEntityStorage extends ContentEntityStorageBase implements SqlEnt
       $table_name = $this->dataTable;
     }
     $record = $this->mapToStorageRecord($entity, $table_name);
-    $record->langcode = $entity->language()->getId();
-    $record->default_langcode = intval($record->langcode == $entity->getUntranslated()->language()->getId());
+    $record->{$this->langcodeKey} = $entity->language()->getId();
+    $record->default_langcode = intval($record->{$this->langcodeKey} == $entity->getUntranslated()->language()->getId());
     return $record;
   }
 
@@ -1250,7 +1263,7 @@ class SqlContentEntityStorage extends ContentEntityStorageBase implements SqlEnt
     }
 
     // Load field data.
-    $langcodes = array_keys(language_list(LanguageInterface::STATE_ALL));
+    $langcodes = array_keys($this->languageManager->getLanguages(LanguageInterface::STATE_ALL));
     foreach ($storage_definitions as $field_name => $storage_definition) {
       $table = $load_current ? $table_mapping->getDedicatedDataTableName($storage_definition) : $table_mapping->getDedicatedRevisionTableName($storage_definition);
 
@@ -1732,19 +1745,24 @@ class SqlContentEntityStorage extends ContentEntityStorageBase implements SqlEnt
         ->distinct(TRUE);
     }
     elseif ($table_mapping->allowsSharedTableStorage($storage_definition)) {
-      $data_table = $this->dataTable ?: $this->baseTable;
-      $query = $this->database->select($data_table, 't');
-      $columns = $storage_definition->getColumns();
-      if (count($columns) > 1) {
-        $or = $query->orConditionGroup();
-        foreach ($columns as $column_name => $data) {
-          $or->isNotNull($storage_definition->getName() . '__' . $column_name);
-        }
-        $query->condition($or);
+      // Ascertain the table this field is mapped too.
+      $field_name = $storage_definition->getName();
+      try {
+        $table_name = $table_mapping->getFieldTableName($field_name);
       }
-      else {
-        $query->isNotNull($storage_definition->getName());
+      catch (SqlContentEntityStorageException $e) {
+        // This may happen when changing field storage schema, since we are not
+        // able to use a table mapping matching the passed storage definition.
+        // @todo Revisit this once we are able to instantiate the table mapping
+        //   properly. See https://www.drupal.org/node/2274017.
+        $table_name = $this->dataTable ?: $this->baseTable;
       }
+      $query = $this->database->select($table_name, 't');
+      $or = $query->orConditionGroup();
+      foreach (array_keys($storage_definition->getColumns()) as $property_name) {
+        $or->isNotNull($table_mapping->getFieldColumnName($storage_definition, $property_name));
+      }
+      $query->condition($or);
       $query
         ->fields('t', array($this->idKey))
         ->distinct(TRUE);

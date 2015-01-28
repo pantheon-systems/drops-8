@@ -27,6 +27,11 @@ const ENTITY_TEST_TYPES_REVISABLE = 1;
 const ENTITY_TEST_TYPES_MULTILINGUAL = 2;
 
 /**
+ * Filter that limits test entity list to routeable ones.
+ */
+const ENTITY_TEST_TYPES_ROUTING = 3;
+
+/**
  * Returns a list of test entity types.
  *
  * The returned entity types are one for each available entity storage type:
@@ -47,16 +52,21 @@ const ENTITY_TEST_TYPES_MULTILINGUAL = 2;
  */
 function entity_test_entity_types($filter = NULL) {
   $types = array();
-  if ($filter == NULL) {
+  if ($filter === NULL || $filter === ENTITY_TEST_TYPES_ROUTING) {
     $types[] = 'entity_test';
   }
   if ($filter != ENTITY_TEST_TYPES_REVISABLE) {
     $types[] = 'entity_test_mul';
+    $types[] = 'entity_test_mul_langcode_key';
   }
   if ($filter != ENTITY_TEST_TYPES_MULTILINGUAL) {
     $types[] = 'entity_test_rev';
   }
+  if ($filter === ENTITY_TEST_TYPES_ROUTING) {
+    $types[] = 'entity_test_base_field_display';
+  }
   $types[] = 'entity_test_mulrev';
+
   return array_combine($types, $types);
 }
 
@@ -426,6 +436,34 @@ function entity_test_entity_test_mul_translation_insert(EntityInterface $transla
  */
 function entity_test_entity_test_mul_translation_delete(EntityInterface $translation) {
   _entity_test_record_hooks('entity_test_mul_translation_delete', $translation->language()->getId());
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_translation_insert().
+ */
+function entity_test_entity_test_mulrev_translation_insert(EntityInterface $translation) {
+  _entity_test_record_hooks('entity_test_mulrev_translation_insert', $translation->language()->getId());
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_translation_delete().
+ */
+function entity_test_entity_test_mulrev_translation_delete(EntityInterface $translation) {
+  _entity_test_record_hooks('entity_test_mulrev_translation_delete', $translation->language()->getId());
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_translation_insert().
+ */
+function entity_test_entity_test_mul_langcode_key_translation_insert(EntityInterface $translation) {
+  _entity_test_record_hooks('entity_test_mul_langcode_key_translation_insert', $translation->language()->getId());
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_translation_delete().
+ */
+function entity_test_entity_test_mul_langcode_key_translation_delete(EntityInterface $translation) {
+  _entity_test_record_hooks('entity_test_mul_langcode_key_translation_delete', $translation->language()->getId());
 }
 
 /**

@@ -85,10 +85,16 @@ class MigrateUserTest extends MigrateDrupalTestBase {
 
     // Load database dumps to provide source data.
     $dumps = array(
-      $this->getDumpDirectory() . '/Drupal6FilterFormat.php',
-      $this->getDumpDirectory() . '/Drupal6UserProfileFields.php',
-      $this->getDumpDirectory() . '/Drupal6UserRole.php',
-      $this->getDumpDirectory() . '/Drupal6User.php',
+      $this->getDumpDirectory() . '/Filters.php',
+      $this->getDumpDirectory() . '/FilterFormats.php',
+      $this->getDumpDirectory() . '/Variable.php',
+      $this->getDumpDirectory() . '/ProfileFields.php',
+      $this->getDumpDirectory() . '/Permission.php',
+      $this->getDumpDirectory() . '/Role.php',
+      $this->getDumpDirectory() . '/Users.php',
+      $this->getDumpDirectory() . '/ProfileValues.php',
+      $this->getDumpDirectory() . '/UsersRoles.php',
+      $this->getDumpDirectory() . '/EventTimezones.php',
     );
     $this->loadDumps($dumps);
 
@@ -151,14 +157,14 @@ class MigrateUserTest extends MigrateDrupalTestBase {
       }
       // Get the user signature format.
       $migration_format = entity_load('migration', 'd6_filter_format');
-      $signature_format = $migration_format->getIdMap()->lookupDestinationId(array($source->signature_format));
+      $signature_format = $source->signature_format === '0' ? [NULL] : $migration_format->getIdMap()->lookupDestinationId(array($source->signature_format));
 
       $user = User::load($source->uid);
       $this->assertEqual($user->id(), $source->uid);
       $this->assertEqual($user->label(), $source->name);
       $this->assertEqual($user->getEmail(), $source->mail);
       $this->assertEqual($user->getSignature(), $source->signature);
-      $this->assertEqual($user->getSignatureFormat(), reset($signature_format));
+      $this->assertIdentical($user->getSignatureFormat(), reset($signature_format));
       $this->assertEqual($user->getCreatedTime(), $source->created);
       $this->assertEqual($user->getLastAccessedTime(), $source->access);
       $this->assertEqual($user->getLastLoginTime(), $source->login);
@@ -168,7 +174,7 @@ class MigrateUserTest extends MigrateDrupalTestBase {
       // user preferred language is not configured on the site. We just want to
       // test if the value was imported correctly.
       $this->assertEqual($user->preferred_langcode->value, $source->language);
-      $time_zone = $source->expected_timezone ?: \Drupal::config('system.date')->get('timezone.default');
+      $time_zone = $source->expected_timezone ?: $this->config('system.date')->get('timezone.default');
       $this->assertEqual($user->getTimeZone(), $time_zone);
       $this->assertEqual($user->getInitialEmail(), $source->init);
       $this->assertEqual($user->getRoles(), $roles);

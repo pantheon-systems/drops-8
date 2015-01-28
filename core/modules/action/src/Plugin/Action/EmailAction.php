@@ -7,11 +7,14 @@
 
 namespace Drupal\action\Plugin\Action;
 
+use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Action\ConfigurableActionBase;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Mail\MailManagerInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
+use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Utility\Token;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -55,6 +58,12 @@ class EmailAction extends ConfigurableActionBase implements ContainerFactoryPlug
    */
   protected $mailManager;
 
+  /** The language manager.
+   *
+   * @var \Drupal\Core\Language\LanguageManagerInterface
+   */
+  protected $languageManager;
+
   /**
    * Constructs a EmailAction object.
    *
@@ -72,14 +81,17 @@ class EmailAction extends ConfigurableActionBase implements ContainerFactoryPlug
    *   A logger instance.
    * @param \Drupal\Core\Mail\MailManagerInterface
    *   The mail manager.
+   * @param \Drupal\Core\Language\LanguageManagerInterface
+   *   The language manager.
    */
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, Token $token, EntityManagerInterface $entity_manager, LoggerInterface $logger, MailManagerInterface $mail_manager) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, Token $token, EntityManagerInterface $entity_manager, LoggerInterface $logger, MailManagerInterface $mail_manager, LanguageManagerInterface $language_manager) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
 
     $this->token = $token;
     $this->storage = $entity_manager->getStorage('user');
     $this->logger = $logger;
     $this->mailManager = $mail_manager;
+    $this->languageManager = $language_manager;
   }
 
   /**
@@ -90,7 +102,8 @@ class EmailAction extends ConfigurableActionBase implements ContainerFactoryPlug
       $container->get('token'),
       $container->get('entity.manager'),
       $container->get('logger.factory')->get('action'),
-      $container->get('plugin.manager.mail')
+      $container->get('plugin.manager.mail'),
+      $container->get('language_manager')
     );
   }
 
@@ -113,7 +126,7 @@ class EmailAction extends ConfigurableActionBase implements ContainerFactoryPlug
       $langcode = $recipient_account->getPreferredLangcode();
     }
     else {
-      $langcode = language_default()->getId();
+      $langcode = $this->languageManager->getDefaultLanguage()->getId();
     }
     $params = array('context' => $this->configuration);
 
@@ -182,6 +195,14 @@ class EmailAction extends ConfigurableActionBase implements ContainerFactoryPlug
     $this->configuration['recipient'] = $form_state->getValue('recipient');
     $this->configuration['subject'] = $form_state->getValue('subject');
     $this->configuration['message'] = $form_state->getValue('message');
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function access($object, AccountInterface $account = NULL, $return_as_object = FALSE) {
+    $result = AccessResult::allowed();
+    return $return_as_object ? $result : $result->isAllowed();
   }
 
 }

@@ -236,7 +236,8 @@ class EntityType implements EntityTypeInterface {
     // Ensure defaults.
     $this->entity_keys += array(
       'revision' => '',
-      'bundle' => ''
+      'bundle' => '',
+      'langcode' => '',
     );
     $this->handlers += array(
       'access' => 'Drupal\Core\Entity\EntityAccessControlHandler',
@@ -435,6 +436,13 @@ class EntityType implements EntityTypeInterface {
   /**
    * {@inheritdoc}
    */
+  public function hasRouteProviders() {
+    return !empty($this->handlers['route_provider']);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function getListBuilderClass() {
     return $this->getHandlerClass('list_builder');
   }
@@ -474,6 +482,13 @@ class EntityType implements EntityTypeInterface {
    */
   public function hasViewBuilderClass() {
     return $this->hasHandlerClass('view_builder');
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getRouteProviderClasses() {
+    return !empty($this->handlers['route_provider']) ? $this->handlers['route_provider'] : [];
   }
 
   /**
@@ -531,8 +546,12 @@ class EntityType implements EntityTypeInterface {
   /**
    * {@inheritdoc}
    */
-  public function setLinkTemplate($key, $route_name) {
-    $this->links[$key] = $route_name;
+  public function setLinkTemplate($key, $path) {
+    if ($path[0] !== '/') {
+      throw new \InvalidArgumentException('Link templates accepts paths, which have to start with a leading slash.');
+    }
+
+    $this->links[$key] = $path;
     return $this;
   }
 

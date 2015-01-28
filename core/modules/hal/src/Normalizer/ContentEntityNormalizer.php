@@ -133,15 +133,16 @@ class ContentEntityNormalizer extends NormalizerBase {
 
     // Create the entity.
     $typed_data_ids = $this->getTypedDataIds($data['_links']['type']);
-    $values = array();
-    // Figure out the language to use.
-    if (isset($data['langcode'])) {
-      $values['langcode'] = $data['langcode'][0]['value'];
-      // Remove the langcode so it does not get iterated over below.
-      unset($data['langcode']);
-    }
-
     $entity_type = $this->entityManager->getDefinition($typed_data_ids['entity_type']);
+    $langcode_key = $entity_type->getKey('langcode');
+    $values = array();
+
+    // Figure out the language to use.
+    if (isset($data[$langcode_key])) {
+      $values[$langcode_key] = $data[$langcode_key][0]['value'];
+      // Remove the langcode so it does not get iterated over below.
+      unset($data[$langcode_key]);
+    }
 
     if ($entity_type->hasKey('bundle')) {
       $bundle_key = $entity_type->getKey('bundle');
@@ -151,15 +152,6 @@ class ContentEntityNormalizer extends NormalizerBase {
     }
 
     $entity = $this->entityManager->getStorage($typed_data_ids['entity_type'])->create($values);
-
-    // Special handling for PATCH: destroy all possible default values that
-    // might have been set on entity creation. We want an "empty" entity that
-    // will only get filled with fields from the data array.
-    if (isset($context['request_method']) && $context['request_method'] == 'patch') {
-      foreach ($entity as $field_name => $field) {
-        $entity->set($field_name, NULL);
-      }
-    }
 
     // Remove links from data array.
     unset($data['_links']);
@@ -177,6 +169,12 @@ class ContentEntityNormalizer extends NormalizerBase {
         $field_name = $field_ids['field_name'];
         $data[$field_name] = $field;
       }
+    }
+
+    // Special handling for PATCH: pass the names of the fields whose values
+    // should be merged.
+    if (isset($context['request_method']) && $context['request_method'] == 'patch') {
+      $entity->_restPatchFields = array_keys($data);
     }
 
     // Iterate through remaining items in data array. These should all

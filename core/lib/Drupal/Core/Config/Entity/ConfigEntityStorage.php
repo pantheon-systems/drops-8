@@ -93,6 +93,13 @@ class ConfigEntityStorage extends EntityStorageBase implements ConfigEntityStora
   protected $entities = array();
 
   /**
+   * Determines if the underlying configuration is retrieved override free.
+   *
+   * @var bool
+   */
+  protected $overrideFree = FALSE;
+
+  /**
    * Constructs a ConfigEntityStorage object.
    *
    * @param \Drupal\Core\Entity\EntityTypeInterface $entity_type
@@ -179,7 +186,7 @@ class ConfigEntityStorage extends EntityStorageBase implements ConfigEntityStora
     // Load all of the configuration entities.
     $records = array();
     foreach ($this->configFactory->loadMultiple($names) as $config) {
-      $records[$config->get($this->idKey)] = $config->get();
+      $records[$config->get($this->idKey)] = $this->overrideFree ? $config->getOriginal(NULL, FALSE) : $config->get();
     }
     return $this->mapFromStorageRecords($records);
   }
@@ -189,7 +196,7 @@ class ConfigEntityStorage extends EntityStorageBase implements ConfigEntityStora
    */
   protected function doCreate(array $values) {
     // Set default language to site default if not provided.
-    $values += array('langcode' => $this->languageManager->getDefaultLanguage()->getId());
+    $values += array($this->langcodeKey => $this->languageManager->getDefaultLanguage()->getId());
     $entity = new $this->entityClass($values, $this->entityTypeId);
 
     return $entity;
@@ -200,8 +207,7 @@ class ConfigEntityStorage extends EntityStorageBase implements ConfigEntityStora
    */
   protected function doDelete($entities) {
     foreach ($entities as $entity) {
-      $config = $this->configFactory->get($this->getPrefix() . $entity->id());
-      $config->delete();
+      $this->configFactory->getEditable($this->getPrefix() . $entity->id())->delete();
     }
   }
 
@@ -238,16 +244,15 @@ class ConfigEntityStorage extends EntityStorageBase implements ConfigEntityStora
   protected function doSave($id, EntityInterface $entity) {
     $is_new = $entity->isNew();
     $prefix = $this->getPrefix();
+    $config_name = $prefix . $entity->id();
     if ($id !== $entity->id()) {
       // Renaming a config object needs to cater for:
       // - Storage needs to access the original object.
       // - The object needs to be renamed/copied in ConfigFactory and reloaded.
       // - All instances of the object need to be renamed.
-      $config = $this->configFactory->rename($prefix . $id, $prefix . $entity->id());
+      $this->configFactory->rename($prefix . $id, $config_name);
     }
-    else {
-      $config = $this->configFactory->get($prefix . $id);
-    }
+    $config = $this->configFactory->getEditable($config_name);
 
     // Retrieve the desired properties and set them in config.
     $config->setData($this->mapToStorageRecord($entity));
@@ -291,7 +296,7 @@ class ConfigEntityStorage extends EntityStorageBase implements ConfigEntityStora
     $entities = array();
     // Load any available entities from the internal cache.
     if ($this->entityType->isStaticallyCacheable() && !empty($this->entities)) {
-      $config_overrides_key = implode(':', $this->configFactory->getCacheKeys());
+      $config_overrides_key = $this->overrideFree ? '' : implode(':', $this->configFactory->getCacheKeys());
       foreach ($ids as $id) {
         if (!empty($this->entities[$id])) {
           if (isset($this->entities[$id][$config_overrides_key])) {
@@ -311,7 +316,7 @@ class ConfigEntityStorage extends EntityStorageBase implements ConfigEntityStora
    */
   protected function setStaticCache(array $entities) {
     if ($this->entityType->isStaticallyCacheable()) {
-      $config_overrides_key = implode(':', $this->configFactory->getCacheKeys());
+      $config_overrides_key = $this->overrideFree ? '' : implode(':', $this->configFactory->getCacheKeys());
       foreach ($entities as $id => $entity) {
         $this->entities[$id][$config_overrides_key] = $entity;
       }
@@ -418,6 +423,24 @@ class ConfigEntityStorage extends EntityStorageBase implements ConfigEntityStora
     }
 
     return $entity;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function loadOverrideFree($id) {
+    $entities = $this->loadMultipleOverrideFree([$id]);
+    return isset($entities[$id]) ? $entities[$id] : NULL;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function loadMultipleOverrideFree(array $ids = NULL) {
+    $this->overrideFree = TRUE;
+    $entities = $this->loadMultiple($ids);
+    $this->overrideFree = FALSE;
+    return $entities;
   }
 
 }

@@ -68,25 +68,18 @@ const DRUPAL_BOOTSTRAP_CONFIGURATION = 0;
 const DRUPAL_BOOTSTRAP_KERNEL = 1;
 
 /**
- * Third bootstrap phase: try to serve a cached page.
+ * Third bootstrap phase: load code for subsystems and modules.
  *
  * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
  */
-const DRUPAL_BOOTSTRAP_PAGE_CACHE = 2;
-
-/**
- * Fourth bootstrap phase: load code for subsystems and modules.
- *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- */
-const DRUPAL_BOOTSTRAP_CODE = 3;
+const DRUPAL_BOOTSTRAP_CODE = 2;
 
 /**
  * Final bootstrap phase: initialize language, path, theme, and modules.
  *
  * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
  */
-const DRUPAL_BOOTSTRAP_FULL = 4;
+const DRUPAL_BOOTSTRAP_FULL = 3;
 
 /**
  * Role ID for anonymous users; should match what's in the "role" table.
@@ -294,36 +287,20 @@ function drupal_get_filename($type, $name, $filename = NULL) {
 }
 
 /**
- * Gets the page cache cid for this request.
+ * Returns the path to a system item (module, theme, etc.).
  *
- * @param \Symfony\Component\HttpFoundation\Request $request
- *   The request for this page.
+ * @param $type
+ *   The type of the item; one of 'core', 'profile', 'module', 'theme', or
+ *   'theme_engine'.
+ * @param $name
+ *   The name of the item for which the path is requested. Ignored for
+ *   $type 'core'.
  *
- * @return string
- *   The cid for this request.
+ * @return
+ *   The path to the requested item or an empty string if the item is not found.
  */
-function drupal_page_cache_get_cid(Request $request) {
-  $cid_parts = array(
-    $request->getUri(),
-    \Drupal::service('content_negotiation')->getContentType($request),
-  );
-  return implode(':', $cid_parts);
-}
-
-/**
- * Retrieves the current page from the cache.
- *
- * @param \Symfony\Component\HttpFoundation\Request $request
- *   The request for this page.
- *
- * @return \Symfony\Component\HttpFoundation\Response
- *   The response, if the page was found in the cache, NULL otherwise.
- */
-function drupal_page_get_cache(Request $request) {
-  $cache = \Drupal::cache('render')->get(drupal_page_cache_get_cid($request));
-  if ($cache) {
-    return $cache->data;
-  }
+function drupal_get_path($type, $name) {
+  return dirname(drupal_get_filename($type, $name));
 }
 
 /**
@@ -407,72 +384,6 @@ function _drupal_set_preferred_header_name($name = NULL) {
     return $header_names;
   }
   $header_names[strtolower($name)] = $name;
-}
-
-/**
- * Sets HTTP headers in preparation for a cached page response.
- *
- * The headers allow as much as possible in proxies and browsers without any
- * particular knowledge about the pages. Modules can override these headers
- * using _drupal_add_http_header().
- *
- * If the request is conditional (using If-Modified-Since and If-None-Match),
- * and the conditions match those currently in the cache, a 304 Not Modified
- * response is sent.
- */
-function drupal_serve_page_from_cache(Response $response, Request $request) {
-  // Only allow caching in the browser and prevent that the response is stored
-  // by an external proxy server when the following conditions apply:
-  // 1. There is a session cookie on the request.
-  // 2. The Vary: Cookie header is on the response.
-  // 3. The Cache-Control header does not contain the no-cache directive.
-  if ($request->cookies->has(session_name()) &&
-    in_array('Cookie', $response->getVary()) &&
-    !$response->headers->hasCacheControlDirective('no-cache')) {
-
-    $response->setPrivate();
-  }
-
-  // Negotiate whether to use compression.
-  if ($response->headers->get('Content-Encoding') == 'gzip' && extension_loaded('zlib')) {
-    if (strpos($request->headers->get('Accept-Encoding'), 'gzip') !== FALSE) {
-      // The response content is already gzip'ed, so make sure
-      // zlib.output_compression does not compress it once more.
-      ini_set('zlib.output_compression', '0');
-    }
-    else {
-      // The client does not support compression. Decompress the content and
-      // remove the Content-Encoding header.
-      $content = $response->getContent();
-      $content = gzinflate(substr(substr($content, 10), 0, -8));
-      $response->setContent($content);
-      $response->headers->remove('Content-Encoding');
-    }
-  }
-
-  // Perform HTTP revalidation.
-  // @todo Use Response::isNotModified() as per https://drupal.org/node/2259489
-  $last_modified = $response->getLastModified();
-  if ($last_modified) {
-    // See if the client has provided the required HTTP headers.
-    $if_modified_since = $request->server->has('HTTP_IF_MODIFIED_SINCE') ? strtotime($request->server->get('HTTP_IF_MODIFIED_SINCE')) : FALSE;
-    $if_none_match = $request->server->has('HTTP_IF_NONE_MATCH') ? stripslashes($request->server->get('HTTP_IF_NONE_MATCH')) : FALSE;
-
-    if ($if_modified_since && $if_none_match
-      && $if_none_match == $response->getEtag() // etag must match
-      && $if_modified_since == $last_modified->getTimestamp()) {  // if-modified-since must match
-      $response->setStatusCode(304);
-      $response->setContent(NULL);
-
-      // In the case of a 304 response, certain headers must be sent, and the
-      // remaining may not (see RFC 2616, section 10.3.5).
-      foreach (array_keys($response->headers->all()) as $name) {
-        if (!in_array($name, array('content-location', 'expires', 'cache-control', 'vary'))) {
-          $response->headers->remove($name);
-        }
-      }
-    }
-  }
 }
 
 /**
@@ -813,10 +724,6 @@ function drupal_bootstrap($phase = NULL) {
           $kernel->boot();
           break;
 
-        case DRUPAL_BOOTSTRAP_PAGE_CACHE:
-          $kernel->handlePageCache($request);
-          break;
-
         case DRUPAL_BOOTSTRAP_CODE:
         case DRUPAL_BOOTSTRAP_FULL:
           $kernel->prepareLegacyRequest($request);
@@ -1064,6 +971,39 @@ function drupal_installation_attempted() {
   // executed code does not involve the installer at all.
   // @see install_drupal()
   return isset($GLOBALS['install_state']) && empty($GLOBALS['install_state']['installation_finished']);
+}
+
+/**
+ * Gets the name of the currently active installation profile.
+ *
+ * When this function is called during Drupal's initial installation process,
+ * the name of the profile that's about to be installed is stored in the global
+ * installation state. At all other times, the "install_profile" setting will be
+ * available in settings.php.
+ *
+ * @return string|null $profile
+ *   The name of the installation profile or NULL if no installation profile is
+ *   currently active. This is the case for example during the first steps of
+ *   the installer or during unit tests.
+ */
+function drupal_get_profile() {
+  global $install_state;
+
+  if (drupal_installation_attempted()) {
+    // If the profile has been selected return it.
+    if (isset($install_state['parameters']['profile'])) {
+      $profile = $install_state['parameters']['profile'];
+    }
+    else {
+      $profile = NULL;
+    }
+  }
+  else {
+    // Fall back to NULL, if there is no 'install_profile' setting.
+    $profile = Settings::get('install_profile');
+  }
+
+  return $profile;
 }
 
 /**

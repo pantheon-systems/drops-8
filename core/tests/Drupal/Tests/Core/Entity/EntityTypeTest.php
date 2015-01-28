@@ -69,9 +69,9 @@ class EntityTypeTest extends UnitTestCase {
    */
   public function providerTestGetKeys() {
     return array(
-      array(array(), array('revision' => '', 'bundle' => '')),
-      array(array('id' => 'id'), array('id' => 'id', 'revision' => '', 'bundle' => '')),
-      array(array('bundle' => 'bundle'), array('bundle' => 'bundle', 'revision' => '')),
+      array(array(), array('revision' => '', 'bundle' => '', 'langcode' => '')),
+      array(array('id' => 'id'), array('id' => 'id', 'revision' => '', 'bundle' => '', 'langcode' => '')),
+      array(array('bundle' => 'bundle'), array('bundle' => 'bundle', 'revision' => '', 'langcode' => '')),
     );
   }
 
@@ -239,6 +239,16 @@ class EntityTypeTest extends UnitTestCase {
    */
   protected function getTestHandlerClass() {
     return get_class($this->getMockForAbstractClass('Drupal\Core\Entity\EntityHandlerBase'));
+  }
+
+  /**
+   * @covers ::setLinkTemplate
+   *
+   * @expectedException \InvalidArgumentException
+   */
+  public function testSetLinkTemplateWithInvalidPath() {
+    $entity_type = $this->setUpEntityType(['id' => $this->randomMachineName()]);
+    $entity_type->setLinkTemplate('test', 'invalid-path');
   }
 
 }

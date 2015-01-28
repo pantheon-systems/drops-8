@@ -35,7 +35,7 @@ class MigrateSimpletestConfigsTest extends MigrateDrupalTestBase {
     parent::setUp();
     $migration = entity_load('migration', 'd6_simpletest_settings');
     $dumps = array(
-      $this->getDumpDirectory() . '/Drupal6SimpletestSettings.php',
+      $this->getDumpDirectory() . '/Variable.php',
     );
     $this->prepare($migration, $dumps);
     $executable = new MigrateExecutable($migration, new MigrateMessage());
@@ -46,7 +46,7 @@ class MigrateSimpletestConfigsTest extends MigrateDrupalTestBase {
    * Tests migration of simpletest variables to simpletest.settings.yml.
    */
   public function testSimpletestSettings() {
-    $config = \Drupal::config('simpletest.settings');
+    $config = $this->config('simpletest.settings');
     $this->assertIdentical($config->get('clear_results'), TRUE);
     $this->assertIdentical($config->get('httpauth.method'), CURLAUTH_BASIC);
     // NULL in the dump means defaults which is empty string. Same as omitting

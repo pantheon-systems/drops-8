@@ -25,6 +25,7 @@ class BlockContentTypeForm extends EntityForm {
   public function form(array $form, FormStateInterface $form_state) {
     $form = parent::form($form, $form_state);
 
+    /* @var \Drupal\block_content\BlockContentTypeInterface $block_type */
     $block_type = $this->entity;
 
     $form['label'] = array(
@@ -47,7 +48,7 @@ class BlockContentTypeForm extends EntityForm {
 
     $form['description'] = array(
       '#type' => 'textarea',
-      '#default_value' => $block_type->description,
+      '#default_value' => $block_type->getDescription(),
       '#description' => t('Enter a description for this block type.'),
       '#title' => t('Description'),
     );
@@ -55,7 +56,7 @@ class BlockContentTypeForm extends EntityForm {
     $form['revision'] = array(
       '#type' => 'checkbox',
       '#title' => t('Create new revision'),
-      '#default_value' => $block_type->revision,
+      '#default_value' => $block_type->shouldCreateNewRevision(),
       '#description' => t('Create a new revision by default for this block type.')
     );
 
@@ -107,7 +108,7 @@ class BlockContentTypeForm extends EntityForm {
       $logger->notice('Custom block type %label has been added.', array('%label' => $block_type->label(), 'link' => $edit_link));
     }
 
-    $form_state->setRedirect('block_content.type_list');
+    $form_state->setRedirectUrl($this->entity->urlInfo('collection'));
   }
 
 }

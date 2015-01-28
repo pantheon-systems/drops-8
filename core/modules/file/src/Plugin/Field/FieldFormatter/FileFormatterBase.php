@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Contains \Drupal\file\Plugin\field\formatter\FileFormatterBase.
+ * Contains \Drupal\file\Plugin\Field\FieldFormatter\FileFormatterBase.
  */
 
 namespace Drupal\file\Plugin\Field\FieldFormatter;
@@ -33,9 +33,10 @@ abstract class FileFormatterBase extends FormatterBase {
       $files = file_load_multiple($fids);
 
       foreach ($entities_items as $items) {
+        /** @var \Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItem $item */
         foreach ($items as $item) {
           // If the file does not exist, mark the entire item as empty.
-          if (!empty($item->target_id)) {
+          if (!empty($item->target_id) && !$item->hasNewEntity()) {
             $item->entity = isset($files[$item->target_id]) ? $files[$item->target_id] : NULL;
           }
         }

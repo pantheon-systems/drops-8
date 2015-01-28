@@ -9,7 +9,6 @@ namespace Drupal\Tests\Core\Entity\Sql;
 
 use Drupal\Core\Entity\ContentEntityType;
 use Drupal\Core\Entity\Sql\DefaultTableMapping;
-use Drupal\Core\Entity\Sql\SqlContentEntityStorageSchema;
 use Drupal\Tests\UnitTestCase;
 
 /**
@@ -257,72 +256,89 @@ class SqlContentEntityStorageSchemaTest extends UnitTestCase {
             'description' => 'The name field.',
             'type' => 'varchar',
             'length' => 255,
+            'not null' => FALSE,
           ),
           'description__value' => array(
             'description' => 'The description field.',
             'type' => 'text',
+            'not null' => FALSE,
           ),
           'description__format' => array(
             'description' => 'The description field.',
             'type' => 'varchar',
+            'not null' => FALSE,
           ),
           'uuid' => array(
             'description' => 'The uuid field.',
             'type' => 'varchar',
             'length' => 128,
+            'not null' => FALSE,
           ),
           'hash' => array(
             'description' => 'The hash field.',
             'type' => 'varchar',
             'length' => 20,
+            'not null' => FALSE,
           ),
           'email__username' => array(
             'description' => 'The email field.',
             'type' => 'varchar',
+            'not null' => FALSE,
           ),
           'email__hostname' => array(
             'description' => 'The email field.',
             'type' => 'varchar',
+            'not null' => FALSE,
           ),
           'email__domain' => array(
             'description' => 'The email field.',
             'type' => 'varchar',
+            'not null' => FALSE,
           ),
           'owner' => array(
             'description' => 'The owner field.',
             'type' => 'int',
+            'not null' => FALSE,
           ),
           'translator' => array(
             'description' => 'The translator field.',
             'type' => 'int',
+            'not null' => FALSE,
           ),
           'location__country' => array(
             'description' => 'The location field.',
             'type' => 'varchar',
+            'not null' => FALSE,
           ),
           'location__state' => array(
             'description' => 'The location field.',
             'type' => 'varchar',
+            'not null' => FALSE,
           ),
           'location__city' => array(
             'description' => 'The location field.',
             'type' => 'varchar',
+            'not null' => FALSE,
           ),
           'editor' => array(
             'description' => 'The editor field.',
             'type' => 'int',
+            'not null' => FALSE,
           ),
           'editor_revision__target_id' => array(
             'description' => 'The editor_revision field.',
             'type' => 'int',
+            'not null' => FALSE,
           ),
           'editor_revision__target_revision_id' => array(
             'description' => 'The editor_revision field.',
             'type' => 'int',
+            'not null' => FALSE,
           ),
           'long_index_name' => array(
             'description' => 'The long_index_name field.',
             'type' => 'int',
+            'not null' => FALSE,
           ),
           'default_langcode' => array(
             'description' => 'Boolean indicating whether field values are in the default entity language.',
@@ -372,7 +388,7 @@ class SqlContentEntityStorageSchemaTest extends UnitTestCase {
 
     $this->setUpStorageSchema($expected);
 
-    $table_mapping = new DefaultTableMapping($this->storageDefinitions);
+    $table_mapping = new DefaultTableMapping($this->entityType, $this->storageDefinitions);
     $table_mapping->setFieldNames('entity_test', array_keys($this->storageDefinitions));
     $table_mapping->setExtraColumns('entity_test', array('default_langcode'));
 
@@ -430,6 +446,7 @@ class SqlContentEntityStorageSchemaTest extends UnitTestCase {
           'revision_id' => array(
             'description' => 'The revision_id field.',
             'type' => 'int',
+            'not null' => FALSE,
           )
         ),
         'primary key' => array('id'),
@@ -455,6 +472,7 @@ class SqlContentEntityStorageSchemaTest extends UnitTestCase {
           'revision_id' => array(
             'description' => 'The revision_id field.',
             'type' => 'serial',
+            'not null' => TRUE,
           ),
         ),
         'primary key' => array('revision_id'),
@@ -473,7 +491,7 @@ class SqlContentEntityStorageSchemaTest extends UnitTestCase {
 
     $this->setUpStorageSchema($expected);
 
-    $table_mapping = new DefaultTableMapping($this->storageDefinitions);
+    $table_mapping = new DefaultTableMapping($this->entityType, $this->storageDefinitions);
     $table_mapping->setFieldNames('entity_test', array_keys($this->storageDefinitions));
     $table_mapping->setFieldNames('entity_test_revision', array_keys($this->storageDefinitions));
 
@@ -499,6 +517,7 @@ class SqlContentEntityStorageSchemaTest extends UnitTestCase {
       'id' => 'entity_test',
       'entity_keys' => array(
         'id' => 'id',
+        'langcode' => 'langcode',
       ),
     ));
 
@@ -562,7 +581,7 @@ class SqlContentEntityStorageSchemaTest extends UnitTestCase {
 
     $this->setUpStorageSchema($expected);
 
-    $table_mapping = new DefaultTableMapping($this->storageDefinitions);
+    $table_mapping = new DefaultTableMapping($this->entityType, $this->storageDefinitions);
     $table_mapping->setFieldNames('entity_test', array_keys($this->storageDefinitions));
     $table_mapping->setFieldNames('entity_test_field_data', array_keys($this->storageDefinitions));
 
@@ -592,6 +611,7 @@ class SqlContentEntityStorageSchemaTest extends UnitTestCase {
       'entity_keys' => array(
         'id' => 'id',
         'revision' => 'revision_id',
+        'langcode' => 'langcode',
       ),
     ));
 
@@ -632,6 +652,7 @@ class SqlContentEntityStorageSchemaTest extends UnitTestCase {
           'revision_id' => array(
             'description' => 'The revision_id field.',
             'type' => 'int',
+            'not null' => FALSE,
           ),
           'langcode' => array(
             'description' => 'The langcode field.',
@@ -662,6 +683,7 @@ class SqlContentEntityStorageSchemaTest extends UnitTestCase {
           'revision_id' => array(
             'description' => 'The revision_id field.',
             'type' => 'serial',
+            'not null' => TRUE,
           ),
           'langcode' => array(
             'description' => 'The langcode field.',
@@ -692,6 +714,7 @@ class SqlContentEntityStorageSchemaTest extends UnitTestCase {
           'revision_id' => array(
             'description' => 'The revision_id field.',
             'type' => 'int',
+            'not null' => TRUE,
           ),
           'langcode' => array(
             'description' => 'The langcode field.',
@@ -722,6 +745,7 @@ class SqlContentEntityStorageSchemaTest extends UnitTestCase {
           'revision_id' => array(
             'description' => 'The revision_id field.',
             'type' => 'int',
+            'not null' => TRUE,
           ),
           'langcode' => array(
             'description' => 'The langcode field.',
@@ -747,7 +771,7 @@ class SqlContentEntityStorageSchemaTest extends UnitTestCase {
 
     $this->setUpStorageSchema($expected);
 
-    $table_mapping = new DefaultTableMapping($this->storageDefinitions);
+    $table_mapping = new DefaultTableMapping($this->entityType, $this->storageDefinitions);
     $table_mapping->setFieldNames('entity_test', array_keys($this->storageDefinitions));
     $table_mapping->setFieldNames('entity_test_revision', array_keys($this->storageDefinitions));
     $table_mapping->setFieldNames('entity_test_field_data', array_keys($this->storageDefinitions));
@@ -895,7 +919,7 @@ class SqlContentEntityStorageSchemaTest extends UnitTestCase {
 
     $this->setUpStorageSchema($expected);
 
-    $table_mapping = new DefaultTableMapping($this->storageDefinitions);
+    $table_mapping = new DefaultTableMapping($this->entityType, $this->storageDefinitions);
     $table_mapping->setFieldNames($entity_type_id, array_keys($this->storageDefinitions));
     $table_mapping->setExtraColumns($entity_type_id, array('default_langcode'));
 
@@ -1043,7 +1067,7 @@ class SqlContentEntityStorageSchemaTest extends UnitTestCase {
 
     $this->setUpStorageSchema($expected);
 
-    $table_mapping = new DefaultTableMapping($this->storageDefinitions);
+    $table_mapping = new DefaultTableMapping($this->entityType, $this->storageDefinitions);
     $table_mapping->setFieldNames($entity_type_id, array_keys($this->storageDefinitions));
     $table_mapping->setExtraColumns($entity_type_id, array('default_langcode'));
 
@@ -1229,6 +1253,19 @@ class SqlContentEntityStorageSchemaTest extends UnitTestCase {
     $this->storageDefinitions[$field_name]->expects($this->any())
       ->method('getColumns')
       ->will($this->returnValue($schema['columns']));
+    // Add property definitions.
+    if (!empty($schema['columns'])) {
+      $property_definitions = array();
+      foreach ($schema['columns'] as $column => $info) {
+        $property_definitions[$column] = $this->getMock('Drupal\Core\TypedData\DataDefinitionInterface');
+        $property_definitions[$column]->expects($this->any())
+          ->method('isRequired')
+          ->will($this->returnValue(!empty($info['not null'])));
+      }
+      $this->storageDefinitions[$field_name]->expects($this->any())
+        ->method('getPropertyDefinitions')
+        ->will($this->returnValue($property_definitions));
+    }
   }
 
 }

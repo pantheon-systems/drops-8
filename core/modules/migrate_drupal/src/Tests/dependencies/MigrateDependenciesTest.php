@@ -34,8 +34,6 @@ class MigrateDependenciesTest extends MigrateDrupalTestBase {
       'd6_node',
       'd6_node_type',
       'd6_node_settings',
-      'd6_field_instance_widget_settings',
-      'd6_field_formatter_settings',
       'd6_filter_format',
       'd6_user',
       'd6_comment_type',
@@ -58,7 +56,7 @@ class MigrateDependenciesTest extends MigrateDrupalTestBase {
     /** @var \Drupal\migrate\entity\Migration $migration */
     $migration = entity_load('migration', 'd6_aggregator_item');
     $dumps = array(
-      $this->getDumpDirectory() . '/Drupal6AggregatorItem.php',
+      $this->getDumpDirectory() . '/AggregatorItem.php',
     );
     $this->prepare($migration, $dumps);
     $executable = new MigrateExecutable($migration, $this);

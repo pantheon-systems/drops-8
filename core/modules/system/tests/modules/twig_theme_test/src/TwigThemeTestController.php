@@ -49,4 +49,20 @@ class TwigThemeTestController {
     );
   }
 
+  /**
+   * Renders for testing file_url functions in a Twig template.
+   */
+  public function fileUrlRender() {
+    return array(
+      '#theme' => 'twig_theme_test_file_url',
+    );
+  }
+
+  /**
+   * Menu callback for testing the Twig registry loader.
+   */
+  public function registryLoaderRender() {
+    return array('#theme' => 'twig_registry_loader_test');
+  }
+
 }

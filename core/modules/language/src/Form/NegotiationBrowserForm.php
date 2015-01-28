@@ -56,11 +56,18 @@ class NegotiationBrowserForm extends ConfigFormBase {
   /**
    * {@inheritdoc}
    */
+  protected function getEditableConfigNames() {
+    return ['language.mappings'];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function buildForm(array $form, FormStateInterface $form_state) {
     $form = array();
 
     // Initialize a language list to the ones available, including English.
-    $languages = language_list();
+    $languages = $this->languageManager->getLanguages();
 
     $existing_languages = array();
     foreach ($languages as $langcode => $language) {

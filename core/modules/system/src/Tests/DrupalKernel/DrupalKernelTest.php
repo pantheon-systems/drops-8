@@ -30,7 +30,7 @@ class DrupalKernelTest extends KernelTestBase {
     $this->settingsSet('php_storage', array('service_container' => array(
       'bin' => 'service_container',
       'class' => 'Drupal\Component\PhpStorage\MTimeProtectedFileStorage',
-      'directory' => DRUPAL_ROOT . '/' . $this->public_files_directory . '/php',
+      'directory' => DRUPAL_ROOT . '/' . $this->publicFilesDirectory . '/php',
       'secret' => Settings::getHashSalt(),
     )));
   }
@@ -54,6 +54,7 @@ class DrupalKernelTest extends KernelTestBase {
     // Manually create kernel to avoid replacing settings.
     $class_loader = require DRUPAL_ROOT . '/core/vendor/autoload.php';
     $kernel = DrupalKernel::createFromRequest($request, $class_loader, 'testing');
+    $this->settingsSet('container_yamls', []);
     $this->settingsSet('hash_salt', $this->databasePrefix);
     if (isset($modules_enabled)) {
       $kernel->updateModules($modules_enabled);
@@ -151,6 +152,30 @@ class DrupalKernelTest extends KernelTestBase {
       'pathname' => drupal_get_filename('module', 'service_provider_test'),
       'filename' => NULL,
     ));
+  }
+
+  /**
+   * Test repeated loading of compiled DIC with different environment.
+   */
+  public function testRepeatedBootWithDifferentEnvironment() {
+    $request = Request::createFromGlobals();
+    $class_loader = require DRUPAL_ROOT . '/core/vendor/autoload.php';
+
+    $environments = [
+      'testing1',
+      'testing1',
+      'testing2',
+      'testing2',
+    ];
+
+    foreach ($environments as $environment) {
+      $kernel = DrupalKernel::createFromRequest($request, $class_loader, $environment);
+      $this->settingsSet('container_yamls', []);
+      $this->settingsSet('hash_salt', $this->databasePrefix);
+      $kernel->boot();
+    }
+
+    $this->pass('Repeatedly loaded compiled DIC with different environment');
   }
 
 }

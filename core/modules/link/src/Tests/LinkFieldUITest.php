@@ -25,13 +25,12 @@ class LinkFieldUITest extends WebTestBase {
    *
    * @var array
    */
-  public static $modules = array('node', 'link', 'field_ui');
+  public static $modules = ['node', 'link', 'field_ui'];
 
   protected function setUp() {
     parent::setUp();
 
-    $this->web_user = $this->drupalCreateUser(array('administer content types', 'administer node fields', 'administer node display'));
-    $this->drupalLogin($this->web_user);
+    $this->drupalLogin($this->drupalCreateUser(['administer content types', 'administer node fields', 'administer node display']));
   }
 
   /**
@@ -40,7 +39,7 @@ class LinkFieldUITest extends WebTestBase {
   function testFieldUI() {
     // Add a content type.
     $type = $this->drupalCreateContentType();
-    $type_path = 'admin/structure/types/manage/' . $type->type;
+    $type_path = 'admin/structure/types/manage/' . $type->id();
 
     // Add a link field to the newly-created type.
     $label = $this->randomMachineName();

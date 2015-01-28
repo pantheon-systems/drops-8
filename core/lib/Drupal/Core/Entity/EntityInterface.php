@@ -105,9 +105,9 @@ interface EntityInterface extends AccessibleInterface {
    * example:
    * @code
    * links = {
-   *   "canonical" = "entity.node.canonical",
-   *   "edit-form" = "entity.node.edit_form",
-   *   "version-history" = "entity.node.version_history"
+   *   "canonical" = "/node/{node}",
+   *   "edit-form" = "/node/{node}/edit",
+   *   "version-history" = "/node/{node}/revisions"
    * }
    * @endcode
    * or specified in a callback function set like:
@@ -399,7 +399,7 @@ interface EntityInterface extends AccessibleInterface {
   /**
    * The unique cache tag associated with this entity.
    *
-   * @return array
+   * @return string[]
    *   An array of cache tags.
    */
   public function getCacheTags();

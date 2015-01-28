@@ -25,7 +25,7 @@ class MigrateSystemImageTest extends MigrateDrupalTestBase {
     parent::setUp();
     $migration = entity_load('migration', 'd6_system_image');
     $dumps = array(
-      $this->getDumpDirectory() . '/Drupal6SystemImage.php',
+      $this->getDumpDirectory() . '/Variable.php',
     );
     $this->prepare($migration, $dumps);
     $executable = new MigrateExecutable($migration, new MigrateMessage());
@@ -36,7 +36,7 @@ class MigrateSystemImageTest extends MigrateDrupalTestBase {
    * Tests migration of system (image) variables to system.image.yml.
    */
   public function testSystemImage() {
-    $config = \Drupal::config('system.image');
+    $config = $this->config('system.image');
     $this->assertIdentical($config->get('toolkit'), 'gd');
   }
 

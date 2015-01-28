@@ -8,6 +8,7 @@
 namespace Drupal\Core\Config;
 
 use Drupal\Component\Utility\NestedArray;
+use Drupal\Core\Cache\Cache;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 /**
@@ -78,8 +79,7 @@ class Config extends StorableConfigBase {
    */
   public function initWithData(array $data) {
     parent::initWithData($data);
-    $this->settingsOverrides = array();
-    $this->moduleOverrides = array();
+    $this->resetOverriddenData();
     return $this;
   }
 
@@ -223,6 +223,9 @@ class Config extends StorableConfigBase {
     }
 
     $this->storage->write($this->name, $this->data);
+    if (!$this->isNew) {
+      Cache::invalidateTags($this->getCacheTags());
+    }
     $this->isNew = FALSE;
     $this->eventDispatcher->dispatch(ConfigEvents::SAVE, new ConfigCrudEvent($this));
     $this->originalData = $this->data;
@@ -238,6 +241,7 @@ class Config extends StorableConfigBase {
   public function delete() {
     $this->data = array();
     $this->storage->delete($this->name);
+    Cache::invalidateTags($this->getCacheTags());
     $this->isNew = TRUE;
     $this->resetOverriddenData();
     $this->eventDispatcher->dispatch(ConfigEvents::DELETE, new ConfigCrudEvent($this));

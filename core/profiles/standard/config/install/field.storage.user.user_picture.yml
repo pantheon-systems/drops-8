@@ -7,7 +7,7 @@ type: image
 settings:
   uri_scheme: public
   default_image:
-    fid: null
+    uuid: null
     alt: ''
     title: ''
     width: null
@@ -15,7 +15,6 @@ settings:
 module: image
 locked: false
 cardinality: 1
-translatable: false
 indexes:
   target_id:
     - target_id

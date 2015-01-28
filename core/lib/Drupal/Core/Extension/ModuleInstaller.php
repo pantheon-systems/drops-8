@@ -10,7 +10,10 @@ namespace Drupal\Core\Extension;
 use Drupal\Component\Serialization\Yaml;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheBackendInterface;
+use Drupal\Core\Config\PreExistingConfigException;
+use Drupal\Core\Config\StorageInterface;
 use Drupal\Core\DrupalKernelInterface;
+use Drupal\Component\Utility\String;
 
 /**
  * Default implementation of the module installer.
@@ -78,14 +81,17 @@ class ModuleInstaller implements ModuleInstallerInterface {
    * {@inheritdoc}
    */
   public function install(array $module_list, $enable_dependencies = TRUE) {
-    $extension_config = \Drupal::config('core.extension');
+    $extension_config = \Drupal::configFactory()->getEditable('core.extension');
     if ($enable_dependencies) {
       // Get all module data so we can find dependencies and sort.
       $module_data = system_rebuild_module_data();
       $module_list = $module_list ? array_combine($module_list, $module_list) : array();
-      if (array_diff_key($module_list, $module_data)) {
+      if ($missing_modules = array_diff_key($module_list, $module_data)) {
         // One or more of the given modules doesn't exist.
-        return FALSE;
+        throw new MissingDependencyException(String::format('Unable to install modules %modules due to missing modules %missing.', array(
+          '%modules' => implode(', ', $module_list),
+          '%missing' => implode(', ', $missing_modules),
+        )));
       }
 
       // Only process currently uninstalled modules.
@@ -101,7 +107,10 @@ class ModuleInstaller implements ModuleInstallerInterface {
         foreach (array_keys($module_data[$module]->requires) as $dependency) {
           if (!isset($module_data[$dependency])) {
             // The dependency does not exist.
-            return FALSE;
+            throw new MissingDependencyException(String::format('Unable to install modules: module %module is missing its dependency module %dependency.', array(
+              '%module' => $module,
+              '%dependency' => $dependency,
+            )));
           }
 
           // Skip already installed modules.
@@ -140,6 +149,18 @@ class ModuleInstaller implements ModuleInstallerInterface {
             '%name' => $module,
             '@max' => DRUPAL_EXTENSION_NAME_MAX_LENGTH,
           )));
+        }
+
+        // Install profiles can not have config clashes. Configuration that
+        // has the same name as a module's configuration will be used instead.
+        if ($module != drupal_get_profile()) {
+          // Validate default configuration of this module. Bail if unable to
+          // install. Should not continue installing more modules because those
+          // may depend on this one.
+          $existing_configuration = $config_installer->findPreExistingConfiguration('module', $module);
+          if (!empty($existing_configuration)) {
+            throw PreExistingConfigException::create($module, $existing_configuration);
+          }
         }
 
         $extension_config
@@ -293,8 +314,7 @@ class ModuleInstaller implements ModuleInstallerInterface {
       return FALSE;
     }
 
-    // Only process currently installed modules.
-    $extension_config = \Drupal::config('core.extension');
+    $extension_config = \Drupal::configFactory()->getEditable('core.extension');
     $installed_modules = $extension_config->get('module') ?: array();
     if (!$module_list = array_intersect_key($module_list, $installed_modules)) {
       // Nothing to do. All modules already uninstalled.
@@ -380,8 +400,7 @@ class ModuleInstaller implements ModuleInstallerInterface {
       drupal_uninstall_schema($module);
 
       // Remove the module's entry from the config.
-      $extension_config = \Drupal::config('core.extension');
-      $extension_config->clear("module.$module")->save();
+      \Drupal::configFactory()->getEditable('core.extension')->clear("module.$module")->save();
 
       // Update the module handler to remove the module.
       // The current ModuleHandler instance is obsolete with the kernel rebuild

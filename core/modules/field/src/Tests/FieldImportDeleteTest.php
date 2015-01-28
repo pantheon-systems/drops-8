@@ -9,6 +9,7 @@ namespace Drupal\field\Tests;
 
 use Drupal\Component\Utility\String;
 use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
 
 /**
  * Delete field storages and fields during config delete method invocation.
@@ -19,6 +20,10 @@ class FieldImportDeleteTest extends FieldUnitTestBase {
 
   /**
    * Modules to enable.
+   *
+   * The default configuration provided by field_test_config is imported by
+   * \Drupal\field\Tests\FieldUnitTestBase::setUp() when it installs field
+   * configuration.
    *
    * @var array
    */
@@ -52,12 +57,9 @@ class FieldImportDeleteTest extends FieldUnitTestBase {
     // Create a second bundle for the 'Entity test' entity type.
     entity_test_create_bundle('test_bundle');
 
-    // Import default config.
-    $this->installConfig(array('field_test_config'));
-
     // Get the uuid's for the field storages.
-    $field_storage_uuid = entity_load('field_storage_config', $field_storage_id)->uuid();
-    $field_storage_uuid_2 = entity_load('field_storage_config', $field_storage_id_2)->uuid();
+    $field_storage_uuid = FieldStorageConfig::load($field_storage_id)->uuid();
+    $field_storage_uuid_2 = FieldStorageConfig::load($field_storage_id_2)->uuid();
 
     $active = $this->container->get('config.storage');
     $staging = $this->container->get('config.storage.staging');
@@ -75,9 +77,11 @@ class FieldImportDeleteTest extends FieldUnitTestBase {
     $this->configImporter()->import();
 
     // Check that the field storages and fields are gone.
-    $field_storage = entity_load('field_storage_config', $field_storage_id, TRUE);
+    \Drupal::entityManager()->getStorage('field_storage_config')->resetCache(array($field_storage_id));
+    $field_storage = FieldStorageConfig::load($field_storage_id);
     $this->assertFalse($field_storage, 'The field storage was deleted.');
-    $field_storage_2 = entity_load('field_storage_config', $field_storage_id_2, TRUE);
+    \Drupal::entityManager()->getStorage('field_storage_config')->resetCache(array($field_storage_id_2));
+    $field_storage_2 = FieldStorageConfig::load($field_storage_id_2);
     $this->assertFalse($field_storage_2, 'The second field storage was deleted.');
     \Drupal::entityManager()->getStorage('field_config')->resetCache(array($field_id));
     $field = FieldConfig::load($field_id);

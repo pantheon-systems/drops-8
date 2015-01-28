@@ -27,7 +27,7 @@ class FieldUIRouteTest extends WebTestBase {
   protected function setUp() {
     parent::setUp();
 
-    $this->drupalLogin($this->root_user);
+    $this->drupalLogin($this->rootUser);
   }
 
   /**
@@ -65,6 +65,7 @@ class FieldUIRouteTest extends WebTestBase {
 
     $edit = array('display_modes_custom[register]' => TRUE);
     $this->drupalPostForm(NULL, $edit, t('Save'));
+    $this->assertResponse(200);
     $this->drupalGet('admin/config/people/accounts/form-display/register');
     $this->assertTitle('Manage form display | Drupal');
     $this->assertLocalTasks();

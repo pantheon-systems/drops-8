@@ -6,19 +6,26 @@
 
 namespace Drupal\system\Form;
 
-use Drupal\Core\Form\FormBase;
+use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
 
 /**
  * Form to select the administration theme.
  */
-class ThemeAdminForm extends FormBase {
+class ThemeAdminForm extends ConfigFormBase {
 
   /**
    * {@inheritdoc}
    */
   public function getFormID() {
     return 'system_themes_admin_form';
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function getEditableConfigNames() {
+    return ['system.theme'];
   }
 
   /**
@@ -50,7 +57,7 @@ class ThemeAdminForm extends FormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    drupal_set_message($this->t('The configuration options have been saved.'));
+    parent::submitForm($form, $form_state);
     $this->config('system.theme')->set('admin', $form_state->getValue('admin_theme'))->save();
   }
 

@@ -40,7 +40,7 @@ function block_help($route_name, RouteMatchInterface $route_match) {
   }
   if ($route_name == 'block.admin_display' || $route_name == 'block.admin_display_theme') {
     $demo_theme = $route_match->getParameter('theme') ?: \Drupal::config('system.theme')->get('default');
-    $themes = list_themes();
+    $themes = \Drupal::service('theme_handler')->listInfo();
     $output = '<p>' . t('This page provides a drag-and-drop interface for adding a block to a region, and for controlling the order of blocks within regions. To add a block to a region, or to configure its specific title and visibility settings, click the block title under <em>Place blocks</em>. Since not all themes implement the same regions, or display regions in the same way, blocks are positioned on a per-theme basis. Remember that your changes will not be saved until you click the <em>Save blocks</em> button at the bottom of the page.') . '</p>';
     $output .= '<p>' . \Drupal::l(t('Demonstrate block regions (!theme)', array('!theme' => $themes[$demo_theme]->info['name'])), new Url('block.admin_demo', array('theme' => $demo_theme))) . '</p>';
     return $output;
@@ -103,7 +103,7 @@ function _block_rehash($theme = NULL) {
       unset($blocks[$block_id]);
       continue;
     }
-    $region = $block->get('region');
+    $region = $block->getRegion();
     $status = $block->status();
     // Disable blocks in invalid regions.
     if (!empty($region) && $region != BlockInterface::BLOCK_REGION_NONE && !isset($regions[$region]) && $status) {
@@ -114,7 +114,7 @@ function _block_rehash($theme = NULL) {
     }
     // Set region to none if not enabled.
     if (!$status && $region != BlockInterface::BLOCK_REGION_NONE) {
-      $block->set('region', BlockInterface::BLOCK_REGION_NONE);
+      $block->setRegion(BlockInterface::BLOCK_REGION_NONE);
       $block->save();
     }
   }
@@ -159,13 +159,11 @@ function block_theme_initialize($theme) {
       else {
         $id = $theme . '_' . $default_theme_block_id;
       }
-      $block = $default_theme_block->createDuplicate();
-      $block->set('id', $id);
-      $block->set('theme', $theme);
+      $block = $default_theme_block->createDuplicateBlock($id, $theme);
       // If the region isn't supported by the theme, assign the block to the
       // theme's default region.
-      if (!isset($regions[$block->get('region')])) {
-        $block->set('region', system_default_region($theme));
+      if (!isset($regions[$block->getRegion()])) {
+        $block->setRegion(system_default_region($theme));
       }
       $block->save();
     }
@@ -176,7 +174,7 @@ function block_theme_initialize($theme) {
  * Implements hook_rebuild().
  */
 function block_rebuild() {
-  foreach (list_themes() as $name => $data) {
+  foreach (\Drupal::service('theme_handler')->listInfo() as $name => $data) {
     if ($data->status) {
       _block_rehash($name);
     }
@@ -282,7 +280,7 @@ function block_user_role_delete($role) {
 function block_menu_delete(Menu $menu) {
   if (!$menu->isSyncing()) {
     foreach (Block::loadMultiple() as $block) {
-      if ($block->get('plugin') == 'system_menu_block:' . $menu->id()) {
+      if ($block->getPluginId() == 'system_menu_block:' . $menu->id()) {
         $block->delete();
       }
     }

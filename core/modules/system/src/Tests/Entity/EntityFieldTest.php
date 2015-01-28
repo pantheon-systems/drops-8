@@ -50,9 +50,12 @@ class EntityFieldTest extends EntityUnitTestBase  {
   protected function setUp() {
     parent::setUp();
 
-    $this->installEntitySchema('entity_test_rev');
-    $this->installEntitySchema('entity_test_mul');
-    $this->installEntitySchema('entity_test_mulrev');
+    foreach (entity_test_entity_types() as $entity_type_id) {
+      // The entity_test schema is installed by the parent.
+      if ($entity_type_id != 'entity_test') {
+        $this->installEntitySchema($entity_type_id);
+      }
+    }
 
     // Create the test field.
     entity_test_install();
@@ -141,7 +144,7 @@ class EntityFieldTest extends EntityUnitTestBase  {
     $this->assertEqual($new_user2->id(), $entity->user_id->target_id, format_string('%entity_type: Updated user id can be read.', array('%entity_type' => $entity_type)));
     $this->assertEqual($new_user2->getUsername(), $entity->user_id->entity->name->value, format_string('%entity_type: Updated username value can be read.', array('%entity_type' => $entity_type)));
 
-    // Try unsetting a field.
+    // Try unsetting a field property.
     $entity->name->value = NULL;
     $entity->user_id->target_id = NULL;
     $this->assertNull($entity->name->value, format_string('%entity_type: Name field is not set.', array('%entity_type' => $entity_type)));
@@ -154,7 +157,7 @@ class EntityFieldTest extends EntityUnitTestBase  {
     $this->assertEqual($new_user2->id(), $entity->user_id->target_id, format_string('%entity_type: Updated user id can be read.', array('%entity_type' => $entity_type)));
     $this->assertEqual($new_user2->getUsername(), $entity->user_id->entity->name->value, format_string('%entity_type: Updated user name value can be read.', array('%entity_type' => $entity_type)));
 
-     // Change the assigned user by id.
+    // Change the assigned user by id.
     $entity->user_id->first()->get('target_id')->setValue($new_user2->id());
     $this->assertEqual($new_user2->id(), $entity->user_id->target_id, format_string('%entity_type: Updated user id can be read.', array('%entity_type' => $entity_type)));
     $this->assertEqual($new_user2->getUsername(), $entity->user_id->entity->name->value, format_string('%entity_type: Updated user name value can be read.', array('%entity_type' => $entity_type)));
@@ -199,40 +202,43 @@ class EntityFieldTest extends EntityUnitTestBase  {
     $this->assertFalse(isset($entity->name[0]->value), format_string('%entity_type: Name is not set.', array('%entity_type' => $entity_type)));
     $this->assertFalse(isset($entity->name->value), format_string('%entity_type: Name is not set.', array('%entity_type' => $entity_type)));
 
-    $entity->name = array();
-    $this->assertTrue(isset($entity->name), 'Name field is set.');
-    $this->assertFalse(isset($entity->name[0]), 'Name field item is not set.');
-    $this->assertFalse(isset($entity->name[0]->value), 'First name item value is not set.');
-    $this->assertFalse(isset($entity->name->value), 'Name value is not set.');
-
-    $entity->name = NULL;
-    $this->assertFalse(isset($entity->name), 'Name field is not set.');
-    $this->assertFalse(isset($entity->name[0]), 'Name field item is not set.');
-    $this->assertFalse(isset($entity->name[0]->value), 'First name item value is not set.');
-    $this->assertFalse(isset($entity->name->value), 'Name value is not set.');
-
-    $entity->name->value = 'a value';
-    $this->assertTrue(isset($entity->name->value), format_string('%entity_type: Name is set.', array('%entity_type' => $entity_type)));
-    unset($entity->name);
-    $this->assertFalse(isset($entity->name), format_string('%entity_type: Name field is not set.', array('%entity_type' => $entity_type)));
-    $this->assertFalse(isset($entity->name[0]), format_string('%entity_type: Name field item is not set.', array('%entity_type' => $entity_type)));
-    $this->assertFalse(isset($entity->name[0]->value), format_string('%entity_type: Name is not set.', array('%entity_type' => $entity_type)));
-    $this->assertFalse(isset($entity->name->value), format_string('%entity_type: Name is not set.', array('%entity_type' => $entity_type)));
+    // Test emptying a field by assigning an empty value. NULL and array()
+    // behave the same.
+    foreach ([NULL, array(), 'unset'] as $empty) {
+      // Make sure a value is present
+      $entity->name->value = 'a value';
+      $this->assertTrue(isset($entity->name->value), format_string('%entity_type: Name is set.', array('%entity_type' => $entity_type)));
+      // Now, empty the field.
+      if ($empty === 'unset') {
+        unset($entity->name);
+      }
+      else {
+        $entity->name = $empty;
+      }
+      $this->assertTrue(isset($entity->name), format_string('%entity_type: Name field is set.', array('%entity_type' => $entity_type)));
+      $this->assertTrue($entity->name->isEmpty(), format_string('%entity_type: Name field is set.', array('%entity_type' => $entity_type)));
+      $this->assertIdentical(count($entity->name), 0, format_string('%entity_type: Name field contains no items.', array('%entity_type' => $entity_type)));
+      $this->assertIdentical($entity->name->getValue(), array(), format_string('%entity_type: Name field value is an empty array.', array('%entity_type' => $entity_type)));
+      $this->assertFalse(isset($entity->name[0]), format_string('%entity_type: Name field item is not set.', array('%entity_type' => $entity_type)));
+      $this->assertFalse(isset($entity->name[0]->value), format_string('%entity_type: First name item value is not set.', array('%entity_type' => $entity_type)));
+      $this->assertFalse(isset($entity->name->value), format_string('%entity_type: Name value is not set.', array('%entity_type' => $entity_type)));
+    }
 
     // Access the language field.
-    $this->assertEqual($langcode, $entity->langcode->value, format_string('%entity_type: Language code can be read.', array('%entity_type' => $entity_type)));
-    $this->assertEqual(\Drupal::languageManager()->getLanguage($langcode), $entity->langcode->language, format_string('%entity_type: Language object can be read.', array('%entity_type' => $entity_type)));
+    $langcode_key = $this->entityManager->getDefinition($entity_type)->getKey('langcode');
+    $this->assertEqual($langcode, $entity->{$langcode_key}->value, format_string('%entity_type: Language code can be read.', array('%entity_type' => $entity_type)));
+    $this->assertEqual(\Drupal::languageManager()->getLanguage($langcode), $entity->{$langcode_key}->language, format_string('%entity_type: Language object can be read.', array('%entity_type' => $entity_type)));
 
     // Change the language by code.
-    $entity->langcode->value = \Drupal::languageManager()->getDefaultLanguage()->getId();
-    $this->assertEqual(\Drupal::languageManager()->getDefaultLanguage()->getId(), $entity->langcode->value, format_string('%entity_type: Language code can be read.', array('%entity_type' => $entity_type)));
-    $this->assertEqual(\Drupal::languageManager()->getDefaultLanguage(), $entity->langcode->language, format_string('%entity_type: Language object can be read.', array('%entity_type' => $entity_type)));
+    $entity->{$langcode_key}->value = \Drupal::languageManager()->getDefaultLanguage()->getId();
+    $this->assertEqual(\Drupal::languageManager()->getDefaultLanguage()->getId(), $entity->{$langcode_key}->value, format_string('%entity_type: Language code can be read.', array('%entity_type' => $entity_type)));
+    $this->assertEqual(\Drupal::languageManager()->getDefaultLanguage(), $entity->{$langcode_key}->language, format_string('%entity_type: Language object can be read.', array('%entity_type' => $entity_type)));
 
     // Revert language by code then try setting it by language object.
-    $entity->langcode->value = $langcode;
-    $entity->langcode->language = \Drupal::languageManager()->getDefaultLanguage();
-    $this->assertEqual(\Drupal::languageManager()->getDefaultLanguage()->getId(), $entity->langcode->value, format_string('%entity_type: Language code can be read.', array('%entity_type' => $entity_type)));
-    $this->assertEqual(\Drupal::languageManager()->getDefaultLanguage(), $entity->langcode->language, format_string('%entity_type: Language object can be read.', array('%entity_type' => $entity_type)));
+    $entity->{$langcode_key}->value = $langcode;
+    $entity->{$langcode_key}->language = \Drupal::languageManager()->getDefaultLanguage();
+    $this->assertEqual(\Drupal::languageManager()->getDefaultLanguage()->getId(), $entity->{$langcode_key}->value, format_string('%entity_type: Language code can be read.', array('%entity_type' => $entity_type)));
+    $this->assertEqual(\Drupal::languageManager()->getDefaultLanguage(), $entity->{$langcode_key}->language, format_string('%entity_type: Language object can be read.', array('%entity_type' => $entity_type)));
 
     // Access the text field and test updating.
     $this->assertEqual($entity->field_test_text->value, $this->entity_field_text, format_string('%entity_type: Text field can be read.', array('%entity_type' => $entity_type)));
@@ -301,18 +307,6 @@ class EntityFieldTest extends EntityUnitTestBase  {
     $this->assertEqual($entity->name[0]->value, 'foo', format_string('%entity_type: The items were renumbered.', array('%entity_type' => $entity_type)));
     $this->assertEqual($entity->name[0]->getName(), 0, format_string('%entity_type: The deltas were updated in the items.', array('%entity_type' => $entity_type)));
 
-    // Test removing all list items by assigning an empty array.
-    $entity->name = array();
-    $this->assertIdentical(count($entity->name), 0, format_string('%entity_type: Name field contains no items.', array('%entity_type' => $entity_type)));
-    $this->assertIdentical($entity->name->getValue(), array(), format_string('%entity_type: Name field value is an empty array.', array('%entity_type' => $entity_type)));
-
-    $entity->name->value = 'foo';
-    $this->assertEqual($entity->name->value, 'foo', format_string('%entity_type: Name field set.', array('%entity_type' => $entity_type)));
-    // Test removing all list items by setting it to NULL.
-    $entity->name = NULL;
-    $this->assertIdentical(count($entity->name), 0, format_string('%entity_type: Name field contains no items.', array('%entity_type' => $entity_type)));
-    $this->assertNull($entity->name->getValue(), format_string('%entity_type: Name field value is an empty array.', array('%entity_type' => $entity_type)));
-
     // Test get and set field values.
     $entity->name = 'foo';
     $this->assertEqual($entity->name[0]->toArray(), array('value' => 'foo'), format_string('%entity_type: Field value has been retrieved via toArray()', array('%entity_type' => $entity_type)));
@@ -357,6 +351,7 @@ class EntityFieldTest extends EntityUnitTestBase  {
    *   The entity type to run the tests with.
    */
   protected function doTestSave($entity_type) {
+    $langcode_key = $this->entityManager->getDefinition($entity_type)->getKey('langcode');
     $entity = $this->createTestEntity($entity_type);
     $entity->save();
     $this->assertTrue((bool) $entity->id(), format_string('%entity_type: Entity has received an id.', array('%entity_type' => $entity_type)));
@@ -367,8 +362,8 @@ class EntityFieldTest extends EntityUnitTestBase  {
     // Access the name field.
     $this->assertEqual(1, $entity->id->value, format_string('%entity_type: ID value can be read.', array('%entity_type' => $entity_type)));
     $this->assertTrue(is_string($entity->uuid->value), format_string('%entity_type: UUID value can be read.', array('%entity_type' => $entity_type)));
-    $this->assertEqual('en', $entity->langcode->value, format_string('%entity_type: Language code can be read.', array('%entity_type' => $entity_type)));
-    $this->assertEqual(\Drupal::languageManager()->getLanguage('en'), $entity->langcode->language, format_string('%entity_type: Language object can be read.', array('%entity_type' => $entity_type)));
+    $this->assertEqual('en', $entity->{$langcode_key}->value, format_string('%entity_type: Language code can be read.', array('%entity_type' => $entity_type)));
+    $this->assertEqual(\Drupal::languageManager()->getLanguage('en'), $entity->{$langcode_key}->language, format_string('%entity_type: Language object can be read.', array('%entity_type' => $entity_type)));
     $this->assertEqual($this->entity_user->id(), $entity->user_id->target_id, format_string('%entity_type: User id can be read.', array('%entity_type' => $entity_type)));
     $this->assertEqual($this->entity_user->getUsername(), $entity->user_id->entity->name->value, format_string('%entity_type: User name can be read.', array('%entity_type' => $entity_type)));
     $this->assertEqual($this->entity_field_text, $entity->field_test_text->value, format_string('%entity_type: Text field can be read.', array('%entity_type' => $entity_type)));
@@ -409,7 +404,8 @@ class EntityFieldTest extends EntityUnitTestBase  {
 
     // Test deriving metadata from references.
     $entity_definition = \Drupal\Core\Entity\TypedData\EntityDataDefinition::create($entity_type);
-    $reference_definition = $entity_definition->getPropertyDefinition('langcode')
+    $langcode_key = $this->entityManager->getDefinition($entity_type)->getKey('langcode');
+    $reference_definition = $entity_definition->getPropertyDefinition($langcode_key)
       ->getPropertyDefinition('language')
       ->getTargetDefinition();
     $this->assertEqual($reference_definition->getDataType(), 'language');
@@ -551,7 +547,9 @@ class EntityFieldTest extends EntityUnitTestBase  {
       // Field format.
       NULL,
     );
-    $this->assertEqual($strings, $target_strings, format_string('%entity_type: All contained strings found.', array('%entity_type' => $entity_type)));
+    asort($strings);
+    asort($target_strings);
+    $this->assertEqual(array_values($strings), array_values($target_strings), format_string('%entity_type: All contained strings found.', array('%entity_type' => $entity_type)));
   }
 
   /**

@@ -8,8 +8,8 @@
 namespace Drupal\ckeditor\Tests;
 
 use Drupal\simpletest\KernelTestBase;
-use Drupal\editor\Plugin\EditorManager;
-use Drupal\ckeditor\Plugin\Editor\CKEditor;
+use Drupal\language\Entity\ConfigurableLanguage;
+use Drupal\editor\Entity\Editor;
 
 /**
  * Tests for the 'CKEditor' text editor plugin.
@@ -264,8 +264,13 @@ class CKEditorTest extends KernelTestBase {
 
     // Enable the Bartik theme, which specifies a CKEditor stylesheet.
     \Drupal::service('theme_handler')->install(['bartik']);
-    \Drupal::config('system.theme')->set('default', 'bartik');
-    $expected[] = file_create_url('core/themes/bartik/css/ckeditor-iframe.css');
+    $this->config('system.theme')->set('default', 'bartik')->save();
+    $expected[] = file_create_url('core/themes/bartik/css/base/elements.css');
+    $expected[] = file_create_url('core/themes/bartik/css/base/typography.css');
+    $expected[] = file_create_url('core/themes/bartik/css/components/captions.css');
+    $expected[] = file_create_url('core/themes/bartik/css/components/content.css');
+    $expected[] = file_create_url('core/themes/bartik/css/components/list.css');
+    $expected[] = file_create_url('core/themes/bartik/css/components/table.css');
     $this->assertIdentical($expected, $this->ckeditor->buildContentsCssJSSetting($editor), '"contentsCss" configuration part of JS settings built correctly while a theme providing a CKEditor stylesheet exists.');
   }
 
@@ -368,6 +373,10 @@ class CKEditorTest extends KernelTestBase {
     // Language codes only in CKEditor.
     $this->assertTrue($langcodes['en-au'] == 'en-au', '"en-au" properly resolved');
     $this->assertTrue($langcodes['sr-latn'] == 'sr-latn', '"sr-latn" properly resolved');
+
+    // No locale module, so even though languages are enabled, CKEditor should
+    // still be in English.
+    $this->assertCKEditorLanguage('en');
   }
 
   /**
@@ -377,11 +386,38 @@ class CKEditorTest extends KernelTestBase {
     $this->enableModules(array('language', 'locale'));
     $this->installSchema('locale', 'locales_source');
     $this->installSchema('locale', 'locales_location');
-    $editor = entity_load('editor', 'filtered_html');
+    $this->installSchema('locale', 'locales_target');
+    $editor = Editor::load('filtered_html');
     $this->ckeditor->getJSSettings($editor);
     $localeStorage = $this->container->get('locale.storage');
     $string = $localeStorage->findString(array('source' => 'Edit Link', 'context' => ''));
     $this->assertTrue(!empty($string), 'String from JavaScript file saved.');
+
+    // With locale module, CKEditor should not adhere to the language selected.
+    $this->assertCKEditorLanguage();
+  }
+
+  /**
+   * Assert that CKEditor picks the expected language when French is default.
+   *
+   * @param string $langcode
+   *   Language code to assert for. Defaults to French. That is the default
+   *   language set in this assertion.
+   */
+  protected function assertCKEditorLanguage($langcode = 'fr') {
+    // Set French as the site default language.
+    ConfigurableLanguage::createFromLangcode('fr')->save();
+    $this->config('system.site')->set('langcode', 'fr')->save();
+
+    // Reset the language manager so new negotiations attempts will fall back on
+    // French. Reinject the language manager CKEditor to use the current one.
+    $this->container->get('language_manager')->reset();
+    $this->ckeditor = $this->container->get('plugin.manager.editor')->createInstance('ckeditor');
+
+    // Test that we now get the expected language.
+    $editor = Editor::load('filtered_html');
+    $settings = $this->ckeditor->getJSSettings($editor);
+    $this->assertEqual($settings['language'], $langcode);
   }
 
   protected function getDefaultInternalConfig() {

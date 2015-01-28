@@ -18,8 +18,16 @@ use Drupal\simpletest\WebTestBase;
  */
 class ConfigLanguageOverrideWebTest extends WebTestBase {
 
+  /**
+   * Modules to install.
+   *
+   * @var array
+   */
   public static $modules = array('language', 'system');
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp() {
     parent::setUp();
   }
@@ -67,7 +75,7 @@ class ConfigLanguageOverrideWebTest extends WebTestBase {
     // overrides still work.
     $language_manager = \Drupal::languageManager()->reset();
     $this->assertTrue($language_manager->isMultilingual(), 'The test site is multilingual.');
-    \Drupal::config('system.site')->set('langcode', 'xx')->save();
+    $this->config('system.site')->set('langcode', 'xx')->save();
 
     ConfigurableLanguage::load('en')->delete();
     $this->assertFalse($language_manager->isMultilingual(), 'The test site is monolingual.');

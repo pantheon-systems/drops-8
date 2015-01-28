@@ -250,7 +250,7 @@ $config_directories = array();
  *
  * $settings contains environment-specific configuration, such as the files
  * directory and reverse proxy address, and temporary configuration, such as
- * turning on Twig debugging and security overrides.
+ * security overrides.
  *
  * @see \Drupal\Core\Site\Settings::get()
  */
@@ -517,30 +517,6 @@ if ($settings['hash_salt']) {
  */
 
 /**
- * Some distributions of Linux (most notably Debian) ship their PHP
- * installations with garbage collection (gc) disabled. Since Drupal depends on
- * PHP's garbage collection for clearing sessions, ensure that garbage
- * collection occurs by using the most common settings.
- */
-ini_set('session.gc_probability', 1);
-ini_set('session.gc_divisor', 100);
-
-/**
- * Set session lifetime (in seconds), i.e. the time from the user's last visit
- * to the active session may be deleted by the session garbage collector. When
- * a session is deleted, authenticated users are logged out, and the contents
- * of the user's $_SESSION variable is discarded.
- */
-ini_set('session.gc_maxlifetime', 200000);
-
-/**
- * Set session cookie lifetime (in seconds), i.e. the time from the session is
- * created to the cookie expires, i.e. when the browser is expected to discard
- * the cookie. The value 0 means "until the browser is closed".
- */
-ini_set('session.cookie_lifetime', 2000000);
-
-/**
  * If you encounter a situation where users post a large amount of text, and
  * the result is stripped out upon viewing but can still be edited, Drupal's
  * output filter may not have sufficient memory to process it.  If you
@@ -550,17 +526,6 @@ ini_set('session.cookie_lifetime', 2000000);
  */
 # ini_set('pcre.backtrack_limit', 200000);
 # ini_set('pcre.recursion_limit', 200000);
-
-/**
- * Drupal automatically generates a unique session cookie name for each site
- * based on its full domain name. If you have multiple domains pointing at the
- * same Drupal site, you can either redirect them all to a single domain (see
- * comment in .htaccess), or uncomment the line below and specify their shared
- * base domain. Doing so assures that users remain logged in as they cross
- * between your various domains. Make sure to always start the $cookie_domain
- * with a leading dot, as per RFC 2109.
- */
-# $cookie_domain = '.example.com';
 
 /**
  * Active configuration settings.
@@ -586,7 +551,18 @@ ini_set('session.cookie_lifetime', 2000000);
  * the default settings.php.
  *
  * Note that any values you provide in these variable overrides will not be
- * modifiable from the Drupal administration interface.
+ * viewable from the Drupal administration interface. The administration
+ * interface displays the values stored in configuration so that you can stage
+ * changes to other environments that don't have the overrides.
+ *
+ * There are particular configuration values that are risky to override. For
+ * example, overriding the list of installed modules in 'core.extension' is not
+ * supported as module install or uninstall has not occurred. Other examples
+ * include field storage configuration, because it has effects on database
+ * structure, and 'core.menu.static_menu_link_overrides' since this is cached in
+ * a way that is not config override aware. Also, note that changing
+ * configuration values in settings.php will not fire any of the configuration
+ * change events.
  */
 # $config['system.site']['name'] = 'My Drupal site';
 # $config['system.theme']['default'] = 'stark';
@@ -619,6 +595,11 @@ ini_set('session.cookie_lifetime', 2000000);
 # $config['system.performance']['fast_404']['html'] = '<!DOCTYPE html><html><head><title>404 Not Found</title></head><body><h1>Not Found</h1><p>The requested URL "@path" was not found on this server.</p></body></html>';
 
 /**
+ * Load services definition file.
+ */
+$settings['container_yamls'][] = __DIR__ . '/services.yml';
+
+/**
  * Load local development override configuration, if available.
  *
  * Use settings.local.php to override variables on secondary (staging,
@@ -631,3 +612,40 @@ ini_set('session.cookie_lifetime', 2000000);
 # if (file_exists(__DIR__ . '/settings.local.php')) {
 #   include __DIR__ . '/settings.local.php';
 # }
+
+/**
+ * Trusted host configuration.
+ *
+ * Drupal core can use the Symfony trusted host mechanism to prevent HTTP Host
+ * header spoofing.
+ *
+ * To enable the trusted host mechanism, you enable your allowable hosts
+ * in $settings['trusted_host_patterns']. This should be an array of regular
+ * expression patterns, without delimiters, representing the hosts you would
+ * like to allow.
+ *
+ * For example:
+ * @code
+ * $settings['trusted_host_patterns'] = array(
+ *   '^www\.example\.com$',
+ * );
+ * @endcode
+ * will allow the site to only run from www.example.com.
+ *
+ * If you are running multisite, or if you are running your site from
+ * different domain names (eg, you don't redirect http://www.example.com to
+ * http://example.com), you should specify all of the host patterns that are
+ * allowed by your site.
+ *
+ * For example:
+ * @code
+ * $settings['trusted_host_patterns'] = array(
+ *   '^example\.com$',
+ *   '^.+\.example\.com$',
+ *   '^example\.org',
+ *   '^.+\.example\.org',
+ * );
+ * @endcode
+ * will allow the site to run off of all variants of example.com and
+ * example.org, with all subdomains included.
+ */

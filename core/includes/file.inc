@@ -617,7 +617,7 @@ function file_unmanaged_copy($source, $destination = NULL, $replace = FILE_EXIST
     // If the copy failed and realpaths exist, retry the operation using them
     // instead.
     if ($real_source === FALSE || $real_destination === FALSE || !@copy($real_source, $real_destination)) {
-      $logger->error('file', 'The specified file %file could not be copied to %destination.', array('%file' => $source, '%destination' => $destination));
+      $logger->error('The specified file %file could not be copied to %destination.', array('%file' => $source, '%destination' => $destination));
       return FALSE;
     }
   }
@@ -1520,9 +1520,10 @@ function drupal_tempnam($directory, $prefix) {
  *   A string containing the path to the temporary directory.
  */
 function file_directory_temp() {
-  $config = \Drupal::config('system.file');
-  $temporary_directory = $config->get('path.temporary');
+  $temporary_directory = \Drupal::config('system.file')->get('path.temporary');
   if (empty($temporary_directory)) {
+    // Needs set up.
+    $config = \Drupal::configFactory()->getEditable('system.file');
     $temporary_directory = file_directory_os_temp();
 
     if (empty($temporary_directory)) {

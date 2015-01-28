@@ -21,7 +21,7 @@ use Drupal\node\Entity\Node;
 class CommentTypeTest extends CommentTestBase {
 
   /**
-   * Admin user
+   * Admin user.
    *
    * @var \Drupal\Core\Session\AccountInterface
    */
@@ -108,7 +108,7 @@ class CommentTypeTest extends CommentTestBase {
     $this->drupalGet('admin/structure/comment');
     $this->assertRaw('Bar', 'New name was displayed.');
     $this->clickLink('Manage fields');
-    $this->assertUrl(\Drupal::url('field_ui.overview_comment', array('comment_type' => 'comment'), array('absolute' => TRUE)), [], 'Original machine name was used in URL.');
+    $this->assertUrl(\Drupal::url('entity.comment_type.field_ui_fields', ['comment_type' => 'comment'], ['absolute' => TRUE]), [], 'Original machine name was used in URL.');
     $this->assertTrue($this->cssSelect('tr#comment-body'), 'Body field exists.');
 
     // Remove the body field.

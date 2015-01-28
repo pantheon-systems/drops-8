@@ -9,7 +9,7 @@ namespace Drupal\views_ui\Form\Ajax;
 
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
-use Drupal\views\ViewStorageInterface;
+use Drupal\views\ViewEntityInterface;
 use Drupal\views\ViewExecutable;
 use Drupal\views\Views;
 use Symfony\Component\HttpFoundation\Request;
@@ -37,7 +37,7 @@ class ConfigHandler extends ViewsFormBase {
   /**
    * {@inheritdoc}
    */
-  public function getForm(ViewStorageInterface $view, $display_id, $js, $type = NULL, $id = NULL) {
+  public function getForm(ViewEntityInterface $view, $display_id, $js, $type = NULL, $id = NULL) {
     $this->setType($type);
     $this->setID($id);
     return parent::getForm($view, $display_id, $js);
@@ -54,6 +54,7 @@ class ConfigHandler extends ViewsFormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state, Request $request = NULL) {
+    /** @var \Drupal\views\Entity\View $view */
     $view = $form_state->get('view');
     $display_id = $form_state->get('display_id');
     $type = $form_state->get('type');
@@ -130,6 +131,9 @@ class ConfigHandler extends ViewsFormBase {
             // skips submitting the form.
             $executable->setHandlerOption($display_id, $type, $id, 'relationship', $rel);
             $save_ui_cache = TRUE;
+            // Re-initialize with new relationship.
+            $item['relationship'] = $rel;
+            $handler->init($executable, $executable->display_handler, $item);
           }
 
           $form['options']['relationship'] = array(

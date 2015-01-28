@@ -105,12 +105,15 @@ interface EntityTypeInterface {
    *     entry can be omitted if this entity type exposes a single bundle (such
    *     that all entities have the same collection of fields). The name of this
    *     single bundle will be the same as the entity type.
-   *   - label: The name of the property that contains the entity label. For
-   *     example, if the entity's label is located in $entity->subject, then
-   *     'subject' should be specified here. If complex logic is required to
-   *     build the label, a 'label_callback' should be defined instead (see the
-   *     $label_callback block above for details).
-   *   - uuid (optional): The name of the property that contains the universally
+   *   - label: (optional) The name of the property that contains the entity
+   *     label. For example, if the entity's label is located in
+   *     $entity->subject, then 'subject' should be specified here. If complex
+   *     logic is required to build the label, a 'label_callback' should be
+   *     defined instead (see the $label_callback block above for details).
+   *   - langcode: (optional) The name of the property that contains the
+   *     language code. For instance, if the entity's language is located in
+   *     $entity->langcode, then 'langcode' should be specified here.
+   *   - uuid: (optional) The name of the property that contains the universally
    *     unique identifier of the entity, which is used to distinctly identify
    *     an entity across different systems.
    */
@@ -222,6 +225,10 @@ interface EntityTypeInterface {
    *   - access: The name of the class that is used for access checks. The class
    *     must implement \Drupal\Core\Entity\EntityAccessControlHandlerInterface.
    *     Defaults to \Drupal\Core\Entity\EntityAccessControlHandler.
+   *   - route_provider: (optional) A list of class names, keyed by a group
+   *     string, which will be used to define routes related to this entity
+   *     type. These classes must implement
+   *     \Drupal\Core\Entity\Routing\EntityRouteProviderInterface.
    */
   public function getHandlerClasses();
 
@@ -278,6 +285,22 @@ interface EntityTypeInterface {
    *   TRUE if there are any forms for this entity type, FALSE otherwise.
    */
   public function hasFormClasses();
+
+  /**
+   * Indicates if this entity type has any route provider.
+   *
+   * @return bool
+   */
+  public function hasRouteProviders();
+
+  /**
+   * Gets all the route provide handlers.
+   *
+   * Much like forms you can define multiple route provider handlers.
+   *
+   * @return string[]
+   */
+  public function getRouteProviderClasses();
 
   /**
    * Returns the list class.
@@ -432,7 +455,7 @@ interface EntityTypeInterface {
    *   The link type.
    *
    * @return string|bool
-   *   The route name for this link, or FALSE if it doesn't exist.
+   *   The path for this link, or FALSE if it doesn't exist.
    */
   public function getLinkTemplate($key);
 
@@ -452,12 +475,15 @@ interface EntityTypeInterface {
    *
    * @param string $key
    *   The name of a link.
-   * @param string $route_name
-   *   The route name to use for the link.
+   * @param string $path
+   *   The route path to use for the link.
    *
    * @return $this
+   *
+   * @throws \InvalidArgumentException
+   *   Thrown when the path does not start with a leading slash.
    */
-  public function setLinkTemplate($key, $route_name);
+  public function setLinkTemplate($key, $path);
 
   /**
    * Gets the callback for the label of the entity.

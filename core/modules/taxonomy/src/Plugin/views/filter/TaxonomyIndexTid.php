@@ -106,7 +106,7 @@ class TaxonomyIndexTid extends ManyToOne {
   }
 
   public function buildExtraOptionsForm(&$form, FormStateInterface $form_state) {
-    $vocabularies = entity_load_multiple('taxonomy_vocabulary');
+    $vocabularies = $this->vocabularyStorage->loadMultiple();
     $options = array();
     foreach ($vocabularies as $voc) {
       $options[$voc->id()] = $voc->label();
@@ -150,7 +150,7 @@ class TaxonomyIndexTid extends ManyToOne {
   }
 
   protected function valueForm(&$form, FormStateInterface $form_state) {
-    $vocabulary = entity_load('taxonomy_vocabulary', $this->options['vid']);
+    $vocabulary = $this->vocabularyStorage->load($this->options['vid']);
     if (empty($vocabulary) && $this->options['limit']) {
       $form['markup'] = array(
         '#markup' => '<div class="form-item">' . $this->t('An invalid vocabulary is selected. Please change it in the options.') . '</div>',
@@ -373,7 +373,7 @@ class TaxonomyIndexTid extends ManyToOne {
     }
 
     if ($missing && !empty($this->options['error_message'])) {
-      $form_state->setError($form, format_plural(count($missing), 'Unable to find term: @terms', 'Unable to find terms: @terms', array('@terms' => implode(', ', array_keys($missing)))));
+      $form_state->setError($form, $this->formatPlural(count($missing), 'Unable to find term: @terms', 'Unable to find terms: @terms', array('@terms' => implode(', ', array_keys($missing)))));
     }
     elseif ($missing && empty($this->options['error_message'])) {
       $tids = array(0);

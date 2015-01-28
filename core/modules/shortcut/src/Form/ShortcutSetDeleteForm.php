@@ -80,7 +80,7 @@ class ShortcutSetDeleteForm extends EntityConfirmFormBase {
     $number = $this->storage->countAssignedUsers($this->entity);
     $info = '';
     if ($number) {
-      $info .= '<p>' . format_plural($number,
+      $info .= '<p>' . $this->formatPlural($number,
         '1 user has chosen or been assigned to this shortcut set.',
         '@count users have chosen or been assigned to this shortcut set.') . '</p>';
     }
@@ -103,7 +103,7 @@ class ShortcutSetDeleteForm extends EntityConfirmFormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $this->entity->delete();
-    $form_state->setRedirect('shortcut.set_admin');
+    $form_state->setRedirectUrl($this->entity->urlInfo('collection'));
     drupal_set_message(t('The shortcut set %title has been deleted.', array('%title' => $this->entity->label())));
   }
 

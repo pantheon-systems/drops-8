@@ -36,8 +36,8 @@ use Drupal\Core\Entity\EntityStorageInterface;
  *     "id" = "id"
  *   },
  *   links = {
- *     "delete-form" = "entity.block.delete_form",
- *     "edit-form" = "entity.block.edit_form"
+ *     "delete-form" = "/admin/structure/block/manage/{block}/delete",
+ *     "edit-form" = "/admin/structure/block/manage/{block}"
  *   }
  * )
  */
@@ -48,7 +48,7 @@ class Block extends ConfigEntityBase implements BlockInterface, EntityWithPlugin
    *
    * @var string
    */
-  public $id;
+  protected $id;
 
   /**
    * The plugin instance settings.
@@ -69,7 +69,7 @@ class Block extends ConfigEntityBase implements BlockInterface, EntityWithPlugin
    *
    * @var int
    */
-  public $weight;
+  protected $weight;
 
   /**
    * The plugin instance ID.
@@ -114,6 +114,13 @@ class Block extends ConfigEntityBase implements BlockInterface, EntityWithPlugin
   protected $conditionPluginManager;
 
   /**
+   * The theme that includes the block plugin for this entity.
+   *
+   * @var string
+   */
+  protected $theme;
+
+  /**
    * {@inheritdoc}
    */
   public function getPlugin() {
@@ -144,7 +151,35 @@ class Block extends ConfigEntityBase implements BlockInterface, EntityWithPlugin
   }
 
   /**
-   * Overrides \Drupal\Core\Entity\Entity::label();
+   * {@inheritdoc}
+   */
+  public function getPluginId() {
+    return $this->plugin;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getRegion() {
+    return $this->region;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getTheme() {
+    return $this->theme;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getWeight() {
+    return $this->weight;
+  }
+
+  /**
+   * {@inheritdoc}
    */
   public function label() {
     $settings = $this->get('settings');
@@ -162,13 +197,13 @@ class Block extends ConfigEntityBase implements BlockInterface, EntityWithPlugin
    */
   public static function sort(ConfigEntityInterface $a, ConfigEntityInterface $b) {
     // Separate enabled from disabled.
-    $status = $b->get('status') - $a->get('status');
-    if ($status) {
+    $status = (int) $b->status() - (int) $a->status();
+    if ($status !== 0) {
       return $status;
     }
     // Sort by weight, unless disabled.
-    if ($a->get('region') != static::BLOCK_REGION_NONE) {
-      $weight = $a->get('weight') - $b->get('weight');
+    if ($a->getRegion() != static::BLOCK_REGION_NONE) {
+      $weight = $a->getWeight() - $b->getWeight();
       if ($weight) {
         return $weight;
       }
@@ -200,19 +235,6 @@ class Block extends ConfigEntityBase implements BlockInterface, EntityWithPlugin
     if (!$update) {
       Cache::invalidateTags($this->getCacheTags());
     }
-  }
-
-  /**
-   * {@inheritdoc}
-   *
-   * Block configuration entities are a special case: one block entity stores
-   * the placement of one block in one theme. Changing these entities may affect
-   * any page that is rendered in a certain theme, even if the block doesn't
-   * appear there currently. Hence a block configuration entity must also return
-   * the associated theme's cache tag.
-   */
-  public function getCacheTags() {
-    return Cache::mergeTags(parent::getCacheTags(), ['theme:' . $this->theme]);
   }
 
   /**
@@ -281,6 +303,36 @@ class Block extends ConfigEntityBase implements BlockInterface, EntityWithPlugin
       $this->conditionPluginManager = \Drupal::service('plugin.manager.condition');
     }
     return $this->conditionPluginManager;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setRegion($region) {
+    $this->region = $region;
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setWeight($weight) {
+    $this->weight = $weight;
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function createDuplicateBlock($new_id = NULL, $new_theme = NULL) {
+    $duplicate = parent::createDuplicate();
+    if (!empty($new_id)) {
+      $duplicate->id = $new_id;
+    }
+    if (!empty($new_theme)) {
+      $duplicate->theme = $new_theme;
+    }
+    return $duplicate;
   }
 
 }

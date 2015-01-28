@@ -38,6 +38,13 @@ abstract class LocaleUpdateBase extends WebTestBase {
   protected $timestampNew;
 
   /**
+   * Timestamp for current time.
+   *
+   * @var integer
+   */
+  protected $timestampNow;
+
+  /**
    * Modules to enable.
    *
    * @var array
@@ -53,17 +60,17 @@ abstract class LocaleUpdateBase extends WebTestBase {
     // Update module should not go out to d.o to check for updates. We override
     // the url to the default update_test xml path. But without providing
     // a mock xml file, no update data will be found.
-    \Drupal::config('update.settings')->set('fetch.url', _url('update-test', array('absolute' => TRUE)))->save();
+    $this->config('update.settings')->set('fetch.url', _url('update-test', array('absolute' => TRUE)))->save();
 
     // Setup timestamps to identify old and new translation sources.
     $this->timestampOld = REQUEST_TIME - 300;
     $this->timestampMedium = REQUEST_TIME - 200;
     $this->timestampNew = REQUEST_TIME - 100;
-    $this->timestamp_now = REQUEST_TIME;
+    $this->timestampNow = REQUEST_TIME;
 
     // Enable import of translations. By default this is disabled for automated
     // tests.
-    \Drupal::config('locale.settings')
+    $this->config('locale.settings')
       ->set('translation.import_enabled', TRUE)
       ->save();
   }
@@ -77,7 +84,7 @@ abstract class LocaleUpdateBase extends WebTestBase {
    */
   protected function setTranslationsDirectory($path) {
     file_prepare_directory($path, FILE_CREATE_DIRECTORY);
-    \Drupal::config('locale.settings')->set('translation.path', $path)->save();
+    $this->config('locale.settings')->set('translation.path', $path)->save();
   }
 
   /**
@@ -173,7 +180,7 @@ EOF;
    * imported.
    */
   protected function setTranslationFiles() {
-    $config = \Drupal::config('locale.settings');
+    $config = $this->config('locale.settings');
 
     // A flag is set to let the locale_test module replace the project data with
     // a set of test projects which match the below project files.

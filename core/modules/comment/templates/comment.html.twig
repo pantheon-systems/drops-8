@@ -66,16 +66,8 @@
  * @ingroup themeable
  */
 #}
-{%
-  set classes = [
-    'comment',
-    status != 'published' ? status,
-    comment.owner.anonymous ? 'by-anonymous',
-    author_id and author_id == commented_entity.getOwnerId() ? 'by-' ~ commented_entity.getEntityTypeId() ~ '-author',
-    'clearfix',
-  ]
-%}
-<article{{ attributes.addClass(classes) }}>
+
+<article{{ attributes }}>
   {% if title %}
     {{ title_prefix }}
   {% endif %}
@@ -109,7 +101,7 @@
     {{ permalink }}
   </footer>
 
-  <div{{ content_attributes.addClass('content') }}>
+  <div{{ content_attributes }}>
     {{ content|without('links') }}
 
     {% if signature %}

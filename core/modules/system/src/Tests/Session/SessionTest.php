@@ -144,7 +144,7 @@ class SessionTest extends WebTestBase {
     $this->assertSessionEmpty(TRUE);
 
     // The same behavior is expected when caching is enabled.
-    $config = \Drupal::config('system.performance');
+    $config = $this->config('system.performance');
     $config->set('cache.page.use_internal', 1);
     $config->set('cache.page.max_age', 300);
     $config->save();
@@ -285,10 +285,10 @@ class SessionTest extends WebTestBase {
    */
   function assertSessionCookie($sent) {
     if ($sent) {
-      $this->assertNotNull($this->session_id, 'Session cookie was sent.');
+      $this->assertNotNull($this->sessionId, 'Session cookie was sent.');
     }
     else {
-      $this->assertNull($this->session_id, 'Session cookie was not sent.');
+      $this->assertNull($this->sessionId, 'Session cookie was not sent.');
     }
   }
 

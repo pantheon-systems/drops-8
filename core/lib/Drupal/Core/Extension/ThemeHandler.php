@@ -13,6 +13,7 @@ use Drupal\Core\Cache\Cache;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\ConfigInstallerInterface;
 use Drupal\Core\Config\ConfigManagerInterface;
+use Drupal\Core\Config\PreExistingConfigException;
 use Drupal\Core\Routing\RouteBuilderIndicatorInterface;
 use Drupal\Core\State\StateInterface;
 use Psr\Log\LoggerInterface;
@@ -179,7 +180,7 @@ class ThemeHandler implements ThemeHandlerInterface {
     if (!isset($list[$name])) {
       throw new \InvalidArgumentException("$name theme is not installed.");
     }
-    $this->configFactory->get('system.theme')
+    $this->configFactory->getEditable('system.theme')
       ->set('default', $name)
       ->save();
     return $this;
@@ -189,7 +190,7 @@ class ThemeHandler implements ThemeHandlerInterface {
    * {@inheritdoc}
    */
   public function install(array $theme_list, $install_dependencies = TRUE) {
-    $extension_config = $this->configFactory->get('core.extension');
+    $extension_config = $this->configFactory->getEditable('core.extension');
 
     $theme_data = $this->rebuildThemeData();
 
@@ -255,6 +256,13 @@ class ThemeHandler implements ThemeHandlerInterface {
         )));
       }
 
+      // Validate default configuration of the theme. If there is existing
+      // configuration then stop installing.
+      $existing_configuration = $this->configInstaller->findPreExistingConfiguration('theme', $key);
+      if (!empty($existing_configuration)) {
+        throw PreExistingConfigException::create($key, $existing_configuration);
+      }
+
       // The value is not used; the weight is ignored for themes currently.
       $extension_config
         ->set("theme.$key", 0)
@@ -313,8 +321,8 @@ class ThemeHandler implements ThemeHandlerInterface {
    * {@inheritdoc}
    */
   public function uninstall(array $theme_list) {
-    $extension_config = $this->configFactory->get('core.extension');
-    $theme_config = $this->configFactory->get('system.theme');
+    $extension_config = $this->configFactory->getEditable('core.extension');
+    $theme_config = $this->configFactory->getEditable('system.theme');
     $list = $this->listInfo();
     foreach ($theme_list as $key) {
       if (!isset($list[$key])) {
@@ -621,7 +629,7 @@ class ThemeHandler implements ThemeHandlerInterface {
 
     // @todo It feels wrong to have the requirement to clear the local tasks
     //   cache here.
-    Cache::deleteTags(array('local_task'));
+    Cache::invalidateTags(array('local_task'));
     $this->themeRegistryRebuild();
   }
 

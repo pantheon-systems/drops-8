@@ -28,7 +28,7 @@ class BlockTest extends BlockTestBase {
     // Create a random title for the block.
     $title = $this->randomMachineName(8);
     // Enable a standard block.
-    $default_theme = \Drupal::config('system.theme')->get('default');
+    $default_theme = $this->config('system.theme')->get('default');
     $edit = array(
       'id' => strtolower($this->randomMachineName(8)),
       'region' => 'sidebar_first',
@@ -66,7 +66,7 @@ class BlockTest extends BlockTestBase {
     // Create a random title for the block.
     $title = $this->randomMachineName(8);
     // Enable a standard block.
-    $default_theme = \Drupal::config('system.theme')->get('default');
+    $default_theme = $this->config('system.theme')->get('default');
     $edit = array(
       'id' => strtolower($this->randomMachineName(8)),
       'region' => 'sidebar_first',
@@ -102,7 +102,7 @@ class BlockTest extends BlockTestBase {
     // Create a random title for the block.
     $title = $this->randomMachineName(8);
     // Enable a standard block.
-    $default_theme = \Drupal::config('system.theme')->get('default');
+    $default_theme = $this->config('system.theme')->get('default');
     $edit = array(
       'id' => strtolower($this->randomMachineName(8)),
       'region' => 'sidebar_first',
@@ -134,7 +134,7 @@ class BlockTest extends BlockTestBase {
     $block = array();
     $block['id'] = 'system_powered_by_block';
     $block['settings[label]'] = $this->randomMachineName(8);
-    $block['theme'] = \Drupal::config('system.theme')->get('default');
+    $block['theme'] = $this->config('system.theme')->get('default');
     $block['region'] = 'header';
 
     // Set block title to confirm that interface works and override any custom titles.
@@ -190,7 +190,7 @@ class BlockTest extends BlockTestBase {
   public function testBlockThemeSelector() {
     // Install all themes.
     \Drupal::service('theme_handler')->install(array('bartik', 'seven'));
-    $theme_settings = $this->container->get('config.factory')->get('system.theme');
+    $theme_settings = $this->config('system.theme');
     foreach (array('bartik', 'classy', 'seven') as $theme) {
       $this->drupalGet('admin/structure/block/list/' . $theme);
       $this->assertTitle(t('Block layout') . ' | Drupal');
@@ -236,7 +236,7 @@ class BlockTest extends BlockTestBase {
     $title = $this->randomMachineName(8);
     $id = strtolower($this->randomMachineName(8));
     // Enable a standard block.
-    $default_theme = \Drupal::config('system.theme')->get('default');
+    $default_theme = $this->config('system.theme')->get('default');
     $edit = array(
       'id' => $id,
       'region' => 'sidebar_first',
@@ -275,7 +275,7 @@ class BlockTest extends BlockTestBase {
    */
   function moveBlockToRegion(array $block, $region) {
     // Set the created block to a specific region.
-    $block += array('theme' => \Drupal::config('system.theme')->get('default'));
+    $block += array('theme' => $this->config('system.theme')->get('default'));
     $edit = array();
     $edit['blocks[' . $block['id'] . '][region]'] = $region;
     $this->drupalPostForm('admin/structure/block', $edit, t('Save blocks'));
@@ -307,7 +307,7 @@ class BlockTest extends BlockTestBase {
     $this->drupalLogout();
 
     // Enable page caching.
-    $config = \Drupal::config('system.performance');
+    $config = $this->config('system.performance');
     $config->set('cache.page.use_internal', 1);
     $config->set('cache.page.max_age', 300);
     $config->save();
@@ -327,10 +327,9 @@ class BlockTest extends BlockTestBase {
     $cid = implode(':', $cid_parts);
     $cache_entry = \Drupal::cache('render')->get($cid);
     $expected_cache_tags = array(
-      'theme:classy',
-      'theme_global_settings',
+      'config:block_list',
       'block_view',
-      'block:powered',
+      'config:block.block.powered',
       'block_plugin:system_powered_by_block',
       'rendered',
     );
@@ -339,8 +338,7 @@ class BlockTest extends BlockTestBase {
     $cache_entry = \Drupal::cache('render')->get('entity_view:block:powered:en:classy');
     $expected_cache_tags = array(
       'block_view',
-      'block:powered',
-      'theme:classy',
+      'config:block.block.powered',
       'block_plugin:system_powered_by_block',
       'rendered',
     );
@@ -348,7 +346,7 @@ class BlockTest extends BlockTestBase {
     $this->assertIdentical($cache_entry->tags, $expected_cache_tags);
 
     // The "Powered by Drupal" block is modified; verify a cache miss.
-    $block->set('region', 'content');
+    $block->setRegion('content');
     $block->save();
     $this->drupalGet('<front>');
     $this->assertEqual($this->drupalGetHeader('X-Drupal-Cache'), 'MISS');
@@ -369,11 +367,10 @@ class BlockTest extends BlockTestBase {
     $cid = implode(':', $cid_parts);
     $cache_entry = \Drupal::cache('render')->get($cid);
     $expected_cache_tags = array(
-      'theme:classy',
-      'theme_global_settings',
+      'config:block_list',
       'block_view',
-      'block:powered-2',
-      'block:powered',
+      'config:block.block.powered',
+      'config:block.block.powered-2',
       'block_plugin:system_powered_by_block',
       'rendered',
     );
@@ -381,8 +378,7 @@ class BlockTest extends BlockTestBase {
     $this->assertEqual($cache_entry->tags, $expected_cache_tags);
     $expected_cache_tags = array(
       'block_view',
-      'block:powered',
-      'theme:classy',
+      'config:block.block.powered',
       'block_plugin:system_powered_by_block',
       'rendered',
     );
@@ -391,8 +387,7 @@ class BlockTest extends BlockTestBase {
     $this->assertIdentical($cache_entry->tags, $expected_cache_tags);
     $expected_cache_tags = array(
       'block_view',
-      'block:powered-2',
-      'theme:classy',
+      'config:block.block.powered-2',
       'block_plugin:system_powered_by_block',
       'rendered',
     );
@@ -434,6 +429,20 @@ class BlockTest extends BlockTestBase {
 
     // Ensure that the block configuration does not exist anymore.
     $this->assertIdentical(NULL, Block::load($block->id()));
+  }
+
+  /**
+   * Tests the block access.
+   */
+  public function testBlockAccess() {
+    $this->drupalPlaceBlock('test_access', ['region' => 'help']);
+
+    $this->drupalGet('<front>');
+    $this->assertNoText('Hello test world');
+
+    \Drupal::state()->set('test_block_access', TRUE);
+    $this->drupalGet('<front>');
+    $this->assertText('Hello test world');
   }
 
 }

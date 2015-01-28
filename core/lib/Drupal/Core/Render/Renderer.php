@@ -7,11 +7,14 @@
 
 namespace Drupal\Core\Render;
 
+use Drupal\Component\Utility\NestedArray;
+use Drupal\Core\Cache\Cache;
+use Drupal\Core\Cache\CacheContexts;
+use Drupal\Core\Cache\CacheFactoryInterface;
 use Drupal\Core\Controller\ControllerResolverInterface;
 use Drupal\Core\Theme\ThemeManagerInterface;
 use Drupal\Component\Utility\SafeMarkup;
-use Drupal\Core\Cache\Cache;
-use Drupal\Component\Utility\NestedArray;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Turns a render array into a HTML string.
@@ -40,6 +43,27 @@ class Renderer implements RendererInterface {
   protected $elementInfo;
 
   /**
+   * The request stack.
+   *
+   * @var \Symfony\Component\HttpFoundation\RequestStack
+   */
+  protected $requestStack;
+
+  /**
+   * The cache factory.
+   *
+   * @var \Drupal\Core\Cache\CacheFactoryInterface
+   */
+  protected $cacheFactory;
+
+  /**
+   * The cache contexts service.
+   *
+   * @var \Drupal\Core\Cache\CacheContexts
+   */
+  protected $cacheContexts;
+
+  /**
    * The stack containing bubbleable rendering metadata.
    *
    * @var \SplStack|null
@@ -55,11 +79,20 @@ class Renderer implements RendererInterface {
    *   The theme manager.
    * @param \Drupal\Core\Render\ElementInfoManagerInterface $element_info
    *   The element info.
+   * @param \Symfony\Component\HttpFoundation\RequestStack $request_stack
+   *   The request stack.
+   * @param \Drupal\Core\Cache\CacheFactoryInterface $cache_factory
+   *   The cache factory.
+   * @param \Drupal\Core\Cache\CacheContexts $cache_contexts
+   *   The cache contexts service.
    */
-  public function __construct(ControllerResolverInterface $controller_resolver, ThemeManagerInterface $theme, ElementInfoManagerInterface $element_info) {
+  public function __construct(ControllerResolverInterface $controller_resolver, ThemeManagerInterface $theme, ElementInfoManagerInterface $element_info, RequestStack $request_stack, CacheFactoryInterface $cache_factory, CacheContexts $cache_contexts) {
     $this->controllerResolver = $controller_resolver;
     $this->theme = $theme;
     $this->elementInfo = $element_info;
+    $this->requestStack = $request_stack;
+    $this->cacheFactory = $cache_factory;
+    $this->cacheContexts = $cache_contexts;
   }
 
   /**
@@ -73,10 +106,10 @@ class Renderer implements RendererInterface {
    * {@inheritdoc}
    */
   public function renderPlain(&$elements) {
-    $current_stack = self::$stack;
+    $current_stack = static::$stack;
     $this->resetStack();
     $output = $this->renderRoot($elements);
-    self::$stack = $current_stack;
+    static::$stack = $current_stack;
     return $output;
   }
 
@@ -125,15 +158,15 @@ class Renderer implements RendererInterface {
       return '';
     }
 
-    if (!isset(self::$stack)) {
-      self::$stack = new \SplStack();
+    if (!isset(static::$stack)) {
+      static::$stack = new \SplStack();
     }
-    self::$stack->push(new RenderStackFrame());
+    static::$stack->push(new BubbleableMetadata());
 
     // Try to fetch the prerendered element from cache, run any
     // #post_render_cache callbacks and return the final markup.
     if (isset($elements['#cache'])) {
-      $cached_element = drupal_render_cache_get($elements);
+      $cached_element = $this->cacheGet($elements);
       if ($cached_element !== FALSE) {
         $elements = $cached_element;
         // Only when we're not in a root (non-recursive) drupal_render() call,
@@ -312,7 +345,7 @@ class Renderer implements RendererInterface {
 
     // Cache the processed element if #cache is set.
     if (isset($elements['#cache'])) {
-      drupal_render_cache_set($elements['#markup'], $elements);
+      $this->cacheSet($elements);
     }
 
     // Only when we're in a root (non-recursive) drupal_render() call,
@@ -332,14 +365,15 @@ class Renderer implements RendererInterface {
       // stack frame to collect those additions, merge them back to the element,
       // and then update the current frame to match the modified element state.
       do {
-        self::$stack->push(new RenderStackFrame());
+        static::$stack->push(new BubbleableMetadata());
         $this->processPostRenderCache($elements);
-        $post_render_additions = self::$stack->pop();
-        $elements['#cache']['tags'] = Cache::mergeTags($elements['#cache']['tags'], $post_render_additions->tags);
-        $elements['#attached'] = drupal_merge_attached($elements['#attached'], $post_render_additions->attached);
-        $elements['#post_render_cache'] = $post_render_additions->postRenderCache;
+        $post_render_additions = static::$stack->pop();
+        $elements['#post_render_cache'] = NULL;
+        BubbleableMetadata::createFromRenderArray($elements)
+          ->merge($post_render_additions)
+          ->applyTo($elements);
       } while (!empty($elements['#post_render_cache']));
-      if (self::$stack->count() !== 1) {
+      if (static::$stack->count() !== 1) {
         throw new \LogicException('A stray drupal_render() invocation with $is_root_call = TRUE is causing bubbling of attached assets to break.');
       }
     }
@@ -359,7 +393,7 @@ class Renderer implements RendererInterface {
    * error page if an exception occurred *during* rendering.
    */
   protected function resetStack() {
-    self::$stack = NULL;
+    static::$stack = NULL;
   }
 
   /**
@@ -372,12 +406,12 @@ class Renderer implements RendererInterface {
    */
   protected function updateStack(&$element) {
     // The latest frame represents the bubbleable metadata for the subtree.
-    $frame = self::$stack->top();
+    $frame = static::$stack->pop();
     // Update the frame, but also update the current element, to ensure it
     // contains up-to-date information in case it gets render cached.
-    $frame->tags = $element['#cache']['tags'] = Cache::mergeTags($element['#cache']['tags'], $frame->tags);
-    $frame->attached = $element['#attached'] = drupal_merge_attached($element['#attached'], $frame->attached);
-    $frame->postRenderCache = $element['#post_render_cache'] = NestedArray::mergeDeep($element['#post_render_cache'], $frame->postRenderCache);
+    $updated_frame = BubbleableMetadata::createFromRenderArray($element)->merge($frame);
+    $updated_frame->applyTo($element);
+    static::$stack->push($updated_frame);
   }
 
   /**
@@ -390,18 +424,15 @@ class Renderer implements RendererInterface {
   protected function bubbleStack() {
     // If there's only one frame on the stack, then this is the root call, and
     // we can't bubble up further. Reset the stack for the next root call.
-    if (self::$stack->count() === 1) {
+    if (static::$stack->count() === 1) {
       $this->resetStack();
       return;
     }
 
     // Merge the current and the parent stack frame.
-    $current = self::$stack->pop();
-    $parent = self::$stack->pop();
-    $current->tags = Cache::mergeTags($current->tags, $parent->tags);
-    $current->attached = drupal_merge_attached($current->attached, $parent->attached);
-    $current->postRenderCache = NestedArray::mergeDeep($current->postRenderCache, $parent->postRenderCache);
-    self::$stack->push($current);
+    $current = static::$stack->pop();
+    $parent = static::$stack->pop();
+    static::$stack->push($current->merge($parent));
   }
 
   /**
@@ -435,6 +466,135 @@ class Renderer implements RendererInterface {
         }
       }
     }
+  }
+
+  /**
+   * Gets the cached, prerendered element of a renderable element from the cache.
+   *
+   * @param array $elements
+   *   A renderable array.
+   *
+   * @return array
+   *   A renderable array, with the original element and all its children pre-
+   *   rendered, or FALSE if no cached copy of the element is available.
+   *
+   * @see ::render()
+   * @see ::saveToCache()
+   */
+  protected function cacheGet(array $elements) {
+    // Form submissions rely on the form being built during the POST request,
+    // and render caching of forms prevents this from happening.
+    // @todo remove the isMethodSafe() check when
+    //       https://www.drupal.org/node/2367555 lands.
+    if (!$this->requestStack->getCurrentRequest()->isMethodSafe() || !$cid = $this->createCacheID($elements)) {
+      return FALSE;
+    }
+    $bin = isset($elements['#cache']['bin']) ? $elements['#cache']['bin'] : 'render';
+
+    if (!empty($cid) && $cache = $this->cacheFactory->get($bin)->get($cid)) {
+      $cached_element = $cache->data;
+      // Return the cached element.
+      return $cached_element;
+    }
+    return FALSE;
+  }
+
+  /**
+   * Caches the rendered output of a renderable element.
+   *
+   * This is called by ::render() if the #cache property is set on an element.
+   *
+   * @param array $elements
+   *   A renderable array.
+   *
+   * @return bool|null
+   *  Returns FALSE if no cache item could be created, NULL otherwise.
+   *
+   * @see ::getFromCache()
+   */
+  protected function cacheSet(array &$elements) {
+    // Form submissions rely on the form being built during the POST request,
+    // and render caching of forms prevents this from happening.
+    // @todo remove the isMethodSafe() check when
+    //       https://www.drupal.org/node/2367555 lands.
+    if (!$this->requestStack->getCurrentRequest()->isMethodSafe() || !$cid = $this->createCacheID($elements)) {
+      return FALSE;
+    }
+
+    $data = $this->getCacheableRenderArray($elements);
+
+    // Cache tags are cached, but we also want to assocaite the "rendered" cache
+    // tag. This allows us to invalidate the entire render cache, regardless of
+    // the cache bin.
+    $data['#cache']['tags'][] = 'rendered';
+
+    $bin = isset($elements['#cache']['bin']) ? $elements['#cache']['bin'] : 'render';
+    $expire = isset($elements['#cache']['expire']) ? $elements['#cache']['expire'] : Cache::PERMANENT;
+    $this->cacheFactory->get($bin)->set($cid, $data, $expire, $data['#cache']['tags']);
+  }
+
+  /**
+   * Creates the cache ID for a renderable element.
+   *
+   * This creates the cache ID string, either by returning the #cache['cid']
+   * property if present or by building the cache ID out of the #cache['keys'].
+   *
+   * @param array $elements
+   *   A renderable array.
+   *
+   * @return string
+   *   The cache ID string, or FALSE if the element may not be cached.
+   */
+  protected function createCacheID(array $elements) {
+    if (isset($elements['#cache']['cid'])) {
+      return $elements['#cache']['cid'];
+    }
+    elseif (isset($elements['#cache']['keys'])) {
+      // Cache keys may either be static (just strings) or tokens (placeholders
+      // that are converted to static keys by the @cache_contexts service,
+      // depending on the request).
+      $keys = $this->cacheContexts->convertTokensToKeys($elements['#cache']['keys']);
+      return implode(':', $keys);
+    }
+    return FALSE;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getCacheableRenderArray(array $elements) {
+    return [
+      '#markup' => $elements['#markup'],
+      '#attached' => $elements['#attached'],
+      '#post_render_cache' => $elements['#post_render_cache'],
+      '#cache' => [
+        'tags' => $elements['#cache']['tags'],
+      ],
+    ];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function mergeBubbleableMetadata(array $a, array $b) {
+    $meta_a = BubbleableMetadata::createFromRenderArray($a);
+    $meta_b = BubbleableMetadata::createFromRenderArray($b);
+    $meta_a->merge($meta_b)->applyTo($a);
+    return $a;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function mergeAttachments(array $a, array $b) {
+    // If both #attached arrays contain drupalSettings, then merge them
+    // correctly; adding the same settings multiple times needs to behave
+    // idempotently.
+    if (!empty($a['drupalSettings']) && !empty($b['drupalSettings'])) {
+      $a['drupalSettings'] = NestedArray::mergeDeepArray([$a['drupalSettings'], $b['drupalSettings']], TRUE);
+      unset($b['drupalSettings']);
+    }
+    return NestedArray::mergeDeep($a, $b);
   }
 
 }

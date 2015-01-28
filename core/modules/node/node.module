@@ -11,30 +11,23 @@
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\Xss;
 use Drupal\Core\Access\AccessResult;
-use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\Language\LanguageInterface;
-use Drupal\Core\Render\Element;
-use Drupal\Core\Routing\RouteMatchInterface;
-use Drupal\Core\Url;
-use Drupal\language\Entity\ContentLanguageSettings;
-use Symfony\Component\HttpFoundation\Response;
-use Drupal\Core\Database\StatementInterface;
 use Drupal\Core\Database\Query\AlterableInterface;
 use Drupal\Core\Database\Query\SelectInterface;
-use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\Core\Database\StatementInterface;
+use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Render\Element;
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Template\Attribute;
+use Drupal\Core\Url;
 use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\language\ConfigurableLanguageInterface;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
-use Drupal\node\NodeTypeInterface;
 use Drupal\node\NodeInterface;
-use Drupal\Core\Entity\EntityInterface;
-use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
-use Drupal\Core\Entity\Display\EntityFormDisplayInterface;
-use Drupal\Core\Template\Attribute;
-use Drupal\file\Entity\File;
-use Drupal\language\ConfigurableLanguageInterface;
-use Drupal\block\Entity\Block;
-use Drupal\Core\Session\AccountInterface;
+use Drupal\node\NodeTypeInterface;
 
 /**
  * Denotes that the node is not published.
@@ -92,7 +85,7 @@ function node_help($route_name, RouteMatchInterface $route_match) {
       $output .= '<h3>' . t('Uses') . '</h3>';
       $output .= '<dl>';
       $output .= '<dt>' . t('Creating content') . '</dt>';
-      $output .= '<dd>' . t('When new content is created, the Node module records basic information about the content, including the author, date of creation, and the <a href="!content-type">Content type</a>. It also manages the <em>publishing options</em>, which define whether or not the content is published, promoted to the front page of the site, and/or sticky at the top of content lists. Default settings can be configured for each <a href="!content-type">type of content</a> on your site.', array('!content-type' => \Drupal::url('node.overview_types'))) . '</dd>';
+      $output .= '<dd>' . t('When new content is created, the Node module records basic information about the content, including the author, date of creation, and the <a href="!content-type">Content type</a>. It also manages the <em>publishing options</em>, which define whether or not the content is published, promoted to the front page of the site, and/or sticky at the top of content lists. Default settings can be configured for each <a href="!content-type">type of content</a> on your site.', array('!content-type' => \Drupal::url('entity.node_type.collection'))) . '</dd>';
       $output .= '<dt>' . t('Creating custom content types') . '</dt>';
       $output .= '<dd>' . t('The Node module gives users with the <em>Administer content types</em> permission the ability to <a href="!content-new">create new content types</a> in addition to the default ones already configured. Creating custom content types allows you the flexibility to add <a href="!field">fields</a> and configure default settings that suit the differing needs of various site content.', array('!content-new' => \Drupal::url('node.type_add'), '!field' => \Drupal::url('help.page', array('name' => 'field')))) . '</dd>';
       $output .= '<dt>' . t('Administering content') . '</dt>';
@@ -107,13 +100,13 @@ function node_help($route_name, RouteMatchInterface $route_match) {
     case 'node.type_add':
       return '<p>' . t('Individual content types can have different fields, behaviors, and permissions assigned to them.') . '</p>';
 
-    case 'field_ui.form_display_overview_node':
-    case 'field_ui.form_display_overview_form_mode_node':
+    case 'entity.entity_form_display.node.default':
+    case 'entity.entity_form_display.node.form_mode':
       $type = $route_match->getParameter('node_type');
       return '<p>' . t('Content items can be edited using different form modes. Here, you can define which fields are shown and hidden when %type content is edited in each form mode, and define how the field form widgets are displayed in each form mode.', array('%type' => $type->label())) . '</p>' ;
 
-    case 'field_ui.display_overview_node':
-    case 'field_ui.display_overview_view_mode_node':
+    case 'entity.entity_view_display.node.default':
+    case 'entity.entity_view_display.node.view_mode':
       $type = $route_match->getParameter('node_type');
       return '<p>' . t('Content items can be displayed using different view modes: Teaser, Full content, Print, RSS, etc. <em>Teaser</em> is a short format that is typically used in lists of multiple content items. <em>Full content</em> is typically used when the content is displayed on its own page.') . '</p>' .
         '<p>' . t('Here, you can define which fields are shown and hidden when %type content is displayed in each view mode, and define how the fields are displayed in each view mode.', array('%type' => $type->label())) . '</p>';
@@ -124,11 +117,13 @@ function node_help($route_name, RouteMatchInterface $route_match) {
     case 'entity.node.edit_form':
       $node = $route_match->getParameter('node');
       $type = NodeType::load($node->getType());
-      return (!empty($type->help) ? Xss::filterAdmin($type->help) : '');
+      $help = $type->getHelp();
+      return (!empty($help) ? Xss::filterAdmin($help) : '');
 
     case 'node.add':
       $type = $route_match->getParameter('node_type');
-      return (!empty($type->help) ? Xss::filterAdmin($type->help) : '');
+      $help = $type->getHelp();
+      return (!empty($help) ? Xss::filterAdmin($help) : '');
   }
 }
 
@@ -197,7 +192,7 @@ function node_title_list(StatementInterface $result, $title = NULL) {
   foreach ($result as $row) {
     // Do not use $node->label() or $node->urlInfo() here, because we only have
     // database rows, not actual nodes.
-    $options = !empty($row->comment_count) ? array('attributes' => array('title' => format_plural($row->comment_count, '1 comment', '@count comments'))) : array();
+    $options = !empty($row->comment_count) ? array('attributes' => array('title' => \Drupal::translation()->formatPlural($row->comment_count, '1 comment', '@count comments'))) : array();
     $items[] = \Drupal::l($row->title, new Url('entity.node.canonical', ['node' => $row->nid], $options));
     $num_rows = TRUE;
   }
@@ -293,7 +288,7 @@ function node_get_type_label(NodeInterface $node) {
  *   The node type description.
  */
 function node_type_get_description(NodeTypeInterface $node_type) {
-  return $node_type->description;
+  return $node_type->getDescription();
 }
 
 /**
@@ -336,14 +331,14 @@ function node_add_body_field(NodeTypeInterface $type, $label = 'Body') {
     $field->save();
 
     // Assign widget settings for the 'default' form mode.
-    entity_get_form_display('node', $type->type, 'default')
+    entity_get_form_display('node', $type->id(), 'default')
       ->setComponent('body', array(
         'type' => 'text_textarea_with_summary',
       ))
       ->save();
 
     // Assign display settings for the 'default' and 'teaser' view modes.
-    entity_get_display('node', $type->type, 'default')
+    entity_get_display('node', $type->id(), 'default')
       ->setComponent('body', array(
         'label' => 'hidden',
         'type' => 'text_default',
@@ -354,7 +349,7 @@ function node_add_body_field(NodeTypeInterface $type, $label = 'Body') {
     // might not exist.
     $view_modes = \Drupal::entityManager()->getViewModes('node');
     if (isset($view_modes['teaser'])) {
-      entity_get_display('node', $type->type, 'teaser')
+      entity_get_display('node', $type->id(), 'teaser')
         ->setComponent('body', array(
           'label' => 'hidden',
           'type' => 'text_summary_or_trimmed',
@@ -371,31 +366,9 @@ function node_add_body_field(NodeTypeInterface $type, $label = 'Body') {
  */
 function node_entity_extra_field_info() {
   $extra = array();
-  $module_language_enabled = \Drupal::moduleHandler()->moduleExists('language');
   $description = t('Node module element');
-
   foreach (node_type_get_types() as $bundle) {
-    // Add the 'language' select if Language module is enabled and the bundle
-    // has multilingual support.
-    // Visibility of the ordering of the language selector is the same as on the
-    // node/add form.
-    if ($module_language_enabled) {
-      $configuration = ContentLanguageSettings::loadByEntityTypeBundle('node', $bundle->type);
-      if ($configuration->isLanguageAlterable()) {
-        $extra['node'][$bundle->type]['form']['langcode'] = array(
-          'label' => t('Language'),
-          'description' => $description,
-          'weight' => 0,
-        );
-      }
-    }
-    $extra['node'][$bundle->type]['display']['langcode'] = array(
-      'label' => t('Language'),
-      'description' => $description,
-      'weight' => 0,
-      'visible' => FALSE,
-    );
-    $extra['node'][$bundle->type]['display']['links'] = array(
+    $extra['node'][$bundle->id()]['display']['links'] = array(
       'label' => t('Links'),
       'description' => $description,
       'weight' => 100,
@@ -521,7 +494,7 @@ function node_is_page(NodeInterface $node) {
 function node_preprocess_html(&$variables) {
   // If on an individual node page, add the node type to body classes.
   if (($node = \Drupal::routeMatch()->getParameter('node')) && $node instanceof NodeInterface) {
-    $variables['attributes']['class'][] = Html::getClass('node--type-' . $node->getType());
+    $variables['node_type'] = $node->getType();
   }
 }
 
@@ -862,39 +835,6 @@ function node_page_top(array &$page) {
 /**
  * Implements hook_form_FORM_ID_alter().
  *
- * Alters the System module's site information settings form to add a global
- * default setting for number of posts to show on node listing pages.
- *
- * @see node_page_default()
- * @see node_form_system_site_information_settings_form_submit()
- */
-function node_form_system_site_information_settings_form_alter(&$form, FormStateInterface $form_state, $form_id) {
-  $options = array(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30);
-  $form['front_page']['default_nodes_main'] = array(
-    '#type' => 'select',
-    '#title' => t('Number of posts on front page'),
-    '#default_value' => \Drupal::config('node.settings')->get('items_per_page'),
-    '#options' => array_combine($options, $options),
-    '#access' => (\Drupal::config('system.site')->get('page.front') == 'node'),
-    '#description' => t('The maximum number of posts displayed on overview pages such as the front page.'),
-  );
-  $form['#submit'][] = 'node_form_system_site_information_settings_form_submit';
-}
-
-/**
- * Form submission handler for system_site_information_settings().
- *
- * @see node_form_system_site_information_settings_form_alter()
- */
-function node_form_system_site_information_settings_form_submit($form, FormStateInterface $form_state) {
-  \Drupal::config('node.settings')
-    ->set('items_per_page', $form_state->getValue('default_nodes_main'))
-    ->save();
-}
-
-/**
- * Implements hook_form_FORM_ID_alter().
- *
  * Alters the theme form to use the admin theme on node editing.
  *
  * @see node_form_system_themes_admin_form_submit()
@@ -903,7 +843,7 @@ function node_form_system_themes_admin_form_alter(&$form, FormStateInterface $fo
   $form['admin_theme']['use_admin_theme'] = array(
     '#type' => 'checkbox',
     '#title' => t('Use the administration theme when editing or creating content'),
-    '#default_value' => \Drupal::config('node.settings')->get('use_admin_theme'),
+    '#default_value' => \Drupal::configFactory()->getEditable('node.settings')->get('use_admin_theme'),
   );
   $form['#submit'][] = 'node_form_system_themes_admin_form_submit';
 }
@@ -914,7 +854,7 @@ function node_form_system_themes_admin_form_alter(&$form, FormStateInterface $fo
  * @see node_form_system_themes_admin_form_alter()
  */
 function node_form_system_themes_admin_form_submit($form, FormStateInterface $form_state) {
-  \Drupal::config('node.settings')
+  \Drupal::configFactory()->getEditable('node.settings')
     ->set('use_admin_theme', $form_state->getValue('use_admin_theme'))
     ->save();
   \Drupal::service('router.builder_indicator')->setRebuildNeeded();
@@ -1249,7 +1189,7 @@ function node_access_rebuild($batch_mode = FALSE) {
  *   An array of contextual key/value information for rebuild batch process.
  */
 function _node_access_rebuild_batch_operation(&$context) {
-  $node_storage = $this->container->get('entity.manager')->getStorage('node');
+  $node_storage = \Drupal::entityManager()->getStorage('node');
   if (empty($context['sandbox'])) {
     // Initiate multistep processing.
     $context['sandbox']['progress'] = 0;

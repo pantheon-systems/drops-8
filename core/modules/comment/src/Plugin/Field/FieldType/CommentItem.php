@@ -11,6 +11,7 @@ use Drupal\comment\CommentManagerInterface;
 use Drupal\comment\Entity\CommentType;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Render\Element;
 use Drupal\Core\TypedData\DataDefinition;
 use Drupal\Core\Field\FieldItemBase;
 use Drupal\Core\Session\AnonymousUserSession;
@@ -55,7 +56,8 @@ class CommentItem extends FieldItemBase implements CommentItemInterface {
    */
   public static function propertyDefinitions(FieldStorageDefinitionInterface $field_definition) {
     $properties['status'] = DataDefinition::create('integer')
-      ->setLabel(t('Comment status'));
+      ->setLabel(t('Comment status'))
+      ->setRequired(TRUE);
 
     $properties['cid'] = DataDefinition::create('integer')
       ->setLabel(t('Last comment ID'));
@@ -87,7 +89,6 @@ class CommentItem extends FieldItemBase implements CommentItemInterface {
         'status' => array(
           'description' => 'Whether comments are allowed on this entity: 0 = no, 1 = closed (read only), 2 = open (read/write).',
           'type' => 'int',
-          'not null' => TRUE,
           'default' => 0,
         ),
       ),
@@ -106,21 +107,13 @@ class CommentItem extends FieldItemBase implements CommentItemInterface {
 
     $anonymous_user = new AnonymousUserSession();
 
-    $element['comment'] = array(
-      '#type' => 'details',
-      '#title' => t('Comment form settings'),
-      '#open' => TRUE,
-      '#attached' => array(
-        'library' => array('comment/drupal.comment'),
-      ),
-    );
-    $element['comment']['default_mode'] = array(
+    $element['default_mode'] = array(
       '#type' => 'checkbox',
       '#title' => t('Threading'),
       '#default_value' => $settings['default_mode'],
       '#description' => t('Show comment replies in a threaded list.'),
     );
-    $element['comment']['per_page'] = array(
+    $element['per_page'] = array(
       '#type' => 'number',
       '#title' => t('Comments per page'),
       '#default_value' => $settings['per_page'],
@@ -129,7 +122,7 @@ class CommentItem extends FieldItemBase implements CommentItemInterface {
       '#max' => 1000,
       '#step' => 10,
     );
-    $element['comment']['anonymous'] = array(
+    $element['anonymous'] = array(
       '#type' => 'select',
       '#title' => t('Anonymous commenting'),
       '#default_value' => $settings['anonymous'],
@@ -140,12 +133,12 @@ class CommentItem extends FieldItemBase implements CommentItemInterface {
       ),
       '#access' => $anonymous_user->hasPermission('post comments'),
     );
-    $element['comment']['form_location'] = array(
+    $element['form_location'] = array(
       '#type' => 'checkbox',
       '#title' => t('Show reply form on the same page as comments'),
       '#default_value' => $settings['form_location'],
     );
-    $element['comment']['preview'] = array(
+    $element['preview'] = array(
       '#type' => 'radios',
       '#title' => t('Preview comment'),
       '#default_value' => $settings['preview'],

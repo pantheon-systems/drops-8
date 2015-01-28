@@ -36,7 +36,7 @@ class HistoryTest extends WebTestBase {
    *
    * @var object
    */
-  protected $test_node;
+  protected $testNode;
 
   protected function setUp() {
     parent::setUp();
@@ -45,7 +45,7 @@ class HistoryTest extends WebTestBase {
 
     $this->user = $this->drupalCreateUser(array('create page content', 'access content'));
     $this->drupalLogin($this->user);
-    $this->test_node = $this->drupalCreateNode(array('type' => 'page', 'uid' => $this->user->id()));
+    $this->testNode = $this->drupalCreateNode(array('type' => 'page', 'uid' => $this->user->id()));
   }
 
   /**
@@ -107,7 +107,7 @@ class HistoryTest extends WebTestBase {
    * Verifies that the history endpoints work.
    */
   function testHistory() {
-    $nid = $this->test_node->id();
+    $nid = $this->testNode->id();
 
     // Retrieve "last read" timestamp for test node, for the current user.
     $response = $this->getNodeReadTimestamps(array($nid));
@@ -119,8 +119,8 @@ class HistoryTest extends WebTestBase {
     $this->drupalGet('node/' . $nid);
     // JavaScript present to record the node read.
     $settings = $this->getDrupalSettings();
-    $this->assertTrue(isset($settings['ajaxPageState']['js']['core/modules/history/js/history.js']), 'history/api library is present.');
-    $this->assertTrue(isset($settings['ajaxPageState']['js']['core/modules/history/js/mark-as-read.js']), 'history/mark-as-read library is present.');
+    $libraries = explode(',', $settings['ajaxPageState']['libraries']);
+    $this->assertTrue(in_array('history/mark-as-read', $libraries), 'history/mark-as-read library is present.');
     $this->assertEqual([$nid => TRUE], $settings['history']['nodesToMarkAsRead'], 'drupalSettings to mark node as read are present.');
 
     // Simulate JavaScript: perform HTTP request to mark node as read.

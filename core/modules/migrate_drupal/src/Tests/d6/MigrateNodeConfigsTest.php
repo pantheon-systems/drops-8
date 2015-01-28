@@ -35,7 +35,7 @@ class MigrateNodeConfigsTest extends MigrateDrupalTestBase {
     parent::setUp();
     $migration = entity_load('migration', 'd6_node_settings');
     $dumps = array(
-      $this->getDumpDirectory() . '/Drupal6NodeSettings.php',
+      $this->getDumpDirectory() . '/Variable.php',
     );
     $this->prepare($migration, $dumps);
     $executable = new MigrateExecutable($migration, new MigrateMessage);
@@ -46,9 +46,8 @@ class MigrateNodeConfigsTest extends MigrateDrupalTestBase {
    * Tests Drupal 6 node settings to Drupal 8 migration.
    */
   public function testNodeSettings() {
-    $config = \Drupal::config('node.settings');
+    $config = $this->config('node.settings');
     $this->assertIdentical($config->get('use_admin_theme'), FALSE);
-    $this->assertIdentical($config->get('items_per_page'), 3);
     $this->assertConfigSchema(\Drupal::service('config.typed'), 'node.settings', $config->get());
   }
 

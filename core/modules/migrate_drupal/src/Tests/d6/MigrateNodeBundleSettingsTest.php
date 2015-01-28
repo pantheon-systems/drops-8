@@ -36,6 +36,16 @@ class MigrateNodeBundleSettingsTest extends MigrateDrupalTestBase {
     entity_create('node_type', array('type' => 'test_story'))->save();
     entity_create('node_type', array('type' => 'test_event'))->save();
     entity_create('node_type', array('type' => 'story'))->save();
+    entity_create('node_type', array('type' => 'article'))->save();
+    entity_create('node_type', array('type' => 'company'))->save();
+    entity_create('node_type', array('type' => 'employee'))->save();
+    entity_create('node_type', array('type' => 'page'))->save();
+    entity_create('node_type', array('type' => 'sponsor'))->save();
+    entity_create('node_type', array('type' => 'event'))->save();
+    entity_create('node_type', array('type' => 'book'))->save();
+
+    // Create a config entity that already exists.
+    entity_create('base_field_override', array('field_name' => 'promote', 'entity_type' => 'node', 'bundle' => 'page',))->save();
 
     $id_mappings = array(
       'd6_node_type' => array(
@@ -51,7 +61,8 @@ class MigrateNodeBundleSettingsTest extends MigrateDrupalTestBase {
     // Setup the dumps.
     $migration = entity_load('migration', 'd6_node_setting_promote');
     $dumps = array(
-      $this->getDumpDirectory() . '/Drupal6NodeType.php',
+      $this->getDumpDirectory() . '/NodeType.php',
+      $this->getDumpDirectory() . '/Variable.php',
     );
     $this->prepare($migration, $dumps);
 

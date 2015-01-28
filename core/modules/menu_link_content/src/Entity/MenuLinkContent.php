@@ -35,13 +35,14 @@ use Drupal\menu_link_content\MenuLinkContentInterface;
  *   entity_keys = {
  *     "id" = "id",
  *     "label" = "title",
+ *     "langcode" = "langcode",
  *     "uuid" = "uuid",
  *     "bundle" = "bundle"
  *   },
  *   links = {
- *     "canonical" = "entity.menu_link_content.canonical",
- *     "edit-form" = "entity.menu_link_content.canonical",
- *     "delete-form" = "entity.menu_link_content.delete_form",
+ *     "canonical" = "/admin/structure/menu/item/{menu_link_content}/edit",
+ *     "edit-form" = "/admin/structure/menu/item/{menu_link_content}/edit",
+ *     "delete-form" = "/admin/structure/menu/item/{menu_link_content}/delete",
  *   }
  * )
  */
@@ -392,8 +393,15 @@ class MenuLinkContent extends ContentEntityBase implements MenuLinkContentInterf
       ));
 
     $fields['langcode'] = BaseFieldDefinition::create('language')
-      ->setLabel(t('Language code'))
-      ->setDescription(t('The node language code.'));
+      ->setLabel(t('Language'))
+      ->setDescription(t('The menu link language code.'))
+      ->setDisplayOptions('view', array(
+        'type' => 'hidden',
+      ))
+      ->setDisplayOptions('form', array(
+        'type' => 'language_select',
+        'weight' => 2,
+      ));
 
     $fields['parent'] = BaseFieldDefinition::create('string')
       ->setLabel(t('Parent plugin ID'))

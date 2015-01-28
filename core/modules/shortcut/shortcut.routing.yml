@@ -6,7 +6,7 @@ entity.shortcut_set.delete_form:
   requirements:
     _entity_access: 'shortcut_set.delete'
 
-shortcut.set_admin:
+entity.shortcut_set.collection:
   path: '/admin/config/user-interface/shortcut'
   defaults:
     _entity_list: 'shortcut_set'
@@ -55,6 +55,14 @@ shortcut.link_add:
     _entity_create_access: 'shortcut:{shortcut_set}'
 
 entity.shortcut.canonical:
+  path: '/admin/config/user-interface/shortcut/link/{shortcut}'
+  defaults:
+    _entity_form: 'shortcut.default'
+    _title: 'Edit'
+  requirements:
+    _entity_access: 'shortcut.update'
+
+entity.shortcut.edit_form:
   path: '/admin/config/user-interface/shortcut/link/{shortcut}'
   defaults:
     _entity_form: 'shortcut.default'

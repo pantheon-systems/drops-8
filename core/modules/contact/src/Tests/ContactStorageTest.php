@@ -13,6 +13,11 @@ use Drupal\contact\Entity\Message;
 /**
  * Tests storing contact messages.
  *
+ * Note that the various test methods in ContactSitewideTest are also run by
+ * this test. This is by design to ensure that regular contact.module functions
+ * continue to work when a storage handler other than ContentEntityNullStorage
+ * is enabled for contact Message entities.
+ *
  * @group contact
  */
 class ContactStorageTest extends ContactSitewideTest {
@@ -68,7 +73,7 @@ class ContactStorageTest extends ContactSitewideTest {
     $this->assertEqual($message->getSubject(), $subject);
     $this->assertEqual($message->getSenderMail(), $mail);
 
-    $config = \Drupal::config("contact.form.$id");
+    $config = $this->config("contact.form.$id");
     $this->assertEqual($config->get('id'), $id);
   }
 

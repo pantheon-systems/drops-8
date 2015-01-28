@@ -68,7 +68,11 @@ class MigrateFieldInstanceTest extends MigrateDrupalTestBase {
 
     $migration = entity_load('migration', 'd6_field_instance');
     $dumps = array(
-      $this->getDumpDirectory() . '/Drupal6FieldInstance.php',
+      $this->getDumpDirectory() . '/ContentNodeFieldInstance.php',
+      $this->getDumpDirectory() . '/ContentNodeField.php',
+      $this->getDumpDirectory() . '/ContentFieldTest.php',
+      $this->getDumpDirectory() . '/ContentFieldTestTwo.php',
+      $this->getDumpDirectory() . '/ContentFieldMultivalue.php',
     );
     $this->createFields();
 
@@ -116,7 +120,7 @@ class MigrateFieldInstanceTest extends MigrateDrupalTestBase {
     // Test email field.
     $field = FieldConfig::load('node.story.field_test_email');
     $this->assertEqual($field->label(), 'Email Field');
-    $this->assertEqual('benjy@example.com', $entity->field_test_email->value, 'Field field_test_email default_value is correct.');
+    $this->assertEqual('benjy@example.com', $entity->field_test_email->value);
 
     // Test a filefield.
     $field = FieldConfig::load('node.story.field_test_filefield');
@@ -144,6 +148,7 @@ class MigrateFieldInstanceTest extends MigrateDrupalTestBase {
     $this->assertEqual($field->getSettings(), $expected);
     $this->assertEqual('default link title', $entity->field_test_link->title, 'Field field_test_link default title is correct.');
     $this->assertEqual('http://drupal.org', $entity->field_test_link->url, 'Field field_test_link default title is correct.');
+    $this->assertIdentical($entity->field_test_link->options['attributes'], []);
   }
 
   /**

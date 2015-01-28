@@ -53,6 +53,10 @@ function comment_token_info() {
     'name' => t("Content"),
     'description' => t("The formatted content of the comment itself."),
   );
+  $comment['langcode'] = array(
+    'name' => t('Language code'),
+    'description' => t('The language code of the language the comment is written in.'),
+  );
   $comment['url'] = array(
     'name' => t("URL"),
     'description' => t("The URL of the comment."),
@@ -106,7 +110,7 @@ function comment_tokens($type, $tokens, array $data = array(), array $options = 
 
   $url_options = array('absolute' => TRUE);
   if (isset($options['langcode'])) {
-    $url_options['language'] = language_load($options['langcode']);
+    $url_options['language'] = \Drupal::languageManager()->getLanguage($options['langcode']);
     $langcode = $options['langcode'];
   }
   else {
@@ -147,6 +151,10 @@ function comment_tokens($type, $tokens, array $data = array(), array $options = 
 
         case 'body':
           $replacements[$original] = $sanitize ? $comment->comment_body->processed : $comment->comment_body->value;
+          break;
+
+        case 'langcode':
+          $replacements[$original] = $sanitize ? String::checkPlain($comment->language()->getId()) : $comment->language()->getId();
           break;
 
         // Comment related URLs.

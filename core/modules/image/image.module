@@ -56,18 +56,18 @@ function image_help($route_name, RouteMatchInterface $route_match) {
       $output .= '<h3>' . t('Uses') . '</h3>';
       $output .= '<dl>';
       $output .= '<dt>' . t('Manipulating images') . '</dt>';
-      $output .= '<dd>' . t('With the Image module you can scale, crop, resize, rotate and desaturate images without affecting the original image using <a href="@image">image styles</a>. When you change an image style, the module automatically refreshes all created images. Every image style must have a name, which will be used in the URL of the generated images. There are two common approaches to naming image styles (which you use will depend on how the image style is being applied):',array('@image' => \Drupal::url('image.style_list')));
+      $output .= '<dd>' . t('With the Image module you can scale, crop, resize, rotate and desaturate images without affecting the original image using <a href="@image">image styles</a>. When you change an image style, the module automatically refreshes all created images. Every image style must have a name, which will be used in the URL of the generated images. There are two common approaches to naming image styles (which you use will depend on how the image style is being applied):',array('@image' => \Drupal::url('entity.image_style.collection')));
       $output .= '<ul><li>' . t('Based on where it will be used: eg. <em>profile-picture</em>') . '</li>';
       $output .= '<li>' . t('Describing its appearance: eg. <em>square-85x85</em>') . '</li></ul>';
       $output .=  t('After you create an image style, you can add effects: crop, scale, resize, rotate, and desaturate (other contributed modules provide additional effects). For example, by combining effects as crop, scale, and desaturate, you can create square, grayscale thumbnails.') . '<dd>';
       $output .= '<dt>' . t('Attaching images to content as fields') . '</dt>';
-      $output .= '<dd>' . t("Image module also allows you to attach images to content as fields. To add an image field to a <a href='@content-type'>content type</a>, go to the content type's <em>manage fields</em> page, and add a new field of type <em>Image</em>. Attaching images to content this way allows image styles to be applied and maintained, and also allows you more flexibility when theming.", array('@content-type' => \Drupal::url('node.overview_types'))) . '</dd>';
+      $output .= '<dd>' . t("Image module also allows you to attach images to content as fields. To add an image field to a <a href='@content-type'>content type</a>, go to the content type's <em>manage fields</em> page, and add a new field of type <em>Image</em>. Attaching images to content this way allows image styles to be applied and maintained, and also allows you more flexibility when theming.", array('@content-type' => \Drupal::url('entity.node_type.collection'))) . '</dd>';
       $output .= '<dt>' . t('Configuring image fields for accessibility') . '</dt>';
       $output .= '<dd>' . t('For accessibility and search engine optimization, all images that convey meaning on web sites should have alternate text. Drupal also allows entry of title text for images, but it can lead to confusion for screen reader users and its use is not recommended. Image fields can be configured so that alternate and title text fields are enabled or disabled; if enabled, the fields can be set to be required. The recommended setting is to enable and require alternate text and disable title text.') . '</dd>';
       $output .= '</dl>';
       return $output;
 
-    case 'image.style_list':
+    case 'entity.image_style.collection':
       return '<p>' . t('Image styles commonly provide thumbnail sizes by scaling and cropping images, but can also add various effects before an image is displayed. When an image is displayed with a style, a new file is created and the original image is left unchanged.') . '</p>';
 
     case 'image.effect_add_form':
@@ -139,7 +139,7 @@ function image_theme() {
       'file' => 'image.field.inc',
     ),
     'image_formatter' => array(
-      'variables' => array('item' => NULL, 'item_attributes' => NULL, 'path' => NULL, 'image_style' => NULL),
+      'variables' => array('item' => NULL, 'item_attributes' => NULL, 'url' => NULL, 'image_style' => NULL),
       'file' => 'image.field.inc',
     ),
   );
@@ -340,18 +340,18 @@ function image_entity_presave(EntityInterface $entity) {
     return;
   }
 
-  $fid = $entity->settings['default_image']['fid'];
-  if ($fid) {
-    $original_fid = isset($entity->original) ? $entity->original->settings['default_image']['fid'] : NULL;
-    if ($fid != $original_fid) {
-      $file = file_load($fid);
+  $uuid = $entity->settings['default_image']['uuid'];
+  if ($uuid) {
+    $original_uuid = isset($entity->original) ? $entity->original->settings['default_image']['uuid'] : NULL;
+    if ($uuid != $original_uuid) {
+      $file = \Drupal::entityManager()->loadEntityByUuid('file', $uuid);
       if ($file) {
         $image = \Drupal::service('image.factory')->get($file->getFileUri());
         $entity->settings['default_image']['width'] = $image->getWidth();
         $entity->settings['default_image']['height'] = $image->getHeight();
       }
       else {
-        $entity->settings['default_image']['fid'] = NULL;
+        $entity->settings['default_image']['uuid'] = NULL;
       }
     }
   }
@@ -371,12 +371,12 @@ function image_field_storage_config_update(FieldStorageConfigInterface $field_st
   $prior_field_storage = $field_storage->original;
 
   // The value of a managed_file element can be an array if #extended == TRUE.
-  $fid_new = $field_storage->settings['default_image']['fid'];
-  $fid_old = $prior_field_storage->settings['default_image']['fid'];
+  $uuid_new = $field_storage->settings['default_image']['uuid'];
+  $uuid_old = $prior_field_storage->settings['default_image']['uuid'];
 
-  $file_new = $fid_new ? file_load($fid_new) : FALSE;
+  $file_new = $uuid_new ? \Drupal::entityManager()->loadEntityByUuid('file', $uuid_new) : FALSE;
 
-  if ($fid_new != $fid_old) {
+  if ($uuid_new != $uuid_old) {
 
     // Is there a new file?
     if ($file_new) {
@@ -386,7 +386,7 @@ function image_field_storage_config_update(FieldStorageConfigInterface $field_st
     }
 
     // Is there an old file?
-    if ($fid_old && ($file_old = file_load($fid_old))) {
+    if ($uuid_old && ($file_old = \Drupal::entityManager()->loadEntityByUuid('file', $uuid_old))) {
       \Drupal::service('file.usage')->delete($file_old, 'image', 'default_image', $field_storage->uuid());
     }
   }
@@ -411,12 +411,12 @@ function image_field_config_update(FieldConfigInterface $field) {
 
   $prior_instance = $field->original;
 
-  $fid_new = $field->settings['default_image']['fid'];
-  $fid_old = $prior_instance->settings['default_image']['fid'];
+  $uuid_new = $field->settings['default_image']['uuid'];
+  $uuid_old = $prior_instance->settings['default_image']['uuid'];
 
   // If the old and new files do not match, update the default accordingly.
-  $file_new = $fid_new ? file_load($fid_new) : FALSE;
-  if ($fid_new != $fid_old) {
+  $file_new = $uuid_new ? \Drupal::entityManager()->loadEntityByUuid('file', $uuid_new) : FALSE;
+  if ($uuid_new != $uuid_old) {
     // Save the new file, if present.
     if ($file_new) {
       $file_new->status = FILE_STATUS_PERMANENT;
@@ -424,7 +424,7 @@ function image_field_config_update(FieldConfigInterface $field) {
       \Drupal::service('file.usage')->add($file_new, 'image', 'default_image', $field->uuid());
     }
     // Delete the old file, if present.
-    if ($fid_old && ($file_old = file_load($fid_old))) {
+    if ($uuid_old && ($file_old = \Drupal::entityManager()->loadEntityByUuid('file', $uuid_old))) {
       \Drupal::service('file.usage')->delete($file_old, 'image', 'default_image', $field->uuid());
     }
   }
@@ -447,8 +447,8 @@ function image_field_storage_config_delete(FieldStorageConfigInterface $field) {
   }
 
   // The value of a managed_file element can be an array if #extended == TRUE.
-  $fid = $field->settings['default_image']['fid'];
-  if ($fid && ($file = file_load($fid))) {
+  $uuid = $field->settings['default_image']['uuid'];
+  if ($uuid && ($file = \Drupal::entityManager()->loadEntityByUuid('file', $uuid))) {
     \Drupal::service('file.usage')->delete($file, 'image', 'default_image', $field->uuid());
   }
 }
@@ -464,10 +464,10 @@ function image_field_config_delete(FieldConfigInterface $field) {
   }
 
   // The value of a managed_file element can be an array if #extended == TRUE.
-  $fid = $field->settings['default_image']['fid'];
+  $uuid = $field->settings['default_image']['uuid'];
 
   // Remove the default image when the instance is deleted.
-  if ($fid && ($file = file_load($fid))) {
+  if ($uuid && ($file = \Drupal::entityManager()->loadEntityByUuid('file', $uuid))) {
     \Drupal::service('file.usage')->delete($file, 'image', 'default_image', $field->uuid());
   }
 }

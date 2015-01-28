@@ -7,6 +7,7 @@
 
 namespace Drupal\Core;
 
+use Drupal\Component\ProxyBuilder\ProxyDumper;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Component\Utility\Timer;
 use Drupal\Component\Utility\Unicode;
@@ -22,6 +23,7 @@ use Drupal\Core\File\MimeType\MimeTypeGuesser;
 use Drupal\Core\Language\Language;
 use Drupal\Core\PageCache\RequestPolicyInterface;
 use Drupal\Core\PhpStorage\PhpStorageFactory;
+use Drupal\Core\ProxyBuilder\ProxyBuilder;
 use Drupal\Core\Site\Settings;
 use Symfony\Cmf\Component\Routing\RouteObjectInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -73,6 +75,13 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
    * @var bool
    */
   protected $booted = FALSE;
+
+  /**
+   * Whether essential services have been set up properly by preHandle().
+   *
+   * @var bool
+   */
+  protected $prepared = FALSE;
 
   /**
    * Holds the list of enabled modules.
@@ -159,13 +168,6 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
   protected $serviceProviders;
 
   /**
-   * Whether the request globals have been initialized.
-   *
-   * @var bool
-   */
-  protected static $isRequestInitialized = FALSE;
-
-  /**
    * Whether the PHP environment has been initialized.
    *
    * This legacy phase can only be booted once because it sets session INI
@@ -206,6 +208,9 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
    *   from disk. Defaults to TRUE.
    *
    * @return static
+   *
+   * @throws \Symfony\Component\HttpKernel\Exception\BadRequestHttpException
+   *   In case the host name in the request is not trusted.
    */
   public static function createFromRequest(Request $request, $class_loader, $environment, $allow_dumping = TRUE) {
     // Include our bootstrap file.
@@ -221,6 +226,15 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     $site_path = static::findSitePath($request);
     $kernel->setSitePath($site_path);
     Settings::initialize(dirname($core_root), $site_path, $class_loader);
+
+    // Initialize our list of trusted HTTP Host headers to protect against
+    // header attacks.
+    $hostPatterns = Settings::get('trusted_host_patterns', array());
+    if (PHP_SAPI !== 'cli' && !empty($hostPatterns)) {
+      if (static::setupTrustedHosts($request, $hostPatterns) === FALSE) {
+        throw new BadRequestHttpException('The provided host name is not valid for this server.');
+      }
+    }
 
     // Redirect the user to the installation script if Drupal has not been
     // installed yet (i.e., if no $databases array has been defined in the
@@ -377,23 +391,6 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     // Start a page timer:
     Timer::start('page');
 
-    // Load legacy and other functional code.
-    require_once $this->root . '/core/includes/common.inc';
-    require_once $this->root . '/core/includes/database.inc';
-    require_once $this->root . '/core/includes/path.inc';
-    require_once $this->root . '/core/includes/module.inc';
-    require_once $this->root . '/core/includes/theme.inc';
-    require_once $this->root . '/core/includes/pager.inc';
-    require_once $this->root . '/core/includes/menu.inc';
-    require_once $this->root . '/core/includes/tablesort.inc';
-    require_once $this->root . '/core/includes/file.inc';
-    require_once $this->root . '/core/includes/unicode.inc';
-    require_once $this->root . '/core/includes/form.inc';
-    require_once $this->root . '/core/includes/mail.inc';
-    require_once $this->root . '/core/includes/errors.inc';
-    require_once $this->root . '/core/includes/schema.inc';
-    require_once $this->root . '/core/includes/entity.inc';
-
     // Ensure that findSitePath is set.
     if (!$this->sitePath) {
       throw new \Exception('Kernel does not have site path set before calling boot()');
@@ -435,7 +432,30 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
   /**
    * {@inheritdoc}
    */
+  public function loadLegacyIncludes() {
+    require_once $this->root . '/core/includes/common.inc';
+    require_once $this->root . '/core/includes/database.inc';
+    require_once $this->root . '/core/includes/path.inc';
+    require_once $this->root . '/core/includes/module.inc';
+    require_once $this->root . '/core/includes/theme.inc';
+    require_once $this->root . '/core/includes/pager.inc';
+    require_once $this->root . '/core/includes/menu.inc';
+    require_once $this->root . '/core/includes/tablesort.inc';
+    require_once $this->root . '/core/includes/file.inc';
+    require_once $this->root . '/core/includes/unicode.inc';
+    require_once $this->root . '/core/includes/form.inc';
+    require_once $this->root . '/core/includes/errors.inc';
+    require_once $this->root . '/core/includes/schema.inc';
+    require_once $this->root . '/core/includes/entity.inc';
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function preHandle(Request $request) {
+
+    $this->loadLegacyIncludes();
+
     // Load all enabled modules.
     $this->container->get('module_handler')->loadAll();
 
@@ -444,9 +464,6 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
 
     // Initialize legacy request globals.
     $this->initializeRequestGlobals($request);
-
-    // Initialize cookie globals.
-    $this->initializeCookieGlobals($request);
 
     // Put the request on the stack.
     $this->container->get('request_stack')->push($request);
@@ -464,43 +481,8 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
 
     // Override of Symfony's mime type guesser singleton.
     MimeTypeGuesser::registerWithSymfonyGuesser($this->container);
-  }
 
-  /**
-   * {@inheritdoc}
-   *
-   * @todo Invoke proper request/response/terminate events.
-   */
-  public function handlePageCache(Request $request) {
-    $this->boot();
-    $this->initializeCookieGlobals($request);
-
-    // Check for a cache mode force from settings.php.
-    if (Settings::get('page_cache_without_database')) {
-      $cache_enabled = TRUE;
-    }
-    else {
-      $config = $this->getContainer()->get('config.factory')->get('system.performance');
-      $cache_enabled = $config->get('cache.page.use_internal');
-    }
-
-    $request_policy = \Drupal::service('page_cache_request_policy');
-    if ($cache_enabled && $request_policy->check($request) === RequestPolicyInterface::ALLOW) {
-      // Get the page from the cache.
-      $response = drupal_page_get_cache($request);
-      // If there is a cached page, display it.
-      if ($response) {
-        $response->headers->set('X-Drupal-Cache', 'HIT');
-
-        drupal_serve_page_from_cache($response, $request);
-
-        // We are done.
-        $response->prepare($request);
-        $response->send();
-        exit;
-      }
-    }
-    return $this;
+    $this->prepared = TRUE;
   }
 
   /**
@@ -548,12 +530,8 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
         }
       }
     }
-    if ($container_yamls = Settings::get('container_yamls')) {
-      $this->serviceYamls['site'] = $container_yamls;
-    }
-    $site_services_yml = $this->getSitePath() . '/services.yml';
-    if (file_exists($site_services_yml) && is_readable($site_services_yml)) {
-      $this->serviceYamls['site'][] = $site_services_yml;
+    if (!$this->addServiceFiles(Settings::get('container_yamls'))) {
+      throw new \Exception('The container_yamls setting is missing from settings.php');
     }
   }
 
@@ -568,7 +546,9 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
    * {@inheritdoc}
    */
   public function terminate(Request $request, Response $response) {
-    if (FALSE === $this->booted) {
+    // Only run terminate() when essential services have been set up properly
+    // by preHandle() before.
+    if (FALSE === $this->prepared) {
       return;
     }
 
@@ -670,6 +650,15 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     return implode('_', $parts);
   }
 
+  /**
+   * Returns the container class namespace based on the environment.
+   *
+   * @return string
+   *   The class name.
+   */
+  protected function getClassNamespace() {
+    return 'Drupal\\Core\\DependencyInjection\\Container\\' . $this->environment;
+  }
 
   /**
    * Returns the kernel parameters.
@@ -707,16 +696,14 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     // If the module list hasn't already been set in updateModules and we are
     // not forcing a rebuild, then try and load the container from the disk.
     if (empty($this->moduleList) && !$rebuild) {
-      $class = $this->getClassName();
-      $cache_file = $class . '.php';
+      $fully_qualified_class_name = '\\' . $this->getClassNamespace() . '\\' . $this->getClassName();
 
       // First, try to load from storage.
-      if (!class_exists($class, FALSE)) {
-        $this->storage()->load($cache_file);
+      if (!class_exists($fully_qualified_class_name, FALSE)) {
+        $this->storage()->load($this->getClassName() . '.php');
       }
       // If the load succeeded or the class already existed, use it.
-      if (class_exists($class, FALSE)) {
-        $fully_qualified_class_name = '\\' . $class;
+      if (class_exists($fully_qualified_class_name, FALSE)) {
         $container = new $fully_qualified_class_name;
       }
     }
@@ -884,64 +871,6 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
       }
     }
 
-  }
-
-  /**
-   * Initialize cookie settings.
-   *
-   * @param \Symfony\Component\HttpFoundation\Request $request
-   *   The current request.
-   *
-   * @todo D8: Eliminate this entirely in favor of a session object.
-   */
-  protected function initializeCookieGlobals(Request $request) {
-    // If we do this more then once per page request we are likely to cause
-    // errors.
-    if (static::$isRequestInitialized) {
-      return;
-    }
-    global $cookie_domain;
-
-    if ($cookie_domain) {
-      // If the user specifies the cookie domain, also use it for session name.
-      $session_name = $cookie_domain;
-    }
-    else {
-      // Otherwise use $base_url as session name, without the protocol
-      // to use the same session identifiers across HTTP and HTTPS.
-      $session_name = $request->getHost() . $request->getBasePath();
-      // Replace "core" out of session_name so core scripts redirect properly,
-      // specifically install.php.
-      $session_name = preg_replace('/\/core$/', '', $session_name);
-      if ($cookie_domain = $request->getHost()) {
-        // Strip leading periods and www. from cookie domain.
-        $cookie_domain = ltrim($cookie_domain, '.');
-        if (strpos($cookie_domain, 'www.') === 0) {
-          $cookie_domain = substr($cookie_domain, 4);
-        }
-        $cookie_domain = '.' . $cookie_domain;
-      }
-    }
-    // Per RFC 2109, cookie domains must contain at least one dot other than the
-    // first. For hosts such as 'localhost' or IP Addresses we don't set a
-    // cookie domain.
-    if (count(explode('.', $cookie_domain)) > 2 && !is_numeric(str_replace('.', '', $cookie_domain))) {
-      ini_set('session.cookie_domain', $cookie_domain);
-    }
-    // To prevent session cookies from being hijacked, a user can configure the
-    // SSL version of their website to only transfer session cookies via SSL by
-    // using PHP's session.cookie_secure setting. The browser will then use two
-    // separate session cookies for the HTTPS and HTTP versions of the site. So
-    // we must use different session identifiers for HTTPS and HTTP to prevent a
-    // cookie collision.
-    if ($request->isSecure()) {
-      ini_set('session.cookie_secure', TRUE);
-    }
-    $prefix = ini_get('session.cookie_secure') ? 'SSESS' : 'SESS';
-
-    session_name($prefix . substr(hash('sha256', $session_name), 0, 32));
-
-    static::$isRequestInitialized = TRUE;
   }
 
   /**
@@ -1152,8 +1081,14 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     }
     // Cache the container.
     $dumper = new PhpDumper($container);
+    $dumper->setProxyDumper(new ProxyDumper(new ProxyBuilder()));
     $class = $this->getClassName();
-    $content = $dumper->dump(array('class' => $class, 'base_class' => $baseClass));
+    $namespace = $this->getClassNamespace();
+    $content = $dumper->dump([
+      'class' => $class,
+      'base_class' => $baseClass,
+      'namespace' => $namespace,
+    ]);
     return $this->storage()->save($class . '.php', $content);
   }
 
@@ -1314,4 +1249,63 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     return TRUE;
   }
 
+  /**
+   * Sets up the lists of trusted HTTP Host headers.
+   *
+   * Since the HTTP Host header can be set by the user making the request, it
+   * is possible to create an attack vectors against a site by overriding this.
+   * Symfony provides a mechanism for creating a list of trusted Host values.
+   *
+   * Host patterns (as regular expressions) can be configured throught
+   * settings.php for multisite installations, sites using ServerAlias without
+   * canonical redirection, or configurations where the site responds to default
+   * requests. For example,
+   *
+   * @code
+   * $settings['trusted_host_patterns'] = array(
+   *   '^example\.com$',
+   *   '^*.example\.com$',
+   * );
+   * @endcode
+   *
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The request object.
+   * @param array $hostPatterns
+   *   The array of trusted host patterns.
+   *
+   * @return boolean
+   *   TRUE if the Host header is trusted, FALSE otherwise.
+   *
+   * @see https://www.drupal.org/node/1992030
+   */
+  protected static function setupTrustedHosts(Request $request, $hostPatterns) {
+    $request->setTrustedHosts($hostPatterns);
+
+    // Get the host, which will validate the current request.
+    try {
+      $request->getHost();
+    }
+    catch (\UnexpectedValueException $e) {
+      return FALSE;
+    }
+
+    return TRUE;
+  }
+
+  /**
+   * Add service files.
+   *
+   * @param $service_yamls
+   *   A list of service files.
+   *
+   * @return bool
+   *   TRUE if the list was an array, FALSE otherwise.
+   */
+  protected function addServiceFiles($service_yamls) {
+    if (is_array($service_yamls)) {
+      $this->serviceYamls['site'] = array_filter($service_yamls, 'file_exists');
+      return TRUE;
+    }
+    return FALSE;
+  }
 }

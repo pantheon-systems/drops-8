@@ -25,7 +25,7 @@ class MigrateSystemPerformanceTest extends MigrateDrupalTestBase {
     parent::setUp();
     $migration = entity_load('migration', 'd6_system_performance');
     $dumps = array(
-      $this->getDumpDirectory() . '/Drupal6SystemPerformance.php',
+      $this->getDumpDirectory() . '/Variable.php',
     );
     $this->prepare($migration, $dumps);
     $executable = new MigrateExecutable($migration, new MigrateMessage());
@@ -36,7 +36,7 @@ class MigrateSystemPerformanceTest extends MigrateDrupalTestBase {
    * Tests migration of system (Performance) variables to system.performance.yml.
    */
   public function testSystemPerformance() {
-    $config = \Drupal::config('system.performance');
+    $config = $this->config('system.performance');
     $this->assertIdentical($config->get('css.preprocess'), FALSE);
     $this->assertIdentical($config->get('js.preprocess'), FALSE);
     $this->assertIdentical($config->get('cache.page.max_age'), 0);

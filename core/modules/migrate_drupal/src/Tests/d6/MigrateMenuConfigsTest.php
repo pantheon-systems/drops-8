@@ -34,7 +34,7 @@ class MigrateMenuConfigsTest extends MigrateDrupalTestBase {
     parent::setUp();
     $migration = entity_load('migration', 'd6_menu_settings');
     $dumps = array(
-      $this->getDumpDirectory() . '/Drupal6MenuSettings.php',
+      $this->getDumpDirectory() . '/Variable.php',
     );
     $this->prepare($migration, $dumps);
     $executable = new MigrateExecutable($migration, $this);
@@ -45,7 +45,7 @@ class MigrateMenuConfigsTest extends MigrateDrupalTestBase {
    * Tests migration of variables for the Menu UI module.
    */
   public function testMenuSettings() {
-    $config = \Drupal::config('menu_ui.settings');
+    $config = $this->config('menu_ui.settings');
     $this->assertIdentical($config->get('override_parent_selector'), FALSE);
     $this->assertConfigSchema(\Drupal::service('config.typed'), 'menu_ui.settings', $config->get());
   }

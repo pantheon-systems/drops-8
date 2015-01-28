@@ -552,13 +552,7 @@ function install_ensure_config_directory($type) {
  *   The list of modules to install.
  */
 function drupal_verify_profile($install_state) {
-  include_once __DIR__ . '/file.inc';
-  include_once __DIR__ . '/common.inc';
-
   $profile = $install_state['parameters']['profile'];
-  if (!isset($profile) || !isset($install_state['profiles'][$profile])) {
-    throw new Exception(install_no_profile_error());
-  }
   $info = $install_state['profile_info'];
 
   // Get the list of available modules for the selected installation profile.
@@ -624,7 +618,7 @@ function drupal_install_system($install_state) {
 
   // Ensure default language is saved.
   if (isset($install_state['parameters']['langcode'])) {
-    \Drupal::config('system.site')
+    \Drupal::configFactory()->getEditable('system.site')
       ->set('langcode', $install_state['parameters']['langcode'])
       ->save();
   }
@@ -923,12 +917,6 @@ function drupal_requirements_url($severity) {
  *   Array of the installation profile's requirements.
  */
 function drupal_check_profile($profile, array $install_state) {
-  include_once __DIR__ . '/file.inc';
-
-  if (!isset($profile) || !isset($install_state['profiles'][$profile])) {
-    throw new Exception(install_no_profile_error());
-  }
-
   $info = install_profile_info($profile);
 
   // Collect requirement testing results.

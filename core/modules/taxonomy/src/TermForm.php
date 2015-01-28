@@ -9,8 +9,6 @@ namespace Drupal\taxonomy;
 
 use Drupal\Core\Entity\ContentEntityForm;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\Language\LanguageInterface;
-use Drupal\language\Entity\ContentLanguageSettings;
 
 /**
  * Base for controller for taxonomy term edit forms.
@@ -29,19 +27,10 @@ class TermForm extends ContentEntityForm {
     $form_state->set(['taxonomy', 'parent'], $parent);
     $form_state->set(['taxonomy', 'vocabulary'], $vocabulary);
 
-    $form['langcode'] = array(
-      '#type' => 'language_select',
-      '#title' => $this->t('Language'),
-      '#languages' => LanguageInterface::STATE_ALL,
-      '#default_value' => $term->getUntranslated()->language()->getId(),
-      // Language module may expose or hide this element, see language_form_alter().
-      '#access' => FALSE,
-    );
-
     $form['relations'] = array(
       '#type' => 'details',
       '#title' => $this->t('Relations'),
-      '#open' => $vocabulary->hierarchy == TAXONOMY_HIERARCHY_MULTIPLE,
+      '#open' => $vocabulary->getHierarchy() == TAXONOMY_HIERARCHY_MULTIPLE,
       '#weight' => 10,
     );
 
@@ -165,8 +154,8 @@ class TermForm extends ContentEntityForm {
     }
     // If we've increased the number of parents and this is a single or flat
     // hierarchy, update the vocabulary immediately.
-    elseif ($current_parent_count > $previous_parent_count && $vocabulary->hierarchy != TAXONOMY_HIERARCHY_MULTIPLE) {
-      $vocabulary->hierarchy = $current_parent_count == 1 ? TAXONOMY_HIERARCHY_SINGLE : TAXONOMY_HIERARCHY_MULTIPLE;
+    elseif ($current_parent_count > $previous_parent_count && $vocabulary->getHierarchy() != TAXONOMY_HIERARCHY_MULTIPLE) {
+      $vocabulary->setHierarchy($current_parent_count == 1 ? TAXONOMY_HIERARCHY_SINGLE : TAXONOMY_HIERARCHY_MULTIPLE);
       $vocabulary->save();
     }
 

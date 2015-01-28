@@ -12,11 +12,39 @@ use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\language\Entity\ContentLanguageSettings;
+use Drupal\taxonomy\VocabularyStorageInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Base form for vocabulary edit forms.
  */
 class VocabularyForm extends EntityForm {
+
+  /**
+   * The vocabulary storage.
+   *
+   * @var \Drupal\taxonomy\VocabularyStorageInterface.
+   */
+  protected $vocabularyStorage;
+
+  /**
+   * Constructs a new vocabulary form.
+   *
+   * @param \Drupal\taxonomy\VocabularyStorageInterface $vocabulary_storage
+   *   The vocabulary storage.
+   */
+  public function __construct(VocabularyStorageInterface $vocabulary_storage) {
+    $this->vocabularyStorage = $vocabulary_storage;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container) {
+    return new static(
+      $container->get('entity.manager')->getStorage('taxonomy_vocabulary')
+    );
+  }
 
   /**
    * {@inheritdoc}
@@ -33,7 +61,7 @@ class VocabularyForm extends EntityForm {
     $form['name'] = array(
       '#type' => 'textfield',
       '#title' => $this->t('Name'),
-      '#default_value' => $vocabulary->name,
+      '#default_value' => $vocabulary->label(),
       '#maxlength' => 255,
       '#required' => TRUE,
     );
@@ -42,14 +70,14 @@ class VocabularyForm extends EntityForm {
       '#default_value' => $vocabulary->id(),
       '#maxlength' => EntityTypeInterface::BUNDLE_MAX_LENGTH,
       '#machine_name' => array(
-        'exists' => 'taxonomy_vocabulary_load',
+        'exists' => array($this, 'exists'),
         'source' => array('name'),
       ),
     );
     $form['description'] = array(
       '#type' => 'textfield',
       '#title' => $this->t('Description'),
-      '#default_value' => $vocabulary->description,
+      '#default_value' => $vocabulary->getDescription(),
     );
 
     // $form['langcode'] is not wrapped in an
@@ -114,26 +142,40 @@ class VocabularyForm extends EntityForm {
     $vocabulary = $this->entity;
 
     // Prevent leading and trailing spaces in vocabulary names.
-    $vocabulary->name = trim($vocabulary->name);
+    $vocabulary->set('name', trim($vocabulary->label()));
 
     $status = $vocabulary->save();
     $edit_link = $this->entity->link($this->t('Edit'));
     switch ($status) {
       case SAVED_NEW:
-        drupal_set_message($this->t('Created new vocabulary %name.', array('%name' => $vocabulary->name)));
-        $this->logger('taxonomy')->notice('Created new vocabulary %name.', array('%name' => $vocabulary->name, 'link' => $edit_link));
+        drupal_set_message($this->t('Created new vocabulary %name.', array('%name' => $vocabulary->label())));
+        $this->logger('taxonomy')->notice('Created new vocabulary %name.', array('%name' => $vocabulary->label(), 'link' => $edit_link));
         $form_state->setRedirectUrl($vocabulary->urlInfo('overview-form'));
         break;
 
       case SAVED_UPDATED:
-        drupal_set_message($this->t('Updated vocabulary %name.', array('%name' => $vocabulary->name)));
-        $this->logger('taxonomy')->notice('Updated vocabulary %name.', array('%name' => $vocabulary->name, 'link' => $edit_link));
-        $form_state->setRedirect('taxonomy.vocabulary_list');
+        drupal_set_message($this->t('Updated vocabulary %name.', array('%name' => $vocabulary->label())));
+        $this->logger('taxonomy')->notice('Updated vocabulary %name.', array('%name' => $vocabulary->label(), 'link' => $edit_link));
+        $form_state->setRedirectUrl($vocabulary->urlInfo('collection'));
         break;
     }
 
     $form_state->setValue('vid', $vocabulary->id());
     $form_state->set('vid', $vocabulary->id());
+  }
+
+  /**
+   * Determines if the vocabulary already exists.
+   *
+   * @param string $id
+   *   The vocabulary ID
+   *
+   * @return bool
+   *   TRUE if the vocabulary exists, FALSE otherwise.
+   */
+  public function exists($id) {
+    $action = $this->vocabularyStorage->load($id);
+    return !empty($action);
   }
 
 }

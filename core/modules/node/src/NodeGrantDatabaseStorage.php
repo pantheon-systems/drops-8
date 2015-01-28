@@ -13,6 +13,7 @@ use Drupal\Core\Database\Query\SelectInterface;
 use Drupal\Core\Database\Query\Condition;
 use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\user\Entity\User;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -39,16 +40,26 @@ class NodeGrantDatabaseStorage implements NodeGrantDatabaseStorageInterface {
   protected $moduleHandler;
 
   /**
+   * The language manager.
+   *
+   * @var \Drupal\Core\Language\LanguageManagerInterface
+   */
+  protected $languageManager;
+
+  /**
    * Constructs a NodeGrantDatabaseStorage object.
    *
    * @param \Drupal\Core\Database\Connection $database
    *   The database connection.
    * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
    *   The module handler.
+   * @param \Drupal\Core\Language\LanguageManagerInterface $language_manager
+   *   The language manager.
    */
-  public function __construct(Connection $database, ModuleHandlerInterface $module_handler) {
+  public function __construct(Connection $database, ModuleHandlerInterface $module_handler, LanguageManagerInterface $language_manager) {
     $this->database = $database;
     $this->moduleHandler = $module_handler;
+    $this->languageManager = $language_manager;
   }
 
   /**
@@ -88,16 +99,26 @@ class NodeGrantDatabaseStorage implements NodeGrantDatabaseStorageInterface {
       $query->condition($grants);
     }
 
-    // Node grants currently don't have any cacheability metadata. Hopefully, we
-    // can add that in the future, which would allow this access check result to
-    // be cacheable. For now, this must remain marked as uncacheable, even when
-    // it is theoretically cacheable, because we don't have the necessary meta-
-    // data to know it for a fact.
+    // Only the 'view' node grant can currently be cached; the others currently
+    // don't have any cacheability metadata. Hopefully, we can add that in the
+    // future, which would allow this access check result to be cacheable in all
+    // cases. For now, this must remain marked as uncacheable, even when it is
+    // theoretically cacheable, because we don't have the necessary metadata to
+    // know it for a fact.
+    $set_cacheability = function (AccessResult $access_result) use ($operation) {
+      if ($operation === 'view') {
+        return $access_result->addCacheContexts(['cache_context.node_view_grants']);
+      }
+      else {
+        return $access_result->setCacheable(FALSE);
+      }
+    };
+
     if ($query->execute()->fetchField()) {
-      return AccessResult::allowed()->setCacheable(FALSE);
+      return $set_cacheability(AccessResult::allowed());
     }
     else {
-      return AccessResult::forbidden()->setCacheable(FALSE);
+      return $set_cacheability(AccessResult::forbidden());
     }
   }
 
@@ -191,7 +212,7 @@ class NodeGrantDatabaseStorage implements NodeGrantDatabaseStorageInterface {
           continue;
         }
         if (isset($grant['langcode'])) {
-          $grant_languages = array($grant['langcode'] => language_load($grant['langcode']));
+          $grant_languages = array($grant['langcode'] => $this->languageManager->getLanguage($grant['langcode']));
         }
         else {
           $grant_languages = $node->getTranslationLanguages(TRUE);
@@ -265,7 +286,7 @@ class NodeGrantDatabaseStorage implements NodeGrantDatabaseStorageInterface {
    *
    * @see node_access_grants()
    */
-  static function buildGrantsQueryCondition(array $node_access_grants) {
+  protected static function buildGrantsQueryCondition(array $node_access_grants) {
     $grants = new Condition("OR");
     foreach ($node_access_grants as $realm => $gids) {
       if (!empty($gids)) {

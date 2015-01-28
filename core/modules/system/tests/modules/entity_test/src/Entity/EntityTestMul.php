@@ -34,12 +34,13 @@ use Drupal\entity_test\Entity\EntityTest;
  *     "id" = "id",
  *     "uuid" = "uuid",
  *     "bundle" = "type",
- *     "label" = "name"
+ *     "label" = "name",
+ *     "langcode" = "langcode",
  *   },
  *   links = {
- *     "canonical" = "entity.entity_test_mul.edit_form",
- *     "edit-form" = "entity.entity_test_mul.edit_form",
- *     "delete-form" = "entity.entity_test_mul.delete_form",
+ *     "canonical" = "/entity_test_mul/manage/{entity_test_mul}",
+ *     "edit-form" = "/entity_test_mul/manage/{entity_test_mul}",
+ *     "delete-form" = "/entity_test/delete/entity_test_mul/{entity_test_mul}",
  *   },
  *   field_ui_base_route = "entity.entity_test_mul.admin_form",
  * )

@@ -135,11 +135,16 @@ abstract class KernelTestBase extends TestBase {
   protected function setUp() {
     $this->keyValueFactory = new KeyValueMemoryFactory();
 
+    // Back up settings from TestBase::prepareEnvironment().
+    $settings = Settings::getAll();
+
     // Allow for test-specific overrides.
     $settings_services_file = DRUPAL_ROOT . '/' . $this->originalSite . '/testing.services.yml';
     if (file_exists($settings_services_file)) {
       // Copy the testing-specific service overrides in place.
-      copy($settings_services_file, DRUPAL_ROOT . '/' . $this->siteDirectory . '/services.yml');
+      $testing_services_file = DRUPAL_ROOT . '/' . $this->siteDirectory . '/services.yml';
+      copy($settings_services_file, $testing_services_file);
+      $this->settingsSet('container_yamls', [$testing_services_file]);
     }
 
     // Create and set new configuration directories.
@@ -149,14 +154,18 @@ abstract class KernelTestBase extends TestBase {
     // @todo Remove the indirection; implement ServiceProviderInterface instead.
     $GLOBALS['conf']['container_service_providers']['TestServiceProvider'] = 'Drupal\simpletest\TestServiceProvider';
 
-    // Back up settings from TestBase::prepareEnvironment().
-    $settings = Settings::getAll();
     // Bootstrap a new kernel. Don't use createFromRequest so we don't mess with settings.
     $class_loader = require DRUPAL_ROOT . '/core/vendor/autoload.php';
     $this->kernel = new DrupalKernel('testing', $class_loader, FALSE);
     $request = Request::create('/');
     $this->kernel->setSitePath(DrupalKernel::findSitePath($request));
     $this->kernel->boot();
+
+    // Save the original site directory path, so that extensions in the
+    // site-specific directory can still be discovered in the test site
+    // environment.
+    // @see \Drupal\Core\Extension\ExtensionDiscovery::scan()
+    $settings['test_parent_site'] = $this->originalSite;
 
     // Restore and merge settings.
     // DrupalKernel::boot() initializes new Settings, and the containerBuild()
@@ -202,15 +211,18 @@ abstract class KernelTestBase extends TestBase {
     if ($modules) {
       $this->enableModules($modules);
     }
-    // In order to use theme functions default theme config needs to exist.
-    \Drupal::config('system.theme')->set('default', 'classy');
+    // In order to use theme functions default theme config needs to exist. This
+    // configuration is not saved because it would fatal due to system module's
+    // configuration schema not existing. However since the configuration is
+    // cached in the configuration factory everything works.
+    $this->config('system.theme')->set('default', 'classy');
 
     // Tests based on this class are entitled to use Drupal's File and
     // StreamWrapper APIs.
     // @todo Move StreamWrapper management into DrupalKernel.
     // @see https://drupal.org/node/2028109
-    file_prepare_directory($this->public_files_directory, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS);
-    $this->settingsSet('file_public_path', $this->public_files_directory);
+    file_prepare_directory($this->publicFilesDirectory, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS);
+    $this->settingsSet('file_public_path', $this->publicFilesDirectory);
     $this->streamWrappers = array();
     $this->registerStreamWrapper('public', 'Drupal\Core\StreamWrapper\PublicStream');
     // The temporary stream wrapper is able to operate both with and without
@@ -477,7 +489,7 @@ abstract class KernelTestBase extends TestBase {
     // Unset the list of modules in the extension handler.
     $module_handler = $this->container->get('module_handler');
     $module_filenames = $module_handler->getModuleList();
-    $extension_config = $this->container->get('config.factory')->get('core.extension');
+    $extension_config = $this->config('core.extension');
     foreach ($modules as $module) {
       unset($module_filenames[$module]);
       $extension_config->clear('module.' . $module);

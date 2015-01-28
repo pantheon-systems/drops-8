@@ -25,7 +25,7 @@ class MigrateSystemFileTest extends MigrateDrupalTestBase {
     parent::setUp();
     $migration = entity_load('migration', 'd6_system_file');
     $dumps = array(
-      $this->getDumpDirectory() . '/Drupal6SystemFile.php',
+      $this->getDumpDirectory() . '/Variable.php',
     );
     $this->prepare($migration, $dumps);
     $executable = new MigrateExecutable($migration, new MigrateMessage());
@@ -36,12 +36,9 @@ class MigrateSystemFileTest extends MigrateDrupalTestBase {
    * Tests migration of system (file) variables to system.file.yml.
    */
   public function testSystemFile() {
-    $old_state = \Drupal::configFactory()->getOverrideState();
-    \Drupal::configFactory()->setOverrideState(FALSE);
-    $config = \Drupal::config('system.file');
+    $config = \Drupal::configFactory()->getEditable('system.file');
     $this->assertIdentical($config->get('path.temporary'), 'files/temp');
     $this->assertIdentical($config->get('allow_insecure_uploads'), TRUE);
-    \Drupal::configFactory()->setOverrideState($old_state);
   }
 
 }

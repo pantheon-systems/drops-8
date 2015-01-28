@@ -18,6 +18,11 @@ use Drupal\simpletest\KernelTestBase;
  */
 class ConfigOverridesPriorityTest extends KernelTestBase {
 
+  /**
+   * Modules to install.
+   *
+   * @var array
+   */
   public static $modules = array('system', 'config', 'config_override_test', 'language');
 
   public function testOverridePriorities() {
@@ -36,7 +41,7 @@ class ConfigOverridesPriorityTest extends KernelTestBase {
     /** @var \Drupal\Core\Config\ConfigFactoryInterface $config_factory */
     $config_factory = $this->container->get('config.factory');
     $config_factory
-      ->get('system.site')
+      ->getEditable('system.site')
       ->set('name', $non_overridden_name)
       ->set('slogan', $non_overridden_slogan)
       ->set('mail', $non_overridden_mail)
@@ -85,13 +90,10 @@ class ConfigOverridesPriorityTest extends KernelTestBase {
     $this->assertEqual($language_overridden_mail, $config_factory->get('system.site')->get('mail'));
     $this->assertEqual(50, $config_factory->get('system.site')->get('weight_select_max'));
 
-    $old_state = $config_factory->getOverrideState();
-    $config_factory->setOverrideState(FALSE);
-    $this->assertEqual($non_overridden_name, $config_factory->get('system.site')->get('name'));
-    $this->assertEqual($non_overridden_slogan, $config_factory->get('system.site')->get('slogan'));
-    $this->assertEqual($non_overridden_mail, $config_factory->get('system.site')->get('mail'));
-    $this->assertEqual(50, $config_factory->get('system.site')->get('weight_select_max'));
-    $config_factory->setOverrideState($old_state);
+    $this->assertEqual($non_overridden_name, $config_factory->get('system.site')->getOriginal('name', FALSE));
+    $this->assertEqual($non_overridden_slogan, $config_factory->get('system.site')->getOriginal('slogan', FALSE));
+    $this->assertEqual($non_overridden_mail, $config_factory->get('system.site')->getOriginal('mail', FALSE));
+    $this->assertEqual(50, $config_factory->get('system.site')->getOriginal('weight_select_max', FALSE));
 
     unset($GLOBALS['config_test_run_module_overrides']);
   }

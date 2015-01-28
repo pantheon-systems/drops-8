@@ -9,6 +9,7 @@ namespace Drupal\taxonomy\Tests;
 
 use Drupal\Component\Utility\Unicode;
 use Drupal\field\Entity\FieldConfig;
+use Drupal\taxonomy\Entity\Vocabulary;
 
 /**
  * Tests loading, saving and deleting vocabularies.
@@ -37,7 +38,7 @@ class VocabularyCrudTest extends TaxonomyTestBase {
    */
   function testTaxonomyVocabularyDeleteWithTerms() {
     // Delete any existing vocabularies.
-    foreach (entity_load_multiple('taxonomy_vocabulary') as $vocabulary) {
+    foreach (Vocabulary::loadMultiple() as $vocabulary) {
       $vocabulary->delete();
     }
 
@@ -68,23 +69,23 @@ class VocabularyCrudTest extends TaxonomyTestBase {
    * Ensure that the vocabulary static reset works correctly.
    */
   function testTaxonomyVocabularyLoadStaticReset() {
-    $original_vocabulary = entity_load('taxonomy_vocabulary', $this->vocabulary->id());
+    $original_vocabulary = Vocabulary::load($this->vocabulary->id());
     $this->assertTrue(is_object($original_vocabulary), 'Vocabulary loaded successfully.');
-    $this->assertEqual($this->vocabulary->name, $original_vocabulary->name, 'Vocabulary loaded successfully.');
+    $this->assertEqual($this->vocabulary->label(), $original_vocabulary->label(), 'Vocabulary loaded successfully.');
 
     // Change the name and description.
     $vocabulary = $original_vocabulary;
-    $vocabulary->name = $this->randomMachineName();
-    $vocabulary->description = $this->randomMachineName();
+    $vocabulary->set('name', $this->randomMachineName());
+    $vocabulary->set('description', $this->randomMachineName());
     $vocabulary->save();
 
     // Load the vocabulary.
-    $new_vocabulary = entity_load('taxonomy_vocabulary', $original_vocabulary->id());
-    $this->assertEqual($new_vocabulary->name, $vocabulary->name, 'The vocabulary was loaded.');
+    $new_vocabulary = Vocabulary::load($original_vocabulary->id());
+    $this->assertEqual($new_vocabulary->label(), $vocabulary->label(), 'The vocabulary was loaded.');
 
     // Delete the vocabulary.
     $this->vocabulary->delete();
-    $vocabularies = entity_load_multiple('taxonomy_vocabulary');
+    $vocabularies = Vocabulary::loadMultiple();
     $this->assertTrue(!isset($vocabularies[$this->vocabulary->id()]), 'The vocabulary was deleted.');
   }
 
@@ -94,19 +95,19 @@ class VocabularyCrudTest extends TaxonomyTestBase {
   function testTaxonomyVocabularyLoadMultiple() {
 
     // Delete any existing vocabularies.
-    foreach (entity_load_multiple('taxonomy_vocabulary') as $vocabulary) {
+    foreach (Vocabulary::loadMultiple() as $vocabulary) {
       $vocabulary->delete();
     }
 
     // Create some vocabularies and assign weights.
     $vocabulary1 = $this->createVocabulary();
-    $vocabulary1->weight = 0;
+    $vocabulary1->set('weight', 0);
     $vocabulary1->save();
     $vocabulary2 = $this->createVocabulary();
-    $vocabulary2->weight = 1;
+    $vocabulary2->set('weight', 1);
     $vocabulary2->save();
     $vocabulary3 = $this->createVocabulary();
-    $vocabulary3->weight = 2;
+    $vocabulary3->set('weight', 2);
     $vocabulary3->save();
 
     // Check if third party settings exist.
@@ -121,7 +122,7 @@ class VocabularyCrudTest extends TaxonomyTestBase {
 
     // Fetch the vocabularies with entity_load_multiple(), specifying IDs.
     // Ensure they are returned in the same order as the original array.
-    $vocabularies = entity_load_multiple('taxonomy_vocabulary', array($vocabulary3->id(), $vocabulary2->id(), $vocabulary1->id()));
+    $vocabularies = Vocabulary::loadMultiple(array($vocabulary3->id(), $vocabulary2->id(), $vocabulary1->id()));
     $loaded_order = array_keys($vocabularies);
     $expected_order = array($vocabulary3->id(), $vocabulary2->id(), $vocabulary1->id());
     $this->assertIdentical($loaded_order, $expected_order);
@@ -129,12 +130,12 @@ class VocabularyCrudTest extends TaxonomyTestBase {
     // Test loading vocabularies by their properties.
     $controller = $this->container->get('entity.manager')->getStorage('taxonomy_vocabulary');
     // Fetch vocabulary 1 by name.
-    $vocabulary = current($controller->loadByProperties(array('name' => $vocabulary1->name)));
+    $vocabulary = current($controller->loadByProperties(array('name' => $vocabulary1->label())));
     $this->assertEqual($vocabulary->id(), $vocabulary1->id(), 'Vocabulary loaded successfully by name.');
 
     // Fetch vocabulary 2 by name and ID.
     $vocabulary = current($controller->loadByProperties(array(
-      'name' => $vocabulary2->name,
+      'name' => $vocabulary2->label(),
       'vid' => $vocabulary2->id(),
     )));
     $this->assertEqual($vocabulary->id(), $vocabulary2->id(), 'Vocabulary loaded successfully by name and ID.');
@@ -159,7 +160,7 @@ class VocabularyCrudTest extends TaxonomyTestBase {
     // Change the machine name.
     $old_name = $this->vocabulary->id();
     $new_name = Unicode::strtolower($this->randomMachineName());
-    $this->vocabulary->vid = $new_name;
+    $this->vocabulary->set('vid', $new_name);
     $this->vocabulary->save();
 
     // Check that entity bundles are properly updated.

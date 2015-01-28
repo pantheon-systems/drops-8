@@ -15,6 +15,7 @@ use Drupal\migrate\Exception\RequirementsException;
 use Drupal\migrate\MigrateException;
 use Drupal\migrate\Plugin\SourceEntityInterface;
 use Drupal\migrate_drupal\Plugin\MigrateLoadInterface;
+use Drupal\migrate_drupal\Plugin\CckFieldMigrateSourceInterface;
 
 /**
  * Base class for entity load plugins.
@@ -82,8 +83,31 @@ class LoadEntity extends PluginBase implements MigrateLoadInterface {
       $migration = $storage->create($values);
       try {
         $migration->getSourcePlugin()->checkRequirements();
-        $fields = array_keys($migration->getSourcePlugin()->fields());
-        $migration->process += array_combine($fields, $fields);
+        $source_plugin = $migration->getSourcePlugin();
+
+        if ($source_plugin instanceof CckFieldMigrateSourceInterface) {
+          foreach ($source_plugin->fieldData() as $field_name => $data) {
+            switch ($data['type']) {
+              case 'link':
+                $this->processLinkField($field_name, $data, $migration);
+                break;
+              case 'filefield':
+                $this->processFileField($field_name, $data, $migration);
+                break;
+              case 'text':
+                $this->processTextField($field_name, $data, $migration);
+                break;
+              default:
+                $process = $migration->getProcess();
+                $process[$field_name] = $field_name;
+                $migration->setProcess($process);
+            }
+          }
+        }
+        else {
+          $fields = array_keys($migration->getSourcePlugin()->fields());
+          $migration->setProcess($migration->getProcess() + array_combine($fields, $fields));
+        }
         $migrations[$migration->id()] = $migration;
       }
       catch (RequirementsException $e) {
@@ -92,6 +116,94 @@ class LoadEntity extends PluginBase implements MigrateLoadInterface {
     }
 
     return $migrations;
+  }
+
+  /**
+   * Manipulate text fields with any per field type processing.
+   *
+   * @param string $field_name
+   *   The field we're processing.
+   * @param array $field_data
+   *   The an array of field type data from the source.
+   * @param \Drupal\migrate\Entity\MigrationInterface $migration
+   *   The migration entity.
+   */
+  protected function processTextField($field_name, $field_data, MigrationInterface $migration) {
+    // The data is stored differently depending on whether we're using
+    // db storage.
+    $value_key = $field_data['db_storage'] ? $field_name : "$field_name/value";
+    $format_key = $field_data['db_storage'] ? $field_name . '_format' : "$field_name/format" ;
+
+    $process = $migration->getProcess();
+
+    $process["$field_name/value"] = $value_key;
+    // See d6_user, signature_format for an example of the YAML that
+    // represents this process array.
+    $process["$field_name/format"] = [
+      [
+        'plugin' => 'static_map',
+        'bypass' => TRUE,
+        'source' => $format_key,
+        'map' => [0 => NULL]
+      ],
+      ['plugin' => 'skip_process_on_empty'],
+      [
+        'plugin' => 'migration',
+        'migration' => 'd6_filter_format',
+        'source' => $format_key,
+        'no_stub' => 1,
+      ],
+    ];
+
+    $migration->setProcess($process);
+  }
+
+  /**
+   * Manipulate file fields with any per field type processing.
+   *
+   * @param string $field_name
+   *   The field we're processing.
+   * @param array $field_data
+   *   The an array of field type data from the source.
+   * @param \Drupal\migrate\Entity\MigrationInterface $migration
+   *   The migration entity.
+   */
+  protected function processFileField($field_name, $field_data, MigrationInterface $migration) {
+    $process = $migration->getProcess();
+    $process[$field_name] = [
+      'plugin' => 'd6_cck_file',
+      'source' => [
+        $field_name,
+        $field_name . '_list',
+        $field_name . '_data',
+      ],
+    ];
+    $migration->setProcess($process);
+  }
+
+  /**
+   * Manipulate link fields with any per field type processing.
+   *
+   * @param string $field_name
+   *   The field we're processing.
+   * @param array $field_data
+   *   The an array of field type data from the source.
+   * @param \Drupal\migrate\Entity\MigrationInterface $migration
+   *   The migration entity.
+   */
+  protected function processLinkField($field_name, $field_data, MigrationInterface $migration) {
+    // Specifically process the link field until core is fixed.
+    // @see https://www.drupal.org/node/2235457
+    $process = $migration->getProcess();
+    $process[$field_name] = [
+      'plugin' => 'd6_cck_link',
+      'source' => [
+        $field_name,
+        $field_name . '_title',
+        $field_name . '_attributes',
+      ],
+    ];
+    $migration->setProcess($process);
   }
 
 }

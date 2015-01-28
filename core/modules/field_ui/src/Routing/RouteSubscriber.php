@@ -54,6 +54,9 @@ class RouteSubscriber extends RouteSubscriberBase {
             'type' => 'entity:' . $entity_type->getBundleEntityType(),
           );
         }
+        elseif ($bundle_entity_type == 'bundle') {
+          $bundle_entity_type = $entity_type_id;
+        }
 
         $route = new Route(
           "$path/fields/{field_config}",
@@ -64,7 +67,7 @@ class RouteSubscriber extends RouteSubscriberBase {
           array('_entity_access' => 'field_config.update'),
           $options
         );
-        $collection->add("field_ui.field_edit_$entity_type_id", $route);
+        $collection->add("entity.field_config.{$entity_type_id}_field_edit_form", $route);
 
         $route = new Route(
           "$path/fields/{field_config}/storage",
@@ -72,7 +75,7 @@ class RouteSubscriber extends RouteSubscriberBase {
           array('_entity_access' => 'field_config.update'),
           $options
         );
-        $collection->add("field_ui.storage_edit_$entity_type_id", $route);
+        $collection->add("entity.field_config.{$entity_type_id}_storage_edit_form", $route);
 
         $route = new Route(
           "$path/fields/{field_config}/delete",
@@ -80,7 +83,7 @@ class RouteSubscriber extends RouteSubscriberBase {
           array('_entity_access' => 'field_config.delete'),
           $options
         );
-        $collection->add("field_ui.delete_$entity_type_id", $route);
+        $collection->add("entity.field_config.{$entity_type_id}_field_delete_form", $route);
 
         // If the entity type has no bundles, use the entity type.
         $defaults['entity_type_id'] = $entity_type_id;
@@ -96,7 +99,7 @@ class RouteSubscriber extends RouteSubscriberBase {
           array('_permission' => 'administer ' . $entity_type_id . ' fields'),
           $options
         );
-        $collection->add("field_ui.overview_$entity_type_id", $route);
+        $collection->add("entity.$bundle_entity_type.field_ui_fields", $route);
 
         $route = new Route(
           "$path/fields/add-field",
@@ -111,46 +114,48 @@ class RouteSubscriber extends RouteSubscriberBase {
         $route = new Route(
           "$path/form-display",
           array(
-            '_form' => '\Drupal\field_ui\FormDisplayOverview',
+            '_entity_form' => 'entity_form_display.edit',
             '_title' => 'Manage form display',
+            'form_mode_name' => 'default',
           ) + $defaults,
           array('_field_ui_form_mode_access' => 'administer ' . $entity_type_id . ' form display'),
           $options
         );
-        $collection->add("field_ui.form_display_overview_$entity_type_id", $route);
+        $collection->add("entity.entity_form_display.$bundle_entity_type.default", $route);
 
         $route = new Route(
           "$path/form-display/{form_mode_name}",
           array(
-            '_form' => '\Drupal\field_ui\FormDisplayOverview',
+            '_entity_form' => 'entity_form_display.edit',
             '_title' => 'Manage form display',
           ) + $defaults,
           array('_field_ui_form_mode_access' => 'administer ' . $entity_type_id . ' form display'),
           $options
         );
-        $collection->add("field_ui.form_display_overview_form_mode_$entity_type_id", $route);
+        $collection->add("entity.entity_form_display.$bundle_entity_type.form_mode", $route);
 
         $route = new Route(
           "$path/display",
           array(
-            '_form' => '\Drupal\field_ui\DisplayOverview',
+            '_entity_form' => 'entity_view_display.edit',
             '_title' => 'Manage display',
+            'view_mode_name' => 'default',
           ) + $defaults,
           array('_field_ui_view_mode_access' => 'administer ' . $entity_type_id . ' display'),
           $options
         );
-        $collection->add("field_ui.display_overview_$entity_type_id", $route);
+        $collection->add("entity.entity_view_display.$bundle_entity_type.default", $route);
 
         $route = new Route(
           "$path/display/{view_mode_name}",
           array(
-            '_form' => '\Drupal\field_ui\DisplayOverview',
+            '_entity_form' => 'entity_view_display.edit',
             '_title' => 'Manage display',
           ) + $defaults,
           array('_field_ui_view_mode_access' => 'administer ' . $entity_type_id . ' display'),
           $options
         );
-        $collection->add("field_ui.display_overview_view_mode_$entity_type_id", $route);
+        $collection->add("entity.entity_view_display.$bundle_entity_type.view_mode", $route);
       }
     }
   }

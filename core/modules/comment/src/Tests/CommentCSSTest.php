@@ -33,8 +33,8 @@ class CommentCSSTest extends CommentTestBase {
   function testCommentClasses() {
     // Create all permutations for comments, users, and nodes.
     $parameters = array(
-      'node_uid' => array(0, $this->web_user->id()),
-      'comment_uid' => array(0, $this->web_user->id(), $this->admin_user->id()),
+      'node_uid' => array(0, $this->webUser->id()),
+      'comment_uid' => array(0, $this->webUser->id(), $this->adminUser->id()),
       'comment_status' => array(CommentInterface::PUBLISHED, CommentInterface::NOT_PUBLISHED),
       'user' => array('anonymous', 'authenticated', 'admin'),
     );
@@ -68,13 +68,13 @@ class CommentCSSTest extends CommentTestBase {
           break;
 
         case 'authenticated':
-          $this->drupalLogin($this->web_user);
-          $case['user_uid'] = $this->web_user->id();
+          $this->drupalLogin($this->webUser);
+          $case['user_uid'] = $this->webUser->id();
           break;
 
         case 'admin':
-          $this->drupalLogin($this->admin_user);
-          $case['user_uid'] = $this->admin_user->id();
+          $this->drupalLogin($this->adminUser);
+          $case['user_uid'] = $this->adminUser->id();
           break;
       }
       // Request the node with the comment.
@@ -110,7 +110,7 @@ class CommentCSSTest extends CommentTestBase {
         // user (the viewer) was the author of the comment. We do this in Java-
         // Script to prevent breaking the render cache.
         $this->assertIdentical(1, count($this->xpath('//*[contains(@class, "comment") and @data-comment-user-id="' . $case['comment_uid'] . '"]')), 'data-comment-user-id attribute is set on comment.');
-        $this->assertTrue(isset($settings['ajaxPageState']['js']['core/modules/comment/js/comment-by-viewer.js']), 'drupal.comment-by-viewer library is present.');
+        $this->assertRaw(drupal_get_path('module', 'comment') . '/js/comment-by-viewer.js', 'drupal.comment-by-viewer library is present.');
       }
 
       // Verify the unpublished class.
@@ -129,7 +129,7 @@ class CommentCSSTest extends CommentTestBase {
       if ($case['comment_status'] == CommentInterface::PUBLISHED || $case['user'] == 'admin') {
         $this->assertIdentical(1, count($this->xpath('//*[contains(@class, "comment")]/*[@data-comment-timestamp="' . $comment->getChangedTime() . '"]')), 'data-comment-timestamp attribute is set on comment');
         $expectedJS = ($case['user'] !== 'anonymous');
-        $this->assertIdentical($expectedJS, isset($settings['ajaxPageState']['js']['core/modules/comment/js/comment-new-indicator.js']), 'drupal.comment-new-indicator library is present.');
+        $this->assertIdentical($expectedJS, isset($settings['ajaxPageState']) && in_array('comment/drupal.comment-new-indicator', explode(',', $settings['ajaxPageState']['libraries'])), 'drupal.comment-new-indicator library is present.');
       }
     }
   }

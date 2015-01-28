@@ -7,6 +7,7 @@
 
 namespace Drupal\entity_reference\Plugin\Field\FieldWidget;
 
+use Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItem;
 use Drupal\Core\Form\FormStateInterface;
 
 /**
@@ -63,7 +64,7 @@ class AutocompleteWidget extends AutocompleteWidgetBase {
       if ($value === NULL) {
         // Try to get a match from the input string when the user didn't use the
         // autocomplete but filled in a value manually.
-        $handler = \Drupal::service('plugin.manager.entity_reference.selection')->getSelectionHandler($this->fieldDefinition);
+        $handler = \Drupal::service('plugin.manager.entity_reference_selection')->getSelectionHandler($this->fieldDefinition);
         $value = $handler->validateAutocompleteInput($element['#value'], $element, $form_state, $form, !$auto_create);
       }
 
@@ -71,7 +72,6 @@ class AutocompleteWidget extends AutocompleteWidgetBase {
         // Auto-create item. See
         // \Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItem::presave().
         $value = array(
-          'target_id' => NULL,
           'entity' => $this->createNewEntity($element['#value'], $element['#autocreate_uid']),
           // Keep the weight property.
           '_weight' => $element['#weight'],
