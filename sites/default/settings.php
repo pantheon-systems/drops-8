@@ -82,3 +82,8 @@ if (isset($_SERVER['PRESSFLOW_SETTINGS'])) {
 if (isset($_SERVER['PRESSFLOW_SETTINGS'])) {
   $settings['hash_salt'] = $drupal_hash_salt;
 }
+
+/**
+ * Prevents fatal error https://github.com/pantheon-systems/drops-8/issues/23
+*/
+$settings['container_yamls'][] = DRUPAL_ROOT . '/sites/development.services.yml';
