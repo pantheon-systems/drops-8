@@ -57,7 +57,7 @@ class MenuLinkContentUITest extends ContentTranslationUITest {
    */
   protected function createEntity($values, $langcode, $bundle_name = NULL) {
     $values['menu_name'] = 'tools';
-    $values['route_name'] = 'entity.menu.collection';
+    $values['link']['uri'] = 'internal:/admin/structure/menu';
     $values['title'] = 'Test title';
 
     return parent::createEntity($values, $langcode, $bundle_name);
@@ -70,7 +70,7 @@ class MenuLinkContentUITest extends ContentTranslationUITest {
     $this->drupalGet('admin/structure/menu/manage/tools');
     $this->assertNoLink(t('Translate'));
 
-    $menu_link_content = MenuLinkContent::create(['menu_name' => 'tools', 'route_name' => 'entity.menu.collection']);
+    $menu_link_content = MenuLinkContent::create(['menu_name' => 'tools', 'link' => ['uri' => 'internal:/admin/structure/menu']]);
     $menu_link_content->save();
     $this->drupalGet('admin/structure/menu/manage/tools');
     $this->assertLink(t('Translate'));
@@ -92,6 +92,29 @@ class MenuLinkContentUITest extends ContentTranslationUITest {
     $this->assertRaw('core/themes/seven/css/base/elements.css', 'Edit uses admin theme.');
     $this->drupalGet('admin/structure/menu/item/' . $entityId . '/edit/translations');
     $this->assertRaw('core/themes/seven/css/base/elements.css', 'Translation uses admin theme as well.');
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function doTestTranslationEdit() {
+    $entity = entity_load($this->entityTypeId, $this->entityId, TRUE);
+    $languages = $this->container->get('language_manager')->getLanguages();
+
+    foreach ($this->langcodes as $langcode) {
+      // We only want to test the title for non-english translations.
+      if ($langcode != 'en') {
+        $options = array('language' => $languages[$langcode]);
+        $url = $entity->urlInfo('edit-form', $options);
+        $this->drupalGet($url);
+
+        $title = t('@title [%language translation]', array(
+          '@title' => $entity->getTranslation($langcode)->label(),
+          '%language' => $languages[$langcode]->getName(),
+        ));
+        $this->assertRaw($title);
+      }
+    }
   }
 
 }

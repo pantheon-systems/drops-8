@@ -86,22 +86,42 @@ class RenderElementTypesTest extends KernelTestBase {
    * Tests system #type 'html_tag'.
    */
   function testHtmlTag() {
-    // Test auto-closure meta tag generation.
+    // Test void element.
     $this->assertElements(array(
       '#type' => 'html_tag',
       '#tag' => 'meta',
+      '#value' => 'ignored',
+      '#value_prefix' => 'ignored',
+      '#value_suffix' => 'ignored',
       '#attributes' => array(
         'name' => 'description',
         'content' => 'Drupal test',
       ),
-    ), '<meta name="description" content="Drupal test" />' . "\n", "#type 'html_tag' auto-closure meta tag generation");
+    ), '<meta name="description" content="Drupal test" />' . "\n", "#type 'html_tag', void element renders properly");
 
-    // Test title tag generation.
+    // Test non-void element.
     $this->assertElements(array(
       '#type' => 'html_tag',
-      '#tag' => 'title',
-      '#value' => 'title test',
-    ), "<title>title test</title>\n", "#type 'html_tag' title tag generation");
+      '#tag' => 'section',
+      '#value' => 'value',
+      '#value_prefix' => 'value_prefix|',
+      '#value_suffix' => '|value_suffix',
+      '#attributes' => array(
+        'class' => array('unicorns'),
+      ),
+    ), '<section class="unicorns">value_prefix|value|value_suffix</section>' . "\n", "#type 'html_tag', non-void element renders properly");
+
+    // Test empty void element tag.
+    $this->assertElements(array(
+      '#type' => 'html_tag',
+      '#tag' => 'link',
+    ), "<link />\n", "#type 'html_tag' empty void element renders properly");
+
+    // Test empty non-void element tag.
+    $this->assertElements(array(
+      '#type' => 'html_tag',
+      '#tag' => 'section',
+    ), "<section></section>\n", "#type 'html_tag' empty non-void element renders properly");
   }
 
   /**
@@ -148,7 +168,7 @@ class RenderElementTypesTest extends KernelTestBase {
           '#type' => 'more_link',
           '#url' => Url::fromRoute('router_test.1'),
         ),
-        'expected' => '//div[@class="more-link"]/a[@href="' . _url('router_test/test1') . '" and text()="More"]',
+        'expected' => '//div[@class="more-link"]/a[@href="' . Url::fromRoute('router_test.1')->toString() . '" and text()="More"]',
       ),
       array(
         'name' => "#type 'more_link' anchor tag with a route",
@@ -165,7 +185,7 @@ class RenderElementTypesTest extends KernelTestBase {
           '#url' => Url::fromRoute('system.admin_content'),
           '#options' => array('absolute' => TRUE),
         ),
-        'expected' => '//div[@class="more-link"]/a[@href="' . _url('admin/content', array('absolute' => TRUE)) . '" and text()="More"]',
+        'expected' => '//div[@class="more-link"]/a[@href="' . Url::fromRoute('system.admin_content')->setAbsolute()->toString() . '" and text()="More"]',
       ),
       array(
         'name' => "#type 'more_link' anchor tag to the front page",
@@ -173,7 +193,7 @@ class RenderElementTypesTest extends KernelTestBase {
           '#type' => 'more_link',
           '#url' => Url::fromRoute('<front>'),
         ),
-        'expected' => '//div[@class="more-link"]/a[@href="' . _url('<front>') . '" and text()="More"]',
+        'expected' => '//div[@class="more-link"]/a[@href="' . Url::fromRoute('<front>')->toString() . '" and text()="More"]',
       ),
     );
 

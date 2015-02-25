@@ -38,7 +38,7 @@ class ViewEditTest extends UITestBase {
     $this->clickLink(t('Delete view'));
     $this->assertUrl('admin/structure/views/view/test_view/delete');
     $this->drupalPostForm(NULL, array(), t('Delete'));
-    $this->assertRaw(t('View %name deleted', array('%name' => $view->label())));
+    $this->assertRaw(t('The view %name has been deleted.', array('%name' => $view->label())));
 
     $this->assertUrl('admin/structure/views');
     $view = $this->container->get('entity.manager')->getStorage('view')->load('test_view');
@@ -100,9 +100,10 @@ class ViewEditTest extends UITestBase {
     foreach ($test_views as $view_name => $display) {
       $this->drupalGet('admin/structure/views/view/' . $view_name);
       $this->assertResponse(200);
-      $langcode_url = 'admin/structure/views/nojs/display/' . $view_name . '/' . $display . '/field_langcode';
+      $langcode_url = 'admin/structure/views/nojs/display/' . $view_name . '/' . $display . '/rendering_language';
       $this->assertNoLinkByHref($langcode_url);
-      $this->assertNoLink(t('Language selected for !type', array('!type' => t('Content'))));
+      $this->assertNoLink(t('!type language selected for page', array('!type' => t('Content'))));
+      $this->assertNoLink(t('Content language of view row'));
     }
 
     // Make the site multilingual and test the options again.
@@ -111,18 +112,20 @@ class ViewEditTest extends UITestBase {
     $this->resetAll();
     $this->rebuildContainer();
 
-    // Language options should now exist with content language defaults.
+    // Language options should now exist with entity language the default.
     foreach ($test_views as $view_name => $display) {
       $this->drupalGet('admin/structure/views/view/' . $view_name);
       $this->assertResponse(200);
-      $langcode_url = 'admin/structure/views/nojs/display/' . $view_name . '/' . $display . '/field_langcode';
+      $langcode_url = 'admin/structure/views/nojs/display/' . $view_name . '/' . $display . '/rendering_language';
       if ($view_name == 'test_view') {
         $this->assertNoLinkByHref($langcode_url);
-        $this->assertNoLink(t('Language selected for !type', array('!type' => t('Content'))));
+        $this->assertNoLink(t('!type language selected for page', array('!type' => t('Content'))));
+        $this->assertNoLink(t('Content language of view row'));
       }
       else {
         $this->assertLinkByHref($langcode_url);
-        $this->assertLink(t('Language selected for !type', array('!type' => t('Content'))));
+        $this->assertNoLink(t('!type language selected for page', array('!type' => t('Content'))));
+        $this->assertLink(t('Content language of view row'));
       }
 
       $this->drupalGet($langcode_url);
@@ -131,8 +134,7 @@ class ViewEditTest extends UITestBase {
         $this->assertText(t("You don't have translatable entity types."));
       }
       else {
-        $this->assertFieldByName('field_langcode', '***LANGUAGE_language_content***');
-        $this->assertFieldByName('field_langcode_add_to_query', TRUE);
+        $this->assertFieldByName('rendering_language', '***LANGUAGE_entity_translation***');
       }
     }
   }

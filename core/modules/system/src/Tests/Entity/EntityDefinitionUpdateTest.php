@@ -55,6 +55,26 @@ class EntityDefinitionUpdateTest extends EntityUnitTestBase {
   }
 
   /**
+   * Tests that new entity type definitions are correctly handled.
+   */
+  public function testNewEntityType() {
+    $entity_type_id = 'entity_test_new';
+    $schema = $this->database->schema();
+
+    // Check that the "entity_test_new" is not defined.
+    $entity_types = $this->entityManager->getDefinitions();
+    $this->assertFalse(isset($entity_types[$entity_type_id]), 'The "entity_test_new" entity type does not exist.');
+    $this->assertFalse($schema->tableExists($entity_type_id), 'Schema for the "entity_test_new" entity type does not exist.');
+
+    // Check that the "entity_test_new" is now defined and the related schema
+    // has been created.
+    $this->enableNewEntityType();
+    $entity_types = $this->entityManager->getDefinitions();
+    $this->assertTrue(isset($entity_types[$entity_type_id]), 'The "entity_test_new" entity type exists.');
+    $this->assertTrue($schema->tableExists($entity_type_id), 'Schema for the "entity_test_new" entity type has been created.');
+  }
+
+  /**
    * Tests when no definition update is needed.
    */
   public function testNoUpdates() {
@@ -541,20 +561,47 @@ class EntityDefinitionUpdateTest extends EntityUnitTestBase {
   }
 
   /**
-   * Tests updating entity schema and creating a base field at the same time when there are no existing entities.
+   * Tests updating entity schema and creating a base field.
+   *
+   * This tests updating entity schema and creating a base field at the same
+   * time when there are no existing entities.
    */
   public function testEntityTypeSchemaUpdateAndBaseFieldCreateWithoutData() {
     $this->updateEntityTypeToRevisionable();
     $this->addBaseField();
+    $message = 'Successfully updated entity schema and created base field at the same time.';
     // Entity type updates create base fields as well, thus make sure doing both
     // at the same time does not lead to errors due to the base field being
     // created twice.
     try {
       $this->entityDefinitionUpdateManager->applyUpdates();
-      $this->pass('Successfully updated entity schema and created base field at the same time.');
+      $this->pass($message);
     }
     catch (\Exception $e) {
-      $this->fail('Successfully updated entity schema and created base field at the same time.');
+      $this->fail($message);
+      throw $e;
+    }
+  }
+
+  /**
+   * Tests updating entity schema and creating a revisionable base field.
+   *
+   * This tests updating entity schema and creating a revisionable base field
+   * at the same time when there are no existing entities.
+   */
+  public function testEntityTypeSchemaUpdateAndRevisionableBaseFieldCreateWithoutData() {
+    $this->updateEntityTypeToRevisionable();
+    $this->addRevisionableBaseField();
+    $message = 'Successfully updated entity schema and created revisionable base field at the same time.';
+    // Entity type updates create base fields as well, thus make sure doing both
+    // at the same time does not lead to errors due to the base field being
+    // created twice.
+    try {
+      $this->entityDefinitionUpdateManager->applyUpdates();
+      $this->pass($message);
+    }
+    catch (\Exception $e) {
+      $this->fail($message);
       throw $e;
     }
   }

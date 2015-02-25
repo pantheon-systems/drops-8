@@ -275,9 +275,11 @@ class MenuForm extends EntityForm {
       ),
     );
 
-    $destination = $this->getUrlGenerator()->getPathFromRoute('entity.menu.edit_form', array('menu' => $this->entity->id()));
-    $url = $destination = $this->url('entity.menu.add_link_form', array('menu' => $this->entity->id()), array('query' => array('destination' => $destination)));
-    $form['links']['#empty'] = $this->t('There are no menu links yet. <a href="@url">Add link</a>.', array('@url' => $url));
+    $form['links']['#empty'] = $this->t('There are no menu links yet. <a href="@url">Add link</a>.', [
+      '@url' => $this->url('entity.menu.add_link_form', ['menu' => $this->entity->id()], [
+        'query' => ['destination' => $this->entity->url('edit-form')],
+      ]),
+    ]);
     $links = $this->buildOverviewTreeForm($tree, $delta);
     foreach (Element::children($links) as $id) {
       if (isset($links[$id]['#item'])) {
@@ -346,7 +348,7 @@ class MenuForm extends EntityForm {
         if (!$link->isEnabled()) {
           $form[$id]['title']['#markup'] .= ' (' . $this->t('disabled') . ')';
         }
-        elseif (($url = $link->getUrlObject()) && !$url->isExternal() && $url->getRouteName() == 'user.page') {
+        elseif (($url = $link->getUrlObject()) && $url->isRouted() && $url->getRouteName() == 'user.page') {
           $form[$id]['title']['#markup'] .= ' (' . $this->t('logged in users only') . ')';
         }
 
@@ -381,7 +383,7 @@ class MenuForm extends EntityForm {
         if ($edit_route) {
           $operations['edit']['url'] = $edit_route;
           // Bring the user back to the menu overview.
-          $operations['edit']['query']['destination'] = $this->entity->url();
+          $operations['edit']['query'] = drupal_get_destination();
         }
         else {
           // Fall back to the standard edit link.
@@ -398,7 +400,7 @@ class MenuForm extends EntityForm {
         }
         elseif ($delete_link = $link->getDeleteRoute()) {
           $operations['delete']['url'] = $delete_link;
-          $operations['delete']['query']['destination'] = $this->entity->url();
+          $operations['delete']['query'] = drupal_get_destination();
           $operations['delete']['title'] = $this->t('Delete');
         }
         if ($link->isTranslatable()) {

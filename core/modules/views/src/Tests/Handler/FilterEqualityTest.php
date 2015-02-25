@@ -26,7 +26,12 @@ class FilterEqualityTest extends ViewUnitTestBase {
    */
   public static $testViews = array('test_view');
 
-  protected $column_map = array(
+  /**
+   * Map column names.
+   *
+   * @var array
+   */
+  protected $columnMap = array(
     'views_test_data_name' => 'name',
   );
 
@@ -54,7 +59,7 @@ class FilterEqualityTest extends ViewUnitTestBase {
         'field' => 'name',
         'relationship' => 'none',
         'operator' => '=',
-        'value' => array('value' => 'Ringo'),
+        'value' => 'Ringo',
       ),
     ));
 
@@ -64,7 +69,7 @@ class FilterEqualityTest extends ViewUnitTestBase {
         'name' => 'Ringo',
       ),
     );
-    $this->assertIdenticalResultset($view, $resultset, $this->column_map);
+    $this->assertIdenticalResultset($view, $resultset, $this->columnMap);
   }
 
   public function testEqualGroupedExposed() {
@@ -76,6 +81,8 @@ class FilterEqualityTest extends ViewUnitTestBase {
     $filters['name']['group_info']['default_group'] = 1;
     $view->setDisplay('page_1');
     $view->displayHandlers->get('page_1')->overrideOption('filters', $filters);
+    $view->save();
+    $this->container->get('router.builder')->rebuild();
 
     $this->executeView($view);
     $resultset = array(
@@ -83,7 +90,7 @@ class FilterEqualityTest extends ViewUnitTestBase {
         'name' => 'Ringo',
       ),
     );
-    $this->assertIdenticalResultset($view, $resultset, $this->column_map);
+    $this->assertIdenticalResultset($view, $resultset, $this->columnMap);
   }
 
   function testNotEqual() {
@@ -98,7 +105,7 @@ class FilterEqualityTest extends ViewUnitTestBase {
         'field' => 'name',
         'relationship' => 'none',
         'operator' => '!=',
-        'value' => array('value' => 'Ringo'),
+        'value' => 'Ringo',
       ),
     ));
 
@@ -117,7 +124,7 @@ class FilterEqualityTest extends ViewUnitTestBase {
         'name' => 'Meredith',
       ),
     );
-    $this->assertIdenticalResultset($view, $resultset, $this->column_map);
+    $this->assertIdenticalResultset($view, $resultset, $this->columnMap);
   }
 
   public function testEqualGroupedNotExposed() {
@@ -129,6 +136,8 @@ class FilterEqualityTest extends ViewUnitTestBase {
     $filters['name']['group_info']['default_group'] = 2;
     $view->setDisplay('page_1');
     $view->displayHandlers->get('page_1')->overrideOption('filters', $filters);
+    $view->save();
+    $this->container->get('router.builder')->rebuild();
 
     $this->executeView($view);
     $resultset = array(
@@ -145,7 +154,7 @@ class FilterEqualityTest extends ViewUnitTestBase {
         'name' => 'Meredith',
       ),
     );
-    $this->assertIdenticalResultset($view, $resultset, $this->column_map);
+    $this->assertIdenticalResultset($view, $resultset, $this->columnMap);
   }
 
 
@@ -153,6 +162,7 @@ class FilterEqualityTest extends ViewUnitTestBase {
     $filters = array(
       'name' => array(
         'id' => 'name',
+        'plugin_id' => 'equality',
         'table' => 'views_test_data',
         'field' => 'name',
         'relationship' => 'none',
@@ -172,12 +182,12 @@ class FilterEqualityTest extends ViewUnitTestBase {
             1 => array(
               'title' => 'Name is equal to Ringo',
               'operator' => '=',
-              'value' => array('value' => 'Ringo'),
+              'value' => 'Ringo',
             ),
             2 => array(
               'title' => 'Name is not equal to Ringo',
               'operator' => '!=',
-              'value' => array('value' => 'Ringo'),
+              'value' => 'Ringo',
             ),
           ),
         ),

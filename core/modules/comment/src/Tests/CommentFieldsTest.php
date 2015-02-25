@@ -10,6 +10,7 @@ namespace Drupal\comment\Tests;
 use Drupal\comment\Plugin\Field\FieldType\CommentItemInterface;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\field\Entity\FieldConfig;
+use Drupal\comment\Entity\CommentType;
 
 /**
  * Tests fields on comments.
@@ -32,7 +33,7 @@ class CommentFieldsTest extends CommentTestBase {
     // Do not make assumptions on default node types created by the test
     // installation profile, and create our own.
     $this->drupalCreateContentType(array('type' => 'test_node_type'));
-    $this->container->get('comment.manager')->addDefaultField('node', 'test_node_type');
+    $this->addDefaultCommentField('node', 'test_node_type');
 
     // Check that the 'comment_body' field is present on the comment bundle.
     $field = FieldConfig::loadByName('comment', 'comment', 'comment_body');
@@ -48,7 +49,7 @@ class CommentFieldsTest extends CommentTestBase {
     // Create a new content type.
     $type_name = 'test_node_type_2';
     $this->drupalCreateContentType(array('type' => $type_name));
-    $this->container->get('comment.manager')->addDefaultField('node', $type_name);
+    $this->addDefaultCommentField('node', $type_name);
 
     // Check that the 'comment_body' field exists and has an instance on the
     // new comment bundle.
@@ -58,7 +59,7 @@ class CommentFieldsTest extends CommentTestBase {
     $this->assertTrue(isset($field), format_string('The comment_body field is present for comments on type @type', array('@type' => $type_name)));
 
     // Test adding a field that defaults to CommentItemInterface::CLOSED.
-    $this->container->get('comment.manager')->addDefaultField('node', 'test_node_type', 'who_likes_ponies', CommentItemInterface::CLOSED, 'who_likes_ponies');
+    $this->addDefaultCommentField('node', 'test_node_type', 'who_likes_ponies', CommentItemInterface::CLOSED, 'who_likes_ponies');
     $field = FieldConfig::load('node.test_node_type.who_likes_ponies');
     $this->assertEqual($field->default_value[0]['status'], CommentItemInterface::CLOSED);
   }
@@ -68,11 +69,11 @@ class CommentFieldsTest extends CommentTestBase {
    */
   public function testCommentFieldDelete() {
     $this->drupalCreateContentType(array('type' => 'test_node_type'));
-    $this->container->get('comment.manager')->addDefaultField('node', 'test_node_type');
+    $this->addDefaultCommentField('node', 'test_node_type');
     // We want to test the handling of removing the primary comment field, so we
     // ensure there is at least one other comment field attached to a node type
     // so that comment_entity_load() runs for nodes.
-    $this->container->get('comment.manager')->addDefaultField('node', 'test_node_type', 'comment2');
+    $this->addDefaultCommentField('node', 'test_node_type', 'comment2');
 
     // Create a sample node.
     $node = $this->drupalCreateNode(array(
@@ -91,6 +92,48 @@ class CommentFieldsTest extends CommentTestBase {
     $this->drupalGet('node/' . $node->nid->value);
     $elements = $this->cssSelect('.field-type-comment');
     $this->assertEqual(1, count($elements), 'There is one comment field on the node.');
+  }
+
+  /**
+   * Tests creating a comment field through the interface.
+   */
+  public function testCommentFieldCreate() {
+    // Create user who can administer user fields.
+    $user = $this->drupalCreateUser(array(
+      'administer user fields',
+    ));
+    $this->drupalLogin($user);
+
+    // Create comment field in account settings.
+    $edit = array(
+      'new_storage_type' => 'comment',
+      'label' => 'User comment',
+      'field_name' => 'user_comment',
+    );
+    $this->drupalPostForm('admin/config/people/accounts/fields/add-field', $edit, 'Save and continue');
+
+    // Try to save the comment field without selecting a comment type.
+    $edit = array();
+    $this->drupalPostForm('admin/config/people/accounts/fields/user.user.field_user_comment/storage', $edit, t('Save field settings'));
+    // We should get an error message.
+    $this->assertText(t('An illegal choice has been detected. Please contact the site administrator.'));
+
+    // Create a comment type for users.
+    $bundle = CommentType::create(array(
+      'id' => 'user_comment_type',
+      'label' => 'user_comment_type',
+      'description' => '',
+      'target_entity_type_id' => 'user',
+    ));
+    $bundle->save();
+
+    // Select a comment type and try to save again.
+    $edit = array(
+      'field_storage[settings][comment_type]' => 'user_comment_type',
+    );
+    $this->drupalPostForm('admin/config/people/accounts/fields/user.user.field_user_comment/storage', $edit, t('Save field settings'));
+    // We shouldn't get an error message.
+    $this->assertNoText(t('An illegal choice has been detected. Please contact the site administrator.'));
   }
 
   /**
@@ -132,7 +175,7 @@ class CommentFieldsTest extends CommentTestBase {
     $this->assertTrue($this->container->get('module_handler')->moduleExists('comment'), 'Comment module enabled.');
 
     // Create nodes of each type.
-    $this->container->get('comment.manager')->addDefaultField('node', 'book');
+    $this->addDefaultCommentField('node', 'book');
     $book_node = $this->drupalCreateNode(array('type' => 'book'));
 
     $this->drupalLogout();

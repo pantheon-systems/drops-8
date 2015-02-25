@@ -8,16 +8,19 @@
 namespace Drupal\migrate_drupal\Tests\d6;
 
 use Drupal\comment\Entity\Comment;
+use Drupal\comment\Tests\CommentTestTrait;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\migrate\MigrateExecutable;
-use Drupal\migrate_drupal\Tests\MigrateDrupalTestBase;
+use Drupal\migrate_drupal\Tests\d6\MigrateDrupal6TestBase;
 
 /**
  * Upgrade comments.
  *
  * @group migrate_drupal
  */
-class MigrateCommentTest extends MigrateDrupalTestBase {
+class MigrateCommentTest extends MigrateDrupal6TestBase {
+
+  use CommentTestTrait;
 
   static $modules = array('node', 'comment');
 
@@ -28,7 +31,7 @@ class MigrateCommentTest extends MigrateDrupalTestBase {
     parent::setUp();
     entity_create('node_type', array('type' => 'page'))->save();
     entity_create('node_type', array('type' => 'story'))->save();
-    \Drupal::service('comment.manager')->addDefaultField('node', 'story');
+    $this->addDefaultCommentField('node', 'story');
     $this->container->get('entity.manager')->getStorage('comment_type')->create(array(
       'id' => 'comment_no_subject',
       'label' => 'comment_no_subject',
@@ -75,21 +78,21 @@ class MigrateCommentTest extends MigrateDrupalTestBase {
   public function testComments() {
     /** @var \Drupal\comment\CommentInterface $comment */
     $comment = entity_load('comment', 1);
-    $this->assertEqual('The first comment.', $comment->getSubject());
-    $this->assertEqual('The first comment body.', $comment->comment_body->value);
-    $this->assertEqual('filtered_html', $comment->comment_body->format);
-    $this->assertEqual(0, $comment->pid->target_id);
-    $this->assertEqual(1, $comment->getCommentedEntityId());
-    $this->assertEqual('node', $comment->getCommentedEntityTypeId());
-    $this->assertEqual('en', $comment->language()->getId());
-    $this->assertEqual('comment_no_subject', $comment->getTypeId());
+    $this->assertIdentical('The first comment.', $comment->getSubject());
+    $this->assertIdentical('The first comment body.', $comment->comment_body->value);
+    $this->assertIdentical('filtered_html', $comment->comment_body->format);
+    $this->assertIdentical('0', $comment->pid->target_id);
+    $this->assertIdentical('1', $comment->getCommentedEntityId());
+    $this->assertIdentical('node', $comment->getCommentedEntityTypeId());
+    $this->assertIdentical('en', $comment->language()->getId());
+    $this->assertIdentical('comment_no_subject', $comment->getTypeId());
 
     $comment = entity_load('comment', 2);
-    $this->assertEqual('The response to the second comment.', $comment->subject->value);
-    $this->assertEqual(3, $comment->pid->target_id);
+    $this->assertIdentical('The response to the second comment.', $comment->subject->value);
+    $this->assertIdentical('3', $comment->pid->target_id);
 
     $comment = entity_load('comment', 3);
-    $this->assertEqual('The second comment.', $comment->subject->value);
-    $this->assertEqual(0, $comment->pid->target_id);
+    $this->assertIdentical('The second comment.', $comment->subject->value);
+    $this->assertIdentical('0', $comment->pid->target_id);
   }
 }

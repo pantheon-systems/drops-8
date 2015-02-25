@@ -150,6 +150,9 @@
  *   PLUGIN is the machine name of the particular search plugin type that was
  *   used for the search (such as node_search or user_search).
  *
+ * For further information on overriding theme hooks see
+ * https://www.drupal.org/node/2186401
+ *
  * @section sec_alternate_suggestions Altering theme hook suggestions
  * Modules can also alter the theme suggestions provided using the mechanisms
  * of the previous section. There are two hooks for this: the
@@ -750,7 +753,9 @@ function hook_library_info_build() {
         'mymodule.zombie.min.js' => [],
       ],
       'css' => [
-        'mymodule.zombie.min.css' => [],
+        'base' => [
+          'mymodule.zombie.min.css' => [],
+        ],
       ],
     ];
   }
@@ -760,7 +765,9 @@ function hook_library_info_build() {
         'mymodule.zombie.js' => [],
       ],
       'css' => [
-        'mymodule.zombie.css' => [],
+        'base' => [
+          'mymodule.zombie.css' => [],
+        ],
       ],
     ];
   }
@@ -776,7 +783,9 @@ function hook_library_info_build() {
         'js/vampire.js' => [],
       ],
       'css' => [
-        'css/vampire.css',
+        'base' => [
+          'css/vampire.css',
+        ],
       ],
       'dependencies' => [
         'core/jquery',

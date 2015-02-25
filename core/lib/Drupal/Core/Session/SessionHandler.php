@@ -20,13 +20,6 @@ use Symfony\Component\HttpFoundation\Session\Storage\Proxy\AbstractProxy;
 class SessionHandler extends AbstractProxy implements \SessionHandlerInterface {
 
   /**
-   * The session manager.
-   *
-   * @var \Drupal\Core\Session\SessionManagerInterface
-   */
-  protected $sessionManager;
-
-  /**
    * The request stack.
    *
    * @var \Symfony\Component\HttpFoundation\RequestStack
@@ -50,15 +43,12 @@ class SessionHandler extends AbstractProxy implements \SessionHandlerInterface {
   /**
    * Constructs a new SessionHandler instance.
    *
-   * @param \Drupal\Core\Session\SessionManagerInterface $session_manager
-   *   The session manager.
    * @param \Symfony\Component\HttpFoundation\RequestStack $request_stack
    *   The request stack.
    * @param \Drupal\Core\Database\Connection $connection
    *   The database connection.
    */
-  public function __construct(SessionManagerInterface $session_manager, RequestStack $request_stack, Connection $connection) {
-    $this->sessionManager = $session_manager;
+  public function __construct(RequestStack $request_stack, Connection $connection) {
     $this->requestStack = $request_stack;
     $this->connection = $connection;
   }
@@ -74,13 +64,14 @@ class SessionHandler extends AbstractProxy implements \SessionHandlerInterface {
    * {@inheritdoc}
    */
   public function read($sid) {
-    global $user;
+    // @todo Remove global in https://www.drupal.org/node/2286971
+    global $_session_user;
 
     // Handle the case of first time visitors and clients that don't store
     // cookies (eg. web crawlers).
     $cookies = $this->requestStack->getCurrentRequest()->cookies;
     if (empty($sid) || !$cookies->has($this->getName())) {
-      $user = new UserSession();
+      $_session_user = new UserSession();
       return '';
     }
 
@@ -96,39 +87,33 @@ class SessionHandler extends AbstractProxy implements \SessionHandlerInterface {
         ':uid' => $values['uid'],
       ))->fetchCol();
       $values['roles'] = array_merge(array(DRUPAL_AUTHENTICATED_RID), $rids);
-      $user = new UserSession($values);
+      $_session_user = new UserSession($values);
     }
     elseif ($values) {
       // The user is anonymous or blocked. Only preserve two fields from the
       // {sessions} table.
-      $user = new UserSession(array(
+      $_session_user = new UserSession(array(
         'session' => $values['session'],
         'access' => $values['access'],
       ));
     }
     else {
       // The session has expired.
-      $user = new UserSession();
+      $_session_user = new UserSession();
     }
 
-    return $user->session;
+    return $_session_user->session;
   }
 
   /**
    * {@inheritdoc}
    */
   public function write($sid, $value) {
-    global $user;
+    $user = \Drupal::currentUser();
 
     // The exception handler is not active at this point, so we need to do it
     // manually.
     try {
-      if (!$this->sessionManager->isEnabled()) {
-        // We don't have anything to do if we are not allowed to save the
-        // session.
-        return TRUE;
-      }
-
       $fields = array(
         'uid' => $user->id(),
         'hostname' => $this->requestStack->getCurrentRequest()->getClientIP(),
@@ -171,21 +156,17 @@ class SessionHandler extends AbstractProxy implements \SessionHandlerInterface {
    * {@inheritdoc}
    */
   public function destroy($sid) {
-    global $user;
 
-    // Nothing to do if we are not allowed to change the session.
-    if (!$this->sessionManager->isEnabled()) {
-      return TRUE;
-    }
+
     // Delete session data.
     $this->connection->delete('sessions')
       ->condition('sid', Crypt::hashBase64($sid))
       ->execute();
 
-    // Reset $_SESSION and $user to prevent a new session from being started
-    // in \Drupal\Core\Session\SessionManager::save().
+    // Reset $_SESSION and current user to prevent a new session from being
+    // started in \Drupal\Core\Session\SessionManager::save().
     $_SESSION = array();
-    $user = new AnonymousUserSession();
+    \Drupal::currentUser()->setAccount(new AnonymousUserSession());
 
     // Unset the session cookies.
     $this->deleteCookie($this->getName());

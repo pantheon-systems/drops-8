@@ -1,33 +1,21 @@
 # Schema for Configuration files of the entity module.
 
 core.entity_view_mode.*.*:
-  type: mapping
+  type: config_entity
   label: 'Entity view mode settings'
   mapping:
     id:
       type: string
       label: 'ID'
-    uuid:
-      type: string
-      label: 'UUID'
     label:
       type: label
       label: 'The human-readable name of the view mode'
     targetEntityType:
       type: string
       label: 'Target entity type'
-    status:
-      type: boolean
-      label: 'Enabled'
     cache:
       type: boolean
       label: 'Cached'
-    langcode:
-      type: string
-      label: 'Default language'
-    dependencies:
-      type: config_dependencies
-      label: 'Dependencies'
 
 core.entity_form_mode.*.*:
   type: config_entity
@@ -93,11 +81,6 @@ core.entity_view_display.*.*.*:
       sequence:
         - type: boolean
           label: 'Value'
-    third_party_settings:
-      type: sequence
-      label: 'Third party settings'
-      sequence:
-        - type: entity_view_display.third_party.[%key]
 
 # Overview configuration information for form mode displays.
 core.entity_form_display.*.*.*:
@@ -146,11 +129,6 @@ core.entity_form_display.*.*.*:
       sequence:
         - type: boolean
           label: 'Component'
-    third_party_settings:
-      type: sequence
-      label: 'Third party settings'
-      sequence:
-        - type: entity_form_display.third_party.[%key]
 
 # Default schema for entity display field with undefined type.
 field.formatter.settings.*:
@@ -221,6 +199,47 @@ field.widget.settings.checkbox:
     display_label:
       type: boolean
       label: 'Use field label instead of the "On value" as label'
+
+field.widget.settings.entity_reference_autocomplete_tags:
+  type: mapping
+  label: 'Entity reference autocomplete (Tags style) display format settings'
+  mapping:
+    match_operator:
+      type: string
+      label: 'Autocomplete matching'
+    size:
+      type: integer
+      label: 'Size of textfield'
+    placeholder:
+      type: label
+      label: 'Placeholder'
+
+field.widget.settings.entity_reference_autocomplete:
+  type: mapping
+  label: 'Entity reference autocomplete display format settings'
+  mapping:
+    match_operator:
+      type: string
+      label: 'Autocomplete matching'
+    size:
+      type: integer
+      label: 'Size of textfield'
+    placeholder:
+      type: label
+      label: 'Placeholder'
+
+field.formatter.settings.boolean:
+  type: mapping
+  mapping:
+    format:
+      type: string
+      label: 'Output format'
+    format_custom_false:
+      type: string
+      label: 'Custom output for FALSE'
+    format_custom_true:
+      type: string
+      label: 'Custom output for TRUE'
 
 field.formatter.settings.string:
   type: mapping

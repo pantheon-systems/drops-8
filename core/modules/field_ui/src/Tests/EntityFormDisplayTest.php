@@ -17,6 +17,11 @@ use Drupal\simpletest\KernelTestBase;
  */
 class EntityFormDisplayTest extends KernelTestBase {
 
+  /**
+   * Modules to install.
+   *
+   * @var string[]
+   */
   public static $modules = array('field_ui', 'field', 'entity_test', 'field_test', 'user', 'text', 'entity_reference');
 
   protected function setUp() {
@@ -39,7 +44,7 @@ class EntityFormDisplayTest extends KernelTestBase {
     // Check that entity_get_form_display() returns the correct object.
     $form_display = entity_get_form_display('entity_test', 'entity_test', 'default');
     $this->assertFalse($form_display->isNew());
-    $this->assertEqual($form_display->id, 'entity_test.entity_test.default');
+    $this->assertEqual($form_display->id(), 'entity_test.entity_test.default');
     $this->assertEqual($form_display->getComponent('component_1'), array('weight' => 10, 'settings' => array(), 'third_party_settings' => array()));
   }
 
@@ -69,7 +74,7 @@ class EntityFormDisplayTest extends KernelTestBase {
 
     // Check that providing no options results in default values being used.
     $form_display->setComponent($field_name);
-    $field_type_info = \Drupal::service('plugin.manager.field.field_type')->getDefinition($field_storage->type);
+    $field_type_info = \Drupal::service('plugin.manager.field.field_type')->getDefinition($field_storage->getType());
     $default_widget = $field_type_info['default_widget'];
     $widget_settings = \Drupal::service('plugin.manager.field.widget')->getDefaultSettings($default_widget);
     $expected = array(

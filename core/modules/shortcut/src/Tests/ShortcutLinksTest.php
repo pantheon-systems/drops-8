@@ -41,13 +41,18 @@ class ShortcutLinksTest extends ShortcutTestBase {
 
     // Create some paths to test.
     $test_cases = [
-      '<front>',
-      'admin',
-      'admin/config/system/site-information',
-      'node/' . $this->node->id() . '/edit',
-      $path['alias'],
-      'router_test/test2',
-      'router_test/test3/value',
+      '/',
+      '/admin',
+      '/admin/config/system/site-information',
+      '/node/' . $this->node->id() . '/edit',
+      '/' . $path['alias'],
+      '/router_test/test2',
+      '/router_test/test3/value',
+    ];
+
+    $test_cases_non_access = [
+      '/admin',
+      '/admin/config/system/site-information',
     ];
 
     // Check that each new shortcut links where it should.
@@ -61,9 +66,14 @@ class ShortcutLinksTest extends ShortcutTestBase {
       $this->assertResponse(200);
       $saved_set = ShortcutSet::load($set->id());
       $paths = $this->getShortcutInformation($saved_set, 'link');
-      $test_path = $test_path != '<front>' ? $test_path : '';
-      $this->assertTrue(in_array($test_path, $paths), 'Shortcut created: ' . $test_path);
-      $this->assertLink($title, 0, String::format('Shortcut link %url found on the page.', ['%url' => $test_path]));
+      $this->assertTrue(in_array('internal:' . $test_path, $paths), 'Shortcut created: ' . $test_path);
+
+      if (in_array($test_path, $test_cases_non_access)) {
+        $this->assertNoLink($title, String::format('Shortcut link %url not accessible on the page.', ['%url' => $test_path]));
+      }
+      else {
+        $this->assertLink($title, 0, String::format('Shortcut link %url found on the page.', ['%url' => $test_path]));
+      }
     }
     $saved_set = ShortcutSet::load($set->id());
     // Test that saving and re-loading a shortcut preserves its values.
@@ -82,15 +92,15 @@ class ShortcutLinksTest extends ShortcutTestBase {
     $title = $this->randomMachineName();
     $form_data = [
       'title[0][value]' => $title,
-      'link[0][uri]' => 'admin',
+      'link[0][uri]' => '/admin',
     ];
     $this->drupalPostForm('admin/config/user-interface/shortcut/manage/' . $set->id() . '/add-link', $form_data, t('Save'));
     $this->assertResponse(200);
-    $this->assertRaw(t('The URL %url is not valid.', ['%url' => 'admin']));
+    $this->assertRaw(t("The path '@link_path' is inaccessible.", ['@link_path' => '/admin']));
 
     $form_data = [
       'title[0][value]' => $title,
-      'link[0][uri]' => 'node',
+      'link[0][uri]' => '/node',
     ];
     $this->drupalPostForm('admin/config/user-interface/shortcut/manage/' . $set->id() . '/add-link', $form_data, t('Save'));
     $this->assertLink($title, 0, 'Shortcut link found on the page.');
@@ -137,7 +147,7 @@ class ShortcutLinksTest extends ShortcutTestBase {
 
     $shortcuts = $set->getShortcuts();
     $shortcut = reset($shortcuts);
-    $this->drupalPostForm('admin/config/user-interface/shortcut/link/' . $shortcut->id(), array('title[0][value]' => $new_link_name, 'link[0][uri]' => $shortcut->link->uri), t('Save'));
+    $this->drupalPostForm('admin/config/user-interface/shortcut/link/' . $shortcut->id(), array('title[0][value]' => $new_link_name), t('Save'));
     $saved_set = ShortcutSet::load($set->id());
     $titles = $this->getShortcutInformation($saved_set, 'title');
     $this->assertTrue(in_array($new_link_name, $titles), 'Shortcut renamed: ' . $new_link_name);
@@ -151,14 +161,14 @@ class ShortcutLinksTest extends ShortcutTestBase {
     $set = $this->set;
 
     // Tests changing a shortcut path.
-    $new_link_path = 'admin/config';
+    $new_link_path = '/admin/config';
 
     $shortcuts = $set->getShortcuts();
     $shortcut = reset($shortcuts);
     $this->drupalPostForm('admin/config/user-interface/shortcut/link/' . $shortcut->id(), array('title[0][value]' => $shortcut->getTitle(), 'link[0][uri]' => $new_link_path), t('Save'));
     $saved_set = ShortcutSet::load($set->id());
     $paths = $this->getShortcutInformation($saved_set, 'link');
-    $this->assertTrue(in_array($new_link_path, $paths), 'Shortcut path changed: ' . $new_link_path);
+    $this->assertTrue(in_array('internal:' . $new_link_path, $paths), 'Shortcut path changed: ' . $new_link_path);
     $this->assertLinkByHref($new_link_path, 0, 'Shortcut with new path appears on the page.');
   }
 
@@ -250,15 +260,42 @@ class ShortcutLinksTest extends ShortcutTestBase {
     // Verify that users without the 'access shortcuts' permission can't see the
     // shortcuts.
     $this->drupalLogin($this->drupalCreateUser(array('access toolbar')));
-    $this->assertNoLink('Shortcuts', 0, 'Shortcut link not found on page.');
+    $this->assertNoLink('Shortcuts', 'Shortcut link not found on page.');
+
+    // Verify that users without the 'administer site configuration' permission
+    // can't see the cron shortcuts.
+    $this->drupalLogin($this->drupalCreateUser(array('access toolbar', 'access shortcuts')));
+    $this->assertNoLink('Shortcuts', 'Shortcut link not found on page.');
+    $this->assertNoLink('Cron', 'Cron shortcut link not found on page.');
 
     // Verify that users with the 'access shortcuts' permission can see the
     // shortcuts.
-    $this->drupalLogin($this->drupalCreateUser(array('access toolbar', 'access shortcuts')));
+    $this->drupalLogin($this->drupalCreateUser(array(
+      'access toolbar', 'access shortcuts', 'administer site configuration',
+    )));
     $this->clickLink('Shortcuts', 0, 'Shortcut link found on page.');
     $this->assertLink('Cron', 0, 'Cron shortcut link found on page.');
 
     $this->verifyAccessShortcutsPermissionForEditPages();
+  }
+
+  /**
+   * Tests the shortcuts are correctly ordered by weight in the toolbar.
+   */
+  public function testShortcutLinkOrder() {
+    // Ensure to give permissions to access the shortcuts.
+    $this->drupalLogin($this->drupalCreateUser(array('access toolbar', 'access shortcuts', 'access content overview', 'administer content types')));
+    $this->drupalGet(Url::fromRoute('<front>'));
+    $shortcuts = $this->cssSelect('#toolbar-item-shortcuts-tray .menu a');
+    $this->assertEqual((string) $shortcuts[0], 'Add content');
+    $this->assertEqual((string) $shortcuts[1], 'All content');
+    foreach($this->set->getShortcuts() as $shortcut) {
+      $shortcut->setWeight($shortcut->getWeight() * -1)->save();
+    }
+    $this->drupalGet(Url::fromRoute('<front>'));
+    $shortcuts = $this->cssSelect('#toolbar-item-shortcuts-tray .menu a');
+    $this->assertEqual((string) $shortcuts[0], 'All content');
+    $this->assertEqual((string) $shortcuts[1], 'Add content');
   }
 
   /**

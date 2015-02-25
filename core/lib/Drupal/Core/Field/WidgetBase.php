@@ -169,6 +169,11 @@ abstract class WidgetBase extends PluginSettingsBase implements WidgetInterface 
     $elements = array();
 
     for ($delta = 0; $delta <= $max; $delta++) {
+      // Add a new empty item if it doesn't exist yet at this delta.
+      if (!isset($items[$delta])) {
+        $items->appendItem();
+      }
+
       // For multiple fields, title and description are handled by the wrapping
       // table.
       $element = array(
@@ -383,7 +388,7 @@ abstract class WidgetBase extends PluginSettingsBase implements WidgetInterface 
     if ($violations->count()) {
       $form_builder = \Drupal::formBuilder();
 
-      // Locate the correct element in the the form.
+      // Locate the correct element in the form.
       $element = NestedArray::getValue($form_state->getCompleteForm(), $field_state['array_parents']);
 
       // Do not report entity-level validation errors if Form API errors have

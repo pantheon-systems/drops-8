@@ -62,7 +62,7 @@ display:
             suffix: ''
             target: ''
             nl2br: false
-            max_length: ''
+            max_length: 0
             word_boundary: true
             ellipsis: true
             more_link: false
@@ -103,7 +103,7 @@ display:
             suffix: ''
             target: ''
             nl2br: false
-            max_length: ''
+            max_length: 0
             word_boundary: true
             ellipsis: true
             more_link: false
@@ -141,7 +141,7 @@ display:
             suffix: ''
             target: ''
             nl2br: false
-            max_length: ''
+            max_length: 0
             word_boundary: true
             ellipsis: true
             more_link: false
@@ -168,8 +168,6 @@ display:
           entity_field: description
       filters: {  }
       sorts: {  }
-      field_langcode: '***LANGUAGE_language_content***'
-      field_langcode_add_to_query: null
   feed_1:
     display_plugin: feed
     id: feed_1
@@ -181,5 +179,3 @@ display:
         type: aggregator_rss
         options:
           view_mode: default
-      field_langcode: '***LANGUAGE_language_content***'
-      field_langcode_add_to_query: null

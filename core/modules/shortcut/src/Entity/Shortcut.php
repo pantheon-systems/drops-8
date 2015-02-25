@@ -151,8 +151,6 @@ class Shortcut extends ContentEntityBase implements ShortcutInterface {
       ->setDescription(t('The location this shortcut points to.'))
       ->setRequired(TRUE)
       ->setSettings(array(
-        'default_value' => '',
-        'max_length' => 560,
         'link_type' => LinkItemInterface::LINK_INTERNAL,
         'title' => DRUPAL_DISABLED,
       ))
@@ -181,6 +179,28 @@ class Shortcut extends ContentEntityBase implements ShortcutInterface {
    */
   public function getCacheTags() {
     return $this->shortcut_set->entity->getCacheTags();
+  }
+
+  /**
+   * Sort shortcut objects.
+   *
+   * Callback for uasort().
+   *
+   * @param \Drupal\shortcut\ShortcutInterface $a
+   *   First item for comparison.
+   * @param \Drupal\shortcut\ShortcutInterface $b
+   *   Second item for comparison.
+   *
+   * @return int
+   *   The comparison result for uasort().
+   */
+  public static function sort(ShortcutInterface $a, ShortcutInterface $b) {
+    $a_weight = $a->getWeight();
+    $b_weight = $b->getWeight();
+    if ($a_weight == $b_weight) {
+      return strnatcasecmp($a->getTitle(), $b->getTitle());
+    }
+    return ($a_weight < $b_weight) ? -1 : 1;
   }
 
 }

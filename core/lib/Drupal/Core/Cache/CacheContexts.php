@@ -7,14 +7,23 @@
 
 namespace Drupal\Core\Cache;
 
-use Drupal\Core\Database\Query\SelectInterface;
+use Drupal\Component\Utility\String;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Defines the CacheContexts service.
+ * Converts cache context tokens into cache keys.
  *
- * Converts string placeholders into their final string values, to be used as a
- * cache key.
+ * Uses cache context services (services tagged with 'cache.context', and whose
+ * service ID has the 'cache_context.' prefix) to dynamically generate cache
+ * keys based on the request context, thus allowing developers to express the
+ * state by which should varied (the current URL, language, and so on).
+ *
+ * Note that this maps exactly to HTTP's Vary header semantics:
+ * @link http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.44
+ *
+ * @see \Drupal\Core\Cache\CacheContextInterface
+ * @see \Drupal\Core\Cache\CalculatedCacheContextInterface
+ * @see \Drupal\Core\Cache\CacheContextsPass
  */
 class CacheContexts {
 
@@ -26,9 +35,9 @@ class CacheContexts {
   protected $container;
 
   /**
-   * Available cache contexts and corresponding labels.
+   * Available cache context IDs and corresponding labels.
    *
-   * @var array
+   * @var string[]
    */
   protected $contexts;
 
@@ -37,10 +46,8 @@ class CacheContexts {
    *
    * @param \Symfony\Component\DependencyInjection\ContainerInterface $container
    *   The current service container.
-   * @param array $contexts
-   *   An array of key-value pairs, where the keys are service names (which also
-   *   serve as the corresponding cache context token) and the values are the
-   *   cache context labels.
+   * @param string[] $contexts
+   *   An array of the available cache context IDs.
    */
   public function __construct(ContainerInterface $container, array $contexts) {
     $this->container = $container;
@@ -50,8 +57,8 @@ class CacheContexts {
   /**
    * Provides an array of available cache contexts.
    *
-   * @return array
-   *   An array of available cache contexts.
+   * @return string[]
+   *   An array of available cache context IDs.
    */
   public function getAll() {
     return $this->contexts;
@@ -62,66 +69,88 @@ class CacheContexts {
    *
    * To be used in cache configuration forms.
    *
+   * @param bool $include_calculated_cache_contexts
+   *   Whether to also return calculated cache contexts. Default to FALSE.
+   *
    * @return array
    *   An array of available cache contexts and corresponding labels.
    */
-  public function getLabels() {
+  public function getLabels($include_calculated_cache_contexts = FALSE) {
     $with_labels = array();
     foreach ($this->contexts as $context) {
-      $with_labels[$context] = $this->getService($context)->getLabel();
+      $service = $this->getService($context);
+      if (!$include_calculated_cache_contexts && $service instanceof CalculatedCacheContextInterface) {
+        continue;
+      }
+      $with_labels[$context] = $service->getLabel();
     }
     return $with_labels;
   }
 
   /**
-   * Converts cache context tokens to string representations of the context.
+   * Converts cache context tokens to cache keys.
    *
-   * Cache keys may either be static (just strings) or tokens (placeholders
-   * that are converted to static keys by the @cache_contexts service, depending
-   * depending on the request). This is the default cache contexts service.
+   * A cache context token is either:
+   * - a cache context ID (if the service ID is 'cache_context.foo', then 'foo'
+   *   is a cache context ID), e.g. 'foo'
+   * - a calculated cache context ID, followed by a double colon, followed by
+   *   the parameter for the calculated cache context, e.g. 'bar:some_parameter'
    *
-   * @param array $keys
-   *   An array of cache keys that may or may not contain cache context tokens.
+   * @param string[] $context_tokens
+   *   An array of cache context tokens.
+   *
+   * @return string[]
+   *   The array of corresponding cache keys.
+   *
+   * @throws \InvalidArgumentException
+   */
+  public function convertTokensToKeys(array $context_tokens) {
+    $keys = [];
+    foreach (static::parseTokens($context_tokens) as $context_id => $parameter) {
+      if (!in_array($context_id, $this->contexts)) {
+        throw new \InvalidArgumentException(String::format('"@context" is not a valid cache context ID.', ['@context' => $context_id]));
+      }
+      $keys[] = $this->getService($context_id)->getContext($parameter);
+    }
+    return $keys;
+  }
+
+  /**
+   * Retrieves a cache context service from the container.
+   *
+   * @param string $context_id
+   *   The context ID, which together with the service ID prefix allows the
+   *   corresponding cache context service to be retrieved.
+   *
+   * @return \Drupal\Core\Cache\CacheContextInterface
+   *   The requested cache context service.
+   */
+  protected function getService($context_id) {
+    return $this->container->get('cache_context.' . $context_id);
+  }
+
+  /**
+   * Parses cache context tokens into context IDs and optional parameters.
+   *
+   * @param string[] $context_tokens
+   *   An array of cache context tokens.
    *
    * @return array
-   *   A copy of the input, with cache context tokens converted.
+   *   An array with the parsed results, with the cache context IDs as keys, and
+   *   the associated parameter as value (for a calculated cache context), or
+   *   NULL if there is no parameter.
    */
-  public function convertTokensToKeys(array $keys) {
-    $context_keys = array_intersect($keys, $this->getAll());
-    $new_keys = $keys;
-
-    // Iterate over the indices instead of the values so that the order of the
-    // cache keys are preserved.
-    foreach (array_keys($context_keys) as $index) {
-      $new_keys[$index] = $this->getContext($keys[$index]);
+  public static function parseTokens(array $context_tokens) {
+    $contexts_with_parameters = [];
+    foreach ($context_tokens as $context) {
+      $context_id = $context;
+      $parameter = NULL;
+      if (strpos($context, ':') !== FALSE) {
+        list($context_id, $parameter) = explode(':', $context, 2);
+      }
+      $contexts_with_parameters[$context_id] = $parameter;
     }
-    return $new_keys;
-  }
-
-  /**
-   * Provides the string representation of a cache context.
-   *
-   * @param string $context
-   *   A cache context token of an available cache context service.
-   *
-   * @return string
-   *   The string representation of a cache context.
-   */
-  protected function getContext($context) {
-    return $this->getService($context)->getContext();
-  }
-
-  /**
-   * Retrieves a service from the container.
-   *
-   * @param string $service
-   *   The ID of the service to retrieve.
-   *
-   * @return mixed
-   *   The specified service.
-   */
-  protected function getService($service) {
-    return $this->container->get($service);
+    return $contexts_with_parameters;
   }
 
 }

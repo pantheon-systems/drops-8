@@ -733,14 +733,14 @@ function drupal_bootstrap($phase = NULL) {
     $boot_level = $phase;
   }
 
-  return \Drupal::getContainer() ? DRUPAL_BOOTSTRAP_CODE : DRUPAL_BOOTSTRAP_CONFIGURATION;
+  return \Drupal::hasContainer() ? DRUPAL_BOOTSTRAP_CODE : DRUPAL_BOOTSTRAP_CONFIGURATION;
 }
 
 /**
  * Returns the time zone of the current user.
  */
 function drupal_get_user_timezone() {
-  global $user;
+  $user = \Drupal::currentUser();
   $config = \Drupal::config('system.date');
 
   if ($user && $config->get('timezone.user.configurable') && $user->isAuthenticated() && $user->getTimezone()) {
@@ -813,50 +813,6 @@ function _drupal_exception_handler($exception) {
  */
 function drupal_get_bootstrap_phase() {
   return drupal_bootstrap();
-}
-
-/**
- * Returns the list of enabled modules.
- *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- *   Use \Drupal::moduleHandler()->getModuleList().
- *
- * @see \Drupal\Core\Extension\ModuleHandler::getModuleList()
- */
-function module_list() {
-  $modules = array_keys(\Drupal::moduleHandler()->getModuleList());
-  return array_combine($modules, $modules);
-}
-
-/**
- * Determines which modules are implementing a hook.
- *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- *   Use \Drupal::moduleHandler()->getImplementations($hook).
- *
- * @see \Drupal\Core\Extension\ModuleHandler::getImplementations()
- */
-function module_implements($hook) {
-  return \Drupal::moduleHandler()->getImplementations($hook);
-}
-
-/**
- * Invokes a hook in a particular module.
- *
- * All arguments are passed by value. Use \Drupal::moduleHandler()->alter() if
- * you need to pass arguments by reference.
- *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0. Use
- *   \Drupal::moduleHandler()->invoke($module, $hook, $args = array()).
- *
- * @see \Drupal\Core\Extension\ModuleHandler::alter()
- * @see \Drupal\Core\Extension\ModuleHandler::invoke()
- */
-function module_invoke($module, $hook) {
-  $args = func_get_args();
-  // Remove $module and $hook from the arguments.
-  unset($args[0], $args[1]);
-  return \Drupal::moduleHandler()->invoke($module, $hook, $args);
 }
 
 /**
@@ -1056,54 +1012,6 @@ function language_load($langcode) {
  */
 function language_default() {
   return \Drupal::languageManager()->getDefaultLanguage();
-}
-
-/**
- * Returns the requested URL path of the page being viewed.
- *
- * Examples:
- * - http://example.com/node/306 returns "node/306".
- * - http://example.com/drupalfolder/node/306 returns "node/306" while
- *   base_path() returns "/drupalfolder/".
- * - http://example.com/path/alias (which is a path alias for node/306) returns
- *   "path/alias" as opposed to the internal path.
- * - http://example.com/index.php returns an empty string (meaning: front page).
- * - http://example.com/index.php?page=1 returns an empty string.
- *
- * @return
- *   The requested Drupal URL path.
- */
-function request_path() {
-  static $path;
-
-  if (isset($path)) {
-    return $path;
-  }
-
-  // Get the part of the URI between the base path of the Drupal installation
-  // and the query string, and unescape it.
-  $request_path = request_uri(TRUE);
-  $base_path_len = strlen(rtrim(dirname($_SERVER['SCRIPT_NAME']), '\/'));
-  $path = substr(urldecode($request_path), $base_path_len + 1);
-
-  // Depending on server configuration, the URI might or might not include the
-  // script name. For example, the front page might be accessed as
-  // http://example.com or as http://example.com/index.php, and the "user"
-  // page might be accessed as http://example.com/user or as
-  // http://example.com/index.php/user. Strip the script name from $path.
-  $script = basename($_SERVER['SCRIPT_NAME']);
-  if ($path == $script) {
-    $path = '';
-  }
-  elseif (strpos($path, $script . '/') === 0) {
-    $path = substr($path, strlen($script) + 1);
-  }
-
-  // Extra slashes can appear in URLs or under some conditions, added by Apache,
-  // so normalize.
-  $path = trim($path, '/');
-
-  return $path;
 }
 
 /**

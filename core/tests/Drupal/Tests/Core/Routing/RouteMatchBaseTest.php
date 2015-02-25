@@ -15,7 +15,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Route;
 
 /**
- * Base test class for testing the RouteMatch object.
+ * Base test class for testing classes implementing the route match interface.
  */
 abstract class RouteMatchBaseTest extends UnitTestCase {
 

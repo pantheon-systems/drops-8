@@ -9,7 +9,7 @@ namespace Drupal\migrate_drupal\Tests\d6;
 
 use Drupal\migrate\MigrateExecutable;
 use Drupal\migrate\MigrateMessage;
-use Drupal\migrate_drupal\Tests\MigrateDrupalTestBase;
+use Drupal\migrate_drupal\Tests\d6\MigrateDrupal6TestBase;
 use Drupal\Core\Database\Database;
 use Drupal\system\Entity\Menu;
 
@@ -18,7 +18,7 @@ use Drupal\system\Entity\Menu;
  *
  * @group migrate_drupal
  */
-class MigrateMenuTest extends MigrateDrupalTestBase {
+class MigrateMenuTest extends MigrateDrupal6TestBase {
 
   /**
    * {@inheritdoc}
@@ -39,9 +39,9 @@ class MigrateMenuTest extends MigrateDrupalTestBase {
    */
   public function testMenu() {
     $navigation_menu = Menu::load('navigation');
-    $this->assertEqual($navigation_menu->id(), 'navigation');
-    $this->assertEqual($navigation_menu->label(), 'Navigation');
-    $this->assertEqual($navigation_menu->getDescription() , 'The navigation menu is provided by Drupal and is the main interactive menu for any site. It is usually the only menu that contains personalized links for authenticated users, and is often not even visible to anonymous users.');
+    $this->assertIdentical($navigation_menu->id(), 'navigation');
+    $this->assertIdentical($navigation_menu->label(), 'Navigation');
+    $this->assertIdentical($navigation_menu->getDescription() , 'The navigation menu is provided by Drupal and is the main interactive menu for any site. It is usually the only menu that contains personalized links for authenticated users, and is often not even visible to anonymous users.');
 
     // Test that we can re-import using the ConfigEntityBase destination.
     Database::getConnection('default', 'migrate')
@@ -56,7 +56,7 @@ class MigrateMenuTest extends MigrateDrupalTestBase {
     $executable->import();
 
     $navigation_menu = entity_load_unchanged('menu', 'navigation');
-    $this->assertEqual($navigation_menu->label(), 'Home Navigation');
+    $this->assertIdentical($navigation_menu->label(), 'Home Navigation');
   }
 
 }

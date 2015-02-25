@@ -132,7 +132,7 @@ class TermFieldTest extends TaxonomyTestBase {
     $entity = entity_load('entity_test', $id);
     $display = entity_get_display($entity->getEntityTypeId(), $entity->bundle(), 'full');
     $content = $display->build($entity);
-    $this->drupalSetContent(drupal_render($content));
+    $this->setRawContent(drupal_render($content));
     $this->assertText($term->getName(), 'Term label is displayed.');
 
     // Delete the vocabulary and verify that the widget is gone.
@@ -161,7 +161,7 @@ class TermFieldTest extends TaxonomyTestBase {
   function testTaxonomyTermFieldChangeMachineName() {
     // Add several entries in the 'allowed_values' setting, to make sure that
     // they all get updated.
-    $this->fieldStorage->settings['allowed_values'] = array(
+    $this->fieldStorage->setSetting('allowed_values', [
       array(
         'vocabulary' => $this->vocabulary->id(),
         'parent' => '0',
@@ -174,7 +174,7 @@ class TermFieldTest extends TaxonomyTestBase {
         'vocabulary' => 'foo',
         'parent' => '0',
       ),
-    );
+    ]);
     $this->fieldStorage->save();
     // Change the machine name.
     $new_name = Unicode::strtolower($this->randomMachineName());

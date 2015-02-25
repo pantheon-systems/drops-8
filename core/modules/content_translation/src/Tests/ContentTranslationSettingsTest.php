@@ -8,6 +8,7 @@
 namespace Drupal\content_translation\Tests;
 
 use Drupal\comment\Plugin\Field\FieldType\CommentItemInterface;
+use Drupal\comment\Tests\CommentTestTrait;
 use Drupal\Core\Field\Entity\BaseFieldOverride;
 use Drupal\Core\Language\Language;
 use Drupal\field\Entity\FieldConfig;
@@ -20,6 +21,8 @@ use Drupal\simpletest\WebTestBase;
  * @group content_translation
  */
 class ContentTranslationSettingsTest extends WebTestBase {
+
+  use CommentTestTrait;
 
   /**
    * Modules to enable.
@@ -35,8 +38,8 @@ class ContentTranslationSettingsTest extends WebTestBase {
     // bundles.
     $this->drupalCreateContentType(array('type' => 'article'));
     $this->drupalCreateContentType(array('type' => 'page'));
-    $this->container->get('comment.manager')->addDefaultField('node', 'article', 'comment_article', CommentItemInterface::OPEN, 'comment_article');
-    $this->container->get('comment.manager')->addDefaultField('node', 'page', 'comment_page');
+    $this->addDefaultCommentField('node', 'article', 'comment_article', CommentItemInterface::OPEN, 'comment_article');
+    $this->addDefaultCommentField('node', 'page', 'comment_page');
 
     $admin_user = $this->drupalCreateUser(array('access administration pages', 'administer languages', 'administer content translation', 'administer content types', 'administer node fields', 'administer comment fields', 'administer comments', 'administer comment types', 'administer account settings'));
     $this->drupalLogin($admin_user);
@@ -254,6 +257,14 @@ class ContentTranslationSettingsTest extends WebTestBase {
     $this->drupalGet($path);
     $this->assertFieldByXPath('//input[@id="edit-field-translatable" and not(@disabled) and @checked="checked"]');
     $this->assertNoText('To enable translation of this field, enable language support for this type.', 'Translatable setting for field available.');
+  }
+
+  /**
+   * Tests the translatable settings checkbox for untranslatable entities.
+   */
+  function testNonTranslatableTranslationSettingsUI() {
+    $this->drupalGet('admin/config/regional/content-language');
+    $this->assertNoField('settings[entity_test][entity_test][translatable]');
   }
 
   /**

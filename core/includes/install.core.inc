@@ -14,14 +14,18 @@ use Drupal\Core\Installer\Exception\NoProfilesException;
 use Drupal\Core\Installer\InstallerKernel;
 use Drupal\Core\Language\Language;
 use Drupal\Core\Language\LanguageManager;
+use Drupal\Core\Logger\LoggerChannelFactory;
 use Drupal\Core\Site\Settings;
 use Drupal\Core\StringTranslation\Translator\FileTranslation;
 use Drupal\Core\Extension\ExtensionDiscovery;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
+use Drupal\Core\Url;
 use Drupal\language\Entity\ConfigurableLanguage;
+use Symfony\Cmf\Component\Routing\RouteObjectInterface;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Route;
 
 use GuzzleHttp\Exception\RequestException;
 
@@ -314,7 +318,6 @@ function install_begin_request($class_loader, &$install_state) {
   require_once __DIR__ . '/file.inc';
   require_once __DIR__ . '/install.inc';
   require_once __DIR__ . '/schema.inc';
-  require_once __DIR__ . '/path.inc';
   require_once __DIR__ . '/database.inc';
   require_once __DIR__ . '/form.inc';
   require_once __DIR__ . '/batch.inc';
@@ -342,8 +345,12 @@ function install_begin_request($class_loader, &$install_state) {
   // Register the stream wrapper manager.
   $container
     ->register('stream_wrapper_manager', 'Drupal\Core\StreamWrapper\StreamWrapperManager')
-    ->addArgument(new Reference('module_handler'))
     ->addMethodCall('setContainer', array(new Reference('service_container')));
+  $container
+    ->register('file_system', 'Drupal\Core\File\FileSystem')
+    ->addArgument(new Reference('stream_wrapper_manager'))
+    ->addArgument(Settings::getInstance())
+    ->addArgument((new LoggerChannelFactory())->get('file'));
 
   \Drupal::setContainer($container);
 
@@ -390,7 +397,6 @@ function install_begin_request($class_loader, &$install_state) {
   $kernel->setSitePath($site_path);
   $kernel->boot();
   $container = $kernel->getContainer();
-  $container->get('request_stack')->push($request);
 
   // Register the file translation service.
   if (isset($GLOBALS['config']['locale.settings']['translation']['path'])) {
@@ -436,13 +442,15 @@ function install_begin_request($class_loader, &$install_state) {
   if ($profile && !$module_handler->moduleExists($profile)) {
     $module_handler->addProfile($profile, $install_state['profiles'][$profile]->getPath());
   }
-  // After setting up a custom and finite module list in a custom low-level
-  // bootstrap like here, ensure to use ModuleHandler::loadAll() so that
-  // ModuleHandler::isLoaded() returns TRUE, since that is a condition being
-  // checked by other subsystems (e.g., the theme system).
-  $module_handler->loadAll();
 
-  $kernel->prepareLegacyRequest($request);
+  // Load all modules and perform request related initialization.
+  $kernel->preHandle($request);
+
+  // Initialize a route on this legacy request similar to
+  // \Drupal\Core\DrupalKernel::prepareLegacyRequest() since normal routing
+  // will not happen.
+  $request->attributes->set(RouteObjectInterface::ROUTE_OBJECT, new Route('<none>'));
+  $request->attributes->set(RouteObjectInterface::ROUTE_NAME, '<none>');
 
   // Prepare for themed output. We need to run this at the beginning of the
   // page request to avoid a different theme accidentally getting set. (We also
@@ -581,13 +589,13 @@ function install_run_task($task, &$install_state) {
       }
       // Process the batch. For progressive batches, this will redirect.
       // Otherwise, the batch will complete.
-      // install_redirect_url() returns core/install.php, so let's ensure to
-      // drop it from it and use base:// as batch_process() is using the
-      // unrouted URL assembler, which requires base://.
-      $response = batch_process(preg_replace('@^core/@', 'base://', install_redirect_url($install_state)), install_full_redirect_url($install_state));
+      // Disable the default script for the URL and clone the object, as
+      // batch_process() will add additional options to the batch URL.
+      $url = Url::fromUri('base:install.php', ['query' => $install_state['parameters'], 'script' => '']);
+      $response = batch_process($url, clone $url);
       if ($response instanceof Response) {
         // Save $_SESSION data from batch.
-        \Drupal::service('session_manager')->save();
+        \Drupal::service('session')->save();
         // Send the response.
         $response->send();
         exit;
@@ -1542,7 +1550,7 @@ function install_load_profile(&$install_state) {
  *   An array of information about the current installation state.
  */
 function install_bootstrap_full() {
-  \Drupal::service('session_manager')->start();
+  \Drupal::service('session')->start();
 }
 
 /**
@@ -1815,11 +1823,6 @@ function install_finished(&$install_state) {
   // Will also trigger indexing of profile-supplied content or feeds.
   \Drupal::service('cron')->run();
 
-  // Save a snapshot of the initially installed configuration.
-  $active = \Drupal::service('config.storage');
-  $snapshot = \Drupal::service('config.storage.snapshot');
-  \Drupal::service('config.manager')->createSnapshot($active, $snapshot);
-
   if ($install_state['interactive']) {
     // Load current user and perform final login tasks.
     // This has to be done after drupal_flush_all_caches()
@@ -1835,7 +1838,9 @@ function install_finished(&$install_state) {
 }
 
 /**
- * Batch callback for batch installation of modules.
+ * Implements callback_batch_operation().
+ *
+ * Performs batch installation of modules.
  */
 function _install_module_batch($module, $module_name, &$context) {
   // Install and enable the module right away, so that the module will be

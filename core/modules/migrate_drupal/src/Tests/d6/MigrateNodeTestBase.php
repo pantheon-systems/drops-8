@@ -7,13 +7,13 @@
 
 namespace Drupal\migrate_drupal\Tests\d6;
 
-use Drupal\migrate_drupal\Tests\MigrateDrupalTestBase;
+use Drupal\migrate_drupal\Tests\d6\MigrateDrupal6TestBase;
 use Drupal\migrate\Entity\MigrationInterface;
 
 /**
  * Base class for Node migration tests.
  */
-abstract class MigrateNodeTestBase extends MigrateDrupalTestBase {
+abstract class MigrateNodeTestBase extends MigrateDrupal6TestBase {
 
   static $modules = array('node');
 
@@ -64,6 +64,7 @@ abstract class MigrateNodeTestBase extends MigrateDrupalTestBase {
       'type' => 'story',
       'nid' => 1,
       'vid' => 1,
+      'revision_log' => '',
     ));
     $node->enforceIsNew();
     $node->save();
@@ -72,6 +73,7 @@ abstract class MigrateNodeTestBase extends MigrateDrupalTestBase {
       'type' => 'test_planet',
       'nid' => 3,
       'vid' => 4,
+      'revision_log' => '',
     ));
     $node->enforceIsNew();
     $node->save();

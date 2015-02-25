@@ -96,9 +96,9 @@ interface RendererInterface {
    *     associative array with one or several of the following keys:
    *     - 'keys': An array of one or more keys that identify the element. If
    *       'keys' is set, the cache ID is created automatically from these keys.
-   *       Cache keys may either be static (just strings) or tokens
-   *       (placeholders that are converted to static keys by the
-   *       'cache_contexts' service, depending on the request).
+   *     - 'contexts': An array of one or more cache context IDs. These are
+   *       converted to a final value depending on the request. (e.g. 'user' is
+   *       mapped to the current user's ID.)
    *     - 'cid': Specify the cache ID directly. Either 'keys' or 'cid' is
    *       required. If 'cid' is set, 'keys' is ignored. Use only if you have
    *       special requirements.
@@ -194,7 +194,7 @@ interface RendererInterface {
    *   - If this element has #prefix and/or #suffix defined, they are
    *     concatenated to #children.
    *   - The rendering of this element is now complete. The next step will be
-   *     render caching. So this is the perfect time to update the the stack. At
+   *     render caching. So this is the perfect time to update the stack. At
    *     this point, children of this element (if any), have been rendered also,
    *     and if there were any, their bubbleable rendering metadata will have
    *     been bubbled up into the stack frame for the element that is currently

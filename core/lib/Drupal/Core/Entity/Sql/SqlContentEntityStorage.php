@@ -665,31 +665,39 @@ class SqlContentEntityStorage extends ContentEntityStorageBase implements SqlEnt
       // If a revision table is available, we need all the properties of the
       // latest revision. Otherwise we fall back to the data table.
       $table = $this->revisionDataTable ?: $this->dataTable;
-      $query = $this->database->select($table, 'data', array('fetch' => \PDO::FETCH_ASSOC))
-        ->fields('data')
-        ->condition($this->idKey, array_keys($entities))
-        ->orderBy('data.' . $this->idKey);
+      $alias = $this->revisionDataTable ? 'revision' : 'data';
+      $query = $this->database->select($table, $alias, array('fetch' => \PDO::FETCH_ASSOC))
+        ->fields($alias)
+        ->condition($alias . '.' . $this->idKey, array_keys($entities), 'IN')
+        ->orderBy($alias . '.' . $this->idKey);
 
+      $table_mapping = $this->getTableMapping();
       if ($this->revisionDataTable) {
+        // Find revisioned fields that are not entity keys.
+        $fields = array_diff($table_mapping->getFieldNames($this->revisionDataTable), $table_mapping->getFieldNames($this->baseTable));
+
+        // Find fields that are not revisioned or entity keys. Data fields have
+        // the same value regardless of entity revision.
+        $data_fields = array_diff($table_mapping->getFieldNames($this->dataTable), $fields, $table_mapping->getFieldNames($this->baseTable));
+        if ($data_fields) {
+          $fields = array_merge($fields, $data_fields);
+          $query->leftJoin($this->dataTable, 'data', "(revision.$this->idKey = data.$this->idKey)");
+          $query->fields('data', $data_fields);
+        }
+
         // Get the revision IDs.
         $revision_ids = array();
         foreach ($entities as $values) {
           $revision_ids[] = is_object($values) ? $values->getRevisionId() : $values[$this->revisionKey][LanguageInterface::LANGCODE_DEFAULT];
         }
-        $query->condition($this->revisionKey, $revision_ids);
-      }
-
-      $data = $query->execute();
-
-      $table_mapping = $this->getTableMapping();
-      $translations = array();
-      if ($this->revisionDataTable) {
-        $data_fields = array_diff($table_mapping->getFieldNames($this->revisionDataTable), $table_mapping->getFieldNames($this->baseTable));
+        $query->condition('revision.' . $this->revisionKey, $revision_ids, 'IN');
       }
       else {
-        $data_fields = $table_mapping->getFieldNames($this->dataTable);
+        $fields = $table_mapping->getFieldNames($this->dataTable);
       }
 
+      $translations = array();
+      $data = $query->execute();
       foreach ($data as $values) {
         $id = $values[$this->idKey];
 
@@ -699,7 +707,7 @@ class SqlContentEntityStorage extends ContentEntityStorageBase implements SqlEnt
         $translations[$id][$langcode] = TRUE;
 
 
-        foreach ($data_fields as $field_name) {
+        foreach ($fields as $field_name) {
           $columns = $table_mapping->getColumnNames($field_name);
           // Do not key single-column fields by property name.
           if (count($columns) == 1) {
@@ -878,24 +886,24 @@ class SqlContentEntityStorage extends ContentEntityStorageBase implements SqlEnt
     $ids = array_keys($entities);
 
     $this->database->delete($this->entityType->getBaseTable())
-      ->condition($this->idKey, $ids)
+      ->condition($this->idKey, $ids, 'IN')
       ->execute();
 
     if ($this->revisionTable) {
       $this->database->delete($this->revisionTable)
-        ->condition($this->idKey, $ids)
+        ->condition($this->idKey, $ids, 'IN')
         ->execute();
     }
 
     if ($this->dataTable) {
       $this->database->delete($this->dataTable)
-        ->condition($this->idKey, $ids)
+        ->condition($this->idKey, $ids, 'IN')
         ->execute();
     }
 
     if ($this->revisionDataTable) {
       $this->database->delete($this->revisionDataTable)
-        ->condition($this->idKey, $ids)
+        ->condition($this->idKey, $ids, 'IN')
         ->execute();
     }
 
@@ -1048,16 +1056,6 @@ class SqlContentEntityStorage extends ContentEntityStorageBase implements SqlEnt
   }
 
   /**
-   * {@inheritdoc}
-   */
-  protected function invokeHook($hook, EntityInterface $entity) {
-    if ($hook == 'presave') {
-      $this->invokeFieldMethod('preSave', $entity);
-    }
-    parent::invokeHook($hook, $entity);
-  }
-
-  /**
    * Maps from an entity object to the storage record.
    *
    * @param \Drupal\Core\Entity\ContentEntityInterface $entity
@@ -1090,7 +1088,7 @@ class SqlContentEntityStorage extends ContentEntityStorageBase implements SqlEnt
         // @todo Give field types more control over this behavior in
         //   https://drupal.org/node/2232427.
         if (!$definition->getMainPropertyName() && count($columns) == 1) {
-          $value = $entity->$field_name->first()->getValue();
+          $value = ($item = $entity->$field_name->first()) ? $item->getValue() : array();
         }
         else {
           $value = isset($entity->$field_name->$column_name) ? $entity->$field_name->$column_name : NULL;
@@ -1121,7 +1119,7 @@ class SqlContentEntityStorage extends ContentEntityStorageBase implements SqlEnt
    *   The schema name of the field column.
    *
    * @return bool
-   *   TRUE if the the column is serial, FALSE otherwise.
+   *   TRUE if the column is serial, FALSE otherwise.
    *
    * @see \Drupal\Core\Entity\Sql\SqlContentEntityStorageSchema::processBaseTable()
    * @see \Drupal\Core\Entity\Sql\SqlContentEntityStorageSchema::processRevisionTable()
@@ -1300,7 +1298,7 @@ class SqlContentEntityStorage extends ContentEntityStorageBase implements SqlEnt
             }
 
             // Add the item to the field values for the entity.
-            $entities[$row->entity_id]->getTranslation($row->langcode)->{$field_name}[$delta_count[$row->entity_id][$row->langcode]] = $item;
+            $entities[$row->entity_id]->getTranslation($row->langcode)->{$field_name}->appendItem($item);
             $delta_count[$row->entity_id][$row->langcode]++;
           }
         }

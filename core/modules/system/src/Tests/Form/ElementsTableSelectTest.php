@@ -75,7 +75,7 @@ class ElementsTableSelectTest extends WebTestBase {
 
     $table_body = $this->xpath('//tbody');
     // The first two body rows should each have 5 table cells: One for the
-    // radio, one cell in the first column, one cell in the the second column,
+    // radio, one cell in the first column, one cell in the second column,
     // and two cells in the third column which has colspan 2.
     for ( $i = 0; $i <= 1; $i++) {
       $this->assertEqual(count($table_body[0]->tr[$i]->td), 5, format_string('There are five cells in row @row.', array('@row' => $i)));
@@ -217,6 +217,11 @@ class ElementsTableSelectTest extends WebTestBase {
     $form['#token'] = FALSE;
 
     $edit['form_id'] = $form_id;
+
+    // Disable page redirect for forms submitted programmatically. This is a
+    // solution to skip the redirect step (there are no pages, then the redirect
+    // isn't possible).
+    $form_state->disableRedirect();
     $form_state->setUserInput($edit);
     $form_state->setFormObject(new StubForm($form_id, $form));
 

@@ -2,11 +2,12 @@
 
 body {
   line-height: 1.5;
-  font-size: 87.5%;
   word-wrap: break-word;
   margin: 0;
   padding: 0;
   border: 0;
+  font-family: Georgia, "Times New Roman", Times, serif;
+  font-size: 87.5%;
 }
 a {
   text-decoration: none;
@@ -21,6 +22,9 @@ a:focus,
   text-decoration: none;
   border-bottom-style: solid;
 }
+.link {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
 .field-type-image a,
 h1 a,
 h2 a,
@@ -30,34 +34,48 @@ h2 a,
 .toolbar a {
   border-bottom: none !important;
 }
+
+/**
+ * Reusable heading classes are included to help modules change the styling of
+ * headings on a page without affecting accessibility
+ */
 h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
+.heading-a {
   margin: 1.0em 0 0.5em;
   font-weight: inherit;
-}
-h1 {
   font-size: 1.357em;
   color: #000;
 }
-h2 {
+h2,
+.heading-b {
+  margin: 1.0em 0 0.5em;
+  font-weight: inherit;
   font-size: 1.143em;
 }
-h3 {
+h3,
+.heading-c {
+  margin: 1.0em 0 0.5em;
+  font-weight: inherit;
   font-size: 1.092em;
 }
-h4 {
+h4,
+.heading-d {
+  margin: 1.0em 0 0.5em;
+  font-weight: inherit;
   font-size: 1.05em;
 }
-h5 {
+h5,
+.heading-e {
+  margin: 1.0em 0 0.5em;
+  font-weight: inherit;
   font-size: 0.889em;
   text-transform: uppercase;
   letter-spacing: 0.1em;
 }
-h6 {
+h6,
+.heading-f {
+  margin: 1.0em 0 0.5em;
+  font-weight: inherit;
   font-size: 0.67em;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -73,25 +91,27 @@ del {
 
 blockquote {
   background: #f7f7f7;
-  border-left: 1px solid #bbb;
+  border-left: 1px solid #bbb; /* LTR */
   font-style: italic;
   margin: 1.5em 10px;
   padding: 0.5em 10px;
 }
 [dir="rtl"] blockquote {
   border-left: none;
-  border-right: 4px solid #afafaf;
+  border-right: 1px solid #bbb;
 }
 blockquote:before {
   color: #bbb;
   content: "\201C";
   font-size: 3em;
   line-height: 0.1em;
-  margin-right: 0.2em;
+  margin-right: 0.2em; /* LTR */
   vertical-align: -.4em;
 }
 [dir="rtl"] blockquote:before {
   content: "\201D";
+  margin-left: 0.2em;
+  margin-right: 0;
 }
 blockquote:after {
   color: #bbb;

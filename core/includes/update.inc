@@ -17,7 +17,7 @@ use Drupal\Core\Utility\Error;
  * Disables any extensions that are incompatible with the current core version.
  */
 function update_fix_compatibility() {
-  $extension_config = \Drupal::config('core.extension');
+  $extension_config = \Drupal::configFactory()->getEditable('core.extension');
   $save = FALSE;
   foreach (array('module', 'theme') as $type) {
     foreach ($extension_config->get($type) as $name => $weight) {
@@ -150,6 +150,8 @@ function update_set_schema($module, $schema_version) {
 }
 
 /**
+ * Implements callback_batch_operation().
+ *
  * Performs one update and stores the results for display on the results page.
  *
  * If an update function completes successfully, it should return a message

@@ -22,17 +22,18 @@ class ManageDisplayTest extends WebTestBase {
   use FieldUiTestTrait;
 
   /**
-   * Modules to enable.
+   * Modules to install.
    *
    * @var array
    */
-  public static $modules = array('node', 'field_ui', 'taxonomy', 'search', 'field_test', 'field_third_party_test');
+  public static $modules = array('node', 'field_ui', 'taxonomy', 'search', 'field_test', 'field_third_party_test', 'block');
 
   /**
    * {@inheritdoc}
    */
   protected function setUp() {
     parent::setUp();
+    $this->drupalPlaceBlock('system_breadcrumb_block');
 
     // Create a test user.
     $admin_user = $this->drupalCreateUser(array('access content', 'administer content types', 'administer node fields', 'administer node form display', 'administer node display', 'administer taxonomy', 'administer taxonomy_term fields', 'administer taxonomy_term display', 'administer users', 'administer account settings', 'administer user display', 'bypass node access'));
@@ -446,7 +447,7 @@ class ManageDisplayTest extends WebTestBase {
     \Drupal::entityManager()->clearCachedFieldDefinitions();
 
     // Save current content so that we can restore it when we're done.
-    $old_content = $this->drupalGetContent();
+    $old_content = $this->getRawContent();
 
     // Render a cloned node, so that we do not alter the original.
     $clone = clone $node;
@@ -455,12 +456,12 @@ class ManageDisplayTest extends WebTestBase {
     $this->verbose(t('Rendered node - view mode: @view_mode', array('@view_mode' => $view_mode)) . '<hr />'. $output);
 
     // Assign content so that WebTestBase functions can be used.
-    $this->drupalSetContent($output);
+    $this->setRawContent($output);
     $method = ($not_exists ? 'assertNoText' : 'assertText');
     $return = $this->{$method}((string) $text, $message);
 
     // Restore previous content.
-    $this->drupalSetContent($old_content);
+    $this->setRawContent($old_content);
 
     return $return;
   }

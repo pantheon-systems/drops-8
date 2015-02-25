@@ -32,7 +32,7 @@ class DialogTest extends AjaxTestBase {
     $this->drupalGet('ajax-test/dialog');
 
     // Set up variables for this test.
-    $dialog_renderable = ajax_test_dialog_contents();
+    $dialog_renderable = \Drupal\ajax_test\Controller\AjaxTestController::dialogContents();
     $dialog_contents = drupal_render($dialog_renderable);
     $modal_expected_response = array(
       'command' => 'openDialog',
@@ -173,7 +173,7 @@ class DialogTest extends AjaxTestBase {
       ],
     ];
     $this->assertEqual($expected_ajax_settings, $ajax_result[0]['settings']['ajax']);
-    $this->drupalSetContent($ajax_result[3]['data']);
+    $this->setRawContent($ajax_result[3]['data']);
     // Remove the data, the form build id and token will never match.
     unset($ajax_result[3]['data']);
     $form = $this->xpath("//form[@id='ajax-test-form']");
@@ -189,7 +189,7 @@ class DialogTest extends AjaxTestBase {
 
     // Emulate going to the JS version of the form and check the JSON response.
     $ajax_result = $this->drupalGetAJAX('admin/structure/contact/add', array(), array('Accept: application/vnd.drupal-modal'));
-    $this->drupalSetContent($ajax_result[3]['data']);
+    $this->setRawContent($ajax_result[3]['data']);
     // Remove the data, the form build id and token will never match.
     unset($ajax_result[3]['data']);
     $form = $this->xpath("//form[@id='contact-form-add-form']");

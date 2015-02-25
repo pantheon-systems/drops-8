@@ -26,7 +26,12 @@ class FilterStringTest extends ViewUnitTestBase {
    */
   public static $testViews = array('test_view');
 
-  protected $column_map = array(
+  /**
+   * Map column names.
+   *
+   * @var array
+   */
+  protected $columnMap = array(
     'views_test_data_name' => 'name',
   );
 
@@ -109,7 +114,7 @@ class FilterStringTest extends ViewUnitTestBase {
         'name' => 'Ringo',
       ),
     );
-    $this->assertIdenticalResultset($view, $resultset, $this->column_map);
+    $this->assertIdenticalResultset($view, $resultset, $this->columnMap);
   }
 
   function testFilterStringGroupedExposedEqual() {
@@ -120,6 +125,8 @@ class FilterStringTest extends ViewUnitTestBase {
     $filters['name']['group_info']['default_group'] = 1;
     $view->setDisplay('page_1');
     $view->displayHandlers->get('page_1')->overrideOption('filters', $filters);
+    $view->save();
+    $this->container->get('router.builder')->rebuild();
 
     $this->executeView($view);
 
@@ -129,7 +136,7 @@ class FilterStringTest extends ViewUnitTestBase {
       ),
     );
 
-    $this->assertIdenticalResultset($view, $resultset, $this->column_map);
+    $this->assertIdenticalResultset($view, $resultset, $this->columnMap);
   }
 
   function testFilterStringNotEqual() {
@@ -144,7 +151,7 @@ class FilterStringTest extends ViewUnitTestBase {
         'field' => 'name',
         'relationship' => 'none',
         'operator' => '!=',
-        'value' => array('value' => 'Ringo'),
+        'value' => 'Ringo',
       ),
     ));
 
@@ -163,7 +170,7 @@ class FilterStringTest extends ViewUnitTestBase {
         'name' => 'Meredith',
       ),
     );
-    $this->assertIdenticalResultset($view, $resultset, $this->column_map);
+    $this->assertIdenticalResultset($view, $resultset, $this->columnMap);
   }
 
   function testFilterStringGroupedExposedNotEqual() {
@@ -175,6 +182,8 @@ class FilterStringTest extends ViewUnitTestBase {
 
     $view->setDisplay('page_1');
     $view->displayHandlers->get('page_1')->overrideOption('filters', $filters);
+    $view->save();
+    $this->container->get('router.builder')->rebuild();
 
     $this->executeView($view);
 
@@ -193,7 +202,7 @@ class FilterStringTest extends ViewUnitTestBase {
       ),
     );
 
-    $this->assertIdenticalResultset($view, $resultset, $this->column_map);
+    $this->assertIdenticalResultset($view, $resultset, $this->columnMap);
   }
 
   function testFilterStringContains() {
@@ -218,7 +227,7 @@ class FilterStringTest extends ViewUnitTestBase {
         'name' => 'Ringo',
       ),
     );
-    $this->assertIdenticalResultset($view, $resultset, $this->column_map);
+    $this->assertIdenticalResultset($view, $resultset, $this->columnMap);
   }
 
 
@@ -230,6 +239,8 @@ class FilterStringTest extends ViewUnitTestBase {
     $filters['name']['group_info']['default_group'] = '3';
     $view->setDisplay('page_1');
     $view->displayHandlers->get('page_1')->overrideOption('filters', $filters);
+    $view->save();
+    $this->container->get('router.builder')->rebuild();
 
     $this->executeView($view);
 
@@ -239,7 +250,7 @@ class FilterStringTest extends ViewUnitTestBase {
       ),
     );
 
-    $this->assertIdenticalResultset($view, $resultset, $this->column_map);
+    $this->assertIdenticalResultset($view, $resultset, $this->columnMap);
   }
 
 
@@ -268,7 +279,7 @@ class FilterStringTest extends ViewUnitTestBase {
         'name' => 'Ringo',
       ),
     );
-    $this->assertIdenticalResultset($view, $resultset, $this->column_map);
+    $this->assertIdenticalResultset($view, $resultset, $this->columnMap);
     $view->destroy();
 
     $view = Views::getView('test_view');
@@ -292,7 +303,7 @@ class FilterStringTest extends ViewUnitTestBase {
         'name' => 'Ringo',
       ),
     );
-    $this->assertIdenticalResultset($view, $resultset, $this->column_map);
+    $this->assertIdenticalResultset($view, $resultset, $this->columnMap);
   }
 
 
@@ -304,6 +315,8 @@ class FilterStringTest extends ViewUnitTestBase {
     $filters['name']['group_info']['default_group'] = '3';
     $view->setDisplay('page_1');
     $view->displayHandlers->get('page_1')->overrideOption('filters', $filters);
+    $view->save();
+    $this->container->get('router.builder')->rebuild();
 
     $this->executeView($view);
 
@@ -313,7 +326,7 @@ class FilterStringTest extends ViewUnitTestBase {
       ),
     );
 
-    $this->assertIdenticalResultset($view, $resultset, $this->column_map);
+    $this->assertIdenticalResultset($view, $resultset, $this->columnMap);
     $view->destroy();
 
     $filters = $this->getGroupedExposedFilters();
@@ -333,7 +346,7 @@ class FilterStringTest extends ViewUnitTestBase {
         'name' => 'Ringo',
       ),
     );
-    $this->assertIdenticalResultset($view, $resultset, $this->column_map);
+    $this->assertIdenticalResultset($view, $resultset, $this->columnMap);
   }
 
   function testFilterStringStarts() {
@@ -358,7 +371,7 @@ class FilterStringTest extends ViewUnitTestBase {
         'name' => 'George',
       ),
     );
-    $this->assertIdenticalResultset($view, $resultset, $this->column_map);
+    $this->assertIdenticalResultset($view, $resultset, $this->columnMap);
   }
 
   function testFilterStringGroupedExposedStarts() {
@@ -369,6 +382,8 @@ class FilterStringTest extends ViewUnitTestBase {
     $filters['description']['group_info']['default_group'] = 2;
     $view->setDisplay('page_1');
     $view->displayHandlers->get('page_1')->overrideOption('filters', $filters);
+    $view->save();
+    $this->container->get('router.builder')->rebuild();
 
     $this->executeView($view);
 
@@ -377,7 +392,7 @@ class FilterStringTest extends ViewUnitTestBase {
         'name' => 'George',
       ),
     );
-    $this->assertIdenticalResultset($view, $resultset, $this->column_map);
+    $this->assertIdenticalResultset($view, $resultset, $this->columnMap);
   }
 
   function testFilterStringNotStarts() {
@@ -409,7 +424,7 @@ class FilterStringTest extends ViewUnitTestBase {
       ),
       // There is no Meredith returned because his description is empty
     );
-    $this->assertIdenticalResultset($view, $resultset, $this->column_map);
+    $this->assertIdenticalResultset($view, $resultset, $this->columnMap);
   }
 
   function testFilterStringGroupedExposedNotStarts() {
@@ -420,6 +435,8 @@ class FilterStringTest extends ViewUnitTestBase {
     $filters['description']['group_info']['default_group'] = 3;
     $view->setDisplay('page_1');
     $view->displayHandlers->get('page_1')->overrideOption('filters', $filters);
+    $view->save();
+    $this->container->get('router.builder')->rebuild();
 
     $this->executeView($view);
 
@@ -435,7 +452,7 @@ class FilterStringTest extends ViewUnitTestBase {
       ),
       // There is no Meredith returned because his description is empty
     );
-    $this->assertIdenticalResultset($view, $resultset, $this->column_map);
+    $this->assertIdenticalResultset($view, $resultset, $this->columnMap);
   }
 
   function testFilterStringEnds() {
@@ -463,7 +480,7 @@ class FilterStringTest extends ViewUnitTestBase {
         'name' => 'Ringo',
       ),
     );
-    $this->assertIdenticalResultset($view, $resultset, $this->column_map);
+    $this->assertIdenticalResultset($view, $resultset, $this->columnMap);
   }
 
   function testFilterStringGroupedExposedEnds() {
@@ -474,6 +491,8 @@ class FilterStringTest extends ViewUnitTestBase {
     $filters['description']['group_info']['default_group'] = 4;
     $view->setDisplay('page_1');
     $view->displayHandlers->get('page_1')->overrideOption('filters', $filters);
+    $view->save();
+    $this->container->get('router.builder')->rebuild();
 
     $this->executeView($view);
 
@@ -485,7 +504,7 @@ class FilterStringTest extends ViewUnitTestBase {
         'name' => 'Ringo',
       ),
     );
-    $this->assertIdenticalResultset($view, $resultset, $this->column_map);
+    $this->assertIdenticalResultset($view, $resultset, $this->columnMap);
   }
 
   function testFilterStringNotEnds() {
@@ -514,7 +533,7 @@ class FilterStringTest extends ViewUnitTestBase {
       ),
       // There is no Meredith returned because his description is empty
     );
-    $this->assertIdenticalResultset($view, $resultset, $this->column_map);
+    $this->assertIdenticalResultset($view, $resultset, $this->columnMap);
   }
 
   function testFilterStringGroupedExposedNotEnds() {
@@ -525,6 +544,8 @@ class FilterStringTest extends ViewUnitTestBase {
     $filters['description']['group_info']['default_group'] = 5;
     $view->setDisplay('page_1');
     $view->displayHandlers->get('page_1')->overrideOption('filters', $filters);
+    $view->save();
+    $this->container->get('router.builder')->rebuild();
 
     $this->executeView($view);
 
@@ -537,7 +558,7 @@ class FilterStringTest extends ViewUnitTestBase {
       ),
       // There is no Meredith returned because his description is empty
     );
-    $this->assertIdenticalResultset($view, $resultset, $this->column_map);
+    $this->assertIdenticalResultset($view, $resultset, $this->columnMap);
   }
 
   function testFilterStringNot() {
@@ -566,7 +587,7 @@ class FilterStringTest extends ViewUnitTestBase {
       ),
       // There is no Meredith returned because his description is empty
     );
-    $this->assertIdenticalResultset($view, $resultset, $this->column_map);
+    $this->assertIdenticalResultset($view, $resultset, $this->columnMap);
   }
 
 
@@ -578,6 +599,8 @@ class FilterStringTest extends ViewUnitTestBase {
     $filters['description']['group_info']['default_group'] = 6;
     $view->setDisplay('page_1');
     $view->displayHandlers->get('page_1')->overrideOption('filters', $filters);
+    $view->save();
+    $this->container->get('router.builder')->rebuild();
 
     $this->executeView($view);
 
@@ -590,7 +613,7 @@ class FilterStringTest extends ViewUnitTestBase {
       ),
       // There is no Meredith returned because his description is empty
     );
-    $this->assertIdenticalResultset($view, $resultset, $this->column_map);
+    $this->assertIdenticalResultset($view, $resultset, $this->columnMap);
 
   }
 
@@ -619,7 +642,7 @@ class FilterStringTest extends ViewUnitTestBase {
         'name' => 'Paul',
       ),
     );
-    $this->assertIdenticalResultset($view, $resultset, $this->column_map);
+    $this->assertIdenticalResultset($view, $resultset, $this->columnMap);
   }
 
   function testFilterStringGroupedExposedShorter() {
@@ -630,6 +653,8 @@ class FilterStringTest extends ViewUnitTestBase {
     $filters['name']['group_info']['default_group'] = 4;
     $view->setDisplay('page_1');
     $view->displayHandlers->get('page_1')->overrideOption('filters', $filters);
+    $view->save();
+    $this->container->get('router.builder')->rebuild();
 
     $this->executeView($view);
     $resultset = array(
@@ -640,7 +665,7 @@ class FilterStringTest extends ViewUnitTestBase {
         'name' => 'Paul',
       ),
     );
-    $this->assertIdenticalResultset($view, $resultset, $this->column_map);
+    $this->assertIdenticalResultset($view, $resultset, $this->columnMap);
   }
 
   function testFilterStringLonger() {
@@ -665,7 +690,7 @@ class FilterStringTest extends ViewUnitTestBase {
         'name' => 'Meredith',
       ),
     );
-    $this->assertIdenticalResultset($view, $resultset, $this->column_map);
+    $this->assertIdenticalResultset($view, $resultset, $this->columnMap);
   }
 
   function testFilterStringGroupedExposedLonger() {
@@ -676,6 +701,8 @@ class FilterStringTest extends ViewUnitTestBase {
     $filters['name']['group_info']['default_group'] = 5;
     $view->setDisplay('page_1');
     $view->displayHandlers->get('page_1')->overrideOption('filters', $filters);
+    $view->save();
+    $this->container->get('router.builder')->rebuild();
 
     $this->executeView($view);
     $resultset = array(
@@ -683,7 +710,7 @@ class FilterStringTest extends ViewUnitTestBase {
         'name' => 'Meredith',
       ),
     );
-    $this->assertIdenticalResultset($view, $resultset, $this->column_map);
+    $this->assertIdenticalResultset($view, $resultset, $this->columnMap);
   }
 
 
@@ -708,7 +735,7 @@ class FilterStringTest extends ViewUnitTestBase {
         'name' => 'Meredith',
       ),
     );
-    $this->assertIdenticalResultset($view, $resultset, $this->column_map);
+    $this->assertIdenticalResultset($view, $resultset, $this->columnMap);
   }
 
   function testFilterStringGroupedExposedEmpty() {
@@ -719,6 +746,8 @@ class FilterStringTest extends ViewUnitTestBase {
     $filters['description']['group_info']['default_group'] = 7;
     $view->setDisplay('page_1');
     $view->displayHandlers->get('page_1')->overrideOption('filters', $filters);
+    $view->save();
+    $this->container->get('router.builder')->rebuild();
 
     $this->executeView($view);
     $resultset = array(
@@ -726,13 +755,14 @@ class FilterStringTest extends ViewUnitTestBase {
         'name' => 'Meredith',
       ),
     );
-    $this->assertIdenticalResultset($view, $resultset, $this->column_map);
+    $this->assertIdenticalResultset($view, $resultset, $this->columnMap);
   }
 
   protected function getGroupedExposedFilters() {
     $filters = array(
       'name' => array(
         'id' => 'name',
+        'plugin_id' => 'string',
         'table' => 'views_test_data',
         'field' => 'name',
         'relationship' => 'none',
@@ -756,7 +786,7 @@ class FilterStringTest extends ViewUnitTestBase {
             2 => array(
               'title' => 'Is not Ringo',
               'operator' => '!=',
-              'value' => array('value' => 'Ringo'),
+              'value' => 'Ringo',
             ),
             3 => array(
               'title' => 'Contains ing',
@@ -778,6 +808,7 @@ class FilterStringTest extends ViewUnitTestBase {
       ),
       'description' => array(
         'id' => 'description',
+        'plugin_id' => 'string',
         'table' => 'views_test_data',
         'field' => 'description',
         'relationship' => 'none',

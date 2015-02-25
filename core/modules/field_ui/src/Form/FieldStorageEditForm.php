@@ -108,7 +108,9 @@ class FieldStorageEditForm extends FormBase {
     // FieldItem.
     $ids = (object) array('entity_type' => $this->field->entity_type, 'bundle' => $this->field->bundle, 'entity_id' => NULL);
     $entity = _field_create_entity_from_ids($ids);
-    $form['field_storage']['settings'] += $entity->get($field_storage->getName())->first()->storageSettingsForm($form, $form_state, $field_storage->hasData());
+    $items = $entity->get($field_storage->getName());
+    $item = $items->first() ?: $items->appendItem();
+    $form['field_storage']['settings'] += $item->storageSettingsForm($form, $form_state, $field_storage->hasData());
 
     // Build the configurable field values.
     $cardinality = $field_storage->getCardinality();
@@ -144,13 +146,16 @@ class FieldStorageEditForm extends FormBase {
         'visible' => array(
          ':input[name="field_storage[cardinality]"]' => array('value' => 'number'),
         ),
+        'disabled' => array(
+         ':input[name="field_storage[cardinality]"]' => array('value' => -1),
+        ),
       ),
     );
 
     // Build the non-configurable field values.
     $form['field_storage']['field_name'] = array('#type' => 'value', '#value' => $field_storage->getName());
     $form['field_storage']['type'] = array('#type' => 'value', '#value' => $field_storage->getType());
-    $form['field_storage']['module'] = array('#type' => 'value', '#value' => $field_storage->module);
+    $form['field_storage']['module'] = array('#type' => 'value', '#value' => $field_storage->getTypeProvider());
     $form['field_storage']['translatable'] = array('#type' => 'value', '#value' => $field_storage->isTranslatable());
 
     $form['actions'] = array('#type' => 'actions');
@@ -194,7 +199,7 @@ class FieldStorageEditForm extends FormBase {
     // Merge incoming form values into the existing field.
     $field_storage = $this->field->getFieldStorageDefinition();
     foreach ($field_values as $key => $value) {
-      $field_storage->{$key} = $value;
+      $field_storage->set($key, $value);
     }
 
     // Update the field.

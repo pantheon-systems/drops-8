@@ -7,6 +7,9 @@
 
 namespace Drupal\views_ui\Tests;
 
+use Drupal\Core\Url;
+use Drupal\user\Entity\Role;
+
 /**
  * Tests enabling, disabling, and reverting default views via the listing page.
  *
@@ -64,6 +67,8 @@ class DefaultViewsTest extends UITestBase {
     // editing.
     $this->drupalGet('admin/structure/views');
     $this->assertLinkByHref('admin/structure/views/view/archive/enable');
+    // Enable it again so it can be tested for access permissions.
+    $this->clickViewsOperationLink(t('Enable'), '/archive/');
 
     // It should now be possible to revert the view. Do that, and make sure the
     // view title we added above no longer is displayed.
@@ -106,7 +111,18 @@ class DefaultViewsTest extends UITestBase {
     $this->assertUrl('admin/structure/views');
     $this->assertLinkByHref($edit_href);
 
+    // Clear permissions for anonymous users to check access for default views.
+    Role::load(DRUPAL_ANONYMOUS_RID)->revokePermission('access content')->save();
+
+    // Test the default views disclose no data by default.
+    $this->drupalLogout();
+    $this->drupalGet('glossary');
+    $this->assertResponse(403);
+    $this->drupalGet('archive');
+    $this->assertResponse(403);
+
     // Test deleting a view.
+    $this->drupalLogin($this->fullAdminUser);
     $this->drupalGet('admin/structure/views');
     $this->clickViewsOperationLink(t('Delete'), '/glossary/');
     // Submit the confirmation form.
@@ -168,7 +184,7 @@ class DefaultViewsTest extends UITestBase {
 
     // Check that a dynamic path is shown as text.
     $this->assertRaw('test_route_with_suffix/%/suffix');
-    $this->assertNoLinkByHref(_url('test_route_with_suffix/%/suffix'));
+    $this->assertNoLinkByHref(Url::fromUri('base:test_route_with_suffix/%/suffix')->toString());
   }
 
   /**

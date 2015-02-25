@@ -8,14 +8,14 @@
 namespace Drupal\migrate_drupal\Tests\d6;
 
 use Drupal\migrate\MigrateExecutable;
-use Drupal\migrate_drupal\Tests\MigrateDrupalTestBase;
+use Drupal\migrate_drupal\Tests\d6\MigrateDrupal6TestBase;
 
 /**
  * Upgrade comment variables to field.instance.node.*.comment.yml.
  *
  * @group migrate_drupal
  */
-class MigrateCommentVariableInstanceTest extends MigrateDrupalTestBase {
+class MigrateCommentVariableInstanceTest extends MigrateDrupal6TestBase {
 
   static $modules = array('comment', 'node');
 
@@ -66,24 +66,24 @@ class MigrateCommentVariableInstanceTest extends MigrateDrupalTestBase {
    */
   public function testCommentFieldInstance() {
     $node = entity_create('node', array('type' => 'page'));
-    $this->assertEqual($node->comment->status, 0);
-    $this->assertEqual($node->comment->getFieldDefinition()->getName(), 'comment');
+    $this->assertIdentical($node->comment->status, 0);
+    $this->assertIdentical($node->comment->getFieldDefinition()->getName(), 'comment');
     $settings = $node->comment->getFieldDefinition()->getSettings();
-    $this->assertEqual($settings['default_mode'], 4);
-    $this->assertEqual($settings['per_page'], 50);
-    $this->assertEqual($settings['anonymous'], 0);
-    $this->assertEqual($settings['form_location'], 0);
-    $this->assertEqual($settings['preview'], 1);
+    $this->assertIdentical($settings['default_mode'], 4);
+    $this->assertIdentical($settings['per_page'], 50);
+    $this->assertIdentical($settings['anonymous'], 0);
+    $this->assertIdentical($settings['form_location'], FALSE);
+    $this->assertIdentical($settings['preview'], 1);
 
     $node = entity_create('node', array('type' => 'story'));
-    $this->assertEqual($node->comment_no_subject->status, 2);
-    $this->assertEqual($node->comment_no_subject->getFieldDefinition()->getName(), 'comment_no_subject');
+    $this->assertIdentical($node->comment_no_subject->status, 2);
+    $this->assertIdentical($node->comment_no_subject->getFieldDefinition()->getName(), 'comment_no_subject');
     $settings = $node->comment_no_subject->getFieldDefinition()->getSettings();
-    $this->assertEqual($settings['default_mode'], 2);
-    $this->assertEqual($settings['per_page'], 70);
-    $this->assertEqual($settings['anonymous'], 1);
-    $this->assertEqual($settings['form_location'], 0);
-    $this->assertEqual($settings['preview'], 0);
+    $this->assertIdentical($settings['default_mode'], 2);
+    $this->assertIdentical($settings['per_page'], 70);
+    $this->assertIdentical($settings['anonymous'], 1);
+    $this->assertIdentical($settings['form_location'], FALSE);
+    $this->assertIdentical($settings['preview'], 0);
   }
 
 }

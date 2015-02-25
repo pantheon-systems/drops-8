@@ -8,7 +8,7 @@
 namespace Drupal\migrate_drupal\Tests\d6;
 
 use Drupal\migrate\MigrateExecutable;
-use Drupal\migrate_drupal\Tests\MigrateDrupalTestBase;
+use Drupal\migrate_drupal\Tests\d6\MigrateDrupal6TestBase;
 use Drupal\Core\Database\Database;
 
 /**
@@ -16,7 +16,7 @@ use Drupal\Core\Database\Database;
  *
  * @group migrate_drupal
  */
-class MigrateUserProfileEntityFormDisplayTest extends MigrateDrupalTestBase {
+class MigrateUserProfileEntityFormDisplayTest extends MigrateDrupal6TestBase {
 
   static $modules = array('link', 'options', 'datetime');
 
@@ -107,15 +107,15 @@ class MigrateUserProfileEntityFormDisplayTest extends MigrateDrupalTestBase {
 
     // Test a text field.
     $component = $display->getComponent('profile_color');
-    $this->assertEqual($component['type'], 'text_textfield');
+    $this->assertIdentical($component['type'], 'text_textfield');
 
     // Test a list field.
     $component = $display->getComponent('profile_bands');
-    $this->assertEqual($component['type'], 'text_textfield');
+    $this->assertIdentical($component['type'], 'text_textfield');
 
     // Test a date field.
     $component = $display->getComponent('profile_birthdate');
-    $this->assertEqual($component['type'], 'datetime_default');
+    $this->assertIdentical($component['type'], 'datetime_default');
 
     // Test PROFILE_PRIVATE field is hidden.
     $this->assertNull($display->getComponent('profile_sell_address'));
@@ -125,8 +125,8 @@ class MigrateUserProfileEntityFormDisplayTest extends MigrateDrupalTestBase {
 
     // Test that a checkbox field has the proper display label setting.
     $component = $display->getComponent('profile_love_migrations');
-    $this->assertEqual($component['type'], 'boolean_checkbox');
-    $this->assertEqual($component['settings']['display_label'], true);
+    $this->assertIdentical($component['type'], 'boolean_checkbox');
+    $this->assertIdentical($component['settings']['display_label'], true);
   }
 
 }

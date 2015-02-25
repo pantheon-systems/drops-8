@@ -130,35 +130,6 @@ function drupal_theme_rebuild() {
 }
 
 /**
- * Returns a list of all currently available themes.
- *
- * Retrieved from the database, if available and the site is not in maintenance
- * mode; otherwise compiled freshly from the filesystem.
- *
- * @param $refresh
- *   Whether to reload the list of themes from the database. Defaults to FALSE.
- *
- * @return array
- *   An associative array of the currently available themes.
- *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- *   Use \Drupal::service('theme_handler')->listInfo().
- *
- * @see \Drupal\Core\Extension\ThemeHandler::listInfo().
- */
-function list_themes($refresh = FALSE) {
-  /** @var \Drupal\Core\Extension\ThemeHandler $theme_handler */
-  $theme_handler = \Drupal::service('theme_handler');
-
-  if ($refresh) {
-    $theme_handler->reset();
-    system_list_reset();
-  }
-
-  return $theme_handler->listInfo();
-}
-
-/**
  * Allows themes and/or theme engines to discover overridden theme functions.
  *
  * @param $cache
@@ -1042,6 +1013,9 @@ function template_preprocess_table(&$variables) {
       }
     }
   }
+  if (empty($variables['no_striping'])) {
+    $variables['attributes']['data-striping'] = 1;
+  }
 }
 
 /**
@@ -1296,15 +1270,6 @@ function _template_preprocess_default_variables() {
 }
 
 /**
- * #pre_render callback for the html element type.
- *
- * @deprecated Use \Drupal\Core\Render\Element\Html::preRenderHtml().
- */
-function drupal_pre_render_html(array $element) {
-  return Element\Html::preRenderHtml($element);
-}
-
-/**
  * Prepares variables for HTML document templates.
  *
  * Default template: html.html.twig.
@@ -1347,11 +1312,11 @@ function template_preprocess_html(&$variables) {
   $is_front_page =  \Drupal::service('path.matcher')->isFrontPage();
 
   if ($is_front_page) {
-    $variables['root_path'] = TRUE;
+    $variables['root_path'] = FALSE;
   }
   else {
-    $system_path = \Drupal::request()->attributes->get('_system_path');
-    $variables['root_path'] = explode('/', $system_path)[0];
+    $system_path = \Drupal::service('path.current')->getPath();
+    $variables['root_path'] = explode('/', $system_path)[1];
   }
 
   $site_config = \Drupal::config('system.site');
@@ -1482,17 +1447,6 @@ function template_preprocess_page(&$variables) {
     '#theme' => 'status_messages',
     '#access' => $variables['show_messages'],
   );
-
-  // Set the breadcrumb last, so as to increase the chance of being able to
-  // re-use the cache of an already retrieved menu containing the active link
-  // for the current page.
-  // @see menu_tree_page_data()
-  if (!defined('MAINTENANCE_MODE')) {
-    $variables['breadcrumb'] = array(
-      '#theme' => 'breadcrumb',
-      '#links' => \Drupal::service('breadcrumb')->build(\Drupal::routeMatch()),
-    );
-  }
 }
 
 /**
@@ -1557,7 +1511,7 @@ function theme_get_suggestions($args, $base, $delimiter = '__') {
       $prefix .= $delimiter . $arg;
     }
   }
-  if (drupal_is_front_page()) {
+  if (\Drupal::service('path.matcher')->isFrontPage()) {
     // Front templates should be based on root only, not prefixed arguments.
     $suggestions[] = $base . $delimiter . 'front';
   }

@@ -15,14 +15,9 @@
  * @ingroup themeable
  */
 #}
-<div class="text-format-wrapper form-item">
+<div>
   {{ children }}
   {% if description %}
-    {%
-      set classes = [
-        aria_description ? 'description',
-      ]
-    %}
-    <div{{ attributes.addClass(classes) }}>{{ description }}</div>
+    <div{{ attributes }}>{{ description }}</div>
   {% endif %}
 </div>

@@ -91,38 +91,6 @@ class SchemaTest extends KernelTestBase {
     $index_exists = Database::getConnection()->schema()->indexExists('test_table2', 'test_field');
     $this->assertTrue($index_exists, 'Index was renamed.');
 
-    // Copy the schema of the table.
-    db_copy_table_schema('test_table2', 'test_table3');
-
-    // Index should be copied.
-    $index_exists = Database::getConnection()->schema()->indexExists('test_table3', 'test_field');
-    $this->assertTrue($index_exists, 'Index was copied.');
-
-    // Data should still exist on the old table but not on the new one.
-    $count = db_select('test_table2')->countQuery()->execute()->fetchField();
-    $this->assertEqual($count, 1, 'The old table still has its content.');
-    $count = db_select('test_table3')->countQuery()->execute()->fetchField();
-    $this->assertEqual($count, 0, 'The new table has no content.');
-
-    // Ensure that the proper exceptions are thrown for db_copy_table_schema().
-    $fail = FALSE;
-    try {
-      db_copy_table_schema('test_table4', 'test_table5');
-    }
-    catch (SchemaObjectDoesNotExistException $e) {
-      $fail = TRUE;
-    }
-    $this->assertTrue($fail, 'Ensure that db_copy_table_schema() throws an exception when the source table does not exist.');
-
-    $fail = FALSE;
-    try {
-      db_copy_table_schema('test_table2', 'test_table3');
-    }
-    catch (SchemaObjectExistsException $e) {
-      $fail = TRUE;
-    }
-    $this->assertTrue($fail, 'Ensure that db_copy_table_schema() throws an exception when the destination table already exists.');
-
     // We need the default so that we can insert after the rename.
     db_field_set_default('test_table2', 'test_field', 0);
     $this->assertFalse($this->tryInsert(), 'Insert into the old table failed.');
@@ -158,6 +126,77 @@ class SchemaTest extends KernelTestBase {
 
     $count = db_query('SELECT COUNT(*) FROM {test_table}')->fetchField();
     $this->assertEqual($count, 2, 'There were two rows.');
+
+    // Test renaming of keys and constraints.
+    db_drop_table('test_table');
+    $table_specification = array(
+      'fields' => array(
+        'id'  => array(
+          'type' => 'serial',
+          'not null' => TRUE,
+        ),
+        'test_field'  => array(
+          'type' => 'int',
+          'default' => 0,
+        ),
+      ),
+      'primary key' => array('id'),
+      'unique keys' => array(
+        'test_field' => array('test_field'),
+      ),
+    );
+    db_create_table('test_table', $table_specification);
+
+    // Tests for indexes are Database specific.
+    $db_type = Database::getConnection()->databaseType();
+
+    // Test for existing primary and unique keys.
+    switch ($db_type) {
+      case 'pgsql':
+        $primary_key_exists = Database::getConnection()->schema()->constraintExists('test_table', '__pkey');
+        $unique_key_exists = Database::getConnection()->schema()->constraintExists('test_table', 'test_field' . '__key');
+        break;
+      case 'sqlite':
+        // SQLite does not create a standalone index for primary keys.
+        $primary_key_exists = TRUE;
+        $unique_key_exists = Database::getConnection()->schema()->indexExists('test_table', 'test_field');
+        break;
+      default:
+        $primary_key_exists = Database::getConnection()->schema()->indexExists('test_table', 'PRIMARY');
+        $unique_key_exists = Database::getConnection()->schema()->indexExists('test_table', 'test_field');
+        break;
+    }
+    $this->assertIdentical($primary_key_exists, TRUE, 'Primary key created.');
+    $this->assertIdentical($unique_key_exists, TRUE, 'Unique key created.');
+
+    db_rename_table('test_table', 'test_table2');
+
+    // Test for renamed primary and unique keys.
+    switch ($db_type) {
+      case 'pgsql':
+        $renamed_primary_key_exists = Database::getConnection()->schema()->constraintExists('test_table2', '__pkey');
+        $renamed_unique_key_exists = Database::getConnection()->schema()->constraintExists('test_table2', 'test_field' . '__key');
+        break;
+      case 'sqlite':
+        // SQLite does not create a standalone index for primary keys.
+        $renamed_primary_key_exists = TRUE;
+        $renamed_unique_key_exists = Database::getConnection()->schema()->indexExists('test_table2', 'test_field');
+        break;
+      default:
+        $renamed_primary_key_exists = Database::getConnection()->schema()->indexExists('test_table2', 'PRIMARY');
+        $renamed_unique_key_exists = Database::getConnection()->schema()->indexExists('test_table2', 'test_field');
+        break;
+    }
+    $this->assertIdentical($renamed_primary_key_exists, TRUE, 'Primary key was renamed.');
+    $this->assertIdentical($renamed_unique_key_exists, TRUE, 'Unique key was renamed.');
+
+    // For PostgreSQL check in addition that sequence was renamed.
+    if ($db_type == 'pgsql') {
+      // Get information about new table.
+      $info = Database::getConnection()->schema()->queryTableInformation('test_table2');
+      $sequence_name = Database::getConnection()->schema()->prefixNonTable('test_table2', 'id', 'seq');
+      $this->assertEqual($sequence_name, current($info->sequences), 'Sequence was renamed.');
+    }
 
     // Use database specific data type and ensure that table is created.
     $table_specification = array(

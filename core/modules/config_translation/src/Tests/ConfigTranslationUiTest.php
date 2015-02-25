@@ -668,8 +668,8 @@ class ConfigTranslationUiTest extends WebTestBase {
     $edit = array(
       'site_default_language' => 'ta',
     );
-    $this->drupalPostForm('admin/config/regional/settings', $edit, t('Save configuration'));
-    $this->assertRaw(t('The configuration options have been saved.'));
+    $this->drupalPostForm('admin/config/regional/language', $edit, t('Save configuration'));
+    $this->assertRaw(t('Configuration saved.'));
 
     // Delete English language
     $this->drupalPostForm('admin/config/regional/language/delete/en', array(), t('Delete'));
@@ -700,6 +700,46 @@ class ConfigTranslationUiTest extends WebTestBase {
     $this->assertText(t('Name'));
     $this->assertNoText(t('Account cancellation confirmation'));
     $this->assertNoText(t('Password recovery'));
+  }
+
+  /**
+   * Tests the sequence data type translation.
+   */
+  public function testSequenceTranslation() {
+    $this->drupalLogin($this->adminUser);
+    /** @var \Drupal\Core\Config\ConfigFactoryInterface $config_factory */
+    $config_factory = $this->container->get('config.factory');
+
+    $expected = array(
+      'kitten',
+      'llama',
+      'elephant'
+    );
+    $actual = $config_factory
+      ->getEditable('config_translation_test.content')
+      ->get('animals');
+    $this->assertEqual($expected, $actual);
+
+    $edit = array(
+      'translation[config_names][config_translation_test.content][content][value]' => '<p><strong>Hello World</strong> - FR</p>',
+      'translation[config_names][config_translation_test.content][animals][0]' => 'kitten - FR',
+      'translation[config_names][config_translation_test.content][animals][1]' => 'llama - FR',
+      'translation[config_names][config_translation_test.content][animals][2]' => 'elephant - FR',
+    );
+    $this->drupalPostForm('admin/config/media/file-system/translate/fr/add', $edit, t('Save translation'));
+
+    $this->container->get('language.config_factory_override')
+      ->setLanguage(new Language(array('id' => 'fr')));
+
+    $expected = array(
+      'kitten - FR',
+      'llama - FR',
+      'elephant - FR',
+    );
+    $actual = $config_factory
+      ->get('config_translation_test.content')
+      ->get('animals');
+    $this->assertEqual($expected, $actual);
   }
 
   /**

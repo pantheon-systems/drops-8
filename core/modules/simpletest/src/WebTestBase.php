@@ -711,9 +711,17 @@ abstract class WebTestBase extends TestBase {
     if (!isset($account->session_id)) {
       return FALSE;
     }
-    // The session ID is hashed before being stored in the database.
-    // @see \Drupal\Core\Session\SessionHandler::read()
-    return (bool) db_query("SELECT sid FROM {users_field_data} u INNER JOIN {sessions} s ON u.uid = s.uid AND u.default_langcode = 1 WHERE s.sid = :sid", array(':sid' => Crypt::hashBase64($account->session_id)))->fetchField();
+    $session_id = $account->session_id;
+    $request_stack = $this->container->get('request_stack');
+    $request = $request_stack->getCurrentRequest();
+    $cookies = $request->cookies->all();
+    foreach ($this->cookies as $name => $value) {
+      $cookies[$name] = $value['value'];
+    }
+    $request_stack->push($request->duplicate(NULL, NULL, NULL, $cookies));
+    $logged_in = (bool) $this->container->get('session_manager')->getSaveHandler()->read($session_id);
+    $request_stack->pop();
+    return $logged_in;
   }
 
   /**
@@ -854,14 +862,14 @@ abstract class WebTestBase extends TestBase {
     // bootstrap into DRUPAL_BOOTSTRAP_CONFIGURATION (again). Hence, we have to
     // reload the newly written custom settings.php manually.
     $class_loader = require DRUPAL_ROOT . '/core/vendor/autoload.php';
-    Settings::initialize(DRUPAL_ROOT, $directory, $class_loader);
+    Settings::initialize(DRUPAL_ROOT, $this->siteDirectory, $class_loader);
 
     // Execute the non-interactive installer.
     require_once DRUPAL_ROOT . '/core/includes/install.core.inc';
     install_drupal($class_loader, $parameters);
 
     // Import new settings.php written by the installer.
-    Settings::initialize(DRUPAL_ROOT, $directory, $class_loader);
+    Settings::initialize(DRUPAL_ROOT, $this->siteDirectory, $class_loader);
     foreach ($GLOBALS['config_directories'] as $type => $path) {
       $this->configDirectories[$type] = $path;
     }
@@ -1005,10 +1013,25 @@ abstract class WebTestBase extends TestBase {
 
     // If we only have one db driver available, we cannot set the driver.
     include_once DRUPAL_ROOT . '/core/includes/install.inc';
-    if (count(drupal_get_database_types()) == 1) {
+    if (count($this->getDatabaseTypes()) == 1) {
       unset($parameters['forms']['install_settings_form']['driver']);
     }
     return $parameters;
+  }
+
+  /**
+   * Returns all supported database driver installer objects.
+   *
+   * This wraps drupal_get_database_types() for use without a current container.
+   *
+   * @return \Drupal\Core\Database\Install\Tasks[]
+   *   An array of available database driver installer objects.
+   */
+  protected function getDatabaseTypes() {
+    \Drupal::setContainer($this->originalContainer);
+    $database_types = drupal_get_database_types();
+    \Drupal::unsetContainer();
+    return $database_types;
   }
 
   /**
@@ -1470,23 +1493,10 @@ abstract class WebTestBase extends TestBase {
    *   The retrieved HTML string, also available as $this->getRawContent()
    */
   protected function drupalGet($path, array $options = array(), array $headers = array()) {
-    if ($path instanceof Url) {
-      $url = $path->setAbsolute()->toString();
-    }
-    // The URL generator service is not necessarily available yet; e.g., in
-    // interactive installer tests.
-    else if ($this->container->has('url_generator')) {
-      $options['absolute'] = TRUE;
-      $url = $this->container->get('url_generator')->generateFromPath($path, $options);
-    }
-    else {
-      $url = $this->getAbsoluteUrl($path);
-    }
-
     // We re-using a CURL connection here. If that connection still has certain
     // options set, it might change the GET into a POST. Make sure we clear out
     // previous options.
-    $out = $this->curlExec(array(CURLOPT_HTTPGET => TRUE, CURLOPT_URL => $url, CURLOPT_NOBODY => FALSE, CURLOPT_HTTPHEADER => $headers));
+    $out = $this->curlExec(array(CURLOPT_HTTPGET => TRUE, CURLOPT_URL => $this->buildUrl($path, $options), CURLOPT_NOBODY => FALSE, CURLOPT_HTTPHEADER => $headers));
     // Ensure that any changes to variables in the other thread are picked up.
     $this->refreshVariables();
 
@@ -1512,7 +1522,7 @@ abstract class WebTestBase extends TestBase {
    * @param string $path
    *   Path to request AJAX from.
    * @param array $options
-   *   Array of options to pass to _url().
+   *   Array of URL options.
    * @param array $headers
    *   Array of headers. Eg array('Accept: application/vnd.drupal-ajax').
    *
@@ -1967,11 +1977,10 @@ abstract class WebTestBase extends TestBase {
    *
    * @see WebTestBase::getAjaxPageStatePostData()
    * @see WebTestBase::curlExec()
-   * @see _url()
    */
   protected function drupalPost($path, $accept, array $post, $options = array()) {
     return $this->curlExec(array(
-      CURLOPT_URL => _url($path, $options + array('absolute' => TRUE)),
+      CURLOPT_URL => $this->buildUrl($path, $options),
       CURLOPT_POST => TRUE,
       CURLOPT_POSTFIELDS => $this->serializePostValues($post),
       CURLOPT_HTTPHEADER => array(
@@ -2412,26 +2421,6 @@ abstract class WebTestBase extends TestBase {
   }
 
   /**
-   * Gets the current raw HTML of requested page.
-   *
-   * @deprecated 8.x
-   *   Use getRawContent().
-   */
-  protected function drupalGetContent() {
-    return $this->getRawContent();
-  }
-
-  /**
-   * Gets the value of drupalSettings for the currently-loaded page.
-   *
-   * @deprecated 8.x
-   *   Use getDrupalSettings().
-   */
-  protected function drupalGetSettings() {
-    return $this->getDrupalSettings();
-  }
-
-  /**
    * Gets an array containing all emails sent during this test case.
    *
    * @param $filter
@@ -2455,26 +2444,6 @@ abstract class WebTestBase extends TestBase {
     }
 
     return $filtered_emails;
-  }
-
-  /**
-   * Sets the raw HTML content.
-   *
-   * @deprecated 8.x
-   *   Use setRawContent().
-   */
-  protected function drupalSetContent($content) {
-    $this->setRawContent($content);
-  }
-
-  /**
-   * Sets the value of drupalSettings for the currently-loaded page.
-   *
-   * @deprecated 8.x
-   *   Use setDrupalSettings().
-   */
-  protected function drupalSetSettings($settings) {
-    $this->setDrupalSettings($settings);
   }
 
   /**
@@ -2732,5 +2701,31 @@ abstract class WebTestBase extends TestBase {
     $this->container->get('router.request_context')->fromRequest($request);
 
     return $request;
+  }
+
+  /**
+   * Builds an a absolute URL from a system path or a URL object.
+   *
+   * @param string|\Drupal\Core\Url $path
+   *   A system path or a URL.
+   * @param array $options
+   *   Options to be passed to Url::fromUri().
+   *
+   * @return string
+   *   An absolute URL stsring.
+   */
+  protected function buildUrl($path, array $options = array()) {
+    if ($path instanceof Url) {
+      return $path->setAbsolute()->toString();
+    }
+    // The URL generator service is not necessarily available yet; e.g., in
+    // interactive installer tests.
+    else if ($this->container->has('url_generator')) {
+      $options['absolute'] = TRUE;
+      return $this->container->get('url_generator')->generateFromPath($path, $options);
+    }
+    else {
+      return $this->getAbsoluteUrl($path);
+    }
   }
 }

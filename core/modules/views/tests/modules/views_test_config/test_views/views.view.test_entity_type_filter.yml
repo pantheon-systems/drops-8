@@ -52,7 +52,7 @@ display:
             suffix: ''
             target: ''
             nl2br: false
-            max_length: ''
+            max_length: 0
             word_boundary: true
             ellipsis: true
             more_link: false
@@ -92,5 +92,3 @@ display:
           plugin_id: bundle
           entity_type: node
           entity_field: type
-      field_langcode: '***LANGUAGE_language_content***'
-      field_langcode_add_to_query: null

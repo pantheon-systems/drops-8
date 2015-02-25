@@ -7,6 +7,8 @@
 
 namespace Drupal\hal\Tests;
 
+use Drupal\Core\Url;
+use Drupal\field\Entity\FieldConfig;
 use Symfony\Component\Serializer\Exception\UnexpectedValueException;
 
 /**
@@ -24,7 +26,7 @@ class DenormalizeTest extends NormalizerTestBase {
     $data_with_valid_type = array(
       '_links' => array(
         'type' => array(
-          'href' => _url('rest/type/entity_test/entity_test', array('absolute' => TRUE)),
+          'href' => Url::fromUri('base:rest/type/entity_test/entity_test', array('absolute' => TRUE))->toString(),
         ),
       ),
     );
@@ -36,10 +38,10 @@ class DenormalizeTest extends NormalizerTestBase {
       '_links' => array(
         'type' => array(
           array(
-            'href' => _url('rest/types/foo', array('absolute' => TRUE)),
+            'href' => Url::fromUri('base:rest/types/foo', array('absolute' => TRUE))->toString(),
           ),
           array(
-            'href' => _url('rest/type/entity_test/entity_test', array('absolute' => TRUE)),
+            'href' => Url::fromUri('base:rest/type/entity_test/entity_test', array('absolute' => TRUE))->toString(),
           ),
         ),
       ),
@@ -51,7 +53,7 @@ class DenormalizeTest extends NormalizerTestBase {
     $data_with_invalid_type = array(
       '_links' => array(
         'type' => array(
-          'href' => _url('rest/types/foo', array('absolute' => TRUE)),
+          'href' => Url::fromUri('base:rest/types/foo', array('absolute' => TRUE))->toString(),
         ),
       ),
     );
@@ -78,31 +80,39 @@ class DenormalizeTest extends NormalizerTestBase {
   }
 
   /**
-   * Test that a field set to an empty array is different than an empty field.
+   * Test that a field set to an empty array is different than an absent field.
    */
   public function testMarkFieldForDeletion() {
-    $no_field_data = array(
+    // Add a default value for a field.
+    $field = FieldConfig::loadByName('entity_test', 'entity_test', 'field_test_text');
+    $field->default_value = array(array('value' => 'Llama'));
+    $field->save();
+
+    // Denormalize data that contains no entry for the field, and check that
+    // the default value is present in the resulting entity.
+    $data = array(
       '_links' => array(
         'type' => array(
-          'href' => _url('rest/type/entity_test/entity_test', array('absolute' => TRUE)),
+          'href' => Url::fromUri('base:rest/type/entity_test/entity_test', array('absolute' => TRUE))->toString(),
         ),
       ),
     );
-    $no_field_denormalized = $this->serializer->denormalize($no_field_data, $this->entityClass, $this->format);
-    $no_field_value = $no_field_denormalized->field_test_text->getValue();
+    $entity = $this->serializer->denormalize($data, $this->entityClass, $this->format);
+    $this->assertEqual($entity->field_test_text->count(), 1);
+    $this->assertEqual($entity->field_test_text->value, 'Llama');
 
-    $empty_field_data = array(
+    // Denormalize data that contains an empty entry for the field, and check
+    // that the field is empty in the resulting entity.
+    $data = array(
       '_links' => array(
         'type' => array(
-          'href' => _url('rest/type/entity_test/entity_test', array('absolute' => TRUE)),
+          'href' => Url::fromUri('base:rest/type/entity_test/entity_test', array('absolute' => TRUE))->toString(),
         ),
       ),
       'field_test_text' => array(),
     );
-    $empty_field_denormalized = $this->serializer->denormalize($empty_field_data, $this->entityClass, $this->format);
-    $empty_field_value = $empty_field_denormalized->field_test_text->getValue();
-
-    $this->assertTrue(!empty($no_field_value) && empty($empty_field_value), 'A field set to an empty array in the data is structured differently than an empty field.');
+    $entity = $this->serializer->denormalize($data, get_class($entity), $this->format, [ 'target_instance' => $entity ]);
+    $this->assertEqual($entity->field_test_text->count(), 0);
   }
 
   /**
@@ -112,7 +122,7 @@ class DenormalizeTest extends NormalizerTestBase {
     $data = array(
       '_links' => array(
         'type' => array(
-          'href' => _url('rest/type/entity_test/entity_test', array('absolute' => TRUE)),
+          'href' => Url::fromUri('base:rest/type/entity_test/entity_test', array('absolute' => TRUE))->toString(),
         ),
       ),
       'uuid' => array(
@@ -182,7 +192,7 @@ class DenormalizeTest extends NormalizerTestBase {
     $data = array(
       '_links' => array(
         'type' => array(
-          'href' => _url('rest/type/entity_test/entity_test', array('absolute' => TRUE)),
+          'href' => Url::fromUri('base:rest/type/entity_test/entity_test', array('absolute' => TRUE))->toString(),
         ),
       ),
       'field_test_text' => array(
@@ -196,6 +206,6 @@ class DenormalizeTest extends NormalizerTestBase {
     // Check that the one field got populated as expected.
     $this->assertEqual($data['field_test_text'], $denormalized->get('field_test_text')->getValue());
     // Check the custom property that contains the list of fields to merge.
-    $this->assertEqual($denormalized->_restPatchFields, ['field_test_text']);
+    $this->assertEqual($denormalized->_restSubmittedFields, ['field_test_text']);
   }
 }

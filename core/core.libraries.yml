@@ -24,10 +24,10 @@ classList:
 
 ckeditor:
   remote: https://github.com/ckeditor/ckeditor-dev
-  version: 4.4.6
+  version: 4.4.7
   license:
     name: GNU-GPL-2.0-or-later
-    url: https://github.com/ckeditor/ckeditor-dev/blob/4.4.6/LICENSE.md
+    url: https://github.com/ckeditor/ckeditor-dev/blob/4.4.7/LICENSE.md
     gpl-compatible: true
   js:
     assets/vendor/ckeditor/ckeditor.js: { preprocess: false, minified: true }
@@ -62,8 +62,7 @@ drupalSettings:
       currentPathIsAdmin: null
       isFront: null
       currentLanguage: null
-    locale:
-      pluralDelimiter: null
+    pluralDelimiter: null
 
 drupal.active-link:
   version: VERSION
@@ -834,15 +833,13 @@ normalize:
 
 picturefill:
   remote: https://github.com/scottjehl/picturefill
-  # @todo Contribute upstream and/or replace with upstream version.
-  # @see https://drupal.org/node/1775530
-  version: VERSION
+  version: 2.2.1
   license:
     name: MIT
-    url: https://github.com/scottjehl/picturefill/blob/master/LICENSE
+    url: https://github.com/scottjehl/picturefill/blob/2.2/LICENSE
     gpl-compatible: true
   js:
-    assets/vendor/picturefill/picturefill.js: { weight: -10 }
+    assets/vendor/picturefill/picturefill.min.js: { weight: -10, minified: true }
   dependencies:
     - core/matchmedia
 

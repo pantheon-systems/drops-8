@@ -52,6 +52,13 @@ abstract class PluginBase extends ComponentPluginBase implements ContainerFactor
   const INCLUDE_NEGOTIATED = 16;
 
   /**
+   * Include entity row languages when listing languages.
+   *
+   * @see \Drupal\views\Plugin\views\PluginBase::listLanguages()
+   */
+  const INCLUDE_ENTITY = 32;
+
+  /**
    * Query string to indicate the site default language.
    *
    * @see \Drupal\Core\Language\LanguageInterface::LANGCODE_DEFAULT
@@ -97,6 +104,12 @@ abstract class PluginBase extends ComponentPluginBase implements ContainerFactor
    */
   protected $usesOptions = FALSE;
 
+  /**
+   * Stores the render API renderer.
+   *
+   * @var \Drupal\Core\Render\RendererInterface
+   */
+  protected $renderer;
 
   /**
    * Constructs a PluginBase object.
@@ -357,13 +370,14 @@ abstract class PluginBase extends ComponentPluginBase implements ContainerFactor
     // Non-Twig tokens are a straight string replacement, Twig tokens get run
     // through an inline template for rendering and replacement.
     $text = strtr($text, $other_tokens);
-    if ($twig_tokens) {
+    if ($twig_tokens && !empty($text)) {
       $build = array(
         '#type' => 'inline_template',
         '#template' => $text,
         '#context' => $twig_tokens,
       );
-      return drupal_render($build);
+
+      return $this->getRenderer()->render($build);
     }
     else {
       return $text;
@@ -490,15 +504,24 @@ abstract class PluginBase extends ComponentPluginBase implements ContainerFactor
    *     note that this is not included in STATE_ALL.
    *   - \Drupal\views\Plugin\views\PluginBase::INCLUDE_NEGOTIATED: Add
    *     negotiated language types.
+   *   - \Drupal\views\Plugin\views\PluginBase::INCLUDE_ENTITY: Add
+   *     entity row language types. Note that these are only supported for
+   *     display options, not substituted in queries.
    *
    * @return array
    *   An array of language names, keyed by the language code. Negotiated and
    *   special languages have special codes that are substituted in queries by
-   *   static::queryLanguageSubstitutions().
+   *   PluginBase::queryLanguageSubstitutions().
    */
   protected function listLanguages($flags = LanguageInterface::STATE_ALL) {
     $manager = \Drupal::languageManager();
     $list = array();
+
+    // The entity languages should come first, if requested.
+    if ($flags & PluginBase::INCLUDE_ENTITY) {
+      $list['***LANGUAGE_entity_translation***'] = $this->t('Content language of view row');
+      $list['***LANGUAGE_entity_default***'] = $this->t('Original language of content in view row');
+    }
 
     // The Language Manager class takes care of the STATE_SITE_DEFAULT case.
     // It comes in with ID set to LanguageInterface::LANGCODE_SITE_DEFAULT.
@@ -521,7 +544,7 @@ abstract class PluginBase extends ComponentPluginBase implements ContainerFactor
         // IDs by '***LANGUAGE_...***', to avoid query collisions.
         if (isset($type['name'])) {
           $id = '***LANGUAGE_' . $id . '***';
-          $list[$id] = $this->t('Language selected for !type', array('!type' => $type['name']));
+          $list[$id] = $this->t('!type language selected for page', array('!type' => $type['name']));
         }
       }
     }
@@ -533,7 +556,7 @@ abstract class PluginBase extends ComponentPluginBase implements ContainerFactor
    * Returns substitutions for Views queries for languages.
    *
    * This is needed so that the language options returned by
-   * $this->listLanguages() are able to be used in queries. It is called
+   * PluginBase::listLanguages() are able to be used in queries. It is called
    * by the Views module implementation of hook_views_query_substitutions()
    * to get the language-related substitutions.
    *
@@ -559,4 +582,18 @@ abstract class PluginBase extends ComponentPluginBase implements ContainerFactor
 
     return $changes;
   }
+
+  /**
+   * Returns the render API renderer.
+   *
+   * @return \Drupal\Core\Render\RendererInterface
+   */
+  protected function getRenderer() {
+    if (!isset($this->renderer)) {
+      $this->renderer = \Drupal::service('renderer');
+    }
+
+    return $this->renderer;
+  }
+
 }

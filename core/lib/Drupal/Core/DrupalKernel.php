@@ -229,9 +229,9 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
 
     // Initialize our list of trusted HTTP Host headers to protect against
     // header attacks.
-    $hostPatterns = Settings::get('trusted_host_patterns', array());
-    if (PHP_SAPI !== 'cli' && !empty($hostPatterns)) {
-      if (static::setupTrustedHosts($request, $hostPatterns) === FALSE) {
+    $host_patterns = Settings::get('trusted_host_patterns', array());
+    if (PHP_SAPI !== 'cli' && !empty($host_patterns)) {
+      if (static::setupTrustedHosts($request, $host_patterns) === FALSE) {
         throw new BadRequestHttpException('The provided host name is not valid for this server.');
       }
     }
@@ -435,7 +435,6 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
   public function loadLegacyIncludes() {
     require_once $this->root . '/core/includes/common.inc';
     require_once $this->root . '/core/includes/database.inc';
-    require_once $this->root . '/core/includes/path.inc';
     require_once $this->root . '/core/includes/module.inc';
     require_once $this->root . '/core/includes/theme.inc';
     require_once $this->root . '/core/includes/pager.inc';
@@ -571,8 +570,11 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
   public function prepareLegacyRequest(Request $request) {
     $this->boot();
     $this->preHandle($request);
-    // Enter the request scope so that current_user service is available for
-    // locale/translation sake.
+    // Setup services which are normally initialized from within stack
+    // middleware or during the request kernel event.
+    if (PHP_SAPI !== 'cli') {
+      $request->setSession($this->container->get('session'));
+    }
     $request->attributes->set(RouteObjectInterface::ROUTE_OBJECT, new Route('<none>'));
     $request->attributes->set(RouteObjectInterface::ROUTE_NAME, '<none>');
     $this->container->get('request_stack')->push($request);
@@ -717,6 +719,16 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     $this->container = $container;
     if ($session_manager_started) {
       $this->container->get('session_manager')->start();
+    }
+
+    // The request stack is preserved across container rebuilds. Reinject the
+    // new session into the master request if one was present before.
+    if (($request_stack = $this->container->get('request_stack', ContainerInterface::NULL_ON_INVALID_REFERENCE))) {
+      if ($request = $request_stack->getMasterRequest()) {
+        if ($request->hasSession()) {
+          $request->setSession($this->container->get('session'));
+        }
+      }
     }
     \Drupal::setContainer($this->container);
 
@@ -1270,7 +1282,7 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
    *
    * @param \Symfony\Component\HttpFoundation\Request $request
    *   The request object.
-   * @param array $hostPatterns
+   * @param array $host_patterns
    *   The array of trusted host patterns.
    *
    * @return boolean
@@ -1278,8 +1290,8 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
    *
    * @see https://www.drupal.org/node/1992030
    */
-  protected static function setupTrustedHosts(Request $request, $hostPatterns) {
-    $request->setTrustedHosts($hostPatterns);
+  protected static function setupTrustedHosts(Request $request, $host_patterns) {
+    $request->setTrustedHosts($host_patterns);
 
     // Get the host, which will validate the current request.
     try {

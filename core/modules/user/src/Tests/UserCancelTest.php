@@ -7,6 +7,7 @@
 
 namespace Drupal\user\Tests;
 
+use Drupal\comment\Tests\CommentTestTrait;
 use Drupal\simpletest\WebTestBase;
 use Drupal\comment\CommentInterface;
 use Drupal\comment\Entity\Comment;
@@ -17,6 +18,8 @@ use Drupal\comment\Entity\Comment;
  * @group user
  */
 class UserCancelTest extends WebTestBase {
+
+  use CommentTestTrait;
 
   /**
    * Modules to enable.
@@ -111,8 +114,8 @@ class UserCancelTest extends WebTestBase {
     $user1->pass_raw = $password;
 
     // Try to cancel uid 1's account with a different user.
-    $this->admin_user = $this->drupalCreateUser(array('administer users'));
-    $this->drupalLogin($this->admin_user);
+    $admin_user = $this->drupalCreateUser(array('administer users'));
+    $this->drupalLogin($admin_user);
     $edit = array(
       'action' => 'user_cancel_user_action',
       'user_bulk_form[0]' => TRUE,
@@ -210,7 +213,7 @@ class UserCancelTest extends WebTestBase {
     $node_storage = $this->container->get('entity.manager')->getStorage('node');
     $this->config('user.settings')->set('cancel_method', 'user_cancel_block_unpublish')->save();
     // Create comment field on page.
-    \Drupal::service('comment.manager')->addDefaultField('node', 'page');
+    $this->addDefaultCommentField('node', 'page');
 
     // Create a user.
     $account = $this->drupalCreateUser(array('cancel account'));
@@ -332,7 +335,7 @@ class UserCancelTest extends WebTestBase {
     $this->config('user.settings')->set('cancel_method', 'user_cancel_delete')->save();
     \Drupal::service('module_installer')->install(array('comment'));
     $this->resetAll();
-    $this->container->get('comment.manager')->addDefaultField('node', 'page');
+    $this->addDefaultCommentField('node', 'page');
 
     // Create a user.
     $account = $this->drupalCreateUser(array('cancel account', 'post comments', 'skip comment approval'));

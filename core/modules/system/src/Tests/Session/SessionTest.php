@@ -26,13 +26,16 @@ class SessionTest extends WebTestBase {
   protected $dumpHeaders = TRUE;
 
   /**
-   * Tests for \Drupal\Core\Session\SessionManager::isEnabled() and ::regenerate().
+   * Tests for \Drupal\Core\Session\WriteSafeSessionHandler::setSessionWritable()
+   * ::isSessionWritable and \Drupal\Core\Session\SessionManager::regenerate().
    */
   function testSessionSaveRegenerate() {
-    $session_manager = $this->container->get('session_manager');
-    $this->assertTrue($session_manager->isEnabled(), 'SessionManager->isEnabled() initially returns TRUE.');
-    $this->assertFalse($session_manager->disable()->isEnabled(), 'SessionManager->isEnabled() returns FALSE after disabling.');
-    $this->assertTrue($session_manager->enable()->isEnabled(), 'SessionManager->isEnabled() returns TRUE after enabling.');
+    $session_handler = $this->container->get('session_handler.write_safe');
+    $this->assertTrue($session_handler->isSessionWritable(), 'session_handler->isSessionWritable() initially returns TRUE.');
+    $session_handler->setSessionWritable(FALSE);
+    $this->assertFalse($session_handler->isSessionWritable(), '$session_handler->isSessionWritable() returns FALSE after disabling.');
+    $session_handler->setSessionWritable(TRUE);
+    $this->assertTrue($session_handler->isSessionWritable(), '$session_handler->isSessionWritable() returns TRUE after enabling.');
 
     // Test session hardening code from SA-2008-044.
     $user = $this->drupalCreateUser();
@@ -51,7 +54,7 @@ class SessionTest extends WebTestBase {
     $user->save();
     $this->drupalGet('session-test/id');
     $matches = array();
-    preg_match('/\s*session_id:(.*)\n/', $this->drupalGetContent(), $matches);
+    preg_match('/\s*session_id:(.*)\n/', $this->getRawContent(), $matches);
     $this->assertTrue(!empty($matches[1]) , 'Found session ID before logging in.');
     $original_session = $matches[1];
 
@@ -68,7 +71,7 @@ class SessionTest extends WebTestBase {
 
     $this->drupalGet('session-test/id');
     $matches = array();
-    preg_match('/\s*session_id:(.*)\n/', $this->drupalGetContent(), $matches);
+    preg_match('/\s*session_id:(.*)\n/', $this->getRawContent(), $matches);
     $this->assertTrue(!empty($matches[1]) , 'Found session ID after logging in.');
     $this->assertTrue($matches[1] != $original_session, 'Session ID changed after login.');
   }

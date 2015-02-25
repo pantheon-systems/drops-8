@@ -24,13 +24,12 @@ use Drupal\search\SearchPageInterface;
  *   label = @Translation("Search page"),
  *   handlers = {
  *     "access" = "Drupal\search\SearchPageAccessControlHandler",
- *     "storage" = "Drupal\Core\Config\Entity\ConfigEntityStorage",
  *     "list_builder" = "Drupal\search\SearchPageListBuilder",
  *     "form" = {
  *       "add" = "Drupal\search\Form\SearchPageAddForm",
  *       "edit" = "Drupal\search\Form\SearchPageEditForm",
  *       "search" = "Drupal\search\Form\SearchPageForm",
- *       "delete" = "Drupal\search\Form\SearchPageDeleteForm"
+ *       "delete" = "Drupal\Core\Entity\EntityDeleteForm"
  *     }
  *   },
  *   admin_permission = "administer search",

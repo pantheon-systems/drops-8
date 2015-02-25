@@ -51,7 +51,7 @@ class FieldStorageConfig extends ConfigEntityBase implements FieldStorageConfigI
    *
    * @var string
    */
-  public $id;
+  protected $id;
 
   /**
    * The field name.
@@ -64,14 +64,14 @@ class FieldStorageConfig extends ConfigEntityBase implements FieldStorageConfigI
    *
    * @var string
    */
-  public $field_name;
+  protected $field_name;
 
   /**
    * The name of the entity type the field can be attached to.
    *
    * @var string
    */
-  public $entity_type;
+  protected $entity_type;
 
   /**
    * The field type.
@@ -80,14 +80,14 @@ class FieldStorageConfig extends ConfigEntityBase implements FieldStorageConfigI
    *
    * @var string
    */
-  public $type;
+  protected $type;
 
   /**
    * The name of the module that provides the field type.
    *
    * @var string
    */
-  public $module;
+  protected $module;
 
   /**
    * Field-type specific settings.
@@ -97,7 +97,7 @@ class FieldStorageConfig extends ConfigEntityBase implements FieldStorageConfigI
    *
    * @var array
    */
-  public $settings = array();
+  protected $settings = [];
 
   /**
    * The field cardinality.
@@ -108,7 +108,7 @@ class FieldStorageConfig extends ConfigEntityBase implements FieldStorageConfigI
    *
    * @var int
    */
-  public $cardinality = 1;
+  protected $cardinality = 1;
 
   /**
    * Flag indicating whether the field is translatable.
@@ -117,7 +117,7 @@ class FieldStorageConfig extends ConfigEntityBase implements FieldStorageConfigI
    *
    * @var bool
    */
-  public $translatable = TRUE;
+  protected $translatable = TRUE;
 
   /**
    * Flag indicating whether the field is available for editing.
@@ -131,7 +131,7 @@ class FieldStorageConfig extends ConfigEntityBase implements FieldStorageConfigI
    *
    * @var bool
    */
-  public $locked = FALSE;
+  protected $locked = FALSE;
 
   /**
    * Flag indicating whether the field storage should be deleted when orphaned.
@@ -164,7 +164,7 @@ class FieldStorageConfig extends ConfigEntityBase implements FieldStorageConfigI
    *
    * @var array
    */
-  public $indexes = array();
+  protected $indexes = [];
 
   /**
    * Flag indicating whether the field is deleted.
@@ -179,7 +179,7 @@ class FieldStorageConfig extends ConfigEntityBase implements FieldStorageConfigI
    *
    * @var bool
    */
-  public $deleted = FALSE;
+  protected $deleted = FALSE;
 
   /**
    * The field schema.
@@ -196,6 +196,13 @@ class FieldStorageConfig extends ConfigEntityBase implements FieldStorageConfigI
    * @see \Drupal\Core\TypedData\ComplexDataDefinitionInterface::getPropertyDefinitions()
    */
   protected $propertyDefinitions;
+
+  /**
+   * Static flag set to prevent recursion during field deletes.
+   *
+   * @var bool
+   */
+  protected static $inDeletion = FALSE;
 
   /**
    * Constructs a FieldStorageConfig object.
@@ -238,7 +245,7 @@ class FieldStorageConfig extends ConfigEntityBase implements FieldStorageConfigI
    * {@inheritdoc}
    */
   public function id() {
-    return $this->entity_type . '.' . $this->field_name;
+    return $this->getTargetEntityTypeId() . '.' . $this->getName();
   }
 
   /**
@@ -288,25 +295,25 @@ class FieldStorageConfig extends ConfigEntityBase implements FieldStorageConfigI
     // Field name cannot be longer than FieldStorageConfig::NAME_MAX_LENGTH characters.
     // We use Unicode::strlen() because the DB layer assumes that column widths
     // are given in characters rather than bytes.
-    if (Unicode::strlen($this->field_name) > static::NAME_MAX_LENGTH) {
+    if (Unicode::strlen($this->getName()) > static::NAME_MAX_LENGTH) {
       throw new FieldException(String::format(
         'Attempt to create a field storage with an name longer than @max characters: %name', array(
           '@max' => static::NAME_MAX_LENGTH,
-          '%name' => $this->field_name,
+          '%name' => $this->getName(),
         )
       ));
     }
 
     // Disallow reserved field names.
-    $disallowed_field_names = array_keys($entity_manager->getBaseFieldDefinitions($this->entity_type));
-    if (in_array($this->field_name, $disallowed_field_names)) {
-      throw new FieldException(String::format('Attempt to create field storage %name which is reserved by entity type %type.', array('%name' => $this->field_name, '%type' => $this->entity_type)));
+    $disallowed_field_names = array_keys($entity_manager->getBaseFieldDefinitions($this->getTargetEntityTypeId()));
+    if (in_array($this->getName(), $disallowed_field_names)) {
+      throw new FieldException(String::format('Attempt to create field storage %name which is reserved by entity type %type.', array('%name' => $this->getName(), '%type' => $this->getTargetEntityTypeId())));
     }
 
     // Check that the field type is known.
-    $field_type = $field_type_manager->getDefinition($this->type, FALSE);
+    $field_type = $field_type_manager->getDefinition($this->getType(), FALSE);
     if (!$field_type) {
-      throw new FieldException(String::format('Attempt to create a field storage of unknown type %type.', array('%type' => $this->type)));
+      throw new FieldException(String::format('Attempt to create a field storage of unknown type %type.', array('%type' => $this->getType())));
     }
     $this->module = $field_type['provider'];
 
@@ -320,7 +327,7 @@ class FieldStorageConfig extends ConfigEntityBase implements FieldStorageConfigI
   public function calculateDependencies() {
     parent::calculateDependencies();
     // Ensure the field is dependent on the providing module.
-    $this->addDependency('module', $this->module);
+    $this->addDependency('module', $this->getTypeProvider());
     // Ensure the field is dependent on the provider of the entity type.
     $entity_type = \Drupal::entityManager()->getDefinition($this->entity_type);
     $this->addDependency('module', $entity_type->getProvider());
@@ -338,10 +345,10 @@ class FieldStorageConfig extends ConfigEntityBase implements FieldStorageConfigI
     $entity_manager = \Drupal::entityManager();
 
     // Some updates are always disallowed.
-    if ($this->type != $this->original->type) {
+    if ($this->getType() != $this->original->getType()) {
       throw new FieldException("Cannot change the field type for an existing field storage.");
     }
-    if ($this->entity_type != $this->original->entity_type) {
+    if ($this->getTargetEntityTypeId() != $this->original->getTargetEntityTypeId()) {
       throw new FieldException("Cannot change the entity type for an existing field storage.");
     }
 
@@ -374,27 +381,13 @@ class FieldStorageConfig extends ConfigEntityBase implements FieldStorageConfigI
    */
   public static function preDelete(EntityStorageInterface $storage, array $field_storages) {
     $state = \Drupal::state();
-    $field_config_storage = \Drupal::entityManager()->getStorage('field_config');
 
-    // Delete fields first. Note: when deleting a field storage through
-    // FieldConfig::postDelete(), the fields have been deleted already, so
-    // no fields will be found here.
-    $field_ids = array();
-    foreach ($field_storages as $field_storage) {
-      if (!$field_storage->deleted) {
-        foreach ($field_storage->getBundles() as $bundle) {
-          $field_ids[] = "{$field_storage->entity_type}.$bundle.{$field_storage->field_name}";
-        }
-      }
-    }
-    if ($field_ids) {
-      $fields = $field_config_storage->loadMultiple($field_ids);
-      // Tag the objects to preserve recursive deletion of the field.
-      foreach ($fields as $field) {
-        $field->noFieldDelete = TRUE;
-      }
-      $field_config_storage->delete($fields);
-    }
+    // Set the static flag so that we don't delete field storages whilst
+    // deleting fields.
+    static::$inDeletion = TRUE;
+
+    // Delete or fix any configuration that is dependent, for example, fields.
+    parent::preDelete($storage, $field_storages);
 
     // Keep the field definitions in the state storage so we can use them later
     // during field_purge_batch().
@@ -422,6 +415,8 @@ class FieldStorageConfig extends ConfigEntityBase implements FieldStorageConfigI
         $field->deleted = TRUE;
       }
     }
+    // Unset static flag.
+    static::$inDeletion = FALSE;
   }
 
   /**
@@ -481,10 +476,10 @@ class FieldStorageConfig extends ConfigEntityBase implements FieldStorageConfigI
    * {@inheritdoc}
    */
   public function getBundles() {
-    if (empty($this->deleted)) {
+    if (!$this->isDeleted()) {
       $map = \Drupal::entityManager()->getFieldMap();
-      if (isset($map[$this->entity_type][$this->field_name]['bundles'])) {
-        return $map[$this->entity_type][$this->field_name]['bundles'];
+      if (isset($map[$this->getTargetEntityTypeId()][$this->getName()]['bundles'])) {
+        return $map[$this->getTargetEntityTypeId()][$this->getName()]['bundles'];
       }
     }
     return array();
@@ -495,6 +490,20 @@ class FieldStorageConfig extends ConfigEntityBase implements FieldStorageConfigI
    */
   public function getName() {
     return $this->field_name;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function isDeleted() {
+    return $this->deleted;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getTypeProvider() {
+    return $this->module;
   }
 
   /**
@@ -514,7 +523,7 @@ class FieldStorageConfig extends ConfigEntityBase implements FieldStorageConfigI
     //   within $this.
     $field_type_manager = \Drupal::service('plugin.manager.field.field_type');
 
-    $settings = $field_type_manager->getDefaultStorageSettings($this->type);
+    $settings = $field_type_manager->getDefaultStorageSettings($this->getType());
     return $this->settings + $settings;
   }
 
@@ -535,6 +544,22 @@ class FieldStorageConfig extends ConfigEntityBase implements FieldStorageConfigI
     else {
       return NULL;
     }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setSetting($setting_name, $value) {
+    $this->settings[$setting_name] = $value;
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setSettings(array $settings) {
+    $this->settings = $settings;
+    return $this;
   }
 
   /**
@@ -591,11 +616,21 @@ class FieldStorageConfig extends ConfigEntityBase implements FieldStorageConfigI
   /**
    * {@inheritdoc}
    */
+  public function setCardinality($cardinality) {
+    $this->cardinality = $cardinality;
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function getOptionsProvider($property_name, FieldableEntityInterface $entity) {
-    // If the field item class implements the interface, proxy it through.
-    $item = $entity->get($this->getName())->first();
-    if ($item instanceof OptionsProviderInterface) {
-      return $item;
+    // If the field item class implements the interface, create an orphaned
+    // runtime item object, so that it can be used as the options provider
+    // without modifying the entity being worked on.
+    if (is_subclass_of($this->getFieldItemClass(), '\Drupal\Core\TypedData\OptionsProviderInterface')) {
+      $items = $entity->get($this->getName());
+      return \Drupal::typedDataManager()->getPropertyInstance($items, 0);
     }
     // @todo: Allow setting custom options provider, see
     // https://www.drupal.org/node/2002138.
@@ -614,6 +649,14 @@ class FieldStorageConfig extends ConfigEntityBase implements FieldStorageConfigI
    */
   public function isLocked() {
     return $this->locked;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setLocked($locked) {
+    $this->locked = $locked;
+    return $this;
   }
 
   /**
@@ -744,8 +787,24 @@ class FieldStorageConfig extends ConfigEntityBase implements FieldStorageConfigI
    */
   public function isDeletable() {
     // The field storage is not deleted, is configured to be removed when there
-    // are no fields and the field storage has no bundles.
-    return !$this->deleted && !$this->persist_with_no_fields && count($this->getBundles()) == 0;
+    // are no fields, the field storage has no bundles, and field storages are
+    // not in the process of being deleted.
+    return !$this->deleted && !$this->persist_with_no_fields && count($this->getBundles()) == 0 && !static::$inDeletion;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getIndexes() {
+    return $this->indexes;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setIndexes(array $indexes) {
+    $this->indexes = $indexes;
+    return $this;
   }
 
 }

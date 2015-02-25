@@ -29,7 +29,7 @@ class ViewStorageTest extends ViewUnitTestBase {
    *
    * @var array
    */
-  protected $config_properties = array(
+  protected $configProperties = array(
     'status',
     'module',
     'id',
@@ -92,7 +92,7 @@ class ViewStorageTest extends ViewUnitTestBase {
     // Confirm that an actual view object is loaded and that it returns all of
     // expected properties.
     $this->assertTrue($view instanceof View, 'Single View instance loaded.');
-    foreach ($this->config_properties as $property) {
+    foreach ($this->configProperties as $property) {
       $this->assertTrue($view->get($property) !== NULL, format_string('Property: @property loaded onto View.', array('@property' => $property)));
     }
 
@@ -127,7 +127,7 @@ class ViewStorageTest extends ViewUnitTestBase {
 
     $this->assertTrue($created instanceof View, 'Created object is a View.');
     // Check that the View contains all of the properties.
-    foreach ($this->config_properties as $property) {
+    foreach ($this->configProperties as $property) {
       $this->assertTrue(property_exists($created, $property), format_string('Property: @property created on View.', array('@property' => $property)));
     }
 
@@ -139,7 +139,7 @@ class ViewStorageTest extends ViewUnitTestBase {
 
     $this->assertTrue($created instanceof View, 'Created object is a View.');
     // Check that the View contains all of the properties.
-    $properties = $this->config_properties;
+    $properties = $this->configProperties;
     // Remove display from list.
     array_pop($properties);
 
@@ -241,13 +241,28 @@ class ViewStorageTest extends ViewUnitTestBase {
     $this->assertEqual($displays['default']['display_title'], $random_title, 'Default display is defined with the new title');
     $this->assertEqual($displays['default']['position'], 0, 'Default displays are always in position zero');
 
-    // Tests Drupal\views\Entity\View::generateDisplayId().
-    // @todo Sadly this method is not public so it cannot be tested.
-    // $view = $this->controller->create(array());
-    // $this->assertEqual($view->generateDisplayId('default'), 'default', 'The plugin ID for default is always default.');
-    // $this->assertEqual($view->generateDisplayId('feed'), 'feed_1', 'The generated ID for the first instance of a plugin type should have an suffix of _1.');
-    // $view->addDisplay('feed', 'feed title');
-    // $this->assertEqual($view->generateDisplayId('feed'), 'feed_2', 'The generated ID for the first instance of a plugin type should have an suffix of _2.');
+    // Tests Drupal\views\Entity\View::generateDisplayId(). Since
+    // generateDisplayId() is protected, we have to use reflection to unit-test
+    // it.
+    $view = $this->controller->create(array());
+    $ref_generate_display_id = new \ReflectionMethod($view, 'generateDisplayId');
+    $ref_generate_display_id->setAccessible(TRUE);
+    $this->assertEqual(
+      $ref_generate_display_id->invoke($view, 'default'),
+      'default',
+      'The plugin ID for default is always default.'
+    );
+    $this->assertEqual(
+      $ref_generate_display_id->invoke($view, 'feed'),
+      'feed_1',
+      'The generated ID for the first instance of a plugin type should have an suffix of _1.'
+    );
+    $view->addDisplay('feed', 'feed title');
+    $this->assertEqual(
+      $ref_generate_display_id->invoke($view, 'feed'),
+      'feed_2',
+      'The generated ID for the first instance of a plugin type should have an suffix of _2.'
+    );
 
     // Tests item related methods().
     $view = $this->controller->create(array('base_table' => 'views_test_data'));

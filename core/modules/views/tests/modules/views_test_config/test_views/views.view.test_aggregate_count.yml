@@ -53,14 +53,12 @@ display:
         type: some
       query:
         options:
-          query_comment: false
+          query_comment: ''
         type: views_query
       style:
         type: default
       row:
         type: fields
-      field_langcode: '***LANGUAGE_language_content***'
-      field_langcode_add_to_query: null
     display_plugin: default
     display_title: Master
     id: default

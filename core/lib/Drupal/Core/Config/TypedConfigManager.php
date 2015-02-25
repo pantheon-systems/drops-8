@@ -8,7 +8,10 @@
 namespace Drupal\Core\Config;
 
 use Drupal\Component\Utility\NestedArray;
+use Drupal\Component\Utility\String;
 use Drupal\Core\Cache\CacheBackendInterface;
+use Drupal\Core\Config\Schema\ArrayElement;
+use Drupal\Core\Config\Schema\ConfigSchemaAlterException;
 use Drupal\Core\Config\Schema\ConfigSchemaDiscovery;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\TypedData\TypedDataManager;
@@ -64,8 +67,8 @@ class TypedConfigManager extends TypedDataManager implements TypedConfigManagerI
    * @param string $name
    *   Configuration object name.
    *
-   * @return \Drupal\Core\Config\Schema\Element
-   *   Typed configuration element.
+   * @return \Drupal\Core\Config\Schema\TypedConfigInterface
+   *   Typed configuration data.
    */
   public function get($name) {
     $data = $this->configStorage->read($name);
@@ -237,6 +240,8 @@ class TypedConfigManager extends TypedDataManager implements TypedConfigManagerI
    * their value or some of these special strings:
    * - '%key', will be replaced by the element's key.
    * - '%parent', to reference the parent element.
+   * - '%type', to reference the schema definition type. Can only be used in
+   *   combination with %parent.
    *
    * There may be nested configuration keys separated by dots or more complex
    * patterns like '%parent.name' which references the 'name' value of the
@@ -246,6 +251,9 @@ class TypedConfigManager extends TypedDataManager implements TypedConfigManagerI
    * - 'name.subkey', indicates a nested value of the current element.
    * - '%parent.name', will be replaced by the 'name' value of the parent.
    * - '%parent.%key', will be replaced by the parent element's key.
+   * - '%parent.%type', will be replaced by the schema type of the parent.
+   * - '%parent.%parent.%type', will be replaced by the schema type of the
+   *   parent's parent.
    *
    * @param string $value
    *   Variable value to be replaced.
@@ -270,9 +278,11 @@ class TypedConfigManager extends TypedDataManager implements TypedConfigManagerI
       else {
         // Get nested value and continue processing.
         if ($name == '%parent') {
+          /** @var \Drupal\Core\Config\Schema\ArrayElement $parent */
           // Switch replacement values with values from the parent.
           $parent = $data['%parent'];
           $data = $parent->getValue();
+          $data['%type'] = $parent->getDataDefinition()->getDataType();
           // The special %parent and %key values now need to point one level up.
           if ($new_parent = $parent->getParent()) {
             $data['%parent'] = $new_parent;
@@ -293,6 +303,42 @@ class TypedConfigManager extends TypedDataManager implements TypedConfigManagerI
     // The schema system falls back on the Undefined class for unknown types.
     $definition = $this->getDefinition($name);
     return is_array($definition) && ($definition['class'] != '\Drupal\Core\Config\Schema\Undefined');
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function alterDefinitions(&$definitions) {
+    $discovered_schema = array_keys($definitions);
+    parent::alterDefinitions($definitions);
+    $altered_schema = array_keys($definitions);
+    if ($discovered_schema != $altered_schema) {
+      $added_keys = array_diff($altered_schema, $discovered_schema);
+      $removed_keys = array_diff($discovered_schema, $altered_schema);
+      if (!empty($added_keys) && !empty($removed_keys)) {
+        $message = 'Invoking hook_config_schema_info_alter() has added (@added) and removed (@removed) schema definitions';
+      }
+      elseif (!empty($added_keys)) {
+        $message = 'Invoking hook_config_schema_info_alter() has added (@added) schema definitions';
+      }
+      else {
+        $message = 'Invoking hook_config_schema_info_alter() has removed (@removed) schema definitions';
+      }
+      throw new ConfigSchemaAlterException(String::format($message, ['@added' => implode(',', $added_keys), '@removed' => implode(',', $removed_keys)]));
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function createInstance($data_type, array $configuration = array()) {
+    $instance = parent::createInstance($data_type, $configuration);
+    // Enable elements to construct their own definitions using the typed config
+    // manager.
+    if ($instance instanceof ArrayElement) {
+      $instance->setTypedConfig($this);
+    }
+    return $instance;
   }
 
 }

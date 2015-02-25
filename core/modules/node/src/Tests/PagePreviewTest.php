@@ -195,6 +195,21 @@ class PagePreviewTest extends NodeTestBase {
     $this->assertLink($newterm2);
     $this->assertNoLink($newterm3);
 
+    // Check that editing an existing node after it has been previewed and not
+    // saved doesn't remember the previous changes.
+    $edit = array(
+      $title_key => $this->randomMachineName(8),
+    );
+    $this->drupalPostForm('node/' . $node->id() . '/edit', $edit, t('Preview'));
+    $this->assertText($edit[$title_key], 'New title displayed.');
+    $this->clickLink(t('Back to content editing'));
+    $this->assertFieldByName($title_key, $edit[$title_key], 'New title value displayed.');
+    // Navigate away from the node without saving.
+    $this->drupalGet('<front>');
+    // Go back to the edit form, the title should have its initial value.
+    $this->drupalGet('node/' . $node->id() . '/edit');
+    $this->assertFieldByName($title_key, $node->label(), 'Correct title value displayed.');
+
     // Check with required preview.
     $node_type = NodeType::load('page');
     $node_type->setPreviewMode(DRUPAL_REQUIRED);
@@ -240,6 +255,28 @@ class PagePreviewTest extends NodeTestBase {
 
     // Check that the revision log field has the correct value.
     $this->assertFieldByName('revision_log[0][value]', $edit['revision_log[0][value]'], 'Revision log field displayed.');
+  }
+
+  /**
+   * Checks the node preview accessible for simultaneous node editing.
+   */
+  public function testSimultaneousPreview() {
+    $title_key = 'title[0][value]';
+    $node = $this->drupalCreateNode(array());
+
+    $edit = array($title_key => 'New page title');
+    $this->drupalPostForm('node/' . $node->id() . '/edit', $edit, t('Preview'));
+    $this->assertText($edit[$title_key]);
+
+    $user2 = $this->drupalCreateUser(array('edit any page content'));
+    $this->drupalLogin($user2);
+    $this->drupalGet('node/' . $node->id() . '/edit');
+    $this->assertFieldByName($title_key, $node->label(), 'No title leaked from previous user.');
+
+    $edit2 = array($title_key => 'Another page title');
+    $this->drupalPostForm('node/' . $node->id() . '/edit', $edit2, t('Preview'));
+    $this->assertUrl(\Drupal::url('entity.node.preview', ['node_preview' => $node->uuid(), 'view_mode_id' => 'default'], ['absolute' => TRUE]));
+    $this->assertText($edit2[$title_key]);
   }
 
 }

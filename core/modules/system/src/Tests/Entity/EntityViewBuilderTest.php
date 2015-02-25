@@ -7,6 +7,8 @@
 
 namespace Drupal\system\Tests\Entity;
 
+use Drupal\user\Entity\Role;
+
 /**
  * Tests the entity view builder.
  *
@@ -26,7 +28,12 @@ class EntityViewBuilderTest extends EntityUnitTestBase {
    */
   protected function setUp() {
     parent::setUp();
-    $this->installConfig(array('entity_test'));
+    $this->installConfig(array('user', 'entity_test'));
+
+    // Give anonymous users permission to view test entities.
+    Role::load(DRUPAL_ANONYMOUS_RID)
+      ->grantPermission('view test entity')
+      ->save();
   }
 
   /**
@@ -50,7 +57,8 @@ class EntityViewBuilderTest extends EntityUnitTestBase {
     // Get a fully built entity view render array.
     $entity_test->save();
     $build = $this->container->get('entity.manager')->getViewBuilder('entity_test')->view($entity_test, 'full');
-    $cid = implode(':', $cache_contexts->convertTokensToKeys($build['#cache']['keys']));
+    $cid_parts = array_merge($build['#cache']['keys'], $cache_contexts->convertTokensToKeys($build['#cache']['contexts']));
+    $cid = implode(':', $cid_parts);
     $bin = $build['#cache']['bin'];
 
     // Mock the build array to not require the theme registry.
@@ -99,7 +107,8 @@ class EntityViewBuilderTest extends EntityUnitTestBase {
 
     // Get a fully built entity view render array for the referenced entity.
     $build = $this->container->get('entity.manager')->getViewBuilder('entity_test')->view($entity_test_reference, 'full');
-    $cid_reference = implode(':', $cache_contexts->convertTokensToKeys($build['#cache']['keys']));
+    $cid_parts = array_merge($build['#cache']['keys'], $cache_contexts->convertTokensToKeys($build['#cache']['contexts']));
+    $cid_reference = implode(':', $cid_parts);
     $bin_reference = $build['#cache']['bin'];
 
     // Mock the build array to not require the theme registry.
@@ -113,12 +122,12 @@ class EntityViewBuilderTest extends EntityUnitTestBase {
     // Create another entity that references the first one.
     $entity_test = $this->createTestEntity('entity_test');
     $entity_test->reference_field->entity = $entity_test_reference;
-    $entity_test->reference_field->access = TRUE;
     $entity_test->save();
 
     // Get a fully built entity view render array.
     $build = $this->container->get('entity.manager')->getViewBuilder('entity_test')->view($entity_test, 'full');
-    $cid = implode(':', $cache_contexts->convertTokensToKeys($build['#cache']['keys']));
+    $cid_parts = array_merge($build['#cache']['keys'], $cache_contexts->convertTokensToKeys($build['#cache']['contexts']));
+    $cid = implode(':', $cid_parts);
     $bin = $build['#cache']['bin'];
 
     // Mock the build array to not require the theme registry.
@@ -148,7 +157,7 @@ class EntityViewBuilderTest extends EntityUnitTestBase {
     // Test a view mode in default conditions: render caching is enabled for
     // the entity type and the view mode.
     $build = $this->container->get('entity.manager')->getViewBuilder('entity_test')->view($entity_test, 'full');
-    $this->assertTrue(isset($build['#cache']) && array_keys($build['#cache']) == array('tags', 'keys', 'bin') , 'A view mode with render cache enabled has the correct output (cache tags, keys and bin).');
+    $this->assertTrue(isset($build['#cache']) && array_keys($build['#cache']) == array('tags', 'keys', 'contexts', 'bin') , 'A view mode with render cache enabled has the correct output (cache tags, keys, contexts and bin).');
 
     // Test that a view mode can opt out of render caching.
     $build = $this->container->get('entity.manager')->getViewBuilder('entity_test')->view($entity_test, 'test');

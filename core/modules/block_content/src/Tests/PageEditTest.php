@@ -6,6 +6,8 @@
  */
 
 namespace Drupal\block_content\Tests;
+
+use Drupal\block_content\Entity\BlockContent;
 use Drupal\Component\Utility\Unicode;
 
 /**
@@ -31,7 +33,7 @@ class PageEditTest extends BlockContentTestBase {
 
     // Check that the block exists in the database.
     $blocks = \Drupal::entityQuery('block_content')->condition('info', $edit['info[0][value]'])->execute();
-    $block = entity_load('block_content', reset($blocks));
+    $block = BlockContent::load(reset($blocks));
     $this->assertTrue($block, 'Custom block found in database.');
 
     // Load the edit page.
@@ -55,13 +57,14 @@ class PageEditTest extends BlockContentTestBase {
     $this->drupalPostForm(NULL, $edit, t('Save'));
 
     // Ensure that the block revision has been created.
-    $revised_block = entity_load('block_content', $block->id(), TRUE);
+    \Drupal::entityManager()->getStorage('block_content')->resetCache(array($block->id()));
+    $revised_block = BlockContent::load($block->id());
     $this->assertNotIdentical($block->getRevisionId(), $revised_block->getRevisionId(), 'A new revision has been created.');
 
     // Test deleting the block.
     $this->drupalGet("block/" . $revised_block->id());
     $this->clickLink(t('Delete'));
-    $this->assertText(format_string('Are you sure you want to delete !label?', array('!label' => $revised_block->label())));
+    $this->assertText(format_string('Are you sure you want to delete the custom block !label?', array('!label' => $revised_block->label())));
   }
 
 }

@@ -33,6 +33,12 @@ services:
     class: Drupal\Core\Cache\TimeZoneCacheContext
     tags:
       - { name: cache.context}
+  cache_context.menu.active_trail:
+    class: Drupal\Core\Cache\MenuActiveTrailCacheContext
+    calls:
+      - [setContainer, ['@service_container']]
+    tags:
+      - { name: cache.context}
   cache_tags.invalidator:
     parent: container.trait
     class: Drupal\Core\Cache\CacheTagsInvalidator
@@ -189,6 +195,9 @@ services:
     factory_class: Drupal\Core\Database\Database
     factory_method: getConnection
     arguments: [default]
+  file_system:
+    class: Drupal\Core\File\FileSystem
+    arguments: ['@stream_wrapper_manager', '@settings', '@logger.channel.file']
   form_builder:
     class: Drupal\Core\Form\FormBuilder
     arguments: ['@form_validator', '@form_submitter', '@form_cache', '@module_handler', '@event_dispatcher', '@request_stack', '@class_resolver', '@theme.manager', '@?csrf_token']
@@ -236,6 +245,11 @@ services:
   logger.channel.cron:
     parent: logger.channel_base
     arguments: ['cron']
+  logger.channel.file:
+    class: Drupal\Core\Logger\LoggerChannel
+    factory_method: get
+    factory_service: logger.factory
+    arguments: ['file']
   logger.channel.form:
     parent: logger.channel_base
     arguments: ['form']
@@ -272,6 +286,9 @@ services:
   path.alias_manager:
     class: Drupal\Core\Path\AliasManager
     arguments: ['@path.alias_storage', '@path.alias_whitelist', '@language_manager', '@cache.data']
+  path.current:
+    class: Drupal\Core\Path\CurrentPathStack
+    arguments: ['@request_stack']
   http_client:
     class: Drupal\Core\Http\Client
     tags:
@@ -349,6 +366,9 @@ services:
     arguments: ['@config.manager', '@entity.manager']
     tags:
       - { name: event_subscriber }
+  entity.autocomplete_matcher:
+    class: Drupal\Core\Entity\EntityAutocompleteMatcher
+    arguments: ['@plugin.manager.entity_reference_selection']
   plugin.manager.entity_reference_selection:
     class: Drupal\Core\Entity\EntityReferenceSelection\SelectionPluginManager
     parent: default_plugin_manager
@@ -431,6 +451,8 @@ services:
     class: SplString
     factory_service: 'app.root.factory'
     factory_method: 'get'
+    tags:
+      - { name: parameter_service }
   app.root.factory:
     class: Drupal\Core\AppRootFactory
     arguments: ['@kernel']
@@ -464,6 +486,12 @@ services:
     arguments: ['@kernel']
     tags:
       - { name: http_middleware, priority: 100 }
+  http_middleware.session:
+    class: Drupal\Core\StackMiddleware\Session
+    tags:
+      - { name: http_middleware, priority: 50 }
+    calls:
+      - [setContainer, ['@service_container']]
   language_manager:
     class: Drupal\Core\Language\LanguageManager
     arguments: ['@language.default']
@@ -497,6 +525,8 @@ services:
   validation.constraint:
     class: Drupal\Core\Validation\ConstraintManager
     parent: default_plugin_manager
+    tags:
+      - { name: plugin_manager_cache_clear }
   lock:
     class: Drupal\Core\Lock\DatabaseLockBackend
     arguments: ['@database']
@@ -505,6 +535,8 @@ services:
   lock.persistent:
     class: Drupal\Core\Lock\PersistentDatabaseLockBackend
     arguments: ['@database']
+    tags:
+      - { name: backend_overridable }
   router.request_context:
     class: Drupal\Core\Routing\RequestContext
     tags:
@@ -516,7 +548,7 @@ services:
     arguments: ['@current_route_match']
   router.route_provider:
     class: Drupal\Core\Routing\RouteProvider
-    arguments: ['@database', '@router.builder', '@state']
+    arguments: ['@database', '@router.builder', '@state', '@path.current']
     tags:
       - { name: event_subscriber }
       - { name: backend_overridable }
@@ -527,6 +559,7 @@ services:
       - { name: 'event_subscriber' }
   router.matcher.final_matcher:
     class: Drupal\Core\Routing\UrlMatcher
+    arguments: ['@path.current']
   router.matcher:
     class: Symfony\Cmf\Component\Routing\NestedMatcher\NestedMatcher
     arguments: ['@router.route_provider']
@@ -580,7 +613,7 @@ services:
       - [setContainer, ['@service_container']]
   entity.query.config:
     class: Drupal\Core\Config\Entity\Query\QueryFactory
-    arguments: ['@config.storage', '@config.factory']
+    arguments: ['@config.factory']
   entity.query.sql:
     class: Drupal\Core\Entity\Query\Sql\QueryFactory
     arguments: ['@database']
@@ -819,7 +852,7 @@ services:
     class: Drupal\Core\EventSubscriber\PathSubscriber
     tags:
       - { name: event_subscriber }
-    arguments: ['@path.alias_manager', '@path_processor_manager']
+    arguments: ['@path.alias_manager', '@path_processor_manager', '@path.current']
   finish_response_subscriber:
     class: Drupal\Core\EventSubscriber\FinishResponseSubscriber
     tags:
@@ -923,6 +956,7 @@ services:
     arguments: ['@csrf_token']
   transliteration:
     class: Drupal\Core\Transliteration\PhpTransliteration
+    arguments: [null, '@module_handler']
   flood:
     class: Drupal\Core\Flood\DatabaseBackend
     arguments: ['@database', '@request_stack']
@@ -977,10 +1011,10 @@ services:
       - { name: service_collector, tag: breadcrumb_builder, call: addBuilder }
   token:
     class: Drupal\Core\Utility\Token
-    arguments: ['@module_handler', '@cache.discovery', '@language_manager']
+    arguments: ['@module_handler', '@cache.discovery', '@language_manager', '@cache_tags.invalidator']
   batch.storage:
     class: Drupal\Core\Batch\BatchStorage
-    arguments: ['@database', '@session_manager', '@csrf_token']
+    arguments: ['@database', '@session', '@csrf_token']
     tags:
       - { name: backend_overridable }
   replica_database_ignore__subscriber:
@@ -1055,7 +1089,7 @@ services:
     arguments: ['@app.root', '@theme_handler', '@state']
   theme.registry:
     class: Drupal\Core\Theme\Registry
-    arguments: ['@app.root', '@cache.default', '@lock', '@module_handler', '@theme_handler']
+    arguments: ['@app.root', '@cache.default', '@lock', '@module_handler', '@theme_handler', '@theme.initialization']
     tags:
       - { name: needs_destruction }
   authentication:
@@ -1069,18 +1103,44 @@ services:
     arguments: ['@authentication']
   account_switcher:
     class: Drupal\Core\Session\AccountSwitcher
-    arguments: ['@current_user', '@session_manager']
+    arguments: ['@current_user', '@session_handler.write_safe']
   current_user:
     class: Drupal\Core\Session\AccountProxy
     arguments: ['@authentication', '@request_stack']
   session_configuration:
     class: Drupal\Core\Session\SessionConfiguration
     arguments: ['%session.storage.options%']
-  session_manager:
-    class: Drupal\Core\Session\SessionManager
-    arguments: ['@request_stack', '@database', '@session_manager.metadata_bag', '@session_configuration']
+  session:
+    class: Symfony\Component\HttpFoundation\Session\Session
+    arguments: ['@session_manager', '@session.attribute_bag', '@session.flash_bag']
+  session.flash_bag:
+    class: Symfony\Component\HttpFoundation\Session\Flash\FlashBag
+    public: false
+  session.attribute_bag:
+    class: Symfony\Component\HttpFoundation\Session\Attribute\AttributeBag
+    public: false
+  session_handler:
+    alias: session_handler.storage
+  session_handler.storage:
+    class: Drupal\Core\Session\SessionHandler
+    arguments: ['@request_stack', '@database']
     tags:
       - { name: backend_overridable }
+  session_handler.write_check:
+    class: Symfony\Component\HttpFoundation\Session\Storage\Handler\WriteCheckSessionHandler
+    tags:
+      - { name: session_handler_proxy, priority: 100 }
+  session_handler.write_safe:
+    class: Drupal\Core\Session\WriteSafeSessionHandler
+    tags:
+      - { name: session_handler_proxy, priority: 150 }
+  session_manager:
+    class: Drupal\Core\Session\SessionManager
+    arguments: ['@request_stack', '@database', '@session_manager.metadata_bag', '@session_configuration', '@session_handler']
+    tags:
+      - { name: backend_overridable }
+    calls:
+      - [setWriteSafeHandler, ['@session_handler.write_safe']]
   session_manager.metadata_bag:
     class: Drupal\Core\Session\MetadataBag
     arguments: ['@settings']
@@ -1178,3 +1238,5 @@ services:
   renderer:
     class: Drupal\Core\Render\Renderer
     arguments: ['@controller_resolver', '@theme.manager', '@plugin.manager.element_info', '@request_stack', '@cache_factory', '@cache_contexts']
+  email.validator:
+    class: Egulias\EmailValidator\EmailValidator

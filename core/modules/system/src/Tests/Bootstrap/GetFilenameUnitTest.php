@@ -16,10 +16,32 @@ use Drupal\simpletest\KernelTestBase;
  */
 class GetFilenameUnitTest extends KernelTestBase {
 
+  /**
+   * The container used by the test, moved out of the way.
+   *
+   * @var \Symfony\Component\DependencyInjection\ContainerInterface
+   */
+  protected $previousContainer;
+
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp() {
     parent::setUp();
+    // Store the previous container.
+    $this->previousContainer = $this->container;
     $this->container = NULL;
-    \Drupal::setContainer(NULL);
+    \Drupal::unsetContainer();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function tearDown() {
+    parent::tearDown();
+    // Restore the previous container.
+    $this->container = $this->previousContainer;
+    \Drupal::setContainer($this->previousContainer);
   }
 
   /**
@@ -33,7 +55,7 @@ class GetFilenameUnitTest extends KernelTestBase {
 
     // Assert that this test is meaningful.
     $this->assertNull($this->container);
-    $this->assertNull(\Drupal::getContainer());
+    $this->assertFalse(\Drupal::hasContainer());
 
     // Retrieving the location of a module.
     $this->assertIdentical(drupal_get_filename('module', 'system'), 'core/modules/system/system.info.yml');

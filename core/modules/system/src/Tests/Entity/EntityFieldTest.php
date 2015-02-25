@@ -264,33 +264,43 @@ class EntityFieldTest extends EntityUnitTestBase  {
     $this->assertEqual($this->entity_user->getUsername(), $entity->user_id->entity->name->value, format_string('%entity_type: User name can be read.', array('%entity_type' => $entity_type)));
     $this->assertEqual($this->entity_field_text, $entity->field_test_text->value, format_string('%entity_type: Text field can be read.', array('%entity_type' => $entity_type)));
 
-    // Test copying field values.
+    // Tests copying field values by assigning the TypedData objects.
     $entity2 = $this->createTestEntity($entity_type);
     $entity2->name = $entity->name;
     $entity2->user_id = $entity->user_id;
     $entity2->field_test_text = $entity->field_test_text;
-
-    $this->assertTrue($entity->name !== $entity2->name, format_string('%entity_type: Copying properties results in a different field object.', array('%entity_type' => $entity_type)));
+    $this->assertFalse($entity->name === $entity2->name, format_string('%entity_type: Copying properties results in a different field object.', array('%entity_type' => $entity_type)));
     $this->assertEqual($entity->name->value, $entity2->name->value, format_string('%entity_type: Name field copied.', array('%entity_type' => $entity_type)));
     $this->assertEqual($entity->user_id->target_id, $entity2->user_id->target_id, format_string('%entity_type: User id field copied.', array('%entity_type' => $entity_type)));
     $this->assertEqual($entity->field_test_text->value, $entity2->field_test_text->value, format_string('%entity_type: Text field copied.', array('%entity_type' => $entity_type)));
 
+    // Tests that assigning TypedData objects to non-field properties keeps the
+    // assigned value as is.
+    $entity2 = $this->createTestEntity($entity_type);
+    $entity2->_not_a_field = $entity->name;
+    $this->assertTrue($entity2->_not_a_field === $entity->name, format_string('%entity_type: Typed data objects can be copied to non-field properties as is.', array('%entity_type' => $entity_type)));
+
     // Tests adding a value to a field item list.
     $entity->name[] = 'Another name';
-    $this->assertEqual($entity->name[1]->value, 'Another name', format_string('%entity_type: List item added via [].', array('%entity_type' => $entity_type)));
-    $entity->name[2]->value = 'Third name';
-    $this->assertEqual($entity->name[2]->value, 'Third name', format_string('%entity_type: List item added by a accessing not yet created item.', array('%entity_type' => $entity_type)));
+    $this->assertEqual($entity->name[1]->value, 'Another name', format_string('%entity_type: List item added via [] and the first property.', array('%entity_type' => $entity_type)));
+    $entity->name[] = array('value' => 'Third name');
+    $this->assertEqual($entity->name[2]->value, 'Third name', format_string('%entity_type: List item added via [] and an array of properties.', array('%entity_type' => $entity_type)));
+    $entity->name[3] = array('value' => 'Fourth name');
+    $this->assertEqual($entity->name[3]->value, 'Fourth name', format_string('%entity_type: List item added via offset and an array of properties.', array('%entity_type' => $entity_type)));
+    unset($entity->name[3]);
 
     // Test removing and empty-ing list items.
     $this->assertEqual(count($entity->name), 3, format_string('%entity_type: List has 3 items.', array('%entity_type' => $entity_type)));
     unset($entity->name[1]);
     $this->assertEqual(count($entity->name), 2, format_string('%entity_type: Second list item has been removed.', array('%entity_type' => $entity_type)));
-    $entity->name[2] = NULL;
+    $this->assertEqual($entity->name[1]->value, 'Third name', format_string('%entity_type: The subsequent items have been shifted up.', array('%entity_type' => $entity_type)));
+    $this->assertEqual($entity->name[1]->getName(), 1, format_string('%entity_type: The items names have been updated to their new delta.', array('%entity_type' => $entity_type)));
+    $entity->name[1] = NULL;
     $this->assertEqual(count($entity->name), 2, format_string('%entity_type: Assigning NULL does not reduce array count.', array('%entity_type' => $entity_type)));
-    $this->assertTrue($entity->name[2]->isEmpty(), format_string('%entity_type: Assigning NULL empties the item.', array('%entity_type' => $entity_type)));
+    $this->assertTrue($entity->name[1]->isEmpty(), format_string('%entity_type: Assigning NULL empties the item.', array('%entity_type' => $entity_type)));
 
     // Test using isEmpty().
-    unset($entity->name[2]);
+    unset($entity->name[1]);
     $this->assertFalse($entity->name[0]->isEmpty(), format_string('%entity_type: Name item is not empty.', array('%entity_type' => $entity_type)));
     $entity->name->value = NULL;
     $this->assertTrue($entity->name[0]->isEmpty(), format_string('%entity_type: Name item is empty.', array('%entity_type' => $entity_type)));
@@ -654,8 +664,7 @@ class EntityFieldTest extends EntityUnitTestBase  {
       ->setLabel('Test entity')
       ->setSetting('target_type', 'entity_test');
     $reference_field = \Drupal::typedDataManager()->create($definition);
-    $reference = $reference_field->first()->get('entity');
-    $reference->setValue($entity);
+    $reference = $reference_field->appendItem(array('entity' => $entity))->get('entity');
 
     // Test validation the typed data object.
     $violations = $reference->validate();
@@ -682,8 +691,7 @@ class EntityFieldTest extends EntityUnitTestBase  {
         'target_bundle' => 'article',
       ));
     $reference_field = \Drupal::TypedDataManager()->create($definition);
-    $reference = $reference_field->first()->get('entity');
-    $reference->setValue($node);
+    $reference = $reference_field->appendItem(array('entity' => $node))->get('entity');
     $violations = $reference->validate();
     $this->assertEqual($violations->count(), 1);
 

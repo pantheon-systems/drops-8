@@ -8,6 +8,7 @@
 namespace Drupal\system\Form;
 
 use Drupal\Core\Config\ConfigManagerInterface;
+use Drupal\Core\Config\Entity\ConfigDependencyDeleteFormTrait;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Form\ConfirmFormBase;
@@ -21,6 +22,7 @@ use Drupal\Core\KeyValueStore\KeyValueStoreExpirableInterface;
  * Builds a confirmation form to uninstall selected modules.
  */
 class ModulesUninstallConfirmForm extends ConfirmFormBase {
+  use ConfigDependencyDeleteFormTrait;
 
   /**
    * The module installer service.
@@ -145,46 +147,8 @@ class ModulesUninstallConfirmForm extends ConfirmFormBase {
       }, $this->modules),
     );
 
-    $form['entities'] = array(
-      '#type' => 'details',
-      '#title' => $this->t('Affected configuration'),
-      '#description' => $this->t('The listed configuration will be updated if possible, or deleted.'),
-      '#collapsible' => TRUE,
-      '#collapsed' => TRUE,
-      '#access' => FALSE,
-    );
-
-    // Get the dependent entities.
-    $entity_types = array();
-    $dependent_entities = $this->configManager->findConfigEntityDependentsAsEntities('module', $this->modules);
-    foreach ($dependent_entities as $entity) {
-      $entity_type_id = $entity->getEntityTypeId();
-      if (!isset($form['entities'][$entity_type_id])) {
-        $entity_type = $this->entityManager->getDefinition($entity_type_id);
-        // Store the ID and label to sort the entity types and entities later.
-        $label = $entity_type->getLabel();
-        $entity_types[$entity_type_id] = $label;
-        $form['entities'][$entity_type_id] = array(
-          '#theme' => 'item_list',
-          '#title' => $label,
-          '#items' => array(),
-        );
-      }
-      $form['entities'][$entity_type_id]['#items'][] = $entity->label();
-    }
-    if (!empty($dependent_entities)) {
-      $form['entities']['#access'] = TRUE;
-
-      // Add a weight key to the entity type sections.
-      asort($entity_types, SORT_FLAG_CASE);
-      $weight = 0;
-      foreach ($entity_types as $entity_type_id => $label) {
-        $form['entities'][$entity_type_id]['#weight'] = $weight;
-        // Sort the list of entity labels alphabetically.
-        sort($form['entities'][$entity_type_id]['#items'], SORT_FLAG_CASE);
-        $weight++;
-      }
-    }
+    // List the dependent entities.
+    $this->addDependencyListsToForm($form, 'module', $this->modules ,$this->configManager, $this->entityManager);
 
     return parent::buildForm($form, $form_state);
   }

@@ -7,12 +7,14 @@
 
 namespace Drupal\language;
 
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\Entity\DraggableListBuilder;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
+use Drupal\Core\Render\Element;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -35,13 +37,21 @@ class LanguageListBuilder extends DraggableListBuilder {
   protected $languageManager;
 
   /**
+   * The configuration factory.
+   *
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
+   */
+  protected $configFactory;
+
+  /**
    * {@inheritdoc}
    */
   public static function createInstance(ContainerInterface $container, EntityTypeInterface $entity_type) {
     return new static(
       $entity_type,
       $container->get('entity.manager')->getStorage($entity_type->id()),
-      $container->get('language_manager')
+      $container->get('language_manager'),
+      $container->get('config.factory')
     );
   }
 
@@ -54,10 +64,13 @@ class LanguageListBuilder extends DraggableListBuilder {
    *   The entity storage controller class.
    * @param \Drupal\Core\Language\LanguageManagerInterface
    *   The language manager.
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
+   *   The factory for configuration objects.
    */
-  public function __construct(EntityTypeInterface $entity_type, EntityStorageInterface $storage, LanguageManagerInterface $language_manager) {
+  public function __construct(EntityTypeInterface $entity_type, EntityStorageInterface $storage, LanguageManagerInterface $language_manager, ConfigFactoryInterface $config_factory) {
     parent::__construct($entity_type, $storage);
     $this->languageManager = $language_manager;
+    $this->configFactory = $config_factory;
   }
 
   /**
@@ -82,24 +95,12 @@ class LanguageListBuilder extends DraggableListBuilder {
   /**
    * {@inheritdoc}
    */
-  public function getDefaultOperations(EntityInterface $entity) {
-    $operations = parent::getDefaultOperations($entity);
-    $default = $this->languageManager->getDefaultLanguage();
-
-    // Deleting the site default language is not allowed.
-    if ($entity->id() == $default->getId()) {
-      unset($operations['delete']);
-    }
-
-    return $operations;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function buildHeader() {
-    $header['label'] = t('Name');
-    return $header + parent::buildHeader();
+    $header = array(
+        'label' => t('Name'),
+        'default' => t('Default'),
+      ) + parent::buildHeader();
+    return $header;
   }
 
   /**
@@ -107,6 +108,18 @@ class LanguageListBuilder extends DraggableListBuilder {
    */
   public function buildRow(EntityInterface $entity) {
     $row['label'] = $this->getLabel($entity);
+    $row['default'] = array(
+      '#type' => 'radio',
+      '#parents' => array('site_default_language'),
+      '#title' => t('Set @title as default', array('@title' => $entity->label())),
+      '#title_display' => 'invisible',
+      '#return_value' => $entity->id(),
+      '#id' => 'edit-site-default-language-' . $entity->id(),
+    );
+    // Mark the right language as default in the form.
+    if ($entity->id() == $this->languageManager->getDefaultLanguage()->getId()) {
+      $row['default']['#default_value'] = $entity->id();
+    }
     return $row + parent::buildRow($entity);
   }
 
@@ -115,6 +128,7 @@ class LanguageListBuilder extends DraggableListBuilder {
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
     $form = parent::buildForm($form, $form_state);
+
     $form[$this->entitiesKey]['#languages'] = $this->entities;
     $form['actions']['submit']['#value'] = t('Save configuration');
     return $form;
@@ -123,15 +137,33 @@ class LanguageListBuilder extends DraggableListBuilder {
   /**
    * {@inheritdoc}
    */
+  public function validateForm(array &$form, FormStateInterface $form_state) {
+    if (!isset($this->entities[$form_state->getValue('site_default_language')])) {
+      $form_state->setErrorByName('site_default_language', $this->t('Selected default language no longer exists.'));
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     parent::submitForm($form, $form_state);
 
-    $this->languageManager->reset();
+    // Save the default language if changed.
+    $new_id = $form_state->getValue('site_default_language');
+    if ($new_id != $this->languageManager->getDefaultLanguage()->getId()) {
+      $this->configFactory->getEditable('system.site')->set('langcode', $new_id)->save();
+      $this->languageManager->reset();
+    }
+
     if ($this->languageManager instanceof ConfigurableLanguageManagerInterface) {
       $this->languageManager->updateLockedLanguageWeights();
     }
 
     drupal_set_message(t('Configuration saved.'));
+    // Force the redirection to the page with the language we have just
+    // selected as default.
+    $form_state->setRedirectUrl($this->entities[$new_id]->urlInfo('collection', array('language' => $this->entities[$new_id])));
   }
 
 }

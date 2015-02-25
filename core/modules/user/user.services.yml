@@ -17,7 +17,6 @@ services:
       - { name: access_check, applies_to: _user_is_logged_in }
   authentication.cookie:
     class: Drupal\Core\Authentication\Provider\Cookie
-    arguments: ['@session_manager']
     tags:
       - { name: authentication_provider, priority: 0 }
   cache_context.user:
@@ -59,8 +58,13 @@ services:
   user.auth:
     class: Drupal\user\UserAuth
     arguments: ['@entity.manager', '@password']
-  user.tempstore:
-    class: Drupal\user\TempStoreFactory
+  user.private_tempstore:
+    class: Drupal\user\PrivateTempStoreFactory
+    arguments: ['@keyvalue.expirable', '@lock', '@current_user', '@request_stack', '%user.tempstore.expire%']
+    tags:
+      - { name: backend_overridable }
+  user.shared_tempstore:
+    class: Drupal\user\SharedTempStoreFactory
     arguments: ['@keyvalue.expirable', '@lock', '%user.tempstore.expire%']
     tags:
       - { name: backend_overridable }

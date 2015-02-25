@@ -59,8 +59,12 @@ class BookTest extends WebTestBase {
    */
   protected $webUserWithoutNodeAccess;
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp() {
     parent::setUp();
+    $this->drupalPlaceBlock('system_breadcrumb_block');
 
     // node_access_test requires a node_access_rebuild().
     node_access_rebuild();
@@ -666,6 +670,23 @@ class BookTest extends WebTestBase {
     $this->drupalLogin($this->adminUser);
     $this->drupalGet('admin/structure/book');
     $this->assertText($this->book->label(), 'The book title is displayed on the administrative book listing page.');
+  }
+
+  /**
+   * Tests the administrative listing of all book pages in a book.
+   */
+  public function testAdminBookNodeListing() {
+    // Create a new book.
+    $this->createBook();
+    $this->drupalLogin($this->adminUser);
+
+    // Load the book page list and assert the created book title is displayed
+    // and action links are shown on list items.
+    $this->drupalGet('admin/structure/book/' . $this->book->id());
+    $this->assertText($this->book->label(), 'The book title is displayed on the administrative book listing page.');
+
+    $elements = $this->xpath('//table//ul[@class="dropbutton"]/li/a');
+    $this->assertEqual((string) $elements[0], 'View', 'View link is found from the list.');
   }
 
   /**

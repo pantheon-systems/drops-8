@@ -232,15 +232,6 @@ function user_load_multiple(array $uids = NULL, $reset = FALSE) {
 /**
  * Loads a user object.
  *
- * Drupal has a global $user object, which represents the currently-logged-in
- * user. So to avoid confusion and to avoid clobbering the global $user object,
- * it is a good idea to assign the result of this function to a different local
- * variable, generally $account. If you actually do want to act as the user you
- * are loading, it is essential to call drupal_save_session(FALSE); first.
- * See
- * @link http://drupal.org/node/218104 Safely impersonating another user @endlink
- * for more information.
- *
  * @param int $uid
  *   Integer specifying the user ID to load.
  * @param bool $reset
@@ -570,24 +561,13 @@ function template_preprocess_username(&$variables) {
 }
 
 /**
- * Implements hook_menu_breadcrumb_alter().
- */
-function user_menu_breadcrumb_alter(&$active_trail, $item) {
-  // Remove "My account" from the breadcrumb when $item is descendant-or-self
-  // of system path user/%.
-  if (isset($active_trail[1]['module']) && $active_trail[1]['machine_name'] == 'user.page' && strpos($item['path'], 'user/%') === 0) {
-    array_splice($active_trail, 1, 1);
-  }
-}
-
-/**
  * Finalizes the login process and logs in a user.
  *
  * The function logs in the user, records a watchdog message about the new
  * session, saves the login timestamp, calls hook_user_login(), and generates a
  * new session.
  *
- * The global $user object is replaced with the passed in account.
+ * The current user is replaced with the passed in account.
  *
  * @param \Drupal\user\UserInterface $account
  *   The account to log in.
@@ -595,8 +575,7 @@ function user_menu_breadcrumb_alter(&$active_trail, $item) {
  * @see hook_user_login()
  */
 function user_login_finalize(UserInterface $account) {
-  global $user;
-  $user = $account;
+  \Drupal::currentUser()->setAccount($account);
   \Drupal::logger('user')->notice('Session opened for %name.', array('%name' => $account->getUsername()));
   // Update the user table timestamp noting user has logged in.
   // This is also used to invalidate one-time login links.
@@ -609,7 +588,7 @@ function user_login_finalize(UserInterface $account) {
   // This is called before hook_user_login() in case one of those functions
   // fails or incorrectly does a redirect which would leave the old session
   // in place.
-  \Drupal::service('session_manager')->regenerate();
+  \Drupal::service('session')->migrate();
 
   \Drupal::moduleHandler()->invokeAll('user_login', array($account));
 }
@@ -786,7 +765,9 @@ function user_cancel($edit, $uid, $method) {
 }
 
 /**
- * Last batch processing step for cancelling a user account.
+ * Implements callback_batch_operation().
+ *
+ * Last step for cancelling a user account.
  *
  * Since batch and session API require a valid user account, the actual
  * cancellation of a user account needs to happen last.
@@ -794,7 +775,6 @@ function user_cancel($edit, $uid, $method) {
  * @see user_cancel()
  */
 function _user_cancel($edit, $account, $method) {
-  global $user;
   $logger = \Drupal::logger('user');
 
   switch ($method) {
@@ -827,12 +807,14 @@ function _user_cancel($edit, $account, $method) {
   // their session though, as we might have information in it, and we can't
   // regenerate it because batch API uses the session ID, we will regenerate it
   // in _user_cancel_session_regenerate().
-  if ($account->id() == $user->id()) {
-    $user = new AnonymousUserSession();
+  if ($account->id() == \Drupal::currentUser()->id()) {
+    \Drupal::currentUser()->setAccount(new AnonymousUserSession());
   }
 }
 
 /**
+ * Implements callback_batch_finished().
+ *
  * Finished batch processing callback for cancelling a user account.
  *
  * @see user_cancel()
@@ -840,7 +822,7 @@ function _user_cancel($edit, $account, $method) {
 function _user_cancel_session_regenerate() {
   // Regenerate the users session instead of calling session_destroy() as we
   // want to preserve any messages that might have been set.
-  \Drupal::service('session_manager')->regenerate();
+  \Drupal::service('session')->migrate();
 }
 
 /**
@@ -1484,6 +1466,10 @@ function user_logout() {
   \Drupal::moduleHandler()->invokeAll('user_logout', array($user));
 
   // Destroy the current session, and reset $user to the anonymous user.
+  // Note: In Symfony the session is intended to be destroyed with
+  // Session::invalidate(). Regrettably this method is currently broken and may
+  // lead to the creation of spurious session records in the database.
+  // @see https://github.com/symfony/symfony/issues/12375
   session_destroy();
 }
 

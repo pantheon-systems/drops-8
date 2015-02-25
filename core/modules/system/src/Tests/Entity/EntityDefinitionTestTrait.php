@@ -16,6 +16,15 @@ use Drupal\entity_test\FieldStorageDefinition;
 trait EntityDefinitionTestTrait {
 
   /**
+   * Enables a new entity type definition.
+   */
+  protected function enableNewEntityType() {
+    $this->state->set('entity_test_new', TRUE);
+    $this->entityManager->clearCachedDefinitions();
+    $this->entityDefinitionUpdateManager->applyUpdates();
+  }
+
+  /**
    * Resets the entity type definition.
    */
   protected function resetEntityType() {
@@ -96,6 +105,21 @@ trait EntityDefinitionTestTrait {
     $definitions['new_base_field'] = BaseFieldDefinition::create($type)
       ->setName('new_base_field')
       ->setLabel(t('A new base field'));
+    $this->state->set('entity_test_update.additional_base_field_definitions', $definitions);
+    $this->entityManager->clearCachedDefinitions();
+  }
+
+  /**
+   * Adds a new revisionable base field to the 'entity_test_update' entity type.
+   *
+   * @param string $type
+   *   (optional) The field type for the new field. Defaults to 'string'.
+   */
+  protected function addRevisionableBaseField($type = 'string') {
+    $definitions['new_base_field'] = BaseFieldDefinition::create($type)
+      ->setName('new_base_field')
+      ->setLabel(t('A new revisionable base field'))
+      ->setRevisionable(TRUE);
     $this->state->set('entity_test_update.additional_base_field_definitions', $definitions);
     $this->entityManager->clearCachedDefinitions();
   }

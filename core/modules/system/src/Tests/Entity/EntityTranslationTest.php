@@ -7,6 +7,7 @@
 
 namespace Drupal\system\Tests\Entity;
 
+use Drupal\Component\Utility\String;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\entity_test\Entity\EntityTestMulRev;
 use Drupal\language\Entity\ConfigurableLanguage;
@@ -264,11 +265,11 @@ class EntityTranslationTest extends EntityLanguageTestBase {
     // query.
     $query = \Drupal::entityQuery($entity_type);
     $group = $query->andConditionGroup()
-      ->condition('user_id', $properties[$default_langcode]['user_id'], '=', $default_langcode)
-      ->condition('name', $properties[$default_langcode]['name'], '=', $default_langcode);
+      ->condition('user_id', $properties[$default_langcode]['user_id'][0], '=', $default_langcode)
+      ->condition('name', $properties[$default_langcode]['name'][0], '=', $default_langcode);
     $result = $query
       ->condition($group)
-      ->condition('name', $properties[$langcode]['name'], '=', $langcode)
+      ->condition('name', $properties[$langcode]['name'][0], '=', $langcode)
       ->execute();
     $this->assertEqual(count($result), 1, format_string('%entity_type: One entity loaded by name and uid using different language meta conditions.', array('%entity_type' => $entity_type)));
 
@@ -279,10 +280,10 @@ class EntityTranslationTest extends EntityLanguageTestBase {
     $entity->save();
     $query = \Drupal::entityQuery($entity_type);
     $default_langcode_group = $query->andConditionGroup()
-      ->condition('user_id', $properties[$default_langcode]['user_id'], '=', $default_langcode)
-      ->condition('name', $properties[$default_langcode]['name'], '=', $default_langcode);
+      ->condition('user_id', $properties[$default_langcode]['user_id'][0], '=', $default_langcode)
+      ->condition('name', $properties[$default_langcode]['name'][0], '=', $default_langcode);
     $langcode_group = $query->andConditionGroup()
-      ->condition('name', $properties[$langcode]['name'], '=', $langcode)
+      ->condition('name', $properties[$langcode]['name'][0], '=', $langcode)
       ->condition("$this->field_name.value", $field_value, '=', $langcode);
     $result = $query
       ->condition($langcode_key, $default_langcode)
@@ -662,6 +663,30 @@ class EntityTranslationTest extends EntityLanguageTestBase {
     }
     catch (\InvalidArgumentException $e) {
       $this->pass($message);
+    }
+  }
+
+  /**
+   * Tests how entity adapters work with translations.
+   */
+  function testEntityAdapter() {
+    $entity_type = 'entity_test';
+    $default_langcode = 'en';
+    $values[$default_langcode] = array('name' => $this->randomString());
+    $controller = $this->entityManager->getStorage($entity_type);
+    /** @var \Drupal\Core\Entity\ContentEntityInterface $entity */
+    $entity = $controller->create($values[$default_langcode]);
+
+    foreach ($this->langcodes as $langcode) {
+      $values[$langcode] = array('name' => $this->randomString());
+      $entity->addTranslation($langcode, $values[$langcode]);
+    }
+
+    $langcodes = array_merge(array($default_langcode), $this->langcodes);
+    foreach ($langcodes as $langcode) {
+      $adapter = $entity->getTranslation($langcode)->getTypedData();
+      $name = $adapter->get('name')->value;
+      $this->assertEqual($name, $values[$langcode]['name'], String::format('Name correctly retrieved from "@langcode" adapter', array('@langcode' => $langcode)));
     }
   }
 

@@ -7,6 +7,7 @@
 
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\field\Entity\FieldConfig;
 use Drupal\file\Entity\File;
 use Drupal\field\FieldStorageConfigInterface;
 use Drupal\field\FieldConfigInterface;
@@ -50,20 +51,25 @@ require_once __DIR__ . '/image.field.inc';
 function image_help($route_name, RouteMatchInterface $route_match) {
   switch ($route_name) {
     case 'help.page.image':
+      $field_ui_url = \Drupal::moduleHandler()->moduleExists('field_ui') ? \Drupal::url('help.page', array('name' => 'field_ui')) : '#';
+
       $output = '';
       $output .= '<h3>' . t('About') . '</h3>';
-      $output .= '<p>' . t('The Image module allows you to manipulate images on your website. It exposes a setting for using the <em>Image toolkit</em>, allows you to configure <em>Image styles</em> that can be used for resizing or adjusting images on display, and provides an <em>Image</em> field for attaching images to content. For more information, see the online handbook entry for <a href="@image">Image module</a>.', array('@image' => 'http://drupal.org/documentation/modules/image')) . '</p>';
+      $output .= '<p>' . t('The Image module allows you to create fields that contain image files and to configure <a href="!image_styles">Image styles</a> that can be used to manipulate the display of images. See the <a href="!field">Field module help</a> and the <a href="!field_ui">Field UI help</a> pages for terminology and general information on entities, fields, and how to create and manage fields. For more information, see the <a href="!image_documentation">online documentation for the Image module</a>.', array('!image_styles' => \Drupal::url('entity.image_style.collection'), '!field' => \Drupal::url('help.page', array('name' => 'field')), '!field_ui' => $field_ui_url, '!image_documentation' => 'https://drupal.org/documentation/modules/image')) . '</p>';
       $output .= '<h3>' . t('Uses') . '</h3>';
-      $output .= '<dl>';
-      $output .= '<dt>' . t('Manipulating images') . '</dt>';
-      $output .= '<dd>' . t('With the Image module you can scale, crop, resize, rotate and desaturate images without affecting the original image using <a href="@image">image styles</a>. When you change an image style, the module automatically refreshes all created images. Every image style must have a name, which will be used in the URL of the generated images. There are two common approaches to naming image styles (which you use will depend on how the image style is being applied):',array('@image' => \Drupal::url('entity.image_style.collection')));
-      $output .= '<ul><li>' . t('Based on where it will be used: eg. <em>profile-picture</em>') . '</li>';
-      $output .= '<li>' . t('Describing its appearance: eg. <em>square-85x85</em>') . '</li></ul>';
-      $output .=  t('After you create an image style, you can add effects: crop, scale, resize, rotate, and desaturate (other contributed modules provide additional effects). For example, by combining effects as crop, scale, and desaturate, you can create square, grayscale thumbnails.') . '<dd>';
-      $output .= '<dt>' . t('Attaching images to content as fields') . '</dt>';
-      $output .= '<dd>' . t("Image module also allows you to attach images to content as fields. To add an image field to a <a href='@content-type'>content type</a>, go to the content type's <em>manage fields</em> page, and add a new field of type <em>Image</em>. Attaching images to content this way allows image styles to be applied and maintained, and also allows you more flexibility when theming.", array('@content-type' => \Drupal::url('entity.node_type.collection'))) . '</dd>';
-      $output .= '<dt>' . t('Configuring image fields for accessibility') . '</dt>';
+      $output .= '<dt>' . t('Defining image styles') . '</dt>';
+      $output .= '<dd>' . t('The concept of image styles is that you can upload a single image but display it in several ways; each display variation, or <em>image style</em>, is the result of applying one or more <em>effects</em> to the original image. As an example, you might upload a high-resolution image with a 4:3 aspect ratio, and display it scaled down, square cropped, or black-and-white (or any combination of these effects). The Image module provides a way to do this efficiently: you configure an image style with the desired effects on the <a href="!image">Image styles page</a>, and the first time a particular image is requested in that style, the effects are applied. The resulting image is saved, and the next time that same style is requested, the saved image is retrieved without the need to recalculate the effects. Drupal core provides several effects that you can use to define styles; others may be provided by contributed modules.', array('!image' => \Drupal::url('entity.image_style.collection')));
+      $output .= '<dt>' . t('Naming image styles') . '</dt>';
+      $output .= '<dd>' . t('When you define an image style, you will need to choose a displayed name and a machine name. The displayed name is shown in administrative pages, and the machine name is used to generate the URL for accessing an image processed in that style. There are two common approaches to naming image styles: either based on the effects being applied (for example, <em>Square 85x85</em>), or based on where you plan to use it (for example, <em>Profile picture</em>).') . '</dd>';
+      $output .= '<dt>' . t('Configuring image fields') . '</dt>';
+      $output .= '<dd>' . t('A few of the settings for image fields are defined once when you create the field and cannot be changed later; these include the choice of public or private file storage and the number of images that can be stored in the field. The rest of the settings can be edited later; these settings include the field label, help text, allowed file extensions, image resolution restrictions, and the subdirectory in the public or private file storage where the images will be stored. The editable settings can also have different values for different entity sub-types; for instance, if your image field is used on both Page and Article content types, you can store the files in a different subdirectory for the two content types.') . '</dd>';
       $output .= '<dd>' . t('For accessibility and search engine optimization, all images that convey meaning on web sites should have alternate text. Drupal also allows entry of title text for images, but it can lead to confusion for screen reader users and its use is not recommended. Image fields can be configured so that alternate and title text fields are enabled or disabled; if enabled, the fields can be set to be required. The recommended setting is to enable and require alternate text and disable title text.') . '</dd>';
+      $output .= '<dd>' . t('When you create an image field, you will need to choose whether the uploaded images will be stored in the public or private file directory defined in your settings.php file and shown on the <a href="!file-system">File system page</a>. This choice cannot be changed later. You can also configure your field to store files in a subdirectory of the public or private directory; this setting can be changed later and can be different for each entity sub-type using the field. For more information on file storage, see the <a href="!system-help">System module help page</a>.', array('!file-system' => \Drupal::url('system.file_system_settings'), '!system-help' => \Drupal::url('help.page', array('name' => 'system')))) . '</dd>';
+      $output .= '<dd>' . t('The maximum file size that can be uploaded is limited by PHP settings of the server, but you can restrict it further by configuring a <em>Maximum upload size</em> in the field settings (this setting can be changed later). The maximum file size, either from PHP server settings or field configuration, is automatically displayed to users in the help text of the image field.') . '</dd>';
+      $output .= '<dd>' . t('You can also configure a minimum and/or maximum resolution for uploaded images. Images that are too small will be rejected. Images that are to large will be resized. During the resizing the <a href="!exif">EXIF data</a> in the image will be lost.', array('!exif' => 'http://en.wikipedia.org/wiki/Exchangeable_image_file_format')) . '</dd>';
+      $output .= '<dd>' . t('You can also configure a default image that will be used if no image is uploaded in an image field. This default can be defined for all instances of the field in the field storage settings when you create a field, and the setting can be overridden for each entity sub-type that uses the field.') . '</dd>';
+      $output .= '<dt>' . t('Configuring displays and form displays') . '</dt>';
+      $output .= '<dd>' . t('On the <em>Manage display</em> page, you can choose the image formatter, which determines the image style used to display the image in each display mode and whether or not to display the image as a link. On the <em>Manage form display</em> page, you can configure the image upload widget, including setting the preview image style shown on the entity edit form.') . '</dd>';
       $output .= '</dl>';
       return $output;
 
@@ -321,49 +327,51 @@ function image_filter_keyword($value, $current_pixels, $new_pixels) {
  * Transforms default image of image field from array into single value at save.
  */
 function image_entity_presave(EntityInterface $entity) {
-  $field_storage = FALSE;
-  $entity_type_id = $entity->getEntityTypeId();
-  if ($entity_type_id == 'field_config') {
-    $field_storage = $entity->getFieldStorageDefinition();
-    $default_settings = \Drupal::service('plugin.manager.field.field_type')->getDefaultFieldSettings('image');
+  // Get the default image settings, return if not saving an image field storage
+  // or image field entity.
+  if (($entity instanceof FieldStorageConfigInterface || $entity instanceof FieldConfigInterface) && $entity->getType() == 'image') {
+    $default_image = $entity->getSetting('default_image');
   }
-  elseif ($entity_type_id == 'field_storage_config') {
-    $field_storage = $entity;
-    $default_settings = \Drupal::service('plugin.manager.field.field_type')->getDefaultStorageSettings('image');
-  }
-  // Exit, if not saving an image field storage or image field entity.
-  if (!$field_storage || $field_storage->type != 'image') {
+  else {
     return;
   }
 
-  if ($field_storage->isSyncing()) {
+  if ($entity->isSyncing()) {
     return;
   }
 
-  $uuid = $entity->settings['default_image']['uuid'];
+  $uuid = $default_image['uuid'];
   if ($uuid) {
-    $original_uuid = isset($entity->original) ? $entity->original->settings['default_image']['uuid'] : NULL;
+    $original_uuid = isset($entity->original) ? $entity->original->getSetting('default_image')['uuid'] : NULL;
     if ($uuid != $original_uuid) {
       $file = \Drupal::entityManager()->loadEntityByUuid('file', $uuid);
       if ($file) {
         $image = \Drupal::service('image.factory')->get($file->getFileUri());
-        $entity->settings['default_image']['width'] = $image->getWidth();
-        $entity->settings['default_image']['height'] = $image->getHeight();
+        $default_image['width'] = $image->getWidth();
+        $default_image['height'] = $image->getHeight();
       }
       else {
-        $entity->settings['default_image']['uuid'] = NULL;
+        $default_image['uuid'] = NULL;
       }
     }
   }
 
-  $entity->settings['default_image'] += $default_settings['default_image'];
+  // @todo Simplify this in https://www.drupal.org/node/2030637, when both
+  //   interfaces have a setSetting() method.
+  if ($entity instanceof FieldStorageConfigInterface) {
+    $entity->setSetting('default_image', $default_image);
+  }
+  elseif ($entity instanceof FieldConfig) {
+    $entity->settings['default_image'] = $default_image;
+  }
+
 }
 
 /**
  * Implements hook_ENTITY_TYPE_update() for 'field_storage_config'.
  */
 function image_field_storage_config_update(FieldStorageConfigInterface $field_storage) {
-  if ($field_storage->type != 'image') {
+  if ($field_storage->getType() != 'image') {
     // Only act on image fields.
     return;
   }
@@ -371,8 +379,8 @@ function image_field_storage_config_update(FieldStorageConfigInterface $field_st
   $prior_field_storage = $field_storage->original;
 
   // The value of a managed_file element can be an array if #extended == TRUE.
-  $uuid_new = $field_storage->settings['default_image']['uuid'];
-  $uuid_old = $prior_field_storage->settings['default_image']['uuid'];
+  $uuid_new = $field_storage->getSetting('default_image')['uuid'];
+  $uuid_old = $prior_field_storage->getSetting('default_image')['uuid'];
 
   $file_new = $uuid_new ? \Drupal::entityManager()->loadEntityByUuid('file', $uuid_new) : FALSE;
 
@@ -392,8 +400,8 @@ function image_field_storage_config_update(FieldStorageConfigInterface $field_st
   }
 
   // If the upload destination changed, then move the file.
-  if ($file_new && (file_uri_scheme($file_new->getFileUri()) != $field_storage->settings['uri_scheme'])) {
-    $directory = $field_storage->settings['uri_scheme'] . '://default_images/';
+  if ($file_new && (file_uri_scheme($file_new->getFileUri()) != $field_storage->getSetting('uri_scheme'))) {
+    $directory = $field_storage->getSetting('uri_scheme') . '://default_images/';
     file_prepare_directory($directory, FILE_CREATE_DIRECTORY);
     file_move($file_new, $directory . $file_new->filename);
   }
@@ -404,14 +412,14 @@ function image_field_storage_config_update(FieldStorageConfigInterface $field_st
  */
 function image_field_config_update(FieldConfigInterface $field) {
   $field_storage = $field->getFieldStorageDefinition();
-  if ($field_storage->type != 'image') {
+  if ($field_storage->getType() != 'image') {
     // Only act on image fields.
     return;
   }
 
   $prior_instance = $field->original;
 
-  $uuid_new = $field->settings['default_image']['uuid'];
+  $uuid_new = $field->getSetting('default_image')['uuid'];
   $uuid_old = $prior_instance->settings['default_image']['uuid'];
 
   // If the old and new files do not match, update the default accordingly.
@@ -430,8 +438,8 @@ function image_field_config_update(FieldConfigInterface $field) {
   }
 
   // If the upload destination changed, then move the file.
-  if ($file_new && (file_uri_scheme($file_new->getFileUri()) != $field_storage->settings['uri_scheme'])) {
-    $directory = $field_storage->settings['uri_scheme'] . '://default_images/';
+  if ($file_new && (file_uri_scheme($file_new->getFileUri()) != $field_storage->getSetting('uri_scheme'))) {
+    $directory = $field_storage->getSetting('uri_scheme') . '://default_images/';
     file_prepare_directory($directory, FILE_CREATE_DIRECTORY);
     file_move($file_new, $directory . $file_new->filename);
   }
@@ -441,13 +449,13 @@ function image_field_config_update(FieldConfigInterface $field) {
  * Implements hook_ENTITY_TYPE_delete() for 'field_storage_config'.
  */
 function image_field_storage_config_delete(FieldStorageConfigInterface $field) {
-  if ($field->type != 'image') {
+  if ($field->getType() != 'image') {
     // Only act on image fields.
     return;
   }
 
   // The value of a managed_file element can be an array if #extended == TRUE.
-  $uuid = $field->settings['default_image']['uuid'];
+  $uuid = $field->getSetting('default_image')['uuid'];
   if ($uuid && ($file = \Drupal::entityManager()->loadEntityByUuid('file', $uuid))) {
     \Drupal::service('file.usage')->delete($file, 'image', 'default_image', $field->uuid());
   }
@@ -458,7 +466,7 @@ function image_field_storage_config_delete(FieldStorageConfigInterface $field) {
  */
 function image_field_config_delete(FieldConfigInterface $field) {
   $field_storage = $field->getFieldStorageDefinition();
-  if ($field_storage->type != 'image') {
+  if ($field_storage->getType() != 'image') {
     // Only act on image fields.
     return;
   }

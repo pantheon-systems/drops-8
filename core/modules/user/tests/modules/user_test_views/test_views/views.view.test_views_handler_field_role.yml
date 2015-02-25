@@ -63,7 +63,7 @@ display:
             suffix: ''
             target: ''
             nl2br: false
-            max_length: ''
+            max_length: 0
             word_boundary: true
             ellipsis: true
             more_link: false
@@ -118,7 +118,7 @@ display:
             suffix: ''
             target: ''
             nl2br: false
-            max_length: ''
+            max_length: 0
             word_boundary: true
             ellipsis: true
             more_link: false
@@ -157,8 +157,6 @@ display:
           entity_field: status
       sorts: {  }
       title: test_user_role
-      field_langcode: '***LANGUAGE_language_content***'
-      field_langcode_add_to_query: null
   page_1:
     display_plugin: page
     id: page_1
@@ -166,5 +164,3 @@ display:
     position: null
     display_options:
       path: test-views-handler-field-role
-      field_langcode: '***LANGUAGE_language_content***'
-      field_langcode_add_to_query: null

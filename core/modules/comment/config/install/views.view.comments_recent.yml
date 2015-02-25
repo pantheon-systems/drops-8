@@ -87,7 +87,7 @@ display:
             suffix: ''
             target: ''
             nl2br: false
-            max_length: ''
+            max_length: 0
             word_boundary: false
             ellipsis: false
             more_link: false
@@ -140,7 +140,7 @@ display:
             suffix: ''
             target: ''
             nl2br: false
-            max_length: ''
+            max_length: 0
             word_boundary: true
             ellipsis: true
             more_link: false
@@ -234,8 +234,6 @@ display:
           content: 'No comments available.'
           tokenize: false
           plugin_id: text_custom
-      field_langcode: '***LANGUAGE_language_content***'
-      field_langcode_add_to_query: null
   block_1:
     display_plugin: block
     id: block_1
@@ -244,7 +242,5 @@ display:
     display_options:
       block_description: 'Recent comments'
       block_category: 'Lists (Views)'
-      field_langcode: '***LANGUAGE_language_content***'
-      field_langcode_add_to_query: null
       allow:
         items_per_page: true

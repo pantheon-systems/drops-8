@@ -11,6 +11,7 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\content_translation\Tests\ContentTranslationUITest;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Url;
+use Drupal\node\Entity\Node;
 
 /**
  * Tests the Node Translation UI.
@@ -46,6 +47,14 @@ class NodeTranslationUITest extends ContentTranslationUITest {
     $edit = array('language_configuration[language_alterable]' => TRUE);
     $this->drupalPostForm('admin/structure/types/manage/article', $edit, t('Save content type'));
     $this->drupalLogin($this->translator);
+  }
+
+  /**
+   * Tests the basic translation UI.
+   */
+  function testTranslationUI() {
+    parent::testTranslationUI();
+    $this->doUninstallTest();
   }
 
   /**
@@ -236,7 +245,7 @@ class NodeTranslationUITest extends ContentTranslationUITest {
     // Enable the translation language renderer.
     $view = \Drupal::entityManager()->getStorage('view')->load('frontpage');
     $display = &$view->getDisplay('default');
-    $display['display_options']['rendering_language'] = 'translation_language_renderer';
+    $display['display_options']['rendering_language'] = '***LANGUAGE_entity_translation***';
     $view->save();
 
     // Need to check from the beginning, including the base_path, in the url
@@ -348,4 +357,45 @@ class NodeTranslationUITest extends ContentTranslationUITest {
     }
     return '';
   }
+
+  /**
+   * Tests uninstalling content_translation.
+   */
+  protected function doUninstallTest() {
+    // Delete all the nodes so there is no data.
+    $nodes = Node::loadMultiple();
+    foreach ($nodes as $node) {
+      $node->delete();
+    }
+    $language_count = count(\Drupal::configFactory()->listAll('language.content_settings.'));
+    \Drupal::service('module_installer')->uninstall(['content_translation']);
+    $this->rebuildContainer();
+    $this->assertEqual($language_count, count(\Drupal::configFactory()->listAll('language.content_settings.')), 'Languages have been fixed rather than deleted during content_translation uninstall.');
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function doTestTranslationEdit() {
+    $entity = entity_load($this->entityTypeId, $this->entityId, TRUE);
+    $languages = $this->container->get('language_manager')->getLanguages();
+    $type_name = node_get_type_label($entity);
+
+    foreach ($this->langcodes as $langcode) {
+      // We only want to test the title for non-english translations.
+      if ($langcode != 'en') {
+        $options = array('language' => $languages[$langcode]);
+        $url = $entity->urlInfo('edit-form', $options);
+        $this->drupalGet($url);
+
+        $title = t('<em>Edit @type</em> @title [%language translation]', array(
+          '@type' => $type_name,
+          '@title' => $entity->getTranslation($langcode)->label(),
+          '%language' => $languages[$langcode]->getName(),
+        ));
+        $this->assertRaw($title);
+      }
+    }
+  }
+
 }

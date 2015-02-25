@@ -7,7 +7,7 @@
 
 namespace Drupal\Core\Database\Driver\sqlite;
 
-use Drupal\Component\Utility\String;
+use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Database\SchemaObjectExistsException;
 use Drupal\Core\Database\SchemaObjectDoesNotExistException;
 use Drupal\Core\Database\Schema as DatabaseSchema;
@@ -271,20 +271,6 @@ class Schema extends DatabaseSchema {
     foreach ($statements as $statement) {
       $this->connection->query($statement);
     }
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function copyTable($source, $destination) {
-    if (!$this->tableExists($source)) {
-      throw new SchemaObjectDoesNotExistException(String::format("Cannot copy @source to @destination: table @source doesn't exist.", array('@source' => $source, '@destination' => $destination)));
-    }
-    if ($this->tableExists($destination)) {
-      throw new SchemaObjectExistsException(String::format("Cannot copy @source to @destination: table @destination already exists.", array('@source' => $source, '@destination' => $destination)));
-    }
-
-    $this->createTable($destination, $this->introspectSchema($source));
   }
 
   public function dropTable($table) {

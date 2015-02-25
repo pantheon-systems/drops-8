@@ -8,14 +8,16 @@
 namespace Drupal\aggregator\Plugin\views\field;
 
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Url;
 use Drupal\views\Plugin\views\display\DisplayPluginBase;
 use Drupal\views\Plugin\views\field\FieldPluginBase;
 use Drupal\views\ResultRow;
 use Drupal\views\ViewExecutable;
 
 /**
- * Defines a field handler that turns an item's title into a clickable link to
- * the original source article.
+ * Defines a field handler that turns an item's title into a clickable link.
+ *
+ * The link refers to the original source article.
  *
  * @ingroup views_field_handlers
  *
@@ -78,7 +80,8 @@ class TitleLink extends FieldPluginBase {
     $link = $this->getValue($values, 'link');
     if (!empty($this->options['display_as_link'])) {
       $this->options['alter']['make_link'] = TRUE;
-      $this->options['alter']['path'] = $link;
+      // Note: $link is an external URI, pointing to the feed itself.
+      $this->options['alter']['url'] = Url::fromUri($link);
       $this->options['alter']['html'] = TRUE;
       $this->options['alter']['absolute'] = TRUE;
     }

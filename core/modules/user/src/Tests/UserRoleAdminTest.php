@@ -17,16 +17,23 @@ use Drupal\user\Entity\Role;
  */
 class UserRoleAdminTest extends WebTestBase {
 
+  /**
+   * User with admin privileges.
+   *
+   * @var \Drupal\user\UserInterface
+   */
+  protected $adminUser;
+
   protected function setUp() {
     parent::setUp();
-    $this->admin_user = $this->drupalCreateUser(array('administer permissions', 'administer users'));
+    $this->adminUser = $this->drupalCreateUser(array('administer permissions', 'administer users'));
   }
 
   /**
    * Test adding, renaming and deleting roles.
    */
   function testRoleAdministration() {
-    $this->drupalLogin($this->admin_user);
+    $this->drupalLogin($this->adminUser);
     $default_langcode = \Drupal::languageManager()->getDefaultLanguage()->getId();
     // Test presence of tab.
     $this->drupalGet('admin/people/permissions');
@@ -66,7 +73,7 @@ class UserRoleAdminTest extends WebTestBase {
     $this->drupalGet("admin/people/roles/manage/{$role->id()}");
     $this->clickLink(t('Delete'));
     $this->drupalPostForm(NULL, array(), t('Delete'));
-    $this->assertRaw(t('Role %label has been deleted.', array('%label' => $role_name)));
+    $this->assertRaw(t('The role %label has been deleted.', array('%label' => $role_name)));
     $this->assertNoLinkByHref("admin/people/roles/manage/{$role->id()}", 'Role edit link removed.');
     \Drupal::entityManager()->getStorage('user_role')->resetCache(array($role->id()));
     $this->assertFalse(Role::load($role->id()), 'A deleted role can no longer be loaded.');
@@ -85,7 +92,7 @@ class UserRoleAdminTest extends WebTestBase {
    * Test user role weight change operation and ordering.
    */
   function testRoleWeightOrdering() {
-    $this->drupalLogin($this->admin_user);
+    $this->drupalLogin($this->adminUser);
     $roles = user_roles();
     $weight = count($roles);
     $new_role_weights = array();

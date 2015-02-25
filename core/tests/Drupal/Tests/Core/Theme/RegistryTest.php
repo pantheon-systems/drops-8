@@ -7,7 +7,7 @@
 
 namespace Drupal\Tests\Core\Theme;
 
-use Drupal\Core\Extension\Extension;
+use Drupal\Core\Theme\ActiveTheme;
 use Drupal\Core\Theme\Registry;
 use Drupal\Tests\UnitTestCase;
 
@@ -53,6 +53,13 @@ class RegistryTest extends UnitTestCase {
   protected $themeHandler;
 
   /**
+   * The mocked theme initialization.
+   *
+   * @var \Drupal\Core\Theme\ThemeInitializationInterface|\PHPUnit_Framework_MockObject_MockObject
+   */
+  protected $themeInitialization;
+
+  /**
    * {@inheritdoc}
    */
   protected function setUp() {
@@ -62,6 +69,7 @@ class RegistryTest extends UnitTestCase {
     $this->lock = $this->getMock('Drupal\Core\Lock\LockBackendInterface');
     $this->moduleHandler = $this->getMock('Drupal\Core\Extension\ModuleHandlerInterface');
     $this->themeHandler = $this->getMock('Drupal\Core\Extension\ThemeHandlerInterface');
+    $this->themeInitialization = $this->getMock('Drupal\Core\Theme\ThemeInitializationInterface');
 
     $this->setupTheme();
   }
@@ -71,8 +79,17 @@ class RegistryTest extends UnitTestCase {
    */
   public function testGetRegistryForModule() {
     $this->setupTheme('test_theme');
-    $this->registry->setTheme(new Extension('theme', 'core/modules/system/tests/themes/test_theme/test_theme.info.yml', 'test_theme.theme'));
-    $this->registry->setBaseThemes(array());
+    $this->registry->setTheme(new ActiveTheme([
+      'name' => 'test_theme',
+      'path' => 'core/modules/system/tests/themes/test_theme/test_theme.info.yml',
+      'engine' => 'twig',
+      'owner' => 'twig',
+      'stylesheets_remove' => [],
+      'stylesheets_override' => [],
+      'libraries' => [],
+      'extension' => '.twig',
+      'base_themes' => [],
+    ]));
 
     // Include the module so that hook_theme can be called.
     include_once $this->root . '/core/modules/system/tests/modules/theme_test/theme_test.module';
@@ -106,19 +123,15 @@ class RegistryTest extends UnitTestCase {
   }
 
   protected function setupTheme($theme_name = NULL) {
-    $this->registry = new TestRegistry($this->root, $this->cache, $this->lock, $this->moduleHandler, $this->themeHandler, $theme_name);
+    $this->registry = new TestRegistry($this->root, $this->cache, $this->lock, $this->moduleHandler, $this->themeHandler, $this->themeInitialization, $theme_name);
   }
 
 }
 
 class TestRegistry extends Registry {
 
-  public function setTheme(Extension $theme) {
+  public function setTheme(ActiveTheme $theme) {
     $this->theme = $theme;
-  }
-
-  public function setBaseThemes(array $base_themes) {
-    $this->baseThemes = $base_themes;
   }
 
   protected function init($theme_name = NULL) {

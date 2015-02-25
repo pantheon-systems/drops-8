@@ -8,14 +8,14 @@
 namespace Drupal\migrate_drupal\Tests\d6;
 
 use Drupal\migrate\MigrateExecutable;
-use Drupal\migrate_drupal\Tests\MigrateDrupalTestBase;
+use Drupal\migrate_drupal\Tests\d6\MigrateDrupal6TestBase;
 
 /**
  * Upgrade comment type.
  *
  * @group migrate_drupal
  */
-class MigrateCommentTypeTest extends MigrateDrupalTestBase {
+class MigrateCommentTypeTest extends MigrateDrupal6TestBase {
 
   static $modules = array('node', 'comment');
 
@@ -42,9 +42,9 @@ class MigrateCommentTypeTest extends MigrateDrupalTestBase {
    */
   public function testCommentType() {
     $comment_type = entity_load('comment_type', 'comment');
-    $this->assertEqual('node', $comment_type->getTargetEntityTypeId());
+    $this->assertIdentical('node', $comment_type->getTargetEntityTypeId());
     $comment_type = entity_load('comment_type', 'comment_no_subject');
-    $this->assertEqual('node', $comment_type->getTargetEntityTypeId());
+    $this->assertIdentical('node', $comment_type->getTargetEntityTypeId());
   }
 
 }

@@ -294,8 +294,6 @@ abstract class PathPluginBase extends DisplayPluginBase implements DisplayRouter
       }
     }
 
-    $view_route_names = $this->state->get('views.view_route_names') ?: array();
-
     $path = implode('/', $bits);
     $view_id = $this->view->storage->id();
     $display_id = $this->display['id'];
@@ -309,7 +307,7 @@ abstract class PathPluginBase extends DisplayPluginBase implements DisplayRouter
         // Some views might override existing paths, so we have to set the route
         // name based upon the altering.
         $links[$menu_link_id] = array(
-          'route_name' => isset($view_route_names[$view_id_display]) ? $view_route_names[$view_id_display] : "view.$view_id_display",
+          'route_name' => $this->getRouteName(),
           // Identify URL embedded arguments and correlate them to a handler.
           'load arguments'  => array($this->view->storage->id(), $this->display['id'], '%index'),
           'id' => $menu_link_id,
@@ -458,7 +456,7 @@ abstract class PathPluginBase extends DisplayPluginBase implements DisplayRouter
       $errors[] = $this->t('No query allowed.');
     }
 
-    if (!parse_url('base://' . $path)) {
+    if (!parse_url('internal:/' . $path)) {
       $errors[] = $this->t('Invalid path. Valid characters are alphanumerics as well as "-", ".", "_" and "~".');
     }
 
@@ -486,5 +484,32 @@ abstract class PathPluginBase extends DisplayPluginBase implements DisplayRouter
     return $errors;
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  public function getUrlInfo() {
+    return Url::fromRoute($this->getRouteName());
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getRouteName() {
+    $view_id = $this->view->storage->id();
+    $display_id = $this->display['id'];
+    $view_route_key = "$view_id.$display_id";
+
+    // Check for overridden route names.
+    $view_route_names = $this->getAlteredRouteNames();
+
+    return (isset($view_route_names[$view_route_key]) ? $view_route_names[$view_route_key] : "views.$view_route_key");
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getAlteredRouteNames() {
+    return $this->state->get('views.view_route_names') ?: array();
+  }
 
 }

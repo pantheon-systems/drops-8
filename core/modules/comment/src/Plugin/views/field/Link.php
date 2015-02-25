@@ -11,6 +11,7 @@ use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\views\Plugin\views\field\FieldPluginBase;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
+use Drupal\Core\Url;
 use Drupal\views\ResultRow;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -59,6 +60,9 @@ class Link extends FieldPluginBase {
     $this->entityManager = $entity_manager;
   }
 
+  /**
+   * {@inheritdoc}
+   */
   protected function defineOptions() {
     $options = parent::defineOptions();
     $options['text'] = array('default' => '');
@@ -66,6 +70,9 @@ class Link extends FieldPluginBase {
     return $options;
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function buildOptionsForm(&$form, FormStateInterface $form_state) {
     $form['text'] = array(
       '#type' => 'textfield',
@@ -80,6 +87,9 @@ class Link extends FieldPluginBase {
     parent::buildOptionsForm($form, $form_state);
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function query() {}
 
   /**
@@ -111,13 +121,13 @@ class Link extends FieldPluginBase {
     $this->options['alter']['html'] = TRUE;
 
     if (!empty($cid)) {
-      $this->options['alter']['path'] = "comment/" . $cid;
+      $this->options['alter']['url'] = Url::fromRoute('entity.comment.canonical', ['comment' => $cid]);
       $this->options['alter']['fragment'] = "comment-" . $cid;
     }
     // If there is no comment link to the node.
     elseif ($this->options['link_to_node']) {
       $entity = $comment->getCommentedEntity();
-      $this->options['alter']['path'] = $entity->getSystemPath();
+      $this->options['alter']['url'] = $entity->urlInfo();
     }
 
     return $text;

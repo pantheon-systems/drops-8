@@ -4,6 +4,9 @@ views_display:
   type: mapping
   label: 'Display options'
   mapping:
+    enabled:
+      type: boolean
+      label: 'Status'
     title:
       type: text
       label: 'Display title'
@@ -128,7 +131,7 @@ views_display:
           type: boolean
           label: 'CSS class'
         display_description:
-          type: label
+          type: boolean
           label: 'Administrative description'
         use_ajax:
           type: boolean
@@ -220,7 +223,7 @@ views_display:
       type: boolean
       label: 'Display ''more'' link only if there is more content'
     use_more_text:
-      type: string
+      type: label
       label: 'The text to display for the more link.'
     link_display:
       type: string
@@ -244,12 +247,6 @@ views_display:
     hide_attachment_summary:
       type: boolean
       label: 'Hide attachments in summary'
-    field_langcode:
-      type: string
-      label: 'Field langcode'
-    field_langcode_add_to_query:
-      type: string
-      label: 'Add the field language to the query'
     rendering_language:
       type: string
       label: 'Entity language'
@@ -516,7 +513,7 @@ views_field:
           type: boolean
           label: 'Convert newlines to HTML <br> tags'
         max_length:
-          type: string
+          type: integer
           label: 'Maximum number of characters'
         word_boundary:
           type: boolean
@@ -581,6 +578,9 @@ views_field:
     hide_alter_empty:
       type: boolean
       label: 'Hide rewriting if empty'
+    destination:
+      type: boolean
+      label: 'Append a destination query string to operation links.'
     plugin_id:
       type: string
       label: 'Plugin ID'
@@ -803,25 +803,6 @@ views_relationship:
 views_query:
   type: mapping
   label: 'Query options'
-  mapping:
-    query_comment:
-      type: boolean
-      label: 'Query comment'
-    disable_sql_rewrite:
-      type: boolean
-      label: 'Disable SQL rewriting'
-    distinct:
-      type: boolean
-      label: 'Distinct'
-    replica:
-      type: boolean
-      label: 'Use Replica Server'
-    query_tags:
-      type: sequence
-      label: 'Query Tags'
-      sequence:
-        - type: string
-          label: 'Tag'
 
 views_row:
   type: mapping

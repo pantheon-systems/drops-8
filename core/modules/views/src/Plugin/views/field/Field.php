@@ -8,12 +8,9 @@
 namespace Drupal\views\Plugin\views\field;
 
 use Drupal\Component\Utility\SafeMarkup;
-use Drupal\Component\Utility\Xss;
+use Drupal\Component\Utility\Xss as CoreXss;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityManagerInterface;
-use Drupal\Core\Entity\EntityStorageInterface;
-use Drupal\Core\Field\BaseFieldDefinition;
-use Drupal\Core\Field\FieldConfigInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Field\FieldTypePluginManagerInterface;
 use Drupal\Core\Field\FormatterPluginManager;
@@ -24,15 +21,12 @@ use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Session\AccountInterface;
-use Drupal\field\FieldStorageConfigInterface;
 use Drupal\field\Views\FieldAPIHandlerTrait;
+use Drupal\views\Entity\Render\EntityTranslationRenderTrait;
 use Drupal\views\Plugin\CacheablePluginInterface;
 use Drupal\views\Plugin\views\display\DisplayPluginBase;
-use Drupal\views\Plugin\views\field\FieldPluginBase;
-use Drupal\views\Plugin\views\field\MultiItemsFieldHandlerInterface;
 use Drupal\views\ResultRow;
 use Drupal\views\ViewExecutable;
-use Drupal\views\Views;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -45,6 +39,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * @ViewsField("field")
  */
 class Field extends FieldPluginBase implements CacheablePluginInterface, MultiItemsFieldHandlerInterface {
+  use EntityTranslationRenderTrait;
 
   use FieldAPIHandlerTrait;
 
@@ -171,7 +166,7 @@ class Field extends FieldPluginBase implements CacheablePluginInterface, MultiIt
   }
 
   /**
-   * Overrides \Drupal\views\Plugin\views\field\FieldPluginBase::init().
+   * {@inheritdoc}
    */
   public function init(ViewExecutable $view, DisplayPluginBase $display, array &$options = NULL) {
     parent::init($view, $display, $options);
@@ -197,10 +192,37 @@ class Field extends FieldPluginBase implements CacheablePluginInterface, MultiIt
 
       // Otherwise, we only limit values if the user hasn't selected "all", 0, or
       // the value matching field cardinality.
-      if ((intval($this->options['delta_limit']) && ($this->options['delta_limit'] != $cardinality)) || intval($this->options['delta_offset'])) {
+      if ((($this->options['delta_limit'] > 0) && ($this->options['delta_limit'] != $cardinality)) || intval($this->options['delta_offset'])) {
         $this->limit_values = TRUE;
       }
     }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getEntityTypeId() {
+    return $this->getEntityType();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function getEntityManager() {
+    return $this->entityManager;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function getLanguageManager() {
+    return $this->languageManager;
+  }
+  /**
+   * {@inheritdoc}
+   */
+  protected function getView() {
+    return $this->view;
   }
 
   /**
@@ -247,24 +269,10 @@ class Field extends FieldPluginBase implements CacheablePluginInterface, MultiIt
     if ($this->add_field_table($use_groupby)) {
       $this->ensureMyTable();
       $this->addAdditionalFields($fields);
-
-      // If we are grouping by something on this field, we want to group by
-      // the displayed value, which is translated. So, we need to figure out
-      // which language should be used to translate the value. See also
-      // $this->field_langcode().
-      $field = $field_definition;
-      if ($field->isTranslatable() && !empty($this->view->display_handler->options['field_langcode_add_to_query'])) {
-        $column = $this->tableAlias . '.langcode';
-        $langcode = $this->view->display_handler->options['field_langcode'];
-        $substitutions = static::queryLanguageSubstitutions();
-        if (isset($substitutions[$langcode])) {
-          $langcode = $substitutions[$langcode];
-        }
-        $placeholder = $this->placeholder();
-        $langcode_fallback_candidates = $this->languageManager->getFallbackCandidates(array('langcode' => $langcode, 'operation' => 'views_query', 'data' => $this));
-        $this->query->addWhereExpression(0, "$column IN($placeholder) OR $column IS NULL", array($placeholder => $langcode_fallback_candidates));
-      }
     }
+
+    // Let the configured entity translation renderer alter the query if needed.
+    $this->getEntityTranslationRenderer()->query($this->query);
   }
 
   /**
@@ -386,7 +394,7 @@ class Field extends FieldPluginBase implements CacheablePluginInterface, MultiIt
     // If we know the exact number of allowed values, then that can be
     // the default. Otherwise, default to 'all'.
     $options['delta_limit'] = array(
-      'default' => ($field_storage_definition->getCardinality() > 1) ? $field_storage_definition->getCardinality() : 'all',
+      'default' => ($field_storage_definition->getCardinality() > 1) ? $field_storage_definition->getCardinality() : 0,
     );
     $options['delta_offset'] = array(
       'default' => 0,
@@ -758,7 +766,7 @@ class Field extends FieldPluginBase implements CacheablePluginInterface, MultiIt
   function process_entity(ResultRow $values, EntityInterface $entity) {
     $processed_entity = clone $entity;
 
-    $langcode = $this->field_langcode($processed_entity);
+    $langcode = $this->getFieldLangcode($processed_entity, $values);
     $processed_entity = $processed_entity->getTranslation($langcode);
 
     // If we are grouping, copy our group fields into the cloned entity.
@@ -822,7 +830,7 @@ class Field extends FieldPluginBase implements CacheablePluginInterface, MultiIt
 
         // We should only get here in this case if there's an offset, and
         // in that case we're limiting to all values after the offset.
-        if ($delta_limit == 'all') {
+        if ($delta_limit === 0) {
           $delta_limit = count($all_values) - $offset;
         }
       }
@@ -876,7 +884,7 @@ class Field extends FieldPluginBase implements CacheablePluginInterface, MultiIt
                (is_object($item['raw']) ? (array)$item['raw'] : NULL);
       }
       if (isset($raw) && isset($raw[$id]) && is_scalar($raw[$id])) {
-        $tokens['{{ ' . $this->options['id'] . '-' . $id . ' }}'] = Xss::filterAdmin($raw[$id]);
+        $tokens['{{ ' . $this->options['id'] . '-' . $id . ' }}'] = CoreXss::filterAdmin($raw[$id]);
       }
       else {
         // Make sure that empty values are replaced as well.
@@ -886,16 +894,23 @@ class Field extends FieldPluginBase implements CacheablePluginInterface, MultiIt
   }
 
   /**
-   * Return the language code of the language the field should be displayed in,
-   * according to the settings.
+   * Return the code of the language the field should be displayed in.
+   *
+   * @param \Drupal\Core\Entity\EntityInterface $entity
+   *   The entity object the field value being processed is attached to.
+   * @param \Drupal\views\ResultRow $row
+   *   The result row the field value being processed belongs to.
+   *
+   * @return string
+   *   The field language code.
    */
-  function field_langcode(EntityInterface $entity) {
+  protected function getFieldLangcode(EntityInterface $entity, ResultRow $row) {
     if ($this->getFieldDefinition()->isTranslatable()) {
-      $langcode = $this->view->display_handler->options['field_langcode'];
-      $substitutions = static::queryLanguageSubstitutions();
-      if (isset($substitutions[$langcode])) {
-        $langcode = $substitutions[$langcode];
-      }
+      // Even if the current field is not attached to the main entity, we use it
+      // to determine the field language, as we assume the same language should
+      // be used for all values belonging to a single row, when possible. Below
+      // we apply language fallback to ensure a valid value is always picked.
+      $langcode = $this->getEntityTranslationRenderer()->getLangcode($row);
 
       // Give the Entity Field API a chance to fallback to a different language
       // (or LanguageInterface::LANGCODE_NOT_SPECIFIED), in case the field has

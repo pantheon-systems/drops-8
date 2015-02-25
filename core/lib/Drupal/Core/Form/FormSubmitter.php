@@ -75,7 +75,7 @@ class FormSubmitter implements FormSubmitterInterface {
       // after the batch is processed.
     }
 
-    // Set a flag to indicate the the form has been processed and executed.
+    // Set a flag to indicate the form has been processed and executed.
     $form_state->setExecuted();
 
     // If no response has been set, process the form redirect.
@@ -137,12 +137,7 @@ class FormSubmitter implements FormSubmitterInterface {
     // If no redirect was specified, redirect to the current path.
     elseif ($redirect === NULL) {
       $request = $this->requestStack->getCurrentRequest();
-      // @todo Remove dependency on the internal _system_path attribute:
-      //   https://www.drupal.org/node/2293521.
-      $url = $this->urlGenerator->generateFromPath($request->attributes->get('_system_path'), array(
-        'query' => $request->query->all(),
-        'absolute' => TRUE,
-      ));
+      $url = $this->urlGenerator->generateFromRoute('<current>', [], ['query' => $request->query->all(), 'absolute' => TRUE]);
     }
 
     if ($url) {

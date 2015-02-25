@@ -8,14 +8,14 @@
 namespace Drupal\migrate_drupal\Tests\d6;
 
 use Drupal\migrate\MigrateExecutable;
-use Drupal\migrate_drupal\Tests\MigrateDrupalTestBase;
+use Drupal\migrate_drupal\Tests\d6\MigrateDrupal6TestBase;
 
 /**
  * Vocabulary entity form display migration.
  *
  * @group migrate_drupal
  */
-class MigrateVocabularyEntityFormDisplayTest extends MigrateDrupalTestBase {
+class MigrateVocabularyEntityFormDisplayTest extends MigrateDrupal6TestBase {
 
   /**
    * The modules to be enabled during the test.
@@ -76,10 +76,10 @@ class MigrateVocabularyEntityFormDisplayTest extends MigrateDrupalTestBase {
   public function testVocabularyEntityFormDisplay() {
     // Test that the field exists.
     $component = entity_get_form_display('node', 'page', 'default')->getComponent('tags');
-    $this->assertEqual($component['type'], 'options_select');
-    $this->assertEqual($component['weight'], 20);
+    $this->assertIdentical($component['type'], 'options_select');
+    $this->assertIdentical($component['weight'], 20);
     // Test the Id map.
-    $this->assertEqual(array('node', 'article', 'default', 'tags'), entity_load('migration', 'd6_vocabulary_entity_form_display')->getIdMap()->lookupDestinationID(array(4, 'article')));
+    $this->assertIdentical(array('node', 'article', 'default', 'tags'), entity_load('migration', 'd6_vocabulary_entity_form_display')->getIdMap()->lookupDestinationID(array(4, 'article')));
   }
 
 }

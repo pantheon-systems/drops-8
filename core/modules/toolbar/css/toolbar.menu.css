@@ -13,9 +13,6 @@
   position: relative;
   width: auto;
 }
-.toolbar .toolbar-box a {
-  display: inline-block;
-}
 .toolbar .toolbar-tray-horizontal .menu .toolbar-handle,
 .toolbar .toolbar-tray-horizontal .menu ul,
 .toolbar .toolbar-tray-vertical .menu ul {
@@ -31,7 +28,7 @@
   margin-left: 3em;
   margin-right: 0;
 }
-.toolbar .toolbar-tray .active-trail > .toolbar-box a,
+.toolbar .toolbar-tray .menu-item--active-trail > .toolbar-box a,
 .toolbar .toolbar-tray a.active {
   color: #000;
   font-weight: bold;

@@ -18,7 +18,7 @@ views.field.boolean:
       type: string
       label: 'Custom output for FALSE'
     not:
-      type: string
+      type: boolean
       label: 'Reverse'
 
 views.field.broken:
@@ -178,3 +178,7 @@ views.field.xss:
 views.field.language:
   type: views_field
   label: 'Language'
+
+views.field.bulk_form:
+  type: views_field_bulk_form
+  label: 'Bulk form'

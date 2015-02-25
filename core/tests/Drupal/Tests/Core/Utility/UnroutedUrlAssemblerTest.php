@@ -73,6 +73,7 @@ class UnroutedUrlAssemblerTest extends UnitTestCase {
    * @dataProvider providerTestAssembleWithExternalUrl
    */
   public function testAssembleWithExternalUrl($uri, array $options, $expected) {
+   $this->setupRequestStack(FALSE);
    $this->assertEquals($expected, $this->unroutedUrlAssembler->assemble($uri, $options));
   }
 
@@ -108,12 +109,12 @@ class UnroutedUrlAssemblerTest extends UnitTestCase {
    */
   public function providerTestAssembleWithLocalUri() {
     return [
-      ['base://example', [], FALSE, '/example'],
-      ['base://example', ['query' => ['foo' => 'bar']], FALSE, '/example?foo=bar'],
-      ['base://example', ['fragment' => 'example', ], FALSE, '/example#example'],
-      ['base://example', [], TRUE, '/subdir/example'],
-      ['base://example', ['query' => ['foo' => 'bar']], TRUE, '/subdir/example?foo=bar'],
-      ['base://example', ['fragment' => 'example', ], TRUE, '/subdir/example#example'],
+      ['base:example', [], FALSE, '/example'],
+      ['base:example', ['query' => ['foo' => 'bar']], FALSE, '/example?foo=bar'],
+      ['base:example', ['fragment' => 'example', ], FALSE, '/example#example'],
+      ['base:example', [], TRUE, '/subdir/example'],
+      ['base:example', ['query' => ['foo' => 'bar']], TRUE, '/subdir/example?foo=bar'],
+      ['base:example', ['fragment' => 'example', ], TRUE, '/subdir/example#example'],
     ];
   }
 
@@ -124,7 +125,7 @@ class UnroutedUrlAssemblerTest extends UnitTestCase {
     $this->setupRequestStack(FALSE);
     $this->pathProcessor->expects($this->never())
       ->method('processOutbound');
-    $result = $this->unroutedUrlAssembler->assemble('base://test-uri', []);
+    $result = $this->unroutedUrlAssembler->assemble('base:test-uri', []);
     $this->assertEquals('/test-uri', $result);
   }
 
@@ -137,7 +138,7 @@ class UnroutedUrlAssemblerTest extends UnitTestCase {
       ->method('processOutbound')
       ->with('test-uri', ['path_processing' => TRUE, 'fragment' => NULL, 'query' => [], 'absolute' => NULL, 'prefix' => NULL, 'script' => NULL])
       ->willReturn('test-other-uri');
-    $result = $this->unroutedUrlAssembler->assemble('base://test-uri', ['path_processing' => TRUE]);
+    $result = $this->unroutedUrlAssembler->assemble('base:test-uri', ['path_processing' => TRUE]);
     $this->assertEquals('/test-other-uri', $result);
   }
 
@@ -158,7 +159,7 @@ class UnroutedUrlAssemblerTest extends UnitTestCase {
         'SCRIPT_FILENAME' => $this->root . '/index.php',
         'SERVER_NAME' => 'http://www.example.com',
       ];
-      $request = Request::create('/subdir');
+      $request = Request::create('/subdir/');
     }
     else {
       $request = Request::create('/');

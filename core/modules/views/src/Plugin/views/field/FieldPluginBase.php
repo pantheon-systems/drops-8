@@ -17,6 +17,7 @@ use Drupal\Component\Utility\Xss;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Renderer;
+use Drupal\Core\Url as CoreUrl;
 use Drupal\views\Plugin\views\HandlerBase;
 use Drupal\views\Plugin\views\display\DisplayPluginBase;
 use Drupal\views\ResultRow;
@@ -102,7 +103,7 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
   /**
    * Stores the render API renderer.
    *
-   * @var \Drupal\Core\Render\Renderer
+   * @var \Drupal\Core\Render\RendererInterface
    */
   protected $renderer;
 
@@ -445,7 +446,7 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
         'suffix' => array('default' => ''),
         'target' => array('default' => ''),
         'nl2br' => array('default' => FALSE),
-        'max_length' => array('default' => ''),
+        'max_length' => array('default' => 0),
         'word_boundary' => array('default' => TRUE),
         'ellipsis' => array('default' => TRUE),
         'more_link' => array('default' => FALSE),
@@ -714,7 +715,7 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
         '#title' => $this->t('Text'),
         '#type' => 'textarea',
         '#default_value' => $this->options['alter']['text'],
-        '#description' => $this->t('The text to display for this field. You may include HTML or Twig. You may enter data from this view as per the "Replacement patterns" below.'),
+        '#description' => $this->t('The text to display for this field. You may include HTML or <a href="@url">Twig</a>. You may enter data from this view as per the "Replacement patterns" below.', array('@url' => CoreUrl::fromUri('http://twig.sensiolabs.org/documentation'))),
         '#states' => array(
           'visible' => array(
             ':input[name="options[alter][alter_text]"]' => array('checked' => TRUE),
@@ -878,7 +879,7 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
       $output = '<p>' . $this->t('You must add some additional fields to this display before using this field. These fields may be marked as <em>Exclude from display</em> if you prefer. Note that due to rendering order, you cannot use fields that come after this field; if you need a field not listed here, rearrange your fields.') . '</p>';
       // We have some options, so make a list.
       if (!empty($options)) {
-        $output = '<p>' . $this->t("The following Twig replacement tokens are available for this field. Note that due to rendering order, you cannot use fields that come after this field; if you need a field not listed here, rearrange your fields.") . '</p>';
+        $output = '<p>' . $this->t("The following replacement tokens are available for this field. Note that due to rendering order, you cannot use fields that come after this field; if you need a field not listed here, rearrange your fields.") . '</p>';
         foreach (array_keys($options) as $type) {
           if (!empty($options[$type])) {
             $items = array();
@@ -1247,7 +1248,9 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
           $more_link_path = Unicode::substr($more_link_path, Unicode::strlen($base_path));
         }
 
-        $more_link = _l($more_link_text, $more_link_path, array('attributes' => array('class' => array('views-more-link'))));
+        // @todo Views should expect and store a leading /. See:
+        //   https://www.drupal.org/node/2423913
+        $more_link = \Drupal::l($more_link_text, CoreUrl::fromUserInput('/' . $more_link_path), array('attributes' => array('class' => array('views-more-link'))));
 
         $suffix .= " " . $more_link;
       }
@@ -1258,7 +1261,7 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
     }
     $this->last_render_text = $value;
 
-    if (!empty($alter['make_link']) && !empty($alter['path'])) {
+    if (!empty($alter['make_link']) && (!empty($alter['path']) || !empty($alter['url']))) {
       if (!isset($tokens)) {
         $tokens = $this->getRenderTokens($alter);
       }
@@ -1294,34 +1297,54 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
    * the user.
    */
   protected function renderAsLink($alter, $text, $tokens) {
-    $value = '';
-
-    if (!empty($alter['prefix'])) {
-      $value .= Xss::filterAdmin($this->viewsTokenReplace($alter['prefix'], $tokens));
-    }
-
     $options = array(
-      'html' => TRUE,
       'absolute' => !empty($alter['absolute']) ? TRUE : FALSE,
+      'alias' => FALSE,
+      'entity' => NULL,
+      'entity_type' => NULL,
+      'fragment' => NULL,
+      'html' => TRUE,
+      'language' => NULL,
+      'query' => [],
     );
 
     $alter += [
       'path' => NULL
     ];
 
-    // $path will be run through check_url() by _l() so we do not need to
-    // sanitize it ourselves.
     $path = $alter['path'];
+    if (empty($alter['url'])) {
+      if (!parse_url($path, PHP_URL_SCHEME)) {
+        // @todo Views should expect and store a leading /. See:
+        //   https://www.drupal.org/node/2423913
+        $alter['url'] = CoreUrl::fromUserInput('/' . ltrim($path, '/'));
+      }
+      else {
+        $alter['url'] = CoreUrl::fromUri($path);
+      }
+    }
+
+    $options = $alter['url']->getOptions() + $options;
+
+    $path = $alter['url']->setOptions($options)->toUriString();
 
     // strip_tags() removes <front>, so check whether its different to front.
-    if ($path != '<front>') {
+    if ($path != 'route:<front>') {
+      // Unescape Twig delimiters that may have been escaped by the
+      // Url::toUriString() call above, because we support twig tokens in
+      // rewrite settings of views fields.
+      // In that case the original path looks like
+      // internal:/admin/content/files/usage/{{ fid }}, which will be escaped by
+      // the toUriString() call above.
+      $path = preg_replace(['/(\%7B){2}(\%20)*/', '/(\%20)*(\%7D){2}/'], ['{{','}}'], $path);
+
       // Use strip tags as there should never be HTML in the path.
       // However, we need to preserve special characters like " that
       // were removed by String::checkPlain().
       $path = strip_tags(String::decodeEntities($this->viewsTokenReplace($path, $tokens)));
 
-      if (!empty($alter['path_case']) && $alter['path_case'] != 'none') {
-        $path = $this->caseTransform($path, $this->options['alter']['path_case']);
+      if (!empty($alter['path_case']) && $alter['path_case'] != 'none' && !$alter['url']->isRouted()) {
+        $path = str_replace($alter['path'], $this->caseTransform($alter['path'], $this->options['alter']['path_case']), $path);
       }
 
       if (!empty($alter['replace_spaces'])) {
@@ -1354,7 +1377,8 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
     if ($alter['external']) {
       if (!isset($url['scheme'])) {
         // There is no scheme, add the default 'http://' to the $path.
-        $path = "http://$path";
+        // Use the original $alter['path'] instead of the parsed version.
+        $path = "http://" . $alter['path'];
         // Reset the $url array to include the new scheme.
         $url = UrlHelper::parse($path);
       }
@@ -1402,6 +1426,7 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
       $options['attributes']['rel'] = $rel;
     }
 
+    // Not sure if this String::checkPlain() is needed here?
     $target = String::checkPlain(trim($this->viewsTokenReplace($alter['target'], $tokens)));
     if (!empty($target)) {
       $options['attributes']['target'] = $target;
@@ -1447,15 +1472,18 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
       $options['entity_type'] = $alter['entity_type'];
     }
 
-    // @todo Add proper support for url objects, see
-    //   https://www.drupal.org/node/2404603
-    //   This means for example taking into account the options.
-    if (isset($options['url']) && $options['url'] instanceof Url) {
-      $value .= $this->linkGenerator()->generate($text, $options['url']);
+    // The path has been heavily processed above, so it should be used as-is.
+    $final_url = CoreUrl::fromUri($path, $options);
+
+    // Build the link based on our altered Url object, adding on the optional
+    // prefix and suffix
+    $value = '';
+
+    if (!empty($alter['prefix'])) {
+      $value .= Xss::filterAdmin($this->viewsTokenReplace($alter['prefix'], $tokens));
     }
-    else {
-      $value .= _l($text, $path, $options);
-    }
+
+    $value .= $this->linkGenerator()->generate($text, $final_url);
 
     if (!empty($alter['suffix'])) {
       $value .= Xss::filterAdmin($this->viewsTokenReplace($alter['suffix'], $tokens));
@@ -1473,7 +1501,7 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
       $tokens = $this->view->build_info['substitutions'];
     }
     $count = 0;
-    foreach ($this->view->display_handler->getHandlers('argument') as $arg => $handler) {
+    foreach ($this->displayHandler->getHandlers('argument') as $arg => $handler) {
       $token = '%' . ++$count;
       if (!isset($tokens[$token])) {
         $tokens[$token] = '';
@@ -1486,10 +1514,12 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
     }
 
     // Get flattened set of tokens for any array depth in query parameters.
-    $tokens += $this->getTokenValuesRecursive($this->view->getRequest()->query->all());
+    if ($request = $this->view->getRequest()) {
+      $tokens += $this->getTokenValuesRecursive($request->query->all());
+    }
 
     // Now add replacements for our fields.
-    foreach ($this->view->display_handler->getHandlers('field') as $field => $handler) {
+    foreach ($this->displayHandler->getHandlers('field') as $field => $handler) {
       if (isset($handler->last_render)) {
         $tokens["{{ $field }}"] = $handler->last_render;
       }
@@ -1704,7 +1734,7 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
   /**
    * Returns the render API renderer.
    *
-   * @return \Drupal\Core\Render\Renderer
+   * @return \Drupal\Core\Render\RendererInterface
    */
   protected function getRenderer() {
     if (!isset($this->renderer)) {
@@ -1717,5 +1747,5 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
 }
 
 /**
- * @}
+ * @} End of "defgroup views_field_handlers".
  */

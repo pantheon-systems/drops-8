@@ -6,10 +6,8 @@
  */
 
 use Drupal\Core\Access\AccessResult;
-use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Routing\RouteMatchInterface;
-use Drupal\Core\Routing\UrlMatcher;
 use Drupal\Core\Url;
 use Drupal\shortcut\Entity\ShortcutSet;
 use Drupal\shortcut\ShortcutSetInterface;
@@ -118,6 +116,9 @@ function shortcut_set_switch_access($account = NULL) {
  *   An object representing the shortcut set.
  * @param $account
  *   A user account that will be assigned to use the set.
+ *
+ * @deprecated in Drupal 8.x, will be removed before Drupal 9.0.
+ *   Use \Drupal::entityManager()->getStorage('shortcut_set')->assignUser().
  */
 function shortcut_set_assign_user($shortcut_set, $account) {
   \Drupal::entityManager()
@@ -137,6 +138,9 @@ function shortcut_set_assign_user($shortcut_set, $account) {
  *   TRUE if the user was previously assigned to a shortcut set and has been
  *   successfully removed from it. FALSE if the user was already not assigned
  *   to any set.
+ *
+ * @deprecated in Drupal 8.x, will be removed before Drupal 9.0.
+ *   Use \Drupal::entityManager()->getStorage('shortcut_set')->unassignUser().
  */
 function shortcut_set_unassign_user($account) {
   return (bool) \Drupal::entityManager()
@@ -251,16 +255,18 @@ function shortcut_renderable_links($shortcut_set = NULL) {
     $shortcut_set = shortcut_current_displayed_set();
   }
 
-  /** @var \Drupal\shortcut\ShortcutInterface[] $shortcuts  */
-  $shortcuts = \Drupal::entityManager()->getStorage('shortcut')->loadByProperties(array('shortcut_set' => $shortcut_set->id()));
   $cache_tags = array();
-  foreach ($shortcuts as $shortcut) {
+  foreach ($shortcut_set->getShortcuts() as $shortcut) {
     $shortcut = \Drupal::entityManager()->getTranslationFromContext($shortcut);
-    $links[$shortcut->id()] = array(
-      'type' => 'link',
-      'title' => $shortcut->label(),
-    ) + $shortcut->getUrl()->toArray();
-    $cache_tags = Cache::mergeTags($cache_tags, $shortcut->getCacheTags());
+    $url = $shortcut->getUrl();
+    if ($url->access()) {
+      $links[$shortcut->id()] = array(
+        'type' => 'link',
+        'title' => $shortcut->label(),
+        'url' => $shortcut->getUrl(),
+      );
+      $cache_tags = Cache::mergeTags($cache_tags, $shortcut->getCacheTags());
+    }
   }
 
   if (!empty($links)) {

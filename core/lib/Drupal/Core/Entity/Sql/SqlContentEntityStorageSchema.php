@@ -127,7 +127,6 @@ class SqlContentEntityStorageSchema implements DynamicallyFieldableEntityStorage
    */
   public function requiresEntityStorageSchemaChanges(EntityTypeInterface $entity_type, EntityTypeInterface $original) {
     return
-      $entity_type->getStorageClass() != $original->getStorageClass() ||
       $entity_type->isRevisionable() != $original->isRevisionable() ||
       $entity_type->isTranslatable() != $original->isTranslatable() ||
       $this->hasSharedTableNameChanges($entity_type, $original) ||
@@ -1076,7 +1075,11 @@ class SqlContentEntityStorageSchema implements DynamicallyFieldableEntityStorage
   protected function createDedicatedTableSchema(FieldStorageDefinitionInterface $storage_definition) {
     $schema = $this->getDedicatedTableSchema($storage_definition);
     foreach ($schema as $name => $table) {
-      $this->database->schema()->createTable($name, $table);
+      // Check if the table exists because it might already have been
+      // created as part of the earlier entity type update event.
+      if (!$this->database->schema()->tableExists($name)) {
+        $this->database->schema()->createTable($name, $table);
+      }
     }
     $this->saveFieldSchemaData($storage_definition, $schema);
   }
@@ -1109,11 +1112,19 @@ class SqlContentEntityStorageSchema implements DynamicallyFieldableEntityStorage
           $schema[$table_name] = $this->getSharedTableFieldSchema($storage_definition, $table_name, $column_names);
           if (!$only_save) {
             foreach ($schema[$table_name]['fields'] as $name => $specifier) {
-              $schema_handler->addField($table_name, $name, $specifier);
+              // Check if the field exists because it might already have been
+              // created as part of the earlier entity type update event.
+              if (!$schema_handler->fieldExists($table_name, $name)) {
+                $schema_handler->addField($table_name, $name, $specifier);
+              }
             }
             if (!empty($schema[$table_name]['indexes'])) {
               foreach ($schema[$table_name]['indexes'] as $name => $specifier) {
-                $schema_handler->addIndex($table_name, $name, $specifier);
+                // Check if the index exists because it might already have been
+                // created as part of the earlier entity type update event.
+                if (!$schema_handler->indexExists($table_name, $name)) {
+                  $schema_handler->addIndex($table_name, $name, $specifier);
+                }
               }
             }
             if (!empty($schema[$table_name]['unique keys'])) {
@@ -1406,7 +1417,6 @@ class SqlContentEntityStorageSchema implements DynamicallyFieldableEntityStorage
     }
 
     $field_name = $storage_definition->getName();
-    $field_description = $storage_definition->getDescription();
     $base_table = $this->storage->getBaseTable();
 
     // A shared table contains rows for entities where the field is empty
@@ -1435,7 +1445,6 @@ class SqlContentEntityStorageSchema implements DynamicallyFieldableEntityStorage
       $column_schema = $field_schema['columns'][$field_column_name];
 
       $schema['fields'][$schema_field_name] = $column_schema;
-      $schema['fields'][$schema_field_name]['description'] = $field_description;
       $schema['fields'][$schema_field_name]['not null'] = in_array($field_name, $not_null_keys);
     }
 

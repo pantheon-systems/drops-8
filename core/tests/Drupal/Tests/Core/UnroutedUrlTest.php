@@ -45,7 +45,7 @@ class UnroutedUrlTest extends UnitTestCase {
    *
    * @var string
    */
-  protected $unroutedInternal = 'base://robots.txt';
+  protected $unroutedInternal = 'base:robots.txt';
 
   /**
    * {@inheritdoc}
@@ -69,20 +69,68 @@ class UnroutedUrlTest extends UnitTestCase {
    * Tests the fromUri() method.
    *
    * @covers ::fromUri
+   *
+   * @dataProvider providerFromUri
    */
-  public function testFromUri() {
-    $urls = [
-      Url::fromUri($this->unroutedExternal),
-      Url::fromUri($this->unroutedInternal)
+  public function testFromUri($uri, $is_external) {
+    $url = Url::fromUri($uri);
+
+    $this->assertInstanceOf('Drupal\Core\Url', $url);
+  }
+
+
+  /**
+   * Data provider for testFromUri().
+   */
+  public function providerFromUri() {
+    return [
+      // [$uri, $is_external]
+      // An external URI.
+      ['http://drupal.org', TRUE],
+      // An internal, unrouted, base-relative URI.
+      ['base:robots.txt', FALSE],
+      // Base-relative URIs with special characters.
+      ['base:AKI@&hO@', FALSE],
+      ['base:(:;2&+h^', FALSE],
+      // Various token formats.
+      ['base:node/[token]', FALSE],
+      ['base:node/%', FALSE],
+      ['base:node/[token:token]', FALSE],
+      ['base:node/{{ token }}', FALSE],
     ];
+  }
 
-    $this->assertInstanceOf('Drupal\Core\Url', $urls[0]);
-    $this->assertTrue($urls[0]->isExternal());
+  /**
+   * Tests the fromUri() method.
+   *
+   * @covers ::fromUri
+   * @dataProvider providerFromInvalidUri
+   * @expectedException \InvalidArgumentException
+   */
+  public function testFromInvalidUri($uri) {
+    $url = Url::fromUri($uri);
+  }
 
-    $this->assertInstanceOf('Drupal\Core\Url', $urls[1]);
-    $this->assertFalse($urls[1]->isExternal());
-
-    return $urls;
+  /**
+   * Data provider for testFromInvalidUri().
+   */
+  public function providerFromInvalidUri() {
+    return [
+      // Schemeless paths.
+      ['test'],
+      ['/test'],
+      ['//test'],
+      // Schemeless path with a query string.
+      ['foo?bar'],
+      // Only a query string.
+      ['?bar'],
+      // Only a fragment.
+      ['#foo'],
+      // Disallowed characters in the authority (host name) that are valid
+      // elsewhere in the path.
+      ['base://(:;2&+h^'],
+      ['base://AKI@&hO@'],
+    ];
   }
 
   /**
@@ -104,118 +152,100 @@ class UnroutedUrlTest extends UnitTestCase {
   }
 
   /**
-   * Tests the fromUri() method with an non-scheme path.
-   *
-   * @covers ::fromUri
-   *
-   * @expectedException \InvalidArgumentException
-   */
-  public function testFromUriWithNonScheme() {
-    Url::fromUri('test');
-  }
-
-  /**
    * Tests the isExternal() method.
    *
    * @depends testFromUri
+   * @dataProvider providerFromUri
    *
    * @covers ::isExternal
    */
-  public function testIsExternal(array $urls) {
-    $this->assertTrue($urls[0]->isExternal());
-    $this->assertFalse($urls[1]->isExternal());
+  public function testIsExternal($uri, $is_external) {
+    $url = Url::fromUri($uri);
+    $this->assertSame($url->isExternal(), $is_external);
   }
 
   /**
    * Tests the toString() method.
    *
    * @depends testFromUri
+   * @dataProvider providerFromUri
    *
    * @covers ::toString
    */
-  public function testToString(array $urls) {
-    $this->assertSame($this->unroutedExternal, $urls[0]->toString());
-    $this->assertSame($this->unroutedInternal, $urls[1]->toString());
-  }
-
-  /**
-   * Tests the toArray() method.
-   *
-   * @depends testFromUri
-   *
-   * @covers ::toArray
-   */
-  public function testToArray(array $urls) {
-    $expected = Url::fromUri($this->unroutedExternal, ['external' => TRUE]);
-    $expected->setUnroutedUrlAssembler(\Drupal::service('unrouted_url_assembler'));
-    $this->assertEquals($expected, $urls[0]);
-
-    $expected = Url::fromUri($this->unroutedInternal);
-    $expected->setUnroutedUrlAssembler(\Drupal::service('unrouted_url_assembler'));
-    $this->assertEquals($expected, $urls[1]);
+  public function testToString($uri) {
+    $url = Url::fromUri($uri);
+    $this->assertSame($uri, $url->toString());
   }
 
   /**
    * Tests the getRouteName() method.
    *
    * @depends testFromUri
+   * @dataProvider providerFromUri
    *
    * @expectedException \UnexpectedValueException
    *
    * @covers ::getRouteName
    */
-  public function testGetRouteName(array $urls) {
-    $urls[0]->getRouteName();
+  public function testGetRouteName($uri) {
+    $url = Url::fromUri($uri);
+    $url->getRouteName();
   }
 
   /**
    * Tests the getRouteParameters() method.
    *
    * @depends testFromUri
+   * @dataProvider providerFromUri
    *
    * @expectedException \UnexpectedValueException
    *
    * @covers ::getRouteParameters
    */
-  public function testGetRouteParameters(array $urls) {
-    $urls[0]->getRouteParameters();
+  public function testGetRouteParameters($uri) {
+    $url = Url::fromUri($uri);
+    $url->getRouteParameters();
   }
 
   /**
    * Tests the getInternalPath() method.
    *
    * @depends testFromUri
+   * @dataProvider providerFromUri
    *
    * @covers ::getInternalPath
    *
    * @expectedException \Exception
    */
-  public function testGetInternalPath(array $urls) {
-    $this->assertNull($urls[0]->getInternalPath());
+  public function testGetInternalPath($uri) {
+    $url = Url::fromUri($uri);
+    $this->assertNull($url->getInternalPath());
   }
 
   /**
    * Tests the getPath() method.
    *
    * @depends testFromUri
+   * @dataProvider providerFromUri
    *
    * @covers ::getUri
    */
-  public function testGetUri(array $urls) {
-    $this->assertNotNull($urls[0]->getUri());
-    $this->assertNotNull($urls[1]->getUri());
+  public function testGetUri($uri) {
+    $url = Url::fromUri($uri);
+    $this->assertNotNull($url->getUri());
   }
 
   /**
    * Tests the getOptions() method.
    *
    * @depends testFromUri
+   * @dataProvider providerFromUri
    *
    * @covers ::getOptions
    */
-  public function testGetOptions(array $urls) {
-    $this->assertInternalType('array', $urls[0]->getOptions());
-    $this->assertInternalType('array', $urls[1]->getOptions());
+  public function testGetOptions($uri) {
+    $url = Url::fromUri($uri);
+    $this->assertInternalType('array', $url->getOptions());
   }
 
 }

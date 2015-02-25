@@ -18,13 +18,7 @@
  * @ingroup themeable
  */
 #}
-{%
-  set classes = [
-    'icon',
-    'topic-status-' ~ icon_status,
-  ]
-%}
-<div{{ attributes.addClass(classes) }}>
+<div{{ attributes }}>
   {% if first_new -%}
     <a id="new"></a>
   {%- endif %}

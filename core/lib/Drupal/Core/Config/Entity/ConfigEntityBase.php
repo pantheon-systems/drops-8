@@ -7,9 +7,9 @@
 
 namespace Drupal\Core\Config\Entity;
 
-use Drupal\Component\Plugin\ConfigurablePluginInterface;
 use Drupal\Component\Utility\String;
 use Drupal\Core\Cache\Cache;
+use Drupal\Core\Config\ConfigException;
 use Drupal\Core\Config\Schema\SchemaIncompleteException;
 use Drupal\Core\Entity\Entity;
 use Drupal\Core\Config\ConfigDuplicateUUIDException;
@@ -24,7 +24,7 @@ use Drupal\Core\Plugin\PluginDependencyTrait;
  *
  * @ingroup entity_api
  */
-abstract class ConfigEntityBase extends Entity implements ConfigEntityInterface {
+abstract class ConfigEntityBase extends Entity implements ConfigEntityInterface, ThirdPartySettingsInterface {
 
   use PluginDependencyTrait {
     addDependency as addDependencyTrait;
@@ -86,6 +86,15 @@ abstract class ConfigEntityBase extends Entity implements ConfigEntityInterface 
    * @var string
    */
   protected $langcode = LanguageInterface::LANGCODE_NOT_SPECIFIED;
+
+  /**
+   * Third party entity settings.
+   *
+   * An array of key/value pairs keyed by provider.
+   *
+   * @var array
+   */
+  protected $third_party_settings = array();
 
   /**
    * Overrides Entity::__construct().
@@ -259,6 +268,9 @@ abstract class ConfigEntityBase extends Entity implements ConfigEntityInterface 
         $properties[$name] = $this->get($name);
       }
     }
+    if (empty($this->third_party_settings)) {
+      unset($properties['third_party_settings']);
+    }
     return $properties;
   }
 
@@ -418,7 +430,25 @@ abstract class ConfigEntityBase extends Entity implements ConfigEntityInterface 
   /**
    * {@inheritdoc}
    */
+  public function getConfigTarget() {
+    // For configuration entities, use the config ID for the config target
+    // identifier. This ensures that default configuration (which does not yet
+    // have UUIDs) can be provided and installed with references to the target,
+    // and also makes config dependencies more readable.
+    return $this->id();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function onDependencyRemoval(array $dependencies) {
+    $changed = FALSE;
+    if (!empty($this->third_party_settings)) {
+      $old_count = count($this->third_party_settings);
+      $this->third_party_settings = array_diff_key($this->third_party_settings, array_flip($dependencies['module']));
+      $changed = $old_count != count($this->third_party_settings);
+    }
+    return $changed;
   }
 
   /**
@@ -439,6 +469,94 @@ abstract class ConfigEntityBase extends Entity implements ConfigEntityInterface 
    */
   protected static function invalidateTagsOnDelete(EntityTypeInterface $entity_type, array $entities) {
     Cache::invalidateTags($entity_type->getListCacheTags());
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setThirdPartySetting($module, $key, $value) {
+    $this->third_party_settings[$module][$key] = $value;
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getThirdPartySetting($module, $key, $default = NULL) {
+    if (isset($this->third_party_settings[$module][$key])) {
+      return $this->third_party_settings[$module][$key];
+    }
+    else {
+      return $default;
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getThirdPartySettings($module) {
+    return isset($this->third_party_settings[$module]) ? $this->third_party_settings[$module] : array();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function unsetThirdPartySetting($module, $key) {
+    unset($this->third_party_settings[$module][$key]);
+    // If the third party is no longer storing any information, completely
+    // remove the array holding the settings for this module.
+    if (empty($this->third_party_settings[$module])) {
+      unset($this->third_party_settings[$module]);
+    }
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getThirdPartyProviders() {
+    return array_keys($this->third_party_settings);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function preDelete(EntityStorageInterface $storage, array $entities) {
+    parent::preDelete($storage, $entities);
+
+    foreach ($entities as $entity) {
+      if ($entity->isUninstalling() || $entity->isSyncing()) {
+        // During extension uninstall and configuration synchronization
+        // deletions are already managed.
+        break;
+      }
+      // Fix or remove any dependencies.
+      $config_entities = static::getConfigManager()->getConfigEntitiesToChangeOnDependencyRemoval('config', [$entity->getConfigDependencyName()], FALSE);
+      /** @var \Drupal\Core\Config\Entity\ConfigEntityInterface $dependent_entity */
+      foreach ($config_entities['update'] as $dependent_entity) {
+        $dependent_entity->save();
+      }
+      foreach ($config_entities['delete'] as $dependent_entity) {
+        $dependent_entity->delete();
+      }
+    }
+  }
+
+  /**
+   * Gets the configuration manager.
+   *
+   * @return \Drupal\Core\Config\ConfigManager
+   *   The configuration manager.
+   */
+  protected static function getConfigManager() {
+    return \Drupal::service('config.manager');
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function isInstallable() {
+    return TRUE;
   }
 
 }

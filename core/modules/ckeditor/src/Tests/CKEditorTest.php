@@ -266,10 +266,8 @@ class CKEditorTest extends KernelTestBase {
     \Drupal::service('theme_handler')->install(['bartik']);
     $this->config('system.theme')->set('default', 'bartik')->save();
     $expected[] = file_create_url('core/themes/bartik/css/base/elements.css');
-    $expected[] = file_create_url('core/themes/bartik/css/base/typography.css');
     $expected[] = file_create_url('core/themes/bartik/css/components/captions.css');
     $expected[] = file_create_url('core/themes/bartik/css/components/content.css');
-    $expected[] = file_create_url('core/themes/bartik/css/components/list.css');
     $expected[] = file_create_url('core/themes/bartik/css/components/table.css');
     $this->assertIdentical($expected, $this->ckeditor->buildContentsCssJSSetting($editor), '"contentsCss" configuration part of JS settings built correctly while a theme providing a CKEditor stylesheet exists.');
   }

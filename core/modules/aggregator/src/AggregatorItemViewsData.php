@@ -8,12 +8,11 @@
 namespace Drupal\aggregator;
 
 use Drupal\views\EntityViewsData;
-use Drupal\views\EntityViewsDataInterface;
 
 /**
  * Provides the views data for the aggregator item entity type.
  */
-class AggregatorItemViewsData extends EntityViewsData implements EntityViewsDataInterface {
+class AggregatorItemViewsData extends EntityViewsData {
 
   /**
    * {@inheritdoc}
@@ -22,7 +21,6 @@ class AggregatorItemViewsData extends EntityViewsData implements EntityViewsData
     $data = parent::getViewsData();
 
     $data['aggregator_item']['table']['base']['help'] = $this->t('Aggregator items are imported from external RSS and Atom news feeds.');
-
 
     $data['aggregator_item']['iid']['help'] = $this->t('The unique ID of the aggregator item.');
     $data['aggregator_item']['iid']['argument']['id'] = 'aggregator_iid';
@@ -50,4 +48,3 @@ class AggregatorItemViewsData extends EntityViewsData implements EntityViewsData
   }
 
 }
-

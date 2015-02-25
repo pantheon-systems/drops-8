@@ -11,9 +11,10 @@
  * need new Drupal 6 data.
  *
  *  - Clone the repository from: https://www.drupal.org/sandbox/benjy/2405029
- *  - Create a database called d6_migrate and import core/migrate_drupal/src/Tests/d6.gz
+ *  - Create a database called d6_migrate and import core/migrate_drupal/src/Tests/d6/d6.gz
+ *  - In drupal_6_migrate/sites/default, copy default.settings.php to settings.php and add an entry for the d6_migrate database, eg: $db_url = 'mysqli://username:password@localhost/d6_migrate';
  *  - Add an entry into your Drupal 8 settings file, eg: $databases['d6_migrate']['default'] = array ( // Credentials );
- *  - Use the Drupal 6 site to make data changes as needed.
+ *  - Use the Drupal 6 site to make data changes as needed (User ID 1 credentials are admin/admin).
  *  - Run ./core/scripts/migrate-dump-d6.sh to re-export the tables.
  */
 
@@ -34,7 +35,7 @@ require_once __DIR__ . '/../includes/bootstrap.inc';
 $request = Request::createFromGlobals();
 Settings::initialize(dirname(dirname(__DIR__)), DrupalKernel::findSitePath($request), $autoloader);
 
-$output_folder = DRUPAL_ROOT . '/core/modules/migrate_drupal/src/Tests/Table';
+$output_folder = DRUPAL_ROOT . '/core/modules/migrate_drupal/src/Tests/Table/d6';
 $class_template = '<?php
 
 /**
@@ -47,14 +48,14 @@ $class_template = '<?php
  * @see https://www.drupal.org/sandbox/benjy/2405029
  */
 
-namespace Drupal\migrate_drupal\Tests\Table;
+namespace Drupal\migrate_drupal\Tests\Table\d6;
 
-use Drupal\migrate_drupal\Tests\Dump\Drupal6DumpBase;
+use Drupal\migrate_drupal\Tests\Dump\DrupalDumpBase;
 
 /**
  * Generated file to represent the {{TABLE}} table.
  */
-class {{CLASS_NAME}} extends Drupal6DumpBase {
+class {{CLASS_NAME}} extends DrupalDumpBase {
 
   public function load() {
     $this->createTable("{{TABLE}}", {{TABLE_DEFINITION}});
@@ -77,8 +78,22 @@ foreach ($tables as $table) {
   // Generate the class name.
   $class = Inflector::classify($table);
 
+  // Order by primary keys
+  $order = '';
+  $query = "SELECT `COLUMN_NAME` FROM `information_schema`.`COLUMNS`
+  WHERE (`TABLE_SCHEMA` = 'd6_migrate') AND (`TABLE_NAME` = '{$table}') AND (`COLUMN_KEY` = 'PRI')
+  ORDER BY COLUMN_NAME";
+  $results = $connection->query($query);
+  while(($row = $results->fetchAssoc()) !== FALSE) {
+    $order .= '{' . $row['COLUMN_NAME'] . '}, ';
+  }
+  if (!(empty($order))) {
+    $order = rtrim ($order, ", ");
+    $order = ' ORDER BY ' . $order;
+  }
+
   // Generate the field values.
-  $query = $connection->query(_db_get_query($table));
+  $query = $connection->query(_db_get_query($table) . $order);
   $values = '';
   while(($row = $query->fetchAssoc()) !== FALSE) {
     $values .= '->values(' . Variable::export($row, '    ') . ')';

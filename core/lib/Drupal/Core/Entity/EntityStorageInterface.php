@@ -47,7 +47,7 @@ interface EntityStorageInterface {
    *
    * @return \Drupal\Core\Entity\EntityInterface[]
    *   An array of entity objects indexed by their IDs. Returns an empty array
-   *   if no matching entities found.
+   *   if no matching entities are found.
    */
   public function loadMultiple(array $ids = NULL);
 
@@ -104,7 +104,7 @@ interface EntityStorageInterface {
    *   An associative array where the keys are the property names and the
    *   values are the values those properties must have.
    *
-   * @return array
+   * @return \Drupal\Core\Entity\EntityInterface[]
    *   An array of entity objects indexed by their ids.
    */
   public function loadByProperties(array $values = array());

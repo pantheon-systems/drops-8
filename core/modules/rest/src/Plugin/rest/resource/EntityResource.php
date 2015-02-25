@@ -87,9 +87,13 @@ class EntityResource extends ResourceBase {
     if (!$entity->isNew()) {
       throw new BadRequestHttpException('Only new entities can be created');
     }
-    foreach ($entity as $field_name => $field) {
-      if (!$field->access('create')) {
-        throw new AccessDeniedHttpException(String::format('Access denied on creating field ', array('@field' => $field_name)));
+
+    // Only check 'edit' permissions for fields that were actually
+    // submitted by the user. Field access makes no difference between 'create'
+    // and 'update', so the 'edit' operation is used here.
+    foreach ($entity->_restSubmittedFields as $key => $field_name) {
+      if (!$entity->get($field_name)->access('edit')) {
+        throw new AccessDeniedHttpException(String::format('Access denied on creating field @field', array('@field' => $field_name)));
       }
     }
 
@@ -99,9 +103,8 @@ class EntityResource extends ResourceBase {
       $entity->save();
       $this->logger->notice('Created entity %type with ID %id.', array('%type' => $entity->getEntityTypeId(), '%id' => $entity->id()));
 
-      $url = _url(strtr($this->pluginId, ':', '/') . '/' . $entity->id(), array('absolute' => TRUE));
       // 201 Created responses have an empty body.
-      return new ResourceResponse(NULL, 201, array('Location' => $url));
+      return new ResourceResponse(NULL, 201, array('Location' => $entity->url('canonical', ['absolute' => TRUE])));
     }
     catch (EntityStorageException $e) {
       throw new HttpException(500, 'Internal Server Error', $e);
@@ -135,7 +138,7 @@ class EntityResource extends ResourceBase {
 
     // Overwrite the received properties.
     $langcode_key = $entity->getEntityType()->getKey('langcode');
-    foreach ($entity->_restPatchFields as $field_name) {
+    foreach ($entity->_restSubmittedFields as $field_name) {
       $field = $entity->get($field_name);
       // It is not possible to set the language to NULL as it is automatically
       // re-initialized. As it must not be empty, skip it if it is.

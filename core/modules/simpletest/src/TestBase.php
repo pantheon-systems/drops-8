@@ -1016,10 +1016,10 @@ abstract class TestBase {
    *
    * The generated database table prefix is used for the Drupal installation
    * being performed for the test. It is also used as user agent HTTP header
-   * value by the cURL-based browser of DrupalWebTestCase, which is sent to the
-   * Drupal installation of the test. During early Drupal bootstrap, the user
-   * agent HTTP header is parsed, and if it matches, all database queries use
-   * the database table prefix that has been generated here.
+   * value by the cURL-based browser of WebTestBase, which is sent to the Drupal
+   * installation of the test. During early Drupal bootstrap, the user agent
+   * HTTP header is parsed, and if it matches, all database queries use the
+   * database table prefix that has been generated here.
    *
    * @see WebTestBase::curlInitialize()
    * @see drupal_valid_test_ua()
@@ -1187,7 +1187,7 @@ abstract class TestBase {
 
     // Ensure there is no service container.
     $this->container = NULL;
-    \Drupal::setContainer(NULL);
+    \Drupal::unsetContainer();
 
     // Unset globals.
     unset($GLOBALS['config_directories']);
@@ -1282,6 +1282,10 @@ abstract class TestBase {
     // log to pick up any fatal errors.
     simpletest_log_read($this->testId, $this->databasePrefix, get_class($this));
 
+    // Restore original dependency injection container.
+    $this->container = $this->originalContainer;
+    \Drupal::setContainer($this->originalContainer);
+
     // Delete test site directory.
     file_unmanaged_delete_recursive($this->siteDirectory, array($this, 'filePreDeleteCallback'));
 
@@ -1300,7 +1304,6 @@ abstract class TestBase {
     new Settings($this->originalSettings);
 
     // Restore original statics and globals.
-    \Drupal::setContainer($this->originalContainer);
     $GLOBALS['config_directories'] = $this->originalConfigDirectories;
 
     // Re-initialize original stream wrappers of the parent site.

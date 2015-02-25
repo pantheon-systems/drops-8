@@ -51,11 +51,15 @@ class SetCustomize extends EntityForm {
 
     foreach ($this->entity->getShortcuts() as $shortcut) {
       $id = $shortcut->id();
+      $url = $shortcut->getUrl();
+      if (!$url->access()) {
+        continue;
+      }
       $form['shortcuts']['links'][$id]['#attributes']['class'][] = 'draggable';
       $form['shortcuts']['links'][$id]['name'] = array(
         '#type' => 'link',
         '#title' => $shortcut->getTitle(),
-      ) + $shortcut->getUrl()->toRenderArray();
+      ) + $url->toRenderArray();
       unset($form['shortcuts']['links'][$id]['name']['#access_callback']);
       $form['shortcuts']['links'][$id]['#weight'] = $shortcut->getWeight();
       $form['shortcuts']['links'][$id]['weight'] = array(
@@ -77,10 +81,9 @@ class SetCustomize extends EntityForm {
       $form['shortcuts']['links'][$id]['operations'] = array(
         '#type' => 'operations',
         '#links' => $links,
+        '#access' => $url->access(),
       );
     }
-    // Sort the list so the output is ordered by weight.
-    uasort($form['shortcuts']['links'], array('\Drupal\Component\Utility\SortArray', 'sortByWeightProperty'));
     return $form;
   }
 

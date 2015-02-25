@@ -8,14 +8,14 @@
 namespace Drupal\migrate_drupal\Tests\d6;
 
 use Drupal\migrate\MigrateExecutable;
-use Drupal\migrate_drupal\Tests\MigrateDrupalTestBase;
+use Drupal\migrate_drupal\Tests\d6\MigrateDrupal6TestBase;
 
 /**
  * Upgrade comment subject variable to core.entity_form_display.comment.*.default.yml
  *
  * @group migrate_drupal
  */
-class MigrateCommentVariableEntityFormDisplaySubjectTest extends MigrateDrupalTestBase {
+class MigrateCommentVariableEntityFormDisplaySubjectTest extends MigrateDrupal6TestBase {
 
   /**
    * Modules to enable.
@@ -60,8 +60,8 @@ class MigrateCommentVariableEntityFormDisplaySubjectTest extends MigrateDrupalTe
   public function testCommentEntityFormDisplay() {
     $component = entity_get_form_display('comment', 'comment', 'default')
       ->getComponent('subject');
-    $this->assertEqual($component['type'], 'string_textfield');
-    $this->assertEqual($component['weight'], 10);
+    $this->assertIdentical($component['type'], 'string_textfield');
+    $this->assertIdentical($component['weight'], 10);
     $component = entity_get_form_display('comment', 'comment_no_subject', 'default')
       ->getComponent('subject');
     $this->assertNull($component);

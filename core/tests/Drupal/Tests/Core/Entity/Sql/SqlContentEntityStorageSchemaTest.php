@@ -8,6 +8,7 @@
 namespace Drupal\Tests\Core\Entity\Sql;
 
 use Drupal\Core\Entity\ContentEntityType;
+use Drupal\Core\Entity\ContentEntityTypeInterface;
 use Drupal\Core\Entity\Sql\DefaultTableMapping;
 use Drupal\Tests\UnitTestCase;
 
@@ -48,7 +49,7 @@ class SqlContentEntityStorageSchemaTest extends UnitTestCase {
   /**
    * The storage schema handler used in this test.
    *
-   * @var \Drupal\Core\Entity\Sql\SqlContentEntityStorageSchema.
+   * @var \Drupal\Core\Entity\Sql\SqlContentEntityStorageSchema|\PHPUnit_Framework_MockObject_MockObject.
    */
   protected $storageSchema;
 
@@ -112,11 +113,9 @@ class SqlContentEntityStorageSchemaTest extends UnitTestCase {
       'columns' => array(
         'value' => array(
           'type' => 'text',
-          'description' => 'The text value',
         ),
         'format' => array(
           'type' => 'varchar',
-          'description' => 'The text description',
         ),
       ),
     ));
@@ -248,95 +247,77 @@ class SqlContentEntityStorageSchemaTest extends UnitTestCase {
         'description' => 'The base table for entity_test entities.',
         'fields' => array(
           'id' => array(
-            'description' => 'The id field.',
             'type' => 'serial',
             'not null' => TRUE,
           ),
           'name' => array(
-            'description' => 'The name field.',
             'type' => 'varchar',
             'length' => 255,
             'not null' => FALSE,
           ),
           'description__value' => array(
-            'description' => 'The description field.',
             'type' => 'text',
             'not null' => FALSE,
           ),
           'description__format' => array(
-            'description' => 'The description field.',
             'type' => 'varchar',
             'not null' => FALSE,
           ),
           'uuid' => array(
-            'description' => 'The uuid field.',
             'type' => 'varchar',
             'length' => 128,
             'not null' => FALSE,
           ),
           'hash' => array(
-            'description' => 'The hash field.',
             'type' => 'varchar',
             'length' => 20,
             'not null' => FALSE,
           ),
           'email__username' => array(
-            'description' => 'The email field.',
             'type' => 'varchar',
             'not null' => FALSE,
           ),
           'email__hostname' => array(
-            'description' => 'The email field.',
             'type' => 'varchar',
             'not null' => FALSE,
           ),
           'email__domain' => array(
-            'description' => 'The email field.',
             'type' => 'varchar',
             'not null' => FALSE,
           ),
           'owner' => array(
-            'description' => 'The owner field.',
             'type' => 'int',
             'not null' => FALSE,
           ),
           'translator' => array(
-            'description' => 'The translator field.',
             'type' => 'int',
             'not null' => FALSE,
           ),
           'location__country' => array(
-            'description' => 'The location field.',
             'type' => 'varchar',
             'not null' => FALSE,
           ),
           'location__state' => array(
-            'description' => 'The location field.',
             'type' => 'varchar',
             'not null' => FALSE,
           ),
           'location__city' => array(
-            'description' => 'The location field.',
             'type' => 'varchar',
             'not null' => FALSE,
           ),
           'editor' => array(
-            'description' => 'The editor field.',
             'type' => 'int',
             'not null' => FALSE,
           ),
           'editor_revision__target_id' => array(
-            'description' => 'The editor_revision field.',
             'type' => 'int',
             'not null' => FALSE,
           ),
           'editor_revision__target_revision_id' => array(
-            'description' => 'The editor_revision field.',
             'type' => 'int',
             'not null' => FALSE,
           ),
           'long_index_name' => array(
-            'description' => 'The long_index_name field.',
             'type' => 'int',
             'not null' => FALSE,
           ),
@@ -439,12 +420,10 @@ class SqlContentEntityStorageSchemaTest extends UnitTestCase {
         'description' => 'The base table for entity_test entities.',
         'fields' => array(
           'id' => array(
-            'description' => 'The id field.',
             'type' => 'serial',
             'not null' => TRUE,
           ),
           'revision_id' => array(
-            'description' => 'The revision_id field.',
             'type' => 'int',
             'not null' => FALSE,
           )
@@ -465,12 +444,10 @@ class SqlContentEntityStorageSchemaTest extends UnitTestCase {
         'description' => 'The revision table for entity_test entities.',
         'fields' => array(
           'id' => array(
-            'description' => 'The id field.',
             'type' => 'int',
             'not null' => TRUE,
           ),
           'revision_id' => array(
-            'description' => 'The revision_id field.',
             'type' => 'serial',
             'not null' => TRUE,
           ),
@@ -538,12 +515,10 @@ class SqlContentEntityStorageSchemaTest extends UnitTestCase {
         'description' => 'The base table for entity_test entities.',
         'fields' => array(
           'id' => array(
-            'description' => 'The id field.',
             'type' => 'serial',
             'not null' => TRUE,
           ),
           'langcode' => array(
-            'description' => 'The langcode field.',
             'type' => 'varchar',
             'not null' => TRUE,
           )
@@ -557,12 +532,10 @@ class SqlContentEntityStorageSchemaTest extends UnitTestCase {
         'description' => 'The data table for entity_test entities.',
         'fields' => array(
           'id' => array(
-            'description' => 'The id field.',
             'type' => 'int',
             'not null' => TRUE,
           ),
           'langcode' => array(
-            'description' => 'The langcode field.',
             'type' => 'varchar',
             'not null' => TRUE,
           ),
@@ -645,17 +618,14 @@ class SqlContentEntityStorageSchemaTest extends UnitTestCase {
         'description' => 'The base table for entity_test entities.',
         'fields' => array(
           'id' => array(
-            'description' => 'The id field.',
             'type' => 'serial',
             'not null' => TRUE,
           ),
           'revision_id' => array(
-            'description' => 'The revision_id field.',
             'type' => 'int',
             'not null' => FALSE,
           ),
           'langcode' => array(
-            'description' => 'The langcode field.',
             'type' => 'varchar',
             'not null' => TRUE,
           )
@@ -676,17 +646,14 @@ class SqlContentEntityStorageSchemaTest extends UnitTestCase {
         'description' => 'The revision table for entity_test entities.',
         'fields' => array(
           'id' => array(
-            'description' => 'The id field.',
             'type' => 'int',
             'not null' => TRUE,
           ),
           'revision_id' => array(
-            'description' => 'The revision_id field.',
             'type' => 'serial',
             'not null' => TRUE,
           ),
           'langcode' => array(
-            'description' => 'The langcode field.',
             'type' => 'varchar',
             'not null' => TRUE,
           ),
@@ -707,17 +674,14 @@ class SqlContentEntityStorageSchemaTest extends UnitTestCase {
         'description' => 'The data table for entity_test entities.',
         'fields' => array(
           'id' => array(
-            'description' => 'The id field.',
             'type' => 'int',
             'not null' => TRUE,
           ),
           'revision_id' => array(
-            'description' => 'The revision_id field.',
             'type' => 'int',
             'not null' => TRUE,
           ),
           'langcode' => array(
-            'description' => 'The langcode field.',
             'type' => 'varchar',
             'not null' => TRUE,
           ),
@@ -738,17 +702,14 @@ class SqlContentEntityStorageSchemaTest extends UnitTestCase {
         'description' => 'The revision data table for entity_test entities.',
         'fields' => array(
           'id' => array(
-            'description' => 'The id field.',
             'type' => 'int',
             'not null' => TRUE,
           ),
           'revision_id' => array(
-            'description' => 'The revision_id field.',
             'type' => 'int',
             'not null' => TRUE,
           ),
           'langcode' => array(
-            'description' => 'The langcode field.',
             'type' => 'varchar',
             'not null' => TRUE,
           ),
@@ -1081,29 +1042,21 @@ class SqlContentEntityStorageSchemaTest extends UnitTestCase {
   }
 
   public function providerTestRequiresEntityDataMigration() {
-    $updated_entity_type_definition = $this->getMockBuilder('\Drupal\Core\Entity\EntityTypeInterface')
-      ->disableOriginalConstructor()
-      ->getMock();
+    $updated_entity_type_definition = $this->getMock('\Drupal\Core\Entity\EntityTypeInterface');
     $updated_entity_type_definition->expects($this->any())
       ->method('getStorageClass')
       // A class that exists, *any* class.
       ->willReturn('\Drupal\Core\Entity\Sql\SqlContentEntityStorageSchema');
-    $original_entity_type_definition = $this->getMockBuilder('\Drupal\Core\Entity\EntityTypeInterface')
-      ->disableOriginalConstructor()
-      ->getMock();
+    $original_entity_type_definition = $this->getMock('\Drupal\Core\Entity\EntityTypeInterface');
     $original_entity_type_definition->expects($this->any())
       ->method('getStorageClass')
       // A class that exists, *any* class.
       ->willReturn('\Drupal\Core\Entity\Sql\SqlContentEntityStorageSchema');
-    $original_entity_type_definition_other_nonexisting = $this->getMockBuilder('\Drupal\Core\Entity\EntityTypeInterface')
-      ->disableOriginalConstructor()
-      ->getMock();
+    $original_entity_type_definition_other_nonexisting = $this->getMock('\Drupal\Core\Entity\EntityTypeInterface');
     $original_entity_type_definition_other_nonexisting->expects($this->any())
       ->method('getStorageClass')
       ->willReturn('bar');
-    $original_entity_type_definition_other_existing = $this->getMockBuilder('\Drupal\Core\Entity\EntityTypeInterface')
-      ->disableOriginalConstructor()
-      ->getMock();
+    $original_entity_type_definition_other_existing = $this->getMock('\Drupal\Core\Entity\EntityTypeInterface');
     $original_entity_type_definition_other_existing->expects($this->any())
       ->method('getStorageClass')
       // A class that exists, *any* class.
@@ -1163,6 +1116,118 @@ class SqlContentEntityStorageSchemaTest extends UnitTestCase {
   }
 
   /**
+   * Data provider for ::testRequiresEntityStorageSchemaChanges().
+   */
+  public function providerTestRequiresEntityStorageSchemaChanges() {
+
+    $cases = [];
+
+    $updated_entity_type_definition = $this->getMock('\Drupal\Core\Entity\ContentEntityTypeInterface');
+    $original_entity_type_definition = $this->getMock('\Drupal\Core\Entity\ContentEntityTypeInterface');
+
+    $updated_entity_type_definition->expects($this->any())
+      ->method('id')
+      ->willReturn('entity_test');
+    $updated_entity_type_definition->expects($this->any())
+      ->method('getKey')
+      ->willReturn('id');
+    $original_entity_type_definition->expects($this->any())
+      ->method('id')
+      ->willReturn('entity_test');
+    $original_entity_type_definition->expects($this->any())
+      ->method('getKey')
+      ->willReturn('id');
+
+    // Storage class changes should not impact this at all, and should not be
+    // checked.
+    $updated = clone $updated_entity_type_definition;
+    $original = clone $original_entity_type_definition;
+    $updated->expects($this->never())
+      ->method('getStorageClass');
+    $original->expects($this->never())
+      ->method('getStorageClass');
+
+    // Case 1: No shared table changes should not require change.
+    $cases[] = [$updated, $original, FALSE, FALSE, FALSE];
+
+    // Case 2: A change in the entity schema should result in required changes.
+    $cases[] = [$updated, $original, TRUE, TRUE, FALSE];
+
+    // Case 3: Has shared table changes should result in required changes.
+    $cases[] = [$updated, $original, TRUE, FALSE, TRUE];
+
+    // Case 4: Changing translation should result in required changes.
+    $updated = clone $updated_entity_type_definition;
+    $updated->expects($this->once())
+      ->method('isTranslatable')
+      ->willReturn(FALSE);
+    $original = clone $original_entity_type_definition;
+    $original->expects($this->once())
+      ->method('isTranslatable')
+      ->willReturn(TRUE);
+    $cases[] = [$updated, $original, TRUE, FALSE, FALSE];
+
+    // Case 5: Changing revisionable should result in required changes.
+    $updated = clone $updated_entity_type_definition;
+    $updated->expects($this->once())
+      ->method('isRevisionable')
+      ->willReturn(FALSE);
+    $original = clone $original_entity_type_definition;
+    $original->expects($this->once())
+      ->method('isRevisionable')
+      ->willReturn(TRUE);
+    $cases[] = [$updated, $original, TRUE, FALSE, FALSE];
+
+    return $cases;
+  }
+
+  /**
+   * @covers ::requiresEntityStorageSchemaChanges
+   *
+   * @dataProvider providerTestRequiresEntityStorageSchemaChanges
+   */
+  public function testRequiresEntityStorageSchemaChanges(ContentEntityTypeInterface $updated, ContentEntityTypeInterface $original, $requires_change, $change_schema, $change_shared_table) {
+
+    $this->entityType = new ContentEntityType(array(
+      'id' => 'entity_test',
+      'entity_keys' => array('id' => 'id'),
+    ));
+
+    $this->setUpStorageSchema();
+    $table_mapping = new DefaultTableMapping($this->entityType, $this->storageDefinitions);
+    $table_mapping->setFieldNames('entity_test', array_keys($this->storageDefinitions));
+    $table_mapping->setExtraColumns('entity_test', array('default_langcode'));
+    $this->storage->expects($this->any())
+      ->method('getTableMapping')
+      ->will($this->returnValue($table_mapping));
+
+    // Setup storage schema.
+    if ($change_schema) {
+      $this->storageSchema->expects($this->once())
+        ->method('loadEntitySchemaData')
+        ->willReturn(array());
+    }
+    else {
+      $expected = [
+        'entity_test' => [
+          'primary key' => ['id'],
+        ],
+      ];
+      $this->storageSchema->expects($this->any())
+        ->method('loadEntitySchemaData')
+        ->willReturn($expected);
+    }
+
+    if ($change_shared_table) {
+      $this->storageSchema->expects($this->once())
+        ->method('hasSharedTableNameChanges')
+        ->willReturn(TRUE);
+    }
+
+    $this->assertEquals($requires_change, $this->storageSchema->requiresEntityStorageSchemaChanges($updated, $original));
+  }
+
+  /**
    * Sets up the storage schema object to test.
    *
    * This uses the field definitions set in $this->storageDefinitions.
@@ -1216,7 +1281,7 @@ class SqlContentEntityStorageSchemaTest extends UnitTestCase {
     $key_value = $this->getMock('Drupal\Core\KeyValueStore\KeyValueStoreInterface');
     $this->storageSchema = $this->getMockBuilder('Drupal\Core\Entity\Sql\SqlContentEntityStorageSchema')
       ->setConstructorArgs(array($this->entityManager, $this->entityType, $this->storage, $connection))
-      ->setMethods(array('installedStorageSchema'))
+      ->setMethods(array('installedStorageSchema', 'loadEntitySchemaData', 'hasSharedTableNameChanges'))
       ->getMock();
     $this->storageSchema
       ->expects($this->any())
@@ -1242,10 +1307,6 @@ class SqlContentEntityStorageSchemaTest extends UnitTestCase {
     $this->storageDefinitions[$field_name]->expects($this->any())
       ->method('getName')
       ->will($this->returnValue($field_name));
-    // getDescription() is called once for each table.
-    $this->storageDefinitions[$field_name]->expects($this->any())
-      ->method('getDescription')
-      ->will($this->returnValue("The $field_name field."));
     // getSchema() is called once for each table.
     $this->storageDefinitions[$field_name]->expects($this->any())
       ->method('getSchema')

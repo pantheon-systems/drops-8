@@ -8,7 +8,7 @@
 namespace Drupal\migrate_drupal\Tests\d6;
 
 use Drupal\migrate\MigrateExecutable;
-use Drupal\migrate_drupal\Tests\MigrateDrupalTestBase;
+use Drupal\migrate_drupal\Tests\d6\MigrateDrupal6TestBase;
 use Drupal\Core\Database\Database;
 
 /**
@@ -16,7 +16,7 @@ use Drupal\Core\Database\Database;
  *
  * @group migrate_drupal
  */
-class MigrateFileTest extends MigrateDrupalTestBase {
+class MigrateFileTest extends MigrateDrupal6TestBase {
 
   /**
    * Modules to enable.
@@ -54,10 +54,10 @@ class MigrateFileTest extends MigrateDrupalTestBase {
   public function testFiles() {
     /** @var \Drupal\file\FileInterface $file */
     $file = entity_load('file', 1);
-    $this->assertEqual($file->getFilename(), 'Image1.png');
-    $this->assertEqual($file->getSize(), 39325);
-    $this->assertEqual($file->getFileUri(), 'public://image-1.png');
-    $this->assertEqual($file->getMimeType(), 'image/png');
+    $this->assertIdentical($file->getFilename(), 'Image1.png');
+    $this->assertIdentical($file->getSize(), '39325');
+    $this->assertIdentical($file->getFileUri(), 'public://image-1.png');
+    $this->assertIdentical($file->getMimeType(), 'image/png');
     // It is pointless to run the second half from MigrateDrupal6Test.
     if (empty($this->standalone)) {
       return;
@@ -86,7 +86,7 @@ class MigrateFileTest extends MigrateDrupalTestBase {
     $executable->import();
 
     $file = entity_load('file', 2);
-    $this->assertEqual($file->getFileUri(), 'public://core/modules/simpletest/files/image-2.jpg');
+    $this->assertIdentical($file->getFileUri(), 'public://core/modules/simpletest/files/image-2.jpg');
 
     // Ensure that a temporary file has been migrated.
     $file = entity_load('file', 6);

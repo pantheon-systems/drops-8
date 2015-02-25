@@ -12,6 +12,7 @@ use Drupal\comment\Entity\CommentType;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element;
+use Drupal\Core\Routing\UrlGeneratorTrait;
 use Drupal\Core\TypedData\DataDefinition;
 use Drupal\Core\Field\FieldItemBase;
 use Drupal\Core\Session\AnonymousUserSession;
@@ -23,11 +24,13 @@ use Drupal\Core\Session\AnonymousUserSession;
  *   id = "comment",
  *   label = @Translation("Comments"),
  *   description = @Translation("This field manages configuration and presentation of comments on an entity."),
+ *   list_class = "\Drupal\comment\CommentFieldItemList",
  *   default_widget = "comment_default",
  *   default_formatter = "comment_default"
  * )
  */
 class CommentItem extends FieldItemBase implements CommentItemInterface {
+  use UrlGeneratorTrait;
 
   /**
    * {@inheritdoc}
@@ -155,20 +158,6 @@ class CommentItem extends FieldItemBase implements CommentItemInterface {
   /**
    * {@inheritdoc}
    */
-  public function __get($name) {
-    if ($name == 'status' && !isset($this->values[$name])) {
-      // Get default value from the field when no data saved in entity.
-      $field_default_values = $this->getFieldDefinition()->getDefaultValue($this->getEntity());
-      return $field_default_values[0]['status'];
-    }
-    else {
-      return parent::__get($name);
-    }
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function isEmpty() {
     // There is always a value for this field, it is one of
     // CommentItemInterface::OPEN, CommentItemInterface::CLOSED or
@@ -196,7 +185,8 @@ class CommentItem extends FieldItemBase implements CommentItemInterface {
       '#type' => 'select',
       '#title' => t('Comment type'),
       '#options' => $options,
-      '#description' => t('Select the Comment type to use for this comment field.'),
+      '#required' => TRUE,
+      '#description' => $this->t('Select the Comment type to use for this comment field. Manage the comment types from the <a href="@url">administration overview page</a>.', array('@url' => $this->url('entity.comment_type.collection'))),
       '#default_value' => $this->getSetting('comment_type'),
       '#disabled' => $has_data,
     );

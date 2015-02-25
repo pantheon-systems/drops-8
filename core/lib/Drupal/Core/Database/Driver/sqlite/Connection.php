@@ -122,6 +122,7 @@ class Connection extends DatabaseConnection {
     $pdo->sqliteCreateFunction('length', 'strlen', 1);
     $pdo->sqliteCreateFunction('md5', 'md5', 1);
     $pdo->sqliteCreateFunction('concat', array(__CLASS__, 'sqlFunctionConcat'));
+    $pdo->sqliteCreateFunction('concat_ws', array(__CLASS__, 'sqlFunctionConcatWs'));
     $pdo->sqliteCreateFunction('substring', array(__CLASS__, 'sqlFunctionSubstring'), 3);
     $pdo->sqliteCreateFunction('substring_index', array(__CLASS__, 'sqlFunctionSubstringIndex'), 3);
     $pdo->sqliteCreateFunction('rand', array(__CLASS__, 'sqlFunctionRand'));
@@ -200,6 +201,25 @@ class Connection extends DatabaseConnection {
   }
 
   /**
+   * SQLite compatibility implementation for the CONCAT_WS() SQL function.
+   *
+   * @see http://dev.mysql.com/doc/refman/5.6/en/string-functions.html#function_concat-ws
+   */
+  public static function sqlFunctionConcatWs() {
+    $args = func_get_args();
+    $separator = array_shift($args);
+    // If the separator is NULL, the result is NULL.
+    if ($separator === FALSE || is_null($separator)) {
+      return NULL;
+    }
+    // Skip any NULL values after the separator argument.
+    $args = array_filter($args, function ($value) {
+      return !is_null($value);
+    });
+    return implode($separator, $args);
+  }
+
+  /**
    * SQLite compatibility implementation for the SUBSTRING() SQL function.
    */
   public static function sqlFunctionSubstring($string, $from, $length) {
@@ -237,10 +257,16 @@ class Connection extends DatabaseConnection {
   /**
    * SQLite compatibility implementation for the REGEXP SQL operator.
    *
-   * The REGEXP operator is a special syntax for the regexp() user function.
+   * The REGEXP operator is natively known, but not implemented by default.
+   *
+   * @see http://www.sqlite.org/lang_expr.html#regexp
    */
-  public static function sqlFunctionRegexp($string, $pattern) {
-    return preg_match('#' . str_replace('#', '\#', $pattern) . '#i', $string);
+  public static function sqlFunctionRegexp($pattern, $subject) {
+    // preg_quote() cannot be used here, since $pattern may contain reserved
+    // regular expression characters already (such as ^, $, etc). Therefore,
+    // use a rare character as PCRE delimiter.
+    $pattern = '#' . addcslashes($pattern, '#') . '#i';
+    return preg_match($pattern, $subject);
   }
 
   /**

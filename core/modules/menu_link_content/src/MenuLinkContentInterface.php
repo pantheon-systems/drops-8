@@ -29,46 +29,6 @@ interface MenuLinkContentInterface extends ContentEntityInterface, EntityChanged
   public function getTitle();
 
   /**
-   * Gets the route name of the menu link.
-   *
-   * @return string|NULL
-   *   Returns the route name, or NULL if it is an external link.
-   */
-  public function getRouteName();
-
-  /**
-   * Gets the route parameters of the menu link content entity.
-   *
-   * @return array
-   *   The route parameters, or an empty array.
-   */
-  public function getRouteParameters();
-
-  /**
-   * Sets the route parameters of the custom menu link.
-   *
-   * @param array $route_parameters
-   *   The route parameters, usually derived from the path entered by the
-   *   administrator. For example, for a link to a node with route
-   *   'entity.node.canonical' the route needs the node ID as a parameter:
-   *   @code
-   *     array('node' => 2)
-   *   @endcode
-   *
-   * @return $this
-   */
-  public function setRouteParameters(array $route_parameters);
-
-  /**
-   * Gets the external URL.
-   *
-   * @return string|NULL
-   *   Returns the external URL if the menu link points to an external URL,
-   *   otherwise NULL.
-   */
-  public function getUrl();
-
-  /**
    * Gets the url object pointing to the URL of the menu link content entity.
    *
    * @return \Drupal\Core\Url
@@ -83,24 +43,6 @@ interface MenuLinkContentInterface extends ContentEntityInterface, EntityChanged
    *   The menu ID.
    */
   public function getMenuName();
-
-  /**
-   * Gets the options for the menu link content entity.
-   *
-   * @return array
-   *   The options that may be passed to the URL generator.
-   */
-  public function getOptions();
-
-  /**
-   * Sets the query options of the menu link content entity.
-   *
-   * @param array $options
-   *   The new option.
-   *
-   * @return $this
-   */
-  public function setOptions(array $options);
 
   /**
    * Gets the description of the menu link for the UI.
@@ -149,5 +91,46 @@ interface MenuLinkContentInterface extends ContentEntityInterface, EntityChanged
    *   A weight for use when ordering links.
    */
   public function getWeight();
+
+  /**
+   * Builds up the menu link plugin definition for this entity.
+   *
+   * @return array
+   *   The plugin definition corresponding to this entity.
+   *
+   * @see \Drupal\Core\Menu\MenuLinkTree::$defaults
+   */
+  public function getPluginDefinition();
+
+  /**
+   * Returns whether the menu link requires rediscovery.
+   *
+   * If a menu-link points to a user-supplied path such as /blog then the route
+   * this resolves to needs to be rediscovered as the module or route providing
+   * a given path might change over time.
+   *
+   * For example: at the time a menu-link is created, the /blog path might be
+   * provided by a route in Views module, but later this path may be served by
+   * the Panels module. Flagging a link as requiring rediscovery ensures that if
+   * the route that provides a user-entered path changes over time, the link is
+   * flexible enough to update to reflect these changes.
+   *
+   * @return bool
+   *   TRUE if the menu link requires rediscovery during route rebuilding.
+   */
+  public function requiresRediscovery();
+
+  /**
+   * Flags a link as requiring rediscovery.
+   *
+   * @param bool $rediscovery
+   *   Whether or not the link requires rediscovery.
+   *
+   * @return $this
+   *   The instance on which the method was called.
+   *
+   * @see \Drupal\menu_link_content\MenuLinkContentInterface::requiresRediscovery()
+   */
+  public function setRequiresRediscovery($rediscovery);
 
 }

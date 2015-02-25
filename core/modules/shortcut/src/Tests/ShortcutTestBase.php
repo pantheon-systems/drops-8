@@ -66,7 +66,7 @@ abstract class ShortcutTestBase extends WebTestBase {
         'title' => t('Add content'),
         'weight' => -20,
         'link' => array(
-          'uri' => 'node/add',
+          'uri' => 'internal:/node/add',
         ),
       ));
       $shortcut->save();
@@ -76,14 +76,14 @@ abstract class ShortcutTestBase extends WebTestBase {
         'title' => t('All content'),
         'weight' => -19,
         'link' => array(
-          'uri' => 'admin/content',
+          'uri' => 'internal:/admin/content',
         ),
       ));
       $shortcut->save();
     }
 
     // Create users.
-    $this->adminUser = $this->drupalCreateUser(array('access toolbar', 'administer shortcuts', 'view the administration theme', 'create article content', 'create page content', 'access content overview', 'administer users', 'link to any page'));
+    $this->adminUser = $this->drupalCreateUser(array('access toolbar', 'administer shortcuts', 'view the administration theme', 'create article content', 'create page content', 'access content overview', 'administer users', 'link to any page', 'edit any article content'));
     $this->shortcutUser = $this->drupalCreateUser(array('customize shortcut links', 'switch shortcut sets', 'access shortcuts', 'access content'));
 
     // Create a node.
@@ -92,7 +92,7 @@ abstract class ShortcutTestBase extends WebTestBase {
     // Log in as admin and grab the default shortcut set.
     $this->drupalLogin($this->adminUser);
     $this->set = ShortcutSet::load('default');
-    shortcut_set_assign_user($this->set, $this->adminUser);
+    \Drupal::entityManager()->getStorage('shortcut_set')->assignUser($this->set, $this->adminUser);
   }
 
   /**

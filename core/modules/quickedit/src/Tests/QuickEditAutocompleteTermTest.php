@@ -164,13 +164,14 @@ class QuickEditAutocompleteTermTest extends WebTestBase {
       $response = $this->drupalPost($quickedit_uri, 'application/vnd.drupal-ajax', $post);
       $this->assertResponse(200);
       $ajax_commands = Json::decode($response);
-      $this->drupalSetContent($ajax_commands[0]['data']);
+      $this->setRawContent($ajax_commands[0]['data']);
       $this->assertLink($this->term1->getName());
       $this->assertLink($this->term2->getName());
       $this->assertText('new term');
       $this->assertNoLink('new term');
 
-      // Load the form again, which should now get it back from TempStore.
+      // Load the form again, which should now get it back from
+      // PrivateTempStore.
       $quickedit_uri = 'quickedit/form/node/'. $this->node->id() . '/' . $this->fieldName . '/' . $this->node->language()->getId() . '/full';
       $post = array('nocssjs' => 'true') + $this->getAjaxPageStatePostData();
       $response = $this->drupalPost($quickedit_uri, 'application/vnd.drupal-ajax', $post);
@@ -180,7 +181,7 @@ class QuickEditAutocompleteTermTest extends WebTestBase {
       // the form to edit the taxonomy term field, it should contain all three
       // taxonomy terms, including the one that has just been newly created and
       // which is not yet stored.
-      $this->drupalSetContent($ajax_commands[0]['data']);
+      $this->setRawContent($ajax_commands[0]['data']);
       $this->assertFieldByName($this->fieldName, implode(', ', array($this->term1->getName(), 'new term', $this->term2->label())));
 
       // Save the entity.

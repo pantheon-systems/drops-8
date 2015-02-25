@@ -9,10 +9,7 @@ namespace Drupal\Core\Session;
 
 use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Database\Connection;
-use Drupal\Core\Session\AnonymousUserSession;
-use Drupal\Core\Session\SessionHandler;
 use Symfony\Component\HttpFoundation\RequestStack;
-use Symfony\Component\HttpFoundation\Session\Storage\Handler\WriteCheckSessionHandler;
 use Symfony\Component\HttpFoundation\Session\Storage\NativeSessionStorage;
 
 /**
@@ -63,15 +60,14 @@ class SessionManager extends NativeSessionStorage implements SessionManagerInter
   protected $startedLazy;
 
   /**
-   * Whether session management is enabled or temporarily disabled.
+   * The write safe session handler.
    *
-   * PHP session ID, session, and cookie handling happens in the global scope.
-   * This value has to persist, since a potentially wrong or disallowed session
-   * would be written otherwise.
+   * @todo: This reference should be removed once all database queries
+   *   are removed from the session manager class.
    *
-   * @var bool
+   * @var \Drupal\Core\Session\WriteSafeSessionHandlerInterface
    */
-  protected static $enabled = TRUE;
+  protected $writeSafeHandler;
 
   /**
    * Constructs a new session manager instance.
@@ -84,20 +80,17 @@ class SessionManager extends NativeSessionStorage implements SessionManagerInter
    *   The session metadata bag.
    * @param \Drupal\Core\Session\SessionConfigurationInterface $session_configuration
    *   The session configuration interface.
+   * @param \Symfony\Component\HttpFoundation\Session\Storage\Proxy\AbstractProxy|Symfony\Component\HttpFoundation\Session\Storage\Handler\NativeSessionHandler|\SessionHandlerInterface|NULL $handler
+   *   The object to register as a PHP session handler.
+   *   @see \Symfony\Component\HttpFoundation\Session\Storage\NativeSessionStorage::setSaveHandler()
    */
-  public function __construct(RequestStack $request_stack, Connection $connection, MetadataBag $metadata_bag, SessionConfigurationInterface $session_configuration) {
+  public function __construct(RequestStack $request_stack, Connection $connection, MetadataBag $metadata_bag, SessionConfigurationInterface $session_configuration, $handler = NULL) {
     $options = array();
     $this->sessionConfiguration = $session_configuration;
     $this->requestStack = $request_stack;
     $this->connection = $connection;
 
-    // Register the default session handler.
-    // @todo Extract session storage from session handler into a service.
-    $save_handler = new SessionHandler($this, $this->requestStack, $this->connection);
-    $write_check_handler = new WriteCheckSessionHandler($save_handler);
-    $this->setSaveHandler($write_check_handler);
-
-    parent::__construct($options, $write_check_handler, $metadata_bag);
+    parent::__construct($options, $handler, $metadata_bag);
 
     // @todo When not using the Symfony Session object, the list of bags in the
     //   NativeSessionStorage will remain uninitialized. This will lead to
@@ -112,8 +105,6 @@ class SessionManager extends NativeSessionStorage implements SessionManagerInter
    * {@inheritdoc}
    */
   public function start() {
-    global $user;
-
     if (($this->started || $this->startedLazy) && !$this->closed) {
       return $this->started;
     }
@@ -130,11 +121,13 @@ class SessionManager extends NativeSessionStorage implements SessionManagerInter
     }
 
     if (empty($result)) {
-      $user = new AnonymousUserSession();
+      // @todo Remove global in https://www.drupal.org/node/2286971
+      global $_session_user;
+      $_session_user = new AnonymousUserSession();
 
       // Randomly generate a session identifier for this request. This is
-      // necessary because \Drupal\user\TempStoreFactory::get() wants to know
-      // the future session ID of a lazily started session in advance.
+      // necessary because \Drupal\user\SharedTempStoreFactory::get() wants to
+      // know the future session ID of a lazily started session in advance.
       //
       // @todo: With current versions of PHP there is little reason to generate
       //   the session id from within application code. Consider using the
@@ -153,7 +146,6 @@ class SessionManager extends NativeSessionStorage implements SessionManagerInter
 
       $result = FALSE;
     }
-    date_default_timezone_set(drupal_get_user_timezone());
 
     return $result;
   }
@@ -165,7 +157,7 @@ class SessionManager extends NativeSessionStorage implements SessionManagerInter
    *   TRUE if the session is started.
    */
   protected function startNow() {
-    if (!$this->isEnabled() || $this->isCli()) {
+    if ($this->isCli()) {
       return FALSE;
     }
 
@@ -188,9 +180,9 @@ class SessionManager extends NativeSessionStorage implements SessionManagerInter
    * {@inheritdoc}
    */
   public function save() {
-    global $user;
+    $user = \Drupal::currentUser();
 
-    if (!$this->isEnabled() || $this->isCli()) {
+    if ($this->isCli()) {
       // We don't have anything to do if we are not allowed to save the session.
       return;
     }
@@ -219,10 +211,10 @@ class SessionManager extends NativeSessionStorage implements SessionManagerInter
    * {@inheritdoc}
    */
   public function regenerate($destroy = FALSE, $lifetime = NULL) {
-    global $user;
+    $user = \Drupal::currentUser();
 
     // Nothing to do if we are not allowed to change the session.
-    if (!$this->isEnabled() || $this->isCli()) {
+    if ($this->isCli()) {
       return;
     }
 
@@ -248,13 +240,8 @@ class SessionManager extends NativeSessionStorage implements SessionManagerInter
 
     if (!$this->isStarted()) {
       // Start the session when it doesn't exist yet.
-      // Preserve the logged in user, as it will be reset to anonymous
-      // by \Drupal\Core\Session\SessionHandler::read().
-      $account = $user;
       $this->startNow();
-      $user = $account;
     }
-    date_default_timezone_set(drupal_get_user_timezone());
   }
 
   /**
@@ -262,7 +249,7 @@ class SessionManager extends NativeSessionStorage implements SessionManagerInter
    */
   public function delete($uid) {
     // Nothing to do if we are not allowed to change the session.
-    if (!$this->isEnabled() || $this->isCli()) {
+    if (!$this->writeSafeHandler->isSessionWritable() || $this->isCli()) {
       return;
     }
     $this->connection->delete('sessions')
@@ -273,24 +260,8 @@ class SessionManager extends NativeSessionStorage implements SessionManagerInter
   /**
    * {@inheritdoc}
    */
-  public function isEnabled() {
-    return static::$enabled;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function disable() {
-    static::$enabled = FALSE;
-    return $this;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function enable() {
-    static::$enabled = TRUE;
-    return $this;
+  public function setWriteSafeHandler(WriteSafeSessionHandlerInterface $handler) {
+    $this->writeSafeHandler = $handler;
   }
 
   /**
@@ -338,7 +309,7 @@ class SessionManager extends NativeSessionStorage implements SessionManagerInter
     // Ignore attribute bags when they do not contain any data.
     foreach ($this->bags as $bag) {
       $key = $bag->getStorageKey();
-      $mask[$key] = empty($_SESSION[$key]);
+      $mask[$key] = !empty($_SESSION[$key]);
     }
 
     return array_intersect_key($mask, $_SESSION);

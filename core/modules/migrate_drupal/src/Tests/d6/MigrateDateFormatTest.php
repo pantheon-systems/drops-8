@@ -5,7 +5,7 @@ namespace Drupal\migrate_drupal\Tests\d6;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\migrate\MigrateMessage;
 use Drupal\migrate\MigrateExecutable;
-use Drupal\migrate_drupal\Tests\MigrateDrupalTestBase;
+use Drupal\migrate_drupal\Tests\d6\MigrateDrupal6TestBase;
 use Drupal\Core\Database\Database;
 
 /**
@@ -13,7 +13,7 @@ use Drupal\Core\Database\Database;
  *
  * @group migrate_drupal
  */
-class MigrateDateFormatTest extends MigrateDrupalTestBase {
+class MigrateDateFormatTest extends MigrateDrupal6TestBase {
 
   /**
    * {@inheritdoc}
@@ -35,13 +35,13 @@ class MigrateDateFormatTest extends MigrateDrupalTestBase {
    */
   public function testDateFormats() {
     $short_date_format = entity_load('date_format', 'short');
-    $this->assertEqual('\S\H\O\R\T m/d/Y - H:i', $short_date_format->getPattern());
+    $this->assertIdentical('\S\H\O\R\T m/d/Y - H:i', $short_date_format->getPattern());
 
     $medium_date_format = entity_load('date_format', 'medium');
-    $this->assertEqual('\M\E\D\I\U\M D, m/d/Y - H:i', $medium_date_format->getPattern());
+    $this->assertIdentical('\M\E\D\I\U\M D, m/d/Y - H:i', $medium_date_format->getPattern());
 
     $long_date_format = entity_load('date_format', 'long');
-    $this->assertEqual('\L\O\N\G l, F j, Y - H:i', $long_date_format->getPattern());
+    $this->assertIdentical('\L\O\N\G l, F j, Y - H:i', $long_date_format->getPattern());
 
     // Test that we can re-import using the EntityDateFormat destination.
     Database::getConnection('default', 'migrate')
@@ -55,7 +55,7 @@ class MigrateDateFormatTest extends MigrateDrupalTestBase {
     $executable->import();
 
     $short_date_format = entity_load('date_format', 'short');
-    $this->assertEqual('\S\H\O\R\T d/m/Y - H:i', $short_date_format->getPattern());
+    $this->assertIdentical('\S\H\O\R\T d/m/Y - H:i', $short_date_format->getPattern());
 
   }
 

@@ -11,7 +11,7 @@ use Drupal\Component\Utility\Unicode;
 use Drupal\content_translation\Tests\ContentTranslationUITest;
 
 /**
- * Tests the node translation UI.
+ * Tests the block content translation UI.
  *
  * @group block_content
  */
@@ -154,13 +154,37 @@ class BlockContentTranslationUITest extends ContentTranslationUITest {
     ));
     $bundle->save();
 
-    // Create a node for each bundle.
+    // Create a block content for each bundle.
     $enabled_block_content = $this->createBlockContent();
     $disabled_block_content = $this->createBlockContent(FALSE, $bundle->id());
 
     // Make sure that only a single row was inserted into the block table.
     $rows = db_query('SELECT * FROM {block_content_field_data} WHERE id = :id', array(':id' => $enabled_block_content->id()))->fetchAll();
     $this->assertEqual(1, count($rows));
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function doTestTranslationEdit() {
+    $entity = entity_load($this->entityTypeId, $this->entityId, TRUE);
+    $languages = $this->container->get('language_manager')->getLanguages();
+
+    foreach ($this->langcodes as $langcode) {
+      // We only want to test the title for non-english translations.
+      if ($langcode != 'en') {
+        $options = array('language' => $languages[$langcode]);
+        $url = $entity->urlInfo('edit-form', $options);
+        $this->drupalGet($url);
+
+        $title = t('<em>Edit @type</em> @title [%language translation]', array(
+          '@type' => $entity->bundle(),
+          '@title' => $entity->getTranslation($langcode)->label(),
+          '%language' => $languages[$langcode]->getName(),
+        ));
+        $this->assertRaw($title);
+      }
+    }
   }
 
 }

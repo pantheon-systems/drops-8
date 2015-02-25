@@ -266,26 +266,11 @@ class View extends ConfigEntityBase implements ViewEntityInterface {
 
     $executable = $this->getExecutable();
     $executable->initDisplay();
-    $handler_types = array_keys(Views::getHandlerTypes());
+    $executable->initStyle();
 
     foreach ($executable->displayHandlers as $display) {
-      // Add dependency for the display itself.
+      // Calculate the dependencies each display has.
       $this->calculatePluginDependencies($display);
-
-      // Collect all dependencies of all handlers.
-      foreach ($handler_types as $handler_type) {
-        foreach ($display->getHandlers($handler_type) as $handler) {
-          $this->calculatePluginDependencies($handler);
-        }
-      }
-
-      // Collect all dependencies of plugins.
-      foreach (Views::getPluginTypes('plugin') as $plugin_type) {
-        if (!$plugin = $display->getPlugin($plugin_type)) {
-          continue;
-        }
-        $this->calculatePluginDependencies($plugin);
-      }
     }
 
     return $this->dependencies;
@@ -416,7 +401,7 @@ class View extends ConfigEntityBase implements ViewEntityInterface {
   public static function postDelete(EntityStorageInterface $storage, array $entities) {
     parent::postDelete($storage, $entities);
 
-    $tempstore = \Drupal::service('user.tempstore')->get('views');
+    $tempstore = \Drupal::service('user.shared_tempstore')->get('views');
     foreach ($entities as $entity) {
       $tempstore->delete($entity->id());
     }
@@ -440,4 +425,12 @@ class View extends ConfigEntityBase implements ViewEntityInterface {
     }
     $this->set('display', $displays);
   }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function isInstallable() {
+    return (bool) \Drupal::service('views.views_data')->get($this->base_table);
+  }
+
 }
