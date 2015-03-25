@@ -12,6 +12,7 @@ use Drupal\image\Tests\ImageFieldTestBase;
 use Drupal\image\Entity\ImageStyle;
 use Drupal\node\Entity\Node;
 use Drupal\file\Entity\File;
+use Drupal\user\RoleInterface;
 
 /**
  * Tests responsive image display formatter.
@@ -79,7 +80,7 @@ class ResponsiveImageFieldDisplayTest extends ImageFieldTestBase {
   public function testResponsiveImageFieldFormattersPrivate() {
     $this->addTestImageStyleMappings();
     // Remove access content permission from anonymous users.
-    user_role_change_permissions(DRUPAL_ANONYMOUS_RID, array('access content' => FALSE));
+    user_role_change_permissions(RoleInterface::ANONYMOUS_ID, array('access content' => FALSE));
     $this->doTestResponsiveImageFieldFormatters('private');
   }
 
@@ -167,7 +168,11 @@ class ResponsiveImageFieldDisplayTest extends ImageFieldTestBase {
     // Create a new node with an image attached. Make sure we use a large image
     // so the scale effects of the image styles always have an effect.
     $test_image = current($this->drupalGetTestFiles('image', 39325));
-    $nid = $this->uploadNodeImage($test_image, $field_name, 'article');
+
+    // Create alt text for the image.
+    $alt = $this->randomMachineName();
+
+    $nid = $this->uploadNodeImage($test_image, $field_name, 'article', $alt);
     $node_storage->resetCache(array($nid));
     $node = $node_storage->load($nid);
 
@@ -178,6 +183,7 @@ class ResponsiveImageFieldDisplayTest extends ImageFieldTestBase {
       '#uri' => $image_uri,
       '#width' => 360,
       '#height' => 240,
+      '#alt' => $alt,
     );
     $default_output = str_replace("\n", NULL, drupal_render($image));
     $this->assertRaw($default_output, 'Default formatter displaying correctly on full node view.');
@@ -198,6 +204,7 @@ class ResponsiveImageFieldDisplayTest extends ImageFieldTestBase {
       '#uri' => $image_uri,
       '#width' => 360,
       '#height' => 240,
+      '#alt' => $alt,
     );
     $default_output = '<a href="' . file_create_url($image_uri) . '">' . drupal_render($image) . '</a>';
     $this->drupalGet('node/' . $nid);
@@ -272,6 +279,7 @@ class ResponsiveImageFieldDisplayTest extends ImageFieldTestBase {
     $image = \Drupal::service('image.factory')->get($image_uri);
     $fallback_image = array(
       '#theme' => 'image',
+      '#alt' => $alt,
       '#srcset' => array(
         array(
           'uri' => $large_style->buildUrl($image->getSource()),
@@ -328,7 +336,7 @@ class ResponsiveImageFieldDisplayTest extends ImageFieldTestBase {
     $this->createImageField($field_name, 'article', array('uri_scheme' => 'public'));
     // Create a new node with an image attached.
     $test_image = current($this->drupalGetTestFiles('image'));
-    $nid = $this->uploadNodeImage($test_image, $field_name, 'article');
+    $nid = $this->uploadNodeImage($test_image, $field_name, 'article', $this->randomMachineName());
     $node_storage->resetCache(array($nid));
 
     // Use the responsive image formatter linked to file formatter.
@@ -365,7 +373,8 @@ class ResponsiveImageFieldDisplayTest extends ImageFieldTestBase {
    */
   private function assertResponsiveImageFieldFormattersLink($link_type) {
     $field_name = Unicode::strtolower($this->randomMachineName());
-    $this->createImageField($field_name, 'article', array('uri_scheme' => 'public'));
+    $field_settings = array('alt_field_required' => 0);
+    $this->createImageField($field_name, 'article', array('uri_scheme' => 'public'), $field_settings);
     // Create a new node with an image attached.
     $test_image = current($this->drupalGetTestFiles('image'));
 

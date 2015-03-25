@@ -17,26 +17,14 @@ services:
       - { name: access_check, applies_to: _user_is_logged_in }
   authentication.cookie:
     class: Drupal\Core\Authentication\Provider\Cookie
+    arguments: ['@session_configuration']
     tags:
       - { name: authentication_provider, priority: 0 }
-  cache_context.user:
-    class: Drupal\user\Cache\UserCacheContext
-    arguments: ['@current_user']
-    tags:
-      - { name: cache.context}
-  cache_context.user.roles:
-    class: Drupal\user\Cache\UserRolesCacheContext
-    arguments: ['@current_user']
-    tags:
-      - { name: cache.context}
   user.data:
     class: Drupal\user\UserData
     arguments: ['@database']
     tags:
       - { name: backend_overridable }
-  user.autocomplete:
-    class: Drupal\user\UserAutocomplete
-    arguments: ['@config.factory', '@entity.manager', '@entity.query']
   user_maintenance_mode_subscriber:
     class: Drupal\user\EventSubscriber\MaintenanceModeSubscriber
     arguments: ['@maintenance_mode', '@current_user']

@@ -656,6 +656,17 @@ interface EntityTypeInterface {
   public function setUriCallback($callback);
 
   /**
+   * The list cache contexts associated with this entity type.
+   *
+   * Enables code listing entities of this type to ensure that rendered listings
+   * are varied as necessary, typically to ensure users of role A see other
+   * entities listed as users of role B.
+   *
+   * @return string[]
+   */
+  public function getListCacheContexts();
+
+  /**
    * The list cache tags associated with this entity type.
    *
    * Enables code listing entities of this type to ensure that newly created
@@ -673,5 +684,13 @@ interface EntityTypeInterface {
    *   dependencies on entities of this type.
    */
   public function getConfigDependencyKey();
+
+  /**
+   * Indicates whether this entity type is commonly used as a reference target.
+   *
+   * @return bool
+   *   TRUE if the entity type is a common reference; FALSE otherwise.
+   */
+  public function isCommonReferenceTarget();
 
 }

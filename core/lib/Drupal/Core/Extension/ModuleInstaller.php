@@ -151,17 +151,9 @@ class ModuleInstaller implements ModuleInstallerInterface {
           )));
         }
 
-        // Install profiles can not have config clashes. Configuration that
-        // has the same name as a module's configuration will be used instead.
-        if ($module != drupal_get_profile()) {
-          // Validate default configuration of this module. Bail if unable to
-          // install. Should not continue installing more modules because those
-          // may depend on this one.
-          $existing_configuration = $config_installer->findPreExistingConfiguration('module', $module);
-          if (!empty($existing_configuration)) {
-            throw PreExistingConfigException::create($module, $existing_configuration);
-          }
-        }
+        // Check the validity of the default configuration. This will throw
+        // exceptions if the configuration is not valid.
+        $config_installer->checkConfigurationToInstall('module', $module);
 
         $extension_config
           ->set("module.$module", 0)
@@ -220,9 +212,8 @@ class ModuleInstaller implements ModuleInstallerInterface {
         // Now install the module's schema if necessary.
         drupal_install_schema($module);
 
-        // Clear plugin manager caches and flag router to rebuild if requested.
+        // Clear plugin manager caches.
         \Drupal::getContainer()->get('plugin.cache_clearer')->clearCachedDefinitions();
-        \Drupal::service('router.builder_indicator')->setRebuildNeeded();
 
         // Set the schema version to the number of the last update provided by
         // the module, or the minimum core schema version.
@@ -249,12 +240,6 @@ class ModuleInstaller implements ModuleInstallerInterface {
           $config_installer
             ->setSyncing(TRUE)
             ->setSourceStorage($source_storage);
-        }
-        else {
-          // If we're not in a config synchronization reset the source storage
-          // so that the extension install storage will pick up the new
-          // configuration.
-          $config_installer->resetSourceStorage();
         }
         \Drupal::service('config.installer')->installDefaultConfig('module', $module);
 
@@ -296,6 +281,7 @@ class ModuleInstaller implements ModuleInstallerInterface {
 
     // If any modules were newly installed, invoke hook_modules_installed().
     if (!empty($modules_installed)) {
+      \Drupal::service('router.builder')->rebuild();
       $this->moduleHandler->invokeAll('modules_installed', array($modules_installed));
     }
 
@@ -417,9 +403,8 @@ class ModuleInstaller implements ModuleInstallerInterface {
       // its statically cached list.
       drupal_static_reset('system_rebuild_module_data');
 
-      // Clear plugin manager caches and flag router to rebuild if requested.
+      // Clear plugin manager caches.
       \Drupal::getContainer()->get('plugin.cache_clearer')->clearCachedDefinitions();
-      \Drupal::service('router.builder_indicator')->setRebuildNeeded();
 
       // Update the kernel to exclude the uninstalled modules.
       $this->updateKernel($module_filenames);
@@ -438,6 +423,7 @@ class ModuleInstaller implements ModuleInstallerInterface {
       $schema_store = \Drupal::keyValue('system.schema');
       $schema_store->delete($module);
     }
+    \Drupal::service('router.builder')->rebuild();
     drupal_get_installed_schema_version(NULL, TRUE);
 
     // Let other modules react.

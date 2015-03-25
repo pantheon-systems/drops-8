@@ -8,11 +8,11 @@ use Drupal\Component\Datetime\DateTimePlus;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Component\Utility\Environment;
 use Drupal\Component\Utility\SafeMarkup;
-use Drupal\Component\Utility\String;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Core\DrupalKernel;
 use Drupal\Core\Extension\ExtensionDiscovery;
 use Drupal\Core\Logger\RfcLogLevel;
+use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Site\Settings;
 use Drupal\Core\Utility\Error;
 use Symfony\Component\ClassLoader\ApcClassLoader;
@@ -54,42 +54,22 @@ const ERROR_REPORTING_DISPLAY_ALL = 'all';
 const ERROR_REPORTING_DISPLAY_VERBOSE = 'verbose';
 
 /**
- * First bootstrap phase: initialize configuration.
- *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- */
-const DRUPAL_BOOTSTRAP_CONFIGURATION = 0;
-
-/**
- * Second bootstrap phase, initialize a kernel.
- *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- */
-const DRUPAL_BOOTSTRAP_KERNEL = 1;
-
-/**
- * Third bootstrap phase: load code for subsystems and modules.
- *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- */
-const DRUPAL_BOOTSTRAP_CODE = 2;
-
-/**
- * Final bootstrap phase: initialize language, path, theme, and modules.
- *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- */
-const DRUPAL_BOOTSTRAP_FULL = 3;
-
-/**
  * Role ID for anonymous users; should match what's in the "role" table.
+ *
+ * @deprecated in Drupal 8.0.0, will be removed before Drupal 9.0.0.
+ *   Use Drupal\Core\Session\AccountInterface::ANONYMOUS_ROLE or
+ *   \Drupal\user\RoleInterface::ANONYMOUS_ID instead.
  */
-const DRUPAL_ANONYMOUS_RID = 'anonymous';
+const DRUPAL_ANONYMOUS_RID = AccountInterface::ANONYMOUS_ROLE;
 
 /**
  * Role ID for authenticated users; should match what's in the "role" table.
+ *
+ * @deprecated in Drupal 8.0.0, will be removed before Drupal 9.0.0.
+ *   Use Drupal\Core\Session\AccountInterface::AUTHENTICATED_ROLE or
+ *   \Drupal\user\RoleInterface::AUTHENTICATED_ID instead.
  */
-const DRUPAL_AUTHENTICATED_RID = 'authenticated';
+const DRUPAL_AUTHENTICATED_RID = AccountInterface::AUTHENTICATED_ROLE;
 
 /**
  * The maximum number of characters in a module or theme name.
@@ -264,7 +244,8 @@ function drupal_get_filename($type, $name, $filename = NULL) {
       }
     }
     // If still unknown, retrieve the file list prepared in state by
-    // system_rebuild_module_data() and system_rebuild_theme_data().
+    // system_rebuild_module_data() and
+    // \Drupal\Core\Extension\ThemeHandlerInterface::rebuildThemeData().
     if (!isset($files[$type][$name]) && \Drupal::hasService('state')) {
       $files[$type] += \Drupal::state()->get('system.' . $type . '.files', array());
     }
@@ -447,12 +428,12 @@ function t($string, array $args = array(), array $options = array()) {
 /**
  * Formats a string for HTML display by replacing variable placeholders.
  *
- * @see \Drupal\Component\Utility\String::format()
+ * @see \Drupal\Component\Utility\SafeMarkup::format()
  * @see t()
  * @ingroup sanitization
  */
 function format_string($string, array $args = array()) {
-  return String::format($string, $args);
+  return SafeMarkup::format($string, $args);
 }
 
 /**
@@ -486,35 +467,6 @@ function drupal_validate_utf8($text) {
 }
 
 /**
- * Returns the equivalent of Apache's $_SERVER['REQUEST_URI'] variable.
- *
- * Because $_SERVER['REQUEST_URI'] is only available on Apache, we generate an
- * equivalent using other environment variables.
- *
- * @todo The above comment is incorrect: http://drupal.org/node/1547294.
- */
-function request_uri($omit_query_string = FALSE) {
-  if (isset($_SERVER['REQUEST_URI'])) {
-    $uri = $_SERVER['REQUEST_URI'];
-  }
-  else {
-    if (isset($_SERVER['argv'][0])) {
-      $uri = $_SERVER['SCRIPT_NAME'] . '?' . $_SERVER['argv'][0];
-    }
-    elseif (isset($_SERVER['QUERY_STRING'])) {
-      $uri = $_SERVER['SCRIPT_NAME'] . '?' . $_SERVER['QUERY_STRING'];
-    }
-    else {
-      $uri = $_SERVER['SCRIPT_NAME'];
-    }
-  }
-  // Prevent multiple slashes to avoid cross site requests via the Form API.
-  $uri = '/' . ltrim($uri, '/');
-
-  return $omit_query_string ? strtok($uri, '?') : $uri;
-}
-
-/**
  * Logs an exception.
  *
  * This is a wrapper logging function which automatically decodes an exception.
@@ -542,7 +494,7 @@ function watchdog_exception($type, Exception $exception, $message = NULL, $varia
   // Use a default value if $message is not set.
   if (empty($message)) {
     // The exception message is run through
-    // \Drupal\Component\Utility\String::checkPlain() by
+    // \Drupal\Component\Utility\SafeMarkup::checkPlain() by
     // \Drupal\Core\Utility\Error:decodeException().
     $message = '%type: !message in %function (line %line of %file).';
   }
@@ -684,59 +636,6 @@ function drupal_get_messages($type = NULL, $clear_queue = TRUE) {
 }
 
 /**
- * Ensures Drupal is bootstrapped to the specified phase.
- *
- * In order to bootstrap Drupal from another PHP script, you can use this code:
- * @code
- *   require_once '/path/to/drupal/core/vendor/autoload.php';
- *   require_once '/path/to/drupal/core/includes/bootstrap.inc';
- *   drupal_bootstrap(DRUPAL_BOOTSTRAP_FULL);
- * @endcode
- *
- * @param $phase
- *   A constant telling which phase to bootstrap to. Possible values:
- *   - DRUPAL_BOOTSTRAP_CONFIGURATION: Initializes configuration.
- *   - DRUPAL_BOOTSTRAP_KERNEL: Initializes a kernel.
- *
- * @return int
- *   The most recently completed phase.
- *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- *   Interact directly with the kernel.
- */
-function drupal_bootstrap($phase = NULL) {
-  // Temporary variables used for booting later legacy phases.
-  /** @var \Drupal\Core\DrupalKernel $kernel */
-  static $kernel;
-  static $boot_level = 0;
-
-  if (isset($phase)) {
-    $request = Request::createFromGlobals();
-    for ($current_phase = $boot_level; $current_phase <= $phase; $current_phase++) {
-
-      switch ($current_phase) {
-        case DRUPAL_BOOTSTRAP_CONFIGURATION:
-          $classloader = require __DIR__ . '/../vendor/autoload.php';
-          $kernel = DrupalKernel::createFromRequest($request, $classloader, 'prod');
-          break;
-
-        case DRUPAL_BOOTSTRAP_KERNEL:
-          $kernel->boot();
-          break;
-
-        case DRUPAL_BOOTSTRAP_CODE:
-        case DRUPAL_BOOTSTRAP_FULL:
-          $kernel->prepareLegacyRequest($request);
-          break;
-      }
-    }
-    $boot_level = $phase;
-  }
-
-  return \Drupal::hasContainer() ? DRUPAL_BOOTSTRAP_CODE : DRUPAL_BOOTSTRAP_CONFIGURATION;
-}
-
-/**
  * Returns the time zone of the current user.
  */
 function drupal_get_user_timezone() {
@@ -800,19 +699,6 @@ function _drupal_exception_handler($exception) {
       print '<h2>Additional</h2><p>' . Error::renderExceptionSafe($exception2) . '</p><hr />';
     }
   }
-}
-
-/**
- * Returns the current bootstrap phase for this Drupal process.
- *
- * The current phase is the one most recently completed by drupal_bootstrap().
- *
- * @see drupal_bootstrap()
- *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- */
-function drupal_get_bootstrap_phase() {
-  return drupal_bootstrap();
 }
 
 /**
@@ -960,58 +846,6 @@ function drupal_get_profile() {
   }
 
   return $profile;
-}
-
-/**
- * Returns a list of languages set up on the site.
- *
- * @param $flags
- *   (optional) Specifies the state of the languages that have to be returned.
- *   It can be: LanguageInterface::STATE_CONFIGURABLE,
- *   LanguageInterface::STATE_LOCKED, or LanguageInterface::STATE_ALL.
- *
- * @return \Drupal\Core\Language\LanguageInterface[]
- *   An associative array of languages, keyed by the language code, ordered by
- *   weight ascending and name ascending.
- *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- *   Use \Drupal::languageManager()->getLanguages().
- */
-function language_list($flags = LanguageInterface::STATE_CONFIGURABLE) {
-  return \Drupal::languageManager()->getLanguages($flags);
-}
-
-/**
- * Loads a language object from the database.
- *
- * @param string $langcode
- *   The language code.
- *
- * @return \Drupal\core\Language\LanguageInterface|null
- *   A fully-populated language object or NULL.
- *
- * @see \Drupal\Core\Language\LanguageManager::getLanguage()
- *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- *   Use \Drupal::languageManager()->getLanguage().
- */
-function language_load($langcode) {
-  return \Drupal::languageManager()->getLanguage($langcode);
-}
-
-/**
- * Returns the default language used on the site.
- *
- * @return \Drupal\Core\Language\LanguageInterface
- *   A language object.
- *
- * @see \Drupal\Core\Language\LanguageManager::getLanguage()
- *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- *   Use \Drupal::languageManager()->getDefaultLanguage().
- */
-function language_default() {
-  return \Drupal::languageManager()->getDefaultLanguage();
 }
 
 /**
@@ -1187,10 +1021,10 @@ function drupal_static_reset($name = NULL) {
 /**
  * Formats text for emphasized display in a placeholder inside a sentence.
  *
- * @see \Drupal\Component\Utility\String::placeholder()
+ * @see \Drupal\Component\Utility\SafeMarkup::placeholder()
  */
 function drupal_placeholder($text) {
-  return String::placeholder($text);
+  return SafeMarkup::placeholder($text);
 }
 
 /**

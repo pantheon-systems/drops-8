@@ -203,11 +203,28 @@ class EntityType implements EntityTypeInterface {
   protected $field_ui_base_route;
 
   /**
+   * Indicates whether this entity type is commonly used as a reference target.
+   *
+   * This is used by the Entity reference field to promote an entity type in the
+   * add new field select list in Field UI.
+   *
+   * @var bool
+   */
+  protected $common_reference_target = FALSE;
+
+  /**
+   * The list cache contexts for this entity type.
+   *
+   * @var string[]
+   */
+  protected $list_cache_contexts = [];
+
+  /**
    * The list cache tags for this entity type.
    *
-   * @var array
+   * @var string[]
    */
-  protected $list_cache_tags = array();
+  protected $list_cache_tags = [];
 
   /**
    * Constructs a new EntityType.
@@ -238,6 +255,7 @@ class EntityType implements EntityTypeInterface {
       'revision' => '',
       'bundle' => '',
       'langcode' => '',
+      'default_langcode' => 'default_langcode',
     );
     $this->handlers += array(
       'access' => 'Drupal\Core\Entity\EntityAccessControlHandler',
@@ -695,6 +713,13 @@ class EntityType implements EntityTypeInterface {
   /**
    * {@inheritdoc}
    */
+  public function getListCacheContexts() {
+    return $this->list_cache_contexts;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function getListCacheTags() {
     return $this->list_cache_tags;
   }
@@ -707,6 +732,13 @@ class EntityType implements EntityTypeInterface {
     // is that dependencies on other configuration entities are hard
     // dependencies and have to exist before creating the dependent entity.
     return 'content';
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function isCommonReferenceTarget() {
+    return $this->common_reference_target;
   }
 
 }

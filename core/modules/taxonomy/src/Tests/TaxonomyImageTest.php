@@ -7,6 +7,8 @@
 
 namespace Drupal\taxonomy\Tests;
 
+use Drupal\user\RoleInterface;
+
 /**
  * Tests access checks of private image fields.
  *
@@ -32,7 +34,7 @@ class TaxonomyImageTest extends TaxonomyTestBase {
     parent::setUp();
 
     // Remove access content permission from registered users.
-    user_role_revoke_permissions(DRUPAL_AUTHENTICATED_RID, array('access content'));
+    user_role_revoke_permissions(RoleInterface::AUTHENTICATED_ID, array('access content'));
 
     $this->vocabulary = $this->createVocabulary();
     // Add a field to the vocabulary.
@@ -76,6 +78,7 @@ class TaxonomyImageTest extends TaxonomyTestBase {
     $edit['name[0][value]'] = $this->randomMachineName();
     $edit['files[field_test_0]'] = drupal_realpath($image->uri);
     $this->drupalPostForm('admin/structure/taxonomy/manage/' . $this->vocabulary->id()  . '/add', $edit, t('Save'));
+    $this->drupalPostForm(NULL, ['field_test[0][alt]' => $this->randomMachineName()], t('Save'));
     $terms = entity_load_multiple_by_properties('taxonomy_term', array('name' => $edit['name[0][value]']));
     $term = reset($terms);
     $this->assertText(t('Created new term @name.', array('@name' => $term->getName())));

@@ -70,6 +70,10 @@ class ViewEditTest extends UITestBase {
     $machine_name_edit_url = 'admin/structure/views/nojs/display/test_view/test_1/display_id';
     $error_text = t('Display name must be letters, numbers, or underscores only.');
 
+    // Test that potential invalid display ID requests are detected
+    $this->drupalGet('admin/structure/views/ajax/handler/test_view/fake_display_name/filter/title');
+    $this->assertText('Invalid display id fake_display_name');
+
     $edit = array('display_id' => 'test 1');
     $this->drupalPostForm($machine_name_edit_url, $edit, 'Apply');
     $this->assertText($error_text);
@@ -131,7 +135,7 @@ class ViewEditTest extends UITestBase {
       $this->drupalGet($langcode_url);
       $this->assertResponse(200);
       if ($view_name == 'test_view') {
-        $this->assertText(t("You don't have translatable entity types."));
+        $this->assertText(t('The view is not based on a translatable entity type or the site is not multilingual.'));
       }
       else {
         $this->assertFieldByName('rendering_language', '***LANGUAGE_entity_translation***');
@@ -144,7 +148,7 @@ class ViewEditTest extends UITestBase {
    */
   public function testRelationRepresentativeNode() {
     // Populate and submit the form.
-    $edit["name[taxonomy_term_data.tid_representative]"] = TRUE;
+    $edit["name[taxonomy_term_field_data.tid_representative]"] = TRUE;
     $this->drupalPostForm('admin/structure/views/nojs/add-handler/test_groupwise_term_ui/default/relationship', $edit, 'Add and configure relationships');
     // Apply changes.
     $edit = array();

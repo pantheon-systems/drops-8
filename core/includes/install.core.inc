@@ -98,7 +98,7 @@ function install_drupal($class_loader, $settings = array()) {
   //   infrastructure in https://www.drupal.org/node/2389243
   if (is_array($class_loader) && $settings === array()) {
     $settings = $class_loader;
-    $class_loader = require __DIR__ . '/../vendor/autoload.php';
+    $class_loader = require __DIR__ . '/../../autoload.php';
   }
 
   global $install_state;
@@ -741,6 +741,8 @@ function install_tasks($install_state) {
     ),
     'install_profile_themes' => array(
     ),
+    'install_install_profile' => array(
+    ),
     'install_import_translations' => array(
       'display_name' => t('Set up translations'),
       'display' => $needs_translations,
@@ -1021,10 +1023,6 @@ function install_base_system(&$install_state) {
   // Save the list of other modules to install for the upcoming tasks.
   // State can be set to the database now that system.module is installed.
   $modules = $install_state['profile_info']['dependencies'];
-
-  // The installation profile is also a module, which needs to be installed
-  // after all the dependencies have been installed.
-  $modules[] = drupal_get_profile();
 
   \Drupal::state()->set('install_profile_modules', array_diff($modules, array('system')));
   $install_state['base_system_verified'] = TRUE;
@@ -1571,10 +1569,7 @@ function install_profile_modules(&$install_state) {
   // the modules.
   $required = array();
   $non_required = array();
-  // Although the profile module is marked as required, it needs to go after
-  // every dependency, including non-required ones. So clear its required
-  // flag for now to allow it to install late.
-  $files[$install_state['parameters']['profile']]->info['required'] = FALSE;
+
   // Add modules that other modules depend on.
   foreach ($modules as $module) {
     if ($files[$module]->requires) {
@@ -1616,21 +1611,35 @@ function install_profile_modules(&$install_state) {
  *   An array of information about the current installation state.
  */
 function install_profile_themes(&$install_state) {
-  $theme_handler = \Drupal::service('theme_handler');
-
-  // ThemeHandler::install() resets the current list of themes. The theme used
-  // in the installer is not necessarily in the list of themes to install, so
-  // retain the current list.
-  // @see _drupal_maintenance_theme()
-  $current_themes = $theme_handler->listInfo();
-
   // Install the themes specified by the installation profile.
   $themes = $install_state['profile_info']['themes'];
-  $theme_handler->install($themes);
+  \Drupal::service('theme_handler')->install($themes);
 
-  foreach ($current_themes as $theme) {
-    $theme_handler->addTheme($theme);
-  }
+  // Ensure that the install profile's theme is used.
+  // @see _drupal_maintenance_theme()
+  \Drupal::service('theme.manager')->resetActiveTheme();
+}
+
+/**
+ * Installs the install profile.
+ *
+ * @param $install_state
+ *   An array of information about the current installation state.
+ */
+function install_install_profile(&$install_state) {
+  \Drupal::service('module_installer')->install(array(drupal_get_profile()), FALSE);
+  // Install all available optional config. During installation the module order
+  // is determined by dependencies. If there are no dependencies between modules
+  // then the order in which they are installed is dependent on random factors
+  // like PHP version. Optional configuration therefore might or might not be
+  // created depending on this order. Ensuring that we have installed all of the
+  // optional configuration whose dependencies can be met at this point removes
+  // any disparities that this creates.
+  \Drupal::service('config.installer')->installOptionalConfig();
+
+  // Ensure that the install profile's theme is used.
+  // @see _drupal_maintenance_theme()
+  \Drupal::service('theme.manager')->resetActiveTheme();
 }
 
 /**
@@ -1843,10 +1852,6 @@ function install_finished(&$install_state) {
  * Performs batch installation of modules.
  */
 function _install_module_batch($module, $module_name, &$context) {
-  // Install and enable the module right away, so that the module will be
-  // loaded by drupal_bootstrap in subsequent batch requests, and other
-  // modules possibly depending on it can safely perform their installation
-  // steps.
   \Drupal::service('module_installer')->install(array($module), FALSE);
   $context['results'][] = $module;
   $context['message'] = t('Installed %module module.', array('%module' => $module_name));

@@ -10,6 +10,7 @@ namespace Drupal\config\Tests;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Config\ConfigImporter;
 use Drupal\Core\Config\StorageComparer;
+use Drupal\node\Entity\NodeType;
 use Drupal\simpletest\KernelTestBase;
 
 /**
@@ -37,7 +38,7 @@ class ConfigImportRecreateTest extends KernelTestBase {
     parent::setUp();
 
     $this->installEntitySchema('node');
-    $this->installConfig(array('field'));
+    $this->installConfig(array('field', 'node'));
 
     $this->copyConfig($this->container->get('config.storage'), $this->container->get('config.storage.staging'));
 
@@ -93,8 +94,8 @@ class ConfigImportRecreateTest extends KernelTestBase {
     // will be recreated.
     $creates = $this->configImporter->getUnprocessedConfiguration('create');
     $deletes = $this->configImporter->getUnprocessedConfiguration('delete');
-    $this->assertEqual(4, count($creates), 'There are 4 configuration items to create.');
-    $this->assertEqual(4, count($deletes), 'There are 4 configuration items to delete.');
+    $this->assertEqual(5, count($creates), 'There are 5 configuration items to create.');
+    $this->assertEqual(5, count($deletes), 'There are 5 configuration items to delete.');
     $this->assertEqual(0, count($this->configImporter->getUnprocessedConfiguration('update')), 'There are no configuration items to update.');
     $this->assertIdentical($creates, array_reverse($deletes), 'Deletes and creates contain the same configuration names in opposite orders due to dependencies.');
 
@@ -102,7 +103,7 @@ class ConfigImportRecreateTest extends KernelTestBase {
 
     // Verify that there is nothing more to import.
     $this->assertFalse($this->configImporter->reset()->hasUnprocessedConfigurationChanges());
-    $content_type = entity_load('node_type', $type_name);
+    $content_type = NodeType::load($type_name);
     $this->assertEqual('Node type one', $content_type->label());
   }
 

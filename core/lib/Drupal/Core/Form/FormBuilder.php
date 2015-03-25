@@ -301,9 +301,9 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
       $form['#build_id'] = 'form-' . Crypt::randomBytesBase64();
     }
 
-    // #action defaults to request_uri(), but in case of Ajax and other partial
-    // rebuilds, the form is submitted to an alternate URL, and the original
-    // #action needs to be retained.
+    // #action defaults to $request->getRequestUri(), but in case of Ajax and
+    // other partial rebuilds, the form is submitted to an alternate URL, and
+    // the original #action needs to be retained.
     if (isset($old_form['#action']) && !empty($rebuild_info['copy']['#action'])) {
       $form['#action'] = $old_form['#action'];
     }
@@ -467,11 +467,11 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
       }
       $this->formValidator->validateForm($form_id, $form, $form_state);
 
-      // drupal_html_id() maintains a cache of element IDs it has seen, so it
-      // can prevent duplicates. We want to be sure we reset that cache when a
-      // form is processed, so scenarios that result in the form being built
-      // behind the scenes and again for the browser don't increment all the
-      // element IDs needlessly.
+      // \Drupal\Component\Utility\Html::getUniqueId() maintains a cache of
+      // element IDs it has seen, so it can prevent duplicates. We want to be
+      // sure we reset that cache when a form is processed, so scenarios that
+      // result in the form being built behind the scenes and again for the
+      // browser don't increment all the element IDs needlessly.
       if (!FormState::hasAnyErrors()) {
         // In case of errors, do not break HTML IDs of other forms.
         Html::resetSeenIds();
@@ -534,7 +534,7 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
 
     // Only update the action if it is not already set.
     if (!isset($form['#action'])) {
-      $form['#action'] = $this->requestUri();
+      $form['#action'] = $this->requestStack->getMasterRequest()->getRequestUri();
     }
 
     // Fix the form method, if it is 'get' in $form_state, but not in $form.
@@ -801,8 +801,8 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
     // The #after_build flag allows any piece of a form to be altered
     // after normal input parsing has been completed.
     if (isset($element['#after_build']) && !isset($element['#after_build_done'])) {
-      foreach ($element['#after_build'] as $callable) {
-        $element = call_user_func_array($callable, array($element, &$form_state));
+      foreach ($element['#after_build'] as $callback) {
+        $element = call_user_func_array($form_state->prepareCallback($callback), array($element, &$form_state));
       }
       $element['#after_build_done'] = TRUE;
     }
@@ -1097,15 +1097,6 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
       $this->currentUser = \Drupal::currentUser();
     }
     return $this->currentUser;
-  }
-
-  /**
-   * Gets the current request URI.
-   *
-   * @return string
-   */
-  protected function requestUri() {
-    return request_uri();
   }
 
 }

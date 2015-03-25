@@ -8,6 +8,7 @@
 namespace Drupal\Core\Block;
 
 use Drupal\block\BlockInterface;
+use Drupal\Component\Utility\String;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Cache\CacheContexts;
 use Drupal\Core\Form\FormStateInterface;
@@ -170,8 +171,8 @@ abstract class BlockBase extends ContextAwarePluginBase implements BlockPluginIn
 
     $form['admin_label'] = array(
       '#type' => 'item',
-      '#title' => t('Block description'),
-      '#markup' => $definition['admin_label'],
+      '#title' => $this->t('Block description'),
+      '#markup' => String::checkPlain($definition['admin_label']),
     );
     $form['label'] = array(
       '#type' => 'textfield',
@@ -190,28 +191,28 @@ abstract class BlockBase extends ContextAwarePluginBase implements BlockPluginIn
     // @see \Drupal\system\Form\PerformanceForm::buildForm()
     $period = array(0, 60, 180, 300, 600, 900, 1800, 2700, 3600, 10800, 21600, 32400, 43200, 86400);
     $period = array_map(array(\Drupal::service('date.formatter'), 'formatInterval'), array_combine($period, $period));
-    $period[0] = '<' . t('no caching') . '>';
-    $period[\Drupal\Core\Cache\Cache::PERMANENT] = t('Forever');
+    $period[0] = '<' . $this->t('no caching') . '>';
+    $period[\Drupal\Core\Cache\Cache::PERMANENT] = $this->t('Forever');
     $form['cache'] = array(
       '#type' => 'details',
-      '#title' => t('Cache settings'),
+      '#title' => $this->t('Cache settings'),
     );
     $form['cache']['max_age'] = array(
       '#type' => 'select',
-      '#title' => t('Maximum age'),
-      '#description' => t('The maximum time this block may be cached.'),
+      '#title' => $this->t('Maximum age'),
+      '#description' => $this->t('The maximum time this block may be cached.'),
       '#default_value' => $this->configuration['cache']['max_age'],
       '#options' => $period,
     );
     $contexts = \Drupal::service("cache_contexts")->getLabels();
     // Blocks are always rendered in the "per language" and "per theme" cache
     // contexts. No need to show those options to the end user.
-    unset($contexts['language']);
+    unset($contexts['languages']);
     unset($contexts['theme']);
     $form['cache']['contexts'] = array(
       '#type' => 'checkboxes',
-      '#title' => t('Vary by context'),
-      '#description' => t('The contexts this cached block must be varied by. <em>All</em> blocks are varied by language and theme.'),
+      '#title' => $this->t('Vary by context'),
+      '#description' => $this->t('The contexts this cached block must be varied by. <em>All</em> blocks are varied by language and theme.'),
       '#default_value' => $this->configuration['cache']['contexts'],
       '#options' => $contexts,
       '#states' => array(
@@ -225,12 +226,13 @@ abstract class BlockBase extends ContextAwarePluginBase implements BlockPluginIn
       // choose to modify by: they must always be applied.
       $context_labels = array();
       $all_contexts = \Drupal::service("cache_contexts")->getLabels(TRUE);
-      foreach (array_keys(CacheContexts::parseTokens($this->getRequiredCacheContexts())) as $context) {
-        $context_labels[] = $all_contexts[$context];
-        unset($form['cache']['contexts']['#options'][$context]);
+      foreach (CacheContexts::parseTokens($this->getRequiredCacheContexts()) as $context) {
+        $context_id = $context[0];
+        $context_labels[] = $all_contexts[$context_id];
+        unset($form['cache']['contexts']['#options'][$context_id]);
       }
       $required_context_list = implode(', ', $context_labels);
-      $form['cache']['contexts']['#description'] .= ' ' . t('This block is <em>always</em> varied by the following contexts: %required-context-list.', array('%required-context-list' => $required_context_list));
+      $form['cache']['contexts']['#description'] .= ' ' . $this->t('This block is <em>always</em> varied by the following contexts: %required-context-list.', array('%required-context-list' => $required_context_list));
     }
 
     // Add plugin-specific settings for this block type.
@@ -368,10 +370,7 @@ abstract class BlockBase extends ContextAwarePluginBase implements BlockPluginIn
    * {@inheritdoc}
    */
   public function getCacheTags() {
-    // If a block plugin's output changes, then it must be able to invalidate a
-    // cache tag that affects all instances of this block: across themes and
-    // across regions.
-    return array('block_plugin:' . str_replace(':', '__', $this->getPluginID()));
+    return [];
   }
 
   /**

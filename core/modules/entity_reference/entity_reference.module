@@ -13,6 +13,7 @@ use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\FieldStorageConfigInterface;
+use Drupal\field\FieldConfigInterface;
 
 /**
  * Implements hook_help().
@@ -84,20 +85,43 @@ function entity_reference_field_storage_config_update(FieldStorageConfigInterfac
     return;
   }
 
-  if (empty($field_storage->bundles)) {
-    // Field storage has no fields.
+  foreach ($field_storage->getBundles() as $bundle) {
+    $field = FieldConfig::loadByName($field_storage->getTargetEntityTypeId(), $bundle, $field_storage->getName());
+    $field->settings['handler_settings'] = array();
+    $field->save();
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_presave() for 'field_config'.
+ *
+ * Determine the selection handler plugin ID for an entity reference field.
+ */
+function entity_reference_field_config_presave(FieldConfigInterface $field) {
+  if ($field->getType() != 'entity_reference') {
+    // Only act on entity reference fields.
     return;
   }
 
-  $field_name = $field_storage->getName();
-
-  foreach ($field_storage->bundles() as $entity_type => $bundles) {
-    foreach ($bundles as $bundle) {
-      $field = FieldConfig::loadByName($entity_type, $bundle, $field_name);
-      $field->settings['handler_settings'] = array();
-      $field->save();
-    }
+  if ($field->isSyncing()) {
+    // Don't change anything during a configuration sync.
+    return;
   }
+
+  $target_type = $field->getFieldStorageDefinition()->getSetting('target_type');
+  $selection_manager = \Drupal::service('plugin.manager.entity_reference_selection');
+  list($current_handler) = explode(':', $field->getSetting('handler'), 2);
+  $field->settings['handler'] = $selection_manager->getPluginId($target_type, $current_handler);
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter() for 'field_ui_field_storage_add_form'.
+ */
+function entity_reference_form_field_ui_field_storage_add_form_alter(array &$form) {
+  // Move the "Entity reference" option to the end of the list and rename it to
+  // "Other".
+  unset($form['add']['new_storage_type']['#options'][t('Reference')]['entity_reference']);
+  $form['add']['new_storage_type']['#options'][t('Reference')]['entity_reference'] = t('Other…');
 }
 
 /**
@@ -178,55 +202,3 @@ function entity_reference_query_entity_reference_alter(AlterableInterface $query
   $handler = $query->getMetadata('entity_reference_selection_handler');
   $handler->entityQueryAlter($query);
 }
-
-/**
- * Creates a field of an entity reference field storage on the specified bundle.
- *
- * @param string $entity_type
- *   The type of entity the field will be attached to.
- * @param string $bundle
- *   The bundle name of the entity the field will be attached to.
- * @param string $field_name
- *   The name of the field; if it already exists, a new instance of the existing
- *   field will be created.
- * @param string $field_label
- *   The label of the field.
- * @param string $target_entity_type
- *   The type of the referenced entity.
- * @param string $selection_handler
- *   The selection handler used by this field.
- * @param array $selection_handler_settings
- *   An array of settings supported by the selection handler specified above.
- *   (e.g. 'target_bundles', 'sort', 'auto_create', etc).
- * @param int $cardinality
- *   The cardinality of the field.
- *
- * @see \Drupal\Core\Entity\Plugin\EntityReferenceSelection\SelectionBase::buildConfigurationForm()
- */
-function entity_reference_create_field($entity_type, $bundle, $field_name, $field_label, $target_entity_type, $selection_handler = 'default', $selection_handler_settings = array(), $cardinality = 1) {
-  // Look for or add the specified field to the requested entity bundle.
-  if (!FieldStorageConfig::loadByName($entity_type, $field_name)) {
-    entity_create('field_storage_config', array(
-      'field_name' => $field_name,
-      'type' => 'entity_reference',
-      'entity_type' => $entity_type,
-      'cardinality' => $cardinality,
-      'settings' => array(
-        'target_type' => $target_entity_type,
-      ),
-    ))->save();
-  }
-  if (!FieldConfig::loadByName($entity_type, $bundle, $field_name)) {
-    entity_create('field_config', array(
-      'field_name' => $field_name,
-      'entity_type' => $entity_type,
-      'bundle' => $bundle,
-      'label' => $field_label,
-      'settings' => array(
-        'handler' => $selection_handler,
-        'handler_settings' => $selection_handler_settings,
-      ),
-    ))->save();
-  }
-}
-

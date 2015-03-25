@@ -133,6 +133,8 @@ class LinkWidget extends WidgetBase {
   }
 
   /**
+   * Form element validation handler for the 'uri' element.
+   *
    * Disallows saving inaccessible or untrusted URLs.
    */
   public static function validateUriElement($element, FormStateInterface $form_state, $form) {
@@ -147,30 +149,17 @@ class LinkWidget extends WidgetBase {
       $form_state->setError($element, t('Manually entered paths should start with /, ? or #.'));
       return;
     }
+  }
 
-    // If the URI is empty or not well-formed, the link field type's validation
-    // constraint will detect it.
-    // @see \Drupal\link\Plugin\Validation\Constraint\LinkTypeConstraint::validate()
-    if (!empty($uri) && parse_url($uri)) {
-      $url = Url::fromUri($uri);
-
-      // Disallow unrouted internal URLs (i.e. disallow 'base:' URIs).
-      $disallowed  = !$url->isRouted() && !$url->isExternal();
-      // Disallow external URLs using untrusted protocols.
-      $disallowed = $disallowed || ($url->isExternal() && !in_array(parse_url($uri, PHP_URL_SCHEME), UrlHelper::getAllowedProtocols()));
-      // Disallow routed URLs that don't exist.
-      if (!$disallowed && $url->isRouted()) {
-        try {
-          $url->toString();
-        }
-        catch (RouteNotFoundException $e) {
-          $disallowed = TRUE;
-        }
-      }
-
-      if ($disallowed) {
-        $form_state->setError($element, t("The path '@link_path' is invalid.", ['@link_path' => static::getUriAsDisplayableString($uri)]));
-      }
+  /**
+   * Form element validation handler for the 'title' element.
+   *
+   * Conditionally requires the link title if a URL value was filled in.
+   */
+  public static function validateTitleElement(&$element, FormStateInterface $form_state, $form) {
+    if ($element['uri']['#value'] !== '' && $element['title']['#value'] === '') {
+      $element['title']['#required'] = TRUE;
+      $form_state->setError($element['title'], t('!name field is required.', array('!name' => $element['title']['#title'])));
     }
   }
 
@@ -219,6 +208,11 @@ class LinkWidget extends WidgetBase {
     elseif ($this->supportsExternalLinks() && $this->supportsInternalLinks()) {
       $element['uri']['#description'] = $this->t('Start typing the title of a piece of content to select it. You can also enter an internal path such as %add-node or an external URL such as %url. Enter %front to link to the front page.', array('%front' => '<front>', '%add-node' => '/node/add', '%url' => 'http://example.com'));
     }
+    // If the field is configured to allow only external links, show a useful
+    // description.
+    elseif ($this->supportsExternalLinks() && !$this->supportsInternalLinks()) {
+      $element['uri']['#description'] = $this->t('This must be an external URL such as %url.', array('%url' => 'http://example.com'));
+    }
 
     $element['title'] = array(
       '#type' => 'textfield',
@@ -232,7 +226,7 @@ class LinkWidget extends WidgetBase {
     // non-empty. Omit the validation on the field edit form, since the field
     // settings cannot be saved otherwise.
     if (!$this->isDefaultValueWidget($form_state) && $this->getFieldSetting('title') == DRUPAL_REQUIRED) {
-      $element['#element_validate'][] = array($this, 'validateTitle');
+      $element['#element_validate'][] = array(get_called_class(), 'validateTitleElement');
     }
 
     // Exposing the attributes array in the widget is left for alternate and more
@@ -334,18 +328,6 @@ class LinkWidget extends WidgetBase {
     }
 
     return $summary;
-  }
-
-  /**
-   * Form element validation handler; Validates the title property.
-   *
-   * Conditionally requires the link title if a URL value was filled in.
-   */
-  public function validateTitle(&$element, FormStateInterface $form_state, $form) {
-    if ($element['uri']['#value'] !== '' && $element['title']['#value'] === '') {
-      $element['title']['#required'] = TRUE;
-      $form_state->setError($element['title'], $this->t('!name field is required.', array('!name' => $element['title']['#title'])));
-    }
   }
 
   /**

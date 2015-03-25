@@ -1,4 +1,4 @@
-langcode: und
+langcode: en
 status: true
 dependencies:
   module:
@@ -9,7 +9,7 @@ label: test_filter_groups
 module: views
 description: ''
 tag: default
-base_table: node
+base_table: node_field_data
 base_field: nid
 core: '8'
 display:
@@ -30,7 +30,7 @@ display:
           id: title
           label: ''
           table: node_field_data
-          plugin_id: node
+          plugin_id: field
           entity_type: node
           entity_field: title
       filter_groups:
@@ -42,7 +42,7 @@ display:
           field: nid
           group: 2
           id: nid
-          table: node
+          table: node_field_data
           value:
             value: '1'
           plugin_id: numeric
@@ -52,7 +52,7 @@ display:
           field: nid
           group: 2
           id: nid_1
-          table: node
+          table: node_field_data
           value:
             value: '2'
           plugin_id: numeric
@@ -107,7 +107,7 @@ display:
           field: nid
           group: 2
           id: nid
-          table: node
+          table: node_field_data
           value:
             value: '1'
           plugin_id: numeric
@@ -117,7 +117,7 @@ display:
           field: nid
           group: 2
           id: nid_1
-          table: node
+          table: node_field_data
           value:
             value: '2'
           plugin_id: numeric

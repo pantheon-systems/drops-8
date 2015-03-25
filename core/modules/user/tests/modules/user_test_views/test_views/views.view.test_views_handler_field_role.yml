@@ -1,4 +1,4 @@
-langcode: und
+langcode: en
 status: true
 dependencies:
   module:
@@ -8,7 +8,7 @@ label: test_views_handler_field_role
 module: views
 description: ''
 tag: ''
-base_table: users
+base_table: users_field_data
 base_field: uid
 core: 8.x
 display:
@@ -155,7 +155,21 @@ display:
           plugin_id: boolean
           entity_type: user
           entity_field: status
-      sorts: {  }
+      sorts:
+        uid:
+          id: uid
+          table: users_field_data
+          field: uid
+          relationship: none
+          group_type: group
+          admin_label: ''
+          order: ASC
+          exposed: false
+          expose:
+            label: ''
+          entity_type: user
+          entity_field: uid
+          plugin_id: standard
       title: test_user_role
   page_1:
     display_plugin: page

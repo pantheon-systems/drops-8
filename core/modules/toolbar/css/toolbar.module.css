@@ -16,6 +16,11 @@
   padding: 0;
   vertical-align: baseline;
 }
+@media print {
+  #toolbar-administration {
+    display: none;
+  }
+}
 
 /**
  * Very specific overrides for Drupal system CSS.
@@ -134,9 +139,6 @@ body.toolbar-tray-open.toolbar-fixed.toolbar-vertical .toolbar-oriented {
   display: none;
   z-index: 501;
 }
-.toolar .toolbar-tray > .toolbar-lining {
-  position: relative;
-}
 .toolbar-oriented .toolbar-tray-vertical {
   left: -100%; /* LTR */
   position: absolute;
@@ -205,13 +207,22 @@ body.toolbar-tray-open.toolbar-vertical.toolbar-fixed {
   margin-left: 240px; /* LTR */
   margin-left: 15rem; /* LTR */
 }
+@media print {
+  body.toolbar-tray-open.toolbar-vertical.toolbar-fixed {
+    margin-left: 0;
+  }
+}
 [dir="rtl"] body.toolbar-tray-open.toolbar-vertical.toolbar-fixed {
   margin-left: auto;
   margin-left: auto;
   margin-right: 240px;
   margin-right: 15rem;
 }
-
+@media print {
+  [dir="rtl"] body.toolbar-tray-open.toolbar-vertical.toolbar-fixed {
+    margin-right: 0;
+  }
+}
 /**
  * ToolBar tray orientation toggle.
  */

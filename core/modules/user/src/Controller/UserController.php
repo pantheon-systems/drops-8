@@ -93,13 +93,13 @@ class UserController extends ControllerBase {
     if ($account->isAuthenticated()) {
       // The current user is already logged in.
       if ($account->id() == $uid) {
-        drupal_set_message($this->t('You are logged in as %user. <a href="!user_edit">Change your password.</a>', array('%user' => $account->getUsername(), '!user_edit' => $this->url('entity.user.edit_form', array('user' => $account->id())))));
+        drupal_set_message($this->t('You are logged in as %user. <a href="@user_edit">Change your password.</a>', array('%user' => $account->getUsername(), '@user_edit' => $this->url('entity.user.edit_form', array('user' => $account->id())))));
       }
       // A different user is already logged in on the computer.
       else {
         if ($reset_link_user = $this->userStorage->load($uid)) {
-          drupal_set_message($this->t('Another user (%other_user) is already logged into the site on this computer, but you tried to use a one-time link for user %resetting_user. Please <a href="!logout">logout</a> and try using the link again.',
-            array('%other_user' => $account->getUsername(), '%resetting_user' => $reset_link_user->getUsername(), '!logout' => $this->url('user.logout'))));
+          drupal_set_message($this->t('Another user (%other_user) is already logged into the site on this computer, but you tried to use a one-time link for user %resetting_user. Please <a href="@logout">logout</a> and try using the link again.',
+            array('%other_user' => $account->getUsername(), '%resetting_user' => $reset_link_user->getUsername(), '@logout' => $this->url('user.logout'))));
         }
         else {
           // Invalid one-time link specifies an unknown user.
@@ -122,7 +122,7 @@ class UserController extends ControllerBase {
           drupal_set_message($this->t('You have tried to use a one-time login link that has expired. Please request a new one using the form below.'));
           return $this->redirect('user.pass');
         }
-        elseif ($user->isAuthenticated() && ($timestamp >= $user->getLastLoginTime()) && ($timestamp <= $current) && ($hash === user_pass_rehash($user->getPassword(), $timestamp, $user->getLastLoginTime()))) {
+        elseif ($user->isAuthenticated() && ($timestamp >= $user->getLastLoginTime()) && ($timestamp <= $current) && ($hash === user_pass_rehash($user->getPassword(), $timestamp, $user->getLastLoginTime(), $user->id()))) {
           $expiration_date = $user->getLastLoginTime() ? $this->dateFormatter->format($timestamp + $timeout) : NULL;
           return $this->formBuilder()->getForm('Drupal\user\Form\UserPasswordResetForm', $user, $expiration_date, $timestamp, $hash);
         }
@@ -197,7 +197,7 @@ class UserController extends ControllerBase {
     $account_data = $this->userData->get('user', $user->id());
     if (isset($account_data['cancel_method']) && !empty($timestamp) && !empty($hashed_pass)) {
       // Validate expiration and hashed password/login.
-      if ($timestamp <= $current && $current - $timestamp < $timeout && $user->id() && $timestamp >= $user->getLastLoginTime() && $hashed_pass == user_pass_rehash($user->getPassword(), $timestamp, $user->getLastLoginTime())) {
+      if ($timestamp <= $current && $current - $timestamp < $timeout && $user->id() && $timestamp >= $user->getLastLoginTime() && $hashed_pass == user_pass_rehash($user->getPassword(), $timestamp, $user->getLastLoginTime(), $user->id())) {
         $edit = array(
           'user_cancel_notify' => isset($account_data['cancel_notify']) ? $account_data['cancel_notify'] : $this->config('user.settings')->get('notify.status_canceled'),
         );

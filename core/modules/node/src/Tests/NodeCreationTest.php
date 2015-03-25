@@ -38,8 +38,10 @@ class NodeCreationTest extends NodeTestBase {
    * Creates a "Basic page" node and verifies its consistency in the database.
    */
   function testNodeCreation() {
+    $node_type_storage = \Drupal::entityManager()->getStorage('node_type');
+
     // Test /node/add page with only one content type.
-    entity_load('node_type', 'article')->delete();
+    $node_type_storage->load('article')->delete();
     $this->drupalGet('node/add');
     $this->assertResponse(200);
     $this->assertUrl('node/add/page');
@@ -62,7 +64,8 @@ class NodeCreationTest extends NodeTestBase {
     $this->assertNoText(format_date($node->getCreatedTime()));
 
     // Change the node type setting to show submitted by information.
-    $node_type = entity_load('node_type', 'page');
+    /** @var \Drupal\node\NodeTypeInterface $node_type */
+    $node_type = $node_type_storage->load('page');
     $node_type->setDisplaySubmitted(TRUE);
     $node_type->save();
 
@@ -171,7 +174,7 @@ class NodeCreationTest extends NodeTestBase {
     $this->assertNoLinkByHref('/admin/structure/types/add');
 
     // Test /node/add page without content types.
-    foreach (entity_load_multiple('node_type') as $entity ) {
+    foreach (\Drupal::entityManager()->getStorage('node_type')->loadMultiple() as $entity ) {
       $entity->delete();
     }
 
@@ -192,7 +195,17 @@ class NodeCreationTest extends NodeTestBase {
    * @return array
    */
   protected static function getWatchdogIdsForTestExceptionRollback() {
-    return db_query("SELECT wid FROM {watchdog} WHERE variables LIKE '%Test exception for rollback.%'")->fetchAll();
+    // PostgreSQL doesn't support bytea LIKE queries, so we need to unserialize
+    // first to check for the rollback exception message.
+    $matches = array();
+    $query = db_query("SELECT wid, variables FROM {watchdog}");
+    foreach ($query as $row) {
+      $variables = (array) unserialize($row->variables);
+      if (isset($variables['!message']) && $variables['!message'] === 'Test exception for rollback.') {
+        $matches[] = $row->wid;
+      }
+    }
+    return $matches;
   }
 
   /**

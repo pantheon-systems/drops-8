@@ -63,8 +63,8 @@ class HandlerAllTest extends HandlerTestBase {
       $view = $view->getExecutable();
 
       // @todo The groupwise relationship is currently broken.
-      $exclude[] = 'taxonomy_term_data:tid_representative';
-      $exclude[] = 'users:uid_representative';
+      $exclude[] = 'taxonomy_term_field_data:tid_representative';
+      $exclude[] = 'users_field_data:uid_representative';
 
       // Go through all fields and there through all handler types.
       foreach ($info as $field => $field_info) {
@@ -79,8 +79,12 @@ class HandlerAllTest extends HandlerTestBase {
               $options = array();
               if ($type == 'filter') {
                 $handler = $this->container->get("plugin.manager.views.$type")->getHandler($item);
+                // Set the value to use for the filter based on the filter type.
                 if ($handler instanceof InOperator) {
                   $options['value'] = array(1);
+                }
+                else {
+                  $options['value'] = 1;
                 }
               }
               $view->addHandler('default', $type, $base_table, $field, $options);

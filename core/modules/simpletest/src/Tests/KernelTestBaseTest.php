@@ -21,14 +21,31 @@ class KernelTestBaseTest extends KernelTestBase {
    *
    * @var array
    */
-  public static $modules = array('entity_test');
+  public static $modules = array('entity_test', 'system');
 
   /**
    * {@inheritdoc}
    */
   protected function setUp() {
+    $php = <<<'EOS'
+<?php
+# Make sure that the $test_class variable is defined when this file is included.
+if ($test_class) {
+}
+
+# Define a function to be able to check that this file was loaded with
+# function_exists().
+if (!function_exists('simpletest_test_stub_settings_function')) {
+  function simpletest_test_stub_settings_function() {}
+}
+EOS;
+
+    $settings_testing_file = $this->siteDirectory . '/settings.testing.php';
+    file_put_contents($settings_testing_file, $php);
+
     $original_container = $this->originalContainer;
     parent::setUp();
+    $this->installSchema('system', array('router'));
     $this->assertNotIdentical(\Drupal::getContainer(), $original_container, 'KernelTestBase test creates a new container.');
   }
 
@@ -36,7 +53,7 @@ class KernelTestBaseTest extends KernelTestBase {
    * Tests expected behavior of setUp().
    */
   function testSetUp() {
-    $modules = array('entity_test');
+    $modules = array('entity_test', 'system');
     $table = 'entity_test';
 
     // Verify that specified $modules have been loaded.
@@ -48,6 +65,9 @@ class KernelTestBaseTest extends KernelTestBase {
 
     // Verify that no modules have been installed.
     $this->assertFalse(db_table_exists($table), "'$table' database table not found.");
+
+    // Verify that the settings.testing.php got taken into account.
+    $this->assertTrue(function_exists('simpletest_test_stub_settings_function'));
   }
 
   /**
@@ -191,6 +211,8 @@ class KernelTestBaseTest extends KernelTestBase {
    * Tests expected behavior of installConfig().
    */
   function testInstallConfig() {
+    // The user module has configuration that depends on system.
+    $this->enableModules(array('system'));
     $module = 'user';
 
     // Verify that default config can only be installed for enabled modules.

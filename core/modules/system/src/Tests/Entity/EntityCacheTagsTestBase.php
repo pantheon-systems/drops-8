@@ -15,6 +15,7 @@ use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\system\Tests\Cache\PageCacheTagsTestBase;
 use Drupal\user\Entity\Role;
+use Drupal\user\RoleInterface;
 
 /**
  * Provides helper methods for Entity cache tags tests.
@@ -57,7 +58,7 @@ abstract class EntityCacheTagsTestBase extends PageCacheTagsTestBase {
 
     // Give anonymous users permission to view test entities, so that we can
     // verify the cache tags of cached versions of test entity pages.
-    $user_role = Role::load(DRUPAL_ANONYMOUS_RID);
+    $user_role = Role::load(RoleInterface::ANONYMOUS_ID);
     $user_role->grantPermission('view test entity');
     $user_role->save();
 
@@ -128,6 +129,21 @@ abstract class EntityCacheTagsTestBase extends PageCacheTagsTestBase {
   abstract protected function createEntity();
 
   /**
+   * Returns the additional (non-standard) cache contexts for the tested entity.
+   *
+   * @param \Drupal\Core\Entity\EntityInterface $entity
+   *   The entity to be tested, as created by createEntity().
+   *
+   * @return string[]
+   *   An array of the additional cache contexts.
+   *
+   * @see \Drupal\system\Tests\Entity\EntityCacheTagsTestBase::createEntity()
+   */
+  protected function getAdditionalCacheContextsForEntity(EntityInterface $entity) {
+    return [];
+  }
+
+  /**
    * Returns the additional (non-standard) cache tags for the tested entity.
    *
    * @param \Drupal\Core\Entity\EntityInterface $entity
@@ -139,6 +155,16 @@ abstract class EntityCacheTagsTestBase extends PageCacheTagsTestBase {
    */
   protected function getAdditionalCacheTagsForEntity(EntityInterface $entity) {
     return array();
+  }
+
+  /**
+   * Returns the additional cache tags for the tested entity's listing by type.
+   *
+   * @return string[]
+   *   An array of the additional cache contexts.
+   */
+  protected function getAdditionalCacheContextsForEntityListing() {
+    return [];
   }
 
   /**
@@ -288,6 +314,9 @@ abstract class EntityCacheTagsTestBase extends PageCacheTagsTestBase {
     $empty_entity_listing_url = Url::fromRoute('entity.entity_test.collection_empty', ['entity_type_id' => $entity_type]);
     $nonempty_entity_listing_url = Url::fromRoute('entity.entity_test.collection_labels_alphabetically', ['entity_type_id' => $entity_type]);
 
+    // The default cache contexts for rendered entities.
+    $entity_cache_contexts = ['theme', 'user.roles'];
+
     // Cache tags present on every rendered page.
     $page_cache_tags = Cache::mergeTags(
       ['rendered'],
@@ -337,15 +366,18 @@ abstract class EntityCacheTagsTestBase extends PageCacheTagsTestBase {
     // Verify a cache hit, but also the presence of the correct cache tags.
     $this->verifyPageCache($referencing_entity_url, 'HIT', Cache::mergeTags($referencing_entity_cache_tags, $page_cache_tags));
     // Also verify the existence of an entity render cache entry.
-    $cid = 'entity_view:entity_test:' . $this->referencing_entity->id() . ':full:classy:r.anonymous:' . date_default_timezone_get();
-    $this->verifyRenderCache($cid, $referencing_entity_cache_tags);
+    $cache_keys = ['entity_view', 'entity_test', $this->referencing_entity->id(), 'full'];
+    $cid = $this->createCacheId($cache_keys, $entity_cache_contexts);
+    $redirected_cid = $this->createRedirectedCacheId($cache_keys, $entity_cache_contexts);
+    $this->verifyRenderCache($cid, $referencing_entity_cache_tags, $redirected_cid);
 
     $this->pass("Test non-referencing entity.", 'Debug');
     $this->verifyPageCache($non_referencing_entity_url, 'MISS');
     // Verify a cache hit, but also the presence of the correct cache tags.
     $this->verifyPageCache($non_referencing_entity_url, 'HIT', Cache::mergeTags($non_referencing_entity_cache_tags, $page_cache_tags));
     // Also verify the existence of an entity render cache entry.
-    $cid = 'entity_view:entity_test:' . $this->non_referencing_entity->id() . ':full:classy:r.anonymous:' . date_default_timezone_get();
+    $cache_keys = ['entity_view', 'entity_test', $this->non_referencing_entity->id(), 'full'];
+    $cid = $this->createCacheId($cache_keys, $entity_cache_contexts);
     $this->verifyRenderCache($cid, $non_referencing_entity_cache_tags);
 
 
@@ -361,13 +393,19 @@ abstract class EntityCacheTagsTestBase extends PageCacheTagsTestBase {
     $this->verifyPageCache($empty_entity_listing_url, 'MISS');
     // Verify a cache hit, but also the presence of the correct cache tags.
     $this->verifyPageCache($empty_entity_listing_url, 'HIT', $empty_entity_listing_cache_tags);
+    // Verify the entity type's list cache contexts are present.
+    $contexts_in_header = $this->drupalGetHeader('X-Drupal-Cache-Contexts');
+    $this->assertEqual($this->getAdditionalCacheContextsForEntityListing(), empty($contexts_in_header) ? [] : explode(' ', $contexts_in_header));
 
 
     $this->pass("Test listing containing referenced entity.", 'Debug');
     // Prime the page cache for the listing containing the referenced entity.
-    $this->verifyPageCache($nonempty_entity_listing_url, 'MISS');
+    $this->verifyPageCache($nonempty_entity_listing_url, 'MISS', $nonempty_entity_listing_cache_tags);
     // Verify a cache hit, but also the presence of the correct cache tags.
     $this->verifyPageCache($nonempty_entity_listing_url, 'HIT', $nonempty_entity_listing_cache_tags);
+    // Verify the entity type's list cache contexts are present.
+    $contexts_in_header = $this->drupalGetHeader('X-Drupal-Cache-Contexts');
+    $this->assertEqual($this->getAdditionalCacheContextsForEntityListing(), empty($contexts_in_header) ? [] : explode(' ', $contexts_in_header));
 
 
     // Verify that after modifying the referenced entity, there is a cache miss
@@ -579,20 +617,85 @@ abstract class EntityCacheTagsTestBase extends PageCacheTagsTestBase {
   }
 
   /**
+   * Creates a cache ID from a list of cache keys and a set of cache contexts.
+   *
+   * @param string[] $keys
+   *   A list of cache keys.
+   * @param string[] $contexts
+   *   A set of cache contexts.
+   *
+   * @return string
+   *   The cache ID string.
+   */
+  protected function createCacheId(array $keys, array $contexts) {
+    $cid_parts = $keys;
+
+    $contexts = \Drupal::service('cache_contexts')->convertTokensToKeys($contexts);
+    $cid_parts = array_merge($cid_parts, $contexts);
+
+    return implode(':', $cid_parts);
+  }
+
+  /**
+   * Creates the redirected cache ID, if any.
+   *
+   * If a subclass overrides ::getAdditionalCacheContextsForEntity(), it can
+   * specify the additional cache contexts by which the given entity must be
+   * varied, because those are the cache contexts that are bubbled from the
+   * field formatters.
+   *
+   * @param string[] $keys
+   *   A list of cache keys used for the regular (pre-bubbling) CID.
+   * @param string[] $contexts
+   *   A set of cache contexts used for the regular (pre-bubbling) CID.
+   *
+   * @return string|null
+   *   The redirected (post-bubbling) CID, if any.
+   */
+  protected function createRedirectedCacheId(array $keys, array $contexts) {
+    $additional_cache_contexts = $this->getAdditionalCacheContextsForEntity($this->referencing_entity);
+    if (count($additional_cache_contexts)) {
+      return $this->createCacheId($keys, Cache::mergeContexts($contexts, $additional_cache_contexts));
+    }
+    else {
+      return NULL;
+    }
+  }
+
+  /**
    * Verify that a given render cache entry exists, with the correct cache tags.
    *
    * @param string $cid
    *   The render cache item ID.
    * @param array $tags
    *   An array of expected cache tags.
+   * @param string|null $redirected_cid
+   *   (optional) The redirected render cache item ID.
    */
-  protected function verifyRenderCache($cid, array $tags) {
+  protected function verifyRenderCache($cid, array $tags, $redirected_cid = NULL) {
     // Also verify the existence of an entity render cache entry.
     $cache_entry = \Drupal::cache('render')->get($cid);
     $this->assertTrue($cache_entry, 'A render cache entry exists.');
     sort($cache_entry->tags);
     sort($tags);
     $this->assertIdentical($cache_entry->tags, $tags);
+    if ($redirected_cid === NULL) {
+      $this->assertTrue(!isset($cache_entry->data['#cache_redirect']), 'Render cache entry is not a redirect.');
+    }
+    else {
+      // Verify that $cid contains a cache redirect.
+      $this->assertTrue(isset($cache_entry->data['#cache_redirect']), 'Render cache entry is a redirect.');
+      // Verify that the cache redirect points to the expected CID.
+      $redirect_cache_metadata = $cache_entry->data['#cache'];
+      $actual_redirection_cid = $this->createCacheId(
+        $redirect_cache_metadata['keys'],
+        $redirect_cache_metadata['contexts']
+      );
+      $this->assertIdentical($redirected_cid, $actual_redirection_cid);
+      // Finally, verify that the redirected CID exists and has the same cache
+      // tags.
+      $this->verifyRenderCache($redirected_cid, $tags);
+    }
   }
 
 }

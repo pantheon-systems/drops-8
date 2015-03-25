@@ -8,7 +8,6 @@
 namespace Drupal\Core\StringTranslation;
 
 use Drupal\Component\Utility\SafeMarkup;
-use Drupal\Component\Utility\String;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\StringTranslation\Translator\TranslatorInterface;
 
@@ -130,6 +129,30 @@ class TranslationManager implements TranslationInterface, TranslatorInterface {
    * {@inheritdoc}
    */
   public function translate($string, array $args = array(), array $options = array()) {
+    $string = $this->doTranslate($string, $options);
+    if (empty($args)) {
+      return SafeMarkup::set($string);
+    }
+    else {
+      return SafeMarkup::format($string, $args);
+    }
+  }
+
+  /**
+   * Translates a string to the current language or to a given language.
+   *
+   * @param string $string
+   *   A string containing the English string to translate.
+   * @param array $options
+   *   An associative array of additional options, with the following elements:
+   *   - 'langcode': The language code to translate to a language other than
+   *      what is used to display the page.
+   *   - 'context': The context the source string belongs to.
+   *
+   * @return string
+   *   The translated string.
+   */
+  protected function doTranslate($string, array $options = array()) {
     // Merge in defaults.
     if (empty($options['langcode'])) {
       $options['langcode'] = $this->defaultLangcode;
@@ -138,30 +161,27 @@ class TranslationManager implements TranslationInterface, TranslatorInterface {
       $options['context'] = '';
     }
     $translation = $this->getStringTranslation($options['langcode'], $string, $options['context']);
-    $string = $translation === FALSE ? $string : $translation;
-
-    if (empty($args)) {
-      return SafeMarkup::set($string);
-    }
-    else {
-      return String::format($string, $args);
-    }
+    return $translation === FALSE ? $string : $translation;
   }
 
   /**
    * {@inheritdoc}
    */
   public function formatPlural($count, $singular, $plural, array $args = array(), array $options = array()) {
-    $args['@count'] = $count;
-    // Join both forms to search a translation.
     $translatable_string = implode(LOCALE_PLURAL_DELIMITER, array($singular, $plural));
-    // Translate as usual.
-    $translated_strings = $this->translate($translatable_string, $args, $options);
-    // Split joined translation strings into array.
-    $translated_array = explode(LOCALE_PLURAL_DELIMITER, $translated_strings);
+    $translated_strings = $this->doTranslate($translatable_string, $options);
+    return $this->formatPluralTranslated($count, $translated_strings, $args, $options);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function formatPluralTranslated($count, $translation, array $args = array(), array $options = array()) {
+    $args['@count'] = $count;
+    $translated_array = explode(LOCALE_PLURAL_DELIMITER, $translation);
 
     if ($count == 1) {
-      return SafeMarkup::set($translated_array[0]);
+      return SafeMarkup::format($translated_array[0], $args);
     }
 
     // Get the plural index through the gettext formula.
@@ -183,7 +203,8 @@ class TranslationManager implements TranslationInterface, TranslatorInterface {
         $return = $translated_array[1];
       }
     }
-    return SafeMarkup::set($return);
+
+    return SafeMarkup::format($return, $args);
   }
 
   /**

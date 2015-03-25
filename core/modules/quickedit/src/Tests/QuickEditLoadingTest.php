@@ -11,6 +11,7 @@ use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\Unicode;
 use Drupal\block_content\Entity\BlockContent;
 use Drupal\node\Entity\Node;
+use Drupal\node\Entity\NodeType;
 use Drupal\simpletest\WebTestBase;
 
 /**
@@ -97,7 +98,7 @@ class QuickEditLoadingTest extends WebTestBase {
     // Retrieving the metadata should result in an empty 403 response.
     $post = array('fields[0]' => 'node/1/body/en/full');
     $response = $this->drupalPost('quickedit/metadata', 'application/json', $post);
-    $this->assertIdentical('{}', $response);
+    $this->assertIdentical('{"message":""}', $response);
     $this->assertResponse(403);
 
     // Quick Edit's JavaScript would SearchRankingTestnever hit these endpoints if the metadata
@@ -124,7 +125,7 @@ class QuickEditLoadingTest extends WebTestBase {
     $this->assertResponse(403);
     $post = array('nocssjs' => 'true');
     $response = $this->drupalPost('quickedit/entity/' . 'node/1', 'application/json', $post);
-    $this->assertIdentical('{}', $response);
+    $this->assertIdentical('{"message":""}', $response);
     $this->assertResponse(403);
   }
 
@@ -251,7 +252,7 @@ class QuickEditLoadingTest extends WebTestBase {
       // then again retrieve the field form, fill it, submit it (so it ends up
       // in PrivateTempStore) and then save the entity. Now there should be two
       // revisions.
-      $node_type = entity_load('node_type', 'article');
+      $node_type = NodeType::load('article');
       $node_type->setNewRevision(TRUE);
       $node_type->save();
 

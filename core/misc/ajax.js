@@ -27,7 +27,7 @@
         if (typeof element_settings.selector === 'undefined') {
           element_settings.selector = '#' + base;
         }
-        $(element_settings.selector).once('drupal-ajax', function () {
+        $(element_settings.selector).once('drupal-ajax').each(function () {
           element_settings.element = this;
           Drupal.ajax[element_settings.selector] = new Drupal.ajax(base, this, element_settings);
         });
@@ -41,7 +41,7 @@
       }
 
       // Bind Ajax behaviors to all items showing the class.
-      $('.use-ajax').once('ajax', function () {
+      $('.use-ajax').once('ajax').each(function () {
         var element_settings = {};
         // Clicked links look better with the throbber than the progress bar.
         element_settings.progress = {'type': 'throbber'};
@@ -59,7 +59,7 @@
       });
 
       // This class means to submit the form to the action using Ajax.
-      $('.use-ajax-submit').once('ajax', function () {
+      $('.use-ajax-submit').once('ajax').each(function () {
         var element_settings = {};
 
         // Ajax submits specified in this manner automatically submit to the
@@ -372,7 +372,7 @@
     }
 
     // Prevent duplicate HTML ids in the returned markup.
-    // @see drupal_html_id()
+    // @see \Drupal\Component\Utility\Html::getUniqueId()
     var ids = document.querySelectorAll('[id]');
     var ajaxHtmlIds = [];
     for (var i = 0, il = ids.length; i < il; i++) {
@@ -436,7 +436,7 @@
     // interaction while the Ajax request is in progress. ajax.ajaxing prevents
     // the element from triggering a new request, but does not prevent the user
     // from changing its value.
-    $(this.element).addClass('progress-disabled').prop('disabled', true);
+    $(this.element).prop('disabled', true);
 
     // Insert progressbar or throbber.
     if (this.progress.type === 'bar') {
@@ -475,7 +475,7 @@
     if (this.progress.object) {
       this.progress.object.stopMonitoring();
     }
-    $(this.element).removeClass('progress-disabled').prop('disabled', false);
+    $(this.element).prop('disabled', false);
 
     for (var i in response) {
       if (response.hasOwnProperty(i) && response[i].command && this.commands[response[i].command]) {
@@ -538,7 +538,7 @@
     // Undo hide.
     $(this.wrapper).show();
     // Re-enable the element.
-    $(this.element).removeClass('progress-disabled').prop('disabled', false);
+    $(this.element).prop('disabled', false);
     // Reattach behaviors, if they were detached in beforeSerialize().
     if (this.$form) {
       var settings = response.settings || this.settings || drupalSettings;

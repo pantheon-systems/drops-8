@@ -112,8 +112,12 @@ class TwigFilterTest extends WebTestBase {
         'message' => 'All attributes printed again.',
       ),
       array(
-        'expected' => '<div id="quotes-here"><span class="gray-like-a-bunny bem__ized--top-feature" id="quotes-here">ID and class. Having the same ID twice is not valid markup but we want to make sure the filter doesn\'t use drupal_html_id().</span></div>',
+        'expected' => '<div id="quotes-here"><span class="gray-like-a-bunny bem__ized--top-feature" id="quotes-here">ID and class. Having the same ID twice is not valid markup but we want to make sure the filter doesn\'t use \Drupal\Component\Utility\Html::getUniqueId().</span></div>',
         'message' => 'Class and ID filtered.',
+      ),
+      array(
+        'expected' => '<div><strong>Rendered author string length:</strong> 24.</div>',
+        'message' => 'Render filter string\'s length.',
       ),
     );
 

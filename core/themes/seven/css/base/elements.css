@@ -30,6 +30,9 @@ summary,
   font-weight: bold;
   text-transform: uppercase;
 }
+.simpletest-results-form summary {
+  text-transform: none;
+}
 
 /**
  * Reusable heading classes are included to help modules change the styling of
@@ -38,8 +41,9 @@ summary,
 h1,
 .heading-a {
   font-weight: bold;
-  margin: 10px 0;
-  font-size: 1.538em;
+  margin: 0;
+  font-size: 1.625em;
+  line-height: 1.875em;
 }
 h2,
 .heading-b {

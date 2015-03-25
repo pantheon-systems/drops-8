@@ -168,6 +168,9 @@ function system_theme() {
       'render element' => 'elements',
       'base hook' => 'block',
     ),
+    'block__system_messages_block' => array(
+      'base hook' => 'block',
+    ),
     'block__system_menu_block' => array(
       'render element' => 'elements',
       'base hook' => 'block',
@@ -312,13 +315,6 @@ function system_theme_suggestions_field(array $variables) {
   $suggestions[] = 'field__' . $element['#entity_type'] . '__' . $element['#field_name'] . '__' . $element['#bundle'];
 
   return $suggestions;
-}
-
-/**
- * Menu item access callback - only installed themes can be accessed.
- */
-function _system_themes_access($theme) {
-  return \Drupal::currentUser()->hasPermission('administer themes') && drupal_theme_access($theme);
 }
 
 /**
@@ -853,7 +849,7 @@ function system_check_directory($form_element, FormStateInterface $form_state) {
  *   array is returned.
  *
  * @see system_rebuild_module_data()
- * @see system_rebuild_theme_data()
+ * @see \Drupal\Core\Extension\ThemeHandlerInterface::rebuildThemeData()
  */
 function system_get_info($type, $name = NULL) {
   $info = array();
@@ -1008,19 +1004,6 @@ function system_rebuild_module_data() {
     \Drupal::state()->set('system.module.files', $files);
   }
   return $modules_cache;
-}
-
-/**
- * Rebuild, save, and return data about all currently available themes.
- *
- * @return \Drupal\Core\Extension\Extension[]
- *   Array of all available themes and their data.
- *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- *   Use \Drupal::service('theme_handler')->rebuildThemeData().
- */
-function system_rebuild_theme_data() {
-  return \Drupal::service('theme_handler')->rebuildThemeData();
 }
 
 /**

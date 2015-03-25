@@ -85,7 +85,7 @@ class Block extends DisplayPluginBase {
     $options = parent::defineOptions();
 
     $options['block_description'] = array('default' => '');
-    $options['block_category'] = array('default' => 'Lists (Views)');
+    $options['block_category'] = array('default' => $this->t('Lists (Views)'));
     $options['block_hide_empty'] = array('default' => FALSE);
 
     $options['allow'] = array(
@@ -173,7 +173,7 @@ class Block extends DisplayPluginBase {
     $options['block_hide_empty'] = array(
       'category' => 'other',
       'title' => $this->t('Hide block if the view output is empty'),
-      'value' => $this->getOption('block_hide_empty') ? $this->t('Hide') : $this->t('Show'),
+      'value' => $this->getOption('block_hide_empty') ? $this->t('Yes') : $this->t('No'),
     );
   }
 

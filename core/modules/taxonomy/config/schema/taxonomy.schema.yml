@@ -45,15 +45,15 @@ field.storage_settings.taxonomy_term_reference:
       type: sequence
       label: 'Allowed values'
       sequence:
-        - type: mapping
-          label: 'Allowed values'
-          mapping:
-            vocabulary:
-              type: string
-              label: 'Vocabulary'
-            parent:
-              type: integer
-              value: 'Parent'
+        type: mapping
+        label: 'Allowed values'
+        mapping:
+          vocabulary:
+            type: string
+            label: 'Vocabulary'
+          parent:
+            type: integer
+            value: 'Parent'
 
 field.field_settings.taxonomy_term_reference:
   type: mapping
@@ -62,6 +62,9 @@ field.field_settings.taxonomy_term_reference:
     handler:
       type: string
       label: 'Reference method'
+    handler_settings:
+      type: entity_reference_selection.[%parent.handler]
+      label: 'Entity reference selection settings'
 
 field.value.taxonomy_term_reference:
   type: mapping

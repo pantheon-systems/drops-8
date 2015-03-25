@@ -86,7 +86,7 @@ class DatabaseBackend implements CacheBackendInterface {
     // ::select() is a much smaller proportion of the request.
     $result = array();
     try {
-      $result = $this->connection->query('SELECT cid, data, created, expire, serialized, tags, checksum FROM {' . $this->connection->escapeTable($this->bin) . '} WHERE cid IN ( :cids[] )', array(':cids[]' => array_keys($cid_mapping)));
+      $result = $this->connection->query('SELECT cid, data, created, expire, serialized, tags, checksum FROM {' . $this->connection->escapeTable($this->bin) . '} WHERE cid IN ( :cids[] ) ORDER BY cid', array(':cids[]' => array_keys($cid_mapping)));
     }
     catch (\Exception $e) {
       // Nothing to do.
@@ -454,7 +454,7 @@ class DatabaseBackend implements CacheBackendInterface {
           'size' => 'big',
         ),
         'expire' => array(
-          'description' => 'A Unix timestamp indicating when the cache entry should expire, or 0 for never.',
+          'description' => 'A Unix timestamp indicating when the cache entry should expire, or ' . Cache::PERMANENT . ' for never.',
           'type' => 'int',
           'not null' => TRUE,
           'default' => 0,

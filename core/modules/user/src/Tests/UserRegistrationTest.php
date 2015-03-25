@@ -44,6 +44,9 @@ class UserRegistrationTest extends WebTestBase {
     $accounts = entity_load_multiple_by_properties('user', array('name' => $name, 'mail' => $mail));
     $new_user = reset($accounts);
     $this->assertTrue($new_user->isActive(), 'New account is active after registration.');
+    $resetURL = user_pass_reset_url($new_user);
+    $this->drupalGet($resetURL);
+    $this->assertTitle(t('Set password | Drupal'), 'Page title is "Set password".');
 
     // Allow registration by site visitors, but require administrator approval.
     $config->set('register', USER_REGISTER_VISITORS_ADMINISTRATIVE_APPROVAL)->save();
@@ -166,6 +169,9 @@ class UserRegistrationTest extends WebTestBase {
     $this->drupalGet('user/register');
     $this->assertNoRaw('<details id="edit-account"><summary>Account information</summary>');
 
+    // Check the presence of expected cache tags.
+    $this->assertCacheTag('config:user.settings');
+
     $edit = array();
     $edit['name'] = $name = $this->randomMachineName();
     $edit['mail'] = $mail = $edit['name'] . '@example.com';
@@ -178,7 +184,6 @@ class UserRegistrationTest extends WebTestBase {
     $new_user = reset($accounts);
     $this->assertEqual($new_user->getUsername(), $name, 'Username matches.');
     $this->assertEqual($new_user->getEmail(), $mail, 'Email address matches.');
-    $this->assertEqual($new_user->getSignature(), '', 'Correct signature field.');
     $this->assertTrue(($new_user->getCreatedTime() > REQUEST_TIME - 20 ), 'Correct creation time.');
     $this->assertEqual($new_user->isActive(), $config_user_settings->get('register') == USER_REGISTER_VISITORS ? 1 : 0, 'Correct status field.');
     $this->assertEqual($new_user->getTimezone(), $config_system_date->get('timezone.default'), 'Correct time zone field.');

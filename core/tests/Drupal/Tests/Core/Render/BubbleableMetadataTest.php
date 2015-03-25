@@ -7,6 +7,7 @@
 
 namespace Drupal\Tests\Core\Render;
 
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Render\BubbleableMetadata;
 use Drupal\Tests\UnitTestCase;
 use Drupal\Core\Render\Element;
@@ -35,12 +36,17 @@ class BubbleableMetadataTest extends UnitTestCase {
     $data = [];
 
     $empty_metadata = new BubbleableMetadata();
-    $nonempty_metadata = new BubbleableMetadata(['foo:bar'], ['settings' => ['foo' => 'bar']]);
+    $nonempty_metadata = new BubbleableMetadata();
+    $nonempty_metadata->setCacheContexts(['qux'])
+      ->setCacheTags(['foo:bar'])
+      ->setAssets(['settings' => ['foo' => 'bar']]);
 
     $empty_render_array = [];
     $nonempty_render_array = [
       '#cache' => [
+        'contexts' => ['qux'],
         'tags' => ['llamas:are:awesome:but:kittens:too'],
+        'max-age' => Cache::PERMANENT,
       ],
       '#attached' => [
         'library' => [
@@ -53,7 +59,9 @@ class BubbleableMetadataTest extends UnitTestCase {
 
     $expected_when_empty_metadata = [
       '#cache' => [
-        'tags' => []
+        'contexts' => [],
+        'tags' => [],
+        'max-age' => Cache::PERMANENT,
       ],
       '#attached' => [],
       '#post_render_cache' => [],
@@ -61,7 +69,11 @@ class BubbleableMetadataTest extends UnitTestCase {
     $data[] = [$empty_metadata, $empty_render_array, $expected_when_empty_metadata];
     $data[] = [$empty_metadata, $nonempty_render_array, $expected_when_empty_metadata];
     $expected_when_nonempty_metadata = [
-      '#cache' => ['tags' => ['foo:bar']],
+      '#cache' => [
+        'contexts' => ['qux'],
+        'tags' => ['foo:bar'],
+        'max-age' => Cache::PERMANENT,
+      ],
       '#attached' => [
         'settings' => [
           'foo' => 'bar',
@@ -92,12 +104,17 @@ class BubbleableMetadataTest extends UnitTestCase {
     $data = [];
 
     $empty_metadata = new BubbleableMetadata();
-    $nonempty_metadata = new BubbleableMetadata(['foo:bar'], ['settings' => ['foo' => 'bar']]);
+    $nonempty_metadata = new BubbleableMetadata();
+    $nonempty_metadata->setCacheContexts(['qux'])
+      ->setCacheTags(['foo:bar'])
+      ->setAssets(['settings' => ['foo' => 'bar']]);
 
     $empty_render_array = [];
     $nonempty_render_array = [
       '#cache' => [
+        'contexts' => ['qux'],
         'tags' => ['foo:bar'],
+        'max-age' => Cache::PERMANENT,
       ],
       '#attached' => [
         'settings' => [

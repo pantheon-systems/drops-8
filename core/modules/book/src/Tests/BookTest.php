@@ -7,8 +7,10 @@
 
 namespace Drupal\book\Tests;
 
+use Drupal\Component\Utility\String;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\simpletest\WebTestBase;
+use Drupal\user\RoleInterface;
 
 /**
  * Create a book, add pages, and test book interface.
@@ -143,6 +145,11 @@ class BookTest extends WebTestBase {
 
     $this->drupalLogout();
     $this->drupalLogin($this->bookAuthor);
+
+    // Check the presence of expected cache tags.
+    $this->drupalGet('node/add/book');
+    $this->assertCacheTag('config:book.settings');
+
     /*
      * Add Node 5 under Node 3.
      * Book
@@ -153,8 +160,6 @@ class BookTest extends WebTestBase {
      *   |- Node 5
      *  |- Node 4
      */
-
-
     $nodes[] = $this->createBookNode($book->id(), $nodes[3]->book['nid']); // Node 5.
     $this->drupalLogout();
     $this->drupalLogin($this->webUser);
@@ -221,22 +226,24 @@ class BookTest extends WebTestBase {
     if ($previous) {
       /** @var \Drupal\Core\Url $url */
       $url = $previous->urlInfo();
-      $url->setOptions(array('html' => TRUE, 'attributes' => array('rel' => array('prev'), 'title' => t('Go to previous page'))));
-      $this->assertRaw(\Drupal::l('<b>‹</b> ' . $previous->label(), $url), 'Previous page link found.');
+      $url->setOptions(array('attributes' => array('rel' => array('prev'), 'title' => t('Go to previous page'))));
+      $text = String::format('<b>‹</b> @label', array('@label' => $previous->label()));
+      $this->assertRaw(\Drupal::l($text, $url), 'Previous page link found.');
     }
 
     if ($up) {
       /** @var \Drupal\Core\Url $url */
       $url = $up->urlInfo();
-      $url->setOptions(array('html'=> TRUE, 'attributes' => array('title' => t('Go to parent page'))));
+      $url->setOptions(array('attributes' => array('title' => t('Go to parent page'))));
       $this->assertRaw(\Drupal::l('Up', $url), 'Up page link found.');
     }
 
     if ($next) {
       /** @var \Drupal\Core\Url $url */
       $url = $next->urlInfo();
-      $url->setOptions(array('html'=> TRUE, 'attributes' => array('rel' => array('next'), 'title' => t('Go to next page'))));
-      $this->assertRaw(\Drupal::l($next->label() . ' <b>›</b>', $url), 'Next page link found.');
+      $url->setOptions(array('attributes' => array('rel' => array('next'), 'title' => t('Go to next page'))));
+      $text = String::format('@label <b>›</b>', array('@label' => $next->label()));
+      $this->assertRaw(\Drupal::l($text, $url), 'Next page link found.');
     }
 
     // Compute the expected breadcrumb.
@@ -361,7 +368,7 @@ class BookTest extends WebTestBase {
     // Now grant anonymous users permission to view the printer-friendly
     // version and verify that node access restrictions still prevent them from
     // seeing it.
-    user_role_grant_permissions(DRUPAL_ANONYMOUS_RID, array('access printer-friendly version'));
+    user_role_grant_permissions(RoleInterface::ANONYMOUS_ID, array('access printer-friendly version'));
     $this->drupalGet('book/export/html/' . $this->book->id());
     $this->assertResponse('403', 'Anonymous user properly forbidden from seeing the printer-friendly version when denied by node access.');
   }
@@ -377,8 +384,8 @@ class BookTest extends WebTestBase {
 
     // Give anonymous users the permission 'node test view'.
     $edit = array();
-    $edit[DRUPAL_ANONYMOUS_RID . '[node test view]'] = TRUE;
-    $this->drupalPostForm('admin/people/permissions/' . DRUPAL_ANONYMOUS_RID, $edit, t('Save permissions'));
+    $edit[RoleInterface::ANONYMOUS_ID . '[node test view]'] = TRUE;
+    $this->drupalPostForm('admin/people/permissions/' . RoleInterface::ANONYMOUS_ID, $edit, t('Save permissions'));
     $this->assertText(t('The changes have been saved.'), "Permission 'node test view' successfully assigned to anonymous users.");
 
     // Test correct display of the block.
@@ -398,8 +405,8 @@ class BookTest extends WebTestBase {
 
     // Give anonymous users the permission 'node test view'.
     $edit = array();
-    $edit[DRUPAL_ANONYMOUS_RID . '[node test view]'] = TRUE;
-    $this->drupalPostForm('admin/people/permissions/' . DRUPAL_ANONYMOUS_RID, $edit, t('Save permissions'));
+    $edit[RoleInterface::ANONYMOUS_ID . '[node test view]'] = TRUE;
+    $this->drupalPostForm('admin/people/permissions/' . RoleInterface::ANONYMOUS_ID, $edit, t('Save permissions'));
     $this->assertText(t('The changes have been saved.'), "Permission 'node test view' successfully assigned to anonymous users.");
 
     // Create a book.

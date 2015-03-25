@@ -209,7 +209,7 @@ class NodeTranslationUITest extends ContentTranslationUITest {
     ));
 
     // Make sure that nothing was inserted into the {content_translation} table.
-    $rows = db_query('SELECT nid, count(nid) AS count FROM {node_field_data} WHERE type <> :type GROUP BY nid HAVING count >= 2', array(':type' => $this->bundle))->fetchAll();
+    $rows = db_query('SELECT nid, count(nid) AS count FROM {node_field_data} WHERE type <> :type GROUP BY nid HAVING count(nid) >= 2', array(':type' => $this->bundle))->fetchAll();
     $this->assertEqual(0, count($rows));
 
     // Ensure the translation tab is not accessible.
@@ -340,7 +340,7 @@ class NodeTranslationUITest extends ContentTranslationUITest {
         // Retrieve desired link elements from the HTML head.
         $links = $this->xpath('head/link[@rel = "alternate" and @href = :href and @hreflang = :hreflang]',
           array(':href' => $language_url->toString(), ':hreflang' => $alternate_langcode));
-        $this->assert(isset($links[0]), format_string('The %langcode node translation has the correct alternate hreflang link for %alternate_langcode: %link.', array('%langcode' => $langcode, '%alternate_langcode' => $alternate_langcode, '%link' => $url)));
+        $this->assert(isset($links[0]), format_string('The %langcode node translation has the correct alternate hreflang link for %alternate_langcode: %link.', array('%langcode' => $langcode, '%alternate_langcode' => $alternate_langcode, '%link' => $url->toString())));
       }
     }
   }

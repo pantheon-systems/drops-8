@@ -71,28 +71,6 @@ const RESPONSIVE_PRIORITY_LOW = 'priority-low';
  */
 
 /**
- * Determines if a theme is available to use.
- *
- * @param string|\Drupal\Core\Extension\Extension $theme
- *   Either the name of a theme or a full theme object.
- *
- * @return bool
- *   Boolean TRUE if the theme is installed or is the site administration theme;
- *   FALSE otherwise.
- *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- *   Use \Drupal::service('access_check.theme')->checkAccess().
- *
- * @see \Drupal\Core\Theme\ThemeAccessCheck::checkAccess().
- */
-function drupal_theme_access($theme) {
-  if ($theme instanceof Extension) {
-    $theme = $theme->getName();
-  }
-  return \Drupal::service('access_check.theme')->checkAccess($theme);
-}
-
-/**
  * Gets the theme registry.
  *
  * @param bool $complete
@@ -425,11 +403,6 @@ function theme_settings_convert_to_config(array $theme_settings, Config $config)
 }
 
 /**
- * @addtogroup themeable
- * @{
- */
-
-/**
  * Prepares variables for time templates.
  *
  * Default template: time.html.twig.
@@ -523,25 +496,6 @@ function template_preprocess_datetime_wrapper(&$variables) {
 }
 
 /**
- * Prepares variables for status message templates.
- *
- * Default template: status-messages.html.twig.
- *
- * @param array $variables
- *   An associative array containing:
- *   - display: (optional) May have a value of 'status' or 'error' when only
- *     displaying messages of that specific type.
- */
-function template_preprocess_status_messages(&$variables) {
-  $variables['message_list'] = drupal_get_messages($variables['display']);
-  $variables['status_headings'] = array(
-    'status' => t('Status message'),
-    'error' => t('Error message'),
-    'warning' => t('Warning message'),
-  );
-}
-
-/**
  * Prepares variables for links templates.
  *
  * Default template: links.html.twig.
@@ -554,9 +508,6 @@ function template_preprocess_status_messages(&$variables) {
  *     - title: The link text.
  *     - url: (optional) The url object to link to. If omitted, no a tag is
  *       printed out.
- *     - html: (optional) Whether or not 'title' is HTML. If set, the title
- *       will not be passed through
- *       \Drupal\Component\Utility\String::checkPlain().
  *     - attributes: (optional) Attributes for the anchor, or for the <span>
  *       tag used in its place if no 'href' is supplied. If element 'class' is
  *       included, it must be an array of one or more class names.
@@ -680,8 +631,7 @@ function template_preprocess_links(&$variables) {
       }
 
       // Handle title-only text items.
-      $text = (!empty($link['html']) ? $link['title'] : String::checkPlain($link['title']));
-      $item['text'] = $text;
+      $item['text'] = $link['title'];
       if (isset($link['attributes'])) {
         $item['text_attributes'] = new Attribute($link['attributes']);
       }
@@ -1133,11 +1083,13 @@ function template_preprocess_feed_icon(&$variables) {
  * @param $variables
  *   An associative array containing:
  *   - size: Optional. The number of indentations to create.
+ *
+ * @ingroup themeable
  */
 function theme_indentation($variables) {
   $output = '';
   for ($n = 0; $n < $variables['size']; $n++) {
-    $output .= '<div class="indentation">&nbsp;</div>';
+    $output .= '<div class="js-indentation indentation">&nbsp;</div>';
   }
   return $output;
 }
@@ -1204,10 +1156,6 @@ function template_preprocess_maintenance_task_list(&$variables) {
     }
   }
 }
-
-/**
- * @} End of "addtogroup themeable".
- */
 
 /**
  * Adds a default set of helper variables for preprocessors and templates.
@@ -1402,7 +1350,6 @@ function template_preprocess_page(&$variables) {
   $site_config = \Drupal::config('system.site');
 
   // Move some variables to the top level for themer convenience and template cleanliness.
-  $variables['show_messages'] = $variables['page']['#show_messages'];
   $variables['title'] = $variables['page']['#title'];
 
   foreach (system_region_list(\Drupal::theme()->getActiveTheme()->getName()) as $region_key => $region_name) {
@@ -1440,13 +1387,6 @@ function template_preprocess_page(&$variables) {
   if ($node = \Drupal::routeMatch()->getParameter('node')) {
     $variables['node'] = $node;
   }
-
-  // Prepare render array for messages. drupal_get_messages() is called later,
-  // when this variable is rendered in a theme function or template file.
-  $variables['messages'] = array(
-    '#theme' => 'status_messages',
-    '#access' => $variables['show_messages'],
-  );
 }
 
 /**
@@ -1653,7 +1593,7 @@ function template_preprocess_field_multiple_value_form(&$variables) {
   $variables['multiple'] = $element['#cardinality_multiple'];
 
   if ($variables['multiple']) {
-    $table_id = drupal_html_id($element['#field_name'] . '_values');
+    $table_id = Html::getUniqueId($element['#field_name'] . '_values');
     $order_class = $element['#field_name'] . '-delta-order';
     $header_attributes = new Attribute(array('class' => array('label')));
     if (!empty($element['#required'])) {
@@ -1789,7 +1729,7 @@ function drupal_common_theme() {
       'render element' => 'element',
     ),
     'status_messages' => array(
-      'variables' => array('display' => NULL),
+      'variables' => ['status_headings' => [], 'message_list' => NULL],
     ),
     'links' => array(
       'variables' => array('links' => array(), 'attributes' => array('class' => array('links')), 'heading' => array(), 'set_active_class' => FALSE),
@@ -1861,7 +1801,7 @@ function drupal_common_theme() {
     ),
     // From pager.inc.
     'pager' => array(
-      'variables' => array('tags' => array(), 'element' => 0, 'parameters' => array(), 'quantity' => 9),
+      'render element' => 'pager',
     ),
     // From menu.inc.
     'menu' => array(

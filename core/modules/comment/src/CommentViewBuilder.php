@@ -7,6 +7,7 @@
 
 namespace Drupal\comment;
 
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityViewBuilder;
@@ -98,16 +99,6 @@ class CommentViewBuilder extends EntityViewBuilder {
             ),
           ),
           '#markup' => $placeholder,
-        );
-      }
-
-      $account = comment_prepare_author($entity);
-      if (\Drupal::config('user.settings')->get('signatures') && $account->getSignature()) {
-        $build[$id]['signature'] = array(
-          '#type' => 'processed_text',
-          '#text' => $account->getSignature(),
-          '#format' => $account->getSignatureFormat(),
-          '#langcode' => $entity->language()->getId(),
         );
       }
 

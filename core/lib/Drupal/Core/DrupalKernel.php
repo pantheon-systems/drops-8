@@ -20,6 +20,7 @@ use Drupal\Core\DependencyInjection\ServiceProviderInterface;
 use Drupal\Core\DependencyInjection\YamlFileLoader;
 use Drupal\Core\Extension\ExtensionDiscovery;
 use Drupal\Core\File\MimeType\MimeTypeGuesser;
+use Drupal\Core\Http\TrustedHostsRequestFactory;
 use Drupal\Core\Language\Language;
 use Drupal\Core\PageCache\RequestPolicyInterface;
 use Drupal\Core\PhpStorage\PhpStorageFactory;
@@ -684,6 +685,11 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     $this->containerNeedsDumping = FALSE;
     $session_manager_started = FALSE;
     if (isset($this->container)) {
+      // Save the id of the currently logged in user.
+      if ($this->container->initialized('current_user')) {
+        $current_user_id = $this->container->get('current_user')->id();
+      }
+
       // If there is a session manager, close and save the session.
       if ($this->container->initialized('session_manager')) {
         $session_manager = $this->container->get('session_manager');
@@ -730,6 +736,11 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
         }
       }
     }
+
+    if (!empty($current_user_id)) {
+      $this->container->get('current_user')->setInitialAccountId($current_user_id);
+    }
+
     \Drupal::setContainer($this->container);
 
     // If needs dumping flag was set, dump the container.
@@ -814,7 +825,7 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     // Provided by settings.php.
     global $base_url;
     // Set and derived from $base_url by this function.
-    global $base_path, $base_root, $script_path;
+    global $base_path, $base_root;
     global $base_secure_url, $base_insecure_url;
 
     // @todo Refactor with the Symfony Request object.
@@ -855,34 +866,6 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     }
     $base_secure_url = str_replace('http://', 'https://', $base_url);
     $base_insecure_url = str_replace('https://', 'http://', $base_url);
-
-    // Determine the path of the script relative to the base path, and add a
-    // trailing slash. This is needed for creating URLs to Drupal pages.
-    if (!isset($script_path)) {
-      $script_path = '';
-      // We don't expect scripts outside of the base path, but sanity check
-      // anyway.
-      if (strpos($request->server->get('SCRIPT_NAME'), $base_path) === 0) {
-        $script_path = substr($request->server->get('SCRIPT_NAME'), strlen($base_path)) . '/';
-        // If the request URI does not contain the script name, then clean URLs
-        // are in effect and the script path can be similarly dropped from URL
-        // generation. For servers that don't provide $_SERVER['REQUEST_URI'],
-        // we do not know the actual URI requested by the client, and
-        // request_uri() returns a URI with the script name, resulting in
-        // non-clean URLs unless
-        // there's other code that intervenes.
-        if (strpos(request_uri(TRUE) . '/', $base_path . $script_path) !== 0) {
-          $script_path = '';
-        }
-        // @todo Temporary BC for install.php, authorize.php, and other scripts.
-        //   - http://drupal.org/node/1547184
-        //   - http://drupal.org/node/1546082
-        if ($script_path !== 'index.php/') {
-          $script_path = '';
-        }
-      }
-    }
-
   }
 
   /**
@@ -976,9 +959,9 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     // - Entity
     // - Plugin
     foreach (array('Core', 'Component') as $parent_directory) {
-      $path = $this->root . '/core/lib/Drupal/' . $parent_directory;
+      $path = 'core/lib/Drupal/' . $parent_directory;
       $parent_namespace = 'Drupal\\' . $parent_directory;
-      foreach (new \DirectoryIterator($path) as $component) {
+      foreach (new \DirectoryIterator($this->root . '/' . $path) as $component) {
         /** @var $component \DirectoryIterator */
         $pathname = $component->getPathname();
         if (!$component->isDot() && $component->isDir() && (
@@ -1195,7 +1178,7 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
   protected function getModuleNamespacesPsr4($module_file_names) {
     $namespaces = array();
     foreach ($module_file_names as $module => $filename) {
-      $namespaces["Drupal\\$module"] = $this->root . '/' . dirname($filename) . '/src';
+      $namespaces["Drupal\\$module"] = dirname($filename) . '/src';
     }
     return $namespaces;
   }
@@ -1210,6 +1193,14 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
    */
   protected function classLoaderAddMultiplePsr4(array $namespaces = array()) {
     foreach ($namespaces as $prefix => $paths) {
+      if (is_array($paths)) {
+        foreach ($paths as $key => $value) {
+          $paths[$key] = $this->root . '/' . $value;
+        }
+      }
+      elseif (is_string($paths)) {
+        $paths = $this->root . '/' . $paths;
+      }
       $this->classLoader->addPsr4($prefix . '\\', $paths);
     }
   }
@@ -1289,13 +1280,24 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
    *   TRUE if the Host header is trusted, FALSE otherwise.
    *
    * @see https://www.drupal.org/node/1992030
+   * @see \Drupal\Core\Http\TrustedHostsRequestFactory
    */
   protected static function setupTrustedHosts(Request $request, $host_patterns) {
     $request->setTrustedHosts($host_patterns);
 
     // Get the host, which will validate the current request.
     try {
-      $request->getHost();
+      $host = $request->getHost();
+
+      // Fake requests created through Request::create() without passing in the
+      // server variables from the main request have a default host of
+      // 'localhost'. If 'localhost' does not match any of the trusted host
+      // patterns these fake requests would fail the host verification. Instead,
+      // TrustedHostsRequestFactory makes sure to pass in the server variables
+      // from the main request.
+      $request_factory = new TrustedHostsRequestFactory($host);
+      Request::setFactory([$request_factory, 'createRequest']);
+
     }
     catch (\UnexpectedValueException $e) {
       return FALSE;

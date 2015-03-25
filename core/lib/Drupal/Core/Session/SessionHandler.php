@@ -64,7 +64,7 @@ class SessionHandler extends AbstractProxy implements \SessionHandlerInterface {
    * {@inheritdoc}
    */
   public function read($sid) {
-    // @todo Remove global in https://www.drupal.org/node/2286971
+    // @todo Remove global in https://www.drupal.org/node/2228393
     global $_session_user;
 
     // Handle the case of first time visitors and clients that don't store
@@ -86,7 +86,7 @@ class SessionHandler extends AbstractProxy implements \SessionHandlerInterface {
       $rids = $this->connection->query("SELECT ur.roles_target_id as rid FROM {user__roles} ur WHERE ur.entity_id = :uid", array(
         ':uid' => $values['uid'],
       ))->fetchCol();
-      $values['roles'] = array_merge(array(DRUPAL_AUTHENTICATED_RID), $rids);
+      $values['roles'] = array_merge(array(AccountInterface::AUTHENTICATED_ROLE), $rids);
       $_session_user = new UserSession($values);
     }
     elseif ($values) {

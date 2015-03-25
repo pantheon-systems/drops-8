@@ -8,6 +8,7 @@
 namespace Drupal\views\Entity;
 
 use Drupal\Component\Utility\NestedArray;
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\views\Views;
@@ -310,14 +311,14 @@ class View extends ConfigEntityBase implements ViewEntityInterface {
 
     $current_display = $executable->current_display;
     $displays = $this->get('display');
-    foreach ($displays as $display_id => $display) {
+    foreach (array_keys($displays) as $display_id) {
+      $display =& $this->getDisplay($display_id);
       $executable->setDisplay($display_id);
 
       list($display['cache_metadata']['cacheable'], $display['cache_metadata']['contexts']) = $executable->getDisplay()->calculateCacheMetadata();
-      // Always include at least the language context as there will be most
-      // probable translatable strings in the view output.
-      $display['cache_metadata']['contexts'][] = 'cache.context.language';
-      $display['cache_metadata']['contexts'] = array_unique($display['cache_metadata']['contexts']);
+      // Always include at least the 'languages' context as there will most
+      // probably be translatable strings in the view output.
+      $display['cache_metadata']['contexts'] = Cache::mergeContexts($display['cache_metadata']['contexts'], ['languages']);
     }
     // Restore the previous active display.
     $executable->setDisplay($current_display);
@@ -332,9 +333,9 @@ class View extends ConfigEntityBase implements ViewEntityInterface {
     // @todo Remove if views implements a view_builder controller.
     views_invalidate_cache();
 
-    // Rebuild the router case the view got enabled.
+    // Rebuild the router if this is a new view, or it's status changed.
     if (!isset($this->original) || ($this->status() != $this->original->status())) {
-      \Drupal::service('router.builder_indicator')->setRebuildNeeded();
+      \Drupal::service('router.builder')->setRebuildNeeded();
     }
   }
 
@@ -431,6 +432,15 @@ class View extends ConfigEntityBase implements ViewEntityInterface {
    */
   public function isInstallable() {
     return (bool) \Drupal::service('views.views_data')->get($this->base_table);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function __sleep() {
+    $keys = parent::__sleep();
+    unset($keys[array_search('executable', $keys)]);
+    return $keys;
   }
 
 }

@@ -31,6 +31,7 @@ use Drupal\field\FieldStorageConfigInterface;
 use Drupal\file\FileInterface;
 use Drupal\user\EntityOwnerInterface;
 use Drupal\node\NodeInterface;
+use Drupal\user\RoleInterface;
 
 /**
  * Anonymous posters cannot enter their contact information.
@@ -196,25 +197,6 @@ function comment_field_config_delete(FieldConfigInterface $field) {
 }
 
 /**
- * Implements hook_entity_build_defaults_alter().
- */
-function comment_entity_build_defaults_alter(array &$build, EntityInterface $entity, $view_mode = 'full', $langcode = NULL) {
-  // Get the corresponding display settings.
-  $display = EntityViewDisplay::collectRenderDisplay($entity, $view_mode);
-  // Add the comment page number to the cache key if render caching is enabled.
-  if (isset($build['#cache']) && isset($build['#cache']['keys']) && \Drupal::request()->query->has('page')) {
-    foreach ($entity->getFieldDefinitions() as $field_name => $definition) {
-      if ($definition->getType() === 'comment' && ($display_options = $display->getComponent($field_name))) {
-        $pager_id = $display_options['settings']['pager_id'];
-        $page = pager_find_page($pager_id);
-        $build['#cache']['keys'][] = $field_name . '-pager-' . $page;
-      }
-    }
-  }
-  return $build;
-}
-
-/**
  * Implements hook_node_links_alter().
  */
 function comment_node_links_alter(array &$node_links, NodeInterface $node, array &$context) {
@@ -320,7 +302,7 @@ function comment_form_field_ui_field_storage_add_form_alter(&$form, FormStateInt
   }
   if (!_comment_entity_uses_integer_id($form_state->get('entity_type_id'))) {
     // You cannot use comment fields on entity types with non-integer IDs.
-    unset($form['add']['new_storage_type']['#options']['comment']);
+    unset($form['add']['new_storage_type']['#options'][t('General')]['comment']);
   }
 }
 
@@ -458,10 +440,10 @@ function comment_node_update_index(EntityInterface $node, $langcode) {
     // comments.
     $index_comments = TRUE;
     $roles = \Drupal::entityManager()->getStorage('user_role')->loadMultiple();
-    $authenticated_can_access = $roles[DRUPAL_AUTHENTICATED_RID]->hasPermission('access comments');
+    $authenticated_can_access = $roles[RoleInterface::AUTHENTICATED_ID]->hasPermission('access comments');
     foreach ($roles as $rid => $role) {
       if ($role->hasPermission('search content') && !$role->hasPermission('access comments')) {
-        if ($rid == DRUPAL_AUTHENTICATED_RID || $rid == DRUPAL_ANONYMOUS_RID || !$authenticated_can_access) {
+        if ($rid == RoleInterface::AUTHENTICATED_ID || $rid == RoleInterface::ANONYMOUS_ID || !$authenticated_can_access) {
           $index_comments = FALSE;
           break;
         }
@@ -717,13 +699,6 @@ function template_preprocess_comment(&$variables) {
     $variables['user_picture'] = array();
   }
 
-  if (isset($variables['elements']['signature'])) {
-    $variables['signature'] = $variables['elements']['signature'];
-    unset($variables['elements']['signature']);
-  }
-  else {
-    $variables['signature'] = '';
-  }
   if (isset($comment->in_preview)) {
     $variables['title'] = \Drupal::l($comment->getSubject(), new Url('<front>'));
     $variables['permalink'] = \Drupal::l(t('Permalink'), new Url('<front>'));
@@ -738,7 +713,7 @@ function template_preprocess_comment(&$variables) {
     $variables['permalink'] = \Drupal::l(t('Permalink'), $comment->permalink());
   }
 
-  $variables['submitted'] = t('Submitted by !username on !datetime', array('!username' => $variables['author'], '!datetime' => $variables['created']));
+  $variables['submitted'] = t('Submitted by @username on @datetime', array('@username' => $variables['author'], '@datetime' => $variables['created']));
 
   if ($comment->hasParentComment()) {
     // Fetch and store the parent comment information for use in templates.

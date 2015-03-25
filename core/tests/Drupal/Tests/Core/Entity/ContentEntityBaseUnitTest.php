@@ -166,6 +166,9 @@ class ContentEntityBaseUnitTest extends UnitTestCase {
     $this->fieldTypePluginManager->expects($this->any())
       ->method('getDefaultFieldSettings')
       ->will($this->returnValue(array()));
+    $this->fieldTypePluginManager->expects($this->any())
+      ->method('createFieldItemList')
+      ->will($this->returnValue($this->getMock('Drupal\Core\Field\FieldItemListInterface')));
 
     $container = new ContainerBuilder();
     $container->set('entity.manager', $this->entityManager);
@@ -229,9 +232,9 @@ class ContentEntityBaseUnitTest extends UnitTestCase {
       ->disableOriginalConstructor()
       ->getMockForAbstractClass();
 
-    $this->typedDataManager->expects($this->any())
-      ->method('getPropertyInstance')
-      ->with($this->entity->getTypedData(), 'revision_id', NULL)
+    $this->fieldTypePluginManager->expects($this->any())
+      ->method('createFieldItemList')
+      ->with($this->entity, 'revision_id', NULL)
       ->will($this->returnValue($field_item_list));
 
     $this->fieldDefinitions['revision_id']->getItemDefinition()->setClass(get_class($field_item));
@@ -240,6 +243,18 @@ class ContentEntityBaseUnitTest extends UnitTestCase {
     $this->assertTrue($this->entity->isNewRevision());
     $this->entity->setNewRevision(TRUE);
     $this->assertTRUE($this->entity->isNewRevision());
+  }
+
+  /**
+   * @covers ::setNewRevision
+   */
+  public function testSetNewRevisionException() {
+    $this->entityType->expects($this->once())
+      ->method('hasKey')
+      ->with('revision')
+      ->will($this->returnValue(FALSE));
+    $this->setExpectedException('LogicException', 'Entity type ' . $this->entityTypeId . ' does not support revisions.');
+    $this->entity->setNewRevision();
   }
 
   /**
@@ -521,6 +536,17 @@ class ContentEntityBaseUnitTest extends UnitTestCase {
     $this->assertArrayEquals(
       $expected,
       $mock_base->getFields($include_computed)
+    );
+  }
+
+  /**
+   * @covers ::set
+   */
+  public function testSet() {
+    // Exercise set(), check if it returns $this
+    $this->assertSame(
+      $this->entity,
+      $this->entity->set('id', 0)
     );
   }
 

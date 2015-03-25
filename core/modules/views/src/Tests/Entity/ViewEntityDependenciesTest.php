@@ -81,8 +81,6 @@ class ViewEntityDependenciesTest extends ViewUnitTestBase {
       'label' => $this->randomMachineName() . '_body',
       'settings' => array('display_summary' => TRUE),
     ))->save();
-    // Force a flush of the in-memory storage.
-    $this->container->get('views.views_data')->clear();
 
     $expected = [];
     $expected['test_field_get_entity'] = [
@@ -149,6 +147,7 @@ class ViewEntityDependenciesTest extends ViewUnitTestBase {
         'ArgumentValidatorTest'
       ],
       'module' => [
+        'core',
         'node',
         'search',
         'user',
@@ -160,7 +159,7 @@ class ViewEntityDependenciesTest extends ViewUnitTestBase {
         'field.storage.node.body'
       ],
       'module' => [
-        'node',
+        'core',
         'text',
         'views'
       ],

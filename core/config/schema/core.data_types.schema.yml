@@ -21,19 +21,19 @@ ignore:
 # Basic scalar data types from typed data.
 boolean:
   label: 'Boolean'
-  class: '\Drupal\Core\TypedData\Plugin\DataType\Boolean'
+  class: '\Drupal\Core\TypedData\Plugin\DataType\BooleanData'
 email:
   label: 'Email'
   class: '\Drupal\Core\TypedData\Plugin\DataType\Email'
 integer:
   label: 'Integer'
-  class: '\Drupal\Core\TypedData\Plugin\DataType\Integer'
+  class: '\Drupal\Core\TypedData\Plugin\DataType\IntegerData'
 float:
   label: 'Float'
-  class: '\Drupal\Core\TypedData\Plugin\DataType\Float'
+  class: '\Drupal\Core\TypedData\Plugin\DataType\FloatData'
 string:
   label: 'String'
-  class: '\Drupal\Core\TypedData\Plugin\DataType\String'
+  class: '\Drupal\Core\TypedData\Plugin\DataType\StringData'
 uri:
   label: 'Uri'
   class: '\Drupal\Core\TypedData\Plugin\DataType\Uri'
@@ -118,7 +118,7 @@ action_configuration_default:
   type: sequence
   label: 'Action configuration'
   sequence:
-    - type: string
+    type: string
 
 theme_settings:
   type: mapping
@@ -181,13 +181,13 @@ theme_settings:
       type: sequence
       label: 'Third party settings'
       sequence:
-        - type: theme_settings.third_party.[%key]
+        type: theme_settings.third_party.[%key]
 
 theme_breakpoints_default:
   type: sequence
   sequence:
-    - type: string
-      label: 'Breakpoint value'
+    type: string
+    label: 'Breakpoint value'
 
 views_field_bulk_form:
   type: views_field
@@ -203,8 +203,8 @@ views_field_bulk_form:
       type: sequence
       label: 'Available actions'
       sequence:
-        - type: string
-          label: 'Action'
+        type: string
+        label: 'Action'
 
 # Array of routes with route_name and route_params keys.
 route:
@@ -218,8 +218,8 @@ route:
       type: sequence
       label: 'Route Params'
       sequence:
-        - type: string
-          label: 'Param'
+        type: string
+        label: 'Param'
 
 # Config dependencies.
 config_dependencies_base:
@@ -229,22 +229,22 @@ config_dependencies_base:
       type: sequence
       label: 'Configuration entity dependencies'
       sequence:
-        - type: string
+        type: string
     content:
       type: sequence
       label: 'Content entity dependencies'
       sequence:
-        - type: string
+        type: string
     module:
       type: sequence
       label: 'Module dependencies'
       sequence:
-        - type: string
+        type: string
     theme:
       type: sequence
       label: 'Theme dependencies'
       sequence:
-        - type: string
+        type: string
 
 config_dependencies:
   type: config_dependencies_base
@@ -273,7 +273,7 @@ config_entity:
       type: sequence
       label: 'Third party settings'
       sequence:
-        - type: '[%parent.%parent.%type].third_party.[%key]'
+        type: '[%parent.%parent.%type].third_party.[%key]'
 
 block_settings:
   type: mapping
@@ -299,8 +299,8 @@ block_settings:
           type: sequence
           label: 'Vary by context'
           sequence:
-            - type: string
-              label: 'Context'
+            type: string
+            label: 'Context'
     status:
       type: boolean
       label: 'Status'
@@ -331,7 +331,7 @@ condition.plugin:
       type: sequence
       label: 'Context assignments'
       sequence:
-        - type: string
+        type: string
 
 display_variant.plugin:
   type: mapping
@@ -391,8 +391,8 @@ field_config_base:
       type: sequence
       label: 'Default values'
       sequence:
-        - type: field.value.[%parent.%parent.field_type]
-          label: 'Default value'
+        type: field.value.[%parent.%parent.field_type]
+        label: 'Default value'
     default_value_callback:
       type: string
       label: 'Default value callback'
@@ -552,7 +552,7 @@ field.value.changed:
 
 field.storage_settings.entity_reference:
   type: mapping
-  label: 'Entity reference settings'
+  label: 'Entity reference field storage settings'
   mapping:
     target_type:
       type: string
@@ -560,14 +560,14 @@ field.storage_settings.entity_reference:
 
 field.field_settings.entity_reference:
   type: mapping
-  label: 'Entity reference settings'
+  label: 'Entity reference field settings'
   mapping:
     handler:
       type: string
       label: 'Reference method'
     handler_settings:
-      type: entity_reference.[%parent.handler].handler_settings
-      label: 'Reference method settings'
+      type: entity_reference_selection.[%parent.handler]
+      label: 'Entity reference selection plugin settings'
 
 field.value.entity_reference:
   type: mapping
@@ -582,9 +582,9 @@ field.value.entity_reference:
 
 # Schema for the configuration of the Boolean field type.
 
-field.storage_settings.boolean:
-  type: mapping
+field.field_settings.boolean:
   label: 'Boolean settings'
+  type: mapping
   mapping:
     on_label:
       type: string
@@ -592,10 +592,6 @@ field.storage_settings.boolean:
     off_label:
       type: string
       label: 'Off label'
-
-field.field_settings.boolean:
-  label: 'Boolean settings'
-  type: mapping
 
 field.value.boolean:
   type: mapping
@@ -614,8 +610,8 @@ field.field_settings.email:
   type: mapping
   label: 'Email settings'
   sequence:
-    - type: string
-      label: 'Setting'
+    type: string
+    label: 'Setting'
 
 field.value.email:
   type: mapping
@@ -754,3 +750,32 @@ text_format:
       label: 'Text format'
       # The text format should not be translated as part of the string
       # translation system, so this is not marked as translatable.
+
+# Schema for the configuration of the Entity reference selection plugins.
+
+entity_reference_selection:
+  type: mapping
+  label: 'Entity reference selection plugin configuration'
+  mapping:
+    target_bundles:
+      type: sequence
+      label: 'types'
+      sequence:
+        type: string
+        label: 'Type'
+    sort:
+      type: mapping
+      label: 'Sort settings'
+      mapping:
+        field:
+          type: string
+          label: 'Sort by'
+        direction:
+          type: string
+          label: 'Sort direction'
+    auto_create:
+      type: boolean
+      label: 'Create referenced entities if they don''t already exist'
+
+entity_reference_selection.*:
+  type: entity_reference_selection

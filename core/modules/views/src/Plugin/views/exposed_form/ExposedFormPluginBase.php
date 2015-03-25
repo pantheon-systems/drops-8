@@ -43,13 +43,13 @@ abstract class ExposedFormPluginBase extends PluginBase {
 
   protected function defineOptions() {
     $options = parent::defineOptions();
-    $options['submit_button'] = array('default' => 'Apply');
+    $options['submit_button'] = array('default' => $this->t('Apply'));
     $options['reset_button'] = array('default' => FALSE);
-    $options['reset_button_label'] = array('default' => 'Reset');
-    $options['exposed_sorts_label'] = array('default' => 'Sort by');
+    $options['reset_button_label'] = array('default' => $this->t('Reset'));
+    $options['exposed_sorts_label'] = array('default' => $this->t('Sort by'));
     $options['expose_sort_order'] = array('default' => TRUE);
-    $options['sort_asc_label'] = array('default' => 'Asc');
-    $options['sort_desc_label'] = array('default' => 'Desc');
+    $options['sort_asc_label'] = array('default' => $this->t('Asc'));
+    $options['sort_desc_label'] = array('default' => $this->t('Desc'));
     return $options;
   }
 
@@ -150,7 +150,6 @@ abstract class ExposedFormPluginBase extends PluginBase {
       $form_state->set('ajax', TRUE);
     }
 
-    $form_state->set('exposed_form_plugin', $this);
     $form = \Drupal::formBuilder()->buildForm('\Drupal\views\Form\ViewsExposedForm', $form_state);
 
     if (!$this->view->display_handler->displaysExposed() || (!$block && $this->view->display_handler->getOption('exposed_block'))) {

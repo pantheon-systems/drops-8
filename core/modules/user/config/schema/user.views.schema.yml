@@ -16,8 +16,8 @@ views.access.role:
       type: sequence
       label: 'List of roles'
       sequence:
-        - type: string
-          label: 'Role'
+        type: string
+        label: 'Role'
 
 views.argument.user_uid:
   type: views.argument.numeric
@@ -41,8 +41,8 @@ views.argument_validator.user:
       type: sequence
       label: 'Restrict to the selected roles'
       sequence:
-        - type: string
-          label: 'Role'
+        type: string
+        label: 'Role'
 
 views.argument_default.user:
   type: mapping
@@ -66,10 +66,6 @@ views_field_user:
     link_to_user:
       type: boolean
       label: 'Link this field to its user'
-
-views.field.user_language:
-  type: views_field_user
-  label: 'User language'
 
 views.field.user_link:
   type: views_field

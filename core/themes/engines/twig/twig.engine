@@ -51,13 +51,14 @@ function twig_init(Extension $theme) {
 function twig_render_template($template_file, array $variables) {
   /** @var \Twig_Environment $twig_service */
   $twig_service = \Drupal::service('twig');
+  $output = [
+    'debug_prefix' => '',
+    'debug_info' => '',
+    'rendered_markup' => '',
+    'debug_suffix' => '',
+  ];
   try {
-    $output = array(
-      'debug_prefix'    => '',
-      'debug_info'      => '',
-      'rendered_markup' => $twig_service->loadTemplate($template_file)->render($variables),
-      'debug_suffix'    => '',
-    );
+    $output['rendered_markup'] = $twig_service->loadTemplate($template_file)->render($variables);
   }
   catch (\Twig_Error_Loader $e) {
     drupal_set_message($e->getMessage(), 'error');
@@ -150,6 +151,12 @@ function twig_render_var($arg) {
     if (method_exists($arg, '__toString')) {
       return (string) $arg;
     }
+    // You can't throw exceptions in the magic PHP __toString methods, see
+    // http://php.net/manual/en/language.oop5.magic.php#object.tostring so
+    // we also support a toString method.
+    elseif (method_exists($arg, 'toString')) {
+      return $arg->toString();
+    }
     else {
       throw new Exception(t('Object of type "@class" cannot be printed.', array('@class' => get_class($arg))));
     }
@@ -236,6 +243,12 @@ function twig_drupal_escape_filter(\Twig_Environment $env, $string, $strategy = 
   elseif (is_object($string)) {
     if (method_exists($string, '__toString')) {
       $return = (string) $string;
+    }
+    // You can't throw exceptions in the magic PHP __toString methods, see
+    // http://php.net/manual/en/language.oop5.magic.php#object.tostring so
+    // we also support a toString method.
+    elseif (method_exists($string, 'toString')) {
+      $return = $string->toString();
     }
     else {
       throw new \Exception(t('Object of type "@class" cannot be printed.', array('@class' => get_class($string))));

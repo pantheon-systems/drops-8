@@ -74,7 +74,7 @@ abstract class CachePluginBase extends PluginBase {
   protected $outputKey;
 
   /**
-   * The renderer service.
+   * The HTML renderer.
    *
    * @var \Drupal\Core\Render\RendererInterface
    */
@@ -90,7 +90,7 @@ abstract class CachePluginBase extends PluginBase {
    * @param mixed $plugin_definition
    *   The plugin implementation definition.
    * @param \Drupal\Core\Render\RendererInterface $renderer
-   *   The renderer service.
+   *   The HTML renderer.
    */
   public function __construct(array $configuration, $plugin_id, $plugin_definition, RendererInterface $renderer) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
@@ -181,9 +181,17 @@ abstract class CachePluginBase extends PluginBase {
         \Drupal::cache($this->resultsBin)->set($this->generateResultsKey(), $data, $this->cacheSetExpire($type), $this->getCacheTags());
         break;
       case 'output':
-        $this->renderer->render($this->view->display_handler->output);
-        $this->storage = $this->renderer->getCacheableRenderArray($this->view->display_handler->output);
-        \Drupal::cache($this->outputBin)->set($this->generateOutputKey(), $this->storage, $this->cacheSetExpire($type), $this->getCacheTags());
+        // Make a copy of the output so it is not modified. If we render the
+        // display output directly an empty string will be returned when the
+        // view is actually rendered. If we try to set '#printed' to FALSE there
+        // are problems with asset bubbling.
+        $output = $this->view->display_handler->output;
+        $this->renderer->render($output);
+        // Also assign the cacheable render array back to the display handler so
+        // that is used to render the view for this request and rendering does
+        // not happen twice.
+        $this->storage = $this->view->display_handler->output = $this->renderer->getCacheableRenderArray($output);
+        \Drupal::cache($this->outputBin)->set($this->generateOutputKey(), $this->storage, $this->cacheSetExpire($type), Cache::mergeTags($this->storage['#cache']['tags'], ['rendered']));
         break;
     }
   }
@@ -231,9 +239,6 @@ abstract class CachePluginBase extends PluginBase {
 
   /**
    * Clear out cached data for a view.
-   *
-   * We're just going to nuke anything related to the view, regardless of display,
-   * to be sure that we catch everything. Maybe that's a bad idea.
    */
   public function cacheFlush() {
     Cache::invalidateTags($this->view->storage->getCacheTags());
@@ -293,11 +298,17 @@ abstract class CachePluginBase extends PluginBase {
         'langcode' => \Drupal::languageManager()->getCurrentLanguage()->getId(),
         'base_url' => $GLOBALS['base_url'],
       );
-      foreach (array('exposed_info', 'page', 'sort', 'order', 'items_per_page', 'offset') as $key) {
+      foreach (array('exposed_info', 'sort', 'order') as $key) {
         if ($this->view->getRequest()->query->has($key)) {
           $key_data[$key] = $this->view->getRequest()->query->get($key);
         }
       }
+
+      $key_data['pager'] = [
+        'page' => $this->view->getCurrentPage(),
+        'items_per_page' => $this->view->getItemsPerPage(),
+        'offset' => $this->view->getOffset(),
+      ];
 
       $this->resultsKey = $this->view->storage->id() . ':' . $this->displayHandler->display['id'] . ':results:' . hash('sha256', serialize($key_data));
     }
@@ -335,17 +346,20 @@ abstract class CachePluginBase extends PluginBase {
    * @return string[]
    *   An array of cache tags based on the current view.
    */
-  protected function getCacheTags() {
+  public function getCacheTags() {
     $tags = $this->view->storage->getCacheTags();
 
+    // The list cache tags for the entity types listed in this view.
     $entity_information = $this->view->query->getEntityTableInfo();
 
     if (!empty($entity_information)) {
       // Add the list cache tags for each entity type used by this view.
-      foreach (array_keys($entity_information) as $entity_type) {
-        $tags = Cache::mergeTags($tags, \Drupal::entityManager()->getDefinition($entity_type)->getListCacheTags());
+      foreach ($entity_information as $table => $metadata) {
+        $tags = Cache::mergeTags($tags, \Drupal::entityManager()->getDefinition($metadata['entity_type'])->getListCacheTags());
       }
     }
+
+    $tags = Cache::mergeTags($tags, $this->view->getQuery()->getCacheTags());
 
     return $tags;
   }

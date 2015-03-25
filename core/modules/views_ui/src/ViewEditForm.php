@@ -266,6 +266,7 @@ class ViewEditForm extends ViewFormBase {
   public function save(array $form, FormStateInterface $form_state) {
     $view = $this->entity;
     $executable = $view->getExecutable();
+    $executable->initDisplay();
 
     // Go through and remove displayed scheduled for removal.
     $displays = $view->get('display');
@@ -985,7 +986,6 @@ class ViewEditForm extends ViewFormBase {
       'title' => $add_text,
       'url' => Url::fromRoute('views_ui.form_add_handler', ['js' => 'nojs', 'view' => $view->id(), 'display_id' => $display['id'], 'type' => $type]),
       'attributes' => array('class' => array('icon compact add', 'views-ajax-link'), 'id' => 'views-add-' . $type),
-      'html' => TRUE,
     );
     if ($count_handlers > 0) {
       // Create the rearrange text variable for the rearrange action.
@@ -995,7 +995,6 @@ class ViewEditForm extends ViewFormBase {
         'title' => $rearrange_text,
         'url' => $rearrange_url,
         'attributes' => array('class' => array($class, 'views-ajax-link'), 'id' => 'views-rearrange-' . $type),
-        'html' => TRUE,
       );
     }
 
@@ -1057,7 +1056,7 @@ class ViewEditForm extends ViewFormBase {
           'display_id' => $display['id'],
           'type' => $type,
           'id' => $id,
-        ), array('attributes' => array('class' => array('views-ajax-link')), 'html' => TRUE)));
+        ), array('attributes' => array('class' => array('views-ajax-link')))));
         continue;
       }
 
@@ -1080,27 +1079,27 @@ class ViewEditForm extends ViewFormBase {
         'display_id' => $display['id'],
         'type' => $type,
         'id' => $id,
-      ), array('attributes' => $link_attributes, 'html' => TRUE)));
+      ), array('attributes' => $link_attributes)));
       $build['fields'][$id]['#class'][] = Html::cleanCssIdentifier($display['id']. '-' . $type . '-' . $id);
 
       if ($executable->display_handler->useGroupBy() && $handler->usesGroupBy()) {
-        $build['fields'][$id]['#settings_links'][] = $this->l('<span class="label">' . $this->t('Aggregation settings') . '</span>', new Url('views_ui.form_handler_group', array(
+        $build['fields'][$id]['#settings_links'][] = $this->l(String::format('<span class="label">@text</span>', array('@text' => $this->t('Aggregation settings'))), new Url('views_ui.form_handler_group', array(
           'js' => 'nojs',
           'view' => $view->id(),
           'display_id' => $display['id'],
           'type' => $type,
           'id' => $id,
-        ), array('attributes' => array('class' => array('views-button-configure', 'views-ajax-link'), 'title' => $this->t('Aggregation settings')), 'html' => TRUE)));
+        ), array('attributes' => array('class' => array('views-button-configure', 'views-ajax-link'), 'title' => $this->t('Aggregation settings')))));
       }
 
       if ($handler->hasExtraOptions()) {
-        $build['fields'][$id]['#settings_links'][] = $this->l('<span class="label">' . $this->t('Settings') . '</span>', new Url('views_ui.form_handler_extra', array(
+        $build['fields'][$id]['#settings_links'][] = $this->l(String::format('<span class="label">@text</span>', array('@text' => $this->t('Settings'))), new Url('views_ui.form_handler_extra', array(
           'js' => 'nojs',
           'view' => $view->id(),
           'display_id' => $display['id'],
           'type' => $type,
           'id' => $id,
-        ), array('attributes' => array('class' => array('views-button-configure', 'views-ajax-link'), 'title' => $this->t('Settings')), 'html' => TRUE)));
+        ), array('attributes' => array('class' => array('views-button-configure', 'views-ajax-link'), 'title' => $this->t('Settings')))));
       }
 
       if ($grouping) {

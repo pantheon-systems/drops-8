@@ -8,7 +8,7 @@ label: 'Test field filters'
 module: views
 description: ''
 tag: ''
-base_table: block_content
+base_table: block_content_field_data
 base_field: id
 core: 8.x
 display:
@@ -71,7 +71,6 @@ display:
             html: false
           hide_empty: false
           empty_zero: false
-          link_to_entity: true
           relationship: none
           group_type: group
           admin_label: ''
@@ -87,8 +86,11 @@ display:
           empty: ''
           hide_alter_empty: true
           entity_type: block_content
+          type: string
+          settings:
+            link_to_entity: true
           entity_field: title
-          plugin_id: block_content
+          plugin_id: field
       filters:
         info:
           id: info

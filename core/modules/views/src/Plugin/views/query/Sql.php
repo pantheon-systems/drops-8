@@ -8,6 +8,7 @@
 namespace Drupal\views\Plugin\views\query;
 
 use Drupal\Component\Utility\NestedArray;
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Database\Database;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\views\Plugin\views\display\DisplayPluginBase;
@@ -203,7 +204,7 @@ class Sql extends QueryPluginBase {
 
     $form['disable_sql_rewrite'] = array(
       '#title' => $this->t('Disable SQL rewriting'),
-      '#description' => $this->t('Disabling SQL rewriting will disable node_access checks as well as other modules that implement hook_query_alter().'),
+      '#description' => $this->t('Disabling SQL rewriting will omit all query tags, i. e. disable node access checks as well as override hook_query_alter() implementations in other modules.'),
       '#type' => 'checkbox',
       '#default_value' => !empty($this->options['disable_sql_rewrite']),
       '#suffix' => '<div class="messages messages--warning sql-rewrite-warning js-hide">' . $this->t('WARNING: Disabling SQL rewriting means that node access security is disabled. This may allow users to see data they should not be able to see if your view is misconfigured. Use this option only if you understand and accept this security risk.') . '</div>',
@@ -1232,7 +1233,7 @@ class Sql extends QueryPluginBase {
     if (count($this->having)) {
       $this->hasAggregate = TRUE;
     }
-    elseif ($this->hasAggregate == FALSE) {
+    elseif (!$this->hasAggregate) {
       // Allow 'GROUP BY' even no aggregation function has been set.
       $this->hasAggregate = $this->view->display_handler->getOption('group_by');
     }
@@ -1255,7 +1256,7 @@ class Sql extends QueryPluginBase {
 
       foreach ($entity_information as $entity_type_id => $info) {
         $entity_type = \Drupal::entityManager()->getDefinition($info['entity_type']);
-        $base_field = empty($table['revision']) ? $entity_type->getKey('id') : $entity_type->getKey('revision');
+        $base_field = !$info['revision'] ? $entity_type->getKey('id') : $entity_type->getKey('revision');
         $this->addField($info['alias'], $base_field, '', $params);
       }
     }
@@ -1465,8 +1466,11 @@ class Sql extends QueryPluginBase {
    * If the entity belongs to the base table, then it gets stored in
    * $result->_entity. Otherwise, it gets stored in
    * $result->_relationship_entities[$relationship_id];
+   *
+   * @param \Drupal\views\ResultRow[] $results
+   *   The result of the SQL query.
    */
-  function loadEntities(&$results) {
+  public function loadEntities(&$results) {
     $entity_information = $this->getEntityTableInfo();
     // No entity tables found, nothing else to do here.
     if (empty($entity_information)) {
@@ -1488,7 +1492,7 @@ class Sql extends QueryPluginBase {
       $relationship_id = $info['relationship_id'];
       $entity_type = $info['entity_type'];
       $entity_info = $entity_types[$entity_type];
-      $id_key = empty($table['revision']) ? $entity_info->getKey('id') : $entity_info->getKey('revision');
+      $id_key = !$info['revision'] ? $entity_info->getKey('id') : $entity_info->getKey('revision');
       $id_alias = $this->getFieldAlias($info['alias'], $id_key);
 
       foreach ($results as $index => $result) {
@@ -1504,7 +1508,7 @@ class Sql extends QueryPluginBase {
       $flat_ids = iterator_to_array(new \RecursiveIteratorIterator(new \RecursiveArrayIterator($ids)), FALSE);
 
       // Drupal core currently has no way to load multiple revisions. Sad.
-      if (isset($entity_table_info[$entity_type]['revision']) && $entity_table_info[$entity_type]['revision'] == TRUE) {
+      if (isset($entity_information[$entity_type]['revision']) && $entity_information[$entity_type]['revision'] === TRUE) {
         $entities = array();
         foreach ($flat_ids as $revision_id) {
           $entity = entity_revision_load($entity_type, $revision_id);
@@ -1535,6 +1539,23 @@ class Sql extends QueryPluginBase {
         }
       }
     }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getCacheTags() {
+    $tags = [];
+    // Add cache tags for each row, if there is an entity associated with it.
+    if (!$this->hasAggregate) {
+      foreach ($this->view->result as $row)  {
+        if ($row->_entity) {
+          $tags = Cache::mergeTags($row->_entity->getCacheTags(), $tags);
+        }
+      }
+    }
+
+    return $tags;
   }
 
   public function addSignature(ViewExecutable $view) {
@@ -1658,7 +1679,7 @@ class Sql extends QueryPluginBase {
         break;
       case 'sqlite':
         if (!empty($offset)) {
-          $field = "($field + '$offset_seconds')";
+          $field = "($field + $offset_seconds)";
         }
         break;
     }
@@ -1772,7 +1793,18 @@ class Sql extends QueryPluginBase {
           'A' => '',
         );
         $format = strtr($format, $replace);
-        return "strftime('$format', $field, 'unixepoch')";
+        $expression = "strftime('$format', $field, 'unixepoch')";
+        // The expression yields a string, but the comparison value is an
+        // integer in case the comparison value is a float, integer, or numeric.
+        // All of the above SQLite format tokens only produce integers. However,
+        // the given $format may contain 'Y-m-d', which results in a string.
+        // @see \Drupal\Core\Database\Driver\sqlite\Connection::expandArguments()
+        // @see http://www.sqlite.org/lang_datefunc.html
+        // @see http://www.sqlite.org/lang_expr.html#castexpr
+        if (preg_match('/^(?:%\w)+$/', $format)) {
+          $expression = "CAST($expression AS NUMERIC)";
+        }
+        return $expression;
     }
   }
 

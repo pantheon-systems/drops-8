@@ -238,7 +238,7 @@ trait AssertContentTrait {
    * @param string $selector
    *   CSS selector to use in the search.
    *
-   * @return \SimpleXMLElement
+   * @return \SimpleXMLElement[]
    *   The return value of the XPath search performed after converting the CSS
    *   selector to an XPath selector.
    */
@@ -1127,7 +1127,7 @@ trait AssertContentTrait {
    *   TRUE on pass, FALSE on fail.
    */
   protected function assertOption($id, $option, $message = '', $group = 'Browser') {
-    $options = $this->xpath('//select[@id=:id]/option[@value=:option]', array(':id' => $id, ':option' => $option));
+    $options = $this->xpath('//select[@id=:id]//option[@value=:option]', array(':id' => $id, ':option' => $option));
     return $this->assertTrue(isset($options[0]), $message ? $message : String::format('Option @option for field @id exists.', array('@option' => $option, '@id' => $id)), $group);
   }
 
@@ -1153,7 +1153,7 @@ trait AssertContentTrait {
    */
   protected function assertNoOption($id, $option, $message = '', $group = 'Browser') {
     $selects = $this->xpath('//select[@id=:id]', array(':id' => $id));
-    $options = $this->xpath('//select[@id=:id]/option[@value=:option]', array(':id' => $id, ':option' => $option));
+    $options = $this->xpath('//select[@id=:id]//option[@value=:option]', array(':id' => $id, ':option' => $option));
     return $this->assertTrue(isset($selects[0]) && !isset($options[0]), $message ? $message : String::format('Option @option for field @id does not exist.', array('@option' => $option, '@id' => $id)), $group);
   }
 

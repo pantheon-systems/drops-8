@@ -45,6 +45,7 @@ use Drupal\user\UserInterface;
  *   revision_table = "node_revision",
  *   revision_data_table = "node_field_revision",
  *   translatable = TRUE,
+ *   list_cache_contexts = { "user.node_grants:view" },
  *   entity_keys = {
  *     "id" = "nid",
  *     "revision" = "vid",
@@ -55,6 +56,7 @@ use Drupal\user\UserInterface;
  *   },
  *   bundle_entity_type = "node_type",
  *   field_ui_base_route = "entity.node_type.edit_form",
+ *   common_reference_target = TRUE,
  *   permission_granularity = "bundle",
  *   links = {
  *     "canonical" = "/node/{node}",
@@ -353,6 +355,7 @@ class Node extends ContentEntityBase implements NodeInterface {
     $fields['langcode'] = BaseFieldDefinition::create('language')
       ->setLabel(t('Language'))
       ->setDescription(t('The node language code.'))
+      ->setTranslatable(TRUE)
       ->setRevisionable(TRUE)
       ->setDisplayOptions('view', array(
         'type' => 'hidden',
@@ -364,7 +367,6 @@ class Node extends ContentEntityBase implements NodeInterface {
 
     $fields['title'] = BaseFieldDefinition::create('string')
       ->setLabel(t('Title'))
-      ->setDescription(t('The title of this node, always treated as non-markup plain text.'))
       ->setRequired(TRUE)
       ->setTranslatable(TRUE)
       ->setRevisionable(TRUE)

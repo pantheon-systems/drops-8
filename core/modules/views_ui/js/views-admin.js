@@ -233,7 +233,7 @@
   Drupal.behaviors.viewsUiRenderAddViewButton = {
     attach: function (context) {
       // Build the add display menu and pull the display input buttons into it.
-      var $menu = $(context).find('#views-display-menu-tabs').once('views-ui-render-add-view-button-processed');
+      var $menu = $(context).find('#views-display-menu-tabs').once('views-ui-render-add-view-button');
       if (!$menu.length) {
         return;
       }
@@ -358,13 +358,16 @@
      * Keyup handler for the search box that hides or shows the relevant options.
      */
     handleKeyup: function (event) {
-      var found, i, j, option, search, words, wordsLength;
+      var found, i, j, option, zebraClass;
 
       // Determine the user's search query. The search text has been converted to
       // lowercase.
-      search = this.$searchBox.val().toLowerCase();
-      words = search.split(' ');
-      wordsLength = words.length;
+      var search = this.$searchBox.val().toLowerCase();
+      var words = search.split(' ');
+      var wordsLength = words.length;
+
+      // Start the counter for restriping rows.
+      var zebraCounter = 0;
 
       // Search through the search texts in the form for matching text.
       var length = this.options.length;
@@ -380,9 +383,12 @@
           }
         }
         if (found) {
+          zebraClass = (zebraCounter % 2) ? 'odd' : 'even';
           // Show the checkbox row, and restripe it.
-          option.$div.show();
           option.$div.removeClass('even odd');
+          option.$div.addClass(zebraClass);
+          option.$div.show();
+          zebraCounter++;
         }
         else {
           // The search string wasn't found; hide this item.
@@ -795,9 +801,7 @@
    */
   Drupal.behaviors.viewsRemoveIconClass = {
     attach: function (context) {
-      $(context).find('.dropbutton').once('dropbutton-icon', function () {
-        $(this).find('.icon').removeClass('icon');
-      });
+      $(context).find('.dropbutton').once('dropbutton-icon').find('.icon').removeClass('icon');
     }
   };
 
@@ -874,7 +878,7 @@
    */
   Drupal.behaviors.viewsUiOverrideSelect = {
     attach: function (context) {
-      $(context).find('#edit-override-dropdown').once('views-ui-override-button-text', function () {
+      $(context).find('#edit-override-dropdown').once('views-ui-override-button-text').each(function () {
         // Closures! :(
         var $context = $(context);
         var $submit = $context.find('[id^=edit-submit]');

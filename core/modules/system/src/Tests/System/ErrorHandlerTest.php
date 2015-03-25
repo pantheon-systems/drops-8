@@ -46,6 +46,11 @@ class ErrorHandlerTest extends WebTestBase {
       '%function' => 'Drupal\error_test\Controller\ErrorTestController->generateWarnings()',
       '%file' => drupal_get_path('module', 'error_test') . '/error_test.module',
     );
+    $fatal_error = array(
+      '%type' => 'Recoverable fatal error',
+      '%function' => 'Drupal\error_test\Controller\ErrorTestController->Drupal\error_test\Controller\{closure}()',
+      '!message' => 'Argument 1 passed to Drupal\error_test\Controller\ErrorTestController::Drupal\error_test\Controller\{closure}() must be of the type array, string given, called in ' . \Drupal::root() . '/core/modules/system/tests/modules/error_test/src/Controller/ErrorTestController.php on line 66 and defined',
+    );
 
     // Set error reporting to display verbose notices.
     $this->config('system.logging')->set('error_level', ERROR_REPORTING_DISPLAY_VERBOSE)->save();
@@ -55,6 +60,24 @@ class ErrorHandlerTest extends WebTestBase {
     $this->assertErrorMessage($error_warning);
     $this->assertErrorMessage($error_user_notice);
     $this->assertRaw('<pre class="backtrace">', 'Found pre element with backtrace class.');
+
+    // Set error reporting to display verbose notices.
+    $this->config('system.logging')->set('error_level', ERROR_REPORTING_DISPLAY_VERBOSE)->save();
+    $this->drupalGet('error-test/generate-fatals');
+    $this->assertResponse(500, 'Received expected HTTP status code.');
+    $this->assertErrorMessage($fatal_error);
+    $this->assertRaw('<pre class="backtrace">', 'Found pre element with backtrace class.');
+
+    // Remove the fatal error from the assertions, its wanted here. Ensure
+    // that we just remove the one recoverable fatal error.
+    foreach ($this->assertions as $key => $assertion) {
+      if ($assertion['message_group'] == 'Recoverable fatal error' && strpos($assertion['message'], 'Argument 1 passed to Drupal\error_test\Controller\ErrorTestController::Drupal\error_test\Controller\{closure}() must be of the type array, string given, called in') !== FALSE) {
+        unset($this->assertions[$key]);
+        $this->deleteAssert($assertion['message_id']);
+      }
+    }
+    // Drop the single exception.
+    $this->results['#exception']--;
 
     // Set error reporting to collect notices.
     $config->set('error_level', ERROR_REPORTING_DISPLAY_ALL)->save();
@@ -129,6 +152,22 @@ class ErrorHandlerTest extends WebTestBase {
     $this->drupalGet('error-test/trigger-renderer-exception');
     $this->assertTrue(strpos($this->drupalGetHeader(':status'), '500 Service unavailable (with message)'), 'Received expected HTTP status line.');
     $this->assertErrorMessage($error_renderer_exception);
+
+    // Enable the page cache and disable error reporting, ensure that 5xx
+    // responses are not cached.
+    $config = $this->config('system.performance');
+    $config->set('cache.page.use_internal', 1);
+    $config->set('cache.page.max_age', 300);
+    $config->save();
+    $this->config('system.logging')
+      ->set('error_level', ERROR_REPORTING_HIDE)
+      ->save();
+
+    $this->drupalGet('error-test/trigger-exception');
+    $this->assertFalse($this->drupalGetHeader('X-Drupal-Cache'));
+    $this->assertIdentical(strpos($this->drupalGetHeader('Cache-Control'), 'public'), FALSE, 'Received expected HTTP status line.');
+    $this->assertTrue(strpos($this->drupalGetHeader(':status'), '500 Service unavailable (with message)'), 'Received expected HTTP status line.');
+    $this->assertNoErrorMessage($error_exception);
 
     // The exceptions are expected. Do not interpret them as a test failure.
     // Not using File API; a potential error must trigger a PHP warning.

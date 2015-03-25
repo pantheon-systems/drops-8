@@ -116,9 +116,6 @@ class EntityViewsData implements EntityHandlerInterface, EntityViewsDataInterfac
   public function getViewsData() {
     $data = [];
 
-    // @todo In theory we should use the data table as base table, as this would
-    //   save one pointless join (and one more for every relationship).
-    // @see https://drupal.org/node/2337509
     $base_table = $this->entityType->getBaseTable();
     $base_field = $this->entityType->getKey('id');
     $data_table = $this->entityType->getDataTable();
@@ -129,20 +126,27 @@ class EntityViewsData implements EntityHandlerInterface, EntityViewsDataInterfac
     // Setup base information of the views data.
     $data[$base_table]['table']['group'] = $this->entityType->getLabel();
     $data[$base_table]['table']['provider'] = $this->entityType->getProvider();
-    $data[$base_table]['table']['base'] = [
+
+    $views_base_table = $base_table;
+    if ($data_table) {
+      $views_base_table = $data_table;
+    }
+    $data[$views_base_table]['table']['base'] = [
       'field' => $base_field,
       'title' => $this->entityType->getLabel(),
+      'cache_contexts' => $this->entityType->getListCacheContexts(),
     ];
+    $data[$base_table]['table']['entity revision'] = FALSE;
 
     if ($label_key = $this->entityType->getKey('label')) {
       if ($data_table) {
-        $data[$base_table]['table']['base']['defaults'] = array(
+        $data[$views_base_table]['table']['base']['defaults'] = array(
           'field' => $label_key,
           'table' => $data_table,
         );
       }
       else {
-        $data[$base_table]['table']['base']['defaults'] = array(
+        $data[$views_base_table]['table']['base']['defaults'] = array(
           'field' => $label_key,
         );
       }
@@ -158,23 +162,30 @@ class EntityViewsData implements EntityHandlerInterface, EntityViewsDataInterfac
 
     // Setup relations to the revisions/property data.
     if ($data_table) {
-      $data[$data_table]['table']['join'][$base_table] = [
+      $data[$base_table]['table']['join'][$data_table] = [
         'left_field' => $base_field,
         'field' => $base_field,
         'type' => 'INNER'
       ];
       $data[$data_table]['table']['group'] = $this->entityType->getLabel();
       $data[$data_table]['table']['provider'] = $this->entityType->getProvider();
+      $data[$data_table]['table']['entity revision'] = FALSE;
     }
     if ($revision_table) {
       $data[$revision_table]['table']['group'] = $this->t('@entity_type revision', ['@entity_type' => $this->entityType->getLabel()]);
       $data[$revision_table]['table']['provider'] = $this->entityType->getProvider();
-      $data[$revision_table]['table']['base'] = array(
+
+      $views_revision_base_table = $revision_table;
+      if ($revision_data_table) {
+        $views_revision_base_table = $revision_data_table;
+      }
+      $data[$views_revision_base_table]['table']['entity revision'] = TRUE;
+      $data[$views_revision_base_table]['table']['base'] = array(
         'field' => $revision_field,
         'title' => $this->t('@entity_type revisions', array('@entity_type' => $this->entityType->getLabel())),
       );
       // Join the revision table to the base table.
-      $data[$revision_table]['table']['join'][$base_table] = array(
+      $data[$views_revision_base_table]['table']['join'][$views_base_table] = array(
         'left_field' => $revision_field,
         'field' => $revision_field,
         'type' => 'INNER',
@@ -182,6 +193,7 @@ class EntityViewsData implements EntityHandlerInterface, EntityViewsDataInterfac
 
       if ($revision_data_table) {
         $data[$revision_data_table]['table']['group'] = $this->t('@entity_type revision', ['@entity_type' => $this->entityType->getLabel()]);
+        $data[$revision_data_table]['table']['entity revision'] = TRUE;
 
         $data[$revision_data_table]['table']['join'][$revision_table] = array(
           'left_field' => $revision_field,
@@ -308,21 +320,24 @@ class EntityViewsData implements EntityHandlerInterface, EntityViewsDataInterfac
         break;
 
       case 'language':
-        $views_field['field']['id'] = 'language';
+        $views_field['field']['id'] = 'field';
         $views_field['argument']['id'] = 'language';
         $views_field['filter']['id'] = 'language';
         $views_field['sort']['id'] = 'standard';
         break;
 
       case 'boolean':
-        $views_field['field']['id'] = 'boolean';
+        $views_field['field']['id'] = 'field';
         $views_field['argument']['id'] = 'numeric';
         $views_field['filter']['id'] = 'boolean';
         $views_field['sort']['id'] = 'standard';
         break;
 
       case 'uri':
-        $views_field['field']['id'] = 'url';
+        // Let's render URIs as URIs by default, not links.
+        $views_field['field']['id'] = 'field';
+        $views_field['field']['default_formatter'] = 'string';
+
         $views_field['argument']['id'] = 'string';
         $views_field['filter']['id'] = 'string';
         $views_field['sort']['id'] = 'standard';
@@ -347,7 +362,7 @@ class EntityViewsData implements EntityHandlerInterface, EntityViewsDataInterfac
           case 'float':
           case 'double':
           case 'decimal':
-            $views_field['field']['id'] = 'numeric';
+            $views_field['field']['id'] = 'field';
             $views_field['argument']['id'] = 'numeric';
             $views_field['filter']['id'] = 'numeric';
             $views_field['sort']['id'] = 'standard';
@@ -360,14 +375,14 @@ class EntityViewsData implements EntityHandlerInterface, EntityViewsDataInterfac
           case 'text':
           case 'mediumtext':
           case 'longtext':
-            $views_field['field']['id'] = 'standard';
+            $views_field['field']['id'] = 'field';
             $views_field['argument']['id'] = 'string';
             $views_field['filter']['id'] = 'string';
             $views_field['sort']['id'] = 'standard';
             break;
 
           default:
-            $views_field['field']['id'] = 'standard';
+            $views_field['field']['id'] = 'field';
             $views_field['argument']['id'] = 'standard';
             $views_field['filter']['id'] = 'standard';
             $views_field['sort']['id'] = 'standard';
@@ -438,13 +453,13 @@ class EntityViewsData implements EntityHandlerInterface, EntityViewsDataInterfac
           'title' => $entity_type->getLabel(),
           'id' => 'standard',
         ];
-        $views_field['field']['id'] = 'numeric';
+        $views_field['field']['id'] = 'field';
         $views_field['argument']['id'] = 'numeric';
         $views_field['filter']['id'] = 'numeric';
         $views_field['sort']['id'] = 'standard';
       }
       else {
-        $views_field['field']['id'] = 'standard';
+        $views_field['field']['id'] = 'field';
         $views_field['argument']['id'] = 'string';
         $views_field['filter']['id'] = 'string';
         $views_field['sort']['id'] = 'standard';
@@ -474,17 +489,12 @@ class EntityViewsData implements EntityHandlerInterface, EntityViewsDataInterfac
     // Connect the text field to its formatter.
     if ($field_column_name == 'value') {
       $views_field['field']['format'] = $field_definition->getName() . '__format';
-      $views_field['field']['id'] = 'markup';
+      $views_field['field']['id'] = 'field';
     }
   }
 
   /**
    * Gets the table of an entity type to be used as base table in views.
-   *
-   * @todo Given that the base_table is pretty much useless as you often have to
-   *   join to the data table anyway, it could make a lot of sense to start with
-   *   the data table right from the beginning.
-   * @see https://drupal.org/node/2337509
    *
    * @param \Drupal\Core\Entity\EntityTypeInterface $entity_type
    *   The entity type.
@@ -493,7 +503,7 @@ class EntityViewsData implements EntityHandlerInterface, EntityViewsDataInterfac
    *   The name of the base table in views.
    */
   protected function getViewsTableForEntityType(EntityTypeInterface $entity_type) {
-    return $entity_type->getBaseTable();
+    return $entity_type->getDataTable() ?: $entity_type->getBaseTable();
   }
 
 }

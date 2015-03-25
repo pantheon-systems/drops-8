@@ -8,6 +8,7 @@
 namespace Drupal\views\Plugin\views\argument;
 
 use Drupal\Component\Plugin\DependentPluginInterface;
+use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Component\Utility\String as UtilityString;
 use Drupal\Core\Form\FormStateInterface;
@@ -1095,7 +1096,7 @@ abstract class ArgumentPluginBase extends HandlerBase implements CacheablePlugin
           '#default_value' => isset($element['#default_value']) ? $element['#default_value'] : NULL,
           '#attributes' => $element['#attributes'],
           '#parents' => $element['#parents'],
-          '#id' => drupal_html_id('edit-' . implode('-', $parents_for_id)),
+          '#id' => Html::getUniqueId('edit-' . implode('-', $parents_for_id)),
           '#ajax' => isset($element['#ajax']) ? $element['#ajax'] : NULL,
         );
         $element[$key . '_options'] = array(
@@ -1207,7 +1208,7 @@ abstract class ArgumentPluginBase extends HandlerBase implements CacheablePlugin
     // By definition arguments depends on the URL.
     // @todo Once contexts are properly injected into block views we could pull
     //   the information from there.
-    $contexts[] = 'cache.context.url';
+    $contexts[] = 'url';
 
     // Asks all subplugins (argument defaults, argument validator and styles).
     if (($plugin = $this->getPlugin('argument_default')) && $plugin instanceof CacheablePluginInterface) {

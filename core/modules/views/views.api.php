@@ -183,7 +183,7 @@ function hook_views_data() {
     // for the other tables, given in their hook_views_data() implementations.
     // If the table listed here is from another module's hook_views_data()
     // implementation, make sure your module depends on that other module.
-    'node' => array(
+    'node_field_data' => array(
       // Primary key field in node to use in the join.
       'left_field' => 'nid',
       // Foreign key field in example_table to use in the join.
@@ -819,7 +819,7 @@ function hook_views_query_alter(ViewExecutable $view, QueryPluginBase $query) {
   // (Example assuming a view with an exposed filter on node title.)
   // If the input for the title filter is a positive integer, filter against
   // node ID instead of node title.
-  if ($view->name == 'my_view' && is_numeric($view->exposed_raw_input['title']) && $view->exposed_raw_input['title'] > 0) {
+  if ($view->id() == 'my_view' && is_numeric($view->exposed_raw_input['title']) && $view->exposed_raw_input['title'] > 0) {
     // Traverse through the 'where' part of the query.
     foreach ($query->where as &$condition_group) {
       foreach ($condition_group['conditions'] as &$condition) {

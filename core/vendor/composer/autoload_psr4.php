@@ -8,10 +8,13 @@ $baseDir = dirname($vendorDir);
 return array(
     'Symfony\\Cmf\\Component\\Routing\\' => array($vendorDir . '/symfony-cmf/routing'),
     'React\\Promise\\' => array($vendorDir . '/react/promise/src'),
+    'Masterminds\\' => array($vendorDir . '/masterminds/html5/src'),
     'GuzzleHttp\\Stream\\' => array($vendorDir . '/guzzlehttp/streams/src'),
     'GuzzleHttp\\Ring\\' => array($vendorDir . '/guzzlehttp/ringphp/src'),
     'GuzzleHttp\\' => array($vendorDir . '/guzzlehttp/guzzle/src'),
+    'Goutte\\' => array($vendorDir . '/fabpot/goutte/Goutte'),
     'Drupal\\Driver\\' => array($baseDir . '/../drivers/lib/Drupal/Driver'),
     'Drupal\\Core\\' => array($baseDir . '/lib/Drupal/Core'),
     'Drupal\\Component\\' => array($baseDir . '/lib/Drupal/Component'),
+    'Behat\\Mink\\' => array($vendorDir . '/behat/mink/src'),
 );

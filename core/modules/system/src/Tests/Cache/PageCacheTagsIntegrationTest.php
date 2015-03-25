@@ -7,9 +7,7 @@
 
 namespace Drupal\system\Tests\Cache;
 
-use Drupal\Core\Url;
 use Drupal\simpletest\WebTestBase;
-use Drupal\Core\Cache\Cache;
 
 /**
  * Enables the page cache and tests its cache tags in various scenarios.
@@ -21,6 +19,8 @@ use Drupal\Core\Cache\Cache;
  */
 class PageCacheTagsIntegrationTest extends WebTestBase {
 
+  use AssertPageCacheContextsAndTagsTrait;
+
   protected $profile = 'standard';
 
   protected $dumpHeaders = TRUE;
@@ -31,10 +31,7 @@ class PageCacheTagsIntegrationTest extends WebTestBase {
   protected function setUp() {
     parent::setUp();
 
-    $config = $this->config('system.performance');
-    $config->set('cache.page.use_internal', 1);
-    $config->set('cache.page.max_age', 300);
-    $config->save();
+    $this->enablePageCaching();
   }
 
   /**
@@ -70,8 +67,19 @@ class PageCacheTagsIntegrationTest extends WebTestBase {
       ),
     ));
 
+    $cache_contexts = [
+      'languages',
+      'route.menu_active_trails:account',
+      'route.menu_active_trails:footer',
+      'route.menu_active_trails:main',
+      'route.menu_active_trails:tools',
+      'theme',
+      'timezone',
+      'user.roles',
+    ];
+
     // Full node page 1.
-    $this->verifyPageCacheTags($node_1->urlInfo(), array(
+    $this->assertPageCacheContextsAndTags($node_1->urlInfo(), $cache_contexts, array(
       'rendered',
       'block_view',
       'config:block_list',
@@ -83,14 +91,7 @@ class PageCacheTagsIntegrationTest extends WebTestBase {
       'config:block.block.bartik_powered',
       'config:block.block.bartik_main_menu',
       'config:block.block.bartik_account_menu',
-      'block_plugin:system_breadcrumb_block',
-      'block_plugin:system_main_block',
-      'block_plugin:system_menu_block__account',
-      'block_plugin:system_menu_block__main',
-      'block_plugin:system_menu_block__tools',
-      'block_plugin:user_login_block',
-      'block_plugin:system_menu_block__footer',
-      'block_plugin:system_powered_by_block',
+      'config:block.block.bartik_messages',
       'node_view',
       'node:' . $node_1->id(),
       'user:' . $author_1->id(),
@@ -99,10 +100,11 @@ class PageCacheTagsIntegrationTest extends WebTestBase {
       'config:system.menu.tools',
       'config:system.menu.footer',
       'config:system.menu.main',
+      'config:system.site',
     ));
 
     // Full node page 2.
-    $this->verifyPageCacheTags($node_2->urlInfo(), array(
+    $this->assertPageCacheContextsAndTags($node_2->urlInfo(), $cache_contexts, array(
       'rendered',
       'block_view',
       'config:block_list',
@@ -115,15 +117,7 @@ class PageCacheTagsIntegrationTest extends WebTestBase {
       'config:block.block.bartik_powered',
       'config:block.block.bartik_main_menu',
       'config:block.block.bartik_account_menu',
-      'block_plugin:system_breadcrumb_block',
-      'block_plugin:system_main_block',
-      'block_plugin:system_menu_block__account',
-      'block_plugin:system_menu_block__main',
-      'block_plugin:system_menu_block__tools',
-      'block_plugin:user_login_block',
-      'block_plugin:views_block__comments_recent-block_1',
-      'block_plugin:system_menu_block__footer',
-      'block_plugin:system_powered_by_block',
+      'config:block.block.bartik_messages',
       'node_view',
       'node:' . $node_2->id(),
       'user:' . $author_2->id(),
@@ -132,36 +126,11 @@ class PageCacheTagsIntegrationTest extends WebTestBase {
       'config:system.menu.tools',
       'config:system.menu.footer',
       'config:system.menu.main',
+      'config:system.site',
+      'comment_list',
+      'node_list',
+      'config:views.view.comments_recent',
     ));
-  }
-
-  /**
-   * Fills page cache for the given path, verify cache tags on page cache hit.
-   *
-   * @param \Drupal\Core\Url $url
-   *   The url
-   * @param $expected_tags
-   *   The expected cache tags for the page cache entry of the given $path.
-   */
-  protected function verifyPageCacheTags(Url $url, $expected_tags) {
-    // @todo Change ->drupalGet() calls to just pass $url when
-    //   https://www.drupal.org/node/2350837 gets committed
-    sort($expected_tags);
-    $this->drupalGet($url->setAbsolute()->toString());
-    $this->assertEqual($this->drupalGetHeader('X-Drupal-Cache'), 'MISS');
-    $actual_tags = explode(' ', $this->drupalGetHeader('X-Drupal-Cache-Tags'));
-    sort($actual_tags);
-    $this->assertIdentical($actual_tags, $expected_tags);
-    $this->drupalGet($url->setAbsolute()->toString());
-    $actual_tags = explode(' ', $this->drupalGetHeader('X-Drupal-Cache-Tags'));
-    sort($actual_tags);
-    $this->assertEqual($this->drupalGetHeader('X-Drupal-Cache'), 'HIT');
-    $this->assertIdentical($actual_tags, $expected_tags);
-    $cid_parts = array($url->setAbsolute()->toString(), 'html');
-    $cid = implode(':', $cid_parts);
-    $cache_entry = \Drupal::cache('render')->get($cid);
-    sort($cache_entry->tags);
-    $this->assertEqual($cache_entry->tags, $expected_tags);
   }
 
 }

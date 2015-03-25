@@ -8,6 +8,7 @@
 namespace Drupal\views\Plugin\views\display;
 
 use Drupal\Component\Plugin\DependentPluginInterface;
+use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\String;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Cache\Cache;
@@ -117,6 +118,17 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
   protected static $unpackOptions = array();
 
   /**
+   * The display information coming directly from the view entity.
+   *
+   * @see \Drupal\views\Entity\View::getDisplay()
+   *
+   * @todo \Drupal\views\Entity\View::duplicateDisplayAsType directly access it.
+   *
+   * @var array
+   */
+  public $display;
+
+  /**
    * Constructs a new DisplayPluginBase object.
    *
    * Because DisplayPluginBase::initDisplay() takes the display configuration by
@@ -186,7 +198,7 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
         }
         else {
           $this->unpackOptions($this->options, $options);
-          \Drupal::cache('data')->set($cid, $this->options, Cache::PERMANENT, Cache::mergeTags(array('config:core.extension', 'extension:views'), $this->view->storage->getCacheTags()));
+          \Drupal::cache('data')->set($cid, $this->options, Cache::PERMANENT, $this->view->storage->getCacheTags());
         }
         static::$unpackOptions[$cid] = $this->options;
       }
@@ -1006,19 +1018,30 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
    * {@inheritdoc}
    */
   public function optionLink($text, $section, $class = '', $title = '') {
-    if (!empty($class)) {
-      $text = '<span>' . $text . '</span>';
-    }
-
     if (!trim($text)) {
       $text = $this->t('Broken field');
+    }
+
+    if (!empty($class)) {
+      $text = String::format('<span>@text</span>', array('@text' => $text));
     }
 
     if (empty($title)) {
       $title = $text;
     }
 
-    return \Drupal::l($text, new Url('views_ui.form_display', ['js' => 'nojs', 'view' => $this->view->storage->id(), 'display_id' => $this->display['id'], 'type' => $section], array('attributes' => array('class' => array('views-ajax-link', $class), 'title' => $title, 'id' => drupal_html_id('views-' . $this->display['id'] . '-' . $section)), 'html' => TRUE)));
+    return \Drupal::l($text, new Url('views_ui.form_display', array(
+        'js' => 'nojs',
+        'view' => $this->view->storage->id(),
+        'display_id' => $this->display['id'],
+        'type' => $section
+      ), array(
+        'attributes' => array(
+          'class' => array('views-ajax-link', $class),
+          'title' => $title,
+          'id' => Html::getUniqueId('views-' . $this->display['id'] . '-' . $section)
+        )
+    )));
   }
 
   /**
@@ -1101,12 +1124,12 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
       $options['display_id'] = array(
         'category' => 'other',
         'title' => $this->t('Machine Name'),
-        'value' => !empty($this->display['new_id']) ? String::checkPlain($this->display['new_id']) : String::checkPlain($this->display['id']),
+        'value' => !empty($this->display['new_id']) ? $this->display['new_id'] : $this->display['id'],
         'desc' => $this->t('Change the machine name of this display.'),
       );
     }
 
-    $display_comment = String::checkPlain(Unicode::substr($this->getOption('display_comment'), 0, 10));
+    $display_comment = Unicode::substr($this->getOption('display_comment'), 0, 10);
     $options['display_comment'] = array(
       'category' => 'other',
       'title' => $this->t('Administrative comment'),
@@ -1303,7 +1326,7 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
         $display_id = $this->getLinkDisplay();
         $displays = $this->view->storage->get('display');
         if (!empty($displays[$display_id])) {
-          $link_display = String::checkPlain($displays[$display_id]['display_title']);
+          $link_display = $displays[$display_id]['display_title'];
         }
       }
 
@@ -1344,7 +1367,7 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
       $options['exposed_form']['links']['exposed_form_options'] = $this->t('Exposed form settings for this exposed form style.');
     }
 
-    $css_class = String::checkPlain(trim($this->getOption('css_class')));
+    $css_class = trim($this->getOption('css_class'));
     if (!$css_class) {
       $css_class = $this->t('None');
     }
@@ -1596,7 +1619,7 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
         break;
       case 'rendering_language':
         $form['#title'] .= $this->t('Rendering language');
-        if ($this->isBaseTableTranslatable()) {
+        if (\Drupal::languageManager()->isMultilingual() && $this->isBaseTableTranslatable()) {
           $options = $this->buildRenderingLanguageOptions();
           $form['rendering_language'] = array(
             '#type' => 'select',
@@ -1607,7 +1630,7 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
           );
         }
         else {
-          $form['rendering_language']['#markup'] = $this->t("You don't have translatable entity types.");
+          $form['rendering_language']['#markup'] = $this->t('The view is not based on a translatable entity type or the site is not multilingual.');
         }
         break;
       case 'style':
@@ -2114,6 +2137,15 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
       '#post_render_cache' => &$this->view->element['#post_render_cache'],
     );
 
+    if (!isset($element['#cache'])) {
+      $element['#cache'] = [];
+    }
+    $element['#cache'] += ['tags' => []];
+
+    // If the output is a render array, add cache tags, regardless of whether
+    // caching is enabled or not; cache tags must always be set.
+    $element['#cache']['tags'] = Cache::mergeTags($element['#cache']['tags'], $this->view->getCacheTags());
+
     return $element;
   }
 
@@ -2280,8 +2312,10 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
       '#display_id' => $this->display['id'],
       '#arguments' => $args,
       '#embed' => FALSE,
-      '#pre_render' => [['\Drupal\views\Element\View', 'preRenderViewElement'], [$this, 'elementPreRender']],
       '#view' => $this->view,
+      '#cache' => [
+        'contexts' => isset($this->display['cache_metadata']['contexts']) ?  $this->display['cache_metadata']['contexts'] : [],
+      ],
     ];
   }
 
@@ -2325,6 +2359,14 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
 
       if (!$fields) {
         $errors[] = $this->t('Display "@display" uses fields but there are none defined for it or all are excluded.', array('@display' => $this->display['display_title']));
+      }
+    }
+
+    // Validate the more link.
+    if ($this->isMoreEnabled() && $this->getOption('link_display') !== 'custom_url') {
+      $routed_display = $this->getRoutedDisplay();
+      if (!$routed_display || !$routed_display->isEnabled()) {
+        $errors[] = $this->t('Display "@display" uses a "more" link but there are no displays it can link to. You need to specify a custom URL.', array('@display' => $this->display['display_title']));
       }
     }
 
@@ -2568,12 +2610,10 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
    */
   protected function isBaseTableTranslatable() {
     $view_base_table = $this->view->storage->get('base_table');
-    foreach (\Drupal::entityManager()->getDefinitions() as $entity_type) {
-      if ($entity_type->isTranslatable() && $base_table = $entity_type->getBaseTable()) {
-        if ($base_table === $view_base_table) {
-          return TRUE;
-        }
-      }
+    $views_data = Views::viewsData()->get($view_base_table);
+    if (!empty($views_data['table']['entity type'])) {
+      $entity_type_id = $views_data['table']['entity type'];
+      return \Drupal::entityManager()->getDefinition($entity_type_id)->isTranslatable();
     }
     return FALSE;
   }

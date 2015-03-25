@@ -27,6 +27,7 @@ use Drupal\Core\Site\Settings;
 use Drupal\Core\StreamWrapper\PublicStream;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\block\Entity\Block;
+use Drupal\node\Entity\NodeType;
 use Drupal\Core\Url;
 use Symfony\Component\HttpFoundation\Request;
 use Drupal\user\Entity\Role;
@@ -277,7 +278,7 @@ abstract class WebTestBase extends TestBase {
     if (!isset($values['type'])) {
       do {
         $id = strtolower($this->randomMachineName(8));
-      } while (node_type_load($id));
+      } while (NodeType::load($id));
     }
     else {
       $id = $values['type'];
@@ -859,9 +860,9 @@ abstract class WebTestBase extends TestBase {
       file_put_contents($directory . '/services.yml', $yaml->dump($services));
     }
     // Since Drupal is bootstrapped already, install_begin_request() will not
-    // bootstrap into DRUPAL_BOOTSTRAP_CONFIGURATION (again). Hence, we have to
-    // reload the newly written custom settings.php manually.
-    $class_loader = require DRUPAL_ROOT . '/core/vendor/autoload.php';
+    // bootstrap again. Hence, we have to reload the newly written custom
+    // settings.php manually.
+    $class_loader = require DRUPAL_ROOT . '/autoload.php';
     Settings::initialize(DRUPAL_ROOT, $this->siteDirectory, $class_loader);
 
     // Execute the non-interactive installer.
@@ -1138,10 +1139,10 @@ abstract class WebTestBase extends TestBase {
   /**
    * Rebuilds \Drupal::getContainer().
    *
-   * Use this to build a new kernel and service container. For example, when the
-   * list of enabled modules is changed via the internal browser, in which case
-   * the test process still contains an old kernel and service container with an
-   * old module list.
+   * Use this to update the test process's kernel with a new service container.
+   * For example, when the list of enabled modules is changed via the internal
+   * browser the test process's kernel has a service container with an out of
+   * date module list.
    *
    * @see TestBase::prepareEnvironment()
    * @see TestBase::restoreEnvironment()
@@ -1152,8 +1153,6 @@ abstract class WebTestBase extends TestBase {
    *   enabled modules to be immediately available in the same request.
    */
   protected function rebuildContainer() {
-    // Maintain the current global request object.
-    $request = \Drupal::request();
     // Rebuild the kernel and bring it back to a fully bootstrapped state.
     $this->container = $this->kernel->rebuildContainer();
 
@@ -1193,7 +1192,7 @@ abstract class WebTestBase extends TestBase {
    */
   protected function refreshVariables() {
     // Clear the tag cache.
-    \Drupal::service('cache_tags.invalidator.checksum')->reset();
+    \Drupal::service('cache_tags.invalidator')->resetChecksums();
     foreach (Cache::getBins() as $backend) {
       if (is_callable(array($backend, 'reset'))) {
         $backend->reset();
@@ -1505,6 +1504,10 @@ abstract class WebTestBase extends TestBase {
       $out = $new;
     }
 
+    if ($path instanceof Url) {
+      $path = $path->toString();
+    }
+
     $verbose = 'GET request to: ' . $path .
                '<hr />Ending URL: ' . $this->getUrl();
     if ($this->dumpHeaders) {
@@ -1696,6 +1699,9 @@ abstract class WebTestBase extends TestBase {
             $out = $new;
           }
 
+          if ($path instanceof Url) {
+            $path = $path->toString();
+          }
           $verbose = 'POST request to: ' . $path;
           $verbose .= '<hr />Ending URL: ' . $this->getUrl();
           if ($this->dumpHeaders) {
@@ -1893,8 +1899,12 @@ abstract class WebTestBase extends TestBase {
           if ($wrapperNode) {
             // ajax.js adds an enclosing DIV to work around a Safari bug.
             $newDom = new \DOMDocument();
+            // DOM can load HTML soup. But, HTML soup can throw warnings,
+            // suppress them.
             @$newDom->loadHTML('<div>' . $command['data'] . '</div>');
-            $newNode = $dom->importNode($newDom->documentElement->firstChild->firstChild, TRUE);
+            // Suppress warnings thrown when duplicate HTML IDs are encountered.
+            // This probably means we are replacing an element with the same ID.
+            $newNode = @$dom->importNode($newDom->documentElement->firstChild->firstChild, TRUE);
             $method = isset($command['method']) ? $command['method'] : $ajax_settings['method'];
             // The "method" is a jQuery DOM manipulation function. Emulate
             // each one using PHP's DOMNode API.
@@ -2728,4 +2738,16 @@ abstract class WebTestBase extends TestBase {
       return $this->getAbsoluteUrl($path);
     }
   }
+
+  /**
+   * Asserts whether an expected cache tag was present in the last response.
+   *
+   * @param string $expected_cache_tag
+   *   The expected cache tag.
+   */
+  protected function assertCacheTag($expected_cache_tag) {
+    $cache_tags = explode(' ', $this->drupalGetHeader('X-Drupal-Cache-Tags'));
+    $this->assertTrue(in_array($expected_cache_tag, $cache_tags));
+  }
+
 }

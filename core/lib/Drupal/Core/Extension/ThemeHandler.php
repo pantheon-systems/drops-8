@@ -14,7 +14,7 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\ConfigInstallerInterface;
 use Drupal\Core\Config\ConfigManagerInterface;
 use Drupal\Core\Config\PreExistingConfigException;
-use Drupal\Core\Routing\RouteBuilderIndicatorInterface;
+use Drupal\Core\Routing\RouteBuilderInterface;
 use Drupal\Core\State\StateInterface;
 use Psr\Log\LoggerInterface;
 
@@ -88,11 +88,11 @@ class ThemeHandler implements ThemeHandlerInterface {
   protected $logger;
 
   /**
-   * The route builder indicator to rebuild the routes if a theme is installed.
+   * The route builder to rebuild the routes if a theme is installed.
    *
-   * @var \Drupal\Core\Routing\RouteBuilderIndicatorInterface
+   * @var \Drupal\Core\Routing\RouteBuilderInterface
    */
-  protected $routeBuilderIndicator;
+  protected $routeBuilder;
 
   /**
    * An extension discovery instance.
@@ -145,13 +145,13 @@ class ThemeHandler implements ThemeHandlerInterface {
    *   database.
    * @param \Drupal\Core\Config\ConfigManagerInterface $config_manager
    *   The config manager used to uninstall a theme.
-   * @param \Drupal\Core\Routing\RouteBuilderIndicatorInterface $route_builder_indicator
-   *   (optional) The route builder indicator service to rebuild the routes if a
-   *   theme is installed.
+   * @param \Drupal\Core\Routing\RouteBuilderInterface $route_builder
+   *   (optional) The route builder service to rebuild the routes if a theme is
+   *   installed.
    * @param \Drupal\Core\Extension\ExtensionDiscovery $extension_discovery
    *   (optional) A extension discovery instance (for unit tests).
    */
-  public function __construct($root, ConfigFactoryInterface $config_factory, ModuleHandlerInterface $module_handler, StateInterface $state, InfoParserInterface $info_parser,LoggerInterface $logger, AssetCollectionOptimizerInterface $css_collection_optimizer = NULL, ConfigInstallerInterface $config_installer = NULL, ConfigManagerInterface $config_manager = NULL, RouteBuilderIndicatorInterface $route_builder_indicator = NULL, ExtensionDiscovery $extension_discovery = NULL) {
+  public function __construct($root, ConfigFactoryInterface $config_factory, ModuleHandlerInterface $module_handler, StateInterface $state, InfoParserInterface $info_parser,LoggerInterface $logger, AssetCollectionOptimizerInterface $css_collection_optimizer = NULL, ConfigInstallerInterface $config_installer = NULL, ConfigManagerInterface $config_manager = NULL, RouteBuilderInterface $route_builder = NULL, ExtensionDiscovery $extension_discovery = NULL) {
     $this->root = $root;
     $this->configFactory = $config_factory;
     $this->moduleHandler = $module_handler;
@@ -161,7 +161,7 @@ class ThemeHandler implements ThemeHandlerInterface {
     $this->cssCollectionOptimizer = $css_collection_optimizer;
     $this->configInstaller = $config_installer;
     $this->configManager = $config_manager;
-    $this->routeBuilderIndicator = $route_builder_indicator;
+    $this->routeBuilder = $route_builder;
     $this->extensionDiscovery = $extension_discovery;
   }
 
@@ -258,10 +258,7 @@ class ThemeHandler implements ThemeHandlerInterface {
 
       // Validate default configuration of the theme. If there is existing
       // configuration then stop installing.
-      $existing_configuration = $this->configInstaller->findPreExistingConfiguration('theme', $key);
-      if (!empty($existing_configuration)) {
-        throw PreExistingConfigException::create($key, $existing_configuration);
-      }
+      $this->configInstaller->checkConfigurationToInstall('theme', $key);
 
       // The value is not used; the weight is ignored for themes currently.
       $extension_config
@@ -288,16 +285,6 @@ class ThemeHandler implements ThemeHandlerInterface {
       // Only install default configuration if this theme has not been installed
       // already.
       if (!isset($installed_themes[$key])) {
-        // The default config installation storage only knows about the
-        // currently installed list of themes, so it has to be reset in order to
-        // pick up the default config of the newly installed theme. However, do
-        // not reset the source storage when synchronizing configuration, since
-        // that would needlessly trigger a reload of the whole configuration to
-        // be imported.
-        if (!$this->configInstaller->isSyncing()) {
-          $this->configInstaller->resetSourceStorage();
-        }
-
         // Install default configuration of the theme.
         $this->configInstaller->installDefaultConfig('theme', $key);
       }
@@ -465,6 +452,7 @@ class ThemeHandler implements ThemeHandlerInterface {
         'secondary_menu' => 'Secondary menu',
         'footer' => 'Footer',
         'highlighted' => 'Highlighted',
+        'messages' => 'Messages',
         'help' => 'Help',
         'page_top' => 'Page top',
         'page_bottom' => 'Page bottom',
@@ -623,8 +611,8 @@ class ThemeHandler implements ThemeHandlerInterface {
    * Resets some other systems like rebuilding the route information or caches.
    */
   protected function resetSystem() {
-    if ($this->routeBuilderIndicator) {
-      $this->routeBuilderIndicator->setRebuildNeeded();
+    if ($this->routeBuilder) {
+      $this->routeBuilder->setRebuildNeeded();
     }
     $this->systemListReset();
 

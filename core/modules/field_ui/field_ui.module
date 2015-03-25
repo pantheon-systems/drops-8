@@ -11,6 +11,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Entity\EntityViewModeInterface;
+use Drupal\Core\Entity\EntityFormModeInterface;
 use Drupal\Core\Url;
 use Drupal\field_ui\FieldUI;
 use Drupal\field_ui\Plugin\Derivative\FieldUiLocalTask;
@@ -71,17 +72,6 @@ function field_ui_entity_type_build(array &$entity_types) {
   $entity_types['field_storage_config']->setLinkTemplate('collection', '/admin/reports/fields');
   $entity_types['entity_form_display']->setFormClass('edit', 'Drupal\field_ui\Form\EntityFormDisplayEditForm');
   $entity_types['entity_view_display']->setFormClass('edit', 'Drupal\field_ui\Form\EntityViewDisplayEditForm');
-
-  foreach ($entity_types as $entity_type) {
-    if ($bundle = $entity_type->getBundleOf()) {
-      // To generate links in the UI we use the route names, so we don't have to
-      // know the exact required routes.
-      // This allows us to not require route information inside this hook, which
-      // otherwise could result in circular dependencies.
-      $entity_type
-        ->setLinkTemplate('field_ui-fields', "/admin/{$entity_type->id()}/fields");
-    }
-  }
 }
 
 /**
@@ -90,7 +80,7 @@ function field_ui_entity_type_build(array &$entity_types) {
 function field_ui_entity_bundle_create($entity_type, $bundle) {
   // When a new bundle is created, the menu needs to be rebuilt to add our
   // menu item tabs.
-  \Drupal::service('router.builder_indicator')->setRebuildNeeded();
+  \Drupal::service('router.builder')->setRebuildNeeded();
 }
 
 /**
@@ -99,7 +89,7 @@ function field_ui_entity_bundle_create($entity_type, $bundle) {
 function field_ui_entity_bundle_rename($entity_type, $bundle_old, $bundle_new) {
   // When a bundle is renamed, the menu needs to be rebuilt to add our
   // menu item tabs.
-  \Drupal::service('router.builder_indicator')->setRebuildNeeded();
+  \Drupal::service('router.builder')->setRebuildNeeded();
 }
 
 /**
@@ -130,21 +120,22 @@ function field_ui_entity_operation(EntityInterface $entity) {
   $info = $entity->getEntityType();
   // Add manage fields and display links if this entity type is the bundle
   // of another and that type has field UI enabled.
-  $entity_manager = \Drupal::entityManager();
-  if (($bundle_of = $info->getBundleOf()) && $entity_manager->getDefinition($bundle_of)->get('field_ui_base_route')) {
+  if (($bundle_of = $info->getBundleOf()) && \Drupal::entityManager()->getDefinition($bundle_of)->get('field_ui_base_route')) {
     $account = \Drupal::currentUser();
     if ($account->hasPermission('administer '. $bundle_of . ' fields')) {
       $operations['manage-fields'] = array(
         'title' => t('Manage fields'),
         'weight' => 15,
-        'url' => $entity->urlInfo('field_ui-fields'),
+        'url' => Url::fromRoute("entity.{$bundle_of}.field_ui_fields", array(
+          $entity->getEntityTypeId() => $entity->id(),
+        )),
       );
     }
     if ($account->hasPermission('administer '. $bundle_of . ' form display')) {
       $operations['manage-form-display'] = array(
         'title' => t('Manage form display'),
         'weight' => 20,
-        'url' => Url::fromRoute("entity.entity_form_display.{$entity->getEntityTypeId()}.default", array(
+        'url' => Url::fromRoute("entity.entity_form_display.{$bundle_of}.default", array(
           $entity->getEntityTypeId() => $entity->id(),
         )),
       );
@@ -153,7 +144,7 @@ function field_ui_entity_operation(EntityInterface $entity) {
       $operations['manage-display'] = array(
         'title' => t('Manage display'),
         'weight' => 25,
-        'url' => Url::fromRoute("entity.entity_view_display.{$entity->getEntityTypeId()}.default", array(
+        'url' => Url::fromRoute("entity.entity_view_display.{$bundle_of}.default", array(
           $entity->getEntityTypeId() => $entity->id(),
         )),
       );
@@ -175,17 +166,31 @@ function field_ui_form_node_type_form_submit($form, FormStateInterface $form_sta
 }
 
 /**
- * Implements hook_view_mode_presave().
+ * Implements hook_entity_view_mode_presave().
  */
-function field_ui_view_mode_presave(EntityViewModeInterface $view_mode) {
-  \Drupal::service('router.builder_indicator')->setRebuildNeeded();
+function field_ui_entity_view_mode_presave(EntityViewModeInterface $view_mode) {
+  \Drupal::service('router.builder')->setRebuildNeeded();
 }
 
 /**
- * Implements hook_view_mode_delete().
+ * Implements hook_entity_form_mode_presave().
  */
-function field_ui_view_mode_delete(EntityViewModeInterface $view_mode) {
-  \Drupal::service('router.builder_indicator')->setRebuildNeeded();
+function field_ui_entity_form_mode_presave(EntityFormModeInterface $form_mode) {
+  \Drupal::service('router.builder')->setRebuildNeeded();
+}
+
+/**
+ * Implements hook_entity_view_mode_delete().
+ */
+function field_ui_entity_view_mode_delete(EntityViewModeInterface $view_mode) {
+  \Drupal::service('router.builder')->setRebuildNeeded();
+}
+
+/**
+ * Implements hook_entity_form_mode_delete().
+ */
+function field_ui_entity_form_mode_delete(EntityFormModeInterface $form_mode) {
+  \Drupal::service('router.builder')->setRebuildNeeded();
 }
 
 /**

@@ -7,12 +7,10 @@ global-styling:
       css/base/print.css: {}
     component:
       css/components/admin-list.css: {}
-      css/components/admin-panel.css: {}
       css/components/block-recent-content.css: {}
       css/components/content-header.css: {}
       css/components/breadcrumb.css: {}
       css/components/buttons.css: {}
-      css/components/buttons.theme.css: {}
       css/components/colors.css: {}
       css/components/messages.css: {}
       css/components/dropbutton.component.css: {}
@@ -25,6 +23,7 @@ global-styling:
       css/components/node.css: {}
       css/components/page-title.css: {}
       css/components/pager.css: {}
+      css/components/panel.css: {}
       css/components/skip-link.css: {}
       css/components/tables.css: {}
       css/components/tabs.css: {}

@@ -19,7 +19,11 @@ use Drupal\editor\Entity\Editor as EditorEntity;
  *   label = @Translation("Unicorn Editor"),
  *   supports_content_filtering = TRUE,
  *   supports_inline_editing = TRUE,
- *   is_xss_safe = FALSE
+ *   is_xss_safe = FALSE,
+ *   supported_element_types = {
+ *     "textarea",
+ *     "textfield",
+ *   }
  * )
  */
 class UnicornEditor extends EditorBase {

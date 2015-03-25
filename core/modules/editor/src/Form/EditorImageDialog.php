@@ -60,7 +60,7 @@ class EditorImageDialog extends FormBase {
     }
     $max_filesize = min(Bytes::toInt($image_upload['max_size']), file_upload_max_size());
 
-    $existing_file = isset($image_element['data-entity-uuid']) ? entity_load_by_uuid('file', $image_element['data-entity-uuid']) : NULL;
+    $existing_file = isset($image_element['data-entity-uuid']) ? \Drupal::entityManager()->loadEntityByUuid('file', $image_element['data-entity-uuid']) : NULL;
     $fid = $existing_file ? $existing_file->id() : NULL;
 
     $form['fid'] = array(
@@ -227,7 +227,7 @@ class EditorImageDialog extends FormBase {
     if ($form_state->getErrors()) {
       unset($form['#prefix'], $form['#suffix']);
       $form['status_messages'] = [
-        '#theme' => 'status_messages',
+        '#type' => 'status_messages',
         '#weight' => -10,
       ];
       $response->addCommand(new HtmlCommand('#editor-image-dialog-form', $form));

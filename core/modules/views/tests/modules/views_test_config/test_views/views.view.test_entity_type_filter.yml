@@ -1,4 +1,4 @@
-langcode: und
+langcode: en
 status: true
 dependencies:
   module:
@@ -8,7 +8,7 @@ label: ''
 module: views
 description: ''
 tag: ''
-base_table: node
+base_table: node_field_data
 base_field: nid
 core: '8'
 display:
@@ -21,9 +21,10 @@ display:
       fields:
         nid:
           id: nid
-          table: node
+          table: node_field_data
           field: nid
           relationship: none
+          plugin_id: field
           entity_type: node
           entity_field: nid
         type:

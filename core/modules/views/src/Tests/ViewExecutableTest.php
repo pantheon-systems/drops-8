@@ -8,6 +8,7 @@
 namespace Drupal\views\Tests;
 
 use Drupal\comment\Tests\CommentTestTrait;
+use Drupal\views\Entity\View;
 use Drupal\views\Views;
 use Drupal\views\ViewExecutable;
 use Drupal\views\ViewExecutableFactory;
@@ -83,7 +84,7 @@ class ViewExecutableTest extends ViewUnitTestBase {
     $this->installEntitySchema('node');
     $this->installEntitySchema('comment');
     $this->installSchema('comment', array('comment_entity_statistics'));
-    $this->installConfig(array('field'));
+    $this->installConfig(array('system', 'field', 'node', 'comment'));
 
     entity_create('node_type', array(
       'type' => 'page',
@@ -349,7 +350,7 @@ class ViewExecutableTest extends ViewUnitTestBase {
     $reflection = new \ReflectionClass($view);
     $defaults = $reflection->getDefaultProperties();
     // The storage and user should remain.
-    unset($defaults['storage'], $defaults['user'], $defaults['request']);
+    unset($defaults['storage'], $defaults['user'], $defaults['request'], $defaults['routeProvider']);
 
     foreach ($defaults as $property => $default) {
       $this->assertIdentical($this->getProtectedProperty($view, $property), $default);
@@ -434,6 +435,51 @@ class ViewExecutableTest extends ViewUnitTestBase {
     $validate_deleted = $view->validate();
 
     $this->assertNotIdentical($validate, $validate_deleted, 'Master display has not been validated.');
+  }
+
+  /**
+   * Tests that nested loops of the display handlers won't break validation.
+   */
+  public function testValidateNestedLoops() {
+    $view = View::create(['id' => 'test_validate_nested_loops']);
+    $executable = $view->getExecutable();
+
+    $executable->newDisplay('display_test');
+    $executable->newDisplay('display_test');
+    $errors = $executable->validate();
+    $total_error_count = array_reduce($errors, function ($carry, $item) {
+      $carry += count($item);
+
+      return $carry;
+    });
+    // Assert that there were 9 total errors across 3 displays.
+    $this->assertIdentical(9, $total_error_count);
+    $this->assertIdentical(3, count($errors));
+  }
+
+  /**
+   * Tests serialization of the ViewExecutable object.
+   */
+  public function testSerialization() {
+    $view = Views::getView('test_executable_displays');
+    $view->setDisplay('page_1');
+    $view->setArguments(['test']);
+    $view->setCurrentPage(2);
+
+    $serialized = serialize($view);
+
+    // Test the view storage object is not present in the actual serialized
+    // string.
+    $this->assertIdentical(strpos($serialized, '"Drupal\views\Entity\View"'), FALSE, 'The Drupal\views\Entity\View class was not found in the serialized string.');
+
+    /** @var \Drupal\views\ViewExecutable $unserialized */
+    $unserialized = unserialize($serialized);
+
+    $this->assertTrue($unserialized instanceof ViewExecutable);
+    $this->assertIdentical($view->storage->id(), $unserialized->storage->id(), 'The expected storage entity was loaded on the unserialized view.');
+    $this->assertIdentical($unserialized->current_display, 'page_1', 'The expected display was set on the unserialized view.');
+    $this->assertIdentical($unserialized->args, ['test'], 'The expected argument was set on the unserialized view.');
+    $this->assertIdentical($unserialized->getCurrentPage(), 2, 'The expected current page was set on the unserialized view.');
   }
 
 }

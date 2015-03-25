@@ -487,7 +487,6 @@ function template_preprocess_views_view_table(&$variables) {
         $query['order'] = $field;
         $query['sort'] = $initial;
         $link_options = array(
-          'html' => TRUE,
           'attributes' => array('title' => $title),
           'query' => $query,
         );
@@ -517,7 +516,7 @@ function template_preprocess_views_view_table(&$variables) {
           $variables['header'][$field]['content'] = '<' . $element_label_type . '>' . $variables['header'][$field]['content'] . '</' . $element_label_type . '>';
         }
         // Improves accessibility of complex tables.
-        $variables['header'][$field]['attributes']['id'] = drupal_html_id('view-' . $field . '-table-column');
+        $variables['header'][$field]['attributes']['id'] = Html::getUniqueId('view-' . $field . '-table-column');
       }
       // Check if header label is not empty.
       if (!empty($variables['header'][$field]['content'])) {

@@ -70,8 +70,8 @@ views.argument_default.node:
   type: sequence
   label: 'Content ID from URL'
   sequence:
-    - type: string
-      label: 'Nid'
+    type: string
+    label: 'Nid'
 
 views.argument_validator.node:
   type: mapping
@@ -81,8 +81,8 @@ views.argument_validator.node:
       type: sequence
       label: 'Content types'
       sequence:
-        - type: string
-          label: 'Type'
+        type: string
+        label: 'Type'
     access:
       type: boolean
       label: 'Validate user has access to the content'
@@ -92,14 +92,6 @@ views.argument_validator.node:
     nid_type:
       type: string
       label: 'Filter value format'
-
-views.field.node_language:
-  type: views.field.node
-  label: 'Node language'
-  mapping:
-    native_language:
-      type: boolean
-      label: 'Native language'
 
 views.field.node:
   type: views_field
@@ -204,8 +196,8 @@ views.filter.node_uid_revision:
       type: sequence
       label: 'Values'
       sequence:
-        - type: string
-          label: 'Value'
+        type: string
+        label: 'Value'
     expose:
       type: mapping
       label: 'Expose'

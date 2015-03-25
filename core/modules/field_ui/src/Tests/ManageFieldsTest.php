@@ -31,9 +31,9 @@ class ManageFieldsTest extends WebTestBase {
   public static $modules = array('node', 'field_ui', 'field_test', 'taxonomy', 'image', 'block');
 
   /**
-   * A custom content type created for testing.
+   * The ID of the custom content type created for testing.
    *
-   * @var \Drupal\node\Entity\NodeType
+   * @var string
    */
   protected $contentType;
 
@@ -151,11 +151,29 @@ class ManageFieldsTest extends WebTestBase {
     $this->assertLink('Add field');
 
     // Assert entity operations for all fields.
-    $result = $this->xpath('//ul[@class = "dropbutton"]/li/a');
+    $number_of_links = 3;
+    $number_of_links_found = 0;
+    $operation_links = $this->xpath('//ul[@class = "dropbutton"]/li/a');
     $url = base_path() . "admin/structure/types/manage/$type/fields/node.$type.body";
-    $this->assertIdentical($url, (string) $result[0]['href']);
-    $this->assertIdentical("$url/storage", (string) $result[1]['href']);
-    $this->assertIdentical("$url/delete", (string) $result[2]['href']);
+
+    foreach ($operation_links as $link) {
+      switch ($link['title']) {
+        case 'Edit field settings.':
+          $this->assertIdentical($url, (string) $link['href']);
+          $number_of_links_found++;
+          break;
+        case 'Edit storage settings.':
+          $this->assertIdentical("$url/storage", (string) $link['href']);
+          $number_of_links_found++;
+          break;
+        case 'Delete field.':
+          $this->assertIdentical("$url/delete", (string) $link['href']);
+          $number_of_links_found++;
+          break;
+      }
+    }
+
+    $this->assertEqual($number_of_links, $number_of_links_found);
   }
 
   /**
@@ -663,4 +681,34 @@ class ManageFieldsTest extends WebTestBase {
     $this->assertText($this->fieldName, 'Field name is displayed in field list.');
     $this->assertTrue($this->assertLinkByHref('admin/structure/types/manage/' . $this->contentType . '/fields'), 'Link to content type using field is displayed in field list.');
   }
+
+  /**
+   * Tests the "preconfigured field" functionality.
+   *
+   * @see \Drupal\Core\Field\PreconfiguredFieldUiOptionsInterface
+   */
+  public function testPreconfiguredFields() {
+    $this->drupalGet('admin/structure/types/manage/article/fields/add-field');
+
+    // Check that the preconfigured field option exist alongside the regular
+    // field type option.
+    $this->assertOption('edit-new-storage-type', 'field_ui:test_field_with_preconfigured_options:custom_options');
+    $this->assertOption('edit-new-storage-type', 'test_field_with_preconfigured_options');
+
+    // Add a field with every possible preconfigured value.
+    $this->fieldUIAddNewField(NULL, 'test_custom_options', 'Test label', 'field_ui:test_field_with_preconfigured_options:custom_options');
+    $field_storage = FieldStorageConfig::loadByName('node', 'field_test_custom_options');
+    $this->assertEqual($field_storage->getCardinality(), FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED);
+    $this->assertEqual($field_storage->getSetting('test_field_storage_setting'), 'preconfigured_storage_setting');
+
+    $field = FieldConfig::loadByName('node', 'article', 'field_test_custom_options');
+    $this->assertTrue($field->isRequired());
+    $this->assertEqual($field->getSetting('test_field_setting'), 'preconfigured_field_setting');
+
+    $form_display = entity_get_form_display('node', 'article', 'default');
+    $this->assertEqual($form_display->getComponent('field_test_custom_options')['type'], 'test_field_widget_multiple');
+    $view_display = entity_get_display('node', 'article', 'default');
+    $this->assertEqual($view_display->getComponent('field_test_custom_options')['type'], 'field_test_multiple');
+  }
+
 }

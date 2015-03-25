@@ -12,6 +12,7 @@ use Drupal\comment\Tests\CommentTestTrait;
 use Drupal\Component\Utility\Html;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field_ui\Tests\FieldUiTestTrait;
+use Drupal\user\RoleInterface;
 
 /**
  * Tests the file field widget, single and multi-valued, with and without AJAX,
@@ -221,7 +222,7 @@ class FileFieldWidgetTest extends FileFieldTestBase {
   function testPrivateFileSetting() {
     $node_storage = $this->container->get('entity.manager')->getStorage('node');
     // Grant the admin user required permissions.
-    user_role_grant_permissions($this->admin_user->roles[0]->target_id, array('administer node fields'));
+    user_role_grant_permissions($this->adminUser->roles[0]->target_id, array('administer node fields'));
 
     $type_name = 'article';
     $field_name = strtolower($this->randomMachineName());
@@ -261,13 +262,13 @@ class FileFieldWidgetTest extends FileFieldTestBase {
     $user = $this->drupalCreateUser(array('access comments'));
 
     // Grant the admin user required comment permissions.
-    $roles = $this->admin_user->getRoles();
+    $roles = $this->adminUser->getRoles();
     user_role_grant_permissions($roles[1], array('administer comment fields', 'administer comments'));
 
     // Revoke access comments permission from anon user, grant post to
     // authenticated.
-    user_role_revoke_permissions(DRUPAL_ANONYMOUS_RID, array('access comments'));
-    user_role_grant_permissions(DRUPAL_AUTHENTICATED_RID, array('post comments', 'skip comment approval'));
+    user_role_revoke_permissions(RoleInterface::ANONYMOUS_ID, array('access comments'));
+    user_role_grant_permissions(RoleInterface::AUTHENTICATED_ID, array('post comments', 'skip comment approval'));
 
     // Create a new field.
     $this->addDefaultCommentField('node', 'article');
@@ -317,7 +318,7 @@ class FileFieldWidgetTest extends FileFieldTestBase {
     $this->assertResponse(403, 'Confirmed that access is denied for the file without the needed permission.');
 
     // Unpublishes node.
-    $this->drupalLogin($this->admin_user);
+    $this->drupalLogin($this->adminUser);
     $this->drupalPostForm('node/' . $node->id() . '/edit', array(), t('Save and unpublish'));
 
     // Ensures normal user can no longer download the file.

@@ -318,6 +318,20 @@ abstract class Connection implements \Serializable {
   }
 
   /**
+   * Get a fully qualified table name.
+   *
+   * @param string $table
+   *   The name of the table in question.
+   *
+   * @return string
+   */
+  public function getFullQualifiedTableName($table) {
+    $options = $this->getConnectionOptions();
+    $prefix = $this->tablePrefix($table);
+    return $options['database'] . '.' . $prefix . $table;
+  }
+
+  /**
    * Prepares a query string and returns the prepared statement.
    *
    * This method caches prepared statements, reusing them when
@@ -922,7 +936,7 @@ abstract class Connection implements \Serializable {
     // in question has already been accidentally committed.
     if (!isset($this->transactionLayers[$savepoint_name])) {
       throw new TransactionNoActiveException();
-     }
+    }
 
     // We need to find the point we're rolling back to, all other savepoints
     // before are no longer needed. If we rolled back other active savepoints,
@@ -1259,8 +1273,9 @@ abstract class Connection implements \Serializable {
    */
   public function serialize() {
     $connection = clone $this;
-    // Don't serialize the PDO connection and other lazy-instantiated members.
-    unset($connection->connection, $connection->schema, $connection->driverClasses);
+    // Don't serialize the PDO connection as well as everything else which
+    // depends on settings.php.
+    unset($connection->connection, $connection->connectionOptions, $connection->schema, $connection->prefixes, $connection->prefixReplace, $connection->driverClasses);
     return serialize(get_object_vars($connection));
   }
 
@@ -1272,6 +1287,8 @@ abstract class Connection implements \Serializable {
     foreach ($data as $key => $value) {
       $this->{$key} = $value;
     }
+    $this->connectionOptions = Database::getConnectionInfo($this->key)[$this->target];
+
     // Re-establish the PDO connection using the original options.
     $this->connection = static::open($this->connectionOptions);
 
@@ -1279,6 +1296,8 @@ abstract class Connection implements \Serializable {
     if (!empty($this->statementClass)) {
       $this->connection->setAttribute(\PDO::ATTR_STATEMENT_CLASS, array($this->statementClass, array($this)));
     }
+
+    $this->setPrefix(isset($this->connectionOptions['prefix']) ? $this->connectionOptions['prefix'] : '');
   }
 
 }

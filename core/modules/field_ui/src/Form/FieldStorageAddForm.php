@@ -38,14 +38,6 @@ class FieldStorageAddForm extends FormBase {
   protected $bundle;
 
   /**
-   * The name of the entity type which provides bundles for the entity type
-   * defined above.
-   *
-   * @var string
-   */
-  protected $bundleEntityTypeId;
-
-  /**
    * The entity manager.
    *
    * @var \Drupal\Core\Entity\EntityManager
@@ -62,7 +54,7 @@ class FieldStorageAddForm extends FormBase {
   /**
    * The query factory to create entity queries.
    *
-   * @var \Drupal\Core\Entity\Query\QueryFactoryInterface
+   * @var \Drupal\Core\Entity\Query\QueryFactory
    */
   public $queryFactory;
 
@@ -80,10 +72,10 @@ class FieldStorageAddForm extends FormBase {
    *   The entity manager.
    * @param \Drupal\Core\Field\FieldTypePluginManagerInterface $field_type_plugin_manager
    *   The field type plugin manager.
-   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
-   *   The configuration factory.
    * @param \Drupal\Core\Entity\Query\QueryFactory $query_factory
    *   The entity query factory.
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
+   *   The configuration factory.
    */
   public function __construct(EntityManagerInterface $entity_manager, FieldTypePluginManagerInterface $field_type_plugin_manager, QueryFactory $query_factory, ConfigFactoryInterface $config_factory) {
     $this->entityManager = $entity_manager;
@@ -115,14 +107,10 @@ class FieldStorageAddForm extends FormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state, $entity_type_id = NULL, $bundle = NULL) {
-    $entity_type = $this->entityManager->getDefinition($entity_type_id);
-    $this->bundleEntityTypeId = $entity_type->getBundleEntityType();
-
     if (!$form_state->get('entity_type_id')) {
       $form_state->set('entity_type_id', $entity_type_id);
     }
     if (!$form_state->get('bundle')) {
-      $bundle = $bundle ?: $this->getRouteMatch()->getRawParameter($this->bundleEntityTypeId);
       $form_state->set('bundle', $bundle);
     }
 
@@ -131,13 +119,11 @@ class FieldStorageAddForm extends FormBase {
 
     // Gather valid field types.
     $field_type_options = array();
-    foreach ($this->fieldTypePluginManager->getDefinitions() as $name => $field_type) {
-      // Skip field types which should not be added via user interface.
-      if (empty($field_type['no_ui'])) {
-        $field_type_options[$name] = $field_type['label'];
+    foreach ($this->fieldTypePluginManager->getGroupedDefinitions($this->fieldTypePluginManager->getUiDefinitions()) as $category => $field_types) {
+      foreach ($field_types as $name => $field_type) {
+        $field_type_options[$category][$name] = $field_type['label'];
       }
     }
-    asort($field_type_options);
 
     $form['add'] = array(
       '#type' => 'container',
@@ -323,47 +309,79 @@ class FieldStorageAddForm extends FormBase {
     $values = $form_state->getValues();
     $destinations = array();
     $entity_type = $this->entityManager->getDefinition($this->entityTypeId);
-    $bundle_entity_type = FieldUI::getRouteBundleEntityType($entity_type);
 
     // Create new field.
     if ($values['new_storage_type']) {
+      $field_storage_values = [
+        'field_name' => $values['field_name'],
+        'entity_type' => $this->entityTypeId,
+        'type' => $values['new_storage_type'],
+        'translatable' => $values['translatable'],
+      ];
+      $field_values = [
+        'field_name' => $values['field_name'],
+        'entity_type' => $this->entityTypeId,
+        'bundle' => $this->bundle,
+        'label' => $values['label'],
+        // Field translatability should be explicitly enabled by the users.
+        'translatable' => FALSE,
+      ];
+      $widget_id = $formatter_id = NULL;
+
+      // Check if we're dealing with a preconfigured field.
+      if (strpos($field_storage_values['type'], 'field_ui:') !== FALSE) {
+        list(, $field_type, $option_key) = explode(':', $field_storage_values['type'], 3);
+        $field_storage_values['type'] = $field_type;
+
+        $field_type_class = $this->fieldTypePluginManager->getDefinition($field_type)['class'];
+        $field_options = $field_type_class::getPreconfiguredOptions()[$option_key];
+
+        // Merge in preconfigured field storage options.
+        if (isset($field_options['field_storage_config'])) {
+          foreach (array('cardinality', 'settings') as $key) {
+            if (isset($field_options['field_storage_config'][$key])) {
+              $field_storage_values[$key] = $field_options['field_storage_config'][$key];
+            }
+          }
+        }
+
+        // Merge in preconfigured field options.
+        if (isset($field_options['field_config'])) {
+          foreach (array('required', 'settings') as $key) {
+            if (isset($field_options['field_config'][$key])) {
+              $field_values[$key] = $field_options['field_config'][$key];
+            }
+          }
+        }
+
+        $widget_id = isset($field_options['entity_form_display']['type']) ? $field_options['entity_form_display']['type'] : NULL;
+        $formatter_id = isset($field_options['entity_view_display']['type']) ? $field_options['entity_view_display']['type'] : NULL;
+      }
+
       // Create the field storage and field.
       try {
-        $this->entityManager->getStorage('field_storage_config')->create(array(
-          'field_name' => $values['field_name'],
-          'entity_type' => $this->entityTypeId,
-          'type' => $values['new_storage_type'],
-          'translatable' => $values['translatable'],
-        ))->save();
-
-        $field = $this->entityManager->getStorage('field_config')->create(array(
-          'field_name' => $values['field_name'],
-          'entity_type' => $this->entityTypeId,
-          'bundle' => $this->bundle,
-          'label' => $values['label'],
-          // Field translatability should be explicitly enabled by the users.
-          'translatable' => FALSE,
-        ));
+        $this->entityManager->getStorage('field_storage_config')->create($field_storage_values)->save();
+        $field = $this->entityManager->getStorage('field_config')->create($field_values);
         $field->save();
 
-        $this->configureEntityDisplays($values['field_name']);
+        $this->configureEntityFormDisplay($values['field_name'], $widget_id);
+        $this->configureEntityViewDisplay($values['field_name'], $formatter_id);
 
         // Always show the field settings step, as the cardinality needs to be
         // configured for new fields.
         $route_parameters = array(
-          $this->bundleEntityTypeId => $this->bundle,
           'field_config' => $field->id(),
-        );
+        ) + FieldUI::getRouteBundleParameter($entity_type, $this->bundle);
         $destinations[] = array('route_name' => "entity.field_config.{$this->entityTypeId}_storage_edit_form", 'route_parameters' => $route_parameters);
         $destinations[] = array('route_name' => "entity.field_config.{$this->entityTypeId}_field_edit_form", 'route_parameters' => $route_parameters);
-        $destinations[] = array('route_name' => "entity.{$bundle_entity_type}.field_ui_fields", 'route_parameters' => $route_parameters);
+        $destinations[] = array('route_name' => "entity.{$this->entityTypeId}.field_ui_fields", 'route_parameters' => $route_parameters);
 
         // Store new field information for any additional submit handlers.
         $form_state->set(['fields_added', '_add_new_field'], $values['field_name']);
       }
       catch (\Exception $e) {
         $error = TRUE;
-        drupal_set_message($this->t('There was a problem creating field %label: !message', array('%label' => $values['label'], '!message' => $e->getMessage())), 'error');
+        drupal_set_message($this->t('There was a problem creating field %label: @message', array('%label' => $values['label'], '@message' => $e->getMessage())), 'error');
       }
     }
 
@@ -380,21 +398,21 @@ class FieldStorageAddForm extends FormBase {
         ));
         $field->save();
 
-        $this->configureEntityDisplays($field_name);
+        $this->configureEntityFormDisplay($field_name);
+        $this->configureEntityViewDisplay($field_name);
 
         $route_parameters = array(
-          $this->bundleEntityTypeId => $this->bundle,
           'field_config' => $field->id(),
-        );
+        ) + FieldUI::getRouteBundleParameter($entity_type, $this->bundle);
         $destinations[] = array('route_name' => "entity.field_config.{$this->entityTypeId}_field_edit_form", 'route_parameters' => $route_parameters);
-        $destinations[] = array('route_name' => "entity.{$bundle_entity_type}.field_ui_fields", 'route_parameters' => $route_parameters);
+        $destinations[] = array('route_name' => "entity.{$this->entityTypeId}.field_ui_fields", 'route_parameters' => $route_parameters);
 
         // Store new field information for any additional submit handlers.
         $form_state->set(['fields_added', '_add_existing_field'], $field_name);
       }
       catch (\Exception $e) {
         $error = TRUE;
-        drupal_set_message($this->t('There was a problem creating field %label: !message', array('%label' => $values['label'], '!message' => $e->getMessage())), 'error');
+        drupal_set_message($this->t('There was a problem creating field %label: @message', array('%label' => $values['label'], '@message' => $e->getMessage())), 'error');
       }
     }
 
@@ -413,20 +431,34 @@ class FieldStorageAddForm extends FormBase {
    *
    * @param string $field_name
    *   The field name.
+   * @param string|null $widget_id
+   *   (optional) The plugin ID of the widget. Defaults to NULL.
    */
-  protected function configureEntityDisplays($field_name) {
+  protected function configureEntityFormDisplay($field_name, $widget_id = NULL) {
     // Make sure the field is displayed in the 'default' form mode (using
     // default widget and settings). It stays hidden for other form modes
     // until it is explicitly configured.
+    $options = $widget_id ? ['type' => $widget_id] : [];
     entity_get_form_display($this->entityTypeId, $this->bundle, 'default')
-      ->setComponent($field_name)
+      ->setComponent($field_name, $options)
       ->save();
+  }
 
+  /**
+   * Configures the newly created field for the default view and form modes.
+   *
+   * @param string $field_name
+   *   The field name.
+   * @param string|null $formatter_id
+   *   (optional) The plugin ID of the formatter. Defaults to NULL.
+   */
+  protected function configureEntityViewDisplay($field_name, $formatter_id = NULL) {
     // Make sure the field is displayed in the 'default' view mode (using
     // default formatter and settings). It stays hidden for other view
     // modes until it is explicitly configured.
+    $options = $formatter_id ? ['type' => $formatter_id] : [];
     entity_get_display($this->entityTypeId, $this->bundle, 'default')
-      ->setComponent($field_name)
+      ->setComponent($field_name, $options)
       ->save();
   }
 

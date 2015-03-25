@@ -18,8 +18,8 @@ use Drupal\block_content\BlockContentInterface;
  *
  * @ContentEntityType(
  *   id = "block_content",
- *   label = @Translation("Custom Block"),
- *   bundle_label = @Translation("Custom Block type"),
+ *   label = @Translation("Custom block"),
+ *   bundle_label = @Translation("Custom block type"),
  *   handlers = {
  *     "storage" = "Drupal\Core\Entity\Sql\SqlContentEntityStorage",
  *     "storage_schema" = "Drupal\block_content\BlockContentStorageSchema",
@@ -167,6 +167,7 @@ class BlockContent extends ContentEntityBase implements BlockContentInterface {
     $fields['langcode'] = BaseFieldDefinition::create('language')
       ->setLabel(t('Language'))
       ->setDescription(t('The custom block language code.'))
+      ->setTranslatable(TRUE)
       ->setRevisionable(TRUE)
       ->setDisplayOptions('view', array(
         'type' => 'hidden',

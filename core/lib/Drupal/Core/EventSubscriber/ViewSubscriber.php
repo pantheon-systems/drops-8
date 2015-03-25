@@ -16,8 +16,6 @@ use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\HttpKernel\Event\GetResponseForControllerResultEvent;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
-use Drupal\Core\ContentNegotiation;
-
 /**
  * Main subscriber for VIEW HTTP responses.
  *
@@ -28,30 +26,19 @@ use Drupal\Core\ContentNegotiation;
 class ViewSubscriber implements EventSubscriberInterface {
 
   /**
-   * The content negotiation.
-   *
-   * @var \Drupal\Core\ContentNegotiation
-   */
-  protected $negotiation;
-
-  /**
    * The title resolver.
    *
    * @var \Drupal\Core\Controller\TitleResolverInterface
    */
   protected $titleResolver;
 
-
   /**
    * Constructs a new ViewSubscriber.
    *
-   * @param \Drupal\Core\ContentNegotiation $negotiation
-   *   The content negotiation.
    * @param \Drupal\Core\Controller\TitleResolverInterface $title_resolver
    *   The title resolver.
    */
-  public function __construct(ContentNegotiation $negotiation, TitleResolverInterface $title_resolver) {
-    $this->negotiation = $negotiation;
+  public function __construct(TitleResolverInterface $title_resolver) {
     $this->titleResolver = $title_resolver;
   }
 
@@ -64,14 +51,14 @@ class ViewSubscriber implements EventSubscriberInterface {
    * from an JSON-type response is a JSON string, so just wrap it into a
    * Response object.
    *
-   * @param Symfony\Component\HttpKernel\Event\GetResponseForControllerResultEvent $event
+   * @param \Symfony\Component\HttpKernel\Event\GetResponseForControllerResultEvent $event
    *   The Event to process.
    */
   public function onView(GetResponseForControllerResultEvent $event) {
     $request = $event->getRequest();
 
     if ($event->getRequestType() == HttpKernelInterface::MASTER_REQUEST) {
-      $method = 'on' . $this->negotiation->getContentType($request);
+      $method = 'on' . $request->getRequestFormat();
 
       if (method_exists($this, $method)) {
         $event->setResponse($this->$method($event));
@@ -89,20 +76,6 @@ class ViewSubscriber implements EventSubscriberInterface {
     $response->setData($page_callback_result);
 
     return $response;
-  }
-
-  public function onIframeUpload(GetResponseForControllerResultEvent $event) {
-    $response = $event->getResponse();
-
-    // Browser IFRAMEs expect HTML. Browser extensions, such as Linkification
-    // and Skype's Browser Highlighter, convert URLs, phone numbers, etc. into
-    // links. This corrupts the JSON response. Protect the integrity of the
-    // JSON data by making it the value of a textarea.
-    // @see http://malsup.com/jquery/form/#file-upload
-    // @see http://drupal.org/node/1009382
-    $html = '<textarea>' . $response->getContent() . '</textarea>';
-
-    return new Response($html);
   }
 
   /**

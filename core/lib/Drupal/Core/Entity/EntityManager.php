@@ -372,13 +372,13 @@ class EntityManager extends DefaultPluginManager implements EntityManagerInterfa
     if (!isset($this->baseFieldDefinitions[$entity_type_id])) {
       // Not prepared, try to load from cache.
       $cid = 'entity_base_field_definitions:' . $entity_type_id . ':' . $this->languageManager->getCurrentLanguage()->getId();
-      if ($cache = $this->cacheBackend->get($cid)) {
+      if ($cache = $this->cacheGet($cid)) {
         $this->baseFieldDefinitions[$entity_type_id] = $cache->data;
       }
       else {
         // Rebuild the definitions and put it into the cache.
         $this->baseFieldDefinitions[$entity_type_id] = $this->buildBaseFieldDefinitions($entity_type_id);
-        $this->cacheBackend->set($cid, $this->baseFieldDefinitions[$entity_type_id], Cache::PERMANENT, array('entity_types', 'entity_field_info'));
+        $this->cacheSet($cid, $this->baseFieldDefinitions[$entity_type_id], Cache::PERMANENT, array('entity_types', 'entity_field_info'));
        }
      }
     return $this->baseFieldDefinitions[$entity_type_id];
@@ -401,14 +401,35 @@ class EntityManager extends DefaultPluginManager implements EntityManagerInterfa
   protected function buildBaseFieldDefinitions($entity_type_id) {
     $entity_type = $this->getDefinition($entity_type_id);
     $class = $entity_type->getClass();
+    $keys = array_filter($entity_type->getKeys());
 
     // Fail with an exception for non-fieldable entity types.
     if (!$entity_type->isSubclassOf('\Drupal\Core\Entity\FieldableEntityInterface')) {
       throw new \LogicException(String::format('Getting the base fields is not supported for entity type @type.', array('@type' => $entity_type->getLabel())));
     }
 
-    // Retrieve base field definitions and assign them the entity type provider.
+    // Retrieve base field definitions.
+    /** @var FieldStorageDefinitionInterface[] $base_field_definitions */
     $base_field_definitions = $class::baseFieldDefinitions($entity_type);
+
+    // Make sure translatable entity types are correctly defined.
+    if ($entity_type->isTranslatable()) {
+      // The langcode field should always be translatable if the entity type is.
+      if (isset($keys['langcode']) && isset($base_field_definitions[$keys['langcode']])) {
+        $base_field_definitions[$keys['langcode']]->setTranslatable(TRUE);
+      }
+      // A default_langcode field should always be defined.
+      if (!isset($base_field_definitions[$keys['default_langcode']])) {
+        $base_field_definitions[$keys['default_langcode']] = BaseFieldDefinition::create('boolean')
+          ->setLabel($this->t('Default translation'))
+          ->setDescription($this->t('A flag indicating whether this is the default translation.'))
+          ->setTranslatable(TRUE)
+          ->setRevisionable(TRUE)
+          ->setDefaultValue(TRUE);
+      }
+    }
+
+    // Assign base field definitions the entity type provider.
     $provider = $entity_type->getProvider();
     foreach ($base_field_definitions as $definition) {
       // @todo Remove this check once FieldDefinitionInterface exposes a proper
@@ -450,15 +471,32 @@ class EntityManager extends DefaultPluginManager implements EntityManagerInterfa
 
     // Ensure defined entity keys are there and have proper revisionable and
     // translatable values.
-    $keys = array_filter($entity_type->getKeys());
-    foreach ($keys as $key => $field_name) {
-      if (isset($base_field_definitions[$field_name]) && in_array($key, array('id', 'revision', 'uuid', 'bundle')) && $base_field_definitions[$field_name]->isRevisionable()) {
-        throw new \LogicException(String::format('The @field field cannot be revisionable as it is used as @key entity key.', array('@field' => $base_field_definitions[$field_name]->getLabel(), '@key' => $key)));
+    foreach (array_intersect_key($keys, array_flip(['id', 'revision', 'uuid', 'bundle'])) as $key => $field_name) {
+      if (!isset($base_field_definitions[$field_name])) {
+        throw new \LogicException(String::format('The @field field definition does not exist and it is used as @key entity key.', array(
+          '@field' => $base_field_definitions[$field_name]->getLabel(),
+          '@key' => $key,
+        )));
       }
-      if (isset($base_field_definitions[$field_name]) && in_array($key, array('id', 'revision', 'uuid', 'bundle', 'langcode')) && $base_field_definitions[$field_name]->isTranslatable()) {
-        throw new \LogicException(String::format('The @field field cannot be translatable as it is used as @key entity key.', array('@field' => $base_field_definitions[$field_name]->getLabel(), '@key' => $key)));
+      if ($base_field_definitions[$field_name]->isRevisionable()) {
+        throw new \LogicException(String::format('The @field field cannot be revisionable as it is used as @key entity key.', array(
+          '@field' => $base_field_definitions[$field_name]->getLabel(),
+          '@key' => $key,
+        )));
+      }
+      if ($base_field_definitions[$field_name]->isTranslatable()) {
+        throw new \LogicException(String::format('The @field field cannot be translatable as it is used as @key entity key.', array(
+          '@field' => $base_field_definitions[$field_name]->getLabel(),
+          '@key' => $key,
+        )));
       }
     }
+
+    // Make sure translatable entity types define the "langcode" field properly.
+    if ($entity_type->isTranslatable() && (!isset($keys['langcode']) || !isset($base_field_definitions[$keys['langcode']]) || !$base_field_definitions[$keys['langcode']]->isTranslatable())) {
+      throw new \LogicException(String::format('The @entity_type entity type cannot be translatable as it does not define a translatable "langcode" field.', array('@entity_type' => $entity_type->getLabel())));
+    }
+
     return $base_field_definitions;
   }
 
@@ -470,13 +508,13 @@ class EntityManager extends DefaultPluginManager implements EntityManagerInterfa
       $base_field_definitions = $this->getBaseFieldDefinitions($entity_type_id);
       // Not prepared, try to load from cache.
       $cid = 'entity_bundle_field_definitions:' . $entity_type_id . ':' . $bundle . ':' . $this->languageManager->getCurrentLanguage()->getId();
-      if ($cache = $this->cacheBackend->get($cid)) {
+      if ($cache = $this->cacheGet($cid)) {
         $bundle_field_definitions = $cache->data;
       }
       else {
         // Rebuild the definitions and put it into the cache.
         $bundle_field_definitions = $this->buildBundleFieldDefinitions($entity_type_id, $bundle, $base_field_definitions);
-        $this->cacheBackend->set($cid, $bundle_field_definitions, Cache::PERMANENT, array('entity_types', 'entity_field_info'));
+        $this->cacheSet($cid, $bundle_field_definitions, Cache::PERMANENT, array('entity_types', 'entity_field_info'));
       }
       // Field definitions consist of the bundle specific overrides and the
       // base fields, merge them together. Use array_replace() to replace base
@@ -578,13 +616,13 @@ class EntityManager extends DefaultPluginManager implements EntityManagerInterfa
       }
       // Not prepared, try to load from cache.
       $cid = 'entity_field_storage_definitions:' . $entity_type_id . ':' . $this->languageManager->getCurrentLanguage()->getId();
-      if ($cache = $this->cacheBackend->get($cid)) {
+      if ($cache = $this->cacheGet($cid)) {
         $field_storage_definitions = $cache->data;
       }
       else {
         // Rebuild the definitions and put it into the cache.
         $field_storage_definitions = $this->buildFieldStorageDefinitions($entity_type_id);
-        $this->cacheBackend->set($cid, $field_storage_definitions, Cache::PERMANENT, array('entity_types', 'entity_field_info'));
+        $this->cacheSet($cid, $field_storage_definitions, Cache::PERMANENT, array('entity_types', 'entity_field_info'));
       }
       $this->fieldStorageDefinitions[$entity_type_id] += $field_storage_definitions;
     }
@@ -598,7 +636,7 @@ class EntityManager extends DefaultPluginManager implements EntityManagerInterfa
     if (!$this->fieldMap) {
       // Not prepared, try to load from cache.
       $cid = 'entity_field_map';
-      if ($cache = $this->cacheBackend->get($cid)) {
+      if ($cache = $this->cacheGet($cid)) {
         $this->fieldMap = $cache->data;
       }
       else {
@@ -614,7 +652,7 @@ class EntityManager extends DefaultPluginManager implements EntityManagerInterfa
           }
         }
 
-        $this->cacheBackend->set($cid, $this->fieldMap, Cache::PERMANENT, array('entity_types', 'entity_field_info'));
+        $this->cacheSet($cid, $this->fieldMap, Cache::PERMANENT, array('entity_types', 'entity_field_info'));
       }
     }
     return $this->fieldMap;
@@ -717,7 +755,7 @@ class EntityManager extends DefaultPluginManager implements EntityManagerInterfa
   public function getAllBundleInfo() {
     if (empty($this->bundleInfo)) {
       $langcode = $this->languageManager->getCurrentLanguage()->getId();
-      if ($cache = $this->cacheBackend->get("entity_bundle_info:$langcode")) {
+      if ($cache = $this->cacheGet("entity_bundle_info:$langcode")) {
         $this->bundleInfo = $cache->data;
       }
       else {
@@ -738,7 +776,7 @@ class EntityManager extends DefaultPluginManager implements EntityManagerInterfa
           }
         }
         $this->moduleHandler->alter('entity_bundle_info', $this->bundleInfo);
-        $this->cacheBackend->set("entity_bundle_info:$langcode", $this->bundleInfo, Cache::PERMANENT, array('entity_types', 'entity_bundles'));
+        $this->cacheSet("entity_bundle_info:$langcode", $this->bundleInfo, Cache::PERMANENT, array('entity_types', 'entity_bundles'));
       }
     }
 
@@ -758,7 +796,7 @@ class EntityManager extends DefaultPluginManager implements EntityManagerInterfa
     // hook_entity_extra_field_info_alter() might contain t() calls, we cache
     // per language.
     $cache_id = 'entity_bundle_extra_fields:' . $entity_type_id . ':' . $bundle . ':' . $this->languageManager->getCurrentLanguage()->getId();
-    $cached = $this->cacheBackend->get($cache_id);
+    $cached = $this->cacheGet($cache_id);
     if ($cached) {
       $this->extraFields[$entity_type_id][$bundle] = $cached->data;
       return $this->extraFields[$entity_type_id][$bundle];
@@ -774,7 +812,7 @@ class EntityManager extends DefaultPluginManager implements EntityManagerInterfa
 
     // Store in the 'static' and persistent caches.
     $this->extraFields[$entity_type_id][$bundle] = $info;
-    $this->cacheBackend->set($cache_id, $info, Cache::PERMANENT, array(
+    $this->cacheSet($cache_id, $info, Cache::PERMANENT, array(
       'entity_field_info',
     ));
 
@@ -886,7 +924,7 @@ class EntityManager extends DefaultPluginManager implements EntityManagerInterfa
       $key = 'entity_' . $display_type . '_info';
       $entity_type_id = 'entity_' . $display_type;
       $langcode = $this->languageManager->getCurrentLanguage(LanguageInterface::TYPE_INTERFACE)->getId();
-      if ($cache = $this->cacheBackend->get("$key:$langcode")) {
+      if ($cache = $this->cacheGet("$key:$langcode")) {
         $this->displayModeInfo[$display_type] = $cache->data;
       }
       else {
@@ -896,7 +934,7 @@ class EntityManager extends DefaultPluginManager implements EntityManagerInterfa
           $this->displayModeInfo[$display_type][$display_mode_entity_type][$display_mode_name] = $display_mode->toArray();
         }
         $this->moduleHandler->alter($key, $this->displayModeInfo[$display_type]);
-        $this->cacheBackend->set("$key:$langcode", $this->displayModeInfo[$display_type], CacheBackendInterface::CACHE_PERMANENT, array('entity_types', 'entity_field_info'));
+        $this->cacheSet("$key:$langcode", $this->displayModeInfo[$display_type], CacheBackendInterface::CACHE_PERMANENT, array('entity_types', 'entity_field_info'));
       }
     }
 
@@ -1204,6 +1242,19 @@ class EntityManager extends DefaultPluginManager implements EntityManagerInterfa
    */
   public function getLastInstalledDefinition($entity_type_id) {
     return $this->installedDefinitions->get($entity_type_id . '.entity_type');
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function useCaches($use_caches = FALSE) {
+    parent::useCaches($use_caches);
+    if (!$use_caches) {
+      $this->handlers = [];
+      $this->fieldDefinitions = [];
+      $this->baseFieldDefinitions = [];
+      $this->fieldStorageDefinitions = [];
+    }
   }
 
   /**

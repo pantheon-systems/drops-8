@@ -127,7 +127,7 @@ class UserListBuilder extends EntityListBuilder {
     $row['status'] = $entity->isActive() ? $this->t('active') : $this->t('blocked');
 
     $roles = array_map('\Drupal\Component\Utility\String::checkPlain', user_role_names(TRUE));
-    unset($roles[DRUPAL_AUTHENTICATED_RID]);
+    unset($roles[RoleInterface::AUTHENTICATED_ID]);
     $users_roles = array();
     foreach ($entity->getRoles() as $role) {
       if (isset($roles[$role])) {
@@ -164,7 +164,7 @@ class UserListBuilder extends EntityListBuilder {
   public function render() {
     $build['accounts'] = parent::render();
     $build['accounts']['#empty'] = $this->t('No people available.');
-    $build['pager']['#theme'] = 'pager';
+    $build['pager']['#type'] = 'pager';
     return $build;
   }
 

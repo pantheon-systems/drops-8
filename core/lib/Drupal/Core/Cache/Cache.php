@@ -22,6 +22,26 @@ class Cache {
   const PERMANENT = CacheBackendInterface::CACHE_PERMANENT;
 
   /**
+   * Merges arrays of cache contexts and removes duplicates.
+   *
+   * @param string[] …
+   *   Arrays of cache contexts to merge.
+   *
+   * @return string[]
+   *   The merged array of cache contexts.
+   */
+  public static function mergeContexts() {
+    $cache_context_arrays = func_get_args();
+    $cache_contexts = [];
+    foreach ($cache_context_arrays as $contexts) {
+      $cache_contexts = array_merge($cache_contexts, $contexts);
+    }
+    $cache_contexts = array_unique($cache_contexts);
+    sort($cache_contexts);
+    return $cache_contexts;
+  }
+
+  /**
    * Merges arrays of cache tags and removes duplicates.
    *
    * The cache tags array is returned in a format that is valid for
@@ -48,6 +68,36 @@ class Cache {
     $cache_tags = array_unique($cache_tags);
     sort($cache_tags);
     return $cache_tags;
+  }
+
+  /**
+   * Merges max-age values (expressed in seconds), finds the lowest max-age.
+   *
+   * Ensures infinite max-age (Cache::PERMANENT) is taken into account.
+   *
+   * @param int …
+   *   Max-age values.
+   *
+   * @return int
+   *   The minimum max-age value.
+   */
+  public static function mergeMaxAges() {
+    $max_ages = func_get_args();
+
+    // Filter out all max-age values set to cache permanently.
+    if (in_array(Cache::PERMANENT, $max_ages)) {
+      $max_ages = array_filter($max_ages, function ($max_age) {
+        return $max_age !== Cache::PERMANENT;
+      });
+
+      // If nothing is left, then all max-age values were set to cache
+      // permanently, and then that is the result.
+      if (empty($max_ages)) {
+        return Cache::PERMANENT;
+      }
+    }
+
+    return min($max_ages);
   }
 
   /**

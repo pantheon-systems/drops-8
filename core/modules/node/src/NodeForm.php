@@ -108,11 +108,6 @@ class NodeForm extends ContentEntityForm {
 
     $current_user = $this->currentUser();
 
-    // Override the default CSS class name, since the user-defined node type
-    // name in 'TYPE-node-form' potentially clashes with third-party class
-    // names.
-    $form['#attributes']['class'][0] = Html::getClass('node-' . $node->getType() . '-form');
-
     // Changed must be sent to the client, for later overwrite error checking.
     $form['changed'] = array(
       '#type' => 'hidden',
@@ -292,13 +287,13 @@ class NodeForm extends ContentEntityForm {
    * {@inheritdoc}
    */
   public function validate(array $form, FormStateInterface $form_state) {
-    $node = $this->buildEntity($form, $form_state);
+    $node = parent::validate($form, $form_state);
 
     if ($node->id() && (node_last_changed($node->id(), $this->getFormLangcode($form_state)) > $node->getChangedTime())) {
       $form_state->setErrorByName('changed', $this->t('The content on this page has either been modified by another user, or you have already submitted modifications using this form. As a result, your changes cannot be saved.'));
     }
 
-    parent::validate($form, $form_state);
+    return $node;
   }
 
   /**
