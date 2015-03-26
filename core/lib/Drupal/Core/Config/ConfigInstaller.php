@@ -610,7 +610,7 @@ class ConfigInstaller implements ConfigInstallerInterface {
   protected function drupalGetProfile() {
     // Settings is safe to use because settings.php is written before any module
     // is installed.
-    return Settings::get('install_profile');
+    return Settings::get('install_profile') ? Settings::get('install_profile') : 'standard';
   }
 
   /**
