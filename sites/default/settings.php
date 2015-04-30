@@ -39,8 +39,10 @@ if (isset($_SERVER['PRESSFLOW_SETTINGS'])) {
  * Issue: https://github.com/pantheon-systems/drops-8/issues/3
  *
  */
-
-// This change has been made in index.php
+if (isset($_SERVER['PRESSFLOW_SETTINGS']) && ($_SERVER['SCRIPT_NAME'] != '/core/install.php') && (!is_dir(__DIR__ . '/files/css'))) {
+  include_once __DIR__ . '/../../core/includes/install.inc';
+  install_goto('core/install.php');
+}
 
 /**
  * Override the $databases variable to pass the correct Database credentials
